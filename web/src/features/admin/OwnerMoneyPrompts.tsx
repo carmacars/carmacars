@@ -40,12 +40,13 @@ export function FirstLastPaid({ p }: { p: Prompt }) {
   const [on, setOn] = useState(today);
   const [ref, setRef] = useState('');
   const [note, setNote] = useState('');
+  const [receipt, setReceipt] = useState(false);
   const [keep, setKeep] = useState<Record<string, 'keep' | 'void'>>(() => Object.fromEntries(drafts.map((x) => [x.invoice_id, 'keep'])));
   const [msg, setMsg] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const tid = `todo-act-${p.key}`;
   const submit = () => {
-    const body: Record<string, unknown> = { owner_id: p.owner_id, method, received_on: on, reference: ref || null, note: note || null,
+    const body: Record<string, unknown> = { owner_id: p.owner_id, method, received_on: on, reference: ref || null, note: note || null, receipt,
       drafts: Object.entries(keep).map(([invoice_id, action]) => ({ invoice_id, action })) };
     if (mode === 'total') {
       const t = cents(total);
@@ -70,7 +71,7 @@ export function FirstLastPaid({ p }: { p: Prompt }) {
         <div className="gd-dialog__head"><h2 className="d4" id={`${idp}-t`}>First and last month paid by {p.owner}</h2>
           <button className="btn btn--quiet btn--sm" type="button" onClick={() => dlg.current?.close()}>Close</button></div>
         <form className="ad-form" noValidate onSubmit={(e) => { e.preventDefault(); submit(); }}>
-          <p className="small">Type what they really paid, tax included. Each car gets its first and last month invoice marked paid, the owner gets the receipt, and the two prepaid months count on their monthly invoices.</p>
+          <p className="small">Type what they really paid, tax included. Each car gets its first and last month invoice marked paid (no invoice email; the owner gets a receipt only if you tick it below), and the two prepaid months count on their monthly invoices.</p>
           <fieldset className="gd-cars"><legend className="pt-kicker">Amount</legend>
             <label className="check"><input type="radio" name={`${idp}-mode`} checked={mode === 'car'} onChange={() => setMode('car')} /> <span>Per car</span></label>
             <label className="check"><input type="radio" name={`${idp}-mode`} checked={mode === 'total'} onChange={() => setMode('total')} data-testid={`${tid}-total-mode`} /> <span>One total for several cars (split evenly)</span></label>
@@ -106,6 +107,7 @@ export function FirstLastPaid({ p }: { p: Prompt }) {
               <label className="check"><input type="radio" name={`${idp}-${x.invoice_id}`} checked={keep[x.invoice_id] === 'keep'} onChange={() => setKeep((s) => ({ ...s, [x.invoice_id]: 'keep' }))} /> <span>Keep it (send or change it later)</span></label>
               <label className="check"><input type="radio" name={`${idp}-${x.invoice_id}`} checked={keep[x.invoice_id] === 'void'} onChange={() => setKeep((s) => ({ ...s, [x.invoice_id]: 'void' }))} data-testid={`${tid}-draft-void`} /> <span>Void it (replaced by what they paid)</span></label>
             </fieldset>))}
+          <label className="check"><input type="checkbox" checked={receipt} onChange={(e) => setReceipt(e.target.checked)} data-testid={`${tid}-receipt`} /> <span>Email the owner a receipt</span></label>
           {msg && <p className="alert alert--error" role="alert"><span>{msg}</span></p>}
           <div className="row"><button className="btn btn--primary btn--sm" type="submit" disabled={pending} data-testid={`${tid}-submit`}>{pending ? 'Recording' : 'Record as paid'}</button>
             <button className="btn btn--ghost btn--sm" type="button" onClick={() => dlg.current?.close()}>Cancel</button></div>

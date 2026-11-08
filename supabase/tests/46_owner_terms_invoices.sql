@@ -75,13 +75,13 @@ create function test.ot_inv(p_type text) returns owner_invoices language sql sta
 select test.eq('approve: the Vehicle Schedule has the exact terms agreed, the first and last amount included',
   (select s.insurance_fee_cents || '/' || s.tracker_fee_cents || '/' || s.revenue_share_bps || '/' || s.first_last_cents from vehicle_schedules s where s.vehicle_id = test.ot_car() and s.superseded_by is null),
   '38000/2000/3000/70000');
-select test.eq('approve: first and last recorded as paid by e-Transfer: paid, $791.00, the two prepaid months held, no invoice email, the receipt',
+select test.eq('approve: first and last recorded as paid by e-Transfer: paid, $791.00, the two prepaid months held, no invoice email, no receipt email (0780: ticked only when asked)',
   (test.ot_inv('first_last')).status || '/' || (test.ot_inv('first_last')).total_cents || '/'
   || (select string_agg(kind || ':' || amount_cents, ',' order by kind) from vehicle_prepaids where vehicle_id = test.ot_car()) || '/'
   || (select count(*) from app_events where entity_id = (test.ot_inv('first_last')).id and code = 'owner_upfront_invoice') || '/'
   || (select count(*) from manual_payments m where m.owner_invoice_id = (test.ot_inv('first_last')).id and m.method = 'e_transfer' and m.reference = 'CAxOT123') || '/'
   || (select count(*) from app_events where code = 'owner_payment_recorded' and payload ->> 'owner_invoice_id' = (test.ot_inv('first_last')).id::text),
-  'paid/79100/first_month_insurance:35000,last_month_insurance:35000/0/1/1');
+  'paid/79100/first_month_insurance:35000,last_month_insurance:35000/0/1/0');
 select test.eq('approve: the registration fee to the exact cent, sent: $123.45 plus HST $16.05, its own email, due in 7 days',
   (test.ot_inv('registration')).status || '/' || (test.ot_inv('registration')).fees_cents || '/' || (test.ot_inv('registration')).hst_cents || '/'
   || (select count(*) from app_events where entity_id = (test.ot_inv('registration')).id and code = 'owner_invoice_issued') || '/'

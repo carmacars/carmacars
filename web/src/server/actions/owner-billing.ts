@@ -9,6 +9,7 @@ import { sha256Hex } from '@/server/links';
 import { requestMeta } from '@/server/request';
 import { fileScheduleChangeCopy } from '@/server/signing/certified';
 import type { EsignReady } from '@/features/signing/types';
+import { outsidePayment } from '@/features/owner-billing/paid-outside';
 
 // Negotiated terms, owner invoices, the Approve step and cars staff add for an owner (migration 0067). Every call goes
 // through the staff door; the database decides who may do what (Admins; customer service and fleet add cars) and
@@ -113,6 +114,22 @@ export async function saveDraft(d: DraftInput, paths: string[] = []) {
 }
 // email false: issued without the invoice email (0067's quiet issue), for a bill the owner already paid outside the platform
 export async function issueInvoice(id: string, paths: string[] = [], email = true) { return act('owner_invoice_issue', email ? { id } : { id, quiet: true }, ['/admin/owner-money', ...paths]); }
+// "Already paid outside the platform" (0780): a draft is issued without the email, then the payment is recorded; the owner gets no
+// receipt email unless asked (receipt true). One call; the invoice stays issued if the payment is refused, so it can be retried.
+export async function payInvoiceOutside(id: string, input: { method: string; received_on: string; reference: string; note: string; amount: string; receipt: boolean }, status: string, paths: string[] = []): Promise<R<{ invoice_status: string | null; balance_cents: number | null }>> {
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const v = outsidePayment(input, today);
+  if (!v.ok) return invalid(v.errors);
+  try {
+    const { user, aal } = await me();
+    if (status === 'draft') await door(user.id, 'ops_do', 'owner_invoice_issue', { id, quiet: true }, aal);
+    const r = await door<{ invoice_status: string | null; balance_cents: number | null }>(user.id, 'ops_do', 'manual_payment_record', {
+      invoice: id, method: v.payment.method, reference: v.payment.reference, received_on: v.payment.received_on, amount_cents: v.payment.amount_cents,
+      note: v.payment.note, receipt: input.receipt }, aal);
+    again([...paths, '/admin/owner-money', '/admin/owners', '/staff/money']);
+    return { ok: true, data: { invoice_status: r.invoice_status ?? null, balance_cents: r.balance_cents ?? null } };
+  } catch (e) { return fail(e); }
+}
 export async function voidInvoice(id: string, reason: string, reissue: boolean, paths: string[] = []) {
   if (!reason.trim()) return invalid({ reason: 'Give the reason. The owner reads it.' });
   return act<{ replacement_id: string | null; replacement_number: string | null }>('owner_invoice_void', { id, reason: reason.trim(), reissue }, ['/admin/owner-money', ...paths]);

@@ -1,3 +1,4 @@
+import { otherUploads } from '@/features/admin/doc-split';
 import Link from '@/components/Link';
 import { notFound } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
@@ -59,6 +60,14 @@ export default async function Verify({ params }: { params: Promise<{ number: str
           {!forDriver(dr.driver_id).length && <p className="small muted">Nothing uploaded for this driver yet.</p>}
         </Card>
       ))}
+      {otherUploads(v.uploads, v.drivers).length > 0 && (
+        <Card title="Other documents" testId="va-other-docs">
+          <p className="small muted">Not tied to a driver on this booking. Approve all counts them.</p>
+          <div className="ad-cols ad-cols--3">{otherUploads(v.uploads, v.drivers).map((u) => (
+            <div key={u.id}><p className="pt-kicker">{label(u.kind)} <Badge s={u.status === 'submitted' ? 'needs_review' : u.status} /></p>
+              {u.status === 'submitted' && links.get(u.id) ? <VerifyUpload id={u.id} kind={u.kind} src={links.get(u.id)!} pdf={u.mime_type === 'application/pdf'} /> : <p className="small muted">Decided.</p>}</div>))}
+          </div>
+        </Card>)}
       {!sales && <Card title={`Coverage${v.coverage_option ? `, option ${v.coverage_option}` : ''}`} testId="va-coverage">
         {cov && <Kv rows={[
           ['Option', cov.option_label], ['Confirmed', cov.confirmed ? 'Yes' : 'Not yet: the car is not handed over until it is'], ['Return', cov.return_date],

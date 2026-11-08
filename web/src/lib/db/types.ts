@@ -3182,6 +3182,7 @@ export type Database = {
           heard_about: string | null;
           return_link_token: string;
           return_state: string | null;
+          superseded_by: string | null;
         };
         Insert: {
           id?: string;
@@ -3361,6 +3362,7 @@ export type Database = {
           heard_about?: string | null;
           return_link_token?: string;
           return_state?: string | null;
+          superseded_by?: string | null;
         };
         Update: {
           id?: string;
@@ -3540,6 +3542,7 @@ export type Database = {
           heard_about?: string | null;
           return_link_token?: string;
           return_state?: string | null;
+          superseded_by?: string | null;
         };
         Relationships: [];
       };
@@ -5831,6 +5834,8 @@ export type Database = {
           note: string | null;
           created_by: string | null;
           created_at: string;
+          reason_code: string | null;
+          reason_note: string | null;
         };
         Insert: {
           id?: string;
@@ -5842,6 +5847,8 @@ export type Database = {
           note?: string | null;
           created_by?: string | null;
           created_at?: string;
+          reason_code?: string | null;
+          reason_note?: string | null;
         };
         Update: {
           id?: string;
@@ -5853,6 +5860,8 @@ export type Database = {
           note?: string | null;
           created_by?: string | null;
           created_at?: string;
+          reason_code?: string | null;
+          reason_note?: string | null;
         };
         Relationships: [];
       };
@@ -5960,6 +5969,8 @@ export type Database = {
           paid_method: string | null;
           hold_extended: boolean;
           hold_expiry_from_bank: boolean;
+          hold_lapsed_at: string | null;
+          reauth_tried_at: string | null;
         };
         Insert: {
           id?: string;
@@ -5986,6 +5997,8 @@ export type Database = {
           paid_method?: string | null;
           hold_extended?: boolean;
           hold_expiry_from_bank?: boolean;
+          hold_lapsed_at?: string | null;
+          reauth_tried_at?: string | null;
         };
         Update: {
           id?: string;
@@ -6012,6 +6025,8 @@ export type Database = {
           paid_method?: string | null;
           hold_extended?: boolean;
           hold_expiry_from_bank?: boolean;
+          hold_lapsed_at?: string | null;
+          reauth_tried_at?: string | null;
         };
         Relationships: [];
       };
@@ -14128,6 +14143,9 @@ export type Database = {
           server_last_error: string | null;
           server_attempted_at: string | null;
           card_funding: string | null;
+          reason_code: string | null;
+          reason_note: string | null;
+          card_fee_cents: number;
         };
         Insert: {
           id?: string;
@@ -14159,6 +14177,9 @@ export type Database = {
           server_last_error?: string | null;
           server_attempted_at?: string | null;
           card_funding?: string | null;
+          reason_code?: string | null;
+          reason_note?: string | null;
+          card_fee_cents?: number;
         };
         Update: {
           id?: string;
@@ -14190,6 +14211,9 @@ export type Database = {
           server_last_error?: string | null;
           server_attempted_at?: string | null;
           card_funding?: string | null;
+          reason_code?: string | null;
+          reason_note?: string | null;
+          card_fee_cents?: number;
         };
         Relationships: [];
       };
@@ -15881,6 +15905,8 @@ export type Database = {
           fleet_lease_default_notice_days: number;
           second_signing_officer_name: string | null;
           second_signing_officer_title: string | null;
+          debit_deposit_fee_bps: number;
+          debit_deposit_fee_cents: number;
           google_drive_api_key: string | null;
         };
         Insert: {
@@ -16520,6 +16546,8 @@ export type Database = {
           fleet_lease_default_notice_days?: number;
           second_signing_officer_name?: string | null;
           second_signing_officer_title?: string | null;
+          debit_deposit_fee_bps?: number;
+          debit_deposit_fee_cents?: number;
           google_drive_api_key?: string | null;
         };
         Update: {
@@ -17159,6 +17187,8 @@ export type Database = {
           fleet_lease_default_notice_days?: number;
           second_signing_officer_name?: string | null;
           second_signing_officer_title?: string | null;
+          debit_deposit_fee_bps?: number;
+          debit_deposit_fee_cents?: number;
           google_drive_api_key?: string | null;
         };
         Relationships: [];
@@ -27534,11 +27564,13 @@ export type Database = {
       server_booking_addon_failed: { Args: { p_row: string; p_by: string; p_reason: string }; Returns: undefined };
       server_booking_addon_paid: { Args: { p_row: string; p_by: string; p_processor: Json; p_amount_cents: number }; Returns: Json };
       server_booking_calendar: { Args: { p_token: string }; Returns: Json };
+      server_booking_charge_reasons: { Args: { p_booking: string }; Returns: Json };
       server_booking_debit_deposit: { Args: { p_booking: string }; Returns: number };
       server_booking_driver_links: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_booking_heard_about: { Args: { p_booking_number: string; p_value: string }; Returns: boolean };
       server_booking_payment_capture_failed: { Args: { p_booking: string; p_processor: Json; p_error: string }; Returns: undefined };
       server_booking_payment_facts: { Args: { p_booking: string }; Returns: Json };
+      server_booking_sign_pay: { Args: { p_booking: string }; Returns: Json };
       server_capture_contact: { Args: { p: Json }; Returns: Json };
       server_capture_continue_open: { Args: { p_token: string }; Returns: Json };
       server_capture_done: { Args: { p: Json }; Returns: number };
@@ -27569,6 +27601,7 @@ export type Database = {
       server_coverage_click: { Args: { p: Json; p_ip?: string }; Returns: Json };
       server_coverage_detail: { Args: { p_booking: string }; Returns: Json };
       server_db_busy: { Args: never; Returns: Json };
+      server_debit_deposit_fee: { Args: { p_amount: number }; Returns: number };
       server_deploy_result: { Args: { p: Json }; Returns: number };
       server_deposit_auto_begin: { Args: { p_booking: string; p_token_sha256: string }; Returns: Json };
       server_deposit_auto_failed: { Args: { p_id: string; p_error: string }; Returns: Json };
@@ -27582,6 +27615,9 @@ export type Database = {
       server_deposit_link_payreq: { Args: { p_booking: string; p_token_sha256: string }; Returns: Json };
       server_deposit_link_send: { Args: { p_id: string; p_link: string }; Returns: Json };
       server_deposit_links_due: { Args: never; Returns: Json };
+      server_deposit_reauth_begin: { Args: { p_deposit: string }; Returns: Json };
+      server_deposit_reauth_due: { Args: { p_limit?: number }; Returns: Json };
+      server_deposit_reauth_finish: { Args: { p: Json }; Returns: Json };
       server_dispute_evidence: { Args: { p_pack: string }; Returns: Json };
       server_dispute_pack: { Args: { p_pack: string }; Returns: Json };
       server_dispute_pack_built: { Args: { p_pack: string; p: Json }; Returns: undefined };

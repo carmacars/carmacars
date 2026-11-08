@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { docReviewLoad, guidedAct } from '@/server/actions/guided';
 import type { DocReview, DocUpload } from '@/features/admin/todo/types';
 import { LicenceChecks, PrimarySwapPanel } from '@/features/licence/LicenceChecks';
+import { otherUploads } from '@/features/admin/doc-split';
 
 // Renter documents of one booking (migration 0078), on one screen (0151): every licence image, selfie, proof of coverage
 // and the Protection Plan side by side, what to check said once, then one "Approve all" (each item through the function
@@ -116,6 +117,12 @@ export function DocumentReview({ booking, label = 'Review documents', variant = 
                     : <p className="small muted">Nothing uploaded for this driver.</p>}
                 </section>);
             })}
+            {otherUploads(d.uploads, d.drivers).length > 0 && (
+              <section className="gd-driver" aria-label="Other documents" data-testid="doc-review-other">
+                <h3 className="pt-kicker">Other documents</h3>
+                <p className="small muted">Not tied to a driver on this booking. They are counted in Approve all.</p>
+                <div className="gd-docs">{otherUploads(d.uploads, d.drivers).map((u) => <Upload key={u.id} u={u} pending={pending} reject={(reason) => act('doc_review_upload', { upload: u.id, approve: false, reason }, `${KIND[u.kind] ?? 'Document'} rejected. The renter is told why.`)} />)}</div>
+              </section>)}
             {cov && (
               <section className="gd-driver" aria-label="Coverage" data-testid="doc-review-coverage">
                 <h3 className="pt-kicker">Coverage: {cov.option_label}{cov.confirmed ? ', confirmed' : ''}</h3>

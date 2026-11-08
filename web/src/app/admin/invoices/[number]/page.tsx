@@ -96,7 +96,7 @@ export default async function AdminInvoice({ params, searchParams }: { params: P
               done="Saved." submitLabel="Save" fields={[{ name: 'collect_by', label: 'How it is paid', type: 'select', required: true, value: String((i as unknown as Record<string, unknown>).collect_by ?? 'bank_debit'),
                 options: [['bank_debit', 'Bank debit on the 15th'], ['payout', 'Deduct from payouts']] }]} />}
           </Card>
-          <Card title="Actions"><InvoiceActions id={i.id} number={i.invoice_number} can={i.can} paths={paths} /></Card>
+          <Card title="Actions"><InvoiceActions id={i.id} number={i.invoice_number} status={i.status} can={i.can} paths={paths} /></Card>
           <Card title="Emails" testId="invoice-emails">
             {i.emails.length ? <ul className="ad-list">{i.emails.map((e, k) => <li key={k}><span>{EMAIL[e.code] ?? e.code.replace(/_/g, ' ')}</span><span className="small">{t(e.at)}{e.processed ? '' : ' · waiting'}</span></li>)}</ul> : <p className="small muted">No email yet.</p>}
           </Card>

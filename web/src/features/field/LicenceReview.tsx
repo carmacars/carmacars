@@ -5,6 +5,7 @@ import { fieldAct } from '@/server/actions/field';
 import { fieldLicenceLoad } from '@/server/actions/field-licence';
 import type { DocUpload } from '@/features/admin/todo/types';
 import type { LicenceReviewData } from './types';
+import { otherUploads } from '@/features/admin/doc-split';
 import { LicenceChecks, PrimarySwapPanel } from '@/features/licence/LicenceChecks';
 
 // The renter's licence reviewed by field staff (0162): the licence front, back and the selfie of a booking on a job of their
@@ -112,6 +113,11 @@ export function LicenceReview({ job, waiting, label = 'Review the licence' }: { 
                 {ups.length ? ups.map((u) => <Shot key={u.id} u={u} pending={pending} reject={(reason) => reject(u.id, u.kind, reason)} />) : <p className="small muted">Nothing uploaded for this driver.</p>}
               </section>);
           })}
+          {d && otherUploads(d.uploads, d.drivers).length > 0 && (
+            <section className="fd-lic__driver stack" aria-label="Other documents" data-testid="licence-review-other">
+              <p><b>Other documents</b> <span className="small muted">not tied to a driver on this booking; counted in Approve all</span></p>
+              {otherUploads(d.uploads, d.drivers).map((u) => <Shot key={u.id} u={u} pending={pending} reject={(reason) => reject(u.id, u.kind, reason)} />)}
+            </section>)}
         </div>)}
     </div>
   );
