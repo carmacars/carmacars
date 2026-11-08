@@ -8358,6 +8358,72 @@ export type Database = {
         };
         Relationships: [];
       };
+      handover_readings: {
+        Row: {
+          id: string;
+          booking_id: string;
+          kind: string;
+          who: string;
+          recorded_by: string | null;
+          odometer_km: number | null;
+          fuel_pct: number | null;
+          source: string;
+          ai_odometer_km: number | null;
+          ai_fuel_eighths: number | null;
+          ai_model: string | null;
+          dash_photo_path: string | null;
+          selfie_path: string | null;
+          selfie_taken_at: string | null;
+          selfie_latitude: number | null;
+          selfie_longitude: number | null;
+          selfie_live: boolean | null;
+          staff_note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          kind: string;
+          who: string;
+          recorded_by?: string | null;
+          odometer_km?: number | null;
+          fuel_pct?: number | null;
+          source: string;
+          ai_odometer_km?: number | null;
+          ai_fuel_eighths?: number | null;
+          ai_model?: string | null;
+          dash_photo_path?: string | null;
+          selfie_path?: string | null;
+          selfie_taken_at?: string | null;
+          selfie_latitude?: number | null;
+          selfie_longitude?: number | null;
+          selfie_live?: boolean | null;
+          staff_note?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          kind?: string;
+          who?: string;
+          recorded_by?: string | null;
+          odometer_km?: number | null;
+          fuel_pct?: number | null;
+          source?: string;
+          ai_odometer_km?: number | null;
+          ai_fuel_eighths?: number | null;
+          ai_model?: string | null;
+          dash_photo_path?: string | null;
+          selfie_path?: string | null;
+          selfie_taken_at?: string | null;
+          selfie_latitude?: number | null;
+          selfie_longitude?: number | null;
+          selfie_live?: boolean | null;
+          staff_note?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       handover_resolutions: {
         Row: {
           id: string;
@@ -16195,6 +16261,9 @@ export type Database = {
           debit_deposit_fee_cents: number;
           google_drive_api_key: string | null;
           owner_hide_insurance_only: boolean;
+          accident_plan_provider_name: string | null;
+          accident_plan_policy_number: string | null;
+          accident_plan_claims_phone: string | null;
         };
         Insert: {
           id?: string;
@@ -16838,6 +16907,9 @@ export type Database = {
           debit_deposit_fee_cents?: number;
           google_drive_api_key?: string | null;
           owner_hide_insurance_only?: boolean;
+          accident_plan_provider_name?: string | null;
+          accident_plan_policy_number?: string | null;
+          accident_plan_claims_phone?: string | null;
         };
         Update: {
           id?: string;
@@ -17481,6 +17553,9 @@ export type Database = {
           debit_deposit_fee_cents?: number;
           google_drive_api_key?: string | null;
           owner_hide_insurance_only?: boolean;
+          accident_plan_provider_name?: string | null;
+          accident_plan_policy_number?: string | null;
+          accident_plan_claims_phone?: string | null;
         };
         Relationships: [];
       };
@@ -27833,6 +27908,7 @@ export type Database = {
       seo_links: { Args: never; Returns: Json };
       seo_page: { Args: { p_slug: string }; Returns: Json };
       seo_pages_public: { Args: never; Returns: Json };
+      server_accident_card: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_account_deletion_state: { Args: { p_user: string }; Returns: Json };
       server_account_email_change_check: { Args: { p_user: string; p_email: string }; Returns: Json };
       server_account_email_changed: { Args: { p_user: string; p_email: string }; Returns: Json };
@@ -27942,6 +28018,8 @@ export type Database = {
       server_confirm_extension_payment: { Args: { p_extension: string; p_processor: Json; p_amount_cents: number; p_by: string }; Returns: Json };
       server_coverage_click: { Args: { p: Json; p_ip?: string }; Returns: Json };
       server_coverage_detail: { Args: { p_booking: string }; Returns: Json };
+      server_dash_read_gate: { Args: { p_booking: string; p_by: string; p_token?: string }; Returns: Json };
+      server_dash_read_record: { Args: { p: Json }; Returns: undefined };
       server_db_busy: { Args: never; Returns: Json };
       server_debit_deposit_fee: { Args: { p_amount: number }; Returns: number };
       server_deploy_result: { Args: { p: Json }; Returns: number };
@@ -28166,15 +28244,20 @@ export type Database = {
       server_referral_agreements: { Args: { p_by: string }; Returns: Json };
       server_referral_partner_portal: { Args: { p_partner: string }; Returns: Json };
       server_referral_partner_signup: { Args: { p: Json; p_ip?: string }; Returns: Json };
+      server_renter_accident_media: { Args: { p_by: string; p: Json }; Returns: Json };
+      server_renter_accident_report: { Args: { p_by: string; p: Json }; Returns: Json };
+      server_renter_accidents: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_renter_ask_reopen: { Args: { p_number: string; p_by?: string; p_pickup?: string }; Returns: Json };
       server_renter_coverage: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_renter_handover_report: { Args: { p_booking: string; p_by: string }; Returns: Json };
+      server_renter_readings: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_request_account_deletion: { Args: { p_user: string; p_reason?: string }; Returns: Json };
       server_request_notify_channel: { Args: { p_booking_number: string; p_channel: string; p_user?: string }; Returns: Json };
       server_resume_form_draft: { Args: { p_link_token: string; p_user?: string; p_device_label?: string }; Returns: Json };
       server_return_claim_read: { Args: { p_token: string }; Returns: Json };
       server_return_claim_submit: { Args: { p_token: string; p: Json; p_user?: string }; Returns: Json };
       server_return_claim_submit_pre0545: { Args: { p_token: string; p: Json; p_user?: string }; Returns: Json };
+      server_return_claim_submit_pre0910: { Args: { p_token: string; p: Json; p_user?: string }; Returns: Json };
       server_return_link: { Args: { p_booking: string; p_user: string }; Returns: string };
       server_review_google_sync_begin: { Args: never; Returns: Json };
       server_review_google_sync_finish: { Args: { p: Json }; Returns: Json };

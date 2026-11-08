@@ -30,6 +30,10 @@ import { moneyParts } from '@/features/portal/trip-model';
 import { CompleteDetails } from '@/features/portal/CompleteDetails';
 import { renterDetailsMissing } from '@/server/portal/renter-details';
 import { STAGES, type Walk } from '@/features/walkthrough/model';
+import { AccidentSummary } from '@/features/accident-card/AccidentCard';
+import { AccidentReport } from '@/features/accident-card/AccidentReport';
+import type { AccidentCardData } from '@/features/accident-card/model';
+import { READING_CHARGE_KEYS } from '@/features/handover/reading';
 
 export const dynamic = 'force-dynamic';
 export async function generateMetadata({ params }: { params: Promise<{ number: string }> }) {
@@ -64,6 +68,10 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
     b.checked_in_at ? rpc('server_renter_handover_report', { p_booking: b.id, p_by: user.id }, { role: 'service_role' }).then((x) => x as unknown as HandoverReportData | null).catch(() => null) : Promise.resolve(null),
     // the rental walkthrough (0291): how far the renter is, for the card that opens it
     rpc('server_my_walkthrough', { p_booking: b.id, p_by: user.id }, { role: 'service_role' }).then((x) => x as unknown as Walk | null).catch(() => null)]);
+  // 0910: the accident card of this booking (its own coverage), from confirmation to the return
+  const accident = ['pending_payment', 'confirmed', 'on_rent'].includes(b.status) && b.booking_type !== 'owner'
+    ? await rpc('server_accident_card' as never, { p_booking: b.id, p_by: user.id } as never, { role: 'service_role' }).then((x) => x as unknown as AccidentCardData).catch(() => null) : null;
+  const readingCharges = (report?.charges ?? []).filter((c) => READING_CHARGE_KEYS.has(c.key) && c.amount_cents !== 0);
   const laterLines = new Set((addons?.items ?? []).filter((a) => a.after_booking).map((a) => a.line_item_id).filter(Boolean));
   const step = nextStep(b);
   // what is still owing after a change by our team (0132): the balance, with Pay
@@ -185,6 +193,23 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
             </Disclosure>
           </PortalCard>
 
+          {accident && (
+            <PortalCard id="pt-accident" title="Accident card" testId="renter-accident"
+              action={<Link prefetch={false} className="btn btn--ghost btn--sm" href={bookingPath(b.booking_number, 'accident-card')} data-testid="accident-card-open">Print it</Link>}>
+              {b.status === 'on_rent' && <AccidentReport booking={b.id} number={b.booking_number} phone={phone ?? null} />}
+              <AccidentSummary d={accident} />
+            </PortalCard>
+          )}
+          {report && report.km_in !== null && (
+            <PortalCard id="pt-return" title="Your return: km and fuel" testId="return-receipt">
+              <p className="small" data-testid="return-receipt-km">{report.km_driven !== null ? `${report.km_driven.toLocaleString('en-CA')} km driven, ${(report.km_allowance ?? 0).toLocaleString('en-CA')} km included${report.km_over > 0 ? `: ${report.km_over.toLocaleString('en-CA')} km over` : ''}.` : ''}
+                {report.fuel_out_pct !== null && report.fuel_in_pct !== null ? ` ${report.electric ? 'Charge' : 'Fuel'}: ${report.fuel_short_pct > 0 ? `${Math.max(1, Math.round(report.fuel_short_pct / 12.5))}/8 lower than at pickup` : 'as at pickup'}.` : ''}</p>
+              {readingCharges.length > 0
+                ? <dl className="pt-dl pt-dl--money" data-testid="return-receipt-charges">{readingCharges.map((c) => <div key={c.key}><dt>{c.label}</dt><dd>{money(c.amount_cents + c.hst_cents, { cents: true })}</dd></div>)}</dl>
+                : <p className="small muted">No extra km or fuel charge.</p>}
+              <p><Link prefetch={false} className="link small" href={bookingPath(b.booking_number, 'condition-report')}>The photos, with both dashboard photos</Link></p>
+            </PortalCard>
+          )}
           {addons && (addons.items.length > 0 || addons.can_add) && <PortalAddons number={b.booking_number} data={addons} />}
           {b.drivers.length > 0 && <PortalCard id="pt-drivers" title="Drivers">
             <ul className="pt-list">{b.drivers.map((d) => (

@@ -4,6 +4,7 @@ import { when } from '@/features/agreement/model';
 import { storage, type Bucket } from '@/integrations/storage';
 import { fmtDuration } from './late';
 import { angleLabel } from './angles';
+import { READING_CHARGE_KEYS, pickDash } from './reading';
 import type { ConditionSide, HandoverReportData } from './types';
 
 // The photo report of a rental (migration 0130): the check-in and the check-out side by side, with the actual times
@@ -41,6 +42,29 @@ export async function HandoverReport({ r, staff, canWaive, canCorrect, refresh =
           </div>
         )}
       </section>
+      {(() => {
+        // 0910: the odometer and fuel at check-in and check-out side by side, with both dashboard photos and what they cost
+        const out = signed.find((x) => x.side.kind === 'pickup'); const back = signed.find((x) => x.side.kind === 'return');
+        if (!out && !back) return null;
+        const extra = r.charges.filter((c) => READING_CHARGE_KEYS.has(c.key) && c.amount_cents !== 0);
+        const cell = (label: string, x: typeof out) => {
+          const d = x ? pickDash(x.photos) : null;
+          return (<figure className="hr-dash" data-testid={`reading-${x?.side.kind ?? 'none'}`}>
+            {/* eslint-disable-next-line @next/next/no-img-element -- signed private photo */}
+            {d?.src ? <a href={d.src} target="_blank" rel="noreferrer"><img src={d.src} alt={`Dashboard at ${label.toLowerCase()}`} loading="lazy" decoding="async" width={320} height={213} /></a> : <span className="small muted">No dashboard photo</span>}
+            <figcaption className="small"><b>{label}</b>: {x?.side.odometer_km != null ? `${x.side.odometer_km.toLocaleString('en-CA')} km` : 'no odometer'}, {r.electric ? 'charge' : 'fuel'} {pct(x?.side.fuel_pct ?? null, r.electric) || 'not given'}</figcaption>
+          </figure>);
+        };
+        return (
+          <section className="pt-card" aria-labelledby="hr-rd" data-testid="report-readings">
+            <h2 className="d4" id="hr-rd">Odometer and fuel</h2>
+            <div className="hr-dashes">{cell('Check-in', out)}{cell('Check-out', back)}</div>
+            {r.km_driven !== null && <p className="small" data-testid="readings-km">{r.km_driven.toLocaleString('en-CA')} km driven, {(r.km_allowance ?? 0).toLocaleString('en-CA')} km included{r.km_over > 0 ? `: ${r.km_over.toLocaleString('en-CA')} km over${r.overage_cents_per_km ? ` at ${money(r.overage_cents_per_km, { cents: true })} a km` : ''}` : ', none over'}.
+              {r.fuel_out_pct !== null && r.fuel_in_pct !== null ? ` ${r.electric ? 'Charge' : 'Fuel'} ${r.fuel_short_pct > 0 ? `${Math.max(1, Math.round(r.fuel_short_pct / 12.5))}/8 lower than at check-in` : 'as at check-in or more'}.` : ''}</p>}
+            {extra.length > 0 && <dl className="pt-dl pt-dl--money" data-testid="readings-charges">{extra.map((c) => <div key={c.key}><dt>{c.label}</dt><dd>{money(c.amount_cents + c.hst_cents, { cents: true })}</dd></div>)}</dl>}
+          </section>
+        );
+      })()}
       {(r.charges.length > 0 || (r.waivers?.length ?? 0) > 0) && (
         <section className="pt-card" aria-labelledby="hr-ch" data-testid="report-charges">
           <h2 className="d4" id="hr-ch">Return charges</h2>

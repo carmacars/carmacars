@@ -1,12 +1,15 @@
 'use client';
 import { useState } from 'react';
 import { DateInput } from '@/components/DateInput';
-import { FUEL_LEVELS, MAX_PHOTOS, claimPayload } from './claim';
+import { MAX_PHOTOS, claimPayload } from './claim';
 import { PhotoPicker } from '@/features/handover/PhotoPicker';
+import { DashReading } from '@/features/handover/DashReading';
+import { emptyReading, readingPayload, readingPhotos, readingProblem, readingValues } from '@/features/handover/reading';
 import type { PickedPhoto } from '@/features/handover/angles';
 
 // The renter's "I've returned the car" form (migration 0532): one button does it; photos (several at once from the camera
-// roll), the odometer, the fuel level and the actual time are optional. Each photo is made a smaller JPEG in the browser and
+// roll) and the actual time; 0910: the odometer and fuel from a required dashboard photo (read, then confirmed or typed) and
+// a selfie at the car taken live. Each photo is made a smaller JPEG in the browser and
 // uploaded on its own, then the report lists them.
 
 function localNow(): string {
@@ -18,8 +21,8 @@ export function ReturnedForm({ token }: { token: string }) {
   const [photos, setPhotos] = useState<PickedPhoto[]>([]);
   const [uploading, setUploading] = useState(0);
   const [at, setAt] = useState(localNow());
-  const [km, setKm] = useState('');
-  const [fuel, setFuel] = useState('');
+  const [reading, setReading] = useState(emptyReading());
+  const [readingBusy, setReadingBusy] = useState(false);
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -37,7 +40,11 @@ export function ReturnedForm({ token }: { token: string }) {
 
   async function send() {
     setErr(null);
-    const v = claimPayload({ returned_at: at ? new Date(at).toISOString() : undefined, odometer_km: km, fuel_pct: fuel, note, photos: photos.map(({ bucket, path, angle }) => ({ bucket, path, angle })) });
+    const problem = readingProblem(reading);
+    if (problem) { setErr(problem); return; }
+    const { odometer_km: km, fuel_pct: fuel } = readingValues(reading);
+    const v = claimPayload({ returned_at: at ? new Date(at).toISOString() : undefined, odometer_km: km, fuel_pct: fuel, note,
+      photos: [...photos.map(({ bucket, path, angle }) => ({ bucket, path, angle })), ...readingPhotos(reading)], reading: readingPayload(reading) });
     if (!v.ok) { setErr(v.message); return; }
     setBusy(true);
     try {
@@ -61,31 +68,19 @@ export function ReturnedForm({ token }: { token: string }) {
 
   return (
     <form className="stack" data-testid="returned-form" onSubmit={(e) => { e.preventDefault(); void send(); }}>
-      <PhotoPicker scope="return-claim" id={token} upload={upload} photos={photos} onChange={setPhotos} onBusy={setUploading} max={MAX_PHOTOS} label="Photos of the car where you left it (all sides, odometer, fuel, keys)" testId="returned-photos" />
-      <p className="small muted">With the photos, the odometer and the fuel level, your return is completed at once. Without them, we check and confirm.</p>
+      <PhotoPicker scope="return-claim" id={token} upload={upload} photos={photos} onChange={setPhotos} onBusy={setUploading} max={MAX_PHOTOS} label="Photos of the car where you left it (all sides, keys)" testId="returned-photos" />
+      <p className="small muted">With the photos, the dashboard reading and the selfie, your return is completed at once.</p>
       <div className="field">
         <label className="label" htmlFor="ret-at">When you returned it</label>
         <DateInput className="input" id="ret-at" type="datetime-local" value={at} max={localNow()} onChange={(e) => setAt(e.target.value)} />
       </div>
-      <div className="field-row">
-        <div className="field">
-          <label className="label" htmlFor="ret-km">Odometer (km, optional)</label>
-          <input className="input" id="ret-km" inputMode="numeric" value={km} onChange={(e) => setKm(e.target.value)} placeholder="e.g. 48210" />
-        </div>
-        <div className="field">
-          <label className="label" htmlFor="ret-fuel">Fuel level (optional)</label>
-          <select className="input" id="ret-fuel" value={fuel} onChange={(e) => setFuel(e.target.value)}>
-            <option value="">Not sure</option>
-            {FUEL_LEVELS.map(([l, p]) => <option key={l} value={String(p)}>{l}</option>)}
-          </select>
-        </div>
-      </div>
+      <DashReading scope="return-claim" id={token} read={{ token }} upload={upload} value={reading} onChange={setReading} onBusy={setReadingBusy} testId="returned-reading" />
       <div className="field">
         <label className="label" htmlFor="ret-note">Where are the car and keys? (optional)</label>
         <textarea className="textarea" id="ret-note" maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />
       </div>
       {err && <p className="alert alert--error" role="alert"><span>{err}</span></p>}
-      <button className="btn btn--primary" type="submit" disabled={busy || uploading > 0} data-testid="returned-submit">{busy ? 'Sending' : uploading ? 'Uploading photos' : "I've returned the car"}</button>
+      <button className="btn btn--primary" type="submit" disabled={busy || uploading > 0 || readingBusy} data-testid="returned-submit">{busy ? 'Sending' : uploading ? 'Uploading photos' : "I've returned the car"}</button>
     </form>
   );
 }

@@ -28,6 +28,9 @@ export function fakeVision(): VisionModel {
       // 0567: where the marks are on a photo: none
       if (req.purpose === 'photo_sort' && req.prompt.includes('"marks"')) return { ok: true, model: FAKE_MODEL, usage, tried: [FAKE_MODEL], data: { marks: [] } };
       if (req.purpose === 'photo_sort') return { ok: true, model: FAKE_MODEL, usage, tried: [FAKE_MODEL], data: { shot: 'exterior_other', watermark: false } };
+      // a dashboard photo (release 35): a reading the person confirms or corrects; FAKE_VISION_DASH=none for one it cannot read
+      if (req.purpose === 'dash_read') return { ok: true, model: FAKE_MODEL, usage, tried: [FAKE_MODEL], data: process.env.FAKE_VISION_DASH === 'none'
+        ? { odometer: null, fuel_eighths: null, readable: false } : { odometer: 45210, unit: 'km', fuel_eighths: 6, readable: true } };
       if (req.purpose === 'plate_detect') return { ok: true, model: FAKE_MODEL, usage, tried: [FAKE_MODEL], data: { plates: [{ x: 0.42, y: 0.66, w: 0.16, h: 0.06, confidence: 72 }] } };
       return { ok: true, model: FAKE_MODEL, usage, tried: [FAKE_MODEL], data: {
         issuer: 'City of Toronto', kind: 'parking', notice_number: 'PN 7710-0042', due_date: '2026-11-01', total: 50,
