@@ -15518,7 +15518,6 @@ export type Database = {
           ai_vision_fallback_model: string | null;
           ai_vision_daily_neurons: number;
           listing_plate_check_required: boolean;
-          field_handover_requires_fleet_policy: boolean;
           plate_cover_style: string;
           plate_cover_text: string | null;
           plate_detect_enabled: boolean;
@@ -15948,6 +15947,7 @@ export type Database = {
           licence_auto_approver: string | null;
           fleet_lease_agreements_awaiting_lawyer: boolean;
           referral_agreements_awaiting_lawyer: boolean;
+          field_handover_requires_fleet_policy: boolean;
           fleet_lease_default_regular_cents: number;
           fleet_lease_default_troubled_cents: number;
           fleet_lease_default_claim_profit_bps: number;
@@ -16160,7 +16160,6 @@ export type Database = {
           ai_vision_fallback_model?: string | null;
           ai_vision_daily_neurons?: number;
           listing_plate_check_required?: boolean;
-          field_handover_requires_fleet_policy?: boolean;
           plate_cover_style?: string;
           plate_cover_text?: string | null;
           plate_detect_enabled?: boolean;
@@ -16590,6 +16589,7 @@ export type Database = {
           licence_auto_approver?: string | null;
           fleet_lease_agreements_awaiting_lawyer?: boolean;
           referral_agreements_awaiting_lawyer?: boolean;
+          field_handover_requires_fleet_policy?: boolean;
           fleet_lease_default_regular_cents?: number;
           fleet_lease_default_troubled_cents?: number;
           fleet_lease_default_claim_profit_bps?: number;
@@ -16802,7 +16802,6 @@ export type Database = {
           ai_vision_fallback_model?: string | null;
           ai_vision_daily_neurons?: number;
           listing_plate_check_required?: boolean;
-          field_handover_requires_fleet_policy?: boolean;
           plate_cover_style?: string;
           plate_cover_text?: string | null;
           plate_detect_enabled?: boolean;
@@ -17232,6 +17231,7 @@ export type Database = {
           licence_auto_approver?: string | null;
           fleet_lease_agreements_awaiting_lawyer?: boolean;
           referral_agreements_awaiting_lawyer?: boolean;
+          field_handover_requires_fleet_policy?: boolean;
           fleet_lease_default_regular_cents?: number;
           fleet_lease_default_troubled_cents?: number;
           fleet_lease_default_claim_profit_bps?: number;
