@@ -2,7 +2,7 @@
 //   node --test --experimental-strip-types src/integrations/payments/stripe.test.ts   (npm run test:unit)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { bankReasonCode, formEncode, stripeAdapter, StripeError, toIntent } from './stripe.ts';
+import { bankReasonCode, customerFingerprint, formEncode, stripeAdapter, StripeError, toIntent } from './stripe.ts';
 import { signStripePayload, verifyStripeSignature } from './signature.ts';
 
 type Call = { url: string; init: RequestInit };
@@ -258,4 +258,26 @@ test('0541: a rental charge never asks for an extended authorization, even with 
   await stripeAdapter('sk_test_abc', f).chargeOffSession({ customerId: 'cus_1', paymentMethodId: 'pm_1', amountCents: 100, extendedHold: true, description: 'x', metadata: {}, idempotencyKey: 'k' });
   assert.equal(calls.length, 1);
   assert.equal(new URLSearchParams(String(calls[0]!.init.body)).get('payment_method_options[card][request_extended_authorization]'), null);
+});
+
+test('a customer made before for the renter is used again, so a changed name never trips the idempotency key', async () => {
+  const rid = '17969946-41d5-4ed3-bc0d-000000000001';
+  const { f, calls } = mock([{ body: { object: 'search_result', data: [{ id: 'cus_old' }] } }]);
+  const s = stripeAdapter('sk_test_abc', f);
+  const c = await s.createCustomer({ email: 'r@example.test', name: 'New Name', renterId: rid, idempotencyKey: `customer:${rid}` });
+  assert.equal(c.id, 'cus_old');
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0]!.init.method, 'GET');
+  assert.ok(decodeURIComponent(calls[0]!.url).includes(`metadata['renter_id']:'${rid}'`));
+});
+
+test('no customer yet: one is made, its idempotency key carries the name and email', async () => {
+  const rid = '17969946-41d5-4ed3-bc0d-000000000002';
+  const { f, calls } = mock([{ body: { object: 'search_result', data: [] } }, { body: { id: 'cus_new' } }]);
+  const s = stripeAdapter('sk_test_abc', f);
+  const c = await s.createCustomer({ email: 'r@example.test', name: 'A Name', renterId: rid, idempotencyKey: `customer:${rid}` });
+  assert.equal(c.id, 'cus_new');
+  const h = calls[1]!.init.headers as Record<string, string>;
+  assert.equal(h['idempotency-key'], `customer:${rid}:${customerFingerprint('r@example.test', 'A Name')}`);
+  assert.notEqual(customerFingerprint('r@example.test', 'A Name'), customerFingerprint('r@example.test', 'Another Name'));
 });

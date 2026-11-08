@@ -177,13 +177,13 @@ export const LIMITS = {
   /** the largest photo taken (the listing pipeline's own limit for an upload) */
   maxFileBytes: 15 * 1024 * 1024,
   /** photos in one import */
-  maxFiles: 600,
+  maxFiles: 5000,
   /** folders in one import's walk */
-  maxFolders: 400,
+  maxFolders: 2000,
   /** how deep the walk goes below the link */
   maxDepth: 4,
   /** the bytes in one import */
-  maxTotalBytes: 4 * 1024 * 1024 * 1024,
+  maxTotalBytes: 40 * 1024 * 1024 * 1024,
   /** the pause between two requests to Drive, milliseconds */
   pauseMs: 400
 } as const;

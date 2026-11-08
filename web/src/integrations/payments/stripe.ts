@@ -145,7 +145,17 @@ export function stripeAdapter(secretKey: string, f: typeof fetch = (...a) => fet
       const metadata: Record<string, string> = {};
       if (r.renterId) metadata.renter_id = r.renterId;
       if (r.ownerId) metadata.owner_id = r.ownerId;
-      const c = await call('POST', '/customers', { email: r.email, name: r.name, metadata }, r.idempotencyKey);
+      // The customer made for this renter or owner before is used again: a name or email changed since (a licence approved,
+      // an email changed) used to reuse the same idempotency key with other parameters, and Stripe refused every payment.
+      const [field, who] = r.renterId ? ['renter_id', r.renterId] : r.ownerId ? ['owner_id', r.ownerId] : ['', ''];
+      if (field && /^[0-9a-f-]{36}$/i.test(who)) {
+        try {
+          const found = await call('GET', '/customers/search', { query: `metadata['${field}']:'${who}'`, limit: 1 });
+          const first = Array.isArray(found.data) ? obj(found.data[0]) : null;
+          if (first && first.id) return { id: String(first.id) };
+        } catch { /* search is best effort: create below */ }
+      }
+      const c = await call('POST', '/customers', { email: r.email, name: r.name, metadata }, `${r.idempotencyKey}:${customerFingerprint(r.email, r.name)}`);
       return { id: String(c.id) };
     },
     async createInvoiceIntent(r) {
@@ -255,4 +265,11 @@ export function stripeAdapter(secretKey: string, f: typeof fetch = (...a) => fet
       return { id: String(e.id), type: String(e.type), created: num(e.created), object: obj(obj(e.data)?.object) ?? {} };
     }
   };
+}
+
+/** A short fingerprint of what a new customer is made with, so a changed name or email gets its own idempotency key. */
+export function customerFingerprint(email: string, name: string): string {
+  let h = 0x811c9dc5;
+  for (const ch of `${email.trim().toLowerCase()}|${name.trim()}`) { h ^= ch.codePointAt(0)!; h = Math.imul(h, 0x01000193) >>> 0; }
+  return h.toString(36);
 }

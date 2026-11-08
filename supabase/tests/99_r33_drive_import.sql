@@ -165,10 +165,10 @@ select app.drive_import_folder_result((select id from drive_import_folders where
 select test.ok('a folder with no photo fails the run, saying what to check', (select status = 'failed' and error like '%Anyone with the link%' from drive_imports where id = (select id from rdi_g)));
 create temp table rdi_h as select (app.drive_import_start(test.id('rdi_admin'), jsonb_build_object('root_id', 'SyntheticMany0001', 'vehicle_id', test.id('vehicle:rdi_car2'))) ->> 'id')::uuid as id;
 select app.drive_import_folder_result((select id from drive_import_folders where import_id = (select id from rdi_h)), jsonb_build_object('images',
-  (select jsonb_agg(jsonb_build_object('id', 'SyntheticLim' || lpad(n::text, 6, '0'), 'name', n || '.jpg', 'mime', 'image/jpeg', 'size', 1000, 'kind', 'jpeg')) from generate_series(1, 603) n)));
-select test.eq('an import takes 600 photos at most, the rest are skipped with the reason', (select count(*) filter (where state = 'pending')::text || '/' || count(*) filter (where state = 'skipped')::text from drive_import_files where import_id = (select id from rdi_h)), '600/3');
+  (select jsonb_agg(jsonb_build_object('id', 'SyntheticLim' || lpad(n::text, 6, '0'), 'name', n || '.jpg', 'mime', 'image/jpeg', 'size', 1000, 'kind', 'jpeg')) from generate_series(1, 5003) n)));
+select test.eq('an import takes 5000 photos at most (0791), the rest are skipped with the reason', (select count(*) filter (where state = 'pending')::text || '/' || count(*) filter (where state = 'skipped')::text from drive_import_files where import_id = (select id from rdi_h)), '5000/3');
 select test.eq('the page reads the run and its folders', (select app.drive_import_get(test.id('rdi_fleet'), jsonb_build_object('import', (select id from rdi_h))) -> 'import' ->> 'status'), 'importing');
-select test.ok('and the problems with their reasons', (select (app.drive_import_get(test.id('rdi_fleet'), jsonb_build_object('import', (select id from rdi_h))) -> 'problems' -> 0 ->> 'reason') like 'More than 600%'));
+select test.ok('and the problems with their reasons', (select (app.drive_import_get(test.id('rdi_fleet'), jsonb_build_object('import', (select id from rdi_h))) -> 'problems' -> 0 ->> 'reason') like 'More than 5000%'));
 select test.ok('the list names the runs of a car', jsonb_array_length(app.drive_import_list(test.id('rdi_admin'), jsonb_build_object('vehicle', test.id('vehicle:rdi_car')))) >= 3);
 select test.throws('a renter reads no import', format('select app.drive_import_get(%L, jsonb_build_object(''import'', %L))', test.id('rdi_renter'), (select id from rdi_h)), 'imports listing photos');
 

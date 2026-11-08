@@ -58,6 +58,27 @@
   ]
  },
  {
+  "release": "r33b",
+  "title": "Update of November 8 (owner bookings, payments)",
+  "date": "2026-11-08",
+  "seq": 0,
+  "summary": "Owners see every booking on their car in their portal, and renters whose name changed can pay again.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "Pay now and pay links work again for a renter whose name or email changed after a first try"
+    ]
+   },
+   {
+    "area": "Owners",
+    "items": [
+     "Every booking on your car billed to a renter is shown in your portal from the start"
+    ]
+   }
+  ]
+ },
+ {
   "release": "r30-stale",
   "title": "Update of November 7",
   "date": "2026-11-07",

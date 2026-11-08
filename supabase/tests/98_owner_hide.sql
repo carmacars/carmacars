@@ -3,6 +3,8 @@
 select test.suite('98 owner hide and booking deductions');
 grant usage on schema test to service_role;
 grant execute on all functions in schema test to authenticated, anon, service_role;
+-- 0791: this suite hides bookings billed to the renter, so it runs with the insurance-only rule off
+update program_settings set owner_hide_insurance_only = false where id = (select id from app.settings());
 
 select test.eq('setting: owners see a booking''s revenue right away by default',
   (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'owner_revenue_visibility'), '''right_away''::text');
@@ -176,3 +178,4 @@ select test.eq('approved: the owner''s statement read shows the deduction', (sel
 set role authenticated;
 select test.throws('authenticated: no door', $$select app.booking_owner_visibility_set(gen_random_uuid(), '{}')$$, null);
 reset role;
+update program_settings set owner_hide_insurance_only = true where id = (select id from app.settings());

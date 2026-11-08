@@ -25,7 +25,7 @@ import { matchFolder, type Car } from '@/features/drive-import/drive-match';
 //   * Each photo goes through the listing upload as a staff upload does (app.record_listing_upload, by the person who
 //     started the run): the shot sorted as "Add photos" sorts it, else filed as an extra photo, in the folder's file order.
 //   * Politeness: one request at a time, a pause between two requests to Drive, at most 3 photos per step, 15 MB a photo,
-//     600 photos / 400 folders / 4 GB a run (the database's app.drive_import_limits); a Drive that says "too many requests"
+//     5000 photos / 2000 folders / 40 GB a run (the database's app.drive_import_limits); a Drive that says "too many requests"
 //     is left alone for a while and the photo is tried again later (3 tries).
 const SR = { role: 'service_role' as const };
 
