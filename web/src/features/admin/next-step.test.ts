@@ -42,24 +42,24 @@ test('confirmed, signed, deposit not held, pickup ahead: take the deposit hold a
   assert.equal(s.step, 'deposit');
   assert.match(s.text, /take the \$500\.00 deposit hold/);
   assert.equal(s.action, undefined);
-  // held already, or an insurer pays: straight to the check-out at the pickup
+  // held already, or an insurer pays: straight to the check-in at the pickup
   assert.equal(nextStep(x({ status: 'confirmed', depositCents: 50000, depositStatus: 'held' })).step, 'checkout');
   assert.equal(nextStep(x({ status: 'confirmed', depositCents: 50000, insurerBilled: true })).step, 'checkout');
 });
 
-test('confirmed, pickup today: check out the car (and the deposit when not held)', () => {
+test('confirmed, pickup today: check in the car (and the deposit when not held)', () => {
   const s = nextStep(x({ status: 'confirmed', pickupAt: '2026-10-30T20:00:00Z', depositCents: 50000 }));
   assert.equal(s.step, 'checkout');
-  assert.match(s.text, /^Pickup is .*No deposit yet: take the \$500\.00 deposit hold now, then check out the car\./);
+  assert.match(s.text, /^Pickup is .*No deposit yet: take the \$500\.00 deposit hold now, then check in the car\./);
   assert.equal(s.action?.testId, 'next-step-checkout');
   assert.match(nextStep(x({ status: 'confirmed', pickupAt: '2026-10-29T20:00:00Z' })).text, /^Pickup was/);
 });
 
-test('on_rent: return due, check in; late says so', () => {
+test('on_rent: return due, check out; late says so', () => {
   const s = nextStep(x({ status: 'on_rent' }));
   assert.equal(s.step, 'checkin');
   assert.match(s.text, /Return due Sun, Nov 8, 9:00/);
-  assert.equal(s.action?.label, 'Check in the car');
+  assert.equal(s.action?.label, 'Check out the car');
   assert.match(nextStep(x({ status: 'on_rent', returnAt: '2026-10-29T14:00:00Z' })).text, /^The return was due/);
 });
 

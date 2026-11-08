@@ -217,6 +217,34 @@ export function localAuth(): AuthAdapter {
       await this.resendConfirmation(e, '');
       return { ok: true };
     },
+    async changeEmail(email) {
+      const u = await this.currentUser();
+      if (!u) return { ok: false, message: 'Sign in first.' };
+      const e = email.trim().toLowerCase();
+      const other = await sql`select 1 from local_auth.users where (email = ${e} or pending_email = ${e}) and id <> ${u.id}`;
+      if (other.length) return { ok: false, code: 'exists', message: 'This email is already used by another account. Sign in with it instead, or use another email.' };
+      await sql`update local_auth.users set pending_email = ${e} where id = ${u.id}`;
+      const token = randomBytes(24).toString('base64url');
+      await sql`insert into local_auth.reset_tokens (token_hash, user_id, expires_at, kind) values (${hashToken(token)}, ${u.id}, now() + make_interval(hours => ${LINK_HOURS}), 'email_change')`;
+      const link = `${env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '')}/auth/callback?token_hash=${token}&type=email_change`;
+      await sql`insert into local_auth.mailbox (to_email, subject, body, link) values (${e}, 'Confirm your new CarmaCars email', ${'Open this link to use this address to sign in: ' + link}, ${link})`;
+      if (u.email) await sql`insert into local_auth.mailbox (to_email, subject, body) values (${u.email}, 'Your CarmaCars sign-in email is being changed', ${'A change of your sign-in email to ' + e + ' was asked for. It takes effect only when the link sent to the new address is opened. If this was not you, contact us.'})`;
+      return { ok: true };
+    },
+    async confirmEmailChange(tokenHash) {
+      const rows = await sql`
+        update local_auth.reset_tokens t set used_at = now() from local_auth.users u
+         where t.token_hash = ${hashToken(tokenHash)} and t.kind = 'email_change' and t.used_at is null and t.expires_at > now() and u.id = t.user_id and u.pending_email is not null
+         returning u.id, u.pending_email`;
+      const r = rows[0];
+      if (!r) return { ok: false, message: 'This link has expired or was already used.' };
+      const taken = await sql`select 1 from local_auth.users where email = ${r.pending_email as string} and id <> ${r.id as string}`;
+      if (taken.length) return { ok: false, message: 'This email is already used by another account.' };
+      await sql`update local_auth.users set email = pending_email, pending_email = null, email_confirmed_at = coalesce(email_confirmed_at, now()) where id = ${r.id as string}`;
+      const user = { id: r.id as string, email: r.pending_email as string };
+      await setSession(user);
+      return { ok: true, user };
+    },
     async signUp(email, password) {
       const e = email.trim().toLowerCase();
       const exists = await sql`select 1 from local_auth.users where email = ${e}`;

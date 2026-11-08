@@ -11,8 +11,8 @@ import { stamp, type CertSigner } from '@/features/signing/certificate';
 
 // The dispute evidence pack (migration 0154): one PDF that proves the rental, for Stripe's dispute evidence (or to
 // download): a cover with the facts a card network asks (who, what, when, the card checks, the signing trail), the signed
-// agreements with their certificates of completion (every version signed), the amendments and receipts, the check-out
-// and check-in reports with their readings and photos, the licence images, the payments and charges, and every message
+// agreements with their certificates of completion (every version signed), the amendments and receipts, the check-in
+// and check-out reports with their readings and photos, the licence images, the payments and charges, and every message
 // sent to the renter. Kept under Stripe's 4.5 MB for all evidence: photos are added while they fit, the rest listed.
 // With Stripe connected the file is uploaded and staged as the dispute's evidence (not submitted): an Admin checks it
 // and presses Submit to Stripe.
@@ -130,7 +130,7 @@ export async function buildDisputePack(packId: string): Promise<void> {
   for (const t of merged) w.line(`- ${t}`);
   for (const d of ev.documents.filter((x) => !merged.includes(x.title))) w.line(`- ${d.title} (kept by CarmaCars, SHA-256 ${d.sha256 ?? ''}; not included to stay under the size limit)`);
 
-  // 3. the check-out and check-in reports, with photos while they fit
+  // 3. the check-in and check-out reports, with photos while they fit
   const embed = async (bucket: string, path: string): Promise<PDFImage | null> => {
     const bytes = await s.get(bucket as Bucket, path).catch(() => null);
     if (!bytes || used + bytes.length > BUDGET) return null;
@@ -139,7 +139,7 @@ export async function buildDisputePack(packId: string): Promise<void> {
   let photos = 0, listed = 0;
   for (const rep of ev.reports) {
     w.newPage();
-    w.head(`${rep.kind === 'pickup' ? 'Check-out (pickup)' : rep.kind === 'return' ? 'Check-in (return)' : rep.kind.replace('_', ' ')} report, ${stamp(rep.completed_at)}`);
+    w.head(`${rep.kind === 'pickup' ? 'Check-in (pickup)' : rep.kind === 'return' ? 'Check-out (return)' : rep.kind.replace('_', ' ')} report, ${stamp(rep.completed_at)}`);
     w.line(`Plate ${rep.plate ?? ''}; odometer ${rep.odometer_km ?? ''} km; fuel or charge ${rep.fuel_pct ?? ''}%; keys ${rep.keys ?? ''}; by ${rep.by ?? ''}; the renter signed the report ${stamp(rep.renter_signed_at) || 'no'}.`);
     for (const d of rep.damages) w.line(`${d.is_new ? 'New damage' : 'Damage noted'} ${d.label}: ${d.location}, ${d.description}`, 8.5);
     let x = w.M; let rowH = 0;
@@ -202,7 +202,7 @@ export async function buildDisputePack(packId: string): Promise<void> {
         'evidence[service_documentation]': fileId, 'evidence[customer_signature]': fileId, 'evidence[customer_name]': r.legal_name, 'evidence[customer_email_address]': r.email ?? '',
         'evidence[billing_address]': r.address ?? '', 'evidence[service_date]': (b.handed_over_at ?? b.pickup_at).slice(0, 10),
         'evidence[product_description]': `Car rental, ${b.vehicle ? `${b.vehicle.year} ${b.vehicle.make} ${b.vehicle.model} (plate ${b.vehicle.plate ?? ''})` : ''}, ${b.pickup_at.slice(0, 10)} to ${b.return_at.slice(0, 10)}, under signed rental agreement ${b.agreement_number ?? ''}.`,
-        'evidence[access_activity_log]': log.slice(0, 20000), 'evidence[uncategorized_text]': `${signers.length && signers.every((g) => g.otp_verified_at) ? 'The customer confirmed their identity with a one-time code, initialled' : 'The customer signed electronically (no one-time code was asked; the time, IP address and device of each step are recorded), initialled'} the key terms (damage, deposit and later charges, fees, coverage, cancellation), consented to card charges under the agreement and drew their signature; the car was checked out and in with photos. The PDF holds the signed agreements with their certificates, the reports, the licence and the messages.`.slice(0, 20000),
+        'evidence[access_activity_log]': log.slice(0, 20000), 'evidence[uncategorized_text]': `${signers.length && signers.every((g) => g.otp_verified_at) ? 'The customer confirmed their identity with a one-time code, initialled' : 'The customer signed electronically (no one-time code was asked; the time, IP address and device of each step are recorded), initialled'} the key terms (damage, deposit and later charges, fees, coverage, cancellation), consented to card charges under the agreement and drew their signature; the car was checked in and out with photos. The PDF holds the signed agreements with their certificates, the reports, the licence and the messages.`.slice(0, 20000),
         submit: 'false' } });
     } catch (e) { stageError = e instanceof Error ? e.message : String(e); console.error('dispute pack: staging', stageError); }
   }

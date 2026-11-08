@@ -6,7 +6,7 @@ import { realUser } from '@/server/portal/data';
 import { photoKey, type PhotoScope } from '@/features/handover/angles';
 import { MAX_PHOTO_BYTES, UUID } from '@/features/returns/claim';
 
-// One photo of a check-out or check-in (migration 0545) or of a car picked up from or returned to its owner (0546). The
+// One photo of a check-in or check-out (migration 0545) or of a car picked up from or returned to its owner (0546). The
 // browser made it a smaller JPEG first. Who may: self-pickup, the booking's renter; one-screen, staff who hand cars over;
 // owner-handoff, an Admin, Fleet or field staff (and, to view, the car's owner). Private storage only; the record that
 // lists the keys checks again that each belongs to this booking or car.

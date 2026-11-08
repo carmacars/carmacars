@@ -29,10 +29,10 @@ export async function runMissingAgreements(max = 3): Promise<{ done: number; fai
 }
 
 /** All the agreements' background work, one path (0132 and 0154): first the agreements' queue (a new version after a
- *  change, the check-out and check-in copies, the signed copies of a version, dispute evidence packs: someone may be
+ *  change, the check-in and check-out copies, the signed copies of a version, dispute evidence packs: someone may be
  *  waiting for them), then the bookings still without their agreement. Called by /api/jobs/agreements (the Worker's cron,
- *  when server_jobs_due says agreements) and by the PDF jobs' request (/api/jobs/pdf, kicked right after a check-out, a
- *  check-in or Make the agreements again), within its time budget. */
+ *  when server_jobs_due says agreements) and by the PDF jobs' request (/api/jobs/pdf, kicked right after a check-in, a
+ *  check-out or Make the agreements again), within its time budget. */
 export async function runAgreementJobs(o: { max?: number; deadlineMs?: number; aheadSeconds?: number } = {}): Promise<{ done: number; failed: number; more: boolean }> {
   const start = Date.now();
   const max = o.max ?? 3;

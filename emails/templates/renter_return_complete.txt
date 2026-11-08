@@ -2,10 +2,10 @@ CarmaCars  |  Booking {{booking_number}}
 
 ========================================
 
-[Check-in complete]
+[Check-out complete]
 The car is back. Thank you, {{first_name}}.
 
-We checked in the {{vehicle_name}} on {{checkin_date}} at {{checkin_time}}. Your signed return report is saved to your booking.
+We checked out the {{vehicle_name}} on {{checkin_date}} at {{checkin_time}}. Your signed return report is saved to your booking.
 
 Odometer, out and in: {{odometer_out}} to {{odometer_in}}
 Distance driven: {{km_driven}} of {{km_allowance}} included
@@ -20,7 +20,7 @@ What happens next
 2. You get an itemized statement
    Within 7 business days, with the record for every line.
 3. Your deposit is released
-   The {{deposit_amount}} deposit comes back within {{deposit_release_days}} business days of check-in, less any charges. Tolls and tickets can arrive later and are billed with a copy of the notice.
+   The {{deposit_amount}} deposit comes back within {{deposit_release_days}} business days of check-out, less any charges. Tolls and tickets can arrive later and are billed with a copy of the notice.
 
 View the return report:
 https://carmacars.ca/account/bookings/{{booking_number}}/condition-report

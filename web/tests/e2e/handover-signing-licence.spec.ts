@@ -186,7 +186,7 @@ test('check-out by Sales from the booking, a late check-in by an Admin from Toda
   await draw(page, 'sign-renter'); await page.getByTestId('use-renter').click(); await expect(page.getByTestId('signed-renter')).toBeVisible({ timeout: 15_000 });
   await draw(page, 'sign-staff'); await page.getByTestId('use-staff').click(); await expect(page.getByTestId('signed-staff')).toBeVisible({ timeout: 15_000 });
   await next(page, 'Hand over the keys');
-  await complete(page, 'Checked out');
+  await complete(page, 'Checked in');
   const [out] = await sql`select status::text s, odometer_out_km::int km, fuel_out_pct::int f, (select assigned_to from field_jobs j where j.booking_id = b.id and j.kind = 'handover') who from bookings b where b.id = ${req.booking_id}`;
   expect(out).toMatchObject({ s: 'on_rent', km: odo!.o + 10, f: 100, who: sales.id });
 
@@ -223,7 +223,7 @@ test('check-out by Sales from the booking, a late check-in by an Admin from Toda
   await draw(ap, 'sign-renter'); await ap.getByTestId('use-renter').click(); await expect(ap.getByTestId('signed-renter')).toBeVisible({ timeout: 15_000 });
   await next(ap, 'You sign and complete');
   await draw(ap, 'sign-staff'); await ap.getByTestId('use-staff').click(); await expect(ap.getByTestId('signed-staff')).toBeVisible({ timeout: 15_000 });
-  await complete(ap, 'Checked in');
+  await complete(ap, 'Checked out');
   await ap.getByTestId('checklist-back').click();
   await ap.waitForURL(/\/report$/, { timeout: 20_000 });
   await expect(ap.getByTestId('report-facts')).toContainText('Late by 3 h');

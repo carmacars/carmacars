@@ -26,7 +26,7 @@ export default {
     when('is_self_managed', [
       notice('info', 'You hand over this rental', 'Complete the condition report and the photo set at pickup and at return. We enable the car for the booked period only. Keep the renter\'s details confidential and use them only for this handover.'),
     ], [
-      notice('info', 'During this rental', 'You keep live location. Your lock, alarm and shut-off controls are blocked from pickup until the car is checked in.'),
+      notice('info', 'During this rental', 'You keep live location. Your lock, alarm and shut-off controls are blocked from pickup until the car is checked out.'),
     ]),
     button('View this booking', '@owner_booking'),
     small('The rental counts toward your statement for the month it ends, once collected. Your statement shows the final figures.'),

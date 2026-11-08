@@ -23,7 +23,7 @@ export default async function Returned({ params }: { params: Promise<{ token: st
           <p className="lead">It may be incomplete. Use the link in the email or text again{phone ? <>, or call us at {phone}</> : null}.</p>
         </>) : c.done ? (<>
           <h1 className="d2">Your return is recorded</h1>
-          <p className="lead">Booking {c.number} is checked in. Thank you.</p>
+          <p className="lead">Booking {c.number} is checked out. Thank you.</p>
         </>) : c.return_state === 'returned_pending_confirmation' ? (<>
           <h1 className="d2">We have your report</h1>
           <p className="lead">You told us the {c.car ?? 'car'} is back{c.claim ? ` (${when(c.claim.claimed_at)})` : ''}. The late notices are stopped while we check the car and confirm the return.</p>

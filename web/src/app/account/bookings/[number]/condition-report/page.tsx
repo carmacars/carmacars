@@ -9,7 +9,7 @@ import { HandoverReport } from '@/features/handover/HandoverReport';
 import type { HandoverReportData } from '@/features/handover/types';
 
 export const dynamic = 'force-dynamic';
-export const metadata = pageMeta({ title: 'Photo report', path: '/account/bookings', noindex: true, description: 'The check-out and check-in of your rental: times, kilometres, fuel, photos and damage.' });
+export const metadata = pageMeta({ title: 'Photo report', path: '/account/bookings', noindex: true, description: 'The check-in and check-out of your rental: times, kilometres, fuel, photos and damage.' });
 
 // The renter's photo report (migration 0130): the address the "Your rental has started" and "Returned" emails link to.
 export default async function RenterReport({ params }: { params: Promise<{ number: string }> }) {
@@ -19,7 +19,7 @@ export default async function RenterReport({ params }: { params: Promise<{ numbe
   if (!r?.booking_id) notFound();
   return (<>
     <Back href={bookingPath(b.booking_number)}>Booking {b.booking_number}</Back>
-    <StepHeader b={b} photo={photos[b.vehicle_id] ?? null} kicker="Check-out and check-in" title="Photo report" />
+    <StepHeader b={b} photo={photos[b.vehicle_id] ?? null} kicker="Check-in and check-out" title="Photo report" />
     <HandoverReport r={r} staff={false} />
   </>);
 }

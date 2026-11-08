@@ -1,4 +1,4 @@
-// The suggested angles of a check-out, a check-in and a pickup from or return to an owner (migration 0545): guidance,
+// The suggested angles of a check-in, a check-out and a pickup from or return to an owner (migration 0545): guidance,
 // never one upload per angle. A photo tagged with an angle ticks it; the uploader may tick one by hand. Pure: the photo
 // picker, the database (app.angle_shot maps each to the report's shot) and the unit test share the keys.
 export const ANGLES: ReadonlyArray<readonly [string, string]> = [

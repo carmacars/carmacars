@@ -3,7 +3,7 @@ import { workerToken } from '@/server/listing-worker';
 import { runAgreementJobs, runPeriodJobs } from '@/server/agreement-auto';
 
 // The agreements' background work (migrations 0132 and 0154, server/agreement-auto runAgreementJobs): the agreements
-// confirmed bookings are missing, then new versions, check-out and check-in copies, signed copies and dispute packs.
+// confirmed bookings are missing, then new versions, check-in and check-out copies, signed copies and dispute packs.
 // Called by the Worker's cron with the jobs' bearer token; any other caller gets 403. Three PDF renders per request at most.
 export const dynamic = 'force-dynamic';
 

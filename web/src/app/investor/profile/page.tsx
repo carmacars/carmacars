@@ -9,6 +9,7 @@ import { notifyReach } from '@/server/sign-in-settings';
 import { NotifyChannelCard } from '@/features/portal/NotifyChannel';
 import { PushAlerts } from '@/features/push/PushAlerts';
 import { AppProfile } from '@/features/app-shell/AppProfile';
+import { ChangeEmail } from '@/features/portal/ChangeEmail';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Account', path: '/investor/profile', noindex: true, description: 'Contact details, notices and sign-in.' });
@@ -30,7 +31,8 @@ export default async function Profile() {
       <section className="pt-card" aria-labelledby="ct-t"><h2 className="d4" id="ct-t">Contact details</h2>
         <dl className="pt-dl"><div><dt>Name</dt><dd>{h.investor.legal_name}</dd></div><div><dt>Email</dt><dd>{h.investor.email ?? ''}</dd></div><div><dt>Phone</dt><dd>{h.investor.phone ?? ''}</dd></div>
           <div><dt>Address</dt><dd>{h.investor.address ?? ''}</dd></div><div><dt>Bank account</dt><dd>{h.bank_last4 ? `ending ${h.bank_last4}` : 'none on file'}</dd></div></dl>
-        <p className="small">To update these, ask us; we confirm by phone.</p>
+        <ChangeEmail current={h.investor.email} />
+        <p className="small">To update the rest of these, ask us; we confirm by phone.</p>
       </section>
       {nc && <NotifyChannelCard reach={nc} />}
       <PushAlerts userId={user.id} portal="investor" />

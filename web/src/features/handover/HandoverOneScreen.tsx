@@ -7,7 +7,7 @@ import { PhotoPicker } from './PhotoPicker';
 import type { PickedPhoto } from './angles';
 import { oneScreenHandover, selfPickup } from '@/server/actions/self-handover';
 
-// One screen for a check-out or a check-in (migration 0545): the time (now unless changed), km, fuel, many photos at once
+// One screen for a check-in or a check-out (migration 0545): the time (now unless changed), km, fuel, many photos at once
 // with the suggested angles, a note; optional fields optional. Staff (Admin, Fleet, Sales, Customer service, field) on the
 // booking page; the renter's own check-in at pickup with the same screen. The renter's photos join the same report.
 function localNow(): string {
@@ -35,12 +35,12 @@ export function HandoverOneScreen({ booking, number, kind, who, refresh = [], is
     const ph = photos.map(({ bucket, path, angle }) => ({ bucket, path, angle }));
     if (who === 'renter') {
       const r = await selfPickup({ number, at: at ? new Date(at).toISOString() : undefined, odometer_km: km, fuel_pct: fuel, note, photos: ph });
-      setMsg(r.ok ? { ok: true, text: r.data.status === 'applied' ? 'You are checked in. Drive safely: your photos and readings are on the check-out report.' : 'Thank you, we have it. A team member checks it and confirms the pickup.' } : { ok: false, text: r.message });
+      setMsg(r.ok ? { ok: true, text: r.data.status === 'applied' ? 'You are checked in. Drive safely: your photos and readings are on the check-in report.' : 'Thank you, we have it. A team member checks it and confirms the pickup.' } : { ok: false, text: r.message });
       if (r.ok) router.refresh();
       return;
     }
     const r = await oneScreenHandover({ booking, kind, at, odometer_km: km, fuel_pct: fuel, note, photos: ph, deposit_waiver_reason: dep, signature_override_reason: sig, refresh });
-    setMsg(r.ok ? { ok: true, text: pickup ? 'Checked out: the rental has started.' : 'Checked in: the trip is completed; the charges follow on the statement.' } : { ok: false, text: r.message });
+    setMsg(r.ok ? { ok: true, text: pickup ? 'Checked in: the rental has started.' : 'Checked out: the trip is completed; the charges follow on the statement.' } : { ok: false, text: r.message });
     if (r.ok) { setPhotos([]); router.refresh(); }
   });
   return (
@@ -62,7 +62,7 @@ export function HandoverOneScreen({ booking, number, kind, who, refresh = [], is
         <div className="field"><label className="label" htmlFor="os-dep">Deposit not taken: the reason it is waived</label><input className="input" id="os-dep" value={dep} onChange={(e) => setDep(e.target.value)} /></div>
         <div className="field"><label className="label" htmlFor="os-sig">Without the renter&apos;s signature on the report: the reason</label><input className="input" id="os-sig" value={sig} onChange={(e) => setSig(e.target.value)} /></div></details>}
       {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'}><span>{msg.text}</span></p>}
-      <button className="btn btn--primary" type="submit" disabled={pending || busy > 0} data-testid={`os-${kind}-go`}>{pending ? 'Saving' : who === 'renter' ? 'Check in' : pickup ? 'Check out on one screen' : 'Check in on one screen'}</button>
+      <button className="btn btn--primary" type="submit" disabled={pending || busy > 0} data-testid={`os-${kind}-go`}>{pending ? 'Saving' : who === 'renter' ? 'Check in' : pickup ? 'Check in on one screen' : 'Check out on one screen'}</button>
     </form>
   );
 }

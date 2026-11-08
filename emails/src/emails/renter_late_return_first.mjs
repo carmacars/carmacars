@@ -15,7 +15,7 @@ export default {
   preheader: 'Return the {{vehicle_name}} or call {{support_phone}} to extend.',
   ref: 'Booking {{booking_number}}',
   body: [
-    hero('Return overdue', 'Your rental ended at {{return_time}}', 'We have not checked in the {{vehicle_name}} yet, {{first_name}}. Please return it now or call us to extend.'),
+    hero('Return overdue', 'Your rental ended at {{return_time}}', 'We have not checked out the {{vehicle_name}} yet, {{first_name}}. Please return it now or call us to extend.'),
     facts(
       ['Was due', '{{return_date}}, {{return_time}}'],
       ['Return place', '{{return_place}}'],

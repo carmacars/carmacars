@@ -2,7 +2,7 @@
 // button on their booking. Everything is optional; what the renter gives is kept as renter-provided until staff confirm.
 // No imports: the page, the upload route and the unit test share it.
 
-/** The fuel gauge as the renter reads it, stored as a percentage like the check-in report. */
+/** The fuel gauge as the renter reads it, stored as a percentage like the check-out report. */
 export const FUEL_LEVELS: ReadonlyArray<readonly [string, number]> = [
   ['Full', 100], ['3/4', 75], ['1/2', 50], ['1/4', 25], ['Empty', 0]
 ];

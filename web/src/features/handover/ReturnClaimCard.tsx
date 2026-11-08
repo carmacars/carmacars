@@ -36,7 +36,7 @@ export async function ReturnClaimCard({ booking, base, userId, aal }: { booking:
         </div>}
         <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}>
           <Act ops action="return_claim_decide" payload={{ booking, decision: 'confirm' }} label="Confirm the return" variant="primary" testId="return-claim-confirm" refresh={[base]}
-            done="Confirmed: the trip is completed and the renter's photos are on the check-in report."
+            done="Confirmed: the trip is completed and the renter's photos are on the check-out report."
             fields={[
               { name: 'returned_at', label: 'Return time', type: 'datetime', value: c.returned_at ?? c.claimed_at, required: true, hint: 'The late charges follow this time.' },
               { name: 'odometer_km', label: 'Odometer (km)', type: 'number', min: 0, value: c.odometer_km ?? undefined },

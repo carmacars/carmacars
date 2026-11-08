@@ -8,7 +8,7 @@ export default {
   category: 'transactional',
   from: FROM.billing,
   digest: false,
-  trigger: 'A deposit amount that was held back after the final statement is released or applied (deposit released_at is set, or the hold-back is applied to a charge). Happens within 30 days of check-in.',
+  trigger: 'A deposit amount that was held back after the final statement is released or applied (deposit released_at is set, or the hold-back is applied to a charge). Happens within 30 days of check-out.',
   timing: 'Immediate',
   subject: 'The rest of your deposit has been released, booking {{booking_number}}',
   preheader: '{{release_amount}} is on its way back to your card ending {{card_last4}}.',

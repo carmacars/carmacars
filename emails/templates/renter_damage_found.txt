@@ -9,7 +9,7 @@ Our inspection of the {{vehicle_name}} on {{inspection_date}} found damage that 
 
 Found: {{damage_description}}
 Inspected: {{inspection_date}}
-Checked in: {{checkin_date}}, {{checkin_time}}
+Checked out: {{checkin_date}}, {{checkin_time}}
 
 View the photos:
 {{supporting_document_url}}

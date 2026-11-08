@@ -41,7 +41,7 @@ const header = (stage: Stage): VersionHeader | null => stage === 'open' ? null :
 async function carmacars(stage: Stage) {
   const { f, x, bs } = richFacts(stage);
   const signatures: SignatureRow[] | undefined = stage === 'open' ? undefined : [{ party: 'Renter', name: 'Jordan Sample Renter', signature: 'Signed the agreement (signature on the signed original)', when: '' },
-    { party: stage === 'pickup' ? 'CarmaCars (check-out)' : 'CarmaCars (check-in)', name: header(stage)!.countersigned_name!, signature: 'Countersigned electronically', when: 'Wed, Jun 16, 2027' }];
+    { party: stage === 'pickup' ? 'CarmaCars (check-in)' : 'CarmaCars (check-out)', name: header(stage)!.countersigned_name!, signature: 'Countersigned electronically', when: 'Wed, Jun 16, 2027' }];
   const blocks = agreementBlocks(f, { privacyUrl: 'https://carmacars.ca/privacy', extra: x, insurer: bs.insurer, version: header(stage), signatures });
   return read(await agreementPdf(blocks, { title: 'Rental agreement', createdAt: new Date('2027-06-01T16:00:00Z'), footer: 'test' }));
 }
@@ -83,7 +83,7 @@ test('CarmaCars agreement as picked up: the pickup record (time out, km out, fue
   const t = all(await carmacars('pickup'));
   none(t, 'pickup');
   has(t, ['Version 2 (as picked up)', 'Pickup record', 'Time out', 'Jun 16, 2027, 10:20 a.m.', 'Odometer out (K/M out)', '20,150 km', 'Fuel or charge out', '100% (full)',
-    'Plate: SMPL123', 'VIN: W1KAF4HB0PR000001', 'D1: rear bumper, light scuff', 'A1B2C3D4', '19 photos', 'Sam Staffer', 'CarmaCars (check-out)', 'Countersigned electronically',
+    'Plate: SMPL123', 'VIN: W1KAF4HB0PR000001', 'D1: rear bumper, light scuff', 'A1B2C3D4', '19 photos', 'Sam Staffer', 'CarmaCars (check-in)', 'Countersigned electronically',
     'signature on the signed original', '$1,000.00, cash (held'], 'the pickup copy');
 });
 

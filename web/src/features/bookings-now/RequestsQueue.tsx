@@ -6,7 +6,7 @@ import { LiveWait } from '@/features/admin/shell/LiveWait';
 import { opensToYou, type ClaimInfo } from '@/features/offers/claim';
 import { CarLine, Chip, Tile, TileBand, Who } from './parts';
 import { Countdown } from './Countdown';
-import { money, when, type Car } from './model';
+import { expiredForLong, money, when, type Car } from './model';
 import { waitWords } from '@/lib/wait-words';
 import type { Cards } from './cards';
 
@@ -33,38 +33,41 @@ export function sortRequests(rows: Req[]): Req[] {
       : a.status === 'offered' ? (a.offer_expires_at ?? '9').localeCompare(b.offer_expires_at ?? '9') : a.pickup_at.localeCompare(b.pickup_at)));
 }
 
-/** An expired offer leaves the active queue for the quiet Expired filter 48 hours after it expired, or once its pickup passed. */
+/** An expired offer leaves the active queue for the quiet Expired filter 48 hours after it expired, or once its pickup passed.
+ *  Release 33: after 7 days expired it leaves the list altogether and becomes a renter lead (Marketing > Leads, migration 0741). */
 export function archived(r: Req, c: Cards[string] | undefined, at: number): boolean {
   if (r.status !== 'expired') return false;
   if (new Date(r.pickup_at).getTime() < at) return true;
   return !!c?.expired_at && at - new Date(c.expired_at).getTime() > 48 * 3600_000;
 }
 
-export function RequestsQueue({ all: every, cards, state, sp, target, at, base, admin, sales = false }: {
+export function RequestsQueue({ all: everyone, cards, state, sp, target, at, base, admin, sales = false }: {
   all: Req[]; cards: Cards; state: string; sp: Record<string, string | undefined>; target: { minutes: number; words: string }; at: number; base: '/admin' | '/staff'; admin: boolean;
   /** Sales see only what they can act on now; the rest waits in a folded list */ sales?: boolean;
 }) {
+  // r33: expired 7 days or more: no longer listed here, it is a renter lead now (Renters > Leads; migration 0741)
+  const every = everyone.filter((r) => !expiredForLong(r.status, cards[r.id]?.expired_at, at));
   const old = every.filter((r) => archived(r, cards[r.id], at));
   const all = state === 'expired' ? every : every.filter((r) => !archived(r, cards[r.id], at));
   const notYet = (r: Req) => sales && r.status === 'requested' && (!!r.sales_waits || (!!r.claim && !r.claim.mine));
   const n = (st: string) => (st === 'expired' ? every : all).filter((r) => r.state === st).length;
   const waiting = all.filter((r) => r.status === 'requested' && !notYet(r));
   const late = waiting.filter((r) => r.waiting_minutes > target.minutes).length;
-  const listed = all.filter((r) => !state || r.state === state);
+  const listed = all.filter((r) => !state || (state === 'late' ? r.status === 'requested' && r.waiting_minutes > target.minutes : r.state === state));
   const rows = sortRequests(listed.filter((r) => !notYet(r)));
   const later = listed.filter(notYet);
   const refresh = [`${base}/requests`];
   return (
     <div className="bn rq-page" data-testid="requests-queue">
       <TileBand label="Requests and offers in numbers">
-        <Tile k="rq-new" href={`${base}/requests?state=new`} label="Waiting for an offer" n={waiting.length} note={`reply within ${target.words}`} />
-        <Tile k="rq-late" href={`${base}/requests?state=new`} label="Past the reply target" n={late} urgent={late > 0} note={late ? 'answer these first' : 'none late'} />
-        <Tile k="rq-out" href={`${base}/requests?state=offer_out`} label="Offers out" n={n('offer_out')} note="waiting on the renter" />
-        <Tile k="rq-pay" href={`${base}/requests?state=awaiting_payment`} label="Accepted, not paid" n={n('awaiting_payment')} note="follow up for payment" />
-        <Tile k="rq-exp" href={`${base}/requests?state=expired`} label="Offers expired" n={all.filter((r) => r.state === 'expired').length} note={old.length ? `${old.length} older in Expired` : 'send again or close'} />
+        <Tile k="rq-new" current={state === 'new'} href={`${base}/requests?state=new`} label="Waiting for an offer" n={waiting.length} note={`reply within ${target.words}`} />
+        <Tile k="rq-late" current={state === 'late'} href={`${base}/requests?state=late`} label="Past the reply target" n={late} urgent={late > 0} note={late ? 'answer these first' : 'none late'} />
+        <Tile k="rq-out" current={state === 'offer_out'} href={`${base}/requests?state=offer_out`} label="Offers out" n={n('offer_out')} note="waiting on the renter" />
+        <Tile k="rq-pay" current={state === 'awaiting_payment'} href={`${base}/requests?state=awaiting_payment`} label="Accepted, not paid" n={n('awaiting_payment')} note="follow up for payment" />
+        <Tile k="rq-exp" current={state === 'expired'} href={`${base}/requests?state=expired`} label="Offers expired" n={all.filter((r) => r.state === 'expired').length} note={old.length ? `${old.length} older in Expired` : 'send again or close'} />
       </TileBand>
       <div className="bn-bar">
-        <ListFilters id="bookings-now-requestsqueue-state" base={`${base}/requests`} sp={sp} chips={{ name: 'state', label: 'State', value: state, options: [['', `Active (${all.length})`], ['new', `New (${n('new')})`],           ['pushed_back', `Changes asked (${n('pushed_back')})`], ['offer_out', `Offer out (${n('offer_out')})`], ['expired', `Expired (${n('expired')})`]] }} />
+        <ListFilters id="bookings-now-requestsqueue-state" base={`${base}/requests`} sp={sp} chips={{ name: 'state', label: 'State', value: state === 'late' ? 'new' : state, options: [['', `Active (${all.length})`], ['new', `New (${n('new')})`],           ['pushed_back', `Changes asked (${n('pushed_back')})`], ['offer_out', `Offer out (${n('offer_out')})`], ['awaiting_payment', `Accepted, not paid (${n('awaiting_payment')})`], ['expired', `Expired (${n('expired')})`]] }} />
       </div>
       {rows.length ? (
         <div className="rq-list" role="list" data-testid="requests">

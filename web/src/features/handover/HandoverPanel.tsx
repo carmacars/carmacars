@@ -9,8 +9,8 @@ import { SendSigningLink } from './SendSigningLink';
 import type { SigningState } from './types';
 import { HandoverOneScreen } from './HandoverOneScreen';
 
-// The booking page's check-out, check-in and signing card (migration 0130), the same for an Admin and an assistant
-// (Fleet, Sales, Customer service): "Check out (pickup)" on a confirmed booking, "Check in (return)" while it is on rent,
+// The booking page's check-in, check-out and signing card (migration 0130), the same for an Admin and an assistant
+// (Fleet, Sales, Customer service): "Check in (pickup)" on a confirmed booking, "Check out (return)" while it is on rent,
 // each opening the field checklist (all sides, interior, odometer, fuel, plate, damage close-ups, readings, signatures);
 // the photo report; the late return; "Sign now on this device" and "Text or email the signing link" while the rental
 // agreement waits for a signature (0185: waiting for payment too; what it shows is decided in panel.ts).
@@ -24,7 +24,7 @@ function recordFields(kind: 'pickup' | 'return'): Field[] {
     { name: 'reason', label: 'Why the details come later', type: 'text', required: true, wide: true },
     ...(kind === 'pickup' ? [
       { name: 'deposit_waiver_reason', label: 'Admin: deposit not taken, waive it because', type: 'text', wide: true, hint: 'Only when the deposit is not taken. An Admin only.' },
-      { name: 'signature_override_reason', label: 'Admin: no renter signature on the check-out report, because', type: 'text', wide: true, hint: 'An Admin only. Recorded on the booking.' }
+      { name: 'signature_override_reason', label: 'Admin: no renter signature on the check-in report, because', type: 'text', wide: true, hint: 'An Admin only. Recorded on the booking.' }
     ] as Field[] : [])
   ];
 }
@@ -36,7 +36,7 @@ export async function HandoverPanel({ b, base, userId, aal, canHandover, canSign
   const signing = canSign && (SIGNING_STATUSES as readonly string[]).includes(b.status)
     ? await door<SigningState>(userId, 'ops_read', 'in_person_signing', { booking: b.id }, aal).catch(() => null) : null;
   const late = lateLabel(b);
-  // 0195: the check-out or check-in reports recorded now whose photos and readings come later
+  // 0195: the check-in or check-out reports recorded now whose photos and readings come later
   const pending = canHandover && ['on_rent', 'returned', 'closed'].includes(b.status)
     ? ((await door<{ details_pending?: Array<'pickup' | 'return'> }>(userId, 'ops_read', 'handover_report', { booking: b.id }, aal).catch(() => null))?.details_pending ?? []) : [];
   // 0185: in-person signing while the booking waits for payment too, and never an empty card
@@ -46,13 +46,13 @@ export async function HandoverPanel({ b, base, userId, aal, canHandover, canSign
   if (!v.show) return claim;
   return (<>
     {claim}
-    <Card title="Check-out, check-in and signing" testId="handover-panel" tone={late ? 'warn' : b.status === 'confirmed' || b.status === 'on_rent' ? 'next' : undefined}>
+    <Card title="Check-in, check-out and signing" testId="handover-panel" tone={late ? 'warn' : b.status === 'confirmed' || b.status === 'on_rent' ? 'next' : undefined}>
       <div className="stack">
         {late && <p className="ad-late" data-testid="booking-late"><b>{late}</b>{b.checked_in_at ? '' : '. Check the car in as soon as it is back: the late return charges follow the actual time.'}</p>}
         {(v.checkout || v.checkin || v.report || v.signNow) && <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}>
           {v.checkout && <Act ops action="handover_open" payload={{ booking: b.id, kind: 'pickup' }} label="Full checklist (pickup)" go={`${base}/handover/{job}`} testId="checkout-start" />}
           {v.checkin && <Act ops action="handover_open" payload={{ booking: b.id, kind: 'return' }} label="Full checklist (return)" go={`${base}/handover/{job}`} testId="checkin-start" />}
-          {v.addDetails.map((k) => <Act key={k} ops action="handover_open" payload={{ booking: b.id, kind: k }} label={`Add the ${k === 'pickup' ? 'check-out' : 'check-in'} photos and readings`} variant="primary" go={`${base}/handover/{job}`} testId={`add-details-${k}`} />)}
+          {v.addDetails.map((k) => <Act key={k} ops action="handover_open" payload={{ booking: b.id, kind: k }} label={`Add the ${k === 'pickup' ? 'check-in' : 'check-out'} photos and readings`} variant="primary" go={`${base}/handover/{job}`} testId={`add-details-${k}`} />)}
           {v.recordPickup && <Act ops action="handover_record_now" payload={{ booking: b.id, kind: 'pickup' }} label="Record the pickup now (details later)" testId="record-pickup-now" refresh={[base]}
             done="Pickup recorded. Fleet has a task to add the photos and readings." fields={recordFields('pickup')} />}
           {v.recordReturn && <Act ops action="handover_record_now" payload={{ booking: b.id, kind: 'return' }} label="Record the return now (details later)" testId="record-return-now" refresh={[base]}
@@ -62,15 +62,15 @@ export async function HandoverPanel({ b, base, userId, aal, canHandover, canSign
         </div>}
         {/* 0545: one screen: the time, km, fuel, many photos at once with the suggested angles, a note; the renter's own
             photos join the same report. The full checklist stays one tap away. */}
-        {(v.checkout || v.checkin) && <section aria-label={v.checkout ? 'Check out on one screen' : 'Check in on one screen'} data-testid="one-screen">
-          <h3 className="d4">{v.checkout ? 'Check out (pickup)' : 'Check in (return)'}</h3>
+        {(v.checkout || v.checkin) && <section aria-label={v.checkout ? 'Check in on one screen' : 'Check out on one screen'} data-testid="one-screen">
+          <h3 className="d4">{v.checkout ? 'Check in (pickup)' : 'Check out (return)'}</h3>
           <HandoverOneScreen booking={b.id} number={b.booking_number} kind={v.checkout ? 'pickup' : 'return'} who="staff" refresh={[base]} isAdmin={base.startsWith('/admin')} /></section>}
-        {v.addDetails.map((k) => <details key={`os-${k}`} data-testid={`one-screen-add-${k}`}><summary className="small link">Add photos and readings to the {k === 'pickup' ? 'check-out' : 'check-in'} on one screen</summary>
+        {v.addDetails.map((k) => <details key={`os-${k}`} data-testid={`one-screen-add-${k}`}><summary className="small link">Add photos and readings to the {k === 'pickup' ? 'check-in' : 'check-out'} on one screen</summary>
           <HandoverOneScreen booking={b.id} number={b.booking_number} kind={k} who="staff" refresh={[base]} /></details>)}
         {(v.checkout || v.checkin) && <p className="small muted">The full checklist, when you want it: {b.status === 'confirmed'
           ? 'The checklist: ready check, licence and card, odometer and fuel, the photo set (every side, wheels, interior, odometer and fuel gauge, plate), damage close-ups, then the renter and you sign. Photos upload in the background and wait on the phone without a connection.'
-          : 'The checklist: odometer and fuel, keys, cleanliness, the photo set, comparison with the check-out, belongings, then the renter and you sign. The late, kilometre and fuel charges are written at once.'}</p>}
-        {v.addDetails.length > 0 && <p className="small" data-testid="details-pending">{v.addDetails.map((k) => (k === 'pickup' ? 'The check-out' : 'The check-in')).join(' and ')} was recorded with the details later: add the photos, the readings and your signature with the checklist.</p>}
+          : 'The checklist: odometer and fuel, keys, cleanliness, the photo set, comparison with the check-in, belongings, then the renter and you sign. The late, kilometre and fuel charges are written at once.'}</p>}
+        {v.addDetails.length > 0 && <p className="small" data-testid="details-pending">{v.addDetails.map((k) => (k === 'pickup' ? 'The check-in' : 'The check-out')).join(' and ')} was recorded with the details later: add the photos, the readings and your signature with the checklist.</p>}
         {v.waiting.length > 0 && <p className="small" data-testid="sign-waiting">Waiting for a signature: {v.waiting.join(', ')}.</p>}
         {v.note && <p className="small muted" data-testid="sign-state">{v.note}</p>}
         {v.sendLink && <SendSigningLink booking={b.id} mobile={signing?.renter_mobile ?? null} email={signing?.renter_email ?? null} />}

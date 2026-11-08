@@ -100,7 +100,7 @@ export function BookingsNow({ initial: first, at, src, base }: { initial: Board 
         {stale.length > 0 && (
         <section className="bn-stale bn-sec--wide" aria-labelledby="bn-stale-h" data-testid="bn-stale">
           <h2 id="bn-stale-h">Ended, never closed <span className="bn-count">{stale.length}</span></h2>
-          <p className="bn-sec__note">Booked, no check-out recorded, and the car has gone out again since. Close records the pickup and the return at the booked times; add the photos later.</p>
+          <p className="bn-sec__note">Booked, no check-in recorded, and the car has gone out again since. Close records the pickup and the return at the booked times; add the photos later.</p>
           <ul className="bn-rows">{stale.map((r) => (
             <li key={r.booking_id} className="bn-row bn-row--stale" data-testid={`bn-stale-${r.number}`}>
               <Time big={day(r.return_at)} small={`${day(r.booked_pickup_at)} to ${day(r.return_at)}`} late={false} />
@@ -203,14 +203,14 @@ function Readiness({ r }: { r: Rental }) {
 const closeFields: Field[] = [
   { name: 'reason', label: 'What happened', type: 'text', required: true, wide: true, value: 'Ended, never closed: the rental took place' },
   { name: 'deposit_waiver_reason', label: 'Admin: deposit not taken, waive it because', type: 'text', wide: true, hint: 'Only when the deposit is not taken. An Admin only.' },
-  { name: 'signature_override_reason', label: 'Admin: no renter signature on the check-out report, because', type: 'text', wide: true, hint: 'An Admin only. Recorded on the booking.' }];
+  { name: 'signature_override_reason', label: 'Admin: no renter signature on the check-in report, because', type: 'text', wide: true, hint: 'An Admin only. Recorded on the booking.' }];
 const markFields = (at: string): Field[] => [
   { name: 'at', label: 'Picked up at', type: 'datetime', value: at, required: true, hint: 'The booked pickup time. Change it if the car left at another time.' },
   { name: 'odometer_km', label: 'Odometer (km), if known', type: 'number' },
   { name: 'fuel_pct', label: 'Fuel or charge (%), if known', type: 'number' },
   { name: 'reason', label: 'Why it was not recorded', type: 'text', required: true, wide: true, value: 'Picked up; not recorded at the time' },
   { name: 'deposit_waiver_reason', label: 'Admin: deposit not taken, waive it because', type: 'text', wide: true, hint: 'Only when the deposit is not taken. An Admin only.' },
-  { name: 'signature_override_reason', label: 'Admin: no renter signature on the check-out report, because', type: 'text', wide: true, hint: 'An Admin only. Recorded on the booking.' }];
+  { name: 'signature_override_reason', label: 'Admin: no renter signature on the check-in report, because', type: 'text', wide: true, hint: 'An Admin only. Recorded on the booking.' }];
 
 function OutRow({ r, now, href, full, mark, refresh }: { r: Rental; now: number; href: string | null; full: boolean; mark: boolean; refresh: string[] }) {
   const c = countdown(r.return_at, now);

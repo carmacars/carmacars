@@ -1,5 +1,6 @@
 'use client';
 import { useEffect } from 'react';
+import { afterReset, RESET } from './model';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 // r32: the last filters of a list are remembered for this person on this device (a convenience: nothing else depends
@@ -15,6 +16,15 @@ export function RememberFilters({ id, names }: { id: string; names: string[] }) 
         localStorage.removeItem(key);
         const q = new URLSearchParams(sp.toString());
         q.delete('clear'); for (const n of names) q.delete(n);
+        router.replace(q.toString() ? `${path}?${q}` : path, { scroll: false });
+        return;
+      }
+      const reset = sp.get(RESET);
+      if (reset) { // the default chip was chosen: forget the remembered choice of that filter, then show the list without the marker
+        const left = afterReset(JSON.parse(localStorage.getItem(key) ?? 'null') as Record<string, string> | null, reset);
+        if (left) localStorage.setItem(key, JSON.stringify(left)); else localStorage.removeItem(key);
+        const q = new URLSearchParams(sp.toString());
+        q.delete(RESET);
         router.replace(q.toString() ? `${path}?${q}` : path, { scroll: false });
         return;
       }

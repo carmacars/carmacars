@@ -60,6 +60,12 @@ export interface AuthAdapter {
   verifyPhoneChange(phone: string, code: string): Promise<AuthResult>;
   /** Signed in, an account made by phone: its email (for receipts and email sign-in); a link to confirm it is emailed. */
   setEmail(email: string): Promise<{ ok: true } | { ok: false; code?: AuthFailure; message: string }>;
+  /** Signed in, an account with an email (r33): ask for another sign-in email. The address on the sign-in does not change until the links are
+   *  opened: the new address gets the confirmation link and the old address is told (Supabase: its email change flow with secure email change
+   *  on; the local stand-in: two mailbox entries). code 'exists' when another account has the address. */
+  changeEmail(email: string): Promise<{ ok: true } | { ok: false; code?: AuthFailure; message: string }>;
+  /** Local stand-in only: checks an email change link (Supabase checks its own in the callback); the sign-in then holds the new address. */
+  confirmEmailChange?(tokenHash: string): Promise<AuthResult>;
   /** Two-step sign-in (TOTP): the signed-in user's verified authenticator factors. */
   mfaFactors(): Promise<Array<{ id: string; verified: boolean }>>;
   /** Starts enrolment: a new factor with its secret and otpauth link (and a QR code image on Supabase). */

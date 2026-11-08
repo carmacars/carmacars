@@ -134,7 +134,7 @@ export function DepositSettle({ bookingId, bookingNumber, refresh = [] }: { book
             <div><dt>Taken from the deposit for them</dt><dd>{$(pv.apply_cents)}</dd></div>
             {pv.shortfall_cents > 0 && <div><dt>{g.card_on_file ? 'Charged to the card on file' : 'Still owed (a pay link goes to the renter)'}</dt><dd>{$(pv.shortfall_cents)}</dd></div>}
           </dl>
-          {!pv.has_statement && <p className="alert alert--error" role="alert"><span>Issue the Check-in statement first (Overview, Issue final statement).</span></p>}
+          {!pv.has_statement && <p className="alert alert--error" role="alert"><span>Issue the Check-out statement first (Overview, Issue final statement).</span></p>}
           {g.deposit_to_charge && g.card_on_file && pv.has_statement && <div className="alert alert--info" data-testid="deposit-charge-first"><span>No deposit was taken (a long rental saves the card instead). Charge the deposit of {$(g.deposit_cents)} to the saved card first, so it covers what comes in later.</span>
             <button className="btn btn--ghost btn--sm" type="button" disabled={pending} onClick={chargeDeposit} data-testid="deposit-charge-go">Charge the deposit to the saved card</button></div>}
           {g.blocked && <div className="alert alert--warn" data-testid="deposit-blockers"><span><b>Keep the whole deposit: something can still be owed.</b></span>

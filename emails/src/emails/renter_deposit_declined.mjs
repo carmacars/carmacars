@@ -21,7 +21,7 @@ export default {
       'Or use another credit card. It must be in your name, and you need the physical card with you.',
     ),
     button('Use another card', '@booking_pay'),
-    small('The deposit is separate from what you paid at booking. It comes back within 7 business days of check-in, less any charges. If you cannot arrange it today, call {{support_phone}} before you leave so we can talk through your options.'),
+    small('The deposit is separate from what you paid at booking. It comes back within 7 business days of check-out, less any charges. If you cannot arrange it today, call {{support_phone}} before you leave so we can talk through your options.'),
   ],
   sample: { deposit_method_text: 'hold of $500.00' },
 };

@@ -4,7 +4,7 @@
 
 export type Step = 'checkin' | 'ask' | 'reminder' | 'final';
 export const STEP_LABEL: Record<Step, string> = {
-  checkin: 'Mid-trip check-in',
+  checkin: 'Mid-trip check',
   ask: 'Review request',
   reminder: 'Reminder',
   final: 'Final follow-up'
@@ -27,7 +27,7 @@ export interface SeqFacts {
   pickupAt: Date;
   /** the return time booked */
   returnAt: Date;
-  /** the check-in, once the car is back */
+  /** the check-out, once the car is back */
   returnedAt: Date | null;
   sent: Partial<Record<Step, Date | null>>;
 }

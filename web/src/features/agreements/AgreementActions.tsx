@@ -42,7 +42,7 @@ export function MissingFields({ booking, missing, refresh, isAdmin, overrides }:
   const required = missing.filter((m) => m.required);
   return (
     <div className="stack" data-testid="agreement-missing">
-      <p className="small"><b>{required.length ? `${required.length} field${required.length === 1 ? '' : 's'} a claim needs ${required.length === 1 ? 'is' : 'are'} blank` : 'Recommended'}</b>: printed blank until filled.{required.length ? ' Check-out waits for them unless an Admin overrides.' : ''}</p>
+      <p className="small"><b>{required.length ? `${required.length} field${required.length === 1 ? '' : 's'} a claim needs ${required.length === 1 ? 'is' : 'are'} blank` : 'Recommended'}</b>: printed blank until filled.{required.length ? ' Check-in waits for them unless an Admin overrides.' : ''}</p>
       <form className="stack" onSubmit={(e) => { e.preventDefault(); start(async () => { const r = await agreementFill(booking, payload(), refresh); setMsg(r.ok ? { ok: true, text: 'Saved. The agreements follow in a moment.' } : { ok: false, text: r.message }); if (r.ok) { setVals({}); router.refresh(); } }); }}>
         <div className="grid-2" style={{ display: 'grid', gap: 'var(--s-2)', gridTemplateColumns: 'repeat(auto-fit, minmax(14rem, 1fr))' }}>
           {fillable.flatMap(inputs).map((f) => f.name === 'coverage.insurer_name'
@@ -57,8 +57,8 @@ export function MissingFields({ booking, missing, refresh, isAdmin, overrides }:
         {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'}><span>{msg.text}</span></p>}
         {fillable.length > 0 && <button className="btn btn--primary btn--sm" type="submit" disabled={pending} data-testid="agreement-fill">{pending ? 'Saving' : 'Save the missing fields'}</button>}
       </form>
-      {isAdmin && required.length > 0 && <form className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)', alignItems: 'end' }} onSubmit={(e) => { e.preventDefault(); start(async () => { const r = await agreementOverride(booking, reason, refresh); setMsg(r.ok ? { ok: true, text: 'Check-out may go ahead without these fields. The reason is on the booking\'s history.' } : { ok: false, text: r.message }); if (r.ok) router.refresh(); }); }}>
-        <label className="field" style={{ margin: 0, flex: '1 1 16rem' }}><span className="label">Admin: let the check-out go ahead without them, because</span>
+      {isAdmin && required.length > 0 && <form className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)', alignItems: 'end' }} onSubmit={(e) => { e.preventDefault(); start(async () => { const r = await agreementOverride(booking, reason, refresh); setMsg(r.ok ? { ok: true, text: 'Check-in may go ahead without these fields. The reason is on the booking\'s history.' } : { ok: false, text: r.message }); if (r.ok) router.refresh(); }); }}>
+        <label className="field" style={{ margin: 0, flex: '1 1 16rem' }}><span className="label">Admin: let the check-in go ahead without them, because</span>
           <input className="input" value={reason} minLength={5} onChange={(e) => setReason(e.target.value)} data-testid="agreement-override-reason" /></label>
         <button className="btn btn--ghost btn--sm" type="submit" disabled={pending || reason.trim().length < 5} data-testid="agreement-override">Override</button>
       </form>}

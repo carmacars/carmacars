@@ -1,8 +1,8 @@
 import type { SigningState } from './types';
 
-// What the booking page's "Check-out, check-in and signing" card shows (migration 0130), decided apart from the
+// What the booking page's "Check-in, check-out and signing" card shows (migration 0130), decided apart from the
 // rendering so it is tested on its own. 0185: a booking waiting for payment (the renter accepted the offer online and
-// left the pay page) showed the card empty: no check-out yet, and "Sign now on this device" only when the database's
+// left the pay page) showed the card empty: no check-in yet, and "Sign now on this device" only when the database's
 // signing state listed someone unsigned. Now the card offers in-person signing whenever the rental agreement waits for a
 // signature or is not made yet (pending payment, confirmed, on rent), says where the agreement stands otherwise, and is
 // left out when it would have nothing in it.
@@ -24,7 +24,7 @@ export interface PanelView {
   /** 0195: "Record the pickup now (details later)" / "Record the return now (details later)" */
   recordPickup: boolean;
   recordReturn: boolean;
-  /** 0195: a check-out or check-in recorded with the details later: "Add the photos and readings" */
+  /** 0195: a check-in or check-out recorded with the details later: "Add the photos and readings" */
   addDetails: Array<'pickup' | 'return'>;
 }
 

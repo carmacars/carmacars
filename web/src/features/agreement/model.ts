@@ -122,8 +122,8 @@ const KIND_LABEL: Record<string, string> = { pickup: 'as picked up', return: 'as
 /** The version's header: which version, what it replaces, what changed. */
 function versionBlocks(v: VersionHeader): Block[] {
   const out: Block[] = [{ t: 'h2', text: `Version ${v.version_no} (${KIND_LABEL[v.kind] ?? v.kind})` }];
-  const lead = v.kind === 'pickup' ? `This copy records the car as it was handed over (the Pickup record below). The agreement the Renter signed${v.original_signed_at ? ` on ${when(v.original_signed_at)}` : ''} stays as signed; this copy replaces version ${v.previous_no} as the current record and is countersigned by CarmaCars staff who did the check-out.`
-    : v.kind === 'return' ? `This is the closing copy: the car as it came back, the kilometres, the fuel, the lateness, the return charges and the final totals (the Return record below). The agreement as signed stays as signed; this copy replaces version ${v.previous_no} as the current record and is countersigned by CarmaCars staff who did the check-in.`
+  const lead = v.kind === 'pickup' ? `This copy records the car as it was handed over (the Pickup record below). The agreement the Renter signed${v.original_signed_at ? ` on ${when(v.original_signed_at)}` : ''} stays as signed; this copy replaces version ${v.previous_no} as the current record and is countersigned by CarmaCars staff who did the check-in.`
+    : v.kind === 'return' ? `This is the closing copy: the car as it came back, the kilometres, the fuel, the lateness, the return charges and the final totals (the Return record below). The agreement as signed stays as signed; this copy replaces version ${v.previous_no} as the current record and is countersigned by CarmaCars staff who did the check-out.`
     : v.material ? `The booking changed after the agreement was signed. This version replaces version ${v.previous_no}${v.amendment_number ? `; the Renter signed the change as amendment ${v.amendment_number}` : ' once the Renter (and each driver it affects) signs it; until then version ' + v.previous_no + ' applies'}.`
     : `Details were corrected after the agreement was signed. Nothing the Renter agreed to changes, so this version is filed without signing again; it replaces version ${v.previous_no} as the current record.`;
   out.push({ t: 'p', text: lead });
@@ -138,14 +138,14 @@ function pickupBlocks(f: AgreementFacts, x: AgreementExtra): Block[] {
   const p = x.pickup!;
   const v = p.vehicle ?? x.vehicle;
   const rows: string[][] = [
-    ['Time out', when(p.at) + (p.completed ? '' : ' (check-out in progress; readings taken before signing)')],
+    ['Time out', when(p.at) + (p.completed ? '' : ' (check-in in progress; readings taken before signing)')],
     ['Odometer out (K/M out)', km(p.odometer_km)],
     ['Fuel or charge out', fuelLabel(p.fuel_pct)],
     ['Car handed over', `${carName(v)}${v?.colour ? `, ${v.colour}` : ''}  Plate: ${v?.plate ?? ''}  VIN: ${v?.vin ?? ''}${v?.fleet_number ? `  Fleet no.: ${v.fleet_number}` : ''}`],
     ['Keys handed over', p.keys === null ? '' : String(p.keys)],
     ['Damage noted at pickup', p.damages.length ? p.damages.map((d) => `${d.label}: ${[d.location, d.description].filter(Boolean).join(', ')}`).join('; ') : 'None marked'],
-    ['Condition report', `Check-out report ${p.report_id.slice(0, 8).toUpperCase()} with ${p.photos} photos (in the booking's Photo reports)`],
-    ['Checked out by', p.staff_name ?? 'CarmaCars staff']
+    ['Condition report', `Check-in report ${p.report_id.slice(0, 8).toUpperCase()} with ${p.photos} photos (in the booking's Photo reports)`],
+    ['Checked in by', p.staff_name ?? 'CarmaCars staff']
   ];
   void f;
   return [{ t: 'h3', text: 'Pickup record' }, { t: 'table', head: ['Item', 'At pickup'], rows, kv: true }];
@@ -165,8 +165,8 @@ function returnBlocks(f: AgreementFacts, x: AgreementExtra): Block[] {
     ['Late', late],
     ['Keys returned', r.keys === null ? '' : String(r.keys)],
     ['New damage', r.new_damages.length ? r.new_damages.map((d) => `${d.label}: ${[d.location, d.description].filter(Boolean).join(', ')}`).join('; ') : 'None'],
-    ['Condition report', `Check-in report ${r.report_id.slice(0, 8).toUpperCase()} with ${r.photos} photos (in the booking's Photo reports)`],
-    ['Checked in by', r.staff_name ?? 'CarmaCars staff']
+    ['Condition report', `Check-out report ${r.report_id.slice(0, 8).toUpperCase()} with ${r.photos} photos (in the booking's Photo reports)`],
+    ['Checked out by', r.staff_name ?? 'CarmaCars staff']
   ];
   const ret = stageLines(x, ['check_in', 'after_return']);
   const all = x.lines;

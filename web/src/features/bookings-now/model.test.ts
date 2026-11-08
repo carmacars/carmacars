@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { countdown, depositWords, filterOut, fuel, initial, money, nextPay, phoneHref, planWords, span, when, type Pay, type Rental } from './model.ts';
+import { countdown, depositWords, expiredForLong, filterOut, fuel, initial, money, nextPay, phoneHref, planWords, span, when, type Pay, type Rental } from './model.ts';
 
 // noon, November 4 2026, Toronto (17:00 UTC)
 const NOW = Date.parse('2026-11-04T17:00:00Z');
@@ -71,4 +71,12 @@ test('the Out now filters', () => {
   assert.equal(filterOut(rows, 'late').length, 1);
   assert.equal(filterOut(rows, 'today').length, 2);
   assert.equal(filterOut(rows, 'pay').length, 2);
+});
+
+test('r33: an offer expired for 7 days or more leaves Requests and offers', () => {
+  const day = 86_400_000;
+  assert.equal(expiredForLong('expired', new Date(NOW - 7 * day).toISOString(), NOW), true);
+  assert.equal(expiredForLong('expired', new Date(NOW - 7 * day + 60_000).toISOString(), NOW), false);
+  assert.equal(expiredForLong('expired', null, NOW), false);
+  assert.equal(expiredForLong('offered', new Date(NOW - 30 * day).toISOString(), NOW), false);
 });

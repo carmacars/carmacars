@@ -8,7 +8,7 @@ export default {
   category: 'transactional',
   from: FROM.bookings,
   digest: false,
-  trigger: 'An incident of type damage is recorded on a returned booking from the photo review after hand-back (damage not noted on the signed return report). Must be sent within 48 hours of check-in. (Message template T8.)',
+  trigger: 'An incident of type damage is recorded on a returned booking from the photo review after hand-back (damage not noted on the signed return report). Must be sent within 48 hours of check-out. (Message template T8.)',
   timing: 'Immediate, within 48 hours of return',
   source: 'T8',
   subject: 'Damage found on the {{vehicle_name}} after your return',
@@ -19,7 +19,7 @@ export default {
     facts(
       ['Found', '{{damage_description}}'],
       ['Inspected', '{{inspection_date}}'],
-      ['Checked in', '{{checkin_date}}, {{checkin_time}}'],
+      ['Checked out', '{{checkin_date}}, {{checkin_time}}'],
     ),
     button('View the photos', '{{supporting_document_url}}'),
     h('What happens next'),

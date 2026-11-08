@@ -10,7 +10,7 @@ export default {
   trigger: 'Staff press Deny on the renter\'s "I\'ve returned the car" report (migration 0532): the car is not back. The booking is overdue again, so the late return notices resume.',
   timing: 'Immediate',
   subject: 'We could not confirm the return of the {{vehicle_name}}',
-  preheader: 'The car is not checked in yet. Please return it now or call {{support_phone}}.',
+  preheader: 'The car is not checked out yet. Please return it now or call {{support_phone}}.',
   ref: 'Booking {{booking_number}}',
   body: [
     hero('Return not confirmed', 'We could not confirm your return', 'You told us the {{vehicle_name}} is back, {{first_name}}, but we could not confirm it. The booking is still overdue.'),
@@ -19,7 +19,7 @@ export default {
       ['Return place', '{{return_place}}'],
       ['Why', '{{deny_reason}}'],
     ),
-    notice('alert', 'What happens now', 'The late fees and the overdue notices go on until the car is checked in. Please return it now, or call us if it is already back.'),
+    notice('alert', 'What happens now', 'The late fees and the overdue notices go on until the car is checked out. Please return it now, or call us if it is already back.'),
     button('Pay for an extension', '@booking_extend'),
     link('Returned it since? Tell us in one tap', '{{returned_url}}'),
     p('To talk it through, call **{{support_phone}}** now.'),

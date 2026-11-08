@@ -305,7 +305,7 @@ test('field: a full handover with every photo and the renter signature, then a l
   await draw(page, 'sign-staff'); await page.getByTestId('use-staff').click(); await expect(page.getByTestId('signed-staff')).toBeVisible({ timeout: 15_000 });
   await check(page, 'field signatures');
   await next(page, 'Hand over the keys');
-  await complete(page, 'Checked out');
+  await complete(page, 'Checked in');
   const [after] = await sql`select b.status::text s, (select count(*)::int from condition_report_photos p join condition_reports c on c.id = p.condition_report_id where c.booking_id = b.id and c.kind = 'pickup') photos,
     (select renter_signature_ref is not null and completed_at is not null from condition_reports c where c.booking_id = b.id and c.kind = 'pickup') signed from bookings b where b.id = ${req.booking_id}`;
   expect(after).toMatchObject({ s: 'on_rent', photos: 19, signed: true });
@@ -352,7 +352,7 @@ test('field: a full handover with every photo and the renter signature, then a l
   await draw(page, 'sign-renter'); await page.getByTestId('use-renter').click(); await expect(page.getByTestId('signed-renter')).toBeVisible({ timeout: 15_000 });
   await next(page, 'You sign and complete');
   await draw(page, 'sign-staff'); await page.getByTestId('use-staff').click(); await expect(page.getByTestId('signed-staff')).toBeVisible({ timeout: 15_000 });
-  await complete(page, 'Checked in');
+  await complete(page, 'Checked out');
   const [ret] = await sql`select b.status::text s, b.minutes_late::int late, b.extra_days::int extra,
     (select count(*)::int from incidents i where i.booking_id = b.id and i.kind = 'damage_at_return') incidents,
     (select d.position is not null from condition_report_damages d join condition_reports c on c.id = d.condition_report_id where c.booking_id = b.id and c.kind = 'return' and d.label = 'D1') marked

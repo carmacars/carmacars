@@ -35,7 +35,7 @@ const dataUrlBlob = async (u: string) => {
 };
 
 export function Checklist({ j, back = '/staff/field', backLabel = 'Back to my jobs', here }: { j: FieldJob; back?: string; backLabel?: string;
-  /** 0151: where this checklist runs (the field job, or the booking's check-out for staff): its sign-now page and the page the card form returns to */
+  /** 0151: where this checklist runs (the field job, or the booking's check-in for staff): its sign-now page and the page the card form returns to */
   here?: { signNow: string; self: string } }) {
   const router = useRouter();
   // where each photo is taken, when the phone allows it (0130): asked once, never in the way
@@ -190,18 +190,18 @@ export function Checklist({ j, back = '/staff/field', backLabel = 'Back to my jo
         {!unattended ? <Sign who="renter" label={`${j.booking?.renter?.name ?? 'Renter'} signs`} done={Boolean(r.renter_signature_ref)} sign={sign} /> : <p className="pt-note small">{later ? 'Recorded with the details later: the renter does not sign here.' : 'Unattended handover: the renter\'s own photo set stands in for their signature.'}</p>}
         <Sign who="staff" label="You sign" done={Boolean(r.staff_signature_ref)} sign={sign} />
       </div>) },
-    { title: later ? 'Save the check-out details' : 'Hand over the keys', can: queueEmpty && shotsDone === required.length, primary: later ? 'Save the details' : 'Hand over the keys', onPrimary: () => start(async () => {
+    { title: later ? 'Save the check-in details' : 'Hand over the keys', can: queueEmpty && shotsDone === required.length, primary: later ? 'Save the details' : 'Hand over the keys', onPrimary: () => start(async () => {
       setMsg(null);
       let x: Awaited<ReturnType<typeof fieldAct<{ booking_status: string }>>>;
       try { x = await fieldAct<{ booking_status: string }>('complete_handover', { job: jobId, report: { ...strip(r), unattended, renter_present: unattended ? false : r.renter_present } }); } catch { setMsg(OFFLINE); return; }
       if (!x.ok) { setMsg(x.message); return; }
       try { localStorage.removeItem(key); } catch { /* ignore */ }
-      setDone(later ? 'Check-out details saved. The task is closed.' : 'Checked out. The rental has started; the renter gets the photo report by email.');
+      setDone(later ? 'Check-in details saved. The task is closed.' : 'Checked in. The rental has started; the renter gets the photo report by email.');
     }), body: <Upload q={q} total={required.length} shotsDone={shotsDone} /> }
   ] : [
     { title: 'Car and keys received', can: r.renter_present !== undefined, body: (
       <div className="stack"><YesNo label="I have the car and all keys. The renter is here." value={r.renter_present} set={(v) => set({ renter_present: v })} />
-        <p className="small muted">Check-in is the moment you complete this return; the server stamps the time.</p></div>) },
+        <p className="small muted">Check-out is the moment you complete this return; the server stamps the time.</p></div>) },
     { title: 'Odometer', can: (r.odometer_km ?? 0) > 0, body: (
       <div className="stack">
         <Odo value={r.odometer_km} set={(v) => set({ odometer_km: v })} hint={j.pickup?.odometer_km ? `At pickup: ${j.pickup.odometer_km.toLocaleString('en-CA')} km` : null} />
@@ -238,7 +238,7 @@ export function Checklist({ j, back = '/staff/field', backLabel = 'Back to my jo
       try { x = await fieldAct<{ booking_status: string; minutes_late?: number }>('complete_return', { job: jobId, report: strip(r) }); } catch { setMsg(OFFLINE); return; }
       if (!x.ok) { setMsg(x.message); return; }
       try { localStorage.removeItem(key); } catch { /* ignore */ }
-      setDone(later ? 'Check-in details saved. The kilometre and fuel charges follow the readings; Fleet reviews the photos.' : 'Checked in. The late, kilometre and fuel charges are on the return statement; Fleet reviews the photos. The deposit is not given back today: Finance settles it once tolls and tickets have had time to come in (about 7 days), and any damage you marked keeps it held.');
+      setDone(later ? 'Check-out details saved. The kilometre and fuel charges follow the readings; Fleet reviews the photos.' : 'Checked out. The late, kilometre and fuel charges are on the return statement; Fleet reviews the photos. The deposit is not given back today: Finance settles it once tolls and tickets have had time to come in (about 7 days), and any damage you marked keeps it held.');
     }), body: <><Sign who="staff" label="You sign" done={Boolean(r.staff_signature_ref)} sign={sign} /><Upload q={q} total={required.length} shotsDone={shotsDone} /></> }
   ];
 
@@ -250,7 +250,7 @@ export function Checklist({ j, back = '/staff/field', backLabel = 'Back to my jo
   return (
     <div className="fd-screen fd-flow" data-testid="checklist">
       <div className="fd-flow__head">
-        <p className="fd-stepcount">Step {step + 1} of {screens.length}<span className="fd-stepcount__job">{pickup ? 'Check out' : 'Check in'}{j.vehicle.plate ? <>, <Plate plate={j.vehicle.plate} small /></> : null}</span></p>
+        <p className="fd-stepcount">Step {step + 1} of {screens.length}<span className="fd-stepcount__job">{pickup ? 'Check in' : 'Check out'}{j.vehicle.plate ? <>, <Plate plate={j.vehicle.plate} small /></> : null}</span></p>
         <div className="fd-progress" role="progressbar" aria-label="Checklist progress" aria-valuemin={1} aria-valuemax={screens.length} aria-valuenow={step + 1} aria-valuetext={`Step ${step + 1} of ${screens.length}`}>
           {screens.map((x, i) => <span key={x.title} className={i < step ? 'is-done' : i === step ? 'is-now' : undefined} />)}
         </div>

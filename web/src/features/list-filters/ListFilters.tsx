@@ -1,10 +1,10 @@
 import Link from '@/components/Link';
 import { DateInput } from '@/components/DateInput';
-import { activeCount, hrefWith, MAX_CHIPS, type Group, type Opt } from './model';
+import { activeCount, chipHref, MAX_CHIPS, type Group, type Opt } from './model';
 import { RememberFilters } from './RememberFilters';
 
 // r32 "Simple": the one filter bar of every list: one search box (it matches across fields: the list's own search), one
-// row of at most 5 chips (statuses that need action), at most one date range where dates matter, and one sort with 2 or 3
+// row of at most 6 chips (statuses that need action), at most one date range where dates matter, and one sort with 2 or 3
 // options. Nothing else: a filter that did not fit is served by the search or reached as a link (a saved view). Old
 // parameters a list still honours (`kept`) are cleared with Clear. The last choice is remembered on this device.
 export function ListFilters({ id, base, sp, search, chips, dates, sort, kept = [], testId = 'list-filters' }: {
@@ -21,7 +21,7 @@ export function ListFilters({ id, base, sp, search, chips, dates, sort, kept = [
 }) {
   const names = [chips?.name, sort?.name, dates?.from, dates?.to, ...kept].filter(Boolean) as string[];
   const used = activeCount(sp, names);
-  const link = (g: Group, [v, l]: Opt) => <Link prefetch={false} scroll={false} key={v || 'all'} href={hrefWith(base, sp, g.name, v)} aria-current={(g.value ?? sp[g.name] ?? '') === v ? 'page' : undefined}>{l}</Link>;
+  const link = (g: Group, [v, l]: Opt) => <Link prefetch={false} scroll={false} key={v || 'all'} href={chipHref(base, sp, g.name, v)} aria-current={(g.value ?? sp[g.name] ?? '') === v ? 'page' : undefined}>{l}</Link>;
   const action = search?.action ?? base.split('?')[0]!;
   return (
     <section className="lf" aria-label="Find and filter" data-testid={testId}>

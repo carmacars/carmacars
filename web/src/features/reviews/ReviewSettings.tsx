@@ -35,7 +35,7 @@ export function ReviewSettings({ data, message, keysSet, timings, link }: { data
     <div className="stack" data-testid="review-settings">
       {m && <p className={`alert ${m[1] ? 'alert--ok' : 'alert--warn'}`} role="status" data-testid="review-google-message"><span>{m[0]}</span></p>}
       <Card title="When review requests go" testId="review-timings">
-        <p className="small muted">A mid-trip check-in for longer rentals (no review ask in it), the review request after the check-in, a reminder and a final follow-up, by email and text as each renter chose, only between the hours below. Nothing goes while charges are open (the hold list in Reviews), after the renter reviewed, or after an unsubscribe.</p>
+        <p className="small muted">A mid-trip check for longer rentals (no review ask in it), the review request after the check-out, a reminder and a final follow-up, by email and text as each renter chose, only between the hours below. Nothing goes while charges are open (the hold list in Reviews), after the renter reviewed, or after an unsubscribe.</p>
         {timings}
       </Card>
       <Card title="The Google review link" testId="review-link">

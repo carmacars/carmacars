@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { fieldAct } from '@/server/actions/field';
 import { FdIcon } from './icons';
 
-// "Check out (pickup)" and "Check in (return)" on a field job card (migration 0130): one tap acknowledges and starts
+// "Check in (pickup)" and "Check out (return)" on a field job card (migration 0130): one tap acknowledges and starts
 // the job when it is not started yet, then opens its checklist.
 export function StartChecklist({ job, status, label, testId }: { job: string; status: string; label: string; testId?: string }) {
   const router = useRouter();

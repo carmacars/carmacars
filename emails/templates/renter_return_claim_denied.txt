@@ -12,7 +12,7 @@ Return place: {{return_place}}
 Why: {{deny_reason}}
 
 IMPORTANT: What happens now
-The late fees and the overdue notices go on until the car is checked in. Please return it now, or call us if it is already back.
+The late fees and the overdue notices go on until the car is checked out. Please return it now, or call us if it is already back.
 
 Pay for an extension:
 https://carmacars.ca/account/bookings/{{booking_number}}/extend

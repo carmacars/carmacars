@@ -5,6 +5,7 @@ import { requestPhoneCode, saveAccountEmail, setSignInMethod, verifyPhoneCode } 
 import { cleanCode, formatPhone } from '@/features/auth/phone';
 import { PhoneCodeInput, PhoneNumberInput } from '@/features/forms/PhoneSignIn';
 import { describedBy, Field } from '@/features/forms/Field';
+import { ChangeEmail } from './ChangeEmail';
 
 // The profile pages' sign-in card (renter, owner, assistants, field staff; migration 0091): add and verify a phone
 // with a texted code, add an email to an account made by phone, and choose phone or email sign-in.
@@ -56,6 +57,7 @@ export function SignInSettings({ state, className = 'pt-card' }: { state: SignIn
         <div><dt>Email</dt><dd data-testid="signin-email">{state.email ? <>{state.email}{state.email_verified ? '' : ' (not confirmed yet: open the link we emailed)'}</> : 'None yet'}</dd></div>
         <div><dt>Phone</dt><dd data-testid="signin-phone">{state.phone_verified && state.phone ? <>{formatPhone(state.phone)} <span className="badge badge--outline">Verified</span></> : 'Not added'}</dd></div>
       </dl>
+      {state.email && <ChangeEmail current={state.email} />}
       {msg && !msg.field && <p className={msg.ok ? 'alert alert--ok' : 'alert alert--error'} role={msg.ok ? 'status' : 'alert'} data-testid="signin-msg"><span>{msg.text}</span></p>}
 
       {state.enabled && !adding && <p><button type="button" className="btn btn--ghost btn--sm" onClick={() => { setAdding(true); setMsg(null); }} data-testid="phone-add">{state.phone_verified ? 'Change my phone number' : 'Add and verify my phone number'}</button></p>}

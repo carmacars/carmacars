@@ -36,7 +36,7 @@ export default async function Listings() {
         { key: 'updated_at', label: 'Updated', render: (r) => t(r.updated_at) }
       ]} />
       <Card title={`Cars on sample photos (${need.cars.length})`} testId="photos-needed">
-        <p className="small">Each real car whose page still shows sample photos. Where a handover photographed the car (the check-out and check-in photos), use them: the studio editor puts the car on the CarmaCars backdrop and the listing waits for your review. The others need photos at their next handover.</p>
+        <p className="small">Each real car whose page still shows sample photos. Where a handover photographed the car (the check-in and check-out photos), use them: the studio editor puts the car on the CarmaCars backdrop and the listing waits for your review. The others need photos at their next handover.</p>
         <Table<NeedRow & Record<string, unknown>> rows={need.cars as Array<NeedRow & Record<string, unknown>>} rowKey={(r) => r.vehicle_id} empty="Every real car has its own photos."
           cols={[{ key: 'name', label: 'Car', render: (r) => <Link prefetch={false} className="link" href={`/admin/vehicles/${r.vehicle_id}`}>{r.name}{r.fleet_number ? ` (${r.fleet_number})` : ''}</Link> },
             { key: 'status', label: 'Status', render: (r) => <Badge s={r.status} /> },

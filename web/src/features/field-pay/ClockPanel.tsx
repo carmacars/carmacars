@@ -7,7 +7,7 @@ import { elapsedClock } from './model';
 type Job = { id: string; kind: string; booking_number: string | null; vehicle: string | null; completed_at: string | null };
 export interface OpenShift { id: string; started_at: string; note: string | null; jobs?: Job[] | null }
 
-const KIND: Record<string, string> = { handover: 'Handover', return_check_in: 'Return check-in', vehicle_move: 'Vehicle move' };
+const KIND: Record<string, string> = { handover: 'Handover', return_check_in: 'Return check-out', vehicle_move: 'Vehicle move' };
 const at = (iso: string) => new Date(iso).toLocaleTimeString('en-CA', { timeZone: 'America/Toronto', hour: 'numeric', minute: '2-digit' });
 
 // My hours (0165): two big buttons. Clock in starts the shift now; Clock out ends it (a note on either). The jobs done during

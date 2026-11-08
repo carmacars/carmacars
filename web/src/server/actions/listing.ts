@@ -85,7 +85,7 @@ export async function listingPhotoRemove(photo: string, refresh: string[] = []):
   } catch (e) { return fail(e); }
 }
 
-/** R23 (0236): the newest handover's photos (the check-out or check-in photos field staff took) become the car's listing
+/** R23 (0236): the newest handover's photos (the check-in or check-out photos field staff took) become the car's listing
  *  photos: each copied into the listing intake as if taken on the capture screen, then the intake is submitted when every
  *  required shot is there, so the studio editor runs and the listing review follows as usual. */
 export async function listingFromHandover(vehicleId: string, refresh: string[] = []): Promise<R<{ intake_id: string; copied: number; missing: string[]; submitted: boolean }>> {

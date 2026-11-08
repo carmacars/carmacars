@@ -46,7 +46,7 @@ export const BOXES: Record<string, string> = {
   '52': 'Damages (closing copy)', '53': 'Fuel (closing copy)', '54': 'Other return charges (closing copy)', '55': 'Total charges', '56': 'Total deposit', '57': 'Balance (closing copy)',
   '59-d': 'Deposit received: day', '59-m': 'Deposit received: month',
   'deposit-due': 'Deposit due (before it is taken)', 'deposit-received': 'Deposit received', paid: 'Amount paid', 'paid-how': 'How it was paid', refund: 'Refund (closing copy)',
-  'fuel-out': 'Fuel out, in words (check-out report)', 'fuel-in': 'Fuel in, in words (check-in report)'
+  'fuel-out': 'Fuel out, in words (check-in report)', 'fuel-in': 'Fuel in, in words (check-out report)'
 };
 
 /** Boxes that stay empty on purpose, with the reason (never invented). */
