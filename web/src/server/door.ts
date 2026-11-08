@@ -8,6 +8,7 @@ import { friendlyDbError } from '@/lib/db/friendly';
 import type { Json } from '@/lib/db/types';
 import { currentUser } from '@/server/portal/data';
 import { viewAs, ViewAsReadOnly } from '@/server/view-as';
+import { ACADEMY_OPEN } from '@/features/academy/gate';
 
 // The one door for staff and investors (migration 0031): every call carries the signed-in user and the
 // assurance level of their session (aal2 after the second factor). The database makes them the acting
@@ -79,11 +80,11 @@ export async function requireStaff(kind: 'va' | 'field', next: string): Promise<
   // one staff portal (0197): a person with field work only opens on their jobs; anyone else without the function is told so
   if (kind === 'va' ? !roles.va : !roles.field) redirect(kind === 'va' && roles.field && (next === '/staff' || next === '/va') ? '/staff/field' : '/staff/no-access');
   if (roles.two_step_required && (await sessionAal()) !== 'aal2') redirect(`/two-step?next=${encodeURIComponent(next)}`);
-  // the academy gate (0207, off by default): until their paths are passed, the academy, the guide and the profile only
-  if (roles.academy_locked && !ACADEMY_OPEN.test(next)) redirect('/staff/academy?locked=1');
+  // the academy gate (0207; on since 0731): until their paths are passed (or an Admin waived it, 0802), the academy, the
+  // guide, the profile and Welcome (their onboarding checklist) only; a held person lands on Welcome
+  if (roles.academy_locked && !ACADEMY_OPEN.test(next)) redirect('/staff/welcome');
   return { user, roles };
 }
-const ACADEMY_OPEN = /^\/staff\/(academy|guide|profile|field\/profile|no-access)(\/|\?|$)/;
 
 export async function requireInvestor(next: string): Promise<{ user: SessionUser; roles: Roles }> {
   const user = await currentUser();
