@@ -1314,6 +1314,11 @@
           "note": "Booking lines in order, HST last. Each item: label, amount."
         },
         {
+          "name": "needed_line",
+          "type": "string",
+          "sample": "We need each driver's licence photos and a selfie, plus proof of coverage,"
+        },
+        {
           "name": "needs_verification",
           "type": "boolean",
           "sample": true
@@ -1414,7 +1419,7 @@
       "code": "renter_booking_reminder",
       "audience": "renter",
       "category": "transactional",
-      "trigger": "Reminders job (every 5 minutes): booking status is confirmed and the pickup time is 24 hours away. Sent once per pickup time. Not sent when the pickup is already inside the 2 hours of renter_pickup_soon (migration 0430). (Message template T5.)",
+      "trigger": "Reminders job (every 5 minutes): booking status is confirmed and the pickup time is 24 hours away. Sent once per pickup time. Not sent when the pickup is already inside the 2 hours of renter_pickup_soon (migration 0430), nor when the booking confirmation, which gives the date and time, went out within the reminder gap before this reminder would be due (Program settings, 12 hours by default, migration 0900). (Message template T5.)",
       "timing": "24 hours before pickup",
       "digest": false,
       "source": "T5",
@@ -4486,14 +4491,14 @@
       "code": "renter_identity_needed",
       "audience": "renter",
       "category": "transactional",
-      "trigger": "Booking status becomes confirmed while any driver has identity_status other than verified or the booking has no confirmed coverage option (skipped when renter_booking_confirmed already carried the notice in the same minute). Sent again 48 hours before pickup if anything is still missing.",
-      "timing": "On confirmation, then 48 hours before pickup if still missing",
+      "trigger": "Reminders job: 48 hours before pickup, a confirmed booking still needs something the renter sends (a driver's licence photos or selfie not uploaded or rejected, or the proof of coverage not sent). Nothing is sent for what is already uploaded and waiting for our review, nor when the confirmation that already listed it went out within the reminder gap (Program settings, 12 hours by default, migration 0900). The subject and the copy name only what is missing.",
+      "timing": "48 hours before pickup if still missing",
       "digest": false,
       "from": "CarmaCars <bookings@carmacars.ca>",
       "reply_to": "bookings@carmacars.ca",
-      "subject": "Upload your licence and coverage proof for {{pickup_date}}",
+      "subject": "{{needed_title}} for {{pickup_date}}",
       "preheader": "We need them by {{verify_by}}. No car is released without them.",
-      "sample_subject": "Upload your licence and coverage proof for Fri, Oct 23, 2026",
+      "sample_subject": "Send your proof of coverage for Fri, Oct 23, 2026",
       "variables": [
         {
           "name": "booking_number",
@@ -4543,9 +4548,24 @@
           "note": "The minimum age of every driver (min_renter_age)."
         },
         {
-          "name": "missing_items",
+          "name": "needed_items",
           "type": "string",
-          "sample": "licence photos, selfie, proof of coverage"
+          "sample": "proof of coverage"
+        },
+        {
+          "name": "needed_title",
+          "type": "string",
+          "sample": "Send your proof of coverage"
+        },
+        {
+          "name": "needs_coverage",
+          "type": "boolean",
+          "sample": true
+        },
+        {
+          "name": "needs_licence",
+          "type": "boolean",
+          "sample": false
         },
         {
           "name": "opening_hours",
@@ -6444,7 +6464,7 @@
       "code": "renter_recovery_pay",
       "audience": "renter",
       "category": "transactional",
-      "trigger": "Booking recovery job (every 15 minutes): the renter left the pay page of their approved booking (pending_payment) without paying, recovery_pay_minutes ago (Program settings, 60 by default). At most recovery_max_emails (2), the second after recovery_second_hours (24). Not sent outside the hours set for these emails, to a renter who unsubscribed or turned these reminders off, or while a staff member is already handling the renter. Stops once they pay or the booking leaves pending_payment.",
+      "trigger": "Booking recovery job (every 15 minutes): the renter left the pay page of their approved booking (pending_payment) without paying, recovery_pay_minutes ago (Program settings, 60 by default). At most recovery_max_emails (2), the second after recovery_second_hours (24). Not sent outside the hours set for these emails, to a renter who unsubscribed or turned these reminders off, while a staff member is already handling the renter, while a pay link staff sent is still open, or while a payment is pending (migration 0900). Stops once they pay or the booking leaves pending_payment.",
       "timing": "An hour after the pay page was left",
       "digest": false,
       "from": "CarmaCars <bookings@carmacars.ca>",
@@ -11948,13 +11968,13 @@
       "code": "owner_invoice_voided",
       "audience": "owner",
       "category": "transactional",
-      "trigger": "An Admin voids an issued owner invoice with a reason (nothing was paid on it). Its scheduled debit is cancelled. When a corrected invoice replaces it, that invoice has its own email once it is issued.",
-      "timing": "Immediate",
+      "trigger": "An Admin voids an issued owner invoice with a reason (nothing was paid on it). Its scheduled debit is cancelled. When a corrected invoice replaces it, that invoice has its own email once it is issued. One email per owner per day (migration 0900): the email waits a short while (Program settings, 30 minutes by default) and every invoice voided for the same owner meanwhile is listed in it; once the day's email went, the next voids wait for the next morning's email.",
+      "timing": "Within 30 minutes, one email per owner per day",
       "digest": false,
       "from": "CarmaCars <billing@carmacars.ca>",
       "reply_to": "billing@carmacars.ca",
-      "subject": "Invoice {{invoice_number}} is cancelled",
-      "preheader": "{{void_reason}}",
+      "subject": "{{voided_title}}",
+      "preheader": "{{voided_preheader}}",
       "sample_subject": "Invoice INV-1046 is cancelled",
       "variables": [
         {
@@ -11981,6 +12001,11 @@
           "sample": true
         },
         {
+          "name": "has_several",
+          "type": "boolean",
+          "sample": false
+        },
+        {
           "name": "instagram_url",
           "type": "url",
           "sample": "https://instagram.com/carmacars.ca",
@@ -11995,6 +12020,26 @@
           "name": "invoice_total",
           "type": "string",
           "sample": "$904.00"
+        },
+        {
+          "name": "invoices",
+          "type": "list",
+          "sample": [
+            {
+              "invoice_number": "INV-1046",
+              "invoice_total": "$904.00",
+              "vehicle_name": "2023 Toyota RAV4 XLE",
+              "void_reason": "The first and last month amount we agreed is $800.00, not $904.00.",
+              "replacement_number": "INV-1053"
+            }
+          ],
+          "fields": [
+            "invoice_number",
+            "invoice_total",
+            "vehicle_name",
+            "void_reason",
+            "replacement_number"
+          ]
         },
         {
           "name": "opening_hours",
@@ -12041,6 +12086,31 @@
           "name": "void_reason",
           "type": "string",
           "sample": "The first and last month amount we agreed is $800.00, not $904.00."
+        },
+        {
+          "name": "voided_heading",
+          "type": "string",
+          "sample": "You do not need to pay invoice INV-1046"
+        },
+        {
+          "name": "voided_lead",
+          "type": "string",
+          "sample": "we cancelled this invoice for your 2023 Toyota RAV4 XLE."
+        },
+        {
+          "name": "voided_preheader",
+          "type": "string",
+          "sample": "The first and last month amount we agreed is $800.00, not $904.00."
+        },
+        {
+          "name": "voided_ref",
+          "type": "string",
+          "sample": "Invoice INV-1046"
+        },
+        {
+          "name": "voided_title",
+          "type": "string",
+          "sample": "Invoice INV-1046 is cancelled"
         }
       ],
       "template_html": "templates/owner_invoice_voided.html",
@@ -14017,7 +14087,7 @@
       "code": "owner_vehicle_listed",
       "audience": "owner",
       "category": "transactional",
-      "trigger": "Vehicle status changes from ready_to_list to available and its listing is published (staff approved the listing).",
+      "trigger": "Vehicle status changes from ready_to_list to available and its listing is published (staff approved the listing). Never for a partner's car (a partner fleet such as 01 Motors, imported with its photos) and never queued without an owner address to send to (migration 0900).",
       "timing": "Immediate",
       "digest": false,
       "from": "CarmaCars <owners@carmacars.ca>",

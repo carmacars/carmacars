@@ -8,7 +8,7 @@ export default {
   category: 'transactional',
   from: FROM.bookings,
   digest: false,
-  trigger: 'Reminders job (every 5 minutes): booking status is confirmed and the pickup time is 24 hours away. Sent once per pickup time. Not sent when the pickup is already inside the 2 hours of renter_pickup_soon (migration 0430). (Message template T5.)',
+  trigger: 'Reminders job (every 5 minutes): booking status is confirmed and the pickup time is 24 hours away. Sent once per pickup time. Not sent when the pickup is already inside the 2 hours of renter_pickup_soon (migration 0430), nor when the booking confirmation, which gives the date and time, went out within the reminder gap before this reminder would be due (Program settings, 12 hours by default, migration 0900). (Message template T5.)',
   timing: '24 hours before pickup',
   source: 'T5',
   subject: 'Tomorrow: your {{vehicle_name}} at {{pickup_time}}',
