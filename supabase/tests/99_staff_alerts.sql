@@ -270,6 +270,9 @@ select app.process_events(1000);
 select test.eq('test accounts: a test renter''s booking makes no alert', (select count(*) from app_events where code like 'staff\_alert\_%' and entity_id = test.id('booking:CC-SA012')), 0::bigint);
 
 -- ================================================================ 0466: quiet hours, focus, device topics, buttons, snooze, escalation, grouping
+-- fleet is "on duty" when seen in the last chat_shift_minutes (15): seen now again, so this section does not depend on how
+-- long the sections above took to run (a slow run passed the 15 minutes and fleet got none of these alerts)
+update chat_staff_prefs set last_seen_at = now() where user_id = test.id('sta_fleet');
 select test.eq('quiet hours: default 21:00 to 8:00 (no row: the normal tier only); my own hours move the time',
   (select app.alert_quiet_end(test.id('sta_fleet'), timestamptz '2031-01-10 23:30 America/Toronto') = app.sms_quiet_end(timestamptz '2031-01-10 23:30 America/Toronto')), true);
 select app.server_set_alert_prefs(test.id('sta_fleet'), '{"quiet_on": true, "quiet_from": 1320, "quiet_until": 420}');
