@@ -117,7 +117,11 @@ export async function decide(i: { userId: string; aal: 'aal1' | 'aal2' | null; p
   const r = await door<{ ok: boolean; error?: string; result?: Record<string, unknown> }>(i.userId, 'ops_do', 'assistant_confirm', { id: i.id, ...extra }, i.aal);
   if (!r.ok) return { ok: false, text: `Not done: ${r.error ?? 'the database refused it'}. Nothing was changed.` };
   const x = r.result ?? {};
+  // Book it now (0770, 0810): an Admin's booking is approved at once, so the renter's agreement is made here; staff's waits for an Admin
+  const bn = (x.book_now && typeof x.book_now === 'object' ? x.book_now : x) as { status?: string };
+  await (await import('@/server/book-now')).bookNowAgreement(x).catch(() => undefined);
+  const booked = bn.status === 'approved' ? ' Booked now: the customer gets the Sign and pay link.' : bn.status === 'requested' ? ' Booking it now waits for an Admin to approve it in one tap.' : '';
   const said = typeof x.booking_number === 'string' ? (typeof x.version === 'number' || x.renter_existing !== undefined ? ` Offer ${x.booking_number} sent${x.notified === false ? ' (the renter was not told: send the link from the booking)' : ''}.` : ` Rental ${x.booking_number} added.`)
     : typeof x.open_cents === 'number' && typeof x.payment_id === 'string' ? ` Payment recorded; ${x.open_cents > 0 ? `$${(x.open_cents / 100).toFixed(2)} is still open on that part` : 'nothing is open on that part'}${x.confirmed ? ', and the booking is confirmed' : ''}.` : typeof x.invoice_status === 'string' ? ` The invoice is now ${String(x.invoice_status).replace(/_/g, ' ')}.` : '';
-  return { ok: true, text: `Done.${said}`, result: r.result };
+  return { ok: true, text: `Done.${said}${booked}`, result: r.result };
 }

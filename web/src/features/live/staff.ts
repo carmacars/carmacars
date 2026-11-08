@@ -32,7 +32,7 @@ export interface LiveData { live_minutes: number; tracking: boolean; at: string;
   /** 0103: visitors (browsers) besides visits (sessions), and the browsers that chose necessary cookies only today */
   today: { sessions: number; known: number; chats: number; hot?: number; visitors?: number; untracked?: number };
   cfg?: LiveCfg; hot?: HotRow[]; beat_seconds?: number }
-export interface SignalRule { code: string; grp: string; label: string; explain: string; enabled: boolean; weight: number; t1: number | null; t2: number | null; t1_label: string | null; t2_label: string | null;
+export interface SignalRule { /** 0814: alert Admins and the on-duty customer service and Sales staff when this signal turns on, without waiting for the hot score */ alert_on_own?: boolean; code: string; grp: string; label: string; explain: string; enabled: boolean; weight: number; t1: number | null; t2: number | null; t1_label: string | null; t2_label: string | null;
   param: string | null; param_label: string | null; action: SignalAction; message: string; scope: string; legacy: boolean; sort: number; updated_at: string }
 export interface SignalConfig { hot_score: number; warm_score: number; strong_weight: number; medium_weight: number; notify_hot: boolean; discount_enabled: boolean; discount_percent: number;
   discount_max_cents: number | null; discount_valid_days: number; discount_daily_cap: number; discount_cs: boolean; discount_message: string; updated_at: string }

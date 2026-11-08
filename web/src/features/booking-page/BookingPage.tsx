@@ -77,6 +77,19 @@ const REFUND_REASONS = ['cancellation', 'carmacars_cancelled', 'driver_not_verif
 const KINDS: Array<[string, string]> = [['handover', 'Handover'], ['delivery', 'Delivery'], ['return_check_in', 'Return check-out'], ['pickup_from_renter', 'Pickup from renter'], ['detail', 'Detail'], ['photo_shoot', 'Photo shoot'], ['recovery', 'Recovery'], ['other', 'Other']];
 const ARRANGING = ['requested', 'offered', 'pending_payment'];
 const none = <T,>(v: T) => () => v;
+type BookingChain = { replaced_by: { number: string } | null; replaces: Array<{ number: string }> };
+/** "Replaced by #N" on the old booking and "Replaces #M" on the new one, with links (the same on the Admin and staff pages). */
+function ReplacedNote({ chain, portal }: { chain: BookingChain | null; portal: string }) {
+  if (!chain || (!chain.replaced_by && !chain.replaces.length)) return null;
+  const link = (n: string) => <Link prefetch={false} className="link" href={`${portal}/bookings/${encodeURIComponent(n)}`}>#{n}</Link>;
+  return (
+    <p className="small" data-testid="booking-replaced-note">
+      {chain.replaced_by && <span data-testid="booking-replaced-by">Replaced by {link(chain.replaced_by.number)}</span>}
+      {chain.replaced_by && chain.replaces.length > 0 && ' · '}
+      {chain.replaces.length > 0 && <span data-testid="booking-replaces">Replaces {chain.replaces.map((r, i) => <span key={r.number}>{i > 0 && ', '}{link(r.number)}</span>)}</span>}
+    </p>
+  );
+}
 
 export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: string; sp: Record<string, string | undefined> }) {
   const { viewer, user, aal, read, list, own, ops } = ctx;
@@ -110,6 +123,8 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
   const notOwner = b.booking_type !== 'owner';
 
   // ---- the reads, each only where the viewer's section and function use it
+  // 0780 and 0810: a request that expired and was replaced by a newer one says so on both bookings
+  const chain = await ops<BookingChain>('booking_chain', { booking: b.id }).catch(none(null));
   const [ins, km, settings, credit, came, insurerCard, swapCars, fleetStaff, late] = await Promise.all([
     can.admin ? list<{ id: string; name: string }>('insurers', { eq: { is_active: true }, order: 'name', asc: true }) : { rows: [] as Array<{ id: string; name: string }>, count: 0 },
     can.admin || arranging ? list<{ km_per_day: number }>('km_allowance_choices', { eq: { is_active: true } }).catch(none({ rows: [] as Array<{ km_per_day: number }>, count: 0 })) : { rows: [] as Array<{ km_per_day: number }>, count: 0 },
@@ -210,6 +225,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
       </PageHead>
       {can.admin && b.placeholder?.on ? <PlaceholderBanner p={b.placeholder} items={b.competing} /> : <NextStepPanel s={step} />}
       <ClaimBanner />
+      <ReplacedNote chain={chain} portal={portal} />
       {late?.late && <LatePanel l={late} fleet={fn === 'fleet'} refresh={refresh} />}
       {can.photoReview && ['on_rent', 'returned', 'closed'].includes(b.status) && <p className="small"><Link prefetch={false} className="link" href={`/staff/review/${encodeURIComponent(n)}`} data-testid="photo-review-link">Photo review: pickup and return side by side</Link></p>}
       {can.admin && <BookingSummary status={b.status} pickupAt={b.pickup_at} returnAt={b.return_at} days={Number(b.billable_days)} totalCents={Number(b.total_due_at_booking_cents)} billTo={b.bill_to} />}

@@ -8,6 +8,8 @@ import { door } from '@/server/door';
 import type { PayDetailsView } from '@/features/staff/pay-details';
 import { SignInSettings } from '@/features/portal/SignInSettings';
 import { notifyReach, signInState } from '@/server/sign-in-settings';
+import { selfProfile } from '@/server/self-profile';
+import { SelfProfile } from '@/features/portal/SelfProfile';
 import { NotifyChannelCard } from '@/features/portal/NotifyChannel';
 import { StaffDigestChoice } from '@/features/notifications/StaffDigestChoice';
 import { PushAlerts } from '@/features/push/PushAlerts';
@@ -20,8 +22,8 @@ export const metadata = pageMeta({ title: 'Profile', path: '/staff/profile', noi
 // commission), and sign-in.
 export default async function VaProfile() {
   const { user, roles } = await vaPage('/staff/profile');
-  const [home, si, nc, pay] = await Promise.all([homeAddressOf(user.id, 'va'), signInState(user.id), notifyReach(user.id),
-    door<PayDetailsView>(user.id, 'va_read', 'my_pay_details').catch(() => null)]);
+  const [home, si, nc, pay, sp] = await Promise.all([homeAddressOf(user.id, 'va'), signInState(user.id), notifyReach(user.id),
+    door<PayDetailsView>(user.id, 'va_read', 'my_pay_details').catch(() => null), selfProfile(user.id)]);
   return (
     <>
       <PageHead title="Profile" />
@@ -30,6 +32,7 @@ export default async function VaProfile() {
           <dl className="pt-dl"><div><dt>Email</dt><dd>{user.email}</dd></div><div><dt>Function</dt><dd>{FN_LABEL[roles.va!]}</dd></div></dl></section>
         {home.missing ? <p className="small" data-testid="home-address-above">Fill in your home address at the top of the page.</p> : <HomeAddressSection portal="va" state={home} />}
         <PayDetails portal="va" view={pay} />
+        {sp && <SelfProfile data={sp} password={false} />}
         {si && <SignInSettings state={si} className="pt-card stack" />}
         {nc && <NotifyChannelCard reach={nc} className="pt-card stack" />}
         <StaffDigestChoice userId={user.id} ops refresh={['/staff/profile']} className="pt-card stack" />

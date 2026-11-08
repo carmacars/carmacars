@@ -4,6 +4,10 @@ import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
 import { Card, Kv, PageHead } from '@/features/admin/ui';
 import { StaffDigestChoice } from '@/features/notifications/StaffDigestChoice';
+import { SignInSettings } from '@/features/portal/SignInSettings';
+import { signInState } from '@/server/sign-in-settings';
+import { selfProfile } from '@/server/self-profile';
+import { SelfProfile } from '@/features/portal/SelfProfile';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'My profile', path: '/admin/settings/profile', noindex: true, description: 'How To do and the assistant greet you.' });
@@ -13,6 +17,7 @@ export const metadata = pageMeta({ title: 'My profile', path: '/admin/settings/p
 export default async function MyProfile() {
   const { read, user } = await page('/admin/settings/profile');
   const p = await read<{ email: string; name: string | null; greeting_name: string | null; greeting: string | null }>('my_profile');
+  const [si, sp] = await Promise.all([signInState(user.id), selfProfile(user.id)]);
   return (
     <>
       <PageHead title="My profile" kicker={<Link prefetch={false} className="link" href="/admin/settings">Settings</Link>} purpose="How To do and the assistant greet you on this login." />
@@ -23,6 +28,8 @@ export default async function MyProfile() {
           fields={[{ name: 'greeting_name', label: 'Greeting name', value: p.greeting_name ?? '', placeholder: 'For example: Abbas and Mahad',
             hint: 'Shown whole on To do ("Good morning, Abbas and Mahad") and in the assistant. Empty: the first name of the account.' }]} />
       </Card>
+      {sp && <SelfProfile data={sp} />}
+      {si && <SignInSettings state={si} />}
       <StaffDigestChoice userId={user.id} refresh={['/admin/settings/profile']} />
     </>
   );

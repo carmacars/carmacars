@@ -85,6 +85,7 @@ export async function VehiclePage({ ctx, id, sp }: { ctx: PageCtx; id: string; s
       <PageHead kicker={<><Link prefetch={false} className="link" href="/admin/vehicles">Vehicles</Link> · {v.fleet_number ?? ''} {v.plate} · {supplier}</>}
         title={<>{v.name} {v.retired_at ? <Badge s="retired">Retired</Badge> : <Badge s={v.status} />}{usingSamples && <> <Badge s="needs_review">Using sample photos</Badge></>}</>}>
         {slug && v.listing?.status === 'published' && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/cars/${slug}`} target="_blank">Public page</Link>}
+        <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/admin/vehicles/incident-cards?car=${id}`} data-testid="incident-card-link">Incident card</Link>
       </PageHead>
       <Tabs current={`${base}?tab=${tab}`} items={tabs.map(([k, l]) => [`${base}?tab=${k}`, l] as [string, string])} />
       <HashTab tabs={tabs.map(([k]) => k)} current={tab} />
@@ -322,7 +323,9 @@ async function StaffVehicle({ ctx, id, sp }: { ctx: PageCtx; id: string; sp: Rec
     tab === 'listing' ? own<StaffListingState>('listing_state', { vehicle_id: id }).catch(() => null) : null]);
   return (
     <>
-      <PageHead title={`${String(c.year ?? '')} ${String(c.make ?? '')} ${String(c.model ?? '')}`} kicker={String(c.plate ?? '')} />
+      <PageHead title={`${String(c.year ?? '')} ${String(c.make ?? '')} ${String(c.model ?? '')}`} kicker={String(c.plate ?? '')}>
+        {viewer.role === 'staff' && viewer.fn === 'fleet' && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/staff/vehicles/incident-cards?car=${id}`} data-testid="incident-card-link">Incident card</Link>}
+      </PageHead>
       <Tabs current={`${base}?tab=${tab}`} items={tabs.map(([k, l]) => [`${base}?tab=${k}`, l] as [string, string])} />
       <HashTab tabs={tabs.map(([k]) => k)} current={tab} />
       {tab === 'overview' && <div className="ad-cols ad-cols--2">
