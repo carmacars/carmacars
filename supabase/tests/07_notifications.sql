@@ -886,6 +886,7 @@ select test.eq('G every wired email code has been built at least once in these t
     where c.has_email and c.emitted_by not like 'not emitted%'
       and c.code <> 'applicant_ai_interview_sorry' -- run once by migration 0535, built in 99_r27b_remote_to_ai
       and c.code <> 'owner_agreement_to_sign' -- an Admin's Send (0640), built in 99_r31_owner_agreements
+      and c.code <> 'renter_coverage_switched' -- a staff switch (0890), built in 99_r35u_coverage_switch
       and not exists (select 1 from notification_outbox o where o.code = c.code)
       and not exists (select 1 from staff_digest_items d where d.code = c.code)),
   null::text);

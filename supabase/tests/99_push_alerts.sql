@@ -17,9 +17,9 @@ language sql as $$ insert into notifications (id, user_id, code, title, body, ur
   values (test.id('pu_n:' || p_label), p_user, p_code, 'Title ' || p_label, 'Body ' || p_label, p_url, 'pu:' || p_label) returning id $$;
 
 -- ================================================================== the catalogue
-select test.eq('every notice that may alert has a topic (145: the tracker alerts of 0400 among them; 0465 adds seven owner and renter notices and leaves the data health notice in the app only), and none of the sign-in links, codes or digests',
+select test.eq('every notice that may alert has a topic (146: 0890 adds the coverage change; the tracker alerts of 0400 among them; 0465 adds seven owner and renter notices and leaves the data health notice in the app only), and none of the sign-in links, codes or digests',
   (select count(*) filter (where push_topic is not null) || '/' || count(*) filter (where push_topic is not null and (code like 'account_%' or code like '%signing_code'
-     or code like 'staff_digest_%' or code = 'renter_continue_request' or category = 'marketing')) from notification_catalogue), '145/0');
+     or code like 'staff_digest_%' or code = 'renter_continue_request' or category = 'marketing')) from notification_catalogue), '146/0');
 select test.eq('the four the owner named alert: a new request, a payment, a handover, a message',
   (select string_agg(push_topic, ',' order by code) from notification_catalogue where code in ('staff_booking_request_new', 'owner_payment_received', 'renter_pickup_details', 'renter_staff_message')),
   'payments,handovers,messages,requests');

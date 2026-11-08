@@ -424,6 +424,11 @@ select app.notification_catalogue_refresh();
 -- CATALOGUE 0890 END
 update notification_catalogue set emitted_by = 'app.coverage_switch (0890)', push_topic = 'bookings' where code = 'renter_coverage_switched';
 
+-- its short text, like every customer email
+insert into sms_templates (code, label, body, urgent, sort_order) values
+  ('renter_coverage_switched', 'Coverage changed', 'CarmaCars: the coverage on booking {{booking_number}} was changed. See what it means for you: {{link}}', false, 410)
+on conflict (code) do nothing;
+
 -- ================================================================ 7. the door
 alter function app.door(uuid, text, text, text, jsonb) rename to door_pre0890;
 create function app.door(p_user uuid, p_aal text, p_call text, p_name text, p jsonb default '{}'::jsonb) returns jsonb
