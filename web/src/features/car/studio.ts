@@ -218,9 +218,20 @@ export function studioPaint(colour: string | null | undefined): string {
 export const STUDIO_SHOT_TYPE: Record<string, string> = { lead: 'front_left', side: 'left', rear34: 'rear_left', front: 'front', rear: 'rear', dash: 'dashboard', seats: 'front_seats', wheel: 'wheel' };
 /** The lettering behind the car: the model's name, as the sample cars show it (letters, digits, spaces and - & . / only). */
 export const studioName = (s: string) => s.toUpperCase().replace(/[^A-Z0-9 &./-]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 24);
+/** r33 (0700): the word lettered behind the car from the car's model (vehicles.model, the family as the maker names it:
+ *  0520). A Mercedes class of one letter keeps the word ("C-Class": C CLASS, "A-Class": A CLASS); a longer one is its
+ *  letters alone ("CLA-Class": CLA, "GLA-Class": GLA), which r31 lettered "CLA CLASS"; anything else as studioName
+ *  (AMG GT, CTS, F-150, CR-V). Idempotent. */
+export function letteringName(model: string): string {
+  const s = studioName(model ?? '');
+  const m = /^([A-Z]{1,4})[ -]?CLASS\b(.*)$/.exec(s);
+  if (!m) return s;
+  const rest = m[2]!.replace(/^[ -]+/, '').trim();
+  return `${m[1]!.length === 1 ? `${m[1]} CLASS` : m[1]}${rest ? ` ${rest}` : ''}`.slice(0, 24);
+}
 /** One stand-in image of a real car without photos: same drawing as the samples, a quiet "Representative photo" slate. */
 export function standInSvg(o: { shape: string; paint: string; shot: string; name: string }): string | null {
   if (!SHAPES[o.shape] || !PAINT[o.paint] || !SHOTS.some((s) => s.key === o.shot)) return null;
-  const name = studioName(o.name);
+  const name = letteringName(o.name);
   return carShot({ year: '', name, model: name, colour: o.paint, shape: o.shape, paint: o.paint }, o.shot, 1800, 1200, 'REPRESENTATIVE PHOTO').replace(/\n\s+/g, '\n');
 }

@@ -9,6 +9,10 @@ import { suggestedBoxes } from '@/features/listing/plate-cover';
 import { normalizePlateBoxes } from '@/features/tolls/vision-schema';
 import { useDoor } from './door';
 import { CarCopyPanel, type CarCopyData } from '@/features/seo/CarCopyPanel';
+import { CutoutEditor } from '@/features/listing/CutoutEditor';
+import { ExtraOrder } from '@/features/listing/ExtraOrder';
+import { PlateCarry } from '@/features/listing/PlateCarry';
+import { isExtra } from '@/features/listing/extra-order';
 
 // Review a listing (09-listing-pipeline.md section 6): the copy, written by itself (0061: nothing to type), every photo
 // (approve, reject, use the original, choose the cover), the problems the database still sees, then
@@ -16,7 +20,9 @@ import { CarCopyPanel, type CarCopyData } from '@/features/seo/CarCopyPanel';
 type Photo = { id: string; vehicle_id: string; shot_type: string; shot_label: string | null; processed_path: string | null; original_path: string | null; original_url?: string | null; status: string; is_cover: boolean; alt_text: string | null;
   plate_status: 'unchecked' | 'covered' | 'not_visible'; plate_boxes: Array<{ x: number; y: number; w: number; h: number }> | null; variants: Array<{ width: number }> | null; plate_suggestion?: unknown;
   /** 0568: the touch-up values used (null: none) and the photo's "Use original colours" */
-  enhance?: Record<string, unknown> | null; enhance_off?: boolean };
+  enhance?: Record<string, unknown> | null; enhance_off?: boolean;
+  /** 0700: the plate cover carried over an edit that did not move the car; how many times the cut-out was edited */
+  plate_carry?: { boxes?: Array<{ x: number; y: number; w: number; h: number }>; style?: 'cover' | 'pixelate' | 'blur' } | null; edit_version?: number };
 export type Plates = { required: boolean; unchecked: string[]; private_shots: string[]; detect?: boolean };
 const PLATE: Record<Photo['plate_status'], string> = { unchecked: 'Plate not checked', covered: 'Plate covered', not_visible: 'No plate visible' };
 export type L = { id: string; vehicle_id: string; state: string; reason: string | null; vehicle: { name: string; plate: string | null };
@@ -35,6 +41,7 @@ export function ListingReview({ l, plates, copy, exterior = [] }: { l: L; plates
   const [editing, setEditing] = useState<string | null>(null);
   const [sure, setSure] = useState(false);
   const [reframe, setReframe] = useState(false);
+  const [cutting, setCutting] = useState<string | null>(null);
   const plateCheck = (p: Photo) => !!plates && !plates.private_shots.includes(p.shot_type) && !!p.processed_path && ['processed', 'approved'].includes(p.status) && (ph[p.id] ?? '') !== 'reject';
   const toCheck = l.photos.filter((p) => plateCheck(p) && p.plate_status === 'unchecked');
   const reviewable = ['needs_review', 'approved'].includes(l.state);
@@ -59,6 +66,7 @@ export function ListingReview({ l, plates, copy, exterior = [] }: { l: L; plates
           : <section className="pt-card ad-card" aria-labelledby="lr-copy"><h2 className="d4" id="lr-copy">Copy</h2><p className="small muted">Written automatically from the car&apos;s facts once the car is saved. Nothing to type.</p></section>}
         <section className="pt-card ad-card" aria-labelledby="lr-ph"><h2 className="d4" id="lr-ph">Photos</h2>
           {plates && <p className="small muted">Every photo that goes on the website needs its licence plate covered, or a check that no plate can be read{plates.required ? ' before the listing is published' : ''}. The photo as it was is kept privately.</p>}
+          {plates && <PlateCarry photos={l.photos} />}
           {plates && <PlateAutoSuggest photos={l.photos.filter((p) => plateCheck(p)).map((p) => ({ ...p, vehicle_id: l.vehicle_id }))} exterior={exterior} on={plates.detect !== false} />}
           {plates && toCheck.length > 1 && <p className="row">{!sure
             ? <button className="btn btn--ghost btn--sm" type="button" disabled={pending} data-testid="plates-none-visible" onClick={() => setSure(true)}>No plate visible on the {toCheck.length} photos left</button>
@@ -68,7 +76,7 @@ export function ListingReview({ l, plates, copy, exterior = [] }: { l: L; plates
           {/* r31 (0660): photos made before the studio_v4 framing (the car small and floating) are framed again on request */}
           {l.photos.some((p) => exterior.includes(p.shot_type) && p.processed_path && p.processed_path !== p.original_path) && <p className="row">{!reframe
             ? <button className="btn btn--ghost btn--sm" type="button" disabled={pending} data-testid="photos-reframe" onClick={() => setReframe(true)}>Frame the outside photos again</button>
-            : <><span className="small">Make the outside photos again with the newest framing? They leave the site until you approve them again, and their plates are checked again.</span>
+            : <><span className="small">Make the outside photos again with the newest framing (the model&apos;s name behind the car on the cover and the main outside views)? They leave the site until their plates are checked again.</span>
               <button className="btn btn--primary btn--sm" type="button" disabled={pending} data-testid="photos-reframe-yes" onClick={() => { setReframe(false); start(async () => {
                 const r = await staffDo<{ queued: number }>('listing_photos_reframe', { intake: l.id });
                 setRes(r.ok ? { ok: true, text: r.data.queued ? `${r.data.queued} outside photo${r.data.queued === 1 ? ' is' : 's are'} being made again. When ready, check the plate on each: on a listing that is on the site, each goes back on by itself once its plate is checked.` : 'Every outside photo already has the newest framing.' } : { ok: false, text: r.message });
@@ -89,15 +97,21 @@ export function ListingReview({ l, plates, copy, exterior = [] }: { l: L; plates
                 <input type="checkbox" checked={!!p.enhance_off} disabled={pending} data-testid={`enhance-off-${p.id}`}
                   onChange={(e) => { const off = e.target.checked; start(async () => { const r = await staffDo('photo_enhance_set', { photo: p.id, off }); if (r.ok) { setRes({ ok: true, text: 'The photo is being made again. Approve it again when it is ready.' }); router.refresh(); } else setRes({ ok: false, text: r.message }); }); }} />
                 <span>Use original colours{p.enhance && !p.enhance_off ? ' (touched up now)' : ''}</span></label>}
+              {/* 0700: the cut-out editor (move and size the car, erase or restore, reset); a new version is saved */}
+              {exterior.includes(p.shot_type) && p.processed_path && p.processed_path !== p.original_path && p.status !== 'rejected' &&
+                <button className="btn btn--ghost btn--sm" type="button" onClick={() => { setEditing(null); setCutting(cutting === p.id ? null : p.id); }} aria-expanded={cutting === p.id} data-testid={`cutout-edit-${p.shot_type}`}>Edit the cut-out{p.edit_version ? ` (edited ${p.edit_version}x)` : ''}</button>}
               {plates && plateCheck(p) && <span className="lr-plate" data-testid={`plate-${p.shot_type}`} data-plate={p.plate_status}>
                 <span className={`ad-b ${p.plate_status === 'unchecked' ? 'ad-b--amber' : 'ad-b--light'}`}>{PLATE[p.plate_status]}</span>
                 {p.plate_status === 'unchecked' && suggestedBoxes(p.plate_suggestion, normalizePlateBoxes).length > 0 && <span className="ad-b ad-b--light" data-testid={`plate-suggested-${p.shot_type}`}>Box suggested</span>}
-                <button className="btn btn--ghost btn--sm" type="button" onClick={() => setEditing(editing === p.id ? null : p.id)} aria-expanded={editing === p.id} data-testid={`plate-edit-${p.shot_type}`}>{p.plate_status === 'covered' ? 'Cover again' : 'Cover the plate'}</button>
+                <button className="btn btn--ghost btn--sm" type="button" onClick={() => { setCutting(null); setEditing(editing === p.id ? null : p.id); }} aria-expanded={editing === p.id} data-testid={`plate-edit-${p.shot_type}`}>{p.plate_status === 'covered' ? 'Cover again' : 'Cover the plate'}</button>
                 {p.plate_status === 'unchecked' && <button className="btn btn--ghost btn--sm" type="button" disabled={pending} data-testid={`plate-none-${p.shot_type}`}
                   onClick={() => start(async () => { const r = await staffDo('photo_plate_record', { photo: p.id, status: 'not_visible' }); if (r.ok) router.refresh(); else setRes({ ok: false, text: r.message }); })}>No plate visible</button>}
               </span>}
             </li>); })}</ul>
           {editing && (() => { const p = l.photos.find((x) => x.id === editing); return p ? <PlateEditor key={p.id} photo={{ ...p, vehicle_id: l.vehicle_id }} onClose={() => setEditing(null)} /> : null; })()}
+          {cutting && (() => { const p = l.photos.find((x) => x.id === cutting); return p ? <CutoutEditor key={p.id} photo={p} onClose={() => setCutting(null)} /> : null; })()}
+          <ExtraOrder key={l.photos.filter((p) => isExtra(p.shot_type)).map((p) => p.id).join()} vehicle={l.vehicle_id}
+            photos={l.photos.filter((p) => isExtra(p.shot_type) && p.status !== 'rejected')} />
           {!l.photos.length && <p className="small muted">No photos uploaded yet.</p>}
         </section>
       </div>

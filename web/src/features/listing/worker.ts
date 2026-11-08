@@ -6,9 +6,9 @@ import type { TextGenerator } from '../../integrations/llm/types.ts';
 import type { PhotoOut, PhotoProcessor } from '../../integrations/photos/types.ts';
 import { DEFAULT_RULES, DRAFT_SCHEMA, PROMPT_VERSION, draftProblems, normalizeDraft, systemPrompt, userPrompt, type CopyRules, type Draft } from './prompt.ts';
 import { plainDraft } from '../seo/copy.ts';
-import { LETTERING, letteringPath, letteringPng } from './lettering.ts';
+import { LETTERING, LETTER_REAL_PHOTOS, LETTER_SHOTS, letterThis, letteringPath, letteringPng } from './lettering.ts';
 import { WINDOW_SHOTS, readAlpha, windowPlan, type WindowPlan } from './window-check.ts';
-import { decodePng, frameSubject, placeSubject } from './subject-frame.ts';
+import { adjustPlace, decodePng, frameSubject, placeSubject, type Adjust } from './subject-frame.ts';
 import { enhanceValues, statsOf, type Enhance } from './enhance.ts';
 import { cropAway, type MarkBox } from './photo-sort.ts';
 
@@ -18,9 +18,19 @@ import { cropAway, type MarkBox } from './photo-sort.ts';
 // r31 (0660): studio_v4, the car found at a firm alpha (the segmenter's haze and the floor's reflection no longer count as
 // car, which left the car a quarter of the width and floating), and no model name lettered behind a real car: it showed
 // as a large faint word around the car. The stand-ins (car/studio.ts) keep their lettering, as the sample cars.
-export const PRESET = 'studio_v4';
-/** r31: the model's name is not lettered behind real photos (lettering.ts stays for a later, quieter version). */
-export const LETTER_REAL_PHOTOS = false;
+// r33 (0700): studio_v5, the model's name lettered behind the car again, as on the sample photos (now the car is framed
+// big it stands in front of the word): on the cover and on the outside views the samples letter (the eight named
+// angles; not the extra outside photos), the word from the model (letteringName: CLA, C CLASS, AMG GT). The segmenter's
+// cut-out is kept privately (its alpha is the mask the cut-out editor starts from) with where the car was placed.
+export const PRESET = 'studio_v5';
+export { LETTER_REAL_PHOTOS, LETTER_SHOTS, letterThis };
+/** r33: what the cut-out editor sends (app.photo_cutout_edit): the edited cut-out and the move and size, or null. */
+export function editOf(input: Record<string, unknown> | null | undefined): { cutout_path: string; adjust: Adjust } | null {
+  const e = (input?.edit ?? null) as { cutout_path?: unknown; adjust?: Record<string, unknown> } | null;
+  if (!e || typeof e.cutout_path !== 'string' || !e.cutout_path) return null;
+  const n = (v: unknown, d: number) => (typeof v === 'number' && Number.isFinite(v) ? v : typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v)) ? Number(v) : d);
+  return { cutout_path: e.cutout_path, adjust: { dx: n(e.adjust?.dx, 0), dy: n(e.adjust?.dy, 0), scale: n(e.adjust?.scale, 1) } };
+}
 export const BACKDROP_PATH = 'site/backdrop/studio_v2.png';
 export const SHADOW_PATH = 'site/backdrop/shadow_v1.png';
 /** The sizes the site uses (srcset of the car cards and the gallery); the master is 1800 wide. */
@@ -41,7 +51,9 @@ export interface JobContext {
     /** 0567: the photo is flagged "watermark" (the sorter saw a mark, or it is queued for the check) */
     watermark?: boolean;
     /** 0568: the light touch-up applies (Admin "Auto-enhance listing photos" on, the photo's "Use original colours" off) */
-    enhance?: boolean } | null;
+    enhance?: boolean;
+    /** 0700: the photo is the listing's cover (its model name is lettered behind the car) */
+    is_cover?: boolean } | null;
 }
 export interface Budget { ai_neurons_today: number; ai_neurons_limit: number; transformations_month: number; transformations_free: number;
   /** The usage guard (0080): the month's included image transformations are used and paid usage is not allowed. */
@@ -208,8 +220,19 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
   if (!p.is_public) return { ok: true, provider: 'carmacars', output: { used_original: true, flags: [], preset_version: 'original' } };
   // the usage guard (0080): no transformations while the allowance is used up; the original goes on the site now and the
   // database queues the studio background again once transformations may be used (app.usage_retry_photos)
+  // 0700: an edit or a mask waits for the allowance instead (the photo keeps its studio file meanwhile)
+  if (b.images_paused && (j.input?.mask_only || editOf(j.input))) return { ok: false, provider: d.photos.name, error: `${USAGE_PAUSED}: the month's included image transformations are used`, retryable: true };
   if (b.images_paused) return fallback(d, j, USAGE_PAUSED, `${USAGE_PAUSED}: the month's included image transformations are used`, 0, b, used);
   const src = await d.files.privateUrl(p.original_path);
+  // 0700: a mask asked for by the cut-out editor (a photo made before the mask was kept): the segmenter's cut-out only
+  if (j.input?.mask_only) {
+    if (!p.rebackground) return { ok: true, provider: 'carmacars', output: { mask_only: true } };
+    const cut = await d.photos.cutout(src);
+    if (!cut.ok) return { ok: false, provider: d.photos.name, error: `${cut.reason}: ${cut.message}`, retryable: cut.retryable };
+    const maskPath = `vehicles/${j.vehicle_id}/work/${p.id}-mask.png`;
+    await d.files.putPrivate(maskPath, cut.bytes, 'image/png');
+    return { ok: true, provider: d.photos.name, ...imageCost(cut.transformations, b, used), output: { mask_only: true, mask_path: maskPath } };
+  }
   let n = 0;
   const fail = (o: Extract<PhotoOut, { ok: false }>): JobResult | null => o.retryable
     ? { ok: false, provider: d.photos.name, error: `${o.reason}: ${o.message}`, retryable: true, ...imageCost(n, b, used) } : null;
@@ -219,26 +242,42 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
   let framed: Awaited<ReturnType<typeof frameSubject>> = null;
   let marksGone = false;
   let marks: MarkBox[] | null = null;
+  let maskPath: string | null = null;
+  let place: ReturnType<typeof placeSubject> | null = null;
+  let lettered = false;
+  const edit = p.rebackground ? editOf(j.input) : null;
   if (p.rebackground) {
-    const cut = await d.photos.cutout(src);
-    if (!cut.ok) return fail(cut) ?? fallback(d, j, cut.reason, cut.message, n, b, used);
-    n += cut.transformations;
+    let cutBytes: Uint8Array;
+    if (edit) {
+      // 0700: the cut-out as staff edited it in the review (the original's colours, their mask): no segmenter call
+      const e = await d.files.getPrivate(edit.cutout_path);
+      if (!e) return { ok: false, provider: d.photos.name, error: 'The edited cut-out could not be read', retryable: j.attempts < j.max_attempts };
+      cutBytes = e;
+    } else {
+      const cut = await d.photos.cutout(src);
+      if (!cut.ok) return fail(cut) ?? fallback(d, j, cut.reason, cut.message, n, b, used);
+      n += cut.transformations;
+      cutBytes = cut.bytes;
+      // 0700: the segmenter's cut-out as it came (its alpha is the mask), for the cut-out editor
+      maskPath = `vehicles/${j.vehicle_id}/work/${p.id}-mask.png`;
+      await d.files.putPrivate(maskPath, cutBytes, 'image/png');
+    }
     const cutPath = `vehicles/${j.vehicle_id}/work/${p.id}-cutout.png`;
     // r28: the car cropped to its edges with its contact shadow, marks and captions beside it left out; when the PNG
     // cannot be read, the cut-out is placed as before (studio_v2 framing)
-    framed = await frameSubject(cut.bytes).catch(() => null);
-    await d.files.putPrivate(cutPath, framed?.png ?? cut.bytes, 'image/png');
+    framed = await frameSubject(cutBytes).catch(() => null);
+    await d.files.putPrivate(cutPath, framed?.png ?? cutBytes, 'image/png');
     // the model's name behind the car, as on the sample cars: one band per model, kept in the public bucket
     let lettering: { url: string; top: number; width: number } | null = null;
-    if (p.model && LETTER_REAL_PHOTOS) {
+    if (p.model && letterThis(p)) {
       const lp = letteringPath(p.model);
       try {
         if (!(await d.files.hasPublic?.(lp))) await d.files.putPublic(lp, await letteringPng(p.model), 'image/png');
-        lettering = { url: d.files.publicUrl(lp), top: LETTERING.top, width: LETTERING.width };
+        lettering = { url: d.files.publicUrl(lp), top: LETTERING.top, width: LETTERING.width }; lettered = true;
       } catch { lettering = null; /* the photo is still made, on the plain studio */ }
     }
     out = await d.photos.composite({ backdropUrl: d.files.publicUrl(BACKDROP_PATH), shadowUrl: d.files.publicUrl(SHADOW_PATH), cutoutUrl: await d.files.privateUrl(cutPath), lettering, ...EXTERIOR,
-      place: framed ? placeSubject(framed, EXTERIOR.width, EXTERIOR.height) : null });
+      place: (place = framed ? adjustPlace(placeSubject(framed, EXTERIOR.width, EXTERIOR.height), edit?.adjust ?? null, EXTERIOR.width, EXTERIOR.height) : null) });
     // a mark on an outside photo is gone when the car was framed (it is not part of the car's piece); otherwise it stays flagged
     marksGone = !!framed;
   } else {
@@ -249,7 +288,8 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
     if (w?.out) { n += w.n; out = w.out; windowsPlan = w.plan; }
     else { n += w?.n ?? 0; out = await d.photos.normalize({ sourceUrl: src, ...INTERIOR }); }
   }
-  if (!out.ok) return fail(out) ?? fallback(d, j, out.reason, out.message, n, b, used);
+  if (!out.ok) return fail(out) ?? (edit ? { ok: false, provider: d.photos.name, error: `${out.reason}: ${out.message}`, retryable: false, ...imageCost(n, b, used) }
+    : fallback(d, j, out.reason, out.message, n, b, used));
   let done: Extract<PhotoOut, { ok: true }> = out;
   n += done.transformations;
   // 0567: an inside or detail photo flagged for a mark: the vision model says where; the edge band holding it is cut off
@@ -271,6 +311,8 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
       flags: [...(windowsPlan?.action === 'blur' ? ['windows_blurred'] : []), ...(p.rebackground && !framed ? ['not_framed'] : [])], ...(windowsPlan ? { windows: windowsPlan } : {}),
       ...(p.watermark ? { watermark_removed: marksGone, ...(marks ? { marks } : {}) } : {}),
       ...(framed ? { framing: { dropped: framed.dropped, share: framed.share } } : {}),
+      ...(maskPath ? { mask_path: maskPath } : {}), ...(place ? { place: { width: place.width, height: place.height, left: place.left, bottom: place.bottom } } : {}),
+      ...(edit ? { edited: true } : {}), ...(p.rebackground ? { lettered } : {}),
       ...(p.enhance !== undefined ? { enhance } : {}) } };
 }
 

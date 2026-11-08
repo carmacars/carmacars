@@ -28,7 +28,7 @@ update vehicle_photos set preset_version = 'studio_v4', background_status = 'don
  where id = (select never_approved from rbsp);
 
 select test.eq('framed again: the rear photo is queued',
-  (select app.listing_photos_reframe(test.id('rbs_admin'), jsonb_build_object('intake', (select i from rbsi))) ->> 'queued'), '1');
+  (select app.listing_photos_reframe(test.id('rbs_admin'), jsonb_build_object('intake', (select i from rbsi), 'preset', 'studio_v4')) ->> 'queued'), '1');  -- 0700: the default is studio_v5 since
 select test.ok('marked as made again, off the site meanwhile',
   (select reframed_at is not null and not is_public from vehicle_photos where id = (select old_one from rbsp)));
 

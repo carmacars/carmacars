@@ -348,3 +348,5 @@
 .ad-taxmode .hint { margin: 0; }
 .ad-taxtotal { display: flex; flex-wrap: wrap; align-items: end; gap: var(--s-2) var(--s-3); }
 .ad-taxtotal .field { margin: 0; min-width: 0; }
+/* r33 (0700): extra photos, any number */
+.lc__extras { border-style: solid; border-width: 1px; }

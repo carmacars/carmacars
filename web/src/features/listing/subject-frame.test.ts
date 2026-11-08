@@ -119,3 +119,16 @@ test('a car the segmenter left solid is framed the same at every alpha (a firmer
   const c = subjectCells(cutout(), FRAME.cell, FRAME.solid)!, k = subjectCells(cutout(), FRAME.cell, FRAME.firmer.at(-1))!;
   assert.deepEqual(c.car, k.car);
 });
+
+test('r33 adjustPlace: no change without an adjustment; moved and sized about the bottom centre; held in the frame', async () => {
+  const { adjustPlace } = await import('./subject-frame.ts');
+  const pl = { width: 1500, height: 600, left: 150, bottom: 250, carShare: 0.78 };
+  assert.equal(adjustPlace(pl, null, 1800, 1200), pl);
+  assert.equal(adjustPlace(pl, { dx: 0, dy: 0, scale: 1 }, 1800, 1200), pl);
+  const a = adjustPlace(pl, { dx: 0.1, dy: -0.05, scale: 0.8 }, 1800, 1200);
+  assert.deepEqual([a.width, a.height, a.left + a.width / 2, a.bottom], [1200, 480, 900 + 180, 310]);
+  const big = adjustPlace(pl, { dx: 0, dy: 0, scale: 1.6 }, 1800, 1200);
+  assert.equal(big.width, 1800, 'never wider than the frame');
+  const off = adjustPlace(pl, { dx: 0.5, dy: 0.5, scale: 1 }, 1800, 1200);
+  assert.ok(off.bottom >= 0 && off.left <= 1800 - off.width * 0.25, 'a quarter of the car stays inside');
+});

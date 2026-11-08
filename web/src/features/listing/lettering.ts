@@ -4,12 +4,21 @@
 // Cloudflare's draw between the studio backdrop and the car (cloudflare.ts composite). Pure: the glyphs come from
 // presets/ghost-glyphs.json (scripts/gen-ghost-glyphs.py), the PNG is written here, deflate by CompressionStream.
 import glyphData from './presets/ghost-glyphs.json' with { type: 'json' };
-import { studioName } from '../car/studio.ts';
+import { letteringName } from '../car/studio.ts';
+import { NAMED_EXTERIOR } from './photo-sort.ts';
 
 type Glyphs = { unitsPerEm: number; glyphs: Record<string, { advance: number; contours: number[][][] }> };
 const G = glyphData as unknown as Glyphs;
 
 /** Where the band sits on the 1800 x 1200 photo: its top edge and its size. */
+export { letteringName };
+/** r33 (0700): the model's name is lettered behind real photos again (r31 had it off). */
+export const LETTER_REAL_PHOTOS = true;
+/** The outside views the sample photos letter the model's name behind (car/studio.ts: lead, side, rear three-quarter,
+ *  front, rear); the cover is lettered whatever its shot. Not the extra outside photos. */
+export const LETTER_SHOTS: readonly string[] = NAMED_EXTERIOR;
+export const letterThis = (p: { rebackground: boolean; shot_type: string; is_cover?: boolean }) =>
+  LETTER_REAL_PHOTOS && p.rebackground && (LETTER_SHOTS.includes(p.shot_type) || !!p.is_cover);
 export const LETTERING = { width: 1800, height: 360, top: 348, frameWidth: 1800, frameHeight: 1200 } as const;
 const BASELINE = 648 - LETTERING.top;   // floor line 888 minus 20% of the height
 const FONT_SIZE = 360;
@@ -18,13 +27,14 @@ const STROKE = 2;
 const ALPHA = 0.13;
 
 /** The file name of a model's band in the public bucket (one per model name and version of the drawing). */
-export const letteringPath = (name: string) => `site/backdrop/lettering-v1-${studioName(name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'car'}.png`;
+// r33: v2, the word from letteringName (v1 bands lettered "CLA-CLASS")
+export const letteringPath = (name: string) => `site/backdrop/lettering-v2-${letteringName(name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'car'}.png`;
 
 /** The coverage mask of the outlined name (0 to 1 per pixel), LETTERING.width x LETTERING.height. */
 export function letteringMask(name: string): Float32Array {
   const W = LETTERING.width, H = LETTERING.height;
   const mask = new Float32Array(W * H);
-  const text = studioName(name);
+  const text = letteringName(name);
   if (!text) return mask;
   const s = FONT_SIZE / G.unitsPerEm;
   const total = [...text].reduce((a, ch) => a + (G.glyphs[ch]?.advance ?? G.glyphs[' ']!.advance), 0) * s;
