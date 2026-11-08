@@ -4,8 +4,9 @@
 -- the same arguments, used once, scopes, the log). Fixtures start with "rqg"; example.test addresses only.
 select test.suite('99 r33 hire, academy, connector');
 update app_events set processed_at = now() where processed_at is null;
-create temp table rqg_ps as select id, require_staff_two_step t from program_settings;
-update program_settings set require_staff_two_step = false where id is not null;
+create temp table rqg_ps as select id, require_staff_two_step t, academy_gate g from program_settings;
+-- the gate as 0731 leaves it (an earlier suite may have turned it off)
+update program_settings set require_staff_two_step = false, academy_gate = true where id is not null;
 select test.mk_user('rqg_admin', 'admin');
 select test.mk_user('rqg_cs', 'va', 'cs');
 select test.mk_owner('rqg_own');
@@ -66,7 +67,7 @@ select test.eq('an Admin verifies them: the step is done', (select s ->> 'state'
   where s ->> 'key' = 'pay'), 'done');
 
 -- ================================================================ 4. the academy
-select test.eq('the gate is on by default and now', (select academy_gate::text || '/' || (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'academy_gate') from program_settings), 'true/true');
+select test.eq('the gate is on by default', (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'academy_gate'), 'true');
 insert into academy_enrollments (user_id, path_code, lock_from, source) values (test.id('rqg_cs'), 'cs', now() + interval '7 days', 'existing');
 select test.ok('staff already working get their week before the hold', not app.academy_locked(test.id('rqg_cs')));
 select test.ok('the home read says when it starts', (app.academy_home(test.id('rqg_cs')) ->> 'lock_from') is not null);
@@ -111,4 +112,4 @@ select test.ok('full-access keys made before got the Admin scopes', app.api_scop
 select test.ok('the connector''s functions are for the server only', not has_function_privilege('authenticated', 'app.api_call(text, text, jsonb, text)', 'execute')
   and not has_function_privilege('anon', 'public.server_api_hire_result(text, uuid, boolean, text, text)', 'execute'));
 
-update program_settings p set require_staff_two_step = x.t from rqg_ps x where p.id = x.id;
+update program_settings p set require_staff_two_step = x.t, academy_gate = x.g from rqg_ps x where p.id = x.id;
