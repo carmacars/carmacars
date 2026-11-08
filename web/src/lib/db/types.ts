@@ -15467,6 +15467,7 @@ export type Database = {
           ai_vision_fallback_model: string | null;
           ai_vision_daily_neurons: number;
           listing_plate_check_required: boolean;
+          field_handover_requires_fleet_policy: boolean;
           plate_cover_style: string;
           plate_cover_text: string | null;
           plate_detect_enabled: boolean;
@@ -16108,6 +16109,7 @@ export type Database = {
           ai_vision_fallback_model?: string | null;
           ai_vision_daily_neurons?: number;
           listing_plate_check_required?: boolean;
+          field_handover_requires_fleet_policy?: boolean;
           plate_cover_style?: string;
           plate_cover_text?: string | null;
           plate_detect_enabled?: boolean;
@@ -16749,6 +16751,7 @@ export type Database = {
           ai_vision_fallback_model?: string | null;
           ai_vision_daily_neurons?: number;
           listing_plate_check_required?: boolean;
+          field_handover_requires_fleet_policy?: boolean;
           plate_cover_style?: string;
           plate_cover_text?: string | null;
           plate_detect_enabled?: boolean;

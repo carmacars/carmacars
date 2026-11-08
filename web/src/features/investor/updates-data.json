@@ -169,6 +169,21 @@
   ]
  },
  {
+  "release": "r32b",
+  "title": "Update of November 7 (handovers)",
+  "date": "2026-11-07",
+  "seq": 0,
+  "summary": "Cars waiting for the insurer's confirmation can be handed over again, with the rule kept as a setting.",
+  "areas": [
+   {
+    "area": "Staff tools",
+    "items": [
+     "A car still waiting for the insurer's written confirmation can be checked out; the old rule is a setting, off by default"
+    ]
+   }
+  ]
+ },
+ {
   "release": "r27b",
   "title": "Release 27b",
   "date": "2026-11-06",
