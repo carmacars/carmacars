@@ -64,6 +64,8 @@ grant select on api_previews to authenticated;
 grant select, insert, update on api_previews to service_role;
 drop policy if exists admin_all on api_previews;
 create policy admin_all on api_previews for select to authenticated using (app.is_admin());
+drop trigger if exists audit_api_previews on api_previews;
+create trigger audit_api_previews after insert or update or delete on api_previews for each row execute function app.audit_row();
 
 -- ================================================================ 3. the actions: each tool is one door action of the Admin screens
 create or replace function app.api_action(p_tool text) returns jsonb

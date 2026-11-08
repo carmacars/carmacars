@@ -89,12 +89,15 @@ begin
   end loop;
 end $$;
 -- the onboarding and the enrollments: Admins read them; the pay details are read only through the masked functions below
-drop policy if exists admin_read on staff_onboarding;
-create policy admin_read on staff_onboarding for select to authenticated using (app.is_admin());
+-- (their admin policy has no grant behind it: no browser reads the table)
+drop policy if exists admin_all on staff_onboarding;
+create policy admin_all on staff_onboarding for select to authenticated using (app.is_admin());
 grant select on staff_onboarding to authenticated;
-drop policy if exists admin_read on academy_enrollments;
-create policy admin_read on academy_enrollments for select to authenticated using (app.is_admin());
+drop policy if exists admin_all on academy_enrollments;
+create policy admin_all on academy_enrollments for select to authenticated using (app.is_admin());
 grant select on academy_enrollments to authenticated;
+drop policy if exists admin_all on staff_payout_accounts;
+create policy admin_all on staff_payout_accounts for select to authenticated using (app.is_admin());
 drop trigger if exists audit_staff_onboarding on staff_onboarding;
 create trigger audit_staff_onboarding after insert or update or delete on staff_onboarding for each row execute function app.audit_row();
 drop trigger if exists audit_academy_enrollments on academy_enrollments;
