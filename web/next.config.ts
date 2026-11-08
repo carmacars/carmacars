@@ -3,8 +3,8 @@ import { initOpenNextCloudflareForDev } from '@opennextjs/cloudflare';
 
 const EMAIL_PATHS: Array<[string, string]> = [
   ['/account/bookings/:n/request', '/account/bookings/:n#questions'], ['/account/bookings/:n/agreement', '/account/bookings/:n/sign'],
-  // (condition-report is a page since 0130: the renter's photo report)
-  ['/account/bookings/:n/pickup', '/account/bookings/:n'],
+  // (condition-report is a page since 0130: the renter's photo report; pickup is the renter's own check-in since 0545, so it
+  // is never redirected: src/lib/redirects.test.ts fails if a redirect hides a page)
   ['/account/bookings/:n/return', '/account/bookings/:n'], ['/account/bookings/:n/statement', '/account/bookings/:n'],
   ['/account/bookings/:n/incident', '/account/bookings/:n'],
   ['/owner/application', '/owner'], ['/owner/agreements', '/owner/documents'], ['/owner/billing', '/owner/invoices'],
