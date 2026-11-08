@@ -39,8 +39,11 @@ select test.ok('the owner''s "live" email waits for the enrollment',
 
 -- ================================================================ 3. the handover waits for the fleet policy
 select test.mk_booking('NR-1', 'NR1', 'nr_rita', '2031-03-02 10:00', '2031-03-05 10:00', 'confirmed');
+-- 0683: the rule is a Program setting, off by default; on here
+update program_settings set field_handover_requires_fleet_policy = true;
 select test.throws('the car is not handed over before it is on the fleet policy',
   $$update bookings set status = 'on_rent', handed_over_at = now() where id = test.id('booking:NR-1')$$, '%not on the fleet insurance policy%');
+update program_settings set field_handover_requires_fleet_policy = false;
 select test.ok('staff see the warning on the booking''s car', (app.listing_state(test.id('nr_fleet'), jsonb_build_object('vehicle_id', test.id('vehicle:NR1'))) ->> 'handover_note') like 'Not on the fleet insurance policy yet%');
 -- enrollment of a published car: available, and the owner hears it is live
 update vehicles set status = 'ready_to_list' where id = test.id('vehicle:NR1');
