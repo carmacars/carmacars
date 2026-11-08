@@ -20,7 +20,7 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
   f="${1:?wrangler.jsonc}"; envname="${2:-production}"; v="${3:-}"
   [ "$envname" = production ] || { echo "email binding: not on $envname (production only)"; exit 0; }
   if ! cf_email_on "$v"; then
-    echo "::warning title=email::EMAIL binding NOT added: the repository variable CF_EMAIL_BINDING is $([ -n "$v" ] && echo "'$v'" || echo 'not set'), not one of 1, true, yes, on or EMAIL, so every email goes through Resend (100 a day). Owner step: GitHub > Settings > Secrets and variables > Actions > Variables, CF_EMAIL_BINDING = 1"
+    echo "::warning title=email::EMAIL binding NOT added: the repository variable CF_EMAIL_BINDING is $([ -n "$v" ] && echo "'$v'" || echo 'not set'), not one of 1, true, yes, on or EMAIL, so every email goes through Resend (its daily budget in Program settings). Owner step: GitHub > Settings > Secrets and variables > Actions > Variables, CF_EMAIL_BINDING = 1"
     exit 0
   fi
   # 2026-11-06: wrangler-config.mjs rewrites the file as plain JSON first ("ai" spread over three lines), so the old
@@ -38,7 +38,7 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
     fs.writeFileSync(f, out); console.log("added");' "$f" 2>&1) || r="error: $r"
   case "$r" in
     already) echo "::notice title=email::EMAIL binding already in wrangler.jsonc (CF_EMAIL_BINDING='$v')" ;;
-    added) echo "::notice title=email::EMAIL binding added (CF_EMAIL_BINDING='$v'): the Worker sends the outbox through Cloudflare Email Service first (200 a day), Resend after (100 a day)" ;;
-    *) echo "::warning title=email::EMAIL binding NOT added: CF_EMAIL_BINDING='$v' turns it on, but wrangler.jsonc could not be read (${r:0:200}); every email goes through Resend (100 a day)" ;;
+    added) echo "::notice title=email::EMAIL binding added (CF_EMAIL_BINDING='$v'): the Worker sends the outbox through Cloudflare Email Service first, Resend after (the daily budgets of each are in Program settings)" ;;
+    *) echo "::warning title=email::EMAIL binding NOT added: CF_EMAIL_BINDING='$v' turns it on, but wrangler.jsonc could not be read (${r:0:200}); every email goes through Resend (its daily budget in Program settings)" ;;
   esac
 fi

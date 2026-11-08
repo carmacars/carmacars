@@ -37,7 +37,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: node --experimental-strip-types --no-warnings scripts/cf-usage.mjs --out "$RUNNER_TEMP/usage.json" | tee "$RUNNER_TEMP/usage.txt"
-      # 2026-11-06 (0531): the day's emails by provider, read only: Cloudflare first (200 a day), Resend after (100 a day)
+      # 2026-11-06 (0531): the day's emails by provider, read only: Cloudflare first, Resend after (their daily budgets are Program settings)
       - name: Emails today by provider
         continue-on-error: true
         env:

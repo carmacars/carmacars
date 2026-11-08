@@ -113,14 +113,15 @@ test.describe('the model sheets, live', () => {
     await expect(page.getByText('Below the $20,000 minimum.')).toBeVisible();
 
     await page.getByTestId('model-tab-how').click();
-    await expect(page.getByTestId('how-examples')).toContainText('$500');
+    await expect(page.getByTestId('how-examples')).toContainText('$4,167'); // r35: Option 1 at 10% on $500,000, a month
+    await expect(page.getByTestId('how-terms')).toContainText('20 to 25% profit share');
     await check(page, 'how it works');
     await shot(page, 'how');
 
     await page.getByTestId('model-tab-car').click();
-    await expect(page.getByTestId('car-cash')).toHaveText('$1,075');
+    await expect(page.getByTestId('car-cash')).toHaveText('$1,960');
     await page.getByTestId('car-add').click();
-    await expect(page.getByTestId('car-cash')).toHaveText('$1,075');
+    await expect(page.getByTestId('car-cash')).toHaveText('$1,960');
     await check(page, 'fund a car');
     await shot(page, 'car');
 

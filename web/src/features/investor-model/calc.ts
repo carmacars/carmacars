@@ -67,7 +67,9 @@ export interface CarResult {
   gross: number; commissions: number; company: number; ownerShare: number; insurance: number; tracker: number; cash: number; depreciation: number; net: number;
   yearlyCash: number; yearlyDepreciation: number; yearlyNet: number; roi: number; cashYield: number; paybackMonths: number | null; upfront: number;
 }
-export const CAR_DEFAULTS: CarInputs = { name: 'Example car', price: 7000, dailyRate: 80, daysPerMonth: 25, ownerShare: 0.7, commissions: 0, insuranceFee: 300, trackerFee: 25, depreciation: 0.15 };
+// r35: the deck's figures (features/deck/pitch.ts): $112 earned per rented day (October actual) and 25 rented days, an
+// illustration; the monthly fees are the investor's to enter from their agreement (investor pages never state them)
+export const CAR_DEFAULTS: CarInputs = { name: 'Example car', price: 7000, dailyRate: 112, daysPerMonth: 25, ownerShare: 0.7, commissions: 0, insuranceFee: 0, trackerFee: 0, depreciation: 0.15 };
 export const BLANK_CAR: CarInputs = { name: '', price: 0, dailyRate: 0, daysPerMonth: 0, ownerShare: 0.7, commissions: 0, insuranceFee: 0, trackerFee: 0, depreciation: 0.15 };
 
 /** One car's column of the "Fund a car" sheet (rows "Monthly", "Yearly", "Return on the car"). */

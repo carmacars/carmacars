@@ -65,7 +65,7 @@ test('Cloudflare figures: requests and CPU of every Worker, neurons, R2; a part 
 });
 
 // 0320: the banner speaks in money; the email line says whether Cloudflare sends and links to the steps
-import { bannerLine, bannerTone, cfEmailSentence, CF_EMAIL_STEPS } from './model.ts';
+import { bannerLine, bannerTone, cfEmailSentence, resendDay, CF_EMAIL_STEPS } from './model.ts';
 test('banner: red only when the database says so; the words name the projected cost', () => {
   const r = { service: 'workers_cpu', label: 'Website CPU time (Cloudflare Worker)', share_bps: 12300, level: 100 as const, used_text: '36,899,350 CPU ms', included_text: '30,000,000 CPU ms',
     overage_usd: 0.14, resets_at: null, tone: 'note' as const, projected_usd: 0.88 };
@@ -75,7 +75,11 @@ test('banner: red only when the database says so; the words name the projected c
 });
 test('email: Cloudflare not set up says so, with the four steps; sending says nothing', () => {
   const c = { state: 'absent' as const, enabled: true, ok_at: null, failed_at: null, error: null, sent_month: 0, included: 3000 };
-  assert.match(cfEmailSentence(c)!, /not set up yet.*100 a day/);
+  // r35: the daily number is the setting's, never one written in the code
+  assert.match(cfEmailSentence(c, 150)!, /not set up yet.*includes only 150 a day\. The one-time setup gives 3,000 a month/);
+  assert.match(cfEmailSentence(c)!, /includes only your daily email limit/);
+  assert.match(cfEmailSentence({ ...c, state: 'off' }, '250 emails')!, /Resend \(250 emails a day included\)/);
+  assert.equal(resendDay(0), 'your daily email limit');
   assert.equal(cfEmailSentence({ ...c, state: 'ok' }), null);
   assert.equal(CF_EMAIL_STEPS.length, 4);
   assert.match(CF_EMAIL_STEPS[2], /CF_EMAIL_BINDING/);

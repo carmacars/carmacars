@@ -5,7 +5,15 @@ import { emailKind, type Conversation, type Recipient } from './email-choices';
 // The booking's conversation and the Email the renter form (migration 0187): what staff and the renter wrote on the
 // booking (both ways, the adjuster's emails marked), and every email of the booking with its sender and state. The
 // form sends through the outbox; both lists refresh after a send.
-export function BookingConversation({ c, refresh, initialTo = 'renter' }: { c: Conversation; refresh: string[]; initialTo?: Recipient }) {
+// r35 (0850): `composeOnly` is the form alone, under the Activity log (which lists the messages and the emails).
+export function BookingConversation({ c, refresh, initialTo = 'renter', composeOnly = false }: { c: Conversation; refresh: string[]; initialTo?: Recipient; composeOnly?: boolean }) {
+  if (composeOnly) return (
+    <div data-testid="booking-conversation">
+      <Card title={c.insurer_billed ? 'Email the renter or the adjuster' : 'Email the renter'} testId="email-card">
+        <EmailRenter c={c} refresh={refresh} initialTo={initialTo} />
+      </Card>
+    </div>
+  );
   return (
     <div className="ad-cols ad-cols--2" data-testid="booking-conversation">
       <div className="stack">

@@ -107,7 +107,7 @@ test('investor portal design: invested, paid, next payment, schedule, growth, de
     const sched = page.getByTestId('investor-schedule');
     await expect(sched).toContainText('Paid');
     await expect(sched).toContainText('Estimated');
-    await expect(page.getByTestId('deck-tile-multiplier')).toHaveText('3.2x');
+    await expect(page.getByTestId('deck-tile-option-1')).toContainText('10 to 15%'); // r35: the terms of the 2026 deck
     await expect(page.getByTestId('deck-promo').getByRole('link', { name: 'Open the deck' })).toHaveAttribute('href', '/investor/deck');
     // the confidentiality rule: nothing about the fleet's size, use, insurance or costs
     const text = await page.locator('main').innerText();

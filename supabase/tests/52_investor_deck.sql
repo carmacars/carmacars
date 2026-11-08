@@ -17,8 +17,8 @@ values (test.id('inv:dk_prospect'), test.id('dk_prospect'), 'Pat Prospect', 'ind
 
 -- ================================================================ 1. the settings record
 select test.eq('one settings row', (select count(*) from deck_settings), 1::bigint);
-select test.eq('defaults: shown to investors (the lawyer approved), 3.2x, 30% a year',
-  (select show_to_investors || '/' || deck_multiplier || '/' || deck_return_bps from deck_settings), 'true/3.20/3000');
+select test.eq('defaults: shown to investors (the lawyer approved), 3.2x, r35 (0851): 10% a year, the low end of the 2026 deck''s Option 1',
+  (select show_to_investors || '/' || deck_multiplier || '/' || deck_return_bps from deck_settings), 'true/3.20/1000');
 select test.throws('a second row is refused', $$insert into deck_settings (id) values (true)$$, 'duplicate key');
 select test.throws('the multiplier must be above zero', $$update deck_settings set deck_multiplier = 0$$, 'check');
 select test.throws('the yearly percentage is at most 100%', $$update deck_settings set deck_return_bps = 10001$$, 'check');

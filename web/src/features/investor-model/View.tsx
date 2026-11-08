@@ -1,7 +1,7 @@
 import Link from '@/components/Link';
 import { money } from '@/lib/format';
 import { firstOfNextMonth, longDate, monthLabel } from '@/features/deck/returns';
-import { HOW_IT_WORKS_AMOUNTS, howItWorksRow } from './calc';
+import { EXAMPLE_AMOUNTS, FOOTNOTES, RAISE, TERMS, optionOneRow } from '@/features/deck/pitch';
 import { FundACar, InvestmentCalculator } from './Sheets';
 import { PortalIcon } from '@/components/portal-ui';
 import type { InvestorModel } from '@/server/investor-model';
@@ -81,36 +81,22 @@ export function InvestorModelView({ m, tab, reinvest }: { m: InvestorModel; tab:
 
       {tab === 'how' && (
         <div className="stack-lg" data-testid="model-how">
+          {/* r35: the terms of the 2026 deck (features/deck/pitch.ts), the same as the deck and the portal home */}
           {mult && <section className="pu-panel pu-panel--ink im-headline"><p className="im-headline__fig">{mult}x</p><p className="im-headline__what">multiplier on money invested in the fleet</p>
-            <p className="xs">The company&apos;s headline figure: internal, not audited, not a forecast and not a promise of any return. Your Return is the Yearly Percentage in your agreement.</p></section>}
+            <p className="xs">CarmaCars&apos; figure. {FOOTNOTES.internal} Not a forecast and not a promise of any return.</p></section>}
           <section className="pu-panel" aria-labelledby="im-terms"><h2 className="pu-title" id="im-terms">The terms in plain words</h2>
-            <dl className="im-terms">
-              <div><dt>Minimum investment</dt><dd>{money(terms.min_cents)}</dd></div>
-              <div><dt>Your return</dt><dd>{+(terms.offer_bps / 100).toFixed(2)}% a year on our current offer, paid monthly. Each investor&apos;s rate is set in their own investment agreement.</dd></div>
-              <div><dt>Lockup</dt><dd>The first {lock} months. No return accrues during the lockup. Monthly payments start once it ends.</dd></div>
-              <div><dt>Your principal</dt><dd>Stays invested, with no fixed term. Keep it in to keep earning, or reinvest your monthly returns.</dd></div>
-              <div><dt>Getting your money out</dt><dd>Sell your investment to another investor, or have it bought back by the company.</dd></div>
-              <div><dt>Company repayment</dt><dd>The company can repay your investment at any time with 6 months&apos; notice.</dd></div>
-              <div><dt>What it is</dt><dd>An investment, not a loan. Investors receive no shares in the company.</dd></div>
-              {terms.company && <div><dt>Who you invest with</dt><dd>{terms.company}</dd></div>}
+            <dl className="im-terms" data-testid="how-terms">
+              {TERMS.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
             </dl>
           </section>
-          <section className="pu-panel" aria-labelledby="im-steps"><h2 className="pu-title" id="im-steps">Step by step</h2>
-            <ol className="im-steps">
-              <li><b>Invest.</b> Sign your investment agreement and fund it (minimum {money(terms.min_cents)}).</li>
-              <li><b>Lockup.</b> Months 1 to {lock}: your capital goes to work. No return accrues yet.</li>
-              <li><b>Get paid monthly.</b> From month {lock + 1}, you receive your yearly return divided into 12 monthly payments.</li>
-              <li><b>Your choice.</b> Keep it in, reinvest your returns, sell to another investor, or have the company buy it back.</li>
-            </ol>
-          </section>
-          <section className="pu-panel" aria-labelledby="im-ex"><h2 className="pu-title" id="im-ex">Examples at {+(terms.offer_bps / 100).toFixed(2)}% a year</h2>
+          <section className="pu-panel" aria-labelledby="im-ex"><h2 className="pu-title" id="im-ex">Option 1 examples, {RAISE.option1.lowPct} to {RAISE.option1.highPct}% a year</h2>
             <div className="im-scroll" tabIndex={0} role="region" aria-label="Examples">
               <table className="im-table" data-testid="how-examples">
-                <thead><tr><th scope="col">Amount invested</th><th scope="col" className="num">Monthly payout</th><th scope="col" className="num">Yearly payout</th><th scope="col" className="num">Paid by month 24</th><th scope="col" className="num">Paid by month 36</th></tr></thead>
-                <tbody>{HOW_IT_WORKS_AMOUNTS.map((a) => { const x = howItWorksRow(a, terms.offer_bps / 10000, lock); return <tr key={a}><td>{money(a * 100)}</td><td className="num">{money(Math.round(x.monthly * 100))}</td><td className="num">{money(Math.round(x.yearly * 100))}</td><td className="num">{money(Math.round(x.by24 * 100))}</td><td className="num">{money(Math.round(x.by36 * 100))}</td></tr>; })}</tbody>
+                <thead><tr><th scope="col">Amount invested</th><th scope="col" className="num">Monthly at {RAISE.option1.lowPct}%</th><th scope="col" className="num">Monthly at {RAISE.option1.highPct}%</th><th scope="col" className="num">Yearly at {RAISE.option1.lowPct}%</th><th scope="col" className="num">Yearly at {RAISE.option1.highPct}%</th></tr></thead>
+                <tbody>{EXAMPLE_AMOUNTS.map((a) => { const x = optionOneRow(a); return <tr key={a}><td>{money(a * 100)}</td><td className="num">{money(Math.round(x.monthlyLow * 100))}</td><td className="num">{money(Math.round(x.monthlyHigh * 100))}</td><td className="num">{money(Math.round(x.yearlyLow * 100))}</td><td className="num">{money(Math.round(x.yearlyHigh * 100))}</td></tr>; })}</tbody>
               </table>
             </div>
-            <p className="small muted">Returns paid out, not reinvested. For informational purposes only and not an offer by itself; the signed investment agreement governs. Like any investment, it carries risk.</p>
+            <p className="small muted">Simple interest, paid monthly. For information only and not an offer by itself: {FOOTNOTES.offer}. Like any investment, it carries risk.</p>
           </section>
         </div>
       )}

@@ -4,6 +4,7 @@ import { DateInput } from '@/components/DateInput';
 import { money } from '@/lib/format';
 import { BLANK_CAR, CAR_DEFAULTS, carPayoutSchedule, fundCars, investmentCalc, type CarInputs } from './calc';
 import { longDate, monthLabel } from '../deck/returns';
+import { FOOTNOTES } from '../deck/pitch';
 
 // The two interactive sheets of the investor portal's Model page, in the browser: the workbook's "Investment calculator"
 // and "Fund a car (owner program)" (./calc.ts has the formulas). Nothing is sent anywhere; the download writes the same
@@ -155,7 +156,7 @@ export function FundACar({ firstMonth }: { firstMonth: string }) {
             <tbody>{sched.map((s) => <tr key={s.month}><td>{monthLabel(s.month)}</td><td>{longDate(s.paidOn)}</td><td className="num">{$0(s.payout)}</td><td className="num">{$0(s.cumulative)}</td></tr>)}</tbody>
           </table>
         </div>
-        <p className="small muted">Illustration only, from your own inputs. Owners are paid monthly on the 10th for the previous month&apos;s rentals, only for days the car is rented. Your signed owner agreement sets your actual share and fees; owners sign owner agreements, not investment agreements.</p>
+        <p className="small muted">Illustration only, from your own inputs: {FOOTNOTES.illustration} Owners are paid monthly on the 10th for the previous month&apos;s rentals, only for days the car is rented. Your signed owner agreement sets your actual share and fees; owners sign owner agreements, not investment agreements.</p>
       </section>
     </div>
   );

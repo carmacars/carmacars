@@ -4,17 +4,15 @@ import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
 import { PageHead } from '@/features/admin/ui';
-import { Deck } from '@/features/deck/Deck';
-import { DeckVideo } from '@/features/deck/DeckVideo';
+import { PitchDeck } from '@/features/deck/PitchDeck';
 import type { DeckFigures } from '@/features/deck/types';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Investor deck preview', path: '/admin/investors/deck', noindex: true, description: 'Preview and settings of the investor deck.' });
 
-const torontoToday = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
-
-// The Admin's preview of the investor deck and its settings (migration 0083): shown to investors or not, the company's
-// multiplier figure and the yearly percentage of the current offer used by the examples and the calculator.
+// The Admin's preview of the investor deck and its settings (migration 0083; r35: the 2026 pitch deck, features/deck/pitch.ts):
+// shown to investors or not, the company's multiplier figure on the Per car slide, and the yearly percentage the Live
+// sheets calculator starts from.
 export default async function AdminDeck() {
   const { read } = await page('/admin/investors/deck');
   const f = await read<DeckFigures>('investor_deck');
@@ -27,12 +25,12 @@ export default async function AdminDeck() {
       <Act inline action="deck_settings_save" label="Save deck settings" testId="deck-save" done="Saved." refresh={['/admin/investors/deck', '/investor/deck', '/investor']} fields={[
         { name: 'show_to_investors', label: 'Show the deck to investors', type: 'bool', value: st.show_to_investors, hint: 'Signed-in investors see it under Investor deck in their portal.' },
         { name: 'deck_multiplier', label: 'Multiplier on the money we invest (x)', type: 'number', value: Number(st.deck_multiplier), min: 0.01, max: 99.99, required: true,
-          hint: 'The company\'s own figure, shown as "3.2x" with its footnote (internal, not audited).' },
+          hint: 'The company\'s own figure on the Per car slide, shown as "3.2x" with its footnote (internal and unaudited).' },
         { name: 'deck_return_bps', label: 'Yearly percentage of the current offer', type: 'percent', value: st.deck_return_bps, required: true,
-          hint: 'Used by the worked examples and the calculator only. Each investor\'s percentage is the one in their agreement.' }
+          hint: 'The Live sheets calculator starts from it for an investor without an agreement. The deck states the terms of the raise (10 to 15% a year, or a 20 to 25% profit share). Each investor\'s percentage is the one in their agreement.' }
       ]} />
     </section>
     <p className="dk-preview-note small">Preview: this is the deck exactly as investors see it, with today&apos;s figures from the database.</p>
-    <div className="dk-admin-preview"><DeckVideo /><Deck f={f} today={torontoToday()} /></div>
+    <div className="dk-admin-preview"><PitchDeck multiplier={Number(st.deck_multiplier) > 0 ? Number(st.deck_multiplier) : undefined} /></div>
   </>);
 }

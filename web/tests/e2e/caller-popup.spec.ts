@@ -90,7 +90,7 @@ test('Customer service: a renter calls, the pop-up shows who it is, a note from 
   expect(n!.call_id, 'the note is tied to the call').toBeTruthy();
   await card.getByTestId('caller-open').click();
   await page.waitForURL(/\/staff\/renters\?id=/);
-  await expect(page.getByTestId('renter-notes-card').getByText('Asked about adding a second driver; sent the link.')).toBeVisible();
+  await expect(page.getByTestId('activity-log').getByText('Asked about adding a second driver; sent the link.')).toBeVisible();
   await check(page, 'staff renter notes');
   await page.getByTestId('caller-close').first().click();
   await expect(card).toHaveCount(0);
@@ -126,7 +126,8 @@ test('Admin: the pop-up on any Admin page, and the renter page\'s notes with Rem
   await card.getByTestId('renter-note-add').click();
   await expect(card.getByRole('status').filter({ hasText: 'Note added.' })).toBeVisible();
   await page.goto(`/admin/renters/${r!.id}`, { waitUntil: 'networkidle' });
-  const notes = page.getByTestId('renter-notes-card');
+  // r35 (0850): the notes are in the Activity log, each with Remove for an Admin
+  const notes = page.getByTestId('activity-log');
   await expect(notes.getByText('Wants a weekly rate.')).toBeVisible();
   await check(page, 'admin renter notes');
   page.once('dialog', (d) => void d.accept('Duplicate'));

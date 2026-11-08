@@ -20,7 +20,7 @@ export async function loadInvestorModel(userId: string, reinvest?: boolean): Pro
   // the calculator starts from their own numbers: what they invested, when, at their rate (else the minimum, next month, the offer)
   const amount = mine.investedCents > 0 ? Math.round(mine.investedCents / 100) : Math.max(50_000, Math.round(terms.min_cents / 100));
   return { terms, home, rows, mine,
-    calc: { amount, start: mine.startDate ?? firstOfNextMonth(terms.today), rate: (mine.yearlyBps ?? terms.offer_bps ?? 3000) / 10000, reinvest: mine.reinvest } };
+    calc: { amount, start: mine.startDate ?? firstOfNextMonth(terms.today), rate: (mine.yearlyBps ?? terms.offer_bps ?? 1000) / 10000, reinvest: mine.reinvest } };
 }
 
 export const multiplierOf = (t: Pick<ModelTerms, 'multiplier'>) => { const n = Number(t.multiplier); return Number.isFinite(n) && n > 0 ? n : null; };

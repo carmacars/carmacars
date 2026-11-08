@@ -1,6 +1,7 @@
 'use client';
 import './caller.css';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { dayClock } from '@/features/live/staff';
 import { phoneDo, phoneRead } from '@/features/phone/client';
 import { noteProblem, ROLE_WORDS, type CallerNote, type NotesRead } from './model';
@@ -8,9 +9,11 @@ import { noteProblem, ROLE_WORDS, type CallerNote, type NotesRead } from './mode
 // Renter notes (migration 0800): what staff noted about the renter, newest first, each with when and who. Admins and
 // office staff add notes; nobody edits one; an Admin removes one with a reason (kept in the audit log). The renter
 // page of Admin and of the staff portal, and the caller pop-up (compact: the last three and the box).
-export function RenterNotes({ renterId, initial, total, canRemove = false, callId, compact = false }: {
-  renterId: string; initial: CallerNote[]; total?: number; canRemove?: boolean; callId?: string; compact?: boolean;
+// r35 (0850): `formOnly` is the box alone, above the Activity log (which lists the notes); the page refreshes after a note.
+export function RenterNotes({ renterId, initial, total, canRemove = false, callId, compact = false, formOnly = false }: {
+  renterId: string; initial: CallerNote[]; total?: number; canRemove?: boolean; callId?: string; compact?: boolean; formOnly?: boolean;
 }) {
+  const router = useRouter();
   const [notes, setNotes] = useState(initial);
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
@@ -28,6 +31,7 @@ export function RenterNotes({ renterId, initial, total, canRemove = false, callI
     try {
       const r = await phoneDo<{ ok: boolean; note: CallerNote }>('renter_note_add', { renter_id: renterId, body: body.trim(), ...(callId ? { call_id: callId } : {}) });
       setNotes((n) => [r.note, ...n]); setBody(''); setAdded((a) => a + 1); setMsg({ ok: true, text: 'Note added.' });
+      if (formOnly) router.refresh();
     } catch (err) { setMsg({ ok: false, text: err instanceof Error ? err.message : 'Not saved. Try again.' }); }
     finally { setBusy(false); }
   }
@@ -47,7 +51,7 @@ export function RenterNotes({ renterId, initial, total, canRemove = false, callI
         <p className="rn-acts"><button type="submit" className="btn btn--primary btn--sm" disabled={busy} data-testid="renter-note-add">{busy ? 'Saving' : 'Add note'}</button>
           {msg && <span className={`small${msg.ok ? '' : ' rn-err'}`} role={msg.ok ? 'status' : 'alert'}>{msg.text}</span>}</p>
       </form>
-      {shown.length === 0 ? <p className="small muted">No notes yet.</p> : (
+      {formOnly ? null : shown.length === 0 ? <p className="small muted">No notes yet.</p> : (
         <ol className="rn-list" aria-label="Notes, newest first">{shown.map((n) => (
           <li key={n.id} data-testid="renter-note">
             <p className="rn-text">{n.body}</p>

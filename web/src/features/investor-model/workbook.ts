@@ -4,7 +4,8 @@
 // projected schedule as values. Never anything about the fleet, its use, its insurance or the company's costs: the
 // internal sheets are built only by features/finance-model/workbook.ts, for Admins.
 import { FMT, S, Workbook, banner, section, colLetter, BLACK, GREEN, GREY, MUTED, PINK, RED, WHITE } from '../../lib/xlsx.ts';
-import { CAR_DEFAULTS, HOW_IT_WORKS_AMOUNTS, type CarInputs } from './calc.ts';
+import { CAR_DEFAULTS, type CarInputs } from './calc.ts';
+import { EXAMPLE_AMOUNTS, FOOTNOTES, RAISE, TERMS } from '../deck/pitch.ts';
 import type { MineSummary } from './mine.ts';
 
 export interface InvestorBook {
@@ -55,46 +56,30 @@ export function howItWorks(wb: Workbook, b: Pick<InvestorBook, 'multiplier' | 'r
   if (b.multiplier && b.multiplier > 0) {
     hw.put('A4', `${b.multiplier}x`, { bold: true, color: RED, size: 40, align: 'center' }).height(4, 56);
     hw.put('A5', 'multiplier on money invested in the fleet', { bold: true, size: 14, align: 'center' }).height(5, 22);
-    hw.put('A6', "The company's headline figure", { italic: true, size: 9, color: MUTED, align: 'center' });
+    hw.put('A6', `CarmaCars' figure. ${FOOTNOTES.internal}`, { italic: true, size: 9, color: MUTED, align: 'center' });
   }
-  const min = `CA$${b.minimum.toLocaleString('en-CA')}`;
+  // r35: the terms of the 2026 deck (features/deck/pitch.ts), the same as every investor page
   let r = 8;
   section(hw, r++, 'The terms in plain words', 5, RED);
-  const terms: Array<[string, string]> = [
-    ['Minimum investment', `${min}.`],
-    ['Your return', `${+(b.rate * 100).toFixed(2)}% a year, paid monthly. Each investor's rate is set in their own investment agreement.`],
-    ['Lockup', `The first ${b.lockupMonths} months. No return accrues during the lockup. Monthly payments start once it ends.`],
-    ['Your principal', 'Stays invested, with no fixed term. Keep it in to keep earning, or reinvest your monthly returns.'],
-    ['Getting your money out', 'Sell your investment to another investor, or have it bought back by the company.'],
-    ['Company repayment', "The company can repay your investment at any time with 6 months' notice."],
-    ['What it is', 'An investment, not a loan. Investors receive no shares in the company.'],
-    ...(b.company ? [['Who you invest with', b.company] as [string, string]] : [])
-  ];
-  for (const [k, v] of terms) {
+  for (const [k, v] of TERMS) {
     hw.put(`A${r}`, k, { bold: true, border: 'box', bg: GREY, wrap: true }).merge(`B${r}:E${r}`).put(`B${r}`, v, { border: 'box', wrap: true }).height(r, 30);
     for (const c of 'CDE') hw.style(`${c}${r}`, { border: 'box' });
     r++;
   }
   r++;
-  section(hw, r++, 'How it works, step by step', 5);
-  for (const [k, v] of [['1. Invest', `Sign your investment agreement and fund it (minimum ${min}).`], ['2. Lockup', `Months 1 to ${b.lockupMonths}: your capital goes to work. No return accrues yet.`],
-    ['3. Get paid monthly', `From month ${b.lockupMonths + 1}, you receive your yearly return divided into 12 monthly payments.`], ['4. Your choice', 'Keep it in, reinvest your returns, sell to another investor, or have the company buy it back.']]) {
-    hw.put(`A${r}`, k, { bold: true, color: RED }).merge(`B${r}:E${r}`).put(`B${r}`, v, { wrap: true }).height(r, 22); r++;
-  }
-  r++;
-  section(hw, r++, 'Examples', 5);
-  hw.put(`A${r}`, 'Annual return used below').put(`B${r}`, b.rate, S.input(FMT.PCT)); const rate = `$B$${r}`; r++;
-  hw.put(`A${r}`, 'Lockup (months)').put(`B${r}`, b.lockupMonths, { fmt: FMT.INT, align: 'right' }); const lock = `$B$${r}`; r += 2;
-  ['Amount invested', 'Monthly payout', 'Yearly payout', 'Total paid by month 24', 'Total paid by month 36'].forEach((h, i) => hw.put(`${'ABCDE'[i]}${r}`, h, S.head()));
+  section(hw, r++, `Option 1 examples: simple interest, paid monthly`, 5);
+  hw.put(`A${r}`, 'Low end of the yearly rate').put(`B${r}`, RAISE.option1.lowPct / 100, S.input(FMT.PCT)); const lo = `$B$${r}`; r++;
+  hw.put(`A${r}`, 'High end of the yearly rate').put(`B${r}`, RAISE.option1.highPct / 100, S.input(FMT.PCT)); const hi = `$B$${r}`; r += 2;
+  ['Amount invested', 'Monthly, low end', 'Monthly, high end', 'Yearly, low end', 'Yearly, high end'].forEach((h, i) => hw.put(`${'ABCDE'[i]}${r}`, h, S.head()));
   hw.height(r, 30); r++;
-  for (const amt of HOW_IT_WORKS_AMOUNTS) {
-    hw.put(`A${r}`, amt, S.input(FMT.CUR)).put(`B${r}`, `=A${r}*${rate}/12`, S.cell(FMT.CUR)).put(`C${r}`, `=B${r}*12`, S.cell(FMT.CUR))
-      .put(`D${r}`, `=B${r}*MAX(0,24-${lock})`, S.cell(FMT.CUR)).put(`E${r}`, `=B${r}*MAX(0,36-${lock})`, S.cell(FMT.CUR));
+  for (const amt of EXAMPLE_AMOUNTS) {
+    hw.put(`A${r}`, amt, S.input(FMT.CUR)).put(`B${r}`, `=A${r}*${lo}/12`, S.cell(FMT.CUR)).put(`C${r}`, `=A${r}*${hi}/12`, S.cell(FMT.CUR))
+      .put(`D${r}`, `=B${r}*12`, S.cell(FMT.CUR)).put(`E${r}`, `=C${r}*12`, S.cell(FMT.CUR));
     r++;
   }
   r++;
-  hw.merge(`A${r}:E${r}`).put(`A${r}`, 'Examples assume returns are paid out, not reinvested. Use the Investment calculator tab for your own amount, start date and the reinvest option.', { italic: true, size: 9, wrap: true }).height(r, 26); r++;
-  hw.merge(`A${r}:E${r}`).put(`A${r}`, 'This summary is for information only and is not an offer by itself. The signed investment agreement governs. Like any investment, it carries risk.', S.note()).height(r, 26);
+  hw.merge(`A${r}:E${r}`).put(`A${r}`, `Option 2 is a ${RAISE.option2.lowPct} to ${RAISE.option2.highPct}% profit share from the cars this money puts on the road. Use the Investment calculator tab for your own amount and start date.`, { italic: true, size: 9, wrap: true }).height(r, 26); r++;
+  hw.merge(`A${r}:E${r}`).put(`A${r}`, `This summary is for information only and is not an offer by itself. ${FOOTNOTES.offer}. Like any investment, it carries risk.`, S.note()).height(r, 26);
   return hw;
 }
 
@@ -134,9 +119,10 @@ export function calculator(wb: Workbook, b: Pick<InvestorBook, 'amount' | 'start
   });
   ic.merge('F4:J4').put('F4', 'Terms in brief', { bold: true, color: WHITE, bg: BLACK, size: 11 });
   for (const c of 'GHIJ') ic.style(`${c}4`, { bg: BLACK });
-  ['No return accrues during the lockup.', 'After the lockup, the yearly return is paid monthly.', 'Principal stays invested, with no fixed term.', 'Choose Yes above to reinvest returns: they are added',
-    'to your balance and earn from the next month.', 'Exit by selling to another investor or by company buyback.', "The company can repay at any time with 6 months' notice.",
-    'An investment, not a loan. No shares are issued.', ...(b.company ? [`Invested with ${b.company}.`] : []), 'The signed investment agreement governs.']
+  // r35: the terms of the 2026 deck (features/deck/pitch.ts)
+  [`Option 1: ${RAISE.option1.lowPct} to ${RAISE.option1.highPct}% a year, paid monthly,`, 'simple interest.', `Option 2: ${RAISE.option2.lowPct} to ${RAISE.option2.highPct}% profit share from the`,
+    'cars this money puts on the road.', 'Lockup above: the months with no return, when', 'your agreement has one.', 'Choose Yes above to see the returns reinvested.',
+    ...(b.company ? [`Invested with ${b.company}.`] : []), 'Final terms are set in the signed agreement.']
     .forEach((n, i) => ic.merge(`F${5 + i}:J${5 + i}`).put(`F${5 + i}`, n, { size: 9 }));
   section(ic, 25, 'Payout schedule, 36 months from the start date (months 24 and 36 highlighted)', 10, RED);
   ['Month', 'Payment date', 'Phase', 'Balance at start', 'Return earned', 'Reinvested', 'Paid to you', 'Cumulative returns', 'Cumulative paid', 'Balance at end']

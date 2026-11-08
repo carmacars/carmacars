@@ -104,7 +104,7 @@ In the copy inside `src/emails/`, three shorthands are turned into HTML and text
 
 ## Digests and the sending limit
 
-The free sending plan allows 100 emails a day. Staff notices are the easiest volume to save, so:
+The sending plan has a daily email limit (Program settings: Emails a day, with the Cloudflare and Resend budgets; Admin > Settings > Usage shows today's numbers). Staff notices are the easiest volume to save, so:
 
 - A staff notice with `digest: true` is not sent when its event happens. The application writes a row to a digest queue (role, code, one line, a link, the time) and the role's next digest lists it. The trigger text of each one names the exception that makes it immediate, for example a pickup within 24 hours.
 - Each role has a morning digest at 07:30 and an end-of-day digest at 18:15, Toronto time. Field staff get their job list at 07:00 for today and at 18:00 for tomorrow. A digest also carries standing lists worked out at send time (deposits near their limit, offers expiring, opening and closing checks). The trigger of each digest names its lists.
