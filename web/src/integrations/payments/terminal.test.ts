@@ -31,6 +31,7 @@ test('a deposit hold on the reader: card_present, manual capture, then handed to
   const r = await t.processOnReader('tmr_1', i.id, 'process:1');
   assert.match(calls[0]!.body!, /payment_method_types%5B%5D=card_present/);
   assert.match(calls[0]!.body!, /capture_method=manual/);
+  assert.match(calls[0]!.body!, /payment_method_options%5Bcard_present%5D%5Brequest_extended_authorization%5D=true/);
   assert.equal(calls[0]!.key, 'payreq:1');
   assert.equal(calls[1]!.url, 'https://api.stripe.com/v1/terminal/readers/tmr_1/process_payment_intent');
   assert.equal(r.action?.status, 'in_progress');

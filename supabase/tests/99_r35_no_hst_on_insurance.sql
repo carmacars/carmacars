@@ -1,6 +1,6 @@
 -- 99 r35: no HST on the owner Insurance Fee (0873). Fixtures start with "nh".
 select test.suite('99 r35 no HST on insurance');
-select test.eq('the default is no HST on insurance', (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'insurance_fee_hst'), 'false');
+select test.eq('the default is no HST on insurance', (select column_default from test.shipped_defaults where column_name = 'insurance_fee_hst'), 'false');
 update program_settings set insurance_fee_hst = false, trackers_available = false;
 
 create table test.nh (k text primary key, v uuid);

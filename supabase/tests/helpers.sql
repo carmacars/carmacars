@@ -323,4 +323,8 @@ do $$ begin execute format('alter database %I set app.read_cache = %L', current_
 
 -- 0873: no HST on the owner Insurance Fee by default (the owner, November 8, 2026). The older suites were written when
 -- HST applied to it and assert those totals; they run with it on, and 99_r35_no_hst_on_insurance checks the default.
+create table if not exists test.shipped_defaults as
+  select column_name::text, column_default::text from information_schema.columns
+   where table_name = 'program_settings' and column_name = 'insurance_fee_hst';
+alter table program_settings alter column insurance_fee_hst set default true;   -- later rows the suites add, too
 update program_settings set insurance_fee_hst = true;

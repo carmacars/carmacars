@@ -25,6 +25,7 @@ language sql immutable set search_path = public, app as $$
           and (coalesce(p_description, '') ~* 'insurance fee|registration|plates|taxes and plates'))
 $$;
 revoke all on function app.owner_line_no_hst(text, text) from public;
+grant execute on function app.owner_line_no_hst(text, text) to service_role;
 
 create or replace function app.owner_line_insurance_hst() returns trigger
 language plpgsql security definer set search_path = public, app as $$
@@ -37,6 +38,7 @@ begin
   return new;
 end $$;
 revoke all on function app.owner_line_insurance_hst() from public;
+grant execute on function app.owner_line_insurance_hst() to service_role;
 
 drop trigger if exists owner_invoice_lines_insurance_hst on owner_invoice_lines;
 create trigger owner_invoice_lines_insurance_hst before insert or update on owner_invoice_lines
@@ -107,6 +109,7 @@ begin
   return v_n;
 end $$;
 revoke all on function app.r35_remove_owner_hst(uuid) from public;
+grant execute on function app.r35_remove_owner_hst(uuid) to service_role;
 
 select app.r35_remove_owner_hst();
 
