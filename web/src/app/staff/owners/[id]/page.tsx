@@ -1,4 +1,5 @@
 import Link from '@/components/Link';
+import { ContactButtons } from '@/features/phone/QuoButtons';
 import { notFound } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
@@ -37,7 +38,7 @@ export default async function StaffOwner({ params }: { params: Promise<{ id: str
       <aside className="pt-split__aside stack-lg">
         <section className="pt-card stack" id="send-link" aria-labelledby="so-c"><h2 className="d4" id="so-c">Contact the owner</h2>
           <p className="small">{o.has_account ? 'The owner signs in to the owner portal to finish their details and sign.' : 'No owner portal account yet: an Admin invites the owner from the Admin owner page.'}</p>
-          <ul className="ad-list small">{o.email && <li><a className="link" href={`mailto:${o.email}`}>{o.email}</a></li>}{o.phone && <li><a className="link" href={`tel:${o.phone}`}>{o.phone}</a></li>}</ul></section>
+          <ul className="ad-list small">{o.email && <li><a className="link" href={`mailto:${o.email}`}>{o.email}</a></li>}{o.phone && <li><ContactButtons phone={o.phone} look="link" testId="owner-phone">{o.phone}</ContactButtons></li>}</ul></section>
       </aside>
     </div>
   </>);

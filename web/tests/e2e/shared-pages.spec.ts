@@ -106,7 +106,8 @@ test('one booking, vehicle and listing page: each role sees exactly its parts, t
     if (role !== 'sales' || !has(bk.overview!, 'booking-not-yours')) {
     const tabs = bk.overview!.headings;
     // the sections each role gets (shared-pages/viewer bookingTabs)
-    expect.soft(hasHeading({ headings: tabs }, 'Money'), `${role}: Money`).toBe(role !== 'fleet');
+    // r35 (0970): Fleet collects payments, so it has Money too
+    expect.soft(hasHeading({ headings: tabs }, 'Money'), `${role}: Money`).toBe(true);
     if (role !== 'sales') {
     expect.soft(hasHeading({ headings: tabs }, 'Claims & extras'), `${role}: Claims & extras`).toBe(role === 'admin' || role === 'cs');
     // the header buttons
@@ -117,7 +118,7 @@ test('one booking, vehicle and listing page: each role sees exactly its parts, t
     // the money: an Admin's New refund, Finance's Request a refund; nobody else asks for one
     expect.soft(has(bk.money!, 'new-refund'), `${role}: New refund`).toBe(role === 'admin' && f.paid);
     expect.soft(has(bk.money!, 'request-refund'), `${role}: Request a refund`).toBe(role === 'finance');
-    if (role !== 'admin') expect.soft(has(bk.money!, 'booking-manual-payments'), `${role}: paid another way`).toBe(role === 'finance');
+    if (role !== 'admin') expect.soft(has(bk.money!, 'booking-manual-payments'), `${role}: paid another way`).toBe(role === 'finance' || role === 'fleet');
     expect.soft(hasHeading(bk.money!, 'Offers'), `${role}: the offers table`).toBe(role === 'admin');
     // documents: no paper signature card unless one was recorded before 0720 (none here); the full renter documents card for an Admin
     expect.soft(has(bk.documents!, 'booking-paper'), `${role}: signed on paper`).toBe(false);

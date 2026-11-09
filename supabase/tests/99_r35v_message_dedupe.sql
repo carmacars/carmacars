@@ -46,7 +46,8 @@ select test.eq('only what is missing: no driver to check, the proof of coverage 
 insert into coverage_proofs (booking_id, coverage_option, status, insurer_name, policy_number, policy_expiry)
 select test.id('booking:CC-V3502'), 1, 'submitted', 'Example Mutual', 'P-V35', current_date + 300;
 select test.ok('a proof waiting for our review is not the renter''s to send', not app.renter_todo_any(test.id('booking:CC-V3502')));
-select test.ok('the chase asks for what is missing', position('app.renter_todo_any' in pg_get_functiondef('app.notify_reminders(timestamptz)'::regprocedure)) > 0);
+-- (0970 wraps the reminders job: the body is notify_reminders_pre0970 once it exists)
+select test.ok('the chase asks for what is missing', position('app.renter_todo_any' in pg_get_functiondef(coalesce(to_regprocedure('app.notify_reminders_pre0970(timestamptz)'), 'app.notify_reminders(timestamptz)'::regprocedure))) > 0);
 
 -- ---------------------------------------------------------------- d. no recovery email while a staff pay link is open
 select test.ok('before any pay link: nobody is handling the payment', not app.recovery_staff_handling(test.id('renter:v35_renter'), test.id('booking:CC-V3503'), now()));

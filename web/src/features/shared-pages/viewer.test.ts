@@ -16,7 +16,7 @@ describe('the shared booking page', () => {
   it('gives an Admin every section and every button', () => {
     const c = bookingCan(ADMIN);
     for (const [k, v] of Object.entries(c)) {
-      if (['scheduleJob', 'latePanel', 'photoReview', 'licenceReview', 'staffUpload', 'refundApprove'].includes(k)) continue; // staff-only shapes of what an Admin does elsewhere on the page
+      if (['scheduleJob', 'latePanel', 'photoReview', 'licenceReview', 'staffUpload', 'refundApprove', 'collectOnly'].includes(k)) continue; // staff-only shapes of what an Admin does elsewhere on the page
       assert.equal(v, true, `admin: ${k}`);
     }
     assert.deepEqual(bookingTabs(ADMIN), ['overview', 'money', 'documents', 'car', 'activity', 'extras']);
@@ -24,8 +24,9 @@ describe('the shared booking page', () => {
   it('gives each staff function exactly what its own copy showed', () => {
     const want: Record<StaffFn, string[]> = {
       sales: ['handover', 'inbox', 'licenceReview', 'money', 'offer', 'sign', 'staffUpload'],
-      cs: ['cancelForRenter', 'carLink', 'driverLinks', 'editOfferPending', 'extras', 'handover', 'inbox', 'latePanel', 'money', 'offer', 'paperSignatures', 'sign', 'staffUpload'],
-      fleet: ['carLink', 'handover', 'latePanel', 'photoReview', 'scheduleJob', 'sign', 'staffUpload'],
+      cs: ['cancelForRenter', 'carLink', 'driverLinks', 'editOfferPending', 'extras', 'handover', 'inbox', 'latePanel', 'money', 'offer', 'paperSignatures', 'returningNow', 'sign', 'staffUpload'],
+      // r35 (0970): Fleet collects payments and texts on its own lane; never refunds, offers, cancellations or extras
+      fleet: ['carLink', 'collectOnly', 'handover', 'inbox', 'latePanel', 'manualPayments', 'money', 'photoReview', 'returningNow', 'scheduleJob', 'sign', 'staffUpload'],
       finance: ['agreementMoney', 'manualPayments', 'money', 'refund', 'refundApprove', 'settleDeposit', 'staffUpload', 'statement']
     };
     for (const fn of FNS) assert.deepEqual(yes(bookingCan(staffViewer(fn))), want[fn].sort(), fn);
@@ -37,12 +38,13 @@ describe('the shared booking page', () => {
       assert.equal(c.voidRecords, false, `${fn}: only an Admin voids a payment or a paper signature`);
       assert.equal(c.renterDocs, false, `${fn}: the coverage review stays with an Admin and customer service's own queue`);
       assert.equal(c.verifyInPerson, false, fn);
+      if (fn === 'fleet') { assert.equal(c.refund, false, 'fleet: never refunds'); assert.equal(c.extras || c.offer || c.cancelForRenter, false, 'fleet: no customer service tools'); }
     }
   });
   it('shows the tabs each function had', () => {
     assert.deepEqual(bookingTabs(staffViewer('sales')), ['overview', 'money', 'documents', 'car', 'activity']);
     assert.deepEqual(bookingTabs(staffViewer('cs')), ['overview', 'money', 'documents', 'car', 'activity', 'extras']);
-    assert.deepEqual(bookingTabs(staffViewer('fleet')), ['overview', 'documents', 'car', 'activity']);
+    assert.deepEqual(bookingTabs(staffViewer('fleet')), ['overview', 'money', 'documents', 'car', 'activity']);
     assert.deepEqual(bookingTabs(staffViewer('finance')), ['overview', 'money', 'documents', 'car', 'activity']);
   });
 });
