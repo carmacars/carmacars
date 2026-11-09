@@ -274,6 +274,9 @@ try {
       // 0731, the local stack only: the academy gate is on everywhere else; the end-to-end tests' staff are made without
       // an academy enrollment and would open only the academy (the gate's own tests turn it on)
       await tx`update program_settings set academy_gate = false where academy_gate`;
+      // 1060, the same for the staff agreement gate (on everywhere else): the tests' staff have no signed agreement and
+      // would open only Welcome
+      await tx`update program_settings set staff_agreement_gate = false where staff_agreement_gate`;
     }
     // 0093: the partner fleet a migration imports is not "cars on the site" for the sample cars (keyed by its sheet rows)
     const already = await tx`select count(*)::int as n from vehicle_listings l join vehicles v on v.id = l.vehicle_id where v.partner_sheet_name is null`;
