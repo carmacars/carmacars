@@ -8,7 +8,7 @@ type Msg = { ok: boolean; text: string } | null;
 
 /** One lead's buttons: Claim or Unclaim, Call, Text and Email (each logged on the lead and extending the claim), a note,
  *  Mark handled, the outcome, and for an Admin Reassign. Phone-sized: the buttons wrap. */
-export function LeadActions({ lead, admin, people, compact = false }: { lead: Pick<LeadRow, 'id' | 'phone' | 'email' | 'claim' | 'handled_at' | 'outcome'>; admin: boolean; people: Person[]; compact?: boolean }) {
+export function LeadActions({ lead, admin, people, compact = false }: { lead: Pick<LeadRow, 'id' | 'phone' | 'email' | 'claim' | 'handled_at' | 'outcome'> & { assigned_to?: string | null }; admin: boolean; people: Person[]; compact?: boolean }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<Msg>(null);
@@ -38,6 +38,8 @@ export function LeadActions({ lead, admin, people, compact = false }: { lead: Pi
         {lead.handled_at && lead.outcome !== 'won' && lead.outcome !== 'lost' && <button type="button" className="btn btn--ghost btn--sm" disabled={pending} onClick={() => run('lead_handled', { undo: true }, 'Open again.')}>Open again</button>}
         <button type="button" className="btn btn--ghost btn--sm" disabled={pending || (c.locked && !admin)} onClick={() => setPanel(panel === 'outcome' ? null : 'outcome')} data-testid="lead-outcome">Outcome</button>
         {admin && <button type="button" className="btn btn--ghost btn--sm" disabled={pending} onClick={() => setPanel(panel === 'reassign' ? null : 'reassign')} data-testid="lead-reassign">Reassign</button>}
+        {/* 1151: back to the salesperson who brought or last had it (else the pool) */}
+        {admin && (lead.claim || lead.assigned_to) && <button type="button" className="btn btn--ghost btn--sm" disabled={pending} onClick={() => run('lead_return', {}, 'Returned to the previous owner.')} data-testid="lead-return">Return lead to previous owner</button>}
       </div>
       {panel === 'note' && <form className="stack" onSubmit={(e) => { e.preventDefault(); const note = String(new FormData(e.currentTarget).get('note') ?? ''); run('lead_contact', { channel: 'note', note }, 'Note saved.'); }}>
         <label className="small" htmlFor={`ln-${lead.id}`}>Note</label>

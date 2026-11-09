@@ -1,4 +1,6 @@
 import { SceneReferences } from '@/features/listing/Marketing';
+import { StaffOnboarding } from '@/features/staff-onboarding/StaffOnboarding';
+import type { OnboardingRow } from '@/features/staff-onboarding/model';
 import Link from '@/components/Link';
 import { notFound } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
@@ -523,6 +525,7 @@ export default async function Section({ params, searchParams }: { params: Promis
         const sm = await read<SalesModes>('sales_modes').catch(() => null);
         return sm ? <SalesModesCard data={sm} /> : null;
       })()}
+      <Card title="Staff onboarding" testId="staff-onboarding-card"><StaffOnboarding rows={await door<OnboardingRow[]>(user.id, 'ops_read', 'staff_onboarding_list', {}).catch(() => [])} /></Card>
       <Card title="Staff agreements" testId="staff-agreements"><AgreementGate rows={await door<AgreementGateRow[]>(user.id, 'ops_read', 'staff_agreements_status', {}).catch(() => [])} />
         <StaffAgreements rows={await door<StaffAgreementRow[]>(user.id, 'ops_read', 'staff_agreements', {}).catch(() => [])} today={new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())} /></Card>
     </>);
