@@ -130,7 +130,7 @@ export function movedTo(path: string, tab: string, sp: Record<string, string | s
 
 // ---------------------------------------------------------------- sections (r27, second cut)
 export const ADMIN_SECTIONS: Section[] = [
-  { key: 'cars', label: 'Cars', items: ['vehicles', 'listings', { href: '/admin/maintenance', label: 'Maintenance' }] },
+  { key: 'cars', label: 'Cars', items: ['vehicles', 'listings', { href: '/admin/field-jobs', label: 'Field jobs' }, { href: '/admin/maintenance', label: 'Maintenance' }] },
   { key: 'people', label: 'People', items: ['owners', 'partners', 'renters', 'team', { href: '/admin/investors', label: 'Investors' }] },
   { key: 'marketing', label: 'Marketing', items: [{ href: '/admin/marketing/marketplace', label: 'Marketplace' }, 'ads', 'channels', 'recruit'] },
   { key: 'money', label: 'Money', items: ['payments', 'owner-money', { href: '/admin/tolls', label: 'Tolls and tickets' }, 'company', 'insurers'] },

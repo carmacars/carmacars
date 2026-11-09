@@ -263,3 +263,18 @@
 @media (max-width: 30rem) {
   .so-funnel li { padding: var(--s-2); }
 }
+
+/* Field jobs board (r35, 0880): the tables keep their columns readable at 1440px and scroll sideways instead of clipping the actions */
+.fj-board { min-width: 0; }
+.fj-board .stack > * { min-width: 0; }
+.fj-board .table-scroll { overflow-x: auto; max-width: 100%; }
+.fj-board .ad-table td { vertical-align: top; }
+.fj-board .ad-table td .rv-car { min-width: 11rem; }
+.fj-board .ad-table td .rv-car__name { overflow-wrap: normal; word-break: normal; }
+.fj-board .ad-table td.fj-when { min-width: 9rem; }
+.fj-board .ad-table td:has(.ad-actions) { min-width: 13rem; }
+.fj-board .ad-actions { flex-wrap: wrap; }
+.fj-days { display: grid; grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr)); gap: var(--s-2); margin: 0 0 var(--s-3); padding: 0; list-style: none; }
+.fj-days li { border: 1px solid var(--border, #e5e5e5); border-radius: 10px; padding: var(--s-2) var(--s-3); display: grid; gap: 2px; }
+.fj-days li.is-empty { border-color: #b3261e; background: #fdf1f0; color: #7a1710; }
+.fj-days b { font-size: var(--fs-sm); }

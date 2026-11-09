@@ -69,6 +69,7 @@ test('field pay: clock in and out on the phone, Fleet sees the hours, an Admin r
   const fp = await ctx(browser, true);
   await signIn(fp, ann.email, '/staff/field');
   await fp.goto('/staff/field/hours', { waitUntil: 'networkidle' });
+  await fp.context().grantPermissions(['geolocation']); await fp.context().setGeolocation({ latitude: 43.7, longitude: -79.4 }); // the clock asks for the phone's location once, at the tap (0881)
   await expect(fp.getByTestId('clock-in')).toBeVisible();
   await check(fp, 'my hours, not clocked in');
   await fp.locator('#clk-note').fill('Starting at the lot');

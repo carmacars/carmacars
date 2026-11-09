@@ -44,15 +44,15 @@ select test.eq('period: a day belongs to one period', (select count(*) from gene
 -- ================================================================ 2. clock in and out
 select test.throws('clock in: field staff only', $$select test.fp_do('fp_cs', 'field_clock_in')$$, 'Only field staff');
 select test.throws('clock in: not an Admin either', $$select test.fp_do('fp_admin', 'field_clock_in')$$, 'Only field staff');
-select test.throws('clock out when not clocked in', $$select test.fp_do('fp_ann', 'field_clock_out')$$, 'not clocked in');
-insert into test.fp select 'in', test.fp_do('fp_ann', 'field_clock_in', '{"note": "Starting at the shop"}');
+select test.throws('clock out when not clocked in', $$select test.fp_do('fp_ann', 'field_clock_out', '{"location_reason": "fixture"}')$$, 'not clocked in');
+insert into test.fp select 'in', test.fp_do('fp_ann', 'field_clock_in', '{"note": "Starting at the shop", "location_reason": "fixture"}');
 select test.eq('clock in: an open shift with the note, from the clock', (test.fpv('in') ->> 'open') || '/' || (test.fpv('in') ->> 'note') || '/' || (test.fpv('in') ->> 'source'), 'true/Starting at the shop/clock');
-select test.throws('clock in twice is refused', $$select test.fp_do('fp_ann', 'field_clock_in')$$, 'already clocked in');
+select test.throws('clock in twice is refused', $$select test.fp_do('fp_ann', 'field_clock_in', '{"location_reason": "fixture"}')$$, 'already clocked in');
 select test.eq('one open shift per person, however it is written', (select count(*) from field_shifts where staff_id = test.id('fp_ann') and ended_at is null), 1::bigint);
 select test.throws('the database refuses a second open shift', format($$insert into field_shifts (staff_id, started_at, source) values (%L, now() - interval '1 minute', 'manual')$$, test.id('fp_ann')));
 -- a job finished two hours into the shift is listed with it
 update field_shifts set started_at = now() - interval '3 hours' where staff_id = test.id('fp_ann') and ended_at is null;
-select test.fp_do('fp_ann', 'field_clock_out', '{"note": "All done"}') is not null;
+select test.fp_do('fp_ann', 'field_clock_out', '{"note": "All done", "location_reason": "fixture"}') is not null;
 insert into field_jobs (kind, vehicle_id, assigned_to, scheduled_at, status, started_at, completed_at, booking_id)
 values ('handover', test.id('vehicle:FPV'), test.id('fp_ann'), now() - interval '2 hours', 'done', now() - interval '130 minutes', now() - interval '2 hours', null);
 select test.eq('clock out: closed, the two notes kept, about three hours',
@@ -61,10 +61,10 @@ select test.eq('the field portal lists the jobs done in the shift', (select json
 select test.eq('a clocked-out person has no open shift in My hours', (test.fp_read('fp_ann', 'field_hours') -> 'open') #>> '{}' is null, true);
 delete from field_jobs where assigned_to = test.id('fp_ann');
 delete from field_shifts where staff_id = test.id('fp_ann');
-select test.fp_do('fp_bob', 'field_clock_in') is not null;
+select test.fp_do('fp_bob', 'field_clock_in', '{"location_reason": "fixture"}') is not null;
 select test.eq('an open shift shows in My hours and the office list', ((test.fp_read('fp_bob', 'field_hours') -> 'open') ->> 'open') || '/' || jsonb_array_length(test.fp_read('fp_fleet', 'field_pay') -> 'clocked_in'), 'true/1');
 update field_shifts set started_at = now() - interval '20 hours' where staff_id = test.id('fp_bob') and ended_at is null;
-select test.throws('a shift left open for more than 16 hours cannot be clocked out by the person', $$select test.fp_do('fp_bob', 'field_clock_out')$$, 'open more than 16 hours');
+select test.throws('a shift left open for more than 16 hours cannot be clocked out by the person', $$select test.fp_do('fp_bob', 'field_clock_out', '{"location_reason": "fixture"}')$$, 'open more than 16 hours');
 select test.fp_do('fp_fleet', 'field_shift_edit', jsonb_build_object('id', (select id from field_shifts where staff_id = test.id('fp_bob')), 'ended_at', now() - interval '12 hours', 'reason', 'Forgot to clock out; left at 6 pm'));
 select test.eq('the office closes it with a reason: the log has it', (select e.action || '/' || e.reason from field_shift_edits e where e.shift_id = (select id from field_shifts where staff_id = test.id('fp_bob')) and e.action = 'edit'), 'edit/Forgot to clock out; left at 6 pm');
 delete from field_shift_edits where shift_id in (select id from field_shifts where staff_id = test.id('fp_bob'));
@@ -145,7 +145,7 @@ select test.throws('approve: not before the period has ended', format($$select t
 select test.fp_do('fp_admin', 'field_pay_run_void', jsonb_build_object('run_id', test.fpv('cur') ->> 'run_id', 'reason', 'Started by mistake'));
 select test.eq('a draft can be withdrawn; the period may be started again', (select status from field_pay_runs where id = (test.fpv('cur') ->> 'run_id')::uuid) || '/' || (test.fp_do('fp_admin', 'field_pay_run_start', '{}') ->> 'status'), 'void/draft');
 -- someone still clocked in blocks the approval
-select test.fp_do('fp_bob', 'field_clock_in');
+select test.fp_do('fp_bob', 'field_clock_in', '{"location_reason": "fixture"}');
 update field_shifts set started_at = app.local_midnight(test.fp_cur() - 1) + interval '20 hours' where staff_id = test.id('fp_bob') and ended_at is null;
 select test.throws('approve: someone still clocked in', format($$select test.fp_do('fp_admin', 'field_pay_run_approve', %L)$$, jsonb_build_object('run_id', test.fpv('run') ->> 'run_id')), 'Still clocked in');
 delete from field_shifts where staff_id = test.id('fp_bob') and ended_at is null;

@@ -93,3 +93,24 @@ export function ruleProblems(v: { rank?: unknown; make?: unknown; model_re?: unk
   if (years !== null && has(v.aged_class) && v.aged_class === v.class) out.push('The older class is the same as the class.');
   return out;
 }
+
+// Where a person clocked in or out (0881): the location asked once at that moment, never tracked in between.
+export interface ClockPlace { lat: number | null; lng: number | null; accuracy: number | null; at: string | null; distance_m: number | null; flag: 'far' | 'no_location' | null; reason: string | null }
+/** A link that opens the map at the point (a point is two numbers; nothing else goes in the address). */
+export function mapLink(p: Pick<ClockPlace, 'lat' | 'lng'> | null | undefined): string | null {
+  if (!p || typeof p.lat !== 'number' || typeof p.lng !== 'number' || !Number.isFinite(p.lat) || !Number.isFinite(p.lng)) return null;
+  return `https://www.google.com/maps?q=${p.lat.toFixed(6)},${p.lng.toFixed(6)}`;
+}
+/** "320 m" or "1.4 km" from the lot; empty when the lot's location is not set. */
+export function distanceText(m: unknown): string {
+  if (typeof m !== 'number' || !Number.isFinite(m) || m < 0) return '';
+  return m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`;
+}
+/** The words under a clock in or out for the office: the distance, or why there is no location. */
+export function placeWords(p: ClockPlace | null | undefined): string {
+  if (!p) return '';
+  if (p.flag === 'no_location') return `location refused${p.reason ? `: ${p.reason}` : ''}`;
+  const d = distanceText(p.distance_m);
+  const base = d ? `${d} from the lot` : 'located';
+  return p.flag === 'far' ? `over 500 m away (${d})${p.reason ? `: ${p.reason}` : ''}` : base;
+}
