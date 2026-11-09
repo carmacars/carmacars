@@ -81,8 +81,9 @@ select test.eq('a buyer lead with only a test account in sales goes unassigned, 
   (select assigned_to from leads where id = (select (r ->> 'lead_id')::uuid from dh_lead)), null::uuid);
 update staff_profiles set is_active = true where user_id = test.id('dh_sales');
 create temp table dh_lead2 as select app.submit_lead('{"kind": "buyer", "name": "Dh Buyer Two", "email": "dh_buyer2@example.test"}'::jsonb) r;
-select test.ok('with a real sales assistant, the lead goes to a real person',
-  (select not app.is_test_user(assigned_to) and assigned_to is not null from leads where id = (select (r ->> 'lead_id')::uuid from dh_lead2)));
+-- 1152: no lead is given to anyone by itself, even with a real sales assistant: it waits on the Sales lead list
+select test.ok('with a real sales assistant, the lead still waits unassigned on the lead list (1152), never with a test account',
+  (select assigned_to is null from leads where id = (select (r ->> 'lead_id')::uuid from dh_lead2)));
 update staff_profiles sp set is_active = true where 'sales' = any (sp.functions) and sp.user_id in (select user_id from user_roles where role = 'va');
 select test.ok('the sales team report and Settings > Sales leave test accounts out',
   not exists (select 1 from jsonb_array_elements(app.team_sales(test.id('dh_admin')) -> 'rows') x where app.is_test_user((x ->> 'staff_id')::uuid))

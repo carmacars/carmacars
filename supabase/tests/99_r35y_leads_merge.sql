@@ -78,11 +78,12 @@ update lead_claims set expires_at = now() - interval '1 minute' where lead_id = 
 select test.ok('expire: the job finds the claim that ran out', app.sl_expire() >= 1);
 select test.eq('expire: it returns to the pool', (select count(*) from lead_claims where lead_id = test.id('lead:form')), 0::bigint);
 select test.eq('expire: logged as expired for that person', (select count(*) from lead_claim_log where lead_id = test.id('lead:form') and user_id = test.id('zly_s2') and action = 'expire'), 1::bigint);
-update sales_lead_settings set max_active = 2 where id;
+-- 1152: the cap of a person starts at lead_cap_base (max_active is no longer read)
+update sales_lead_settings set lead_cap_base = 2 where id;
 select test.zly('zly_s2', 'va_do', 'lead_claim', jsonb_build_object('lead', test.id('lead:chat')));
 select test.zly('zly_s2', 'va_do', 'lead_claim', jsonb_build_object('lead', test.id('lead:owner')));
 select test.throws('max: no more than the most live claims a person', format($$ select test.zly('zly_s2', 'va_do', 'lead_claim', jsonb_build_object('lead', %L)) $$, test.id('lead:partner')), '%the most is 2%');
-update sales_lead_settings set max_active = 25 where id;
+update sales_lead_settings set lead_cap_base = 25 where id;
 select test.throws('reassign: Admins only', format($$ select test.zly('zly_s1', 'va_do', 'lead_reassign', jsonb_build_object('lead', %L, 'to', %L)) $$, test.id('lead:chat'), test.id('zly_s1')), '%');
 select test.zly('zly_admin', 'admin_do', 'lead_reassign', jsonb_build_object('lead', test.id('lead:chat'), 'to', test.id('zly_s1')));
 select test.eq('reassign: the Admin gives the lead to another person', (select claimed_by from lead_claims where lead_id = test.id('lead:chat')), test.id('zly_s1'));

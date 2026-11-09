@@ -5,6 +5,7 @@ import { door } from '@/server/door';
 import { STEP_TITLE, currentStep, profileHref, signHref, stepWords, type Welcome } from '@/features/academy/gate';
 import { Act } from '@/features/admin/Act';
 import { TaskDone } from './TaskDone';
+import { WhatsAppConfirm } from '@/features/staff-onboarding/WhatsAppConfirm';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Welcome', path: '/staff/welcome', noindex: true, description: 'Your first steps: profile, the academy and your first tasks.' });
@@ -26,7 +27,7 @@ export default async function StaffWelcome() {
   return (
     <section className="stack" data-testid="staff-welcome">
       <h1 className="d3">Welcome, {w.name}</h1>
-      {w.locked && <p className="alert alert--warn" role="status" data-testid="welcome-locked"><span className="alert__title">{w.steps.find((s) => s.key === 'academy')?.done ? 'Your agreement next' : 'Training first'}</span><span>The rest of your portal opens once you pass the academy and sign your staff agreement.</span></p>}
+      {w.locked && <p className="alert alert--warn" role="status" data-testid="welcome-locked"><span className="alert__title">{w.onboarding_step === 'whatsapp' ? 'The WhatsApp groups next' : w.steps.find((s) => s.key === 'academy')?.done ? 'Your agreement next' : 'Training first'}</span><span>The rest of your portal opens once you pass the academy, sign your staff agreement and confirm you joined the WhatsApp groups, in that order.</span></p>}
       <ol className="stack" aria-label="Your first steps">
         {w.steps.map((s, i) => (
           <li key={s.key} className={`pt-card ad-card${s.key === now ? ' pt-card--next' : ''}`} data-testid={`welcome-step-${s.key}`} data-done={s.done ? 'true' : 'false'}>
@@ -39,9 +40,8 @@ export default async function StaffWelcome() {
               testId="welcome-location" refresh={['/staff/welcome']} done="Saved." fields={[{ name: 'city', label: 'City or town', type: 'text', required: true },
                 { name: 'country', label: 'Country', type: 'select', required: true, value: 'CA', options: [['CA', 'Canada'], ['US', 'United States'], ['PH', 'Philippines'], ['IN', 'India'], ['PK', 'Pakistan'], ['MX', 'Mexico'], ['GB', 'United Kingdom'], ['ZZ', 'Another country']],
                   hint: 'Sales in person is for the Toronto area; elsewhere your Sales work is remote.' }]} /></div>}
-            {s.key === 'team' && s.open && !!s.groups?.length && !s.done && <div className="stack" data-testid="welcome-groups">
-              {s.groups.map((g) => <p key={g.key}><a className="btn btn--sm btn--primary" href={g.url} target="_blank" rel="noopener noreferrer">Join {g.name} on WhatsApp</a></p>)}
-              <div><Act ops action="staff_team_joined" label="I joined" testId="welcome-team-joined" refresh={['/staff/welcome']} done="Thanks." /></div></div>}
+            {/* 1151: step 3, one checkbox a group (Sales: the Sales group and the Team group) */}
+            {s.key === 'team' && s.open && !!s.groups?.length && !s.done && <WhatsAppConfirm groups={s.groups} primary={s.key === now} refresh="/staff/welcome" />}
             {s.key === 'academy' && s.done && <p><Link prefetch={false} className="link" href="/staff/academy">Your academy</Link></p>}
             {s.key === 'tasks' && !!tasks?.tasks?.length && (
               <ul className="stack" data-testid="welcome-tasks">{tasks.tasks.map((t) => (

@@ -11,7 +11,8 @@ export interface LeadRow {
   first_contact_at: string | null; handled_at: string | null; new: boolean;
 }
 export interface Person { id: string; name: string }
-export interface LeadList { rows: LeadRow[]; count: number; sources: Array<{ source: string; n: number }>; mine_active: number; max_active: number; admin: boolean; people: Person[] }
+export interface LeadList { rows: LeadRow[]; count: number; sources: Array<{ source: string; n: number }>; mine_active: number; max_active: number; admin: boolean; people: Person[];
+  /** 1152: the pacing and the person's cap */ next_claim_at?: string | null; claim_cooldown_minutes?: number; paced?: boolean; cap?: LeadCap }
 export interface LeadDetail extends LeadRow {
   message: string | null; source_url: string | null; owner_id: string | null; pipeline_stage: string | null; form: Record<string, string>; chat_id: string | null;
   transcript: Array<{ at: string; from: string; text: string }>; calls: Array<{ at: string; kind: string; direction: string; missed: boolean; text: string | null }>;
@@ -20,17 +21,19 @@ export interface LeadDetail extends LeadRow {
   outcome_by: string | null; outcome_at: string | null; won_booking: string | null; admin: boolean; people: Person[];
 }
 export interface Figures { claimed: number; won: number; close_rate: number; contacted_pct: number; first_contact_minutes: number | null; expired: number }
-export interface TeamRow extends Figures { id: string; name: string; active: number; rank: number }
+/** 1152: a person's cap of open leads: the base, plus one for every per_wins won in 30 days, up to max */
+export interface LeadCap { cap: number; wins: number; base: number; per_wins: number; max: number; wins_to_next: number | null }
+export interface TeamRow extends Figures { id: string; name: string; active: number; rank: number; /** 1152 */ cap?: LeadCap }
 /** my_call_minutes for an Admin: each person who called with the site's Call button in the last 40 days, with this month's connected minutes */
 export type CallTeam = Array<{ user_id: string; name: string | null; month: number }>;
 export interface Dashboard { today: Figures; week: Figures; month: Figures; period: 'today' | 'week' | 'month'; team: TeamRow[] | null; active: number; max_active: number; open_pool: number }
-export interface LeadSettings { claim_minutes: Record<LeadType, number>; extend_max_minutes: number; max_active: number; hot_hours: number; updated_at: string; updated_by: string | null }
+export interface LeadSettings { claim_minutes: Record<LeadType, number>; extend_max_minutes: number; max_active: number; hot_hours: number; updated_at: string; updated_by: string | null; /** 1152 */ claim_cooldown_minutes?: number; lead_cap_base?: number; lead_cap_per_wins?: number; lead_cap_max?: number }
 
 export const TYPE_LABEL: Record<LeadType, string> = { renter: 'Renter', owner: 'Owner', partner: 'Partner' };
 export const OUTCOME_LABEL: Record<Outcome, string> = { contacted: 'Contacted', call_booked: 'Call booked', applied: 'Applied', won: 'Won', lost: 'Lost' };
 export const OUTCOMES = Object.keys(OUTCOME_LABEL) as Outcome[];
 export const STATUS_CHIPS: Array<[string, string]> = [['', 'Open'], ['new', 'New'], ['unclaimed', 'Not claimed'], ['claimed', 'Claimed'], ['contacted', 'Contacted'], ['won', 'Won'], ['lost', 'Lost'], ['handled', 'Handled'], ['all', 'All']];
-export const HISTORY_LABEL: Record<string, string> = { claim: 'Claimed', extend: 'Claim extended', unclaim: 'Unclaimed', expire: 'Claim ran out', reassign: 'Reassigned to', release: 'Claim released' };
+export const HISTORY_LABEL: Record<string, string> = { claim: 'Claimed', extend: 'Claim extended', unclaim: 'Unclaimed', expire: 'Claim ran out', reassign: 'Reassigned to', release: 'Claim released', return: 'Returned to' };
 export const CHANNEL_LABEL: Record<string, string> = { call: 'Call', text: 'Text', email: 'Email', note: 'Note' };
 
 const time = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', hour: 'numeric', minute: '2-digit', hour12: true }).format(new Date(iso)).replace(/\s?([ap])\.?m\.?/i, ' $1m').toLowerCase();
@@ -92,3 +95,14 @@ export const minutes = (m: number | null) => (m === null || m === undefined ? '-
 
 /** The lead's own page on this portal. */
 export const leadHref = (base: string, id: string) => `${base}/${id}`;
+
+/** The two limits on claiming in words (1152): "you hold 1 of 3 (2 more wins for a 4th) · next claim in 4:05" (an Admin is not
+ *  paced or capped). */
+export function claimPaceWords(p: { held: number; max: number; nextAt: string | null; cooldown: number; paced: boolean; winsToNext?: number | null }, nowMs: number): string {
+  if (!p.paced) return `you hold ${p.held}`;
+  const left = p.nextAt ? Math.max(0, Math.ceil((Date.parse(p.nextAt) - nowMs) / 1000)) : 0;
+  const pace = left > 0 ? `next claim in ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}` : p.cooldown > 0 ? `one claim every ${p.cooldown} min` : '';
+  const cap = p.held >= p.max ? ' (the most: close or unclaim one to take another)' : '';
+  const grow = p.winsToNext ? ` · ${p.winsToNext} more win${p.winsToNext === 1 ? '' : 's'} for one more` : '';
+  return [`you hold ${p.held} of ${p.max}${cap}${grow}`, pace].filter(Boolean).join(' · ');
+}

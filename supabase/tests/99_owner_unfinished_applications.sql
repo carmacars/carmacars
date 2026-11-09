@@ -53,10 +53,11 @@ update form_drafts set updated_at = now() - interval '31 minutes' where id = (te
 alter table form_drafts enable trigger form_drafts_before_write;
 update contact_captures set last_at = now() - interval '31 minutes' where lead_id = (test.ouf_lead('ouf_nina@example.test')).id;
 select test.eq('unfinished: chased after 30 minutes, once', app.owner_unfinished_chase() || '/' || app.owner_unfinished_chase(), '1/0');
-select test.eq('unfinished: a Sales task, the lead given to a real Sales person, the follow-ups due now',
-  (select t.queue || '/' || (t.title like 'Unfinished owner application: Nina Field%') || '/' || (t.assigned_to = (test.ouf_lead('ouf_nina@example.test')).assigned_to)
+-- 1152: the lead is given to nobody by itself: it waits on the Sales lead list, its task in the Sales queue
+select test.eq('unfinished: a Sales task, the lead on the open lead list (1152), the follow-ups due now',
+  (select t.queue || '/' || (t.title like 'Unfinished owner application: Nina Field%') || '/' || (t.assigned_to is null)
      from tasks t where t.related_table = 'leads' and t.related_id = (test.ouf_lead('ouf_nina@example.test')).id and t.task_type = 'owner_unfinished_application')
-  || '/' || (not app.staff_is_test((test.ouf_lead('ouf_nina@example.test')).assigned_to)) || '/' || ((test.ouf_lead('ouf_nina@example.test')).followup_next_at <= now()),
+  || '/' || ((test.ouf_lead('ouf_nina@example.test')).assigned_to is null) || '/' || ((test.ouf_lead('ouf_nina@example.test')).followup_next_at <= now()),
   'sales/true/true/true/true');
 select test.ok('unfinished: no second chase from the capture (its task is the Sales task)', (select bool_and(task_id is not null) from contact_captures where lead_id = (test.ouf_lead('ouf_nina@example.test')).id));
 select app.owner_followup_send((test.ouf_lead('ouf_nina@example.test')).id);

@@ -377,10 +377,11 @@ create temp table ofl_lead as select app.submit_lead('{"kind": "owner_program", 
   "utm": {"source": "instagram", "campaign": "launch"}, "consent_marketing": true, "consent_text": "Yes, email me"}', '203.0.113.7') as r;
 create temp table ofl_lead2 as select app.submit_lead('{"kind": "contact", "phone": "4165550000", "message": "Hi"}') as r;
 grant all on ofl_lead, ofl_lead2 to authenticated, anon;
-select test.eq('G an owner program enquiry: stored with UTM and consent, assigned to a sales assistant, a sales task, three events (the staff alert of 0460 is the third)',
-  (select (r ->> 'ok') || '/' || (select l.utm_source || ':' || l.consent_marketing || ':' || (sp.va_function = 'sales')
-                                     from leads l join staff_profiles sp on sp.user_id = l.assigned_to where l.id = (r ->> 'lead_id')::uuid)
-          || '/' || (select queue || ':' || (assigned_to is not null) from tasks where related_id = (r ->> 'lead_id')::uuid)
+-- 1152: no lead is given to anyone by itself: it waits unassigned on the Sales lead list
+select test.eq('G an owner program enquiry: stored with UTM and consent, unassigned on the lead list (1152), a sales task, three events (the staff alert of 0460 is the third)',
+  (select (r ->> 'ok') || '/' || (select l.utm_source || ':' || l.consent_marketing || ':' || (l.assigned_to is null)
+                                     from leads l where l.id = (r ->> 'lead_id')::uuid)
+          || '/' || (select queue || ':' || (assigned_to is null) from tasks where related_id = (r ->> 'lead_id')::uuid)
           || '/' || (select count(*) from app_events where entity_id = (r ->> 'lead_id')::uuid)
      from ofl_lead), 'true/instagram:true:true/sales:true/3');
 select test.eq('G a contact message goes to customer service', (select queue from tasks where related_id = (select (r ->> 'lead_id')::uuid from ofl_lead2)), 'cs');

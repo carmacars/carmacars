@@ -119,6 +119,10 @@ begin
   if p_role in ('va', 'field') and exists (select 1 from information_schema.columns where table_name = 'staff_profiles' and column_name = 'home_address') then
     execute 'update staff_profiles set home_address = $1, home_postal_code = $2 where user_id = $3' using '1 ' || initcap(replace(p_label, '_', ' ')) || ' Lane, Testville', 'X9X 9X9', v_id;
   end if;
+  -- 1151: the staff of the tests are onboarded (the onboarding gate's own suite makes its own people)
+  if p_role in ('va', 'field') and exists (select 1 from information_schema.columns where table_name = 'staff_profiles' and column_name = 'onboarding_exempt') then
+    execute 'update staff_profiles set onboarding_exempt = true where user_id = $1' using v_id;
+  end if;
   return v_id;
 end $$;
 
@@ -339,3 +343,11 @@ update program_settings set notify_merge_window_minutes = 0, notify_repeat_windo
 -- it; the older suites settle deposits without it. 99_r35r_deposit_review.sql switches it on, tests it and switches it off.
 alter table program_settings alter column deposit_review_required set default false;
 update program_settings set deposit_review_required = false;
+
+-- The lead claim pacing and cap of 1152 (one claim every 5 minutes, 3 held plus wins) are relaxed for the other suites,
+-- which claim several leads in a row: 99_r35g_leads_open_list.sql tests them with the defaults and restores this.
+do $$ begin
+  if exists (select 1 from information_schema.columns where table_name = 'sales_lead_settings' and column_name = 'claim_cooldown_minutes') then
+    execute 'update sales_lead_settings set claim_cooldown_minutes = 0, lead_cap_base = 25, lead_cap_max = 25';
+  end if;
+end $$;

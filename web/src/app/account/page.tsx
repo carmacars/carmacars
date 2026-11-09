@@ -1,4 +1,5 @@
 import Link from '@/components/Link';
+import { incidentHref } from '@/features/incident-cards/digital';
 import { pageMeta } from '@/features/seo/meta';
 import { getFleet, getSettings } from '@/lib/site';
 import { group, nextStep, bookingPath } from '@/features/portal/status';
@@ -67,7 +68,9 @@ export default async function Account({ searchParams }: { searchParams: Promise<
       ) : (
         <div className="pu-home">
           {now && <NowPanel testId="next-step" titleId="now-renter" kicker={now.kicker} headline={now.headline} detail={now.detail} urgent={now.urgent} actions={now.actions}
-            extra={phone && ['confirmed', 'on_rent'].includes(full!.status) ? <a className="btn now__btn" href={`tel:${settings?.phone ?? phone}`} data-testid="now-call">Call us</a> : null} />}
+            extra={<>{phone && ['confirmed', 'on_rent'].includes(full!.status) ? <a className="btn now__btn" href={`tel:${settings?.phone ?? phone}`} data-testid="now-call">Call us</a> : null}
+              {/* 1150: the digital incident card of the trip in progress */}
+              {full!.status === 'on_rent' ? <Link prefetch={false} className="btn now__btn" href={incidentHref(full!.booking_number)} data-testid="now-incident-card">Incident card</Link> : null}</>} />}
           {/* r33: every other trip still to sign or pay, one card each (the nearest one's is the panel above) */}
           {others.map((b) => <SignPayCard key={`sp-${b.id}`} b={b} testId={`sign-pay-${b.booking_number}`} label={`${carTitle(b)}, ${b.booking_number}`} />)}
           {full && <QuickLinks number={full.booking_number} links={quick} />}
@@ -94,7 +97,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
       {links && links.driver_trips.length > 0 && (
         <section className="stack" aria-labelledby="pt-driver-trips" data-testid="driver-trips">
           <h2 className="pu-section-title" id="pt-driver-trips">Trips where you are a driver</h2>
-          <ul className="pu-trips pu-trips--grid">{links.driver_trips.map((d) => <li key={d.booking_number} className="pu-panel"><b>{d.vehicle_name}</b><p className="small">{when(d.pickup_at)} to {when(d.return_at)} · booking {d.booking_number}</p><p className="small muted">{d.accepted ? 'You accepted the agreement.' : 'Use the link in your email from CarmaCars to accept the agreement before pickup.'}</p></li>)}</ul>
+          <ul className="pu-trips pu-trips--grid">{links.driver_trips.map((d) => <li key={d.booking_number} className="pu-panel"><b>{d.vehicle_name}</b><p className="small">{when(d.pickup_at)} to {when(d.return_at)} · booking {d.booking_number}</p><p className="small muted">{d.accepted ? 'You accepted the agreement.' : 'Use the link in your email from CarmaCars to accept the agreement before pickup.'}</p><p><Link prefetch={false} className="link small" href={incidentHref(d.booking_number)} data-testid={`driver-incident-${d.booking_number}`}>Incident card</Link></p></li>)}</ul>
         </section>
       )}
     </>

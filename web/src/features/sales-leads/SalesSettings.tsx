@@ -21,10 +21,13 @@ export function SalesSettings({ s }: { s: LeadSettings }) {
       start(async () => { const r = await leadAct('sales_lead_settings_save', p); setMsg(r.ok ? { ok: true, text: 'Saved.' } : { ok: false, text: r.message }); if (r.ok) router.refresh(); });
     }}>
       <h2 className="d4">Lead claims</h2>
-      <p className="small muted">A salesperson claims a lead and holds it for the minutes of its type; each call, text, email or note they log adds the same minutes again, up to the most. They can unclaim at any time; a claim that runs out returns the lead to the pool for everyone. An Admin can reassign or release any claim.</p>
+      <p className="small muted">Leads are never given out by themselves: they wait here for any onboarded salesperson to claim. A salesperson claims a lead and holds it for the minutes of its type; each call, text, email or note they log adds the same minutes again, up to the most. They can unclaim at any time; a claim that runs out returns the lead to the pool for everyone. An Admin can reassign or release any claim.</p>
       {(['renter', 'owner', 'partner'] as LeadType[]).map((k) => num(`${k}_minutes`, `${TYPE_LABEL[k]} leads: a claim holds (minutes)`, s.claim_minutes[k] ?? 15, 1, 240, '10 to 15 minutes suggested. 15 by default.'))}
       {num('extend_max_minutes', 'The most a claim can be extended to (minutes from the claim)', s.extend_max_minutes, 5, 480, '60 by default.')}
-      {num('max_active', 'Leads one person may hold at once', s.max_active, 1, 500, '25 by default.')}
+      {num('lead_cap_base', 'Open leads every salesperson may hold (not closed: won, lost or handled)', s.lead_cap_base ?? 3, 1, 500, '3 by default. At their cap, they close or unclaim one to take another.')}
+      {num('lead_cap_per_wins', 'One more open lead for every (leads won in the last 30 days)', s.lead_cap_per_wins ?? 5, 1, 500, '5 by default. Only won counts.')}
+      {num('lead_cap_max', 'The most open leads anyone may hold', s.lead_cap_max ?? 10, 1, 500, '10 by default.')}
+      {num('claim_cooldown_minutes', 'One new claim every (minutes)', s.claim_cooldown_minutes ?? 5, 0, 120, '5 by default. 0: no pacing. Admins are not paced.')}
       {num('hot_hours', 'A lead is hot for (hours after it came in)', s.hot_hours, 1, 720, 'Next lead gives the oldest hot lead nobody holds first. 24 by default.')}
       <button className="btn btn--primary btn--sm" type="submit" disabled={pending} data-testid="sales-settings-save">Save</button>
       {s.updated_by && <p className="small muted">Last changed by {s.updated_by}.</p>}

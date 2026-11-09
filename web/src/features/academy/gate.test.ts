@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { currentStep, gateWords, opensWhileHeld, opensWhileUnsigned, profileHref, signHref, stepWords, type GateState, type WelcomeStep } from './gate.ts';
+import { currentStep, gateWords, opensWhileHeld, opensWhileOnboarding, opensWhileUnsigned, profileHref, signHref, stepWords, type GateState, type WelcomeStep } from './gate.ts';
 
 // The academy gate (0802): what a held person still opens, the Welcome steps of a new hire, the Admin's words for the gate,
 // and the content of releases 33 and 34 (supabase/seed/academy/r34.mjs): a quiz per section, on every role that uses it,
@@ -32,7 +32,7 @@ test('1060: the academy first, then the agreement, then access', () => {
   assert.equal(signHref('field'), '/staff/field/sign');
   assert.match(stepWords({ key: 'agreement', done: false, state: 'sent', waiting_for_academy: true }), /once the academy is passed/);
   assert.match(stepWords({ key: 'agreement', done: false, state: 'sent' }), /^Ready to sign/);
-  assert.match(stepWords({ key: 'team', done: false, open: true, groups: [{ key: 'team', name: 'CarmaCars Team', url: 'https://chat.whatsapp.com/x' }] }), /I joined/);
+  assert.match(stepWords({ key: 'team', done: false, open: true, groups: [{ key: 'team', name: 'CarmaCars Team', url: 'https://chat.whatsapp.com/x' }] }), /tick each group you joined/);
   assert.match(readFileSync(new URL('../../server/door.ts', import.meta.url), 'utf8'), /agreement_locked && !AGREEMENT_OPEN\.test\(next\)\) redirect\('\/staff\/welcome'\)/);
 });
 
@@ -55,4 +55,13 @@ test('the content of releases 33 and 34: a quiz per section, every role, real gu
   assert.ok(SECTIONS.find((s) => s.slug === 'new-r34-caller-notes')?.paths.includes('cs'), 'the caller panel is on customer service\'s path');
   const root = fileURLToPath(new URL('../../../../', import.meta.url));
   assert.match(execFileSync('node', ['supabase/seed/0802_gen_academy.mjs', '--check'], { cwd: root, encoding: 'utf8' }), /up to date/);
+});
+
+test('1151: not fully onboarded (academy, agreement, WhatsApp): the onboarding pages only, the same line in the database', () => {
+  for (const p of ['/staff/welcome', '/staff/academy', '/staff/sign', '/staff/profile', '/staff/field/pay']) assert.ok(opensWhileOnboarding(p), p);
+  for (const p of ['/staff', '/staff/sales-leads', '/staff/bookings/CC-1', '/staff/renters', '/staff/tasks', '/staff/money', '/staff/field']) assert.ok(!opensWhileOnboarding(p), p);
+  assert.match(readFileSync(new URL('../../server/door.ts', import.meta.url), 'utf8'), /onboarding_locked && !ONBOARDING_OPEN\.test\(next\)\) redirect\('\/staff\/welcome'\)/);
+  assert.match(stepWords({ key: 'team', done: false, open: true, groups: [{ key: 'sales', name: 'CARMA Closers', url: '' }, { key: 'team', name: 'CarmaCars Team', url: '' }] }), /CARMA Closers and CarmaCars Team/);
+  assert.match(stepWords({ key: 'team', done: false, open: false }), /^Opens once the academy is passed and the agreement is signed/);
+  assert.match(stepWords({ key: 'welcome', done: true }), /then the WhatsApp groups/);
 });

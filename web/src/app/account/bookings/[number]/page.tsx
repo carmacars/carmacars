@@ -33,6 +33,7 @@ import { renterDetailsMissing } from '@/server/portal/renter-details';
 import { STAGES, type Walk } from '@/features/walkthrough/model';
 import { AccidentSummary } from '@/features/accident-card/AccidentCard';
 import { AccidentReport } from '@/features/accident-card/AccidentReport';
+import { incidentHref } from '@/features/incident-cards/digital';
 import type { AccidentCardData } from '@/features/accident-card/model';
 import { READING_CHARGE_KEYS } from '@/features/handover/reading';
 
@@ -199,6 +200,8 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
           {accident && (
             <PortalCard id="pt-accident" title="Accident card" testId="renter-accident"
               action={<Link prefetch={false} className="btn btn--ghost btn--sm" href={bookingPath(b.booking_number, 'accident-card')} data-testid="accident-card-open">Print it</Link>}>
+              {/* 1150: the digital incident card (also the printed card's QR code): coverage with proof, contract, drivers */}
+              <p><Link prefetch={false} className="btn btn--primary btn--sm" href={incidentHref(b.booking_number)} data-testid="incident-card-open">Open the digital incident card</Link></p>
               {b.status === 'on_rent' && <AccidentReport booking={b.id} number={b.booking_number} phone={phone ?? null} />}
               <AccidentSummary d={accident} />
             </PortalCard>

@@ -20,7 +20,7 @@ export interface AccidentCardData {
 }
 
 /** The steps, the same as the car's card. */
-export const accidentSteps = (d: AccidentCardData): string[] => cardSteps({ company: d.company, policy: null, cars: [] });
+export const accidentSteps = (d: AccidentCardData): string[] => cardSteps({ company: d.company });
 
 /** The coverage block: its title, what to tell the insurer, and the lines to show. */
 export function coverageBlock(c: AccidentCoverage): { title: string; lead: string; rows: Array<[string, string]> } {

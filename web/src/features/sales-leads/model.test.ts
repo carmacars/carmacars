@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { age, claimWords, contactLinks, listQuery, minutes, pct, stateOf, type LeadClaim } from './model.ts';
+import { age, claimPaceWords, claimWords, contactLinks, listQuery, minutes, pct, stateOf, type LeadClaim } from './model.ts';
 import { taskHref, adminTaskHref, type Task } from '../va/tasks.ts';
 
 const now = Date.parse('2026-11-08T15:00:00Z');
@@ -63,4 +63,14 @@ test('the alerts and pages use the same lead address', () => {
   const sql = readFileSync(join(import.meta.dirname, '../../../../supabase/migrations/0950_r35y_sales_leads.sql'), 'utf8');
   assert.match(sql, /'\/admin\/sales-leads' else '\/staff\/sales-leads'/);
   for (const p of ['admin/sales-leads/[id]/page.tsx', 'staff/sales-leads/[id]/page.tsx', 'staff/owner-leads/page.tsx']) assert.ok(readFileSync(join(import.meta.dirname, '../../app', p), 'utf8').includes('SalesLead'), p);
+});
+
+test('1152: the claiming limits in words: held of the most, and the next claim in mm:ss', () => {
+  const at = Date.parse('2026-11-09T15:00:00Z');
+  assert.equal(claimPaceWords({ held: 1, max: 3, nextAt: '2026-11-09T15:04:05Z', cooldown: 5, paced: true }, at), 'you hold 1 of 3 · next claim in 4:05');
+  assert.equal(claimPaceWords({ held: 0, max: 3, nextAt: null, cooldown: 5, paced: true }, at), 'you hold 0 of 3 · one claim every 5 min');
+  assert.match(claimPaceWords({ held: 3, max: 3, nextAt: null, cooldown: 5, paced: true }, at), /^you hold 3 of 3 \(the most: close or unclaim one/);
+  assert.equal(claimPaceWords({ held: 4, max: 3, nextAt: '2026-11-09T15:04:05Z', cooldown: 5, paced: false }, at), 'you hold 4');
+  assert.equal(claimPaceWords({ held: 2, max: 4, nextAt: null, cooldown: 0, paced: true, winsToNext: 1 }, at), 'you hold 2 of 4 · 1 more win for one more');
+  assert.equal(claimPaceWords({ held: 2, max: 4, nextAt: null, cooldown: 0, paced: true, winsToNext: 3 }, at), 'you hold 2 of 4 · 3 more wins for one more');
 });

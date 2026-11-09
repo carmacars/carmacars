@@ -23,6 +23,16 @@
 .ic-dl dt { font-weight: 600; }
 .ic-dl dd { margin: 0; overflow-wrap: anywhere; }
 .ic-none { margin: 0; }
+/* 1150: the one generic card: steps, what to show (the three coverage options), the slip; a little smaller type to fit */
+.ic-card--generic { font-size: 7.6pt; line-height: 1.22; }
+.ic-body--3 { grid-template-columns: 1.1fr 1.1fr 0.9fr; gap: 0.14in; }
+.ic-card--generic .ic-body h2 { font-size: 9pt; }
+.ic-card--generic .ic-qr { width: 0.8in; height: 0.8in; }
+.ic-card--generic .ic-report { font-size: 7pt; }
+.ic-show { min-height: 0; overflow: hidden; }
+.ic-show ul { margin: 0.03in 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0.05in; }
+.ic-show li { border-left: 2px solid #111; padding-left: 0.06in; }
+.ic-card--generic .ic-dl div { grid-template-columns: 0.75in 1fr; }
 @media (max-width: 9in) { .ic-sheets { align-items: flex-start; overflow-x: auto; } }
 @media print {
   @page { size: letter portrait; margin: 0; }

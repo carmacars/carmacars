@@ -1,5 +1,5 @@
--- 99: verification and test accounts never get real leads, owners or tasks (migration 0343). A new owner lead goes to the
--- least busy real Sales person (or nobody), never a verification account; no test account is "sourced by" on a real lead,
+-- 99: verification and test accounts never get real leads, owners or tasks (migration 0343). A new owner lead goes to
+-- nobody (1152: it waits on the Sales lead list; before, the least busy real Sales person), never a verification account; no test account is "sourced by" on a real lead,
 -- owner or application, nor assigned a task about one; the clean-up of what is on file; the leads on file before the
 -- automatic follow-ups get an Admin "Follow up now". Fixtures start with "tac".
 select test.suite('99 test accounts never credited');
@@ -19,11 +19,11 @@ create temp table tac_off as select user_id from staff_profiles where va_functio
 update staff_profiles set is_active = false where user_id in (select user_id from tac_off);
 insert into leads (kind, name, email, source, assigned_to) values ('owner_program', 'Olive Web', 'tac_olive@example.test', 'web', test.id('tac_vsales'));
 select test.eq('a lead given to a test account goes to nobody when no real Sales person is on', (select assigned_to from leads where email = 'tac_olive@example.test'), null::uuid);
--- 2. a real Sales person: the lead goes to them
+-- 2. a real Sales person on: still nobody (1152: no lead is given to anyone by itself; it waits on the Sales lead list)
 select test.mk_user('tac_real', 'va', 'sales');
 insert into leads (kind, name, email, source, assigned_to) values ('owner_program', 'Pat Web', 'tac_pat@example.test', 'web', test.id('tac_vinvite'));
-select test.eq('a lead given to a test account goes to the least busy real Sales person', (select assigned_to from leads where email = 'tac_pat@example.test'), test.id('tac_real'));
-select test.eq('the least busy real Sales person never a test account', app.lead_real_assignee(), test.id('tac_real'));
+select test.eq('a lead given to a test account goes to nobody, on the open lead list (1152)', (select assigned_to from leads where email = 'tac_pat@example.test'), null::uuid);
+select test.eq('the least busy pick names nobody now, never a test account (1152)', app.lead_real_assignee(), null::uuid);
 update leads set sourced_by = test.id('tac_vsales') where email = 'tac_olive@example.test';
 select test.eq('a test account cannot be made "sourced by" of a real lead', (select sourced_by from leads where email = 'tac_olive@example.test'), null::uuid);
 -- a test lead keeps its test account (the verification's own data)
