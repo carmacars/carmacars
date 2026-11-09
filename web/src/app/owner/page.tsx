@@ -38,6 +38,8 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
   // r34: the one Onboarding checklist, while a car is onboarding
   const onboarding = home.kind !== 'partner' && home.vehicles.some((v) => v.checklist && v.onboarding_status !== 'enrolled')
     ? (await onboardingData(user.id, 'ops_read', { owner_id: home.owner.id })).overview : null;
+  // r35 (1000): a government form waiting for the owner's signature (or changed after it was signed) is the next step
+  const formsCar = onboarding?.cars.find((c) => (c.forms.to_sign ?? 0) > 0) ?? null;
   const due = home.invoices.filter((i) => i.payable);
   const pending = home.invoices.filter((i) => i.pending && i.status !== 'paid');
   const partner = home.kind === 'partner' ? home.partner ?? null : null;
@@ -49,6 +51,11 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
     ? { title: 'Your agreements are filled in: terms pending approval', note: 'Read them now, filled in from your application. You can sign once CarmaCars approves your terms; we email you when they are ready.', href: '/owner/sign', cta: 'Read your agreements' }
     : home.signing.needed || onScreen.length
     ? { title: `Sign your documents (${checklist ? `${checklist.done} of ${checklist.total} signed` : 'ready'})`, note: `${onScreen.map((i) => i.label).filter((v, n, a) => a.indexOf(v) === n).join(', ') || 'Your agreements'}: filled in from what you gave us. Check the key values and sign once for all of them, in about a minute.`, href: '/owner/sign', cta: 'Check and sign' }
+    : formsCar
+    ? { title: (formsCar.forms.changed ?? 0) > 0 ? `Sign the government forms for the ${formsCar.name} again` : `Sign your government forms for the ${formsCar.name}`,
+        note: (formsCar.forms.changed ?? 0) > 0 ? 'A value on a form changed after you signed it. Check it and sign it again; it takes a minute.'
+          : `${formsCar.forms.to_sign} of ${formsCar.forms.needed} form${formsCar.forms.needed === 1 ? '' : 's'} to sign on screen. Each is the official form, filled in from your application and your car; check it, then sign it.`,
+        href: `/owner/sign/forms/${formsCar.vehicle_id}`, cta: 'Check and sign' }
     : due.length
       ? { title: due.length === 1 ? `Pay invoice ${due[0]!.invoice_number}` : `Pay ${due.length} invoices`, note: `${money(due.reduce((s, i) => s + i.balance_cents, 0), { cents: true })} due: ${due.map((i) => i.vehicle_name).join(', ')}. Pay by card or pre-authorized debit.`, href: due.length === 1 ? `/owner/invoices/${due[0]!.invoice_number}` : '/owner/money?tab=invoices', cta: due.length === 1 ? 'Pay now' : 'See invoices' }
       : null;

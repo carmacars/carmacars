@@ -86,7 +86,7 @@ test('Admin: one checklist, a photo replaced and removed, the government forms w
   const list = page.getByTestId('onboarding-checklist');
   await expect(list.getByTestId('onboarding-car')).toHaveCount(1);
   await expect(list.locator('[data-step="documents"]')).toContainText('Check the photos');
-  await expect(list.locator('[data-step="government_forms"]')).toHaveAttribute('data-state', /done|blocked/);
+  await expect(list.locator('[data-step="government_forms"]')).toHaveAttribute('data-state', /done|blocked|waiting/);
   // the government forms: made by themselves at approval, with their date
   const forms = page.getByTestId('government-forms');
   await expect(forms.getByTestId('government-form')).toHaveCount(2);

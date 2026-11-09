@@ -31,3 +31,15 @@ table.ad-table.ob-vins code { overflow-wrap: anywhere; word-break: break-all; }
 .ob-vins td, .ob-vins th { vertical-align: top; }
 .ob-vins .ob-bad { color: var(--red-600); }
 .ob-textarea { width: 100%; min-height: 8rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+/* r35 (1000): the owner's signature beside a government form, never on it */
+.gf-grid { display: grid; gap: var(--s-4); grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 62rem) { .gf-grid { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } }
+.gf-sig__box { padding: var(--s-3); border: 1px solid var(--grey-200); border-radius: 0.5rem; }
+.gf-sig__img { max-width: 100%; height: auto; background: #fff; border: 1px dashed var(--grey-200); border-radius: 0.25rem; }
+.gf-sig__typed { font-family: "Snell Roundhand", "Segoe Script", "Brush Script MT", cursive; font-size: 1.75rem; margin: 0; overflow-wrap: anywhere; }
+/* signing the forms on screen (owner) */
+.gf-sign { display: grid; gap: var(--s-4); }
+.gf-sign__form { display: grid; gap: var(--s-3); }
+.gf-sign__frame { width: 100%; height: min(70vh, 40rem); border: 1px solid var(--grey-200); border-radius: 0.5rem; background: #fff; }
+.gf-sign__values { width: 100%; }

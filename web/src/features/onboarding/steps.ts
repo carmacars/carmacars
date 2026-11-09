@@ -14,7 +14,8 @@ export interface OverviewCar {
   schedule: { number: string; signed: boolean } | null;
   checklist: ChecklistRow[];
   photos: { permit: number; waiting: number; rejected: number; approved: number; total: number; note: string | null };
-  forms: { due: boolean; needed: number; made: number; drafts: number; signed: number; missing: string[] };
+  /** to_sign: forms waiting for the owner's signature on screen; changed: of them, signed once and changed since (r35, 1000) */
+  forms: { due: boolean; needed: number; made: number; drafts: number; signed: number; missing: string[]; to_sign?: number; changed?: number };
   upfront: { number: string; status: string } | null;
 }
 export interface Overview {
@@ -62,7 +63,10 @@ function act(code: string, car: OverviewCar, b: Base, ownerMissing: string[]): A
       case 'documents': return { label: car.photos.rejected > 0 ? 'Upload a new photo' : 'Upload the ownership permit', href: `/owner/vehicles/${v}#photos` };
       case 'signatures': return { label: 'Check and sign', href: '/owner/sign' };
       case 'witnessed_forms': return { label: 'Sign with your witnesses', href: '/owner/documents#ow-wit' };
-      case 'government_forms': return car.forms.drafts > 0 ? (ownerMissing.length ? { label: 'Complete your details', href: '/owner/profile' } : null) : { label: 'Open your government forms', href: '/owner/documents#ow-forms' };
+      case 'government_forms':
+        if (car.forms.drafts > 0) return ownerMissing.length ? { label: 'Complete your details', href: '/owner/profile' } : null;
+        // r35 (1000): each government form is signed on screen first
+        return (car.forms.to_sign ?? 0) > 0 ? { label: (car.forms.changed ?? 0) > 0 ? 'Sign the forms again' : 'Sign your government forms', href: `/owner/sign/forms/${v}` } : { label: 'Open your government forms', href: '/owner/documents#ow-forms' };
       case 'upfront_payment': return { label: 'Pay the upfront invoice', href: '/owner/invoices' };
       default: return null;
     }
@@ -100,9 +104,15 @@ export function carSteps(car: OverviewCar, o: Overview, b: Base = baseFor(o.view
       if (!car.forms.due) { state = 'blocked'; who = null; why = 'Made by themselves once the terms are approved.'; }
       else if (car.forms.needed === 0) { state = 'not_needed'; who = null; }
       else if (car.forms.drafts > 0) { state = 'blocked'; who = 'owner'; why = car.forms.missing.length ? `Missing: ${car.forms.missing.join(', ')}.` : 'A value is missing on a form.'; }
+      else if (car.forms.made >= car.forms.needed && (car.forms.to_sign ?? 0) > 0) {
+        // r35 (1000): the step is done when every form is signed; a form changed after it was signed asks again
+        state = 'waiting'; who = 'owner';
+        why = (car.forms.changed ?? 0) > 0 ? 'A value on a form changed after it was signed: sign it again.'
+          : `${car.forms.to_sign} of ${car.forms.needed} government form${car.forms.needed === 1 ? '' : 's'} to sign on screen.`;
+      }
       else if (car.forms.made >= car.forms.needed) {
         state = 'done'; who = null;
-        why = car.forms.signed >= car.forms.needed ? 'Signed.' : `${car.forms.made} filled in by themselves. Print them and sign them in ink for the registry visit.`;
+        why = car.forms.signed >= car.forms.needed ? 'Signed on screen. Print them and sign them in ink at the registry visit.' : `${car.forms.made} filled in by themselves. Print them and sign them in ink for the registry visit.`;
       }
     }
     steps.push({ code: r.code, label: LABEL[r.code] ?? r.label, state, who, waiting: null, why, action: null });

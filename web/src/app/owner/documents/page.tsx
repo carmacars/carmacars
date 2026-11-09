@@ -7,6 +7,9 @@ import { rpc } from '@/lib/db/repo';
 import { WitnessedForms, type WForm } from '@/features/owner/WitnessedForms';
 import { DocumentList, DocumentRow } from '@/components/portal-ui';
 import { readableMissing } from '@/features/onboarding/missing';
+import { door, sessionAal } from '@/server/door';
+import type { GovData } from '@/features/onboarding/GovernmentForms';
+import { needsSignature, signBadge, type SignState } from '@/features/onboarding/sign-state';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Documents', path: '/owner/documents', noindex: true, description: 'Your agreements, schedules and registry form data.' });
@@ -20,6 +23,10 @@ export default async function OwnerDocuments() {
     // Forms A and B, signed on screen (migration 0044)
     rpc('owner_screen_forms', { p_by: user.id }, { role: 'service_role' }).then((x) => (x ?? []) as unknown as Array<{ code: string; title: string; status: string; method: string | null; signed_at: string | null; document_id: string | null }>).catch(() => [])]);
   const name = (id: string | null) => home.vehicles.find((v) => v.vehicle_id === id)?.name;
+  // r35 (1000): signed or not, for each form (the owner signs each one on screen)
+  const gov = await door<GovData>(user.id, 'ops_read', 'government_forms', { owner_id: home.owner.id }, await sessionAal()).catch(() => null);
+  const signOf = new Map<string, { state: SignState | null; signable: boolean; car: string }>();
+  for (const c of gov?.cars ?? []) for (const f of c.forms) signOf.set(f.id, { state: f.sign_state ?? null, signable: f.signable ?? true, car: c.vehicle_id });
   // a car still in intake: its agreements can be read now, filled in, and signed once approved (0192)
   const pending = home.kind !== 'partner' && home.vehicles.some((v) => v.onboarding_status === 'intake');
   return (
@@ -55,10 +62,11 @@ export default async function OwnerDocuments() {
         </div>
         <aside className="pt-split__aside">
           <section className="pt-card" id="ow-forms" aria-labelledby="ow-forms-h"><h2 className="d4" id="ow-forms-h">Government forms</h2>
-            <p className="small">The ServiceOntario registration forms of each car, filled in by themselves from your application once its terms are approved, and again when a value changes.</p>
+            <p className="small">The ServiceOntario registration forms of each car, filled in by themselves from your application once its terms are approved, and again when a value changes. Sign each one on screen; then print it and sign it in ink at the registry.</p>
             {forms.length ? <DocumentList testId="owner-gov-forms" label="Government forms">{forms.map((f) => (
               <DocumentRow key={f.id} external href={f.official ? `/owner/documents/forms/${f.id}/official` : `/owner/documents/forms/${f.id}`} badge="FORM" title={f.form_code}
-                meta={<><span>{f.official ? (f.status === 'signed' || f.status === 'filed' ? 'Official form, signed' : 'Official form, filled for you') : f.has_pdf ? 'Pre-filled PDF' : 'Data sheet'}</span><span>{f.vehicle_name}</span><span data-testid="owner-gov-form-made">Made {day(f.generated_at)}</span>{f.missing.length > 0 && <span>Missing: {readableMissing(f.missing).join(', ')}</span>}</>} />))}
+                meta={<><span>{f.official ? (f.status === 'signed' || f.status === 'filed' ? 'Official form, signed' : 'Official form, filled for you') : f.has_pdf ? 'Pre-filled PDF' : 'Data sheet'}</span><span>{f.vehicle_name}</span><span data-testid="owner-gov-form-made">Made {day(f.generated_at)}</span>{f.missing.length > 0 && <span>Missing: {readableMissing(f.missing).join(', ')}</span>}
+                  {(() => { const g = signOf.get(f.id); const b = g ? signBadge(g.state, g.signable) : null; return b ? <span data-testid="owner-gov-form-sign" data-state={g!.state}><b>{b.text}</b>{g && needsSignature(g.state, g.signable) ? <> <Link prefetch={false} className="link" href={`/owner/sign/forms/${g.car}`}>{g.state === 'changed' ? 'Sign again' : 'Sign'}</Link></> : null}</span> : null; })()}</>} />))}
             </DocumentList>
               : <p className="small muted">Made by themselves for each car once its terms are approved.</p>}
             <p className="small muted">You pay ServiceOntario, the inspection station and the appraiser directly. CarmaCars does not collect these amounts.</p>
