@@ -5,7 +5,9 @@ name: vps-health
 #   outside  https://api.carmacars.ca: Auth answers, the database API answers an anonymous read, Storage answers,
 #            an Edge Function refuses a call without its token, Auth's issuer is right
 #   inside   (SSH) bin/health-local: every container running and healthy, Postgres, disk, memory, the WAL spool
-#            draining, the last base backup under 30 hours, the TLS certificate over 14 days
+#            draining, the last base backup under 30 hours, the TLS certificate over 14 days, the pg_cron jobs (r35: a job is
+#            a problem when its latest run failed or 2 or more runs in a row failed, with its last error and whether the
+#            next run was ok; one failure followed by a good run is only a note, cron_notes, and sends no email)
 # A failure emails the site check's address (program_settings.uptime_alert_email, else rent@carmacars.ca) through
 # Resend, as the site's own alerts go: once when it starts, then hourly while it lasts, and once when it is over. The
 # Resend key is the repository secret RESEND_API_KEY when set, else the server's (functions.env), else the vault's
@@ -83,7 +85,7 @@ jobs:
           # inside
           if inside=$(timeout 60 bash -c 'source scripts/deploy/vps.sh; vps_ssh sudo /opt/carmacars/bin/health-local' 2>/dev/null) || [ -n "${inside:-}" ]; then
             while IFS= read -r p; do [ -n "$p" ] && problems+=("server: $p"); done < <(jq -r '.problems[]?' <<<"$inside" 2>/dev/null)
-            echo "$inside" | jq -c '{disk_pct, mem_available_mb, load1, connections, wal_spool_files, base_backup_age_h, cert_days_left, cron_jobs_failing, live}' | sed 's/^/::notice title=inside::/'
+            echo "$inside" | jq -c '{disk_pct, mem_available_mb, load1, connections, wal_spool_files, base_backup_age_h, cert_days_left, cron_jobs_failing, cron_notes, live}' | sed 's/^/::notice title=inside::/'
             # r27b (November 6: load 7 to 25 in 50 minutes before the API failed): a load this high is a problem on its own
             load=$(jq -r '.load1 // 0' <<<"$inside" 2>/dev/null || echo 0)
             if awk -v l="$load" 'BEGIN { exit !(l + 0 >= 12) }'; then problems+=("server: load $load (12 or more: the database is overloaded; the site serves kept copies of the long-tail pages until it recovers)"); fi

@@ -37,7 +37,7 @@ const ADMIN: Record<string, Spec> = {
 // ---------------------------------------------------------------- Staff (/staff), guide va.json; Field work (/staff/field), field.json
 const STAFF: Record<string, Spec> = {
   '': ['your-workday', 'cs/cs-requests'], academy: ['academy'], addons: ['add-ons'], bookings: ['customer-service', 'cs/prices-and-deposits'], 'bookings/[number]/sign-now': 'signing',
-  calendar: ['shared-tools', 'cs/trip-rules'], 'calendar-sync': ['fleet', 'fleet/fleet-cars'], 'card-coverage': ['customer-service', 'cs/coverage-and-drivers'], cars: ['shared-tools'],
+  calendar: ['shared-tools', 'cs/trip-rules'], 'calendar-sync': ['fleet', 'fleet/fleet-cars'], 'past-trips': ['fleet', 'fleet/fleet-cars'], 'card-coverage': ['customer-service', 'cs/coverage-and-drivers'], cars: ['shared-tools'],
   chat: ['live-visitors-and-live-chat'], chauffeur: ['chauffeur-requests'], checks: ['fleet', 'fleet/fleet-cars'], documents: ['customer-service', 'cs/documents-and-signing'],
   'field-hours': ['fleet', 'fleet/fleet-field-jobs'], fleet: ['fleet', 'fleet/fleet-field-jobs'], 'game-leads': ['discount-game-leads', 'sales_remote/sales-requests-and-quotes'], guide: 'guide',
   leads: ['sales', 'sales_remote/sales-requests-and-quotes'], listings: ['fleet', 'fleet/fleet-cars'], live: ['live-visitors-and-live-chat'], maintenance: ['car-maintenance', 'fleet/fleet-cars'],

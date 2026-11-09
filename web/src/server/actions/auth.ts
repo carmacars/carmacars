@@ -22,15 +22,34 @@ const afterPassword = afterSignIn;
 export async function signIn(_: unknown, fd: FormData): Promise<ActionResult> {
   const p = signInSchema.safeParse(Object.fromEntries(fd));
   if (!p.success) return { ok: false, code: 'invalid', message: 'Check the highlighted fields.', fieldErrors: fieldErrors(p.error) };
-  const r = await (await auth()).signIn(p.data.email, p.data.password);
+  const a = await auth();
+  // 0955: two accounts of one person were merged: either email signs in, to the kept account (the kept address with this
+  // password first, else the other address with its own password, then on to the kept account by a one-time link)
+  const alias = await signInAlias(p.data.email, null);
+  let r = alias?.email ? await a.signIn(alias.email, p.data.password) : null;
+  if (!r?.ok) r = await a.signIn(p.data.email, p.data.password);
   await signInEvent(p.data.email, r.ok ? r.user.id : null, r.ok);
   if (!r.ok) return { ok: false, code: r.code ?? 'auth', message: r.message };
+  const kept = await signInAlias(null, r.user.id);
+  if (kept && kept.user_id !== r.user.id) {
+    await a.signOut();
+    const l = kept.email && a.continueLink ? await a.continueLink(kept.email, safeNext(fd.get('next')) ?? '/account') : null;
+    if (l?.ok) redirect(l.link);
+    return { ok: false, code: 'auth', message: 'Your CarmaCars accounts are now one. Sign in with your phone number and a code, or with your other email.' };
+  }
   // a view-as left from an earlier session never carries over to a new sign-in
   await clearSessionCookies(false);
   await rememberSignIn('email');
   // the sign-in service lets only confirmed addresses sign in: earlier requests with it are attached (migration 0040)
   await rpc('server_account_email_verified', { p_user: r.user.id, p_email: r.user.email }, { role: 'service_role' }).catch(() => undefined);
   redirect(await afterPassword(r.user.id, safeNext(fd.get('next'))));
+}
+
+/** The kept account of an alias email or of a merged sign-in (0955), or null. Never shown to the person. */
+async function signInAlias(email: string | null, userId: string | null): Promise<{ user_id: string; email: string | null } | null> {
+  try {
+    return (await rpc('server_sign_in_alias', { p_email: email ?? undefined, p_user: userId ?? undefined }, { role: 'service_role' })) as unknown as { user_id: string; email: string | null } | null;
+  } catch { return null; }
 }
 
 // Sign-in security (migration 0466): each password sign-in, ok or not, with the browser and system and the country (no

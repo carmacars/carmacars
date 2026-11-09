@@ -11,7 +11,11 @@ import { QUO_DESKTOP_KEY, QUO_WEB, callPlan, e164, isHandheld, prettyNumber, quo
 // on the conversation. When Quo is off (Program settings, or Phone and texts off) the buttons are the device's own phone and
 // messages links, as before. Without JavaScript they are those links too.
 
-type Cfg = { quo: boolean; from: string | null; any_number?: boolean };
+// r35 (0970): twilio: the Call button rings the staff member's own cell, then the customer (twilio_why: why not, shown on the
+// Quo fallback); can_reveal: an Admin may reveal a number masked for Sales (audited)
+type Cfg = { quo: boolean; from: string | null; any_number?: boolean; twilio?: boolean; twilio_why?: string | null; can_reveal?: boolean };
+/** A number masked for Sales ("(647) •••-••00", migration 0970): shown as it is, called and texted through the platform only. */
+export const isMasked = (s: string | null | undefined): boolean => !!s && s.includes('\u2022');
 let cfgP: Promise<Cfg> | null = null;
 let cfgV: Cfg | null = null;
 function loadCfg(): Promise<Cfg> {
@@ -65,15 +69,78 @@ export interface ContactProps {
 }
 
 /** Call and Text for one person. Nothing shows for a number we cannot call. */
-export function ContactButtons({ phone, name, booking, look = 'buttons', inbox, only, testId = 'contact', className, children, btnClass = 'btn btn--ghost btn--sm' }: ContactProps) {
-  const n = e164(phone);
+export function ContactButtons(props: ContactProps) {
+  return isMasked(props.phone) ? <MaskedButtons {...props} /> : <PlainButtons {...props} />;
+}
+
+type CallState = { busy?: boolean; ok?: boolean; message?: string; calling?: string };
+async function twilioCall(number: string, booking: string | null | undefined, name: string | null | undefined): Promise<CallState> {
+  try {
+    const r = await post('phone_call', { number, ...(booking ? { booking_number: booking } : {}), ...(name ? { name } : {}) });
+    return r.ok ? { ok: true, calling: typeof r.calling === 'string' ? r.calling : undefined } : { ok: false, message: typeof r.message === 'string' ? r.message : 'The call did not start' };
+  } catch (e) { return { ok: false, message: e instanceof Error ? e.message : 'The call did not start' }; }
+}
+
+/** Sales (0970): the masked number, Call and Text through the platform (no tel: or sms: link, nothing to copy). */
+function MaskedButtons({ phone, name, booking, look = 'buttons', inbox, only, testId = 'contact', className, children, btnClass = 'btn btn--ghost btn--sm' }: ContactProps) {
+  const m = phone!;
   const cfg = useCfg();
   const [sheet, setSheet] = useState<null | 'text' | 'call'>(null);
+  const [call, setCall] = useState<CallState>({});
+  const [shown, setShown] = useState<string | null>(null);
+  const who = name?.trim() || m;
+  const onCall = async () => {
+    setSheet('call');
+    if (!cfg?.twilio) { setCall({ ok: false, message: `${cfg?.twilio_why ?? 'Calling from the site is not set up yet.'} The number is hidden for Sales: ask customer service or an Admin to call.` }); return; }
+    setCall({ busy: true });
+    setCall(await twilioCall(m, booking, name));
+  };
+  const reveal = async () => {
+    const q = new URLSearchParams({ what: 'phone_reveal', masked: m, ...(booking ? { booking } : {}), ...(name ? { name } : {}) });
+    const r = await fetch(`/api/staff/phone?${q}`, { cache: 'no-store', credentials: 'same-origin' }).then((x) => x.json()).catch(() => null) as { display?: string; error?: string } | null;
+    setShown(r?.display ?? r?.error ?? 'Not revealed');
+  };
+  return (
+    <span className={`qb qb--${look}${className ? ` ${className}` : ''}`} data-testid={`${testId}-masked`}>
+      <span className="qb-masked" title="Hidden for Sales: call or text from here">{shown ?? (look === 'link' ? m : null)}</span>
+      {only !== 'text' && <button type="button" className={look === 'buttons' ? `${btnClass} qb-btn` : 'qb-icon'} onClick={() => void onCall()} aria-label={`Call ${who}`} data-testid={`${testId}-call`}><Phone />{look === 'buttons' ? (children ?? 'Call') : null}</button>}
+      {only !== 'call' && <button type="button" className={look === 'buttons' ? `${btnClass} qb-btn` : 'qb-icon'} onClick={() => setSheet('text')} aria-label={`Text ${who}`} data-testid={`${testId}-text`}><Bubble />{look === 'buttons' ? 'Text' : null}</button>}
+      {cfg?.can_reveal && !shown && <button type="button" className="btn btn--quiet btn--sm" onClick={() => void reveal()} data-testid={`${testId}-reveal`}>Reveal</button>}
+      {sheet === 'text' && <Composer n={m} who={who} booking={booking} from={cfg?.from ?? null} inbox={inbox} onClose={() => setSheet(null)} testId={testId} />}
+      {sheet === 'call' && <TwilioSheet who={who} state={call} onClose={() => setSheet(null)} testId={testId} />}
+    </span>
+  );
+}
+
+function TwilioSheet({ who, state, onClose, testId, n }: { who: string; state: CallState; onClose: () => void; testId: string; n?: string }) {
+  return (
+    <Sheet title={`Call ${who}`} onClose={onClose} testId={`${testId}-call-sheet`}>
+      {state.busy ? <p className="small" role="status">Starting the call...</p>
+        : state.ok ? <p className="small" role="status" data-testid="twilio-ringing"><b>Your phone{state.calling ? ` (${state.calling})` : ''} rings now.</b> Answer it and we connect {who}. They see the CarmaCars number. The call is noted on their history.</p>
+          : <p className="alert alert--warn small" role="alert" data-testid="twilio-why"><span>{state.message}</span></p>}
+      <p className="qb-acts">{n && !state.ok && !state.busy && <a className="btn btn--ghost btn--sm" href={QUO_WEB} target="carmacars-quo" rel="noopener">Open the Quo web app</a>}
+        <button type="button" className="btn btn--primary btn--sm" onClick={onClose}>Done</button></p>
+    </Sheet>
+  );
+}
+
+function PlainButtons({ phone, name, booking, look = 'buttons', inbox, only, testId = 'contact', className, children, btnClass = 'btn btn--ghost btn--sm' }: ContactProps) {
+  const n = e164(phone);
+  const cfg = useCfg();
+  const [sheet, setSheet] = useState<null | 'text' | 'call' | 'twilio'>(null);
+  const [callSt, setCallSt] = useState<CallState>({});
   if (!n) return phone ? <span className={className}>{phone}</span> : null;
   const who = name?.trim() || prettyNumber(n);
   const quo = !!cfg?.quo;
 
   const onCall = (e: React.MouseEvent) => {
+    // r35 (0970): through Twilio when it is set up: the staff member's own cell rings, then the customer
+    if (cfg?.twilio) {
+      e.preventDefault();
+      setSheet('twilio'); setCallSt({ busy: true });
+      void twilioCall(n, booking, name).then(setCallSt);
+      return;
+    }
     if (!cfg?.quo) return; // the tel: link does it
     e.preventDefault();
     void post('phone_call_log', { number: n, ...(booking ? { booking_number: booking } : {}) }).catch(() => undefined);
@@ -106,7 +173,8 @@ export function ContactButtons({ phone, name, booking, look = 'buttons', inbox, 
     <span className={`qb qb--${look}${className ? ` ${className}` : ''}`}>
       {call}{text}
       {sheet === 'text' && <Composer n={n} who={who} booking={booking} from={cfg?.from ?? null} inbox={inbox} onClose={() => setSheet(null)} testId={testId} />}
-      {sheet === 'call' && <CallSheet n={n} who={who} onClose={() => setSheet(null)} testId={testId} />}
+      {sheet === 'call' && <CallSheet n={n} who={who} why={cfg?.twilio_why ?? null} onClose={() => setSheet(null)} testId={testId} />}
+      {sheet === 'twilio' && <TwilioSheet n={n} who={who} state={callSt} onClose={() => setSheet(null)} testId={testId} />}
     </span>
   );
 }
@@ -165,7 +233,7 @@ function Composer({ n, who, booking, from, inbox, onClose, testId }: { n: string
             placeholder="Write the text. Sign it CarmaCars." data-testid="quo-body" />
           <p className="qb-acts">
             <span className="small muted" aria-live="polite">{left < 200 ? `${left} characters left` : ''}</span>
-            {isHandheld(typeof navigator === 'undefined' ? '' : navigator.userAgent) && <a className="btn btn--quiet btn--sm" href={quoMessage(n, from, body || undefined)}>Open in the Quo app</a>}
+            {!isMasked(n) && isHandheld(typeof navigator === 'undefined' ? '' : navigator.userAgent) && <a className="btn btn--quiet btn--sm" href={quoMessage(n, from, body || undefined)}>Open in the Quo app</a>}
             <button type="submit" className="btn btn--primary btn--sm" disabled={!body.trim() || state.busy} data-testid="quo-send">{state.busy ? 'Sending' : 'Send'}</button>
           </p>
           {state.err && <p className="alert alert--error small" role="alert"><span>{state.err}</span></p>}
@@ -175,12 +243,13 @@ function Composer({ n, who, booking, from, inbox, onClose, testId }: { n: string
   );
 }
 
-function CallSheet({ n, who, onClose, testId }: { n: string; who: string; onClose: () => void; testId: string }) {
+function CallSheet({ n, who, why, onClose, testId }: { n: string; who: string; why?: string | null; onClose: () => void; testId: string }) {
   const [app, setApp] = useState(() => readDesktop() === 'app');
   const handheld = typeof navigator !== 'undefined' && isHandheld(navigator.userAgent);
   return (
     <Sheet title={`Call ${who}`} onClose={onClose} testId={`${testId}-call-sheet`}>
       <p className="qb-num" data-testid="quo-call-number">{prettyNumber(n)}</p>
+      {why && <p className="small muted" data-testid="quo-call-why">Calling through Quo: {why}</p>}
       {handheld
         ? <p className="small">The Quo app did not open. Call from the Quo web app, or from this phone.</p>
         : <p className="small">Quo opened in a new tab and the number is copied. In Quo, open the dialer (Alt+C, or Ctrl+C on a Mac) and paste it. The call is noted on the conversation.</p>}

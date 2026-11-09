@@ -27,8 +27,8 @@ begin
 end $$;
 
 -- ================================================================== A. catalogue
-select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign, 0370 a visitor message waiting in live chat, 0430 the start and end notices, 0400 the two tracker alerts, 0441 the data health notice, 0380 adds one email, 0460 the lead and visitor alerts, 0462 the staff alerts, 0532 the return report denied, 0535 the apology to remote applicants moved to the AI interview, 0547 the partner invoice, 0583 the staff email digest)',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '210/21');
+select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign, 0370 a visitor message waiting in live chat, 0430 the start and end notices, 0400 the two tracker alerts, 0441 the data health notice, 0380 adds one email, 0460 the lead and visitor alerts, 0462 the staff alerts, 0532 the return report denied, 0535 the apology to remote applicants moved to the AI interview, 0547 the partner invoice, 0583 the staff email digest, 0955 the accounts merged note)',
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '212/21');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
@@ -252,6 +252,10 @@ select test.eq('D the pickup details name the field staff member and the meeting
     and entity_id = test.id('booking:NT-2') order by created_at desc limit 1), 'Nt / Meet at the taxi stand');
 
 -- D2 return reminder and late returns for NT-5 (on rent, return Sun Jun 1 2031 18:00)
+-- (0970: without the renter's overdue grace, so the return time notice still goes at the return time here; Fleet's alerts
+-- before the "not back" minutes are in that one alert)
+create temp table nt_grace as select late_chase_grace_minutes g from program_settings limit 1;
+update program_settings set late_chase_grace_minutes = 0;
 select app.notify_reminders(test.at('2031-05-31 17:00'));
 select test.eq('D 25 hours before the return: no reminder', test.ev('renter_return_reminder', test.id('booking:NT-5')), 0::bigint);
 select app.notify_reminders(test.at('2031-05-31 18:30'));
@@ -261,21 +265,22 @@ select app.notify_reminders(test.at('2031-06-01 15:30'));
 select test.eq('D about 3 hours before the return (0430): "your rental ends at 6:00 pm", once', test.ev('renter_return_soon', test.id('booking:NT-5')), 1::bigint);
 select app.notify_reminders(test.at('2031-06-01 18:01'));
 select app.notify_reminders(test.at('2031-06-01 18:06'));
-select test.eq('D at the return time: the return time notice to the renter (0430) and the 0-minute alert to fleet, once; T13 waits for 15 minutes',
+select test.eq('D at the return time: the return time notice to the renter (0430), once, and no fleet alert of its own (0970); T13 waits for 15 minutes',
   test.ev('renter_return_due', test.id('booking:NT-5')) || '/' || test.ev('renter_late_return_first', test.id('booking:NT-5')) || '/'
-  || test.ev('staff_late_return_alert', test.id('booking:NT-5')) || '/' || test.ev('renter_late_return_final', test.id('booking:NT-5')), '1/0/1/0');
+  || test.ev('staff_late_return_alert', test.id('booking:NT-5')) || '/' || test.ev('renter_late_return_final', test.id('booking:NT-5')), '1/0/0/0');
 select app.notify_reminders(test.at('2031-06-01 18:16'));
 select test.eq('D 15 minutes late: the first late notice to the renter (T13), once', test.ev('renter_late_return_first', test.id('booking:NT-5')), 1::bigint);
 select app.notify_reminders(test.at('2031-06-01 18:31'));
-select test.eq('D at 30 minutes: the second fleet alert', test.ev('staff_late_return_alert', test.id('booking:NT-5')), 2::bigint);
+select test.eq('D at 30 minutes: the fleet alert', test.ev('staff_late_return_alert', test.id('booking:NT-5')), 1::bigint);
 select app.notify_reminders(test.at('2031-06-01 20:01'));
 select app.notify_reminders(test.at('2031-06-01 20:30'));
 select test.eq('D at the final stage (late_admin_minutes): the final notice and one alert to fleet and the admins',
-  test.ev('renter_late_return_final', test.id('booking:NT-5')) || '/' || test.ev('staff_late_return_alert', test.id('booking:NT-5')), '1/3');
+  test.ev('renter_late_return_final', test.id('booking:NT-5')) || '/' || test.ev('staff_late_return_alert', test.id('booking:NT-5')), '1/2');
 select test.flush();
 select test.eq('D the final alert goes to fleet and admins; the earlier ones to fleet only',
   (select string_agg(audience, ',' order by audience) from notification_outbox o join app_events e on e.id = o.event_id
     where e.code = 'staff_late_return_alert' and e.entity_id = test.id('booking:NT-5') and e.dedupe_key like '%:final:%'), 'staff_admin,staff_va_fleet');
+update program_settings set late_chase_grace_minutes = (select g from nt_grace);
 
 -- D3 offer reminder (24-hour window: 6 hours before) and a request left waiting
 select test.mk_booking('NT-7', 'NT1', 'nt_rob', '2031-07-10 10:00', '2031-07-12 10:00', 'offered');
@@ -886,6 +891,8 @@ select test.eq('G every wired email code has been built at least once in these t
     where c.has_email and c.emitted_by not like 'not emitted%'
       and c.code <> 'applicant_ai_interview_sorry' -- run once by migration 0535, built in 99_r27b_remote_to_ai
       and c.code <> 'owner_agreement_to_sign' -- an Admin's Send (0640), built in 99_r31_owner_agreements
+      and c.code <> 'renter_coverage_switched' -- a staff switch (0890), built in 99_r35u_coverage_switch
+      and c.code <> 'renter_accounts_merged' -- a merge of two renter records (0955), built in 99_r35y_leads_merge
       and not exists (select 1 from notification_outbox o where o.code = c.code)
       and not exists (select 1 from staff_digest_items d where d.code = c.code)),
   null::text);

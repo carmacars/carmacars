@@ -66,6 +66,25 @@ test('government forms: made by themselves; a missing value blocks them with wha
   assert.equal(step(ov('owner', none), 'government_forms').state, 'not_needed');
 });
 
+test('government forms (r35, 1000): the step is done when every form is signed; a changed form asks again', () => {
+  const toSign = car({ checklist: ROWS({ government_forms: 'open' }), forms: { due: true, needed: 2, made: 2, drafts: 0, signed: 1, missing: [], to_sign: 1, changed: 0 } });
+  const o = step(ov('owner', toSign), 'government_forms');
+  assert.deepEqual([o.state, o.waiting, o.why], ['waiting', 'Waiting on you', '1 of 2 government forms to sign on screen.']);
+  assert.deepEqual(o.action, { label: 'Sign your government forms', href: '/owner/sign/forms/v1' });
+  assert.equal(step(ov('staff', toSign), 'government_forms').waiting, 'Waiting on the owner');
+  assert.equal(step(ov('staff', toSign), 'government_forms').action?.href, '/staff/owners/o1#gov-forms');
+  // the steps after it wait for it
+  assert.equal(step(ov('owner', toSign), 'registry_visit').state, 'blocked');
+  const again = car({ checklist: ROWS({ government_forms: 'open' }), forms: { due: true, needed: 2, made: 2, drafts: 0, signed: 1, missing: [], to_sign: 1, changed: 1 } });
+  assert.equal(step(ov('owner', again), 'government_forms').why, 'A value on a form changed after it was signed: sign it again.');
+  assert.equal(step(ov('owner', again), 'government_forms').action?.label, 'Sign the forms again');
+  // one To do: the car's next step is this one
+  assert.equal(carSteps(again, ov('owner', again)).next?.code, 'government_forms');
+  // all signed: done, with the pointer to the forms
+  const signed = car({ checklist: ROWS({ government_forms: 'done' }), forms: { due: true, needed: 2, made: 2, drafts: 0, signed: 2, missing: [], to_sign: 0, changed: 0 } });
+  assert.deepEqual([step(ov('owner', signed), 'government_forms').state, step(ov('owner', signed), 'government_forms').why], ['done', 'Signed on screen. Print them and sign them in ink at the registry visit.']);
+});
+
 test('the owner\'s details, once; the counts and the next step', () => {
   assert.equal(ownerStep(ov('owner', car(), ['City'])).why, 'Missing: City.');
   assert.equal(ownerStep(ov('admin', car(), ['City'])).action?.href, '/admin/owners/o1#send-link');

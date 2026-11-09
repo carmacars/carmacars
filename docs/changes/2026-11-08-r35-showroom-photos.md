@@ -23,3 +23,17 @@ first pic".
 
 - `admin/fleet-and-listings`: Showroom photos (the settings, Apply showroom to this car, every car at once, Redo, Back to the original, the plate check).
 - `va/fleet`: the showroom on a listing (Apply showroom to this car, every car, Redo, Back to the original).
+
+## Follow-up: "every car" keeps the cars on the site (integration, migration 1030)
+
+A photo made again from its kept cut-out with the car where it was carries its plate cover (0700: `plate_carry`), but the cover is
+drawn on the new file by a browser, and until then the photo is off the site. That only ran when a listing review was open, so
+"Apply showroom to every car" left such photos (and their cars) off the site until someone opened each listing.
+
+- `1030_r35p_showroom_carry.sql`: `ops_read showroom_carry_pending` (`app.showroom_carry_pending`, Admin, Fleet, customer service)
+  lists the photos of every car waiting for a carried cover (unchecked plate, boxes carried, new file ready, no job running).
+- `Showroom.tsx` (`ShowroomAll`, listings page for Admin and Fleet): reads that list every 15 seconds while the card is open and
+  hands it to `PlateCarry`, the same drawing and saving the review does (`/api/listing/plate`, `photo_plate_record`), so the cover
+  goes on and the photo is back on the site. The same framing carries the check; anything else (the car moved) stays queued for a
+  plate check as before.
+- Test: `99_r35p_showroom.sql` (every car at once: same framing is carried and listed, a moved photo is not).

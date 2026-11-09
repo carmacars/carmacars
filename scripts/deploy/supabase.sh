@@ -272,7 +272,7 @@ job_token() { # vault_name description
 # The files of each Edge Function, as deployed (index.ts and what it imports), into a directory.
 fn_files() { # slug dir
   case "$1" in
-    send-outbox) cp "$ROOT/supabase/functions/send-outbox/index.ts" "$2/index.ts"; cp "$ROOT/emails/src/engine.mjs" "$2/engine.mjs" ;;
+    send-outbox) cp "$ROOT/supabase/functions/send-outbox/index.ts" "$2/index.ts"; cp "$ROOT/emails/src/engine.mjs" "$2/engine.mjs"; cp "$ROOT/web/src/lib/email-combine.ts" "$2/combine.ts" ;;
     owner-debit) cp "$ROOT/supabase/functions/owner-debit/index.ts" "$ROOT/supabase/functions/owner-debit/run.ts" "$2/" ;;
     calendar-sync) cp "$ROOT/supabase/functions/calendar-sync/index.ts" "$2/index.ts"
                    cp "$ROOT/web/src/features/calendar/ical.ts" "$2/ical.ts"

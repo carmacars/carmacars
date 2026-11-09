@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 210,
+  "count": 211,
   "emails": [
     {
       "code": "account_password_reset",
@@ -584,6 +584,76 @@
       ],
       "template_html": "templates/renter_account_created.html",
       "template_text": "templates/renter_account_created.txt"
+    },
+    {
+      "code": "renter_accounts_merged",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "Two renter records of the same person were merged (automatically, or by staff with Merge into this record). Once per merge: the renter learns they can sign in with any of their emails or their phone number. Nothing else is sent about a merge.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Your CarmaCars accounts are now one",
+      "preheader": "Sign in with {{sign_in_emails}} or your phone number.",
+      "sample_subject": "Your CarmaCars accounts are now one",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "sign_in_emails",
+          "type": "string",
+          "sample": "sam@example.com or sam.work@example.com"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/renter_accounts_merged.html",
+      "template_text": "templates/renter_accounts_merged.txt"
     },
     {
       "code": "renter_agreement_ready",
@@ -1314,6 +1384,11 @@
           "note": "Booking lines in order, HST last. Each item: label, amount."
         },
         {
+          "name": "needed_line",
+          "type": "string",
+          "sample": "We need each driver's licence photos and a selfie, plus proof of coverage,"
+        },
+        {
           "name": "needs_verification",
           "type": "boolean",
           "sample": true
@@ -1414,7 +1489,7 @@
       "code": "renter_booking_reminder",
       "audience": "renter",
       "category": "transactional",
-      "trigger": "Reminders job (every 5 minutes): booking status is confirmed and the pickup time is 24 hours away. Sent once per pickup time. Not sent when the pickup is already inside the 2 hours of renter_pickup_soon (migration 0430). (Message template T5.)",
+      "trigger": "Reminders job (every 5 minutes): booking status is confirmed and the pickup time is 24 hours away. Sent once per pickup time. Not sent when the pickup is already inside the 2 hours of renter_pickup_soon (migration 0430), nor when the booking confirmation, which gives the date and time, went out within the reminder gap before this reminder would be due (Program settings, 12 hours by default, migration 0900). (Message template T5.)",
       "timing": "24 hours before pickup",
       "digest": false,
       "source": "T5",
@@ -2836,6 +2911,128 @@
       ],
       "template_html": "templates/renter_coverage_needed.html",
       "template_text": "templates/renter_coverage_needed.txt"
+    },
+    {
+      "code": "renter_coverage_switched",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "Staff (an Admin, customer service, sales or fleet) switch a confirmed or active booking between the renter's credit card rental coverage and the CarmaCars Protection Plan. Sent once the switch is saved, with what changed, the new price and what the renter does next. A booking that is still an offer gets the revised offer email instead.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <bookings@carmacars.ca>",
+      "reply_to": "bookings@carmacars.ca",
+      "subject": "Your coverage on booking {{booking_number}} changed",
+      "preheader": "Here is the new price and what to do next.",
+      "sample_subject": "Your coverage on booking CC-10482 changed",
+      "variables": [
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "change_rows",
+          "type": "list",
+          "sample": [
+            {
+              "label": "Coverage",
+              "before": "Rental coverage on your credit card",
+              "after": "The CarmaCars Protection Plan"
+            },
+            {
+              "label": "Total with HST",
+              "before": "$468.95",
+              "after": "$581.95"
+            }
+          ],
+          "fields": [
+            "label",
+            "before",
+            "after"
+          ]
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "coverage_now",
+          "type": "string",
+          "sample": "The CarmaCars Protection Plan"
+        },
+        {
+          "name": "coverage_title",
+          "type": "string",
+          "sample": "Your booking now has the Protection Plan"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "has_reason",
+          "type": "boolean",
+          "sample": true
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "money_text",
+          "type": "string",
+          "sample": "You have $113.00 more to pay. We will send you a secure payment link, or you can pay from your booking page."
+        },
+        {
+          "name": "next_step",
+          "type": "string",
+          "sample": "You do not need to send a card coverage document any more. We confirm the Protection Plan for you before pickup."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "switch_reason",
+          "type": "string",
+          "sample": "Your credit card does not include rental coverage for this car."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/renter_coverage_switched.html",
+      "template_text": "templates/renter_coverage_switched.txt"
     },
     {
       "code": "renter_damage_found",
@@ -4486,14 +4683,14 @@
       "code": "renter_identity_needed",
       "audience": "renter",
       "category": "transactional",
-      "trigger": "Booking status becomes confirmed while any driver has identity_status other than verified or the booking has no confirmed coverage option (skipped when renter_booking_confirmed already carried the notice in the same minute). Sent again 48 hours before pickup if anything is still missing.",
-      "timing": "On confirmation, then 48 hours before pickup if still missing",
+      "trigger": "Reminders job: 48 hours before pickup, a confirmed booking still needs something the renter sends (a driver's licence photos or selfie not uploaded or rejected, or the proof of coverage not sent). Nothing is sent for what is already uploaded and waiting for our review, nor when the confirmation that already listed it went out within the reminder gap (Program settings, 12 hours by default, migration 0900). The subject and the copy name only what is missing.",
+      "timing": "48 hours before pickup if still missing",
       "digest": false,
       "from": "CarmaCars <bookings@carmacars.ca>",
       "reply_to": "bookings@carmacars.ca",
-      "subject": "Upload your licence and coverage proof for {{pickup_date}}",
+      "subject": "{{needed_title}} for {{pickup_date}}",
       "preheader": "We need them by {{verify_by}}. No car is released without them.",
-      "sample_subject": "Upload your licence and coverage proof for Fri, Oct 23, 2026",
+      "sample_subject": "Send your proof of coverage for Fri, Oct 23, 2026",
       "variables": [
         {
           "name": "booking_number",
@@ -4543,9 +4740,24 @@
           "note": "The minimum age of every driver (min_renter_age)."
         },
         {
-          "name": "missing_items",
+          "name": "needed_items",
           "type": "string",
-          "sample": "licence photos, selfie, proof of coverage"
+          "sample": "proof of coverage"
+        },
+        {
+          "name": "needed_title",
+          "type": "string",
+          "sample": "Send your proof of coverage"
+        },
+        {
+          "name": "needs_coverage",
+          "type": "boolean",
+          "sample": true
+        },
+        {
+          "name": "needs_licence",
+          "type": "boolean",
+          "sample": false
         },
         {
           "name": "opening_hours",
@@ -6444,7 +6656,7 @@
       "code": "renter_recovery_pay",
       "audience": "renter",
       "category": "transactional",
-      "trigger": "Booking recovery job (every 15 minutes): the renter left the pay page of their approved booking (pending_payment) without paying, recovery_pay_minutes ago (Program settings, 60 by default). At most recovery_max_emails (2), the second after recovery_second_hours (24). Not sent outside the hours set for these emails, to a renter who unsubscribed or turned these reminders off, or while a staff member is already handling the renter. Stops once they pay or the booking leaves pending_payment.",
+      "trigger": "Booking recovery job (every 15 minutes): the renter left the pay page of their approved booking (pending_payment) without paying, recovery_pay_minutes ago (Program settings, 60 by default). At most recovery_max_emails (2), the second after recovery_second_hours (24). Not sent outside the hours set for these emails, to a renter who unsubscribed or turned these reminders off, while a staff member is already handling the renter, while a pay link staff sent is still open, or while a payment is pending (migration 0900). Stops once they pay or the booking leaves pending_payment.",
       "timing": "An hour after the pay page was left",
       "digest": false,
       "from": "CarmaCars <bookings@carmacars.ca>",
@@ -11948,13 +12160,13 @@
       "code": "owner_invoice_voided",
       "audience": "owner",
       "category": "transactional",
-      "trigger": "An Admin voids an issued owner invoice with a reason (nothing was paid on it). Its scheduled debit is cancelled. When a corrected invoice replaces it, that invoice has its own email once it is issued.",
-      "timing": "Immediate",
+      "trigger": "An Admin voids an issued owner invoice with a reason (nothing was paid on it). Its scheduled debit is cancelled. When a corrected invoice replaces it, that invoice has its own email once it is issued. One email per owner per day (migration 0900): the email waits a short while (Program settings, 30 minutes by default) and every invoice voided for the same owner meanwhile is listed in it; once the day's email went, the next voids wait for the next morning's email.",
+      "timing": "Within 30 minutes, one email per owner per day",
       "digest": false,
       "from": "CarmaCars <billing@carmacars.ca>",
       "reply_to": "billing@carmacars.ca",
-      "subject": "Invoice {{invoice_number}} is cancelled",
-      "preheader": "{{void_reason}}",
+      "subject": "{{voided_title}}",
+      "preheader": "{{voided_preheader}}",
       "sample_subject": "Invoice INV-1046 is cancelled",
       "variables": [
         {
@@ -11981,6 +12193,11 @@
           "sample": true
         },
         {
+          "name": "has_several",
+          "type": "boolean",
+          "sample": false
+        },
+        {
           "name": "instagram_url",
           "type": "url",
           "sample": "https://instagram.com/carmacars.ca",
@@ -11995,6 +12212,26 @@
           "name": "invoice_total",
           "type": "string",
           "sample": "$904.00"
+        },
+        {
+          "name": "invoices",
+          "type": "list",
+          "sample": [
+            {
+              "invoice_number": "INV-1046",
+              "invoice_total": "$904.00",
+              "vehicle_name": "2023 Toyota RAV4 XLE",
+              "void_reason": "The first and last month amount we agreed is $800.00, not $904.00.",
+              "replacement_number": "INV-1053"
+            }
+          ],
+          "fields": [
+            "invoice_number",
+            "invoice_total",
+            "vehicle_name",
+            "void_reason",
+            "replacement_number"
+          ]
         },
         {
           "name": "opening_hours",
@@ -12041,6 +12278,31 @@
           "name": "void_reason",
           "type": "string",
           "sample": "The first and last month amount we agreed is $800.00, not $904.00."
+        },
+        {
+          "name": "voided_heading",
+          "type": "string",
+          "sample": "You do not need to pay invoice INV-1046"
+        },
+        {
+          "name": "voided_lead",
+          "type": "string",
+          "sample": "we cancelled this invoice for your 2023 Toyota RAV4 XLE."
+        },
+        {
+          "name": "voided_preheader",
+          "type": "string",
+          "sample": "The first and last month amount we agreed is $800.00, not $904.00."
+        },
+        {
+          "name": "voided_ref",
+          "type": "string",
+          "sample": "Invoice INV-1046"
+        },
+        {
+          "name": "voided_title",
+          "type": "string",
+          "sample": "Invoice INV-1046 is cancelled"
         }
       ],
       "template_html": "templates/owner_invoice_voided.html",
@@ -14017,7 +14279,7 @@
       "code": "owner_vehicle_listed",
       "audience": "owner",
       "category": "transactional",
-      "trigger": "Vehicle status changes from ready_to_list to available and its listing is published (staff approved the listing).",
+      "trigger": "Vehicle status changes from ready_to_list to available and its listing is published (staff approved the listing). Never for a partner's car (a partner fleet such as 01 Motors, imported with its photos) and never queued without an owner address to send to (migration 0900).",
       "timing": "Immediate",
       "digest": false,
       "from": "CarmaCars <owners@carmacars.ca>",

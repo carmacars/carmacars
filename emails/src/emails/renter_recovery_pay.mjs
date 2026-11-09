@@ -8,7 +8,7 @@ export default {
   category: 'transactional',
   from: FROM.bookings,
   digest: false,
-  trigger: 'Booking recovery job (every 15 minutes): the renter left the pay page of their approved booking (pending_payment) without paying, recovery_pay_minutes ago (Program settings, 60 by default). At most recovery_max_emails (2), the second after recovery_second_hours (24). Not sent outside the hours set for these emails, to a renter who unsubscribed or turned these reminders off, or while a staff member is already handling the renter. Stops once they pay or the booking leaves pending_payment.',
+  trigger: 'Booking recovery job (every 15 minutes): the renter left the pay page of their approved booking (pending_payment) without paying, recovery_pay_minutes ago (Program settings, 60 by default). At most recovery_max_emails (2), the second after recovery_second_hours (24). Not sent outside the hours set for these emails, to a renter who unsubscribed or turned these reminders off, while a staff member is already handling the renter, while a pay link staff sent is still open, or while a payment is pending (migration 0900). Stops once they pay or the booking leaves pending_payment.',
   timing: 'An hour after the pay page was left',
   subject: 'One step left to book the {{vehicle_name}}',
   preheader: 'Your card is not charged until you finish. Need help? Reply to this email.',

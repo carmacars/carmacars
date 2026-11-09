@@ -7,7 +7,7 @@ export default {
   category: 'transactional',
   from: FROM.owners,
   digest: false,
-  trigger: 'Vehicle status changes from ready_to_list to available and its listing is published (staff approved the listing).',
+  trigger: 'Vehicle status changes from ready_to_list to available and its listing is published (staff approved the listing). Never for a partner\'s car (a partner fleet such as 01 Motors, imported with its photos) and never queued without an owner address to send to (migration 0900).',
   timing: 'Immediate',
   subject: 'Your {{vehicle_name}} is live and open for bookings',
   preheader: 'Approved and listed on carmacars.ca. Check the rates and block any dates you need.',

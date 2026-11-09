@@ -352,3 +352,8 @@
 .ad-taxtotal .field { margin: 0; min-width: 0; }
 /* r33 (0700): extra photos, any number */
 .lc__extras { border-style: solid; border-width: 1px; }
+/* 0910: the dashboard photos of check-in and check-out side by side */
+.hr-dashes { display: grid; gap: var(--s-3); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.hr-dash { margin: 0; display: flex; flex-direction: column; gap: var(--s-1); min-width: 0; }
+.hr-dash img { width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; border-radius: var(--r-2, 6px); background: var(--surface-2, #eee); display: block; }
+.ho-reading { border: 1px solid var(--line, #ddd); border-radius: var(--r-2, 6px); padding: var(--s-3); min-width: 0; }

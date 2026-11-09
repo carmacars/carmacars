@@ -2,9 +2,9 @@
 // button on their booking. Everything is optional; what the renter gives is kept as renter-provided until staff confirm.
 // No imports: the page, the upload route and the unit test share it.
 
-/** The fuel gauge as the renter reads it, stored as a percentage like the check-out report. */
+/** The fuel gauge as the renter reads it, in eighths (0910), stored as a percentage like the check-out report. */
 export const FUEL_LEVELS: ReadonlyArray<readonly [string, number]> = [
-  ['Full', 100], ['3/4', 75], ['1/2', 50], ['1/4', 25], ['Empty', 0]
+  ['Full', 100], ['7/8', 88], ['3/4', 75], ['5/8', 63], ['1/2', 50], ['3/8', 38], ['1/4', 25], ['1/8', 13], ['Empty', 0]
 ];
 
 export const MAX_PHOTOS = 30;
@@ -16,7 +16,9 @@ export function claimPhotoKey(bookingId: string, id: string, png: boolean): stri
   return `bookings/${bookingId}/return-claim/${id}.${png ? 'png' : 'jpg'}`;
 }
 
-export interface ClaimInput { returned_at?: string; odometer_km?: string; fuel_pct?: string; note?: string; photos?: Array<{ bucket: string; path: string; angle?: string | null }> }
+export interface ClaimInput { returned_at?: string; odometer_km?: string; fuel_pct?: string; note?: string; photos?: Array<{ bucket: string; path: string; angle?: string | null }>;
+  /** 0910: how the odometer and fuel were read (from the dashboard photo, confirmed, or typed) and the selfie's capture details */
+  reading?: Record<string, unknown> | null }
 
 /** The form's values as the database's payload, or the first problem in words the renter reads. */
 export function claimPayload(v: ClaimInput, now: Date = new Date()): { ok: true; payload: Record<string, unknown> } | { ok: false; message: string } {
@@ -42,6 +44,7 @@ export function claimPayload(v: ClaimInput, now: Date = new Date()): { ok: true;
   const photos = v.photos ?? [];
   if (photos.length > MAX_PHOTOS) return { ok: false, message: `Up to ${MAX_PHOTOS} photos.` };
   out.photos = photos;
+  if (v.reading && typeof v.reading === 'object') out.reading = v.reading;
   return { ok: true, payload: out };
 }
 

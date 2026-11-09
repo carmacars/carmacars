@@ -68,7 +68,7 @@ test('Cloudflare figures: requests and CPU of every Worker, neurons, R2; a part 
 });
 
 // 0320: the banner speaks in money; the email line says whether Cloudflare sends and links to the steps
-import { bannerLine, bannerTone, cfEmailSentence, resendDay, CF_EMAIL_STEPS } from './model.ts';
+import { bannerLine, bannerTone, cfEmailSentence, resendDay, CF_EMAIL_STEPS, emailBudgetLine } from './model.ts';
 test('banner: red only when the database says so; the words name the projected cost', () => {
   const r = { service: 'workers_cpu', label: 'Website CPU time (Cloudflare Worker)', share_bps: 12300, level: 100 as const, used_text: '36,899,350 CPU ms', included_text: '30,000,000 CPU ms',
     overage_usd: 0.14, resets_at: null, tone: 'note' as const, projected_usd: 0.88 };
@@ -91,4 +91,14 @@ test('the quiet note is short', async () => {
   const { noteLine } = await import('./model.ts');
   assert.equal(noteLine({ service: 'r2_storage', label: 'Photo and document storage (Cloudflare R2)', share_bps: 10300, level: 100, used_text: '', included_text: '', overage_usd: 0.005, resets_at: null, projected_usd: 0.01 }),
     'Photo and document storage 103% used, about US$0.01 this month');
+});
+
+// r35 (0900): the day's emails in one plain line, with why the cap is that number (the pace read's numbers only)
+test('email budget: only Resend while Cloudflare is not set up, and what Cloudflare would add', () => {
+  assert.equal(emailBudgetLine({ used: 98, cap: 100, cf_state: 'absent', cf_counted: false, cf_budget: 200, resend_budget: 100 }),
+    '98 of 100 today: only Resend is sending (Cloudflare Email Service is not set up, which adds 200)');
+  assert.equal(emailBudgetLine({ used: 13, cap: 300, cf_state: 'ok', cf_counted: true, cf_budget: 200, resend_budget: 100 }), '13 of 300 today (Cloudflare 200 + Resend 100)');
+  assert.match(emailBudgetLine({ used: 5, cap: 80, cf_state: 'off', cf_counted: false, cf_budget: 150, resend_budget: 80 }), /turned off in Program settings, which adds 150\)$/);
+  assert.match(emailBudgetLine({ used: 5, cap: 80, cf_state: 'failing', cf_counted: false, cf_budget: 150, resend_budget: 80 }), /refused the last emails/);
+  assert.equal(emailBudgetLine({ used: 1, cap: 2 }), '1 of 2 today');
 });

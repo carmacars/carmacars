@@ -21,10 +21,10 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>210 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>83</span></a><a href="#owner">Owner <span>47</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>19</span></a><a href="#staff_va_finance">Staff: finance <span>9</span></a><a href="#staff_va_fleet">Staff: fleet <span>10</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>5</span></a><a href="#staff_field">Staff: field <span>5</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>14</span></a><a href="#partner">Partner (body shop, tow truck, storage) <span>1</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>211 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>84</span></a><a href="#owner">Owner <span>47</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>19</span></a><a href="#staff_va_finance">Staff: finance <span>9</span></a><a href="#staff_va_fleet">Staff: fleet <span>10</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>5</span></a><a href="#staff_field">Staff: field <span>5</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>14</span></a><a href="#partner">Partner (body shop, tow truck, storage) <span>1</span></a></nav>
 <main>
-<h2 id="renter">Renter (83)</h2>
+<h2 id="renter">Renter (84)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/account_password_reset.html"><img loading="lazy" src="../shots/account_password_reset.desktop.png" alt="Screenshot of account_password_reset"></a><div class="b">
 <div class="code">account_password_reset</div><div class="sub">Reset your CarmaCars password</div>
@@ -61,6 +61,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">The person confirms their email address for the first time (the confirmation link from the sign-in service, or a password link for an address already on file from a booking request) and has the renter role only. Sent once per account. Accounts already confirmed before October 16, 2026 do not get it.</div>
 <div class="ln"><a href="../dist/renter_account_created.html">HTML</a><a href="../dist/renter_account_created.txt">Text</a><a href="../shots/renter_account_created.desktop.png">Desktop</a><a href="../shots/renter_account_created.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_accounts_merged.html"><img loading="lazy" src="../shots/renter_accounts_merged.desktop.png" alt="Screenshot of renter_accounts_merged"></a><div class="b">
+<div class="code">renter_accounts_merged</div><div class="sub">Your CarmaCars accounts are now one</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Two renter records of the same person were merged (automatically, or by staff with Merge into this record). Once per merge: the renter learns they can sign in with any of their emails or their phone number. Nothing else is sent about a merge.</div>
+<div class="ln"><a href="../dist/renter_accounts_merged.html">HTML</a><a href="../dist/renter_accounts_merged.txt">Text</a><a href="../shots/renter_accounts_merged.desktop.png">Desktop</a><a href="../shots/renter_accounts_merged.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_agreement_ready.html"><img loading="lazy" src="../shots/renter_agreement_ready.desktop.png" alt="Screenshot of renter_agreement_ready"></a><div class="b">
 <div class="code">renter_agreement_ready</div><div class="sub">Sign your rental agreement for booking CC-10482</div>
@@ -107,7 +113,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="c"><a class="th" href="../dist/renter_booking_reminder.html"><img loading="lazy" src="../shots/renter_booking_reminder.desktop.png" alt="Screenshot of renter_booking_reminder"></a><div class="b">
 <div class="code">renter_booking_reminder</div><div class="sub">Tomorrow: your 2024 Honda Civic Sport at 10:00 am</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">Reminders job (every 5 minutes): booking status is confirmed and the pickup time is 24 hours away. Sent once per pickup time. Not sent when the pickup is already inside the 2 hours of renter_pickup_soon (migration 0430). (Message template T5.)</div>
+<div class="tr">Reminders job (every 5 minutes): booking status is confirmed and the pickup time is 24 hours away. Sent once per pickup time. Not sent when the pickup is already inside the 2 hours of renter_pickup_soon (migration 0430), nor when the booking confirmation, which gives the date and time, went out within the reminder gap before this reminder would be due (Program settings, 12 hours by default, migration 0900). (Message template T5.)</div>
 <div class="ln"><a href="../dist/renter_booking_reminder.html">HTML</a><a href="../dist/renter_booking_reminder.txt">Text</a><a href="../shots/renter_booking_reminder.desktop.png">Desktop</a><a href="../shots/renter_booking_reminder.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_breakdown_help.html"><img loading="lazy" src="../shots/renter_breakdown_help.desktop.png" alt="Screenshot of renter_breakdown_help"></a><div class="b">
@@ -187,6 +193,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">A confirmed booking whose Coverage Option is 1 (OPCF 27 on the renter's own policy) or 2 (credit card rental coverage) has no proof waiting for review and none confirmed: sent 48 hours before pickup and again 24 hours before pickup (app.job_coverage_reminders, every 15 minutes). Not sent while a proof is in review, nor for the Protection Plan. The 48-hour one is skipped while a driver's licence is also missing (renter_identity_needed then lists the proof too).</div>
 <div class="ln"><a href="../dist/renter_coverage_needed.html">HTML</a><a href="../dist/renter_coverage_needed.txt">Text</a><a href="../shots/renter_coverage_needed.desktop.png">Desktop</a><a href="../shots/renter_coverage_needed.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_coverage_switched.html"><img loading="lazy" src="../shots/renter_coverage_switched.desktop.png" alt="Screenshot of renter_coverage_switched"></a><div class="b">
+<div class="code">renter_coverage_switched</div><div class="sub">Your coverage on booking CC-10482 changed</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Staff (an Admin, customer service, sales or fleet) switch a confirmed or active booking between the renter's credit card rental coverage and the CarmaCars Protection Plan. Sent once the switch is saved, with what changed, the new price and what the renter does next. A booking that is still an offer gets the revised offer email instead.</div>
+<div class="ln"><a href="../dist/renter_coverage_switched.html">HTML</a><a href="../dist/renter_coverage_switched.txt">Text</a><a href="../shots/renter_coverage_switched.desktop.png">Desktop</a><a href="../shots/renter_coverage_switched.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_damage_found.html"><img loading="lazy" src="../shots/renter_damage_found.desktop.png" alt="Screenshot of renter_damage_found"></a><div class="b">
 <div class="code">renter_damage_found</div><div class="sub">Damage found on the 2024 Honda Civic Sport after your return</div>
@@ -279,9 +291,9 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/renter_identity_approved.html">HTML</a><a href="../dist/renter_identity_approved.txt">Text</a><a href="../shots/renter_identity_approved.desktop.png">Desktop</a><a href="../shots/renter_identity_approved.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_identity_needed.html"><img loading="lazy" src="../shots/renter_identity_needed.desktop.png" alt="Screenshot of renter_identity_needed"></a><div class="b">
-<div class="code">renter_identity_needed</div><div class="sub">Upload your licence and coverage proof for Fri, Oct 23, 2026</div>
+<div class="code">renter_identity_needed</div><div class="sub">Send your proof of coverage for Fri, Oct 23, 2026</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">Booking status becomes confirmed while any driver has identity_status other than verified or the booking has no confirmed coverage option (skipped when renter_booking_confirmed already carried the notice in the same minute). Sent again 48 hours before pickup if anything is still missing.</div>
+<div class="tr">Reminders job: 48 hours before pickup, a confirmed booking still needs something the renter sends (a driver's licence photos or selfie not uploaded or rejected, or the proof of coverage not sent). Nothing is sent for what is already uploaded and waiting for our review, nor when the confirmation that already listed it went out within the reminder gap (Program settings, 12 hours by default, migration 0900). The subject and the copy name only what is missing.</div>
 <div class="ln"><a href="../dist/renter_identity_needed.html">HTML</a><a href="../dist/renter_identity_needed.txt">Text</a><a href="../shots/renter_identity_needed.desktop.png">Desktop</a><a href="../shots/renter_identity_needed.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_identity_rejected.html"><img loading="lazy" src="../shots/renter_identity_rejected.desktop.png" alt="Screenshot of renter_identity_rejected"></a><div class="b">
@@ -383,7 +395,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="c"><a class="th" href="../dist/renter_recovery_pay.html"><img loading="lazy" src="../shots/renter_recovery_pay.desktop.png" alt="Screenshot of renter_recovery_pay"></a><div class="b">
 <div class="code">renter_recovery_pay</div><div class="sub">One step left to book the 2024 Honda Civic Sport</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">Booking recovery job (every 15 minutes): the renter left the pay page of their approved booking (pending_payment) without paying, recovery_pay_minutes ago (Program settings, 60 by default). At most recovery_max_emails (2), the second after recovery_second_hours (24). Not sent outside the hours set for these emails, to a renter who unsubscribed or turned these reminders off, or while a staff member is already handling the renter. Stops once they pay or the booking leaves pending_payment.</div>
+<div class="tr">Booking recovery job (every 15 minutes): the renter left the pay page of their approved booking (pending_payment) without paying, recovery_pay_minutes ago (Program settings, 60 by default). At most recovery_max_emails (2), the second after recovery_second_hours (24). Not sent outside the hours set for these emails, to a renter who unsubscribed or turned these reminders off, while a staff member is already handling the renter, while a pay link staff sent is still open, or while a payment is pending (migration 0900). Stops once they pay or the booking leaves pending_payment.</div>
 <div class="ln"><a href="../dist/renter_recovery_pay.html">HTML</a><a href="../dist/renter_recovery_pay.txt">Text</a><a href="../shots/renter_recovery_pay.desktop.png">Desktop</a><a href="../shots/renter_recovery_pay.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_recovery_request.html"><img loading="lazy" src="../shots/renter_recovery_request.desktop.png" alt="Screenshot of renter_recovery_request"></a><div class="b">
@@ -704,7 +716,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="c"><a class="th" href="../dist/owner_invoice_voided.html"><img loading="lazy" src="../shots/owner_invoice_voided.desktop.png" alt="Screenshot of owner_invoice_voided"></a><div class="b">
 <div class="code">owner_invoice_voided</div><div class="sub">Invoice INV-1046 is cancelled</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">An Admin voids an issued owner invoice with a reason (nothing was paid on it). Its scheduled debit is cancelled. When a corrected invoice replaces it, that invoice has its own email once it is issued.</div>
+<div class="tr">An Admin voids an issued owner invoice with a reason (nothing was paid on it). Its scheduled debit is cancelled. When a corrected invoice replaces it, that invoice has its own email once it is issued. One email per owner per day (migration 0900): the email waits a short while (Program settings, 30 minutes by default) and every invoice voided for the same owner meanwhile is listed in it; once the day's email went, the next voids wait for the next morning's email.</div>
 <div class="ln"><a href="../dist/owner_invoice_voided.html">HTML</a><a href="../dist/owner_invoice_voided.txt">Text</a><a href="../shots/owner_invoice_voided.desktop.png">Desktop</a><a href="../shots/owner_invoice_voided.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/owner_mode_change_notice.html"><img loading="lazy" src="../shots/owner_mode_change_notice.desktop.png" alt="Screenshot of owner_mode_change_notice"></a><div class="b">
@@ -806,7 +818,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="c"><a class="th" href="../dist/owner_vehicle_listed.html"><img loading="lazy" src="../shots/owner_vehicle_listed.desktop.png" alt="Screenshot of owner_vehicle_listed"></a><div class="b">
 <div class="code">owner_vehicle_listed</div><div class="sub">Your 2023 Toyota RAV4 XLE is live and open for bookings</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">Vehicle status changes from ready_to_list to available and its listing is published (staff approved the listing).</div>
+<div class="tr">Vehicle status changes from ready_to_list to available and its listing is published (staff approved the listing). Never for a partner's car (a partner fleet such as 01 Motors, imported with its photos) and never queued without an owner address to send to (migration 0900).</div>
 <div class="ln"><a href="../dist/owner_vehicle_listed.html">HTML</a><a href="../dist/owner_vehicle_listed.txt">Text</a><a href="../shots/owner_vehicle_listed.desktop.png">Desktop</a><a href="../shots/owner_vehicle_listed.phone.png">Phone</a></div>
 </div></div>
 </div>

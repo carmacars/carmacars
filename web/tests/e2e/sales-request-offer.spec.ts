@@ -72,7 +72,7 @@ const why = (p: Page) => p.getByTestId('claim-gate-review-why');
 
 // 2026-10-28, the owner: an in-person Sales person opening a website request "is unable to click any buttons at all", cannot
 // see the renter's phone or email to call them, and cannot send an offer. At 375 and 1440: an in-person Sales assistant with a
-// $0 single limit sees the renter's phone (tel:) and email (mailto:) on the request; during the Sales wait the buttons are off
+// $0 single limit sees the renter's phone (masked for Sales since r35, with Call and Text) and email (mailto:) on the request; during the Sales wait the buttons are off
 // and say why and when they come on; they come on by themselves at that time, the first touch takes the request, and the
 // offer at the rate sheet price goes out.
 test('in-person Sales: the renter contact, the wait explained, and the offer sent when it opens', async ({ browser }) => {
@@ -92,8 +92,10 @@ test('in-person Sales: the renter contact, the wait explained, and the offer sen
   const errors = watch(s);
   await signIn(s, sales.email, '/staff');
   await s.goto(`/staff/bookings/${r.booking_number}`, { waitUntil: 'networkidle' });
-  await expect(s.getByTestId('request-renter-phone')).toHaveAttribute('href', 'tel:+16475550123');
-  await expect(s.getByTestId('request-renter-phone')).toHaveText('+16475550123');
+  // r35 (0970): the number is hidden for Sales, with the platform Call and Text only (no tel: link)
+  await expect(s.getByTestId('request-renter-phone-masked')).toContainText('(647) \u2022\u2022\u2022-\u2022\u202223');
+  await expect(s.getByTestId('request-renter-phone-masked').locator('a[href^="tel:"], a[href^="sms:"]')).toHaveCount(0);
+  await expect(s.getByTestId('request-renter-phone-call')).toBeVisible();
   await expect(s.getByTestId('request-renter-email')).toHaveAttribute('href', `mailto:${renter.email}`);
   await expect(gate(s)).toHaveAttribute('data-locked', 'true', { timeout: 30_000 });
   await expect(why(s)).toContainText(/goes to customer service first\. It opens to you at \d{1,2}:\d{2} [ap]m if nobody has answered it: the buttons come on by themselves then\./);

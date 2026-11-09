@@ -33,7 +33,7 @@ export function CallerPopup({ portal }: { portal: Portal }) {
   const load = useCallback(async () => {
     if (stopped.current) return;
     try { setCalls((await phoneRead<CallerLive>('caller_live')).calls); }
-    catch (e) { if (e instanceof Error && /Admins and customer service|Sign in|Unknown read/.test(e.message)) stopped.current = true; }
+    catch (e) { if (e instanceof Error && /Admins, customer service and Fleet|Admins and customer service|Sign in|Unknown read/.test(e.message)) stopped.current = true; }
   }, []);
   useEffect(() => {
     const first = setTimeout(() => void load(), 0);
@@ -61,7 +61,7 @@ function CallCard({ c, portal, onClose }: { c: LiveCall; portal: Portal; onClose
         <div>
           <p className="small cp-state"><span className="cp-dot" aria-hidden="true" />{callState(c)} · <span suppressHydrationWarning>{clock(c.at)}</span></p>
           <h2 className="cp-title" data-testid="caller-name">{callerTitle(c)}</h2>
-          <p className="small muted">{c.display}{c.kind !== 'unknown' && c.kind !== 'renter' ? ` · ${KIND_WORDS[c.kind]}` : ''}{r?.is_blocked ? ' · Blocked' : ''}</p>
+          <p className="small muted">{c.display}{c.kind !== 'unknown' && c.kind !== 'renter' ? ` · ${KIND_WORDS[c.kind]}` : ''}{r?.is_blocked ? ' · Blocked' : ''}{c.lane === 'fleet' ? ' · Fleet: pickup, return or car on rent' : ''}</p>
         </div>
         <button type="button" className="cp-x" aria-label={`Close the call from ${callerTitle(c)}`} onClick={onClose} data-testid="caller-close">×</button>
       </header>

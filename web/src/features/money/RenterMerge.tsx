@@ -2,6 +2,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { renterMerge } from '@/server/actions/supply';
+import { leadAct } from '@/server/actions/sales-leads';
 
 export type DuplicateRow = { id: string; legal_name: string; email: string | null; mobile: string | null; date_of_birth: string | null; bookings: number; why: string };
 
@@ -23,6 +24,35 @@ export function RenterMerge({ renterId, name, rows }: { renterId: string; name: 
             <button className="btn btn--ghost btn--sm" type="button" disabled={pending} data-testid="renter-merge-go"
               onClick={() => { if (!window.confirm(`Merge ${r.legal_name} (${r.bookings} booking${r.bookings === 1 ? '' : 's'}) into ${name}? This cannot be undone from here.`)) return;
                 start(async () => { const x = await renterMerge(renterId, r.id); setMsg(x.ok ? { ok: true, text: `Merged.${x.data.account_moved ? ' Their sign-in moved here too.' : ''}` } : { ok: false, text: x.message }); if (x.ok) router.refresh(); }); }}>Merge into this record</button>
+          </li>))}
+      </ul>
+      {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'}><span>{msg.text}</span></p>}
+    </section>
+  );
+}
+
+export type MergeRow = { id: string; keep_id: string; merged_id: string; auto: boolean; reason: string | null; keep_name: string | null; merged_name: string | null;
+  by: string | null; aliases: string[]; moved: number; at: string; undone_at: string | null };
+
+/** The merges of this renter (0955), automatic or by staff, each with what moved and the emails that now sign in here; an
+ *  Admin can undo one: everything moved goes back and both records are as they were. */
+export function RenterMerges({ rows, admin, base = '/admin/renters' }: { rows: MergeRow[]; admin: boolean; base?: string }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  if (!rows.length) return null;
+  const when = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso));
+  return (
+    <section className="pt-card ad-card stack" aria-labelledby="rms-h" data-testid="renter-merges">
+      <h2 className="d4" id="rms-h">Merged records ({rows.length})</h2>
+      <ul className="stack" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+        {rows.map((r) => (
+          <li key={r.id} className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap' }} data-testid="renter-merge-row">
+            <span className="small"><b>{r.merged_name ?? 'A record'}</b> into <a className="link" href={`${base}/${r.keep_id}`}>{r.keep_name ?? 'this record'}</a>, {when(r.at)}, {r.auto ? 'automatically (the same person)' : `by ${r.by ?? 'staff'}`}. {r.moved} item{r.moved === 1 ? '' : 's'} moved.
+              {r.aliases.length > 0 && <> Also signs in with {r.aliases.join(', ')}.</>}{r.undone_at && <> <b>Undone {when(r.undone_at)}.</b></>}</span>
+            {admin && !r.undone_at && <button className="btn btn--ghost btn--sm" type="button" disabled={pending} data-testid="renter-merge-undo"
+              onClick={() => { const reason = window.prompt('Undo this merge? Everything moved goes back to the other record. Why?'); if (reason === null) return;
+                start(async () => { const x = await leadAct('renter_merge_undo', { merge: r.id, reason }); setMsg(x.ok ? { ok: true, text: 'Undone: the two records are separate again.' } : { ok: false, text: x.message }); if (x.ok) router.refresh(); }); }}>Undo</button>}
           </li>))}
       </ul>
       {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'}><span>{msg.text}</span></p>}

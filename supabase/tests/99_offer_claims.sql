@@ -206,8 +206,8 @@ select test.mk_booking('OCL-9', 'OCLI', 'ocl_r', test.ocl_day(14), test.ocl_day(
 update bookings set requested_at = now() - interval '30 minutes' where id = test.oclb('OCL-9');
 select test.eq('in person: the Sales assistant is in person with a $0 single limit',
   (select sales_work_mode || '/' || single_limit_cents from staff_profiles where user_id = test.id('ocl_sales_ip')), 'in_person/0');
-select test.ok('in person: the renter''s email and mobile reach the Sales page',
-  (select x #>> '{renter,email}' = 'ocl_r@example.test' and x #>> '{renter,mobile}' = '647-555-0199'
+select test.ok('in person: the renter''s email and mobile reach the Sales page (the mobile masked for Sales, 0970)',
+  (select x #>> '{renter,email}' = 'ocl_r@example.test' and x #>> '{renter,mobile}' = '(647) ' || chr(8226) || chr(8226) || chr(8226) || '-' || chr(8226) || chr(8226) || '99'
      from (select app.door(test.id('ocl_sales_ip'), 'aal2', 'va_read', 'booking', jsonb_build_object('number', 'OCL-9', '_va', 'sales')) x) y));
 select test.eq('in person: an Admin opens it first and holds it', (test.ocl_claim('ocl_admin', 'OCL-9') #>> '{claim,mine}'), 'true');
 select test.ok('in person: Sales see who holds it and until when (no wait left)', (select s ->> 'sales_waits' = 'false' and s #>> '{claim,name}' = 'Ocl Admin' and (s #>> '{claim,until}') is not null

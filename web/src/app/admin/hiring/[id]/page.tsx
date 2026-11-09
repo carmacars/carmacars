@@ -142,7 +142,8 @@ export default async function Candidate({ params }: { params: Promise<{ id: stri
           <ul className="cr-guide">{(x.role.call_guide.questions ?? []).map(([q, good]) => <li key={q}>{q} <span className="muted small">Good: {good}</span></li>)}</ul>
           {x.role.test_task && <p className="small"><b>The paid test:</b> {x.role.test_task}</p>}
         </Card>
-        {(['interviewed', 'booked', 'invited', 'below_bar'].includes(a.status) || onboarding?.onboarding) && <Card title={onboarding?.onboarding ? 'Onboarding' : 'Hire'} testId="cand-hire">
+        {/* r35 (0970): one-step Hire from any stage, a referred candidate too (into the role chosen in the form; no booking link) */}
+        {((a.status !== 'hired' && !a.purged) || onboarding?.onboarding) && <Card title={onboarding?.onboarding ? 'Onboarding' : 'Hire'} testId="cand-hire">
           <Hire id={id} name={a.full_name} status={onboarding} />
         </Card>}
         {gate && gate.sections > 0 && <AcademyGateCard g={gate} refresh={refresh} link />}

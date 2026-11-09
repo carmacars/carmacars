@@ -7,6 +7,7 @@ import { FieldJobsBoard, type Board } from '@/features/va/FieldJobs';
 import type { CalVehicle } from '@/features/va/carboard';
 import { requestNow } from '@/features/va/lanes';
 import { carPhotos } from '@/server/car-photos';
+import Link from '@/components/Link';
 import { PrepPanel, WorkListsPanel, type PrepList, type WorkLists } from '@/features/field-portal/FleetPanels';
 
 export const dynamic = 'force-dynamic';
@@ -21,10 +22,19 @@ export default async function Fleet() {
   if (me && (await rolesOf(me.id)).admin) redirect('/admin/field-jobs');
   const { user, aal, read } = await vaPage('/staff/fleet', ['fleet']);
   const now = requestNow();
-  const [b, cal] = await Promise.all([door<Board>(user.id, 'ops_read', 'field_board', {}, aal),
-    read<{ vehicles: CalVehicle[] }>('calendar', { from: new Date(now - 86_400_000).toISOString(), to: new Date(now + 2 * 86_400_000).toISOString() }).then((c) => c.vehicles).catch(() => [] as CalVehicle[])]);
+  const [b, cal, past] = await Promise.all([door<Board>(user.id, 'ops_read', 'field_board', {}, aal),
+    read<{ vehicles: CalVehicle[] }>('calendar', { from: new Date(now - 86_400_000).toISOString(), to: new Date(now + 2 * 86_400_000).toISOString() }).then((c) => c.vehicles).catch(() => [] as CalVehicle[]),
+    // 0910: trips still open after their return time
+    door<{ rows: unknown[] }>(user.id, 'ops_read', 'past_trips', {}, aal).then((x) => x.rows.length).catch(() => 0)]);
   const photos = await carPhotos([...b.unscheduled, ...b.jobs]);
   // r35 part X (0930): each person's list of the day with its completion, and the onboarding prep
   const [wl, prep] = await Promise.all([door<WorkLists>(user.id, 'ops_read', 'field_work_lists', {}, aal).catch(() => null), door<PrepList>(user.id, 'ops_read', 'field_prep', {}, aal).catch(() => null)]);
-  return <>{wl && <WorkListsPanel w={wl} />}<FieldJobsBoard b={b} cal={cal} now={now} photos={photos} base="/staff" />{prep && <PrepPanel p={prep} />}</>;
+  return (
+    <>
+      {past > 0 && <p className="alert alert--warn" role="status" data-testid="past-trips-banner"><span>{past} {past === 1 ? 'trip is' : 'trips are'} still open after the return time. <Link prefetch={false} className="link" href="/staff/past-trips">Close past trips</Link></span></p>}
+      {wl && <WorkListsPanel w={wl} />}
+      <FieldJobsBoard b={b} cal={cal} now={now} photos={photos} base="/staff" />
+      {prep && <PrepPanel p={prep} />}
+    </>
+  );
 }

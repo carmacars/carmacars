@@ -34,8 +34,10 @@ export function OfficialForm({ f, templateHref, docBase }: { f: Official; templa
       <section className="pt-card stack" aria-labelledby="of-what"><h2 className="d4" id="of-what">{staff ? 'The form, filled from the owner\'s records' : 'Your form, filled from your records'}</h2>
         {f.missing.length > 0 && <p className="alert alert--error" role="alert"><span>Still missing: {(staff ? f.missing : readableMissing(f.missing)).join(', ')}. Ask us to add it before you print it.</span></p>}
         <p className="small">This is the official ServiceOntario form, exactly as ServiceOntario publishes it. Only its empty text boxes are filled in, from your application and your vehicle.</p>
-        <p className="small" data-testid="official-ink"><strong>Print it and sign it in ink.</strong> It is not signed on screen. Tick its boxes and sign it by hand, at the registry office or before you go, as we tell you.</p>
-        <div className="row"><button type="button" className="btn btn--primary" disabled={busy} onClick={download} data-testid="official-download">{busy ? 'Preparing' : 'Download the filled form'}</button>
+        {staff
+          ? <p className="small" data-testid="official-ink"><strong>Print ready, with no signature on it.</strong> The owner&apos;s on-screen signature is kept beside the form, never on it. Print this form for the registry: the owner ticks its boxes and signs it in ink there.</p>
+          : <p className="small" data-testid="official-ink"><strong>Sign it on screen. Print it and sign it in ink.</strong> Your on-screen signature is kept with us as your agreement to the values; it is never put on the form. Tick its boxes and sign the printed form by hand, at the registry office or before you go, as we tell you.</p>}
+        <div className="row"><button type="button" className="btn btn--primary" disabled={busy} onClick={download} data-testid="official-download">{busy ? 'Preparing' : staff ? 'Download the print-ready form' : 'Download the filled form'}</button>
           {signed && f.signed_document_id && <a className="btn btn--ghost" href={`${docBase ?? '/owner/documents'}/${f.signed_document_id}`} data-testid="official-signed-copy">Open the signed copy</a>}</div>
       </section>
       {signed && <p className="small" data-testid="official-signed">{f.status === 'filed' ? 'Filed at the registry.' : 'Signed. We file it at the registry with you.'}</p>}

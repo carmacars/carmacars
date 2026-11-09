@@ -124,3 +124,18 @@ export function cfEmailSentence(c: CfEmail | null | undefined, resend?: number |
   if (c.state === 'failing') return `Cloudflare Email Service refused the last emails${c.error ? ` (${c.error})` : ''}, so they went through Resend (${r} included).`;
   return `Cloudflare Email Service is not set up yet, so every email goes through Resend, which includes only ${r}. The one-time setup gives ${c.included.toLocaleString('en-US')} a month.`;
 }
+
+/** r35 (0900): the day's emails against the cap in one plain line, with why the cap is that number: Cloudflare's budget
+ * counts only while Cloudflare Email Service sends. Every number comes from the email pace read, none is written here. */
+export interface EmailBudget { used: number; cap: number; cf_state?: string | null; cf_counted?: boolean | null; cf_budget?: number | null; resend_budget?: number | null }
+export function emailBudgetLine(b: EmailBudget): string {
+  const n = (x: number) => x.toLocaleString('en-US');
+  const head = `${n(b.used)} of ${n(b.cap)} today`;
+  if (typeof b.cf_budget !== 'number' || typeof b.resend_budget !== 'number') return `${head}`;
+  if (b.cf_counted) return `${head} (Cloudflare ${n(b.cf_budget)} + Resend ${n(b.resend_budget)})`;
+  const why = b.cf_state === 'off' ? 'Cloudflare Email Service is turned off in Program settings'
+    : b.cf_state === 'failing' ? 'Cloudflare Email Service refused the last emails'
+      : 'Cloudflare Email Service is not set up';
+  return `${head}: only Resend is sending (${why}, which adds ${n(b.cf_budget)})`;
+}
+

@@ -26,8 +26,8 @@ export default {
       ['Security deposit', '{{deposit_amount}}, a hold on this card on the day of pickup'],
     ),
     when('needs_verification', [
-      notice('alert', 'One step left before pickup', 'We need each driver\'s licence photos and a selfie, plus proof of coverage, by {{verify_by}}. No car is released without them.'),
-      button('Upload licence and coverage', '@booking_verify'),
+      notice('alert', 'One step left before pickup', '{{needed_line}} by {{verify_by}}. No car is released without them.'),
+      button('Upload what is missing', '@booking_verify'),
     ], [
       button('View my booking', '@booking'),
     ]),
@@ -39,5 +39,5 @@ export default {
     ]),
   ],
   allowButtons: true,
-  sample: { calendar_url: 'https://carmacars.ca/api/booking-ics/6b1f0c7e-2d4a-4f5e-9a1b-3c2d1e0f9a8b', needs_verification: true, verify_by: 'Thu, Oct 22 at 10:00 am', is_non_refundable: false },
+  sample: { calendar_url: 'https://carmacars.ca/api/booking-ics/6b1f0c7e-2d4a-4f5e-9a1b-3c2d1e0f9a8b', needs_verification: true, needed_line: 'We need each driver\'s licence photos and a selfie, plus proof of coverage,', verify_by: 'Thu, Oct 22 at 10:00 am', is_non_refundable: false },
 };

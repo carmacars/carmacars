@@ -35,13 +35,14 @@ const schema = z.object({
   R2_BUCKET_PREFIX: z.string().default('carmacars-local-'),
   MAPS_PROVIDER: z.enum(['google', 'fake']).default('fake'),
   GOOGLE_MAPS_API_KEY: z.string().optional(),
+  /** 0910: Google Gemini, the vision fallback when set (free trial tier: its quota and model errors fall back to typing) */
+  GEMINI_API_KEY: z.string().optional(),
+  GEMINI_VISION_MODEL: z.string().optional(),
   VIN_DECODER: z.enum(['vpic', 'fake']).default('fake'),
   /** The listing pipeline: copy drafts (workers-ai: the Worker's AI binding) and photos (cloudflare: Images transformations). */
   LLM_PROVIDER: z.enum(['workers-ai', 'fake']).default('fake'),
   PHOTO_PROVIDER: z.enum(['cloudflare', 'fake']).default('fake'),
   PHOTO_FAKE_MODE: z.enum(['ok', 'not_enabled']).default('ok'),
-  /** r35 (0990): the image model of the showroom listing photos (Google AI Studio). Unset: the free local showroom alone. */
-  GEMINI_API_KEY: z.string().optional(),
   PAYOUT_ENCRYPTION_KEY: z.string().min(32).optional(),
   /** The business phone line (migration 0085): quo sends texts through Quo's API with QUO_API_KEY (CarmaCars' own Quo
    *  account only); fake records them without sending (local work and tests). */
@@ -50,6 +51,16 @@ const schema = z.object({
   QUO_API_BASE: z.string().url().optional(),
   /** The signing secret of our Quo webhook (whsec_...), made by the deploy (scripts/deploy/quo.mjs) and kept in the vault. */
   QUO_WEBHOOK_SECRET: z.string().optional(),
+  /** The site's outbound Call button (migration 0970): Twilio rings the staff member's own cell, then the customer, with the
+   *  CarmaCars number as caller ID (a Twilio verified caller ID). The account SID and an API key (SID and secret) from the
+   *  owner's Twilio account, saved as GitHub secrets; unset: the Call button opens Quo as before and says why.
+   *  TWILIO_CALLER_ID: the number shown to the customer (unset: the CarmaCars number of Site settings). TWILIO_AUTH_TOKEN
+   *  (optional): also checks Twilio's request signature on the call webhooks (our own per-call token is always checked). */
+  TWILIO_ACCOUNT_SID: z.string().optional(),
+  TWILIO_API_KEY: z.string().optional(),
+  TWILIO_API_SECRET: z.string().optional(),
+  TWILIO_CALLER_ID: z.string().optional(),
+  TWILIO_AUTH_TOKEN: z.string().optional(),
   /** The partner CRM link (migration 0147): gohighlevel calls GoHighLevel's API with each partner's own token (kept in the
    *  vault, pasted in Admin); fake answers from an in-memory stand-in (local work and tests). Unset: gohighlevel in
    *  production, fake elsewhere. */

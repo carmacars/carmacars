@@ -1,0 +1,40 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Coverage updated]
+{{coverage_title}}
+
+Hello {{first_name}}, here is what changed on your booking.
+
+{{#each change_rows}}
+  {{label}}: was {{before}}, now {{after}}
+{{/each}}
+
+Coverage now: {{coverage_now}}
+Payment: {{money_text}}
+
+{{next_step}}
+
+{{#if has_reason}}
+Note from our team: {{switch_reason}}
+{{/if}}
+
+View your booking:
+https://carmacars.ca/account/bookings/{{booking_number}}
+
+Your rental agreement is updated to match and kept with your booking. If anything here looks wrong, reply to this email and we will fix it.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

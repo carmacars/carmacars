@@ -103,9 +103,9 @@ insert into notification_outbox (code, category, priority, audience, to_address,
 insert into notification_outbox (code, category, priority, audience, to_address, to_name, booking_id, entity, entity_id, payload, dedupe_key, status)
   select 'renter_late_return_first', 'transactional', 3, 'renter', 'verify-sa-renter@carmacars.ca', 'Test Renter', b.id, 'booking', b.id, '{}'::jsonb, 'sa:mirror2', 'queued' from bookings b where booking_number = 'CC-SA001';
 select app.process_events(1000);
-select test.eq('mirror: a late notice sent to a renter alerts the Admin as urgent, a test address does not',
+select test.eq('mirror: a copy of a renter message about a booking is no alert of its own (0970: the booking''s alert says it)',
   (select count(*) from app_events where code = 'staff_alert_urgent' and payload ->> 'rule' = 'sent:renter_late_return_first'
-      and payload ->> 'booking_id' = (select id::text from bookings where booking_number = 'CC-SA001')), 1::bigint);
+      and payload ->> 'booking_id' = (select id::text from bookings where booking_number = 'CC-SA001')), 0::bigint);
 
 -- the job: late field job, offer expiring, escalation, the briefs
 insert into field_jobs (id, kind, vehicle_id, assigned_to, scheduled_at, status) values (test.id('sta_job'), 'detail', test.id('vehicle:sta_car'), test.id('sta_field'), now() - interval '30 minutes', 'scheduled');

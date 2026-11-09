@@ -207,9 +207,10 @@ select test.eq('the inbox through the door (customer service): threads and Unkno
   (select format('%s %s', jsonb_array_length(x -> 'threads') > 0, (x ->> 'unknown')::integer >= 1) from (select app.door(test.id('qp_cs'), '', 'va_read', 'phone_inbox', '{}') x) y), 't t');
 select test.eq('the Unknown callers view lists only unmatched numbers',
   (select bool_and(e ->> 'match_kind' = 'unknown') from jsonb_array_elements(app.phone_inbox(test.id('qp_sales'), '{"view": "unknown"}') -> 'threads') e), true);
-select test.throws('Fleet cannot read the phone inbox', format($$select app.door(%L, '', 'va_read', 'phone_inbox', '{}')$$, test.id('qp_fleet')), 'customer service and Sales');
-select test.throws('Fleet cannot read a booking''s calls', format($$select app.phone_timeline(%L, jsonb_build_object('booking_id', %L))$$, test.id('qp_fleet'), test.id('booking:QP-1')), 'customer service and Sales');
-select test.throws('a renter cannot read it', format($$select app.phone_inbox(%L, '{}')$$, test.id('qp_rita')), 'customer service and Sales');
+-- 0970: Fleet has its own lane of the phone (calls and texts about pickups, returns, deliveries and cars on rent)
+select test.lives('Fleet reads the phone inbox (its lane, 0970)', format($$select app.door(%L, '', 'va_read', 'phone_inbox', '{}')$$, test.id('qp_fleet')));
+select test.lives('Fleet reads a booking''s calls (0970)', format($$select app.phone_timeline(%L, jsonb_build_object('booking_id', %L))$$, test.id('qp_fleet'), test.id('booking:QP-1')));
+select test.throws('a renter cannot read it', format($$select app.phone_inbox(%L, '{}')$$, test.id('qp_rita')), 'customer service, Sales and Fleet');
 select test.eq('privileges: no browser role may call the server functions or the staff functions directly',
   has_function_privilege('anon', 'public.server_phone_event(jsonb)', 'execute')::text || has_function_privilege('authenticated', 'public.server_phone_sent(jsonb)', 'execute')::text
   || has_function_privilege('authenticated', 'app.phone_staff_do(uuid, text, jsonb)', 'execute')::text || has_function_privilege('service_role', 'public.server_phone_event(jsonb)', 'execute')::text,

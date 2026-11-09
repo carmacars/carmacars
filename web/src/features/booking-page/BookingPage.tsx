@@ -1,4 +1,5 @@
 import Link from '@/components/Link';
+import { money } from '@/lib/format';
 import { notFound } from 'next/navigation';
 import { BOOKING_SECTIONS, bookingSection, shows } from '@/features/booking-sections/sections';
 import { BookingCarSection } from '@/features/booking-sections/BookingCarSection';
@@ -20,6 +21,8 @@ import { $, Badge, Card, Kv, PageHead, Table, Tabs, t, label } from '@/features/
 import { REFUND_OF } from '@/features/admin/refunds';
 import { BookingMoney, type Money, type PanelLine } from '@/features/money/BookingMoney';
 import { BookingFees, type Fees } from '@/features/money/BookingFees';
+import { CoverageSwitch } from '@/features/money/CoverageSwitch';
+import type { SwitchState } from '@/features/money/coverage-switch';
 import { BookingEdit, type EditForm } from '@/features/money/BookingEdit';
 import { BookingPeriods, type PeriodRow } from '@/features/money/BookingPeriods';
 import { RenterEdit, type RenterForm } from '@/features/money/RenterEdit';
@@ -49,6 +52,8 @@ import { rpc } from '@/lib/db/repo';
 import { signPayOf, signPayWords } from '@/features/portal/sign-pay';
 import type { ChargeReasons } from '@/features/money/charge-reasons';
 import { ActivityLog } from '@/features/activity/ActivityLog';
+import { AccidentSummary } from '@/features/accident-card/AccidentCard';
+import type { AccidentCardData } from '@/features/accident-card/model';
 import { activityQuery, readParams, type ActivityPage } from '@/features/activity/model';
 
 // r31 "Simple": one booking page for Admin and staff (03-admin.md section 4, 05-va.md sections 2 to 5). The loader picks
@@ -77,6 +82,9 @@ const KINDS: Array<[string, string]> = [['handover', 'Handover'], ['delivery', '
 const ARRANGING = ['requested', 'offered', 'pending_payment'];
 const none = <T,>(v: T) => () => v;
 type NoShiftDay = { leg: string; day: string; work_day: string | null };
+// 0910: Change the car: the free cars, each with its new total and the difference
+type CarOptions = { refusal: string | null; total_cents: number; cars: Array<{ vehicle_id: string; name: string; plate: string | null; total_cents: number; difference_cents: number }> };
+const carChoice = (v: CarOptions['cars'][number]) => `${v.name}${v.plate ? `, ${v.plate}` : ''}: ${money(v.total_cents, { cents: true })} (${v.difference_cents === 0 ? 'same price' : `${v.difference_cents > 0 ? '+' : '-'}${money(Math.abs(v.difference_cents), { cents: true })}`})`;
 type BookingChain = { replaced_by: { number: string } | null; replaces: Array<{ number: string }> };
 /** "Replaced by #N" on the old booking and "Replaces #M" on the new one, with links (the same on the Admin and staff pages). */
 function ReplacedNote({ chain, portal }: { chain: BookingChain | null; portal: string }) {
@@ -125,6 +133,12 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
   // ---- the reads, each only where the viewer's section and function use it
   // 0780 and 0810: a request that expired and was replaced by a newer one says so on both bookings
   const chain = await ops<BookingChain>('booking_chain', { booking: b.id }).catch(none(null));
+  // 0910: the cars this booking may move to before pickup (priced from each car's rate sheet), and its accident card
+  const [carOpts, accident] = await Promise.all([
+    can.changeCar && ['requested', 'offered', 'pending_payment', 'confirmed'].includes(b.status) && !b.handed_over_at && (section === 'overview' || section === 'car')
+      ? ops<CarOptions>('car_change_options', { booking: b.id }).catch(none(null)) : null,
+    (section === 'overview' || section === 'documents') && ['pending_payment', 'confirmed', 'on_rent'].includes(b.status) && notOwner
+      ? ops<AccidentCardData>('accident_card', { booking: b.id }).catch(none(null)) : null]);
   const [ins, km, settings, credit, came, insurerCard, swapCars, fleetStaff, noShift, late] = await Promise.all([
     can.admin ? list<{ id: string; name: string }>('insurers', { eq: { is_active: true }, order: 'name', asc: true }) : { rows: [] as Array<{ id: string; name: string }>, count: 0 },
     can.admin || arranging ? list<{ km_per_day: number }>('km_allowance_choices', { eq: { is_active: true } }).catch(none({ rows: [] as Array<{ km_per_day: number }>, count: 0 })) : { rows: [] as Array<{ km_per_day: number }>, count: 0 },
@@ -157,6 +171,8 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
     on('history') ? ops<ActivityPage>('renter_activity', { booking: b.booking_number, ...readParams(activityQuery(sp)) }, true).catch(none(null)) : null,
     // Email the renter or the adjuster, with the booking's conversation and emails (0187)
     on('messages') ? ops<Conversation>('booking_conversation', { booking: b.booking_number }, true).catch(none(null)) : null]);
+  // r35 (0890): card coverage or the Protection Plan, on an offer or an active booking
+  const coverageSwitch = (on('overview') || on('money')) && notOwner && !['cancelled', 'declined', 'expired'].includes(b.status) ? await ops<SwitchState>('coverage_switch_state', { booking: b.booking_number }, true).catch(none(null)) : null;
   const [policyNote, adjusters, pay, periods, duplicates] = await Promise.all([
     on('review') && ['requested', 'offered', 'pending_payment', 'confirmed'].includes(b.status) ? (can.admin ? ops : own)<{ handover_note: string | null }>('listing_state', { vehicle_id: b.vehicle_id }).then((x) => x?.handover_note ?? null).catch(none(null)) : null,
     can.admin && on('overview') && notOwner && !['cancelled', 'declined', 'expired'].includes(b.status) ? own<AdjusterOpt[]>('insurer_adjusters', {}).catch(none([] as AdjusterOpt[])) : null,
@@ -213,6 +229,10 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
           { name: 'channel', label: 'Received by', type: 'select', required: true, options: [['email', 'Email'], ['portal', 'Portal'], ['phone', 'Phone']], value: 'email' },
           { name: 'at', label: 'Received at', type: 'datetime', required: true, value: new Date().toISOString() }, { name: 'note', label: 'Note', type: 'text' }]} refresh={refresh} />}
         {can.admin && ['confirmed', 'pending_payment'].includes(b.status) && <Act action="cancel_booking" payload={{ ...P, reason: 'carmacars_cancelled', channel: 'email' }} label="Cancel by CarmaCars" variant="danger" fields={[{ name: 'note', label: 'Reason (no vehicle, driver not verifiable, pricing error, other)', type: 'text', required: true }]} refresh={refresh} />}
+        {carOpts && !carOpts.refusal && <Act ops action="car_change" payload={P} label="Change the car" testId="car-change" refresh={refresh} done="Car changed. The renter gets one email."
+          title="Change the car before pickup" confirm="The price comes from the new car's rate sheet. More to pay is left open for the renter (Pay the balance or a pay link); less goes back as a refund for approval. An offer is sent again."
+          fields={[{ name: 'vehicle', label: 'The new car (free for these dates)', type: 'select', required: true, options: [['', carOpts.cars.length ? 'Choose the car' : 'No other car is free for these dates'],
+            ...carOpts.cars.map((v) => [v.vehicle_id, carChoice(v)] as [string, string])] }, { name: 'reason', label: 'Why the car changes', type: 'text', required: true }]} />}
         {can.admin && b.status === 'on_rent' && <Act action="swap_vehicle" payload={P} label="Swap vehicle" fields={[{ name: 'vehicle', label: 'The car the renter moves to', type: 'select', required: true, options: [['', swapCars.length ? 'Choose the car' : 'No car is free right now'], ...swapCars.map((v) => [v.id, `${v.year} ${v.make} ${v.model}${v.plate ? `, ${v.plate}` : ''}`] as [string, string])] }, { name: 'reason', label: 'Reason', type: 'text', required: true }]} refresh={refresh} />}
         {can.admin && ['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && b.bill_to !== 'renter' && <Act action="draft_insurer_invoice" payload={P} label="Draft insurer invoice" refresh={['/admin/insurer-invoices']} />}
         {can.admin && b.status === 'returned' && <Act action="issue_booking_statement" payload={P} label="Issue final statement" confirm="Issue the Check-out statement from the assessed lines and settle the deposit plan." refresh={refresh} />}
@@ -228,7 +248,8 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
       <ClaimBanner />
       <ReplacedNote chain={chain} portal={portal} />
       {noShift.length > 0 && <p className="alert alert--warn" role="status" data-testid="no-shift-warning">{noShift.map((w) => `${w.leg === 'handover' ? 'The handover' : 'The return'} is on ${w.day}, a day with no field shifts${w.work_day ? `: its job is planned for ${w.work_day}` : ''}.`).join(' ')} Someone must cover it, or the booking time must move.</p>}
-      {late?.late && <LatePanel l={late} fleet={fn === 'fleet'} refresh={refresh} />}
+
+      {late?.late && <LatePanel l={late} fleet={fn === 'fleet'} refresh={refresh} returning={can.returningNow} />}
       {can.photoReview && ['on_rent', 'returned', 'closed'].includes(b.status) && <p className="small"><Link prefetch={false} className="link" href={`/staff/review/${encodeURIComponent(n)}`} data-testid="photo-review-link">Photo review: pickup and return side by side</Link></p>}
       {can.admin && <BookingSummary status={b.status} pickupAt={b.pickup_at} returnAt={b.return_at} days={Number(b.billable_days)} totalCents={Number(b.total_due_at_booking_cents)} billTo={b.bill_to} />}
       {/* the six sections right under the summary */}
@@ -238,6 +259,9 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
       {(section === 'overview' || section === 'car') && ['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <HandoverPanel userId={user.id} aal={aal} base={base} canHandover={can.handover} canSign={can.sign}
         b={{ id: b.id, booking_number: b.booking_number, status: b.status, return_at: b.return_at, checked_in_at: (b.checked_in_at as string | null | undefined) ?? null, minutes_late: (b.minutes_late as number | null | undefined) ?? null }} />}
       {section === 'activity' && ['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <ReviewPanel booking={b.booking_number} userId={user.id} aal={aal} refresh={[base]} />}
+      {accident && <Card title="Accident card" testId="booking-accident-card" aside={<Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}/accident-card`} data-testid="accident-card-print">Print the card</Link>}>
+        <AccidentSummary d={accident} />
+      </Card>}
       {(section === 'overview' || section === 'documents') && ['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <AgreementPanel userId={user.id} aal={aal} base={base} b={{ id: b.id, status: b.status }} docBase={`${portal}/documents`} finance={can.agreementMoney} {...(can.admin ? {} : { openDocs: false })} />}
       {/* the renter's licence front, back and selfie, reviewed by Sales (0169); the coverage stays with customer service and Admin */}
       {can.licenceReview && ['requested', 'offered', 'tentative', 'pending_payment', 'confirmed', 'on_rent'].includes(b.status) && (
@@ -283,6 +307,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
       {/* conflicting dates on this car (0284), once the booking is past the request */}
       {can.admin && on('overview') && b.competing.length > 0 && <Card title="Also on this car for these dates" testId="date-conflicts-card"><DateConflicts items={b.competing} self={{ placeholder: !!b.placeholder?.on }} /></Card>}
       {on('overview') && editForm && <BookingEdit x={editForm} fees={fees} />}
+      {on('overview') && coverageSwitch && <CoverageSwitch x={coverageSwitch} />}
       {(on('overview') || on('money')) && insurerCard?.billed_to_insurer && <BookingInsurer x={insurerCard} />}
       {adjusters && <InsurerClaimEdit insurers={ins.rows} adjusters={adjusters} x={{
         booking: b.booking_number, bill_to: b.bill_to, insurer_id: b.insurer_id, claim_number: b.insurer_claim_number, adjuster_name: b.insurer_adjuster_name,
@@ -322,6 +347,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
           {moneyByPart && <BookingMoney m={moneyByPart} reasons={reasons} lines={(b.lines as PanelLine[] | undefined) ?? []} totalCents={(b.total_due_at_booking_cents as number | null | undefined) ?? null}
             waived={!!(b as unknown as R).deposit_waived_at}
             rentalExtras={<>
+              {coverageSwitch && <CoverageSwitch x={coverageSwitch} />}
               {fees && <BookingFees x={fees} withBalance={false} />}
               {payments?.some((r) => r.status === 'failed') && <Card title="Card payments that failed"><Table rows={payments.filter((r) => r.status === 'failed')} empty="No payments."
                 cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'purpose', label: 'Purpose' }, ...(can.admin ? [{ key: 'method', label: 'Method' }] : []), { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'card_last4', label: 'Card' },

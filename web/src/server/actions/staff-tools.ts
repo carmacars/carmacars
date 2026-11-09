@@ -17,7 +17,7 @@ async function me() {
   return { user, aal: await sessionAal() };
 }
 
-export type StaffRead = 'toll_read_context' | 'toll_read' | 'toll_read_queue' | 'toll_profiles' | 'ai_vision_gate' | 'photo_plate_context' | 'form_templates' | 'form_template_preview' | 'rental_form_preview'
+export type StaffRead = 'toll_read_context' | 'toll_read' | 'toll_read_queue' | 'toll_profiles' | 'ai_vision_gate' | 'photo_plate_context' | 'showroom_carry_pending' | 'form_templates' | 'form_template_preview' | 'rental_form_preview'
   // r35 S2 (1053): marketing photo scenes
   | 'marketing_photos' | 'marketing_scene_refs';
 export async function staffRead<T = Record<string, unknown>>(what: StaffRead, p: Record<string, unknown> = {}): Promise<R<T>> {

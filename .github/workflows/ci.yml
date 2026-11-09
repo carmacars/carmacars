@@ -303,6 +303,12 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       # the Quo phone line (0085): the CarmaCars workspace's key; kept in the vault too (deploy_quo_api_key)
       QUO_API_KEY: ${{ secrets.QUO_API_KEY }}
+      # r35 (0970): the site's outbound Call button (Twilio rings the staff member's cell, then the customer); unset: Quo
+      TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+      TWILIO_API_KEY: ${{ secrets.TWILIO_API_KEY }}
+      TWILIO_API_SECRET: ${{ secrets.TWILIO_API_SECRET }}
+      TWILIO_CALLER_ID: ${{ secrets.TWILIO_CALLER_ID }}
+      TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
       # r35 (0990): the image model of the showroom listing photos (Google AI Studio); optional, without it the free showroom
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       # where Supabase is: the hosted project (default) or the company's own server (repository variable
@@ -419,6 +425,9 @@ jobs:
                  + (if env.QUO_API_KEY then {QUO_API_KEY: env.QUO_API_KEY} else {} end)
                  + (if env.GEMINI_API_KEY then {GEMINI_API_KEY: env.GEMINI_API_KEY} else {} end)
                  + (if env.QUO_WEBHOOK_SECRET then {QUO_WEBHOOK_SECRET: env.QUO_WEBHOOK_SECRET} else {} end)
+                 + (if env.TWILIO_ACCOUNT_SID and env.TWILIO_API_KEY and env.TWILIO_API_SECRET then {TWILIO_ACCOUNT_SID: env.TWILIO_ACCOUNT_SID, TWILIO_API_KEY: env.TWILIO_API_KEY, TWILIO_API_SECRET: env.TWILIO_API_SECRET} else {} end)
+                 + (if env.TWILIO_CALLER_ID then {TWILIO_CALLER_ID: env.TWILIO_CALLER_ID} else {} end)
+                 + (if env.TWILIO_AUTH_TOKEN then {TWILIO_AUTH_TOKEN: env.TWILIO_AUTH_TOKEN} else {} end)
                  + (if env.AUTH_SMS_HOOK_SECRET then {AUTH_SMS_HOOK_SECRET: env.AUTH_SMS_HOOK_SECRET} else {} end)
                  + (if env.VAPID_PRIVATE_KEY then {VAPID_PUBLIC_KEY: env.VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY: env.VAPID_PRIVATE_KEY} else {} end)
                  + (if env.WALLET_PASS_CERT and env.WALLET_PASS_KEY and env.WALLET_WWDR_CERT and env.WALLET_PASS_TYPE_ID and env.WALLET_TEAM_ID

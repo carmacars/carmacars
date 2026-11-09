@@ -21,6 +21,8 @@ import { signCount } from '@/features/manual/SignPages';
 import { RemoteDuties, type SalesDuties } from '@/features/sales/RemoteDuties';
 import { opensToYou, type ClaimInfo } from '@/features/offers/claim';
 import { StaffDataHealthCard } from '@/features/admin/data-health/DataHealthCard';
+import { SalesDashboard } from '@/features/sales-leads/SalesDashboard';
+import type { Dashboard } from '@/features/sales-leads/model';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'To do', path: '/staff', noindex: true, description: 'The assistant\'s work queue.' });
@@ -38,7 +40,7 @@ const REPLY: Record<string, { what: string; cta: string }> = {
 };
 const QUICK: Record<Fn, Array<[string, string]>> = {
   cs: [['/staff/offers/new', 'Send an offer'], ['/staff/bookings/new', 'Add a rental'], ['/staff/renters', 'Find a renter']],
-  sales: [['/staff/quotes/new', 'New quote'], ['/staff/offers/new', 'Send an offer'], ['/staff/my-sales', 'My sales']],
+  sales: [['/staff/sales-leads', 'Leads'], ['/staff/quotes/new', 'New quote'], ['/staff/offers/new', 'Send an offer'], ['/staff/my-sales', 'My sales']],
   finance: [['/staff/money?tab=day', 'Payments by day'], ['/staff/money', 'Money to handle'], ['/staff/owner-money?tab=invoices', 'Owner money']],
   fleet: [['/staff/fleet', 'Field jobs'], ['/staff/checks', 'Daily checks'], ['/staff/calendar', 'Calendar']]
 };
@@ -51,7 +53,7 @@ export default async function Queue({ searchParams }: { searchParams: Promise<Re
   const [{ read, fn, user, aal }, sp] = await Promise.all([vaPage('/staff'), searchParams]);
   const talk = fn === 'cs' || fn === 'sales';
   const now = requestNow();
-  const [all, toSign, dg, target, reqs, chat, sales, board, jobs, cal, licences, duties] = await Promise.all([
+  const [all, toSign, dg, target, reqs, chat, sales, board, jobs, cal, licences, duties, leadDash] = await Promise.all([
     read<Task[]>('queue'), signCount(user.id),
     read<Digest>('digest').catch(() => null),
     door<{ minutes: number; words: string }>(user.id, 'ops_read', 'reply_target', {}, aal).catch(() => ({ minutes: 5, words: '5 minutes' })),
@@ -63,8 +65,11 @@ export default async function Queue({ searchParams }: { searchParams: Promise<Re
     fn === 'fleet' ? read<{ vehicles: CalVehicle[] }>('calendar', { from: new Date(now - 86_400_000).toISOString(), to: new Date(now + 2 * 86_400_000).toISOString() }).then((c) => c.vehicles).catch(() => [] as CalVehicle[]) : Promise.resolve([] as CalVehicle[]),
     fn === 'sales' ? read<LicenceWaiting[]>('licences_waiting').catch(() => [] as LicenceWaiting[]) : Promise.resolve([] as LicenceWaiting[]),
     // 0174: in person or remote; a remote rep's checklist, touches, cover and reply time
-    fn === 'sales' ? read<SalesDuties>('sales_duties').catch(() => null) : Promise.resolve(null)
+    fn === 'sales' ? read<SalesDuties>('sales_duties').catch(() => null) : Promise.resolve(null),
+    fn === 'sales' ? read<Dashboard>('sales_dashboard').catch(() => null) : Promise.resolve(null)
   ]);
+  // r35 (0970): the rep's outbound minutes through the site's Call button (to decide a full move to Twilio later)
+  const mins = fn === 'sales' ? await read<{ today: number; week: number; month: number; calls_month: number }>('my_call_minutes').catch(() => null) : null;
   const tm = target.minutes;
   const waiting = reqs.filter((r) => r.status === 'requested');
   const sinceOf = (min: number) => new Date(now - min * 60_000).toISOString();
@@ -125,6 +130,7 @@ export default async function Queue({ searchParams }: { searchParams: Promise<Re
       <StaffDataHealthCard read={read} />
 
       {duties?.mode === 'remote' && <RemoteDuties d={duties} own />}
+      {leadDash && <SalesDashboard d={leadDash} base="/staff/sales-leads" />}
 
       <div className="va-cols">
         {talk && <ReplyBoard items={replies.slice(0, 8)} now={now} target={tm} more={replies.length > 8 ? <p className="small"><Link prefetch={false} className="link" href="/staff/requests">See all {replies.length}</Link></p> : null} />}
@@ -137,6 +143,11 @@ export default async function Queue({ searchParams }: { searchParams: Promise<Re
                 <span className="va-reply__text"><span className="va-reply__what">{l.waiting} {l.waiting === 1 ? 'image' : 'images'} to check</span><span className="va-reply__who">{l.renter_first_name ?? 'Renter'}<span className="va-reply__detail">{l.vehicle_label} · {l.booking_number}</span></span></span>
                 <Link prefetch={false} className="btn btn--sm btn--primary va-reply__cta" href={`/staff/verify/${encodeURIComponent(l.booking_number)}`}>Review the licence</Link>
               </li>))}</ul> : <p className="va-empty-line">Every licence sent is decided.</p>}
+          </section>)}
+        {fn === 'sales' && mins && (
+          <section className="va-section pu-panel" aria-labelledby="va-calls-h" data-testid="va-call-minutes">
+            <div className="va-section__head"><h2 className="va-section__title" id="va-calls-h">My call minutes</h2><p className="va-section__note">Connected calls from the site&apos;s Call button</p></div>
+            <p className="small">Today <b>{mins.today}</b> min · This week <b>{mins.week}</b> min · This month <b>{mins.month}</b> min ({mins.calls_month} {mins.calls_month === 1 ? 'call' : 'calls'})</p>
           </section>)}
         {fn === 'sales' && sales && (
           <section className="va-section pu-panel" aria-labelledby="va-fu-h" data-testid="va-followups">
