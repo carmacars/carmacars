@@ -52,7 +52,7 @@ const LABELS: Record<string, string> = {
   car_defaults_rates_on_add: 'Give a new car without typed rates a complete rate card from the suggested rate and its class defaults',
   listing_publish_new_cars_automatically: 'Publish new cars automatically (as soon as the year, make, model, plate or VIN and rates are in)',
   listing_default_daily_rate_cents: 'Starting daily rate by class, in cents (used when no similar car has rates)',
-  plate_cover_style: 'Default way to cover a plate (cover, pixelate or blur)', plate_cover_text: 'Text on the plate cover (empty: the brand name)', plate_detect_enabled: 'Suggest the plate box with the vision model',
+  plate_cover_style: 'Default way to treat a plate: carma (the front plate edited out, the rear plate the CARMA Ontario plate), or the older cover, pixelate or blur', plate_cover_text: 'Text on the plate cover (empty: the brand name)', plate_detect_enabled: 'Suggest the plate box with the vision model',
   listing_photo_enhance: 'Auto-enhance listing photos (a light touch-up: exposure, levels, a little contrast and colour, mild sharpening; never the paint colour)',
   listing_showroom: 'Showroom photos: new outside photos in the dark CarmaCars showroom (logo on the wall, the model behind the car on the cover) instead of the black studio',
   listing_showroom_ai: 'Showroom photos: let the image model make them look photographed (needs its key on the server; else the free showroom)',

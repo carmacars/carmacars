@@ -172,6 +172,29 @@ select test.eq('ready: the reference file is the photo''s original', (select app
 select test.throws('an upload path that is not ours is refused', $$select test.s2_ops('s2_admin', 'marketing_scene_reference', '{"code": "highway", "path": "../etc/x.jpg"}'::jsonb)$$, 'not one of ours');
 select test.throws('the scenes list is checked', $$update program_settings set marketing_scenes = '[{"code": "Bad Code!", "label": "x", "made": "photo"}]'::jsonb where id = (select id from app.settings())$$, 'check');
 
+-- ================================================================ the CARMA plate (1056)
+update listing_jobs set status = 'succeeded', finished_at = now() where vehicle_photo_id = (select p from s2p) and status in ('queued', 'running');
+update vehicle_photos set plate_status = 'covered', plate_style = 'cover', plate_boxes = '[{"x": 0.4, "y": 0.6, "w": 0.15, "h": 0.07}]'::jsonb,
+       uncovered_path = 'vehicles/original/s2/front-left-uncovered.jpg', processed_path = 'vehicles/s2/front-left-c111111.jpg', shot_type = 'rear_left',
+       variants = '[{"width": 800, "format": "jpg", "path": "vehicles/s2/front-left-c111111-800.jpg"}]'::jsonb
+ where id = (select p from s2p);
+select test.eq('the CARMA plate is the default way to treat a plate', (select plate_cover_style from app.settings()), 'carma');
+select test.eq('every photo covered the old way is queued to be made again', app.plate_redo_queue((select p from s2p)), 1);
+create temp table s2pr as select j.id, j.input from listing_jobs j where j.kind = 'plate_redo' and j.input #>> '{plate,photo_id}' = (select p::text from s2p);
+grant select on s2pr to public;
+select test.eq('from its uncovered file, the rear plate, its sizes', (select (input #>> '{plate,source}') || '/' || (input #>> '{plate,end}') || '/' || (input #> '{plate,widths}')::text from s2pr),
+  'vehicles/original/s2/front-left-uncovered.jpg/rear/[800]');
+select test.eq('not twice', app.plate_redo_queue((select p from s2p)), 0);
+create temp table s2prc as select j.id from app.claim_listing_jobs('s2-w', 100, array['plate_redo']) j where j.id = (select id from s2pr);
+grant select on s2prc to public;
+select app.worker_listing_result((select id from s2pr), jsonb_build_object('ok', true, 'provider', 'carmacars', 'output', jsonb_build_object('plate',
+  jsonb_build_object('processed_path', 'vehicles/' || test.id('vehicle:S2PIC') || '/front-left-pabc123.jpg', 'variants', jsonb_build_array(jsonb_build_object('width', 800, 'format', 'jpg', 'path', 'x'))))));
+select test.eq('the new file, the style carma, the plate check kept', (select (processed_path like '%-pabc123.jpg')::text || '/' || plate_style || '/' || plate_status from vehicle_photos where id = (select p from s2p)),
+  'true/carma/covered');
+update vehicle_photos set plate_carry = '{"boxes": [{"x": 0.1, "y": 0.1, "w": 0.1, "h": 0.05}], "style": "pixelate"}'::jsonb where id = (select p from s2p);
+select test.eq('a cover carried over is drawn the new way', (select plate_carry ->> 'style' from vehicle_photos where id = (select p from s2p)), 'carma');
+update vehicle_photos set plate_carry = null where id = (select p from s2p);
+
 -- ================================================================ the toast with a pulse (1055)
 select test.eq('no unread alert: nothing', public.server_alert_latest(test.id('s2_fleet')) -> 'latest', 'null'::jsonb);
 insert into notifications (user_id, code, title, url, dedupe_key) select test.id('s2_fleet'), 'staff_booking_request_new', 'New booking request CC-S2', '/staff/bookings/CC-S2', 's2-pulse-1'

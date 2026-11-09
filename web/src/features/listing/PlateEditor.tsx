@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { staffDo, staffRead } from '@/server/actions/staff-tools';
 import { normalizePlateBoxes } from '@/features/tolls/vision-schema';
 import { clampBox, editorPhotoSrc, exportCovered, forSave, fromCorners, greyOf, inside, isTaintError, nearCorner, paint, readSafely, refineBox, suggestedBoxes, TAINT_MESSAGE, type NBox, type PlateStyle } from './plate-cover';
+import { plateEnd } from './plate-photo';
 
 // Cover the licence plate on one listing photo (migration 0042): the vision model suggests the box when it can;
 // staff drag a box (or several) over each plate with a mouse or a finger, choose a CarmaCars plate, pixelation or
@@ -22,7 +23,9 @@ export function PlateEditor({ photo, onClose }: { photo: Photo; onClose: () => v
   // 0521: the box suggested by itself when the review opened (ListingReview's PlateAutoSuggest), else the boxes saved
   const [boxes, setBoxes] = useState<NBox[]>(() => (photo.plate_boxes?.length ? photo.plate_boxes : suggestedBoxes(photo.plate_suggestion, normalizePlateBoxes)));
   const [sel, setSel] = useState<number>(-1);
-  const [style, setStyle] = useState<PlateStyle>('cover');
+  const [style, setStyle] = useState<PlateStyle>('carma');
+  // r35 S2: a front shot's plate is edited out, any other the CARMA plate
+  const end = plateEnd(photo.shot_type);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
@@ -33,7 +36,7 @@ export function PlateEditor({ photo, onClose }: { photo: Photo; onClose: () => v
     const c = canvas.current, i = img.current;
     if (!c || !i || !ctx) return;
     const g = c.getContext('2d')!;
-    try { paint(g, i, c.width, c.height, boxes, style, ctx.cover_text, font); }
+    try { paint(g, i, c.width, c.height, boxes, style, ctx.cover_text, font, end); }
     // a canvas that cannot be read (never, now the photo is same origin) shows the photo without the covers; save says why
     catch (e) { if (isTaintError(e)) g.drawImage(i, 0, 0, c.width, c.height); else throw e; }
     boxes.forEach((b, n) => {
@@ -42,7 +45,7 @@ export function PlateEditor({ photo, onClose }: { photo: Photo; onClose: () => v
       g.fillStyle = n === sel ? '#d7141a' : '#ffffff'; g.fillRect((b.x + b.w) * c.width - 6, (b.y + b.h) * c.height - 6, 12, 12);
       g.restore();
     });
-  }, [boxes, style, sel, ctx, font]);
+  }, [boxes, style, sel, ctx, font, end]);
 
   useEffect(() => {
     let gone = false;
@@ -144,7 +147,7 @@ export function PlateEditor({ photo, onClose }: { photo: Photo; onClose: () => v
     if (!img.current || !ctx || !boxes.length) return;
     setBusy(true); setErr(null);
     try {
-      const out = await exportCovered(img.current, boxes, style, ctx.cover_text, (photo.variants ?? []).map((v) => v.width), font);
+      const out = await exportCovered(img.current, boxes, style, ctx.cover_text, (photo.variants ?? []).map((v) => v.width), font, end);
       const fd = new FormData();
       fd.set('photo', photo.id); fd.set('style', style); fd.set('boxes', JSON.stringify(forSave(boxes)));
       fd.set('width', String(out.width)); fd.set('height', String(out.height));
@@ -175,7 +178,7 @@ export function PlateEditor({ photo, onClose }: { photo: Photo; onClose: () => v
             onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onKeyDown={key} data-testid="plate-canvas" data-boxes={JSON.stringify(forSave(boxes))} />
         </div>
         <fieldset className="pe__styles"><legend className="label">Cover the plate with</legend>
-          {([['cover', `A ${ctx?.cover_text ?? 'CarmaCars'} plate`], ['pixelate', 'Pixelation'], ['blur', 'Blur']] as Array<[PlateStyle, string]>).map(([k, t]) => (
+          {([['carma', end === 'front' ? 'Edit the front plate out' : 'The CARMA Ontario plate'], ['cover', `A ${ctx?.cover_text ?? 'CarmaCars'} plate`], ['pixelate', 'Pixelation'], ['blur', 'Blur']] as Array<[PlateStyle, string]>).map(([k, t]) => (
             <label key={k} className="check"><input type="radio" name={`pe-style-${photo.id}`} value={k} checked={style === k} onChange={() => setStyle(k)} data-testid={`plate-style-${k}`} /> <span>{t}</span></label>))}
         </fieldset>
         {note && <p className="small" role="status" data-testid="plate-note">{note}</p>}

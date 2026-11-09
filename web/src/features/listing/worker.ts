@@ -10,7 +10,8 @@ import { LETTERING, LETTER_REAL_PHOTOS, LETTER_SHOTS, letterThis, letteringPath,
 import { WINDOW_SHOTS, readAlpha, windowPlan, type WindowPlan } from './window-check.ts';
 import { adjustPlace, decodePng, encodePng, frameRgba, frameSubject, placeSubject, type Adjust } from './subject-frame.ts';
 import { SHOWROOM_FIT, SHOWROOM_PRESET, decodeImage, encodeJpeg, makeShowroom, marketingPrompt, sceneOf, showroomBackdrop, whiteStudio, type ShowroomProvider } from './showroom.ts';
-import { scaleDown } from '../../integrations/photos/local.ts';
+import { resample, scaleDown } from '../../integrations/photos/local.ts';
+import { applyPlates, type PlateEnd, type PxBox } from './plate-photo.ts';
 import { enhanceValues, statsOf, type Enhance } from './enhance.ts';
 import { cropAway, type MarkBox } from './photo-sort.ts';
 
@@ -52,7 +53,7 @@ const MICROUSD_PER_TRANSFORMATION = 500;     // US$0.50 per 1,000 unique transfo
 const FREE_DAILY_NEURONS = 10_000;
 
 export interface JobContext {
-  id: string; kind: 'decode_vin' | 'draft_copy' | 'process_photo' | 'resize' | 'publish' | 'marketing_photo'; intake_id: string; vehicle_id: string;
+  id: string; kind: 'decode_vin' | 'draft_copy' | 'process_photo' | 'resize' | 'publish' | 'marketing_photo' | 'plate_redo'; intake_id: string; vehicle_id: string;
   attempts: number; max_attempts: number; input: Record<string, unknown>; vin?: string | null;
   facts?: Record<string, unknown> | null; staff_notes?: string | null; classes?: string[] | null;
   copy_rules?: { headline_chars: [number, number]; description_words: [number, number]; features: [number, number]; faq: [number, number]; banned_phrases: string[] } | null;
@@ -162,6 +163,7 @@ export async function runJob(d: WorkerDeps, j: JobContext, b: Budget, used = { n
     case 'resize': return resize(d, j, b, used);
     case 'publish': return { ok: true, output: {}, provider: 'carmacars' };
     case 'marketing_photo': return marketingPhoto(d, j);
+    case 'plate_redo': return plateRedo(d, j);
   }
 }
 
@@ -464,6 +466,60 @@ async function marketingPhoto(d: WorkerDeps, j: JobContext): Promise<JobResult> 
   const path = `vehicles/${m.vehicle_id}/marketing/${m.id}.jpg`;
   await d.files.putPublic(path, made.bytes, made.contentType);
   return { ok: true, provider: made.provider === 'ai' ? 'ai' : 'carmacars', output: { marketing: { id: m.id, status: 'made', path, provider: made.provider, note: made.note } } };
+}
+
+/** r35 S2 (1056): a photo covered the old way made again from its uncovered file: the front plate edited out (the image
+ *  model first when it may be asked, only the plate's area taken from its answer; the site's own fill otherwise), the
+ *  rear plate the CARMA Ontario plate. The sizes are made here too. The database keeps the new file only while the photo
+ *  is still the one the job was made from. */
+export interface PlateRedoInput { photo_id: string; vehicle_id: string; source: string; prev_path: string | null; boxes: Array<{ x: number; y: number; w: number; h: number }>; end: PlateEnd; widths: number[] }
+export const FRONT_PLATE_PROMPT = 'Edit this photo: remove the front licence plate and its holder from the bumper so the car looks like it never had a front plate: continue the bumper\'s paint, shape, lines, grille and reflections where the plate was. Change nothing else at all: the same car, colour, angle, light, background and framing. Do not add any text, plate, badge or sticker.';
+async function plateRedo(d: WorkerDeps, j: JobContext): Promise<JobResult> {
+  const m = (j.input as { plate?: PlateRedoInput }).plate;
+  if (!m?.source || !m.boxes?.length) return { ok: false, error: 'The plate job is missing its photo', retryable: false };
+  const bytes = await d.files.getPrivate(m.source);
+  const src = bytes ? await decodeImage(bytes).catch(() => null) : null;
+  if (!src) return { ok: false, error: 'The uncovered photo could not be read', retryable: !bytes };
+  const img = scaleDown(src, 3000, 3000);
+  const W = img.width, H = img.height;
+  const boxes: PxBox[] = m.boxes.map((b) => ({ x: Math.floor(b.x * W), y: Math.floor(b.y * H), w: Math.max(2, Math.ceil(b.w * W)), h: Math.max(2, Math.ceil(b.h * H)) }));
+  let provider = 'carmacars';
+  if (m.end === 'front' && d.showroomAi) {
+    // the image model edits the front plate out; only the plate's area (a little larger, feathered) is taken from its photo
+    const r = await d.showroomAi.make({ car: { width: 1, height: 1, data: new Uint8ClampedArray(4), ground: 0 }, place: { width: 1, height: 1, left: 0, bottom: 0 }, cover: false, photoId: m.photo_id, prompt: FRONT_PLATE_PROMPT },
+      encodeJpeg(img, 90)).catch(() => null);
+    const ai = r && r.ok ? await decodeImage(r.bytes).catch(() => null) : null;
+    if (ai) {
+      const fit = resample(ai, { x: 0, y: 0, w: ai.width, h: ai.height }, W, H);
+      for (const b of boxes) {
+        const mx = b.w * 0.15, my = b.h * 0.25;
+        for (let y = Math.max(0, Math.floor(b.y - my)); y < Math.min(H, b.y + b.h + my); y++) for (let x = Math.max(0, Math.floor(b.x - mx)); x < Math.min(W, b.x + b.w + mx); x++) {
+          const fx = Math.min(1, Math.min(x - (b.x - mx), b.x + b.w + mx - x) / mx), fy = Math.min(1, Math.min(y - (b.y - my), b.y + b.h + my - y) / my);
+          const a = Math.max(0, Math.min(1, Math.min(fx, fy) * 1.5)), i = (y * W + x) * 4;
+          for (let c = 0; c < 3; c++) img.data[i + c] = img.data[i + c]! + (fit.data[i + c]! - img.data[i + c]!) * a;
+        }
+      }
+      provider = 'ai';
+      // a plate still readable there (high contrast left): the site's own fill on that box
+      for (const b of boxes) {
+        let n = 0, sum = 0, sq = 0;
+        for (let y = b.y; y < b.y + b.h; y += 2) for (let x = b.x; x < b.x + b.w; x += 2) { const i = (y * W + x) * 4, l = (img.data[i]! + img.data[i + 1]! + img.data[i + 2]!) / 3; n++; sum += l; sq += l * l; }
+        if (n && Math.sqrt(Math.max(0, sq / n - (sum / n) ** 2)) > 28) applyPlates(img, [b], 'front');
+      }
+    }
+  }
+  if (provider !== 'ai') applyPlates(img, boxes, m.end);
+  const tag = j.id.replace(/-/g, '').slice(0, 6);
+  const name = (m.prev_path?.split('/').pop() ?? 'photo').replace(/\.\w+$/, '').replace(/-[cp][0-9a-f]{6}(-\d+)?$/, '').replace(/[^\w-]+/g, '-').slice(0, 80) || 'photo';
+  const path = `vehicles/${m.vehicle_id}/${name}-p${tag}.jpg`;
+  await d.files.putPublic(path, encodeJpeg(img, 90), 'image/jpeg');
+  const variants: Array<{ width: number; format: string; path: string }> = [];
+  for (const w of [...new Set(m.widths ?? [])].filter((x) => x > 0 && x < W).sort((a, b) => b - a)) {
+    const vp = `vehicles/${m.vehicle_id}/${name}-p${tag}-${w}.jpg`;
+    await d.files.putPublic(vp, encodeJpeg(scaleDown(img, w), 86), 'image/jpeg');
+    variants.push({ width: w, format: 'jpg', path: vp });
+  }
+  return { ok: true, provider, output: { plate: { processed_path: path, variants, width: W, height: H, end: m.end } } };
 }
 
 async function resize(d: WorkerDeps, j: JobContext, b: Budget, used: { transformations: number }): Promise<JobResult> {
