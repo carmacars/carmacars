@@ -103,6 +103,9 @@
 .im-list { display: grid; gap: var(--s-2); }
 .im-list__row { display: grid; grid-template-columns: minmax(0, 1fr) 9rem 9rem auto; gap: var(--s-2); align-items: end; }
 @media (max-width: 40rem) { .im-list__row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+/* a month field has a wide intrinsic width (about 200px in Chrome): it takes its column, never more (375px overflowed by 14px) */
+.im-list__row .field { min-width: 0; }
+.im-list__row .input { min-width: 0; width: 100%; }
 .im-warnings { margin: 0; padding: var(--s-3) var(--s-4); border-left: 4px solid var(--red-600); background: var(--red-50); display: grid; gap: var(--s-1); list-style: none; }
 /* the investor's schedule on a phone: month, date, return and status fit without scrolling */
 @media (max-width: 40rem) {
