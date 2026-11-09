@@ -68,6 +68,8 @@ export default async function Queue({ searchParams }: { searchParams: Promise<Re
     fn === 'sales' ? read<SalesDuties>('sales_duties').catch(() => null) : Promise.resolve(null),
     fn === 'sales' ? read<Dashboard>('sales_dashboard').catch(() => null) : Promise.resolve(null)
   ]);
+  // r35 (0970): the rep's outbound minutes through the site's Call button (to decide a full move to Twilio later)
+  const mins = fn === 'sales' ? await read<{ today: number; week: number; month: number; calls_month: number }>('my_call_minutes').catch(() => null) : null;
   const tm = target.minutes;
   const waiting = reqs.filter((r) => r.status === 'requested');
   const sinceOf = (min: number) => new Date(now - min * 60_000).toISOString();
@@ -141,6 +143,11 @@ export default async function Queue({ searchParams }: { searchParams: Promise<Re
                 <span className="va-reply__text"><span className="va-reply__what">{l.waiting} {l.waiting === 1 ? 'image' : 'images'} to check</span><span className="va-reply__who">{l.renter_first_name ?? 'Renter'}<span className="va-reply__detail">{l.vehicle_label} · {l.booking_number}</span></span></span>
                 <Link prefetch={false} className="btn btn--sm btn--primary va-reply__cta" href={`/staff/verify/${encodeURIComponent(l.booking_number)}`}>Review the licence</Link>
               </li>))}</ul> : <p className="va-empty-line">Every licence sent is decided.</p>}
+          </section>)}
+        {fn === 'sales' && mins && (
+          <section className="va-section pu-panel" aria-labelledby="va-calls-h" data-testid="va-call-minutes">
+            <div className="va-section__head"><h2 className="va-section__title" id="va-calls-h">My call minutes</h2><p className="va-section__note">Connected calls from the site&apos;s Call button</p></div>
+            <p className="small">Today <b>{mins.today}</b> min · This week <b>{mins.week}</b> min · This month <b>{mins.month}</b> min ({mins.calls_month} {mins.calls_month === 1 ? 'call' : 'calls'})</p>
           </section>)}
         {fn === 'sales' && sales && (
           <section className="va-section pu-panel" aria-labelledby="va-fu-h" data-testid="va-followups">

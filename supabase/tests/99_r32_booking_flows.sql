@@ -81,7 +81,7 @@ begin
   update bookings set card_on_file_id = v_pm where id = v_b;
 end $$;
 select test.eq('open: $300 rental, $50 fees', app.booking_part_open(test.id('booking:R32F-4'), 'rental') || '/' || app.booking_part_open(test.id('booking:R32F-4'), 'fees'), '30000/5000');
-select test.throws('customer service does not charge a saved card', $$select public.door(test.id('r32f_cs'), 'aal2', 'ops_do', 'card_charge_begin', jsonb_build_object('booking', 'R32F-4', 'covers', 'balance', 'reason', 'Rental and fees'))$$, 'Finance or an Admin');
+select test.throws('customer service does not charge a saved card', $$select public.door(test.id('r32f_cs'), 'aal2', 'ops_do', 'card_charge_begin', jsonb_build_object('booking', 'R32F-4', 'covers', 'balance', 'reason', 'Rental and fees'))$$, 'Fleet or an Admin');
 select test.throws('never more than is open', $$select public.door(test.id('r32f_fin'), 'aal2', 'ops_do', 'card_charge_begin', jsonb_build_object('booking', 'R32F-4', 'covers', 'balance', 'amount_cents', 40000, 'reason', 'Rental and fees'))$$, 'have $350.00 open');
 insert into test.rf select 'c1', public.door(test.id('r32f_fin'), 'aal2', 'ops_do', 'card_charge_begin', jsonb_build_object('booking', 'R32F-4', 'covers', 'balance', 'reason', 'Rental and fees'));
 select test.eq('one charge for everything open, split rental first',

@@ -74,6 +74,11 @@ export interface BookingCan {
   verifyInPerson: boolean;
   /** 0910: change the car before pickup (Sales on a request or an offer, Fleet on a confirmed booking; the database checks) */
   changeCar: boolean;
+  /** r35 (0970): take payments only (pay links, the saved card, deposit holds, cash or e-Transfer for Finance to check);
+   * never refunds or voids. Fleet's Money tab is this. */
+  collectOnly: boolean;
+  /** r35 (0970): mark the late car "returning now" (the renter's overdue reminders stop) */
+  returningNow: boolean;
 }
 
 export function bookingCan(v: Viewer): BookingCan {
@@ -85,7 +90,8 @@ export function bookingCan(v: Viewer): BookingCan {
     admin,
     offer: office,
     editOfferPending: admin || fn === 'cs',
-    money: office || fn === 'finance',
+    // r35 (0970): Fleet collects payments (the database decides each tool: app.user_collects_money); refunds stay Finance
+    money: office || fn === 'finance' || fn === 'fleet',
     extras: admin || fn === 'cs',
     cancelForRenter: admin || fn === 'cs',
     scheduleJob: fn === 'fleet',
@@ -98,7 +104,7 @@ export function bookingCan(v: Viewer): BookingCan {
     renterDocs: admin,
     staffUpload: !admin,
     carLink: admin || fn === 'fleet' || fn === 'cs',
-    manualPayments: admin || fn === 'finance',
+    manualPayments: admin || fn === 'finance' || fn === 'fleet',
     voidRecords: admin,
     paperSignatures: admin || fn === 'cs',
     driverLinks: admin || fn === 'cs',
@@ -106,9 +112,12 @@ export function bookingCan(v: Viewer): BookingCan {
     refundApprove: fn === 'finance',
     settleDeposit: admin || fn === 'finance',
     statement: admin || fn === 'finance',
-    inbox: office,
+    // r35 (0970): Fleet texts and calls on its own lane
+    inbox: office || fn === 'fleet',
     verifyInPerson: admin,
-    changeCar: admin || fn === 'cs' || fn === 'fleet' || fn === 'sales'
+    changeCar: admin || fn === 'cs' || fn === 'fleet' || fn === 'sales',
+    collectOnly: fn === 'fleet',
+    returningNow: admin || fn === 'fleet' || fn === 'cs'
   };
 }
 

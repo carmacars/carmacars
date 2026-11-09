@@ -248,7 +248,8 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
       <ClaimBanner />
       <ReplacedNote chain={chain} portal={portal} />
       {noShift.length > 0 && <p className="alert alert--warn" role="status" data-testid="no-shift-warning">{noShift.map((w) => `${w.leg === 'handover' ? 'The handover' : 'The return'} is on ${w.day}, a day with no field shifts${w.work_day ? `: its job is planned for ${w.work_day}` : ''}.`).join(' ')} Someone must cover it, or the booking time must move.</p>}
-      {late?.late && <LatePanel l={late} fleet={fn === 'fleet'} refresh={refresh} />}
+
+      {late?.late && <LatePanel l={late} fleet={fn === 'fleet'} refresh={refresh} returning={can.returningNow} />}
       {can.photoReview && ['on_rent', 'returned', 'closed'].includes(b.status) && <p className="small"><Link prefetch={false} className="link" href={`/staff/review/${encodeURIComponent(n)}`} data-testid="photo-review-link">Photo review: pickup and return side by side</Link></p>}
       {can.admin && <BookingSummary status={b.status} pickupAt={b.pickup_at} returnAt={b.return_at} days={Number(b.billable_days)} totalCents={Number(b.total_due_at_booking_cents)} billTo={b.bill_to} />}
       {/* the six sections right under the summary */}

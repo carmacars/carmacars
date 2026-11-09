@@ -16,7 +16,7 @@ import { RenterNotesLoader } from '@/features/caller/RenterNotes';
 // record, bookings and, when they gave this phone in live chat or a game, their visit on the site.
 export function PhoneInbox({ initial, portal, openId, fn }: { initial: PhoneInboxData; portal: 'admin' | 'va'; openId?: string; fn?: string }) {
   const [inbox, setInbox] = useState(initial);
-  const [view, setView] = useState<'all' | 'unknown'>('all');
+  const [view, setView] = useState<'all' | 'unknown' | 'fleet' | 'cs'>('all');
   const [sel, setSel] = useState<string | null>(openId ?? initial.threads[0]?.id ?? null);
   const [err, setErr] = useState('');
   const refresh = useCallback(async (v = view) => {
@@ -28,7 +28,7 @@ export function PhoneInbox({ initial, portal, openId, fn }: { initial: PhoneInbo
     const t = setInterval(() => { if (due()) void refresh(); }, 10_000);
     return () => clearInterval(t);
   }, [refresh]);
-  const pick = (v: 'all' | 'unknown') => { setView(v); void refresh(v); };
+  const pick = (v: 'all' | 'unknown' | 'fleet' | 'cs') => { setView(v); void refresh(v); };
   return (
     <div className="lc" data-testid="phone-inbox">
       <div className="lc-top">
@@ -41,6 +41,9 @@ export function PhoneInbox({ initial, portal, openId, fn }: { initial: PhoneInbo
           <div className="ad-chip-row" role="group" aria-label="Which numbers">
             <button type="button" className={`btn btn--sm ${view === 'all' ? 'btn--primary' : 'btn--quiet'}`} aria-pressed={view === 'all'} onClick={() => pick('all')}>All</button>
             <button type="button" className={`btn btn--sm ${view === 'unknown' ? 'btn--primary' : 'btn--quiet'}`} aria-pressed={view === 'unknown'} onClick={() => pick('unknown')} data-testid="phone-unknown-tab">Unknown callers<span> ({inbox.unknown})</span></button>
+            {/* r35 (0970): the Fleet lane (pickups, returns, deliveries, cars on rent) and customer service's */}
+            <button type="button" className={`btn btn--sm ${view === 'fleet' ? 'btn--primary' : 'btn--quiet'}`} aria-pressed={view === 'fleet'} onClick={() => pick('fleet')} data-testid="phone-fleet-tab">Fleet</button>
+            <button type="button" className={`btn btn--sm ${view === 'cs' ? 'btn--primary' : 'btn--quiet'}`} aria-pressed={view === 'cs'} onClick={() => pick('cs')} data-testid="phone-cs-tab">Customer service</button>
           </div>
           {!inbox.threads.length ? <p className="small muted">{view === 'unknown' ? 'Every number is matched to someone.' : 'No calls or texts yet. They appear here as they come in.'}</p> : (
             <ul>{inbox.threads.map((c) => (

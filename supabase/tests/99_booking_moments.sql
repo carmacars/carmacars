@@ -35,6 +35,10 @@ $$;
 create or replace function test.bm_events(p_code text, p_number text) returns bigint language sql stable as $$
   select count(*) from app_events where code = p_code and entity = 'booking' and entity_id = test.id('booking:' || p_number)
 $$;
+-- 0970: the one "not back" alert of a booking and its return time
+create or replace function test.bm_nb(p_number text) returns bigint language sql stable as $$
+  select count(*) from app_events where code = 'staff_alert_urgent' and payload ->> 'rule' = 'booking_not_back' and entity_id = test.id('booking:' || p_number)
+$$;
 
 -- confirmed, picked up yesterday by the clock and never recorded, back at 2:30 pm today
 select test.mk_booking('BM-END', 'bm_end', 'bm_rita', test.bmt('12:00', '-1 day'), test.bmt('14:30'), 'confirmed');
@@ -69,7 +73,7 @@ select test.eq('out: the status is never changed', (select status::text from boo
 -- ================================================================ overnight (yesterday, before everything else)
 select app.notify_reminders(test.bm_at('03:00', '-1 day'));
 select test.eq('overnight: no late notice to the renter at 3 am, the Admins are told at once',
-  test.bm_events('renter_late_return_first', 'BM-NIGHT') || '/' || test.bm_events('renter_return_due', 'BM-NIGHT') || '/' || test.bm_events('staff_not_back_admin', 'BM-NIGHT'), '0/0/1');
+  test.bm_events('renter_late_return_first', 'BM-NIGHT') || '/' || test.bm_events('renter_return_due', 'BM-NIGHT') || '/' || test.bm_nb('BM-NIGHT'), '0/0/1');
 select app.notify_reminders(test.bm_at('07:00', '-1 day'));
 select test.eq('overnight: at 7 am T13 alone, not the return time notice and not T14 in the same run',
   test.bm_events('renter_late_return_first', 'BM-NIGHT') || '/' || test.bm_events('renter_return_due', 'BM-NIGHT') || '/' || test.bm_events('renter_late_return_final', 'BM-NIGHT'), '1/0/0');
@@ -128,16 +132,16 @@ select test.eq('the text of "ends at": the time, the place and the Extend link',
 
 -- ================================================================ at the return time, then late
 select app.notify_reminders(test.bm_at('14:31'));
-select test.eq('return time: "your booking ended at 2:30 pm", and no T13 yet',
-  test.bm_events('renter_return_due', 'BM-END') || '/' || test.bm_events('renter_late_return_first', 'BM-END'), '1/0');
+select test.eq('return time: the renter is not chased inside the 15 minute grace (0970)',
+  test.bm_events('renter_return_due', 'BM-END') || '/' || test.bm_events('renter_late_return_first', 'BM-END'), '0/0');
 select app.notify_reminders(test.bm_at('14:46'));
-select test.eq('15 minutes late: T13 goes by itself, once',
-  test.bm_events('renter_late_return_first', 'BM-END') || '/' || test.bm_events('renter_return_due', 'BM-END'), '1/1');
-select test.eq('15 minutes late: the field staff of the return and the Admins are told, the Admin by text with the renter''s phone',
-  (select count(*) from app_events where code = 'staff_not_back' and entity_id = test.id('booking:BM-END') and payload ->> 'recipient_user_id' = test.id('bm_field')::text)
-  || '/' || test.bm_events('staff_not_back_admin', 'BM-END')
+select test.eq('15 minutes late: T13 goes by itself, once (the grace took the return time notice''s place)',
+  test.bm_events('renter_late_return_first', 'BM-END') || '/' || test.bm_events('renter_return_due', 'BM-END'), '1/0');
+select test.eq('15 minutes late: one alert for the field staff of the return, Fleet and the Admins (0970), the Admin by text with the renter''s phone',
+  (select count(*) from app_events where code = 'staff_alert_urgent' and payload ->> 'rule' = 'booking_not_back' and entity_id = test.id('booking:BM-END') and payload ->> 'assigned_to' = test.id('bm_field')::text)
+  || '/' || (test.bm_events('staff_not_back_admin', 'BM-END') + test.bm_events('staff_not_back', 'BM-END'))
   || '/' || (select count(*) from phone_outbox where to_number = '+16475550143' and booking_id = test.id('booking:BM-END')
-                and body like 'CarmaCars: BM-END not back, due 2:30 pm%' and body like '%call 647-555-0199%'), '1/1/1');
+                and body like 'CarmaCars: BM-END not back: due 2:30 pm%' and body like '%call 647-555-0199%'), '1/0/1');
 select app.job_ops_watch(test.bm_at('14:46'));
 select test.eq('late: the late_return task is raised for the confirmed booking too',
   (select count(*) from tasks where booking_id = test.id('booking:BM-END') and task_type = 'late_return' and status = 'open'), 1::bigint);

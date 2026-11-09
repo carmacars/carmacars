@@ -189,7 +189,8 @@ select test.throws('an assistant takes no "no deposit"', $$select app.door(test.
   'payment', jsonb_build_object('mode', 'link'), 'deposit', jsonb_build_object('method', 'none')))$$, 'Only an Admin');
 
 -- ================================================================ 5. card requests
-select test.throws('fleet starts no card payment', $$select app.door(test.id('of_fleet'), 'aal2', 'ops_do', 'payreq_create', jsonb_build_object('booking', (test.ofb('o3')).booking_number, 'kind', 'setup', 'token_sha256', repeat('a', 64)))$$, null);
+-- 0970: Fleet collects payments too (a pay link, the card on the renter's phone)
+select test.lives('fleet starts a card payment (0970)', $$select app.door(test.id('of_fleet'), 'aal2', 'ops_do', 'payreq_create', jsonb_build_object('booking', (test.ofb('o3')).booking_number, 'kind', 'setup', 'token_sha256', repeat('f', 64)))$$);
 select test.throws('a hold waits for the approval of the offer', $$select app.door(test.id('of_cs'), 'aal2', 'ops_do', 'payreq_create', jsonb_build_object('booking', (test.ofb('o3')).booking_number, 'kind', 'hold', 'token_sha256', repeat('a', 64)))$$, 'approved');
 insert into test.of select 'q1', app.door(test.id('of_cs'), 'aal2', 'ops_do', 'payreq_create', jsonb_build_object('booking', (test.ofb('m1')).booking_number, 'kind', 'charge', 'covers', 'later',
   'amount_cents', 4500, 'reason', 'Fuel', 'channel', 'text', 'token_sha256', repeat('b', 64)));
@@ -221,7 +222,7 @@ select test.eq('captured in part: $50 captured, the rest released with it', (sel
 
 -- the saved card, charged for a later charge
 select test.throws('a charge needs its reason', $$select app.door(test.id('of_fin'), 'aal2', 'ops_do', 'card_charge_begin', jsonb_build_object('booking', (test.ofb('m2')).booking_number, 'amount_cents', 2000))$$, 'Say what');
-select test.throws('customer service does not charge a saved card', $$select app.door(test.id('of_cs'), 'aal2', 'ops_do', 'card_charge_begin', jsonb_build_object('booking', (test.ofb('m2')).booking_number, 'amount_cents', 2000, 'reason', 'Km'))$$, 'Finance or an Admin');
+select test.throws('customer service does not charge a saved card', $$select app.door(test.id('of_cs'), 'aal2', 'ops_do', 'card_charge_begin', jsonb_build_object('booking', (test.ofb('m2')).booking_number, 'amount_cents', 2000, 'reason', 'Km'))$$, 'Fleet or an Admin');
 insert into test.of select 'c1', app.door(test.id('of_fin'), 'aal2', 'ops_do', 'card_charge_begin', jsonb_build_object('booking', (test.ofb('m2')).booking_number, 'amount_cents', 2000, 'reason', 'Extra km'));
 select test.eq('the charge: the saved card''s Stripe ids', (test.ofv('c1') ->> 'method_id') || '/' || (test.ofv('c1') ->> 'customer_id'), 'pm_2/cus_1');
 select app.door(test.id('of_fin'), 'aal2', 'ops_do', 'card_charge_finish', jsonb_build_object('payment', test.ofv('c1') ->> 'payment_id', 'ok', true, 'intent_id', 'pi_c1', 'reason', 'Extra km'));

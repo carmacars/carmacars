@@ -14,6 +14,8 @@ export interface CallerRenter {
 export interface LiveCall {
   id: string; thread_id: string; number: string; display: string; at: string; answered_at: string | null; ended_at: string | null; missed: boolean; live: boolean;
   kind: 'staff' | 'renter' | 'owner' | 'lead' | 'unknown'; who: string; lead_id: string | null; owner_id: string | null; renter: CallerRenter | null;
+  /** r35 (0970): fleet when the call is about a pickup, a return, a delivery or a car on rent (it rings for Fleet first) */
+  lane?: 'fleet' | 'cs';
 }
 export interface CallerLive { at: string; calls: LiveCall[] }
 export interface NotesRead { renter_id: string; notes: CallerNote[]; can_remove: boolean }

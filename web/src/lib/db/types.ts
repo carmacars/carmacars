@@ -3276,6 +3276,9 @@ export type Database = {
           return_link_token: string;
           return_state: string | null;
           superseded_by: string | null;
+          returning_now_at: string | null;
+          returning_now_by: string | null;
+          returning_now_return_at: string | null;
         };
         Insert: {
           id?: string;
@@ -3456,6 +3459,9 @@ export type Database = {
           return_link_token?: string;
           return_state?: string | null;
           superseded_by?: string | null;
+          returning_now_at?: string | null;
+          returning_now_by?: string | null;
+          returning_now_return_at?: string | null;
         };
         Update: {
           id?: string;
@@ -3636,6 +3642,9 @@ export type Database = {
           return_link_token?: string;
           return_state?: string | null;
           superseded_by?: string | null;
+          returning_now_at?: string | null;
+          returning_now_by?: string | null;
+          returning_now_return_at?: string | null;
         };
         Relationships: [];
       };
@@ -11802,6 +11811,81 @@ export type Database = {
         };
         Relationships: [];
       };
+      outbound_calls: {
+        Row: {
+          id: string;
+          staff_user_id: string;
+          to_number: string;
+          staff_number: string;
+          thread_id: string | null;
+          renter_id: string | null;
+          owner_id: string | null;
+          lead_id: string | null;
+          booking_id: string | null;
+          provider: string;
+          call_sid: string | null;
+          status: string;
+          outcome: string | null;
+          staff_seconds: number | null;
+          duration_seconds: number | null;
+          activity_id: string | null;
+          error: string | null;
+          started_at: string;
+          answered_at: string | null;
+          ended_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          staff_user_id: string;
+          to_number: string;
+          staff_number: string;
+          thread_id?: string | null;
+          renter_id?: string | null;
+          owner_id?: string | null;
+          lead_id?: string | null;
+          booking_id?: string | null;
+          provider?: string;
+          call_sid?: string | null;
+          status?: string;
+          outcome?: string | null;
+          staff_seconds?: number | null;
+          duration_seconds?: number | null;
+          activity_id?: string | null;
+          error?: string | null;
+          started_at?: string;
+          answered_at?: string | null;
+          ended_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          staff_user_id?: string;
+          to_number?: string;
+          staff_number?: string;
+          thread_id?: string | null;
+          renter_id?: string | null;
+          owner_id?: string | null;
+          lead_id?: string | null;
+          booking_id?: string | null;
+          provider?: string;
+          call_sid?: string | null;
+          status?: string;
+          outcome?: string | null;
+          staff_seconds?: number | null;
+          duration_seconds?: number | null;
+          activity_id?: string | null;
+          error?: string | null;
+          started_at?: string;
+          answered_at?: string | null;
+          ended_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       owner_agreement_forms: {
         Row: {
           id: string;
@@ -15378,6 +15462,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      phone_masks: {
+        Row: {
+          user_id: string;
+          number: string;
+          display: string;
+          seen_at: string;
+        };
+        Insert: {
+          user_id: string;
+          number: string;
+          display: string;
+          seen_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          number?: string;
+          display?: string;
+          seen_at?: string;
+        };
+        Relationships: [];
+      };
       phone_outbox: {
         Row: {
           id: string;
@@ -16518,6 +16623,9 @@ export type Database = {
           notify_reminder_confirm_gap_hours: number;
           owner_void_hold_minutes: number;
           owner_void_next_day_hour: number;
+          late_chase_grace_minutes: number;
+          late_chase_at_place_km: number;
+          alert_quiet_summary: boolean;
         };
         Insert: {
           id?: string;
@@ -17166,6 +17274,9 @@ export type Database = {
           notify_reminder_confirm_gap_hours?: number;
           owner_void_hold_minutes?: number;
           owner_void_next_day_hour?: number;
+          late_chase_grace_minutes?: number;
+          late_chase_at_place_km?: number;
+          alert_quiet_summary?: boolean;
         };
         Update: {
           id?: string;
@@ -17814,6 +17925,9 @@ export type Database = {
           notify_reminder_confirm_gap_hours?: number;
           owner_void_hold_minutes?: number;
           owner_void_next_day_hour?: number;
+          late_chase_grace_minutes?: number;
+          late_chase_at_place_km?: number;
+          alert_quiet_summary?: boolean;
         };
         Relationships: [];
       };
@@ -18010,6 +18124,7 @@ export type Database = {
           last_error: string | null;
           created_at: string;
           actions: Json | null;
+          quiet_hold: boolean;
         };
         Insert: {
           id?: string;
@@ -18029,6 +18144,7 @@ export type Database = {
           last_error?: string | null;
           created_at?: string;
           actions?: Json | null;
+          quiet_hold?: boolean;
         };
         Update: {
           id?: string;
@@ -18048,6 +18164,7 @@ export type Database = {
           last_error?: string | null;
           created_at?: string;
           actions?: Json | null;
+          quiet_hold?: boolean;
         };
         Relationships: [];
       };
@@ -28588,6 +28705,7 @@ export type Database = {
       server_phone_sent: { Args: { p: Json }; Returns: Json };
       server_phone_signed_in: { Args: { p_user: string; p_phone: string; p_name?: string }; Returns: Json };
       server_phone_summary: { Args: { p: Json }; Returns: Json };
+      server_phone_unmask: { Args: { p_user: string; p: Json }; Returns: string };
       server_photo_mark_gate: { Args: never; Returns: Json };
       server_photo_mark_record: { Args: { p: Json }; Returns: Json };
       server_photo_sort_gate: { Args: { p_by: string }; Returns: Json };
@@ -28669,6 +28787,9 @@ export type Database = {
       server_terms_pending: { Args: { p_by: string }; Returns: Json };
       server_tracker_ingest: { Args: { p: Json }; Returns: Json };
       server_tracker_ingest_key: { Args: never; Returns: string };
+      server_twilio_call_event: { Args: { p: Json }; Returns: Json };
+      server_twilio_call_get: { Args: { p_id: string }; Returns: Json };
+      server_twilio_call_start: { Args: { p: Json }; Returns: Json };
       server_unsubscribe: { Args: { p_token: string }; Returns: boolean };
       server_unsubscribe_info: { Args: { p_token: string }; Returns: Json };
       server_usage_call: { Args: { p: Json }; Returns: Json };

@@ -11,7 +11,7 @@ export interface Late { booking_id: string; booking_number: string; status: stri
   tracker: { installed: boolean; reported_at: string | null; reporting: boolean } | null; disable: { status: string; created_at: string } | null;
   incident: { number: string; kind: string; status: string } | null }
 
-export function LatePanel({ l, fleet, refresh }: { l: Late; fleet: boolean; refresh: string[] }) {
+export function LatePanel({ l, fleet, refresh, returning = false }: { l: Late; fleet: boolean; refresh: string[]; returning?: boolean }) {
   const now = new Date(l.now).getTime();
   const P = { booking: l.booking_id };
   const t14Ready = l.minutes_late >= 120;
@@ -29,6 +29,9 @@ export function LatePanel({ l, fleet, refresh }: { l: Late; fleet: boolean; refr
         ['Incident', l.incident ? `${l.incident.number}, ${l.incident.status}` : 'none']]} />
       {l.calls.length > 0 && <ul className="small">{l.calls.map((c) => <li key={c.at}>{t(c.at)}: {c.note}{c.by ? ` (${c.by})` : ''}</li>)}</ul>}
       <div className="ad-actions">
+        {/* r35 (0970): the renter is on the way back: their overdue reminders stop for this return time */}
+        {returning && <Act action="late_returning_now" payload={P} label="Returning now" variant="primary" testId="late-returning-now" refresh={refresh}
+          confirm="Mark the car returning now? The renter gets no more overdue reminders for this return time." done="Marked returning now." />}
         <Act action="late_call" payload={P} label="Log a call" testId="late-call" fields={[{ name: 'note', label: 'What happened', type: 'textarea', required: true }]} refresh={refresh} done="Call logged." />
         <Act action="late_t13" payload={P} label={l.t13_at ? 'T13 sent' : 'Send T13'} testId="late-t13" disabled={Boolean(l.t13_at)} refresh={refresh} done="T13 sent." />
         <Act action="late_t14" payload={P} label={l.t14_at ? 'T14 sent' : 'Send T14 (final notice)'} testId="late-t14" disabled={Boolean(l.t14_at) || !t14Ready}
