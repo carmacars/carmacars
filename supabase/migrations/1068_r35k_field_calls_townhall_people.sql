@@ -4,9 +4,9 @@
 --      mark, no "decline") is invited to a live call with the booking link of 0173, which offers the call times of the
 --      hour before the weekly townhall: six 10-minute slots, opened by themselves each week (app.townhall_field_slots).
 --      Admin sees them on Hiring (days and calls); Fleet sees them on its Field jobs page (ops_read field_call_slots).
---   2. The townhall (16): its day is the least busy day of the week (the fewest pickups, returns and field jobs over the
---      last 8 weeks and the next 2 weeks booked, Monday to Saturday), recomputed every Sunday; a new day takes effect only
---      after 7 days' notice to every staff member. Every active staff member is reminded an hour before; attendance is a
+--   2. The townhall (16): fixed every week, Wednesday at 1:00 pm Toronto (the owner's day; Program settings townhall_weekday
+--      and townhall_time, which an Admin changes on the Townhall page beside the website's visitor sessions per weekday over
+--      the last 8 weeks, shown as information). Every active staff member is reminded an hour before; attendance is a
 --      join (the call link through the site) or a check-in; absences show on the staff list and the Admins are alerted to
 --      the no-shows once the call is over. Every staff member has a tile on the deck: name, role, the week's numbers (Sales:
 --      offers and bookings; customer service: replies and the average reply time; Fleet and field: jobs done; Finance:
@@ -16,12 +16,11 @@
 -- No applied migration is edited; this part's own functions of 1060 to 1064 are replaced.
 set local check_function_bodies = off;
 
-alter table program_settings
-  add column if not exists townhall_auto_day boolean not null default true,
-  add column if not exists townhall_next_weekday integer check (townhall_next_weekday between 1 and 7),
-  add column if not exists townhall_next_from date;
-comment on column program_settings.townhall_auto_day is 'Townhall (1068): the day follows the least busy day of the week, recomputed every Sunday, with 7 days'' notice.';
-comment on column program_settings.townhall_next_from is 'Townhall (1068): the date from which townhall_next_weekday replaces townhall_weekday (staff were told 7 days before).';
+-- the owner's fixed weekly townhall: Wednesday at 1:00 pm Toronto, every week (an Admin changes it on the Townhall page)
+alter table program_settings alter column townhall_weekday set default 3, alter column townhall_time set default '13:00';
+update program_settings set townhall_weekday = 3, townhall_time = '13:00' where id = (app.settings()).id;
+comment on column program_settings.townhall_weekday is 'Townhall: the weekday (1 Monday to 7 Sunday), fixed every week (1068: Wednesday, the owner''s day).';
+comment on column program_settings.townhall_time is 'Townhall: the start, Toronto time (1068: 13:00). The field applicants'' live calls take the hour before.';
 
 create table if not exists townhall_attendance (
   meeting_at timestamptz not null,
@@ -50,7 +49,6 @@ begin
 end $$;
 
 insert into staff_alert_rules (rule, label, grp, who, tier, topic, wired, fixed, hint, sort) values
-  ('townhall_moved', 'The townhall moves to another day', 'Staff', '{assigned}', 'normal', 'alerts', true, false, 'Every staff member, 7 days before the new day (1068).', 165),
   ('townhall_absent', 'Staff missed the townhall', 'Staff', '{admin}', 'normal', 'alerts', true, false, 'Once the call is over (1068).', 166)
 on conflict (rule) do nothing;
 update staff_alert_rules set who = '{assigned}', hint = 'Every active staff member, an hour before (1068).' where rule = 'townhall_soon';
@@ -58,8 +56,7 @@ update staff_alert_rules set who = '{assigned}', hint = 'Every active staff memb
 -- ================================================================ the day
 create or replace function app.townhall_weekday_now(p_day date default null) returns integer
 language sql stable security definer set search_path = public, app as $$
-  select case when s.townhall_next_from is not null and s.townhall_next_from <= coalesce(p_day, app.today()) then s.townhall_next_weekday else s.townhall_weekday end
-    from (select (app.settings()).*) s
+  select (app.settings()).townhall_weekday
 $$;
 
 create or replace function app.townhall_next(p_now timestamptz default now()) returns timestamptz
@@ -70,21 +67,12 @@ language sql stable security definer set search_path = public, app as $$
      and ((app.local_date(p_now) + d) + (app.settings()).townhall_time::time) at time zone 'America/Toronto' > p_now - make_interval(mins => (app.settings()).townhall_minutes)
 $$;
 
--- how busy each weekday is: pickups, returns and field jobs over the last 8 weeks and the next 2 (Toronto days)
-create function app.townhall_busy_days(p_now timestamptz default now()) returns jsonb
+-- information for the Townhall page: website visitor sessions per weekday over the last 8 weeks (Toronto days)
+create function app.townhall_visitor_days(p_now timestamptz default now()) returns jsonb
 language sql stable security definer set search_path = public, app as $$
-  select jsonb_object_agg(d::text, coalesce(n, 0)) from generate_series(1, 7) d left join (
-    select extract(isodow from t at time zone 'America/Toronto')::int dow, count(*) n from (
-      select b.pickup_at t from bookings b where b.status::text not in ('cancelled', 'declined', 'expired', 'requested', 'offered') and b.pickup_at between p_now - interval '56 days' and p_now + interval '14 days'
-      union all select b.return_at from bookings b where b.status::text not in ('cancelled', 'declined', 'expired', 'requested', 'offered') and b.return_at between p_now - interval '56 days' and p_now + interval '14 days'
-      union all select j.scheduled_at from field_jobs j where j.status <> 'cancelled' and j.scheduled_at between p_now - interval '56 days' and p_now + interval '14 days') x group by 1) c on c.dow = d
-$$;
-
-create function app.townhall_pick_day(p_now timestamptz default now()) returns integer
-language sql stable security definer set search_path = public, app as $$
-  select (k)::int from jsonb_each_text(app.townhall_busy_days(p_now)) e(k, v)
-   where k::int between 1 and 6
-   order by v::int, (k::int = app.townhall_weekday_now()) desc, k::int limit 1
+  select jsonb_object_agg(d::text, coalesce(n, 0) order by d) from generate_series(1, 7) d left join (
+    select extract(isodow from s.started_at at time zone 'America/Toronto')::int dow, count(*) n
+      from visitor_sessions s where s.started_at >= p_now - interval '56 days' and s.started_at < p_now group by 1) c on c.dow = d
 $$;
 
 -- ================================================================ field calls before the townhall
@@ -182,7 +170,7 @@ begin
   end if;
   return v || jsonb_build_object('checked_in', exists (select 1 from townhall_attendance x where x.meeting_at = v_next and x.user_id = p_by),
     'can_check_in', v_next is not null and now() between v_next - interval '15 minutes' and v_next + make_interval(mins => (app.settings()).townhall_minutes),
-    'weekday', app.townhall_weekday_now(), 'next_weekday', (app.settings()).townhall_next_weekday, 'next_from', (app.settings()).townhall_next_from,
+    'weekday', (app.settings()).townhall_weekday, 'visitors', case when app.user_is_admin(p_by) then app.townhall_visitor_days(now()) end,
     'attendance', case when app.user_is_admin(p_by) then (select jsonb_build_object('meetings', count(*), 'last_absent', (select cardinality(m.absent) from townhall_meetings m order by m.meeting_at desc limit 1)) from townhall_meetings) end);
 end $$;
 
@@ -193,6 +181,11 @@ begin
   perform app.assert_admin(p_by);
   if p_action = 'townhall_build' then
     v_id := app.townhall_build(nullif(p ->> 'week_of', '')::date, p_by);
+  elsif p_action = 'townhall_schedule' then
+    -- the fixed day and time (the field calls and the reminders follow)
+    if coalesce(p ->> 'weekday', '') !~ '^[1-7]$' then raise exception 'Choose the day' using errcode = '22023'; end if;
+    if coalesce(p ->> 'time', '') !~ '^([01]?[0-9]|2[0-3]):[0-5][0-9]$' then raise exception 'Give the time as HH:MM (Toronto)' using errcode = '22023'; end if;
+    update program_settings set townhall_weekday = (p ->> 'weekday')::int, townhall_time = p ->> 'time' where id = (app.settings()).id returning id into v_id;
   else
     if coalesce(p ->> 'key', '') !~ '^([a-z]{2,20}|p_[0-9a-f-]{36})$' then raise exception 'Choose the slide' using errcode = '22023'; end if;
     update townhall_decks set notes = case when nullif(btrim(coalesce(p ->> 'note', '')), '') is null then notes - (p ->> 'key')
@@ -223,32 +216,13 @@ declare
   v_local timestamp := p_now at time zone 'America/Toronto';
   v_next timestamptz := app.townhall_next(p_now);
   v_last timestamptz;
-  v_pick integer;
   v_absent uuid[];
   r record;
   n_rem integer := 0;
   s program_settings := app.settings();
-  v_words text;
 begin
   -- the deck of the week, as before (its alert to the Admins is replaced by the one to everyone below)
   perform app.job_townhall_pre1068(p_now);
-  -- a new day that has come: in force
-  if s.townhall_next_from is not null and s.townhall_next_from <= app.local_date(p_now) then
-    update program_settings set townhall_weekday = townhall_next_weekday, townhall_next_weekday = null, townhall_next_from = null where townhall_next_from is not null;
-  end if;
-  -- Sunday evening: the least busy day; a change is announced 7 days ahead
-  if s.townhall_auto_day and extract(isodow from v_local) = 7 and extract(hour from v_local) >= 21 and s.townhall_next_from is null then
-    v_pick := app.townhall_pick_day(p_now);
-    if v_pick is not null and v_pick <> s.townhall_weekday then
-      update program_settings set townhall_next_weekday = v_pick, townhall_next_from = app.local_date(p_now) + 8 where id = (app.settings()).id;
-      v_words := to_char(date '2026-01-04' + v_pick, 'FMDay');
-      for r in select sp.user_id from staff_profiles sp where app.staff_is_member(sp.user_id) union select ur.user_id from user_roles ur where ur.role = 'admin' loop
-        perform app.staff_alert('townhall_moved', 'user', r.user_id, 'moved:' || to_char(app.local_date(p_now) + 8, 'YYYYMMDD'),
-          format('The townhall moves to %ss', v_words), format('From %s, at %s Toronto time: the quietest day of the week.', to_char(app.local_date(p_now) + 8, 'FMDay, FMMonth FMDD'), s.townhall_time),
-          jsonb_build_object('assigned_to', r.user_id, 'path_staff', '/staff/townhall', 'path_admin', '/admin/townhall'));
-      end loop;
-    end if;
-  end if;
   -- an hour before: every active staff member, and the Admins
   if v_next is not null and v_next > p_now and v_next <= p_now + interval '60 minutes' then
     for r in select sp.user_id from staff_profiles sp where app.staff_is_member(sp.user_id) union select ur.user_id from user_roles ur where ur.role = 'admin' loop
@@ -318,6 +292,10 @@ create function app.door(p_user uuid, p_aal text, p_call text, p_name text, p js
 language plpgsql security definer set search_path = public, app as $$
 declare p_ jsonb := coalesce(p, '{}'::jsonb) - '_va';
 begin
+  if p_call = 'admin_do' and p_name = 'townhall_schedule' then
+    perform app.door_begin(p_user, p_aal);
+    return app.townhall_do(p_user, p_name, p_);
+  end if;
   if (p_call = 'ops_do' and p_name = 'townhall_attend') or (p_call in ('ops_read', 'admin_read') and p_name = 'field_call_slots') then
     perform app.door_begin(p_user, p_aal);
     return case p_name when 'townhall_attend' then app.townhall_attend(p_user, p_) else app.field_call_slots(p_user, p_) end;
@@ -329,7 +307,7 @@ do $$
 declare f record;
 begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-            where n.nspname = 'app' and p.proname = any (array['townhall_weekday_now', 'townhall_next', 'townhall_busy_days', 'townhall_pick_day', 'townhall_field_slots',
+            where n.nspname = 'app' and p.proname = any (array['townhall_weekday_now', 'townhall_next', 'townhall_visitor_days', 'townhall_field_slots',
                     'hiring_field_to_call', 'field_call_slots', 'townhall_people', 'townhall_slides_pre1068', 'townhall_slides', 'townhall_view_pre1068', 'townhall_view',
                     'townhall_do', 'townhall_attend', 'job_townhall_pre1068', 'job_townhall', 'staff_access_facts', 'live_map_pre0470', 'job_hiring_pre1068', 'job_hiring',
                     'door_pre1068', 'door'])

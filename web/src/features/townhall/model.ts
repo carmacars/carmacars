@@ -5,15 +5,16 @@ export interface Person { user_id: string; name: string; role: string; points: P
 export interface Slide { key: string; title: string; admin_only: boolean; points: Point[]; board?: Point[]; lines?: string[]; note?: string | null; people?: Person[] }
 export interface Townhall { admin: boolean; next_at: string | null; minutes: number; call_url: string | null; weekday: number; time: string; finance_to_staff: boolean; weeks: string[];
   deck: { id: string; week_of: string; built_at: string; slides: Slide[] } | null;
-  /** 1068: attendance (join through the site or check in) and the day the least busy weekday moves it to, with 7 days' notice */
-  checked_in?: boolean; can_check_in?: boolean; next_weekday?: number | null; next_from?: string | null; attendance?: { meetings: number; last_absent: number | null } | null }
+  /** 1068: attendance (join through the site or check in); for an Admin, the website's visitor sessions per weekday (8 weeks) */
+  checked_in?: boolean; can_check_in?: boolean; visitors?: Record<string, number> | null; attendance?: { meetings: number; last_absent: number | null } | null }
 
 export const WEEKDAY = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as const;
-/** The notice of a move: "From Tuesday, November 17 the townhall is on Tuesdays", or null. */
-export function moveNotice(v: Pick<Townhall, 'weekday' | 'next_weekday' | 'next_from'>): string | null {
-  if (!v.next_weekday || !v.next_from || v.next_weekday === v.weekday || !/^\d{4}-\d{2}-\d{2}$/.test(v.next_from)) return null;
-  const d = new Intl.DateTimeFormat('en-CA', { timeZone: 'UTC', weekday: 'long', month: 'long', day: 'numeric' }).format(new Date(`${v.next_from}T12:00:00Z`));
-  return `From ${d} the townhall is on ${WEEKDAY[v.next_weekday]}s (the least busy day of the last 8 weeks and the next 2).`;
+/** 1068: the visitor sessions per weekday (Monday first), for the Admin's table beside the fixed day; the quietest marked. */
+export function visitorDays(v: Record<string, number> | null | undefined): Array<{ day: number; name: string; sessions: number; quietest: boolean }> {
+  if (!v) return [];
+  const rows = [1, 2, 3, 4, 5, 6, 7].map((d) => ({ day: d, name: WEEKDAY[d]!, sessions: Number(v[String(d)] ?? 0), quietest: false }));
+  const min = Math.min(...rows.map((r) => r.sessions));
+  return rows.map((r) => ({ ...r, quietest: rows.some((x) => x.sessions > 0) && r.sessions === min }));
 }
 export interface Release { release: string; title: string; date: string; summary: string }
 

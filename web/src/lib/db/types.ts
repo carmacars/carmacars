@@ -17344,9 +17344,6 @@ export type Database = {
           townhall_finance_to_staff: boolean;
           in_person_area_km: number;
           in_person_area_cities: string[];
-          townhall_auto_day: boolean;
-          townhall_next_weekday: number | null;
-          townhall_next_from: string | null;
           indexnow_sweep_batch: number;
           indexnow_queue_batch: number;
         };
@@ -18037,9 +18034,6 @@ export type Database = {
           townhall_finance_to_staff?: boolean;
           in_person_area_km?: number;
           in_person_area_cities?: string[];
-          townhall_auto_day?: boolean;
-          townhall_next_weekday?: number | null;
-          townhall_next_from?: string | null;
           indexnow_sweep_batch?: number;
           indexnow_queue_batch?: number;
         };
@@ -18730,9 +18724,6 @@ export type Database = {
           townhall_finance_to_staff?: boolean;
           in_person_area_km?: number;
           in_person_area_cities?: string[];
-          townhall_auto_day?: boolean;
-          townhall_next_weekday?: number | null;
-          townhall_next_from?: string | null;
           indexnow_sweep_batch?: number;
           indexnow_queue_batch?: number;
         };

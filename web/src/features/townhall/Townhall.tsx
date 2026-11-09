@@ -4,7 +4,7 @@ import { Card } from '@/features/admin/ui';
 import { door } from '@/server/door';
 import data from '@/features/investor/updates-data.json';
 import './townhall.css';
-import { moveNotice, withReleases, releasesOfWeek, type Release, type Townhall as T } from './model';
+import { WEEKDAY, visitorDays, withReleases, releasesOfWeek, type Release, type Townhall as T } from './model';
 
 // The weekly townhall deck (1062): one slide a section, the platform updates from the release notes of that week, the
 // notes an Admin types per slide; the next call with its link and the calendar invite. Admin builds it again any time.
@@ -23,7 +23,12 @@ export async function TownhallDeck({ userId, aal, base, week }: { userId: string
           : v.can_check_in ? <Act ops action="townhall_attend" payload={{ method: 'checkin' }} label="Check in" variant="primary" refresh={refresh} done="Checked in." testId="townhall-checkin" /> : null}{' '}
         <a className="link small" href="/api/townhall-ics" download="carmacars-townhall.ics">Add to my calendar (every week)</a></p>
       <p className="small muted">Every staff member is expected. Joining through this page or checking in (from 15 minutes before) counts you as there; Admin sees who missed it.</p>
-      {moveNotice(v) && <p className="alert alert--warn small" role="status" data-testid="townhall-moves"><span>{moveNotice(v)}</span></p>}
+      <p className="small" data-testid="townhall-when">Every {WEEKDAY[v.weekday] ?? 'week'} at {v.time} Toronto time. Field applicants&apos; live calls take the hour before.</p>
+      {v.admin && <Act action="townhall_schedule" label="Change the day or time" refresh={refresh} done="Saved: the reminders and the field calls follow." testId="townhall-schedule"
+        fields={[{ name: 'weekday', label: 'Day', type: 'select', required: true, value: String(v.weekday), options: [1, 2, 3, 4, 5, 6, 7].map((d) => [String(d), WEEKDAY[d]!] as [string, string]) },
+          { name: 'time', label: 'Time (Toronto, HH:MM)', type: 'text', required: true, value: v.time }]} />}
+      {v.admin && visitorDays(v.visitors).length > 0 && <details data-testid="townhall-visitors"><summary className="link small">Website visitors by weekday (last 8 weeks)</summary>
+        <table className="small"><tbody>{visitorDays(v.visitors).map((r) => <tr key={r.day}><th scope="row">{r.name}</th><td>{r.sessions.toLocaleString('en-CA')}{r.quietest ? ' (quietest)' : ''}</td></tr>)}</tbody></table></details>}
       {v.admin && v.attendance && v.attendance.meetings > 0 && <p className="small" data-testid="townhall-attendance">Last townhall: {v.attendance.last_absent ?? 0} missed it. Each person&apos;s misses are on the staff list.</p>}
       {v.weeks.length > 1 && <p className="small">Other weeks: {v.weeks.map((w) => <Link key={w} prefetch={false} className="link" href={`${base}/townhall?week=${w}`}> {day(w)}</Link>)}</p>}
     </Card>

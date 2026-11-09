@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { moveNotice, releasesOfWeek, townhallIcs, withReleases, type Slide } from './model.ts';
+import { visitorDays, releasesOfWeek, townhallIcs, withReleases, type Slide } from './model.ts';
 
 test('1062: the platform updates of the week, and the weekly invite', () => {
   const list = [{ release: 'r33', title: 'Release 33', date: '2026-11-08', summary: 'A' }, { release: 'r34', title: 'Release 34', date: '2026-11-09', summary: 'B' }, { release: 'r35', title: 'Release 35', date: 'pending', summary: 'C' }];
@@ -14,8 +14,9 @@ test('1062: the platform updates of the week, and the weekly invite', () => {
   assert.match(ics, /RRULE:FREQ=WEEKLY/);
 });
 
-test('1068: the notice of the move to the least busy day, 7 days ahead, and none when the day stays', () => {
-  assert.equal(moveNotice({ weekday: 1, next_weekday: 2, next_from: '2026-11-17' }), 'From Tuesday, November 17 the townhall is on Tuesdays (the least busy day of the last 8 weeks and the next 2).');
-  assert.equal(moveNotice({ weekday: 2, next_weekday: 2, next_from: '2026-11-17' }), null);
-  assert.equal(moveNotice({ weekday: 1, next_weekday: null, next_from: null }), null);
+test('1068: the visitor sessions per weekday, Monday first, the quietest marked; none without data', () => {
+  const r = visitorDays({ 1: 40, 2: 35, 3: 20, 4: 33, 5: 38, 6: 25, 7: 20 });
+  assert.equal(r.map((x) => `${x.name}=${x.sessions}${x.quietest ? '*' : ''}`).join(' '), 'Monday=40 Tuesday=35 Wednesday=20* Thursday=33 Friday=38 Saturday=25 Sunday=20*');
+  assert.deepEqual(visitorDays(null), []);
+  assert.equal(visitorDays({ 1: 0 }).some((x) => x.quietest), false);
 });
