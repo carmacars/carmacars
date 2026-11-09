@@ -16,7 +16,7 @@
 .al-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
 .al-item { display: grid; grid-template-columns: 4.5rem minmax(0, 1fr); gap: 4px 12px; padding: 10px 0; border-top: 1px solid var(--grey-200, #eee); overflow-wrap: anywhere; }
 .al-item time { font-size: 0.85rem; color: var(--grey-700); padding-top: 2px; }
-.al-main { display: grid; gap: 4px; min-width: 0; }
+.al-main { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; min-width: 0; }  /* one track no wider than the item: a long text wraps (375px overflowed by 200px) */
 .al-main p { margin: 0; }
 .al-type { display: inline-block; margin-right: 6px; padding: 1px 8px; border-radius: 999px; background: var(--grey-100); font-size: 0.75rem; font-weight: 600; color: var(--grey-800, #333); }
 .al-item.is-in .al-type { background: var(--red-50, #fdecec); color: var(--red-700, #a30d14); }
