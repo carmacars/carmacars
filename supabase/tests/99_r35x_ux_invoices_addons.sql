@@ -86,7 +86,7 @@ select test.eq('the add-on part: confirmed add-ons before HST, prepaid fuel left
              where ba.booking_id = test.uib('UI-2') and ba.status = 'confirmed' and not a.prepaid_fuel), 0)::bigint);
 do $$
 declare
-  v_car uuid := (app.vehicle_add(test.id('ui_admin'), jsonb_build_object('supply_type', 'company', 'vin', '1UIXXMM0000000001', 'plate', 'UIX001', 'year', 2024, 'make', 'Kia', 'model', 'K5',
+  v_car uuid := (app.vehicle_add(test.id('ui_admin'), jsonb_build_object('supply_type', 'company', 'vin', '1UHXXMM0000000001', 'plate', 'UHX001', 'year', 2024, 'make', 'Kia', 'model', 'K5',
                   'rates', jsonb_build_object('daily', 10000, 'weekend', 10000, 'weekly', 70000, 'monthly', 300000, 'deposit', 30000))) ->> 'vehicle_id')::uuid;
   r jsonb;
 begin

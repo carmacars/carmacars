@@ -112,7 +112,7 @@ begin
   select r.id into v_renter from renters r where r.user_id = n.user_id limit 1;
   if v in ('approve', 'decline') and not app.user_is_admin(p_by) then
     if v_renter is null or not app.user_va_has(p_by, 'cs', 'sales') then
-      raise exception 'Sales, customer service or an Admin decide a renter''s correction; an Admin decides other name changes' using errcode = '42501';
+      raise exception 'An Admin approves or declines a name change (a renter''s correction: Sales, customer service or an Admin)' using errcode = '42501';
     end if;
     if n.status <> 'requested' then raise exception 'This request was already %', n.status using errcode = '23514'; end if;
     update name_change_requests set status = case v when 'approve' then 'approved' else 'declined' end, decided_by = p_by, decided_at = now(), decision_note = v_note where id = n.id;

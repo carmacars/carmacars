@@ -40,7 +40,7 @@ select test.eq('Sales and customer service read it on the renter; Fleet does not
   || (select jsonb_array_length(app.door(test.id('uxp_cs'), 'aal2', 'ops_read', 'name_change_pending', jsonb_build_object('renter_id', test.id('renter:uxp_ver'))))), '1/1');
 select test.throws('Fleet cannot', format($$select app.door(%L, 'aal2', 'ops_read', 'name_change_pending', jsonb_build_object('renter_id', %L))$$, test.id('uxp_fleet'), test.id('renter:uxp_ver')), 'Admin only');
 select test.eq('Fleet cannot decide it', test.uxp_try('uxp_fleet', 'name_change_decide', jsonb_build_object('id', (select id from name_change_requests where user_id = test.id('uxp_ver') and status = 'requested'), 'decision', 'approve')),
-  'Sales, customer service or an Admin decide a renter''s correction; an Admin decides other name changes');
+  'An Admin approves or declines a name change (a renter''s correction: Sales, customer service or an Admin)');
 select test.eq('Sales approve it against the licence', test.uxp_try('uxp_sales', 'name_change_decide', jsonb_build_object('id', (select id from name_change_requests where user_id = test.id('uxp_ver') and status = 'requested'), 'decision', 'approve')), 'ok');
 select test.eq('the date of birth changed on the renter and the driver; the request and the task closed',
   (select r.date_of_birth || '/' || d.date_of_birth from renters r join drivers d on d.renter_id = r.id and d.is_account_holder where r.id = test.id('renter:uxp_ver'))
