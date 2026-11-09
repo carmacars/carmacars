@@ -53,10 +53,10 @@ export function FieldJobsBoard({ b, cal, now, photos, base }: { b: Board; cal: C
         <Card title="Shifts, next seven days" testId="shifts">
           <ul className="fj-days" data-testid="coverage">{b.coverage.map((c) => (
             <li key={c.day} className={c.people === 0 ? 'is-empty' : undefined}><b>{dayWord(c.day)}</b><span>{c.people === 0 ? 'Nobody on a shift' : `${c.people} ${c.people === 1 ? 'person' : 'people'} on a shift`}</span><span className="small">{c.slots} open {c.slots === 1 ? 'slot' : 'slots'}</span></li>))}</ul>
-          <p className="ad-actions"><Act ops action="field_slot_publish" label="Publish shifts" variant="primary" testId="publish-shifts" fields={[
+          <div className="ad-actions"><Act ops action="field_slot_publish" label="Publish shifts" variant="primary" testId="publish-shifts" fields={[
             { name: 'starts_at', label: 'First day, start', type: 'datetime', required: true }, { name: 'ends_at', label: 'First day, end', type: 'datetime', required: true },
             { name: 'capacity', label: 'How many people', type: 'number', required: true, min: 1, max: 50, value: 1 },
-            { name: 'repeat_days', label: 'Same hours for this many days', type: 'number', min: 1, max: 14, value: 7 }, { name: 'note', label: 'Note', type: 'text' }]} refresh={R} done="Published. Field staff can take them." /></p>
+            { name: 'repeat_days', label: 'Same hours for this many days', type: 'number', min: 1, max: 14, value: 7 }, { name: 'note', label: 'Note', type: 'text' }]} refresh={R} done="Published. Field staff can take them." /></div>
           <Table rows={b.slots as unknown as R[]} empty="No open shifts. Publish the coming week so field staff can take them." cols={[
             { key: 'starts_at', label: 'When', className: 'fj-when', render: (r) => <>{t(r.starts_at)} to {t(r.ends_at)}</> },
             { key: 'jobs', label: 'Jobs on it', className: 'wrap', render: (r) => { const s = r as unknown as Slot; const w = jobsText(s.jobs); return w ? <span className={s.people.length ? undefined : 'ad-flag ad-flag--red'} data-testid="slot-jobs">{w}{s.people.length ? '' : ', nobody on it'}</span> : <span className="muted">none yet</span>; } },
