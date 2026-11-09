@@ -240,7 +240,7 @@ begin
   if s.townhall_auto_day and extract(isodow from v_local) = 7 and extract(hour from v_local) >= 21 and s.townhall_next_from is null then
     v_pick := app.townhall_pick_day(p_now);
     if v_pick is not null and v_pick <> s.townhall_weekday then
-      update program_settings set townhall_next_weekday = v_pick, townhall_next_from = app.local_date(p_now) + 8;
+      update program_settings set townhall_next_weekday = v_pick, townhall_next_from = app.local_date(p_now) + 8 where id = (app.settings()).id;
       v_words := to_char(date '2026-01-04' + v_pick, 'FMDay');
       for r in select sp.user_id from staff_profiles sp where app.staff_is_member(sp.user_id) union select ur.user_id from user_roles ur where ur.role = 'admin' loop
         perform app.staff_alert('townhall_moved', 'user', r.user_id, 'moved:' || to_char(app.local_date(p_now) + 8, 'YYYYMMDD'),
