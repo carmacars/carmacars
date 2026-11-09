@@ -68,6 +68,7 @@
   --r-1: 4px;        /* plates, badges, calendar days */
   --r-2: 6px;        /* buttons, inputs */
   --r-3: 14px;       /* sheets, modals, toasts */
+  --r-pill: 999px;   /* buttons, tabs, chips, badges (r35 UX: the style guide, docs/style-guide.md) */
   --bw: 1.5px;
 
   /* elevation: used only for things that float */

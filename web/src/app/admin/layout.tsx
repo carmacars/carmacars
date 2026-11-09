@@ -2,6 +2,7 @@ import '@/styles/portal.css';
 import '@/styles/owner.css';
 import '@/styles/admin.css';
 import '@/styles/admin-ui.css';
+import '@/styles/ui-kit.css';
 import { realUser as currentUser } from '@/server/portal/data';
 import { signOut } from '@/server/actions/auth';
 import { AdminNav, AdminSearch } from '@/features/admin/AdminNav';

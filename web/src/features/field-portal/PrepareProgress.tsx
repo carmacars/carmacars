@@ -8,7 +8,7 @@ export function PrepareProgress({ d, title = 'Prepare for the pickup', testId = 
   const w = prepareWords(d);
   return (
     <section className="pt-card ad-card" aria-labelledby={`${testId}-h`} data-testid={testId}>
-      <div className="pt-card__head"><h2 className="d4" id={`${testId}-h`}>{title}</h2><span className={`chip${w.done ? ' chip--ok' : ''}`} data-testid={`${testId}-count`}>{w.count}</span></div>
+      <div className="pt-card__head"><h2 className="d4" id={`${testId}-h`}>{title}</h2><span className={`ad-b${w.done ? ' ad-b--dark' : ''}`} data-testid={`${testId}-count`}>{w.count}</span></div>
       <p className="small">{w.job}</p>
       {d.items.length > 0 ? (
         <ul className="prep-list">{d.items.map((a) => (

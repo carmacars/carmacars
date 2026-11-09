@@ -2,6 +2,7 @@ import '@/styles/portal.css';
 import '@/styles/owner.css';
 import '@/components/portal-ui/portal-ui.css';
 import '@/styles/portal-revamp.css';
+import '@/styles/ui-kit.css';
 import { rpc } from '@/lib/db/repo';
 import { OwnerNav } from '@/features/owner/OwnerNav';
 import { currentUser } from '@/server/portal/data';
