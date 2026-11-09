@@ -24,6 +24,9 @@ if (!process.env.PLAYWRIGHT_BROWSERS_PATH && fs.existsSync('/opt/pw-browsers')) 
 const BASE = (process.env.BASE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
 const arg = (n, d) => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : d; };
 const PER_SHAPE = Number(arg('--per-shape', '2'));
+// filter combinations of one list page (r35: the leads lists' status x sort x age x source x assigned x mine) are each a
+// shape; past this many query shapes of one path the rest are not opened (the page and its filters are already checked)
+const QUERY_SHAPES = Number(arg('--query-shapes', '8'));
 // a role's crawl stops after this many minutes and reports where the time went (a page or link that got slow)
 const MAX_MINUTES = Number(arg('--max-minutes', '30'));
 const OUT = arg('--out', 'reports/crawl.json');
@@ -296,7 +299,7 @@ async function crawlRole(browser, role) {
   else await page.goto(BASE + '/', { waitUntil: 'networkidle' });
 
   const queue = [HOME[role], ...PORTALS.filter((p) => p !== HOME[role])];
-  const seen = new Set(); const shapes = new Map(); const checked = new Map(); const familyLinks = new Map();
+  const seen = new Set(); const shapes = new Map(); const checked = new Map(); const familyLinks = new Map(); const queryShapes = new Map();
   const status = async (href) => {
     if (checked.has(href)) return checked.get(href);
     const t0 = Date.now();
@@ -349,6 +352,12 @@ async function crawlRole(browser, role) {
     const sh = shape(u);
     const n = shapes.get(sh) ?? 0;
     if (n >= PER_SHAPE) { stats.skippedShapes++; continue; }
+    if (!n && sh.includes('?') && sh.split('?')[1].split('&').some((x) => !x.includes('='))) {
+      // a tab (or section) is a page of its own: only the other filters are capped
+      const [path0, qs0] = sh.split('?'); const base = `${path0}?${qs0.split('&').filter((x) => x.includes('=')).join('&')}`; const q = queryShapes.get(base) ?? 0;
+      if (q >= QUERY_SHAPES) { stats.skippedShapes++; continue; }
+      queryShapes.set(base, q + 1);
+    }
     shapes.set(sh, n + 1);
     const s = await status(href);
     if (s.status >= 400) { bad(role, href, `HTTP ${s.status}`); continue; }
