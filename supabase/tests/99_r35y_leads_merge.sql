@@ -51,8 +51,8 @@ select test.ok('link: an owner lead alert opens that lead', (select app.notifica
 create table test.zly_list as select test.zly('zly_s1', 'va_read', 'sales_leads', '{"q": "zly", "status": "all", "limit": 200}'::jsonb) j;
 select test.ok('list: Sales see renter, owner and partner leads in one list', (select count(*) from test.zly_list, jsonb_array_elements(j -> 'rows') x where x ->> 'id' in
   (test.id('lead:chat')::text, test.id('lead:owner')::text, test.id('lead:partner')::text)) = 3);
-select test.eq('list: the chat lead row shows its phone and Live chat', (select (x ->> 'phone') || '/' || (x ->> 'source') from test.zly_list, jsonb_array_elements(j -> 'rows') x where x ->> 'id' = test.id('lead:chat')::text),
-  '+14165550142/Live chat');
+select test.eq('list: the chat lead row shows its phone (masked for Sales, 0970) and Live chat', (select (x ->> 'phone') || '/' || (x ->> 'source') from test.zly_list, jsonb_array_elements(j -> 'rows') x where x ->> 'id' = test.id('lead:chat')::text),
+  '+(416) •••-••42/Live chat');
 select test.ok('list: new leads first (the old expired offer is last)', (select x ->> 'id' from test.zly_list, jsonb_array_elements(j -> 'rows') with ordinality y(x, o) order by o desc limit 1) = test.id('lead:old')::text);
 select test.eq('list: the type filter', (select string_agg(distinct x ->> 'type', ',') from jsonb_array_elements(test.zly('zly_admin', 'admin_read', 'sales_leads', '{"q": "zly", "type": "owner"}'::jsonb) -> 'rows') x), 'owner');
 select test.eq('list: search by phone digits', (select string_agg(x ->> 'name', ',') from jsonb_array_elements(test.zly('zly_cs', 'va_read', 'sales_leads', '{"q": "555-0143"}'::jsonb) -> 'rows') x), 'Zly Form');
