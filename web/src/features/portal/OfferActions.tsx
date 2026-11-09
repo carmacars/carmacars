@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { playMoment } from '@/features/motion/moment';
 import { useRouter } from 'next/navigation';
 import { approveOffer, declineOffer, requestOfferChange } from '@/server/actions/portal';
 import { useAct } from './useAct';
@@ -21,7 +22,7 @@ export function OfferActions({ number, version, licenceMissing }: { number: stri
       {approve.res && !approve.res.ok && <p className="alert alert--error" role="alert"><span className="alert__title">{approve.res.code === 'stale' ? 'Offer updated' : 'Not approved'}</span><span>{approve.res.message}</span></p>}
       {/* the licence first (0130): the database refuses the acceptance without it, the page says so before */}
       {licenceMissing ? <a className="btn btn--primary btn--lg" href={`/account/bookings/${encodeURIComponent(number)}/verify`} data-testid="offer-licence-first">Upload your licence to accept</a> : (
-        <button type="button" className="btn btn--primary btn--lg" disabled={approve.pending} onClick={() => approve.run(() => approveOffer(number, version), (r) => { if (!r.ok) router.refresh(); })}>
+        <button type="button" className="btn btn--primary btn--lg" disabled={approve.pending} onClick={() => approve.run(() => approveOffer(number, version), (r) => { if (r.ok) playMoment('offer'); else router.refresh(); })}>
           {approve.pending ? 'Preparing your agreement' : 'Approve and continue'}
         </button>)}
       <button type="button" className="btn btn--ghost" aria-expanded={open === 'change'} aria-controls="pt-change" onClick={() => setOpen(open === 'change' ? '' : 'change')}>Ask for a change</button>

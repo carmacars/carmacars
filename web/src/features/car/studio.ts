@@ -2,7 +2,12 @@
 // as a module of the site, so a real car with no photo yet gets stand-ins drawn by the very same system: the black
 // studio, the overhead spot, the floor line, the model's name in large outlined letters behind the car, the same
 // eight shots at 1800 x 1200. Served by app/sample-photos/studio/[...p]/route.ts (migration 0073 points
-// app.vehicle_sample_photos at it). Pure string building: no imports, nothing read.
+// app.vehicle_sample_photos at it). Pure string building (the logo's shapes are read from the showroom's preset).
+// r35 S2: the frame is the showroom v2 (studio() below); the car sits on its floor line (80% of the height).
+import logoData from '../listing/presets/showroom-logo.json' with { type: 'json' };
+import { plateSvgInner } from '../listing/plate-art.ts';
+/** r35 S2: the rear plate of every car drawn here is the company's CARMA Ontario plate (no front plate). */
+const CARMA_PLATE = plateSvgInner();
 
 export const PAINT: Record<string, [string, string, string]> = {
   white: ['#F4F4F4', '#B9B9B9', '#6E6E6E'],
@@ -96,7 +101,7 @@ function carEnd(shape: string, paint: string, rear: boolean) {
     <path d="M ${cx - w + 4},${sh + 12} Q ${cx},${sh - 12} ${cx + w - 4},${sh + 12}" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="2"/>
     <rect x="${cx - w - 26}" y="${sh - 12}" width="34" height="18" rx="6" fill="${c2}"/><rect x="${cx + w - 8}" y="${sh - 12}" width="34" height="18" rx="6" fill="${c2}"/>
     ${rear
-      ? `<rect x="${cx - w + 14}" y="${sh + 26}" width="${2 * w - 28}" height="12" rx="6" fill="#E0121C"/><rect x="${cx - 62}" y="${sh + 58}" width="124" height="34" rx="4" fill="#f2f2f2"/><rect x="${cx - 150}" y="262" width="60" height="10" rx="5" fill="#000"/><rect x="${cx + 90}" y="262" width="60" height="10" rx="5" fill="#000"/>`
+      ? `<rect x="${cx - w + 14}" y="${sh + 26}" width="${2 * w - 28}" height="12" rx="6" fill="#E0121C"/><g transform="translate(${cx - 54} ${sh + 48}) scale(0.18)">${CARMA_PLATE}</g><rect x="${cx - 150}" y="262" width="60" height="10" rx="5" fill="#000"/><rect x="${cx + 90}" y="262" width="60" height="10" rx="5" fill="#000"/>`
       : `<path d="M ${cx - w + 14},${sh + 26} h 96 l -10,20 h -78 z" fill="#fff"/><path d="M ${cx + w - 14},${sh + 26} h -96 l 10,20 h 78 z" fill="#fff"/><rect x="${cx - 98}" y="${sh + 24}" width="196" height="46" rx="8" fill="#0a0a0a"/><path d="M ${cx - 86},${sh + 38} h 172 M ${cx - 86},${sh + 50} h 172 M ${cx - 86},${sh + 60} h 172" stroke="#3a3a3a" stroke-width="3"/><rect x="${cx - 170}" y="246" width="340" height="22" rx="6" fill="#000" opacity=".8"/>`}
   `;
 }
@@ -130,23 +135,66 @@ function wheelDetail(paint: string) { // local 1000 x 620
 const esc = (s: string) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const FONT = `font-family="'Inter Display','Inter','Helvetica Neue',Helvetica,Arial,sans-serif" font-weight="800"`;
 
-// Studio frame: black backdrop, overhead spot, floor line, ghosted name, slate.
+// r35 S2 (1054): the frame is the showroom v2 of the listing photos (features/listing/showroom.ts), drawn as SVG: a dark
+// dealership in one-point perspective, ceiling light strips, a slatted walnut wall between two light strips, the CarmaCars
+// logo as the wall's big lit sign, the model's name in metal letters under it, a polished floor that mirrors the wall, a
+// vignette. The coordinates are those of the 1800 x 1200 room, scaled to the frame.
+const LOGO_D = (logoData as { viewBox: number[]; paths: Array<{ fill: number[]; polys: number[][] }> }).paths.map((p) => ({
+  fill: `rgb(${p.fill.join(',')})`,
+  d: p.polys.map((poly) => { const pts: string[] = []; for (let i = 0; i + 1 < poly.length; i += 2) pts.push(`${poly[i]!.toFixed(1)},${poly[i + 1]!.toFixed(1)}`); return `M${pts.join('L')}Z`; }).join('')
+}));
+const LOGO_VB = (logoData as { viewBox: number[] }).viewBox as [number, number, number, number];
 type StudioOpts = { content: (w: number, h: number, fy: number) => string; name?: string; slate?: string; floor?: number; ghost?: boolean; spotX?: number; slateTop?: boolean };
-export function studio(w: number, h: number, { content, name = '', slate = '', floor = 0.74, ghost = true, spotX = 0.5, slateTop = false }: StudioOpts) {
+export function studio(w: number, h: number, { content, name = '', slate = '', floor = 0.8, ghost = true, slateTop = false }: StudioOpts) {
   const fy = h * floor; const sy = slateTop ? Math.max(30, h * 0.04) : h - Math.max(18, h * 0.03); const sf = Math.max(16, w * (slateTop ? 0.0085 : 0.0125));
+  const k = Math.min(w / 1800, h / 1200), ox = (w - 1800 * k) / 2, oy = (h - 1200 * k) / 2;
+  const lw = 900, lk = lw / LOGO_VB[2], lx = (1800 - lw) / 2, ly = 146;
+  const logo = LOGO_D.map((p) => `<path d="${p.d}" fill="${p.fill}"/>`).join('');
+  const nm = ghost && name ? esc(name.toUpperCase()) : '';
+  const slats: string[] = [];
+  for (let x = 380; x < 1420; x += 18) slats.push(`<rect x="${x + 3}" y="123" width="15" height="567" fill="${['#3b2c21', '#36281e', '#3f2f23', '#33261c'][((x - 380) / 18) % 4]}"/>`);
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
   <defs>
-    <radialGradient id="spot" cx="${spotX}" cy="0.08" r="0.95" gradientUnits="objectBoundingBox"><stop offset="0" stop-color="#6b6b6b"/><stop offset=".35" stop-color="#2a2a2a"/><stop offset=".75" stop-color="#0b0b0b"/><stop offset="1" stop-color="#000"/></radialGradient>
-    <radialGradient id="pool" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".6" stop-color="#fff" stop-opacity=".05"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
-    <linearGradient id="fl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#161616"/><stop offset="1" stop-color="#000"/></linearGradient>
+    <linearGradient id="srw" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#55555a"/><stop offset=".12" stop-color="#2e2e31"/><stop offset=".5" stop-color="#202023"/><stop offset="1" stop-color="#161618"/></linearGradient>
+    <linearGradient id="srs" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".25" stop-color="#fff" stop-opacity=".04"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></linearGradient>
+    <linearGradient id="srsw" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0d0d0f"/><stop offset="1" stop-color="#1d1d20"/></linearGradient>
+    <linearGradient id="srsw2" x1="1" y1="0" x2="0" y2="0"><stop offset="0" stop-color="#0d0d0f"/><stop offset="1" stop-color="#1d1d20"/></linearGradient>
+    <linearGradient id="srf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a1a1d"/><stop offset=".25" stop-color="#0f0f11"/><stop offset="1" stop-color="#060607"/></linearGradient>
+    <linearGradient id="srm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9a9ca2"/><stop offset="1" stop-color="#4b4d52"/></linearGradient>
+    <radialGradient id="srp" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff" stop-opacity=".1"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <radialGradient id="srv" cx=".5" cy=".52" r=".75"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".55"/></radialGradient>
+    <filter id="srg" x="-20%" y="-60%" width="140%" height="220%"><feGaussianBlur stdDeviation="22"/></filter>
+    <filter id="srl" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>
+    <filter id="srb" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="9"/></filter>
+    <clipPath id="srfc"><path d="M0,743 L210,700 L1590,700 L1800,743 L1800,1200 L0,1200 Z"/></clipPath>
   </defs>
-  <rect width="${w}" height="${h}" fill="#000"/>
-  <rect width="${w}" height="${fy}" fill="url(#spot)"/>
-  <rect y="${fy}" width="${w}" height="${h - fy}" fill="url(#fl)"/>
-  <ellipse cx="${w * spotX}" cy="${fy + (h - fy) * 0.22}" rx="${w * 0.52}" ry="${(h - fy) * 0.5}" fill="url(#pool)"/>
-  <rect y="${fy - 1}" width="${w}" height="2" fill="#fff" opacity=".1"/>
-  ${ghost && name ? `<text x="${w / 2}" y="${fy - h * 0.2}" text-anchor="middle" ${FONT} font-size="${h * 0.3}" textLength="${w * 0.9}" lengthAdjust="spacingAndGlyphs" fill="none" stroke="#fff" stroke-opacity=".13" stroke-width="2">${esc(name.toUpperCase())}</text>` : ''}
+  <rect width="${w}" height="${h}" fill="#08080a"/>
+  <g transform="translate(${ox.toFixed(1)} ${oy.toFixed(1)}) scale(${k.toFixed(5)})">
+  <g id="srwall">
+    <rect width="1800" height="120" fill="#0a0a0c"/>
+    <g stroke="#f4f0e8" stroke-width="5" filter="url(#srl)" opacity=".9"><path d="M140,14 H1660 M200,64 H1600 M467,0 L560,120 M1333,0 L1240,120"/></g>
+    <g stroke="#fbf8f2" stroke-width="3"><path d="M140,14 H1660 M200,64 H1600 M467,0 L560,120 M1333,0 L1240,120"/></g>
+    <path d="M0,-14 L210,120 L210,700 L0,743 Z" fill="url(#srsw)"/>
+    <path d="M1800,-14 L1590,120 L1590,700 L1800,743 Z" fill="url(#srsw2)"/>
+    <rect x="210" y="120" width="1380" height="580" fill="url(#srw)"/>
+    <ellipse cx="900" cy="470" rx="620" ry="260" fill="url(#srp)"/>
+    <rect x="380" y="123" width="1040" height="567" fill="#120d0a"/>
+    ${slats.join('')}
+    <rect x="380" y="123" width="1040" height="567" fill="url(#srs)"/>
+    <rect x="210" y="120" width="1380" height="4" fill="#e9e6df"/>
+    <g fill="#fff4e4"><rect x="369" y="138" width="4" height="544"/><rect x="1426" y="138" width="4" height="544"/></g>
+    <g fill="#fff4e4" opacity=".55" filter="url(#srl)"><rect x="365" y="138" width="12" height="544"/><rect x="1422" y="138" width="12" height="544"/></g>
+    <rect x="210" y="690" width="1380" height="10" fill="#0a0a0b"/>
+    <g transform="translate(${lx} ${ly}) scale(${lk.toFixed(5)}) translate(${-LOGO_VB[0]} ${-LOGO_VB[1]})">
+      <g filter="url(#srg)" opacity=".75" fill="#fff6ea">${LOGO_D.map((p) => `<path d="${p.d}"/>`).join('')}</g>${logo}
+    </g>
+    ${nm ? `<text x="900" y="${338 + 112}" text-anchor="middle" ${FONT} font-size="150" textLength="${Math.min(1100, nm.length * 105)}" lengthAdjust="spacingAndGlyphs" fill="url(#srm)" opacity=".92">${nm}</text>` : ''}
+  </g>
+  <rect y="700" width="1800" height="500" fill="url(#srf)" clip-path="url(#srfc)"/>
+  <g clip-path="url(#srfc)" opacity=".22" filter="url(#srb)"><use href="#srwall" transform="translate(0 1400) scale(1 -1)"/></g>
+  </g>
   ${content(w, h, fy)}
+  <rect width="${w}" height="${h}" fill="url(#srv)"/>
   ${slate ? `<g ${FONT} font-size="${sf}" fill="#fff" fill-opacity=".55"><text x="${w * 0.975}" y="${sy}" text-anchor="end" letter-spacing="1">${esc(slate)}</text><rect x="${w * 0.975 + 6}" y="${sy - Math.max(11, w * 0.009)}" width="${Math.max(8, w * 0.007)}" height="${Math.max(11, w * 0.009)}" fill="#D0111B" fill-opacity="1"/></g>` : ''}
 </svg>`;
 }
@@ -176,7 +224,8 @@ export const SHOTS: Array<{ key: string; label: string; alt: (c: Car) => string 
 
 export function carShot(c: Car, shot: string, w: number, h: number, slateText?: string) {
   uid = 0;
-  const slate = slateText ?? `STAND-IN  ${c.name.toUpperCase()}  ${SHOTS.findIndex((s) => s.key === shot) + 1}/8 ${SHOTS.find((s) => s.key === shot)!.label.toUpperCase()}`;
+  // r35 S2: the sample cars are showcase listings and look like real ones (no slate); a real car's stand-in says so
+  const slate = slateText ?? '';
   const box = (inner: string) => `<g transform="scale(${w / 1000} ${h / 620})">${inner}</g>`;
   if (shot === 'dash') return studio(w, h, { slate, ghost: false, content: () => box(interior('dash')) });
   if (shot === 'seats') return studio(w, h, { slate, ghost: false, content: () => box(interior('seats')) });

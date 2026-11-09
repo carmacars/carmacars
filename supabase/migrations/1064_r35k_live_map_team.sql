@@ -6,7 +6,7 @@
 --      shift now, with the role and since when) and the Sales leaderboard of the week (bookings credited, Monday to now).
 --   2. The team's WhatsApp groups on the portal home too (not only Welcome and the email), once both the academy and the
 --      agreement are done, until the person presses I joined (ops_read staff_team_groups).
--- No applied migration is edited: app.live_map_pre0283 (0242's body, behind 0283's wrapper) is patched; app.live_map wrapped.
+-- No applied migration is edited: app.live_map_pre0470 (under app.live_map, which 1080 replaces) is wrapped.
 set local check_function_bodies = off;
 
 create function pg_temp.patch_fn(p_sig regprocedure, p_old text, p_new text) returns void
@@ -16,11 +16,6 @@ begin
   if position(p_old in d) = 0 then raise exception '1064: the text to change was not found in %: %', p_sig, left(p_old, 120); end if;
   execute replace(d, p_old, p_new);
 end $$;
-
-select pg_temp.patch_fn('app.live_map_pre0283(uuid, jsonb)'::regprocedure,
-  '''on_rent_now'', (select count(*) from bookings b where b.status = ''on_rent'' and b.booking_type <> ''owner''),',
-  '''on_rent_now'', (select count(*) from bookings b where b.booking_type <> ''owner'' and not coalesce(b.is_placeholder, false)
-                       and (b.status = ''on_rent'' or (b.status = ''confirmed'' and b.pickup_at <= now() and b.return_at > now()))),');
 
 -- who is working now: clocked in (office), clocked in on a field shift, or holding a field shift that covers now
 create function app.working_now(p_now timestamptz default now()) returns jsonb
@@ -49,21 +44,22 @@ language sql stable security definer set search_path = public, app as $$
      group by 1 order by 2 desc limit 8) x
 $$;
 
-alter function app.live_map(uuid, jsonb) rename to live_map_pre1064;
-create function app.live_map(p_by uuid, p jsonb default '{}'::jsonb) returns jsonb
-language plpgsql security definer set search_path = public, app as $$
-declare v jsonb := app.live_map_pre1064(p_by, p);
+-- the read under 1080's app.live_map (which keeps each layer's own keys): "On rent now" counted again, and the team panel
+-- on the figures' layer only (1080 reads the layers one by one)
+alter function app.live_map_pre0470(uuid, jsonb) rename to live_map_pre0470_k;
+create function app.live_map_pre0470(p_by uuid, p jsonb default '{}'::jsonb) returns jsonb
+language plpgsql stable security definer set search_path = public, app as $$
+declare v jsonb := app.live_map_pre0470_k(p_by, p);
 begin
-  if jsonb_typeof(v) <> 'object' then return v; end if;
+  if v is null or jsonb_typeof(v) <> 'object' or coalesce(p ->> 'part', 'kpi') <> 'kpi' then return v; end if;
+  if v ? 'kpi' then
+    v := jsonb_set(v, '{kpi,on_rent_now}', to_jsonb((select count(*) from bookings b where b.booking_type <> 'owner' and not coalesce(b.is_placeholder, false)
+           and (b.status = 'on_rent' or (b.status = 'confirmed' and b.pickup_at <= now() and b.return_at > now())))));
+  end if;
   return v || jsonb_build_object('working', app.working_now(now()), 'leaderboard', app.sales_week_board(now()));
 end $$;
-revoke all on function app.live_map(uuid, jsonb) from public, anon, authenticated;
-grant execute on function app.live_map(uuid, jsonb) to service_role;
-do $$ begin
-  if has_function_privilege('authenticated', 'app.live_map_pre1064(uuid, jsonb)', 'execute') then
-    grant execute on function app.live_map(uuid, jsonb) to authenticated;
-  end if;
-end $$;
+revoke all on function app.live_map_pre0470(uuid, jsonb) from public, anon, authenticated;
+grant execute on function app.live_map_pre0470(uuid, jsonb) to service_role;
 
 -- the groups on the home page: academy and agreement done, a link set, not joined yet
 create function app.staff_team_groups(p_user uuid) returns jsonb
@@ -106,7 +102,7 @@ do $$
 declare f record;
 begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-            where n.nspname = 'app' and p.proname = any (array['working_now', 'sales_week_board', 'live_map_pre1064', 'staff_team_groups', 'door_pre1064', 'door_begin', 'door_begin_pre1064'])
+            where n.nspname = 'app' and p.proname = any (array['working_now', 'sales_week_board', 'live_map_pre0470_k', 'staff_team_groups', 'door_pre1064', 'door_begin', 'door_begin_pre1064'])
   loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);
     execute format('grant execute on function %s to service_role', f.sig);

@@ -110,7 +110,7 @@ test('the rows on a page: the section, then the group\'s tabs; Finance\'s money 
   const at = (fns: string[], path: string, q = '') => placeOf(staffSections(fns), staffHubs(fns), path, q);
   const fin = at(['finance'], '/staff/money', 'tab=day');
   assert.equal(fin.section?.label, 'Finance');
-  assert.deepEqual(fin.hub?.hub.tabs.map((t) => t.label), ['To handle', 'By day', 'All payments', 'Refunds', 'Deposits', 'Reconciliation', 'Partner invoices', 'Kickbacks and repairs', 'Field spending']);
+  assert.deepEqual(fin.hub?.hub.tabs.map((t) => t.label), ['To handle', 'Countdowns', 'Deposit reviews', 'By day', 'All payments', 'Refunds', 'Deposits', 'Reconciliation', 'Unlinked Stripe', 'Partner invoices', 'Kickbacks and repairs', 'Field spending']);
   assert.equal(fin.hub?.tab.label, 'By day');
   assert.deepEqual(at(['finance'], '/staff/owner-money', 'tab=statements').hub?.tab.label, 'Statements');
   const cs = at(['cs'], '/staff/messages');

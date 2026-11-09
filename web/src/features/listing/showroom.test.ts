@@ -3,7 +3,7 @@
 //   node --test --experimental-strip-types src/features/listing/showroom.test.ts   (npm run test:unit)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { FALLBACK_TEXT, ROOM, SHOWROOM_PRESET, composeShowroom, decodeImage, fitFrame, encodeJpeg, keepCar, localShowroom, makeShowroom, marketingPrompt, nameBox, sceneOf, showroomBackdrop, showroomPrompt, whiteStudio,
+import { FALLBACK_TEXT, ROOM, SHOWROOM_PRESET, composeShowroom, decodeImage, fitFrame, encodeJpeg, localShowroom, sameCar, makeShowroom, marketingPrompt, nameBox, sceneOf, showroomBackdrop, showroomPrompt, whiteStudio,
   type ShowroomProvider } from './showroom.ts';
 import { encodePng, type Rgba } from './subject-frame.ts';
 import { resample } from '../../integrations/photos/local.ts';
@@ -46,14 +46,17 @@ test('the room is a dark showroom in perspective: ceiling lights, a lit wall, a 
   assert.ok(changes > 10, `vertical slats (${changes})`);
   // the floor mirrors the light strips: brighter under them than between them
   assert.ok(lum(a, ROOM.panel.left - 9, ROOM.junction + 30) > lum(a, 900, ROOM.junction + 30) - 6, 'the strips reflected');
-  let bright = 0, red = 0;
-  for (let y = ROOM.logo.top; y < ROOM.logo.top + 70; y++) for (let x = 700; x < 1100; x++) {
+  // the logo: the wall's dominant lit sign, about half the width of the panel or more
+  let bright = 0, red = 0, left = Infinity, right = -Infinity;
+  for (let y = ROOM.logo.top; y < ROOM.logo.top + 170; y++) for (let x = 300; x < 1500; x++) {
     const i = (y * a.width + x) * 4;
-    if (lum(a, x, y) > 180) bright++;
+    if (lum(a, x, y) > 180) { bright++; left = Math.min(left, x); right = Math.max(right, x); }
     if (a.data[i]! > 150 && a.data[i + 1]! < 60) red++;
   }
-  assert.ok(bright > 1500, `the white of the logo (${bright})`);
-  assert.ok(red > 200, `the red of the logo (${red})`);
+  assert.ok(ROOM.logo.width >= 800, 'a big sign');
+  assert.ok(bright > 15000, `the white of the logo (${bright})`);
+  assert.ok(right - left > 750, `it spans most of the panel (${right - left} px)`);
+  assert.ok(red > 2000, `the red of the logo (${red})`);
   // the sign's glow lights the wall around it
   assert.ok(lum(a, 900, ROOM.logo.top - 12) > lum(a, 900, 470) , 'the logo glows on the wall');
   // a vignette: the corners are darker than the middle of the floor
@@ -87,20 +90,22 @@ test('the car stands on the floor with a contact shadow, a soft reflection, and 
   assert.ok(Math.abs(lum(img, 40, 300) - lum(plainFloor, 40, 300)) < 1, 'the wall beside the car is untouched');
 });
 
-test('the image model\'s photo keeps the car exactly; a photo that moved the car is not used', () => {
+test('the image model may relight the car or move it slightly; a different car, colour or a missing car is refused', () => {
   const c = car(), local = composeShowroom(c, PLACE);
-  // a "photographed" room: everything a little brighter, the car slightly retouched
-  const ai = { width: local.width, height: local.height, data: new Uint8ClampedArray(local.data) };
-  for (let i = 0; i < ai.data.length; i += 4) { ai.data[i] = Math.min(255, ai.data[i]! + 12); ai.data[i + 1] = Math.min(255, ai.data[i + 1]! + 12); }
-  const kept = keepCar(ai, local, c, PLACE)!;
-  assert.ok(kept, 'kept');
-  const i = (600 * kept.width + 900) * 4;
-  assert.deepEqual([kept.data[i], kept.data[i + 1], kept.data[i + 2]], [200, 30, 30], 'the car pixels put back');
-  const j = (300 * kept.width + 40) * 4;
-  assert.equal(kept.data[j], ai.data[j], 'the room is the model\'s');
-  // the car moved 300 px: refused
-  const moved = composeShowroom(c, { ...PLACE, left: PLACE.left + 300 });
-  assert.ok(keepCar(moved, local, c, PLACE) === null, 'moved: not used');
+  const shade = (img: Rgba, f: (r: number, g: number, b: number) => [number, number, number]) => {
+    const out = { width: img.width, height: img.height, data: new Uint8ClampedArray(img.data) };
+    for (let i = 0; i < out.data.length; i += 4) { const [r, g, b] = f(out.data[i]!, out.data[i + 1]!, out.data[i + 2]!); out.data[i] = r; out.data[i + 1] = g; out.data[i + 2] = b; }
+    return out;
+  };
+  assert.equal(sameCar(shade(local, (r, g, b) => [r * 1.15, g * 1.15, b * 1.15]), local, c, PLACE), null, 'relit: the same car');
+  assert.equal(sameCar(composeShowroom(c, { ...PLACE, left: PLACE.left + 40 }), local, c, PLACE), null, 'turned or moved a little: the same car');
+  assert.equal(sameCar(composeShowroom(c, { ...PLACE, left: PLACE.left + 30, width: PLACE.width - 60, height: PLACE.height - 25, bottom: PLACE.bottom + 25 }), local, c, PLACE), null, 'a slightly different pose: the same car');
+  assert.equal(sameCar(shade(local, (r, g, b) => (r > 150 && g < 60 ? [30, 40, 200] : [r, g, b])), local, c, PLACE), 'colour', 'another colour');
+  assert.equal(sameCar(showroomBackdrop(), local, c, PLACE), 'colour', 'no car at all');
+  const tall = (() => { const w = 600, h = 250, data = new Uint8ClampedArray(w * h * 4);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = (y * w + x) * 4; if (x > 200 && x < 400 && y < h * 0.8) { data[i] = 200; data[i + 1] = 30; data[i + 2] = 30; data[i + 3] = 255; } }
+    return { width: w, height: h, data, ground: 0.2 }; })();
+  assert.equal(sameCar(composeShowroom(tall, PLACE), local, c, PLACE), 'shape', 'another shape (a different or distorted car)');
 });
 
 test('local provider: a JPEG of the frame, the same bytes every time, no network', async () => {
@@ -134,7 +139,7 @@ test('fallback: a quota, a refusal or an error keeps the free showroom with the 
   const none = await makeShowroom(i, [], true);
   assert.deepEqual([none.provider, none.reason], ['local', 'no_key']);
   assert.equal((await makeShowroom(i, [])).note, null, 'no note when no model was meant to be asked');
-  // the model answers 1344 x 896 (its own size): fitted to 1800 x 1200, the car checked and its pixels put back
+  // the model answers 1344 x 896 (its own size): fitted to 1800 x 1200, used as it is once it is the same car
   const small = resample(composeShowroom(i.car, i.place, { model: i.model, cover: i.cover }), { x: 0, y: 0, w: 1800, h: 1200 }, 1344, 896);
   const png = await encodePng(small);
   const ok = await makeShowroom(i, [{ name: 'ai', make: async () => ({ ok: true, bytes: png, contentType: 'image/png', provider: 'ai', model: 'm1' }) }]);
@@ -175,7 +180,8 @@ test('the image model: key in a header, image in and out; 429 is a quota, 404 a 
   const bad = await geminiEditImage({ apiKey: 'k', model: 'bad name!', fetch: answer(200, {}) as typeof fetch }, img, 'p');
   assert.deepEqual(bad.ok ? null : bad.reason, 'model');
   assert.match(showroomPrompt({ cover: true, name: 'CLA' }), /lettering "CLA"/);
-  assert.match(showroomPrompt({ cover: false }), /pixel for pixel/);
+  assert.match(showroomPrompt({ cover: false }), /same make, model, generation/);
+  assert.match(showroomPrompt({ cover: false }), /large illuminated sign, the dominant feature/);
   assert.match(showroomPrompt({ cover: false }), /walnut wood slats/);
   assert.match(showroomPrompt({ cover: false }), /no lettering on the wall other than the logo/);
   assert.match(showroomPrompt({ cover: false }), /licence plate/);
@@ -247,7 +253,7 @@ test('marketing scenes: the white studio, the words per scene, a copy made or "n
   assert.ok(lum(w, 900, 300) > 230 && lum(w, 900, 1100) < lum(w, 900, 300), 'a white wall over a light grey floor');
   const p = marketingPrompt({ label: 'Brick building', place: 'in front of the same brick building', reference: true });
   assert.match(p, /second image is a photo of that real place/);
-  assert.match(p, /pixel for pixel/);
+  assert.match(p, /clearly the same car/);
   assert.match(p, /licence plate/);
   assert.doesNotMatch(marketingPrompt({ label: 'Highway', place: 'an open highway', reference: false }), /second image/);
   // the worker: the car's kept cut-out in the scene

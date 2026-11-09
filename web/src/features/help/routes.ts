@@ -17,7 +17,7 @@ const ADMIN: Record<string, Spec> = {
   academy: ['academy', 'admin/admin-team'], alerts: ['text-alerts-email-text-or-both'], applications: ['owners-and-onboarding', 'admin/owner-recruitment'],
   audit: ['people-and-access', 'admin/admin-decisions'], bookings: ['requests-offers-and-bookings', 'admin/prices-and-deposits'], 'bookings/[number]/sign-now': 'signing',
   calendar: ['calendars', 'admin/trip-rules'], 'calendar-sync': ['calendar-sync-with-turo-and-other-platforms'], chat: ['live-visitors-and-live-chat'],
-  chauffeur: ['chauffeur-service'], damages: ['tolls-and-tickets', 'admin/trip-rules'], debits: ['owner-money', 'admin/admin-decisions'], documents: ['requests-offers-and-bookings', 'cs/documents-and-signing'],
+  chauffeur: ['chauffeur-service'], damages: ['tolls-and-tickets', 'admin/trip-rules'], 'deposit-reviews': ['tolls-and-tickets', 'finance/new-r35-finance-deposit-review'], debits: ['owner-money', 'admin/admin-decisions'], documents: ['requests-offers-and-bookings', 'cs/documents-and-signing'],
   expenses: ['owner-money'], guide: 'guide', hiring: ['hiring', 'admin/admin-team'], incidents: ['tolls-and-tickets', 'admin/trip-rules'],
   'insurer-invoices': ['insurance-replacements-rates-and-billing', 'admin/insurer-billed-rentals'], insurers: ['insurance-replacements-rates-and-billing', 'admin/insurer-billed-rentals'],
   investors: ['the-investor-deck'], invoices: ['owner-money'], leads: ['discount-games-and-leads', 'admin/owner-recruitment'], listings: ['fleet-and-listings', 'fleet/fleet-cars'],
@@ -37,7 +37,7 @@ const ADMIN: Record<string, Spec> = {
 // ---------------------------------------------------------------- Staff (/staff), guide va.json; Field work (/staff/field), field.json
 const STAFF: Record<string, Spec> = {
   '': ['your-workday', 'cs/cs-requests'], academy: ['academy'], addons: ['add-ons'], bookings: ['customer-service', 'cs/prices-and-deposits'], 'bookings/[number]/sign-now': 'signing',
-  calendar: ['shared-tools', 'cs/trip-rules'], 'calendar-sync': ['fleet', 'fleet/fleet-cars'], 'past-trips': ['fleet', 'fleet/fleet-cars'], 'card-coverage': ['customer-service', 'cs/coverage-and-drivers'], cars: ['shared-tools'],
+  calendar: ['shared-tools', 'cs/trip-rules'], 'calendar-sync': ['fleet', 'fleet/fleet-cars'], 'past-trips': ['fleet', 'fleet/fleet-cars'], 'deposit-reviews': ['finance', 'finance/new-r35-finance-deposit-review'], 'sales-start': ['sales', 'sales_remote/sales-requests-and-quotes'], 'card-coverage': ['customer-service', 'cs/coverage-and-drivers'], cars: ['shared-tools'],
   chat: ['live-visitors-and-live-chat'], chauffeur: ['chauffeur-requests'], checks: ['fleet', 'fleet/fleet-cars'], documents: ['customer-service', 'cs/documents-and-signing'],
   'field-hours': ['fleet', 'fleet/fleet-field-jobs'], fleet: ['fleet', 'fleet/fleet-field-jobs'], 'game-leads': ['discount-game-leads', 'sales_remote/sales-requests-and-quotes'], guide: 'guide',
   leads: ['sales', 'sales_remote/sales-requests-and-quotes'], listings: ['fleet', 'fleet/fleet-cars'], live: ['live-visitors-and-live-chat'], maintenance: ['car-maintenance', 'fleet/fleet-cars'],

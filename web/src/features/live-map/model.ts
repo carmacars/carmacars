@@ -20,10 +20,45 @@ export interface RawPin {
 }
 export interface FleetCar { vehicle_id: string; code: string | null; name: string; lat: number; lng: number; heading: number | null; speed: number | null; status: 'on_rent' | 'available' | 'in_service'; updated_at: string; photo: CarPhoto | null }
 export interface Kpi { active_now: number; requests_today: number; requests_yesterday?: number; bookings_week: number; on_rent_now: number; collected_month_cents: number | null }
-/** 1064: staff working now and the week's Sales leaderboard */
+/** 1064: staff working now and the week's Sales leaderboard (on the figures' layer) */
 export interface Working { name: string; role: string; since: string }
 export interface Leader { name: string; bookings: number }
-export interface RawMap { working?: Working[]; leaderboard?: Leader[]; at: string; days: number; cap: number; live_minutes: number; hq?: { lat: number; lng: number } | null; kpi: Kpi; totals: Partial<Record<LeadType, number>>; pins: RawPin[]; fleet: FleetCar[] }
+export interface RawMap { working?: Working[]; leaderboard?: Leader[]; at: string; days: number; cap: number; live_minutes: number; hq?: { lat: number; lng: number } | null; kpi: Kpi; totals: Partial<Record<LeadType, number>>; pins: RawPin[]; fleet: FleetCar[];
+  /** 1080: the layers that could not be read (kpi, pins, fleet, roles); the others are drawn */
+  failed?: string[] }
+
+/** 1080: the map's three layers, each read on its own (admin_read live_map {part}), so a slow or failing one leaves the others. */
+export const MAP_PARTS = ['kpi', 'pins', 'fleet'] as const;
+export type MapPart = (typeof MAP_PARTS)[number];
+const PART_KEYS: Record<MapPart, Array<keyof RawMap>> = { kpi: ['kpi', 'working', 'leaderboard'], pins: ['pins', 'totals'], fleet: ['fleet'] };
+/** One answer from the layers' answers: each layer's own keys from its answer; a layer that failed (refused, timed out, or
+ *  named in the database's "failed") is listed in failed and drawn empty. Throws only when every layer failed. */
+export function mergeParts(parts: Array<{ part: MapPart; ok: true; value: RawMap } | { part: MapPart; ok: false; error: unknown }>): RawMap {
+  const good = parts.filter((x): x is { part: MapPart; ok: true; value: RawMap } => x.ok && !!x.value);
+  if (!good.length) { const e = parts.find((x) => !x.ok) as { error: unknown } | undefined; throw e?.error instanceof Error ? e.error : new Error('The map could not be read'); }
+  const base = good[0]!.value;
+  const out: RawMap = { at: base.at, days: base.days, cap: base.cap, live_minutes: base.live_minutes, hq: base.hq ?? null,
+    kpi: { active_now: 0, requests_today: 0, bookings_week: 0, on_rent_now: 0, collected_month_cents: null }, totals: {}, pins: [], fleet: [] };
+  const failed = new Set<string>();
+  for (const x of parts) {
+    if (!x.ok) { failed.add(x.part); continue; }
+    for (const k of PART_KEYS[x.part]) if (x.value[k] !== undefined) (out as unknown as Record<string, unknown>)[k] = x.value[k];
+    for (const f of x.value.failed ?? []) if (f === 'roles' || f === x.part) failed.add(f);
+    // 0400: the demo flag rides on every answer
+    const demo = (x.value as RawMap & { tracker_demo?: boolean }).tracker_demo;
+    if (demo !== undefined) (out as RawMap & { tracker_demo?: boolean }).tracker_demo = demo;
+  }
+  out.failed = [...MAP_PARTS.filter((p) => failed.has(p)), ...(failed.has('roles') ? ['roles'] : [])];
+  return out;
+}
+/** The note under a map with a layer missing: "Couldn't load the visitors and the fleet." */
+export function failedNote(failed: string[] | undefined): string {
+  const w: Record<string, string> = { kpi: 'the numbers at the top', pins: 'the visitors and leads', fleet: 'the fleet', roles: 'who each person is to us' };
+  const parts = (failed ?? []).map((f) => w[f]).filter((x): x is string => !!x);
+  if (!parts.length) return '';
+  const list = parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`;
+  return `Couldn't load ${list}. Trying again in 30 seconds.`;
+}
 
 export interface Signal { label: string; points: number; live?: boolean }
 export interface Pin {
@@ -40,7 +75,8 @@ export interface Pin {
 export interface MapView { working: Working[]; leaderboard: Leader[]; at: string; days: number; cap: number; hq: { lat: number; lng: number } | null; kpi: Kpi; totals: Partial<Record<LeadType, number>>; pins: Pin[]; fleet: FleetCar[];
   /** Release 26: phones and emails are in this answer ("Show contact" on); without it they are never sent. */
   contact: boolean;
-  /** 0400: the fleet layer is Fleet tracking's demo mode (simulated cars) */ fleet_demo?: boolean }
+  /** 0400: the fleet layer is Fleet tracking's demo mode (simulated cars) */ fleet_demo?: boolean;
+  /** 1080: the layers that could not be read this time */ failed?: string[] }
 
 /** Most advanced first; the legend's order. Colours are for a dark map (each has 4.5:1 or more against #0b1020). */
 export const TYPES: Array<{ type: LeadType; label: string; short: string; colour: string }> = [
@@ -211,7 +247,7 @@ export function toView(raw: RawMap, contact: boolean): MapView {
     };
   });
   const hq = raw.hq && num(raw.hq.lat) !== null && num(raw.hq.lng) !== null ? { lat: num(raw.hq.lat)!, lng: num(raw.hq.lng)! } : null;
-  return { working: raw.working ?? [], leaderboard: raw.leaderboard ?? [], at: raw.at, days: raw.days, cap: raw.cap, hq, kpi: raw.kpi, totals: raw.totals ?? {}, pins, fleet: raw.fleet ?? [], contact };
+  return { working: raw.working ?? [], leaderboard: raw.leaderboard ?? [], at: raw.at, days: raw.days, cap: raw.cap, hq, kpi: raw.kpi, totals: raw.totals ?? {}, pins, fleet: raw.fleet ?? [], contact, failed: raw.failed ?? [] };
 }
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : typeof v === 'string' && v !== '' && Number.isFinite(Number(v)) ? Number(v) : null);
 

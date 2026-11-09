@@ -3,7 +3,7 @@
 // simple and dark; the vehicle model behind the car in the first photo", then (v2) "that is not what a showroom looks like,
 // make it better". The car's framed cut-out (subject-frame.ts) is placed in a simple dark dealership drawn here in one-point
 // perspective: recessed linear lights in the ceiling, a back wall washed by a cove light with a slatted walnut feature
-// panel between two vertical light strips, the CarmaCars logo as a lit sign with its glow, plain side walls, a polished dark
+// panel between two vertical light strips, the CarmaCars logo as a large lit sign with its glow (the wall's main feature), plain side walls, a polished dark
 // tiled floor that mirrors the room softly, a soft shadow under the car and a contact shadow under each tyre, a vignette.
 // The cover (the first photo) also has the model's name in brushed metal letters on the wall, above the car when there is
 // room and behind it otherwise (never over it). Every angle of a car gets the same room. Preset studio_showroom_v2.
@@ -12,13 +12,14 @@
 //   local: this file, pure and deterministic, no network and no cost (always there; the fallback for the other one)
 //   ai:    an image model that makes the local scene look photographed (integrations/photos/gemini.ts), used when its key
 //          is set, within its daily limit (Program settings), never past the free use; any refusal or error keeps the
-//          local scene and the reason is shown to staff on the photo. The car's own pixels are put back on its answer, and
-//          an answer that moved or restyled the car is not used (keepCar).
+//          local scene and the reason is shown to staff on the photo. It may relight the car, clean its paint or turn it
+//          slightly; an answer that is not clearly the same car (model, colour, shape) is not used (sameCar).
 import jpeg from 'jpeg-js';
 import glyphData from './presets/ghost-glyphs.json' with { type: 'json' };
 import logoData from './presets/showroom-logo.json' with { type: 'json' };
 import { letteringName } from '../car/studio.ts';
 import { SHOWROOM_FIT, decodePng, type Rgba } from './subject-frame.ts';
+import { fillPolys } from './raster.ts';
 
 export const SHOWROOM_PRESET = 'studio_showroom_v2';
 export type Scene = 'studio' | 'showroom';
@@ -34,7 +35,7 @@ export { SHOWROOM_FIT };
  *  panel; on the cover the model's name is lettered on the wall under it, above the car when there is room. */
 export const ROOM = { width: 1800, height: 1200, horizon: 560, ceiling: 120, junction: 700, wallLeft: 210, wallRight: 1590,
   panel: { left: 380, right: 1420 }, floorLine: 960,
-  logo: { width: 360, top: 158 }, name: { maxWidth: 1100, top: 266, capMin: 92, capMax: 150, gap: 30 } } as const;
+  logo: { width: 900, top: 146 }, name: { maxWidth: 1100, top: 338, capMin: 84, capMax: 140, gap: 26 } } as const;
 const VX = ROOM.width / 2, DW = VX - ROOM.wallLeft;
 
 type Glyphs = { unitsPerEm: number; glyphs: Record<string, { advance: number; contours: number[][][] }> };
@@ -42,46 +43,7 @@ const G = glyphData as unknown as Glyphs;
 type Logo = { viewBox: number[]; paths: Array<{ fill: number[]; polys: number[][] }> };
 const L = logoData as unknown as Logo;
 
-/** Coverage (0 to 1) of polygons (even-odd) on a W x H grid: 5 sub-rows a pixel, exact coverage across each row. */
-export function fillPolys(polys: number[][], W: number, H: number): Float32Array {
-  const m = new Float32Array(W * H);
-  const SUB = 5;
-  const edges: Array<[number, number, number, number]> = [];
-  let minY = Infinity, maxY = -Infinity;
-  for (const p of polys) {
-    const n = p.length / 2;
-    for (let i = 0; i < n; i++) {
-      const x0 = p[i * 2]!, y0 = p[i * 2 + 1]!, x1 = p[((i + 1) % n) * 2]!, y1 = p[((i + 1) % n) * 2 + 1]!;
-      if (y0 === y1) continue;
-      edges.push([x0, y0, x1, y1]);
-      minY = Math.min(minY, y0, y1); maxY = Math.max(maxY, y0, y1);
-    }
-  }
-  const ya = Math.max(0, Math.floor(minY)), yb = Math.min(H - 1, Math.ceil(maxY));
-  const xs: number[] = [];
-  for (let y = ya; y <= yb; y++) {
-    for (let s = 0; s < SUB; s++) {
-      const sy = y + (s + 0.5) / SUB;
-      xs.length = 0;
-      for (const [x0, y0, x1, y1] of edges) {
-        if ((sy >= y0 && sy < y1) || (sy >= y1 && sy < y0)) xs.push(x0 + ((sy - y0) * (x1 - x0)) / (y1 - y0));
-      }
-      if (xs.length < 2) continue;
-      xs.sort((a, b) => a - b);
-      for (let k = 0; k + 1 < xs.length; k += 2) {
-        const a = Math.max(0, xs[k]!), b = Math.min(W, xs[k + 1]!);
-        if (b <= a) continue;
-        const ia = Math.floor(a), ib = Math.floor(b), row = y * W;
-        if (ia === ib) { m[row + ia]! += (b - a) / SUB; continue; }
-        m[row + ia]! += (ia + 1 - a) / SUB;
-        for (let x = ia + 1; x < ib && x < W; x++) m[row + x]! += 1 / SUB;
-        if (ib < W) m[row + ib]! += (b - ib) / SUB;
-      }
-    }
-  }
-  for (let i = 0; i < m.length; i++) if (m[i]! > 1) m[i] = 1;
-  return m;
-}
+export { fillPolys };
 
 /** Where the model's name goes on the cover: its cap top and height. Above the car when the car leaves room (the car's top
  *  at carTop), never smaller than capMin (then the car stands in front of the letters' feet, as in a showroom). */
@@ -245,10 +207,11 @@ export function showroomBackdrop(o: { model?: string | null; cover?: boolean; ca
   }
   // the logo: a lit sign, its glow on the wall behind
   {
-    const paths = logoPaths(W), lw = ROOM.logo.width + 160, lh = 230, x0 = Math.round((W - lw) / 2), y0 = ROOM.logo.top - 80;
+    const lhLogo = Math.ceil((ROOM.logo.width * L.viewBox[3]!) / L.viewBox[2]!);
+    const paths = logoPaths(W), lw = ROOM.logo.width + 200, lh = lhLogo + 200, x0 = Math.round((W - lw) / 2), y0 = ROOM.logo.top - 100;
     const all = new Float32Array(lw * lh);
     const masks = paths.map((p) => { const m = boxMask(p.polys, x0, y0, lw, lh); for (let k = 0; k < m.length; k++) all[k] = Math.min(1, all[k]! + m[k]!); return m; });
-    blurMask(all, lw, lh, 22);
+    blurMask(all, lw, lh, 30);
     over(all, lw, x0, y0, () => [255, 246, 236], 0.85);
     paths.forEach((p, k) => over(masks[k]!, lw, x0, y0, () => (p.fill[0] === 255 && p.fill[1] === 255 ? [246, 246, 248] : [236, 26, 36]), 1));
   }
@@ -390,42 +353,52 @@ export function composeShowroom(car: Rgba & { ground: number }, place: Place, o:
   return room;
 }
 
-/** The image model's photo checked against the local one and the car's own pixels put back: the car is compared where it
- *  stands (luminance correlation over the car's body); a model that moved, reshaped or restyled it (below `min`) is not
- *  used (null). Otherwise the car's pixels (above the wheel line) are drawn over the model's photo exactly as they are, so
- *  only the room is the model's. Pure. */
-export function keepCar(ai: Rgba, local: Rgba, car: Rgba & { ground: number }, place: Place, min = 0.6): Rgba | null {
+/** The image model may relight the car, clean its paint or turn it slightly (owner, Nov 8), as long as it is clearly the
+ *  same car. Compared with the local scene where the car stands (a box a little larger than the car): the colour of the
+ *  car's middle (its hue and saturation; brightness may change within reason), and the coarse shape of the box (a 32 x 16
+ *  grid of brightness, correlated) so a missing, different or distorted car is refused. Pure; null when it is the same car,
+ *  else why not. */
+export function sameCar(ai: Rgba, local: Rgba, car: Rgba & { ground: number }, place: Place): 'colour' | 'shape' | 'size' | null {
   const W = ROOM.width, H = ROOM.height;
-  if (ai.width !== W || ai.height !== H || local.width !== W) return null;
+  if (ai.width !== W || ai.height !== H || local.width !== W || local.height !== H) return 'size';
   const top = H - place.bottom - place.height, wheel = top + place.height * (1 - car.ground);
   const sx = car.width / place.width, sy = car.height / place.height, px = [0, 0, 0, 0];
-  const x0 = Math.max(0, Math.floor(place.left)), x1 = Math.min(W, Math.ceil(place.left + place.width));
-  const ya = Math.max(0, Math.floor(top)), yb = Math.min(H, Math.ceil(wheel));
-  const lum = (img: Rgba, i: number) => 0.299 * img.data[i]! + 0.587 * img.data[i + 1]! + 0.114 * img.data[i + 2]!;
-  let n = 0, sa = 0, sb = 0, saa = 0, sbb = 0, sab = 0, sad = 0;
-  for (let y = ya; y < yb; y += 5) for (let x = x0; x < x1; x += 5) {
+  const cw = place.width, ch = wheel - top;
+  // the colour of the car's middle: chromaticity of the mean, and brightness within a factor of about two
+  let n = 0; const ma = [0, 0, 0], mb = [0, 0, 0];
+  for (let y = Math.floor(top + ch * 0.25); y < top + ch * 0.85; y += 4) for (let x = Math.floor(place.left + cw * 0.25); x < place.left + cw * 0.75; x += 4) {
+    if (x < 0 || x >= W || y < 0 || y >= H) continue;
     sample(car, (x - place.left) * sx - 0.5, (y - top) * sy - 0.5, px);
     if (px[3]! < 0.8) continue;
-    const i = (y * W + x) * 4, a = lum(ai, i), b = lum(local, i);
-    n++; sa += a; sb += b; saa += a * a; sbb += b * b; sab += a * b; sad += Math.abs(a - b);
+    const i = (y * W + x) * 4;
+    for (let c = 0; c < 3; c++) { ma[c]! += ai.data[i + c]!; mb[c]! += local.data[i + c]!; }
+    n++;
   }
-  if (n < 40) return null;
-  const va = saa / n - (sa / n) ** 2, vb = sbb / n - (sb / n) ** 2;
-  // a car with little texture (one flat colour) is compared by its mean difference instead
-  if (vb < 25) { if (sad / n > 12) return null; }
-  else if ((va > 1e-6 ? (sab / n - (sa / n) * (sb / n)) / Math.sqrt(va * vb) : 0) < min) return null;
-  const out = new Uint8ClampedArray(ai.data), dd = out;
-  for (let y = ya; y < yb; y++) {
-    const srcY = (y - top) * sy - 0.5;
-    for (let x = x0; x < x1; x++) {
-      sample(car, (x - place.left) * sx - 0.5, srcY, px);
-      const a = px[3]!;
-      if (a <= 0.002) continue;
+  if (n < 30) return 'shape';
+  const chroma = (m: number[]) => { const t = m[0]! + m[1]! + m[2]! + 1e-6; return [m[0]! / t, m[1]! / t, m[2]! / t]; };
+  const ca = chroma(ma), cb = chroma(mb);
+  const dChroma = Math.hypot(ca[0]! - cb[0]!, ca[1]! - cb[1]!, ca[2]! - cb[2]!);
+  const la = (ma[0]! + ma[1]! + ma[2]!) / n / 3, lb = (mb[0]! + mb[1]! + mb[2]!) / n / 3;
+  if (dChroma > 0.07 || la > lb * 2.2 + 20 || la < lb / 2.2 - 20) return 'colour';
+  // the coarse shape: a grid over the car's box with a margin (a slight turn or move still correlates)
+  const bx = place.left - cw * 0.08, by = top - ch * 0.15, bw = cw * 1.16, bh = ch * 1.3, GX = 32, GY = 16;
+  const A: number[] = [], B: number[] = [];
+  for (let gy = 0; gy < GY; gy++) for (let gx = 0; gx < GX; gx++) {
+    let sa = 0, sb = 0, k = 0;
+    for (let y = Math.floor(by + (gy * bh) / GY); y < by + ((gy + 1) * bh) / GY; y += 3) for (let x = Math.floor(bx + (gx * bw) / GX); x < bx + ((gx + 1) * bw) / GX; x += 3) {
+      if (x < 0 || x >= W || y < 0 || y >= H) continue;
       const i = (y * W + x) * 4;
-      dd[i] = dd[i]! + (px[0]! - dd[i]!) * a; dd[i + 1] = dd[i + 1]! + (px[1]! - dd[i + 1]!) * a; dd[i + 2] = dd[i + 2]! + (px[2]! - dd[i + 2]!) * a; dd[i + 3] = 255;
+      sa += ai.data[i]! * 0.299 + ai.data[i + 1]! * 0.587 + ai.data[i + 2]! * 0.114; sb += local.data[i]! * 0.299 + local.data[i + 1]! * 0.587 + local.data[i + 2]! * 0.114; k++;
     }
+    if (k) { A.push(sa / k); B.push(sb / k); }
   }
-  return { width: W, height: H, data: out };
+  const mean = (v: number[]) => v.reduce((x, y) => x + y, 0) / v.length;
+  const mA = mean(A), mB = mean(B);
+  let sab = 0, saa = 0, sbb = 0;
+  for (let i = 0; i < A.length; i++) { const a = A[i]! - mA, b = B[i]! - mB; sab += a * b; saa += a * a; sbb += b * b; }
+  const corr = saa > 1e-6 && sbb > 1e-6 ? sab / Math.sqrt(saa * sbb) : 0;
+  if (corr < 0.45) return 'shape';
+  return null;
 }
 
 /** An image scaled to cover W x H and centred (an image model answers in its own size). */
@@ -490,11 +463,11 @@ export const FALLBACK_TEXT: Record<ShowroomFailure, string> = {
   blocked: 'Made with the free showroom: the image model did not return a photo.',
   timeout: 'Made with the free showroom: the image model did not answer in time.',
   error: 'Made with the free showroom: the image model failed.',
-  changed: 'Made with the free showroom: the image model changed or moved the car, so its photo was not used.'
+  changed: 'Made with the free showroom: the image model showed a different car (model, colour or shape), so its photo was not used.'
 };
 
 /** The local scene, then the providers in turn (the first that answers with the car unchanged wins); the local scene when
- *  none does, with why. A model's photo always gets the car's own pixels back (keepCar). */
+ *  none does, with why. A model's photo is used as it is when it shows the same car (sameCar). */
 export async function makeShowroom(i: ShowroomInput, providers: ShowroomProvider[], noKey = false): Promise<{ bytes: Uint8Array; contentType: string; provider: 'local' | 'ai'; model?: string; note: string | null; reason: ShowroomFailure | null }> {
   const scene = composeShowroom(i.car, i.place, { model: i.model, cover: i.cover }, i.room);
   const local = { bytes: encodeJpeg(scene), contentType: 'image/jpeg' };
@@ -506,9 +479,9 @@ export async function makeShowroom(i: ShowroomInput, providers: ShowroomProvider
       // an image model answers in its own size: fitted to the frame so every photo of the car is the same size
       const img = await decodeImage(r.bytes).catch(() => null);
       if (!img) { last = { ok: false, reason: 'blocked', message: 'The image could not be read' }; continue; }
-      const kept = keepCar(fitFrame(img), scene, i.car, i.place);
-      if (!kept) { last = { ok: false, reason: 'changed', message: 'The car does not match' }; continue; }
-      return { bytes: encodeJpeg(kept), contentType: 'image/jpeg', provider: r.provider, ...(r.model ? { model: r.model } : {}), note: null, reason: null };
+      const fitted = fitFrame(img), why = sameCar(fitted, scene, i.car, i.place);
+      if (why) { last = { ok: false, reason: 'changed', message: `Not the same car (${why})` }; continue; }
+      return { bytes: encodeJpeg(fitted), contentType: 'image/jpeg', provider: r.provider, ...(r.model ? { model: r.model } : {}), note: null, reason: null };
     }
     last = r;
   }
@@ -521,13 +494,13 @@ export async function makeShowroom(i: ShowroomInput, providers: ShowroomProvider
 export function showroomPrompt(o: { cover: boolean; name?: string | null }): string {
   return [
     'Edit this image into a real, high-end photograph of a car inside a modern, minimal, dark car dealership showroom at night.',
-    'THE CAR: keep it pixel for pixel as it is. Same position, same size, same angle, same shape, colour, paint reflections, wheels, tyres, lights, badges and windows. Do not redraw, restyle, clean, recolour, relight or move it, and do not crop it.',
+    'THE CAR: it must stay clearly the same car: the same make, model, generation, body style, trim, wheels and colour, about the same size and place in the frame, not cropped. You may improve how it looks: realistic showroom lighting and reflections on the paint, cleaned-up paint, and a slight change of pose or camera angle. Never change it into another car, another model or another colour, and never distort it.',
     'Do not add or show a licence plate, and never add letters or numbers on the car; where the plate area is plain or covered, leave it exactly so.',
     'THE ROOM (keep the same layout as the image, so every photo of this car shows the same room):',
     'a dark charcoal back wall meeting a polished dark floor at the same line as in the image, with the side walls and corners at the edges in the same perspective;',
     'a feature panel of vertical dark walnut wood slats in the middle of the back wall, with a thin vertical warm-white LED strip on each side of it;',
     'a cove light along the top of the back wall washing softly down it, and recessed linear LED light strips in the dark ceiling;',
-    'the CarmaCars logo on the wall, exactly as it is in the image (same shapes, colours, size and place), as an illuminated sign with a soft backlit glow on the wall behind it;',
+    'the CarmaCars logo as a large illuminated sign, the dominant feature of the back wall: exactly the shapes and colours of the logo in the image, at least as large as in the image (about half the width of the wall panel), centred high on the wall above the car, its letters lit with a soft backlit glow on the wall behind them;',
     o.cover && o.name ? `the large brushed-metal lettering "${o.name}" on the wall exactly as in the image, behind the car and never in front of it;` : 'no lettering on the wall other than the logo;',
     'a polished dark epoxy floor with faint large tiles, showing soft, blurred reflections of the wall lights and of the car, and a real, soft contact shadow under each tyre where it meets the floor.',
     'Light it like a professional dealership photo: soft overhead light, gentle falloff, a subtle vignette, realistic camera noise. Everything outside the car stays dark and minimal.',
@@ -550,13 +523,13 @@ export function whiteStudio(): Rgba {
   return { width: W, height: H, data: new Uint8ClampedArray(d) };
 }
 
-/** The image model's words for a marketing scene: the car kept pixel for pixel and the plate never shown, the place described
+/** The image model's words for a marketing scene: clearly the same car (it may be relit or turned slightly), the plate never shown, the place described
  *  (or the reference photo's place: same wall, ground and light). */
 export function marketingPrompt(o: { label: string; place: string; reference: boolean }): string {
   return [
     `Edit this image into a real, high-end marketing photograph of the car in this place: ${o.place}.`,
     o.reference ? 'The second image is a photo of that real place: put the car in exactly that place, in front of the same building and wall, on the same ground, in the same light and weather. Do not copy any car, person or sign from it.' : '',
-    'THE CAR: keep it pixel for pixel as it is. Same position, same size, same angle, same shape, colour, paint, wheels, tyres, lights, badges and windows. Do not redraw, restyle, recolour, relight, move or crop it.',
+    'THE CAR: it must stay clearly the same car: the same make, model, generation, body style, trim, wheels and colour, about the same size and place in the frame, not cropped. You may relight it for the place, clean up the paint and change the pose or camera angle slightly. Never change it into another car, another model or another colour, and never distort it.',
     'Do not add or show a licence plate, and never add letters or numbers on the car; where the plate area is plain or covered, leave it exactly so.',
     'Give the car a real, soft contact shadow under each tyre on the ground and believable reflections for the place.',
     'Do not add other cars, people, signs, text, logos, watermarks or objects in front of the car. Landscape 3:2, the car where it is in the frame.'

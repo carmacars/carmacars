@@ -5,6 +5,8 @@ import { door } from '@/server/door';
 import { ManualPaymentForm, ManualPaymentList, type ManualRow } from '@/features/manual/ManualRecords';
 import { $, Badge, Card, PageHead, Table, d, t, label } from '@/features/admin/ui';
 import { FigureLinks } from '@/features/va/QueueHome';
+import { CountdownTable } from '@/features/deposit-review/Countdowns';
+import type { Countdowns } from '@/features/deposit-review/model';
 
 type R = Record<string, unknown>;
 type Board = { payments_failed: R[]; deposits_due: R[]; deposits_to_take: R[]; refunds: R[]; cancellations: R[]; owner_invoices: R[]; statements: R[] };
@@ -14,8 +16,10 @@ const bk = (n: unknown) => <Link prefetch={false} className="link" href={`/staff
 // request (above the Single Limit they wait for an Admin), owner invoice failures, statements to prepare.
 export async function ToHandle({ ctx }: { ctx: Awaited<ReturnType<typeof vaPage>> }) {
   const { read, user, aal } = ctx;
-  const [b, open] = await Promise.all([read<Board>('finance_board'),
-    door<Array<R & { id: string; invoice_number: string; balance_cents: number; manual: ManualRow[] }>>(user.id, 'ops_read', 'owner_invoices_open', {}, aal).catch(() => [])]);
+  const [b, open, cd] = await Promise.all([read<Board>('finance_board'),
+    door<Array<R & { id: string; invoice_number: string; balance_cents: number; manual: ManualRow[] }>>(user.id, 'ops_read', 'owner_invoices_open', {}, aal).catch(() => []),
+    // r35 part RR (1010): the countdowns, soonest first
+    door<Countdowns>(user.id, 'ops_read', 'finance_countdowns', { _va: ctx.fn }, aal).catch(() => null)]);
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   return (
     <>
@@ -30,6 +34,7 @@ export async function ToHandle({ ctx }: { ctx: Awaited<ReturnType<typeof vaPage>
         { k: 'Owner invoices failed', v: b.owner_invoices.length, href: '#invoices-failed', warn: b.owner_invoices.length > 0 },
         { k: 'Statements to prepare', v: b.statements.length, sub: 'drafts', href: '#statements' }]} />
       <div className="stack">
+        {cd && <Card title="Countdowns, soonest first" id="countdowns" testId="money-countdowns"><CountdownTable c={cd} compact base="/staff/money?tab=countdowns" bookingBase="/staff/bookings" /></Card>}
         <Card title="Failed payments" id="failed"><Table rows={b.payments_failed} testId="failed-payments" empty="No failed payments in 30 days." cols={[{ key: 'booking_number', label: 'Booking', render: (r) => r.booking_number ? bk(r.booking_number) : null }, { key: 'purpose', label: 'Purpose', render: (r) => label(r.purpose) }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'decline_code', label: 'Decline' }, { key: 'created_at', label: 'When', render: (r) => t(r.created_at) },
           { key: 'pay', label: '', render: (r) => r.booking_number ? <ManualPaymentForm prefix="va-rp" booking={String(r.booking_number)} settlesPayment={String(r.id)} number={`${String(r.booking_number)}-${String(r.id).slice(0, 6)}`} balance={Number(r.amount_cents)} today={today} refresh={['/staff/money']} label="Paid another way" /> : null }]} />
           <p className="small muted">When a renter pays a failed charge by e-Transfer, cash or another way, record it here. Amounts above your single limit need an Admin.</p></Card>

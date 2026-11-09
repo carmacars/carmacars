@@ -1,4 +1,5 @@
 import '@/styles/portal.css';
+import { Moment } from '@/features/motion/Moment';
 import { pageMeta } from '@/features/seo/meta';
 import { when } from '@/features/agreement/model';
 import { money } from '@/lib/format';
@@ -22,6 +23,7 @@ export default async function PayLink({ params, searchParams }: { params: Promis
   if (f?.status === 'open') await markPayLinkOpened(token);
   if (!f || f.status !== 'open') return (
     <div className="pt"><div className="wrap pt__body stack" style={{ maxWidth: '36rem' }} data-testid="paylink-closed">
+      {f?.status === 'paid' && <Moment kind="confirmed" />}
       <h1 className="d2">{f?.status === 'paid' ? 'Paid, thank you' : 'This link is no longer open'}</h1>
       <p>{f?.status === 'paid' ? 'We have it. Your receipt is in your email.' : 'Pay links work for a few days and only once. Ask us for a new one, or call us.'}</p>
     </div></div>

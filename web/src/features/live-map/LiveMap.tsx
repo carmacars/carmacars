@@ -1,6 +1,7 @@
 'use client';
 import './live-map.css';
 import Link from '@/components/Link';
+import { clockTo, weekdayClockTo } from '@/lib/clock';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { readContact, useContact, writeContact } from './contact';
 import { FOCUS_EVENT, type FocusAsk } from './focus';
@@ -16,7 +17,7 @@ type Engine = Pick<MapEngine, 'start' | 'destroy' | 'setPins' | 'setCars' | 'set
 import { roleLabel } from './roles';
 import { ContactButtons } from '@/features/phone/QuoButtons';
 import { CAR_HOW, CAR_SILHOUETTE, FLEET_STATUS, adminHref, staffHref, carLabel, timeLine, withoutContact, compactMoney, onTheRoad, photoPins, PRECISION_WORDS, STAGE, STAGES, TYPE, isNew, reasonOf, shortAgo, spotlight, isLead, spread, stageOf, tally, verbOf,
-  type CarPhoto, type Kpi, type MapView, type Pin, type Stage } from './model';
+  type CarPhoto, type Kpi, type MapView, type Pin, type Stage, failedNote } from './model';
 
 // Today > Live map (migration 0242). The map is the hero: the site's own dark basemap with a glowing dot per lead (four
 // stages, four colours), clustered where they crowd. Four numbers above it. On a TV (?tv=1): the map edge to edge on
@@ -230,6 +231,8 @@ export function LiveMap({ initial, tv, at, embedded = false, portal = 'admin' }:
   const card = float ? byId.get(float.id) ?? null : null;
   const toggleStage = (s: Stage) => setHidden((h) => { const n = new Set(h); if (n.has(s)) n.delete(s); else n.add(s); return n; });
   const fleetCount = view?.fleet.length ?? 0;
+  // 1080: a layer that could not be read says so, instead of zeros
+  const partNote = failedNote(view?.failed);
 
   const legend = (
     <div className="lm-legend" role="group" aria-label={tv ? 'Stages' : 'Stages (press to hide or show)'} data-testid="lm-legend">
@@ -272,7 +275,7 @@ export function LiveMap({ initial, tv, at, embedded = false, portal = 'admin' }:
           <header className="lm-tv__top" ref={topRef}>
             <div className="lm-tv__row">
               <div className="lm-brand"><span>CarmaCars <b>Live</b></span><Clock now={now} /></div>
-              <Kpis k={view?.kpi} />
+              {!view?.failed?.includes('kpi') && <Kpis k={view?.kpi} />}
         <TeamNow v={view} />
             </div>
           </header>
@@ -300,7 +303,8 @@ export function LiveMap({ initial, tv, at, embedded = false, portal = 'admin' }:
             </ol>
           </section>
         </aside>
-        {err && <p className="lm-err" role="status">Not refreshed: {err}. Trying again in 30 seconds.</p>}
+        {err ? <p className="lm-err" role="status">Not refreshed: {err}. Trying again in 30 seconds.</p>
+          : partNote ? <p className="lm-err lm-err--part" role="status" data-testid="lm-failed">{partNote}</p> : null}
       </div>
     );
   }
@@ -308,7 +312,7 @@ export function LiveMap({ initial, tv, at, embedded = false, portal = 'admin' }:
   return (
     <div className="lm lm--page" data-testid="live-map">
       <div className="lm-head">
-        <Kpis k={view?.kpi} />
+        {view?.failed?.includes('kpi') ? <span /> : <Kpis k={view?.kpi} />}
         <TeamNow v={view} />
         <div className="lm-head__acts">
           {contactSwitch}
@@ -325,6 +329,7 @@ export function LiveMap({ initial, tv, at, embedded = false, portal = 'admin' }:
       </div>
       {legend}
       {err && <p className="lm-err" role="status">Not refreshed: {err}. Trying again in 30 seconds.</p>}
+      {!err && partNote && <p className="lm-err lm-err--part" role="status" data-testid="lm-failed">{partNote}</p>}
       {!embedded && <LeadTable pins={pins.filter((p) => !hidden.has(stageOf(p.type)))} now={now} cap={view && view.pins.length >= view.cap ? view.cap : null}
         onLocate={(id) => { boxRef.current?.scrollIntoView({ behavior: scrollMotion(), block: 'center' }); engine.current?.focus(id); }} />}
       <p className="lm-foot">Score: the points of the signals added up, at most 100 (60 or more is hot). Places are approximate: the visit&apos;s network (about 1 km), else the centre of the renter&apos;s home city or the visit&apos;s city; nothing is looked up. Refreshes every 30 seconds. Basemap: Natural Earth; boundaries: Statistics Canada via geoBoundaries (ODbL); the GTA&apos;s highways, arterial roads and ridges drawn by CarmaCars.</p>
@@ -379,7 +384,7 @@ function Filmstrip({ pins, onOpen }: { pins: Pin[]; onOpen: (id: string) => void
     ro.observe(box.current); ro.observe(row.current);
     return () => ro.disconnect();
   }, [pins.length, roll]);
-  const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString('en-CA', { timeZone: 'America/Toronto', weekday: 'short', hour: 'numeric', minute: '2-digit' }) : '');
+  const when = (iso: string | null) => (iso ? weekdayClockTo(iso) : '');
   const item = (p: Pin, copy: boolean) => {
     const src = imgOf(p.car?.photo, 320), car = carLabel(p.car);
     return (
@@ -408,7 +413,7 @@ function CarShape() {
 }
 
 function Clock({ now }: { now: number }) {
-  return <time className="lm-clock" aria-label="Time in Toronto">{new Date(now).toLocaleTimeString('en-CA', { timeZone: 'America/Toronto', hour: 'numeric', minute: '2-digit' })}</time>;
+  return <time className="lm-clock" aria-label="Time in Toronto">{clockTo(now)}</time>;
 }
 
 function Score({ p }: { p: Pin }) {

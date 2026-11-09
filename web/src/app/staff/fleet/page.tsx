@@ -1,3 +1,4 @@
+import Link from '@/components/Link';
 import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
 import { redirect } from 'next/navigation';
@@ -7,7 +8,6 @@ import { FieldJobsBoard, type Board } from '@/features/va/FieldJobs';
 import type { CalVehicle } from '@/features/va/carboard';
 import { requestNow } from '@/features/va/lanes';
 import { carPhotos } from '@/server/car-photos';
-import Link from '@/components/Link';
 import { PrepPanel, WorkListsPanel, type PrepList, type WorkLists } from '@/features/field-portal/FleetPanels';
 
 export const dynamic = 'force-dynamic';
