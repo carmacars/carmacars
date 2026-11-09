@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { CAR_SILHOUETTE, agoText, arc, separate, bandOf, carLabel, compactMoney, hash, makeInitial, onTheRoad, photoPins, reasonOf, adminHref, isLead, timeLine, withoutContact, mx, my, scoreOf, shortAgo, shortName, signalsOf, spotlight, spread, stageOf, tally, toView, verbOf, type RawMap, type RawPin } from './model.ts';
+import { CAR_SILHOUETTE, agoText, arc, separate, bandOf, carLabel, compactMoney, hash, makeInitial, onTheRoad, photoPins, reasonOf, adminHref, isLead, timeLine, withoutContact, mx, my, scoreOf, shortAgo, shortName, signalsOf, spotlight, spread, stageOf, tally, toView, verbOf, mergeParts, failedNote, type RawMap, type RawPin } from './model.ts';
 import { FRAME_MAX_ZOOM, TORONTO, HIGHWAYS, HOME_BOUNDS, MAP_ATTRIBUTION, MAX_BOUNDS, REGIONS, frameBounds, inBounds, roundGeo } from './config.ts';
 import { readFileSync } from 'node:fs';
 
@@ -401,4 +401,27 @@ describe('clusters never overlap (Release 27)', () => {
       assert.equal(r.clusters.reduce((n, c) => n + c.n, 0) + r.singles.length, pts.length);
     }
   });
+});
+
+describe('1080: the map by layer', () => { it('merges the layers, names a failed one and keeps the others', () => {
+  const base = { at: '2026-11-08T12:00:00Z', days: 30, cap: 500, live_minutes: 5, hq: null } as const;
+  const kpi = { active_now: 3, requests_today: 2, bookings_week: 1, on_rent_now: 4, collected_month_cents: 100 };
+  const m = mergeParts([
+    { part: 'kpi', ok: true, value: { ...base, kpi, pins: [], totals: {}, fleet: [], failed: [] } as unknown as RawMap },
+    { part: 'pins', ok: false, error: new Error('canceling statement due to statement timeout') },
+    { part: 'fleet', ok: true, value: { ...base, kpi: { ...kpi, active_now: 99 }, pins: [{ id: 'x' }], fleet: [{ vehicle_id: 'v' }], failed: [], tracker_demo: true } as unknown as RawMap }]);
+  assert.equal(m.kpi.active_now, 3);
+  assert.deepEqual(m.pins, []);
+  assert.equal(m.fleet.length, 1);
+  assert.deepEqual(m.failed, ['pins']);
+  assert.equal((m as RawMap & { tracker_demo?: boolean }).tracker_demo, true);
+  assert.equal(failedNote(m.failed), "Couldn't load the visitors and leads. Trying again in 30 seconds.");
+  // the database names a layer it could not read, and the roles
+  const n = mergeParts([{ part: 'pins', ok: true, value: { ...base, kpi, pins: [], totals: {}, fleet: [], failed: ['roles'] } as unknown as RawMap },
+    { part: 'kpi', ok: true, value: { ...base, kpi, pins: [], totals: {}, fleet: [], failed: ['kpi'] } as unknown as RawMap }]);
+  assert.deepEqual(n.failed, ['kpi', 'roles']);
+  assert.equal(failedNote(n.failed), "Couldn't load the numbers at the top and who each person is to us. Trying again in 30 seconds.");
+  assert.equal(failedNote([]), '');
+  assert.throws(() => mergeParts([{ part: 'kpi', ok: false, error: new Error('down') }]), /down/);
+});
 });

@@ -2,12 +2,13 @@
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { money } from '@/lib/format';
-import { allowOtherCard, cancelOnReader, lookupStripePayment, pollReader, recordCardPayment, startOnReader, type ReaderState } from '@/server/actions/card-tools';
+import { allowOtherCard, cancelOnReader, linkStripePayment, lookupStripePayment, pollReader, recordCardPayment, startOnReader, type ReaderState } from '@/server/actions/card-tools';
 import { DateInput } from '@/components/DateInput';
 
 // The card tools of a booking's money (Release 21): Record card payment (a card taken in the Stripe Dashboard or on a
 // reader, 0201), Charge on reader and Hold deposit on reader (the Stripe Terminal S700, 0202), and the same-card rule of
-// a card-coverage rental with an Admin's override (0203). The database refuses with the reason, shown as written.
+// a card-coverage rental with an Admin's override (0203), and (r35, 1081) an Admin's Link a payment taken outside the
+// platform: the Stripe payment id only, read at Stripe and linked as the rental or the deposit. The database refuses with the reason, shown as written.
 export interface CardRule { required: boolean; overridden?: boolean; override_reason?: string | null; brand?: string | null; last4?: string | null }
 export interface CardToolsProps {
   booking: string; parts: Array<{ covers: string; open_cents: number }>; deposit_cents: number; depositTaken: boolean;
@@ -22,7 +23,7 @@ const cardWords = (r: CardRule | null) => (r?.last4 ? `${(r.brand ?? 'card').rep
 
 export function CardTools(x: CardToolsProps) {
   const router = useRouter();
-  const [open, setOpen] = useState<'' | 'card' | 'reader' | 'override'>('');
+  const [open, setOpen] = useState<'' | 'card' | 'reader' | 'override' | 'link'>('');
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, run] = useTransition();
   const openRental = x.parts.filter((p) => p.covers !== 'later').reduce((t, p) => t + Math.max(p.open_cents, 0), 0);
@@ -32,6 +33,9 @@ export function CardTools(x: CardToolsProps) {
   const [rdr, setRdr] = useState({ kind: 'charge' as 'charge' | 'hold', covers: openRental > 0 ? 'balance' : 'later', amount: '', reason: '', reader: x.readers[0]?.id ?? '' });
   const [live, setLive] = useState<ReaderState | null>(null);
   const [why, setWhy] = useState('');
+  const [link, setLink] = useState({ id: '', same_card: false, note: '' });
+  const [linkSeen, setLinkSeen] = useState<string | null>(null);
+  const linkAs: 'rental' | 'deposit' = x.only === 'deposit' ? 'deposit' : 'rental';
   const rule = x.rule?.required ? x.rule : null;
   const ruleApplies = (covers: string) => !!rule && !rule.overridden && ['rental', 'fees', 'both', 'balance'].includes(covers);
   const done = (ok: boolean, text: string) => { setMsg({ ok, text }); if (ok) { setOpen(''); router.refresh(); } };
@@ -50,7 +54,7 @@ export function CardTools(x: CardToolsProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [live]);
 
-  if (!x.mayRecord && !x.mayCollect && !rule) return null;
+  if (!x.mayRecord && !x.mayCollect && !rule && !x.isAdmin) return null;
   return (
     <div className="stack" data-testid="card-tools">
       {rule && x.only !== 'deposit' && <p className={`alert ${rule.overridden ? 'alert--info' : 'alert--warn'}`} role="status" data-testid="card-rule"><span>
@@ -61,6 +65,7 @@ export function CardTools(x: CardToolsProps) {
       <div className="row">
         {x.only !== 'deposit' && x.mayRecord && <button className="btn btn--ghost btn--sm" type="button" aria-expanded={open === 'card'} onClick={() => setOpen(open === 'card' ? '' : 'card')} data-testid="ct-record-open">Record card payment</button>}
         {x.only !== 'deposit' && x.mayCollect && x.readers.length > 0 && <button className="btn btn--ghost btn--sm" type="button" aria-expanded={open === 'reader' && rdr.kind === 'charge'} onClick={() => { setRdr({ ...rdr, kind: 'charge' }); setOpen(open === 'reader' && rdr.kind === 'charge' ? '' : 'reader'); }} data-testid="ct-reader-charge-open">Charge on reader</button>}
+        {x.isAdmin && (linkAs === 'rental' || (x.deposit_cents > 0 && !x.depositTaken)) && <button className="btn btn--ghost btn--sm" type="button" aria-expanded={open === 'link'} onClick={() => setOpen(open === 'link' ? '' : 'link')} data-testid={`ct-link-open-${linkAs}`}>Link a payment taken outside the platform</button>}
         {x.only !== 'rental' && x.mayCollect && x.readers.length > 0 && x.deposit_cents > 0 && !x.depositTaken && <button className="btn btn--ghost btn--sm" type="button" aria-expanded={open === 'reader' && rdr.kind === 'hold'} onClick={() => { setRdr({ ...rdr, kind: 'hold' }); setOpen(open === 'reader' && rdr.kind === 'hold' ? '' : 'reader'); }} data-testid="ct-reader-hold-open">Hold deposit on reader</button>}
       </div>
 
@@ -68,6 +73,31 @@ export function CardTools(x: CardToolsProps) {
         <form className="ad-form ad-form--narrow" aria-label="Allow another card" data-testid="ct-override" onSubmit={(e) => { e.preventDefault(); run(async () => { const r = await allowOtherCard({ booking: x.booking, reason: why }); done(r.ok, r.ok ? 'Another card or method is allowed for this rental.' : r.message); }); }}>
           <div className="field ad-field ad-field--wide"><label className="label" htmlFor="ct-why">Reason (10 characters or more, kept on the booking)</label><input className="input" id="ct-why" value={why} onChange={(e) => setWhy(e.target.value)} data-testid="ct-why" /></div>
           <button className="btn btn--primary btn--sm" type="submit" disabled={pending}>Allow</button>
+        </form>)}
+
+      {open === 'link' && (
+        <form className="ad-form ad-form--narrow" aria-label="Link a payment taken outside the platform" data-testid="ct-link" onSubmit={(e) => { e.preventDefault(); setMsg(null); run(async () => {
+          const r = await linkStripePayment({ booking: x.booking, id: link.id, as: linkAs, same_card: link.same_card, note: link.note });
+          if (r.ok) { setLink({ id: '', same_card: false, note: '' }); setLinkSeen(null); }
+          done(r.ok, r.ok ? (r.data.held ? 'Linked: the deposit is held on the card.' : r.data.captured ? 'Linked: the deposit was charged and is kept as captured.' : `Linked as a rental payment.${r.data.confirmed ? ' The booking is confirmed.' : ''}`) : r.message);
+        }); }}>
+          <p className="small muted">{linkAs === 'deposit'
+            ? 'A deposit taken in the Stripe Dashboard or through a payment link. A hold waiting to be captured is kept as held (settle it as any hold); a charged deposit is kept as captured. It must be the whole deposit.'
+            : 'A charge taken in the Stripe Dashboard or through a payment link. Stripe gives the amount and the card; it may not be more than is open for the rental and fees.'}</p>
+          <div className="ad-fields">
+            <div className="field ad-field ad-field--wide"><label className="label" htmlFor={`ct-link-id-${linkAs}`}>Stripe payment id (pi_ or ch_)</label>
+              <span className="row"><input className="input" id={`ct-link-id-${linkAs}`} value={link.id} onChange={(e) => { setLink({ ...link, id: e.target.value.trim() }); setLinkSeen(null); }} placeholder="pi_..." autoComplete="off" data-testid="ct-link-id" />
+                <button className="btn btn--quiet btn--sm" type="button" disabled={pending || !link.id} data-testid="ct-link-lookup" onClick={() => run(async () => {
+                  const r = await lookupStripePayment({ booking: x.booking, id: link.id });
+                  if (!r.ok) { setLinkSeen(null); setMsg({ ok: false, text: r.message }); return; }
+                  const v = r.data;
+                  setLinkSeen(`Stripe: ${v.status === 'requires_capture' ? `a hold of ${fmt(v.capturable_cents)}` : `${fmt(v.amount_cents)} ${v.status === 'succeeded' ? 'paid' : v.status.replace(/_/g, ' ')}`}${v.last4 ? ` on ${v.brand ?? 'card'} ending ${v.last4}` : ''}.`);
+                })}>Look up</button></span>
+              {linkSeen && <span className="small" data-testid="ct-link-found">{linkSeen}</span>}</div>
+            <div className="field ad-field ad-field--wide"><label className="label" htmlFor={`ct-link-note-${linkAs}`}>Note (optional)</label><input className="input" id={`ct-link-note-${linkAs}`} value={link.note} onChange={(e) => setLink({ ...link, note: e.target.value })} /></div>
+          </div>
+          {linkAs === 'rental' && ruleApplies('both') && <label className="check" htmlFor="ct-link-same"><input type="checkbox" id="ct-link-same" checked={link.same_card} onChange={(e) => setLink({ ...link, same_card: e.target.checked })} /> <span>This is the same card as the coverage card ({cardWords(rule)})</span></label>}
+          <button className="btn btn--primary btn--sm" type="submit" disabled={pending || !link.id} data-testid="ct-link-save">{pending ? 'Linking' : linkAs === 'deposit' ? 'Link as the deposit' : 'Link as a rental payment'}</button>
         </form>)}
 
       {open === 'card' && (

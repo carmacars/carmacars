@@ -1,5 +1,6 @@
+import { clockSecondsTo, weekdayDateTo } from '../../lib/clock.ts';
 // Visitor history (migration 0118): the shapes of the two Admin reads, the filters of the list as they travel in the
-// address, and the words and the chart model of the pages. No imports, so the unit tests run it as it is.
+// address, and the words and the chart model of the pages. Only relative imports (lib/clock.ts), so the unit tests run it as it is.
 
 export type Conversion = 'request' | 'booking' | 'signup' | 'contact';
 export interface HistoryRow {
@@ -119,7 +120,7 @@ export const place = (r: Pick<HistoryRow, 'city' | 'region' | 'country'>) => [r.
 export const pct = (n: number, of: number) => (of > 0 ? `${(Math.round((n * 1000) / of) / 10).toLocaleString('en-US')}%` : '');
 
 /** A time of day in Toronto with seconds, for the timeline. */
-export const clockS = (iso: string) => new Date(iso).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', second: '2-digit', timeZone: 'America/Toronto' });
+export const clockS = (iso: string) => clockSecondsTo(iso);
 
 /** The chart: one bar per day (visits), the conversions inside it, the unique visitors as a line; peaks for the label. */
 export function chartModel(days: DayFigure[], W = 600, H = 120) {
@@ -139,7 +140,7 @@ export function dayHeading(iso: string, now = Date.now()): string {
   const d = day(iso), today = day(now), yesterday = day(now - 86_400_000);
   if (d === today) return 'Today';
   if (d === yesterday) return 'Yesterday';
-  return new Date(iso).toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'America/Toronto' }).replace(',', '');
+  return weekdayDateTo(iso);
 }
 /** Rows in the order they came, grouped by their day (a day's heading once). */
 export function groupByDay<T extends { started_at: string }>(rows: T[], now = Date.now()): Array<{ heading: string; day: string; rows: T[] }> {

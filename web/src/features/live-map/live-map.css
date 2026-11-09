@@ -9,6 +9,7 @@
 .lm a:not(.btn) { color: #a5e9f7; }
 .lm-quiet { color: var(--quiet); }
 .lm-err { margin: 0; color: #fecaca; }
+.lm-err--part { color: #fde68a; font-size: .9em; }
 .lm-h { margin: 0; font-size: 1em; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--quiet); }
 .lm-dot { display: inline-block; flex: none; width: .62em; height: .62em; border-radius: 50%; background: var(--c); box-shadow: 0 0 .6em color-mix(in srgb, var(--c) 70%, transparent); }
 .lm-live { display: inline-block; width: .55em; height: .55em; border-radius: 50%; background: var(--accent); margin-right: .45em; vertical-align: .05em; animation: lm-breathe 4s ease-in-out infinite; }

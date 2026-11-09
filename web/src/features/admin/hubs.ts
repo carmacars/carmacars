@@ -18,7 +18,8 @@ export interface Section { key: string; label: string; items: Array<string | Hub
 export const ADMIN_HUBS: Hub[] = [
   { key: 'payments', label: 'Payments', tabs: [
     { href: '/admin/money?tab=day', label: 'By day' }, { href: '/admin/money?tab=payments', label: 'All payments' }, { href: '/admin/money?tab=refunds', label: 'Refunds' },
-    { href: '/admin/money?tab=deposits', label: 'Deposits' }, { href: '/admin/money?tab=disputes', label: 'Disputes' }, { href: '/admin/money?tab=reconciliation', label: 'Reconciliation' }] },
+    { href: '/admin/money?tab=deposits', label: 'Deposits' }, { href: '/admin/money?tab=disputes', label: 'Disputes' }, { href: '/admin/money?tab=reconciliation', label: 'Reconciliation' },
+    { href: '/admin/money?tab=stripe', label: 'Unlinked Stripe' }] },
   { key: 'owner-money', label: 'Owner money', tabs: [
     { href: '/admin/owner-money?tab=invoices', label: 'Invoices' }, { href: '/admin/owner-money?tab=debits', label: 'Debits' },
     { href: '/admin/owner-money?tab=statements', label: 'Statements' }, { href: '/admin/owner-money?tab=payouts', label: 'Payouts' }] },
@@ -59,6 +60,7 @@ export const STAFF_HUBS: Hub[] = [
   { key: 'money', label: 'Money', tabs: [{ href: '/staff/money', label: 'To handle', fns: 'finance' }, { href: '/staff/money?tab=day', label: 'By day', fns: 'finance' },
     { href: '/staff/money?tab=payments', label: 'All payments', fns: 'finance' }, { href: '/staff/money?tab=refunds', label: 'Refunds', fns: 'finance' },
     { href: '/staff/money?tab=deposits', label: 'Deposits', fns: 'finance' }, { href: '/staff/money?tab=reconciliation', label: 'Reconciliation', fns: 'finance' },
+    { href: '/staff/money?tab=stripe', label: 'Unlinked Stripe', fns: 'finance' },
     { href: '/staff/money?tab=partners', label: 'Partner invoices', fns: 'finance' }, { href: '/staff/money?tab=kickbacks', label: 'Kickbacks and repairs', fns: 'finance' },
     { href: '/staff/field-spending', label: 'Field spending', fns: 'finance' }] },
   { key: 'owner-money', label: 'Owner money', tabs: [{ href: '/staff/owner-money?tab=invoices', label: 'Invoices', fns: 'finance' }, { href: '/staff/owner-money?tab=statements', label: 'Statements', fns: 'finance' }] },

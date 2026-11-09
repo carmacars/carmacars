@@ -1,6 +1,7 @@
 import 'server-only';
 import { rpc } from '@/lib/db/repo';
-import { payments } from '@/integrations/payments';
+import { payments, terminal } from '@/integrations/payments';
+import { chargeRows, unlinkedSince } from '@/features/money/stripe-unlinked';
 import { siteUrl } from '@/lib/site';
 import { newPayToken, payTokenHash } from '@/server/pay-token';
 import { outcomeOf, settlementOrder, stepFor, type MoneyFacts, type MoneyOutcome } from '@/server/money-steps';
@@ -127,9 +128,27 @@ export async function runDepositGuard(limit = 40) {
   const links = await sendDepositLinks().catch((e) => ({ sent: 0, not_sent: 0, errors: [(e instanceof Error ? e.message : String(e)).slice(0, 200)] }));
   // r33 (0750): a hold about 24 hours from its expiry, re-authorized before it lapses (an alert when it cannot be)
   const reauth = await reauthorizeDueHolds().catch((e) => ({ renewed: 0, failed: 0, errors: [(e instanceof Error ? e.message : String(e)).slice(0, 200)] }));
+  // r35 (1081): once a night, the Stripe payments no booking knows
+  const unlinked = await stripeUnlinkedCheck().catch((e) => ({ ran: false, unlinked: 0, error: (e instanceof Error ? e.message : String(e)).slice(0, 200) }));
   return { ...out, deposit_holds: holds.held, deposit_holds_failed: holds.failed, deposit_links: links.sent, deposit_links_not_sent: links.not_sent,
-    holds_reauthorized: reauth.renewed, holds_reauth_failed: reauth.failed,
-    errors: [...out.errors, ...holds.errors, ...links.errors, ...reauth.errors] };
+    holds_reauthorized: reauth.renewed, holds_reauth_failed: reauth.failed, stripe_unlinked: unlinked.unlinked,
+    errors: [...out.errors, ...holds.errors, ...links.errors, ...reauth.errors, ...(unlinked.error ? [unlinked.error] : [])] };
+}
+
+/** r35 (1081): the nightly "unlinked Stripe payments" check, when the database says it is due (from 3 a.m. Toronto): the
+ *  succeeded charges of the last 60 days, read at Stripe; the database keeps the ones tied to nothing, with a guess of
+ *  their booking. A Stripe error is recorded, and the check is tried again an hour later. */
+export async function stripeUnlinkedCheck(force = false): Promise<{ ran: boolean; unlinked: number; error?: string }> {
+  if (!force && (await call('server_stripe_unlinked_due', {})) !== true) return { ran: false, unlinked: 0 };
+  let rows;
+  try { rows = chargeRows(await (await terminal()).listCharges(unlinkedSince(), 2000)); }
+  catch (e) {
+    const error = (e instanceof Error ? e.message : 'Stripe could not be read').slice(0, 300);
+    await call('server_stripe_unlinked_save', { p: { ok: false, error } });
+    return { ran: true, unlinked: 0, error };
+  }
+  const r = (await call('server_stripe_unlinked_save', { p: { ok: true, charges: rows } })) as { unlinked?: number } | null;
+  return { ran: true, unlinked: Number(r?.unlinked ?? 0) };
 }
 
 /** 0261: the deposit hold on the morning of the pickup day (Program settings, Deposit timing), off-session on the card on

@@ -1,5 +1,6 @@
 import './history.css';
 import { chartModel, type DayFigure } from './history';
+import { dayClockTo } from '@/lib/clock';
 
 // Visitor history (migration 0118): visits per day as bars with the conversions inside them, unique visitors as a
 // line, like the usage chart (Settings > Usage); the figures as a table for screen readers and anyone who wants them.
@@ -18,7 +19,7 @@ export function VisitChart({ days, at }: { days: DayFigure[]; at: string | null 
         <span><i className="vh-key vh-key--visits" aria-hidden="true" />Visits</span>
         <span><i className="vh-key vh-key--conv" aria-hidden="true" />Converted</span>
         <span><i className="vh-key vh-key--line" aria-hidden="true" />Unique visitors</span>
-        {at && <span>Worked out {new Date(at).toLocaleString('en-CA', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/Toronto' })}</span>}
+        {at && <span>Worked out {dayClockTo(at)}</span>}
       </figcaption>
       <details className="todo__clear"><summary className="small muted">The figures</summary>
         <table className="ad-table small" data-testid="vh-chart-table"><thead><tr><th scope="col">Day</th><th scope="col" className="num">Visits</th><th scope="col" className="num">Unique visitors</th><th scope="col" className="num">Converted</th><th scope="col" className="num">Pages</th></tr></thead>

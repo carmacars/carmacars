@@ -1,4 +1,5 @@
 'use client';
+import { clockTo, dayClockTo } from '../../lib/clock.ts';
 // Live visitors and Live chat for staff (migration 0060): the reads and actions of /api/staff/live, and their shapes.
 export type SignalAction = 'chat' | 'discount' | 'assign' | 'similar' | 'none';
 /** A signal (0060, and since 0086 with why, strength 0 to 3, its group, the suggested action and message). */
@@ -92,8 +93,9 @@ export async function liveDo<T = { ok: boolean }>(action: string, p: Record<stri
 
 export const minsAgo = (iso: string) => Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
 export const agoWords = (iso: string) => { const m = minsAgo(iso); return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.floor(m / 60)} h ago` : `${Math.floor(m / 1440)} d ago`; };
-export const clock = (iso: string) => new Date(iso).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Toronto' });
-export const dayClock = (iso: string) => new Date(iso).toLocaleString('en-CA', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'America/Toronto' });
+// r35: the same words on the server and in every browser (lib/clock.ts; Intl's words differ between ICU versions)
+export const clock = (iso: string) => clockTo(iso);
+export const dayClock = (iso: string) => dayClockTo(iso);
 export const EVENT_WORDS: Record<string, string> = {
   page_view: 'Viewed', car_view: 'Opened a car', search: 'Searched dates', request_started: 'Started a booking request', request_abandoned: 'Left the request form',
   request_submitted: 'Sent a booking request', email_link_opened: 'Opened an email link', offer_viewed: 'Viewed the offer', change_viewed: 'Viewed the change proposal',

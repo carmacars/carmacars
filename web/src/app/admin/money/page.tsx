@@ -9,6 +9,7 @@ import { door } from '@/server/door';
 import { PaymentsView } from '@/features/money/PaymentsView';
 import { tabOf } from '@/features/admin/hubs';
 import { Reconciliation } from './Reconciliation';
+import { UnlinkedStripe, type Unlinked } from '@/features/money/UnlinkedStripe';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Payments', path: '/admin/money', noindex: true, description: 'Payments by day, every payment, refunds, deposits, disputes and the processor payouts.' });
@@ -16,7 +17,7 @@ type R = Record<string, unknown>;
 const REFUND_REASON: Record<string, string> = { cancellation: 'Cancelled by the renter', carmacars_cancelled: 'Cancelled by CarmaCars', driver_not_verifiable: 'Driver could not be verified',
   pricing_error: 'Pricing error', breakdown_unused_days: 'Breakdown: days not used', goodwill: 'Goodwill', duplicate: 'Charged twice', other: 'Other' };
 
-const TABS = ['day', 'payments', 'refunds', 'deposits', 'disputes', 'reconciliation'] as const;
+const TABS = ['day', 'payments', 'refunds', 'deposits', 'disputes', 'reconciliation', 'stripe'] as const;
 
 // Money > Payments (03-admin.md section 11; r27: Payments by day and Reconciliation are tabs here, the owner's "We need
 // less pages not more"): the day's money by method, every payment, refunds with approval limits, deposits, disputes, and
@@ -30,6 +31,12 @@ export default async function Money({ searchParams }: { searchParams: Promise<Re
     return <PaymentsView l={l} base="/admin/money?tab=day" bookingBase="/admin/bookings" />;
   }
   if (tab === 'reconciliation') return <Reconciliation read={read} userId={user.id} month={sp.month} />;
+  // r35 (1081): the nightly list of Stripe payments no booking knows
+  if (tab === 'stripe') {
+    const all = sp.all === '1';
+    const u = await door<Unlinked>(user.id, 'ops_read', 'stripe_unlinked', { dismissed: all });
+    return <UnlinkedStripe u={u} all={all} base="/admin/money?tab=stripe" bookingHref={(n) => `/admin/bookings/${encodeURIComponent(n)}?tab=money`} />;
+  }
   if (tab === 'refunds') {
     const { rows } = await list('refunds', { eq: sp.status ? { status: sp.status } : {}, limit: 200 });
     return (<><PageHead title="Refunds" />

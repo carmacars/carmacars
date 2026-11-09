@@ -21828,6 +21828,93 @@ export type Database = {
         };
         Relationships: [];
       };
+      stripe_unlinked: {
+        Row: {
+          charge_id: string;
+          intent_id: string | null;
+          amount_cents: number;
+          refunded_cents: number;
+          currency: string;
+          charged_at: string;
+          email: string | null;
+          name: string | null;
+          card_brand: string | null;
+          card_last4: string | null;
+          description: string | null;
+          guess_booking_id: string | null;
+          guess_reason: string | null;
+          seen_at: string;
+          dismissed_at: string | null;
+          dismissed_by: string | null;
+          dismiss_note: string | null;
+        };
+        Insert: {
+          charge_id: string;
+          intent_id?: string | null;
+          amount_cents: number;
+          refunded_cents?: number;
+          currency: string;
+          charged_at: string;
+          email?: string | null;
+          name?: string | null;
+          card_brand?: string | null;
+          card_last4?: string | null;
+          description?: string | null;
+          guess_booking_id?: string | null;
+          guess_reason?: string | null;
+          seen_at?: string;
+          dismissed_at?: string | null;
+          dismissed_by?: string | null;
+          dismiss_note?: string | null;
+        };
+        Update: {
+          charge_id?: string;
+          intent_id?: string | null;
+          amount_cents?: number;
+          refunded_cents?: number;
+          currency?: string;
+          charged_at?: string;
+          email?: string | null;
+          name?: string | null;
+          card_brand?: string | null;
+          card_last4?: string | null;
+          description?: string | null;
+          guess_booking_id?: string | null;
+          guess_reason?: string | null;
+          seen_at?: string;
+          dismissed_at?: string | null;
+          dismissed_by?: string | null;
+          dismiss_note?: string | null;
+        };
+        Relationships: [];
+      };
+      stripe_unlinked_checks: {
+        Row: {
+          id: string;
+          ran_at: string;
+          ok: boolean;
+          error: string | null;
+          charges: number;
+          unlinked: number;
+        };
+        Insert: {
+          id?: string;
+          ran_at?: string;
+          ok: boolean;
+          error?: string | null;
+          charges?: number;
+          unlinked?: number;
+        };
+        Update: {
+          id?: string;
+          ran_at?: string;
+          ok?: boolean;
+          error?: string | null;
+          charges?: number;
+          unlinked?: number;
+        };
+        Relationships: [];
+      };
       task_rules: {
         Row: {
           task_type: string;
@@ -28807,6 +28894,8 @@ export type Database = {
       server_stripe_refund_event: { Args: { p: Json }; Returns: Json };
       server_stripe_refund_event_pre0155: { Args: { p: Json }; Returns: Json };
       server_stripe_requires_action: { Args: { p: Json }; Returns: Json };
+      server_stripe_unlinked_due: { Args: never; Returns: boolean };
+      server_stripe_unlinked_save: { Args: { p: Json }; Returns: Json };
       server_submit_owner_application: { Args: { p: Json; p_by?: string }; Returns: Json };
       server_terms_accept: { Args: { p_by: string; p: Json }; Returns: Json };
       server_terms_pending: { Args: { p_by: string }; Returns: Json };
