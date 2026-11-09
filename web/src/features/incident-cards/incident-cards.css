@@ -34,3 +34,6 @@
   .ic-sheet:last-child { page-break-after: auto; break-after: auto; }
   .ic-card { break-inside: avoid; }
 }
+/* Release 35: a booking's accident card page scrolls inside its own frame on a phone (the card keeps its printed size) */
+.ac-print { overflow-x: auto; max-width: 100%; }
+@media print { .ac-print { overflow: visible; } }

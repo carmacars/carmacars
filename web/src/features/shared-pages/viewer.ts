@@ -69,6 +69,8 @@ export interface BookingCan {
   inbox: boolean;
   /** verify a driver in person */
   verifyInPerson: boolean;
+  /** 0910: change the car before pickup (Sales on a request or an offer, Fleet on a confirmed booking; the database checks) */
+  changeCar: boolean;
 }
 
 export function bookingCan(v: Viewer): BookingCan {
@@ -101,7 +103,8 @@ export function bookingCan(v: Viewer): BookingCan {
     settleDeposit: admin || fn === 'finance',
     statement: admin || fn === 'finance',
     inbox: office,
-    verifyInPerson: admin
+    verifyInPerson: admin,
+    changeCar: admin || fn === 'cs' || fn === 'fleet' || fn === 'sales'
   };
 }
 

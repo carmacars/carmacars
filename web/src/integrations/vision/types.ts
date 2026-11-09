@@ -10,7 +10,7 @@ export interface VisionRequest {
   imageDataUrl: string;
   schema?: Record<string, unknown>;
   maxOutputTokens: number;
-  purpose: 'toll_read' | 'plate_detect' | 'guide_review' | 'colour_read' | 'permit_read' | 'vin_read' | 'photo_sort' | 'licence_read';
+  purpose: 'toll_read' | 'plate_detect' | 'guide_review' | 'colour_read' | 'permit_read' | 'vin_read' | 'photo_sort' | 'licence_read' | 'dash_read';
 }
 
 export type VisionResult =
@@ -18,7 +18,7 @@ export type VisionResult =
   | { ok: false; reason: 'quota' | 'unavailable' | 'timeout' | 'invalid_output'; message: string; model?: string; usage?: VisionUsage; tried: string[] };
 
 export interface VisionModel {
-  readonly name: 'workers-ai' | 'fake';
+  readonly name: 'workers-ai' | 'fake' | 'gemini';
   /** Tries each model in order until one answers (a model that is not on the account, or refuses the input, is skipped). */
   read(req: VisionRequest, models: string[]): Promise<VisionResult>;
 }

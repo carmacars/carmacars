@@ -1,4 +1,5 @@
 import Link from '@/components/Link';
+import { money } from '@/lib/format';
 import { notFound } from 'next/navigation';
 import { BOOKING_SECTIONS, bookingSection, shows } from '@/features/booking-sections/sections';
 import { BookingCarSection } from '@/features/booking-sections/BookingCarSection';
@@ -49,6 +50,8 @@ import { rpc } from '@/lib/db/repo';
 import { signPayOf, signPayWords } from '@/features/portal/sign-pay';
 import type { ChargeReasons } from '@/features/money/charge-reasons';
 import { ActivityLog } from '@/features/activity/ActivityLog';
+import { AccidentSummary } from '@/features/accident-card/AccidentCard';
+import type { AccidentCardData } from '@/features/accident-card/model';
 import { activityQuery, readParams, type ActivityPage } from '@/features/activity/model';
 
 // r31 "Simple": one booking page for Admin and staff (03-admin.md section 4, 05-va.md sections 2 to 5). The loader picks
@@ -76,6 +79,9 @@ const REFUND_REASONS = ['cancellation', 'carmacars_cancelled', 'driver_not_verif
 const KINDS: Array<[string, string]> = [['handover', 'Handover'], ['delivery', 'Delivery'], ['return_check_in', 'Return check-out'], ['pickup_from_renter', 'Pickup from renter'], ['detail', 'Detail'], ['photo_shoot', 'Photo shoot'], ['recovery', 'Recovery'], ['other', 'Other']];
 const ARRANGING = ['requested', 'offered', 'pending_payment'];
 const none = <T,>(v: T) => () => v;
+// 0910: Change the car: the free cars, each with its new total and the difference
+type CarOptions = { refusal: string | null; total_cents: number; cars: Array<{ vehicle_id: string; name: string; plate: string | null; total_cents: number; difference_cents: number }> };
+const carChoice = (v: CarOptions['cars'][number]) => `${v.name}${v.plate ? `, ${v.plate}` : ''}: ${money(v.total_cents, { cents: true })} (${v.difference_cents === 0 ? 'same price' : `${v.difference_cents > 0 ? '+' : '-'}${money(Math.abs(v.difference_cents), { cents: true })}`})`;
 type BookingChain = { replaced_by: { number: string } | null; replaces: Array<{ number: string }> };
 /** "Replaced by #N" on the old booking and "Replaces #M" on the new one, with links (the same on the Admin and staff pages). */
 function ReplacedNote({ chain, portal }: { chain: BookingChain | null; portal: string }) {
@@ -124,6 +130,12 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
   // ---- the reads, each only where the viewer's section and function use it
   // 0780 and 0810: a request that expired and was replaced by a newer one says so on both bookings
   const chain = await ops<BookingChain>('booking_chain', { booking: b.id }).catch(none(null));
+  // 0910: the cars this booking may move to before pickup (priced from each car's rate sheet), and its accident card
+  const [carOpts, accident] = await Promise.all([
+    can.changeCar && ['requested', 'offered', 'pending_payment', 'confirmed'].includes(b.status) && !b.handed_over_at && (section === 'overview' || section === 'car')
+      ? ops<CarOptions>('car_change_options', { booking: b.id }).catch(none(null)) : null,
+    (section === 'overview' || section === 'documents') && ['pending_payment', 'confirmed', 'on_rent'].includes(b.status) && notOwner
+      ? ops<AccidentCardData>('accident_card', { booking: b.id }).catch(none(null)) : null]);
   const [ins, km, settings, credit, came, insurerCard, swapCars, fleetStaff, late] = await Promise.all([
     can.admin ? list<{ id: string; name: string }>('insurers', { eq: { is_active: true }, order: 'name', asc: true }) : { rows: [] as Array<{ id: string; name: string }>, count: 0 },
     can.admin || arranging ? list<{ km_per_day: number }>('km_allowance_choices', { eq: { is_active: true } }).catch(none({ rows: [] as Array<{ km_per_day: number }>, count: 0 })) : { rows: [] as Array<{ km_per_day: number }>, count: 0 },
@@ -210,6 +222,10 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
           { name: 'channel', label: 'Received by', type: 'select', required: true, options: [['email', 'Email'], ['portal', 'Portal'], ['phone', 'Phone']], value: 'email' },
           { name: 'at', label: 'Received at', type: 'datetime', required: true, value: new Date().toISOString() }, { name: 'note', label: 'Note', type: 'text' }]} refresh={refresh} />}
         {can.admin && ['confirmed', 'pending_payment'].includes(b.status) && <Act action="cancel_booking" payload={{ ...P, reason: 'carmacars_cancelled', channel: 'email' }} label="Cancel by CarmaCars" variant="danger" fields={[{ name: 'note', label: 'Reason (no vehicle, driver not verifiable, pricing error, other)', type: 'text', required: true }]} refresh={refresh} />}
+        {carOpts && !carOpts.refusal && <Act ops action="car_change" payload={P} label="Change the car" testId="car-change" refresh={refresh} done="Car changed. The renter gets one email."
+          title="Change the car before pickup" confirm="The price comes from the new car's rate sheet. More to pay is left open for the renter (Pay the balance or a pay link); less goes back as a refund for approval. An offer is sent again."
+          fields={[{ name: 'vehicle', label: 'The new car (free for these dates)', type: 'select', required: true, options: [['', carOpts.cars.length ? 'Choose the car' : 'No other car is free for these dates'],
+            ...carOpts.cars.map((v) => [v.vehicle_id, carChoice(v)] as [string, string])] }, { name: 'reason', label: 'Why the car changes', type: 'text', required: true }]} />}
         {can.admin && b.status === 'on_rent' && <Act action="swap_vehicle" payload={P} label="Swap vehicle" fields={[{ name: 'vehicle', label: 'The car the renter moves to', type: 'select', required: true, options: [['', swapCars.length ? 'Choose the car' : 'No car is free right now'], ...swapCars.map((v) => [v.id, `${v.year} ${v.make} ${v.model}${v.plate ? `, ${v.plate}` : ''}`] as [string, string])] }, { name: 'reason', label: 'Reason', type: 'text', required: true }]} refresh={refresh} />}
         {can.admin && ['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && b.bill_to !== 'renter' && <Act action="draft_insurer_invoice" payload={P} label="Draft insurer invoice" refresh={['/admin/insurer-invoices']} />}
         {can.admin && b.status === 'returned' && <Act action="issue_booking_statement" payload={P} label="Issue final statement" confirm="Issue the Check-out statement from the assessed lines and settle the deposit plan." refresh={refresh} />}
@@ -234,6 +250,9 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
       {(section === 'overview' || section === 'car') && ['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <HandoverPanel userId={user.id} aal={aal} base={base} canHandover={can.handover} canSign={can.sign}
         b={{ id: b.id, booking_number: b.booking_number, status: b.status, return_at: b.return_at, checked_in_at: (b.checked_in_at as string | null | undefined) ?? null, minutes_late: (b.minutes_late as number | null | undefined) ?? null }} />}
       {section === 'activity' && ['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <ReviewPanel booking={b.booking_number} userId={user.id} aal={aal} refresh={[base]} />}
+      {accident && <Card title="Accident card" testId="booking-accident-card" aside={<Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}/accident-card`} data-testid="accident-card-print">Print the card</Link>}>
+        <AccidentSummary d={accident} />
+      </Card>}
       {(section === 'overview' || section === 'documents') && ['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <AgreementPanel userId={user.id} aal={aal} base={base} b={{ id: b.id, status: b.status }} docBase={`${portal}/documents`} finance={can.agreementMoney} {...(can.admin ? {} : { openDocs: false })} />}
       {/* the renter's licence front, back and selfie, reviewed by Sales (0169); the coverage stays with customer service and Admin */}
       {can.licenceReview && ['requested', 'offered', 'tentative', 'pending_payment', 'confirmed', 'on_rent'].includes(b.status) && (

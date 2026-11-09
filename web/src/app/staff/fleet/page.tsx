@@ -8,6 +8,7 @@ import { carBoard, type CalVehicle } from '@/features/va/carboard';
 import { requestNow } from '@/features/va/lanes';
 import { CarCell } from '@/features/admin/revamp/CarCell';
 import { carPhotos } from '@/server/car-photos';
+import { door } from '@/server/door';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Field jobs', path: '/staff/fleet', noindex: true, description: 'Field job scheduling and assignment.' });
@@ -21,10 +22,12 @@ const KIND: Record<string, string> = { handover: 'Handover', return_check_in: 'R
 // the person here. Handovers and returns with no job yet (only when automatic jobs are off or a job was cancelled), every job of the next three
 // days with who has it and whether they acknowledged, the expiry watch and the vehicle documents.
 export default async function Fleet() {
-  const { read } = await vaPage('/staff/fleet', ['fleet']);
+  const { read, user, aal } = await vaPage('/staff/fleet', ['fleet']);
   const now = requestNow();
-  const [b, cal] = await Promise.all([read<Board>('fleet_board'),
-    read<{ vehicles: CalVehicle[] }>('calendar', { from: new Date(now - 86_400_000).toISOString(), to: new Date(now + 2 * 86_400_000).toISOString() }).then((c) => c.vehicles).catch(() => [] as CalVehicle[])]);
+  const [b, cal, past] = await Promise.all([read<Board>('fleet_board'),
+    read<{ vehicles: CalVehicle[] }>('calendar', { from: new Date(now - 86_400_000).toISOString(), to: new Date(now + 2 * 86_400_000).toISOString() }).then((c) => c.vehicles).catch(() => [] as CalVehicle[]),
+    // 0910: trips still open after their return time
+    door<{ rows: unknown[] }>(user.id, 'ops_read', 'past_trips', {}, aal).then((x) => x.rows.length).catch(() => 0)]);
   const staff = b.staff.map((s) => [s.id, s.name] as [string, string]);
   const photos = await carPhotos([...b.unscheduled, ...b.jobs]);
   const R = ['/staff/fleet'];
@@ -32,6 +35,7 @@ export default async function Fleet() {
   return (
     <>
       <PageHead title="Field jobs" kicker={`${b.unscheduled.length} without a job · ${b.jobs.filter((j) => !j.assigned_to).length} unassigned`} purpose="Today's handovers, returns and moves by the clock, every car's state now, then every job of the next three days. Where every car is: Fleet map." />
+      {past > 0 && <p className="alert alert--warn" role="status" data-testid="past-trips-banner"><span>{past} {past === 1 ? 'trip is' : 'trips are'} still open after the return time. <Link prefetch={false} className="link" href="/staff/past-trips">Close past trips</Link></span></p>}
       <p className="small muted" data-testid="fleet-auto-note">Handover and return jobs are made from each confirmed booking, at its times and place, and given to the least busy field staff member. Change the time, the place or the person below.</p>
       <div className="va-cols">
         <DayTimeline jobs={b.jobs} now={now} />
