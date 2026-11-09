@@ -4,7 +4,7 @@ import { reportClientError } from './report';
 
 // Uncaught errors and rejected promises in any page (0433). Noise that is not a crash is left out: the stale build
 // guard handles chunk errors, and ResizeObserver loop notices and cancelled requests are harmless.
-const NOISE = /ResizeObserver loop|ChunkLoadError|Loading chunk|Failed to load chunk|MetaMask|chrome-extension:|moz-extension:|safari-web-extension:|Loading CSS chunk|AbortError|The user aborted|cancelled|Load failed/i;
+const NOISE = /ResizeObserver loop|skipTransition\(\) was called|^Script error\.?$|ChunkLoadError|Loading chunk|Failed to load chunk|MetaMask|chrome-extension:|moz-extension:|safari-web-extension:|Loading CSS chunk|AbortError|The user aborted|cancelled|Load failed/i;
 export function ClientErrorListener() {
   useEffect(() => {
     const onError = (ev: ErrorEvent) => { const m = ev.error instanceof Error ? ev.error.message : ev.message; if (!m || NOISE.test(m)) return; reportClientError(ev.error ?? m); };
