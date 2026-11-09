@@ -40,6 +40,8 @@ const schema = z.object({
   LLM_PROVIDER: z.enum(['workers-ai', 'fake']).default('fake'),
   PHOTO_PROVIDER: z.enum(['cloudflare', 'fake']).default('fake'),
   PHOTO_FAKE_MODE: z.enum(['ok', 'not_enabled']).default('ok'),
+  /** r35 (0990): the image model of the showroom listing photos (Google AI Studio). Unset: the free local showroom alone. */
+  GEMINI_API_KEY: z.string().optional(),
   PAYOUT_ENCRYPTION_KEY: z.string().min(32).optional(),
   /** The business phone line (migration 0085): quo sends texts through Quo's API with QUO_API_KEY (CarmaCars' own Quo
    *  account only); fake records them without sending (local work and tests). */

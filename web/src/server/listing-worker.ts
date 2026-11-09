@@ -10,6 +10,9 @@ import { linkSecret } from '@/server/links';
 import { runListingWorker, type Claim, type RunSummary } from '@/features/listing/worker';
 import { visionModel } from '@/integrations/vision';
 import { MARK_PROMPT, MARK_SYSTEM, parseMarks, type MarkBox } from '@/features/listing/photo-sort';
+import { letteringName } from '@/features/car/studio';
+import { showroomPrompt, type ShowroomProvider } from '@/features/listing/showroom';
+import { geminiEditImage } from '@/integrations/photos/gemini';
 
 // The listing worker as the site runs it: the Cloudflare cron trigger (custom-worker.ts, every five
 // minutes) and a submitted capture (right away, after the response) call runListingWorkerNow. The queue
@@ -39,6 +42,24 @@ async function findMarks(img: { bytes: Uint8Array; contentType: string; width: n
   return marks;
 }
 
+/** r35 (0990): the image model of the showroom photos, behind the database's gate (Program settings: on, the model, the
+ *  daily limit; a quota answer stops it for the hour): never past the free use, and every call is recorded. */
+export function showroomAi(apiKey: string, f: typeof fetch = fetch): ShowroomProvider {
+  return {
+    name: 'ai',
+    async make(i, local) {
+      const gate = (await rpc('server_showroom_ai_gate', { p: { photo_id: i.photoId } }, SR).catch(() => null)) as unknown as
+        { allowed?: boolean; reason?: 'off' | 'limit' | 'quota'; model?: string; call_id?: string } | null;
+      if (!gate?.allowed || !gate.call_id) return { ok: false, reason: gate?.reason ?? 'error', message: 'The image model may not be asked now' };
+      const t0 = Date.now();
+      const r = await geminiEditImage({ apiKey, model: gate.model, fetch: f }, { bytes: local, contentType: 'image/jpeg' },
+        showroomPrompt({ cover: i.cover, name: i.model ? letteringName(i.model) : null }));
+      await rpc('server_showroom_ai_record', { p: { call_id: gate.call_id, ok: r.ok, error: r.ok ? null : `${r.reason}: ${r.message}`, duration_ms: Date.now() - t0 } }, SR).catch(() => undefined);
+      return r;
+    }
+  };
+}
+
 const absolute = (u: string) => (/^https?:\/\//.test(u) ? u : `${env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '')}${u.startsWith('/') ? '' : '/'}${u}`);
 
 export async function runListingWorkerNow(o: { maxJobs?: number; deadlineMs?: number } = {}): Promise<RunSummary> {
@@ -66,6 +87,8 @@ export async function runListingWorkerNow(o: { maxJobs?: number; deadlineMs?: nu
     plainCopy: true,
     photos: await photoProcessor(read),
     findMarks,
+    showroomAi: env().GEMINI_API_KEY ? showroomAi(env().GEMINI_API_KEY!) : null,
+    showroomNoKey: !env().GEMINI_API_KEY,
     files: {
       privateUrl: async (path) => { const u = absolute(await s.signedDownloadUrl('vehicle-originals', path, 900)); issued.set(u, { bucket: 'vehicle-originals', path }); return u; },
       publicUrl: (path) => { const u = absolute(s.publicUrl(path)); issued.set(u, { bucket: 'vehicle-public', path }); return u; },

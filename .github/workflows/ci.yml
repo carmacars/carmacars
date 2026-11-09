@@ -303,6 +303,8 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       # the Quo phone line (0085): the CarmaCars workspace's key; kept in the vault too (deploy_quo_api_key)
       QUO_API_KEY: ${{ secrets.QUO_API_KEY }}
+      # r35 (0990): the image model of the showroom listing photos (Google AI Studio); optional, without it the free showroom
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       # where Supabase is: the hosted project (default) or the company's own server (repository variable
       # DB_BACKEND=vps, infra/vps/CUTOVER.md; scripts/deploy/lib.sh). VPS_SSH_KEY is used only with vps.
       DB_BACKEND: ${{ vars.DB_BACKEND }}
@@ -415,6 +417,7 @@ jobs:
                  + (if env.GOOGLE_MAPS_API_KEY then {GOOGLE_MAPS_API_KEY: env.GOOGLE_MAPS_API_KEY} else {} end)
                  + (if env.GOOGLE_REVIEWS_CLIENT_SECRET then {GOOGLE_REVIEWS_CLIENT_ID: env.GOOGLE_REVIEWS_CLIENT_ID, GOOGLE_REVIEWS_CLIENT_SECRET: env.GOOGLE_REVIEWS_CLIENT_SECRET} else {} end)
                  + (if env.QUO_API_KEY then {QUO_API_KEY: env.QUO_API_KEY} else {} end)
+                 + (if env.GEMINI_API_KEY then {GEMINI_API_KEY: env.GEMINI_API_KEY} else {} end)
                  + (if env.QUO_WEBHOOK_SECRET then {QUO_WEBHOOK_SECRET: env.QUO_WEBHOOK_SECRET} else {} end)
                  + (if env.AUTH_SMS_HOOK_SECRET then {AUTH_SMS_HOOK_SECRET: env.AUTH_SMS_HOOK_SECRET} else {} end)
                  + (if env.VAPID_PRIVATE_KEY then {VAPID_PUBLIC_KEY: env.VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY: env.VAPID_PRIVATE_KEY} else {} end)

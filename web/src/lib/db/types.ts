@@ -16195,6 +16195,11 @@ export type Database = {
           debit_deposit_fee_cents: number;
           google_drive_api_key: string | null;
           owner_hide_insurance_only: boolean;
+          insurance_fee_hst: boolean;
+          listing_showroom: boolean;
+          listing_showroom_ai: boolean;
+          listing_showroom_ai_model: string;
+          listing_showroom_ai_daily: number;
         };
         Insert: {
           id?: string;
@@ -16838,6 +16843,11 @@ export type Database = {
           debit_deposit_fee_cents?: number;
           google_drive_api_key?: string | null;
           owner_hide_insurance_only?: boolean;
+          insurance_fee_hst?: boolean;
+          listing_showroom?: boolean;
+          listing_showroom_ai?: boolean;
+          listing_showroom_ai_model?: string;
+          listing_showroom_ai_daily?: number;
         };
         Update: {
           id?: string;
@@ -17481,6 +17491,11 @@ export type Database = {
           debit_deposit_fee_cents?: number;
           google_drive_api_key?: string | null;
           owner_hide_insurance_only?: boolean;
+          insurance_fee_hst?: boolean;
+          listing_showroom?: boolean;
+          listing_showroom_ai?: boolean;
+          listing_showroom_ai_model?: string;
+          listing_showroom_ai_daily?: number;
         };
         Relationships: [];
       };
@@ -24823,6 +24838,8 @@ export type Database = {
           cutout: Json | null;
           edit_version: number;
           plate_carry: Json | null;
+          scene: string | null;
+          showroom: Json | null;
         };
         Insert: {
           id?: string;
@@ -24866,6 +24883,8 @@ export type Database = {
           cutout?: Json | null;
           edit_version?: number;
           plate_carry?: Json | null;
+          scene?: string | null;
+          showroom?: Json | null;
         };
         Update: {
           id?: string;
@@ -24909,6 +24928,8 @@ export type Database = {
           cutout?: Json | null;
           edit_version?: number;
           plate_carry?: Json | null;
+          scene?: string | null;
+          showroom?: Json | null;
         };
         Relationships: [];
       };
@@ -28194,6 +28215,8 @@ export type Database = {
       server_set_alert_prefs: { Args: { p_user: string; p: Json }; Returns: Json };
       server_set_alert_rule: { Args: { p_user: string; p_rule: string; p: Json }; Returns: Json };
       server_set_notify_channel: { Args: { p_user: string; p_channel: string }; Returns: Json };
+      server_showroom_ai_gate: { Args: { p?: Json }; Returns: Json };
+      server_showroom_ai_record: { Args: { p: Json }; Returns: Json };
       server_sign_in_event: { Args: { p: Json }; Returns: undefined };
       server_sign_now_prepare: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_sign_request_attach: { Args: { p_id: string; p_path: string; p_sha256: string }; Returns: string };

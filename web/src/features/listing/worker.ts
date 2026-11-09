@@ -8,7 +8,8 @@ import { DEFAULT_RULES, DRAFT_SCHEMA, PROMPT_VERSION, draftProblems, normalizeDr
 import { plainDraft } from '../seo/copy.ts';
 import { LETTERING, LETTER_REAL_PHOTOS, LETTER_SHOTS, letterThis, letteringPath, letteringPng } from './lettering.ts';
 import { WINDOW_SHOTS, readAlpha, windowPlan, type WindowPlan } from './window-check.ts';
-import { adjustPlace, decodePng, frameSubject, placeSubject, type Adjust } from './subject-frame.ts';
+import { adjustPlace, decodePng, encodePng, frameRgba, frameSubject, placeSubject, type Adjust } from './subject-frame.ts';
+import { SHOWROOM_PRESET, makeShowroom, sceneOf, showroomBackdrop, type ShowroomProvider } from './showroom.ts';
 import { enhanceValues, statsOf, type Enhance } from './enhance.ts';
 import { cropAway, type MarkBox } from './photo-sort.ts';
 
@@ -23,6 +24,13 @@ import { cropAway, type MarkBox } from './photo-sort.ts';
 // angles; not the extra outside photos), the word from the model (letteringName: CLA, C CLASS, AMG GT). The segmenter's
 // cut-out is kept privately (its alpha is the mask the cut-out editor starts from) with where the car was placed.
 export const PRESET = 'studio_v5';
+// r35 (0990): the showroom scene (showroom.ts) in place of the black studio when the photo's scene is "showroom": the car in a
+// plain dark showroom with the CarmaCars logo on the wall, its reflection on the floor, the model's name on the wall of the
+// cover. Made here with no network (the free local composite); an image model, when its key is set and within its daily
+// limit, makes it look photographed, and any refusal keeps the local one with the reason for staff.
+export { SHOWROOM_PRESET };
+/** r35: where the showroom room (no lettering) is kept for the windows of inside photos. */
+export const SHOWROOM_BACKDROP_PATH = 'site/backdrop/showroom_v1.png';
 export { LETTER_REAL_PHOTOS, LETTER_SHOTS, letterThis };
 /** r33: what the cut-out editor sends (app.photo_cutout_edit): the edited cut-out and the move and size, or null. */
 export function editOf(input: Record<string, unknown> | null | undefined): { cutout_path: string; adjust: Adjust } | null {
@@ -53,7 +61,9 @@ export interface JobContext {
     /** 0568: the light touch-up applies (Admin "Auto-enhance listing photos" on, the photo's "Use original colours" off) */
     enhance?: boolean;
     /** 0700: the photo is the listing's cover (its model name is lettered behind the car) */
-    is_cover?: boolean } | null;
+    is_cover?: boolean;
+    /** 0990: the car's scene: "showroom" (the dark showroom) or "studio" (the black studio, also when missing) */
+    scene?: 'studio' | 'showroom' | null } | null;
 }
 export interface Budget { ai_neurons_today: number; ai_neurons_limit: number; transformations_month: number; transformations_free: number;
   /** The usage guard (0080): the month's included image transformations are used and paid usage is not allowed. */
@@ -89,6 +99,10 @@ export interface WorkerDeps {
    *  [] none; null the model could not be asked (the photo then stays flagged, off the site). */
   findMarks?(img: { bytes: Uint8Array; contentType: string; width: number; height: number; photoId: string }): Promise<MarkBox[] | null>;
   now?(): number;
+  /** r35 (0990): the image model that makes the showroom look photographed (gated by the database's daily limit); none: the
+   *  free local showroom alone, noted "no key" on the photo when showroomNoKey. */
+  showroomAi?: ShowroomProvider | null;
+  showroomNoKey?: boolean;
   /** The car copy is written by the search job (0061, features/seo): the draft step stores a plain copy from the
    *  facts without calling the model, so no neurons are spent twice. */
   plainCopy?: boolean;
@@ -246,6 +260,9 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
   let place: ReturnType<typeof placeSubject> | null = null;
   let lettered = false;
   const edit = p.rebackground ? editOf(j.input) : null;
+  const showroom = sceneOf(p) === 'showroom';
+  let room: { provider: 'local' | 'ai'; model?: string; note: string | null; reason: string | null } | null = null;
+  let roomOut: PhotoOut | null = null;
   if (p.rebackground) {
     let cutBytes: Uint8Array;
     if (edit) {
@@ -265,18 +282,32 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
     const cutPath = `vehicles/${j.vehicle_id}/work/${p.id}-cutout.png`;
     // r28: the car cropped to its edges with its contact shadow, marks and captions beside it left out; when the PNG
     // cannot be read, the cut-out is placed as before (studio_v2 framing)
-    framed = await frameSubject(cutBytes).catch(() => null);
+    // r35: the showroom draws the framed car itself, so its pixels are kept (one decode)
+    let carImg: Awaited<ReturnType<typeof decodePng>> = null;
+    if (showroom) {
+      const img = await decodePng(cutBytes).catch(() => null);
+      const f = img ? frameRgba(img) : null;
+      if (f) { const { image, ...rest } = f; carImg = image; framed = { ...rest, png: await encodePng(image) }; }
+    } else framed = await frameSubject(cutBytes).catch(() => null);
     await d.files.putPrivate(cutPath, framed?.png ?? cutBytes, 'image/png');
     // the model's name behind the car, as on the sample cars: one band per model, kept in the public bucket
     let lettering: { url: string; top: number; width: number } | null = null;
-    if (p.model && letterThis(p)) {
+    if (showroom && framed && carImg) {
+      // r35: the showroom, made here (no transformation); the image model on top when it may be asked
+      place = adjustPlace(placeSubject(framed, EXTERIOR.width, EXTERIOR.height), edit?.adjust ?? null, EXTERIOR.width, EXTERIOR.height);
+      const m = await makeShowroom({ car: { ...carImg, ground: framed.ground }, place, model: p.model ?? null, cover: !!p.is_cover, photoId: p.id },
+        d.showroomAi ? [d.showroomAi] : [], !d.showroomAi && !!d.showroomNoKey);
+      room = { provider: m.provider, ...(m.model ? { model: m.model } : {}), note: m.note, reason: m.reason };
+      lettered = !!(p.is_cover && p.model);
+      roomOut = { ok: true, bytes: m.bytes, contentType: m.contentType, transformations: 0 };
+    } else if (p.model && letterThis(p)) {
       const lp = letteringPath(p.model);
       try {
         if (!(await d.files.hasPublic?.(lp))) await d.files.putPublic(lp, await letteringPng(p.model), 'image/png');
         lettering = { url: d.files.publicUrl(lp), top: LETTERING.top, width: LETTERING.width }; lettered = true;
       } catch { lettering = null; /* the photo is still made, on the plain studio */ }
     }
-    out = await d.photos.composite({ backdropUrl: d.files.publicUrl(BACKDROP_PATH), shadowUrl: d.files.publicUrl(SHADOW_PATH), cutoutUrl: await d.files.privateUrl(cutPath), lettering, ...EXTERIOR,
+    out = roomOut ?? await d.photos.composite({ backdropUrl: d.files.publicUrl(BACKDROP_PATH), shadowUrl: d.files.publicUrl(SHADOW_PATH), cutoutUrl: await d.files.privateUrl(cutPath), lettering, ...EXTERIOR,
       place: (place = framed ? adjustPlace(placeSubject(framed, EXTERIOR.width, EXTERIOR.height), edit?.adjust ?? null, EXTERIOR.width, EXTERIOR.height) : null) });
     // a mark on an outside photo is gone when the car was framed (it is not part of the car's piece); otherwise it stays flagged
     marksGone = !!framed;
@@ -284,7 +315,7 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
     size = INTERIOR;
     // 0521: a dashboard or seats photo: what shows through the windows is replaced by the studio when the cut-out
     // passes the quality check (window-check.ts), else blurred; a failed cut-out leaves the photo as edited before
-    const w = WINDOW_SHOTS.includes(p.angle) || WINDOW_SHOTS.includes(p.shot_type) ? await windows(d, j, src) : null;
+    const w = WINDOW_SHOTS.includes(p.angle) || WINDOW_SHOTS.includes(p.shot_type) ? await windows(d, j, src, showroom ? await showroomRoomUrl(d) : null) : null;
     if (w?.out) { n += w.n; out = w.out; windowsPlan = w.plan; }
     else { n += w?.n ?? 0; out = await d.photos.normalize({ sourceUrl: src, ...INTERIOR }); }
   }
@@ -299,19 +330,22 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
   }
   // 0568: the light touch-up, last (the photo as made so far is kept when any step of it fails)
   let enhance: Enhance | null = null;
-  if (p.enhance) {
+  // r35: a showroom the image model made is not touched up again (its light is the model's)
+  if (p.enhance && room?.provider !== 'ai') {
     const r = await touchUp(d, j, done, size, framed?.stats ?? null);
     n += r.n; if (r.out) { done = r.out; enhance = r.values; }
   }
   const path = `vehicles/${j.vehicle_id}/${p.file_base}.${ext(done.contentType)}`;
   await d.files.putPublic(path, done.bytes, done.contentType);
   return { ok: true, provider: d.photos.name, ...imageCost(n, b, used),
-    output: { processed_path: path, width: size.width, height: size.height, preset_version: p.rebackground ? PRESET : windowsPlan ? `windows_${windowsPlan.action}_v1` : 'normalize_v1',
+    output: { processed_path: path, width: size.width, height: size.height, preset_version: p.rebackground ? (room ? SHOWROOM_PRESET : PRESET) : windowsPlan ? `windows_${windowsPlan.action}_v1` : 'normalize_v1',
       // r31: an outside photo whose cut-out could not be framed is placed the old way (small): flagged so it is seen
       flags: [...(windowsPlan?.action === 'blur' ? ['windows_blurred'] : []), ...(p.rebackground && !framed ? ['not_framed'] : [])], ...(windowsPlan ? { windows: windowsPlan } : {}),
       ...(p.watermark ? { watermark_removed: marksGone, ...(marks ? { marks } : {}) } : {}),
       ...(framed ? { framing: { dropped: framed.dropped, share: framed.share } } : {}),
-      ...(maskPath ? { mask_path: maskPath } : {}), ...(place ? { place: { width: place.width, height: place.height, left: place.left, bottom: place.bottom } } : {}),
+      // r35: a photo the image model made has no exact placement (the plate is checked again, never carried over)
+      ...(room ? { showroom: room } : {}),
+      ...(maskPath ? { mask_path: maskPath } : {}), ...(place && room?.provider !== 'ai' ? { place: { width: place.width, height: place.height, left: place.left, bottom: place.bottom } } : {}),
       ...(edit ? { edited: true } : {}), ...(p.rebackground ? { lettered } : {}),
       ...(p.enhance !== undefined ? { enhance } : {}) } };
 }
@@ -355,10 +389,19 @@ async function cleanMarks(d: WorkerDeps, j: JobContext, out: Extract<PhotoOut, {
   return { out: again, n: again.transformations, marks, gone: true };
 }
 
+/** r35: the empty showroom (no lettering) in the public bucket, made once, for the windows of inside photos; null when it
+ *  cannot be stored (the black studio is used). */
+async function showroomRoomUrl(d: WorkerDeps): Promise<string | null> {
+  try {
+    if (!(await d.files.hasPublic?.(SHOWROOM_BACKDROP_PATH))) await d.files.putPublic(SHOWROOM_BACKDROP_PATH, await encodePng(showroomBackdrop()), 'image/png');
+    return d.files.publicUrl(SHOWROOM_BACKDROP_PATH);
+  } catch { return null; }
+}
+
 /** 0521: the windows of an interior photo. The interior is cut out; its transparency (what the segmenter saw through the
  *  windows) passes the quality check or not: the studio behind the windows, or the photo itself blurred behind them. No
  *  window seen, or no cut-out: null out, and the photo is edited as before. */
-async function windows(d: WorkerDeps, j: JobContext, src: string): Promise<{ out: PhotoOut | null; n: number; plan: WindowPlan | null }> {
+async function windows(d: WorkerDeps, j: JobContext, src: string, roomUrl: string | null = null): Promise<{ out: PhotoOut | null; n: number; plan: WindowPlan | null }> {
   const p = j.photo!;
   const cut = await d.photos.cutout(src);
   if (!cut.ok) return { out: null, n: 0, plan: null };
@@ -367,7 +410,7 @@ async function windows(d: WorkerDeps, j: JobContext, src: string): Promise<{ out
   const cutPath = `vehicles/${j.vehicle_id}/work/${p.id}-interior.png`;
   await d.files.putPrivate(cutPath, cut.bytes, 'image/png');
   const out = await d.photos.layer(plan.action === 'replace'
-    ? { baseUrl: d.files.publicUrl(BACKDROP_PATH), overlayUrl: await d.files.privateUrl(cutPath), ...INTERIOR }
+    ? { baseUrl: roomUrl ?? d.files.publicUrl(BACKDROP_PATH), overlayUrl: await d.files.privateUrl(cutPath), ...INTERIOR }
     : { baseUrl: src, baseBlur: 40, overlayUrl: await d.files.privateUrl(cutPath), ...INTERIOR });
   return { out: out.ok ? out : null, n: cut.transformations, plan: out.ok ? plan : null };
 }
