@@ -24,7 +24,8 @@ export async function rentalcoverQuoteId(p: Record<string, unknown>, source: Cov
     if (!rentalcoverConfigured()) return null;
     const r = await rentalcoverQuote({ fromDate: facts.from_date, toDate: facts.to_date, customerAge: facts.customer_age, firstName: facts.first_name,
       lastName: facts.last_name, email: facts.email, country: facts.country, destinationCountry: facts.destination_country });
-    const { email: _email, first_name: _first, last_name: _last, ...rest } = facts;
+    // the record keeps no name or email (the cache key is a hash of them)
+    const rest = Object.fromEntries(Object.entries(facts).filter(([k]) => !['email', 'first_name', 'last_name'].includes(k)));
     const rec = (await rpc('server_rentalcover_record' as never, { p: { ...rest, source, status: r.ok ? 'ok' : 'failed',
       ...(r.ok ? { reference: r.reference, policy_code: r.policyCode, quote_cents: r.totalCents, currency: r.currency, response: r.raw } : { error: r.error }) } } as never, SR)) as unknown as { id: string | null } | null;
     // the failure is in rentalcover_quotes (status failed); the log line names no person

@@ -190,18 +190,20 @@ export function RequestWizard(p: WizardProps) {
   const bookingType = nonRefOk ? d.bookingType : 'standard';
   const far = (k: string) => k === 'delivery' || k === 'airport';
   // 1202: the Protection Plan's price from a RentalCover quote for this renter and these dates, once their details are in
-  const [coverQuote, setCoverQuote] = useState<string | null>(null);
+  const [coverAsked, setCoverAsked] = useState<{ key: string; id: string | null }>({ key: '', id: null });
   const coverKey = car && d.coverage === '3' && car.planOffered !== false && d.from && d.to && d.first.trim() && d.last.trim() && d.email.includes('@') && d.dobY.length === 4 && d.dobM && d.dobD
     ? JSON.stringify([car.vehicleId, d.from, d.to, d.tf, d.tt, d.first.trim(), d.last.trim(), d.email.trim(), d.dobY, d.dobM, d.dobD]) : '';
   useEffect(() => {
-    if (!coverKey || !car) { setCoverQuote(null); return; }
+    if (!coverKey || !car) return;
     let live = true;
+    const key = coverKey;
     const t = setTimeout(() => {
       checkoutCoverQuote({ vehicleId: car.vehicleId, from: d.from, to: d.to, tf: d.tf, tt: d.tt, first: d.first, last: d.last, email: d.email, dobY: d.dobY, dobM: d.dobM, dobD: d.dobD })
-        .then((id) => { if (live) setCoverQuote(id); }).catch(() => { if (live) setCoverQuote(null); });
+        .then((id) => { if (live) setCoverAsked({ key, id }); }).catch(() => { if (live) setCoverAsked({ key, id: null }); });
     }, 600);
     return () => { live = false; clearTimeout(t); };
   }, [coverKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const coverQuote = coverKey && coverAsked.key === coverKey ? coverAsked.id : null;
   const options = useMemo(() => ({
     booking_type: bookingType, coverage_option: d.coverage ? Number(d.coverage) : undefined,
     pickup_method: far(d.pickupAt) ? 'delivered' : 'collected', return_method: far(d.returnAt) ? 'picked_up' : 'returned',
