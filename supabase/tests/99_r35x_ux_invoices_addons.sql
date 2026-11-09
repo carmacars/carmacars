@@ -104,5 +104,5 @@ select test.eq('the commission''s base is the rental charge plus the umbrella (n
 select test.eq('the umbrella line only (the full tank is not in it)', (select c.addon_base_cents from staff_commissions c where c.booking_id = (select booking_id from test.uic) and c.kind = 'commission'),
   (select sum(li.amount_cents) from booking_addons ba join booking_line_items li on li.id = ba.line_item_id and li.voided_at is null join addons a on a.id = ba.addon_id
     where ba.booking_id = (select booking_id from test.uic) and a.code = 'umbrella')::bigint);
-update booking_addons set status = 'cancelled' where booking_id = (select booking_id from test.uic) and addon_id = (select id from addons where code = 'umbrella');
+update booking_addons set status = 'cancelled', cancelled_at = now(), cancelled_by = test.id('ui_admin'), cancel_reason = 'Test: taken off' where booking_id = (select booking_id from test.uic) and addon_id = (select id from addons where code = 'umbrella');
 select test.eq('an add-on taken off leaves the commission', (select c.addon_base_cents from staff_commissions c where c.booking_id = (select booking_id from test.uic) and c.kind = 'commission'), 0::bigint);
