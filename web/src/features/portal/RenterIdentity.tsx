@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { opsAct } from '@/server/actions/ops';
 import { describedBy, Field } from '@/features/forms/Field';
 import { identityMode } from './identity';
+import { DateInput } from '@/components/DateInput';
 
 // r35 UX (1110): a renter's legal name and date of birth. Saved at once while no licence of theirs is verified; once one is,
 // a change is a correction that Sales, customer service or an Admin check against the licence (the date of birth decides the
@@ -41,7 +42,7 @@ export function RenterIdentity({ d }: { d: RenterIdentityData }) {
             <input className="input" id="ri-name" value={name} onChange={(e) => setName(e.target.value)} aria-describedby={describedBy('ri-name', err, true)} data-testid="ri-name" />
           </Field>
           <Field id="ri-dob-in" label="Date of birth" hint="As on your driver's licence.">
-            <input className="input" id="ri-dob-in" type="date" value={dob} onChange={(e) => setDob(e.target.value)} data-testid="ri-dob-input" />
+            <DateInput className="input" id="ri-dob-in" type="date" value={dob} onChange={(e) => setDob(e.target.value)} data-testid="ri-dob-input" />
           </Field>
           {mode === 'request' && <Field id="ri-reason" label="Why it changes" hint="For example a typo or a legal name change.">
             <input className="input" id="ri-reason" value={reason} onChange={(e) => setReason(e.target.value)} data-testid="ri-reason" />
