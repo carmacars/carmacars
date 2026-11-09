@@ -1,4 +1,4 @@
-# Showroom v2, photos without the image service, field jobs on shifts, marketing scenes (Release 35, part S2: 1050 to 1055)
+# Showroom v2, photos without the image service, field jobs on shifts, marketing scenes (Release 35, part S2: 1050 to 1056)
 
 Branch `r35-s2` (on `r35-p` and `r35-x`). Migrations `1050_r35s2_showroom_v2_photos.sql` (patches 0990's `listing_photos_reframe`
 and `photo_showroom` to the v2 preset; wraps `photo_cutout_context` and the door as `_pre1050`), `1051_r35s2_shift_jobs.sql`
@@ -63,6 +63,14 @@ door as `_pre1053`; widens `listing_jobs.kind`). No applied migration is edited.
 
 `src/features/motion`: a paper plane whoosh when a renter sends a request (`/book/sent`), a check with confetti and the car keys when the renter pays or confirms (the booking page after payment, a pay link), a ring and envelope when an offer is sent (the offer composer, Admin and staff) or accepted by the renter, and in the Admin and staff portals a toast with a pulsing dot when a new request comes in or an offer is accepted while a page is open (`AlertPulse`, `/api/alerts/latest`, 1055 `server_alert_latest`). CSS and a few lines of DOM, about a second, never blocking (`pointer-events: none`), nothing under reduced motion.
 
+## G. The CARMA plate in place of the plate cover (1056)
+
+| Item | What changed |
+| --- | --- |
+| Rear plate | `src/features/listing/plate-art.ts`: the company's own Ontario personalized plate CARMA in the current Ontario design (white, blue lettering, ONTARIO at the top, Yours to discover at the bottom), drawn from the letters' outlines (`presets/plate-glyphs.json`, `scripts/gen-plate-glyphs.py`, the site's Inter fonts), also as `public/plates/carma-ontario.svg`. `plate-photo.ts`: the plate's slanted corners found from its box (`plateQuad`), the plate warped onto them (`homography`, supersampled), lit, white balanced, softened and grained like the photo around it, with a faint reflection; the real plate filled in underneath first, so none of its characters can show |
+| Front plate | `removePlate`: the bumper filled in from all four sides (a Coons patch of the surrounding pixels), the grain put back, feathered so no edge shows; a busy surround gets a soft blur matched to the bumper. In the worker the image model edits the front plate out first (`FRONT_PLATE_PROMPT`; only the plate's area of its answer is taken), the site's fill otherwise or where a plate still shows |
+| Where | The plate editor and the carried covers (`PlateEditor`, `PlateCarry`: style `carma`, the default; a front shot's plate is edited out), Program settings `plate_cover_style` (now `carma`), the sample cars (a CARMA plate on the rear, no front plate: `scripts/gen-sample-cars.mjs`), and every photo covered the old way: 1056 queues a `plate_redo` job per photo (`app.plate_redo_queue`), made again from its uncovered file by the worker with its sizes; the new file replaces the old one only while the photo is unchanged. A cover carried to a photo made again (0700, the 1054 showroom redo) is drawn the new way. The plate check stays covered (no real plate readable) |
+
 ## Guides
 
 - `field/my-hours-and-pay`: the jobs shown on open shifts, claiming a shift gives its jobs, sharing a shift and Take it, jobs following a shift given up or swapped.
@@ -72,3 +80,4 @@ door as `_pre1053`; widens `listing_jobs.kind`). No applied migration is edited.
 - `admin/fleet-and-listings`: Marketing photos in other scenes (Make the marketing set, Mix, Download, the scenes setting, Choose the reference photo).
 - `va/fleet`: Marketing photos on a listing.
 - `va/marketing-on-facebook-marketplace`: With scenes (ZIP) in the kit.
+- `admin/fleet-and-listings`, `va/fleet`: The CARMA Ontario plate and Edit the front plate out when covering a plate.

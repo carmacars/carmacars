@@ -5,6 +5,9 @@
 // app.vehicle_sample_photos at it). Pure string building (the logo's shapes are read from the showroom's preset).
 // r35 S2: the frame is the showroom v2 (studio() below); the car sits on its floor line (80% of the height).
 import logoData from '../listing/presets/showroom-logo.json' with { type: 'json' };
+import { plateSvgInner } from '../listing/plate-art.ts';
+/** r35 S2: the rear plate of every car drawn here is the company's CARMA Ontario plate (no front plate). */
+const CARMA_PLATE = plateSvgInner();
 
 export const PAINT: Record<string, [string, string, string]> = {
   white: ['#F4F4F4', '#B9B9B9', '#6E6E6E'],
@@ -98,7 +101,7 @@ function carEnd(shape: string, paint: string, rear: boolean) {
     <path d="M ${cx - w + 4},${sh + 12} Q ${cx},${sh - 12} ${cx + w - 4},${sh + 12}" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="2"/>
     <rect x="${cx - w - 26}" y="${sh - 12}" width="34" height="18" rx="6" fill="${c2}"/><rect x="${cx + w - 8}" y="${sh - 12}" width="34" height="18" rx="6" fill="${c2}"/>
     ${rear
-      ? `<rect x="${cx - w + 14}" y="${sh + 26}" width="${2 * w - 28}" height="12" rx="6" fill="#E0121C"/><rect x="${cx - 62}" y="${sh + 58}" width="124" height="34" rx="4" fill="#f2f2f2"/><rect x="${cx - 150}" y="262" width="60" height="10" rx="5" fill="#000"/><rect x="${cx + 90}" y="262" width="60" height="10" rx="5" fill="#000"/>`
+      ? `<rect x="${cx - w + 14}" y="${sh + 26}" width="${2 * w - 28}" height="12" rx="6" fill="#E0121C"/><g transform="translate(${cx - 54} ${sh + 48}) scale(0.18)">${CARMA_PLATE}</g><rect x="${cx - 150}" y="262" width="60" height="10" rx="5" fill="#000"/><rect x="${cx + 90}" y="262" width="60" height="10" rx="5" fill="#000"/>`
       : `<path d="M ${cx - w + 14},${sh + 26} h 96 l -10,20 h -78 z" fill="#fff"/><path d="M ${cx + w - 14},${sh + 26} h -96 l 10,20 h 78 z" fill="#fff"/><rect x="${cx - 98}" y="${sh + 24}" width="196" height="46" rx="8" fill="#0a0a0a"/><path d="M ${cx - 86},${sh + 38} h 172 M ${cx - 86},${sh + 50} h 172 M ${cx - 86},${sh + 60} h 172" stroke="#3a3a3a" stroke-width="3"/><rect x="${cx - 170}" y="246" width="340" height="22" rx="6" fill="#000" opacity=".8"/>`}
   `;
 }

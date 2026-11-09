@@ -1,8 +1,11 @@
+import { applyPlates, type PlateEnd } from './plate-photo.ts';
 // Covering licence plates on listing photos (migration 0042), in the browser: boxes are fractions of the photo,
 // so they hold at any size; each box is covered with a CarmaCars plate, pixelated or blurred, on a canvas. The
 // box arithmetic is pure (unit tested); the drawing needs a browser canvas.
 export interface NBox { x: number; y: number; w: number; h: number; suggested?: boolean }
-export type PlateStyle = 'cover' | 'pixelate' | 'blur';
+/** r35 S2: carma (the default): the rear plate becomes the company's CARMA Ontario plate in perspective, a front plate is
+ *  edited out (plate-photo.ts); the older covers stay for the photos that kept them. */
+export type PlateStyle = 'carma' | 'cover' | 'pixelate' | 'blur';
 
 export const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 /** A box kept inside the photo, at least 1% wide and high. */
@@ -60,9 +63,17 @@ function cover(ctx: Ctx2D, r: { x: number; y: number; w: number; h: number }, te
 }
 
 /** Draw the photo with every box covered, on a canvas of any size. */
-export function paint(ctx: Ctx2D, img: CanvasImageSource, W: number, H: number, boxes: NBox[], style: PlateStyle, text: string, font = 'Inter, Arial, sans-serif') {
+export function paint(ctx: Ctx2D, img: CanvasImageSource, W: number, H: number, boxes: NBox[], style: PlateStyle, text: string, font = 'Inter, Arial, sans-serif', end: PlateEnd = 'rear') {
   ctx.clearRect(0, 0, W, H);
   ctx.drawImage(img, 0, 0, W, H);
+  if (style === 'carma') {
+    // r35 S2: the pixels themselves (plate-photo.ts): the front plate edited out, the rear one the CARMA plate
+    if (!boxes.length) return;
+    const id = ctx.getImageData(0, 0, W, H);
+    applyPlates({ width: W, height: H, data: id.data }, boxes.map((b) => px(b, W, H)), end);
+    ctx.putImageData(id, 0, 0);
+    return;
+  }
   for (const b of boxes) {
     const r = px(b, W, H);
     if (style === 'pixelate') pixelate(ctx, r); else if (style === 'blur') blur(ctx, r); else cover(ctx, r, text, font);
@@ -70,12 +81,12 @@ export function paint(ctx: Ctx2D, img: CanvasImageSource, W: number, H: number, 
 }
 
 /** The covered photo at its own size (at most 3000 px on the long side) and at each of its smaller widths, as JPEG files. */
-export async function exportCovered(img: HTMLImageElement, boxes: NBox[], style: PlateStyle, text: string, widths: number[], font?: string): Promise<{ main: Blob; width: number; height: number; variants: Array<{ width: number; blob: Blob }> }> {
+export async function exportCovered(img: HTMLImageElement, boxes: NBox[], style: PlateStyle, text: string, widths: number[], font?: string, end: PlateEnd = 'rear'): Promise<{ main: Blob; width: number; height: number; variants: Array<{ width: number; blob: Blob }> }> {
   const nw = img.naturalWidth || 1600, nh = img.naturalHeight || 1067;
   const k = Math.min(1, 3000 / Math.max(nw, nh));
   const W = Math.round(nw * k), H = Math.round(nh * k);
   const c = scratch(W, H);
-  paint(c.getContext('2d')!, img, W, H, boxes, style, text, font);
+  paint(c.getContext('2d', { willReadFrequently: true })!, img, W, H, boxes, style, text, font, end);
   const blob = (cv: HTMLCanvasElement) => new Promise<Blob>((ok, no) => cv.toBlob((b) => (b ? ok(b) : no(new Error('The photo could not be made'))), 'image/jpeg', 0.9));
   const main = await blob(c);
   const variants: Array<{ width: number; blob: Blob }> = [];

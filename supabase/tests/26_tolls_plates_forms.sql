@@ -25,10 +25,10 @@ insert into program_settings (effective_from) values (date '2099-01-01');
 select test.eq('settings: the plate check before publishing is on in a new settings row', (select listing_plate_check_required from program_settings where effective_from = date '2099-01-01'), true);
 delete from program_settings where effective_from = date '2099-01-01';
 update program_settings set listing_plate_check_required = true;
-select test.eq('settings: lines at 80% or more import without a check, renters matched with high confidence are charged, 6 pages, the vision model on with its daily cap, plates checked before publishing, a CarmaCars plate cover by default',
+select test.eq('settings: lines at 80% or more import without a check, renters matched with high confidence are charged, 6 pages, the vision model on with its daily cap, plates checked before publishing, the CARMA plate by default (1056)',
   (select toll_read_min_confidence || '/' || toll_read_auto_charge || '/' || toll_read_max_pages || '/' || ai_vision_enabled || '/' || ai_vision_model || '/'
           || ai_vision_daily_neurons || '/' || listing_plate_check_required || '/' || plate_cover_style || '/' || plate_detect_enabled from app.settings()),
-  '80/true/6/true/@cf/meta/llama-4-scout-17b-16e-instruct/3000/true/cover/true');
+  '80/true/6/true/@cf/meta/llama-4-scout-17b-16e-instruct/3000/true/carma/true');
 
 -- ================================================================ 2. one turnaround between trips (the owner's 2 hours, held once)
 select test.eq('turnaround: one setting, 120 minutes; the cleaning block''s length follows it',
@@ -207,7 +207,7 @@ select test.eq('plates: every photo starts unchecked; the public shots are liste
 select test.throws('plates: Finance does not edit listing photos', format('select app.photo_plate_context(%L, %L)', test.id('tp_fin'), test.tp('ph1')), 'Fleet, customer service or an Admin');
 select test.eq('plates: the editor gets the photo, the brand on the cover and the default style',
   (select (v ->> 'cover_text') || '/' || (v ->> 'default_style') || '/' || (v ->> 'is_public_shot') || '/' || (v ->> 'plate_status') from app.photo_plate_context(test.id('tp_cs'), test.tp('ph1')) v),
-  (select coalesce(brand_name, 'CarmaCars') from site_settings limit 1) || '/cover/true/unchecked');
+  (select coalesce(brand_name, 'CarmaCars') from site_settings limit 1) || '/carma/true/unchecked');
 select test.throws('plates: a cover needs a box', format('select app.photo_plate_record(%L, %L)', test.id('tp_fleet'),
   jsonb_build_object('photo', test.tp('ph1'), 'status', 'covered', 'style', 'cover', 'boxes', '[]'::jsonb, 'processed_path', 'vehicles/' || test.id('vehicle:TPC') || '/front-left-c1.jpg')), 'Draw at least one box');
 select test.throws('plates: a box must be inside the photo', format('select app.photo_plate_record(%L, %L)', test.id('tp_fleet'),
