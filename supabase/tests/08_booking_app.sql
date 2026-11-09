@@ -1043,19 +1043,19 @@ select test.ba_confirmed('e1', 'sam.stone@example.test', 'BA1', test.wsoon('3 da
 select test.eq('E a 7-day booking for a renter of 23 is confirmed and paid: $791.00',
   test.ba_st('e1') || '/' || app.booking_paid_cents(test.ba('e1')), 'confirmed/79100');
 select test.keep('e1:pv', app.preview_extension(test.ba('e1'), test.wsoon('13 days')));
-select test.eq('E extending to 10 days (0480): 1066: the 3 added days at the booked rate, $80 a day = $240 (an extension never lowers the rate); the young driver fee $140 to its $200 cap (+$60); HST $39.00; $339.00 to pay',
+select test.eq('E extending to 10 days (1201): the 3 added days at the booking''s all-in price a day ($791 / 7 = $113.00 with the young driver fee and HST): $339.00, of which HST $39.00 (the booking''s HST share)',
   (select (v ->> 'ok') || '/' || (v ->> 'previous_days') || '>' || (v ->> 'new_days') || '/' || (v ->> 'previous_rental_charge_cents') || '>' || (v ->> 'new_rental_charge_cents')
           || '/' || (v ->> 'rental_difference_cents') || '/' || (v ->> 'fees_difference_cents') || '/' || (v ->> 'hst_cents') || '/' || (v ->> 'total_cents')
           || '/' || (v ->> 'km_allowance_total') || '/' || (v ->> 'available') || '/' || (v ->> 'deposit_hold_capture_needed') from test.out('e1:pv') v),
-  'true/7>10/56000>80000/24000/6000/3900/33900/2000/true/false');
+  'true/7>10/56000>86000/30000/0/3900/33900/2000/true/false');
 select test.eq('E line by line',
   (select string_agg((l ->> 'charge_type') || '=' || (l ->> 'amount_cents') || '+' || (l ->> 'hst_cents'), ' ' order by o)
-     from test.out('e1:pv') v, jsonb_array_elements(v -> 'lines') with ordinality x(l, o)), 'rental_charge=24000+3120 young_driver_21_25=6000+780');
+     from test.out('e1:pv') v, jsonb_array_elements(v -> 'lines') with ordinality x(l, o)), 'rental_charge=30000+3900');
 select test.eq('E the rental difference of the whole booking repriced is still the one public.calc_extension() gives (insurer-billed extensions, 0480)',
   (select rental_difference_cents from public.calc_extension(test.wsoon('3 days'), 7, 10, 10000, 12000, 56000, 180000)), 24000::bigint);
-select test.eq('E to 12 days (a picked date): 1066: 5 added days at the booked rate ($400), young driver fee +$100 (0025: no maximum)',
+select test.eq('E to 12 days (a picked date): 5 added days at the all-in $113.00 a day ($565.00, HST $65.00 of it)',
   (select (v ->> 'rental_difference_cents') || '/' || (v ->> 'fees_difference_cents') || '/' || (v ->> 'total_cents') from app.preview_extension(test.ba('e1'), test.wsoon('15 days')) v),
-  '40000/10000/56500');
+  '50000/0/56500');
 select test.eq('E what cannot be done is said: not later than the current return; over 30 days in total; a booking that is not live; after the return time it is still priced while the car is out (0480)',
   (select v -> 'problems' -> 0 ->> 'code' from app.preview_extension(test.ba('e1'), test.wsoon('9 days')) v) || ' '
   || (select v -> 'problems' -> 0 ->> 'code' from app.preview_extension(test.ba('e1'), test.wsoon('40 days')) v) || ' '
@@ -1070,7 +1070,7 @@ insert into test.ba_ids values ('e1:x', app.request_extension(test.ba('e1'), tes
 select test.eq('E the renter asks: the request is on record, priced, with who asked',
   (select status || '/' || seq || '/' || previous_days || '>' || new_days || '/' || rental_difference_cents || '/' || fees_difference_cents || '/' || hst_cents || '/' || total_cents
           || '/' || note || '/' || (requested_by = test.ba_user('sam.stone@example.test')) || '/' || jsonb_array_length(lines) || '/' || (previous_return_at = test.wsoon('10 days'))
-     from booking_extensions where id = test.ba('e1:x')), 'requested/1/7>10/24000/6000/3900/33900/One more weekend/true/2/true');
+     from booking_extensions where id = test.ba('e1:x')), 'requested/1/7>10/30000/0/3900/33900/One more weekend/true/1/true');
 select test.eq('E the renter gets an acknowledgement and customer service is told at once; the task is due by the current return time',
   (select string_agg(code || ':' || (dedupe_key = code || ':' || entity_id || ':requested'), ' ' order by code) from app_events where entity = 'booking_extension' and entity_id = test.ba('e1:x'))
   || '/' || (select count(*) || ':' || min(priority) || ':' || bool_and(due_at = test.wsoon('10 days')) from tasks where related_id = test.ba('e1:x')),
@@ -1098,13 +1098,13 @@ select test.eq('E paid before the return time: the extension is confirmed in wri
   || '/' || (select (return_at = test.wsoon('13 days')) || ':' || billable_days || ':' || rental_charge_cents || ':' || km_allowance_total || ':' || rate_applied
                     || ':' || (original_return_at = test.wsoon('10 days')) from bookings where id = test.ba('e1'))
   || '/' || (select status || ':' || (paid_at is not null) || ':' || (confirmed_in_writing_at is not null) || ':' || (payment_id is not null) from booking_extensions where id = test.ba('e1:x')),
-  'true/10/true:10:80000:2000:weekly:true/confirmed:true:true:true');
+  'true/10/true:10:86000:2000:weekly:true/confirmed:true:true:true');
 select test.eq('E the extension''s charges are lines of their own, tied to its payment; the payment is an extension payment',
   (select string_agg(charge_type || '=' || amount_cents || '+' || hst_cents || ':' || stage || ':' || (extension_id = test.ba('e1:x')) || ':' || (payment_id is not null), ' ' order by amount_cents desc)
      from booking_line_items where booking_id = test.ba('e1') and stage = 'extension')
   || '/' || (select purpose || ':' || amount_cents || ':' || status from payments where booking_id = test.ba('e1') and purpose = 'extension')
   || '/' || app.booking_paid_cents(test.ba('e1')),
-  'rental_charge=24000+3120:extension:true:true young_driver_21_25=6000+780:extension:true:true/extension:33900:succeeded/113000');
+  'rental_charge=30000+3900:extension:true:true/extension:33900:succeeded/113000');
 select test.eq('E the written confirmation is announced once, and the car is now taken to the new return time',
   (select count(*) from app_events where code = 'renter_extension_confirmed' and entity_id = test.ba('e1:x'))
   || '/' || app.vehicle_is_available(test.id('vehicle:BA1'), test.wsoon('11 days'), test.wsoon('12 days')), '1/false');

@@ -85,34 +85,45 @@ select test.eq('late fee: the migration''s freeze keeps an existing booking at $
 select test.eq('offers: the six options, in order',
   (select string_agg(o ->> 'code', ' ' order by n) from jsonb_array_elements(app.extension_offers(test.id('booking:EX-850')) -> 'options') with ordinality x(o, n)),
   '1h 3h 1d 3d 1w 1m');
-select test.eq('1 hour at $850: $148.75 less 10% (rental before HST)',
-  (app.preview_extension(test.id('booking:EX-850'), (select return_at + interval '1 hour' from bookings where booking_number = 'EX-850')) ->> 'rental_difference_cents')::bigint, 13387::bigint);
-select test.eq('3 hours at $850: 3 x $148.75 less 10%',
-  (app.preview_extension(test.id('booking:EX-850'), (select return_at + interval '3 hours' from bookings where booking_number = 'EX-850')) ->> 'rental_difference_cents')::bigint, 40162::bigint);
--- 1066: whole days at the same rate as the booked period ($320 for 3 days); this file sets the offer's discount to 5% (the default is 0%)
-select test.eq('1 day: the booked rate less 5%', (app.preview_extension(test.id('booking:EX-850'), (select return_at + interval '1 day' from bookings where booking_number = 'EX-850')) ->> 'rental_difference_cents')::bigint, round(round(32000::numeric / 3 * 1) * 0.95)::bigint);
-select test.eq('3 days: 3 x the booked rate less 5%', (app.preview_extension(test.id('booking:EX-850'), (select return_at + interval '3 days' from bookings where booking_number = 'EX-850')) ->> 'rental_difference_cents')::bigint, round(round(32000::numeric / 3 * 3) * 0.95)::bigint);
-select test.eq('1 week: 7 x the booked rate less 5%', (app.preview_extension(test.id('booking:EX-850'), (select return_at + interval '7 days' from bookings where booking_number = 'EX-850')) ->> 'rental_difference_cents')::bigint, round(round(32000::numeric / 3 * 7) * 0.95)::bigint);
-select test.eq('1 month: 30 x the booked rate less 5%', (app.preview_extension(test.id('booking:EX-850'), (select return_at + interval '30 days' from bookings where booking_number = 'EX-850')) ->> 'rental_difference_cents')::bigint, round(round(32000::numeric / 3 * 30) * 0.95)::bigint);
-select test.eq('an option''s price is its rental and HST, with the regular price beside it and 5% saved (1 day)',
+-- 1201: an extension costs the booked period's all-in price a day (its lines with HST over its days), whole days at that
+-- price and the hours left at the hourly late fee with HST, never more than a day; no discount (this file's 5% and 10%
+-- settings are no longer applied)
+create or replace function test.ex_allin(p_number text, p_days numeric) returns bigint language sql stable as $$
+  select round(sum(l.amount_cents + l.hst_cents)::numeric * p_days / max(b.billable_days))::bigint
+    from bookings b join booking_line_items l on l.booking_id = b.id and l.stage = 'booking' and l.voided_at is null and l.charged_to_renter
+   where b.booking_number = p_number $$;
+create or replace function test.ex_total(p_number text, p_span interval) returns bigint language sql stable as $$
+  select (app.preview_extension(b.id, b.return_at + p_span) ->> 'total_cents')::bigint from bookings b where b.booking_number = p_number $$;
+select test.eq('1 hour at $850: the hourly fee with HST ($168.09) is over the all-in day: one all-in day',
+  test.ex_total('EX-850', interval '1 hour'), least(14875 + public.calc_hst(14875), test.ex_allin('EX-850', 1)));
+select test.eq('3 hours at $850: never more than the all-in day',
+  test.ex_total('EX-850', interval '3 hours'), least(3 * 14875 + public.calc_hst(3 * 14875), test.ex_allin('EX-850', 1)));
+select test.eq('1 day: the all-in price a day', test.ex_total('EX-850', interval '1 day'), test.ex_allin('EX-850', 1));
+select test.eq('3 days: 3 x the all-in price a day', test.ex_total('EX-850', interval '3 days'), test.ex_allin('EX-850', 3));
+select test.eq('1 week: 7 x the all-in price a day', test.ex_total('EX-850', interval '7 days'), test.ex_allin('EX-850', 7));
+select test.eq('1 month: 30 x the all-in price a day', test.ex_total('EX-850', interval '30 days'), test.ex_allin('EX-850', 30));
+select test.eq('an option''s price is the all-in price, the regular price the same, nothing saved (1 day)',
   test.ex_opt('EX-850', '1d', 'total_cents') || '/' || test.ex_opt('EX-850', '1d', 'regular_total_cents') || '/' || test.ex_opt('EX-850', '1d', 'save_pct'),
-  (round(round(32000::numeric / 3 * 1) * 0.95)::bigint + public.calc_hst(round(round(32000::numeric / 3 * 1) * 0.95)::bigint)) || '/' || (10667 + public.calc_hst(10667)) || '/5');
-select test.eq('1 hour: what being an hour late would cost instead (the hourly fee, with HST; 1063: no extra day under a day)',
-  test.ex_opt('EX-850', '1h', 'late_cost_cents'), (14875 + public.calc_hst(14875))::text);
-select test.eq('1 hour: you save 10%', test.ex_opt('EX-850', '1h', 'save_pct'), '10');
+  test.ex_allin('EX-850', 1) || '/' || test.ex_allin('EX-850', 1) || '/0');
+select test.eq('1 day: one line, HST included, "N days at $X/day (all-in)"',
+  (select jsonb_array_length(v -> 'lines') || '/' || (v -> 'lines' -> 0 ->> 'description') || '/' || ((v -> 'lines' -> 0 ->> 'amount_cents')::bigint + (v -> 'lines' -> 0 ->> 'hst_cents')::bigint)
+     from app.preview_extension(test.id('booking:EX-850'), (select return_at + interval '1 day' from bookings where booking_number = 'EX-850')) v),
+  '1/Extension: 1 day at ' || app.fmt_money(test.ex_allin('EX-850', 1)) || '/day (all-in)/' || test.ex_allin('EX-850', 1));
+select test.eq('1 hour: what being an hour late would cost instead is shown only for hours priced as hours (here a day)',
+  test.ex_opt('EX-850', '1h', 'fallback_to'), '1d');
+select test.eq('1 hour: no discount', coalesce(test.ex_opt('EX-850', '1h', 'save_pct'), '0'), '0');
 select test.eq('lead-time pricing never applies to an extension',
   (select count(*) from jsonb_array_elements(app.preview_extension(test.id('booking:EX-850'), (select return_at + interval '3 days' from bookings where booking_number = 'EX-850')) -> 'lines') l
     where l ->> 'charge_type' = 'lead_time'), 0::bigint);
--- $60 a day: 3 hours at $25 less 10% ($67.50) is more than a day less 5% ($57): the day is offered instead
+-- $60 a day: hours at the $25 minimum with HST, under the all-in day
 select test.mk_booking('EX-60', 'ex_d', 'ex_ivan', test.ext('-1 day'), test.ext('6 hours'), 'on_rent');
 select test.ex_rates('EX-60', 6000);
-select test.eq('short or a day: 1 hour stays hours ($22.50), 3 hours fall back to the 1 day option',
-  test.ex_opt('EX-60', '1h', 'pricing') || '/' || (app.preview_extension(test.id('booking:EX-60'), (select return_at + interval '1 hour' from bookings where booking_number = 'EX-60')) ->> 'rental_difference_cents')
-    || '/' || test.ex_opt('EX-60', '3h', 'fallback_to'), 'short/2250/1d');
-select test.eq('short or a day: 3 hours are priced as a day ($60 less 5%)',
-  (app.preview_extension(test.id('booking:EX-60'), (select return_at + interval '3 hours' from bookings where booking_number = 'EX-60')) ->> 'rental_difference_cents')::bigint, 5700::bigint);
-select test.eq('$80 a day: 3 hours at $25 less 10% is $67.50, under a day ($76): hours',
-  (app.preview_extension(test.id('booking:EX-80'), (select return_at + interval '3 hours' from bookings where booking_number = 'EX-80')) ->> 'rental_difference_cents')::bigint, 6750::bigint);
+select test.eq('short: 1 hour is $25 with HST, hours while under the all-in day',
+  test.ex_opt('EX-60', '1h', 'pricing') || '/' || test.ex_total('EX-60', interval '1 hour'), 'short/' || (2500 + public.calc_hst(2500)));
+select test.eq('short: 3 hours at $25 with HST, or the all-in day when that is less',
+  test.ex_total('EX-60', interval '3 hours'), least(7500 + public.calc_hst(7500), test.ex_allin('EX-60', 1)));
+select test.eq('$80 a day: 3 hours at $25 with HST, or the all-in day when that is less',
+  test.ex_total('EX-80', interval '3 hours'), least(7500 + public.calc_hst(7500), test.ex_allin('EX-80', 1)));
 
 -- ================================================================ insurer, owner, a car switched off
 select test.mk_booking('EX-INS', 'ex_e', 'ex_lena', test.ext('-1 day'), test.ext('6 hours'), 'on_rent');
@@ -128,9 +139,9 @@ update vehicles set extension_offers = true where id = test.id('vehicle:ex_d');
 -- ================================================================ 2. after the return time, while the car is out
 select test.mk_booking('EX-LATE', 'ex_f', 'ex_rita', test.ext('-2 days'), test.ext('-50 minutes'), 'on_rent');
 select test.ex_rates('EX-LATE', 85000);
-select test.eq('late and still out: extendable, priced from the original return (3 hours = 3 x $148.75 less 10%)',
-  (select (p ->> 'ok') || '/' || (p ->> 'rental_difference_cents') from app.preview_extension(test.id('booking:EX-LATE'),
-     (select return_at + interval '3 hours' from bookings where booking_number = 'EX-LATE')) p), 'true/40162');
+select test.eq('late and still out: extendable, priced from the original return (3 hours: never more than the all-in day)',
+  (select (p ->> 'ok') || '/' || (p ->> 'total_cents') from app.preview_extension(test.id('booking:EX-LATE'),
+     (select return_at + interval '3 hours' from bookings where booking_number = 'EX-LATE')) p), 'true/' || least(3 * 14875 + public.calc_hst(3 * 14875), test.ex_allin('EX-LATE', 1)));
 select test.eq('late and still out: the late charges so far are shown (50 minutes: 1 hour, no extra day under a day, 1063)',
   (app.extension_offers(test.id('booking:EX-LATE')) -> 'late' ->> 'owed_cents')::bigint, 14875::bigint);
 select test.eq('late: the 1 hour option ends in the past (10 minutes from now is fine, 50 minutes ago is not)',
@@ -174,7 +185,8 @@ update program_settings set extension_auto_approve = true where id = (app.settin
 -- staff approve keeps the offer's price
 select test.eq('staff approval keeps the offer price',
   (select (v ->> 'pricing') || '/' || (v ->> 'rental_difference_cents') from app.approve_extension(
-     (select id from booking_extensions where booking_id = test.id('booking:EX-850') and status = 'requested'), test.id('ex_admin')) v), 'days/' || round(round(32000::numeric / 3 * 1) * 0.95)::bigint);
+     (select id from booking_extensions where booking_id = test.id('booking:EX-850') and status = 'requested'), test.id('ex_admin')) v),
+  'days/' || (test.ex_allin('EX-850', 1) - (select (l ->> 'hst_cents')::bigint from booking_extensions e, jsonb_array_elements(e.lines) l where e.booking_id = test.id('booking:EX-850') and e.status = 'approved' limit 1)));
 -- an insurer booking's request is never approved at once
 select app.request_extension(test.id('booking:EX-INS'), test.id('ex_lena'), (select return_at + interval '1 day' from bookings where booking_number = 'EX-INS'));
 select test.eq('insurer-billed: a request for staff', (select status from booking_extensions where booking_id = test.id('booking:EX-INS')), 'requested');

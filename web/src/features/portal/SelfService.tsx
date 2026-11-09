@@ -57,7 +57,7 @@ export function ExtendForm({ number, returnDate, returnTime, approved, hasCard =
   const req = useAct();
   const pay = useAct();
   const link = useAct<{ url: string }>();
-  const p = prev.res?.ok ? (prev.res.data as { ok?: boolean; total_cents: number; hst_cents: number; lines: Line[]; new_days: number; same_rate?: boolean; problems?: { message: string }[]; available?: boolean; message?: string }) : null;
+  const p = prev.res?.ok ? (prev.res.data as { ok?: boolean; total_cents: number; hst_cents: number; lines: Line[]; new_days: number; same_rate?: boolean; per_day_cents?: number; added_whole_days?: number; added_part_hours?: number; problems?: { message: string }[]; available?: boolean; message?: string }) : null;
   if (approved) return (
     <div className="stack">
       <p>Your extension to <b>{when(approved.new_return_at)}</b> is approved. Pay {money(approved.total_cents, { cents: true })} to confirm it.</p>
@@ -80,7 +80,8 @@ export function ExtendForm({ number, returnDate, returnTime, approved, hasCard =
       {prev.res && !prev.res.ok && <p className="alert alert--error" role="alert"><span>{prev.res.message}</span></p>}
       {p && (p.ok === false || p.problems?.length) ? <p className="alert alert--warn" role="alert"><span>{p.message ?? p.problems?.map((x) => x.message).join(' ')}</span></p> : null}
       {p && p.ok !== false && <>
-        {p.same_rate && <p className="small muted" data-testid="extend-same-rate">Same rate as the booked period, with the per-trip fees for the added days.</p>}
+        {p.per_day_cents ? <p className="small" data-testid="extend-same-rate"><b>{money(p.per_day_cents, { cents: true })} a day</b>, the price a day of your booking with its fees and HST included{p.added_whole_days ? `: ${p.added_whole_days} added ${p.added_whole_days === 1 ? 'day' : 'days'}` : ''}{p.added_part_hours ? `${p.added_whole_days ? ' and' : ':'} ${p.added_part_hours} ${p.added_part_hours === 1 ? 'hour' : 'hours'} at the hourly rate, never more than a day` : ''}. Total to pay: <b>{money(p.total_cents, { cents: true })}</b>, HST included.</p>
+          : p.same_rate ? <p className="small muted" data-testid="extend-same-rate">Same rate as the booked period.</p> : null}
         <Lines lines={p.lines ?? []} hst={p.hst_cents} total={p.total_cents} totalLabel={`To pay for ${p.new_days} days in total`} />
         <div className="field"><label className="label" htmlFor="pt-ext-note">Note (optional)</label><textarea className="textarea" id="pt-ext-note" maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} /></div>
         {req.res && !req.res.ok && <p className="alert alert--error" role="alert"><span>{req.res.message}</span></p>}

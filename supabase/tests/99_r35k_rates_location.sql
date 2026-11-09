@@ -28,15 +28,17 @@ select test.eq('an extension never lowers the rate: the offer''s discount is a P
   (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'extension_discount_bps'), '0');
 -- (another file may have set it to test the setting: the default again)
 update program_settings set extension_discount_bps = 0 where id = (app.settings()).id;
-select test.ok('an extension of 7 days: 7 x the booked day rate (a week at $525.45 stays $525.45), nothing off, and the Protection Plan scaled',
-  (select (v ->> 'same_rate')::boolean and (v ->> 'regular_rental_cents')::bigint = 52545 and (v ->> 'discount_bps')::int = 0
-          and (v ->> 'rental_difference_cents')::bigint = 52545 and (v ->> 'fees_difference_cents')::bigint = 7000
+-- 1201 replaced this rule: an extension costs the booked period's all-in price a day ($525.45 + $70 + $50 delivery, with
+-- HST, over 7 days), in one line, HST included, nothing off
+select test.ok('an extension of 7 days: the booked period''s all-in price again ($729.36), one line, nothing off',
+  (select (v ->> 'all_in')::boolean and (v ->> 'total_cents')::bigint = 72936 and (v ->> 'discount_bps')::int = 0
+          and jsonb_array_length(v -> 'lines') = 1 and (v ->> 'fees_difference_cents')::bigint = 0
      from app.preview_extension(test.id('booking:CC-R35M1'), (select return_at + interval '7 days' from bookings where booking_number = 'CC-R35M1')) v));
 select test.ok('delivery is never added again on an extension',
   not exists (select 1 from jsonb_array_elements(app.preview_extension(test.id('booking:CC-R35M1'), (select return_at + interval '7 days' from bookings where booking_number = 'CC-R35M1')) -> 'lines') l
                where l ->> 'charge_type' = 'delivery'));
 
--- Edit dates: a week made two weeks keeps the week's rate, the Protection Plan doubled
+-- Edit dates: a week made two weeks (1201: the all-in price a day; 1066 kept the week's rate and doubled the Protection Plan)
 select test.mk_booking('CC-R35M3', 'R35MA', 'r35m_r', to_char(now() at time zone 'America/Toronto' + interval '120 days', 'YYYY-MM-DD 10:00'),
   to_char(now() at time zone 'America/Toronto' + interval '127 days', 'YYYY-MM-DD 10:00'), 'confirmed', 52545);
 -- a booking made from a request with the Protection Plan priced for the trip ($70), so its pricing owns the line
@@ -45,10 +47,10 @@ insert into booking_fee_terms (booking_id, fee_type_code, amount_cents, source, 
 select app.sync_booking_price(test.id('booking:CC-R35M3'));
 select test.r35m('r35m_admin', 'ops_do', 'booking_staff_edit', jsonb_build_object('booking', 'CC-R35M3', 'changes', jsonb_build_object('return_at',
   (select return_at + interval '7 days' from bookings where booking_number = 'CC-R35M3'))));
-select test.eq('Edit dates: $525.45 a week stays $525.45 for the added week; the per-trip Protection Plan scales',
-  (select rental_charge_cents from bookings where id = test.id('booking:CC-R35M3')) || '/' || (select sum(amount_cents) from booking_line_items where booking_id = test.id('booking:CC-R35M3') and charge_type = 'coverage_sold' and voided_at is null),
-  '105090/14000');
-select test.ok('the booking history says so', exists (select 1 from booking_events where booking_id = test.id('booking:CC-R35M3') and note like '%Same rate as the booked period (7 to 14 days)%'));
+select test.eq('Edit dates (1201): a week made two weeks costs twice the all-in week; the per-trip Protection Plan stays as booked',
+  (select total_due_at_booking_cents from bookings where id = test.id('booking:CC-R35M3')) || '/' || (select sum(amount_cents) from booking_line_items where booking_id = test.id('booking:CC-R35M3') and charge_type = 'coverage_sold' and voided_at is null),
+  '134572/7000');
+select test.ok('the booking history says so', exists (select 1 from booking_events where booking_id = test.id('booking:CC-R35M3') and note like '%all-in price a day%'));
 
 -- ================================================================ 2. a fixed amount per plan payment (item 13)
 select test.mk_booking('CC-R35M2', 'R35MA', 'r35m_r', to_char(now() at time zone 'America/Toronto' + interval '40 days', 'YYYY-MM-DD 10:00'),

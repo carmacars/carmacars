@@ -83,13 +83,13 @@ create table test.e2_ext as
   select app.calendar_apply_change(b.id, test.id('e2_cs'), jsonb_build_object('return_at', ((b.return_at at time zone 'America/Toronto') + interval '1 day') at time zone 'America/Toronto'), 'the renter keeps the car a day') as r
     from bookings b where b.id = test.ba('e2:1');
 select test.e2_put('ext', (select (r ->> 'extension_id')::uuid from test.e2_ext));
-select test.eq('B (item 4) a calendar extension is priced by 0019: rental and the young driver fee for the added day, with HST; the preview showed the same total',
-  (select status || '/' || previous_days || '>' || new_days || '/' || (rental_difference_cents > 0) || '/' || (fees_difference_cents > 0) || '/'
+select test.eq('B (item 4) a calendar extension is priced at the booking''s all-in price a day (1201: one line, fees and HST in it); the preview showed the same total',
+  (select status || '/' || previous_days || '>' || new_days || '/' || (rental_difference_cents > 0) || '/' || (fees_difference_cents = 0) || '/'
           || (total_cents = rental_difference_cents + fees_difference_cents + hst_cents) || '/'
           || (select string_agg(l ->> 'charge_type', ',' order by l ->> 'charge_type') from jsonb_array_elements(lines) l)
      from booking_extensions where id = test.e2('ext'))
   || '/' || (select ((r ->> 'difference_cents')::bigint = (select total_cents from booking_extensions where id = test.e2('ext')))::text from test.e2_ext),
-  'requested/2>3/true/true/true/rental_charge,young_driver_21_25/true');
+  'requested/2>3/true/true/true/rental_charge/true');
 select app.approve_extension(test.e2('ext'), test.id('e2_cs'));
 create table test.e2_extpaid as select app.confirm_extension_payment(test.e2('ext'), '{"payment_id": "pi_e2x", "charge_id": "ch_e2x"}',
                                                           (select total_cents from booking_extensions where id = test.e2('ext'))) as r;
