@@ -47,7 +47,7 @@ export function SiteSearch() {
     const typing = (t: EventTarget | null) => t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
     const on = (e: KeyboardEvent) => {
       if (dlg.current?.open) return;
-      const k = e.key.toLowerCase();
+      const k = (e.key ?? '').toLowerCase(); // autofill fires keydown with no key
       if ((e.metaKey || e.ctrlKey) && !e.altKey && k === 'k') {
         if (document.querySelector('[data-testid="admin-jump"]')) return;   // Admin's own "Jump to a page"
         e.preventDefault(); open(); return;

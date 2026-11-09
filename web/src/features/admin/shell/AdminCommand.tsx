@@ -37,7 +37,7 @@ export function AdminCommand({ groups }: { groups: NavGroup[] }) {
 
   useEffect(() => {
     const on = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === 'k') {
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && (e.key ?? '').toLowerCase() === 'k') {
         e.preventDefault();
         if (dlg.current?.open) dlg.current.close(); else open();
       }

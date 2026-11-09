@@ -6,7 +6,7 @@
 
 export const RECOVER_KEY = 'cc-error-reload';
 /** A page of an older deploy: a server action, a script or a stylesheet the new build does not have. */
-export const STALE_BUILD = /Failed to find Server Action|Server Action .* was not found|older or newer deployment|ChunkLoadError|Loading (CSS )?chunk|Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module|An unexpected response was received from the server/i;
+export const STALE_BUILD = /Failed to find Server Action|Server Action .* was not found|older or newer deployment|ChunkLoadError|Loading (CSS )?chunk|Failed to load chunk|Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module|An unexpected response was received from the server/i;
 /** The server could not finish the page (React 441 in production, or the network dropped the answer). */
 export const SERVER_RENDER = /Minified React error #441|Server Components render|Failed to fetch|NetworkError|Load failed|Connection closed/i;
 
