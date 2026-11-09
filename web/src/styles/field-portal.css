@@ -11,6 +11,9 @@
 .fp-tabs a .fd-ico { width: 1.6rem; height: 1.6rem; }
 .fp-tabs a[aria-current="page"] { color: var(--fd-ink); font-weight: 800; }
 .fp-tabs a[aria-current="page"]::before { content: ''; position: absolute; top: -2px; left: 22%; right: 22%; height: 4px; border-radius: 0 0 4px 4px; background: var(--fd-red); }
+/* the content clears the tabs; a step-by-step flow (its own fixed bar of Back and Next, .fd-bar) has the screen to itself */
+.fd--in-staff:has(> .fp-tabs) > .fd__frame { padding-bottom: calc(5.5rem + env(safe-area-inset-bottom)); }
+.fd--in-staff:has(.fd-bar) > .fp-tabs, .fd--in-staff:has(.fd-bar) .fp-fab { display: none; }
 .fp-tabs__dot { position: absolute; top: 0.55rem; right: calc(50% - 1.2rem); min-width: 1.1rem; height: 1.1rem; padding: 0 0.3em; border-radius: 999px; background: var(--fd-red); color: var(--white);
   font-size: 0.6875rem; font-weight: 800; display: grid; place-items: center; }
 
