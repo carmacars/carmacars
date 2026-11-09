@@ -147,6 +147,8 @@ export class MapEngine {
     this.map?.remove();
   }
 
+  /** 1068: where a place is on screen (CSS pixels in the map's box), for the booking celebration's pulse. */
+  screenOf(lng: number, lat: number): { x: number; y: number } | null { if (!this.map) return null; const p = this.map.project([lng, lat]); return { x: p.x, y: p.y }; }
   setPins(p: PinSpec[]) { this.lastPins = p; if (this.map) this.syncPins(); }
   setCars(c: CarSpec[]) { this.lastCars = c; if (this.map) this.syncCars(); }
   /** Home base (the delivery origin of Program settings): a branded marker with a soft pulse, and where the arcs start. */

@@ -1,0 +1,7 @@
+/* 1068: the townhall deck's numbers and the people slide (a tile per staff member) */
+.th-points { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-4); margin: 0; }
+.th-points dd { margin: 0; }
+.th-people { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-3); grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr)); }
+.th-person { border: 1px solid var(--line); border-radius: var(--ad-r-tile, 8px); padding: var(--s-3); display: grid; gap: var(--s-2); align-content: start; }
+.th-person p { margin: 0; }
+.th-shout { border-left: 3px solid var(--line); padding-left: var(--s-2); }

@@ -60,7 +60,8 @@ export function Hire({ id, name, status }: { id: string; name: string; status: H
       <div className="field"><label className="label" htmlFor={`hire-fn-${id}`}>Role</label>
         <select className="select" id={`hire-fn-${id}`} value={fn} onChange={(e) => choose(e.target.value)} data-testid="hire-function">
           {pv.functions.map((f) => <option key={f.code} value={f.code}>{HIRE_FUNCTION_LABEL[f.code as HireFunction] ?? f.label}</option>)}
-        </select></div>
+        </select>
+        {pv.outside_area && <p className="hint" data-testid="hire-outside">They live outside the Toronto area: Sales is remote (in person needs the area).</p>}</div>
       <div className="field"><label className="label" htmlFor={`hire-start-${id}`}>Start date</label>
         <DateInput className="input" type="date" id={`hire-start-${id}`} value={start} onChange={(e) => setStart(e.target.value)} data-testid="hire-start" /></div>
       {commission

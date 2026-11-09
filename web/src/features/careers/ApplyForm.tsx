@@ -11,8 +11,11 @@ import { OUTCOME_WORDS, payOver, type Question, type RolePublic } from './model'
 // What is typed is kept on this device as it is typed (localStorage, never sent until Send) and restored on return. The
 // database checks and scores every answer; the browser never sees the points.
 type Answers = Record<string, string | string[]>;
-interface Draft { full_name: string; email: string; phone: string; profile_name: string; answers: Answers }
-const EMPTY: Draft = { full_name: '', email: '', phone: '', profile_name: '', answers: {} };
+interface Draft { full_name: string; email: string; phone: string; profile_name: string; city: string; region: string; country: string; answers: Answers }
+const EMPTY: Draft = { full_name: '', email: '', phone: '', profile_name: '', city: '', region: '', country: 'CA', answers: {} };
+// 1067: an in-person role asks where the applicant lives (city, province or state, country); outside the Toronto area they
+// are told and sent to Remote Sales with their details. Only these fields (and the country of the phone and the connection) are used.
+const COUNTRIES: Array<[string, string]> = [['CA', 'Canada'], ['US', 'United States'], ['PH', 'Philippines'], ['IN', 'India'], ['PK', 'Pakistan'], ['MX', 'Mexico'], ['GB', 'United Kingdom'], ['ZZ', 'Another country']];
 
 export function ApplyForm({ role, src, utm, prefill, refToken }: { role: RolePublic; src: string | null; utm: Record<string, string>;
   prefill?: { full_name: string; email: string; phone: string; from_role: string } | null; refToken?: string | null }) {
@@ -23,6 +26,7 @@ export function ApplyForm({ role, src, utm, prefill, refToken }: { role: RolePub
   const [message, setMessage] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [done, setDone] = useState<Extract<ApplyResult, { ok: true }> | null>(null);
+  const [away, setAway] = useState<{ slug: string | null; title: string | null } | null>(null);
   const [payNote, setPayNote] = useState<null | 'over' | 'no'>(null);
   const payAcked = useRef(false);
   const loaded = useRef(false);
@@ -59,6 +63,7 @@ export function ApplyForm({ role, src, utm, prefill, refToken }: { role: RolePub
     if (d.full_name.trim().length < 2) e.full_name = 'Enter your full name.';
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email.trim())) e.email = 'Enter a full email address, for example name@example.com.';
     if (d.phone.replace(/\D/g, '').length < 7) e.phone = 'Enter a phone number we can call.';
+    if (!role.remote && d.city.trim().length < 2) e.city = 'Enter the city or town you live in.';
     for (const q of role.questions) {
       const a = d.answers[q.key];
       const empty = Array.isArray(a) ? a.length === 0 : !String(a ?? '').trim();
@@ -78,12 +83,26 @@ export function ApplyForm({ role, src, utm, prefill, refToken }: { role: RolePub
     setBusy(true);
     const fd = new FormData(ev.currentTarget);
     const r = await submitApplication({ role: role.slug, full_name: d.full_name, email: d.email, phone: d.phone, profile_name: d.profile_name, answers: d.answers, src, utm,
+      location: role.remote ? undefined : { city: d.city, region: d.region, country: d.country },
       ref: refToken ?? null, turnstile: (fd.get('cf-turnstile-response') as string | null) ?? null, website: String(fd.get('website') ?? '') });
     setBusy(false);
+    if (!r.ok && r.code === 'outside_area') { setAway({ slug: r.remote_slug ?? null, title: r.remote_title ?? null }); requestAnimationFrame(() => document.getElementById('apply-away')?.focus()); return; }
     if (!r.ok) { setErrors(r.errors ?? {}); setMessage(r.message); if (r.errors) focusFirst(); return; }
     try { localStorage.removeItem(KEY); } catch { /* private mode */ }
     setDone(r);
     requestAnimationFrame(() => { window.scrollTo({ top: 0 }); document.getElementById('apply-done')?.focus(); });
+  }
+
+  if (away) {
+    const q = new URLSearchParams({ src: 'referral', name: d.full_name, email: d.email });
+    return (
+      <section className="stack-lg cr-done" id="apply-away" tabIndex={-1} aria-labelledby="apply-away-h" data-testid="apply-away">
+        <h2 className="d2" id="apply-away-h">This role is in person in the Toronto area</h2>
+        <p className="lead">You live outside the area we work in, so we cannot take this in-person application. {away.slug ? `${away.title ?? 'Remote Sales'} is open from anywhere, and your details carry over.` : 'Please look at our remote roles.'}</p>
+        {away.slug && <p><Link prefetch={false} className="btn btn--primary btn--lg" href={`/careers/${away.slug}/apply?${q.toString()}`} data-testid="apply-away-remote">Apply for {away.title ?? 'Remote Sales'}</Link></p>}
+        <p><Link prefetch={false} className="link" href="/careers">See all open roles</Link></p>
+      </section>
+    );
   }
 
   if (done) {
@@ -118,6 +137,16 @@ export function ApplyForm({ role, src, utm, prefill, refToken }: { role: RolePub
         {input('full_name', 'Full name', 'text', 'name')}
         {input('email', 'Email', 'email', 'email')}
         {input('phone', 'Mobile number', 'tel', 'tel', false, 'We call or text this number about your application.')}
+        {!role.remote && <fieldset className="stack" data-testid="ap-location"><legend className="label">Where you live (this role is in person in the Toronto area)</legend>
+          <Field id="ap-city" label="City or town" error={errors.city ?? errors.location_city}>
+            <input className="input" id="ap-city" name="city" autoComplete="address-level2" value={d.city} onChange={(e) => { set('city', e.target.value); clear('location_city'); }}
+              aria-invalid={!!(errors.city ?? errors.location_city) || undefined} aria-describedby={describedBy('ap-city', errors.city ?? errors.location_city, false)} data-testid="ap-city" /></Field>
+          <Field id="ap-region" label="Province or state" optional>
+            <input className="input" id="ap-region" name="region" autoComplete="address-level1" value={d.region} onChange={(e) => set('region', e.target.value)} data-testid="ap-region" /></Field>
+          <Field id="ap-country" label="Country">
+            <select className="select" id="ap-country" name="country" autoComplete="country" value={d.country} onChange={(e) => set('country', e.target.value)} data-testid="ap-country">
+              {COUNTRIES.map(([c, n]) => <option key={c} value={c}>{n}</option>)}</select></Field>
+        </fieldset>}
         {input('profile_name', src === 'onlinejobs' ? 'Name on your OnlineJobs.ph profile, if different' : 'Name on your Indeed profile, if different', 'text', 'off', true)}
       </fieldset>
       <fieldset className="stack-lg cr-group">

@@ -2,7 +2,7 @@
 import { verifyTurnstile } from '@/integrations/turnstile';
 import { rpc } from '@/lib/db/repo';
 import type { Json } from '@/lib/db/types';
-import { requestMeta } from '@/server/request';
+import { requestCountry, requestMeta } from '@/server/request';
 import { sourceOf, UTM_KEYS } from '@/features/careers/model';
 
 // Careers (migration 0173). The application goes to public.server_hiring_apply after Turnstile, as the server: the database
@@ -13,9 +13,10 @@ const TOKEN = /^[0-9a-f]{64}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 export interface ApplyInput { role: string; full_name: string; email: string; phone: string; profile_name?: string; answers: Record<string, string | string[]>; src?: string | null;
+  location?: { city: string; region: string; country: string };
   utm?: Record<string, string>; ref?: string | null; turnstile?: string | null; website?: string }
 export type ApplyResult = { ok: true; outcome: 'invited' | 'received' | 'declined' | 'referred'; token?: string | null; other_role?: string; other_title?: string; ai_interview?: boolean }
-  | { ok: false; code: string; message: string; errors?: Record<string, string> };
+  | { ok: false; code: string; message: string; errors?: Record<string, string>; remote_slug?: string | null; remote_title?: string | null };
 
 export async function submitApplication(i: ApplyInput): Promise<ApplyResult> {
   // a filled honeypot (a field people never see) is a bot: answered as received, nothing saved
@@ -32,10 +33,14 @@ export async function submitApplication(i: ApplyInput): Promise<ApplyResult> {
   for (const k of UTM_KEYS) if (i.utm?.[k]) utm[k] = String(i.utm[k]).slice(0, 100);
   try {
     const r = (await rpc('server_hiring_apply', { p: { role: i.role, full_name: String(i.full_name ?? '').slice(0, 200), email: String(i.email ?? '').slice(0, 200), phone: String(i.phone ?? '').slice(0, 60),
-      profile_name: String(i.profile_name ?? '').slice(0, 200), source: sourceOf(i.src), utm, answers, ref: i.ref && TOKEN.test(i.ref) ? i.ref : null } as unknown as Json, p_ip: meta.ip ?? undefined }, SR)) as unknown as
-      { ok: boolean; error?: string; errors?: Record<string, string>; outcome?: 'invited' | 'received' | 'declined' | 'referred'; token?: string | null; other_role?: string; other_title?: string; ai_interview?: boolean; sales_slug?: string | null; sales_title?: string | null };
+      profile_name: String(i.profile_name ?? '').slice(0, 200), source: sourceOf(i.src), utm, answers, ref: i.ref && TOKEN.test(i.ref) ? i.ref : null,
+      // 1067: an in-person role's location (city, province or state, country) and the connection's country, nothing finer
+      location_city: String(i.location?.city ?? '').slice(0, 80), location_region: String(i.location?.region ?? '').slice(0, 80),
+      location_country: /^[A-Z]{2}$/.test(i.location?.country ?? '') ? i.location!.country : '', ip_country: (await requestCountry()) ?? '' } as unknown as Json, p_ip: meta.ip ?? undefined }, SR)) as unknown as
+      { ok: boolean; error?: string; errors?: Record<string, string>; outcome?: 'invited' | 'received' | 'declined' | 'referred'; token?: string | null; other_role?: string; other_title?: string; ai_interview?: boolean; sales_slug?: string | null; sales_title?: string | null; remote_slug?: string | null; remote_title?: string | null };
     if (!r.ok) {
       if (r.error === 'invalid') return { ok: false, code: 'invalid', message: 'Check the highlighted answers.', errors: r.errors ?? {} };
+      if (r.error === 'outside_area') return { ok: false, code: 'outside_area', message: 'This role is in person in the Toronto area.', remote_slug: r.remote_slug ?? null, remote_title: r.remote_title ?? null };
       if (r.error === 'rate_limited') return { ok: false, code: 'rate_limited', message: 'Too many applications from this connection. Please try again later.' };
       if (r.error === 'closed') return { ok: false, code: 'closed', message: r.sales_slug ? `This role is filled. Apply for ${r.sales_title ?? 'Sales'} instead: carmacars.ca/careers/${r.sales_slug}/apply` : 'This role is no longer open.' };
       return { ok: false, code: 'refused', message: 'We could not send that. Please try again.' };

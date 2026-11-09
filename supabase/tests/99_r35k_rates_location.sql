@@ -66,7 +66,7 @@ select test.ok('and no in-person application is taken', not exists (select 1 fro
 select test.eq('a Canadian city the site cannot place: taken and flagged unknown', app.in_person_area('Vancouver', 'CA'), 'unknown');
 select test.eq('any country but Canada: outside', app.in_person_area('Buffalo', 'US'), 'outside');
 select test.eq('a GTA city: inside', app.in_person_area('Mississauga', 'CA'), 'inside');
-select test.eq('no city: asked for', public.server_hiring_apply(jsonb_build_object('role', 'sales-in-person', 'full_name', 'R35m Nocity', 'email', 'r35m_nocity@example.test', 'phone', '4165550100'), null) ->> 'error', 'invalid');
+select test.eq('no city: asked for', public.server_hiring_apply(jsonb_build_object('role', 'sales-in-person', 'full_name', 'R35m Nocity', 'email', 'r35m_nocity@example.test', 'phone', '4165550100', 'location_city', '', 'location_country', 'CA'), null) ->> 'error', 'invalid');
 insert into job_applications (id, role_id, full_name, email, phone, status, location_city, location_country, ip_country, phone_country)
 values (test.id('r35m_app_flag'), (select id from hiring_roles where slug = 'sales-in-person'), 'R35m Flagged', 'r35m_flag@example.test', '+639171234568', 'interviewed', 'Toronto', 'CA', 'PH', 'PH');
 select test.eq('Admin sees the mismatch and Move to Remote Sales', (select (r ->> 'location_mismatch') || '/' || (r ->> 'move_remote') from app.hiring_app_row((select a from job_applications a where id = test.id('r35m_app_flag'))) r), 'true/true');

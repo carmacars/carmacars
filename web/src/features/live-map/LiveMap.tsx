@@ -13,11 +13,11 @@ import { MapEngine, type CarSpec, type EngineEvents, type Pad, type PinSpec, typ
 import { CanvasMap, hasWebGL } from './canvas';
 
 /** What LiveMap asks of a renderer: MapLibre (engine.ts) or Canvas 2D (canvas.ts). */
-type Engine = Pick<MapEngine, 'start' | 'destroy' | 'setPins' | 'setCars' | 'setHq' | 'frame' | 'reframe' | 'focus'>;
+type Engine = Pick<MapEngine, 'start' | 'destroy' | 'setPins' | 'setCars' | 'setHq' | 'frame' | 'reframe' | 'focus' | 'screenOf'>;
 import { roleLabel } from './roles';
 import { ContactButtons } from '@/features/phone/QuoButtons';
 import { CAR_HOW, CAR_SILHOUETTE, FLEET_STATUS, adminHref, staffHref, carLabel, timeLine, withoutContact, compactMoney, onTheRoad, photoPins, PRECISION_WORDS, STAGE, STAGES, TYPE, isNew, reasonOf, shortAgo, spotlight, isLead, spread, stageOf, tally, verbOf,
-  type CarPhoto, type Kpi, type MapView, type Pin, type Stage, failedNote } from './model';
+  type CarPhoto, type Kpi, type MapView, type Pin, type Stage, failedNote, celebrationText, type Celebration } from './model';
 
 // Today > Live map (migration 0242). The map is the hero: the site's own dark basemap with a glowing dot per lead (four
 // stages, four colours), clustered where they crowd. Four numbers above it. On a TV (?tv=1): the map edge to edge on
@@ -165,6 +165,26 @@ export function LiveMap({ initial, tv, at, embedded = false, portal = 'admin' }:
     return () => { dead = true; e.destroy(); engine.current = null; };
   }, [tv]);
 
+  // 1068: a booking just confirmed: confetti and a pulse at the renter's place (the map's middle when not placed) and a
+  // toast with the car and the Sales credit; each plays once on this screen; less motion: the toast only
+  const [party, setParty] = useState<{ c: Celebration; x: number; y: number } | null>(null);
+  const seen = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    const list = view?.celebrations ?? [];
+    if (!list.length || party) return;
+    if (!seen.current) { try { seen.current = new Set(JSON.parse(localStorage.getItem('cc-lm-party') ?? '[]') as string[]); } catch { seen.current = new Set(); } }
+    const c = list.find((x) => !seen.current!.has(x.booking_number));
+    if (!c) return;
+    seen.current.add(c.booking_number);
+    try { localStorage.setItem('cc-lm-party', JSON.stringify([...seen.current].slice(-50))); } catch { /* private mode */ }
+    const box = boxRef.current, p = (view?.pins ?? []).find((x) => x.booking_number === c.booking_number && x.lat !== null && x.lng !== null);
+    const at = p ? engine.current?.screenOf(p.lng!, p.lat!) ?? null : null;
+    const w = box?.clientWidth ?? 0, h = box?.clientHeight ?? 0;
+    const inside = at && at.x >= 0 && at.y >= 0 && at.x <= w && at.y <= h;
+    setParty({ c, x: inside ? at.x : w / 2, y: inside ? at.y : h / 2 });
+  }, [view?.celebrations, view?.pins, party]);
+  useEffect(() => { if (!party) return; const t = setTimeout(() => setParty(null), 7000); return () => clearTimeout(t); }, [party]);
+
   const pins = useMemo(() => view?.pins ?? [], [view]);
   const counts = useMemo(() => (view ? tally(view, inArea) : null), [view]);
   const placed = useMemo(() => {
@@ -246,6 +266,7 @@ export function LiveMap({ initial, tv, at, embedded = false, portal = 'admin' }:
   );
   const map = (
     <div className="lm-map" ref={boxRef} role="region" aria-label="Map of the Greater Toronto Area with a dot per lead" data-testid="lm-map" data-mode={mode} data-renderer={renderer ?? undefined}>
+      {party && <Party c={party.c} x={party.x} y={party.y} />}
       {renderer === 'canvas' && <p className="lm-map__slow" data-testid="lm-slow">Faster with hardware acceleration on (Chrome Settings &gt; System)</p>}
       {mode === 'nogl' && <p className="lm-map__note">The map needs WebGL, which this browser has turned off. The leads are listed {tv ? 'on the right' : 'below'}.</p>}
     </div>
@@ -535,6 +556,20 @@ function LeadTable({ pins, now, cap, onLocate }: { pins: Pin[]; now: number; cap
           })}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+/** 1068: the booking celebration: a pulse and confetti at the renter's place, and the toast (motion off for those who ask). */
+const CONFETTI = ['var(--lm-new, #f5b301)', 'var(--lm-hot, #ff5a5f)', 'var(--lm-booked, #3ddc97)', '#5ab0ff', '#ffffff'];
+function Party({ c, x, y }: { c: Celebration; x: number; y: number }) {
+  return (
+    <div className="lm-party" data-testid="lm-celebration">
+      <div className="lm-party__at" style={{ left: x, top: y }} aria-hidden="true">
+        <span className="lm-party__pulse" />
+        {Array.from({ length: 18 }, (_, i) => <span key={i} className="lm-party__bit" style={{ ['--a' as string]: `${(i * 360) / 18}deg`, ['--d' as string]: `${60 + (i % 3) * 28}px`, background: CONFETTI[i % CONFETTI.length] }} />)}
+      </div>
+      <p className="lm-party__toast" role="status">{celebrationText(c)}</p>
     </div>
   );
 }

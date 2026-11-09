@@ -92,6 +92,8 @@ export class CanvasMap {
   // ---------------------------------------------------------------- the camera (the same sums as MapLibre's fitBounds)
   private size() { return { w: this.box.clientWidth, h: this.box.clientHeight }; }
   private scale(z = this.cam.z) { return WORLD * 2 ** z; }
+  /** 1068: where a place is on screen (CSS pixels in the map's box). */
+  screenOf(lng: number, lat: number): { x: number; y: number } | null { const [x, y] = this.project([lng, lat]); return { x, y }; }
   project([lng, lat]: Pt, cam = this.cam): Pt {
     const { w, h } = this.size(), s = WORLD * 2 ** cam.z;
     return [(mx(lng) - cam.x) * s + w / 2, (my(lat) - cam.y) * s + h / 2];

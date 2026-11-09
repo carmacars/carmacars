@@ -3,7 +3,8 @@ import { Act } from '@/features/admin/Act';
 import { Card } from '@/features/admin/ui';
 import { door } from '@/server/door';
 import data from '@/features/investor/updates-data.json';
-import { withReleases, releasesOfWeek, type Release, type Townhall as T } from './model';
+import './townhall.css';
+import { moveNotice, withReleases, releasesOfWeek, type Release, type Townhall as T } from './model';
 
 // The weekly townhall deck (1062): one slide a section, the platform updates from the release notes of that week, the
 // notes an Admin types per slide; the next call with its link and the calendar invite. Admin builds it again any time.
@@ -17,8 +18,13 @@ export async function TownhallDeck({ userId, aal, base, week }: { userId: string
   return (<>
     <Card title={v.next_at ? `Next call: ${when(v.next_at)}, ${v.minutes} minutes` : 'Weekly townhall'} testId="townhall-next"
       aside={v.admin ? <Act action="townhall_build" payload={{ week_of: v.deck?.week_of ?? null }} label="Build again" refresh={refresh} done="Built from the live data." testId="townhall-build" /> : null}>
-      <p className="small">{v.call_url ? <a className="btn btn--sm btn--primary" href={v.call_url} target="_blank" rel="noopener noreferrer">Join the call</a> : 'The call link is set in Program settings (Townhall call link).'}{' '}
+      <p className="small">{v.call_url ? <a className="btn btn--sm btn--primary" href="/api/townhall-join" target="_blank" rel="noopener noreferrer" data-testid="townhall-join">Join the call</a> : 'The call link is set in Program settings (Townhall call link).'}{' '}
+        {v.checked_in ? <span className="ad-b ad-b--light" data-testid="townhall-checked-in">You are checked in</span>
+          : v.can_check_in ? <Act ops action="townhall_attend" payload={{ method: 'checkin' }} label="Check in" variant="primary" refresh={refresh} done="Checked in." testId="townhall-checkin" /> : null}{' '}
         <a className="link small" href="/api/townhall-ics" download="carmacars-townhall.ics">Add to my calendar (every week)</a></p>
+      <p className="small muted">Every staff member is expected. Joining through this page or checking in (from 15 minutes before) counts you as there; Admin sees who missed it.</p>
+      {moveNotice(v) && <p className="alert alert--warn small" role="status" data-testid="townhall-moves"><span>{moveNotice(v)}</span></p>}
+      {v.admin && v.attendance && v.attendance.meetings > 0 && <p className="small" data-testid="townhall-attendance">Last townhall: {v.attendance.last_absent ?? 0} missed it. Each person&apos;s misses are on the staff list.</p>}
       {v.weeks.length > 1 && <p className="small">Other weeks: {v.weeks.map((w) => <Link key={w} prefetch={false} className="link" href={`${base}/townhall?week=${w}`}> {day(w)}</Link>)}</p>}
     </Card>
     {!v.deck ? <p className="small muted">The first deck is built on Sunday night from the week&apos;s live data.</p> : <>
@@ -29,6 +35,14 @@ export async function TownhallDeck({ userId, aal, base, week }: { userId: string
           {!!s.points.length && <dl className="th-points">{s.points.map((p) => <div key={p.label}><dt className="small muted">{p.label}</dt><dd className="d4">{p.value}</dd></div>)}</dl>}
           {!!s.lines?.length && <ul className="small">{s.lines.map((l) => <li key={l}>{l}</li>)}</ul>}
           {!!s.board?.length && <><p className="small"><b>Leaderboard</b></p><ol className="small">{s.board.map((p) => <li key={p.label}>{p.label}: {p.value}</li>)}</ol></>}
+          {!!s.people?.length && <ul className="th-people" data-testid="townhall-people">{s.people.map((p) => (
+            <li key={p.user_id} className="th-person" data-testid={`townhall-person-${p.user_id}`}>
+              <p><b>{p.name}</b> <span className="small muted">{p.role}</span></p>
+              {!!p.points?.length && <dl className="th-points">{p.points.map((x) => <div key={x.label}><dt className="small muted">{x.label}</dt><dd>{x.value}</dd></div>)}</dl>}
+              {p.shoutout && <p className="small th-shout">{p.shoutout}</p>}
+              {v.admin && <Act action="townhall_note" payload={{ deck: v.deck!.id, key: `p_${p.user_id}` }} label={p.shoutout ? 'Change the shout-out' : 'Add a shout-out'} refresh={refresh} done="Saved."
+                fields={[{ name: 'note', label: `Shout-out for ${p.name}`, type: 'textarea', value: p.shoutout ?? '' }]} />}
+            </li>))}</ul>}
           {s.note && <p className="small" data-testid={`townhall-note-${s.key}`}>{s.note}</p>}
           {v.admin && <Act action="townhall_note" payload={{ deck: v.deck!.id, key: s.key }} label={s.note ? 'Change the note' : 'Add a note'} refresh={refresh} done="Saved."
             fields={[{ name: 'note', label: 'What to say on this slide', type: 'textarea', value: s.note ?? '' }]} />}

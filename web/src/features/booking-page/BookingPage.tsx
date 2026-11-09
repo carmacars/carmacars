@@ -330,7 +330,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
         adjuster_email: b.insurer_adjuster_email, adjuster_phone: b.insurer_adjuster_phone, policy_number: (b.insurer_policy_number as string | null) ?? null,
         policy_province: (b.insurer_policy_province as string | null) ?? null, authorized_days: b.insurer_authorized_days, authorized_until: b.insurer_authorized_until,
         authorized_daily_rate_cents: b.insurer_authorized_daily_rate_cents, adjuster_id: (b.insurer_adjuster_id as string | null) ?? null }} />}
-      {pay && <PayPlanCard booking={b.id} pay={pay} refresh={[base]} />}
+      {pay && <PayPlanCard booking={b.id} pay={pay} refresh={[base]} admin={viewer.role === 'admin'} />}
       {periods && <BookingPeriods booking={b.booking_number} rows={periods} />}
       {(on('overview') || on('review')) && renterForm && <RenterEdit x={renterForm} />}
       {duplicates && renterForm && <RenterMerge renterId={renterForm.renter_id} name={renterForm.now.full_name ?? 'this renter'} rows={duplicates} />}

@@ -21,7 +21,8 @@ interface Detail {
   application: { id: string; role: string; role_slug: string; status: string; full_name: string; email: string | null; phone: string | null; profile_name: string | null; source: string;
     utm: Record<string, string>; score: number | null; score_points: number | null; score_max: number | null; pass_mark: number; knockouts: string[]; ko_reasons: string[]; created_at: string;
     slot_starts_at: string | null; mode: string | null; meet_url: string | null; booking_url: string; final_score: number | null; interview_score: number | null; rank: number | null;
-    referred_role: string | null; referred_from: string | null; referral_application: string | null; note: string | null; hired_user_id: string | null; purged: boolean };
+    referred_role: string | null; referred_from: string | null; referral_application: string | null; note: string | null; hired_user_id: string | null; purged: boolean;
+    location?: string | null; location_area?: string | null; location_mismatch?: boolean; move_remote?: boolean; phone_country?: string | null; ip_country?: string | null };
   role: { slug: string; title: string; short_title: string; staff_kind: string; va_function: string | null; remote: boolean; test_task: string | null;
     call_guide: { steps?: Array<[string, string]>; questions?: Array<[string, string]> } };
   breakdown: Array<{ key: string; label: string; answer: string | null; points: number; max: number }>;
@@ -85,6 +86,7 @@ export default async function Candidate({ params }: { params: Promise<{ id: stri
           fields={[{ name: 'email', label: 'Send the polite decline email', type: 'bool', value: true }, { name: 'reason', label: 'The requirement it names (optional: "This role needs ...")', type: 'text' }]} />}
         {a.status === 'booked' && <Act action="hiring_no_show" payload={{ id }} label="No show" testId="cand-noshow" refresh={refresh} done="Marked as a no-show." confirm="Mark this call as a no-show?" />}
         {['interviewed', 'no_show', 'booked'].includes(a.status) && <Act action="hiring_reject" payload={{ id }} label="Not hired" testId="cand-reject" refresh={refresh} done="Marked as not hired. No email is sent." confirm="Mark as not hired? No email is sent." />}
+        {a.move_remote && <Act action="hiring_move_remote" payload={{ id }} label="Move to Remote Sales" testId="cand-move-remote" refresh={refresh} done="Moved: they have the Remote Sales link with their details." confirm={`Send ${a.full_name} to Remote Sales (in person needs the Toronto area)?`} />}
         {!['hired', 'withdrawn'].includes(a.status) && !a.purged && <Act action="hiring_withdraw" payload={{ id }} label="Withdrawn" testId="cand-withdraw" refresh={refresh} done="Marked as withdrawn." confirm="Mark as withdrawn (they no longer want the role)?" />}
       </span>
     </PageHead>
@@ -95,6 +97,9 @@ export default async function Candidate({ params }: { params: Promise<{ id: stri
           <Kv rows={[
             ['Email', a.email ? <a className="link" href={`mailto:${a.email}`}>{a.email}</a> : 'Removed'],
             ['Phone', tel ? <ContactButtons phone={a.phone} name={a.full_name} look="link" testId="cand-call">{a.phone}</ContactButtons> : '-'],
+            ['Lives in', <span key="loc" data-testid="cand-location">{a.location ?? '-'}{a.location_area === 'outside' ? ' (outside the area)' : a.location_area === 'unknown' ? ' (not placed)' : ''}
+              {a.location_mismatch ? <> <Badge s="needs_review">Mismatch</Badge></> : null}</span>],
+            ['Phone and connection country', `${a.phone_country ?? '-'} / ${a.ip_country ?? '-'}`],
             ['Profile name', a.profile_name ?? '-'], ['Source', SOURCE_WORDS[a.source] ?? a.source],
             ['Campaign', Object.entries(a.utm ?? {}).map(([k, v]) => `${k.replace('utm_', '')}: ${v}`).join(', ') || '-'], ['Applied', t(a.created_at)],
             ['Booking link', <a key="b" className="link" href={a.booking_url} rel="noopener" target="_blank">Open the candidate&apos;s booking page</a>]]} />

@@ -8,7 +8,7 @@ export type PayState = 'paid' | 'overdue' | 'soon' | 'upcoming' | 'none';
 export type Plan = 'whole' | 'weekly' | 'biweekly' | 'monthly' | 'insurer' | 'owner';
 export interface Instalment { seq: number; due_at: string; ends_at: string; cents: number; through_cents: number }
 export interface Pay {
-  plan: Plan; set: boolean; state: PayState; owed_cents: number; paid_cents: number; open_cents: number; count: number; per_cents: number | null; overdue_count: number;
+  plan: Plan; set: boolean; fixed_cents?: number | null; state: PayState; owed_cents: number; paid_cents: number; open_cents: number; count: number; per_cents: number | null; overdue_count: number;
   next: { seq: number; due_at: string; cents: number; instalment_cents: number } | null;
   insurer: { name: string | null; claim: string | null; share_cents: number; paid_cents: number } | null;
   schedule: Instalment[];

@@ -23,14 +23,16 @@ export interface Kpi { active_now: number; requests_today: number; requests_yest
 /** 1064: staff working now and the week's Sales leaderboard (on the figures' layer) */
 export interface Working { name: string; role: string; since: string }
 export interface Leader { name: string; bookings: number }
-export interface RawMap { working?: Working[]; leaderboard?: Leader[]; at: string; days: number; cap: number; live_minutes: number; hq?: { lat: number; lng: number } | null; kpi: Kpi; totals: Partial<Record<LeadType, number>>; pins: RawPin[]; fleet: FleetCar[];
+/** 1068: a booking confirmed in the last 15 minutes: the celebration on the map */
+export interface Celebration { booking_number: string; at: string; car: string | null; sales: string | null }
+export interface RawMap { working?: Working[]; leaderboard?: Leader[]; celebrations?: Celebration[]; at: string; days: number; cap: number; live_minutes: number; hq?: { lat: number; lng: number } | null; kpi: Kpi; totals: Partial<Record<LeadType, number>>; pins: RawPin[]; fleet: FleetCar[];
   /** 1080: the layers that could not be read (kpi, pins, fleet, roles); the others are drawn */
   failed?: string[] }
 
 /** 1080: the map's three layers, each read on its own (admin_read live_map {part}), so a slow or failing one leaves the others. */
 export const MAP_PARTS = ['kpi', 'pins', 'fleet'] as const;
 export type MapPart = (typeof MAP_PARTS)[number];
-const PART_KEYS: Record<MapPart, Array<keyof RawMap>> = { kpi: ['kpi', 'working', 'leaderboard'], pins: ['pins', 'totals'], fleet: ['fleet'] };
+const PART_KEYS: Record<MapPart, Array<keyof RawMap>> = { kpi: ['kpi', 'working', 'leaderboard', 'celebrations'], pins: ['pins', 'totals'], fleet: ['fleet'] };
 /** One answer from the layers' answers: each layer's own keys from its answer; a layer that failed (refused, timed out, or
  *  named in the database's "failed") is listed in failed and drawn empty. Throws only when every layer failed. */
 export function mergeParts(parts: Array<{ part: MapPart; ok: true; value: RawMap } | { part: MapPart; ok: false; error: unknown }>): RawMap {
@@ -72,7 +74,7 @@ export interface Pin {
   /** seconds on the site (the visit's), for the card's time line */
   seconds: number | null;
 }
-export interface MapView { working: Working[]; leaderboard: Leader[]; at: string; days: number; cap: number; hq: { lat: number; lng: number } | null; kpi: Kpi; totals: Partial<Record<LeadType, number>>; pins: Pin[]; fleet: FleetCar[];
+export interface MapView { working: Working[]; leaderboard: Leader[]; celebrations: Celebration[]; at: string; days: number; cap: number; hq: { lat: number; lng: number } | null; kpi: Kpi; totals: Partial<Record<LeadType, number>>; pins: Pin[]; fleet: FleetCar[];
   /** Release 26: phones and emails are in this answer ("Show contact" on); without it they are never sent. */
   contact: boolean;
   /** 0400: the fleet layer is Fleet tracking's demo mode (simulated cars) */ fleet_demo?: boolean;
@@ -247,7 +249,7 @@ export function toView(raw: RawMap, contact: boolean): MapView {
     };
   });
   const hq = raw.hq && num(raw.hq.lat) !== null && num(raw.hq.lng) !== null ? { lat: num(raw.hq.lat)!, lng: num(raw.hq.lng)! } : null;
-  return { working: raw.working ?? [], leaderboard: raw.leaderboard ?? [], at: raw.at, days: raw.days, cap: raw.cap, hq, kpi: raw.kpi, totals: raw.totals ?? {}, pins, fleet: raw.fleet ?? [], contact, failed: raw.failed ?? [] };
+  return { working: raw.working ?? [], leaderboard: raw.leaderboard ?? [], celebrations: raw.celebrations ?? [], at: raw.at, days: raw.days, cap: raw.cap, hq, kpi: raw.kpi, totals: raw.totals ?? {}, pins, fleet: raw.fleet ?? [], contact, failed: raw.failed ?? [] };
 }
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : typeof v === 'string' && v !== '' && Number.isFinite(Number(v)) ? Number(v) : null);
 
@@ -505,4 +507,9 @@ export function spiderOffsets(n: number, r0 = 34): Array<[number, number]> {
     out.push([Math.cos(a) * r, Math.sin(a) * r]);
   }
   return out;
+}
+
+/** 1068: the celebration's toast: the car and who gets the Sales credit. */
+export function celebrationText(c: Celebration): string {
+  return `Booking confirmed${c.car ? `: ${c.car}` : ''}${c.sales ? `. Sales: ${c.sales}` : ''}`;
 }

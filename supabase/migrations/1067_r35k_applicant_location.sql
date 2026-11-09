@@ -98,10 +98,11 @@ declare
 begin
   select * into r from hiring_roles where slug = p ->> 'role' and active;
   if r.id is not null and not r.remote then
-    if nullif(btrim(coalesce(p ->> 'location_city', '')), '') is null or v_country is null then
+    -- the form sends the location (an older link or the API without it: taken, the area unknown, the other signals flag it)
+    if p ? 'location_city' and (nullif(btrim(coalesce(p ->> 'location_city', '')), '') is null or v_country is null) then
       return jsonb_build_object('ok', false, 'error', 'invalid', 'errors', jsonb_build_object('location_city', 'Enter the city you live in, and your country.'));
     end if;
-    v_area := app.in_person_area(p ->> 'location_city', v_country);
+    v_area := case when p ? 'location_city' then app.in_person_area(p ->> 'location_city', v_country) else 'unknown' end;
     if v_area = 'outside' then
       select * into s from hiring_roles where active and va_function = 'sales' and (remote or work_mode = 'remote') order by sort_order limit 1;
       return jsonb_build_object('ok', false, 'error', 'outside_area', 'remote_slug', s.slug, 'remote_title', s.title);

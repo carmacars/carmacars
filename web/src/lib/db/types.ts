@@ -3280,6 +3280,7 @@ export type Database = {
           returning_now_by: string | null;
           returning_now_return_at: string | null;
           plan_policy_number: string | null;
+          pay_fixed_cents: number | null;
         };
         Insert: {
           id?: string;
@@ -3464,6 +3465,7 @@ export type Database = {
           returning_now_by?: string | null;
           returning_now_return_at?: string | null;
           plan_policy_number?: string | null;
+          pay_fixed_cents?: number | null;
         };
         Update: {
           id?: string;
@@ -3648,6 +3650,7 @@ export type Database = {
           returning_now_by?: string | null;
           returning_now_return_at?: string | null;
           plan_policy_number?: string | null;
+          pay_fixed_cents?: number | null;
         };
         Relationships: [];
       };
@@ -9225,6 +9228,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      hiring_auto_hires: {
+        Row: {
+          application_id: string;
+          score: number;
+          mark: number;
+          ok: boolean | null;
+          error: string | null;
+          tried_at: string;
+          done_at: string | null;
+        };
+        Insert: {
+          application_id: string;
+          score: number;
+          mark: number;
+          ok?: boolean | null;
+          error?: string | null;
+          tried_at?: string;
+          done_at?: string | null;
+        };
+        Update: {
+          application_id?: string;
+          score?: number;
+          mark?: number;
+          ok?: boolean | null;
+          error?: string | null;
+          tried_at?: string;
+          done_at?: string | null;
+        };
+        Relationships: [];
+      };
       hiring_decisions: {
         Row: {
           application_id: string;
@@ -10571,6 +10604,12 @@ export type Database = {
           confirm_sent_at: string | null;
           confirmed_at: string | null;
           unconfirmed_at: string | null;
+          location_city: string | null;
+          location_region: string | null;
+          location_country: string | null;
+          phone_country: string | null;
+          ip_country: string | null;
+          location_area: string | null;
         };
         Insert: {
           id?: string;
@@ -10615,6 +10654,12 @@ export type Database = {
           confirm_sent_at?: string | null;
           confirmed_at?: string | null;
           unconfirmed_at?: string | null;
+          location_city?: string | null;
+          location_region?: string | null;
+          location_country?: string | null;
+          phone_country?: string | null;
+          ip_country?: string | null;
+          location_area?: string | null;
         };
         Update: {
           id?: string;
@@ -10659,6 +10704,12 @@ export type Database = {
           confirm_sent_at?: string | null;
           confirmed_at?: string | null;
           unconfirmed_at?: string | null;
+          location_city?: string | null;
+          location_region?: string | null;
+          location_country?: string | null;
+          phone_country?: string | null;
+          ip_country?: string | null;
+          location_area?: string | null;
         };
         Relationships: [];
       };
@@ -16169,6 +16220,9 @@ export type Database = {
           created_at: string;
           updated_at: string;
           opted_in_at: string | null;
+          answered_mark_at: string | null;
+          answered_mark_by: string | null;
+          unanswered_alerted_at: string | null;
         };
         Insert: {
           id?: string;
@@ -16198,6 +16252,9 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           opted_in_at?: string | null;
+          answered_mark_at?: string | null;
+          answered_mark_by?: string | null;
+          unanswered_alerted_at?: string | null;
         };
         Update: {
           id?: string;
@@ -16227,6 +16284,9 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           opted_in_at?: string | null;
+          answered_mark_at?: string | null;
+          answered_mark_by?: string | null;
+          unanswered_alerted_at?: string | null;
         };
         Relationships: [];
       };
@@ -17217,6 +17277,28 @@ export type Database = {
           accident_plan_claim_url: string | null;
           listing_cf_transformations: boolean;
           marketing_scenes: Json;
+          staff_agreement_gate: boolean;
+          hiring_refer_va_to_sales: boolean;
+          hiring_auto_hire_sales: boolean;
+          hiring_auto_hire_mark: number | null;
+          hiring_ai_all_roles: boolean;
+          whatsapp_sales_group_url: string;
+          whatsapp_team_group_url: string;
+          staff_inactive_lock_days: number;
+          staff_inactive_warn_days: number;
+          va_clock_starts: Json;
+          va_clock_days: number[];
+          unanswered_sla_minutes: number;
+          townhall_weekday: number;
+          townhall_time: string;
+          townhall_minutes: number;
+          townhall_call_url: string;
+          townhall_finance_to_staff: boolean;
+          in_person_area_km: number;
+          in_person_area_cities: string[];
+          townhall_auto_day: boolean;
+          townhall_next_weekday: number | null;
+          townhall_next_from: string | null;
         };
         Insert: {
           id?: string;
@@ -17886,6 +17968,28 @@ export type Database = {
           accident_plan_claim_url?: string | null;
           listing_cf_transformations?: boolean;
           marketing_scenes?: Json;
+          staff_agreement_gate?: boolean;
+          hiring_refer_va_to_sales?: boolean;
+          hiring_auto_hire_sales?: boolean;
+          hiring_auto_hire_mark?: number | null;
+          hiring_ai_all_roles?: boolean;
+          whatsapp_sales_group_url?: string;
+          whatsapp_team_group_url?: string;
+          staff_inactive_lock_days?: number;
+          staff_inactive_warn_days?: number;
+          va_clock_starts?: Json;
+          va_clock_days?: number[];
+          unanswered_sla_minutes?: number;
+          townhall_weekday?: number;
+          townhall_time?: string;
+          townhall_minutes?: number;
+          townhall_call_url?: string;
+          townhall_finance_to_staff?: boolean;
+          in_person_area_km?: number;
+          in_person_area_cities?: string[];
+          townhall_auto_day?: boolean;
+          townhall_next_weekday?: number | null;
+          townhall_next_from?: string | null;
         };
         Update: {
           id?: string;
@@ -18555,6 +18659,28 @@ export type Database = {
           accident_plan_claim_url?: string | null;
           listing_cf_transformations?: boolean;
           marketing_scenes?: Json;
+          staff_agreement_gate?: boolean;
+          hiring_refer_va_to_sales?: boolean;
+          hiring_auto_hire_sales?: boolean;
+          hiring_auto_hire_mark?: number | null;
+          hiring_ai_all_roles?: boolean;
+          whatsapp_sales_group_url?: string;
+          whatsapp_team_group_url?: string;
+          staff_inactive_lock_days?: number;
+          staff_inactive_warn_days?: number;
+          va_clock_starts?: Json;
+          va_clock_days?: number[];
+          unanswered_sla_minutes?: number;
+          townhall_weekday?: number;
+          townhall_time?: string;
+          townhall_minutes?: number;
+          townhall_call_url?: string;
+          townhall_finance_to_staff?: boolean;
+          in_person_area_km?: number;
+          in_person_area_cities?: string[];
+          townhall_auto_day?: boolean;
+          townhall_next_weekday?: number | null;
+          townhall_next_from?: string | null;
         };
         Relationships: [];
       };
@@ -21954,6 +22080,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      staff_agreement_auto: {
+        Row: {
+          user_id: string;
+          tries: number;
+          last_at: string | null;
+          last_error: string | null;
+          missing: string[];
+          request_id: string | null;
+          reminded_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          tries?: number;
+          last_at?: string | null;
+          last_error?: string | null;
+          missing?: string[];
+          request_id?: string | null;
+          reminded_at?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          tries?: number;
+          last_at?: string | null;
+          last_error?: string | null;
+          missing?: string[];
+          request_id?: string | null;
+          reminded_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       staff_alert_prefs: {
         Row: {
           user_id: string;
@@ -22023,6 +22182,66 @@ export type Database = {
           hint?: string | null;
           sort?: number;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      staff_clock_entries: {
+        Row: {
+          id: string;
+          user_id: string;
+          started_at: string;
+          ended_at: string | null;
+          source: string;
+          note: string | null;
+          voided_at: string | null;
+          voided_by: string | null;
+          void_reason: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          started_at: string;
+          ended_at?: string | null;
+          source?: string;
+          note?: string | null;
+          voided_at?: string | null;
+          voided_by?: string | null;
+          void_reason?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          started_at?: string;
+          ended_at?: string | null;
+          source?: string;
+          note?: string | null;
+          voided_at?: string | null;
+          voided_by?: string | null;
+          void_reason?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      staff_clock_reminders: {
+        Row: {
+          user_id: string;
+          day: string;
+          sent_at: string;
+        };
+        Insert: {
+          user_id: string;
+          day: string;
+          sent_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          day?: string;
+          sent_at?: string;
         };
         Relationships: [];
       };
@@ -22450,6 +22669,20 @@ export type Database = {
           sales_work_mode: string | null;
           functions: string[];
           sales_opt_in_at: string | null;
+          agreement_lock_from: string | null;
+          agreement_waived_at: string | null;
+          agreement_waived_by: string | null;
+          agreement_waived_reason: string | null;
+          team_group_sent_at: string | null;
+          team_group_joined_at: string | null;
+          last_seen_at: string | null;
+          inactive_warned_at: string | null;
+          inactive_locked_at: string | null;
+          inactive_unlocked_at: string | null;
+          inactive_unlocked_by: string | null;
+          location_city: string | null;
+          location_country: string | null;
+          location_area: string | null;
         };
         Insert: {
           user_id: string;
@@ -22475,6 +22708,20 @@ export type Database = {
           sales_work_mode?: string | null;
           functions?: string[];
           sales_opt_in_at?: string | null;
+          agreement_lock_from?: string | null;
+          agreement_waived_at?: string | null;
+          agreement_waived_by?: string | null;
+          agreement_waived_reason?: string | null;
+          team_group_sent_at?: string | null;
+          team_group_joined_at?: string | null;
+          last_seen_at?: string | null;
+          inactive_warned_at?: string | null;
+          inactive_locked_at?: string | null;
+          inactive_unlocked_at?: string | null;
+          inactive_unlocked_by?: string | null;
+          location_city?: string | null;
+          location_country?: string | null;
+          location_area?: string | null;
         };
         Update: {
           user_id?: string;
@@ -22500,6 +22747,35 @@ export type Database = {
           sales_work_mode?: string | null;
           functions?: string[];
           sales_opt_in_at?: string | null;
+          agreement_lock_from?: string | null;
+          agreement_waived_at?: string | null;
+          agreement_waived_by?: string | null;
+          agreement_waived_reason?: string | null;
+          team_group_sent_at?: string | null;
+          team_group_joined_at?: string | null;
+          last_seen_at?: string | null;
+          inactive_warned_at?: string | null;
+          inactive_locked_at?: string | null;
+          inactive_unlocked_at?: string | null;
+          inactive_unlocked_by?: string | null;
+          location_city?: string | null;
+          location_country?: string | null;
+          location_area?: string | null;
+        };
+        Relationships: [];
+      };
+      staff_seen: {
+        Row: {
+          user_id: string;
+          last_seen_at: string;
+        };
+        Insert: {
+          user_id: string;
+          last_seen_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          last_seen_at?: string;
         };
         Relationships: [];
       };
@@ -23442,6 +23718,75 @@ export type Database = {
         };
         Relationships: [];
       };
+      townhall_attendance: {
+        Row: {
+          meeting_at: string;
+          user_id: string;
+          at: string;
+          method: string;
+        };
+        Insert: {
+          meeting_at: string;
+          user_id: string;
+          at?: string;
+          method: string;
+        };
+        Update: {
+          meeting_at?: string;
+          user_id?: string;
+          at?: string;
+          method?: string;
+        };
+        Relationships: [];
+      };
+      townhall_decks: {
+        Row: {
+          id: string;
+          week_of: string;
+          built_at: string;
+          built_by: string | null;
+          slides: Json;
+          notes: Json;
+          reminded_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          week_of: string;
+          built_at?: string;
+          built_by?: string | null;
+          slides?: Json;
+          notes?: Json;
+          reminded_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          week_of?: string;
+          built_at?: string;
+          built_by?: string | null;
+          slides?: Json;
+          notes?: Json;
+          reminded_at?: string | null;
+        };
+        Relationships: [];
+      };
+      townhall_meetings: {
+        Row: {
+          meeting_at: string;
+          absent: string[];
+          closed_at: string;
+        };
+        Insert: {
+          meeting_at: string;
+          absent?: string[];
+          closed_at?: string;
+        };
+        Update: {
+          meeting_at?: string;
+          absent?: string[];
+          closed_at?: string;
+        };
+        Relationships: [];
+      };
       tracker_access_blocks: {
         Row: {
           id: string;
@@ -23898,6 +24243,39 @@ export type Database = {
           km?: number;
           max_speed_kmh?: number | null;
           closed_by?: string;
+        };
+        Relationships: [];
+      };
+      trip_close_decisions: {
+        Row: {
+          booking_id: string;
+          decision: string;
+          status: string;
+          note: string | null;
+          decided_by: string;
+          decided_at: string;
+          done_by: string | null;
+          done_at: string | null;
+        };
+        Insert: {
+          booking_id: string;
+          decision: string;
+          status?: string;
+          note?: string | null;
+          decided_by: string;
+          decided_at?: string;
+          done_by?: string | null;
+          done_at?: string | null;
+        };
+        Update: {
+          booking_id?: string;
+          decision?: string;
+          status?: string;
+          note?: string | null;
+          decided_by?: string;
+          decided_at?: string;
+          done_by?: string | null;
+          done_at?: string | null;
         };
         Relationships: [];
       };
@@ -29309,6 +29687,7 @@ export type Database = {
       server_ai_interview_transcript: { Args: { p: Json }; Returns: Json };
       server_ai_interviews_due: { Args: { p_limit?: number }; Returns: Json };
       server_ai_interviews_due_pre0585: { Args: { p_limit?: number }; Returns: Json };
+      server_ai_interviews_due_pre1060: { Args: { p_limit?: number }; Returns: Json };
       server_ai_video_purged: { Args: { p_ids: string[] }; Returns: number };
       server_alert_feed: { Args: { p_user: string; p_limit?: number; p_filter?: string }; Returns: Json };
       server_alert_latest: { Args: { p_user: string }; Returns: Json };
@@ -29457,12 +29836,17 @@ export type Database = {
       server_guide_upkeep_last_sha: { Args: never; Returns: string };
       server_guide_upkeep_run: { Args: { p: Json }; Returns: Json };
       server_guide_upkeep_sections: { Args: { p_run: string }; Returns: Json };
+      server_hire_auto_done: { Args: { p_app: string; p: Json }; Returns: Json };
+      server_hire_auto_due: { Args: { p_limit?: number }; Returns: Json };
       server_hiring_apply: { Args: { p: Json; p_ip?: string }; Returns: Json };
       server_hiring_apply_pre0380: { Args: { p: Json; p_ip?: string }; Returns: Json };
+      server_hiring_apply_pre1063: { Args: { p: Json; p_ip?: string }; Returns: Json };
+      server_hiring_apply_pre1067: { Args: { p: Json; p_ip?: string }; Returns: Json };
       server_hiring_book: { Args: { p_token: string; p_slot: string }; Returns: Json };
       server_hiring_booking: { Args: { p_token: string }; Returns: Json };
       server_hiring_booking_pre0211: { Args: { p_token: string }; Returns: Json };
       server_hiring_cancel: { Args: { p_token: string }; Returns: Json };
+      server_hiring_closed_role: { Args: { p_slug: string }; Returns: Json };
       server_hiring_confirm: { Args: { p_token: string; p_seq?: number }; Returns: Json };
       server_hiring_prefill: { Args: { p_token: string; p_slug: string }; Returns: Json };
       server_in_person_lines: { Args: { p_request: string }; Returns: Json };
@@ -29649,11 +30033,14 @@ export type Database = {
       server_sign_request_attach: { Args: { p_id: string; p_path: string; p_sha256: string }; Returns: string };
       server_sign_request_document: { Args: { p_id: string }; Returns: Json };
       server_signature_lines: { Args: { p_request: string }; Returns: Json };
+      server_signed_in: { Args: { p_user: string }; Returns: Json };
       server_signin_phone_request: { Args: { p: Json }; Returns: Json };
       server_signing_package_record: { Args: { p_by: string; p: Json }; Returns: Json };
       server_signing_record: { Args: { p_booking: string }; Returns: Json };
       server_social_drafts_put: { Args: { p: Json }; Returns: number };
       server_social_published: { Args: { p: Json }; Returns: Json };
+      server_staff_agreement_auto_done: { Args: { p_user: string; p: Json }; Returns: Json };
+      server_staff_agreements_due: { Args: { p_limit?: number }; Returns: Json };
       server_statement_mail_due: { Args: never; Returns: Json };
       server_statement_mail_release: { Args: { p_kind: string; p_key: string }; Returns: Json };
       server_stripe_dispute_event: { Args: { p: Json }; Returns: Json };

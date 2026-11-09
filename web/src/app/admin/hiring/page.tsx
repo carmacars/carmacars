@@ -4,6 +4,7 @@ import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
 import { DecisionEmails, type DecisionsData } from '@/features/careers/admin/DecisionEmails';
+import { FieldCallsCard, type FieldCall } from '@/features/field-portal/FieldCalls';
 import { Badge, Card, Filters, Kv, PageHead, Table, Tabs, d, t } from '@/features/admin/ui';
 import { CopyText } from '@/features/ads/CopyText';
 import { applyPath, DECISIONS, fmtSlot, inviteMessage, SOURCE_WORDS, STATUS_FILTERS, STATUS_WORDS } from '@/features/careers/model';
@@ -16,7 +17,7 @@ export const metadata = pageMeta({ title: 'Hiring', path: '/admin/hiring', noind
 type R = Record<string, unknown>;
 type Role = { id: string; slug: string; title: string; short_title: string; active: boolean; pass_mark: number; pay_text: string; remote: boolean; staff_kind: string; test_task: string | null; counts: Record<string, number>; total: number };
 type App = { id: string; role: string; role_slug: string; status: string; full_name: string; email: string | null; phone: string | null; source: string; score: number | null; pass_mark: number;
-  knockouts: string[]; created_at: string; slot_starts_at: string | null; mode: string | null; interview_score: number | null; final_score: number | null; decision: string | null; rank: number | null;
+  knockouts: string[]; created_at: string; location?: string | null; location_area?: string | null; location_mismatch?: boolean; move_remote?: boolean; phone_country?: string | null; ip_country?: string | null; slot_starts_at: string | null; mode: string | null; interview_score: number | null; final_score: number | null; decision: string | null; rank: number | null;
   referred_role: string | null; referred_from: string | null; referral_application: string | null; note: string | null;
   ai?: { state: InterviewState; recommendation: Recommendation | null; score: number | null; live_call?: boolean } | null };
 type Day = { id: string; day: string; start_time: string; end_time: string; slot_minutes: number; buffer_minutes: number; capacity: number; mode: string; active: boolean; note: string | null; roles: string[]; role_slugs: string[]; slots: number; booked: number };
@@ -46,7 +47,9 @@ export default async function Hiring({ searchParams }: { searchParams: Promise<R
   if (tab === 'calls') {
     const s = await read<{ day: string; today: string; days: string[]; phone_enabled: boolean; free: number; calls: Array<App & { ends_at: string; meet_url: string | null; confirm?: string | null }>;
       unconfirmed?: Array<{ id: string; full_name: string; role: string; cancelled_at: string }> }>('hiring_schedule', { day: sp.day ?? '' });
+    const fieldCalls = await read<FieldCall[]>('field_call_slots').catch(() => [] as FieldCall[]);
     return (<>{head}{noDay}{tabs}
+      {fieldCalls.length > 0 && <FieldCallsCard calls={fieldCalls} />}
       <Filters base={`${base}?tab=calls`} name="day" value={s.day} sp={sp} options={(s.days.length ? s.days : [s.day]).map((x) => [x, `${d(x)}${x === s.today ? ' (today)' : ''}`] as [string, string])} />
       <Card title={`Calls on ${d(s.day)} (${s.calls.length})`} testId="hiring-calls" aside={<span className="small muted">{s.free} open slots left</span>}>
         <Table<App & R> rows={s.calls as Array<App & R>} rowKey={(x) => x.id} empty="No calls booked on this day." cols={[
@@ -153,6 +156,8 @@ export default async function Hiring({ searchParams }: { searchParams: Promise<R
         { key: 'full_name', label: 'Candidate', render: (x) => <span><Link prefetch={false} className="link" href={`${base}/${x.id}`} data-testid={`app-${x.email ?? x.id}`}>{x.full_name}</Link>
           {x.referred_from && <span className="cr-sub">Referred from another role</span>}{x.referral_application && <span className="cr-sub">Applied for {x.referred_role} too</span>}</span> },
         { key: 'role', label: 'Role' },
+        { key: 'location', label: 'Lives in', className: 'wrap', render: (x) => <span>{x.location ?? ''}{x.location_area === 'outside' && <span className="cr-sub">outside the area</span>}
+          {x.location_mismatch && <span className="cr-sub" data-testid={`app-mismatch-${x.id}`}><Badge s="needs_review">Location mismatch</Badge></span>}</span> },
         { key: 'score', label: 'Score', num: true, render: (x) => (x.score === null ? '' : <b className={x.score >= x.pass_mark ? '' : 'muted'}>{x.score}</b>) },
         { key: 'status', label: 'Status', className: 'wrap', render: (x) => <span><Badge s={tone(x.status)}>{STATUS_WORDS[x.status] ?? x.status}</Badge>
           {x.ai && !x.ai.live_call && <span className="cr-sub" data-testid={`app-ai-${x.id}`}>{AI_STATE_WORDS[x.ai.state]}{x.ai.recommendation ? `: ${RECOMMENDATION_WORDS[x.ai.recommendation]}` : ''}</span>}
@@ -161,6 +166,7 @@ export default async function Hiring({ searchParams }: { searchParams: Promise<R
         { key: 'final_score', label: 'Final', num: true }, { key: 'rank', label: 'Rank', num: true },
         { key: 'source', label: 'Source', render: (x) => SOURCE_WORDS[x.source] ?? x.source }, { key: 'created_at', label: 'Applied', render: (x) => d(x.created_at) },
         { key: 'act', label: '', render: (x) => <span className="ad-actions">
+          {x.move_remote && <Act action="hiring_move_remote" payload={{ id: x.id }} label="Move to Remote Sales" refresh={[base]} done="Moved: they have the Remote Sales link with their details." confirm={`Send ${x.full_name} to Remote Sales (in person needs the Toronto area)?`} testId={`app-move-${x.id}`} />}
           {['below_bar', 'declined', 'referred', 'no_show'].includes(x.status) && <Act action="hiring_invite" payload={{ id: x.id }} label="Invite anyway" refresh={[base]} done="Invited: the booking link is on its way." confirm={`Send ${x.full_name} the booking link?`} />}
           {['below_bar', 'invited', 'referred', 'no_show'].includes(x.status) && <Act action="hiring_decline" payload={{ id: x.id }} label="Decline" refresh={[base]} done="Declined."
             fields={[{ name: 'email', label: 'Send the polite decline email', type: 'bool', value: true }, { name: 'reason', label: 'The requirement it names (optional: "This role needs ...")', type: 'text' }]} />}</span> }]} />

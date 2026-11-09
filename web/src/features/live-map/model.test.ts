@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { CAR_SILHOUETTE, agoText, arc, separate, bandOf, carLabel, compactMoney, hash, makeInitial, onTheRoad, photoPins, reasonOf, adminHref, isLead, timeLine, withoutContact, mx, my, scoreOf, shortAgo, shortName, signalsOf, spotlight, spread, stageOf, tally, toView, verbOf, mergeParts, failedNote, type RawMap, type RawPin } from './model.ts';
+import { CAR_SILHOUETTE, agoText, arc, separate, bandOf, carLabel, compactMoney, hash, makeInitial, onTheRoad, photoPins, reasonOf, adminHref, isLead, timeLine, withoutContact, mx, my, scoreOf, shortAgo, shortName, signalsOf, spotlight, spread, stageOf, tally, toView, verbOf, mergeParts, failedNote, celebrationText, type RawMap, type RawPin } from './model.ts';
 import { FRAME_MAX_ZOOM, TORONTO, HIGHWAYS, HOME_BOUNDS, MAP_ATTRIBUTION, MAX_BOUNDS, REGIONS, frameBounds, inBounds, roundGeo } from './config.ts';
 import { readFileSync } from 'node:fs';
 
@@ -424,4 +424,9 @@ describe('1080: the map by layer', () => { it('merges the layers, names a failed
   assert.equal(failedNote([]), '');
   assert.throws(() => mergeParts([{ part: 'kpi', ok: false, error: new Error('down') }]), /down/);
 });
+
+  it('1068: the booking celebration names the car and the Sales credit, and the kpi layer carries it', () => {
+    assert.equal(celebrationText({ booking_number: 'CC-1', at: '2026-11-09T15:00:00Z', car: '2024 Toyota Corolla', sales: 'Sam' }), 'Booking confirmed: 2024 Toyota Corolla. Sales: Sam');
+    assert.equal(celebrationText({ booking_number: 'CC-1', at: '2026-11-09T15:00:00Z', car: null, sales: null }), 'Booking confirmed');
+  });
 });

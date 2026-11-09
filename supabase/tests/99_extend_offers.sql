@@ -89,13 +89,14 @@ select test.eq('1 hour at $850: $148.75 less 10% (rental before HST)',
   (app.preview_extension(test.id('booking:EX-850'), (select return_at + interval '1 hour' from bookings where booking_number = 'EX-850')) ->> 'rental_difference_cents')::bigint, 13387::bigint);
 select test.eq('3 hours at $850: 3 x $148.75 less 10%',
   (app.preview_extension(test.id('booking:EX-850'), (select return_at + interval '3 hours' from bookings where booking_number = 'EX-850')) ->> 'rental_difference_cents')::bigint, 40162::bigint);
-select test.eq('1 day: the daily rate less 5%', (app.preview_extension(test.id('booking:EX-850'), (select return_at + interval '1 day' from bookings where booking_number = 'EX-850')) ->> 'rental_difference_cents')::bigint, 80750::bigint);
-select test.eq('3 days: 3 x the daily rate less 5%', (app.preview_extension(test.id('booking:EX-850'), (select return_at + interval '3 days' from bookings where booking_number = 'EX-850')) ->> 'rental_difference_cents')::bigint, 242250::bigint);
-select test.eq('1 week: the weekly rate less 5%', (app.preview_extension(test.id('booking:EX-850'), (select return_at + interval '7 days' from bookings where booking_number = 'EX-850')) ->> 'rental_difference_cents')::bigint, 380000::bigint);
-select test.eq('1 month: the monthly rate less 5%', (app.preview_extension(test.id('booking:EX-850'), (select return_at + interval '30 days' from bookings where booking_number = 'EX-850')) ->> 'rental_difference_cents')::bigint, 1425000::bigint);
+-- 1066: whole days at the same rate as the booked period ($320 for 3 days), the offer's 5% off it
+select test.eq('1 day: the booked rate less 5%', (app.preview_extension(test.id('booking:EX-850'), (select return_at + interval '1 day' from bookings where booking_number = 'EX-850')) ->> 'rental_difference_cents')::bigint, round(round(32000::numeric / 3 * 1) * 0.95)::bigint);
+select test.eq('3 days: 3 x the booked rate less 5%', (app.preview_extension(test.id('booking:EX-850'), (select return_at + interval '3 days' from bookings where booking_number = 'EX-850')) ->> 'rental_difference_cents')::bigint, round(round(32000::numeric / 3 * 3) * 0.95)::bigint);
+select test.eq('1 week: 7 x the booked rate less 5%', (app.preview_extension(test.id('booking:EX-850'), (select return_at + interval '7 days' from bookings where booking_number = 'EX-850')) ->> 'rental_difference_cents')::bigint, round(round(32000::numeric / 3 * 7) * 0.95)::bigint);
+select test.eq('1 month: 30 x the booked rate less 5%', (app.preview_extension(test.id('booking:EX-850'), (select return_at + interval '30 days' from bookings where booking_number = 'EX-850')) ->> 'rental_difference_cents')::bigint, round(round(32000::numeric / 3 * 30) * 0.95)::bigint);
 select test.eq('an option''s price is its rental and HST, with the regular price beside it and 5% saved (1 day)',
   test.ex_opt('EX-850', '1d', 'total_cents') || '/' || test.ex_opt('EX-850', '1d', 'regular_total_cents') || '/' || test.ex_opt('EX-850', '1d', 'save_pct'),
-  (80750 + public.calc_hst(80750)) || '/' || (85000 + public.calc_hst(85000)) || '/5');
+  (round(round(32000::numeric / 3 * 1) * 0.95)::bigint + public.calc_hst(round(round(32000::numeric / 3 * 1) * 0.95)::bigint)) || '/' || (10667 + public.calc_hst(10667)) || '/5');
 select test.eq('1 hour: what being an hour late would cost instead (the hourly fee, with HST; 1063: no extra day under a day)',
   test.ex_opt('EX-850', '1h', 'late_cost_cents'), (14875 + public.calc_hst(14875))::text);
 select test.eq('1 hour: you save 10%', test.ex_opt('EX-850', '1h', 'save_pct'), '10');
@@ -173,7 +174,7 @@ update program_settings set extension_auto_approve = true where id = (app.settin
 -- staff approve keeps the offer's price
 select test.eq('staff approval keeps the offer price',
   (select (v ->> 'pricing') || '/' || (v ->> 'rental_difference_cents') from app.approve_extension(
-     (select id from booking_extensions where booking_id = test.id('booking:EX-850') and status = 'requested'), test.id('ex_admin')) v), 'days/80750');
+     (select id from booking_extensions where booking_id = test.id('booking:EX-850') and status = 'requested'), test.id('ex_admin')) v), 'days/' || round(round(32000::numeric / 3 * 1) * 0.95)::bigint);
 -- an insurer booking's request is never approved at once
 select app.request_extension(test.id('booking:EX-INS'), test.id('ex_lena'), (select return_at + interval '1 day' from bookings where booking_number = 'EX-INS'));
 select test.eq('insurer-billed: a request for staff', (select status from booking_extensions where booking_id = test.id('booking:EX-INS')), 'requested');

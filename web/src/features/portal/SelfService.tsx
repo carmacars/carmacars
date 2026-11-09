@@ -57,7 +57,7 @@ export function ExtendForm({ number, returnDate, returnTime, approved, hasCard =
   const req = useAct();
   const pay = useAct();
   const link = useAct<{ url: string }>();
-  const p = prev.res?.ok ? (prev.res.data as { ok?: boolean; total_cents: number; hst_cents: number; lines: Line[]; new_days: number; problems?: { message: string }[]; available?: boolean; message?: string }) : null;
+  const p = prev.res?.ok ? (prev.res.data as { ok?: boolean; total_cents: number; hst_cents: number; lines: Line[]; new_days: number; same_rate?: boolean; problems?: { message: string }[]; available?: boolean; message?: string }) : null;
   if (approved) return (
     <div className="stack">
       <p>Your extension to <b>{when(approved.new_return_at)}</b> is approved. Pay {money(approved.total_cents, { cents: true })} to confirm it.</p>
@@ -80,6 +80,7 @@ export function ExtendForm({ number, returnDate, returnTime, approved, hasCard =
       {prev.res && !prev.res.ok && <p className="alert alert--error" role="alert"><span>{prev.res.message}</span></p>}
       {p && (p.ok === false || p.problems?.length) ? <p className="alert alert--warn" role="alert"><span>{p.message ?? p.problems?.map((x) => x.message).join(' ')}</span></p> : null}
       {p && p.ok !== false && <>
+        {p.same_rate && <p className="small muted" data-testid="extend-same-rate">Same rate as the booked period, with the per-trip fees for the added days.</p>}
         <Lines lines={p.lines ?? []} hst={p.hst_cents} total={p.total_cents} totalLabel={`To pay for ${p.new_days} days in total`} />
         <div className="field"><label className="label" htmlFor="pt-ext-note">Note (optional)</label><textarea className="textarea" id="pt-ext-note" maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} /></div>
         {req.res && !req.res.ok && <p className="alert alert--error" role="alert"><span>{req.res.message}</span></p>}

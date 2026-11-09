@@ -406,7 +406,7 @@ declare f record;
 begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
             where (n.nspname = 'app' and p.proname = any (array['line_adjust', 'k_waive_deposit', 'handover_override_pre1063', 'deposit_hold_expired', 'deposit_expired_settle',
-                     'ended_trip_money', 'ended_trips_view', 'ended_trip_close', 'ended_trips_close_many', 'trip_close_release', 'door_pre1063']))
+                     'ended_trip_money', 'ended_trips_view', 'ended_trip_close', 'ended_trips_close_many', 'trip_close_release', 'door_pre1063', 'booking_daily_cost_cents']))
                or (n.nspname = 'public' and p.proname = 'server_hiring_apply_pre1063')
   loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);

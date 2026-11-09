@@ -35,6 +35,10 @@ export function BookingEdit({ x, fees }: { x: EditForm; fees: Fees | null }) {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, run] = useTransition();
   if (x.refusal && !x.edits.length) return null;
+  // 1066: a new length with no price typed keeps the booked period's rate (the database does it; this is the preview)
+  const newDays = Math.max(1, Math.ceil((new Date(f.return_at).getTime() - new Date(f.pickup_at).getTime()) / 86_400_000));
+  const sameRate = Number.isFinite(newDays) && newDays !== x.now.billable_days && x.now.billable_days > 0 && cents(f.rental) === null
+    ? { days: newDays, cents: Math.round(x.now.rental_charge_cents * newDays / x.now.billable_days) } : null;
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF((s) => ({ ...s, [k]: e.target.value }));
   const save = () => run(async () => {
     setMsg(null);
@@ -67,7 +71,8 @@ export function BookingEdit({ x, fees }: { x: EditForm; fees: Fees | null }) {
       {open && <div className="stack">
         <div className="ad-fields">
           {text('pickup_at', 'Pickup', { type: 'datetime-local' })}
-          {text('return_at', 'Return', { type: 'datetime-local', hint: `Now ${x.now.billable_days} days. A new length is repriced at this booking's rates${x.now.custom_price ? ' (the price typed by hand, the same a day)' : ''}.` })}
+          {text('return_at', 'Return', { type: 'datetime-local', hint: `Now ${x.now.billable_days} days. A new length keeps the rate of the booked period, and each per-trip fee (like the Protection Plan) scales with it.` })}
+          {sameRate && <p className="alert alert--info small" role="status" data-testid="be-same-rate"><span>Same rate as the booked period: about {sameRate.days} days, rental about {fmt(sameRate.cents)} ({fmt(Math.round(x.now.rental_charge_cents / Math.max(1, x.now.billable_days)))} a day). Per-trip fees scale the same way. Type a rental charge to set another price.</span></p>}
           <div className="field ad-field ad-field--wide"><label className="label" htmlFor="be-vehicle_id">Car</label>
             <select className="select" id="be-vehicle_id" value={f.vehicle_id} onChange={set('vehicle_id')} data-testid="be-vehicle_id">
               {x.cars.map((c) => <option key={c.id} value={c.id}>{c.name}{c.car_code ? `, ${c.car_code}` : ''}{c.plate ? `, ${c.plate}` : ''}</option>)}</select>

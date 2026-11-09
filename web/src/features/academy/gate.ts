@@ -12,7 +12,7 @@ export const opensWhileUnsigned = (path: string) => AGREEMENT_OPEN.test(path);
 export type StepKey = 'welcome' | 'profile' | 'academy' | 'agreement' | 'team' | 'tasks';
 export interface WelcomeTask { id: string; title: string; detail: string | null; done: boolean }
 export interface WelcomeStep { key: StepKey; done: boolean; phone?: boolean; phone_verified?: boolean; address?: boolean; passed?: number; sections?: number; waived?: boolean; tasks?: WelcomeTask[];
-  /** 1060 */ preferred_name?: string | null; state?: 'signed' | 'waived' | 'sent' | 'none'; request_id?: string | null; waiting_for_academy?: boolean; missing?: string[]; open?: boolean; groups?: Array<{ key: string; name: string; url: string }> }
+  /** 1060 */ preferred_name?: string | null; /** 1067 */ location?: string | null; state?: 'signed' | 'waived' | 'sent' | 'none'; request_id?: string | null; waiting_for_academy?: boolean; missing?: string[]; open?: boolean; groups?: Array<{ key: string; name: string; url: string }> }
 export interface Welcome { name: string; portal: 'va' | 'field'; locked: boolean; steps: WelcomeStep[] }
 
 export const STEP_TITLE: Record<StepKey, string> = { welcome: 'Welcome', profile: 'Your profile and phone', academy: 'The academy', agreement: 'Your staff agreement', team: 'Join the team group', tasks: 'Your first tasks' };
@@ -33,7 +33,7 @@ export function signHref(portal: 'va' | 'field'): string {
 export function stepWords(s: WelcomeStep): string {
   switch (s.key) {
     case 'welcome': return 'Your portal opens step by step: the academy first, then your agreement, then everything else. This page keeps your place.';
-    case 'profile': return s.done ? 'Your home address, phone and preferred name are in.' : `Add ${[!s.preferred_name && 'the name you go by', !s.address && 'your home address', !s.phone && 'your mobile number'].filter(Boolean).join(', ') || 'your details'}.`;
+    case 'profile': return s.done ? 'Your home address, phone, preferred name and where you live are in.' : `Add ${[!s.preferred_name && 'the name you go by', s.location === null && 'where you live (city and country)', !s.address && 'your home address', !s.phone && 'your mobile number'].filter(Boolean).join(', ') || 'your details'}.`;
     case 'agreement': return s.state === 'signed' ? 'Signed.' : s.state === 'waived' ? 'An Admin waived the agreement for you.'
       : s.waiting_for_academy ? 'It opens for signing once the academy is passed.' : s.state === 'sent' ? 'Ready to sign: read it and sign on screen. The rest of your portal opens once it is signed.'
       : 'It is being prepared from your record. An Admin has been told if anything is missing.';

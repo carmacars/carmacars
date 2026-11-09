@@ -34,6 +34,10 @@ export default async function StaffWelcome() {
             {href[s.key] && !s.done && <p><Link prefetch={false} className={`btn btn--sm ${s.key === now ? 'btn--primary' : 'btn--ghost'}`} href={href[s.key]!}>{label[s.key]}</Link></p>}
             {s.key === 'profile' && !s.preferred_name && <p><Act ops action="staff_preferred_name_save" label="Add the name you go by" variant={s.key === now ? 'primary' : 'ghost'} title="Your preferred name" submitLabel="Save"
               testId="welcome-preferred-name" refresh={['/staff/welcome']} done="Saved." fields={[{ name: 'preferred_name', label: 'The name you go by', type: 'text', required: true, placeholder: 'For example: Sam', hint: 'Shown across the portals and on the staff list.' }]} /></p>}
+            {s.key === 'profile' && s.location === null && <p><Act ops action="staff_location_save" label="Add where you live" variant={s.key === now ? 'primary' : 'ghost'} title="Where you live" submitLabel="Save"
+              testId="welcome-location" refresh={['/staff/welcome']} done="Saved." fields={[{ name: 'city', label: 'City or town', type: 'text', required: true },
+                { name: 'country', label: 'Country', type: 'select', required: true, value: 'CA', options: [['CA', 'Canada'], ['US', 'United States'], ['PH', 'Philippines'], ['IN', 'India'], ['PK', 'Pakistan'], ['MX', 'Mexico'], ['GB', 'United Kingdom'], ['ZZ', 'Another country']],
+                  hint: 'Sales in person is for the Toronto area; elsewhere your Sales work is remote.' }]} /></p>}
             {s.key === 'team' && s.open && !!s.groups?.length && !s.done && <div className="stack" data-testid="welcome-groups">
               {s.groups.map((g) => <p key={g.key}><a className="btn btn--sm btn--primary" href={g.url} target="_blank" rel="noopener noreferrer">Join {g.name} on WhatsApp</a></p>)}
               <p><Act ops action="staff_team_joined" label="I joined" testId="welcome-team-joined" refresh={['/staff/welcome']} done="Thanks." /></p></div>}

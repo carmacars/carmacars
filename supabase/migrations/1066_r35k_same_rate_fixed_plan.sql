@@ -124,12 +124,17 @@ declare
   x record;
   v_fees bigint;
   v_hst bigint;
+  v_regular bigint;
+  v_bps integer := case when coalesce((v ->> 'offer')::boolean, false) then coalesce((v ->> 'discount_bps')::integer, 0) else 0 end;
+  v_reg_hst bigint;
 begin
   select * into b from bookings where id = p_booking;
   if b.id is null or b.booking_type = 'owner' or coalesce(v ->> 'pricing', '') not in ('days', 'regular') or coalesce(b.billable_days, 0) = 0 then return v; end if;
   v_added := (v ->> 'new_days')::integer - b.billable_days;
   if v_added <= 0 then return v; end if;
-  v_rental := round(coalesce(app.booking_rental_per_day(p_booking), b.daily_rate_cents) * v_added)::bigint;
+  -- the booked rate; an extension offer's discount (0480) still comes off it, the booked rate shown as the regular price
+  v_regular := round(coalesce(app.booking_rental_per_day(p_booking), b.daily_rate_cents) * v_added)::bigint;
+  v_rental := round(v_regular * (10000 - v_bps) / 10000.0)::bigint;
   -- the per-day fees as computed; the rental and its discounts replaced by the booked rate
   select coalesce(jsonb_agg(l), '[]'::jsonb) into v_lines from jsonb_array_elements(v -> 'lines') l
    where l ->> 'charge_type' not in ('rental_charge', 'non_refundable_discount', 'promo_discount', 'staff_discount', 'lead_time');
@@ -143,9 +148,12 @@ begin
   end loop;
   select coalesce(sum((l ->> 'amount_cents')::bigint) filter (where l ->> 'charge_type' <> 'rental_charge'), 0), coalesce(sum((l ->> 'hst_cents')::bigint), 0)
     into v_fees, v_hst from jsonb_array_elements(v_lines) l;
+  v_reg_hst := v_hst - coalesce((select (l ->> 'hst_cents')::bigint from jsonb_array_elements(v_lines) l where l ->> 'charge_type' = 'rental_charge' limit 1), 0)
+               + (app.price_line('rental_charge', 1, v_regular, v_regular, b.hst_bps, null, null, null) ->> 'hst_cents')::bigint;
   return v || jsonb_build_object('lines', v_lines, 'rental_difference_cents', v_rental, 'new_rental_charge_cents', b.rental_charge_cents + v_rental,
-    'fees_difference_cents', v_fees, 'hst_cents', v_hst, 'total_cents', v_rental + v_fees + v_hst, 'regular_total_cents', v_rental + v_fees + v_hst,
-    'discount_bps', 0, 'same_rate', true);
+    'fees_difference_cents', v_fees, 'hst_cents', v_hst, 'total_cents', v_rental + v_fees + v_hst, 'regular_rental_cents', v_regular,
+    'regular_total_cents', v_regular + v_fees + v_reg_hst, 'save_cents', (v_regular + v_fees + v_reg_hst) - (v_rental + v_fees + v_hst),
+    'discount_bps', v_bps, 'same_rate', true);
 end $$;
 select pg_temp.copy_grants('app.preview_extension(uuid, timestamptz, timestamptz)'::regprocedure, 'app.preview_extension_pre1066(uuid, timestamptz, timestamptz)'::regprocedure);
 
@@ -157,6 +165,8 @@ select pg_temp.patch_fn('app.booking_pay_schedule(uuid, timestamptz)'::regproced
   'v_amt := case when i = v_n then v_owed - v_cum else round(v_owed * extract(epoch from v_end - v_start) / v_total_s)::bigint end;',
   'v_amt := case when i = v_n then v_owed - v_cum when b.pay_fixed_cents is not null then least(b.pay_fixed_cents, v_owed - v_cum)
                  else round(v_owed * extract(epoch from v_end - v_start) / v_total_s)::bigint end;');
+select pg_temp.patch_fn('app.booking_pay_schedule(uuid, timestamptz)'::regprocedure,
+  '''plan'', v_plan, ''set'', b.pay_every is not null,', '''plan'', v_plan, ''set'', b.pay_every is not null, ''fixed_cents'', b.pay_fixed_cents,');
 
 alter function app.booking_pay_every_set(uuid, jsonb) rename to booking_pay_every_set_pre1066;
 create function app.booking_pay_every_set(p_by uuid, p jsonb) returns jsonb

@@ -275,3 +275,20 @@ html.lm-tv-root .ad__rail, html.lm-tv-root [data-testid='guide-banner'] { displa
 .lm-team { display: flex; flex-wrap: wrap; gap: var(--s-3, 12px); font-size: .875rem; margin: var(--s-2, 8px) 0; }
 .lm-team section { min-width: 12rem; }
 .lm-team ul, .lm-team ol { margin: 4px 0 0; padding-left: 1.2em; }
+
+/* 1068: a booking just confirmed: a pulse and confetti at the renter's place, and a toast (less motion: the toast only) */
+.lm-party { position: absolute; inset: 0; pointer-events: none; z-index: 6; overflow: hidden; }
+.lm-party__at { position: absolute; width: 0; height: 0; }
+.lm-party__pulse { position: absolute; left: -14px; top: -14px; width: 28px; height: 28px; border-radius: 50%; border: 3px solid #3ddc97; animation: lm-pulse 1.4s ease-out 4; }
+.lm-party__bit { position: absolute; left: -4px; top: -4px; width: 8px; height: 8px; border-radius: 2px; opacity: 0;
+  animation: lm-bit 1.6s cubic-bezier(.2, .7, .3, 1) 2 forwards; }
+.lm-party__toast { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); max-width: calc(100% - 32px); margin: 0; padding: 10px 16px;
+  border-radius: 999px; background: rgba(10, 14, 20, .9); color: #fff; font-weight: 600; box-shadow: 0 6px 24px rgba(0, 0, 0, .35); animation: lm-toast .4s ease-out; }
+@keyframes lm-pulse { from { transform: scale(.6); opacity: 1; } to { transform: scale(3.2); opacity: 0; } }
+@keyframes lm-bit { 0% { opacity: 1; transform: rotate(var(--a)) translateY(0) rotate(0); } 100% { opacity: 0; transform: rotate(var(--a)) translateY(calc(-1 * var(--d))) rotate(240deg); } }
+@keyframes lm-toast { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@media (prefers-reduced-motion: reduce) {
+  .lm-party__pulse { animation: none; transform: scale(1.4); }
+  .lm-party__bit { display: none; }
+  .lm-party__toast { animation: none; }
+}

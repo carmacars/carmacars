@@ -318,7 +318,7 @@ create function app.door(p_user uuid, p_aal text, p_call text, p_name text, p js
 language plpgsql security definer set search_path = public, app as $$
 declare p_ jsonb := coalesce(p, '{}'::jsonb) - '_va';
 begin
-  if (p_call = 'ops_do' and p_name = 'townhall_attend') or (p_call = 'ops_read' and p_name = 'field_call_slots') then
+  if (p_call = 'ops_do' and p_name = 'townhall_attend') or (p_call in ('ops_read', 'admin_read') and p_name = 'field_call_slots') then
     perform app.door_begin(p_user, p_aal);
     return case p_name when 'townhall_attend' then app.townhall_attend(p_user, p_) else app.field_call_slots(p_user, p_) end;
   end if;

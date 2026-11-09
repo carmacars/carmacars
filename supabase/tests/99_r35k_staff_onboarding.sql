@@ -109,8 +109,8 @@ select test.eq('Mark answered takes it off', (select count(*) from app.unanswere
 
 -- ================================================================ 7. the townhall
 select test.ok('the deck builds', app.townhall_build(null, test.id('r35k_admin')) is not null);
-select test.eq('the Admin sees every slide', jsonb_array_length(test.r35k('r35k_admin', 'ops_read', 'townhall') -> 'deck' -> 'slides'), 7);
-select test.eq('staff do not see finances and claims', jsonb_array_length(test.r35k('r35k_cs', 'ops_read', 'townhall') -> 'deck' -> 'slides'), 5);
+select test.eq('the Admin sees every slide', jsonb_array_length(test.r35k('r35k_admin', 'ops_read', 'townhall') -> 'deck' -> 'slides'), 8);
+select test.eq('staff do not see finances and claims', jsonb_array_length(test.r35k('r35k_cs', 'ops_read', 'townhall') -> 'deck' -> 'slides'), 6);
 select test.throws('only an Admin writes notes', format($$select test.r35k('r35k_cs', 'admin_do', 'townhall_note', %L)$$, jsonb_build_object('deck', (select id from townhall_decks limit 1), 'key', 'week', 'note', 'x')));
 
 -- ================================================================ 8. careers: closed roles, Sales, AI interviews, auto-hire

@@ -14,7 +14,7 @@ const uuid = (s: string) => /^[0-9a-f-]{36}$/i.test(s ?? '');
 const refresh = (id: string) => { revalidatePath('/admin/hiring'); revalidatePath(`/admin/hiring/${id}`); };
 
 export interface HirePreview { can_hire: boolean; function: string; start_on: string; pay: StandardPay; standard_pay: Record<string, StandardPay>; will_do: string[];
-  functions: Array<{ code: string; label: string }>; application: { full_name: string; email: string | null; status: string } }
+  functions: Array<{ code: string; label: string }>; application: { full_name: string; email: string | null; status: string }; /** 1067 */ outside_area?: boolean }
 
 /** The Hire form's defaults and what one confirm will do. */
 export async function hirePreview(id: string, fn?: string | null): Promise<ActionResult<HirePreview>> {
