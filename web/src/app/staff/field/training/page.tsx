@@ -24,7 +24,7 @@ export default async function Training() {
             <div className="fp-meter__bar" style={{ background: 'var(--fd-hair)' }}><span style={{ width: `${p.sections.length ? Math.round((done / p.sections.length) * 100) : 0}%` }} /></div></div>
           {next ? <Link prefetch={false} className="btn btn--primary fd-wide" href={`/staff/academy/${p.code}/${next.slug}`}>Next: {next.title}</Link>
             : <p className="fp-done"><FdIcon name="check" />All passed</p>}
-          <Link prefetch={false} className="link small" href={`/staff/academy/${p.code}`}>All sections of this path</Link>
+          <Link prefetch={false} className="link small" href="/staff/academy">All sections of this path</Link>
         </section>;
       })}
       <section className="fd-card stack" aria-labelledby="guide-t"><h2 className="fd-section-h" id="guide-t">The field guide</h2>
