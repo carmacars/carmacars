@@ -6990,6 +6990,90 @@ export type Database = {
         };
         Relationships: [];
       };
+      field_addon_ticks: {
+        Row: {
+          id: string;
+          booking_addon_id: string;
+          booking_id: string;
+          field_job_id: string | null;
+          ticked_by: string;
+          ticked_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_addon_id: string;
+          booking_id: string;
+          field_job_id?: string | null;
+          ticked_by: string;
+          ticked_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_addon_id?: string;
+          booking_id?: string;
+          field_job_id?: string | null;
+          ticked_by?: string;
+          ticked_at?: string;
+        };
+        Relationships: [];
+      };
+      field_car_updates: {
+        Row: {
+          id: string;
+          vehicle_id: string;
+          status: string;
+          note: string | null;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          vehicle_id: string;
+          status: string;
+          note?: string | null;
+          created_by: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          vehicle_id?: string;
+          status?: string;
+          note?: string | null;
+          created_by?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      field_clock_open_items: {
+        Row: {
+          id: string;
+          shift_id: string | null;
+          staff_id: string;
+          item_key: string;
+          label: string;
+          reason: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          shift_id?: string | null;
+          staff_id: string;
+          item_key: string;
+          label: string;
+          reason: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          shift_id?: string | null;
+          staff_id?: string;
+          item_key?: string;
+          label?: string;
+          reason?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       field_jobs: {
         Row: {
           id: string;
@@ -7020,6 +7104,7 @@ export type Database = {
           reshoot_shots: string[] | null;
           auto_at: string | null;
           auto_place: string | null;
+          work_day: string | null;
         };
         Insert: {
           id?: string;
@@ -7050,6 +7135,7 @@ export type Database = {
           reshoot_shots?: string[] | null;
           auto_at?: string | null;
           auto_place?: string | null;
+          work_day?: string | null;
         };
         Update: {
           id?: string;
@@ -7080,6 +7166,7 @@ export type Database = {
           reshoot_shots?: string[] | null;
           auto_at?: string | null;
           auto_place?: string | null;
+          work_day?: string | null;
         };
         Relationships: [];
       };
@@ -7218,6 +7305,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      field_prep_tasks: {
+        Row: {
+          id: string;
+          vehicle_id: string;
+          staff_id: string;
+          work_day: string;
+          items: string[];
+          done: Json;
+          note: string | null;
+          status: string;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+          completed_at: string | null;
+          cancelled_at: string | null;
+          cancelled_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          vehicle_id: string;
+          staff_id: string;
+          work_day: string;
+          items: string[];
+          done?: Json;
+          note?: string | null;
+          status?: string;
+          created_by: string;
+          created_at?: string;
+          updated_at?: string;
+          completed_at?: string | null;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          vehicle_id?: string;
+          staff_id?: string;
+          work_day?: string;
+          items?: string[];
+          done?: Json;
+          note?: string | null;
+          status?: string;
+          created_by?: string;
+          created_at?: string;
+          updated_at?: string;
+          completed_at?: string | null;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
+        };
+        Relationships: [];
+      };
       field_shift_edits: {
         Row: {
           id: string;
@@ -7251,6 +7389,153 @@ export type Database = {
         };
         Relationships: [];
       };
+      field_shift_offers: {
+        Row: {
+          id: string;
+          kind: string;
+          slot_id: string;
+          plan_id: string;
+          from_staff: string;
+          target_plan: string | null;
+          reason: string | null;
+          late: boolean;
+          starts_at: string;
+          ends_at: string;
+          status: string;
+          claimed_by: string | null;
+          claimed_at: string | null;
+          offered_to: number;
+          alerted_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          kind: string;
+          slot_id: string;
+          plan_id: string;
+          from_staff: string;
+          target_plan?: string | null;
+          reason?: string | null;
+          late?: boolean;
+          starts_at: string;
+          ends_at: string;
+          status?: string;
+          claimed_by?: string | null;
+          claimed_at?: string | null;
+          offered_to?: number;
+          alerted_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          kind?: string;
+          slot_id?: string;
+          plan_id?: string;
+          from_staff?: string;
+          target_plan?: string | null;
+          reason?: string | null;
+          late?: boolean;
+          starts_at?: string;
+          ends_at?: string;
+          status?: string;
+          claimed_by?: string | null;
+          claimed_at?: string | null;
+          offered_to?: number;
+          alerted_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      field_shift_plans: {
+        Row: {
+          id: string;
+          slot_id: string;
+          staff_id: string;
+          starts_at: string;
+          ends_at: string;
+          note: string | null;
+          created_by: string | null;
+          cancelled_at: string | null;
+          cancelled_by: string | null;
+          created_at: string;
+          updated_at: string;
+          cancel_reason: string | null;
+          late_cancel: boolean;
+        };
+        Insert: {
+          id?: string;
+          slot_id: string;
+          staff_id: string;
+          starts_at: string;
+          ends_at: string;
+          note?: string | null;
+          created_by?: string | null;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          cancel_reason?: string | null;
+          late_cancel?: boolean;
+        };
+        Update: {
+          id?: string;
+          slot_id?: string;
+          staff_id?: string;
+          starts_at?: string;
+          ends_at?: string;
+          note?: string | null;
+          created_by?: string | null;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          cancel_reason?: string | null;
+          late_cancel?: boolean;
+        };
+        Relationships: [];
+      };
+      field_shift_slots: {
+        Row: {
+          id: string;
+          starts_at: string;
+          ends_at: string;
+          capacity: number;
+          note: string | null;
+          created_by: string | null;
+          cancelled_at: string | null;
+          cancelled_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          starts_at: string;
+          ends_at: string;
+          capacity?: number;
+          note?: string | null;
+          created_by?: string | null;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          starts_at?: string;
+          ends_at?: string;
+          capacity?: number;
+          note?: string | null;
+          created_by?: string | null;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       field_shifts: {
         Row: {
           id: string;
@@ -7265,6 +7550,20 @@ export type Database = {
           voided_by: string | null;
           created_at: string;
           updated_at: string;
+          in_lat: number | null;
+          in_lng: number | null;
+          in_accuracy_m: number | null;
+          in_located_at: string | null;
+          in_distance_m: number | null;
+          in_flag: string | null;
+          in_reason: string | null;
+          out_lat: number | null;
+          out_lng: number | null;
+          out_accuracy_m: number | null;
+          out_located_at: string | null;
+          out_distance_m: number | null;
+          out_flag: string | null;
+          out_reason: string | null;
         };
         Insert: {
           id?: string;
@@ -7279,6 +7578,20 @@ export type Database = {
           voided_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          in_lat?: number | null;
+          in_lng?: number | null;
+          in_accuracy_m?: number | null;
+          in_located_at?: string | null;
+          in_distance_m?: number | null;
+          in_flag?: string | null;
+          in_reason?: string | null;
+          out_lat?: number | null;
+          out_lng?: number | null;
+          out_accuracy_m?: number | null;
+          out_located_at?: string | null;
+          out_distance_m?: number | null;
+          out_flag?: string | null;
+          out_reason?: string | null;
         };
         Update: {
           id?: string;
@@ -7291,6 +7604,95 @@ export type Database = {
           ended_by?: string | null;
           voided_at?: string | null;
           voided_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          in_lat?: number | null;
+          in_lng?: number | null;
+          in_accuracy_m?: number | null;
+          in_located_at?: string | null;
+          in_distance_m?: number | null;
+          in_flag?: string | null;
+          in_reason?: string | null;
+          out_lat?: number | null;
+          out_lng?: number | null;
+          out_accuracy_m?: number | null;
+          out_located_at?: string | null;
+          out_distance_m?: number | null;
+          out_flag?: string | null;
+          out_reason?: string | null;
+        };
+        Relationships: [];
+      };
+      field_spends: {
+        Row: {
+          id: string;
+          staff_id: string;
+          kind: string;
+          spent_on: string;
+          description: string;
+          amount_cents: number;
+          hst_cents: number;
+          vehicle_id: string | null;
+          booking_id: string | null;
+          prep_task_id: string | null;
+          paid_with: string;
+          receipt_document_id: string | null;
+          service_record_id: string | null;
+          company_expense_id: string | null;
+          status: string;
+          decided_by: string | null;
+          decided_at: string | null;
+          decision_note: string | null;
+          reimbursed_by: string | null;
+          reimbursed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          staff_id: string;
+          kind: string;
+          spent_on: string;
+          description: string;
+          amount_cents: number;
+          hst_cents?: number;
+          vehicle_id?: string | null;
+          booking_id?: string | null;
+          prep_task_id?: string | null;
+          paid_with?: string;
+          receipt_document_id?: string | null;
+          service_record_id?: string | null;
+          company_expense_id?: string | null;
+          status?: string;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          decision_note?: string | null;
+          reimbursed_by?: string | null;
+          reimbursed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          staff_id?: string;
+          kind?: string;
+          spent_on?: string;
+          description?: string;
+          amount_cents?: number;
+          hst_cents?: number;
+          vehicle_id?: string | null;
+          booking_id?: string | null;
+          prep_task_id?: string | null;
+          paid_with?: string;
+          receipt_document_id?: string | null;
+          service_record_id?: string | null;
+          company_expense_id?: string | null;
+          status?: string;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          decision_note?: string | null;
+          reimbursed_by?: string | null;
+          reimbursed_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -16264,6 +16666,9 @@ export type Database = {
           accident_plan_provider_name: string | null;
           accident_plan_policy_number: string | null;
           accident_plan_claims_phone: string | null;
+          field_clean_every_days: number;
+          field_offer_alert_hours: number;
+          field_late_cancel_hours: number;
         };
         Insert: {
           id?: string;
@@ -16910,6 +17315,9 @@ export type Database = {
           accident_plan_provider_name?: string | null;
           accident_plan_policy_number?: string | null;
           accident_plan_claims_phone?: string | null;
+          field_clean_every_days?: number;
+          field_offer_alert_hours?: number;
+          field_late_cancel_hours?: number;
         };
         Update: {
           id?: string;
@@ -17556,6 +17964,9 @@ export type Database = {
           accident_plan_provider_name?: string | null;
           accident_plan_policy_number?: string | null;
           accident_plan_claims_phone?: string | null;
+          field_clean_every_days?: number;
+          field_offer_alert_hours?: number;
+          field_late_cancel_hours?: number;
         };
         Relationships: [];
       };
@@ -21216,6 +21627,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      staff_pay_identity: {
+        Row: {
+          user_id: string;
+          legal_name: string | null;
+          email: string | null;
+          phone: string | null;
+          sin_enc: string | null;
+          sin_last3: string | null;
+          key_version: number | null;
+          cheque_path: string | null;
+          cheque_mime: string | null;
+          cheque_sha256: string | null;
+          completed_at: string | null;
+          created_at: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          user_id: string;
+          legal_name?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          sin_enc?: string | null;
+          sin_last3?: string | null;
+          key_version?: number | null;
+          cheque_path?: string | null;
+          cheque_mime?: string | null;
+          cheque_sha256?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          user_id?: string;
+          legal_name?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          sin_enc?: string | null;
+          sin_last3?: string | null;
+          key_version?: number | null;
+          cheque_path?: string | null;
+          cheque_mime?: string | null;
+          cheque_sha256?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
       staff_payout_accounts: {
         Row: {
           id: string;
@@ -21303,6 +21765,7 @@ export type Database = {
           hourly_rate_cents: number | null;
           sales_work_mode: string | null;
           functions: string[];
+          sales_opt_in_at: string | null;
         };
         Insert: {
           user_id: string;
@@ -21327,6 +21790,7 @@ export type Database = {
           hourly_rate_cents?: number | null;
           sales_work_mode?: string | null;
           functions?: string[];
+          sales_opt_in_at?: string | null;
         };
         Update: {
           user_id?: string;
@@ -21351,6 +21815,7 @@ export type Database = {
           hourly_rate_cents?: number | null;
           sales_work_mode?: string | null;
           functions?: string[];
+          sales_opt_in_at?: string | null;
         };
         Relationships: [];
       };
@@ -23976,6 +24441,45 @@ export type Database = {
           is_active?: boolean;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      vehicle_clean_checks: {
+        Row: {
+          id: string;
+          vehicle_id: string;
+          booking_id: string | null;
+          field_job_id: string | null;
+          moment: string;
+          clean: boolean;
+          note: string | null;
+          photo_document_id: string | null;
+          checked_by: string;
+          checked_at: string;
+        };
+        Insert: {
+          id?: string;
+          vehicle_id: string;
+          booking_id?: string | null;
+          field_job_id?: string | null;
+          moment: string;
+          clean?: boolean;
+          note?: string | null;
+          photo_document_id?: string | null;
+          checked_by: string;
+          checked_at?: string;
+        };
+        Update: {
+          id?: string;
+          vehicle_id?: string;
+          booking_id?: string | null;
+          field_job_id?: string | null;
+          moment?: string;
+          clean?: boolean;
+          note?: string | null;
+          photo_document_id?: string | null;
+          checked_by?: string;
+          checked_at?: string;
         };
         Relationships: [];
       };

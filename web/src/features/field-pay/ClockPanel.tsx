@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { fieldClock } from '@/server/actions/field';
+import { fieldClock, type ClockLoc } from '@/server/actions/field';
 import { elapsedClock } from './model';
 
 type Job = { id: string; kind: string; booking_number: string | null; vehicle: string | null; completed_at: string | null };
@@ -19,11 +19,22 @@ export function ClockPanel({ open }: { open: OpenShift | null }) {
   const [pending, start] = useTransition();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { if (!open) return; const t = setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(t); }, [open]);
+  // the phone's location is asked once, at the moment of the tap (no tracking in between). Refused, or far from the lot: the shift
+  // still starts or ends, with a reason that Fleet sees.
+  const [reason, setReason] = useState('');
+  const [askReason, setAskReason] = useState(false);
+  const here = () => new Promise<ClockLoc | null>((resolve) => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) { resolve(null); return; }
+    navigator.geolocation.getCurrentPosition(
+      (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy, located_at: new Date(p.timestamp).toISOString() }),
+      () => resolve(null), { enableHighAccuracy: true, timeout: 10_000, maximumAge: 0 });
+  });
   const go = (what: 'in' | 'out') => start(async () => {
     setMsg(null);
-    const r = await fieldClock(what, note);
-    if (!r.ok) { setMsg(r.message); return; }
-    setNote('');
+    const loc = await here();
+    const r = await fieldClock(what, note, loc, reason);
+    if (!r.ok) { setMsg(r.message); if (/location is needed|clocking here/i.test(r.message)) setAskReason(true); return; }
+    setNote(''); setReason(''); setAskReason(false);
     router.refresh();
   });
   return (
@@ -37,6 +48,8 @@ export function ClockPanel({ open }: { open: OpenShift | null }) {
       </>}
       <label className="label" htmlFor="clk-note">Note (optional)</label>
       <input id="clk-note" className="input" value={note} maxLength={200} onChange={(e) => setNote(e.target.value)} placeholder={open ? 'For example: returned the car to the lot' : 'For example: starting at the lot'} />
+      {askReason && <><label className="label" htmlFor="clk-reason">Why (your location is off, or you are away from the lot)</label>
+        <input id="clk-reason" className="input" value={reason} maxLength={300} onChange={(e) => setReason(e.target.value)} data-testid="clock-reason" /></>}
       {open
         ? <button type="button" className="btn btn--primary fd-go" data-testid="clock-out" disabled={pending} onClick={() => go('out')}>{pending ? 'Working' : 'Clock out'}</button>
         : <button type="button" className="btn btn--primary fd-go" data-testid="clock-in" disabled={pending} onClick={() => go('in')}>{pending ? 'Working' : 'Clock in'}</button>}

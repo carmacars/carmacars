@@ -265,7 +265,8 @@ test('gaps: field checklists, the report, referrals, profile and the home screen
   await expect(page.getByTestId('job-done')).toBeVisible({ timeout: 30_000 });
   expect((await sql`select status, cleaning_grade from field_jobs where id = ${job!.id as string}`)[0]).toMatchObject({ status: 'done', cleaning_grade: 'standard' });
   // the report
-  await page.goto('/staff/field/report'); await check(page, 'field report');
+  // r35 part X: a problem is reported from Add on Today (the old address opens it)
+  await page.goto('/staff/field/report'); await page.waitForURL(/\/staff\/field\?add=problem/); await check(page, 'field report');
   await page.getByTestId('what-warning_light').click();
   await page.getByTestId('report-details').fill('Tire pressure light came on after the wash');
   await page.getByTestId('report-send').click();

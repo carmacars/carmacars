@@ -5,6 +5,8 @@ import { door } from '@/server/door';
 import { Act } from '@/features/admin/Act';
 import { $, Badge, Card, PageHead, Table, Tabs, d, t } from '@/features/admin/ui';
 import { HoursBoard, type PayData } from '@/features/field-pay/HoursBoard';
+import { fieldFinance } from '@/server/field-finance';
+import { PayIdentityPanel, SpendingPanel } from '@/features/field-portal/FinancePanels';
 import { PAY_METHODS, hoursText, methodWords, overtimeWords } from '@/features/field-pay/model';
 
 export const dynamic = 'force-dynamic';
@@ -24,10 +26,12 @@ export default async function FieldPay({ searchParams }: { searchParams: Promise
   const base = '/admin/money/field-pay';
   const data = await door<Data>(user.id, 'ops_read', 'field_pay', sp.date ? { date: sp.date } : {});
   const q = (x: string) => `${base}?tab=${x}${sp.date ? `&date=${sp.date}` : ''}`;
-  const tabs = <Tabs current={q(tab)} items={[[q('run'), 'Pay run'], [q('hours'), 'Hours'], [q('rates'), 'Hourly rates']]} />;
+  const tabs = <Tabs current={q(tab)} items={[[q('run'), 'Pay run'], [q('hours'), 'Hours'], [q('rates'), 'Hourly rates'], [q('spending'), 'Spending and pay details']]} />;
   const s = data.settings;
   const R = [base];
   const run = data.run;
+  // r35 part X (0930, 0931): money field staff spent, and their pay details
+  if (tab === 'spending') { const f = await fieldFinance(user.id); return (<><PageHead title="Field spending and pay details" kicker={data.period.label} />{tabs}<SpendingPanel rows={f.spends} /><PayIdentityPanel rows={f.ids} /></>); }
   if (tab === 'hours') return (<><PageHead title="Field hours" kicker={data.period.label} />{tabs}<HoursBoard data={data} base={base} extra="tab=hours&" /></>);
   if (tab === 'rates') return (<><PageHead title="Hourly rates" kicker={`The default is ${$(s.default_rate_cents)} an hour`} />{tabs}
     <p className="small muted">Each field staff member is paid the default rate unless they have their own. The rate of a pay run is the rate when the run was started. The default, the overtime rule and vacation pay are in <Link prefetch={false} className="link" href="/admin/settings/program">Program settings</Link>. {overtimeWords(s.overtime_on, s.overtime_weekly_hours, s.overtime_bps)}</p>

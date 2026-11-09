@@ -82,6 +82,7 @@ const none = <T,>(v: T) => () => v;
 // 0910: Change the car: the free cars, each with its new total and the difference
 type CarOptions = { refusal: string | null; total_cents: number; cars: Array<{ vehicle_id: string; name: string; plate: string | null; total_cents: number; difference_cents: number }> };
 const carChoice = (v: CarOptions['cars'][number]) => `${v.name}${v.plate ? `, ${v.plate}` : ''}: ${money(v.total_cents, { cents: true })} (${v.difference_cents === 0 ? 'same price' : `${v.difference_cents > 0 ? '+' : '-'}${money(Math.abs(v.difference_cents), { cents: true })}`})`;
+type NoShiftDay = { leg: string; day: string; work_day: string | null };
 type BookingChain = { replaced_by: { number: string } | null; replaces: Array<{ number: string }> };
 /** "Replaced by #N" on the old booking and "Replaces #M" on the new one, with links (the same on the Admin and staff pages). */
 function ReplacedNote({ chain, portal }: { chain: BookingChain | null; portal: string }) {
@@ -136,7 +137,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
       ? ops<CarOptions>('car_change_options', { booking: b.id }).catch(none(null)) : null,
     (section === 'overview' || section === 'documents') && ['pending_payment', 'confirmed', 'on_rent'].includes(b.status) && notOwner
       ? ops<AccidentCardData>('accident_card', { booking: b.id }).catch(none(null)) : null]);
-  const [ins, km, settings, credit, came, insurerCard, swapCars, fleetStaff, late] = await Promise.all([
+  const [ins, km, settings, credit, came, insurerCard, swapCars, fleetStaff, noShift, late] = await Promise.all([
     can.admin ? list<{ id: string; name: string }>('insurers', { eq: { is_active: true }, order: 'name', asc: true }) : { rows: [] as Array<{ id: string; name: string }>, count: 0 },
     can.admin || arranging ? list<{ km_per_day: number }>('km_allowance_choices', { eq: { is_active: true } }).catch(none({ rows: [] as Array<{ km_per_day: number }>, count: 0 })) : { rows: [] as Array<{ km_per_day: number }>, count: 0 },
     can.admin ? read<{ program: { offer_expiry_hours: number } }>('settings') : null,
@@ -149,7 +150,9 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
     // a swap during the trip picks the car from a list, never a typed id (sim item 4)
     can.admin && b.status === 'on_rent' ? list<{ id: string; year: number; make: string; model: string; plate: string | null; status: string }>('vehicles', { order: 'make', asc: true, limit: 500 })
       .then((r) => r.rows.filter((v) => v.id !== b.vehicle_id && v.status === 'available')).catch(none([])) : [],
-    can.scheduleJob ? read<{ staff: Array<{ id: string; name: string }> }>('fleet_board') : { staff: [] as Array<{ id: string; name: string }> },
+    can.scheduleJob ? ops<{ staff: Array<{ id: string; name: string; eligible: boolean }> }>('field_staff').catch(none({ staff: [] as Array<{ id: string; name: string; eligible: boolean }> })) : { staff: [] as Array<{ id: string; name: string; eligible: boolean }> },
+    // handovers and returns on a day with no field shifts (0880): someone must cover it, or the time must move
+    can.scheduleJob ? ops<NoShiftDay[]>('field_no_shift_days', { booking: b.id }).catch(none([] as NoShiftDay[])) : [] as NoShiftDay[],
     // the late-return panel (05-va.md section 3.4) while the car is out past its time
     can.latePanel && b.status === 'on_rent' ? read<Late | null>('late_panel', { booking: b.id }).catch(none(null)) : null]);
   const [driverLinks, manual, paper, moneyByPart, fees, editForm, renterForm, activity, conv] = await Promise.all([
@@ -231,7 +234,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
         {can.admin && b.status === 'returned' && <Act action="issue_booking_statement" payload={P} label="Issue final statement" confirm="Issue the Check-out statement from the assessed lines and settle the deposit plan." refresh={refresh} />}
         {can.scheduleJob && ['confirmed', 'on_rent'].includes(b.status) && <Act action="field_job_create" payload={{ ...P, vehicle: b.vehicle_id }} label="Schedule a field job" variant="primary" testId="schedule-job" fields={[
           { name: 'kind', label: 'Kind', type: 'select', required: true, options: KINDS, value: b.status === 'confirmed' ? 'handover' : 'return_check_in' },
-          { name: 'assigned_to', label: 'Assigned to', type: 'select', options: fleetStaff.staff.map((s) => [s.id, s.name] as [string, string]) },
+          { name: 'assigned_to', label: 'Assigned to', type: 'select', options: fleetStaff.staff.filter((s) => s.eligible).map((s) => [s.id, s.name] as [string, string]) },
           { name: 'scheduled_at', label: 'When', type: 'datetime', required: true, value: b.status === 'confirmed' ? b.pickup_at : b.return_at },
           { name: 'place', label: 'Place', type: 'address', required: true, value: (b.status === 'confirmed' ? b.pickup_place : b.return_place) ?? 'Our location' }, { name: 'instructions', label: 'Instructions', type: 'textarea' }]} refresh={refresh} done="Job scheduled." />}
         {insurerBilled && b.insurer_adjuster_email && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=messages&to=adjuster`} data-testid="email-adjuster-link">Email the adjuster</Link>}
@@ -240,6 +243,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
       {can.admin && b.placeholder?.on ? <PlaceholderBanner p={b.placeholder} items={b.competing} /> : <NextStepPanel s={step} />}
       <ClaimBanner />
       <ReplacedNote chain={chain} portal={portal} />
+      {noShift.length > 0 && <p className="alert alert--warn" role="status" data-testid="no-shift-warning">{noShift.map((w) => `${w.leg === 'handover' ? 'The handover' : 'The return'} is on ${w.day}, a day with no field shifts${w.work_day ? `: its job is planned for ${w.work_day}` : ''}.`).join(' ')} Someone must cover it, or the booking time must move.</p>}
       {late?.late && <LatePanel l={late} fleet={fn === 'fleet'} refresh={refresh} />}
       {can.photoReview && ['on_rent', 'returned', 'closed'].includes(b.status) && <p className="small"><Link prefetch={false} className="link" href={`/staff/review/${encodeURIComponent(n)}`} data-testid="photo-review-link">Photo review: pickup and return side by side</Link></p>}
       {can.admin && <BookingSummary status={b.status} pickupAt={b.pickup_at} returnAt={b.return_at} days={Number(b.billable_days)} totalCents={Number(b.total_due_at_booking_cents)} billTo={b.bill_to} />}

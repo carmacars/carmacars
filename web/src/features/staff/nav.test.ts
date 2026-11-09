@@ -12,7 +12,7 @@ const actions = (fns: string[]) => STAFF_ACTIONS.filter((a) => !a.fns || a.fns.s
 
 test('Sales in person with field work: the Sales jobs and the field jobs in one menu', () => {
   const h = hrefs(['sales', 'field']);
-  for (const p of ['/staff/requests', '/staff/visitors', '/staff/marketing', '/staff/my-sales', '/staff/field', '/staff/field/map', '/staff/field/hours']) assert.ok(h.includes(p), p);
+  for (const p of ['/staff/requests', '/staff/visitors', '/staff/marketing', '/staff/my-sales', '/staff/field', '/staff/field/shifts', '/staff/field/pay']) assert.ok(h.includes(p), p);
   assert.deepEqual(groups(['sales', 'field']), ['To do', 'Sales', 'Field work', 'Bookings', 'Me']);
   // the office pages cover adding a rental, the sales and the profile
   for (const p of ['/staff/field/rentals/new', '/staff/field/sales', '/staff/field/profile']) assert.ok(!reach(['sales', 'field']).includes(p), p);
@@ -20,12 +20,12 @@ test('Sales in person with field work: the Sales jobs and the field jobs in one 
   for (const p of ['/staff/money', '/staff/fleet', '/staff/messages', '/staff/owner-forms']) assert.ok(!reach(['sales', 'field']).includes(p), p);
 });
 
-test('field work only: their four jobs and Me (my sales, referrals, profile, academy); adding a rental and reporting are buttons', () => {
+test('field work only: their four tabs and Me (my sales, referrals, profile, academy); adding a rental is a button on Sales (r35 part X)', () => {
   assert.deepEqual(groups(['field']), ['Field work', 'Me']);
   assert.equal(count(['field']), 5);
-  for (const p of ['/staff/field', '/staff/field/now', '/staff/field/map', '/staff/field/hours']) assert.ok(hrefs(['field']).includes(p), p);
+  for (const p of ['/staff/field', '/staff/field/shifts', '/staff/field/pay', '/staff/field/training']) assert.ok(hrefs(['field']).includes(p), p);
   for (const p of ['/staff/field/sales', '/staff/field/referrals', '/staff/field/profile', '/staff/academy']) assert.ok(reach(['field']).includes(p), p);
-  assert.deepEqual(actions(['field']).map((a) => `${a.on} ${a.href}`), ['/staff/field /staff/field/rentals/new', '/staff/field /staff/field/report']);
+  assert.deepEqual(actions(['field']).map((a) => `${a.on} ${a.href}`), ['/staff/field/sales /staff/field/rentals/new']);
   assert.ok(!reach(['field']).includes('/staff'));
 });
 
@@ -67,7 +67,7 @@ const TOP: Record<string, string[]> = {
   fleet: ['/staff/fleet', '/staff/fleet/map', '/staff/checks', '/staff/maintenance'],
   finance: ['/staff/money', '/staff/owner-money?tab=invoices', '/staff/tolls', '/staff/turo'],
   sales: ['/staff/requests', '/staff/visitors', '/staff/marketing', '/staff/my-sales'],
-  field: ['/staff/field', '/staff/field/now', '/staff/field/map', '/staff/field/hours']
+  field: ['/staff/field', '/staff/field/shifts', '/staff/field/pay', '/staff/field/training']
 };
 
 test('each role: at most five links in its group, its main jobs one tap away, the rest one tap from "More", Bookings or Me', () => {
@@ -110,7 +110,7 @@ test('the rows on a page: the section, then the group\'s tabs; Finance\'s money 
   const at = (fns: string[], path: string, q = '') => placeOf(staffSections(fns), staffHubs(fns), path, q);
   const fin = at(['finance'], '/staff/money', 'tab=day');
   assert.equal(fin.section?.label, 'Finance');
-  assert.deepEqual(fin.hub?.hub.tabs.map((t) => t.label), ['To handle', 'By day', 'All payments', 'Refunds', 'Deposits', 'Reconciliation', 'Partner invoices', 'Kickbacks and repairs']);
+  assert.deepEqual(fin.hub?.hub.tabs.map((t) => t.label), ['To handle', 'By day', 'All payments', 'Refunds', 'Deposits', 'Reconciliation', 'Partner invoices', 'Kickbacks and repairs', 'Field spending']);
   assert.equal(fin.hub?.tab.label, 'By day');
   assert.deepEqual(at(['finance'], '/staff/owner-money', 'tab=statements').hub?.tab.label, 'Statements');
   const cs = at(['cs'], '/staff/messages');
