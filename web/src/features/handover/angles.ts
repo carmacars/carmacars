@@ -7,7 +7,9 @@ export const ANGLES: ReadonlyArray<readonly [string, string]> = [
   ['interior_rear', 'Interior rear'], ['trunk', 'Trunk'], ['wheels', 'Wheels'], ['damage', 'Any damage']
 ];
 export const ANGLE_KEYS = new Set(ANGLES.map(([k]) => k));
-export const angleLabel = (k: string | null | undefined) => ANGLES.find(([x]) => x === k)?.[1] ?? 'Other';
+// 0910: the dashboard photo of the reading and the selfie at the car have their own tags (not in the checklist)
+const EXTRA: Record<string, string> = { dashboard: 'Dashboard (odometer and fuel)', selfie: 'Selfie at the car' };
+export const angleLabel = (k: string | null | undefined) => ANGLES.find(([x]) => x === k)?.[1] ?? (k ? EXTRA[k] : undefined) ?? 'Other';
 
 export interface PickedPhoto { bucket: string; path: string; angle: string | null; name: string }
 

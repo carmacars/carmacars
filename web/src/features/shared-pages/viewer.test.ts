@@ -23,9 +23,9 @@ describe('the shared booking page', () => {
   });
   it('gives each staff function exactly what its own copy showed', () => {
     const want: Record<StaffFn, string[]> = {
-      sales: ['handover', 'inbox', 'licenceReview', 'money', 'offer', 'sign', 'staffUpload'],
-      cs: ['cancelForRenter', 'carLink', 'driverLinks', 'editOfferPending', 'extras', 'handover', 'inbox', 'latePanel', 'money', 'offer', 'paperSignatures', 'sign', 'staffUpload'],
-      fleet: ['carLink', 'handover', 'latePanel', 'photoReview', 'scheduleJob', 'sign', 'staffUpload'],
+      sales: ['changeCar', 'handover', 'inbox', 'licenceReview', 'money', 'offer', 'sign', 'staffUpload'],
+      cs: ['cancelForRenter', 'carLink', 'changeCar', 'driverLinks', 'editOfferPending', 'extras', 'handover', 'inbox', 'latePanel', 'money', 'offer', 'paperSignatures', 'sign', 'staffUpload'],
+      fleet: ['carLink', 'changeCar', 'handover', 'latePanel', 'photoReview', 'scheduleJob', 'sign', 'staffUpload'],
       finance: ['agreementMoney', 'manualPayments', 'money', 'refund', 'refundApprove', 'settleDeposit', 'staffUpload', 'statement']
     };
     for (const fn of FNS) assert.deepEqual(yes(bookingCan(staffViewer(fn))), want[fn].sort(), fn);

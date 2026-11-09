@@ -35,6 +35,9 @@ const schema = z.object({
   R2_BUCKET_PREFIX: z.string().default('carmacars-local-'),
   MAPS_PROVIDER: z.enum(['google', 'fake']).default('fake'),
   GOOGLE_MAPS_API_KEY: z.string().optional(),
+  /** 0910: Google Gemini, the vision fallback when set (free trial tier: its quota and model errors fall back to typing) */
+  GEMINI_API_KEY: z.string().optional(),
+  GEMINI_VISION_MODEL: z.string().optional(),
   VIN_DECODER: z.enum(['vpic', 'fake']).default('fake'),
   /** The listing pipeline: copy drafts (workers-ai: the Worker's AI binding) and photos (cloudflare: Images transformations). */
   LLM_PROVIDER: z.enum(['workers-ai', 'fake']).default('fake'),
