@@ -31,6 +31,23 @@ export interface TerminalAdapter {
   cancelReaderAction(readerId: string): Promise<Reader>;
   /** A payment by its id: a PaymentIntent (pi_...) or a charge (ch_..., read through its PaymentIntent). */
   lookupPayment(id: string): Promise<Intent>;
+  /** r35: the succeeded charges since a time (seconds since 1970), newest first, at most `max` (the nightly unlinked check). */
+  listCharges(sinceEpoch: number, max?: number): Promise<StripeCharge[]>;
+}
+
+/** r35: a charge as the nightly "unlinked Stripe payments" check keeps it: no card number, only what finds its booking. */
+export interface StripeCharge { id: string; intentId: string | null; amountCents: number; refundedCents: number; currency: string; created: number; status: string;
+  captured: boolean; email: string | null; name: string | null; last4: string | null; brand: string | null; description: string | null; metadata: Record<string, string> }
+
+export function toCharge(c: Obj): StripeCharge {
+  const bd = (c.billing_details && typeof c.billing_details === 'object' ? c.billing_details : {}) as Obj;
+  const pmd = (c.payment_method_details && typeof c.payment_method_details === 'object' ? c.payment_method_details : {}) as Obj;
+  const card = ((pmd.card ?? pmd.card_present) && typeof (pmd.card ?? pmd.card_present) === 'object' ? (pmd.card ?? pmd.card_present) : {}) as Obj;
+  const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+  return { id: String(c.id), intentId: str(c.payment_intent) ?? str((c.payment_intent as Obj | null)?.id), amountCents: n(c.amount), refundedCents: n(c.amount_refunded),
+    currency: str(c.currency) ?? 'cad', created: n(c.created), status: str(c.status) ?? 'unknown', captured: c.captured !== false,
+    email: str(bd.email) ?? str(c.receipt_email), name: str(bd.name), last4: str(card.last4), brand: str(card.brand), description: str(c.description),
+    metadata: (c.metadata && typeof c.metadata === 'object' ? c.metadata : {}) as Record<string, string> };
 }
 
 export function toReader(r: Obj): Reader {
@@ -87,6 +104,19 @@ export function stripeTerminal(secretKey: string, f: typeof fetch = (...a) => fe
         return toIntent(await call('GET', `/payment_intents/${encodeURIComponent(pi)}`, { expand }));
       }
       return toIntent(await call('GET', `/payment_intents/${encodeURIComponent(id)}`, { expand }));
+    },
+    async listCharges(since, max = 1000) {
+      // 100 a page, newest first, followed by starting_after until the time or `max` is reached
+      const out: StripeCharge[] = [];
+      let after: string | null = null;
+      for (let page = 0; page < 20 && out.length < max; page++) {
+        const r = await call('GET', '/charges', { limit: 100, 'created[gte]': since, ...(after ? { starting_after: after } : {}) });
+        const data = Array.isArray(r.data) ? (r.data as Obj[]) : [];
+        for (const c of data) if (out.length < max) out.push(toCharge(c));
+        if (r.has_more !== true || !data.length) break;
+        after = String(data[data.length - 1]!.id);
+      }
+      return out.filter((c) => c.status === 'succeeded');
     }
   };
 }

@@ -49,6 +49,34 @@ export async function lookupStripePayment(p: { booking: string; id: string }): P
   } catch (e) { return fail(e); }
 }
 
+/** r35 (1081): Link a payment taken outside the platform, an Admin only: the Stripe payment id (pi_... or ch_...) of a
+ *  charge taken in the Stripe Dashboard or through a payment link, linked as the rental or as the deposit. Read at Stripe
+ *  here; the database checks the currency, the amount, that nothing has it yet, and records it (held or captured, for a
+ *  deposit, per its status at Stripe). */
+export async function linkStripePayment(p: { booking: string; id: string; as: 'rental' | 'deposit'; same_card?: boolean; note?: string }): Promise<R<{ held?: boolean; captured?: boolean; confirmed?: boolean }>> {
+  try {
+    const { user, aal } = await mayHandle(p.booking);
+    const id = String(p.id ?? '').trim();
+    if (!/^(pi|ch)_[A-Za-z0-9_]{6,}$/.test(id)) return { ok: false, code: 'refused', message: 'A Stripe payment id starts with pi_ (the payment) or ch_ (the charge).' };
+    const i = await (await terminal()).lookupPayment(id);
+    const data = await door<{ held?: boolean; captured?: boolean; confirmed?: boolean }>(user.id, 'admin_do', 'link_stripe_payment',
+      { booking: p.booking, as: p.as === 'deposit' ? 'deposit' : 'rental', same_card: !!p.same_card, note: p.note ?? null, verified: { ...verified(i), currency: i.currency } }, aal);
+    refresh(p.booking);
+    for (const x of ['/admin/money', '/staff/money']) revalidatePath(x);
+    return { ok: true, data };
+  } catch (e) { return fail(e); }
+}
+
+/** r35 (1081): put an unlinked Stripe payment aside (not a booking's payment), or back on the list: Admin and Finance. */
+export async function dismissUnlinkedStripe(p: { charge_id: string; note?: string; undo?: boolean }): Promise<R> {
+  try {
+    const { user, aal, va } = await me();
+    await door(user.id, 'ops_do', 'stripe_unlinked_dismiss', withFn({ charge_id: p.charge_id, note: p.note ?? null, undo: !!p.undo }, va), aal);
+    for (const x of ['/admin/money', '/staff/money']) revalidatePath(x);
+    return { ok: true, data: {} };
+  } catch (e) { return fail(e); }
+}
+
 /** Record card payment (0201): { booking, covers, amount_cents, last4, brand, source, stripe_id, received_on, note, same_card } */
 export async function recordCardPayment(p: Record<string, unknown> & { booking: string; stripe_id?: string | null }): Promise<R<{ confirmed?: boolean; held?: boolean }>> {
   try {

@@ -2,6 +2,7 @@
 import './chat.css';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { clockTo } from '@/lib/clock';
 import { browserRpc } from '@/lib/browser-rpc';
 import { onBeaconReply, pageContext, sessionId, setChatOpen, visitorId, type BeaconReply } from './beacon';
 import { SavedAsYouType, useCapture } from '@/features/capture/useCapture';
@@ -16,7 +17,7 @@ type Conv = { token: string; number: string; status: 'ai' | 'waiting' | 'human' 
 type Poll = { ok: boolean; error?: string; number: string; status: Conv['status']; offline: boolean; staff_typing: boolean; has_contact: boolean; agent: string | null; messages: Msg[] };
 const KEY = 'cc_chat';
 const store = { get: () => { try { return localStorage.getItem(KEY); } catch { return null; } }, set: (t: string | null) => { try { if (t) localStorage.setItem(KEY, t); else localStorage.removeItem(KEY); } catch { /* private mode */ } } };
-const time = (iso: string) => new Date(iso).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Toronto' });
+const time = (iso: string) => clockTo(iso);
 const device = () => (matchMedia('(max-width: 599px)').matches ? 'phone' : matchMedia('(max-width: 1024px)').matches ? 'tablet' : 'desktop');
 
 // The greeting (0100): after chat_greeting_seconds on the site (45 by default, counted from the visit's first page in

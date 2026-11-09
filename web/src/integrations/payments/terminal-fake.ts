@@ -1,6 +1,6 @@
 import type { Intent } from './types';
 import { StripeError } from './stripe';
-import type { Reader, TerminalAdapter } from './terminal';
+import type { Reader, StripeCharge, TerminalAdapter } from './terminal';
 import { fakePayments } from './fake';
 
 // ---------------------------------------------------------------- the fake (local work, unit and end-to-end tests)
@@ -60,6 +60,14 @@ export function fakeTerminal(): TerminalAdapter {
         currency: 'cad', clientSecret: null, metadata: {}, customerId: null, paymentMethodId: null, chargeId: id.replace(/^pi_/, 'ch_'),
         card: { brand: 'visa', last4: m[2]!, expMonth: 12, expYear: 2030, funding: 'credit', name: null, fingerprint: `fp_00${m[2]!}`, country: 'CA' },
         lastError: null, methodType: 'card', bank: null, mandateId: null, captureBefore: null };
+    },
+    async listCharges(since, max = 1000) {
+      // r35: the charges this process made (succeeded), plus any a test set (globalThis.__ccFakeCharges), newest first
+      const made = pay.intents().filter((i) => i.status === 'succeeded' && i.chargeId).map((i): StripeCharge => ({ id: i.chargeId!, intentId: i.id, amountCents: i.amountCents, refundedCents: 0,
+        currency: i.currency, created: Math.floor(Date.now() / 1000), status: 'succeeded', captured: true, email: null, name: i.card?.name ?? null, last4: i.card?.last4 ?? null,
+        brand: i.card?.brand ?? null, description: null, metadata: i.metadata }));
+      const extra = (globalThis as unknown as { __ccFakeCharges?: StripeCharge[] }).__ccFakeCharges ?? [];
+      return [...extra, ...made].filter((c) => c.created >= since && c.status === 'succeeded').sort((a, b) => b.created - a.created).slice(0, max);
     }
   };
 }

@@ -12,11 +12,12 @@ import { ProfitExtras } from '@/features/profit-extras/ProfitExtras';
 import { CountdownTable } from '@/features/deposit-review/Countdowns';
 import type { Countdowns } from '@/features/deposit-review/model';
 import { PageHead } from '@/features/admin/ui';
+import { UnlinkedStripe, type Unlinked } from '@/features/money/UnlinkedStripe';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Money', path: '/staff/money', noindex: true, description: 'Money to handle, payments by day, every payment, refunds, deposits and the processor payouts.' });
 
-const TABS = ['handle', 'countdowns', 'day', 'payments', 'refunds', 'deposits', 'reconciliation', 'kickbacks', 'partners'] as const;
+const TABS = ['handle', 'countdowns', 'day', 'payments', 'refunds', 'deposits', 'reconciliation', 'kickbacks', 'partners', 'stripe'] as const;
 
 // Finance > Money (r27 consolidation: Admin's merged Payments for the finance role, the owner: "every Admin upgrade
 // reaches each staff role's portal"): To handle, By day (with the quick ranges), All payments, Refunds, Deposits and
@@ -44,5 +45,11 @@ export default async function Money({ searchParams }: { searchParams: Promise<Re
   if (tab === 'kickbacks') return <ProfitExtras userId={ctx.user.id} aal={ctx.aal} level="business" sp={Object.fromEntries(['from', 'to'].map((k) => [k, one(k)]))} base="/staff/money?tab=kickbacks" carLink={(v) => `/staff/vehicles/${v}`} />;
   if (tab === 'partners') return <PartnerInvoices userId={ctx.user.id} aal={ctx.aal} base="/staff/money?tab=partners" sp={Object.fromEntries(['invoice', 'claim', 'partner'].map((k) => [k, one(k)]))} />;
   if (tab === 'reconciliation') return <Reconciliation ctx={ctx} sp={{ month: one('month') }} />;
+  // r35 (1081): the nightly list of Stripe payments no booking knows (linking is an Admin's, on the booking)
+  if (tab === 'stripe') {
+    const all = one('all') === '1';
+    const u = await door<Unlinked>(ctx.user.id, 'ops_read', 'stripe_unlinked', { dismissed: all, _va: ctx.fn }, ctx.aal);
+    return <UnlinkedStripe u={u} all={all} base="/staff/money?tab=stripe" bookingHref={(n) => `/staff/bookings/${encodeURIComponent(n)}?tab=money`} />;
+  }
   return <ToHandle ctx={ctx} />;
 }

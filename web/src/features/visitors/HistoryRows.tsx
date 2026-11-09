@@ -1,5 +1,6 @@
 'use client';
 import Link from '@/components/Link';
+import { clockTo } from '@/lib/clock';
 import { useMemo, useState } from 'react';
 import { showOnMap } from '@/features/live-map/focus';
 import { roleLabel } from '@/features/live-map/roles';
@@ -9,7 +10,7 @@ import { DEVICE_WORDS, duration, groupByDay, outcomeOf, place, shortSource, sour
 // The History rows (Release 27): one compact row a visit, grouped by day. Time, who (with what they are to us), city,
 // where they came from, pages and the cars they looked at, the score and what it led to; a click opens the page trail.
 // A quick search narrows the rows on the page. Never a phone or an email.
-const clock = (iso: string) => new Date(iso).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Toronto' });
+const clock = (iso: string) => clockTo(iso);
 const bandOf = (s: number | null | undefined) => (s == null ? 'none' : s >= 60 ? 'hot' : s >= 30 ? 'warm' : 'cold');
 const thumb = (c: NonNullable<HistoryRow['cars']>[number]) => {
   const p = c.photo;
