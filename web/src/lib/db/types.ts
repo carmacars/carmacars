@@ -17346,6 +17346,7 @@ export type Database = {
           in_person_area_cities: string[];
           indexnow_sweep_batch: number;
           indexnow_queue_batch: number;
+          staff_onboarding_gate: boolean;
         };
         Insert: {
           id?: string;
@@ -18036,6 +18037,7 @@ export type Database = {
           in_person_area_cities?: string[];
           indexnow_sweep_batch?: number;
           indexnow_queue_batch?: number;
+          staff_onboarding_gate?: boolean;
         };
         Update: {
           id?: string;
@@ -18726,6 +18728,7 @@ export type Database = {
           in_person_area_cities?: string[];
           indexnow_sweep_batch?: number;
           indexnow_queue_batch?: number;
+          staff_onboarding_gate?: boolean;
         };
         Relationships: [];
       };
@@ -20883,6 +20886,10 @@ export type Database = {
           hot_hours: number;
           updated_at: string;
           updated_by: string | null;
+          claim_cooldown_minutes: number;
+          lead_cap_base: number;
+          lead_cap_per_wins: number;
+          lead_cap_max: number;
         };
         Insert: {
           id?: boolean;
@@ -20892,6 +20899,10 @@ export type Database = {
           hot_hours?: number;
           updated_at?: string;
           updated_by?: string | null;
+          claim_cooldown_minutes?: number;
+          lead_cap_base?: number;
+          lead_cap_per_wins?: number;
+          lead_cap_max?: number;
         };
         Update: {
           id?: boolean;
@@ -20901,6 +20912,10 @@ export type Database = {
           hot_hours?: number;
           updated_at?: string;
           updated_by?: string | null;
+          claim_cooldown_minutes?: number;
+          lead_cap_base?: number;
+          lead_cap_per_wins?: number;
+          lead_cap_max?: number;
         };
         Relationships: [];
       };
@@ -22728,6 +22743,11 @@ export type Database = {
           location_city: string | null;
           location_country: string | null;
           location_area: string | null;
+          whatsapp_joined: string[];
+          whatsapp_joined_at: string | null;
+          whatsapp_marked_by: string | null;
+          onboarding_exempt: boolean;
+          onboarding_done: boolean;
         };
         Insert: {
           user_id: string;
@@ -22767,6 +22787,11 @@ export type Database = {
           location_city?: string | null;
           location_country?: string | null;
           location_area?: string | null;
+          whatsapp_joined?: string[];
+          whatsapp_joined_at?: string | null;
+          whatsapp_marked_by?: string | null;
+          onboarding_exempt?: boolean;
+          onboarding_done?: boolean;
         };
         Update: {
           user_id?: string;
@@ -22806,6 +22831,11 @@ export type Database = {
           location_city?: string | null;
           location_country?: string | null;
           location_area?: string | null;
+          whatsapp_joined?: string[];
+          whatsapp_joined_at?: string | null;
+          whatsapp_marked_by?: string | null;
+          onboarding_exempt?: boolean;
+          onboarding_done?: boolean;
         };
         Relationships: [];
       };
@@ -29978,6 +30008,8 @@ export type Database = {
       server_hiring_confirm: { Args: { p_token: string; p_seq?: number }; Returns: Json };
       server_hiring_prefill: { Args: { p_token: string; p_slug: string }; Returns: Json };
       server_in_person_lines: { Args: { p_request: string }; Returns: Json };
+      server_incident_digital: { Args: { p_by: string; p?: Json }; Returns: Json };
+      server_incident_document: { Args: { p_by: string; p_document: string }; Returns: Json };
       server_indexnow_claim: { Args: { p_limit: number }; Returns: Json };
       server_indexnow_report: { Args: { p: Json }; Returns: Json };
       server_indexnow_sent: { Args: { p: Json }; Returns: number };

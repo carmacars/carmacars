@@ -66,7 +66,10 @@ select app.process_events(1000);
 select test.eq('dedupe: the same lead again makes no second alert', (select count(*) from app_events where code = 'staff_lead_new' and payload ->> 'lead_id' = test.id('lal_l1')::text), 1::bigint);
 
 -- assigned: the assigned person (on duty or not), the Admin; not the others on duty
+-- (1152: a lead is assigned only by a person: an Admin's assignment here)
+select set_config('app.lead_admin_move', 'on', false);
 insert into leads (id, kind, name, phone, source, assigned_to) values (test.id('lal_l2'), 'other', 'Gina Game', '4165550102', 'discount_game', test.id('lal_sales2'));
+select set_config('app.lead_admin_move', '', false);
 select app.process_events(1000);
 select test.eq('an assigned lead (discount game claim): the assigned person and the Admin only',
   test.lal_who('staff_lead_new', 'New lead: Discount game claim'), 'lal_admin,lal_sales2');
@@ -123,7 +126,9 @@ select app.process_events(1000);
 select test.eq('unfinished and assigned (through its lead): the assigned person and the Admin', test.lal_who('staff_request_unfinished', 'Unfinished request: Ada%'), 'lal_admin,lal_sales2');
 
 -- ================================================================== owner leads
+select set_config('app.lead_admin_move', 'on', false);
 insert into leads (id, kind, name, email, source, assigned_to, vehicle_text) values (test.id('lal_o1'), 'owner_program', 'Owen Owner', 'lal_owen@example.test', 'web', test.id('lal_sales'), '2022 Example Car');
+select set_config('app.lead_admin_move', '', false);
 insert into leads (id, kind, name, email, source) values (test.id('lal_o2'), 'owner_program', 'Opal Unassigned', 'lal_opal@example.test', 'web');
 select app.process_events(1000);
 select test.eq('an owner lead: the Admin and the Sales person it is assigned to, not other Sales or customer service',

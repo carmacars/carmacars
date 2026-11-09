@@ -25,6 +25,10 @@ create temp table gl_sub as select app.submit_lead(jsonb_build_object('kind', 'o
 select test.ok('website form (owner program): unassigned', (select l.assigned_to is null from leads l where l.email = 'gl.owner@example.test'));
 create temp table gl_sub2 as select app.submit_lead(jsonb_build_object('kind', 'contact', 'name', 'Gl Contact', 'email', 'gl.contact@example.test', 'message', 'Hello there', 'consent_marketing', false), null) r;
 select test.ok('website form (contact): unassigned', (select l.assigned_to is null from leads l where l.email = 'gl.contact@example.test'));
+create temp table gl_sub3 as select app.submit_lead(jsonb_build_object('kind', 'buyer', 'name', 'Gl Buyer', 'email', 'gl.buyer@example.test', 'consent_marketing', false), null) r;
+select test.ok('website form (buyer): the lead and its To do are unassigned',
+  (select l.assigned_to is null and not exists (select 1 from tasks t where t.related_id = l.id and t.assigned_to is not null) from leads l where l.email = 'gl.buyer@example.test'));
+select test.ok('expired offers and unfinished applications: the pick they used names nobody', app.lead_real_assignee() is null);
 insert into leads (id, kind, name, email, source, assigned_to) values (test.id('lead:gl_auto'), 'contact', 'Auto', 'gl.auto@example.test', 'web', test.id('gl_roman'));
 select test.ok('any insert with an assignee picked by itself: unassigned', (select assigned_to is null from leads where id = test.id('lead:gl_auto')));
 insert into leads (id, kind, name, email, source, assigned_to, sourced_by) values (test.id('lead:gl_own'), 'owner_program', 'Own', 'gl.own@example.test', 'referral', test.id('gl_ana'), test.id('gl_ana'));

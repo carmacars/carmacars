@@ -73,13 +73,27 @@ create or replace function app.lead_real_assignee() returns uuid
 language sql stable security definer set search_path = public, app as $$ select null::uuid $$;
 comment on function app.lead_real_assignee() is 'Names nobody since 1152 (it picked the Sales person with the fewest open leads): leads wait on the Sales lead list for a salesperson to claim.';
 
--- a new lead is unassigned, unless it is a salesperson's own (brought or added by the assignee) or an Admin's assignment
+-- app.submit_lead (and its 0097 inner) chose its own Sales person for the lead and its To do: it chooses nobody now (the
+-- To do waits in the Sales queue, the lead on the lead list)
+do $$
+declare f record;
+begin
+  for f in select p.oid::regprocedure sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+            where n.nspname = 'app' and p.proname in ('submit_lead', 'submit_lead_pre0097') and pg_get_functiondef(p.oid) like '%select sp.user_id into v_assignee%' loop
+    perform pg_temp.patch_fn(f.sig, 'select sp.user_id into v_assignee', 'select null::uuid into v_assignee');
+  end loop;
+end $$;
+
+-- a new lead is unassigned, unless it is a salesperson's own (brought or added by the assignee), an Admin's assignment, or
+-- given to a test or verify account (the fences of 0343 and 0440 keep a real lead from one and a test lead with it)
 create function app.leads_open_on_insert() returns trigger
 language plpgsql security definer set search_path = public, app as $$
 begin
   if new.assigned_to is not null and coalesce(current_setting('app.lead_admin_move', true), '') <> 'on'
      and new.assigned_to is distinct from new.sourced_by and coalesce(new.payload ->> 'added_by', '') <> new.assigned_to::text
-     and not app.user_is_admin(app.uid()) then
+     and not app.user_is_admin(app.uid())
+     -- a test or verify account's own lead (the live verification's data) is the fence's business (0343, 0440), kept as it was
+     and not app.staff_is_test(new.assigned_to) then
     new.assigned_to := null;
   end if;
   return new;

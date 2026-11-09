@@ -53,7 +53,8 @@ select test.r35k('r35k_admin', 'admin_do', 'staff_agreement_waive', jsonb_build_
 select test.eq('step 3, every role: open, and the right WhatsApp group on the home page',
   (select string_agg(p.label || '=' || app.agreement_locked(test.id(p.label)) || '/' || (app.staff_team_groups(test.id(p.label)) -> 0 ->> 'key'), ',' order by p.label) from r35k_people p),
   'r35k_cs=false/team,r35k_field=false/team,r35k_fin=false/team,r35k_fleet=false/team,r35k_spi=false/sales,r35k_spr=false/sales');
-select test.eq('and on Welcome', (select jsonb_array_length(s -> 'groups') from jsonb_array_elements(app.staff_welcome(test.id('r35k_spr')) -> 'steps') s where s ->> 'key' = 'team'), 1);
+-- 1151: Sales staff join the Sales group and the Team group
+select test.eq('and on Welcome', (select jsonb_array_length(s -> 'groups') from jsonb_array_elements(app.staff_welcome(test.id('r35k_spr')) -> 'steps') s where s ->> 'key' = 'team'), 2);
 select app.job_staff_agreements();
 select test.eq('the team group email goes once to each', (select count(*) from app_events where code = 'staff_team_group' and (payload ->> 'recipient_user_id')::uuid in (select test.id(label) from r35k_people)), 6::bigint);
 select app.job_staff_agreements();

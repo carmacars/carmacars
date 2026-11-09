@@ -80,6 +80,11 @@ language sql stable security definer set search_path = public, app as $$
     from staff_profiles sp, unnest(app.staff_required_groups(sp.functions)) g where sp.user_id = p_user
 $$;
 
+-- 1060's groups of a person (the home page card and the team group email): the Team group for everyone, Sales staff too
+select pg_temp.patch_fn('app.staff_groups(uuid)'::regprocedure,
+  'from staff_profiles sp where sp.user_id = p_user and sp.functions && array[''cs'', ''fleet'', ''finance'', ''field''] and',
+  'from staff_profiles sp where sp.user_id = p_user and');
+
 -- where a person is: academy, agreement, whatsapp, then done (each step only after the one before)
 create function app.staff_onboarding_state(p_user uuid) returns jsonb
 language plpgsql stable security definer set search_path = public, app as $$
