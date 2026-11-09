@@ -1,4 +1,5 @@
 'use client';
+import { clockTo } from '@/lib/clock';
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { fieldClock, type ClockLoc } from '@/server/actions/field';
@@ -8,7 +9,8 @@ type Job = { id: string; kind: string; booking_number: string | null; vehicle: s
 export interface OpenShift { id: string; started_at: string; note: string | null; jobs?: Job[] | null }
 
 const KIND: Record<string, string> = { handover: 'Handover', return_check_in: 'Return check-out', vehicle_move: 'Vehicle move' };
-const at = (iso: string) => new Date(iso).toLocaleTimeString('en-CA', { timeZone: 'America/Toronto', hour: 'numeric', minute: '2-digit' });
+// lib/clock: the same words on the server and in every browser (Intl's "p.m." changes with the ICU version)
+const at = (iso: string) => clockTo(iso);
 
 // My hours (0165): two big buttons. Clock in starts the shift now; Clock out ends it (a note on either). The jobs done during
 // the shift are listed while it runs. The database refuses a second shift, a shift left open for too long, and a closed pay period.

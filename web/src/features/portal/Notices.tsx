@@ -1,4 +1,5 @@
 'use client';
+import { dayClockTo } from '@/lib/clock'; // the same words on the server and in every browser (Intl's "p.m." differs by ICU: React #418)
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { markRead, setMarketing, setPreference } from '@/server/actions/portal';
@@ -19,7 +20,7 @@ export function NoticeList({ items }: { items: Notice[] }) {
             <div className="stack" style={{ gap: 'var(--s-1)' }}>
               <p className="pt-notes__title">{n.title}{!n.read_at && <span className="vh"> (unread)</span>}</p>
               {n.body && <p className="small muted">{n.body}</p>}
-              <p className="xs muted">{new Date(n.created_at).toLocaleString('en-CA', { timeZone: 'America/Toronto', dateStyle: 'medium', timeStyle: 'short' })}</p>
+              <p className="xs muted">{dayClockTo(n.created_at)}</p>
               <div className="row">
                 {n.url && /^\/(?!\/)/.test(n.url) && <a className="link" href={n.url}>Open</a>}
                 {!n.read_at && <button className="btn btn--quiet btn--sm" type="button" onClick={() => a.run(() => markRead([n.id]), () => router.refresh())}>Mark as read</button>}
