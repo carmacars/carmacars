@@ -1,6 +1,7 @@
 // Unit tests for the listing worker and the copy checks, with fake providers (no network, no Cloudflare).
 //   node --test --experimental-strip-types src/features/listing/worker.test.ts   (npm run test:unit)
 import { test } from 'node:test';
+import { decodeImage, encodeJpeg } from './showroom.ts';
 import assert from 'node:assert/strict';
 import { runListingWorker, runJob, type Claim, type JobContext, type JobResult, type WorkerDeps } from './worker.ts';
 import { draftProblems, normalizeDraft, systemPrompt, userPrompt, DEFAULT_RULES } from './prompt.ts';
@@ -240,6 +241,26 @@ test('photo fallback: transformations not enabled on the zone keeps the original
   assert.equal(r.provider, 'fake:fallback');
 });
 
+test('photo r35 (1050): a quota never fails a photo; the original goes on the site at the site\'s size, made again later', async () => {
+  const f = files();
+  // a real 3000 x 2000 camera photo
+  f.priv.set('vehicles/v1/original/fl.jpg', encodeJpeg({ width: 3000, height: 2000, data: new Uint8ClampedArray(3000 * 2000 * 4).fill(120) }, 80));
+  const quota = { ...fakePhotos(getter(f)), cutout: async () => ({ ok: false as const, reason: 'quota' as const, retryable: true, message: 'Image transformations are rate limited' }) };
+  const r = await runJob(deps({ photos: quota }, f), job('process_photo'), budget);
+  const o = r.output as Record<string, unknown>;
+  assert.deepEqual([r.ok, o.used_original, o.flags], [true, true, ['background_not_replaced']]);
+  assert.match(String(o.fallback_reason), /^usage_paused: /, 'the usage retry makes it again once the service may be used');
+  const img = await decodeImage(f.pub.get(String(o.processed_path))!);
+  assert.deepEqual([img?.width, img?.height], [1800, 1200], 'downscaled here, never the camera\'s full file');
+  // an outage is tried again, and on the last attempt the original is used too
+  const down = { ...fakePhotos(getter(f)), cutout: async () => ({ ok: false as const, reason: 'unavailable' as const, retryable: true, message: 'down' }) };
+  assert.deepEqual([(await runJob(deps({ photos: down }, f), job('process_photo'), budget)).ok], [false]);
+  assert.equal((await runJob(deps({ photos: down }, f), job('process_photo', { attempts: 4 }), budget)).ok, true);
+  // the allowance used: an inside photo is still made (only the cut-out waits)
+  const inside = await runJob(deps({}, f), job('process_photo', { photo: { ...job('process_photo').photo!, rebackground: false, shot_type: 'dashboard', angle: 'dashboard' } }), { ...budget, images_paused: true });
+  assert.equal((inside.output as Record<string, unknown>).used_original, undefined);
+});
+
 test('photo: no car found is flagged as a bad cut-out; a provider outage is retried, not a fallback', async () => {
   const f = files();
   const none = { ...fakePhotos(getter(f)), cutout: async () => ({ ok: false as const, reason: 'no_subject' as const, retryable: false, message: 'No car' }) };
@@ -373,7 +394,8 @@ test('photo r33: an edit is made from the edited cut-out (no segmenter call), mo
   const lost = await runJob(deps({ photos }, f), job('process_photo', { attempts: 4, input: { edit: { cutout_path: 'vehicles/v1/work/p1-edit-gone12.png' } } }), budget);
   assert.deepEqual([lost.ok, lost.retryable], [false, false]);
   const paused = await runJob(deps({ photos }, f), job('process_photo', { input: { edit: { cutout_path: 'vehicles/v1/work/p1-edit-abc123.png' } } }), { ...budget, images_paused: true });
-  assert.deepEqual([paused.ok, paused.retryable], [false, true]);
+  // r35 (1050): an edit needs no cut-out, and the other steps are made locally: a used allowance no longer holds it
+  assert.equal(paused.ok, true);
 });
 
 test('photo r33: a mask asked for by the editor is the segmenter\'s cut-out only; the photo is not made again', async () => {

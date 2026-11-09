@@ -14,7 +14,9 @@ const fail = (e: unknown): R<never> => ({ ok: false, code: 'refused', message: e
 const ACTIONS = ['acknowledge', 'start', 'save_report', 'complete_handover', 'complete_return', 'block_handover', 'move_start', 'move_end', 'late_damage',
   'checklist_save', 'complete_job', 'reshoot_photo', 'report', 'profile_save', 'identity_in_person', 'deposit_offline', 'tracker_override', 'licence_approve_all', 'licence_reject', 'shift_take', 'shift_drop',
   // r35 part X (0930, 0931): the work list, shifts given up, claimed and swapped, Sales for field staff
-  'addon_tick', 'car_update', 'photo_start', 'shift_cancel', 'offer_claim', 'swap_ask', 'swap_answer', 'sales_optin'] as const;
+  'addon_tick', 'car_update', 'photo_start', 'shift_cancel', 'offer_claim', 'swap_ask', 'swap_answer', 'sales_optin',
+  // r35 S2 (1051): take a job of the other person on your shift
+  'job_take'] as const;
 // the steps of a check-in that staff other than field staff may take on a job of their own (0130, 0151)
 const HANDOVER = ['save_report', 'complete_handover', 'complete_return', 'block_handover', 'identity_in_person', 'deposit_offline', 'tracker_override'];
 

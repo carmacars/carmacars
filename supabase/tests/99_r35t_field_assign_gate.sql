@@ -61,23 +61,25 @@ select test.eq('auto: a person with no shift never gets one', (select count(*) f
 -- ================================================================ 4b. work lands only on days with shifts
 -- shifts exist on tomorrow (day 1) and the day after (day 2); day 3 and today have none
 select test.eq('work day: a day with shifts is its own work day', app.field_work_day(test.r35t_at(1, 10), true), app.today() + 1);
-select test.eq('work day: known in advance, a day without shifts moves to the day before (day 3 -> day 2)', app.field_work_day(test.r35t_at(3, 10), true), app.today() + 2);
+-- 1051: a day with a published shift (taken or not) is a day with shifts; day 3 has an open one, day 4 none
+select test.eq('work day: a day with only an open shift is its own work day (1051)', app.field_work_day(test.r35t_at(3, 10), true), app.today() + 3);
+select test.eq('work day: known in advance, a day without shifts moves to the day before (day 4 -> day 3)', app.field_work_day(test.r35t_at(4, 10), true), app.today() + 3);
 select test.eq('work day: it comes in on a day without shifts: the next day with shifts (today -> day 1)', app.field_work_day(test.r35t_at(0, 12), false), app.today() + 1);
 select test.eq('work day: coming in on a day with no later day with shifts: nobody', app.field_work_day(test.r35t_at(30, 12), false) is null, true);
-select test.eq('auto: work due on day 3 goes to the person on a shift on day 2', app.field_auto_assignee(test.r35t_at(3, 10)), test.id('r35t_ok2'));
+select test.eq('auto: work due on day 3 waits on day 3''s open shift (nobody on it yet, 1051)', app.field_auto_assignee(test.r35t_at(3, 10)) is null, true);
 select test.eq('auto: work due today (no shifts today) goes to the next day with shifts: day 1', app.field_auto_assignee(test.r35t_at(0, 23)), test.id('r35t_ok'));
 -- a booking whose pickup falls on day 3: its handover job is planned for day 2, at its real time; the booking is untouched
 update program_settings set field_jobs_auto = true;
 select test.mk_renter('r35t_r');
 select test.mk_booking('R35T-1', 'R35TA', 'r35t_r', (app.today() + 3)::text || ' 10:00', (app.today() + 5)::text || ' 10:00', 'confirmed', 30000);
-select test.eq('booking: the warning names the handover on the day without shifts and the day it is worked',
+select test.eq('booking: the warning names the handover on the day nobody holds a shift (its open shift is the day it is worked, 1051)',
   (select (w ->> 'leg') || '/' || (w ->> 'day') || '/' || (w ->> 'work_day') from jsonb_array_elements(app.field_no_shift_days(test.id('booking:R35T-1'))) w limit 1),
-  'handover/' || (app.today() + 3)::text || '/' || (app.today() + 2)::text);
+  'handover/' || (app.today() + 3)::text || '/' || (app.today() + 3)::text);
 select test.eq('booking: the Fleet read gives the same', jsonb_array_length(public.door(test.id('r35t_fleet'), null, 'ops_read', 'field_no_shift_days', jsonb_build_object('booking', test.id('booking:R35T-1')))) >= 1, true);
-select test.eq('booking: the handover job (when made) keeps the real time and is planned for day 2 with the person on shift that day',
-  (select coalesce(string_agg((j.assigned_to = test.id('r35t_ok2'))::text || '/' || j.work_day::text || '/' || (j.scheduled_at = test.r35t_at(3, 10))::text, ','), 'none')
+select test.eq('booking: the handover job keeps the real time and waits on day 3''s open shift with nobody (1051)',
+  (select coalesce(string_agg((j.assigned_to is null)::text || '/' || coalesce(j.work_day::text, 'own day') || '/' || (j.scheduled_at = test.r35t_at(3, 10))::text, ','), 'none')
      from field_jobs j where j.booking_id = test.id('booking:R35T-1') and j.kind = 'handover'),
-  'true/' || (app.today() + 2)::text || '/true');
+  'true/own day/true');
 select test.mk_booking('R35T-2', 'R35TA', 'r35t_r', app.today()::text || ' 23:30', (app.today() + 1)::text || ' 12:00', 'confirmed', 30000);
 select test.eq('booking: a handover that comes in on a day without shifts goes to the next day with shifts, at its real time',
   (select (j.assigned_to = test.id('r35t_ok'))::text || '/' || j.work_day::text || '/' || (j.scheduled_at = ((app.today()::text || ' 23:30')::timestamp at time zone 'America/Toronto'))::text

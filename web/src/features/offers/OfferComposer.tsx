@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { playMoment } from '@/features/motion/moment';
 import { PICKUP_PASSED, pickupPassed } from './pickup-passed';
 import { scrollOption } from '@/lib/nav/same-page';
 import Link from '@/components/Link';
@@ -252,6 +253,7 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
     if (draftId) void draftClose(draftId, 'done');
     if (draft) { router.push(`${base}/bookings/${encodeURIComponent(r.data.booking_number)}?tab=review`, scrollOption(`${base}/bookings/${encodeURIComponent(r.data.booking_number)}?tab=review`)); return; }
     setSent(r.data);
+    playMoment('offer');
   });
 
   if (sent) return (

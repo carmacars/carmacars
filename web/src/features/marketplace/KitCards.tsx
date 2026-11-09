@@ -38,7 +38,8 @@ export function KitCards({ c, k, rules, phone, aside, action, options, zipHref, 
         <details><summary className="small">The description without the link (if Facebook holds the listing back for the link)</summary><CopyText label="Description without the link" value={k.descriptionNoLink} rows={10} testId="mp-description-nolink" /></details>
       </div>
     </Card>
-    <Card title={`Photos, in this order (${k.photos.length} of 10)`} testId="mp-photos" aside={k.photos.length && zipHref ? <a className="btn btn--primary btn--sm" href={zipHref} download data-testid="mp-zip">Download the photos (ZIP)</a> : null}>
+    <Card title={`Photos, in this order (${k.photos.length} of 10)`} testId="mp-photos" aside={k.photos.length && zipHref ? <><a className="btn btn--primary btn--sm" href={zipHref} download data-testid="mp-zip">Download the photos (ZIP)</a>{' '}
+      <a className="btn btn--ghost btn--sm" href={`${zipHref}${zipHref.includes('?') ? '&' : '?'}set=scenes`} download data-testid="mp-zip-scenes" title="The car's newest marketing set: its photos in other scenes (made on its listing)">With scenes (ZIP)</a></> : null}>
       {k.photos.length === 0 ? <p className="small muted">No real photos yet.</p> : (
         <ol className="mp-photos">{k.photos.map((p, i) => (
           <li key={p.path}>

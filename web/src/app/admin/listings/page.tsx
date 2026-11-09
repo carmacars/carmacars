@@ -27,13 +27,15 @@ export default async function Listings() {
   return (
     <>
       <PageHead title="Listings" kicker={`${rows.filter((r) => r.state === 'needs_review').length} waiting for review`}>
+        {/* r35 (1050): every failed photo made again by the retry job, a few each run */}
+        {rows.some((r) => r.state === 'failed') && <Act ops action="photo_retry_failed" payload={{ all: true }} label="Retry failed photos" testId="retry-failed-all" confirm="Make every failed photo again? They are redone a few at a time over the next minutes." done="Queued. The failed photos are made again a few at a time." />}
         <Act action="listing_start" label="Start a listing" variant="primary" fields={[{ name: 'plate', label: 'Plate', type: 'text' }, { name: 'vin', label: 'or VIN', type: 'vin' }, { name: 'colour', label: 'Colour', type: 'text' }, { name: 'odometer_km', label: 'Odometer (km)', type: 'number' }]} go="/admin/listings/{intake_id}" />
       </PageHead>
       <Table<I> testId="listings" caption="Listing intakes" rows={rows} empty="No listings in progress. Press Start a listing to list a car: real photos are optional, sample photos are shown until they are added." cols={[
         { key: 'vehicle_name', label: 'Vehicle', render: (r) => <Link prefetch={false} className="link" href={`/admin/listings/${r.id}`}><CarCell name={r.vehicle_name} photo={photos[String(r.vehicle_id)]} sub={r.plate} /></Link> },
         { key: 'plate', label: 'Plate' }, { key: 'state', label: 'State', render: (r) => <Badge s={r.state} /> },
         { key: 'photos', label: 'Photos', render: (r) => samples.has(r.vehicle_id) ? <span data-testid="listing-using-samples">{r.photos} <Badge s="needs_review">Using sample photos</Badge></span> : String(r.photos) }, { key: 'progress', label: 'Work done', render: (r) => <ProgressCell p={prog[r.id]} /> }, { key: 'listing_status', label: 'Listing', render: (r) => r.listing_status ? <Badge s={r.listing_status} /> : null },
-        { key: 'started', label: 'Started by', render: (r) => `${r.started_by_name ?? ''} (${r.started_role})` }, { key: 'reason', label: 'Note', className: 'wrap' },
+        { key: 'started', label: 'Started by', render: (r) => `${r.started_by_name ?? ''} (${r.started_role})` }, { key: 'reason', label: 'Note', className: 'wrap', render: (r) => <>{r.reason}{r.state === 'failed' ? <> <Act ops action="photo_retry_failed" payload={{ intake: r.id }} label="Retry failed photos" variant="quiet" testId={`retry-failed-${r.id}`} done="Queued. Its failed photos are made again a few at a time." /></> : null}</> },
         { key: 'updated_at', label: 'Updated', render: (r) => t(r.updated_at) }
       ]} />
       {/* r35 (0990): every car's outside photos into the showroom at once */}

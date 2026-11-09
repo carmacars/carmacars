@@ -20,6 +20,18 @@ export interface Today {
   cards: Card[];
   todo: Array<{ id: string; title: string; detail: string | null; type: string; related_id: string | null }>;
   counts: { must: number; done: number };
+  /** r35 (1051): the jobs on the person's shift that day held by someone else on it (either may take one) */
+  mates?: Mate[];
+}
+export interface Mate { id: string; kind: string; leg: 'pickup' | 'return' | null; at: string; status: string; place: string | null; vehicle: string; booking: string | null; who: string | null }
+/** r35 (1051): the jobs of a shift by kind (the database's fx_slot_jobs). */
+export interface ShiftJobs { pickups: number; returns: number; cleans: number; other: number; total: number }
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+/** "3 pickups, 1 return, 2 cleans": what waits on a shift; empty when nothing does. */
+export function jobsText(j: ShiftJobs | null | undefined): string {
+  if (!j || !j.total) return '';
+  return [j.pickups ? plural(j.pickups, 'pickup', 'pickups') : '', j.returns ? plural(j.returns, 'return', 'returns') : '',
+    j.cleans ? plural(j.cleans, 'clean', 'cleans') : '', j.other ? plural(j.other, 'other job', 'other jobs') : ''].filter(Boolean).join(', ');
 }
 export interface OpenMust { key: string; label: string }
 

@@ -57,6 +57,8 @@ const LABELS: Record<string, string> = {
   listing_showroom: 'Showroom photos: new outside photos in the dark CarmaCars showroom (logo on the wall, the model behind the car on the cover) instead of the black studio',
   listing_showroom_ai: 'Showroom photos: let the image model make them look photographed (needs its key on the server; else the free showroom)',
   listing_showroom_ai_model: 'Showroom photos: image model name', listing_showroom_ai_daily: 'Showroom photos: image model calls a day at most (a hard stop, then the free showroom)',
+  marketing_scenes: 'Marketing scenes: the list staff choose from (code, label, made: local or photo, place: the image model\'s words for it); the photo of a real place is chosen on the Marketing scenes card',
+  listing_cf_transformations: 'Listing photos: let the image service make every photo step (off: the site makes them itself and asks the service only to cut the car out)',
   notify_daily_cap: 'Emails a day (the email provider\'s daily limit)', notify_class_limits: 'Daily count under which each kind may still send: customer, owner and investor, staff, digests, marketing',
   notify_cap_warn_bps: 'Warn the Admins in the portal at this share of the daily limit', notify_count_auth_emails: 'Count sign-in emails (sent by the sign-in service through the same provider) in the daily limit',
   owner_debit_notice_days: 'Pre-debit notice (days before each debit, 10 to 30)',

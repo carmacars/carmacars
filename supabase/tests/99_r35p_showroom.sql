@@ -20,7 +20,7 @@ select test.ok('showroom on by default, the image model on, a sensible model and
   (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'listing_showroom') = 'true'
   and (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'listing_showroom_ai') = 'true'
   and (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'listing_showroom_ai_model') like '%gemini-2.5-flash-image%'
-  and (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'listing_showroom_ai_daily') = '25');
+  and (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'listing_showroom_ai_daily') = '100');
 select test.throws('the model name is checked', $$update program_settings set listing_showroom_ai_model = 'bad name; drop' where id = (select id from app.settings())$$, 'check');
 
 -- ---------------------------------------------------------------- a new photo takes the scene
@@ -49,11 +49,11 @@ select test.eq('a photo made before 0990 is the studio to the worker',
   (select app.listing_job_context(j.id) -> 'photo' ->> 'scene' from listing_jobs j where j.vehicle_photo_id = (select a from rspo limit 1) and j.kind = 'process_photo' limit 1), 'studio');
 create temp table rspc as select j.id from app.claim_listing_jobs('rsp-w', 100, array['process_photo']) j where j.vehicle_photo_id = (select cover from rspp);
 select app.worker_listing_result((select id from rspc), jsonb_build_object('ok', true, 'provider', 'fake', 'output', jsonb_build_object(
-  'processed_path', 'vehicles/rsp/cover.jpg', 'width', 1800, 'height', 1200, 'flags', '[]'::jsonb, 'preset_version', 'studio_showroom_v1', 'lettered', true,
+  'processed_path', 'vehicles/rsp/cover.jpg', 'width', 1800, 'height', 1200, 'flags', '[]'::jsonb, 'preset_version', 'studio_showroom_v2', 'lettered', true,
   'mask_path', 'vehicles/rsp/work/cover-mask.png', 'place', jsonb_build_object('width', 1500, 'height', 600, 'left', 150, 'bottom', 250),
   'showroom', jsonb_build_object('provider', 'local', 'note', 'Made with the free showroom: the image model''s free use is used up for now. Redo it later.', 'reason', 'quota'))));
 select test.ok('how it was made is kept for staff (the free showroom and why)',
-  (select showroom ->> 'provider' = 'local' and showroom ->> 'reason' = 'quota' and showroom ->> 'note' like 'Made with the free showroom%' and preset_version = 'studio_showroom_v1'
+  (select showroom ->> 'provider' = 'local' and showroom ->> 'reason' = 'quota' and showroom ->> 'note' like 'Made with the free showroom%' and preset_version = 'studio_showroom_v2'
      from vehicle_photos where id = (select cover from rspp)));
 
 -- ---------------------------------------------------------------- apply, redo, undo
@@ -79,7 +79,7 @@ select test.throws('one at a time', format('select app.photo_showroom(%L, jsonb_
 -- made where the car was: the plate check carries over (0700), back on the site
 create temp table rspc2 as select j.id from app.claim_listing_jobs('rsp-w', 100, array['process_photo']) j where j.vehicle_photo_id = (select id from rspf);
 select app.worker_listing_result((select id from rspc2), jsonb_build_object('ok', true, 'provider', 'fake', 'output', jsonb_build_object(
-  'processed_path', 'vehicles/rsp/old-front_left-v1.jpg', 'width', 1800, 'height', 1200, 'flags', '[]'::jsonb, 'preset_version', 'studio_showroom_v1', 'edited', true,
+  'processed_path', 'vehicles/rsp/old-front_left-v1.jpg', 'width', 1800, 'height', 1200, 'flags', '[]'::jsonb, 'preset_version', 'studio_showroom_v2', 'edited', true,
   'place', jsonb_build_object('width', 1500, 'height', 600, 'left', 150, 'bottom', 250), 'showroom', jsonb_build_object('provider', 'local'))));
 select test.ok('in the showroom, the plate check carried over, on the site',
   (select processed_path = 'vehicles/rsp/old-front_left-v1.jpg' and plate_status = 'not_visible' and is_public and status = 'approved' and showroom ->> 'provider' = 'local'
@@ -99,7 +99,7 @@ select test.ok('the black studio file, its plate check, on the site, scene studi
      from vehicle_photos where id = (select id from rspf)));
 -- undo of a photo made in the showroom from the start: made again on the black studio
 update listing_jobs set status = 'succeeded', finished_at = now() where vehicle_photo_id = (select rear from rspp) and status in ('queued', 'running');
-update vehicle_photos set processed_path = 'vehicles/rsp/rear.jpg', status = 'processed', background_status = 'done', preset_version = 'studio_showroom_v1' where id = (select rear from rspp);
+update vehicle_photos set processed_path = 'vehicles/rsp/rear.jpg', status = 'processed', background_status = 'done', preset_version = 'studio_showroom_v2' where id = (select rear from rspp);
 select test.eq('no version before: made again', (select app.photo_showroom(test.id('rsp_admin'), jsonb_build_object('action', 'undo', 'photo', (select rear from rspp))) ->> 'queued'), '1');
 select test.eq('on the black studio', (select app.listing_job_context(j.id) -> 'photo' ->> 'scene' from listing_jobs j where j.vehicle_photo_id = (select rear from rspp) and j.kind = 'process_photo' and j.status = 'queued'), 'studio');
 select test.throws('an inside photo is not put in the showroom',

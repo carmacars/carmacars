@@ -48,7 +48,7 @@ export function ShowroomPhoto({ photo }: { photo: { id: string; scene?: string |
   });
   return (
     <span className="lr-showroom" data-testid={`showroom-${photo.id}`}>
-      <span className="ad-b ad-b--light" title={s?.note ?? undefined}>{photo.preset_version === 'studio_showroom_v1' ? (s?.provider === 'ai' ? 'Showroom (photographed look)' : 'Showroom') : 'Showroom (being made)'}</span>
+      <span className="ad-b ad-b--light" title={s?.note ?? undefined}>{photo.preset_version?.startsWith('studio_showroom') ? (s?.provider === 'ai' ? 'Showroom (photographed look)' : 'Showroom') : 'Showroom (being made)'}</span>
       {s?.note && <span className="small muted" data-testid={`showroom-note-${photo.id}`}>{s.note}</span>}
       <button className="btn btn--ghost btn--sm" type="button" disabled={pending} data-testid={`showroom-redo-${photo.id}`} onClick={() => act('redo')}>Redo</button>
       <button className="btn btn--ghost btn--sm" type="button" disabled={pending} data-testid={`showroom-undo-${photo.id}`} onClick={() => act('undo')}>Back to the original</button>

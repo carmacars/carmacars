@@ -9,7 +9,7 @@ export type PhotoOut =
   | { ok: false; reason: PhotoFailureReason; retryable: boolean; message: string };
 
 export interface PhotoProcessor {
-  readonly name: 'cloudflare-images' | 'fake';
+  readonly name: 'cloudflare-images' | 'fake' | 'local';
   /** The subject on a transparent background (PNG). */
   cutout(sourceUrl: string): Promise<PhotoOut>;
   /** The backdrop with the model-name lettering (a transparent band placed at lettering.top), the shadow and the

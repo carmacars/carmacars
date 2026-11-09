@@ -53,7 +53,7 @@ export function showroomAi(apiKey: string, f: typeof fetch = fetch): ShowroomPro
       if (!gate?.allowed || !gate.call_id) return { ok: false, reason: gate?.reason ?? 'error', message: 'The image model may not be asked now' };
       const t0 = Date.now();
       const r = await geminiEditImage({ apiKey, model: gate.model, fetch: f }, { bytes: local, contentType: 'image/jpeg' },
-        showroomPrompt({ cover: i.cover, name: i.model ? letteringName(i.model) : null }));
+        i.prompt ?? showroomPrompt({ cover: i.cover, name: i.model ? letteringName(i.model) : null }), i.reference ? [i.reference] : []);
       await rpc('server_showroom_ai_record', { p: { call_id: gate.call_id, ok: r.ok, error: r.ok ? null : `${r.reason}: ${r.message}`, duration_ms: Date.now() - t0 } }, SR).catch(() => undefined);
       return r;
     }
@@ -85,7 +85,8 @@ export async function runListingWorkerNow(o: { maxJobs?: number; deadlineMs?: nu
     },
     text: await textGenerator(),
     plainCopy: true,
-    photos: await photoProcessor(read),
+    // r35: local steps by default; Cloudflare for everything only when Program settings say so (listing_cf_transformations)
+    photos: await photoProcessor(read, { cfAll: ((await rpc('server_listing_image_mode', {}, SR).catch(() => null)) as unknown as { cf_transformations?: boolean } | null)?.cf_transformations === true }),
     findMarks,
     showroomAi: env().GEMINI_API_KEY ? showroomAi(env().GEMINI_API_KEY!) : null,
     showroomNoKey: !env().GEMINI_API_KEY,

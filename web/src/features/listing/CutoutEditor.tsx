@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { alphaOf, compose, masksDiffer, NO_ADJUST, sameAdjust, stroke, studioPlan, type Brush } from './cutout-edit';
 import { LETTERING, letterThis, letteringMask } from './lettering';
-import { adjustPlace, type Adjust } from './subject-frame';
+import { SHOWROOM_FIT, adjustPlace, type Adjust } from './subject-frame';
 
 // The cut-out editor of one outside listing photo (release 33, migration 0700). Two views: "Cut-out", the car over the
 // photo as taken (shown faint), where a brush erases what is left of the background or restores what the automatic
@@ -12,7 +12,7 @@ import { adjustPlace, type Adjust } from './subject-frame';
 // cut-out; Save has the photo made again from the edit (the version before is kept; the plate check carries over when the
 // car did not move). Mouse, finger or pen (pointer events); keyboard on the studio view: the arrows move, + and - size.
 type Ctx = { id: string; vehicle_id: string; shot_type: string; shot_label: string | null; rebackground: boolean; is_cover: boolean; model: string | null;
-  auto_mask: string | null; mask: string | null; adjust: Adjust | null; plate_status: string; pending: boolean; mask_pending: boolean; versions: number };
+  auto_mask: string | null; mask: string | null; adjust: Adjust | null; scene?: string | null; plate_status: string; pending: boolean; mask_pending: boolean; versions: number };
 const src = (photo: string, part: string) => `/api/listing/cutout?photo=${encodeURIComponent(photo)}&part=${part}&t=${Date.now()}`;
 const FW = 1800, FH = 1200;
 
@@ -73,7 +73,7 @@ export function CutoutEditor({ photo, onClose }: { photo: { id: string; shot_lab
       compose(o, mask, W, H, carData.data);
       g.putImageData(carData, 0, 0);
       let band: HTMLCanvasElement | null = null;
-      if (c.model && letterThis({ rebackground: c.rebackground, shot_type: c.shot_type, is_cover: c.is_cover })) {
+      if (c.scene !== 'showroom' && c.model && letterThis({ rebackground: c.rebackground, shot_type: c.shot_type, is_cover: c.is_cover })) {
         const m = letteringMask(c.model);
         band = document.createElement('canvas'); band.width = LETTERING.width; band.height = LETTERING.height;
         const bg = band.getContext('2d')!, bd = bg.createImageData(LETTERING.width, LETTERING.height);
@@ -140,7 +140,7 @@ export function CutoutEditor({ photo, onClose }: { photo: { id: string; shot_lab
     g.drawImage(w.backdrop, 0, 0, dw, dh);
     if (w.band) g.drawImage(w.band, 0, LETTERING.top * s, LETTERING.width * s, LETTERING.height * s);
     if (!plan.current) {
-      const p = studioPlan({ width: w.W, height: w.H, data: w.carData.data }, null);
+      const p = studioPlan({ width: w.W, height: w.H, data: w.carData.data }, null, FW, FH, ctx?.scene === 'showroom' ? SHOWROOM_FIT : undefined);
       plan.current = p;
       if (p) {
         const pc = document.createElement('canvas'); pc.width = p.framed.width; pc.height = p.framed.height;
@@ -152,7 +152,7 @@ export function CutoutEditor({ photo, onClose }: { photo: { id: string; shot_lab
     if (!p || !planCanvas.current) { g.fillStyle = '#fff'; g.font = `${Math.max(12, 18 * s * 2)}px sans-serif`; g.fillText('No car left in the cut-out', 16, 32); return; }
     const pl = adjustPlace(p.base, adjust, FW, FH);
     g.drawImage(planCanvas.current, pl.left * s, (FH - pl.bottom - pl.height) * s, pl.width * s, pl.height * s);
-  }, [adjust]);
+  }, [adjust, ctx?.scene]);
 
   useEffect(() => { if (ready) { if (view === 'cut') drawCut(); else drawStudio(); } }, [ready, view, dirty, drawCut, drawStudio]);
   useEffect(() => {

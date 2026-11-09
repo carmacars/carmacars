@@ -1,3 +1,4 @@
+import { SceneReferences } from '@/features/listing/Marketing';
 import Link from '@/components/Link';
 import { notFound } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
@@ -389,6 +390,8 @@ export default async function Section({ params, searchParams }: { params: Promis
       <Card title="Lead-time pricing" testId="lead-time-card"><LeadTimeSettings enabled={s.program.lead_time_enabled !== false} insurer={s.program.lead_time_insurer === true}
         tiers={(s.program.lead_time_tiers ?? []) as Tier[]} /></Card>
       <Card title="Turnaround between trips" testId="turnaround-help"><p className="small">One time between trips, {String(s.program.turnaround_buffer_minutes)} minutes now (the owner&apos;s 2 hours by default). No trip may start sooner after another one ends, and a trip must end that long before the next one starts. After each trip the same time shows on the calendars as the cleaning block; it is not added on top. Removing a cleaning block frees that time for a new booking. A car can have its own turnaround under Vehicles, the car, Calendar. Change it under Booking requests and offers.</p></Card>
+      {/* r35 S2 (1053): the marketing photo scenes and the photo of each one's real place */}
+      <Card title="Marketing scenes" testId="marketing-scenes-card"><SceneReferences /></Card>
       <Card title="Photo import from Google Drive" testId="drive-key-card">
         <p className="small" data-testid="drive-key-state">{s.program.google_drive_api_key_set ? `A Google API key is set (ends ${String(s.program.google_drive_api_key_last4 ?? '')}). It is never shown in full.` : 'No key is set: the import reads the public folder page.'}</p>
         <SaveForm table="program_settings" rowKey="current" testId="program-drive-key" label="Save the key" fields={[{ name: 'google_drive_api_key', label: s.program.google_drive_api_key_set ? 'New key (replaces the one set; empty and Save removes it)' : 'Google API key (optional)', value: '', hint: 'A Google API key with the Drive API on. Set: the import lists and downloads through the Drive API and reads folders of any size.' }]} />

@@ -266,13 +266,17 @@ export async function frameSubject(png: Uint8Array): Promise<Framed | null> {
 /** Where the framed car goes in a studio frame of W x H: about 80% of the width (less for a front or rear view, which is
  *  held by the height), its wheels on the floor line 26% above the bottom, centred. Pure; the compositor draws with it. */
 export const STUDIO = { carWidth: 0.8, carHeight: 0.66, floor: 0.26 } as const;
-export function placeSubject(f: { width: number; height: number; ground: number; side: number }, W: number, H: number) {
+/** r35 (studio_showroom_v2): the car a little smaller in the showroom, so the room shows around it. */
+export const SHOWROOM_FIT = { carWidth: 0.74, carHeight: 0.5, floor: 0.2 } as const;
+/** r35: `fit` is the share of the frame the car takes and where its wheels stand (the showroom's SHOWROOM_FIT; STUDIO else). */
+export function placeSubject(f: { width: number; height: number; ground: number; side: number }, W: number, H: number,
+  fit: { carWidth: number; carHeight: number; floor: number } = STUDIO) {
   const aspect = f.width / f.height;
   const carAspect = (f.width * (1 - 2 * f.side)) / (f.height * (1 - f.ground));
   // the car itself at most carWidth of the frame wide and carHeight high
-  const carW = Math.min(W * STUDIO.carWidth, H * STUDIO.carHeight * carAspect);
+  const carW = Math.min(W * fit.carWidth, H * fit.carHeight * carAspect);
   const width = Math.round(carW / (1 - 2 * f.side)), height = Math.round(width / aspect);
-  const bottom = Math.max(0, Math.round(H * STUDIO.floor - height * f.ground));
+  const bottom = Math.max(0, Math.round(H * fit.floor - height * f.ground));
   return { width, height, left: Math.round((W - width) / 2), bottom, carShare: carW / W };
 }
 
