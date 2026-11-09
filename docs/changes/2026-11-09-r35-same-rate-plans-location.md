@@ -5,7 +5,7 @@ Branch `r35-k` (with `origin/r35` merged: rr, s2 with the CARMA plates of 1056, 
 `supabase/seed/1079_gen_guides.mjs`). Wrapped, never edited: `app.admin_apply_booking_edit`, `app.booking_staff_edit`,
 `app.preview_extension`, `app.booking_pay_every_set`, `public.server_hiring_apply`, `app.hiring_app_row`, `app.hire_preview`,
 `app.hire_onboard`, `app.staff_welcome`, `app.door`; patched: `app.booking_pay_schedule`. Tests: `supabase/tests/99_r35k_rates_location.sql`;
-`supabase/tests/99_extend_offers.sql` now prices whole extra days at the booked rate (with the offer's discount off it).
+`supabase/tests/99_extend_offers.sql`, `08_booking_app.sql` and `09_operations.sql` now price whole extra days at the booked rate (with the offer's 5% off it); `53_games_timing_booking.sql` reads the rate-card body `app.preview_extension_pre1066`.
 
 ## A. The same rate (coordinator item 10)
 

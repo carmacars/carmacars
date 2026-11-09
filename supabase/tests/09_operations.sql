@@ -745,9 +745,9 @@ select test.eq('P a car on rent: moving the pickup is refused; a later return is
 update program_settings set extension_auto_approve = false where id = (app.settings()).id;
 create table test.op_ap6 as select app.calendar_apply_change(test.b('opW'), test.id('op_cs'), jsonb_build_object('return_at', test.at('2031-07-13 10:00')), 'renter asked to keep the car a day') as r;
 update program_settings set extension_auto_approve = true where id = (app.settings()).id;
-select test.eq('P applying it records the extension request (0480: the added Sunday at $120 less 5%, $114 + HST) and leaves the return alone until it is paid',
+select test.eq('P applying it records the extension request (1066: the added day at the booked rate, $110, less 5%: $104.50 + HST) and leaves the return alone until it is paid',
   (select status || '/' || previous_days || '>' || new_days || '/' || rental_difference_cents || '/' || total_cents from booking_extensions where id = (select (r ->> 'extension_id')::uuid from test.op_ap6))
-  || ' ' || (select (return_at = test.at('2031-07-12 10:00'))::text from bookings where id = test.b('opW')), 'requested/2>3/11400/12882 true');
+  || ' ' || (select (return_at = test.at('2031-07-12 10:00'))::text from bookings where id = test.b('opW')), 'requested/2>3/10450/' || (10450 + public.calc_hst(10450)) || ' true');
 select test.eq('Q an extension request is an urgent customer service task due at the current return time',
   (select queue || '/' || priority || '/' || (due_at = test.at('2031-07-12 10:00')) || '/' || procedure_no from tasks where booking_id = test.b('opW') and task_type = 'review_extension'), 'cs/urgent/true/6');
 select test.eq('P a closed booking cannot be moved', (select r ->> 'refusal' from (select app.calendar_preview_change(test.b('opA'), jsonb_build_object('return_at', test.at('2031-05-05 10:00'))) as r) x),

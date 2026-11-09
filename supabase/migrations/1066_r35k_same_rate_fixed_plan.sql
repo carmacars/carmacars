@@ -70,7 +70,7 @@ begin
      and not (coalesce(p -> 'changes', '{}'::jsonb) ? 'rental_charge_cents') and not (p ? 'line_overrides') then
     v_ratio := b1.billable_days::numeric / b0.billable_days;
     perform app.admin_apply_booking_edit_pre1066(p_admin, p_booking, jsonb_strip_nulls(jsonb_build_object(
-      'changes', jsonb_build_object('rental_charge_cents', round(b0.rental_charge_cents * v_ratio)::bigint, 'price_tax', 'excluded',
+      'changes', jsonb_build_object('rental_charge_cents', round(b0.rental_charge_cents * v_ratio)::bigint, 'price_tax', 'plus',
                                     'price_reason', format('Same rate as the booked period (%s to %s days)', b0.billable_days, b1.billable_days)),
       'line_overrides', case when v_fees <> '{}'::jsonb then (select jsonb_object_agg(k, round((v #>> '{}')::numeric * v_ratio)::bigint) from jsonb_each(v_fees) e(k, v)) end,
       'fee_reason', case when v_fees <> '{}'::jsonb then 'Same rate as the booked period: per-trip fees scaled with the length' end)));
@@ -125,7 +125,8 @@ declare
   v_fees bigint;
   v_hst bigint;
   v_regular bigint;
-  v_bps integer := case when coalesce((v ->> 'offer')::boolean, false) then coalesce((v ->> 'discount_bps')::integer, 0) else 0 end;
+  -- an extension offer's discount of a day or more (0480's setting), never the saving of a repriced booking
+  v_bps integer := case when coalesce((v ->> 'offer')::boolean, false) and v ->> 'pricing' = 'days' then least(coalesce((v ->> 'discount_bps')::integer, 0), (app.settings()).extension_discount_bps) else 0 end;
   v_reg_hst bigint;
 begin
   select * into b from bookings where id = p_booking;
