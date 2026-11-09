@@ -8,27 +8,38 @@ import { Faq } from '@/components/Faq';
 import { Icon } from '@/components/Icon';
 import { JsonLd } from '@/components/JsonLd';
 import { businessLd, napAddress } from '@/features/seo/business';
-import { getArticles, getSeoLinks, getSeoPage, paras } from '@/features/seo/data';
+import { getArticles, getSeoLinks, getSeoPage, paras, type SeoPage } from '@/features/seo/data';
 import { absUrl, breadcrumbLd, faqLd, type Trail, seoMeta } from '@/features/seo/meta';
 import { money } from '@/lib/format';
-import { fill, getClasses, getSettings, getTokens, siteUrl } from '@/lib/site';
+import { fill, getClasses, getFleet, getSettings, getTokens, siteUrl } from '@/lib/site';
 import OG from '@/features/seo/og-images.json';
 import { getHub, getTerms, hubPath, placesKnown } from '@/features/places/data';
 import { getBusinessFacts } from '@/features/seo/business-data';
 import { HubPage, hubMeta } from '@/features/places/HubPage';
+import { buildDepth } from '@/features/seo/depth';
+import { depthCar, getDepthFacts } from '@/features/seo/depth-data';
+import { DepthSections } from '@/features/seo/Depth';
 import '@/styles/seo.css';
 
 // Landing pages (migration 0061): a place we deliver to or a way of renting, with the live matching cars and prices
-// from the database and copy written for that page (Admin > Settings > Search). A page for a use is indexed only
-// with enough real matching cars (Program settings seo_landing_min_real_cars); a location page always.
+// from the database and copy written for that page (Admin > Settings > Search). Every active page is indexed (1100):
+// a page with no matching car lists the nearest similar ones, and the depth sections fill it from its own data.
 // Rendered on each request and kept only in the Worker's edge copy (src/lib/edge/page-cache.ts, a few hours), never in
 // the page cache: a place page (0095) can be any of a million places, and one page cache entry each would cost writes.
 // A slug that is no landing page is a place: the car rental page of that place (migration 0095).
 export const dynamic = 'force-dynamic';
 type Params = { params: Promise<{ slug: string }> };
 
+/** 1100: a page whose copy is not written yet still renders (every active page is indexed), from its name. */
+function withCopy(p: SeoPage): SeoPage {
+  const c = (p.copy ?? {}) as Partial<SeoPage['copy']>;
+  const h1 = c.h1 || (p.kind === 'location' ? `Car rental in ${p.name}` : p.name);
+  return { ...p, copy: { seo_title: c.seo_title || `${h1} | {{brand}}`, meta_description: c.meta_description || `${h1} with {{brand}}: live cars and prices, delivery or pickup in Toronto. Request with no payment up front.`,
+    h1, intro: c.intro ?? '', sections: c.sections ?? [], faq: c.faq ?? [] } };
+}
 async function load(slug: string) {
-  const p = await getSeoPage(slug);
+  const raw = await getSeoPage(slug);
+  const p = raw ? withCopy(raw) : null;
   if (p) return { p, hub: null };
   const hub = await getHub('rental', 'car-rental', slug);
   if (!hub) notFound();
@@ -58,8 +69,19 @@ export default async function LandingPage({ params }: Params) {
   const F = (x: string) => fill(x, t);
   const labels = Object.fromEntries(classes.map((c) => [c.code, c.label]));
   const trail: Trail = [['Home', '/'], ['Car rental', '/car-rental'], [p.name]];
-  const faq = p.copy.faq.map((q) => ({ question: F(q.question), answer: F(q.answer) }));
   const reading = articles.filter((a) => (p.kind === 'location' ? ['airports', 'driving', 'trips'] : ['pricing', 'drivers', 'insurance', 'driving']).includes(a.topic ?? '')).slice(0, 3);
+  // release 35 (M): the depth sections, from this page's own data (src/features/seo/depth.ts)
+  const [df, fleet] = await Promise.all([getDepthFacts(), p.cars.length ? Promise.resolve([]) : getFleet().catch(() => [])]);
+  const town = p.name.replace(/ \(.*\)$/, '');
+  const depth = buildDepth({ path: p.path, facts: df, cars: p.cars.map(depthCar), fallbackCars: fleet.map(depthCar).sort((a, b) => a.dailyCents - b.dailyCents),
+    place: p.kind === 'location' ? { name: town, label: town, kind: 'city', region: 'CA-ON', km: p.distance_km, originLabel: 'our location', inReach: true, reachKm: 0,
+      deliveryFromCents: p.min_delivery_cents, nearby: p.nearby.map((n) => ({ name: n.name, path: n.path })) } : null,
+    related: { places: [...placeLinks, ...cityLinks.slice(0, 6).map((c) => ({ href: c.path, label: c.kind === 'location' ? `Car rental in ${c.name}` : c.name }))].slice(0, 12),
+      cars: (p.cars.length ? p.cars : fleet).slice(0, 6).map((x) => ({ href: x.path, label: `${[x.year, x.make, x.model].filter(Boolean).join(' ')} for rent` })),
+      guides: reading.map((a) => ({ href: a.path, label: a.title })) } });
+  const own = p.copy.faq.map((q) => ({ question: F(q.question), answer: F(q.answer) }));
+  const seen = new Set(own.map((q) => q.question.toLowerCase()));
+  const faq = [...own, ...depth.faq.filter((q) => !seen.has(q.question.toLowerCase()))];
   const graph: object[] = [breadcrumbLd(trail, p.path), faqLd(faq),
     { '@type': 'ItemList', name: F(p.copy.h1), numberOfItems: p.cars.length,
       itemListElement: p.cars.slice(0, 12).map((c, i) => ({ '@type': 'ListItem', position: i + 1, url: siteUrl() + c.path, name: `${c.year ? `${c.year} ` : ''}${c.make} ${c.model}`, ...(c.cover ? { image: absUrl(c.cover.path) } : {}) })) }];
@@ -109,6 +131,7 @@ export default async function LandingPage({ params }: Params) {
             {paras(F(sec.body)).map((x, k) => <p key={k} className="measure">{x}</p>)}
           </section>
         ))}
+        <DepthSections d={depth} />
         {faq.length > 0 && (
           <section className="car-sec" aria-labelledby="h-faq">
             <h2 className="d2" id="h-faq">Questions</h2>

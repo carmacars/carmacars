@@ -68,18 +68,11 @@ select test.ok('sitemaps by make and level, each under 50,000', exists (select 1
   and (select max(urls) from app.vehicle_sitemap_files()) < 50000);
 select test.ok('a sitemap lists its pages with a lastmod', exists (select 1 from app.vehicle_sitemap('volkswagen-trims') where path = '/cars/volkswagen/jetta/2020/sportline' and lastmod is not null));
 
--- the rules (an Admin's choice): pages flip with our inventory
-update program_settings set vpage_index_mode = 'rules' where id = (app.settings()).id;
-select test.ok('rules: a trim with no car of ours is noindex, canonical at its year', not (public.vehicle_trim_page('volkswagen', 'jetta', 2020, 'sportline') ->> 'indexable')::boolean
-  and public.vehicle_trim_page('volkswagen', 'jetta', 2020, 'sportline') ->> 'canonical' = '/cars/volkswagen/jetta/2020');
-select test.ok('rules: a popular model''s year from 2015 is indexed', (public.vehicle_year_page('volkswagen', 'jetta', 2020) ->> 'indexable')::boolean);
--- (a model year no car of any suite matches: earlier suites add cars of their own, a 2015 Cadillac CTS among them)
-select test.ok('rules: a year of a model not on the list, with no car, is not', (select bool_and(not (public.vehicle_year_page(y.make_slug, y.model_slug, y.year) ->> 'indexable')::boolean) and count(*) > 0
-  from vehicle_catalog_years y join vehicle_catalog_makes k on k.slug = y.make_slug join vehicle_catalog_models m on m.make_slug = y.make_slug and m.slug = y.model_slug
- where not exists (select 1 from vehicle_catalog_popular p where p.make_slug = y.make_slug and p.model_slug = y.model_slug)
-   and not exists (select 1 from vehicles v where lower(v.make) = lower(k.name) and app.slugify(v.model) = y.model_slug)));
-select test.ok('rules: makes are always indexed', (public.vehicle_make_page('cadillac') ->> 'indexable')::boolean);
-select test.ok('rules: the sitemap leaves out the trim', not exists (select 1 from app.vehicle_sitemap('volkswagen-trims') where path = '/cars/volkswagen/jetta/2020/sportline'));
+-- the rules mode is retired (1100): every page is indexed, with or without our car
+select test.throws('rules: the mode cannot be chosen any more', $$update program_settings set vpage_index_mode = 'rules' where id = (app.settings()).id$$, 'program_settings_vpage_index_all');
+select test.ok('a trim with no car of ours is indexed, self-canonical', (public.vehicle_trim_page('volkswagen', 'jetta', 2020, 'sportline') ->> 'indexable')::boolean
+  and public.vehicle_trim_page('volkswagen', 'jetta', 2020, 'sportline') ->> 'canonical' = '/cars/volkswagen/jetta/2020/sportline');
+select test.ok('makes are always indexed', (public.vehicle_make_page('cadillac') ->> 'indexable')::boolean);
 
 select test.mk_owner('vp_own');
 insert into vehicles (id, owner_id, year, make, model, trim, colour, plate, class, status, management_mode, onboarding_method, body_type)
@@ -99,7 +92,7 @@ select test.ok('the same model in another year: listed under "other years"', exi
   where (c ->> 'vehicle_id')::uuid = test.id('vehicle:VP1')));
 select test.ok('no exact car: similar cars instead of an empty block', jsonb_array_length(public.vehicle_year_page('toyota', 'camry', 2023) -> 'inventory' -> 'similar') >= 1);
 update vehicle_listings set status = 'unpublished' where vehicle_id = test.id('vehicle:VP1');
-select test.ok('the car leaves the site: the trim page flips back to noindex', not (public.vehicle_trim_page('volkswagen', 'jetta', 2020, 'sportline') ->> 'indexable')::boolean);
+select test.ok('the car leaves the site: the trim page stays indexed (1100: every page)', (public.vehicle_trim_page('volkswagen', 'jetta', 2020, 'sportline') ->> 'indexable')::boolean);
 update vehicle_listings set status = 'unpublished' where vehicle_id = test.id('vehicle:VP2');
 update program_settings set vpage_index_mode = 'all' where id = (app.settings()).id;
 

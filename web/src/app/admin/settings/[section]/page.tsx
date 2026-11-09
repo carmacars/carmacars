@@ -227,7 +227,7 @@ export default async function Section({ params, searchParams }: { params: Promis
     type Ov = { cars: R[]; pages: Array<PageRow & R>; articles: Array<ArticleRow & R>; indexnow: { waiting: number; sent_7d: number; last: { at: string | null; status: number | null };
       answer?: IxAnswer; sweep?: IxAnswer & { next_round: string | null; streak_429: number } };
       neurons: { seo: number; all: number; seo_cap: number; all_cap: number }; min_real_cars: number };
-    type Cov = Array<{ day: string; inspected: number; indexed: number; crawled: number; discovered: number }>;
+    type Cov = Array<{ day: string; inspected: number; known?: number; indexed: number; crawled: number; discovered: number; unknown?: number; priority_inspected?: number; priority_indexed?: number }>;
     const [o, po, cov] = await Promise.all([door<Ov>(user.id, 'admin_read', 'seo_overview'), door<PlacesOverview>(user.id, 'admin_read', 'place_overview').catch(() => null),
       rpc('server_gsc_coverage_trend', { p_admin: user.id }, { role: 'service_role' }).then((x) => (x ?? []) as unknown as Cov).catch(() => [] as Cov)]);
     const pc = (n: number, of: number) => (of ? `${Math.round((n / of) * 100)}%` : '');
@@ -238,13 +238,17 @@ export default async function Section({ params, searchParams }: { params: Promis
         // R23 (0220): the changed pages and the sweep each with their last answer and back-off
         ['IndexNow: changed pages', <span key="ixq" data-testid="seo-indexnow-answer">{ixLine(o.indexnow.answer, t)}</span>],
         ['IndexNow: sweep', <span key="ixs" data-testid="seo-indexnow-sweep">{ixLine(o.indexnow.sweep, t)}{o.indexnow.sweep?.next_round ? `; next round ${t(o.indexnow.sweep.next_round)}` : ''}</span>],
-        ['Landing pages for a use', `indexed with ${o.min_real_cars} or more real matching cars (Program settings)`]]} /></Card>
+        ['Landing pages', 'every page is indexed and filled with its own data (release 35)']]} /></Card>
       {/* release 28 (0564): the gsc workflow's sample of addresses inspected in Search Console, by day */}
       <Card title="Index coverage (Search Console sample)" testId="seo-coverage">
+        {/* 1103: indexed of the addresses Google knows (Search Console's own count), the priority part, and the long tail's unknown ones apart */}
         {cov.length ? <Table rows={cov as unknown as R[]} rowKey={(r) => String(r.day)} cols={[{ key: 'day', label: 'Day', render: (r) => String(r.day) }, { key: 'inspected', label: 'Inspected', num: true },
-          { key: 'indexed', label: 'Indexed', render: (r) => `${String(r.indexed)} (${pc(Number(r.indexed), Number(r.inspected))})` },
-          { key: 'crawled', label: 'Crawled, not indexed', render: (r) => `${String(r.crawled)} (${pc(Number(r.crawled), Number(r.inspected))})` },
-          { key: 'discovered', label: 'Discovered, not indexed', render: (r) => `${String(r.discovered)} (${pc(Number(r.discovered), Number(r.inspected))})` }]} />
+          { key: 'known', label: 'Known to Google', num: true, render: (r) => String(r.known ?? r.inspected) },
+          { key: 'indexed', label: 'Indexed (of known)', render: (r) => `${String(r.indexed)} (${pc(Number(r.indexed), Number(r.known ?? r.inspected))})` },
+          { key: 'priority_indexed', label: 'Priority pages indexed', render: (r) => (Number(r.priority_inspected ?? 0) ? `${String(r.priority_indexed)} of ${String(r.priority_inspected)} (${pc(Number(r.priority_indexed), Number(r.priority_inspected))})` : '') },
+          { key: 'crawled', label: 'Crawled, not indexed', render: (r) => `${String(r.crawled)} (${pc(Number(r.crawled), Number(r.known ?? r.inspected))})` },
+          { key: 'discovered', label: 'Discovered, not indexed', render: (r) => `${String(r.discovered)} (${pc(Number(r.discovered), Number(r.known ?? r.inspected))})` },
+          { key: 'unknown', label: 'Unknown to Google', num: true, render: (r) => String(r.unknown ?? '') }]} />
           : <p className="small muted">No sample yet: the gsc workflow inspects about 150 addresses each run (every three hours) once migration 0564 is live.</p>}
       </Card>
       <Card title={`Car copy (${o.cars.length} real cars)`} testId="seo-cars"><Table rows={o.cars} rowKey={(r) => String(r.vehicle_id)} empty="No real car yet. Sample cars keep their sample text." cols={[
@@ -255,7 +259,7 @@ export default async function Section({ params, searchParams }: { params: Promis
       <Card title={`Landing pages (${o.pages.length})`} testId="seo-pages">
         <Table rows={o.pages as unknown as R[]} rowKey={(r) => String(r.slug)} cols={[
           { key: 'name', label: 'Page', render: (r) => <a className="link" href={String(r.path)} target="_blank" rel="noopener">{String(r.name)}</a> }, { key: 'kind', label: 'Kind', render: (r) => (r.kind === 'location' ? 'Place' : 'Use') },
-          { key: 'indexable', label: 'In search', render: (r) => (r.indexable ? 'Yes' : `No: ${String(r.real_cars)} real cars of ${o.min_real_cars}`) }, { key: 'car_count', label: 'Cars', num: true },
+          { key: 'indexable', label: 'In search', render: (r) => (r.indexable ? 'Yes' : 'No: switched off') }, { key: 'car_count', label: 'Cars', num: true },
           { key: 'source', label: 'Written by', render: (r) => ({ seed: 'Launch copy', ai: 'Workers AI', staff: 'An Admin' } as Record<string, string>)[String(r.source)] ?? String(r.source) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }]} />
         {o.pages.map((p) => <details key={p.slug}><summary className="link">Edit {p.name}</summary><PageEditor p={p} /></details>)}
       </Card>

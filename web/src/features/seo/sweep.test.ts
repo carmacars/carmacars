@@ -43,3 +43,14 @@ test('sweep: nothing to send (or no key) stops without a report', async () => {
   assert.deepEqual(r, { sent: 0, why: 'nothing to send' });
   assert.equal(reports, 0);
 });
+
+test('sweep: a 502 is reported (the database backs off, doubling) and stops the run, the cursor unmoved by the sender', async () => {
+  const reports: Array<Record<string, unknown>> = [];
+  let claims = 0;
+  const r = await sweepWith({ claim: async () => { claims++; return batch(1000); }, send: async () => ({ status: 502, error: 'Bad Gateway' }), report: async (p) => { reports.push(p); } }, 30);
+  assert.deepEqual(r, { sent: 0, status: 502, why: 'Bad Gateway' });
+  assert.equal(claims, 1);
+  assert.equal(reports.length, 1);
+  assert.equal(reports[0]!.status, 502);
+  assert.equal(reports[0]!.count, 1000);
+});

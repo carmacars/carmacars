@@ -69,7 +69,7 @@ export async function runSeoJobNow(o: { limit?: number; deadlineMs?: number } = 
 export async function runIndexNowSweep(o: { rounds?: number } = {}): Promise<{ sent: number; why?: string; status?: number }> {
   if (!indexNowOn()) return { sent: 0, why: 'not production' };
   return sweepWith({
-    claim: async () => (await rpc('server_indexnow_claim', { p_limit: 10_000 }, SR)) as unknown as SweepClaim,
+    claim: async () => (await rpc('server_indexnow_claim', { p_limit: 1_000 }, SR)) as unknown as SweepClaim,
     send: sendIndexNow,
     report: (p) => rpc('server_indexnow_report', { p: p as unknown as Json }, SR)
   }, o.rounds ?? 1);

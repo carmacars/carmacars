@@ -8,7 +8,7 @@
 // files, so every run looks at a different slice. The API allows 2,000 inspections a day per property; the workflow's
 // eight runs a day at 150 stay under it. Never prints the token.
 import fs from 'node:fs';
-import { coverageBucket, pageKind, pickSample } from '../src/features/seo/coverage.ts';
+import { coverageBucket, coverageShares, emptyBuckets, pageKind, pickSample } from '../src/features/seo/coverage.ts';
 
 const AT = process.env.AT ?? '';
 const SITE = process.env.SITE ?? '';
@@ -36,7 +36,8 @@ for (let i = 0; i < Math.min(4, otherFiles.length); i++) {
 }
 const sample = pickSample(priority, tail.filter((u) => !u.endsWith('.xml')), N, hour);
 
-const byState = {}, byKind = {};
+const prioritySet = new Set(priority);
+const byState = {}, byKind = {}, byBucket = emptyBuckets(), byPart = { priority: emptyBuckets(), tail: emptyBuckets() };
 let errors = 0, done = 0;
 for (const url of sample) {
   try {
@@ -47,20 +48,25 @@ for (const url of sample) {
     if (r.status === 429) { console.log('::warning title=coverage::the inspection quota is used for today; stopping'); break; }
     if (!r.ok) { errors++; continue; }
     const j = await r.json();
-    const state = j?.inspectionResult?.indexStatusResult?.coverageState ?? 'Unknown';
+    const st = j?.inspectionResult?.indexStatusResult ?? {};
+    const state = st.coverageState ?? 'Unknown';
+    // 1103: the bucket from the verdict and the state (any indexed state, "URL is unknown to Google" apart)
+    const b = coverageBucket(state, st.verdict ?? null);
     byState[state] = (byState[state] ?? 0) + 1;
+    byBucket[b]++;
+    byPart[prioritySet.has(url) ? 'priority' : 'tail'][b]++;
     const k = pageKind(new URL(url).pathname);
-    byKind[k] ??= { indexed: 0, crawled: 0, discovered: 0, other: 0 };
-    byKind[k][coverageBucket(state)]++;
+    byKind[k] ??= emptyBuckets();
+    byKind[k][b]++;
     done++;
   } catch { errors++; }
 }
-const out = { inspected: done, by_state: byState, by_kind: byKind, errors };
+const out = { inspected: done, by_state: byState, by_kind: byKind, by_bucket: byBucket, by_part: byPart, errors };
 if (process.env.OUT) fs.writeFileSync(process.env.OUT, JSON.stringify(out));
-const pct = (n) => (done ? `${Math.round((n / done) * 100)}%` : '0%');
-const indexed = (byState['Submitted and indexed'] ?? 0) + (byState['Indexed, not submitted in sitemap'] ?? 0);
-console.log(`::notice title=coverage::${done} inspected: ${pct(indexed)} indexed, ${pct(byState['Crawled - currently not indexed'] ?? 0)} crawled not indexed, ${pct(byState['Discovered - currently not indexed'] ?? 0)} discovered not indexed (${errors} errors)`);
+const sh = coverageShares(byBucket);
+const share = (x) => (x === null ? 'n/a' : `${Math.round(x * 100)}%`);
+console.log(`::notice title=coverage::${done} inspected, ${sh.known} known to Google: ${share(sh.indexedOfKnown)} of those indexed (${byBucket.indexed}), ${byBucket.crawled} crawled not indexed, ${byBucket.discovered} discovered not indexed, ${byBucket.unknown} unknown to Google (${errors} errors)`);
 if (process.env.GITHUB_STEP_SUMMARY) {
-  const rows = Object.entries(byKind).map(([k, v]) => `| ${k} | ${v.indexed} | ${v.crawled} | ${v.discovered} | ${v.other} |`).join('\n');
-  fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `\n### Index coverage (sample of ${done})\n\n| Kind | Indexed | Crawled, not indexed | Discovered, not indexed | Other |\n|---|---|---|---|---|\n${rows}\n`);
+  const rows = Object.entries(byKind).map(([k, v]) => `| ${k} | ${v.indexed} | ${v.crawled} | ${v.discovered} | ${v.unknown} | ${v.other} |`).join('\n');
+  fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `\n### Index coverage (sample of ${done})\n\n| Kind | Indexed | Crawled, not indexed | Discovered, not indexed | Unknown to Google | Other |\n|---|---|---|---|---|---|\n${rows}\n`);
 }

@@ -9729,6 +9729,7 @@ export type Database = {
           q_last_at: string | null;
           streak_429: number;
           next_round_at: string | null;
+          streak_5xx: number;
         };
         Insert: {
           id?: boolean;
@@ -9753,6 +9754,7 @@ export type Database = {
           q_last_at?: string | null;
           streak_429?: number;
           next_round_at?: string | null;
+          streak_5xx?: number;
         };
         Update: {
           id?: boolean;
@@ -9777,6 +9779,7 @@ export type Database = {
           q_last_at?: string | null;
           streak_429?: number;
           next_round_at?: string | null;
+          streak_5xx?: number;
         };
         Relationships: [];
       };
@@ -16341,6 +16344,51 @@ export type Database = {
         };
         Relationships: [];
       };
+      place_pois: {
+        Row: {
+          id: number;
+          kind: string;
+          agency: string | null;
+          ref: string;
+          name: string;
+          lat: number;
+          lng: number;
+          source: string;
+          source_url: string;
+          licence: string;
+          attribution: string;
+          fetched_at: string;
+        };
+        Insert: {
+          id?: number;
+          kind: string;
+          agency?: string | null;
+          ref: string;
+          name: string;
+          lat: number;
+          lng: number;
+          source: string;
+          source_url: string;
+          licence: string;
+          attribution: string;
+          fetched_at: string;
+        };
+        Update: {
+          id?: number;
+          kind?: string;
+          agency?: string | null;
+          ref?: string;
+          name?: string;
+          lat?: number;
+          lng?: number;
+          source?: string;
+          source_url?: string;
+          licence?: string;
+          attribution?: string;
+          fetched_at?: string;
+        };
+        Relationships: [];
+      };
       place_regions: {
         Row: {
           id: number;
@@ -17217,6 +17265,8 @@ export type Database = {
           accident_plan_claim_url: string | null;
           listing_cf_transformations: boolean;
           marketing_scenes: Json;
+          indexnow_sweep_batch: number;
+          indexnow_queue_batch: number;
         };
         Insert: {
           id?: string;
@@ -17886,6 +17936,8 @@ export type Database = {
           accident_plan_claim_url?: string | null;
           listing_cf_transformations?: boolean;
           marketing_scenes?: Json;
+          indexnow_sweep_batch?: number;
+          indexnow_queue_batch?: number;
         };
         Update: {
           id?: string;
@@ -18555,6 +18607,8 @@ export type Database = {
           accident_plan_claim_url?: string | null;
           listing_cf_transformations?: boolean;
           marketing_scenes?: Json;
+          indexnow_sweep_batch?: number;
+          indexnow_queue_batch?: number;
         };
         Relationships: [];
       };
@@ -25674,6 +25728,42 @@ export type Database = {
         };
         Relationships: [];
       };
+      vehicle_maintenance_costs: {
+        Row: {
+          id: number;
+          make: string;
+          segment: string;
+          per_year_cents: number;
+          per_10k_km_cents: number;
+          assumptions: string;
+          source: string;
+          source_url: string;
+          fetched_at: string;
+        };
+        Insert: {
+          id?: number;
+          make?: string;
+          segment: string;
+          per_year_cents: number;
+          per_10k_km_cents: number;
+          assumptions: string;
+          source: string;
+          source_url: string;
+          fetched_at: string;
+        };
+        Update: {
+          id?: number;
+          make?: string;
+          segment?: string;
+          per_year_cents?: number;
+          per_10k_km_cents?: number;
+          assumptions?: string;
+          source?: string;
+          source_url?: string;
+          fetched_at?: string;
+        };
+        Relationships: [];
+      };
       vehicle_marketing_photos: {
         Row: {
           id: string;
@@ -26808,6 +26898,48 @@ export type Database = {
           voided_at?: string | null;
           voided_by?: string | null;
           void_reason?: string | null;
+        };
+        Relationships: [];
+      };
+      vehicle_specs: {
+        Row: {
+          id: number;
+          make: string;
+          model: string;
+          year: number;
+          trim: string;
+          field: string;
+          value: string;
+          code: string | null;
+          source: string;
+          source_url: string;
+          fetched_at: string;
+        };
+        Insert: {
+          id?: number;
+          make: string;
+          model: string;
+          year: number;
+          trim?: string;
+          field: string;
+          value: string;
+          code?: string | null;
+          source: string;
+          source_url: string;
+          fetched_at: string;
+        };
+        Update: {
+          id?: number;
+          make?: string;
+          model?: string;
+          year?: number;
+          trim?: string;
+          field?: string;
+          value?: string;
+          code?: string | null;
+          source?: string;
+          source_url?: string;
+          fetched_at?: string;
         };
         Relationships: [];
       };
@@ -29150,6 +29282,7 @@ export type Database = {
       hiring_role_public: { Args: { p_slug: string }; Returns: Json };
       hiring_roles_public: { Args: never; Returns: Json };
       load_form_draft: { Args: { p_form_code: string; p_user?: string; p_token?: string; p_entity_table?: string; p_entity_id?: string }; Returns: Json };
+      maintenance_cost_for: { Args: { p_make: string; p_segment: string }; Returns: Json };
       mark_notifications_read: { Args: { p_ids?: string[] }; Returns: number };
       model_hub: { Args: { p_hub: string }; Returns: Json };
       model_hubs: { Args: never; Returns: Json[] };
@@ -29208,6 +29341,7 @@ export type Database = {
       place_directory_index: { Args: never; Returns: Json };
       place_directory_page: { Args: { p_page: number }; Returns: Json };
       place_hub: { Args: { p_vertical: string; p_term: string; p_place: string }; Returns: Json };
+      place_pois_near: { Args: { p_lat: number; p_lng: number; p_km?: number; p_each?: number }; Returns: Json };
       place_roots: { Args: never; Returns: Json };
       place_sitemap: { Args: { p_vertical: string; p_term: string; p_page: number }; Returns: Json };
       place_sitemap_files: { Args: never; Returns: Json };
@@ -29265,6 +29399,8 @@ export type Database = {
       save_form_draft: { Args: { p_form_code: string; p_data: Json; p_step?: string; p_schema_version?: number; p_user?: string; p_token?: string; p_entity_table?: string; p_entity_id?: string; p_device_label?: string }; Returns: Json };
       search_available: { Args: { p_pickup: string; p_return: string; p_filters?: Json }; Returns: { vehicle_id: string; slug: string; vehicle_year: number; make: string; model: string; vehicle_class: string; seats: number; transmission: string; fuel: string; allows_18_to_20: boolean; daily_rate_cents: number; billable_days: number; rental_charge_cents: number; subtotal_cents: number; hst_cents: number; total_cents: number; deposit_cents: number }[] };
       search_scope: { Args: never; Returns: string };
+      seo_content_epoch: { Args: never; Returns: string };
+      seo_fuel_prices: { Args: never; Returns: Json };
       seo_hub_links: { Args: never; Returns: Json };
       seo_links: { Args: never; Returns: Json };
       seo_page: { Args: { p_slug: string }; Returns: Json };
@@ -29736,6 +29872,7 @@ export type Database = {
       vehicle_sitemap_index: { Args: { p_offset: number; p_limit: number }; Returns: Json };
       vehicle_sitemap_shape: { Args: never; Returns: Json };
       vehicle_sitemap_tree: { Args: { p_prefix: string }; Returns: boolean };
+      vehicle_specs_for: { Args: { p_make: string; p_model: string; p_year: number }; Returns: Json };
       vehicle_stock_photo: { Args: { p_make: string; p_model?: string; p_year?: number }; Returns: Json };
       vehicle_takes_debit: { Args: { p_vehicle: string }; Returns: boolean };
       vehicle_tier_files_count: { Args: never; Returns: number };

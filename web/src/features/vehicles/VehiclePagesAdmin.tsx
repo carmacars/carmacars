@@ -20,7 +20,7 @@ export type VpData = {
   trim_models: Array<{ make: string; model: string; name: string; source: string; lines: string }>;
 };
 const LEVELS: Array<[string, string]> = [['make', 'Makes'], ['model', 'Models'], ['year', 'Model years'], ['trim', 'Trims']];
-const KEYS = ['search_scope', 'vpage_index_mode', 'vpage_place_index', 'vpage_colour_index', 'vpage_term_index', 'vpage_buy_index', 'vpage_detailing_index', 'vpage_bodyshop_index', 'vpage_finance_disclaimer',
+const KEYS = ['search_scope', 'vpage_place_index', 'vpage_colour_index', 'vpage_term_index', 'vpage_buy_index', 'vpage_detailing_index', 'vpage_bodyshop_index', 'vpage_finance_disclaimer',
   'db_plan', 'db_cap_pro_mb', 'db_cap_free_mb', 'indexnow_daily_max', 'indexnow_batch', 'vpage_model_min_years', 'vpage_popular_from_year', 'vpage_year_min_cars', 'vpage_trim_min_cars',
   'vpage_gas_cents_per_litre', 'vpage_premium_extra_cents', 'vpage_electricity_cents_per_kwh', 'vpage_import_every_days', 'vpage_stock_photos'];
 
@@ -54,11 +54,11 @@ export function VehiclePagesAdmin({ d, program }: { d: VpData; program: Record<s
       <Act action="vehicle_pages_import" label="Import now" variant="primary" done="Asked for. The import runs at the next daily check." testId="vp-import-now" />
     </Card>
     <Card title="Settings" testId="vp-settings">
-      <p className="small muted">One switch per tier takes it out of search at once (the pages stay up with noindex and leave the sitemaps): places, colours, renting searches, for sale (with the sale searches), detailing and body shop. All are on by default. Index everything is the default. Choose rules to index only the pages that pass them; the others stay visible with noindex,follow and their canonical at the parent page. Saving writes a new dated row of the program settings.</p>
-      <SaveForm table="program_settings" rowKey="current" testId="vp-settings-form" fields={fieldsFrom(program, KEYS, { vpage_index_mode: [['all', 'Index every page'], ['rules', 'Only pages that pass the rules']], db_plan: [['pro', 'Standard (the standard cap below)'], ['free', 'Small (the small cap below)']] })} />
+      <p className="small muted">One switch per tier takes it out of search at once (the pages stay up with noindex and leave the sitemaps): places, colours, renting searches, for sale (with the sale searches), detailing and body shop. All are on by default. Every page is indexed (release 35: the rules mode is retired; empty pages are filled with their own data).</p>
+      <SaveForm table="program_settings" rowKey="current" testId="vp-settings-form" fields={fieldsFrom(program, KEYS, { db_plan: [['pro', 'Standard (the standard cap below)'], ['free', 'Small (the small cap below)']] })} />
     </Card>
     <Card title={`Popular models (${d.popular.length})`} testId="vp-popular">
-      <p className="small muted">Used by the rules only: a model year of a popular model from the set year on is indexed. One model per line, most popular first, for example &ldquo;Toyota RAV4&rdquo;. Models the catalog does not have are left out.</p>
+      <p className="small muted">The popular models come first in the priority sitemap. One model per line, most popular first, for example &ldquo;Toyota RAV4&rdquo;. Models the catalog does not have are left out.</p>
       <Act action="vehicle_pages_popular" label="Save the popular list" inline testId="vp-popular-form" done="Saved."
         fields={[{ name: 'lines', label: 'Popular models', type: 'textarea', wide: true, value: d.popular.map((p) => p.name).join('\n') }]} />
     </Card>
