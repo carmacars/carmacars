@@ -41,6 +41,8 @@ async function contact(page: Page, name: string, email: string) {
   await page.getByTestId('ap-full_name').fill(name);
   await page.getByTestId('ap-email').fill(email);
   await page.getByTestId('ap-phone').fill('416-555-0142');
+  // r35 (1060): an in-person role asks where the applicant lives
+  if (await page.getByTestId('ap-city').isVisible()) await page.getByTestId('ap-city').fill('Toronto');
 }
 /** Answers a role's questions: a choice (or several) by its words, a text by its value. */
 async function answer(page: Page, a: Record<string, string | string[]>) {
@@ -86,6 +88,10 @@ test('apply from Indeed and pass, book a call, the Admin scores it, the rank fol
   await sql`delete from app.rate_limit_hits where key like 'hire:%'`;
   const a = await admin(sql);
   await interviewDay(sql, a.id);
+  // 1060 (r35): every role takes the AI interview first (hiring_ai_all_roles); this is the live-call path, so it is off here
+  const [ai] = await sql`select hiring_ai_all_roles v from program_settings where id = (app.settings()).id`;
+  await sql`update program_settings set hiring_ai_all_roles = false where id = (app.settings()).id`;
+  try {
 
   // the public pages, at phone and desktop width
   for (const w of [375, 1440]) {
@@ -192,7 +198,10 @@ test('apply from Indeed and pass, book a call, the Admin scores it, the rank fol
   await ctx.close();
 
   expect(errors.filter((e) => !/favicon|Failed to load resource/i.test(e))).toEqual([]);
-  await sql.end();
+  } finally {
+    await sql`update program_settings set hiring_ai_all_roles = ${ai!.v as boolean} where id = (app.settings()).id`;
+    await sql.end();
+  }
 });
 
 test('a Field staff knock-out is offered Sales with the details filled in; a remote role knock-out is declined', async ({ page }) => {
@@ -220,6 +229,8 @@ test('a Field staff knock-out is offered Sales with the details filled in; a rem
   await expect(page.getByTestId('ap-email')).toHaveValue(email);
   await axe(page, 'sales apply prefilled');
   await answer(page, SALES);
+  // r35 (1060): an in-person role asks where the applicant lives (not carried by the referral)
+  if (await page.getByTestId('ap-city').isVisible()) await page.getByTestId('ap-city').fill('Toronto');
   await page.getByTestId('ap-submit').click();
   await expect(page.getByTestId('apply-done')).toBeVisible({ timeout: 60_000 });
   const [s] = await sql`select source, referred_from from job_applications where email = ${email} and role_id = (select id from hiring_roles where slug = 'sales-in-person')`;

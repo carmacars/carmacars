@@ -99,6 +99,10 @@ test('AI interview on video: apply, consent, the camera check, answers recorded 
   const email = `ivy.${tag()}@example.test`;
   await sql`update hiring_roles set active = true where slug = 'va-finance-billing'`;
   await sql`update program_settings set hiring_ai_interviews = true, hiring_ai_answer_seconds = 60, hiring_ai_retakes = 0 where id = (select id from app.settings())`;
+  // 1060 (r35): customer service, fleet and finance applicants are referred to Sales by default (hiring_refer_va_to_sales);
+  // this test is the finance role's own interview, so the referral is off while it runs
+  const [refer] = await sql`select hiring_refer_va_to_sales v from program_settings where id = (select id from app.settings())`;
+  await sql`update program_settings set hiring_refer_va_to_sales = false where id = (select id from app.settings())`;
   // a Chrome of its own with a fake camera and microphone (PW_CHROMIUM: another build of Chrome, for a local run)
   const browser = await playwright.chromium.launch({ args: ['--no-proxy-server', '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--autoplay-policy=no-user-gesture-required'],
     ...(process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMIUM } : {}) });
@@ -236,6 +240,7 @@ test('AI interview on video: apply, consent, the camera check, answers recorded 
     expect(quiet(errors)).toEqual([]);
     await sql`update job_applications set status = 'withdrawn' where id = ${app!.id}`;
   } finally {
+    await sql`update program_settings set hiring_refer_va_to_sales = ${refer!.v as boolean} where id = (select id from app.settings())`;
     await browser.close();
     await sql`update program_settings set hiring_ai_answer_seconds = 120, hiring_ai_retakes = 0 where id = (select id from app.settings())`;
     await sql`update hiring_roles set active = false where slug = 'va-finance-billing'`;

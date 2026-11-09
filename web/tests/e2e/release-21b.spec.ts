@@ -164,7 +164,9 @@ test('Add an investor: the record and the invitation in one step; the investor c
   await f.getByTestId('ai-phone').fill('416-555-0100');
   await f.getByTestId('ai-address').pressSequentially('100 Queen', { delay: 40 });
   await page.getByRole('listbox', { name: 'Address suggestions' }).getByRole('option').first().click();
-  await expect(f.getByTestId('ai-roi')).toHaveValue('30');
+  // r35 (0851): the return offered starts at the deck's yearly percentage (10% since the 2026 deck), no longer 30%
+  const [deck] = await sql`select deck_return_bps from deck_settings limit 1`;
+  await expect(f.getByTestId('ai-roi')).toHaveValue(String(Number(deck?.deck_return_bps ?? 3000) / 100));
   await f.getByTestId('info-ai-roi').click();
   await expect(page.getByRole('tooltip')).toContainText('investment agreement sets');
   await check(page, 'add an investor');
@@ -174,7 +176,7 @@ test('Add an investor: the record and the invitation in one step; the investor c
   await f.getByTestId('ai-submit').click();
   await expect(f.getByTestId('ai-msg')).toContainText(`Added and invited: the invitation went to ${email}`);
   const [rec] = await sql`select investor_type, signatory_name, committed_amount_cents::int c, offered_yearly_bps b, user_id from investors where email = ${email}`;
-  expect(rec).toMatchObject({ investor_type: 'corporation', signatory_name: 'Iris Officer', c: 5_000_000, b: 3000 });
+  expect(rec).toMatchObject({ investor_type: 'corporation', signatory_name: 'Iris Officer', c: 5_000_000, b: Number(deck?.deck_return_bps ?? 3000) });
   expect(rec!.user_id).not.toBeNull();
   expect(quiet(errors)).toEqual([]);
   await page.context().close();
@@ -211,6 +213,9 @@ test('hiring: a pass with no open interview day waits; the link says so; Admin i
   // no open day for Field staff during the test (put back at the end)
   const open = (await sql`select id from interview_days where active and (role_ids is null or (select id from hiring_roles where slug = 'field-staff') = any (role_ids))`).map((r) => r.id as string);
   if (open.length) await sql`update interview_days set active = false where id = any (${open}::uuid[])`;
+  // 1060 (r35): every role takes the AI interview first (hiring_ai_all_roles); the interview-day wait is the live-call path
+  const [ai] = await sql`select hiring_ai_all_roles v from program_settings where id = (app.settings()).id`;
+  await sql`update program_settings set hiring_ai_all_roles = false where id = (app.settings()).id`;
   try {
     const email = `hwd.${Date.now()}.${tag()}@example.test`;
     const [r] = await sql`select public.server_hiring_apply(jsonb_build_object('role', 'field-staff', 'full_name', 'Wendy Waiting', 'email', ${email}::text, 'phone', '4165550144',
@@ -251,6 +256,7 @@ test('hiring: a pass with no open interview day waits; the link says so; Admin i
     await c.context().close(); await ap.context().close();
   } finally {
     if (open.length) await sql`update interview_days set active = true where id = any (${open}::uuid[])`;
+    await sql`update program_settings set hiring_ai_all_roles = ${ai!.v as boolean} where id = (app.settings()).id`;
     await sql.end();
   }
 });
