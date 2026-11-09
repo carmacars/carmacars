@@ -194,3 +194,5 @@ select test.ok('privileges: the signatures table is not readable by anon', not h
 -- leave the shared catalogue as it was
 update government_form_fills set superseded_at = now() where form_code = 'R35Q-TEST' and superseded_at is null;
 update pdf_templates set is_current = false where form_code = 'R35Q-TEST';
+-- the suites run with the strict signing steps off (helpers.sql); later suites sign with the older steps
+update program_settings set esign_strict = false;

@@ -31,7 +31,7 @@ export const SECTIONS = [
     slug: 'new-r35-fleet-phone', title: 'Calls and texts on the Fleet lane',
     blurb: 'Calls and texts about pickups, returns, deliveries and cars on rent come to Fleet first: the caller pop-up, the Calls and texts page and Returning now.',
     paths: ['fleet'],
-    guides: ['va/fleet', 'va/texts-and-calls'],
+    guides: ['va/fleet'],
     lessons: [
       L('Your own lane',
         S('Fleet first', 'A call or text about a car on rent, or a pickup, return, delivery or collection within a day, is on the Fleet lane. Anything else goes to customer service.', list('On the Fleet lane', ['A car on rent', 'A pickup or return within a day', 'A delivery or collection within a day'])),
