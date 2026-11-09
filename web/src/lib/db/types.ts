@@ -5640,6 +5640,69 @@ export type Database = {
         };
         Relationships: [];
       };
+      coverage_switches: {
+        Row: {
+          id: string;
+          booking_id: string;
+          direction: string;
+          from_option: number | null;
+          to_option: number;
+          booking_status: string;
+          offer_version: number | null;
+          total_before_cents: number;
+          total_after_cents: number;
+          plan_cents: number | null;
+          note: string | null;
+          lapsed_proofs: Json;
+          lapsed_uploads: Json;
+          cleared_tasks: Json;
+          prev_confirmed_at: string | null;
+          refund_id: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          direction: string;
+          from_option?: number | null;
+          to_option: number;
+          booking_status: string;
+          offer_version?: number | null;
+          total_before_cents: number;
+          total_after_cents: number;
+          plan_cents?: number | null;
+          note?: string | null;
+          lapsed_proofs?: Json;
+          lapsed_uploads?: Json;
+          cleared_tasks?: Json;
+          prev_confirmed_at?: string | null;
+          refund_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          direction?: string;
+          from_option?: number | null;
+          to_option?: number;
+          booking_status?: string;
+          offer_version?: number | null;
+          total_before_cents?: number;
+          total_after_cents?: number;
+          plan_cents?: number | null;
+          note?: string | null;
+          lapsed_proofs?: Json;
+          lapsed_uploads?: Json;
+          cleared_tasks?: Json;
+          prev_confirmed_at?: string | null;
+          refund_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       daily_checks: {
         Row: {
           id: string;

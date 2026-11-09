@@ -20,6 +20,8 @@ import { $, Badge, Card, Kv, PageHead, Table, Tabs, t, label } from '@/features/
 import { REFUND_OF } from '@/features/admin/refunds';
 import { BookingMoney, type Money, type PanelLine } from '@/features/money/BookingMoney';
 import { BookingFees, type Fees } from '@/features/money/BookingFees';
+import { CoverageSwitch } from '@/features/money/CoverageSwitch';
+import type { SwitchState } from '@/features/money/coverage-switch';
 import { BookingEdit, type EditForm } from '@/features/money/BookingEdit';
 import { BookingPeriods, type PeriodRow } from '@/features/money/BookingPeriods';
 import { RenterEdit, type RenterForm } from '@/features/money/RenterEdit';
@@ -157,6 +159,8 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
     on('history') ? ops<ActivityPage>('renter_activity', { booking: b.booking_number, ...readParams(activityQuery(sp)) }, true).catch(none(null)) : null,
     // Email the renter or the adjuster, with the booking's conversation and emails (0187)
     on('messages') ? ops<Conversation>('booking_conversation', { booking: b.booking_number }, true).catch(none(null)) : null]);
+  // r35 (0890): card coverage or the Protection Plan, on an offer or an active booking
+  const coverageSwitch = (on('overview') || on('money')) && notOwner && !['cancelled', 'declined', 'expired'].includes(b.status) ? await ops<SwitchState>('coverage_switch_state', { booking: b.booking_number }, true).catch(none(null)) : null;
   const [policyNote, adjusters, pay, periods, duplicates] = await Promise.all([
     on('review') && ['requested', 'offered', 'pending_payment', 'confirmed'].includes(b.status) ? (can.admin ? ops : own)<{ handover_note: string | null }>('listing_state', { vehicle_id: b.vehicle_id }).then((x) => x?.handover_note ?? null).catch(none(null)) : null,
     can.admin && on('overview') && notOwner && !['cancelled', 'declined', 'expired'].includes(b.status) ? own<AdjusterOpt[]>('insurer_adjusters', {}).catch(none([] as AdjusterOpt[])) : null,
@@ -283,6 +287,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
       {/* conflicting dates on this car (0284), once the booking is past the request */}
       {can.admin && on('overview') && b.competing.length > 0 && <Card title="Also on this car for these dates" testId="date-conflicts-card"><DateConflicts items={b.competing} self={{ placeholder: !!b.placeholder?.on }} /></Card>}
       {on('overview') && editForm && <BookingEdit x={editForm} fees={fees} />}
+      {on('overview') && coverageSwitch && <CoverageSwitch x={coverageSwitch} />}
       {(on('overview') || on('money')) && insurerCard?.billed_to_insurer && <BookingInsurer x={insurerCard} />}
       {adjusters && <InsurerClaimEdit insurers={ins.rows} adjusters={adjusters} x={{
         booking: b.booking_number, bill_to: b.bill_to, insurer_id: b.insurer_id, claim_number: b.insurer_claim_number, adjuster_name: b.insurer_adjuster_name,
@@ -322,6 +327,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
           {moneyByPart && <BookingMoney m={moneyByPart} reasons={reasons} lines={(b.lines as PanelLine[] | undefined) ?? []} totalCents={(b.total_due_at_booking_cents as number | null | undefined) ?? null}
             waived={!!(b as unknown as R).deposit_waived_at}
             rentalExtras={<>
+              {coverageSwitch && <CoverageSwitch x={coverageSwitch} />}
               {fees && <BookingFees x={fees} withBalance={false} />}
               {payments?.some((r) => r.status === 'failed') && <Card title="Card payments that failed"><Table rows={payments.filter((r) => r.status === 'failed')} empty="No payments."
                 cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'purpose', label: 'Purpose' }, ...(can.admin ? [{ key: 'method', label: 'Method' }] : []), { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'card_last4', label: 'Card' },
