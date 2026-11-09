@@ -74,23 +74,23 @@ select test.throws('read: fleet cannot', $$select test.ss_door('ss_fleet', 'ops_
 select test.eq('read: customer service still sees the coverage, as before',
   (select (x -> 'coverage' <> 'null'::jsonb) || '/' || coalesce(x ->> 'licence_only', 'no') from test.ss_door('ss_cs', 'ops_read', 'doc_review', '{"booking": "SS-2"}') x), 'true/no');
 
--- ================================================================ 3. coverage and the Protection Plan stay closed to Sales
-select test.throws('coverage: Sales cannot approve the proof of coverage upload', format($$select app.door(%L, 'aal2', 'ops_do', 'doc_review_upload', jsonb_build_object('upload', %L, 'approve', true))$$,
-  test.id('ss_sales'), (select id from verification_uploads where booking_id = test.ssb('SS-2') and kind = 'coverage_proof')), 'proof of coverage');
-select test.throws('coverage: nor through the assistants'' screen', format($$select app.door(%L, 'aal2', 'va_do', 'verify_upload', jsonb_build_object('upload', %L, 'approve', true))$$,
-  test.id('ss_sales'), (select id from verification_uploads where booking_id = test.ssb('SS-2') and kind = 'coverage_proof')), 'proof of coverage');
+-- ================================================================ 3. coverage: Sales review the proof (r35 UX, 1106: "verify id and basically do everything to
+-- make sure a renter is good to go"); the Protection Plan and the office's own coverage calls stay customer service's
+select test.ok('coverage: Sales approve the proof of coverage upload through the door (1106)', (select app.door(test.id('ss_sales'), 'aal2', 'ops_do', 'doc_review_upload',
+  jsonb_build_object('upload', (select id from verification_uploads where booking_id = test.ssb('SS-2') and kind = 'coverage_proof'), 'approve', true, '_va', 'sales')) is not null));
+select test.eq('coverage: the upload is approved, by the Sales person', (select status::text || '/' || (reviewed_by = test.id('ss_sales')) from verification_uploads where booking_id = test.ssb('SS-2') and kind = 'coverage_proof'), 'approved/true');
 select test.throws('coverage: doc_review_coverage still refuses Sales', format($$select app.doc_review_coverage(%L, jsonb_build_object('proof', %L, 'approve', true))$$,
   test.id('ss_sales'), (select id from app.current_coverage_proof(test.ssb('SS-2')))), 'Only an Admin or customer service');
 select test.throws('coverage: coverage_review still refuses Sales', format($$select app.door(%L, 'aal2', 'va_do', 'coverage_review', jsonb_build_object('proof', %L, 'approve', true))$$,
   test.id('ss_sales'), (select id from app.current_coverage_proof(test.ssb('SS-2')))), 'customer service');
 select test.throws('the Protection Plan still refuses Sales (the office''s call)', format($$select app.doc_review_plan(%L, '{"booking": "SS-2"}')$$, test.id('ss_sales')), 'Only an Admin or customer service');
 select test.throws('the Protection Plan still refuses Sales (the assistants'' call)', format($$select app.door(%L, 'aal2', 'va_do', 'protection_plan_confirm', '{"booking": "SS-2"}')$$, test.id('ss_sales')), 'customer service');
-select test.eq('the coverage is untouched', (select status::text from coverage_proofs where booking_id = test.ssb('SS-2') order by created_at desc limit 1), 'submitted');
+select test.eq('the coverage is confirmed by the approval (1106)', (select status::text from coverage_proofs where booking_id = test.ssb('SS-2') order by created_at desc limit 1), 'confirmed');
 select test.eq('approve all by Sales on SS-2: three licence images approved, nothing refused, the driver verified',
   (select (x ->> 'approved') || '/' || jsonb_array_length(x -> 'refused') || '/' || (x #>> '{readiness,all_drivers_verified}')
      from test.ss_door('ss_sales', 'ops_do', 'doc_review_approve_all', '{"booking": "SS-2"}') x), '3/0/true');
-select test.eq('...the proof upload is still waiting and the coverage not confirmed',
-  (select status::text from verification_uploads where booking_id = test.ssb('SS-2') and kind = 'coverage_proof') || '/' || (select coverage_confirmed_at is null from bookings where id = test.ssb('SS-2')), 'submitted/true');
+select test.eq('...the proof upload stays approved and the coverage confirmed (1106)',
+  (select status::text from verification_uploads where booking_id = test.ssb('SS-2') and kind = 'coverage_proof') || '/' || (select coverage_confirmed_at is null from bookings where id = test.ssb('SS-2')), 'approved/false');
 
 -- ================================================================ 4. reject with a reason, then approve all (SS-1)
 select test.throws('reject: a reason the renter can act on is needed', format($$select app.door(%L, 'aal2', 'ops_do', 'doc_review_upload', jsonb_build_object('upload', %L, 'approve', false))$$,
@@ -132,8 +132,8 @@ select test.throws('Sales still cannot decide a booking''s documents outside the
 select test.eq('customer service: approve all on SS-3, as before (three licence images, the history carries no role)',
   (select (x ->> 'approved') from app.door(test.id('ss_cs'), 'aal2', 'ops_do', 'doc_review_approve_all', jsonb_build_object('booking', 'SS-3')) x) || '/' ||
   (select count(*) from booking_events where booking_id = test.ssb('SS-3') and kind = 'verification' and details ? 'reviewer_role'), '3/0');
-select test.eq('customer service: the coverage proof on SS-2 is theirs, as before',
-  (select (x ->> 'approved') from app.door(test.id('ss_cs'), 'aal2', 'ops_do', 'doc_review_approve_all', jsonb_build_object('booking', 'SS-2')) x), '1');
+select test.eq('customer service: the coverage proof on SS-2 was already approved by Sales (1106): nothing left for them',
+  (select (x ->> 'approved') from app.door(test.id('ss_cs'), 'aal2', 'ops_do', 'doc_review_approve_all', jsonb_build_object('booking', 'SS-2')) x), '0');
 select test.lives('Admin: opens the review of any booking, as before', format($$select app.door(%L, 'aal2', 'admin_read', 'doc_review', jsonb_build_object('booking', 'SS-4'))$$, test.id('ss_admin')));
 select test.throws('fleet: still refused the office''s approve all', format($$select app.door(%L, 'aal2', 'ops_do', 'doc_review_approve_all', jsonb_build_object('booking', 'SS-3'))$$, test.id('ss_fleet')), 'Only an Admin or customer service');
 select test.throws('field staff: still refused the office''s review', format($$select app.door(%L, 'aal2', 'ops_do', 'doc_review_upload', jsonb_build_object('upload', %L, 'approve', true))$$,
