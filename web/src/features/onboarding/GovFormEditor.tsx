@@ -83,8 +83,10 @@ export function GovFormVersions({ versions, base }: { versions: GovVersion[]; ba
       <p className="small muted">Every version of this form stays downloadable. The owner sees the current one only.</p>
       <ul className="ad-list small">{versions.map((v) => (
         <li key={v.id} data-testid="gov-form-version" data-current={v.current}>
+          {/* one item: .ad-list's grid would give each text and link a column of its own (the links got 0px at 375) */}
+          <span>
           <Link prefetch={false} className="link" href={`${base}/government-forms/${v.id}`}>Version {v.version}</Link>{v.current ? ' (current)' : ''}: {STATUS[v.status] ?? v.status}, {when(v.generated_at)}, {v.by === 'automatic' ? 'by itself' : `by ${v.by}`}{v.edits ? `, ${v.edits} value${v.edits === 1 ? '' : 's'} changed by hand` : ''}
-          {' '}<Link prefetch={false} className="link" href={`${base}/government-forms/${v.id}/sheet`}>data sheet</Link>
+          {' '}<Link prefetch={false} className="link" href={`${base}/government-forms/${v.id}/sheet`}>data sheet</Link></span>
         </li>))}</ul>
     </section>
   );
