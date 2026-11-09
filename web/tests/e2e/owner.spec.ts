@@ -159,7 +159,7 @@ test('owner billing: apply with three vehicles, terms and upfront invoices, sign
   await expect(admin.getByTestId('admin-owner-invoices').locator('li')).toHaveCount(3, { timeout: 15_000 });
   await admin.screenshot({ path: `${SHOTS}/admin-owner-${info.project.name}.png`, fullPage: true });
   const invoices = await sql`select i.id, i.invoice_number, i.total_cents, i.status from owner_invoices i where i.owner_id = ${owner!.id} order by i.invoice_number`;
-  expect(invoices.map((i) => `${i.status}:${i.total_cents}`)).toEqual(['issued:90400', 'issued:90400', 'issued:90400']);
+  expect(invoices.map((i) => `${i.status}:${i.total_cents}`)).toEqual(['issued:80000', 'issued:80000', 'issued:80000']); // r35 (0873): no HST on the first and last month
 
   // ---------------------------------------------------------------- 3. the owner signs: one package, one signature (0049)
   await page.goto('/owner', { waitUntil: 'networkidle' });
@@ -198,7 +198,7 @@ test('owner billing: apply with three vehicles, terms and upfront invoices, sign
 
   // ---------------------------------------------------------------- 4. pay the first invoice by card
   await page.goto(`/owner/invoices/${invoices[0]!.invoice_number}`, { waitUntil: 'networkidle' });
-  await expect(page.getByTestId('invoice-total')).toHaveText('$904.00');
+  await expect(page.getByTestId('invoice-total')).toHaveText('$800.00');
   await page.locator('label:has-text("Card")').first().click();
   await expect(page.getByTestId('fake-card')).toBeVisible();
   await check(page, 'invoice pay card');
@@ -207,10 +207,10 @@ test('owner billing: apply with three vehicles, terms and upfront invoices, sign
   await page.locator('#ow-cnumber').fill('4000 0000 0000 0002');
   await page.locator('#ow-cexp').fill('12 / 31');
   await page.locator('#ow-ccvc').fill('123');
-  await page.getByRole('button', { name: /^Pay \$904\.00$/ }).click();
+  await page.getByRole('button', { name: /^Pay \$800\.00$/ }).click();
   await expect(page.locator('.alert--error')).toContainText('declined');
   await page.locator('#ow-cnumber').fill('4242 4242 4242 4242');
-  await page.getByRole('button', { name: /^Pay \$904\.00$/ }).click();
+  await page.getByRole('button', { name: /^Pay \$800\.00$/ }).click();
   await expect(page.getByTestId('invoice-paid')).toContainText('Payment received', { timeout: 20_000 });
   await check(page, 'invoice paid');
 

@@ -98,9 +98,10 @@ test('approve with custom terms, the first and last paid by e-Transfer, a regist
   await step.getByTestId('approve-inv-first-last-reference').fill('CAxE2E725');
   await step.getByTestId('approve-inv-registration-on').check();
   await step.getByTestId('approve-inv-registration-amount').fill('123.45');
-  await expect(step.getByTestId('approve-inv-registration-total')).toHaveText('$139.50');
+  // r35 (0873): no HST on the Registration Fee or the first and last month (the Insurance Fee) unless Program settings charge it
+  await expect(step.getByTestId('approve-inv-registration-total')).toHaveText('$123.45');
   await step.getByTestId('approve-inv-registration-send').check();
-  await expect(step.getByTestId('approve-inv-first-last-total')).toHaveText('$819.82');
+  await expect(step.getByTestId('approve-inv-first-last-total')).toHaveText('$725.50');
   await expect(step.getByTestId('approve-inv-first-last-reference')).toHaveValue('CAxE2E725');
   await shot(page, 'approve-step');
   await step.getByTestId('approve-confirm').click();
@@ -108,7 +109,7 @@ test('approve with custom terms, the first and last paid by e-Transfer, a regist
   await expect.poll(async () => (await inv(sql, `true`, app.ownerId)).length, { timeout: 15_000 }).toBe(2);
   const rows = await inv(sql, `true`, app.ownerId);
   // 0077: the first and last month invoice is made by the Admin's choice, after the other invoices of the step
-  expect(rows.map((r) => `${r.kind}:${r.status}:${r.total}`).sort()).toEqual(['custom:issued:13950', 'upfront:paid:81982']);
+  expect(rows.map((r) => `${r.kind}:${r.status}:${r.total}`).sort()).toEqual(['custom:issued:12345', 'upfront:paid:72550']);
   const [s] = await sql`select s.insurance_fee_cents::int ins, s.revenue_share_bps share, s.first_last_cents::int fl from vehicle_schedules s join vehicles v on v.id = s.vehicle_id where v.owner_id = ${app.ownerId} and s.superseded_by is null`;
   expect(`${s!.ins}/${s!.share}/${s!.fl}`).toBe('38000/3000/72550');
   const [m] = await sql`select method, reference from manual_payments m join owner_invoices i on i.id = m.owner_invoice_id where i.owner_id = ${app.ownerId}`;
@@ -124,11 +125,11 @@ test('approve with custom terms, the first and last paid by e-Transfer, a regist
   const op = await ctx(browser);
   await signIn(op, owner.email, '/owner');
   await op.goto('/owner/invoices', { waitUntil: 'networkidle' });
-  await expect(op.locator('body')).toContainText('$819.82');
+  await expect(op.locator('body')).toContainText('$725.50');
   await expect(op.locator('body')).toContainText('Registration fee');
   await op.goto(`/owner/invoices/${rows.find((r) => r.kind === 'custom')!.invoice_number}`, { waitUntil: 'networkidle' });
   await expect(op.getByTestId('invoice-lines')).toContainText('$123.45');
-  await expect(op.getByTestId('invoice-total')).toHaveText('$139.50');
+  await expect(op.getByTestId('invoice-total')).toHaveText('$123.45');
   await check(op, 'owner invoice');
   await op.goto('/owner/review', { waitUntil: 'networkidle' });
   await expect(op.getByTestId('review-first-last')).toHaveText('$725.50');
@@ -161,7 +162,8 @@ test('a registration fee invoice of an exact amount from the owner page; void an
   await ed.getByTestId('line-unit').nth(1).fill('12.34');
   await ed.getByTestId('line-hst').nth(1).uncheck();
   await expect(ed.getByTestId('invoice-subtotal')).toHaveText('$148.13');
-  await expect(ed.getByTestId('invoice-total')).toHaveText('$164.18');
+  // r35 (0873): a registration line carries no HST; the stickers' HST is unticked
+  await expect(ed.getByTestId('invoice-total')).toHaveText('$148.13');
   await check(page, 'new invoice');
   await shot(page, 'new-invoice');
   await ed.getByTestId('invoice-save').click();
@@ -177,13 +179,13 @@ test('a registration fee invoice of an exact amount from the owner page; void an
   // issue
   await page.getByTestId('invoice-issue').click();
   await expect(page.getByTestId('invoice-lines-view')).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByTestId('invoice-detail-total')).toHaveText('$164.18');
+  await expect(page.getByTestId('invoice-detail-total')).toHaveText('$148.13');
   await check(page, 'issued invoice');
   const pdf = await page.request.get(`/files/owner_invoice/${(await sql`select id from owner_invoices where invoice_number = ${number}`)[0]!.id}`);
   expect(pdf.status()).toBe(200);
   const text = await pdfText(await pdf.body());
   expect(text).toContain('ServiceOntario registration');
-  expect(text).toContain('$164.18');
+  expect(text).toContain('$148.13');
   // void and reissue: the corrected draft opens; the fee was $120.00
   await page.getByTestId('invoice-void-open').click();
   await page.getByTestId('invoice-void-reason').fill('The registration fee was $120.00, not $123.45.');
@@ -195,7 +197,7 @@ test('a registration fee invoice of an exact amount from the owner page; void an
   await page.getByTestId('invoice-save-issue').click();
   await expect(page.getByTestId('invoice-lines-view')).toBeVisible({ timeout: 20_000 });
   const both = await inv(sql, `invoice_number in ('${number}', '${fixed}')`, app.ownerId);
-  expect(both.map((r) => `${r.status}:${r.total}`)).toEqual(['void:16418', 'issued:16028']);
+  expect(both.map((r) => `${r.status}:${r.total}`)).toEqual(['void:14813', 'issued:14468']);
   const ev = await sql`select code from app_events where entity_id in (select id from owner_invoices where invoice_number in (${number}, ${fixed})) order by id`;
   expect(ev.map((e) => e.code)).toEqual(['owner_invoice_issued', 'owner_invoice_voided', 'owner_invoice_issued']);
   // the owner: the void with its reason, the replacement
@@ -203,7 +205,7 @@ test('a registration fee invoice of an exact amount from the owner page; void an
   await expect(op.getByTestId('invoice-void')).toContainText(fixed);
   await check(op, 'owner void invoice');
   await op.goto(`/owner/invoices/${fixed}`, { waitUntil: 'networkidle' });
-  await expect(op.getByTestId('invoice-total')).toHaveText('$160.28');
+  await expect(op.getByTestId('invoice-total')).toHaveText('$144.68');
   // record a cash payment: paid, the receipt
   await page.goto(`/admin/invoices/${fixed}`, { waitUntil: 'networkidle' });
   await page.getByTestId(`offline-${fixed}`).click();
