@@ -54,6 +54,8 @@ import type { ChargeReasons } from '@/features/money/charge-reasons';
 import { ActivityLog } from '@/features/activity/ActivityLog';
 import { AccidentSummary } from '@/features/accident-card/AccidentCard';
 import type { AccidentCardData } from '@/features/accident-card/model';
+import { CountdownTable } from '@/features/deposit-review/Countdowns';
+import { stageWords, type Countdowns, type ReviewView } from '@/features/deposit-review/model';
 import { activityQuery, readParams, type ActivityPage } from '@/features/activity/model';
 
 // r31 "Simple": one booking page for Admin and staff (03-admin.md section 4, 05-va.md sections 2 to 5). The loader picks
@@ -181,6 +183,13 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
     (on('overview') || on('money')) && b.billable_days > 27 ? ops<PeriodRow[]>('booking_periods', { booking: b.booking_number }).catch(none([] as PeriodRow[])) : null,
     (on('overview') || on('review')) && renterForm?.may_edit ? ops<DuplicateRow[]>('renter_duplicates', { renter: renterForm.renter_id }).catch(none([] as DuplicateRow[])) : null]);
 
+  // r35 part RR (1010): the deposit review (Fleet, Finance and the Admin) and the Finance countdowns of this booking
+  const moneyStaff = can.admin || fn === 'finance';
+  const [review, countdown] = await Promise.all([
+    (can.admin || fn === 'fleet' || fn === 'finance') && notOwner && (on('overview') || on('money')) && ['returned', 'closed'].includes(b.status)
+      ? ops<ReviewView>('deposit_review', { booking: b.id }, true).catch(none(null)) : null,
+    moneyStaff && notOwner && (on('overview') || on('money')) && ['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status)
+      ? ops<Countdowns>('finance_countdowns', { booking: b.id }, true).catch(none(null)) : null]);
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   const insurerBilled = b.bill_to !== 'renter' && !!b.insurer_id;
   const extrasCount = b.change_requests.filter((c) => ['requested', 'proposed'].includes(String(c.status))).length + b.extensions.filter((x) => x.status === 'requested').length;
@@ -259,8 +268,15 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
       {(section === 'overview' || section === 'car') && ['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <HandoverPanel userId={user.id} aal={aal} base={base} canHandover={can.handover} canSign={can.sign}
         b={{ id: b.id, booking_number: b.booking_number, status: b.status, return_at: b.return_at, checked_in_at: (b.checked_in_at as string | null | undefined) ?? null, minutes_late: (b.minutes_late as number | null | undefined) ?? null }} />}
       {section === 'activity' && ['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <ReviewPanel booking={b.booking_number} userId={user.id} aal={aal} refresh={[base]} />}
+      {review?.exists && <Card title="Deposit review" testId="booking-deposit-review" aside={<Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}/deposit-review`} data-testid="deposit-review-link">Open the review</Link>}>
+        <p className="small">{stageWords(review.state)}. {review.state?.stage === 'done' ? 'Bill what is owed or release the deposit on Money.' : 'The deposit stays held until Fleet and Finance signed every item.'}</p>
+      </Card>}
+      {countdown && countdown.rows.length > 0 && <Card title="Countdowns" testId="booking-countdowns"><CountdownTable c={countdown} bookingBase={`${portal}/bookings`} /></Card>}
       {accident && <Card title="Accident card" testId="booking-accident-card" aside={<Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}/accident-card`} data-testid="accident-card-print">Print the card</Link>}>
         <AccidentSummary d={accident} />
+        {/* 1010: the renter's own policy number of the plan sold with the rental, when it was not captured at purchase */}
+        {accident.coverage.kind === 'plan' && (can.admin || viewer.role === 'staff') && <Act ops action="plan_policy_set" payload={P} label={accident.coverage.plan_policy_entered ? 'Change the plan policy number' : 'Enter the plan policy number'}
+          testId="plan-policy-set" fields={[{ name: 'policy_number', label: 'The renter\'s policy number from the plan provider', type: 'text', value: accident.coverage.plan_policy_entered ? accident.coverage.plan_policy_number ?? '' : '' }]} refresh={[base]} done="Saved: it is on the accident card." />}
       </Card>}
       {(section === 'overview' || section === 'documents') && ['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <AgreementPanel userId={user.id} aal={aal} base={base} b={{ id: b.id, status: b.status }} docBase={`${portal}/documents`} finance={can.agreementMoney} {...(can.admin ? {} : { openDocs: false })} />}
       {/* the renter's licence front, back and selfie, reviewed by Sales (0169); the coverage stays with customer service and Admin */}

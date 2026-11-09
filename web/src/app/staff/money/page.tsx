@@ -9,11 +9,14 @@ import { Reconciliation } from './Reconciliation';
 import { Deposits, Payments, Refunds } from './Lists';
 import { PartnerInvoices } from '@/features/partner-invoices/PartnerInvoices';
 import { ProfitExtras } from '@/features/profit-extras/ProfitExtras';
+import { CountdownTable } from '@/features/deposit-review/Countdowns';
+import type { Countdowns } from '@/features/deposit-review/model';
+import { PageHead } from '@/features/admin/ui';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Money', path: '/staff/money', noindex: true, description: 'Money to handle, payments by day, every payment, refunds, deposits and the processor payouts.' });
 
-const TABS = ['handle', 'day', 'payments', 'refunds', 'deposits', 'reconciliation', 'kickbacks', 'partners'] as const;
+const TABS = ['handle', 'countdowns', 'day', 'payments', 'refunds', 'deposits', 'reconciliation', 'kickbacks', 'partners'] as const;
 
 // Finance > Money (r27 consolidation: Admin's merged Payments for the finance role, the owner: "every Admin upgrade
 // reaches each staff role's portal"): To handle, By day (with the quick ranges), All payments, Refunds, Deposits and
@@ -26,6 +29,12 @@ export default async function Money({ searchParams }: { searchParams: Promise<Re
   if (tab === 'day') {
     const l = await door<Ledger>(ctx.user.id, 'ops_read', 'payments_ledger', { ...ledgerFilters(sp, torontoToday()), _va: ctx.fn }, ctx.aal);
     return <PaymentsView l={l} base="/staff/money?tab=day" bookingBase="/staff/bookings" />;
+  }
+  // r35 part RR (1010): the time left on each deposit hold, deposit return and plan payment
+  if (tab === 'countdowns') {
+    const c = await door<Countdowns>(ctx.user.id, 'ops_read', 'finance_countdowns', { sort: one('sort'), _va: ctx.fn }, ctx.aal);
+    return <><PageHead title="Countdowns" purpose="Deposit holds expiring, deposits owed back to renters and the next payment of weekly, biweekly and monthly plans. Red within 24 hours or late, amber within 48." />
+      <CountdownTable c={c} base="/staff/money?tab=countdowns" bookingBase="/staff/bookings" /></>;
   }
   if (tab === 'payments') return <Payments ctx={ctx} status={one('status')} />;
   if (tab === 'refunds') return <Refunds ctx={ctx} status={one('status')} />;

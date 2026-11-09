@@ -335,3 +335,7 @@ update program_settings set insurance_fee_hst = true;
 alter table program_settings alter column notify_merge_window_minutes set default 0;
 alter table program_settings alter column notify_repeat_window_minutes set default 0;
 update program_settings set notify_merge_window_minutes = 0, notify_repeat_window_minutes = 0;
+-- 1010: the two-step deposit review (on by default) holds every deposit of a returned booking until Fleet and Finance signed
+-- it; the older suites settle deposits without it. 99_r35r_deposit_review.sql switches it on, tests it and switches it off.
+alter table program_settings alter column deposit_review_required set default false;
+update program_settings set deposit_review_required = false;

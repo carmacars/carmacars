@@ -1,3 +1,4 @@
+import Link from '@/components/Link';
 import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
 import { redirect } from 'next/navigation';
