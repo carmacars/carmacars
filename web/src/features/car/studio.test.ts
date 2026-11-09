@@ -19,12 +19,16 @@ test('a real car stand-in: the model name lettered behind the car, a quiet repre
   const svg = standInSvg({ shape: 'sedan', paint: 'black', shot: 'lead', name: 'Malibu' })!;
   assert.match(svg, /viewBox="0 0 1800 1200"/);
   assert.match(svg, />MALIBU<\/text>/);
-  assert.match(svg, /stroke-opacity="\.13"/);
+  assert.match(svg, /fill="url\(#srm\)"/, 'metal letters on the showroom wall');
   assert.match(svg, /REPRESENTATIVE PHOTO/);
   assert.doesNotMatch(svg, /STAND-IN/);
+  // r35 S2: the showroom v2: the big lit logo sign, the slatted wall, the light strips; the sample cars carry no slate
+  assert.match(svg, /filter="url\(#srg\)"/);
+  assert.match(svg, /<clipPath id="srfc">/);
+  assert.doesNotMatch(carShot(camry, 'lead', 1800, 1200), /STAND-IN|font-size="\d+(\.\d+)?" fill="#fff" fill-opacity="\.55"/);
   // the same backdrop as the sample: identical up to the lettering and the slate
   const sample = carShot(camry, 'lead', 1800, 1200).replace(/\n\s+/g, '\n');
-  const strip = (s: string) => s.replace(/\b([ce])\d+(b|g|s|rim)\b/g, '$1#$2').replace(/>[A-Z0-9 &./-]+<\/text>/g, '><\/text>').replace(/<g font-family[^]*?<\/g>\n?/, '');
+  const strip = (s: string) => s.replace(/\b([ce])\d+(b|g|s|rim)\b/g, '$1#$2').replace(/>[A-Z0-9 &./-]+<\/text>/g, '><\/text>').replace(/<g font-family[^]*?<\/g>\n?/, '').replace(/textLength="[\d.]+"/g, '');
   assert.equal(strip(svg), strip(sample));
 });
 

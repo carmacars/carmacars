@@ -1,4 +1,5 @@
 import { signPayOf, signPayOpen } from '@/features/portal/sign-pay';
+import { Moment } from '@/features/motion/Moment';
 import Link from '@/components/Link';
 import { InfoTip } from '@/components/InfoTip';
 import { seoMeta } from '@/features/seo/meta';
@@ -120,6 +121,8 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
       {sp.declined && <div className="pt-ok" role="status" data-testid="declined-panel"><h2 className="d3">Change declined</h2><p>Your booking stays as it was. We let our team know.</p></div>}
       {sp.paid && b.status === 'on_rent' && b.added_live && !b.link_due && <div className="pt-ok" role="status" data-testid="paid-live-panel"><h2 className="d3">Paid, thank you</h2><p>Your card was charged {money(b.renter_due_at_booking_cents, { cents: true })} for your rental. Your signed agreement and receipt are below.</p></div>}
       {b.status === 'confirmed' && <PushInvite portal="renter" home={`/account/bookings/${b.booking_number}`} moment={{ key: 'booked', title: 'Get your pickup reminders as alerts', text: 'Pickup details, return reminders and messages from us on this device, the moment they happen.' }} />}
+      {/* r35 S2: paid: the confirmed moment (a check, confetti, the car keys) */}
+      {sp.paid && (b.status === 'confirmed' || b.status === 'on_rent') && <Moment kind="confirmed" />}
       {sp.paid && b.status === 'confirmed' && <div className="pt-ok" role="status" data-testid="paid-panel"><h2 className="d3">Booking confirmed</h2><p>Your card was charged {money(card?.amount_cents ?? b.renter_due_at_booking_cents, { cents: true })} and the car is reserved for you. Your signed agreement and receipt are below.</p></div>}
 
       {detailsMissing.length > 0 && <CompleteDetails number={b.booking_number} missing={detailsMissing} />}

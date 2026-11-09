@@ -2,6 +2,7 @@ import Link from '@/components/Link';
 import { notFound } from 'next/navigation';
 import { ConfCoverage, ConfEmail, ConfName, ConfRows } from '@/features/booking/Confirmation';
 import { pageMeta } from '@/features/seo/meta';
+import { Moment } from '@/features/motion/Moment';
 import { fill, getFacts, getSettings, getTokens } from '@/lib/site';
 import { rpc } from '@/lib/db/repo';
 
@@ -23,6 +24,7 @@ export default async function Sent({ params }: { params: Promise<{ number: strin
   const hasMatch = /^EQ-/i.test(number) ? !!(await rpc('enquiry_has_match', { p_reference: number }).catch(() => false)) : false;
   if (/^EQ-/i.test(number)) return (
     <div className="p-conf" data-page="confirmation">
+      <Moment kind="sent" />
       <section className="page-head on-dark conf-head">
         <div className="wrap">
           <p className="row"><span className="plate plate--dark plate--lg" data-testid="request-number">{number}</span><span className="small muted">Your enquiry number</span></p>
@@ -52,6 +54,7 @@ export default async function Sent({ params }: { params: Promise<{ number: strin
   );
   return (
     <div className="p-conf" data-page="confirmation">
+      <Moment kind="sent" />
       <section className="page-head on-dark conf-head">
         <div className="wrap">
           <p className="row"><span className="plate plate--dark plate--lg" data-testid="request-number">{number}</span><span className="small muted">Your request number</span></p>

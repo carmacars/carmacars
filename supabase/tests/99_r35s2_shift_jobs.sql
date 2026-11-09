@@ -172,6 +172,14 @@ select test.eq('ready: the reference file is the photo''s original', (select app
 select test.throws('an upload path that is not ours is refused', $$select test.s2_ops('s2_admin', 'marketing_scene_reference', '{"code": "highway", "path": "../etc/x.jpg"}'::jsonb)$$, 'not one of ours');
 select test.throws('the scenes list is checked', $$update program_settings set marketing_scenes = '[{"code": "Bad Code!", "label": "x", "made": "photo"}]'::jsonb where id = (select id from app.settings())$$, 'check');
 
+-- ================================================================ the toast with a pulse (1055)
+select test.eq('no unread alert: nothing', public.server_alert_latest(test.id('s2_fleet')) -> 'latest', 'null'::jsonb);
+insert into notifications (user_id, code, title, url, dedupe_key) select test.id('s2_fleet'), 'staff_booking_request_new', 'New booking request CC-S2', '/staff/bookings/CC-S2', 's2-pulse-1'
+ where exists (select 1 from notification_catalogue where code = 'staff_booking_request_new' and audience like 'staff%');
+select test.eq('a new request: the newest unread alert, as a request', (select l ->> 'kind' || '/' || (l ->> 'title') from (select public.server_alert_latest(test.id('s2_fleet')) -> 'latest' as l) x),
+  'request/New booking request CC-S2');
+select test.ok('the pulse read is the service role''s only', not has_function_privilege('authenticated', 'public.server_alert_latest(uuid)', 'execute'));
+
 update program_settings set field_jobs_auto_assign = (select aa from s2_prev), academy_gate = (select gate from s2_prev), field_jobs_auto = (select fa from s2_prev) where id = (select id from app.settings());
 -- this suite's shifts go (0880's suite starts from none)
 delete from field_shift_offers; select set_config('app.fx_no_slot', 'on', false); update field_jobs set shift_slot_id = null where shift_slot_id is not null; select set_config('app.fx_no_slot', 'off', false); delete from field_shift_plans; delete from field_shift_slots;

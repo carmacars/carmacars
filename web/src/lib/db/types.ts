@@ -28468,6 +28468,7 @@ export type Database = {
       server_ai_interviews_due_pre0585: { Args: { p_limit?: number }; Returns: Json };
       server_ai_video_purged: { Args: { p_ids: string[] }; Returns: number };
       server_alert_feed: { Args: { p_user: string; p_limit?: number; p_filter?: string }; Returns: Json };
+      server_alert_latest: { Args: { p_user: string }; Returns: Json };
       server_alert_prefs: { Args: { p_user: string }; Returns: Json };
       server_alert_read: { Args: { p_user: string; p_ids?: string[] }; Returns: number };
       server_alert_rules: { Args: { p_user: string }; Returns: Json };
