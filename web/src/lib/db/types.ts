@@ -11916,6 +11916,8 @@ export type Database = {
           decided_by: string | null;
           decided_at: string | null;
           decision_note: string | null;
+          current_dob: string | null;
+          requested_dob: string | null;
         };
         Insert: {
           id?: string;
@@ -11928,6 +11930,8 @@ export type Database = {
           decided_by?: string | null;
           decided_at?: string | null;
           decision_note?: string | null;
+          current_dob?: string | null;
+          requested_dob?: string | null;
         };
         Update: {
           id?: string;
@@ -11940,6 +11944,8 @@ export type Database = {
           decided_by?: string | null;
           decided_at?: string | null;
           decision_note?: string | null;
+          current_dob?: string | null;
+          requested_dob?: string | null;
         };
         Relationships: [];
       };
