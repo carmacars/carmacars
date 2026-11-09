@@ -69,7 +69,10 @@ export function stripeTerminal(secretKey: string, f: typeof fetch = (...a) => fe
     },
     async retrieveReader(id) { return toReader(await call('GET', `/terminal/readers/${encodeURIComponent(id)}`)); },
     async createReaderIntent(r) {
+      // a deposit hold on the reader asks for an extended authorization (up to 30 days, Stripe Terminal
+      // extended authorizations); a card or account that is not eligible keeps the standard hold
       return toIntent(await call('POST', '/payment_intents', { amount: r.amountCents, currency: 'cad', payment_method_types: ['card_present'], capture_method: r.capture,
+        ...(r.capture === 'manual' ? { 'payment_method_options[card_present][request_extended_authorization]': 'true' } : {}),
         description: r.description, metadata: r.metadata, expand }, r.idempotencyKey));
     },
     async processOnReader(readerId, intentId, key) {

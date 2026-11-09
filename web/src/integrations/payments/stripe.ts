@@ -56,7 +56,8 @@ export function toIntent(pi: Obj): Intent {
     lastErrorCode: bankReasonCode(str(obj(pi.last_payment_error)?.code), str(obj(pi.last_payment_error)?.decline_code), str(charge?.failure_code)),
     methodType: type === 'card' || type === 'acss_debit' ? type : type === 'card_present' || type === 'interac_present' ? 'card_present' : null,
     captureBefore: typeof obj(pmd?.card)?.capture_before === 'number' ? (obj(pmd?.card)!.capture_before as number) : null,
-    extendedAuth: str(obj(obj(pmd?.card)?.extended_authorization)?.status) === 'enabled',
+    extendedAuth: str(obj(obj(pmd?.card)?.extended_authorization)?.status) === 'enabled'
+      || str(obj(obj(pmd?.card_present)?.extended_authorization)?.status) === 'enabled',
     bank: acss || chargeAcss ? { name: str(acss?.bank_name) ?? str(chargeAcss?.bank_name), last4: str(acss?.last4) ?? str(chargeAcss?.last4) ?? '' } : null,
     mandateId: str(chargeAcss?.mandate) ?? str(obj(pi.mandate)?.id) ?? str(pi.mandate)
   };
