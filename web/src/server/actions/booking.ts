@@ -120,6 +120,8 @@ export async function submitBookingRequest(input: SubmitInput): Promise<SubmitRe
       else throw e;
     }
     if (!res.ok) return { ok: false, code: String(res.error ?? 'refused'), message: String(res.message ?? 'We could not send the request. Please try again or call us.') };
+    // 1202: the Protection Plan priced from a RentalCover quote for this renter and these dates (none: its table price)
+    if (Number(v.coverage) === 3) await (await import('@/server/rentalcover')).rentalcoverForRequest(String(res.booking_number)).catch(() => undefined);
     // 0096: how we reach the renter, chosen in the form (empty: the default)
     if (v.notifyChannel) await rpc('server_request_notify_channel', { p_booking_number: String(res.booking_number), p_channel: v.notifyChannel, p_user: user?.id }, { role: 'service_role' }).catch(() => undefined);
     // 0410: "How did you hear about us?" (empty: not answered)

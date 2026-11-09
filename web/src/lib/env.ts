@@ -46,6 +46,11 @@ const schema = z.object({
   PAYOUT_ENCRYPTION_KEY: z.string().min(32).optional(),
   /** The business phone line (migration 0085): quo sends texts through Quo's API with QUO_API_KEY (CarmaCars' own Quo
    *  account only); fake records them without sending (local work and tests). */
+  /** RentalCover (Cover Genius) partner API (migration 1202): the Protection Plan's quote for a renter. The key is a Worker
+   *  secret (GitHub secret RENTALCOVER_API_KEY); unset: no quote is asked and the plan keeps its table price. The base URL
+   *  defaults to RentalCover's staging API; set RENTALCOVER_API_BASE to the production URL RentalCover gives. */
+  RENTALCOVER_API_KEY: z.string().optional(),
+  RENTALCOVER_API_BASE: z.string().url().default('https://api-staging.rentalcover.com'),
   QUO_PROVIDER: z.enum(['quo', 'fake']).default('fake'),
   QUO_API_KEY: z.string().optional(),
   QUO_API_BASE: z.string().url().optional(),

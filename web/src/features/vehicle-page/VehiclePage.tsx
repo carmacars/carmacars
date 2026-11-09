@@ -128,6 +128,14 @@ export async function VehiclePage({ ctx, id, sp }: { ctx: PageCtx; id: string; s
               { name: 'bookings_enabled', label: 'Open for bookings', type: 'bool', value: v.bookings_enabled },
               { name: 'extension_offers', label: 'Renters extend themselves', type: 'bool', value: v.extension_offers ?? true, hint: 'At the extension discount, approved at once when the car is free. Off: renters of this car ask and staff approve, at the regular price.' }]} />
           </Card>
+          <Card title="Value for the Protection Plan" testId="vehicle-cover-value">
+            <p className="small muted">RentalCover covers up to {$((v.rentalcover as { cap_cents?: number } | null)?.cap_cents ?? 5000000)} an incident: the Protection Plan is offered only for a car worth less. Empty: the Black Book value of its buyout x 1.2, else unknown (not offered).</p>
+            <Kv rows={[['Value on file', v.replacement_value_cents ? $(v.replacement_value_cents) : 'None'],
+              ['Value used', (v.rentalcover as { value_cents?: number | null } | null)?.value_cents ? `${$((v.rentalcover as { value_cents: number }).value_cents)}${(v.rentalcover as { source?: string }).source === 'black_book' ? ' (Black Book x 1.2)' : ''}` : 'Unknown'],
+              ['Protection Plan', <span key="pp" data-testid="vehicle-cover-allowed">{(v.rentalcover as { allowed?: boolean } | null)?.allowed ? 'Offered' : 'Not offered: OPCF 27 or credit card coverage only'}</span>]]} />
+            <Act inline action="vehicle_cover_value" payload={{ vehicle_id: id }} label="Save" refresh={refresh} testId="vehicle-cover-value-save" fields={[
+              { name: 'replacement_value_cents', label: 'What the car is worth (replacement value)', type: 'money', value: (v.replacement_value_cents as number | null) ?? null }]} />
+          </Card>
           <Card title="For sale" testId="vehicle-for-sale">
             <p className="small muted">With the flag and a price, the car shows at the top of its /buy pages.</p>
             <Kv rows={[['For sale', v.for_sale ? `Yes, ${v.asking_price_cents ? `$${(Number(v.asking_price_cents) / 100).toLocaleString('en-CA', { minimumFractionDigits: 2 })}` : 'no price'}` : 'No']]} />

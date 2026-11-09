@@ -17,7 +17,7 @@
 --   An insurer-billed booking (bill_to not the renter) and an Owner Booking keep their pricing.
 set local check_function_bodies = off;
 
-create function pg_temp.copy_grants(p_new regprocedure, p_old regprocedure) returns void
+create or replace function pg_temp.copy_grants(p_new regprocedure, p_old regprocedure) returns void
 language plpgsql as $$
 declare g text;
 begin

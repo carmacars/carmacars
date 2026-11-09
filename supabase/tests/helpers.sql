@@ -339,3 +339,8 @@ update program_settings set notify_merge_window_minutes = 0, notify_repeat_windo
 -- it; the older suites settle deposits without it. 99_r35r_deposit_review.sql switches it on, tests it and switches it off.
 alter table program_settings alter column deposit_review_required set default false;
 update program_settings set deposit_review_required = false;
+-- 1202: the Protection Plan (RentalCover) is offered only on a car worth less than the cap, and a car with no value on file
+-- counts as over it; the older suites price the plan on cars made without a value. 99_r35h_rentalcover.sql switches the
+-- rule back on, tests it and switches it off.
+alter table program_settings alter column rentalcover_unknown_value_allowed set default true;
+update program_settings set rentalcover_unknown_value_allowed = true;

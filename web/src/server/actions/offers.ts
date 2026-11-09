@@ -10,6 +10,7 @@ import { siteUrl } from '@/lib/site';
 import { newPayToken, payTokenHash } from '@/server/pay-token';
 import { autoHoldStep } from '@/server/deposit-auto';
 import { settlePayreq } from '@/server/paylink';
+import { withRentalCover } from '@/server/rentalcover';
 import { isLapsedError, plainProcessorError } from '@/features/money/charge-reasons';
 
 // Offers and rentals made easy (migration 0129), through the staff door (ops calls): an offer sent without a request,
@@ -32,14 +33,20 @@ function refreshAll(paths: string[]) { for (const x of paths) revalidatePath(x);
 
 export type OffersRead = 'offer_form' | 'offer_preview' | 'find_customers' | 'booking_money' | 'booking_fees' | 'booking_periods' | 'booking_edit_form' | 'renter_edit_form' | 'coverage_switch_state';
 export async function offersRead<T = Record<string, unknown>>(what: OffersRead, p: Record<string, unknown> = {}): Promise<R<T>> {
-  try { const { user, aal, va } = await me(); return { ok: true, data: await door<T>(user.id, 'ops_read', what, withFn(p, va), aal) }; } catch (e) { return fail(e); }
+  try {
+    const { user, aal, va } = await me();
+    // 1202: the Protection Plan priced from a RentalCover quote for this renter and these dates (null: its current price)
+    const q = what === 'offer_preview' ? await withRentalCover(p, 'offer') : p;
+    return { ok: true, data: await door<T>(user.id, 'ops_read', what, withFn(q, va), aal) };
+  } catch (e) { return fail(e); }
 }
 
 export type OffersDo = 'offer_create' | 'offer_revise' | 'record_booking_payment' | 'confirm_offline_booking' | 'deposit_return_offline' | 'payreq_cancel' | 'booking_fees_change' | 'period_record_payment' | 'period_prepare' | 'booking_staff_edit' | 'booking_custom_fee' | 'insurer_fees_set' | 'coverage_switch';
 export async function offersDo<T = Record<string, unknown>>(action: OffersDo, p: Record<string, unknown> = {}, refresh: string[] = []): Promise<R<T>> {
   try {
     const { user, aal, va } = await me();
-    const data = await door<T>(user.id, 'ops_do', action, withFn(p, va), aal);
+    const q = action === 'offer_create' ? await withRentalCover(p, 'offer') : action === 'offer_revise' ? await withRentalCover(p, 'review') : p;
+    const data = await door<T>(user.id, 'ops_do', action, withFn(q, va), aal);
     // 0770: an offer made with Book it now: its agreement and the renter's Sign and pay link
     if (action === 'offer_create' && p.book_now) await (await import('@/server/book-now')).bookNowAgreement(data);
     refreshAll([...refresh, '/admin/bookings', '/admin/requests', '/staff/requests', '/admin/calendar']);

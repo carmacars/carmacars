@@ -32,7 +32,9 @@ import { TypedInput } from '@/components/DateInput';
 // (sticky on a desktop, a bottom sheet on a phone); the rate card folded away; and the choices drive the charges: a fee
 // set by hand is kept only while the choice that makes its line is chosen (model.ts liveFees, and the database again,
 // migration 0250), shown as "Set by hand" with Reset to automatic.
-type Car = { id: string; name: string; plate: string | null; car_code: string | null; daily_rate_cents: number | null; weekly_rate_cents: number | null; deposit_cents: number | null; free: boolean | null; class?: string | null; body_type?: string | null };
+type Car = { id: string; name: string; plate: string | null; car_code: string | null; daily_rate_cents: number | null; weekly_rate_cents: number | null; deposit_cents: number | null; free: boolean | null; class?: string | null; body_type?: string | null;
+  /** 1202: whether the Protection Plan (RentalCover) may be offered for the car, with the reason when not */
+  rentalcover?: { allowed: boolean; reason: string | null; value_cents: number | null } };
 type Form = { role: Role; offer_hours: number; min_notice_minutes: number; km_choices: number[]; text_enabled: boolean; cars: Car[]; may_edit_fees?: boolean; period_days?: number; cycle?: string };
 type Found = { id: string; legal_name: string; email: string | null; mobile: string | null; date_of_birth: string | null; is_blocked: boolean; bookings: number; card: { brand: string; last4: string } | null };
 type Line = { id: string; charge_type: string; description: string | null; amount_cents: number; hst_cents: number; hst_applies?: boolean; stage: string; charged_to_renter: boolean; booking_addon_id?: string | null; addon_code?: string | null };
@@ -432,8 +434,9 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
         {step(++n, 'How damage is covered', 'Ask the renter: their own insurance, their credit card, or our Protection Plan.', <>
           <div className="field"><span className="label-line"><label className="label" htmlFor="oc-coverage_option">Coverage</label><Info text={lineHelp('coverage_sold')} label="About coverage" /></span>
             <select className="select" id="oc-coverage_option" value={f.coverage_option} onChange={(e) => choose({ coverage_option: e.target.value })} data-testid="oc-coverage_option" aria-describedby="oc-coverage-h">
-              {COVERAGE.map(([v]) => <option key={v} value={v}>{COVER_SHORT[v] ?? v}</option>)}</select>
-            <p className="hint" id="oc-coverage-h">{COVER_HELP[f.coverage_option] ?? ''}</p></div>
+              {COVERAGE.filter(([v]) => v !== '3' || car?.rentalcover?.allowed !== false || f.coverage_option === '3').map(([v]) => <option key={v} value={v}>{COVER_SHORT[v] ?? v}</option>)}</select>
+            <p className="hint" id="oc-coverage-h">{COVER_HELP[f.coverage_option] ?? ''}</p>
+            {car?.rentalcover?.allowed === false && <p className="hint" data-testid="oc-plan-not-offered">{car.rentalcover.reason ?? 'The Protection Plan is not offered for this car.'}</p>}</div>
           {f.coverage_option === '3' && feeNote('coverage_sold', 'Protection Plan')}
           {f.coverage_option === '3' && editFees && more('oc-coverage-more', 'More options: another Protection Plan price', !!f.plan_price.trim(),
             <div className="ad-fields">{text('plan_price', `Protection Plan price for the trip, ${tw} ($)`, { inputMode: 'decimal', hint: 'Empty: the price from the Protection Plan table' })}</div>)}

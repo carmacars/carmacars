@@ -59,7 +59,9 @@ export async function adminAct<T = Record<string, unknown>>(action: string, p: R
       const { generatedFile } = await import('@/server/files');
       if (!(await generatedFile('owner_statement', p.id, admin.id))) throw new Error('The statement PDF could not be made.');
     }
-    const data = await door<T>(admin.id, 'admin_do', action, p);
+    // 1202: an offer sent or saved from the review screen: the Protection Plan priced from a RentalCover quote
+    const q = action === 'send_offer' || action === 'booking_save' ? await (await import('@/server/rentalcover')).withRentalCover(p, 'review') : p;
+    const data = await door<T>(admin.id, 'admin_do', action, q);
     // 0770: an offer sent with Book it now: its agreement and the renter's Sign and pay link
     if (action === 'send_offer' && p.book_now) await (await import('@/server/book-now')).bookNowAgreement(data);
     rebuild([...(PUBLIC[action] ?? []), ...refresh]);
@@ -83,7 +85,8 @@ export async function adminSaveRow<T = Record<string, unknown>>(table: string, v
 export async function adminPreview<T = Record<string, unknown>>(what: 'booking_preview' | 'calendar_preview' | 'bulk_rate_preview' | 'cancellation_preview' | 'quote_vehicles' | 'calendar' | 'toll_profile' | 'change_preview' | 'change_vehicles' | 'driver_links' | 'vehicle_similarity' | 'addons_for_car', p: Record<string, unknown>): Promise<R<T>> {
   try {
     const admin = await assertAdmin();
-    return { ok: true, data: await adminRead<T>(admin.id, what, p) };
+    const q = what === 'booking_preview' ? await (await import('@/server/rentalcover')).withRentalCover(p, 'review') : p;
+    return { ok: true, data: await adminRead<T>(admin.id, what, q) };
   } catch (e) { return fail(e); }
 }
 
