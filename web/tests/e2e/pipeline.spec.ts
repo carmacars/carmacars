@@ -1,6 +1,8 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { createHmac, randomBytes, randomUUID, scryptSync } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { acceptCookies, db, noOverflow, watch, storeFixturePdf } from './helpers';
 
 // Migration 0032 end to end, with the fake providers of the local stack (fake VIN decoder, fake copy
@@ -122,6 +124,15 @@ async function waitFor<T>(fn: () => Promise<T>, ok: (v: T) => boolean, ms = 45_0
   while (!ok(v) && Date.now() < end) { await new Promise((r) => setTimeout(r, 750)); v = await fn(); }
   return v;
 }
+/** The listing worker's door, as the Worker's cron calls it (the local server has no cron for it). */
+function workerToken() {
+  let key = 'local-only-link-signing-key-not-for-production';
+  try {
+    const env = readFileSync(path.join(process.cwd(), '.env.local'), 'utf8');
+    key = (/^LINK_SIGNING_KEY=(.*)$/m.exec(env)?.[1] ?? /^LOCAL_AUTH_SECRET=(.*)$/m.exec(env)?.[1] ?? key).replace(/\s+#.*$/, '').trim();
+  } catch { /* the default local key */ }
+  return createHmac('sha256', key).update('carmacars-listing-worker-v1').digest('hex');
+}
 const onlyDesktop = () => test.skip(test.info().project.name !== 'desktop-1440', 'one run: the test opens its own phone and desktop pages');
 
 test('listing: an owner lists a car on a phone; the pipeline drafts and edits; an Admin approves at 1440; the car is live', async ({ browser }) => {
@@ -148,7 +159,14 @@ test('listing: an owner lists a car on a phone; the pipeline drafts and edits; a
     await expect(phone.getByRole('status').filter({ hasText: 'Submitted' })).toBeVisible({ timeout: 20_000 });
     // the worker ran right after the submit (fake decoder, fake model, fake photo editor)
     const [intake] = await sql`select id from listing_intakes where vehicle_id = ${car}`;
-    const state = await waitFor(async () => (await sql`select state from listing_intakes where id = ${intake!.id}`)[0]!.state as string, (s) => s === 'needs_review');
+    // r35 (1050): each photo's sizes are a job of their own, more than the one run after the submit takes; on Cloudflare the
+    // cron runs the rest, here the test calls the worker's door as the cron would
+    const token = workerToken();
+    const state = await waitFor(async () => {
+      const s = (await sql`select state from listing_intakes where id = ${intake!.id}`)[0]!.state as string;
+      if (s === 'processing_photos') await phone.request.post('/api/jobs/listing', { headers: { authorization: `Bearer ${token}` } }).catch(() => undefined);
+      return s;
+    }, (s) => s === 'needs_review', 90_000);
     expect(state).toBe('needs_review');
     const [d] = await sql`select model, prompt_version, headline, needs_rewrite from listing_drafts where intake_id = ${intake!.id}`;
     // the draft step stores a plain copy without the model (0061): the search job writes the real copy
@@ -251,6 +269,8 @@ test('money: the guided Deposit settlement holds back an amount with its reason 
     await sql`insert into payments (id, booking_id, renter_id, purpose, kind, method, amount_cents, status, processed_at) values (${hold}, ${b.booking}, ${b.renterId}, 'deposit', 'charge', 'card', 100000, 'succeeded', now() - interval '10 days')`;
     await sql`insert into deposits (booking_id, amount_cents, method, status, hold_payment_id, taken_at, captured_cents) values (${b.booking}, 100000, 'charged', 'captured', ${hold}, now() - interval '10 days', 100000)`;
     await sql`insert into booking_statements (booking_id, statement_number, kind) values (${b.booking}, ${`${b.number}-S1`}, 'check_in')`;
+    // r35 (1010): nothing of a deposit is released before Fleet and Finance finish its review; here they have
+    await sql`update deposit_reviews set fleet_done_at = now(), finance_done_at = now() where booking_id = ${b.booking}`;
     const page = await ctx(browser, false);
     await signIn(page, admin.email, '/admin', `/admin/bookings/${b.number}?tab=money`);
     await page.goto(`/admin/bookings/${b.number}?tab=money`);
