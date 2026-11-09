@@ -91,7 +91,7 @@ async function makeTokens(fleet: CarRow[]): Promise<Tokens> {
     adminClaim: amt('admin_fee_claim'), adminOther: amt('admin_fee_other'),
     overMin: overs.length ? money(Math.min(...overs), { cents: true }) : '', overMax: overs.length ? money(Math.max(...overs), { cents: true }) : '',
     grace: plural(late?.grace_minutes ?? 0, 'minute'), graceShort: `${late?.grace_minutes ?? 0} minute`, lateHr: lateHourly(f, amt('late_return_fee')),
-    extDisc: pct(f.extension_discount_bps ?? 500), extShortDisc: pct(f.extension_short_discount_bps ?? 1000),
+    extDisc: pct(f.extension_discount_bps ?? 0), extShortDisc: pct(f.extension_short_discount_bps ?? 1000),
     fuelPct: pct(fee('fuel')?.percent_bps ?? 0), fuelFee: amt('fuel_service_fee'), evPer: amt('recharging'),
     clean: amt('cleaning'), cleanHeavy: amt('cleaning_heavy'), pet: amt('pet_cleaning'), smoke: amt('smoking'), keyFee: amt('lost_key_fee'),
     tollFee: amt('toll_admin_fee'), ticketFee: amt('ticket_admin_fee'), declined: amt('declined_payment'),

@@ -89,7 +89,7 @@ select test.eq('1 hour at $850: $148.75 less 10% (rental before HST)',
   (app.preview_extension(test.id('booking:EX-850'), (select return_at + interval '1 hour' from bookings where booking_number = 'EX-850')) ->> 'rental_difference_cents')::bigint, 13387::bigint);
 select test.eq('3 hours at $850: 3 x $148.75 less 10%',
   (app.preview_extension(test.id('booking:EX-850'), (select return_at + interval '3 hours' from bookings where booking_number = 'EX-850')) ->> 'rental_difference_cents')::bigint, 40162::bigint);
--- 1066: whole days at the same rate as the booked period ($320 for 3 days), the offer's 5% off it
+-- 1066: whole days at the same rate as the booked period ($320 for 3 days); this file sets the offer's discount to 5% (the default is 0%)
 select test.eq('1 day: the booked rate less 5%', (app.preview_extension(test.id('booking:EX-850'), (select return_at + interval '1 day' from bookings where booking_number = 'EX-850')) ->> 'rental_difference_cents')::bigint, round(round(32000::numeric / 3 * 1) * 0.95)::bigint);
 select test.eq('3 days: 3 x the booked rate less 5%', (app.preview_extension(test.id('booking:EX-850'), (select return_at + interval '3 days' from bookings where booking_number = 'EX-850')) ->> 'rental_difference_cents')::bigint, round(round(32000::numeric / 3 * 3) * 0.95)::bigint);
 select test.eq('1 week: 7 x the booked rate less 5%', (app.preview_extension(test.id('booking:EX-850'), (select return_at + interval '7 days' from bookings where booking_number = 'EX-850')) ->> 'rental_difference_cents')::bigint, round(round(32000::numeric / 3 * 7) * 0.95)::bigint);

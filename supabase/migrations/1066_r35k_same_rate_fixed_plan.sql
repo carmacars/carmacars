@@ -125,8 +125,8 @@ declare
   v_fees bigint;
   v_hst bigint;
   v_regular bigint;
-  -- an extension offer's discount of a day or more (0480's setting), never the saving of a repriced booking
-  v_bps integer := case when coalesce((v ->> 'offer')::boolean, false) and v ->> 'pricing' = 'days' then least(coalesce((v ->> 'discount_bps')::integer, 0), (app.settings()).extension_discount_bps) else 0 end;
+  -- an extension offer's discount of a day or more: Program settings extension_discount_bps, 0 since 1066 (an extension never lowers the rate)
+  v_bps integer := case when coalesce((v ->> 'offer')::boolean, false) and v ->> 'pricing' = 'days' then (app.settings()).extension_discount_bps else 0 end;
   v_reg_hst bigint;
 begin
   select * into b from bookings where id = p_booking;
@@ -157,6 +157,14 @@ begin
     'discount_bps', v_bps, 'same_rate', true);
 end $$;
 select pg_temp.copy_grants('app.preview_extension(uuid, timestamptz, timestamptz)'::regprocedure, 'app.preview_extension_pre1066(uuid, timestamptz, timestamptz)'::regprocedure);
+
+-- the owner's rule: an extension never lowers the booked rate. The offer's discount of a day or more stays a Program setting, now 0%
+alter table program_settings alter column extension_discount_bps set default 0;
+update program_settings set extension_discount_bps = 0 where id = (app.settings()).id;
+comment on column program_settings.extension_discount_bps is 'Extension of a day or more: this share off the booked rate for the added days (1066: default 0%, an extension costs the same a day as the booking).';
+-- the public FAQ no longer promises a discount on a day or more
+update site_content_blocks set data = replace(data::text, 'A day or more is {{extDisc}} off the regular rate, and a few hours are {{extShortDisc}} off the late fee.', 'A day or more costs the same a day as your booking, with per-trip fees for the added days at the same rate, and a few hours are {{extShortDisc}} off the late fee.')::jsonb, updated_at = now()
+ where kind = 'faq' and data::text like '%{{extDisc}} off the regular rate%';
 
 -- ================================================================ 2. a fixed amount per plan payment
 alter table bookings add column if not exists pay_fixed_cents bigint check (pay_fixed_cents is null or pay_fixed_cents > 0);

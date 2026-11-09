@@ -5,14 +5,14 @@ Branch `r35-k` (with `origin/r35` merged: rr, s2 with the CARMA plates of 1056, 
 `supabase/seed/1079_gen_guides.mjs`). Wrapped, never edited: `app.admin_apply_booking_edit`, `app.booking_staff_edit`,
 `app.preview_extension`, `app.booking_pay_every_set`, `public.server_hiring_apply`, `app.hiring_app_row`, `app.hire_preview`,
 `app.hire_onboard`, `app.staff_welcome`, `app.door`; patched: `app.booking_pay_schedule`. Tests: `supabase/tests/99_r35k_rates_location.sql`;
-`supabase/tests/99_extend_offers.sql`, `08_booking_app.sql` and `09_operations.sql` now price whole extra days at the booked rate (with the offer's 5% off it); `53_games_timing_booking.sql` reads the rate-card body `app.preview_extension_pre1066`.
+`supabase/tests/99_extend_offers.sql`, `08_booking_app.sql` and `09_operations.sql` now price whole extra days at the booked rate (99_extend_offers sets the discount to 5% to test the setting); `53_games_timing_booking.sql` reads the rate-card body `app.preview_extension_pre1066`.
 
 ## A. The same rate (coordinator item 10)
 
 | Path | What changed |
 | --- | --- |
 | Edit on a booking (`booking_staff_edit`) | A new length with no rental typed: the rental is the booked rental times new days over old days (a week at $525.45 made two weeks is $1,050.90, not the rate card again), and each per-trip fee (`app.booking_per_trip_fees`: a flat booking fee per rental, never delivery or pickup) scales by the same ratio as a line override. The edit's reason says "Same rate as the booked period (7 to 14 days)". The form previews it |
-| Extensions (`preview_extension`, used by the renter's request, the offers and staff approval) | Whole days: the booked rental a day (`app.booking_rental_per_day`) times the added days, the per-trip fees for the added days at the booked rate, the per-day fees as before, delivery never again. An extension offer (0480) still takes its discount off that, with the booked rate as the regular price. `same_rate: true` shows "Same rate as the booked period" to the renter. Hours stay at the hourly price |
+| Extensions (`preview_extension`, used by the renter's request, the offers and staff approval) | Whole days: the booked rental a day (`app.booking_rental_per_day`) times the added days, the per-trip fees for the added days at the booked rate, the per-day fees as before, delivery never again. An extension never lowers the rate: the offers' discount of a day or more (0480's `extension_discount_bps`) is now 0% by default (the setting and the current value), and the public FAQ no longer promises one; when an Admin sets it, it comes off the booked rate. `same_rate: true` shows "Same rate as the booked period" to the renter. Hours stay at the hourly price |
 | Plan rolling | The next period of a long rental moves the return through the same extension path, so it keeps the rate |
 | Pending payment (`admin_apply_booking_edit`) | The same scaling when the length changes |
 | Late returns | Unchanged: the permanent rule of 1063 (whole days at the full effective daily cost, then the hourly fee) |

@@ -24,9 +24,11 @@ select test.mk_line('CC-R35M1', 'delivery', 5000, false);
 update booking_line_items set payment_id = null where booking_id = test.id('booking:CC-R35M1');
 select test.eq('the per-trip fees that scale: the Protection Plan, never delivery', (select string_agg(charge_type || '=' || amount_cents, ',') from app.booking_per_trip_fees(test.id('booking:CC-R35M1'))), 'coverage_sold=7000');
 select test.eq('the booked rental per day', round(app.booking_rental_per_day(test.id('booking:CC-R35M1'))), 7506::numeric);
-select test.ok('an extension of 7 days: the rental at the booked rate (the offer''s 5% off it) and the Protection Plan scaled',
-  (select (v ->> 'same_rate')::boolean and (v ->> 'regular_rental_cents')::bigint = 52545
-          and (v ->> 'rental_difference_cents')::bigint = case when (v ->> 'discount_bps')::int > 0 then round(52545 * (10000 - (v ->> 'discount_bps')::int) / 10000.0)::bigint else 52545 end and (v ->> 'fees_difference_cents')::bigint = 7000
+select test.eq('an extension never lowers the rate: the offer''s discount is a Program setting, 0% by default',
+  (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'extension_discount_bps') || '/' || (app.settings()).extension_discount_bps, '0/0');
+select test.ok('an extension of 7 days: 7 x the booked day rate (a week at $525.45 stays $525.45), nothing off, and the Protection Plan scaled',
+  (select (v ->> 'same_rate')::boolean and (v ->> 'regular_rental_cents')::bigint = 52545 and (v ->> 'discount_bps')::int = 0
+          and (v ->> 'rental_difference_cents')::bigint = 52545 and (v ->> 'fees_difference_cents')::bigint = 7000
      from app.preview_extension(test.id('booking:CC-R35M1'), (select return_at + interval '7 days' from bookings where booking_number = 'CC-R35M1')) v));
 select test.ok('delivery is never added again on an extension',
   not exists (select 1 from jsonb_array_elements(app.preview_extension(test.id('booking:CC-R35M1'), (select return_at + interval '7 days' from bookings where booking_number = 'CC-R35M1')) -> 'lines') l
