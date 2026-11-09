@@ -59,7 +59,8 @@ export const STAFF_HUBS: Hub[] = [
   { key: 'money', label: 'Money', tabs: [{ href: '/staff/money', label: 'To handle', fns: 'finance' }, { href: '/staff/money?tab=day', label: 'By day', fns: 'finance' },
     { href: '/staff/money?tab=payments', label: 'All payments', fns: 'finance' }, { href: '/staff/money?tab=refunds', label: 'Refunds', fns: 'finance' },
     { href: '/staff/money?tab=deposits', label: 'Deposits', fns: 'finance' }, { href: '/staff/money?tab=reconciliation', label: 'Reconciliation', fns: 'finance' },
-    { href: '/staff/money?tab=partners', label: 'Partner invoices', fns: 'finance' }, { href: '/staff/money?tab=kickbacks', label: 'Kickbacks and repairs', fns: 'finance' }] },
+    { href: '/staff/money?tab=partners', label: 'Partner invoices', fns: 'finance' }, { href: '/staff/money?tab=kickbacks', label: 'Kickbacks and repairs', fns: 'finance' },
+    { href: '/staff/field-spending', label: 'Field spending', fns: 'finance' }] },
   { key: 'owner-money', label: 'Owner money', tabs: [{ href: '/staff/owner-money?tab=invoices', label: 'Invoices', fns: 'finance' }, { href: '/staff/owner-money?tab=statements', label: 'Statements', fns: 'finance' }] },
   { key: 'renters', label: 'Renters', tabs: [{ href: '/staff/messages', label: 'Messages', fns: 'cs' }, { href: '/staff/review-requests', label: 'Review requests', fns: 'cs' }, { href: '/staff/game-leads', label: 'Leads', fns: 'cs sales' }] },
   { key: 'owners', label: 'Owners', tabs: [{ href: '/staff/owners', label: 'Owners', fns: 'cs fleet' }, { href: '/staff/leads', label: 'Owner and buyer leads', fns: 'cs sales' }, { href: '/staff/owner-pipeline', label: 'Owner pipeline', fns: 'cs' },
@@ -156,8 +157,8 @@ export const STAFF_ACTIONS: Array<HubTab & { on: string }> = [
   { href: '/staff/offers/new', label: 'Send an offer', fns: 'cs sales', on: '/staff/requests' },
   { href: '/staff/quotes/new', label: 'New quote', fns: OFFICE, on: '/staff/requests' },
   { href: '/staff/bookings/new', label: 'Add a rental', fns: OFFICE, on: '/staff/bookings' },
-  { href: '/staff/field/rentals/new', label: 'Add a rental', fns: 'field', on: '/staff/field' },
-  { href: '/staff/field/report', label: 'Report a problem', fns: 'field', on: '/staff/field' }
+  // r35 part X: a problem is reported from the Add button on Today; adding a rental is on the Sales tab
+  { href: '/staff/field/rentals/new', label: 'Add a rental', fns: 'field', on: '/staff/field/sales' }
 ];
 
 const holds = (fns: string | undefined, held: readonly string[]) => !fns || fns.split(' ').some((f) => held.includes(f));

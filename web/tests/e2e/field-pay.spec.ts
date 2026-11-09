@@ -65,31 +65,28 @@ test('field pay: clock in and out on the phone, Fleet sees the hours, an Admin r
   await sql`insert into field_shifts (staff_id, started_at, ended_at, source, note, created_by)
             values (${bob.id}, app.local_midnight(${prev}::date + 2) + interval '9 hours', app.local_midnight(${prev}::date + 2) + interval '17 hours 30 minutes', 'manual', 'Deliveries', ${admin.id})`;
 
-  // 1. Ann clocks in and out on her phone
+  // 1. Ann clocks in and out on her phone (r35 part X: on Today, with her shift; the hours are on My pay)
   const fp = await ctx(browser, true);
   await signIn(fp, ann.email, '/staff/field');
-  await fp.goto('/staff/field/hours', { waitUntil: 'networkidle' });
+  await fp.goto('/staff/field', { waitUntil: 'networkidle' });
   await fp.context().grantPermissions(['geolocation']); await fp.context().setGeolocation({ latitude: 43.7, longitude: -79.4 }); // the clock asks for the phone's location once, at the tap (0881)
   await expect(fp.getByTestId('clock-in')).toBeVisible();
-  await check(fp, 'my hours, not clocked in');
-  await fp.locator('#clk-note').fill('Starting at the lot');
+  await check(fp, 'today, not clocked in');
   await fp.getByTestId('clock-in').click();
   await expect(fp.getByTestId('clock-out')).toBeVisible({ timeout: 30_000 });
   await expect(fp.getByTestId('clock-elapsed')).toBeVisible();
-  const [open] = await sql`select note from field_shifts where staff_id = ${ann.id} and ended_at is null`;
-  expect(open!.note).toBe('Starting at the lot');
-  await check(fp, 'my hours, clocked in');
+  expect((await sql`select count(*)::int n from field_shifts where staff_id = ${ann.id} and ended_at is null`)[0]!.n).toBe(1);
+  await check(fp, 'today, clocked in');
   await sql`update field_shifts set started_at = now() - interval '2 hours' where staff_id = ${ann.id} and ended_at is null`;
   await fp.reload({ waitUntil: 'networkidle' });
-  await fp.locator('#clk-note').fill('All done');
   await fp.getByTestId('clock-out').click();
   await expect(fp.getByTestId('clock-in')).toBeVisible({ timeout: 30_000 });
+  await fp.goto('/staff/field/pay', { waitUntil: 'networkidle' });
   await expect(fp.getByTestId('recent-shifts')).toContainText('2 h');
   await expect(fp.getByTestId('hours-so-far')).toBeVisible();
-  const [done] = await sql`select note, round(extract(epoch from ended_at - started_at) / 3600) as h from field_shifts where staff_id = ${ann.id}`;
-  expect(done!.note).toBe('Starting at the lot / All done');
+  const [done] = await sql`select round(extract(epoch from ended_at - started_at) / 3600) as h from field_shifts where staff_id = ${ann.id}`;
   expect(Number(done!.h)).toBe(2);
-  await check(fp, 'my hours, after clocking out');
+  await check(fp, 'my pay, after clocking out');
   await fp.context().close();
 
   // 2. Fleet sees the period's shifts and may fix them
@@ -148,10 +145,10 @@ test('field pay: clock in and out on the phone, Fleet sees the hours, an Admin r
   // 4. Bob sees his statement
   const bp = await ctx(browser, true);
   await signIn(bp, bob.email, '/staff/field');
-  await bp.goto('/staff/field/hours', { waitUntil: 'networkidle' });
+  await bp.goto('/staff/field/pay', { waitUntil: 'networkidle' });
   await expect(bp.getByTestId('pay-statements')).toContainText('$153.00');
   await expect(bp.getByTestId(`statement-${line!.id}`)).toBeVisible();
-  await check(bp, 'my hours with a statement');
+  await check(bp, 'my pay with a statement');
   await bp.context().close();
   await sql.end();
 });

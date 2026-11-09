@@ -8,6 +8,7 @@ import type { CalVehicle } from '@/features/va/carboard';
 import { requestNow } from '@/features/va/lanes';
 import { carPhotos } from '@/server/car-photos';
 import Link from 'next/link';
+import { PrepPanel, WorkListsPanel, type PrepList, type WorkLists } from '@/features/field-portal/FleetPanels';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Field jobs', path: '/staff/fleet', noindex: true, description: 'Field job scheduling and assignment.' });
@@ -26,10 +27,14 @@ export default async function Fleet() {
     // 0910: trips still open after their return time
     door<{ rows: unknown[] }>(user.id, 'ops_read', 'past_trips', {}, aal).then((x) => x.rows.length).catch(() => 0)]);
   const photos = await carPhotos([...b.unscheduled, ...b.jobs]);
+  // r35 part X (0930): each person's list of the day with its completion, and the onboarding prep
+  const [wl, prep] = await Promise.all([door<WorkLists>(user.id, 'ops_read', 'field_work_lists', {}, aal).catch(() => null), door<PrepList>(user.id, 'ops_read', 'field_prep', {}, aal).catch(() => null)]);
   return (
     <>
       {past > 0 && <p className="alert alert--warn" role="status" data-testid="past-trips-banner"><span>{past} {past === 1 ? 'trip is' : 'trips are'} still open after the return time. <Link prefetch={false} className="link" href="/staff/past-trips">Close past trips</Link></span></p>}
+      {wl && <WorkListsPanel w={wl} />}
       <FieldJobsBoard b={b} cal={cal} now={now} photos={photos} base="/staff" />
+      {prep && <PrepPanel p={prep} />}
     </>
   );
 }

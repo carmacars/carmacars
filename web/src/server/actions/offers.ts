@@ -75,7 +75,7 @@ export async function startCardRequest(p: { booking: string; kind: 'charge' | 'h
     if (p.channel === 'text' || p.channel === 'email') sent = await door<{ ok: boolean; to?: string; reason?: string }>(user.id, 'ops_do', 'payreq_send', withFn({ id: q.id, link: url }, va), aal);
     refreshAll([`/admin/bookings/${q.booking_number}`, `/staff/bookings/${q.booking_number}`]);
     // the device: the page opens on this screen, by its path (the same origin as the staff portal)
-    const backQ = back && /^\/(field|admin|va)\/[\w/-]*$/.test(back) ? `?back=${encodeURIComponent(back)}` : '';
+    const backQ = back && /^\/(field|admin|va|staff)\/[\w/-]*$/.test(back) ? `?back=${encodeURIComponent(back)}` : '';
     return { ok: true, data: { id: q.id, url: p.channel === 'device' ? `/pay/${token}${backQ}` : url, kind: q.kind, amount_cents: q.amount_cents, sent } };
   } catch (e) { return fail(e); }
 }

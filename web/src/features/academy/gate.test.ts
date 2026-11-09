@@ -9,7 +9,7 @@ import { currentStep, gateWords, opensWhileHeld, profileHref, stepWords, type Ga
 // and the content of releases 33 and 34 (supabase/seed/academy/r34.mjs): a quiz per section, on every role that uses it,
 // written from guide chapters that exist, the migration block up to date.
 test('a held person opens only the academy, the guide, the profile and Welcome', () => {
-  for (const p of ['/staff/academy', '/staff/academy/cs/trip-rules', '/staff/guide', '/staff/profile', '/staff/field/profile', '/staff/welcome', '/staff/no-access']) assert.ok(opensWhileHeld(p), p);
+  for (const p of ['/staff/academy', '/staff/academy/cs/trip-rules', '/staff/guide', '/staff/profile', '/staff/field/profile', '/staff/welcome', '/staff/no-access', '/staff/field/training', '/staff/field/pay']) assert.ok(opensWhileHeld(p), p);
   for (const p of ['/staff', '/staff/tasks', '/staff/bookings/CC-1', '/staff/renters', '/staff/welcomeback', '/staff/field']) assert.ok(!opensWhileHeld(p), p);
   assert.match(readFileSync(new URL('../../server/door.ts', import.meta.url), 'utf8'), /academy_locked && !ACADEMY_OPEN\.test\(next\)\) redirect\('\/staff\/welcome'\)/);
 });
