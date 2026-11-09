@@ -218,6 +218,8 @@ test('money: an Admin issues an approved refund through the payments module, onc
     const page = await ctx(browser, false);
     await signIn(page, admin.email, '/admin', '/admin/money?tab=refunds');
     await page.goto('/admin/money?tab=refunds');
+    // a call pop-up from another spec's phone test can cover the dialog's button (shared inbox): keep it out of the way
+    await page.addStyleTag({ content: '[data-testid="caller-popup-region"]{display:none!important}' });
     const row = page.getByTestId('refunds').locator('tr', { hasText: b.number });
     await row.getByTestId('refund-issue').click();
     await check(page, 'refund confirm 1440');
