@@ -91,9 +91,10 @@ export function InvestorModelView({ m, tab, reinvest }: { m: InvestorModel; tab:
           </section>
           <section className="pu-panel" aria-labelledby="im-ex"><h2 className="pu-title" id="im-ex">Option 1 examples, {RAISE.option1.lowPct} to {RAISE.option1.highPct}% a year</h2>
             <div className="im-scroll" tabIndex={0} role="region" aria-label="Examples">
+              {/* whole dollars, as the terms above and the deck say them ($4,167 a month, not $4,166.67) */}
               <table className="im-table" data-testid="how-examples">
                 <thead><tr><th scope="col">Amount invested</th><th scope="col" className="num">Monthly at {RAISE.option1.lowPct}%</th><th scope="col" className="num">Monthly at {RAISE.option1.highPct}%</th><th scope="col" className="num">Yearly at {RAISE.option1.lowPct}%</th><th scope="col" className="num">Yearly at {RAISE.option1.highPct}%</th></tr></thead>
-                <tbody>{EXAMPLE_AMOUNTS.map((a) => { const x = optionOneRow(a); return <tr key={a}><td>{money(a * 100)}</td><td className="num">{money(Math.round(x.monthlyLow * 100))}</td><td className="num">{money(Math.round(x.monthlyHigh * 100))}</td><td className="num">{money(Math.round(x.yearlyLow * 100))}</td><td className="num">{money(Math.round(x.yearlyHigh * 100))}</td></tr>; })}</tbody>
+                <tbody>{EXAMPLE_AMOUNTS.map((a) => { const x = optionOneRow(a); return <tr key={a}><td>{money(a * 100)}</td><td className="num">{money(Math.round(x.monthlyLow) * 100)}</td><td className="num">{money(Math.round(x.monthlyHigh) * 100)}</td><td className="num">{money(Math.round(x.yearlyLow * 100))}</td><td className="num">{money(Math.round(x.yearlyHigh * 100))}</td></tr>; })}</tbody>
               </table>
             </div>
             <p className="small muted">Simple interest, paid monthly. For information only and not an offer by itself: {FOOTNOTES.offer}. Like any investment, it carries risk.</p>
