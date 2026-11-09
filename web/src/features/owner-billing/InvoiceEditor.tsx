@@ -16,9 +16,15 @@ interface Row { kind?: string; description: string; quantity: string; unit: stri
 const toRow = (l: DraftLine): Row => ({ kind: l.kind, description: l.description, quantity: String(l.quantity ?? 1), unit: dollars(l.unit_amount_cents), hst: l.hst, note: l.note ?? '' });
 const KEEP = new Set(['prepaid_credit', 'late_fee']);
 
-export function InvoiceEditor({ draft, cars, applicationId, hstBps, paths = [], kinds = true, stay = false }: {
+// 0873 (app.owner_line_no_hst): the Insurance Fee, its months, the prepaid credit and the Registration Fee carry no HST, and
+// so do typed lines about the Insurance Fee, registration or plates, unless Program settings charge it (insuranceHst)
+const NO_HST_KINDS = new Set(['insurance_fee', 'first_month_insurance', 'last_month_insurance', 'prepaid_credit', 'registration_fee']);
+export const lineNoHst = (kind: string | undefined, description: string) =>
+  NO_HST_KINDS.has(kind ?? '') || (['custom', 'adjustment'].includes(kind ?? 'custom') && /insurance fee|registration|plates|taxes and plates/i.test(description));
+
+export function InvoiceEditor({ draft, cars, applicationId, hstBps, paths = [], kinds = true, stay = false, insuranceHst = false }: {
   draft?: { id: string; vehicle_id: string; kind: string; title: string | null; notes: string | null; due_on: string | null; lines: DraftLine[] };
-  cars: Array<{ id: string; name: string }>; applicationId?: string; hstBps: number; paths?: string[]; kinds?: boolean; stay?: boolean;
+  cars: Array<{ id: string; name: string }>; applicationId?: string; hstBps: number; paths?: string[]; kinds?: boolean; stay?: boolean; insuranceHst?: boolean;
 }) {
   const router = useRouter();
   const a = useAct<{ id: string; invoice_number: string; status: string; total_cents: number }>();
@@ -33,7 +39,8 @@ export function InvoiceEditor({ draft, cars, applicationId, hstBps, paths = [], 
   const set = (i: number, k: keyof Row, v: string | boolean) => setRows(rows.map((r, j) => (j === i ? { ...r, [k]: v } : r)));
   const amount = (r: Row) => { const u = toCents(r.unit); const q = Number(r.quantity); return Number.isFinite(u) && Number.isFinite(q) ? Math.round(q * u) : 0; };
   const sub = rows.reduce((s, r) => s + amount(r), 0);
-  const hst = rows.reduce((s, r) => s + (r.hst ? hstOf(amount(r), hstBps) : 0), 0);
+  const untaxed = (r: Row) => !insuranceHst && lineNoHst(r.kind, r.description);
+  const hst = rows.reduce((s, r) => s + (r.hst && !untaxed(r) ? hstOf(amount(r), hstBps) : 0), 0);
   const kept = (draft?.lines ?? []).filter((l) => KEEP.has(l.kind ?? ''));
   const [emailOwner, setEmailOwner] = useState(true);
   const save = (issue: boolean) => {
@@ -82,7 +89,7 @@ export function InvoiceEditor({ draft, cars, applicationId, hstBps, paths = [], 
             <div className={`field ob-line__unit${err(`line-${i}-unit`) ? ' has-error' : ''}`}><label className="label" htmlFor={`${uid}-u${i}`}>Unit amount ($)</label>
               <input className="input" id={`${uid}-u${i}`} inputMode="decimal" value={r.unit} onChange={(e) => set(i, 'unit', e.target.value)} placeholder="0.00" data-testid="line-unit" aria-describedby={`${uid}-u${i}-e`} />
               <p className="error" role="alert" id={`${uid}-u${i}-e`}>{err(`line-${i}-unit`) ?? ''}</p></div>
-            <label className="check ob-line__hst" htmlFor={`${uid}-h${i}`}><input type="checkbox" id={`${uid}-h${i}`} checked={r.hst} onChange={(e) => set(i, 'hst', e.target.checked)} data-testid="line-hst" /><span>HST</span></label>
+            <label className="check ob-line__hst" htmlFor={`${uid}-h${i}`}><input type="checkbox" id={`${uid}-h${i}`} checked={r.hst && !untaxed(r)} disabled={untaxed(r)} onChange={(e) => set(i, 'hst', e.target.checked)} data-testid="line-hst" /><span>{untaxed(r) ? 'No HST on this fee' : 'HST'}</span></label>
             <span className="ob-line__amt" aria-label="Line amount">{money(amount(r), { cents: true })}</span>
             <div className="field ob-line__note"><label className="label" htmlFor={`${uid}-n${i}`}>Note (optional)</label>
               <input className="input" id={`${uid}-n${i}`} value={r.note} onChange={(e) => set(i, 'note', e.target.value)} /></div>

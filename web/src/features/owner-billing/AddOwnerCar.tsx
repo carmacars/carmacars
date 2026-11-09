@@ -20,7 +20,7 @@ import { TypedInput } from '@/components/DateInput';
 // email to review, correct and sign (always in the owner portal, 0720). Sales (0340, `sales`): a new owner only, no terms or invoices (an
 // Admin's), always sourced by them and always an application for an Admin.
 type Owner = { id: string; legal_name: string; email: string | null; phone: string | null; cars?: number };
-type Facts = { admin: boolean; today: string; hst_bps: number; trackers_available: boolean; owner: (Owner & { has_account: boolean }) | null;
+type Facts = { admin: boolean; today: string; hst_bps: number; insurance_fee_hst?: boolean; trackers_available: boolean; owner: (Owner & { has_account: boolean }) | null;
   terms: { insurance_fee_cents: number; tracker_fee_cents: number; revenue_share_bps: number; install_fee_cents: number; first_last_cents: number; sources: Record<string, string> } | null;
   standard: { insurance_fee_cents: number; tracker_fee_cents: number; revenue_share_bps: number; install_fee_cents: number } | null };
 const DOCS: Array<[string, string, string]> = [['ownership_permit', 'Ownership permit', 'Both sides. A photo or a PDF.'], ['owner_insurance_proof', 'Insurance slip', 'The current pink slip.'],
@@ -216,9 +216,9 @@ export function AddOwnerCar({ initial, base, sales = false, fleet = null }: { in
                   onChange={(e) => { const val = e.target.value; const nt = { ...terms, [k]: val }; if (k === 'ins' && terms.fl === dollars(toCents(terms.ins!) * 2)) nt.fl = dollars(toCents(val) * 2); setTerms(nt); if (k === 'fl' || nt.fl !== terms.fl) setFl({ ...fl, amount: nt.fl! }); }} /></div>))}
           </div>
           {owner && facts.terms && <p className="small muted">Filled in from {Object.values(facts.terms.sources).includes('owner') ? 'this owner\'s terms' : Object.values(facts.terms.sources).includes('other_car') ? 'this owner\'s other car' : 'the standard grid'}.</p>}
-          <InvoiceChoice uid={`${uid}-fl`} label="First and last month" v={fl} hstBps={facts.hst_bps} testId="addcar-inv-first-last" allowNone set={(x) => { setFl(x); if (x.action !== 'none') setTerms({ ...terms, fl: x.amount }); }} />
-          <InvoiceChoice uid={`${uid}-rg`} label="Registration fee" v={reg} hstBps={facts.hst_bps} testId="addcar-inv-registration" set={setReg} />
-          {fl.on && <p className="small muted">First and last total with HST: {money(toCents(fl.amount) + Math.round(toCents(fl.amount) * facts.hst_bps / 10000), { cents: true })}.</p>}
+          <InvoiceChoice uid={`${uid}-fl`} label="First and last month" v={fl} hstBps={facts.hst_bps} testId="addcar-inv-first-last" allowNone noHst={!facts.insurance_fee_hst} set={(x) => { setFl(x); if (x.action !== 'none') setTerms({ ...terms, fl: x.amount }); }} />
+          <InvoiceChoice uid={`${uid}-rg`} label="Registration fee" v={reg} hstBps={facts.hst_bps} testId="addcar-inv-registration" noHst={!facts.insurance_fee_hst} set={setReg} />
+          {fl.on && facts.insurance_fee_hst && <p className="small muted">First and last total with HST: {money(toCents(fl.amount) + Math.round(toCents(fl.amount) * facts.hst_bps / 10000), { cents: true })}.</p>}
         </>)}
       </section>}
 

@@ -16,7 +16,7 @@ export default async function NewInvoice({ searchParams }: { searchParams: Promi
   const [{ user }, sp] = await Promise.all([page('/admin/invoices/new'), searchParams]);
   const owner = /^[0-9a-f-]{36}$/.test(sp.owner ?? '') ? sp.owner! : null;
   const app = /^[0-9a-f-]{36}$/.test(sp.application ?? '') ? sp.application! : null;
-  const facts = await door<{ hst_bps: number }>(user.id, 'ops_read', 'owner_add_car_facts', {});
+  const facts = await door<{ hst_bps: number; insurance_fee_hst?: boolean }>(user.id, 'ops_read', 'owner_add_car_facts', {});
   if (!owner && !app) {
     const owners = await adminOwners(user);
     return (
@@ -33,7 +33,7 @@ export default async function NewInvoice({ searchParams }: { searchParams: Promi
     <>
       <PageHead kicker={<Link prefetch={false} className="link" href={back}>Back</Link>} title="New invoice" />
       <div style={{ maxWidth: '60rem' }}>
-        {data.cars.length ? <InvoiceEditor cars={data.cars} applicationId={app ?? undefined} hstBps={facts.hst_bps} paths={[back.split('?')[0]!]} />
+        {data.cars.length ? <InvoiceEditor cars={data.cars} applicationId={app ?? undefined} hstBps={facts.hst_bps} insuranceHst={!!facts.insurance_fee_hst} paths={[back.split('?')[0]!]} />
           : <p className="alert alert--warn"><span>This owner has no car in the program to invoice.</span></p>}
       </div>
     </>

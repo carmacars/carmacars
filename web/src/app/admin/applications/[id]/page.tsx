@@ -57,7 +57,7 @@ export default async function Application({ params, searchParams }: { params: Pr
     return <>{head}<InvoiceList data={list} owner={false} newHref={`/admin/invoices/new?application=${id}`} testId="app-invoice-list" /></>;
   }
   const [plan, facts] = a.status === 'approved' || a.status === 'declined' ? [null, null]
-    : await Promise.all([door<Plan>(user.id, 'ops_read', 'application_approve_plan', { id }), door<{ hst_bps: number }>(user.id, 'ops_read', 'owner_add_car_facts', {})]);
+    : await Promise.all([door<Plan>(user.id, 'ops_read', 'application_approve_plan', { id }), door<{ hst_bps: number; insurance_fee_hst?: boolean }>(user.id, 'ops_read', 'owner_add_car_facts', {})]);
   return (
     <>
       {head}
@@ -87,7 +87,7 @@ export default async function Application({ params, searchParams }: { params: Pr
         </div>
         <div className="stack">
           <Card title="Decide" testId="app-decide"><ApplicationDecision id={a.id} status={a.status} items={v.items} owner={o.legal_name} isTest={o.is_test}
-            approve={plan && facts ? <ApproveStep plan={plan} owner={o.legal_name} isTest={o.is_test} hstBps={facts.hst_bps} /> : undefined}
+            approve={plan && facts ? <ApproveStep plan={plan} owner={o.legal_name} isTest={o.is_test} hstBps={facts.hst_bps} insuranceHst={!!facts.insurance_fee_hst} /> : undefined}
             setup={a.entered_by_name ? <SetupEmail applicationId={a.id} sentAt={a.setup_emailed_at} /> : undefined} /></Card>
           <Card title="Checks" testId="app-checks"><ApplicationChecks id={a.id} checks={a.checks} disabled={a.status === 'approved' || a.status === 'declined'} /></Card>
           <Card title="Notes" testId="app-notes"><ApplicationNotes id={a.id} notes={v.notes} /></Card>

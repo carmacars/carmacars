@@ -37,7 +37,7 @@ export default async function AdminInvoice({ params, searchParams }: { params: P
   const { user } = await page(`/admin/invoices/${number}`);
   const i = await door<Detail>(user.id, 'ops_read', 'owner_invoice_admin', { id: number.toUpperCase() }).catch(() => null);
   if (!i) notFound();
-  const facts = await door<{ hst_bps: number }>(user.id, 'ops_read', 'owner_add_car_facts', {});
+  const facts = await door<{ hst_bps: number; insurance_fee_hst?: boolean }>(user.id, 'ops_read', 'owner_add_car_facts', {});
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   const paths = [`/admin/owners/${i.owner_id}`, '/admin/owner-money'];
   return (
@@ -54,7 +54,7 @@ export default async function AdminInvoice({ params, searchParams }: { params: P
           {i.can.edit ? (
             <Card title="Draft: edit the lines" testId="invoice-draft">
               <p className="small muted">The owner sees nothing until it is issued. A draft is never debited.</p>
-              <InvoiceEditor draft={{ id: i.id, vehicle_id: i.vehicle_id, kind: i.kind, title: i.title, notes: i.notes, due_on: i.due_on, lines: i.lines }} cars={[]} hstBps={facts.hst_bps} paths={paths} stay />
+              <InvoiceEditor draft={{ id: i.id, vehicle_id: i.vehicle_id, kind: i.kind, title: i.title, notes: i.notes, due_on: i.due_on, lines: i.lines }} cars={[]} hstBps={facts.hst_bps} insuranceHst={!!facts.insurance_fee_hst} paths={paths} stay />
             </Card>
           ) : (
             <Card title="Lines" testId="invoice-lines-view">

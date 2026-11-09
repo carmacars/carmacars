@@ -43,9 +43,12 @@ function initial(c: PlanCar, today: string, proposed?: { terms?: Record<string, 
   };
 }
 
-export function InvoiceChoice({ uid, label, v, set, hstBps, children, testId, allowNone = false }: { uid: string; label: string; v: Inv; set: (x: Inv) => void; hstBps: number; children?: React.ReactNode; testId: string; allowNone?: boolean }) {
+/** noHst: a fee that carries no HST (0873: the Insurance Fee, its first and last month and the Registration Fee, unless
+ *  Program settings charge it): the total shown is the amount, as the invoice will be. */
+export function InvoiceChoice({ uid, label, v, set, hstBps, children, testId, allowNone = false, noHst = false }: { uid: string; label: string; v: Inv; set: (x: Inv) => void; hstBps: number; children?: React.ReactNode; testId: string; allowNone?: boolean; noHst?: boolean }) {
   const net = toCents(v.amount);
-  const total = Number.isFinite(net) ? net + (v.hst ? hstOf(net, hstBps) : 0) : 0;
+  const taxed = v.hst && !noHst;
+  const total = Number.isFinite(net) ? net + (taxed ? hstOf(net, hstBps) : 0) : 0;
   return (
     <fieldset className="stack ob-choice" data-testid={testId}>
       <legend className="vh">{label}</legend>
@@ -53,9 +56,9 @@ export function InvoiceChoice({ uid, label, v, set, hstBps, children, testId, al
       {v.on && (<>
         {children}
         {v.action !== 'none' && <div className="field-row">
-          <div className="field"><label className="label" htmlFor={`${uid}-amt`}>Amount before HST ($)</label>
+          <div className="field"><label className="label" htmlFor={`${uid}-amt`}>{noHst ? 'Amount ($)' : 'Amount before HST ($)'}</label>
             <input className="input" id={`${uid}-amt`} inputMode="decimal" value={v.amount} onChange={(e) => set({ ...v, amount: e.target.value })} data-testid={`${testId}-amount`} /></div>
-          <p className="small ob-choice__total">With HST: <b data-testid={`${testId}-total`}>{money(total, { cents: true })}</b></p>
+          <p className="small ob-choice__total">{taxed ? 'With HST' : 'Total, no HST'}: <b data-testid={`${testId}-total`}>{money(total, { cents: true })}</b></p>
         </div>}
         <div className="row ob-actions" role="radiogroup" aria-label={`${label}: what to do`} style={{ flexWrap: 'wrap', gap: 'var(--s-3)' }}>
           {([['send', 'Send now'], ['deduct', 'Deduct from payouts'], ['draft', 'Save as draft'], ['paid', 'Already paid'], ...(allowNone ? [['none', 'No invoice']] : [])] as Array<[Action, string]>).map(([k, l]) => (
@@ -78,7 +81,7 @@ export function InvoiceChoice({ uid, label, v, set, hstBps, children, testId, al
   );
 }
 
-export function ApproveStep(props: { plan: Plan; owner: string; isTest: boolean; hstBps: number }) {
+export function ApproveStep(props: { plan: Plan; owner: string; isTest: boolean; hstBps: number; insuranceHst?: boolean }) {
   return props.plan.fleet_supplier ? <FleetApprove plan={props.plan} owner={props.owner} /> : <StandardApprove {...props} />;
 }
 
@@ -110,7 +113,7 @@ function FleetApprove({ plan, owner }: { plan: Plan; owner: string }) {
   );
 }
 
-function StandardApprove({ plan, owner, isTest, hstBps }: { plan: Plan; owner: string; isTest: boolean; hstBps: number }) {
+function StandardApprove({ plan, owner, isTest, hstBps, insuranceHst = false }: { plan: Plan; owner: string; isTest: boolean; hstBps: number; insuranceHst?: boolean }) {
   const router = useRouter();
   const a = useAct<{ invoices: Array<Record<string, unknown>>; note: string | null }>();
   const uid = `as-${useId().replace(/[^\w-]/g, '')}`;
@@ -195,10 +198,10 @@ function StandardApprove({ plan, owner, isTest, hstBps }: { plan: Plan; owner: s
               {c.invoices.length > 0 && <p className="small">Already made for this car: {c.invoices.map((x) => `${x.invoice_number} (${money(x.total_cents, { cents: true })}, ${x.status})`).join(', ')}.</p>}
               {s.mode !== 'turo_only' && (<>
                 <h4 className="label">First invoices</h4>
-                <InvoiceChoice uid={`${id}-fl`} label="First and last month" v={s.first_last} hstBps={hstBps} testId="approve-inv-first-last" allowNone set={(x) => upd(c.vehicle_id, { first_last: x, fl: x.action === 'none' ? s.fl : x.amount })} />
+                <InvoiceChoice uid={`${id}-fl`} label="First and last month" v={s.first_last} hstBps={hstBps} testId="approve-inv-first-last" allowNone noHst={!insuranceHst} set={(x) => upd(c.vehicle_id, { first_last: x, fl: x.action === 'none' ? s.fl : x.amount })} />
                 {!s.first_last.on && <p className="small muted" data-testid="approve-first-last-later">First and last month: nothing is invoiced until you decide (Admin &gt; Today asks for it).</p>}
-                <InvoiceChoice uid={`${id}-rg`} label="Registration fee" v={s.registration} hstBps={hstBps} testId="approve-inv-registration" set={(x) => upd(c.vehicle_id, { registration: x })}>
-                  <label className="check" htmlFor={`${id}-rg-hst`}><input type="checkbox" id={`${id}-rg-hst`} checked={s.registration.hst} onChange={(e) => upd(c.vehicle_id, { registration: { ...s.registration, hst: e.target.checked } })} /><span>Add HST</span></label>
+                <InvoiceChoice uid={`${id}-rg`} label="Registration fee" v={s.registration} hstBps={hstBps} testId="approve-inv-registration" noHst={!insuranceHst} set={(x) => upd(c.vehicle_id, { registration: x })}>
+                  {insuranceHst && <label className="check" htmlFor={`${id}-rg-hst`}><input type="checkbox" id={`${id}-rg-hst`} checked={s.registration.hst} onChange={(e) => upd(c.vehicle_id, { registration: { ...s.registration, hst: e.target.checked } })} /><span>Add HST</span></label>}
                 </InvoiceChoice>
                 {plan.trackers_available
                   ? <InvoiceChoice uid={`${id}-tr`} label="Tracker install (its own invoice)" v={s.tracker} hstBps={hstBps} testId="approve-inv-tracker" set={(x) => upd(c.vehicle_id, { tracker: x })} />

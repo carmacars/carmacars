@@ -1,7 +1,7 @@
-# Release 35: no HST on the owner Insurance Fee or the Registration Fee (0873, 0874)
+# Release 35: no HST on the owner Insurance Fee or the Registration Fee (0873, 0874, 1105)
 
-Migrations `supabase/migrations/0873_r35_no_hst_on_insurance.sql` and `0874_r35_last_month_one_and_half.sql`.
-SCHEMA_MARKER 0874.
+Migrations `supabase/migrations/0873_r35_no_hst_on_insurance.sql` and `0874_r35_last_month_one_and_half.sql`, then `1105_r35n_first_last_no_hst.sql`.
+SCHEMA_MARKER 0874 (1105 for the last item).
 
 The owner, November 8: "don't charge HST on insurance payments", "nobody has paid HST" and "All the registration cost
 per car were also not HST applicable either". The amounts the owner gave on November 7 (for example $284 a car a
@@ -23,6 +23,10 @@ without HST; the invoices made from them had added HST and been marked paid at t
   plus a separate "Insurance Fee, half of ..." line, the half month moves into the last month's line (1.5 months), the
   prepaid last month grows by it and the hand-recorded payments move with it: each invoice stays paid in full and the
   owner's total paid is unchanged.
+- 1105 (`supabase/migrations/1105_r35n_first_last_no_hst.sql`, SCHEMA_MARKER 1105): Admin > Today, "Record the first and
+  last month paid" takes HST out of the amount typed only when the Insurance Fee carries it; with the setting off the
+  invoice is the amount the owner paid ($678 paid was recorded as a $600 invoice). The Approve step and Add a car show the
+  first and last month and the Registration Fee without HST too (they showed $819.82 for an invoice of $725.50).
 - The test suites run with the setting on (they assert the older totals); `99_r35_no_hst_on_insurance.sql` checks the
   default and the hand-typed lines.
 
