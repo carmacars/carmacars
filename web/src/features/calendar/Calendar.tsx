@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { DAYS, MONTHS, addDays, diffDays, dow, longDate, shortDate } from '@/lib/dates';
 import { dayState, partText, type Block } from './availability';
 
@@ -25,7 +25,6 @@ export interface CalendarProps {
 }
 
 const ym = (s: string, n: number) => { let y = +s.slice(0, 4); let m = +s.slice(5, 7) - 1 + n; y += Math.floor(m / 12); m = ((m % 12) + 12) % 12; return `${y}-${String(m + 1).padStart(2, '0')}`; };
-let uidSeq = 0;
 
 export function Calendar({ months = 1, min, today, blocks = [], from = '', to = '', maxDays, legend = true, max = '', single = false, bare = false, start = '', onChange }: CalendarProps) {
   const sel = { from, to };
@@ -38,7 +37,8 @@ export function Calendar({ months = 1, min, today, blocks = [], from = '', to = 
   });
   const [seenFrom, setSeenFrom] = useState(from);
   if (from !== seenFrom) { setSeenFrom(from); if (from) { setFocus(from); setView(from.slice(0, 7)); } }
-  const [uid] = useState(() => `cal${++uidSeq}`);
+  // useId, not a module counter: the server and the browser count differently, so a counter's ids broke hydration
+  const uid = `cal${useId().replace(/[^\w-]/g, '')}`;
   const root = useRef<HTMLDivElement>(null);
   const wantFocus = useRef(false);
 
