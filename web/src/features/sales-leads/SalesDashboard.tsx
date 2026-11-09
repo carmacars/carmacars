@@ -36,9 +36,9 @@ export function SalesTeam({ d, base, sp, calls }: { d: Dashboard; base: string; 
       {team.length ? <div className="sl-table-wrap"><table className="table" data-testid="sales-leaderboard">
         <caption className="vh">Sales leaderboard</caption>
         <thead><tr><th scope="col">#</th><th scope="col">Person</th><th scope="col" className="num">Claimed</th><th scope="col" className="num">Won</th><th scope="col" className="num">Close rate</th>
-          <th scope="col" className="num">Contacted</th><th scope="col" className="num">First contact</th><th scope="col" className="num">Ran out</th><th scope="col" className="num">Holding now</th>{calls && <th scope="col" className="num">Call minutes, this month</th>}</tr></thead>
+          <th scope="col" className="num">Contacted</th><th scope="col" className="num">First contact</th><th scope="col" className="num">Ran out</th><th scope="col" className="num">Holding now (of their cap)</th>{calls && <th scope="col" className="num">Call minutes, this month</th>}</tr></thead>
         <tbody>{team.map((r) => <tr key={r.id}><td>{r.rank}</td><td>{r.name}</td><td className="num">{r.claimed}</td><td className="num">{r.won}</td><td className="num">{pct(r.close_rate, r.claimed)}</td>
-          <td className="num">{pct(r.contacted_pct, r.claimed)}</td><td className="num">{minutes(r.first_contact_minutes)}</td><td className="num">{r.expired}</td><td className="num">{r.active}</td>{calls && <td className="num" data-testid={`sales-call-minutes-${r.id}`}>{(mins.get(r.id) ?? 0).toFixed(1)}</td>}</tr>)}</tbody>
+          <td className="num">{pct(r.contacted_pct, r.claimed)}</td><td className="num">{minutes(r.first_contact_minutes)}</td><td className="num">{r.expired}</td><td className="num" data-testid={`sales-holding-${r.id}`}>{r.active}{r.cap ? ` of ${r.cap.cap}` : ''}</td>{calls && <td className="num" data-testid={`sales-call-minutes-${r.id}`}>{(mins.get(r.id) ?? 0).toFixed(1)}</td>}</tr>)}</tbody>
       </table></div> : <p className="small muted">Nobody in Sales has claimed a lead yet.</p>}
     </section>
   );

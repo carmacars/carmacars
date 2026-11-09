@@ -3,6 +3,7 @@ import './sales-leads.css';
 import { ListFilters } from '@/features/list-filters/ListFilters';
 import { Filters, MoreFilters, $ } from '@/features/admin/ui';
 import { LeadActions, NextLead } from './LeadActions';
+import { ClaimPace } from './ClaimPace';
 import { age, leadHref, stateOf, TYPE_LABEL, STATUS_CHIPS, type LeadList as Data, type LeadRow, type LeadType } from './model';
 
 /** The lead cards (phone-friendly: one column at 375, two or three on wider screens). */
@@ -40,7 +41,7 @@ export function LeadList({ d, base, listBase, sp, type }: { d: Data; base: strin
   return (
     <div className="stack" data-testid="sales-leads">
       <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--s-2)' }}>
-        <p className="small" data-testid="lead-count">{d.count} lead{d.count === 1 ? '' : 's'} · you hold {d.mine_active} of {d.max_active}</p>
+        <p className="small" data-testid="lead-count">{d.count} lead{d.count === 1 ? '' : 's'} · <ClaimPace held={d.mine_active} max={d.max_active} nextAt={d.next_claim_at ?? null} cooldown={d.claim_cooldown_minutes ?? 0} paced={d.paced ?? !d.admin} winsToNext={d.cap?.wins_to_next ?? null} /></p>
         <NextLead base={base} type={type} />
       </div>
       <ListFilters id={`sales-leads${type ? `-${type}` : ''}`} base={listBase} sp={sp} search={{ placeholder: 'Name, phone, email or words' }}
