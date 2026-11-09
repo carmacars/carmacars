@@ -62,6 +62,17 @@ test('tiers: 1-2 days at the base rate, 3-6 at the multi-day rate, 7+ at the lon
   assert.deepEqual(rentalCharge(6, gls), { tier: 'multi_day', cents: 7 * 90000 });
 });
 
+test('1200: a longer stay never costs less (the 3+ day tier or a low monthly rate cannot undercut a shorter stay)', () => {
+  const dip = { daily: 10000, multi: 6000, weekly: 60000, monthly: 200000 };
+  assert.deepEqual(rentalCharge(2, dip), { tier: 'daily', cents: 20000 });
+  assert.deepEqual(rentalCharge(3, dip), { tier: 'multi_day', cents: 20000 });
+  assert.deepEqual(rentalCharge(4, dip), { tier: 'multi_day', cents: 24000 });
+  assert.deepEqual(rentalCharge(7, { daily: 10000, weekly: 60000, monthly: 50000 }), { tier: 'weekly', cents: 60000 });
+  for (const c of [dip, { daily: 10000, weekly: 60000, monthly: 50000 }, rateCard(SHEET_RENTALS[0]!)]) {
+    for (let n = 2; n <= 30; n++) assert.ok(rentalCharge(n, c).cents >= rentalCharge(n - 1, c).cents, `${n} days`);
+  }
+});
+
 test('the money: the partner is owed 80% of the listed rental; CarmaCars receives the 20% kickback', () => {
   const r = SHEET_RENTALS.find((x) => x.name === 'Mercedes C43 AMG Blue')!;
   const s = partnerSplit(3, r);
