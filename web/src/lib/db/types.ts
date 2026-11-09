@@ -10140,6 +10140,90 @@ export type Database = {
         };
         Relationships: [];
       };
+      lead_claim_log: {
+        Row: {
+          id: number;
+          lead_id: string;
+          user_id: string;
+          action: string;
+          by_user: string | null;
+          at: string;
+          note: string | null;
+        };
+        Insert: {
+          id?: number;
+          lead_id: string;
+          user_id: string;
+          action: string;
+          by_user?: string | null;
+          at?: string;
+          note?: string | null;
+        };
+        Update: {
+          id?: number;
+          lead_id?: string;
+          user_id?: string;
+          action?: string;
+          by_user?: string | null;
+          at?: string;
+          note?: string | null;
+        };
+        Relationships: [];
+      };
+      lead_claims: {
+        Row: {
+          lead_id: string;
+          claimed_by: string;
+          claimed_at: string;
+          extended_at: string | null;
+          expires_at: string;
+          cap_at: string;
+        };
+        Insert: {
+          lead_id: string;
+          claimed_by: string;
+          claimed_at?: string;
+          extended_at?: string | null;
+          expires_at: string;
+          cap_at: string;
+        };
+        Update: {
+          lead_id?: string;
+          claimed_by?: string;
+          claimed_at?: string;
+          extended_at?: string | null;
+          expires_at?: string;
+          cap_at?: string;
+        };
+        Relationships: [];
+      };
+      lead_contacts: {
+        Row: {
+          id: string;
+          lead_id: string;
+          by_user: string;
+          channel: string;
+          note: string | null;
+          at: string;
+        };
+        Insert: {
+          id?: string;
+          lead_id: string;
+          by_user: string;
+          channel: string;
+          note?: string | null;
+          at?: string;
+        };
+        Update: {
+          id?: string;
+          lead_id?: string;
+          by_user?: string;
+          channel?: string;
+          note?: string | null;
+          at?: string;
+        };
+        Relationships: [];
+      };
       leads: {
         Row: {
           id: string;
@@ -10183,6 +10267,14 @@ export type Database = {
           replied_at: string | null;
           referred_by_owner_id: string | null;
           sourced_by: string | null;
+          sales_outcome: string | null;
+          sales_outcome_reason: string | null;
+          sales_outcome_at: string | null;
+          sales_outcome_by: string | null;
+          first_contact_at: string | null;
+          handled_at: string | null;
+          handled_by: string | null;
+          won_booking_id: string | null;
         };
         Insert: {
           id?: string;
@@ -10226,6 +10318,14 @@ export type Database = {
           replied_at?: string | null;
           referred_by_owner_id?: string | null;
           sourced_by?: string | null;
+          sales_outcome?: string | null;
+          sales_outcome_reason?: string | null;
+          sales_outcome_at?: string | null;
+          sales_outcome_by?: string | null;
+          first_contact_at?: string | null;
+          handled_at?: string | null;
+          handled_by?: string | null;
+          won_booking_id?: string | null;
         };
         Update: {
           id?: string;
@@ -10269,6 +10369,14 @@ export type Database = {
           replied_at?: string | null;
           referred_by_owner_id?: string | null;
           sourced_by?: string | null;
+          sales_outcome?: string | null;
+          sales_outcome_reason?: string | null;
+          sales_outcome_at?: string | null;
+          sales_outcome_by?: string | null;
+          first_contact_at?: string | null;
+          handled_at?: string | null;
+          handled_by?: string | null;
+          won_booking_id?: string | null;
         };
         Relationships: [];
       };
@@ -19098,6 +19206,69 @@ export type Database = {
         };
         Relationships: [];
       };
+      renter_merges: {
+        Row: {
+          id: string;
+          keep_id: string;
+          merged_id: string;
+          auto: boolean;
+          strength: string | null;
+          reason: string | null;
+          by_user: string | null;
+          moved: Json;
+          holders: string[];
+          removed: Json;
+          keep_before: Json;
+          merged_before: Json;
+          users_before: Json;
+          alias_emails: string[];
+          created_at: string;
+          undone_at: string | null;
+          undone_by: string | null;
+          undo_reason: string | null;
+        };
+        Insert: {
+          id?: string;
+          keep_id: string;
+          merged_id: string;
+          auto?: boolean;
+          strength?: string | null;
+          reason?: string | null;
+          by_user?: string | null;
+          moved?: Json;
+          holders?: string[];
+          removed?: Json;
+          keep_before: Json;
+          merged_before: Json;
+          users_before?: Json;
+          alias_emails?: string[];
+          created_at?: string;
+          undone_at?: string | null;
+          undone_by?: string | null;
+          undo_reason?: string | null;
+        };
+        Update: {
+          id?: string;
+          keep_id?: string;
+          merged_id?: string;
+          auto?: boolean;
+          strength?: string | null;
+          reason?: string | null;
+          by_user?: string | null;
+          moved?: Json;
+          holders?: string[];
+          removed?: Json;
+          keep_before?: Json;
+          merged_before?: Json;
+          users_before?: Json;
+          alias_emails?: string[];
+          created_at?: string;
+          undone_at?: string | null;
+          undone_by?: string | null;
+          undo_reason?: string | null;
+        };
+        Relationships: [];
+      };
       renter_notes: {
         Row: {
           id: string;
@@ -19785,6 +19956,36 @@ export type Database = {
           from_minute?: number;
           until_minute?: number;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      sales_lead_settings: {
+        Row: {
+          id: boolean;
+          claim_minutes: Json;
+          extend_max_minutes: number;
+          max_active: number;
+          hot_hours: number;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: boolean;
+          claim_minutes?: Json;
+          extend_max_minutes?: number;
+          max_active?: number;
+          hot_hours?: number;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          id?: boolean;
+          claim_minutes?: Json;
+          extend_max_minutes?: number;
+          max_active?: number;
+          hot_hours?: number;
+          updated_at?: string;
+          updated_by?: string | null;
         };
         Relationships: [];
       };
@@ -23472,6 +23673,30 @@ export type Database = {
         };
         Relationships: [];
       };
+      user_email_aliases: {
+        Row: {
+          email: string;
+          user_id: string;
+          from_user_id: string | null;
+          merge_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          email: string;
+          user_id: string;
+          from_user_id?: string | null;
+          merge_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          email?: string;
+          user_id?: string;
+          from_user_id?: string | null;
+          merge_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       user_roles: {
         Row: {
           user_id: string;
@@ -23517,6 +23742,7 @@ export type Database = {
           alerts_asked_at: string | null;
           staff_email_digest: string;
           display_name: string | null;
+          merged_into: string | null;
         };
         Insert: {
           id?: string;
@@ -23541,6 +23767,7 @@ export type Database = {
           alerts_asked_at?: string | null;
           staff_email_digest?: string;
           display_name?: string | null;
+          merged_into?: string | null;
         };
         Update: {
           id?: string;
@@ -23565,6 +23792,7 @@ export type Database = {
           alerts_asked_at?: string | null;
           staff_email_digest?: string;
           display_name?: string | null;
+          merged_into?: string | null;
         };
         Relationships: [];
       };
@@ -28419,6 +28647,7 @@ export type Database = {
       server_set_alert_prefs: { Args: { p_user: string; p: Json }; Returns: Json };
       server_set_alert_rule: { Args: { p_user: string; p_rule: string; p: Json }; Returns: Json };
       server_set_notify_channel: { Args: { p_user: string; p_channel: string }; Returns: Json };
+      server_sign_in_alias: { Args: { p_email?: string; p_user?: string }; Returns: Json };
       server_sign_in_event: { Args: { p: Json }; Returns: undefined };
       server_sign_now_prepare: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_sign_request_attach: { Args: { p_id: string; p_path: string; p_sha256: string }; Returns: string };

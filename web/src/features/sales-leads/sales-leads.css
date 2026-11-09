@@ -1,0 +1,17 @@
+/* The Sales lead list (0950): one column of cards on a phone, more on wider screens; the hot ones marked by their edge. */
+.sl-cards { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-3); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 48rem) { .sl-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 90rem) { .sl-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.sl-card { padding: var(--s-4); gap: var(--s-2); min-width: 0; }
+.sl-card--hot { border-left: 4px solid var(--red-600); }
+.sl-card__head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--s-2); flex-wrap: wrap; }
+.sl-card__name { font-weight: 600; overflow-wrap: anywhere; }
+.sl-card__src, .sl-card__contact, .sl-card__text { margin: 0; overflow-wrap: anywhere; }
+.sl-card__text { display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.sl-dash { display: grid; gap: var(--s-3); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 48rem) { .sl-dash { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+.sl-dash__tile { border: 1px solid var(--grey-200); border-radius: 0.5rem; padding: var(--s-3); min-width: 0; }
+.sl-dash__tile b { display: block; font-size: 1.4rem; }
+.sl-transcript { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); max-height: 28rem; overflow: auto; }
+.sl-transcript li { overflow-wrap: anywhere; }
+.sl-table-wrap { overflow-x: auto; }

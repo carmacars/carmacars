@@ -6,7 +6,7 @@ import { Badge, BookingLink, Card, Kv, PageHead, Table, d, t } from '@/features/
 import { ReachCard } from '@/features/admin/ReachCard';
 import type { Reach } from '@/features/phone/alerts';
 import { RenterEdit, type RenterForm } from '@/features/money/RenterEdit';
-import { RenterMerge, type DuplicateRow } from '@/features/money/RenterMerge';
+import { RenterMerge, RenterMerges, type DuplicateRow, type MergeRow } from '@/features/money/RenterMerge';
 import { door } from '@/server/door';
 import { BookingConversation } from '@/features/messages/BookingConversation';
 import type { Conversation } from '@/features/messages/email-choices';
@@ -40,6 +40,8 @@ export default async function Renter({ params, searchParams }: { params: Promise
   const rf = await door<RenterForm>(user.id, 'ops_read', 'renter_edit_form', { renter: id }).catch(() => null);
   // the same person entered twice (0148)
   const dupes = await door<DuplicateRow[]>(user.id, 'ops_read', 'renter_duplicates', { renter: id }).catch(() => [] as DuplicateRow[]);
+  // r35 (0955): the merges of this renter, automatic or by staff, with Undo for an Admin
+  const merges = await door<{ admin: boolean; rows: MergeRow[] }>(user.id, 'ops_read', 'renter_merges', { renter: id }).catch(() => ({ admin: false, rows: [] as MergeRow[] }));
   // Email the renter (0187): an email goes with one of their bookings (the latest unless another is chosen), so it is kept
   // on that booking's messages and the renter can answer it in their account
   const latest = [...r.bookings].sort((a, b) => (a.pickup_at < b.pickup_at ? 1 : -1))[0];
@@ -53,6 +55,7 @@ export default async function Renter({ params, searchParams }: { params: Promise
           <NameChangeCard items={nameChanges} refresh={[`/admin/renters/${id}`]} />
           {rf && <RenterEdit x={rf} />}
           <RenterMerge renterId={id} name={r.name} rows={dupes} />
+          <RenterMerges rows={merges.rows} admin={merges.admin} />
           <Card title="Details"><Kv rows={[['Email', <span key="e">{r.email ?? ''}{r.has_sign_in && !r.email_confirmed && <> <span className="ad-b ad-b--amber" data-testid="email-not-confirmed">Email not confirmed</span></>}</span>], ['Phone', r.mobile ? <ContactButtons key="p" phone={r.mobile} name={r.name} look="link" inbox="/admin/visitors?view=chat" testId="renter-phone">{r.mobile}</ContactButtons> : ''], ['City', r.city ?? ''], ['Identity', <Badge key="i" s={r.identity_status} />], ['Blocked', r.is_blocked ? 'Yes' : 'No'], ['Since', d(r.created_at)]]} /></Card>
           {!!r.captured?.length && (
             <Card title="Typed into forms" testId="renter-captured">

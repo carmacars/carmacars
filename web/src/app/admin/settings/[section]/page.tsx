@@ -28,6 +28,8 @@ import { StockPhotosAdmin, type StockData } from '@/features/vehicles/StockPhoto
 import { ClassRules, type ClassRulesData } from '@/features/vehicles/ClassRules';
 import { MaintenanceSettings, type MaintSettings } from '@/features/maintenance/Settings';
 import { TextAlertsSettings, type SmsSettings } from '@/features/admin/TextAlerts';
+import { SalesSettings } from '@/features/sales-leads/SalesSettings';
+import type { LeadSettings } from '@/features/sales-leads/model';
 import { PlaceRegions, PlaceSettings, PlaceTerms, type PlacesOverview } from '@/features/places/PlacesAdmin';
 import { COVERAGE_LABEL, type CardList, type CoverageKind } from '@/features/coverage/cards';
 import { ReviewSettings, type ReviewSettingsData } from '@/features/reviews/ReviewSettings';
@@ -142,6 +144,8 @@ export default async function Section({ params, searchParams }: { params: Promis
   switch (section) {
   // release 28: API access (Claude connector and keys)
   case 'api': return (<>{head}<ApiAccessPage adminId={user.id} /></>);
+  // r35 (0950): Settings > Sales, the lead claim rules
+  case 'sales': return (<>{head}<SalesSettings s={await door<LeadSettings>(user.id, 'admin_read', 'sales_lead_settings')} /></>);
   case 'site': {
     const samples = await door<{ public: number; cars: number; catalogue: number; open_enquiries: number }>(user.id, 'ops_read', 'sample_cars_state').catch(() => null);
     return (<>{head}

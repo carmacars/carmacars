@@ -63,7 +63,8 @@ select test.eq('leads: the unique index also refuses a second lead for a booking
 select test.throws('leads: a second lead for the same booking is refused by the database',
   format($$insert into leads (kind, email, source, payload) values ('contact', 'x@example.test', 'expired_offer', jsonb_build_object('booking_id', %L))$$, test.id('booking:H3-1')::text), 'leads_expired_offer_once');
 select test.eq('leads: five days later the offer expired 3 days ago is a lead too', (select app.expired_offers_to_leads(now() + interval '5 days')), 1);
-select test.ok('leads: the scheduled job runs it (job_capture)', position('expired_offers_to_leads' in pg_get_functiondef('app.job_capture(timestamp with time zone)'::regprocedure)) > 0);
+select test.ok('leads: the scheduled job runs it (job_capture, or a step it wraps)', exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'app' and p.proname like 'job_capture%' and position('expired_offers_to_leads' in pg_get_functiondef(p.oid)) > 0));
 select test.ok('leads: only the server job runs it', not has_function_privilege('authenticated', 'app.expired_offers_to_leads(timestamp with time zone)', 'execute'));
 select test.ok('leads: a booking staff reopened is not a lead',
   (select app.expired_offers_to_leads(now() + interval '30 days')) >= 0
