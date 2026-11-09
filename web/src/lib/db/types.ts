@@ -7998,6 +7998,69 @@ export type Database = {
         };
         Relationships: [];
       };
+      government_form_signatures: {
+        Row: {
+          id: string;
+          vehicle_id: string;
+          owner_id: string;
+          form_code: string;
+          fill_id: string | null;
+          form_version: number | null;
+          values_sha: string;
+          signed_values: Json;
+          signer_user_id: string;
+          signer_name: string;
+          method: string;
+          signature_path: string | null;
+          typed_name: string | null;
+          signed_at: string;
+          ip_address: string | null;
+          user_agent: string | null;
+          esign_session_id: string | null;
+          consent_text: string | null;
+        };
+        Insert: {
+          id?: string;
+          vehicle_id: string;
+          owner_id: string;
+          form_code: string;
+          fill_id?: string | null;
+          form_version?: number | null;
+          values_sha: string;
+          signed_values?: Json;
+          signer_user_id: string;
+          signer_name: string;
+          method: string;
+          signature_path?: string | null;
+          typed_name?: string | null;
+          signed_at?: string;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          esign_session_id?: string | null;
+          consent_text?: string | null;
+        };
+        Update: {
+          id?: string;
+          vehicle_id?: string;
+          owner_id?: string;
+          form_code?: string;
+          fill_id?: string | null;
+          form_version?: number | null;
+          values_sha?: string;
+          signed_values?: Json;
+          signer_user_id?: string;
+          signer_name?: string;
+          method?: string;
+          signature_path?: string | null;
+          typed_name?: string | null;
+          signed_at?: string;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          esign_session_id?: string | null;
+          consent_text?: string | null;
+        };
+        Relationships: [];
+      };
       guide_images: {
         Row: {
           id: string;
@@ -16195,6 +16258,7 @@ export type Database = {
           debit_deposit_fee_cents: number;
           google_drive_api_key: string | null;
           owner_hide_insurance_only: boolean;
+          insurance_fee_hst: boolean;
         };
         Insert: {
           id?: string;
@@ -16838,6 +16902,7 @@ export type Database = {
           debit_deposit_fee_cents?: number;
           google_drive_api_key?: string | null;
           owner_hide_insurance_only?: boolean;
+          insurance_fee_hst?: boolean;
         };
         Update: {
           id?: string;
@@ -17481,6 +17546,7 @@ export type Database = {
           debit_deposit_fee_cents?: number;
           google_drive_api_key?: string | null;
           owner_hide_insurance_only?: boolean;
+          insurance_fee_hst?: boolean;
         };
         Relationships: [];
       };
@@ -27747,6 +27813,8 @@ export type Database = {
       owner_form_official: { Args: { p_by: string; p_fill: string }; Returns: Json };
       owner_form_signed: { Args: { p_by: string; p_fill: string; p: Json }; Returns: Json };
       owner_give_exit_notice: { Args: { p_by: string; p_vehicle: string; p?: Json }; Returns: Json };
+      owner_gov_forms_sign: { Args: { p_by: string; p: Json }; Returns: Json };
+      owner_gov_forms_to_sign: { Args: { p_by: string; p: Json }; Returns: Json };
       owner_id_for: { Args: { p_by: string }; Returns: string };
       owner_open_agreements: { Args: { p_owner: string; p_by: string; p_docs: Json }; Returns: Json };
       owner_portal_bookings: { Args: { p_by: string; p_from?: string; p_to?: string }; Returns: Json };
