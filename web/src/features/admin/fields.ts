@@ -70,6 +70,11 @@ const LABELS: Record<string, string> = {
   request_claim_minutes: 'Booking requests: the person answering a request holds it for (minutes)',
   request_sales_after_minutes: 'Booking requests: Sales may answer a request this many minutes after it came in',
   deposit_release_reminder_days: 'Deposits: with no check-out recorded, due back this many business days after the return',
+  // the deposit review (1010)
+  deposit_review_required: 'Deposit review: Fleet then Finance check every returned booking before its deposit is released',
+  deposit_review_sweep_days: 'Deposit review: the Finance sweep days (mon,wed,fri)', deposit_review_toll_url: 'Deposit review: where Finance checks the highway tolls of a plate',
+  deposit_review_ticket_places: 'Deposit review: the places Finance checks for tickets, each with its name and official lookup link',
+  accident_plan_claim_url: 'Accident card: the claim page of the plan sold with a rental',
   vlf_daily_cents: 'Insurer-billed rentals: VLF (vehicle licensing fee) a day',
   staff_commission_bps: 'Commission outside Sales: customer service, finance, fleet and field staff (also the field referral fee)',
   sales_tier_low_bps: 'Sales commission under the middle tier\'s days', sales_tier_mid_bps: 'Sales commission from the middle tier\'s days', sales_tier_high_bps: 'Sales commission from the top tier\'s days',

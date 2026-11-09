@@ -53,7 +53,7 @@ export function AccidentSummary({ d, printHref }: { d: AccidentCardData; printHr
       <div className="stack" data-testid="accident-summary-coverage">
         <p><b>{c.title}</b>{d.coverage.kind !== 'none' && !d.coverage.confirmed ? ' (waiting for our check)' : ''}</p>
         <p className="small">{c.lead}</p>
-        {c.rows.length > 0 && <dl className="pt-dl">{c.rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>}
+        {c.rows.length > 0 && <dl className="pt-dl">{c.rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{/^https:\/\//.test(v) ? <a className="link" href={v} target="_blank" rel="noreferrer" data-testid="accident-claim-link">{v.replace(/^https:\/\/(www\.)?/, '')}</a> : v}</dd></div>)}</dl>}
       </div>
       {printHref && <p><Link prefetch={false} className="btn btn--ghost btn--sm" href={printHref} data-testid="accident-print-link">Open the card to print</Link></p>}
     </div>

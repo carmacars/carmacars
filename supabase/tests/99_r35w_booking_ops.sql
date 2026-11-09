@@ -135,9 +135,10 @@ select test.eq('card: card coverage shows the card and its coverage provider',
 update program_settings set accident_plan_provider_name = 'RentalCover', accident_plan_policy_number = 'RC-MASTER-1', accident_plan_claims_phone = '1-800-555-0100';
 update coverage_proofs set coverage_option = 3, activated_at = now(), activation_ref = 'ACT-RW-9' where booking_id = test.b('rwX');
 update bookings set coverage_option = 3 where id = test.b('rwX');
-select test.eq('card: the Protection Plan shows the provider, policy, claims phone and the activation',
+-- 1010: the renter's own plan policy (the activation reference until staff enter it), never the master policy
+select test.eq('card: the Protection Plan shows the provider, the renter''s policy, claims phone and the activation',
   (select concat_ws(':', c -> 'coverage' ->> 'kind', c -> 'coverage' ->> 'plan_provider', c -> 'coverage' ->> 'plan_policy_number', c -> 'coverage' ->> 'plan_claims_phone', c -> 'coverage' ->> 'plan_reference')
-     from (select test.rw_read('rw_fleet', 'accident_card', jsonb_build_object('booking', test.b('rwX'))) c) x), 'plan:RentalCover:RC-MASTER-1:1-800-555-0100:ACT-RW-9');
+     from (select test.rw_read('rw_fleet', 'accident_card', jsonb_build_object('booking', test.b('rwX'))) c) x), 'plan:RentalCover:ACT-RW-9:1-800-555-0100:ACT-RW-9');
 select test.eq('card: never the fleet policy, on any option',
   (select count(*) from (values (public.server_accident_card(test.b('rwB'), test.id('rw_q'))), (public.server_accident_card(test.b('rwC'), test.id('rw_p'))),
      (public.server_accident_card(test.b('rwX'), test.id('rw_s')))) v(c) where c::text like '%' || (select policy_number from fleet_insurance_policies where is_current) || '%'

@@ -17,8 +17,8 @@ export interface Section { key: string; label: string; items: Array<string | Hub
 // five pages in its row, related pages as tabs of one, actions as buttons. Before and after: docs/changes/2026-11-07-consolidation.md.
 export const ADMIN_HUBS: Hub[] = [
   { key: 'payments', label: 'Payments', tabs: [
-    { href: '/admin/money?tab=day', label: 'By day' }, { href: '/admin/money?tab=payments', label: 'All payments' }, { href: '/admin/money?tab=refunds', label: 'Refunds' },
-    { href: '/admin/money?tab=deposits', label: 'Deposits' }, { href: '/admin/money?tab=disputes', label: 'Disputes' }, { href: '/admin/money?tab=reconciliation', label: 'Reconciliation' }] },
+    { href: '/admin/money?tab=day', label: 'By day' }, { href: '/admin/money?tab=countdowns', label: 'Countdowns' }, { href: '/admin/money?tab=payments', label: 'All payments' }, { href: '/admin/money?tab=refunds', label: 'Refunds' },
+    { href: '/admin/money?tab=deposits', label: 'Deposits' }, { href: '/admin/deposit-reviews', label: 'Deposit reviews' }, { href: '/admin/money?tab=disputes', label: 'Disputes' }, { href: '/admin/money?tab=reconciliation', label: 'Reconciliation' }] },
   { key: 'owner-money', label: 'Owner money', tabs: [
     { href: '/admin/owner-money?tab=invoices', label: 'Invoices' }, { href: '/admin/owner-money?tab=debits', label: 'Debits' },
     { href: '/admin/owner-money?tab=statements', label: 'Statements' }, { href: '/admin/owner-money?tab=payouts', label: 'Payouts' }] },
@@ -56,7 +56,8 @@ export const ADMIN_HUBS: Hub[] = [
 // person sees only the tabs they can open; each page keeps its address and its own check.
 export const STAFF_HUBS: Hub[] = [
   // Finance's money (r27 consolidation, Admin's merged Payments): one page, a tab each
-  { key: 'money', label: 'Money', tabs: [{ href: '/staff/money', label: 'To handle', fns: 'finance' }, { href: '/staff/money?tab=day', label: 'By day', fns: 'finance' },
+  { key: 'money', label: 'Money', tabs: [{ href: '/staff/money', label: 'To handle', fns: 'finance' }, { href: '/staff/money?tab=countdowns', label: 'Countdowns', fns: 'finance' },
+    { href: '/staff/deposit-reviews', label: 'Deposit reviews', fns: 'finance' }, { href: '/staff/money?tab=day', label: 'By day', fns: 'finance' },
     { href: '/staff/money?tab=payments', label: 'All payments', fns: 'finance' }, { href: '/staff/money?tab=refunds', label: 'Refunds', fns: 'finance' },
     { href: '/staff/money?tab=deposits', label: 'Deposits', fns: 'finance' }, { href: '/staff/money?tab=reconciliation', label: 'Reconciliation', fns: 'finance' },
     { href: '/staff/money?tab=partners', label: 'Partner invoices', fns: 'finance' }, { href: '/staff/money?tab=kickbacks', label: 'Kickbacks and repairs', fns: 'finance' },
@@ -69,8 +70,9 @@ export const STAFF_HUBS: Hub[] = [
     { href: '/staff/calendar-sync', label: 'Calendar sync', fns: 'fleet' }, { href: '/staff/addons', label: 'Add-ons', fns: 'fleet' }],
     actions: [{ href: '/staff/owners/add-car', label: 'Add a car', fns: 'fleet' }, { href: '/staff/listings/import-photos', label: 'Import photos from Drive', fns: 'cs fleet' }] },
   { key: 'field-jobs', label: 'Field jobs', tabs: [{ href: '/staff/fleet', label: 'Jobs', fns: 'fleet' }, { href: '/staff/field-hours', label: 'Field hours', fns: 'fleet' }, { href: '/staff/past-trips', label: 'Close past trips', fns: 'fleet' }] },
-  { key: 'checks', label: 'Checks', tabs: [{ href: '/staff/checks', label: 'Daily checks', fns: 'fleet' }, { href: '/staff/reviews', label: 'Photo reviews', fns: 'fleet' }] },
-  { key: 'numbers', label: 'My numbers', tabs: [{ href: '/staff/scorecard', label: 'Scorecard', fns: 'cs fleet finance sales' }, { href: '/staff/my-sales', label: 'My sales', fns: 'cs fleet finance sales' }] }
+  { key: 'checks', label: 'Checks', tabs: [{ href: '/staff/checks', label: 'Daily checks', fns: 'fleet' }, { href: '/staff/reviews', label: 'Photo reviews', fns: 'fleet' }, { href: '/staff/deposit-reviews?view=fleet', label: 'Deposit reviews', fns: 'fleet' }] },
+  { key: 'numbers', label: 'My numbers', tabs: [{ href: '/staff/scorecard', label: 'Scorecard', fns: 'cs fleet finance sales' }, { href: '/staff/my-sales', label: 'My sales', fns: 'cs fleet finance sales' },
+    { href: '/staff/sales-start', label: 'Do sales too', fns: 'finance' }] }
 ];
 
 /** A person's page groups: only the tabs of the functions they hold, and only groups left with a tab. */

@@ -328,3 +328,8 @@ create table if not exists test.shipped_defaults as
    where table_name = 'program_settings' and column_name = 'insurance_fee_hst';
 alter table program_settings alter column insurance_fee_hst set default true;   -- later rows the suites add, too
 update program_settings set insurance_fee_hst = true;
+
+-- 1010: the two-step deposit review (on by default) holds every deposit of a returned booking until Fleet and Finance signed
+-- it; the older suites settle deposits without it. 99_r35r_deposit_review.sql switches it on, tests it and switches it off.
+alter table program_settings alter column deposit_review_required set default false;
+update program_settings set deposit_review_required = false;

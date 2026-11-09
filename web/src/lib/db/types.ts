@@ -3276,6 +3276,7 @@ export type Database = {
           return_link_token: string;
           return_state: string | null;
           superseded_by: string | null;
+          plan_policy_number: string | null;
         };
         Insert: {
           id?: string;
@@ -3456,6 +3457,7 @@ export type Database = {
           return_link_token?: string;
           return_state?: string | null;
           superseded_by?: string | null;
+          plan_policy_number?: string | null;
         };
         Update: {
           id?: string;
@@ -3636,6 +3638,7 @@ export type Database = {
           return_link_token?: string;
           return_state?: string | null;
           superseded_by?: string | null;
+          plan_policy_number?: string | null;
         };
         Relationships: [];
       };
@@ -6006,6 +6009,159 @@ export type Database = {
           reason?: string;
           created_by?: string;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      deposit_review_items: {
+        Row: {
+          id: string;
+          booking_id: string;
+          item: string;
+          fleet_result: string | null;
+          fleet_amount_cents: number | null;
+          fleet_note: string | null;
+          fleet_photos: number[];
+          fleet_by: string | null;
+          fleet_at: string | null;
+          finance_result: string | null;
+          finance_amount_cents: number | null;
+          finance_note: string | null;
+          finance_by: string | null;
+          finance_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          item: string;
+          fleet_result?: string | null;
+          fleet_amount_cents?: number | null;
+          fleet_note?: string | null;
+          fleet_photos?: number[];
+          fleet_by?: string | null;
+          fleet_at?: string | null;
+          finance_result?: string | null;
+          finance_amount_cents?: number | null;
+          finance_note?: string | null;
+          finance_by?: string | null;
+          finance_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          item?: string;
+          fleet_result?: string | null;
+          fleet_amount_cents?: number | null;
+          fleet_note?: string | null;
+          fleet_photos?: number[];
+          fleet_by?: string | null;
+          fleet_at?: string | null;
+          finance_result?: string | null;
+          finance_amount_cents?: number | null;
+          finance_note?: string | null;
+          finance_by?: string | null;
+          finance_at?: string | null;
+        };
+        Relationships: [];
+      };
+      deposit_review_sweeps: {
+        Row: {
+          id: string;
+          run_on: string;
+          since: string | null;
+          task_id: string | null;
+          plates: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          run_on: string;
+          since?: string | null;
+          task_id?: string | null;
+          plates?: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          run_on?: string;
+          since?: string | null;
+          task_id?: string | null;
+          plates?: Json;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      deposit_review_ticket_checks: {
+        Row: {
+          id: string;
+          booking_id: string;
+          place_key: string;
+          place_name: string;
+          url: string | null;
+          result: string;
+          toll_ticket_id: string | null;
+          note: string | null;
+          checked_by: string;
+          checked_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          place_key: string;
+          place_name: string;
+          url?: string | null;
+          result: string;
+          toll_ticket_id?: string | null;
+          note?: string | null;
+          checked_by: string;
+          checked_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          place_key?: string;
+          place_name?: string;
+          url?: string | null;
+          result?: string;
+          toll_ticket_id?: string | null;
+          note?: string | null;
+          checked_by?: string;
+          checked_at?: string;
+        };
+        Relationships: [];
+      };
+      deposit_reviews: {
+        Row: {
+          booking_id: string;
+          vehicle_id: string;
+          plate: string | null;
+          returned_at: string | null;
+          places: Json;
+          fleet_done_at: string | null;
+          finance_done_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          booking_id: string;
+          vehicle_id: string;
+          plate?: string | null;
+          returned_at?: string | null;
+          places?: Json;
+          fleet_done_at?: string | null;
+          finance_done_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          booking_id?: string;
+          vehicle_id?: string;
+          plate?: string | null;
+          returned_at?: string | null;
+          places?: Json;
+          fleet_done_at?: string | null;
+          finance_done_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -16663,12 +16819,18 @@ export type Database = {
           debit_deposit_fee_cents: number;
           google_drive_api_key: string | null;
           owner_hide_insurance_only: boolean;
+          insurance_fee_hst: boolean;
           accident_plan_provider_name: string | null;
           accident_plan_policy_number: string | null;
           accident_plan_claims_phone: string | null;
           field_clean_every_days: number;
           field_offer_alert_hours: number;
           field_late_cancel_hours: number;
+          deposit_review_required: boolean;
+          deposit_review_sweep_days: string;
+          deposit_review_toll_url: string;
+          deposit_review_ticket_places: Json;
+          accident_plan_claim_url: string | null;
         };
         Insert: {
           id?: string;
@@ -17312,12 +17474,18 @@ export type Database = {
           debit_deposit_fee_cents?: number;
           google_drive_api_key?: string | null;
           owner_hide_insurance_only?: boolean;
+          insurance_fee_hst?: boolean;
           accident_plan_provider_name?: string | null;
           accident_plan_policy_number?: string | null;
           accident_plan_claims_phone?: string | null;
           field_clean_every_days?: number;
           field_offer_alert_hours?: number;
           field_late_cancel_hours?: number;
+          deposit_review_required?: boolean;
+          deposit_review_sweep_days?: string;
+          deposit_review_toll_url?: string;
+          deposit_review_ticket_places?: Json;
+          accident_plan_claim_url?: string | null;
         };
         Update: {
           id?: string;
@@ -17961,12 +18129,18 @@ export type Database = {
           debit_deposit_fee_cents?: number;
           google_drive_api_key?: string | null;
           owner_hide_insurance_only?: boolean;
+          insurance_fee_hst?: boolean;
           accident_plan_provider_name?: string | null;
           accident_plan_policy_number?: string | null;
           accident_plan_claims_phone?: string | null;
           field_clean_every_days?: number;
           field_offer_alert_hours?: number;
           field_late_cancel_hours?: number;
+          deposit_review_required?: boolean;
+          deposit_review_sweep_days?: string;
+          deposit_review_toll_url?: string;
+          deposit_review_ticket_places?: Json;
+          accident_plan_claim_url?: string | null;
         };
         Relationships: [];
       };

@@ -117,7 +117,7 @@ export function bookingCan(v: Viewer): BookingCan {
 function fieldCan(): BookingCan {
   const no = { admin: false, offer: false, editOfferPending: false, money: false, extras: false, cancelForRenter: false, scheduleJob: false, latePanel: false, photoReview: false,
     handover: false, sign: false, agreementMoney: false, licenceReview: false, renterDocs: false, staffUpload: false, carLink: false, manualPayments: false, voidRecords: false,
-    paperSignatures: false, driverLinks: false, refund: false, refundApprove: false, settleDeposit: false, statement: false, inbox: false, verifyInPerson: false };
+    paperSignatures: false, driverLinks: false, refund: false, refundApprove: false, settleDeposit: false, statement: false, inbox: false, verifyInPerson: false, changeCar: false };
   return { ...no, money: true, handover: true, sign: true, paperSignatures: true, verifyInPerson: true };
 }
 

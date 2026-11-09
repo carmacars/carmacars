@@ -18,10 +18,12 @@ test('card coverage: the card and its coverage provider', () => {
   assert.deepEqual(b.rows, [['Card', 'Visa ending 4242'], ['Coverage provider', 'Card Coverage Ltd']]);
 });
 
-test('the Protection Plan: the provider, policy, claims phone and the plan reference', () => {
-  const b = coverageBlock({ ...none, kind: 'plan', plan_provider: 'RentalCover', plan_policy_number: 'RC-1', plan_claims_phone: '1-800-555-0100', plan_reference: 'ACT-9' });
-  assert.equal(b.rows.length, 4);
-  assert.equal(b.rows[0]![1], 'RentalCover');
+test('the Protection Plan: the provider, the renter\'s own policy number and the claim page (1010)', () => {
+  const b = coverageBlock({ ...none, kind: 'plan', plan_provider: 'RentalCover', plan_policy_number: 'RC-1', plan_claims_phone: null, plan_reference: 'ACT-9', plan_claim_url: 'https://www.rentalcover.com/en-us/claim/start' });
+  assert.deepEqual(b.rows, [['Provider', 'RentalCover'], ['Your policy number', 'RC-1'], ['Claim page', 'https://www.rentalcover.com/en-us/claim/start']]);
+  assert.match(b.lead, /claim page/);
+  const r = coverageBlock({ ...none, kind: 'plan', plan_provider: 'RentalCover', plan_reference: 'ACT-9' });
+  assert.deepEqual(r.rows[1], ['Your policy number', 'ACT-9']);
 });
 
 test('no coverage: the card says to call before driving; the steps are the car card\'s', () => {
