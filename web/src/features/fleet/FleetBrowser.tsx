@@ -119,7 +119,10 @@ function Browser({ cars, labels, classes, maxDays, gate, p, sync }: Props & { p:
     if (sort !== 'featured') q.set('sort', sort);
     if (qText) q.set('q', qText);
     const s = q.toString();
-    if (sync) window.history.replaceState(null, '', `/cars${s ? '?' + s : ''}`);
+    // only when the address changes, and with the router's own history state: a replaceState with null state makes the
+    // app router restore its tree from the address, which renders this again (Safari stopped a loop of these at 100)
+    const next = `/cars${s ? '?' + s : ''}`;
+    if (sync && window.location.pathname + window.location.search !== next) window.history.replaceState(window.history.state, '', next);
   }, [sync, hasDates, dates.from, dates.to, tf, tt, mode, cls, seats, trans, make, modelOk, col, max, sort, maxP, qText]);
 
   useEffect(() => { document.body.style.overflow = panel ? 'hidden' : ''; return () => { document.body.style.overflow = ''; }; }, [panel]);
