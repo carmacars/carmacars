@@ -28,6 +28,10 @@ async function inAdminArea(): Promise<boolean> {
   try { return (await headers()).get(ADMIN_AREA_HEADER) === '1'; } catch { return false; }
 }
 
+/** r34: whether a view-as cookie is set at all (in Admin too, where the Admin is themselves but the staff API calls answer
+ *  as the viewed person): Admin's caller pop-up stays quiet then. */
+export async function viewAsCookieSet(): Promise<boolean> { return Boolean(await rawCookie()); }
+
 async function rawCookie(): Promise<string | null> {
   try { return (await cookies()).get(VIEW_AS_COOKIE)?.value ?? null; } catch { return null; }
 }

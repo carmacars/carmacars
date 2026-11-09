@@ -29411,6 +29411,7 @@ export type Database = {
       server_account_email_changed: { Args: { p_user: string; p_email: string }; Returns: Json };
       server_account_email_verified: { Args: { p_user: string; p_email: string }; Returns: Json };
       server_account_gate: { Args: { p_user: string; p_step: string }; Returns: Json };
+      server_account_set_contact_phone: { Args: { p_user: string; p_phone: string }; Returns: Json };
       server_account_set_email: { Args: { p_user: string; p_email: string }; Returns: Json };
       server_account_set_name: { Args: { p_user: string; p_name: string }; Returns: Json };
       server_account_set_sign_in: { Args: { p_user: string; p_method: string }; Returns: Json };
