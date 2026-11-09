@@ -3,7 +3,7 @@ import Link from '@/components/Link';
 import { Act } from '@/features/admin/Act';
 import { Badge, Card, PageHead, Table, Tiles, d } from '@/features/admin/ui';
 import type { CarFacts, Rules } from '@/features/ads/listing';
-import { buildKit, type KitExtra, type KitSettings } from './kit';
+import { bestPhotos, buildKit, type KitExtra, type KitSettings } from './kit';
 import { ACTION_LABEL, marketplacePlan, type MpItem, type MpPosting } from './plan';
 import { KitCards } from './KitCards';
 import type { TeamClaim } from './team';
@@ -19,7 +19,7 @@ const tone = (a: MpItem['action']) => ({ update: 'pending_approval', remove: 'ex
 // Admin > Marketing > Marketplace, the page's body (migration 0410; docs/runbooks/marketplace.md). Facebook Marketplace is posted from the
 // owner's own profile, by Claude in his Chrome or by a person: this page is the kit for every car (computed now, so prices
 // are today's), the rotation of what to post or renew (a few a day), the replies for the inbox, and the log of what was done.
-export function MarketplaceView({ data, car, staff = false }: { data: MarketplaceData; car?: string;
+export function MarketplaceView({ data, car, staff = false, scenes }: { data: MarketplaceData; car?: string; scenes?: (vehicle: string) => Promise<boolean>;
   /** r27 consolidation: Sales's Marketplace page (/staff/marketplace): the kits, today's plan and the replies, read only (logging, the photo ZIP and the settings stay Admin's) */ staff?: boolean }) {
   const sp = { car };
   const kits = data.cars.map((c) => ({ c, k: buildKit(c, data.rules, data.extra[c.vehicle_id], data.settings, data.site_url, data.today) }));
@@ -78,7 +78,7 @@ export function MarketplaceView({ data, car, staff = false }: { data: Marketplac
       const { c, k } = pick;
       const lp = live.get(c.vehicle_id);
       return <KitCards c={c} k={k} rules={data.rules} phone={data.phone} action={staff ? '/staff/marketplace' : '/admin/marketing/marketplace'}
-        zipHref={staff ? null : `/admin/marketing/marketplace/photos/${c.vehicle_id}`}
+        zipHref={staff || !bestPhotos(c.photos).length ? null : `/admin/marketing/marketplace/photos/${c.vehicle_id}`} scenes={scenes?.(c.vehicle_id)}
         options={kits.map(({ c: x, k: y }) => ({ id: x.vehicle_id, label: `${x.name}${x.car_code ? ` (${x.car_code})` : ''}${y.blockers.length ? `: ${y.blockers[0]}` : live.has(x.vehicle_id) ? ': live' : ''}` }))}
         aside={lp ? <Badge s={lp.needs_update ? 'draft' : 'published'}>{lp.needs_update ? 'Live: update the price' : `Live since ${d(lp.posted_on)}`}</Badge> : <Badge s="closed">Not on Marketplace</Badge>} />;
     })()}

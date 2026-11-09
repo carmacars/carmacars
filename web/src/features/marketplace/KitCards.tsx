@@ -11,10 +11,11 @@ import { CopyValue } from './CopyValue';
 // One car's Marketplace kit as cards (migration 0410; the copy variants of 0510): the fields in the vehicle form's order,
 // the description, the tracked link, the photos in order with the ZIP, and the inbox replies. Admin's Marketplace page shows
 // variant 1 (the owner's own); Sales's Marketing tab shows the person's variant.
-export function KitCards({ c, k, rules, phone, aside, action, options, zipHref, variant }: {
+export function KitCards({ c, k, rules, phone, aside, action, options, zipHref, variant, scenes }: {
   c: CarFacts; k: Kit; rules: Rules; phone: string | null; aside?: ReactNode;
   /** the car picker's form action (#kit is added) */ action: string;
   options: Array<{ id: string; label: string }>; zipHref: string | null; variant?: number;
+  /** r35 S2: whether the car has a marketing set (its photos in scenes): the scenes ZIP is offered only then */ scenes?: Promise<boolean>;
 }) {
   const rs = replies(c, rules, k.link, phone);
   return (<>
@@ -39,7 +40,7 @@ export function KitCards({ c, k, rules, phone, aside, action, options, zipHref, 
       </div>
     </Card>
     <Card title={`Photos, in this order (${k.photos.length} of 10)`} testId="mp-photos" aside={k.photos.length && zipHref ? <><a className="btn btn--primary btn--sm" href={zipHref} download data-testid="mp-zip">Download the photos (ZIP)</a>{' '}
-      <a className="btn btn--ghost btn--sm" href={`${zipHref}${zipHref.includes('?') ? '&' : '?'}set=scenes`} download data-testid="mp-zip-scenes" title="The car's newest marketing set: its photos in other scenes (made on its listing)">With scenes (ZIP)</a></> : null}>
+      {scenes && <ScenesZip has={scenes} href={`${zipHref}${zipHref.includes('?') ? '&' : '?'}set=scenes`} />}</> : null}>
       {k.photos.length === 0 ? <p className="small muted">No real photos yet.</p> : (
         <ol className="mp-photos">{k.photos.map((p, i) => (
           <li key={p.path}>
@@ -60,4 +61,10 @@ export function KitCards({ c, k, rules, phone, aside, action, options, zipHref, 
       </div>
     </Card>
   </>);
+}
+
+/** The scenes ZIP, once the car's marketing set is known to exist (without one the address answered 404). */
+async function ScenesZip({ has, href }: { has: Promise<boolean>; href: string }) {
+  if (!(await has)) return null;
+  return <a className="btn btn--ghost btn--sm" href={href} download data-testid="mp-zip-scenes" title="The car's newest marketing set: its photos in other scenes (made on its listing)">With scenes (ZIP)</a>;
 }

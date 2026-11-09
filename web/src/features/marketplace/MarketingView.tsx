@@ -9,7 +9,8 @@ import type { MarketplaceData } from './MarketplaceView';
 import { claudePrompt } from './prompt';
 import { replyLink } from './replies';
 import { TEAM_LABEL, freeVariant, teamPlan, type TeamAction, type TeamClaim, type TeamItem } from './team';
-import { variantKit } from './variants';
+import { variantKit, variantPhotos } from './variants';
+import { bestPhotos } from './kit';
 
 export type MarketingData = MarketplaceData & { me: string; team: TeamClaim[] };
 
@@ -25,7 +26,7 @@ export const autoReply = (link: string) => `Hi! Yes, it's available to book by t
 // profile. Today's list, the kit in the person's own copy variant (no two live listings share a title, description or
 // cover), the auto-reply setup, the inbox replies, the inbox log (numbers credited to them), and the instructions for their
 // own Claude in Chrome. Every post, renewal, update and take-down is logged per person, car and variant.
-export function MarketingView({ data, car, academyHref }: { data: MarketingData; car?: string; academyHref: string }) {
+export function MarketingView({ data, car, academyHref, scenes }: { data: MarketingData; car?: string; academyHref: string; scenes?: (vehicle: string) => Promise<boolean> }) {
   const now = new Date().toISOString();
   const s = data.settings;
   const maxLive = s.max_live ?? 5;
@@ -86,7 +87,7 @@ export function MarketingView({ data, car, academyHref }: { data: MarketingData;
     const vk = variantKit(k, c, v);
     return (<>
       <KitCards c={c} k={vk} rules={data.rules} phone={data.phone} variant={v} action={SELF} options={options}
-        zipHref={vk.photos.length ? `${SELF}/photos/${c.vehicle_id}?v=${v}` : null}
+        zipHref={variantPhotos(bestPhotos(c.photos), v).length ? `${SELF}/photos/${c.vehicle_id}?v=${v}` : null} scenes={scenes?.(c.vehicle_id)}
         aside={claim ? <Badge s={claim.status === 'live' ? 'published' : 'draft'}>{claim.status === 'live' ? `Yours, live since ${d(claim.posted_on!)}` : 'Claimed by you'}</Badge>
           // the car picked here can be claimed here, also when it is not on today's list
           : k.blockers.length ? <Badge s="on_rent">{`Variant ${v} is free`}</Badge>
