@@ -369,13 +369,13 @@ function floatAt(s: Spot): React.CSSProperties {
 /** 1064: who is working now (clocked in or on a field shift) and the week's Sales leaderboard, on the same live read. */
 function TeamNow({ v }: { v: MapView | null | undefined }) {
   if (!v || (!v.working.length && !v.leaderboard.length)) return null;
-  const since = (iso: string) => new Date(iso).toLocaleTimeString('en-CA', { timeZone: 'America/Toronto', hour: 'numeric', minute: '2-digit' });
+  const since = (iso: string) => clockTo(iso); // the same words on the server and in the browser (lib/clock)
   return (
     <div className="lm-team" data-testid="lm-team">
       {v.working.length > 0 && <section aria-label="Working now"><p className="lm-kpi__k">Working now ({v.working.length})</p>
-        <ul>{v.working.map((w) => <li key={`${w.name}-${w.since}`}>{w.name} <span className="muted">{w.role}, since {since(w.since)}</span></li>)}</ul></section>}
+        <ul>{v.working.map((w) => <li key={`${w.name}-${w.since}`}>{w.name} <span className="lm-quiet">{w.role}, since {since(w.since)}</span></li>)}</ul></section>}
       {v.leaderboard.length > 0 && <section aria-label="Sales this week"><p className="lm-kpi__k">Sales this week</p>
-        <ol>{v.leaderboard.map((l) => <li key={l.name}>{l.name} <span className="muted">{l.bookings} booking{l.bookings === 1 ? '' : 's'}</span></li>)}</ol></section>}
+        <ol>{v.leaderboard.map((l) => <li key={l.name}>{l.name} <span className="lm-quiet">{l.bookings} booking{l.bookings === 1 ? '' : 's'}</span></li>)}</ol></section>}
     </div>
   );
 }
