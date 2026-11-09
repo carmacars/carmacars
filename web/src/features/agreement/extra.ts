@@ -35,6 +35,15 @@ export interface AgreementExtra {
   insurer_policy: { policy_number: string | null; province: string | null; expiry: string | null; insured_vehicle: string | null } | null;
   pickup: PickupRecord | null;
   return: ReturnRecord | null;
+  /** r35 UX (1108): the charges for add-ons not returned (Program settings), on a booking with add-ons in the car */
+  unreturned?: Unreturned | null;
+}
+export interface Unreturned { ev_charger_cents: number; phone_mount_cents: number; child_seat_cents: number; booster_seat_cents: number; other_times: number | string; other_min_cents: number }
+/** The fine print of the add-ons not returned (1108), one sentence after the Schedule. */
+export function unreturnedText(u: Unreturned, money: (c: number) => string): string {
+  const times = Number(u.other_times);
+  return `Add-ons not returned. An add-on that is not returned with the Vehicle is charged as a replacement: ${money(u.ev_charger_cents)} for an EV charger, ${money(u.phone_mount_cents)} for a phone mount, `
+    + `${money(u.child_seat_cents)} for a child car seat and ${money(u.booster_seat_cents)} for a booster seat; any other add-on, ${Number.isInteger(times) ? times : times.toFixed(2)} times its rental charge, at least ${money(u.other_min_cents)}. Section 5.3 applies.`;
 }
 
 /** A change between two versions, as the database lists it (app.agreement_changes). */

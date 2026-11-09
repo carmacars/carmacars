@@ -2,7 +2,7 @@
 //   npm run test:unit
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { levelOf, pairPhotos, stageWords, sweepDays, timeLeft, type ReviewState } from './model.ts';
+import { addonFacts, levelOf, pairPhotos, stageWords, sweepDays, timeLeft, type ReviewState } from './model.ts';
 
 const st = (x: Partial<ReviewState>): ReviewState => ({ items: 7, fleet_signed: 0, finance_signed: 0, issues: 0, places: 17, places_checked: 0, tickets_found: 0,
   fleet_done_at: null, finance_done_at: null, stage: 'fleet', ...x });
@@ -39,4 +39,10 @@ test('countdown levels and time left', () => {
   assert.equal(timeLeft('2026-11-08T17:30:00Z', now), 'in 5 h 30 min');
   assert.equal(timeLeft('2026-11-08T09:00:00Z', now), '3 h ago');
   assert.equal(timeLeft('2026-11-08T12:20:00Z', now), 'in 20 min');
+});
+
+test('r35 UX (1108): the add-ons item suggests a charge for each add-on, never charges by itself', () => {
+  const lines = addonFacts({ items: [{ name: 'Booster seat', quantity: 2, suggested_cents: 40000 }, { name: 'Umbrella', quantity: 1, suggested_cents: 10000 }], suggested_cents: 50000 });
+  assert.deepEqual(lines, ['2 x Booster seat: if not back, suggest $400.00', 'Umbrella: if not back, suggest $100.00', 'Suggested if none is back: $500.00 (a suggestion only: nothing is charged until you bill it)']);
+  assert.deepEqual(addonFacts({}), ['No add-on went in the car']);
 });

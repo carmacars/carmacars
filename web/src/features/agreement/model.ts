@@ -4,7 +4,7 @@
 // Relative imports with their extension: the unit tests render these documents in Node directly (render.test.ts).
 import { companyParty, money, phone } from '../../lib/format.ts';
 import { AGREEMENT_CLOSING, AGREEMENT_PARTS, AGREEMENT_TEMPLATE_VERSION } from './source.generated.ts';
-import { carName, depositText, fuelLabel, km, paidText, stageLines, sum, type AgreementExtra, type VersionHeader } from './extra.ts';
+import { carName, depositText, fuelLabel, km, paidText, stageLines, sum, unreturnedText, type AgreementExtra, type VersionHeader } from './extra.ts';
 import { shortWording, wordedPart, wordingNotice, type Wording } from './wording.ts';
 
 export type Block =
@@ -274,6 +274,8 @@ export function agreementBlocks(f: AgreementFacts, o: BuildOptions): Block[] {
     blocks.push({ t: 'h2', text: `Part ${n}: ${part.title}` });
     blocks.push(...markdown(n === '6' ? part.body.replace(/☐ /g, '') : part.body, values));
   }
+  // r35 UX (1108): the fine print of the add-ons not returned, on a booking with add-ons in the car
+  if (x?.unreturned) blocks.push({ t: 'p', text: unreturnedText(x.unreturned, (c) => money(c)) });
   return blocks;
 }
 

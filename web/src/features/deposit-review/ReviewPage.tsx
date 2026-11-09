@@ -4,7 +4,7 @@ import { $, Card, Kv, Table, d, t } from '@/features/admin/ui';
 import { storage, type Bucket } from '@/integrations/storage';
 import { angleLabel } from '@/features/handover/angles';
 import type { HandoverReportData, ReportPhoto } from '@/features/handover/types';
-import { pairPhotos, stageWords, type Place, type ReviewItem, type ReviewView, type Sign } from './model';
+import { addonFacts, pairPhotos, stageWords, type Place, type ReviewItem, type ReviewView, type Sign } from './model';
 
 // One returned booking's deposit review (release 35 part RR, migration 1010): the pickup and return photos side by side,
 // angle by angle; then the seven items, each with what the site already knows (readings, return report, late time, the
@@ -28,7 +28,8 @@ function factLines(it: ReviewItem): string[] {
     case 'tickets': case 'tolls': {
       const xs = (f.on_car as Array<{ authority: string | null; amount_cents: number; at: string; status: string }> | undefined) ?? [];
       return xs.length ? xs.map((x) => `${x.authority ?? 'Notice'}: ${$(x.amount_cents)} on ${t(x.at)} (${x.status.replace(/_/g, ' ')})`) : [it.item === 'tolls' ? 'No toll notice on the car for these dates yet' : 'No ticket on the car for these dates yet'];
-    }
+    }    // r35 UX (1108): each add-on that went in the car, with what to charge if it is not back (a suggestion; nothing is charged by itself)
+    case 'addons': return addonFacts(f);
   }
 }
 
@@ -47,7 +48,7 @@ export async function ReviewPage({ d: v, report, base, tollsHref, refresh }: { d
   const P = { booking: v.booking_id };
   const fleetFields = (it: ReviewItem): Field[] => [
     { name: 'result', label: 'Result', type: 'select', required: true, options: RESULT, value: it.fleet?.result ?? it.facts.suggest ?? 'ok' },
-    { name: 'amount_cents', label: 'Amount to bill (if an issue)', type: 'money', value: it.fleet?.amount_cents ?? undefined },
+    { name: 'amount_cents', label: 'Amount to bill (if an issue)', type: 'money', value: it.fleet?.amount_cents ?? undefined, ...(it.item === 'addons' ? { hint: 'Not back? The suggested charge is in What the site knows: type the amount for the add-ons missing.' } : {}) },
     { name: 'note', label: 'What you found (required for an issue)', type: 'textarea', value: it.fleet?.note ?? '' },
     { name: 'photos', label: 'Return photo numbers that show it (for example 3, 7)', type: 'text', value: it.fleet?.photos?.join(', ') ?? '' }];
   const financeFields = (it: ReviewItem): Field[] => [

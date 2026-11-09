@@ -97,6 +97,10 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Facebook Marketplace', (k) => k.startsWith('marketplace_')],
   ['Stuck? help', (k) => k.startsWith('stuck_')],
   ['Photo import from Google Drive', (k) => k === 'google_drive_api_key'],
+  // r35 UX (1108): how to pay on invoices (empty until entered), insurer invoices as Blind Spot Car Rental, add-ons not returned
+  ['Invoices: how to pay CarmaCars (direct deposit and e-Transfer; empty sections are left off the PDF)', (k) => k.startsWith('cc_pay_')],
+  ['Insurer invoices as Blind Spot Car Rental (name, contact, direct deposit and e-Transfer)', (k) => k.startsWith('bs_')],
+  ['Add-ons not returned (the agreement\'s fine print, the FAQ and the deposit review\'s suggestion)', (k) => k.startsWith('unreturned_')],
   ['Staff, privacy and housekeeping', () => true]
 ];
 const yes = (v: unknown) => (v ? 'Yes' : 'No');

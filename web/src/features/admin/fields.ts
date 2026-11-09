@@ -5,6 +5,14 @@ import type { Field } from './Act';
 const nice = (k: string) => { const s = k.replace(/_(cents|bps)$/, '').replace(/_/g, ' '); return s.charAt(0).toUpperCase() + s.slice(1); };
 // settings whose meaning needs a sentence (0042: one turnaround between trips; the tolls, plates and vision settings)
 const LABELS: Record<string, string> = {
+  // r35 UX (1108): invoices and add-ons not returned
+  bs_billing_name: 'Insurer invoices are issued as', bs_billing_email: 'Contact email on insurer invoices (empty: none; never a CarmaCars address)', bs_billing_phone: 'Contact phone on insurer invoices',
+  bs_pay_account_name: 'Direct deposit: account name', bs_pay_institution: 'Direct deposit: bank', bs_pay_institution_number: 'Direct deposit: institution number', bs_pay_transit_number: 'Direct deposit: transit number',
+  bs_pay_account_number: 'Direct deposit: account number', bs_pay_etransfer_email: 'Interac e-Transfer email',
+  cc_pay_account_name: 'Direct deposit: account name', cc_pay_institution: 'Direct deposit: bank', cc_pay_institution_number: 'Direct deposit: institution number', cc_pay_transit_number: 'Direct deposit: transit number',
+  cc_pay_account_number: 'Direct deposit: account number', cc_pay_etransfer_email: 'Interac e-Transfer email',
+  unreturned_ev_charger_cents: 'EV charger not returned', unreturned_phone_mount_cents: 'Phone mount not returned', unreturned_child_seat_cents: 'Child car seat not returned',
+  unreturned_booster_seat_cents: 'Booster seat not returned', unreturned_other_times: 'Any other add-on: times its rental charge', unreturned_other_min_cents: 'Any other add-on: at least',
   app_store_url: 'The CarmaCars app on the App Store (https://apps.apple.com/...)', play_store_url: 'The CarmaCars app on Google Play (https://play.google.com/...)',
   phone_gate_gallery: 'Phone number box: before more photos of a car', phone_gate_free_photos: 'Phone number box: photos shown before the number is asked',
   phone_gate_dates: 'Phone number box: before the full availability', phone_gate_request: 'Phone number box: before a booking request',
