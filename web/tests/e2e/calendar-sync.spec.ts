@@ -230,6 +230,10 @@ test('Recovery: a renter opens her offer and does not answer; one reminder is qu
   if (hour < 9 || hour >= 21) at = new Date(at.getTime() + ((hour >= 21 ? 24 - hour + 10 : 10 - hour) * 60) * 60_000);
   const [early] = await sql`select app.job_booking_recovery(${new Date(sig!.first_at.getTime() + 60 * 60_000).toISOString()}::timestamptz) as r`;
   expect(early!.r).not.toMatch(/sent [1-9]/);
+  // 0900 (r35): emails to her for this booking within 2 minutes are held and sent as one; four hours on, the offer's own
+  // email went long ago, so its hold is over (else the reminder, run now with a later clock, would be merged into it)
+  await sql`select app.process_events(1000)`;
+  await sql`update notification_outbox set hold_until = null where booking_id = ${v.booking_id} and status = 'queued' and hold_until is not null`;
   await sql`select app.job_booking_recovery(${at.toISOString()}::timestamptz)`;
   // the job and the event processing are shared with the other width's test: wait for the row
   let ob: { id: string; status: string; to_address: string; category: string; n: string } | undefined;

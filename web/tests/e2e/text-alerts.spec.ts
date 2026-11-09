@@ -180,7 +180,9 @@ test('a booking request with Text: the email is skipped, the text is queued with
       // pass can take longer than the 15 seconds this used to allow
     }, { timeout: 90_000 }).toEqual({ status: 'skipped', status_reason: 'Sent by text (the person chose text)', channel: 'text' });
     const [sms] = await sql<Array<{ id: string; status: string; to_number: string; body: string; waits: boolean; quiet: boolean }>>`
-      select o.id, o.status, o.to_number, o.body, o.send_after > now() + interval '1 second' as waits, app.sms_quiet_end(o.created_at) > o.created_at as quiet
+      select o.id, o.status, o.to_number, o.body,
+             o.send_after > greatest(now(), o.created_at + make_interval(mins => coalesce((app.settings()).notify_merge_window_minutes, 2))) + interval '1 second' as waits,
+             app.sms_quiet_end(o.created_at) > o.created_at as quiet
         from phone_outbox o join bookings b on b.id = o.booking_id where b.booking_number = ${number} and o.kind = 'notify' and o.sms_kind = 'renter_request_received'`;
     // queued; or already claimed by the phone job of the other width's run (both widths run at once)
     expect(['queued', 'sending', 'sent']).toContain(sms!.status);
@@ -191,6 +193,7 @@ test('a booking request with Text: the email is skipped, the text is queued with
     const stops = await sql`select body like '%Reply STOP to opt out.' as stop from phone_outbox where to_number = ${r.phone} and kind = 'notify' order by created_at`;
     expect(stops.map((x) => x.stop)).toEqual(stops.map((_, i) => i === 0));
     expect(sms!.body).not.toMatch(/[—–]/);
+    // r35 (0900): a text is held for the merge window (2 minutes) in any case; past it only the quiet hours hold it
     expect(sms!.waits, 'a text queued in the quiet hours waits for 8 am, otherwise it goes now').toBe(sms!.quiet);
     // the quiet hours end (or have): the phone job sends it through the fake line
     await sql`update phone_outbox set send_after = now() - interval '1 second' where id = ${sms!.id}`;
