@@ -66,7 +66,8 @@ test('Visitors: the map, Live now and Show contact on the page; the old addresse
     // one menu entry: Visitors (the menu is folded on a phone: open it as a phone user does)
     if (phone) await page.getByTestId('admin-nav').getByRole('button', { name: /^Menu\. You are on/ }).click();
     const nav = page.getByTestId('admin-nav');
-    await expect(nav.getByRole('link', { name: 'Visitors', exact: true })).toHaveCount(1);
+    // the entry carries the count of visitors on the site now when there are any ("Visitors 3")
+    await expect(nav.getByRole('link', { name: /^Visitors( \d+)?$/ })).toHaveCount(1);
     for (const old of ['Live map', 'Live visitors', 'Visitor history']) await expect(nav.getByRole('link', { name: old, exact: true })).toHaveCount(0);
     if (phone) await page.getByTestId('admin-nav').getByRole('button', { name: /^Menu\. You are on/ }).click();
     await expect(page.getByTestId('lm-kpis')).toContainText('On site now');
@@ -253,12 +254,13 @@ test('Visitors: the map, Live now and Show contact on the page; the old addresse
     await tv.route('**/api/staff/live-map*', async (route) => {
       const r = await route.fetch();
       const j = await r.json() as { pins: Array<Record<string, unknown>> };
-      j.pins.unshift({ ...(j.pins[0] ?? {}), id: 'lm-no-car', type: 'on_rent', types: ['on_rent'], at: new Date().toISOString(), who: 'Una U.', name: 'Una Unassigned',
+      j.pins.unshift({ ...(j.pins[0] ?? {}), id: 'lm-no-car', type: 'on_rent', types: ['on_rent'], at: new Date().toISOString(), who: 'Quill Z.', name: 'Quill Zunassigned',
         booking_number: 'CC-00000', return_at: new Date(Date.now() + 86_400_000).toISOString(), pickup_at: new Date().toISOString(), car: null, lat: 43.7, lng: -79.4, signals: [] });
       await route.fulfill({ response: r, json: j });
     });
     await tv.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
-    const film = tv.getByTestId('lm-film-card').filter({ hasText: 'Una U.' });
+    // a name no other test gives a renter (bookings-now makes an Una)
+    const film = tv.getByTestId('lm-film-card').filter({ hasText: 'Quill Z.' });
     await expect(film).toContainText('Car not assigned');
     await expect(film.locator('.lm-shape svg')).toBeVisible();
     await expect(tv.getByTestId('lm-film')).not.toContainText('Car ?');

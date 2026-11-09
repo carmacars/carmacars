@@ -98,7 +98,8 @@ test('Admin: each area at most five pages, actions are buttons, Ctrl+K finds eve
   await signIn(page, admin.email, '/admin');
   const rows: Array<[string, string, string[]]> = [
     ['/admin/applications', 'People', ['Owners', 'Partners', 'Renters', 'Team', 'Investors']],
-    ['/admin/vehicles', 'Cars', ['Vehicles', 'Listings', 'Maintenance']],
+    // r35 part T: the field jobs board is Cars > Field jobs
+    ['/admin/vehicles', 'Cars', ['Vehicles', 'Listings', 'Field jobs', 'Maintenance']],
     ['/admin/marketing/marketplace', 'Marketing', ['Marketplace', 'Ads', 'Channels', 'Owner recruitment']],
     ['/admin/money', 'Money', ['Payments', 'Owner money', 'Tolls and tickets', 'Company', 'Insurers']]
   ];
@@ -114,7 +115,8 @@ test('Admin: each area at most five pages, actions are buttons, Ctrl+K finds eve
   }
   // People > Owners: the four tabs; Add a car for an owner is a button on the page
   await page.goto('/admin/owners', { waitUntil: 'networkidle' });
-  await expect(page.getByTestId('hub-bar').locator('a')).toHaveText([/^Applications/, /^Owners/, /^Owner forms/, /^Paid and signed/]);
+  // r35 (0950): the owner leads are a tab of Owners
+  await expect(page.getByTestId('hub-bar').locator('a')).toHaveText([/^Applications/, /^Owners/, /^Owner forms/, /^Paid and signed/, /^Leads/]);
   await expect(page.getByTestId('add-car-for-owner')).toBeVisible();
   await page.getByTestId('add-car-for-owner').click();
   await page.waitForURL(/\/admin\/owners\/add-car/);

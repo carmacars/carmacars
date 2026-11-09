@@ -14,7 +14,8 @@ const vin = () => Array.from(randomBytes(17), (b) => VIN_CHARS[b % VIN_CHARS.len
 
 async function layout(page: Page) {
   return {
-    sections: await page.locator('.car-body .car-sec').evaluateAll((els) => els.map((e) => e.id)),
+    // r35 (M): the depth sections follow the data a car has (its specs, the maintenance table of its make): not the layout
+    sections: await page.locator('.car-body .car-sec').evaluateAll((els) => els.filter((e) => !e.closest('.depth')).map((e) => e.id)),
     menu: await page.locator('.car-nav a').allInnerTexts(),
     heading: await page.locator('h1.car-top__name').evaluate((e) => `${e.className}|${e.children.length}|${e.children[0]?.tagName}`),
     keyspecs: await page.locator('.keyspecs dt').allInnerTexts(),

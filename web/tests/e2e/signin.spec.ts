@@ -99,7 +99,8 @@ test('sign-in: several portals: choose one, and each frame links to the others',
   const phone = info.project.name.startsWith('phone');
   const sql = db();
   await sql`delete from app.rate_limit_hits`;
-  const p = await mkPerson(sql, 'Multi Person', ['admin', 'va', 'owner'], { va: 'finance', cover: ['fleet'] });
+  // r35 (0882): an Admin is only an Admin (no staff role on an Admin account): the person is staff and an owner
+  const p = await mkPerson(sql, 'Multi Person', ['va', 'owner'], { va: 'finance', cover: ['fleet'] });
   const page = await newPage(browser, phone);
   const errors = watch(page);
   await signIn(page, p.email);
@@ -107,7 +108,7 @@ test('sign-in: several portals: choose one, and each frame links to the others',
   const list = page.getByTestId('choose-portal');
   // one staff portal (0197) for every function held; the frame's switcher picks the one worked in. 0720: one card per
   // portal (its name, what is there and the role), the brand mark at the top
-  await expect(list.locator('.cp-card__name')).toHaveText(['Admin', 'Staff portal', 'Owner portal']);
+  await expect(list.locator('.cp-card__name')).toHaveText(['Staff portal', 'Owner portal']);
   await expect(page.getByTestId('portal-card-va')).toContainText('Staff: Finance');
   await expect(page.getByTestId('portal-card-owner')).toContainText('Car owner');
   await page.getByTestId('portal-card-va').click();
@@ -122,8 +123,8 @@ test('sign-in: several portals: choose one, and each frame links to the others',
   await expect(page.getByTestId('fn-switch').getByRole('button', { name: 'Fleet' })).toHaveAttribute('aria-pressed', 'true');
   await page.getByTestId('portal-switch').getByRole('link', { name: 'Owner portal' }).click();
   await page.waitForURL((u) => u.pathname === '/owner');
-  await page.getByTestId('portal-switch').getByRole('link', { name: 'Admin' }).click();
-  await page.waitForURL((u) => u.pathname === '/admin');
+  await page.getByTestId('portal-switch').getByRole('link', { name: 'Staff portal' }).click();
+  await page.waitForURL((u) => u.pathname.startsWith('/staff'));
   expect(clean(errors)).toEqual([]);
   await page.context().close();
   await sql.end();

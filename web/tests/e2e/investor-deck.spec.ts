@@ -50,7 +50,9 @@ async function check(page: Page, where: string) {
   const r = await new AxeBuilder({ page: page as never }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   const bad = r.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
   expect(bad.map((v) => `${where} ${v.id}: ${v.nodes.map((n) => n.target.join(' ')).slice(0, 3).join(', ')}`)).toEqual([]);
-  const text = (await page.locator('main').innerText()).replace(/[\w.+-]+@[\w.-]*carmacars\.ca|https?:\/\/\S+|\bcarmacars\.ca\b/gi, ' ');
+  // the page's own words: in Admin the menu's counts ("Bookings 8" then "Cars", r35) sit in main too and are not copy
+  const scope = (await page.locator('.ad__main').count()) ? page.locator('.ad__main').first() : page.locator('main');
+  const text = (await scope.innerText()).replace(/[\w.+-]+@[\w.-]*carmacars\.ca|https?:\/\/\S+|\bcarmacars\.ca\b/gi, ' ');
   for (const [re, what] of COPY_RULES) expect(text.match(re)?.[0], `${where}: ${what}`).toBeUndefined();
 }
 

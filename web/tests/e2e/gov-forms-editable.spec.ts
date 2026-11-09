@@ -143,8 +143,10 @@ test('fleet: changes a value, maps the forms (sample car, history, no upload); M
   const own = await ctx(browser);
   await signIn(own, owner.email, '/owner');
   await own.goto('/owner/documents', { waitUntil: 'networkidle' });
-  await expect(own.getByTestId('government-forms').locator('[data-code="SR-LV-006"]')).toHaveCount(1);
-  const href = await own.getByTestId('government-forms').locator('[data-code="SR-LV-006"]').getByTestId('government-form-download').getAttribute('href');
+  // r35 (1000): the owner's Documents lists each current form as a row of its own (owner-gov-forms)
+  const row = own.getByTestId('owner-gov-forms').getByRole('link', { name: 'SR-LV-006' });
+  await expect(row).toHaveCount(1);
+  const href = await row.getAttribute('href');
   const [cur] = await sql`select id from government_form_fills where vehicle_id = ${car.vehicle} and form_code = 'SR-LV-006' and superseded_at is null`;
   expect(href).toContain(cur!.id as string);
   await sql.end();

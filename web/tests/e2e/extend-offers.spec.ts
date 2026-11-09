@@ -68,8 +68,11 @@ test('renter Extend panel: six offers, the reason of a taken one, one tap to pay
     const opt = (c: string) => (x!.x.options as Array<Record<string, unknown>>).find((y) => y.code === c)!;
     const dollars = (c: unknown) => `$${(Number(c) / 100).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     await expect(panel.getByTestId('extend-opt-1d')).toContainText(dollars(opt('1d').total_cents));
-    await expect(panel.getByTestId('extend-opt-1d').locator('s')).toHaveText(dollars(opt('1d').regular_total_cents));
-    await expect(panel.getByTestId('extend-opt-1d')).toContainText('You save 5%');
+    // r35 (1066, same-rate extensions): a day or more is at the booked rate (the discount setting is 0% by default): no
+    // struck-out regular price and no saving on the day
+    expect(Number(opt('1d').save_pct)).toBe(0);
+    await expect(panel.getByTestId('extend-opt-1d').locator('s')).toHaveCount(0);
+    await expect(panel.getByTestId('extend-opt-1d')).not.toContainText('You save');
     await expect(panel.getByTestId('extend-opt-1h')).toContainText('You save 10%');
     // the week runs into the next booking: disabled, with the reason, and how long the car is free
     await expect(panel.getByTestId('extend-opt-1w').locator('input')).toBeDisabled();

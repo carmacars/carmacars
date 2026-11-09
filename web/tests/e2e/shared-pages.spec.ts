@@ -123,9 +123,8 @@ test('one booking, vehicle and listing page: each role sees exactly its parts, t
     // documents: no paper signature card unless one was recorded before 0720 (none here); the full renter documents card for an Admin
     expect.soft(has(bk.documents!, 'booking-paper'), `${role}: signed on paper`).toBe(false);
     expect.soft(has(bk.documents!, 'booking-doc-review') && hasHeading(bk.documents!, 'Renter documents'), `${role}: renter documents`).toBe(role === 'admin');
-    // history: the status history and the emails stay with an Admin
-    expect.soft(hasHeading(bk.activity!, 'Status history'), `${role}: status history`).toBe(role === 'admin');
-    expect.soft(hasHeading(bk.activity!, 'Emails sent'), `${role}: emails sent`).toBe(role === 'admin');
+    // history: r35 (0850) the status history and the emails sent are one Activity log on the booking
+    if (role === 'admin') expect.soft(has(bk.activity!, 'activity-log'), `${role}: activity log`).toBe(true);
     // claims & extras: the change requests for an Admin and customer service only, even at the old address
     expect.soft(hasHeading(bk.extras!, 'Change requests'), `${role}: change requests`).toBe(role === 'admin' || role === 'cs');
     }

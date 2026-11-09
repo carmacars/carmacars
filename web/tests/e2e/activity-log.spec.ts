@@ -107,7 +107,8 @@ test.describe('renter activity log', () => {
     await page.waitForURL(/act=text/);
     await expect(page.getByTestId('activity-item')).toHaveCount(1);
     await expect(page.getByTestId('activity-item')).toContainText('Running ten minutes late');
-    await expect(page.getByTestId('activity-item').getByTestId('activity-text-back')).toBeVisible();
+    // r35 (0970): ContactButtons suffix their test ids (-call, -text), so Text back is activity-text-back-text
+    await expect(page.getByTestId('activity-item').getByTestId('activity-text-back-text')).toBeVisible();
     await page.getByTestId('activity-chip-all').click();
     await page.waitForURL((u) => !u.search.includes('act='));
     await page.getByTestId('activity-search').fill('monday');
