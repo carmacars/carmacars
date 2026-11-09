@@ -33,9 +33,9 @@ on:
         type: string
         default: '0'
       indexnow_rounds:
-        description: IndexNow batches of 10,000 to send from here (0 for none)
+        description: IndexNow batches (Program settings indexnow_sweep_batch each, 1,000 by default) to send from here (0 for none)
         type: string
-        default: '10'
+        default: '30'
   schedule:
     - cron: '17 */3 * * *'
 
@@ -100,7 +100,7 @@ jobs:
       - name: IndexNow (on, key file, sweep; then batches from here)
         continue-on-error: true
         env:
-          ROUNDS: ${{ github.event_name == 'schedule' && '10' || inputs.indexnow_rounds || '10' }}
+          ROUNDS: ${{ github.event_name == 'schedule' && '30' || inputs.indexnow_rounds || '30' }}
         run: |
           set -euo pipefail
           sb="$GITHUB_WORKSPACE/scripts/deploy/sb.sh"
@@ -116,8 +116,10 @@ jobs:
           host=$(sed -E 's#^https?://##; s#/.*##' <<<"$BASE")
           sent=0
           for i in $(seq 1 "$ROUNDS"); do
+            # 1101: the database clamps the claim to Program settings indexnow_sweep_batch (1,000 by default); a 5xx or no
+            # answer backs off 10 minutes doubling to 6 hours there, and the loop stops here
             # the claim holds up to 10,000 paths: keep it in a file (as an argument it passes the kernel's limit, exit 126)
-            "$sb" sql "select app.server_indexnow_claim(10000) c" | jq '.[0].c' > "$RUNNER_TEMP/claim.json"
+            "$sb" sql "select app.server_indexnow_claim(1000) c" | jq '.[0].c' > "$RUNNER_TEMP/claim.json"
             n=$(jq '.paths | length' "$RUNNER_TEMP/claim.json")
             if [ "$n" = 0 ]; then echo "::notice title=indexnow::nothing to send now ($(jq -r '.why // ""' "$RUNNER_TEMP/claim.json"))"; break; fi
             jq --arg h "$host" --arg k "$KEY" --arg b "$BASE" '{host: $h, key: $k, keyLocation: ($b + "/" + $k + ".txt"), urlList: [.paths[] | $b + .]}' "$RUNNER_TEMP/claim.json" > "$RUNNER_TEMP/in.json"
@@ -132,3 +134,11 @@ jobs:
             sent=$((sent + n))
           done
           echo "::notice title=indexnow::$sent addresses sent to Bing's IndexNow from here this run"
+
+      # release 35 (M): after a deploy (submit=true), the owner presses Validate fix in Search Console. There is no API
+      # for it (docs/runbooks/release.md, step 6). The run's summary says so with the link.
+      - name: Validate fix reminder (manual, owner)
+        if: github.event_name == 'workflow_dispatch' && inputs.submit
+        run: |
+          echo "::notice title=Search Console::Owner step: Search Console > Indexing > Pages > Crawled - currently not indexed > Validate fix (no API exists). See docs/runbooks/release.md step 6."
+          printf '\n### Owner step: Validate fix\n\nSearch Console > Indexing > Pages > "Crawled - currently not indexed" > **Validate fix**. Manual: Google offers no API for it. See docs/runbooks/release.md, step 6.\n' >> "$GITHUB_STEP_SUMMARY"

@@ -14,6 +14,11 @@ import { hubCopy, isAutoService, placeLabel } from './copy';
 import { getTerms, hubPath, VERTICAL_ROOT, type Hub, type Vertical } from './data';
 import { PlaceLeadForm, type Kind } from './PlaceLeadForm';
 import { genericPhoto, photoLd, StockFigure } from '@/features/vehicles/photo';
+import { buildDepth } from '@/features/seo/depth';
+import { depthCar, getDepthFacts, getPois } from '@/features/seo/depth-data';
+import { DepthSections } from '@/features/seo/Depth';
+import { getArticles } from '@/features/seo/data';
+import { getFleet } from '@/lib/site';
 import '@/styles/seo.css';
 import '@/styles/vehicles.css';
 
@@ -62,7 +67,20 @@ export async function HubPage({ h }: { h: Hub }) {
   // the writing kit (docs/changes/2026-10-24-writing-kit.md): text written for this page wins, else the kit's; the
   // template's questions first, then the kit's, none on the mechanical work we arrange (0121)
   const text = chooseText(h.written, writeKit(hubKit(h, where, t, F(h.term.intent_note ?? ''))));
-  const faq = auto ? [] : mergeFaq(c.faq, text.faq, 8);
+  // release 35 (M): the depth sections, from this page's own data only (src/features/seo/depth.ts)
+  const local = !wide && h.place.kind !== 'country';
+  const [df, pois, fleet, articles] = await Promise.all([getDepthFacts(), local ? getPois(h.place.lat, h.place.lng) : Promise.resolve([]),
+    h.cars.length ? Promise.resolve([]) : getFleet().catch(() => []), getArticles().catch(() => [])]);
+  const parentCity = [...h.ancestors].reverse().find((a) => a.kind === 'city')?.name ?? null;
+  const cmp = /^(.+)-alternative$/.exec(h.term.slug) ? { company: h.term.title.replace(/ Alternative.*$/, ''), versus: false } : /-vs-/.test(h.term.slug) ? { company: h.term.title.replace(/^.* vs /, ''), versus: true } : null;
+  const depth = buildDepth({ path: h.path, facts: df, cars: h.cars.map(depthCar), fallbackCars: fleet.map(depthCar).sort((a, b) => a.dailyCents - b.dailyCents),
+    place: { name: h.place.name, label: where, kind: h.place.kind, region: h.place.region, parentCity, km: h.delivery.km, originLabel: h.origin.label, inReach: !!h.delivery.in_reach,
+      reachKm: h.delivery.reach_km, deliveryFromCents: h.delivery.fee_from_cents ?? null, airport: wide ? null : h.airport, nearby: h.nearby.map((n) => ({ name: n.name, path: hubPath(v, h.term.slug, n.slug), km: n.km })) },
+    pois, compare: v === 'rental' && !auto ? cmp : null,
+    related: { places: h.nearby.slice(0, 8).map((n) => ({ href: hubPath(v, h.term.slug, n.slug), label: `${h.term.title} in ${n.name}` })),
+      cars: (h.cars.length ? h.cars : fleet).slice(0, 6).map((x) => ({ href: x.path, label: `${[x.year, x.make, x.model].filter(Boolean).join(' ')} for rent` })),
+      guides: articles.filter((a) => ['airports', 'driving', 'trips', 'drivers'].includes(a.topic ?? '')).slice(0, 4).map((a) => ({ href: a.path, label: a.title })) } });
+  const faq = auto ? [] : mergeFaq(c.faq, [...depth.faq, ...text.faq], 14);
   const kitLocal = text.sections.some((x) => x.id === 'local');
   const graph: object[] = [breadcrumbLd(trail, h.path), ...(faq.length ? [faqLd(faq)] : []), ...(photo ? [photoLd(photo, photo.alt ?? undefined)] : [])];
   if (h.cars.length) graph.push({ '@type': 'ItemList', name: auto ? `Cars to rent while yours is in the shop, ${where}` : c.h1, numberOfItems: h.cars.length,
@@ -131,6 +149,7 @@ export async function HubPage({ h }: { h: Hub }) {
           </section>
         )}
         <KitText sections={text.sections} source={text.source} look="hub" />
+        {!auto && <DepthSections d={depth} />}
         {!kitLocal && (h.landmarks.length > 0 || (h.airport && !wide)) && (
           <section className="car-sec landing__sec" aria-labelledby="h-around">
             <h2 className="d2" id="h-around">Around {h.place.name}</h2>

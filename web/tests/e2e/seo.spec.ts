@@ -121,7 +121,7 @@ test('car copy: a car added in Admin gets its page copy by itself, nothing typed
   await sql.end();
 });
 
-test('landing pages: live cars, prices and valid structured data; use pages noindex under the threshold', async ({ browser }) => {
+test('landing pages: live cars, prices and valid structured data; use pages indexed as the database says (1100: every active page)', async ({ browser }) => {
   test.setTimeout(120_000);
   const page = await ctx(browser);
   const errors: string[] = [];
@@ -144,8 +144,7 @@ test('landing pages: live cars, prices and valid structured data; use pages noin
   await check(page, 'landing toronto');
   await page.screenshot({ path: `${SHOTS}/landing-toronto-${test.info().project.name}.png`, fullPage: true });
 
-  // a use page follows the database's rule: with fewer real matching cars than the setting it is shown but noindex (and
-  // out of the sitemap); other specs publish real cars (new cars are published automatically, 0070), so read the rule
+  // a use page follows the database's rule (1100: every active page is indexed and filled, whatever its cars)
   const sql = db();
   const [ix] = await sql`select app.seo_page_indexable(p) i from seo_pages p where p.slug = 'monthly'`;
   await sql.end();

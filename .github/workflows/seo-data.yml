@@ -1,0 +1,72 @@
+name: seo-data
+
+# The sourced page data for the SEO pages (release 35, part M; migration 1100; docs/changes/2026-11-08-r35-seo-depth.md):
+# the transit agencies' GTFS stops, OpenStreetMap hotels, fueleconomy.gov and NHTSA figures for the fleet's models, and
+# an optional curated spec or maintenance cost CSV (OEM spec pages, open datasets). Downloaded on the runner
+# (web/scripts/seo-data.mjs) and loaded through the database path the other workflows use (scripts/deploy/sb.sh,
+# app.server_seo_data_load). Nothing is committed. Weekly, or by hand.
+on:
+  workflow_dispatch:
+    inputs:
+      parts:
+        description: What to load (any of gtfs osm specs csv, space separated)
+        type: string
+        default: 'gtfs osm specs'
+      csv_url:
+        description: A curated CSV to load (https; columns in web/src/features/seo/seo-data.ts), empty for none
+        type: string
+        default: ''
+      csv_kind:
+        description: The CSV's kind
+        type: choice
+        options: [specs, maintenance]
+        default: specs
+  schedule:
+    - cron: '41 6 * * 1'
+
+concurrency:
+  group: seo-data
+  cancel-in-progress: false
+
+env:
+  DB_BACKEND: ${{ vars.DB_BACKEND }}
+  VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+  SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+
+jobs:
+  load:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Download and load
+        env:
+          PARTS: ${{ inputs.parts || 'gtfs osm specs' }}
+          CSV_URL: ${{ inputs.csv_url || '' }}
+          KIND: ${{ inputs.csv_kind || 'specs' }}
+        run: |
+          set -euo pipefail
+          sb="$GITHUB_WORKSPACE/scripts/deploy/sb.sh"
+          OUT="$RUNNER_TEMP/seo-data"; mkdir -p "$OUT"
+          for part in $PARTS; do
+            case "$part" in
+              specs)
+                "$sb" sql "select app.server_seo_data_targets(400) t" | jq '.[0].t' > "$RUNNER_TEMP/targets.json"
+                OUT="$OUT" TARGETS="$RUNNER_TEMP/targets.json" node --experimental-strip-types --no-warnings web/scripts/seo-data.mjs specs || echo "::warning title=seo-data::specs failed" ;;
+              gtfs|osm|csv)
+                OUT="$OUT" node --experimental-strip-types --no-warnings web/scripts/seo-data.mjs "$part" || echo "::warning title=seo-data::$part failed" ;;
+            esac
+          done
+          loaded=0
+          for f in "$OUT"/*.json; do
+            [ -e "$f" ] || continue
+            tag="j$(openssl rand -hex 6)"
+            # the chunk from its file (as an argument it can pass the kernel's limit)
+            { printf 'select app.server_seo_data_load($%s$' "$tag"; cat "$f"; printf '$%s$::jsonb) r' "$tag"; } > "$RUNNER_TEMP/load.sql"
+            if "$sb" sql-file "$RUNNER_TEMP/load.sql" >/dev/null; then loaded=$((loaded + 1)); else echo "::warning title=seo-data::$(basename "$f") not loaded"; fi
+          done
+          echo "::notice title=seo-data::$loaded files loaded"

@@ -145,8 +145,8 @@ update vehicle_listings l set status = 'paused' from vehicles v where v.id = l.v
 insert into seo_pages (slug, kind, name, facts, match, copy) values
   ('se-place', 'location', 'Se Place', '{"highways": ["401"]}', '{}', '{"seo_title": "Car Rental in Se Place | CarmaCars", "meta_description": "x", "h1": "Car rental in Se Place", "intro": "Intro.", "sections": [], "faq": []}'),
   ('se-suv', 'use', 'Se SUV rental', '{}', '{"classes": ["suv"]}', '{"seo_title": "SUV Rental | CarmaCars", "meta_description": "x", "h1": "SUV rental", "intro": "Intro.", "sections": [], "faq": []}');
-select test.eq('landing: a location page is indexable; a use page with fewer real matching cars than the setting is not',
-  (select string_agg(slug || '=' || app.seo_page_indexable(p), ',' order by slug) from seo_pages p where slug like 'se-%'), 'se-place=true,se-suv=false');
+select test.eq('landing: a location page and a use page with no real matching car are both indexable (1100: every page, filled)',
+  (select string_agg(slug || '=' || app.seo_page_indexable(p), ',' order by slug) from seo_pages p where slug like 'se-%'), 'se-place=true,se-suv=true');
 update vehicles set status = 'available', bookings_enabled = true where id in (test.s40v('car1'), test.s40v('car2'), test.s40v('car3'));
 update vehicle_listings set status = 'published' where vehicle_id in (test.s40v('car1'), test.s40v('car2'), test.s40v('car3'));
 insert into pg_temp.s40 values ('suv1', app.vehicle_add(test.id('se_admin'), jsonb_build_object('supply_type', 'company', 'vin', '2SEAXVE0000000099', 'plate', 'SE099',

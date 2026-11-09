@@ -44,7 +44,7 @@ export function PlaceSettings({ o }: { o: PlacesOverview }) {
       {sw('sale_hubs_index', 'Buying help pages in search', '/buy/<term>/<place>. They say CarmaCars does not sell, lend or lease, and take a request.')}
       {sw('detailing_hubs_index', 'Detailing place pages in search', '/detailing/<term>/<place>.')}
       {sw('bodyshop_hubs_index', 'Body shop place pages in search', '/body-shop/<term>/<place>.')}
-      {sw('place_quality_gate', 'Quality gate', 'Search engines can treat many similar pages as low value. On: only places within the delivery reach are indexed, and rental pages only with a real matching car.')}
+      {/* 1100: the quality gate is retired: every place page is indexed and filled with its own data */}
       <div className="ad-fields">
         <div className="field ad-field"><label className="label" htmlFor="ps-reach">Delivery reach (km from {o.origin.label})</label><input className="input" id="ps-reach" inputMode="numeric" value={v.reach} onChange={(e) => setV({ ...v, reach: e.target.value })} /></div>
         <div className="field ad-field"><label className="label" htmlFor="ps-cap">Database size cap for the places import (MB)</label><input className="input" id="ps-cap" inputMode="numeric" value={v.cap} onChange={(e) => setV({ ...v, cap: e.target.value })} /></div>

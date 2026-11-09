@@ -122,3 +122,10 @@ Added for the batch (`web/src/features/seo/batch.ts`):
 - every page unlike the others: a landing page unlike every other landing page (35% of five-word sequences at most), a guide unlike every other guide, a car unlike the other cars of its model (the Program setting) and every other car (80%), and each item unlike the earlier items of the same batch.
 
 The database checks a car's copy again when it is published (`app.car_copy_apply`); a refusal there is reported as rejected too.
+
+## The depth sections (release 35, part M)
+
+Apart from the written copy, every programmatic page has depth sections built at render time from its own data
+(`web/src/features/seo/depth.ts`, docs/changes/2026-11-08-r35-seo-depth.md): cars and prices, local logistics,
+requirements, the car's figures, questions and related links. A batch never writes them and need not repeat their facts;
+a written section is shown next to them, not instead of them.

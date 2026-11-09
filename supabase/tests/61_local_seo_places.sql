@@ -25,10 +25,9 @@ select test.eq('landing: the real-car count reads vehicles.no_credit_card', app.
   (select count(*)::integer from lp_flagged where no_credit_card));
 select test.eq('landing: the real-car count reads vehicles.insurance_included', app.seo_real_count('{"flags": ["insurance_included"]}'),
   (select count(*)::integer from lp_flagged where insurance_included));
-select test.eq('landing: a page for flagged cars is in search only with three such real cars', (select app.seo_page_indexable(p) from seo_pages p where slug = 'lp-flag'),
-  (select count(*) >= 3 from lp_flagged where no_credit_card));
+select test.eq('landing: a page for flagged cars is in search whatever its number of real cars (1100)', (select app.seo_page_indexable(p) from seo_pages p where slug = 'lp-flag'), true);
 update vehicles set no_credit_card = false where id in (select id from lp_flagged where no_credit_card);
-select test.eq('landing: without such cars the page stays out of search', (select app.seo_page_indexable(p) from seo_pages p where slug = 'lp-flag'), false);
+select test.eq('landing: without such cars the page stays in search (1100: filled with the nearest similar cars)', (select app.seo_page_indexable(p) from seo_pages p where slug = 'lp-flag'), true);
 update vehicles set no_credit_card = true where id in (select id from lp_flagged where no_credit_card);
 select test.eq('landing: a car marked no credit card needed counts at once',
   (select app.seo_real_count('{"flags": ["no_credit_card"]}') from (select 1) x), (select count(*)::integer from lp_flagged where no_credit_card));
@@ -77,8 +76,8 @@ select test.eq('finish: the airport is the place of the landing page with its co
 select test.ok('budget: the database size and the cap', (public.server_places_budget() ->> 'cap_bytes')::bigint = 6144::bigint * 1048576);
 
 -- ================================================================ 4. terms
-select test.eq('terms with pages of their own: rental 31, 36 more (0098), 15 more (0115) and the 3 alternatives (0522), buying help 14 and 4 more (0115), detailing 27, body shop 20 and 2 more (0115) and 20 for the mechanical work we arrange (0121); synonyms are counted in suites 77 and 78',
-  (select string_agg(vertical || '=' || n, ',' order by vertical) from (select vertical, count(*) n from place_terms where canonical_slug is null group by vertical) x), 'bodyshop=42,detailing=27,rental=85,sale=18');
+select test.eq('terms with pages of their own: rental 31, 36 more (0098), 15 more (0115) and the 3 alternatives (0522) and the 2 01 Motors terms (1102), buying help 14 and 4 more (0115), detailing 27, body shop 20 and 2 more (0115) and 20 for the mechanical work we arrange (0121); synonyms are counted in suites 77 and 78',
+  (select string_agg(vertical || '=' || n, ',' order by vertical) from (select vertical, count(*) n from place_terms where canonical_slug is null group by vertical) x), 'bodyshop=42,detailing=27,rental=87,sale=18');
 select test.ok('terms: buying help always takes a request, never "served"', not exists (select 1 from place_terms where vertical = 'sale' and served <> 'request'));
 select test.ok('terms (0098): every rideshare and delivery page says the companies named are not affiliated',
   not exists (select 1 from place_terms where slug in ('uber-rental-car', 'lyft-rental-car', 'rideshare-car-rental', 'uber-eats-car-rental', 'doordash-car-rental',
@@ -113,12 +112,10 @@ select test.ok('sitemaps: one family of files per term of each tier', (select co
 select test.ok('sitemap: Port Credit''s SUV page is listed, a landmark never, the base page of a place with a landing page never',
   (select bool_or(x ->> 'path' = '/car-rental/suv-rental/lp-port-credit-mississauga-on') from jsonb_array_elements(public.place_sitemap('rental', 'suv-rental', 1)) x)
   and not exists (select 1 from jsonb_array_elements(public.place_sitemap('rental', 'car-rental', 1)) x where x ->> 'path' = '/car-rental/lp-pearson-yyz'));
-update program_settings set place_quality_gate = true where id = (app.settings()).id;
-select test.ok('gate on: a far city leaves the sitemap; a place within the reach stays',
-  not exists (select 1 from jsonb_array_elements(public.place_sitemap('detailing', 'car-detailing', 1)) x where x ->> 'path' like '%lp-thunder-bay-on')
-  and exists (select 1 from jsonb_array_elements(public.place_sitemap('detailing', 'car-detailing', 1)) x where x ->> 'path' like '%lp-port-credit-mississauga-on'));
-select test.eq('gate on: the far city''s page is not indexed', (public.place_hub('detailing', 'car-detailing', 'lp-thunder-bay-on') ->> 'indexable')::boolean, false);
-update program_settings set place_quality_gate = false where id = (app.settings()).id;
+select test.throws('the quality gate is retired (1100): it cannot be turned on', $$update program_settings set place_quality_gate = true where id = (app.settings()).id$$, 'program_settings_no_quality_gate');
+select test.ok('a far city stays in the sitemap and in search (1100)',
+  exists (select 1 from jsonb_array_elements(public.place_sitemap('detailing', 'car-detailing', 1)) x where x ->> 'path' like '%lp-thunder-bay-on')
+  and (public.place_hub('detailing', 'car-detailing', 'lp-thunder-bay-on') ->> 'indexable')::boolean);
 update program_settings set sale_hubs_index = false where id = (app.settings()).id;
 select test.ok('tier off: no buying help file and no buying help page indexed', not exists (select 1 from jsonb_array_elements(public.place_sitemap_files()) x where x ->> 'vertical' = 'sale')
   and not (public.place_hub('sale', 'used-cars', 'lp-port-credit-mississauga-on') ->> 'indexable')::boolean);
