@@ -16,6 +16,8 @@ import { FdIcon } from '@/features/field/icons';
 import { KIND, STATUS, clock, maps } from '@/features/field/format';
 import { ContactButtons } from '@/features/phone/QuoButtons';
 import { HandoverOverride } from '@/features/handover/HandoverOverride';
+import { JobCardSteps } from '@/features/field-portal/JobCardSteps';
+import type { Card } from '@/features/field-portal/model';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Job', path: '/staff/field', noindex: true, description: 'One field job and its checklist.' });
@@ -43,9 +45,11 @@ export default async function FieldJobPage({ params }: { params: Promise<{ id: s
   const listing = j.job.kind !== 'photo_shoot' ? null : cap ? <>{steps && <ListingSteps initial={steps} refresh={[`/staff/field/jobs/${id}`]} />}<ListingCapture initial={cap} refresh={[`/staff/field/jobs/${id}`]} /></>
     : j.checklist?.listing?.submitted_at ? <p className="fd-line is-ok">Submitted for listing.</p> : <StartListing vehicleId={j.vehicle.id} label="Start the listing photos" />;
   const c = clock(j.job.scheduled_at);
+  // r35 part X (0930): the card's own steps on the job screen: the clean check and the add-ons ticked as in the car
+  const card = (j.report_kind === 'pickup' || j.report_kind === 'return') ? await door<Card | null>(user.id, 'field_read', 'job_card', { id }).catch(() => null) : null;
   return (
     <div className="stack fd-job">
-      <p><Link prefetch={false} className="fd-back" href="/staff/field"><FdIcon name="back" />My jobs</Link></p>
+      <p><Link prefetch={false} className="fd-back" href="/staff/field"><FdIcon name="back" />Today</Link></p>
       <header className="fd-next fd-jobhead" data-testid="job-head">
         <div className="fd-next__when">
           <p className="fd-next__time">{c.time}<span className="fd-next__half">{c.half}</span></p>
@@ -70,13 +74,15 @@ export default async function FieldJobPage({ params }: { params: Promise<{ id: s
         {j.walkthrough && j.report_kind !== 'ready' && <p className={`fd-walk small${j.walkthrough.read >= j.walkthrough.of ? ' is-ok' : ''}`} data-testid="job-walkthrough">
           <b>Renter&apos;s walkthrough:</b> read {j.walkthrough.read} of {j.walkthrough.of} steps{j.walkthrough.read < j.walkthrough.of ? '. Walk them through the rest at the car: what to bring, the walk-around, the road rules and the return.' : '.'}</p>}
       </header>
-      {b?.addons && b.addons.length > 0 && (
+      {b?.addons && b.addons.length > 0 && !(card?.leg === 'pickup' && (card.addons?.length ?? 0) > 0 && !b.prepaid_fuel) && (
         <section className="fd-card fd-bring" aria-labelledby="addons-t" data-testid="job-addons">
           <h2 className="fd-bring__h" id="addons-t"><FdIcon name="bag" />{j.report_kind === 'return' ? 'Add-ons on this rental' : 'Put in the car'}</h2>
           <ul className="small">{b.addons.map((a) => <li key={a.name}><b>{a.quantity > 1 ? `${a.quantity} x ` : ''}{a.name}</b>{a.hours ? `, ${+a.hours} hours` : ''}{a.handover_note ? `: ${a.handover_note}` : ''}</li>)}</ul>
           {b.prepaid_fuel && <p className="pt-note small" data-testid="job-prepaid-fuel"><b>Prepaid fuel.</b> The renter may return the car at any fuel level. Do not charge for fuel.</p>}
         </section>
       )}
+      {card && <JobCardSteps c={card} />}
+      {b && !done && <p><Link prefetch={false} className="btn btn--ghost fd-wide" href={`/staff/field/help/${b.booking_number}`} data-testid="job-help"><FdIcon name="help" />Help the renter: pay, deposit, ID, sign</Link></p>}
       {/* 0770: a check stops the pickup or the return and the trip must go ahead: ask an Admin from here (one tap for them) */}
       {b && !done && (j.report_kind === 'pickup' || j.report_kind === 'return') && <HandoverOverride booking={b.id} userId={user.id} refresh={[`/staff/field/jobs/${id}`]} />}
       {lic && (

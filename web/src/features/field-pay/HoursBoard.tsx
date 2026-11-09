@@ -1,9 +1,15 @@
 import Link from '@/components/Link';
 import { Act } from '@/features/admin/Act';
 import { Card, Table, t } from '@/features/admin/ui';
-import { hoursText } from './model';
+import { hoursText, mapLink, placeWords, type ClockPlace } from './model';
 
-export type PayShift = { id: string; staff_id: string; name: string; started_at: string; ended_at: string | null; note: string | null; source: string; minutes: number; open: boolean; day: string; locked: boolean; edits: number };
+const Where = ({ label, p }: { label: string; p: ClockPlace | null | undefined }) => {
+  if (!p) return null;
+  const href = mapLink(p);
+  return <span className="ad-sub" data-testid={p.flag ? 'clock-flag' : undefined}>{label}: {href ? <a className="link" href={href} target="_blank" rel="noopener noreferrer">map</a> : null}{href ? ', ' : ''}{p.flag ? <b>{placeWords(p)}</b> : placeWords(p)}</span>;
+};
+
+export type PayShift = { id: string; staff_id: string; name: string; started_at: string; ended_at: string | null; note: string | null; source: string; minutes: number; open: boolean; day: string; locked: boolean; edits: number; loc?: { in: ClockPlace | null; out: ClockPlace | null } };
 export type PayStaff = { id: string; name: string; active: boolean; rate_cents?: number | null; own_rate?: number | null; minutes: number };
 export type Clocked = { staff_id: string; name: string; started_at: string; shift_id: string };
 export type Period = { start: string; end: string; label: string; ended: boolean; prev: string; next: string | null };
@@ -37,6 +43,7 @@ export function HoursBoard({ data, base, extra = '' }: { data: PayData; base: st
         <Table<PayShift & Record<string, unknown>> rows={data.shifts as Array<PayShift & Record<string, unknown>>} empty="No hours in this period." cols={[
           { key: 'name', label: 'Staff member' }, { key: 'started_at', label: 'From', render: (r) => t(r.started_at) }, { key: 'ended_at', label: 'To', render: (r) => (r.ended_at ? t(r.ended_at) : <b>still open</b>) },
           { key: 'minutes', label: 'Hours', num: true, render: (r) => hoursText(r.minutes) },
+          { key: 'loc', label: 'Where', className: 'wrap', render: (r) => (r.loc?.in || r.loc?.out ? <><Where label="In" p={r.loc?.in} /><Where label="Out" p={r.loc?.out} /></> : <span className="muted small">{r.source === 'manual' ? 'entered by the office' : ''}</span>) },
           { key: 'note', label: 'Note', className: 'wrap', render: (r) => <span>{r.note ?? ''}{r.source === 'manual' ? <span className="ad-sub">entered by the office</span> : null}{r.edits > 0 ? <span className="ad-sub">changed {r.edits} time{r.edits === 1 ? '' : 's'}</span> : null}</span> },
           { key: 'act', label: '', render: (r) => r.locked ? <span className="small muted">Pay run approved</span> : (
             <span className="ad-actions">

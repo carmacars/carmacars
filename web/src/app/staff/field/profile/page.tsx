@@ -5,8 +5,6 @@ import { auth } from '@/lib/auth';
 import { signOut } from '@/server/actions/auth';
 import { FieldButton } from '@/features/field/FieldButton';
 import { HomeAddressSection, homeAddressOf } from '@/features/staff/HomeAddress';
-import { PayDetails } from '@/features/staff/PayDetails';
-import type { PayDetailsView } from '@/features/staff/pay-details';
 import { SignInSettings } from '@/features/portal/SignInSettings';
 import { notifyReach, signInState } from '@/server/sign-in-settings';
 import { selfProfile } from '@/server/self-profile';
@@ -23,8 +21,8 @@ type P = { name: string; email: string; phone: string | null; field_function: st
 // /field/profile (06-field.md section 10): name, phone, home address (0059), password, two-step sign-in, sign out.
 export default async function Profile() {
   const { user } = await requireStaff('field', '/staff/field/profile');
-  const [p, factors, home, si, pay] = await Promise.all([door<P>(user.id, 'field_read', 'profile'), (await auth()).mfaFactors().catch(() => []), homeAddressOf(user.id, 'field'), signInState(user.id),
-    door<PayDetailsView>(user.id, 'field_read', 'my_pay_details').catch(() => null)]);
+  const [p, factors, home, si, sales] = await Promise.all([door<P>(user.id, 'field_read', 'profile'), (await auth()).mfaFactors().catch(() => []), homeAddressOf(user.id, 'field'), signInState(user.id),
+    door<{ opted_in: boolean; ready: boolean } | null>(user.id, 'field_read', 'sales_state').catch(() => null)]);
   const [nc, sp] = await Promise.all([notifyReach(user.id), selfProfile(user.id)]);
   const twoStep = factors.some((f) => f.verified);
   return (
@@ -36,7 +34,16 @@ export default async function Profile() {
         <FieldButton action="profile_save" payload={{}} label="Save my phone" testId="profile-save" fields={[{ name: 'phone', label: 'Mobile phone', required: true }]} />
       </section>
       {home.missing ? <p className="small" data-testid="home-address-above">Fill in your home address at the top of the page.</p> : <HomeAddressSection portal="field" state={home} />}
-        <PayDetails portal="field" view={pay} />
+      <section className="fd-card" aria-labelledby="pay-t"><h2 className="d4" id="pay-t">Pay details</h2>
+        <p className="small">Your legal name, SIN, void cheque and how you are paid are on <Link prefetch={false} className="link" href="/staff/field/pay#pay-details">My pay</Link>.</p></section>
+      <section className="fd-card stack" aria-labelledby="sales-t" data-testid="sales-optin"><h2 className="d4" id="sales-t">Sales</h2>
+        {sales?.opted_in
+          ? <><p className="small">{sales.ready ? 'You do sales too: the Sales tab has your pages.' : 'You asked to do sales too. Pass the Sales path in Training and the Sales pages open.'}</p>
+              <FieldButton action="sales_optin" payload={{ on: false }} label="Stop doing sales" sheet={{ confirm: 'Stop doing sales', title: 'The Sales tab and pages close' }} testId="sales-off" /></>
+          : <><p className="small">Sell rentals too and earn commission on the rentals you bring in, as the sales terms say. The Sales path in Training comes first.</p>
+              <FieldButton action="sales_optin" payload={{ on: true }} label="I want to do sales too" primary testId="sales-on" /></>}
+        <p className="small"><Link prefetch={false} className="link" href="/staff/field/referrals">My referral link</Link> · <Link prefetch={false} className="link" href="/staff/field/rentals/new">Add a rental</Link></p>
+      </section>
       {sp && <SelfProfile data={sp} className="fd-card stack" password={false} />}
       {si && <SignInSettings state={si} className="fd-card stack" />}
       {nc && <NotifyChannelCard reach={nc} className="fd-card stack" />}

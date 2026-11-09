@@ -19,7 +19,8 @@ export type Call = 'roles' | 'admin_list' | 'admin_read' | 'admin_save' | 'admin
 export interface Roles { admin: boolean; va: 'finance' | 'fleet' | 'cs' | 'sales' | null; va_functions?: Array<'finance' | 'fleet' | 'cs' | 'sales'>;
   /** every staff function held, field work included (0197) */ functions?: Array<'finance' | 'fleet' | 'cs' | 'sales' | 'field'>; sales_work_mode?: 'in_person' | 'remote' | null; field: boolean; owner: boolean; renter: boolean; investor: boolean; staff: boolean; two_step_required: boolean; name: string | null;
   /** 0324: the greeting name (Settings > My profile), else the account's name */ greeting?: string | null;
-  /** the academy gate is on and this staff member has not passed their paths yet (0207) */ academy_locked?: boolean }
+  /** the academy gate is on and this staff member has not passed their paths yet (0207) */ academy_locked?: boolean;
+  /** 0931: a field person who asked to do sales too, and whether the Sales path is passed (the Sales function then held) */ sales_opt_in?: boolean; sales_ready?: boolean }
 
 export async function sessionAal(): Promise<'aal1' | 'aal2' | null> {
   return (await auth()).assurance();

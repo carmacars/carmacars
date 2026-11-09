@@ -5,10 +5,13 @@
 // Pure: the pages, the unit tests and the access e2e read it.
 
 export type StaffFn = 'finance' | 'fleet' | 'cs' | 'sales';
-export type Viewer = { role: 'admin' } | { role: 'staff'; fn: StaffFn };
+// r35 part X: field staff helping a renter on the spot (/staff/field/help) are a viewer of their own: payment, the deposit, the licence
+// in person and the signature only (refunds and voids stay with Finance and Admin; the database checks each step again).
+export type Viewer = { role: 'admin' } | { role: 'staff'; fn: StaffFn } | { role: 'field' };
 
 export const ADMIN: Viewer = { role: 'admin' };
 export const staffViewer = (fn: StaffFn): Viewer => ({ role: 'staff', fn });
+export const FIELD: Viewer = { role: 'field' };
 
 /** The portal the page is rendered in: its links stay in that portal (the staff layout gives the staff door to buttons). */
 export function portalBase(v: Viewer): '/admin' | '/staff' {
@@ -72,6 +75,7 @@ export interface BookingCan {
 }
 
 export function bookingCan(v: Viewer): BookingCan {
+  if (v.role === 'field') return fieldCan();
   const admin = v.role === 'admin';
   const fn = fnOf(v);
   const office = admin || fn === 'cs' || fn === 'sales';
@@ -105,6 +109,15 @@ export function bookingCan(v: Viewer): BookingCan {
   };
 }
 
+/** Field staff on the spot: collect payment and the deposit (pay link, QR, card reader), the licence in person, the signature
+ *  (on the phone, the link, a paper photo by the existing rules). Nothing else. */
+function fieldCan(): BookingCan {
+  const no = { admin: false, offer: false, editOfferPending: false, money: false, extras: false, cancelForRenter: false, scheduleJob: false, latePanel: false, photoReview: false,
+    handover: false, sign: false, agreementMoney: false, licenceReview: false, renterDocs: false, staffUpload: false, carLink: false, manualPayments: false, voidRecords: false,
+    paperSignatures: false, driverLinks: false, refund: false, refundApprove: false, settleDeposit: false, statement: false, inbox: false, verifyInPerson: false };
+  return { ...no, money: true, handover: true, sign: true, paperSignatures: true, verifyInPerson: true };
+}
+
 /** The sections a viewer gets as tabs on the booking page. */
 export function bookingTabs(v: Viewer): string[] {
   const c = bookingCan(v);
@@ -130,6 +143,7 @@ export interface VehicleCan {
 }
 
 export function vehicleCan(v: Viewer): VehicleCan | null {
+  if (v.role === 'field') return null;
   const admin = v.role === 'admin';
   const fn = fnOf(v);
   if (fn === 'sales') return null; // the staff vehicle page is for Fleet, customer service and Finance
@@ -155,6 +169,7 @@ export interface ListingCan {
 }
 
 export function listingCan(v: Viewer): ListingCan | null {
+  if (v.role === 'field') return null;
   const admin = v.role === 'admin';
   const fn = fnOf(v);
   if (!admin && fn !== 'cs' && fn !== 'fleet') return null; // the staff listing page is for customer service and Fleet

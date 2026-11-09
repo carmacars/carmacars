@@ -2,7 +2,7 @@
 //   npm run test:unit
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { csvCell, decimalHours, dollarsText, elapsedClock, hoursText, methodWords, overtimeWords, payRunCsv, plainMoney, ruleProblems, ruleThen, ruleWhen, type PayCsvRow } from './model.ts';
+import { csvCell, decimalHours, distanceText, dollarsText, elapsedClock, hoursText, mapLink, methodWords, placeWords, overtimeWords, payRunCsv, plainMoney, ruleProblems, ruleThen, ruleWhen, type PayCsvRow } from './model.ts';
 
 test('hours are written in whole hours and minutes', () => {
   assert.equal(hoursText(510), '8 h 30 min');
@@ -86,4 +86,18 @@ test('a class rule is checked before it is sent', () => {
   assert.ok(ruleProblems({ ...ok, aged_class: 'luxury' }).some((p) => /go together/.test(p)));
   assert.ok(ruleProblems({ ...ok, aged_years: 99, aged_class: 'luxury' }).some((p) => /1 to 60/.test(p)));
   assert.ok(ruleProblems({ ...ok, aged_years: 5, aged_class: 'exotic' }).some((p) => /same as the class/.test(p)));
+});
+
+test('where someone clocked in: a map link, the distance and the flags', () => {
+  const ok = { lat: 43.6532, lng: -79.3832, accuracy: 20, at: null, distance_m: 320, flag: null, reason: null } as const;
+  assert.equal(mapLink(ok), 'https://www.google.com/maps?q=43.653200,-79.383200');
+  assert.equal(mapLink({ lat: null, lng: null }), null);
+  assert.equal(mapLink(null), null);
+  assert.equal(distanceText(320), '320 m');
+  assert.equal(distanceText(1450), '1.4 km');
+  assert.equal(distanceText(null), '');
+  assert.equal(placeWords(ok), '320 m from the lot');
+  assert.equal(placeWords({ ...ok, distance_m: 900, flag: 'far', reason: 'picked up a car at the airport' }), 'over 500 m away (900 m): picked up a car at the airport');
+  assert.equal(placeWords({ ...ok, lat: null, lng: null, distance_m: null, flag: 'no_location', reason: 'phone was off' }), 'location refused: phone was off');
+  assert.equal(placeWords(undefined), '');
 });

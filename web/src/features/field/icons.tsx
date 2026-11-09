@@ -12,7 +12,20 @@ const P = {
   offline: <path d="M7 18.5h10a4 4 0 0 0 1.8-.4M20.6 15A4 4 0 0 0 17.6 10.5 5.5 5.5 0 0 0 9.5 6M6.3 9.6A4.5 4.5 0 0 0 7 18.5M4 4l16 16" />,
   retry: <path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4.5v4h-4" />,
   back: <path d="M15 5l-7 7 7 7" />,
-  arrow: <path d="M4.5 12h14M13.5 6.5l5.5 5.5-5.5 5.5" />
+  arrow: <path d="M4.5 12h14M13.5 6.5l5.5 5.5-5.5 5.5" />,
+  // r35 part X: the tabs and the Add button
+  today: <path d="M4.5 6.5h15v13h-15zM4.5 10.5h15M8.5 4v4M15.5 4v4M8 14l2 2 4-4" />,
+  shifts: <path d="M12 20.5a8.5 8.5 0 1 0 0-17 8.5 8.5 0 0 0 0 17zM12 7.5V12l3 2" />,
+  pay: <path d="M3.5 7h17v10h-17zM12 14.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM6.5 10v4M17.5 10v4" />,
+  training: <path d="M3 9l9-4.5L21 9l-9 4.5zM7 11v4.5c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5V11M21 9v5" />,
+  sales: <path d="M4 19.5h16M6.5 16v-4M11 16V8M15.5 16v-6M19.5 16V5" />,
+  plus: <path d="M12 5v14M5 12h14" />,
+  receipt: <path d="M6 3.5h12v17l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5-2 1.5zM9 8h6M9 11.5h6M9 15h4" />,
+  wrench: <path d="M14.5 6.5a4 4 0 0 0 5 5L12 19a2.1 2.1 0 0 1-3-3l7.5-7.5zM14.5 6.5L17 4" />,
+  sparkle: <path d="M12 3.5l1.8 5.2 5.2 1.8-5.2 1.8L12 17.5l-1.8-5.2-5.2-1.8 5.2-1.8zM18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z" />,
+  alert: <path d="M12 4l9 16H3zM12 10v4.5M12 17.5v.01" />,
+  help: <path d="M12 20.5a8.5 8.5 0 1 0 0-17 8.5 8.5 0 0 0 0 17zM9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17v.01" />,
+  search: <path d="M10.5 17.5a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM15.5 15.5l5 5" />
 };
 export type FieldIconName = keyof typeof P;
 export function FdIcon({ name, className = 'fd-ico' }: { name: FieldIconName; className?: string }) {

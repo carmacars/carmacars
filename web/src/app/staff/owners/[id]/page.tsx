@@ -3,7 +3,9 @@ import { notFound } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
 import { PageHead } from '@/features/admin/ui';
+import { door } from '@/server/door';
 import { OnboardingChecklist } from '@/features/onboarding/OnboardingChecklist';
+import { PrepPanel, type PrepList } from '@/features/field-portal/FleetPanels';
 import { OnboardingPhotos } from '@/features/onboarding/OnboardingPhotos';
 import { GovernmentForms } from '@/features/onboarding/GovernmentForms';
 import { VinList } from '@/features/onboarding/VinList';
@@ -24,10 +26,13 @@ export default async function StaffOwner({ params }: { params: Promise<{ id: str
   const o = ob.overview.owner;
   const here = [`/staff/owners/${id}`];
   const cars = ob.overview.cars.map((c) => ({ vehicle_id: c.vehicle_id, name: c.name }));
+  // r35 part X (0930): field staff prep each car joining the fleet; Fleet gives it and sees its progress (customer service does not)
+  const preps = await Promise.all(ob.overview.cars.map(async (c) => [c, await door<PrepList>(user.id, 'ops_read', 'field_prep', { vehicle: c.vehicle_id, _va: 'fleet' }).catch(() => null)] as const));
   return (<>
     <PageHead kicker={<Link prefetch={false} className="link" href="/staff/owners">Owners</Link>} title={o.name}>
       <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/staff/owners/add-car?owner=${id}`} data-testid="owner-add-car">Add another car</Link></PageHead>
     <OnboardingChecklist data={ob.overview} />
+    {preps.map(([c, x]) => x && <PrepPanel key={c.vehicle_id} p={x} vehicle={{ id: c.vehicle_id, name: c.name }} title={`Onboarding prep: ${c.name}`} />)}
     <div className="pt-split">
       <div className="stack-lg">
         <OnboardingPhotos photos={ob.photos} ownerId={id} viewer="staff" refresh={here} cars={cars} />

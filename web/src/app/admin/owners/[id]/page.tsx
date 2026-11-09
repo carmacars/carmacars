@@ -32,6 +32,7 @@ import { NameChangeCard } from '@/features/admin/NameChangeCard';
 import { nameChangesFor } from '@/server/self-profile';
 import { AgreementsChecklist, type AgreementOwner } from '@/features/owner-agreements/AgreementsChecklist';
 import { OnboardingChecklist } from '@/features/onboarding/OnboardingChecklist';
+import { PrepPanel, type PrepList } from '@/features/field-portal/FleetPanels';
 import { OnboardingPhotos } from '@/features/onboarding/OnboardingPhotos';
 import { GovernmentForms } from '@/features/onboarding/GovernmentForms';
 import { VinList } from '@/features/onboarding/VinList';
@@ -117,12 +118,15 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
   // r34: the one Onboarding checklist, the onboarding photos and the government forms (0821 to 0823)
   const ob = await onboardingData(user.id, 'ops_read', { owner_id: id });
   const o = d.owner;
+  // r35 part X (0930): field staff prep each car joining the fleet; Fleet and Admin give it and see its progress
+  const preps = await Promise.all((ob.overview?.cars ?? []).map(async (c) => [c, await door<PrepList>(user.id, 'ops_read', 'field_prep', { vehicle: c.vehicle_id }).catch(() => null)] as const));
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   const issuable = d.vehicles.filter((v) => !v.upfront_invoice && ISSUABLE.includes(v.onboarding.status) && v.schedule && ['managed', 'self_managed'].includes(v.billing_case)).length;
   return (
     <>
       {head}
       <OnboardingChecklist data={ob.overview} />
+      {preps.map(([c, x]) => x && <PrepPanel key={c.vehicle_id} p={x} vehicle={{ id: c.vehicle_id, name: c.name }} title={`Onboarding prep: ${c.name}`} />)}
       {carTerms && <CarTermsTable data={carTerms} paths={here} />}
       <div className="pt-split">
         <div className="stack-lg">

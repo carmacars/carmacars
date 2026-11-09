@@ -30,7 +30,8 @@ export const STAFF_GROUPS: NavGroup[] = [
   { key: 'sales', label: 'Sales', links: [{ href: '/staff/requests', label: 'Requests and offers', key: 'r' }, { href: '/staff/visitors', label: 'Visitors', key: 'v' }, { href: '/staff/marketing', label: 'Marketing', also: ['/staff/marketplace'] }, { href: '/staff/my-sales', label: 'My sales' }, sec('sales', 'More sales')] },
   { key: 'fleet', label: 'Fleet', links: [{ href: '/staff/fleet', label: 'Field jobs', also: ['/staff/field-hours'] }, { href: '/staff/fleet/map', label: 'Fleet map' }, { href: '/staff/checks', label: 'Checks', also: ['/staff/reviews'] }, { href: '/staff/maintenance', label: 'Maintenance' }, sec('fleet', 'More fleet')] },
   { key: 'finance', label: 'Finance', links: [{ href: '/staff/money', label: 'Money', also: ['/staff/payments', '/staff/reconciliation'] }, { href: '/staff/owner-money?tab=invoices', label: 'Owner money', also: ['/staff/owner-money'] }, { href: '/staff/tolls', label: 'Tolls and tickets' }, { href: '/staff/turo', label: 'Turo trips' }, sec('finance', 'More finance')] },
-  { key: 'field', label: 'Field work', links: [{ href: '/staff/field', label: 'My jobs' }, { href: '/staff/field/now', label: 'Cars now' }, { href: '/staff/field/map', label: 'Map' }, { href: '/staff/field/hours', label: 'My hours' }] },
+  // r35 part X: the field portal's four tabs (Cars now and the map are links on Today)
+  { key: 'field', label: 'Field work', links: [{ href: '/staff/field', label: 'Today', also: ['/staff/field/now', '/staff/field/map', '/staff/field/help'] }, { href: '/staff/field/shifts', label: 'My shifts' }, { href: '/staff/field/pay', label: 'My pay', also: ['/staff/field/hours'] }, { href: '/staff/field/training', label: 'Training', also: ['/staff/field/guide'] }] },
   { key: 'bookings', label: 'Bookings', links: [sec('bookings', 'Bookings', 'b')] },
   { key: 'me', label: 'Me', links: [sec('me', 'Me')] }
 ];

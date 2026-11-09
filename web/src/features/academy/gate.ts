@@ -1,8 +1,9 @@
 // The academy gate (0207, 0731, 0802) on the web side: the staff pages a held person still opens, and the Welcome steps of a
 // new hire (app.staff_welcome). No imports, so the unit tests run it as is (gate.test.ts).
 
-/** Held by the gate: the academy, the guide, the profile, Welcome (the onboarding checklist) and the no-access page only. */
-export const ACADEMY_OPEN = /^\/staff\/(academy|guide|profile|field\/profile|no-access|welcome)(\/|\?|$)/;
+/** Held by the gate: the academy, the guide, the profile, Welcome (the onboarding checklist) and the no-access page only; for field
+ *  staff also Training, the field guide and My pay (the pay details step), r35 part X. */
+export const ACADEMY_OPEN = /^\/staff\/(academy|guide|profile|field\/profile|field\/training|field\/guide|field\/pay|no-access|welcome)(\/|\?|$)/;
 export const opensWhileHeld = (path: string) => ACADEMY_OPEN.test(path);
 
 export type StepKey = 'welcome' | 'profile' | 'academy' | 'tasks';

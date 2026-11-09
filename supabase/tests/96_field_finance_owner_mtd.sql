@@ -24,6 +24,11 @@ select test.mk_user('fq_fleet', 'va', 'fleet');
 select test.mk_user('fq_field_a', 'field', null, 'driver');
 select test.mk_user('fq_field_b', 'field', null, 'driver');
 select test.mk_user('fq_detailer', 'field', null, 'detailer');
+-- 0880: a job is given automatically only to a person holding a shift that day: both drivers hold one every day of the next two weeks
+insert into field_shift_slots (starts_at, ends_at, capacity)
+select ((app.today() + g)::timestamp + interval '5 hours') at time zone 'America/Toronto', ((app.today() + g)::timestamp + interval '21 hours') at time zone 'America/Toronto', 5 from generate_series(0, 13) g;
+insert into field_shift_plans (slot_id, staff_id, starts_at, ends_at)
+select s.id, test.id(u), s.starts_at, s.ends_at from field_shift_slots s cross join unnest(array['fq_field_a', 'fq_field_b']) u;
 update staff_profiles set single_limit_cents = 50000 where user_id = test.id('fq_fin');
 select test.mk_owner('fq_o');
 select test.mk_vehicle('FFA', 'fq_o');
@@ -283,4 +288,5 @@ set role authenticated;
 select test.throws('authenticated: the month to date is the server''s call only', $$select public.owner_portal_month_to_date(gen_random_uuid())$$, null);
 reset role;
 update staff_profiles set is_active = true where user_id in (select user_id from test.ff_inactive);
+delete from field_shift_plans; delete from field_shift_slots;
 update program_settings set field_jobs_auto = false;
