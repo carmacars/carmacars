@@ -101,6 +101,23 @@ export async function savePhoneName(name: string, next: string | null): Promise<
   redirect(await afterSignIn(user.id, safeNext(next)));
 }
 
+/** Hotfix 0843: a number from any country saved as the account's contact number, without a texted code (codes reach
+ *  Canadian and US mobiles only). Not verified: it never signs in. "63 917 ..." and "+63 917 ..." both work. */
+export async function saveContactPhone(input: { phone: string }): Promise<R<{ phone: string; display: string }>> {
+  const raw = String(input.phone ?? '').trim();
+  const digits = raw.replace(/\D/g, '');
+  const typed = raw.startsWith('+') ? raw : (digits.length >= 11 && !digits.startsWith('1') && digits[0] !== '0' ? `+${digits}` : raw);
+  const phone = toE164(typed);
+  if (!phone) return { ok: false, code: 'invalid', message: 'Enter the number with its country code, for example +63 917 123 4567.', fieldErrors: { phone: 'Add the country code, for example +63.' } };
+  const user = await (await auth()).currentUser();
+  if (!user) return { ok: false, code: 'auth', message: 'Sign in first.' };
+  try { await rpc('server_account_set_contact_phone', { p_user: user.id, p_phone: phone }, SR); }
+  catch (e) { return { ok: false, code: 'refused', message: e instanceof DbError ? e.message : 'Try again.' }; }
+  for (const p of PROFILE_PATHS) revalidatePath(p);
+  revalidatePath('/staff/welcome');
+  return { ok: true, data: { phone, display: formatPhone(phone) } };
+}
+
 /** Phone or email: the sign-in this person uses (the sign-in page opens on it on their devices). */
 export async function setSignInMethod(method: 'phone' | 'email'): Promise<R<{ preferred: string }>> {
   const user = await (await auth()).currentUser();

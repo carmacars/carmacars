@@ -131,6 +131,21 @@
   ]
  },
  {
+  "release": "r34b",
+  "title": "Update of November 8 (phone numbers outside Canada)",
+  "date": "2026-11-08",
+  "seq": 0,
+  "summary": "Staff and customers abroad can save their phone number and go on with their account.",
+  "areas": [
+   {
+    "area": "Staff tools",
+    "items": [
+     "A phone number from any country can be saved on your profile as your contact number, so staff abroad can finish their profile and start the academy"
+    ]
+   }
+  ]
+ },
+ {
   "release": "r30-stale",
   "title": "Update of November 7",
   "date": "2026-11-07",
