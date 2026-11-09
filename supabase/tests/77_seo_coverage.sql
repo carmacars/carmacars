@@ -49,7 +49,7 @@ select test.eq('terms: brand names keep their capitals',
 select test.eq('terms: every term naming a brand says CarmaCars is not affiliated',
   (select string_agg(slug, ',') from place_terms where phrase ~ '(Uber|Lyft|DoorDash|SkipTheDishes|Instacart|Hopp|Amazon|Turo|RideAlike|Luup)' and intent_note !~ 'not affiliated'), null);
 select test.eq('terms: phrases lower case except the brand words, titles short',
-  (select string_agg(slug, ',') from place_terms where (phrase <> lower(phrase) and phrase !~ '(Uber|Lyft|DoorDash|SkipTheDishes|Instacart|Hopp|Amazon|Turo|RideAlike|Luup|Flex|Eats|Black|SUV|PPF|PDR|G2|DUI|Canada|AC|Ontario)')
+  (select string_agg(slug, ',') from place_terms where (phrase <> lower(phrase) and phrase !~ '(Uber|Lyft|DoorDash|SkipTheDishes|Instacart|Hopp|Amazon|Turo|RideAlike|Luup|Flex|Eats|Black|SUV|PPF|PDR|G2|DUI|Canada|AC|Ontario|01 Motors|CarmaCars)')
      or char_length(title) > 60), null);
 select test.eq('terms: no em or en dash in what a page says',
   (select count(*)::integer from place_terms where (phrase || title || intent_note || faq::text) ~ ('[' || chr(8211) || chr(8212) || ']')), 0);

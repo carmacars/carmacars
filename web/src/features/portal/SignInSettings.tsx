@@ -1,7 +1,7 @@
 'use client';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { requestPhoneCode, saveAccountEmail, setSignInMethod, verifyPhoneCode } from '@/server/actions/phone-auth';
+import { requestPhoneCode, saveAccountEmail, saveContactPhone, setSignInMethod, verifyPhoneCode } from '@/server/actions/phone-auth';
 import { cleanCode, formatPhone } from '@/features/auth/phone';
 import { PhoneCodeInput, PhoneNumberInput } from '@/features/forms/PhoneSignIn';
 import { describedBy, Field } from '@/features/forms/Field';
@@ -21,6 +21,15 @@ export function SignInSettings({ state, className = 'pt-card' }: { state: SignIn
   const [email, setEmail] = useState('');
   const [msg, setMsg] = useState<{ ok: boolean; text: string; field?: string } | null>(null);
   const [preferred, setPreferred] = useState(state.preferred);
+  // hotfix 0843: a number outside Canada (no texted code) is saved as the contact number
+  const [contact, setContact] = useState(state.phone_on_file && !state.phone_verified ? state.phone_on_file : '');
+  const saveContact = () => start(async () => {
+    setMsg(null);
+    const r = await saveContactPhone({ phone: contact });
+    if (!r.ok) { setMsg({ ok: false, text: r.message, field: r.fieldErrors?.phone ? 'contact' : undefined }); return; }
+    setMsg({ ok: true, text: `${r.data?.display ?? contact} is saved as your contact number.` });
+    router.refresh();
+  });
 
   const ask = () => start(async () => {
     setMsg(null);
@@ -55,7 +64,7 @@ export function SignInSettings({ state, className = 'pt-card' }: { state: SignIn
       <h2 className="d4" id="si-settings">Sign-in</h2>
       <dl className="pt-dl">
         <div><dt>Email</dt><dd data-testid="signin-email">{state.email ? <>{state.email}{state.email_verified ? '' : ' (not confirmed yet: open the link we emailed)'}</> : 'None yet'}</dd></div>
-        <div><dt>Phone</dt><dd data-testid="signin-phone">{state.phone_verified && state.phone ? <>{formatPhone(state.phone)} <span className="badge badge--outline">Verified</span></> : 'Not added'}</dd></div>
+        <div><dt>Phone</dt><dd data-testid="signin-phone">{state.phone_verified && state.phone ? <>{formatPhone(state.phone)} <span className="badge badge--outline">Verified</span></> : state.phone_on_file ? <>{formatPhone(state.phone_on_file)} (contact number, not verified)</> : 'Not added'}</dd></div>
       </dl>
       {state.email && <ChangeEmail current={state.email} />}
       {msg && !msg.field && <p className={msg.ok ? 'alert alert--ok' : 'alert alert--error'} role={msg.ok ? 'status' : 'alert'} data-testid="signin-msg"><span>{msg.text}</span></p>}
@@ -73,6 +82,17 @@ export function SignInSettings({ state, className = 'pt-card' }: { state: SignIn
             <p className="row"><button className="btn btn--primary btn--sm" type="submit" disabled={pending} data-testid="phone-verify">{pending ? 'Checking' : 'Verify'}</button>
               <button className="btn btn--ghost btn--sm" type="button" onClick={() => { setSentTo(null); setMsg(null); }}>Use another number</button></p>
           </>}
+        </form>
+      )}
+
+      {!state.phone_verified && (
+        <form className="stack" noValidate aria-label="Save a contact number" onSubmit={(e) => { e.preventDefault(); saveContact(); }} data-testid="contact-phone-form">
+          <Field id="si-contact" label="Number outside Canada? Save it as your contact number" error={err('contact')}
+            hint={state.phone_on_file ? `On file: ${formatPhone(state.phone_on_file)} (not verified). Include the country code, for example +63 917 123 4567. No code is texted.` : 'Include the country code, for example +63 917 123 4567. No code is texted; it is used to reach you, not to sign in.'}>
+            <input className="input" id="si-contact" name="contact" type="tel" inputMode="tel" autoComplete="tel" value={contact} placeholder="+63 917 123 4567"
+              aria-invalid={!!err('contact') || undefined} onChange={(e) => setContact(e.target.value)} data-testid="contact-phone" />
+          </Field>
+          <p><button className="btn btn--ghost btn--sm" type="submit" disabled={pending} data-testid="contact-phone-save">Save my contact number</button></p>
         </form>
       )}
 

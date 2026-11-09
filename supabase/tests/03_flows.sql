@@ -493,7 +493,10 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             -- outbox only (each alert's own row is in notification_outbox)
                             'staff_email_digest_items',
                             -- Sales masked numbers (0970): which masked number a rep was shown, written by the masking only
-                            'phone_masks')
+                            'phone_masks',
+                            -- the sourced page data (1100): bulk imports of public facts by the seo-data workflow, each row
+                            -- with its source and fetch time; no money, pricing or status
+                            'vehicle_specs', 'vehicle_maintenance_costs', 'place_pois')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',
   (select count(*) > 0 from audit_log where entity_table = 'rate_cards' and action = 'INSERT' and after ->> 'daily_rate_cents' = '10000'), true);

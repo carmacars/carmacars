@@ -19,6 +19,9 @@ import { deliveryFrom, fill, getClasses, getFacts, getFleet, getSettings, getTok
 import type { CarPage as Car } from '@/lib/types';
 import { makePage, type MakePage } from '@/features/vehicles/data';
 import { MakeView, makeMeta } from '@/features/vehicles/views';
+import { buildDepth, parseL100 } from '@/features/seo/depth';
+import { depthCar, getDepthFacts, getMaintenance, getSpecs } from '@/features/seo/depth-data';
+import { DepthSections } from '@/features/seo/Depth';
 
 export const revalidate = 3600;
 export const dynamicParams = true;
@@ -106,7 +109,7 @@ export default async function CarPage({ params }: Params) {
   // the car's own questions after the common ones, never the same question twice
   const common = carFaq(c, { ydA, ydB, ev }, t);
   const key = (q: string) => q.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-  const faq = [...common, ...c.faq.filter((q) => !common.some((x) => key(x.question) === key(q.question)))];
+  const faq0 = [...common, ...c.faq.filter((q) => !common.some((x) => key(x.question) === key(q.question)))];
   const similar = fleet.filter((x) => x.slug !== c.slug)
     .map((x) => ({ x, d: (x.class === c.class ? 0 : 6000) + Math.abs(x.daily_rate_cents - c.daily_rate_cents) }))
     .sort((a, b) => a.d - b.d).slice(0, 3).map((o) => o.x);
@@ -121,6 +124,15 @@ export default async function CarPage({ params }: Params) {
     ...((c.seats ?? 0) >= 7 ? ['minivan'] : []), ...(['electric', 'hybrid', 'plug_in_hybrid'].includes(c.fuel) ? ['electric'] : []), ...(has('economy') || has('standard') ? ['economy'] : []),
     ...(c.allows_18_to_20 ? ['young-drivers'] : [])]);
   const landing = links.filter((l) => want.has(l.slug));
+  // release 35 (M): the car's figures from vehicle_specs (with their sources), the cost to drive 100 km, the maintenance
+  // estimate when the cost table has the make and segment, and more links (src/features/seo/depth.ts)
+  const [df, specs, maint] = await Promise.all([getDepthFacts(), getSpecs(c.make, c.model, c.year), getMaintenance(c.make, c.class)]);
+  const depth = buildDepth({ path: c.canonical_path, facts: df, cars: [], omit: ['requirements'],
+    vehicle: { name: [c.year, c.make, c.model].filter(Boolean).join(' '), specs: specs.filter((r) => !r.trim || !c.trim || r.trim.toLowerCase() === c.trim.toLowerCase()),
+      l100: c.fuel === 'electric' ? null : parseL100(typeof c.specs.consumption === 'string' ? c.specs.consumption : null), maintenance: maint },
+    related: { cars: similar.map((x) => ({ href: x.path, label: `${depthCar(x).name}, ${money(x.daily_rate_cents)} a day` })), places: hubs.places.slice(0, 8).map((x) => ({ href: x.path, label: `Car rental in ${x.name}` })),
+      guides: landing.map((l) => ({ href: l.path, label: l.kind === 'location' ? `Car rental in ${l.name}` : l.name })) } });
+  const faq = [...faq0, ...depth.faq.filter((q) => !faq0.some((x) => key(x.question) === key(q.question)))];
   const url = siteUrl() + c.canonical_path;
   const abs = (p: string) => (/^https?:/.test(photoUrl(p)) ? photoUrl(p) : siteUrl() + photoUrl(p));
   const consumption = typeof c.specs.consumption === 'string' ? c.specs.consumption : null;
@@ -317,6 +329,8 @@ export default async function CarPage({ params }: Params) {
                   {r.reply && <p className="small muted">Our reply: {r.reply}</p>}</li>))}</ul>
             </section>
           )}
+
+          <DepthSections d={depth} />
 
           <section id="questions" className="car-sec" aria-labelledby="h-q">
             <h2 className="d2" id="h-q">Questions about the {c.model}</h2>

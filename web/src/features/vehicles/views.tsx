@@ -12,6 +12,8 @@ import { KitText } from '@/features/kit/KitText';
 import { vehicleInput, vehicleKit, type VehicleRead } from '@/features/kit/pages';
 import type { Spec } from './content';
 import { stockPhoto } from './photo';
+import { vehicleDepth } from '@/features/seo/depth-data';
+import { DepthSections } from '@/features/seo/Depth';
 import '@/styles/vehicles.css';
 
 // The four vehicle pages (migration 0097; docs/changes/2026-10-21-vehicle-pages.md). Every sentence comes from the
@@ -103,6 +105,9 @@ export async function ModelView({ p }: { p: ModelPage }) {
   const faq = rentalFaq({ name, cars: p.inventory.exact.length, similar: p.inventory.similar.length, ev: !!latest && latest.kwh100_min !== null,
     cost100: cost !== null ? dollars(cost) : null, cheapestUse: latest ? (latest.kwh100_min !== null ? `${Number(latest.kwh100_min).toFixed(1)} kWh/100 km for the ${latest.year}` : `${Number(latest.l100_min).toFixed(1)} L/100 km for the ${latest.year}`) : undefined,
     basis: latest ? priceBasis({ fuel: latest.kwh100_min !== null ? 'electric' : 'gasoline' }, p.settings) : undefined });
+  const depth = await vehicleDepth({ path: p.path, name: ys.length ? `${Math.max(...ys)} ${name}` : name, make: p.make.name, model: p.model.name, year: ys.length ? Math.max(...ys) : null,
+    segment: p.model.vclass, inv: p.inventory, related: p.years.slice(0, 10).map((y) => ({ href: y.path, label: `${y.year} ${name}` })) });
+  faq.push(...depth.faq);
   const F = (x: string) => fill(x, t);
   return (
     <div className="p-vehicle" data-page="vehicle-model">
@@ -117,6 +122,7 @@ export async function ModelView({ p }: { p: ModelPage }) {
           <p className="xs muted">{EPA_NOTE}</p>
         </section>}
         <Kit p={p} sp={[]} t={t} />
+        <DepthSections d={depth} look="vehicle" />
         <SimilarModels items={p.similar_models} title={`Similar to the ${name}`} />
       </div>
       <div className="wrap vp-body"><p className="small" data-testid="vp-buy-link"><Link prefetch={false} className="link" href={`/buy${p.path.slice(5)}`}>Buying a {name}? Specs, recalls and what to check</Link></p></div>
@@ -147,8 +153,11 @@ export async function YearView({ p }: { p: YearPage }) {
   const cheapest = sp.filter((x) => x.cost100 !== null)[0];
   const lead = `${sp.length ? `The ${name} came with ${sp.length === 1 ? `one powertrain, the ${ptName(sp[0]!)}` : `${sp.length} powertrains`}, rated ${ratingRange(sp)} combined.` : `The ${name}.`}${p.trims.length ? ` In Canada it was sold as the ${list(p.trims.map((x) => x.name))}.` : ''}${p.vclass ? ` EPA class: ${lower(p.vclass)}.` : ''}`;
   const seats = p.inventory.exact.find((c) => c.seats)?.seats ?? null;
-  const faq = rentalFaq({ name, cars: p.inventory.exact.length, similar: p.inventory.similar.length, ev: cheapest?.fuel === 'electric',
-    cost100: cheapest ? dollars(cheapest.cost100) : null, cheapestUse: cheapest ? `${ratingText(cheapest)} (${ptName(cheapest)})` : undefined, basis: cheapest ? priceBasis(cheapest, p.settings) : undefined });
+  // release 35 (M): the depth sections (sourced specs, maintenance, cars and prices, requirements, related links)
+  const depth = await vehicleDepth({ path: p.path, name, make: p.make.name, model: p.model.name, year: p.year, segment: p.vclass, inv: p.inventory,
+    related: p.trims.map((x) => ({ href: x.path, label: `${name} ${x.name}` })) });
+  const faq = [...rentalFaq({ name, cars: p.inventory.exact.length, similar: p.inventory.similar.length, ev: cheapest?.fuel === 'electric',
+    cost100: cheapest ? dollars(cheapest.cost100) : null, cheapestUse: cheapest ? `${ratingText(cheapest)} (${ptName(cheapest)})` : undefined, basis: cheapest ? priceBasis(cheapest, p.settings) : undefined }), ...depth.faq];
   const F = (x: string) => fill(x, t);
   return (
     <div className="p-vehicle" data-page="vehicle-year">
@@ -163,6 +172,7 @@ export async function YearView({ p }: { p: YearPage }) {
         </section>
         <CostBlock sp={sp} s={p.settings} name={name} />
         <Kit p={p} sp={sp} t={t} />
+        <DepthSections d={depth} look="vehicle" />
         {p.trims.length > 0 && <section className="vp-sec" aria-labelledby="h-trims">
           <h2 className="d3" id="h-trims">{p.year} {p.model.name} trims in Canada</h2>
           <ul className="hub-grid" data-testid="vp-trims">{p.trims.map((x) => { const s1 = specs(p.variants, p.settings, x.variant_ids); return (
@@ -209,8 +219,10 @@ export async function TrimView({ p }: { p: TrimPage }) {
   const cheapest = sp.filter((x) => x.cost100 !== null)[0];
   const lead = `${sp.length ? `The ${name} has ${sp.length === 1 ? `the ${ptName(sp[0]!)}` : `a choice of ${sp.length} powertrains`}, rated ${ratingRange(sp)} combined.` : `The ${name}.`} ${diffs[0] ?? ''}`.trim();
   const seats = p.inventory.exact.find((c) => c.seats)?.seats ?? null;
-  const faq = rentalFaq({ name, cars: p.inventory.exact.length, similar: p.inventory.similar.length + p.inventory.same_model.length, ev: cheapest?.fuel === 'electric',
-    cost100: cheapest ? dollars(cheapest.cost100) : null, cheapestUse: cheapest ? `${ratingText(cheapest)} (${ptName(cheapest)})` : undefined, basis: cheapest ? priceBasis(cheapest, p.settings) : undefined });
+  const depth = await vehicleDepth({ path: p.path, name, make: p.make.name, model: p.model.name, year: p.year, trim: p.trim.name, segment: p.vclass, inv: p.inventory,
+    related: [...p.siblings.filter((x) => x.slug !== p.trim.slug).map((x) => ({ href: x.path, label: `${p.year} ${p.model.name} ${x.name}` })), ...p.trim_years.filter((y) => y.year !== p.year).slice(0, 6).map((y) => ({ href: y.path, label: `${y.year} ${p.model.name} ${p.trim.name}` }))] });
+  const faq = [...rentalFaq({ name, cars: p.inventory.exact.length, similar: p.inventory.similar.length + p.inventory.same_model.length, ev: cheapest?.fuel === 'electric',
+    cost100: cheapest ? dollars(cheapest.cost100) : null, cheapestUse: cheapest ? `${ratingText(cheapest)} (${ptName(cheapest)})` : undefined, basis: cheapest ? priceBasis(cheapest, p.settings) : undefined }), ...depth.faq];
   const F = (x: string) => fill(x, t);
   return (
     <div className="p-vehicle" data-page="vehicle-trim">
@@ -225,6 +237,7 @@ export async function TrimView({ p }: { p: TrimPage }) {
           <SpecsTable sp={sp} seats={seats} caption={`${name} powertrains`} />
         </section>
         <StatsBlock sp={sp} dims={p.dims} model={p.model.name} trim={p.trim.name} name={name} s={p.settings} seats={seats} />
+        <DepthSections d={depth} look="vehicle" />
         <CostBlock sp={sp} s={p.settings} name={name} />
         <Kit p={p} sp={sp} dims={dimsFor(p.dims, p.model.name, p.trim.name)} t={t} />
         <section className="vp-sec" aria-labelledby="h-diff" data-testid="vp-diffs">

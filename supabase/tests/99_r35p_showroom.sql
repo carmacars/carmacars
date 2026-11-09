@@ -154,8 +154,9 @@ select app.worker_listing_result((select id from rspc3 where photo = (select sta
 select app.worker_listing_result((select id from rspc3 where photo = (select moved from rspb)), jsonb_build_object('ok', true, 'provider', 'fake', 'output', jsonb_build_object(
   'processed_path', 'vehicles/rsp/bulk-rear-v1.jpg', 'width', 1800, 'height', 1200, 'flags', '[]'::jsonb, 'preset_version', 'studio_showroom_v1', 'edited', true,
   'place', jsonb_build_object('width', 1500, 'height', 600, 'left', 700, 'bottom', 100), 'showroom', jsonb_build_object('provider', 'local'))));
-select test.ok('same framing: the cover waits to be carried (boxes and style kept), off the site until drawn',
-  (select plate_status = 'unchecked' and not is_public and plate_carry -> 'boxes' -> 0 ->> 'x' = '0.4' and plate_carry ->> 'style' = 'cover'
+-- (1056: a carried cover is drawn the new way, the CARMA plate, whatever style it had)
+select test.ok('same framing: the cover waits to be carried (boxes kept, drawn as the CARMA plate), off the site until drawn',
+  (select plate_status = 'unchecked' and not is_public and plate_carry -> 'boxes' -> 0 ->> 'x' = '0.4' and plate_carry ->> 'style' = 'carma'
      from vehicle_photos where id = (select stay from rspb)));
 select test.ok('moved: no cover carried, asked for a plate check as today',
   (select plate_status = 'unchecked' and not is_public and plate_carry is null from vehicle_photos where id = (select moved from rspb)));

@@ -22,6 +22,9 @@ const ADDED = git('log', '--first-parent', '--format=%H', '-1', '--diff-filter=A
 const BASE = process.env.GUIDES_BASE || (ADDED ? git('rev-parse', `${ADDED}^1`) : git('rev-parse', 'HEAD'));
 const q = (v) => (v === null || v === undefined ? 'null' : "'" + String(v).replace(/'/g, "''") + "'");
 
+// the chapters this part changed (docs/changes/2026-11-09-r35-*.md, ## Guides)
+const ONLY = new Set(['admin/requests-offers-and-bookings', 'admin/hiring', 'admin/people-and-access', 'admin/live-visitors-and-live-chat', 'va/fleet', 'va/your-workday',
+  'field/start-here', 'renter/during-your-trip']);
 const lines = [];
 for (const portal of ['renter', 'owner', 'admin', 'va', 'field', 'investor']) {
   const now = JSON.parse(readFileSync(join(ROOT, 'docs', 'guides', 'content', `${portal}.json`), 'utf8'));
@@ -31,6 +34,7 @@ for (const portal of ['renter', 'owner', 'admin', 'va', 'field', 'investor']) {
     const b = base.sections.find((x) => x.slug === s.slug);
     const prev = after; after = s.slug;
     if (b && b.body_md === s.body_md && b.title === s.title && (b.blurb ?? '') === (s.blurb ?? '')) continue;
+    if (!ONLY.has(`${portal}/${s.slug}`)) continue;   // a chapter another branch changed is published by its own migration
     const { html, warnings } = renderGuide([{ ...s, id: 'x' }]);
     if (warnings.length) throw new Error(`${portal}/${s.slug}: ${warnings.join('; ')}`);
     lines.push(`select app.guide_release_section(${q(portal)}, ${q(s.slug)}, ${q(s.kind)}, ${q(prev)}, ${q(b?.body_md ?? null)}, ${q(s.title)}, ${q(s.blurb)},\n  ${q(s.body_md)},\n  ${q(html.x)});`);

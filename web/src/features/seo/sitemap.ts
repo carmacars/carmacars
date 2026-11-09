@@ -4,6 +4,7 @@ import { absUrl } from '@/features/seo/meta';
 import { siteUrl } from '@/lib/site';
 import { env } from '@/lib/env';
 import { inCrawlScope } from '@/lib/edge/crawl-scope';
+import { withEpoch } from './lastmod';
 
 // The sitemaps read as the server (public paths only), not as a visitor: a file walks thousands of pages, which the
 // visitor's 2.5 s limit (0106) cut off (/sitemap.xml and /sitemap-vehicles/makes.xml answered 500, Oct 22).
@@ -23,8 +24,16 @@ type Row = { path: string; kind: string; lastmod: string | null; images: Array<{
 export const SITEMAPS = ['priority', 'pages', 'cars', 'landing', 'guides', 'hubs'] as const;
 export type SitemapName = (typeof SITEMAPS)[number];
 
+// 1100: the content epoch, when every programmatic page's content last changed together (the facts all pages show, the
+// templates); a lastmod is the later of the page's own date and it, so a page's lastmod moves when its content does.
+let epochMs = 0;
+async function loadEpoch(): Promise<void> {
+  try { const e = (await memo('seo_content_epoch', () => rpc('seo_content_epoch', {}, SR))) as unknown as string | null; epochMs = e ? Date.parse(e) || 0 : 0; } catch { /* keep the last */ }
+}
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-const iso = (d: string | null) => (d ? new Date(d).toISOString() : null);
+const iso = (d: string | null) => withEpoch(d, epochMs);
+/** A date as it is (the guides and careers pages: no programmatic section). */
+const own = (d: string | null) => (d ? new Date(d).toISOString() : null);
 
 // The site's own sitemap rows and the place file list are the same for every request: kept per Worker for 5 minutes
 // (sharedRead). Google fetched hundreds of index files at once on Oct 23, each reading both again, and the busy
@@ -34,6 +43,7 @@ const iso = (d: string | null) => (d ? new Date(d).toISOString() : null);
 // lists follow a switch at once too (0119).
 const memo = (key: string, load: () => Promise<unknown>) => (env().DATA_BACKEND === 'local' ? load() : sharedRead(key, load));
 async function rows(): Promise<Row[]> {
+  await loadEpoch();
   const all = ((await memo('sitemap_all', () => rpc('sitemap_all', {}, SR))) ?? []) as unknown as Row[];
   // 0173: the careers page and each open role, only while a role is open (in the pages file)
   const roles = ((await memo('hiring_roles_public', () => rpc('hiring_roles_public', {}, SR)).catch(() => [])) ?? []) as unknown as Array<{ slug: string; posted_on: string | null }>;
@@ -74,7 +84,7 @@ function entries(name: SitemapName, all: Row[], prio: Prio = [], hubs: Prio = []
   const url = (p: string) => base + (p === '/' ? '' : p);
   switch (name) {
     // the model pages are in the vehicle sitemaps (0097: /cars/<make>/<model> replaced the model hubs)
-    case 'pages': return [...FIXED.map((p) => ({ loc: url(p), lastmod: null })), ...all.filter((r) => r.kind === 'careers').map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod) }))];
+    case 'pages': return [...FIXED.map((p) => ({ loc: url(p), lastmod: null })), ...all.filter((r) => r.kind === 'careers').map((r) => ({ loc: url(r.path), lastmod: own(r.lastmod) }))];
     // 0128: each address in one sitemap file. The priority list leaves out the addresses of the site's own files (the
     // fleet's cars, the landing pages, the fixed pages, the guides and the hubs: listed right after it, at the top of
     // the index); it keeps its own selection (the makes, the popular models, the place pages nearest us).
@@ -86,7 +96,7 @@ function entries(name: SitemapName, all: Row[], prio: Prio = [], hubs: Prio = []
     }
     case 'cars': return all.filter((r) => r.kind === 'car').map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod), images: (r.images ?? []).map((i) => absUrl(i.loc)) }));
     case 'landing': return all.filter((r) => r.kind === 'landing').map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod) }));
-    case 'guides': return all.filter((r) => r.kind === 'article').map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod) }));
+    case 'guides': return all.filter((r) => r.kind === 'article').map((r) => ({ loc: url(r.path), lastmod: own(r.lastmod) }));
     case 'hubs': return hubs.filter((r) => !core || inCrawlScope(r.path, new Set())).map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod) }));
   }
 }
@@ -224,7 +234,7 @@ function urlset(e: Array<{ loc: string; lastmod: string | null; images?: string[
 
 const NOT_FOUND = () => new Response('Not found', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=0, s-maxage=600' } });
 const HEAD = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
-const url = (base: string, r: { path: string; lastmod: string | null }) => `<url><loc>${esc(base + r.path)}</loc>${r.lastmod ? `<lastmod>${iso(r.lastmod)}</lastmod>` : ''}</url>\n`;
+const url = (base: string, r: { path: string; lastmod: string | null }) => `<url><loc>${esc(base + r.path)}</loc>${iso(r.lastmod) ? `<lastmod>${iso(r.lastmod)}</lastmod>` : ''}</url>\n`;
 
 /** A file name's tree and its base file: "t-car-hire-toyota-years" is the car-hire tree's "toyota-years". */
 export function splitFile(file: string, terms: string[]): { prefix: string; base: string; to: (p: string) => string } | null {
@@ -240,6 +250,7 @@ export function splitFile(file: string, terms: string[]): { prefix: string; base
  *  addresses) by keyset (the pair after the last one read), never by offset. */
 export async function vehicleSitemapFile(file: string): Promise<Response> {
   if (!/^[a-z0-9-]{1,120}$/.test(file)) return NOT_FOUND();
+  await loadEpoch();
   const terms = (((await rpc('vehicle_tiers', {}, SR)) as unknown as { terms?: Array<{ slug: string }> } | null)?.terms ?? []).map((t) => t.slug);
   const f = splitFile(file, terms);
   // R23, Core: the renting tree's level files only (crawl scope)
@@ -278,8 +289,9 @@ export async function vehicleSitemapFile(file: string): Promise<Response> {
 export async function placeSitemapFile(file: string): Promise<Response> {
   const m = /^(rental|sale|detailing|bodyshop)\.([a-z0-9-]+)\.(\d{1,6})\.xml$/.exec(file);
   if (!m || (await coreScope())) return NOT_FOUND();
+  await loadEpoch();
   const rowsP = ((await rpc('place_sitemap', { p_vertical: m[1]!, p_term: m[2]!, p_page: Number(m[3]) }, SR)) ?? []) as unknown as Array<{ path: string; lastmod: string | null }>;
   const base = siteUrl();
-  const body = rowsP.map((x) => `<url><loc>${esc(base + x.path)}</loc>${x.lastmod ? `<lastmod>${x.lastmod.slice(0, 10)}</lastmod>` : ''}</url>`).join('\n');
+  const body = rowsP.map((x) => `<url><loc>${esc(base + x.path)}</loc>${iso(x.lastmod) ? `<lastmod>${iso(x.lastmod)!.slice(0, 10)}</lastmod>` : ''}</url>`).join('\n');
   return new Response(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`, { headers: XML });
 }

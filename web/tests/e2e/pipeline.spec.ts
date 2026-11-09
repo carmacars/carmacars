@@ -102,6 +102,13 @@ async function signIn(page: Page, email: string, expectPath: string, next = '') 
 }
 async function ctx(browser: Browser, phone: boolean) {
   const c = await browser.newContext({ viewport: vp(phone), hasTouch: phone, baseURL: test.info().project.use.baseURL });
+  // the Admin call pop-up shows calls simulated by other specs on the shared inbox and can cover a button: none of these
+  // specs is about it (caller-popup.spec.ts is), so it is kept out of the way on every page
+  await c.addInitScript(() => {
+    const css = '[data-testid="caller-popup-region"]{display:none!important}';
+    const add = () => { const st = document.createElement('style'); st.textContent = css; document.documentElement.appendChild(st); };
+    if (document.documentElement) add(); else document.addEventListener('DOMContentLoaded', add);
+  });
   return c.newPage();
 }
 const b64url = (b: Buffer) => b.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -221,7 +228,7 @@ test('money: an Admin issues an approved refund through the payments module, onc
     const row = page.getByTestId('refunds').locator('tr', { hasText: b.number });
     await row.getByTestId('refund-issue').click();
     await check(page, 'refund confirm 1440');
-    await page.getByTestId('refund-issue-submit').click();
+    await page.getByRole('dialog', { name: 'Issue the refund' }).getByTestId('refund-issue-submit').click();
     const status = await waitFor(async () => (await sql`select status from refunds where id = ${rf!.id}`)[0]!.status as string, (x) => x === 'paid', 20_000);
     expect(status).toBe('paid');
     const pays = await sql`select p.kind, p.status, p.amount_cents, d.processor_refund_id from payments p join payment_processor_details d on d.payment_id = p.id where p.parent_payment_id = ${b.payment}`;

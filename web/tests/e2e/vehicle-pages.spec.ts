@@ -143,7 +143,7 @@ test('the vehicle sitemaps list every indexed page, by make and level, with last
   expect(await (await request.get('/sitemap-pages.xml')).text()).not.toContain('/rent/');
 });
 
-test('under the rules a trim page with no car is noindex with its year as canonical, and flips with our car', async ({ page, request }, info) => {
+test('every trim page is indexed (1100: the rules mode is retired), with or without our car', async ({ page, request }, info) => {
   test.skip(info.project.name.startsWith('phone'), 'once is enough');
   test.setTimeout(150_000);
   const sql = db();
@@ -151,11 +151,11 @@ test('under the rules a trim page with no car is noindex with its year as canoni
   const url = '/cars/volkswagen/jetta/2021/execline';
   const car = randomUUID();
   try {
-    await sql`update program_settings set vpage_index_mode = 'rules' where id = (app.settings()).id`;
+    await expect(sql`update program_settings set vpage_index_mode = 'rules' where id = (app.settings()).id`).rejects.toThrow(/program_settings_vpage_index_all/);
     await rebuild();
-    await expect.poll(async () => { await page.goto(url); return (await meta(page)).robots ?? ''; }, { timeout: 30_000, intervals: [1_000] }).toContain('noindex');
-    expect((await meta(page)).canonical).toMatch(/\/cars\/volkswagen\/jetta\/2021$/);
-    expect(await (await request.get('/sitemap-vehicles-volkswagen-trims.xml')).text()).not.toContain(`${url}<`);
+    await page.goto(url);
+    expect((await meta(page)).robots ?? 'index').not.toContain('noindex');
+    expect((await meta(page)).canonical).toMatch(/\/cars\/volkswagen\/jetta\/2021\/execline$/);
     // our real 2021 Jetta Execline is published: the page flips to indexed and joins its sitemap
     const [o] = await sql`select id from owners where kind = 'program' order by created_at limit 1`;
     await sql`insert into vehicles (id, owner_id, year, make, model, trim, colour, plate, class, status, management_mode, onboarding_method, body_type)
@@ -168,7 +168,6 @@ test('under the rules a trim page with no car is noindex with its year as canoni
     await expect(page.getByTestId('vp-inventory').locator('.car-card').first()).toContainText('Jetta');
     expect(await (await request.get('/sitemap-vehicles-volkswagen-trims.xml')).text()).toContain(`${url}<`);
   } finally {
-    await sql`update program_settings set vpage_index_mode = 'all' where id = (app.settings()).id`;
     await sql`update vehicle_listings set status = 'unpublished', unpublished_at = now(), unpublished_reason = 'e2e fixture' where vehicle_id = ${car}`;
     await rebuild();
     await sql.end();

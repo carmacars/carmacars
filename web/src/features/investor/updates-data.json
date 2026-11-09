@@ -90,7 +90,7 @@
   "title": "Release 34",
   "date": "2026-11-08",
   "seq": 0,
-  "summary": "Customer service sees who is calling with their whole file, new staff pass the Academy before they start, and owner onboarding is one clear checklist.",
+  "summary": "Customer service sees who is calling with their whole file, all staff pass the Academy before they start, and owner onboarding is one clear checklist.",
   "areas": [
    {
     "area": "Renters",
@@ -112,7 +112,7 @@
     "items": [
      "Customer service and Admins see who is calling, live: their booking, what they owe, the deposit, open requests and notes",
      "Notes on each renter, kept with the author and time, from the call pop-up or the renter's page",
-     "New hires land on a welcome page and must pass their Academy path before their work pages open; an Admin can waive it with a reason. Staff already working are never held",
+     "Every staff member, new or already working, lands on a welcome page and must pass their Academy path before their work pages open; an Admin can waive it with a reason",
      "New Academy sections with quizzes cover the newest workflows, and a section is flagged for review when its guide changes",
      "A printable card for every car with the steps to follow after an accident and the coverage details",
      "Book it now from the AI assistant, with a preview and a confirmation",
@@ -126,6 +126,21 @@
     "items": [
      "Alerts to many staff are sent several times faster",
      "A government form is no longer made again when nothing on it changed"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "r34b",
+  "title": "Update of November 8 (phone numbers outside Canada)",
+  "date": "2026-11-08",
+  "seq": 0,
+  "summary": "Staff and customers abroad can save their phone number and go on with their account.",
+  "areas": [
+   {
+    "area": "Staff tools",
+    "items": [
+     "A phone number from any country can be saved on your profile as your contact number, so staff abroad can finish their profile and start the academy"
     ]
    }
   ]
