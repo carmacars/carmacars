@@ -28,7 +28,7 @@ export async function staffDo<T = Record<string, unknown>>(action: string, p: Re
     const data = await door<T>(user.id, 'ops_do', action, p, aal);
     for (const x of refresh) revalidatePath(x);
     // a plate decision changes what the car's public page shows
-    if (action === 'photo_plate_record') { revalidatePath('/cars/[slug]', 'page'); revalidatePath('/cars'); revalidatePath('/', 'layout'); }
+    if (action === 'photo_plate_record' || action === 'photo_showroom') { revalidatePath('/cars/[slug]', 'page'); revalidatePath('/cars'); revalidatePath('/', 'layout'); }
     return { ok: true, data };
   } catch (e) { return fail(e); }
 }

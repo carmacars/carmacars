@@ -8,6 +8,7 @@ import { ProgressCell, type Progress } from '@/features/listing/ListingProgress'
 import { NeedCell, type NeedRow } from '@/features/listing/PhotosNeeded';
 import { CarCell } from '@/features/admin/revamp/CarCell';
 import { carPhotos } from '@/server/car-photos';
+import { ShowroomAll } from '@/features/listing/Showroom';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Listings', path: '/admin/listings', noindex: true, description: 'Listing intake and review.' });
@@ -35,6 +36,8 @@ export default async function Listings() {
         { key: 'started', label: 'Started by', render: (r) => `${r.started_by_name ?? ''} (${r.started_role})` }, { key: 'reason', label: 'Note', className: 'wrap' },
         { key: 'updated_at', label: 'Updated', render: (r) => t(r.updated_at) }
       ]} />
+      {/* r35 (0990): every car's outside photos into the showroom at once */}
+      <Card title="Showroom photos" testId="showroom-card"><ShowroomAll /></Card>
       <Card title={`Cars on sample photos (${need.cars.length})`} testId="photos-needed">
         <p className="small">Each real car whose page still shows sample photos. Where a handover photographed the car (the check-in and check-out photos), use them: the studio editor puts the car on the CarmaCars backdrop and the listing waits for your review. The others need photos at their next handover.</p>
         <Table<NeedRow & Record<string, unknown>> rows={need.cars as Array<NeedRow & Record<string, unknown>>} rowKey={(r) => r.vehicle_id} empty="Every real car has its own photos."

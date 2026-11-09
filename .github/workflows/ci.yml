@@ -309,6 +309,8 @@ jobs:
       TWILIO_API_SECRET: ${{ secrets.TWILIO_API_SECRET }}
       TWILIO_CALLER_ID: ${{ secrets.TWILIO_CALLER_ID }}
       TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+      # r35 (0990): the image model of the showroom listing photos (Google AI Studio); optional, without it the free showroom
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       # where Supabase is: the hosted project (default) or the company's own server (repository variable
       # DB_BACKEND=vps, infra/vps/CUTOVER.md; scripts/deploy/lib.sh). VPS_SSH_KEY is used only with vps.
       DB_BACKEND: ${{ vars.DB_BACKEND }}
@@ -421,6 +423,7 @@ jobs:
                  + (if env.GOOGLE_MAPS_API_KEY then {GOOGLE_MAPS_API_KEY: env.GOOGLE_MAPS_API_KEY} else {} end)
                  + (if env.GOOGLE_REVIEWS_CLIENT_SECRET then {GOOGLE_REVIEWS_CLIENT_ID: env.GOOGLE_REVIEWS_CLIENT_ID, GOOGLE_REVIEWS_CLIENT_SECRET: env.GOOGLE_REVIEWS_CLIENT_SECRET} else {} end)
                  + (if env.QUO_API_KEY then {QUO_API_KEY: env.QUO_API_KEY} else {} end)
+                 + (if env.GEMINI_API_KEY then {GEMINI_API_KEY: env.GEMINI_API_KEY} else {} end)
                  + (if env.QUO_WEBHOOK_SECRET then {QUO_WEBHOOK_SECRET: env.QUO_WEBHOOK_SECRET} else {} end)
                  + (if env.TWILIO_ACCOUNT_SID and env.TWILIO_API_KEY and env.TWILIO_API_SECRET then {TWILIO_ACCOUNT_SID: env.TWILIO_ACCOUNT_SID, TWILIO_API_KEY: env.TWILIO_API_KEY, TWILIO_API_SECRET: env.TWILIO_API_SECRET} else {} end)
                  + (if env.TWILIO_CALLER_ID then {TWILIO_CALLER_ID: env.TWILIO_CALLER_ID} else {} end)

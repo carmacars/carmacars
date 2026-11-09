@@ -13,6 +13,7 @@ import { CutoutEditor } from '@/features/listing/CutoutEditor';
 import { ExtraOrder } from '@/features/listing/ExtraOrder';
 import { PlateCarry } from '@/features/listing/PlateCarry';
 import { isExtra } from '@/features/listing/extra-order';
+import { ShowroomCar, ShowroomPhoto } from '@/features/listing/Showroom';
 
 // Review a listing (09-listing-pipeline.md section 6): the copy, written by itself (0061: nothing to type), every photo
 // (approve, reject, use the original, choose the cover), the problems the database still sees, then
@@ -22,7 +23,9 @@ type Photo = { id: string; vehicle_id: string; shot_type: string; shot_label: st
   /** 0568: the touch-up values used (null: none) and the photo's "Use original colours" */
   enhance?: Record<string, unknown> | null; enhance_off?: boolean;
   /** 0700: the plate cover carried over an edit that did not move the car; how many times the cut-out was edited */
-  plate_carry?: { boxes?: Array<{ x: number; y: number; w: number; h: number }>; style?: 'cover' | 'pixelate' | 'blur' } | null; edit_version?: number };
+  plate_carry?: { boxes?: Array<{ x: number; y: number; w: number; h: number }>; style?: 'cover' | 'pixelate' | 'blur' } | null; edit_version?: number;
+  /** 0990: the scene (showroom or the black studio) and how the showroom photo was made */
+  scene?: string | null; preset_version?: string | null; showroom?: { provider?: string; model?: string | null; note?: string | null } | null };
 export type Plates = { required: boolean; unchecked: string[]; private_shots: string[]; detect?: boolean };
 const PLATE: Record<Photo['plate_status'], string> = { unchecked: 'Plate not checked', covered: 'Plate covered', not_visible: 'No plate visible' };
 export type L = { id: string; vehicle_id: string; state: string; reason: string | null; vehicle: { name: string; plate: string | null };
@@ -82,6 +85,8 @@ export function ListingReview({ l, plates, copy, exterior = [] }: { l: L; plates
                 setRes(r.ok ? { ok: true, text: r.data.queued ? `${r.data.queued} outside photo${r.data.queued === 1 ? ' is' : 's are'} being made again. When ready, check the plate on each: on a listing that is on the site, each goes back on by itself once its plate is checked.` : 'Every outside photo already has the newest framing.' } : { ok: false, text: r.message });
                 if (r.ok && r.data.queued) router.refresh(); }); }}>Yes, frame again</button>
               <button className="btn btn--ghost btn--sm" type="button" onClick={() => setReframe(false)}>Cancel</button></>}</p>}
+          {/* r35 (0990): the car's outside photos into the dark showroom */}
+          <ShowroomCar vehicle={l.vehicle_id} studio={l.photos.filter((p) => exterior.includes(p.shot_type) && p.processed_path && p.processed_path !== p.original_path && p.status !== 'rejected' && p.scene !== 'showroom').length} />
           {/* a shot kept as taken (the odometer, never published) stays in the private originals: shown through its signed link */}
           <ul className="ad-photos">{l.photos.map((p) => { const path = p.processed_path && p.processed_path !== p.original_path ? photoUrl(p.processed_path) : p.original_url ?? null; return (
             <li key={p.id} className={`${cover === p.id ? 'is-cover' : ''}${(ph[p.id] ?? p.status) === 'reject' ? ' is-rejected' : ''}`}>
@@ -100,6 +105,7 @@ export function ListingReview({ l, plates, copy, exterior = [] }: { l: L; plates
               {/* 0700: the cut-out editor (move and size the car, erase or restore, reset); a new version is saved */}
               {exterior.includes(p.shot_type) && p.processed_path && p.processed_path !== p.original_path && p.status !== 'rejected' &&
                 <button className="btn btn--ghost btn--sm" type="button" onClick={() => { setEditing(null); setCutting(cutting === p.id ? null : p.id); }} aria-expanded={cutting === p.id} data-testid={`cutout-edit-${p.shot_type}`}>Edit the cut-out{p.edit_version ? ` (edited ${p.edit_version}x)` : ''}</button>}
+              {exterior.includes(p.shot_type) && p.processed_path && p.status !== 'rejected' && <ShowroomPhoto photo={p} />}
               {plates && plateCheck(p) && <span className="lr-plate" data-testid={`plate-${p.shot_type}`} data-plate={p.plate_status}>
                 <span className={`ad-b ${p.plate_status === 'unchecked' ? 'ad-b--amber' : 'ad-b--light'}`}>{PLATE[p.plate_status]}</span>
                 {p.plate_status === 'unchecked' && suggestedBoxes(p.plate_suggestion, normalizePlateBoxes).length > 0 && <span className="ad-b ad-b--light" data-testid={`plate-suggested-${p.shot_type}`}>Box suggested</span>}
