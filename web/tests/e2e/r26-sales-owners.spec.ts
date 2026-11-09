@@ -142,8 +142,9 @@ test('Sales bring in owners: invite, start an application, ask for a commission;
   await check(ap, 'Change and approve', 'dialog[open]');
   await ap.getByTestId(`orq-change-${rq!.id}-submit`).click();
   await expect(list).toContainText('Approved, changed', { timeout: 30_000 });
-  const [done] = await sql`select status, a_kind, a_amount_cents, changed from owner_recruit_requests where id = ${rq!.id}`;
-  expect([done!.status, done!.a_kind, Number(done!.a_amount_cents), done!.changed]).toEqual(['approved', 'flat', 25000, true]);
+  // the list may already hold another run's "Approved, changed": wait for this request's row itself
+  await expect.poll(async () => { const [done] = await sql`select status, a_kind, a_amount_cents, changed from owner_recruit_requests where id = ${rq!.id}`;
+    return [done!.status, done!.a_kind, Number(done!.a_amount_cents), done!.changed]; }, { timeout: 30_000 }).toEqual(['approved', 'flat', 25000, true]);
 
   // the rep sees the Admin's terms
   await rp.goto('/staff/my-sales', { waitUntil: 'networkidle' });

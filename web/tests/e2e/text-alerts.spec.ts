@@ -132,6 +132,7 @@ test('profile: How should we reach you? Both by default with a verified phone; T
 });
 
 test('a booking request with Text: the email is skipped, the text is queued with its link and sent by the (mocked) line', async ({ page }) => {
+  test.setTimeout(180_000); // the event pass below may take up to 90 seconds in a full run
   const sql = db();
   try {
     await sql`delete from app.rate_limit_hits`;

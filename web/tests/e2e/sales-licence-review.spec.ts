@@ -85,6 +85,8 @@ test('Sales review the renter\'s licence from the queue, the booking and the ver
   const b = await offered(sql, admin.id, renter, car.id, car.from, car.to);
   const waiting = await sql`select count(*)::int n from verification_uploads where booking_id = ${b.booking_id} and status = 'submitted' and kind in ('licence_front', 'licence_back', 'selfie')`;
   expect(waiting[0]!.n).toBe(3);
+  // the queue lists the 8 longest waiting; a full run leaves more than 8 (other tests' renters): this renter sent theirs first
+  await sql`update verification_uploads set uploaded_at = uploaded_at - interval '30 days' where booking_id = ${b.booking_id} and status = 'submitted'`;
 
   const phone = test.info().project.name.startsWith('phone');
   const page = await ctx(browser, phone);
