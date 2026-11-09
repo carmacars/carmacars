@@ -17,7 +17,9 @@ async function me() {
   return { user, aal: await sessionAal() };
 }
 
-export type StaffRead = 'toll_read_context' | 'toll_read' | 'toll_read_queue' | 'toll_profiles' | 'ai_vision_gate' | 'photo_plate_context' | 'form_templates' | 'form_template_preview' | 'rental_form_preview';
+export type StaffRead = 'toll_read_context' | 'toll_read' | 'toll_read_queue' | 'toll_profiles' | 'ai_vision_gate' | 'photo_plate_context' | 'form_templates' | 'form_template_preview' | 'rental_form_preview'
+  // r35 S2 (1053): marketing photo scenes
+  | 'marketing_photos' | 'marketing_scene_refs';
 export async function staffRead<T = Record<string, unknown>>(what: StaffRead, p: Record<string, unknown> = {}): Promise<R<T>> {
   try { const { user, aal } = await me(); return { ok: true, data: await door<T>(user.id, 'ops_read', what, p, aal) }; } catch (e) { return fail(e); }
 }
@@ -126,5 +128,27 @@ export async function uploadRentalSignature(form: FormData): Promise<R<Record<st
     const data = await door<Record<string, unknown>>(user.id, 'ops_do', 'rental_form_rep', { form_code: code, signature_key: key, signature_sha256: await sha256Hex(bytes) }, aal);
     revalidatePath('/admin/settings/forms');
     return { ok: true, data };
+  } catch (e) { return fail(e); }
+}
+
+/** r35 S2 (1053): a photo of a marketing scene's real place (Settings > Program > Marketing scenes), Admin only: kept in the
+ *  private originals and given to the image model with the car. The database checks the Admin and the path. */
+export async function uploadSceneReference(form: FormData): Promise<R<Record<string, unknown>>> {
+  try {
+    const { user, aal } = await me();
+    const file = form.get('file');
+    const code = String(form.get('code') ?? '');
+    if (!/^[a-z0-9_]{2,40}$/.test(code)) return { ok: false, code: 'invalid', message: 'Unknown scene.' };
+    if (!(file instanceof File) || file.size === 0) return { ok: false, code: 'invalid', message: 'Choose the photo.' };
+    if (file.size > MAX) return { ok: false, code: 'invalid', message: 'The file must be under 15 MB.' };
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const jpg = bytes[0] === 0xff && bytes[1] === 0xd8, png = bytes[0] === 0x89 && bytes[1] === 0x50;
+    if (!jpg && !png) return { ok: false, code: 'invalid', message: 'Use a JPEG or PNG photo.' };
+    const key = `site/scenes/${code}-${crypto.randomUUID()}.${jpg ? 'jpg' : 'png'}`;
+    const { storage } = await import('@/integrations/storage');
+    const s = await storage();
+    await s.put('vehicle-originals', key, bytes, jpg ? 'image/jpeg' : 'image/png');
+    try { return { ok: true, data: await door<Record<string, unknown>>(user.id, 'ops_do', 'marketing_scene_reference', { code, path: key }, aal) }; }
+    catch (e) { await s.remove('vehicle-originals', key).catch(() => undefined); throw e; }
   } catch (e) { return fail(e); }
 }

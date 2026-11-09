@@ -33,12 +33,15 @@ test('paused: a studio photo keeps its original on the site, spends no transform
   assert.deepEqual(r.output?.flags, ['background_not_replaced']);
 });
 
-test('paused: an interior keeps its original too, and the size variants wait (the site uses the master file)', async () => {
+test('paused (r35, 1050): only the cut-out waits; an interior and the size variants are made (locally in production)', async () => {
   const calls: string[] = [];
-  assert.equal((await runJob(deps(calls), photo(false), paused)).output?.used_original, true);
-  const v = await runJob(deps(calls), { ...photo(true), kind: 'resize' }, paused);
-  assert.deepEqual(v.output?.variants, []);
-  assert.deepEqual(calls, []);
+  const ok = async () => { calls.push('local'); return { ok: true as const, bytes: JPEG, contentType: 'image/jpeg', transformations: 0 }; };
+  const d = { ...deps(calls), photos: { name: 'local', cutout: async () => { calls.push('cutout'); return { ok: false as const, reason: 'quota', message: 'x', retryable: true }; }, composite: ok, normalize: ok, resize: ok } as unknown as WorkerDeps['photos'] };
+  const inside = await runJob(d, photo(false), paused);
+  assert.equal(inside.output?.used_original, undefined, 'made, not the original');
+  const v = await runJob(d, { ...photo(true), kind: 'resize' }, paused);
+  assert.equal((v.output?.variants as unknown[]).length, 3);
+  assert.ok(!calls.includes('cutout'), 'the cut-out is never asked while paused');
 });
 
 test('Toronto days: midnight in Toronto as an instant, and the month so far', () => {

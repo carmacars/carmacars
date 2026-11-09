@@ -7105,6 +7105,8 @@ export type Database = {
           auto_at: string | null;
           auto_place: string | null;
           work_day: string | null;
+          shift_slot_id: string | null;
+          shift_pinned: boolean;
         };
         Insert: {
           id?: string;
@@ -7136,6 +7138,8 @@ export type Database = {
           auto_at?: string | null;
           auto_place?: string | null;
           work_day?: string | null;
+          shift_slot_id?: string | null;
+          shift_pinned?: boolean;
         };
         Update: {
           id?: string;
@@ -7167,6 +7171,8 @@ export type Database = {
           auto_at?: string | null;
           auto_place?: string | null;
           work_day?: string | null;
+          shift_slot_id?: string | null;
+          shift_pinned?: boolean;
         };
         Relationships: [];
       };
@@ -7509,6 +7515,7 @@ export type Database = {
           cancelled_by: string | null;
           created_at: string;
           updated_at: string;
+          jobs_alerted_at: string | null;
         };
         Insert: {
           id?: string;
@@ -7521,6 +7528,7 @@ export type Database = {
           cancelled_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          jobs_alerted_at?: string | null;
         };
         Update: {
           id?: string;
@@ -7533,6 +7541,7 @@ export type Database = {
           cancelled_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          jobs_alerted_at?: string | null;
         };
         Relationships: [];
       };
@@ -10801,6 +10810,7 @@ export type Database = {
           created_at: string;
           started_at: string | null;
           finished_at: string | null;
+          retry_queued_at: string | null;
         };
         Insert: {
           id?: string;
@@ -10823,6 +10833,7 @@ export type Database = {
           created_at?: string;
           started_at?: string | null;
           finished_at?: string | null;
+          retry_queued_at?: string | null;
         };
         Update: {
           id?: string;
@@ -10845,6 +10856,7 @@ export type Database = {
           created_at?: string;
           started_at?: string | null;
           finished_at?: string | null;
+          retry_queued_at?: string | null;
         };
         Relationships: [];
       };
@@ -16598,13 +16610,15 @@ export type Database = {
           google_drive_api_key: string | null;
           owner_hide_insurance_only: boolean;
           insurance_fee_hst: boolean;
+          field_clean_every_days: number;
+          field_offer_alert_hours: number;
+          field_late_cancel_hours: number;
           listing_showroom: boolean;
           listing_showroom_ai: boolean;
           listing_showroom_ai_model: string;
           listing_showroom_ai_daily: number;
-          field_clean_every_days: number;
-          field_offer_alert_hours: number;
-          field_late_cancel_hours: number;
+          listing_cf_transformations: boolean;
+          marketing_scenes: Json;
         };
         Insert: {
           id?: string;
@@ -17249,13 +17263,15 @@ export type Database = {
           google_drive_api_key?: string | null;
           owner_hide_insurance_only?: boolean;
           insurance_fee_hst?: boolean;
+          field_clean_every_days?: number;
+          field_offer_alert_hours?: number;
+          field_late_cancel_hours?: number;
           listing_showroom?: boolean;
           listing_showroom_ai?: boolean;
           listing_showroom_ai_model?: string;
           listing_showroom_ai_daily?: number;
-          field_clean_every_days?: number;
-          field_offer_alert_hours?: number;
-          field_late_cancel_hours?: number;
+          listing_cf_transformations?: boolean;
+          marketing_scenes?: Json;
         };
         Update: {
           id?: string;
@@ -17900,13 +17916,15 @@ export type Database = {
           google_drive_api_key?: string | null;
           owner_hide_insurance_only?: boolean;
           insurance_fee_hst?: boolean;
+          field_clean_every_days?: number;
+          field_offer_alert_hours?: number;
+          field_late_cancel_hours?: number;
           listing_showroom?: boolean;
           listing_showroom_ai?: boolean;
           listing_showroom_ai_model?: string;
           listing_showroom_ai_daily?: number;
-          field_clean_every_days?: number;
-          field_offer_alert_hours?: number;
-          field_late_cancel_hours?: number;
+          listing_cf_transformations?: boolean;
+          marketing_scenes?: Json;
         };
         Relationships: [];
       };
@@ -24816,6 +24834,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      vehicle_marketing_photos: {
+        Row: {
+          id: string;
+          set_id: string;
+          vehicle_id: string;
+          photo_id: string;
+          scene: string;
+          sort: number;
+          status: string;
+          path: string | null;
+          provider: string | null;
+          note: string | null;
+          job_id: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          set_id: string;
+          vehicle_id: string;
+          photo_id: string;
+          scene: string;
+          sort?: number;
+          status?: string;
+          path?: string | null;
+          provider?: string | null;
+          note?: string | null;
+          job_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          set_id?: string;
+          vehicle_id?: string;
+          photo_id?: string;
+          scene?: string;
+          sort?: number;
+          status?: string;
+          path?: string | null;
+          provider?: string | null;
+          note?: string | null;
+          job_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       vehicle_moves: {
         Row: {
           id: string;
@@ -28560,6 +28629,7 @@ export type Database = {
       server_licence_state: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_listing_budget: { Args: never; Returns: Json };
       server_listing_claim: { Args: { p_worker: string; p_limit?: number }; Returns: Json };
+      server_listing_image_mode: { Args: never; Returns: Json };
       server_listing_result: { Args: { p_job: string; p: Json }; Returns: Json };
       server_manual_rental_sign_charge: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_manual_rental_sign_charged: { Args: { p_booking: string; p_by: string; p: Json }; Returns: Json };

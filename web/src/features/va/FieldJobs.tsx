@@ -4,13 +4,16 @@ import { Badge, Card, PageHead, Table, t, label } from '@/features/admin/ui';
 import { CarBoard, DayTimeline } from '@/features/va/FleetDay';
 import { carBoard, type CalVehicle } from '@/features/va/carboard';
 import { CarCell } from '@/features/admin/revamp/CarCell';
+import { jobsText, type ShiftJobs } from '@/features/field-portal/model';
 
 // The field jobs board (Fleet at /staff/fleet and an Admin at /admin/field-jobs; r35, 0880): who can be given a job (the academy
 // state and next shift beside each name; the Admins always), the shifts field staff take, the next seven days with the days nobody
 // works, the handovers and returns on those days, and every job of the next three days. Every action goes through ops_do.
 type R = Record<string, unknown>;
 export interface Person { id: string; name: string; admin: boolean; locked: boolean; eligible: boolean; next_shift: { starts_at: string; ends_at: string; on_now: boolean } | null }
-export interface Slot { id: string; starts_at: string; ends_at: string; capacity: number; note: string | null; people: Array<{ plan_id: string; staff_id: string; name: string }> }
+export interface Slot { id: string; starts_at: string; ends_at: string; capacity: number; note: string | null; people: Array<{ plan_id: string; staff_id: string; name: string }>;
+  /** r35 S2 (1051): the jobs on the shift by kind */
+  jobs?: ShiftJobs }
 export interface Board {
   staff: Person[]; slots: Slot[]; coverage: Array<{ day: string; slots: number; people: number }>;
   no_shift_days: Array<{ booking_id: string; booking_number: string; leg: string; at: string; day: string; vehicle_name: string; work_day: string | null }>;
@@ -26,12 +29,15 @@ export function FieldJobsBoard({ b, cal, now, photos, base }: { b: Board; cal: C
   const options = eligible.map((s) => [s.id, `${s.name}${s.admin ? ' (Admin)' : ''}${s.next_shift ? `, next shift ${t(s.next_shift.starts_at)}` : s.admin ? '' : ', no shift taken'}`] as [string, string]);
   const crew = b.staff.filter((s) => !s.admin);
   const crewOptions = crew.filter((s) => s.eligible).map((s) => [s.id, s.name] as [string, string]);
+  // r35 S2 (1051): jobs belong to shifts; a job can be moved to another shift
+  const slotOf = (id: unknown) => b.slots.find((s) => s.id === id);
+  const slotOptions = b.slots.map((s) => [s.id, `${t(s.starts_at)} to ${t(s.ends_at)}${s.people.length ? `: ${s.people.map((p) => p.name).join(', ')}` : ': nobody yet'}`] as [string, string]);
   const late = (j: R) => !j.acknowledged_at && j.status === 'scheduled' && new Date(String(j.scheduled_at)).getTime() - now < 2 * 3600_000;
   const bookingHref = (n: unknown) => `${base}/bookings/${encodeURIComponent(String(n))}`;
   return (
     <div className="fj-board">
       <PageHead title="Field jobs" kicker={`${b.unscheduled.length} without a job · ${b.jobs.filter((j) => !j.assigned_to).length} unassigned`} purpose="Today's handovers, returns and moves by the clock, every car's state now, then every job of the next three days. Where every car is: Fleet map." />
-      <p className="small muted" data-testid="fleet-auto-note">Handover and return jobs are made from each confirmed booking, at its times and place. They are given automatically only to field staff who passed the academy and hold a shift that day, and work lands only on days with shifts. Change the time, the place or the person below.</p>
+      <p className="small muted" data-testid="fleet-auto-note">Handover and return jobs are made from each confirmed booking, at its times and place. Each job goes on a shift (the one covering its time, or that day&apos;s), and work lands only on days with shifts. The people on a shift share its jobs, least busy first; a shift nobody holds keeps its jobs for whoever claims it. Move a job to another shift, give it to a person on a shift that day, or change its time and place below.</p>
       {base === '/admin' && <p className="small" data-testid="admin-field-portal">Jobs given to you open on the <Link prefetch={false} className="link" href="/staff/field">field portal</Link>. You do not need a Fleet role: an Admin has every action here.</p>}
       {b.no_shift_days.length > 0 && (
         <div className="alert alert--warn" role="status" data-testid="no-shift-days">
@@ -53,6 +59,7 @@ export function FieldJobsBoard({ b, cal, now, photos, base }: { b: Board; cal: C
             { name: 'repeat_days', label: 'Same hours for this many days', type: 'number', min: 1, max: 14, value: 7 }, { name: 'note', label: 'Note', type: 'text' }]} refresh={R} done="Published. Field staff can take them." /></p>
           <Table rows={b.slots as unknown as R[]} empty="No open shifts. Publish the coming week so field staff can take them." cols={[
             { key: 'starts_at', label: 'When', className: 'fj-when', render: (r) => <>{t(r.starts_at)} to {t(r.ends_at)}</> },
+            { key: 'jobs', label: 'Jobs on it', className: 'wrap', render: (r) => { const s = r as unknown as Slot; const w = jobsText(s.jobs); return w ? <span className={s.people.length ? undefined : 'ad-flag ad-flag--red'} data-testid="slot-jobs">{w}{s.people.length ? '' : ', nobody on it'}</span> : <span className="muted">none yet</span>; } },
             { key: 'people', label: 'Taken', className: 'wrap', render: (r) => {
               const s = r as unknown as Slot;
               return <>{s.people.length} of {s.capacity}{s.people.length ? <>: {s.people.map((p, i) => <span key={p.plan_id}>{i ? ', ' : ''}{p.name} <Act ops action="field_shift_plan_cancel" payload={{ id: p.plan_id }} label="Remove" variant="quiet" confirm={`Take ${p.name} off this shift?`} refresh={R} /></span>)}</> : null}</>;
@@ -81,11 +88,13 @@ export function FieldJobsBoard({ b, cal, now, photos, base }: { b: Board; cal: C
             { key: 'scheduled_at', label: 'When', className: 'fj-when', render: (r) => <><span className={late(r) ? 'ad-late' : undefined}>{t(r.scheduled_at)}</span>{r.work_day ? <span className="muted small" data-testid="work-day"><br />planned for {dayWord(String(r.work_day))}</span> : null}{r.place ? <span className="muted small"><br />{String(r.place)}</span> : null}</> },
             { key: 'kind', label: 'Kind', render: (r) => <>{label(r.kind)}{r.auto_created ? <span className="muted small"> · made from the booking</span> : null}</> },
             { key: 'vehicle_name', label: 'Car', render: (r) => <CarCell name={r.vehicle_name} sub={r.booking_number} photo={photos[String(r.vehicle_id)]} /> },
+            { key: 'shift_slot_id', label: 'Shift', className: 'wrap', render: (r) => { const s = slotOf(r.shift_slot_id); return s ? <span data-testid="job-shift">{t(s.starts_at)}</span> : <span className="muted">no shift</span>; } },
             { key: 'assignee_name', label: 'Field staff', render: (r) => r.assignee_name ? <>{String(r.assignee_name)} {r.acknowledged_at ? <span className="muted small">acknowledged</span> : <span className="ad-flag ad-flag--red">not acknowledged</span>}</> : <span className="ad-flag ad-flag--red">nobody</span> },
             { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> },
             { key: 'act', label: '', render: (r) => ['done', 'cancelled'].includes(String(r.status)) ? null : <span className="ad-actions">
-              <Act ops action="field_job_assign" payload={{ id: r.id }} label={r.assigned_to ? 'Reassign' : 'Assign'} testId={`assign-${String(r.id)}`} fields={[{ name: 'to', label: 'Field staff or Admin', type: 'select', required: true, options }]} refresh={R} />
+              <Act ops action="field_job_assign" payload={{ id: r.id }} label={r.assigned_to ? 'Reassign' : 'Assign'} testId={`assign-${String(r.id)}`} fields={[{ name: 'to', label: 'Field staff on a shift that day, or an Admin', type: 'select', required: true, options }]} refresh={R} />
               {r.assigned_to ? <Act ops action="field_job_unassign" payload={{ id: r.id }} label="Unassign" testId={`unassign-${String(r.id)}`} fields={[{ name: 'tell', label: 'Tell them', hint: 'Send them the message that the job was taken off.', type: 'bool' }]} refresh={R} done="Taken off." /> : null}
+              {slotOptions.length ? <Act ops action="field_job_shift" payload={{ id: r.id }} label="To a shift" testId={`to-shift-${String(r.id)}`} fields={[{ name: 'slot', label: 'Shift', type: 'select', required: true, options: slotOptions }]} refresh={R} done="Moved to the shift." /> : null}
               <Act ops action="field_job_reschedule" payload={{ id: r.id }} label="Move" fields={[{ name: 'scheduled_at', label: 'When', type: 'datetime', required: true, value: r.scheduled_at }, { name: 'place', label: 'Place', type: 'address', value: r.place ?? '' }]} refresh={R} />
               <Act ops action="field_job_cancel" payload={{ id: r.id }} label="Cancel" fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} refresh={R} /></span> }]} />
         </Card>

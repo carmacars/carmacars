@@ -14,7 +14,8 @@ const unb64 = (s: string) => { const bin = atob(s); const out = new Uint8Array(b
 export interface GeminiOptions { apiKey: string; model?: string | null; fetch?: typeof fetch; timeoutMs?: number }
 
 /** The image edited by the model, or why not. */
-export async function geminiEditImage(o: GeminiOptions, img: { bytes: Uint8Array; contentType: string }, prompt: string): Promise<ShowroomOut> {
+/** `extra`: more images after the first (1053: a photo of the real place of a marketing scene). */
+export async function geminiEditImage(o: GeminiOptions, img: { bytes: Uint8Array; contentType: string }, prompt: string, extra: Array<{ bytes: Uint8Array; contentType: string }> = []): Promise<ShowroomOut> {
   const model = (o.model ?? '').trim() || GEMINI_DEFAULT_MODEL;
   if (!/^[a-z0-9][a-z0-9.-]{2,80}$/.test(model)) return { ok: false, reason: 'model', message: 'The model name is not valid' };
   const f = o.fetch ?? fetch;
@@ -26,7 +27,8 @@ export async function geminiEditImage(o: GeminiOptions, img: { bytes: Uint8Array
       method: 'POST', signal: ctl.signal,
       headers: { 'content-type': 'application/json', 'x-goog-api-key': o.apiKey },
       body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: prompt }, { inline_data: { mime_type: img.contentType, data: b64(img.bytes) } }] }],
+        contents: [{ role: 'user', parts: [{ text: prompt }, { inline_data: { mime_type: img.contentType, data: b64(img.bytes) } },
+          ...extra.map((x) => ({ inline_data: { mime_type: x.contentType, data: b64(x.bytes) } }))] }],
         generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: '3:2' } }
       })
     });

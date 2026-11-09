@@ -2,11 +2,18 @@
 //   npm run test:unit
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { activeTab, cardSteps, cardTitle, fieldTabs, isLate, nextStep, sinShown, toCents, validSin, type Card } from './model.ts';
+import { activeTab, cardSteps, cardTitle, fieldTabs, isLate, jobsText, nextStep, sinShown, toCents, validSin, type Card } from './model.ts';
 
 const car = { id: 'v', name: '2024 Example Sedan', plate: 'ABCD 123' };
 const pickup = (x: Partial<Card> = {}): Card => ({ type: 'job', key: 'job:1', must: true, done: false, kind: 'handover', leg: 'pickup', status: 'acknowledged', vehicle: car,
   clean: { moment: 'before_pickup', done: false }, addons: [{ id: 'a', name: 'Child seat', quantity: 1, note: null, ticked: false, ticked_at: null, ticked_by: null }], addons_open: 1, ...x });
+
+test('r35 (1051): the jobs waiting on a shift in plain words', () => {
+  assert.equal(jobsText({ pickups: 3, returns: 1, cleans: 2, other: 0, total: 6 }), '3 pickups, 1 return, 2 cleans');
+  assert.equal(jobsText({ pickups: 1, returns: 0, cleans: 0, other: 2, total: 3 }), '1 pickup, 2 other jobs');
+  assert.equal(jobsText({ pickups: 0, returns: 0, cleans: 0, other: 0, total: 0 }), '');
+  assert.equal(jobsText(null), '');
+});
 
 test('at most four tabs, and Sales only for a person who opted in', () => {
   assert.deepEqual(fieldTabs({}).map((t) => t.label), ['Today', 'My shifts', 'My pay', 'Training']);

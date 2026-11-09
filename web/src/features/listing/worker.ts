@@ -9,7 +9,8 @@ import { plainDraft } from '../seo/copy.ts';
 import { LETTERING, LETTER_REAL_PHOTOS, LETTER_SHOTS, letterThis, letteringPath, letteringPng } from './lettering.ts';
 import { WINDOW_SHOTS, readAlpha, windowPlan, type WindowPlan } from './window-check.ts';
 import { adjustPlace, decodePng, encodePng, frameRgba, frameSubject, placeSubject, type Adjust } from './subject-frame.ts';
-import { SHOWROOM_PRESET, makeShowroom, sceneOf, showroomBackdrop, type ShowroomProvider } from './showroom.ts';
+import { SHOWROOM_FIT, SHOWROOM_PRESET, decodeImage, encodeJpeg, makeShowroom, marketingPrompt, sceneOf, showroomBackdrop, whiteStudio, type ShowroomProvider } from './showroom.ts';
+import { scaleDown } from '../../integrations/photos/local.ts';
 import { enhanceValues, statsOf, type Enhance } from './enhance.ts';
 import { cropAway, type MarkBox } from './photo-sort.ts';
 
@@ -30,7 +31,7 @@ export const PRESET = 'studio_v5';
 // limit, makes it look photographed, and any refusal keeps the local one with the reason for staff.
 export { SHOWROOM_PRESET };
 /** r35: where the showroom room (no lettering) is kept for the windows of inside photos. */
-export const SHOWROOM_BACKDROP_PATH = 'site/backdrop/showroom_v1.png';
+export const SHOWROOM_BACKDROP_PATH = 'site/backdrop/showroom_v2.png';
 export { LETTER_REAL_PHOTOS, LETTER_SHOTS, letterThis };
 /** r33: what the cut-out editor sends (app.photo_cutout_edit): the edited cut-out and the move and size, or null. */
 export function editOf(input: Record<string, unknown> | null | undefined): { cutout_path: string; adjust: Adjust } | null {
@@ -51,7 +52,7 @@ const MICROUSD_PER_TRANSFORMATION = 500;     // US$0.50 per 1,000 unique transfo
 const FREE_DAILY_NEURONS = 10_000;
 
 export interface JobContext {
-  id: string; kind: 'decode_vin' | 'draft_copy' | 'process_photo' | 'resize' | 'publish'; intake_id: string; vehicle_id: string;
+  id: string; kind: 'decode_vin' | 'draft_copy' | 'process_photo' | 'resize' | 'publish' | 'marketing_photo'; intake_id: string; vehicle_id: string;
   attempts: number; max_attempts: number; input: Record<string, unknown>; vin?: string | null;
   facts?: Record<string, unknown> | null; staff_notes?: string | null; classes?: string[] | null;
   copy_rules?: { headline_chars: [number, number]; description_words: [number, number]; features: [number, number]; faq: [number, number]; banned_phrases: string[] } | null;
@@ -160,6 +161,7 @@ export async function runJob(d: WorkerDeps, j: JobContext, b: Budget, used = { n
     case 'process_photo': return processPhoto(d, j, b, used);
     case 'resize': return resize(d, j, b, used);
     case 'publish': return { ok: true, output: {}, provider: 'carmacars' };
+    case 'marketing_photo': return marketingPhoto(d, j);
   }
 }
 
@@ -235,8 +237,9 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
   // the usage guard (0080): no transformations while the allowance is used up; the original goes on the site now and the
   // database queues the studio background again once transformations may be used (app.usage_retry_photos)
   // 0700: an edit or a mask waits for the allowance instead (the photo keeps its studio file meanwhile)
-  if (b.images_paused && (j.input?.mask_only || editOf(j.input))) return { ok: false, provider: d.photos.name, error: `${USAGE_PAUSED}: the month's included image transformations are used`, retryable: true };
-  if (b.images_paused) return fallback(d, j, USAGE_PAUSED, `${USAGE_PAUSED}: the month's included image transformations are used`, 0, b, used);
+  if (b.images_paused && j.input?.mask_only) return { ok: false, provider: d.photos.name, error: `${USAGE_PAUSED}: the month's included image transformations are used`, retryable: true };
+  // r35: only the cut-out needs the image service (every other step is made locally): an inside photo goes ahead
+  if (b.images_paused && p.rebackground && !editOf(j.input)) return fallback(d, j, USAGE_PAUSED, `${USAGE_PAUSED}: the month's included image transformations are used`, 0, b, used);
   const src = await d.files.privateUrl(p.original_path);
   // 0700: a mask asked for by the cut-out editor (a photo made before the mask was kept): the segmenter's cut-out only
   if (j.input?.mask_only) {
@@ -248,8 +251,11 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
     return { ok: true, provider: d.photos.name, ...imageCost(cut.transformations, b, used), output: { mask_only: true, mask_path: maskPath } };
   }
   let n = 0;
-  const fail = (o: Extract<PhotoOut, { ok: false }>): JobResult | null => o.retryable
+  // r35: a quota never fails a photo (the original goes on the site, made again when the service may be used, 0080's
+  // usage_retry_photos); an outage is tried again, and on the last attempt the original is used too
+  const fail = (o: Extract<PhotoOut, { ok: false }>): JobResult | null => o.retryable && o.reason !== 'quota' && j.attempts < j.max_attempts
     ? { ok: false, provider: d.photos.name, error: `${o.reason}: ${o.message}`, retryable: true, ...imageCost(n, b, used) } : null;
+  const why = (o: Extract<PhotoOut, { ok: false }>) => (o.reason === 'quota' ? `${USAGE_PAUSED}: ${o.message}` : o.message);
   let out: PhotoOut;
   let size = EXTERIOR;
   let windowsPlan: WindowPlan | null = null;
@@ -272,7 +278,7 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
       cutBytes = e;
     } else {
       const cut = await d.photos.cutout(src);
-      if (!cut.ok) return fail(cut) ?? fallback(d, j, cut.reason, cut.message, n, b, used);
+      if (!cut.ok) return fail(cut) ?? fallback(d, j, cut.reason, why(cut), n, b, used);
       n += cut.transformations;
       cutBytes = cut.bytes;
       // 0700: the segmenter's cut-out as it came (its alpha is the mask), for the cut-out editor
@@ -294,7 +300,7 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
     let lettering: { url: string; top: number; width: number } | null = null;
     if (showroom && framed && carImg) {
       // r35: the showroom, made here (no transformation); the image model on top when it may be asked
-      place = adjustPlace(placeSubject(framed, EXTERIOR.width, EXTERIOR.height), edit?.adjust ?? null, EXTERIOR.width, EXTERIOR.height);
+      place = adjustPlace(placeSubject(framed, EXTERIOR.width, EXTERIOR.height, SHOWROOM_FIT), edit?.adjust ?? null, EXTERIOR.width, EXTERIOR.height);
       const m = await makeShowroom({ car: { ...carImg, ground: framed.ground }, place, model: p.model ?? null, cover: !!p.is_cover, photoId: p.id },
         d.showroomAi ? [d.showroomAi] : [], !d.showroomAi && !!d.showroomNoKey);
       room = { provider: m.provider, ...(m.model ? { model: m.model } : {}), note: m.note, reason: m.reason };
@@ -315,12 +321,12 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
     size = INTERIOR;
     // 0521: a dashboard or seats photo: what shows through the windows is replaced by the studio when the cut-out
     // passes the quality check (window-check.ts), else blurred; a failed cut-out leaves the photo as edited before
-    const w = WINDOW_SHOTS.includes(p.angle) || WINDOW_SHOTS.includes(p.shot_type) ? await windows(d, j, src, showroom ? await showroomRoomUrl(d) : null) : null;
+    const w = !b.images_paused && (WINDOW_SHOTS.includes(p.angle) || WINDOW_SHOTS.includes(p.shot_type)) ? await windows(d, j, src, showroom ? await showroomRoomUrl(d) : null) : null;
     if (w?.out) { n += w.n; out = w.out; windowsPlan = w.plan; }
     else { n += w?.n ?? 0; out = await d.photos.normalize({ sourceUrl: src, ...INTERIOR }); }
   }
   if (!out.ok) return fail(out) ?? (edit ? { ok: false, provider: d.photos.name, error: `${out.reason}: ${out.message}`, retryable: false, ...imageCost(n, b, used) }
-    : fallback(d, j, out.reason, out.message, n, b, used));
+    : fallback(d, j, out.reason, why(out), n, b, used));
   let done: Extract<PhotoOut, { ok: true }> = out;
   n += done.transformations;
   // 0567: an inside or detail photo flagged for a mark: the vision model says where; the edge band holding it is cut off
@@ -420,18 +426,51 @@ async function fallback(d: WorkerDeps, j: JobContext, reason: string, message: s
   const p = j.photo!;
   const bytes = await d.files.getPrivate(p.original_path);
   if (!bytes) return { ok: false, provider: d.photos.name, error: `The original photo could not be read (${message})`, retryable: true };
-  const type = bytes[0] === 0x89 ? 'image/png' : 'image/jpeg';
+  // r35: made the site's size here (one decode, one pass down, one encode), never the camera's full file
+  const img = await decodeImage(bytes).catch(() => null);
+  const small = img ? encodeJpeg(scaleDown(img, EXTERIOR.width, EXTERIOR.width), 86) : null;
+  const type = small ? 'image/jpeg' : bytes[0] === 0x89 ? 'image/png' : 'image/jpeg';
   const path = `vehicles/${j.vehicle_id}/${p.file_base}.${ext(type)}`;
-  await d.files.putPublic(path, bytes, type);
+  await d.files.putPublic(path, small ?? bytes, type);
   const flag = reason === 'no_subject' ? 'bad_cutout' : 'background_not_replaced';
   return { ok: true, provider: `${d.photos.name}:fallback`, ...imageCost(n, b, used),
     output: { processed_path: path, used_original: true, preset_version: 'original', flags: [flag], fallback_reason: message } };
 }
 
+/** 1053: one marketing copy of an outside photo in a scene (never the website's photo). The car from its kept cut-out, placed as
+ *  in the showroom; the image model first (the scene's words, and the photo of the real place when the scene has one; the
+ *  car's own pixels put back, a photo that moved it refused); without it, the site's own room for the local scenes (the dark
+ *  showroom, the white studio), and for a photographic scene the copy says it needs the image model. */
+export interface MarketingInput { id: string; vehicle_id: string; photo_id: string; scene: string; label: string; made: 'local' | 'photo'; place: string | null;
+  mask: string; adjust: Adjust | null; reference: string | null }
+async function marketingPhoto(d: WorkerDeps, j: JobContext): Promise<JobResult> {
+  const m = (j.input as { marketing?: MarketingInput }).marketing;
+  if (!m?.id || !m.mask) return { ok: false, error: 'The marketing photo is missing its cut-out', retryable: false };
+  const cut = await d.files.getPrivate(m.mask);
+  const img = cut ? await decodePng(cut).catch(() => null) : null;
+  const f = img ? frameRgba(img) : null;
+  if (!f) return { ok: true, provider: 'carmacars', output: { marketing: { id: m.id, status: 'failed', note: 'The car\'s cut-out could not be read' } } };
+  const place = adjustPlace(placeSubject(f, EXTERIOR.width, EXTERIOR.height, SHOWROOM_FIT), m.adjust ?? null, EXTERIOR.width, EXTERIOR.height);
+  const refBytes = m.reference ? await d.files.getPrivate(m.reference).catch(() => null) : null;
+  const reference = refBytes ? { bytes: refBytes, contentType: refBytes[0] === 0x89 ? 'image/png' : 'image/jpeg' } : null;
+  const made = await makeShowroom({ car: { ...f.image, ground: f.ground }, place, cover: false, photoId: m.photo_id,
+    room: m.scene === 'showroom_dark' ? null : whiteStudio(),
+    prompt: m.scene === 'showroom_dark' ? null : marketingPrompt({ label: m.label, place: m.place ?? m.label, reference: !!reference }), reference },
+    d.showroomAi ? [d.showroomAi] : [], !d.showroomAi && !!d.showroomNoKey);
+  if (made.provider !== 'ai' && m.made === 'photo') {
+    return { ok: true, provider: 'carmacars', output: { marketing: { id: m.id, status: 'needs_gemini',
+      note: `${m.label} needs the image model. ${(made.note ?? 'It is not set up.').replace(/^Made with the free showroom: /, '')}`.slice(0, 300) } } };
+  }
+  const path = `vehicles/${m.vehicle_id}/marketing/${m.id}.jpg`;
+  await d.files.putPublic(path, made.bytes, made.contentType);
+  return { ok: true, provider: made.provider === 'ai' ? 'ai' : 'carmacars', output: { marketing: { id: m.id, status: 'made', path, provider: made.provider, note: made.note } } };
+}
+
 async function resize(d: WorkerDeps, j: JobContext, b: Budget, used: { transformations: number }): Promise<JobResult> {
   const p = j.photo;
   if (!p?.processed_path || !p.is_public) return { ok: true, provider: 'carmacars', output: { variants: [] } };
-  if (b.images_paused) return { ok: true, provider: 'carmacars', output: { variants: [], flags: ['no_variants'], fallback_reason: `${USAGE_PAUSED}: no size variants this month` } };
+  // r35: the sizes are made locally, so a used allowance no longer stops them (paused with the service asked for everything:
+  // the local processor answers anyway, see integrations/photos/local.ts)
   const src = d.files.publicUrl(p.processed_path);
   const variants: { width: number; format: string; path: string }[] = [];
   let n = 0;

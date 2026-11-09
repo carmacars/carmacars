@@ -3,9 +3,10 @@
 //   node --test --experimental-strip-types src/features/listing/showroom.test.ts   (npm run test:unit)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { FALLBACK_TEXT, ROOM, SHOWROOM_PRESET, composeShowroom, decodeImage, fitFrame, localShowroom, makeShowroom, sceneOf, showroomBackdrop, showroomPrompt,
+import { FALLBACK_TEXT, ROOM, SHOWROOM_PRESET, composeShowroom, decodeImage, fitFrame, encodeJpeg, keepCar, localShowroom, makeShowroom, marketingPrompt, nameBox, sceneOf, showroomBackdrop, showroomPrompt, whiteStudio,
   type ShowroomProvider } from './showroom.ts';
 import { encodePng, type Rgba } from './subject-frame.ts';
+import { resample } from '../../integrations/photos/local.ts';
 import { geminiEditImage, GEMINI_DEFAULT_MODEL } from '../../integrations/photos/gemini.ts';
 import { runJob, type JobContext, type WorkerDeps } from './worker.ts';
 import { fakePhotos } from '../../integrations/photos/fake.ts';
@@ -23,45 +24,83 @@ function car(w = 600, h = 250): Rgba & { ground: number } {
   }
   return { width: w, height: h, data, ground: 0.2 };
 }
-const PLACE = { width: 1500, height: 625, left: 150, bottom: 187 };   // the wheels at 1200 - 187 - 125 = 888
+const PLACE = { width: 1500, height: 625, left: 150, bottom: 115 };   // the wheels at 1200 - 115 - 125 = 960 (ROOM.floorLine)
 
-test('the room is dark and plain, the logo lit on the wall, the same every time', () => {
+test('the room is a dark showroom in perspective: ceiling lights, a lit wall, a darker polished floor; the same every time', () => {
   const a = showroomBackdrop(), b = showroomBackdrop();
   assert.deepEqual([a.width, a.height], [ROOM.width, ROOM.height]);
   assert.ok(Buffer.from(a.data).equals(Buffer.from(b.data)), 'deterministic');
-  assert.ok(mean(a, 0, ROOM.junction) < 60, `the wall is dark (${mean(a, 0, ROOM.junction)})`);
-  assert.ok(mean(a, ROOM.junction + 5, ROOM.height) < 30, 'the floor is darker');
-  assert.ok(mean(a, ROOM.junction + 5, ROOM.height) < mean(a, 0, ROOM.junction), 'floor below wall');
+  const wall = mean(a, ROOM.ceiling + 10, ROOM.junction - 20, ROOM.wallLeft, ROOM.wallRight), floor = mean(a, ROOM.junction + 10, ROOM.height);
+  assert.ok(wall < 70 && wall > 15, `the wall is dark but lit (${wall})`);
+  assert.ok(floor < wall, `the floor is darker than the wall (${floor} < ${wall})`);
+  // the ceiling's linear lights are bright lines in a near black ceiling
+  let lit = 0; for (let x = 300; x < 1500; x++) if (lum(a, x, 64) > 150) lit++;
+  assert.ok(lit > 600, `a light strip across the ceiling (${lit})`);
+  assert.ok(lum(a, 900, 100) < 40, 'the ceiling between the strips is dark');
+  // the side walls meet the back wall at its corners: the left wall is darker than the lit back wall next to it
+  assert.ok(lum(a, 100, 400) < lum(a, 300, 300), 'a side wall in shadow');
+  // the vertical light strips beside the feature panel
+  assert.ok(lum(a, ROOM.panel.left - 9, 400) > 180 && lum(a, ROOM.panel.right + 8, 400) > 180, 'light strips at the panel edges');
+  // slats: the panel alternates slat and gap
+  const row = 450; let changes = 0; for (let x = 500; x < 700; x++) if (Math.abs(lum(a, x, row) - lum(a, x + 1, row)) > 4) changes++;
+  assert.ok(changes > 10, `vertical slats (${changes})`);
+  // the floor mirrors the light strips: brighter under them than between them
+  assert.ok(lum(a, ROOM.panel.left - 9, ROOM.junction + 30) > lum(a, 900, ROOM.junction + 30) - 6, 'the strips reflected');
   let bright = 0, red = 0;
-  for (let y = ROOM.logo.top; y < ROOM.logo.top + 90; y++) for (let x = 650; x < 1150; x++) {
+  for (let y = ROOM.logo.top; y < ROOM.logo.top + 70; y++) for (let x = 700; x < 1100; x++) {
     const i = (y * a.width + x) * 4;
     if (lum(a, x, y) > 180) bright++;
     if (a.data[i]! > 150 && a.data[i + 1]! < 60) red++;
   }
-  assert.ok(bright > 2000, 'the white of the logo');
-  assert.ok(red > 200, 'the red of the logo');
+  assert.ok(bright > 1500, `the white of the logo (${bright})`);
+  assert.ok(red > 200, `the red of the logo (${red})`);
+  // the sign's glow lights the wall around it
+  assert.ok(lum(a, 900, ROOM.logo.top - 12) > lum(a, 900, 470) , 'the logo glows on the wall');
+  // a vignette: the corners are darker than the middle of the floor
+  assert.ok(lum(a, 5, 1195) < lum(a, 900, 1000), 'vignette');
 });
 
-test('the cover has the model lettered on the wall; the other angles do not', () => {
+test('the cover has the model lettered on the wall above the car when there is room; the other angles do not', () => {
   const plain = showroomBackdrop({ model: 'CLA-Class', cover: false });
-  const cover = showroomBackdrop({ model: 'CLA-Class', cover: true });
-  const band = (img: Rgba) => mean(img, ROOM.name.baseline - 240, ROOM.name.baseline, 200, 1600);
+  const cover = showroomBackdrop({ model: 'CLA-Class', cover: true, carTop: 560 });
+  const box = nameBox(560);
+  assert.ok(box.top + box.cap <= 560 - ROOM.name.gap + 1, 'above the car');
+  assert.equal(nameBox(200).cap, ROOM.name.capMin, 'never smaller than its least size');
+  assert.equal(nameBox(900).cap, ROOM.name.capMax, 'never larger than its most');
+  const band = (img: Rgba) => mean(img, box.top, box.top + box.cap, 400, 1400);
   assert.ok(Buffer.from(plain.data).equals(Buffer.from(showroomBackdrop().data)), 'no lettering off the cover');
-  assert.ok(band(cover) > band(plain) + 2, 'the name shows on the cover');
-  assert.ok(band(cover) < 80, 'quietly: the wall stays dark');
+  assert.ok(band(cover) > band(plain) + 8, `the name shows on the cover (${band(cover)} vs ${band(plain)})`);
+  assert.ok(band(cover) < 110, 'brushed metal, not glaring');
 });
 
-test('the car is placed with its wheels on the floor line and a faint reflection under it', () => {
+test('the car stands on the floor with a contact shadow, a soft reflection, and its pixels unchanged', () => {
+  const plainFloor = showroomBackdrop({ carTop: 1200 - PLACE.bottom - PLACE.height });
   const img = composeShowroom(car(), PLACE);
   const at = (x: number, y: number) => { const i = (y * img.width + x) * 4; return [img.data[i]!, img.data[i + 1]!, img.data[i + 2]!]; };
-  const [r, g] = at(900, 600);
-  assert.ok(r! > 180 && g! < 50, 'the car itself');
-  const [rr, rg] = at(900, ROOM.floorLine + 40);
-  assert.ok(rr! > rg! + 8, 'its reflection tints the floor');
-  assert.ok(rr! < 120, 'faintly');
-  const [br, bg] = at(900, 1150);
-  assert.ok(Math.abs(br! - bg!) < 6, 'the reflection fades out before the bottom');
-  assert.ok(lum(img, 40, 300) < 50, 'the wall beside the car is untouched');
+  assert.deepEqual(at(900, 600), [200, 30, 30], 'the car exactly as it is');
+  const wheel = ROOM.floorLine;
+  assert.ok(lum(img, 900, wheel + 4) < lum(plainFloor, 900, wheel + 4) * 0.6, 'a dark contact shadow under the tyres');
+  const [rr, rg] = at(900, wheel + 40);
+  assert.ok(rr! > rg! + 4, 'its reflection tints the floor');
+  assert.ok(rr! < 110, 'softly');
+  assert.ok(Math.abs(lum(img, 900, 1195) - lum(plainFloor, 900, 1195)) < 6, 'the reflection fades out before the bottom');
+  assert.ok(Math.abs(lum(img, 40, 300) - lum(plainFloor, 40, 300)) < 1, 'the wall beside the car is untouched');
+});
+
+test('the image model\'s photo keeps the car exactly; a photo that moved the car is not used', () => {
+  const c = car(), local = composeShowroom(c, PLACE);
+  // a "photographed" room: everything a little brighter, the car slightly retouched
+  const ai = { width: local.width, height: local.height, data: new Uint8ClampedArray(local.data) };
+  for (let i = 0; i < ai.data.length; i += 4) { ai.data[i] = Math.min(255, ai.data[i]! + 12); ai.data[i + 1] = Math.min(255, ai.data[i + 1]! + 12); }
+  const kept = keepCar(ai, local, c, PLACE)!;
+  assert.ok(kept, 'kept');
+  const i = (600 * kept.width + 900) * 4;
+  assert.deepEqual([kept.data[i], kept.data[i + 1], kept.data[i + 2]], [200, 30, 30], 'the car pixels put back');
+  const j = (300 * kept.width + 40) * 4;
+  assert.equal(kept.data[j], ai.data[j], 'the room is the model\'s');
+  // the car moved 300 px: refused
+  const moved = composeShowroom(c, { ...PLACE, left: PLACE.left + 300 });
+  assert.ok(keepCar(moved, local, c, PLACE) === null, 'moved: not used');
 });
 
 test('local provider: a JPEG of the frame, the same bytes every time, no network', async () => {
@@ -95,14 +134,18 @@ test('fallback: a quota, a refusal or an error keeps the free showroom with the 
   const none = await makeShowroom(i, [], true);
   assert.deepEqual([none.provider, none.reason], ['local', 'no_key']);
   assert.equal((await makeShowroom(i, [])).note, null, 'no note when no model was meant to be asked');
-  // the model answers 1344 x 896: the photo is fitted to 1800 x 1200
-  const small = { width: 1344, height: 896, data: new Uint8ClampedArray(1344 * 896 * 4).fill(60) };
+  // the model answers 1344 x 896 (its own size): fitted to 1800 x 1200, the car checked and its pixels put back
+  const small = resample(composeShowroom(i.car, i.place, { model: i.model, cover: i.cover }), { x: 0, y: 0, w: 1800, h: 1200 }, 1344, 896);
   const png = await encodePng(small);
   const ok = await makeShowroom(i, [{ name: 'ai', make: async () => ({ ok: true, bytes: png, contentType: 'image/png', provider: 'ai', model: 'm1' }) }]);
   assert.deepEqual([ok.provider, ok.model, ok.note], ['ai', 'm1', null]);
   const img = await decodeImage(ok.bytes);
   assert.deepEqual([img?.width, img?.height], [1800, 1200]);
   assert.deepEqual([fitFrame(small).width, fitFrame(small).height], [1800, 1200]);
+  // a flat grey answer (no car where the car was): not used
+  const flat = await encodePng({ width: 1344, height: 896, data: new Uint8ClampedArray(1344 * 896 * 4).fill(60) });
+  const changed = await makeShowroom(i, [{ name: 'ai', make: async () => ({ ok: true, bytes: flat, contentType: 'image/png', provider: 'ai' }) }]);
+  assert.deepEqual([changed.provider, changed.reason, changed.note], ['local', 'changed', FALLBACK_TEXT.changed]);
 });
 
 test('the image model: key in a header, image in and out; 429 is a quota, 404 a model not allowed, a throw an error', async () => {
@@ -132,7 +175,9 @@ test('the image model: key in a header, image in and out; 429 is a quota, 404 a 
   const bad = await geminiEditImage({ apiKey: 'k', model: 'bad name!', fetch: answer(200, {}) as typeof fetch }, img, 'p');
   assert.deepEqual(bad.ok ? null : bad.reason, 'model');
   assert.match(showroomPrompt({ cover: true, name: 'CLA' }), /lettering "CLA"/);
-  assert.match(showroomPrompt({ cover: false }), /Do not add any lettering/);
+  assert.match(showroomPrompt({ cover: false }), /pixel for pixel/);
+  assert.match(showroomPrompt({ cover: false }), /walnut wood slats/);
+  assert.match(showroomPrompt({ cover: false }), /no lettering on the wall other than the logo/);
   assert.match(showroomPrompt({ cover: false }), /licence plate/);
 });
 
@@ -181,8 +226,8 @@ test('worker: a showroom photo is made here (no draw call), lettered on the cove
 
 test('worker: the image model\'s photo is used without a placement; a quota keeps the free showroom with the reason', async () => {
   const s = await setup();
-  const png = await encodePng({ width: 1344, height: 896, data: new Uint8ClampedArray(1344 * 896 * 4).fill(90) });
-  const ai: ShowroomProvider = { name: 'ai', make: async () => ({ ok: true, bytes: png, contentType: 'image/png', provider: 'ai', model: 'm1' }) };
+  // the model answers with the scene it was given (the car where it was)
+  const ai: ShowroomProvider = { name: 'ai', make: async (_i, local) => ({ ok: true, bytes: local, contentType: 'image/jpeg', provider: 'ai', model: 'm1' }) };
   const r = await runJob(s.deps({ showroomAi: ai }), s.job({ enhance: true }), budget);
   const o = r.output as Record<string, unknown>;
   assert.deepEqual(o.showroom, { provider: 'ai', model: 'm1', note: null, reason: null });
@@ -193,4 +238,40 @@ test('worker: the image model\'s photo is used without a placement; a quota keep
   const qo = q.output as Record<string, unknown>;
   assert.deepEqual([q.ok, (qo.showroom as { provider: string }).provider, (qo.showroom as { note: string }).note], [true, 'local', FALLBACK_TEXT.quota]);
   assert.ok(qo.place);
+});
+
+// ---------------------------------------------------------------- 1053: marketing scenes
+test('marketing scenes: the white studio, the words per scene, a copy made or "needs the image model"', async () => {
+  const w = whiteStudio();
+  assert.ok(Buffer.from(w.data).equals(Buffer.from(whiteStudio().data)), 'deterministic');
+  assert.ok(lum(w, 900, 300) > 230 && lum(w, 900, 1100) < lum(w, 900, 300), 'a white wall over a light grey floor');
+  const p = marketingPrompt({ label: 'Brick building', place: 'in front of the same brick building', reference: true });
+  assert.match(p, /second image is a photo of that real place/);
+  assert.match(p, /pixel for pixel/);
+  assert.match(p, /licence plate/);
+  assert.doesNotMatch(marketingPrompt({ label: 'Highway', place: 'an open highway', reference: false }), /second image/);
+  // the worker: the car's kept cut-out in the scene
+  const W = 1000, H = 650, data = new Uint8ClampedArray(W * H * 4);
+  for (let y = 250; y < 420; y++) for (let x = 320; x < 680; x++) { const i = (y * W + x) * 4; data[i] = 40; data[i + 1] = 60; data[i + 2] = 200; data[i + 3] = 255; }
+  const priv = new Map<string, Uint8Array>([['vehicles/v1/work/p1-mask.png', await encodePng({ width: W, height: H, data })], ['site/scenes/brick.jpg', encodeJpeg(whiteStudio())]]);
+  const pub = new Map<string, Uint8Array>();
+  const files = { privateUrl: async (x: string) => `priv:${x}`, publicUrl: (x: string) => `pub:${x}`, getPrivate: async (x: string) => priv.get(x) ?? null,
+    putPrivate: async (x: string, b: Uint8Array) => { priv.set(x, b); }, putPublic: async (x: string, b: Uint8Array) => { pub.set(x, b); } };
+  const deps = (over: Partial<WorkerDeps> = {}): WorkerDeps => ({ claim: async () => ({ jobs: [], budget, held: { photos: false, copy: false }, due: 0 }), report: async () => ({}),
+    decodeVin: async () => ({ provider: 'fake', result: { ok: true } }), text: fakeText(), photos: fakePhotos(async () => null), files, ...over });
+  const mk = (scene: string, made: 'local' | 'photo', reference: string | null = null): JobContext => ({ id: 'm1', kind: 'marketing_photo', intake_id: 'i1', vehicle_id: 'v1', attempts: 1, max_attempts: 4,
+    input: { marketing: { id: `mk-${scene}`, vehicle_id: 'v1', photo_id: 'p1', scene, label: scene, made, place: 'a place', mask: 'vehicles/v1/work/p1-mask.png', adjust: null, reference } } });
+  const local = await runJob(deps({ showroomNoKey: true }), mk('studio_white', 'local'), budget);
+  const lo = (local.output as { marketing: { status: string; path: string } }).marketing;
+  assert.equal(lo.status, 'made');
+  assert.ok(pub.get(lo.path), 'stored as a marketing copy, never the website photo');
+  const photo = await runJob(deps({ showroomNoKey: true }), mk('highway', 'photo'), budget);
+  const po = (photo.output as { marketing: { status: string; note: string } }).marketing;
+  assert.deepEqual([po.status, /needs the image model/.test(po.note)], ['needs_gemini', true]);
+  let seen: { prompt?: string | null; reference?: unknown } = {};
+  const ai: ShowroomProvider = { name: 'ai', make: async (i, b) => { seen = { prompt: i.prompt, reference: i.reference }; return { ok: true, bytes: b, contentType: 'image/jpeg', provider: 'ai', model: 'm1' }; } };
+  const withRef = await runJob(deps({ showroomAi: ai }), mk('brick_building', 'photo', 'site/scenes/brick.jpg'), budget);
+  assert.equal((withRef.output as { marketing: { status: string } }).marketing.status, 'made');
+  assert.ok(seen.reference, 'the photo of the real place is given to the image model');
+  assert.match(String(seen.prompt), /second image/);
 });

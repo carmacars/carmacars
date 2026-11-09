@@ -4,17 +4,17 @@ import { door, requireStaff } from '@/server/door';
 import { FieldButton } from '@/features/field/FieldButton';
 import { money } from '@/lib/format';
 import { hoursText } from '@/features/field-pay/model';
-import { cardTitle, clockText, isLate, shiftText } from '@/features/field-portal/model';
+import { cardTitle, clockText, isLate, jobsText, shiftText, type ShiftJobs } from '@/features/field-portal/model';
 import { SpendReceipt } from '@/features/field-portal/SpendReceipt';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'My shifts', path: '/staff/field/shifts', noindex: true, description: 'Claim shifts, give one up, swap, and what you did on each.' });
 
-type Slot = { id: string; starts_at: string; ends_at: string; note: string | null };
+type Slot = { id: string; starts_at: string; ends_at: string; note: string | null; jobs?: ShiftJobs; people?: number };
 type Planned = { cards: Array<{ type: string; leg: string | null; kind: string | null; at: string | null; vehicle: string; booking: string | null }> };
 interface Shifts {
   locked: boolean; mine: Slot[]; open: Array<Slot & { capacity: number; taken: number; mine: boolean }>;
-  planned: Record<string, Planned>; offers: Array<{ id: string; slot_id: string; starts_at: string; ends_at: string; from: string }>;
+  planned: Record<string, Planned>; offers: Array<{ id: string; slot_id: string; starts_at: string; ends_at: string; from: string; jobs?: ShiftJobs }>;
   swaps: Array<{ id: string; incoming: boolean; theirs: { starts_at: string; ends_at: string }; mine: { starts_at: string; ends_at: string }; who: string }>;
   others: Array<{ id: string; starts_at: string; ends_at: string; who: string }>; late_cancels: number;
   past: Array<{ day: string; minutes: number; jobs: Array<{ kind: string; vehicle: string; booking: string | null }>; photos: number; spent_cents: number;
@@ -50,10 +50,12 @@ export default async function MyShifts() {
           {s.offers.map((o) => <section key={o.id} className="fp-shiftcard is-offer" data-testid="offer">
             <p className="fp-shiftcard__when">{shiftText(o.starts_at, o.ends_at)}</p>
             <p className="small">Given up by {o.from}. First to claim takes it.</p>
+            {jobsText(o.jobs) && <p className="small" data-testid="shift-jobs"><b>On it:</b> {jobsText(o.jobs)}</p>}
             <FieldButton action="offer_claim" payload={{ id: o.id }} label="Claim this shift" primary testId={`claim-${o.id}`} /></section>)}
           {openSlots.map((o) => <section key={o.id} className="fp-shiftcard" data-testid="open-shift">
             <p className="fp-shiftcard__when">{shiftText(o.starts_at, o.ends_at)}</p>
             <p className="small">{o.capacity - o.taken} of {o.capacity} place{o.capacity === 1 ? '' : 's'} free{o.note ? `. ${o.note}` : ''}</p>
+            {jobsText(o.jobs) && <p className="small" data-testid="shift-jobs"><b>On it:</b> {jobsText(o.jobs)}</p>}
             <FieldButton action="shift_take" payload={{ slot: o.id }} label="Claim this shift" primary testId={`take-${o.id}`} /></section>)}
         </div>
       </>}
@@ -64,8 +66,9 @@ export default async function MyShifts() {
         const asked = s.swaps.find((w) => !w.incoming && w.theirs.starts_at === x.starts_at);
         return <section key={x.id} className="fp-shiftcard" data-testid="my-shift">
           <p className="fp-shiftcard__when">{shiftText(x.starts_at, x.ends_at)}</p>{x.note && <p className="small">{x.note}</p>}
+          {jobsText(x.jobs) && <p className="small" data-testid="shift-jobs"><b>The shift&apos;s jobs:</b> {jobsText(x.jobs)}{(x.people ?? 1) > 1 ? ', shared with the others on it' : ''}</p>}
           {plan.length ? <><p className="small"><b>Planned so far</b></p><ul className="fp-plan">{plan.map((c, i) => <li key={i}>{c.at ? `${clockText(c.at)} ` : ''}{c.type === 'prep' ? 'Onboarding prep' : cardTitle({ type: 'job', kind: c.kind ?? undefined })}: {c.vehicle}{c.booking ? `, ${c.booking}` : ''}</li>)}</ul></>
-            : <p className="small">Nothing planned yet. Work is added as bookings come in.</p>}
+            : <p className="small">Nothing planned for you yet. Jobs are put on shifts as bookings come in.</p>}
           {asked && <p className="small">You asked {asked.who} to swap.</p>}
           {new Date(x.starts_at).getTime() > now && <>
             {s.others.length > 0 && !asked && <FieldButton action="swap_ask" payload={{ mine: x.id }} label="Swap with someone" sheet={{ confirm: 'Ask for the swap', title: 'Swap this shift' }} testId={`swap-${x.id}`}
@@ -74,7 +77,7 @@ export default async function MyShifts() {
               testId={`drop-${x.id}`} fields={[{ name: 'reason', label: 'Why you cannot work it', required: true }]} />
           </>}
         </section>;
-      })}</div> : <p className="small fp-stack">You have no shifts yet. Jobs are given only to people on a shift: claim one above.</p>}
+      })}</div> : <p className="small fp-stack">You have no shifts yet. Jobs are put on shifts: claim one above and its jobs are yours.</p>}
       {s.late_cancels > 0 && <p className="small">Late give-ups in the last 90 days: {s.late_cancels}.</p>}
       <h2 className="fp-group-h" id="spending">Money you spent</h2>
       {spends.length ? <div className="fp-stack">{spends.slice(0, 15).map((x) => <section key={x.id} className="fp-shiftcard is-past" data-testid="spend">

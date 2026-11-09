@@ -73,9 +73,10 @@ export const sameAdjust = (a: Adjust | null | undefined, b: Adjust | null | unde
 
 /** The studio preview: the car framed as the worker frames it, and where it goes on the frame of W x H with the
  *  editor's move and size. null when the mask holds no car. */
-export function studioPlan(car: Rgba, adjust: Adjust | null, W = 1800, H = 1200) {
+export function studioPlan(car: Rgba, adjust: Adjust | null, W = 1800, H = 1200, fit?: { carWidth: number; carHeight: number; floor: number }) {
   const f = frameRgba(car);
   if (!f) return null;
-  const base = placeSubject(f, W, H);
+  // r35: a showroom photo's car stands where the showroom puts it (SHOWROOM_FIT)
+  const base = placeSubject(f, W, H, fit);
   return { framed: f.image, base, place: adjustPlace(base, adjust, W, H) };
 }

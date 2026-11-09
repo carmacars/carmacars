@@ -3,7 +3,9 @@ import { currentUser } from '@/server/portal/data';
 import { door, sessionAal } from '@/server/door';
 import { storage } from '@/integrations/storage';
 import { runListingWorkerNow } from '@/server/listing-worker';
-import { BACKDROP_PATH } from '@/features/listing/worker';
+import { BACKDROP_PATH, SHOWROOM_BACKDROP_PATH } from '@/features/listing/worker';
+import { showroomBackdrop } from '@/features/listing/showroom';
+import { encodePng } from '@/features/listing/subject-frame';
 
 // The cut-out editor of an outside listing photo (release 33, migration 0700; features/listing/CutoutEditor.tsx).
 // GET: what the editor works from, from this site's own address so the canvas can be read back (the plate route's
@@ -34,7 +36,12 @@ export async function GET(req: Request) {
   catch (e) { return NextResponse.json({ ok: false, message: msg(e, 'Not permitted.') }, { status: 403 }); }
   if (part === 'info') return NextResponse.json({ ok: true, data: ctx }, { headers: PRIVATE });
   const s = await storage();
-  const [bucket, path] = part === 'backdrop' ? ['vehicle-public' as const, BACKDROP_PATH]
+  // r35: a showroom photo is edited on the showroom (made and kept once when it is not in storage yet)
+  const room = part === 'backdrop' && (ctx as Ctx & { scene?: string | null }).scene === 'showroom';
+  if (room && !(await s.get('vehicle-public', SHOWROOM_BACKDROP_PATH).catch(() => null))) {
+    await s.put('vehicle-public', SHOWROOM_BACKDROP_PATH, await encodePng(showroomBackdrop()), 'image/png').catch(() => undefined);
+  }
+  const [bucket, path] = part === 'backdrop' ? ['vehicle-public' as const, room ? SHOWROOM_BACKDROP_PATH : BACKDROP_PATH]
     : part === 'original' ? ['vehicle-originals' as const, ctx.original_path]
     : ['vehicle-originals' as const, part === 'mask' ? ctx.mask ?? ctx.auto_mask : ctx.auto_mask];
   if (!path) return new NextResponse('No cut-out is kept for this photo yet.', { status: 409 });
