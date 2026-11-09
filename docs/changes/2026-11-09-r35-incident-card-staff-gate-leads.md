@@ -26,6 +26,7 @@ strictly in order, existing staff included from deploy, no grace period.
 
 | Item | What changed |
 | --- | --- |
+| Groups | 1060's groups of a person (`app.staff_groups`: the home page card and the team group email) give Sales staff the Team group as well |
 | Steps | (1) the academy passed or waived, (2) the staff agreement signed or waived, (3) the WhatsApp groups joined and confirmed, one checkbox a group on Welcome (Sales: CARMA Closers and CarmaCars Team; everyone else CarmaCars Team). Each step opens only after the one before; the join links show at step 3 (when set in Program settings; else "ask your manager"). 1060's "I joined" counts as every group |
 | Helper | `app.staff_fully_onboarded(uid)`: an Admin, a test or verify account (`app.staff_is_test`), an exempt person (`staff_profiles.onboarding_exempt`), or the three steps done (`staff_profiles.onboarding_done`, kept by triggers on the academy attempts and waivers, the agreement requests, the profile, the roles, the paths and the settings). Program settings `staff_onboarding_gate` (on) |
 | Database | `app.user_is_staff`, `app.user_va_has`, `app.is_field_person` (so `app.user_is_field`), `app.va_has` (so `app.is_va`, `app.is_staff`) and `app.is_field` are false for a staff member not fully onboarded; the door refuses every call but the onboarding screens' own with "Finish your onboarding first"; `app.my_roles` adds `onboarding_locked` and `onboarding_step` |
@@ -42,7 +43,7 @@ person holding too many open leads takes no more until they close or release one
 
 | Item | What changed |
 | --- | --- |
-| No auto-assign | `app.lead_real_assignee` (0343, the least-loaded Sales person) names nobody, and a new lead from any path arrives unassigned on the Sales lead list, except a salesperson's own lead and an Admin's assignment |
+| No auto-assign | `app.lead_real_assignee` (0343, the least-loaded Sales person) names nobody, `app.submit_lead` picks nobody for the lead or its To do (the To do waits in the Sales queue), and a new lead from any path arrives unassigned on the Sales lead list, except a salesperson's own lead, an Admin's assignment, and a verify account's own test lead (the fences of 0343 and 0440 decide those) |
 | Pacing | One new claim every `claim_cooldown_minutes` (5) a person; Admins are not paced |
 | Cap | A person's cap (`app.sl_cap`): `lead_cap_base` (3), plus one for every `lead_cap_per_wins` (5) leads won in the last 30 days (the outcome won credited to them, which a confirmed booking of the lead's contact also sets), up to `lead_cap_max` (10). At the cap a claim is refused until one is won, lost, handled, unclaimed, released or runs out |
 | Screens | The lead list: "you hold n of N", the wins to the next slot and "next claim in m:ss"; Settings > Sales: the pacing and the three cap settings; the Sales dashboard team table: each person's holding of their cap |
