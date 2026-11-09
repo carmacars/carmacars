@@ -4,15 +4,16 @@ import { PageHead } from '@/features/admin/ui';
 import { LeadList } from './LeadList';
 import { LeadPage } from './LeadPage';
 import { SalesDashboard, SalesTeam } from './SalesDashboard';
-import { listQuery, type Dashboard, type LeadDetail, type LeadList as Data, type LeadType } from './model';
+import { listQuery, type CallTeam, type Dashboard, type LeadDetail, type LeadList as Data, type LeadType } from './model';
 
 /** The one Sales lead list, the same for an Admin and staff (r35): the page's base decides the portal. The Admin's copy has
  *  the team tab (the leaderboard); staff see their own numbers on top. `type` fixes the lead type (Owners > Leads). */
 export async function SalesLeadsPage({ ctx, sp, base, listBase, type, title, purpose }: { ctx: PageCtx; sp: Record<string, string | undefined>; base: string; listBase?: string; type?: LeadType; title: string; purpose: string }) {
   const admin = ctx.viewer.role === 'admin';
   if (admin && sp.tab === 'team') {
-    const d = await ctx.read<Dashboard>('sales_dashboard', { period: sp.period });
-    return <><PageHead title="Sales team" purpose="Each person's leads claimed, won, close rate (won out of claimed), contacted, time to first contact and claims that ran out, best first." /><SalesTeam d={d} base={`${base}?tab=team`} sp={sp} /></>;
+    const [d, calls] = await Promise.all([ctx.read<Dashboard>('sales_dashboard', { period: sp.period }),
+      ctx.read<{ team: CallTeam | null }>('my_call_minutes').then((c) => c.team ?? []).catch(() => undefined)]);
+    return <><PageHead title="Sales team" purpose="Each person's leads claimed, won, close rate (won out of claimed), contacted, time to first contact and claims that ran out, best first, with the call minutes of the month." /><SalesTeam d={d} base={`${base}?tab=team`} sp={sp} calls={calls} /></>;
   }
   const [d, dash] = await Promise.all([ctx.read<Data>('sales_leads', listQuery(sp, type)), admin || type ? Promise.resolve(null) : ctx.read<Dashboard>('sales_dashboard').catch(() => null)]);
   return (

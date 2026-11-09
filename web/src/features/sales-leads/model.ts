@@ -21,6 +21,8 @@ export interface LeadDetail extends LeadRow {
 }
 export interface Figures { claimed: number; won: number; close_rate: number; contacted_pct: number; first_contact_minutes: number | null; expired: number }
 export interface TeamRow extends Figures { id: string; name: string; active: number; rank: number }
+/** my_call_minutes for an Admin: each person who called with the site's Call button in the last 40 days, with this month's connected minutes */
+export type CallTeam = Array<{ user_id: string; name: string | null; month: number }>;
 export interface Dashboard { today: Figures; week: Figures; month: Figures; period: 'today' | 'week' | 'month'; team: TeamRow[] | null; active: number; max_active: number; open_pool: number }
 export interface LeadSettings { claim_minutes: Record<LeadType, number>; extend_max_minutes: number; max_active: number; hot_hours: number; updated_at: string; updated_by: string | null }
 

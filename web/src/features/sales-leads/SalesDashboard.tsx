@@ -1,7 +1,7 @@
 import Link from '@/components/Link';
 import './sales-leads.css';
 import { Filters } from '@/features/admin/ui';
-import { minutes, pct, type Dashboard, type Figures } from './model';
+import { minutes, pct, type CallTeam, type Dashboard, type Figures } from './model';
 
 const PERIODS: Array<['today' | 'week' | 'month', string]> = [['today', 'Today'], ['week', 'This week'], ['month', 'This month']];
 
@@ -26,17 +26,19 @@ export function SalesDashboard({ d, base }: { d: Dashboard; base: string }) {
 }
 
 /** The Admin's team view: each person's numbers for the period and the leaderboard (won, then close rate). */
-export function SalesTeam({ d, base, sp }: { d: Dashboard; base: string; sp: Record<string, string | undefined> }) {
+export function SalesTeam({ d, base, sp, calls }: { d: Dashboard; base: string; sp: Record<string, string | undefined>; calls?: CallTeam }) {
   const team = d.team ?? [];
+  // r35 (0970): the minutes of connected calls made with the site's Call button this month, from my_call_minutes (an Admin gets the team)
+  const mins = new Map((calls ?? []).map((c) => [c.user_id, c.month]));
   return (
     <section className="stack" data-testid="sales-team">
       <Filters base={base} name="period" value={d.period} sp={sp} options={PERIODS} />
       {team.length ? <div className="sl-table-wrap"><table className="table" data-testid="sales-leaderboard">
         <caption className="vh">Sales leaderboard</caption>
         <thead><tr><th scope="col">#</th><th scope="col">Person</th><th scope="col" className="num">Claimed</th><th scope="col" className="num">Won</th><th scope="col" className="num">Close rate</th>
-          <th scope="col" className="num">Contacted</th><th scope="col" className="num">First contact</th><th scope="col" className="num">Ran out</th><th scope="col" className="num">Holding now</th></tr></thead>
+          <th scope="col" className="num">Contacted</th><th scope="col" className="num">First contact</th><th scope="col" className="num">Ran out</th><th scope="col" className="num">Holding now</th>{calls && <th scope="col" className="num">Call minutes, this month</th>}</tr></thead>
         <tbody>{team.map((r) => <tr key={r.id}><td>{r.rank}</td><td>{r.name}</td><td className="num">{r.claimed}</td><td className="num">{r.won}</td><td className="num">{pct(r.close_rate, r.claimed)}</td>
-          <td className="num">{pct(r.contacted_pct, r.claimed)}</td><td className="num">{minutes(r.first_contact_minutes)}</td><td className="num">{r.expired}</td><td className="num">{r.active}</td></tr>)}</tbody>
+          <td className="num">{pct(r.contacted_pct, r.claimed)}</td><td className="num">{minutes(r.first_contact_minutes)}</td><td className="num">{r.expired}</td><td className="num">{r.active}</td>{calls && <td className="num" data-testid={`sales-call-minutes-${r.id}`}>{(mins.get(r.id) ?? 0).toFixed(1)}</td>}</tr>)}</tbody>
       </table></div> : <p className="small muted">Nobody in Sales has claimed a lead yet.</p>}
     </section>
   );

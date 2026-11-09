@@ -1,7 +1,8 @@
 'use client';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { staffDo } from '@/server/actions/staff-tools';
+import { staffDo, staffRead } from '@/server/actions/staff-tools';
+import { PlateCarry } from './PlateCarry';
 
 // Release 35 (0990): the showroom scene of the outside photos (features/listing/showroom.ts). On a listing: "Apply showroom
 // to this car" puts every outside photo of the car in the dark showroom; under a photo in the showroom, how it was made (the
@@ -9,7 +10,7 @@ import { staffDo } from '@/server/actions/staff-tools';
 // car at once. The same buttons in the Admin portal and the staff portal (fleet, customer service).
 type Res = { ok: boolean; text: string } | null;
 const Note = ({ r }: { r: Res }) => (r ? <p className={`alert ${r.ok ? 'alert--ok' : 'alert--error'}`} role={r.ok ? 'status' : 'alert'}><span>{r.text}</span></p> : null);
-const madeAgain = (n: number) => `${n} outside photo${n === 1 ? ' is' : 's are'} being made in the showroom. When ready, check the plates where asked: a car that stayed where it was keeps its plate cover.`;
+const madeAgain = (n: number) => `${n} outside photo${n === 1 ? ' is' : 's are'} being made in the showroom. When ready, check the plates where asked: a car that stayed where it was keeps its plate cover, put back by itself while the listings page is open.`;
 
 export function ShowroomCar({ vehicle, studio }: { vehicle: string; studio: number }) {
   const router = useRouter();
@@ -56,6 +57,22 @@ export function ShowroomPhoto({ photo }: { photo: { id: string; scene?: string |
   );
 }
 
+type CarryPhoto = Parameters<typeof PlateCarry>[0]['photos'][number];
+/** r35 (1030): the plate cover of a photo made again where the car was, for every car, not only the one whose listing review is
+ *  open: the list of photos waiting for it is read every 15 seconds while this card is on the screen and PlateCarry draws and saves
+ *  each cover (the same carry-over the review does), so "every car" does not leave cars off the site until someone opens them. */
+function ShowroomCarry() {
+  const [photos, setPhotos] = useState<CarryPhoto[]>([]);
+  useEffect(() => {
+    let gone = false;
+    const load = async () => { const r = await staffRead<{ photos: CarryPhoto[] }>('showroom_carry_pending'); if (!gone && r.ok) setPhotos(r.data.photos); };
+    void load();
+    const t = setInterval(() => void load(), 15_000);
+    return () => { gone = true; clearInterval(t); };
+  }, []);
+  return <span data-testid="showroom-carry"><PlateCarry photos={photos} /></span>;
+}
+
 /** Every car at once (the listings page, Admin and fleet). */
 export function ShowroomAll() {
   const router = useRouter();
@@ -64,6 +81,7 @@ export function ShowroomAll() {
   const [pending, start] = useTransition();
   return (
     <div className="stack" data-testid="showroom-all">
+      <ShowroomCarry />
       <p className="small">New outside photos go in the dark CarmaCars showroom by themselves. Photos made before on the black studio move with one press: every angle of a car in the same room, the model&apos;s name behind the car on the cover. Each photo keeps its version before (Back to the original on the listing).</p>
       {!sure
         ? <p><button className="btn btn--ghost btn--sm" type="button" disabled={pending} data-testid="showroom-all-apply" onClick={() => setSure(true)}>Apply showroom to every car</button></p>

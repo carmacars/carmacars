@@ -132,5 +132,46 @@ select test.ok('the server functions are the service role''s only',
   not has_function_privilege('authenticated', 'public.server_showroom_ai_gate(jsonb)', 'execute') and has_function_privilege('service_role', 'public.server_showroom_ai_gate(jsonb)', 'execute')
   and not has_function_privilege('anon', 'app.photo_showroom(uuid, jsonb)', 'execute'));
 
+-- ---------------------------------------------------------------- 1030: "every car" carries the plate cover by itself
+-- two checked, covered photos on the site; every car at once; the worker makes them again: one with the car where it was (the
+-- cover is carried), one with the car moved (asked again, as today). The list the listings page works through holds the first only.
+select test.mk_vehicle('rsp_bulk', 'rsp_olive');
+create temp table rspi3 as select (app.start_listing_intake(test.id('rsp_admin'), jsonb_build_object('vehicle_id', test.id('vehicle:rsp_bulk'))) ->> 'intake_id')::uuid as i;
+create temp table rspb as select test.rsp_up((select i from rspi3), 'front_left') as stay, test.rsp_up((select i from rspi3), 'rear') as moved;
+update listing_jobs set status = 'succeeded', finished_at = now() where intake_id = (select i from rspi3) and kind = 'process_photo';
+update vehicle_photos set scene = 'studio', preset_version = 'studio_v5', background_status = 'done', status = 'approved', is_public = true,
+       processed_path = 'vehicles/rsp/bulk-' || shot_type || '.jpg', plate_status = 'covered', plate_style = 'cover',
+       plate_boxes = '[{"x":0.4,"y":0.7,"w":0.1,"h":0.05}]'::jsonb,
+       cutout = jsonb_build_object('auto_mask', 'vehicles/rsp/work/bulk-' || shot_type || '-mask.png', 'place', jsonb_build_object('width', 1500, 'height', 600, 'left', 150, 'bottom', 250))
+ where vehicle_id = test.id('vehicle:rsp_bulk');
+select test.ok('every car: the photos of the car are queued', (select (app.photo_showroom(test.id('rsp_fleet'), '{"all": true}'::jsonb) ->> 'queued')::int >= 2));
+create temp table rspc3 as select j.id, j.vehicle_photo_id as photo from app.claim_listing_jobs('rsp-w3', 500, array['process_photo']) j
+ where j.vehicle_photo_id in (select stay from rspb union select moved from rspb);
+select test.eq('both photos were made again', (select count(*)::text from rspc3), '2');
+select app.worker_listing_result((select id from rspc3 where photo = (select stay from rspb)), jsonb_build_object('ok', true, 'provider', 'fake', 'output', jsonb_build_object(
+  'processed_path', 'vehicles/rsp/bulk-front_left-v1.jpg', 'width', 1800, 'height', 1200, 'flags', '[]'::jsonb, 'preset_version', 'studio_showroom_v1', 'edited', true,
+  'place', jsonb_build_object('width', 1500, 'height', 600, 'left', 150, 'bottom', 250), 'showroom', jsonb_build_object('provider', 'local'))));
+select app.worker_listing_result((select id from rspc3 where photo = (select moved from rspb)), jsonb_build_object('ok', true, 'provider', 'fake', 'output', jsonb_build_object(
+  'processed_path', 'vehicles/rsp/bulk-rear-v1.jpg', 'width', 1800, 'height', 1200, 'flags', '[]'::jsonb, 'preset_version', 'studio_showroom_v1', 'edited', true,
+  'place', jsonb_build_object('width', 1500, 'height', 600, 'left', 700, 'bottom', 100), 'showroom', jsonb_build_object('provider', 'local'))));
+select test.ok('same framing: the cover waits to be carried (boxes and style kept), off the site until drawn',
+  (select plate_status = 'unchecked' and not is_public and plate_carry -> 'boxes' -> 0 ->> 'x' = '0.4' and plate_carry ->> 'style' = 'cover'
+     from vehicle_photos where id = (select stay from rspb)));
+select test.ok('moved: no cover carried, asked for a plate check as today',
+  (select plate_status = 'unchecked' and not is_public and plate_carry is null from vehicle_photos where id = (select moved from rspb)));
+select test.ok('the bulk action reads the carried covers of every car: the same-framing photo is listed, the moved one is not',
+  (select (app.door(test.id('rsp_fleet'), 'aal2', 'ops_read', 'showroom_carry_pending', '{}'::jsonb) -> 'photos') @> jsonb_build_array(jsonb_build_object('id', (select stay from rspb)))
+     and not (app.door(test.id('rsp_fleet'), 'aal2', 'ops_read', 'showroom_carry_pending', '{}'::jsonb) -> 'photos') @> jsonb_build_array(jsonb_build_object('id', (select moved from rspb)))));
+select test.ok('the listed photo has what the cover needs', (select p ->> 'processed_path' = 'vehicles/rsp/bulk-front_left-v1.jpg' and p ->> 'plate_status' = 'unchecked' and p -> 'plate_carry' ? 'boxes'
+  from jsonb_array_elements(app.showroom_carry_pending(test.id('rsp_admin'), '{}'::jsonb) -> 'photos') p where p ->> 'id' = (select stay::text from rspb)));
+select test.throws('a renter cannot read it', format('select app.showroom_carry_pending(%L, ''{}''::jsonb)', test.id('rsp_renter')), 'Fleet, customer service');
+-- the cover drawn and saved (the plate decision recorded): the photo leaves the list and goes back on the site
+update vehicle_photos set plate_status = 'covered', plate_boxes = plate_carry -> 'boxes' where id = (select stay from rspb);
+select test.ok('covered: no longer waiting, the carried cover is used once',
+  (select plate_carry is null from vehicle_photos where id = (select stay from rspb))
+  and not (app.showroom_carry_pending(test.id('rsp_admin'), '{}'::jsonb) -> 'photos') @> jsonb_build_array(jsonb_build_object('id', (select stay from rspb))));
+select test.ok('the list is the service role''s: not open to a signed-in client directly',
+  not has_function_privilege('authenticated', 'app.showroom_carry_pending(uuid, jsonb)', 'execute'));
+
 update program_settings set listing_plate_check_required = (select plate from rsp_prev), listing_showroom = (select sr from rsp_prev),
        listing_showroom_ai = (select ai from rsp_prev), listing_showroom_ai_daily = (select daily from rsp_prev) where id = (select id from app.settings());
