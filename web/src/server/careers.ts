@@ -16,6 +16,13 @@ export const rolePage = cache(async (slug: string): Promise<RolePublic | null> =
   return ((await rpc('hiring_role_public', { p_slug: slug }).catch(() => null)) ?? null) as unknown as RolePublic | null;
 });
 
+/** 1060: a closed (filled) role, and the Sales role its applicants are sent to instead. */
+export interface ClosedRole { slug: string; title: string; short_title: string; remote: boolean; sales: { slug: string; title: string; summary: string; pay_text: string; remote: boolean } | null }
+export const closedRole = cache(async (slug: string): Promise<ClosedRole | null> => {
+  if (!/^[a-z0-9-]{2,60}$/.test(slug)) return null;
+  return ((await rpc('server_hiring_closed_role', { p_slug: slug }, SR).catch(() => null)) ?? null) as unknown as ClosedRole | null;
+});
+
 export interface BookingView {
   ok: true; first_name: string; role_title: string; remote: boolean; status: string; can_book: boolean; phone_last: string;
   booked: { slot_id: string; starts_at: string; ends_at: string; mode: 'phone' | 'video'; meet_url: string | null } | null;

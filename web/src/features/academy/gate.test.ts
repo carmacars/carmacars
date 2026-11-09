@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { currentStep, gateWords, opensWhileHeld, profileHref, stepWords, type GateState, type WelcomeStep } from './gate.ts';
+import { currentStep, gateWords, opensWhileHeld, opensWhileUnsigned, profileHref, signHref, stepWords, type GateState, type WelcomeStep } from './gate.ts';
 
 // The academy gate (0802): what a held person still opens, the Welcome steps of a new hire, the Admin's words for the gate,
 // and the content of releases 33 and 34 (supabase/seed/academy/r34.mjs): a quiz per section, on every role that uses it,
@@ -15,13 +15,25 @@ test('a held person opens only the academy, the guide, the profile and Welcome',
 });
 
 test('Welcome: the step to do now, in order', () => {
-  const steps: WelcomeStep[] = [{ key: 'welcome', done: true }, { key: 'profile', done: false, address: false, phone: true }, { key: 'academy', done: false, passed: 2, sections: 9 }, { key: 'tasks', done: false, tasks: [{ id: 't', title: 'Read your guide', detail: null, done: false }] }];
+  const steps: WelcomeStep[] = [{ key: 'welcome', done: true }, { key: 'profile', done: false, address: false, phone: true, preferred_name: 'Sam' }, { key: 'academy', done: false, passed: 2, sections: 9 }, { key: 'tasks', done: false, tasks: [{ id: 't', title: 'Read your guide', detail: null, done: false }] }];
   assert.equal(currentStep(steps), 'profile');
-  assert.equal(stepWords(steps[1]!), 'Add your home address in your profile.');
+  assert.equal(stepWords(steps[1]!), 'Add your home address.');
   assert.equal(stepWords(steps[2]!), '2 of 9 sections passed. Each quiz passes at 80%, and you can retake it.');
   assert.equal(stepWords(steps[3]!), '1 left.');
   assert.equal(currentStep(steps.map((s) => ({ ...s, done: true }))), null);
   assert.equal(profileHref('field'), '/staff/field/profile');
+});
+
+test('1060: the academy first, then the agreement, then access', () => {
+  for (const p of ['/staff/sign', '/staff/sign/abc', '/staff/field/sign', '/staff/documents/x', '/staff/welcome', '/staff/academy', '/staff/profile']) assert.ok(opensWhileUnsigned(p), p);
+  for (const p of ['/staff', '/staff/bookings/CC-1', '/staff/field', '/staff/signals']) assert.ok(!opensWhileUnsigned(p), p);
+  // signing is not open while the academy holds the person
+  assert.ok(!opensWhileHeld('/staff/sign'));
+  assert.equal(signHref('field'), '/staff/field/sign');
+  assert.match(stepWords({ key: 'agreement', done: false, state: 'sent', waiting_for_academy: true }), /once the academy is passed/);
+  assert.match(stepWords({ key: 'agreement', done: false, state: 'sent' }), /^Ready to sign/);
+  assert.match(stepWords({ key: 'team', done: false, open: true, groups: [{ key: 'team', name: 'CarmaCars Team', url: 'https://chat.whatsapp.com/x' }] }), /I joined/);
+  assert.match(readFileSync(new URL('../../server/door.ts', import.meta.url), 'utf8'), /agreement_locked && !AGREEMENT_OPEN\.test\(next\)\) redirect\('\/staff\/welcome'\)/);
 });
 
 test('the Admin\'s words for the gate', () => {

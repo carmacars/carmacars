@@ -1,0 +1,27 @@
+CarmaCars  |  Staff agreement
+
+========================================
+
+[Staff agreement]
+Your agreement is waiting
+
+Hi {{first_name}}. Your staff agreement is ready in your portal and still needs your signature.
+
+- Pass the academy first: the agreement opens for signing once every section is passed.
+- Read it, then sign on screen. You get a copy by email.
+- The rest of your portal opens once it is signed.
+
+Open my documents to sign:
+{{sign_url}}
+
+Questions about the agreement? Reply to this email before you sign.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

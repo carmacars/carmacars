@@ -96,8 +96,8 @@ select test.eq('1 month: the monthly rate less 5%', (app.preview_extension(test.
 select test.eq('an option''s price is its rental and HST, with the regular price beside it and 5% saved (1 day)',
   test.ex_opt('EX-850', '1d', 'total_cents') || '/' || test.ex_opt('EX-850', '1d', 'regular_total_cents') || '/' || test.ex_opt('EX-850', '1d', 'save_pct'),
   (80750 + public.calc_hst(80750)) || '/' || (85000 + public.calc_hst(85000)) || '/5');
-select test.eq('1 hour: what being an hour late would cost instead (the fee and the extra day, with HST)',
-  test.ex_opt('EX-850', '1h', 'late_cost_cents'), (14875 + 85000 + public.calc_hst(14875 + 85000))::text);
+select test.eq('1 hour: what being an hour late would cost instead (the hourly fee, with HST; 1063: no extra day under a day)',
+  test.ex_opt('EX-850', '1h', 'late_cost_cents'), (14875 + public.calc_hst(14875))::text);
 select test.eq('1 hour: you save 10%', test.ex_opt('EX-850', '1h', 'save_pct'), '10');
 select test.eq('lead-time pricing never applies to an extension',
   (select count(*) from jsonb_array_elements(app.preview_extension(test.id('booking:EX-850'), (select return_at + interval '3 days' from bookings where booking_number = 'EX-850')) -> 'lines') l
@@ -130,8 +130,8 @@ select test.ex_rates('EX-LATE', 85000);
 select test.eq('late and still out: extendable, priced from the original return (3 hours = 3 x $148.75 less 10%)',
   (select (p ->> 'ok') || '/' || (p ->> 'rental_difference_cents') from app.preview_extension(test.id('booking:EX-LATE'),
      (select return_at + interval '3 hours' from bookings where booking_number = 'EX-LATE')) p), 'true/40162');
-select test.eq('late and still out: the late charges so far are shown (50 minutes: 1 hour and the extra day)',
-  (app.extension_offers(test.id('booking:EX-LATE')) -> 'late' ->> 'owed_cents')::bigint, (14875 + 85000)::bigint);
+select test.eq('late and still out: the late charges so far are shown (50 minutes: 1 hour, no extra day under a day, 1063)',
+  (app.extension_offers(test.id('booking:EX-LATE')) -> 'late' ->> 'owed_cents')::bigint, 14875::bigint);
 select test.eq('late: the 1 hour option ends in the past (10 minutes from now is fine, 50 minutes ago is not)',
   test.ex_opt('EX-LATE', '1h', 'available') || '/' || coalesce(test.ex_opt('EX-LATE', '1h', 'reason'), ''), 'true/');
 select test.mk_booking('EX-BACK', 'ex_g', 'ex_ivan', test.ext('-3 days'), test.ext('-2 hours'), 'returned');

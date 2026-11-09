@@ -1,0 +1,124 @@
+import Link from '@/components/Link';
+import { notFound } from 'next/navigation';
+import { door } from '@/server/door';
+import { Act } from '@/features/admin/Act';
+import { $, Badge, BookingLink, Card, Kv, PageHead, Table, t, d } from '@/features/admin/ui';
+import { InviteRecordButton, PasswordLinkButton } from '@/features/admin/AccountTools';
+import { ViewAsButton } from '@/features/admin/ViewAs';
+import { PARTNER_FIELDS } from '@/features/supply/partner-fields';
+import { PartnerPayoutForm } from '@/features/supply/PartnerPayoutForm';
+
+
+type R = Record<string, unknown>;
+type P = R & { id: string; owner_id: string; partner_number: string; business_name: string; legal_name: string | null; contact_name: string | null; email: string | null; phone: string | null;
+  status: string; commission_bps: number | null; commission_effective_bps: number; insurance_company: string | null; insurance_policy: string | null; insurance_expiry: string | null;
+  insurance_warning: string | null; agreement_status: string; agreement_method: string | null; agreement_signed_at: string | null; agreement_document_id: string | null;
+  has_portal: boolean; portal_user_id: string | null; cars: R[]; bookings: R[]; statements: R[]; payouts: R[]; payout_accounts: R[]; documents: R[];
+  paper: { id: string; signed_on: string; signer_name: string } | null;
+  /** 0093: the basis, the chauffeur vehicles; 0361: the discount on the listed rates, the kickback, the money */
+  payout_basis: 'renter_price' | 'partner_rate'; chauffeur: R[];
+  discount_bps: number | null; discount_effective_bps: number; kickback_bps: number | null; kickback_effective_bps: number;
+  money?: { rentals: R[]; open_listed_cents: number; open_kickback_cents: number; open_payable_cents: number } };
+const pc = (bps: number) => `${bps / 100}%`;
+
+// One partner (migration 0046): the record, its cars and their commission, bookings, statements and payouts, the payout
+// account (Admins only), the partner agreement (portal or paper) and the portal sign-in.
+export async function PartnerView({ userId, base, id }: { userId: string; base: '/admin' | '/staff'; id: string }) {
+  if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
+  const user = { id: userId };
+  const p = await door<P | null>(user.id, 'ops_read', 'partner', { id });
+  if (!p) notFound();
+  const refresh = [`${base}/partners/${id}`, `${base}/partners`];
+  return (
+    <>
+      <PageHead kicker={<><Link prefetch={false} className="link" href={`${base}/partners`}>Partners</Link> · {p.partner_number}</>} title={<>{p.business_name} <Badge s={p.status} /></>}>
+        <Act ops action="partner_save" payload={{ id }} label="Edit" testId="partner-edit" refresh={refresh} fields={PARTNER_FIELDS(p)} />
+        <Link prefetch={false} className="btn btn--primary btn--sm" href={`${base}/vehicles/new`}>Add a car</Link>
+        {base === '/admin' && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}/settings/partners/${id}`} data-testid="partner-crm-link">CRM link</Link>}
+      </PageHead>
+      <div className="ad-cols ad-cols--2">
+        <Card title="Partner" testId="partner-facts">
+          <Kv rows={[['Contact', `${p.contact_name ?? ''}${p.email ? `, ${p.email}` : ''}${p.phone ? `, ${p.phone}` : ''}`], ['Legal name', p.legal_name ?? p.business_name],
+            [p.payout_basis === 'partner_rate' ? 'Kickback' : 'Commission', `${p.commission_effective_bps / 100}%${p.commission_bps == null ? ' (the default in Program settings)' : ''}`],
+            ['Their insurance', `${p.insurance_company ?? 'Not on file'}${p.insurance_policy ? `, policy ${p.insurance_policy}` : ''}${p.insurance_expiry ? `, expires ${d(p.insurance_expiry)}` : ''}`],
+            ['Agreement', <span key="a" data-testid="partner-agreement-status">{p.agreement_status === 'signed' ? `Signed ${p.agreement_method === 'paper' ? 'on paper' : 'in the portal'}${p.agreement_signed_at ? ` on ${d(p.agreement_signed_at)}` : ''}` : p.agreement_status === 'sent' ? 'Opened in the portal, not signed yet' : 'Not signed yet'}</span>]]} />
+          {p.insurance_warning && <p className="alert alert--warn" role="note"><span>{p.insurance_warning}. Ask the partner for their current insurance.</span></p>}
+        </Card>
+        <Card title="Portal and agreement">
+          <p className="small muted">The partner uses the owner portal: their cars, bookings, statements and payouts, and the partner agreement, signed on screen with the e-signature (a signature on paper is not recorded).</p>
+          {base === '/admin' && <div className="ad-actions">
+            {p.portal_user_id ? <><ViewAsButton user={p.portal_user_id} portal="owner" testId="partner-view-as" /><PasswordLinkButton userId={p.portal_user_id} /></>
+              : <InviteRecordButton role="owner" recordId={p.owner_id} email={p.email} name={p.business_name} testId="partner-invite" />}
+          </div>}
+          {base === '/admin' && p.agreement_status !== 'signed' && <p className="small"><a className="link" href={`${base}/partners/${id}/agreement`} target="_blank" rel="noopener" data-testid="partner-agreement-print">Read the partner agreement</a> as the partner will sign it in the portal.</p>}
+          {p.agreement_document_id && <p className="small"><Link prefetch={false} className="link" href={`${base}/documents/${p.agreement_document_id}`}>Open the signed agreement</Link></p>}
+        </Card>
+        <Card title="Pricing" testId="partner-pricing" aside={<Act ops action="partner_pricing_save" payload={{ id }} label="Edit pricing" testId="partner-pricing-edit" refresh={refresh} fields={[
+            { name: 'discount_bps', label: 'Discount on their listed rates, for our base rate (empty: Program settings)', type: 'percent', value: p.discount_bps },
+            { name: 'kickback_bps', label: 'Kickback to CarmaCars, of their listed rental (empty: Program settings)', type: 'percent', value: p.kickback_bps },
+            { name: 'payout_basis', label: 'Paid on', type: 'select', value: p.payout_basis, options: [['partner_rate', 'Their listed rates, less the kickback'], ['renter_price', 'What the renter paid, less the commission']] }]} />}>
+          {p.payout_basis === 'partner_rate'
+            ? <Kv rows={[['Our base rate', `Their listed rate less ${pc(p.discount_effective_bps)}, to the nearest dollar${p.discount_bps == null ? ' (Program settings)' : ''}. Then our own rules: the weekend rate, lead-time pricing, promo codes, the non-refundable discount`],
+                ['Fees and taxes', 'Every fee, the deposit and HST as on our own cars: 100% CarmaCars'],
+                ['Kickback to CarmaCars', `${pc(p.kickback_effective_bps)} of their listed rental (their rates times the days booked), a receivable`],
+                ['Payable to the partner', `${pc(10000 - p.kickback_effective_bps)} of their listed rental, on the monthly statement`]]} />
+            : <Kv rows={[['CarmaCars keeps', `${pc(p.commission_effective_bps)} of what the renter paid`], ['Partner is owed', `${pc(10000 - p.commission_effective_bps)} of what the renter paid`]]} />}
+          <p className="small muted">Each car keeps its own listed rates (1 to 2 days, 3 or more, 7 or more, a day) and may have its own discount or kickback: Edit on its row. Our rates follow at once. Replace the stand-in photos with real ones on the car page (Photos).</p>
+        </Card>
+        {p.payout_basis === 'partner_rate' && p.money && <Card title="Kickback and payable" testId="partner-money">
+          <Kv rows={[['Not on a statement yet', `Listed rentals ${$(p.money.open_listed_cents)}, kickback receivable ${$(p.money.open_kickback_cents)}, payable to the partner ${$(p.money.open_payable_cents)}`]]} />
+          <Table rows={p.money.rentals} empty="No rentals yet." cols={[{ key: 'booking_number', label: 'Booking', render: (r) => <><Link prefetch={false} className="link" href={`${base}/bookings/${String(r.booking_number)}`}>{String(r.booking_number)}</Link><br /><span className="small muted">{String(r.vehicle)}</span></> },
+            { key: 'listed_cents', label: 'Listed rental', num: true, render: (r) => $(r.listed_cents) },
+            { key: 'kickback_cents', label: 'Kickback (receivable)', num: true, render: (r) => `${$(r.kickback_cents)} (${pc(Number(r.kickback_bps))})` },
+            { key: 'payable_cents', label: 'Payable to partner', num: true, render: (r) => $(r.payable_cents) },
+            { key: 'rental_cents', label: 'Our rental charge', num: true, render: (r) => $(r.rental_cents) },
+            { key: 'on_statement', label: 'Statement', render: (r) => (r.on_statement ? 'On a statement' : 'Next statement') + (r.markup_model ? ' · made on the old markup' : '') }]} />
+          <p className="small muted">The partner&apos;s statement shows each rental at their listed rate, the kickback and the amount payable, never our price. Fees, kilometre overage and HST we charge are ours.</p>
+        </Card>}
+        <Card title={`Cars (${p.cars.length})`} testId="partner-cars">
+          <Table rows={p.cars} empty="No cars yet." cols={[{ key: 'name', label: 'Car', render: (r) => <><Link prefetch={false} className="link" href={`${base}/vehicles/${String(r.id)}`}>{String(r.name)}</Link>{r.year_approximate ? <span className="small muted"> · year {String(r.year)}, not confirmed</span> : null}{r.insurance_included ? <span className="small"> · insurance included</span> : null}{r.no_credit_card ? <span className="small"> · no credit card</span> : null}{!r.real_photos && r.base_cents != null ? <span className="small muted"> · stand-in photos</span> : null}</> },
+            { key: 'base_cents', label: 'Listed a day (1-2, 3+, 7+)', num: true, render: (r) => (r.base_cents == null ? 'None' : `${$(r.base_cents)}, ${$(r.multi_day_cents)}, ${$(r.long_term_cents)}`) },
+            { key: 'renter_daily_cents', label: 'Our base a day (1-2, 3+, 7+)', num: true, render: (r) => (r.renter_daily_cents == null ? 'None' : `${$(r.renter_daily_cents)}, ${r.renter_multi_day_cents != null ? $(r.renter_multi_day_cents) : 'none'}, ${r.renter_long_term_cents != null ? $(r.renter_long_term_cents) : 'none'}`) },
+            { key: 'commission_effective_bps', label: 'Discount, kickback', num: true, render: (r) => `${Number(r.discount_effective_bps) / 100}%${r.discount_bps == null ? '' : ' (own)'}, ${Number(r.commission_effective_bps) / 100}%${r.commission_bps == null ? '' : ' (own)'}` },
+            { key: 'listing_status', label: 'Listing', render: (r) => (r.retired_at ? 'Retired' : String(r.listing_status ?? '')) },
+            { key: 'id', label: '', render: (r) => <Act ops action="partner_car_save" payload={{ vehicle_id: r.id }} label="Edit" testId={`partner-car-edit-${String(r.sheet_name ?? r.id).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`} refresh={refresh} fields={[
+              { name: 'base_cents', label: 'Their rate a day, 1 to 2 days', type: 'money', value: r.base_cents, required: true },
+              { name: 'multi_day_cents', label: 'Their rate a day, 3 days or more', type: 'money', value: r.multi_day_cents, required: true },
+              { name: 'long_term_cents', label: 'Their rate a day, 7 days or more', type: 'money', value: r.long_term_cents, required: true },
+              { name: 'discount_bps', label: 'This car\'s discount (empty: the partner\'s)', type: 'percent', value: r.discount_bps },
+              { name: 'kickback_bps', label: 'This car\'s kickback (empty: the partner\'s)', type: 'percent', value: r.commission_bps },
+              { name: 'insurance_included', label: 'Insurance included: no personal auto policy needed', type: 'bool', value: r.insurance_included },
+              { name: 'no_credit_card', label: 'No credit card needed: debit accepted', type: 'bool', value: r.no_credit_card },
+              { name: 'year', label: 'Model year', type: 'number', min: 1980, max: 2100, value: r.year },
+              { name: 'year_approximate', label: 'Year not confirmed yet (the site says "Year confirmed when you book")', type: 'bool', value: r.year_approximate }]} /> }]} />
+        </Card>
+        {p.chauffeur.length > 0 && <Card title={`Chauffeur vehicles (${p.chauffeur.length})`} testId="partner-chauffeur" aside={<Link prefetch={false} className="link small" href={`${base}/requests?tab=chauffeur`}>Requests</Link>}>
+          <Table rows={p.chauffeur} cols={[{ key: 'name', label: 'Vehicle', render: (r) => <>{String(r.name)}<br /><span className="small muted">{r.kind === 'chauffeur_only' ? 'Chauffeur only' : `Also a rental: ${((r.rentals as Array<{ name: string }>) ?? []).map((x) => x.name).join(', ') || 'none on file'}`}{r.active ? '' : ' · off the site'}</span></> },
+            { key: 'sheet_2h_cents', label: 'Sheet an hour (2, 3+)', num: true, render: (r) => `${$(r.sheet_2h_cents)}, ${$(r.sheet_3plus_cents)}` },
+            { key: 'rate_2h_cents', label: 'Client an hour (2, 3+)', num: true, render: (r) => `${$(r.rate_2h_cents)}, ${$(r.rate_3plus_cents)}` },
+            { key: 'id', label: '', render: (r) => <Act ops action="chauffeur_vehicle_save" payload={{ id: r.id }} label="Edit" refresh={refresh} fields={[
+              { name: 'sheet_2h_cents', label: 'Their rate an hour, 2 hours', type: 'money', value: r.sheet_2h_cents, required: true },
+              { name: 'sheet_3plus_cents', label: 'Their rate an hour, 3 hours or more', type: 'money', value: r.sheet_3plus_cents, required: true },
+              { name: 'markup_bps', label: 'Markup (empty: the partner\'s)', type: 'percent', value: r.markup_bps },
+              { name: 'cut_bps', label: 'Cut (empty: the partner\'s)', type: 'percent', value: r.cut_bps },
+              { name: 'passengers', label: 'Passengers', type: 'number', min: 1, max: 20, value: r.passengers },
+              { name: 'active', label: 'On the site', type: 'bool', value: r.active }]} /> }]} />
+        </Card>}
+        <Card title="Payout account (Admins only)" testId="partner-payout">
+          <Table rows={p.payout_accounts} empty="No payout account yet." cols={[{ key: 'method', label: 'Method', render: (r) => (r.method === 'e_transfer' ? `e-Transfer ${String(r.e_transfer_email ?? '')}` : `Bank ${String(r.institution_no ?? '')}-${String(r.transit_no ?? '')} ending ${String(r.account_last4 ?? '')}`) },
+            { key: 'account_holder', label: 'Holder' }, { key: 'verified_at', label: 'Verified', render: (r) => (r.verified_at ? t(r.verified_at) : <Act ops action="partner_payout_verify" payload={{ account_id: r.id }} label="Verify" refresh={refresh} fields={[{ name: 'method', label: 'How it was verified (a call to the number on file)', type: 'text', required: true }]} />) },
+            { key: 'is_current', label: 'In use', render: (r) => (r.is_current ? 'Yes' : 'No') }]} />
+          <PartnerPayoutForm partnerId={id} holder={p.legal_name ?? p.business_name} />
+        </Card>
+        <Card title="Bookings"><Table rows={p.bookings} empty="No bookings yet." cols={[{ key: 'booking_number', label: 'Booking', render: (r) => <BookingLink n={r.booking_number} /> }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> },
+          { key: 'vehicle', label: 'Car' }, { key: 'pickup_at', label: 'Pickup', render: (r) => t(r.pickup_at) }, { key: 'total_cents', label: 'Total', num: true, render: (r) => $(r.total_cents) }]} /></Card>
+        <Card title="Statements and payouts">
+          <Table rows={p.statements} empty="No statements yet. Partner statements are built with the owner statements each month." cols={[{ key: 'statement_number', label: 'Statement', render: (r) => <Link prefetch={false} className="link" href={`${base}/statements/${String(r.id)}`}>{String(r.statement_number ?? 'Draft')}</Link> },
+            { key: 'statement_month', label: 'Month', render: (r) => d(r.statement_month) }, { key: 'status', label: 'Status' }, { key: 'payout_cents', label: 'Payout', num: true, render: (r) => $(r.payout_cents) }]} />
+          <Table rows={p.payouts} empty="No payouts yet." cols={[{ key: 'created_at', label: 'Created', render: (r) => t(r.created_at) }, { key: 'status', label: 'Status' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }]} />
+        </Card>
+        <Card title="Documents"><Table rows={p.documents} empty="No documents." cols={[{ key: 'title', label: 'Title', render: (r) => <Link prefetch={false} className="link" href={`${base}/documents/${String(r.id)}`}>{String(r.title ?? r.kind)}</Link> }, { key: 'created_at', label: 'Added', render: (r) => t(r.created_at) }]} /></Card>
+      </div>
+    </>
+  );
+}

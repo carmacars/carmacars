@@ -5,6 +5,8 @@
 -- the billing by class, car and adjuster; tasks that close themselves; the cars on sample photos; a car's registration,
 -- documents and move; owner charges deducted from payouts; the Tracker Fee from the installation. Fixtures start with "r23".
 select test.suite('99 release 23');
+-- 1060 (part K) turned on by default: Sales referral of every VA applicant, AI interviews for every role, auto-hire; this suite tests the rules before them
+update program_settings set hiring_refer_va_to_sales = false, hiring_ai_all_roles = false, hiring_auto_hire_sales = false;
 
 select test.mk_user('r23_admin', 'admin');
 select test.mk_user('r23_cs', 'va', 'cs');

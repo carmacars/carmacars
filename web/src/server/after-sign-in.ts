@@ -1,6 +1,7 @@
 import 'server-only';
 import { cookies } from 'next/headers';
 import { auth } from '@/lib/auth';
+import { rpc } from '@/lib/db/repo';
 import { rolesOf, VA_FN_COOKIE } from '@/server/door';
 import { landingFor } from '@/server/portals';
 import { VIEW_AS_COOKIE, VIEW_AS_UI_COOKIE } from '@/lib/security/view-as-guard';
@@ -9,6 +10,9 @@ import { VIEW_AS_COOKIE, VIEW_AS_UI_COOKIE } from '@/lib/security/view-as-guard'
  *  switch on), then the page asked for, or their portal (the "Choose a portal" page when they have several). */
 export async function afterSignIn(userId: string, next: string | null): Promise<string> {
   const a = await auth();
+  // 1060: every sign-in is recorded (the staff list's last sign-in); a staff account locked for inactivity goes no further
+  const s = (await rpc('server_signed_in', { p_user: userId }, { role: 'service_role' }).catch(() => null)) as unknown as { inactive_locked?: boolean } | null;
+  if (s?.inactive_locked) { await a.signOut().catch(() => undefined); return '/sign-in?locked=inactivity'; }
   const roles = await rolesOf(userId);
   const home = next ?? landingFor(roles);
   const factors = (await a.mfaFactors().catch(() => [])).filter((f) => f.verified);

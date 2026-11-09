@@ -3,6 +3,8 @@
 -- (real business actions of 0016 to 0022) are processed here first and checked for duplicates.
 -- Times used by this file's own fixtures are in 2031, Toronto time, so nothing collides with them.
 select test.suite('07 notifications');
+-- 1060 (part K) turned on by default: Sales referral of every VA applicant, AI interviews for every role, auto-hire; this suite tests the rules before them
+update program_settings set hiring_refer_va_to_sales = false, hiring_ai_all_roles = false, hiring_auto_hire_sales = false;
 -- 0720 refuses new paper signatures; this file's fixtures signed on paper before it (a superuser session only)
 select set_config('app.paper_fixture', 'on', false);
 
@@ -28,7 +30,7 @@ end $$;
 
 -- ================================================================== A. catalogue
 select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign, 0370 a visitor message waiting in live chat, 0430 the start and end notices, 0400 the two tracker alerts, 0441 the data health notice, 0380 adds one email, 0460 the lead and visitor alerts, 0462 the staff alerts, 0532 the return report denied, 0535 the apology to remote applicants moved to the AI interview, 0547 the partner invoice, 0583 the staff email digest, 0955 the accounts merged note)',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '212/21');
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '215/21');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
@@ -893,6 +895,7 @@ select test.eq('G every wired email code has been built at least once in these t
       and c.code <> 'owner_agreement_to_sign' -- an Admin's Send (0640), built in 99_r31_owner_agreements
       and c.code <> 'renter_coverage_switched' -- a staff switch (0890), built in 99_r35u_coverage_switch
       and c.code <> 'renter_accounts_merged' -- a merge of two renter records (0955), built in 99_r35y_leads_merge
+      and c.code not in ('staff_agreement_reminder', 'staff_inactivity_warning', 'staff_team_group') -- the staff jobs of 1060, built in 99_r35k_staff_onboarding
       and not exists (select 1 from notification_outbox o where o.code = c.code)
       and not exists (select 1 from staff_digest_items d where d.code = c.code)),
   null::text);

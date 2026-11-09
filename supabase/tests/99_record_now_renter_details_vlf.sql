@@ -62,10 +62,10 @@ select test.throws('return now: not in the future',
   format($$select test.rn_do('rn_fleet', 'handover_record_now', jsonb_build_object('booking', %L, 'kind', 'return', 'reason', 'Keys in the drop box', 'at', now() + interval '1 day'))$$, test.b('rnA')), 'not in the future');
 create temp table rn_r as select test.rn_do('rn_fleet', 'handover_record_now', jsonb_build_object('booking', test.b('rnA'), 'kind', 'return',
   'reason', 'Keys in the drop box, no photos yet', 'at', now() - interval '2 hours', 'fuel_pct', 100)) r;
-select test.eq('return now: returned at the actual time, late against it (one extra day), the late lines written',
+select test.eq('return now: returned at the actual time, late against it (2 hours: no extra day under a day, 1063), no extra day line',
   (select status::text || ':' || (minutes_late between 179 and 181) || ':' || extra_days from bookings where id = test.b('rnA'))
   || '/' || (select count(*) from booking_line_items where booking_id = test.b('rnA') and assessment_key = 'late_return_extra_days' and voided_at is null),
-  'returned:true:1/1');
+  'returned:true:0/0');
 select test.lives('return now: Finance issues the statement before the photos are in',
   format($$select app.issue_booking_statement(%L, %L)$$, test.b('rnA'), test.id('rn_fin')));
 select test.eq('return now: the deposit names what waits (the photos) as a blocker',

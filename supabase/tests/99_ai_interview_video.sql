@@ -3,6 +3,8 @@
 -- the consent naming the video, the videos deleted after the setting's days, and the Admin's read. Fixtures start with
 -- "aivv"; example.test addresses only.
 select test.suite('99 ai interview video');
+-- 1060 (part K) turned on by default: Sales referral of every VA applicant, AI interviews for every role, auto-hire; this suite tests the rules before them
+update program_settings set hiring_refer_va_to_sales = false, hiring_ai_all_roles = false, hiring_auto_hire_sales = false;
 update app_events set processed_at = now() where processed_at is null;
 select test.mk_user('aivv_admin', 'admin');
 select test.mk_user('aivv_cs', 'va', 'cs');

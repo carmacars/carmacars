@@ -67,13 +67,13 @@ create table test.zag_t as select app.raise_task(p_type => 'first_day', p_title 
   p_due_at => now(), p_priority => 'normal', p_dedupe => 'zag:first', p_queue => 'fleet', p_created_by => test.id('zag_admin')) as id;
 update tasks set assigned_to = test.id('zag_field') where id = (select id from test.zag_t);
 create table test.zag_w as select app.door(test.id('zag_field'), 'aal2', 'ops_read', 'staff_welcome', '{}'::jsonb) as j;
-select test.eq('welcome: the four steps in order', (select string_agg(x ->> 'key', ',') from test.zag_w, jsonb_array_elements(j -> 'steps') x), 'welcome,profile,academy,tasks');
+select test.eq('welcome: the steps in order (1060: the agreement and the team group after the academy)', (select string_agg(x ->> 'key', ',') from test.zag_w, jsonb_array_elements(j -> 'steps') x), 'welcome,profile,academy,agreement,team,tasks');
 select test.eq('welcome: a field hire, held, with the academy not done and the first task open',
-  (select (j ->> 'portal') || '/' || (j ->> 'locked') || '/' || (j #>> '{steps,2,done}') || '/' || (j #>> '{steps,3,done}') || '/' || jsonb_array_length(j #> '{steps,3,tasks}') from test.zag_w), 'field/true/false/false/1');
+  (select (j ->> 'portal') || '/' || (j ->> 'locked') || '/' || (j #>> '{steps,2,done}') || '/' || (j #>> '{steps,5,done}') || '/' || jsonb_array_length(j #> '{steps,5,tasks}') from test.zag_w), 'field/true/false/false/1');
 select test.throws('welcome: nobody ticks another person''s task', format($$ select app.door(%L, 'aal2', 'ops_do', 'staff_welcome_task', jsonb_build_object('id', %L)) $$,
   test.id('zag_other'), (select id from test.zag_t)), '%not one of your%');
 select app.door(test.id('zag_field'), 'aal2', 'ops_do', 'staff_welcome_task', jsonb_build_object('id', (select id from test.zag_t)));
-select test.eq('welcome: the hire ticks off their own first task', (select app.staff_welcome(test.id('zag_field')) #>> '{steps,3,done}'), 'true');
+select test.eq('welcome: the hire ticks off their own first task', (select app.staff_welcome(test.id('zag_field')) #>> '{steps,5,done}'), 'true');
 
 -- ================================================================ 6. kept up to date with the guides
 -- the chapter as published (the local guides are seeded outside the migrations), then published again

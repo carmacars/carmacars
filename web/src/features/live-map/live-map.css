@@ -269,3 +269,8 @@ html.lm-tv-root .ad__rail, html.lm-tv-root [data-testid='guide-banner'] { displa
 .lm-spot__why.lm-chips li { flex: none; font-size: .85em; border-color: rgba(255, 255, 255, .14); background: rgba(10, 12, 18, .55); }
 /* no lead to put in the spotlight: a calm line, never a renter instead (Release 26) */
 .lm-spot__empty { margin: 0; height: 100%; display: grid; place-items: center; border: 1px dashed var(--line); border-radius: 12px; color: var(--quiet); font-size: 1.2em; }
+
+/* 1064: working now and the week's Sales leaderboard */
+.lm-team { display: flex; flex-wrap: wrap; gap: var(--s-3, 12px); font-size: .875rem; margin: var(--s-2, 8px) 0; }
+.lm-team section { min-width: 12rem; }
+.lm-team ul, .lm-team ol { margin: 4px 0 0; padding-left: 1.2em; }

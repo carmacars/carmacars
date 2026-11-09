@@ -117,6 +117,12 @@ export interface ScoreInput {
   role_title: string; va_function: string | null; hours: string | null; pay_text: string;
   answers: Array<{ seq: number; kind: string; key: string; prompt: string; mode: string; transcript: string }>;
 }
+/** 1060: an in-person role (field, Sales in person) has no remote setup to score: its "internet" topic is getting around
+ *  Toronto for work and the licence. */
+export function topicsFor(topics: Topic[], inPerson: boolean): Topic[] {
+  if (!inPerson) return topics;
+  return topics.map((t) => (t.key === 'internet' ? { ...t, label: 'Getting to work and the licence', good: 'Reliable transport to Toronto locations with a backup plan; a full Ontario G licence with a clean record where the role drives' } : t));
+}
 export function scoreSystem(topics: Topic[], salesRole: boolean): string {
   return [
     'You help the hiring team of CarmaCars, a car rental company in Toronto, review a recorded interview for a remote assistant role. The candidate answered each question out loud (transcribed by speech-to-text, so small transcription errors are not the candidate\'s) or in writing.',

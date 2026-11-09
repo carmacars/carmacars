@@ -345,7 +345,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
           {/* r29 C0: Rental charges and Security deposit, two panels; every money tool sits in the panel it belongs to, and the
               database decides who may do each */}
           {moneyByPart && <BookingMoney m={moneyByPart} reasons={reasons} lines={(b.lines as PanelLine[] | undefined) ?? []} totalCents={(b.total_due_at_booking_cents as number | null | undefined) ?? null}
-            waived={!!(b as unknown as R).deposit_waived_at}
+            waived={!!(b as unknown as R).deposit_waived_at} lineAdmin={can.admin} expiredSettle={can.admin || can.settleDeposit || (viewer.role === 'staff' && viewer.fn === 'fleet')}
             rentalExtras={<>
               {coverageSwitch && <CoverageSwitch x={coverageSwitch} />}
               {fees && <BookingFees x={fees} withBalance={false} />}

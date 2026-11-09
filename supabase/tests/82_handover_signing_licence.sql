@@ -206,10 +206,10 @@ create temp table ho_rt as select public.door(test.id('ho_admin'), null, 'field_
   'odometer_km', 20450, 'fuel_pct', 75, 'keys_count', 2, 'cleanliness', 'clean', 'renter_present', true, 'renter_signature_ref', 'sig/r2', 'staff_signature_ref', 'sig/s2',
   'photos', test.op_photos('return')))) r;
 select test.eq('check-in: returned, with the minutes late against the due-back time',
-  (select r ->> 'booking_status' from ho_rt) || '/' || (select (minutes_late between 179 and 181)::text || ':' || extra_days from bookings where id = test.b('hoA')), 'returned/true:1');
+  (select r ->> 'booking_status' from ho_rt) || '/' || (select (minutes_late between 179 and 181)::text || ':' || extra_days from bookings where id = test.b('hoA')), 'returned/true:0');
 select test.eq('check-in: the late, kilometre and fuel charges are in the settlement at once (no Finance step)',
   (select string_agg(assessment_key, ',' order by assessment_key) from booking_line_items where booking_id = test.b('hoA') and voided_at is null and assessment_key is not null and amount_cents > 0),
-  'fuel,fuel_service_fee,late_return_extra_days,late_return_fee,mileage_overage');
+  'fuel,fuel_service_fee,late_return_fee,mileage_overage');
 select test.eq('check-in: the kilometres over at the booking''s rate', test.op_line('hoA', 'mileage_overage') like (50 * 35)::text || '+%', true);
 select test.eq('check-in: no receipt yet: two eighths at the refill price, before the markup',
   (select (supporting_refs ->> 'pump_cost_cents') from booking_line_items where booking_id = test.b('hoA') and assessment_key = 'fuel' and voided_at is null), '2000');

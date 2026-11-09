@@ -33,10 +33,11 @@ select test.mk_line('A1', 'delivery', 15000);
 select test.mk_booking('A2', 'A', 'ra2', '2026-11-12 10:00', '2026-11-22 10:00', 'closed', 100000, 'standard', 'OTTO20');
 select test.mk_line('A2', 'cleaning', 5000);
 select test.mk_booking('B1', 'B', 'rb1', '2026-11-03 10:00', '2026-11-10 10:00', 'closed', 70000);
--- B2 came back 3 hours late: one extra day at $100 is Owner Revenue; the $75 late return fee is company only
+-- B2 came back 1 day and 3 hours late (1063: whole days are extra days, the started hours after them the hourly fee): one extra
+-- day at $100 is Owner Revenue; the $75 late return fee is company only
 select test.mk_booking('B2', 'B', 'rb2', '2026-11-12 10:00', '2026-11-24 10:00', 'closed', 120000, 'standard', null, null, '2026-11-24 13:00');
-select test.mk_line('B2', 'late_return_extra_days', (select extra_days_cents from public.calc_late_return(180, 10000)));
-select test.mk_line('B2', 'late_return_fee', (select late_fee_cents from public.calc_late_return(180, 10000)));
+select test.mk_line('B2', 'late_return_extra_days', (select extra_days_cents from public.calc_late_return(1620, 10000)));
+select test.mk_line('B2', 'late_return_fee', (select late_fee_cents from public.calc_late_return(1620, 10000)));
 select test.mk_line('B2', 'mileage_overage', 10000);
 
 select app.compute_booking_split(test.id('booking:' || n)) from unnest(array['A1', 'A2', 'B1', 'B2']) n;

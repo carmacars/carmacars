@@ -4,7 +4,7 @@ import type { Json } from '@/lib/db/types';
 import { textGenerator } from '@/integrations/llm';
 import { transcriber } from '@/integrations/transcribe';
 import {
-  audioExt, DETAILED_WORDS, FOLLOWUP_SCHEMA, FOLLOWUP_SYSTEM, followupPrompt, MAX_AUDIO_BYTES, MAX_VIDEO_BYTES, pickFollowup, SCORE_SCHEMA, scorePrompt, scoreSystem, videoExt, words,
+  audioExt, DETAILED_WORDS, FOLLOWUP_SCHEMA, FOLLOWUP_SYSTEM, followupPrompt, MAX_AUDIO_BYTES, MAX_VIDEO_BYTES, pickFollowup, SCORE_SCHEMA, scorePrompt, scoreSystem, topicsFor, videoExt, words,
   type InterviewView, type ScoreInput, type Topic
 } from '@/features/careers/ai-interview';
 
@@ -122,6 +122,7 @@ interface Due {
   transcribe: Array<{ answer_id: string; audio_key: string; audio_type: string | null; audio_seconds: number | null }>;
   score: Array<ScoreInput & { interview_id: string; role_slug: string }>;
   topics: Topic[];
+  /** 1060: the in-person roles (their "internet" topic is getting around Toronto and the licence) */ in_person_roles?: string[];
   purge: Array<{ answer_id: string; audio_key: string }>;
   videos?: Array<{ answer_id: string; video_key: string }>;
 }
@@ -154,12 +155,30 @@ export async function runInterviewJob(): Promise<Record<string, unknown>> {
   let scored = 0;
   for (const x of due.score) {
     const t0 = Date.now();
-    const g = await (await textGenerator(undefined, 60_000)).generate<Record<string, unknown>>({ task: 'interview_score', system: scoreSystem(due.topics, x.va_function === 'sales'),
+    const g = await (await textGenerator(undefined, 60_000)).generate<Record<string, unknown>>({ task: 'interview_score', system: scoreSystem(topicsFor(due.topics, (due.in_person_roles ?? []).includes(x.role_slug)), x.va_function === 'sales'),
       prompt: scorePrompt(x), schema: SCORE_SCHEMA, maxOutputTokens: 1200, temperature: 0.2 });
     await rpc('server_ai_interview_scored', { p: { interview_id: x.interview_id, ok: g.ok, result: g.ok ? g.data : null, model: g.ok ? g.model : null,
       neurons: g.usage?.neurons ?? 0, duration_ms: Date.now() - t0, error: g.ok ? null : g.message, reason: g.ok ? null : g.reason,
       called: g.ok || g.reason !== 'quota' } as unknown as Json }, SR);
     if (g.ok) scored++;
   }
-  return { ok: true, purged: gone.length, videos_deleted: vids.length, transcribed, scored };
+  // 1060: Sales applicants at the auto-hire mark are hired with one-step Hire
+  const hired = await runAutoHires().catch((e) => ({ error: e instanceof Error ? e.message.slice(0, 200) : 'failed' }));
+  return { ok: true, purged: gone.length, videos_deleted: vids.length, transcribed, scored, hired };
+}
+
+/** Auto-hire (1060): each Sales applicant whose AI interview score meets the mark, hired as the Admin the automatic work acts
+ *  as, with the same one-step Hire an Admin presses (the account, the agreement, the academy with the gate, the welcome). */
+export async function runAutoHires(max = 2): Promise<{ hired: number; failed: number }> {
+  const due = (await rpc('server_hire_auto_due', { p_limit: max }, SR)) as unknown as { actor: string | null; applications: Array<{ id: string; score: number; mark: number; function: string }> };
+  let hired = 0; let failed = 0;
+  if (!due?.actor) return { hired, failed };
+  const { oneStepHire } = await import('@/server/hire');
+  for (const a of due.applications ?? []) {
+    let r: { ok: boolean; message?: string };
+    try { r = await oneStepHire(due.actor, 'aal2', { id: a.id, function: a.function }); } catch (e) { r = { ok: false, message: e instanceof Error ? e.message : 'failed' }; }
+    await rpc('server_hire_auto_done', { p_app: a.id, p: { ok: r.ok, error: r.ok ? null : r.message ?? 'failed', score: a.score, mark: a.mark } as unknown as Json }, SR);
+    if (r.ok) hired++; else failed++;
+  }
+  return { hired, failed };
 }

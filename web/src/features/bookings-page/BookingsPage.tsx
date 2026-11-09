@@ -43,12 +43,12 @@ async function AdminBookings({ ctx, sp }: { ctx: PageCtx; sp: Record<string, str
       ops<DraftRow[]>('drafts', { kind: 'rental' }).catch(() => [] as DraftRow[])]);
     // the clock the page is drawn at: the browser starts from it, so its first render matches this one
     const at = new Date().getTime();
-    // 0910: trips still open after their return time, closed in one tap on Close past trips
-    const past = (await ops<{ rows: unknown[] }>('past_trips', {}).catch(() => ({ rows: [] as unknown[] }))).rows.length;
+    // 0910, 1063: trips past their return time and not closed (never picked up, on rent, or returned and not closed)
+    const past = (await ops<{ rows: unknown[] }>('ended_trips', {}).catch(() => ({ rows: [] as unknown[] }))).rows.length;
     return (
       <>
         <BookingsHead current="now" lead="What is out, coming back, going out and owed, live. Toronto time." />
-        {past > 0 && <p className="alert alert--warn" role="status" data-testid="past-trips-banner"><span>{past} {past === 1 ? 'trip is' : 'trips are'} still open after the return time. <Link prefetch={false} className="link" href="/admin/bookings/past-trips">Close past trips</Link></span></p>}
+        {past > 0 && <p className="alert alert--warn" role="status" data-testid="past-trips-banner"><span>{past} {past === 1 ? 'trip has' : 'trips have'} ended and {past === 1 ? 'is' : 'are'} not closed. <Link prefetch={false} className="link" href="/admin/bookings/past-trips">Close ended trips</Link></span></p>}
         <UnfinishedRentals rows={drafts} base="/admin" />
         <BookingsNow initial={board} at={at} src="/api/staff/bookings-now" base="/admin" />
       </>

@@ -3,6 +3,7 @@ import { Suspense } from 'react';
 import { AuthShell, AuthTabs } from '@/features/forms/AuthShell';
 import { ProviderButtons } from '@/features/forms/ProviderButtons';
 import { SignInForm } from '@/features/forms/AuthForms';
+import { LockedNotice } from '@/features/access/LockedNotice';
 import { seoMeta } from '@/features/seo/meta';
 import { fill, getTokens } from '@/lib/site';
 
@@ -15,6 +16,7 @@ export default function SignIn() {
     <div className="p-auth">
       <AuthShell side="One sign-in for renters, owners and staff." sideText="Renters see bookings, agreements and statements. Owners see their cars, calendar and payouts.">
         <h1 className="d2">Sign in</h1>
+        <Suspense fallback={null}><LockedNotice /></Suspense>
         <AuthTabs current="in" />
         <Suspense fallback={null}><ProviderButtons intent="signin" /></Suspense>
         <Suspense fallback={null}><SignInForm /></Suspense>

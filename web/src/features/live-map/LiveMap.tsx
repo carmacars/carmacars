@@ -273,6 +273,7 @@ export function LiveMap({ initial, tv, at, embedded = false, portal = 'admin' }:
             <div className="lm-tv__row">
               <div className="lm-brand"><span>CarmaCars <b>Live</b></span><Clock now={now} /></div>
               <Kpis k={view?.kpi} />
+        <TeamNow v={view} />
             </div>
           </header>
           <footer className="lm-tv__foot" ref={footRef}><div className="lm-tv__chips">{legend}</div><Filmstrip pins={onTheRoad(pins, now)} onOpen={openCard} /></footer>
@@ -308,6 +309,7 @@ export function LiveMap({ initial, tv, at, embedded = false, portal = 'admin' }:
     <div className="lm lm--page" data-testid="live-map">
       <div className="lm-head">
         <Kpis k={view?.kpi} />
+        <TeamNow v={view} />
         <div className="lm-head__acts">
           {contactSwitch}
           {portal === 'admin' && <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/live-map?tv=1" target="_blank" rel="noopener">Open TV mode</Link>}
@@ -336,6 +338,20 @@ function floatAt(s: Spot): React.CSSProperties {
   if (s.bw < 560) return { left: 8, right: 8, bottom: 8, width: 'auto' };
   const x = s.x + s.w / 2, right = x > s.bw * 0.6, below = s.y < s.bh * 0.45;
   return { left: right ? undefined : Math.max(8, x + 16), right: right ? Math.max(8, s.bw - x + 16) : undefined, top: below ? Math.max(8, s.y) : undefined, bottom: below ? undefined : Math.max(8, s.bh - s.y - s.h) };
+}
+
+/** 1064: who is working now (clocked in or on a field shift) and the week's Sales leaderboard, on the same live read. */
+function TeamNow({ v }: { v: MapView | null | undefined }) {
+  if (!v || (!v.working.length && !v.leaderboard.length)) return null;
+  const since = (iso: string) => new Date(iso).toLocaleTimeString('en-CA', { timeZone: 'America/Toronto', hour: 'numeric', minute: '2-digit' });
+  return (
+    <div className="lm-team" data-testid="lm-team">
+      {v.working.length > 0 && <section aria-label="Working now"><p className="lm-kpi__k">Working now ({v.working.length})</p>
+        <ul>{v.working.map((w) => <li key={`${w.name}-${w.since}`}>{w.name} <span className="muted">{w.role}, since {since(w.since)}</span></li>)}</ul></section>}
+      {v.leaderboard.length > 0 && <section aria-label="Sales this week"><p className="lm-kpi__k">Sales this week</p>
+        <ol>{v.leaderboard.map((l) => <li key={l.name}>{l.name} <span className="muted">{l.bookings} booking{l.bookings === 1 ? '' : 's'}</span></li>)}</ol></section>}
+    </div>
+  );
 }
 
 function Kpis({ k }: { k: Kpi | undefined }) {

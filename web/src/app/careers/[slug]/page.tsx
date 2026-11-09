@@ -5,7 +5,7 @@ import { JsonLd } from '@/components/JsonLd';
 import { breadcrumbLd, seoMeta, type Trail } from '@/features/seo/meta';
 import { employmentWords, jobPostingLd } from '@/features/careers/model';
 import { roleDescription, roleTitle } from '@/features/careers/seo';
-import { rolePage } from '@/server/careers';
+import { closedRole, rolePage } from '@/server/careers';
 import { getSettings, photoUrl, siteUrl } from '@/lib/site';
 
 // One role (migration 0173): what it involves, what it needs, the hours and the pay, and Apply. The JobPosting structured data
@@ -19,7 +19,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function Role({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
   const [{ slug }, sp] = await Promise.all([params, searchParams]);
   const r = await rolePage(slug);
-  if (!r) notFound();
+  if (!r) {
+    // 1060: a closed role is filled, never a 404: its applicants go to the Sales application, with their name and email
+    const c = await closedRole(slug);
+    if (!c) notFound();
+    return <RoleFilled c={c} />;
+  }
   const s = await getSettings();
   const base = siteUrl();
   const trail: Trail = [['Home', '/'], ['Careers', '/careers'], [r.short_title]];
@@ -59,6 +64,31 @@ export default async function Role({ params, searchParams }: { params: Promise<{
             </ol>
             <p><Link prefetch={false} className="btn btn--primary btn--lg" href={apply}>Apply for this role</Link></p>
           </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function RoleFilled({ c }: { c: NonNullable<Awaited<ReturnType<typeof closedRole>>> }) {
+  const trail: Trail = [['Home', '/'], ['Careers', '/careers'], [c.short_title]];
+  return (
+    <div className="p-careers">
+      <PageHead trail={trail} h1={c.title} lead="This role is filled. Thank you for your interest." />
+      <section className="section" aria-labelledby="cr-filled">
+        <div className="wrap cr-narrow stack-lg" data-testid="role-filled">
+          {c.sales ? <>
+            <h2 className="d3" id="cr-filled">Join us in Sales instead</h2>
+            <p>{c.sales.summary}</p>
+            <p className="muted">{c.sales.pay_text}</p>
+            <form method="get" action={`/careers/${c.sales.slug}/apply`} className="stack" data-testid="role-filled-form">
+              <input type="hidden" name="src" value="referral" />
+              <input type="hidden" name="from" value={c.slug} />
+              <label className="stack"><span>Your full name</span><input className="input" name="name" autoComplete="name" maxLength={120} /></label>
+              <label className="stack"><span>Your email</span><input className="input" name="email" type="email" autoComplete="email" maxLength={200} /></label>
+              <p><button type="submit" className="btn btn--primary btn--lg">Apply for {c.sales.title}</button></p>
+            </form>
+          </> : <p id="cr-filled"><Link prefetch={false} className="link" href="/careers">See the roles we are hiring for</Link></p>}
         </div>
       </section>
     </div>

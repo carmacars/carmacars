@@ -19,7 +19,7 @@ function handoverFields(kind: 'pickup' | 'return'): Field[] {
   ];
 }
 
-function pastFields(pickupAt: string, returnAt: string): Field[] {
+function pastFields(pickupAt: string, returnAt: string, admin = false): Field[] {
   const ret = new Date(returnAt).getTime() < Date.now() ? returnAt : now();
   return [
     { name: 'pickup_at', label: 'Actual pickup time', type: 'datetime', value: pickupAt, required: true },
@@ -28,7 +28,9 @@ function pastFields(pickupAt: string, returnAt: string): Field[] {
     { name: 'odometer_in_km', label: 'Odometer at return (km), if known', type: 'number', min: 0 },
     { name: 'fuel_out_pct', label: 'Fuel at pickup (%), if known', type: 'number', min: 0, max: 100 },
     { name: 'fuel_in_pct', label: 'Fuel at return (%), if known', type: 'number', min: 0, max: 100 },
-    { name: 'reason', label: 'Why it is recorded now', type: 'text', required: true, wide: true, hint: 'For example: the trip happened and was never recorded. The photos can be added later.' }
+    { name: 'reason', label: 'Why it is recorded now', type: 'text', required: true, wide: true, hint: 'For example: the trip happened and was never recorded. The photos can be added later.' },
+    // 1063: as on the pickup forms
+    ...(admin ? [{ name: 'deposit_waiver_reason', label: 'Admin: deposit not taken, waive it because', type: 'text' as const, wide: true, hint: 'Only when the deposit is not taken. An Admin only.' }] : [])
   ];
 }
 
@@ -61,7 +63,7 @@ export async function HandoverOverride({ booking, userId, aal, refresh }: { book
         </>}
         {v.pastTrip && <>
           <p className="small">The pickup and the return both happened but were never recorded: record the whole trip in one step. The booking lands in Returned so the deposit can be settled; km, fuel and photos can come later.</p>
-          <Act ops action="handover_override" payload={{ booking: r.booking_id, kind: 'past_trip' }} label={v.pastLabel} fields={pastFields(r.pickup_at, r.return_at)}
+          <Act ops action="handover_override" payload={{ booking: r.booking_id, kind: 'past_trip' }} label={v.pastLabel} fields={pastFields(r.pickup_at, r.return_at, r.admin)}
             refresh={refresh} done={v.pastDone} testId="override-past-trip" />
         </>}
       </div>

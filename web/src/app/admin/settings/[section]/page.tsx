@@ -16,6 +16,7 @@ import { ApiAccessPage } from '@/features/api-access/ApiAccessPage';
 import { door } from '@/server/door';
 import { OfficialForms, type FormsData } from '@/features/official-forms/OfficialForms';
 import { RentalForms, type RentalForm } from '@/features/blindspot/RentalForms';
+import { AgreementGate, type AgreementGateRow } from '@/features/manual/AgreementGate';
 import { StaffAgreements, type StaffAgreementRow } from '@/features/manual/StaffAgreements';
 import { AdminAccessForm, SampleRowActions, SampleThumb, SampleUpload } from '@/features/admin/SamplePhotosClient';
 import { StaffDefaults, type StaffDefaultsValue } from '@/features/admin/StaffDefaults';
@@ -478,7 +479,9 @@ export default async function Section({ params, searchParams }: { params: Promis
         <SaveForm table="email_reply_to" label="Add a rule" fields={[{ name: 'audience', label: 'Audience', type: 'select', options: [['renter', 'Renter'], ['owner', 'Owner'], ['staff', 'Staff'], ['insurer', 'Insurer']] }, { name: 'code', label: 'Email code (empty: any)' }, { name: 'reply_to', label: 'Reply to', type: 'email', required: true }]} /></Card>
       <p className="small"><Link prefetch={false} className="link" href="/admin/logs?tab=emails">Email log and blocked addresses</Link></p>
     </>);
-  case 'staff':
+  case 'staff': {
+    // 1060: the preferred name, the last use and the inactivity lock
+    const access = await door<Record<string, { last_active_at: string | null; locked_at: string | null; preferred_name: string | null }>>(user.id, 'admin_read', 'staff_access_facts', {}).catch(() => ({} as Record<string, { last_active_at: string | null; locked_at: string | null; preferred_name: string | null }>));
     return (<>{head}
       <Card title="Invite"><p className="small muted">An invitation email with a link to choose a password (24 hours), then their portal. Owners and investors on file are invited from <Link prefetch={false} className="link" href="/admin/portals#invite">Admin &gt; Portals</Link>. Admin access is only through the addresses under Admin access below.</p><InviteForm roles={['staff']} testId="staff-invite" /></Card>
       {await (async () => {
@@ -492,11 +495,12 @@ export default async function Section({ params, searchParams }: { params: Promis
             <ul className="ad-list" data-testid="admin-holders">{acc.holders.map((h) => <li key={h.email}><span>{h.email}{h.name ? ` (${h.name})` : ''}</span><span className="small">{h.test ? 'automated test account' : h.allowed ? 'allowed' : 'not on the list'}</span></li>)}</ul>
           </Card>);
       })()}
-      <Card title="Staff"><Table rows={s.staff} testId="staff" cols={[{ key: 'full_name', label: 'Name' }, { key: 'email', label: 'Email' }, { key: 'roles', label: 'Roles', render: (r) => (r.roles as string[] | null)?.join(', ') },
-        { key: 'fn', label: 'Functions', render: (r) => { const p = r.profile as R | null; if (!p) return ''; return staffFns(p).map((f) => `${STAFF_FN_LABEL[f]}${f === 'sales' && p.sales_work_mode ? ` (${p.sales_work_mode === 'remote' ? 'remote' : 'in person'})` : ''}${f === 'field' && p.field_function ? ` (${label(p.field_function)})` : ''}`).join(', '); } }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'last_sign_in_at', label: 'Last sign-in', render: (r) => t(r.last_sign_in_at) },
+      <Card title="Staff"><Table rows={s.staff} testId="staff" cols={[{ key: 'full_name', label: 'Name', render: (r) => <>{String(r.full_name ?? '')}{access[String(r.id)]?.preferred_name ? <span className="small muted"> ({access[String(r.id)]!.preferred_name})</span> : null}{access[String(r.id)]?.locked_at ? <> <span className="ad-flag ad-flag--red" data-testid={`locked-${String(r.email)}`}>Locked for inactivity</span></> : null}</> }, { key: 'email', label: 'Email' }, { key: 'roles', label: 'Roles', render: (r) => (r.roles as string[] | null)?.join(', ') },
+        { key: 'fn', label: 'Functions', render: (r) => { const p = r.profile as R | null; if (!p) return ''; return staffFns(p).map((f) => `${STAFF_FN_LABEL[f]}${f === 'sales' && p.sales_work_mode ? ` (${p.sales_work_mode === 'remote' ? 'remote' : 'in person'})` : ''}${f === 'field' && p.field_function ? ` (${label(p.field_function)})` : ''}`).join(', '); } }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'last_sign_in_at', label: 'Last sign-in', render: (r) => t(r.last_sign_in_at ?? access[String(r.id)]?.last_active_at ?? null) },
         { key: 'limits', label: 'Limits', render: (r) => { const p = r.profile as R | null; return p ? `${$(p.single_limit_cents)} / ${$(p.dual_approval_threshold_cents)}` : ''; } },
         { key: 'academy', label: 'Academy', render: (r) => { const a = academy?.get(String(r.id)); return a && a.sections ? <Link prefetch={false} className="link" href={`/admin/academy/staff/${String(r.id)}`} data-testid={`academy-${String(r.email)}`}>{a.done ? 'Passed' : `${a.passed} of ${a.sections}`}</Link> : ''; } },
         { key: 'act', label: 'Actions', render: (r) => r.id === user.id ? <span className="muted small">you</span> : <span className="ad-actions">
+          {access[String(r.id)]?.locked_at && <Act action="staff_unlock" payload={{ user_id: r.id }} label="Unlock" variant="primary" testId={`unlock-${String(r.email)}`} refresh={['/admin/settings/staff']} done="Unlocked: they can sign in again." />}
           {r.status === 'active' && <PasswordLinkButton userId={String(r.id)} testId={`pw-${String(r.email)}`} />}
           {r.status === 'active' && (r.profile as R | null) && staffFns(r.profile as R).filter((f) => f !== 'field')
             .map((f) => <ViewAsButton key={f} user={String(r.id)} portal="va" fn={f} label={`View as (${STAFF_FN_LABEL[f]})`} testId={`view-as-${String(r.email)}-${f}`} />)}
@@ -513,8 +517,10 @@ export default async function Section({ params, searchParams }: { params: Promis
         const sm = await read<SalesModes>('sales_modes').catch(() => null);
         return sm ? <SalesModesCard data={sm} /> : null;
       })()}
-      <Card title="Staff agreements" testId="staff-agreements"><StaffAgreements rows={await door<StaffAgreementRow[]>(user.id, 'ops_read', 'staff_agreements', {}).catch(() => [])} today={new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())} /></Card>
+      <Card title="Staff agreements" testId="staff-agreements"><AgreementGate rows={await door<AgreementGateRow[]>(user.id, 'ops_read', 'staff_agreements_status', {}).catch(() => [])} />
+        <StaffAgreements rows={await door<StaffAgreementRow[]>(user.id, 'ops_read', 'staff_agreements', {}).catch(() => [])} today={new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())} /></Card>
     </>);
+  }
   }
   notFound();
 }

@@ -2,6 +2,7 @@ import Link from '@/components/Link';
 import { requestNow } from '@/features/va/lanes';
 import { pageMeta } from '@/features/seo/meta';
 import { door, requireStaff } from '@/server/door';
+import { TeamGroupCard } from '@/features/staff-clock/TeamGroupCard';
 import { FieldButton } from '@/features/field/FieldButton';
 import { Plate } from '@/features/field/Plate';
 import { FdIcon } from '@/features/field/icons';
@@ -49,6 +50,7 @@ export default async function FieldToday({ searchParams }: { searchParams: Promi
         <h1>{tomorrow ? 'Tomorrow' : `Today${first ? `, ${first}` : ''}`}</h1>
         <p>{dateText(t.day)}</p>
       </header>
+      <TeamGroupCard userId={user.id} refresh="/staff/field" />
       <nav className="fd-days" aria-label="Day">
         <Link prefetch={false} href="/staff/field" aria-current={!tomorrow ? 'page' : undefined}>Today</Link>
         <Link prefetch={false} href="/staff/field?day=tomorrow" aria-current={tomorrow ? 'page' : undefined}>Tomorrow</Link>

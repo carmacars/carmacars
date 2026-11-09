@@ -8,7 +8,7 @@ import { friendlyDbError } from '@/lib/db/friendly';
 import type { Json } from '@/lib/db/types';
 import { currentUser } from '@/server/portal/data';
 import { viewAs, ViewAsReadOnly } from '@/server/view-as';
-import { ACADEMY_OPEN } from '@/features/academy/gate';
+import { ACADEMY_OPEN, AGREEMENT_OPEN } from '@/features/academy/gate';
 
 // The one door for staff and investors (migration 0031): every call carries the signed-in user and the
 // assurance level of their session (aal2 after the second factor). The database makes them the acting
@@ -20,6 +20,8 @@ export interface Roles { admin: boolean; va: 'finance' | 'fleet' | 'cs' | 'sales
   /** every staff function held, field work included (0197) */ functions?: Array<'finance' | 'fleet' | 'cs' | 'sales' | 'field'>; sales_work_mode?: 'in_person' | 'remote' | null; field: boolean; owner: boolean; renter: boolean; investor: boolean; staff: boolean; two_step_required: boolean; name: string | null;
   /** 0324: the greeting name (Settings > My profile), else the account's name */ greeting?: string | null;
   /** the academy gate is on and this staff member has not passed their paths yet (0207) */ academy_locked?: boolean;
+  /** 1060: the academy passed, the staff agreement not signed yet: Welcome, the profile and the documents to sign only */ agreement_locked?: boolean;
+  /** 1060: locked after days without a sign-in, until an Admin unlocks it */ inactive_locked?: boolean; preferred_name?: string | null;
   /** 0931: a field person who asked to do sales too, and whether the Sales path is passed (the Sales function then held) */ sales_opt_in?: boolean; sales_ready?: boolean }
 
 export async function sessionAal(): Promise<'aal1' | 'aal2' | null> {
@@ -83,7 +85,10 @@ export async function requireStaff(kind: 'va' | 'field', next: string): Promise<
   if (roles.two_step_required && (await sessionAal()) !== 'aal2') redirect(`/two-step?next=${encodeURIComponent(next)}`);
   // the academy gate (0207; on since 0731): until their paths are passed (or an Admin waived it, 0802), the academy, the
   // guide, the profile and Welcome (their onboarding checklist) only; a held person lands on Welcome
+  if (roles.inactive_locked) redirect('/sign-in?locked=inactivity');
   if (roles.academy_locked && !ACADEMY_OPEN.test(next)) redirect('/staff/welcome');
+  // 1060: then the staff agreement (the order: academy, agreement, access)
+  if (roles.agreement_locked && !AGREEMENT_OPEN.test(next)) redirect('/staff/welcome');
   return { user, roles };
 }
 

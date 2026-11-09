@@ -4,6 +4,8 @@
 -- Admin's reads and doors (a live call, a new link), the expiry, the removal with the application, and the privileges.
 -- Fixtures start with "aiv"; example.test addresses only.
 select test.suite('99 ai interviews');
+-- 1060 (part K) turned on by default: Sales referral of every VA applicant, AI interviews for every role, auto-hire; this suite tests the rules before them
+update program_settings set hiring_refer_va_to_sales = false, hiring_ai_all_roles = false, hiring_auto_hire_sales = false;
 -- the events earlier suites left are theirs: this suite processes only its own (each staff alert fans out to every Admin
 -- the earlier suites made, minutes of work that kept the CI's fast job past its time limit)
 update app_events set processed_at = now() where processed_at is null;

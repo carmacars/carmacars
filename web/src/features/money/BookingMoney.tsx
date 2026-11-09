@@ -6,6 +6,7 @@ import { when } from '@/features/agreement/model';
 import type { ReactNode } from 'react';
 import { chargeSavedCard, holdAction, holdSavedCard, offersDo, reauthorizeHold, startCardRequest } from '@/server/actions/offers';
 import { Table } from '@/features/admin/ui';
+import { Act } from '@/features/admin/Act';
 import { CardTools, type CardRule } from './CardTools';
 import { depositAutoText, type DepositAuto } from './deposit-auto-text';
 import { DateInput } from '@/components/DateInput';
@@ -58,7 +59,7 @@ const METHOD: Record<string, string> = { card: 'Card', e_transfer: 'e-Transfer',
 const cents = (s: string) => { const t = s.replace(/[$,\s]/g, ''); return t ? Math.round(Number(t) * 100) : null; };
 const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 
-export interface PanelLine { id: string; description: string | null; charge_type: string; stage?: string | null; amount_cents: number }
+export interface PanelLine { id: string; description: string | null; charge_type: string; stage?: string | null; amount_cents: number; statement_id?: string | null; payment_id?: string | null }
 const WORD_CLASS: Record<string, string> = { 'Hold expired': 'ad-b--amber', 'Not collected': 'ad-b--amber', Held: 'ad-b--light', Charged: 'ad-b--light', Released: 'ad-b--light', 'Partly kept': 'ad-b--amber', Waived: 'ad-b--light', 'No deposit': 'ad-b--light' };
 
 /** The reason dropdown of a charge after the trip (r33, 0750): the list, and Other with its note (required). */
@@ -72,7 +73,8 @@ function ReasonFields({ id, code, note, set }: { id: string; code: string; note:
   </>;
 }
 
-export function BookingMoney({ m, lines = [], totalCents, waived = false, rentalExtras, depositExtras, depositSettle, reasons = null }: {
+export function BookingMoney({ m, lines = [], totalCents, waived = false, rentalExtras, depositExtras, depositSettle, reasons = null, lineAdmin = false, expiredSettle = false }: {
+  /** 1063: an Admin's Change amount and Waive on a line not issued yet; Mark settled (released by expiry) */ lineAdmin?: boolean; expiredSettle?: boolean;
   m: Money; lines?: PanelLine[]; totalCents?: number | null; waived?: boolean;
   /** r33 (0750): the reason of each charge, and the card fee of a debit deposit */ reasons?: ChargeReasons | null;
   /** server-rendered pieces of each panel (fees, refunds, payments received another way; waive, debit cards, the settlement) */
@@ -243,7 +245,9 @@ export function BookingMoney({ m, lines = [], totalCents, waived = false, rental
         <section className="pt-card ad-card stack bm-panel" aria-labelledby="bm-rental-h" data-testid="bm-rental">
           <div className="pt-card__head"><h2 className="d4" id="bm-rental-h">Rental charges</h2><span className="small muted">by {(METHOD[m.rental_pay_method] ?? m.rental_pay_method).toLowerCase()}</span></div>
           <dl className="pt-dl pt-dl--money" data-testid="bm-lines">
-            {lines.map((l) => <div key={l.id}><dt>{l.description || l.charge_type.replace(/_/g, ' ')}{l.stage ? <span className="muted small"> {l.stage}</span> : null}</dt><dd>{fmt(l.amount_cents)}</dd></div>)}
+            {lines.map((l) => <div key={l.id}><dt>{l.description || l.charge_type.replace(/_/g, ' ')}{l.stage ? <span className="muted small"> {l.stage}</span> : null}</dt><dd>{fmt(l.amount_cents)}{lineAdmin && !l.statement_id && !l.payment_id && l.amount_cents > 0 ? <span className="ad-actions" data-testid={`bm-line-${l.id}`}>
+              <Act ops action="line_adjust" payload={{ line: l.id }} label="Change amount" refresh={[]} done="Changed. It is in the booking history." fields={[{ name: 'amount_cents', label: 'New amount (lower)', type: 'money', required: true }, { name: 'reason', label: 'Why', type: 'text', required: true }]} />
+              <Act ops action="line_adjust" payload={{ line: l.id, waive: true }} label="Waive" refresh={[]} done="Waived. It is in the booking history." fields={[{ name: 'reason', label: 'Why it is waived', type: 'text', required: true }]} /></span> : null}</dd></div>)}
             {totalCents != null && <div><dt><b>Total</b></dt><dd><b>{fmt(totalCents)}</b></dd></div>}
             <div><dt>Paid</dt><dd data-testid="bm-rental-paid">{fmt(paid.rental_cents)}</dd></div>
             <div><dt><b>Balance due</b></dt><dd><b data-testid="bm-rental-due">{fmt(due)}</b></dd></div>
@@ -326,7 +330,8 @@ export function BookingMoney({ m, lines = [], totalCents, waived = false, rental
             {next === 'collect' && (m.may.collect || m.may.hold || m.may.record) && <button className="btn btn--primary btn--sm" type="button" aria-expanded={open === 'dcollect'} onClick={() => toggle('dcollect')} data-testid="bm-deposit-collect">Collect {fmt(depAmount)} deposit</button>}
             {next === 'expired' && <>
               <p className="small" data-testid="bm-hold-expired">The card hold expired{dep?.hold_expires_at ? ` ${when(dep.hold_expires_at)}` : ''}: nothing is held on the card any more, so nothing can be kept from it.</p>
-              {(m.may.charge || m.may.collect || m.may.record) && <button className="btn btn--primary btn--sm" type="button" onClick={() => chargeInstead(cap.amount, cap.code, cap.note)} data-testid="bm-charge-instead">Charge the card on file instead</button>}</>}
+              {(m.may.charge || m.may.collect || m.may.record) && <button className="btn btn--primary btn--sm" type="button" onClick={() => chargeInstead(cap.amount, cap.code, cap.note)} data-testid="bm-charge-instead">Charge the card on file instead</button>}
+              {afterReturn && expiredSettle && <Act ops action="deposit_expired_settle" payload={{ booking: m.booking_number }} label="Mark settled (released by expiry)" variant="primary" testId="bm-expired-settle" refresh={[]} done="Marked settled: released by expiry. No money moved." />}</>}
             {(next === 'held' || (afterReturn && word === 'Held')) && m.may.hold && <>
               <button className={`btn ${afterReturn ? 'btn--ghost' : 'btn--primary'} btn--sm`} type="button" aria-expanded={open === 'release'} onClick={() => toggle('release')} data-testid="bm-release">Release</button>
               {!afterReturn && <button className="btn btn--ghost btn--sm" type="button" aria-expanded={open === 'capture'} onClick={() => toggle('capture')} data-testid="bm-capture-open">Keep part (damage/fees)</button>}

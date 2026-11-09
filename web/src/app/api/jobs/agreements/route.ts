@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { workerToken } from '@/server/listing-worker';
 import { runAgreementJobs, runPeriodJobs } from '@/server/agreement-auto';
+import { runStaffAgreements } from '@/server/staff-agreement-auto';
 
 // The agreements' background work (migrations 0132 and 0154, server/agreement-auto runAgreementJobs): the agreements
 // confirmed bookings are missing, then new versions, check-in and check-out copies, signed copies and dispute packs.
@@ -17,7 +18,9 @@ export async function POST(req: Request) {
     const jobs = await runAgreementJobs({ max: 3 });
     // and the next period of each long rental, lead days ahead (0148)
     const periods = await runPeriodJobs(2);
-    return NextResponse.json({ ok: true, ...jobs, periods });
+    // and the staff agreements nobody has yet (1060), two a run
+    const staff = await runStaffAgreements(2).catch((e) => ({ error: e instanceof Error ? e.message.slice(0, 200) : 'failed' }));
+    return NextResponse.json({ ok: true, ...jobs, periods, staff });
   } catch (e) {
     console.error('agreement jobs', e);
     return NextResponse.json({ ok: false, error: e instanceof Error ? e.message.slice(0, 300) : 'failed' }, { status: 500 });

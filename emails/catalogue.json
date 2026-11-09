@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 211,
+  "count": 215,
   "emails": [
     {
       "code": "account_password_reset",
@@ -19242,6 +19242,40 @@
       "template_text": "templates/staff_owner_application_received.txt"
     },
     {
+      "code": "staff_agreement_reminder",
+      "audience": "staff_field",
+      "category": "transactional",
+      "trigger": "A staff member's staff agreement has waited 3 days for their signature (migration 1060). Sent once to that staff member. The agreement opens for signing once their academy is passed.",
+      "timing": "3 days after the agreement was sent, once",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Reminder: please sign your CarmaCars staff agreement",
+      "preheader": "It takes a few minutes, in your staff portal.",
+      "sample_subject": "Reminder: please sign your CarmaCars staff agreement",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Sam",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "sign_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/staff/sign"
+        }
+      ],
+      "template_html": "templates/staff_agreement_reminder.html",
+      "template_text": "templates/staff_agreement_reminder.txt"
+    },
+    {
       "code": "staff_field_job_assigned",
       "audience": "staff_field",
       "category": "transactional",
@@ -19587,6 +19621,56 @@
       "template_text": "templates/staff_field_jobs_tomorrow.txt"
     },
     {
+      "code": "staff_inactivity_warning",
+      "audience": "staff_field",
+      "category": "transactional",
+      "trigger": "A staff account (never an Admin) has had no sign-in or use of the staff portal for the warning days of Program settings (7 by default; migration 1060). Sent once per idle stretch.",
+      "timing": "On the warning day, once",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Your CarmaCars staff account locks on {{lock_on}}",
+      "preheader": "Sign in before then to keep it open.",
+      "sample_subject": "Your CarmaCars staff account locks on Thursday, November 12",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "days_idle",
+          "type": "string",
+          "sample": "7"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Sam",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "lock_days",
+          "type": "string",
+          "sample": "10"
+        },
+        {
+          "name": "lock_on",
+          "type": "string",
+          "sample": "Thursday, November 12"
+        },
+        {
+          "name": "sign_in_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/sign-in?next=/staff",
+          "note": "One-time link from the sign-in service."
+        }
+      ],
+      "template_html": "templates/staff_inactivity_warning.html",
+      "template_text": "templates/staff_inactivity_warning.txt"
+    },
+    {
       "code": "staff_pay_statement",
       "audience": "staff_field",
       "category": "transactional",
@@ -19672,6 +19756,55 @@
       ],
       "template_html": "templates/staff_pay_statement.html",
       "template_text": "templates/staff_pay_statement.txt"
+    },
+    {
+      "code": "staff_team_group",
+      "audience": "staff_field",
+      "category": "transactional",
+      "trigger": "A new staff member has passed the academy and signed their staff agreement, and a WhatsApp group link is set in Program settings (migration 1060). Sent once: Sales staff get the Sales group, customer service, fleet, finance and field staff the team group (both when they do both).",
+      "timing": "Immediate, once",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "You are in: join the {{group_name}} WhatsApp group",
+      "preheader": "The team talks there every day.",
+      "sample_subject": "You are in: join the CarmaCars Team WhatsApp group",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Sam",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "group_name",
+          "type": "string",
+          "sample": "CarmaCars Team"
+        },
+        {
+          "name": "group_url",
+          "type": "url",
+          "sample": "https://chat.whatsapp.com/ExampleInviteCode01"
+        },
+        {
+          "name": "second_group_name",
+          "type": "string",
+          "sample": ""
+        },
+        {
+          "name": "second_group_url",
+          "type": "url",
+          "sample": ""
+        }
+      ],
+      "template_html": "templates/staff_team_group.html",
+      "template_text": "templates/staff_team_group.txt"
     },
     {
       "code": "insurer_invoice",

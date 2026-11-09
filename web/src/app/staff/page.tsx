@@ -23,6 +23,8 @@ import { opensToYou, type ClaimInfo } from '@/features/offers/claim';
 import { StaffDataHealthCard } from '@/features/admin/data-health/DataHealthCard';
 import { SalesDashboard } from '@/features/sales-leads/SalesDashboard';
 import type { Dashboard } from '@/features/sales-leads/model';
+import { ClockCard } from '@/features/staff-clock/ClockCard';
+import { TeamGroupCard } from '@/features/staff-clock/TeamGroupCard';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'To do', path: '/staff', noindex: true, description: 'The assistant\'s work queue.' });
@@ -41,7 +43,7 @@ const REPLY: Record<string, { what: string; cta: string }> = {
 const QUICK: Record<Fn, Array<[string, string]>> = {
   cs: [['/staff/offers/new', 'Send an offer'], ['/staff/bookings/new', 'Add a rental'], ['/staff/renters', 'Find a renter']],
   sales: [['/staff/sales-leads', 'Leads'], ['/staff/quotes/new', 'New quote'], ['/staff/offers/new', 'Send an offer'], ['/staff/my-sales', 'My sales']],
-  finance: [['/staff/money?tab=day', 'Payments by day'], ['/staff/money', 'Money to handle'], ['/staff/owner-money?tab=invoices', 'Owner money']],
+  finance: [['/staff/money?tab=day', 'Payments by day'], ['/staff/money', 'Money to handle'], ['/staff/owner-money?tab=invoices', 'Owner money'], ['/staff/past-trips', 'Close ended trips']],
   fleet: [['/staff/fleet', 'Field jobs'], ['/staff/checks', 'Daily checks'], ['/staff/calendar', 'Calendar']]
 };
 
@@ -106,6 +108,9 @@ export default async function Queue({ searchParams }: { searchParams: Promise<Re
   return (
     <div className="va-home">
       <QueueLive open={all.length} />
+      {/* 1061: clock in and out (customer service, Fleet, Finance) */}
+      {(fn === 'cs' || fn === 'fleet' || fn === 'finance') && <ClockCard userId={user.id} aal={aal} />}
+      <TeamGroupCard userId={user.id} aal={aal} refresh="/staff" />
       <PortalHero testId="va-hero" titleId="va-title" kicker={<>{FN_LABEL[fn]} <span aria-hidden="true">/</span> {dateWords}, Toronto time</>} title="To do"
         lead={needs ? `${needs} ${needs === 1 ? 'thing needs' : 'things need'} you${late ? `, ${late === 1 ? 'one lane is' : `${late} lanes are`} running late` : ''}. Start at Next up and work down.` : 'Your queue is clear. New work appears here by itself.'}
         stats={dg ? <>

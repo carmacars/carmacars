@@ -154,14 +154,14 @@ select test.eq('R1 mileage overage: none inside the allowance', public.calc_mile
 select test.eq('R1 fuel: $19.20 + 25% + $25 = $49.00', (select total_cents from public.calc_fuel_charge(1920)), test.money('49.00'));
 select test.eq('R1 late return: 30 minutes late or less costs nothing',
   (select extra_days || '/' || late_fee_cents from public.calc_late_return(30, 10000)), '0/0');
-select test.eq('R1 late return: 31 minutes is one started hour ($25) and one extra day',
-  (select extra_days || '/' || late_fee_cents from public.calc_late_return(31, 10000)), '1/2500');
-select test.eq('O10 late return: 3 hours late, daily $100: fee $75 and one extra day at $100',
-  (select late_fee_cents || '/' || extra_days_cents from public.calc_late_return(180, 10000)), '7500/10000');
+select test.eq('R1 late return (1063, the owner''s rule): 31 minutes is one started hour ($25), no extra day',
+  (select extra_days || '/' || late_fee_cents from public.calc_late_return(31, 10000)), '0/2500');
+select test.eq('O10 late return: 3 hours late, daily $100: fee $75 and no extra day (under a day is hours only)',
+  (select late_fee_cents || '/' || extra_days_cents from public.calc_late_return(180, 10000)), '7500/0');
 select test.eq('R1 late return fee is capped at 1.5 x daily rate per 24 hours (10 hours: $150, not $250)',
   (select late_fee_cents from public.calc_late_return(600, 10000)), test.money('150.00'));
-select test.eq('R1 late return, 26 hours: $150 for the first 24 hours + 2 x $25, and 2 extra days',
-  (select late_fee_cents || '/' || extra_days from public.calc_late_return(1560, 10000)), '20000/2');
+select test.eq('R1 late return, 26 hours: 1 extra day and 2 started hours ($50), never the hourly fee on the day as well',
+  (select late_fee_cents || '/' || extra_days from public.calc_late_return(1560, 10000)), '5000/1');
 select test.eq('R3 deposit: 7 days or less is a card hold', public.calc_deposit_method(7), 'card_hold');
 select test.eq('R3 deposit: over 7 days is a card hold too (0541: deposits stay holds)', public.calc_deposit_method(8), 'card_hold');
 select test.eq('R7 interest: 1.5% a month on $200 overdue = $3.00', public.calc_monthly_interest(20000), test.money('3.00'));

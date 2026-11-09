@@ -130,7 +130,8 @@ select test.eq('KPI: on the site now, requests today, bookings confirmed this we
   format('%s %s %s %s', (select n from pg_temp.s99lm_active),
          (select count(*) from bookings where booked_at >= app.local_midnight(app.local_date(now())) and booking_type <> 'owner'),
          (select count(*) from bookings where confirmed_at >= app.local_midnight(date_trunc('week', app.local_date(now()))::date) and booking_type <> 'owner'),
-         (select count(*) from bookings where status = 'on_rent' and booking_type <> 'owner')));
+         (select count(*) from bookings where booking_type <> 'owner' and not coalesce(is_placeholder, false)
+            and (status = 'on_rent' or (status = 'confirmed' and pickup_at <= now() and return_at > now())))));
 select test.ok('KPI: money collected this month and yesterday''s requests to the same hour are numbers',
   jsonb_typeof(test.lm() #> '{kpi,collected_month_cents}') = 'number' and jsonb_typeof(test.lm() #> '{kpi,requests_yesterday}') = 'number');
 select test.eq('home base: the delivery origin of Program settings', coalesce(test.lm() ->> 'hq', 'none'), coalesce(app.delivery_origin()::text, 'none'));

@@ -1,0 +1,27 @@
+CarmaCars  |  Welcome
+
+========================================
+
+[Welcome to the team]
+Join {{group_name}}
+
+Hi {{first_name}}. Your academy is passed and your agreement is signed: your portal is open. The team keeps in touch in a WhatsApp group.
+
+Join {{group_name}} on WhatsApp:
+{{group_url}}
+
+{{#if second_group_url}}
+You also work with the {{second_group_name}} group: {{second_group_url}}
+{{/if}}
+
+Use the name you go by in your WhatsApp profile, so the team knows who you are.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

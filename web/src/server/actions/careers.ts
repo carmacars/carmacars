@@ -33,11 +33,11 @@ export async function submitApplication(i: ApplyInput): Promise<ApplyResult> {
   try {
     const r = (await rpc('server_hiring_apply', { p: { role: i.role, full_name: String(i.full_name ?? '').slice(0, 200), email: String(i.email ?? '').slice(0, 200), phone: String(i.phone ?? '').slice(0, 60),
       profile_name: String(i.profile_name ?? '').slice(0, 200), source: sourceOf(i.src), utm, answers, ref: i.ref && TOKEN.test(i.ref) ? i.ref : null } as unknown as Json, p_ip: meta.ip ?? undefined }, SR)) as unknown as
-      { ok: boolean; error?: string; errors?: Record<string, string>; outcome?: 'invited' | 'received' | 'declined' | 'referred'; token?: string | null; other_role?: string; other_title?: string; ai_interview?: boolean };
+      { ok: boolean; error?: string; errors?: Record<string, string>; outcome?: 'invited' | 'received' | 'declined' | 'referred'; token?: string | null; other_role?: string; other_title?: string; ai_interview?: boolean; sales_slug?: string | null; sales_title?: string | null };
     if (!r.ok) {
       if (r.error === 'invalid') return { ok: false, code: 'invalid', message: 'Check the highlighted answers.', errors: r.errors ?? {} };
       if (r.error === 'rate_limited') return { ok: false, code: 'rate_limited', message: 'Too many applications from this connection. Please try again later.' };
-      if (r.error === 'closed') return { ok: false, code: 'closed', message: 'This role is no longer open.' };
+      if (r.error === 'closed') return { ok: false, code: 'closed', message: r.sales_slug ? `This role is filled. Apply for ${r.sales_title ?? 'Sales'} instead: carmacars.ca/careers/${r.sales_slug}/apply` : 'This role is no longer open.' };
       return { ok: false, code: 'refused', message: 'We could not send that. Please try again.' };
     }
     return { ok: true, outcome: r.outcome ?? 'received', token: r.outcome === 'invited' || r.outcome === 'referred' ? r.token ?? null : null, other_role: r.other_role, other_title: r.other_title, ai_interview: r.ai_interview === true };

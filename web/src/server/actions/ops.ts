@@ -49,6 +49,11 @@ export async function opsAct<T = Record<string, unknown>>(action: string, p: Rec
     for (const x of refresh) revalidatePath(x);
     // 0770: an offer booked now (an Admin approved staff's Book it now): its agreement now, and the renter's Sign and pay link
     if (action === 'override_decide') await bookNowAgreement(data);
+    // 1063: an Admin pressed Release on Close ended trips: the money steps of the settlement run at Stripe now
+    if (action === 'trip_close_release') {
+      const s = data as unknown as { booking_id?: string; status?: string; server_actions?: Array<{ action: string; payment_id: string }> };
+      if (s.status === 'settled' && s.booking_id) { const { runSettlement } = await import('@/server/deposit-guard'); await runSettlement(s.booking_id, s.server_actions); }
+    }
     if (action === 'override_decide' || action === 'handover_override') { revalidatePath('/admin/bookings', 'layout'); revalidatePath('/staff/bookings', 'layout'); }
     // Publish now (0070), and with its rates from Admin > Today (0078), puts a car on the public pages
     if (action === 'listing_publish_now' || action === 'todo_publish') revalidatePath('/', 'layout');

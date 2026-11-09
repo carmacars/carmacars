@@ -33,7 +33,7 @@ export const ADMIN_HUBS: Hub[] = [
     { href: '/admin/logs?tab=changes', label: 'Changes' }, { href: '/admin/logs?tab=access', label: 'Data access' }] },
   // r35 (0950): every lead in one place (renters, owners, partners), with the Sales team's numbers
   { key: 'renters', label: 'Renters', tabs: [{ href: '/admin/renters?tab=renters', label: 'Renters' }, { href: '/admin/renters?tab=leads', label: 'Leads' },
-    { href: '/admin/sales-leads', label: 'All leads' }, { href: '/admin/sales-leads?tab=team', label: 'Sales team' }] },
+    { href: '/admin/sales-leads', label: 'All leads' }, { href: '/admin/sales-leads?tab=team', label: 'Sales team' }, { href: '/admin/unanswered', label: 'Unanswered' }] },
   { key: 'vehicles', label: 'Vehicles', tabs: [
     { href: '/admin/vehicles', label: 'All cars' }, { href: '/admin/vehicles/tracking', label: 'Fleet tracking' }, { href: '/admin/calendar-sync', label: 'Calendar sync' }],
     actions: [{ href: '/admin/vehicles/new', label: 'Add a car' }, { href: '/admin/vehicles/bulk-rates', label: 'Rates for many cars' }, { href: '/admin/vehicles/samples', label: 'Retire or delete' }, { href: '/admin/vehicles/import-photos', label: 'Import photos from Drive' }] },
@@ -46,7 +46,9 @@ export const ADMIN_HUBS: Hub[] = [
   { key: 'partners', label: 'Partners', tabs: [{ href: '/admin/partners', label: 'Rental partners' }, { href: '/admin/referral-partners', label: 'Referral partners' }] },
   { key: 'team', label: 'Team', tabs: [
     { href: '/admin/settings/staff', label: 'Staff and roles' }, { href: '/admin/academy', label: 'Academy' },
-    { href: '/admin/hiring', label: 'Hiring' }, { href: '/admin/portals', label: 'Portals and view as' }] },
+    { href: '/admin/hiring', label: 'Hiring' }, { href: '/admin/portals', label: 'Portals and view as' },
+    // r35 part K: the office staff's hours and the weekly townhall
+    { href: '/admin/timesheet', label: 'Timesheet' }, { href: '/admin/townhall', label: 'Townhall' }] },
   { key: 'ads', label: 'Ads', tabs: [
     { href: '/admin/marketing/listings', label: 'Ad listings' }, { href: '/admin/marketing/ads', label: 'Posted ads' }, { href: '/admin/marketing/social', label: 'Social drafts' }] },
   { key: 'channels', label: 'Channels', tabs: [{ href: '/admin/marketing/channels', label: 'Listing channels' }, { href: '/admin/marketing/report', label: 'Bookings by channel' }] },
@@ -63,17 +65,21 @@ export const STAFF_HUBS: Hub[] = [
     { href: '/staff/money?tab=deposits', label: 'Deposits', fns: 'finance' }, { href: '/staff/money?tab=reconciliation', label: 'Reconciliation', fns: 'finance' },
     { href: '/staff/money?tab=partners', label: 'Partner invoices', fns: 'finance' }, { href: '/staff/money?tab=kickbacks', label: 'Kickbacks and repairs', fns: 'finance' },
     { href: '/staff/field-spending', label: 'Field spending', fns: 'finance' }] },
-  { key: 'owner-money', label: 'Owner money', tabs: [{ href: '/staff/owner-money?tab=invoices', label: 'Invoices', fns: 'finance' }, { href: '/staff/owner-money?tab=statements', label: 'Statements', fns: 'finance' }] },
+  { key: 'owner-money', label: 'Owner money', tabs: [{ href: '/staff/owner-money?tab=invoices', label: 'Invoices', fns: 'finance' }, { href: '/staff/owner-money?tab=statements', label: 'Statements', fns: 'finance' },
+    // r35 part K (1061): the whole Partners section, as Admin has it
+    { href: '/staff/partners', label: 'Rental partners', fns: 'finance' }, { href: '/staff/referral-partners', label: 'Referral partners', fns: 'finance' }] },
   { key: 'leads', label: 'Leads', tabs: [{ href: '/staff/sales-leads', label: 'All leads', fns: 'cs sales' }, { href: '/staff/sales-leads?mine=1', label: 'Mine', fns: 'cs sales' }] },
-  { key: 'renters', label: 'Renters', tabs: [{ href: '/staff/messages', label: 'Messages', fns: 'cs' }, { href: '/staff/review-requests', label: 'Review requests', fns: 'cs' }, { href: '/staff/game-leads', label: 'Leads', fns: 'cs sales' }] },
+  { key: 'renters', label: 'Renters', tabs: [{ href: '/staff/messages', label: 'Messages', fns: 'cs' }, { href: '/staff/unanswered', label: 'Unanswered', fns: 'cs' }, { href: '/staff/review-requests', label: 'Review requests', fns: 'cs' }, { href: '/staff/game-leads', label: 'Leads', fns: 'cs sales' }] },
   { key: 'owners', label: 'Owners', tabs: [{ href: '/staff/owners', label: 'Owners', fns: 'cs fleet' }, { href: '/staff/owner-leads', label: 'Leads', fns: 'cs sales' }, { href: '/staff/leads', label: 'Owner and buyer leads', fns: 'cs sales' }, { href: '/staff/owner-pipeline', label: 'Owner pipeline', fns: 'cs' },
     { href: '/staff/owner-forms', label: 'Owner forms', fns: 'cs' }, { href: '/staff/government-forms', label: 'Government forms', fns: 'fleet' }], actions: [{ href: '/staff/owners/add-car', label: 'Add a car for an owner', fns: 'cs fleet' }] },
   { key: 'listings', label: 'Listings', tabs: [{ href: '/staff/listings', label: 'Listings', fns: 'cs fleet' }, { href: '/staff/similar-cars', label: 'Similar cars', fns: 'cs fleet' },
     { href: '/staff/calendar-sync', label: 'Calendar sync', fns: 'fleet' }, { href: '/staff/addons', label: 'Add-ons', fns: 'fleet' }],
     actions: [{ href: '/staff/owners/add-car', label: 'Add a car', fns: 'fleet' }, { href: '/staff/listings/import-photos', label: 'Import photos from Drive', fns: 'cs fleet' }] },
-  { key: 'field-jobs', label: 'Field jobs', tabs: [{ href: '/staff/fleet', label: 'Jobs', fns: 'fleet' }, { href: '/staff/field-hours', label: 'Field hours', fns: 'fleet' }, { href: '/staff/past-trips', label: 'Close past trips', fns: 'fleet' }, { href: '/staff/fleet/calls', label: 'Calls and texts', fns: 'fleet' }] },
+  { key: 'field-jobs', label: 'Field jobs', tabs: [{ href: '/staff/fleet', label: 'Jobs', fns: 'fleet' }, { href: '/staff/field-hours', label: 'Field hours', fns: 'fleet' }, { href: '/staff/past-trips', label: 'Close ended trips', fns: 'fleet' }, { href: '/staff/fleet/calls', label: 'Calls and texts', fns: 'fleet' }] },
   { key: 'checks', label: 'Checks', tabs: [{ href: '/staff/checks', label: 'Daily checks', fns: 'fleet' }, { href: '/staff/reviews', label: 'Photo reviews', fns: 'fleet' }] },
-  { key: 'numbers', label: 'My numbers', tabs: [{ href: '/staff/scorecard', label: 'Scorecard', fns: 'cs fleet finance sales' }, { href: '/staff/my-sales', label: 'My sales', fns: 'cs fleet finance sales' }] }
+  { key: 'numbers', label: 'My numbers', tabs: [{ href: '/staff/scorecard', label: 'Scorecard', fns: 'cs fleet finance sales' }, { href: '/staff/my-sales', label: 'My sales', fns: 'cs fleet finance sales' }] },
+  // 1061: the hours of the office staff
+  { key: 'hours', label: 'Hours', tabs: [{ href: '/staff/hours', label: 'My hours', fns: 'cs fleet finance' }, { href: '/staff/timesheet', label: 'Timesheet', fns: 'finance' }] }
 ];
 
 /** A person's page groups: only the tabs of the functions they hold, and only groups left with a tab. */
@@ -152,7 +158,7 @@ export const STAFF_SECTIONS: Section[] = [
   { key: 'finance', label: 'Finance', items: ['money', 'owner-money', { href: '/staff/tolls', label: 'Tolls and tickets', fns: 'finance' }, { href: '/staff/turo', label: 'Turo trips', fns: 'finance' }, { href: '/staff/maintenance', label: 'Maintenance bills', fns: 'finance' }] },
   { key: 'bookings', label: 'Bookings', items: [{ href: '/staff/bookings', label: 'Bookings', fns: OFFICE }, { href: '/staff/calendar', label: 'Calendar', fns: OFFICE }, { href: '/staff/cars', label: 'Find a car', fns: OFFICE },
     { href: '/staff/renters', label: 'Find a renter', fns: 'cs fleet finance' }, { href: '/staff/card-coverage', label: 'Card coverage', fns: OFFICE }] },
-  { key: 'me', label: 'Me', items: ['numbers', { href: '/staff/field/sales', label: 'My sales', fns: 'field' }, { href: '/staff/field/referrals', label: 'Referrals', fns: 'field' }, { href: '/staff/field/profile', label: 'Profile', fns: 'field' }, { href: '/staff/academy', label: 'Academy', fns: `${OFFICE} field` }] }
+  { key: 'me', label: 'Me', items: ['numbers', 'hours', { href: '/staff/townhall', label: 'Townhall', fns: `${OFFICE} field` }, { href: '/staff/field/sales', label: 'My sales', fns: 'field' }, { href: '/staff/field/referrals', label: 'Referrals', fns: 'field' }, { href: '/staff/field/profile', label: 'Profile', fns: 'field' }, { href: '/staff/academy', label: 'Academy', fns: `${OFFICE} field` }] }
 ];
 
 /** Actions that are buttons on a page, not menu items (r27 consolidation): each with its parent page. They stay one search away. */

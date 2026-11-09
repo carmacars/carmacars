@@ -20,7 +20,10 @@ export interface RawPin {
 }
 export interface FleetCar { vehicle_id: string; code: string | null; name: string; lat: number; lng: number; heading: number | null; speed: number | null; status: 'on_rent' | 'available' | 'in_service'; updated_at: string; photo: CarPhoto | null }
 export interface Kpi { active_now: number; requests_today: number; requests_yesterday?: number; bookings_week: number; on_rent_now: number; collected_month_cents: number | null }
-export interface RawMap { at: string; days: number; cap: number; live_minutes: number; hq?: { lat: number; lng: number } | null; kpi: Kpi; totals: Partial<Record<LeadType, number>>; pins: RawPin[]; fleet: FleetCar[] }
+/** 1064: staff working now and the week's Sales leaderboard */
+export interface Working { name: string; role: string; since: string }
+export interface Leader { name: string; bookings: number }
+export interface RawMap { working?: Working[]; leaderboard?: Leader[]; at: string; days: number; cap: number; live_minutes: number; hq?: { lat: number; lng: number } | null; kpi: Kpi; totals: Partial<Record<LeadType, number>>; pins: RawPin[]; fleet: FleetCar[] }
 
 export interface Signal { label: string; points: number; live?: boolean }
 export interface Pin {
@@ -34,7 +37,7 @@ export interface Pin {
   /** seconds on the site (the visit's), for the card's time line */
   seconds: number | null;
 }
-export interface MapView { at: string; days: number; cap: number; hq: { lat: number; lng: number } | null; kpi: Kpi; totals: Partial<Record<LeadType, number>>; pins: Pin[]; fleet: FleetCar[];
+export interface MapView { working: Working[]; leaderboard: Leader[]; at: string; days: number; cap: number; hq: { lat: number; lng: number } | null; kpi: Kpi; totals: Partial<Record<LeadType, number>>; pins: Pin[]; fleet: FleetCar[];
   /** Release 26: phones and emails are in this answer ("Show contact" on); without it they are never sent. */
   contact: boolean;
   /** 0400: the fleet layer is Fleet tracking's demo mode (simulated cars) */ fleet_demo?: boolean }
@@ -208,7 +211,7 @@ export function toView(raw: RawMap, contact: boolean): MapView {
     };
   });
   const hq = raw.hq && num(raw.hq.lat) !== null && num(raw.hq.lng) !== null ? { lat: num(raw.hq.lat)!, lng: num(raw.hq.lng)! } : null;
-  return { at: raw.at, days: raw.days, cap: raw.cap, hq, kpi: raw.kpi, totals: raw.totals ?? {}, pins, fleet: raw.fleet ?? [], contact };
+  return { working: raw.working ?? [], leaderboard: raw.leaderboard ?? [], at: raw.at, days: raw.days, cap: raw.cap, hq, kpi: raw.kpi, totals: raw.totals ?? {}, pins, fleet: raw.fleet ?? [], contact };
 }
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : typeof v === 'string' && v !== '' && Number.isFinite(Number(v)) ? Number(v) : null);
 
