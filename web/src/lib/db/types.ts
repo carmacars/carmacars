@@ -17346,6 +17346,27 @@ export type Database = {
           in_person_area_cities: string[];
           indexnow_sweep_batch: number;
           indexnow_queue_batch: number;
+          bs_billing_name: string;
+          bs_billing_email: string | null;
+          bs_billing_phone: string | null;
+          bs_pay_account_name: string | null;
+          bs_pay_institution: string | null;
+          bs_pay_institution_number: string | null;
+          bs_pay_transit_number: string | null;
+          bs_pay_account_number: string | null;
+          bs_pay_etransfer_email: string | null;
+          cc_pay_account_name: string | null;
+          cc_pay_institution: string | null;
+          cc_pay_institution_number: string | null;
+          cc_pay_transit_number: string | null;
+          cc_pay_account_number: string | null;
+          cc_pay_etransfer_email: string | null;
+          unreturned_ev_charger_cents: number;
+          unreturned_phone_mount_cents: number;
+          unreturned_child_seat_cents: number;
+          unreturned_booster_seat_cents: number;
+          unreturned_other_times: number;
+          unreturned_other_min_cents: number;
         };
         Insert: {
           id?: string;
@@ -18036,6 +18057,27 @@ export type Database = {
           in_person_area_cities?: string[];
           indexnow_sweep_batch?: number;
           indexnow_queue_batch?: number;
+          bs_billing_name?: string;
+          bs_billing_email?: string | null;
+          bs_billing_phone?: string | null;
+          bs_pay_account_name?: string | null;
+          bs_pay_institution?: string | null;
+          bs_pay_institution_number?: string | null;
+          bs_pay_transit_number?: string | null;
+          bs_pay_account_number?: string | null;
+          bs_pay_etransfer_email?: string | null;
+          cc_pay_account_name?: string | null;
+          cc_pay_institution?: string | null;
+          cc_pay_institution_number?: string | null;
+          cc_pay_transit_number?: string | null;
+          cc_pay_account_number?: string | null;
+          cc_pay_etransfer_email?: string | null;
+          unreturned_ev_charger_cents?: number;
+          unreturned_phone_mount_cents?: number;
+          unreturned_child_seat_cents?: number;
+          unreturned_booster_seat_cents?: number;
+          unreturned_other_times?: number;
+          unreturned_other_min_cents?: number;
         };
         Update: {
           id?: string;
@@ -18726,6 +18768,27 @@ export type Database = {
           in_person_area_cities?: string[];
           indexnow_sweep_batch?: number;
           indexnow_queue_batch?: number;
+          bs_billing_name?: string;
+          bs_billing_email?: string | null;
+          bs_billing_phone?: string | null;
+          bs_pay_account_name?: string | null;
+          bs_pay_institution?: string | null;
+          bs_pay_institution_number?: string | null;
+          bs_pay_transit_number?: string | null;
+          bs_pay_account_number?: string | null;
+          bs_pay_etransfer_email?: string | null;
+          cc_pay_account_name?: string | null;
+          cc_pay_institution?: string | null;
+          cc_pay_institution_number?: string | null;
+          cc_pay_transit_number?: string | null;
+          cc_pay_account_number?: string | null;
+          cc_pay_etransfer_email?: string | null;
+          unreturned_ev_charger_cents?: number;
+          unreturned_phone_mount_cents?: number;
+          unreturned_child_seat_cents?: number;
+          unreturned_booster_seat_cents?: number;
+          unreturned_other_times?: number;
+          unreturned_other_min_cents?: number;
         };
         Relationships: [];
       };
@@ -22358,6 +22421,7 @@ export type Database = {
           updated_at: string;
           work_mode: string | null;
           owner_recruit_request_id: string | null;
+          addon_base_cents: number;
         };
         Insert: {
           id?: string;
@@ -22387,6 +22451,7 @@ export type Database = {
           updated_at?: string;
           work_mode?: string | null;
           owner_recruit_request_id?: string | null;
+          addon_base_cents?: number;
         };
         Update: {
           id?: string;
@@ -22416,6 +22481,7 @@ export type Database = {
           updated_at?: string;
           work_mode?: string | null;
           owner_recruit_request_id?: string | null;
+          addon_base_cents?: number;
         };
         Relationships: [];
       };

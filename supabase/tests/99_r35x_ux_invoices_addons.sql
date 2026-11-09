@@ -61,7 +61,7 @@ select test.eq('which line of the schedule an add-on is', app.unreturned_kind('e
   || '/' || app.unreturned_kind('phone_charger', 'Phone charger') || '/' || app.unreturned_kind('umbrella', 'Umbrella'), 'ev_charger/phone_mount/child_seat/child_seat/booster_seat/other/other');
 select test.eq('the other rule: 3 times the rental charge, at least $100', app.unreturned_unit_cents('other', 500) || '/' || app.unreturned_unit_cents('other', 5000) || '/' || app.unreturned_unit_cents('child_seat', 1500),
   '10000/15000/45000');
-select test.mk_booking('UI-2', 'UIB', 'ui_r', test.ui_day(-4), test.ui_day(-1), 'on_rent');
+select test.mk_booking('UI-2', 'UIB', 'ui_r', test.ui_day(-4), test.ui_day(-1), 'returned');
 insert into booking_addons (booking_id, addon_id, name, fee_type_code, quantity, pricing_unit, unit_price_cents, hst_applies, status, added_via)
 select test.uib('UI-2'), a.id, a.name, a.fee_type_code, case when a.code = 'booster_seat' then 2 else 1 end, a.pricing_unit, coalesce(a.price_cents, 0), a.hst_applies, 'confirmed', 'staff'
   from addons a where a.code in ('booster_seat', 'umbrella', 'full_tank');
@@ -72,7 +72,8 @@ select test.ok('the agreement''s fine print carries the schedule on a booking wi
 select test.eq('the FAQ tokens come from the public facts', (public.site_facts() -> 'unreturned' ->> 'child_seat_cents'), '45000');
 update program_settings set deposit_review_required = true where id = (app.settings()).id;
 update bookings set deposit_cents = 50000 where id = test.uib('UI-2');
-update bookings set status = 'returned', checked_in_at = now() where id = test.uib('UI-2');
+delete from deposit_reviews where booking_id = test.uib('UI-2');
+select test.ok('the review is made for the returned booking', app.drr_ensure(test.uib('UI-2')));
 select test.eq('the deposit review: Add-ons returned is an item of a booking with add-ons (8 items)', (app.drr_state(test.uib('UI-2')) ->> 'items')
   || '/' || (select count(*) from deposit_review_items where booking_id = test.uib('UI-2') and item = 'addons'), '8/1');
 select test.eq('its facts: the suggested charge, suggested only (no line is charged)', (app.drr_facts(test.uib('UI-2')) -> 'addons' ->> 'suggested_cents') || '/'

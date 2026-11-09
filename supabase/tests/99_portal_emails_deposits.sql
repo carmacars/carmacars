@@ -82,7 +82,9 @@ select test.eq('the conversation: both ways, newest first, with who wrote; the e
 insert into test.pq select 'c2', app.door(test.id('pq_fleet'), 'aal2', 'ops_read', 'booking_conversation', jsonb_build_object('booking', 'PQ-1', '_va', 'fleet'));
 select test.eq('Fleet sees the renter''s first name, never the address', (test.pqv('c2') #>> '{renter,name}') || '/' || coalesce(test.pqv('c2') #>> '{renter,email}', 'none')
   || '/' || (select count(*) from jsonb_array_elements(test.pqv('c2') -> 'emails') x where x ->> 'to' is not null and x ->> 'audience' = 'renter'), 'Pq/none/0');
-select test.throws('Sales cannot read the conversation of a confirmed booking', $$select app.door(test.id('pq_sales'), 'aal2', 'ops_read', 'booking_conversation', jsonb_build_object('booking', 'PQ-1', '_va', 'sales'))$$, 'requests and offers only');
+-- r35 UX (1106): Sales get a renter ready until the handover, so they read the conversation of a confirmed booking not yet handed over
+select test.eq('Sales read the conversation of a confirmed booking before the handover (1106)',
+  app.door(test.id('pq_sales'), 'aal2', 'ops_read', 'booking_conversation', jsonb_build_object('booking', 'PQ-1', '_va', 'sales')) ->> 'booking', 'PQ-1');
 
 -- ================================================================ 2. the insurance emails: Blind Spot Car Rental
 select test.eq('every email to an insurer, and the insurance message, go as Blind Spot Car Rental and reply to it',

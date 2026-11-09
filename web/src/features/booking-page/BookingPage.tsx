@@ -60,6 +60,8 @@ import { activityQuery, readParams, type ActivityPage } from '@/features/activit
 import { readinessLines, readinessSummary, showReadiness } from './readiness';
 import { PrepareProgress } from '@/features/field-portal/PrepareProgress';
 import type { PrepareProgressData } from '@/features/field-portal/prepare';
+import { NameChangeCard } from '@/features/admin/NameChangeCard';
+import type { NameChange } from '@/server/self-profile';
 
 // r31 "Simple": one booking page for Admin and staff (03-admin.md section 4, 05-va.md sections 2 to 5). The loader picks
 // the access path from the viewer (PageCtx) and reads only what the viewer's function uses; every section and button
@@ -196,6 +198,9 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
   // r35 UX (1107): the field staff's progress on preparing the rental (the add-ons in the car), read only, for every office viewer
   const prepare = ['pending_payment', 'confirmed', 'tentative', 'on_rent'].includes(b.status) && notOwner && (on('overview') || section === 'car')
     ? await ops<PrepareProgressData | null>('prepare_progress', { booking: b.id }).catch(none(null)) : null;
+  // r35 UX (1110): a verified renter's name or date of birth correction, for Sales, customer service or an Admin to check
+  const corrections = can.readiness && b.renter?.id && (on('overview') || section === 'documents')
+    ? await ops<NameChange[]>('name_change_pending', { renter_id: b.renter.id }).catch(none([] as NameChange[])) : [] as NameChange[];
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   const insurerBilled = b.bill_to !== 'renter' && !!b.insurer_id;
   const extrasCount = b.change_requests.filter((c) => ['requested', 'proposed'].includes(String(c.status))).length + b.extensions.filter((x) => x.status === 'requested').length;
@@ -234,7 +239,8 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
         {can.extras && ['confirmed', 'on_rent'].includes(b.status) && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=changes`} data-testid="edit-booking">Change the booking</Link>}
         {can.offer && ['offered', 'pending_payment'].includes(b.status) && <Act action="withdraw_offer" payload={{ ...P, expected_version: b.current_offer_version }} label="Withdraw the offer" confirm="The renter's offer is withdrawn and they are told. To change it instead, press Edit the offer." fields={[{ name: 'note', label: 'Note to the renter', type: 'text' }]} refresh={refresh} />}
         {can.resendOffer && b.status === 'offered' && <Act action="resend_offer" payload={{ ...P, expected_version: b.current_offer_version }} label="Send again, later expiry" testId="resend-offer" fields={[{ name: 'expires_at', label: 'Open until', type: 'datetime', required: true }, { name: 'message', label: 'Message', type: 'textarea' },
-          ...(can.admin ? [] : [{ name: 'sourced', label: 'Who found this client?', type: 'select' as const, required: true, options: [['true', 'I sourced this client'], ['false', 'Entered for CarmaCars']] as Array<[string, string]> }])]} refresh={refresh} />}
+          // staff choose once who found the client (0058), when the booking has no choice yet
+          ...(can.admin || (b as R).sales_choice ? [] : [{ name: 'sales_choice', label: 'Who found this client?', type: 'select' as const, required: true, options: [['sourced', 'I sourced this client'], ['for_carmacars', 'Entered for CarmaCars']] as Array<[string, string]> }])]} refresh={refresh} />}
         {can.offer && b.status === 'offered' && <Act action="approve_offer_by_phone" payload={{ ...P, expected_version: b.current_offer_version }} label="Renter approved by phone" confirm="Record that the renter approved this offer on the phone. The history shows it was staff." refresh={refresh} />}
         {can.offer && b.status === 'expired' && <ReopenOffer booking={b.id} pickupAt={b.pickup_at} returnAt={b.return_at} refresh={refresh} />}
         {can.admin && ['confirmed', 'requested', 'offered', 'pending_payment', 'tentative'].includes(b.status) && !b.handed_over_at && (b.placeholder?.on
@@ -312,6 +318,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
         </Card>)}
       {/* what the owner sees of this booking (0156) */}
       {prepare && (prepare.total > 0 || prepare.job) && <PrepareProgress d={prepare} />}
+      <NameChangeCard items={corrections} refresh={[base]} />
       {section === 'car' && <OwnerVisibilityPanel userId={user.id} aal={aal} va={fn} booking={b.booking_number} refresh={refresh} />}
       {section === 'car' && <BookingCarSection base={base} number={b.booking_number} vehicleId={b.vehicle_id} vehicleName={b.vehicle?.name ?? null} vehicleHref={carHref} status={b.status} canSign={can.sign} />}
       {on('review') && (

@@ -241,8 +241,9 @@ insert into test.of select 'm3', app.door(test.id('of_admin'), 'aal2', 'ops_do',
   'renter_id', test.id('renter:of_rita'), 'payment', jsonb_build_object('mode', 'other_way', 'method', 'cash')));
 select test.eq('Sales open a confirmed booking whose check-out is due (to check the car out)',
   app.door(test.id('of_sales'), 'aal2', 'va_read', 'booking', jsonb_build_object('number', (test.ofb('m3')).booking_number)) ->> 'status', 'confirmed');
-select test.throws('Sales do not open a confirmed booking whose check-out is days away',
-  $$select app.door(test.id('of_sales'), 'aal2', 'va_read', 'booking', jsonb_build_object('number', (test.ofb('m1')).booking_number))$$, 'requests and offers only');
+-- r35 UX (1106): Sales get a renter ready until the handover, so a confirmed booking days away opens to them too
+select test.eq('Sales open a confirmed booking whose check-out is days away (1106: getting the renter ready)',
+  app.door(test.id('of_sales'), 'aal2', 'va_read', 'booking', jsonb_build_object('number', (test.ofb('m1')).booking_number)) ->> 'status', (test.ofb('m1')).status::text);
 update program_settings set weekend_premium_bps = 1500 where id = (app.settings()).id;
 -- and these cars follow the rule again (the save raises a weekend at or below daily)
 update rate_cards set weekend_rate_cents = weekend_rate_cents where effective_to is null and weekend_rate_cents <= daily_rate_cents;

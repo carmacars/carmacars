@@ -30,17 +30,18 @@ begin
   end loop;
 end $$;
 
--- the calls a Sales person makes as customer service, and the stages each is open on
+-- the calls a Sales person makes as customer service, and the stages each is open on. A request and an offer stay under
+-- Sales' own rules (0177's claims: customer service has a request first), so they are not listed: only the stages after it.
 create or replace function app.sales_ready_stages(p_call text, p_name text) returns text[]
 language sql immutable as $$
   select case
-    when p_call = 'va_read' and p_name = 'booking' then array['requested', 'offered', 'pending_payment', 'tentative', 'confirmed']
-    when p_call = 'ops_read' and p_name in ('booking_conversation', 'renter_activity') then array['requested', 'offered', 'pending_payment', 'tentative', 'confirmed']
+    when p_call = 'va_read' and p_name = 'booking' then array['pending_payment', 'tentative', 'confirmed']
+    when p_call = 'ops_read' and p_name in ('booking_conversation', 'renter_activity') then array['pending_payment', 'tentative', 'confirmed']
     when p_call = 'va_do' and p_name in ('booking_save', 'send_offer', 'resend_offer', 'withdraw_offer', 'approve_offer_by_phone', 'ask_info')
-      then array['requested', 'offered', 'pending_payment', 'tentative']
-    when p_call = 'ops_do' and p_name = 'offer_revise' then array['requested', 'offered', 'pending_payment', 'tentative']
+      then array['pending_payment', 'tentative']
+    when p_call = 'ops_do' and p_name = 'offer_revise' then array['pending_payment', 'tentative']
     when (p_call = 'va_do' and p_name = 'verify_upload') or (p_call = 'ops_do' and p_name = 'doc_review_upload')
-      then array['requested', 'offered', 'pending_payment', 'tentative', 'confirmed']
+      then array['pending_payment', 'tentative', 'confirmed']
   end
 $$;
 comment on function app.sales_ready_stages(text, text) is 'Sales get-ready work (1106): the staff calls a Sales person makes as customer service, and the booking stages each is open on. Nothing that moves money out is listed.';

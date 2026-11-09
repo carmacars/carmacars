@@ -1,5 +1,5 @@
 -- 1109_r35x_addon_commission.sql
--- Release 35, UX batch (docs/changes/2026-11-09-r35-ux-batch.md). SCHEMA_MARKER 1109.
+-- Release 35, UX batch (docs/changes/2026-11-09-r35-ux-batch.md). SCHEMA_MARKER 1110 (1110 follows).
 -- The owner, November 9: "sales people should get the same commission rates on the add-ons too".
 -- Since 0066 the commission base was the rental charge alone. It is now the rental charge plus the add-ons, at the
 -- salesperson's same rate (the same tiers and rules, 0058, 0174): app.commission_addon_cents counts, for each add-on of

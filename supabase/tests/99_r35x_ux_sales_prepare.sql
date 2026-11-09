@@ -39,11 +39,11 @@ select app.register_verification_upload(test.uxb('UX-1'), test.id('ux_cs'), 'lic
 create function test.uxup(p_kind text) returns uuid language sql stable as $$ select id from verification_uploads where booking_id = test.uxb('UX-1') and kind = p_kind $$;
 
 -- ================================================================ 1. the rule
-select test.eq('the get-ready calls and their stages: offers before payment, ID and reads until the handover, nothing that refunds',
+select test.eq('the get-ready calls and their stages: offers while waiting for payment, ID and reads until the handover, nothing that refunds (a request keeps Sales'' own claim rules)',
   coalesce(array_to_string(app.sales_ready_stages('va_do', 'resend_offer'), ','), '-') || '|' || coalesce(array_to_string(app.sales_ready_stages('ops_do', 'doc_review_upload'), ','), '-')
   || '|' || coalesce(array_to_string(app.sales_ready_stages('va_do', 'cancel_booking'), ','), '-') || '|' || coalesce(array_to_string(app.sales_ready_stages('va_do', 'request_refund'), ','), '-')
   || '|' || coalesce(array_to_string(app.sales_ready_stages('ops_do', 'hold_action_begin'), ','), '-'),
-  'requested,offered,pending_payment,tentative|requested,offered,pending_payment,tentative,confirmed|-|-|-');
+  'pending_payment,tentative|pending_payment,tentative,confirmed|-|-|-');
 
 -- ================================================================ 2. Sales opens a booking past the offer
 select test.eq('Sales reads a confirmed booking (before 1106: requests and offers only), its conversation and its activity',
@@ -95,3 +95,16 @@ select test.eq('a tick by field staff shows with who ticked it', (select (x ->> 
   from app.door(test.id('ux_sales'), 'aal2', 'ops_read', 'prepare_progress', '{"booking": "UX-1"}') x), '1/' || (select full_name from users where id = test.id('ux_field')));
 select test.eq('from the car: its next rental', (select x ->> 'booking_number' from app.door(test.id('ux_fleet'), 'aal2', 'ops_read', 'prepare_progress', jsonb_build_object('vehicle', test.id('vehicle:UXA'))) x), 'UX-1');
 select test.throws('field staff and renters do not read it here', format($$select app.prepare_progress(%L, '{"booking": "UX-1"}')$$, test.id('ux_field')), 'Only an Admin or staff');
+
+-- ================================================================ 7. Sales' own offer tools on an offer (the owner: "edit offers or withdraw them or extend them")
+select test.mk_vehicle('UXD', 'ux_o');
+select test.mk_booking('UX-4', 'UXD', 'ux_r', test.ux_day(9), test.ux_day(11), 'requested');
+select test.eq('Sales send the offer', test.ux_try('ux_sales', 'va_do', 'send_offer', jsonb_build_object('booking', 'UX-4', 'sales_choice', 'for_carmacars', '_va', 'sales')), 'ok');
+select test.eq('it is out', (select status::text || '/' || current_offer_version from bookings where id = test.uxb('UX-4')), 'offered/1');
+select test.eq('Sales edit the offer in place', test.ux_try('ux_sales', 'ops_do', 'offer_revise', jsonb_build_object('booking', test.uxb('UX-4'), 'changes', '{}'::jsonb, '_va', 'sales')), 'ok');
+select test.eq('Sales extend the offer (sent again with a later expiry)', test.ux_try('ux_sales', 'va_do', 'resend_offer', jsonb_build_object('booking', test.uxb('UX-4'),
+  'expected_version', (select current_offer_version from bookings where id = test.uxb('UX-4')), 'expires_at', (now() + interval '40 hours')::text, '_va', 'sales')), 'ok');
+select test.ok('the new expiry holds', (select offer_expires_at > now() + interval '39 hours' from bookings where id = test.uxb('UX-4')));
+select test.eq('Sales withdraw the offer', test.ux_try('ux_sales', 'va_do', 'withdraw_offer', jsonb_build_object('booking', test.uxb('UX-4'),
+  'expected_version', (select current_offer_version from bookings where id = test.uxb('UX-4')), '_va', 'sales')), 'ok');
+select test.eq('withdrawn: back to a request', (select status::text from bookings where id = test.uxb('UX-4')), 'requested');

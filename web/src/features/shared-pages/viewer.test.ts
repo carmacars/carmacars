@@ -44,6 +44,15 @@ describe('the shared booking page', () => {
       if (fn === 'fleet') { assert.equal(c.refund, false, 'fleet: never refunds'); assert.equal(c.extras || c.offer || c.cancelForRenter, false, 'fleet: no customer service tools'); }
     }
   });
+  it('r35 UX: Sales edit, withdraw and extend an offer on the booking page (the buttons are drawn for Sales)', () => {
+    const c = bookingCan(staffViewer('sales'));
+    assert.equal(c.offer && c.editOfferPending && c.resendOffer, true);
+    const page = readFileSync(`${SRC}features/booking-page/BookingPage.tsx`, 'utf8');
+    assert.match(page, /can\.offer && \(can\.editOfferPending \|\| b\.status === 'offered'\)[^\n]*data-testid="edit-offer"/, 'Edit the offer: shown on can.offer');
+    assert.match(page, /can\.offer && \['offered', 'pending_payment'\]\.includes\(b\.status\) && <Act action="withdraw_offer"/, 'Withdraw: shown on can.offer');
+    assert.match(page, /can\.resendOffer && b\.status === 'offered' && <Act action="resend_offer"/, 'Send again, later expiry: shown on can.resendOffer');
+    assert.doesNotMatch(page, /can\.admin && b\.status === 'offered' && <Act action="resend_offer"/);
+  });
   it('gives field staff on the spot payment, the deposit, the licence in person and the signature only (r35 part X)', () => {
     assert.deepEqual(yes(bookingCan(FIELD)), ['handover', 'money', 'paperSignatures', 'sign', 'verifyInPerson']);
     assert.equal(bookingCan(FIELD).refund, false);
