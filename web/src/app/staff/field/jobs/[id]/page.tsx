@@ -76,8 +76,8 @@ export default async function FieldJobPage({ params }: { params: Promise<{ id: s
       </header>
       {b?.addons && b.addons.length > 0 && !(card?.leg === 'pickup' && (card.addons?.length ?? 0) > 0 && !b.prepaid_fuel) && (
         <section className="fd-card fd-bring" aria-labelledby="addons-t" data-testid="job-addons">
-          <h2 className="fd-bring__h" id="addons-t"><FdIcon name="bag" />{j.report_kind === 'return' ? 'Add-ons on this rental' : 'Put in the car'}</h2>
-          <ul className="small">{b.addons.map((a) => <li key={a.name}><b>{a.quantity > 1 ? `${a.quantity} x ` : ''}{a.name}</b>{a.hours ? `, ${+a.hours} hours` : ''}{a.handover_note ? `: ${a.handover_note}` : ''}</li>)}</ul>
+          <h2 className="fd-bring__h" id="addons-t"><FdIcon name="bag" />{j.report_kind === 'return' ? 'Add-ons on this rental: check each came back' : 'Prepare: put in the car'}</h2>
+          <ul className="small">{b.addons.map((a) => <li key={a.name}><b>{a.quantity} x {a.name}</b>{a.hours ? `, ${+a.hours} hours` : ''}{a.handover_note ? `: ${a.handover_note}` : ''}</li>)}</ul>
           {b.prepaid_fuel && <p className="pt-note small" data-testid="job-prepaid-fuel"><b>Prepaid fuel.</b> The renter may return the car at any fuel level. Do not charge for fuel.</p>}
         </section>
       )}

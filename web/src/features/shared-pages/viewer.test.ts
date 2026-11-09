@@ -23,11 +23,13 @@ describe('the shared booking page', () => {
   });
   it('gives each staff function exactly what its own copy showed', () => {
     const want: Record<StaffFn, string[]> = {
-      sales: ['changeCar', 'handover', 'inbox', 'licenceReview', 'money', 'offer', 'sign', 'staffUpload'],
-      cs: ['cancelForRenter', 'carLink', 'changeCar', 'driverLinks', 'editOfferPending', 'extras', 'handover', 'inbox', 'latePanel', 'money', 'offer', 'paperSignatures', 'returningNow', 'sign', 'staffUpload'],
+      // r35 UX (1106): Sales gets a renter ready (pay links, the offer while it is paid, ID and coverage, drivers, the checklist);
+      // never refunds, cancellations, settlements or removing a paid add-on
+      sales: ['changeCar', 'driverLinks', 'editOfferPending', 'handover', 'inbox', 'money', 'offer', 'readiness', 'renterDocs', 'resendOffer', 'sign', 'staffUpload'],
+      cs: ['addonRemove', 'cancelForRenter', 'carLink', 'changeCar', 'driverLinks', 'editOfferPending', 'extras', 'handover', 'inbox', 'latePanel', 'money', 'offer', 'paperSignatures', 'readiness', 'resendOffer', 'returningNow', 'sign', 'staffUpload'],
       // r35 (0970): Fleet collects payments and texts on its own lane; never refunds, offers, cancellations or extras
-      fleet: ['carLink', 'changeCar', 'collectOnly', 'handover', 'inbox', 'latePanel', 'manualPayments', 'money', 'photoReview', 'returningNow', 'scheduleJob', 'sign', 'staffUpload'],
-      finance: ['agreementMoney', 'manualPayments', 'money', 'refund', 'refundApprove', 'settleDeposit', 'staffUpload', 'statement']
+      fleet: ['addonRemove', 'carLink', 'changeCar', 'collectOnly', 'handover', 'inbox', 'latePanel', 'manualPayments', 'money', 'photoReview', 'returningNow', 'scheduleJob', 'sign', 'staffUpload'],
+      finance: ['addonRemove', 'agreementMoney', 'manualPayments', 'money', 'refund', 'refundApprove', 'settleDeposit', 'staffUpload', 'statement']
     };
     for (const fn of FNS) assert.deepEqual(yes(bookingCan(staffViewer(fn))), want[fn].sort(), fn);
   });
@@ -36,7 +38,8 @@ describe('the shared booking page', () => {
       const c = bookingCan(staffViewer(fn));
       assert.equal(c.admin, false, fn);
       assert.equal(c.voidRecords, false, `${fn}: only an Admin voids a payment or a paper signature`);
-      assert.equal(c.renterDocs, false, `${fn}: the coverage review stays with an Admin and customer service's own queue`);
+      if (fn !== 'sales') assert.equal(c.renterDocs, false, `${fn}: the coverage review stays with an Admin, customer service's own queue and Sales (1106)`);
+      if (fn === 'sales') assert.equal(c.refund || c.settleDeposit || c.cancelForRenter || c.addonRemove || c.manualPayments || c.statement, false, 'sales: nothing that moves money out');
       assert.equal(c.verifyInPerson, false, fn);
       if (fn === 'fleet') { assert.equal(c.refund, false, 'fleet: never refunds'); assert.equal(c.extras || c.offer || c.cancelForRenter, false, 'fleet: no customer service tools'); }
     }
