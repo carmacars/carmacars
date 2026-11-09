@@ -2,7 +2,7 @@
 .sl-cards { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-3); grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 48rem) { .sl-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (min-width: 90rem) { .sl-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-.sl-card { padding: var(--s-4); gap: var(--s-2); min-width: 0; }
+.sl-card { padding: var(--s-4); gap: var(--s-2); min-width: 0; grid-template-columns: minmax(0, 1fr); }  /* one track no wider than the card (375px overflowed by 13px) */
 .sl-card--hot { border-left: 4px solid var(--red-600); }
 .sl-card__head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--s-2); flex-wrap: wrap; }
 .sl-card__name { font-weight: 600; overflow-wrap: anywhere; }
