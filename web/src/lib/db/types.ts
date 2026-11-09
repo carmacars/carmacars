@@ -11231,6 +11231,9 @@ export type Database = {
           no_text: boolean;
           text_to_recipient: boolean;
           push_topic: string | null;
+          always_send: boolean;
+          hold_to_merge: boolean;
+          merge_label: string | null;
         };
         Insert: {
           code: string;
@@ -11263,6 +11266,9 @@ export type Database = {
           no_text?: boolean;
           text_to_recipient?: boolean;
           push_topic?: string | null;
+          always_send?: boolean;
+          hold_to_merge?: boolean;
+          merge_label?: string | null;
         };
         Update: {
           code?: string;
@@ -11295,6 +11301,9 @@ export type Database = {
           no_text?: boolean;
           text_to_recipient?: boolean;
           push_topic?: string | null;
+          always_send?: boolean;
+          hold_to_merge?: boolean;
+          merge_label?: string | null;
         };
         Relationships: [];
       };
@@ -11365,6 +11374,8 @@ export type Database = {
           sms_planned: boolean;
           limit_text_id: string | null;
           limit_texted_at: string | null;
+          merged_into: string | null;
+          hold_until: string | null;
         };
         Insert: {
           id?: string;
@@ -11402,6 +11413,8 @@ export type Database = {
           sms_planned?: boolean;
           limit_text_id?: string | null;
           limit_texted_at?: string | null;
+          merged_into?: string | null;
+          hold_until?: string | null;
         };
         Update: {
           id?: string;
@@ -11439,6 +11452,8 @@ export type Database = {
           sms_planned?: boolean;
           limit_text_id?: string | null;
           limit_texted_at?: string | null;
+          merged_into?: string | null;
+          hold_until?: string | null;
         };
         Relationships: [];
       };
@@ -15280,6 +15295,8 @@ export type Database = {
           updated_at: string;
           user_id: string | null;
           urgent: boolean;
+          merged_into: string | null;
+          hold_until: string | null;
         };
         Insert: {
           id?: string;
@@ -15305,6 +15322,8 @@ export type Database = {
           updated_at?: string;
           user_id?: string | null;
           urgent?: boolean;
+          merged_into?: string | null;
+          hold_until?: string | null;
         };
         Update: {
           id?: string;
@@ -15330,6 +15349,8 @@ export type Database = {
           updated_at?: string;
           user_id?: string | null;
           urgent?: boolean;
+          merged_into?: string | null;
+          hold_until?: string | null;
         };
         Relationships: [];
       };
@@ -16384,6 +16405,11 @@ export type Database = {
           debit_deposit_fee_cents: number;
           google_drive_api_key: string | null;
           owner_hide_insurance_only: boolean;
+          notify_repeat_window_minutes: number;
+          notify_merge_window_minutes: number;
+          notify_reminder_confirm_gap_hours: number;
+          owner_void_hold_minutes: number;
+          owner_void_next_day_hour: number;
         };
         Insert: {
           id?: string;
@@ -17027,6 +17053,11 @@ export type Database = {
           debit_deposit_fee_cents?: number;
           google_drive_api_key?: string | null;
           owner_hide_insurance_only?: boolean;
+          notify_repeat_window_minutes?: number;
+          notify_merge_window_minutes?: number;
+          notify_reminder_confirm_gap_hours?: number;
+          owner_void_hold_minutes?: number;
+          owner_void_next_day_hour?: number;
         };
         Update: {
           id?: string;
@@ -17670,6 +17701,11 @@ export type Database = {
           debit_deposit_fee_cents?: number;
           google_drive_api_key?: string | null;
           owner_hide_insurance_only?: boolean;
+          notify_repeat_window_minutes?: number;
+          notify_merge_window_minutes?: number;
+          notify_reminder_confirm_gap_hours?: number;
+          owner_void_hold_minutes?: number;
+          owner_void_next_day_hour?: number;
         };
         Relationships: [];
       };

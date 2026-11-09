@@ -27,9 +27,9 @@ Security deposit: {{deposit_amount}}, a hold on this card on the day of pickup
 
 {{#if needs_verification}}
 IMPORTANT: One step left before pickup
-We need each driver's licence photos and a selfie, plus proof of coverage, by {{verify_by}}. No car is released without them.
+{{needed_line}} by {{verify_by}}. No car is released without them.
 
-Upload licence and coverage:
+Upload what is missing:
 https://carmacars.ca/account/bookings/{{booking_number}}/verify
 {{else}}
 View my booking:

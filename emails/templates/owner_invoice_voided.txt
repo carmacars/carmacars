@@ -1,12 +1,20 @@
-CarmaCars  |  Invoice {{invoice_number}}
+CarmaCars  |  {{voided_ref}}
 
 ========================================
 
 [Invoice cancelled]
-You do not need to pay invoice {{invoice_number}}
+{{voided_heading}}
 
-Hi {{first_name}}, we cancelled this invoice for your {{vehicle_name}}.
+Hi {{first_name}}, {{voided_lead}}
 
+{{#if has_several}}
+{{#each invoices}}
+Invoice {{invoice_number}} ({{invoice_total}}, {{vehicle_name}}): {{void_reason}}{{#if replacement_number}} Replaced by invoice {{replacement_number}}.{{/if}}
+
+{{/each}}
+
+Nothing will be debited for them. A replacement invoice has its own email once it is ready.
+{{else}}
 Invoice no.: {{invoice_number}}
 Amount: {{invoice_total}}
 Vehicle: {{vehicle_name}}
@@ -18,6 +26,7 @@ Nothing will be debited for it.
 
 {{#if has_replacement}}
 It is replaced by invoice {{replacement_number}}, with the correct amount. We send it to you when it is ready.
+{{/if}}
 {{/if}}
 
 View my invoices:

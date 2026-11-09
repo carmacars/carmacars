@@ -328,3 +328,10 @@ create table if not exists test.shipped_defaults as
    where table_name = 'program_settings' and column_name = 'insurance_fee_hst';
 alter table program_settings alter column insurance_fee_hst set default true;   -- later rows the suites add, too
 update program_settings set insurance_fee_hst = true;
+
+-- 0900: emails and texts to the same person for the same booking are held 2 minutes and combined, and a repeat within
+-- 30 minutes is held back. The suites written before it check each message on its own at the moment it is queued, so the
+-- run starts with both off; 99_r35v_message_dedupe.sql turns them on (the production defaults) and tests them.
+alter table program_settings alter column notify_merge_window_minutes set default 0;
+alter table program_settings alter column notify_repeat_window_minutes set default 0;
+update program_settings set notify_merge_window_minutes = 0, notify_repeat_window_minutes = 0;
