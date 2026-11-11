@@ -74,6 +74,7 @@ export const PATHS = {
   admin_reports: '/admin/reports',
   admin_debits: '/admin/debits',
   admin_usage: '/admin/settings/usage',
+  admin_seo: '/admin/marketing/seo',
 
   // Staff portal (one portal since 0197)
   va_cs: '/staff',

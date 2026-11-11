@@ -56,7 +56,9 @@ export const ADMIN_HUBS: Hub[] = [
     { href: '/admin/marketing/listings', label: 'Ad listings' }, { href: '/admin/marketing/ads', label: 'Posted ads' }, { href: '/admin/marketing/social', label: 'Social drafts' }] },
   { key: 'channels', label: 'Channels', tabs: [{ href: '/admin/marketing/channels', label: 'Listing channels' }, { href: '/admin/marketing/report', label: 'Bookings by channel' },
     // release 36: the events with a "Rent a car for" page
-    { href: '/admin/marketing/events', label: 'Event pages' }] },
+    { href: '/admin/marketing/events', label: 'Event pages' },
+    // 1860: Search Console clicks against the goal, queries, pages and indexing
+    { href: '/admin/marketing/seo', label: 'SEO' }] },
   { key: 'recruit', label: 'Owner recruitment', tabs: [{ href: '/admin/marketing/recruit', label: 'Recruitment' }, { href: '/admin/marketing/owner-pipeline', label: 'Owner pipeline' }] }
 ];
 

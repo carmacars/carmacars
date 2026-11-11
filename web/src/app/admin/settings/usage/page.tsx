@@ -13,7 +13,8 @@ export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Usage', path: '/admin/settings/usage', noindex: true, description: 'Included allowances of every metered service, what is used, and paid usage.' });
 
 type Row = ServiceState & { history: Array<{ day: string; used: number }>; decisions: Array<{ decision: string; until: string; starts_on: string; ends_on: string; cap_usd: number | null; at: string; by: string | null }> };
-interface Data { ai?: AiUsage; services: Row[]; alerts: Array<{ service: string; level: number; period_start: string; at: string; emailed_at: string | null; email_note: string | null }>; alert_email: string; cloudflare_at: string | null }
+interface Data { ai?: AiUsage; services: Row[]; alerts: Array<{ service: string; level: number; period_start: string; at: string; emailed_at: string | null; email_note: string | null }>; alert_email: string; cloudflare_at: string | null;
+  cached_only?: { on: boolean; since: string | null; line_pct: number; service: string | null; label: string | null; share_bps: number; used_text: string | null; included_text: string | null; resets_at: string } }
 
 const STATE: Record<string, string> = { ok: 'Within the allowance', warn: 'Near the allowance', paused: 'Used up: paused', paid: 'Used up: paid usage allowed', held: 'Used up: held', over: 'Used up: never paused, small cost', free: 'Free', used_up: 'Used up' };
 
@@ -30,6 +31,16 @@ export default async function UsagePage() {
         Alerts go to {u.alert_email} (once per service and period, never at night). Cloudflare figures: {u.cloudflare_at ? `last reported ${t(u.cloudflare_at)}` : 'not reported yet (the usage workflow sends them every hour)'}.</p>
       {/* 0320: whether Cloudflare Email Service sends, and the steps when it does not */}
       <EmailSetup userId={user.id} />
+      {/* 1860 (owner, 2026-10-31): from the Program setting's share of the month's Worker requests or CPU time, vehicle and SEO pages come from the edge copy only */}
+      {u.cached_only && (
+        <Card title="Cached pages" testId="usage-cached-only" tone={u.cached_only.on ? 'warn' : undefined}
+          aside={<span className={`small${u.cached_only.on ? ' ad-late' : ''}`} data-testid="usage-cached-only-state">{u.cached_only.on ? 'On: cached pages only' : 'Off: pages are rendered as usual'}</span>}>
+          <p className="small muted" style={{ maxWidth: '52rem' }}>From {u.cached_only.line_pct}% of the month&apos;s Worker requests or CPU time allowance, the vehicle and SEO pages are served from the saved copy at the edge, with a long stale-while-revalidate and no database read. A page with no copy yet is built once. It switches back by itself when the share falls below {u.cached_only.line_pct}% or on the 1st of the month. The line is in Program settings (&quot;Usage: from this share&quot;).</p>
+          <dl className="pt-dl ad-kv">
+            <div><dt>Highest share this month</dt><dd data-testid="usage-cached-only-share">{u.cached_only.label ? `${shortLabel(u.cached_only.label)}: ${u.cached_only.used_text} of ${u.cached_only.included_text} (${share(u.cached_only.share_bps)})` : 'Nothing measured yet'}</dd></div>
+            <div><dt>{u.cached_only.on ? 'On since' : 'Next reset'}</dt><dd>{u.cached_only.on && u.cached_only.since ? t(u.cached_only.since) : t(u.cached_only.resets_at)}</dd></div>
+          </dl>
+        </Card>)}
       {u.ai && <AiByFeature ai={u.ai} />}
       {/* r35 part C (owner, 2026-11-11): the emails' day is the capacity line above (Cloudflare + Resend), never Resend's part as a cap */}
       {u.services.filter((s) => s.service !== 'resend_day').map((s) => {

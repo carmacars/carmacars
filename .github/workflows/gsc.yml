@@ -104,6 +104,20 @@ jobs:
             printf 'select app.gsc_coverage_store($%s$%s$%s$::jsonb) n' "$tag" "$(cat "$COV")" "$tag" > "$RUNNER_TEMP/cov.sql"
             "$sb" sql-file "$RUNNER_TEMP/cov.sql" >/dev/null && echo "::notice title=coverage::stored (app.gsc_coverage_log)" || echo "::warning title=coverage::not stored (migration 0564 not applied yet?)"
           fi
+          # release 35 gaps (1860): the inspected pages by sitemap; the not indexed ones go to IndexNow with a backoff
+          if [ -s "$COV" ] && [ "$(jq '.urls | length' "$COV" 2>/dev/null || echo 0)" -gt 0 ]; then
+            tag="j$(openssl rand -hex 6)"
+            printf 'select app.gsc_urls_store($%s$%s$%s$::jsonb) n' "$tag" "$(jq -c '{urls: .urls}' "$COV")" "$tag" > "$RUNNER_TEMP/urls.sql"
+            "$sb" sql-file "$RUNNER_TEMP/urls.sql" >/dev/null && echo "::notice title=coverage::inspected pages stored (app.gsc_url_inspection)" || echo "::warning title=coverage::inspected pages not stored (migration 1860 not applied yet?)"
+          fi
+          # release 35 gaps (1860): Search Analytics by query and by page (the SEO page)
+          PGS="$RUNNER_TEMP/gsc-pages.json"
+          AT="$AT" SITE="$SITE" OUT="$PGS" node web/scripts/gsc-pages.mjs || echo "::warning title=gsc pages::the query and page figures were not read"
+          if [ -s "$PGS" ]; then
+            tag="j$(openssl rand -hex 6)"
+            printf 'select app.gsc_pages_store($%s$%s$%s$::jsonb) n' "$tag" "$(cat "$PGS")" "$tag" > "$RUNNER_TEMP/pgs.sql"
+            "$sb" sql-file "$RUNNER_TEMP/pgs.sql" >/dev/null && echo "::notice title=gsc pages::stored (app.gsc_page_query)" || echo "::warning title=gsc pages::not stored (migration 1860 not applied yet?)"
+          fi
 
       - name: IndexNow (on, key file, sweep; then batches from here)
         continue-on-error: true

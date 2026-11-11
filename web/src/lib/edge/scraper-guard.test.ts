@@ -52,7 +52,7 @@ test('a browser-looking agent without our cookies is checked on long-tail pages;
   assert.equal(r.headers.get('cache-control'), 'no-store');
 });
 
-import { BUSY_TRIP, BUSY_WINDOW_MS, BusyMeter, renderFailed } from './scraper-guard.ts';
+import { BUSY_TRIP, BUSY_WINDOW_MS, BusyMeter, USAGE_CACHED_KEY, renderFailed, tailServing } from './scraper-guard.ts';
 test('cached-only mode trips after repeated failed renders within a minute, at most once a minute per isolate', () => {
   const m = new BusyMeter();
   const t0 = 1_800_000_000_000;
@@ -62,4 +62,12 @@ test('cached-only mode trips after repeated failed renders within a minute, at m
   const late = new BusyMeter();
   for (let i = 0; i < BUSY_TRIP; i++) assert.equal(late.failed(t0 + i * BUSY_WINDOW_MS), false, 'spread out: never');
   assert.ok(renderFailed(503, null) && renderFailed(200, 'slow') && renderFailed(200, 'error 502; age=3') && !renderFailed(200, null) && !renderFailed(404, null));
+});
+
+test('1860: cached-only serving by usage: copy first, render on a miss; busy mode still wins', () => {
+  assert.equal(tailServing(false, false), 'render');
+  assert.equal(tailServing(false, true), 'copy-or-render');
+  assert.equal(tailServing(true, false), 'copy-or-busy');
+  assert.equal(tailServing(true, true), 'copy-or-busy');
+  assert.match(USAGE_CACHED_KEY, /^carmacars\//);
 });

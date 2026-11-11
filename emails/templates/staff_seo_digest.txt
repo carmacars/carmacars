@@ -1,0 +1,43 @@
+CarmaCars  |  SEO
+
+========================================
+
+[Search]
+Search this week
+
+{{goal_line}}
+
+Clicks, last 28 days: {{clicks_28d}}
+Impressions, last 28 days: {{impressions_28d}}
+Monthly goal: {{goal}} ({{goal_share}})
+Index coverage (sample): {{indexed_line}}
+Search engines told: {{indexnow_line}}
+
+Best queries
+------------------------
+
+{{#each top_queries}}
+  Query: {{key}} | Clicks: {{clicks}} | Position: {{position}}
+{{/each}}
+
+Shown a lot, clicked little
+------------------------
+
+{{#each low_ctr}}
+  Page: {{key}} | Impressions: {{impressions}} | Click rate: {{ctr}}
+{{/each}}
+
+Open the SEO page:
+https://carmacars.ca/admin/marketing/seo
+
+Figures are Search Console's, which settle after about three days. The goal and the click-rate line are Program settings.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
