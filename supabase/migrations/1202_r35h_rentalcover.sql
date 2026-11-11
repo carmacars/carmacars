@@ -385,7 +385,7 @@ alter function app.booking_car(text) rename to booking_car_pre1202;
 create function app.booking_car(p_slug text) returns jsonb
 language sql stable security definer set search_path = public, app as $$
   select case when r is null then null
-              else r || jsonb_build_object('protection_plan_offered', app.rentalcover_allowed((r ->> 'vehicle_id')::uuid),) end
+              else r || jsonb_build_object('protection_plan_offered', app.rentalcover_allowed((r ->> 'vehicle_id')::uuid)) end
     from app.booking_car_pre1202(p_slug) r
 $$;
 select pg_temp.copy_grants('app.booking_car(text)'::regprocedure, 'app.booking_car_pre1202(text)'::regprocedure);

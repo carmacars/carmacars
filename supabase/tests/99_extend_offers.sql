@@ -158,13 +158,14 @@ select test.ok('confirmed with a return recorded: too late',
   exists (select 1 from jsonb_array_elements(app.preview_extension(test.id('booking:EX-KEYS'), now() + interval '1 day') -> 'problems') x where x ->> 'code' = 'too_late'));
 
 -- ================================================================ 3. approved at once, or a request
-select test.eq('self-serve: the 3 hour option is approved at once (car free, licence valid, card on file)',
+-- 3 hours at the $850 late fee cost more than the booking's all-in day ($100 a day booked): the day is taken instead (0480, 1201)
+select test.eq('self-serve: the 3 hour option is approved at once (car free, licence valid, card on file), as the all-in day it costs',
   (select (r ->> 'status') || '/' || (r ->> 'auto_approved') || '/' || (r ->> 'option_code') from app.request_extension_option(test.id('booking:EX-LATE'), test.id('ex_rita'), '3h') r),
-  'approved/true/3h');
+  'approved/true/1d');
 select test.eq('self-serve: no task for customer service', (select count(*) from tasks where task_type = 'review_extension' and booking_id = test.id('booking:EX-LATE')), 0::bigint);
 -- paid after the return time while the car is out: the return moves and the late charges for the old time are gone
-select test.eq('paid after the return time while out: confirmed, the return moves to 3 hours after the original',
-  (select (r ->> 'ok') || '/' || ((r ->> 'return_at')::timestamptz = b.original_return_at + interval '3 hours')
+select test.eq('paid after the return time while out: confirmed, the return moves a day after the original (the day taken)',
+  (select (r ->> 'ok') || '/' || ((r ->> 'return_at')::timestamptz = b.original_return_at + interval '1 day')
      from bookings b, app.confirm_extension_payment((select id from booking_extensions where booking_id = b.id and status = 'approved'),
             '{"processor": "stripe", "payment_id": "pi_test_ex_late"}'::jsonb,
             (select total_cents from booking_extensions where booking_id = b.id and status = 'approved'), now(), test.id('ex_rita')) r
@@ -186,7 +187,8 @@ update program_settings set extension_auto_approve = true where id = (app.settin
 select test.eq('staff approval keeps the offer price',
   (select (v ->> 'pricing') || '/' || (v ->> 'rental_difference_cents') from app.approve_extension(
      (select id from booking_extensions where booking_id = test.id('booking:EX-850') and status = 'requested'), test.id('ex_admin')) v),
-  'days/' || (test.ex_allin('EX-850', 1) - (select (l ->> 'hst_cents')::bigint from booking_extensions e, jsonb_array_elements(e.lines) l where e.booking_id = test.id('booking:EX-850') and e.status = 'approved' limit 1)));
+  -- the statement sees the extension as it was before the approval (requested)
+  'days/' || (test.ex_allin('EX-850', 1) - (select (l ->> 'hst_cents')::bigint from booking_extensions e, jsonb_array_elements(e.lines) l where e.booking_id = test.id('booking:EX-850') and e.status in ('requested', 'approved') limit 1)));
 -- an insurer booking's request is never approved at once
 select app.request_extension(test.id('booking:EX-INS'), test.id('ex_lena'), (select return_at + interval '1 day' from bookings where booking_number = 'EX-INS'));
 select test.eq('insurer-billed: a request for staff', (select status from booking_extensions where booking_id = test.id('booking:EX-INS')), 'requested');
@@ -272,7 +274,7 @@ select app.notify_reminders(test.ex_at('10:00', '1 day'));
 select test.eq('after payment: the reminder of the new return goes (3 hours before it)', test.ex_events('renter_return_soon'), 1::bigint);
 select test.ok('the reminder carries the offer line ("Extend at 5% off: from $... for 1 more day" or the plain line)',
   app.extension_offer_line(test.id('booking:EX-T13'), test.ex_at('10:00', '1 day')) ~ '^(Extend at 5% off: from \$[0-9,.]+ for 1 more day|Need more time\? Extend)$');
-select test.eq('the offer line of an extendable booking', app.extension_offer_line(test.id('booking:EX-850')) ~ '^Extend at 5% off: from \$[0-9,.]+ for 1 more day$', true);
+select test.eq('the offer line of an extendable booking: the plain line (1201: no extension discount)', app.extension_offer_line(test.id('booking:EX-850')), 'Need more time? Extend');
 select test.eq('the plain line of an insurer-billed booking', app.extension_offer_line(test.id('booking:EX-INS')), 'Need more time? Extend');
 -- an approved extension not paid lapses once the car is back
 select test.mk_vehicle('ex_l', 'ex_olive');
