@@ -189,6 +189,8 @@ test('0176: a prize won in this browser and closed never pops up again in that v
 // the games the next play may be: coin or dice (every other game seen in this round)
 const SEEN = ['wheel', 'scratch', 'blackjack', 'cups', 'plinko', 'pack', 'slots', 'drop', 'mystery'];
 /** Plays the game on screen to its end; another go: Play again and its second game. */
+// The server draws the second game from this visitor's history plus the browser's seen list: a history row of coin or dice
+// (not slots, as the fixture of the 'used today' test inserts) would complete the round and make the replay game random.
 async function playToPrize(page: Page) {
   const card = page.getByTestId('game');
   for (let round = 0; round < 2; round++) {
@@ -272,7 +274,7 @@ test('0176: Play again once a day: used today, the pop-up offers only the code; 
     cfg: { car_pages: 1 }, storage: { cc_game: JSON.stringify({ seen: SEEN, won }) } });
   const saved = (await sql`select id from game_plays where visitor_id = ${vid}`)[0]!.id as string;
   // Play again already used today (on another device of this visitor's browser id)
-  await sql`insert into game_plays (visitor_id, game, prize, path, trigger, again_of, dropped_at) values (${vid}, 'dice', ${sql.json({ key: 'pct5', percent_bps: 500, weight: 54 } as never)}, '/', 'pages', ${saved}, now())`;
+  await sql`insert into game_plays (visitor_id, game, prize, path, trigger, again_of, dropped_at) values (${vid}, 'slots', ${sql.json({ key: 'pct5', percent_bps: 500, weight: 54 } as never)}, '/', 'pages', ${saved}, now())`;
   await visit(page, '/cars/toyota-corolla');
   await answerCookies(page);
   const card = page.getByTestId('game');
