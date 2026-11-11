@@ -16,7 +16,7 @@ export function DeleteCar({ vehicleId, name, plate, blockers, removes = [] }: { 
   const [err, setErr] = useState<string | null>(null);
   const [pending, start] = useTransition();
   if (blockers.length) {
-    return <p className="small muted" data-testid="delete-blocked">Delete is not possible: this car has {blockers.join(', ')}. Retire it instead; its history stays.{removes.length ? ` Requests that never confirmed (${removes.map((r) => r.booking_number).join(', ')}) do not stop a delete.` : ''}</p>;
+    return <p className="small muted" data-testid="delete-blocked">Delete is not possible: this car has {blockers.join(', ')}. Retire it instead; its history stays. If the bookings are only tests, mark each one as a test on its booking page and the car can be deleted with them.{removes.length ? ` Requests that never confirmed (${removes.map((r) => r.booking_number).join(', ')}) do not stop a delete.` : ''}</p>;
   }
   return (
     <>
@@ -33,7 +33,7 @@ export function DeleteCar({ vehicleId, name, plate, blockers, removes = [] }: { 
           });
         }}>
           <p className="small">The car, its listing, rates, photos and calendar blocks are deleted for good. Nothing about money is tied to it. This cannot be undone.</p>
-          {removes.length > 0 && <div className="small" data-testid="vehicle-delete-removes"><p>These booking requests never confirmed and never took money. They are removed with the car (a copy is kept in the archive of deleted requests); the renters stay on file:</p>
+          {removes.length > 0 && <div className="small" data-testid="vehicle-delete-removes"><p>These are booking requests that never confirmed or took money, or bookings marked as tests. They are removed with the car (a copy is kept in the archive of deleted requests); the renters stay on file:</p>
             <ul>{removes.map((r) => <li key={r.booking_number}>{r.text}</li>)}</ul></div>}
           <div className="field"><label className="label" htmlFor={`${id}-c`}>Type the plate{plate ? ` (${plate})` : ''} or the name ({name}) to confirm</label>
             <input className="input" id={`${id}-c`} value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" data-testid="vehicle-delete-confirm" /></div>

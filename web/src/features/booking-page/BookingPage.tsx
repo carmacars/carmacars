@@ -85,6 +85,8 @@ type Detail = B & R & {
   change_requests: R[]; extensions: R[]; info_requests: R[]; competing: Overlap[]; tasks: R[]; drivers: R[]; available: boolean; readiness: R | null;
   /** 0283: a placeholder booking (insurance or a hold) */
   placeholder?: { on: boolean; reason: string | null; at: string | null; by: string | null; shape: boolean };
+  /** 1831: an Admin marked it as a test booking (a car with only test bookings can be deleted with them) */
+  test?: { on: boolean; reason: string | null; at: string | null; by: string | null };
   request_sent: R; current_offer_version: number | null; offer_expires_at: string | null; insurer_name?: string | null; request_note: string | null;
 };
 const REFUND_REASONS = ['cancellation', 'carmacars_cancelled', 'driver_not_verifiable', 'pricing_error', 'breakdown_unused_days', 'goodwill', 'duplicate', 'other'];
@@ -245,7 +247,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
   return (
     <RequestClaim booking={b.id} status={b.status} answering={b.status === 'requested' && on('review') && can.offer} va={fn}>
       <PageHead kicker={<>{can.admin ? <Link prefetch={false} className="link" href="/admin/bookings">Bookings</Link> : <Link prefetch={false} className="link" href="/staff">Queue</Link>} · {b.vehicle?.name} · {b.renter?.legal_name}</>}
-        title={<>{b.booking_number} <Badge s={b.status} /> <BookingKindChips ownerTrip={!notOwner} instant={instantBooking} />{can.admin && b.readiness?.awaiting_signature === true && <> <Badge s="awaiting_signature" /></>} {can.admin && (b.placeholder?.on ? <span className="ad-flag ad-flag--ph" data-testid="placeholder-flag">placeholder</span> : !b.blocks_calendar && <span className="ad-flag">not blocking</span>)}</>}>
+        title={<>{b.booking_number} <Badge s={b.status} /> <BookingKindChips ownerTrip={!notOwner} instant={instantBooking} />{can.admin && b.readiness?.awaiting_signature === true && <> <Badge s="awaiting_signature" /></>} {can.admin && (b.placeholder?.on ? <span className="ad-flag ad-flag--ph" data-testid="placeholder-flag">placeholder</span> : !b.blocks_calendar && <span className="ad-flag">not blocking</span>)} {can.admin && b.test?.on && <span className="ad-flag" data-testid="test-flag">test</span>}</>}>
         {/* r32: one tap when the car is back (overdue or due today), the late return alert's page included */}
         {can.handover && showReturned(b) && <ReturnedButton booking={b.id} number={b.booking_number} refresh={refresh} testId="returned-top" />}
         {b.renter && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=messages`} data-testid="email-renter-link">Email the renter</Link>}
@@ -263,6 +265,9 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
         {can.admin && ['confirmed', 'requested', 'offered', 'pending_payment', 'tentative'].includes(b.status) && !b.handed_over_at && (b.placeholder?.on
           ? <Act action="booking_placeholder" payload={{ ...P, on: false }} label="Make it a real booking" fields={[{ name: 'reason', label: 'Why', type: 'text', required: true }]} refresh={refresh} testId="placeholder-off" />
           : <Act action="booking_placeholder" payload={{ ...P, on: true }} label="Mark as a placeholder" confirm="A placeholder (for an insurer, or a hold) never blocks the calendar, is never handed over, sends the renter nothing and is never matched to a toll or ticket. The owner sees only that the car is unavailable." fields={[{ name: 'reason', label: 'What it is for', type: 'text', placeholder: 'Insurance or a hold' }]} refresh={refresh} testId="placeholder-on" />)}
+        {can.admin && (b.test?.on
+          ? <Act action="booking_test_set" payload={{ ...P, on: false }} label="Make it a real booking again" fields={[{ name: 'reason', label: 'Why', type: 'text' }]} refresh={refresh} testId="test-off" />
+          : <Act action="booking_test_set" payload={{ ...P, on: true }} label="Mark as a test booking" confirm="A test booking does not stop its car from being deleted: if every booking on a car is a test, the Admin can delete the car and they go with it (a copy is kept in the archive of deleted requests). Nothing else changes." fields={[{ name: 'reason', label: 'Why (optional)', type: 'text' }]} refresh={refresh} testId="test-on" />)}
         {can.admin && !b.placeholder?.on && ['confirmed', 'on_rent', 'requested', 'offered', 'pending_payment'].includes(b.status) && <Act action="blocks_calendar" payload={{ ...P, blocks: !b.blocks_calendar }} label={b.blocks_calendar ? 'Stop blocking the calendar' : 'Block the calendar'} fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} refresh={refresh} />}
         {can.cancelForRenter && ['confirmed', 'pending_payment'].includes(b.status) && <Act action="cancel_booking" payload={{ ...P, reason: 'renter_request' }} label="Cancel for the renter" variant="danger" fields={[
           { name: 'channel', label: 'Received by', type: 'select', required: true, options: [['email', 'Email'], ['portal', 'Portal'], ['phone', 'Phone']], value: 'email' },
