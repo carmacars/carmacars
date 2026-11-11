@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { ADMIN_TOOLS, CONNECTOR_URL, OPS_TOOLS, SCOPES, TOOLS, WRITABLE, bearer, newSecret, parseScopes, pkceChallenge, secretPrefix, sha256Hex, toolsFor } from './tools.ts';
+import { ADMIN_TOOLS, CLAIM_TOOLS, CONNECTOR_URL, OPS_TOOLS, SCOPES, TOOLS, WRITABLE, bearer, newSecret, parseScopes, pkceChallenge, secretPrefix, sha256Hex, toolsFor, claimFileKind } from './tools.ts';
 
 test('every tool names a known scope, and only the update tools write', () => {
   for (const t of TOOLS) assert.ok(t.scope === 'any' || (SCOPES as readonly string[]).includes(t.scope), t.name);
@@ -109,4 +109,39 @@ test('1156: the operations tools are the database\'s: lists page and hide test r
   }
   assert.match(OPS_TOOLS.find((t) => t.name === 'prepare_money_action')!.description, /no money moves/);
   assert.ok(!OPS_TOOLS.some((t) => /^(refund|release|payout|charge)/.test(t.name)), 'no tool moves money');
+});
+
+// the gaps (1873): files on a claim
+const SQL1873 = readFileSync(new URL('../../../../supabase/migrations/1873_r35gaps4_connector_claim_files.sql', import.meta.url), 'utf8');
+test('1873: the claim file tools are the database\'s, admin:write, two-step, and need the claim', () => {
+  assert.deepEqual(CLAIM_TOOLS.map((t) => t.name).sort(), ['attach_claim_estimate', 'attach_claim_photo']);
+  for (const t of CLAIM_TOOLS) {
+    assert.ok(SQL1873.includes(`'${t.name}'`), t.name);
+    assert.equal(t.scope, 'admin:write');
+    assert.equal(t.readOnly, false);
+    const schema = t.inputSchema as { properties: Record<string, unknown>; required: string[] };
+    assert.ok(schema.properties.confirm && schema.properties.preview_id, t.name);
+    assert.ok(schema.required.includes('claim'), t.name);
+    assert.match(t.description, /Two steps/);
+    assert.ok(TOOLS.includes(t));
+  }
+  assert.deepEqual((CLAIM_TOOLS[0]!.inputSchema as { required: string[] }).required, ['claim', 'file_base64']);
+  assert.deepEqual((CLAIM_TOOLS[1]!.inputSchema as { required: string[] }).required, ['claim', 'amount_cents', 'shop_name', 'approved_shop']);
+  assert.ok(!toolsFor(['admin:read']).some((t) => t.name.startsWith('attach_claim')), 'a read-only key does not see them');
+  assert.ok(toolsFor(['admin:write']).some((t) => t.name === 'attach_claim_photo'));
+});
+
+test('1873: the database checks the role, the claim state and the preview before any file is stored', () => {
+  assert.match(SQL1873, /app\.is_admin\(\) or app\.va_has\('finance', 'fleet'\)/);
+  assert.match(SQL1873, /c\.status in \('closed', 'withdrawn'\)|c\.status in \('closed', 'withdrawn'\) then raise/);
+  assert.match(SQL1873, /Preview first: call without confirm/);
+  assert.match(SQL1873, /The arguments differ from the preview/);
+  assert.match(SQL1873, /Already stored/);
+});
+
+test('1873: a claim file is a JPEG, a PNG or a PDF by its bytes, not by its name', () => {
+  assert.deepEqual(claimFileKind(new Uint8Array([0xff, 0xd8, 0xff, 0xe0])), { ext: 'jpg', mime: 'image/jpeg' });
+  assert.deepEqual(claimFileKind(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d])), { ext: 'png', mime: 'image/png' });
+  assert.deepEqual(claimFileKind(new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d])), { ext: 'pdf', mime: 'application/pdf' });
+  assert.equal(claimFileKind(new Uint8Array([0x4d, 0x5a, 0x90, 0x00])), null);
 });

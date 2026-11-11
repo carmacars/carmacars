@@ -49,9 +49,9 @@ create or replace function test.ttext(p_key text) returns setof phone_outbox lan
 create or replace function test.tstatus(p_key text) returns text language sql stable as $$ select status || coalesce(': ' || status_reason, '') from notification_outbox where dedupe_key = p_key $$;
 
 -- ================================================================ 1. settings and templates
-select test.eq('settings: on, Both with a phone, Text for a phone-only account, quiet hours 21 to 8, the STOP line',
+select test.eq('settings: on, Both with a phone, Text for a phone-only account, quiet hours 1 to 5, the STOP line',
   (select format('%s %s %s %s %s %s', sms_alerts_enabled, sms_default_with_phone, sms_default_phone_only, sms_quiet_from_hour, sms_quiet_until_hour, sms_stop_line)
-     from program_settings order by effective_from desc limit 1), 't both text 21 8 t');
+     from program_settings order by effective_from desc limit 1), 't both text 1 5 t');
 select test.ok('every listed notification has its own short text', (select count(*) from sms_templates where code in ('renter_request_received', 'renter_offer_ready',
   'renter_booking_confirmed', 'renter_payment_receipt', 'renter_payment_failed', 'renter_deposit_declined', 'renter_booking_reminder', 'renter_return_reminder',
   'renter_extension_confirmed', 'renter_late_return_first', 'renter_agreement_ready', 'renter_identity_needed', 'renter_review_request', 'owner_payout_sent',
