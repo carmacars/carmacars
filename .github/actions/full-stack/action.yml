@@ -43,12 +43,13 @@ runs:
       shell: bash
       working-directory: web
       run: |
-        # retried, then annotated: an apt mirror failure here left every job without a server on Nov 11
-        for i in 1 2 3; do
-          if [ "${{ steps.pw.outputs.cache-hit }}" = true ]; then npx playwright install-deps chromium && exit 0; else npx playwright install --with-deps chromium && exit 0; fi
-          echo "::warning title=full-stack::browsers try $i failed"; sleep 20
-        done
-        echo "::error title=full-stack::Playwright browsers failed"; exit 1
+        # Nov 11: apt on the runners kept failing, so the system libraries are best effort (the ubuntu-24.04 image already has
+        # what Chromium needs); the browser itself comes from Playwright's own download, retried
+        if [ "${{ steps.pw.outputs.cache-hit }}" != true ]; then
+          for i in 1 2 3; do npx playwright install chromium && break; echo "::warning title=full-stack::browser download try $i failed"; sleep 20; done
+          ls ~/.cache/ms-playwright/chromium* >/dev/null 2>&1 || { echo "::error title=full-stack::Chromium download failed"; exit 1; }
+        fi
+        timeout 300 npx playwright install-deps chromium || echo "::warning title=full-stack::system libraries for Chromium not installed (apt); using the runner image's"
     - name: Save the browser cache
       if: inputs.save-caches == 'true' && steps.pw.outputs.cache-hit != 'true'
       uses: actions/cache/save@v4
