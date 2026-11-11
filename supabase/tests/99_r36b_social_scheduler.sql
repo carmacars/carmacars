@@ -4,12 +4,12 @@
 -- Fixtures start with "rbs"; addresses are example.test.
 select test.suite('99 r36b social scheduler (2220)');
 
-select test.mk_user('rbs_admin', 'admin');
-select test.mk_user('rbs_sales', 'va', 'sales');
-select test.mk_user('rbs_fin', 'va', 'finance');
-select test.mk_owner('rbs_olive');
-select test.mk_vehicle('rbs_car', 'rbs_olive');
-create function pg_temp.v() returns uuid language sql as $$ select test.id('vehicle:rbs_car') $$;
+select test.mk_user('rsch_admin', 'admin');
+select test.mk_user('rsch_sales', 'va', 'sales');
+select test.mk_user('rsch_fin', 'va', 'finance');
+select test.mk_owner('rsch_olive');
+select test.mk_vehicle('rsch_car', 'rsch_olive');
+create function pg_temp.v() returns uuid language sql as $$ select test.id('vehicle:rsch_car') $$;
 create function pg_temp.dr(p_user text, p_call text, p_name text, p jsonb) returns jsonb language sql as
 $$ select public.door(test.id(p_user), 'aal2', p_call, p_name, p) $$;
 update meta_publishing set enabled = false, token_ref = null, page_id = null, ig_user_id = null;
@@ -19,20 +19,20 @@ insert into social_videos (id, vehicle_id, path, mime, seconds, bytes) values
 insert into social_drafts (id, slot_date, kind, channels, vehicle_id, caption, link, source)
 values ('00000000-0000-4000-8000-0000000000d1', app.today(), 'featured_car', array['instagram', 'facebook_page'], pg_temp.v(), 'Our featured car this week.', 'https://carmacars.ca/cars/rbs', 'staff');
 
-select test.throws('Finance does not schedule posts', $$select pg_temp.dr('rbs_fin', 'ops_read', 'social_queue', '{}')$$, 'Not permitted');
-select test.eq('without Meta the queue says it is not connected', (select pg_temp.dr('rbs_sales', 'ops_read', 'social_queue', '{}') #>> '{meta,connected}'), 'false');
-select test.throws('a time in the past is refused', $$select pg_temp.dr('rbs_sales', 'ops_do', 'social_queue_add', jsonb_build_object('channel', 'facebook_page', 'caption', 'Hi', 'scheduled_at', now() - interval '1 day'))$$, 'time has passed');
-select test.throws('Instagram needs a photo or a video', $$select pg_temp.dr('rbs_sales', 'ops_do', 'social_queue_add', jsonb_build_object('channel', 'instagram', 'caption', 'Hi', 'scheduled_at', now() + interval '1 hour'))$$, 'needs a photo or a video');
-select test.throws('Instagram takes MP4 only', $$select pg_temp.dr('rbs_sales', 'ops_do', 'social_queue_add', jsonb_build_object('channel', 'instagram', 'caption', 'Hi', 'video', '00000000-0000-4000-8000-0000000000a2', 'scheduled_at', now() + interval '1 hour'))$$, 'MP4 videos only');
-select test.throws('TikTok posts are videos', format($$select pg_temp.dr('rbs_sales', 'ops_do', 'social_queue_add', jsonb_build_object('channel', 'tiktok', 'caption', 'Hi', 'photo', 'vehicles/%s/front.jpg', 'scheduled_at', now() + interval '1 hour'))$$, pg_temp.v()), 'TikTok posts are videos');
-select test.throws('a private original is never posted', format($$select pg_temp.dr('rbs_sales', 'ops_do', 'social_queue_add', jsonb_build_object('channel', 'facebook_page', 'caption', 'Hi', 'photo', 'vehicles/%s/original/front.jpg', 'scheduled_at', now() + interval '1 hour'))$$, pg_temp.v()), 'photo on the site');
+select test.throws('Finance does not schedule posts', $$select pg_temp.dr('rsch_fin', 'ops_read', 'social_queue', '{}')$$, 'Not permitted');
+select test.eq('without Meta the queue says it is not connected', (select pg_temp.dr('rsch_sales', 'ops_read', 'social_queue', '{}') #>> '{meta,connected}'), 'false');
+select test.throws('a time in the past is refused', $$select pg_temp.dr('rsch_sales', 'ops_do', 'social_queue_add', jsonb_build_object('channel', 'facebook_page', 'caption', 'Hi', 'scheduled_at', now() - interval '1 day'))$$, 'time has passed');
+select test.throws('Instagram needs a photo or a video', $$select pg_temp.dr('rsch_sales', 'ops_do', 'social_queue_add', jsonb_build_object('channel', 'instagram', 'caption', 'Hi', 'scheduled_at', now() + interval '1 hour'))$$, 'needs a photo or a video');
+select test.throws('Instagram takes MP4 only', $$select pg_temp.dr('rsch_sales', 'ops_do', 'social_queue_add', jsonb_build_object('channel', 'instagram', 'caption', 'Hi', 'video', '00000000-0000-4000-8000-0000000000a2', 'scheduled_at', now() + interval '1 hour'))$$, 'MP4 videos only');
+select test.throws('TikTok posts are videos', format($$select pg_temp.dr('rsch_sales', 'ops_do', 'social_queue_add', jsonb_build_object('channel', 'tiktok', 'caption', 'Hi', 'photo', 'vehicles/%s/front.jpg', 'scheduled_at', now() + interval '1 hour'))$$, pg_temp.v()), 'TikTok posts are videos');
+select test.throws('a private original is never posted', format($$select pg_temp.dr('rsch_sales', 'ops_do', 'social_queue_add', jsonb_build_object('channel', 'facebook_page', 'caption', 'Hi', 'photo', 'vehicles/%s/original/front.jpg', 'scheduled_at', now() + interval '1 hour'))$$, pg_temp.v()), 'photo on the site');
 
 create temp table rbsq (k text primary key, r jsonb);
-insert into rbsq values ('ig', pg_temp.dr('rbs_sales', 'ops_do', 'social_queue_add', jsonb_build_object('channel', 'instagram', 'draft', '00000000-0000-4000-8000-0000000000d1', 'video', '00000000-0000-4000-8000-0000000000a1', 'scheduled_at', now() + interval '1 hour')));
+insert into rbsq values ('ig', pg_temp.dr('rsch_sales', 'ops_do', 'social_queue_add', jsonb_build_object('channel', 'instagram', 'draft', '00000000-0000-4000-8000-0000000000d1', 'video', '00000000-0000-4000-8000-0000000000a1', 'scheduled_at', now() + interval '1 hour')));
 select test.eq('Sales queues an Instagram reel with the draft''s caption and link', (select format('%s|%s|%s|%s', r ->> 'caption', r ->> 'link', r ->> 'media_kind', r ->> 'status') from rbsq where k = 'ig'),
   'Our featured car this week.|https://carmacars.ca/cars/rbs|video|queued');
-insert into rbsq values ('tt', pg_temp.dr('rbs_sales', 'ops_do', 'social_queue_add', jsonb_build_object('channel', 'tiktok', 'caption', 'New on CarmaCars', 'video', '00000000-0000-4000-8000-0000000000a2', 'scheduled_at', now())));
-insert into rbsq values ('fb', pg_temp.dr('rbs_admin', 'ops_do', 'social_queue_add', jsonb_build_object('channel', 'facebook_page', 'caption', 'Weekend deals', 'scheduled_at', now())));
+insert into rbsq values ('tt', pg_temp.dr('rsch_sales', 'ops_do', 'social_queue_add', jsonb_build_object('channel', 'tiktok', 'caption', 'New on CarmaCars', 'video', '00000000-0000-4000-8000-0000000000a2', 'scheduled_at', now())));
+insert into rbsq values ('fb', pg_temp.dr('rsch_admin', 'ops_do', 'social_queue_add', jsonb_build_object('channel', 'facebook_page', 'caption', 'Weekend deals', 'scheduled_at', now())));
 create function pg_temp.q(p_k text) returns uuid language sql as $$ select (r ->> 'id')::uuid from pg_temp.rbsq where k = p_k $$;
 
 -- the job: the time has come
@@ -46,9 +46,9 @@ select test.eq('Meta off: nothing for the Worker', public.server_social_queue_cl
 select test.eq('Meta off: the Worker''s ads job is not woken for the queue', app.ads_job_due_pre2220() = app.ads_job_due(), true);
 
 -- by hand
-select pg_temp.dr('rbs_sales', 'ops_do', 'social_queue_act', jsonb_build_object('id', pg_temp.q('tt'), 'action', 'posted', 'url', 'https://www.tiktok.com/@carmacars/video/1'));
-select test.eq('TikTok marked posted by hand, with who and the address', (select format('%s %s %s', status, how, posted_by = test.id('rbs_sales')) from social_queue where id = pg_temp.q('tt')), 'posted hand t');
-select test.throws('not posted twice', format($$select pg_temp.dr('rbs_sales', 'ops_do', 'social_queue_act', jsonb_build_object('id', %L, 'action', 'cancel'))$$, pg_temp.q('tt')), 'Only a post not yet posted');
+select pg_temp.dr('rsch_sales', 'ops_do', 'social_queue_act', jsonb_build_object('id', pg_temp.q('tt'), 'action', 'posted', 'url', 'https://www.tiktok.com/@carmacars/video/1'));
+select test.eq('TikTok marked posted by hand, with who and the address', (select format('%s %s %s', status, how, posted_by = test.id('rsch_sales')) from social_queue where id = pg_temp.q('tt')), 'posted hand t');
+select test.throws('not posted twice', format($$select pg_temp.dr('rsch_sales', 'ops_do', 'social_queue_act', jsonb_build_object('id', %L, 'action', 'cancel'))$$, pg_temp.q('tt')), 'Only a post not yet posted');
 select test.throws('TikTok is never posted through an API', format($$update social_queue set how = 'api' where id = %L$$, pg_temp.q('tt')), 'check');
 
 -- Meta connected: the Worker claims the due Facebook post, Meta refuses twice, then posts
@@ -72,9 +72,9 @@ select public.server_social_queue_result(jsonb_build_object('id', pg_temp.q('ig'
 select public.server_social_queue_claim();
 select public.server_social_queue_result(jsonb_build_object('id', pg_temp.q('ig'), 'ok', false, 'error', 'Meta: the video is too short'));
 select test.eq('after three refusals: failed with Meta''s answer', (select status || ' ' || error from social_queue where id = pg_temp.q('ig')), 'failed Meta: the video is too short');
-select pg_temp.dr('rbs_sales', 'ops_do', 'social_queue_act', jsonb_build_object('id', pg_temp.q('ig'), 'action', 'retry'));
+select pg_temp.dr('rsch_sales', 'ops_do', 'social_queue_act', jsonb_build_object('id', pg_temp.q('ig'), 'action', 'retry'));
 select test.eq('try again: queued with its tries reset', (select status || ' ' || attempts from social_queue where id = pg_temp.q('ig')), 'queued 0');
-select pg_temp.dr('rbs_admin', 'ops_do', 'social_queue_act', jsonb_build_object('id', pg_temp.q('ig'), 'action', 'cancel'));
+select pg_temp.dr('rsch_admin', 'ops_do', 'social_queue_act', jsonb_build_object('id', pg_temp.q('ig'), 'action', 'cancel'));
 select test.eq('cancelled', (select status from social_queue where id = pg_temp.q('ig')), 'cancelled');
 select test.throws('the Worker''s functions are not for signed-in users', $$set local role authenticated; select public.server_social_queue_claim()$$, 'permission denied');
 update meta_publishing set enabled = false, token_ref = null, page_id = null, ig_user_id = null;
