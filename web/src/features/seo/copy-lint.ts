@@ -39,7 +39,8 @@ export const SEO_TEMPLATE_GLOBS = [
   'web/src/features/vehicles/*.ts', 'web/src/features/vehicles/*.tsx', 'web/src/features/events/*.ts', 'web/src/features/events/*.tsx',
   'web/src/features/i18n/*.ts', 'web/src/features/i18n/*.tsx', 'web/src/features/tracker-product/*.ts', 'web/src/features/tracker-product/*.tsx',
   'web/src/app/car-rental/**', 'web/src/app/cars/**', 'web/src/app/rent/**', 'web/src/app/places/**', 'web/src/app/makes/**', 'web/src/app/events/**',
-  'web/src/app/gps-tracker/**', 'web/src/app/turo-problems/**', 'web/src/app/l/**'
+  'web/src/features/airports/*.ts', 'web/src/features/airports/*.tsx', 'web/src/features/rent-vs-own/*.ts', 'web/src/features/rent-vs-own/*.tsx',
+  'web/src/app/gps-tracker/**', 'web/src/app/airport-car-rental/**', 'web/src/app/rent-vs-own/**', 'web/src/app/[[]lang]/**'
 ];
 /** Files of those globs that are not page text: the checks' own lists, tests, the importers' parsers and admin screens. */
 export const SEO_TEMPLATE_SKIP = /(\.test\.ts$|copy-lint\.ts$|Admin\.tsx$|admin|seo-data\.ts$|worker\.ts$|batch\.ts$|gsc-plan\.ts$|coverage\.ts$|crawlers\.ts$|normalise\.ts$|permit-read\.ts$|PermitScan\.tsx$|Registration\.tsx$|stock-photos\.ts$)/;

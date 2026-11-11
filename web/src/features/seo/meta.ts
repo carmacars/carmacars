@@ -3,6 +3,11 @@ import { getSettings, photoUrl, siteUrl } from '@/lib/site';
 
 // Titles and descriptions come from the page's data (docs/blueprint/14-seo.md section 5). Every
 // indexable page has a canonical address without query strings; filtered fleet views point to /cars.
+/** Release 36: a page with language versions names them (hreflang) beside its canonical; nothing changes for a noindex page. */
+export function withLanguages(m: Metadata, languages: Record<string, string>): Metadata {
+  if (!m.alternates || Object.keys(languages).length <= 2) return m;
+  return { ...m, alternates: { ...m.alternates, languages } };
+}
 export function pageMeta(o: { title: string; description: string; path: string; image?: string | null; imageSize?: [number, number]; imageAlt?: string; noindex?: boolean; siteName?: string; type?: 'website' | 'article'; published?: string | null; modified?: string | null }): Metadata {
   const url = siteUrl() + (o.path === '/' ? '' : o.path);
   const image = o.image ?? `${siteUrl()}/og/default.png`;

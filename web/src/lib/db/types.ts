@@ -12513,6 +12513,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      outside_reviews: {
+        Row: {
+          id: string;
+          vehicle_id: string | null;
+          reviewer_name: string;
+          source: string;
+          received_on: string;
+          rating: number;
+          body: string;
+          proof_path: string | null;
+          proof_mime: string | null;
+          status: string;
+          hidden_reason: string | null;
+          hidden_by: string | null;
+          entered_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          vehicle_id?: string | null;
+          reviewer_name: string;
+          source: string;
+          received_on: string;
+          rating: number;
+          body: string;
+          proof_path?: string | null;
+          proof_mime?: string | null;
+          status?: string;
+          hidden_reason?: string | null;
+          hidden_by?: string | null;
+          entered_by: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          vehicle_id?: string | null;
+          reviewer_name?: string;
+          source?: string;
+          received_on?: string;
+          rating?: number;
+          body?: string;
+          proof_path?: string | null;
+          proof_mime?: string | null;
+          status?: string;
+          hidden_reason?: string | null;
+          hidden_by?: string | null;
+          entered_by?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       owner_agreement_forms: {
         Row: {
           id: string;
@@ -14322,6 +14373,39 @@ export type Database = {
           recruited_via?: string | null;
           show_profit_extras?: boolean;
           onboarding_route?: string | null;
+        };
+        Relationships: [];
+      };
+      ownership_costs: {
+        Row: {
+          id: number;
+          component: string;
+          scope: string;
+          monthly_cents: number;
+          note: string | null;
+          source: string;
+          source_url: string;
+          fetched_at: string;
+        };
+        Insert: {
+          id?: number;
+          component: string;
+          scope?: string;
+          monthly_cents: number;
+          note?: string | null;
+          source: string;
+          source_url: string;
+          fetched_at?: string;
+        };
+        Update: {
+          id?: number;
+          component?: string;
+          scope?: string;
+          monthly_cents?: number;
+          note?: string | null;
+          source?: string;
+          source_url?: string;
+          fetched_at?: string;
         };
         Relationships: [];
       };
@@ -17353,6 +17437,19 @@ export type Database = {
           fleet_demand_cap_bps: number;
           fleet_demand_cap_rank: number;
           fleet_demand_min_requests: number;
+          seo_rental_count_min: number;
+          tracker_product_enabled: boolean;
+          tracker_product_name: string;
+          tracker_product_monthly_cents: number | null;
+          tracker_product_install_cents: number | null;
+          tracker_product_features: Json;
+          tracker_product_details: string | null;
+          own_apr_bps: number;
+          own_term_months: number;
+          own_km_per_month: number;
+          own_depreciation_bps: number;
+          own_cleaning_monthly_cents: number | null;
+          seo_i18n_min_coverage_bps: number;
         };
         Insert: {
           id?: string;
@@ -18047,6 +18144,19 @@ export type Database = {
           fleet_demand_cap_bps?: number;
           fleet_demand_cap_rank?: number;
           fleet_demand_min_requests?: number;
+          seo_rental_count_min?: number;
+          tracker_product_enabled?: boolean;
+          tracker_product_name?: string;
+          tracker_product_monthly_cents?: number | null;
+          tracker_product_install_cents?: number | null;
+          tracker_product_features?: Json;
+          tracker_product_details?: string | null;
+          own_apr_bps?: number;
+          own_term_months?: number;
+          own_km_per_month?: number;
+          own_depreciation_bps?: number;
+          own_cleaning_monthly_cents?: number | null;
+          seo_i18n_min_coverage_bps?: number;
         };
         Update: {
           id?: string;
@@ -18741,6 +18851,19 @@ export type Database = {
           fleet_demand_cap_bps?: number;
           fleet_demand_cap_rank?: number;
           fleet_demand_min_requests?: number;
+          seo_rental_count_min?: number;
+          tracker_product_enabled?: boolean;
+          tracker_product_name?: string;
+          tracker_product_monthly_cents?: number | null;
+          tracker_product_install_cents?: number | null;
+          tracker_product_features?: Json;
+          tracker_product_details?: string | null;
+          own_apr_bps?: number;
+          own_term_months?: number;
+          own_km_per_month?: number;
+          own_depreciation_bps?: number;
+          own_cleaning_monthly_cents?: number | null;
+          seo_i18n_min_coverage_bps?: number;
         };
         Relationships: [];
       };
@@ -21165,6 +21288,105 @@ export type Database = {
         };
         Relationships: [];
       };
+      seo_events: {
+        Row: {
+          slug: string;
+          name: string;
+          category: string;
+          venue: string;
+          venue_address: string | null;
+          city: string;
+          lat: number;
+          lng: number;
+          usual_months: string;
+          starts_on: string | null;
+          ends_on: string | null;
+          summary: string;
+          source_name: string;
+          source_url: string;
+          is_active: boolean;
+          sort_order: number;
+          updated_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          slug: string;
+          name: string;
+          category: string;
+          venue: string;
+          venue_address?: string | null;
+          city?: string;
+          lat: number;
+          lng: number;
+          usual_months: string;
+          starts_on?: string | null;
+          ends_on?: string | null;
+          summary: string;
+          source_name: string;
+          source_url: string;
+          is_active?: boolean;
+          sort_order?: number;
+          updated_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          slug?: string;
+          name?: string;
+          category?: string;
+          venue?: string;
+          venue_address?: string | null;
+          city?: string;
+          lat?: number;
+          lng?: number;
+          usual_months?: string;
+          starts_on?: string | null;
+          ends_on?: string | null;
+          summary?: string;
+          source_name?: string;
+          source_url?: string;
+          is_active?: boolean;
+          sort_order?: number;
+          updated_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      seo_languages: {
+        Row: {
+          code: string;
+          name: string;
+          native_name: string;
+          hreflang: string;
+          dir: string;
+          mt_code: string | null;
+          is_active: boolean;
+          sort_order: number;
+        };
+        Insert: {
+          code: string;
+          name: string;
+          native_name: string;
+          hreflang: string;
+          dir?: string;
+          mt_code?: string | null;
+          is_active?: boolean;
+          sort_order?: number;
+        };
+        Update: {
+          code?: string;
+          name?: string;
+          native_name?: string;
+          hreflang?: string;
+          dir?: string;
+          mt_code?: string | null;
+          is_active?: boolean;
+          sort_order?: number;
+        };
+        Relationships: [];
+      };
       seo_pages: {
         Row: {
           slug: string;
@@ -21264,6 +21486,54 @@ export type Database = {
           cars_changed_at?: string | null;
           min_real_cars?: number | null;
           was_indexable?: boolean | null;
+        };
+        Relationships: [];
+      };
+      seo_string_sources: {
+        Row: {
+          key: string;
+          text: string;
+          hash: string;
+          updated_at: string;
+        };
+        Insert: {
+          key: string;
+          text: string;
+          hash: string;
+          updated_at?: string;
+        };
+        Update: {
+          key?: string;
+          text?: string;
+          hash?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      seo_strings: {
+        Row: {
+          lang: string;
+          key: string;
+          text: string;
+          source_hash: string;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          lang: string;
+          key: string;
+          text: string;
+          source_hash: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          lang?: string;
+          key?: string;
+          text?: string;
+          source_hash?: string;
+          status?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -29624,6 +29894,7 @@ export type Database = {
       admin_record_tracker_installed: { Args: { p_vehicle: string; p_admin: string; p_on?: string }; Returns: undefined };
       admin_save: { Args: { p_admin: string; p_table: string; p: Json }; Returns: Json };
       admin_set_vehicle_terms: { Args: { p_vehicle: string; p_admin: string; p_terms?: Json }; Returns: Json };
+      airport_pages: { Args: never; Returns: Json };
       app_links: { Args: never; Returns: Json };
       article: { Args: { p_slug: string }; Returns: Json };
       articles_public: { Args: never; Returns: Json };
@@ -29670,6 +29941,7 @@ export type Database = {
       coverage_affiliate_public: { Args: never; Returns: Json };
       crawler_guard: { Args: never; Returns: boolean };
       delivery_origin: { Args: never; Returns: Json };
+      delivery_to_point: { Args: { p_lat: number; p_lng: number }; Returns: Json };
       door: { Args: { p_user: string; p_aal: string; p_call: string; p_name: string; p?: Json }; Returns: Json };
       driver_sign_agreement: { Args: { p_signer: string; p_consent_text: string; p_document_sha256: string; p_consents: Json; p_typed_name?: string; p_drawn_signature?: string; p_ip?: string; p_user_agent?: string }; Returns: string };
       driver_signing: { Args: { p_signer: string }; Returns: Json };
@@ -29768,6 +30040,8 @@ export type Database = {
       referral_partner_code_ok: { Args: { p_code: string }; Returns: boolean };
       referral_program_public: { Args: never; Returns: Json };
       register_account: { Args: { p_user: string; p_email: string; p_full_name: string; p_phone?: string }; Returns: Json };
+      rent_vs_own_inputs: { Args: { p_make: string; p_model: string; p_year: number; p_city?: string }; Returns: Json };
+      rent_vs_own_page: { Args: { p_make: string; p_model: string; p_year: number; p_city?: string }; Returns: Json };
       renter_agree_booking_change: { Args: { p_request: string; p_by: string; p_ip?: string; p_user_agent?: string }; Returns: undefined };
       renter_agreement_fill: { Args: { p_by: string; p_booking: string; p: Json }; Returns: Json };
       renter_agreement_missing: { Args: { p_booking: string; p_by: string }; Returns: Json };
@@ -29803,6 +30077,7 @@ export type Database = {
       renter_withdraw_booking_change: { Args: { p_request: string; p_by: string }; Returns: undefined };
       renter_withdraw_request: { Args: { p_booking: string; p_by: string; p_note?: string }; Returns: undefined };
       resolve_path: { Args: { p_path: string }; Returns: Json };
+      review_summary: { Args: { p_vehicle?: string }; Returns: Json };
       rewards_mine_code_cancel: { Args: { p_code: string }; Returns: Json };
       rewards_mine_google_claim: { Args: { p_number: string; p_name: string }; Returns: Json };
       rewards_mine_redeem: { Args: { p_points: number }; Returns: Json };
@@ -29812,8 +30087,12 @@ export type Database = {
       search_available: { Args: { p_pickup: string; p_return: string; p_filters?: Json }; Returns: { vehicle_id: string; slug: string; vehicle_year: number; make: string; model: string; vehicle_class: string; seats: number; transmission: string; fuel: string; allows_18_to_20: boolean; daily_rate_cents: number; billable_days: number; rental_charge_cents: number; subtotal_cents: number; hst_cents: number; total_cents: number; deposit_cents: number }[] };
       search_scope: { Args: never; Returns: string };
       seo_content_epoch: { Args: never; Returns: string };
+      seo_event: { Args: { p_slug: string }; Returns: Json };
+      seo_events_list: { Args: never; Returns: Json };
       seo_fuel_prices: { Args: never; Returns: Json };
       seo_hub_links: { Args: never; Returns: Json };
+      seo_i18n_bundle: { Args: { p_lang: string }; Returns: Json };
+      seo_languages_state: { Args: never; Returns: Json };
       seo_links: { Args: never; Returns: Json };
       seo_page: { Args: { p_slug: string }; Returns: Json };
       seo_pages_public: { Args: never; Returns: Json };
@@ -30266,7 +30545,9 @@ export type Database = {
       site_hero_photos: { Args: { p_limit?: number }; Returns: Json };
       site_settings_public: { Args: never; Returns: Json };
       sitemap_all: { Args: never; Returns: { path: string; kind: string; lastmod: string; images: Json }[] };
+      sitemap_families: { Args: never; Returns: Json };
       sitemap_hubs: { Args: never; Returns: Json };
+      sitemap_languages: { Args: never; Returns: Json };
       sitemap_priority: { Args: never; Returns: Json };
       sitemap_rows: { Args: never; Returns: { path: string; kind: string; lastmod: string }[] };
       stock_photos_generic: { Args: { p_slot: string }; Returns: Json };
@@ -30277,6 +30558,7 @@ export type Database = {
       submit_place_lead: { Args: { p: Json; p_ip?: string }; Returns: Json };
       track_beat: { Args: { p: Json }; Returns: Json };
       track_ingest: { Args: { p: Json; p_geo?: Json }; Returns: Json };
+      tracker_product: { Args: never; Returns: Json };
       turo_email_receive: { Args: { p: Json }; Returns: Json };
       turo_match_keys: { Args: never; Returns: Json };
       turo_rematch_due: { Args: { p_limit?: number }; Returns: Json };

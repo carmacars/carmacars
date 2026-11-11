@@ -13,6 +13,7 @@ import { vehicleInput, vehicleKit, type VehicleRead } from '@/features/kit/pages
 import type { Spec } from './content';
 import { stockPhoto } from './photo';
 import { vehicleDepth } from '@/features/seo/depth-data';
+import { SiteReviews } from '@/features/seo/SiteReviews';
 import { DepthSections } from '@/features/seo/Depth';
 import '@/styles/vehicles.css';
 
@@ -123,6 +124,7 @@ export async function ModelView({ p }: { p: ModelPage }) {
         </section>}
         <Kit p={p} sp={[]} t={t} />
         <DepthSections d={depth} look="vehicle" />
+        <SiteReviews look="vehicle" />
         <SimilarModels items={p.similar_models} title={`Similar to the ${name}`} />
       </div>
       <div className="wrap vp-body"><p className="small" data-testid="vp-buy-link"><Link prefetch={false} className="link" href={`/buy${p.path.slice(5)}`}>Buying a {name}? Specs, recalls and what to check</Link></p></div>
@@ -173,6 +175,7 @@ export async function YearView({ p }: { p: YearPage }) {
         <CostBlock sp={sp} s={p.settings} name={name} />
         <Kit p={p} sp={sp} t={t} />
         <DepthSections d={depth} look="vehicle" />
+        <SiteReviews look="vehicle" />
         {p.trims.length > 0 && <section className="vp-sec" aria-labelledby="h-trims">
           <h2 className="d3" id="h-trims">{p.year} {p.model.name} trims in Canada</h2>
           <ul className="hub-grid" data-testid="vp-trims">{p.trims.map((x) => { const s1 = specs(p.variants, p.settings, x.variant_ids); return (
@@ -238,6 +241,7 @@ export async function TrimView({ p }: { p: TrimPage }) {
         </section>
         <StatsBlock sp={sp} dims={p.dims} model={p.model.name} trim={p.trim.name} name={name} s={p.settings} seats={seats} />
         <DepthSections d={depth} look="vehicle" />
+        <SiteReviews look="vehicle" />
         <CostBlock sp={sp} s={p.settings} name={name} />
         <Kit p={p} sp={sp} dims={dimsFor(p.dims, p.model.name, p.trim.name)} t={t} />
         <section className="vp-sec" aria-labelledby="h-diff" data-testid="vp-diffs">

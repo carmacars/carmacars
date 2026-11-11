@@ -202,6 +202,10 @@ test('the programmatic vehicle pages: no ISR entry, kept at the edge for 6 hours
   for (const p of ['/cars/volkswagen/jetta', '/cars/volkswagen/jetta/2020/sportline/port-credit/black', '/buy/volkswagen', '/t/car-hire/volkswagen/jetta/2020/sportline/streetsville'])
     assert.ok(PROGRAMMATIC.test(p), p);
   for (const p of ['/makes', '/places', '/places/3']) assert.ok(PROGRAMMATIC.test(p), p);
+  // release 36: the new page families and the language versions
+  for (const p of ['/events', '/events/tiff', '/airport-car-rental/yyz', '/rent-vs-own/toyota/camry/2022/mississauga', '/gps-tracker', '/fr', '/fr/car-rental/mississauga', '/pa/events/tiff'])
+    assert.ok(PROGRAMMATIC.test(p), p);
+  for (const p of ['/xx/car-rental/a', '/fr/admin/x', '/events/a/b']) assert.ok(!PROGRAMMATIC.test(p), p);
   for (const p of ['/cars', '/cars/porsche-911', '/buy', '/t/car-hire', '/admin/x']) assert.ok(!PROGRAMMATIC.test(p), p);
   assert.equal(edgeTtl('/cars/volkswagen/jetta/2020', 200, h({ 'cache-control': 'private, no-cache, no-store, max-age=0, must-revalidate' })), PROGRAMMATIC_TTL_S);
   assert.equal(edgeTtl('/buy/volkswagen', 200, h({ 'cache-control': 'private, no-store', 'set-cookie': 'a=1' })), 0);

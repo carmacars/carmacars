@@ -9,7 +9,8 @@ import { Icon } from '@/components/Icon';
 import { JsonLd } from '@/components/JsonLd';
 import { businessLd, napAddress } from '@/features/seo/business';
 import { getArticles, getSeoLinks, getSeoPage, paras, type SeoPage } from '@/features/seo/data';
-import { absUrl, breadcrumbLd, faqLd, type Trail, seoMeta } from '@/features/seo/meta';
+import { absUrl, breadcrumbLd, faqLd, type Trail, seoMeta, withLanguages } from '@/features/seo/meta';
+import { langAlternates } from '@/features/i18n/data';
 import { money } from '@/lib/format';
 import { fill, getClasses, getFleet, getSettings, getTokens, siteUrl } from '@/lib/site';
 import OG from '@/features/seo/og-images.json';
@@ -20,6 +21,7 @@ import { buildDepth } from '@/features/seo/depth';
 import { depthCar, getDepthFacts } from '@/features/seo/depth-data';
 import { DepthSections } from '@/features/seo/Depth';
 import { ReadyCars } from '@/features/seo/ReadyCars';
+import { SiteReviews } from '@/features/seo/SiteReviews';
 import '@/styles/seo.css';
 import '@/styles/vehicles.css';
 
@@ -51,8 +53,10 @@ export async function generateMetadata({ params }: Params) {
   const { p, hub } = await load((await params).slug);
   if (!p) return hubMeta(hub!);
   const t = await getTokens();
-  return seoMeta({ title: fill(p.copy.seo_title, t), description: fill(p.copy.meta_description, t), path: p.path, noindex: !p.indexable,
+  const m = await seoMeta({ title: fill(p.copy.seo_title, t), description: fill(p.copy.meta_description, t), path: p.path, noindex: !p.indexable,
     image: OG.pages.includes(p.slug) ? `${siteUrl()}/og/pages/${p.slug}.png` : null, imageAlt: fill(p.copy.h1, t) });
+  // release 36: the language versions of the landing page (only the ready languages)
+  return withLanguages(m, await langAlternates(p.path, siteUrl()));
 }
 
 export default async function LandingPage({ params }: Params) {
@@ -134,6 +138,7 @@ export default async function LandingPage({ params }: Params) {
           </section>
         ))}
         <DepthSections d={depth} />
+        <SiteReviews />
         {faq.length > 0 && (
           <section className="car-sec" aria-labelledby="h-faq">
             <h2 className="d2" id="h-faq">Questions</h2>

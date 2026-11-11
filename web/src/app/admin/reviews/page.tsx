@@ -5,6 +5,8 @@ import { Act } from '@/features/admin/Act';
 import { Badge, BookingLink, Card, Filters, PageHead, Table, t, label } from '@/features/admin/ui';
 import { door } from '@/server/door';
 import { ReviewsDashboard, type Overview } from '@/features/reviews/ReviewsDashboard';
+import { OutsideReviews, type OutsideRow } from '@/features/reviews/OutsideReviews';
+import { getFleet } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Reviews', path: '/admin/reviews', noindex: true, description: 'Review moderation.' });
@@ -18,12 +20,14 @@ export default async function Reviews({ searchParams }: { searchParams: Promise<
   const days = [7, 30, 90, 365].includes(Number(sp.days)) ? Number(sp.days) : 30;
   const overview = await door<Overview>(user.id, 'ops_read', 'review_overview', { days }).catch(() => null);
   const status = sp.status ?? 'pending';
+  const [outside, fleet] = await Promise.all([door<OutsideRow[]>(user.id, 'admin_read', 'outside_reviews', {}).catch(() => []), getFleet().catch(() => [])]);
   const [{ rows }, held] = await Promise.all([list('reviews', { eq: status ? { status } : {}, limit: 200 }), list('review_request_decisions', { eq: { status: 'held' }, limit: 100 })]);
   const R = ['/admin/reviews'];
   return (<>
     <PageHead title="Reviews" purpose="Review requests, the hold list, Google reviews and their matches, and the reviews left on the site." />
     <Filters base="/admin/reviews" name="days" value={String(days)} sp={sp} options={[['7', '7 days'], ['30', '30 days'], ['90', '90 days'], ['365', '12 months']]} />
     {overview && <ReviewsDashboard o={overview} base="/admin/reviews" bookingBase="/admin/bookings" admin canMatch />}
+    <OutsideReviews rows={outside} cars={fleet.filter((c) => !c.is_sample).map((c) => ({ id: c.vehicle_id, name: [c.year, c.make, c.model, c.trim].filter(Boolean).join(' ') }))} admin refresh={R} />
     <h2 className="d4">Reviews left on the site</h2>
     {held.rows.length > 0 && <Card title="Ask for a review after a booking with problems?" testId="review-decisions">
       <Table<R> rows={held.rows} rowKey={(r) => String(r.booking_id)} cols={[{ key: 'booking_number', label: 'Booking', render: (r) => <BookingLink n={r.booking_number} /> }, { key: 'problems', label: 'Problems', className: 'wrap', render: (r) => (r.problems as string[] | null)?.map(label).join(', ') },

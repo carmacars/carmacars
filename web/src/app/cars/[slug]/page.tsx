@@ -16,6 +16,8 @@ import { getHubLinks, getSeoLinks } from '@/features/seo/data';
 import { rpc } from '@/lib/db/repo';
 import { money, FUEL_LABEL } from '@/lib/format';
 import { pickSimilar } from '@/features/seo/steer';
+import { getReviews, ReviewList } from '@/features/seo/SiteReviews';
+import { reviewLd } from '@/features/seo/reviews-ld';
 import { deliveryFrom, fill, getClasses, getFacts, getFleet, getSettings, getTokens, listItems, photoUrl, siteUrl } from '@/lib/site';
 import type { CarPage as Car } from '@/lib/types';
 import { makePage, type MakePage } from '@/features/vehicles/data';
@@ -119,7 +121,10 @@ export default async function CarPage({ params }: Params) {
   // 0073: real cars render exactly like the sample cars. The written copy feeds the listing's headline, blurb,
   // features and questions (synced by the database); its other parts are not shown, as the samples have none.
   const drive = driveOf(c.drivetrain);
-  const rv = c.reviews ?? { count: 0, average: null, min_for_rating: 3, items: [] };
+  // 2002: the car's real reviews (the site's and those received elsewhere, each with its source), else the fleet's
+  const sum = await getReviews(c.is_sample ? null : c.vehicle_id);
+  const own = sum && sum.scope === 'car' ? sum : null;
+  const rvLd = reviewLd(own);
   // the landing pages this car belongs on (only those that may be indexed), for the links under the car
   const has = (k: string) => c.classes.includes(k);
   const want = new Set(['toronto', 'car-delivery', 'monthly', 'weekly', ...(has('suv') ? ['suv'] : []), ...(has('luxury') || has('premium') || has('exotic') ? ['luxury'] : []),
@@ -146,12 +151,8 @@ export default async function CarPage({ params }: Params) {
     fuelType: FUEL_LABEL[c.fuel] ?? c.fuel, vehicleTransmission: c.transmission ?? undefined,
     ...(drive && DRIVE[drive] ? { driveWheelConfiguration: `https://schema.org/${DRIVE[drive]}` } : {}),
     seatingCapacity: c.seats ?? undefined, numberOfDoors: c.doors ?? undefined, itemCondition: 'https://schema.org/UsedCondition',
-    ...(rv.count >= rv.min_for_rating && rv.average !== null ? {
-      // only this car's own reviews, collected on the site after a completed rental and shown in full on this page
-      aggregateRating: { '@type': 'AggregateRating', ratingValue: String(rv.average), reviewCount: rv.count, bestRating: 5, worstRating: 1 },
-      review: rv.items.slice(0, 5).map((r) => ({ '@type': 'Review', author: { '@type': 'Person', name: r.name ?? 'Renter' }, datePublished: r.month,
-        reviewRating: { '@type': 'Rating', ratingValue: r.rating, bestRating: 5, worstRating: 1 }, ...(r.body ? { reviewBody: r.body } : {}), ...(r.title ? { name: r.title } : {}) }))
-    } : {}),
+    // only this car's own real reviews, shown in full on this page (2002: with those received elsewhere, labelled)
+    ...(rvLd ?? {}),
     offers: {
       '@type': 'Offer', url, businessFunction: 'http://purl.org/goodrelations/v1#LeaseOut', priceCurrency: 'CAD', price: (c.daily_rate_cents / 100).toFixed(2),
       priceSpecification: [['DAY', c.daily_rate_cents, 'per day'], ['WEE', c.weekly_rate_cents, 'per week'], ['MON', c.monthly_rate_cents, 'per 30 days']].map(([u, p, txt]) => ({ '@type': 'UnitPriceSpecification', price: ((p as number) / 100).toFixed(2), priceCurrency: 'CAD', unitCode: u, unitText: txt, valueAddedTaxIncluded: false })),
@@ -321,15 +322,11 @@ export default async function CarPage({ params }: Params) {
             <p className="small muted measure">{F('The first row that fits applies. A non-refundable booking takes {{nonRef}} off the rental charge and is not refunded if you cancel. If we cancel, you get everything back.')} <Link className="link" href="/cancellation-policy">Cancellation policy</Link>.</p>
           </section>
 
-          {rv.count > 0 && (
-            <section id="reviews" className="car-sec" aria-labelledby="h-rv">
-              <h2 className="d2" id="h-rv">Reviews of this car</h2>
-              <p className="small muted">{rv.count} {rv.count === 1 ? 'review' : 'reviews'} from renters of this car{rv.average !== null ? `, ${rv.average} out of 5 on average` : ''}. Every review comes from a completed rental and is published in full.</p>
-              <ul className="linklist">{rv.items.map((r, i) => (
-                <li key={i}><p><b>{r.rating} out of 5</b>{r.title ? `: ${r.title}` : ''}</p>{r.body && <p className="small">{r.body}</p>}
-                  <p className="xs muted">{r.name ?? 'A renter'}, {new Intl.DateTimeFormat('en-CA', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(r.month))}</p>
-                  {r.rewarded && <p className="xs muted" data-testid="review-rewarded">Received reward points</p>}
-                  {r.reply && <p className="small muted">Our reply: {r.reply}</p>}</li>))}</ul>
+          {sum && sum.count > 0 && (
+            <section id="reviews" className="car-sec" aria-labelledby="h-rv" data-testid="car-reviews">
+              <h2 className="d2" id="h-rv">{own ? 'Reviews of this car' : 'What renters say about CarmaCars'}</h2>
+              <p className="small muted">{sum.count} {sum.count === 1 ? 'review' : 'reviews'} {own ? 'from renters of this car' : 'from our renters'}{sum.average !== null ? `, ${sum.average} out of 5 on average` : ''}. Each shows where we received it.{own?.rentals ? ` This car has completed ${own.rentals} rentals with us.` : ''}</p>
+              <ReviewList s={sum} />
             </section>
           )}
 

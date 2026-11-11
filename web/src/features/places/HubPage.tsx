@@ -20,6 +20,7 @@ import { DepthSections } from '@/features/seo/Depth';
 import { getArticles } from '@/features/seo/data';
 import { getFleet } from '@/lib/site';
 import { ReadyCars } from '@/features/seo/ReadyCars';
+import { SiteReviews } from '@/features/seo/SiteReviews';
 import '@/styles/seo.css';
 import '@/styles/vehicles.css';
 
@@ -151,6 +152,7 @@ export async function HubPage({ h }: { h: Hub }) {
         )}
         <KitText sections={text.sections} source={text.source} look="hub" />
         {!auto && <DepthSections d={depth} />}
+        <SiteReviews />
         {!kitLocal && (h.landmarks.length > 0 || (h.airport && !wide)) && (
           <section className="car-sec landing__sec" aria-labelledby="h-around">
             <h2 className="d2" id="h-around">Around {h.place.name}</h2>

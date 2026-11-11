@@ -20,6 +20,7 @@ import { KitText } from '@/features/kit/KitText';
 import { vehicleInput, vehicleKit } from '@/features/kit/pages';
 import { stockPhoto } from './photo';
 import { vehicleDepth } from '@/features/seo/depth-data';
+import { SiteReviews } from '@/features/seo/SiteReviews';
 import { DepthSections } from '@/features/seo/Depth';
 import '@/styles/vehicles.css';
 
@@ -320,6 +321,7 @@ export async function TwinView(tw: Twin) {
         {(mode === 'sale' || mode === 'bodyshop') && <Safety x={x} name={name} />}
         <KitText sections={text.sections} source={text.source} look="vehicle" />
         {depth && <DepthSections d={depth} look="vehicle" />}
+        <SiteReviews look="vehicle" />
         {p.level === 'year' && (p as YearPage).trims.length > 0 && <section className="vp-sec" aria-labelledby="h-trims"><h2 className="d3" id="h-trims">The {name} trims in Canada</h2>
           <ul className="chips">{(p as YearPage).trims.map((tr) => <li key={tr.slug}><Link prefetch={false} className="chip" href={at(tree, tr.path)}>{tr.name}</Link></li>)}</ul></section>}
         {(p.level === 'trim' || isTier(p)) && <TwinLinks tree={tree} base={at(tree, trimPath)} tiers={tiers} city={isTier(p) ? p.city?.slug : null} colour={isTier(p) ? p.colour?.slug : null} siblings={(p as TrimPage).siblings} trim={(p as TrimPage).trim.slug} trimPath={trimPath} />}
