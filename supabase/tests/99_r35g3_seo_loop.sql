@@ -93,6 +93,12 @@ select test.eq('E with room again it is queued', app.seo_digest_enqueue(test.sgm
 select test.ok('E the catalogue has the email', exists (select 1 from notification_catalogue where code = 'staff_seo_digest' and in_catalogue and audience = 'staff_admin'));
 
 -- ---------------------------------------------------------------- cached-only by usage
+-- earlier suites record Workers requests and may switch the mode: this section starts from none, at the 70% line, and
+-- counts its own audit lines
+delete from usage_readings where service in ('workers_requests', 'workers_cpu');
+select app.job_usage_refresh();
+update program_settings set usage_cached_pct = 70, usage_cached_since = null;
+create temp table sg_audit0 as select (select count(*) from audit_log where action = 'usage_cached_on') n_on, (select count(*) from audit_log where action = 'usage_cached_off') n_off;
 select test.eq('F nothing used: off', app.usage_cached_check(), false);
 select app.usage_record_external(('{"source": "cloudflare", "days": [{"day": "' || app.today() || '", "values": {"workers_requests": 6900000}}]}')::jsonb);
 select test.eq('F 69% of the requests: still off', app.usage_cached_check(), false);
@@ -103,13 +109,13 @@ select test.eq('F the Worker is told (the five-minute tick)', (app.server_jobs_d
 select test.eq('F Settings > Usage shows it', (app.usage_page(test.id('sgl_admin')) #>> '{cached_only,on}')::boolean, true);
 select test.eq('F and the line', (app.usage_page(test.id('sgl_admin')) #>> '{cached_only,line_pct}')::int, 70);
 select test.eq('F and how far the month is', (app.usage_page(test.id('sgl_admin')) #>> '{cached_only,share_bps}')::int, 7100);
-select test.eq('F switched on once in the audit log', (select count(*) from audit_log where action = 'usage_cached_on'), 1::bigint);
+select test.eq('F switched on once in the audit log', (select count(*) - (select n_on from sg_audit0) from audit_log where action = 'usage_cached_on'), 1::bigint);
 select app.usage_cached_check();
-select test.eq('F checking again does not log again', (select count(*) from audit_log where action = 'usage_cached_on'), 1::bigint);
+select test.eq('F checking again does not log again', (select count(*) - (select n_on from sg_audit0) from audit_log where action = 'usage_cached_on'), 1::bigint);
 update program_settings set usage_cached_pct = 80;
 select test.eq('F the line is a Program setting: at 80% it is off', app.usage_cached_check(), false);
 select test.ok('F and the start is cleared', (select usage_cached_since is null from program_settings limit 1));
-select test.eq('F switched off in the audit log', (select count(*) from audit_log where action = 'usage_cached_off'), 1::bigint);
+select test.eq('F switched off in the audit log', (select count(*) - (select n_off from sg_audit0) from audit_log where action = 'usage_cached_off'), 1::bigint);
 update program_settings set usage_cached_pct = 70;
 select test.eq('F back on at 70%', app.usage_cached_check(), true);
 select test.eq('F on the 1st of the next month it is off again', app.usage_cached_check((date_trunc('month', now() at time zone 'America/Toronto') + interval '1 month' + interval '1 hour') at time zone 'America/Toronto'), false);
