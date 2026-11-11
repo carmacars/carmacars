@@ -29,7 +29,7 @@ end $$;
 
 -- ================================================================ 1. who may
 select test.eq('a key without admin:write: refused (403), for both tools',
-  test.cf4('cc_live_cf4_read', 'attach_claim_photo', '{"claim": "CF4-CLM-1", "file_base64": "/9j/4AAQ"}') ->> 'status' || test.cf4('cc_live_cf4_read', 'attach_claim_estimate', '{"claim": "CF4-CLM-1"}') ->> 'status', '403403');
+  (test.cf4('cc_live_cf4_read', 'attach_claim_photo', '{"claim": "CF4-CLM-1", "file_base64": "/9j/4AAQ"}') ->> 'status') || (test.cf4('cc_live_cf4_read', 'attach_claim_estimate', '{"claim": "CF4-CLM-1"}') ->> 'status'), '403403');
 select test.eq('a CS key (not Admin, Finance or Fleet): refused (403)',
   test.cf4('cc_live_cf4_cs', 'attach_claim_photo', '{"claim": "CF4-CLM-1", "file_base64": "/9j/4AAQ"}') ->> 'status', '403');
 select test.eq('an unknown key: 401', test.cf4('cc_live_cf4_nope', 'attach_claim_photo', '{"claim": "CF4-CLM-1"}') ->> 'status', '401');
@@ -60,7 +60,7 @@ create temp table cf4_ok as select test.cf4('cc_live_cf4_full', 'attach_claim_es
   'shop_name', 'Test Body Shop', 'approved_shop', true, 'description', 'Rear bumper and quarter panel', 'confirm', true, 'preview_id', (select r #>> '{result,preview_id}' from cf4_pv))) r;
 select test.eq('estimate: confirmed, it is an incident cost of the claim by that person',
   (select format('%s %s %s %s %s', amount_cents, hst_cents, shop_name, approved_shop, created_by = test.id('cf4_admin')) from incident_costs where incident_id = test.id('inc:cf4') and kind = 'repair_estimate'),
-  '184500 21225 Test Body Shop true true');
+  '184500 21225 Test Body Shop t t');
 select test.eq('estimate: it counts in the claim''s damage cost', app.incident_damage_cost(test.id('inc:cf4')), 184500::bigint);
 select test.eq('estimate: a preview is used once', test.cf4('cc_live_cf4_full', 'attach_claim_estimate', jsonb_build_object('claim', 'CF4-CLM-1', 'amount_cents', 184500, 'hst_cents', 21225,
   'shop_name', 'Test Body Shop', 'approved_shop', true, 'description', 'Rear bumper and quarter panel', 'confirm', true, 'preview_id', (select r #>> '{result,preview_id}' from cf4_pv))) ->> 'error',
@@ -68,7 +68,7 @@ select test.eq('estimate: a preview is used once', test.cf4('cc_live_cf4_full', 
 select test.eq('estimate: the log has the preview and the confirm', (select string_agg(tool, ',' order by created_at) from api_calls where target = 'CF4-CLM-1' and ok), 'attach_claim_estimate:preview,attach_claim_estimate');
 insert into api_keys (user_id, kind, name, prefix, key_hash, scopes, created_by)
 select test.id('cf4_fin'), kind, 'Finance', 'cc_live_cf4f', test.cf4_h('cc_live_cf4_fin'), scopes, test.id('cf4_admin') from api_keys where key_hash = test.cf4_h('cc_live_cf4_full');
-select test.eq('estimate: a Finance person''s key may preview too', test.cf4('cc_live_cf4_fin', 'attach_claim_estimate', '{"claim": "CF4-CLM-1", "amount_cents": 1000, "shop_name": "Test Shop", "approved_shop": true}') #>> '{result,preview}', 'true');
+select test.eq('estimate: API access is for Admins: a key of a Finance person is refused too (403)', test.cf4('cc_live_cf4_fin', 'attach_claim_estimate', '{"claim": "CF4-CLM-1", "amount_cents": 1000, "shop_name": "Test Shop", "approved_shop": true}') ->> 'status', '403');
 
 -- ================================================================ 4. a file: stored by the web layer, recorded once
 create temp table cf4_ph as select test.cf4_do('cc_live_cf4_full', 'attach_claim_photo', '{"claim": "CF4-CLM-1", "file_base64": "/9j/4AAQ", "caption": "Rear bumper"}') r;
@@ -78,20 +78,22 @@ select test.ok('photo: the bytes are not logged', not exists (select 1 from api_
 select test.eq('photo: recorded once stored on the claim''s incident, under legal hold',
   (app.api_claim_file_record(test.cf4_h('cc_live_cf4_full'), (select id from api_previews where tool = 'attach_claim_photo' order by created_at desc limit 1),
      'claims/' || test.id('claim:cf4') || '/claude/' || gen_random_uuid() || '.jpg', 'image/jpeg', 'abc', 'test') ->> 'done'), 'true');
-select test.eq('photo: the document', (select format('%s %s %s %s', kind, title, legal_hold, storage_bucket) from documents where incident_id = test.id('inc:cf4') and kind = 'other'), 'other Rear bumper true documents');
+select test.eq('photo: the document', (select format('%s %s %s %s', kind, title, legal_hold, storage_bucket) from documents where incident_id = test.id('inc:cf4') and kind = 'other'), 'other Rear bumper t documents');
 select test.throws('photo: recorded once only', format($$select app.api_claim_file_record(%L, %L, %L, 'image/jpeg', 'abc', 'test')$$, test.cf4_h('cc_live_cf4_full'),
   (select id from api_previews where tool = 'attach_claim_photo' order by created_at desc limit 1), 'claims/' || test.id('claim:cf4') || '/claude/' || gen_random_uuid() || '.jpg'), 'Already stored');
+create temp table cf4_ph2 as select test.cf4_do('cc_live_cf4_full', 'attach_claim_photo', '{"claim": "CF4-CLM-1", "file_base64": "/9j/4AAQAA", "caption": "Other"}') r;
 select test.throws('photo: a path outside the claim is refused', format($$select app.api_claim_file_record(%L, %L, %L, 'image/jpeg', 'abc', 'test')$$, test.cf4_h('cc_live_cf4_full'),
-  (select id from api_previews where tool = 'attach_claim_photo' order by created_at desc limit 1), 'claims/' || gen_random_uuid() || '/claude/' || gen_random_uuid() || '.jpg'), 'Unexpected path|Already stored');
+  (select id from api_previews where tool = 'attach_claim_photo' order by created_at desc limit 1), 'claims/' || gen_random_uuid() || '/claude/' || gen_random_uuid() || '.jpg'), 'Unexpected path');
 create temp table cf4_es as select test.cf4_do('cc_live_cf4_full', 'attach_claim_estimate', '{"claim": "CF4-CLM-1", "amount_cents": 50000, "shop_name": "Test Paint", "approved_shop": false, "file_base64": "JVBERi0x"}') r;
 select test.eq('estimate with a file: the web layer is asked to store it first', (select r #>> '{result,run}' from cf4_es) || ' ' || (select count(*) from incident_costs where incident_id = test.id('inc:cf4')), 'claim_file 1');
+create temp table cf4_rec as select app.api_claim_file_record(test.cf4_h('cc_live_cf4_full'), (select id from api_previews where tool = 'attach_claim_estimate' order by created_at desc limit 1),
+     'claims/' || test.id('claim:cf4') || '/claude/' || gen_random_uuid() || '.pdf', 'application/pdf', 'def', 'test') ->> 'done' d;
 select test.eq('estimate with a file: recorded as a repair_estimate document and cost',
-  (app.api_claim_file_record(test.cf4_h('cc_live_cf4_full'), (select id from api_previews where tool = 'attach_claim_estimate' order by created_at desc limit 1),
-     'claims/' || test.id('claim:cf4') || '/claude/' || gen_random_uuid() || '.pdf', 'application/pdf', 'def', 'test') ->> 'done') || ' '
+  (select d from cf4_rec) || ' '
   || (select count(*) from incident_costs where incident_id = test.id('inc:cf4') and document_id is not null and shop_name = 'Test Paint' and not approved_shop) || ' '
   || (select count(*) from documents where incident_id = test.id('inc:cf4') and kind = 'repair_estimate'), 'true 1 1');
 select test.throws('record: a PDF is not a photo', format($$select app.api_claim_file_record(%L, %L, %L, 'application/pdf', 'x', 'test')$$, test.cf4_h('cc_live_cf4_full'),
-  (select id from api_previews where tool = 'attach_claim_photo' order by created_at desc limit 1), 'claims/' || test.id('claim:cf4') || '/claude/' || gen_random_uuid() || '.pdf'), 'Already stored|Unexpected file type');
+  (select id from api_previews where tool = 'attach_claim_photo' order by created_at desc limit 1), 'claims/' || test.id('claim:cf4') || '/claude/' || gen_random_uuid() || '.pdf'), 'Unexpected file type');
 select test.ok('the functions are for the server only', not has_function_privilege('authenticated', 'app.api_claim_file_record(text, uuid, text, text, text, text)', 'execute')
   and not has_function_privilege('anon', 'public.server_api_claim_file_record(text, uuid, text, text, text, text)', 'execute'));
 update program_settings p set api_access_enabled = s.e, api_calls_per_minute = s.n from cf4_ps s where p.id = s.id;

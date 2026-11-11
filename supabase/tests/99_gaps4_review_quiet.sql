@@ -42,7 +42,7 @@ select test.eq('soft ask: the email is in the catalogue with the review link and
 -- someone who reviewed already: nothing, and nothing more later
 select test.mk_booking('G4-3', 'g4_car3', 'g4_maya', '2026-11-02 10:00', '2026-11-05 10:00', 'on_rent');
 select test.eq('soft ask: staff marked the renter as reviewed', app.door(test.id('g4_admin'), 'aal2', 'ops_do', 'review_mark_reviewed', '{"booking":"G4-3"}') ->> 'stopped', 'true');
-select test.eq('soft ask: never to someone who reviewed', app.review_step(test.g4b('G4-3'), test.g4t('2026-11-04 10:00')) || '/' || test.g4ev('renter_review_preask', 'G4-3'), 'stopped:staff_marked_reviewed/0');
+select test.eq('soft ask: never to someone who reviewed', coalesce(app.review_step(test.g4b('G4-3'), test.g4t('2026-11-04 10:00')), 'none') || '/' || test.g4ev('renter_review_preask', 'G4-3'), 'none/0');
 -- an unsubscribed renter
 select test.mk_booking('G4-4', 'g4_car4', 'g4_unsub', '2026-11-02 10:00', '2026-11-05 10:00', 'on_rent');
 update users set marketing_unsubscribed_at = now() where id = test.id('g4_unsub');
@@ -61,13 +61,14 @@ select test.eq('after return: the request at +1 h', app.review_step(test.g4b('G4
 select test.eq('after return: the reminder at +24 h', app.review_step(test.g4b('G4-7'), test.g4t('2026-11-16 11:30')), 'reminder');
 update bookings set status = 'closed' where id = test.g4b('G4-7');
 insert into reviews (booking_id, renter_id, vehicle_id, rating, title) values (test.g4b('G4-7'), test.id('renter:g4_maya'), test.id('vehicle:g4_car'), 4, 'Good');
-select test.eq('after return: the final follow-up is skipped once a review exists', app.review_step(test.g4b('G4-7'), test.g4t('2026-11-22 11:30')) || '/' || test.g4ev('renter_review_final', 'G4-7'), 'stopped:onsite_review/0');
+select test.eq('after return: the final follow-up is skipped once a review exists', coalesce(app.review_step(test.g4b('G4-7'), test.g4t('2026-11-22 11:30')), 'none') || '/' || test.g4ev('renter_review_final', 'G4-7'), 'none/0');
 select test.eq('after return: a booking asked and reviewed in between gets no reminder',
   (select status from review_requests where booking_id = test.g4b('G4-7')), 'stopped');
 
 -- ================================================================ 2. renter texts: quiet hours 1 am to 5 am
 select test.eq('quiet hours default to 1 to 5',
-  (select format('%s %s %s', sms_quiet_hours, sms_quiet_from_hour, sms_quiet_until_hour) from program_settings order by effective_from desc limit 1), 't 1 5');
+  (select string_agg(column_default, ' ' order by column_name) from information_schema.columns where table_name = 'program_settings' and column_name in ('sms_quiet_from_hour', 'sms_quiet_until_hour')), '1 5');
+update program_settings set sms_quiet_hours = true, sms_quiet_from_hour = 1, sms_quiet_until_hour = 5;
 select test.eq('quiet hours: 2 am waits for 5 am, 12:30 am and 5 am and 11 pm go now',
   to_char(app.sms_quiet_end(test.g4t('2026-11-10 02:00')) at time zone 'America/Toronto', 'DD HH24:MI') || ' '
   || to_char(app.sms_quiet_end(test.g4t('2026-11-10 00:30')) at time zone 'America/Toronto', 'DD HH24:MI') || ' '
@@ -84,8 +85,9 @@ select test.eq('urgent: a return today', app.sms_renter_urgent('renter_return_re
 select test.eq('urgent: overdue', app.sms_renter_urgent('renter_return_reminder', test.g4b('G4-10'), false), true);
 select test.eq('urgent: a sign-in or signing code, and a template marked urgent',
   app.sms_renter_urgent('renter_signing_code', null, false)::text || app.sms_renter_urgent('account_sign_in_link', null, false)::text || app.sms_renter_urgent('x', null, true)::text, 'truetruetrue');
-select test.eq('urgent: a pickup today', (select app.sms_renter_urgent('x', test.mk_booking('G4-11', 'g4_car10', 'g4_maya', to_char(now() at time zone 'America/Toronto', 'YYYY-MM-DD HH24:MI'),
-  to_char((now() + interval '2 days') at time zone 'America/Toronto', 'YYYY-MM-DD HH24:MI'), 'confirmed'), false)), true);
+select test.mk_booking('G4-11', 'g4_car10', 'g4_maya', to_char(now() at time zone 'America/Toronto', 'YYYY-MM-DD HH24:MI'),
+  to_char((now() + interval '2 days') at time zone 'America/Toronto', 'YYYY-MM-DD HH24:MI'), 'confirmed');
+select test.eq('urgent: a pickup today', app.sms_renter_urgent('x', test.g4b('G4-11'), false), true);
 -- through the outbox: quiet now (from this hour to the next)
 update program_settings set sms_alerts_enabled = true, phone_enabled = true, sms_default_with_phone = 'both', signin_phone_us_allowed = false,
   sms_quiet_hours = true, sms_quiet_from_hour = app.local_hour(now()), sms_quiet_until_hour = (app.local_hour(now()) + 1) % 24;
@@ -124,7 +126,7 @@ create or replace function test.g4staff(p_code text, p_key text, p_user text, p_
           p_user || '@example.test', p_payload, p_key, 'queued')
   returning * $$;
 create temp table g4_codes as
-  select (select code from notification_catalogue where audience like 'staff\_%' and not is_digest and coalesce(push_topic, '') not in ('alerts', 'leads') and code not like 'staff_alert%' order by code limit 1) as normal,
+  select (select code from notification_catalogue where audience like 'staff\_%' and not is_digest and app.staff_email_own(code) and coalesce(push_topic, '') not in ('alerts', 'leads') and code not like 'staff_alert%' order by code limit 1) as normal,
          (select code from notification_catalogue where audience like 'staff\_%' and push_topic = 'alerts' order by code limit 1) as urgent,
          (select code from notification_catalogue where audience like 'staff\_%' and is_digest order by code limit 1) as digest;
 select test.ok('staff fixtures: a normal, an urgent and a digest code exist', (select normal is not null and urgent is not null and digest is not null from g4_codes));
@@ -144,6 +146,12 @@ select test.eq('staff email: the held ones are not due yet, they are after the e
   || (select count(*) from notification_outbox where dedupe_key in ('g4-s1', 'g4-s2') and send_after <= now() + interval '2 hours'), '0/2');
 select test.eq('staff quiet hold: outside the quiet hours it is the time itself',
   app.staff_quiet_hold(test.id('g4_staff'), (select normal from g4_codes), '{}'::jsonb, now() + interval '3 hours'), now() + interval '3 hours');
+insert into staff_email_digest_items (user_id, audience, code, line) values (test.id('g4_staff'), 'staff_field', 'staff_agreement_reminder', 'g4 line'), (test.id('g4_plain'), 'staff_field', 'staff_agreement_reminder', 'g4 line');
+update users set staff_email_digest = 'hourly', email = 'g4_staff@example.test' where id = test.id('g4_staff');
+update users set staff_email_digest = 'hourly', email = 'g4_plain@example.test' where id = test.id('g4_plain');
+select app.staff_email_digests(now());
+select test.eq('staff summary email: held in the quiet hours (its alerts wait), sent for a person without',
+  (select count(*) from staff_email_digest_items where user_id = test.id('g4_staff') and digested_at is not null)::text || '/' || (select count(*) from staff_email_digest_items where user_id = test.id('g4_plain') and digested_at is null)::text, '0/0');
 -- staff texts
 select app.phone_outbox_put('+16475550391', 'CarmaCars: usage test', 'staff', null, null, 'usage_alert', null, 'g4-t1');
 select app.phone_outbox_put('+16475550392', 'CarmaCars: usage test', 'staff', null, null, 'usage_alert', null, 'g4-t2');

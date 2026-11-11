@@ -17991,6 +17991,8 @@ export type Database = {
           intent_ai_enabled: boolean;
           intent_hot_score: number;
           intent_warm_score: number;
+          review_preask_enabled: boolean;
+          review_preask_days_before: number;
           fleet_demand_cap_bps: number;
           fleet_demand_cap_rank: number;
           fleet_demand_min_requests: number;
@@ -18783,6 +18785,8 @@ export type Database = {
           intent_ai_enabled?: boolean;
           intent_hot_score?: number;
           intent_warm_score?: number;
+          review_preask_enabled?: boolean;
+          review_preask_days_before?: number;
           fleet_demand_cap_bps?: number;
           fleet_demand_cap_rank?: number;
           fleet_demand_min_requests?: number;
@@ -19575,6 +19579,8 @@ export type Database = {
           intent_ai_enabled?: boolean;
           intent_hot_score?: number;
           intent_warm_score?: number;
+          review_preask_enabled?: boolean;
+          review_preask_days_before?: number;
           fleet_demand_cap_bps?: number;
           fleet_demand_cap_rank?: number;
           fleet_demand_min_requests?: number;
@@ -21519,6 +21525,7 @@ export type Database = {
           unhappy_at: string | null;
           created_at: string;
           updated_at: string;
+          preask_sent_at: string | null;
         };
         Insert: {
           booking_id: string;
@@ -21546,6 +21553,7 @@ export type Database = {
           unhappy_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          preask_sent_at?: string | null;
         };
         Update: {
           booking_id?: string;
@@ -21573,6 +21581,7 @@ export type Database = {
           unhappy_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          preask_sent_at?: string | null;
         };
         Relationships: [];
       };
@@ -31214,6 +31223,7 @@ export type Database = {
       server_amendment_record: { Args: { p_amendment: string }; Returns: Json };
       server_api_access_view: { Args: { p_admin: string }; Returns: Json };
       server_api_call: { Args: { p_hash: string; p_tool: string; p_args: Json; p_client?: string }; Returns: Json };
+      server_api_claim_file_record: { Args: { p_hash: string; p_preview: string; p_path: string; p_mime: string; p_sha: string; p_client?: string }; Returns: Json };
       server_api_hire_result: { Args: { p_hash: string; p_application: string; p_ok: boolean; p_error: string; p_client?: string }; Returns: Json };
       server_api_key_create: { Args: { p_admin: string; p_user: string; p_name: string; p_scopes: string[]; p_hash: string; p_prefix: string }; Returns: Json };
       server_api_key_revoke: { Args: { p_admin: string; p_id: string }; Returns: Json };

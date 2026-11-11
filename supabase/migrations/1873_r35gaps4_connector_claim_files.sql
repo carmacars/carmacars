@@ -36,7 +36,7 @@ declare
   v_est boolean := p_tool = 'attach_claim_estimate';
 begin
   if p_tool not in ('attach_claim_photo', 'attach_claim_estimate') then return app.api_call_pre1873(p_hash, p_tool, p_args, p_client); end if;
-  chk := app.api_key_check(p_hash, 'admin:write', p_tool, a, p_client);
+  chk := app.api_key_check(p_hash, 'admin:write', p_tool, a - 'file_base64', p_client);
   if not (chk ->> 'ok')::boolean then return chk; end if;
   k := jsonb_populate_record(null::api_keys, chk -> 'key');
   perform app.door_begin(k.user_id, 'aal2');
@@ -132,7 +132,7 @@ begin
   if v_est then
     insert into incident_costs (incident_id, kind, description, amount_cents, hst_cents, shop_name, approved_shop, document_id, created_by)
     values (c.incident_id, 'repair_estimate', left(nullif(btrim(coalesce(pv.args ->> 'description', '')), ''), 500), (pv.args ->> 'amount_cents')::bigint,
-            coalesce((pv.args ->> 'hst_cents')::bigint, 0), btrim(pv.args ->> 'shop_name'), (pv.args ->> 'approved_shop')::boolean, k.user_id)
+            coalesce((pv.args ->> 'hst_cents')::bigint, 0), btrim(pv.args ->> 'shop_name'), (pv.args ->> 'approved_shop')::boolean, v_doc, k.user_id)
     returning id into v_cost;
   end if;
   insert into api_calls (key_id, user_id, tool, target, args, after, ok, client)
