@@ -144,6 +144,13 @@ select test.eq('a lead''s WhatsApp message, by the number', pg_temp.cls('lead', 
 select test.ok('the job picks up a staff note just written', app.job_intent() like '%intents');
 
 -- ================================================================ 1. rideshare and delivery driving are welcome
+-- The FAQ block comes from the content seed, not a migration: a live block without the answer gets it once.
+insert into site_content_blocks (block_key, page, kind, body, data)
+values ('faq.road', 'faq', 'faq', 'On the road', '{"id":"road","items":[{"question":"Can I leave Ontario?","answer":"Only with our written consent."}]}'::jsonb)
+on conflict (block_key) do update set data = excluded.data;
+\ir ../migrations/1700_r35fix_rideshare_welcome.sql
+\ir ../migrations/1700_r35fix_rideshare_welcome.sql
+select test.eq('added once, an Admin''s other items kept', (select jsonb_array_length(data -> 'items') from site_content_blocks where block_key = 'faq.road'), 2);
 select test.ok('the FAQ says it, in the positive (the auto-replies answer from it)', exists (
   select 1 from site_content_blocks b, jsonb_array_elements(b.data -> 'items') e
    where b.block_key = 'faq.road' and e ->> 'answer' like 'Yes. Rideshare and delivery driving are welcome.%'));
