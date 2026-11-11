@@ -17,6 +17,8 @@ export type Database = {
           passed: boolean;
           answers: Json;
           created_at: string;
+          flagged: boolean;
+          seconds: number | null;
         };
         Insert: {
           id?: string;
@@ -28,6 +30,8 @@ export type Database = {
           passed: boolean;
           answers?: Json;
           created_at?: string;
+          flagged?: boolean;
+          seconds?: number | null;
         };
         Update: {
           id?: string;
@@ -39,6 +43,8 @@ export type Database = {
           passed?: boolean;
           answers?: Json;
           created_at?: string;
+          flagged?: boolean;
+          seconds?: number | null;
         };
         Relationships: [];
       };
@@ -192,6 +198,63 @@ export type Database = {
           explain?: string;
           updated_at?: string;
           updated_by?: string | null;
+        };
+        Relationships: [];
+      };
+      academy_quiz_starts: {
+        Row: {
+          user_id: string;
+          section_id: string;
+          started_at: string;
+        };
+        Insert: {
+          user_id: string;
+          section_id: string;
+          started_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          section_id?: string;
+          started_at?: string;
+        };
+        Relationships: [];
+      };
+      academy_resets: {
+        Row: {
+          user_id: string;
+          section_id: string;
+          reset_at: string;
+          reset_by: string;
+        };
+        Insert: {
+          user_id: string;
+          section_id: string;
+          reset_at?: string;
+          reset_by: string;
+        };
+        Update: {
+          user_id?: string;
+          section_id?: string;
+          reset_at?: string;
+          reset_by?: string;
+        };
+        Relationships: [];
+      };
+      academy_section_opens: {
+        Row: {
+          user_id: string;
+          section_id: string;
+          opened_at: string;
+        };
+        Insert: {
+          user_id: string;
+          section_id: string;
+          opened_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          section_id?: string;
+          opened_at?: string;
         };
         Relationships: [];
       };
@@ -13341,6 +13404,7 @@ export type Database = {
           from_statement: boolean;
           from_statement_fallback_at: string | null;
           collect_by: string;
+          deduct_from_payout_on: string | null;
         };
         Insert: {
           id?: string;
@@ -13392,6 +13456,7 @@ export type Database = {
           from_statement?: boolean;
           from_statement_fallback_at?: string | null;
           collect_by?: string;
+          deduct_from_payout_on?: string | null;
         };
         Update: {
           id?: string;
@@ -13443,6 +13508,7 @@ export type Database = {
           from_statement?: boolean;
           from_statement_fallback_at?: string | null;
           collect_by?: string;
+          deduct_from_payout_on?: string | null;
         };
         Relationships: [];
       };
@@ -13864,6 +13930,9 @@ export type Database = {
           owner_expense_cents: number;
           booking_share_bps: number | null;
           flat_arrangement_id: string | null;
+          partial: boolean;
+          earned_days: number | null;
+          rental_days: number | null;
         };
         Insert: {
           id?: string;
@@ -13898,6 +13967,9 @@ export type Database = {
           owner_expense_cents?: number;
           booking_share_bps?: number | null;
           flat_arrangement_id?: string | null;
+          partial?: boolean;
+          earned_days?: number | null;
+          rental_days?: number | null;
         };
         Update: {
           id?: string;
@@ -13932,6 +14004,9 @@ export type Database = {
           owner_expense_cents?: number;
           booking_share_bps?: number | null;
           flat_arrangement_id?: string | null;
+          partial?: boolean;
+          earned_days?: number | null;
+          rental_days?: number | null;
         };
         Relationships: [];
       };
@@ -14019,6 +14094,8 @@ export type Database = {
           voided_by: string | null;
           void_reason: string | null;
           flat_payment_cents: number;
+          period_starts_on: string | null;
+          period_ends_on: string | null;
         };
         Insert: {
           id?: string;
@@ -14052,6 +14129,8 @@ export type Database = {
           voided_by?: string | null;
           void_reason?: string | null;
           flat_payment_cents?: number;
+          period_starts_on?: string | null;
+          period_ends_on?: string | null;
         };
         Update: {
           id?: string;
@@ -14085,6 +14164,8 @@ export type Database = {
           voided_by?: string | null;
           void_reason?: string | null;
           flat_payment_cents?: number;
+          period_starts_on?: string | null;
+          period_ends_on?: string | null;
         };
         Relationships: [];
       };
@@ -17347,6 +17428,11 @@ export type Database = {
           indexnow_sweep_batch: number;
           indexnow_queue_batch: number;
           staff_onboarding_gate: boolean;
+          academy_read_wpm: number;
+          academy_fail_cooldown_minutes: number;
+          academy_attempts_per_day: number;
+          academy_rapid_seconds: number;
+          statement_cutoff_day: number;
         };
         Insert: {
           id?: string;
@@ -18038,6 +18124,11 @@ export type Database = {
           indexnow_sweep_batch?: number;
           indexnow_queue_batch?: number;
           staff_onboarding_gate?: boolean;
+          academy_read_wpm?: number;
+          academy_fail_cooldown_minutes?: number;
+          academy_attempts_per_day?: number;
+          academy_rapid_seconds?: number;
+          statement_cutoff_day?: number;
         };
         Update: {
           id?: string;
@@ -18729,6 +18820,11 @@ export type Database = {
           indexnow_sweep_batch?: number;
           indexnow_queue_batch?: number;
           staff_onboarding_gate?: boolean;
+          academy_read_wpm?: number;
+          academy_fail_cooldown_minutes?: number;
+          academy_attempts_per_day?: number;
+          academy_rapid_seconds?: number;
+          statement_cutoff_day?: number;
         };
         Relationships: [];
       };
@@ -22748,6 +22844,12 @@ export type Database = {
           whatsapp_marked_by: string | null;
           onboarding_exempt: boolean;
           onboarding_done: boolean;
+          onboarding_approved_at: string | null;
+          onboarding_approved_by: string | null;
+          onboarding_asked_at: string | null;
+          onboarding_rejected_at: string | null;
+          onboarding_rejected_by: string | null;
+          onboarding_reject_reason: string | null;
         };
         Insert: {
           user_id: string;
@@ -22792,6 +22894,12 @@ export type Database = {
           whatsapp_marked_by?: string | null;
           onboarding_exempt?: boolean;
           onboarding_done?: boolean;
+          onboarding_approved_at?: string | null;
+          onboarding_approved_by?: string | null;
+          onboarding_asked_at?: string | null;
+          onboarding_rejected_at?: string | null;
+          onboarding_rejected_by?: string | null;
+          onboarding_reject_reason?: string | null;
         };
         Update: {
           user_id?: string;
@@ -22836,6 +22944,12 @@ export type Database = {
           whatsapp_marked_by?: string | null;
           onboarding_exempt?: boolean;
           onboarding_done?: boolean;
+          onboarding_approved_at?: string | null;
+          onboarding_approved_by?: string | null;
+          onboarding_asked_at?: string | null;
+          onboarding_rejected_at?: string | null;
+          onboarding_rejected_by?: string | null;
+          onboarding_reject_reason?: string | null;
         };
         Relationships: [];
       };
@@ -29866,6 +29980,7 @@ export type Database = {
       server_api_oauth_client: { Args: { p_client_id: string }; Returns: Json };
       server_api_oauth_register: { Args: { p_client_id: string; p_name: string; p_redirects: string[] }; Returns: Json };
       server_api_oauth_token: { Args: { p: Json }; Returns: Json };
+      server_api_photo_record: { Args: { p_hash: string; p_preview: string; p_path: string; p_width: number; p_height: number; p_client?: string }; Returns: Json };
       server_application_owner_reply: { Args: { p_by: string; p: Json }; Returns: Json };
       server_apply_booking_change: { Args: { p_request: string; p_by: string; p_processor?: Json; p_amount_cents?: number }; Returns: Json };
       server_attach_companion_signed: { Args: { p_companion: string; p_storage_path: string; p_sha256: string }; Returns: string };

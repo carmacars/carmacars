@@ -44,16 +44,16 @@ select test.eq('every list answers with items and the test filter on',
 
 -- ================================================================ 2. paging and the test filter
 insert into leads (id, kind, name, email, source, created_at) values
-  (test.id('cxo_l1'), 'contact', 'Lead One', 'cxo1@example.test', 'web', now() - interval '3 minutes'),
-  (test.id('cxo_l2'), 'contact', 'Lead Two', 'cxo2@example.test', 'web', now() - interval '2 minutes'),
-  (test.id('cxo_l3'), 'contact', 'Lead Three', 'cxo3@example.test', 'web', now() - interval '1 minute'),
-  (test.id('cxo_lt'), 'contact', 'Lead Test', 'verify-cxo@carmacars.ca', 'web', now());
-create temp table cxo_p1 as select test.cxo('cc_live_cxo_full', 'list_leads', '{"query": "lead ", "limit": 2}') r;
-select test.eq('page 1: two, newest first, the test lead hidden', (select string_agg(x ->> 'name', ',') from cxo_p1, jsonb_array_elements(r #> '{result,items}') x), 'Lead Three,Lead Two');
+  (test.id('cxo_l1'), 'contact', 'Cxo Lead One', 'cxo1@example.test', 'web', now() - interval '3 minutes'),
+  (test.id('cxo_l2'), 'contact', 'Cxo Lead Two', 'cxo2@example.test', 'web', now() - interval '2 minutes'),
+  (test.id('cxo_l3'), 'contact', 'Cxo Lead Three', 'cxo3@example.test', 'web', now() - interval '1 minute'),
+  (test.id('cxo_lt'), 'contact', 'Cxo Lead Test', 'verify-cxo@carmacars.ca', 'web', now());
+create temp table cxo_p1 as select test.cxo('cc_live_cxo_full', 'list_leads', '{"query": "cxo lead", "limit": 2}') r;
+select test.eq('page 1: two, newest first, the test lead hidden', (select string_agg(x ->> 'name', ',') from cxo_p1, jsonb_array_elements(r #> '{result,items}') x), 'Cxo Lead Three,Cxo Lead Two');
 select test.ok('page 1: a cursor for more', (select r #>> '{result,next_cursor}' from cxo_p1) is not null);
 select test.eq('page 2: the rest, no cursor', (select (y #>> '{result,items,0,name}') || '/' || coalesce(y #>> '{result,next_cursor}', 'end') from cxo_p1,
-  lateral (select test.cxo('cc_live_cxo_full', 'list_leads', jsonb_build_object('query', 'lead ', 'limit', 2, 'cursor', r #>> '{result,next_cursor}')) y) z), 'Lead One/end');
-select test.eq('include_test shows the test lead', (select x ->> 'name' from jsonb_array_elements(test.cxo('cc_live_cxo_full', 'list_leads', '{"query": "lead ", "include_test": true}') #> '{result,items}') x limit 1), 'Lead Test');
+  lateral (select test.cxo('cc_live_cxo_full', 'list_leads', jsonb_build_object('query', 'cxo lead', 'limit', 2, 'cursor', r #>> '{result,next_cursor}')) y) z), 'Cxo Lead One/end');
+select test.eq('include_test shows the test lead', (select x ->> 'name' from jsonb_array_elements(test.cxo('cc_live_cxo_full', 'list_leads', '{"query": "cxo lead", "include_test": true}') #> '{result,items}') x limit 1), 'Cxo Lead Test');
 select test.ok('a limit above 50 is kept (up to 200)', (test.cxo('cc_live_cxo_full', 'list_leads', '{"limit": 150}') #>> '{result,count}')::int >= 3);
 select test.eq('a bad cursor is refused', test.cxo('cc_live_cxo_full', 'list_leads', '{"cursor": "nope"}') ->> 'error', 'Not a cursor from this list: start again without one');
 select test.ok('the earlier lists page too: bookings', (test.cxo('cc_live_cxo_full', 'list_bookings', '{"query": "CXO-1"}') #>> '{result,items,0,booking_number}') = 'CXO-1');

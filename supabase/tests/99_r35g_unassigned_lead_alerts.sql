@@ -1,6 +1,8 @@
 -- 99: the alerts of a lead nobody holds (migration 1153). Fixtures start with "ula"; addresses are example.test. Cleans up
 -- its notices, events, duty and clock rows.
 select test.suite('99 r35g unassigned lead alerts (1153)');
+-- the events earlier suites left unprocessed are not this suite's (process_events takes the oldest first)
+update app_events set processed_at = now() where processed_at is null;
 
 select test.mk_user('ula_admin', 'admin');
 select test.mk_user('ula_on', 'va', 'sales');      -- Sales, Live chat open now
