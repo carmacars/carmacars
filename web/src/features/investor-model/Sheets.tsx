@@ -2,7 +2,7 @@
 import { useId, useMemo, useState } from 'react';
 import { DateInput } from '@/components/DateInput';
 import { money } from '@/lib/format';
-import { BLANK_CAR, CAR_DEFAULTS, carPayoutSchedule, fundCars, investmentCalc, type CarInputs } from './calc';
+import { BLANK_CAR, carDefaults, carPayoutSchedule, fundCars, investmentCalc, type CarInputs } from './calc';
 import { longDate, monthLabel } from '../deck/returns';
 import { FOOTNOTES } from '../deck/pitch';
 
@@ -92,9 +92,9 @@ type Draft = Record<keyof CarInputs, string>;
 const toDraft = (c: CarInputs): Draft => Object.fromEntries(CAR_FIELDS.map((f) => [f.k, f.unit === 'text' ? String(c[f.k]) : f.unit === '%' ? String(+(Number(c[f.k]) * 100).toFixed(2)) : String(c[f.k])])) as Draft;
 const fromDraft = (d: Draft): CarInputs => Object.fromEntries(CAR_FIELDS.map((f) => [f.k, f.unit === 'text' ? d[f.k] : f.unit === '%' ? (num(d[f.k]) || 0) / 100 : num(d[f.k]) || 0])) as unknown as CarInputs;
 
-export function FundACar({ firstMonth }: { firstMonth: string }) {
+export function FundACar({ firstMonth, dailyRateCents }: { firstMonth: string; dailyRateCents?: number | null }) {
   const id = useId().replace(/:/g, '');
-  const [cars, setCars] = useState<Draft[]>([toDraft(CAR_DEFAULTS)]);
+  const [cars, setCars] = useState<Draft[]>([toDraft(carDefaults(dailyRateCents))]);
   const [open, setOpen] = useState(0);
   const parsed = cars.map(fromDraft);
   const { each, total } = fundCars(parsed);

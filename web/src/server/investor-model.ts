@@ -6,7 +6,7 @@ import { firstOfNextMonth } from '@/features/deck/returns';
 
 // The investor's sheets (migration 0420): their own investments and statements (investor_read home and statements, their
 // rows only) and the terms the calculators need (investor_read model_terms). Three small reads, no fleet figure among them.
-export interface ModelTerms { legal_name: string; min_cents: number; lockup_months: number; payment_day: number; offer_bps: number; multiplier: number | string | null; company: string | null; today: string }
+export interface ModelTerms { legal_name: string; min_cents: number; lockup_months: number; payment_day: number; offer_bps: number; multiplier: number | string | null; company: string | null; sheet_daily_rate_cents?: number | null; today: string }
 export interface InvestorModel { terms: ModelTerms; home: InvestorHome; rows: ReturnRow[]; mine: MineSummary;
   calc: { amount: number; start: string; rate: number; reinvest: boolean } }
 

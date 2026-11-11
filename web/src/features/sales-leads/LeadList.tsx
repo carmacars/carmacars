@@ -1,7 +1,7 @@
 import Link from '@/components/Link';
 import './sales-leads.css';
 import { ListFilters } from '@/features/list-filters/ListFilters';
-import { Filters, MoreFilters, $ } from '@/features/admin/ui';
+import { $ } from '@/features/admin/ui';
 import { LeadActions, NextLead } from './LeadActions';
 import { ClaimPace } from './ClaimPace';
 import { age, leadHref, stateOf, TYPE_LABEL, STATUS_CHIPS, type LeadList as Data, type LeadRow, type LeadType } from './model';
@@ -36,7 +36,6 @@ export function LeadCards({ rows, base, admin, people, testId = 'lead-cards' }: 
 export function LeadList({ d, base, listBase, sp, type }: { d: Data; base: string; listBase: string; sp: Record<string, string | undefined>; type?: LeadType }) {
   const page = Math.max(1, Number(sp.page ?? '1') || 1);
   const pages = Math.max(1, Math.ceil(d.count / 50));
-  const more = Boolean(sp.source || sp.age || sp.assigned || (!type && sp.type));
   const pageHref = (n: number) => { const q = new URLSearchParams(Object.entries({ ...sp, page: String(n) }).filter(([, v]) => v) as Array<[string, string]>); const [p, own = ''] = listBase.split('?'); for (const [k, v] of new URLSearchParams(own)) q.set(k, v); return `${p}?${q.toString()}`; };
   return (
     <div className="stack" data-testid="sales-leads">
@@ -47,13 +46,6 @@ export function LeadList({ d, base, listBase, sp, type }: { d: Data; base: strin
       <ListFilters id={`sales-leads${type ? `-${type}` : ''}`} base={listBase} sp={sp} search={{ placeholder: 'Name, phone, email or words' }}
         chips={{ name: 'status', label: 'Status', options: STATUS_CHIPS }}
         sort={{ name: 'sort', label: 'Sort', options: [['', 'Priority'], ['newest', 'Newest'], ['oldest', 'Oldest']] }} kept={['type', 'source', 'age', 'assigned', 'mine']} />
-      <MoreFilters active={more}>
-        {!type && <Filters base={listBase} name="type" value={sp.type ?? ''} sp={sp} options={[['', 'Every type'], ['renter', 'Renters'], ['owner', 'Owners'], ['partner', 'Partners']]} />}
-        <Filters base={listBase} name="source" value={sp.source ?? ''} sp={sp} options={[['', 'Every source'], ...d.sources.map((s): [string, string] => [s.source, `${s.source} (${s.n})`])]} />
-        <Filters base={listBase} name="age" value={sp.age ?? ''} sp={sp} options={[['', 'Any age'], ['1', 'Today'], ['7', '7 days'], ['30', '30 days']]} />
-        <Filters base={listBase} name="mine" value={sp.mine ?? ''} sp={sp} options={[['', 'Everyone\'s'], ['1', 'Mine']]} />
-        {d.admin && <Filters base={listBase} name="assigned" value={sp.assigned ?? ''} sp={sp} options={[['', 'Any person'], ['none', 'Not assigned'], ...d.people.map((p): [string, string] => [p.id, p.name])]} />}
-      </MoreFilters>
       <LeadCards rows={d.rows} base={base} admin={d.admin} people={d.people} />
       {pages > 1 && <nav className="row small" style={{ gap: 'var(--s-2)' }} aria-label="Pages">
         {page > 1 && <Link prefetch={false} className="link" href={pageHref(page - 1)}>Newer page</Link>}<span>Page {page} of {pages}</span>

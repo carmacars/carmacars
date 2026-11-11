@@ -7,14 +7,14 @@ Welcome aboard, {{first_name}}
 
 Thank you for the call. We would like you to join CarmaCars as {{role_title}}.
 
-Here is what happens next:
+Here is what happens next. You are not working a shift right away: this gives you access to the staff portal, where you do your training and claim your shifts online.
 
 1. Y
    o
 2. S
    i
-3. W
-   e
+3. C
+   l
 
 {{#if personal_note}}
 {{personal_note}}

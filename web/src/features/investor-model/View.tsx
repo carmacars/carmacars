@@ -102,7 +102,7 @@ export function InvestorModelView({ m, tab, reinvest }: { m: InvestorModel; tab:
         </div>
       )}
 
-      {tab === 'car' && <FundACar firstMonth={firstOfNextMonth(terms.today)} />}
+      {tab === 'car' && <FundACar firstMonth={firstOfNextMonth(terms.today)} dailyRateCents={terms.sheet_daily_rate_cents} />}
 
       <p className="small muted">This page shows your own records and the investment terms. It is not an offer or a solicitation.</p>
     </div>
