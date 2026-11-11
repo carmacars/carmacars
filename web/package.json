@@ -40,7 +40,7 @@
     "fast-png": "8.0.0",
     "jose": "^6.2.12",
     "jpeg-js": "0.4.4",
-    "next": "16.4.6",
+    "next": "16.3.8",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "4.10.38",
     "postgres": "^3.4.9",
@@ -58,7 +58,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "eslint": "^9.39.5",
-    "eslint-config-next": "16.4.6",
+    "eslint-config-next": "16.3.8",
     "lighthouse": "^13.5.0",
     "typescript": "^5.9.3",
     "wrangler": "^4.149.0"
