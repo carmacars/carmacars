@@ -14,7 +14,7 @@ export async function AcademyHomePage({ userId, base, locked }: { userId: string
     <>
       <PageHead title="Academy" kicker="Training" purpose="Your training path: watch each lesson (narrated by your browser, with captions), then pass the section's quiz to open the next one." />
       {(locked || h.locked) && <p className="alert alert--warn" role="status" data-testid="academy-locked"><span className="alert__title">Training first</span><span>The rest of the portal opens once you pass your path{h.paths.length > 1 ? 's' : ''}.{base === '/staff/academy' ? <> <Link prefetch={false} className="link" href="/staff/welcome">Your first steps</Link></> : null}</span></p>}
-      <p className="small muted">Pass mark {pct(h.pass_bps)} on each quiz. Retries are allowed.</p>
+      <p className="small muted">Pass mark {pct(h.pass_bps)} on each quiz. Each quiz opens once you have had time to read its section; after a failed try, wait before the next one (a few tries a day).</p>
       <Paths paths={h.paths} base={base} />
     </>
   );

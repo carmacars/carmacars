@@ -33,21 +33,25 @@ select test.eq('content: each new section names the guide chapters it was writte
 select test.eq('content: no vendor names in the new sections', (select count(*) from academy_lessons l join academy_sections s on s.id = l.section_id
   where s.slug in ('new-r33-bookings', 'new-r33-money', 'new-r33-photos', 'new-r34-caller-notes') and l.scenes::text ~* '(google|stripe|quo\M|openphone|cloudflare|claude)'), 0::bigint);
 
--- ================================================================ 3. passing: 80%, retakes
+-- ================================================================ 3. passing: 90% (1154), retakes
 -- every section before the last on the path passed; then the last one's quiz
 insert into academy_attempts (user_id, section_id, correct, total, score_bps, passed)
 select test.id('zag_cs'), ps.section_id, 1, 1, 10000, true from academy_path_sections ps join academy_sections s on s.id = ps.section_id
  where ps.path_code = 'cs' and s.slug <> 'new-r34-caller-notes';
 select test.eq('passing: one section left, still held', test.zag_locked('zag_cs'), true);
+-- 1154: the quiz is started first (its reading time and cooldown have a suite of their own: off here)
+update program_settings set academy_read_wpm = 0, academy_fail_cooldown_minutes = 0 where id = (app.settings()).id;
 create function test.zag_quiz(p_right integer) returns jsonb language sql as $$
+  select app.academy_quiz_start(test.id('zag_cs'), '{"section": "new-r34-caller-notes"}');
   select app.academy_quiz_submit(test.id('zag_cs'), jsonb_build_object('section', 'new-r34-caller-notes', 'answers',
     (select jsonb_object_agg(q.id::text, case when q.sort <= p_right then q.answer else (q.answer + 1) % jsonb_array_length(q.options) end)
        from academy_questions q join academy_sections s on s.id = q.section_id where s.slug = 'new-r34-caller-notes'))) $$;
 select test.eq('passing: 3 of 5 right (60%) is not a pass', (select (x ->> 'passed') || '/' || (x ->> 'score_bps') from test.zag_quiz(3) x), 'false/6000');
 select test.eq('passing: still held after a failed quiz', test.zag_locked('zag_cs'), true);
-select test.eq('passing: a retake with 4 of 5 (80%, the pass mark) passes', (select (x ->> 'passed') || '/' || (x ->> 'score_bps') from test.zag_quiz(4) x), 'true/8000');
+select test.eq('passing: 4 of 5 (80%) is under the 90% mark (1154)', (select (x ->> 'passed') || '/' || (x ->> 'score_bps') from test.zag_quiz(4) x), 'false/8000');
+select test.eq('passing: a retake with 5 of 5 passes', (select (x ->> 'passed') || '/' || (x ->> 'score_bps') from test.zag_quiz(5) x), 'true/10000');
 select test.eq('passing: every section passed opens the portal', test.zag_locked('zag_cs'), false);
-select test.eq('passing: both attempts are kept', (select count(*) from academy_attempts a join academy_sections s on s.id = a.section_id where a.user_id = test.id('zag_cs') and s.slug = 'new-r34-caller-notes'), 2::bigint);
+select test.eq('passing: the three attempts are kept', (select count(*) from academy_attempts a join academy_sections s on s.id = a.section_id where a.user_id = test.id('zag_cs') and s.slug = 'new-r34-caller-notes'), 3::bigint);
 
 -- ================================================================ 4. the waiver
 select test.throws('waiver: staff cannot waive', format($$ select app.door(%L, 'aal2', 'admin_do', 'academy_waive', jsonb_build_object('user_id', %L, 'reason', 'experienced')) $$, test.id('zag_other'), test.id('zag_field')), '%Admin%');
@@ -67,13 +71,13 @@ create table test.zag_t as select app.raise_task(p_type => 'first_day', p_title 
   p_due_at => now(), p_priority => 'normal', p_dedupe => 'zag:first', p_queue => 'fleet', p_created_by => test.id('zag_admin')) as id;
 update tasks set assigned_to = test.id('zag_field') where id = (select id from test.zag_t);
 create table test.zag_w as select app.door(test.id('zag_field'), 'aal2', 'ops_read', 'staff_welcome', '{}'::jsonb) as j;
-select test.eq('welcome: the steps in order (1060: the agreement and the team group after the academy)', (select string_agg(x ->> 'key', ',') from test.zag_w, jsonb_array_elements(j -> 'steps') x), 'welcome,profile,academy,agreement,team,tasks');
+select test.eq('welcome: the steps in order (1060: the agreement and the team group after the academy; 1154: then the approval)', (select string_agg(x ->> 'key', ',') from test.zag_w, jsonb_array_elements(j -> 'steps') x), 'welcome,profile,academy,agreement,team,approval,tasks');
 select test.eq('welcome: a field hire, held, with the academy not done and the first task open',
-  (select (j ->> 'portal') || '/' || (j ->> 'locked') || '/' || (j #>> '{steps,2,done}') || '/' || (j #>> '{steps,5,done}') || '/' || jsonb_array_length(j #> '{steps,5,tasks}') from test.zag_w), 'field/true/false/false/1');
+  (select (j ->> 'portal') || '/' || (j ->> 'locked') || '/' || (j #>> '{steps,2,done}') || '/' || (j #>> '{steps,6,done}') || '/' || jsonb_array_length(j #> '{steps,6,tasks}') from test.zag_w), 'field/true/false/false/1');
 select test.throws('welcome: nobody ticks another person''s task', format($$ select app.door(%L, 'aal2', 'ops_do', 'staff_welcome_task', jsonb_build_object('id', %L)) $$,
   test.id('zag_other'), (select id from test.zag_t)), '%not one of your%');
 select app.door(test.id('zag_field'), 'aal2', 'ops_do', 'staff_welcome_task', jsonb_build_object('id', (select id from test.zag_t)));
-select test.eq('welcome: the hire ticks off their own first task', (select app.staff_welcome(test.id('zag_field')) #>> '{steps,5,done}'), 'true');
+select test.eq('welcome: the hire ticks off their own first task', (select app.staff_welcome(test.id('zag_field')) #>> '{steps,6,done}'), 'true');
 
 -- ================================================================ 6. kept up to date with the guides
 -- the chapter as published (the local guides are seeded outside the migrations), then published again

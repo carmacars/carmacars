@@ -55,6 +55,10 @@ select pg_temp.dr('go_harman', 'ops_do', 'staff_whatsapp_confirm', '{"team": tru
 select test.eq('one group of two: still held', app.staff_fully_onboarded(test.id('go_harman')), false);
 select test.eq('one group of two: Team confirmed', (select whatsapp_joined from staff_profiles where user_id = test.id('go_harman')), array['team']);
 select pg_temp.dr('go_harman', 'ops_do', 'staff_whatsapp_confirm', '{"sales": true}');
+-- 1154: step 4, an Admin or a Fleet VA approves
+select test.eq('both groups: waiting for approval', pg_temp.st('go_harman'), 'approval');
+select test.eq('both groups: not yet onboarded', app.staff_fully_onboarded(test.id('go_harman')), false);
+select pg_temp.dr('go_admin', 'ops_do', 'staff_onboarding_approve', jsonb_build_object('user', test.id('go_harman')));
 select test.eq('both groups: fully onboarded', app.staff_fully_onboarded(test.id('go_harman')), true);
 select test.eq('both groups: Sales for every check', app.user_va_has(test.id('go_harman'), 'sales'), true);
 select test.lives('both groups: the door opens the leads', $$select pg_temp.dr('go_harman', 'ops_read', 'sales_leads')$$);
@@ -94,6 +98,7 @@ select test.eq('sweep: logged as a release from Harman', (select count(*) from l
 -- Admin: Return lead to previous owner (Syed had it; Admin gave it to the customer service person, now onboarded)
 select pg_temp.academy_ok('go_cs'); select pg_temp.agreement_ok('go_cs');
 select pg_temp.dr('go_cs', 'ops_do', 'staff_whatsapp_confirm', '{"team": true}');
+select pg_temp.dr('go_admin', 'ops_do', 'staff_onboarding_approve', jsonb_build_object('user', test.id('go_cs')));
 select test.eq('cs: onboarded with the Team group', app.staff_fully_onboarded(test.id('go_cs')), true);
 select pg_temp.dr('go_admin', 'ops_do', 'lead_reassign', jsonb_build_object('lead', test.id('lead:go1'), 'to', test.id('go_cs')));
 select test.eq('return: back to Syed', pg_temp.dr('go_admin', 'ops_do', 'lead_return', jsonb_build_object('lead', test.id('lead:go1'))) ->> 'to', test.id('go_syed')::text);
@@ -105,6 +110,7 @@ select test.throws('return: a lead in the pool has nobody to return from', forma
 select test.ok('list: Harman is held at the WhatsApp step',
   (select (x ->> 'onboarded')::boolean = false and x -> 'state' ->> 'step' = 'whatsapp' from jsonb_array_elements(pg_temp.dr('go_admin', 'ops_read', 'staff_onboarding_list')) x where x ->> 'user_id' = test.id('go_harman')::text));
 select test.ok('bulk: marks every signed person not confirmed', (pg_temp.dr('go_admin', 'ops_do', 'staff_whatsapp_mark_all') ->> 'marked')::int >= 1);
+select test.ok('bulk: then approved in one press', (pg_temp.dr('go_admin', 'ops_do', 'staff_onboarding_approve_all') ->> 'approved')::int >= 1);
 select test.eq('bulk: Harman onboarded again', app.staff_fully_onboarded(test.id('go_harman')), true);
 select test.eq('bulk: marked by the Admin', (select whatsapp_marked_by from staff_profiles where user_id = test.id('go_harman')), test.id('go_admin'));
 select test.throws('bulk: an Admin''s action', $$select pg_temp.dr('go_syed', 'ops_do', 'staff_whatsapp_mark_all')$$, 'Admin');

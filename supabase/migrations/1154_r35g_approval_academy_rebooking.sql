@@ -83,7 +83,15 @@ create table if not exists academy_resets (
 comment on table academy_resets is 'Academy (1154): a section an Admin reset for a person; their attempts before reset_at no longer count (they stay on record).';
 revoke all on academy_section_opens, academy_quiz_starts, academy_resets from anon, authenticated;
 grant all on academy_section_opens, academy_quiz_starts, academy_resets to service_role;
-drop trigger if exists audit_academy_resets on academy_resets;
+alter table academy_section_opens enable row level security;
+alter table academy_quiz_starts enable row level security;
+alter table academy_resets enable row level security;
+-- the house rule: every table has the admin policy (no grant to authenticated: the server reads and writes them)
+create policy admin_all on academy_section_opens for all to authenticated using (app.is_admin()) with check (app.is_admin());
+create policy admin_all on academy_quiz_starts for all to authenticated using (app.is_admin()) with check (app.is_admin());
+create policy admin_all on academy_resets for all to authenticated using (app.is_admin()) with check (app.is_admin());
+create trigger audit_academy_section_opens after insert or update or delete on academy_section_opens for each row execute function app.audit_row();
+create trigger audit_academy_quiz_starts after insert or update or delete on academy_quiz_starts for each row execute function app.audit_row();
 create trigger audit_academy_resets after insert or update or delete on academy_resets for each row execute function app.audit_row();
 
 insert into staff_alert_rules (rule, label, grp, who, tier, topic, wired, fixed, hint, sort) values
@@ -122,7 +130,7 @@ $$;
 create function app.staff_may_approve(p_by uuid) returns boolean
 language sql stable security definer set search_path = public, app as $$
   select p_by is not null and not app.staff_is_test(p_by)
-     and (app.user_is_admin(p_by) or (app.user_va_has(p_by, array['fleet']) and app.staff_fully_onboarded(p_by)))
+     and (app.user_is_admin(p_by) or (app.user_va_has(p_by, 'fleet') and app.staff_fully_onboarded(p_by)))
 $$;
 
 -- the request: the alert to the Admins and every Fleet VA, and one open Fleet To do
@@ -482,8 +490,10 @@ declare
 begin
   perform app.assert_admin(p_by);
   if v_user is null or not exists (select 1 from users where id = v_user) then raise exception 'Staff member not found' using errcode = 'P0002'; end if;
+  -- the sections: an array, one section, or the page's ticks (s_<section id>: true)
   select coalesce(array_agg(s.id), '{}') into v_secs from academy_sections s
-   where s.id::text in (select jsonb_array_elements_text(case when jsonb_typeof(p -> 'sections') = 'array' then p -> 'sections' else jsonb_build_array(p ->> 'section') end));
+   where s.id::text in (select jsonb_array_elements_text(case when jsonb_typeof(p -> 'sections') = 'array' then p -> 'sections' else jsonb_build_array(p ->> 'section') end)
+                        union select substr(e.key, 3) from jsonb_each(p) e where e.key like 's\_%' and e.value = 'true'::jsonb);
   if cardinality(v_secs) = 0 then raise exception 'Choose the sections to reset' using errcode = '22023'; end if;
   insert into academy_resets (user_id, section_id, reset_at, reset_by) select v_user, x, now(), p_by from unnest(v_secs) x
     on conflict (user_id, section_id) do update set reset_at = now(), reset_by = p_by;
@@ -519,7 +529,7 @@ begin
     if app.sl_type(new) <> 'renter' or new.assigned_to is not null or new.status in ('spam', 'closed', 'converted') or app.email_is_test(new.email) then return null; end if;
     if exists (select 1 from lead_claims c where c.lead_id = new.id) then return null; end if;
     v_to := app.lead_rebook_person(new);
-    if v_to is null or app.staff_is_test(v_to) or not app.staff_fully_onboarded(v_to) or not app.user_va_has(v_to, array['sales'])
+    if v_to is null or app.staff_is_test(v_to) or not app.staff_fully_onboarded(v_to) or not app.user_va_has(v_to, 'sales')
        or not exists (select 1 from users u where u.id = v_to and u.status = 'active') then return null; end if;
     v_win := app.sl_window('renter');
     perform set_config('app.lead_admin_move', 'on', true);
