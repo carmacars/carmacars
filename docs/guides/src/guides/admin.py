@@ -1404,6 +1404,29 @@ def build():
         f'Press {B("Enter the details")}: the Page id, the Instagram account id and the token. The token goes to the vault; the page shows only its last four characters.',
         f'Press {B("Switch on")}. Approved drafts then go out on their day and their post links are recorded; a refusal shows on the draft. Press {B("Switch off")} or {B("Remove the token")} at any time.',
     ])
+    g.task('Scheduled posts (Facebook, Instagram, TikTok)', f'{P("Marketing", "Social drafts")}, the Scheduled posts card at the top. Sales have the same card on their Marketing page.')
+    g.steps([
+        f'Choose where (Facebook Page, Instagram or TikTok) and when. Pick a draft for its caption and link (and its photo), or write the caption. Pick a short video if you made one. Press {B("Schedule")}.',
+        'Every 5 minutes the database marks the posts whose time has come as due. With Meta publishing switched on, Facebook and Instagram posts go out by themselves (photos, Page videos and Instagram reels) and the post link is recorded; Meta refusing three times makes the post Failed with Meta\'s answer and a Try again button.',
+        f'Without Meta publishing the card says {B("Connect Meta")} and works as a queue: at its time a post is due with the caption to copy and the photo or video to download. Post it, then press {B("Posted by hand")} and paste the post\'s address.',
+        f'TikTok is always by hand (its posting API needs TikTok\'s app review): a due TikTok post shows the checklist. Download the video, post it in the TikTok app with the caption, copy the link, press {B("Posted by hand")}.',
+    ])
+    g.bullets([
+        'Instagram needs a photo or an MP4 video; TikTok needs a video. Every change is in the post\'s Log.',
+        'Facebook Marketplace has no posting API: keep using the Marketplace kit and its session flow.',
+    ])
+    g.task('Short video for Reels, TikTok and Stories', f'On a listing (below First photo) or in {P("Marketing", "Marketplace")}, the car\'s kit.')
+    g.steps([
+        f'Press {B("Make a short video")}. Your browser draws a 9:16 video from the car\'s approved photos: a slow zoom on each, the brand at the top, the car, the price a day and the call to action at the bottom. Keep the tab in front until it says Saved (about 20 seconds for 8 photos).',
+        f'Press {B("Download")} to post it yourself, or schedule it in Scheduled posts. {B("Remove")} takes it off the list.',
+    ])
+    g.tip(f'The words and timing are {P("Settings", "Program")}: social video call to action ({{price}} is the live price a day), brand, seconds a photo and photos a video. It is free: nothing is sent to a paid service.', label='Good to know')
+    g.task('Make the missing angle', 'On a listing (below First photo) or in the Marketplace kit: for a required angle the car has no photo of.')
+    g.steps([
+        f'Press {B("Make Rear")} (or the angle missing). The image model makes that view from the car\'s approved photos, only within its free daily use (the showroom\'s limit).',
+        f'Check the view: same car, same colour, wheels and badges, no damage hidden or added. Press {B("Approve")} or {B("Reject")}.',
+    ])
+    g.warn('An approved view shows on the site after the real photos, labelled AI view. It is never the cover and never used as damage or condition evidence (handovers, claims). Take the real photo when you can: a real photo of the angle replaces the view at once.')
     g.task('Owner recruitment', f'{P("Marketing", "Owner recruitment")}.')
     g.para('Owners and co-hosts are found in classified ads. The anti-spam law (CASL) does not cover a live phone call, but an email or a text needs consent, names the sender and offers an unsubscribe. The lawyer confirms the approach before outreach starts.')
     g.steps([

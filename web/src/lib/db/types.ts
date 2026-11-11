@@ -11574,6 +11574,66 @@ export type Database = {
         };
         Relationships: [];
       };
+      listing_angle_makes: {
+        Row: {
+          id: string;
+          vehicle_id: string;
+          shot_type: string;
+          generated: boolean;
+          sources: string[];
+          status: string;
+          path: string | null;
+          width: number | null;
+          height: number | null;
+          provider: string | null;
+          note: string | null;
+          job_id: string | null;
+          created_by: string | null;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          vehicle_id: string;
+          shot_type: string;
+          generated?: boolean;
+          sources: string[];
+          status?: string;
+          path?: string | null;
+          width?: number | null;
+          height?: number | null;
+          provider?: string | null;
+          note?: string | null;
+          job_id?: string | null;
+          created_by?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          vehicle_id?: string;
+          shot_type?: string;
+          generated?: boolean;
+          sources?: string[];
+          status?: string;
+          path?: string | null;
+          width?: number | null;
+          height?: number | null;
+          provider?: string | null;
+          note?: string | null;
+          job_id?: string | null;
+          created_by?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       listing_channel_feed_stats: {
         Row: {
           channel_id: string;
@@ -18199,6 +18259,11 @@ export type Database = {
           auto_reply_handoff_text: string;
           auto_reply_meta_verify_token: string;
           auto_reply_whatsapp_phone_id: string | null;
+          listing_angle_prompt: string;
+          social_video_cta: string;
+          social_video_brand: string;
+          social_video_seconds_per_photo: number;
+          social_video_max_photos: number;
         };
         Insert: {
           id?: string;
@@ -19016,6 +19081,11 @@ export type Database = {
           auto_reply_handoff_text?: string;
           auto_reply_meta_verify_token?: string;
           auto_reply_whatsapp_phone_id?: string | null;
+          listing_angle_prompt?: string;
+          social_video_cta?: string;
+          social_video_brand?: string;
+          social_video_seconds_per_photo?: number;
+          social_video_max_photos?: number;
         };
         Update: {
           id?: string;
@@ -19833,6 +19903,11 @@ export type Database = {
           auto_reply_handoff_text?: string;
           auto_reply_meta_verify_token?: string;
           auto_reply_whatsapp_phone_id?: string | null;
+          listing_angle_prompt?: string;
+          social_video_cta?: string;
+          social_video_brand?: string;
+          social_video_seconds_per_photo?: number;
+          social_video_max_photos?: number;
         };
         Relationships: [];
       };
@@ -23514,6 +23589,144 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      social_post_log: {
+        Row: {
+          id: number;
+          queue_id: string;
+          at: string;
+          event: string;
+          detail: string | null;
+          by_user: string | null;
+        };
+        Insert: {
+          id?: number;
+          queue_id: string;
+          at?: string;
+          event: string;
+          detail?: string | null;
+          by_user?: string | null;
+        };
+        Update: {
+          id?: number;
+          queue_id?: string;
+          at?: string;
+          event?: string;
+          detail?: string | null;
+          by_user?: string | null;
+        };
+        Relationships: [];
+      };
+      social_queue: {
+        Row: {
+          id: string;
+          channel: string;
+          media_kind: string;
+          media_path: string | null;
+          video_id: string | null;
+          draft_id: string | null;
+          vehicle_id: string | null;
+          caption: string;
+          link: string | null;
+          scheduled_at: string;
+          status: string;
+          how: string | null;
+          attempts: number;
+          post_id: string | null;
+          post_url: string | null;
+          error: string | null;
+          created_by: string | null;
+          posted_by: string | null;
+          posted_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          channel: string;
+          media_kind: string;
+          media_path?: string | null;
+          video_id?: string | null;
+          draft_id?: string | null;
+          vehicle_id?: string | null;
+          caption: string;
+          link?: string | null;
+          scheduled_at: string;
+          status?: string;
+          how?: string | null;
+          attempts?: number;
+          post_id?: string | null;
+          post_url?: string | null;
+          error?: string | null;
+          created_by?: string | null;
+          posted_by?: string | null;
+          posted_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          channel?: string;
+          media_kind?: string;
+          media_path?: string | null;
+          video_id?: string | null;
+          draft_id?: string | null;
+          vehicle_id?: string | null;
+          caption?: string;
+          link?: string | null;
+          scheduled_at?: string;
+          status?: string;
+          how?: string | null;
+          attempts?: number;
+          post_id?: string | null;
+          post_url?: string | null;
+          error?: string | null;
+          created_by?: string | null;
+          posted_by?: string | null;
+          posted_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      social_videos: {
+        Row: {
+          id: string;
+          vehicle_id: string;
+          path: string;
+          mime: string;
+          seconds: number;
+          bytes: number;
+          price_cents: number | null;
+          created_by: string | null;
+          created_at: string;
+          removed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          vehicle_id: string;
+          path: string;
+          mime: string;
+          seconds: number;
+          bytes: number;
+          price_cents?: number | null;
+          created_by?: string | null;
+          created_at?: string;
+          removed_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          vehicle_id?: string;
+          path?: string;
+          mime?: string;
+          seconds?: number;
+          bytes?: number;
+          price_cents?: number | null;
+          created_by?: string | null;
+          created_at?: string;
+          removed_at?: string | null;
         };
         Relationships: [];
       };
@@ -31910,6 +32123,8 @@ export type Database = {
       server_signing_record: { Args: { p_booking: string }; Returns: Json };
       server_social_drafts_put: { Args: { p: Json }; Returns: number };
       server_social_published: { Args: { p: Json }; Returns: Json };
+      server_social_queue_claim: { Args: never; Returns: Json };
+      server_social_queue_result: { Args: { p: Json }; Returns: Json };
       server_staff_agreement_auto_done: { Args: { p_user: string; p: Json }; Returns: Json };
       server_staff_agreements_due: { Args: { p_limit?: number }; Returns: Json };
       server_statement_mail_due: { Args: never; Returns: Json };

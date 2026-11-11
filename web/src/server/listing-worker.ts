@@ -11,7 +11,7 @@ import { runListingWorker, type Claim, type RunSummary } from '@/features/listin
 import { visionModel } from '@/integrations/vision';
 import { MARK_PROMPT, MARK_SYSTEM, parseMarks, type MarkBox } from '@/features/listing/photo-sort';
 import { letteringName } from '@/features/car/studio';
-import { showroomPrompt, type ShowroomProvider } from '@/features/listing/showroom';
+import { showroomPrompt, type ShowroomOut, type ShowroomProvider } from '@/features/listing/showroom';
 import { geminiEditImage } from '@/integrations/photos/gemini';
 
 // The listing worker as the site runs it: the Cloudflare cron trigger (custom-worker.ts, every five
@@ -60,6 +60,21 @@ export function showroomAi(apiKey: string, f: typeof fetch = fetch): ShowroomPro
   };
 }
 
+/** r36b (2200): the missing angle through the same gate and free daily limit as the showroom (server_showroom_ai_gate). */
+export function angleAi(apiKey: string, f: typeof fetch = fetch) {
+  return async (i: { images: Array<{ bytes: Uint8Array; contentType: string }>; prompt: string; photoId: string }): Promise<ShowroomOut> => {
+    const [first, ...rest] = i.images;
+    if (!first) return { ok: false, reason: 'error', message: 'No photo to make the view from' };
+    const gate = (await rpc('server_showroom_ai_gate', { p: { photo_id: i.photoId } }, SR).catch(() => null)) as unknown as
+      { allowed?: boolean; reason?: 'off' | 'limit' | 'quota'; model?: string; call_id?: string } | null;
+    if (!gate?.allowed || !gate.call_id) return { ok: false, reason: gate?.reason ?? 'error', message: 'The image model may not be asked now' };
+    const t0 = Date.now();
+    const r = await geminiEditImage({ apiKey, model: gate.model, fetch: f }, first, i.prompt, rest);
+    await rpc('server_showroom_ai_record', { p: { call_id: gate.call_id, ok: r.ok, error: r.ok ? null : `${r.reason}: ${r.message}`, duration_ms: Date.now() - t0 } }, SR).catch(() => undefined);
+    return r;
+  };
+}
+
 const absolute = (u: string) => (/^https?:\/\//.test(u) ? u : `${env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '')}${u.startsWith('/') ? '' : '/'}${u}`);
 
 export async function runListingWorkerNow(o: { maxJobs?: number; deadlineMs?: number } = {}): Promise<RunSummary> {
@@ -90,6 +105,7 @@ export async function runListingWorkerNow(o: { maxJobs?: number; deadlineMs?: nu
     findMarks,
     showroomAi: env().GEMINI_API_KEY ? showroomAi(env().GEMINI_API_KEY!) : null,
     showroomNoKey: !env().GEMINI_API_KEY,
+    angleAi: env().GEMINI_API_KEY ? angleAi(env().GEMINI_API_KEY!) : null,
     files: {
       privateUrl: async (path) => { const u = absolute(await s.signedDownloadUrl('vehicle-originals', path, 900)); issued.set(u, { bucket: 'vehicle-originals', path }); return u; },
       publicUrl: (path) => { const u = absolute(s.publicUrl(path)); issued.set(u, { bucket: 'vehicle-public', path }); return u; },

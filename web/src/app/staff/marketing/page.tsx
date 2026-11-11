@@ -4,6 +4,7 @@ import { vaPage } from '@/server/va';
 import { MarketingView, type MarketingData } from '@/features/marketplace/MarketingView';
 import { scenePhotos } from '@/server/marketing-photos';
 import { EventsAdmin, type EventRow } from '@/features/events/EventsAdmin';
+import { SocialQueue } from '@/features/social/SocialQueue';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Marketing', path: '/staff/marketing', noindex: true, description: 'Facebook Marketplace from your own profile: today\'s posts, your own copy of each car, the replies and your log.' });
@@ -21,5 +22,7 @@ export default async function StaffMarketing({ searchParams }: { searchParams: P
     <p className="small"><Link prefetch={false} className="link" href="/staff/marketing/seo" data-testid="staff-seo-link">SEO: clicks from Google, queries and indexing</Link></p>
     {/* release 36: the event pages, the same list as Admin > Marketing > Event pages */}
     <EventsAdmin rows={events} refresh={['/staff/marketing']} />
+    {/* r36b (2220): the social post scheduler, the same as Admin > Marketing > Social drafts */}
+    <SocialQueue />
   </>;
 }

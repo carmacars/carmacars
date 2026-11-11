@@ -44,3 +44,33 @@ export async function publishInstagram(cfg: MetaConfig, p: { caption: string; im
   try { url = (await call(f, cfg, id, { fields: 'permalink' }, 'GET')).permalink as string ?? null; } catch { url = null; }
   return { postId: id, url };
 }
+
+/** r36b (2220): a video on the Facebook Page (/{page}/videos with the file's public address). */
+export async function publishFacebookVideo(cfg: MetaConfig, p: { description: string; videoUrl: string }, f: typeof fetch = fetch): Promise<Published> {
+  const d = await call(f, cfg, `${cfg.pageId}/videos`, { file_url: p.videoUrl, description: p.description });
+  const id = String(d.id ?? '');
+  return { postId: id, url: id ? `https://www.facebook.com/${cfg.pageId}/videos/${id}` : null };
+}
+
+/** r36b (2220): a reel on Instagram: a REELS container from the MP4's public address, waited on until Meta has processed
+ *  it (status_code FINISHED, checked every few seconds up to waitMs), then published. */
+export async function publishInstagramReel(cfg: MetaConfig, p: { caption: string; videoUrl: string }, f: typeof fetch = fetch,
+  o: { waitMs?: number; everyMs?: number; sleep?: (ms: number) => Promise<void> } = {}): Promise<Published> {
+  if (!cfg.igUserId) throw new Error('Instagram: no Instagram account id is set in Meta publishing');
+  const c = await call(f, cfg, `${cfg.igUserId}/media`, { media_type: 'REELS', video_url: p.videoUrl, caption: p.caption, share_to_feed: 'true' });
+  const cid = String(c.id ?? '');
+  const sleep = o.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+  const until = Date.now() + (o.waitMs ?? 50_000);
+  for (;;) {
+    const s = String((await call(f, cfg, cid, { fields: 'status_code' }, 'GET')).status_code ?? '');
+    if (s === 'FINISHED') break;
+    if (s === 'ERROR' || s === 'EXPIRED') throw new Error(`Instagram: the video could not be processed (${s})`);
+    if (Date.now() >= until) throw new Error('Instagram: the video is still being processed; it is tried again');
+    await sleep(o.everyMs ?? 5000);
+  }
+  const done = await call(f, cfg, `${cfg.igUserId}/media_publish`, { creation_id: cid });
+  const id = String(done.id ?? '');
+  let url: string | null = null;
+  try { url = (await call(f, cfg, id, { fields: 'permalink' }, 'GET')).permalink as string ?? null; } catch { url = null; }
+  return { postId: id, url };
+}

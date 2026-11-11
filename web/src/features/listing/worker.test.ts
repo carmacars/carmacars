@@ -409,3 +409,20 @@ test('photo r33: a mask asked for by the editor is the segmenter\'s cut-out only
   assert.equal(f.pub.size, 0, 'nothing public is written');
   assert.equal(r.units, 1);
 });
+
+test('r36b (2200): the missing angle is made from the car\'s photos by the image model, or waits for it', async () => {
+  const f = files();
+  f.pub.set('vehicles/v1/front.jpg', JPEG);
+  const angle = { id: 'a1', vehicle_id: 'v1', shot: 'rear', label: 'Rear', sources: ['vehicles/v1/front.jpg', 'vehicles/v1/missing.jpg'], prompt: 'the rear view' };
+  const getPublic = async (p: string) => f.pub.get(p) ?? null;
+  const none = await runJob(deps({}, f), job('angle_make', { input: { angle } }), budget);
+  assert.equal((none.output as { angle: { status: string } }).angle.status, 'needs_gemini');
+  let seen = 0;
+  const made = await runJob(deps({ files: { ...f.api, getPublic }, angleAi: async (i) => { seen = i.images.length; assert.equal(i.prompt, 'the rear view'); return { ok: true, bytes: JPEG, contentType: 'image/jpeg', provider: 'ai' }; } }, f),
+    job('angle_make', { input: { angle } }), budget);
+  assert.equal(seen, 1);
+  assert.deepEqual((made.output as { angle: unknown }).angle, { id: 'a1', status: 'made', path: 'vehicles/v1/generated/a1.jpg', provider: 'ai' });
+  assert.ok(f.pub.has('vehicles/v1/generated/a1.jpg'));
+  const limit = await runJob(deps({ files: { ...f.api, getPublic }, angleAi: async () => ({ ok: false, reason: 'limit', message: 'x' }) }, f), job('angle_make', { input: { angle } }), budget);
+  assert.match(JSON.stringify(limit.output), /needs_gemini.*free daily use/);
+});

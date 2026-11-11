@@ -7,6 +7,8 @@ import { photoUrl } from '@/lib/photo';
 import type { Kit } from './kit';
 import { replies } from './replies';
 import { CopyValue } from './CopyValue';
+import { MissingAngles } from '@/features/listing/MissingAngle';
+import { ShortVideo } from '@/features/social/ShortVideo';
 
 // One car's Marketplace kit as cards (migration 0410; the copy variants of 0510): the fields in the vehicle form's order,
 // the description, the tracked link, the photos in order with the ZIP, and the inbox replies. Admin's Marketplace page shows
@@ -60,6 +62,10 @@ export function KitCards({ c, k, rules, phone, aside, action, options, zipHref, 
         </details>))}
       </div>
     </Card>
+    {/* r36b (2200): an AI view of an angle never photographed, approved before it is shown (Admin, Fleet and Sales) */}
+    <Card title="Missing angles" testId="mp-angles"><MissingAngles vehicle={c.vehicle_id} /></Card>
+    {/* r36b (2210): the 9:16 short video of the car, made in the browser and saved for download and the scheduler */}
+    <Card title="Short video" testId="mp-video"><ShortVideo vehicle={c.vehicle_id} /></Card>
   </>);
 }
 

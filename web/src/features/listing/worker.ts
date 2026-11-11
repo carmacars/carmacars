@@ -9,7 +9,7 @@ import { plainDraft } from '../seo/copy.ts';
 import { LETTERING, LETTER_REAL_PHOTOS, LETTER_SHOTS, letterThis, letteringPath, letteringPng } from './lettering.ts';
 import { WINDOW_SHOTS, readAlpha, windowPlan, type WindowPlan } from './window-check.ts';
 import { adjustPlace, decodePng, encodePng, frameRgba, frameSubject, placeSubject, type Adjust } from './subject-frame.ts';
-import { SHOWROOM_FIT, SHOWROOM_PRESET, coverModelPrompt, decodeImage, encodeJpeg, makeShowroom, marketingPrompt, sceneOf, showroomBackdrop, whiteStudio, type ShowroomProvider } from './showroom.ts';
+import { SHOWROOM_FIT, SHOWROOM_PRESET, coverModelPrompt, decodeImage, encodeJpeg, makeShowroom, marketingPrompt, sceneOf, showroomBackdrop, whiteStudio, type ShowroomOut, type ShowroomProvider } from './showroom.ts';
 import { drawFlyer, type FlyerSpec } from './flyer.ts';
 import { resample, scaleDown } from '../../integrations/photos/local.ts';
 import { applyPlates, type PlateEnd, type PxBox } from './plate-photo.ts';
@@ -54,7 +54,7 @@ const MICROUSD_PER_TRANSFORMATION = 500;     // US$0.50 per 1,000 unique transfo
 const FREE_DAILY_NEURONS = 10_000;
 
 export interface JobContext {
-  id: string; kind: 'decode_vin' | 'draft_copy' | 'process_photo' | 'resize' | 'publish' | 'marketing_photo' | 'plate_redo' | 'cover_model' | 'cover_flyer'; intake_id: string; vehicle_id: string;
+  id: string; kind: 'decode_vin' | 'draft_copy' | 'process_photo' | 'resize' | 'publish' | 'marketing_photo' | 'plate_redo' | 'cover_model' | 'cover_flyer' | 'angle_make'; intake_id: string; vehicle_id: string;
   attempts: number; max_attempts: number; input: Record<string, unknown>; vin?: string | null;
   facts?: Record<string, unknown> | null; staff_notes?: string | null; classes?: string[] | null;
   copy_rules?: { headline_chars: [number, number]; description_words: [number, number]; features: [number, number]; faq: [number, number]; banned_phrases: string[] } | null;
@@ -108,6 +108,9 @@ export interface WorkerDeps {
    *  free local showroom alone, noted "no key" on the photo when showroomNoKey. */
   showroomAi?: ShowroomProvider | null;
   showroomNoKey?: boolean;
+  /** r36b (2200): a view of the car from an angle never photographed, made by the image model from the car's other photos,
+   *  behind the same gate and free daily limit as the showroom; none: the view waits for the image model. */
+  angleAi?: ((i: { images: Array<{ bytes: Uint8Array; contentType: string }>; prompt: string; photoId: string }) => Promise<ShowroomOut>) | null;
   /** The car copy is written by the search job (0061, features/seo): the draft step stores a plain copy from the
    *  facts without calling the model, so no neurons are spent twice. */
   plainCopy?: boolean;
@@ -168,6 +171,7 @@ export async function runJob(d: WorkerDeps, j: JobContext, b: Budget, used = { n
     case 'marketing_photo': return marketingPhoto(d, j);
     case 'plate_redo': return plateRedo(d, j);
     case 'cover_model': case 'cover_flyer': return listingCover(d, j);
+    case 'angle_make': return angleMake(d, j);
   }
 }
 
@@ -504,6 +508,32 @@ async function listingCover(d: WorkerDeps, j: JobContext): Promise<JobResult> {
   }
   await d.files.putPublic(path, made.bytes, made.contentType);
   return done({ status: 'made', path, width: EXTERIOR.width, height: EXTERIOR.height, provider: 'ai' }, 'ai');
+}
+
+/** r36b (2200): the missing angle. The car's approved photos (up to three) go to the image model with Program settings'
+ *  words; the answer is kept as a generated view that staff approve before the site shows it (never the cover). Without the
+ *  image model, or past its free daily use, the view says so and nothing is made. */
+export interface AngleInput { id: string; vehicle_id: string; shot: string; label: string; sources: string[]; prompt: string }
+export async function angleMake(d: WorkerDeps, j: JobContext): Promise<JobResult> {
+  const a = (j.input as { angle?: AngleInput }).angle;
+  if (!a?.id) return { ok: false, error: 'The angle job is missing its view', retryable: false };
+  const done = (o: Record<string, unknown>, provider = 'carmacars'): JobResult => ({ ok: true, provider, output: { angle: { id: a.id, ...o } } });
+  if (!d.angleAi) return done({ status: 'needs_gemini', note: 'The image model is not set up (no key).' });
+  const images: Array<{ bytes: Uint8Array; contentType: string }> = [];
+  for (const p of (a.sources ?? []).slice(0, 3)) {
+    const b = d.files.getPublic ? await d.files.getPublic(p).catch(() => null) : null;
+    if (b) images.push({ bytes: b, contentType: /\.png$/i.test(p) ? 'image/png' : 'image/jpeg' });
+  }
+  if (!images.length) return done({ status: 'failed', note: 'The car\'s photos could not be read' });
+  const r = await d.angleAi({ images, prompt: a.prompt, photoId: j.photo?.id ?? a.id });
+  if (!r.ok) {
+    const why = r.reason === 'limit' ? 'The image model\'s free daily use is used up: try again tomorrow.' : r.reason === 'off' ? 'The image model is off in Program settings.'
+      : r.reason === 'quota' ? 'The image model\'s free quota is used up for now: try again in an hour.' : `The image model did not make it (${r.message}).`;
+    return done({ status: ['limit', 'off', 'quota', 'model'].includes(r.reason) ? 'needs_gemini' : 'failed', note: why.slice(0, 300) });
+  }
+  const path = `vehicles/${a.vehicle_id}/generated/${a.id}.${r.contentType === 'image/png' ? 'png' : 'jpg'}`;
+  await d.files.putPublic(path, r.bytes, r.contentType);
+  return done({ status: 'made', path, provider: 'ai' }, 'ai');
 }
 
 /** r35 S2 (1056): a photo covered the old way made again from its uncovered file: the front plate edited out (the image

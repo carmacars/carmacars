@@ -429,6 +429,12 @@ def build():
         f'No plate in the shot? {B("No plate visible on this photo")}.',
     ], shot=S('admin/11-plate-editor-phone', 0, 0, 390, 776, hdr=True, pins=[(3, 205, 612), (4, 195, 340), (5, 240, 482), (6, 168, 716)]))
     g.warn('The plate check never holds a car back: a photo whose plate is not checked stays private, and goes public by itself once it is covered or marked. The covered photo replaces the public one; the original is kept privately.')
+    g.task('Missing angles and short videos', 'On a listing, below First photo (Sales: in the Marketplace kit of the car).')
+    g.steps([
+        f'A required angle with no photo? Fleet and Sales press {B("Make")} and the angle (for example {B("Make Rear")}): the image model makes the view from the car\'s photos, within its free daily use. Check it is the same car, then {B("Approve")} or {B("Reject")}.',
+        f'Press {B("Make a short video")} for a 9:16 video of the car\'s approved photos with the price and the call to action. Keep the tab in front until it says Saved, then {B("Download")} it or schedule it on your Marketing page (Scheduled posts).',
+    ])
+    g.warn('An AI view shows on the site after the real photos, labelled AI view. It is never the cover and never damage or condition evidence. A real photo always replaces it.')
     g.task('Publish now', 'Customer service and fleet publish a car themselves; nothing has to be finished first.')
     g.steps([
         f'Open the car from Listings or Field jobs. Its listing says why it is not on the site yet; press {B("Publish now")}. With no rates yet it uses the suggested rates (similar cars, else the class defaults).',
