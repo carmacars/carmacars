@@ -23,16 +23,21 @@ import { PARTNER_COOKIE } from '@/features/partner-crm/feed-key';
 // No card and no payment at this step.
 
 const TOKEN = /^[A-Za-z0-9_-]{8,64}$/;
-async function distance(placeId: string, session?: string): Promise<number | null> {
-  if (!placeId) return null;
+// the road distance and the place itself (1403: without a road distance the database prices the straight line from the
+// company's location to the place times the road factor)
+interface Measured { km: number | null; lat: number | null; lng: number | null }
+async function distance(placeId: string, session?: string): Promise<Measured> {
+  const none: Measured = { km: null, lat: null, lng: null };
+  if (!placeId) return none;
   try {
-    const origin = (await rpc('delivery_origin', {}, { role: 'service_role' })) as unknown as { lat: number; lng: number } | null;
-    if (!origin) return null;
     const m = await maps();
     const p = await m.place(placeId, session && TOKEN.test(session) ? session : crypto.randomUUID());
-    return p ? await m.distanceKm(origin, { lat: p.lat, lng: p.lng }) : null;
+    if (!p) return none;
+    const origin = (await rpc('delivery_origin', {}, { role: 'service_role' })) as unknown as { lat: number; lng: number } | null;
+    const km = origin ? await m.distanceKm(origin, { lat: p.lat, lng: p.lng }).catch(() => null) : null;
+    return { km, lat: p.lat, lng: p.lng };
   } catch {
-    return null;
+    return none;
   }
 }
 
@@ -59,7 +64,7 @@ export async function submitBookingRequest(input: SubmitInput): Promise<SubmitRe
   const airport = (code: string) => f.airports.find((a) => a.code === code);
   const returnAddress = v.returnAt === 'delivery' ? (v.returnAddress.label.trim() ? v.returnAddress : v.pickupAddress) : v.returnAddress;
   // a delivery and a return to the same place ask Google once (each lookup counts against the daily cap, 0113)
-  const distances = new Map<string, Promise<number | null>>();
+  const distances = new Map<string, Promise<Measured>>();
   const distanceOnce = (addr: { placeId: string; session?: string }) => {
     if (!distances.has(addr.placeId)) distances.set(addr.placeId, distance(addr.placeId, addr.session));
     return distances.get(addr.placeId)!;
@@ -67,7 +72,7 @@ export async function submitBookingRequest(input: SubmitInput): Promise<SubmitRe
   const loc = async (kind: string, addr: { label: string; placeId: string; session?: string }, ap: string) => {
     if (kind === 'owner') return { kind: 'owner_location' };
     if (kind === 'airport') return { kind: 'airport', airport_code: ap };
-    if (kind === 'delivery') return { kind: 'delivery', address: addr.label, distance_km: await distanceOnce(addr) };
+    if (kind === 'delivery') { const d = await distanceOnce(addr); return { kind: 'delivery', address: addr.label, distance_km: d.km, lat: d.lat, lng: d.lng }; }
     return { kind: 'our_location' };
   };
   const far = (k: string) => k === 'delivery' || k === 'airport';

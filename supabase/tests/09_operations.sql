@@ -309,13 +309,14 @@ select test.eq('R findings confirmed: a finance task due the same day, the T7 no
 -- ------------------------------------------------------------------ assessment: the charge lines and who they belong to
 select test.throws('A Fleet does not price findings', format('select app.assess_check_in(%L, %L, %L)', test.b('opA'), '{}', test.id('op_fleet')), 'Finance or an Admin');
 create table test.op_assess as select app.assess_check_in(test.b('opA'), '{}', test.id('op_fin')) as r;
-select test.eq('A without the pump cost the fuel line waits, and the assessment says so', (select r -> 'pending' ->> 0 from test.op_assess), 'fuel: 40% short, enter the pump cost from the receipt');
+-- 1402: without a pump receipt the fuel line is the formula (tank x missing fraction x pump price x multiplier): nothing waits
+select test.eq('A without the pump cost the fuel line is the formula and nothing waits', (select r -> 'pending' ->> 0 from test.op_assess), null::text);
 select app.assess_check_in(test.b('opA'), '{"pump_cost_cents": 4000}', test.id('op_fin'));
 select test.eq('A mileage overage: 150 km x $0.35 = $52.50, Owner Revenue, with HST', test.op_line('opA', 'mileage_overage'), '5250+683:owner_revenue');
 select test.eq('A late return: under a day, no extra day line (1063)', coalesce(test.op_line('opA', 'late_return_extra_days'), ''), '');
 select test.eq('A late return fee: 4 started hours x $25, company only', test.op_line('opA', 'late_return_fee'), '10000+1300:company_only');
-select test.eq('A fuel: pump $40 plus 25% = $50, and the $25 service fee, company only',
-  test.op_line('opA', 'fuel') || ' ' || test.op_line('opA', 'fuel_service_fee'), '5000+650:company_only 2500+325:company_only');
+select test.eq('A fuel: pump $40 plus 25% = $50, and the $20 refuelling fee (1402), company only',
+  test.op_line('opA', 'fuel') || ' ' || test.op_line('opA', 'fuel_service_fee'), '5000+650:company_only 2000+260:company_only');
 select test.eq('A cleaning: $75, company only', test.op_line('opA', 'cleaning:cleaning'), '7500+975:company_only');
 select test.eq('A every line carries its supporting records: both Condition Reports, and the instrument cluster photos for the mileage',
   (select bool_and(supporting_refs ? 'return_report_id' and supporting_refs ? 'pickup_report_id') || '/' || count(*)
@@ -323,10 +324,10 @@ select test.eq('A every line carries its supporting records: both Condition Repo
      from booking_line_items where booking_id = test.b('opA') and assessment_key is not null and voided_at is null), 'true/5/2');
 select test.eq('A running the assessment again changes nothing', (select count(*) || '/' || sum(amount_cents) || '/' || sum(hst_cents) from booking_line_items
   where booking_id = test.b('opA') and assessment_key is not null and voided_at is null
-    and (select app.assess_check_in(test.b('opA'), '{"pump_cost_cents": 4000}', test.id('op_fin')) is not null)), '5/30250/3933');
+    and (select app.assess_check_in(test.b('opA'), '{"pump_cost_cents": 4000}', test.id('op_fin')) is not null)), '5/29750/3868');
 select test.eq('A the split follows: Owner Revenue = $340 rental + $52.50 mileage = $392.50 (no extra day under a day, 1063); 35% to CarmaCars',
   (select rental_charge_cents || '/' || mileage_overage_cents || '/' || owner_revenue_cents || '/' || company_share_cents || '/' || company_only_cents
-     from booking_splits where booking_id = test.b('opA')), '34000/5250/39250/13738/25000');
+     from booking_splits where booking_id = test.b('opA')), '34000/5250/39250/13738/24500');
 
 -- nothing is hard-coded: an Admin changes a fee on this booking and the line follows
 select test.throws('A only an Admin changes a fee on one booking',
@@ -338,37 +339,37 @@ select app.set_booking_fee_term(test.b('opA'), 'cleaning', test.id('op_admin'), 
 select app.assess_check_in(test.b('opA'), '{"pump_cost_cents": 4000}', test.id('op_fin'));
 
 -- ------------------------------------------------------------------ statement and Deposit: the plain case
--- Charges $302.50 + HST $39.33 = $341.83. Deposit $1,000: $341.83 applied, $658.17 returned, nothing on the card.
+-- Charges $297.50 + HST $38.68 = $336.18. Deposit $1,000: $336.18 applied, $663.82 returned, nothing on the card.
 select test.throws('D the Deposit is settled only after the statement', format('select app.settle_deposit(%L, %L)', test.b('opA'), test.id('op_fin')), 'Issue the Check-in statement');
 insert into test.rq_ids values ('stA', app.issue_booking_statement(test.b('opA'), test.id('op_fin'), test.at('2031-05-05 11:00')));
-select test.eq('D the Check-in statement: charges $302.50, HST $39.33, interest from 7 days later; the finance task is closed',
+select test.eq('D the Check-in statement: charges $297.50, HST $38.68, interest from 7 days later; the finance task is closed',
   (select kind || '/' || charges_cents || '/' || hst_cents || '/' || interest_starts_on || '/' || (statement_number like 'RS-%') from booking_statements where id = test.b('stA'))
-  || ' ' || (select status from tasks where booking_id = test.b('opA') and task_type = 'price_findings'), 'check_in/30250/3933/2031-05-12/true done');
+  || ' ' || (select status from tasks where booking_id = test.b('opA') and task_type = 'price_findings'), 'check_in/29750/3868/2031-05-12/true done');
 select test.throws('D with no new charge there is no second statement', format('select app.issue_booking_statement(%L, %L)', test.b('opA'), test.id('op_fin')), 'no new charge');
 -- the finance assistant's Single Limit is $0: the proposal goes to an Admin and nothing moves
 create table test.op_settle as select app.settle_deposit(test.b('opA'), test.id('op_fin'), '{}', test.at('2031-05-05 11:30')) as r;
-select test.eq('D a finance assistant proposes; the release of $658.17 waits for an Admin and nothing has moved',
+select test.eq('D a finance assistant proposes; the release of $663.82 waits for an Admin and nothing has moved',
   (select (r ->> 'status') || '/' || (r -> 'proposed' ->> 'applied_cents') || '/' || (r -> 'proposed' ->> 'released_cents') || '/' || (r -> 'proposed' ->> 'charged_to_card_cents')
           || '/' || jsonb_array_length(r -> 'server_actions') from test.op_settle)
-  || ' ' || (select applied_cents || '/' || released_cents || '/' || status from deposits where booking_id = test.b('opA')), 'awaiting_approval/34183/65817/0/0 0/0/held');
+  || ' ' || (select applied_cents || '/' || released_cents || '/' || status from deposits where booking_id = test.b('opA')), 'awaiting_approval/33618/66382/0/0 0/0/held');
 select test.eq('D the approval is an admin task and one staff_approval_needed event',
   test.op_tasks('opA', 'approve_deposit_release') || '/' || (select count(*) from app_events e join deposits d on d.id = e.entity_id where e.code = 'staff_approval_needed' and d.booking_id = test.b('opA')),
   '1:admin:high/1');
 select test.eq('D the task cannot be closed while a balance is still to be released',
   app.task_completion_problem((select id from tasks where booking_id = test.b('opA') and task_type = 'approve_deposit_release')), 'A Deposit balance is still to be applied or released');
 create table test.op_settle2 as select app.settle_deposit(test.b('opA'), test.id('op_admin'), '{}', test.at('2031-05-06 09:00')) as r;
-select test.eq('D the Admin settles: $341.83 applied, $658.17 returned, the Deposit is settled, the booking closed',
+select test.eq('D the Admin settles: $336.18 applied, $663.82 returned, the Deposit is settled, the booking closed',
   (select applied_cents || '/' || released_cents || '/' || held_back_cents || '/' || status || '/' || (release_approved_by = test.id('op_admin')) from deposits where booking_id = test.b('opA'))
-  || ' ' || (select status::text from bookings where id = test.b('opA')), '34183/65817/0/settled/true closed');
-select test.eq('D what the server must do at the processor: capture $341.83 of the hold and release $658.17',
+  || ' ' || (select status::text from bookings where id = test.b('opA')), '33618/66382/0/settled/true closed');
+select test.eq('D what the server must do at the processor: capture $336.18 of the hold and release $663.82',
   (select string_agg((a ->> 'action') || ':' || (a ->> 'amount_cents'), ' ') from test.op_settle2, jsonb_array_elements(r -> 'server_actions') a),
-  'capture_deposit:34183 release_hold:65817');
-select test.eq('D the statement shows it: applied $341.83, returned $658.17, nothing to the card',
-  (select deposit_applied_cents || '/' || deposit_returned_cents || '/' || held_back_cents || '/' || charged_to_card_cents from booking_statements where id = test.b('stA')), '34183/65817/0/0');
+  'capture_deposit:33618 release_hold:66382');
+select test.eq('D the statement shows it: applied $336.18, returned $663.82, nothing to the card',
+  (select deposit_applied_cents || '/' || deposit_returned_cents || '/' || held_back_cents || '/' || charged_to_card_cents from booking_statements where id = test.b('stA')), '33618/66382/0/0');
 select test.eq('D every line is tied to the capture, and each has its "applied" event',
-  (select count(distinct payment_id) || '/' || bool_and(p.kind = 'capture' and p.status = 'pending' and p.amount_cents = 34183) || '/'
+  (select count(distinct payment_id) || '/' || bool_and(p.kind = 'capture' and p.status = 'pending' and p.amount_cents = 33618) || '/'
           || (select sum(e.amount_cents) from deposit_events e join deposits d on d.id = e.deposit_id where d.booking_id = test.b('opA') and e.kind = 'applied')
-     from booking_line_items li join payments p on p.id = li.payment_id where li.booking_id = test.b('opA') and li.statement_id = test.b('stA')), '1/true/34183');
+     from booking_line_items li join payments p on p.id = li.payment_id where li.booking_id = test.b('opA') and li.statement_id = test.b('stA')), '1/true/33618');
 select app.post_rental_payment_result((select hold.id from payments hold where hold.booking_id = test.b('opA') and hold.kind = 'capture'), true, null, test.at('2031-05-06 09:05'));
 select test.eq('D once the processor confirms the capture the statement is paid and the split has nothing uncollected after it',
   (select (paid_at is not null)::text from booking_statements where id = test.b('stA')) || '/'
@@ -981,15 +982,15 @@ select test.eq('J arrears past the removal date: an Admin task; and one staff_ex
 insert into payment_processor_details (payment_id, processor_payment_id, balance_transaction_id)
 select id, 'pi_op_a', 'txn_op_1' from payments where booking_id = test.b('opA') and kind = 'capture';
 insert into test.rq_ids values ('po1', app.record_processor_payout('po_op_1', date '2031-05-08', 53800,
-  '[{"ref": "txn_op_1", "amount_cents": 34183, "fee_cents": 1349}, {"ref": "txn_op_2", "payment_ref": "pi_unknown", "amount_cents": 9900, "fee_cents": 317},
+  '[{"ref": "txn_op_1", "amount_cents": 33618, "fee_cents": 1349}, {"ref": "txn_op_2", "payment_ref": "pi_unknown", "amount_cents": 9900, "fee_cents": 317},
     {"ref": "txn_fee_1", "kind": "fee", "amount_cents": -100}]'));
 select test.eq('N a payout: the item whose processor reference and amount agree is matched to its payment, the fee line needs none, the stranger stays unmatched',
   (select string_agg(processor_ref || ':' || status || ':' || (payment_id is not null), ' ' order by processor_ref) from payout_reconciliation_items where reconciliation_id = test.b('po1'))
   || ' ' || (select status || '/' || item_count || '/' || matched_cents || '/' || unmatched_cents || '/' || fees_cents from payout_reconciliations where id = test.b('po1')),
-  'txn_fee_1:resolved:false txn_op_1:matched:true txn_op_2:unmatched:false unmatched/3/34183/9900/1766');
+  'txn_fee_1:resolved:false txn_op_1:matched:true txn_op_2:unmatched:false unmatched/3/33618/9900/1766');
 select test.eq('N anything unmatched is a Finance task for the same day', (select queue || '/' || priority || '/' || status || '/' || procedure_no from tasks where related_id = test.b('po1') and task_type = 'reconcile'), 'finance/high/open/19');
 select test.eq('N recording the same payout again adds nothing', (select count(*) from payout_reconciliation_items where reconciliation_id =
-  app.record_processor_payout('po_op_1', date '2031-05-08', 53800, '[{"ref": "txn_op_1", "amount_cents": 34183}]')), 3::bigint);
+  app.record_processor_payout('po_op_1', date '2031-05-08', 53800, '[{"ref": "txn_op_1", "amount_cents": 33618}]')), 3::bigint);
 select test.throws('N the task stays open while an item is unmatched',
   format($$select app.complete_task((select id from tasks where related_id = %L and task_type = 'reconcile'), %L)$$, test.b('po1'), test.id('op_fin')), 'still has unmatched items');
 select test.throws('N linking an item to a payment of another amount needs an explanation',

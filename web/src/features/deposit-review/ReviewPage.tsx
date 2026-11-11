@@ -20,7 +20,12 @@ function factLines(it: ReviewItem): string[] {
   const n = (k: string) => (f[k] === null || f[k] === undefined ? null : Number(f[k]));
   const charged = n('charged_cents') ? `already charged ${$(n('charged_cents'))}` : null;
   switch (it.item) {
-    case 'fuel': return [f.out_pct !== null && f.out_pct !== undefined ? `Fuel ${n('out_pct')}% out, ${f.in_pct ?? 'not read'}% in${n('eighths_short') ? `: ${n('eighths_short')}/8 short` : ''}` : 'No fuel reading', charged].filter(Boolean) as string[];
+    case 'fuel': {
+      // 1402: the suggested line (tank x missing fraction x pump price x multiplier, plus the refuelling fee): confirm it here
+      const sh = f.shortfall as { working?: string; total_cents?: number } | null | undefined;
+      const suggested = n('suggested_cents') ? `Suggested: ${$(n('suggested_cents'))}${sh?.working ? ` (${sh.working})` : ''}` : null;
+      return [f.out_pct !== null && f.out_pct !== undefined ? `Fuel ${n('out_pct')}% out, ${f.in_pct ?? 'not read'}% in${n('eighths_short') ? `: ${n('eighths_short')}/8 short` : ''}` : 'No fuel reading', suggested, charged].filter(Boolean) as string[];
+    }
     case 'km': return [f.driven !== null && f.driven !== undefined ? `${n('driven')} km driven, ${n('allowance') ?? 0} included${n('over') ? `: ${n('over')} km over` : ''}` : 'No odometer reading', charged].filter(Boolean) as string[];
     case 'damage': { const nw = (f.new as string[] | undefined) ?? []; return [nw.length ? `New at the return: ${nw.join('; ')}` : 'No new damage marked at the return', charged].filter(Boolean) as string[]; }
     case 'late': return [n('minutes') ? `Back ${Math.floor(n('minutes')! / 60)} h ${n('minutes')! % 60} min after the return time` : 'Back on time', charged].filter(Boolean) as string[];

@@ -32,6 +32,7 @@ import type { PageCtx } from '@/features/shared-pages/context';
 import { vehicleCan } from '@/features/shared-pages/viewer';
 import { vehicleTab, vehicleTabs } from './tabs';
 import { HashTab } from './HashTab';
+import { ValueFuel, type ValueFuelData } from './ValueFuel';
 import { GovernmentForms, type GovData } from '@/features/onboarding/GovernmentForms';
 
 type R = Record<string, unknown>;
@@ -72,6 +73,8 @@ export async function VehiclePage({ ctx, id, sp }: { ctx: PageCtx; id: string; s
   const interest = tab === 'overview' ? await read<Interest>('vehicle_interest', { vehicle_id: id }).catch(() => null) : null;
   // 1205: the car's price limits (its own and its owner's)
   const limits = tab === 'rates' ? await ops<PriceLimitsRead>('price_limits', { vehicle_id: id }).catch(() => null) : null;
+  // 1400 and 1402: the value card coverage is checked against, the tank and the grade the fuel shortfall uses
+  const valueFuel = tab === 'overview' ? await ops<ValueFuelData>('vehicle_value_fuel', { vehicle_id: id }).catch(() => null) : null;
   const classes = tab === 'overview' ? (await list<{ code: string; label: string }>('vehicle_classes', { eq: { is_active: true }, order: 'sort_order', asc: true })).rows : [];
   const cal = tab === 'calendar' ? await (async () => { const { from } = rangeFrom(sp.start, 'month'); return read<CalData>('calendar', { from: from.toISOString(), to: new Date(from.getTime() + 31 * 86_400_000).toISOString(), vehicle: id }); })() : null;
   const slug = v.listing?.slug ? String(v.listing.slug) : null;
@@ -158,6 +161,7 @@ export async function VehiclePage({ ctx, id, sp }: { ctx: PageCtx; id: string; s
               </>;
             })()}
           </Card>
+          <ValueFuel v={valueFuel} canEdit refresh={refresh} />
           <Card title="For sale" testId="vehicle-for-sale">
             <p className="small muted">With the flag and a price, the car shows at the top of its /buy pages.</p>
             <Kv rows={[['For sale', v.for_sale ? `Yes, ${v.asking_price_cents ? `$${(Number(v.asking_price_cents) / 100).toLocaleString('en-CA', { minimumFractionDigits: 2 })}` : 'no price'}` : 'No']]} />
@@ -366,6 +370,7 @@ async function StaffVehicle({ ctx, id, sp }: { ctx: PageCtx; id: string; sp: Rec
   const prepare = tab === 'overview' ? await ops<PrepareProgressData | null>('prepare_progress', { vehicle: id }).catch(() => null) : null;
   // 1205: the price limits in force, read only (an Admin or the owner sets them)
   const limits = can.rates && tab === 'rates' ? await ops<PriceLimitsRead>('price_limits', { vehicle_id: id }).catch(() => null) : null;
+  const staffValueFuel = tab === 'overview' ? await ops<ValueFuelData>('vehicle_value_fuel', { vehicle_id: id }).catch(() => null) : null;
   return (
     <>
       <PageHead title={`${String(c.year ?? '')} ${String(c.make ?? '')} ${String(c.model ?? '')}`} kicker={String(c.plate ?? '')}>
@@ -377,6 +382,7 @@ async function StaffVehicle({ ctx, id, sp }: { ctx: PageCtx; id: string; sp: Rec
       {tab === 'overview' && <div className="ad-cols ad-cols--2">
         <Card title="Vehicle"><Kv rows={[['Plate', String(c.plate ?? '')], ['Colour', String(c.colour ?? '')], ['Status', label(c.status)], ['Odometer', c.odometer_km ? `${String(c.odometer_km)} km` : ''], ['Class', String(c.class ?? '')]]} /></Card>
         {can.ownerHandoffs && <OwnerHandoffs vehicleId={id} userId={user.id} aal={aal} refresh={[base]} />}
+        <ValueFuel v={staffValueFuel} canEdit={viewer.role === 'staff' && viewer.fn === 'fleet'} refresh={[base]} />
       </div>}
       {tab === 'rates' && rates && <Card title="Rates and kilometres" testId="va-rates"><p className="small muted">Rates, kilometres and deposit save together. Bookings already made keep their rates.</p>
         <RateCardForm vehicleId={id} card={rates.current} refresh={[base]} testId="va-rate-form" /></Card>}

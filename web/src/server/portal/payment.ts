@@ -17,6 +17,8 @@ export interface PaymentFacts {
   legal_name: string; email: string; agreement_signed: boolean; vehicle_free: boolean; customer_id: string | null;
   /** 0130: what of the renter's licence is still missing (empty when nothing, or the switch is off) */
   licence_missing?: string[];
+  /** 1401: the OPCF 27 pages still to send before payment (pink slip, OPCF 27 endorsement) */
+  coverage_missing?: string[];
 }
 
 export async function paymentFacts(bookingId: string): Promise<PaymentFacts> {

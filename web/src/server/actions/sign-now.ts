@@ -126,7 +126,8 @@ export async function staffDocumentUpload(form: FormData): Promise<R> {
     const opt = (k: string) => { const v = String(form.get(k) ?? '').trim(); return v || undefined; };
     try {
       await door(user.id, 'ops_do', 'staff_document_register', { booking, kind, path: key, sha256: await sha256Hex(bytes), mime,
-        title: opt('title'), insurer_name: opt('insurer_name'), policy_number: opt('policy_number'), policy_expiry: opt('policy_expiry') }, aal);
+        title: opt('title'), insurer_name: opt('insurer_name'), policy_number: opt('policy_number'), policy_expiry: opt('policy_expiry'),
+        page_kind: ['pink_slip', 'endorsement', 'card_benefit'].includes(opt('page_kind') ?? '') ? opt('page_kind') : undefined }, aal);
     } catch (e) { await s.remove('documents', key).catch(() => undefined); throw e; }
     revalidatePath('/admin/bookings'); revalidatePath('/staff/bookings');
     return { ok: true, data: null };

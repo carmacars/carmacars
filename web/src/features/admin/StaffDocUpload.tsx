@@ -17,7 +17,7 @@ export function StaffDocUpload({ bookingId, drivers }: { bookingId: string; driv
   const [kind, setKind] = useState<Kind>('coverage_proof');
   const [driver, setDriver] = useState(drivers[0]?.driver_id ?? '');
   const [file, setFile] = useState<File | null>(null);
-  const [f, setF] = useState({ insurer_name: '', policy_number: '', policy_expiry: '', title: '' });
+  const [f, setF] = useState({ insurer_name: '', policy_number: '', policy_expiry: '', title: '', page_kind: '' });
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [resets, setResets] = useState(0);
   const [pending, run] = useTransition();
@@ -41,7 +41,7 @@ export function StaffDocUpload({ bookingId, drivers }: { bookingId: string; driv
     // the licence reader (release 31): a photo it could not use is taken again now
     const retake = (r.data as { retake?: string | null } | null)?.retake ?? null;
     setMsg(retake ? { ok: false, text: retake } : { ok: true, text: 'Uploaded. It is on the booking; review it with Review documents.' });
-    setFile(null); setF({ insurer_name: '', policy_number: '', policy_expiry: '', title: '' }); setResets((n) => n + 1); router.refresh();
+    setFile(null); setF({ insurer_name: '', policy_number: '', policy_expiry: '', title: '', page_kind: '' }); setResets((n) => n + 1); router.refresh();
   });
   if (!open) return <button className="btn btn--ghost btn--sm" type="button" onClick={() => setOpen(true)} data-testid="sdu-open">Upload a document</button>;
   return (
@@ -54,6 +54,10 @@ export function StaffDocUpload({ bookingId, drivers }: { bookingId: string; driv
           <select className="input" id="sdu-driver" value={driver} onChange={(e) => setDriver(e.target.value)} data-testid="sdu-driver">
             {drivers.map((d) => <option key={d.driver_id} value={d.driver_id}>{d.full_name}</option>)}</select></div>}
         {kind === 'coverage_proof' && <>
+          <div className="field ad-field"><label className="label" htmlFor="sdu-page">Which page (1401)</label>
+            <select className="input" id="sdu-page" value={f.page_kind} onChange={(e) => setF((s) => ({ ...s, page_kind: e.target.value }))} data-testid="sdu-page">
+              <option value="">The whole policy</option><option value="pink_slip">Pink slip</option><option value="endorsement">OPCF 27 endorsement page</option>
+              <option value="card_benefit">Card benefit document</option></select></div>
           <div className="field ad-field"><label className="label" htmlFor="sdu-ins">Insurer (optional)</label>
             <InsurerSelect key={resets} id="sdu-ins" value={f.insurer_name} onChange={(v) => setF((s) => ({ ...s, insurer_name: v }))} testId="sdu-ins" /></div>
           <div className="field ad-field"><label className="label" htmlFor="sdu-pol">Policy number (optional)</label>

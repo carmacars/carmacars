@@ -6,6 +6,8 @@ import { bookingPath } from '@/features/portal/status';
 import { Back } from '@/features/portal/Blocks';
 import { UploadCard } from '@/features/portal/UploadCard';
 import { CoverageSection } from '@/features/portal/CoverageSection';
+import { rpc } from '@/lib/db/repo';
+import type { CardList } from '@/features/coverage/cards';
 import { myBooking, myCoverage, myTripPhotos } from '@/server/portal/data';
 import { StepHeader } from '@/features/portal/trip';
 import { licenceReadState, licenceState } from '@/features/portal/LicenceNotice';
@@ -44,6 +46,8 @@ export default async function VerifyPage({ params, searchParams }: { params: Pro
   const up = (kind: string, driver: string | null) => b.uploads.filter((u) => u.kind === kind && u.driver_id === driver).pop();
   const missing = b.readiness?.missing ?? [];
   const cov = early ? null : await myCoverage(user, b.id).catch(() => null);
+  // 1400: the card list the renter picks from (option 2)
+  const cards = cov?.option === 2 ? (((await rpc('card_coverage_public', {}).catch(() => null)) as unknown as CardList | null)?.cards ?? []) : [];
   return (
     <>
       <Back href={bookingPath(b.booking_number)}>Booking {b.booking_number}</Back>
@@ -82,7 +86,7 @@ export default async function VerifyPage({ params, searchParams }: { params: Pro
       ))}
       {!early && <section className="stack" aria-labelledby="pt-cov">
         <h2 className="pt-section-title" id="pt-cov">Coverage for damage to the car</h2>
-        <div className="pt-card">{cov ? <CoverageSection number={b.booking_number} c={cov} /> : <p>Tell us how you will cover damage to the car: call or message us.</p>}</div>
+        <div className="pt-card">{cov ? <CoverageSection number={b.booking_number} c={cov} cards={cards} /> : <p>Tell us how you will cover damage to the car: call or message us.</p>}</div>
       </section>}
     </>
   );

@@ -57,6 +57,8 @@ export default async function SignAndPayPage({ params, searchParams }: { params:
   if (b.agreement?.status === 'open' && !companion && !va) { await openCompanionQuietly(b.id, user.id); companion = await companionOf(b.id); }
   const signing = s.step === 'sign' && b.agreement?.status === 'open';
   const paying = s.step === 'pay';
+  // OPCF 27 (1401): the pink slip and the endorsement page come before payment (the payment refuses without them)
+  const opcfMissing = b.coverage_option === 1 && s.pay_after ? (((await rpc('server_booking_payment_facts', { p_booking: b.id }, SR).catch(() => null)) as unknown as { coverage_missing?: string[] } | null)?.coverage_missing ?? []) : [];
   const [bundle, photos, detailsMissing, gate, debitOk, debitDeposit, offline] = await Promise.all([
     signing ? loadBundle(b.id, user.id) : Promise.resolve(null), myTripPhotos(user), renterDetailsMissing(b, user.id),
     paying ? accountGate(user.id, 'pay') : Promise.resolve(null),
@@ -100,6 +102,9 @@ export default async function SignAndPayPage({ params, searchParams }: { params:
         </section>
       )}
       {sp0.signed && paying && <p className="alert alert--ok" role="status" data-testid="sign-pay-signed"><span>Signed. Now pay {due} below to confirm your booking.</span></p>}
+      {opcfMissing.length > 0 && (
+        <p className="alert alert--warn" role="note" data-testid="sign-pay-opcf-missing"><span className="alert__title">Your insurance comes first</span>
+          <span>You chose OPCF 27 on your own auto policy: upload the {opcfMissing.join(' and ')} before you pay. <Link prefetch={false} className="link" href={bookingPath(b.booking_number, 'verify')}>Upload them</Link></span></p>)}
 
       {/* ---------------------------------------------------------------- 1. sign */}
       <section className="stack sp-section" id="sign" aria-labelledby="sp-sign-h" data-testid="sign-pay-sign">
