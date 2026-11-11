@@ -28,7 +28,6 @@ export function HistoryList({ d, sp, now, base = '/admin/visitors' }: { d: Histo
   const tot = s?.totals;
   const first = !historyParams(sp).cursor;
   const v = (k: FilterKey) => f[k] ?? '';
-  const more = !!(f.city || f.landing || f.device || f.country || f.visitor || f.contact || f.known || f.bots);
   const today = torontoToday(now);
   const keep = Object.fromEntries((Object.entries(f) as Array<[string, string]>).concat([['view', 'history']]));
   const n = (x: number) => x.toLocaleString('en-US');
@@ -46,25 +45,13 @@ export function HistoryList({ d, sp, now, base = '/admin/visitors' }: { d: Histo
             <select className="select" id="vh-converted" name="converted" defaultValue={v('converted')}>
               <option value="">Anything or nothing</option><option value="any">Any conversion</option><option value="request">A request sent</option><option value="booking">A booking confirmed</option>
               <option value="signup">An account opened</option><option value="contact">Contact details given</option><option value="none">Nothing</option></select></div>
+          <div className="field"><label className="label" htmlFor="vh-device">Device</label>
+            <select className="select" id="vh-device" name="device" defaultValue={v('device')}><option value="">Any</option><option value="phone">Phone</option><option value="tablet">Tablet</option><option value="desktop">Computer</option></select></div>
           <button className="btn btn--primary btn--sm vhf__go" type="submit" data-testid="vh-apply">Show visits</button>
         </div>
-        <details className="vs-more" open={more}>
-          <summary>More filters</summary>
-          <div className="vs-more__in">
-            <div className="field"><label className="label" htmlFor="vh-city">City</label><input className="input" id="vh-city" name="city" defaultValue={v('city')} placeholder="Toronto" /></div>
-            <div className="field"><label className="label" htmlFor="vh-device">Device</label>
-              <select className="select" id="vh-device" name="device" defaultValue={v('device')}><option value="">Any</option><option value="phone">Phone</option><option value="tablet">Tablet</option><option value="desktop">Computer</option></select></div>
-            <div className="field"><label className="label" htmlFor="vh-landing">Landing page</label><input className="input" id="vh-landing" name="landing" defaultValue={v('landing')} placeholder="/cars" /></div>
-            <div className="field"><label className="label" htmlFor="vh-country">Country</label><input className="input" id="vh-country" name="country" defaultValue={v('country')} placeholder="CA" maxLength={2} /></div>
-            <div className="field"><label className="label" htmlFor="vh-visitor">Visitor</label>
-              <select className="select" id="vh-visitor" name="visitor" defaultValue={v('visitor')}><option value="">New and returning</option><option value="new">New</option><option value="returning">Returning</option></select></div>
-            <div className="vs-more__checks">
-              <label><input type="checkbox" name="contact" value="1" defaultChecked={f.contact === '1'} /> We can contact them</label>
-              <label><input type="checkbox" name="known" value="1" defaultChecked={f.known === '1'} /> Known customers only</label>
-              <label><input type="checkbox" name="bots" value="1" defaultChecked={f.bots === '1'} /> Show bots and staff</label>
-            </div>
-          </div>
-        </details>
+        {/* r35: no "More filters" panel (the owner: reduce the filters). Device stays in the row; the other filters are still read from
+            a link and carried here while set, and cleared with the link below. */}
+        {(['city', 'landing', 'country', 'visitor', 'contact', 'known', 'bots'] as const).filter((k) => f[k]).map((k) => <input key={k} type="hidden" name={k} value={f[k]} />)}
         {d.filtered ? <p className="small"><Link prefetch={false} className="link" href={`${base}?view=history`}>Clear the filters</Link></p> : null}
       </GetForm>
 

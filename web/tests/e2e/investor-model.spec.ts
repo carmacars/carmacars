@@ -119,9 +119,9 @@ test.describe('the model sheets, live', () => {
     await shot(page, 'how');
 
     await page.getByTestId('model-tab-car').click();
-    await expect(page.getByTestId('car-cash')).toHaveText('$1,960');
+    await expect(page.getByTestId('car-cash')).toHaveText('$1,400');
     await page.getByTestId('car-add').click();
-    await expect(page.getByTestId('car-cash')).toHaveText('$1,960');
+    await expect(page.getByTestId('car-cash')).toHaveText('$1,400');
     await check(page, 'fund a car');
     await shot(page, 'car');
 

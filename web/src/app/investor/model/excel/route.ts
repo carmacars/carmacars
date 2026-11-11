@@ -16,7 +16,7 @@ export async function GET(req: Request) {
   const r = new URL(req.url).searchParams.get('reinvest');
   const m = await loadInvestorModel(user.id, r === '1' ? true : r === '0' ? false : undefined);
   const wb = investorWorkbook({ multiplier: multiplierOf(m.terms), rate: m.calc.rate, minimum: m.terms.min_cents / 100, lockupMonths: m.terms.lockup_months,
-    amount: m.calc.amount, start: m.calc.start, reinvest: m.calc.reinvest, investorName: m.terms.legal_name, company: m.terms.company,
+    amount: m.calc.amount, start: m.calc.start, reinvest: m.calc.reinvest, investorName: m.terms.legal_name, company: m.terms.company, dailyRateCents: m.terms.sheet_daily_rate_cents,
     mine: m.mine.rows.length || m.mine.investedCents ? m.mine : null, generatedOn: m.terms.today });
   return new Response(wb.bytes() as unknown as BodyInit, { headers: { 'content-type': XLSX_TYPE, 'content-disposition': `attachment; filename="CarmaCars-investment-${m.terms.today}.xlsx"`,
     'cache-control': 'private, no-store', 'x-robots-tag': 'noindex, nofollow', 'x-content-type-options': 'nosniff' } });

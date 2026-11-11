@@ -138,8 +138,7 @@ test('Visitor history: an Admin sees past visits with the daily chart, filters t
     // the filters: its device keeps it, "a booking confirmed" does not
     const [dv] = await sql`select device from visitor_sessions where id = ${sid}`;
     const device = ({ phone: 'Phone', tablet: 'Tablet', desktop: 'Computer' } as Record<string, string>)[String(dv!.device)] ?? 'Computer';
-    // the less used filters are folded under "More filters"
-    await page.getByTestId('vh-filters').getByText('More filters').click();
+    // r35: no "More filters" panel; Device sits in the filter row
     await page.getByTestId('vh-filters').getByLabel('Device').selectOption({ label: device });
     await page.getByTestId('vh-apply').click();
     await page.waitForURL(/device=/);

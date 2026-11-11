@@ -111,6 +111,7 @@ const LABELS: Record<string, string> = {
   deposit_review_required: 'Deposit review: Fleet then Finance check every returned booking before its deposit is released',
   deposit_review_sweep_days: 'Deposit review: the Finance sweep days (mon,wed,fri)', deposit_review_toll_url: 'Deposit review: where Finance checks the highway tolls of a plate',
   deposit_review_ticket_places: 'Deposit review: the places Finance checks for tickets, each with its name and official lookup link',
+  investor_sheet_daily_rate_cents: 'Investor sheets: the default daily rate of the Fund a car sheet (cents)',
   accident_plan_claim_url: 'Accident card: the claim page of the plan sold with a rental',
   vlf_daily_cents: 'Insurer-billed rentals: VLF (vehicle licensing fee) a day',
   staff_commission_bps: 'Commission outside Sales: customer service, finance, fleet and field staff (also the field referral fee)',

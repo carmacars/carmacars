@@ -4,7 +4,7 @@
 // projected schedule as values. Never anything about the fleet, its use, its insurance or the company's costs: the
 // internal sheets are built only by features/finance-model/workbook.ts, for Admins.
 import { FMT, S, Workbook, banner, section, colLetter, BLACK, GREEN, GREY, MUTED, PINK, RED, WHITE } from '../../lib/xlsx.ts';
-import { CAR_DEFAULTS, type CarInputs } from './calc.ts';
+import { CAR_DEFAULTS, carDefaults, type CarInputs } from './calc.ts';
 import { EXAMPLE_AMOUNTS, FOOTNOTES, RAISE, TERMS } from '../deck/pitch.ts';
 import type { MineSummary } from './mine.ts';
 
@@ -20,6 +20,7 @@ export interface InvestorBook {
   company?: string | null;            // the legal name the agreements carry
   car?: CarInputs;
   carFirstMonth?: string;
+  dailyRateCents?: number | null;     // the Program setting for the Fund a car default daily rate
   mine?: MineSummary | null;          // the investor's own records (absent for a preview)
   generatedOn: string;                // YYYY-MM-DD
 }
@@ -273,6 +274,6 @@ export function investorWorkbook(b: InvestorBook): Workbook {
   if (b.mine) myInvestmentSheet(wb, b.mine, b.generatedOn, b.investorName);
   howItWorks(wb, b);
   calculator(wb, b);
-  fundACar(wb, b.car ?? CAR_DEFAULTS, b.carFirstMonth ?? '2026-12-01', b.company);
+  fundACar(wb, b.car ?? carDefaults(b.dailyRateCents), b.carFirstMonth ?? '2026-12-01', b.company);
   return wb;
 }
