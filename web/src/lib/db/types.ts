@@ -525,6 +525,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      address_imports: {
+        Row: {
+          id: number;
+          provinces: string[];
+          run_url: string | null;
+          status: string;
+          counts: Json;
+          skipped: Json;
+          started_at: string;
+          finished_at: string | null;
+        };
+        Insert: {
+          id?: number;
+          provinces?: string[];
+          run_url?: string | null;
+          status?: string;
+          counts?: Json;
+          skipped?: Json;
+          started_at?: string;
+          finished_at?: string | null;
+        };
+        Update: {
+          id?: number;
+          provinces?: string[];
+          run_url?: string | null;
+          status?: string;
+          counts?: Json;
+          skipped?: Json;
+          started_at?: string;
+          finished_at?: string | null;
+        };
+        Relationships: [];
+      };
       ads_job_state: {
         Row: {
           singleton: boolean;
@@ -1440,6 +1473,54 @@ export type Database = {
           after?: Json | null;
           ip_address?: string | null;
           request_id?: string | null;
+        };
+        Relationships: [];
+      };
+      auto_replies: {
+        Row: {
+          id: string;
+          channel: string;
+          sender: string;
+          question: string | null;
+          answer: string | null;
+          status: string;
+          reason: string | null;
+          faq: string[];
+          neurons: number;
+          model: string | null;
+          outbox_id: string | null;
+          task_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          channel: string;
+          sender: string;
+          question?: string | null;
+          answer?: string | null;
+          status: string;
+          reason?: string | null;
+          faq?: string[];
+          neurons?: number;
+          model?: string | null;
+          outbox_id?: string | null;
+          task_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          channel?: string;
+          sender?: string;
+          question?: string | null;
+          answer?: string | null;
+          status?: string;
+          reason?: string | null;
+          faq?: string[];
+          neurons?: number;
+          model?: string | null;
+          outbox_id?: string | null;
+          task_id?: string | null;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -3651,6 +3732,42 @@ export type Database = {
           returning_now_return_at?: string | null;
           plan_policy_number?: string | null;
           pay_fixed_cents?: number | null;
+        };
+        Relationships: [];
+      };
+      ca_addresses: {
+        Row: {
+          id: number;
+          province: string;
+          num: string | null;
+          street: string;
+          unit: string | null;
+          city: string | null;
+          postal: string | null;
+          lat: number | null;
+          lng: number | null;
+        };
+        Insert: {
+          id?: number;
+          province: string;
+          num?: string | null;
+          street: string;
+          unit?: string | null;
+          city?: string | null;
+          postal?: string | null;
+          lat?: number | null;
+          lng?: number | null;
+        };
+        Update: {
+          id?: number;
+          province?: string;
+          num?: string | null;
+          street?: string;
+          unit?: string | null;
+          city?: string | null;
+          postal?: string | null;
+          lat?: number | null;
+          lng?: number | null;
         };
         Relationships: [];
       };
@@ -11163,6 +11280,66 @@ export type Database = {
         };
         Relationships: [];
       };
+      listing_covers: {
+        Row: {
+          id: string;
+          vehicle_id: string;
+          style: string;
+          photo_id: string;
+          source_path: string;
+          status: string;
+          path: string | null;
+          width: number | null;
+          height: number | null;
+          provider: string | null;
+          note: string | null;
+          price_cents: number | null;
+          flyer_key: string | null;
+          job_id: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          vehicle_id: string;
+          style: string;
+          photo_id: string;
+          source_path: string;
+          status?: string;
+          path?: string | null;
+          width?: number | null;
+          height?: number | null;
+          provider?: string | null;
+          note?: string | null;
+          price_cents?: number | null;
+          flyer_key?: string | null;
+          job_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          vehicle_id?: string;
+          style?: string;
+          photo_id?: string;
+          source_path?: string;
+          status?: string;
+          path?: string | null;
+          width?: number | null;
+          height?: number | null;
+          provider?: string | null;
+          note?: string | null;
+          price_cents?: number | null;
+          flyer_key?: string | null;
+          job_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       listing_drafts: {
         Row: {
           id: string;
@@ -17347,6 +17524,23 @@ export type Database = {
           indexnow_sweep_batch: number;
           indexnow_queue_batch: number;
           staff_onboarding_gate: boolean;
+          listing_cover_model_prompt: string;
+          listing_cover_flyer: Json;
+          auto_reply_sms: boolean;
+          auto_reply_email: boolean;
+          auto_reply_chat: boolean;
+          auto_reply_whatsapp: boolean;
+          auto_reply_messenger: boolean;
+          auto_reply_instagram: boolean;
+          auto_reply_quiet_from_hour: number;
+          auto_reply_quiet_until_hour: number;
+          auto_reply_per_sender_day: number;
+          auto_reply_min_confidence_bps: number;
+          auto_reply_model: string;
+          auto_reply_email_inboxes: string;
+          auto_reply_handoff_text: string;
+          auto_reply_meta_verify_token: string;
+          auto_reply_whatsapp_phone_id: string | null;
         };
         Insert: {
           id?: string;
@@ -18038,6 +18232,23 @@ export type Database = {
           indexnow_sweep_batch?: number;
           indexnow_queue_batch?: number;
           staff_onboarding_gate?: boolean;
+          listing_cover_model_prompt?: string;
+          listing_cover_flyer?: Json;
+          auto_reply_sms?: boolean;
+          auto_reply_email?: boolean;
+          auto_reply_chat?: boolean;
+          auto_reply_whatsapp?: boolean;
+          auto_reply_messenger?: boolean;
+          auto_reply_instagram?: boolean;
+          auto_reply_quiet_from_hour?: number;
+          auto_reply_quiet_until_hour?: number;
+          auto_reply_per_sender_day?: number;
+          auto_reply_min_confidence_bps?: number;
+          auto_reply_model?: string;
+          auto_reply_email_inboxes?: string;
+          auto_reply_handoff_text?: string;
+          auto_reply_meta_verify_token?: string;
+          auto_reply_whatsapp_phone_id?: string | null;
         };
         Update: {
           id?: string;
@@ -18729,6 +18940,23 @@ export type Database = {
           indexnow_sweep_batch?: number;
           indexnow_queue_batch?: number;
           staff_onboarding_gate?: boolean;
+          listing_cover_model_prompt?: string;
+          listing_cover_flyer?: Json;
+          auto_reply_sms?: boolean;
+          auto_reply_email?: boolean;
+          auto_reply_chat?: boolean;
+          auto_reply_whatsapp?: boolean;
+          auto_reply_messenger?: boolean;
+          auto_reply_instagram?: boolean;
+          auto_reply_quiet_from_hour?: number;
+          auto_reply_quiet_until_hour?: number;
+          auto_reply_per_sender_day?: number;
+          auto_reply_min_confidence_bps?: number;
+          auto_reply_model?: string;
+          auto_reply_email_inboxes?: string;
+          auto_reply_handoff_text?: string;
+          auto_reply_meta_verify_token?: string;
+          auto_reply_whatsapp_phone_id?: string | null;
         };
         Relationships: [];
       };
@@ -26044,6 +26272,7 @@ export type Database = {
           publish_scheduled_by: string | null;
           publish_error: string | null;
           pinned_rank: number | null;
+          cover_style: string;
         };
         Insert: {
           id?: string;
@@ -26084,6 +26313,7 @@ export type Database = {
           publish_scheduled_by?: string | null;
           publish_error?: string | null;
           pinned_rank?: number | null;
+          cover_style?: string;
         };
         Update: {
           id?: string;
@@ -26124,6 +26354,7 @@ export type Database = {
           publish_scheduled_by?: string | null;
           publish_error?: string | null;
           pinned_rank?: number | null;
+          cover_style?: string;
         };
         Relationships: [];
       };
@@ -29815,6 +30046,12 @@ export type Database = {
       server_account_set_name: { Args: { p_user: string; p_name: string }; Returns: Json };
       server_account_set_sign_in: { Args: { p_user: string; p_method: string }; Returns: Json };
       server_addons_paid_online: { Args: { p_booking: string; p_by: string; p_processor: Json; p_amount_cents: number }; Returns: Json };
+      server_address_get: { Args: { p_id: string }; Returns: Json };
+      server_address_import_begin: { Args: { p_provinces: string[]; p_run_url?: string }; Returns: Json };
+      server_address_import_finish: { Args: { p_id: number; p_status: string; p_counts: Json; p_skipped: Json }; Returns: undefined };
+      server_address_province_mark: { Args: { p_province: string }; Returns: number };
+      server_address_prune: { Args: { p_province: string; p_from: number; p_to: number }; Returns: number };
+      server_address_search: { Args: { p_q: string; p_limit?: number }; Returns: Json };
       server_ads_job: { Args: never; Returns: Json };
       server_agreement_auto_done: { Args: { p_booking: string; p_ok: boolean; p_error?: string; p_source?: string }; Returns: Json };
       server_agreement_companion: { Args: { p_booking: string }; Returns: Json };
@@ -29873,6 +30110,10 @@ export type Database = {
       server_attach_signed_amendment: { Args: { p_amendment: string; p_storage_path: string; p_sha256: string }; Returns: string };
       server_auth_sms: { Args: { p: Json }; Returns: Json };
       server_auth_sms_result: { Args: { p: Json }; Returns: Json };
+      server_auto_reply_chat_on: { Args: never; Returns: boolean };
+      server_auto_reply_gate: { Args: { p: Json }; Returns: Json };
+      server_auto_reply_inboxes: { Args: never; Returns: Json };
+      server_auto_reply_record: { Args: { p: Json }; Returns: Json };
       server_balance_next: { Args: { p_booking: string }; Returns: Json };
       server_balance_payreq: { Args: { p_booking: string; p_token_sha256: string; p_amount: number }; Returns: Json };
       server_balance_payreq_send: { Args: { p_id: string; p_link: string }; Returns: Json };
@@ -30025,6 +30266,7 @@ export type Database = {
       server_manual_rental_sign_charged: { Args: { p_booking: string; p_by: string; p: Json }; Returns: Json };
       server_maps_take: { Args: { p_sku: string }; Returns: boolean };
       server_mark_documents_purged: { Args: { p_ids: string[] }; Returns: number };
+      server_meta_messaging: { Args: never; Returns: Json };
       server_money_action: { Args: { p_payment: string }; Returns: Json };
       server_money_action_finish: { Args: { p_payment: string; p: Json }; Returns: Json };
       server_my_account_links: { Args: { p_user: string }; Returns: Json };

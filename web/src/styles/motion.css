@@ -301,3 +301,31 @@
   .mo-toast__dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: #D0111B; animation: mo-pulse 1.2s var(--ease-out) 3; }
   @keyframes mo-pulse { from { transform: scale(1); opacity: .7; } to { transform: scale(3); opacity: 0; } }
 }
+
+/* ---------- r36: booking and renter portal polish ---------- */
+/* a checklist's progress: "2 of 4 done" with its bar (ChecklistProgress, features/motion/Progress.tsx) */
+.ck-progress { display: grid; gap: 6px; margin-bottom: var(--s-3); }
+.ck-progress__bar { position: relative; height: 6px; border-radius: 999px; background: var(--grey-200, #e6e6e9); overflow: hidden; }
+.ck-progress__fill { position: absolute; inset: 0; border-radius: inherit; background: var(--red-600, #D0111B); transform-origin: left; transform: scaleX(var(--p, 0)); }
+.ck-progress[data-complete] .ck-progress__fill { background: var(--black, #111); }
+.ck-progress__text { margin: 0; color: var(--grey-600, #666); font-weight: 600; }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* the bar fills from empty to where the checklist is, once, when the page shows */
+  .ck-progress__fill { animation: ck-fill 900ms 120ms var(--ease-out) backwards; }
+  @keyframes ck-fill { from { transform: scaleX(0); } }
+  /* the ticks of a done item pop in one after the other; the items still to do slide in after them */
+  .pt-steps li { animation: step-in 420ms var(--ease-out) backwards; }
+  .pt-steps li:nth-child(2) { animation-delay: 50ms; } .pt-steps li:nth-child(3) { animation-delay: 100ms; }
+  .pt-steps li:nth-child(4) { animation-delay: 150ms; } .pt-steps li:nth-child(n + 5) { animation-delay: 200ms; }
+  .pt-steps li.is-done::before { animation: ck-tick 520ms var(--ease-spring) backwards; animation-delay: inherit; }
+  @keyframes ck-tick { 0% { transform: scale(0.3); opacity: 0; } 60% { transform: scale(1.15); opacity: 1; } 100% { transform: scale(1); } }
+  /* sign and pay: the done step's tick pops, the step to do now breathes once to draw the eye */
+  .sp-steps li[data-state="done"]::before { animation: ck-tick 520ms var(--ease-spring) backwards; }
+  .sp-steps li[data-state="now"] { animation: sp-now 1400ms 300ms var(--ease-out) 1 backwards; }
+  @keyframes sp-now { 0% { transform: scale(0.97); opacity: 0.6; } 40% { transform: scale(1.02); opacity: 1; } 100% { transform: none; } }
+  /* the panel that says it worked (Booking confirmed, Paid, Booking updated): rises in, its top rule draws across */
+  .pt-ok { position: relative; animation: step-in 520ms var(--ease-out) backwards; }
+  .pt-ok::after { content: ""; position: absolute; left: 0; right: 0; top: -4px; height: 4px; background: var(--red-600, #D0111B); transform-origin: left; transform: scaleX(0); animation: pt-ok-rule 900ms 200ms var(--ease-out) forwards; pointer-events: none; }
+  @keyframes pt-ok-rule { 0% { transform: scaleX(0); opacity: 1; } 70% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1); opacity: 0; } }
+}

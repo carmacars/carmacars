@@ -1,3 +1,4 @@
+import { ChecklistProgress } from '@/features/motion/Progress';
 import { redirect } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
 import { when } from '@/features/agreement/model';
@@ -62,6 +63,9 @@ export default async function VerifyPage({ params, searchParams }: { params: Pro
       {me && me.licence.complete && early && <p className="alert alert--ok" role="status" data-testid="licence-complete"><span className="alert__title">Licence received</span><span>Nothing more is needed before you accept the offer.</span></p>}
       {!early && b.readiness && (
         <section className="pt-card" aria-labelledby="pt-ready" data-testid="readiness"><h2 className="d4" id="pt-ready">Before pickup</h2>
+          {/* r36: how far along the checklist is, the bar filling to it */}
+          {(() => { const ks = Object.keys(MISSING).filter((k) => k !== 'agreement' && (k !== 'primary_driver_ontario_licence' || missing.includes(k)));
+            return <ChecklistProgress done={ks.filter((k) => !missing.includes(k)).length} total={ks.length} label="Before pickup" testId="readiness-progress" />; })()}
           <ol className="pt-steps">{Object.keys(MISSING).filter((k) => k !== 'agreement' && (k !== 'primary_driver_ontario_licence' || missing.includes(k))).map((k) => <li key={k} className={missing.includes(k) ? '' : 'is-done'}>{MISSING[k]}<span className="vh">{missing.includes(k) ? ', to do' : ', done'}</span></li>)}</ol>
         </section>
       )}

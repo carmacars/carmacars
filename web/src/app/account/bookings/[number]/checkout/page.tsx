@@ -1,3 +1,4 @@
+import { ChecklistProgress } from '@/features/motion/Progress';
 import Link from '@/components/Link';
 import { redirect } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
@@ -94,6 +95,7 @@ export default async function SignAndPayPage({ params, searchParams }: { params:
         <section className="sp-left" aria-labelledby="sp-left-h" data-testid="sign-pay-left" data-step={s.step}>
           <h2 className="sp-left__title" id="sp-left-h">{words.title}</h2>
           <p className="sp-left__text" data-testid="sign-pay-left-text">{words.left}</p>
+          {steps.length > 1 && <ChecklistProgress done={steps.filter((x) => x.state === 'done').length} total={steps.length} label="Sign and pay" testId="sign-pay-progress" />}
           {steps.length > 1 && <ol className="sp-steps" aria-label="Steps" data-testid="sign-pay-steps">{steps.map((x) => <li key={x.label} data-state={x.state} aria-current={x.state === 'now' ? 'step' : undefined}>{x.label}{x.state === 'done' ? <span className="vh"> (done)</span> : null}</li>)}</ol>}
         </section>
       )}
