@@ -2,6 +2,7 @@ import { Act } from '@/features/admin/Act';
 import { Card, Table, t } from '@/features/admin/ui';
 import { door } from '@/server/door';
 import { STAFF_FN_LABEL, type StaffFn } from '@/features/staff/nav';
+import { FieldTodayCard, type FieldTodayRow } from './FieldToday';
 import { dutyWords, scheduleWords, type BoardRow, type Schedule } from './model';
 
 // Staff schedules (migration 1502): the role defaults and each person's own (an Admin changes them), the person's week,
@@ -9,7 +10,7 @@ import { dutyWords, scheduleWords, type BoardRow, type Schedule } from './model'
 // staff member's Schedule page; only an Admin sees the change buttons and everyone's own schedules.
 type View = { admin: boolean; today: string; late_grace_minutes: number; defaults: Schedule[]; mine: Array<{ function: string; schedule: Schedule }>;
   my_week: Array<{ day: string; shifts: Array<{ function: string; starts_at: string; ends_at: string }> }>;
-  own: Schedule[] | null; staff: Array<{ id: string; name: string; functions: string[] }> | null; board: BoardRow[] };
+  own: Schedule[] | null; field_today?: FieldTodayRow[]; staff: Array<{ id: string; name: string; functions: string[] }> | null; board: BoardRow[] };
 
 const fnLabel = (f: string) => STAFF_FN_LABEL[f as StaffFn] ?? f;
 const day = (s: string) => new Date(`${s}T12:00:00Z`).toLocaleDateString('en-CA', { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric' });
@@ -44,6 +45,7 @@ export async function StaffSchedules({ userId, aal, base }: { userId: string; aa
         { key: 'first_in', label: 'First in', render: (r) => (r.today.first_in ? t(r.today.first_in) : '') },
         { key: 'state', label: 'Now', render: (r) => <span data-testid={`duty-${r.user_id}`}>{dutyWords(r)}</span> }]} />
     </Card>
+    <FieldTodayCard rows={v.field_today ?? []} />
     <Card title="Role schedules" testId="role-schedules">
       <Table<Schedule & Record<string, unknown>> rows={v.defaults as Array<Schedule & Record<string, unknown>>} rowKey={(r) => r.id} cols={[
         { key: 'function', label: 'Role', render: (r) => fnLabel(r.function) }, { key: 'days', label: 'Schedule', className: 'wrap', render: (r) => scheduleWords(r) },
