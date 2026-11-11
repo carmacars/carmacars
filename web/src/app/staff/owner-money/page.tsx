@@ -1,8 +1,8 @@
 import { pageMeta } from '@/features/seo/meta';
+import { periodOf } from '@/features/owner/period';
 import { ListFilters } from '@/features/list-filters/ListFilters';
 import { vaPage } from '@/server/va';
 import { tabOf } from '@/features/admin/hubs';
-import { monthOf } from '@/features/owner/Blocks';
 import { $, Badge, PageHead, Table, Tiles, d } from '@/features/admin/ui';
 
 export const dynamic = 'force-dynamic';
@@ -29,7 +29,7 @@ export default async function StaffOwnerMoney({ searchParams }: { searchParams: 
         { k: 'Paid', v: String(rows.filter((r) => r.status === 'paid').length), href: '/staff/owner-money?tab=statements&status=paid' }]} />
       <ListFilters id="staff-owner-money-status" base="/staff/owner-money?tab=statements" sp={{ tab: 'statements', ...(status ? { status } : {}) }} chips={{ name: 'status', label: 'Status', value: status, options: ST }} />
       <Table<R> testId="statements" rows={rows} empty="No statements yet." cols={[{ key: 'statement_number', label: 'Statement', render: (r) => String(r.statement_number ?? 'draft') },
-        { key: 'owner_name', label: 'Owner' }, { key: 'statement_month', label: 'Month', render: (r) => monthOf(String(r.statement_month)) },
+        { key: 'owner_name', label: 'Owner' }, { key: 'statement_month', label: 'Period', render: (r) => periodOf(r as unknown as { statement_month: string }) },
         { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'owner_revenue_cents', label: 'Owner Revenue', num: true, render: (r) => $(r.owner_revenue_cents) },
         { key: 'deductions_cents', label: 'Deductions', num: true, render: (r) => $(r.deductions_cents) }, { key: 'payout_cents', label: 'Payout', num: true, render: (r) => $(r.payout_cents) }, { key: 'payout_date', label: 'Payout date', render: (r) => d(r.payout_date) }]} />
     </>);
