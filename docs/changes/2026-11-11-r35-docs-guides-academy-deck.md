@@ -14,8 +14,25 @@ The owner, November 11, 2026: after today's updates the academy, the in-portal g
 
 ## Guides
 
-admin/texts-and-calls-the-quo-phone-line, admin/people-and-access, admin/academy, admin/leads-and-sales-claims,
-admin/requests-offers-and-bookings, admin/owner-money, admin/search-car-pages-landing-pages-and-guides, admin/settings,
-va/your-workday, va/customer-service, va/sales, va/fleet, va/finance, va/academy, field/my-hours-and-pay, field/academy,
-renter/find-a-car-and-send-a-request, renter/during-your-trip, renter/after-your-trip, owner/fees-payments-and-payouts,
-owner/bookings-and-your-own-use, investor/the-investor-deck
+- `admin/texts-and-calls-the-quo-phone-line`
+- `admin/people-and-access`
+- `admin/academy`
+- `admin/leads-and-sales-claims`
+- `admin/requests-offers-and-bookings`
+- `admin/owner-money`
+- `admin/search-car-pages-landing-pages-and-guides`
+- `admin/settings`
+- `va/your-workday`
+- `va/customer-service`
+- `va/sales`
+- `va/fleet`
+- `va/finance`
+- `va/academy`
+- `field/my-hours-and-pay`
+- `field/academy`
+- `renter/find-a-car-and-send-a-request`
+- `renter/during-your-trip`
+- `renter/after-your-trip`
+- `owner/fees-payments-and-payouts`
+- `owner/bookings-and-your-own-use`
+- `investor/the-investor-deck`
