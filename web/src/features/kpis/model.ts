@@ -4,11 +4,12 @@ export interface Kpi { key: string; label: string; value: number | null; target:
 
 export function kpiValue(k: Kpi): string {
   if (k.value === null || k.value === undefined) return 'no cases';
-  return k.unit === 'pct' ? `${k.value}%` : k.unit === 'days' ? `${k.value} day${k.value === 1 ? '' : 's'}` : String(k.value);
+  return k.unit === 'pct' ? `${k.value}%` : k.unit === 'min' ? `${k.value} min` : k.unit === 'days' ? `${k.value} day${k.value === 1 ? '' : 's'}` : String(k.value);
 }
 export function kpiTarget(k: Kpi): string {
   if (!k.target) return 'no target';
-  return k.unit === 'pct' ? `${k.target}% or more` : k.unit === 'days' ? `${k.target} day${k.target === 1 ? '' : 's'}` : `${k.target} a week`;
+  // 1800: a minutes KPI (idle minutes) is a ceiling
+  return k.unit === 'pct' ? `${k.target}% or more` : k.unit === 'min' ? `at most ${k.target} min a week` : k.unit === 'days' ? `${k.target} day${k.target === 1 ? '' : 's'}` : `${k.target} a week`;
 }
 /** 'met', 'missed' or 'none' (no cases yet, or no target) */
 export const kpiState = (k: Kpi): 'met' | 'missed' | 'none' => (k.met === true ? 'met' : k.met === false ? 'missed' : 'none');
