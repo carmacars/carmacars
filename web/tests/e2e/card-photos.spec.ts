@@ -62,12 +62,14 @@ test('a swipe on a phone moves to the next photo and opens nothing; a tap opens 
   await page.goto('/cars', { waitUntil: 'networkidle' });
   await acceptCookies(page);
   const card = firstCard(page);
-  await card.scrollIntoViewIfNeeded();
+  // the photo in the middle of the screen: scrollIntoViewIfNeeded can leave it under the sticky search bar at the top
+  await card.locator('.car-card__media').evaluate((el) => el.scrollIntoView({ block: 'center' }));
   await settled(card);
   const m = (await card.locator('.car-card__media').boundingBox())!;
   const y = Math.round(m.y + m.height / 2), x0 = Math.round(m.x + m.width * 0.8), x1 = Math.round(m.x + m.width * 0.15);
   // the finger starts on this card's photo (not on the text under it, nor on another card)
-  expect(await page.evaluate(([x, yy]) => !!document.elementFromPoint(x!, yy!)?.closest('.car-card__media'), [x0, y])).toBe(true);
+  const under = await page.evaluate(([x, yy]) => { const e = document.elementFromPoint(x!, yy!); return e?.closest('.car-card__media') ? 'photo' : `${e?.tagName}.${e?.className}`; }, [x0, y]);
+  expect(under, 'what is under the finger').toBe('photo');
   const cdp = await page.context().newCDPSession(page);
   const url = page.url();
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: x0, y }] });
