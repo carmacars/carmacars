@@ -92,7 +92,7 @@ async function main() {
     const events = [...(res.events?.events ?? res.events ?? []), ...(res5.events?.events ?? res5.events ?? [])];
     const seen = new Set();
     report.failures = events.map(pick).filter((x) => { const k = `${x.at}|${x.route}|${x.request_id}`; if (seen.has(k)) return false; seen.add(k); return true; })
-      .sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, limit);
+      .sort((a, b) => (a.outcome === 'ok') - (b.outcome === 'ok') || String(b.at).localeCompare(String(a.at))).slice(0, limit); // exceptions and limits first, then 5xx
     const by = {};
     for (const f of report.failures) { const k = `${f.outcome ?? '?'} ${f.status ?? ''} ${f.route ?? f.trigger ?? '?'}`.replace(/\s+/g, ' '); by[k] = (by[k] ?? 0) + 1; }
     report.failures_by_route = Object.entries(by).sort((a, b) => b[1] - a[1]).map(([k, n]) => ({ key: k, count: n }));
