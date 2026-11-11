@@ -259,7 +259,9 @@ export function RequestWizard(p: WizardProps) {
       sessionStorage.setItem('cc.lastRequest', JSON.stringify({ number: r.data.bookingNumber, car: car ? [car.year, car.name].filter(Boolean).join(' ') : '', from: d.from, to: d.to, tf: d.tf, tt: d.tt, deliver: far(d.pickupAt), total: q?.total_cents ?? r.data.totalCents, deposit: q?.deposit_cents ?? r.data.depositCents, days: q?.billable_days ?? null, email: d.email, first: d.first, coverage: d.coverage }));
       localStorage.removeItem(KEY);
     } catch { /* ignore */ }
-    router.push(`/book/sent/${encodeURIComponent(r.data.bookingNumber)}`, scrollOption(`/book/sent/${encodeURIComponent(r.data.bookingNumber)}`));
+    // r35a (1304): booked at once (a verified repeat renter): straight to Sign and pay
+    const next = r.data.instant ? `/account/bookings/${encodeURIComponent(r.data.bookingNumber)}/checkout?instant=1` : `/book/sent/${encodeURIComponent(r.data.bookingNumber)}`;
+    router.push(next, scrollOption(next));
   }
 
   const err = (k: string) => errors[k];

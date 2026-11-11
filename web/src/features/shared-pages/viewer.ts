@@ -79,6 +79,8 @@ export interface BookingCan {
   collectOnly: boolean;
   /** r35 (0970): mark the late car "returning now" (the renter's overdue reminders stop) */
   returningNow: boolean;
+  /** r35a (1300): the original request, the offer history and the coverage card (Admin, customer service, Sales, Fleet) */
+  requestHistory: boolean;
 }
 
 export function bookingCan(v: Viewer): BookingCan {
@@ -117,7 +119,8 @@ export function bookingCan(v: Viewer): BookingCan {
     verifyInPerson: admin,
     changeCar: admin || fn === 'cs' || fn === 'fleet' || fn === 'sales',
     collectOnly: fn === 'fleet',
-    returningNow: admin || fn === 'fleet' || fn === 'cs'
+    returningNow: admin || fn === 'fleet' || fn === 'cs',
+    requestHistory: admin || fn === 'cs' || fn === 'sales' || fn === 'fleet'
   };
 }
 
@@ -126,7 +129,7 @@ export function bookingCan(v: Viewer): BookingCan {
 function fieldCan(): BookingCan {
   const no = { admin: false, offer: false, editOfferPending: false, money: false, extras: false, cancelForRenter: false, scheduleJob: false, latePanel: false, photoReview: false,
     handover: false, sign: false, agreementMoney: false, licenceReview: false, renterDocs: false, staffUpload: false, carLink: false, manualPayments: false, voidRecords: false,
-    paperSignatures: false, driverLinks: false, refund: false, refundApprove: false, settleDeposit: false, statement: false, inbox: false, verifyInPerson: false, changeCar: false, collectOnly: false, returningNow: false };
+    paperSignatures: false, driverLinks: false, refund: false, refundApprove: false, settleDeposit: false, statement: false, inbox: false, verifyInPerson: false, changeCar: false, collectOnly: false, returningNow: false, requestHistory: false };
   return { ...no, money: true, handover: true, sign: true, paperSignatures: true, verifyInPerson: true };
 }
 

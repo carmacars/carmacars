@@ -1,7 +1,7 @@
 'use server';
 import { revalidatePath } from 'next/cache';
+import { refusalMessage } from '@/lib/db/refusal';
 import { randomUUID } from 'node:crypto';
-import { DbError } from '@/lib/db/repo';
 import { door } from '@/server/door';
 import { auth } from '@/lib/auth';
 import type { ActionResult } from '@/features/forms/schemas';
@@ -12,7 +12,8 @@ import { adminRead } from '@/server/admin/api';
 // (and two-step sign-in when required), then the database checks the Admin again and runs the function
 // of the migration that owns the rule. The database's refusal is shown to the Admin as it is written.
 type R<T = unknown> = ActionResult<T>;
-const fail = (e: unknown): R<never> => ({ ok: false, code: 'refused', message: e instanceof DbError || e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '') : 'Something went wrong.' });
+// r35a: never an empty refusal (src/lib/db/refusal.ts)
+const fail = (e: unknown): R<never> => ({ ok: false, code: 'refused', message: refusalMessage(e) });
 
 // what the public site shows, by action: the pages to rebuild after the change
 const PUBLIC: Record<string, string[]> = {

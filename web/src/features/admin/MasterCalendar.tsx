@@ -1,5 +1,6 @@
 'use client';
 import Link from '@/components/Link';
+import { OWNER_TRIP } from '@/features/request-history/model';
 import '@/features/bookings-now/bookings-now.css';
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -51,6 +52,7 @@ function cls(e: Entry, now: number) {
   return c.join(' ');
 }
 const text = (e: Entry) => e.type === 'block' ? `${(e.reason ?? '').replace(/_/g, ' ')}${e.note ? `: ${e.note}` : ''}`
+  : e.type === 'booking' && e.booking_type === 'owner' ? `${OWNER_TRIP}${e.booking_number ? ` ${e.booking_number}` : ''}`
   : e.type === 'booking' ? `${e.renter?.split(' ').pop() ?? ''} ${e.status === 'requested' ? 'request' : e.status === 'offered' ? 'offer' : e.status === 'pending_payment' ? 'booked, payment due' : e.booking_number ?? ''}${e.placeholder ? ' placeholder' : e.blocks === false ? ' not blocking' : ''}${e.insurer ? ' insurer' : ''}`
   : e.type === 'turo_trip' ? 'Turo' : e.detail ?? e.type.replace(/_/g, ' ');
 
@@ -335,6 +337,7 @@ function SidePanel({ sel, vehicles, onClose, onDone }: { sel: { entry?: Entry; v
           <div><dt>From</dt><dd>{when(e.starts_at)}</dd></div><div><dt>To</dt><dd>{e.ends_at ? when(e.ends_at) : 'until further notice'}</dd></div>
           {e.status && <div><dt>Status</dt><dd>{e.status.replace(/_/g, ' ')}{e.placeholder ? ', placeholder (never blocks, never handed over, never matched to a toll)' : e.blocks === false ? ', not blocking' : ''}</dd></div>}
           {!!e.clash?.length && <div><dt>Dates taken</dt><dd className="ad-late" data-testid="cal-clash">Clashes with {e.clash.join(', ')}{e.type === 'booking' && !['confirmed', 'on_rent'].includes(e.status ?? '') ? ': offer another car or other dates' : ''}</dd></div>}
+          {e.booking_type === 'owner' && <div><dt>Kind</dt><dd data-testid="cal-owner-trip">{OWNER_TRIP}: the owner books their own car, no charge</dd></div>}
           {e.renter && <div><dt>Renter</dt><dd>{e.renter}</dd></div>}
           {e.insurer && <div><dt>Insurer</dt><dd>{e.insurer}{e.provisional ? ', dates provisional' : ''}</dd></div>}
           {e.reason && <div><dt>Reason</dt><dd>{e.reason.replace(/_/g, ' ')}</dd></div>}

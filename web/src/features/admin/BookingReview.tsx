@@ -22,6 +22,7 @@ import { prefillRate, rateCheck, rateLine, type SheetRate } from '@/features/ins
 import { InsurerFeesFields } from '@/features/insurers/InsurerFeesFields';
 import { INSURER_FEES, insurerFeesPayload, insurerFeesRemoval, isInsurerFee, typedFrom } from '@/features/insurers/fees';
 import { TypedInput } from '@/components/DateInput';
+import type { Revert } from '@/features/request-history/model';
 
 // Review and adjust a booking request (03-admin.md section 4.2). Staff change the booking itself; every
 // edit is priced by the database (adjust_booking and the pricing functions inside a rolled-back
@@ -105,7 +106,11 @@ const Place = ({ leg }: { leg: 'pickup' | 'return' }) => { const { v } = useCont
   </>
 ); };
 
-export function BookingReview({ b, insurers, kmChoices, offerHours, editable, insurerRates = [] }: { b: B; insurers: Array<{ id: string; name: string }>; kmChoices: number[]; offerHours: number; editable: boolean;
+export function BookingReview({ b, insurers, kmChoices, offerHours, editable, insurerRates = [], revert = null, ownerTrip = false }: { b: B; insurers: Array<{ id: string; name: string }>; kmChoices: number[]; offerHours: number; editable: boolean;
+  /** r35a (1300): an old offer version loaded back as a new offer to review and send (?revert=N) */
+  revert?: Revert | null;
+  /** r35a (1301): the owner's own trip ($0): nothing to price */
+  ownerTrip?: boolean;
   /** 0163: each insurer's rate sheet for this car on the pickup day (the rate is filled from it when the insurer is chosen) */
   insurerRates?: SheetRate[] }) {
   const { act: adminAct, preview: adminPreview, kind } = useDoor();
@@ -129,7 +134,15 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
     message: '', expires_hours: String(offerHours), note: b.notes ?? '',
     rental_pay: b.rental_pay_method ?? 'card', deposit_pay: b.deposit_pay_method ?? 'card', notify: true, by_email: !hasMobile(b.renter?.mobile), by_text: hasMobile(b.renter?.mobile)
   }) as Record<string, string | boolean>, [b, offerHours]); // eslint-disable-line react-hooks/exhaustive-deps
-  const [v, setV] = useState(() => (va && Number(start.expires_hours) > 48 ? { ...start, expires_hours: '48' } : start));
+  const [v, setV] = useState(() => {
+    const s0 = va && Number(start.expires_hours) > 48 ? { ...start, expires_hours: '48' } : start;
+    return revert ? { ...s0, ...revertValues(revert, b, s0) } : s0;
+  });
+  // r35a: the three steps (1. car and dates, 2. price, 3. review and send): a bar that takes you to each
+  const [stepAt, setStepAt] = useState<1 | 2 | 3>(revert ? 3 : 1);
+  const goStep = (k: 1 | 2 | 3) => { setStepAt(k); document.getElementById(`rv-phase-${k}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+  // r35a: one save or send at a time (a double tap sent the offer twice)
+  const busy = useRef(false);
   const [preview, setPreview] = useState<{ booking: B; available: boolean } | null>(null);
   // the choice once per booking (0058): a request a staff member entered already carries it
   const needChoice = !b.sales_choice && !b.sales_claim_by;
@@ -255,8 +268,8 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
       if (!dirty) { setPreview(null); setProblem(null); return; }
       const r = await adminPreview<{ ok: boolean; error?: string; booking: B; available: boolean }>('booking_preview', payload);
       if (n !== seq.current) return;
-      if (!r.ok) { setProblem(r.message); return; }
-      if (!r.data.ok) { setProblem(r.data.error ?? 'The database refused this change.'); setPreview(null); return; }
+      if (!r.ok) { setProblem(r.message || 'The price could not be worked out: check the dates and the car.'); return; }
+      if (!r.data.ok) { setProblem(r.data.error || 'The database refused this change.'); setPreview(null); return; }
       setProblem(null); setPreview({ booking: r.data.booking, available: r.data.available }); setPreviewKey(JSON.stringify(payload));
     }, 350);
     return () => clearTimeout(t);
@@ -323,11 +336,13 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
   if (shown.vehicle_id !== b.vehicle_id) diffs.push(['Car', b.vehicle?.name ?? '', shown.vehicle?.name ?? '']);
   if (shown.total_due_at_booking_cents !== b.total_due_at_booking_cents) diffs.push(['Total', money(b.total_due_at_booking_cents, { cents: true }), money(shown.total_due_at_booking_cents, { cents: true })]);
   if (shown.deposit_cents !== b.deposit_cents) diffs.push(['Deposit', money(b.deposit_cents), money(shown.deposit_cents)]);
+  // eslint-disable-next-line react-hooks/purity -- the expiry shown is from the clock at render, as before (the server sets it again on send)
   const expiresAt = () => new Date(Date.now() + Number(v.expires_hours || offerHours) * 3600_000).toISOString();
 
   const pays = () => ({ rental_pay_method: v.rental_pay, deposit_pay_method: v.deposit_pay });
-  const revise = (notify: boolean) => run(async () => {
+  const revise = (notify: boolean) => { if (busy.current) return; busy.current = true; run(async () => { try {
     setProblem(null);
+    if (!fresh) { setProblem('The price is still updating for what you changed: check it, then save.'); return; }
     if (!dirty && !payChanged && !String(v.message).trim()) { setProblem('Nothing changed yet: change the offer first.'); return; }
     const r = await offersDo<{ version: number | null; before: Record<string, unknown>; after: Record<string, unknown>; text?: { ok: boolean; reason?: string } | null }>('offer_revise', {
       ...payload, ...pays(), internal_note: v.note, message: v.message, expires_at: expiresAt(), notify, channels: offerChannels({ by_email: Boolean(v.by_email), by_text: Boolean(v.by_text), mobile: b.renter?.mobile ?? '' }), expected_version: shownVersion(b) },
@@ -336,10 +351,11 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
     setRevised(describeRevision(r.data.before as never, r.data.after as never, (c) => money(c, { cents: true }), when));
     setDone(r.data.version ? `Offer version ${r.data.version} ${notify ? 'sent to the renter' : 'saved; the renter was not told'}.${r.data.text && !r.data.text.ok ? ` The text was not sent: ${r.data.text.reason}` : ''}` : 'Saved.');
     router.refresh();
-  });
+  } finally { busy.current = false; } }); };
 
-  const act = (action: 'booking_save' | 'send_offer') => run(async () => {
+  const act = (action: 'booking_save' | 'send_offer') => { if (busy.current) return; busy.current = true; run(async () => { try {
     setProblem(null);
+    if (!fresh) { setProblem('The price is still updating for what you changed: check it, then send.'); return; }
     // how it is paid, kept before the save or the offer (the review screen's own action knows nothing of it)
     if (payChanged) {
       const p = await offersDo('offer_revise', { booking: b.id, changes: {}, ...pays() });
@@ -358,13 +374,19 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
       : bn === 'requested' ? 'Offer sent. Book it now waits for an Admin\'s approval.'
       : action === 'send_offer' ? 'Offer sent. The renter has it by email and in their account.' : 'Saved.');
     router.refresh();
-  });
+  } finally { busy.current = false; } }); };
 
   return (
     <Ctx.Provider value={{ v, set, changed, editable }}>
-    <div className="ad-review" data-testid="booking-review">
+    <div className="ad-review" data-testid="booking-review" id="booking-review">
       <form className="pt-card ad-card ad-form ad-form--narrow" aria-label="Adjust the booking" onSubmit={(e) => { e.preventDefault(); if (out) revise(Boolean(v.notify)); else act('booking_save'); }}>
         <h2 className="d4">{out ? 'Edit the offer' : 'Adjust'}</h2>
+        {editable && <nav className="rv-stepbar" aria-label="Steps" data-testid="review-steps">
+          {([[1, 'Car and dates'], [2, 'Price'], [3, 'Review and send']] as const).map(([k, l]) => <button key={k} type="button" className="btn btn--quiet btn--sm" aria-current={stepAt === k ? 'step' : undefined} onClick={() => goStep(k)} data-testid={`review-step-${k}`}>{k}. {l}</button>)}
+        </nav>}
+        {ownerTrip && <p className="alert alert--info small" role="note" data-testid="review-owner-trip"><span>Owner&apos;s own trip ($0): the owner books their own car. There is nothing to price; only the dates and places matter.</span></p>}
+        {revert && <p className="alert alert--info small" role="status" data-testid="review-reverted"><span>Version {revert.version} is loaded as a new offer ({money(revert.total_cents, { cents: true })} when it was sent). The changes are highlighted: check the price, then send it in step 3. Nothing changes until you send.</span></p>}
+        <h3 className="oc-phase" id="rv-phase-1"><span className="oc-step__n" aria-hidden="true">1</span> <span className="d4">Car and dates</span></h3>
         {out && editable && <p className="pt-note small" data-testid="review-edit-in-place">{b.status === 'pending_payment' ? 'The renter approved this offer and has not paid yet.' : 'This offer is out with the renter.'} Change anything here: the changes are highlighted, and Save sends the updated offer as a new version (or saves it without telling the renter). No need to withdraw it first.</p>}
         {!editable && <p className="pt-note small">You cannot change this offer. Ask customer service or an Admin.</p>}
         <fieldset className="ad-fields" disabled={!editable}>
@@ -382,6 +404,8 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
           <Place leg="pickup" />
           <Place leg="return" />
         </fieldset>
+        <h3 className="oc-phase" id="rv-phase-2"><span className="oc-step__n" aria-hidden="true">2</span> <span className="d4">Price</span></h3>
+        <p className="small muted">Filled in from the rate sheet with the checkout&apos;s fees and discounts: the lines are on the right. Change it only if you agreed another price.</p>
         <fieldset className="ad-fields" disabled={!editable}>
           <legend className="pt-kicker">Rates and fees</legend>
           <div className="ad-field--wide">
@@ -422,6 +446,8 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
             {changed(k) && <p className="small oc-feenote"><span className="ad-b ad-b--amber">Set by hand</span> <button className="btn btn--quiet btn--sm" type="button" onClick={() => set(k)(String(start[k] ?? ''))} data-testid={`review-reset-${l.charge_type}`}>Reset</button></p>}</div>; })}
           {(boxLines.some((l) => changed(`fee:${l.charge_type}`)) || changed('coverage')) && <F k="fee_reason" l="Reason for the fee change (optional)" />}
         </fieldset>
+        <details className="oc-disclose oc-more" data-testid="review-more-options" open={v.bill_to !== 'renter' || v.rental_pay !== 'card' || v.deposit_pay !== 'card' || !v.blocks_calendar || ['bill_to', 'rental_pay', 'deposit_pay', 'blocks_calendar'].some(changed) || undefined}>
+        <summary>More options: billing to an insurer, how it is paid, the calendar</summary>
         <fieldset className="ad-fields" disabled={!editable}>
           <legend className="pt-kicker">Billing and calendar</legend>
           <S k="bill_to" l="Bill to" options={[['renter', 'Renter'], ['insurer', 'Insurer pays rental and fees'], ['split', 'Insurer pays the rental only']]} />
@@ -442,6 +468,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
           <S k="rental_pay" l="The rental is paid by" options={RENTAL_PAY.map(([a, c]) => [a, c])} />
           <S k="deposit_pay" l="The deposit is taken by" options={DEPOSIT_PAY.filter(([a]) => !va || a !== 'none').map(([a, c]) => [a, c])} />
         </fieldset>
+        </details>
         <fieldset className="ad-fields" disabled={!editable} data-testid="review-addons">
           <legend className="pt-kicker">Add-ons</legend>
           <div className={`ad-field--wide${addonsChanged ? ' ad-diff' : ''}`}>
@@ -451,6 +478,8 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
         </fieldset>
         <div className="field ad-field"><label className="label" htmlFor="rv-note">Internal note</label><textarea className="input ad-textarea" id="rv-note" value={String(v.note)} onChange={(e) => set('note')(e.target.value)} /></div>
         {editable && !out && <button className="btn btn--ghost btn--sm" type="submit" disabled={pending} data-testid="review-save">{pending ? 'Saving' : 'Save changes'}</button>}
+        {editable && out && <h3 className="oc-phase" id="rv-phase-3"><span className="oc-step__n" aria-hidden="true">3</span> <span className="d4">Review and send</span></h3>}
+        {editable && out && !fresh && <p className="small muted" role="status" data-testid="review-updating">Updating the price for what you changed…</p>}
         {editable && out && (
           <div className="stack" data-testid="review-revise">
             {diffs.length > 0 && <ul className="pt-changes small" aria-label="What changes">{diffs.map(([k, a, z]) => <li key={k}><span className="small muted">{k}</span><span><del>{a}</del> <span className="vh">changed to</span> <ins>{z}</ins></span></li>)}</ul>}
@@ -464,8 +493,8 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
               <label className="check" htmlFor="rv-by-text"><input id="rv-by-text" type="checkbox" checked={Boolean(v.by_text)} onChange={(e) => set('by_text')(e.target.checked)} /> <span>Text</span></label>
               {Boolean(v.by_text) && !hasMobile(b.renter?.mobile) && <p className="small ad-flag" role="note" data-testid="rv-no-mobile">No mobile number for this renter: the update goes by email instead.</p>}</div>
             <div className="row">
-              <button className="btn btn--primary" type="button" disabled={pending} onClick={() => revise(Boolean(v.by_email) || Boolean(v.by_text))} data-testid="review-revise-send">{pending ? 'Saving' : 'Save and send the update'}</button>
-              <button className="btn btn--ghost btn--sm" type="button" disabled={pending} onClick={() => revise(false)} data-testid="review-revise-quiet">Save without telling the renter</button>
+              <button className="btn btn--primary" type="button" disabled={pending || !fresh} onClick={() => revise(Boolean(v.by_email) || Boolean(v.by_text))} data-testid="review-revise-send">{pending ? 'Saving' : 'Save and send the update'}</button>
+              <button className="btn btn--ghost btn--sm" type="button" disabled={pending || !fresh} onClick={() => revise(false)} data-testid="review-revise-quiet">Save without telling the renter</button>
             </div>
             {revised && revised.length > 0 && <ul className="small" data-testid="review-revised">{revised.map((x) => <li key={x}>{x}</li>)}</ul>}
           </div>)}
@@ -485,8 +514,10 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
           {problem && <p className="alert alert--error" role="alert"><span>{problem}</span></p>}
         </div>
         {(b.status === 'requested') && (
-          <form className="pt-card ad-card ad-form ad-form--narrow" aria-label="Send the offer" onSubmit={(e) => { e.preventDefault(); if (!pickupPassed(String(v.pickup_at ?? ''))) act('send_offer'); }}>
-            <h2 className="d4">Send the offer</h2>
+          <form className="pt-card ad-card ad-form ad-form--narrow" aria-label="Send the offer" id="rv-phase-3" onSubmit={(e) => { e.preventDefault(); if (!pickupPassed(String(v.pickup_at ?? ''))) act('send_offer'); }}>
+            <h2 className="d4"><span className="oc-step__n" aria-hidden="true">3</span> Review and send the offer</h2>
+            {diffs.length > 0 && <ul className="pt-changes small" aria-label="What changes from the request" data-testid="review-send-diffs">{diffs.map(([k, a, z]) => <li key={k}><span className="small muted">{k}</span><span><del>{a}</del> <span className="vh">changed to</span> <ins>{z}</ins></span></li>)}</ul>}
+            {!fresh && <p className="small muted" role="status" data-testid="review-updating">Updating the price for what you changed…</p>}
             <div className="field ad-field"><label className="label" htmlFor="rv-msg">Message to the renter</label>
               <textarea className="input ad-textarea" id="rv-msg" maxLength={1000} value={String(v.message)} onChange={(e) => set('message')(e.target.value)} aria-describedby="rv-msg-h" />
               <p className="hint" id="rv-msg-h">{diffs.length ? 'Say what changed from the request and why.' : 'Optional.'}</p></div>
@@ -495,10 +526,10 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
                 {[...new Set([6, 12, 24, 48, 72, offerHours])].filter((h) => !va || h <= 48).sort((a, z) => a - z).map((h) => <option key={h} value={h}>{h} hours</option>)}</select></div>
             {needChoice && <SourcedChoice id="rv" value={choice} onChange={setChoice} optional={!va} />}
             {!needChoice && <p className="small muted" data-testid="review-choice">{b.sales_claim_by ? 'Someone said they sourced this client: an Admin decides.' : b.sales_choice === 'sourced' ? 'Marked "I sourced this client".' : 'Entered for CarmaCars.'}</p>}
-            <div className="field ad-field" data-testid="review-book-now-field"><label className="check" htmlFor="rv-book-now"><input id="rv-book-now" type="checkbox" checked={bookNow} onChange={(e) => setBookNow(e.target.checked)} data-testid="review-book-now" /> <span>Book it now (no renter approval)</span></label>
+            <div className="field ad-field" data-testid="review-book-now-field"><label className="check" htmlFor="rv-book-now"><input id="rv-book-now" type="checkbox" checked={bookNow} onChange={(e) => setBookNow(e.target.checked)} data-testid="review-book-now" /> <span>{va ? 'Book it now (no renter approval): an Admin approves first' : 'Book it now (no renter approval)'}</span></label>
               <p className="hint">{va ? 'An Admin approves it in one tap; then the booking waits for payment and the renter gets the link to sign and pay.' : 'The offer becomes the booking at once: the car is held, and the renter gets one link to sign and pay (or signs and pays on this device).'}</p></div>
             {pickupPassed(String(v.pickup_at ?? '')) && <p className="alert alert--error" role="alert" data-testid="review-pickup-passed"><span>{PICKUP_PASSED}</span></p>}
-            <button className="btn btn--primary" type="submit" disabled={pending || pickupPassed(String(v.pickup_at ?? ''))} data-testid="review-send">{pending ? 'Sending' : dirty ? 'Save and send the offer' : 'Send the offer'}</button>
+            <button className="btn btn--primary" type="submit" disabled={pending || !fresh || pickupPassed(String(v.pickup_at ?? ''))} data-testid="review-send">{pending ? 'Sending' : dirty ? 'Save and send the offer' : 'Send the offer'}</button>
           </form>
         )}
         <aside className="ad-renter-view" aria-label="The offer as the renter sees it" data-testid="renter-preview">
@@ -527,4 +558,30 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
     </div>
     </Ctx.Provider>
   );
+}
+
+/** r35a (1300): the review's boxes for an old offer version (ops_read offer_revert): car, dates, rate type, rates, deposit,
+ *  km, discount, the fee lines and the Protection Plan price, the promo code and the message. The rental charge is typed
+ *  only when it differs from the booking's now (else the rate sheet prices it the same). */
+export function revertValues(r: Revert, b: B, start: Record<string, string | boolean>): Record<string, string | boolean> {
+  const c = r.changes as Record<string, unknown>;
+  const out: Record<string, string | boolean> = {};
+  const money2 = (x: unknown) => (typeof x === 'number' ? (x / 100).toFixed(2) : null);
+  if (typeof c.vehicle_id === 'string') out.vehicle_id = c.vehicle_id;
+  if (typeof c.pickup_at === 'string') out.pickup_at = toLocalInput(c.pickup_at);
+  if (typeof c.return_at === 'string') out.return_at = toLocalInput(c.return_at);
+  if (typeof c.booking_type === 'string') out.booking_type = c.booking_type;
+  for (const k of MONEY_KEYS) { const m = money2(c[k]); if (m !== null && k !== 'insurer_authorized_daily_rate_cents') out[k] = m; }
+  if (typeof c.km_allowance_per_day === 'number') out.km_allowance_per_day = String(c.km_allowance_per_day);
+  if (typeof c.staff_discount_reason === 'string') out.staff_discount_reason = c.staff_discount_reason;
+  if (typeof c.rental_charge_cents === 'number' && c.rental_charge_cents !== b.rental_charge_cents) {
+    out.rental_charge_cents = (c.rental_charge_cents / 100).toFixed(2); out.price_tax = 'plus'; out.price_reason = `Back to offer version ${r.version}`;
+  }
+  for (const [k, cents0] of Object.entries(r.lines)) {
+    if (k === 'coverage_sold') out.coverage = (cents0 / 100).toFixed(2);
+    else if (`fee:${k}` in start) out[`fee:${k}`] = (cents0 / 100).toFixed(2);
+  }
+  if (r.promo_code !== String(start.promo_code ?? '')) out.promo_code = r.promo_code;
+  out.message = r.message;
+  return out;
 }

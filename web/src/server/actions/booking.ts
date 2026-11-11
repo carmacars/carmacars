@@ -1,5 +1,6 @@
 'use server';
 import { cookies } from 'next/headers';
+import { bookNowAgreement } from '@/server/book-now';
 import { auth } from '@/lib/auth';
 import { DbError, rpc } from '@/lib/db/repo';
 import type { Json } from '@/lib/db/types';
@@ -36,7 +37,8 @@ async function distance(placeId: string, session?: string): Promise<number | nul
 }
 
 export interface SubmitInput { data: RequestData; requestKey: string; token: string | null; draftId?: string | null }
-export type SubmitResult = ActionResult<{ bookingNumber: string; totalCents: number | null; depositCents: number | null; created: boolean }>;
+export type SubmitResult = ActionResult<{ bookingNumber: string; totalCents: number | null; depositCents: number | null; created: boolean;
+  /** r35a (1304): booked at once (a verified repeat renter): the renter goes to Sign and pay */ instant?: boolean }>;
 
 export async function submitBookingRequest(input: SubmitInput): Promise<SubmitResult> {
   const meta = await requestMeta();
@@ -134,7 +136,14 @@ export async function submitBookingRequest(input: SubmitInput): Promise<SubmitRe
     await captureDone('booking_request');
     // 0280: the request counts for the phone number box report (from a visitor who saw the box, or not); no personal data
     if (res.created !== false) await rpc('server_phone_gate_request', { p: { visitor_id: await visitorCookie() } as unknown as Json }, { role: 'service_role' }).catch(() => undefined);
-    return { ok: true, data: { bookingNumber: String(res.booking_number), totalCents: (res.total_due_at_booking_cents as number) ?? null, depositCents: (res.deposit_cents as number) ?? null, created: res.created === true } };
+    // r35a (1304): a verified repeat renter books at once: the database decides (eligible, the car free, the licence on file);
+    // then the agreement is made as for Book it now and the renter goes straight to Sign and pay. Anything else stays a request.
+    let instant = false;
+    if (user && res.created !== false) {
+      const ib = (await rpc('server_instant_book', { p_number: String(res.booking_number), p_user: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as { instant?: boolean; status?: string; booking_id?: string; renter_user_id?: string } | null;
+      if (ib?.instant) { instant = true; await bookNowAgreement(ib).catch(() => undefined); }
+    }
+    return { ok: true, data: { bookingNumber: String(res.booking_number), totalCents: (res.total_due_at_booking_cents as number) ?? null, depositCents: (res.deposit_cents as number) ?? null, created: res.created === true, instant } };
   } catch (e) {
     return { ok: false, code: 'refused', message: e instanceof DbError ? e.message : 'We could not send the request. Please try again or call us.' };
   }

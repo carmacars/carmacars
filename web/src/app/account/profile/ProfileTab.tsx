@@ -9,12 +9,16 @@ import { NotifyChannelCard } from '@/features/portal/NotifyChannel';
 import { PushAlerts } from '@/features/push/PushAlerts';
 import { AppProfile } from '@/features/app-shell/AppProfile';
 import type { SessionUser } from '@/lib/auth';
+import { rpc } from '@/lib/db/repo';
+import { SecondaryContactForm, type ContactValue } from '@/features/portal/SecondaryContactForm';
 
 const STATUS: Record<string, string> = { verified: 'Verified', pending: 'In review', unverified: 'Not verified yet', rejected: 'Needs new photos' };
 
 // Account > Profile: who you are, how you sign in, your contact details, card on file and drivers.
 export async function ProfileTab({ user }: { user: SessionUser }) {
-  const [p, si, nc, sp] = await Promise.all([myProfile(user), signInState(user.id), notifyReach(user.id), selfProfile(user.id)]);
+  const [p, si, nc, sp, sc] = await Promise.all([myProfile(user), signInState(user.id), notifyReach(user.id), selfProfile(user.id),
+    // r35a (1302): the optional secondary contact
+    rpc('server_secondary_contact', { p_by: user.id }, { role: 'service_role' }).then((x) => (x as unknown as { profile: ContactValue | null }).profile).catch(() => null)]);
   const r = p.renter;
   return (
     <div className="pt-split">
@@ -27,6 +31,9 @@ export async function ProfileTab({ user }: { user: SessionUser }) {
           {r ? <ProfileForm initial={{ mobile: r.mobile ?? p.user?.phone ?? '', address_line1: r.address_line1 ?? '', address_line2: r.address_line2 ?? '', city: r.city ?? '', province: r.province ?? '', postal_code: r.postal_code ?? '', country: r.country ?? 'Canada' }} />
             : <p className="muted">Your contact details are saved with your first booking request.</p>}
         </section>
+        {r && <section className="pt-card" aria-labelledby="pt-second" data-testid="profile-secondary-contact"><h2 className="d4" id="pt-second">Secondary contact <span className="small muted">(optional)</span></h2>
+          <p className="small muted">Someone we may call if we cannot reach you during a rental.</p>
+          <SecondaryContactForm initial={sc ?? null} /></section>}
         {sp && <SelfProfile data={sp} />}
         {si && <SignInSettings state={si} />}
         <AppProfile userId={user.id} deletion />
