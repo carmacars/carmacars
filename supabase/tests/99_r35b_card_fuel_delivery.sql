@@ -108,8 +108,12 @@ create function test.rb_opcf(p_page text) returns uuid language sql as $$
   select app.register_verification_upload(test.id('booking:RB-OPCF'), test.id('rb_ron'), 'coverage_proof', null, 'renters/rb/opcf-' || gen_random_uuid() || '.pdf', repeat('a', 64), 'application/pdf',
     jsonb_build_object('coverage_option', '1', 'insurer_name', 'Example Mutual', 'policy_number', 'EX-0001', 'policy_expiry', '2027-06-30', 'page_kind', p_page), 'documents') $$;
 select test.eq('both pages are missing before payment', public.server_booking_payment_facts(test.id('booking:RB-OPCF')) -> 'coverage_missing', '["pink slip", "OPCF 27 endorsement"]'::jsonb);
-select test.throws('a page must say what it is', $$select test.rb_opcf(null)$$, 'pink slip or the OPCF 27 endorsement');
-select test.lives('the pink slip', $$select test.rb_opcf('pink_slip')$$);
+select test.throws('the renter''s page must say what it is', $$select public.renter_register_upload(test.id('booking:RB-OPCF'), test.id('rb_ron'), 'coverage_proof', 'renters/rb/x.pdf', repeat('b', 64), 'application/pdf', 'documents', null,
+  '{"coverage_option": "1", "insurer_name": "Example Mutual", "policy_number": "EX-0001", "policy_expiry": "2027-06-30"}')$$, 'pink slip or the OPCF 27 endorsement');
+select test.throws('a page kind that is not one is refused', $$select test.rb_opcf('selfie')$$, 'pink slip or the OPCF 27 endorsement');
+select test.lives('the pink slip, through the renter''s door', $$select public.renter_register_upload(test.id('booking:RB-OPCF'), test.id('rb_ron'), 'coverage_proof', 'renters/rb/ps.pdf', repeat('c', 64), 'application/pdf', 'documents', null,
+  '{"coverage_option": "1", "insurer_name": "Example Mutual", "policy_number": "EX-0001", "policy_expiry": "2027-06-30", "page_kind": "pink_slip"}')$$);
+select test.eq('the page says what it is', (select page_kind from verification_uploads where booking_id = test.id('booking:RB-OPCF') and kind = 'coverage_proof'), 'pink_slip');
 select test.eq('the endorsement is still missing', app.opcf27_missing(test.id('booking:RB-OPCF')), array['OPCF 27 endorsement']);
 select test.eq('the renter''s read says so', app.renter_coverage(test.id('booking:RB-OPCF')) -> 'opcf27_missing', '["OPCF 27 endorsement"]'::jsonb);
 select test.throws('staff cannot approve with one page', format($$select app.review_coverage_proof(%L, %L, true)$$, (select id from coverage_proofs where booking_id = test.id('booking:RB-OPCF')), test.id('rb_cs')), 'Both pages');
@@ -126,6 +130,9 @@ update program_settings set opcf27_before_payment = false where id = (app.settin
 select test.eq('with the setting off nothing blocks the payment', public.server_booking_payment_facts(test.id('booking:RB-OPCF2')) -> 'coverage_missing', '[]'::jsonb);
 update program_settings p set opcf27_before_payment = r.opcf27_before_payment from rb_prog r where p.id = r.id;
 select test.eq('on again: it does', jsonb_array_length(public.server_booking_payment_facts(test.id('booking:RB-OPCF2')) -> 'coverage_missing'), 2);
+select test.lives('staff upload the whole policy', format($$select app.door(%L, 'aal2', 'ops_do', 'staff_document_register', jsonb_build_object('booking', %L, 'kind', 'coverage_proof', 'path', 'staff/rb/policy.pdf', 'sha256', repeat('d', 64), 'mime', 'application/pdf',
+  'insurer_name', 'Example Mutual', 'policy_number', 'EX-0002', 'policy_expiry', '2027-06-30'))$$, test.id('rb_cs'), test.id('booking:RB-OPCF2')));
+select test.eq('the whole policy counts for both pages', app.opcf27_missing(test.id('booking:RB-OPCF2')), '{}'::text[]);
 
 -- ================================================================ 7. the fuel shortfall
 select test.mk_booking('RB-FUEL', 'rb_car', 'rb_rita', '2026-11-01 10:00', '2026-11-04 10:00', 'returned');
@@ -161,6 +168,12 @@ select test.eq('the new price is dated today', (app.settings()).fuel_prices_upda
 update program_settings set fuel_price_regular_cents = 155 where id = (app.settings()).id;
 
 -- ================================================================ 8. delivery by distance
+-- the owner's settings (an earlier suite changes them): $75 with 15 km, then $2 a km, no minimum or maximum
+create temp table rb_del as select id, delivery_per_km_cents, delivery_included_km, delivery_min_cents, delivery_max_cents, delivery_round_cents, delivery_base_cents, company_latitude, company_longitude
+  from program_settings where id = (app.settings()).id;
+update program_settings set delivery_per_km_cents = 200, delivery_included_km = 15, delivery_min_cents = null, delivery_max_cents = null, delivery_round_cents = 100,
+       delivery_base_cents = 7500, company_latitude = 43.6655, company_longitude = -79.4686 where id = (app.settings()).id;
+update rate_cards set delivery_fee_cents = 7500, pickup_fee_cents = 7500 where vehicle_id in (test.id('vehicle:rb_car'), test.id('vehicle:rb_ev'));
 select test.eq('40 km: $75 with 15 km, then 25 km at $2 = $125', (app.delivery_fee(test.id('vehicle:rb_car'), 'pickup', '{"kind": "delivery", "distance_km": 40}') ->> 'fee_cents')::bigint, 12500::bigint);
 select test.eq('10 km: the base alone', (app.delivery_fee(test.id('vehicle:rb_car'), 'return', '{"kind": "delivery", "distance_km": 10}') ->> 'fee_cents')::bigint, 7500::bigint);
 select test.eq('no road distance: the straight line x 1.3', app.delivery_fee(test.id('vehicle:rb_car'), 'pickup', '{"kind": "delivery", "lat": 43.80, "lng": -79.30}') ->> 'distance_how', 'straight_line');
@@ -176,3 +189,6 @@ select test.eq('a new base moves the cars that follow it', (select delivery_fee_
 select test.eq('and leaves the override', (select delivery_fee_cents from rate_cards where vehicle_id = test.id('vehicle:rb_ev') and effective_to is null), 9000::bigint);
 update program_settings p set delivery_base_cents = r.delivery_base_cents from rb_base r where p.id = r.id;
 select test.eq('back to $75', (select delivery_fee_cents from rate_cards where vehicle_id = test.id('vehicle:rb_car') and effective_to is null), 7500::bigint);
+update program_settings p set delivery_per_km_cents = r.delivery_per_km_cents, delivery_included_km = r.delivery_included_km, delivery_min_cents = r.delivery_min_cents,
+       delivery_max_cents = r.delivery_max_cents, delivery_round_cents = r.delivery_round_cents, delivery_base_cents = r.delivery_base_cents,
+       company_latitude = r.company_latitude, company_longitude = r.company_longitude from rb_del r where p.id = r.id;

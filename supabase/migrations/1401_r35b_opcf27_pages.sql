@@ -4,8 +4,9 @@
 -- can be confirmed; staff verify it (approve/reject with reason)."
 --
 -- 1. Each page of a proof says what it is (verification_uploads.page_kind): for OPCF 27 the pink slip (the liability
---    insurance card) or the OPCF 27 endorsement page; a card's benefit document for option 2. A new OPCF 27 page must say
---    which it is. Pages sent before this release have no kind and count as the whole policy.
+--    insurance card) or the OPCF 27 endorsement page; a card's benefit document for option 2. The renter's door
+--    (public.renter_register_upload) requires it for OPCF 27; staff may send the whole policy (no kind), which counts for
+--    both, as pages sent before this release do.
 -- 2. app.opcf27_missing(booking): what is still to send ("pink slip", "OPCF 27 endorsement"), empty when nothing is, when
 --    the proof is confirmed, or when the booking is not on option 1.
 -- 3. The booking is not confirmed without them: the payment facts carry coverage_missing and the payment is refused
@@ -48,23 +49,36 @@ declare
   v_page text := nullif(btrim(coalesce(p_details ->> 'page_kind', '')), '');
   v_id uuid;
 begin
+  v_id := app.register_verification_upload_pre1401(p_booking, p_by, p_kind, p_driver, p_storage_path, p_sha256, p_mime_type, p_details, p_storage_bucket);
   if p_kind = 'coverage_proof' then
     v_option := coalesce(nullif(p_details ->> 'coverage_option', '')::integer, (select b.coverage_option from bookings b where b.id = p_booking));
-    if v_option = 1 and (v_page is null or v_page not in ('pink_slip', 'endorsement')) then
+    -- what the page is: named for OPCF 27 (empty: the whole policy, as staff may send it); option 2 is the card's benefit document
+    if v_option = 1 and v_page is not null and v_page not in ('pink_slip', 'endorsement') then
       raise exception 'Say which page this is: the pink slip or the OPCF 27 endorsement page' using errcode = '22023';
     end if;
-    if v_option = 2 then v_page := 'card_benefit'; end if;
-  else
-    v_page := null;
-  end if;
-  v_id := app.register_verification_upload_pre1401(p_booking, p_by, p_kind, p_driver, p_storage_path, p_sha256, p_mime_type, p_details, p_storage_bucket);
-  if v_page is not null then
-    update verification_uploads set page_kind = v_page where id = v_id;
-    update documents d set title = case v_page when 'pink_slip' then 'Pink slip' when 'endorsement' then 'OPCF 27 endorsement' else d.title end
-                                   || case when v_page in ('pink_slip', 'endorsement') then ', booking ' || (select b.booking_number from bookings b where b.id = p_booking) else '' end
-      from verification_uploads u where u.id = v_id and d.id = u.document_id and v_page in ('pink_slip', 'endorsement');
+    v_page := case when v_option = 2 then 'card_benefit' else v_page end;
+    if v_page is not null then
+      update verification_uploads set page_kind = v_page where id = v_id;
+      update documents d set title = case v_page when 'pink_slip' then 'Pink slip' else 'OPCF 27 endorsement' end || ', booking ' || (select b.booking_number from bookings b where b.id = p_booking)
+        from verification_uploads u where u.id = v_id and d.id = u.document_id and v_page in ('pink_slip', 'endorsement');
+    end if;
   end if;
   return v_id;
+end $$;
+
+-- the renter's door: an OPCF 27 page must say whether it is the pink slip or the endorsement page
+alter function public.renter_register_upload(uuid, uuid, text, text, text, text, text, uuid, jsonb) rename to renter_register_upload_pre1401;
+alter function public.renter_register_upload_pre1401(uuid, uuid, text, text, text, text, text, uuid, jsonb) set schema app;
+create function public.renter_register_upload(p_booking uuid, p_by uuid, p_kind text, p_storage_path text, p_sha256 text, p_mime_type text, p_storage_bucket text,
+  p_driver uuid default null, p_details jsonb default null)
+returns jsonb language plpgsql security definer set search_path = public, app as $$
+begin
+  if p_kind = 'coverage_proof'
+     and coalesce(nullif(p_details ->> 'coverage_option', '')::integer, (select b.coverage_option from bookings b where b.id = p_booking)) = 1
+     and coalesce(p_details ->> 'page_kind', '') not in ('pink_slip', 'endorsement') then
+    raise exception 'Say which page this is: the pink slip or the OPCF 27 endorsement page' using errcode = '22023';
+  end if;
+  return app.renter_register_upload_pre1401(p_booking, p_by, p_kind, p_storage_path, p_sha256, p_mime_type, p_storage_bucket, p_driver, p_details);
 end $$;
 
 -- ================================================================ 2. what is still to send
@@ -84,7 +98,7 @@ begin
       from verification_uploads u where u.coverage_proof_id = cp.id and u.status in ('submitted', 'approved');
   end if;
   v_kinds := coalesce(v_kinds, '{}');
-  if 'legacy' = any (v_kinds) then return '{}'; end if;   -- a whole policy sent before 1401
+  if 'legacy' = any (v_kinds) then return '{}'; end if;   -- a whole policy (sent before 1401, or by staff)
   return array(select app.opcf27_page_label(k) from unnest(array['pink_slip', 'endorsement']) k where not k = any (v_kinds));
 end $$;
 
@@ -146,8 +160,10 @@ do $$
 declare g text; f text; pre text;
 begin
   foreach f in array array['app.renter_coverage(uuid)', 'app.coverage_review_facts(uuid)', 'public.server_booking_payment_facts(uuid)',
-                           'app.register_verification_upload(uuid, uuid, text, uuid, text, text, text, jsonb, text)'] loop
+                           'app.register_verification_upload(uuid, uuid, text, uuid, text, text, text, jsonb, text)',
+                           'public.renter_register_upload(uuid, uuid, text, text, text, text, text, uuid, jsonb)'] loop
     pre := case f when 'public.server_booking_payment_facts(uuid)' then 'app.server_booking_payment_facts_pre1401(uuid)'
+                  when 'public.renter_register_upload(uuid, uuid, text, text, text, text, text, uuid, jsonb)' then 'app.renter_register_upload_pre1401(uuid, uuid, text, text, text, text, text, uuid, jsonb)'
                   when 'app.register_verification_upload(uuid, uuid, text, uuid, text, text, text, jsonb, text)' then 'app.register_verification_upload_pre1401(uuid, uuid, text, uuid, text, text, text, jsonb, text)'
                   else replace(f, '(uuid)', '_pre1401(uuid)') end;
     execute format('revoke all on function %s from public', f);
