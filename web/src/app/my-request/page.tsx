@@ -11,6 +11,8 @@ export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Your request', path: '/my-request', noindex: true, description: 'Continue the request you started on this device.' });
 
 const day = (iso: string | null) => (iso ? new Date(iso + (iso.length === 10 ? 'T12:00:00' : '')).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', timeZone: 'America/Toronto' }) : '');
+// release 37 (2300): a request still open is not bookable until the renter's licence is verified
+const OPEN = ['requested', 'offered', 'pending_payment'];
 const STATUS: Record<string, string> = { requested: 'Sent: we are checking the car and the price', offered: 'Offer ready: confirm your email to see it', declined: 'Declined', expired: 'Expired', pending_payment: 'Approved: waiting for payment' };
 
 // Contact capture (migration 0090): what this browser started, without a sign-in. The unverified session sees only
@@ -44,7 +46,9 @@ export default async function MyRequest() {
                   : <><b>Owner application</b>. <Link className="link" href="/list-your-car/apply">Continue the application</Link></>}</li>))}</ul></div>)}
           {v.bookings.length > 0 && (
             <div className="stack"><h2 className="d3">Sent</h2>
-              <ul className="stack">{v.bookings.map((b) => <li key={b.number} data-testid="my-request-booking"><b>{b.number}</b>, {b.car}, {day(b.pickup_at.slice(0, 10))} to {day(b.return_at.slice(0, 10))}: {STATUS[b.status] ?? b.status.replace(/_/g, ' ')}{b.status === 'expired' && <AskReopen number={b.number} />}</li>)}</ul></div>)}
+              <ul className="stack">{v.bookings.map((b) => <li key={b.number} data-testid="my-request-booking"><b>{b.number}</b>, {b.car}, {day(b.pickup_at.slice(0, 10))} to {day(b.return_at.slice(0, 10))}: {STATUS[b.status] ?? b.status.replace(/_/g, ' ')}{b.status === 'expired' && <AskReopen number={b.number} />}
+                {OPEN.includes(b.status) && b.licence !== 'verified' && <> <span className="ad-b ad-b--amber" data-testid="my-request-unverified">Not bookable until your licence is verified</span>
+                  <span className="small muted"> {b.licence === 'pending' ? 'We are checking the licence you sent.' : <>Sign in to add your licence: <Link className="link" href={`/sign-in?next=${encodeURIComponent(`/account/bookings/${b.number}/verify`)}`}>sign in now</Link>.</>}</span></>}</li>)}</ul></div>)}
           {v.chats.length > 0 && <p className="small muted">Your chat with us ({v.chats.map((c) => c.number).join(', ')}) stays open in the chat button.</p>}
           {!v.drafts.length && !v.bookings.length && <p><Link className="btn btn--primary" href="/cars">Find a car</Link></p>}
           <form action={leavePending}><button className="btn btn--ghost btn--sm" type="submit">Not you? Forget this device</button></form>

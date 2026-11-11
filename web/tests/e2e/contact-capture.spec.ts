@@ -83,7 +83,7 @@ test('an abandoned request leaves a lead and an account; the continue link signs
   await pb.locator('#ct-name').fill('Not Casey');
   await pb.locator('#ct-email').fill(email);
   await pb.locator('#ct-phone').focus();
-  await expect(pb.getByTestId('capture-note')).toHaveText('You have an account: we sent you a sign-in link.');
+  await expect(pb.getByTestId('capture-note')).toContainText('You have an account: we sent you a sign-in link, or sign in now.');
   expect((await intruder.cookies()).some((c) => c.name === 'cc-pending')).toBe(false);
   await pb.goto('/my-request');
   await expect(pb.getByRole('heading', { level: 1 })).toHaveText('Nothing started on this device.');
@@ -131,7 +131,7 @@ test('an address that already has an account: "we sent you a sign-in link", no s
   await page.locator('#ct-name').fill('Somebody Typing');
   await page.locator('#ct-email').fill(email);
   await page.locator('#ct-phone').focus();
-  await expect(page.getByTestId('capture-note')).toHaveText('You have an account: we sent you a sign-in link.');
+  await expect(page.getByTestId('capture-note')).toContainText('You have an account: we sent you a sign-in link, or sign in now.');
   await noOverflow(page);
   expect((await page.context().cookies()).some((c) => c.name === 'cc-pending')).toBe(false);
   const r = await sql`select (select count(*)::int from app_events where code = 'renter_continue_request' and entity_id = ${id}) as emails,

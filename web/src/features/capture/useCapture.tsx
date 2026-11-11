@@ -58,7 +58,7 @@ export function CaptureNote({ reply, next }: { reply: CaptureReply | null; next?
   if (!n) return null;
   return (
     <p className={`small ${n.tone === 'ok' ? 'muted' : ''}`} role="status" data-testid="capture-note">
-      {n.text}{n.signIn && <> <Link prefetch={false} className="link" href={`/sign-in${next ? `?next=${encodeURIComponent(next)}` : ''}`}>Sign in</Link></>}
+      {n.text}{n.signIn && <> <Link prefetch={false} className="btn btn--ghost btn--sm" data-testid="capture-sign-in" href={`/sign-in${next ? `?next=${encodeURIComponent(next)}` : ''}`}>Sign in now</Link></>}
     </p>
   );
 }

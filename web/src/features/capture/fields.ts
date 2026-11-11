@@ -43,8 +43,9 @@ export function cleanFields(f: { name?: unknown; email?: unknown; phone?: unknow
  *  than that it exists and a sign-in link went (or can be had). */
 export function captureNote(r: CaptureReply | null): { tone: 'ok' | 'info'; text: string; signIn?: boolean } | null {
   if (!r || !r.ok) return null;
-  if (r.state === 'new') return { tone: 'ok', text: 'Saved as you type. We opened an account for you with this email: finish any time on this device, and confirm it with the link we will email you.' };
-  if (r.state === 'existing' && r.linkSent) return { tone: 'info', text: 'You have an account: we sent you a sign-in link.' };
+  // release 37: sign-in is offered on the spot every time (Google, Apple, a texted code or the password), not only later
+  if (r.state === 'new') return { tone: 'ok', text: 'Saved as you type. We opened an account for you with this email: finish any time on this device, and confirm it with the link we will email you. Or sign in now to carry on from any device.', signIn: true };
+  if (r.state === 'existing' && r.linkSent) return { tone: 'info', text: 'You have an account: we sent you a sign-in link, or sign in now.', signIn: true };
   if (r.state === 'existing') return { tone: 'info', text: 'You have an account: sign in to continue, or use the link we emailed you.', signIn: true };
   return null;
 }

@@ -22,11 +22,14 @@ test('a half-typed field is left out, the rest saved', () => {
 });
 
 test('the note never says more about an existing account than the spec allows', () => {
-  assert.equal(captureNote({ ok: true, state: 'existing', linkSent: true })?.text, 'You have an account: we sent you a sign-in link.');
+  assert.equal(captureNote({ ok: true, state: 'existing', linkSent: true })?.text, 'You have an account: we sent you a sign-in link, or sign in now.');
   const later = captureNote({ ok: true, state: 'existing', linkSent: false, linkSentBefore: true });
   assert.equal(later?.signIn, true);
   assert.doesNotMatch(later!.text, /password|confirmed|booking|name/i);
   assert.match(captureNote({ ok: true, state: 'new' })!.text, /opened an account/);
+  // release 37: sign-in is offered on the spot after every capture with an email
+  assert.equal(captureNote({ ok: true, state: 'new' })?.signIn, true);
+  assert.equal(captureNote({ ok: true, state: 'existing', linkSent: true })?.signIn, true);
   assert.equal(captureNote({ ok: true, state: 'this_device' }), null);
   assert.equal(captureNote({ ok: true, state: 'phone_only' }), null);
   assert.equal(captureNote({ ok: false }), null);
