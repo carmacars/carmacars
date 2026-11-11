@@ -9,7 +9,7 @@ import { decodeVin } from '@/integrations/vin';
 import type { ActionResult } from '@/features/forms/schemas';
 import type { DecodedCar } from '@/features/vin/vin';
 import { cleanVin, DRAFT_COOKIE, fleetVehiclePayload, isFleet, ownerErrors, planErrors, vehicleErrors, vehiclePayload, type ApplyState } from '@/features/owner/apply-schema';
-import { currentUser } from '@/server/portal/data';
+import { applicantUser as currentUser } from '@/server/owner/applicant';
 import { requestMeta } from '@/server/request';
 import { passwordLinkTarget, rememberEmail } from '@/server/auth-links';
 import { claimPendingAccount, passwordLinkForCaptured } from '@/server/capture';

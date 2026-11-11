@@ -5,7 +5,7 @@ import { pageMeta, type Trail } from '@/features/seo/meta';
 import { rpc } from '@/lib/db/repo';
 import { ApplyWizard, type FleetFacts, type ProgramFacts } from '@/features/owner/ApplyWizard';
 import { blankOwner, blankVehicle, DRAFT_COOKIE, readCalc, type ApplyState } from '@/features/owner/apply-schema';
-import { currentUser } from '@/server/portal/data';
+import { applicantUser as currentUser } from '@/server/owner/applicant';
 import { ownerHome } from '@/server/owner/data';
 import { readToken } from '@/server/links';
 import '@/styles/portal.css';
