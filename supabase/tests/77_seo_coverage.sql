@@ -33,12 +33,13 @@ select test.eq('terms: the chauffeur service is a request a person answers, neve
      and served = 'request' and lead_kind = 'place_request' and intent_note ~ 'chauffeur service'), 6);
 select test.eq('terms: buying, financing and leasing are always a request, buyer or finance',
   (select count(*)::integer from place_terms where vertical = 'sale' and (served <> 'request' or lead_kind not in ('buyer', 'finance'))), 0);
-select test.ok('terms: the new buying terms say we do not sell or arrange it',
-  (select bool_and(intent_note ~* 'we do not') from place_terms where slug in ('new-cars', 'trucks-for-sale', 'suvs-for-sale', 'rent-to-own-cars')));
-select test.ok('terms: leasing and subscriptions on the rental side say there is no lease',
-  (select bool_and(intent_note ~* 'do not lease|no subscription contract') from place_terms where slug in ('car-subscription', 'short-term-car-lease')));
-select test.ok('terms: body repair terms say we do not do mechanical work',
-  (select bool_and(intent_note ~* 'do not do mechanical') from place_terms where slug in ('car-repair', 'auto-repair')));
+-- 2000: said positively (rent the model first, a rental stays a rental), never a claim that we sell
+select test.ok('terms: the new buying terms offer renting first and never say we sell',
+  (select bool_and(intent_note ~* 'rent' and intent_note !~* 'we (sell|lend|lease|finance)\M') from place_terms where slug in ('new-cars', 'trucks-for-sale', 'suvs-for-sale', 'rent-to-own-cars')));
+select test.ok('terms: leasing and subscriptions on the rental side describe a monthly rental, never a lease',
+  (select bool_and(intent_note ~* 'month' and intent_note !~* 'we lease') from place_terms where slug in ('car-subscription', 'short-term-car-lease')));
+select test.ok('terms: body repair terms say mechanical work goes to a trusted shop we arrange',
+  (select bool_and(intent_note ~* 'we arrange a trusted shop') from place_terms where slug in ('car-repair', 'auto-repair')));
 -- 0121: mechanical work has pages now, never as work we do: a request we arrange (suite 78)
 select test.eq('terms: mechanical work is only ever a request we arrange, never served as ours',
   (select string_agg(slug, ',') from place_terms where slug ~ '(mechanic|oil-change|brake|tire-shop|tire-change|towing|tow-truck|engine-repair|transmission-repair)'

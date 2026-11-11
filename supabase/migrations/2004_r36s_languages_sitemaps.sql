@@ -200,3 +200,8 @@ grant execute on function public.seo_languages_state(), public.seo_i18n_bundle(t
 
 -- every programmatic page changes with this release's templates (the content epoch of 1100)
 select app.seo_content_epoch_refresh('r36-1');
+
+-- IndexNow: the new hubs and the airport pages once (the events queue themselves, 2003; the Turo landing pages through
+-- seo_pages' own trigger)
+select app.indexnow_queue_path(x, 'r36 page families') from unnest(array['/events', '/airport-car-rental', '/rent-vs-own', '/gps-tracker']) x;
+select app.indexnow_queue_path('/airport-car-rental/' || lower(code), 'airport') from airports where is_active;

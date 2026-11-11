@@ -43,7 +43,7 @@ export const SEO_TEMPLATE_GLOBS = [
   'web/src/app/gps-tracker/**', 'web/src/app/airport-car-rental/**', 'web/src/app/rent-vs-own/**', 'web/src/app/[[]lang]/**'
 ];
 /** Files of those globs that are not page text: the checks' own lists, tests, the importers' parsers and admin screens. */
-export const SEO_TEMPLATE_SKIP = /(\.test\.ts$|copy-lint\.ts$|Admin\.tsx$|admin|seo-data\.ts$|worker\.ts$|batch\.ts$|gsc-plan\.ts$|coverage\.ts$|crawlers\.ts$|normalise\.ts$|permit-read\.ts$|PermitScan\.tsx$|Registration\.tsx$|stock-photos\.ts$)/;
+export const SEO_TEMPLATE_SKIP = /(\.test\.ts$|_guides\.sql$|copy-lint\.ts$|Admin\.tsx$|admin|seo-data\.ts$|worker\.ts$|batch\.ts$|gsc-plan\.ts$|coverage\.ts$|crawlers\.ts$|normalise\.ts$|permit-read\.ts$|PermitScan\.tsx$|Registration\.tsx$|stock-photos\.ts$)/;
 
 /** The text of a source file without its comments (line, block and JSX comments), line numbers kept. */
 export function stripComments(src: string, sql = false): string {

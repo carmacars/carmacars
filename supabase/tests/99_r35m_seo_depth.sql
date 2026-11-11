@@ -18,7 +18,8 @@ select test.ok('a synonym still names its term''s page (not a thin-page rule)', 
   select 1 from place_terms t, places p where t.canonical_slug is not null and app.place_hub_indexable(p, t, true, 1) limit 1));
 
 -- ---------------------------------------------------------------- the content epoch
-select test.eq('the epoch carries this release''s template', (select template from app.seo_content_epoch), 'depth-1');
+-- 2004 (release 36) moved the template on again: depth-1 or a later one
+select test.ok('the epoch carries this release''s template (or a later one)', (select template in ('depth-1', 'r36-1') from app.seo_content_epoch));
 update app.seo_content_epoch set changed_at = now() - interval '3 days' where id;
 update program_settings set seo_ai_daily_neurons = seo_ai_daily_neurons where id = (app.settings()).id;
 select test.ok('a settings save that changes no page fact keeps the epoch', (select changed_at < now() - interval '2 days' from app.seo_content_epoch));
@@ -85,7 +86,7 @@ select test.eq('the 01 Motors terms, active rental terms of their own', (select 
   where slug in ('01-motors-alternative', 'carmacars-vs-01-motors') and is_active and vertical = 'rental' and canonical_slug is null),
   '01-motors-alternative:01 Motors Alternative|carmacars-vs-01-motors:CarmaCars vs 01 Motors');
 select test.ok('they say the page is written by CarmaCars and never that CarmaCars is unaffiliated (01 Motors is a partner, 0093)',
-  (select bool_and(intent_note ~ '(written by CarmaCars|do not publish another company)' and (intent_note || faq::text) !~* 'not affiliated') from place_terms where slug in ('01-motors-alternative', 'carmacars-vs-01-motors')));
+  (select bool_and(intent_note ~ '(written by CarmaCars|in figures from this site)' and (intent_note || faq::text) !~* 'not affiliated') from place_terms where slug in ('01-motors-alternative', 'carmacars-vs-01-motors')));
 select test.ok('nothing about the other company''s prices, rules or service', not exists (select 1 from place_terms where slug in ('01-motors-alternative', 'carmacars-vs-01-motors')
   and (intent_note || faq::text) ~* '(cheaper|better than|unlike|their (fees|prices|service)|lower than)'));
 select test.ok('the alternative has vehicle twins ("01 Motors alternative: <car>"); the versus page has none', exists (select 1 from app.vpage_terms() where slug = '01-motors-alternative')
