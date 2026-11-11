@@ -79,7 +79,9 @@ export const share = (bps: number) => `${Math.round(bps / 100)}%`;
 // when this month's projected cost above the allowance reaches the Program setting (US$5 by default), a quiet note under
 // it; hard stops and the email holds keep their banner.
 export type BannerTone = 'red' | 'amber' | 'note';
-export interface CfEmail { state: 'ok' | 'absent' | 'failing' | 'off'; enabled: boolean; ok_at: string | null; failed_at: string | null; error: string | null; sent_month: number; included: number }
+export interface CfEmail { state: 'ok' | 'absent' | 'failing' | 'off'; enabled: boolean; ok_at: string | null; failed_at: string | null; error: string | null; sent_month: number; included: number;
+  /** 1750: Cloudflare's sends in the last 48 hours and the plain reason it is not sending */
+  sent_48h?: number; reason?: string | null }
 export interface BannerRow { service: string; label: string; share_bps: number; level: 70 | 80 | 100; used_text: string; included_text: string; overage_usd: number;
   resets_at: string | null; tone?: BannerTone; projected_usd?: number | null; red_usd?: number | null; cf?: CfEmail }
 
@@ -116,36 +118,45 @@ export function resendDay(n: number | string | null | undefined): string {
   return 'your daily email limit';
 }
 
-/** Whether Cloudflare sends the emails, in one sentence; null when it does. `resend` is Resend's daily allowance now. */
+/** Whether Cloudflare sends the emails, in one sentence; null when it does (1750: it sent in the last 48 hours, or its last
+ * result was a success). The reason is the database's, from Cloudflare's own last error. */
 export function cfEmailSentence(c: CfEmail | null | undefined): string | null {
-  // r35 part C (owner, 2026-11-11): no daily figure here; the capacity (Cloudflare + Resend) is on Settings > Usage only
   if (!c || c.state === 'ok') return null;
-  if (c.state === 'off') return 'Cloudflare Email Service is turned off in Program settings, so its part of the daily capacity is not sending and every email goes through Resend.';
-  if (c.state === 'failing') return `Cloudflare Email Service refused the last emails${c.error ? ` (${c.error})` : ''}, so they went through Resend.`;
-  return `Cloudflare Email Service is not set up yet, so its part of the daily capacity is not sending and every email goes through Resend. The one-time setup gives ${c.included.toLocaleString('en-US')} a month.`;
+  if (c.state === 'off') return 'Cloudflare Email Service is turned off in Program settings, so every email goes through Resend.';
+  const why = c.reason ?? (c.state === 'failing' ? `Cloudflare refused the last email${c.error ? `: ${c.error}` : ''}` : 'no email went through Cloudflare in the last 48 hours');
+  return `Cloudflare Email Service has not sent in the last 48 hours: ${why}. Emails go through Resend meanwhile.`;
 }
 
-/** r35 (0900): the day's emails against the cap in one plain line, with why the cap is that number: Cloudflare's budget
- * counts only while Cloudflare Email Service sends. Every number comes from the email pace read, none is written here. */
-export interface EmailBudget { used: number; cap: number; cf_state?: string | null; cf_counted?: boolean | null; cf_budget?: number | null; resend_budget?: number | null;
-  /** 1501: the combined capacity (Cloudflare + Resend, at most the setting), why today's cap is what it is, and why Cloudflare is not counted */
-  capacity?: number | null; limited_by?: string | null; cf_reason?: string | null; setting?: number | null }
-export function emailBudgetLine(b: EmailBudget): string {
+/** The one-time setup steps show only while Cloudflare never sent or the Worker has no EMAIL binding (never once it sends). */
+export const cfEmailNeedsSetup = (c: CfEmail | null | undefined) => !!c && c.state === 'absent';
+
+/** 1750 (the owner's rule, 2026-11-11): Cloudflare first up to its daily budget (never past the month's included emails),
+ * then Resend's free plan; when both are used the emails wait by priority. Every number comes from the email pace read. */
+export interface EmailToday { day_used: number; cf_today?: number; cf_day_budget?: number; resend_today?: number; resend_day_budget?: number; auth_today?: number;
+  fallback_today?: number; cf_month?: number; cf_included?: number; cf_left?: number; held?: number }
+/** "Cloudflare 25 of 100, Resend 6 of 100" (Resend's count includes the sign-in emails Supabase Auth sends through it) */
+export function emailTodayLine(p: EmailToday): string {
   const n = (x: number) => x.toLocaleString('en-US');
-  const head = `${n(b.used)} sent today`;
-  if (typeof b.cf_budget !== 'number' || typeof b.resend_budget !== 'number') return head;
-  // r35 part C (owner, 2026-11-11): the real sending capacity, Cloudflare's budget plus Resend's, never Resend's part alone as a cap
-  const cap = `daily capacity ${n(b.cf_budget + b.resend_budget)} (Cloudflare ${n(b.cf_budget)} + Resend ${n(b.resend_budget)})`;
-  if (b.cf_counted) return `${head} of a ${cap}`;
-  const why = b.cf_reason ? b.cf_reason.replace(/^./, (c) => c.toLowerCase())
-    : b.cf_state === 'off' ? 'Cloudflare Email Service is turned off in Program settings'
-      : b.cf_state === 'failing' ? 'Cloudflare Email Service refused the last emails' : 'Cloudflare Email Service is not set up';
-  return `${head}; ${cap}. Cloudflare's part is not sending yet: ${why}`;
+  const auth = p.auth_today ?? 0;
+  const cf = p.cf_today ?? 0;
+  const resend = (p.resend_today ?? Math.max(0, p.day_used - cf)) + auth;
+  const of = (x: number, b: number | undefined) => (typeof b === 'number' ? `${n(x)} of ${n(b)}` : n(x));
+  let line = `Cloudflare ${of(cf, p.cf_day_budget)}, Resend ${of(resend, p.resend_day_budget)}`;
+  if (auth > 0) line += ` (Resend's count includes ${n(auth)} sign-in email${auth === 1 ? '' : 's'}: Supabase Auth sends them through Resend)`;
+  if (p.fallback_today) line += `; ${n(p.fallback_today)} went through Resend after a Cloudflare error`;
+  return line;
 }
 
-/** 1501: the email pace read (UsageCards' EmailPace) as the budget of emailBudgetLine and emailCapShort */
-export const paceBudget = (p: { day_used: number; day_cap: number; cf_state?: string; cf_counted?: boolean; cf_ever_sent: boolean; cf_budget: number; resend_budget: number;
-  capacity?: number; limited_by?: string; cf_reason?: string | null; setting: number }): EmailBudget => ({ used: p.day_used, cap: p.day_cap, cf_state: p.cf_state,
-  cf_counted: p.cf_counted ?? p.cf_ever_sent, cf_budget: p.cf_budget, resend_budget: p.resend_budget, capacity: p.capacity, limited_by: p.limited_by, cf_reason: p.cf_reason, setting: p.setting });
-
-
+/** Which provider sends now and the month: "Cloudflare sends (75 left today). This month through Cloudflare: 426 of 3,000." */
+export function emailNowLine(p: EmailToday): string {
+  const n = (x: number) => x.toLocaleString('en-US');
+  const month = typeof p.cf_month === 'number' && typeof p.cf_included === 'number' ? ` This month through Cloudflare: ${n(p.cf_month)} of ${n(p.cf_included)}.` : '';
+  const monthUsed = typeof p.cf_month === 'number' && typeof p.cf_included === 'number' && p.cf_month >= p.cf_included;
+  const resendUsed = typeof p.resend_day_budget === 'number' && (p.resend_today ?? 0) + (p.auth_today ?? 0) >= p.resend_day_budget;
+  let now: string;
+  if ((p.cf_left ?? 0) > 0) now = `Cloudflare sends (${n(p.cf_left!)} left today).`;
+  else if (!resendUsed) now = `${monthUsed ? 'The month\'s Cloudflare emails are used' : 'Cloudflare\'s emails for today are used'}: Resend's free plan sends the rest${monthUsed ? ' until the 1st' : ' of today'}.`;
+  else now = 'Both are used for today: booking, payment and sign-in emails go first, the others wait for tomorrow.';
+  const held = p.held ? ` ${n(p.held)} waiting.` : '';
+  return `${now}${month}${held}`;
+}

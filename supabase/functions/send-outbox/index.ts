@@ -16,7 +16,9 @@
 // database says Cloudflare may send (app.cf_email_try: switched on, this month's included sends not used, no
 // failure in the last 15 minutes), each email goes to the site's /api/email/send (the Worker's EMAIL binding), signed with
 // LINK_SIGNING_KEY like the cron jobs; a refusal is reported (server_cf_email_result) and the email goes through Resend
-// as before. The daily and monthly holds of 0018 then apply only when Cloudflare cannot send either.
+// as before. The daily and monthly holds of 0018 then apply only when Cloudflare cannot send either. 1750 (the owner's
+// rule): Cloudflare first up to its daily budget (cf_email_daily_budget, never past the month's included emails), then
+// Resend's free plan; when both are used the claim holds the emails by priority. No hourly pace.
 import postgres from 'npm:postgres@3.4.5';
 import { render, renderText } from './engine.mjs';
 import { combineEmails } from './combine.ts';
@@ -120,12 +122,15 @@ async function viaCloudflare(m: Mail): Promise<{ id: string } | { error: string 
   } catch (e) { return { error: `Cloudflare: ${(e as Error).message}`.slice(0, 300) }; }
 }
 let cfOn = false;
-// 0531: the day's budget per provider (Cloudflare first: 200, Resend after: 100); counts kept here as this batch sends
-const budget = { cfLeft: 200, resendLeft: 100, midnight: new Date(Date.now() + 3600_000) };
+// 1750: Cloudflare's error that sends this batch's emails through Resend (it rests 15 minutes after a refusal)
+let cfRest = '';
+// 0531, 1750: what each provider may still send (Cloudflare: what is left of the month's included emails, no daily
+// limit; Resend: its own daily plan, used only when Cloudflare cannot send); counts kept here as this batch sends
+const budget = { cfLeft: 0, resendLeft: 0, midnight: new Date(Date.now() + 3600_000) };
 async function loadBudgets() {
   try {
-    const [{ b }] = (await sql`select public.server_email_budgets() as b`) as unknown as [{ b: { cf_budget: number; resend_budget: number; cf_used: number; resend_used: number; midnight: string } }];
-    budget.cfLeft = Math.max(0, b.cf_budget - b.cf_used); budget.resendLeft = Math.max(0, b.resend_budget - b.resend_used); budget.midnight = new Date(b.midnight);
+    const [{ b }] = (await sql`select public.server_email_budgets() as b`) as unknown as [{ b: { cf_budget: number; cf_left?: number; resend_budget: number; cf_used: number; resend_used: number; midnight: string } }];
+    budget.cfLeft = Math.max(0, b.cf_left ?? b.cf_budget - b.cf_used); budget.resendLeft = Math.max(0, b.resend_budget - b.resend_used); budget.midnight = new Date(b.midnight);
   } catch { /* an older database: no budgets, the claim's caps apply */ budget.cfLeft = 1e9; budget.resendLeft = 1e9; }
 }
 
@@ -146,6 +151,7 @@ async function defer(r: Row, h: Held) {
 const pause = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
 
 async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
+  let cfError = cfRest;
   try {
     if (!r.template_html || !r.template_text) throw Object.assign(new Error('The catalogue has no template for ' + r.code), { permanent: true });
     const values = { ...(await senderValues(r)), ...r.payload };
@@ -214,6 +220,7 @@ async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
       }
       // not this time: reported (Cloudflare rests 15 minutes), and this email goes through Resend
       cfOn = false;
+      cfError = cfRest = cf.error;
       await sql`select public.server_cf_email_result(${JSON.stringify({ ok: false, error: cf.error })}::jsonb)`;
     }
     const res = await fetch('https://api.resend.com/emails', {
@@ -228,7 +235,8 @@ async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
       if (h) {
         // 2026-11-06: Resend refused for its rate or quota: the Cloudflare email binding sends this one instead (the site's
         // Worker), and the rest of the batch goes there too; only when that fails too the row waits, attempts untouched
-        if (LINK_KEY) {
+        // 1750: only within Cloudflare's budget for today (never past the month's included emails)
+        if (LINK_KEY && budget.cfLeft > 0) {
           const cf = await viaCloudflare({ from: fromHeader(r.from_address), to: r.to_address, reply_to: r.reply_to || undefined, subject, html, text,
             headers: Object.keys(headers).length ? headers : undefined, attachments: files.length ? files : undefined });
           if ('id' in cf) {
@@ -249,6 +257,8 @@ async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
     const { id } = (await res.json()) as { id: string };
     budget.resendLeft--;
     await sql`select app.outbox_mark_sent(${r.id}::uuid, ${id}, ${text})`;
+    // 1750: an email Resend sent because Cloudflare refused says so (Settings > Usage counts them)
+    if (cfError) await sql`select public.server_outbox_note_cf_fallback(${r.id}::uuid, ${cfError})`.catch(() => {});
     return 'sent';
   } catch (e) {
     const err = e as Error & { permanent?: boolean };
@@ -262,6 +272,13 @@ Deno.serve(async (req) => {
   if (!RESEND) return new Response('RESEND_API_KEY is not set', { status: 500 });
   // 0222: Cloudflare first while the database says it may send (an older database without it: Resend only)
   try { cfOn = ((await sql`select app.cf_email_try() as ok`) as unknown as [{ ok: boolean }])[0].ok === true && !!LINK_KEY; } catch { cfOn = false; }
+  cfRest = '';
+  if (!cfOn) {
+    try {
+      const [x] = (await sql`select e.cf_error from email_provider_state e where e.cf_failed_at > now() - interval '15 minutes' limit 1`) as unknown as Array<{ cf_error: string | null }>;
+      cfRest = x?.cf_error ?? '';
+    } catch { cfRest = ''; }
+  }
   await loadBudgets();
   const rows = (await sql`select * from app.outbox_claim(${BATCH})`) as unknown as Row[];
   let sent = 0, failed = 0, deferred = 0;
