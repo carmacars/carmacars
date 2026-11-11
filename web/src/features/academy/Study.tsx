@@ -4,6 +4,7 @@ import Link from '@/components/Link';
 import { useRouter } from 'next/navigation';
 import { opsAct } from '@/server/actions/ops';
 import { ScenePlayer } from './ScenePlayer';
+import { LessonVideo } from './LessonVideo';
 import { pct, waitLeft, type QuizResult, type QuizStart, type QuizWait, type SectionView } from './model';
 
 // A section to study (Release 21b, item 9): its lessons, each a scene player, then its quiz. The quiz is graded in the database;
@@ -25,6 +26,8 @@ export function Study({ s, base }: { s: SectionView; base: string }) {
         <section key={l.id} className="pt-card ac-lesson" aria-labelledby={`ac-l-${i}`} data-testid={`lesson-${i}`}>
           <h2 className="d4" id={`ac-l-${i}`}>{i + 1}. {l.title} {viewed[l.id] && <span className="ac-badge ac-badge--ok">Watched</span>}</h2>
           <ScenePlayer lesson={l} onDone={() => seen(l.id)} testId={`player-${i}`} />
+          {/* r37 (2301): the lesson as a real video file, to watch or download */}
+          <LessonVideo lesson={l.id} title={l.title} scenes={l.scenes} testId={`lesson-video-${i}`} />
         </section>
       ))}
       <Quiz s={s} base={base} wait={wait} setWait={setWait} onPassed={() => router.refresh()} />

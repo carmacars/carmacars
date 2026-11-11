@@ -78,6 +78,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      academy_lesson_videos: {
+        Row: {
+          id: string;
+          lesson_id: string;
+          scenes_hash: string;
+          path: string;
+          mime: string;
+          seconds: number;
+          bytes: number;
+          created_by: string | null;
+          created_at: string;
+          removed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          lesson_id: string;
+          scenes_hash: string;
+          path: string;
+          mime: string;
+          seconds: number;
+          bytes: number;
+          created_by?: string | null;
+          created_at?: string;
+          removed_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          lesson_id?: string;
+          scenes_hash?: string;
+          path?: string;
+          mime?: string;
+          seconds?: number;
+          bytes?: number;
+          created_by?: string | null;
+          created_at?: string;
+          removed_at?: string | null;
+        };
+        Relationships: [];
+      };
       academy_lesson_views: {
         Row: {
           user_id: string;
@@ -31789,6 +31828,7 @@ export type Database = {
       server_booking_debit_deposit: { Args: { p_booking: string }; Returns: number };
       server_booking_driver_links: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_booking_heard_about: { Args: { p_booking_number: string; p_value: string }; Returns: boolean };
+      server_booking_licence_state: { Args: { p_numbers: string[] }; Returns: Json };
       server_booking_payment_capture_failed: { Args: { p_booking: string; p_processor: Json; p_error: string }; Returns: undefined };
       server_booking_payment_facts: { Args: { p_booking: string }; Returns: Json };
       server_booking_sign_pay: { Args: { p_booking: string }; Returns: Json };
