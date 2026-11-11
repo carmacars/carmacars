@@ -203,6 +203,8 @@ test('the programmatic vehicle pages: no ISR entry, kept at the edge for 6 hours
   for (const p of ['/cars/volkswagen/jetta', '/cars/volkswagen/jetta/2020/sportline/port-credit/black', '/buy/volkswagen', '/t/car-hire/volkswagen/jetta/2020/sportline/streetsville'])
     assert.ok(PROGRAMMATIC.test(p), p);
   for (const p of ['/makes', '/places', '/places/3']) assert.ok(PROGRAMMATIC.test(p), p);
+  // r37 (2302): the language versions of the vehicle and per-car service pages
+  for (const p of ['/fr/cars/volkswagen/jetta/2020/sportline', '/fr/cars/volkswagen/jetta/2020/sportline/toronto/grey', '/pa/t/car-detailing/volkswagen/jetta/2020/sportline']) assert.ok(PROGRAMMATIC.test(p), p);
   // release 36: the new page families and the language versions
   for (const p of ['/events', '/events/tiff', '/airport-car-rental/yyz', '/rent-vs-own/toyota/camry/2022/mississauga', '/gps-tracker', '/fr', '/fr/car-rental/mississauga', '/pa/events/tiff'])
     assert.ok(PROGRAMMATIC.test(p), p);

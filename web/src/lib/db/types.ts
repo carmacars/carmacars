@@ -18303,6 +18303,7 @@ export type Database = {
           social_video_brand: string;
           social_video_seconds_per_photo: number;
           social_video_max_photos: number;
+          seo_i18n_vehicle_places: number;
         };
         Insert: {
           id?: string;
@@ -19125,6 +19126,7 @@ export type Database = {
           social_video_brand?: string;
           social_video_seconds_per_photo?: number;
           social_video_max_photos?: number;
+          seo_i18n_vehicle_places?: number;
         };
         Update: {
           id?: string;
@@ -19947,6 +19949,7 @@ export type Database = {
           social_video_brand?: string;
           social_video_seconds_per_photo?: number;
           social_video_max_photos?: number;
+          seo_i18n_vehicle_places?: number;
         };
         Relationships: [];
       };
@@ -32245,6 +32248,7 @@ export type Database = {
       vehicle_fleet_makes: { Args: never; Returns: Json };
       vehicle_hub_path: { Args: { p_hub: string }; Returns: string };
       vehicle_is_available: { Args: { p_vehicle: string; p_from: string; p_to: string }; Returns: boolean };
+      vehicle_language_ok: { Args: { p_path: string }; Returns: boolean };
       vehicle_make_index: { Args: never; Returns: Json };
       vehicle_make_page: { Args: { p_make: string }; Returns: Json };
       vehicle_makes: { Args: never; Returns: Json };

@@ -43,7 +43,15 @@ export const CATALOG = {
   'hub.lead': 'Rent a car from {brand} in Toronto, delivered or picked up. These pages are in {language}.',
   'hub.pages': 'Ways to rent',
   'hub.events': 'Events',
-  'hub.airports': 'Airports'
+  'hub.airports': 'Airports',
+  // r37 (2302): the vehicle multipliers and the per-car service pages, only where a real car backs them
+  'vehicle.h1': 'Rent the {car}',
+  'vehicle.h1_place': 'Rent the {car} in {place}',
+  'vehicle.h1_place_colour': 'Rent a {colour} {car} in {place}',
+  'vehicle.h1_service': '{service} for the {car}',
+  'vehicle.lead': '{brand} has the {car} on the site now: delivered to your address, a hotel or the airport, or picked up from us. Send a request with no payment.',
+  'vehicle.lead_service': '{service} for the {car}, from {brand} in Toronto. Send a request and we confirm the price and the time before anything is charged.',
+  'vehicle.colour_note': 'The car shown is {colour}, a real car in our fleet.'
 } as const;
 export type I18nKey = keyof typeof CATALOG;
 
