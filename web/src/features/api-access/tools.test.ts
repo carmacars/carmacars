@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { ADMIN_TOOLS, CONNECTOR_URL, SCOPES, TOOLS, WRITABLE, bearer, newSecret, parseScopes, pkceChallenge, secretPrefix, sha256Hex, toolsFor } from './tools.ts';
+import { ADMIN_TOOLS, CONNECTOR_URL, OPS_TOOLS, SCOPES, TOOLS, WRITABLE, bearer, newSecret, parseScopes, pkceChallenge, secretPrefix, sha256Hex, toolsFor } from './tools.ts';
 
 test('every tool names a known scope, and only the update tools write', () => {
   for (const t of TOOLS) assert.ok(t.scope === 'any' || (SCOPES as readonly string[]).includes(t.scope), t.name);
@@ -87,4 +87,26 @@ test('Book it now: send_offer and create_offer take book_now, book_offer_now boo
   assert.deepEqual((t.inputSchema as { required: string[] }).required, ['booking']);
   assert.match(t.description, /Two steps/);
   assert.match(t.description, /without the renter's approval/);
+});
+
+// release 35 (1156): the Admin's daily operations
+const SQL1156 = readFileSync(new URL('../../../../supabase/migrations/1156_r35g_connector_admin_ops.sql', import.meta.url), 'utf8');
+test('1156: the operations tools are the database\'s: lists page and hide test records, writes are two-step, money out is prepared only', () => {
+  const arr = (fn: string) => /select array\[([^\]]+)\]/.exec(SQL1156.slice(SQL1156.indexOf(`function app.${fn}()`)))![1]!.split(',').map((x) => x.trim().replace(/'/g, ''));
+  const lists = arr('api_list_tools');
+  const reads = [...lists.filter((n) => !['list_bookings', 'list_requests', 'list_owners', 'list_cars', 'list_applicants', 'list_staff'].includes(n)), ...arr('api_one_reads')].sort();
+  assert.deepEqual(OPS_TOOLS.filter((t) => t.readOnly).map((t) => t.name).sort(), reads);
+  const writes = [...[...SQL1156.matchAll(/when '([a-z_]+)'\s+then '\{"call"/g)].map((m) => m[1]!), 'prepare_money_action', 'upload_booking_photo'].sort();
+  assert.deepEqual(OPS_TOOLS.filter((t) => !t.readOnly).map((t) => t.name).sort(), writes);
+  for (const n of lists) {
+    const t = TOOLS.find((x) => x.name === n)!;
+    const props = (t.inputSchema as { properties: Record<string, { maximum?: number }> }).properties;
+    assert.ok(props.cursor && props.include_test && props.limit?.maximum === 200, n);
+  }
+  for (const t of OPS_TOOLS.filter((x) => !x.readOnly)) {
+    const props = (t.inputSchema as { properties: Record<string, unknown> }).properties;
+    assert.ok(props.confirm && props.preview_id && t.scope === 'admin:write', t.name);
+  }
+  assert.match(OPS_TOOLS.find((t) => t.name === 'prepare_money_action')!.description, /no money moves/);
+  assert.ok(!OPS_TOOLS.some((t) => /^(refund|release|payout|charge)/.test(t.name)), 'no tool moves money');
 });

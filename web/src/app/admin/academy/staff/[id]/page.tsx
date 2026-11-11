@@ -13,6 +13,7 @@ export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Academy progress', path: '/admin/academy', noindex: true, description: 'One staff member\'s training progress.' });
 
 // One staff member's progress (Release 21b, item 9): each path's sections, scores and attempts; open a section early.
+// 1154: attempts answered too fast are counted, and an Admin resets chosen sections.
 export default async function AcademyPerson({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
@@ -29,11 +30,15 @@ export default async function AcademyPerson({ params }: { params: Promise<{ id: 
       {!p.paths.length && <p className="muted">No path: give this person a staff function in Settings &gt; Staff.</p>}
       {p.paths.map((path) => (
         <Card key={path.code} title={`${path.title}${path.passed ? ' (passed)' : ''}`}>
+          {/* 1154: the chosen sections start over for this person (passes, lessons watched, reading clock); the attempts stay on record; logged */}
+          <div><Act action="academy_reset" payload={{ user_id: id }} label="Reset sections" title={`Reset sections for ${p.user!.name}`} submitLabel="Reset" refresh={[here]} done="Reset."
+            fields={path.sections.map((r) => ({ name: `s_${r.id}`, label: `${r.title}${r.passed ? ' (passed)' : ''}`, type: 'bool' as const, value: false }))} testId={`reset-${path.code}`} /></div>
           <Table<SectionRow & Record<string, unknown>> rows={path.sections as Array<SectionRow & Record<string, unknown>>} testId={`ap-${path.code}`} cols={[
             { key: 'title', label: 'Section' },
             { key: 'viewed', label: 'Lessons watched', num: true, render: (r) => `${r.viewed} of ${r.lessons}` },
             { key: 'best', label: 'Best score', num: true, render: (r) => pct(r.best_bps) },
             { key: 'attempts', label: 'Attempts', num: true },
+            { key: 'flagged', label: 'Too fast', num: true, render: (r) => (r.flagged ? `${r.flagged} flagged` : '') },
             { key: 'state', label: 'State', render: (r) => (r.passed ? 'Passed' : r.open ? (r.unlocked_early ? 'Opened early' : 'Open') : 'Closed') },
             { key: 'act', label: '', render: (r) => (!r.open && !r.passed ? <Act action="academy_unlock" payload={{ user_id: id, section: r.id }} label="Open early" testId={`unlock-${r.slug}`} refresh={[here]}
                 fields={[{ name: 'reason', label: 'Reason', required: true, placeholder: 'For example: experienced in this work' }]} done="Opened." /> : null) }]} />

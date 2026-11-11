@@ -9,10 +9,16 @@ export type Visual =
 export interface Scene { caption: string; say?: string; visual: Visual }
 export interface Lesson { id: string; title: string; scenes: Scene[]; viewed?: boolean }
 export interface SectionView { id: string; slug: string; title: string; blurb: string; path: string; path_title: string; pass_bps: number; passed: boolean; best_bps: number | null; next: string | null;
-  lessons: Lesson[]; questions: Array<{ id: string; prompt: string; options: string[] }> }
-export interface SectionRow { id: string; slug: string; title: string; blurb: string; sort: number; open: boolean; passed: boolean; unlocked_early: boolean; best_bps: number | null; attempts: number; lessons: number; viewed: number; questions: number }
+  lessons: Lesson[]; questions: Array<{ id: string; prompt: string; options: string[] }>;
+  /** 1154: the questions come with the started quiz; the reading clock and the waits */ question_count?: number; opened_at?: string | null; quiz?: QuizWait }
+/** 1154: may the quiz start now, and if not, why and until when. */
+export interface QuizWait { ok: boolean; reason?: 'reading' | 'daily' | 'cooldown'; until?: string; message?: string; read_seconds?: number; tries_left?: number }
+/** 1154: a started quiz: questions and options in a random order; keys[i] is the shown option i's index in the question. */
+export interface QuizStart { section: string; started_at: string; tries_left?: number; questions: Array<{ id: string; prompt: string; options: string[]; keys: number[] }> }
+export interface SectionRow { id: string; slug: string; title: string; blurb: string; sort: number; open: boolean; passed: boolean; unlocked_early: boolean; best_bps: number | null; attempts: number; lessons: number; viewed: number; questions: number; /** 1154 */ flagged?: number; reset_at?: string | null }
 export interface PathRow { code: string; title: string; blurb: string; passed: boolean; sections: SectionRow[] }
-export interface QuizResult { correct: number; total: number; score_bps: number; passed: boolean; pass_bps: number; results: Array<{ id: string; given: number | null; answer: number; right: boolean; explain: string }> }
+export interface QuizResult { correct: number; total: number; score_bps: number; passed: boolean; pass_bps: number; results: Array<{ id: string; given: number | null; answer: number | null; right: boolean; explain: string }>;
+  /** 1154 */ quiz?: QuizWait; flagged?: boolean }
 
 /** The words a scene says: its narration, else its caption. */
 export const words = (s: Scene): string => (s.say && s.say.trim()) || s.caption;
@@ -36,3 +42,13 @@ export const progress = (index: number, within: number, count: number): number =
 
 /** "80%" from basis points. */
 export const pct = (bps: number | null | undefined): string => (bps === null || bps === undefined ? '' : `${Math.floor(bps / 100)}%`);
+
+/** 1154: the minutes and seconds left until a time, "4:05"; "" when it has passed. */
+export function waitLeft(untilIso: string | undefined, now: number): string {
+  if (!untilIso) return '';
+  const ms = Date.parse(untilIso) - now;
+  if (!(ms > 0)) return '';
+  const t = Math.ceil(ms / 1000);
+  const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), sec = t % 60;
+  return h ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}` : `${m}:${String(sec).padStart(2, '0')}`;
+}

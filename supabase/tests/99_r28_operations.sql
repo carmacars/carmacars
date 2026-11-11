@@ -237,6 +237,8 @@ select test.eq('P0: the renter accepts the offer sent after its pickup', (test.r
 -- Reopen offer: Sales can; a pickup already past needs new dates; reopened with the usual offer email, open 24 hours
 select test.throws('P0: reopen with the pickup past and no new dates is refused', format($$select app.door(%L, 'aal2', 'va_do', 'reopen_expired', %L)$$, test.id('r8_sales'),
   jsonb_build_object('booking', (test.r8b('p2')).booking_number)), 'pickup time has passed');
+-- the events earlier suites left are processed first: the check below counts the email of the last minute
+select test.flush();
 select app.door(test.id('r8_sales'), 'aal2', 'va_do', 'reopen_expired', jsonb_build_object('booking', (test.r8b('p2')).booking_number,
   'pickup_at', date_trunc('hour', now()) + interval '50 days', 'return_at', date_trunc('hour', now()) + interval '52 days'));
 select test.flush();

@@ -10,6 +10,8 @@ import { requestNow } from '@/features/va/lanes';
 import { carPhotos } from '@/server/car-photos';
 import { FieldCallsCard, type FieldCall } from '@/features/field-portal/FieldCalls';
 import { PrepPanel, WorkListsPanel, type PrepList, type WorkLists } from '@/features/field-portal/FleetPanels';
+import { OnboardingApprovals } from '@/features/staff-onboarding/Approvals';
+import type { ApprovalRow } from '@/features/staff-onboarding/model';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Field jobs', path: '/staff/fleet', noindex: true, description: 'Field job scheduling and assignment.' });
@@ -32,6 +34,8 @@ export default async function Fleet() {
   // 1068: the live calls of field applicants who passed the AI interview, in the hour before the townhall
   const [wl, prep, calls] = await Promise.all([door<WorkLists>(user.id, 'ops_read', 'field_work_lists', {}, aal).catch(() => null), door<PrepList>(user.id, 'ops_read', 'field_prep', {}, aal).catch(() => null),
     door<FieldCall[]>(user.id, 'ops_read', 'field_call_slots', {}, aal).catch(() => [] as FieldCall[])]);
+  // 1154: onboarding step 4, the staff waiting for an Admin or a Fleet VA to approve
+  const approvals = await door<ApprovalRow[]>(user.id, 'ops_read', 'staff_onboarding_approvals', {}, aal).catch(() => [] as ApprovalRow[]);
   return (
     <>
       {past > 0 && <p className="alert alert--warn" role="status" data-testid="past-trips-banner"><span>{past} {past === 1 ? 'trip is' : 'trips are'} still open after the return time. <Link prefetch={false} className="link" href="/staff/past-trips">Close past trips</Link></span></p>}
@@ -39,6 +43,7 @@ export default async function Fleet() {
       <FieldJobsBoard b={b} cal={cal} now={now} photos={photos} base="/staff" />
       {prep && <PrepPanel p={prep} />}
       {calls.length > 0 && <FieldCallsCard calls={calls} />}
+      {approvals.length > 0 && <section className="pt-card stack" aria-labelledby="onb-appr"><h2 className="d4" id="onb-appr">Onboarding approvals</h2><OnboardingApprovals rows={approvals} refresh={['/staff/fleet']} /></section>}
     </>
   );
 }

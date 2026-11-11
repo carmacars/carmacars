@@ -1,8 +1,9 @@
 import { pageMeta } from '@/features/seo/meta';
+import { periodOf } from '@/features/owner/period';
 import { InfoTip } from '@/components/InfoTip';
 import { money } from '@/lib/format';
 import { Back, Dl } from '@/features/portal/Blocks';
-import { day, monthOf } from '@/features/owner/Blocks';
+import { day } from '@/features/owner/Blocks';
 import { MODE_LABEL, type StatementLine } from '@/features/owner/types';
 import { ownerStatement, requireOwner } from '@/server/owner/data';
 
@@ -38,7 +39,7 @@ export default async function OwnerStatementPage({ params }: { params: Promise<{
   return (
     <>
       <Back href="/owner/money">Statements</Back>
-      <header className="stack"><p className="pt-kicker">Statement {st.statement_number}{st.is_final ? ' · Final statement' : ''}</p><h1 className="d2">{monthOf(st.statement_month)}</h1><p className="muted">Payout date {day(st.payout_date)}. Fees are billed separately on the {home.auto_debit.terms.debit_day_text}.</p>
+      <header className="stack"><p className="pt-kicker">Statement {st.statement_number}{st.is_final ? ' · Final statement' : ''}</p><h1 className="d2">{periodOf(st)}</h1><p className="muted">Payout date {day(st.payout_date)}, for the revenue earned in this period. Fees are billed separately on the {home.auto_debit.terms.debit_day_text}.</p>
         <p><a className="btn btn--ghost btn--sm" href={`/files/owner_statement/${id}`} data-testid="statement-pdf">Download PDF</a></p></header>
       <div className="pt-split">
         <div className="stack-lg">

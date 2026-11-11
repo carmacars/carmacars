@@ -18,7 +18,7 @@ test('Welcome: the step to do now, in order', () => {
   const steps: WelcomeStep[] = [{ key: 'welcome', done: true }, { key: 'profile', done: false, address: false, phone: true, preferred_name: 'Sam' }, { key: 'academy', done: false, passed: 2, sections: 9 }, { key: 'tasks', done: false, tasks: [{ id: 't', title: 'Read your guide', detail: null, done: false }] }];
   assert.equal(currentStep(steps), 'profile');
   assert.equal(stepWords(steps[1]!), 'Add your home address.');
-  assert.equal(stepWords(steps[2]!), '2 of 9 sections passed. Each quiz passes at 80%, and you can retake it.');
+  assert.equal(stepWords(steps[2]!), '2 of 9 sections passed. Each quiz passes at 90%; after a failed try, wait 30 minutes (3 tries a day).');
   assert.equal(stepWords(steps[3]!), '1 left.');
   assert.equal(currentStep(steps.map((s) => ({ ...s, done: true }))), null);
   assert.equal(profileHref('field'), '/staff/field/profile');
@@ -64,4 +64,11 @@ test('1151: not fully onboarded (academy, agreement, WhatsApp): the onboarding p
   assert.match(stepWords({ key: 'team', done: false, open: true, groups: [{ key: 'sales', name: 'CARMA Closers', url: '' }, { key: 'team', name: 'CarmaCars Team', url: '' }] }), /CARMA Closers and CarmaCars Team/);
   assert.match(stepWords({ key: 'team', done: false, open: false }), /^Opens once the academy is passed and the agreement is signed/);
   assert.match(stepWords({ key: 'welcome', done: true }), /then the WhatsApp groups/);
+});
+
+test('1154: step 4, approval, in words', () => {
+  assert.match(stepWords({ key: 'approval', done: false, open: true }), /^Waiting for approval/);
+  assert.match(stepWords({ key: 'approval', done: false, open: true, reject_reason: 'Use your work number' }), /Use your work number\. Fix it, then ask again/);
+  assert.match(stepWords({ key: 'approval', done: false, open: false }), /^Opens once you confirm the WhatsApp groups/);
+  assert.equal(stepWords({ key: 'approval', done: true, approved_by: 'Fay Fleet' }), 'Approved by Fay Fleet.');
 });

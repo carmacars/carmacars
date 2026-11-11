@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Welcome', path: '/staff/welcome', noindex: true, description: 'Your first steps: profile, the academy and your first tasks.' });
 
 // Welcome (0802, 1060): the first-login flow of a new hire, and the onboarding checklist the gates keep open. In order:
-// welcome, profile (with the preferred name), the academy (every section of the path, each quiz at 80%), the staff
+// welcome, profile (with the preferred name), the academy (every section of the path, each quiz at 90%), the staff
 // agreement (opens once the academy is passed), the team's WhatsApp group, then the first-day To do's of their Hire. The
 // rest of the portal opens once the academy is passed and the agreement signed (or an Admin waived either).
 // An <Act> holds a dialog and a form, so it sits in a <div>, never a <p> (a <p> around it breaks hydration, React #418).
@@ -27,7 +27,9 @@ export default async function StaffWelcome() {
   return (
     <section className="stack" data-testid="staff-welcome">
       <h1 className="d3">Welcome, {w.name}</h1>
-      {w.locked && <p className="alert alert--warn" role="status" data-testid="welcome-locked"><span className="alert__title">{w.onboarding_step === 'whatsapp' ? 'The WhatsApp groups next' : w.steps.find((s) => s.key === 'academy')?.done ? 'Your agreement next' : 'Training first'}</span><span>The rest of your portal opens once you pass the academy, sign your staff agreement and confirm you joined the WhatsApp groups, in that order.</span></p>}
+      {w.locked && <p className="alert alert--warn" role="status" data-testid="welcome-locked"><span className="alert__title">{w.onboarding_step === 'approval' ? 'Waiting for approval' : w.onboarding_step === 'whatsapp' ? 'The WhatsApp groups next' : w.steps.find((s) => s.key === 'academy')?.done ? 'Your agreement next' : 'Training first'}</span><span>The rest of your portal opens once you pass the academy, sign your staff agreement, confirm you joined the WhatsApp groups and an Admin or a Fleet VA approves, in that order.</span></p>}
+      {/* 1154: the academy is always one press away */}
+      <p><Link prefetch={false} className="link" href="/staff/academy" data-testid="welcome-academy-link">Open the academy</Link></p>
       <ol className="stack" aria-label="Your first steps">
         {w.steps.map((s, i) => (
           <li key={s.key} className={`pt-card ad-card${s.key === now ? ' pt-card--next' : ''}`} data-testid={`welcome-step-${s.key}`} data-done={s.done ? 'true' : 'false'}>
@@ -43,6 +45,10 @@ export default async function StaffWelcome() {
             {/* 1151: step 3, one checkbox a group (Sales: the Sales group and the Team group) */}
             {s.key === 'team' && s.open && !!s.groups?.length && !s.done && <WhatsAppConfirm groups={s.groups} primary={s.key === now} refresh="/staff/welcome" />}
             {s.key === 'academy' && s.done && <p><Link prefetch={false} className="link" href="/staff/academy">Your academy</Link></p>}
+            {/* 1154: step 4; after a rejection the person asks again once fixed */}
+            {s.key === 'approval' && s.open && !s.done && (s.reject_reason
+              ? <div><Act ops action="staff_onboarding_ask_again" label="Ask again" variant="primary" refresh={['/staff/welcome']} done="Asked." testId="welcome-ask-again" /></div>
+              : <p className="ad-b" data-testid="welcome-waiting-approval">Waiting for approval</p>)}
             {s.key === 'tasks' && !!tasks?.tasks?.length && (
               <ul className="stack" data-testid="welcome-tasks">{tasks.tasks.map((t) => (
                 <li key={t.id}><b>{t.title}</b>{t.detail ? <span className="small muted"> {t.detail}</span> : null} {t.done ? <span className="ad-b ad-b--light">Done</span> : <TaskDone id={t.id} title={t.title} />}</li>))}</ul>)}

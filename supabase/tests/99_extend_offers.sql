@@ -82,6 +82,8 @@ rollback;
 select test.eq('late fee: the migration''s freeze keeps an existing booking at $25 flat', :'ex_froze' || '/' || :'ex_frozen_fee' || '/' || :'ex_flat', 't/2500/t');
 
 -- ================================================================ 4. the six options
+-- the booked rate a day: the stored rental charge over its days (a weekend day in the period makes it higher; the weekday of the run never matters)
+create or replace function test.ex_booked(p_number text) returns numeric language sql stable as $$ select rental_charge_cents::numeric / billable_days from bookings where booking_number = p_number $$;
 select test.eq('offers: the six options, in order',
   (select string_agg(o ->> 'code', ' ' order by n) from jsonb_array_elements(app.extension_offers(test.id('booking:EX-850')) -> 'options') with ordinality x(o, n)),
   '1h 3h 1d 3d 1w 1m');

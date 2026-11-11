@@ -1,9 +1,9 @@
 import Link from '@/components/Link';
+import { periodOf } from '@/features/owner/period';
 import { notFound } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
-import { monthOf } from '@/features/owner/Blocks';
 import { $, Badge, BookingLink, Card, Kv, PageHead, Table, d, label } from '@/features/admin/ui';
 
 export const dynamic = 'force-dynamic';
@@ -20,7 +20,7 @@ export default async function Statement({ params }: { params: Promise<{ id: stri
   const r = s.row; const status = String(r.status);
   const R = [`/admin/statements/${id}`, '/admin/owner-money'];
   return (<>
-    <PageHead kicker={<><Link prefetch={false} className="link" href="/admin/owner-money?tab=statements">Owner statements</Link> · {String(r.owner_name)}</>} title={<>{monthOf(String(r.statement_month))} statement, v{String(r.version)} <Badge s={status} /></>}>
+    <PageHead kicker={<><Link prefetch={false} className="link" href="/admin/owner-money?tab=statements">Owner statements</Link> · {String(r.owner_name)}</>} title={<>{periodOf(r as { statement_month: string })} statement, v{String(r.version)} <Badge s={status} /></>}>
       <a className="btn btn--ghost btn--sm" href={`/files/owner_statement/${id}`} data-testid="statement-pdf">{status === 'draft' ? 'Preview PDF' : 'PDF'}</a>
       <a className="btn btn--ghost btn--sm" href={`/admin/reports/export?kind=owner_statement&id=${id}`}>CSV</a>
       {status === 'draft' && <Act action="statement_build" payload={{ owner: r.owner_id, month: r.statement_month }} label="Rebuild" refresh={R} />}
@@ -32,7 +32,7 @@ export default async function Statement({ params }: { params: Promise<{ id: stri
     {s.vehicles.map((v) => (
       <Card key={String(v.vehicle_id)} title={`${v.vehicle} ${v.plate ?? ''}`} aside={<span className="small">{label(v.management_mode)} · payable {$(v.payable_cents)}</span>}>
         <Kv rows={[['Owner Revenue', $(v.owner_revenue_cents)], ['Management fee (Revenue Share)', $(v.revenue_share_cents)], ['Fees deducted', $(v.fees_deducted_cents)], ['Owner costs', $(v.owner_costs_deducted_cents)], ['Credits', $(v.credits_cents)], ...(v.flat_payment_cents ? [['Of which flat monthly payment', $(v.flat_payment_cents)] as [string, ReturnType<typeof $>]] : [])]} />
-        <Table rows={v.lines} rowKey={(_, i) => String(i)} empty="No activity this month." cols={[{ key: 'line_type', label: 'Line' }, { key: 'description', label: 'Description', className: 'wrap' }, { key: 'booking_number', label: 'Booking', render: (x) => x.booking_number ? <BookingLink n={x.booking_number} /> : null }, { key: 'amount_cents', label: 'Amount', num: true, render: (x) => $(x.amount_cents) }]} />
+        <Table rows={v.lines} rowKey={(_, i) => String(i)} empty="No activity in this period." cols={[{ key: 'line_type', label: 'Line' }, { key: 'description', label: 'Description', className: 'wrap' }, { key: 'booking_number', label: 'Booking', render: (x) => x.booking_number ? <BookingLink n={x.booking_number} /> : null }, { key: 'amount_cents', label: 'Amount', num: true, render: (x) => $(x.amount_cents) }]} />
       </Card>))}
     {s.owner_lines?.length > 0 && <Card title="Owner lines"><Table rows={s.owner_lines} rowKey={(_, i) => String(i)} cols={[{ key: 'line_type', label: 'Line' }, { key: 'description', label: 'Description', className: 'wrap' }, { key: 'amount_cents', label: 'Amount', num: true, render: (x) => $(x.amount_cents) }]} /></Card>}
   </>);

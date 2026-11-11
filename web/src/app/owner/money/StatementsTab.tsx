@@ -1,4 +1,5 @@
 import { money } from '@/lib/format';
+import { periodOf } from '@/features/owner/period';
 import { day, monthOf } from '@/features/owner/Blocks';
 import { ownerMonthToDate } from '@/server/owner/data';
 import type { OwnerCtx } from '@/features/owner/ctx';
@@ -30,7 +31,7 @@ export async function StatementsTab({ user, home }: OwnerCtx) {
             </div>
           </div>
           <DocumentList testId="owner-statements" label="Statements">{home.statements.map((s) => (
-            <DocumentRow key={s.id} href={`/owner/statements/${s.id}`} badge="ST" title={monthOf(s.statement_month)}
+            <DocumentRow key={s.id} href={`/owner/statements/${s.id}`} badge="ST" title={periodOf(s)}
               meta={<><span>{s.statement_number}</span><span>Payout {day(s.payout_date)}</span></>} amount={money(s.payout_cents, { cents: true })}
               status={<span className={`badge ${s.status === 'paid' ? '' : 'badge--outline'}`}>{s.status === 'paid' ? 'Paid' : 'Approved'}</span>} />))}
           </DocumentList>
