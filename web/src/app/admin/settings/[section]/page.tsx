@@ -319,7 +319,7 @@ export default async function Section({ params, searchParams }: { params: Promis
   }
   case 'reviews': {
     // review requests (0146): the timings and the hold, the Google review link, and the Google Business Profile connection
-    const keys = ['review_program_enabled', 'review_checkin_enabled', 'review_checkin_min_days', 'review_checkin_after_hours', 'review_ask_after_minutes', 'review_reminder_hours',
+    const keys = ['review_program_enabled', 'review_checkin_enabled', 'review_preask_enabled', 'review_preask_days_before', 'review_checkin_min_days', 'review_checkin_after_hours', 'review_ask_after_minutes', 'review_reminder_hours',
       'review_final_days', 'review_send_from_hour', 'review_send_until_hour', 'review_hold_incidentals', 'review_ask_max_days', 'review_google_match_days', 'review_google_auto_match'];
     const [r, sp] = await Promise.all([door<ReviewSettingsData>(user.id, 'admin_read', 'review_settings'), searchParams ?? Promise.resolve({} as Record<string, string | undefined>)]);
     return (<>{head}

@@ -49,7 +49,7 @@ select test.eq('check-in: once (the event and the time)',
   test.rvev('renter_trip_checkin', 'RV-1') || '/' || coalesce(app.review_step(test.rvb('RV-1'), test.rvt('2026-11-03 12:00')), 'none') || '/' || ((test.rvr('RV-1')).checkin_sent_at = test.rvt('2026-11-03 10:05')), '1/none/true');
 select test.eq('check-in: no review request during the trip', test.rvev('renter_review_ask', 'RV-1'), 0::bigint);
 select test.eq('check-in: a one-day rental gets none', coalesce(app.review_step(test.rvb('RV-2'), test.rvt('2026-11-11 08:00')), 'none') || '/' || test.rvev('renter_trip_checkin', 'RV-2'), 'none/0');
-select test.mk_booking('RV-1N', 'rv_car', 'rv_maya', '2026-12-01 10:00', '2026-12-04 10:00', 'on_rent');
+select test.mk_booking('RV-1N', 'rv_car', 'rv_maya', '2026-12-01 10:00', '2026-12-05 10:00', 'on_rent');
 select test.eq('check-in: due at 11 pm, waits for 9 am', coalesce(app.review_step(test.rvb('RV-1N'), test.rvt('2026-12-02 23:00')), 'none') || '/' || app.review_step(test.rvb('RV-1N'), test.rvt('2026-12-03 09:03')), 'none/checkin');
 select test.eq('check-in: the email''s link is the booking, the text has its own words',
   (select app.notification_payload('renter_trip_checkin', e, '{}'::jsonb) ->> '_url' from app_events e where e.code = 'renter_trip_checkin' and e.entity_id = test.rvb('RV-1')) || ' | '

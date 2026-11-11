@@ -21,10 +21,10 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>216 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>85</span></a><a href="#owner">Owner <span>47</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>20</span></a><a href="#staff_va_finance">Staff: finance <span>9</span></a><a href="#staff_va_fleet">Staff: fleet <span>10</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>5</span></a><a href="#staff_field">Staff: field <span>8</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>14</span></a><a href="#partner">Partner (body shop, tow truck, storage) <span>1</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>217 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>86</span></a><a href="#owner">Owner <span>47</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>20</span></a><a href="#staff_va_finance">Staff: finance <span>9</span></a><a href="#staff_va_fleet">Staff: fleet <span>10</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>5</span></a><a href="#staff_field">Staff: field <span>8</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>14</span></a><a href="#partner">Partner (body shop, tow truck, storage) <span>1</span></a></nav>
 <main>
-<h2 id="renter">Renter (85)</h2>
+<h2 id="renter">Renter (86)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/account_password_reset.html"><img loading="lazy" src="../shots/account_password_reset.desktop.png" alt="Screenshot of account_password_reset"></a><div class="b">
 <div class="code">account_password_reset</div><div class="sub">Reset your CarmaCars password</div>
@@ -487,6 +487,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span class="m">Marketing</span></div>
 <div class="tr">Review requests (migration 0138): review_final_days (7 by default) after renter_review_ask, the last message of the sequence, with the same rules: 9 am to 9 pm Toronto time, held while a charge is open, stopped once the renter reviewed (on the site, on Google, &quot;I already left a review&quot;, or marked by staff) or unsubscribed. Once per booking. Relies on the existing business relationship for consent, so it carries the unsubscribe link and mailing address.</div>
 <div class="ln"><a href="../dist/renter_review_final.html">HTML</a><a href="../dist/renter_review_final.txt">Text</a><a href="../shots/renter_review_final.desktop.png">Desktop</a><a href="../shots/renter_review_final.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_review_preask.html"><img loading="lazy" src="../shots/renter_review_preask.desktop.png" alt="Screenshot of renter_review_preask"></a><div class="b">
+<div class="code">renter_review_preask</div><div class="sub">Last day with the 2024 Honda Civic Sport</div>
+<div class="tags"><span class="m">Marketing</span></div>
+<div class="tr">Review requests (migration 1870, app.job_review_requests every 10 minutes): booking status is on_rent and today is the last full day of the rental (review_preask_days_before, 1 by default, before the return date). It takes the place of the mid-trip check-in that day. Only from review_send_from_hour to review_send_until_hour Toronto time (9 am to 9 pm by default). Never sent when the renter already reviewed (on the site, on Google matched by name, &quot;I already left a review&quot;, or marked by staff) or unsubscribed. Once per booking. The after-return requests (1 hour, 24 hours, 7 days) still follow unless a review exists by then.</div>
+<div class="ln"><a href="../dist/renter_review_preask.html">HTML</a><a href="../dist/renter_review_preask.txt">Text</a><a href="../shots/renter_review_preask.desktop.png">Desktop</a><a href="../shots/renter_review_preask.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_review_reminder.html"><img loading="lazy" src="../shots/renter_review_reminder.desktop.png" alt="Screenshot of renter_review_reminder"></a><div class="b">
 <div class="code">renter_review_reminder</div><div class="sub">A minute for a review of the 2024 Honda Civic Sport?</div>

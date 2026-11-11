@@ -49,9 +49,9 @@ create or replace function test.ttext(p_key text) returns setof phone_outbox lan
 create or replace function test.tstatus(p_key text) returns text language sql stable as $$ select status || coalesce(': ' || status_reason, '') from notification_outbox where dedupe_key = p_key $$;
 
 -- ================================================================ 1. settings and templates
-select test.eq('settings: on, Both with a phone, Text for a phone-only account, quiet hours 21 to 8, the STOP line',
+select test.eq('settings: on, Both with a phone, Text for a phone-only account, quiet hours 1 to 5, the STOP line',
   (select format('%s %s %s %s %s %s', sms_alerts_enabled, sms_default_with_phone, sms_default_phone_only, sms_quiet_from_hour, sms_quiet_until_hour, sms_stop_line)
-     from program_settings order by effective_from desc limit 1), 't both text 21 8 t');
+     from program_settings order by effective_from desc limit 1), 't both text 1 5 t');
 select test.ok('every listed notification has its own short text', (select count(*) from sms_templates where code in ('renter_request_received', 'renter_offer_ready',
   'renter_booking_confirmed', 'renter_payment_receipt', 'renter_payment_failed', 'renter_deposit_declined', 'renter_booking_reminder', 'renter_return_reminder',
   'renter_extension_confirmed', 'renter_late_return_first', 'renter_agreement_ready', 'renter_identity_needed', 'renter_review_request', 'owner_payout_sent',
@@ -63,9 +63,9 @@ select test.throws('a template without the link is refused', $$update sms_templa
 select test.eq('every customer email (renter, owner, investor, driver, co-signer, lead) has its own text, except the sign-in and security ones',
   (select count(*) from notification_catalogue c where c.audience in ('renter', 'owner', 'investor') and not c.no_text and not exists (select 1 from sms_templates t where t.code = c.code)),
   0::bigint);
-select test.eq('...127 texts (0890: the coverage change; 0532: the return report denied; 0640: the agreement to sign); never texted: password reset, sign-in link, security notice, the continue-your-request sign-in link, the two signing codes, the agreement versions (their signers get their own text, 0154) and the owner recruitment email (a text to a lead is its own message, with its own consent, 0167)',
+select test.eq('...128 texts (0890: the coverage change; 0532: the return report denied; 0640: the agreement to sign); never texted: password reset, sign-in link, security notice, the continue-your-request sign-in link, the two signing codes, the agreement versions (their signers get their own text, 0154) and the owner recruitment email (a text to a lead is its own message, with its own consent, 0167)',
   (select count(*) from sms_templates)::text || ' | ' || (select string_agg(code, ',' order by code) from notification_catalogue where no_text),
-  '127 | account_password_reset,account_security_notice,account_sign_in_link,document_signing_code,owner_recruit_outreach,renter_accounts_merged,renter_agreement_version,renter_continue_request,renter_signing_code');
+  '128 | account_password_reset,account_security_notice,account_sign_in_link,document_signing_code,owner_recruit_outreach,renter_accounts_merged,renter_agreement_version,renter_continue_request,renter_signing_code');
 select test.ok('documents are always emailed; sign-in emails never become texts',
   (select bool_and(always_email) from notification_catalogue where code in ('renter_payment_receipt', 'renter_agreement_signed', 'owner_statement_ready', 'investor_statement_ready'))
   and (select bool_and(no_text) from notification_catalogue where code in ('account_password_reset', 'account_sign_in_link')));

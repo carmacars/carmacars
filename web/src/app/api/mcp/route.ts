@@ -1,6 +1,6 @@
 import { rpc } from '@/lib/db/repo';
 import { siteUrl } from '@/lib/site';
-import { TOOLS, bearer, sha256Hex } from '@/features/api-access/tools';
+import { MAX_CLAIM_FILE_BYTES, TOOLS, bearer, claimFileKind, sha256Hex } from '@/features/api-access/tools';
 import { oneStepHire } from '@/server/hire';
 import { bookNowAgreement } from '@/server/book-now';
 import { storage } from '@/integrations/storage';
@@ -84,6 +84,8 @@ export async function POST(req: Request) {
       // a confirmed booking photo (1156): the database checked the key, the scope, the preview and the booking's condition report;
       // the bytes, held here only, are checked against the fingerprint, stored privately, then recorded on the report
       if (run?.run === 'photo') r = await photo(hash, msg.params?.arguments as Record<string, unknown>, run.params as Record<string, unknown>, client);
+      // a confirmed claim photo or estimate file (1873): the same, for a claim's incident
+      if (run?.run === 'claim_file') r = await claimFile(hash, name, msg.params?.arguments as Record<string, unknown>, run.params as Record<string, unknown>, client);
       // Book it now (0770, 0810): a confirmed offer booked at once gets the renter's agreement made here, as the screens do
       // (staff-style requests wait for an Admin: bookNowAgreement does nothing until the booking is approved)
       if (r.ok && BOOK_NOW_TOOLS.includes(name)) {
@@ -114,6 +116,22 @@ async function photo(hash: string, args: Record<string, unknown> | undefined, p:
     const out = await rpc('server_api_photo_record' as never, { p_hash: hash, p_preview: String(args?.preview_id ?? ''), p_path: path, p_width: 0, p_height: 0, p_client: client } as never, SR);
     return { ok: true, result: out };
   } catch (e) { return { ok: false, status: 400, error: e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '') : 'The photo was not stored' }; }
+}
+
+async function claimFile(hash: string, tool: string, args: Record<string, unknown> | undefined, p: Record<string, unknown>, client: string): Promise<{ ok: boolean; status?: number; result?: unknown; error?: string }> {
+  const b64 = typeof args?.file_base64 === 'string' ? args.file_base64 : '';
+  if (!b64 || (await sha256Hex(b64)) !== p.file_sha256) return { ok: false, status: 400, error: 'The file differs from the preview: preview again' };
+  let bytes: Uint8Array;
+  try { bytes = Uint8Array.from(atob(b64.replace(/^data:[a-z]+\/[a-z]+;base64,/, '')), (c) => c.charCodeAt(0)); } catch { return { ok: false, status: 400, error: 'file_base64 is not base64' }; }
+  const kind = claimFileKind(bytes);
+  if (!kind || (tool === 'attach_claim_photo' && kind.ext === 'pdf')) return { ok: false, status: 400, error: tool === 'attach_claim_photo' ? 'That file is not a photo (JPEG or PNG)' : 'That file is not a PDF, JPEG or PNG' };
+  if (bytes.length > MAX_CLAIM_FILE_BYTES) return { ok: false, status: 400, error: 'Each file must be under 8 MB' };
+  const path = `claims/${String(p.claim_id)}/claude/${crypto.randomUUID()}.${kind.ext}`;
+  try {
+    await (await storage()).put('documents', path, bytes, kind.mime);
+    const out = await rpc('server_api_claim_file_record' as never, { p_hash: hash, p_preview: String(args?.preview_id ?? ''), p_path: path, p_mime: kind.mime, p_sha: await sha256Hex(b64), p_client: client } as never, SR);
+    return { ok: true, result: out };
+  } catch (e) { return { ok: false, status: 400, error: e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '') : 'The file was not stored' }; }
 }
 
 async function hire(hash: string, actor: string, p: { id: string } & Record<string, unknown>, client: string): Promise<{ ok: boolean; status?: number; result?: unknown; error?: string }> {

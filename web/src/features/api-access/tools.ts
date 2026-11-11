@@ -200,6 +200,27 @@ export const OPS_TOOLS: Tool[] = [
 ];
 TOOLS.push(...OPS_TOOLS);
 
+// ---------------------------------------------------------------- the gaps (1873): files on a claim
+// A photo or a repair estimate attached to a claim, previewed then confirmed like every Admin write. The database (app.api_call) checks the
+// role (an Admin, Finance or Fleet), the claim (not closed or withdrawn) and the preview; the bytes are held by the web layer only.
+export const MAX_CLAIM_FILE_BYTES = 8 * 1024 * 1024;
+export const CLAIM_TOOLS: Tool[] = [
+  write('attach_claim_photo', 'Attach a photo to a claim', 'Attach a photo (JPEG or PNG, under 8 MB) to a claim by its number (CL-...) or id: it is kept with the claim\'s documents.', ['claim', 'file_base64'],
+    { claim: str('The claim number (CL-...) or id'), file_base64: str('The photo, base64 (JPEG or PNG, under 8 MB)'), caption: str('A short caption') }),
+  write('attach_claim_estimate', 'Add a repair estimate to a claim', 'Add a repair estimate to a claim by its number (CL-...) or id, as Finance does on the claim page: the amount in cents as quoted, the shop, whether it is an approved shop, and optionally the estimate itself as a file (PDF, JPEG or PNG, under 8 MB). It counts in the claim\'s damage cost like the one entered on screen.', ['claim', 'amount_cents', 'shop_name', 'approved_shop'],
+    { claim: str('The claim number (CL-...) or id'), amount_cents: { type: 'integer', minimum: 1, description: 'The estimate in cents, as invoiced (HST included when it shows on it)' }, hst_cents: cents('The HST shown on the estimate'),
+      shop_name: str('The shop that made the estimate'), approved_shop: { type: 'boolean', description: 'Whether it is an approved shop' }, description: str('What it covers'), file_base64: str('The estimate as a file, base64 (PDF, JPEG or PNG, under 8 MB)') })
+];
+TOOLS.push(...CLAIM_TOOLS);
+
+/** The kind of a file by its first bytes: what the connector accepts on a claim. */
+export function claimFileKind(bytes: Uint8Array): { ext: 'jpg' | 'png' | 'pdf'; mime: string } | null {
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return { ext: 'jpg', mime: 'image/jpeg' };
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return { ext: 'png', mime: 'image/png' };
+  if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) return { ext: 'pdf', mime: 'application/pdf' };
+  return null;
+}
+
 /** The tools a set of scopes may call (whoami always). */
 export const toolsFor = (scopes: readonly string[]) => TOOLS.filter((t) => t.scope === 'any' || scopes.includes(t.scope));
 
