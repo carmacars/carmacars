@@ -187,6 +187,7 @@ on conflict (code) do update set
   audience = excluded.audience, subject = excluded.subject, preheader = excluded.preheader, timing = excluded.timing, trigger_text = excluded.trigger_text,
   link_path = excluded.link_path, variables = excluded.variables, template_html = excluded.template_html, template_text = excluded.template_text,
   in_catalogue = true, updated_at = now();
+update notification_catalogue set emitted_by = 'app.seo_digest_enqueue (1860)' where code = 'staff_seo_digest';
 select app.notification_catalogue_refresh();
 
 -- Monday from 07:00 Toronto time, once a week (the dedupe key is the week), to the alert address; priority 5 so it is the
@@ -251,11 +252,11 @@ declare
   v_on boolean := (m ->> 'share_bps')::int >= ps.usage_cached_pct * 100;
 begin
   if v_on and ps.usage_cached_since is null then
-    update program_settings set usage_cached_since = p_now where id = ps.id;
+    update program_settings set usage_cached_since = p_now; -- every dated row of the settings: it is a state, not a setting
     insert into audit_log (actor_user_id, action, entity_table, entity_id, after)
     values (null, 'usage_cached_on', 'program_settings', ps.id::text, jsonb_build_object('usage', m, 'line_pct', ps.usage_cached_pct));
   elsif not v_on and ps.usage_cached_since is not null then
-    update program_settings set usage_cached_since = null where id = ps.id;
+    update program_settings set usage_cached_since = null;
     insert into audit_log (actor_user_id, action, entity_table, entity_id, after)
     values (null, 'usage_cached_off', 'program_settings', ps.id::text, jsonb_build_object('usage', m, 'line_pct', ps.usage_cached_pct));
   end if;
