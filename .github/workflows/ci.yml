@@ -109,7 +109,13 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - name: Poppler for the rasterized agreement test (blindspot/raster.test.ts)
-        run: command -v pdftoppm >/dev/null || (sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends poppler-utils)
+        # Nov 11: apt-get update failed (exit 100) on the runners because of a broken third-party package list; only the
+        # Ubuntu archive is used for this install, and it is retried
+        run: |
+          command -v pdftoppm >/dev/null && exit 0
+          sudo find /etc/apt/sources.list.d -type f ! -name 'ubuntu.sources' -delete || true
+          for i in 1 2 3; do sudo apt-get update -q -o Acquire::Retries=3 && sudo apt-get install -y -q --no-install-recommends poppler-utils && exit 0; echo "::warning title=poppler::try $i failed"; sleep 20; done
+          echo "::error title=poppler::poppler-utils install failed"; exit 1
       - run: npm run test:unit
       - run: npx tsc --noEmit -p tests/tsconfig.json
       - name: Types are generated from the schema
