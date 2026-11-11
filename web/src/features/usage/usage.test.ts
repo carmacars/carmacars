@@ -68,7 +68,7 @@ test('Cloudflare figures: requests and CPU of every Worker, neurons, R2; a part 
 });
 
 // 0320: the banner speaks in money; the email line says whether Cloudflare sends and links to the steps
-import { bannerLine, bannerTone, cfEmailSentence, resendDay, CF_EMAIL_STEPS, emailBudgetLine } from './model.ts';
+import { bannerLine, bannerTone, cfEmailSentence, resendDay, CF_EMAIL_STEPS } from './model.ts';
 test('banner: red only when the database says so; the words name the projected cost', () => {
   const r = { service: 'workers_cpu', label: 'Website CPU time (Cloudflare Worker)', share_bps: 12300, level: 100 as const, used_text: '36,899,350 CPU ms', included_text: '30,000,000 CPU ms',
     overage_usd: 0.14, resets_at: null, tone: 'note' as const, projected_usd: 0.88 };
@@ -79,9 +79,10 @@ test('banner: red only when the database says so; the words name the projected c
 test('email: Cloudflare not set up says so, with the four steps; sending says nothing', () => {
   const c = { state: 'absent' as const, enabled: true, ok_at: null, failed_at: null, error: null, sent_month: 0, included: 3000 };
   // r35: the daily number is the setting's, never one written in the code
-  assert.match(cfEmailSentence(c, 150)!, /not set up yet.*includes only 150 a day\. The one-time setup gives 3,000 a month/);
-  assert.match(cfEmailSentence(c)!, /includes only your daily email limit/);
-  assert.match(cfEmailSentence({ ...c, state: 'off' }, '250 emails')!, /Resend \(250 emails a day included\)/);
+  // r35 part C: no daily figure as a cap in the sentence
+  assert.match(cfEmailSentence(c)!, /not set up yet, so its part of the daily capacity is not sending.*The one-time setup gives 3,000 a month/);
+  assert.doesNotMatch(cfEmailSentence(c)!, / a day/);
+  assert.match(cfEmailSentence({ ...c, state: 'off' })!, /turned off in Program settings/);
   assert.equal(resendDay(0), 'your daily email limit');
   assert.equal(cfEmailSentence({ ...c, state: 'ok' }), null);
   assert.equal(CF_EMAIL_STEPS.length, 4);
@@ -93,24 +94,14 @@ test('the quiet note is short', async () => {
     'Photo and document storage 103% used, about US$0.01 this month');
 });
 
-// r35 (0900): the day's emails in one plain line, with why the cap is that number (the pace read's numbers only)
-test('email budget: only Resend while Cloudflare is not set up, and what Cloudflare would add', () => {
-  assert.equal(emailBudgetLine({ used: 98, cap: 100, cf_state: 'absent', cf_counted: false, cf_budget: 200, resend_budget: 100 }),
-    '98 of 100 today: only Resend is sending (Cloudflare Email Service is not set up, which adds 200)');
-  assert.equal(emailBudgetLine({ used: 13, cap: 300, cf_state: 'ok', cf_counted: true, cf_budget: 200, resend_budget: 100 }), '13 of 300 today (Cloudflare 200 + Resend 100)');
-  assert.match(emailBudgetLine({ used: 5, cap: 80, cf_state: 'off', cf_counted: false, cf_budget: 150, resend_budget: 80 }), /turned off in Program settings, which adds 150\)$/);
-  assert.match(emailBudgetLine({ used: 5, cap: 80, cf_state: 'failing', cf_counted: false, cf_budget: 150, resend_budget: 80 }), /refused the last emails/);
-  assert.equal(emailBudgetLine({ used: 1, cap: 2 }), '1 of 2 today');
-});
-
-// r35 part C (1501): the figure says why it is 100, and what both providers give together
-test('email capacity: Resend only says the reason and the combined capacity; the setting is named when it is the limit', async () => {
-  const { emailBudgetLine, emailCapShort, paceBudget } = await import('./model.ts');
+// r35 part C (owner, 2026-11-11): the day's emails against the real capacity, Cloudflare's budget plus Resend's; never Resend's part as a cap
+test('email capacity line: the combined capacity, and why Cloudflare is not sending', async () => {
+  const { emailBudgetLine, paceBudget } = await import('./model.ts');
   const p = { day_used: 12, day_cap: 100, cf_state: 'absent', cf_counted: false, cf_ever_sent: false, cf_budget: 200, resend_budget: 100, capacity: 300, limited_by: 'resend_only',
     cf_reason: 'The site has no Cloudflare EMAIL binding yet', setting: 300 };
-  assert.equal(emailCapShort(paceBudget(p)), '12 of 100 today (Resend only; 300 with Cloudflare)');
-  assert.equal(emailBudgetLine(paceBudget(p)), "12 of 100 today: Resend's 100 only, because the site has no Cloudflare EMAIL binding yet; with Cloudflare's 200 it is 300 a day");
-  assert.equal(emailCapShort(paceBudget({ ...p, day_cap: 300, cf_counted: true, limited_by: 'combined', cf_reason: null })), '12 of 300 today (Cloudflare + Resend)');
-  assert.match(emailBudgetLine(paceBudget({ ...p, day_cap: 150, cf_counted: true, limited_by: 'setting', cf_reason: null, setting: 150 })), /limit in Program settings is 150; Cloudflare 200 \+ Resend 100 could send 300\)$/);
-  assert.equal(emailCapShort({ used: 1, cap: 2 }), '1 of 2 today');
+  assert.equal(emailBudgetLine(paceBudget(p)), "12 sent today; daily capacity 300 (Cloudflare 200 + Resend 100). Cloudflare's part is not sending yet: the site has no Cloudflare EMAIL binding yet");
+  assert.doesNotMatch(emailBudgetLine(paceBudget(p)), /of 100/);
+  assert.equal(emailBudgetLine(paceBudget({ ...p, day_cap: 300, cf_counted: true, cf_reason: null })), '12 sent today of a daily capacity 300 (Cloudflare 200 + Resend 100)');
+  assert.match(emailBudgetLine({ used: 5, cap: 80, cf_state: 'off', cf_counted: false, cf_budget: 150, resend_budget: 80 }), /turned off in Program settings$/);
+  assert.equal(emailBudgetLine({ used: 1, cap: 2 }), '1 sent today');
 });

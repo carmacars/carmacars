@@ -117,12 +117,12 @@ export function resendDay(n: number | string | null | undefined): string {
 }
 
 /** Whether Cloudflare sends the emails, in one sentence; null when it does. `resend` is Resend's daily allowance now. */
-export function cfEmailSentence(c: CfEmail | null | undefined, resend?: number | string | null): string | null {
+export function cfEmailSentence(c: CfEmail | null | undefined): string | null {
+  // r35 part C (owner, 2026-11-11): no daily figure here; the capacity (Cloudflare + Resend) is on Settings > Usage only
   if (!c || c.state === 'ok') return null;
-  const r = resendDay(resend);
-  if (c.state === 'off') return `Cloudflare Email Service is turned off in Program settings, so every email goes through Resend (${r} included).`;
-  if (c.state === 'failing') return `Cloudflare Email Service refused the last emails${c.error ? ` (${c.error})` : ''}, so they went through Resend (${r} included).`;
-  return `Cloudflare Email Service is not set up yet, so every email goes through Resend, which includes only ${r}. The one-time setup gives ${c.included.toLocaleString('en-US')} a month.`;
+  if (c.state === 'off') return 'Cloudflare Email Service is turned off in Program settings, so its part of the daily capacity is not sending and every email goes through Resend.';
+  if (c.state === 'failing') return `Cloudflare Email Service refused the last emails${c.error ? ` (${c.error})` : ''}, so they went through Resend.`;
+  return `Cloudflare Email Service is not set up yet, so its part of the daily capacity is not sending and every email goes through Resend. The one-time setup gives ${c.included.toLocaleString('en-US')} a month.`;
 }
 
 /** r35 (0900): the day's emails against the cap in one plain line, with why the cap is that number: Cloudflare's budget
@@ -132,15 +132,15 @@ export interface EmailBudget { used: number; cap: number; cf_state?: string | nu
   capacity?: number | null; limited_by?: string | null; cf_reason?: string | null; setting?: number | null }
 export function emailBudgetLine(b: EmailBudget): string {
   const n = (x: number) => x.toLocaleString('en-US');
-  const head = `${n(b.used)} of ${n(b.cap)} today`;
-  if (typeof b.cf_budget !== 'number' || typeof b.resend_budget !== 'number') return `${head}`;
-  if (b.limited_by === 'setting' && typeof b.setting === 'number') return `${head} (the daily email limit in Program settings is ${n(b.setting)}; Cloudflare ${n(b.cf_budget)} + Resend ${n(b.resend_budget)} could send ${n(b.cf_budget + b.resend_budget)})`;
-  if (b.cf_counted) return `${head} (Cloudflare ${n(b.cf_budget)} + Resend ${n(b.resend_budget)})`;
-  if (b.cf_reason) return `${head}: Resend's ${n(b.resend_budget)} only, because ${b.cf_reason.replace(/^./, (c) => c.toLowerCase())}; with Cloudflare's ${n(b.cf_budget)} it is ${n(typeof b.capacity === 'number' ? b.capacity : b.cf_budget + b.resend_budget)} a day`;
-  const why = b.cf_state === 'off' ? 'Cloudflare Email Service is turned off in Program settings'
-    : b.cf_state === 'failing' ? 'Cloudflare Email Service refused the last emails'
-      : 'Cloudflare Email Service is not set up';
-  return `${head}: only Resend is sending (${why}, which adds ${n(b.cf_budget)})`;
+  const head = `${n(b.used)} sent today`;
+  if (typeof b.cf_budget !== 'number' || typeof b.resend_budget !== 'number') return head;
+  // r35 part C (owner, 2026-11-11): the real sending capacity, Cloudflare's budget plus Resend's, never Resend's part alone as a cap
+  const cap = `daily capacity ${n(b.cf_budget + b.resend_budget)} (Cloudflare ${n(b.cf_budget)} + Resend ${n(b.resend_budget)})`;
+  if (b.cf_counted) return `${head} of a ${cap}`;
+  const why = b.cf_reason ? b.cf_reason.replace(/^./, (c) => c.toLowerCase())
+    : b.cf_state === 'off' ? 'Cloudflare Email Service is turned off in Program settings'
+      : b.cf_state === 'failing' ? 'Cloudflare Email Service refused the last emails' : 'Cloudflare Email Service is not set up';
+  return `${head}; ${cap}. Cloudflare's part is not sending yet: ${why}`;
 }
 
 /** 1501: the email pace read (UsageCards' EmailPace) as the budget of emailBudgetLine and emailCapShort */
@@ -148,12 +148,4 @@ export const paceBudget = (p: { day_used: number; day_cap: number; cf_state?: st
   capacity?: number; limited_by?: string; cf_reason?: string | null; setting: number }): EmailBudget => ({ used: p.day_used, cap: p.day_cap, cf_state: p.cf_state,
   cf_counted: p.cf_counted ?? p.cf_ever_sent, cf_budget: p.cf_budget, resend_budget: p.resend_budget, capacity: p.capacity, limited_by: p.limited_by, cf_reason: p.cf_reason, setting: p.setting });
 
-/** 1501: the short figure of a tile or a one-line summary: "12 of 100 today (Resend only; 300 with Cloudflare)" */
-export function emailCapShort(b: EmailBudget): string {
-  const n = (x: number) => x.toLocaleString('en-US');
-  const head = `${n(b.used)} of ${n(b.cap)} today`;
-  if (b.cf_counted) return `${head} (Cloudflare + Resend)`;
-  if (typeof b.capacity !== 'number' || b.capacity <= b.cap) return head;
-  return `${head} (Resend only; ${n(b.capacity)} with Cloudflare)`;
-}
 

@@ -4,7 +4,6 @@
 //     all or part of the booking, from Blind Spot Car Rental (insurance).
 //   - The adjuster: only on an insurer-billed booking with the adjuster's email recorded, always from Blind Spot Car Rental.
 
-import { emailBudgetLine } from '../usage/model.ts';
 
 export type Recipient = 'renter' | 'adjuster';
 export type Sender = 'carmacars' | 'blindspot';
@@ -65,13 +64,4 @@ export function emailKind(code: string): string {
   return code.replace(/^(renter|insurer)_/, '').replace(/_/g, ' ').replace(/^./, (s) => s.toUpperCase());
 }
 
-/** Where today's emails stand against the daily limit, in a line; a warning from 80%. */
-export function usageLine(u: Conversation['usage']): { text: string; warn: boolean } {
-  const warn = u.cap > 0 && u.total >= Math.ceil(u.cap * 0.8);
-  const tail = warn ? 'Close to the limit: an email past it waits until midnight.' : 'Messages to renters go before digests and marketing.';
-  // r35 (0900): with the pace read's budgets the line says why the cap is that number
-  if (typeof u.cf_budget === 'number' && typeof u.resend_budget === 'number') {
-    return { text: `${emailBudgetLine({ used: u.total, cap: u.cap, cf_state: u.cf_state, cf_counted: u.cf_counted, cf_budget: u.cf_budget, resend_budget: u.resend_budget, capacity: u.capacity, limited_by: u.limited_by, cf_reason: u.cf_reason, setting: u.setting })}. ${tail}`, warn };
-  }
-  return { text: `${u.total} of ${u.cap} emails sent today (the day's sending limit). ${tail}`, warn };
-}
+// r35 part C (owner, 2026-11-11): the email box shows no daily counter; the capacity is on Admin > Settings > Usage only
