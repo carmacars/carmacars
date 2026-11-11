@@ -1,0 +1,38 @@
+name: worker-tail
+
+# Read only: listens to the production Worker's live log for a short while and prints each exception (route without
+# query string, the error message and the first lines of the stack). No headers, cookies or bodies are printed.
+on:
+  workflow_dispatch:
+    inputs:
+      seconds:
+        description: How long to listen
+        type: string
+        default: '90'
+
+jobs:
+  tail:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    defaults:
+      run:
+        working-directory: web
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Listen
+        env:
+          SECS: ${{ inputs.seconds }}
+        run: |
+          case "$SECS" in ''|*[!0-9]*) SECS=90;; esac
+          mkdir -p /tmp/t && cd /tmp/t
+          timeout "$SECS" npx --yes wrangler@4 tail carmacars-prod --format json --status error > tail.jsonl 2> tail.err || true
+          echo "events: $(wc -l < tail.jsonl)"
+          jq -c 'select(.outcome != "ok" or (.exceptions|length) > 0) | {o: .outcome, path: ((.event.request.url // "") | sub("\\?.*$"; "") | sub("^https?://[^/]+"; "")), ex: [.exceptions[]? | {name, message, stack: ((.stack // "") | .[0:600])}], logs: [.logs[]? | select(.level == "error") | (.message | tostring | .[0:400])]}' tail.jsonl \
+            | head -40 | sed 's/^/::notice title=tail::/'
+          tail -5 tail.err | sed 's/^/::notice title=tail-stderr::/'
+          jq -r '[.exceptions[]?.message] | .[]' tail.jsonl | sort | uniq -c | sort -rn | head -10 | sed 's/^/::warning title=exception counts::/'
