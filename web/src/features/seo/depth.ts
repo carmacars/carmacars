@@ -114,7 +114,7 @@ export function buildDepth(x: DepthInput): DepthText {
       const weekLo = Math.min(...shown.map((c) => c.weeklyCents)), monthLo = Math.min(...shown.map((c) => c.monthlyCents));
       const depLo = Math.min(...shown.map((c) => c.depositCents)), depHi = Math.max(...shown.map((c) => c.depositCents));
       if (real.length) paras.push(T(`${real.length} ${real.length === 1 ? 'car matches' : 'cars match'} this page on ${f.brand} right now. Daily rates run from ${money(lo.dailyCents)} (${lo.name}) to ${money(hi.dailyCents)} (${hi.name}); the lowest weekly rate is ${money(weekLo)} and the lowest 30-day rate ${money(monthLo)}. ${depLo === depHi ? `The deposit is ${money(depLo)}` : `Deposits run from ${money(depLo)} to ${money(depHi)}`}, held on your card before pickup. Prices are before ${pctOf(f.hstBps)} HST.`));
-      else paras.push(T(`No car matches this page exactly right now. The nearest similar cars on ${f.brand} start at ${money(lo.dailyCents)} a day (${lo.name}), ${money(weekLo)} a week and ${money(monthLo)} for 30 days${p && p.km !== null ? `, and any of them can be brought to ${where}, about ${driveMinutes(p.km)} minutes by road from ${p.originLabel}` : ''}.`));
+      else paras.push(T(`The closest cars to this page on ${f.brand}, ready to book now, start at ${money(lo.dailyCents)} a day (${lo.name}), ${money(weekLo)} a week and ${money(monthLo)} for 30 days${p && p.km !== null ? `, and any of them can be brought to ${where}, about ${driveMinutes(p.km)} minutes by road from ${p.originLabel}` : ''}. Want this exact car? Request it and we look for one for your dates.`));
       if (f.weekFrom) paras.push(T(`A trip of ${f.weekFrom} days or more is priced at the weekly rate, and one booking runs up to ${f.maxDays} days.`));
       for (const c of sorted.slice(0, 12)) paras.push(carLine(c));
       table = { head: ['Car', 'Day', 'Week', '30 days', 'Deposit'], rows: sorted.slice(0, 12).map((c) => [c.name, money(c.dailyCents), money(c.weeklyCents), money(c.monthlyCents), money(c.depositCents)]) };
@@ -124,7 +124,7 @@ export function buildDepth(x: DepthInput): DepthText {
       paras.push(T(`Delivery to ${where} starts at ${money(p.deliveryFromCents)} each way, worked out from the distance from ${p.originLabel}; collecting the car yourself costs nothing.`));
       faq.push({ question: `What does delivery to ${where} cost?`, answer: `From ${money(p.deliveryFromCents)} each way. The exact fee for your address is in your offer before you pay.` });
     } else if (p && !p.inReach && p.km !== null) {
-      paras.push(T(`${where} is about ${km1(p.km)} km from ${p.originLabel}, beyond the ${p.reachKm} km ${f.brand} delivers to, so the cars are collected in Toronto.`));
+      paras.push(T(`${where} is about ${km1(p.km)} km from ${p.originLabel}: pick the car up in Toronto and drive it to ${where}, about ${driveMinutes(p.km)} minutes by road. ${f.brand} delivers within ${p.reachKm} km and replies on any address further out.`));
     }
     if (paras.length) sections.push({ id: 'cars', heading: p ? `Cars and prices for ${where}` : 'Cars and prices', paras, table });
   }
@@ -251,7 +251,7 @@ export function buildDepth(x: DepthInput): DepthText {
     rows.push(['Longest booking', `${f.maxDays} days`]);
     if (f.coverOptions.length) rows.push(['Coverage for damage', list(f.coverOptions)]);
     sections.push({ id: 'compare', heading: c.versus ? `${f.brand}: the figures to compare` : `Renting from ${f.brand}${where ? ` in ${where}` : ''}`, paras: [
-      T(`These are ${f.brand}'s own figures, from this site today. ${c.company} is named only because it is what you compared; we do not publish its prices or terms, so check them with ${c.company} before you choose.`)
+      T(`These are ${f.brand}'s own figures, from this site today. ${c.company} is named only because it is what you compared; check its current prices and terms with ${c.company} before you choose.`)
     ], table: { head: [f.brand, 'Today'], rows } });
     faq.push({ question: `Is this page from ${c.company}?`, answer: `No. It is written by ${f.brand} and gives ${f.brand}'s own figures only.` });
   }

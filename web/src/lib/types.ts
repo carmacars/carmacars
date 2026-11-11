@@ -25,6 +25,8 @@ export interface CarRow {
   year_approximate?: boolean; guideline_rates?: boolean;
   /** 0352: the website's fleet read (public.fleet) in the Trending order: the place, pinned by an Admin, and the Hot badge */
   trend_rank?: number; pinned?: boolean; hot?: boolean;
+  /** demand steering (2000): this car draws more than its share of the requests; pages show similar cars first */
+  popular?: boolean;
 }
 
 export interface CarPage extends CarRow {

@@ -17347,6 +17347,9 @@ export type Database = {
           indexnow_sweep_batch: number;
           indexnow_queue_batch: number;
           staff_onboarding_gate: boolean;
+          fleet_demand_cap_bps: number;
+          fleet_demand_cap_rank: number;
+          fleet_demand_min_requests: number;
         };
         Insert: {
           id?: string;
@@ -18038,6 +18041,9 @@ export type Database = {
           indexnow_sweep_batch?: number;
           indexnow_queue_batch?: number;
           staff_onboarding_gate?: boolean;
+          fleet_demand_cap_bps?: number;
+          fleet_demand_cap_rank?: number;
+          fleet_demand_min_requests?: number;
         };
         Update: {
           id?: string;
@@ -18729,6 +18735,9 @@ export type Database = {
           indexnow_sweep_batch?: number;
           indexnow_queue_batch?: number;
           staff_onboarding_gate?: boolean;
+          fleet_demand_cap_bps?: number;
+          fleet_demand_cap_rank?: number;
+          fleet_demand_min_requests?: number;
         };
         Relationships: [];
       };
@@ -29665,6 +29674,7 @@ export type Database = {
       enquiry_has_match: { Args: { p_reference: string }; Returns: boolean };
       featured_cars: { Args: { p_limit?: number }; Returns: Json[] };
       fleet: { Args: { p_filters?: Json }; Returns: Json[] };
+      fleet_popular_ids: { Args: never; Returns: string[] };
       game_cfg: { Args: never; Returns: Json };
       game_reveal: { Args: { p_token: string }; Returns: boolean };
       game_start: { Args: { p: Json }; Returns: Json };

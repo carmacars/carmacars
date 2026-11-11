@@ -19,7 +19,9 @@ import { HubPage, hubMeta } from '@/features/places/HubPage';
 import { buildDepth } from '@/features/seo/depth';
 import { depthCar, getDepthFacts } from '@/features/seo/depth-data';
 import { DepthSections } from '@/features/seo/Depth';
+import { ReadyCars } from '@/features/seo/ReadyCars';
 import '@/styles/seo.css';
+import '@/styles/vehicles.css';
 
 // Landing pages (migration 0061): a place we deliver to or a way of renting, with the live matching cars and prices
 // from the database and copy written for that page (Admin > Settings > Search). Every active page is indexed (1100):
@@ -119,7 +121,7 @@ export default async function LandingPage({ params }: Params) {
             <p className="muted small">Live prices before {t.hst} HST. Each car has its own page, photos and calendar.{p.distance_km ? ` About ${p.distance_km} km from our location in a straight line.` : ''}</p></div>
           {p.cars.length
             ? <ul className="fleet-grid fleet-grid--3">{p.cars.slice(0, 12).map((c) => <li key={c.slug}><CarCard c={c} labels={labels} /></li>)}</ul>
-            : <p className="alert alert--info"><span>No car matches this right now. <Link className="link" href="/cars">See every car</Link>.</span></p>}
+            : <ReadyCars cars={fleet} labels={labels} want={`a car for ${p.name.replace(/ \(.*\)$/, '').toLowerCase()}`} pageKey={`/car-rental/${p.slug}`} />}
           <p className="small"><Link prefetch={false} className="link link--go" href="/cars">{p.car_count > 12 ? `See all ${p.car_count} cars` : 'See every car'} <Icon name="arrow" /></Link></p>
         </div>
       </section>

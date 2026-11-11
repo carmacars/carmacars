@@ -15,6 +15,7 @@ import { absUrl, breadcrumbLd, faqLd, type Trail, seoMeta } from '@/features/seo
 import { getHubLinks, getSeoLinks } from '@/features/seo/data';
 import { rpc } from '@/lib/db/repo';
 import { money, FUEL_LABEL } from '@/lib/format';
+import { pickSimilar } from '@/features/seo/steer';
 import { deliveryFrom, fill, getClasses, getFacts, getFleet, getSettings, getTokens, listItems, photoUrl, siteUrl } from '@/lib/site';
 import type { CarPage as Car } from '@/lib/types';
 import { makePage, type MakePage } from '@/features/vehicles/data';
@@ -110,9 +111,10 @@ export default async function CarPage({ params }: Params) {
   const common = carFaq(c, { ydA, ydB, ev }, t);
   const key = (q: string) => q.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
   const faq0 = [...common, ...c.faq.filter((q) => !common.some((x) => key(x.question) === key(q.question)))];
-  const similar = fleet.filter((x) => x.slug !== c.slug)
+  // 2000: the closest cars, the popular ones last, rotated by the page (a popular car's page shows six, not three)
+  const similar = pickSimilar(fleet.filter((x) => x.slug !== c.slug)
     .map((x) => ({ x, d: (x.class === c.class ? 0 : 6000) + Math.abs(x.daily_rate_cents - c.daily_rate_cents) }))
-    .sort((a, b) => a.d - b.d).slice(0, 3).map((o) => o.x);
+    .sort((a, b) => a.d - b.d).map((o) => o.x), c.popular ? 6 : 3, c.slug);
   const trail: Trail = [['Home', '/'], ['Fleet', '/cars'], [name(c), c.model_hub_path], [[c.year, name(c), c.trim].filter(Boolean).join(' ')]];
   // 0073: real cars render exactly like the sample cars. The written copy feeds the listing's headline, blurb,
   // features and questions (synced by the database); its other parts are not shown, as the samples have none.
@@ -189,7 +191,8 @@ export default async function CarPage({ params }: Params) {
               <p className="car-top__price"><span className="small muted">From</span> <b className="num" data-testid="car-from-price">{money(fromDay(c))}</b> <span className="small muted">a day</span></p>
               {c.guideline_rates && <p className="small muted" data-testid="guideline-note">Guideline rates; final price confirmed after review.</p>}
               {c.car_code && <p className="small muted" data-testid="car-code">Car code <b className="num">{c.car_code}</b>: quote it when you call or chat with us.</p>}
-              {c.taking_requests ? <a className="btn btn--primary btn--lg" href="#dates">Check dates and price</a> : <p className="alert alert--warn"><span>Not taking requests right now.</span></p>}
+              {c.taking_requests ? <a className="btn btn--primary btn--lg" href="#dates">Check dates and price</a> : <p className="alert alert--info"><span>Booked up for now. <a className="link" href="#h-sim">Similar cars are ready to book</a>.</span></p>}
+              {c.popular && !c.is_sample && <p className="small car-top__popular" data-testid="car-popular"><b>Popular:</b> this car is in high demand. <a className="link" href="#h-sim">See similar cars</a> ready for your dates.</p>}
               {c.is_sample
                 ? <p className="small car-top__example-note" data-testid="example-car-note">This is an example of the cars we rent. Send your dates and we suggest a similar real car with its price. Nothing is booked or charged.</p>
                 : <p className="small muted">Request to book. No payment until we confirm and you approve. A request does not hold the car.</p>}
@@ -343,7 +346,7 @@ export default async function CarPage({ params }: Params) {
         <div className="wrap">
           {hubs.places.length > 0 && <nav className="car-landing" aria-label="Delivered to"><p className="small muted">Delivered to</p><ul className="chips">{hubs.places.slice(0, 10).map((p) => <li key={p.path}><Link prefetch={false} className="chip" href={p.path}>{c.make} {c.model} rental in {p.name}</Link></li>)}</ul></nav>}
           {landing.length > 0 && <nav className="car-landing" aria-label="Rent in your area or your way"><ul className="chips">{landing.map((l) => <li key={l.slug}><Link prefetch={false} className="chip" href={l.path}>{l.kind === 'location' ? `Car rental in ${l.name}` : `${l.name} in ${s.city}`}</Link></li>)}</ul></nav>}
-          <div className="section-head"><h2 className="d2" id="h-sim">Similar cars</h2><Link className="link link--go" href={c.model_hub_path}>More {c.make} {c.model} <Icon name="arrow" /></Link> <Link className="link link--go" href="/cars">See every car <Icon name="arrow" /></Link></div>
+          <div className="section-head"><h2 className="d2" id="h-sim">{c.popular ? 'Popular: see similar cars' : 'Similar cars'}</h2><Link className="link link--go" href={c.model_hub_path}>More {c.make} {c.model} <Icon name="arrow" /></Link> <Link className="link link--go" href="/cars">See every car <Icon name="arrow" /></Link></div>
           <ul className="fleet-grid fleet-grid--3">{similar.map((x) => <li key={x.slug}><CarCard c={x} labels={labels} photosMax={cardPhotoCap(f.phone_gate)} /></li>)}</ul>
         </div>
       </section>

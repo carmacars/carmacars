@@ -36,7 +36,7 @@ export function PlaceLeadForm({ kind, place, term, services = [], heading, id = 
       <input type="hidden" name="kind" value={kind} />
       {term && <input type="hidden" name="term" value={term} />}
       {kind === 'auto_service' && services[0] && <input type="hidden" name="service" value={services[0]} />}
-      {kind === 'auto_service' && <p className="small muted" data-testid="auto-service-note">CarmaCars does not do this work itself. We arrange it with a trusted shop or connect you with one, and can deliver a rental car while yours is in.</p>}
+      {kind === 'auto_service' && <p className="small muted" data-testid="auto-service-note">CarmaCars arranges this work with a trusted shop or connects you with one, and can deliver a rental car while yours is in.</p>}
       <div className="field-row">{input('name', 'Your name', false, 'text', 'name')}{input('email', 'Email', false, 'email', 'email')}</div>
       {input('phone', 'Phone', true, 'tel', 'tel')}
       {(kind === 'buyer' || kind === 'detailing' || kind === 'bodyshop' || kind === 'finance' || kind === 'auto_service') && input('vehicle', kind === 'buyer' ? 'The car you are looking for' : 'Your car (year, make and model)')}
