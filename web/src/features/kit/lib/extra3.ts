@@ -194,11 +194,11 @@ export const EXTRA3: Record<string, Bank> = {
 
   // ================================================================ buying help
   'hs.intro.open': [
-    'CarmaCars is a rental company, so we do not sell cars; renting one first is how we help buyers.',
-    'We do not sell or finance cars. We rent them, by the day, the week or the month.',
+    'CarmaCars is a rental company; renting a car first is how we help buyers.',
+    'CarmaCars rents cars by the day, the week or the month, and is not a lender: a good way to try one before buying.',
     'Looking to buy? CarmaCars rents cars instead, which makes a test week easy.',
-    'CarmaCars does not sell cars or arrange loans; we rent cars, which helps when you are deciding.',
-    'Here is the honest answer for buyers: CarmaCars rents cars and does not sell them.'
+    'CarmaCars rents cars, which helps when you are deciding what to buy.',
+    'Here is the honest answer for buyers: CarmaCars rents cars, so you can try one first.'
   ],
   'hs.rent': [
     'A week of normal life with the car is the best test drive there is.',
@@ -492,7 +492,7 @@ export const EXTRA3: Record<string, Bank> = {
     'For {job} on the {car}, CarmaCars arranges a trusted shop and never does the work itself.',
     'Your {car} needs {job}? We arrange a trusted shop; CarmaCars does not do the work.',
     '{term} for your {car}: arranged with a trusted shop, never done by CarmaCars, with a rental if you need one.',
-    'CarmaCars does not do mechanical work, but for {job} on the {car} we arrange a trusted shop.'
+    'For {job} on the {car}, CarmaCars arranges a trusted shop; the work is done there, not by CarmaCars.'
   ],
   'ta.how': [
     'We pass your request to a trusted shop or give you its name.',

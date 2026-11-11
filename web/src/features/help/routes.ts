@@ -3,6 +3,7 @@
 // no entry, a chapter is not in docs/guides/content, or a section is not in the Academy. Pages outside the portals and the
 // checkout, payment and signing steps are marked off: the prompt never shows there.
 // Pure (no I/O): the unit tests run it in Node.
+import { LANG_CODES } from '../i18n/catalog.ts';
 
 export type HelpPortal = 'admin' | 'va' | 'field' | 'owner' | 'renter' | 'investor';
 export interface HelpEntry { portal: HelpPortal; guide: string; /** path/section of the Academy */ lesson?: string }
@@ -77,9 +78,10 @@ const INVESTOR: Record<string, Spec> = {
 };
 
 // ---------------------------------------------------------------- outside the portals: never
-const PUBLIC = ['', 'about', 'body-shop', 'book', 'buy', 'cancellation-policy', 'car-rental', 'careers', 'cars', 'chauffeur', 'choose-portal', 'contact', 'create-account',
-  'credit-card-rental-coverage', 'delivery', 'detailing', 'faq', 'guides', 'how-it-works', 'investors', 'link-expired', 'list-your-car', 'makes', 'my-request', 'partners',
-  'place-data', 'places', 'privacy', 'read-only', 'rent', 'requirements', 'reset-password', 'returned', 'review', 'sign-in', 't', 'terms', 'two-step', 'unsubscribe', 'update-password', 'verify'];
+// the search pages of release 36: language versions (/<lang>/...), airports, events, the GPS tracker and rent-vs-own
+const PUBLIC = ['', '[lang]', 'about', 'airport-car-rental', 'body-shop', 'book', 'buy', 'cancellation-policy', 'car-rental', 'careers', 'cars', 'chauffeur', 'choose-portal', 'contact', 'create-account',
+  'credit-card-rental-coverage', 'delivery', 'detailing', 'events', 'faq', 'gps-tracker', 'guides', 'how-it-works', 'investors', 'link-expired', 'list-your-car', 'makes', 'my-request', 'partners',
+  'place-data', 'places', 'privacy', 'read-only', 'rent', 'requirements', 'rent-vs-own', 'reset-password', 'returned', 'review', 'sign-in', 't', 'terms', 'two-step', 'unsubscribe', 'update-password', 'verify'];
 
 type Row = { key: string[]; row: HelpRow & { tabs?: Record<string, HelpEntry> } };
 const seg = (k: string) => (k ? k.split('/') : []);
@@ -101,13 +103,15 @@ export const HELP_ROWS: Row[] = [
 ];
 
 const dyn = (s: string) => /^\[.*\]$/.test(s);
+// a [lang] segment matches a language code of the site only (and itself, for the route patterns the unit test reads)
+const segMatch = (k: string, x: string | undefined) => k === x || (k === '[lang]' ? LANG_CODES.has(x ?? '') : dyn(k));
 /** The row of a path: the longest entry whose segments match (a [param] matches any segment); the bare "/" only matches itself. */
 export function helpRow(pathname: string): { pattern: string; row: Row['row'] } | null {
   const p = seg(pathname.replace(/^\/+|\/+$/g, ''));
   let best: Row | null = null;
   for (const r of HELP_ROWS) {
     if (r.key.length > p.length || (r.key.length === 0 && p.length > 0)) continue;
-    if (r.key.every((k, i) => k === p[i] || dyn(k))) if (!best || r.key.length > best.key.length) best = r;
+    if (r.key.every((k, i) => segMatch(k, p[i]))) if (!best || r.key.length > best.key.length) best = r;
   }
   if (!best) return null;
   // the route as a pattern: the matched entry's segments, then the rest of the path with ids replaced

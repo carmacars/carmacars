@@ -35,7 +35,7 @@ export const TWINS: Record<string, Bank> = {
   // ================================================================ for sale, financing, leasing (we do not sell, lend or lease)
   'ts.h.intro': ['Buying the {car}', 'The {car}: before you buy', '{term}: the {car}', 'Thinking of buying the {car}?', 'The {car} for buyers'],
   'ts.intro.sale': [
-    ['notforsale', 'CarmaCars rents cars and does not sell the {car}; this page helps you judge it before you buy one elsewhere.'],
+    ['notforsale', 'CarmaCars rents cars; this page helps you judge the {car} before you buy one elsewhere.'],
     ['notforsale', 'We are a rental company, not a dealer, so there is no {car} for sale by us right now.'],
     ['notforsale', 'CarmaCars is a rental company and does not have the {car} for sale right now. Rent one for a week first, or ask us to look for one.'],
     ['notforsale', 'We rent cars and sell one only now and then. There is no {car} for sale by us right now.'],
@@ -107,11 +107,11 @@ export const TWINS: Record<string, Bank> = {
   // ================================================================ mechanical work we only arrange on this car
   'ta.h.intro': ['{term} for the {car}', 'Arranging the work for the {model}', 'The {car}: {term}', '{term}: how we help'],
   'ta.intro': [
-    'CarmaCars does not do this work itself. For {job} on the {car}, we arrange it with a trusted shop or connect you with one.',
-    'Need {job} for your {car}? We do not do mechanical work, but we arrange it with a trusted shop and keep you driving meanwhile.',
+    'For {job} on the {car}, CarmaCars arranges it with a trusted shop or connects you with one; the work is done by the shop, not by CarmaCars.',
+    'Need {job} for your {car}? A trusted shop does the work, not CarmaCars, and we keep you driving meanwhile.',
     'For {job} on the {car}, CarmaCars arranges a trusted shop and rents you a car while yours is in.',
     '{term} for the {car}: the work is done by a shop we trust, never by CarmaCars.',
-    'Searching for {termLower} for the {car}? CarmaCars does not do this work itself; we arrange it with a trusted shop.'
+    'Searching for {termLower} for the {car}? CarmaCars arranges it with a trusted shop; the work is never by CarmaCars.'
   ],
   'ta.car': [
     ['t-oil ev', 'An electric {model} has no engine oil to change; ask about tires, brakes and the cabin filter instead.'],

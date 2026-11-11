@@ -52,8 +52,8 @@ export const EXTRA2: Record<string, Bank> = {
     'There is no CarmaCars office, lot or branch in {place}.',
     'We are based in Toronto; {place} is not somewhere we have a location.',
     'CarmaCars has a single location, in Toronto. {place} is outside the area we serve.',
-    'Everything CarmaCars does starts from Toronto, and we have no presence in {place}.',
-    'Plainly: we do not have a location in {place}. CarmaCars is a Toronto company.',
+    'CarmaCars works from Toronto, where you pick up the car for {place}.',
+    'Plainly: CarmaCars works from Toronto, and the car for {place} is picked up there.',
     'CarmaCars is not in {place}. Our one location is in Toronto.',
     'You will not find a CarmaCars location in {place}; we work from Toronto.'
   ],
@@ -564,7 +564,7 @@ export const EXTRA2: Record<string, Bank> = {
     ['served fee', '#fee For {place}, delivery starts at {deliveryFrom}.'],
     ['served', '#pick Prefer to collect it? Pickup at our location is free.'],
     ['far', '#far {place} is about {km} km from Toronto, outside our delivery area.'],
-    ['far', '#far We have no location in {place}; CarmaCars rents from Toronto, about {km} km away.'],
+    ['far', '#far CarmaCars works from Toronto, about {km} km from {place}, and delivers on request.'],
     ['far', '#farask If you are starting from Toronto, rent the car here and drive it to {place}.'],
     ['wide', '#wide Pick a town within {place} to see its distance from us and whether we deliver.']
   ],

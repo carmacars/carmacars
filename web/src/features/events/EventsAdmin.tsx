@@ -8,7 +8,7 @@ export type EventRow = { slug: string; name: string; category: string; venue: st
 const CATS: Array<[string, string]> = [['festival', 'Festival'], ['film', 'Film'], ['parade', 'Parade'], ['concerts', 'Concerts'], ['sports_season', 'Sports season'], ['fair', 'Fair'], ['show', 'Show'], ['race', 'Race'], ['holiday_market', 'Holiday market'], ['theme_park', 'Theme park']];
 const NEW: Field[] = [
   { name: 'name', label: 'Event name', required: true }, { name: 'category', label: 'Kind', type: 'select', options: CATS, required: true }, { name: 'venue', label: 'Venue', required: true },
-  { name: 'venue_address', label: 'Venue address' }, { name: 'city', label: 'City', value: 'Toronto' }, { name: 'lat', label: 'Venue latitude', type: 'number', required: true }, { name: 'lng', label: 'Venue longitude', type: 'number', required: true },
+  { name: 'venue_address', label: 'Venue address', type: 'address' }, { name: 'city', label: 'City', value: 'Toronto' }, { name: 'lat', label: 'Venue latitude', type: 'number', required: true }, { name: 'lng', label: 'Venue longitude', type: 'number', required: true },
   { name: 'usual_months', label: 'Usually held (months)', required: true, placeholder: 'July and August' }, { name: 'starts_on', label: 'Starts (when announced)', type: 'date' }, { name: 'ends_on', label: 'Ends', type: 'date' },
   { name: 'summary', label: 'One or two sentences, from the organiser', type: 'textarea', required: true }, { name: 'source_name', label: 'Source (the organiser)', required: true }, { name: 'source_url', label: 'Source page (https)', required: true }
 ];

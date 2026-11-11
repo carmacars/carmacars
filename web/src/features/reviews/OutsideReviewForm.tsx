@@ -2,6 +2,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { outsideReviewAdd } from '@/server/actions/outside-reviews';
+import { DateInput } from '@/components/DateInput';
 
 // "Add a customer review" (release 36, migration 2002): a review received outside the site, typed exactly as the
 // customer gave it. Admin > Reviews and Staff > Review requests (customer service and sales).
@@ -31,7 +32,7 @@ export function OutsideReviewForm({ cars }: { cars: Array<{ id: string; name: st
         <div className="field ad-field"><label className="label" htmlFor="or-name">Reviewer (first name and last initial)</label><input className="input" id="or-name" name="reviewer_name" placeholder="Sarah K." required /></div>
         <div className="field ad-field"><label className="label" htmlFor="or-source">Received</label>
           <select className="input" id="or-source" name="source" required defaultValue="turo">{REVIEW_SOURCES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
-        <div className="field ad-field"><label className="label" htmlFor="or-date">Date received</label><input className="input" id="or-date" name="received_on" type="date" required /></div>
+        <div className="field ad-field"><label className="label" htmlFor="or-date">Date received</label><DateInput className="input" id="or-date" name="received_on" type="date" required /></div>
         <div className="field ad-field"><label className="label" htmlFor="or-rating">Rating</label>
           <select className="input" id="or-rating" name="rating" required defaultValue="5">{[5, 4, 3, 2, 1].map((x) => <option key={x} value={x}>{x} out of 5</option>)}</select></div>
         <div className="field ad-field"><label className="label" htmlFor="or-car">Car (optional)</label>

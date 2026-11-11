@@ -219,7 +219,7 @@ export const VEHICLES: Record<string, Bank> = {
     'The EPA estimates {fuelYearUsd} a year in fuel for 15,000 miles.'
   ],
   'v.spec.nospecs': [
-    ['nospecs', 'The EPA does not rate this model year for fuel use; heavier trucks and vans are often not rated.'],
+    ['nospecs', 'Fuel use for this model year: Rating on request; heavier trucks and vans are often outside the EPA ratings.'],
     ['nospecs', 'No fuel-use rating is published for this model year, so we leave those figures out.']
   ],
 
@@ -270,10 +270,10 @@ export const VEHICLES: Record<string, Bank> = {
     ['cars price', '#price Our matching cars start at {fromDaily} a day before tax.'],
     ['cars price', '#price Rates for our matching cars start at {fromDaily} a day.'],
     ['nocars !level-make', '#none We have none on the site right now. Send a request for this exact car and we look for one for your dates.'],
-    ['nocars level-make', '#none We have no {make} on the site right now. Send a request with the model you want, and we look for one for your dates.'],
+    ['nocars level-make', '#none Send a request with the {make} model you want, and we look for one for your dates; the similar cars below are ready to book.'],
     ['nocars level-make', '#none No {make} is in our fleet today; ask for one in a request and we search for your dates.'],
     ['nocars !level-make', '#none There is no exact match in our fleet today. Request it and we search for one, or take a similar car.'],
-    ['nocars !level-make', '#none This exact car is not in our fleet at the moment; a request asks us to look for one.'],
+    ['nocars !level-make', '#none Request this exact car: a request asks us to look for one for your dates.'],
     ['nocars similar', '#similar Meanwhile, {similar} similar cars are listed below.'],
     ['nocars similar', '#similar Similar cars are below if you need one sooner.'],
     ['!level-make', '#ask Ask for this exact car in your request, and we tell you what we can offer.'],
@@ -298,7 +298,7 @@ export const VEHICLES: Record<string, Bank> = {
     ['served', '#pick Collecting the car yourself at our location is free.'],
     ['served', '#pick You can also pick it up from us in Toronto at no charge.'],
     ['far', '#far CarmaCars is based in Toronto, about {km} km from {place}, and does not deliver there.'],
-    ['far', '#far {place} is about {km} km from our Toronto location, beyond the area we deliver to.'],
+    ['far', '#far {place} is about {km} km from our Toronto location: the car is picked up in Toronto, or delivered on request.'],
     ['far', '#farask We rent from Toronto only. If your trip to {place} starts in the Toronto area, rent the car here.'],
     ['far', '#farask If you need it in {place} itself, send a request and we will tell you honestly whether we can help.'],
     ['wide', '#wide This page covers {place} as a whole; each town in it has its own page with its distance from us.']

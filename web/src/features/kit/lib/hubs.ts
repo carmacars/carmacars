@@ -314,16 +314,16 @@ export const HUBS: Record<string, Bank> = {
   // ================================================================ buying help (we never sell, lend or lease)
   'hs.h.intro': ['{term} in {place}', '{term} for {place}', 'Before you buy in {place}', 'Buying a car in {place}', '{term}: what CarmaCars does', 'Shopping for a car in {place}'],
   'hs.intro.open': [
-    'CarmaCars is a rental company. We do not sell, finance or lease cars, but we can help you try one before you do.',
+    'CarmaCars is a rental company, not a lender or a leasing company, and we can help you try a car before you buy, finance or lease one.',
     'Shopping for a car in {place}? CarmaCars is not a dealer, a lender or a leasing company. We rent cars.',
-    'Searching for {termLower} in {place}? To be clear, CarmaCars rents cars; it does not sell them.',
-    'If you are looking for {job}, the honest answer first: CarmaCars does not offer it, but a rental can help along the way.',
+    'Searching for {termLower} in {place}? To be clear, CarmaCars rents cars, so you can try one first.',
+    'If you are looking for {job}, the honest answer first: CarmaCars rents cars, and a rental can help along the way.',
     'CarmaCars rents cars in the Toronto area. We are not a dealership, and we do not arrange loans or leases.',
-    '{term} in {place}: CarmaCars rents cars and does not sell them, but we can still be useful.',
+    '{term} in {place}: CarmaCars rents cars, and that can still be useful.',
     'CarmaCars is not where you buy a car, but it can be where you try one first.',
-    'CarmaCars does not sell cars, but before you buy one in {place}, a short rental can answer questions a test drive cannot.',
+    'CarmaCars rents cars: before you buy one in {place}, a short rental can answer questions a test drive cannot.',
     'People searching for {termLower} sometimes find us. We are a rental company, and here is how that helps.',
-    'If {job} is what you need, know first that CarmaCars rents cars and does not sell them; here is what we can do.'
+    'If {job} is what you need, know first that CarmaCars rents cars; here is what we can do.'
   ],
   'hs.family': [
     ['t-finance', 'We are not a lender and do not arrange loans. A monthly rental can bridge the time while you arrange one with your bank.'],
@@ -332,9 +332,9 @@ export const HUBS: Record<string, Bank> = {
     ['t-lease', 'A lease ties you to years of payments; a monthly rental can stop at the end of any booking, with no buyout.'],
     ['t-sell', 'We do not buy cars or take trade-ins. If you would rather keep your car and have it earn, our owner program rents it out for you.'],
     ['t-sell', 'Between cars? Rent one by the week or the month while you decide what to do with yours.'],
-    ['t-newcar', 'We do not sell new cars. Rent the model for a few days first, then buy from a dealer with your mind made up.'],
-    ['t-truck', 'We do not sell trucks. You can rent a pickup first when one is in our fleet.'],
-    ['t-suv', 'We do not sell SUVs. Rent the SUV you are considering with your family and your luggage first.'],
+    ['t-newcar', 'CarmaCars rents cars, so you can drive the model for a few days first, then buy from a dealer with your mind made up.'],
+    ['t-truck', 'CarmaCars rents cars and pickups: try one first, then buy the truck that suits you.'],
+    ['t-suv', 'CarmaCars rents cars, so you can try the SUV you are considering with your family and your luggage first.'],
     ['t-buyer', 'Tell us the car you are looking for and we will help where we can, and you can rent a similar car first.'],
     ['t-buyer', 'A rental of the same model for a week shows how it fits your commute, your parking and your family.']
   ],
@@ -380,7 +380,7 @@ export const HUBS: Record<string, Bank> = {
     ['served', '{term} for {place}: send the car\'s details and we answer with a price before any work.'],
     ['served', 'Drivers in {place} can book {job} with CarmaCars, with a rental while they wait.'],
     ['far', 'CarmaCars does this work in the Toronto area, about {km} km from {place}.'],
-    ['far', 'Our shop work happens in the Toronto area. We have no location in {place}.'],
+    ['far', 'Our shop work happens in the Toronto area: CarmaCars works from Toronto.'],
     ['far', '{term} in {place}: CarmaCars works in the Toronto area only, so here is the honest picture.'],
     ['wide', 'CarmaCars does {job} for cars in the Toronto area of {place}.']
   ],
@@ -448,16 +448,16 @@ export const HUBS: Record<string, Bank> = {
   // ================================================================ mechanical work we only arrange (never our work)
   'ha.h.intro': ['{term} in {place}', '{term} for {place}', 'Arranging the work in {place}', '{term} near {place}', 'Getting it done', '{term}: how we help'],
   'ha.intro.open': [
-    ['served', 'CarmaCars does not do this work itself. For {job} in {place}, we arrange it with a trusted shop or connect you with one.'],
-    ['served', 'Need {job} in {place}? CarmaCars does not do mechanical work, but we arrange it with a trusted shop and keep you driving meanwhile.'],
+    ['served', 'For {job} in {place}, CarmaCars arranges it with a trusted shop or connects you with one; the work is done by the shop, not by CarmaCars.'],
+    ['served', 'Need {job} in {place}? CarmaCars arranges it with a trusted shop (the work is never by CarmaCars) and keeps you driving meanwhile.'],
     ['served', 'For {job}, CarmaCars sits in the middle: we arrange the work with a trusted shop and rent you a car while yours is in.'],
     ['served', '{term} in {place}: we do not do the work ourselves; we arrange it with a shop we trust.'],
     ['served', 'CarmaCars arranges {job} for drivers in {place} through trusted shops, and rents you a car meanwhile.'],
     ['served', 'If your car needs {job}, send a request: we find a trusted shop for it and keep you moving with a rental.'],
-    ['served', 'Searching for {termLower} in {place}? CarmaCars does not do this work itself, but we arrange it with a trusted shop.'],
-    ['far', 'CarmaCars works in the Toronto area, about {km} km from {place}, and does not do this work itself.'],
-    ['far', 'We arrange {job} through shops in the Toronto area. We have no location in {place}.'],
-    ['far', '{term} in {place}: CarmaCars does not do this work itself and works only in the Toronto area.'],
+    ['served', 'Searching for {termLower} in {place}? CarmaCars arranges it with a trusted shop, and the shop does the work, not CarmaCars.'],
+    ['far', 'CarmaCars works in the Toronto area, about {km} km from {place}, and this work is done by trusted shops, not by CarmaCars.'],
+    ['far', 'We arrange {job} through shops in the Toronto area: CarmaCars works from Toronto.'],
+    ['far', '{term} in {place}: CarmaCars works only in the Toronto area, where trusted shops do this work, not CarmaCars.'],
     ['wide', 'CarmaCars arranges {job} with trusted shops in the Toronto area, and does not do the work itself.']
   ],
   'ha.what': [

@@ -232,7 +232,7 @@ export const COMMON: Record<string, Bank> = {
     'Renting from Toronto', 'Our area and {place}', 'Before you plan around us', 'Where we deliver', 'The short answer for {place}'
   ],
   'c.far.base': [
-    'CarmaCars is based in Toronto and has no location in {place}.',
+    'CarmaCars works from Toronto and delivers across the Toronto area; for {place}, the car is picked up in Toronto.',
     'We have one location, in Toronto, and none in {place}.',
     'To be clear: CarmaCars rents cars in the Toronto area, not in {place}.',
     'CarmaCars works from Toronto. There is no CarmaCars branch in {place}.',
@@ -242,7 +242,7 @@ export const COMMON: Record<string, Bank> = {
     'There is no CarmaCars location in {place}; everything we do starts in Toronto.'
   ],
   'c.far.km': [
-    '{place} is about {km} km from {origin} in a straight line, beyond the {reachKm} km we deliver to.',
+    '{place} is about {km} km from {origin} in a straight line, outside our area: the car is picked up in Toronto, or delivered on request.',
     'At about {km} km from {origin}, {place} is past the {reachKm} km our delivery covers.',
     'Our delivery reaches about {reachKm} km from Toronto, and {place} is about {km} km away.',
     'By straight line {place} is about {km} km from {origin}; by road it is farther, and beyond our {reachKm} km delivery area.',

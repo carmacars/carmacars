@@ -160,22 +160,22 @@ export const EXTRA: Record<string, Bank> = {
     ['far', 'Send a request about {place}, and a person replies with a straight answer.']
   ],
   'ha.intro.open': [
-    ['far', 'For {job} in {place}, know first that CarmaCars does not do this work itself and works in the Toronto area.'],
+    ['far', 'For {job} near {place}, CarmaCars works in the Toronto area: a trusted shop there does the work, not CarmaCars, and we rent you a car meanwhile.'],
     ['far', 'CarmaCars arranges mechanical work through shops around Toronto and does not do the work itself; {place} is about {km} km away.'],
-    ['far', 'Searching for {termLower} in {place}? CarmaCars does not do this work itself, and our shops are in the Toronto area.'],
-    ['far', 'We do not do mechanical work, and we work in the Toronto area, far from {place}.'],
-    ['far', 'If you need {job} in {place}: CarmaCars does not do this work itself, and our network is around Toronto.']
+    ['far', 'Searching for {termLower} in {place}? CarmaCars works in the Toronto area, where a trusted shop does the work, not CarmaCars.'],
+    ['far', 'We work in the Toronto area, a drive from {place}, and the mechanical work is done by trusted shops, not by CarmaCars.'],
+    ['far', 'If you need {job} in {place}: CarmaCars works in the Toronto area, and a trusted shop in our network does the work, not CarmaCars.']
   ],
   'hs.served': [
     ['served', 'Delivery to {place} is part of the service, so the test drive starts at home.'],
     ['served', 'You can collect the car from us for free, or have it delivered to {place}.']
   ],
   'hs.intro.open': [
-    'CarmaCars does not sell cars. We rent them, which makes us a good place to try a model before you buy.',
+    'CarmaCars rents cars, which makes us a good place to try a model before you buy.',
     'We are a rental company, not a dealer or a lender, and this page explains how renting can help a buyer.',
-    'CarmaCars rents cars and does not sell, lend or lease, but renting first is a smart step before buying.',
+    'CarmaCars rents cars, and renting first is a smart step before buying.',
     'There is nothing for sale here as a rule: CarmaCars rents cars. Here is how that helps when you shop.',
-    'To be upfront: CarmaCars is a rental company and does not sell cars or arrange loans.'
+    'To be upfront: CarmaCars is a rental company, so we rent you the model to try before you buy elsewhere.'
   ],
   'hs.family': [
     ['t-finance', 'Banks and credit unions arrange car loans; CarmaCars does not, but we can rent you a car while you sort one out.'],
@@ -190,8 +190,8 @@ export const EXTRA: Record<string, Bank> = {
   'hd.intro.open': [
     ['far', 'For {job} in {place}: CarmaCars does this work only in the Toronto area, about {km} km away.'],
     ['far', 'Searching for {termLower} in {place}? Our work is done in the Toronto area, so here is the honest answer.'],
-    ['far', 'CarmaCars has no location in {place}; we do {job} in the Toronto area.'],
-    ['far', 'If you can bring the car to Toronto, we can do {job}; we have no location in {place}.']
+    ['far', 'CarmaCars works in the Toronto area; we do {job} there.'],
+    ['far', 'CarmaCars works from Toronto: if you can bring the car there, we can do {job}.']
   ],
   'hd.far': [
     ['far', 'If you can bring the car to the Toronto area, send a request.'],
@@ -318,7 +318,7 @@ export const EXTRA: Record<string, Bank> = {
   // ---------------------------------------------------------------- far places
   'c.far.base': [
     'CarmaCars operates from a single location in Toronto, so {place} is outside our area.',
-    'We do not have a location in {place}; CarmaCars works out of Toronto.',
+    'CarmaCars works from Toronto and delivers across the Toronto area; for {place}, pick the car up in Toronto.',
     '{place} is not an area we serve directly. CarmaCars is based in Toronto.',
     'Straight answer: there is no CarmaCars location in {place}. We rent from Toronto.'
   ],
@@ -544,9 +544,9 @@ export const EXTRA: Record<string, Bank> = {
   // ---------------------------------------------------------------- twins: mechanical work we arrange
   'ta.intro': [
     'For {job} on your {car}, we arrange a trusted shop; CarmaCars does not do the work.',
-    'Your {car} needs {job}? We do not do mechanical work, but we arrange it and rent you a car meanwhile.',
+    'Your {car} needs {job}? We arrange it with a trusted shop, the work is done by the shop and not by CarmaCars, and we rent you a car meanwhile.',
     'The {car} and {job}: CarmaCars arranges a trusted shop, and never does the work itself.',
-    'CarmaCars does not do mechanical work. For {job} on the {car}, we connect you with a trusted shop.',
+    'For {job} on the {car}, CarmaCars connects you with a trusted shop; the work is done there, never by CarmaCars.',
     'Need {job} for the {car}? We arrange it with a trusted shop; the work is never done by CarmaCars.',
     'For {job} on the {car}, a trusted shop does the work and CarmaCars arranges it, with a rental if you need one.'
   ],
