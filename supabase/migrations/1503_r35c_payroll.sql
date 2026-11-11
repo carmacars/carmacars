@@ -29,7 +29,7 @@ end $$;
 alter table program_settings
   add column if not exists va_salary_defaults jsonb not null default '{}'::jsonb check (jsonb_typeof(va_salary_defaults) = 'object'),
   add column if not exists va_salary_currency text not null default 'USD' check (va_salary_currency in ('USD', 'CAD'));
-comment on column program_settings.va_salary_defaults is 'Payroll (1503): the monthly salary in cents of each office role ({"cs": 35000, "fleet": 40000, "finance": 20000}); a person''s own salary replaces it. Paid every two weeks: monthly x 12 / 26.';
+comment on column program_settings.va_salary_defaults is 'Payroll (1503): the monthly salary in cents of each office role ({"cs": <cents>, "fleet": <cents>, "finance": <cents>}); a person''s own salary replaces it. Paid every two weeks: monthly x 12 / 26.';
 comment on column program_settings.va_salary_currency is 'Payroll (1503): the currency of the office staff''s salaries (USD or CAD); a person may have their own.';
 
 alter table staff_profiles
