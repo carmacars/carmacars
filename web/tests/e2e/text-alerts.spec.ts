@@ -10,7 +10,7 @@ import { SAMPLES } from '../../src/features/phone/samples';
 // Text alerts (migration 0096) end to end, at 375 and 1440, with the SMS sender mocked (QUO_PROVIDER=fake: texts are
 // recorded in the outbox and on the thread, never sent). A renter with a verified phone sees Both chosen by default on
 // their profile and picks Text; then sends a booking request choosing Text: the request email is skipped, the text is
-// queued with its link (and held until 8 am in the quiet hours), and the phone job sends it through the fake line. The
+// queued with its link (and held until 5 am in the quiet hours), and the phone job sends it through the fake line. The
 // phone sign-up offers Text first. A STOP and a START texted to the CarmaCars number (signed Quo deliveries) are each
 // confirmed by one text, sent at once through the fake line. Every page is checked with axe, for overflow and the copy
 // rules.
@@ -105,7 +105,7 @@ test('profile: How should we reach you? Both by default with a verified phone; T
     // the choice survives a reload; the quiet hours and STOP are explained
     await page.reload({ waitUntil: 'networkidle' });
     await expect(page.getByTestId('channel-text')).toBeChecked();
-    await expect(card).toContainText('No texts from 9 pm to 8 am unless it is urgent');
+    await expect(card).toContainText('No texts from 1 am to 5 am unless it is urgent'); // 1871: the renters' quiet hours
     await expect(card).toContainText('Reply STOP to any text to stop them.');
     // STOP texted from that number: one confirmation, sent at once (Quo sends none), even in the quiet hours; the
     // profile says texts are off and how to turn them back on
@@ -195,7 +195,7 @@ test('a booking request with Text: the email is skipped, the text is queued with
     expect(stops.map((x) => x.stop)).toEqual(stops.map((_, i) => i === 0));
     expect(sms!.body).not.toMatch(/[—–]/);
     // r35 (0900): a text is held for the merge window (2 minutes) in any case; past it only the quiet hours hold it
-    expect(sms!.waits, 'a text queued in the quiet hours waits for 8 am, otherwise it goes now').toBe(sms!.quiet);
+    expect(sms!.waits, 'a text queued in the quiet hours waits for 5 am, otherwise it goes now').toBe(sms!.quiet);
     // the quiet hours end (or have): the phone job sends it through the fake line
     await sql`update phone_outbox set send_after = now() - interval '1 second' where id = ${sms!.id}`;
     const job = await page.request.post('/api/jobs/phone', { headers: { authorization: `Bearer ${jobToken()}` } });

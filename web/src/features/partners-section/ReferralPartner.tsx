@@ -56,7 +56,8 @@ export async function ReferralPartnerView({ base, id, read }: { base: '/admin' |
         <div className="stack" style={{ flex: '1 1 20rem' }}>
           <CopyField label="Short link (the QR code opens it)" value={link} testId="rp-short-link" />
           <p className="small muted">A customer who opens it, or scans the code, has the partner kept for 60 days and sent with their request. They can also type the code <b>{p.referral_code}</b> in the request form or tell it to staff, who type it in Add a rental (Referred by).</p>
-          <p className="row"><a className="btn btn--primary btn--sm" href={`${base}/referral-partners/${id}/flyer`} target="_blank" rel="noopener" data-testid="rp-flyer">Flyer for the counter (PDF)</a>
+          {/* the flyer is made by the Admin's route only (/admin/referral-partners/<id>/flyer) */}
+          <p className="row">{base === '/admin' && <a className="btn btn--primary btn--sm" href={`${base}/referral-partners/${id}/flyer`} target="_blank" rel="noopener" data-testid="rp-flyer">Flyer for the counter (PDF)</a>}
             {p.email && <a className="btn btn--ghost btn--sm" href={mail} data-testid="rp-mail">Write them their link</a>}</p>
           <CopyField label="Their private page (referrals and earnings; send it only to them)" value={portal} testId="rp-portal-link" />
           <Act action="referral_partner_link_new" payload={{ id }} label="New private page link" refresh={refresh} done="New link made: copy it above. The old one no longer works." confirm="The old private page link stops working at once. Make a new one?" />

@@ -45,9 +45,9 @@ test('renter Extend panel: six offers, the reason of a taken one, one tap to pay
       public.calc_billable_days(now() - interval '2 days', now() + interval '5 hours'), 10000, 10000, 56000, 180000, 'daily', 30000, 200, 600, 25, 50000, true, 30000,
       now() - interval '2 days', ${pm!.id})`;
   // r35 (1201): an extension costs the booked period's all-in price a day (its booking lines, tax included, over its days),
-  // so the booking has its rental line: $300 and HST over 3 days
+  // so the booking has its rental line: the $300 paid below, HST included, over 3 days ($100 a day)
   await sql`insert into booking_line_items (booking_id, charge_type, description, quantity, unit_amount_cents, amount_cents, hst_applies, hst_cents, revenue_class, stage)
-            select id, 'rental_charge', 'Rental', 3, 10000, 30000, true, 3900, 'owner_revenue', 'booking' from bookings where booking_number = ${number}`;
+            select id, 'rental_charge', 'Rental', 3, 8850, 26549, true, 3451, 'owner_revenue', 'booking' from bookings where booking_number = ${number}`;
   // the rental is paid (by card), so nothing is unpaid when the card on file is gone below
   await sql`insert into payments (booking_id, renter_id, purpose, kind, method, amount_cents, status, processed_at)
             select id, renter_id, 'booking_total', 'charge', 'card', 30000, 'succeeded', now() from bookings where booking_number = ${number}`;

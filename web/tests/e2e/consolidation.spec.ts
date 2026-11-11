@@ -127,7 +127,7 @@ test('Admin: each area at most five pages, actions are buttons, Ctrl+K finds eve
   await expect(page.getByTestId('hub-bar')).toHaveAttribute('aria-label', 'Ads');
   // Ctrl+K: a tab of a group, an action and a Visitors tab
   if (!phone()) {
-    for (const [q, href] of [['Add a car for', '/admin/owners/add-car'], ['Visitors: Chat', '/admin/visitors?view=chat'], ['Field pay', '/admin/money/field-pay'], ['Rates for many', '/admin/vehicles/bulk-rates']] as const) {
+    for (const [q, href] of [['Add a car for', '/admin/owners/add-car'], ['Visitors: Chat', '/admin/visitors?view=chat'], ['Payroll', '/admin/money/field-pay'], ['Rates for many', '/admin/vehicles/bulk-rates']] as const) {
       await page.keyboard.press('Control+k');
       await page.getByTestId('admin-jump-input').fill(q);
       // the first line searches the records (the guide: Jump to a page); the page found is the next line

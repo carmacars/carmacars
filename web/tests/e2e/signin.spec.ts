@@ -387,7 +387,8 @@ test('view as matches the person\'s own sign-in: a Sales assistant and a custome
       // (task-<type>, va-reply-<booking>: the kind, not the record); Next up names the lane of the most urgent task, which they change too
       const norm = (t: string) => t.replace(/\s+/g, ' ').replace(/\d+/g, '#').trim();
       const text = (sel: string) => Array.from(document.querySelectorAll(sel)).map((e) => norm((e as HTMLElement).innerText));
-      for (const t of Array.from(document.querySelectorAll('[role="timer"], .pu-timer, .ad-wait, time, [data-testid^="guide-banner"]'))) t.remove();
+      // the townhall's call link (1505) is the person's own (their join counts): never shown while viewing as them
+      for (const t of Array.from(document.querySelectorAll('[role="timer"], .pu-timer, .ad-wait, time, [data-testid^="guide-banner"], [data-testid="townhall-link"]'))) t.remove();
       const kinds = new Set(Array.from(document.querySelectorAll('.ad__main [data-testid]')).map((e) => e.getAttribute('data-testid')!)
         .filter((t) => !t.startsWith('guide-banner')).map((t) => t.replace(/^(va-reply|va-licence|task|booking|row|car)-.*$/, '$1-*')));
       // a count badge on the menu shows only while the count is above 0 (other tests add and close tasks): left out

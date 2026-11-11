@@ -221,6 +221,11 @@ test('renter portal: offer, approve, sign, pay, confirmed, documents, uploads, s
   }
   // coverage option 2 (0071): the card that paid, a credit card in the renter's name; the renter ticks its coverage
   await expect(page.getByTestId('coverage-card')).toContainText('ending 4242');
+  // r35b: the renter names the exact card first (one not on the list: our team checks it), then ticks its coverage
+  await page.getByTestId('card-picker-not-listed').check();
+  await page.getByTestId('card-picker-other').fill('Example Bank Travel Visa');
+  await page.getByTestId('card-picker-other').blur();
+  await expect(page.getByTestId('card-picker-result')).toBeVisible({ timeout: 20_000 });
   await page.getByTestId('coverage-card-tick').check();
   await page.getByTestId('coverage-card-confirm').click();
   await expect(page.getByTestId('coverage-card-confirmed')).toBeVisible({ timeout: 15_000 });

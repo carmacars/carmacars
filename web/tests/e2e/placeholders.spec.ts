@@ -88,7 +88,9 @@ test('placeholder and real rental on one car: the booking pages and the calendar
     }
     // a call another test made in the last minutes shows the caller pop-up to an Admin (0970); on a phone it covers the
     // timeline, so it is closed as a person would
-    for (const x of await page.getByTestId('caller-close').all()) await x.click().catch(() => undefined);
+    // (one at a time, each with a short wait: the cards after a closed one move up, so a list taken first goes stale and a
+    // click on a card that is gone would wait for the whole test)
+    for (let i = 0; i < 10 && await page.getByTestId('caller-close').count(); i++) await page.getByTestId('caller-close').first().click({ timeout: 5_000 }).catch(() => undefined);
     const lane = page.getByTestId(`lane-${plate}`);
     await expect(lane).toBeVisible();
     await expect(lane.getByTestId(`bar-${req}`)).toHaveAttribute('data-clash', real);

@@ -56,6 +56,17 @@ for (const who of ['owner', 'renter'] as const) {
     expect((await sql`select display_name from users where id = ${p.id}`)[0]!.display_name).toBe('Nicky');
     // the legal name is not editable: it is asked for
     await expect(card.getByTestId('sp-legal')).toHaveText(legal);
+    if (who === 'renter') {
+      // r35 UX (1110): a renter changes their own name and date of birth until a licence of theirs is verified
+      await card.getByTestId('ri-open').click();
+      await card.getByTestId('ri-name').fill(next);
+      await card.getByTestId('ri-save').click();
+      await expect(card.getByTestId('ri-msg')).toContainText('Saved.');
+      await expect.poll(async () => (await sql`select full_name from users where id = ${p.id}`)[0]!.full_name, { timeout: 20_000 }).toBe(next);
+      await c.close();
+      await sql.end();
+      return;
+    }
     await card.getByTestId('sp-name-open').click();
     await card.getByTestId('sp-name').fill(next);
     await card.getByTestId('sp-reason').fill('Legal name change');

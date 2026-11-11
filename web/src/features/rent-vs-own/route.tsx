@@ -21,7 +21,8 @@ const pathOf = (p: Page) => `/rent-vs-own/${p.make_slug}/${p.model_slug}/${p.yea
 export async function rvoMeta(make: string, model: string, year: string, city: string | null) {
   const p = await load(make, model, year, city);
   if (!p) return {};
-  const where = p.city ? ` in ${p.city.name}` : ' in Toronto';
+  // the model year's own page names no city (its Toronto page has the same figures and says Toronto): titles stay unique
+  const where = p.city ? ` in ${p.city.name}` : '';
   return seoMeta({ title: `${p.year} ${p.make} ${p.model}: Renting vs Owning${where}`.slice(0, 70), path: pathOf(p),
     description: `What a ${p.year} ${p.make} ${p.model} costs to own each month${where}, line by line with sources, against renting by the month from CarmaCars.`.slice(0, 165) });
 }

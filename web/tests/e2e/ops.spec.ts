@@ -292,6 +292,8 @@ test('change: staff propose a longer trip, the renter signs the amendment and pa
     // a phone opens the agenda by itself; a desktop shows the timeline with an "Agenda" switch
     await expect(desk.getByTestId('master-calendar')).toBeVisible();
     const agenda = desk.getByRole('button', { name: 'Agenda' });
+    // a caller pop-up of another test's call can cover the switch on a phone: it is closed as a person would
+    for (let i = 0; i < 10 && await desk.getByTestId('caller-close').count(); i++) await desk.getByTestId('caller-close').first().click({ timeout: 5_000 }).catch(() => undefined);
     if (await agenda.isVisible()) await agenda.click();
     await desk.getByTestId('cal-agenda').getByRole('button', { name: new RegExp(`Cleaning after booking ${req.booking_number}|cleaning`, 'i') }).first().click();
     await expect(desk.getByTestId('cleaning-block')).toBeVisible();

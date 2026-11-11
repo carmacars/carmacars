@@ -405,7 +405,8 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
                 ['Sales credit', credit ? <SalesCreditLine key="sc" c={credit} booking={b.booking_number} refresh={refresh} /> : '']] as Array<[string, React.ReactNode]> : []),
               ['Ready for handover', b.readiness ? ((b.readiness.missing as string[] | undefined)?.length ? `missing: ${(b.readiness.missing as string[]).map(label).join(', ')}` : 'yes') : '']]} />
           </Card>
-          {can.renterDocs && ['pending_payment', 'confirmed', 'on_rent', 'requested', 'offered'].includes(b.status) && <RenterDocs b={b} refresh={[base]} />}
+          {/* once: a staff member's overview of a request or offer also holds the review view, which has the card already */}
+          {can.renterDocs && !on('review') && ['pending_payment', 'confirmed', 'on_rent', 'requested', 'offered'].includes(b.status) && <RenterDocs b={b} refresh={[base]} />}
           {can.admin && <Card title="Price">
             <dl className="pt-dl pt-dl--money">{b.lines.map((l) => <div key={l.id}><dt>{l.description || label(l.charge_type)} <span className="muted small">{l.stage}</span></dt><dd>{$(l.amount_cents)}</dd></div>)}
               <div><dt><b>Total at booking</b></dt><dd><b>{$(b.total_due_at_booking_cents)}</b></dd></div></dl>

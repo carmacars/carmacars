@@ -278,7 +278,7 @@ test('money: the guided Deposit settlement holds back an amount with its reason 
     await expect(page.getByTestId('deposit-form')).toBeVisible();
     await expect(page.getByTestId('deposit-release')).toContainText('$1,000.00');
     await page.getByLabel('Hold back ($)').fill('200');
-    await page.getByLabel('Why').selectOption('pending_ticket');
+    await page.getByTestId('deposit-form').getByLabel('Why').selectOption('pending_ticket');
     await page.getByLabel('What it is (claim, toll or ticket)').fill('Parking ticket expected from the City');
     await expect(page.getByTestId('deposit-release')).toContainText('$800.00');
     await check(page, 'deposit settlement 1440');

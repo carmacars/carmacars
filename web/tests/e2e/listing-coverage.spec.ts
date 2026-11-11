@@ -101,6 +101,11 @@ test('coverage option 2: the renter who paid with a credit card in their name co
   await page.goto(`/account/bookings/${b.booking_number}/verify`, { waitUntil: 'networkidle' });
   await expect(page.getByTestId('coverage-card')).toContainText('ending 4242');
   await check(page, 'coverage option 2');
+  // r35b: the renter names the exact card first (here one not on the list: our team checks it), then confirms
+  await page.getByTestId('card-picker-not-listed').check();
+  await page.getByTestId('card-picker-other').fill('Example Bank Travel Visa');
+  await page.getByTestId('card-picker-other').blur();
+  await expect(page.getByTestId('card-picker-result')).toBeVisible({ timeout: 20_000 });
   await expect(page.getByTestId('coverage-card-confirm')).toBeDisabled();
   await page.getByTestId('coverage-card-tick').check();
   await page.getByTestId('coverage-card-confirm').click();

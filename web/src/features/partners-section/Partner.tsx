@@ -52,7 +52,8 @@ export async function PartnerView({ userId, base, id }: { userId: string; base: 
               : <InviteRecordButton role="owner" recordId={p.owner_id} email={p.email} name={p.business_name} testId="partner-invite" />}
           </div>}
           {base === '/admin' && p.agreement_status !== 'signed' && <p className="small"><a className="link" href={`${base}/partners/${id}/agreement`} target="_blank" rel="noopener" data-testid="partner-agreement-print">Read the partner agreement</a> as the partner will sign it in the portal.</p>}
-          {p.agreement_document_id && <p className="small"><Link prefetch={false} className="link" href={`${base}/documents/${p.agreement_document_id}`}>Open the signed agreement</Link></p>}
+          {/* the stored files open for an Admin (/admin/documents); the staff route serves none of a partner's (it answered 404) */}
+          {p.agreement_document_id && base === '/admin' && <p className="small"><Link prefetch={false} className="link" href={`${base}/documents/${p.agreement_document_id}`}>Open the signed agreement</Link></p>}
         </Card>
         <Card title="Pricing" testId="partner-pricing" aside={<Act ops action="partner_pricing_save" payload={{ id }} label="Edit pricing" testId="partner-pricing-edit" refresh={refresh} fields={[
             { name: 'discount_bps', label: 'Discount on their listed rates, for our base rate (empty: Program settings)', type: 'percent', value: p.discount_bps },
@@ -118,7 +119,7 @@ export async function PartnerView({ userId, base, id }: { userId: string; base: 
             { key: 'statement_month', label: 'Month', render: (r) => d(r.statement_month) }, { key: 'status', label: 'Status' }, { key: 'payout_cents', label: 'Payout', num: true, render: (r) => $(r.payout_cents) }]} />
           <Table rows={p.payouts} empty="No payouts yet." cols={[{ key: 'created_at', label: 'Created', render: (r) => t(r.created_at) }, { key: 'status', label: 'Status' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }]} />
         </Card>
-        <Card title="Documents"><Table rows={p.documents} empty="No documents." cols={[{ key: 'title', label: 'Title', render: (r) => <Link prefetch={false} className="link" href={`${base}/documents/${String(r.id)}`}>{String(r.title ?? r.kind)}</Link> }, { key: 'created_at', label: 'Added', render: (r) => t(r.created_at) }]} /></Card>
+        <Card title="Documents"><Table rows={p.documents} empty="No documents." cols={[{ key: 'title', label: 'Title', render: (r) => base === '/admin' ? <Link prefetch={false} className="link" href={`${base}/documents/${String(r.id)}`}>{String(r.title ?? r.kind)}</Link> : String(r.title ?? r.kind) }, { key: 'created_at', label: 'Added', render: (r) => t(r.created_at) }]} /></Card>
       </div>
     </>
   );

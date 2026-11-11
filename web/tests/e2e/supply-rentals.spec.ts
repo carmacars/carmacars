@@ -342,6 +342,8 @@ test('manual rental: amounts typed after tax, the total the renter pays, no depo
   const page = await ctx(browser);
   await signIn(page, admin.email, '/admin');
   const car = await addCar(page, 'company', { vin: vin(), plate: plate(), daily: '100' });
+  // 1202: the Protection Plan only for a car with its value on file, under the cap
+  await sql`update vehicles set replacement_value_cents = 3000000 where id = ${car}`;
   const day = (n: number) => new Date(Date.now() + n * 86_400_000).toLocaleDateString('en-CA', { timeZone: 'America/Toronto' });
   const start = async (from: number, to: number) => {
     await page.goto('/admin/bookings/new', { waitUntil: 'networkidle' });

@@ -25,5 +25,5 @@ Migrations 2200 to 2249. Owner requests: messages of 2026-11-08 (AI photos and s
 - Tests: `supabase/tests/99_r36b_social_scheduler.sql`; `web/src/integrations/meta-video.test.ts`.
 
 ## Guides and checks
-- Guides: Admin "Advertising and owner recruitment" (Scheduled posts, Short video, Make the missing angle) and staff "Fleet" (Missing angles and short videos), through `supabase/seed/2240_gen_guides.mjs` into migration 2240.
+- Guides: Admin "Advertising and owner recruitment" (`admin/advertising-and-owner-recruitment`: Scheduled posts, Short video, Make the missing angle) and staff "Fleet" (`va/fleet`: Missing angles and short videos), through `supabase/seed/2240_gen_guides.mjs` into migration 2240.
 - SCHEMA_MARKER 2240. tsc, eslint, all unit tests (1816) and the r36b DB tests (58) plus the cover, ads and admin DB tests they wrap (213 together) pass.

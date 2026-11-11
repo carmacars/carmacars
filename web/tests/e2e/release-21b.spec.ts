@@ -51,78 +51,92 @@ test('the academy: a lesson with captions, a quiz failed then passed, the next s
   await sql`delete from app.rate_limit_hits`;
   const admin = await mkUser(sql, 'admin');
   const cs = await mkUser(sql, 'va', 'cs');
-  const answers = await sql`select q.sort, q.answer, jsonb_array_length(q.options) n from academy_questions q join academy_sections s on s.id = q.section_id where s.slug = 'prices-and-deposits' order by q.sort`;
+  const answers = await sql<Array<{ prompt: string; right: string; wrong: string }>>`select q.prompt, q.options ->> q.answer as right,
+      q.options ->> ((q.answer + 1) % jsonb_array_length(q.options)) as wrong
+    from academy_questions q join academy_sections s on s.id = q.section_id where s.slug = 'prices-and-deposits' order by q.sort`;
+  // 1154: the quiz opens after the section's reading time, in a random order, and a failed try waits 30 minutes; this
+  // test covers the lesson, a failed try and a pass, so those two waits are off for its length (set back at the end)
+  const [safe] = await sql<Array<{ wpm: number; cool: number }>>`select academy_read_wpm wpm, academy_fail_cooldown_minutes cool from program_settings limit 1`;
+  await sql`update program_settings set academy_read_wpm = 0, academy_fail_cooldown_minutes = 0`;
+  try {
 
-  // ---- the staff member
-  const page = await ctx(browser, phone);
-  const errors = watch(page);
-  await signIn(page, cs.email, '/staff');
-  await page.goto('/staff/academy', { waitUntil: 'networkidle' });
-  await expect(page.getByTestId('path-cs')).toBeVisible();
-  await expect(page.getByTestId('section-coverage-and-drivers')).toContainText('Pass the one before');
-  await check(page, 'academy home');
-  await page.getByTestId('section-prices-and-deposits').getByRole('link').click();
-  await page.waitForURL(/\/staff\/academy\/cs\/prices-and-deposits$/);
-  // a lesson: play (captions only in the test browser), step through every scene, watched
-  const player = page.getByTestId('player-0');
-  await player.getByTestId('player-0-play').click();
-  await expect(player.getByTestId('player-0-caption')).not.toContainText('Press Play');
-  await expect(player.getByTestId('player-0-scene')).toContainText('Scene 1 of');
-  await player.getByTestId('player-0-speed').selectOption('1.5');
-  await expect(player.getByTestId('player-0-play')).toHaveText('Pause');
-  await player.getByTestId('player-0-play').click(); // pause
-  await expect(player.getByTestId('player-0-play')).toHaveText('Resume');
-  const n = Number((await player.getByTestId('player-0-scene').innerText()).match(/of (\d+)/)![1]);
-  for (let i = 0; i < n; i++) await player.getByTestId('player-0-next').click();
-  await expect(page.getByTestId('lesson-0')).toContainText('Watched');
-  await expect(player.getByTestId('player-0-progress')).toHaveAttribute('aria-valuenow', '100');
-  await check(page, 'section');
-  // the quiz: all wrong, then right
-  for (const a of answers) await page.getByTestId(`q-${Number(a.sort) - 1}-${(Number(a.answer) + 1) % Number(a.n)}`).check();
-  await page.getByTestId('quiz-submit').click();
-  await expect(page.getByTestId('quiz-result')).toContainText('Not passed yet');
-  await page.getByTestId('quiz-retry').click();
-  for (const a of answers) await page.getByTestId(`q-${Number(a.sort) - 1}-${a.answer}`).check();
-  await page.getByTestId('quiz-submit').click();
-  await expect(page.getByTestId('quiz-result')).toContainText('Passed');
-  await page.getByTestId('quiz-next').click();
-  await page.waitForURL(/\/staff\/academy\/cs\/coverage-and-drivers$/);
-  await expect(page.getByTestId('quiz')).toBeVisible();
-  expect(quiet(errors)).toEqual([]);
+    // ---- the staff member
+    const page = await ctx(browser, phone);
+    const errors = watch(page);
+    await signIn(page, cs.email, '/staff');
+    await page.goto('/staff/academy', { waitUntil: 'networkidle' });
+    await expect(page.getByTestId('path-cs')).toBeVisible();
+    await expect(page.getByTestId('section-coverage-and-drivers')).toContainText('Pass the one before');
+    await check(page, 'academy home');
+    await page.getByTestId('section-prices-and-deposits').getByRole('link').click();
+    await page.waitForURL(/\/staff\/academy\/cs\/prices-and-deposits$/);
+    // a lesson: play (captions only in the test browser), step through every scene, watched
+    const player = page.getByTestId('player-0');
+    await player.getByTestId('player-0-play').click();
+    await expect(player.getByTestId('player-0-caption')).not.toContainText('Press Play');
+    await expect(player.getByTestId('player-0-scene')).toContainText('Scene 1 of');
+    await player.getByTestId('player-0-speed').selectOption('1.5');
+    await expect(player.getByTestId('player-0-play')).toHaveText('Pause');
+    await player.getByTestId('player-0-play').click(); // pause
+    await expect(player.getByTestId('player-0-play')).toHaveText('Resume');
+    const n = Number((await player.getByTestId('player-0-scene').innerText()).match(/of (\d+)/)![1]);
+    for (let i = 0; i < n; i++) await player.getByTestId('player-0-next').click();
+    await expect(page.getByTestId('lesson-0')).toContainText('Watched');
+    await expect(player.getByTestId('player-0-progress')).toHaveAttribute('aria-valuenow', '100');
+    await check(page, 'section');
+    // the quiz (questions in a random order, found by their prompt): all wrong, then right
+    const quiz = page.getByTestId('quiz');
+    const answer = async (pick: 'right' | 'wrong') => {
+      await quiz.getByTestId('quiz-start').click();
+      for (const a of answers) await quiz.locator('fieldset', { has: page.locator('legend', { hasText: a.prompt }) }).getByLabel(a[pick], { exact: true }).check();
+      await page.getByTestId('quiz-submit').click();
+    };
+    await answer('wrong');
+    await expect(page.getByTestId('quiz-result')).toContainText('Not passed yet');
+    await page.getByTestId('quiz-retry').click();
+    await answer('right');
+    await expect(page.getByTestId('quiz-result')).toContainText('Passed');
+    await page.getByTestId('quiz-next').click();
+    await page.waitForURL(/\/staff\/academy\/cs\/coverage-and-drivers$/);
+    await expect(page.getByTestId('quiz')).toBeVisible();
+    expect(quiet(errors)).toEqual([]);
 
-  // ---- Admin: progress, Open early, the editor, and the "i"
-  const ap = await ctx(browser, phone);
-  const aerr = watch(ap);
-  await signIn(ap, admin.email, '/admin');
-  await ap.goto('/admin/academy', { waitUntil: 'networkidle' });
-  // the customer service path grows as sections are added (0731, 0802): count it rather than fix a number
-  const csSections = (await sql<Array<{ n: number }>>`select count(*)::int n from academy_path_sections where path_code = 'cs'`)[0]!.n;
-  await expect(ap.getByTestId('academy-staff').locator('tr', { hasText: cs.name })).toContainText(`1 of ${csSections}`);
-  // the "i": a button with its name; a click or a tap opens it, Escape closes it and gives the focus back
-  const tip = ap.getByRole('button', { name: 'About the academy gate' });
-  await (phone ? tip.tap() : tip.click());
-  await expect(ap.getByRole('tooltip')).toContainText('On (the default)');
-  await check(ap, 'admin academy');
-  await ap.keyboard.press('Escape');
-  await expect(ap.getByRole('tooltip')).toHaveCount(0);
-  await expect(tip).toBeFocused();
-  await ap.goto(`/admin/academy/staff/${cs.id}`, { waitUntil: 'networkidle' });
-  await ap.getByTestId('unlock-cs-requests').click();
-  await ap.getByRole('dialog').getByLabel('Reason').fill('Two years of rental desk work');
-  await ap.getByTestId('unlock-cs-requests-submit').click();
-  await expect(ap.getByTestId('ap-cs')).toContainText('Opened early');
-  await check(ap, 'admin academy person');
-  const [sec] = await sql`select id from academy_sections where slug = 'commission'`;
-  await ap.goto(`/admin/academy/sections/${sec!.id}`, { waitUntil: 'networkidle' });
-  await expect(ap.getByTestId('qe-1')).toContainText('(right answer)');
-  await check(ap, 'academy editor');
-  expect(quiet(aerr)).toEqual([]);
+    // ---- Admin: progress, Open early, the editor, and the "i"
+    const ap = await ctx(browser, phone);
+    const aerr = watch(ap);
+    await signIn(ap, admin.email, '/admin');
+    await ap.goto('/admin/academy', { waitUntil: 'networkidle' });
+    // the customer service path grows as sections are added (0731, 0802): count it rather than fix a number
+    const csSections = (await sql<Array<{ n: number }>>`select count(*)::int n from academy_path_sections where path_code = 'cs'`)[0]!.n;
+    await expect(ap.getByTestId('academy-staff').locator('tr', { hasText: cs.name })).toContainText(`1 of ${csSections}`);
+    // the "i": a button with its name; a click or a tap opens it, Escape closes it and gives the focus back
+    const tip = ap.getByRole('button', { name: 'About the academy gate' });
+    await (phone ? tip.tap() : tip.click());
+    await expect(ap.getByRole('tooltip')).toContainText('On (the default)');
+    await check(ap, 'admin academy');
+    await ap.keyboard.press('Escape');
+    await expect(ap.getByRole('tooltip')).toHaveCount(0);
+    await expect(tip).toBeFocused();
+    await ap.goto(`/admin/academy/staff/${cs.id}`, { waitUntil: 'networkidle' });
+    await ap.getByTestId('unlock-cs-requests').click();
+    await ap.getByRole('dialog').getByLabel('Reason').fill('Two years of rental desk work');
+    await ap.getByTestId('unlock-cs-requests-submit').click();
+    await expect(ap.getByTestId('ap-cs')).toContainText('Opened early');
+    await check(ap, 'admin academy person');
+    const [sec] = await sql`select id from academy_sections where slug = 'commission'`;
+    await ap.goto(`/admin/academy/sections/${sec!.id}`, { waitUntil: 'networkidle' });
+    await expect(ap.getByTestId('qe-1')).toContainText('(right answer)');
+    await check(ap, 'academy editor');
+    expect(quiet(aerr)).toEqual([]);
 
-  // the early opening reaches the staff member
-  await page.goto('/staff/academy', { waitUntil: 'networkidle' });
-  await expect(page.getByTestId('section-cs-requests')).toContainText('Opened by an Admin');
-  await page.context().close(); await ap.context().close();
-  await sql.end();
+    // the early opening reaches the staff member
+    await page.goto('/staff/academy', { waitUntil: 'networkidle' });
+    await expect(page.getByTestId('section-cs-requests')).toContainText('Opened by an Admin');
+    await page.context().close(); await ap.context().close();
+  } finally {
+    await sql`update program_settings set academy_read_wpm = ${safe!.wpm}, academy_fail_cooldown_minutes = ${safe!.cool}`;
+    await sql.end();
+  }
 });
 
 test('the referral partner sign-up: the address lookup fills the street, the city and the postal code', async ({ browser }, info) => {
@@ -277,6 +291,8 @@ test('After tax saved on this device: a request\'s review changes nothing, and t
       and app.vehicle_is_available(v.id, ${`${from}T10:00:00-04:00`}::timestamptz - interval '1 day', ${`${to}T10:00:00-04:00`}::timestamptz + interval '1 day', null)
     order by random() limit 1`;
   expect(car, 'a free car').toBeTruthy();
+  // 1202: the Protection Plan (coverage option 3) only for a car with its value on file (the sample cars have none)
+  await sql`update vehicles set replacement_value_cents = coalesce(replacement_value_cents, 3000000) where id = ${car!.id}`;
   const req = {
     request_key: randomUUID(), vehicle_id: car!.id, pickup_at: `${from}T10:00:00-04:00`, return_at: `${to}T10:00:00-04:00`, booking_type: 'standard',
     pickup_method: 'collected', return_method: 'returned', pickup_location: { kind: 'our_location' }, return_location: { kind: 'our_location' }, coverage_option: 3, extras: {},
@@ -381,6 +397,8 @@ test('deposit link by text: the job texts the hold link before pickup; the Money
       and app.vehicle_is_available(v.id, ${`${from}T10:00:00-04:00`}::timestamptz - interval '1 day', ${`${to}T10:00:00-04:00`}::timestamptz + interval '1 day', null)
     order by random() limit 1`;
   test.skip(!car, 'no free car in two days');
+  // 1202: the Protection Plan (coverage option 3) only for a car with its value on file (the sample cars have none)
+  await sql`update vehicles set replacement_value_cents = coalesce(replacement_value_cents, 3000000) where id = ${car!.id}`;
   const req = {
     request_key: randomUUID(), vehicle_id: car!.id, pickup_at: `${from}T10:00:00-04:00`, return_at: `${to}T10:00:00-04:00`, booking_type: 'standard',
     pickup_method: 'collected', return_method: 'returned', pickup_location: { kind: 'our_location' }, return_location: { kind: 'our_location' }, coverage_option: 3, extras: {},

@@ -38,10 +38,11 @@ export function CardPicker({ number, cards, pick, vehicleClass, rentalDays }: {
         <p className="small muted" id={`${id}-hint`}>Pick the exact card. We check its rental car coverage against this car and these dates.</p>
       </div>
       {!notListed && (
-        <ul className="stack" role="listbox" aria-label="Cards" data-testid="card-picker-list" style={{ listStyle: 'none', padding: 0, margin: 0, gap: 'var(--s-1)' }}>
+        <ul className="stack" aria-label="Cards" data-testid="card-picker-list" style={{ listStyle: 'none', padding: 0, margin: 0, gap: 'var(--s-1)' }}>
           {found.map((c) => (
-            <li key={c.id} role="option" aria-selected={chosen?.id === c.id}>
-              <button type="button" className={`btn btn--sm ${chosen?.id === c.id ? 'btn--primary' : 'btn--ghost'}`} onClick={() => choose({ id: c.id, label: cardName(c) })}
+            // a list of buttons (a button inside role="option" is nested-interactive): the chosen one is pressed
+            <li key={c.id}>
+              <button type="button" aria-pressed={chosen?.id === c.id} className={`btn btn--sm ${chosen?.id === c.id ? 'btn--primary' : 'btn--ghost'}`} onClick={() => choose({ id: c.id, label: cardName(c) })}
                 disabled={pending} data-testid="card-picker-option">{cardName(c)}</button>
             </li>))}
           {found.length === 0 && <li className="small muted">No card matches. Try fewer words, or say your card is not listed.</li>}

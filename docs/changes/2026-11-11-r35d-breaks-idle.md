@@ -24,3 +24,7 @@ migration is edited: `app.va_clock_state`, `app.va_clock_out`, `app.va_timesheet
 | Pauses | `app.va_pause`: a call linked to the person (Quo user on `staff_profiles.quo_user_id`, set by an Admin on the timesheet; the Call button; a note in the caller pop-up) while active and `va_idle_call_grace_minutes` (1) after; the townhall for those who joined or were present, to its end plus `va_idle_townhall_grace_minutes` (10) |
 | Reports | `staff_idle_periods`: the Admins' timesheet per person and day, and "Idle minutes" on the KPIs against `kpi_idle_minutes_week` (120). RLS: Admins only; Finance's timesheet has no idle time |
 | The person | One line on the clock card that activity is noted (the fact only) and "Still there?" after `va_idle_nudge_minutes` (8) |
+
+## Guides
+
+`va/your-workday` (Start and End break, the inactivity reminder), `admin/people-and-access` (breaks on the timesheet, the inactivity record), through `1829_r35d_guides.sql`.

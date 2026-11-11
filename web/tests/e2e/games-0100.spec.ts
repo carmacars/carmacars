@@ -308,7 +308,9 @@ test('0176: Play again once a day: used today, the pop-up offers only the code; 
   const rows = await sql`select c.play_id, pc.percent_bps from game_claims c join promo_codes pc on pc.id = c.promo_code_id where c.email = ${email}`;
   expect(rows[0]!.play_id).toBe(saved);
   expect(rows[0]!.percent_bps).toBe(5000);
-  expect((await sql`select count(*)::int n from game_plays where visitor_id = ${vid} and again_of is not null and dropped_at is null and claimed_at is null`)[0]!.n).toBe(0);
+  // (an "another go" won by Play again is used up by its second game: it is never a prize to claim, so it is not counted)
+  expect((await sql`select count(*)::int n from game_plays where visitor_id = ${vid} and again_of is not null and dropped_at is null and claimed_at is null
+                      and not app.game_prize_is_replay(prize)`)[0]!.n).toBe(0);
   await next.context().close();
   await sql.end();
 });

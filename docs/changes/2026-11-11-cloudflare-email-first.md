@@ -38,3 +38,7 @@ by priority, what today's budgets cannot send.
 
 Tests: `supabase/tests/99_r35_email_cloudflare_first.sql` (status from the last 48 hours, no hourly hold, the 101st
 email through Resend, the 191st and 201st held by priority, the month never past 3,000, Resend only after an error).
+
+## Guides
+
+`admin/settings` (Settings > Usage: the day's email capacity, Cloudflare first, then Resend).

@@ -90,6 +90,8 @@
 .pt--rv .pu-stat--lg .pu-stat__value { font-size: clamp(1.4rem, 18cqi, 3.25rem); }
 .pt--rv .pu-stat--tile .pu-stat__value { font-size: 1.0625rem; white-space: normal; overflow-wrap: break-word; }
 .pt--rv .pu-doc__amount, .pt--rv .pu-tl__amount, .pt--rv .pu-trip__total, .pt--rv .pu-mc__num, .pt--rv .ow-amount, .pt--rv .iv-inv__amount, .pt--rv .pt-total, .pt--rv td.num, .pt--rv .num { white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* an amount's note (the payout date beside the expected payout) wraps under it on a phone, never past the edge */
+.pt--rv .pt-total > .small { white-space: normal; }
 /* the owner hero's four figures: two by two beside the cars */
 .pt--rv .pu-hero__stats:has(> :nth-child(4)) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 

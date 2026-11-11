@@ -190,6 +190,9 @@ test('renter: a rental already underway with a payment link: sign in the portal,
   const [made] = await sql`select app.manual_rental_create(${admin.id}, ${sql.json({ vehicle_id: carId, pickup_at: fromNow(-6).toISOString(), return_at: fromNow(72).toISOString(),
     source: 'phone', coverage_option: 1, renter_id: rid!.id as string, payment: { mode: 'link' } })}) as r`;
   const number = (made!.r as { booking_number: string }).booking_number;
+  // 1401: OPCF 27 needs its pink slip and endorsement before the payment; here the office has checked the policy already
+  await sql`insert into coverage_proofs (booking_id, coverage_option, status, confirmed_at, insurer_name, policy_number, policy_expiry)
+            select id, 1, 'confirmed', now(), 'Example Mutual', 'POL-E2E-1', current_date + 365 from bookings where booking_number = ${number}`;
   const page = await ctx(browser);
   await signIn(page, renter.email, '/account');
   await page.goto(`/account/bookings/${number}`, { waitUntil: 'networkidle' });

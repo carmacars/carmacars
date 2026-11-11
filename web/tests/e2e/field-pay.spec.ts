@@ -107,21 +107,23 @@ test('field pay: clock in and out on the phone, Fleet sees the hours, an Admin r
   await signIn(ap, admin.email, '/admin');
   await ap.goto(`/admin/money/field-pay?date=${prev}`, { waitUntil: 'networkidle' });
   await expect(ap.getByTestId('pay-note')).toContainText('accountant');
-  await expect(ap.getByTestId('pay-lines')).toContainText('Bob Hours');
+  // r35c (1503): one payroll for everyone; its lines are made when it is started
+  await expect(ap.getByTestId('pay-lines-empty')).toContainText('Start the payroll to see each person');
   await check(ap, 'pay run, not started');
   await ap.getByTestId('run-start').click();
   await expect(ap.getByTestId('run-approve')).toBeVisible({ timeout: 30_000 });
+  await expect(ap.getByTestId('pay-lines')).toContainText('Bob Hours');
   await expect(ap.getByTestId('pay-lines')).toContainText('8 h 30 min');
   await expect(ap.getByTestId('pay-lines')).toContainText('$153.00');
   await ap.getByTestId('run-approve').click();
   await ap.getByTestId('run-approve-submit').click();
   // the approval re-makes the lines (new ids): read them only once the run shows as approved
-  await expect(ap.getByTestId('pay-run')).toContainText('Pay run: approved', { timeout: 30_000 });
+  await expect(ap.getByTestId('pay-run')).toContainText('Payroll: approved', { timeout: 30_000 });
   const [line] = await sql`select l.id from field_pay_lines l join field_pay_runs r on r.id = l.run_id where l.staff_id = ${bob.id} and r.period_start = ${prev}::date and r.status <> 'void'`;
   await expect(ap.getByTestId(`pay-${line!.id}`)).toBeVisible({ timeout: 30_000 });
   await expect(ap.getByTestId(`statement-${line!.id}`)).toContainText('PS-');
   await ap.getByTestId(`pay-${line!.id}`).click();
-  await ap.getByLabel(/^Reference/).fill('CAFP-E2E-1');
+  await ap.getByRole('dialog').getByLabel(/^Reference/).fill('CAFP-E2E-1');
   await ap.getByTestId(`pay-${line!.id}-submit`).click();
   await expect(ap.getByTestId('pay-lines')).toContainText('CAFP-E2E-1', { timeout: 30_000 });
   await check(ap, 'pay run, paid');
