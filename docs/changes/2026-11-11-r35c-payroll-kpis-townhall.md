@@ -22,3 +22,13 @@ sends when all of these hold:
 3. The send-outbox function has `LINK_SIGNING_KEY` (the site's key) and `APP_URL`; without the key it never tries Cloudflare.
 4. Program settings: `cf_email_enabled` on (default on).
 5. After the next send, Admin > Settings > Usage shows "Cloudflare Email Service sends them" and the figure reads "of 300".
+
+## Staff schedules (item 3): `1502_r35c_staff_schedules.sql`
+
+| Item | What changed |
+| --- | --- |
+| Table | `staff_schedules`: a role default (`user_id` null, one per role) or a person's own (Admin only); ISO `weekdays`, `month_days`, `start_time`/`end_time` (Toronto, same day), `extra_days_per_week`, `starts_on`. Seeded role defaults, no names: cs 1,3,4,5,6,7 08:00-18:00; finance 1,3,5 + 10th, 15th, 10:00-19:00, 1 extra day, from 2026-11-11; fleet 1-6 11:00-21:00 |
+| Rules | `app.staff_shifts_on`, `app.staff_on_shift`, `app.staff_day_status` (late after `staff_late_grace_minutes`, 10; absent once the day's hours are over); `app.va_clock_start` (the clock-in reminder) now starts from the schedule; `app.staff_alert_users` (on duty) also reaches a person clocked in within their scheduled hours |
+| Door | `staff_schedules` (ops_read: everyone sees the role defaults, their own week and the duty board; Admin also everyone's own), `staff_schedule_save`, `staff_schedule_clear` (Admin) |
+| Web | Admin > Team > Schedules (`/admin/schedules`), staff Hours > Schedule (`/staff/schedule`), `features/staff-schedule` |
+| Tests | `supabase/tests/99_r35c_staff_schedules.sql`, `web/src/features/staff-schedule/model.test.ts` |

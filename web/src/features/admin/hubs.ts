@@ -49,7 +49,9 @@ export const ADMIN_HUBS: Hub[] = [
     { href: '/admin/settings/staff', label: 'Staff and roles' }, { href: '/admin/academy', label: 'Academy' },
     { href: '/admin/hiring', label: 'Hiring' }, { href: '/admin/portals', label: 'Portals and view as' },
     // r35 part K: the office staff's hours and the weekly townhall
-    { href: '/admin/timesheet', label: 'Timesheet' }, { href: '/admin/townhall', label: 'Townhall' }] },
+    { href: '/admin/timesheet', label: 'Timesheet' }, { href: '/admin/townhall', label: 'Townhall' },
+    // r35 part C (1502, 1504): the schedules and the role KPIs
+    { href: '/admin/schedules', label: 'Schedules' }, { href: '/admin/kpis', label: 'KPIs' }] },
   { key: 'ads', label: 'Ads', tabs: [
     { href: '/admin/marketing/listings', label: 'Ad listings' }, { href: '/admin/marketing/ads', label: 'Posted ads' }, { href: '/admin/marketing/social', label: 'Social drafts' }] },
   { key: 'channels', label: 'Channels', tabs: [{ href: '/admin/marketing/channels', label: 'Listing channels' }, { href: '/admin/marketing/report', label: 'Bookings by channel' }] },
@@ -83,7 +85,8 @@ export const STAFF_HUBS: Hub[] = [
   { key: 'numbers', label: 'My numbers', tabs: [{ href: '/staff/scorecard', label: 'Scorecard', fns: 'cs fleet finance sales' }, { href: '/staff/my-sales', label: 'My sales', fns: 'cs fleet finance sales' },
     { href: '/staff/sales-start', label: 'Do sales too', fns: 'finance' }] },
   // 1061: the hours of the office staff
-  { key: 'hours', label: 'Hours', tabs: [{ href: '/staff/hours', label: 'My hours', fns: 'cs fleet finance' }, { href: '/staff/timesheet', label: 'Timesheet', fns: 'finance' }] }
+  { key: 'hours', label: 'Hours', tabs: [{ href: '/staff/hours', label: 'My hours', fns: 'cs fleet finance' }, { href: '/staff/schedule', label: 'Schedule', fns: 'cs fleet finance sales' },
+    { href: '/staff/timesheet', label: 'Timesheet', fns: 'finance' }, { href: '/staff/payroll', label: 'Payroll', fns: 'finance' }] }
 ];
 
 /** A person's page groups: only the tabs of the functions they hold, and only groups left with a tab. */
