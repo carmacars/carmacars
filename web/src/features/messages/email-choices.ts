@@ -17,7 +17,8 @@ export interface Conversation {
   messages: Array<{ id: string; direction: 'inbound' | 'outbound'; channel: string; subject: string | null; body: string | null; at: string; by: string; from: string | null; to: string | null; adjuster: boolean }>;
   emails: Array<{ id: string; code: string; subject: string; to: string | null; audience: string; from: string | null; status: string; reason: string | null; at: string; sent_at: string | null }>;
   quick_replies: Array<{ id: string; title: string; body: string }>;
-  usage: { total: number; cap: number; cf_state?: string | null; cf_counted?: boolean | null; cf_budget?: number | null; resend_budget?: number | null };
+  usage: { total: number; cap: number; cf_state?: string | null; cf_counted?: boolean | null; cf_budget?: number | null; resend_budget?: number | null;
+    capacity?: number | null; limited_by?: string | null; cf_reason?: string | null; setting?: number | null };
 }
 
 export const SENDERS: Record<Sender, { label: string; address: string }> = {
@@ -70,7 +71,7 @@ export function usageLine(u: Conversation['usage']): { text: string; warn: boole
   const tail = warn ? 'Close to the limit: an email past it waits until midnight.' : 'Messages to renters go before digests and marketing.';
   // r35 (0900): with the pace read's budgets the line says why the cap is that number
   if (typeof u.cf_budget === 'number' && typeof u.resend_budget === 'number') {
-    return { text: `${emailBudgetLine({ used: u.total, cap: u.cap, cf_state: u.cf_state, cf_counted: u.cf_counted, cf_budget: u.cf_budget, resend_budget: u.resend_budget })}. ${tail}`, warn };
+    return { text: `${emailBudgetLine({ used: u.total, cap: u.cap, cf_state: u.cf_state, cf_counted: u.cf_counted, cf_budget: u.cf_budget, resend_budget: u.resend_budget, capacity: u.capacity, limited_by: u.limited_by, cf_reason: u.cf_reason, setting: u.setting })}. ${tail}`, warn };
   }
-  return { text: `${u.total} of ${u.cap} emails used today. ${tail}`, warn };
+  return { text: `${u.total} of ${u.cap} emails sent today (the day's sending limit). ${tail}`, warn };
 }

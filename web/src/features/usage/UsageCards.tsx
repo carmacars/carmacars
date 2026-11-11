@@ -3,7 +3,7 @@ import Link from '@/components/Link';
 import { door } from '@/server/door';
 import { Act } from '@/features/admin/Act';
 import { t } from '@/features/admin/ui';
-import { CF_EMAIL_STEPS, emailBudgetLine, CF_EMAIL_STEPS_HREF, PAUSE, bannerLine, bannerTone, cfEmailSentence, noteLine, paidCost, share, shortLabel, usd, usedUpTitle, type BannerRow, type CfEmail, type ServiceState } from './model';
+import { CF_EMAIL_STEPS, emailBudgetLine, paceBudget, CF_EMAIL_STEPS_HREF, PAUSE, bannerLine, bannerTone, cfEmailSentence, noteLine, paidCost, share, shortLabel, usd, usedUpTitle, type BannerRow, type CfEmail, type ServiceState } from './model';
 import { UsageAllow } from './UsageAllow';
 
 // The usage guard on Admin > To do (migration 0080): one quiet card at 80% of an included allowance, one card when it is
@@ -93,10 +93,11 @@ export function UsageBannerView({ rows }: { rows: BannerRow[] }) {
 
 /** Settings > Usage: whether Cloudflare Email Service sends the outbox, and the exact steps when it does not (0320). */
 /** r29 (0583): the day's emails against the one daily cap, and the hour's pace */
-export interface EmailPace { day_cap: number; day_used: number; hour_cap: number; hour_used: number; cf_ever_sent: boolean; setting: number; cf_budget: number; resend_budget: number; waiting: number; cf_state?: string; cf_counted?: boolean }
+export interface EmailPace { day_cap: number; day_used: number; hour_cap: number; hour_used: number; cf_ever_sent: boolean; setting: number; cf_budget: number; resend_budget: number; waiting: number; cf_state?: string; cf_counted?: boolean;
+  capacity?: number; limited_by?: string; cf_reason?: string | null }
 /** r35 (0900): the same plain line as the booking page's email box (emailBudgetLine), then the hour's pace */
 export function paceLine(p: EmailPace): string {
-  return `Today: ${emailBudgetLine({ used: p.day_used, cap: p.day_cap, cf_state: p.cf_state, cf_counted: p.cf_counted ?? p.cf_ever_sent, cf_budget: p.cf_budget, resend_budget: p.resend_budget })}. This hour: ${p.hour_used} of ${p.hour_cap}.${p.waiting ? ` ${p.waiting} waiting: they go out at that pace, the rest tomorrow.` : ''}`;
+  return `Today: ${emailBudgetLine(paceBudget(p))}. This hour: ${p.hour_used} of ${p.hour_cap}.${p.waiting ? ` ${p.waiting} waiting: they go out at that pace, the rest tomorrow.` : ''}`;
 }
 
 export async function EmailSetup({ userId }: { userId: string }) {

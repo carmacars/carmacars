@@ -7,3 +7,18 @@ Branch `r35-c`. No applied migration is edited.
 | Item | What changed |
 | --- | --- |
 | Car change list (item 7) | `1500_r35c_change_vehicles_fix.sql`: `app.ops40` 'change_vehicles' read failed with `column reference "b.id" is ambiguous` (the query's alias `b` clashed with the function's variable `b bookings`), so the list was always empty. The booking is now read into the variable first and the query has no alias `b`. Test: `supabase/tests/99_r35c_change_vehicles.sql` |
+| Email figure (item 8) | `1501_r35c_email_capacity.sql`. Why 100: `app.email_day_cap` counts Cloudflare's budget (`notify_cf_daily_budget` 200) only once Cloudflare Email Service has sent (`app.cf_email_counted`); until then the cap is Resend's own (`notify_resend_daily_budget` 100, the free plan). The sending cap is unchanged (the claim must not take emails no provider can send); `app.email_pace` and the booking email box now also carry `capacity` (Cloudflare + Resend, at most `notify_daily_cap`), `limited_by` (`combined`, `resend_only`, `setting`) and `cf_reason` (off, no EMAIL binding, refused with its error, never sent). Web: `emailBudgetLine`, `emailCapShort`, `paceBudget` (features/usage/model.ts) on Admin overview, Logs > Emails, Usage and the booking email box; the settings labels name each budget. Test: `supabase/tests/99_r35c_email_capacity.sql`, `web/src/features/usage/usage.test.ts` |
+
+### Cloudflare Email: what the owner or integrator must verify
+
+The code is complete: the send-outbox function posts each email to `/api/email/send`, which sends through the Worker's `EMAIL`
+binding and records each success or refusal (`server_cf_email_result`); Resend takes any email Cloudflare refuses. It only
+sends when all of these hold:
+
+1. GitHub > Settings > Secrets and variables > Actions > Variables: `CF_EMAIL_BINDING` = `1` (the deploy then adds
+   `"send_email": [{ "name": "EMAIL" }]` to wrangler.jsonc; the deploy annotation says "EMAIL binding added").
+2. Cloudflare dashboard: Email Service (Email Sending) enabled on the account with `carmacars.ca` onboarded as a sending
+   domain (its DNS records verified), so the binding may send from the site's From addresses.
+3. The send-outbox function has `LINK_SIGNING_KEY` (the site's key) and `APP_URL`; without the key it never tries Cloudflare.
+4. Program settings: `cf_email_enabled` on (default on).
+5. After the next send, Admin > Settings > Usage shows "Cloudflare Email Service sends them" and the figure reads "of 300".

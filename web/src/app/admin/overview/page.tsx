@@ -6,6 +6,7 @@ import { door } from '@/server/door';
 import { $, ago, BookingLink, Card, PageHead, t, Tiles, label } from '@/features/admin/ui';
 import { TeamSales, type Team } from '@/features/va/TeamSales';
 import type { EmailPace } from '@/features/usage/UsageCards';
+import { emailCapShort, paceBudget } from '@/features/usage/model';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Overview', path: '/admin/overview', noindex: true, description: 'Money, fleet, approvals and queues at a glance.' });
@@ -114,7 +115,7 @@ export default async function AdminOverview({ searchParams }: { searchParams: Pr
               <li><Link prefetch={false} className="link" href="/admin/listings">Listings</Link><span>{d.approvals.listings}</span></li>
               <li><Link prefetch={false} className="link" href="/admin/tolls">Tolls to match</Link><span>{d.approvals.tolls}</span></li>
             </ul>
-            <p className="small muted" data-testid="email-use">Email sent today: {pace ? `${pace.day_used} of ${pace.day_cap}` : d.email_cap ? `${d.email_today} of ${d.email_cap}` : `${d.email_today} (your daily email limit is in Program settings)`}{d.email ? ` (${d.email.auth} sign-in emails)` : ''}. <Link prefetch={false} className="link" href="/admin/messages">Email</Link></p>
+            <p className="small muted" data-testid="email-use">Email sent: {pace ? emailCapShort(paceBudget(pace)) : d.email_cap ? `${d.email_today} of ${d.email_cap}` : `${d.email_today} (your daily email limit is in Program settings)`}{d.email ? ` (${d.email.auth} sign-in emails)` : ''}. <Link prefetch={false} className="link" href="/admin/messages">Email</Link></p>
           </Card>
         </div>
       </div>

@@ -102,3 +102,15 @@ test('email budget: only Resend while Cloudflare is not set up, and what Cloudfl
   assert.match(emailBudgetLine({ used: 5, cap: 80, cf_state: 'failing', cf_counted: false, cf_budget: 150, resend_budget: 80 }), /refused the last emails/);
   assert.equal(emailBudgetLine({ used: 1, cap: 2 }), '1 of 2 today');
 });
+
+// r35 part C (1501): the figure says why it is 100, and what both providers give together
+test('email capacity: Resend only says the reason and the combined capacity; the setting is named when it is the limit', async () => {
+  const { emailBudgetLine, emailCapShort, paceBudget } = await import('./model.ts');
+  const p = { day_used: 12, day_cap: 100, cf_state: 'absent', cf_counted: false, cf_ever_sent: false, cf_budget: 200, resend_budget: 100, capacity: 300, limited_by: 'resend_only',
+    cf_reason: 'The site has no Cloudflare EMAIL binding yet', setting: 300 };
+  assert.equal(emailCapShort(paceBudget(p)), '12 of 100 today (Resend only; 300 with Cloudflare)');
+  assert.equal(emailBudgetLine(paceBudget(p)), "12 of 100 today: Resend's 100 only, because the site has no Cloudflare EMAIL binding yet; with Cloudflare's 200 it is 300 a day");
+  assert.equal(emailCapShort(paceBudget({ ...p, day_cap: 300, cf_counted: true, limited_by: 'combined', cf_reason: null })), '12 of 300 today (Cloudflare + Resend)');
+  assert.match(emailBudgetLine(paceBudget({ ...p, day_cap: 150, cf_counted: true, limited_by: 'setting', cf_reason: null, setting: 150 })), /limit in Program settings is 150; Cloudflare 200 \+ Resend 100 could send 300\)$/);
+  assert.equal(emailCapShort({ used: 1, cap: 2 }), '1 of 2 today');
+});
