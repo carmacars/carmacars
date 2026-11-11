@@ -167,6 +167,7 @@ select test.eq('academy: a passed quiz is a line of the Admin digest, never a pu
   (select count(*) from staff_digest_items where line like 'Quiz passed: %' and line like '%Field%') || '/' || (select count(*) from notifications where code = 'staff_alert_digest' and user_id = test.id('sta_admin') and title like 'Quiz passed:%'), '1/1');
 
 -- ================================================================ 0465: every alert with data is wired (a sample of each group)
+update chat_staff_prefs set last_seen_at = now() where user_id in (test.id('sta_fleet'), test.id('sta_vtest'));  -- on duty means seen lately: kept fresh on a slow machine
 update program_settings set alert_burst_count = 50;
 create or replace function test.sta_at(p interval) returns text language sql stable as $$ select to_char((now() + p) at time zone 'America/Toronto', 'YYYY-MM-DD HH24:MI') $$;
 select test.mk_vehicle('sta_car2', 'sta_owner');
@@ -198,6 +199,7 @@ select app.process_events(1000);
 select test.eq('bookings: extension asked and change asked reach the Admin',
   test.sta_who('staff_alert_normal', 'Extension asked: CC-SA010%') || '/' || test.sta_who('staff_alert_normal', 'Change asked: CC-SA010%'), 'sta_admin/sta_admin');
 -- money: a deposit hold failed and a card declined near the pickup are urgent
+update chat_staff_prefs set last_seen_at = now() where user_id in (test.id('sta_fleet'), test.id('sta_vtest'));  -- on duty means seen lately: kept fresh on a slow machine
 insert into deposits (id, booking_id, amount_cents, method, status) select test.id('sta_dep'), id, 100000, 'card_hold', 'pending' from bookings where booking_number = 'CC-SA010';
 update deposits set status = 'failed' where id = test.id('sta_dep');
 insert into payments (id, booking_id, renter_id, purpose, kind, method, amount_cents, status)
@@ -275,6 +277,7 @@ select app.process_events(1000);
 select test.eq('test accounts: a test renter''s booking makes no alert', (select count(*) from app_events where code like 'staff\_alert\_%' and entity_id = test.id('booking:CC-SA012')), 0::bigint);
 
 -- ================================================================ 0466: quiet hours, focus, device topics, buttons, snooze, escalation, grouping
+update chat_staff_prefs set last_seen_at = now() where user_id in (test.id('sta_fleet'), test.id('sta_vtest'));  -- on duty means seen lately: kept fresh on a slow machine
 -- fleet is "on duty" when seen in the last chat_shift_minutes (15): seen now again, so this section does not depend on how
 -- long the sections above took to run (a slow run passed the 15 minutes and fleet got none of these alerts)
 update chat_staff_prefs set last_seen_at = now() where user_id = test.id('sta_fleet');
