@@ -22,6 +22,7 @@ export function LeadPage({ d, base, chatHref }: { d: LeadDetail; base: string; c
           <Kv rows={[['Name', d.name ?? ''], ['Phone', d.phone ?? <span className="muted">none</span>], ['Email', d.email ?? <span className="muted">none</span>], ['Source', <b key="s" data-testid="lead-source">{d.source}</b>],
             ...(d.vehicle ? [['Car', d.vehicle] as [string, string]] : []), ...(d.value_cents ? [['Value', $(d.value_cents)] as [string, string]] : []),
             ...(d.assigned_name ? [['Assigned to', d.assigned_name] as [string, string]] : []),
+            ...(d.helped_by?.length ? [['Helped by', <span key="hb" data-testid="lead-helped-by">{d.helped_by.map((h) => `${h.name} (${h.what.join(', ')})`).join('; ')}</span>] as [string, React.ReactNode]] : []),
             ...(d.outcome ? [['Outcome', `${OUTCOME_LABEL[d.outcome]}${d.outcome_reason ? `: ${d.outcome_reason}` : ''}${d.outcome_by ? ` (${d.outcome_by})` : ''}${d.won_booking ? `, booking ${d.won_booking}` : ''}`] as [string, string]] : [])]} />
           <LeadActions lead={d} admin={d.admin} people={d.people} />
         </Card>

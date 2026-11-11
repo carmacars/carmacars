@@ -21,6 +21,7 @@ export interface LeadDetail extends LeadRow {
   contacts: Array<{ at: string; channel: string; note: string | null; by: string }>;
   history: Array<{ at: string; action: string; who: string; by: string | null; note: string | null }>;
   outcome_by: string | null; outcome_at: string | null; won_booking: string | null; admin: boolean; people: Person[];
+  /** 2330: who helped (customer service, Fleet, Finance...), no money */ helped_by?: Array<{ id: string; name: string; what: string[] }>;
 }
 export interface Figures { claimed: number; won: number; close_rate: number; contacted_pct: number; first_contact_minutes: number | null; expired: number }
 /** 1152: a person's cap of open leads: the base, plus one for every per_wins won in 30 days, up to max */

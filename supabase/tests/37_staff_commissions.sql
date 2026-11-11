@@ -12,6 +12,8 @@ select test.mk_user('sc_cs', 'va', 'cs');
 select test.mk_user('sc_fin', 'va', 'finance');
 select test.mk_user('sc_fleet', 'va', 'fleet');
 select test.mk_user('sc_field', 'field', null, null, 'SCFIELD');
+-- 2330: customer service, Fleet and Finance earn no commission; the flat 10% outside Sales is tested on field staff
+select test.mk_user('sc_flat', 'field', null, null, 'SCFLAT');
 select test.mk_renter('sc_rita');
 select test.mk_renter('sc_ron');
 select test.mk_owner('sc_olive');
@@ -73,18 +75,20 @@ select test.throws('door: staff must choose sourced or entered for CarmaCars',
   format($$select app.door(%L, 'aal2', 'ops_do', 'manual_rental_create', test.s37r(test.s37v('car1'), interval '3 days', interval '5 days'))$$, test.id('sc_cs')), 'I sourced this client');
 insert into s37 select 'cs1', app.door(test.id('sc_cs'), 'aal2', 'ops_do', 'manual_rental_create',
   test.s37r(test.s37v('car1'), interval '3 days', interval '6 days', '{"sales_choice": "sourced", "rental_charge_cents": 21000, "price_reason": "Returning customer, matched a quote"}'));
-select test.eq('sourced: credited to the assistant, sourced, the choice recorded',
-  (select (sales_staff_id = test.id('sc_cs')) || '/' || sales_sourced || '/' || sales_choice || '/' || (sales_choice_by = test.id('sc_cs')) from test.s37b('cs1')), 'true/true/sourced/true');
+select test.eq('sourced by customer service (2330): no credit, not sourced, no choice kept',
+  (select coalesce(sales_staff_id::text, 'none') || '/' || sales_sourced || '/' || coalesce(sales_choice, 'none') from test.s37b('cs1')), 'none/false/none');
 select test.eq('custom price: charged as typed, the rate sheet kept beside it, the reason',
   (select rental_charge_cents || '/' || rate_sheet_rental_cents || '/' || custom_price_reason from test.s37b('cs1')), '21000/30000/Returning customer, matched a quote');
 select test.eq('custom price: 30% under the rate sheet is flagged (limit 20%), not blocked', (select array_to_string(price_flags, ',') from test.s37b('cs1')), 'discount_over_limit');
 select test.ok('custom price: kept in the booking''s history', exists (select 1 from booking_events e where e.booking_id = (test.s37b('cs1')).id and e.kind = 'custom_price'));
-select test.eq('commission: not earned yet while the rental is ahead (accruing at 10%)', (select status || '/' || rate_bps from test.s37c('cs1')), 'accruing/1000');
+select test.eq('commission: none for customer service', (select count(*) from staff_commissions where booking_id = (test.s37b('cs1')).id), 0::bigint);
+select test.s37sold('flat1', 'sc_flat', test.s37r(test.s37v('car1'), interval '9 days', interval '11 days'));
+select test.eq('commission: not earned yet while the rental is ahead (accruing at 10%, flat, field staff)', (select status || '/' || rate_bps from test.s37c('flat1')), 'accruing/1000');
 insert into s37 select 'fin1', app.door(test.id('sc_fin'), 'aal2', 'ops_do', 'manual_rental_create',
   test.s37r(test.s37v('car2'), interval '3 days', interval '5 days', '{"sales_choice": "for_carmacars"}'));
-select test.eq('entered for CarmaCars: credited for tracking, not sourced, no commission',
-  (select (sales_staff_id = test.id('sc_fin')) || '/' || sales_sourced || '/' || sales_choice from test.s37b('fin1')) || '/' || (select count(*) from staff_commissions where booking_id = (test.s37b('fin1')).id),
-  'true/false/for_carmacars/0');
+select test.eq('entered for CarmaCars by Finance (2330): no credit for tracking either, no commission',
+  (select coalesce(sales_staff_id::text, 'none') || '/' || sales_sourced from test.s37b('fin1')) || '/' || (select count(*) from staff_commissions where booking_id = (test.s37b('fin1')).id),
+  'none/false/0');
 select test.throws('custom price: a reason is needed', format($$select app.door(%L, 'aal2', 'ops_do', 'manual_rental_create',
   test.s37r(test.s37v('car3'), interval '3 days', interval '5 days', '{"sales_choice": "sourced", "rental_charge_cents": 15000}'))$$, test.id('sc_fleet')), 'reason');
 select test.throws('assistant: the Deposit is still an Admin''s', format($$select app.door(%L, 'aal2', 'ops_do', 'manual_rental_create',
@@ -106,8 +110,8 @@ select test.eq('quote preview: everyone may type a price; staff must choose; fie
 insert into s37 select 'q1', app.door(test.id('sc_fleet'), 'aal2', 'va_do', 'quote_create', jsonb_build_object('vehicle_id', test.s37v('car4'), 'source', 'phone',
   'pickup_at', date_trunc('hour', now()) + interval '20 days', 'return_at', date_trunc('hour', now()) + interval '24 days', 'full_name', 'Quinn Caller', 'email', 'sc.quinn@example.test',
   'mobile', '4165550111', 'date_of_birth', '1985-03-04', 'sales_choice', 'sourced', 'rental_charge_cents', 38000, 'price_reason', 'Four days for the price of a week minus one'));
-select test.eq('quote by Fleet: a request, sourced, the price typed with the rate sheet beside it',
-  (select status || '/' || sales_sourced || '/' || rental_charge_cents || '/' || rate_sheet_rental_cents from test.s37b('q1')), 'requested/true/38000/40000');
+select test.eq('quote by Fleet: a request, credited to nobody (2330), the price typed with the rate sheet beside it',
+  (select status || '/' || sales_sourced || '/' || rental_charge_cents || '/' || rate_sheet_rental_cents from test.s37b('q1')), 'requested/false/38000/40000');
 select test.throws('quote: the choice is required', format($$select app.door(%L, 'aal2', 'va_do', 'quote_create', jsonb_build_object('vehicle_id', test.s37v('car4'), 'source', 'phone',
   'pickup_at', date_trunc('hour', now()) + interval '30 days', 'return_at', date_trunc('hour', now()) + interval '32 days', 'full_name', 'Quinn Caller', 'email', 'sc.quinn@example.test',
   'mobile', '4165550111', 'date_of_birth', '1985-03-04'))$$, test.id('sc_fin')), 'I sourced this client');
@@ -129,30 +133,30 @@ select test.eq('claim accepted: sourced, the claim cleared, a commission accruin
 
 -- ================================================================ 4. earned, approved, paid (flat 10%)
 -- a completed, paid past rental the assistant sourced (last month)
-select test.s37sold('cs_done', 'sc_cs', test.s37past(test.s37v('car6'), 3, 4));
+select test.s37sold('cs_done', 'sc_flat', test.s37past(test.s37v('car6'), 3, 4));
 select test.eq('earned: completed and paid in full, pending approval at 10% of the rental charge',
   (select c.status || '/' || c.rate_bps || '/' || (c.base_cents = app.sales_revenue_cents(c.booking_id)) || '/' || (c.amount_cents = round(c.base_cents * 0.10)) from test.s37c('cs_done') c),
   'pending_approval/1000/true/true');
 select test.eq('base: like booked revenue (before tax, after discounts)', (test.s37c('cs_done')).base_cents, (select rental_charge_cents - discount_cents - staff_discount_cents - promo_discount_cents from test.s37b('cs_done')));
 select test.throws('approve: an Admin only', format($$select app.door(%L, 'aal2', 'admin_do', 'commission_approve', jsonb_build_object('ids', jsonb_build_array(%L)))$$,
-  test.id('sc_cs'), (test.s37c('cs_done')).id), 'admin');
+  test.id('sc_flat'), (test.s37c('cs_done')).id), 'admin');
 select test.throws('pay: only approved commissions', format($$select app.commission_payout_record(%L, jsonb_build_object('staff', %L, 'ids', jsonb_build_array(%L), 'method', 'cash'))$$,
-  test.id('sc_admin'), test.id('sc_cs'), (test.s37c('cs_done')).id), 'approved');
+  test.id('sc_admin'), test.id('sc_flat'), (test.s37c('cs_done')).id), 'approved');
 select app.commission_approve(test.id('sc_admin'), jsonb_build_object('ids', jsonb_build_array((test.s37c('cs_done')).id)));
 select test.eq('approved: by the Admin', (select status || '/' || (approved_by = test.id('sc_admin')) from test.s37c('cs_done')), 'approved/true');
-select test.ok('approved: one email event to the staff member', exists (select 1 from app_events e where e.code = 'staff_commission_approved' and e.entity_id = test.id('sc_cs')));
+select test.ok('approved: one email event to the staff member', exists (select 1 from app_events e where e.code = 'staff_commission_approved' and e.entity_id = test.id('sc_flat')));
 select test.ok('approved: the email goes to the staff member only',
-  (select count(*) = 1 and bool_and(r.user_id = test.id('sc_cs')) from app_events e cross join lateral app.notification_recipients(e, (select c from notification_catalogue c where c.code = 'staff_commission_approved')) r
-    where e.code = 'staff_commission_approved' and e.entity_id = test.id('sc_cs')));
+  (select count(*) = 1 and bool_and(r.user_id = test.id('sc_flat')) from app_events e cross join lateral app.notification_recipients(e, (select c from notification_catalogue c where c.code = 'staff_commission_approved')) r
+    where e.code = 'staff_commission_approved' and e.entity_id = test.id('sc_flat')));
 select test.throws('pay: an e-Transfer needs its reference', format($$select app.commission_payout_record(%L, jsonb_build_object('staff', %L, 'method', 'e_transfer'))$$,
-  test.id('sc_admin'), test.id('sc_cs')), 'reference');
+  test.id('sc_admin'), test.id('sc_flat')), 'reference');
 select test.throws('pay: the pay statement needs its month', format($$select app.commission_payout_record(%L, jsonb_build_object('staff', %L, 'method', 'pay_statement'))$$,
-  test.id('sc_admin'), test.id('sc_cs')), 'month');
-insert into s37 select 'pay1', app.commission_payout_record(test.id('sc_admin'), jsonb_build_object('staff', test.id('sc_cs'), 'method', 'wise', 'reference', 'WISE-SC-1', 'paid_on', app.today()));
+  test.id('sc_admin'), test.id('sc_flat')), 'month');
+insert into s37 select 'pay1', app.commission_payout_record(test.id('sc_admin'), jsonb_build_object('staff', test.id('sc_flat'), 'method', 'wise', 'reference', 'WISE-SC-1', 'paid_on', app.today()));
 select test.eq('paid: recorded by hand with method and reference', (select c.status || '/' || po.method || '/' || po.reference || '/' || (po.amount_cents = c.amount_cents)
   from staff_commissions c join staff_commission_payouts po on po.id = c.payout_id where c.id = (test.s37c('cs_done')).id), 'paid/wise/WISE-SC-1/true');
 select test.ok('paid: an email event with the payment', exists (select 1 from app_events e where e.code = 'staff_commission_paid' and e.entity_id = (test.s37('pay1') ->> 'payout_id')::uuid));
-select test.eq('paid: the email''s values', (select x ->> 'payout_method' || '/' || (x ->> 'payout_reference') || '/' || (x ->> 'commission_count') || '/' || (x ->> 'sales_url' like '%/staff/my-sales')
+select test.eq('paid: the email''s values', (select x ->> 'payout_method' || '/' || (x ->> 'payout_reference') || '/' || (x ->> 'commission_count') || '/' || ((x ->> 'sales_url') is not null)
   from app_events e cross join lateral app.notification_payload('staff_commission_paid', e, '{}'::jsonb) x where e.code = 'staff_commission_paid' and e.entity_id = (test.s37('pay1') ->> 'payout_id')::uuid),
   'Wise/WISE-SC-1/1/true');
 -- a later refund of half the rental: the difference is clawed back
@@ -164,20 +168,20 @@ select test.eq('refund after payment: the paid commission stays paid; a clawback
   (select (test.s37c('cs_done')).status || '/' || c.kind || '/' || c.status || '/' || (c.amount_cents = round((test.s37c('cs_done')).base_cents * 0.10) - (test.s37c('cs_done')).amount_cents)
      from staff_commissions c where c.clawback_of = (test.s37c('cs_done')).id), 'paid/clawback/approved/true');
 select test.throws('pay: a clawback alone is nothing to pay', format($$select app.commission_payout_record(%L, jsonb_build_object('staff', %L, 'method', 'cash'))$$,
-  test.id('sc_admin'), test.id('sc_cs')), 'nothing to pay');
+  test.id('sc_admin'), test.id('sc_flat')), 'nothing to pay');
 
 -- ================================================================ 5. no commission: own rental, cancelled, charged back
-insert into renters (id, user_id, legal_name, email, mobile, date_of_birth) values (test.id('renter:sc_own'), test.id('sc_fin'), 'Sc Fin', 'sc_fin@example.test', '4165550177', '1990-02-02');
-insert into user_roles (user_id, role) values (test.id('sc_fin'), 'renter') on conflict do nothing;
-insert into drivers (renter_id, is_account_holder, user_id, full_name, date_of_birth, licence_class) values (test.id('renter:sc_own'), true, test.id('sc_fin'), 'Sc Fin', '1990-02-02', 'G');
-select test.s37sold('own', 'sc_fin', test.s37past(test.s37v('car7'), 3, 2, 'sc_own'));
+insert into renters (id, user_id, legal_name, email, mobile, date_of_birth) values (test.id('renter:sc_own'), test.id('sc_flat'), 'Sc Flat', 'sc_flat@example.test', '4165550177', '1990-02-02');
+insert into user_roles (user_id, role) values (test.id('sc_flat'), 'renter') on conflict do nothing;
+insert into drivers (renter_id, is_account_holder, user_id, full_name, date_of_birth, licence_class) values (test.id('renter:sc_own'), true, test.id('sc_flat'), 'Sc Flat', '1990-02-02', 'G');
+select test.s37sold('own', 'sc_flat', test.s37past(test.s37v('car7'), 3, 2, 'sc_own'));
 select test.eq('own rental: no commission', (select count(*) from staff_commissions where booking_id = (test.s37b('own')).id and status not in ('void', 'reversed')), 0::bigint);
 update staff_profiles set home_postal_code = 'M6P 1Z2' where user_id = test.id('sc_fleet');
 update renters set postal_code = 'm6p1z2', address_line1 = '1 Sc Fleet Lane' where id = test.id('renter:sc_ron');
 select test.eq('household rental: none (the renter lives at their postal code)', app.commission_own_reason((test.s37b('web1')).id, test.id('sc_fleet')), 'household rental');
 update renters set postal_code = null where id = test.id('renter:sc_ron');
-update bookings set status = 'cancelled' where id = (test.s37b('cs1')).id;
-select test.eq('cancelled before earning: void, never shown as earned', (select status || '/' || reason from test.s37c('cs1')), 'void/Cancelled booking');
+update bookings set status = 'cancelled' where id = (test.s37b('flat1')).id;
+select test.eq('cancelled before earning: void, never shown as earned', (select status || '/' || reason from test.s37c('flat1')), 'void/Cancelled booking');
 
 -- ================================================================ 6. the Sales tiers on last month's rental days
 -- 20 + 20 + 9 = 49 days
@@ -228,18 +232,18 @@ select test.ok('refund below the tier: the month is back at 99 days, and the oth
 select test.eq('My sales: the totals show the reversal', (select (app.staff_sales(test.id('sc_sales'), test.id('sc_sales'), '{}') -> 'commissions' -> 'totals' ->> 'reversed')::bigint > 0), true);
 
 -- ================================================================ 7. chargebacks, an Admin's reversal, a person's own rate
-select test.s37sold('cb', 'sc_cs', test.s37past(test.s37v('car7'), 14, 2));
+select test.s37sold('cb', 'sc_flat', test.s37past(test.s37v('car7'), 14, 2));
 insert into disputes (payment_id, booking_id, amount_cents, status) select p.id, p.booking_id, p.amount_cents, 'lost' from payments p where p.booking_id = (test.s37b('cb')).id and p.status = 'succeeded' limit 1;
 select test.eq('charged back: reversed', (select status || '/' || reason from test.s37c('cb')), 'reversed/Charged back');
-select test.s37sold('rev', 'sc_cs', test.s37past(test.s37v('car7'), 18, 2));
+select test.s37sold('rev', 'sc_flat', test.s37past(test.s37v('car7'), 18, 2));
 select app.commission_reverse(test.id('sc_admin'), jsonb_build_object('id', (test.s37c('rev')).id, 'reason', 'Household rental found later'));
 select test.eq('Admin reversal: reversed with the reason, and it stays so', (select status || '/' || reason || '/' || admin_reversed from test.s37c('rev')), 'reversed/Household rental found later/true');
-select app.staff_commission_rate_set(test.id('sc_admin'), jsonb_build_object('staff', test.id('sc_cs'), 'bps', 1200, 'reason', 'Test rate'));
-select test.eq('own rate: an Admin''s flat rate for one person', app.commission_scheme(test.id('sc_cs')) || '/' || (app.sales_month_progress(test.id('sc_cs')) ->> 'rate_bps'), 'override/1200');
-select app.staff_commission_rate_set(test.id('sc_admin'), jsonb_build_object('staff', test.id('sc_cs'), 'bps', null, 'reason', 'Back to the setting'));
+select app.staff_commission_rate_set(test.id('sc_admin'), jsonb_build_object('staff', test.id('sc_flat'), 'bps', 1200, 'reason', 'Test rate'));
+select test.eq('own rate: an Admin''s flat rate for one person', app.commission_scheme(test.id('sc_flat')) || '/' || (app.sales_month_progress(test.id('sc_flat')) ->> 'rate_bps'), 'override/1200');
+select app.staff_commission_rate_set(test.id('sc_admin'), jsonb_build_object('staff', test.id('sc_flat'), 'bps', null, 'reason', 'Back to the setting'));
 
 -- ================================================================ 8. owners: commissions are kickbacks before Owner Revenue
-select test.s37sold('own_car', 'sc_cs', test.s37past(test.id('vehicle:sc_prog'), 5, 3));
+select test.s37sold('own_car', 'sc_flat', test.s37past(test.id('vehicle:sc_prog'), 5, 3));
 select test.eq('owner''s car: the staff commission is deducted with the kickbacks before Owner Revenue',
   (select (s.staff_commission_cents = c.amount_cents) || '/' || (s.kickback_cents = s.staff_commission_cents) || '/' || (s.owner_revenue_cents = s.rental_charge_cents + s.mileage_overage_cents - s.kickback_cents)
      from booking_splits s, test.s37c('own_car') c where s.booking_id = c.booking_id), 'true/true/true');
@@ -253,10 +257,10 @@ select test.ok('statement: the rental line carries the staff commission apart fr
   (select l.staff_commission_cents = (test.s37c('own_car')).amount_cents from owner_statement_lines l where l.booking_id = (test.s37b('own_car')).id and l.line_type = 'rental'));
 update booking_splits s set owner_statement_id = (select l.owner_statement_id from owner_statement_lines l where l.booking_id = s.booking_id and l.line_type = 'rental' limit 1)
  where s.booking_id = (test.s37b('own_car')).id;
-select app.staff_commission_rate_set(test.id('sc_admin'), jsonb_build_object('staff', test.id('sc_cs'), 'bps', 1500, 'reason', 'Test: raised after the statement'));
+select app.staff_commission_rate_set(test.id('sc_admin'), jsonb_build_object('staff', test.id('sc_flat'), 'bps', 1500, 'reason', 'Test: raised after the statement'));
 select test.ok('after the statement: the Owner''s share of a higher commission is an adjustment for the next statement',
   exists (select 1 from owner_deductions d where d.booking_id = (test.s37b('own_car')).id and d.kind = 'staff_commission_adjustment' and d.status = 'open' and d.amount_cents > 0));
-select app.staff_commission_rate_set(test.id('sc_admin'), jsonb_build_object('staff', test.id('sc_cs'), 'bps', null, 'reason', 'Back to the setting'));
+select app.staff_commission_rate_set(test.id('sc_admin'), jsonb_build_object('staff', test.id('sc_flat'), 'bps', null, 'reason', 'Back to the setting'));
 select test.ok('after the statement: a lower commission is a credit for the next statement',
   exists (select 1 from owner_credits c where c.booking_id = (test.s37b('own_car')).id and c.kind = 'staff_commission_adjustment' and c.status = 'open'));
 

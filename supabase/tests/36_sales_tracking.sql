@@ -99,11 +99,11 @@ select test.eq('quote: an offer by someone else does not move the credit', (test
 
 -- a website request nobody is credited with: the first offer's sender gets it, a later offer does not change it
 select test.ok('website request: nobody credited until an offer goes', (test.s36b('web1')).sales_staff_id is null and (test.s36b('web1')).sales_source is null);
-select app.send_offer((test.s36b('web1')).id, test.id('st_cs'));
-select test.eq('website request: credited to who sent the first offer', (select sales_staff_id::text || ' ' || sales_source from test.s36b('web1')), test.id('st_cs')::text || ' offer');
+select app.send_offer((test.s36b('web1')).id, test.id('st_admin'));
+select test.eq('website request: credited to who sent the first offer (2330: never customer service, Fleet or Finance)', (select sales_staff_id::text || ' ' || sales_source from test.s36b('web1')), test.id('st_admin')::text || ' offer');
 select app.withdraw_offer((test.s36b('web1')).id, test.id('st_admin'), 'St edit');
 select app.send_offer((test.s36b('web1')).id, test.id('st_sales'));
-select test.eq('website request: a second offer by another does not change it', (test.s36b('web1')).sales_staff_id, test.id('st_cs'));
+select test.eq('website request: a second offer by another does not change it', (test.s36b('web1')).sales_staff_id, test.id('st_admin'));
 
 -- an Owner Booking or a request made on the website by a staff member for themselves is never credited
 insert into s36 select 'web2', jsonb_build_object('id', app.request_booking(test.id('renter:st_ron'), test.s36v(), date_trunc('hour', now()) + interval '40 days',
@@ -152,7 +152,7 @@ select test.eq('reassign: credited to Sales by an Admin', (select sales_staff_id
 select test.ok('reassign: the deal stays in its week', (test.s36b('web1')).sales_attributed_at = (test.s36('web1_at') ->> 'at')::timestamptz);
 select test.ok('reassign: in the booking''s history with the reason',
   exists (select 1 from booking_events e where e.booking_id = (test.s36b('web1')).id and e.kind = 'sales_credit'
-           and e.note = 'Sales credit: St Cs to St Sales (entered for CarmaCars). Sales handled the calls'));
+           and e.note = 'Sales credit: St Admin to St Sales (entered for CarmaCars). Sales handled the calls'));
 select test.ok('reassign: in the audit log', exists (select 1 from audit_log a where a.entity_id = (test.s36b('web1')).id::text and a.entity_table = 'bookings'
   and a.after ->> 'sales_source' = 'admin' and a.before ->> 'sales_source' = 'offer'));
 -- to nobody: a later offer does not credit anyone
@@ -209,9 +209,9 @@ select test.ok('My sales: renters by first name only', (select bool_and(position
 select test.eq('My sales: by month too', (app.door(test.id('st_sales'), 'aal2', 'va_read', 'my_sales', '{"period": "month"}') #>> '{periods,0,quotes}'), '1');
 
 -- customer service: its offer credit shows to an Admin
-select test.eq('Admin > Staff > Sales: anyone''s figures (customer service: two offers, no deal left after the reassignment)',
+select test.eq('Admin > Staff > Sales: anyone''s figures (customer service: offers sent, no deal)',
   (select (x #>> '{periods,0,offers_sent}') || ' ' || (x #>> '{periods,0,deals}') from app.door(test.id('st_admin'), 'aal2', 'admin_read', 'staff_sales',
-     jsonb_build_object('staff', test.id('st_cs'))) x), '3 0');
+     jsonb_build_object('staff', test.id('st_cs'))) x), '2 0');
 select test.throws('Admin > Staff > Sales: an Admin only', format($$select app.door(%L, 'aal2', 'admin_read', 'staff_sales', %L)$$, test.id('st_cs'),
   jsonb_build_object('staff', test.id('st_sales'))), 'admin');
 
@@ -224,11 +224,11 @@ select test.ok('team: fleet, with nothing this month, not listed', not exists (s
 select test.ok('team: totals add up', (test.s36('team') #>> '{totals,revenue_cents}')::bigint = (select sum((r ->> 'revenue_cents')::bigint) from jsonb_array_elements(test.s36('team') -> 'rows') r));
 select test.eq('team: twelve months to choose from', jsonb_array_length(test.s36('team') -> 'months'), 12);
 select test.throws('team: an Admin only', $$select app.team_sales(test.id('st_sales'))$$, 'admin');
-select test.ok('booking page: the credit and who may get it', (select x ->> 'staff_id' = test.id('st_sales')::text and jsonb_array_length(x -> 'options') >= 4
+select test.ok('booking page: the credit and who may get it', (select x ->> 'staff_id' = test.id('st_sales')::text and jsonb_array_length(x -> 'options') >= 3
   from app.door(test.id('st_admin'), 'aal2', 'admin_read', 'booking_sales', jsonb_build_object('booking', (test.s36b('m1')).booking_number)) x));
 select test.lives('reassign through the door', format($$select app.door(%L, 'aal2', 'admin_do', 'sales_reassign', %L)$$, test.id('st_admin'),
-  jsonb_build_object('booking', (test.s36b('m1')).booking_number, 'staff', test.id('st_cs'), 'reason', 'Customer service closed it')));
-select test.eq('reassign through the door: the revenue moves with it', (app.staff_sales(test.id('st_admin'), test.id('st_cs')) #>> '{periods,0,revenue_cents}')::bigint,
+  jsonb_build_object('booking', (test.s36b('m1')).booking_number, 'staff', test.id('st_field'), 'reason', 'Field staff closed it')));
+select test.eq('reassign through the door: the revenue moves with it', (app.staff_sales(test.id('st_admin'), test.id('st_field')) #>> '{periods,0,revenue_cents}')::bigint,
   app.sales_revenue_cents((test.s36b('m1')).id));
 
 -- privileges: the new functions are the server's

@@ -7,6 +7,7 @@ export function SourcedChoice({ value, onChange, id, optional }: { value: Choice
   return (
     <fieldset className="stack" data-testid={`${id}-choice`}>
       <legend className="label">Who found this client?{optional ? ' (optional for an Admin)' : ''}</legend>
+      <p className="small muted" data-testid="choice-support-note">Customer service, Fleet and Finance staff earn no sales credit or commission, whichever you choose here. Your help is credited on the booking and on your scorecard.</p>
       <label className="check ad-choice" htmlFor={`${id}-sourced`}>
         <input type="radio" id={`${id}-sourced`} name={`${id}-choice`} value="sourced" checked={value === 'sourced'} onChange={() => onChange('sourced')} data-testid="choice-sourced" />
         <span><b>I sourced this client</b><br /><span className="small muted">You found this renter yourself. You earn your commission when the rental is completed and paid in full, after an Admin approves it.</span></span>

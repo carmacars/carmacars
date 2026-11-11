@@ -76,6 +76,8 @@ type SalesCredit = { staff_id: string | null; how: string | null; at: string | n
   price?: { rental_cents: number; rate_sheet_cents: number | null; reason: string | null; by: string | null; at: string; flags: string[]; reviewed_at: string | null; review_note: string | null;
     /** 0112 */ tax?: 'plus' | 'included'; with_tax_cents?: number | null } | null;
   commissions?: Array<{ id: string; name: string; kind: string; status: string; rate_bps: number; base_cents: number; amount_cents: number; reason: string | null }> };
+/** 2330 */
+type HelpedBy = { id: string; name: string; what: string[] };
 const HOW: Record<string, string> = { quote: 'their quote', manual_rental: 'a rental they added', offer: 'the first offer they sent', admin: 'given by an Admin', referral: 'their referral link' };
 /** What the booking read answers. Staff reads leave out what the function may not see (payments for Sales and customer
  * service, the history and the emails for every function). */
@@ -145,6 +147,10 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
   // ---- the reads, each only where the viewer's section and function use it
   // 0780 and 0810: a request that expired and was replaced by a newer one says so on both bookings
   const chain = await ops<BookingChain>('booking_chain', { booking: b.id }).catch(none(null));
+  // 2330: who helped on it (customer service, Fleet, Finance...): acknowledged here and on their scorecard, no money
+  const helped = await ops<{ helped_by: HelpedBy[] }>('booking_helped', { booking: b.id }).then((r) => r.helped_by).catch(none([] as HelpedBy[]));
+  const helpedRow: Array<[string, React.ReactNode]> = helped.length
+    ? [['Helped by', <span key="hb" data-testid="booking-helped-by">{helped.map((h) => `${h.name} (${h.what.join(', ')})`).join('; ')}</span>]] : [];
   // 0910: the cars this booking may move to before pickup (priced from each car's rate sheet), and its accident card
   const [carOpts, accident] = await Promise.all([
     can.changeCar && ['requested', 'offered', 'pending_payment', 'confirmed'].includes(b.status) && !b.handed_over_at && (section === 'overview' || section === 'car')
@@ -363,7 +369,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
                 ['Offer', b.current_offer_version ? `version ${b.current_offer_version}${b.offer_expires_at ? `, open until ${t(b.offer_expires_at)}` : ''}` : 'not sent yet'],
                 ...(can.admin ? [['Came from', came ? <MarketingSource key="mk" m={came} booking={b.booking_number} refresh={refresh} /> : ''],
                   ['Sales credit', credit ? <SalesCreditLine key="sc" c={credit} booking={b.booking_number} refresh={refresh} /> : '']] as Array<[string, React.ReactNode]>
-                  : [['Car free', b.available ? 'yes' : 'no']] as Array<[string, React.ReactNode]>)]} />
+                  : [['Car free', b.available ? 'yes' : 'no']] as Array<[string, React.ReactNode]>), ...helpedRow]} />
             </Card>
             {can.admin && <Card title="Competing for these dates" testId="competing" aside={<span className="small">{b.available ? 'car free' : <b className="ad-late">car not free</b>}</span>}>
               <DateConflicts items={b.competing} self={{ placeholder: !!b.placeholder?.on }} />
@@ -403,6 +409,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
               ...(can.admin && b.added_by_staff ? [['Added by hand', <span key="a" data-testid="booking-added">{b.added_mode === 'past' ? 'A past rental recorded by staff' : b.added_mode === 'in_progress' ? 'Added by staff while already underway (recorded as on trip at the pickup)' : 'Added by staff'}; source {label(b.source)}; payment: {label(b.payment_mode)}{b.do_not_email ? '; renter not emailed' : ''}{b.clash_override_reason ? `; added over a clash: ${String(b.clash_override_reason)}` : ''}</span>] as [string, React.ReactNode]] : []),
               ...(can.admin ? [['Came from', came ? <MarketingSource key="mk" m={came} booking={b.booking_number} refresh={refresh} /> : ''],
                 ['Sales credit', credit ? <SalesCreditLine key="sc" c={credit} booking={b.booking_number} refresh={refresh} /> : '']] as Array<[string, React.ReactNode]> : []),
+              ...helpedRow,
               ['Ready for handover', b.readiness ? ((b.readiness.missing as string[] | undefined)?.length ? `missing: ${(b.readiness.missing as string[]).map(label).join(', ')}` : 'yes') : '']]} />
           </Card>
           {can.renterDocs && ['pending_payment', 'confirmed', 'on_rent', 'requested', 'offered'].includes(b.status) && <RenterDocs b={b} refresh={[base]} />}
