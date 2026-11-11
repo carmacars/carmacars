@@ -16,6 +16,35 @@ async function settled(card: Locator) {
   await expect.poll(() => card.evaluate((el) => (!el.classList.contains('rv') || el.classList.contains('is-in'))
     && el.getAnimations({ subtree: true }).every((a) => a.playState !== 'running' || a.effect?.getComputedTiming().endTime === Infinity)), { timeout: 5000 }).toBe(true);
 }
+// Where a finger should go on the card's photo, at fractions (fx, fy) of its box: measured only when the photo has kept
+// the same box for two animation frames (scrolling, the reveal and late layout all finished), sits inside the screen, and
+// the element at that point belongs to this card (not the sticky search bar or another card). Until then the photo is
+// scrolled to the middle of the screen again and measured again. Called right before each touch, never reused after one.
+async function aim(card: Locator, fx: number, fy: number): Promise<{ x: number; y: number; w: number }> {
+  let got: { x: number; y: number; w: number } | null = null;
+  await expect.poll(async () => {
+    const r = await card.evaluate((el, [fx, fy]) => new Promise<string>((done) => {
+      const media = el.querySelector('.car-card__media')!;
+      requestAnimationFrame(() => {
+        const a = media.getBoundingClientRect();
+        requestAnimationFrame(() => {
+          const b = media.getBoundingClientRect();
+          const x = Math.round(b.left + b.width * fx!), y = Math.round(b.top + b.height * fy!);
+          const still = a.left === b.left && a.top === b.top && a.width === b.width && a.height === b.height;
+          const onScreen = b.top >= 0 && b.bottom <= innerHeight && b.left >= 0 && b.right <= innerWidth;
+          const hit = document.elementFromPoint(x, y);
+          if (still && onScreen && hit && el.contains(hit)) done(JSON.stringify({ x, y, w: b.width }));
+          else { media.scrollIntoView({ block: 'center' }); done(''); }
+        });
+      });
+    }), [fx, fy]);
+    if (r) got = JSON.parse(r) as { x: number; y: number; w: number };
+    return !!r;
+  }, { message: 'the photo stays still, on screen and uncovered', timeout: 10_000 }).toBe(true);
+  return got!;
+}
+// a click that follows a swipe within this many ms opens nothing (src/lib/card-photos.ts onClick)
+const SWIPE_CLICK_MS = 600;
 const at = (page: Page) => firstCard(page).locator('.car-card__deck').evaluate((d) => (d as HTMLElement).dataset.at ?? '');
 
 test('hover cycles the photos, leaving goes back to the cover; no console error', async ({ page }, ti) => {
@@ -65,23 +94,27 @@ test('a swipe on a phone moves to the next photo and opens nothing; a tap opens 
   // the photo in the middle of the screen: scrollIntoViewIfNeeded can leave it under the sticky search bar at the top
   await card.locator('.car-card__media').evaluate((el) => el.scrollIntoView({ block: 'center' }));
   await settled(card);
-  const m = (await card.locator('.car-card__media').boundingBox())!;
-  const y = Math.round(m.y + m.height / 2), x0 = Math.round(m.x + m.width * 0.8), x1 = Math.round(m.x + m.width * 0.15);
-  // the finger starts on this card (the name's link covers the whole card, so the element hit is that link; the swipe
-  // code takes the card from it and checks the point against the photo's box), not on a bar or another card
-  const under = await card.evaluate((el, [x, yy]) => { const e = document.elementFromPoint(x!, yy!); return e && el.contains(e) ? 'this card' : `${e?.tagName}.${e?.className}`; }, [x0, y]);
-  expect(under, 'what is under the finger').toBe('this card');
+  // r35: the card used to move between measuring and touching (late layout, a scroll still running); every touch is now
+  // aimed right before it is made (aim, above)
+  const start = await aim(card, 0.8, 0.5);
+  const x1 = Math.round(start.x - start.w * 0.65);
   const cdp = await page.context().newCDPSession(page);
   const url = page.url();
-  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: x0, y }] });
-  for (let i = 1; i <= 6; i++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x0 + ((x1 - x0) * i) / 6, y }] });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: start.x, y: start.y }] });
+  for (let i = 1; i <= 6; i++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: start.x + ((x1 - start.x) * i) / 6, y: start.y }] });
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  const swipedAt = Date.now();
   await expect.poll(() => at(page), { timeout: 5000 }).toBe('1');
   await expect(card).toHaveClass(/is-swiped/);
-  await page.waitForTimeout(400);
   expect(page.url()).toBe(url);
-  await card.locator('.car-card__name a').tap();
-  await expect(page).toHaveURL(/\/cars\/[a-z0-9-]+/);
+  // the tap: past the window in which a click after a swipe is ignored (the earlier tap, 400 ms after the swipe, could
+  // fall inside it and open nothing), aimed again, on the photo (the name's link covers the whole card)
+  const left = SWIPE_CLICK_MS + 150 - (Date.now() - swipedAt);
+  if (left > 0) await page.waitForTimeout(left);
+  expect(page.url(), 'the swipe opened nothing').toBe(url);
+  const tap = await aim(card, 0.5, 0.5);
+  await page.touchscreen.tap(tap.x, tap.y);
+  await expect(page).toHaveURL(/\/cars\/[a-z0-9-]+/, { timeout: 20_000 });
   expect(errors).toEqual([]);
 });
 
