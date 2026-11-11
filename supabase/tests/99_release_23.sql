@@ -92,10 +92,10 @@ select test.ok('the sender tries Cloudflare (on, under the month''s 3,000)', app
 -- 0535: Cloudflare gets its chance before its first send (the claim held every email until it had sent, so it never did)
 select test.ok('while Cloudflare may send, Resend''s limits hold nothing, before its first send too', app.cf_email_available());
 select test.ok('an email held by a limit waits 15 minutes while Cloudflare has budget today', app.email_hold_until(now(), now() + interval '10 hours') <= now() + interval '15 minutes');
-update program_settings set notify_cf_daily_budget = 0;
+update program_settings set cf_email_daily_budget = 0;  -- 1750: Cloudflare's day is cf_email_daily_budget
 select test.ok('Cloudflare''s day''s budget used: Resend''s limits hold again', not app.cf_email_available());
 select test.ok('and a held email waits for midnight', app.email_hold_until(now(), now() + interval '10 hours') = now() + interval '10 hours');
-update program_settings set notify_cf_daily_budget = 200;
+update program_settings set cf_email_daily_budget = 100;
 select public.server_cf_email_result('{"ok": true}');
 select test.ok('once it sends, Resend''s limits are lifted', app.cf_email_available());
 select public.server_cf_email_result('{"ok": false, "error": "no EMAIL binding"}');
