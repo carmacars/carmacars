@@ -14,6 +14,8 @@ import { $, Badge, BookingLink, Card, Kv, PageHead, Table, Tabs, t, d, label } f
 import { DeleteCar } from '@/features/supply/DeleteCar';
 import { RateCardForm } from '@/features/rates/RateCardForm';
 import { CarLeadTime } from '@/features/rates/LeadTimeEditor';
+import { PriceLimitsForm, PriceLimitsView } from '@/features/rates/PriceLimits';
+import type { CarLimits, Limits } from '@/features/rates/price-limits';
 import type { Tier } from '@/features/rates/lead-time';
 import { adminOwners } from '@/server/admin/data';
 import { InsurerConfirm } from '@/features/admin/InsurerConfirm';
@@ -31,6 +33,7 @@ import { HashTab } from './HashTab';
 import { GovernmentForms, type GovData } from '@/features/onboarding/GovernmentForms';
 
 type R = Record<string, unknown>;
+type PriceLimitsRead = { owner_id: string | null; owner: Limits; car: Limits; effective: CarLimits };
 type V = R & { id: string; name: string; plate: string | null; vin: string; status: string; management_mode: string; class: string | null; colour: string | null; odometer_km: number | null;
   fleet_number: string | null; allows_18_to_20: boolean; bookings_enabled: boolean; extension_offers?: boolean; is_sample: boolean; home_location: string | null; enrollment_date: string | null; exit_date: string | null;
   owner: { id: string; legal_name: string } | null; listing: R | null; rate_card: R | null; rate_history: R[]; fee_overrides: R[]; classes: string[];
@@ -65,6 +68,8 @@ export async function VehiclePage({ ctx, id, sp }: { ctx: PageCtx; id: string; s
   const refresh = [base, '/admin/vehicles'];
   // interest in the car on the site (0060)
   const interest = tab === 'overview' ? await read<Interest>('vehicle_interest', { vehicle_id: id }).catch(() => null) : null;
+  // 1205: the car's price limits (its own and its owner's)
+  const limits = tab === 'rates' ? await ops<PriceLimitsRead>('price_limits', { vehicle_id: id }).catch(() => null) : null;
   const classes = tab === 'overview' ? (await list<{ code: string; label: string }>('vehicle_classes', { eq: { is_active: true }, order: 'sort_order', asc: true })).rows : [];
   const cal = tab === 'calendar' ? await (async () => { const { from } = rangeFrom(sp.start, 'month'); return read<CalData>('calendar', { from: from.toISOString(), to: new Date(from.getTime() + 31 * 86_400_000).toISOString(), vehicle: id }); })() : null;
   const slug = v.listing?.slug ? String(v.listing.slug) : null;
@@ -202,6 +207,14 @@ export async function VehiclePage({ ctx, id, sp }: { ctx: PageCtx; id: string; s
                 <ul>{autoCardFields(v.rate_card).map((f) => <li key={f.key} data-testid={`auto-rate-${f.key}`}>{f.label}: {f.source}</li>)}</ul></div>)}
             <RateCardForm vehicleId={id} card={v.rate_card} refresh={refresh} />
           </Card>
+          {limits && <Card title="Price limits" testId="vehicle-price-limits">
+            <p className="small muted">The lowest and highest daily rate the owner accepts. Lead-time pricing, promo codes, discounts and prices typed by staff stay between them unless you allow a price outside them on the booking.</p>
+            <PriceLimitsView limits={limits.effective} />
+            <h3 className="d5">This car</h3>
+            <PriceLimitsForm who="admin" scope="car" vehicleId={id} min={limits.car.min_daily_cents} max={limits.car.max_daily_cents} inherited={limits.owner} testId="price-limits-car" />
+            {limits.owner_id && <><h3 className="d5">Every car of {v.owner?.legal_name ?? 'the owner'}</h3>
+              <PriceLimitsForm who="admin" scope="owner" ownerId={limits.owner_id} vehicleId={id} min={limits.owner.min_daily_cents} max={limits.owner.max_daily_cents} testId="price-limits-owner" /></>}
+          </Card>}
           <Card title="Lead-time pricing for this car" testId="vehicle-lead-time">
             <CarLeadTime vehicleId={id} mode={(v.lead_time_mode as 'program' | 'off' | 'own' | undefined) ?? 'program'} tiers={(v.lead_time_tiers as Tier[] | null) ?? null}
               programTiers={((v.lead_time_program as { tiers?: Tier[] } | undefined)?.tiers) ?? []} programOn={(v.lead_time_program as { enabled?: boolean } | undefined)?.enabled !== false} /></Card>
@@ -344,6 +357,8 @@ async function StaffVehicle({ ctx, id, sp }: { ctx: PageCtx; id: string; sp: Rec
     can.maintenance && tab === 'maintenance' ? ops<CarMaintenance>('maint_vehicle', { vehicle_id: id }).catch(() => null) : null,
     // the listing (0070): Publish now and what is still open, for Fleet and customer service
     tab === 'listing' ? own<StaffListingState>('listing_state', { vehicle_id: id }).catch(() => null) : null]);
+  // 1205: the price limits in force, read only (an Admin or the owner sets them)
+  const limits = can.rates && tab === 'rates' ? await ops<PriceLimitsRead>('price_limits', { vehicle_id: id }).catch(() => null) : null;
   return (
     <>
       <PageHead title={`${String(c.year ?? '')} ${String(c.make ?? '')} ${String(c.model ?? '')}`} kicker={String(c.plate ?? '')}>
@@ -357,6 +372,8 @@ async function StaffVehicle({ ctx, id, sp }: { ctx: PageCtx; id: string; sp: Rec
       </div>}
       {tab === 'rates' && rates && <Card title="Rates and kilometres" testId="va-rates"><p className="small muted">Rates, kilometres and deposit save together. Bookings already made keep their rates.</p>
         <RateCardForm vehicleId={id} card={rates.current} refresh={[base]} testId="va-rate-form" /></Card>}
+      {tab === 'rates' && limits && <Card title="Price limits" testId="va-price-limits"><p className="small muted">The lowest and highest daily rate the owner accepts. Offers, promo codes and lead-time pricing stay between them; an Admin can allow a price outside them on one booking.</p>
+        <PriceLimitsView limits={limits.effective} /></Card>}
       {tab === 'listing' && ls && <Card title={ls.public ? 'On the site' : 'Not on the site yet'} testId="va-listing">
         {ls.missing.length > 0 && <ul className="small">{ls.missing.map((m) => <li key={m.code}><b>{m.label}</b>: {m.action}</li>)}</ul>}
         {ls.checklist.length > 0 && <><p className="pt-kicker">Open items (the car stays listed)</p><ul className="small">{ls.checklist.map((m) => <li key={m.code}><b>{m.label}</b>: {m.action}</li>)}</ul></>}

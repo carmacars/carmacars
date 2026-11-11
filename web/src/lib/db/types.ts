@@ -3281,6 +3281,13 @@ export type Database = {
           returning_now_return_at: string | null;
           plan_policy_number: string | null;
           pay_fixed_cents: number | null;
+          rentalcover_quote_id: string | null;
+          rentalcover_quote_cents: number | null;
+          rentalcover_price_cents: number | null;
+          price_limit_override: boolean;
+          price_limit_override_by: string | null;
+          price_limit_override_at: string | null;
+          price_limit_override_reason: string | null;
         };
         Insert: {
           id?: string;
@@ -3466,6 +3473,13 @@ export type Database = {
           returning_now_return_at?: string | null;
           plan_policy_number?: string | null;
           pay_fixed_cents?: number | null;
+          rentalcover_quote_id?: string | null;
+          rentalcover_quote_cents?: number | null;
+          rentalcover_price_cents?: number | null;
+          price_limit_override?: boolean;
+          price_limit_override_by?: string | null;
+          price_limit_override_at?: string | null;
+          price_limit_override_reason?: string | null;
         };
         Update: {
           id?: string;
@@ -3651,6 +3665,13 @@ export type Database = {
           returning_now_return_at?: string | null;
           plan_policy_number?: string | null;
           pay_fixed_cents?: number | null;
+          rentalcover_quote_id?: string | null;
+          rentalcover_quote_cents?: number | null;
+          rentalcover_price_cents?: number | null;
+          price_limit_override?: boolean;
+          price_limit_override_by?: string | null;
+          price_limit_override_at?: string | null;
+          price_limit_override_reason?: string | null;
         };
         Relationships: [];
       };
@@ -14216,6 +14237,8 @@ export type Database = {
           recruited_via: string | null;
           show_profit_extras: boolean;
           onboarding_route: string | null;
+          price_min_daily_cents: number | null;
+          price_max_daily_cents: number | null;
         };
         Insert: {
           id?: string;
@@ -14269,6 +14292,8 @@ export type Database = {
           recruited_via?: string | null;
           show_profit_extras?: boolean;
           onboarding_route?: string | null;
+          price_min_daily_cents?: number | null;
+          price_max_daily_cents?: number | null;
         };
         Update: {
           id?: string;
@@ -14322,6 +14347,8 @@ export type Database = {
           recruited_via?: string | null;
           show_profit_extras?: boolean;
           onboarding_route?: string | null;
+          price_min_daily_cents?: number | null;
+          price_max_daily_cents?: number | null;
         };
         Relationships: [];
       };
@@ -17346,6 +17373,13 @@ export type Database = {
           in_person_area_cities: string[];
           indexnow_sweep_batch: number;
           indexnow_queue_batch: number;
+          rentalcover_api_allowed: boolean;
+          rentalcover_markup_enabled: boolean;
+          rentalcover_markup_pct: number;
+          rentalcover_markup_flat_cents: number;
+          rentalcover_quote_cache_minutes: number;
+          rentalcover_max_vehicle_value_cents: number;
+          rentalcover_unknown_value_allowed: boolean;
         };
         Insert: {
           id?: string;
@@ -18036,6 +18070,13 @@ export type Database = {
           in_person_area_cities?: string[];
           indexnow_sweep_batch?: number;
           indexnow_queue_batch?: number;
+          rentalcover_api_allowed?: boolean;
+          rentalcover_markup_enabled?: boolean;
+          rentalcover_markup_pct?: number;
+          rentalcover_markup_flat_cents?: number;
+          rentalcover_quote_cache_minutes?: number;
+          rentalcover_max_vehicle_value_cents?: number;
+          rentalcover_unknown_value_allowed?: boolean;
         };
         Update: {
           id?: string;
@@ -18726,6 +18767,13 @@ export type Database = {
           in_person_area_cities?: string[];
           indexnow_sweep_batch?: number;
           indexnow_queue_batch?: number;
+          rentalcover_api_allowed?: boolean;
+          rentalcover_markup_enabled?: boolean;
+          rentalcover_markup_pct?: number;
+          rentalcover_markup_flat_cents?: number;
+          rentalcover_quote_cache_minutes?: number;
+          rentalcover_max_vehicle_value_cents?: number;
+          rentalcover_unknown_value_allowed?: boolean;
         };
         Relationships: [];
       };
@@ -20085,6 +20133,81 @@ export type Database = {
           signature_at?: string | null;
           updated_by?: string | null;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      rentalcover_quotes: {
+        Row: {
+          id: string;
+          created_at: string;
+          expires_at: string;
+          source: string;
+          vehicle_id: string | null;
+          booking_id: string | null;
+          renter_id: string | null;
+          from_at: string;
+          to_at: string;
+          customer_age: number | null;
+          cache_key: string;
+          status: string;
+          reference: string | null;
+          policy_code: string | null;
+          quote_cents: number | null;
+          currency: string | null;
+          markup_cents: number | null;
+          price_cents: number | null;
+          markup: Json | null;
+          request: Json | null;
+          response: Json | null;
+          error: string | null;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          expires_at: string;
+          source?: string;
+          vehicle_id?: string | null;
+          booking_id?: string | null;
+          renter_id?: string | null;
+          from_at: string;
+          to_at: string;
+          customer_age?: number | null;
+          cache_key: string;
+          status: string;
+          reference?: string | null;
+          policy_code?: string | null;
+          quote_cents?: number | null;
+          currency?: string | null;
+          markup_cents?: number | null;
+          price_cents?: number | null;
+          markup?: Json | null;
+          request?: Json | null;
+          response?: Json | null;
+          error?: string | null;
+        };
+        Update: {
+          id?: string;
+          created_at?: string;
+          expires_at?: string;
+          source?: string;
+          vehicle_id?: string | null;
+          booking_id?: string | null;
+          renter_id?: string | null;
+          from_at?: string;
+          to_at?: string;
+          customer_age?: number | null;
+          cache_key?: string;
+          status?: string;
+          reference?: string | null;
+          policy_code?: string | null;
+          quote_cents?: number | null;
+          currency?: string | null;
+          markup_cents?: number | null;
+          price_cents?: number | null;
+          markup?: Json | null;
+          request?: Json | null;
+          response?: Json | null;
+          error?: string | null;
         };
         Relationships: [];
       };
@@ -27788,6 +27911,15 @@ export type Database = {
           lead_time_tiers: Json | null;
           partner_discount_bps: number | null;
           extension_offers: boolean;
+          replacement_value_cents: number | null;
+          black_book_value_cents: number | null;
+          black_book_value_on: string | null;
+          estimated_value_cents: number | null;
+          estimated_value_source: string | null;
+          estimated_value_at: string | null;
+          estimated_value_tried_at: string | null;
+          price_min_daily_cents: number | null;
+          price_max_daily_cents: number | null;
         };
         Insert: {
           id?: string;
@@ -27862,6 +27994,15 @@ export type Database = {
           lead_time_tiers?: Json | null;
           partner_discount_bps?: number | null;
           extension_offers?: boolean;
+          replacement_value_cents?: number | null;
+          black_book_value_cents?: number | null;
+          black_book_value_on?: string | null;
+          estimated_value_cents?: number | null;
+          estimated_value_source?: string | null;
+          estimated_value_at?: string | null;
+          estimated_value_tried_at?: string | null;
+          price_min_daily_cents?: number | null;
+          price_max_daily_cents?: number | null;
         };
         Update: {
           id?: string;
@@ -27936,6 +28077,15 @@ export type Database = {
           lead_time_tiers?: Json | null;
           partner_discount_bps?: number | null;
           extension_offers?: boolean;
+          replacement_value_cents?: number | null;
+          black_book_value_cents?: number | null;
+          black_book_value_on?: string | null;
+          estimated_value_cents?: number | null;
+          estimated_value_source?: string | null;
+          estimated_value_at?: string | null;
+          estimated_value_tried_at?: string | null;
+          price_min_daily_cents?: number | null;
+          price_max_daily_cents?: number | null;
         };
         Relationships: [];
       };
@@ -29612,7 +29762,8 @@ export type Database = {
       calc_payment_retry_at: { Args: { p_first_declined_at: string; p_retries_done: number }; Returns: string };
       calc_prorated_fee: { Args: { p_monthly_cents: number; p_days_active: number; p_days_in_month: number }; Returns: number };
       calc_refund_bps: { Args: { p_booked_at: string; p_received_at: string; p_start_at: string; p_non_refundable?: boolean; p_by_carmacars?: boolean }; Returns: number };
-      calc_rental_charge: { Args: { p_pickup: string; p_days: number; p_daily: number; p_weekend: number; p_weekly: number; p_monthly: number; p_tz?: string }; Returns: { rate_applied: string; daily_days: number; weekend_days: number; rental_charge_cents: number }[] } | { Args: { p_pickup: string; p_days: number; p_daily: number; p_weekend: number; p_weekly: number; p_monthly: number; p_tz: string; p_multi: number }; Returns: { rate_applied: string; daily_days: number; weekend_days: number; rental_charge_cents: number }[] };
+      calc_rental_charge: { Args: { p_pickup: string; p_days: number; p_daily: number; p_weekend: number; p_weekly: number; p_monthly: number; p_tz: string; p_multi: number }; Returns: { rate_applied: string; daily_days: number; weekend_days: number; rental_charge_cents: number }[] } | { Args: { p_pickup: string; p_days: number; p_daily: number; p_weekend: number; p_weekly: number; p_monthly: number; p_tz?: string }; Returns: { rate_applied: string; daily_days: number; weekend_days: number; rental_charge_cents: number }[] };
+      calc_rental_charge_tiers: { Args: { p_pickup: string; p_days: number; p_daily: number; p_weekend: number; p_weekly: number; p_monthly: number; p_tz?: string }; Returns: { rate_applied: string; daily_days: number; weekend_days: number; rental_charge_cents: number }[] } | { Args: { p_pickup: string; p_days: number; p_daily: number; p_weekend: number; p_weekly: number; p_monthly: number; p_tz: string; p_multi: number }; Returns: { rate_applied: string; daily_days: number; weekend_days: number; rental_charge_cents: number }[] };
       calc_retransfer_payer: { Args: { p_months_on_fleet_policy: number; p_owner_default?: boolean; p_insurer_declined?: boolean; p_owner_failed_to_disclose?: boolean; p_free_after_months?: number }; Returns: string };
       calc_round: { Args: { n: number }; Returns: number };
       calc_split: { Args: { p_rental_charge_cents: number; p_mileage_overage_cents: number; p_kickback_cents: number; p_company_share_bps: number }; Returns: { owner_revenue_cents: number; company_share_cents: number; owner_payout_cents: number }[] };
@@ -29866,6 +30017,8 @@ export type Database = {
       server_capture_session_read: { Args: { p_token: string; p_visitor?: string }; Returns: Json };
       server_capture_sign_in_made: { Args: { p_user: string }; Returns: undefined };
       server_capture_unconfirmed: { Args: { p_user: string }; Returns: boolean };
+      server_car_value_save: { Args: { p_vehicle: string; p_cents: number; p_source: string; p_basis?: string }; Returns: Json };
+      server_car_values_due: { Args: { p_limit?: number; p_vehicle?: string }; Returns: Json };
       server_cf_email_result: { Args: { p: Json }; Returns: Json };
       server_change_facts: { Args: { p_request: string; p_by: string }; Returns: Json };
       server_channel_feed: { Args: { p_token: string }; Returns: Json };
@@ -30027,6 +30180,8 @@ export type Database = {
       server_owner_invoice_id: { Args: { p_number: string }; Returns: string };
       server_owner_invoice_payment_facts: { Args: { p_invoice: string; p_by: string }; Returns: Json };
       server_owner_mandate_inactive: { Args: { p_mandate: string }; Returns: Json };
+      server_owner_price_limits: { Args: { p_by: string }; Returns: Json };
+      server_owner_price_limits_save: { Args: { p_by: string; p: Json }; Returns: Json };
       server_owner_program_facts: { Args: never; Returns: Json };
       server_owner_program_facts_pre0710: { Args: never; Returns: Json };
       server_owner_record_debit_setup: { Args: { p_by: string; p: Json }; Returns: Json };
@@ -30120,6 +30275,9 @@ export type Database = {
       server_referral_agreements: { Args: { p_by: string }; Returns: Json };
       server_referral_partner_portal: { Args: { p_partner: string }; Returns: Json };
       server_referral_partner_signup: { Args: { p: Json; p_ip?: string }; Returns: Json };
+      server_rentalcover_apply: { Args: { p_booking: string; p_quote: string }; Returns: Json };
+      server_rentalcover_facts: { Args: { p: Json }; Returns: Json };
+      server_rentalcover_record: { Args: { p: Json }; Returns: Json };
       server_renter_accident_media: { Args: { p_by: string; p: Json }; Returns: Json };
       server_renter_accident_report: { Args: { p_by: string; p: Json }; Returns: Json };
       server_renter_accidents: { Args: { p_booking: string; p_by: string }; Returns: Json };
