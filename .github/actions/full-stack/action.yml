@@ -19,11 +19,17 @@ runs:
     - name: PostgreSQL 16 (preinstalled on the runner image; installed only if missing)
       shell: bash
       run: |
-        if [ ! -x /usr/lib/postgresql/16/bin/initdb ]; then sudo apt-get update -q && sudo apt-get install -y -q postgresql-16 postgresql-client-16; fi
+        # retried: an apt mirror hiccup failed every job of several runs on Nov 11 (annotated so the step is named)
+        if [ ! -x /usr/lib/postgresql/16/bin/initdb ]; then
+          for i in 1 2 3; do sudo apt-get update -q && sudo apt-get install -y -q postgresql-16 postgresql-client-16 && break; echo "::warning title=full-stack::PostgreSQL install try $i failed"; sleep 20; done
+          [ -x /usr/lib/postgresql/16/bin/initdb ] || { echo "::error title=full-stack::PostgreSQL 16 install failed"; exit 1; }
+        fi
         echo "/usr/lib/postgresql/16/bin" >> "$GITHUB_PATH"
     - shell: bash
       working-directory: web
-      run: npm ci --no-audit --no-fund
+      run: |
+        for i in 1 2 3; do npm ci --no-audit --no-fund && exit 0; echo "::warning title=full-stack::npm ci try $i failed"; sleep 15; done
+        echo "::error title=full-stack::npm ci failed"; exit 1
     - name: Playwright browser cache
       id: pw
       uses: actions/cache/restore@v4
@@ -34,7 +40,12 @@ runs:
       shell: bash
       working-directory: web
       run: |
-        if [ "${{ steps.pw.outputs.cache-hit }}" = true ]; then npx playwright install-deps chromium; else npx playwright install --with-deps chromium; fi
+        # retried, then annotated: an apt mirror failure here left every job without a server on Nov 11
+        for i in 1 2 3; do
+          if [ "${{ steps.pw.outputs.cache-hit }}" = true ]; then npx playwright install-deps chromium && exit 0; else npx playwright install --with-deps chromium && exit 0; fi
+          echo "::warning title=full-stack::browsers try $i failed"; sleep 20
+        done
+        echo "::error title=full-stack::Playwright browsers failed"; exit 1
     - name: Save the browser cache
       if: inputs.save-caches == 'true' && steps.pw.outputs.cache-hit != 'true'
       uses: actions/cache/save@v4
@@ -53,7 +64,7 @@ runs:
       working-directory: web
       run: |
         cp .env.example .env.local
-        bash scripts/local-db.sh up
+        bash scripts/local-db.sh up || { echo "::error title=full-stack::local stack (migrations, seed) failed"; exit 1; }
     - name: Worker build (runs next build)
       # cf:build: the OpenNext build with the Worker size step and its budget check (scripts/worker-size.mjs)
       shell: bash
