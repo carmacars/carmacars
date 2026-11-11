@@ -94,3 +94,5 @@ select test.eq('the door still answers what it did before', (select app.door(tes
 
 -- leave no unprocessed events for the suites after this one (99_staff_alerts counts the Admin digest)
 select app.process_events(1000) >= 0 as processed;
+-- 1154's settings back to their defaults for the suites after this one
+update program_settings set academy_read_wpm = 200, academy_fail_cooldown_minutes = 30 where id = (app.settings()).id;

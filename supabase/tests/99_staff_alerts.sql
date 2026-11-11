@@ -1,5 +1,7 @@
 -- 99: the staff-alert rule table and emitter (migration 0462). Fixtures start with "sa"; addresses are example.test.
 select test.suite('99 staff alerts');
+-- the events earlier suites left unprocessed are not this suite's (process_events takes the oldest first)
+update app_events set processed_at = now() where processed_at is null;
 select test.mk_user('sta_admin', 'admin');
 select test.mk_user('sta_cs', 'va', 'cs');
 select test.mk_user('sta_fleet', 'va', 'fleet');

@@ -58,7 +58,9 @@ select test.eq('verify accounts stay exempt', app.staff_fully_onboarded(test.id(
 select test.ok('verify accounts are never listed', not exists (select 1 from jsonb_array_elements(pg_temp.dr('gap_admin', 'admin_read', 'staff_onboarding_approvals')) x where x ->> 'user_id' = test.id('gap_verify')::text));
 
 -- ================================================================ B. the academy's safeguards
-select test.eq('academy: the pass mark is 90%', (app.settings()).academy_pass_bps, 9000);
+-- the defaults (an earlier suite may have changed them)
+update program_settings set academy_pass_bps = 9000, academy_read_wpm = 200, academy_fail_cooldown_minutes = 30, academy_attempts_per_day = 3, academy_rapid_seconds = 3 where id = (app.settings()).id;
+select test.eq('academy: the pass mark is 90% by default', (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'academy_pass_bps'), '9000');
 select test.eq('academy: 30 minutes after a failed try, 3 tries a day, flagged under 3 s a question',
   (select academy_fail_cooldown_minutes || '/' || academy_attempts_per_day || '/' || academy_rapid_seconds from program_settings where id = (app.settings()).id), '30/3/3');
 create temp table gap_q as select q.id, q.answer, q.sort, jsonb_array_length(q.options) n, q.options from academy_questions q join academy_sections s on s.id = q.section_id where s.slug = 'prices-and-deposits';
@@ -115,6 +117,7 @@ update program_settings set academy_fail_cooldown_minutes = 30 where id = (app.s
 select test.mk_owner('gap_owner');
 select test.mk_vehicle('gap_car', 'gap_owner');
 select test.mk_renter('gap_back');
+update renters set mobile = '647-555-0731' where id = test.id('renter:gap_back');  -- a phone of its own (the fixtures share one)
 select test.mk_booking('GAP-1', 'gap_car', 'gap_back', '2026-09-10 10:00', '2026-09-13 10:00', 'closed');
 update bookings set sales_staff_id = test.id('gap_rep'), sales_source = 'manual_rental', sales_attributed_at = now() where id = test.id('booking:GAP-1');
 insert into leads (id, kind, name, email, source) values (test.id('lead:gap1'), 'contact', 'Gap Back', 'GAP_BACK@example.test', 'web');
@@ -122,7 +125,7 @@ select test.eq('rebooking: claimed for the salesperson of the last booking', (se
 select test.eq('rebooking: with the normal claim window', (select (expires_at - claimed_at) = make_interval(mins => app.sl_window('renter')) from lead_claims where lead_id = test.id('lead:gap1')), true);
 select test.eq('rebooking: logged as a claim', (select note from lead_claim_log where lead_id = test.id('lead:gap1') and action = 'claim'), 'Rebooking: credited on their last booking');
 -- by phone too
-insert into leads (id, kind, name, phone, source) values (test.id('lead:gap2'), 'contact', 'Gap Back', '(647) 555-0199', 'web');
+insert into leads (id, kind, name, phone, source) values (test.id('lead:gap2'), 'contact', 'Gap Back', '(647) 555-0731', 'web');
 select test.eq('rebooking: matched by phone', (select claimed_by from lead_claims where lead_id = test.id('lead:gap2')), test.id('gap_rep'));
 -- a new person: the pool
 insert into leads (id, kind, name, email, source) values (test.id('lead:gap3'), 'contact', 'New Person', 'gap.new@example.test', 'web');
