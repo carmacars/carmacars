@@ -75,3 +75,6 @@ select test.eq('the pay statement email goes to an office staff member too, with
   'prx_cs@example.test|US' || app.fmt_money(18654) || '|true');
 select test.ok('the stub''s PDF facts carry the salary and the currency',
   (select (f ->> 'salary_cents')::bigint = 16154 and f ->> 'currency' = 'USD' from (select app.pdf_facts('pay_statement', (select id::text from field_pay_lines where staff_id = test.id('prx_cs') and run_id = (select (v ->> 'run_id')::uuid from prx_run))) f) x));
+
+-- the settings back as the other suites expect them
+update program_settings set va_salary_defaults = '{}'::jsonb;

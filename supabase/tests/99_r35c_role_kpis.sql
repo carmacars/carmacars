@@ -53,3 +53,5 @@ select test.ok('the Admin sees everyone', (select count(*) from jsonb_array_elem
   where p ->> 'user_id' in (test.id('kpx_cs')::text, test.id('kpx_fleet')::text, test.id('kpx_fin')::text, test.id('kpx_field')::text)) = 4);
 select test.eq('a staff member sees only themselves', (select string_agg(p ->> 'user_id', ',') from jsonb_array_elements(app.door(test.id('kpx_cs'), 'aal2', 'ops_read', 'kpi_board') -> 'people') p), test.id('kpx_cs')::text);
 select test.eq('the field person sees their own from the field portal', (select count(*) from jsonb_array_elements(app.door(test.id('kpx_field'), 'aal2', 'field_read', 'kpi_board') -> 'people') p), 1::bigint);
+
+update program_settings set kpi_cs_first_reply_minutes = 5, kpi_cs_conversations_week = 40;

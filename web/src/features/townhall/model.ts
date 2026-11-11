@@ -2,11 +2,22 @@
 export interface Point { label: string; value: string }
 /** 1068: a staff member's tile on the people slide: their role's numbers and an Admin's shout-out. */
 export interface Person { user_id: string; name: string; role: string; points: Point[] | null; shoutout?: string | null }
-export interface Slide { key: string; title: string; admin_only: boolean; points: Point[]; board?: Point[]; lines?: string[]; note?: string | null; people?: Person[] }
+export interface Slide { key: string; title: string; admin_only: boolean; points: Point[]; /** 1505: the section's minutes in the 30-minute run */ minutes?: number; board?: Point[]; lines?: string[]; note?: string | null; people?: Person[] }
 export interface Townhall { admin: boolean; next_at: string | null; minutes: number; call_url: string | null; weekday: number; time: string; finance_to_staff: boolean; weeks: string[];
-  deck: { id: string; week_of: string; built_at: string; slides: Slide[] } | null;
+  deck: { id: string; week_of: string; built_at: string; slides: Slide[]; recording_url?: string | null } | null;
   /** 1068: attendance (join through the site or check in); for an Admin, the website's visitor sessions per weekday (8 weeks) */
-  checked_in?: boolean; can_check_in?: boolean; visitors?: Record<string, number> | null; attendance?: { meetings: number; last_absent: number | null } | null }
+  checked_in?: boolean; can_check_in?: boolean; visitors?: Record<string, number> | null; attendance?: { meetings: number; last_absent: number | null } | null;
+  /** 1505: a join waiting for Confirm; the run's minutes; the recordings; stories; social figures and attendance marks (Admin) */
+  joined_unconfirmed?: boolean; run_minutes?: number; recordings?: Array<{ week_of: string; url: string }>;
+  my_stories?: Array<{ id: string; body: string; picked: boolean; week_of: string }>; stories?: Array<{ id: string; name: string; body: string; picked: boolean; week_of: string }> | null;
+  social?: Array<{ week_of: string; platform: string; followers: number | null; posts: number | null; views: number | null }> | null;
+  mark?: { meeting_at: string | null; people: Array<{ user_id: string; name: string; present: boolean; locked: boolean }> } | null }
+
+/** 1505: the run's clock: each section's start minute (0 for the first), for the presenter */
+export function runClock(slides: Slide[]): number[] {
+  let t = 0;
+  return slides.map((s) => { const at = t; t += s.minutes ?? 0; return at; });
+}
 
 export const WEEKDAY = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as const;
 /** 1068: the visitor sessions per weekday (Monday first), for the Admin's table beside the fixed day; the quietest marked. */

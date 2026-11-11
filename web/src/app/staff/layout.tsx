@@ -27,6 +27,7 @@ import { REVAMP_STAFF } from '@/features/admin/revamp/scope';
 import { heldFunctions, STAFF_FN_LABEL } from '@/features/staff/nav';
 import { TermsGate } from '@/features/terms/TermsGate';
 import { HomeAddressCard, homeAddressOf } from '@/features/staff/HomeAddress';
+import { TownhallLink } from '@/features/townhall/TownhallLink';
 
 // The staff portal's frame (0197; docs/blueprint/05-va.md and 06-field.md): one portal for every kind of staff work. The
 // menu holds the groups of every function the person has (customer service, fleet, finance, sales, field work); the
@@ -65,6 +66,8 @@ export default async function StaffLayout({ children }: { children: React.ReactN
             <div className="ad__who"><span className="muted"><BrandMark size={22} className="ad__mark" />{office ? STAFF_FN_LABEL[roles.va!] : STAFF_FN_LABEL.field} · <b data-testid="account-email">{roles.preferred_name ?? roles.name ?? user?.email}</b></span>
               <span className="gd-frame-links">{user ? <AlertPulse /> : null}{user ? <AlertsBell userId={user.id} href="/staff/alerts" /> : null}<Link prefetch={false} className="btn btn--quiet btn--sm hd-act" href={office ? '/staff/profile' : '/staff/field/profile'} title="Profile" data-testid="va-profile-link"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="3.5" /><path d="M5 20c.6-3.6 3.2-5.5 7-5.5s6.4 1.9 7 5.5" /></svg><span className="hd-lbl">Profile</span></Link><AssistantPanel portal={portal} /><GuideLink portal={portal} /><SignOutOrExit /></span></div>
             <PortalSwitch current="va" />
+            {/* r35 part C (1505): the weekly townhall's call link, on every staff portal */}
+            {user && !viewing ? <TownhallLink userId={user.id} /> : null}
             {held.length > 1 && (
               <nav className="ad-fn" aria-label="Function" data-testid="fn-switch"><p className="small muted">Working as</p>
                 <ul className="ad-fn__list">{held.map((f) => (

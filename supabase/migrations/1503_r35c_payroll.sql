@@ -3,7 +3,7 @@
 -- Finance) and the field staff, on the field pay periods of 0165 (app.fp_period).
 --   * A salaried staff member's pay for a period is their monthly salary x 12 / 26 (a biweekly amount), by the days they
 --     were employed in the period (started_on, ended_on). The monthly salary is their own (staff_profiles.monthly_salary_cents,
---     set by an Admin with a reason) or their role's default (Program settings va_salary_defaults {cs, fleet, finance}: empty
+--     set by an Admin with a reason), else the monthly pay they were hired at (staff_onboarding, 0730), else their role's default (Program settings va_salary_defaults {cs, fleet, finance}: empty
 --     until an Admin sets it), in salary_currency (Program settings va_salary_currency, USD). Their clocked hours of the
 --     period (staff_clock_entries) are on the line and the stub for the record; the salary does not depend on them.
 --   * Field staff keep 0165's line: hours x rate, overtime and vacation pay when switched on, the approved commissions.
@@ -77,6 +77,8 @@ create trigger audit_pay_adjustments after insert or update or delete on pay_adj
 create function app.pay_salary_monthly(p_staff uuid) returns integer
 language sql stable security definer set search_path = public, app as $$
   select coalesce(sp.monthly_salary_cents,
+           -- the monthly pay of the hire (0730, staff_onboarding), else the role's default
+           (select o.pay_cents from staff_onboarding o where o.user_id = sp.user_id and o.pay_basis = 'monthly' and o.pay_cents > 0 order by o.created_at desc limit 1),
            (select max((s.va_salary_defaults ->> f)::integer) from unnest(sp.functions) f, (select (app.settings()).va_salary_defaults) s
              where f in ('cs', 'fleet', 'finance') and (s.va_salary_defaults ->> f) ~ '^[0-9]+$'))
     from staff_profiles sp where sp.user_id = p_staff and sp.staff_type = 'va'
@@ -84,7 +86,9 @@ $$;
 
 create function app.pay_salary_currency(p_staff uuid) returns text
 language sql stable security definer set search_path = public, app as $$
-  select coalesce((select sp.salary_currency from staff_profiles sp where sp.user_id = p_staff), (app.settings()).va_salary_currency)
+  select coalesce((select sp.salary_currency from staff_profiles sp where sp.user_id = p_staff),
+                  (select o.pay_currency from staff_onboarding o where o.user_id = p_staff and o.pay_basis = 'monthly' and o.pay_cents > 0 order by o.created_at desc limit 1),
+                  (app.settings()).va_salary_currency)
 $$;
 
 -- the salary of a period: monthly x 12 / 26, by the days employed among the 14

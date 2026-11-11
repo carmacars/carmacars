@@ -53,3 +53,14 @@ sends when all of these hold:
 | Reads | `app.role_kpis`, `staff_scorecard` + `kpis` (4 weeks), `kpi_board` (Admin all, staff and field their own) |
 | Web | scorecards (`features/kpis`, `features/va/Scorecard.tsx`), Admin > Team > KPIs (`/admin/kpis`), field My pay (this week) |
 | Tests | `supabase/tests/99_r35c_role_kpis.sql`, `web/src/features/kpis/model.test.ts` |
+
+## Townhall (item 4): `1505_r35c_townhall_deck.sql`
+
+| Item | What changed |
+| --- | --- |
+| Link | The owner's `townhall_link` is 1062's `program_settings.townhall_call_url` (empty until set; no second column). `townhall_link` read; `features/townhall/TownhallLink.tsx` on the staff frame (office and field): the next call and Join (through `/api/townhall-join`, which records the join) |
+| Run | `townhall_minutes` 30 (was 45). `app.townhall_slides` now returns 15 sections with `minutes` (30 in all): opener (cameras on) 1, hires 2, story 3, funnel 3 (leads generated, contacted, offers submitted, requested back = booking requests, closed = confirmed), social 2, fleet week by week (4 weeks added and retired) 3, investors 2 (+ Admin-only committed money), owners 2, top cars 3 (most requested, busiest; + Admin-only revenue), insurer-billed rentals 2 (`bill_to` insurer or split), leaderboard 2, platform updates 1, people 4. The deck page shows each section's clock |
+| Stories, social, recording | `townhall_stories` (staff submit up to 3 a week; an Admin picks one: the deck's story slide), `townhall_social` (an Admin enters followers, posts, views per platform and week; growth on the week before), `townhall_decks.recording_url` (Admin; every portal lists the recordings) |
+| Attendance | `townhall_attendance.method` adds `admin`; `confirmed_at`: a join counts once confirmed, a check-in or an Admin's mark counts (`app.townhall_attended`, used by the job's absences). `townhall_mark` (Admin, corrects a closed meeting's absences) |
+| Lock | `app.townhall_lockouts` (in the job): absent in the last two closed meetings → `inactive_locked_at` with `staff_profiles.lock_reason` 'townhall' (not again after an Admin's Unlock for the same meetings); the door says why; the staff list labels it; the sign-in notice covers both reasons |
+| Tests | `supabase/tests/99_r35c_townhall.sql`; `99_r35k_staff_onboarding.sql` (15 and 13 slides; the clock-in start from the schedule) |
