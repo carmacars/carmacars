@@ -208,7 +208,7 @@ export function lineKey(l: { charge_type: string; booking_addon_id?: string | nu
   return code && (l.detail?.addon_id || l.booking_addon_id || l.charge_type === 'addon') ? `addon:${code}` : l.charge_type;
 }
 /** Lines that are the rental itself (their own fields), never edited as a fee. */
-export const RENTAL_LINE = new Set(['rental_charge', 'lead_time', 'non_refundable_discount', 'staff_discount', 'promo_discount', 'discount']);
+export const RENTAL_LINE = new Set(['rental_charge', 'lead_time', 'price_limit', 'non_refundable_discount', 'staff_discount', 'promo_discount', 'discount']);
 /** The fees typed (dollars) as the database takes them: {key: cents}; an empty box is left out (the computed amount). */
 export function feeOverrides(typed: Record<string, string>): Record<string, number> {
   const out: Record<string, number> = {};

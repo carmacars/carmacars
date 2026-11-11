@@ -225,9 +225,17 @@ export const sheetCard = (r: Pick<SheetRental, 'base' | 'multi' | 'long'>) => ({
 
 /** public.calc_rental_charge with the 3+ day tier (0093), weekdays only (a weekend day is priced by the database): 1 or
  *  2 days at the daily rate, 3 to 6 at the multi-day rate (never more than the daily rate would cost or the weekly rate),
- *  7 to 29 at the weekly rate by the day (never more than the monthly rate), 30 at the monthly rate. */
+ *  7 to 29 at the weekly rate by the day (never more than the monthly rate), 30 at the monthly rate; never less than a
+ *  shorter stay (1200). */
 export function rentalCharge(days: number, c: { daily: number; multi?: number | null; weekly: number; monthly: number }): { tier: 'daily' | 'multi_day' | 'weekly' | 'monthly'; cents: number } {
   if (!Number.isInteger(days) || days < 1 || days > 30) throw new Error('A rental is 1 to 30 days');
+  // 1200: a longer stay never costs less than a shorter one (the 3+ day tier or a low monthly rate could undercut it)
+  const t = tierCharge(days, c);
+  let floor = 0;
+  for (let m = 1; m <= Math.min(days - 1, 6); m++) floor = Math.max(floor, tierCharge(m, c).cents);
+  return { tier: t.tier, cents: Math.max(t.cents, floor) };
+}
+function tierCharge(days: number, c: { daily: number; multi?: number | null; weekly: number; monthly: number }): { tier: 'daily' | 'multi_day' | 'weekly' | 'monthly'; cents: number } {
   if (days <= 6) {
     const byDay = Math.min(days * c.daily, c.weekly);
     if (days >= 3 && c.multi != null) return { tier: 'multi_day', cents: Math.min(days * c.multi, byDay) };

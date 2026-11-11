@@ -30,6 +30,8 @@ import { AnimatedNumber, Disclosure, DocumentList, DocumentRow, MoneyCard, Porta
 import { NextStepBox, TripHero, tripPhoto } from '@/features/portal/trip';
 import { moneyParts } from '@/features/portal/trip-model';
 import { CompleteDetails } from '@/features/portal/CompleteDetails';
+import { StillNeeded } from '@/features/portal/StillNeeded';
+import { showNeeds, stillNeededOf } from '@/features/portal/still-needed';
 import { renterDetailsMissing } from '@/server/portal/renter-details';
 import { STAGES, type Walk } from '@/features/walkthrough/model';
 import { AccidentSummary } from '@/features/accident-card/AccidentCard';
@@ -132,6 +134,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
   return (
     <>
       <Back href="/account">Your trips</Back>
+      {(() => { const n = stillNeededOf(b); return showNeeds(n) ? <StillNeeded number={b.booking_number} needs={n} title={b.status === 'requested' || b.status === 'offered' ? 'What we still need for this request' : undefined} testId="still-needed" /> : null; })()}
       {sp.changed && <div className="pt-ok" role="status" data-testid="changed-panel"><h2 className="d3">Booking updated</h2><p>Your booking has the new details. The signed amendment is under Documents, and we emailed you a copy.</p></div>}
       {sp.declined && <div className="pt-ok" role="status" data-testid="declined-panel"><h2 className="d3">Change declined</h2><p>Your booking stays as it was. We let our team know.</p></div>}
       {sp.paid && b.status === 'on_rent' && b.added_live && !b.link_due && <div className="pt-ok" role="status" data-testid="paid-live-panel"><h2 className="d3">Paid, thank you</h2><p>Your card was charged {money(b.renter_due_at_booking_cents, { cents: true })} for your rental. Your signed agreement and receipt are below.</p></div>}

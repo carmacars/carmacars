@@ -173,7 +173,7 @@
         },
         {
           "question": "Can I extend once I have the car?",
-          "answer": "Yes, in your booking: pick 1 hour, 3 hours, 1 day, 3 days, 1 week or 1 month and pay with your card on file. A day or more costs the same a day as your booking, with per-trip fees for the added days at the same rate, and a few hours are {{extShortDisc}} off the late fee. It is approved at once when the car is free, and counts once it is paid. You can still extend after the return time while you have the car."
+          "answer": "Yes, in your booking: pick 1 hour, 3 hours, 1 day, 3 days, 1 week or 1 month and pay with your card on file. Each added day costs your booking's all-in price a day (what you paid for the booking, fees and HST included, divided by its days), and a few hours cost the hourly late fee, never more than a day. It is approved at once when the car is free, and counts once it is paid. You can still extend after the return time while you have the car."
         }
       ]
     },

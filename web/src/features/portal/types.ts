@@ -32,6 +32,8 @@ export interface BookingSummary {
   agreement_number: string | null; requested_at: string | null; booked_at: string | null;
   /** 0750: the one rule for signing and paying (app.sign_pay_state) */
   sign_pay?: import('./sign-pay').SignPay | null;
+  /** 1203: what the booking still needs from the renter (app.renter_still_needed) */
+  still_needed?: import('./still-needed').StillNeeded | null;
 }
 
 export interface MyBooking extends BookingSummary {

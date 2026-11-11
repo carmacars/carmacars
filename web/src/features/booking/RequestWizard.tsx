@@ -19,6 +19,7 @@ import { clock, longDate, MONTHS, torontoMinutesNow, torontoToday, validIso, val
 import { money } from '@/lib/format';
 import { photoUrl } from '@/lib/photo';
 import { loadRequestDraft, requestAccount, saveRequestDraft, submitBookingRequest } from '@/server/actions/booking';
+import { checkoutCoverQuote } from '@/server/actions/cover-quote';
 import { formatPhone } from '@/features/auth/phone';
 import { ChannelChoice } from '@/features/portal/NotifyChannel';
 import { CHANNEL_LABEL, type Channel } from '@/features/phone/alerts';
@@ -188,6 +189,21 @@ export function RequestWizard(p: WizardProps) {
   const nonRefOk = nonRefAllowed(d.from, today, p.rules.nonRefMinDays);
   const bookingType = nonRefOk ? d.bookingType : 'standard';
   const far = (k: string) => k === 'delivery' || k === 'airport';
+  // 1202: the Protection Plan's price from a RentalCover quote for this renter and these dates, once their details are in
+  const [coverAsked, setCoverAsked] = useState<{ key: string; id: string | null }>({ key: '', id: null });
+  const coverKey = car && d.coverage === '3' && car.planOffered !== false && d.from && d.to && d.first.trim() && d.last.trim() && d.email.includes('@') && d.dobY.length === 4 && d.dobM && d.dobD
+    ? JSON.stringify([car.vehicleId, d.from, d.to, d.tf, d.tt, d.first.trim(), d.last.trim(), d.email.trim(), d.dobY, d.dobM, d.dobD]) : '';
+  useEffect(() => {
+    if (!coverKey || !car) return;
+    let live = true;
+    const key = coverKey;
+    const t = setTimeout(() => {
+      checkoutCoverQuote({ vehicleId: car.vehicleId, from: d.from, to: d.to, tf: d.tf, tt: d.tt, first: d.first, last: d.last, email: d.email, dobY: d.dobY, dobM: d.dobM, dobD: d.dobD })
+        .then((id) => { if (live) setCoverAsked({ key, id }); }).catch(() => { if (live) setCoverAsked({ key, id: null }); });
+    }, 600);
+    return () => { live = false; clearTimeout(t); };
+  }, [coverKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const coverQuote = coverKey && coverAsked.key === coverKey ? coverAsked.id : null;
   const options = useMemo(() => ({
     booking_type: bookingType, coverage_option: d.coverage ? Number(d.coverage) : undefined,
     pickup_method: far(d.pickupAt) ? 'delivered' : 'collected', return_method: far(d.returnAt) ? 'picked_up' : 'returned',
@@ -195,8 +211,9 @@ export function RequestWizard(p: WizardProps) {
     return_location: d.returnAt === 'airport' ? { kind: 'airport', airport_code: d.returnAirport } : d.returnAt === 'delivery' ? { kind: 'delivery' } : undefined,
     drivers: [{ role: 'renter', age_band: band(age) }, ...d.drivers.map((x) => ({ role: 'additional', age_band: band(ageOn(x.dobY, x.dobM, x.dobD, d.from || today)) }))],
     addons: addonsPayload(d.addons),
-    promo_code: /^[A-Za-z0-9-]{3,40}$/.test(d.promo) ? d.promo.toUpperCase() : undefined
-  }), [bookingType, d.coverage, d.pickupAt, d.returnAt, d.pickupAirport, d.returnAirport, age, d.drivers, d.from, d.addons, today, d.promo]);
+    promo_code: /^[A-Za-z0-9-]{3,40}$/.test(d.promo) ? d.promo.toUpperCase() : undefined,
+    rentalcover_quote_id: d.coverage === '3' && coverQuote ? coverQuote : undefined
+  }), [bookingType, d.coverage, d.pickupAt, d.returnAt, d.pickupAirport, d.returnAirport, age, d.drivers, d.from, d.addons, today, d.promo, coverQuote]);
   const haveDates = !!(car && d.from && d.to);
   const { options: addonOptions } = useAddonOptions(car?.vehicleId ?? null, haveDates ? d.from : undefined, haveDates ? d.to : undefined, d.tf, d.tt);
   const { q, error: qErr, loading } = useQuote(haveDates ? { vehicleId: car!.vehicleId, from: d.from, to: d.to, tf: d.tf, tt: d.tt, options } : null);
@@ -446,12 +463,12 @@ export function RequestWizard(p: WizardProps) {
             <fieldset className={fieldCls('coverage')}><legend className="label">How will the car be covered?</legend><InfoTip k="coverage" topic="the coverage options" testId="info-coverage" />
               <p className="hint">Liability coverage is included. This is about damage to the car. You can change your choice any time before pickup.</p>
               <div className="stack">
-                {(['1', '2', '3'] as const).map((v) => (
+                {(car?.planOffered === false ? (['1', '2'] as const) : (['1', '2', '3'] as const)).map((v) => (
                   <label className="option" key={v}><input type="radio" name="coverage" value={v} checked={d.coverage === v} onChange={() => set('coverage', v)} />
                     <span className="option__title">{covText[v]!.replace(', priced in your offer', '')}</span>
                     <span className="option__body">{v === '1' ? 'You will send the policy page or an insurer letter showing OPCF 27.' : v === '2' ? <>You will pay with that card and send its benefits certificate. Most cards stop at a car priced $65,000 or $85,000. <a className="link" href="/credit-card-rental-coverage" target="_blank" rel="noopener" data-testid="coverage-cards-link">Which cards include it<span className="vh"> (opens in a new tab)</span></a></> : 'Priced in your offer, for your car and the driver’s age. We send the Protection Plan’s terms before you buy.'}</span></label>
                 ))}
-              </div><p className="error" role="alert">{err('coverage') ?? ''}</p>
+              </div>{car?.planOffered === false && <p className="hint" data-testid="coverage-plan-not-offered">The Protection Plan covers up to $50,000, so it is not offered for this car: choose your own policy with OPCF 27, or credit card coverage.</p>}<p className="error" role="alert">{err('coverage') ?? ''}</p>
               {p.affiliate && <AffiliateNote name={p.affiliate} placement="booking_step" />}
             </fieldset>
             )}

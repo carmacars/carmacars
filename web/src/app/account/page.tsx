@@ -20,6 +20,8 @@ import { licenceState, renterMissing } from '@/features/portal/LicenceNotice';
 import { quickLinks } from '@/features/portal/quick-links';
 import { QuickLinks } from '@/features/portal/QuickLinks';
 import { SignPayCard } from '@/features/portal/SignPayCard';
+import { StillNeeded } from '@/features/portal/StillNeeded';
+import { showNeeds, stillNeededOf } from '@/features/portal/still-needed';
 
 type Links = { verified: boolean; new: Array<{ kind: string; detail: string | null; booking_number: string | null }>; driver_trips: Array<{ booking_number: string; status: string; pickup_at: string; return_at: string; vehicle_name: string; accepted: boolean }> };
 
@@ -67,6 +69,8 @@ export default async function Account({ searchParams }: { searchParams: Promise<
         </EmptyState>
       ) : (
         <div className="pu-home">
+          {/* 1203: what each request and booking still needs from the renter, first, while anything is not done */}
+          {[...current, ...upcoming].map((b) => { const n = stillNeededOf(b); return showNeeds(n) ? <StillNeeded key={`sn-${b.id}`} number={b.booking_number} needs={n} carLabel={`${carTitle(b)}, ${b.booking_number}`} testId={`still-needed-${b.booking_number}`} /> : null; })}
           {now && <NowPanel testId="next-step" titleId="now-renter" kicker={now.kicker} headline={now.headline} detail={now.detail} urgent={now.urgent} actions={now.actions}
             extra={<>{phone && ['confirmed', 'on_rent'].includes(full!.status) ? <a className="btn now__btn" href={`tel:${settings?.phone ?? phone}`} data-testid="now-call">Call us</a> : null}
               {/* 1150: the digital incident card of the trip in progress */}

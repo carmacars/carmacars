@@ -12,6 +12,8 @@ import { tabOf } from '@/features/portal-nav/tabs';
 import { OWNER_CARS_TABS } from '@/features/owner/menu';
 import { BookingsTab } from './BookingsTab';
 import { ReferredCars, type ReferredCar } from '@/features/owner/ReferredCars';
+import { PriceLimitsForm } from '@/features/rates/PriceLimits';
+import type { PriceLimitsData } from '@/features/rates/price-limits';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Cars', path: '/owner/vehicles', noindex: true, description: 'Your cars with CarmaCars and the bookings on them.' });
@@ -53,6 +55,8 @@ export default async function OwnerCars({ searchParams }: { searchParams: Promis
   }
   // each car's terms and since when (0135)
   const terms = (await rpc('server_owner_car_terms', { p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as CarTermsData | null;
+  // 1205: the owner's price limits for every car (a car can have its own on its page); not for a fleet supplier's lease
+  const limits = home.fleet_supplier || !home.vehicles.length ? null : ((await rpc('server_owner_price_limits', { p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as PriceLimitsData | null);
   const { months, live, photo, bookings } = await ownerView(user, home);
   const nextOf = (id: string) => upcoming(bookings.filter((b) => b.vehicle_id === id), new Date(), 1)[0] ?? null;
   return (
@@ -63,6 +67,9 @@ export default async function OwnerCars({ searchParams }: { searchParams: Promis
       {home.vehicles.length ? <ul className="ow-cars">{home.vehicles.map((v) => <VehicleCard key={v.vehicle_id} v={v} compact trackers={home.trackers_available} photo={photo[v.vehicle_id]} live={live[v.vehicle_id]} month={carThisMonth(months, v.vehicle_id)} next={nextOf(v.vehicle_id)} />)}</ul>
         : <div className="pt-empty"><p className="d4">No vehicles yet</p>{home.kind === 'partner' ? <p className="muted">CarmaCars adds your cars once we agree which ones join.</p> : <Link prefetch={false} className="btn btn--primary" href="/list-your-car/apply">Add your first vehicle</Link>}</div>}
       {terms && <OwnerTermsSummary data={terms} />}
+      {limits && <section className="pt-card stack" aria-labelledby="ow-limits" data-testid="owner-price-limits"><h2 className="d4" id="ow-limits">Price limits for every car</h2>
+        <p className="small">The lowest and highest daily rate your cars are rented at. Short-notice and booked-ahead pricing, promo codes and our offers stay between them. A car can have its own on its page.</p>
+        <PriceLimitsForm who="owner" scope="owner" min={limits.owner.min_daily_cents} max={limits.owner.max_daily_cents} /></section>}
     </>
   );
 }

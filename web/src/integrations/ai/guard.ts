@@ -28,7 +28,7 @@ export function tierOf(purpose: string): Tier {
 export const TASK_PURPOSE: Record<GenerateRequest['task'], string> = {
   listing_draft: 'draft_copy', guide_rewrite: 'guide_rewrite', chat: 'chat', car_copy: 'seo_car', seo_page: 'seo_page', article: 'seo_article',
   turo_email: 'turo_email', phone_draft: 'phone_draft', phone_summary: 'phone_summary',
-  interview_followup: 'interview_followup', interview_score: 'interview_score', faq_reply: 'faq_reply'
+  interview_followup: 'interview_followup', interview_score: 'interview_score', faq_reply: 'faq_reply', value_estimate: 'car_value'
 };
 
 /** About what a call costs before it is made: the prompt (4 characters a token) and half the output it may write, at

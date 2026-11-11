@@ -286,6 +286,8 @@ const worker = {
     if (due.reviews) run('/api/jobs/reviews');
     // the ads job (migration 0167): posted ads checked against the rates, the week's social drafts, Meta publishing when on
     if (due.ads) run('/api/jobs/ads');
+    // 1202: the AI value estimate of cars with no Black Book value (the RentalCover cap), within the free Workers AI allowance
+    if (due.car_values) run('/api/jobs/car-values');
     // a car put on or taken off the site in the database alone (0070's automatic publishing, a slug changed, a car
     // deleted): the fleet page, home, the model pages and the sitemaps are rebuilt (src/lib/edge/fleet-sig.ts)
     // (only with a tag store: pages served as built from the assets are never rebuilt)

@@ -1,0 +1,27 @@
+/* What we still need from you (1203): the checklist at the top of the renter's home and booking pages. */
+.sn { display: grid; gap: var(--s-4); min-width: 0; padding: var(--s-5); border: 2px solid var(--black); border-radius: var(--pu-radius, 16px);
+  background: var(--pu-card, var(--white)); box-shadow: var(--pu-shadow); }
+.sn__head { display: grid; gap: var(--s-2); }
+.sn__title { margin: 0; font-family: var(--font-display); font-size: 1.35rem; line-height: 1.2; }
+.sn__for, .sn__count { margin: 0; font-size: var(--fs-sm, 0.9rem); color: var(--text-2); overflow-wrap: anywhere; }
+.sn__bar { height: 8px; border-radius: 999px; background: var(--grey-200); overflow: hidden; }
+.sn__bar span { display: block; height: 100%; background: var(--pu-accent, var(--red-600)); border-radius: inherit; transition: width var(--t-2, 200ms); }
+.sn__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
+.sn__item { display: grid; grid-template-columns: 1.75rem minmax(0, 1fr) auto; align-items: center; gap: var(--s-3); padding: var(--s-3);
+  border: 1px solid var(--pu-line, var(--grey-200)); border-radius: var(--pu-radius-sm, 12px); min-width: 0; }
+.sn__mark { display: grid; place-items: center; width: 1.75rem; height: 1.75rem; border-radius: 50%; border: 2px solid var(--grey-300, #bbb); font-weight: 700; font-size: 0.85rem; }
+.sn__text { display: grid; gap: 0.1rem; min-width: 0; }
+.sn__label { font-weight: 700; overflow-wrap: anywhere; }
+.sn__state { font-size: var(--fs-xs, 0.8rem); color: var(--text-2); overflow-wrap: anywhere; }
+.sn__btn { white-space: nowrap; min-height: 44px; }
+.sn__item[data-tone="todo"] { border-color: var(--black); }
+.sn__item[data-tone="bad"] { border-color: var(--pu-accent, var(--red-600)); }
+.sn__item[data-tone="bad"] .sn__mark { border-color: var(--pu-accent, var(--red-600)); color: var(--pu-accent, var(--red-600)); }
+.sn__item[data-tone="bad"] .sn__state { color: var(--pu-accent, var(--red-600)); font-weight: 700; }
+.sn__item[data-tone="ok"] { opacity: 0.75; }
+.sn__item[data-tone="ok"] .sn__mark { border-color: var(--pu-ok, #1F7A3A); color: var(--pu-ok, #1F7A3A); }
+@media (max-width: 30rem) {
+  .sn { padding: var(--s-4); }
+  .sn__item { grid-template-columns: 1.75rem minmax(0, 1fr); }
+  .sn__btn { grid-column: 2; justify-self: start; }
+}
