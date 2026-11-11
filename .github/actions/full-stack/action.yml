@@ -16,6 +16,9 @@ runs:
         node-version: 22
         cache: npm
         cache-dependency-path: web/package-lock.json
+    - name: apt uses the Ubuntu archive only (a broken third-party package list failed apt-get update on Nov 11)
+      shell: bash
+      run: sudo find /etc/apt/sources.list.d -type f ! -name 'ubuntu.sources' -delete || true
     - name: PostgreSQL 16 (preinstalled on the runner image; installed only if missing)
       shell: bash
       run: |
