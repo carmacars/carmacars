@@ -91,8 +91,9 @@ select test.ok('Finance reads the timesheet', jsonb_typeof(test.r35k('r35k_fin',
 select test.throws('customer service does not', $$select test.r35k('r35k_cs', 'ops_read', 'va_timesheet')$$, 'Finance and Admin');
 select test.lives('Finance adds hours with a reason', format($$select test.r35k('r35k_fin', 'ops_do', 'va_clock_fix', %L)$$,
   jsonb_build_object('user_id', test.id('r35k_fleet'), 'started_at', now() - interval '5 hours', 'ended_at', now() - interval '1 hour', 'reason', 'Forgot to clock in')));
-select test.eq('the start times: customer service 9:00 Toronto on a working day', to_char(app.va_clock_start(test.id('r35k_cs'), date '2026-11-09') at time zone 'America/Toronto', 'HH24:MI'), '09:00');
-select test.eq('no start on Sunday', app.va_clock_start(test.id('r35k_cs'), date '2026-11-08') is null, true);
+-- 1502: the start comes from the schedule (customer service 8:00 to 18:00, six days a week, Tuesday off)
+select test.eq('the start times: customer service 8:00 Toronto on a working day', to_char(app.va_clock_start(test.id('r35k_cs'), date '2026-11-09') at time zone 'America/Toronto', 'HH24:MI'), '08:00');
+select test.eq('no start on its day off (Tuesday)', app.va_clock_start(test.id('r35k_cs'), date '2026-11-10') is null, true);
 
 -- ================================================================ 5. Finance in the Partners section
 select test.ok('Finance reads the rental partners', jsonb_typeof(test.r35k('r35k_fin', 'ops_read', 'partners')) = 'array');
@@ -110,8 +111,9 @@ select test.eq('Mark answered takes it off', (select count(*) from app.unanswere
 
 -- ================================================================ 7. the townhall
 select test.ok('the deck builds', app.townhall_build(null, test.id('r35k_admin')) is not null);
-select test.eq('the Admin sees every slide', jsonb_array_length(test.r35k('r35k_admin', 'ops_read', 'townhall') -> 'deck' -> 'slides'), 8);
-select test.eq('staff do not see finances and claims', jsonb_array_length(test.r35k('r35k_cs', 'ops_read', 'townhall') -> 'deck' -> 'slides'), 6);
+-- 1505: the 30-minute run (15 sections; the investor money and the revenue by car are the Admin's)
+select test.eq('the Admin sees every slide', jsonb_array_length(test.r35k('r35k_admin', 'ops_read', 'townhall') -> 'deck' -> 'slides'), 15);
+select test.eq('staff do not see the money slides', jsonb_array_length(test.r35k('r35k_cs', 'ops_read', 'townhall') -> 'deck' -> 'slides'), 13);
 select test.throws('only an Admin writes notes', format($$select test.r35k('r35k_cs', 'admin_do', 'townhall_note', %L)$$, jsonb_build_object('deck', (select id from townhall_decks limit 1), 'key', 'week', 'note', 'x')));
 
 -- ================================================================ 8. careers: closed roles, Sales, AI interviews, auto-hire

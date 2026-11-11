@@ -2,8 +2,7 @@ import type { AdminPage } from '@/server/admin/api';
 import { ListFilters } from '@/features/list-filters/ListFilters';
 import { Act } from '@/features/admin/Act';
 import { Badge, BookingLink, PageHead, Search, Table, Tiles, t } from '@/features/admin/ui';
-import { emailBudgetLine } from '@/features/usage/model';
-import type { EmailPace } from '@/features/usage/UsageCards';
+import Link from '@/components/Link';
 
 type R = Record<string, unknown>;
 
@@ -18,13 +17,11 @@ export async function Emails({ ctx: { list, read }, sp, tab }: { ctx: AdminPage;
   }
   const [{ rows, count }, u] = await Promise.all([list('notification_outbox', { eq: sp.status ? { status: sp.status } : {}, q: sp.q, limit: 200 }),
     read<{ total: number; outbox: number; auth: number; cap: number; warn_at: number; held: number; failed_today: number }>('email_usage').catch(() => null)]);
-  // r35 (0900): the day's emails and why the cap is that number, from the same pace read as Settings > Usage
-  const pace = await read<EmailPace>('email_pace').catch(() => null);
   return (<><PageHead title="Emails" kicker={`${count} messages`} purpose="Every email the site sent or is waiting to send. Resend one, cancel one, or text it instead."><Search action="/admin/logs?tab=emails" value={sp.q} placeholder="Address or email code" /></PageHead>
-    {u && <Tiles items={[{ k: 'Sent today', v: pace ? `${pace.day_used} of ${pace.day_cap}` : `${u.total} of ${u.cap}`, sub: `${u.auth} sign-in emails`, warn: u.total >= u.warn_at },
+    {u && <Tiles items={[{ k: 'Sent today', v: String(u.total), sub: `${u.auth} sign-in emails`, warn: u.total >= u.warn_at },
       { k: 'Held for the limit', v: String(u.held), href: '/admin/logs?tab=emails&status=delayed', warn: u.held > 0 }, { k: 'Failed today', v: String(u.failed_today), href: '/admin/logs?tab=emails&status=failed', warn: u.failed_today > 0 },
       { k: 'In this list', v: String(count) }]} />}
-    {u && <p className={`alert ${u.total >= u.warn_at ? 'alert--warn' : 'alert--info'}`} data-testid="email-usage"><span>{pace ? `Today: ${emailBudgetLine({ used: pace.day_used, cap: pace.day_cap, cf_state: pace.cf_state, cf_counted: pace.cf_counted, cf_budget: pace.cf_budget, resend_budget: pace.resend_budget })}.` : `Today: ${u.total} of ${u.cap} emails.`} ({u.outbox} from this list, {u.auth} sign-in emails.) From {u.warn_at} the Admins get a notice; digests and marketing wait first, booking and sign-in emails go last. Held for the limit: {u.held}. Failed today: {u.failed_today}.</span></p>}
+    {u && <p className={`alert ${u.total >= u.warn_at ? 'alert--warn' : 'alert--info'}`} data-testid="email-usage"><span>Today: {u.total} sent ({u.outbox} from this list, {u.auth} sign-in emails.) On a busy day digests and marketing wait first; booking and sign-in emails go last. The daily capacity is on <Link prefetch={false} className="link" href="/admin/settings/usage">Settings &gt; Usage</Link>. Held for the limit: {u.held}. Failed today: {u.failed_today}.</span></p>}
     <ListFilters id="admin-logs-emails-status" base="/admin/logs?tab=emails" sp={sp} chips={{ name: 'status', label: 'Status', value: sp.status ?? '', options: [['', 'All'], ['queued', 'Queued'], ['delayed', 'Held'], ['sent', 'Sent'], ['merged', 'Sent combined'], ['suppressed', 'Repeats held back'], ['failed', 'Failed']] }} />
     <Table<R> testId="outbox" rows={rows} empty="No emails match. Clear a filter, or search by address or booking." cols={[{ key: 'created_at', label: 'Created', render: (r) => t(r.created_at) }, { key: 'code', label: 'Email' }, { key: 'to_address', label: 'To' }, { key: 'booking_number', label: 'Booking', render: (r) => r.booking_number ? <BookingLink n={r.booking_number} /> : null },
       { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'attempts', label: 'Tries', num: true }, { key: 'sent_at', label: 'Sent', render: (r) => t(r.sent_at) }, { key: 'last_error', label: 'Error', className: 'wrap' },

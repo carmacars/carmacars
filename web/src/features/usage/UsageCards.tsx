@@ -3,7 +3,7 @@ import Link from '@/components/Link';
 import { door } from '@/server/door';
 import { Act } from '@/features/admin/Act';
 import { t } from '@/features/admin/ui';
-import { CF_EMAIL_STEPS, emailBudgetLine, CF_EMAIL_STEPS_HREF, PAUSE, bannerLine, bannerTone, cfEmailSentence, noteLine, paidCost, share, shortLabel, usd, usedUpTitle, type BannerRow, type CfEmail, type ServiceState } from './model';
+import { CF_EMAIL_STEPS, emailBudgetLine, paceBudget, CF_EMAIL_STEPS_HREF, PAUSE, bannerLine, bannerTone, cfEmailSentence, noteLine, paidCost, share, shortLabel, usd, usedUpTitle, type BannerRow, type CfEmail, type ServiceState } from './model';
 import { UsageAllow } from './UsageAllow';
 
 // The usage guard on Admin > To do (migration 0080): one quiet card at 80% of an included allowance, one card when it is
@@ -13,7 +13,10 @@ interface Cards { cards: CardRow[]; emails_held: number }
 
 export async function UsageCards({ userId }: { userId: string }) {
   const u = await door<Cards>(userId, 'ops_read', 'usage_cards').catch(() => null);
-  if (!u || (!u.cards.length && !u.emails_held)) return null;
+  if (!u) return null;
+  // r35 part C (owner, 2026-11-11): Resend's daily part is never shown as a cap (the capacity line below counts Cloudflare + Resend)
+  u.cards = u.cards.filter((c) => c.service !== 'resend_day');
+  if (!u.cards.length && !u.emails_held) return null;
   return (
     <div className="stack" data-testid="usage-cards">
       {u.emails_held > 0 && (
@@ -70,14 +73,16 @@ export async function UsageBanner({ userId }: { userId: string }) {
 }
 
 /** The banner itself, from the rows (pure: the screenshot harness renders it too). */
-export function UsageBannerView({ rows }: { rows: BannerRow[] }) {
+export function UsageBannerView({ rows: all }: { rows: BannerRow[] }) {
+  // r35 part C (owner, 2026-11-11): Resend's daily part is never shown as a cap; the day's capacity is on Settings > Usage
+  const rows = all.filter((r) => r.service !== 'resend_day');
   const red = rows.filter((r) => bannerTone(r) === 'red');
   const amber = rows.filter((r) => bannerTone(r) === 'amber');
   const note = rows.filter((r) => bannerTone(r) === 'note');
-  const cf = rows.find((r) => r.cf)?.cf;
+  const cf = all.find((r) => r.cf)?.cf;
   // r35: Resend's allowance from its usage row (the setting), never a number written here
-  const cfLine = cfEmailSentence(cf, rows.find((r) => r.service === 'resend_day')?.included_text);
-  const emailRow = [...red, ...amber].some((r) => r.service === 'resend_day' || r.service === 'resend_month');
+  const cfLine = cfEmailSentence(cf);
+  const emailRow = [...red, ...amber].some((r) => r.service === 'resend_month');
   const settings = <Link prefetch={false} className="link" href="/admin/settings/usage">Settings &gt; Usage</Link>;
   const setup = cfLine && emailRow ? <span className="ug-banner__cf" data-testid="usage-banner-cf">{cfLine} <Link prefetch={false} className="link" href={CF_EMAIL_STEPS_HREF}>The 4 setup steps</Link></span> : null;
   return (
@@ -93,23 +98,24 @@ export function UsageBannerView({ rows }: { rows: BannerRow[] }) {
 
 /** Settings > Usage: whether Cloudflare Email Service sends the outbox, and the exact steps when it does not (0320). */
 /** r29 (0583): the day's emails against the one daily cap, and the hour's pace */
-export interface EmailPace { day_cap: number; day_used: number; hour_cap: number; hour_used: number; cf_ever_sent: boolean; setting: number; cf_budget: number; resend_budget: number; waiting: number; cf_state?: string; cf_counted?: boolean }
-/** r35 (0900): the same plain line as the booking page's email box (emailBudgetLine), then the hour's pace */
+export interface EmailPace { day_cap: number; day_used: number; hour_cap: number; hour_used: number; cf_ever_sent: boolean; setting: number; cf_budget: number; resend_budget: number; waiting: number; cf_state?: string; cf_counted?: boolean;
+  capacity?: number; limited_by?: string; cf_reason?: string | null }
+/** r35 (0900, 1501): the day's emails against the real capacity (Cloudflare + Resend), then the hour's pace (Admin > Settings > Usage only) */
 export function paceLine(p: EmailPace): string {
-  return `Today: ${emailBudgetLine({ used: p.day_used, cap: p.day_cap, cf_state: p.cf_state, cf_counted: p.cf_counted ?? p.cf_ever_sent, cf_budget: p.cf_budget, resend_budget: p.resend_budget })}. This hour: ${p.hour_used} of ${p.hour_cap}.${p.waiting ? ` ${p.waiting} waiting: they go out at that pace, the rest tomorrow.` : ''}`;
+  return `Today: ${emailBudgetLine(paceBudget(p))}. This hour: ${p.hour_used} of ${p.hour_cap}.${p.waiting ? ` ${p.waiting} waiting: they go out at that pace, the rest tomorrow.` : ''}`;
 }
 
 export async function EmailSetup({ userId }: { userId: string }) {
   const [c, pace] = await Promise.all([door<CfEmail>(userId, 'ops_read', 'usage_email_setup').catch(() => null), door<EmailPace>(userId, 'ops_read', 'email_pace').catch(() => null)]);
   if (!c) return null;
-  const line = cfEmailSentence(c, pace?.resend_budget);
+  const line = cfEmailSentence(c);
   return (
     <section id="email-setup" className={`pt-card ad-card${line ? ' ad-card--warn' : ''}`} aria-labelledby="email-setup-h" data-testid="usage-email-setup" data-state={c.state}>
       <div className="pt-card__head"><h2 className="d4" id="email-setup-h">{line ? 'Emails: Cloudflare Email Service is not sending' : 'Emails: Cloudflare Email Service sends them'}</h2></div>
       {pace && <p className="small" data-testid="usage-email-pace">{paceLine(pace)}</p>}
       {line ? (
         <>
-          <p className="small">{line} Until then a busy day holds emails once {pace ? `Resend\u2019s ${pace.resend_budget.toLocaleString('en-US')}` : 'your daily email limit'} are used.</p>
+          <p className="small">{line}</p>
           <ol className="small ug-steps">{CF_EMAIL_STEPS.map((s) => <li key={s}>{s}</li>)}</ol>
         </>
       ) : <p className="small">{c.sent_month.toLocaleString('en-US')} of {c.included.toLocaleString('en-US')} included this month. Resend takes over only if Cloudflare refuses or the month&apos;s emails are used.</p>}

@@ -88,6 +88,14 @@ jobs:
             printf 'select app.gsc_sitemap_store($%s$%s$%s$::jsonb) n' "$tag" "$(cat "$OUT")" "$tag" > "$RUNNER_TEMP/store.sql"
             "$sb" sql-file "$RUNNER_TEMP/store.sql" >/dev/null && echo "::notice title=gsc::figures stored (app.gsc_sitemap_log)" || echo "::warning title=gsc::the figures could not be stored (migration 0124 not applied yet?)"
           fi
+          # release 35 part C (1507): Search Analytics by day (clicks, impressions) for the investor deck
+          SRCH="$RUNNER_TEMP/gsc-search.json"
+          AT="$AT" SITE="$SITE" OUT="$SRCH" node web/scripts/gsc-search.mjs || echo "::warning title=gsc search::the search figures were not read"
+          if [ -s "$SRCH" ]; then
+            tag="j$(openssl rand -hex 6)"
+            printf 'select app.gsc_search_store($%s$%s$%s$::jsonb) n' "$tag" "$(cat "$SRCH")" "$tag" > "$RUNNER_TEMP/srch.sql"
+            "$sb" sql-file "$RUNNER_TEMP/srch.sql" >/dev/null && echo "::notice title=gsc search::stored (app.gsc_search_daily)" || echo "::warning title=gsc search::not stored (migration 1507 not applied yet?)"
+          fi
           # release 28 (0564): the index coverage report, a sample inspected with the URL Inspection API (2,000 a day; 150 a run)
           COV="$RUNNER_TEMP/coverage.json"
           AT="$AT" SITE="$SITE" OUT="$COV" INSPECT="${INSPECT:-150}" node --experimental-strip-types --no-warnings web/scripts/gsc-coverage.mjs || echo "::warning title=coverage::the coverage sample did not finish"

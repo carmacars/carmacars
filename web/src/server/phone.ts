@@ -82,8 +82,11 @@ export async function runPhoneJob(): Promise<Record<string, unknown>> {
   try { texts = await runTextsJob(); } catch (e) { failed = e; }
   let contacts: Record<string, unknown>;
   try { contacts = { ...(await syncContacts(contactsDb, contactsBook())) }; } catch (e) { contacts = { ok: false, error: e instanceof Error ? e.message.slice(0, 200) : 'failed' }; }
+  // r35 part C (1506): one AI reading of a lead's or renter's words, within the free allowance (never fails the job)
+  let intent: Record<string, unknown>;
+  try { const { runIntentAi } = await import('@/server/intent-ai'); intent = await runIntentAi(); } catch (e) { intent = { error: e instanceof Error ? e.message.slice(0, 200) : 'failed' }; }
   if (failed) throw failed;
-  return { ...texts, contacts };
+  return { ...texts, contacts, intent };
 }
 
 /** Quo contacts (0190): the database's side of the sync (src/features/phone/quo-contacts.ts). */

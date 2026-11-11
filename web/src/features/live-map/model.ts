@@ -1,3 +1,4 @@
+import type { Intent } from '../intent/model.ts';
 // The Live map (migration 0242): what the database's one read (admin_read live_map) returns, and what the website works
 // out from it: the score and its signals, the names, the contact details only when asked for (Release 26), where each pin goes (spread a little when several
 // share a spot, the same way on every refresh), the counts and the spotlight. Unit tested in Node (imports only roles.ts).
@@ -13,6 +14,8 @@ export interface Facts { pages: number; seconds: number; cars: number; visit: nu
 export interface RawPin {
   id: string; type: LeadType; types: LeadType[]; at: string; detail: string | null; booking_number: string | null; renter_id: string | null; session_id: string | null;
   pickup_at?: string | null; return_at?: string | null;
+  /** r35 part C (1506): the renter's intent (score, label, signals) */
+  intent?: Intent | null;
   name: string | null; email: string | null; phone: string | null; city: string | null; lat: number | null; lng: number | null; precision: Precision;
   online: boolean | null; device: string | null; from_ad: boolean; facts: Facts; car: MapCar | null;
   /** 0470: what the person is to us (owner, renter, ...) and their owners row */
@@ -73,6 +76,8 @@ export interface Pin {
   name: string | null;
   /** seconds on the site (the visit's), for the card's time line */
   seconds: number | null;
+  /** r35 part C (1506): the renter's intent */
+  intent: Intent | null;
 }
 export interface MapView { working: Working[]; leaderboard: Leader[]; celebrations: Celebration[]; at: string; days: number; cap: number; hq: { lat: number; lng: number } | null; kpi: Kpi; totals: Partial<Record<LeadType, number>>; pins: Pin[]; fleet: FleetCar[];
   /** Release 26: phones and emails are in this answer ("Show contact" on); without it they are never sent. */
@@ -245,7 +250,7 @@ export function toView(raw: RawMap, contact: boolean): MapView {
       email: contact ? p.email || null : null, phone: contact ? p.phone || null : null,
       city: p.city, lat: num(p.lat), lng: num(p.lng), precision: p.precision, online: !!p.online, device: p.device,
       score, band: bandOf(score), signals, car: p.car, seconds: num(p.facts?.seconds),
-      roles: Array.isArray(p.roles) ? p.roles : [], owner_id: p.owner_id ?? null
+      roles: Array.isArray(p.roles) ? p.roles : [], owner_id: p.owner_id ?? null, intent: p.intent ?? null
     };
   });
   const hq = raw.hq && num(raw.hq.lat) !== null && num(raw.hq.lng) !== null ? { lat: num(raw.hq.lat)!, lng: num(raw.hq.lng)! } : null;

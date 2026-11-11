@@ -1,3 +1,5 @@
+import { IntentCard } from '@/features/intent/IntentCard';
+import type { Intent } from '@/features/intent/model';
 import { notFound } from 'next/navigation';
 import type { PageCtx } from '@/features/shared-pages/context';
 import { PageHead } from '@/features/admin/ui';
@@ -32,5 +34,7 @@ export async function SalesLeadPage({ ctx, id, base, chatBase }: { ctx: PageCtx;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const d = await ctx.read<LeadDetail>('sales_lead', { id }).catch(() => null);
   if (!d) notFound();
-  return <LeadPage d={d} base={base} chatHref={d.chat_id ? `${chatBase}?view=chat&id=${d.chat_id}` : null} />;
+  // r35 part C (1506): the lead's intent signals
+  const intent = await ctx.ops<Intent | null>('intent', { lead: id }).catch(() => null);
+  return <><IntentCard intent={intent} /><LeadPage d={d} base={base} chatHref={d.chat_id ? `${chatBase}?view=chat&id=${d.chat_id}` : null} /></>;
 }

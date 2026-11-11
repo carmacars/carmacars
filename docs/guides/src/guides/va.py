@@ -86,6 +86,27 @@ def build():
         'A task meets its target when done by its due time. Daily checks count when done by 9:00 and 18:00.',
         'The first reply target is 5 minutes: a new booking request, an enquiry, a change the renter asked for or a renter message is due 5 minutes after it comes in. An Admin sets it in Program settings, and the target column shows the one in force.',
     ], shot=S('va-sales/05-scorecard-desktop', 0, 60, 1440, 420, pins=[(1, 60, 203), (2, 900, 270)]))
+    g.tip('KPIs by week sits on the same page: your role\'s KPIs against their targets (Program settings). Customer service: first reply within 5 minutes, conversations, licences reviewed, requests answered. Fleet: handovers on time, photo reviews, the next-day list, field jobs dispatched, calls. Finance: deposits reviewed in time, statements and invoices on time, tolls and tickets checked 2 to 3 times a week. A figure in red missed its target.')
+
+    g.task('Your schedule, hours and pay', 'Hours > Schedule shows your days and hours (Toronto) and who is working today. Breaks are at your discretion.')
+    g.table([
+        ['Customer service', '6 days a week, 8:00 am to 6:00 pm, Tuesday off'],
+        ['Finance', 'Monday, Wednesday and Friday plus the 10th and the 15th of each month, 10:00 am to 7:00 pm; one extra day a week when there is overflow work'],
+        ['Fleet', '6 days a week, 11:00 am to 9:00 pm, Sunday off'],
+    ], head=['Role', 'Schedule'])
+    g.steps([
+        f'Clock in when you start and out when you stop. A clock-in more than 10 minutes after your start counts as late.',
+        f'You are paid every two weeks: your monthly salary x 12 / 26. Your pay stubs are under {P("Hours", "My hours")}, each with its PDF, once an Admin approves the payroll.',
+        f'Finance prepares the payroll under {P("Hours", "Payroll")}: start it once the period has ended, add any bonus or deduction with its reason, then {B("Send for approval")}. An Admin approves it and records the payments; nothing is paid by itself.',
+    ])
+
+    g.task('The weekly townhall', 'Every Wednesday at 1:00 pm Toronto, 30 minutes, cameras on. The call link is at the top of your menu on every page.')
+    g.steps([
+        f'Press {B("Join now")} (from 15 minutes before), then {B("Confirm I am in the call")} on the Townhall page. Or press {B("Check in")}. Either counts you as there.',
+        f'Something wild happened this week? {B("Tell yours")} under Craziest story of the week: an Admin picks one for the deck.',
+        'Each week\'s recording is listed on the Townhall page.',
+    ])
+    g.tip('Two townhalls missed in a row lock your account until an Admin restores it.', 'Watch out')
 
     # ---------------------------------------------------------------- 2
     g.chapter('Customer service',

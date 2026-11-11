@@ -992,14 +992,14 @@ def build():
     ], head=['', 'Commission'])
     g.tip('A commission that changes after an owner statement was built (a refund, or the month\'s Sales tier) goes on the owner\'s next statement as an adjustment line.')
 
-    g.task('Field pay', f'{P("Money", "Field pay")}. Field staff clock in and out on their phones (My hours); you run the pay every two weeks. Nothing is paid automatically.')
+    g.task('Field pay', f'{P("Money", "Payroll")}. Field staff clock in and out on their phones (My hours); you run the pay every two weeks. Nothing is paid automatically.')
     g.flow([('Clocked in and out', 'Field staff press Clock in and Clock out; Fleet or you fix a forgotten clock-out'),
             ('Pay run started', 'Hours times the hourly rate, plus the approved commissions'),
             ('Approved', 'The figures are frozen, the period\'s hours are locked, the statements are numbered'),
             ('Paid', 'You recorded how each person was paid; they get their statement by email')])
     g.steps([
         f'The tab {B("Pay run")} shows the current two-week period (Sunday to Saturday: the first day is Settings > Program, Field pay). {B("Earlier period")} and {B("Later period")} move between periods.',
-        f'After the period ends, press {B("Start the pay run")}: one line for each person with hours times their hourly rate, plus the staff commissions and referral fees approved by the end of the period (see Staff commissions). {B("Refresh the figures")} takes in a change made since.',
+        f'After the period ends, press {B("Start the payroll")}: one line for each person with hours times their hourly rate, plus the staff commissions and referral fees approved by the end of the period (see Staff commissions). {B("Refresh the figures")} takes in a change made since.',
         f'Press {B("Approve")}. The period\'s hours are locked, each line gets a statement number and the figures are frozen. Someone still clocked in blocks it: fix their shift under {B("Hours")} first. {B("Withdraw")} takes an approved run back while no payment is recorded.',
         f'Press {B("Record payment")} on a line: choose e-Transfer, bank transfer or cash, the reference (not needed for cash) and the date. The commissions in the line are marked paid and the person gets their pay statement by email ({B("Send again")} repeats it). The statement\'s number opens its PDF; {B("CSV")} gives the run for your accountant.',
         f'{B("Hours")} lists everyone\'s shifts of the period. {B("Add hours")} enters a shift for someone who forgot to clock in, {B("Change")} fixes one and {B("Remove")} takes one out. Each needs a reason and is kept in a log. Fleet does the same under Field hours but sees no pay.',
@@ -1012,6 +1012,16 @@ def build():
         ['Commissions that net to nothing', 'A person whose approved commissions add up to nothing or less (a clawback) is not paid them this period: they carry to the next'],
     ], head=['', 'Field pay'])
     g.tip('A shift of more than 16 hours (a setting) is refused, and so are hours that overlap another shift of the same person. The field staff member sees their hours and statements under My hours on their phone.')
+    g.task('Payroll for everyone', f'{P("Money", "Payroll")} is one run every two weeks for the field staff (hours) and for customer service, Fleet and Finance (salary).')
+    g.steps([
+        f'A salaried person is paid their monthly salary x 12 / 26, for the days they were employed in the period. The salary is their own ({B("Set the salary")}, with a reason), else the monthly pay they were hired at, else their role\'s (Program settings, va_salary_defaults), in US dollars unless set otherwise.',
+        f'Finance prepares it: {B("Start the payroll")}, {B("Add a bonus or deduction")} with the reason, then {B("Send for approval")}. You get an alert.',
+        f'You press {B("Approve")}, then {B("Record all payments")} (one method and reference; each stub number is added to it) or {B("Record payment")} line by line. Each person gets their stub by email and in their portal.',
+    ])
+    g.tip('Admin > Team also has Schedules (each role\'s days and hours, anyone\'s own, who is late today) and KPIs (every staff member\'s KPIs for a week against the targets in Program settings).')
+    g.tip('The townhall page: pick the craziest story, enter the week\'s social media figures, add the recording link, and mark anyone present or absent. Staff who miss two townhalls in a row are locked until you press Unlock on the staff list.', 'Good to know')
+    g.tip('Each renter and lead shows an Intent card (hot, warm or cold, with the budget, car, length, dates, urgency, delivery and coverage they mentioned). The live map shows it on each pin. An AI reading fills the gaps within the free daily allowance only (Program settings, intent_ai_enabled).', 'Good to know')
+    g.tip('Investors see Search traction under the deck: Google clicks and impressions of the last 28 days, indexed pages and the weekly trend. Type the indexed pages from Search Console on the investor deck page under Investors (no API exists for it).', 'Good to know')
 
     g.task('Company statements', 'CarmaCars\' own monthly statement, in twelve sections.')
     g.steps([

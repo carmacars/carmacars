@@ -31,7 +31,8 @@ export default async function UsagePage() {
       {/* 0320: whether Cloudflare Email Service sends, and the steps when it does not */}
       <EmailSetup userId={user.id} />
       {u.ai && <AiByFeature ai={u.ai} />}
-      {u.services.map((s) => {
+      {/* r35 part C (owner, 2026-11-11): the emails' day is the capacity line above (Cloudflare + Resend), never Resend's part as a cap */}
+      {u.services.filter((s) => s.service !== 'resend_day').map((s) => {
         const cost = paidCost(s);
         return (
           <Card key={s.service} id={`usage-${s.service}`} title={shortLabel(s.label)} testId={`usage-${s.service}`} tone={s.state === 'paused' || s.state === 'held' ? 'warn' : undefined}

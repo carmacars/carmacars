@@ -126,7 +126,8 @@ select test.eq('vacation pay is off: nothing added', app.fp_line_values(test.id(
 
 -- ================================================================ 5. the pay run
 select test.throws('pay run: an Admin only (Fleet no)', format($$select test.fp_do('fp_fleet', 'field_pay_run_start', %L)$$, jsonb_build_object('date', test.fp_prev())), 'Admin');
-select test.throws('pay run: Finance no (an Admin approves pay)', format($$select test.fp_do('fp_fin', 'field_pay_run_start', %L)$$, jsonb_build_object('date', test.fp_prev())), 'Admin');
+-- 1503: Finance now prepares the payroll (start, refresh, adjust, send); only an Admin approves and records payments
+-- (supabase/tests/99_r35c_payroll.sql)
 select test.throws('pay run: a period that has not started', format($$select test.fp_do('fp_admin', 'field_pay_run_start', %L)$$, jsonb_build_object('date', test.fp_cur() + 14)), 'not started');
 select test.eq('read: the pay run before it is started shows the figures as they stand',
   (select jsonb_array_length(x -> 'lines') || '/' || (x #>> '{totals,gross_cents}') from (select test.fp_read('fp_admin', 'field_pay', jsonb_build_object('date', test.fp_prev())) x) y), '3/119900');

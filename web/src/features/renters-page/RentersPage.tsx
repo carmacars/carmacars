@@ -1,3 +1,5 @@
+import { IntentCard } from '@/features/intent/IntentCard';
+import type { Intent } from '@/features/intent/model';
 import Link from '@/components/Link';
 import { Act } from '@/features/admin/Act';
 import { Badge, Card, Kv, PageHead, Search, Table, d, t } from '@/features/admin/ui';
@@ -53,6 +55,7 @@ async function FindRenter({ ctx, sp }: { ctx: PageCtx; sp: Record<string, string
     sp.id && /^[0-9a-f-]{36}$/.test(sp.id) ? read<View | null>('renter', { id: sp.id }).catch(() => null) : Promise.resolve(null)]);
   // r34 (0800): the renter's notes, as on the Admin's renter page (staff add, an Admin removes); r35 (0850): the renter's
   // Activity log, the same as the Admin's, with the note box above it
+  const intent = view ? await ctx.ops<Intent | null>('intent', { renter: view.id }).catch(() => null) : null;
   const [notes, activity] = view ? await Promise.all([read<NotesRead>('renter_notes', { renter_id: view.id }).catch(() => null),
     read<ActivityPage>('renter_activity', { renter_id: view.id, ...readParams(activityQuery(sp)) }).catch(() => null)]) : [null, null];
   const portal = portalBase(ctx.viewer);
@@ -72,6 +75,8 @@ async function FindRenter({ ctx, sp }: { ctx: PageCtx; sp: Record<string, string
       <Table rows={view.bookings as unknown as Array<Record<string, unknown>>} empty="No bookings." cols={[{ key: 'booking_number', label: 'Booking', render: (r) => <Link prefetch={false} className="link" href={`/staff/bookings/${encodeURIComponent(String(r.booking_number))}`}>{String(r.booking_number)}</Link> },
         { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'vehicle', label: 'Car' }, { key: 'pickup_at', label: 'Pickup', render: (r) => t(r.pickup_at) }]} />
     </Card>}
+    {/* r35 part C (1506): the renter's intent signals */}
+    {view && <IntentCard intent={intent} />}
     {view && <ActivityLog data={activity} base={`/staff/renters?id=${view.id}${q ? `&q=${encodeURIComponent(q)}` : ''}`} sp={sp} inbox={inbox} chatBase={inbox}
       emailHref={latest ? `${portal}/bookings/${encodeURIComponent(latest.booking_number)}?tab=activity#email` : null}
       phone={view.mobile} name={view.legal_name} booking={latest?.booking_number ?? null} canRemoveNotes={!!notes?.can_remove}>

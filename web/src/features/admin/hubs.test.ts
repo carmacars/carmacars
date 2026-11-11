@@ -17,7 +17,7 @@ test('a grouped page is its own tab; a tab with a query wins when the page has i
   assert.equal(at('/admin/expenses'), 'company:Expenses');
   assert.equal(at('/admin/owners', 'view=checklist'), 'owners:Paid and signed');
   assert.equal(at('/admin/owners'), 'owners:Owners');
-  assert.equal(at('/admin/money/field-pay', 'tab=hours'), 'company:Field pay');
+  assert.equal(at('/admin/money/field-pay', 'tab=hours'), 'company:Payroll');
 });
 
 test('detail pages and pages outside a group show no tab row', () => {
@@ -36,7 +36,7 @@ test('every tab is in one group only, and every group has at least two tabs', ()
 
 test('a group\'s menu link goes to its first tab and is current on each of its addresses', () => {
   assert.deepEqual(hubLink(ADMIN_HUBS, 'owner-money'), { href: '/admin/owner-money?tab=invoices', label: 'Owner money', also: ['/admin/owner-money'] });
-  assert.deepEqual(hubLink(ADMIN_HUBS, 'team').also, ['/admin/settings/staff', '/admin/academy', '/admin/hiring', '/admin/portals', '/admin/timesheet', '/admin/townhall']);
+  assert.deepEqual(hubLink(ADMIN_HUBS, 'team').also, ['/admin/settings/staff', '/admin/academy', '/admin/hiring', '/admin/portals', '/admin/timesheet', '/admin/townhall', '/admin/schedules', '/admin/kpis']);
   assert.throws(() => hubLink(ADMIN_HUBS, 'nope'));
 });
 

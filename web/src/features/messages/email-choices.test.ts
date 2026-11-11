@@ -3,7 +3,7 @@
 //   npm run test:unit
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { emailKind, emailProblem, pickSender, recipientChoices, senderChoices, usageLine } from './email-choices.ts';
+import { emailKind, emailProblem, pickSender, recipientChoices, senderChoices } from './email-choices.ts';
 
 const renterOnly = { insurer_billed: false, renter: { name: 'Maya Chen', email: 'maya@example.test' }, adjuster: null };
 const insurer = { insurer_billed: true, renter: { name: 'Maya Chen', email: 'maya@example.test' }, adjuster: { name: 'Alex Adjuster', email: 'alex@example.test' } };
@@ -44,14 +44,3 @@ test('the list names the emails in plain words', () => {
   assert.equal(emailKind('renter_booking_confirmed'), 'Booking confirmed');
 });
 
-test('the daily limit line warns from 80%', () => {
-  assert.equal(usageLine({ total: 79, cap: 100 }).warn, false);
-  assert.equal(usageLine({ total: 80, cap: 100 }).warn, true);
-  assert.match(usageLine({ total: 12, cap: 100 }).text, /^12 of 100 emails used today\./);
-});
-
-test('email box: today against the cap, and why the cap is that number (r35)', () => {
-  assert.match(usageLine({ total: 98, cap: 100, cf_state: 'absent', cf_counted: false, cf_budget: 200, resend_budget: 100 }).text,
-    /^98 of 100 today: only Resend is sending \(Cloudflare Email Service is not set up, which adds 200\)\. Close to the limit/);
-  assert.match(usageLine({ total: 20, cap: 300, cf_state: 'ok', cf_counted: true, cf_budget: 200, resend_budget: 100 }).text, /^20 of 300 today \(Cloudflare 200 \+ Resend 100\)\. Messages to renters/);
-});

@@ -20,3 +20,8 @@ test('1068: the visitor sessions per weekday, Monday first, the quietest marked;
   assert.deepEqual(visitorDays(null), []);
   assert.equal(visitorDays({ 1: 0 }).some((x) => x.quietest), false);
 });
+
+test('1505: the run clock gives each section its start minute', async () => {
+  const { runClock } = await import('./model.ts');
+  assert.deepEqual(runClock([{ key: 'a', title: 'A', admin_only: false, points: [], minutes: 1 }, { key: 'b', title: 'B', admin_only: false, points: [], minutes: 2 }, { key: 'c', title: 'C', admin_only: true, points: [] }]), [0, 1, 3]);
+});
