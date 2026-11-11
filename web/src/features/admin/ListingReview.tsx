@@ -15,6 +15,7 @@ import { PlateCarry } from '@/features/listing/PlateCarry';
 import { isExtra } from '@/features/listing/extra-order';
 import { ShowroomCar, ShowroomPhoto } from '@/features/listing/Showroom';
 import { MarketingPhotos } from '@/features/listing/Marketing';
+import { ListingCover } from '@/features/listing/Cover';
 
 // Review a listing (09-listing-pipeline.md section 6): the copy, written by itself (0061: nothing to type), every photo
 // (approve, reject, use the original, choose the cover), the problems the database still sees, then
@@ -90,6 +91,8 @@ export function ListingReview({ l, plates, copy, exterior = [] }: { l: L; plates
           <ShowroomCar vehicle={l.vehicle_id} studio={l.photos.filter((p) => exterior.includes(p.shot_type) && p.processed_path && p.processed_path !== p.original_path && p.status !== 'rejected' && p.scene !== 'showroom').length} />
           {/* r35 S2 (1053): marketing copies in other scenes (never the website's photos) */}
           <MarketingPhotos vehicle={l.vehicle_id} />
+          {/* r36 (2100): the first photo on the site and Marketplace: plain, with a model, or the flyer */}
+          <ListingCover vehicle={l.vehicle_id} />
           {/* a shot kept as taken (the odometer, never published) stays in the private originals: shown through its signed link */}
           <ul className="ad-photos">{l.photos.map((p) => { const path = p.processed_path && p.processed_path !== p.original_path ? photoUrl(p.processed_path) : p.original_url ?? null; return (
             <li key={p.id} className={`${cover === p.id ? 'is-cover' : ''}${(ph[p.id] ?? p.status) === 'reject' ? ' is-rejected' : ''}`}>
