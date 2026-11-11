@@ -41,7 +41,8 @@ create table booking_request_snapshots (
 );
 comment on table booking_request_snapshots is 'The booking request exactly as the renter sent it (1300): car, dates, places, coverage choice, add-ons, note, the request details and the price shown at the time. Taken once when the request is made and never changed; source backfill marks a request made before r35, rebuilt without the car and price when an offer had already changed them.';
 alter table booking_request_snapshots enable row level security;
-create policy admin_read on booking_request_snapshots for select to authenticated using (app.is_admin());
+create policy admin_all on booking_request_snapshots for all to authenticated using (app.is_admin()) with check (app.is_admin());
+create trigger audit_booking_request_snapshots after insert or update or delete on booking_request_snapshots for each row execute function app.audit_row();
 revoke all on booking_request_snapshots from anon, authenticated;
 grant select on booking_request_snapshots to authenticated;
 

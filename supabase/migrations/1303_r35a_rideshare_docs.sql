@@ -31,7 +31,8 @@ create table rideshare_doc_requests (
 comment on table rideshare_doc_requests is 'A renter''s request for the documents rideshare and delivery platforms ask for (1303): the platforms picked; the letters are made from the booking''s facts (public.server_rideshare_docs) and name only the company.';
 create index rideshare_doc_requests_booking on rideshare_doc_requests (booking_id, created_at desc);
 alter table rideshare_doc_requests enable row level security;
-create policy admin_read on rideshare_doc_requests for select to authenticated using (app.is_admin());
+create policy admin_all on rideshare_doc_requests for all to authenticated using (app.is_admin()) with check (app.is_admin());
+create trigger audit_rideshare_doc_requests after insert or update or delete on rideshare_doc_requests for each row execute function app.audit_row();
 revoke all on rideshare_doc_requests from anon, authenticated;
 grant select on rideshare_doc_requests to authenticated;
 
