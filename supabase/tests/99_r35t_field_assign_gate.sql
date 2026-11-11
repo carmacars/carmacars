@@ -3,7 +3,7 @@
 select test.suite('99 r35t field assignment gate');
 grant usage on schema test to service_role;
 
-delete from field_shift_plans; delete from field_shift_slots;
+delete from field_shift_offers; delete from field_shift_plans; delete from field_shift_slots;
 select test.mk_user('r35t_admin', 'admin');
 select test.mk_user('r35t_fleet', 'va', 'fleet');
 select test.mk_user('r35t_cs', 'va', 'cs');
