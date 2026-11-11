@@ -499,7 +499,10 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             'vehicle_specs', 'vehicle_maintenance_costs', 'place_pois',
                             -- Canadian addresses (2120): bulk reference data the addresses workflow loads from Statistics Canada's
                             -- open database (each run is audited in address_imports); no money, pricing or status
-                            'ca_addresses')
+                            'ca_addresses',
+                            -- inactivity (1800): the last activity of a person clocked in, written once a minute (the breaks and
+                            -- the idle stretches are audited)
+                            'staff_activity')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',
   (select count(*) > 0 from audit_log where entity_table = 'rate_cards' and action = 'INSERT' and after ->> 'daily_rate_cents' = '10000'), true);

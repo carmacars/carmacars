@@ -29,6 +29,7 @@ import { heldFunctions, STAFF_FN_LABEL } from '@/features/staff/nav';
 import { TermsGate } from '@/features/terms/TermsGate';
 import { HomeAddressCard, homeAddressOf } from '@/features/staff/HomeAddress';
 import { TownhallLink } from '@/features/townhall/TownhallLink';
+import { ActivityBeat } from '@/features/staff-clock/ActivityBeat';
 
 // The staff portal's frame (0197; docs/blueprint/05-va.md and 06-field.md): one portal for every kind of staff work. The
 // menu holds the groups of every function the person has (customer service, fleet, finance, sales, field work); the
@@ -69,6 +70,8 @@ export default async function StaffLayout({ children }: { children: React.ReactN
             <PortalSwitch current="va" />
             {/* r35 part C (1505): the weekly townhall's call link, on every staff portal */}
             {user && !viewing ? <TownhallLink userId={user.id} /> : null}
+            {/* 1800: the inactivity tracker (the fact of activity only) for the staff who clock in */}
+            {user && !viewing && (held.includes('cs') || held.includes('fleet') || held.includes('finance')) ? <ActivityBeat /> : null}
             {held.length > 1 && (
               <nav className="ad-fn" aria-label="Function" data-testid="fn-switch"><p className="small muted">Working as</p>
                 <ul className="ad-fn__list">{held.map((f) => (

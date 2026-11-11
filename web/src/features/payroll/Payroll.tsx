@@ -11,7 +11,8 @@ import { STAFF_FN_LABEL, type StaffFn } from '@/features/staff/nav';
 // Finance's Payroll page; the Admin-only buttons are shown to an Admin only (the database refuses them to anyone else).
 export type PayLine = { id: string; staff_id: string; name: string; kind: 'salary' | 'hourly'; currency: string; rate_cents: number; minutes_total: number; clock_minutes: number;
   wage_cents: number; salary_cents: number; monthly_salary_cents: number | null; salary_days: number | null; commission_cents: number; vacation_cents: number; adjustment_cents: number;
-  adjustment_note: string | null; gross_cents: number; status: string; statement_number: string | null; paid_on: string | null; method: string | null; reference: string | null; emailed_at: string | null };
+  adjustment_note: string | null; gross_cents: number;
+  /** 1800: the office staff's breaks in the period, and whether they are paid */ break_count?: number; break_minutes?: number; break_longest?: number; breaks_paid?: boolean; status: string; statement_number: string | null; paid_on: string | null; method: string | null; reference: string | null; emailed_at: string | null };
 type View = { today: string; admin: boolean; period: { start: string; end: string; label: string; ended: boolean; prev: string; next: string | null };
   run: { id: string; status: string; approved_at: string | null; prepared_at: string | null; approved_by: string | null; prepared_by: string | null } | null;
   lines: PayLine[]; totals: Array<{ currency: string; gross_cents: number; people: number }>;
@@ -53,6 +54,7 @@ export async function Payroll({ userId, aal, base, date }: { userId: string; aal
       <Table<PayLine & Record<string, unknown>> testId="pay-lines" rows={v.lines as Array<PayLine & Record<string, unknown>>} rowKey={(r) => r.id} empty={run ? 'Nobody to pay in this period.' : 'Start the payroll to see each person\'s pay.'} cols={[
         { key: 'name', label: 'Staff member' }, { key: 'what', label: 'Pay', className: 'wrap', render: (r) => lineWhat(r) },
         { key: 'hours', label: 'Hours', num: true, render: (r) => hoursText(r.kind === 'salary' ? r.clock_minutes : r.minutes_total) },
+        { key: 'breaks', label: 'Breaks', num: true, render: (r) => (r.break_count ? <span title={`${r.break_count} breaks, longest ${hoursText(r.break_longest ?? 0)}${r.breaks_paid === false ? '; unpaid: off the hours' : '; paid'}`}>{hoursText(r.break_minutes ?? 0)} ({r.break_count})</span> : '') },
         { key: 'commission_cents', label: 'Commissions', num: true, render: (r) => (r.commission_cents ? payMoney(r.commission_cents, r.currency) : '') },
         { key: 'adjustment_cents', label: 'Bonus or deduction', num: true, render: (r) => (r.adjustment_cents ? <span title={r.adjustment_note ?? ''}>{payMoney(r.adjustment_cents, r.currency)}</span> : '') },
         { key: 'gross_cents', label: 'Total', num: true, render: (r) => <b>{payMoney(r.gross_cents, r.currency)}</b> },
