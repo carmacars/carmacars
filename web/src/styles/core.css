@@ -131,7 +131,7 @@ button.link { background: none; border: 0; padding: 0; font: inherit; color: inh
 @media (min-width: 64rem) { .menu-panel { display: none; } }
 
 /* ---------- buttons ---------- */
-.btn { --btn-bg: var(--black); --btn-fg: var(--white); --btn-bd: var(--btn-bg); display: inline-flex; align-items: center; justify-content: center; gap: 0.6em; min-height: 48px; padding: 0.7rem 1.35rem; background: var(--btn-bg); color: var(--btn-fg); border: var(--bw) solid var(--btn-bd); border-radius: var(--r-2); font-weight: 600; font-size: var(--fs-body); line-height: 1.1; text-decoration: none; text-align: center; transition: background var(--t-1), border-color var(--t-1), color var(--t-1), transform var(--t-1); }
+.btn { --btn-bg: var(--black); --btn-fg: var(--white); --btn-bd: var(--btn-bg); display: inline-flex; align-items: center; justify-content: center; gap: 0.6em; min-height: 48px; padding: 0.7rem 1.35rem; background: var(--btn-bg); color: var(--btn-fg); border: var(--bw) solid var(--btn-bd); border-radius: var(--r-pill, 999px); font-weight: 600; font-size: var(--fs-body); line-height: 1.1; text-decoration: none; text-align: center; transition: background var(--t-1), border-color var(--t-1), color var(--t-1), transform var(--t-1); }
 .btn:active { transform: translateY(1px); }
 .btn:hover { --btn-bg: var(--grey-800); }
 .btn--primary { --btn-bg: var(--red-600); }

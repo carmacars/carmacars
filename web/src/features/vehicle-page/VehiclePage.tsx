@@ -9,6 +9,8 @@ import { MoreActions } from '@/features/admin/NextStep';
 import { Registration, type RegistrationData } from '@/features/vehicles/Registration';
 import { MasterCalendar, type CalData } from '@/features/admin/MasterCalendar';
 import { rangeFrom } from '@/features/admin/range';
+import { PrepareProgress } from '@/features/field-portal/PrepareProgress';
+import type { PrepareProgressData } from '@/features/field-portal/prepare';
 import { $, Badge, BookingLink, Card, Kv, PageHead, Table, Tabs, t, d, label } from '@/features/admin/ui';
 
 import { DeleteCar } from '@/features/supply/DeleteCar';
@@ -77,6 +79,8 @@ export async function VehiclePage({ ctx, id, sp }: { ctx: PageCtx; id: string; s
   // a car with no real photo shows sample photos on its listing (0054)
   // what goes with the car on a delete: requests that never confirmed or took money (0064)
   const delPreview = tab === 'overview' ? await ops<{ removes: Array<{ booking_number: string; status: string; text: string }> }>('vehicle_delete_preview', { vehicle_id: id }).catch(() => null) : null;
+  // r35 UX (1107): the next rental's preparation by field staff (the add-ons in the car), read only
+  const prepare = tab === 'overview' ? await ops<PrepareProgressData | null>('prepare_progress', { vehicle: id }).catch(() => null) : null;
   const usingSamples = ((await ops<Array<{ vehicle_id: string }>>('vehicles_using_samples').catch(() => [])) ?? []).some((x) => x.vehicle_id === id);
   const supplier = v.supply_type === 'company' ? 'Company fleet'
     : v.supply_type === 'partner' && v.partner ? <Link prefetch={false} className="link" href={`/admin/partners/${v.partner.id}`}>{v.partner.business_name}</Link>
@@ -90,6 +94,7 @@ export async function VehiclePage({ ctx, id, sp }: { ctx: PageCtx; id: string; s
       </PageHead>
       <Tabs current={`${base}?tab=${tab}`} items={tabs.map(([k, l]) => [`${base}?tab=${k}`, l] as [string, string])} />
       <HashTab tabs={tabs.map(([k]) => k)} current={tab} />
+      {prepare && <PrepareProgress d={prepare} title={`Next rental ${prepare.booking_number}: preparation`} />}
       {tab === 'maintenance' && <CarMaintenancePanel m={await ops<CarMaintenance>('maint_vehicle', { vehicle_id: id })} base="/admin" autoRecord={sp.record === '1'} />}
       {/* r29 (0581): the car's kickbacks and repair costs */}
       {tab === 'profit' && <ProfitExtras userId={user.id} level="vehicle" id={id} sp={sp} base={`${base}?tab=profit`} />}
@@ -324,6 +329,8 @@ async function StaffVehicle({ ctx, id, sp }: { ctx: PageCtx; id: string; sp: Rec
     can.maintenance && tab === 'maintenance' ? ops<CarMaintenance>('maint_vehicle', { vehicle_id: id }).catch(() => null) : null,
     // the listing (0070): Publish now and what is still open, for Fleet and customer service
     tab === 'listing' ? own<StaffListingState>('listing_state', { vehicle_id: id }).catch(() => null) : null]);
+  // r35 UX (1107): the next rental's preparation by field staff, read only
+  const prepare = tab === 'overview' ? await ops<PrepareProgressData | null>('prepare_progress', { vehicle: id }).catch(() => null) : null;
   return (
     <>
       <PageHead title={`${String(c.year ?? '')} ${String(c.make ?? '')} ${String(c.model ?? '')}`} kicker={String(c.plate ?? '')}>
@@ -331,6 +338,7 @@ async function StaffVehicle({ ctx, id, sp }: { ctx: PageCtx; id: string; sp: Rec
       </PageHead>
       <Tabs current={`${base}?tab=${tab}`} items={tabs.map(([k, l]) => [`${base}?tab=${k}`, l] as [string, string])} />
       <HashTab tabs={tabs.map(([k]) => k)} current={tab} />
+      {prepare && <PrepareProgress d={prepare} title={`Next rental ${prepare.booking_number}: preparation`} />}
       {tab === 'overview' && <div className="ad-cols ad-cols--2">
         <Card title="Vehicle"><Kv rows={[['Plate', String(c.plate ?? '')], ['Colour', String(c.colour ?? '')], ['Status', label(c.status)], ['Odometer', c.odometer_km ? `${String(c.odometer_km)} km` : ''], ['Class', String(c.class ?? '')]]} /></Card>
         {can.ownerHandoffs && <OwnerHandoffs vehicleId={id} userId={user.id} aal={aal} refresh={[base]} />}

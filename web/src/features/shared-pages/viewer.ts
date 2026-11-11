@@ -79,6 +79,12 @@ export interface BookingCan {
   collectOnly: boolean;
   /** r35 (0970): mark the late car "returning now" (the renter's overdue reminders stop) */
   returningNow: boolean;
+  /** r35 UX (1106): send the offer again with a later expiry */
+  resendOffer: boolean;
+  /** r35 UX (1106): the get-ready checklist (paid, identity, coverage, deposit, agreement, drivers, add-ons in the car) */
+  readiness: boolean;
+  /** r35 UX (1106): remove an add-on after booking (a paid one is refunded): never Sales */
+  addonRemove: boolean;
 }
 
 export function bookingCan(v: Viewer): BookingCan {
@@ -89,7 +95,9 @@ export function bookingCan(v: Viewer): BookingCan {
   return {
     admin,
     offer: office,
-    editOfferPending: admin || fn === 'cs',
+    // r35 UX (1106): Sales gets a renter ready like customer service: the offer while it is paid, the licence, selfie and
+    // coverage, the drivers' links, the checklist (refunds, cancellations and deposit settlements stay where they were)
+    editOfferPending: admin || fn === 'cs' || fn === 'sales',
     // r35 (0970): Fleet collects payments (the database decides each tool: app.user_collects_money); refunds stay Finance
     money: office || fn === 'finance' || fn === 'fleet',
     extras: admin || fn === 'cs',
@@ -100,14 +108,14 @@ export function bookingCan(v: Viewer): BookingCan {
     handover: fn !== 'finance',
     sign: fn !== 'finance',
     agreementMoney: admin || fn === 'finance',
-    licenceReview: fn === 'sales',
-    renterDocs: admin,
+    licenceReview: false,
+    renterDocs: admin || fn === 'sales',
     staffUpload: !admin,
     carLink: admin || fn === 'fleet' || fn === 'cs',
     manualPayments: admin || fn === 'finance' || fn === 'fleet',
     voidRecords: admin,
     paperSignatures: admin || fn === 'cs',
-    driverLinks: admin || fn === 'cs',
+    driverLinks: admin || fn === 'cs' || fn === 'sales',
     refund: admin || fn === 'finance',
     refundApprove: fn === 'finance',
     settleDeposit: admin || fn === 'finance',
@@ -117,7 +125,10 @@ export function bookingCan(v: Viewer): BookingCan {
     verifyInPerson: admin,
     changeCar: admin || fn === 'cs' || fn === 'fleet' || fn === 'sales',
     collectOnly: fn === 'fleet',
-    returningNow: admin || fn === 'fleet' || fn === 'cs'
+    returningNow: admin || fn === 'fleet' || fn === 'cs',
+    resendOffer: office,
+    readiness: office,
+    addonRemove: admin || fn === 'cs' || fn === 'fleet' || fn === 'finance'
   };
 }
 
@@ -126,7 +137,8 @@ export function bookingCan(v: Viewer): BookingCan {
 function fieldCan(): BookingCan {
   const no = { admin: false, offer: false, editOfferPending: false, money: false, extras: false, cancelForRenter: false, scheduleJob: false, latePanel: false, photoReview: false,
     handover: false, sign: false, agreementMoney: false, licenceReview: false, renterDocs: false, staffUpload: false, carLink: false, manualPayments: false, voidRecords: false,
-    paperSignatures: false, driverLinks: false, refund: false, refundApprove: false, settleDeposit: false, statement: false, inbox: false, verifyInPerson: false, changeCar: false, collectOnly: false, returningNow: false };
+    paperSignatures: false, driverLinks: false, refund: false, refundApprove: false, settleDeposit: false, statement: false, inbox: false, verifyInPerson: false, changeCar: false, collectOnly: false, returningNow: false,
+    resendOffer: false, readiness: false, addonRemove: false };
   return { ...no, money: true, handover: true, sign: true, paperSignatures: true, verifyInPerson: true };
 }
 

@@ -2,7 +2,16 @@
 // Pure: the pages, the booking page and the unit tests share the words and the arithmetic.
 import type { ReportPhoto } from '../handover/types.ts';
 
-export type Item = 'fuel' | 'km' | 'damage' | 'late' | 'cleaning' | 'tickets' | 'tolls';
+export type Item = 'fuel' | 'km' | 'damage' | 'late' | 'cleaning' | 'tickets' | 'tolls' | 'addons';
+
+/** r35 UX (1108): the Add-ons returned item's facts in words: each add-on with its suggested charge if not back (suggest only). */
+export function addonFacts(f: Record<string, unknown>): string[] {
+  const items = (f.items as Array<{ name: string; quantity: number; suggested_cents: number }> | undefined) ?? [];
+  const $ = (c: number) => `$${(c / 100).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  if (!items.length) return ['No add-on went in the car'];
+  return [...items.map((a) => `${a.quantity > 1 ? `${a.quantity} x ` : ''}${a.name}: if not back, suggest ${$(a.suggested_cents)}`),
+    `Suggested if none is back: ${$(Number(f.suggested_cents ?? 0))} (a suggestion only: nothing is charged until you bill it)`];
+}
 export interface Sign { result: 'ok' | 'issue'; amount_cents: number | null; note: string | null; by: string | null; at: string; photos?: number[] }
 export interface ReviewItem { item: Item; label: string; facts: Record<string, unknown> & { suggest?: 'ok' | 'issue' }; fleet: Sign | null; finance: Sign | null; fleet_by_me: boolean | null }
 export interface Place { key: string; name: string; url: string; check: { result: 'none_found' | 'ticket'; note: string | null; toll_ticket_id: string | null; by: string | null; at: string } | null }

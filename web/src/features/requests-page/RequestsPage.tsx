@@ -1,6 +1,6 @@
 import Link from '@/components/Link';
 import { InfoTip } from '@/components/InfoTip';
-import { PageHead, Tabs } from '@/features/admin/ui';
+import { PageHeader, SegTabs } from '@/components/ui';
 import { requestNow } from '@/features/va/lanes';
 import { RequestsQueue, type Req } from '@/features/bookings-now/RequestsQueue';
 import { ChauffeurRequests, STATUSES as CH_STATUSES, type ChauffeurData } from '@/features/chauffeur/ChauffeurRequests';
@@ -22,8 +22,9 @@ export async function RequestsPage({ ctx, sp }: { ctx: PageCtx; sp: Record<strin
     const data = await ops<ChauffeurData>('chauffeur_requests', status ? { status } : {});
     return (
       <>
-        <PageHead title="Requests and offers" kicker={`${data.counts.new ?? 0} chauffeur requests new`}><Link prefetch={false} className="btn btn--ghost btn--sm" href="/chauffeur">The public chauffeur page</Link></PageHead>
-        <RequestTabs current="chauffeur" />
+        {/* r35 UX: the same head as Bookings (the style guide's PageHeader and segmented tabs) */}
+        <PageHeader title="Requests and offers" lead={`${data.counts.new ?? 0} chauffeur requests new`} actions={<Link prefetch={false} className="btn btn--ghost btn--sm" href="/chauffeur">The public chauffeur page</Link>}
+          tabs={<RequestTabs current="chauffeur" />} />
         <ChauffeurRequests data={data} base="/admin/requests?tab=chauffeur" status={status} />
       </>
     );
@@ -36,18 +37,19 @@ export async function RequestsPage({ ctx, sp }: { ctx: PageCtx; sp: Record<strin
   const waiting = all.filter((r) => r.status === 'requested').length;
   return (
     <>
-      <PageHead title="Requests and offers" kicker={admin ? `${waiting} waiting · first reply target ${target.words}` : `${waiting} waiting · reply within ${target.words}`}
-        purpose={admin ? 'The most urgent first: the longest wait, then offers waiting for payment, then offers out by expiry.' : <>The most urgent first. Open one to review it and send the offer.<InfoTip k="request_claim" topic="answering requests" /></>}>
-        <Link prefetch={false} className="btn btn--primary btn--sm" href={`${base}/offers/new`} data-testid="send-offer-link">Send an offer without a request</Link>
-        {!admin && <Link prefetch={false} className="btn btn--ghost btn--sm" href="/staff/quotes/new" data-testid="new-quote-link">New quote</Link>}
-      </PageHead>
-      {admin && <RequestTabs current="cars" />}
+      {/* r35 UX: the same head as Bookings (the style guide's PageHeader and segmented tabs) */}
+      <PageHeader title="Requests and offers"
+        lead={<>{admin ? `${waiting} waiting · first reply target ${target.words}` : `${waiting} waiting · reply within ${target.words}`}. {admin ? 'The most urgent first: the longest wait, then offers waiting for payment, then offers out by expiry.' : <>The most urgent first. Open one to review it and send the offer.<InfoTip k="request_claim" topic="answering requests" /></>}</>}
+        actions={<>
+          {!admin && <Link prefetch={false} className="btn btn--ghost btn--sm" href="/staff/quotes/new" data-testid="new-quote-link">New quote</Link>}
+          <Link prefetch={false} className="btn btn--primary btn--sm" href={`${base}/offers/new`} data-testid="send-offer-link">Send an offer without a request</Link></>}
+        tabs={admin ? <RequestTabs current="cars" /> : undefined} />
       <RequestsQueue all={all} cards={cards} state={state} sp={sp} target={target} at={at} base={base} admin={admin} {...(admin ? {} : { sales: fn === 'sales' })} />
     </>
   );
 }
 
 function RequestTabs({ current }: { current: 'cars' | 'chauffeur' }) {
-  return <Tabs label="Requests and offers" current={current === 'cars' ? '/admin/requests' : '/admin/requests?tab=chauffeur'}
-    items={[['/admin/requests', 'Car rentals'], ['/admin/requests?tab=chauffeur', 'Chauffeur']]} />;
+  return <SegTabs label="Requests and offers" current={current === 'cars' ? '/admin/requests' : '/admin/requests?tab=chauffeur'}
+    items={[{ href: '/admin/requests', label: 'Car rentals' }, { href: '/admin/requests?tab=chauffeur', label: 'Chauffeur' }]} />;
 }

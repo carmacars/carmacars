@@ -1,6 +1,7 @@
 import '@/styles/portal.css';
 import '@/components/portal-ui/portal-ui.css';
 import '@/styles/portal-revamp.css';
+import '@/styles/ui-kit.css';
 import { redirect } from 'next/navigation';
 import { rpc } from '@/lib/db/repo';
 import { rolesOf } from '@/server/door';

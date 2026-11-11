@@ -75,7 +75,7 @@ export function nextStep(c: Card): { label: string; what: 'open' | 'clean' | 'ad
   if (c.type === 'photos') return { label: 'Take the photos', what: 'photos' };
   if (c.type === 'prep') return { label: 'Open the prep', what: 'prep' };
   if (c.status === 'done' && c.clean && !c.clean.done) return { label: 'Check it clean', what: 'clean' };
-  if (c.status === 'done' && (c.addons_open ?? 0) > 0) return { label: `Tick the add-ons (${c.addons_open})`, what: 'addons' };
+  if (c.status === 'done' && (c.addons_open ?? 0) > 0) return { label: `Prepare the add-ons (${c.addons_open} to tick)`, what: 'addons' };
   return { label: c.leg === 'pickup' ? 'Start the pickup' : c.leg === 'return' ? 'Start the return' : 'Open the job', what: 'open' };
 }
 
@@ -86,7 +86,7 @@ export function cardSteps(c: Card): Array<{ label: string; done: boolean }> {
   const s: Array<{ label: string; done: boolean }> = [];
   if (c.leg === 'pickup') {
     if (c.clean) s.push({ label: 'Clean check (tick and photo)', done: c.clean.done });
-    if ((c.addons?.length ?? 0) > 0) s.push({ label: `Add-ons in the car (${(c.addons ?? []).filter((a) => a.ticked).length} of ${c.addons!.length})`, done: (c.addons_open ?? 0) === 0 });
+    if ((c.addons?.length ?? 0) > 0) s.push({ label: `Prepare the add-ons (${(c.addons ?? []).filter((a) => a.ticked).length} of ${c.addons!.length})`, done: (c.addons_open ?? 0) === 0 });
     s.push({ label: 'Pickup photos and handover', done: c.status === 'done' });
   } else if (c.leg === 'return') {
     s.push({ label: 'Return photos and check-in', done: c.status === 'done' });

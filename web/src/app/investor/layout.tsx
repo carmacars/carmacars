@@ -2,6 +2,7 @@ import '@/styles/portal.css';
 import '@/components/portal-ui/portal-ui.css';
 import '@/styles/portal-revamp.css';
 import '@/styles/investor.css';
+import '@/styles/ui-kit.css';
 import { InvestorNav } from '@/features/investor/InvestorNav';
 import { PortalSwitch, SignOutOrExit } from '@/features/access/Access';
 import { currentUser } from '@/server/portal/data';

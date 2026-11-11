@@ -168,7 +168,7 @@ test('Field staff see the add-ons to put in the car; the renter adds an umbrella
   await signIn(fp, field.email, '/staff/field');
   await fp.goto(`/staff/field/jobs/${job!.id as string}`, { waitUntil: 'networkidle' });
   const put = fp.getByTestId('job-addons');
-  await expect(put).toContainText('Put in the car');
+  await expect(put).toContainText('Prepare: put in the car');
   await expect(put).toContainText('Flowers');
   await expect(put).toContainText('Full tank of gas (prepaid)');
   await expect(fp.getByTestId('job-prepaid-fuel')).toContainText('Do not charge for fuel');

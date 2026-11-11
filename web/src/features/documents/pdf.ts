@@ -3,6 +3,7 @@ import { companyParty } from '@/lib/format';
 import { agreementPdf } from '@/features/agreement/pdf';
 import type { Block } from '@/features/agreement/model';
 import { hoursText } from '@/features/field-pay/model';
+import { insurerInvoiceBlocks, invoiceFooter, issuerBlock, payBlocks, type Pay } from './invoice-blocks';
 
 // The generated documents (docs/blueprint/11-statements-and-reports.md sections 2, 4 and 7): owner
 // statements, renter statements and receipts, insurer invoices, investor statements and the yearly
@@ -35,14 +36,13 @@ const label = (v: unknown) => s(v).replace(/_/g, ' ');
 const pct = (bps: unknown) => `${(n(bps) / 100).toLocaleString('en-CA', { maximumFractionDigits: 2 })}%`;
 
 function header(f: F, to: Array<[string, string]>, ref: Array<[string, string]>): Block[] {
-  const c = f.company;
+  // r35 UX (1108): one issuer block (the trade name, the legal entity, the address, HST, phone and email), then who it is
+  // for and its reference, each a two-column table with the values right-aligned
   return [
     { t: 'title', text: f.title },
-    { t: 'table', head: ['From', ''], kv: true, rows: [
-      ['Company', companyParty(c.legal_name, c.brand)], ...(c.address ? [['Address', c.address] as [string, string]] : []),
-      ...(c.hst_number ? [['HST number', c.hst_number] as [string, string]] : []), ['Contact', [c.email, c.phone].filter(Boolean).join(', ')]] },
-    ...(to.length ? [{ t: 'table' as const, head: ['To', ''], kv: true, rows: to }] : []),
-    { t: 'table', head: ['Reference', ''], kv: true, rows: ref }
+    issuerBlock(f.company),
+    ...(to.length ? [{ t: 'table' as const, head: ['Bill to', ''], kv: true, rows: to }] : []),
+    { t: 'table', head: ['Details', ''], kv: true, rows: ref }
   ];
 }
 
@@ -114,19 +114,9 @@ function receipt(f: F): Block[] {
   return blocks;
 }
 
+// r35 UX (1108): issued as Blind Spot Car Rental with every fee by name and how to pay (invoice-blocks.ts)
 function insurerInvoice(f: F): Block[] {
-  const i = (f.insurer ?? {}) as Row;
-  const lines = (f.lines ?? []) as Row[];
-  const blocks = header(f, [['Insurer', s(i.name)], ...(i.contact ? [['Attention', s(i.contact)] as [string, string]] : []), ...(i.address ? [['Address', s(i.address)] as [string, string]] : [])],
-    [['Invoice', s(f.invoice_number)], ['Date', day(f.sent_at ?? f.created_at)], ['Claim number', s(f.claim_number) || 'Not given'], ['Renter', s(f.renter_name)],
-     ['Booking', s(f.booking_number)], ['Vehicle', s(f.vehicle)], ['Period', `${day(f.period_start)} to ${day(f.period_end)}`]]);
-  blocks.push({ t: 'table', head: ['Description', 'Amount'], kv: true, rows: lines.length ? lines.map((l) => [s(l.label ?? l.description) || 'Rental', dollars(l.amount_cents)]) : [['Replacement rental', dollars(f.amount_cents)]] });
-  blocks.push({ t: 'table', head: ['Total', ''], kv: true, rows: [['Amount before HST', dollars(f.amount_cents)], ['HST', dollars(f.hst_cents)], ['**Total due**', `**${dollars(f.total_cents)}**`],
-    ...(n(f.paid_cents) > 0 ? [['Paid', dollars(f.paid_cents)] as [string, string], ['**Balance**', `**${dollars(f.balance_cents)}**`] as [string, string]] : [])] });
-  // the insurer's taxes note from its rate sheet (0163)
-  if (s(f.note)) blocks.push({ t: 'p', text: s(f.note) });
-  blocks.push({ t: 'p', text: `Please pay by bank transfer and quote invoice ${s(f.invoice_number)}. Questions: ${f.company.email}.` });
-  return blocks;
+  return insurerInvoiceBlocks(f);
 }
 
 // An invoice to a partner (migration 0547): from the company's legal name alone, to the partner, the claim
@@ -152,14 +142,16 @@ export function partnerInvoiceBlocks(f: Row): Block[] {
       ['**Balance due**', `**${dollars(f.state === 'void' ? 0 : Math.max(0, n(f.balance_cents)))}**`]] }
   ];
   if (f.notes) blocks.push({ t: 'p', text: s(f.notes) });
-  blocks.push({ t: 'p', text: `How to pay: a cheque payable to ${s(c.payee)}, or an e-Transfer to ${s(c.etransfer)}. Please quote invoice ${s(f.invoice_number)}.` });
+  // r35 UX (1108): direct deposit and e-Transfer from Program settings, each left out when empty
+  blocks.push(...payBlocks(f.pay as Pay | undefined, s(f.invoice_number)));
+  blocks.push({ t: 'p', text: `A cheque is payable to ${s(c.payee)}${c.etransfer ? `; an e-Transfer may also go to ${s(c.etransfer)}` : ''}. Please quote invoice ${s(f.invoice_number)}.` });
   return blocks;
 }
 
 export async function renderPartnerInvoice(f: Row, logo: Uint8Array | null = null): Promise<Uint8Array> {
   const created = new Date(String(f.issued_on ? `${s(f.issued_on)}T12:00:00Z` : f.created_at));
   const title = `Invoice ${s(f.invoice_number) || 'draft'}`;
-  return agreementPdf(partnerInvoiceBlocks(f), { title, createdAt: Number.isNaN(created.getTime()) ? new Date(0) : created, brand: true, logo,
+  return agreementPdf(partnerInvoiceBlocks(f), { title, createdAt: Number.isNaN(created.getTime()) ? new Date(0) : created, brand: true, logo, valuesRight: true,
     footer: `${s((f.company as Row | undefined)?.payee)}. ${title}.` });
 }
 
@@ -181,6 +173,7 @@ function ownerInvoice(f: F): Block[] {
     ...(n(f.deducted_cents) ? [['Deducted from payout', dollars(-n(f.deducted_cents))] as [string, string]] : []),
     ['**Balance**', `**${dollars(f.status === 'void' ? 0 : Math.max(0, n(f.balance_cents)))}**`]] });
   if (f.notes) blocks.push({ t: 'p', text: s(f.notes) });
+  blocks.push(...payBlocks(f.pay as Pay | undefined, s(f.invoice_number)));
   blocks.push({ t: 'p', text: `Amounts in Canadian dollars. Pay from the invoice page in your owner portal by card, pre-authorized debit or e-Transfer. Questions: ${f.company.email}.` });
   return blocks;
 }
@@ -358,8 +351,11 @@ export async function renderDocument(kind: DocKind, facts: Record<string, unknow
   const f = facts as F;
   const stamp = String(f.issued_at ?? f.paid_at ?? f.sent_at ?? f.created_at ?? f.statement_month ?? f.return_month ?? `${s(f.year)}-12-31`);
   const created = new Date(/^\d{4}-\d{2}-\d{2}$/.test(stamp) ? `${stamp}T12:00:00Z` : stamp);
+  // r35 UX (1108): an insurer invoice is Blind Spot Car Rental's: its name as the wordmark and the author, no CarmaCars logo
+  const insurer = kind === 'insurer_invoice';
   return agreementPdf(documentBlocks(kind, f), {
-    title: f.title, createdAt: Number.isNaN(created.getTime()) ? new Date(0) : created, brand: true, logo,
-    footer: `${f.company.brand}. ${f.title}.${f.final && !f.draft ? '' : f.draft ? ' Draft: this statement can still change until it is finalized.' : ' Preview: this record can still change.'}`
+    title: f.title, createdAt: Number.isNaN(created.getTime()) ? new Date(0) : created, brand: true, logo: insurer ? null : logo, valuesRight: true,
+    ...(insurer ? { wordmark: f.company.brand, author: f.company.brand } : {}),
+    footer: insurer ? invoiceFooter(f) : `${f.company.brand}. ${f.title}.${f.final && !f.draft ? '' : f.draft ? ' Draft: this statement can still change until it is finalized.' : ' Preview: this record can still change.'}`
   });
 }

@@ -1,4 +1,5 @@
 import '@/styles/portal.css';
+import '@/styles/ui-kit.css';
 import { rpc } from '@/lib/db/repo';
 import { pageMeta } from '@/features/seo/meta';
 import { AgreementView } from '@/features/agreement/AgreementView';

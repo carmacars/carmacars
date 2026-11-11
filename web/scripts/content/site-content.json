@@ -264,6 +264,10 @@
         {
           "question": "Are prices before or after tax?",
           "answer": "Rates and fees are shown before {{hst}} HST. Your estimate and your confirmed price show the HST and the total."
+        },
+        {
+          "question": "What if an add-on is not returned?",
+          "answer": "Add-ons go back with the car. One that is not returned is charged at its replacement cost: {{unretCharger}} for an EV charger, {{unretMount}} for a phone mount, {{unretSeat}} for a child car seat and {{unretBooster}} for a booster seat. Any other add-on is {{unretTimes}} times its rental charge, at least {{unretMin}}. It is taken from the deposit or charged to the card on file, with the statement."
         }
       ]
     },

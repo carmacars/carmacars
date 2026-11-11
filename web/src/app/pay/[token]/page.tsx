@@ -1,4 +1,5 @@
 import '@/styles/portal.css';
+import '@/styles/ui-kit.css';
 import { Moment } from '@/features/motion/Moment';
 import { pageMeta } from '@/features/seo/meta';
 import { when } from '@/features/agreement/model';
