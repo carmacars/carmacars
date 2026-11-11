@@ -17,7 +17,7 @@ test('a grouped page is its own tab; a tab with a query wins when the page has i
   assert.equal(at('/admin/expenses'), 'company:Expenses');
   assert.equal(at('/admin/owners', 'view=checklist'), 'owners:Paid and signed');
   assert.equal(at('/admin/owners'), 'owners:Owners');
-  assert.equal(at('/admin/money/field-pay', 'tab=hours'), 'company:Field pay');
+  assert.equal(at('/admin/money/field-pay', 'tab=hours'), 'company:Payroll');
 });
 
 test('detail pages and pages outside a group show no tab row', () => {

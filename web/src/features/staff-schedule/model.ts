@@ -5,11 +5,11 @@ export interface Schedule { id: string; function: string; user_id: string | null
 export interface DayStatus { scheduled: boolean; starts_at?: string; ends_at?: string; first_in?: string | null; minutes?: number; late_minutes?: number | null; late?: boolean; absent?: boolean }
 export interface BoardRow { user_id: string; name: string; functions: string[]; today: DayStatus; on_shift: boolean; clocked_in: boolean }
 
-const DAY = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const DAY: readonly string[] = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const ord = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'th' : (['th', 'st', 'nd', 'rd'][n % 10] ?? 'th')}`;
 /** "8:00 am" from "08:00" */
 export function clockWords(hhmm: string): string {
-  const [h, m] = hhmm.split(':').map(Number);
+  const [h = 0, m = 0] = hhmm.split(':').map(Number);
   return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`;
 }
 /** "6 days a week (Tuesday off)", "Monday, Wednesday and Friday, plus the 10th and the 15th" */
@@ -18,8 +18,8 @@ export function daysWords(s: Pick<Schedule, 'weekdays' | 'month_days'>): string 
   const list = (xs: string[]) => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
   let w = '';
   if (wd.length === 7) w = 'Every day';
-  else if (wd.length >= 5) w = `${wd.length} days a week (${list([1, 2, 3, 4, 5, 6, 7].filter((d) => !wd.includes(d)).map((d) => DAY[d]))} off)`;
-  else if (wd.length) w = list(wd.map((d) => DAY[d]));
+  else if (wd.length >= 5) w = `${wd.length} days a week (${list([1, 2, 3, 4, 5, 6, 7].filter((d) => !wd.includes(d)).map((d) => DAY[d] ?? ''))} off)`;
+  else if (wd.length) w = list(wd.map((d) => DAY[d] ?? ''));
   const md = [...s.month_days].sort((a, b) => a - b).map((d) => `the ${ord(d)}`);
   if (!md.length) return w;
   return w ? `${w}, plus ${list(md)} of each month` : `${list(md)} of each month`;

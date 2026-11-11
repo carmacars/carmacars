@@ -26,7 +26,7 @@ export const ADMIN_HUBS: Hub[] = [
   { key: 'insurers', label: 'Insurers', tabs: [{ href: '/admin/insurers?tab=rates', label: 'Rates' }, { href: '/admin/insurers?tab=invoices', label: 'Invoices' }] },
   // Company accounts and Staff pay were two pages of the Money row: one now
   { key: 'company', label: 'Company', tabs: [{ href: '/admin/reports', label: 'Monthly statements' }, { href: '/admin/money/model', label: 'Company model' }, { href: '/admin/expenses', label: 'Expenses' },
-    { href: '/admin/money/commissions', label: 'Commissions' }, { href: '/admin/money/field-pay', label: 'Field pay' }, { href: '/admin/money/kickbacks', label: 'Kickbacks and repairs' }] },
+    { href: '/admin/money/commissions', label: 'Commissions' }, { href: '/admin/money/field-pay', label: 'Payroll' }, { href: '/admin/money/kickbacks', label: 'Kickbacks and repairs' }] },
   { key: 'problems', label: 'Damage and claims', tabs: [
     { href: '/admin/damages?tab=damage', label: 'Damage' }, { href: '/admin/damages?tab=incidents', label: 'Incidents' }, { href: '/admin/damages?tab=claims', label: 'Claims' }] },
   { key: 'logs', label: 'Logs', tabs: [

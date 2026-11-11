@@ -214,14 +214,21 @@ function payStatement(f: F): Block[] {
      ...(f.status === 'paid' ? [['How it was paid', `${s(f.method) === 'e_transfer' ? 'e-Transfer' : s(f.method) === 'bank_transfer' ? 'Bank transfer' : label(f.method)}${f.reference ? `, reference ${s(f.reference)}` : ''}`] as [string, string]] : [])]);
   const reg = n(f.minutes_regular);
   const ot = n(f.minutes_overtime);
-  const rows: string[][] = [[`Hours: ${hoursText(reg)} at ${dollars(f.rate_cents)} an hour`, dollars(f.wage_cents)]];
-  if (ot > 0) rows.push([`Overtime: ${hoursText(ot)} at ${pct(f.overtime_bps)} of the hourly rate`, dollars(f.overtime_cents)]);
-  if (n(f.commission_cents) !== 0) rows.push(['Commissions and referral fees (listed below)', dollars(f.commission_cents)]);
-  if (n(f.vacation_cents) > 0) rows.push([`Vacation pay, ${pct(f.vacation_pay_bps)}`, dollars(f.vacation_cents)]);
-  rows.push(['**Total paid**', `**${dollars(f.gross_cents)}**`]);
+  // 1503: a salaried office staff member's stub (monthly x 12 / 26), bonuses and deductions, and the line's currency
+  const cur = s(f.currency) === 'USD' ? 'USD' : 'CAD';
+  const money = (x: unknown) => `${cur === 'USD' ? 'US' : ''}${dollars(x)}`;
+  const salaried = n(f.salary_cents) > 0 || f.monthly_salary_cents !== null && f.monthly_salary_cents !== undefined;
+  const rows: string[][] = [];
+  if (salaried) rows.push([`Salary for the two weeks: ${money(f.monthly_salary_cents)} a month x 12 / 26${n(f.salary_days) && n(f.salary_days) < 14 ? `, ${n(f.salary_days)} of 14 days` : ''}`, money(f.salary_cents)]);
+  if (!salaried || n(f.wage_cents) > 0) rows.push([`Hours: ${hoursText(reg)} at ${money(f.rate_cents)} an hour`, money(f.wage_cents)]);
+  if (ot > 0) rows.push([`Overtime: ${hoursText(ot)} at ${pct(f.overtime_bps)} of the hourly rate`, money(f.overtime_cents)]);
+  if (n(f.commission_cents) !== 0) rows.push(['Commissions and referral fees (listed below)', money(f.commission_cents)]);
+  if (n(f.vacation_cents) > 0) rows.push([`Vacation pay, ${pct(f.vacation_pay_bps)}`, money(f.vacation_cents)]);
+  for (const a of ((f.adjustments ?? []) as Row[])) rows.push([`${n(a.amount_cents) < 0 ? 'Deduction' : 'Bonus'}: ${s(a.reason)}`, money(a.amount_cents)]);
+  rows.push([`**Total paid${cur === 'USD' ? ' (US dollars)' : ''}**`, `**${money(f.gross_cents)}**`]);
   blocks.push({ t: 'table', head: ['This pay', 'Amount'], rows });
   const shifts = (f.shifts ?? []) as Row[];
-  blocks.push({ t: 'h2', text: `Hours worked: ${hoursText(f.minutes_total)}` });
+  blocks.push({ t: 'h2', text: `Hours worked: ${hoursText(f.minutes_total)}${salaried ? ' (clocked, for the record)' : ''}` });
   blocks.push({ t: 'table', head: ['Day', 'From', 'To', 'Hours', 'Note'], rows: shifts.length ? shifts.map((x) => [day(x.day), clock(x.from), clock(x.to), hoursText(x.minutes), s(x.note)]) : [['No hours in this period', '', '', '', '']] });
   const cs = (f.commissions ?? []) as Row[];
   if (cs.length) {

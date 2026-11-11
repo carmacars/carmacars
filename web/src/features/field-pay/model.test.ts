@@ -101,3 +101,12 @@ test('where someone clocked in: a map link, the distance and the flags', () => {
   assert.equal(placeWords({ ...ok, lat: null, lng: null, distance_m: null, flag: 'no_location', reason: 'phone was off' }), 'location refused: phone was off');
   assert.equal(placeWords(undefined), '');
 });
+
+test('payroll (1503): the currency of a line, and a monthly salary paid every two weeks', async () => {
+  const { payMoney, biweekly } = await import('./model.ts');
+  assert.equal(payMoney(16154, 'USD'), 'US$161.54');
+  assert.equal(payMoney(-2500, 'CAD'), '-$25.00');
+  assert.equal(biweekly(35000), 16154);
+  assert.equal(biweekly(40000), 18462);
+  assert.equal(biweekly(20000), 9231);
+});

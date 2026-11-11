@@ -32,3 +32,14 @@ sends when all of these hold:
 | Door | `staff_schedules` (ops_read: everyone sees the role defaults, their own week and the duty board; Admin also everyone's own), `staff_schedule_save`, `staff_schedule_clear` (Admin) |
 | Web | Admin > Team > Schedules (`/admin/schedules`), staff Hours > Schedule (`/staff/schedule`), `features/staff-schedule` |
 | Tests | `supabase/tests/99_r35c_staff_schedules.sql`, `web/src/features/staff-schedule/model.test.ts` |
+
+## Payroll (item 1): `1503_r35c_payroll.sql`
+
+| Item | What changed |
+| --- | --- |
+| Salary | `staff_profiles.monthly_salary_cents`/`salary_currency` (an Admin, `payroll_salary_set`, with a reason) or the role default `program_settings.va_salary_defaults` (`{"cs":…, "fleet":…, "finance":…}`, empty: the integrator or an Admin sets the amounts; the repo is public) in `va_salary_currency` (USD). Biweekly = monthly x 12 / 26, by the days employed in the 14 (`app.pay_salary_period`) |
+| Run | 0165's field pay run is the one payroll: `app.fp_run_refresh` adds a line for every salaried office staff member (salary, the period's clocked minutes for the record, currency), keeps field lines as they were, and both carry `pay_adjustments` (bonus or deduction with a reason, kept through refreshes) |
+| Who | Finance or an Admin: `field_pay_run_start`, `field_pay_run_refresh` (were Admin only), `payroll_adjust`, `payroll_submit` (Send for approval: alert `payroll_ready` to the Admins). Admin only: `field_pay_run_approve`, `field_pay_line_paid`, `payroll_pay_all`, `field_pay_run_void`. Nothing is paid by a job |
+| Stubs | `my_pay_stubs` (every staff member, own only); the PDF (`app.pdf_facts` wrapped: salary, adjustments, currency, clock entries) and the pay statement email now also go to office staff (`app.notification_recipients`, `app.notification_payload` wrapped) |
+| Web | Admin > Money > Payroll (`/admin/money/field-pay`, run tab), Finance Hours > Payroll (`/staff/payroll`), My hours pay stubs (`/staff/hours`), `features/payroll/Payroll.tsx`, PDF `payStatement` |
+| Tests | `supabase/tests/99_r35c_payroll.sql`; `99_field_pay_rules_mode.sql` no longer expects Finance refused at start (the owner's new rule) |

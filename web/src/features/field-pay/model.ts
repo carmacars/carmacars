@@ -114,3 +114,11 @@ export function placeWords(p: ClockPlace | null | undefined): string {
   const base = d ? `${d} from the lot` : 'located';
   return p.flag === 'far' ? `over 500 m away (${d})${p.reason ? `: ${p.reason}` : ''}` : base;
 }
+
+/** Payroll (1503): cents in the line's currency, "US$161.54" for US dollars, "$161.54" for Canadian. */
+export function payMoney(cents: unknown, currency?: string | null): string {
+  return `${currency === 'USD' ? 'US' : ''}${dollarsText(cents)}`;
+}
+
+/** Payroll (1503): a monthly salary as the two-week amount (monthly x 12 / 26), in cents. */
+export const biweekly = (monthlyCents: number): number => Math.round((monthlyCents * 12) / 26);
