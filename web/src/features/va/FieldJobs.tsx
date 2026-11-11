@@ -5,19 +5,27 @@ import { CarBoard, DayTimeline } from '@/features/va/FleetDay';
 import { carBoard, type CalVehicle } from '@/features/va/carboard';
 import { CarCell } from '@/features/admin/revamp/CarCell';
 import { jobsText, type ShiftJobs } from '@/features/field-portal/model';
+import { AvailabilityMini } from '@/features/field-portal/AvailabilityMini';
+import { PARTS, WEEKDAYS, WEEKDAYS_SHORT, cell, halfHours } from '@/features/field-portal/shift-picker';
 
 // The field jobs board (Fleet at /staff/fleet and an Admin at /admin/field-jobs; r35, 0880): who can be given a job (the academy
 // state and next shift beside each name; the Admins always), the shifts field staff take, the next seven days with the days nobody
 // works, the handovers and returns on those days, and every job of the next three days. Every action goes through ops_do.
 type R = Record<string, unknown>;
-export interface Person { id: string; name: string; admin: boolean; locked: boolean; eligible: boolean; next_shift: { starts_at: string; ends_at: string; on_now: boolean } | null }
+export interface Person { id: string; name: string; admin: boolean; locked: boolean; eligible: boolean; next_shift: { starts_at: string; ends_at: string; on_now: boolean } | null;
+  /** r35 SP (1770): availability, standing weekly shifts, shifts held in the next days and the minimum */
+  availability?: { slots: string[]; note: string | null } | null; standing?: Array<{ id: string; words: string }>; claimed_ahead?: number; under_min?: boolean }
 export interface Slot { id: string; starts_at: string; ends_at: string; capacity: number; note: string | null; people: Array<{ plan_id: string; staff_id: string; name: string }>;
   /** r35 S2 (1051): the jobs on the shift by kind */
-  jobs?: ShiftJobs }
+  jobs?: ShiftJobs;
+  /** r35 SP (1770): eligible people available (their grid) and free then; the people to ask (under their minimum) */
+  available?: number; suggest?: Array<{ id: string; name: string; claimed: number }> }
 export interface Board {
   staff: Person[]; slots: Slot[]; coverage: Array<{ day: string; slots: number; people: number }>;
   no_shift_days: Array<{ booking_id: string; booking_number: string; leg: string; at: string; day: string; vehicle_name: string; work_day: string | null }>;
   jobs: R[]; unscheduled: R[]; expiry: R[]; documents: R[];
+  /** r35 SP (1770) */
+  availability_grid?: { eligible: number; cells: Record<string, number> }; rules?: { min: number; ahead: number; alert_hours: number; standing_ahead: number };
 }
 const KIND: Record<string, string> = { handover: 'Handover', return_check_in: 'Return check-out' };
 const dayWord = (d: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(`${d.slice(0, 10)}T12:00:00Z`));
@@ -32,6 +40,7 @@ export function FieldJobsBoard({ b, cal, now, photos, base }: { b: Board; cal: C
   // r35 S2 (1051): jobs belong to shifts; a job can be moved to another shift
   const slotOf = (id: unknown) => b.slots.find((s) => s.id === id);
   const slotOptions = b.slots.map((s) => [s.id, `${t(s.starts_at)} to ${t(s.ends_at)}${s.people.length ? `: ${s.people.map((p) => p.name).join(', ')}` : ': nobody yet'}`] as [string, string]);
+  const under = crew.filter((s) => s.under_min);
   const late = (j: R) => !j.acknowledged_at && j.status === 'scheduled' && new Date(String(j.scheduled_at)).getTime() - now < 2 * 3600_000;
   const bookingHref = (n: unknown) => `${base}/bookings/${encodeURIComponent(String(n))}`;
   return (
@@ -53,6 +62,11 @@ export function FieldJobsBoard({ b, cal, now, photos, base }: { b: Board; cal: C
         <Card title="Shifts, next seven days" testId="shifts">
           <ul className="fj-days" data-testid="coverage">{b.coverage.map((c) => (
             <li key={c.day} className={c.people === 0 ? 'is-empty' : undefined}><b>{dayWord(c.day)}</b><span>{c.people === 0 ? 'Nobody on a shift' : `${c.people} ${c.people === 1 ? 'person' : 'people'} on a shift`}</span><span className="small">{c.slots} open {c.slots === 1 ? 'slot' : 'slots'}</span></li>))}</ul>
+          {b.availability_grid && <div data-testid="availability-grid"><p className="small"><b>Who is free when</b>: of {b.availability_grid.eligible} field {b.availability_grid.eligible === 1 ? 'person' : 'people'} who can take shifts, how many ticked each time. Publish where people are free.</p>
+            <div className="sp-heat" role="table" aria-label="Field staff available by weekday and part of the day"><span aria-hidden="true" />{WEEKDAYS_SHORT.map((d) => <b key={d}>{d}</b>)}
+              {PARTS.map((p) => [<b key={p.key}>{p.short}</b>, ...WEEKDAYS.map((w, i) => { const n = b.availability_grid!.cells[cell(i + 1, p.key)] ?? 0;
+                return <span key={w + p.key} className={n ? undefined : 'is-none'} title={`${w} ${p.label.toLowerCase()}: ${n} available`}>{n}</span>; })])}</div></div>}
+          {under.length > 0 && <p className="alert alert--warn" role="status" data-testid="under-min"><span><b>Under the minimum</b> ({b.rules?.min} shifts in the next {b.rules?.ahead} days): {under.map((p) => `${p.name} (${p.claimed_ahead ?? 0})`).join(', ')}. They have a To do and a reminder.</span></p>}
           <div className="ad-actions"><Act ops action="field_slot_publish" label="Publish shifts" variant="primary" testId="publish-shifts" fields={[
             { name: 'starts_at', label: 'First day, start', type: 'datetime', required: true }, { name: 'ends_at', label: 'First day, end', type: 'datetime', required: true },
             { name: 'capacity', label: 'How many people', type: 'number', required: true, min: 1, max: 50, value: 1 },
@@ -60,6 +74,7 @@ export function FieldJobsBoard({ b, cal, now, photos, base }: { b: Board; cal: C
           <Table rows={b.slots as unknown as R[]} empty="No open shifts. Publish the coming week so field staff can take them." cols={[
             { key: 'starts_at', label: 'When', className: 'fj-when', render: (r) => <>{t(r.starts_at)} to {t(r.ends_at)}</> },
             { key: 'jobs', label: 'Jobs on it', className: 'wrap', render: (r) => { const s = r as unknown as Slot; const w = jobsText(s.jobs); return w ? <span className={s.people.length ? undefined : 'ad-flag ad-flag--red'} data-testid="slot-jobs">{w}{s.people.length ? '' : ', nobody on it'}</span> : <span className="muted">none yet</span>; } },
+            { key: 'available', label: 'Available', className: 'wrap', render: (r) => { const s = r as unknown as Slot; return <span data-testid="slot-available">{s.available ?? 0} free{s.suggest?.length ? <>{' · ask '}{s.suggest.map((p) => <Act key={p.id} ops action="field_shift_plan_add" payload={{ slot: s.id, staff: p.id }} label={`Add ${p.name}`} variant="quiet" testId={`suggest-${s.id}-${p.id}`} refresh={R} done="Added." />)}</> : null}</span>; } },
             { key: 'people', label: 'Taken', className: 'wrap', render: (r) => {
               const s = r as unknown as Slot;
               return <>{s.people.length} of {s.capacity}{s.people.length ? <>: {s.people.map((p, i) => <span key={p.plan_id}>{i ? ', ' : ''}{p.name} <Act ops action="field_shift_plan_cancel" payload={{ id: p.plan_id }} label="Remove" variant="quiet" confirm={`Take ${p.name} off this shift?`} refresh={R} /></span>)}</> : null}</>;
@@ -72,7 +87,15 @@ export function FieldJobsBoard({ b, cal, now, photos, base }: { b: Board; cal: C
           <Table rows={b.staff as unknown as R[]} empty="No field staff yet." cols={[
             { key: 'name', label: 'Name', render: (r) => <>{String(r.name)}{r.admin ? <span className="muted small"> · Admin</span> : null}</> },
             { key: 'locked', label: 'Academy', render: (r) => r.admin ? <span className="muted">not needed</span> : r.locked ? <span className="ad-flag ad-flag--red">not passed yet</span> : <span>passed or not required</span> },
-            { key: 'next_shift', label: 'Next shift', render: (r) => { const n = r.next_shift as Person['next_shift']; return n ? <>{n.on_now ? 'on now, until ' : ''}{t(n.on_now ? n.ends_at : n.starts_at)}</> : <span className="muted">{r.admin ? 'none needed' : 'none taken'}</span>; } }]} />
+            { key: 'next_shift', label: 'Next shift', render: (r) => { const n = r.next_shift as Person['next_shift']; return n ? <>{n.on_now ? 'on now, until ' : ''}{t(n.on_now ? n.ends_at : n.starts_at)}</> : <span className="muted">{r.admin ? 'none needed' : 'none taken'}</span>; } },
+            // r35 SP (1770): when they can work, their standing shifts and the minimum
+            { key: 'claimed_ahead', label: `Next ${b.rules?.ahead ?? 7} days`, render: (r) => r.admin ? null : <span className={r.under_min ? 'ad-flag ad-flag--red' : undefined} data-testid="claimed-ahead">{Number(r.claimed_ahead ?? 0)} of {b.rules?.min ?? 0}{r.under_min ? ', under' : ''}</span> },
+            { key: 'availability', label: 'Usually free', className: 'wrap', render: (r) => { const p = r as unknown as Person; return p.admin ? null : <AvailabilityMini slots={p.availability?.slots} note={p.availability?.note} />; } },
+            { key: 'standing', label: 'Standing shifts', className: 'wrap', render: (r) => { const p = r as unknown as Person; if (p.admin) return null; return <span className="ad-actions">
+              {(p.standing ?? []).map((x) => <span key={x.id}>{x.words} <Act ops action="field_standing_end" payload={{ id: x.id }} label="End" variant="quiet" confirm={`End ${x.words} for ${p.name}? The shifts already claimed stay.`} refresh={R} /></span>)}
+              {p.eligible && <Act ops action="field_standing_add" payload={{ staff: p.id }} label="Add standing" variant="quiet" testId={`standing-add-${p.id}`} refresh={R} done="Set. Matching shifts are claimed for them." fields={[
+                { name: 'weekday', label: 'Every', type: 'select', required: true, value: '6', options: WEEKDAYS.map((w, i) => [String(i + 1), w] as [string, string]) },
+                { name: 'start', label: 'From', type: 'select', required: true, value: '10:00', options: halfHours() }, { name: 'end', label: 'To', type: 'select', required: true, value: '18:00', options: halfHours() }]} />}</span>; } }]} />
         </Card>
         <Card title="Handovers and returns without a job" testId="unscheduled">
           <Table rows={b.unscheduled} rowKey={(r) => `${r.booking_id}-${r.leg}`} empty="Every handover and return has a job." cols={[

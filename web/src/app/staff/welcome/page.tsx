@@ -6,6 +6,7 @@ import { STEP_TITLE, currentStep, profileHref, signHref, stepWords, type Welcome
 import { Act } from '@/features/admin/Act';
 import { TaskDone } from './TaskDone';
 import { WhatsAppConfirm } from '@/features/staff-onboarding/WhatsAppConfirm';
+import { AvailabilityGrid } from '@/features/field-portal/AvailabilityGrid';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Welcome', path: '/staff/welcome', noindex: true, description: 'Your first steps: profile, the academy and your first tasks.' });
@@ -27,7 +28,7 @@ export default async function StaffWelcome() {
   return (
     <section className="stack" data-testid="staff-welcome">
       <h1 className="d3">Welcome, {w.name}</h1>
-      {w.locked && <p className="alert alert--warn" role="status" data-testid="welcome-locked"><span className="alert__title">{w.onboarding_step === 'approval' ? 'Waiting for approval' : w.onboarding_step === 'whatsapp' ? 'The WhatsApp groups next' : w.steps.find((s) => s.key === 'academy')?.done ? 'Your agreement next' : 'Training first'}</span><span>The rest of your portal opens once you pass the academy, sign your staff agreement, confirm you joined the WhatsApp groups and an Admin or a Fleet VA approves, in that order.</span></p>}
+      {w.locked && <p className="alert alert--warn" role="status" data-testid="welcome-locked"><span className="alert__title">{w.onboarding_step === 'availability' ? 'When you can work, last' : w.onboarding_step === 'approval' ? 'Waiting for approval' : w.onboarding_step === 'whatsapp' ? 'The WhatsApp groups next' : w.steps.find((s) => s.key === 'academy')?.done ? 'Your agreement next' : 'Training first'}</span><span>The rest of your portal opens once you pass the academy, sign your staff agreement, confirm you joined the WhatsApp groups and an Admin or a Fleet VA approves, in that order. Field staff also tick when they can usually work.</span></p>}
       {/* 1154: the academy is always one press away */}
       <p><Link prefetch={false} className="link" href="/staff/academy" data-testid="welcome-academy-link">Open the academy</Link></p>
       <ol className="stack" aria-label="Your first steps">
@@ -44,6 +45,8 @@ export default async function StaffWelcome() {
                   hint: 'Sales in person is for the Toronto area; elsewhere your Sales work is remote.' }]} /></div>}
             {/* 1151: step 3, one checkbox a group (Sales: the Sales group and the Team group) */}
             {s.key === 'team' && s.open && !!s.groups?.length && !s.done && <WhatsAppConfirm groups={s.groups} primary={s.key === now} refresh="/staff/welcome" />}
+            {/* 1770: field staff tick when they can usually work (open from the start, required for the portal) */}
+            {s.key === 'availability' && !s.done && <AvailabilityGrid value={{ slots: s.slots ?? [], note: s.note ?? null }} testId="welcome-availability" submit="Save when I can work" onboarding />}
             {s.key === 'academy' && s.done && <p><Link prefetch={false} className="link" href="/staff/academy">Your academy</Link></p>}
             {/* 1154: step 4; after a rejection the person asks again once fixed */}
             {s.key === 'approval' && s.open && !s.done && (s.reject_reason

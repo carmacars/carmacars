@@ -12,6 +12,8 @@ import { SelfProfile } from '@/features/portal/SelfProfile';
 import { NotifyChannelCard } from '@/features/portal/NotifyChannel';
 import { PushAlerts } from '@/features/push/PushAlerts';
 import { AppProfile } from '@/features/app-shell/AppProfile';
+import { AvailabilityGrid } from '@/features/field-portal/AvailabilityGrid';
+import type { Availability } from '@/features/field-portal/shift-picker';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Profile', path: '/staff/field/profile', noindex: true, description: 'Your details and sign-in.' });
@@ -23,6 +25,7 @@ export default async function Profile() {
   const { user } = await requireStaff('field', '/staff/field/profile');
   const [p, factors, home, si, sales] = await Promise.all([door<P>(user.id, 'field_read', 'profile'), (await auth()).mfaFactors().catch(() => []), homeAddressOf(user.id, 'field'), signInState(user.id),
     door<{ opted_in: boolean; ready: boolean } | null>(user.id, 'field_read', 'sales_state').catch(() => null)]);
+  const avail = await door<Availability>(user.id, 'field_read', 'my_availability').catch(() => null);
   const [nc, sp] = await Promise.all([notifyReach(user.id), selfProfile(user.id)]);
   const twoStep = factors.some((f) => f.verified);
   return (
@@ -34,6 +37,10 @@ export default async function Profile() {
         <FieldButton action="profile_save" payload={{}} label="Save my phone" testId="profile-save" fields={[{ name: 'phone', label: 'Mobile phone', required: true }]} />
       </section>
       {home.missing ? <p className="small" data-testid="home-address-above">Fill in your home address at the top of the page.</p> : <HomeAddressSection portal="field" state={home} />}
+      {/* r35 SP (1770): when you can usually work; Fleet plans the shifts from it */}
+      <section className="fd-card stack" aria-labelledby="avail-t" id="availability"><h2 className="d4" id="avail-t">When you can work</h2>
+        <p className="small">Tick the times you can usually work. Fleet sees it when they publish shifts and asks the people who are free.</p>
+        <AvailabilityGrid value={avail} testId="profile-availability" /></section>
       <section className="fd-card" aria-labelledby="pay-t"><h2 className="d4" id="pay-t">Pay details</h2>
         <p className="small">Your legal name, SIN, void cheque and how you are paid are on <Link prefetch={false} className="link" href="/staff/field/pay#pay-details">My pay</Link>.</p></section>
       <section className="fd-card stack" aria-labelledby="sales-t" data-testid="sales-optin"><h2 className="d4" id="sales-t">Sales</h2>
