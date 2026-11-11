@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { currentUser } from '@/server/portal/data';
 import { door, rolesOf, sessionAal } from '@/server/door';
 import { storage } from '@/integrations/storage';
+import { imageSniff } from '@/lib/file-sniff';
 
 // A photo or a signature from the field checklist (06-field.md section 6). The phone resized it; here the
 // job is checked to be the user's, the bytes are checked to be a JPEG or PNG under 8 MB, the file goes to
@@ -35,8 +36,7 @@ export async function POST(req: Request) {
   const j = await door<Job | null>(user.id, 'field_read', 'job', { id: jobId }, aal).catch(() => null);
   if (!j) return NextResponse.json({ ok: false, message: 'That job is not one of yours.' }, { status: 404 });
   const bytes = new Uint8Array(await file.arrayBuffer());
-  const jpg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
-  const png = bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
+  const { jpg, png } = imageSniff(bytes);
   if (!jpg && !png) return NextResponse.json({ ok: false, message: 'That file is not a photo.' }, { status: 400 });
   const leg = j.report_kind ?? 'other';
   const owner = j.job.booking_id ? `bookings/${j.job.booking_id}` : `vehicles/${j.job.vehicle_id}`;

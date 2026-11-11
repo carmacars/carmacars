@@ -4,6 +4,7 @@ import { storage } from '@/integrations/storage';
 import { fileResponse } from '@/server/files';
 import { renderPartnerInvoice } from '@/features/documents/pdf';
 import { MAX_PHOTO_BYTES, UUID } from '@/features/returns/claim';
+import { imageSniff } from '@/lib/file-sniff';
 
 // 0547: Finance and Admins: ?id=<invoice> the PDF (drafts too); ?id=<invoice>&photo=<key> a cheque photo; ?csv=1 every
 // invoice for the bookkeeper. POST (id, file): a cheque photo for a payment about to be recorded, private storage.
@@ -51,8 +52,7 @@ export async function POST(req: Request) {
   const file = form?.get('file');
   if (!(file instanceof Blob) || file.size === 0 || file.size > MAX_PHOTO_BYTES) return Response.json({ ok: false, message: 'The photo must be under 8 MB.' }, { status: 400, headers: H });
   const bytes = new Uint8Array(await file.arrayBuffer());
-  const jpg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
-  const png = bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
+  const { jpg, png } = imageSniff(bytes);
   if (!jpg && !png) return Response.json({ ok: false, message: 'That file is not a photo.' }, { status: 400, headers: H });
   const key = `partner-invoices/${id.toLowerCase()}/${crypto.randomUUID()}.${png ? 'png' : 'jpg'}`;
   await (await storage()).put('documents', key, bytes, png ? 'image/png' : 'image/jpeg');

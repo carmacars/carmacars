@@ -102,6 +102,9 @@ jobs:
       - name: Each change record names the guide chapters it changed (or "No guide change" and why)
         working-directory: .
         run: node scripts/check-change-guides.mjs
+      - name: Applied migrations are never edited (names, numbers, history; docs/engineering-rules.md)
+        working-directory: .
+        run: node scripts/check-migrations.mjs
       - name: Store app config and listing text (no install, about a second)
         working-directory: apps/carmacars
         run: node scripts/check-app.mjs

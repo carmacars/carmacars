@@ -5,6 +5,7 @@ import type { ActionResult } from '@/features/forms/schemas';
 import { storage } from '@/integrations/storage';
 import { readToken, sha256Hex } from '@/server/links';
 import { readLicence } from '@/server/licence-read';
+import { imageSniff } from '@/lib/file-sniff';
 
 // An additional driver's licence on their own signing link (migration 0130): no account, the signed token names their
 // signer row. The photo is checked (a JPEG or PNG under 10 MB), stored privately and registered for staff review.
@@ -25,8 +26,7 @@ export async function driverLicenceUpload(token: string, form: FormData): Promis
     if (!['licence_front', 'licence_back', 'selfie'].includes(kind)) return fail('Unknown upload.');
     if (!(file instanceof Blob) || file.size === 0 || file.size > 10 * 1024 * 1024) return fail('The photo must be under 10 MB.');
     const bytes = new Uint8Array(await file.arrayBuffer());
-    const jpg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
-    const png = bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
+    const { jpg, png } = imageSniff(bytes);
     if (!jpg && !png) return fail('That file is not a photo.');
     const key = `drivers/${s}/${kind}-${crypto.randomUUID()}.${jpg ? 'jpg' : 'png'}`;
     const st = await storage();

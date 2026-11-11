@@ -6,6 +6,7 @@ import { currentUser } from '@/server/portal/data';
 import { door, rolesOf, sessionAal } from '@/server/door';
 import { decryptField, encryptField, PAYOUT_KEY_VERSION } from '@/server/crypto';
 import { sinDigits, validSin } from '@/features/field-portal/model';
+import { imageSniff } from '@/lib/file-sniff';
 
 // The field portal's steps with a file (release 35, part X; migrations 0930 and 0931): a clean check, money spent, a receipt added
 // later, a service record, a prep item, photos of a car. The file goes to the private documents bucket first, under field/ (the
@@ -33,8 +34,7 @@ async function store(file: File, prefix: string) {
   if (file.size > MAX) throw new Error('The file must be under 15 MB.');
   const bytes = new Uint8Array(await file.arrayBuffer());
   const pdf = bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46;
-  const jpg = bytes[0] === 0xff && bytes[1] === 0xd8;
-  const png = bytes[0] === 0x89 && bytes[1] === 0x50;
+  const { jpg, png } = imageSniff(bytes);
   if (!pdf && !jpg && !png) throw new Error('Use a photo (JPEG or PNG) or a PDF.');
   const [type, ext] = pdf ? ['application/pdf', 'pdf'] : jpg ? ['image/jpeg', 'jpg'] : ['image/png', 'png'];
   const key = `${prefix}/${crypto.randomUUID()}.${ext}`;

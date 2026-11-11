@@ -12,6 +12,7 @@ import { enqueuePdfJobs, kickPdfJobs } from '@/server/pdf-jobs';
 import { chargeAddedRental } from '@/server/portal/added-charge';
 import { sha256Hex } from '@/server/links';
 import type { SigningState } from '@/features/handover/types';
+import { imageSniff } from '@/lib/file-sniff';
 
 // Signing on the spot (migration 0130): a staff member hands their device to the renter or an additional driver, who
 // reads the agreements and signs; the database records the same signature as remote signing plus who collected it, the
@@ -91,8 +92,7 @@ export async function staffLicenceUpload(form: FormData): Promise<R<{ retake: st
     if (!/^[0-9a-f-]{36}$/.test(booking) || !/^[0-9a-f-]{36}$/.test(driver) || !['licence_front', 'licence_back', 'selfie'].includes(kind)) return fail('Unknown upload.');
     if (!(file instanceof Blob) || file.size === 0 || file.size > 10 * 1024 * 1024) return fail('The photo must be under 10 MB.');
     const bytes = new Uint8Array(await file.arrayBuffer());
-    const jpg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
-    const png = bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
+    const { jpg, png } = imageSniff(bytes);
     if (!jpg && !png) return fail('That file is not a photo.');
     const key = `staff/${booking}/${kind}-${driver}-${crypto.randomUUID()}.${jpg ? 'jpg' : 'png'}`;
     const s = await storage();
@@ -116,8 +116,7 @@ export async function staffDocumentUpload(form: FormData): Promise<R> {
     if (!/^[0-9a-f-]{36}$/.test(booking) || !['coverage_proof', 'insurer_document', 'other'].includes(kind)) return fail('Unknown upload.');
     if (!(file instanceof Blob) || file.size === 0 || file.size > 15 * 1024 * 1024) return fail('The file must be under 15 MB.');
     const bytes = new Uint8Array(await file.arrayBuffer());
-    const jpg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
-    const png = bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
+    const { jpg, png } = imageSniff(bytes);
     const pdf = bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46;
     if (!jpg && !png && !pdf) return fail('Upload a photo (JPG or PNG) or a PDF.');
     const [ext, mime] = pdf ? ['pdf', 'application/pdf'] : jpg ? ['jpg', 'image/jpeg'] : ['png', 'image/png'];
