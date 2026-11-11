@@ -12891,6 +12891,14 @@ export type Database = {
           ended_at: string | null;
           created_at: string;
           updated_at: string;
+          recording_sid: string | null;
+          recording_key: string | null;
+          recording_seconds: number | null;
+          recording_state: string | null;
+          transcript_text: string | null;
+          transcribe_due_at: string | null;
+          transcribe_tries: number;
+          transcribe_error: string | null;
         };
         Insert: {
           id?: string;
@@ -12915,6 +12923,14 @@ export type Database = {
           ended_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          recording_sid?: string | null;
+          recording_key?: string | null;
+          recording_seconds?: number | null;
+          recording_state?: string | null;
+          transcript_text?: string | null;
+          transcribe_due_at?: string | null;
+          transcribe_tries?: number;
+          transcribe_error?: string | null;
         };
         Update: {
           id?: string;
@@ -12939,6 +12955,14 @@ export type Database = {
           ended_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          recording_sid?: string | null;
+          recording_key?: string | null;
+          recording_seconds?: number | null;
+          recording_state?: string | null;
+          transcript_text?: string | null;
+          transcribe_due_at?: string | null;
+          transcribe_tries?: number;
+          transcribe_error?: string | null;
         };
         Relationships: [];
       };
@@ -17991,6 +18015,8 @@ export type Database = {
           intent_ai_enabled: boolean;
           intent_hot_score: number;
           intent_warm_score: number;
+          phone_twilio_record: boolean;
+          phone_twilio_delete_recording: boolean;
           fleet_demand_cap_bps: number;
           fleet_demand_cap_rank: number;
           fleet_demand_min_requests: number;
@@ -18783,6 +18809,8 @@ export type Database = {
           intent_ai_enabled?: boolean;
           intent_hot_score?: number;
           intent_warm_score?: number;
+          phone_twilio_record?: boolean;
+          phone_twilio_delete_recording?: boolean;
           fleet_demand_cap_bps?: number;
           fleet_demand_cap_rank?: number;
           fleet_demand_min_requests?: number;
@@ -19575,6 +19603,8 @@ export type Database = {
           intent_ai_enabled?: boolean;
           intent_hot_score?: number;
           intent_warm_score?: number;
+          phone_twilio_record?: boolean;
+          phone_twilio_delete_recording?: boolean;
           fleet_demand_cap_bps?: number;
           fleet_demand_cap_rank?: number;
           fleet_demand_min_requests?: number;
@@ -31486,6 +31516,7 @@ export type Database = {
       server_phone_gate_event: { Args: { p: Json }; Returns: Json };
       server_phone_gate_request: { Args: { p: Json }; Returns: Json };
       server_phone_gate_save: { Args: { p: Json }; Returns: Json };
+      server_phone_recording: { Args: { p_user: string; p_activity: string }; Returns: string };
       server_phone_sent: { Args: { p: Json }; Returns: Json };
       server_phone_signed_in: { Args: { p_user: string; p_phone: string; p_name?: string }; Returns: Json };
       server_phone_summary: { Args: { p: Json }; Returns: Json };
@@ -31594,6 +31625,9 @@ export type Database = {
       server_twilio_call_event: { Args: { p: Json }; Returns: Json };
       server_twilio_call_get: { Args: { p_id: string }; Returns: Json };
       server_twilio_call_start: { Args: { p: Json }; Returns: Json };
+      server_twilio_recording: { Args: { p: Json }; Returns: Json };
+      server_twilio_transcribe_due: { Args: { p_limit: number }; Returns: Json };
+      server_twilio_transcript: { Args: { p: Json }; Returns: Json };
       server_unsubscribe: { Args: { p_token: string }; Returns: boolean };
       server_unsubscribe_info: { Args: { p_token: string }; Returns: Json };
       server_usage_call: { Args: { p: Json }; Returns: Json };
