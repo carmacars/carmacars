@@ -5,6 +5,8 @@ import { PayIdentityForm } from '@/features/field-portal/PayIdentityForm';
 import type { PayIdentity } from '@/server/actions/field-work';
 import { PayDetails } from '@/features/staff/PayDetails';
 import type { PayDetailsView } from '@/features/staff/pay-details';
+import { KpiWeeks } from '@/features/kpis/Kpis';
+import type { Kpi } from '@/features/kpis/model';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'My pay', path: '/staff/field/pay', noindex: true, description: 'Your hours, pay statements and pay details.' });
@@ -22,8 +24,10 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('en-CA', { timeZ
 // shifts and the statements, and how you are paid. Clock in and out is on Today, with the shift.
 export default async function MyPay() {
   const { user } = await requireStaff('field', '/staff/field/pay');
-  const [h, pid, payout] = await Promise.all([door<Hours>(user.id, 'ops_read', 'field_hours'), door<PayIdentity>(user.id, 'field_read', 'my_pay_identity'),
-    door<PayDetailsView>(user.id, 'field_read', 'my_pay_details').catch(() => null)]);
+  const [h, pid, payout, kpi] = await Promise.all([door<Hours>(user.id, 'ops_read', 'field_hours'), door<PayIdentity>(user.id, 'field_read', 'my_pay_identity'),
+    door<PayDetailsView>(user.id, 'field_read', 'my_pay_details').catch(() => null),
+    // r35 part C (1504): this week's KPIs (jobs done, on time, photos complete)
+    door<{ week: string; people: Array<{ items: Kpi[] }> }>(user.id, 'field_read', 'kpi_board').catch(() => null)]);
   const s = h.so_far;
   return (
     <>
@@ -48,6 +52,7 @@ export default async function MyPay() {
           : <p className="small muted">No hours in the last three weeks. Clock in on Today when you start.</p>}
         <p className="small muted">Forgot to clock out, or a time is wrong? Tell Fleet: they fix it and write down why.</p>
       </section>
+      {kpi?.people[0] && <KpiWeeks weeks={[{ week_start: kpi.week, items: kpi.people[0].items }]} title="This week's KPIs" />}
       {pid.complete && <PayIdentityForm v={pid} />}
       <PayDetails portal="field" view={payout} />
     </>

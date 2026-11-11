@@ -43,3 +43,13 @@ sends when all of these hold:
 | Stubs | `my_pay_stubs` (every staff member, own only); the PDF (`app.pdf_facts` wrapped: salary, adjustments, currency, clock entries) and the pay statement email now also go to office staff (`app.notification_recipients`, `app.notification_payload` wrapped) |
 | Web | Admin > Money > Payroll (`/admin/money/field-pay`, run tab), Finance Hours > Payroll (`/staff/payroll`), My hours pay stubs (`/staff/hours`), `features/payroll/Payroll.tsx`, PDF `payStatement` |
 | Tests | `supabase/tests/99_r35c_payroll.sql`; `99_field_pay_rules_mode.sql` no longer expects Finance refused at start (the owner's new rule) |
+
+## Role KPIs (item 2): `1504_r35c_role_kpis.sql`
+
+| Item | What changed |
+| --- | --- |
+| Targets | Program settings `kpi_rate_target_pct` (90), `kpi_on_time_grace_minutes` (15), `kpi_cs_first_reply_minutes` (5), `kpi_cs_conversations_week` (40), `kpi_cs_licences_week` (5), `kpi_cs_requests_week` (10), `kpi_fleet_photo_reviews_week` (10), `kpi_fleet_dispatch_week` (10), `kpi_fleet_calls_week` (20), `kpi_finance_deposit_review_hours` (48), `kpi_finance_toll_checks_week` (2), `kpi_field_jobs_week` (10), `kpi_field_min_photos` (8) |
+| Sources | first reply and conversations: `phone_activity` (Quo texts and calls); licences: `identity_verifications.verified_by`; requests: `booking_events` offer_sent, declined, info_requested; handovers on time: the team's done handovers and deliveries; photo reviews: field jobs and condition reports reviewed; next-day list: the closing `daily_checks` on each scheduled Fleet day (1502); deposits: `deposit_reviews` Finance done within the hours of the Fleet check; statements and invoices: owner statements sent by payout day, owner invoices issued by billing day; tolls: distinct days of `deposit_review_ticket_checks`; field: done jobs, on time, a condition report with the minimum photos. Sales keeps 0057's month target |
+| Reads | `app.role_kpis`, `staff_scorecard` + `kpis` (4 weeks), `kpi_board` (Admin all, staff and field their own) |
+| Web | scorecards (`features/kpis`, `features/va/Scorecard.tsx`), Admin > Team > KPIs (`/admin/kpis`), field My pay (this week) |
+| Tests | `supabase/tests/99_r35c_role_kpis.sql`, `web/src/features/kpis/model.test.ts` |

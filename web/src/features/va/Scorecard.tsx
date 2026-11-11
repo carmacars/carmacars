@@ -1,9 +1,11 @@
 import { Card, d } from '@/features/admin/ui';
 import { MonthTarget, type MonthProgress } from '@/features/sales/Commissions';
+import { KpiWeeks } from '@/features/kpis/Kpis';
+import type { Kpi } from '@/features/kpis/model';
 
 // The weekly scorecard (VA hiring package section 7; 05-va.md section 6): each measure is the share of its
 // cases that met the target that week. Under 90% two weeks running means a review.
-export interface Score { name: string; function: string | null; review: boolean; sales_target?: MonthProgress;
+export interface Score { name: string; function: string | null; review: boolean; sales_target?: MonthProgress; kpis?: Array<{ week_start: string; items: Kpi[] }>;
   weeks: Array<{ week_start: string; score_pct: number | null; measures: Array<{ name: string; target: string; met: number; total: number; score_pct: number | null }> }> }
 
 const pct = (v: number | null) => (v === null || v === undefined ? 'no cases' : `${v}%`);
@@ -14,6 +16,8 @@ export function Scorecard({ s }: { s: Score }) {
   return (
     <>
       {s.sales_target && <Card title={`Rental days target, ${s.sales_target.label}`} testId="score-target"><MonthTarget m={s.sales_target} own /></Card>}
+      {/* r35 part C (1504): the role's KPIs against their targets */}
+      {s.kpis && <KpiWeeks weeks={s.kpis} title="KPIs by week" />}
       {s.review && <p className="alert alert--warn" role="status" data-testid="score-review"><span className="alert__title">Review</span><span>Two weeks running under 90%.</span></p>}
       <Card title="By week" testId="scorecard">
         <div className="ad-scroll" tabIndex={0} role="region" aria-label="Scorecard by week">
