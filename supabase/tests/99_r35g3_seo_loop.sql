@@ -1,9 +1,9 @@
 -- 99: the SEO action loop and cached-only serving by usage (migration 1860). Fixtures start with "sg"; addresses are example.test.
 select test.suite('99 r35 gaps3: SEO loop and cached-only by usage');
 
-select test.mk_user('sg_admin', 'admin');
-select test.mk_user('sg_sales', 'va', 'sales');
-select test.mk_user('sg_cs', 'va', 'cs');
+select test.mk_user('sgl_admin', 'admin');
+select test.mk_user('sgl_sales', 'va', 'sales');
+select test.mk_user('sgl_cs', 'va', 'cs');
 
 -- ---------------------------------------------------------------- settings are Program settings
 select test.eq('A the goal is 5,000,000 clicks a month by default', (select seo_click_goal from program_settings limit 1), 5000000::bigint);
@@ -30,15 +30,15 @@ insert into app.gsc_search_daily (day, clicks, impressions, ctr, position)
 
 -- ---------------------------------------------------------------- the page: Admin, read only for sales, nobody else
 create or replace function test.sgseo(p_user text) returns jsonb language sql as $$ select app.seo_actions(test.id(p_user)) $$;
-select test.eq('C an Admin reads the goal', (test.sgseo('sg_admin') #>> '{goal,target}')::bigint, 5000000::bigint);
-select test.eq('C the 28-day clicks add up', (test.sgseo('sg_admin') #>> '{goal,clicks_28d}')::bigint, (select sum(clicks) from app.gsc_search_daily where day > app.today() - 31 and day <= app.today() - 3));
-select test.eq('C the top query leads', test.sgseo('sg_admin') #>> '{top_queries,0,key}', 'rent a mercedes toronto');
-select test.eq('C the page shown a lot and clicked little is listed', test.sgseo('sg_admin') #>> '{low_ctr,0,key}', '/car-rental/mississauga');
-select test.eq('C a page with few impressions is not listed', (select count(*) from jsonb_array_elements(test.sgseo('sg_admin') -> 'low_ctr') x where x ->> 'key' = '/buy/toyota/camry'), 0::bigint);
-select test.eq('C an Admin''s page is not read only', (test.sgseo('sg_admin') ->> 'read_only')::boolean, false);
-select test.eq('C sales reads the same page, read only', (test.sgseo('sg_sales') ->> 'read_only')::boolean, true);
-select test.eq('C sales sees the same goal', test.sgseo('sg_sales') #>> '{goal,target}', '5000000');
-select test.throws('C customer service may not read it', $$select test.sgseo('sg_cs')$$, 'Only an Admin or sales');
+select test.eq('C an Admin reads the goal', (test.sgseo('sgl_admin') #>> '{goal,target}')::bigint, 5000000::bigint);
+select test.eq('C the 28-day clicks add up', (test.sgseo('sgl_admin') #>> '{goal,clicks_28d}')::bigint, (select sum(clicks) from app.gsc_search_daily where day > app.today() - 31 and day <= app.today() - 3));
+select test.eq('C the top query leads', test.sgseo('sgl_admin') #>> '{top_queries,0,key}', 'rent a mercedes toronto');
+select test.eq('C the page shown a lot and clicked little is listed', test.sgseo('sgl_admin') #>> '{low_ctr,0,key}', '/car-rental/mississauga');
+select test.eq('C a page with few impressions is not listed', (select count(*) from jsonb_array_elements(test.sgseo('sgl_admin') -> 'low_ctr') x where x ->> 'key' = '/buy/toyota/camry'), 0::bigint);
+select test.eq('C an Admin''s page is not read only', (test.sgseo('sgl_admin') ->> 'read_only')::boolean, false);
+select test.eq('C sales reads the same page, read only', (test.sgseo('sgl_sales') ->> 'read_only')::boolean, true);
+select test.eq('C sales sees the same goal', test.sgseo('sgl_sales') #>> '{goal,target}', '5000000');
+select test.throws('C customer service may not read it', $$select test.sgseo('sgl_cs')$$, 'Only an Admin or sales');
 select test.throws('C nobody (no user) may read it', $$select app.seo_actions(null)$$, 'Only an Admin or sales');
 select test.ok('C the public function is for the server only', not has_function_privilege('authenticated', 'public.server_seo_actions(uuid)', 'execute') and has_function_privilege('service_role', 'public.server_seo_actions(uuid)', 'execute'));
 select test.eq('C a lower goal changes the share', (select (app.seo_data(now(), false) #>> '{goal,share_bps}')::int > 0), true);
@@ -63,7 +63,7 @@ select test.eq('D the wait doubles', (select pings from app.gsc_url_inspection w
 select test.ok('D the next send is days away', (select next_ping_at > now() + interval '1 day' from app.gsc_url_inspection where path = '/cars/sg-one'));
 select test.eq('D once indexed the schedule ends', (select (app.gsc_urls_store(jsonb_build_array(jsonb_build_object('path', '/cars/sg-one', 'state', 'Submitted and indexed', 'bucket', 'indexed'))) ->> 'stored')::int), 1);
 select test.ok('D no more pings after indexing', (select pings = 0 and next_ping_at is null from app.gsc_url_inspection where path = '/cars/sg-one'));
-select test.eq('D the sitemaps show the crawled and discovered counts', (select (x ->> 'crawled')::int + (x ->> 'discovered')::int from jsonb_array_elements(test.sgseo('sg_admin') -> 'by_sitemap') x where x ->> 'sitemap' = 'sitemap-vehicles-1.xml'), 1);
+select test.eq('D the sitemaps show the crawled and discovered counts', (select (x ->> 'crawled')::int + (x ->> 'discovered')::int from jsonb_array_elements(test.sgseo('sgl_admin') -> 'by_sitemap') x where x ->> 'sitemap' = 'sitemap-vehicles-1.xml'), 1);
 update program_settings set indexnow_enabled = false;
 select app.gsc_urls_store(jsonb_build_array(jsonb_build_object('path', '/cars/sg-four', 'state', 'Crawled - currently not indexed', 'bucket', 'crawled')));
 select test.eq('D with IndexNow off nothing is queued', (select count(*) from indexnow_queue where path = '/cars/sg-four'), 0::bigint);
@@ -100,9 +100,9 @@ select app.usage_record_external(('{"source": "cloudflare", "days": [{"day": "' 
 select test.eq('F 71% of the requests: on', app.usage_cached_check(), true);
 select test.ok('F the start is kept', (select usage_cached_since is not null from program_settings limit 1));
 select test.eq('F the Worker is told (the five-minute tick)', (app.server_jobs_due() ->> 'cached_only')::boolean, true);
-select test.eq('F Settings > Usage shows it', (app.usage_page(test.id('sg_admin')) #>> '{cached_only,on}')::boolean, true);
-select test.eq('F and the line', (app.usage_page(test.id('sg_admin')) #>> '{cached_only,line_pct}')::int, 70);
-select test.eq('F and how far the month is', (app.usage_page(test.id('sg_admin')) #>> '{cached_only,share_bps}')::int, 7100);
+select test.eq('F Settings > Usage shows it', (app.usage_page(test.id('sgl_admin')) #>> '{cached_only,on}')::boolean, true);
+select test.eq('F and the line', (app.usage_page(test.id('sgl_admin')) #>> '{cached_only,line_pct}')::int, 70);
+select test.eq('F and how far the month is', (app.usage_page(test.id('sgl_admin')) #>> '{cached_only,share_bps}')::int, 7100);
 select test.eq('F switched on once in the audit log', (select count(*) from audit_log where action = 'usage_cached_on'), 1::bigint);
 select app.usage_cached_check();
 select test.eq('F checking again does not log again', (select count(*) from audit_log where action = 'usage_cached_on'), 1::bigint);

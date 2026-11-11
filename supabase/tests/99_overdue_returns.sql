@@ -140,7 +140,7 @@ select test.eq('crashes: one morning digest line for the Admins, however many re
   (select count(*) || ':' || min(digest_slot) from staff_digest_items where role = 'admin' and line like 'Website crash on /cars/or-test%'), '1:morning');
 
 -- ---------------------------------------------------------------- 8. the email budgets (0531)
-select test.eq('budgets: Cloudflare first, Resend after, each the number of Program settings (r35: no number written here)',
-  (select (b ->> 'cf_budget') || ':' || (b ->> 'resend_budget') from (select public.server_email_budgets() b) x),
-  (select s.notify_cf_daily_budget || ':' || s.notify_resend_daily_budget from app.settings() s));
+select test.eq('budgets: Cloudflare first (what it sent today plus what is left of its day), Resend after, its Program setting (1750)',
+  (select ((b ->> 'cf_budget')::int = (b ->> 'cf_used')::int + (b ->> 'cf_left')::int)::text || ':' || (b ->> 'resend_budget') from (select public.server_email_budgets() b) x),
+  (select 'true:' || s.notify_resend_daily_budget from app.settings() s));
 select test.ok('budgets: the next midnight is ahead', (public.server_email_budgets() ->> 'midnight')::timestamptz > now());

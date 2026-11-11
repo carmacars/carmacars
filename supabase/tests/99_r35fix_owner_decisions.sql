@@ -5,13 +5,15 @@
 select test.suite('99 r35fix owner decisions');
 
 -- ================================================================ 2. the delivery origin
--- a settings row an earlier suite inserted with column defaults only (06 adds one for today) takes the lot, as a row copied
--- from the current one would
-update program_settings p set delivery_origin_address = f.delivery_origin_address, company_latitude = f.company_latitude, company_longitude = f.company_longitude
-  from (select delivery_origin_address, company_latitude, company_longitude from program_settings where delivery_origin_address is not null order by effective_from limit 1) f
- where p.delivery_origin_address is null and p.company_latitude is null;
-select test.eq('the origin is a Program setting: the address', (app.settings()).delivery_origin_address, '1570 Midland Ave, Scarborough, ON');
-select test.eq('the origin: its coordinates (approximate)', format('%s,%s', (app.settings()).company_latitude, (app.settings()).company_longitude), '43.771000,-79.269000');
+-- the migration put the lot on the settings rows that existed then (the oldest row here); earlier suites insert rows with
+-- column defaults and move the current row's coordinates (13 sets Dundas St W), so the current row takes the lot back first
+select test.eq('the origin is a Program setting: the address',
+  (select delivery_origin_address from program_settings order by effective_from limit 1), '1570 Midland Ave, Scarborough, ON');
+select test.eq('the origin: its coordinates (approximate)',
+  (select format('%s,%s', company_latitude, company_longitude) from program_settings order by effective_from limit 1), '43.771000,-79.269000');
+update program_settings p set delivery_origin_address = '1570 Midland Ave, Scarborough, ON', company_latitude = 43.771, company_longitude = -79.269
+ where p.effective_from = (select max(effective_from) from program_settings where effective_from <= app.local_date(now()));
+select test.eq('the current settings read the lot', (app.settings()).delivery_origin_address, '1570 Midland Ave, Scarborough, ON');
 select test.ok('the mailing address is not the origin', (app.settings()).company_address is distinct from (app.settings()).delivery_origin_address);
 select test.eq('a delivery to the origin itself is 0 km', (public.delivery_to_point(43.771, -79.269) ->> 'km')::numeric, 0::numeric);
 select test.ok('a delivery downtown is measured from Midland (about 17 km), not from Dundas St W (about 7 km)',
