@@ -14,8 +14,10 @@ create temp table cff_code as select code from notification_catalogue where audi
 -- every other email of the earlier suites out of the way (a far day of their own), their Cloudflare and Resend sends uncounted
 create temp table cff_others as select id, send_after, status, status_reason from notification_outbox where status in ('queued', 'delayed');
 update notification_outbox o set send_after = timestamptz '2035-01-01' from cff_others e where e.id = o.id;
-create temp table cff_sent0 as select id, provider_id, sent_at from notification_outbox where status = 'sent' and sent_at > now() - interval '40 days';
-update notification_outbox set sent_at = sent_at - interval '400 days' where id in (select id from cff_sent0);
+-- (sends the earlier suites dated in the future and sends still in flight included: all moved to a far past day)
+create temp table cff_sent0 as select id, provider_id, sent_at, status, locked_at from notification_outbox
+  where (status = 'sent' and sent_at > now() - interval '40 days') or status = 'sending';
+update notification_outbox set sent_at = now() - interval '400 days', status = 'sent' where id in (select id from cff_sent0);
 create or replace function test.cff_sent(p_key text, p_provider text, p_at timestamptz, p_reason text default null) returns void language sql as $$
   insert into notification_outbox (code, category, priority, audience, to_address, to_name, payload, dedupe_key, status, status_reason, sent_at, provider_id, send_after)
   select code, 'transactional', 1, 'renter', 'cff@example.test', 'Cff', '{}'::jsonb, 'cff-' || p_key, 'sent', p_reason, p_at, p_provider, p_at from cff_code $$;
@@ -143,6 +145,6 @@ select test.eq('an Admin reads the status through the door only', has_function_p
 
 -- back as the suites expect (helpers.sql: Cloudflare off)
 delete from notification_outbox where dedupe_key like 'cff-%';
-update notification_outbox o set sent_at = c.sent_at from cff_sent0 c where c.id = o.id;
+update notification_outbox o set sent_at = c.sent_at, status = c.status, locked_at = c.locked_at from cff_sent0 c where c.id = o.id;
 update notification_outbox o set send_after = e.send_after, status = e.status, status_reason = e.status_reason from cff_others e where e.id = o.id;
 update program_settings set cf_email_enabled = false;

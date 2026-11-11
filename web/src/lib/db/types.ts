@@ -3491,6 +3491,10 @@ export type Database = {
           price_limit_override_reason: string | null;
           secondary_contact: Json | null;
           instant_book: boolean;
+          is_test: boolean;
+          test_reason: string | null;
+          test_by: string | null;
+          test_at: string | null;
         };
         Insert: {
           id?: string;
@@ -3685,6 +3689,10 @@ export type Database = {
           price_limit_override_reason?: string | null;
           secondary_contact?: Json | null;
           instant_book?: boolean;
+          is_test?: boolean;
+          test_reason?: string | null;
+          test_by?: string | null;
+          test_at?: string | null;
         };
         Update: {
           id?: string;
@@ -3879,6 +3887,10 @@ export type Database = {
           price_limit_override_reason?: string | null;
           secondary_contact?: Json | null;
           instant_book?: boolean;
+          is_test?: boolean;
+          test_reason?: string | null;
+          test_by?: string | null;
+          test_at?: string | null;
         };
         Relationships: [];
       };
