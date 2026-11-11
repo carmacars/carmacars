@@ -17991,6 +17991,7 @@ export type Database = {
           intent_ai_enabled: boolean;
           intent_hot_score: number;
           intent_warm_score: number;
+          investor_sheet_daily_rate_cents: number;
           fleet_demand_cap_bps: number;
           fleet_demand_cap_rank: number;
           fleet_demand_min_requests: number;
@@ -18783,6 +18784,7 @@ export type Database = {
           intent_ai_enabled?: boolean;
           intent_hot_score?: number;
           intent_warm_score?: number;
+          investor_sheet_daily_rate_cents?: number;
           fleet_demand_cap_bps?: number;
           fleet_demand_cap_rank?: number;
           fleet_demand_min_requests?: number;
@@ -19575,6 +19577,7 @@ export type Database = {
           intent_ai_enabled?: boolean;
           intent_hot_score?: number;
           intent_warm_score?: number;
+          investor_sheet_daily_rate_cents?: number;
           fleet_demand_cap_bps?: number;
           fleet_demand_cap_rank?: number;
           fleet_demand_min_requests?: number;
