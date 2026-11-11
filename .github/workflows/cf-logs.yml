@@ -45,6 +45,7 @@ jobs:
           f="$RUNNER_TEMP/worker-errors.json"
           jq -r 'if .unavailable then empty else "by outcome: " + ((.outcomes // {}) | to_entries | map("\(.key) \(.value.n)") | join(", ")) + "; failures kept: \(.failures // [] | length)" end' "$f" | sed 's/^/::notice title=worker errors::/'
           jq -r '.failures_by_route // [] | .[:9][] | "\(.count)x \(.key)"' "$f" | sed 's/^/::notice title=worker errors::/'
+          jq -r '.failures // [] | map(select(.outcome != "ok")) | .[:12][] | "\(.outcome) \(.status) \(.route) :: \(.message // "" | .[0:300]) :: \(.stack // "" | .[0:500])"' "$f" | sed 's/^/::notice title=worker exception::/' || true
           jq -r 'select(.unavailable) | "Workers Observability could not be read: \(.unavailable). \(if .permission_needed then "Missing permission: \(.permission_needed)." else "" end)"' "$f" | sed 's/^/::warning title=worker errors::/'
           { echo "## The Worker's failures (last $HOURS hours)"; echo; echo '```json'; jq '{outcomes, failures_by_route, failures: (.failures // [] | .[:20]), unavailable, permission_needed}' "$f"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
       # 2026-11-06 (r27b): which agents send the requests, how many the edge copy answered, by user agent and path
