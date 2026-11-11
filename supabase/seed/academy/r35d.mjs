@@ -22,6 +22,7 @@ export const SECTIONS = [
       Q('How long can a break be?', ['Exactly 15 minutes', 'There is no fixed length', 'One hour a day', 'Only at lunch time'], 1, 'Breaks are at your discretion; each one is kept with its start and end.'),
       Q('What does the portal record while you are clocked in?', ['What you type', 'The pages you open', 'Only the fact that you are active', 'Screenshots'], 2, 'Only the fact of activity: never keys, pages or screens.'),
       Q('You forgot to press End break. What happens?', ['Nothing', 'After 30 minutes you get a reminder and the Admins see it', 'Your day is deleted', 'You are clocked out at once'], 1, 'A break open past 30 minutes reminds you; clocking out also ends it.'),
+      Q('Who can change a break after it has ended?', ['Anyone on the team', 'You, at any time', 'Only an Admin, with a reason', 'Nobody, ever'], 2, 'Only an Admin can change a break afterwards, and the reason is kept.'),
       Q('Which of these counts as active?', ['A hidden tab nobody touches', 'A phone call you take', 'Being clocked out', 'Time after your scheduled hours'], 1, 'Calls you take or make and the townhall count as active.')
     ]
   }

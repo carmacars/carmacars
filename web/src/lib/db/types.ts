@@ -7536,6 +7536,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      field_availability: {
+        Row: {
+          user_id: string;
+          slots: string[];
+          note: string | null;
+          created_at: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          user_id: string;
+          slots?: string[];
+          note?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          user_id?: string;
+          slots?: string[];
+          note?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
       field_car_updates: {
         Row: {
           id: string;
@@ -7941,6 +7968,21 @@ export type Database = {
         };
         Relationships: [];
       };
+      field_shift_nags: {
+        Row: {
+          user_id: string;
+          nagged_at: string;
+        };
+        Insert: {
+          user_id: string;
+          nagged_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          nagged_at?: string;
+        };
+        Relationships: [];
+      };
       field_shift_offers: {
         Row: {
           id: string;
@@ -8016,6 +8058,7 @@ export type Database = {
           updated_at: string;
           cancel_reason: string | null;
           late_cancel: boolean;
+          standing_id: string | null;
         };
         Insert: {
           id?: string;
@@ -8031,6 +8074,7 @@ export type Database = {
           updated_at?: string;
           cancel_reason?: string | null;
           late_cancel?: boolean;
+          standing_id?: string | null;
         };
         Update: {
           id?: string;
@@ -8046,6 +8090,7 @@ export type Database = {
           updated_at?: string;
           cancel_reason?: string | null;
           late_cancel?: boolean;
+          standing_id?: string | null;
         };
         Relationships: [];
       };
@@ -8062,6 +8107,7 @@ export type Database = {
           created_at: string;
           updated_at: string;
           jobs_alerted_at: string | null;
+          unclaimed_alerted_at: string | null;
         };
         Insert: {
           id?: string;
@@ -8075,6 +8121,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           jobs_alerted_at?: string | null;
+          unclaimed_alerted_at?: string | null;
         };
         Update: {
           id?: string;
@@ -8088,6 +8135,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           jobs_alerted_at?: string | null;
+          unclaimed_alerted_at?: string | null;
         };
         Relationships: [];
       };
@@ -8250,6 +8298,72 @@ export type Database = {
           reimbursed_at?: string | null;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      field_standing_shifts: {
+        Row: {
+          id: string;
+          staff_id: string;
+          weekday: number;
+          start_time: string;
+          end_time: string;
+          note: string | null;
+          created_by: string;
+          created_at: string;
+          updated_at: string;
+          ended_at: string | null;
+          ended_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          staff_id: string;
+          weekday: number;
+          start_time: string;
+          end_time: string;
+          note?: string | null;
+          created_by: string;
+          created_at?: string;
+          updated_at?: string;
+          ended_at?: string | null;
+          ended_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          staff_id?: string;
+          weekday?: number;
+          start_time?: string;
+          end_time?: string;
+          note?: string | null;
+          created_by?: string;
+          created_at?: string;
+          updated_at?: string;
+          ended_at?: string | null;
+          ended_by?: string | null;
+        };
+        Relationships: [];
+      };
+      field_standing_skips: {
+        Row: {
+          standing_id: string;
+          day: string;
+          reason: string | null;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          standing_id: string;
+          day: string;
+          reason?: string | null;
+          created_by: string;
+          created_at?: string;
+        };
+        Update: {
+          standing_id?: string;
+          day?: string;
+          reason?: string | null;
+          created_by?: string;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -18015,6 +18129,29 @@ export type Database = {
           intent_ai_enabled: boolean;
           intent_hot_score: number;
           intent_warm_score: number;
+          delivery_origin_address: string | null;
+          cf_email_daily_budget: number;
+          field_min_shifts_week: number;
+          field_claim_ahead_days: number;
+          field_unclaimed_alert_hours: number;
+          field_standing_ahead_days: number;
+          va_breaks_paid: boolean;
+          va_break_reminder_minutes: number;
+          va_idle_alert_minutes: number;
+          va_idle_followup_minutes: number;
+          va_idle_nudge_minutes: number;
+          kpi_idle_minutes_week: number;
+          va_idle_call_grace_minutes: number;
+          va_idle_townhall_grace_minutes: number;
+          investor_sheet_daily_rate_cents: number;
+          seo_click_goal: number;
+          seo_low_ctr_pct: number;
+          seo_low_ctr_min_impressions: number;
+          seo_digest_on: boolean;
+          usage_cached_pct: number;
+          usage_cached_since: string | null;
+          review_preask_enabled: boolean;
+          review_preask_days_before: number;
           phone_twilio_record: boolean;
           phone_twilio_delete_recording: boolean;
           fleet_demand_cap_bps: number;
@@ -18809,6 +18946,29 @@ export type Database = {
           intent_ai_enabled?: boolean;
           intent_hot_score?: number;
           intent_warm_score?: number;
+          delivery_origin_address?: string | null;
+          cf_email_daily_budget?: number;
+          field_min_shifts_week?: number;
+          field_claim_ahead_days?: number;
+          field_unclaimed_alert_hours?: number;
+          field_standing_ahead_days?: number;
+          va_breaks_paid?: boolean;
+          va_break_reminder_minutes?: number;
+          va_idle_alert_minutes?: number;
+          va_idle_followup_minutes?: number;
+          va_idle_nudge_minutes?: number;
+          kpi_idle_minutes_week?: number;
+          va_idle_call_grace_minutes?: number;
+          va_idle_townhall_grace_minutes?: number;
+          investor_sheet_daily_rate_cents?: number;
+          seo_click_goal?: number;
+          seo_low_ctr_pct?: number;
+          seo_low_ctr_min_impressions?: number;
+          seo_digest_on?: boolean;
+          usage_cached_pct?: number;
+          usage_cached_since?: string | null;
+          review_preask_enabled?: boolean;
+          review_preask_days_before?: number;
           phone_twilio_record?: boolean;
           phone_twilio_delete_recording?: boolean;
           fleet_demand_cap_bps?: number;
@@ -19603,6 +19763,29 @@ export type Database = {
           intent_ai_enabled?: boolean;
           intent_hot_score?: number;
           intent_warm_score?: number;
+          delivery_origin_address?: string | null;
+          cf_email_daily_budget?: number;
+          field_min_shifts_week?: number;
+          field_claim_ahead_days?: number;
+          field_unclaimed_alert_hours?: number;
+          field_standing_ahead_days?: number;
+          va_breaks_paid?: boolean;
+          va_break_reminder_minutes?: number;
+          va_idle_alert_minutes?: number;
+          va_idle_followup_minutes?: number;
+          va_idle_nudge_minutes?: number;
+          kpi_idle_minutes_week?: number;
+          va_idle_call_grace_minutes?: number;
+          va_idle_townhall_grace_minutes?: number;
+          investor_sheet_daily_rate_cents?: number;
+          seo_click_goal?: number;
+          seo_low_ctr_pct?: number;
+          seo_low_ctr_min_impressions?: number;
+          seo_digest_on?: boolean;
+          usage_cached_pct?: number;
+          usage_cached_since?: string | null;
+          review_preask_enabled?: boolean;
+          review_preask_days_before?: number;
           phone_twilio_record?: boolean;
           phone_twilio_delete_recording?: boolean;
           fleet_demand_cap_bps?: number;
@@ -21549,6 +21732,7 @@ export type Database = {
           unhappy_at: string | null;
           created_at: string;
           updated_at: string;
+          preask_sent_at: string | null;
         };
         Insert: {
           booking_id: string;
@@ -21576,6 +21760,7 @@ export type Database = {
           unhappy_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          preask_sent_at?: string | null;
         };
         Update: {
           booking_id?: string;
@@ -21603,6 +21788,7 @@ export type Database = {
           unhappy_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          preask_sent_at?: string | null;
         };
         Relationships: [];
       };
@@ -23319,6 +23505,24 @@ export type Database = {
         };
         Relationships: [];
       };
+      staff_activity: {
+        Row: {
+          user_id: string;
+          last_at: string;
+          idle_id: string | null;
+        };
+        Insert: {
+          user_id: string;
+          last_at?: string;
+          idle_id?: string | null;
+        };
+        Update: {
+          user_id?: string;
+          last_at?: string;
+          idle_id?: string | null;
+        };
+        Relationships: [];
+      };
       staff_agreement_auto: {
         Row: {
           user_id: string;
@@ -23421,6 +23625,51 @@ export type Database = {
           hint?: string | null;
           sort?: number;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      staff_breaks: {
+        Row: {
+          id: string;
+          user_id: string;
+          clock_entry_id: string;
+          started_at: string;
+          ended_at: string | null;
+          reason: string | null;
+          reminded_at: string | null;
+          edited_at: string | null;
+          edited_by: string | null;
+          edit_reason: string | null;
+          voided_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          clock_entry_id: string;
+          started_at: string;
+          ended_at?: string | null;
+          reason?: string | null;
+          reminded_at?: string | null;
+          edited_at?: string | null;
+          edited_by?: string | null;
+          edit_reason?: string | null;
+          voided_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          clock_entry_id?: string;
+          started_at?: string;
+          ended_at?: string | null;
+          reason?: string | null;
+          reminded_at?: string | null;
+          edited_at?: string | null;
+          edited_by?: string | null;
+          edit_reason?: string | null;
+          voided_at?: string | null;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -23712,6 +23961,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      staff_idle_periods: {
+        Row: {
+          id: string;
+          user_id: string;
+          function: string | null;
+          started_at: string;
+          ended_at: string | null;
+          alerted_at: string | null;
+          followup_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          function?: string | null;
+          started_at: string;
+          ended_at?: string | null;
+          alerted_at?: string | null;
+          followup_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          function?: string | null;
+          started_at?: string;
+          ended_at?: string | null;
+          alerted_at?: string | null;
+          followup_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       staff_onboarding: {
         Row: {
           application_id: string;
@@ -23939,6 +24221,8 @@ export type Database = {
           monthly_salary_cents: number | null;
           salary_currency: string | null;
           lock_reason: string | null;
+          availability_grandfathered: boolean;
+          quo_user_id: string | null;
         };
         Insert: {
           user_id: string;
@@ -23992,6 +24276,8 @@ export type Database = {
           monthly_salary_cents?: number | null;
           salary_currency?: string | null;
           lock_reason?: string | null;
+          availability_grandfathered?: boolean;
+          quo_user_id?: string | null;
         };
         Update: {
           user_id?: string;
@@ -24045,6 +24331,8 @@ export type Database = {
           monthly_salary_cents?: number | null;
           salary_currency?: string | null;
           lock_reason?: string | null;
+          availability_grandfathered?: boolean;
+          quo_user_id?: string | null;
         };
         Relationships: [];
       };
@@ -31244,6 +31532,7 @@ export type Database = {
       server_amendment_record: { Args: { p_amendment: string }; Returns: Json };
       server_api_access_view: { Args: { p_admin: string }; Returns: Json };
       server_api_call: { Args: { p_hash: string; p_tool: string; p_args: Json; p_client?: string }; Returns: Json };
+      server_api_claim_file_record: { Args: { p_hash: string; p_preview: string; p_path: string; p_mime: string; p_sha: string; p_client?: string }; Returns: Json };
       server_api_hire_result: { Args: { p_hash: string; p_application: string; p_ok: boolean; p_error: string; p_client?: string }; Returns: Json };
       server_api_key_create: { Args: { p_admin: string; p_user: string; p_name: string; p_scopes: string[]; p_hash: string; p_prefix: string }; Returns: Json };
       server_api_key_revoke: { Args: { p_admin: string; p_id: string }; Returns: Json };
@@ -31438,6 +31727,7 @@ export type Database = {
       server_open_agreement_companion: { Args: { p_booking: string; p_by: string; p_template: string; p_storage_path: string; p_sha256: string }; Returns: string };
       server_open_amendment: { Args: { p_request: string; p_by: string; p_sha256: string; p_storage_path: string; p_template_version: string }; Returns: Json };
       server_open_by_content: { Args: { p_by: string; p_keys: string[] }; Returns: Json };
+      server_outbox_note_cf_fallback: { Args: { p_id: string; p_error: string }; Returns: undefined };
       server_outbox_stale_report: { Args: { p_since?: string }; Returns: Json };
       server_owner_agreement_extras: { Args: { p_owner: string }; Returns: Json };
       server_owner_agreement_facts: { Args: { p_owner: string; p_by: string }; Returns: Json };
@@ -31587,6 +31877,7 @@ export type Database = {
       server_seen_account_links: { Args: { p_user: string }; Returns: number };
       server_self_handover_submit: { Args: { p_user: string; p: Json }; Returns: Json };
       server_send_link_email: { Args: { p_email: string; p_name: string; p_url: string; p_expiry?: string; p_key?: string }; Returns: number };
+      server_seo_actions: { Args: { p_user: string }; Returns: Json };
       server_seo_claim: { Args: { p_worker: string; p_limit?: number }; Returns: Json };
       server_seo_result: { Args: { p: Json }; Returns: Json };
       server_seo_snapshots: { Args: never; Returns: number };
