@@ -22,7 +22,10 @@ async function mkUser(sql: Sql, role: 'admin' | 'va', fn?: 'cs') {
   await sql`insert into local_auth.users (id, email, password_hash) values (${id}, ${email}, ${hash(PW)})`;
   await sql`insert into users (id, email, full_name) values (${id}, ${email}, ${`Gail Gate ${tag()}`})`;
   await sql`insert into user_roles (user_id, role) values (${id}, ${role})`;
-  if (fn) await sql`insert into staff_profiles (user_id, staff_type, va_function, home_address, home_postal_code) values (${id}, 'va', ${fn}, '1 Example Lane, Testville', 'X9X 9X9')`;
+  // held by the onboarding gate (1151) with the academy as the only step left: not exempt (the local seed makes the
+  // tests' staff exempt), the Team group confirmed and approved (1154), the agreement gate off on the local stack
+  if (fn) await sql`insert into staff_profiles (user_id, staff_type, va_function, home_address, home_postal_code, onboarding_exempt, whatsapp_joined, whatsapp_joined_at, onboarding_approved_at)
+    values (${id}, 'va', ${fn}, '1 Example Lane, Testville', 'X9X 9X9', false, '{team}', now(), now())`;
   return { id, email };
 }
 async function signIn(page: Page, email: string, expectPath: string) {
@@ -43,38 +46,45 @@ test.describe.configure({ mode: 'serial' });
 test('A new hire is held on Welcome until the academy is passed; an Admin waives it with a reason', async ({ browser }) => {
   test.setTimeout(150_000);
   const sql = db();
+  // the gate is on for this test only: every other test's staff are exempt from the onboarding gate (the local seed), and
+  // it is set back when the test ends either way
+  const [was] = await sql<Array<{ on: boolean }>>`select academy_gate as on from program_settings limit 1`;
   await sql`update program_settings set academy_gate = true`;
-  const cs = await mkUser(sql, 'va', 'cs');
-  const admin = await mkUser(sql, 'admin');
-  await sql`select app.academy_enroll(${cs.id}::uuid, ${admin.id}::uuid, 'hire', now())`;
-  const page = await ctx(browser);
-  await signIn(page, cs.email, '/staff');
-  await page.goto('/staff/renters', { waitUntil: 'networkidle' });
-  await page.waitForURL(/\/staff\/welcome$/);
-  const w = page.getByTestId('staff-welcome');
-  await expect(w.getByTestId('welcome-locked')).toBeVisible();
-  for (const k of ['welcome', 'profile', 'academy', 'tasks']) await expect(w.getByTestId(`welcome-step-${k}`)).toBeVisible();
-  await expect(w.getByTestId('welcome-step-academy')).toHaveAttribute('data-done', 'false');
-  await check(page, 'staff welcome');
-  await w.getByRole('link', { name: 'Open the academy' }).click();
-  await page.waitForURL(/\/staff\/academy$/);
-  await expect(page.getByTestId('academy-locked')).toBeVisible();
-  await page.goto('/staff/profile', { waitUntil: 'networkidle' });
-  expect(new URL(page.url()).pathname).toBe('/staff/profile');
+  try {
+    const cs = await mkUser(sql, 'va', 'cs');
+    const admin = await mkUser(sql, 'admin');
+    await sql`select app.academy_enroll(${cs.id}::uuid, ${admin.id}::uuid, 'hire', now())`;
+    const page = await ctx(browser);
+    await signIn(page, cs.email, '/staff');
+    await page.goto('/staff/renters', { waitUntil: 'networkidle' });
+    await page.waitForURL(/\/staff\/welcome$/);
+    const w = page.getByTestId('staff-welcome');
+    await expect(w.getByTestId('welcome-locked')).toBeVisible();
+    for (const k of ['welcome', 'profile', 'academy', 'tasks']) await expect(w.getByTestId(`welcome-step-${k}`)).toBeVisible();
+    await expect(w.getByTestId('welcome-step-academy')).toHaveAttribute('data-done', 'false');
+    await check(page, 'staff welcome');
+    await w.getByTestId('welcome-step-academy').getByRole('link', { name: 'Open the academy' }).click();
+    await page.waitForURL(/\/staff\/academy$/);
+    await expect(page.getByTestId('academy-locked')).toBeVisible();
+    await page.goto('/staff/profile', { waitUntil: 'networkidle' });
+    expect(new URL(page.url()).pathname).toBe('/staff/profile');
 
-  const ap = await ctx(browser);
-  await signIn(ap, admin.email, '/admin');
-  await ap.goto(`/admin/academy/staff/${cs.id}`, { waitUntil: 'networkidle' });
-  await expect(ap.getByTestId('academy-gate-state')).toContainText('Held:');
-  await ap.getByTestId('academy-waive').click();
-  await ap.getByRole('dialog').getByLabel(/Reason/).fill('Two years of rental desk work');
-  await ap.getByTestId('academy-waive-submit').click();
-  await expect(ap.getByTestId('academy-gate-state')).toContainText('Waived by');
-  await check(ap, 'admin academy gate');
-  const [wv] = await sql<Array<{ reason: string }>>`select reason from academy_waivers where user_id = ${cs.id} and revoked_at is null`;
-  expect(wv?.reason).toBe('Two years of rental desk work');
+    const ap = await ctx(browser);
+    await signIn(ap, admin.email, '/admin');
+    await ap.goto(`/admin/academy/staff/${cs.id}`, { waitUntil: 'networkidle' });
+    await expect(ap.getByTestId('academy-gate-state')).toContainText('Held:');
+    await ap.getByTestId('academy-waive').click();
+    await ap.getByRole('dialog').getByLabel(/Reason/).fill('Two years of rental desk work');
+    await ap.getByTestId('academy-waive-submit').click();
+    await expect(ap.getByTestId('academy-gate-state')).toContainText('Waived by');
+    await check(ap, 'admin academy gate');
+    const [wv] = await sql<Array<{ reason: string }>>`select reason from academy_waivers where user_id = ${cs.id} and revoked_at is null`;
+    expect(wv?.reason).toBe('Two years of rental desk work');
 
-  await page.goto('/staff/renters', { waitUntil: 'networkidle' });
-  expect(new URL(page.url()).pathname, 'waived: the work pages open').toBe('/staff/renters');
-  await sql.end();
+    await page.goto('/staff/renters', { waitUntil: 'networkidle' });
+    expect(new URL(page.url()).pathname, 'waived: the work pages open').toBe('/staff/renters');
+  } finally {
+    await sql`update program_settings set academy_gate = ${was?.on ?? false}`;
+    await sql.end();
+  }
 });

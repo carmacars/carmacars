@@ -38,7 +38,8 @@ async function mkJetta(sql: Sql, adminId: string): Promise<string> {
   const [r] = await sql`select app.vehicle_add(${adminId}, ${sql.json({ supply_type: 'company', vin, plate: `IR${randomBytes(2).toString('hex').toUpperCase()}`, year: 2024, make: 'Volkswagen', model: 'Jetta',
     rates: { daily: 10000, weekend: 10000, weekly: 70000, monthly: 300000, deposit: 30000 } })}) as v`;
   const id = (r!.v as { vehicle_id: string }).vehicle_id;
-  await sql`update vehicles set class = 'standard' where id = ${id}`;
+  // 1202: the Protection Plan (coverage option 3) only for a car with its value on file, under the cap
+  await sql`update vehicles set class = 'standard', replacement_value_cents = 3000000 where id = ${id}`;
   await sql`insert into vehicle_class_links (vehicle_id, class_code, source) values (${id}, 'sedan', 'staff') on conflict do nothing`;
   return id;
 }

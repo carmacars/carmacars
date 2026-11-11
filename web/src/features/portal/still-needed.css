@@ -18,7 +18,8 @@
 .sn__item[data-tone="bad"] { border-color: var(--pu-accent, var(--red-600)); }
 .sn__item[data-tone="bad"] .sn__mark { border-color: var(--pu-accent, var(--red-600)); color: var(--pu-accent, var(--red-600)); }
 .sn__item[data-tone="bad"] .sn__state { color: var(--pu-accent, var(--red-600)); font-weight: 700; }
-.sn__item[data-tone="ok"] { opacity: 0.75; }
+/* done: quieter by weight, never by opacity (the state text would fall under 4.5:1, axe color-contrast) */
+.sn__item[data-tone="ok"] .sn__label { font-weight: 400; }
 .sn__item[data-tone="ok"] .sn__mark { border-color: var(--pu-ok, #1F7A3A); color: var(--pu-ok, #1F7A3A); }
 @media (max-width: 30rem) {
   .sn { padding: var(--s-4); }

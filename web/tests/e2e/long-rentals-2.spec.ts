@@ -31,7 +31,10 @@ async function mkCar(sql: Sql, adminId: string): Promise<{ id: string; plate: st
   const plate = `DR${randomBytes(2).toString('hex').toUpperCase()}`;
   const [r] = await sql`select app.vehicle_add(${adminId}, ${sql.json({ supply_type: 'company', vin, plate, year: 2024, make: 'Kia', model: 'K5',
     rates: { daily: 10000, weekend: 10000, weekly: 70000, monthly: 300000, deposit: 30000 } })}) as v`;
-  return { id: (r!.v as { vehicle_id: string }).vehicle_id, plate };
+  const id = (r!.v as { vehicle_id: string }).vehicle_id;
+  // 1202: the Protection Plan (coverage option 3) only for a car with its value on file, under the cap
+  await sql`update vehicles set replacement_value_cents = 3000000 where id = ${id}`;
+  return { id, plate };
 }
 
 test.describe.configure({ mode: 'serial' });

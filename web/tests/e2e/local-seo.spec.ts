@@ -81,14 +81,15 @@ test('place pages: a neighbourhood near us, a far city, a US city, the GTA; hone
   await page.goto('/car-rental/port-credit-mississauga-on', { waitUntil: 'networkidle' });
   await acceptCookies(page);
   await expect(page.locator('h1')).toHaveText('Car Rental in Port Credit, Mississauga');
-  await expect(page.locator('body')).toContainText('No. CarmaCars has one location, in Toronto, and we deliver to Port Credit, Mississauga.');
+  // r36 seo (positive copy): the FAQ says where we are and that we deliver there
+  await expect(page.locator('body')).toContainText('CarmaCars is in Toronto, and we deliver to Port Credit, Mississauga.');
   expect(types(await ld(page))).toEqual(expect.arrayContaining(['BreadcrumbList', 'FAQPage']));
   await expect(page.getByTestId('place-attribution')).toContainText('GeoNames');
   await check(page, 'port credit');
 
   await page.goto('/car-rental/kingston-on', { waitUntil: 'networkidle' });
-  await expect(page.locator('body')).toContainText('rents cars in the Toronto area');
-  await expect(page.locator('body')).toContainText('has no location in Kingston');
+  // a far city: the honest distance from our one location
+  await expect(page.locator('body')).toContainText(/CarmaCars is in Toronto, about \d+ km from Kingston\./);
   await expect(page.getByTestId('place-lead-form')).toBeVisible();
   await check(page, 'kingston');
 

@@ -277,6 +277,11 @@ try {
       // 1060, the same for the staff agreement gate (on everywhere else): the tests' staff have no signed agreement and
       // would open only Welcome
       await tx`update program_settings set staff_agreement_gate = false where staff_agreement_gate`;
+      // 1151 (with 1154, 1770), the same for the staff onboarding gate: the tests' staff never confirm the WhatsApp groups
+      // nor get approved, and would open only Welcome. They are exempt from the start (staff_profiles.onboarding_exempt, the
+      // rule's own way out), one person at a time, so the gate stays on and its own test holds its hire with
+      // onboarding_exempt = false without turning a setting on for every other test of the shared database.
+      await tx`alter table staff_profiles alter column onboarding_exempt set default true`;
     }
     // 0093: the partner fleet a migration imports is not "cars on the site" for the sample cars (keyed by its sheet rows)
     const already = await tx`select count(*)::int as n from vehicle_listings l join vehicles v on v.id = l.vehicle_id where v.partner_sheet_name is null`;

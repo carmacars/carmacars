@@ -155,7 +155,7 @@ test('admin: 20 menu links, the merged pages and their tabs, the old addresses, 
 
   // grouped pages keep their addresses and share a tab row
   // r27 consolidation: Company accounts and Staff pay are one Company group, Staff is Team, Ads and Channels are two groups
-  for (const [path, group, tab] of [['/admin/expenses', 'Company', 'Expenses'], ['/admin/money/field-pay', 'Company', 'Field pay'], ['/admin/referral-partners', 'Partners', 'Referral partners'],
+  for (const [path, group, tab] of [['/admin/expenses', 'Company', 'Expenses'], ['/admin/money/field-pay', 'Company', 'Payroll'], ['/admin/referral-partners', 'Partners', 'Referral partners'],
     ['/admin/owners?view=checklist', 'Owners', 'Paid and signed'], ['/admin/applications', 'Owners', 'Applications'], ['/admin/hiring', 'Team', 'Hiring'], ['/admin/similar-cars', 'Listings', 'Similar cars'],
     ['/admin/marketing/report', 'Channels', 'Bookings by channel'], ['/admin/marketing/social', 'Ads', 'Social drafts']] as const) {
     await page.goto(path, { waitUntil: 'networkidle' });

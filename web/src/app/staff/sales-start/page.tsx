@@ -25,8 +25,8 @@ export default async function SalesStart() {
       {!st?.opted_in ? <><p className="small">Your Finance work stays as it is. The Sales path is added to your academy; the Sales pages open once you pass it.</p>
         <Act ops action="finance_sales_optin" payload={{ on: true }} label="I want to do sales too" variant="primary" testId="sales-on" refresh={R} done="The Sales path is on your academy." /></>
         : !st.ready ? <><p className="small">First, the Sales path: {done} of {total} sections passed. The Sales pages open once it is passed.</p>
-          <p className="row" style={{ gap: 'var(--s-2)' }}><Link prefetch={false} className="btn btn--primary btn--sm" href={`/staff/academy/${st.path}`}>Continue the Sales path</Link>
-            <Act ops action="finance_sales_optin" payload={{ on: false }} label="Stop" testId="sales-off" refresh={R} confirm="Take the Sales path off your academy?" /></p></>
+          <div className="row" style={{ gap: 'var(--s-2)' }}><Link prefetch={false} className="btn btn--primary btn--sm" href={`/staff/academy/${st.path}`}>Continue the Sales path</Link>
+            <Act ops action="finance_sales_optin" payload={{ on: false }} label="Stop" testId="sales-off" refresh={R} confirm="Take the Sales path off your academy?" /></div></>
         : <><p className="small">You do sales too. Your Sales pages are in the menu.</p>
           <p className="row" style={{ gap: 'var(--s-2)' }}><Link prefetch={false} className="btn btn--primary btn--sm" href="/staff/requests">Requests and offers</Link>
             <Link prefetch={false} className="btn btn--ghost btn--sm" href="/staff/my-sales">My sales numbers</Link>

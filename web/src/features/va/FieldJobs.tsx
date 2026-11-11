@@ -63,9 +63,11 @@ export function FieldJobsBoard({ b, cal, now, photos, base }: { b: Board; cal: C
           <ul className="fj-days" data-testid="coverage">{b.coverage.map((c) => (
             <li key={c.day} className={c.people === 0 ? 'is-empty' : undefined}><b>{dayWord(c.day)}</b><span>{c.people === 0 ? 'Nobody on a shift' : `${c.people} ${c.people === 1 ? 'person' : 'people'} on a shift`}</span><span className="small">{c.slots} open {c.slots === 1 ? 'slot' : 'slots'}</span></li>))}</ul>
           {b.availability_grid && <div data-testid="availability-grid"><p className="small"><b>Who is free when</b>: of {b.availability_grid.eligible} field {b.availability_grid.eligible === 1 ? 'person' : 'people'} who can take shifts, how many ticked each time. Publish where people are free.</p>
-            <div className="sp-heat" role="table" aria-label="Field staff available by weekday and part of the day"><span aria-hidden="true" />{WEEKDAYS_SHORT.map((d) => <b key={d}>{d}</b>)}
-              {PARTS.map((p) => [<b key={p.key}>{p.short}</b>, ...WEEKDAYS.map((w, i) => { const n = b.availability_grid!.cells[cell(i + 1, p.key)] ?? 0;
-                return <span key={w + p.key} className={n ? undefined : 'is-none'} title={`${w} ${p.label.toLowerCase()}: ${n} available`}>{n}</span>; })])}</div></div>}
+            {/* a table to assistive technology: rows (display: contents, so the grid lays out the cells) of headers and cells */}
+            <div className="sp-heat" role="table" aria-label="Field staff available by weekday and part of the day">
+              <div className="sp-heat__row" role="row"><b role="columnheader" className="sp-heat__corner"><span className="vh">Part of the day</span></b>{WEEKDAYS_SHORT.map((d) => <b key={d} role="columnheader">{d}</b>)}</div>
+              {PARTS.map((p) => <div key={p.key} className="sp-heat__row" role="row"><b role="rowheader">{p.short}</b>{WEEKDAYS.map((w, i) => { const n = b.availability_grid!.cells[cell(i + 1, p.key)] ?? 0;
+                return <span key={w + p.key} role="cell" className={n ? undefined : 'is-none'} title={`${w} ${p.label.toLowerCase()}: ${n} available`}>{n}</span>; })}</div>)}</div></div>}
           {under.length > 0 && <p className="alert alert--warn" role="status" data-testid="under-min"><span><b>Under the minimum</b> ({b.rules?.min} shifts in the next {b.rules?.ahead} days): {under.map((p) => `${p.name} (${p.claimed_ahead ?? 0})`).join(', ')}. They have a To do and a reminder.</span></p>}
           <div className="ad-actions"><Act ops action="field_slot_publish" label="Publish shifts" variant="primary" testId="publish-shifts" fields={[
             { name: 'starts_at', label: 'First day, start', type: 'datetime', required: true }, { name: 'ends_at', label: 'First day, end', type: 'datetime', required: true },

@@ -66,9 +66,10 @@ export async function Timesheet({ userId, aal, from, to, base }: { userId: strin
         {v.admin && (p.idle ?? []).length > 0 && <Table<Idle & Record<string, unknown>> testId={`timesheet-idle-${p.user_id}`} rows={(p.idle ?? []) as Array<Idle & Record<string, unknown>>} rowKey={(r) => r.id} cols={[
           { key: 'started_at', label: 'Inactive from', render: (r) => t(r.started_at) }, { key: 'ended_at', label: 'Back at', render: (r) => (r.ended_at ? t(r.ended_at) : 'Still inactive') },
           { key: 'minutes', label: 'Idle', num: true, render: (r) => hoursWords(r.minutes) }]} />}
-        {v.admin && <p className="small muted">Quo user: {p.quo_user_id ?? 'not set (their Quo calls do not pause the inactivity tracker)'}{' '}
+        {/* an <Act> holds a dialog and a form: in a <div>, never a <p> (a <p> around it breaks hydration, React #418) */}
+        {v.admin && <div className="small muted">Quo user: {p.quo_user_id ?? 'not set (their Quo calls do not pause the inactivity tracker)'}{' '}
           <Act ops action="staff_quo_user_set" payload={{ user_id: p.user_id }} label="Set Quo user" variant="quiet" refresh={refresh} done="Saved."
-            fields={[{ name: 'quo_user_id', label: 'Quo user id (US…, empty: none)', type: 'text', value: p.quo_user_id ?? '' }]} /></p>}
+            fields={[{ name: 'quo_user_id', label: 'Quo user id (US…, empty: none)', type: 'text', value: p.quo_user_id ?? '' }]} /></div>}
       </Card>))}
     {!v.people.length && <p className="small muted">No customer service, Fleet or Finance staff yet.</p>}
   </>);

@@ -64,7 +64,7 @@ export default async function SocialDrafts({ searchParams }: { searchParams: Pro
                     <a key={p} href={photoUrl(p)} target="_blank" rel="noopener" className="small" style={{ display: 'inline-block', width: '6rem' }}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={photoUrl(p)} alt={`Photo ${i + 1}${x.car ? ` of the ${x.car}` : ''}`} loading="lazy" style={{ width: '100%', aspectRatio: '4 / 3', objectFit: 'cover', borderRadius: '4px', display: 'block' }} />{i + 1}</a>))}</div>}
-                  <p className="ad-actions">
+                  <div className="ad-actions">
                     {x.status !== 'posted' && <Act action="social_draft_save" payload={{ id: x.id }} label="Edit" testId={`ads-edit-${x.kind}`} refresh={refresh} done="Saved: approve it again."
                       fields={[{ name: 'caption', label: 'Caption (on the Facebook Page the link is added in the text)', type: 'textarea', value: x.caption, required: true },
                         { name: 'channels', label: 'Channels (instagram, facebook_page)', type: 'text', value: x.channels.join(', ') }, { name: 'slot_date', label: 'Day', type: 'date', value: x.slot_date }]} />}
@@ -75,7 +75,7 @@ export default async function SocialDrafts({ searchParams }: { searchParams: Pro
                     {x.status === 'approved' && x.channels.filter((ch) => !x.posted?.[ch]).map((ch) => (
                       <Act key={ch} action="social_draft_posted" payload={{ id: x.id, channel: ch }} label={`Posted on ${CH[ch]}`} testId={`ads-posted-${x.kind}-${ch}`} refresh={refresh} done="Recorded."
                         fields={[{ name: 'url', label: 'The post\'s address (https://...)', type: 'text', wide: true }]} />))}
-                  </p>
+                  </div>
                   {Object.keys(x.posted ?? {}).length > 0 && <ul className="small">{Object.entries(x.posted).map(([ch, p]) => <li key={ch}>{CH[ch as SocialChannel] ?? ch}: {p.how === 'api' ? 'published through Meta' : 'posted by hand'}{p.url ? <> · <a className="link" href={p.url} target="_blank" rel="noopener noreferrer">open the post</a></> : null}</li>)}</ul>}
                 </article>);
             })}

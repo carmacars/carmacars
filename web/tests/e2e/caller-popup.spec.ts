@@ -44,7 +44,10 @@ async function ctx(browser: Browser) {
   return c.newPage();
 }
 type Delivery = { id: string; data: { resource: Record<string, unknown>; context: Record<string, unknown> } };
+// every number a test rang, hung up after each test whether it passed or not (see hangUp)
+const rung: string[] = [];
 async function ring(page: Page, ours: string, theirs: string): Promise<number> {
+  rung.push(theirs);
   const body = JSON.parse(JSON.stringify(SAMPLES.callRinging)) as Delivery;
   body.id = `EV${randomUUID()}`;
   body.data.resource.id = `AC${tag()}${tag()}`;
@@ -63,6 +66,13 @@ async function hangUp(sql: ReturnType<typeof db>, numbers: string[]) {
 }
 
 test.describe.configure({ mode: 'serial' });
+// a failed test must not leave its call ringing on every other test's pages (CI run 43065252052: two retries' calls covered
+// the Admin pages of the shard for half an hour)
+test.afterEach(async () => {
+  if (!rung.length) return;
+  const sql = db();
+  try { await hangUp(sql, rung.splice(0)); } finally { await sql.end(); }
+});
 
 test('Customer service: a renter calls, the pop-up shows who it is, a note from the pop-up is on their record; an unknown caller becomes a lead', async ({ browser }) => {
   test.setTimeout(150_000);

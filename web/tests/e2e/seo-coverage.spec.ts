@@ -22,7 +22,8 @@ test('new terms: own pages indexable as their tier allows; synonyms point to the
   expect(r?.status()).toBe(200);
   expect(await robots(page)).toMatch(/noindex/);
   expect(await canonical(page)).toMatch(/\/buy\/auto-loans\/kingston-on$/);
-  await expect(page.locator('body')).toContainText(/do not lend/i);
+  // r36 seo (positive copy): what we are not, said once
+  await expect(page.locator('body')).toContainText(/we are not a lender/i);
 });
 
 test('chauffeur terms take a request; body repair never promises mechanical work', async ({ page }) => {
@@ -31,7 +32,7 @@ test('chauffeur terms take a request; body repair never promises mechanical work
   await expect(page.locator('body')).toContainText('chauffeur service');
   await expect(page.locator('form').first()).toBeVisible();
   await page.goto('/body-shop/car-repair/kingston-on');
-  await expect(page.locator('body')).toContainText('We do not do mechanical work');
+  await expect(page.locator('body')).toContainText('Mechanical work such as engines, brakes and oil changes is not part of it');
   await noOverflow(page);
 });
 
@@ -119,7 +120,7 @@ test('mechanical work we arrange: a request, never our work, no questions; synon
   expect(near, 'an oil change page in the priority sitemap').toBeTruthy();
   await page.goto(near!);
   await expect(page.locator('h1')).toHaveText(/^Oil Change in /);
-  await expect(page.locator('body')).toContainText('does not do this work itself');
+  await expect(page.locator('body')).toContainText('not by CarmaCars');
   await expect(page.locator('body')).toContainText('trusted shop');
   await expect(page.locator('#h-faq')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Request the work' })).toBeVisible();
@@ -154,7 +155,7 @@ test('mechanical work we arrange on the per car pages: a trusted shop, a rental 
   const ld = async () => (await page.locator('script[type="application/ld+json"]').allTextContents()).join(' ');
   expect((await page.goto('/t/oil-change/volkswagen/jetta/2020/sportline/scarborough'))?.status()).toBe(200);
   await expect(page.locator('h1')).toHaveText(/^Oil change for a 2020 Volkswagen Jetta Sportline in Scarborough$/);
-  await expect(page.locator('body')).toContainText('CarmaCars does not do this work itself');
+  await expect(page.locator('body')).toContainText('the work is never done by CarmaCars');
   await expect(page.locator('body')).toContainText('trusted shop');
   await expect(page.locator('body')).not.toContainText('insurance replacement');
   await expect(page.locator('#h-q')).toHaveCount(0);

@@ -124,6 +124,8 @@ test('the Rental agreements card: missing fields filled; a material change signe
   // signing path, with Program settings > amended agreements turned off for its length
   const [amend] = await sql`select amend_without_signature a from program_settings limit 1`;
   await sql`update program_settings set amend_without_signature = false`;
+  // 1202: the Protection Plan only for a car with its value on file (the sample cars have none): an Admin's value
+  await sql`update vehicles set replacement_value_cents = coalesce(replacement_value_cents, 3000000) where id = (select vehicle_id from bookings where id = ${bk.booking})`;
   await sql`update bookings set coverage_option = 3 where id = ${bk.booking}`;
   await page.reload({ waitUntil: 'networkidle' });
   await page.getByTestId('agreement-more').getByText('More').click();

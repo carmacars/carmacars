@@ -110,9 +110,11 @@ test('Usage guard: the used-up card on To do, the cost pop-up, paid usage up to 
 
   await page.goto('/admin/settings/usage', { waitUntil: 'networkidle' });
   await expect(page.getByRole('heading', { name: 'Usage', level: 1 })).toBeVisible();
-  for (const svc of ['workers_ai', 'workers_requests', 'workers_cpu', 'images', 'resend_day', 'resend_month', 'supabase_db', 'supabase_storage', 'r2_storage', 'github_actions', 'claude']) {
+  for (const svc of ['workers_ai', 'workers_requests', 'workers_cpu', 'images', 'resend_month', 'supabase_db', 'supabase_storage', 'r2_storage', 'github_actions', 'claude']) {
     await expect(page.getByTestId(`usage-${svc}`)).toBeVisible();
   }
+  // r35c: the emails' day is the capacity line (Cloudflare and Resend), never Resend's part as its own row
+  await expect(page.getByTestId('usage-resend_day')).toHaveCount(0);
   // 0194: the database and files are on our own server; data sent out is not measured there (retired, hidden)
   await expect(page.getByTestId('usage-supabase_egress')).toHaveCount(0);
   await expect(page.getByTestId('usage-workers_ai-paid')).toContainText('Never');
