@@ -3,7 +3,7 @@ import Link from '@/components/Link';
 import { door } from '@/server/door';
 import { Act } from '@/features/admin/Act';
 import { t } from '@/features/admin/ui';
-import { CF_EMAIL_STEPS, emailBudgetLine, paceBudget, CF_EMAIL_STEPS_HREF, PAUSE, bannerLine, bannerTone, cfEmailSentence, noteLine, paidCost, share, shortLabel, usd, usedUpTitle, type BannerRow, type CfEmail, type ServiceState } from './model';
+import { CF_EMAIL_STEPS, emailNowLine, emailTodayLine, CF_EMAIL_STEPS_HREF, PAUSE, bannerLine, bannerTone, cfEmailNeedsSetup, cfEmailSentence, noteLine, paidCost, share, shortLabel, usd, usedUpTitle, type BannerRow, type CfEmail, type ServiceState } from './model';
 import { UsageAllow } from './UsageAllow';
 
 // The usage guard on Admin > To do (migration 0080): one quiet card at 80% of an included allowance, one card when it is
@@ -84,7 +84,7 @@ export function UsageBannerView({ rows: all }: { rows: BannerRow[] }) {
   const cfLine = cfEmailSentence(cf);
   const emailRow = [...red, ...amber].some((r) => r.service === 'resend_month');
   const settings = <Link prefetch={false} className="link" href="/admin/settings/usage">Settings &gt; Usage</Link>;
-  const setup = cfLine && emailRow ? <span className="ug-banner__cf" data-testid="usage-banner-cf">{cfLine} <Link prefetch={false} className="link" href={CF_EMAIL_STEPS_HREF}>The 4 setup steps</Link></span> : null;
+  const setup = cfLine && emailRow ? <span className="ug-banner__cf" data-testid="usage-banner-cf">{cfLine} <Link prefetch={false} className="link" href={CF_EMAIL_STEPS_HREF}>{cfEmailNeedsSetup(cf) ? 'The 4 setup steps' : 'Settings > Usage'}</Link></span> : null;
   return (
     <div className="stack" data-testid="usage-banner">
       {red.length > 0 && <p className="alert alert--error" role="alert" data-testid="usage-banner-over"><span className="alert__title">Over the included allowance</span>
@@ -96,13 +96,13 @@ export function UsageBannerView({ rows: all }: { rows: BannerRow[] }) {
   );
 }
 
-/** Settings > Usage: whether Cloudflare Email Service sends the outbox, and the exact steps when it does not (0320). */
-/** r29 (0583): the day's emails against the one daily cap, and the hour's pace */
-export interface EmailPace { day_cap: number; day_used: number; hour_cap: number; hour_used: number; cf_ever_sent: boolean; setting: number; cf_budget: number; resend_budget: number; waiting: number; cf_state?: string; cf_counted?: boolean;
-  capacity?: number; limited_by?: string; cf_reason?: string | null }
-/** r35 (0900, 1501): the day's emails against the real capacity (Cloudflare + Resend), then the hour's pace (Admin > Settings > Usage only) */
+/** Settings > Usage: whether Cloudflare Email Service sends the outbox, and the exact steps only while it never sent (0320, 1750). */
+/** r29 (0583), 1750: today's emails by provider against each one's daily budget, and the month's Cloudflare emails */
+export interface EmailPace { day_used: number; cf_today?: number; cf_day_budget?: number; resend_today?: number; resend_day_budget?: number; auth_today?: number; fallback_today?: number;
+  hour_used?: number; waiting: number; held?: number; cf_month?: number; cf_included?: number; cf_left?: number; cf_open?: boolean; cf_state?: string; cf_reason?: string | null }
+/** 1750: "Today: Cloudflare 25 of 100, Resend 6 of 100. Cloudflare sends (75 left today). This month through Cloudflare: 426 of 3,000." (Admin > Settings > Usage only) */
 export function paceLine(p: EmailPace): string {
-  return `Today: ${emailBudgetLine(paceBudget(p))}. This hour: ${p.hour_used} of ${p.hour_cap}.${p.waiting ? ` ${p.waiting} waiting: they go out at that pace, the rest tomorrow.` : ''}`;
+  return `Today: ${emailTodayLine(p)}. ${emailNowLine(p)}`;
 }
 
 export async function EmailSetup({ userId }: { userId: string }) {
@@ -116,9 +116,9 @@ export async function EmailSetup({ userId }: { userId: string }) {
       {line ? (
         <>
           <p className="small">{line}</p>
-          <ol className="small ug-steps">{CF_EMAIL_STEPS.map((s) => <li key={s}>{s}</li>)}</ol>
+          {cfEmailNeedsSetup(c) && <ol className="small ug-steps">{CF_EMAIL_STEPS.map((s) => <li key={s}>{s}</li>)}</ol>}
         </>
-      ) : <p className="small">{c.sent_month.toLocaleString('en-US')} of {c.included.toLocaleString('en-US')} included this month. Resend takes over only if Cloudflare refuses or the month&apos;s emails are used.</p>}
+      ) : !pace && <p className="small">{c.sent_month.toLocaleString('en-US')} of {c.included.toLocaleString('en-US')} included this month. Resend takes over after Cloudflare&apos;s daily budget, or if Cloudflare refuses an email.</p>}
     </section>
   );
 }

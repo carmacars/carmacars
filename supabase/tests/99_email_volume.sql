@@ -1,24 +1,23 @@
--- 99: email volume (migration 0583): one daily cap for every provider, at most the even pace plus 30 an hour whatever is
--- released at once, and staff alerts in one digest per person (urgent ones on their own, 3 an hour at most).
+-- 99: email volume (migration 0583, 1750): the day's budgets (Cloudflare's, then Resend's), no hourly pace (1750), and staff alerts in one digest per person (urgent ones on their own, 3 an hour at most).
 -- Fixtures start with "ev"; every address is example.test.
 select test.suite('99 email volume');
 
--- ================================================================ the daily cap
-select test.eq('Cloudflare has never sent: the cap is Resend''s 100', (select case when app.cf_email_ever_sent() then -1 else app.email_day_cap() end), 100);
+-- ================================================================ the daily cap (1750: Cloudflare's day, then Resend's)
 create temp table ev_code as select code from notification_catalogue where audience = 'renter' and has_email and is_enabled and category = 'transactional' order by code limit 1;
-insert into notification_outbox (code, category, priority, audience, to_address, to_name, payload, dedupe_key, status, sent_at, provider_id, send_after)
-select code, 'transactional', 1, 'renter', 'ev.cf@example.test', 'Ev Cf', '{}'::jsonb, 'ev-cf-sent', 'sent', now() - interval '3 days', 'cf:ev-test', now() - interval '3 days' from ev_code;
 -- the providers' budgets as shipped (an earlier test file may have left a dated settings row with other values)
-update program_settings set notify_daily_cap = 300, notify_cf_daily_budget = 200, notify_resend_daily_budget = 100;
--- 0900: Cloudflare's budget counts while Cloudflare Email Service is switched on (off for the suites, helpers.sql)
+update program_settings set notify_daily_cap = 300, cf_email_daily_budget = 100, notify_resend_daily_budget = 100, cf_email_monthly_included = 3000;
+select test.eq('Cloudflare switched off (the suites): Resend''s 100', app.email_day_cap(), 100);
+-- 0900: switched on for this file (off for the suites, helpers.sql)
 update program_settings set cf_email_enabled = true;
-select test.eq('once Cloudflare has sent: 300 (the setting, within the providers'' 200 + 100)', app.email_day_cap(), 300);
-update program_settings set notify_daily_cap = 250;
-select test.eq('the Admin setting lowers it', app.email_day_cap(), 250);
+update email_provider_state set cf_failed_at = null, cf_error = null;
+create temp table ev_cfmonth as select id from notification_outbox where provider_id like 'cf:%' and sent_at > now() - interval '40 days';
+update notification_outbox set sent_at = sent_at - interval '400 days' where id in (select id from ev_cfmonth);
+select test.eq('switched on: Cloudflare''s 100 then Resend''s 100', app.email_day_cap(), 200);
+update program_settings set notify_daily_cap = 50;
+select test.eq('the Admin setting lowers Resend''s part', app.email_day_cap(), 150);
 update program_settings set notify_daily_cap = 300;
-select test.eq('the pace: 300 a day, at most 13 + 30 an hour', (select (p ->> 'day_cap') || '/' || (p ->> 'hour_cap') from (select app.email_pace() p) x), '300/43');
 
--- ================================================================ 300 held emails released at once spread out
+-- ================================================================ 300 held emails released at once: the day's budgets, no hourly pace
 -- a day of its own (far ahead), every other email of the suite already gone
 create temp table ev_others as select id, send_after from notification_outbox where status in ('queued', 'delayed');
 update notification_outbox o set send_after = timestamptz '2035-01-01' from ev_others e where e.id = o.id;
@@ -28,27 +27,34 @@ select c.code, 'transactional', 1 + (g % 3), 'renter', 'ev.r' || g || '@example.
   from ev_code c, generate_series(1, 300) g;
 create temp table ev_hours (h integer, n integer);
 do $$
-declare h integer; v_now timestamptz; n integer; v_ids uuid[];
+declare h integer; v_now timestamptz; n integer; v_ids uuid[]; v_cf boolean;
 begin
-  for h in 0..11 loop
+  for h in 0..2 loop
     v_now := (select t0 from ev_t) + make_interval(hours => h);
-    -- the sender runs every minute: four runs of 50 within the hour, sent by Cloudflare (Resend's own cap of 0018 does
-    -- not hold them: only the day's cap and the hour's pace do)
+    -- the sender runs every minute: four runs of 50 within the hour, through Cloudflare while it may, else Resend
     for k in 0..3 loop
+      v_cf := app.cf_email_try(v_now + make_interval(mins => k * 15));
       select array_agg(c.id) into v_ids from app.outbox_claim(50, v_now + make_interval(mins => k * 15)) c;
-      update notification_outbox o set status = 'sent', sent_at = v_now + make_interval(mins => k * 15), provider_id = 'cf:ev-' || o.id where o.id = any (coalesce(v_ids, '{}'));
+      update notification_outbox o set status = 'sent', sent_at = v_now + make_interval(mins => k * 15),
+             provider_id = case when v_cf then 'cf:ev-' else 're_ev-' end || o.id where o.id = any (coalesce(v_ids, '{}'));
     end loop;
     select count(*) into n from notification_outbox where dedupe_key like 'ev-held-%' and status = 'sent' and sent_at >= v_now and sent_at < v_now + interval '1 hour';
     insert into ev_hours values (h, n);
   end loop;
 end $$;
-select test.ok('no hour sends more than 43 (300 released at once)', (select max(n) <= 43 from ev_hours), (select string_agg(n::text, ',' order by h) from ev_hours));
-select test.ok('they still go out, hour after hour', (select count(*) >= 6 from ev_hours where n > 0));
+select test.eq('Cloudflare''s 100 go first', (select count(*) from notification_outbox where dedupe_key like 'ev-held-%' and provider_id like 'cf:%'), 100::bigint);
+select test.ok('then Resend''s, no hourly pace: the first hour sends more than 43', (select n > 43 from ev_hours where h = 0), (select string_agg(n::text, ',' order by h) from ev_hours));
+select test.ok('never more than the day''s two budgets', (select count(*) <= 200 from notification_outbox where dedupe_key like 'ev-held-%' and status = 'sent'));
 select test.eq('none failed; the rest wait', (select count(*) from notification_outbox where dedupe_key like 'ev-held-%' and status = 'failed'), 0::bigint);
-select test.ok('the first hours went to customers first (priority 1 before 2 and 3)',
-  (select min(sent_at) from notification_outbox where dedupe_key like 'ev-held-%' and priority = 1) <= (select min(sent_at) from notification_outbox where dedupe_key like 'ev-held-%' and priority = 3));
+select test.ok('customers first (priority 1 before 3)',
+  (select min(sent_at) from notification_outbox where dedupe_key like 'ev-held-%' and priority = 1) <= (select coalesce(min(sent_at), 'infinity') from notification_outbox where dedupe_key like 'ev-held-%' and priority = 3));
+select test.ok('the low classes wait first once Resend''s part runs low',
+  (select count(*) from notification_outbox where dedupe_key like 'ev-held-%' and priority = 3 and status <> 'sent')
+  >= (select count(*) from notification_outbox where dedupe_key like 'ev-held-%' and priority = 1 and status <> 'sent'));
 
 update notification_outbox o set send_after = e.send_after from ev_others e where e.id = o.id;
+delete from notification_outbox where dedupe_key like 'ev-held-%';
+update notification_outbox set sent_at = sent_at + interval '400 days' where id in (select id from ev_cfmonth);
 
 -- ================================================================ staff inboxes
 select test.mk_user('ev_admin', 'admin');
@@ -113,4 +119,4 @@ select test.eq('Finance sends the owner the sign-up link',
 select test.eq('the owner''s set-up email is on its way', (select count(*) from app_events where code = 'owner_debit_setup_needed' and entity_id = test.id('owner:ev_olga')), 1::bigint);
 -- 0900: switched off, Cloudflare's budget does not count (and the suites after this one start with it off, helpers.sql)
 update program_settings set cf_email_enabled = false;
-select test.eq('Cloudflare switched off: only Resend''s budget counts', app.email_day_cap(), (select least(s.notify_daily_cap, s.notify_resend_daily_budget) from app.settings_base(app.local_date(now())) s));
+select test.eq('Cloudflare switched off: only Resend''s budget counts', app.email_day_cap(), (select least(s.notify_daily_cap, s.notify_resend_daily_budget) + app.cf_emails_today() from app.settings_base(app.local_date(now())) s));

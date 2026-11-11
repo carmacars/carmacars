@@ -76,15 +76,20 @@ test('banner: red only when the database says so; the words name the projected c
   assert.equal(bannerTone({ level: 100 }), 'red');
   assert.equal(bannerLine(r), 'Website CPU time at 123% (36,899,350 CPU ms of 30,000,000 CPU ms), about US$0.88 above the allowance projected for this month');
 });
-test('email: Cloudflare not set up says so, with the four steps; sending says nothing', () => {
-  const c = { state: 'absent' as const, enabled: true, ok_at: null, failed_at: null, error: null, sent_month: 0, included: 3000 };
-  // r35: the daily number is the setting's, never one written in the code
-  // r35 part C: no daily figure as a cap in the sentence
-  assert.match(cfEmailSentence(c)!, /not set up yet, so its part of the daily capacity is not sending.*The one-time setup gives 3,000 a month/);
-  assert.doesNotMatch(cfEmailSentence(c)!, / a day/);
+test('email: not sending says why in Cloudflare\'s words; the steps only while it never sent; sending says nothing', async () => {
+  const { cfEmailNeedsSetup } = await import('./model.ts');
+  const c = { state: 'absent' as const, enabled: true, ok_at: null, failed_at: null, error: null, sent_month: 0, included: 3000,
+    reason: 'the site\'s Worker has no Cloudflare EMAIL binding (Cloudflare said: Cloudflare 503: no EMAIL binding)' };
+  assert.equal(cfEmailSentence(c), 'Cloudflare Email Service has not sent in the last 48 hours: the site\'s Worker has no Cloudflare EMAIL binding (Cloudflare said: Cloudflare 503: no EMAIL binding). Emails go through Resend meanwhile.');
+  assert.doesNotMatch(cfEmailSentence(c)!, /not set up yet|a day|capacity/);
+  assert.equal(cfEmailNeedsSetup(c), true);
+  assert.equal(cfEmailNeedsSetup({ ...c, state: 'failing' }), false);
+  assert.match(cfEmailSentence({ ...c, state: 'failing', reason: null, error: 'Cloudflare 502: busy' })!, /refused the last email: Cloudflare 502: busy/);
   assert.match(cfEmailSentence({ ...c, state: 'off' })!, /turned off in Program settings/);
   assert.equal(resendDay(0), 'your daily email limit');
-  assert.equal(cfEmailSentence({ ...c, state: 'ok' }), null);
+  // sent in the last 48 hours: ok, no sentence, no steps
+  assert.equal(cfEmailSentence({ ...c, state: 'ok', sent_48h: 26 }), null);
+  assert.equal(cfEmailNeedsSetup({ ...c, state: 'ok' }), false);
   assert.equal(CF_EMAIL_STEPS.length, 4);
   assert.match(CF_EMAIL_STEPS[2], /CF_EMAIL_BINDING/);
 });
@@ -94,14 +99,15 @@ test('the quiet note is short', async () => {
     'Photo and document storage 103% used, about US$0.01 this month');
 });
 
-// r35 part C (owner, 2026-11-11): the day's emails against the real capacity, Cloudflare's budget plus Resend's; never Resend's part as a cap
-test('email capacity line: the combined capacity, and why Cloudflare is not sending', async () => {
-  const { emailBudgetLine, paceBudget } = await import('./model.ts');
-  const p = { day_used: 12, day_cap: 100, cf_state: 'absent', cf_counted: false, cf_ever_sent: false, cf_budget: 200, resend_budget: 100, capacity: 300, limited_by: 'resend_only',
-    cf_reason: 'The site has no Cloudflare EMAIL binding yet', setting: 300 };
-  assert.equal(emailBudgetLine(paceBudget(p)), "12 sent today; daily capacity 300 (Cloudflare 200 + Resend 100). Cloudflare's part is not sending yet: the site has no Cloudflare EMAIL binding yet");
-  assert.doesNotMatch(emailBudgetLine(paceBudget(p)), /of 100/);
-  assert.equal(emailBudgetLine(paceBudget({ ...p, day_cap: 300, cf_counted: true, cf_reason: null })), '12 sent today of a daily capacity 300 (Cloudflare 200 + Resend 100)');
-  assert.match(emailBudgetLine({ used: 5, cap: 80, cf_state: 'off', cf_counted: false, cf_budget: 150, resend_budget: 80 }), /turned off in Program settings$/);
-  assert.equal(emailBudgetLine({ used: 1, cap: 2 }), '1 sent today');
+// 1750 (owner, 2026-11-11): today Cloudflare N of 100, Resend M of 100, the month's Cloudflare count of 3,000
+test('email lines: today by provider against its budget, which provider sends, the month', async () => {
+  const { emailTodayLine, emailNowLine } = await import('./model.ts');
+  const p = { day_used: 31, cf_today: 25, cf_day_budget: 100, resend_today: 6, resend_day_budget: 100, cf_month: 426, cf_included: 3000, cf_left: 75 };
+  assert.equal(emailTodayLine(p), 'Cloudflare 25 of 100, Resend 6 of 100');
+  assert.equal(emailTodayLine({ ...p, resend_today: 2, auth_today: 3, fallback_today: 1 }),
+    "Cloudflare 25 of 100, Resend 5 of 100 (Resend's count includes 3 sign-in emails: Supabase Auth sends them through Resend); 1 went through Resend after a Cloudflare error");
+  assert.equal(emailNowLine(p), 'Cloudflare sends (75 left today). This month through Cloudflare: 426 of 3,000.');
+  assert.equal(emailNowLine({ ...p, cf_today: 100, cf_left: 0 }), "Cloudflare's emails for today are used: Resend's free plan sends the rest of today. This month through Cloudflare: 426 of 3,000.");
+  assert.match(emailNowLine({ ...p, cf_month: 3000, cf_left: 0 }), /^The month's Cloudflare emails are used: Resend's free plan sends the rest until the 1st\./);
+  assert.equal(emailNowLine({ ...p, cf_left: 0, resend_today: 100, held: 7 }), 'Both are used for today: booking, payment and sign-in emails go first, the others wait for tomorrow. This month through Cloudflare: 426 of 3,000. 7 waiting.');
 });
