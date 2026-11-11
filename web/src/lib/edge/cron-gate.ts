@@ -34,7 +34,7 @@ export async function jobsToRun(env: Record<string, unknown>, f: typeof fetch = 
     // connected and not run for 6 hours (0146); crm: a partner CRM link due a sync (0147); deposits: a card hold to capture
     // before it lapses, a money step waiting for Stripe, or the day's balance follow-up (0155; run when in doubt: money);
     // ads: the posted ads, the week's social drafts and Meta publishing (0167), only when the database says so
-    return { listing: d.listing !== false, seo: d.seo !== false, pdf: d.pdf !== false, phone: d.phone !== false, turo: d.turo === true, agreements: d.agreements !== false, reviews: d.reviews === true, meet: d.meet === true, crm: d.crm === true, deposits: d.deposits !== false, ads: d.ads === true, interviews: d.interviews === true, car_values: d.car_values === true, cpu_guard: d.cpu_guard === true, cached_only: d.cached_only === true, search_core: d.search_scope === 'core', checked: true };
+    return { listing: d.listing !== false, seo: d.seo !== false, pdf: d.pdf !== false, phone: d.phone !== false, turo: d.turo === true, agreements: d.agreements !== false, reviews: d.reviews === true, ...(d.meet === true ? { meet: true } : {}), crm: d.crm === true, deposits: d.deposits !== false, ads: d.ads === true, interviews: d.interviews === true, car_values: d.car_values === true, cpu_guard: d.cpu_guard === true, cached_only: d.cached_only === true, search_core: d.search_scope === 'core', checked: true };
   } catch {
     return all;
   }

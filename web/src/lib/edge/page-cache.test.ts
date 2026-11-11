@@ -166,6 +166,9 @@ test('cron tick: asks the database once; runs everything when it cannot tell', a
   assert.equal((await jobsToRun(env, f('{"cpu_guard":true}'))).cpu_guard, true);
   assert.equal((await jobsToRun(env, f('{"cached_only":true}'))).cached_only, true);
   assert.equal((await jobsToRun(env, f('{"search_scope":"core"}'))).search_core, true);
+  // r37 (2303): the Google Meet job only when a call waits for its event
+  assert.equal((await jobsToRun(env, f('{"meet":true}'))).meet, true);
+  assert.equal((await jobsToRun(env, f('{}'))).meet, undefined);
 });
 
 test('the fleet signature changes when a car is published, taken off, deleted or its slug or model page changes', async () => {

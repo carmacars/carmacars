@@ -4458,6 +4458,135 @@ export type Database = {
         };
         Relationships: [];
       };
+      channel_bookings: {
+        Row: {
+          booking_id: string;
+          partner_id: string;
+          partner_ref: string | null;
+          created_at: string;
+        };
+        Insert: {
+          booking_id: string;
+          partner_id: string;
+          partner_ref?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          booking_id?: string;
+          partner_id?: string;
+          partner_ref?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      channel_calls: {
+        Row: {
+          id: number;
+          partner_id: string | null;
+          key_id: string | null;
+          call: string;
+          ok: boolean;
+          code: string | null;
+          at: string;
+        };
+        Insert: {
+          id?: number;
+          partner_id?: string | null;
+          key_id?: string | null;
+          call: string;
+          ok: boolean;
+          code?: string | null;
+          at?: string;
+        };
+        Update: {
+          id?: number;
+          partner_id?: string | null;
+          key_id?: string | null;
+          call?: string;
+          ok?: boolean;
+          code?: string | null;
+          at?: string;
+        };
+        Relationships: [];
+      };
+      channel_keys: {
+        Row: {
+          id: string;
+          partner_id: string;
+          prefix: string;
+          key_hash: string;
+          scopes: string[];
+          created_by: string | null;
+          created_at: string;
+          last_used_at: string | null;
+          revoked_at: string | null;
+          revoked_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          partner_id: string;
+          prefix: string;
+          key_hash: string;
+          scopes: string[];
+          created_by?: string | null;
+          created_at?: string;
+          last_used_at?: string | null;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          partner_id?: string;
+          prefix?: string;
+          key_hash?: string;
+          scopes?: string[];
+          created_by?: string | null;
+          created_at?: string;
+          last_used_at?: string | null;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+        };
+        Relationships: [];
+      };
+      channel_partners: {
+        Row: {
+          id: string;
+          name: string;
+          status: string;
+          markup_bps: number;
+          commission_bps: number;
+          allowed_classes: string[];
+          allowed_vehicles: string[];
+          calls_per_minute: number;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          status?: string;
+          markup_bps?: number;
+          commission_bps?: number;
+          allowed_classes?: string[];
+          allowed_vehicles?: string[];
+          calls_per_minute?: number;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          status?: string;
+          markup_bps?: number;
+          commission_bps?: number;
+          allowed_classes?: string[];
+          allowed_vehicles?: string[];
+          calls_per_minute?: number;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       chat_conversations: {
         Row: {
           id: string;
@@ -18353,6 +18482,7 @@ export type Database = {
           social_video_max_photos: number;
           seo_i18n_vehicle_places: number;
           meet_hold_minutes: number;
+          channel_api_enabled: boolean;
         };
         Insert: {
           id?: string;
@@ -19177,6 +19307,7 @@ export type Database = {
           social_video_max_photos?: number;
           seo_i18n_vehicle_places?: number;
           meet_hold_minutes?: number;
+          channel_api_enabled?: boolean;
         };
         Update: {
           id?: string;
@@ -20001,6 +20132,7 @@ export type Database = {
           social_video_max_photos?: number;
           seo_i18n_vehicle_places?: number;
           meet_hold_minutes?: number;
+          channel_api_enabled?: boolean;
         };
         Relationships: [];
       };
@@ -31626,6 +31758,7 @@ export type Database = {
       calendar_export_ics: { Args: { p_token: string; p_for?: string }; Returns: string };
       car_page: { Args: { p_slug: string }; Returns: Json };
       card_coverage_public: { Args: never; Returns: Json };
+      channel_api: { Args: { p_key: string; p_call: string; p?: Json }; Returns: Json };
       chat_greeting: { Args: { p_page: string }; Returns: Json };
       chat_poll: { Args: { p_token: string; p_after?: number }; Returns: Json };
       chat_typing: { Args: { p_token: string }; Returns: boolean };

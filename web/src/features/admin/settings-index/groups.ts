@@ -13,7 +13,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
   { id: 'messages', title: 'Messages and reviews', about: 'Emails, texts, phone contacts, review requests and social posts',
     keys: ['email', 'text-alerts', 'quick-replies', 'quo-contacts', 'reviews', 'meta-publishing'] },
   { id: 'cars', title: 'Cars and partners', about: 'Service intervals and the partner companies we share cars with',
-    keys: ['maintenance', 'partners'] },
+    keys: ['maintenance', 'partners', 'channel-partners'] },
   { id: 'team', title: 'Team and records', about: 'Staff, your own alerts, what the plans use, and the logs',
     keys: ['staff', 'sales', 'profile', 'usage', 'api'],
     extra: [{ href: '/admin/alerts', title: 'Alerts', about: 'Every alert for you, phone alerts, quiet hours, focus mode and which alerts staff get' },
