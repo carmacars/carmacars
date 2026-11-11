@@ -3,6 +3,7 @@ import { ListFilters } from '@/features/list-filters/ListFilters';
 import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
 import { PageHead, t } from '@/features/admin/ui';
+import { AutoReplies } from '@/features/auto-reply/AutoReplies';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Renter messages', path: '/staff/messages', noindex: true, description: 'Messages with renters.' });
@@ -43,6 +44,8 @@ export default async function Messages({ searchParams }: { searchParams: Promise
           })}
         </ul>
       ) : <p className="ad-empty" data-testid="messages-inbox-empty">{all.length ? 'No message from a renter yet. Choose All to see every message.' : 'No messages yet. Messages with renters appear here as they come in.'}</p>}
+      {/* r36 (2110): the FAQ questions answered by themselves (texts, email, WhatsApp, Messenger, Instagram) and those left for a person */}
+      <section className="stack" aria-labelledby="auto-replies-h"><h2 className="d4" id="auto-replies-h">Automatic answers</h2><AutoReplies /></section>
     </>
   );
 }

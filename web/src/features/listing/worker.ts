@@ -9,7 +9,8 @@ import { plainDraft } from '../seo/copy.ts';
 import { LETTERING, LETTER_REAL_PHOTOS, LETTER_SHOTS, letterThis, letteringPath, letteringPng } from './lettering.ts';
 import { WINDOW_SHOTS, readAlpha, windowPlan, type WindowPlan } from './window-check.ts';
 import { adjustPlace, decodePng, encodePng, frameRgba, frameSubject, placeSubject, type Adjust } from './subject-frame.ts';
-import { SHOWROOM_FIT, SHOWROOM_PRESET, decodeImage, encodeJpeg, makeShowroom, marketingPrompt, sceneOf, showroomBackdrop, whiteStudio, type ShowroomProvider } from './showroom.ts';
+import { SHOWROOM_FIT, SHOWROOM_PRESET, coverModelPrompt, decodeImage, encodeJpeg, makeShowroom, marketingPrompt, sceneOf, showroomBackdrop, whiteStudio, type ShowroomProvider } from './showroom.ts';
+import { drawFlyer, type FlyerSpec } from './flyer.ts';
 import { resample, scaleDown } from '../../integrations/photos/local.ts';
 import { applyPlates, type PlateEnd, type PxBox } from './plate-photo.ts';
 import { enhanceValues, statsOf, type Enhance } from './enhance.ts';
@@ -53,7 +54,7 @@ const MICROUSD_PER_TRANSFORMATION = 500;     // US$0.50 per 1,000 unique transfo
 const FREE_DAILY_NEURONS = 10_000;
 
 export interface JobContext {
-  id: string; kind: 'decode_vin' | 'draft_copy' | 'process_photo' | 'resize' | 'publish' | 'marketing_photo' | 'plate_redo'; intake_id: string; vehicle_id: string;
+  id: string; kind: 'decode_vin' | 'draft_copy' | 'process_photo' | 'resize' | 'publish' | 'marketing_photo' | 'plate_redo' | 'cover_model' | 'cover_flyer'; intake_id: string; vehicle_id: string;
   attempts: number; max_attempts: number; input: Record<string, unknown>; vin?: string | null;
   facts?: Record<string, unknown> | null; staff_notes?: string | null; classes?: string[] | null;
   copy_rules?: { headline_chars: [number, number]; description_words: [number, number]; features: [number, number]; faq: [number, number]; banned_phrases: string[] } | null;
@@ -96,6 +97,8 @@ export interface WorkerDeps {
     putPublic(path: string, bytes: Uint8Array, contentType: string): Promise<void>;
     /** Whether a public file exists already (the model-name band is drawn once per model). */
     hasPublic?(path: string): Promise<boolean>;
+    /** r36 (2100): a public file's bytes (the cover photo a flyer is drawn on); null when missing. */
+    getPublic?(path: string): Promise<Uint8Array | null>;
   };
   /** 0567: where the overlaid marks (watermark, logo, caption) are on an edited inside or detail photo, as fractions;
    *  [] none; null the model could not be asked (the photo then stays flagged, off the site). */
@@ -164,6 +167,7 @@ export async function runJob(d: WorkerDeps, j: JobContext, b: Budget, used = { n
     case 'publish': return { ok: true, output: {}, provider: 'carmacars' };
     case 'marketing_photo': return marketingPhoto(d, j);
     case 'plate_redo': return plateRedo(d, j);
+    case 'cover_model': case 'cover_flyer': return listingCover(d, j);
   }
 }
 
@@ -466,6 +470,40 @@ async function marketingPhoto(d: WorkerDeps, j: JobContext): Promise<JobResult> 
   const path = `vehicles/${m.vehicle_id}/marketing/${m.id}.jpg`;
   await d.files.putPublic(path, made.bytes, made.contentType);
   return { ok: true, provider: made.provider === 'ai' ? 'ai' : 'carmacars', output: { marketing: { id: m.id, status: 'made', path, provider: made.provider, note: made.note } } };
+}
+
+/** r36 (2100): the listing's first photo made for its style. "model": the car from its kept cut-out in the showroom, then the
+ *  image model adds a fully clothed adult model beside it (Program settings' words plus the site's own rules); the car must
+ *  stay the same car (makeShowroom's check), and without the image model the cover says so and the plain cover stays.
+ *  "flyer": the flyer band drawn by the site on the cover photo itself, from the words the database filled for the car. */
+export interface CoverInput { id: string; vehicle_id: string; photo_id: string; style: 'model' | 'flyer'; source: string; mask: string | null; adjust: Adjust | null;
+  model: string | null; prompt: string | null; flyer: FlyerSpec | null }
+async function listingCover(d: WorkerDeps, j: JobContext): Promise<JobResult> {
+  const c = (j.input as { cover?: CoverInput }).cover;
+  if (!c?.id) return { ok: false, error: 'The cover job is missing its cover', retryable: false };
+  const done = (o: Record<string, unknown>, provider = 'carmacars'): JobResult => ({ ok: true, provider, output: { cover: { id: c.id, ...o } } });
+  const path = `vehicles/${c.vehicle_id}/cover/${c.id}.jpg`;
+  if (c.style === 'flyer') {
+    const bytes = d.files.getPublic ? await d.files.getPublic(c.source).catch(() => null) : null;
+    const img = bytes ? await decodeImage(bytes).catch(() => null) : null;
+    if (!img) return done({ status: 'failed', note: 'The cover photo could not be read' });
+    const out = encodeJpeg(drawFlyer(img, c.flyer ?? {}), 86);
+    await d.files.putPublic(path, out, 'image/jpeg');
+    return done({ status: 'made', path, width: img.width, height: img.height, provider: 'local' });
+  }
+  if (!c.mask) return done({ status: 'failed', note: 'The cover photo has no kept cut-out: make its listing photos first' });
+  const cut = await d.files.getPrivate(c.mask);
+  const img = cut ? await decodePng(cut).catch(() => null) : null;
+  const f = img ? frameRgba(img) : null;
+  if (!f) return done({ status: 'failed', note: 'The car\'s cut-out could not be read' });
+  const place = adjustPlace(placeSubject(f, EXTERIOR.width, EXTERIOR.height, SHOWROOM_FIT), c.adjust ?? null, EXTERIOR.width, EXTERIOR.height);
+  const made = await makeShowroom({ car: { ...f.image, ground: f.ground }, place, cover: false, photoId: c.photo_id, room: null,
+    prompt: coverModelPrompt(c.prompt) }, d.showroomAi ? [d.showroomAi] : [], !d.showroomAi && !!d.showroomNoKey);
+  if (made.provider !== 'ai') {
+    return done({ status: 'needs_gemini', note: `With a model needs the image model. ${(made.note ?? 'It is not set up.').replace(/^Made with the free showroom: /, '')}`.slice(0, 300) });
+  }
+  await d.files.putPublic(path, made.bytes, made.contentType);
+  return done({ status: 'made', path, width: EXTERIOR.width, height: EXTERIOR.height, provider: 'ai' }, 'ai');
 }
 
 /** r35 S2 (1056): a photo covered the old way made again from its uncovered file: the front plate edited out (the image

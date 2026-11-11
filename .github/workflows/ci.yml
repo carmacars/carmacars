@@ -314,6 +314,10 @@ jobs:
       TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
       # r35 (0990): the image model of the showroom listing photos (Google AI Studio); optional, without it the free showroom
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      # r36 (2110): AI auto-replies on Messenger, Instagram and WhatsApp (the Meta app's secret checks the webhook; the WhatsApp
+      # Cloud API token answers); optional, without them the Meta webhook answers nothing (or put them in the SOPS file)
+      META_APP_SECRET: ${{ secrets.META_APP_SECRET }}
+      WHATSAPP_TOKEN: ${{ secrets.WHATSAPP_TOKEN }}
       # where Supabase is: the hosted project (default) or the company's own server (repository variable
       # DB_BACKEND=vps, infra/vps/CUTOVER.md; scripts/deploy/lib.sh). VPS_SSH_KEY is used only with vps.
       DB_BACKEND: ${{ vars.DB_BACKEND }}
@@ -325,6 +329,12 @@ jobs:
       RUN: ${{ github.workspace }}/.github/ci-run.sh
     steps:
       - uses: actions/checkout@v4
+      # r36: the deploy's secrets from secrets/deploy.sops.yaml (SOPS, age) with the one secret SOPS_AGE_KEY; a GitHub secret
+      # still set keeps its value until it is deleted (docs/runbooks/sops-secrets.md). No key or no file: nothing changes.
+      - name: Secrets from the SOPS file
+        uses: ./.github/actions/sops-env
+        with:
+          age-key: ${{ secrets.SOPS_AGE_KEY }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -427,6 +437,8 @@ jobs:
                  + (if env.GOOGLE_REVIEWS_CLIENT_SECRET then {GOOGLE_REVIEWS_CLIENT_ID: env.GOOGLE_REVIEWS_CLIENT_ID, GOOGLE_REVIEWS_CLIENT_SECRET: env.GOOGLE_REVIEWS_CLIENT_SECRET} else {} end)
                  + (if env.QUO_API_KEY then {QUO_API_KEY: env.QUO_API_KEY} else {} end)
                  + (if env.GEMINI_API_KEY then {GEMINI_API_KEY: env.GEMINI_API_KEY} else {} end)
+                 + (if env.META_APP_SECRET then {META_APP_SECRET: env.META_APP_SECRET} else {} end)
+                 + (if env.WHATSAPP_TOKEN then {WHATSAPP_TOKEN: env.WHATSAPP_TOKEN} else {} end)
                  + (if env.QUO_WEBHOOK_SECRET then {QUO_WEBHOOK_SECRET: env.QUO_WEBHOOK_SECRET} else {} end)
                  + (if env.TWILIO_ACCOUNT_SID and env.TWILIO_API_KEY and env.TWILIO_API_SECRET then {TWILIO_ACCOUNT_SID: env.TWILIO_ACCOUNT_SID, TWILIO_API_KEY: env.TWILIO_API_KEY, TWILIO_API_SECRET: env.TWILIO_API_SECRET} else {} end)
                  + (if env.TWILIO_CALLER_ID then {TWILIO_CALLER_ID: env.TWILIO_CALLER_ID} else {} end)

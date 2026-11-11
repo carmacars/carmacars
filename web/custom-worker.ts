@@ -163,7 +163,11 @@ async function track(request: Request, env: Env, ctx: { waitUntil(p: Promise<unk
 // subdomain, so the root domain's Google Workspace mail is untouched) to this handler. The raw message goes to the app's
 // /api/inbound/turo with the jobs' token; the app reads it and stores only the parsed fields. A message too large is
 // refused; if the app cannot take it (the database is down), the handler throws, so the sender (Gmail) tries again.
-interface InboundEmail { from: string; to: string; raw: ReadableStream; rawSize: number; setReject(reason: string): void }
+// r36 (2110): a message to another address of in.carmacars.ca (an inbox of Program settings auto_reply_email_inboxes, help@ by
+// default) goes to /api/inbound/ask first: the FAQ's answer, when the site is sure of it, is sent back with message.reply
+// (from the address it was sent to, inside Cloudflare); anything else stays as before (the Turo reader).
+interface InboundEmail { from: string; to: string; raw: ReadableStream; rawSize: number; setReject(reason: string): void; reply?(m: unknown): Promise<void>;
+  headers?: { get(name: string): string | null } }
 const MAX_EMAIL_BYTES = 1_000_000;
 
 /** One share of the warm-up (0102): the next pages of this deploy's list, within the budget; the progress kept. */
@@ -216,9 +220,29 @@ const worker = {
     if (message.rawSize > MAX_EMAIL_BYTES) { message.setReject('Message too large'); return; }
     const base = typeof env.NEXT_PUBLIC_APP_URL === 'string' ? env.NEXT_PUBLIC_APP_URL : 'https://carmacars.ca';
     const raw = await new Response(message.raw).text();
+    const auth = `Bearer ${await workerToken(secret)}`;
+    if (!/^trips@/i.test(message.to)) {
+      const a: Response = await handler.fetch(new Request(`${base.replace(/\/$/, '')}/api/inbound/ask`, {
+        method: 'POST', body: raw, headers: { authorization: auth, 'content-type': 'message/rfc822', 'x-envelope-from': message.from, 'x-envelope-to': message.to }
+      }), env, ctx);
+      if (a.status !== 404) {
+        const j = (await a.json().catch(() => null)) as { reply?: { subject: string; text: string; in_reply_to: string | null } } | null;
+        if (j?.reply && message.reply) {
+          try {
+            const { replyMime } = await import('./src/features/auto-reply/faq');
+            const mod = 'cloudflare:' + 'email';
+            const { EmailMessage } = (await import(/* webpackIgnore: true */ mod)) as { EmailMessage: new (from: string, to: string, raw: string) => unknown };
+            const domain = message.to.split('@')[1] ?? 'in.carmacars.ca';
+            await message.reply(new EmailMessage(message.to, message.from, replyMime({ from: message.to, to: message.from, subject: j.reply.subject, text: j.reply.text,
+              inReplyTo: j.reply.in_reply_to, id: `${crypto.randomUUID()}@${domain}`, date: new Date() })));
+          } catch (e) { console.warn(`inbound email: the automatic answer was not sent (${e instanceof Error ? e.message.slice(0, 120) : 'error'})`); }
+        }
+        return;
+      }
+    }
     const r: Response = await handler.fetch(new Request(`${base.replace(/\/$/, '')}/api/inbound/turo`, {
       method: 'POST', body: raw,
-      headers: { authorization: `Bearer ${await workerToken(secret)}`, 'content-type': 'message/rfc822', 'x-envelope-from': message.from, 'x-envelope-to': message.to }
+      headers: { authorization: auth, 'content-type': 'message/rfc822', 'x-envelope-from': message.from, 'x-envelope-to': message.to }
     }), env, ctx);
     if (r.status === 413) { message.setReject('Message too large'); return; }
     if (!r.ok) throw new Error(`inbound email: the app answered ${r.status}`);

@@ -20,7 +20,11 @@ async function me() {
 
 export type StaffRead = 'toll_read_context' | 'toll_read' | 'toll_read_queue' | 'toll_profiles' | 'ai_vision_gate' | 'photo_plate_context' | 'showroom_carry_pending' | 'form_templates' | 'form_template_preview' | 'rental_form_preview'
   // r35 S2 (1053): marketing photo scenes
-  | 'marketing_photos' | 'marketing_scene_refs';
+  | 'marketing_photos' | 'marketing_scene_refs'
+  // r36 (2100): the listing's first photo
+  | 'listing_cover'
+  // r36 (2110): what the AI auto-replies did
+  | 'auto_replies';
 export async function staffRead<T = Record<string, unknown>>(what: StaffRead, p: Record<string, unknown> = {}): Promise<R<T>> {
   try { const { user, aal } = await me(); return { ok: true, data: await door<T>(user.id, 'ops_read', what, p, aal) }; } catch (e) { return fail(e); }
 }
@@ -31,7 +35,7 @@ export async function staffDo<T = Record<string, unknown>>(action: string, p: Re
     const data = await door<T>(user.id, 'ops_do', action, p, aal);
     for (const x of refresh) revalidatePath(x);
     // a plate decision changes what the car's public page shows
-    if (action === 'photo_plate_record' || action === 'photo_showroom') { revalidatePath('/cars/[slug]', 'page'); revalidatePath('/cars'); revalidatePath('/', 'layout'); }
+    if (action === 'photo_plate_record' || action === 'photo_showroom' || action === 'listing_cover_set') { revalidatePath('/cars/[slug]', 'page'); revalidatePath('/cars'); revalidatePath('/', 'layout'); }
     return { ok: true, data };
   } catch (e) { return fail(e); }
 }

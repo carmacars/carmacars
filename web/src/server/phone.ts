@@ -35,7 +35,9 @@ export async function sendTexts(rows: Send[], from?: string | null): Promise<Arr
   return out;
 }
 
-export interface WebhookResult { status: number; body: Record<string, unknown> }
+export interface WebhookResult { status: number; body: Record<string, unknown>;
+  /** r36 (2110): work after the answer to Quo (the AI auto-reply to an FAQ question texted in), run by the route with after() */
+  followUp?: () => Promise<void> }
 
 /** One delivery from Quo: verified on the raw body, read, recorded; a missed-call text is sent at once. */
 export async function handleQuoWebhook(raw: string, header: (n: string) => string | null): Promise<WebhookResult> {
@@ -47,7 +49,14 @@ export async function handleQuoWebhook(raw: string, header: (n: string) => strin
   if (!ev) return { status: 200, body: { ignored: 'not an event' } };
   const r = (await rpc('server_phone_event', { p: ev as unknown as Json }, SR)) as unknown as { ok: boolean; send?: Send[]; duplicate?: boolean; ignored?: string };
   if (r.send?.length) await sendTexts(r.send);
-  return { status: 200, body: { received: true, duplicate: !!r.duplicate, ignored: r.ignored ?? null } };
+  // r36 (2110): a text that came in (once, not a retry) may get the FAQ's answer, after Quo has its 200
+  const asked = ev.type === 'message.received' && ev.direction === 'in' && !!ev.text?.trim() && !!ev.their_number && !r.duplicate && !r.ignored;
+  const followUp = asked ? async () => {
+    const { autoReply } = await import('@/server/auto-reply');
+    const o = await autoReply('sms', ev.their_number!, ev.text!);
+    if (o.send.length) await sendTexts(o.send);
+  } : undefined;
+  return { status: 200, body: { received: true, duplicate: !!r.duplicate, ignored: r.ignored ?? null }, followUp };
 }
 
 interface Budget { ok: boolean; drafts: boolean; summaries: boolean; model?: string }
