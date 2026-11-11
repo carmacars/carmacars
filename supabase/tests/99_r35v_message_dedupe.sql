@@ -185,8 +185,10 @@ select test.eq('a timeout an hour ago is not a refusal', app.cf_email_setup(now(
 update email_provider_state set cf_failed_at = now(), cf_error = 'Cloudflare 502: refused';
 select test.eq('a refusal since the last success: failing', app.cf_email_setup(now()) ->> 'state', 'failing');
 update email_provider_state set cf_failed_at = now() - interval '1 hour', cf_error = 'Cloudflare 503: no EMAIL binding on the Worker (Email Service not set up)';
-select test.eq('no binding: not set up, and only Resend counts', (app.cf_email_setup(now()) ->> 'state') || '/' || app.email_day_cap(now()),
-  'absent/' || (select least(s.notify_daily_cap, s.notify_resend_daily_budget) from app.settings_base(app.local_date(now())) s));
+-- since 1750 Cloudflare rests only 15 minutes after a refusal and keeps its day in the capacity (99_r35c_email_capacity)
+select test.eq('no binding: not set up; the day stays Cloudflare''s plus Resend''s (1750)', (app.cf_email_setup(now()) ->> 'state') || '/' || app.email_day_cap(now()),
+  'absent/' || (app.cf_emails_between(app.local_midnight(app.local_date(now())), now() + interval '1 second') + app.cf_email_left(now())
+                + (select least(s.notify_daily_cap, s.notify_resend_daily_budget) from app.settings_base(app.local_date(now())) s)));
 update email_provider_state e set cf_ok_at = p.cf_ok_at, cf_failed_at = p.cf_failed_at, cf_error = p.cf_error from v35_ps p;
 update program_settings set cf_email_enabled = (select was_on from v35_cf);
 update notification_outbox o set sent_at = r.sent_at from v35_recent r where o.id = r.id;
