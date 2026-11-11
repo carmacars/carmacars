@@ -5,7 +5,7 @@ import { photoUrl } from '@/lib/photo';
 import { siteUrl } from '@/lib/site';
 import { withUtm } from '@/features/ads/channels';
 import { addDays, captionFor, draftCampaign, mondayOf, weekPlan, type Facts, type SocialChannel } from '@/features/ads/social';
-import { publishFacebook, publishInstagram, type MetaConfig } from '@/integrations/meta';
+import { publishFacebook, publishFacebookVideo, publishInstagram, publishInstagramReel, type MetaConfig } from '@/integrations/meta';
 
 // The ads job (migration 0167), from the Worker's cron tick when public.server_jobs_due says "ads" (every 6 hours, or an
 // approved post due while Meta publishing is on). The database checks every live ad against its car's rates first (a
@@ -40,6 +40,24 @@ export async function publishDraft(cfg: MetaConfig, d: SocialRow, f: typeof fetc
   return out;
 }
 
+/** r36b (2220): one scheduled post of the queue (the Facebook Page or Instagram; TikTok is never posted here). */
+export interface QueuedPost { id: string; channel: 'facebook_page' | 'instagram'; media_kind: 'photo' | 'video' | 'none'; media_path: string | null; caption: string; link: string | null;
+  kind?: string | null }
+export async function publishQueued(cfg: MetaConfig, q: QueuedPost, f: typeof fetch = fetch): Promise<{ ok: boolean; post_id?: string; url?: string | null; error?: string }> {
+  const media = q.media_path ? publicPhoto(q.media_path) : null;
+  const tracked = q.link ? withUtm(q.link, q.channel, 'social', draftCampaign({ kind: q.kind ?? 'scheduled' })) : null;
+  const text = captionFor(q.caption, q.channel, q.link, tracked);
+  try {
+    const r = q.media_kind === 'video' && media
+      ? (q.channel === 'instagram' ? await publishInstagramReel(cfg, { caption: text, videoUrl: media }, f) : await publishFacebookVideo(cfg, { description: text, videoUrl: media }, f))
+      : q.channel === 'instagram' ? await publishInstagram(cfg, { caption: text, imageUrl: media }, f)
+      : await publishFacebook(cfg, { message: text, link: tracked, imageUrl: media }, f);
+    return { ok: true, post_id: r.postId, url: r.url };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Meta refused the post' };
+  }
+}
+
 export async function runAdsJob(f: typeof fetch = fetch): Promise<Record<string, number>> {
   const r = (await rpc('server_ads_job', {}, SR)) as unknown as JobData;
   let added = 0, published = 0, failed = 0;
@@ -57,6 +75,13 @@ export async function runAdsJob(f: typeof fetch = fetch): Promise<Record<string,
         if (x.ok) published++; else failed++;
         await rpc('server_social_published', { p: { id: d.id, ...x } as unknown as Json }, SR);
       }
+    }
+    // r36b (2220): the scheduled posts whose time has come (marked due by the pg_cron job, claimed here one Worker at a time)
+    const queued = ((await rpc('server_social_queue_claim', {}, SR).catch(() => [])) as unknown as QueuedPost[]) ?? [];
+    for (const q of queued) {
+      const x = await publishQueued(cfg, q, f);
+      if (x.ok) published++; else failed++;
+      await rpc('server_social_queue_result', { p: { id: q.id, ...x } as unknown as Json }, SR);
     }
   }
   return { ads_to_update: r.ads_to_update ?? 0, drafts_added: added, published, failed };

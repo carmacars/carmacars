@@ -8,6 +8,7 @@ import { CopyText } from '@/features/ads/CopyText';
 import { KIND_WORDS, addDays, captionFor, draftCampaign, mondayOf, type SocialChannel } from '@/features/ads/social';
 import { writeWeekDrafts } from '@/server/actions/ads';
 import { photoUrl } from '@/lib/photo';
+import { SocialQueue } from '@/features/social/SocialQueue';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Social drafts', path: '/admin/marketing/social', noindex: true, description: 'The week of Facebook Page and Instagram drafts written from the fleet: approve, edit, copy and post.' });
@@ -40,6 +41,8 @@ export default async function SocialDrafts({ searchParams }: { searchParams: Pro
     {sp.added !== undefined && <p className="small" role="status" data-testid="ads-week-written">{sp.added === '0' ? 'Every day that can be drafted already has its draft.' : `${sp.added} drafts written.`}</p>}
     <p className="small muted">{d.meta.usable ? 'Meta publishing is on: approved posts go out on their day, and the post links are recorded here.' : <>Copy and post by hand, then paste the post&apos;s address. Publishing through Meta stays off until the tokens are entered in <Link prefetch={false} className="link" href="/admin/settings/meta-publishing">Settings &gt; Meta publishing</Link>.</>}
       {' '}Wednesday&apos;s walkaround video and Saturday&apos;s handover story are filmed by field staff (no renter shown without written consent).{!d.enabled ? ' Automatic drafts are off in Program settings.' : ''}</p>
+    {/* r36b (2220): posts scheduled for a time: Facebook and Instagram through Meta when connected, TikTok by hand */}
+    <Card title="Scheduled posts" testId="social-queue-card"><SocialQueue admin /></Card>
     <div className="stack" data-testid="ads-week">
       {days.map((day) => {
         const items = d.drafts.filter((x) => x.slot_date === day);

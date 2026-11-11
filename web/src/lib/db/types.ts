@@ -23592,6 +23592,105 @@ export type Database = {
         };
         Relationships: [];
       };
+      social_post_log: {
+        Row: {
+          id: number;
+          queue_id: string;
+          at: string;
+          event: string;
+          detail: string | null;
+          by_user: string | null;
+        };
+        Insert: {
+          id?: number;
+          queue_id: string;
+          at?: string;
+          event: string;
+          detail?: string | null;
+          by_user?: string | null;
+        };
+        Update: {
+          id?: number;
+          queue_id?: string;
+          at?: string;
+          event?: string;
+          detail?: string | null;
+          by_user?: string | null;
+        };
+        Relationships: [];
+      };
+      social_queue: {
+        Row: {
+          id: string;
+          channel: string;
+          media_kind: string;
+          media_path: string | null;
+          video_id: string | null;
+          draft_id: string | null;
+          vehicle_id: string | null;
+          caption: string;
+          link: string | null;
+          scheduled_at: string;
+          status: string;
+          how: string | null;
+          attempts: number;
+          post_id: string | null;
+          post_url: string | null;
+          error: string | null;
+          created_by: string | null;
+          posted_by: string | null;
+          posted_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          channel: string;
+          media_kind: string;
+          media_path?: string | null;
+          video_id?: string | null;
+          draft_id?: string | null;
+          vehicle_id?: string | null;
+          caption: string;
+          link?: string | null;
+          scheduled_at: string;
+          status?: string;
+          how?: string | null;
+          attempts?: number;
+          post_id?: string | null;
+          post_url?: string | null;
+          error?: string | null;
+          created_by?: string | null;
+          posted_by?: string | null;
+          posted_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          channel?: string;
+          media_kind?: string;
+          media_path?: string | null;
+          video_id?: string | null;
+          draft_id?: string | null;
+          vehicle_id?: string | null;
+          caption?: string;
+          link?: string | null;
+          scheduled_at?: string;
+          status?: string;
+          how?: string | null;
+          attempts?: number;
+          post_id?: string | null;
+          post_url?: string | null;
+          error?: string | null;
+          created_by?: string | null;
+          posted_by?: string | null;
+          posted_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       social_videos: {
         Row: {
           id: string;
@@ -32024,6 +32123,8 @@ export type Database = {
       server_signing_record: { Args: { p_booking: string }; Returns: Json };
       server_social_drafts_put: { Args: { p: Json }; Returns: number };
       server_social_published: { Args: { p: Json }; Returns: Json };
+      server_social_queue_claim: { Args: never; Returns: Json };
+      server_social_queue_result: { Args: { p: Json }; Returns: Json };
       server_staff_agreement_auto_done: { Args: { p_user: string; p: Json }; Returns: Json };
       server_staff_agreements_due: { Args: { p_limit?: number }; Returns: Json };
       server_statement_mail_due: { Args: never; Returns: Json };

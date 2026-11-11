@@ -28,7 +28,9 @@ export type StaffRead = 'toll_read_context' | 'toll_read' | 'toll_read_queue' | 
   // r36b (2200): the missing angles of a car
   | 'listing_angles'
   // r36b (2210): a car's short video kit
-  | 'social_video_kit';
+  | 'social_video_kit'
+  // r36b (2220): the social post scheduler
+  | 'social_queue';
 export async function staffRead<T = Record<string, unknown>>(what: StaffRead, p: Record<string, unknown> = {}): Promise<R<T>> {
   try { const { user, aal } = await me(); return { ok: true, data: await door<T>(user.id, 'ops_read', what, p, aal) }; } catch (e) { return fail(e); }
 }
