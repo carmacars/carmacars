@@ -16,8 +16,8 @@ insert into notification_outbox (code, category, priority, audience, to_address,
 select 'renter_review_request', 'transactional', 3, 'renter', 'in-sent-' || g || '@in.example.test', 'In', '{}'::jsonb, 'in-sent-' || g, 'sent',
        test.in_t() - interval '30 minutes', test.in_t() - interval '20 minutes', test.in_t() - interval '30 minutes'
   from generate_series(1, ceil(app.email_day_cap(test.in_t()) / 24.0)::integer + 31) g;
-select test.ok('the hour''s pace is used up, the day''s cap is not', (app.email_pace(test.in_t()) ->> 'hour_used')::int >= (app.email_pace(test.in_t()) ->> 'hour_cap')::int
-  and (app.email_pace(test.in_t()) ->> 'day_used')::int < (app.email_pace(test.in_t()) ->> 'day_cap')::int);
+select test.ok('no hourly pace since 1750 (the day''s budget is the only limit): the day''s cap is not used up',
+  coalesce((app.email_pace(test.in_t()) ->> 'day_used')::int, 0) < (app.email_pace(test.in_t()) ->> 'day_cap')::int);
 
 -- (other suites leave urgent alerts queued: counted before, so the test counts its own)
 create temp table in_before as select app.outbox_urgent_waiting(test.in_t()) n;
