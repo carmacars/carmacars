@@ -68,7 +68,7 @@ export function hubCopy(h: Hub, t: { fill: (s: string) => string }): HubCopy {
   if (term.vertical === 'rental') {
     const stock = cars > 0 ? `${cheapest ? `from ${cheapest} a day` : 'live prices'}` : 'cars listed as they join the fleet';
     if (term.served === 'request') {
-      description = `${term.title} in ${where}: ${note || 'not something we offer directly.'} Send the details and a person replies.`;
+      description = `${term.title} in ${where}: ${note || 'arranged on request.'} Send the details and a person replies.`;
       lead.push(note, `Tell us the date, the trip and how many people, and we will reply with what we can arrange in ${where}.`);
     } else if (near || isWide(h)) {
       description = `${term.title} in ${where}, ${stock}. ${fee ? `Delivered from ${fee}` : 'Delivered to your door'} or picked up in Toronto. Request with no payment up front.`;
@@ -92,21 +92,21 @@ export function hubCopy(h: Hub, t: { fill: (s: string) => string }): HubCopy {
       if (note) lead.push(note);
     } else {
       description = `${term.title} for ${where}: ${BRAND} serves the Toronto area, about ${kmText(h.delivery.km)} away. Tell us what you need in ${where} and a person replies.`;
-      lead.push(`${BRAND} rents cars in the Toronto area and has no location in ${where}. ${where} is about ${kmText(h.delivery.km)} from ${from}, beyond the ${kmText(h.delivery.reach_km)} we deliver to.`,
-        `If you are travelling from Toronto, rent with us before you leave. If you need a car in ${where}, send a request and we will tell you honestly whether we can help.`);
+      lead.push(`${BRAND} rents cars from Toronto, about ${kmText(h.delivery.km)} from ${where}, and delivers within ${kmText(h.delivery.reach_km)} of ${from}.`,
+        `Travelling from Toronto? Rent with us before you leave and drive to ${where}. Need the car in ${where} itself? Send a request with your dates and a person replies with what we can arrange.`);
     }
   } else if (term.vertical === 'sale') {
-    description = `${term.title} in ${where}? ${BRAND} does not sell, finance or lease cars. Rent the model first, or tell us what you need and we will help.`;
+    description = `${term.title} in ${where}? Rent the model from ${BRAND} first, a real test drive for a day or a week, and tell us what you need: we help you find it.`;
     lead.push(note, `${/\brent/i.test(note) ? '' : 'Renting the car you are thinking of buying, for a day or a week, is a real test drive on your own roads.'}${near ? ` We deliver rental cars to ${where}.` : ''}`);
   } else if (isAutoService(term)) {
     // 0121: mechanical work we arrange, never ours: a request, a trusted shop, and a rental while the car is in
     if (near || isWide(h)) {
       description = `${term.title} in ${where}: request it and we arrange it with a trusted shop or connect you with one, and keep you moving with a rental car while yours is in.`;
-      lead.push(note, `${BRAND} does not do this work itself. Send a request and a person replies: we arrange it with a trusted shop or connect you with one, and we can deliver a rental car to you while yours is in.`);
+      lead.push(note, `${BRAND} arranges this work with a trusted shop or connects you with one. Send a request and a person replies, and we can deliver a rental car to you while yours is in.`);
     } else {
-      description = `${term.title} for ${where}: ${BRAND} works in the Toronto area, about ${kmText(h.delivery.km)} away, and does not do this work itself. Send a request and a person replies.`;
-      lead.push(`${BRAND} works in the Toronto area and has no location in ${where}, about ${kmText(h.delivery.km)} from ${from}.`,
-        `${note} If you need it in ${where}, send a request and we will tell you honestly whether we know a shop there.`);
+      description = `${term.title} for ${where}: ${BRAND} arranges it with a trusted shop from the Toronto area, about ${kmText(h.delivery.km)} away. Send a request and a person replies.`;
+      lead.push(`${BRAND} works from Toronto, about ${kmText(h.delivery.km)} from ${where}, and arranges this work with trusted shops.`,
+        `${note} Need it in ${where}? Send a request and a person replies with the shops we know there.`);
     }
   } else {
     const what = h.service ? h.service.name.toLowerCase() : term.phrase;
@@ -117,7 +117,7 @@ export function hubCopy(h: Hub, t: { fill: (s: string) => string }): HubCopy {
       lead.push(`${note} ${BRAND} does ${what} for cars in ${where}${h.delivery.km !== null && !isWide(h) ? `, about ${kmText(h.delivery.km)} from ${from}` : ''}. Send a request and a person replies with a price and a time.`);
     } else {
       description = `${term.title} for ${where}: ${BRAND}'s ${label} work is in the Toronto area, about ${kmText(h.delivery.km)} away. Send a request and a person replies.`;
-      lead.push(`${BRAND}'s ${label} work is in the Toronto area, and we have no location in ${where}, about ${kmText(h.delivery.km)} from ${from}.`, `${note} If you can bring the car to Toronto, send a request.`);
+      lead.push(`${BRAND}'s ${label} work is done in Toronto, about ${kmText(h.delivery.km)} from ${where}.`, `${note} Bring the car to Toronto, or send a request and a person replies with the options.`);
     }
   }
 
@@ -125,21 +125,21 @@ export function hubCopy(h: Hub, t: { fill: (s: string) => string }): HubCopy {
   const faq: Array<{ question: string; answer: string }> = [];
   if (isAutoService(term)) return { title: T(title), description: clip(description, usd), h1: T(h1), lead: lead.map(T).filter(Boolean), faq };
   if (!isWide(h)) {
-    faq.push({ question: `Does ${BRAND} have a location in ${where}?`, answer: `No. ${BRAND} has one location, in Toronto${near ? `, and we deliver to ${where}` : ''}.` });
+    faq.push({ question: `Where is ${BRAND} located?`, answer: `${BRAND} is in Toronto${near ? `, and we deliver to ${where}` : `, about ${kmText(h.delivery.km)} from ${where}`}.` });
     if (h.delivery.km !== null) faq.push({ question: `How far is ${where} from ${BRAND}?`, answer: `About ${kmText(h.delivery.km)} in a straight line from ${from}, roughly ${driveMinutes(h.delivery.km)} minutes by car.` });
   }
   if (term.vertical === 'rental' && term.served === 'yes') {
     faq.push(near
       ? { question: `Can you deliver a rental car to ${where}?`, answer: `Yes. ${fee ? `Delivery starts at ${fee} each way, and each car's page shows its own fee.` : `Each car's page shows its delivery fee.`} The full price is in your offer before you pay.` }
       : isWide(h) ? { question: `Where do you deliver?`, answer: `To addresses within about ${kmText(h.delivery.reach_km)} of ${from}, including Toronto Pearson and Billy Bishop airports.` }
-      : { question: `Can you deliver a rental car to ${where}?`, answer: `Not as a rule: ${where} is beyond the ${kmText(h.delivery.reach_km)} we deliver to. Send a request and we will tell you if we can make an exception.` });
+      : { question: `How do I rent a car for ${where}?`, answer: `Pick the car up in Toronto and drive to ${where}, or send a request for delivery: we deliver within ${kmText(h.delivery.reach_km)} of ${from} and reply on anything further.` });
     faq.push({ question: `Do I pay when I send a request?`, answer: `No. The request is free and does not hold the car. You pay only after we confirm the car and the price and you approve the offer.` });
     const cars = carLine(h);
     if (cars.length && !isWide(h)) faq.push({ question: `Which cars can I rent in ${where}?`, answer: `Any car on the site can be delivered to ${where}. Right now that includes ${listWords(cars)}.` });
     if (h.landmarks.length && near) faq.push({ question: `Can you deliver near ${h.landmarks[0]!.name}?`, answer: `Yes. ${h.landmarks[0]!.name} is about ${h.landmarks[0]!.km} km from the centre of ${where}; give the exact address in your request and the delivery fee is in your offer.` });
   }
   if (h.airport && !isWide(h)) faq.push({ question: `What is the nearest airport to ${where}?`, answer: `${h.airport.name}${h.airport.iata ? ` (${h.airport.iata})` : ''}, about ${kmText(h.airport.km)} away.` });
-  if (term.vertical === 'sale') faq.push({ question: `Does ${BRAND} sell or finance cars?`, answer: `No. ${BRAND} rents cars and does detailing and body work. We are not a dealer, a lender or a leasing company.` });
+  if (term.vertical === 'sale') faq.push({ question: `What does ${BRAND} do?`, answer: `${BRAND} rents cars and does detailing and body work. Rent the model you are thinking of buying for a day or a week first, a real test drive on your own roads.` });
   if (term.vertical === 'detailing' || term.vertical === 'bodyshop') {
     faq.push({ question: `How much does ${term.phrase} cost?`, answer: h.service?.from_price_cents ? `From ${money(h.service.from_price_cents)}. Send a request for a price for your car.` : `It depends on the car and the work. Send a request and we reply with a price.` });
     faq.push({ question: `Can I have a car while mine is in the shop?`, answer: term.vertical === 'bodyshop' ? `Yes. Rent a car delivered to you; after a collision your insurer may pay for a replacement rental when your adjuster approves it.` : `Yes. Rent one of our cars, delivered to your door, for as long as the work takes.` });

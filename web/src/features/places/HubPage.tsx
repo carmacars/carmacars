@@ -19,6 +19,8 @@ import { depthCar, getDepthFacts, getPois } from '@/features/seo/depth-data';
 import { DepthSections } from '@/features/seo/Depth';
 import { getArticles } from '@/features/seo/data';
 import { getFleet } from '@/lib/site';
+import { ReadyCars } from '@/features/seo/ReadyCars';
+import { SiteReviews } from '@/features/seo/SiteReviews';
 import '@/styles/seo.css';
 import '@/styles/vehicles.css';
 
@@ -137,7 +139,7 @@ export async function HubPage({ h }: { h: Hub }) {
             <p className="muted small">Live prices before {t.hst} HST, picked up in Toronto or delivered{h.delivery.in_reach || wide ? '' : ' within the Toronto area'}. Each car has its own page, photos and calendar.{h.place.country !== 'CA' ? ' Prices are in Canadian dollars.' : ''}</p></div>
           {h.cars.length
             ? <ul className="fleet-grid fleet-grid--3">{h.cars.slice(0, 12).map((x) => <li key={x.slug}><CarCard c={x} labels={labels} /></li>)}</ul>
-            : <p className="alert alert--info"><span>No car matches this right now. <Link prefetch={false} className="link" href="/cars">See every car</Link>.</span></p>}
+            : <ReadyCars cars={fleet} labels={labels} want={v === 'rental' ? `a car for ${h.term.phrase} in ${where}` : 'the car you need'} pageKey={h.path} />}
           <p className="small"><Link prefetch={false} className="link link--go" href="/cars">See every car <Icon name="arrow" /></Link></p>
         </div>
       </section>
@@ -150,6 +152,7 @@ export async function HubPage({ h }: { h: Hub }) {
         )}
         <KitText sections={text.sections} source={text.source} look="hub" />
         {!auto && <DepthSections d={depth} />}
+        <SiteReviews />
         {!kitLocal && (h.landmarks.length > 0 || (h.airport && !wide)) && (
           <section className="car-sec landing__sec" aria-labelledby="h-around">
             <h2 className="d2" id="h-around">Around {h.place.name}</h2>

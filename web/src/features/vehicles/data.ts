@@ -5,6 +5,7 @@ import { cache } from 'react';
 import { seoMeta } from '@/features/seo/meta';
 import { rpc } from '@/lib/db/repo';
 import { siteUrl } from '@/lib/site';
+import { steer } from '@/features/seo/steer';
 import type { Dim, Settings, TrimRef, Variant, YearRow } from './content';
 import type { Inventory, SimilarModel } from './parts';
 import type { TierPage, Tiers } from './deep';
@@ -27,6 +28,17 @@ export type TrimPage = Base & { level: 'trim'; model: Named & { vclass: string |
   prev: { year: number; variants: Variant[]; trim_variant_ids: number[] | null } | null; other_years: YearRow[]; similar_models: SimilarModel[] };
 
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+/** 2000 (demand steering): the popular cars' ids, once a request; a failed read steers nothing. */
+export const popularIds = cache(async (): Promise<string[]> => {
+  try { return (((await rpc('fleet_popular_ids', {})) ?? []) as unknown as string[]); } catch { return []; }
+});
+/** A vehicle page's inventory with the popular cars after the others in the same-model and similar lists. */
+async function steered<T extends { inventory: Inventory }>(p: T): Promise<T> {
+  const ids = await popularIds();
+  if (!ids.length || !p.inventory) return p;
+  return { ...p, inventory: { ...p.inventory, same_model: steer(p.inventory.same_model, ids), similar: steer(p.inventory.similar, ids) } };
+}
 const ok = (...s: string[]) => s.every((x) => SLUG.test(x) && x.length <= 60);
 
 export const makePage = cache(async (make: string): Promise<MakePage | null> => {
@@ -38,19 +50,19 @@ export const modelPage = cache(async (make: string, model: string): Promise<Mode
   const p = (await rpc('vehicle_model_page', { p_make: make, p_model: model })) as unknown as (ModelPage & { redirect?: string }) | null;
   if (!p) notFound();
   if (p.redirect) permanentRedirect(p.redirect);
-  return p;
+  return steered(p);
 });
 export const yearPage = cache(async (make: string, model: string, year: string): Promise<YearPage> => {
   if (!ok(make, model) || !/^(19|20)\d\d$/.test(year)) notFound();
   const p = (await rpc('vehicle_year_page', { p_make: make, p_model: model, p_year: Number(year) })) as unknown as YearPage | null;
   if (!p) notFound();
-  return p;
+  return steered(p);
 });
 export const trimPage = cache(async (make: string, model: string, year: string, trim: string): Promise<TrimPage> => {
   if (!ok(make, model, trim) || !/^(19|20)\d\d$/.test(year)) notFound();
   const p = (await rpc('vehicle_trim_page', { p_make: make, p_model: model, p_year: Number(year), p_trim: trim })) as unknown as TrimPage | null;
   if (!p) notFound();
-  return p;
+  return steered(p);
 });
 
 /** A city, city and colour, or colour page (0097): its trim's read with the city and colour. */
@@ -58,7 +70,7 @@ export const tierPage = cache(async (make: string, model: string, year: string, 
   if (!ok(make, model, trim) || !/^(19|20)\d\d$/.test(year) || (city !== null && !ok(city)) || (colour !== null && !/^[a-z]{3,12}$/.test(colour)) || city === 'colour') notFound();
   const p = (await rpc('vehicle_tier_page', { p_make: make, p_model: model, p_year: Number(year), p_trim: trim, p_place: city as string, p_colour: colour as string })) as unknown as TierPage | null;
   if (!p) notFound();
-  return p;
+  return steered(p);
 });
 /** The cities and colours a trim page links to. */
 export const tiers = cache(async (): Promise<Tiers> => ((await rpc('vehicle_tiers', {})) as unknown as Tiers | null) ?? { settings: {}, places: [], colours: [], terms: [] });

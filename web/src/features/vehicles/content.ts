@@ -91,7 +91,7 @@ export function yearChanges(o: { year: number; cur: Spec[]; prevYear: number | n
   if (!added.length && !dropped.length && same.length && out.length === 0) out.push(`The powertrains carry over from ${o.prevYear} with the same EPA ratings.`);
   const tAdd = o.curTrims.filter((t) => !o.prevTrims.includes(t)), tDrop = o.prevTrims.filter((t) => !o.curTrims.includes(t));
   if (o.prevTrims.length && tAdd.length) out.push(`Trims new in Canada for ${o.year}: ${list(tAdd)}.`);
-  if (o.prevTrims.length && tDrop.length && o.curTrims.length) out.push(`No longer offered after ${o.prevYear}: ${list(tDrop)}.`);
+  if (o.prevTrims.length && tDrop.length && o.curTrims.length) out.push(`Last offered in ${o.prevYear}: ${list(tDrop)}.`);
   return out;
 }
 
@@ -174,7 +174,7 @@ export function rentalFaq(o: { name: string; cars: number; carsPath?: string; si
   const q: Array<{ question: string; answer: string }> = [];
   q.push(o.cars > 0
     ? { question: `Can I rent a ${o.name} in {{city}}?`, answer: `Yes. We have ${o.cars === 1 ? 'one' : o.cars} on the site now, each with its own calendar and price. Choose your dates on the car's page and send a request; nothing is charged until we confirm and you approve.` }
-    : { question: `Can I rent a ${o.name} in {{city}}?`, answer: `Not from our fleet right now. Send a request for this exact car and we look for one for your dates. ${o.similar > 0 ? `Meanwhile ${o.similar === 1 ? 'a similar car is' : `${o.similar} similar cars are`} available below.` : ''}`.trim() });
+    : { question: `Can I rent a ${o.name} in {{city}}?`, answer: `Yes, on request: send a request for this exact car and we look for one for your dates. ${o.similar > 0 ? `Meanwhile ${o.similar === 1 ? 'a similar car is' : `${o.similar} similar cars are`} ready to book below.` : ''}`.trim() });
   if (o.cost100) q.push({ question: `How much does fuel cost to drive the ${o.name} 100 km?`, answer: `About ${o.cost100} for ${o.ev ? 'electricity' : 'fuel'}, from the EPA combined rating of ${o.cheapestUse} at ${o.basis}. You return the car with the same ${o.ev ? 'charge' : 'fuel'} it had at pickup.` });
   q.push({ question: 'How old do I need to be to rent?', answer: '{{minAge}} or older at pickup, with an Ontario {{licence}} licence valid for the whole rental. Drivers aged {{youngA}} pay a young driver fee of {{ydA}} a day, and {{youngB}} pay {{ydB}} a day.' });
   q.push({ question: 'How much is the deposit?', answer: 'Between {{depMin}} and {{depMax}}, depending on the car. It is taken about {{depLead}} before pickup, never when you book, and the balance is released within {{releaseDays}} after you return the car.' });
@@ -296,7 +296,7 @@ export function buyDescriptionOptions(o: Named & { use?: string; recalls?: numbe
   const c = o.colour ? `${low(o.colour)} ` : '';
   const n = `${c}${nameOf(o)}`;
   const where = o.city ? ` in ${o.city}` : '';
-  const sale = o.forSale > 0 ? `${o.forSale} for sale by us now` : 'none for sale by us now; rent one for a week first';
+  const sale = o.forSale > 0 ? `${o.forSale} for sale by us now` : 'rent one for a week first, or ask us to find one';
   const rc = o.recalls === null || o.recalls === undefined ? '' : o.recalls === 0 ? ', no NHTSA recalls' : `, ${o.recalls} NHTSA recall${o.recalls === 1 ? '' : 's'}`;
   return [`Buying ${an(n)} ${n}${where}? ${o.use || 'Specs'}${rc}, fuel cost a year and what to check. ${cap(sale)}.`,
     `Buying ${an(n)} ${n}${where}? ${o.use || 'Specs'}${rc} and what to check. ${cap(sale)}.`,
@@ -337,7 +337,7 @@ export function termDescriptionOptions(o: Named & { mode: TermMode; term: { slug
   if (o.mode === 'bodyshop') return [`${o.term.name} for ${an(n)} ${n}${where}${facts ? ` (${facts})` : ''}. Request it, with an insurance replacement rental while it is repaired.`,
     `${o.term.name} for ${an(n)} ${n}${where}, with an insurance replacement rental while it is repaired.`, `${o.term.name} for ${an(n)} ${n}${where}: request it, and rent a car meanwhile.`];
   if (o.mode === 'sale') {
-    const sale = (o.forSale ?? 0) > 0 ? `${o.forSale} for sale by us now` : 'none for sale by us now; rent one for a week first';
+    const sale = (o.forSale ?? 0) > 0 ? `${o.forSale} for sale by us now` : 'rent one for a week first, or ask us to find one';
     const rc = o.recalls === null || o.recalls === undefined ? '' : o.recalls === 0 ? ', no NHTSA recalls' : `, ${o.recalls} NHTSA recall${o.recalls === 1 ? '' : 's'}`;
     return [`${cap(ph)}: the ${n}${where}. ${o.use || 'Specs'}${rc} and what to check. ${cap(sale)}.`, `${cap(ph)}: the ${n}${where}. Specs${rc} and what to check. ${cap(sale)}.`, `${cap(ph)}: the ${n}${where}. Specs and a week-long test drive.`];
   }
