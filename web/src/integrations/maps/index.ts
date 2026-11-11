@@ -4,6 +4,7 @@ import { rpc } from '@/lib/db/repo';
 import type { MapsAdapter } from './types';
 import { fakeMaps } from './fake';
 import { budgetedMaps, type MapsSku } from './budget';
+import { addressBook, type AddressDb } from './address-book';
 
 // MAPS_PROVIDER=google with a GOOGLE_MAPS_API_KEY (the deploy job sets both when the vault holds
 // deploy_google_maps_api_key); anything else, or no key, is the fake adapter (sample Toronto places,
@@ -21,8 +22,16 @@ export async function maps(): Promise<MapsAdapter> {
     if (e.APP_ENV === 'production') console.warn(`maps: the fake adapter is in use (MAPS_PROVIDER=${e.MAPS_PROVIDER}, key ${e.GOOGLE_MAPS_API_KEY ? 'set' : 'missing'}): address suggestions are the sample landmarks only`);
     cached = fakeMaps();
   }
+  // r36 (2120): the site's own Canadian address database first; Google (or the sample landmarks) only when it has nothing
+  cached = addressBook(cached, addressDb);
   return cached;
 }
+
+const SR = { role: 'service_role' as const };
+const addressDb: AddressDb = {
+  search: async (q, limit) => ((await rpc('server_address_search', { p_q: q, p_limit: limit }, SR)) as unknown as Array<{ id: string; label: string }> | null) ?? [],
+  get: async (id) => (await rpc('server_address_get', { p_id: id }, SR)) as unknown as Awaited<ReturnType<AddressDb['get']>>
+};
 
 async function takeBudget(sku: MapsSku): Promise<boolean> {
   return (await rpc('server_maps_take', { p_sku: sku }, { role: 'service_role' })) === true;

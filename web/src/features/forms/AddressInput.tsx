@@ -3,8 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import type { AddressParts } from './address-parts';
 
 // Address lookup while typing (prototype input[data-addr-lookup]): an ARIA combobox that asks the
-// maps module through /api/address (Google Places Autocomplete in production, sample landmarks
-// locally). Arrow keys and Enter choose; Escape closes. The chosen place id goes with the form.
+// maps module through /api/address (r36, 2120: the site's own Canadian address database first, then Google Places
+// Autocomplete when a key is configured, sample landmarks locally). Arrow keys and Enter choose; Escape closes. The chosen place id goes with the form.
 // Google calls are capped a day (0113), so the field asks sparingly: from 3 characters, 350 ms after the last key, never
 // twice for the same text, and a slower answer to an older text is dropped. One session token covers every suggestion
 // of one lookup and goes with the chosen place (session), so the Place Details call at submit closes the same session.
