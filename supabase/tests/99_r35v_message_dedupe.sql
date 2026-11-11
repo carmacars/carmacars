@@ -169,6 +169,10 @@ select test.eq('the same portal notice twice is shown once', (select count(*)::i
 -- ---------------------------------------------------------------- 5. Cloudflare Email Service: detected and counted
 create temp table v35_ps as select * from email_provider_state;
 create temp table v35_cf as select bool_or(cf_email_enabled) as was_on from program_settings;
+-- since 1750 a Cloudflare send in the last 48 hours means it works: earlier suites' sends are set three days back for this
+-- section (and put back after it)
+create temp table v35_recent as select id, sent_at from notification_outbox where provider_id like 'cf:%' and sent_at > now() - interval '48 hours';
+update notification_outbox o set sent_at = r.sent_at - interval '3 days' from v35_recent r where o.id = r.id;
 update email_provider_state set cf_ok_at = now() - interval '3 days', cf_failed_at = null, cf_error = null;
 update program_settings set cf_email_enabled = true;
 select test.ok('a recorded success counts as Cloudflare sending', app.cf_email_ever_sent());
@@ -185,4 +189,5 @@ select test.eq('no binding: not set up, and only Resend counts', (app.cf_email_s
   'absent/' || (select least(s.notify_daily_cap, s.notify_resend_daily_budget) from app.settings_base(app.local_date(now())) s));
 update email_provider_state e set cf_ok_at = p.cf_ok_at, cf_failed_at = p.cf_failed_at, cf_error = p.cf_error from v35_ps p;
 update program_settings set cf_email_enabled = (select was_on from v35_cf);
+update notification_outbox o set sent_at = r.sent_at from v35_recent r where o.id = r.id;
 update program_settings set notify_merge_window_minutes = 0, notify_repeat_window_minutes = 0;
