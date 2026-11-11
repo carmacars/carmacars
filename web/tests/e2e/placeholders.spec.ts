@@ -22,7 +22,7 @@ async function signIn(page: Page, email: string) {
 
 test('placeholder and real rental on one car: the booking pages and the calendar keep them apart', async ({ page }, info) => {
   const phone = info.project.name.startsWith('phone');
-  test.setTimeout(150_000);
+  test.setTimeout(240_000); // a phone runs three pages, axe and the agenda then the timeline: past 150 s on a busy runner
   const sql = db();
   const t = tag(), T = t.toUpperCase();
   const admin = randomUUID(), email = `ph.admin.${Date.now()}.${t}@example.test`;

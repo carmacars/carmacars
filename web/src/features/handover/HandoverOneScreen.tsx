@@ -41,7 +41,7 @@ export function HandoverOneScreen({ booking, number, kind, who, refresh = [], is
     const rd = readingPayload(reading);
     if (who === 'renter') {
       const r = await selfPickup({ number, at: at ? new Date(at).toISOString() : undefined, odometer_km: km, fuel_pct: fuel, note, photos: ph, reading: rd });
-      setMsg(r.ok ? { ok: true, text: r.data.status === 'applied' ? 'You are checked in. Drive safely: your photos and readings are on the check-in report.' : 'Thank you, we have it. A team member checks it and confirms the pickup.' } : { ok: false, text: r.message });
+      setMsg(r.ok ? { ok: true, text: r.data.status === 'applied' ? 'You are checked in. Drive safely: your photos and readings are on the check-in report.' : `Thank you, we have your photos and readings. Not finished by itself yet${r.data.reason ? `: ${r.data.reason}` : ''}. A team member confirms the pickup with you shortly.` } : { ok: false, text: r.message });
       if (r.ok) router.refresh();
       return;
     }

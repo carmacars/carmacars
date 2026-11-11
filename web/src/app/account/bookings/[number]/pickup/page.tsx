@@ -18,8 +18,8 @@ export default async function SelfPickup({ params }: { params: Promise<{ number:
       <h1 className="d3">Check in your car</h1>
       <p>Take the photos yourself when you get the car: pick them all at once from your camera roll. We add ours if anything is missing.</p>
       {!signed && b.status !== 'on_rent' && <p className="alert alert--warn" role="status"><span>Sign the rental agreement first: <Link prefetch={false} className="link" href={bookingPath(b.booking_number, 'checkout')}>sign now</Link>.</span></p>}
-      {b.status === 'on_rent' ? <p className="pt-ok" role="status">You are checked in. You can add photos from the photo report.</p>
-        : <HandoverOneScreen booking={b.id} number={b.booking_number} kind="pickup" who="renter" />}
+      {b.status === 'on_rent' && <p className="pt-ok" role="status">Your trip has started. You can still add your check-in photos, km and fuel here: they join the pickup report.</p>}
+      <HandoverOneScreen booking={b.id} number={b.booking_number} kind="pickup" who="renter" />
     </div>
   );
 }

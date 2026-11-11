@@ -94,8 +94,9 @@ test('admin: the usage banner on Today, Cars on sample photos on Listings', asyn
   const sql = db();
   await sql`delete from app.rate_limit_hits`;
   const a = await mkAdmin(sql);
-  // the Worker's CPU time past its allowance this month
-  await sql`select app.usage_put('workers_cpu', app.local_date(now()), 'cloudflare', 90000000)`;
+  // the Worker's CPU time far past its allowance this month: red at any day of the month (the projection to US$5 at 90M
+  // ms only reached red in the first week)
+  await sql`select app.usage_put('workers_cpu', app.local_date(now()), 'cloudflare', 900000000)`;
   const page = await ctx(browser, phone);
   const errors = watch(page);
   await signIn(page, a.email, '/admin');

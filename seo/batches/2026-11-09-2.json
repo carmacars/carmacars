@@ -1,0 +1,209 @@
+{
+  "batch": "2026-11-09-2",
+  "items": [
+    {
+      "kind": "car",
+      "id": "ace4d40c-35ee-40c9-862c-854eb3d93434",
+      "prompt_version": "car-copy-v2",
+      "copy": {
+        "intro": "Two seats, a turbo V8 and a convertible body in black. Built for dry summer days and scenic drives with one passenger.",
+        "highlights": [
+          "Push-button start",
+          "Backup camera",
+          "Parking assist",
+          "Bluetooth",
+          "Cruise control",
+          "Automatic high beams"
+        ],
+        "good_for": [
+          "Summer weekends for two",
+          "Anniversary drives",
+          "Scenic routes out of the city"
+        ],
+        "faq": [
+          {
+            "question": "How many people can ride in the AMG GT C?",
+            "answer": "Two. It has 2 seats and 2 doors, so it suits a couple or a solo driver with light luggage."
+          },
+          {
+            "question": "Is it rear-wheel drive or all-wheel drive?",
+            "answer": "Rear-wheel drive, so it is best on dry roads. Pick a different car from our fleet for snowy weeks."
+          },
+          {
+            "question": "What kind of engine does it have?",
+            "answer": "A 4.0 L turbocharged V8 that runs on gas."
+          },
+          {
+            "question": "Can it be delivered to me?",
+            "answer": "You can collect it from us or have it delivered to your address. The delivery fee is shown on the booking page."
+          }
+        ],
+        "alt_texts": {
+          "dashboard": "Mercedes-Benz AMG GT AMG GT C in black, dashboard view",
+          "front": "Mercedes-Benz AMG GT AMG GT C in black, front view",
+          "front_left": "Mercedes-Benz AMG GT AMG GT C in black, front left view",
+          "front_seats": "Mercedes-Benz AMG GT AMG GT C in black, front seats",
+          "left": "Mercedes-Benz AMG GT AMG GT C in black, left side view",
+          "rear": "Mercedes-Benz AMG GT AMG GT C in black, rear view",
+          "rear_left": "Mercedes-Benz AMG GT AMG GT C in black, rear left view",
+          "right": "Mercedes-Benz AMG GT AMG GT C in black, right side view",
+          "other": "Mercedes-Benz AMG GT AMG GT C in black, additional view"
+        }
+      }
+    },
+    {
+      "kind": "car",
+      "id": "420699ba-86d9-4507-ac06-ea090d145fee",
+      "prompt_version": "car-copy-v2",
+      "copy": {
+        "intro": "A white A-Class sedan with a turbo four cylinder, adaptive cruise control and automatic emergency braking. Four doors and five seats.",
+        "highlights": [
+          "Adaptive cruise control",
+          "Automatic emergency braking",
+          "Backup camera",
+          "LED headlights",
+          "Push-button start",
+          "Bluetooth"
+        ],
+        "good_for": [
+          "Weekday commuting",
+          "Airport runs",
+          "Highway drives with cruise control"
+        ],
+        "faq": [
+          {
+            "question": "How many seats does the A220 have?",
+            "answer": "Five seats and four doors, enough for a small group or a family."
+          },
+          {
+            "question": "Which driver aids does it have?",
+            "answer": "Adaptive cruise control and automatic emergency braking, plus a backup camera for parking."
+          },
+          {
+            "question": "Is the engine turbocharged?",
+            "answer": "Yes. It is a 2.0 L four cylinder with a turbocharger, and it runs on gas."
+          },
+          {
+            "question": "How many kilometres are included each day?",
+            "answer": "200 km a day are included in the rental price, so plan longer trips with that in mind."
+          }
+        ],
+        "alt_texts": {
+          "dashboard": "Mercedes-Benz A-Class A220-4M in white, dashboard view",
+          "front": "Mercedes-Benz A-Class A220-4M in white, front view",
+          "front_left": "Mercedes-Benz A-Class A220-4M in white, front left view",
+          "front_seats": "Mercedes-Benz A-Class A220-4M in white, front seats",
+          "left": "Mercedes-Benz A-Class A220-4M in white, left side view",
+          "rear": "Mercedes-Benz A-Class A220-4M in white, rear view",
+          "rear_left": "Mercedes-Benz A-Class A220-4M in white, rear left view",
+          "rear_seats": "Mercedes-Benz A-Class A220-4M in white, rear seats",
+          "trunk": "Mercedes-Benz A-Class A220-4M in white, trunk",
+          "other": "Mercedes-Benz A-Class A220-4M in white, additional view"
+        }
+      }
+    },
+    {
+      "kind": "car",
+      "id": "ab64b0c3-8ecf-4f81-9919-bd03edf0f9f0",
+      "prompt_version": "car-copy-v2",
+      "copy": {
+        "intro": "A white CLA sedan with a dual-clutch automatic, a turbo engine and adaptive cruise control. Four doors, five seats, a sloping roofline.",
+        "highlights": [
+          "Adaptive cruise control",
+          "Automatic emergency braking",
+          "Automatic transmission",
+          "LED headlights",
+          "Backup camera",
+          "Push-button start"
+        ],
+        "good_for": [
+          "City driving with an automatic",
+          "Dinner out with friends",
+          "Highway trips"
+        ],
+        "faq": [
+          {
+            "question": "What kind of transmission does the CLA250 have?",
+            "answer": "It is an automatic, a dual-clutch type, so there is no clutch pedal to manage in traffic."
+          },
+          {
+            "question": "Does it have a backup camera?",
+            "answer": "Yes. A backup camera is listed in its equipment, along with automatic emergency braking."
+          },
+          {
+            "question": "Can four adults ride in the back and front?",
+            "answer": "It has 5 seats and 4 doors, so a group of adults can travel together."
+          },
+          {
+            "question": "What do I need to pick it up?",
+            "answer": "Bring an Ontario G or G2 licence and a credit card in your name. We check your licence and identity before pickup."
+          }
+        ],
+        "alt_texts": {
+          "dashboard": "Mercedes-Benz CLA-Class CLA250-4M in white, dashboard view",
+          "front": "Mercedes-Benz CLA-Class CLA250-4M in white, front view",
+          "front_left": "Mercedes-Benz CLA-Class CLA250-4M in white, front left view",
+          "front_right": "Mercedes-Benz CLA-Class CLA250-4M in white, front right view",
+          "front_seats": "Mercedes-Benz CLA-Class CLA250-4M in white, front seats",
+          "left": "Mercedes-Benz CLA-Class CLA250-4M in white, left side view",
+          "rear": "Mercedes-Benz CLA-Class CLA250-4M in white, rear view",
+          "rear_left": "Mercedes-Benz CLA-Class CLA250-4M in white, rear left view",
+          "rear_right": "Mercedes-Benz CLA-Class CLA250-4M in white, rear right view",
+          "rear_seats": "Mercedes-Benz CLA-Class CLA250-4M in white, rear seats",
+          "right": "Mercedes-Benz CLA-Class CLA250-4M in white, right side view",
+          "wheel": "Mercedes-Benz CLA-Class CLA250-4M in white, wheel detail",
+          "other": "Mercedes-Benz CLA-Class CLA250-4M in white, additional view"
+        }
+      }
+    },
+    {
+      "kind": "car",
+      "id": "f43eccf0-4a99-4e6d-902f-716f4330433f",
+      "prompt_version": "car-copy-v2",
+      "copy": {
+        "intro": "A grey 2015 Cadillac CTS with a turbo four cylinder, all-wheel drive and adaptive cruise control. Comfortable for longer rentals.",
+        "highlights": [
+          "All-wheel drive",
+          "Adaptive cruise control",
+          "Turbocharged engine",
+          "Automatic transmission",
+          "Bluetooth"
+        ],
+        "good_for": [
+          "Longer rentals",
+          "Commutes and highway driving",
+          "Road trips in all seasons"
+        ],
+        "faq": [
+          {
+            "question": "How many people ride in the CTS?",
+            "answer": "Five people across 4 doors."
+          },
+          {
+            "question": "What engine does the CTS have?",
+            "answer": "A 2.0 L four cylinder with a turbocharger."
+          },
+          {
+            "question": "Does it have adaptive cruise control?",
+            "answer": "Yes, it is listed in its equipment."
+          },
+          {
+            "question": "Is a monthly rental possible?",
+            "answer": "Yes. Longer rentals are available, and the weekly and monthly rates are shown on the booking page."
+          }
+        ],
+        "alt_texts": {
+          "dashboard": "Cadillac CTS Luxury in grey, dashboard view",
+          "front": "Cadillac CTS Luxury in grey, front view",
+          "front_left": "Cadillac CTS Luxury in grey, front left view",
+          "front_seats": "Cadillac CTS Luxury in grey, front seats",
+          "left": "Cadillac CTS Luxury in grey, left side view",
+          "rear": "Cadillac CTS Luxury in grey, rear view",
+          "rear_right": "Cadillac CTS Luxury in grey, rear right view",
+          "rear_seats": "Cadillac CTS Luxury in grey, rear seats",
+          "other": "Cadillac CTS Luxury in grey, additional view"
+        }
+      }
+    }
+  ]
+}
