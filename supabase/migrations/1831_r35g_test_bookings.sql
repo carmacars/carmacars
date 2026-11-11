@@ -157,6 +157,10 @@ begin
     alter table booking_events disable trigger booking_events_append_only;
     alter table messages disable trigger messages_append_only;
   end if;
+  -- the test bookings' payment rows (test money) go with them: a payment needs a booking or an owner to stand on
+  if exists (select 1 from bookings b where b.vehicle_id = v.id and b.is_test) then
+    perform app.purge_rows('public.payments'::regclass, format('owner_id is null and booking_id in (select id from bookings where vehicle_id = %L and is_test)', v.id));
+  end if;
   n := app.purge_rows('public.vehicles'::regclass, format('id = %L', v.id));
   if jsonb_array_length(v_removes) > 0 then
     alter table booking_events enable trigger booking_events_append_only;

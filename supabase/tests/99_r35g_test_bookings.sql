@@ -33,6 +33,8 @@ select test.ok('the mark is audited and in the booking history',
   and exists (select 1 from booking_events e where e.booking_id = test.id('booking:G3-1') and e.kind = 'test_mark'));
 select test.eq('the booking page carries the mark', (app.admin_booking_detail(test.id('booking:G3-1')) -> 'test' ->> 'on'), 'true');
 
+-- (the fixture car's schedule is made unsigned: a signed schedule is its own, separate block)
+update vehicle_schedules set signed_at = null where vehicle_id = test.id('vehicle:G3A');
 -- G3A: only test bookings, so nothing blocks it; the typed confirmation is still needed
 select test.eq('only test bookings: nothing stops the delete', to_jsonb(app.vehicle_delete_blockers(test.id('vehicle:G3A'))), '[]'::jsonb);
 select test.eq('the delete lists the test bookings that go with the car',
