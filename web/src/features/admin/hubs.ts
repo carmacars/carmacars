@@ -155,7 +155,7 @@ export const ADMIN_SECTIONS: Section[] = [
   { key: 'people', label: 'People', items: ['owners', 'partners', 'renters', 'team', { href: '/admin/investors', label: 'Investors' }] },
   { key: 'marketing', label: 'Marketing', items: [{ href: '/admin/marketing/marketplace', label: 'Marketplace' }, 'ads', 'channels', 'recruit'] },
   { key: 'money', label: 'Money', items: ['payments', 'owner-money', { href: '/admin/tolls', label: 'Tolls and tickets' }, 'company', 'insurers'] },
-  { key: 'settings', label: 'Settings', items: [{ href: '/admin/settings', label: 'Settings' }, 'logs'] }
+  { key: 'settings', label: 'Settings', items: [{ href: '/admin/settings', label: 'Settings' }, 'logs', { href: '/admin/bug-reports', label: 'Bug reports' }] }
 ];
 
 // The staff portal's sections: what each role does less often ("More ..."), Bookings and Me. Single pages name their
@@ -169,7 +169,7 @@ export const STAFF_SECTIONS: Section[] = [
   { key: 'finance', label: 'Finance', items: ['money', 'owner-money', { href: '/staff/tolls', label: 'Tolls and tickets', fns: 'finance' }, { href: '/staff/turo', label: 'Turo trips', fns: 'finance' }, { href: '/staff/maintenance', label: 'Maintenance bills', fns: 'finance' }] },
   { key: 'bookings', label: 'Bookings', items: [{ href: '/staff/bookings', label: 'Bookings', fns: OFFICE }, { href: '/staff/calendar', label: 'Calendar', fns: OFFICE }, { href: '/staff/cars', label: 'Find a car', fns: OFFICE },
     { href: '/staff/renters', label: 'Find a renter', fns: 'cs fleet finance' }, { href: '/staff/card-coverage', label: 'Card coverage', fns: OFFICE }] },
-  { key: 'me', label: 'Me', items: ['numbers', 'hours', { href: '/staff/townhall', label: 'Townhall', fns: `${OFFICE} field` }, { href: '/staff/field/sales', label: 'My sales', fns: 'field' }, { href: '/staff/field/referrals', label: 'Referrals', fns: 'field' }, { href: '/staff/field/profile', label: 'Profile', fns: 'field' }, { href: '/staff/academy', label: 'Academy', fns: `${OFFICE} field` }] }
+  { key: 'me', label: 'Me', items: ['numbers', 'hours', { href: '/staff/townhall', label: 'Townhall', fns: `${OFFICE} field` }, { href: '/staff/field/sales', label: 'My sales', fns: 'field' }, { href: '/staff/field/referrals', label: 'Referrals', fns: 'field' }, { href: '/staff/field/profile', label: 'Profile', fns: 'field' }, { href: '/staff/academy', label: 'Academy', fns: `${OFFICE} field` }, { href: '/staff/bug-reports', label: 'My bug reports', fns: OFFICE }] }
 ];
 
 /** Actions that are buttons on a page, not menu items (r27 consolidation): each with its parent page. They stay one search away. */

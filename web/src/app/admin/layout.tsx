@@ -26,6 +26,7 @@ import { AlertsBell } from '@/features/alerts/AlertsBell';
 import { AlertPulse } from '@/features/motion/Moment';
 import { CallerPopup } from '@/features/caller/CallerPopup';
 import { viewAsCookieSet } from '@/server/view-as';
+import { BugReportButton } from '@/features/bug-report/BugReport';
 
 
 // The admin portal's frame (docs/blueprint/03-admin.md; simpler since October 16, 2026): who is signed in, one search
@@ -57,7 +58,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         {gate?.admin ? (
           <aside className="ad__rail">
             <div className="ad__who"><span className="muted"><BrandMark size={22} className="ad__mark" />Admin · <b data-testid="account-email">{gate.name ?? user?.email}</b></span>
-              <span className="gd-frame-links">{user ? <AlertPulse /> : null}{user ? <AlertsBell userId={user.id} href="/admin/alerts" /> : null}<AssistantPanel portal="admin" greeting={greetName(gate)} /><GuideLink portal="admin" /><form action={signOut}><button className="btn btn--quiet btn--sm hd-act" type="submit" title="Sign out"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 4H6.5A2.5 2.5 0 0 0 4 6.5v11A2.5 2.5 0 0 0 6.5 20H9M15 8l4 4-4 4M19 12H9" /></svg><span className="hd-lbl">Sign out</span></button></form></span></div>
+              <span className="gd-frame-links">{user ? <AlertPulse /> : null}{user ? <AlertsBell userId={user.id} href="/admin/alerts" /> : null}<AssistantPanel portal="admin" greeting={greetName(gate)} /><GuideLink portal="admin" />{user ? <BugReportButton portal="admin" mineHref="/admin/bug-reports?mine=1" /> : null}<form action={signOut}><button className="btn btn--quiet btn--sm hd-act" type="submit" title="Sign out"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 4H6.5A2.5 2.5 0 0 0 4 6.5v11A2.5 2.5 0 0 0 6.5 20H9M15 8l4 4-4 4M19 12H9" /></svg><span className="hd-lbl">Sign out</span></button></form></span></div>
             <PortalSwitch current="admin" />
             <div className="ad__find"><AdminSearch /><AdminCommand groups={JUMP} /></div>
             <AdminNav counts={counts} />

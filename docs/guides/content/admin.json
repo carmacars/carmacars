@@ -175,6 +175,13 @@
   },
   {
    "kind": "chapter",
+   "slug": "bug-reports",
+   "title": "Bug reports",
+   "blurb": "Bugs staff report with a picture, their browser and its errors; triage them here or through Claude.",
+   "body_md": "Every staff portal and Admin has **Report a bug** at the top of each page. Pressing it takes a picture of the page (passwords, card fields and anything marked sensitive are hidden), then the person writes what happened (at least 30 characters), what they expected, the steps, and how bad it is: **Blocks my work**, **Annoying** or **Cosmetic**. They can add or paste more pictures (up to six, 5 MB each).\n\n## What comes with a report\n- The page (its path only, never a link's query), the person and their roles, the browser, the screen size, the build and the schema number.\n- The last 50 errors and failed calls in their browser, with emails, phone numbers, keys and tokens masked.\n- On the report page: the crashes recorded for that person in the two hours before, the crashes on that page, and their failed connector calls.\n\n## Alerts\nA report that **blocks work** alerts every Admin at once (the alert rule \"A bug blocks someone's work\" in Alerts settings). The others are in the morning digest.\n\n## Triage\nOpen Settings, **Bug reports**: open reports first, filter by status. On a report, set the status (**New**, **Being looked at**, **Fixed**, **Won't fix**), the release that fixed it and a note. The person sees the status in **My bug reports**.\n\n## With Claude\nThe CarmaCars connector reads them: `bug_reports_list` (by status and date), `bug_report_get` (the full text, the logs and links to the pictures that expire in ten minutes) and `bug_report_update` (status, note, fixed in; previewed, then confirmed). Every call is logged. Reports are never posted to GitHub: the code is public and the pictures may show personal data."
+  },
+  {
+   "kind": "chapter",
    "slug": "add-ons",
    "title": "Add-ons",
    "blurb": "The catalogue, prices, which cars, notice, stock, confirmation and the money.",

@@ -60,7 +60,7 @@ export async function POST(req: Request) {
         protocolVersion: VERSIONS.includes(asked) ? asked : VERSIONS[1],
         capabilities: { tools: { listChanged: false } },
         serverInfo: { name: 'carmacars', title: 'CarmaCars', version: '1.0.0' },
-        instructions: 'CarmaCars car rental, as its Admin: bookings, offers, payments, refunds, returns, cars, rates, listings, owners, statements, invoices, payouts, claims, tolls, expenses, leads, chats, To do\'s, field jobs, staff, onboarding and hiring. Every write is two calls: first without confirm, which previews what will change and changes nothing; show the preview to the person, and only when they agree call again with the same arguments plus confirm: true and the preview_id. The database checks each action exactly as the Admin screens do. Lists page with next_cursor (up to 200 a page) and hide test records unless include_test. Money out (refunds, deposit releases, payouts, charges) is only prepared as an Admin To do: never done here. Every call is logged with the values before and after, as the person whose key it is.'
+        instructions: 'CarmaCars car rental, as its Admin: bookings, offers, payments, refunds, returns, cars, rates, listings, owners, statements, invoices, payouts, claims, tolls, expenses, leads, chats, To do\'s, field jobs, staff, onboarding, hiring and staff bug reports (with their pictures and logs). Every write is two calls: first without confirm, which previews what will change and changes nothing; show the preview to the person, and only when they agree call again with the same arguments plus confirm: true and the preview_id. The database checks each action exactly as the Admin screens do. Lists page with next_cursor (up to 200 a page) and hide test records unless include_test. Money out (refunds, deposit releases, payouts, charges) is only prepared as an Admin To do: never done here. Every call is logged with the values before and after, as the person whose key it is.'
       }));
     }
     case 'notifications/initialized': case 'notifications/cancelled':
@@ -92,6 +92,8 @@ export async function POST(req: Request) {
         const done = r.result as { done?: boolean; result?: unknown } | undefined;
         if (done?.done) await bookNowAgreement(done.result);
       }
+      // a bug report's pictures (2340): private files, given as links that expire in ten minutes
+      if (r.ok && name === 'bug_report_get') r = { ...r, result: await signedShots(r.result) };
       const out = r.ok ? withLinks(r.result) : { error: r.error };
       return json(reply(msg.id, { content: [{ type: 'text', text: JSON.stringify(out, null, 1) }], structuredContent: Array.isArray(out) ? { items: out } : out, isError: !r.ok }));
     }
@@ -142,6 +144,17 @@ async function hire(hash: string, actor: string, p: { id: string } & Record<stri
   } catch (e) { out = { ok: false, message: e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '') : 'The hire failed' }; }
   await rpc('server_api_hire_result', { p_hash: hash, p_application: p.id, p_ok: out.ok, p_error: out.ok ? '' : out.message, p_client: client }, SR).catch(() => null);
   return out.ok ? { ok: true, result: { done: true, tool: 'hire_applicant', onboarding: out.status, admin_path: `/admin/hiring/${p.id}` } } : { ok: false, status: 400, error: out.message };
+}
+
+/** A bug report with a link for each picture (ten minutes); the storage paths are not shown. */
+async function signedShots(v: unknown): Promise<unknown> {
+  const o = v as { screenshots?: Array<{ path: string; mime: string; bytes: number; kind: string }> } | undefined;
+  if (!o?.screenshots?.length) return v;
+  const st = await storage();
+  const shots = await Promise.all(o.screenshots.map(async (x, i) => ({ n: i + 1, kind: x.kind, mime: x.mime, bytes: x.bytes,
+    url: x.path.startsWith('bug-reports/') ? await st.signedDownloadUrl('documents', x.path, 600, `bug-picture-${i + 1}.${x.path.split('.').pop()}`).catch(() => null) : null,
+    expires_in_seconds: 600 })));
+  return { ...o, screenshots: shots.map((x) => ({ ...x, url: x.url && x.url.startsWith('/') ? siteUrl() + x.url : x.url })) };
 }
 
 /** The portal links in full (the database gives paths). */

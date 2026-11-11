@@ -1,0 +1,15 @@
+/* Release 37 (2340): the bug report form and the report pages */
+.br-dialog { max-width: min(40rem, calc(100vw - 2rem)); }
+.br-dialog textarea { width: 100%; }
+.br-sev { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: var(--s-3, .75rem); }
+.br-sev legend { padding: 0; margin-bottom: var(--s-2, .5rem); }
+.br-sev__opt { display: inline-flex; align-items: center; gap: .35rem; }
+.br-pics { list-style: none; padding: 0; margin: var(--s-2, .5rem) 0; display: flex; flex-wrap: wrap; gap: var(--s-2, .5rem); }
+.br-pics li { display: flex; flex-direction: column; align-items: center; gap: .25rem; }
+.br-pics img { width: 8rem; height: 5rem; object-fit: cover; border: 1px solid var(--line, #ddd); border-radius: var(--r-1, 4px); }
+.br-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2, .5rem); }
+.br-shots { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: var(--s-3, .75rem); }
+.br-shots img { width: 100%; height: auto; border: 1px solid var(--line, #ddd); border-radius: var(--r-1, 4px); }
+.br-pre { white-space: pre-wrap; word-break: break-word; font-size: .85rem; max-height: 24rem; overflow: auto; margin: 0; }
+.br-logs { width: 100%; font-size: .85rem; border-collapse: collapse; }
+.br-logs td, .br-logs th { text-align: left; padding: .25rem .5rem; border-bottom: 1px solid var(--line, #eee); vertical-align: top; word-break: break-word; }

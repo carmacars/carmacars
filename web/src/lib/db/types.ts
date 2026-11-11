@@ -3933,6 +3933,72 @@ export type Database = {
         };
         Relationships: [];
       };
+      bug_reports: {
+        Row: {
+          id: string;
+          number: number;
+          reporter_id: string;
+          portal: string;
+          happened: string;
+          expected: string | null;
+          steps: string | null;
+          severity: string;
+          page_path: string;
+          context: Json;
+          client_logs: Json;
+          screenshots: Json;
+          status: string;
+          admin_notes: string | null;
+          fixed_in: string | null;
+          status_changed_at: string | null;
+          status_changed_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          number?: number;
+          reporter_id: string;
+          portal?: string;
+          happened: string;
+          expected?: string | null;
+          steps?: string | null;
+          severity: string;
+          page_path: string;
+          context?: Json;
+          client_logs?: Json;
+          screenshots?: Json;
+          status?: string;
+          admin_notes?: string | null;
+          fixed_in?: string | null;
+          status_changed_at?: string | null;
+          status_changed_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          number?: number;
+          reporter_id?: string;
+          portal?: string;
+          happened?: string;
+          expected?: string | null;
+          steps?: string | null;
+          severity?: string;
+          page_path?: string;
+          context?: Json;
+          client_logs?: Json;
+          screenshots?: Json;
+          status?: string;
+          admin_notes?: string | null;
+          fixed_in?: string | null;
+          status_changed_at?: string | null;
+          status_changed_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       ca_addresses: {
         Row: {
           id: number;
@@ -5166,6 +5232,7 @@ export type Database = {
           stack: string | null;
           ua: string | null;
           digest: string | null;
+          user_id: string | null;
         };
         Insert: {
           id?: number;
@@ -5175,6 +5242,7 @@ export type Database = {
           stack?: string | null;
           ua?: string | null;
           digest?: string | null;
+          user_id?: string | null;
         };
         Update: {
           id?: number;
@@ -5184,6 +5252,7 @@ export type Database = {
           stack?: string | null;
           ua?: string | null;
           digest?: string | null;
+          user_id?: string | null;
         };
         Relationships: [];
       };
@@ -32080,6 +32149,7 @@ export type Database = {
       server_chat_visitor_message: { Args: { p_token: string; p_body: string }; Returns: Json };
       server_client_error: { Args: { p: Json }; Returns: string };
       server_client_error_pre0532: { Args: { p: Json }; Returns: string };
+      server_client_error_pre2340: { Args: { p: Json }; Returns: string };
       server_colour_read_due: { Args: { p_limit?: number }; Returns: Json };
       server_colour_read_record: { Args: { p: Json }; Returns: Json };
       server_company_signers: { Args: never; Returns: Json };

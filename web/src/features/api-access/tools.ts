@@ -252,3 +252,15 @@ export function bearer(h: string | null): string | null {
   const m = /^Bearer\s+([A-Za-z0-9_-]{20,200})\s*$/i.exec(h ?? '');
   return m ? m[1]! : null;
 }
+
+// Release 37 (2340): bug reports from staff, so Claude works from them directly (never posted to GitHub: the repository is
+// public and the pictures may show personal data). The pictures come back as links that expire in ten minutes.
+export const BUG_TOOLS: Tool[] = [
+  read('bug_reports_list', 'List bug reports', 'Bug reports sent by staff and Admins with "Report a bug", newest first: number, status, severity (blocks_work, annoying, cosmetic), page, reporter and the start of the description. status: open (new and triaged, the default), new, triaged, fixed, wont_fix; since: an ISO date and time.',
+    { status: { type: 'string', enum: ['open', 'new', 'triaged', 'fixed', 'wont_fix'], description: 'Which reports (open by default)' }, since: str('Only reports sent at or after this ISO date and time'), limit: { type: 'integer', minimum: 1, maximum: 200, description: 'At most this many (100 by default)' } }),
+  read('bug_report_get', 'Get a bug report', 'One bug report by its number (BR-...) or id, as text: what happened, what was expected, the steps, the page, the browser, the build, the reporter\'s role, the browser\'s last 50 errors and failed calls (redacted), the server\'s errors for that person and page around that time, the notes, and links to its pictures that expire in ten minutes.',
+    { id: str('The report number (BR-...) or its id') }, ['id']),
+  write('bug_report_update', 'Update a bug report', 'Triage a bug report by its number (BR-...) or id: its status (new, triaged, fixed, wont_fix), a note (added with the date) and the release that fixed it (fixed_in, for example r38). The reporter sees the status in My bug reports.', ['id'],
+    { id: str('The report number (BR-...) or its id'), status: { type: 'string', enum: ['new', 'triaged', 'fixed', 'wont_fix'], description: 'The new status' }, note: str('A note to add'), fixed_in: str('The release that fixed it') })
+];
+TOOLS.push(...BUG_TOOLS);
