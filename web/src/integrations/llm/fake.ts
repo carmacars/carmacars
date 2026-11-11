@@ -173,6 +173,8 @@ export function fakeText(): TextGenerator {
         const { fakeRewrite } = await import('../../features/guides/upkeep');
         return { ok: true, data: fakeRewrite(req.prompt) as T, model: 'fake-draft-v1', usage: { inputTokens: req.prompt.length / 4, outputTokens: 400, neurons: 0 } };
       }
+      // r36 (2110): the stand-in never claims to know: an FAQ question goes to staff
+      if (req.task === 'faq_reply') return { ok: true, data: { faq: [], answer: '', confident: false, confidence: 0 } as T, model: 'fake', usage: { inputTokens: 0, outputTokens: 0, neurons: 0 } };
       // the live chat assistant (0060): a deterministic stand-in that follows the same protocol (agent.ts)
       if (req.task === 'chat') {
         if (process.env.FAKE_LLM_FAIL === '1') return { ok: false, reason: 'unavailable', message: 'The fake model is set to fail' };

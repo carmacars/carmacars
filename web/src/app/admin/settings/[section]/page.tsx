@@ -1,3 +1,4 @@
+import { AutoReplies } from '@/features/auto-reply/AutoReplies';
 import { SceneReferences } from '@/features/listing/Marketing';
 import { StaffOnboarding } from '@/features/staff-onboarding/StaffOnboarding';
 import type { OnboardingRow } from '@/features/staff-onboarding/model';
@@ -83,6 +84,7 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Staff commissions and prices typed by hand', (k) => /^(staff_commission_|sales_tier_|sales_remote_|custom_price_)/.test(k)],
   ['Referral partners (body shops, tow trucks)', (k) => k.startsWith('referral_partner_')],
   ['Advertising and owner recruitment', (k) => /^(ads_|recruit_)/.test(k)],
+  ['AI auto-replies (FAQ answers by text, email, chat, WhatsApp, Messenger, Instagram)', (k) => k.startsWith('auto_reply_')],
   ['Live visitors and live chat', (k) => /^(visitor_|chat_)/.test(k)],
   ['The CarmaCars app (App Store and Google Play)', (k) => ['app_store_url', 'play_store_url'].includes(k)],
   ['Review requests', (k) => k.startsWith('review_')],
@@ -406,6 +408,8 @@ export default async function Section({ params, searchParams }: { params: Promis
       {PROGRAM_GROUPS.map(([title, test]) => { const ks = keys.filter((k) => k !== 'google_drive_api_key' && !used.has(k) && test(k)); ks.forEach((k) => used.add(k)); if (!ks.length) return null; return (
         <Card key={title} title={title}><details open={title === 'Booking requests and offers'}><summary className="link">{ks.length} settings</summary>
           <SaveForm table="program_settings" rowKey="current" testId={`program-${title.split(' ')[0]!.toLowerCase()}`} fields={fieldsFrom(s.program, ks)} /></details></Card>); })}
+      {/* r36 (2110): what the AI auto-replies did (their settings are the group above) */}
+      <Card title="AI auto-replies: the last answers" testId="auto-replies-card"><AutoReplies /></Card>
       <Card title="Staff agreement defaults by function" testId="staff-defaults"><StaffDefaults value={(s.program.staff_agreement_defaults ?? {}) as StaffDefaultsValue} /></Card>
       <StuckReport d={await read<StuckReportData>('help_stuck').catch(() => null)} />
     </>);

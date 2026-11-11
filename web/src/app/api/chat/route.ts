@@ -5,6 +5,7 @@ import { currentUser } from '@/server/portal/data';
 import { answer, answerFailed, staffNote, type VisitorMessageState } from '@/server/chat';
 import { notAnsweredFor } from '@/features/chat/reply-path';
 import { PAUSE } from '@/features/usage/model';
+import { chatAutoReplyOn } from '@/server/auto-reply';
 
 // Live chat (migration 0060), the visitor's side: open or continue a conversation, send a message (the assistant
 // answers while no person has the chat), ask for a person, leave contact details, end the chat. The conversation's
@@ -39,7 +40,11 @@ export async function POST(req: Request) {
         if (!text) return NextResponse.json({ ok: false, error: 'empty' }, { status: 400, headers: H });
         const st = (await rpc('server_chat_visitor_message', { p_token: token, p_body: text }, SR)) as unknown as VisitorMessageState;
         if (!st.ok) return NextResponse.json(st, { headers: H });
-        if (st.ai) {
+        // r36 (2110): Program settings > AI auto-replies > chat off: a person answers every chat
+        if (st.ai && !(await chatAutoReplyOn())) {
+          await rpc('server_chat_handoff', { p_token: token, p_reason: 'AI auto-replies are off for the live chat' }, SR);
+        }
+        else if (st.ai) {
           // 0370: a failure is recorded and shown to staff (a note in the chat, "AI replies paused" in Live chat), never swallowed
           try { await answer(token, st, text); }
           catch (e) { await answerFailed(token, st, e); }

@@ -38,6 +38,10 @@ const schema = z.object({
   /** 0910: Google Gemini, the vision fallback when set (free trial tier: its quota and model errors fall back to typing) */
   GEMINI_API_KEY: z.string().optional(),
   GEMINI_VISION_MODEL: z.string().optional(),
+  /** r36 (2110): the Meta app's secret (checks the webhook's signature: Messenger, Instagram, WhatsApp) and the WhatsApp
+   *  Cloud API token; unset: the Meta webhook answers nothing */
+  META_APP_SECRET: z.string().optional(),
+  WHATSAPP_TOKEN: z.string().optional(),
   VIN_DECODER: z.enum(['vpic', 'fake']).default('fake'),
   /** The listing pipeline: copy drafts (workers-ai: the Worker's AI binding) and photos (cloudflare: Images transformations). */
   LLM_PROVIDER: z.enum(['workers-ai', 'fake']).default('fake'),

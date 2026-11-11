@@ -1,3 +1,4 @@
+import { after } from 'next/server';
 import { handleQuoWebhook } from '@/server/phone';
 
 // Quo (formerly OpenPhone) webhook, migration 0085: every call and text on the CarmaCars number. The signature is
@@ -11,6 +12,8 @@ export async function POST(req: Request): Promise<Response> {
   if (raw.length > 256_000) return Response.json({ error: 'too large' }, { status: 413 });
   try {
     const r = await handleQuoWebhook(raw, (n) => req.headers.get(n));
+    // r36 (2110): the FAQ auto-reply runs after Quo has its answer (Quo wants a 2xx within 10 seconds)
+    if (r.followUp) { const f = r.followUp; after(async () => { try { await f(); } catch { /* recorded by the auto-reply itself */ } }); }
     return Response.json(r.body, { status: r.status });
   } catch {
     // Quo retries a failed delivery (8 times over about a day)
