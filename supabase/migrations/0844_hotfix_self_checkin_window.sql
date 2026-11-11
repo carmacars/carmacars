@@ -1,5 +1,6 @@
--- Hotfix (Nov 11): the renter's own check-in is offered from 24 hours before pickup on the booking page, but the
--- database refused it until 3 hours before. The window now matches the page (24 hours).
+-- Hotfix (Nov 11): renters can always check in on their own. No time window (the page offered it from 24 hours
+-- before pickup while the database refused it until 3 hours before), and a check-in after the trip has started is
+-- taken too: its photos and readings join the pickup report (or go to staff review when there is none).
 
 create or replace function app.self_handover_submit(p_user uuid, p jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app as $$
@@ -14,12 +15,12 @@ declare
   r jsonb;
   v_err text;
   v_task uuid;
+  v_report uuid;
 begin
   select * into b from bookings where (id::text = p ->> 'booking' or booking_number = upper(btrim(coalesce(p ->> 'booking', '')))) for update;
   if b.id is null or not coalesce(app.is_booking_renter(b.id, p_user), false) then raise exception 'Booking not found' using errcode = 'P0002'; end if;
   if v_kind <> 'pickup' then raise exception 'Use the return form for the return' using errcode = '22023'; end if;
-  if b.status not in ('pending_payment', 'confirmed') then raise exception 'Booking % is %: there is no pickup to check in', b.booking_number, replace(b.status::text, '_', ' ') using errcode = '23514'; end if;
-  if now() < b.pickup_at - interval '24 hours' then raise exception 'Check in when you pick the car up (from 24 hours before the pickup time)' using errcode = '23514'; end if;
+  if b.status not in ('pending_payment', 'confirmed', 'on_rent') then raise exception 'Booking % is %: there is no pickup to check in', b.booking_number, replace(b.status::text, '_', ' ') using errcode = '23514'; end if;
   if v_km is not null and (v_km < 0 or v_km > 2000000) then raise exception 'Check the odometer reading' using errcode = '22023'; end if;
   if v_fuel is not null and v_fuel not between 0 and 100 then raise exception 'The fuel level is 0 to 100%%' using errcode = '22023'; end if;
   if jsonb_typeof(v_photos) <> 'array' or jsonb_array_length(v_photos) > 40 then raise exception 'Up to 40 photos' using errcode = '22023'; end if;
@@ -30,6 +31,19 @@ begin
   insert into self_handovers (booking_id, kind, submitted_by, at, odometer_km, fuel_pct, note, photos)
   values (b.id, 'pickup', p_user, v_at, v_km, v_fuel::smallint, nullif(left(btrim(coalesce(p ->> 'note', '')), 1000), ''), v_photos)
   returning * into s;
+
+  -- the trip has started: the photos and readings join the pickup report
+  if b.status = 'on_rent' then
+    select id into v_report from condition_reports where booking_id = b.id and kind = 'pickup' order by performed_at desc limit 1;
+    if v_report is not null then
+      perform app.report_add_photos(v_report, b.id, v_photos, p_user);
+      update condition_reports set odometer_km = coalesce(odometer_km, v_km), fuel_pct = coalesce(fuel_pct, v_fuel::smallint) where id = v_report;
+      update self_handovers set status = 'applied', condition_report_id = v_report where id = s.id;
+      perform app.log_booking_event(b.id, 'adjusted', b.status::text, b.status::text, null,
+        format('The renter added their own check-in (%s photos) after the trip started', jsonb_array_length(v_photos)), p_user, 'renter', jsonb_build_object('self_handover_id', s.id));
+      return jsonb_build_object('status', 'applied', 'booking_status', b.status);
+    end if;
+  end if;
 
   if b.status = 'confirmed' and app.handover_complete_enough(v_km, v_fuel, v_photos) then
     begin
