@@ -5,6 +5,7 @@ import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
 import { $, Badge, BookingLink, Card, Kv, PageHead, Table, d, label } from '@/features/admin/ui';
+import type { NotCollected } from '@/features/owner/types';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Owner statement', path: '/admin/statements', noindex: true, description: 'One owner statement, per vehicle.' });
@@ -15,7 +16,7 @@ export default async function Statement({ params }: { params: Promise<{ id: stri
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const { read } = await page(`/admin/statements/${id}`);
-  const s = await read<(R & { vehicles: Veh[]; owner_lines: R[]; row: R }) | null>('owner_statement', { id });
+  const s = await read<(R & { vehicles: Veh[]; owner_lines: R[]; row: R; not_collected?: NotCollected }) | null>('owner_statement', { id });
   if (!s?.row) notFound();
   const r = s.row; const status = String(r.status);
   const R = [`/admin/statements/${id}`, '/admin/owner-money'];
@@ -29,6 +30,10 @@ export default async function Statement({ params }: { params: Promise<{ id: stri
       {status === 'approved' && <Act action="statement_reissue" payload={{ id }} label="Reissue" variant="danger" fields={[{ name: 'reason', label: 'Reason', required: true }]} go="/admin/statements/{id}" />}
     </PageHead>
     <Kv rows={[['Owner Revenue', $(r.owner_revenue_cents)], ['Management fee (Revenue Share)', $(r.revenue_share_cents)], ['Deductions', $(r.deductions_cents)], ['Credits', $(r.credits_cents)], ['Balance brought forward', $(r.balance_brought_forward_cents)], ['Payout', <b key="p" data-testid="statement-payout">{$(r.payout_cents)}</b>], ['Payout date', d(r.payout_date)], ['Approved', r.approved_at ? `${d(r.approved_at)}` : ''], ['Issued', d(r.sent_at)]]} />
+    {/* 1702: revenue counts when earned; the part not paid yet, with the bookings behind it */}
+    {s.not_collected?.line && <Card title={s.not_collected.line} testId="statement-not-collected">
+      <Table rows={s.not_collected.bookings as unknown as R[]} rowKey={(_, i) => String(i)} cols={[{ key: 'booking_number', label: 'Booking', render: (x) => <BookingLink n={String(x.booking_number)} /> }, { key: 'reason_label', label: 'Why' }, { key: 'cents', label: 'Not yet collected', num: true, render: (x) => $(x.cents) }]} />
+    </Card>}
     {s.vehicles.map((v) => (
       <Card key={String(v.vehicle_id)} title={`${v.vehicle} ${v.plate ?? ''}`} aside={<span className="small">{label(v.management_mode)} · payable {$(v.payable_cents)}</span>}>
         <Kv rows={[['Owner Revenue', $(v.owner_revenue_cents)], ['Management fee (Revenue Share)', $(v.revenue_share_cents)], ['Fees deducted', $(v.fees_deducted_cents)], ['Owner costs', $(v.owner_costs_deducted_cents)], ['Credits', $(v.credits_cents)], ...(v.flat_payment_cents ? [['Of which flat monthly payment', $(v.flat_payment_cents)] as [string, ReturnType<typeof $>]] : [])]} />

@@ -69,6 +69,10 @@ export default async function OwnerStatementPage({ params }: { params: Promise<{
               {st.balance_brought_forward_cents !== 0 && <div><dt>Balance brought forward</dt><dd>{c(st.balance_brought_forward_cents)}</dd></div>}
               <div><dt><b>{st.balance_carried_forward_cents < 0 ? 'Balance owing' : 'Payout'}</b></dt><dd className="pt-total" data-testid="statement-payout">{c(st.balance_carried_forward_cents < 0 ? -st.balance_carried_forward_cents : st.payout_cents)}</dd></div>
             </dl>
+            {s.not_collected?.line && <div className="stack" data-testid="statement-not-collected">
+              <p className="small"><b>{s.not_collected.line}</b>. Revenue counts when it is earned; we collect these bookings and nothing more is asked of you.</p>
+              <ul className="ow-rows">{s.not_collected.bookings.map((b) => <li key={`${b.booking_id}-${b.vehicle_id}`}><span>Booking {b.booking_number}</span><span className="ow-amount">{c(b.cents)}</span><span className="ow-meta"><span>{b.reason_label}</span></span></li>)}</ul>
+            </div>}
             {s.payout && <Dl rows={[['Paid', s.payout.paid_at ? day(s.payout.paid_at) : `Scheduled for ${day(s.payout.scheduled_for)}`], ['Method', s.payout.method.replace('_', ' ')], ['Reference', s.payout.reference ?? '']]} />}
           </section>
         </aside>

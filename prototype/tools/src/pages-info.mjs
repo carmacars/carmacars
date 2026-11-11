@@ -175,7 +175,8 @@ ${head(trail, 'What you need, and how you’re covered.', 'The rules are short. 
     <div class="c-8"><table class="spec"><tbody>
       <tr><th scope="row">Where</th><td>The car stays in Ontario unless we agree in writing first</td></tr>
       <tr><th scope="row">Who drives</th><td>Only you and the additional drivers on the booking</td></tr>
-      <tr><th scope="row">Not allowed</th><td>Ride-hailing or delivery work, re-renting, towing, racing or track use, driving off maintained roads</td></tr>
+      <tr><th scope="row">Rideshare and delivery</th><td>Welcome. Rideshare and delivery driving (Uber, Lyft, delivery apps) are allowed; tell us in your request</td></tr>
+      <tr><th scope="row">Not allowed</th><td>Re-renting, towing, racing or track use, driving off maintained roads</td></tr>
       <tr><th scope="row">Smoking and pets</th><td>No smoking or vaping. Pets need our approval first. Service animals are always welcome.</td></tr>
       <tr><th scope="row">Tracking</th><td>Every car has a GPS tracker that records location for the whole rental. The car’s owner can see its location too.</td></tr>
       <tr><th scope="row">Tolls and tickets</th><td>Yours to pay, including Highway 407 ETR</td></tr>

@@ -68,7 +68,9 @@ export function siblingFill(name: string, names: readonly string[], p: AddressPa
   const pre = ADDRESS_NAME.exec(name)?.[1] ?? `${name}_`;
   const has = (k: string) => (k !== name && names.includes(k) ? k : undefined);
   const city = has(`${pre}city`), prov = has(`${pre}province`) ?? has(`${pre}region`), postal = has(`${pre}postal_code`);
-  const unit = has(`${pre}address_line2`) ?? has(`${pre}unit`), country = has(`${pre}country`), lat = has(`${pre}latitude`), lng = has(`${pre}longitude`);
+  // 1701: the delivery origin's coordinates keep their older names (company_latitude, company_longitude)
+  const geoPre = pre === 'delivery_origin_' ? 'company_' : pre;
+  const unit = has(`${pre}address_line2`) ?? has(`${pre}unit`), country = has(`${pre}country`), lat = has(`${geoPre}latitude`), lng = has(`${geoPre}longitude`);
   const out: Record<string, string> = {};
   out[name] = city && p.street ? (unit || !p.unit ? p.street : `${p.street}, Unit ${p.unit}`) : label;
   if (city && p.city) out[city] = p.city;

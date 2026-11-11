@@ -40,7 +40,9 @@ test('a form of named fields: the address field\'s siblings are filled (2026-10-
   assert.deepEqual(siblingFill('address_line1', ['business_name', 'address_line1', 'city', 'postal_code'], p, label), { address_line1: '65 Front St W, Unit 4', city: 'Toronto', postal_code: 'M5J 1E6' });
   // a staff member's home address and postal code: the address stays on one line
   assert.deepEqual(siblingFill('home_address', ['home_address', 'home_postal_code'], p, label), { home_address: label, home_postal_code: 'M5J 1E6' });
-  // the delivery origin: one line and its coordinates
+  // the delivery origin (1701): its address fills the coordinates kept under their older names
+  assert.deepEqual(siblingFill('delivery_origin_address', ['delivery_origin_address', 'company_latitude', 'company_longitude'], p, label, { lat: 1, lng: 2 }), { delivery_origin_address: label, company_latitude: '1', company_longitude: '2' });
+  // the mailing address with the coordinates beside it
   assert.deepEqual(siblingFill('company_address', ['company_latitude', 'company_longitude', 'company_address'], p, label, { lat: 1, lng: 2 }), { company_address: label, company_latitude: '1', company_longitude: '2' });
   // alone in its form
   assert.deepEqual(siblingFill('place', ['place', 'odometer'], p, label), { place: label });

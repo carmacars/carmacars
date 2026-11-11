@@ -105,7 +105,9 @@ export const POLICY_SECTIONS = [
       Q('A toll notice arrives. What does the renter pay?', ['Nothing', 'The amount plus $15', 'The amount plus $40', 'Only our fee'], 1, 'A toll is the amount plus a $15 fee; a ticket is the amount plus $40.'),
       Q('What is the most a renter pays for damage under our fleet policy?', ['$500', '$1,000', 'The $2,500 deductible, plus $75 for a claim', 'The full repair'], 2, 'The deductible is $2,500, plus a $75 administration fee for a claim.'),
       Q('Who decides to bill damage or keep a deposit?', ['Anyone at the return', 'An Admin, with the photos', 'The renter', 'The owner'], 1, 'Only an Admin bills damage or keeps a deposit, with the photos.'),
-      Q('Within how long must an accident be reported?', ['48 hours', '7 days', '30 days', 'At the return'], 0, 'Accidents and damage are reported within 48 hours.')
+      Q('Within how long must an accident be reported?', ['48 hours', '7 days', '30 days', 'At the return'], 0, 'Accidents and damage are reported within 48 hours.'),
+      // r35 fix (1704): the owner's decision of 2026-11-11; added to the live section by migration 1704
+      Q('A renter asks: "Can I drive for Uber or deliver food with the car?"', ['No, it is not allowed', 'Yes: rideshare and delivery driving are welcome; ask them to tell us in the request', 'Only with an extra fee', 'Only on cars over $65,000'], 1, 'Rideshare and delivery driving are welcome (rental agreement, section 10.3). Once booked, the booking page makes the documents the platforms ask for.')
     ]
   }
 ];

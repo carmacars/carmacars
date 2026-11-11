@@ -10,6 +10,15 @@ Here are the totals across your vehicles, {{first_name}}. The full statement lis
 {{payout_label}}: {{payout_amount}}
 {{payout_summary}}
 
+{{#if has_not_collected}}
+{{not_collected_line}}
+Revenue counts when it is earned. These bookings are not paid to us yet; we collect them and nothing more is asked of you.
+
+{{#each not_collected_rows}}
+  Booking: {{booking}} | Why: {{reason}} | Not yet collected: {{amount}}
+{{/each}}
+{{/if}}
+
 {{#if statement_vehicles}}
 By vehicle
 ------------------------
