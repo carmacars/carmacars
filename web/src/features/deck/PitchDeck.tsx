@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 import { DeckFrame } from './DeckFrame';
-import { ABOUT, COMPETITORS, COVER, DEMAND, DIFFERENCE, FOOTNOTES, MODEL, PER_CAR, RAISE, SLIDES, dollars, monthlyInterest, perCarRevenue, type PitchSlide } from './pitch';
+import { ABOUT, BUSINESS_LINES, COMPETITORS, COVER, DEMAND, DIFFERENCE, FOOTNOTES, MODEL, PER_CAR, PLATFORM, RAISE, SLIDES, dollars, monthlyInterest, perCarRevenue, type PitchSlide } from './pitch';
 
-// The investor pitch deck, 2026 (release 35): the owner's eight slides as responsive HTML (no images of slides), in the
+// The investor pitch deck, 2026 (release 35): the owner's ten slides as responsive HTML (no images of slides), in the
 // deck frame (counter, previous and next, keyboard and swipe, Download PDF). Every word and number is in pitch.ts.
 
 const NOTICE = `${FOOTNOTES.internal} ${FOOTNOTES.offer}.`;
@@ -42,7 +42,7 @@ function Head({ s, lead }: { s: PitchSlide; lead?: ReactNode }) {
 }
 
 export function PitchDeck({ multiplier = PER_CAR.multiplier }: { multiplier?: number }) {
-  const [cover, model, competitors, difference, demand, perCar, ask, about] = SLIDES as [PitchSlide, PitchSlide, PitchSlide, PitchSlide, PitchSlide, PitchSlide, PitchSlide, PitchSlide];
+  const [cover, model, lines, competitors, difference, platform, demand, perCar, ask, about] = SLIDES as [PitchSlide, PitchSlide, PitchSlide, PitchSlide, PitchSlide, PitchSlide, PitchSlide, PitchSlide, PitchSlide, PitchSlide];
   const mult = `${+multiplier.toFixed(2)}x`;
   return (
     <DeckFrame titles={SLIDES.map((s) => s.title)}>
@@ -64,7 +64,14 @@ export function PitchDeck({ multiplier = PER_CAR.multiplier }: { multiplier?: nu
         </div>
       </Slide>
 
-      <Slide s={competitors} n={3}>
+      <Slide s={lines} n={3}>
+        <Head s={lines} />
+        <div className="dk-body"><ol className="dk-grid" data-testid="deck-lines">
+          {BUSINESS_LINES.map((x) => <li key={x.title} className="dk-card dk-card--accent"><h3>{x.title}</h3><p>{x.text}</p></li>)}
+        </ol></div>
+      </Slide>
+
+      <Slide s={competitors} n={4}>
         <Head s={competitors} />
         <div className="dk-body"><div className="dk-cols" style={{ ['--dk-cols' as string]: 3 }}>
           {COMPETITORS.others.map((x) => <div key={x.title} className="dk-card"><h3>{x.title}</h3><p>{x.text}</p></div>)}
@@ -72,19 +79,30 @@ export function PitchDeck({ multiplier = PER_CAR.multiplier }: { multiplier?: nu
         </div></div>
       </Slide>
 
-      <Slide s={difference} n={4}>
+      <Slide s={difference} n={5}>
         <Head s={difference} />
         <div className="dk-body"><div className="dk-grid">{DIFFERENCE.map((x) => <div key={x} className="dk-card dk-card--accent"><h3>{x}</h3></div>)}</div></div>
       </Slide>
 
-      <Slide s={demand} n={5}>
+      <Slide s={platform} n={6}>
+        <Head s={platform} />
+        <div className="dk-body">
+          <div className="dk-cols" style={{ ['--dk-cols' as string]: 2 }} data-testid="deck-seo">
+            {PLATFORM.search.map((x) => <div key={x.text} className="dk-card"><p className="dk-stat__big">{x.big}</p><p>{x.text}</p></div>)}
+          </div>
+          <ul className="dk-grid" data-testid="deck-ai">{PLATFORM.ai.map((x) => <li key={x} className="dk-card dk-card--accent"><p>{x}</p></li>)}</ul>
+          <p className="dk-note">Google clicks and impressions, week by week, follow the slides.</p>
+        </div>
+      </Slide>
+
+      <Slide s={demand} n={7}>
         <Head s={demand} />
         <div className="dk-body"><div className="dk-grid" data-testid="deck-demand">
           {DEMAND.map((x) => <div key={x.text} className="dk-card"><p className="dk-stat__big">{x.big}</p><p>{x.text}</p></div>)}
         </div></div>
       </Slide>
 
-      <Slide s={perCar} n={6}>
+      <Slide s={perCar} n={8}>
         <Head s={perCar} />
         <div className="dk-body">
           <div className="dk-cols" style={{ ['--dk-cols' as string]: 3 }}>
@@ -96,7 +114,7 @@ export function PitchDeck({ multiplier = PER_CAR.multiplier }: { multiplier?: nu
         </div>
       </Slide>
 
-      <Slide s={ask} n={7}>
+      <Slide s={ask} n={9}>
         <Head s={ask} />
         <div className="dk-body"><div className="dk-cols" style={{ ['--dk-cols' as string]: 3 }}>
           <div className="dk-card" data-testid="deck-funds"><h3>Use of funds</h3><ul className="dk-list">{RAISE.funds.map((f) => <li key={f.label}><b>{dollars(f.amount)}</b> {f.label.toLowerCase()}</li>)}</ul></div>
@@ -107,7 +125,7 @@ export function PitchDeck({ multiplier = PER_CAR.multiplier }: { multiplier?: nu
         </div><p className="dk-note">{FOOTNOTES.offer}.</p></div>
       </Slide>
 
-      <Slide s={about} n={8}>
+      <Slide s={about} n={10}>
         <Head s={about} lead={ABOUT.text} />
         <div className="dk-body"><div className="dk-cols" style={{ ['--dk-cols' as string]: 2 }}>
           {ABOUT.people.map((p) => <div key={p.name} className="dk-card"><h3>{p.name}</h3><p>{p.role}</p></div>)}
