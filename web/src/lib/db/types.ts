@@ -11574,6 +11574,66 @@ export type Database = {
         };
         Relationships: [];
       };
+      listing_angle_makes: {
+        Row: {
+          id: string;
+          vehicle_id: string;
+          shot_type: string;
+          generated: boolean;
+          sources: string[];
+          status: string;
+          path: string | null;
+          width: number | null;
+          height: number | null;
+          provider: string | null;
+          note: string | null;
+          job_id: string | null;
+          created_by: string | null;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          vehicle_id: string;
+          shot_type: string;
+          generated?: boolean;
+          sources: string[];
+          status?: string;
+          path?: string | null;
+          width?: number | null;
+          height?: number | null;
+          provider?: string | null;
+          note?: string | null;
+          job_id?: string | null;
+          created_by?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          vehicle_id?: string;
+          shot_type?: string;
+          generated?: boolean;
+          sources?: string[];
+          status?: string;
+          path?: string | null;
+          width?: number | null;
+          height?: number | null;
+          provider?: string | null;
+          note?: string | null;
+          job_id?: string | null;
+          created_by?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       listing_channel_feed_stats: {
         Row: {
           channel_id: string;
@@ -18199,6 +18259,7 @@ export type Database = {
           auto_reply_handoff_text: string;
           auto_reply_meta_verify_token: string;
           auto_reply_whatsapp_phone_id: string | null;
+          listing_angle_prompt: string;
         };
         Insert: {
           id?: string;
@@ -19016,6 +19077,7 @@ export type Database = {
           auto_reply_handoff_text?: string;
           auto_reply_meta_verify_token?: string;
           auto_reply_whatsapp_phone_id?: string | null;
+          listing_angle_prompt?: string;
         };
         Update: {
           id?: string;
@@ -19833,6 +19895,7 @@ export type Database = {
           auto_reply_handoff_text?: string;
           auto_reply_meta_verify_token?: string;
           auto_reply_whatsapp_phone_id?: string | null;
+          listing_angle_prompt?: string;
         };
         Relationships: [];
       };
