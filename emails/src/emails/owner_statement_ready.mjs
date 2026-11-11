@@ -16,6 +16,18 @@ export default {
   body: [
     hero('Monthly statement', 'Your {{statement_month}} statement is ready', 'Here are the totals across your vehicles, {{first_name}}. The full statement lists every rental.'),
     figure('{{payout_label}}', '{{payout_amount}}', '{{payout_summary}}'),
+    // 1702: revenue counts when it is earned; what is not paid yet is said, with the bookings behind it
+    when('has_not_collected', [
+      notice('info', '{{not_collected_line}}', 'Revenue counts when it is earned. These bookings are not paid to us yet; we collect them and nothing more is asked of you.'),
+      table({
+        each: 'not_collected_rows',
+        cols: [
+          { head: 'Booking', value: '{{booking}}', strong: true },
+          { head: 'Why', value: '{{reason}}' },
+          { head: 'Not yet collected', value: '{{amount}}', align: 'right' },
+        ],
+      }),
+    ]),
     when('statement_vehicles', [
       h('By vehicle'),
       table({
@@ -55,5 +67,7 @@ export default {
     rentals_total: '$4,060.00', kickbacks_deducted: '-$200.00', owner_revenue_total: '$3,860.00', revenue_share_total: '-$1,351.00',
     deductions_total: '-$586.75', kickbacks_earned: '$0.00', has_payout_hst: false, payout_hst: '$0.00', has_balance_forward: false, balance_forward: '$0.00',
     statement_url: 'https://carmacars.ca/d/sample-statement-link', link_expiry: '7 days',
+    has_not_collected: true, not_collected_line: 'Of this, $412.50 is not yet collected',
+    not_collected_rows: [{ booking: 'CC-10421', reason: 'Billed to the insurer, not paid yet', amount: '$412.50' }],
   },
 };

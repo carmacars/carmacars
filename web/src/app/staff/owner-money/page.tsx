@@ -31,7 +31,7 @@ export default async function StaffOwnerMoney({ searchParams }: { searchParams: 
       <Table<R> testId="statements" rows={rows} empty="No statements yet." cols={[{ key: 'statement_number', label: 'Statement', render: (r) => String(r.statement_number ?? 'draft') },
         { key: 'owner_name', label: 'Owner' }, { key: 'statement_month', label: 'Period', render: (r) => periodOf(r as unknown as { statement_month: string }) },
         { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'owner_revenue_cents', label: 'Owner Revenue', num: true, render: (r) => $(r.owner_revenue_cents) },
-        { key: 'deductions_cents', label: 'Deductions', num: true, render: (r) => $(r.deductions_cents) }, { key: 'payout_cents', label: 'Payout', num: true, render: (r) => $(r.payout_cents) }, { key: 'payout_date', label: 'Payout date', render: (r) => d(r.payout_date) }]} />
+        { key: 'deductions_cents', label: 'Deductions', num: true, render: (r) => $(r.deductions_cents) }, { key: 'payout_cents', label: 'Payout', num: true, render: (r) => $(r.payout_cents) }, { key: 'not_collected_cents', label: 'Not yet collected', num: true, render: (r) => Number(r.not_collected_cents ?? 0) > 0 ? <span data-testid="not-collected" title="Of this, this much is not yet collected (revenue counts when earned)">{$(r.not_collected_cents)}</span> : '' }, { key: 'payout_date', label: 'Payout date', render: (r) => d(r.payout_date) }]} />
     </>);
   }
   const status = INV.some(([k]) => k === sp.status) ? sp.status ?? '' : '';

@@ -117,6 +117,12 @@ export interface OwnerStatement {
   vehicles: Array<{ vehicle_id: string; name: string; plate: string | null; management_mode: string; totals: Record<string, number>; lines: StatementLine[] }>;
   owner_lines: StatementLine[];
   payout: { amount_cents: number; status: string; method: string; paid_at: string | null; reference: string | null; scheduled_for: string } | null;
+  /** 1702: the part of the rentals not paid yet (revenue counts when earned), with the bookings behind it */
+  not_collected?: NotCollected;
+}
+export interface NotCollected {
+  total_cents: number; line: string | null; by_vehicle: Record<string, number>;
+  bookings: Array<{ booking_id: string; booking_number: string; vehicle_id: string; cents: number; reason: 'insurer' | 'past_trip' | 'balance'; reason_label: string }>;
 }
 export interface OwnerDoc { id: string; kind: string; title: string | null; vehicle_id: string | null; created_at: string }
 export interface OwnerForm { id: string; form_code: string; title: string | null; vehicle_id: string; vehicle_name: string; mode: string; status: string; missing: string[]; data_sheet: Array<{ label: string; value: string | null; section?: string }>; has_pdf: boolean; generated_at: string; official?: boolean; signed_document_id?: string | null }

@@ -310,6 +310,10 @@
           "answer": "Only with our written consent. Ask in your request."
         },
         {
+          "question": "Can I use the car for Uber, Lyft or delivery apps?",
+          "answer": "Yes. Rideshare and delivery driving are welcome. Tell us in your request; once booked, your booking page makes the documents the platforms ask for. Your mileage allowance, coverage and the rest of the rental agreement apply as usual."
+        },
+        {
           "question": "Can I bring a pet?",
           "answer": "With our approval, yes. Mention it in the request. Service animals do not need approval. A pet cleaning fee of {{pet}} applies if the car comes back with hair, odour or soiling."
         },

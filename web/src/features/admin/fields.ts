@@ -18,6 +18,8 @@ const LABELS: Record<string, string> = {
   fuel_prices_updated_on: 'Pump prices updated on', fuel_price_multiplier: 'Fuel shortfall: pump price times', refuel_fee_cents: 'Refuelling or recharging fee',
   ev_charge_kwh_cents: 'Charge shortfall, a kWh', fuel_tank_default_litres: 'Tank size when the car has none (litres)', ev_battery_default_kwh: 'Battery size when the car has none (kWh)',
   delivery_base_cents: 'Delivery or pickup base fee, each way', delivery_included_km: 'Km included in the base fee', delivery_road_factor: 'Straight line to road distance factor',
+  // 1701: the delivery origin and pickup location (our lot); company_address stays the mailing address
+  delivery_origin_address: 'Delivery origin and pickup location (address)', company_latitude: 'Delivery origin: latitude', company_longitude: 'Delivery origin: longitude',
   card_exotic_makes: 'Makes counted as exotic for card coverage', opcf27_before_payment: 'OPCF 27: pink slip and endorsement before payment',
   app_store_url: 'The CarmaCars app on the App Store (https://apps.apple.com/...)', play_store_url: 'The CarmaCars app on Google Play (https://play.google.com/...)',
   phone_gate_gallery: 'Phone number box: before more photos of a car', phone_gate_free_photos: 'Phone number box: photos shown before the number is asked',
@@ -236,8 +238,8 @@ const HINTS: Record<string, string> = {
   fuel_price_regular_cents: 'Local pump price (1.55 by default). Update the three prices weekly: Admin > Today reminds you after 7 days. The date updates itself.',
   fuel_price_multiplier: '1.25 by default. At each return: tank size x the fuel missing (pickup % minus return %) x the pump price of the car\'s grade x this, plus the refuelling fee. A suggested line on the deposit review: staff confirm it; no card is charged by it.',
   ev_charge_kwh_cents: '0.40 by default. An electric car: battery kWh x the charge missing x this, plus the refuelling fee.',
-  delivery_base_cents: '$75 by default, each way, with the km below included from the company\'s location; then the rate per km. A car with its own delivery fee on its rate card keeps it (the per-car override); every other car follows this.',
-  delivery_road_factor: '1.3 by default. Without a road distance from the maps service, the straight line from the company\'s location times this.',
+  delivery_base_cents: '$75 by default, each way, with the km below included from the delivery origin (below); then the rate per km. A car with its own delivery fee on its rate card keeps it (the per-car override); every other car follows this.',
+  delivery_road_factor: '1.3 by default. Without a road distance from the maps service, the straight line from the delivery origin times this.',
   opcf27_before_payment: 'On by default. A booking on OPCF 27 is paid, and so confirmed, only once the renter uploaded the pink slip and the OPCF 27 endorsement page. Staff approve or reject them as before.',
   app_store_url: 'Empty until the app is live. When set, iPhones browsing the site see "Download the CarmaCars app" in the footer and in the alerts invitation.',
   play_store_url: 'Empty until the app is live. When set, Android phones browsing the site see "Download the CarmaCars app" in the footer and in the alerts invitation.',
@@ -390,7 +392,7 @@ function fieldForBase(k: string, v: unknown, options?: Array<[string, string]>):
   if (typeof v === 'boolean') return { name: k, label: nice(k), type: 'bool', value: v };
   if (k === 'field_pay_anchor' && (typeof v === 'string' || v === null)) return { name: k, label: nice(k), type: 'date', value: v, required: true };
   // an address column: the field with the address lookup (0130)
-  if ((typeof v === 'string' || v === null) && /^(mailing_address|billing_address|street_address|business_street|home_address|company_address|address_line1)$/.test(k)) return { name: k, label: nice(k), type: 'address', value: v };
+  if ((typeof v === 'string' || v === null) && /^(mailing_address|billing_address|street_address|business_street|home_address|company_address|delivery_origin_address|address_line1)$/.test(k)) return { name: k, label: nice(k), type: 'address', value: v };
   // 0354: the calculator's two fees are dollars a month (cents in the database), named as the owner asked
   if ((k.endsWith('_cents') || k === 'owner_calc_insurance_fee' || k === 'owner_calc_tracker_fee') && (typeof v === 'number' || v === null)) return { name: k, label: nice(k), type: 'money', value: v };
   if (k.endsWith('_bps') && (typeof v === 'number' || v === null)) return { name: k, label: nice(k), type: 'percent', value: v };

@@ -155,11 +155,13 @@ You must pay all tolls (including Highway 407 ETR), parking charges, tickets, ca
 
 - when driven by anyone other than you or an Additional Driver, or by anyone impaired by alcohol, cannabis, drugs or medication;
 - for an illegal purpose, racing, stunt driving, track use or driver training;
-- to carry passengers or goods for payment, including ride-hailing and delivery work, or to re-rent it or list it on a car-sharing platform;
+- to carry passengers or goods for payment other than the rideshare and delivery driving that section 10.3 welcomes, or to re-rent it or list it on a car-sharing platform;
 - to tow anything, off maintained roads, overloaded, or carrying dangerous goods; or
 - to smoke or vape in it, or to carry a pet without our approval, except a service animal.
 
-**10.3 Care.** You must keep the Vehicle locked and the keys with you. You must not alter it, copy a key, tamper with the odometer or the Tracker, or give anyone a right over it. If a key or fob is lost or not returned, you owe the lost key or fob fee.
+**10.3 Rideshare and delivery driving are welcome.** You may drive the Vehicle for Uber, Lyft and similar rideshare platforms, and for delivery apps. Only you or an Additional Driver may drive it for that work, and the platform's own rules for drivers and vehicles are yours to meet. Every other term of this Agreement applies as usual, including the mileage allowance and overage in the Summary, Damage (section 9) and the other uses section 10.2 prohibits. On request, we give you the documents a platform asks for.
+
+**10.4 Care.** You must keep the Vehicle locked and the keys with you. You must not alter it, copy a key, tamper with the odometer or the Tracker, or give anyone a right over it. If a key or fob is lost or not returned, you owe the lost key or fob fee.
 
 ### 11. Accidents, theft and breakdown
 

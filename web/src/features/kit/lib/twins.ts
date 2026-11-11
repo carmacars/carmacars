@@ -16,7 +16,7 @@ export const TWINS: Record<string, Bank> = {
     '{term} and the {car}: the figures first, then how to rent it from CarmaCars.'
   ],
   'tr.family': [
-    ['t-gig', 'For rideshare or delivery work, tell us in your request; weekly and monthly rates come first for that kind of use.'],
+    ['t-gig', 'Rideshare and delivery driving are welcome: tell us in your request; weekly and monthly rates come first for that kind of use.'],
     ['t-gig', 'Each platform sets its own vehicle rules, by city and model year; check them before you book.'],
     ['t-replace', 'When your adjuster approves a rental, we can bill your insurance company directly.'],
     ['t-long', 'One booking runs up to {{maxDays}} days and renews with a new agreement.'],

@@ -80,6 +80,12 @@ function ownerStatement(f: F): Block[] {
     ['HST on payout', dollars(t.hst_on_payout_cents)], ['Balance brought forward', dollars(t.balance_brought_forward_cents)],
     [n(t.payout_cents) > 0 ? '**Payout**' : '**Balance owing**', `**${dollars(n(t.payout_cents) > 0 ? t.payout_cents : -n(t.balance_carried_forward_cents))}**`],
     ...(paid ? [['Paid', `${day(paid.paid_at)}, ${label(paid.method)}, reference ${s(paid.reference)}`] as [string, string]] : [])] });
+  // 1702: revenue counts when earned; the part not paid yet, with the bookings behind it
+  const nc = (f.not_collected ?? null) as Row | null;
+  if (nc && n(nc.total_cents) > 0) {
+    blocks.push({ t: 'p', text: `**${s(nc.line)}**. Revenue counts when it is earned; we collect these bookings and nothing more is asked of you.` });
+    blocks.push({ t: 'table', head: ['Booking', 'Why', 'Not yet collected'], rows: ((nc.bookings ?? []) as Row[]).map((b) => [s(b.booking_number), s(b.reason_label), dollars(b.cents)]) });
+  }
   blocks.push({ t: 'p', text: 'Fees are billed separately, on your monthly invoices. Questions: reply to the statement email or use Statements in your owner portal.' });
   return blocks;
 }

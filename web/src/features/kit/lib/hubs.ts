@@ -100,7 +100,7 @@ export const HUBS: Record<string, Bank> = {
     'Worth knowing', 'The details that matter'
   ],
   'hr.why.family': [
-    ['t-gig', 'If the car is for rideshare or delivery work, tell us when you book. Weekly and monthly rates come first for that kind of use.'],
+    ['t-gig', 'Rideshare and delivery driving are welcome. If the car is for that work, tell us when you book. Weekly and monthly rates come first for that kind of use.'],
     ['t-gig', 'Gig work runs on long hours, so the weekly rate applies from {{weekFrom}} days, and one booking runs up to {{maxDays}} days.'],
     ['t-gig', 'Each platform sets its own rules for vehicles. Check them before you book; platform names here only describe the work.'],
     ['t-gig', 'Drivers use our cars for app work by the week or the month, and say so in the request.'],
@@ -233,7 +233,7 @@ export const HUBS: Record<string, Bank> = {
     'Can I rent for a month? || Yes. One booking runs up to {{maxDays}} days, and it can renew with a new agreement.'
   ],
   'hr.faq.family': [
-    ['t-gig', 'Can I use the car for Uber or delivery work? || Yes, when you tell us in your request. Check the platform\'s own vehicle rules before you book.'],
+    ['t-gig', 'Can I use the car for Uber or delivery work? || Yes. Rideshare and delivery driving are welcome: tell us in your request. Check the platform\'s own vehicle rules before you book.'],
     ['t-replace', 'Will my insurer pay for the rental? || After a collision, often yes, when your adjuster approves it. We can bill your insurance company directly.'],
     ['t-airportterm', 'Do you have an airport counter? || No. We meet you with the car at the time we confirm, at Toronto Pearson or Billy Bishop.'],
     ['t-ev', 'How do I charge an electric rental? || Each electric car\'s page shows its charging details. Return it with the charge it had at pickup.'],

@@ -13804,6 +13804,11 @@
           "sample": false
         },
         {
+          "name": "has_not_collected",
+          "type": "boolean",
+          "sample": true
+        },
+        {
           "name": "has_payout_hst",
           "type": "boolean",
           "sample": false
@@ -13829,6 +13834,27 @@
           "type": "string",
           "sample": "7 days",
           "note": "How long the one-time link stays valid."
+        },
+        {
+          "name": "not_collected_line",
+          "type": "string",
+          "sample": "Of this, $412.50 is not yet collected"
+        },
+        {
+          "name": "not_collected_rows",
+          "type": "list",
+          "sample": [
+            {
+              "booking": "CC-10421",
+              "reason": "Billed to the insurer, not paid yet",
+              "amount": "$412.50"
+            }
+          ],
+          "fields": [
+            "booking",
+            "reason",
+            "amount"
+          ]
         },
         {
           "name": "opening_hours",
