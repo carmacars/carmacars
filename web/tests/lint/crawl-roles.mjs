@@ -300,7 +300,14 @@ async function crawlRole(browser, role) {
   const status = async (href) => {
     if (checked.has(href)) return checked.get(href);
     const t0 = Date.now();
-    const r = await ctx.request.get(BASE + href, { maxRedirects: 5, failOnStatusCode: false, timeout: 30_000 }).catch((e) => ({ status: () => 599, headers: () => ({}), err: String(e) }));
+    let r = await ctx.request.get(BASE + href, { maxRedirects: 5, failOnStatusCode: false, timeout: 30_000 }).catch((e) => ({ status: () => 599, headers: () => ({}), err: String(e) }));
+    // the request failed: if ours answered with a redirect to another site (the Rewards page's follow links), that is the
+    // answer that counts; the CI runner may not reach the other site (599 for Instagram on Nov 11)
+    if (r.status() === 599) {
+      const first = await ctx.request.get(BASE + href, { maxRedirects: 0, failOnStatusCode: false, timeout: 30_000 }).catch(() => null);
+      const loc = first && first.status() >= 300 && first.status() < 400 ? first.headers()['location'] : null;
+      if (loc && new URL(loc, BASE).origin !== BASE) r = { status: () => 200, headers: () => ({ 'content-type': 'external' }), url: () => new URL(loc, BASE).href };
+    }
     slow.push([Date.now() - t0, 'link ' + href]);
     // a link of ours that sends the browser on to another site (a follow on the Rewards page): ours answered with the
     // redirect, which is what counts; the other site's answer (a 429, a page that is not ours) is not checked or rendered
