@@ -67,9 +67,10 @@ test('a swipe on a phone moves to the next photo and opens nothing; a tap opens 
   await settled(card);
   const m = (await card.locator('.car-card__media').boundingBox())!;
   const y = Math.round(m.y + m.height / 2), x0 = Math.round(m.x + m.width * 0.8), x1 = Math.round(m.x + m.width * 0.15);
-  // the finger starts on this card's photo (not on the text under it, nor on another card)
-  const under = await page.evaluate(([x, yy]) => { const e = document.elementFromPoint(x!, yy!); return e?.closest('.car-card__media') ? 'photo' : `${e?.tagName}.${e?.className}`; }, [x0, y]);
-  expect(under, 'what is under the finger').toBe('photo');
+  // the finger starts on this card (the name's link covers the whole card, so the element hit is that link; the swipe
+  // code takes the card from it and checks the point against the photo's box), not on a bar or another card
+  const under = await card.evaluate((el, [x, yy]) => { const e = document.elementFromPoint(x!, yy!); return e && el.contains(e) ? 'this card' : `${e?.tagName}.${e?.className}`; }, [x0, y]);
+  expect(under, 'what is under the finger').toBe('this card');
   const cdp = await page.context().newCDPSession(page);
   const url = page.url();
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: x0, y }] });
