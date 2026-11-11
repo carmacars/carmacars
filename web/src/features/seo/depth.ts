@@ -7,9 +7,10 @@
 import { money } from '../../lib/format.ts';
 import { driveMinutes } from '../places/copy.ts';
 import { cityFacts, ETR407 } from './local-data.ts';
+import { kitRatings, kitSentences, kitTable, RATING_METHOD, SOURCE_LABEL } from './car-kit.ts';
 
 export interface DepthTable { head: string[]; rows: string[][] }
-export interface DepthSection { id: 'cars' | 'logistics' | 'requirements' | 'car' | 'maintenance' | 'compare' | 'related'; heading: string; paras: string[]; table?: DepthTable; links?: Array<{ href: string; label: string }> }
+export interface DepthSection { id: 'cars' | 'logistics' | 'parking' | 'requirements' | 'car' | 'ratings' | 'maintenance' | 'compare' | 'related'; heading: string; paras: string[]; table?: DepthTable; links?: Array<{ href: string; label: string }> }
 export interface DepthText { sections: DepthSection[]; faq: Array<{ question: string; answer: string }>; attributions: string[]; words: number }
 
 /** The site's facts every page shows (public.site_facts and the Program settings behind it). */
@@ -28,7 +29,8 @@ export interface DepthCar {
   name: string; path: string; dailyCents: number; weeklyCents: number; monthlyCents: number; depositCents: number; kmPerDay?: number | null;
   seats?: number | null; transmission?: string | null; fuel?: string | null; className?: string | null; isSample?: boolean;
 }
-export interface DepthPoi { kind: 'go_station' | 'rail_station' | 'subway_station' | 'bus_stop' | 'hotel'; agency: string | null; name: string; km: number; source: 'gtfs' | 'osm'; attribution: string }
+export interface DepthPoi { kind: 'go_station' | 'rail_station' | 'subway_station' | 'bus_stop' | 'hotel' | 'parking_lot' | 'street_parking'; agency: string | null; name: string; km: number; source: 'gtfs' | 'osm'; attribution: string;
+  detail?: { parking?: string; fee?: string; capacity?: number; maxstay?: string; operator?: string; sides?: string } | null }
 export interface DepthPlace {
   name: string; label: string; kind: string; region: string | null; parentCity?: string | null;
   /** straight-line km from the office (null when the place has no coordinates) */
@@ -62,7 +64,8 @@ const list = (xs: string[]) => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1
 const km1 = (n: number) => (n < 10 ? String(Math.round(n * 10) / 10) : String(Math.round(n)));
 const pctOf = (bps: number) => `${+(bps / 100).toFixed(2)}%`;
 const words = (s: string) => (s.match(/[\p{L}\p{N}$][\p{L}\p{N}$.,'%/-]*/gu) ?? []).length;
-const POI_LABEL: Record<DepthPoi['kind'], string> = { go_station: 'GO stations', rail_station: 'Train stations', subway_station: 'Subway and LRT stations', bus_stop: 'Bus stops', hotel: 'Hotels' };
+const POI_LABEL: Record<DepthPoi['kind'], string> = { go_station: 'GO stations', rail_station: 'Train stations', subway_station: 'Subway and LRT stations', bus_stop: 'Bus stops', hotel: 'Hotels',
+  parking_lot: 'Parking lots and garages', street_parking: 'Streets with parking' };
 
 /** The specs by field (the first value of a field; several values of a list field). */
 function specMap(specs: DepthSpec[]) {
@@ -141,7 +144,7 @@ export function buildDepth(x: DepthInput): DepthText {
       paras.push(T(`The nearest airport is ${p.airport.name}${p.airport.iata ? ` (${p.airport.iata})` : ''}, about ${km1(p.airport.km)} km away.${f.airports.length ? ` ${f.brand} delivers at ${list(f.airports)}.` : ''}`));
       faq.push({ question: `What is the nearest airport to ${where}?`, answer: `${p.airport.name}${p.airport.iata ? ` (${p.airport.iata})` : ''}, about ${km1(p.airport.km)} km away.` });
     }
-    const pois = (x.pois ?? []).filter((q) => q.kind !== 'hotel');
+    const pois = (x.pois ?? []).filter((q) => q.kind !== 'hotel' && q.kind !== 'parking_lot' && q.kind !== 'street_parking');
     const go = pois.filter((q) => q.kind === 'go_station' || (q.kind === 'rail_station' && /^GO/i.test(q.agency ?? '')));
     if (go[0]) {
       paras.push(T(`The nearest GO station is ${go[0].name}, about ${km1(go[0].km)} km away${go.length > 1 ? `; ${list(go.slice(1, 3).map((g) => `${g.name} (${km1(g.km)} km)`))} are next` : ''}.`));
@@ -159,7 +162,7 @@ export function buildDepth(x: DepthInput): DepthText {
     }
     if (cf?.parking) { paras.push(T(`Parking in ${p.parentCity && p.kind === 'neighbourhood' ? p.parentCity : where}: ${cf.parking.text}`)); attributions.push(`Parking rule: ${cf.parking.source}`); }
     let table: DepthTable | undefined;
-    const lists = (x.pois ?? []).filter((q) => q.km <= 5);
+    const lists = (x.pois ?? []).filter((q) => q.km <= 5 && q.kind !== 'parking_lot' && q.kind !== 'street_parking');
     if (lists.length) {
       const kinds = [...new Set(lists.map((q) => q.kind))];
       for (const k of kinds) {
@@ -172,6 +175,27 @@ export function buildDepth(x: DepthInput): DepthText {
       if (hotels[0]) faq.push({ question: `Can you deliver the car to a hotel in ${where}?`, answer: T(`Yes, within our delivery area: give the hotel's address in your request. Hotels near the centre of ${where} include ${list(hotels.slice(0, 3).map((h) => h.name))}.`) });
     }
     if (paras.length) sections.push({ id: 'logistics', heading: `Getting around ${where}`, paras, table });
+  }
+
+  // ---------------------------------------------------------------- parking (release 36: OpenStreetMap lots, garages and street parking)
+  if (p) {
+    const lots = (x.pois ?? []).filter((q) => q.kind === 'parking_lot' && q.km <= 3).slice(0, 6);
+    const streets = (x.pois ?? []).filter((q) => q.kind === 'street_parking' && q.km <= 2).slice(0, 6);
+    if (lots.length || streets.length) {
+      const paras: string[] = [];
+      const lotText = (q: DepthPoi) => {
+        const d = q.detail ?? {};
+        const bits = [d.parking === 'multi-storey' ? 'garage' : d.parking === 'underground' ? 'underground' : '', d.capacity ? `${d.capacity} spaces` : '', d.fee === 'yes' ? 'paid' : d.fee === 'no' ? 'free' : '', d.maxstay ? `up to ${d.maxstay}` : ''].filter(Boolean);
+        return `${q.name}, ${km1(q.km)} km${bits.length ? ` (${bits.join(', ')})` : ''}`;
+      };
+      if (lots.length) paras.push(T(`Parking lots and garages near the centre of ${where}: ${list(lots.map(lotText))}.`));
+      if (streets.length) paras.push(T(`Streets with on-street parking close by: ${list(streets.map((q) => `${q.name}${q.detail?.maxstay ? ` (up to ${q.detail.maxstay})` : q.detail?.fee === 'yes' ? ' (paid)' : ''}`))}. Check the signs on the block for the hours.`));
+      paras.push(T(`Need the car brought to you instead? ${f.brand} delivers it to your address, so there is no lot to find on day one.`));
+      const table: DepthTable = { head: ['Parking', 'Kind', 'Distance'], rows: [...lots, ...streets].map((q) => [q.name, q.kind === 'street_parking' ? 'Street parking' : q.detail?.parking === 'multi-storey' ? 'Garage' : q.detail?.parking === 'underground' ? 'Underground' : 'Lot', `${km1(q.km)} km`]) };
+      sections.push({ id: 'parking', heading: `Parking in ${where}`, paras, table });
+      faq.push({ question: `Where can I park a rental car in ${where}?`, answer: T(`${lots[0] ? `${lots[0].name} is about ${km1(lots[0].km)} km from the centre` : `On streets such as ${streets[0]!.name}`}. The parking section of this page lists the lots and streets nearby, from OpenStreetMap.`) });
+      attributions.push('Parking: © OpenStreetMap contributors (ODbL)');
+    }
   }
 
   // ---------------------------------------------------------------- requirements
@@ -202,14 +226,8 @@ export function buildDepth(x: DepthInput): DepthText {
     const v = x.vehicle;
     const s = specMap(v.specs);
     const paras: string[] = [];
-    const rows: string[][] = [];
-    const add = (label: string, field: string, unit = '') => { const r = s.one(field); if (r) { rows.push([label, `${r.value}${unit}`]); return r; } return null; };
-    const city = add('Fuel economy, city', 'fuel_city_l100', ' L/100 km'), hwy = add('Fuel economy, highway', 'fuel_highway_l100', ' L/100 km'), comb = add('Fuel economy, combined', 'fuel_combined_l100', ' L/100 km');
-    add('Fuel type', 'fuel_type'); add('Tank', 'tank_l', ' L'); add('Electric use, combined', 'kwh100_combined', ' kWh/100 km'); add('Range', 'range_km', ' km');
-    add('Engine', 'engine'); add('Power', 'hp', ' hp'); add('Torque', 'torque_nm', ' Nm'); add('0 to 100 km/h', 'zero_100_s', ' s'); add('Top speed', 'top_speed_kmh', ' km/h');
-    add('Drivetrain', 'drivetrain'); add('Transmission', 'transmission'); add('Curb weight', 'curb_kg', ' kg'); add('Towing', 'towing_kg', ' kg');
-    add('Seats', 'seats'); add('Cargo', 'cargo_l', ' L'); add('Length', 'length_mm', ' mm'); add('Width', 'width_mm', ' mm'); add('Height', 'height_mm', ' mm'); add('Wheelbase', 'wheelbase_mm', ' mm');
-    add('Tire size', 'tire_size'); add('Rim size', 'rim_size'); add('NHTSA overall rating', 'safety_overall', ' stars'); add('Recalls (NHTSA)', 'recalls');
+    const rows: string[][] = kitTable(v.specs);
+    const city = s.one('fuel_city_l100'), hwy = s.one('fuel_highway_l100'), comb = s.one('fuel_combined_l100');
     if (city && hwy) paras.push(T(`The ${v.name} is rated ${city.value} L/100 km in the city and ${hwy.value} on the highway${comb ? `, ${comb.value} combined` : ''}.`));
     const l100 = comb ? Number(comb.value) : v.l100 ?? null;
     const kwh = s.one('kwh100_combined') ? Number(s.one('kwh100_combined')!.value) : v.kwh100 ?? null;
@@ -226,9 +244,17 @@ export function buildDepth(x: DepthInput): DepthText {
     for (const [t, xs] of byTrim) paras.push(T(`Key features, ${t}: ${list(xs.slice(0, 8))}.`));
     const seats = s.one('seats'), cargo = s.one('cargo_l');
     if (seats) faq.push({ question: `How many seats does the ${v.name} have?`, answer: `${seats.value}${cargo ? `, with ${cargo.value} L of cargo space` : ''}.` });
+    paras.push(...kitSentences(v.name, v.specs).map(T));
     if (rows.length || paras.length) {
       sections.push({ id: 'car', heading: `${v.name}: the figures`, paras, table: rows.length ? { head: ['Figure', 'Value'], rows } : undefined });
+      for (const src of [...new Set(v.specs.map((r) => r.source))]) attributions.push(`Specs: ${SOURCE_LABEL[src] ?? src}`);
       for (const src of new Set(v.specs.map((r) => r.source_url))) attributions.push(`Specs: ${src}`);
+    }
+    const ratings = kitRatings(v.specs);
+    if (ratings.length) {
+      sections.push({ id: 'ratings', heading: `${v.name}: ratings out of 10`, paras: [RATING_METHOD], table: { head: ['Feature', 'Out of 10', 'From'], rows: ratings.map((r) => [r.label, String(r.score), r.basis]) } });
+      const pk = ratings.find((r) => r.label === 'Parkability');
+      if (pk) faq.push({ question: `Is the ${v.name} easy to park?`, answer: `It scores ${pk.score} out of 10 for parkability (${pk.basis}).` });
     }
     if (v.maintenance) {
       const m = v.maintenance;

@@ -47,7 +47,8 @@ export const SEO_TEMPLATE_SKIP = /(\.test\.ts$|copy-lint\.ts$|Admin\.tsx$|admin|
 /** The text of a source file without its comments (line, block and JSX comments), line numbers kept. */
 export function stripComments(src: string, sql = false): string {
   let s = src.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '));
-  s = s.split('\n').map((l) => (sql ? l.replace(/--.*$/, '') : l.replace(/(^|[\s;{}(),])\/\/.*$/, '$1'))).join('\n');
+  // in SQL, a WHERE line names the old text being replaced (an update's condition), not text a page shows
+  s = s.split('\n').map((l) => (sql ? (/^\s*where\s/i.test(l) ? '' : l.replace(/--.*$/, '')) : l.replace(/(^|[\s;{}(),])\/\/.*$/, '$1'))).join('\n');
   return s;
 }
 

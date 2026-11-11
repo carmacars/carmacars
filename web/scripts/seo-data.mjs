@@ -6,12 +6,16 @@
 //   OUT=<dir> node --experimental-strip-types web/scripts/seo-data.mjs osm             hotels from OpenStreetMap (Overpass)
 //   OUT=<dir> TARGETS=<file> node ... seo-data.mjs specs                               fueleconomy.gov and NHTSA, for the targets
 //   OUT=<dir> CSV_URL=<https url> KIND=specs|maintenance node ... seo-data.mjs csv     a curated spec or cost table
+//   OUT=<dir> node ... seo-data.mjs parking                                           parking lots and street parking (OpenStreetMap)
+//   OUT=<dir> TARGETS=<file> node ... seo-data.mjs wikidata                           production years, plants, units built (Wikidata)
+// Release 36 (2001): specs also reads vPIC's Canadian specifications, NHTSA's recall campaigns and complaints, and
+// Transport Canada's recalls.
 //
 // Each chunk file is {kind, rows, prune?}. A feed or an answer that fails is reported and skipped: the run goes on.
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { chunks, curatedSpecRows, fuelEconomyRows, gtfsStops, osmHotels, parseCsv, ratingRows, recallRow } from '../src/features/seo/seo-data.ts';
+import { chunks, complaintRows, curatedSpecRows, fuelEconomyRows, gtfsStops, osmHotels, osmParking, parseCsv, ratingRows, recallItemRows, recallRow, tcRecallRows, vpicCanadaRows, wikidataMakeQuery, wikidataRows } from '../src/features/seo/seo-data.ts';
 
 const OUT = process.env.OUT ?? 'seo-data-out';
 const UA = 'CarmaCars seo-data import (github actions)';
@@ -66,7 +70,7 @@ async function osm() {
   const q = '[out:json][timeout:180];(nwr["tourism"~"^(hotel|motel)$"]["name"](43.30,-80.30,44.40,-78.60););out center tags;';
   try {
     const j = await (await get('https://overpass-api.de/api/interpreter', { method: 'POST', body: new URLSearchParams({ data: q }) })).json();
-    write('pois', osmHotels(j, NOW), { source: 'osm', agency: '', before: NOW });
+    write('pois', osmHotels(j, NOW), { source: 'osm', agency: '', before: NOW, kinds: ['hotel'] });
   } catch (e) { console.log(`::warning title=seo-data::OpenStreetMap hotels skipped (${e instanceof Error ? e.message : e})`); }
 }
 
@@ -96,6 +100,43 @@ async function specs() {
   write('specs', rows);
 }
 
+// release 36 (2001): the Canadian dimensions, recall campaigns, owner complaints and Transport Canada's recalls
+async function specs2() {
+  const targets = JSON.parse(fs.readFileSync(process.env.TARGETS ?? 'targets.json', 'utf8'));
+  const rows = [];
+  const tryGet = async (what, t, fn) => { try { await fn(); } catch (e) { console.log(`::warning title=seo-data::${what} ${t.year} ${t.make} ${t.model} skipped (${e instanceof Error ? e.message : e})`); } };
+  for (const t of targets.slice(0, Number(process.env.MAX_TARGETS ?? 400))) {
+    const m = encodeURIComponent(t.make), md = encodeURIComponent(t.model);
+    await tryGet('vPIC', t, async () => rows.push(...vpicCanadaRows(await (await get(`https://vpic.nhtsa.dot.gov/api/vehicles/GetCanadianVehicleSpecifications/?Year=${t.year}&Make=${m}&Model=${md}&units=Metric&format=json`)).json(), t, NOW)));
+    await tryGet('NHTSA recall campaigns', t, async () => rows.push(...recallItemRows(await (await get(`https://api.nhtsa.gov/recalls/recallsByVehicle?make=${m}&model=${md}&modelYear=${t.year}`)).json(), t, NOW)));
+    await tryGet('NHTSA complaints', t, async () => rows.push(...complaintRows(await (await get(`https://api.nhtsa.gov/complaints/complaintsByVehicle?make=${m}&model=${md}&modelYear=${t.year}`)).json(), t, NOW)));
+    await tryGet('Transport Canada recalls', t, async () => rows.push(...tcRecallRows(await (await get(`https://data.tc.gc.ca/v1.3/api/eng/vehicle-recall-database/recall/make-name/${m}/model-name/${md}/year-range/${t.year}-${t.year}`, { headers: { accept: 'application/json' } })).json(), t, NOW)));
+  }
+  write('specs', rows);
+}
+
+async function wikidata() {
+  const targets = JSON.parse(fs.readFileSync(process.env.TARGETS ?? 'targets.json', 'utf8')).slice(0, Number(process.env.MAX_TARGETS ?? 400));
+  const rows = [];
+  for (const make of [...new Set(targets.map((t) => t.make))]) {
+    try {
+      const j = await (await get(`https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(wikidataMakeQuery(make))}`, { headers: { accept: 'application/sparql-results+json' } })).json();
+      rows.push(...wikidataRows(j, targets.filter((t) => t.make === make), NOW));
+    } catch (e) { console.log(`::warning title=seo-data::Wikidata ${make} skipped (${e instanceof Error ? e.message : e})`); }
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+  write('specs', rows);
+}
+
+async function parking() {
+  // public lots and garages (named, or 20 spaces or more) and streets with parking lanes, in the delivery area with margin
+  const q = '[out:json][timeout:300];(nwr["amenity"="parking"](43.30,-80.30,44.40,-78.60);way["highway"]["name"]["parking:both"](43.30,-80.30,44.40,-78.60);way["highway"]["name"]["parking:right"](43.30,-80.30,44.40,-78.60);way["highway"]["name"]["parking:left"](43.30,-80.30,44.40,-78.60);way["highway"]["name"]["parking:lane:both"](43.30,-80.30,44.40,-78.60);way["highway"]["name"]["parking:lane:right"](43.30,-80.30,44.40,-78.60););out center tags;';
+  try {
+    const j = await (await get('https://overpass-api.de/api/interpreter', { method: 'POST', body: new URLSearchParams({ data: q }) })).json();
+    write('pois', osmParking(j, NOW), { source: 'osm', agency: '', before: NOW, kinds: ['parking_lot', 'street_parking'] });
+  } catch (e) { console.log(`::warning title=seo-data::OpenStreetMap parking skipped (${e instanceof Error ? e.message : e})`); }
+}
+
 async function csv() {
   const url = process.env.CSV_URL ?? '';
   if (!/^https:\/\//.test(url)) { console.log('::notice title=seo-data::no CSV_URL: nothing to load'); return; }
@@ -115,6 +156,8 @@ async function csv() {
 const cmd = process.argv[2];
 if (cmd === 'gtfs') await gtfs();
 else if (cmd === 'osm') await osm();
-else if (cmd === 'specs') await specs();
+else if (cmd === 'specs') { await specs(); await specs2(); }
+else if (cmd === 'wikidata') await wikidata();
+else if (cmd === 'parking') await parking();
 else if (cmd === 'csv') await csv();
-else { console.error('usage: seo-data.mjs gtfs|osm|specs|csv'); process.exit(2); }
+else { console.error('usage: seo-data.mjs gtfs|osm|parking|specs|wikidata|csv'); process.exit(2); }

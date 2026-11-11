@@ -16418,6 +16418,7 @@ export type Database = {
           licence: string;
           attribution: string;
           fetched_at: string;
+          detail: Json;
         };
         Insert: {
           id?: number;
@@ -16432,6 +16433,7 @@ export type Database = {
           licence: string;
           attribution: string;
           fetched_at: string;
+          detail?: Json;
         };
         Update: {
           id?: number;
@@ -16446,6 +16448,7 @@ export type Database = {
           licence?: string;
           attribution?: string;
           fetched_at?: string;
+          detail?: Json;
         };
         Relationships: [];
       };
