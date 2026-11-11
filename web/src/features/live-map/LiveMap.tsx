@@ -1,4 +1,5 @@
 'use client';
+import { intentLine } from '@/features/intent/model';
 import './live-map.css';
 import Link from '@/components/Link';
 import { clockTo, weekdayClockTo } from '@/lib/clock';
@@ -542,6 +543,7 @@ function LeadTable({ pins, now, cap, onLocate }: { pins: Pin[]; now: number; cap
                   <tr className="lm-more"><td colSpan={7}>
                     <div className="lm-more__in">
                       <p>{[p.detail, p.phone, p.email, p.city].filter(Boolean).join(' · ')}</p>
+                      {p.intent && p.intent.label !== 'unknown' && <p data-testid="lm-intent"><b>Intent:</b> {intentLine(p.intent)}</p>}
                       <ul className="lm-chips" aria-label="Signals">{p.signals.map((s, i) => <li key={i}><b>+{s.points}</b> {s.label}</li>)}</ul>
                       <p className="lm-quiet">{p.car ? `${CAR_HOW[p.car.how] ?? 'Last viewed'}: ${p.car.name}${p.car.daily_cents ? `, ${money(p.car.daily_cents)}/day` : ''}. ` : ''}{p.precision ? PRECISION_WORDS[p.precision] : 'No location'}.</p>
                       <p className="lm-more__acts">

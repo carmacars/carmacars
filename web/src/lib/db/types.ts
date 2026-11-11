@@ -7435,6 +7435,13 @@ export type Database = {
           emailed_at: string | null;
           created_at: string;
           updated_at: string;
+          salary_cents: number;
+          monthly_salary_cents: number | null;
+          salary_days: number | null;
+          adjustment_cents: number;
+          adjustment_note: string | null;
+          clock_minutes: number;
+          currency: string;
         };
         Insert: {
           id?: string;
@@ -7463,6 +7470,13 @@ export type Database = {
           emailed_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          salary_cents?: number;
+          monthly_salary_cents?: number | null;
+          salary_days?: number | null;
+          adjustment_cents?: number;
+          adjustment_note?: string | null;
+          clock_minutes?: number;
+          currency?: string;
         };
         Update: {
           id?: string;
@@ -7491,6 +7505,13 @@ export type Database = {
           emailed_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          salary_cents?: number;
+          monthly_salary_cents?: number | null;
+          salary_days?: number | null;
+          adjustment_cents?: number;
+          adjustment_note?: string | null;
+          clock_minutes?: number;
+          currency?: string;
         };
         Relationships: [];
       };
@@ -7509,6 +7530,8 @@ export type Database = {
           voided_at: string | null;
           created_at: string;
           updated_at: string;
+          prepared_by: string | null;
+          prepared_at: string | null;
         };
         Insert: {
           id?: string;
@@ -7524,6 +7547,8 @@ export type Database = {
           voided_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          prepared_by?: string | null;
+          prepared_at?: string | null;
         };
         Update: {
           id?: string;
@@ -7539,6 +7564,8 @@ export type Database = {
           voided_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          prepared_by?: string | null;
+          prepared_at?: string | null;
         };
         Relationships: [];
       };
@@ -10038,6 +10065,54 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      intent_scores: {
+        Row: {
+          subject_kind: string;
+          subject_id: string;
+          score: number;
+          label: string;
+          signals: Json;
+          reasons: Json;
+          sources: number;
+          text_sha: string | null;
+          computed_at: string;
+          ai: Json | null;
+          ai_sha: string | null;
+          ai_at: string | null;
+          ai_error: string | null;
+        };
+        Insert: {
+          subject_kind: string;
+          subject_id: string;
+          score?: number;
+          label?: string;
+          signals?: Json;
+          reasons?: Json;
+          sources?: number;
+          text_sha?: string | null;
+          computed_at?: string;
+          ai?: Json | null;
+          ai_sha?: string | null;
+          ai_at?: string | null;
+          ai_error?: string | null;
+        };
+        Update: {
+          subject_kind?: string;
+          subject_id?: string;
+          score?: number;
+          label?: string;
+          signals?: Json;
+          reasons?: Json;
+          sources?: number;
+          text_sha?: string | null;
+          computed_at?: string;
+          ai?: Json | null;
+          ai_sha?: string | null;
+          ai_at?: string | null;
+          ai_error?: string | null;
         };
         Relationships: [];
       };
@@ -15105,6 +15180,42 @@ export type Database = {
         };
         Relationships: [];
       };
+      pay_adjustments: {
+        Row: {
+          id: string;
+          run_id: string;
+          staff_id: string;
+          amount_cents: number;
+          reason: string;
+          created_by: string;
+          created_at: string;
+          removed_at: string | null;
+          removed_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          run_id: string;
+          staff_id: string;
+          amount_cents: number;
+          reason: string;
+          created_by: string;
+          created_at?: string;
+          removed_at?: string | null;
+          removed_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          run_id?: string;
+          staff_id?: string;
+          amount_cents?: number;
+          reason?: string;
+          created_by?: string;
+          created_at?: string;
+          removed_at?: string | null;
+          removed_by?: string | null;
+        };
+        Relationships: [];
+      };
       payment_attempts: {
         Row: {
           id: string;
@@ -17347,6 +17458,25 @@ export type Database = {
           indexnow_sweep_batch: number;
           indexnow_queue_batch: number;
           staff_onboarding_gate: boolean;
+          staff_late_grace_minutes: number;
+          va_salary_defaults: Json;
+          va_salary_currency: string;
+          kpi_rate_target_pct: number;
+          kpi_on_time_grace_minutes: number;
+          kpi_cs_first_reply_minutes: number;
+          kpi_cs_conversations_week: number;
+          kpi_cs_licences_week: number;
+          kpi_cs_requests_week: number;
+          kpi_fleet_photo_reviews_week: number;
+          kpi_fleet_dispatch_week: number;
+          kpi_fleet_calls_week: number;
+          kpi_finance_deposit_review_hours: number;
+          kpi_finance_toll_checks_week: number;
+          kpi_field_jobs_week: number;
+          kpi_field_min_photos: number;
+          intent_ai_enabled: boolean;
+          intent_hot_score: number;
+          intent_warm_score: number;
         };
         Insert: {
           id?: string;
@@ -18038,6 +18168,25 @@ export type Database = {
           indexnow_sweep_batch?: number;
           indexnow_queue_batch?: number;
           staff_onboarding_gate?: boolean;
+          staff_late_grace_minutes?: number;
+          va_salary_defaults?: Json;
+          va_salary_currency?: string;
+          kpi_rate_target_pct?: number;
+          kpi_on_time_grace_minutes?: number;
+          kpi_cs_first_reply_minutes?: number;
+          kpi_cs_conversations_week?: number;
+          kpi_cs_licences_week?: number;
+          kpi_cs_requests_week?: number;
+          kpi_fleet_photo_reviews_week?: number;
+          kpi_fleet_dispatch_week?: number;
+          kpi_fleet_calls_week?: number;
+          kpi_finance_deposit_review_hours?: number;
+          kpi_finance_toll_checks_week?: number;
+          kpi_field_jobs_week?: number;
+          kpi_field_min_photos?: number;
+          intent_ai_enabled?: boolean;
+          intent_hot_score?: number;
+          intent_warm_score?: number;
         };
         Update: {
           id?: string;
@@ -18729,6 +18878,25 @@ export type Database = {
           indexnow_sweep_batch?: number;
           indexnow_queue_batch?: number;
           staff_onboarding_gate?: boolean;
+          staff_late_grace_minutes?: number;
+          va_salary_defaults?: Json;
+          va_salary_currency?: string;
+          kpi_rate_target_pct?: number;
+          kpi_on_time_grace_minutes?: number;
+          kpi_cs_first_reply_minutes?: number;
+          kpi_cs_conversations_week?: number;
+          kpi_cs_licences_week?: number;
+          kpi_cs_requests_week?: number;
+          kpi_fleet_photo_reviews_week?: number;
+          kpi_fleet_dispatch_week?: number;
+          kpi_fleet_calls_week?: number;
+          kpi_finance_deposit_review_hours?: number;
+          kpi_finance_toll_checks_week?: number;
+          kpi_field_jobs_week?: number;
+          kpi_field_min_photos?: number;
+          intent_ai_enabled?: boolean;
+          intent_hot_score?: number;
+          intent_warm_score?: number;
         };
         Relationships: [];
       };
@@ -22748,6 +22916,9 @@ export type Database = {
           whatsapp_marked_by: string | null;
           onboarding_exempt: boolean;
           onboarding_done: boolean;
+          monthly_salary_cents: number | null;
+          salary_currency: string | null;
+          lock_reason: string | null;
         };
         Insert: {
           user_id: string;
@@ -22792,6 +22963,9 @@ export type Database = {
           whatsapp_marked_by?: string | null;
           onboarding_exempt?: boolean;
           onboarding_done?: boolean;
+          monthly_salary_cents?: number | null;
+          salary_currency?: string | null;
+          lock_reason?: string | null;
         };
         Update: {
           user_id?: string;
@@ -22836,6 +23010,54 @@ export type Database = {
           whatsapp_marked_by?: string | null;
           onboarding_exempt?: boolean;
           onboarding_done?: boolean;
+          monthly_salary_cents?: number | null;
+          salary_currency?: string | null;
+          lock_reason?: string | null;
+        };
+        Relationships: [];
+      };
+      staff_schedules: {
+        Row: {
+          id: string;
+          function: string;
+          user_id: string | null;
+          weekdays: number[];
+          month_days: number[];
+          start_time: string;
+          end_time: string;
+          extra_days_per_week: number;
+          starts_on: string | null;
+          note: string | null;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          function: string;
+          user_id?: string | null;
+          weekdays?: number[];
+          month_days?: number[];
+          start_time: string;
+          end_time: string;
+          extra_days_per_week?: number;
+          starts_on?: string | null;
+          note?: string | null;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          function?: string;
+          user_id?: string | null;
+          weekdays?: number[];
+          month_days?: number[];
+          start_time?: string;
+          end_time?: string;
+          extra_days_per_week?: number;
+          starts_on?: string | null;
+          note?: string | null;
+          updated_by?: string | null;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -23799,18 +24021,24 @@ export type Database = {
           user_id: string;
           at: string;
           method: string;
+          confirmed_at: string | null;
+          marked_by: string | null;
         };
         Insert: {
           meeting_at: string;
           user_id: string;
           at?: string;
           method: string;
+          confirmed_at?: string | null;
+          marked_by?: string | null;
         };
         Update: {
           meeting_at?: string;
           user_id?: string;
           at?: string;
           method?: string;
+          confirmed_at?: string | null;
+          marked_by?: string | null;
         };
         Relationships: [];
       };
@@ -23823,6 +24051,7 @@ export type Database = {
           slides: Json;
           notes: Json;
           reminded_at: string | null;
+          recording_url: string | null;
         };
         Insert: {
           id?: string;
@@ -23832,6 +24061,7 @@ export type Database = {
           slides?: Json;
           notes?: Json;
           reminded_at?: string | null;
+          recording_url?: string | null;
         };
         Update: {
           id?: string;
@@ -23841,6 +24071,7 @@ export type Database = {
           slides?: Json;
           notes?: Json;
           reminded_at?: string | null;
+          recording_url?: string | null;
         };
         Relationships: [];
       };
@@ -23859,6 +24090,66 @@ export type Database = {
           meeting_at?: string;
           absent?: string[];
           closed_at?: string;
+        };
+        Relationships: [];
+      };
+      townhall_social: {
+        Row: {
+          week_of: string;
+          platform: string;
+          followers: number | null;
+          posts: number | null;
+          views: number | null;
+          entered_by: string | null;
+          entered_at: string;
+        };
+        Insert: {
+          week_of: string;
+          platform: string;
+          followers?: number | null;
+          posts?: number | null;
+          views?: number | null;
+          entered_by?: string | null;
+          entered_at?: string;
+        };
+        Update: {
+          week_of?: string;
+          platform?: string;
+          followers?: number | null;
+          posts?: number | null;
+          views?: number | null;
+          entered_by?: string | null;
+          entered_at?: string;
+        };
+        Relationships: [];
+      };
+      townhall_stories: {
+        Row: {
+          id: string;
+          user_id: string;
+          week_of: string;
+          body: string;
+          picked_at: string | null;
+          picked_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          week_of: string;
+          body: string;
+          picked_at?: string | null;
+          picked_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          week_of?: string;
+          body?: string;
+          picked_at?: string | null;
+          picked_by?: string | null;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -30013,6 +30304,8 @@ export type Database = {
       server_indexnow_claim: { Args: { p_limit: number }; Returns: Json };
       server_indexnow_report: { Args: { p: Json }; Returns: Json };
       server_indexnow_sent: { Args: { p: Json }; Returns: number };
+      server_intent_ai_due: { Args: { p_limit?: number }; Returns: Json };
+      server_intent_ai_result: { Args: { p: Json }; Returns: Json };
       server_jobs_due: { Args: never; Returns: Json };
       server_licence_read_gate: { Args: never; Returns: Json };
       server_licence_read_record: { Args: { p: Json }; Returns: Json };

@@ -64,3 +64,26 @@ sends when all of these hold:
 | Attendance | `townhall_attendance.method` adds `admin`; `confirmed_at`: a join counts once confirmed, a check-in or an Admin's mark counts (`app.townhall_attended`, used by the job's absences). `townhall_mark` (Admin, corrects a closed meeting's absences) |
 | Lock | `app.townhall_lockouts` (in the job): absent in the last two closed meetings → `inactive_locked_at` with `staff_profiles.lock_reason` 'townhall' (not again after an Admin's Unlock for the same meetings); the door says why; the staff list labels it; the sign-in notice covers both reasons |
 | Tests | `supabase/tests/99_r35c_townhall.sql`; `99_r35k_staff_onboarding.sql` (15 and 13 slides; the clock-in start from the schedule) |
+
+## Lead intent (item 5): `1506_r35c_lead_intent.sql`
+
+| Item | What changed |
+| --- | --- |
+| Rules | `app.intent_extract(text)` (keywords and patterns): budget {amount_cents, per}, car_class, duration_days, dates, urgency, delivery, coverage. `app.intent_inputs`: the last 60 days of phone activity (texts, transcripts, AI summaries, voicemails), inbound emails, site chat (visitor lines), the lead's message, notes and form; behaviour from `visitor_sessions` (visits, pages, cars viewed, visitor score, last 24 hours), booking requests (14 days), conversations. `app.intent_score`: points per signal and behaviour (reasons kept); label by Program settings `intent_hot_score` (70), `intent_warm_score` (40) |
+| Storage and refresh | `intent_scores` (renter or lead); `app.job_intent` every 15 minutes (cron `carmacars-intent`) for whoever was active; computed at once when staff open a renter or lead older than 10 minutes |
+| AI | Optional (`intent_ai_enabled`, on): `server_intent_ai_due` hands one subject only while `app.ai_allow('intent_enrich')` (background tier of the free daily neurons) has room: a hard stop; `web/src/server/intent-ai.ts` (called from the phone job) asks Workers AI; `server_intent_ai_result` keeps only well-formed values that fill gaps the rules left, and records the neurons in `provider_calls` |
+| Shown | Intent card on the lead page (Admin and staff), the Admin renter page and the staff renter view; `app.live_map` adds `intent` to each renter pin (shown in the leads table's details) |
+| Tests | `supabase/tests/99_r35c_lead_intent.sql`, `web/src/features/intent/model.test.ts` |
+
+## Search Console on the investor deck (item 6): `1507_r35c_investor_search.sql`
+
+| Item | What changed |
+| --- | --- |
+| Data | The gsc workflow stored sitemap figures and a coverage sample only, no clicks or impressions: it now also reads Search Analytics by day (`web/scripts/gsc-search.mjs`, 90 days) into `app.gsc_search_daily` (`app.gsc_search_store`). Indexed pages have no API: an Admin types Search Console's figure on Admin > Investors > Deck (`deck_search_indexed`; used for 30 days), else an estimate from the coverage sample, labelled so |
+| Deck | `deck_search` (investor while the deck is shown; Admin): clicks and impressions of the last 28 days, growth on the 28 before, indexed pages, the weekly trend (12 weeks). Never fleet size, utilisation, premium or costs. `features/deck/SearchTraction.tsx` under the deck (investor portal and the Admin preview) |
+| Owner step | The Search Console OAuth client of the gsc workflow must hold the `webmasters.readonly` (or `webmasters`) scope (it already reads the property's sitemaps); the next scheduled gsc run fills the figures |
+| Tests | `supabase/tests/99_r35c_investor_search.sql`, `web/src/features/deck/search.test.ts` |
+
+## Guides: `1508_r35c_guides.sql`
+
+Admin > Owner money (Payroll for everyone, Schedules, KPIs, townhall tools, Intent, Search traction) and the office staff's Your workday (KPIs, schedule, pay stubs, payroll, the townhall's 30 minutes and the lock): `docs/guides/content/*.json` (and `docs/guides/src/guides/*.py`), generator `supabase/seed/1508_gen_guides.mjs` (`--check` up to date).
