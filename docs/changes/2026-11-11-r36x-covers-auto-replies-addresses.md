@@ -51,3 +51,10 @@ keep working until deleted), the deploy job's first step. `scripts/secrets/sops-
 `ConfirmedOnce` (the confirmed moment once a booking on a device when it was confirmed without the pay page). `styles/motion.css`:
 the bar fills, the ticks pop one after the other, the step to do now breathes once, the success panels rise with their rule drawn
 across. All under `prefers-reduced-motion: no-preference`, transform and opacity only.
+
+## Guides
+
+- `admin/fleet-and-listings`: the listing's first photo.
+- `admin/settings`: the auto-reply and address settings.
+- `va/customer-service`: automatic answers.
+- `va/fleet`: the listing's first photo.

@@ -19,3 +19,11 @@ left to the integrator). Tests: `supabase/tests/99_r35a_request_offers.sql`; uni
 | Requirements page | Rideshare and delivery work is allowed with the documents; re-renting and car-sharing listings stay not allowed. **The rental agreement's section 10.2 still prohibits ride-hailing and delivery work: an Admin decides the agreement wording (not changed here)** |
 | Instant booking (1304) | A signed-in renter with at least `instant_book_min_rentals` completed rentals (Program setting, 1), a verified licence, no damage or claim on a past rental and nothing owing, booking a standard rental of an available car with the licence on file: the request becomes an accepted offer at once (`public.server_instant_book`), the agreement is made, and the renter goes straight to Sign and pay (payment, agreement and the normal deposit at checkout). Everyone else keeps request to book. The booking shows **Instant (repeat renter)**. `instant_book_repeat_enabled` (on) switches it off. An Admin takes a renter's instant booking away (with why) or gives it back from the booking page; staff see whether the renter qualifies and why not |
 | Rewards (1305) | `review_photo` (100 points, a review on carmacars.ca with at least one photo, on top of the review's points, once per rental; photos added from the review page) and `rebook` (150 points, every completed rental after the first). The Rewards page lists every action that is on (follows, reviews, Google, referral, the two new ones), and Google's link falls back to the place id. The return email and the review request email list the ways to earn and link to the Rewards page. Social follow buttons need the links in Settings (Facebook has none yet) |
+
+## Guides
+
+- `admin/requests-offers-and-bookings`: the original request, the offer history and Revert.
+- `renter/find-a-car-and-send-a-request`: instant book and the secondary contact.
+- `renter/during-your-trip`: the rideshare documents.
+- `renter/after-your-trip`: reward points for a review photo and repeat rentals.
+- `va/customer-service`: the request as sent and every offer.
