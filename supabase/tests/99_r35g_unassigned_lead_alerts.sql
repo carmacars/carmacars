@@ -66,6 +66,10 @@ select test.eq('a holder not fully onboarded is not told (the Admin is)',
   test.ula_users('staff_owner_lead_new', jsonb_build_object('assigned_to', test.id('ula_held'))), 'ula_admin');
 
 -- ================================================================== renter leads and unfinished requests
+-- earlier suites' lead alerts are not this suite's: without this, a full run trips the burst summary (0462: that many
+-- lead alerts within notify_lead_burst_minutes become one "N new leads" alert) and the named alert never goes out
+update app_events set created_at = now() - interval '1 day'
+ where code in ('staff_lead_new', 'staff_request_unfinished') and created_at > now() - interval '1 day';
 insert into leads (id, kind, name, phone, email, message, source) values (test.id('ula_r1'), 'contact', 'Rae Renter', '4165550191', 'ula_rae@example.test', 'Hi', 'web');
 select app.process_events(1000);
 select test.eq('an unassigned renter lead: the Admin, customer service and Sales on duty or clocked in, onboarded',

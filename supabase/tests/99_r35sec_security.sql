@@ -65,7 +65,11 @@ insert into r35sec_anon_ok values
   ('vehicle_make_index'), ('vehicle_make_page'), ('vehicle_makes'), ('vehicle_model_page'), ('vehicle_photos_public'),
   ('vehicle_sitemap'), ('vehicle_sitemap_files'), ('vehicle_sitemap_index'), ('vehicle_sitemap_tree'), ('vehicle_stock_photo'),
   ('vehicle_tier_files_count'), ('vehicle_tier_page'), ('vehicle_tier_sitemap'), ('vehicle_tiers'), ('vehicle_trim_page'),
-  ('vehicle_year_page');
+  ('vehicle_year_page'),
+  -- r35/r36 public reads (2140 checked each: read-only, public page data only)
+  ('airport_pages'), ('calc_rental_charge_tiers'), ('delivery_to_point'), ('fleet_popular_ids'), ('rent_vs_own_inputs'),
+  ('rent_vs_own_page'), ('review_summary'), ('seo_event'), ('seo_events_list'), ('seo_i18n_bundle'), ('seo_languages_state'),
+  ('sitemap_families'), ('sitemap_languages'), ('tracker_product');
 create temporary table r35sec_signed_in_ok (name text primary key);
 insert into r35sec_signed_in_ok values
   ('mark_notifications_read'), ('my_booking'), ('my_booking_change_preview'), ('my_booking_messages'), ('my_booking_readiness'),

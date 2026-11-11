@@ -22,12 +22,12 @@ select test.eq('2 am: held until 5 am', app.auto_reply_quiet_end('2026-11-11 07:
 select test.eq('noon: now', app.auto_reply_quiet_end('2026-11-11 17:00:00+00'), '2026-11-11 17:00:00+00'::timestamptz);
 select test.eq('just before 1 am: now', app.auto_reply_quiet_end('2026-11-11 05:59:00+00'), '2026-11-11 05:59:00+00'::timestamptz);
 
--- the gate (a large free allowance here, so only the rules decide)
+-- the gate (a large free allowance here, so only the rules decide; a number no other suite texts, so no staff text of theirs counts)
 update usage_services set included = 1000000, enabled = true where service = 'workers_ai';
-select test.ok('a question by text may be answered', (public.server_auto_reply_gate('{"channel": "sms", "sender": "+14165550101"}') ->> 'allowed')::boolean);
-select test.ok('WhatsApp needs its number id', not (public.server_auto_reply_gate('{"channel": "whatsapp", "sender": "14165550101"}') ->> 'allowed')::boolean);
+select test.ok('a question by text may be answered', (public.server_auto_reply_gate('{"channel": "sms", "sender": "+14165550178"}') ->> 'allowed')::boolean);
+select test.ok('WhatsApp needs its number id', not (public.server_auto_reply_gate('{"channel": "whatsapp", "sender": "14165550178"}') ->> 'allowed')::boolean);
 update program_settings set auto_reply_sms = false where id = (select id from app.settings());
-select test.eq('a channel switched off', public.server_auto_reply_gate('{"channel": "sms", "sender": "+14165550101"}') ->> 'reason', 'off in Program settings');
+select test.eq('a channel switched off', public.server_auto_reply_gate('{"channel": "sms", "sender": "+14165550178"}') ->> 'reason', 'off in Program settings');
 update program_settings set auto_reply_sms = true where id = (select id from app.settings());
 select app.phone_outbox_put('+14165550102', 'Hi, this is Ana from CarmaCars', 'staff');
 select test.eq('a person already talking with them', public.server_auto_reply_gate('{"channel": "sms", "sender": "+14165550102"}') ->> 'reason', 'a person is talking with them');
