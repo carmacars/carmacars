@@ -84,7 +84,7 @@ select test.throws('the order holds: a new section is closed until the one befor
 create function test.rqg_h(p text) returns text language sql as $$ select encode(sha256(convert_to(p, 'UTF8')), 'hex') $$;
 select app.api_key_create(test.id('rqg_admin'), test.id('rqg_admin'), 'Claude', array['bookings:read', 'admin:read', 'admin:write'], test.rqg_h('cc_live_rqg_full'), 'cc_live_rqg_');
 select app.api_key_create(test.id('rqg_admin'), test.id('rqg_admin'), 'Read only', array['bookings:read'], test.rqg_h('cc_live_rqg_read'), 'cc_live_rqr_');
-select test.eq('a read: the cars', (select (r -> 'result' -> 0 ->> 'plate') is not null from (select app.api_call(test.rqg_h('cc_live_rqg_full'), 'list_cars', '{"query": "RQGA"}') r) x), true);
+select test.eq('a read: the cars', (select (r #>> '{result,items,0,plate}') is not null from (select app.api_call(test.rqg_h('cc_live_rqg_full'), 'list_cars', '{"query": "RQGA"}') r) x), true);
 select test.eq('without admin:write a write is refused', app.api_call(test.rqg_h('cc_live_rqg_read'), 'cancel_booking', '{"booking": "RQG-201", "reason": "renter_request"}') ->> 'status', '403');
 create temp table rqg_pv as select app.api_call(test.rqg_h('cc_live_rqg_full'), 'cancel_booking', '{"booking": "RQG-201", "reason": "renter_request", "note": "Asked by phone"}') r;
 select test.eq('the preview says what would change', (select r #>> '{result,will_change,status,after}' from rqg_pv), 'cancelled');
@@ -101,7 +101,7 @@ select test.eq('both calls are logged, with before and after on the change', (se
   where key_id = (select id from api_keys where key_hash = test.rqg_h('cc_live_rqg_full')) and tool like 'cancel_booking%' and ok), 'cancel_booking:preview:true:- cancel_booking:true:cancelled');
 select test.ok('a refused action fails at the preview, with the reason', (app.api_call(test.rqg_h('cc_live_rqg_full'), 'end_staff_access', jsonb_build_object('user', test.id('rqg_admin'))) ->> 'error') like 'It would be refused: You cannot end your own access%');
 select test.eq('the onboarding card through the connector', app.api_call(test.rqg_h('cc_live_rqg_full'), 'get_hire_status',
-  jsonb_build_object('application_id', app.api_call(test.rqg_h('cc_live_rqg_full'), 'list_applicants', '{"query": "hana"}') #>> '{result,0,application_id}')) #>> '{result,onboarding}', 'true');
+  jsonb_build_object('application_id', app.api_call(test.rqg_h('cc_live_rqg_full'), 'list_applicants', '{"query": "hana"}') #>> '{result,items,0,application_id}')) #>> '{result,onboarding}', 'true');
 select test.ok('a candidate already hired cannot be hired again', (app.api_call(test.rqg_h('cc_live_rqg_full'), 'hire_applicant', jsonb_build_object('application_id', (test.rqg_app()).id)) ->> 'error') like '%cannot be hired%');
 insert into job_applications (role_id, status, full_name, email, phone, score, work_mode)
 select r.id, 'interviewed', 'Ivo Example', 'ivo@rqg.example.test', '+639170000778', 80, r.work_mode from hiring_roles r where r.slug = 'va-fleet-operations';
