@@ -150,7 +150,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
     (section === 'overview' || section === 'documents') && ['pending_payment', 'confirmed', 'on_rent'].includes(b.status) && notOwner
       ? ops<AccidentCardData>('accident_card', { booking: b.id }).catch(none(null)) : null]);
   const [ins, km, settings, credit, came, insurerCard, swapCars, fleetStaff, noShift, late] = await Promise.all([
-    can.admin ? list<{ id: string; name: string }>('insurers', { eq: { is_active: true }, order: 'name', asc: true }) : { rows: [] as Array<{ id: string; name: string }>, count: 0 },
+    can.admin || can.insurerClaim ? list<{ id: string; name: string }>('insurers', { eq: { is_active: true }, order: 'name', asc: true }).catch(none({ rows: [] as Array<{ id: string; name: string }>, count: 0 })) : { rows: [] as Array<{ id: string; name: string }>, count: 0 },
     can.admin || arranging ? list<{ km_per_day: number }>('km_allowance_choices', { eq: { is_active: true } }).catch(none({ rows: [] as Array<{ km_per_day: number }>, count: 0 })) : { rows: [] as Array<{ km_per_day: number }>, count: 0 },
     can.admin ? read<{ program: { offer_expiry_hours: number } }>('settings') : null,
     // who the booking is credited to for sales tracking, and who an Admin may give it to (0057)
@@ -197,7 +197,9 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
   const instantBooking = (b as { instant_book?: boolean }).instant_book === true || hist?.instant_book === true;
   const [policyNote, adjusters, pay, periods, duplicates] = await Promise.all([
     on('review') && ['requested', 'offered', 'pending_payment', 'confirmed'].includes(b.status) ? (can.admin ? ops : own)<{ handover_note: string | null }>('listing_state', { vehicle_id: b.vehicle_id }).then((x) => x?.handover_note ?? null).catch(none(null)) : null,
-    can.admin && on('overview') && notOwner && !['cancelled', 'declined', 'expired'].includes(b.status) ? own<AdjusterOpt[]>('insurer_adjusters', {}).catch(none([] as AdjusterOpt[])) : null,
+    // r35 gaps (2435/2437): the claim and adjuster card is for insurer-billed bookings only, in the Admin and the staff portals;
+    // a renter-billed booking keeps only the small 'Bill an insurer instead' switch
+    can.insurerClaim && on('overview') && notOwner && !['cancelled', 'declined', 'expired'].includes(b.status) ? own<AdjusterOpt[]>('insurer_adjusters', {}).catch(none([] as AdjusterOpt[])) : null,
     can.admin && (on('overview') || on('money')) && ['pending_payment', 'confirmed', 'on_rent', 'returned'].includes(b.status) && notOwner && !b.placeholder?.on
       ? ops<Pay & { may_change?: boolean }>('booking_pay_plan', { booking: b.booking_number }).catch(none(null)) : null,
     (on('overview') || on('money')) && b.billable_days > 27 ? ops<PeriodRow[]>('booking_periods', { booking: b.booking_number }).catch(none([] as PeriodRow[])) : null,
@@ -376,7 +378,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
       {on('overview') && editForm && <BookingEdit x={editForm} fees={fees} />}
       {on('overview') && coverageSwitch && <CoverageSwitch x={coverageSwitch} />}
       {(on('overview') || on('money')) && insurerCard?.billed_to_insurer && <BookingInsurer x={insurerCard} />}
-      {adjusters && <InsurerClaimEdit insurers={ins.rows} adjusters={adjusters} x={{
+      {adjusters && <InsurerClaimEdit compact={!['insurer', 'split'].includes(b.bill_to)} insurers={ins.rows} adjusters={adjusters} x={{
         booking: b.booking_number, bill_to: b.bill_to, insurer_id: b.insurer_id, claim_number: b.insurer_claim_number, adjuster_name: b.insurer_adjuster_name,
         adjuster_email: b.insurer_adjuster_email, adjuster_phone: b.insurer_adjuster_phone, policy_number: (b.insurer_policy_number as string | null) ?? null,
         policy_province: (b.insurer_policy_province as string | null) ?? null, authorized_days: b.insurer_authorized_days, authorized_until: b.insurer_authorized_until,
