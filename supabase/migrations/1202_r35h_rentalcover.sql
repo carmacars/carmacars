@@ -1,20 +1,19 @@
 -- 1202_r35h_rentalcover.sql
 -- Release 35, part H (docs/changes/2026-11-09-r35-offer-pricing-extensions-coverage.md), items 3 and 4.
--- 3. RentalCover quotes. The Protection Plan (coverage option 3) is RentalCover's. With the partner API key set (the
---    Worker secret RENTALCOVER_API_KEY), the server asks RentalCover for a real quote for the renter (dates, age at pickup,
---    name, email; country and destination CA) at checkout and when staff send an offer, records it here, and the price the
---    renter sees is the quote plus our markup (Program settings: rentalcover_markup_enabled, off by default, with
---    rentalcover_markup_pct and rentalcover_markup_flat_cents, both 0). Only our price is shown; the raw quote and our price
---    are kept on the booking for audit. A quote is reused for rentalcover_quote_cache_minutes (15). On an API failure the
---    failure is recorded (status failed) and the Protection Plan keeps its current price (the price table, or staff's).
---    The purchase needs the renter's card (CardNumber, CardExpiry, CardSecurityCode): it is not made here (TODO, see the
---    change record).
+-- 3. RentalCover quotes. The Protection Plan stays CarmaCars' product (no RentalCover name or link shown to renters).
+--    Own pricing (the Protection Plan table) unless the partner key is set: with the Worker secret RENTALCOVER_API_KEY and
+--    rentalcover_api_allowed (on), the server asks RentalCover for a quote for the renter (dates, age at pickup, name,
+--    email; CA and CA) at checkout and when staff send an offer, records it here, and the price is the quote plus our
+--    markup (rentalcover_markup_enabled on, rentalcover_markup_pct 20, rentalcover_markup_flat_cents 0). The raw quote and
+--    our price are kept on the booking; a quote is reused for 15 minutes; on a failure the plan keeps its own price. The
+--    purchase needs the renter's card: not made here (TODO, see the change record).
 -- 4. RentalCover covers up to $50,000 an incident: it is offered only for a car worth less than
---    rentalcover_max_vehicle_value_cents ($50,000). The car's value is vehicles.replacement_value_cents (Admin, on the car
---    page), else the last Black Book value of its buyout x 1.2, else unknown, and unknown counts as over the cap (Program
---    settings rentalcover_unknown_value_allowed, off). At or over the cap only OPCF 27 or credit card coverage: the
---    checkout quote says so, the offer screen and the request form leave the option out, and the database refuses option 3
---    on a booking of such a car (a trigger, whatever the path). Data Health lists the cars with no value on file.
+--    rentalcover_max_vehicle_value_cents ($50,000), in both modes. The car's value: an Admin's replacement value (an
+--    override), else its Canadian Black Book value (vehicles.black_book_value_cents, else the last buyout's), else an AI
+--    estimate from typical listing prices (vehicles.estimated_value_*, filled by the server's value job), else unknown,
+--    which counts as over the cap. At or over the cap only OPCF 27 or credit card coverage: the checkout quote says so,
+--    the offer screen and the request form leave the option out, and a trigger refuses option 3 on such a car. Data Health
+--    lists the cars with no value.
 set local check_function_bodies = off;
 
 create or replace function pg_temp.copy_grants(p_new regprocedure, p_old regprocedure) returns void
@@ -29,31 +28,45 @@ end $$;
 
 -- ================================================================ settings and the car's value
 alter table program_settings
-  add column if not exists rentalcover_markup_enabled boolean not null default false,
-  add column if not exists rentalcover_markup_pct numeric(6,2) not null default 0 check (rentalcover_markup_pct >= 0 and rentalcover_markup_pct <= 500),
+  add column if not exists rentalcover_api_allowed boolean not null default true,
+  add column if not exists rentalcover_markup_enabled boolean not null default true,
+  add column if not exists rentalcover_markup_pct numeric(6,2) not null default 20 check (rentalcover_markup_pct >= 0 and rentalcover_markup_pct <= 500),
   add column if not exists rentalcover_markup_flat_cents bigint not null default 0 check (rentalcover_markup_flat_cents >= 0),
   add column if not exists rentalcover_quote_cache_minutes integer not null default 15 check (rentalcover_quote_cache_minutes between 1 and 1440),
   add column if not exists rentalcover_max_vehicle_value_cents bigint not null default 5000000 check (rentalcover_max_vehicle_value_cents > 0),
   add column if not exists rentalcover_unknown_value_allowed boolean not null default false;
 -- a settings row cached earlier in this session has fewer columns: read it again (app.settings, 0827)
 select set_config('app.settings_gen', gen_random_uuid()::text, true);
-comment on column program_settings.rentalcover_markup_enabled is 'RentalCover (1202): add our markup to the quote. Off until RentalCover confirms a markup is allowed.';
-comment on column program_settings.rentalcover_markup_pct is 'RentalCover (1202): markup, percent of the quote (0 by default).';
+comment on column program_settings.rentalcover_api_allowed is 'RentalCover (1202): price the Protection Plan from a RentalCover quote plus our markup when the partner key (RENTALCOVER_API_KEY) is set. Off, or no key: our own pricing (the Protection Plan table).';
+comment on column program_settings.rentalcover_markup_enabled is 'RentalCover api mode (1202): add our markup to the quote (on: a licensed rental company may resell with a markup).';
+comment on column program_settings.rentalcover_markup_pct is 'RentalCover api mode (1202): markup, percent of the quote (20 by default).';
 comment on column program_settings.rentalcover_markup_flat_cents is 'RentalCover (1202): markup, a fixed amount per quote (0 by default).';
 comment on column program_settings.rentalcover_quote_cache_minutes is 'RentalCover (1202): a quote for the same renter and dates is reused for this many minutes.';
 comment on column program_settings.rentalcover_max_vehicle_value_cents is 'RentalCover (1202): the Protection Plan is offered only for a car worth less than this (it covers up to $50,000 an incident).';
 comment on column program_settings.rentalcover_unknown_value_allowed is 'RentalCover (1202): offer the Protection Plan on a car with no value on file (off: unknown counts as over the cap).';
 
-alter table vehicles add column if not exists replacement_value_cents bigint check (replacement_value_cents is null or replacement_value_cents > 0);
-comment on column vehicles.replacement_value_cents is 'What the car is worth (to replace it), for the RentalCover cap (1202). Empty: the Black Book value of its buyout x 1.2, else unknown.';
+alter table vehicles
+  add column if not exists replacement_value_cents bigint check (replacement_value_cents is null or replacement_value_cents > 0),
+  add column if not exists black_book_value_cents bigint check (black_book_value_cents is null or black_book_value_cents > 0),
+  add column if not exists black_book_value_on date,
+  add column if not exists estimated_value_cents bigint check (estimated_value_cents is null or estimated_value_cents > 0),
+  add column if not exists estimated_value_source text,
+  add column if not exists estimated_value_at timestamptz,
+  add column if not exists estimated_value_tried_at timestamptz;
+comment on column vehicles.replacement_value_cents is 'An Admin''s value for the RentalCover cap (1202): wins over every other source when set.';
+comment on column vehicles.black_book_value_cents is 'Canadian Black Book value (1202): the primary value for the RentalCover cap (else the last buyout''s Black Book value).';
+comment on column vehicles.estimated_value_cents is 'An AI estimate from typical Canadian listing prices (1202), used for the RentalCover cap when there is no Black Book value; source and date beside it.';
+comment on column vehicles.estimated_value_tried_at is 'When the value job last asked for an estimate (1202): one try a day per car; null asks again (Refresh on the car page).';
 
 -- the car's value for the cap, and where it came from
 create function app.vehicle_cover_value(p_vehicle uuid) returns jsonb
 language sql stable security definer set search_path = public, app as $$
   select case
     when v.replacement_value_cents is not null then jsonb_build_object('value_cents', v.replacement_value_cents, 'source', 'replacement_value')
-    when bb.black_book_value_cents is not null then jsonb_build_object('value_cents', round(bb.black_book_value_cents * 1.2)::bigint, 'source', 'black_book',
-                                                                      'black_book_cents', bb.black_book_value_cents)
+    when v.black_book_value_cents is not null then jsonb_build_object('value_cents', v.black_book_value_cents, 'source', 'black_book', 'on', v.black_book_value_on)
+    when bb.black_book_value_cents is not null then jsonb_build_object('value_cents', bb.black_book_value_cents, 'source', 'black_book')
+    when v.estimated_value_cents is not null then jsonb_build_object('value_cents', v.estimated_value_cents, 'source', 'estimate',
+                                                                    'estimate_source', v.estimated_value_source, 'at', v.estimated_value_at)
     else jsonb_build_object('value_cents', null, 'source', 'unknown') end
     from vehicles v
     left join lateral (select x.black_book_value_cents from vehicle_buyouts x where x.vehicle_id = v.id and x.black_book_value_cents is not null
@@ -122,6 +135,10 @@ create index rentalcover_quotes_booking on rentalcover_quotes (booking_id) where
 alter table rentalcover_quotes enable row level security;
 revoke all on rentalcover_quotes from anon, authenticated;
 grant all on rentalcover_quotes to service_role;
+-- an Admin reads them (the audit of a price); only the server writes them
+grant select on rentalcover_quotes to authenticated;
+create policy admin_all on rentalcover_quotes for select to authenticated using (app.is_admin());
+create trigger audit_rentalcover_quotes after insert or update or delete on rentalcover_quotes for each row execute function app.audit_row();
 comment on table rentalcover_quotes is 'RentalCover quotes (1202): the raw quote, our markup and price, for audit and a short cache. The request is kept without the email (only a hash in cache_key).';
 
 alter table bookings
@@ -184,6 +201,7 @@ begin
   if coalesce(nullif(p ->> 'coverage_option', '')::integer, b.coverage_option) is distinct from 3 then
     return jsonb_build_object('ok', false, 'missing', 'not_the_plan');
   end if;
+  if not coalesce((app.settings()).rentalcover_api_allowed, true) then return jsonb_build_object('ok', false, 'missing', 'own_pricing'); end if;
   if v_vehicle is null or v_from is null or v_to is null or v_to <= v_from then
     return jsonb_build_object('ok', false, 'missing', 'dates');
   end if;
@@ -311,7 +329,7 @@ begin
   select coalesce(sum((x ->> 'amount_cents')::bigint), 0), coalesce(sum((x ->> 'hst_cents')::bigint), 0) into v_sub, v_tax from jsonb_array_elements(v_lines) x;
   return v || jsonb_build_object('lines', v_lines, 'subtotal_cents', v_sub, 'hst_cents', v_tax, 'total_cents', v_sub + v_tax, 'total_due_at_booking_cents', v_sub + v_tax,
     'coverage', coalesce(v -> 'coverage', '{}'::jsonb) || jsonb_build_object('sold_by_carmacars_price_cents', q.price_cents, 'sold_by_carmacars_per_day', false,
-                                                                            'priced_in_offer', false, 'price_note', null, 'rentalcover', true));
+                                                                            'priced_in_offer', false, 'price_note', null, 'rentalcover_quoted', true));
 end $$;
 select pg_temp.copy_grants('app.price_quote(uuid, timestamptz, timestamptz, jsonb)'::regprocedure, 'app.price_quote_pre1202(uuid, timestamptz, timestamptz, jsonb)'::regprocedure);
 
@@ -359,7 +377,7 @@ declare
   v jsonb := app.staff_offer_form_pre1202(p_by, p);
 begin
   return v || jsonb_build_object('cars', coalesce((select jsonb_agg(c || jsonb_build_object('rentalcover', app.rentalcover_check((c ->> 'id')::uuid)) order by n)
-                                                  from jsonb_array_elements(coalesce(v -> 'cars', '[]'::jsonb)) with ordinality x(c, n)), '[]'::jsonb));
+                       from jsonb_array_elements(coalesce(v -> 'cars', '[]'::jsonb)) with ordinality x(c, n)), '[]'::jsonb));
 end $$;
 select pg_temp.copy_grants('app.staff_offer_form(uuid, jsonb)'::regprocedure, 'app.staff_offer_form_pre1202(uuid, jsonb)'::regprocedure);
 
@@ -367,7 +385,7 @@ alter function app.booking_car(text) rename to booking_car_pre1202;
 create function app.booking_car(p_slug text) returns jsonb
 language sql stable security definer set search_path = public, app as $$
   select case when r is null then null
-              else r || jsonb_build_object('protection_plan_offered', app.rentalcover_allowed((r ->> 'vehicle_id')::uuid)) end
+              else r || jsonb_build_object('protection_plan_offered', app.rentalcover_allowed((r ->> 'vehicle_id')::uuid),) end
     from app.booking_car_pre1202(p_slug) r
 $$;
 select pg_temp.copy_grants('app.booking_car(text)'::regprocedure, 'app.booking_car_pre1202(text)'::regprocedure);
@@ -385,17 +403,75 @@ create function app.vehicle_cover_value_set(p_by uuid, p jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app as $$
 declare
   v_id uuid := nullif(p ->> 'vehicle_id', '')::uuid;
+  v vehicles;
   v_val bigint := nullif(p ->> 'replacement_value_cents', '')::bigint;
-  v_old bigint;
+  v_bb bigint := nullif(p ->> 'black_book_value_cents', '')::bigint;
 begin
   perform app.assert_admin(p_by);
-  if v_val is not null and v_val <= 0 then raise exception 'Enter what the car is worth, or leave it empty' using errcode = '22023'; end if;
-  select replacement_value_cents into v_old from vehicles where id = v_id for update;
-  if not found then raise exception 'Car not found' using errcode = 'P0002'; end if;
-  update vehicles set replacement_value_cents = v_val where id = v_id;
+  if (v_val is not null and v_val <= 0) or (v_bb is not null and v_bb <= 0) then raise exception 'Enter what the car is worth, or leave it empty' using errcode = '22023'; end if;
+  select * into v from vehicles where id = v_id for update;
+  if v.id is null then raise exception 'Car not found' using errcode = 'P0002'; end if;
+  update vehicles set replacement_value_cents = case when p ? 'replacement_value_cents' then v_val else replacement_value_cents end,
+         black_book_value_cents = case when p ? 'black_book_value_cents' then v_bb else black_book_value_cents end,
+         black_book_value_on = case when p ? 'black_book_value_cents' and v_bb is distinct from v.black_book_value_cents then case when v_bb is not null then app.today() end else black_book_value_on end
+   where id = v_id;
   insert into audit_log (actor_user_id, action, entity_table, entity_id, before, after)
-  values (p_by, 'vehicle_cover_value_set', 'vehicles', v_id, jsonb_build_object('replacement_value_cents', v_old), jsonb_build_object('replacement_value_cents', v_val));
+  values (p_by, 'vehicle_cover_value_set', 'vehicles', v_id,
+          jsonb_build_object('replacement_value_cents', v.replacement_value_cents, 'black_book_value_cents', v.black_book_value_cents),
+          (select jsonb_build_object('replacement_value_cents', x.replacement_value_cents, 'black_book_value_cents', x.black_book_value_cents) from vehicles x where x.id = v_id));
   return jsonb_build_object('ok', true, 'rentalcover', app.rentalcover_check(v_id));
+end $$;
+
+-- ================================================================ the value job: an AI estimate where there is no Black Book value
+-- the cars the job estimates: active, no override and no Black Book value, no estimate in 90 days, not tried today
+create function app.car_values_due(p_limit integer default 5, p_vehicle uuid default null) returns jsonb
+language sql stable security definer set search_path = public, app as $$
+  select coalesce(jsonb_agg(jsonb_build_object('vehicle_id', v.id, 'year', v.year, 'make', v.make, 'model', v.model, 'trim', v.trim,
+           'odometer_km', v.odometer_km, 'fuel', v.fuel, 'body_type', v.body_type) order by v.estimated_value_tried_at nulls first, v.created_at), '[]'::jsonb)
+    from (select x.* from vehicles x
+           where (p_vehicle is null or x.id = p_vehicle) and not coalesce(x.is_sample, false) and x.status not in ('exited', 'total_loss', 'declined')
+             and x.replacement_value_cents is null and x.black_book_value_cents is null
+             and not exists (select 1 from vehicle_buyouts b where b.vehicle_id = x.id and b.black_book_value_cents is not null)
+             and (x.estimated_value_at is null or x.estimated_value_at < now() - interval '90 days')
+             and (x.estimated_value_tried_at is null or x.estimated_value_tried_at < now() - interval '1 day')
+             and x.make is not null and x.model is not null and x.year is not null
+           order by x.estimated_value_tried_at nulls first, x.created_at limit greatest(least(p_limit, 25), 1)) v
+$$;
+create function public.server_car_values_due(p_limit integer default 5, p_vehicle uuid default null) returns jsonb
+language sql stable security definer set search_path = public, app as $$ select app.car_values_due(p_limit, p_vehicle) $$;
+-- the job's answer for one car: an estimate (cents, its source such as "ai:<model>", the basis) or a failed try
+create function public.server_car_value_save(p_vehicle uuid, p_cents bigint, p_source text, p_basis text default null) returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+begin
+  if p_cents is not null and (p_cents < 100000 or p_cents > 100000000) then p_cents := null; end if;
+  update vehicles set estimated_value_tried_at = now(),
+         estimated_value_cents = coalesce(p_cents, estimated_value_cents),
+         estimated_value_source = case when p_cents is not null then left(coalesce(p_source, 'ai') || coalesce(': ' || left(p_basis, 200), ''), 300) else estimated_value_source end,
+         estimated_value_at = case when p_cents is not null then now() else estimated_value_at end
+   where id = p_vehicle;
+  return jsonb_build_object('ok', found, 'saved', p_cents is not null);
+end $$;
+-- the job runs while a car is due (the Worker's cron tick)
+alter function app.server_jobs_due() rename to server_jobs_due_pre1202;
+create function app.server_jobs_due() returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+declare j jsonb := app.server_jobs_due_pre1202();
+begin
+  if jsonb_array_length(app.car_values_due(1)) > 0 then j := j || jsonb_build_object('car_values', true); end if;
+  return j;
+end $$;
+select pg_temp.copy_grants('app.server_jobs_due()'::regprocedure, 'app.server_jobs_due_pre1202()'::regprocedure);
+-- staff ask again for one car (Refresh on the car page): the job picks it up on its next tick
+create function app.vehicle_value_refresh(p_by uuid, p jsonb) returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+declare v_id uuid := nullif(p ->> 'vehicle_id', '')::uuid;
+begin
+  if not (app.user_is_admin(p_by) or app.user_va_has(p_by, 'fleet') or app.user_va_has(p_by, 'cs')) then
+    raise exception 'Only an Admin, fleet or customer service asks for a new estimate' using errcode = '42501';
+  end if;
+  update vehicles set estimated_value_tried_at = null, estimated_value_at = case when estimated_value_at is not null then now() - interval '91 days' end where id = v_id;
+  if not found then raise exception 'Car not found' using errcode = 'P0002'; end if;
+  return jsonb_build_object('ok', true, 'queued', jsonb_array_length(app.car_values_due(1, v_id)) > 0, 'rentalcover', app.rentalcover_check(v_id));
 end $$;
 
 -- ================================================================ Data Health: cars with no value on file
@@ -434,6 +510,11 @@ begin
     perform app.door_begin(p_user, p_aal);
     return app.vehicle_cover_value_set(p_user, coalesce(p, '{}'::jsonb) - '_va');
   end if;
+  if p_call in ('admin_do', 'ops_do') and p_name = 'vehicle_value_refresh' then
+    if coalesce(p, '{}'::jsonb) ? '_va' then perform set_config('app.va_active', coalesce(p ->> '_va', ''), true); end if;
+    perform app.door_begin(p_user, p_aal);
+    return app.vehicle_value_refresh(p_user, coalesce(p, '{}'::jsonb) - '_va');
+  end if;
   return app.door_pre1202(p_user, p_aal, p_call, p_name, p);
 end $$;
 select pg_temp.copy_grants('app.door(uuid, text, text, text, jsonb)'::regprocedure, 'app.door_pre1202(uuid, text, text, text, jsonb)'::regprocedure);
@@ -446,8 +527,9 @@ begin
             where (n.nspname = 'app' and p.proname = any (array['vehicle_cover_value', 'rentalcover_check', 'rentalcover_allowed', 'bookings_rentalcover_cap', 'rentalcover_price',
                      'rentalcover_facts', 'rentalcover_record', 'rentalcover_quote_for', 'rentalcover_apply', 'vehicle_cover_value_set', 'price_quote_pre1202',
                      'admin_apply_booking_edit_pre1202', 'staff_offer_create_pre1202', 'staff_offer_form_pre1202', 'booking_car_pre1202', 'admin_vehicle_pre1202',
-                     'data_health_pre1202', 'data_health_keys_pre1202', 'door_pre1202']))
-               or (n.nspname = 'public' and p.proname in ('server_rentalcover_facts', 'server_rentalcover_record', 'server_rentalcover_apply'))
+                     'data_health_pre1202', 'data_health_keys_pre1202', 'door_pre1202',
+                     'car_values_due', 'server_jobs_due_pre1202', 'vehicle_value_refresh']))
+               or (n.nspname = 'public' and p.proname in ('server_rentalcover_facts', 'server_rentalcover_record', 'server_rentalcover_apply', 'server_car_values_due', 'server_car_value_save'))
   loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);
     execute format('grant execute on function %s to service_role', f.sig);

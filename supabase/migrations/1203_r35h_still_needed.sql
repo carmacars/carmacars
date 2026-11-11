@@ -139,21 +139,24 @@ language sql stable security definer set search_path = public, app as $$
 $$;
 
 -- the renter's reads carry it
-alter function public.my_booking(text) rename to my_booking_pre1203;
+-- the bodies move to app (a signed-in session keeps calling them through the wrappers, with its own rights)
+alter function public.my_booking(text) set schema app;
+alter function app.my_booking(text) rename to my_booking_pre1203;
 create function public.my_booking(p_number text) returns jsonb
 language sql stable set search_path = public, app as $$
   select case when x is null then null else x || jsonb_build_object('still_needed', app.my_still_needed((x ->> 'id')::uuid)) end
-    from (select public.my_booking_pre1203(p_number) as x) q
+    from (select app.my_booking_pre1203(p_number) as x) q
 $$;
-select pg_temp.copy_grants('public.my_booking(text)'::regprocedure, 'public.my_booking_pre1203(text)'::regprocedure);
+select pg_temp.copy_grants('public.my_booking(text)'::regprocedure, 'app.my_booking_pre1203(text)'::regprocedure);
 
-alter function public.my_bookings() rename to my_bookings_pre1203;
+alter function public.my_bookings() set schema app;
+alter function app.my_bookings() rename to my_bookings_pre1203;
 create function public.my_bookings() returns setof jsonb
 language sql stable set search_path = public, app as $$
   select x || jsonb_build_object('still_needed', case when x ->> 'status' in ('requested', 'offered', 'pending_payment', 'confirmed', 'on_rent') then app.my_still_needed((x ->> 'id')::uuid) end)
-    from public.my_bookings_pre1203() x
+    from app.my_bookings_pre1203() x
 $$;
-select pg_temp.copy_grants('public.my_bookings()'::regprocedure, 'public.my_bookings_pre1203()'::regprocedure);
+select pg_temp.copy_grants('public.my_bookings()'::regprocedure, 'app.my_bookings_pre1203()'::regprocedure);
 
 -- the reminders name the same items: "Still missing: ..." lists every item not done
 alter function app.ntf_booking(uuid) rename to ntf_booking_pre1203;

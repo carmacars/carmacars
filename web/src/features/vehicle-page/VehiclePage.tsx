@@ -129,12 +129,24 @@ export async function VehiclePage({ ctx, id, sp }: { ctx: PageCtx; id: string; s
               { name: 'extension_offers', label: 'Renters extend themselves', type: 'bool', value: v.extension_offers ?? true, hint: 'At the extension discount, approved at once when the car is free. Off: renters of this car ask and staff approve, at the regular price.' }]} />
           </Card>
           <Card title="Value for the Protection Plan" testId="vehicle-cover-value">
-            <p className="small muted">RentalCover covers up to {$((v.rentalcover as { cap_cents?: number } | null)?.cap_cents ?? 5000000)} an incident: the Protection Plan is offered only for a car worth less. Empty: the Black Book value of its buyout x 1.2, else unknown (not offered).</p>
-            <Kv rows={[['Value on file', v.replacement_value_cents ? $(v.replacement_value_cents) : 'None'],
-              ['Value used', (v.rentalcover as { value_cents?: number | null } | null)?.value_cents ? `${$((v.rentalcover as { value_cents: number }).value_cents)}${(v.rentalcover as { source?: string }).source === 'black_book' ? ' (Black Book x 1.2)' : ''}` : 'Unknown'],
-              ['Protection Plan', <span key="pp" data-testid="vehicle-cover-allowed">{(v.rentalcover as { allowed?: boolean } | null)?.allowed ? 'Offered' : 'Not offered: OPCF 27 or credit card coverage only'}</span>]]} />
-            <Act inline action="vehicle_cover_value" payload={{ vehicle_id: id }} label="Save" refresh={refresh} testId="vehicle-cover-value-save" fields={[
-              { name: 'replacement_value_cents', label: 'What the car is worth (replacement value)', type: 'money', value: (v.replacement_value_cents as number | null) ?? null }]} />
+            {(() => {
+              const rc = (v.rentalcover ?? {}) as { allowed?: boolean; value_cents?: number | null; source?: string; cap_cents?: number };
+              const src: Record<string, string> = { replacement_value: 'your value (override)', black_book: 'Canadian Black Book', estimate: 'AI estimate from listing prices', unknown: 'unknown' };
+              return <>
+                <p className="small muted">The Protection Plan is offered only for a car worth less than {$(rc.cap_cents ?? 5000000)}. The value used: your override when set, else the Canadian Black Book value, else an AI estimate from typical listing prices (made by itself within the free allowance). Unknown counts as over the limit.</p>
+                <Kv rows={[['Canadian Black Book', v.black_book_value_cents ? `${$(v.black_book_value_cents)}${v.black_book_value_on ? `, ${d(String(v.black_book_value_on))}` : ''}` : 'None'],
+                  ['AI estimate', v.estimated_value_cents ? `${$(v.estimated_value_cents)}${v.estimated_value_at ? `, ${d(String(v.estimated_value_at))}` : ''}` : 'None yet'],
+                  ['Override', v.replacement_value_cents ? $(v.replacement_value_cents) : 'None'],
+                  ['Value used', rc.value_cents ? `${$(rc.value_cents)} (${src[rc.source ?? 'unknown'] ?? rc.source})` : 'Unknown'],
+                  ['Protection Plan', <span key="pp" data-testid="vehicle-cover-allowed">{rc.allowed ? 'Offered' : 'Not offered: OPCF 27 or credit card coverage only'}</span>]]} />
+                <div className="ad-actions">
+                  <Act inline action="vehicle_cover_value" payload={{ vehicle_id: id }} label="Save" refresh={refresh} testId="vehicle-cover-value-save" fields={[
+                    { name: 'black_book_value_cents', label: 'Canadian Black Book value', type: 'money', value: (v.black_book_value_cents as number | null) ?? null },
+                    { name: 'replacement_value_cents', label: 'Override (optional: wins over every other value)', type: 'money', value: (v.replacement_value_cents as number | null) ?? null }]} />
+                  <Act ops action="vehicle_value_refresh" payload={{ vehicle_id: id }} label="Refresh the AI estimate" refresh={refresh} testId="vehicle-value-refresh" done="Asked: the estimate arrives within a few minutes." />
+                </div>
+              </>;
+            })()}
           </Card>
           <Card title="For sale" testId="vehicle-for-sale">
             <p className="small muted">With the flag and a price, the car shows at the top of its /buy pages.</p>
