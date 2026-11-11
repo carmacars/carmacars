@@ -13,11 +13,9 @@
 --      schema is not served by the API, so none could be called from a browser; they are closed now all the same. Each
 --      keeps exactly the explicit grants it had; one pure calculator a public wrapper uses (calc_cancellation) gets anon and
 --      authenticated by name instead of through PUBLIC.
---   3. Browser roles cannot create temporary tables. A definer function's search_path ("public, app") does not name
---      pg_temp, so PostgreSQL looks in the session's temporary schema first: a session that could create a temp table
---      named like a real one could shadow it inside a definer function. Browser sessions never need temp tables (every
---      function that makes one is a definer function, run as the owner), so TEMPORARY is revoked from PUBLIC and given
---      back by name to every role that is not anon or authenticated.
+--   3. (Considered and left: revoking TEMPORARY from browser roles, so a temp table could never shadow a real one inside a
+--      definer function whose search_path does not name pg_temp. Browser sessions cannot run DDL through the API, so the
+--      risk is theoretical, and the database tests build fixtures in temp tables while acting as those roles.)
 --   4. staff_directory gets security_barrier like every other view a browser session reads.
 --   5. Every foreign key that is a join path gets an index (538 had none; the audit's "missing indexes on foreign keys").
 --      Without one, deleting or purging a parent row (the visitor retention purge, a booking's cascades) scans the child
@@ -58,18 +56,6 @@ begin
 end $$;
 -- public.calc_refund_bps (a calculator anon may call) calls it with the caller's rights
 grant execute on function public.calc_cancellation(timestamptz, timestamptz, timestamptz, boolean, bigint, boolean) to anon, authenticated;
-
--- ================================================================ 3. no temporary tables for browser sessions
-do $$
-declare r record;
-begin
-  execute format('revoke temporary on database %I from public', current_database());
-  for r in select rolname from pg_roles where rolname !~ '^pg_' and rolname not in ('anon', 'authenticated') loop
-    execute format('grant temporary on database %I to %I', current_database(), r.rolname);
-  end loop;
-exception when insufficient_privilege then
-  raise notice 'temporary: not the database owner here, left as it was (%)', sqlerrm;
-end $$;
 
 -- ================================================================ 4. the staff directory view
 alter view public.staff_directory set (security_barrier = true);

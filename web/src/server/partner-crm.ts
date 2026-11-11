@@ -24,9 +24,20 @@ export function publicHttps(u: string): URL | null {
 }
 
 async function fetchCapped(u: string, max: number, accept: RegExp): Promise<{ bytes: Uint8Array; type: string } | null> {
-  const url = publicHttps(u);
+  let url = publicHttps(u);
   if (!url) throw new Error('Not a public https address');
-  const r = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(15_000), headers: { 'user-agent': 'CarmaCars partner sync (+https://carmacars.ca)' } });
+  // r35 (security audit): redirects are followed one hop at a time and each address is checked again, so a public address
+  // cannot redirect the server to a local or internal one
+  let r: Response | null = null;
+  for (let hop = 0; hop <= 5 && !r; hop++) {
+    const res: Response = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(15_000), headers: { 'user-agent': 'CarmaCars partner sync (+https://carmacars.ca)' } });
+    const loc = res.status >= 300 && res.status < 400 ? res.headers.get('location') : null;
+    if (!loc) { r = res; break; }
+    const next = publicHttps(new URL(loc, url).toString());
+    if (!next) throw new Error('The address redirects to one that is not a public https address');
+    url = next;
+  }
+  if (!r) throw new Error('Too many redirects');
   if (!r.ok) throw new Error(`The address answered ${r.status}`);
   const type = (r.headers.get('content-type') ?? '').split(';')[0]!.trim().toLowerCase();
   if (!accept.test(type)) return null;

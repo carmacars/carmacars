@@ -97,13 +97,7 @@ select test.ok('door: the visitor writes that create rows check the per-address 
   (select bool_and(p.prosrc ~ 'public_rate_check|rate_limit') from pg_proc p
     where p.pronamespace = 'app'::regnamespace and p.proname in ('record_cookie_choice', 'record_cookie_notice', 'track_ingest', 'game_start_core')));
 
--- ------------------------------------------------------------------ temporary tables (shadowing inside definer functions)
-select test.eq('temp: the anonymous and signed-in roles cannot create temporary tables; the server still can',
-  has_database_privilege('anon', current_database(), 'temporary')::text || '/' || has_database_privilege('authenticated', current_database(), 'temporary')::text
-  || '/' || has_database_privilege('service_role', current_database(), 'temporary')::text, 'false/false/true');
-set role authenticated;
-select test.throws('temp: a signed-in session is refused a temporary table', 'create temporary table r35sec_shadow (id int)', 'permission denied');
-reset role;
+-- ------------------------------------------------------------------ an internal table, as the anonymous role
 set role anon;
 select test.eq('rls: an internal app table is closed to the anonymous role (no grant, and row-level security behind it)',
   test.visible('select * from app.phone_gate_codes'), -1::bigint);
