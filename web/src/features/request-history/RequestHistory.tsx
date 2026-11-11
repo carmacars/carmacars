@@ -96,7 +96,7 @@ export function RequestHistory({ h, base }: { h: History; base: string }) {
             {o.price ? <><p className="pt-kicker">Price shown to the renter</p><PriceList p={o.price} testId="original-price" /></> : null}
           </div>)}
       </Card>
-      <Card title={`Offer history (${h.offers.length})`} testId="offer-history">
+      <Card title="Offer history" testId="offer-history" aside={<span className="small muted">{h.offers.length} version{h.offers.length === 1 ? '' : 's'}</span>}>
         {h.offers.length === 0 ? <p className="small muted">No offer sent yet.</p>
           : <ol className="stack" style={{ listStyle: 'none', padding: 0 }}>{[...ordered].reverse().map((x) => <OfferRow key={x.version} o={x} prev={prevOf(x.version)} base={base} mayRevert={mayRevert} />)}</ol>}
         {mayRevert && h.offers.length > 1 && <p className="small muted">Revert loads that version into the review below as a new offer: check it and send it. Nothing changes until you send.</p>}

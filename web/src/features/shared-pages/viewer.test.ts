@@ -23,10 +23,11 @@ describe('the shared booking page', () => {
   });
   it('gives each staff function exactly what its own copy showed', () => {
     const want: Record<StaffFn, string[]> = {
-      sales: ['changeCar', 'handover', 'inbox', 'licenceReview', 'money', 'offer', 'sign', 'staffUpload'],
-      cs: ['cancelForRenter', 'carLink', 'changeCar', 'driverLinks', 'editOfferPending', 'extras', 'handover', 'inbox', 'latePanel', 'money', 'offer', 'paperSignatures', 'returningNow', 'sign', 'staffUpload'],
+      // r35a (1300): the original request and the offer history for Sales, customer service and Fleet (not Finance)
+      sales: ['changeCar', 'handover', 'inbox', 'licenceReview', 'money', 'offer', 'requestHistory', 'sign', 'staffUpload'],
+      cs: ['cancelForRenter', 'carLink', 'changeCar', 'driverLinks', 'editOfferPending', 'extras', 'handover', 'inbox', 'latePanel', 'money', 'offer', 'paperSignatures', 'requestHistory', 'returningNow', 'sign', 'staffUpload'],
       // r35 (0970): Fleet collects payments and texts on its own lane; never refunds, offers, cancellations or extras
-      fleet: ['carLink', 'changeCar', 'collectOnly', 'handover', 'inbox', 'latePanel', 'manualPayments', 'money', 'photoReview', 'returningNow', 'scheduleJob', 'sign', 'staffUpload'],
+      fleet: ['carLink', 'changeCar', 'collectOnly', 'handover', 'inbox', 'latePanel', 'manualPayments', 'money', 'photoReview', 'requestHistory', 'returningNow', 'scheduleJob', 'sign', 'staffUpload'],
       finance: ['agreementMoney', 'manualPayments', 'money', 'refund', 'refundApprove', 'settleDeposit', 'staffUpload', 'statement']
     };
     for (const fn of FNS) assert.deepEqual(yes(bookingCan(staffViewer(fn))), want[fn].sort(), fn);
