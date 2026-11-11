@@ -60,8 +60,8 @@ export function payBlocks(pay: Pay | null | undefined, invoiceNumber: string): B
   if (!dd.length && !et) return [];
   const out: Block[] = [{ t: 'h2', text: 'How to pay' }];
   if (dd.length) out.push(kv('Direct deposit', dd));
-  if (et) out.push(kv('Interac e-Transfer', [['Send to', et], ['Message', `Invoice ${invoiceNumber}`]]));
-  out.push({ t: 'p', text: `Please quote invoice ${invoiceNumber} with your payment${et ? ' (put the invoice number in the e-Transfer message)' : ''}.` });
+  if (et) out.push(kv('Interac e-Transfer', [['Send to', et], ['Message', `Put the invoice number in the message: ${invoiceNumber}`]]));
+  out.push({ t: 'p', text: `Please quote invoice ${invoiceNumber} with your payment.` });
   return out;
 }
 

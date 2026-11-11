@@ -16,18 +16,23 @@ create function test.ui_day(p_days integer) returns text language sql stable as 
 create function test.uib(p text) returns uuid language sql stable as $$ select test.id('booking:' || p) $$;
 
 -- ================================================================ 1. Program settings: empty bank details, the add-on schedule
-select test.eq('defaults: the Blind Spot name, no email, every bank and e-Transfer setting empty',
+select test.eq('defaults: the Blind Spot name, no email, every bank setting empty, e-Transfer to rent@carmacars.ca for both (the owner, November 11)',
   (select s.bs_billing_name || '/' || coalesce(s.bs_billing_email, '-') || '/' || concat_ws(',', s.bs_pay_account_name, s.bs_pay_account_number, s.bs_pay_etransfer_email,
           s.cc_pay_account_name, s.cc_pay_institution_number, s.cc_pay_transit_number, s.cc_pay_account_number, s.cc_pay_etransfer_email) from (select (app.settings()).*) s),
-  'Blind Spot Car Rental/-/');
+  'Blind Spot Car Rental/-/rent@carmacars.ca,rent@carmacars.ca');
 select test.eq('defaults: charger $150, mount $75, child seat $450, booster $200, others 3 times at least $100',
   (select concat_ws('/', s.unreturned_ev_charger_cents, s.unreturned_phone_mount_cents, s.unreturned_child_seat_cents, s.unreturned_booster_seat_cents, s.unreturned_other_times, s.unreturned_other_min_cents)
      from (select (app.settings()).*) s), '15000/7500/45000/20000/3.00/10000');
-select test.eq('how to pay: nothing set, every value null', (select count(*) from jsonb_each(app.invoice_pay('blindspot')) e where e.value <> 'null'::jsonb), 0::bigint);
+select test.eq('how to pay by default: the e-Transfer email only (direct deposit empty: the section is left off)',
+  (select string_agg(e.key || '=' || (e.value #>> '{}'), ',') from jsonb_each(app.invoice_pay('blindspot')) e where e.value <> 'null'::jsonb)
+  || '|' || (select string_agg(e.key || '=' || (e.value #>> '{}'), ',') from jsonb_each(app.invoice_pay('carmacars')) e where e.value <> 'null'::jsonb),
+  'etransfer_email=rent@carmacars.ca|etransfer_email=rent@carmacars.ca');
+-- the fall-back below: Blind Spot's own set emptied, so it takes CarmaCars'
+update program_settings set bs_pay_etransfer_email = null where id = (app.settings()).id;
 update program_settings set cc_pay_account_name = 'CarmaCars Holdings', cc_pay_account_number = '000111', cc_pay_etransfer_email = 'pay@carmacars.example.test' where id = (app.settings()).id;
 select test.eq('CarmaCars invoices: CarmaCars'' details', app.invoice_pay('carmacars') ->> 'account_number' || '/' || (app.invoice_pay('carmacars') ->> 'etransfer_email'), '000111/pay@carmacars.example.test');
-select test.eq('Blind Spot falls back to CarmaCars'' details with nothing naming CarmaCars',
-  coalesce(app.invoice_pay('blindspot') ->> 'account_name', '-') || '/' || (app.invoice_pay('blindspot') ->> 'account_number') || '/' || coalesce(app.invoice_pay('blindspot') ->> 'etransfer_email', '-'), '-/000111/-');
+select test.eq('Blind Spot falls back to CarmaCars'' details: an account name naming CarmaCars left out, the e-Transfer email kept (the owner''s choice)',
+  coalesce(app.invoice_pay('blindspot') ->> 'account_name', '-') || '/' || (app.invoice_pay('blindspot') ->> 'account_number') || '/' || coalesce(app.invoice_pay('blindspot') ->> 'etransfer_email', '-'), '-/000111/pay@carmacars.example.test');
 update program_settings set bs_pay_account_name = 'Blind Spot Billing', bs_pay_account_number = '000222', bs_pay_etransfer_email = 'billing@blindspot.example.test' where id = (app.settings()).id;
 select test.eq('Blind Spot''s own details once entered', app.invoice_pay('blindspot') ->> 'account_name' || '/' || (app.invoice_pay('blindspot') ->> 'account_number') || '/' || (app.invoice_pay('blindspot') ->> 'etransfer_email'),
   'Blind Spot Billing/000222/billing@blindspot.example.test');

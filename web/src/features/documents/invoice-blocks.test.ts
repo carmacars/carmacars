@@ -67,7 +67,10 @@ test('how to pay: an empty section is left out; nothing at all, no heading', () 
   assert.deepEqual(payBlocks({}, 'INS-1'), []);
   const only = payBlocks({ etransfer_email: 'pay@example.test' }, 'INS-1');
   assert.equal(only.filter((b) => b.t === 'table').length, 1);
-  assert.ok(JSON.stringify(only).includes('Invoice INS-1'));
+  assert.ok(JSON.stringify(only).includes('Put the invoice number in the message: INS-1'));
+  // the owner's default (November 11): e-Transfer only, direct deposit empty until the new bank details come
+  const dflt = payBlocks({ etransfer_email: 'rent@carmacars.ca' }, 'INV-9');
+  assert.ok(!JSON.stringify(dflt).includes('Direct deposit') && JSON.stringify(dflt).includes('rent@carmacars.ca'));
 });
 
 test('a draft says so in the footer; an issued invoice has no Draft and no Preview', () => {

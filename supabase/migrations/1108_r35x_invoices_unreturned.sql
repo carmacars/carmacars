@@ -42,13 +42,13 @@ alter table program_settings
   add column if not exists bs_pay_institution_number text,
   add column if not exists bs_pay_transit_number text,
   add column if not exists bs_pay_account_number text,
-  add column if not exists bs_pay_etransfer_email text,
+  add column if not exists bs_pay_etransfer_email text default 'rent@carmacars.ca',
   add column if not exists cc_pay_account_name text,
   add column if not exists cc_pay_institution text,
   add column if not exists cc_pay_institution_number text,
   add column if not exists cc_pay_transit_number text,
   add column if not exists cc_pay_account_number text,
-  add column if not exists cc_pay_etransfer_email text,
+  add column if not exists cc_pay_etransfer_email text default 'rent@carmacars.ca',
   add column if not exists unreturned_ev_charger_cents bigint not null default 15000 check (unreturned_ev_charger_cents >= 0),
   add column if not exists unreturned_phone_mount_cents bigint not null default 7500 check (unreturned_phone_mount_cents >= 0),
   add column if not exists unreturned_child_seat_cents bigint not null default 45000 check (unreturned_child_seat_cents >= 0),
@@ -268,9 +268,10 @@ begin
     'transit_number', case when bs then s.bs_pay_transit_number else s.cc_pay_transit_number end,
     'account_number', case when bs then s.bs_pay_account_number else s.cc_pay_account_number end,
     'etransfer_email', case when bs then s.bs_pay_etransfer_email else s.cc_pay_etransfer_email end);
-  -- Blind Spot's invoice falls back to CarmaCars' details without any CarmaCars wording (an account name or email naming it is left out)
+  -- Blind Spot's invoice falls back to CarmaCars' details without any CarmaCars wording (an account name naming it is left out).
+  -- The e-Transfer email is the owner's own choice for both sets (November 11: rent@carmacars.ca, the default), so it is kept.
   if p_brand = 'blindspot' then
-    v := (select coalesce(jsonb_object_agg(k, to_jsonb(app.no_carmacars(x))), '{}'::jsonb) from jsonb_each_text(v) e(k, x));
+    v := (select coalesce(jsonb_object_agg(k, to_jsonb(case when k = 'etransfer_email' then nullif(btrim(coalesce(x, '')), '') else app.no_carmacars(x) end)), '{}'::jsonb) from jsonb_each_text(v) e(k, x));
   else
     v := (select coalesce(jsonb_object_agg(k, to_jsonb(nullif(btrim(coalesce(x, '')), ''))), '{}'::jsonb) from jsonb_each_text(v) e(k, x));
   end if;
