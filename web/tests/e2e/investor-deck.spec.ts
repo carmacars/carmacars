@@ -5,7 +5,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { acceptCookies, db, noOverflow, pdfText } from './helpers';
 
 // The investor deck, end to end at 375 and 1440 (r35: the 2026 pitch deck, features/deck/pitch.ts): a signed-in investor
-// finds it on the portal home and in the menu, reads the eight slides as HTML (the owner's words and numbers), moves through
+// finds it on the portal home and in the menu, reads the ten slides as HTML (the owner's words and numbers), moves through
 // them by keyboard and buttons, and prints it to PDF (one landscape page per slide, with the notice). An Admin previews it,
 // changes the multiplier, and hides it: the investor then sees neither the link nor the deck. Fictional people only.
 const SHOTS = 'test-results/investor-deck';
@@ -61,7 +61,7 @@ test.describe('investor deck', () => {
   test.beforeAll(() => { sql = db(); });
   test.afterAll(async () => { await sql.end(); });
 
-  test('an investor opens the deck and moves through its eight slides', async ({ browser }) => {
+  test('an investor opens the deck and moves through its ten slides', async ({ browser }) => {
     test.setTimeout(240_000);
     await sql`select pg_advisory_lock(${LOCK})`;
     try {
@@ -78,7 +78,7 @@ test.describe('investor deck', () => {
       await page.waitForURL('**/investor/deck');
       await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
       await expect(page.getByTestId('deck')).toHaveAttribute('data-ready', 'true', { timeout: 60_000 });
-      await expect(page.getByTestId('deck-slide')).toHaveCount(8);
+      await expect(page.getByTestId('deck-slide')).toHaveCount(10);
       // the slides are HTML text, not pictures of slides
       await expect(page.locator('.dk-slide img:not(.dk-logo)')).toHaveCount(0); // only the brand logo is a picture
       await expect(page.locator('#cover')).toContainText('Car rental, rebuilt for Ontario.');
@@ -86,6 +86,8 @@ test.describe('investor deck', () => {
       await expect(page.locator('#model')).toContainText('Insurer-billed replacement rentals');
       await expect(page.getByTestId('deck-us')).toContainText('Delivered anywhere in Ontario');
       await expect(page.getByTestId('deck-demand')).toContainText('8 to 11');
+      await expect(page.getByTestId('deck-lines')).toContainText('Brokering partner fleets');
+      await expect(page.getByTestId('deck-ai')).toContainText('recorded, transcribed');
       await expect(page.getByTestId('deck-demand')).toContainText('$45k+');
       await expect(page.getByTestId('deck-per-day')).toHaveText('$112');
       await expect(page.getByTestId('deck-per-car')).toHaveText('$2,800');
@@ -103,13 +105,13 @@ test.describe('investor deck', () => {
 
       // next by button, then by keyboard
       await page.getByTestId('deck-next').click();
-      await expect(page.getByTestId('deck-count')).toHaveText('2 / 8');
+      await expect(page.getByTestId('deck-count')).toHaveText('2 / 10');
       await page.keyboard.press('ArrowRight');
-      await expect(page.getByTestId('deck-count')).toHaveText('3 / 8');
+      await expect(page.getByTestId('deck-count')).toHaveText('3 / 10');
       await page.keyboard.press('End');
-      await expect(page.getByTestId('deck-count')).toHaveText('8 / 8');
+      await expect(page.getByTestId('deck-count')).toHaveText('10 / 10');
       await page.keyboard.press('Home');
-      await expect(page.getByTestId('deck-count')).toHaveText('1 / 8');
+      await expect(page.getByTestId('deck-count')).toHaveText('1 / 10');
       await noOverflow(page);
       await page.context().close();
     } finally { await sql`select pg_advisory_unlock(${LOCK})`; }
