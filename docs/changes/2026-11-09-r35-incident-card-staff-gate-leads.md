@@ -48,3 +48,7 @@ person holding too many open leads takes no more until they close or release one
 | Cap | A person's cap (`app.sl_cap`): `lead_cap_base` (3), plus one for every `lead_cap_per_wins` (5) leads won in the last 30 days (the outcome won credited to them, which a confirmed booking of the lead's contact also sets), up to `lead_cap_max` (10). At the cap a claim is refused until one is won, lost, handled, unclaimed, released or runs out |
 | Screens | The lead list: "you hold n of N", the wins to the next slot and "next claim in m:ss"; Settings > Sales: the pacing and the three cap settings; the Sales dashboard team table: each person's holding of their cap |
 | Once | Leads given by themselves (no claim, contact or outcome by the assignee, not their own lead) are back on the list, logged as **Claim released** ("Auto-assigned"); then part B's return for anyone not onboarded |
+
+## Guides
+
+No guide change: the incident card, the Welcome steps and the lead list are covered by the sections already in the guides; this record changed no guide chapter text.

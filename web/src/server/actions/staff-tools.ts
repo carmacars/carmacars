@@ -5,6 +5,7 @@ import type { ActionResult } from '@/features/forms/schemas';
 import { currentUser } from '@/server/portal/data';
 import { door, sessionAal } from '@/server/door';
 import { sha256Hex } from '@/server/links';
+import { imageSniff } from '@/lib/file-sniff';
 
 // The staff tools of migration 0042 (toll reading, plate covering, official forms) through the staff door's ops
 // calls: the same screens for an Admin and an assistant; the database decides who may do what (Finance and
@@ -19,7 +20,11 @@ async function me() {
 
 export type StaffRead = 'toll_read_context' | 'toll_read' | 'toll_read_queue' | 'toll_profiles' | 'ai_vision_gate' | 'photo_plate_context' | 'showroom_carry_pending' | 'form_templates' | 'form_template_preview' | 'rental_form_preview'
   // r35 S2 (1053): marketing photo scenes
-  | 'marketing_photos' | 'marketing_scene_refs';
+  | 'marketing_photos' | 'marketing_scene_refs'
+  // r36 (2100): the listing's first photo
+  | 'listing_cover'
+  // r36 (2110): what the AI auto-replies did
+  | 'auto_replies';
 export async function staffRead<T = Record<string, unknown>>(what: StaffRead, p: Record<string, unknown> = {}): Promise<R<T>> {
   try { const { user, aal } = await me(); return { ok: true, data: await door<T>(user.id, 'ops_read', what, p, aal) }; } catch (e) { return fail(e); }
 }
@@ -30,7 +35,7 @@ export async function staffDo<T = Record<string, unknown>>(action: string, p: Re
     const data = await door<T>(user.id, 'ops_do', action, p, aal);
     for (const x of refresh) revalidatePath(x);
     // a plate decision changes what the car's public page shows
-    if (action === 'photo_plate_record' || action === 'photo_showroom') { revalidatePath('/cars/[slug]', 'page'); revalidatePath('/cars'); revalidatePath('/', 'layout'); }
+    if (action === 'photo_plate_record' || action === 'photo_showroom' || action === 'listing_cover_set') { revalidatePath('/cars/[slug]', 'page'); revalidatePath('/cars'); revalidatePath('/', 'layout'); }
     return { ok: true, data };
   } catch (e) { return fail(e); }
 }
@@ -45,8 +50,7 @@ export async function uploadNotice(form: FormData): Promise<R<{ id: string }>> {
     if (file.size > MAX) return { ok: false, code: 'invalid', message: 'The file must be under 15 MB.' };
     const bytes = new Uint8Array(await file.arrayBuffer());
     const pdf = bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46;
-    const jpg = bytes[0] === 0xff && bytes[1] === 0xd8;
-    const png = bytes[0] === 0x89 && bytes[1] === 0x50;
+    const { jpg, png } = imageSniff(bytes);
     const csv = !pdf && !jpg && !png && /\.csv$/i.test(file.name) && !bytes.slice(0, 2048).some((b) => b === 0);
     if (!pdf && !jpg && !png && !csv) return { ok: false, code: 'invalid', message: 'Use a PDF, JPEG, PNG or CSV file.' };
     const [type, ext] = pdf ? ['application/pdf', 'pdf'] : jpg ? ['image/jpeg', 'jpg'] : png ? ['image/png', 'png'] : ['text/csv', 'csv'];
@@ -142,7 +146,7 @@ export async function uploadSceneReference(form: FormData): Promise<R<Record<str
     if (!(file instanceof File) || file.size === 0) return { ok: false, code: 'invalid', message: 'Choose the photo.' };
     if (file.size > MAX) return { ok: false, code: 'invalid', message: 'The file must be under 15 MB.' };
     const bytes = new Uint8Array(await file.arrayBuffer());
-    const jpg = bytes[0] === 0xff && bytes[1] === 0xd8, png = bytes[0] === 0x89 && bytes[1] === 0x50;
+    const { jpg, png } = imageSniff(bytes);
     if (!jpg && !png) return { ok: false, code: 'invalid', message: 'Use a JPEG or PNG photo.' };
     const key = `site/scenes/${code}-${crypto.randomUUID()}.${jpg ? 'jpg' : 'png'}`;
     const { storage } = await import('@/integrations/storage');

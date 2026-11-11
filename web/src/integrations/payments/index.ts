@@ -2,7 +2,7 @@ import 'server-only';
 import { env, required } from '@/lib/env';
 import type { PaymentsAdapter } from './types';
 import type { TerminalAdapter } from './terminal';
-import { fakePayments, type FakePayments } from './fake';
+import type { FakePayments } from './fake';
 
 let cached: PaymentsAdapter | undefined;
 export async function payments(): Promise<PaymentsAdapter> {
@@ -10,7 +10,12 @@ export async function payments(): Promise<PaymentsAdapter> {
   if (env().PAYMENTS_PROVIDER === 'stripe') {
     const { stripeAdapter } = await import('./stripe');
     cached = stripeAdapter(required('STRIPE_SECRET_KEY'));
-  } else cached = fakePayments();
+  } else {
+    // r35: loaded only where it is used (local and tests): imported at the top, its test-card table was compiled into 63
+    // route chunks of the Worker (about 0.4 MiB)
+    const { fakePayments } = await import('./fake');
+    cached = fakePayments();
+  }
   return cached;
 }
 

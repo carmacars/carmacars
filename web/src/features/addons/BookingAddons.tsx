@@ -8,7 +8,8 @@ import type { BookingAddon } from './model';
 // A booking's add-ons for staff (migration 0066): confirm or decline one that waits (a chauffeur asked for after
 // booking is charged on the Card on File when confirmed), remove one (unpaid: its line goes; paid: a refund for it
 // awaits approval). On a request, staff change add-ons on the review screen instead.
-export function BookingAddons({ items, status, refresh }: { items: BookingAddon[]; status: string; refresh: string[] }) {
+export function BookingAddons({ items, status, refresh, canRemove = true }: { items: BookingAddon[]; status: string; refresh: string[];
+  /** r35 UX (1106): removing one after booking refunds a paid one: not for Sales */ canRemove?: boolean }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
@@ -32,7 +33,7 @@ export function BookingAddons({ items, status, refresh }: { items: BookingAddon[
               onClick={() => run(async () => { const r = await staffAddonConfirm(a.id, true, undefined, refresh); return r.ok ? { ok: true, message: r.data.message ?? undefined } : r; }, 'Confirmed.')}>Confirm{a.after_booking ? ' and charge' : ''}</button>
             <button className="btn btn--quiet btn--sm" type="button" disabled={pending}
               onClick={() => run(() => staffAddonConfirm(a.id, false, 'Not available', refresh), 'Declined.')}>Decline</button></span>}
-          {live && a.status === 'confirmed' && removing !== a.id && <button className="btn btn--quiet btn--sm" type="button" onClick={() => setRemoving(a.id)} data-testid={`addon-remove-${a.code}`}>Remove</button>}
+          {live && canRemove && a.status === 'confirmed' && removing !== a.id && <button className="btn btn--quiet btn--sm" type="button" onClick={() => setRemoving(a.id)} data-testid={`addon-remove-${a.code}`}>Remove</button>}
           {removing === a.id && (
             <form className="row" style={{ gap: 'var(--s-2)', flexWrap: 'wrap' }} onSubmit={(e) => { e.preventDefault(); run(async () => { const r = await staffAddonRemove(a.id, reason, refresh);
               return r.ok ? { ok: true } : r; }, a.paid ? 'Removed. A refund for it awaits approval.' : 'Removed.'); }}>

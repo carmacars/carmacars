@@ -19,6 +19,10 @@ export default {
     vehicle(),
     p('It takes about two minutes. A star rating and a line or two about the car and the handover is plenty. We read every review, and we publish them so other renters can choose well.'),
     button('Write a review', '@booking_review'),
+    // r35a: every way to earn reward points after a rental (the amounts are on the Rewards page, from Admin > Rewards)
+    h('Earn reward points'),
+    list('Review your rental on carmacars.ca, and add a photo of your trip for extra points', 'Review us on Google', 'Follow us on Instagram, TikTok and Facebook from your Rewards page', 'Refer a friend with your own link: you both earn when they complete their first rental', 'Book with us again: every rental after your first earns extra points'),
+    link('See your rewards and your referral link', '@account_rewards'),
     small('If something went wrong and you would rather tell us directly, reply to this email. It reaches a person.'),
   ],
 };

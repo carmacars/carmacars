@@ -173,6 +173,8 @@ export function fakeText(): TextGenerator {
         const { fakeRewrite } = await import('../../features/guides/upkeep');
         return { ok: true, data: fakeRewrite(req.prompt) as T, model: 'fake-draft-v1', usage: { inputTokens: req.prompt.length / 4, outputTokens: 400, neurons: 0 } };
       }
+      // r36 (2110): the stand-in never claims to know: an FAQ question goes to staff
+      if (req.task === 'faq_reply') return { ok: true, data: { faq: [], answer: '', confident: false, confidence: 0 } as T, model: 'fake', usage: { inputTokens: 0, outputTokens: 0, neurons: 0 } };
       // the live chat assistant (0060): a deterministic stand-in that follows the same protocol (agent.ts)
       if (req.task === 'chat') {
         if (process.env.FAKE_LLM_FAIL === '1') return { ok: false, reason: 'unavailable', message: 'The fake model is set to fail' };
@@ -194,6 +196,11 @@ export function fakeText(): TextGenerator {
         const topics = [...(req.system ?? '').matchAll(/^- ([a-z_]+): /gm)].map((m) => ({ key: m[1]! }));
         const data = req.task === 'interview_followup' ? fakeFollowup(req.prompt) : fakeScores(req.prompt, topics);
         return { ok: true, data: data as T, model: 'fake-interview-v1', usage: { inputTokens: Math.round(req.prompt.length / 4), outputTokens: 80, neurons: 0 } };
+      }
+      // a car's value (1202): a fixed, plausible figure, so the value job and its tests run without a model
+      if (req.task === 'value_estimate') {
+        if (process.env.FAKE_LLM_FAIL === '1') return { ok: false, reason: 'unavailable', message: 'The fake model is set to fail' };
+        return { ok: true, data: { value_cad: 38000, low_cad: 34000, high_cad: 42000, basis: 'fake estimate' } as T, model: 'fake-value-v1', usage: { inputTokens: Math.round(req.prompt.length / 4), outputTokens: 30, neurons: 0 } };
       }
       // the search copy (0061): built from the facts in the prompt, so it passes the same checks as a real answer
       if (req.task === 'car_copy' || req.task === 'seo_page' || req.task === 'article') {

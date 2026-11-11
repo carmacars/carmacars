@@ -13,6 +13,7 @@ import { vehicleInput, vehicleKit, type VehicleRead } from '@/features/kit/pages
 import type { Spec } from './content';
 import { stockPhoto } from './photo';
 import { vehicleDepth } from '@/features/seo/depth-data';
+import { SiteReviews } from '@/features/seo/SiteReviews';
 import { DepthSections } from '@/features/seo/Depth';
 import '@/styles/vehicles.css';
 
@@ -63,8 +64,8 @@ export async function MakeView({ p }: { p: MakePage }) {
           {p.models.length ? <ul className="hub-grid" data-testid="vp-models">{p.models.map((m) => (
             <li key={m.slug}><Link prefetch={false} className="hub-card" href={m.path}><h3>{name} {m.name}</h3>
               <p>{m.first_year === m.last_year ? m.first_year : `${m.first_year} to ${m.last_year}`}{m.vclass ? `, ${lower(m.vclass)}` : ''}</p>
-              <p>{m.kwh100_min !== null ? `Electric, from ${Number(m.kwh100_min).toFixed(1)} kWh/100 km` : m.l100_min !== null ? `From ${Number(m.l100_min).toFixed(1)} L/100 km` : 'Not rated by EPA'}{m.trims ? `, ${m.trims} Canadian trims` : ''}</p></Link></li>))}</ul>
-            : <p className="small muted">The catalog has no {name} models yet; our cars are below.</p>}
+              <p>{m.kwh100_min !== null ? `Electric, from ${Number(m.kwh100_min).toFixed(1)} kWh/100 km` : m.l100_min !== null ? `From ${Number(m.l100_min).toFixed(1)} L/100 km` : 'Figures by trim'}{m.trims ? `, ${m.trims} Canadian trims` : ''}</p></Link></li>))}</ul>
+            : <p className="small muted">Our {name} cars and similar cars are below.</p>}
           <p className="xs muted">{EPA_NOTE}</p>
         </section>
         <Kit p={p} sp={[]} t={t} />
@@ -123,6 +124,7 @@ export async function ModelView({ p }: { p: ModelPage }) {
         </section>}
         <Kit p={p} sp={[]} t={t} />
         <DepthSections d={depth} look="vehicle" />
+        <SiteReviews look="vehicle" />
         <SimilarModels items={p.similar_models} title={`Similar to the ${name}`} />
       </div>
       <div className="wrap vp-body"><p className="small" data-testid="vp-buy-link"><Link prefetch={false} className="link" href={`/buy${p.path.slice(5)}`}>Buying a {name}? Specs, recalls and what to check</Link></p></div>
@@ -173,10 +175,11 @@ export async function YearView({ p }: { p: YearPage }) {
         <CostBlock sp={sp} s={p.settings} name={name} />
         <Kit p={p} sp={sp} t={t} />
         <DepthSections d={depth} look="vehicle" />
+        <SiteReviews look="vehicle" />
         {p.trims.length > 0 && <section className="vp-sec" aria-labelledby="h-trims">
           <h2 className="d3" id="h-trims">{p.year} {p.model.name} trims in Canada</h2>
           <ul className="hub-grid" data-testid="vp-trims">{p.trims.map((x) => { const s1 = specs(p.variants, p.settings, x.variant_ids); return (
-            <li key={x.slug}><Link prefetch={false} className="hub-card" href={x.path}><h3>{x.name}</h3><p>{s1.length ? `${list([...new Set(s1.map((y) => y.engine))])}, ${ratingRange(s1)}` : 'Not rated by EPA'}</p></Link></li>); })}</ul>
+            <li key={x.slug}><Link prefetch={false} className="hub-card" href={x.path}><h3>{x.name}</h3><p>{s1.length ? `${list([...new Set(s1.map((y) => y.engine))])}, ${ratingRange(s1)}` : 'Figures by trim'}</p></Link></li>); })}</ul>
         </section>}
         {changes.length > 0 && <section className="vp-sec" aria-labelledby="h-changed" data-testid="vp-changes">
           <h2 className="d3" id="h-changed">What changed for {p.year}</h2>
@@ -238,6 +241,7 @@ export async function TrimView({ p }: { p: TrimPage }) {
         </section>
         <StatsBlock sp={sp} dims={p.dims} model={p.model.name} trim={p.trim.name} name={name} s={p.settings} seats={seats} />
         <DepthSections d={depth} look="vehicle" />
+        <SiteReviews look="vehicle" />
         <CostBlock sp={sp} s={p.settings} name={name} />
         <Kit p={p} sp={sp} dims={dimsFor(p.dims, p.model.name, p.trim.name)} t={t} />
         <section className="vp-sec" aria-labelledby="h-diff" data-testid="vp-diffs">
@@ -249,7 +253,7 @@ export async function TrimView({ p }: { p: TrimPage }) {
               <tbody>{p.siblings.map((x) => { const s1 = specs(p.variants, p.settings, x.variant_ids); return (
                 <tr key={x.slug} aria-current={x.slug === p.trim.slug ? 'page' : undefined}>
                   <th scope="row">{x.slug === p.trim.slug ? <b>{x.name}</b> : <Link prefetch={false} className="link" href={x.path}>{x.name}</Link>}</th>
-                  <td>{list([...new Set(s1.map((y) => y.engine))]) || 'Not rated'}</td><td>{list([...new Set(s1.map((y) => y.drive).filter(Boolean) as string[])])}</td><td>{ratingRange(s1)}</td></tr>); })}</tbody>
+                  <td>{list([...new Set(s1.map((y) => y.engine))]) || 'By trim'}</td><td>{list([...new Set(s1.map((y) => y.drive).filter(Boolean) as string[])])}</td><td>{ratingRange(s1)}</td></tr>); })}</tbody>
             </table>
           </div>
         </section>

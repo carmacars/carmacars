@@ -1,3 +1,4 @@
+import { ChecklistProgress } from '@/features/motion/Progress';
 import { redirect } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
 import { when } from '@/features/agreement/model';
@@ -5,6 +6,8 @@ import { bookingPath } from '@/features/portal/status';
 import { Back } from '@/features/portal/Blocks';
 import { UploadCard } from '@/features/portal/UploadCard';
 import { CoverageSection } from '@/features/portal/CoverageSection';
+import { rpc } from '@/lib/db/repo';
+import type { CardList } from '@/features/coverage/cards';
 import { myBooking, myCoverage, myTripPhotos } from '@/server/portal/data';
 import { StepHeader } from '@/features/portal/trip';
 import { licenceReadState, licenceState } from '@/features/portal/LicenceNotice';
@@ -43,6 +46,8 @@ export default async function VerifyPage({ params, searchParams }: { params: Pro
   const up = (kind: string, driver: string | null) => b.uploads.filter((u) => u.kind === kind && u.driver_id === driver).pop();
   const missing = b.readiness?.missing ?? [];
   const cov = early ? null : await myCoverage(user, b.id).catch(() => null);
+  // 1400: the card list the renter picks from (option 2)
+  const cards = cov?.option === 2 ? (((await rpc('card_coverage_public', {}).catch(() => null)) as unknown as CardList | null)?.cards ?? []) : [];
   return (
     <>
       <Back href={bookingPath(b.booking_number)}>Booking {b.booking_number}</Back>
@@ -62,6 +67,9 @@ export default async function VerifyPage({ params, searchParams }: { params: Pro
       {me && me.licence.complete && early && <p className="alert alert--ok" role="status" data-testid="licence-complete"><span className="alert__title">Licence received</span><span>Nothing more is needed before you accept the offer.</span></p>}
       {!early && b.readiness && (
         <section className="pt-card" aria-labelledby="pt-ready" data-testid="readiness"><h2 className="d4" id="pt-ready">Before pickup</h2>
+          {/* r36: how far along the checklist is, the bar filling to it */}
+          {(() => { const ks = Object.keys(MISSING).filter((k) => k !== 'agreement' && (k !== 'primary_driver_ontario_licence' || missing.includes(k)));
+            return <ChecklistProgress done={ks.filter((k) => !missing.includes(k)).length} total={ks.length} label="Before pickup" testId="readiness-progress" />; })()}
           <ol className="pt-steps">{Object.keys(MISSING).filter((k) => k !== 'agreement' && (k !== 'primary_driver_ontario_licence' || missing.includes(k))).map((k) => <li key={k} className={missing.includes(k) ? '' : 'is-done'}>{MISSING[k]}<span className="vh">{missing.includes(k) ? ', to do' : ', done'}</span></li>)}</ol>
         </section>
       )}
@@ -78,7 +86,7 @@ export default async function VerifyPage({ params, searchParams }: { params: Pro
       ))}
       {!early && <section className="stack" aria-labelledby="pt-cov">
         <h2 className="pt-section-title" id="pt-cov">Coverage for damage to the car</h2>
-        <div className="pt-card">{cov ? <CoverageSection number={b.booking_number} c={cov} /> : <p>Tell us how you will cover damage to the car: call or message us.</p>}</div>
+        <div className="pt-card">{cov ? <CoverageSection number={b.booking_number} c={cov} cards={cards} /> : <p>Tell us how you will cover damage to the car: call or message us.</p>}</div>
       </section>}
     </>
   );

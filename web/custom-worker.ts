@@ -6,6 +6,7 @@ import { default as handler } from './.open-next/worker.js';
 import { cspHeader, embeddable, newNonce, securityHeaders } from './src/lib/security/csp';
 import { roundGeo } from './src/features/live-map/config';
 import { ADMIN_AREA_HEADER, isAdminArea, viewAsRefusal, viewAsWriteRefused } from './src/lib/security/view-as-guard';
+import { crossSiteRefusal, crossSiteWriteRefused, unusedFrameworkPath } from './src/lib/security/request-guard';
 import { refreshSession } from './src/lib/auth/edge-refresh';
 import { parseCookieHeader, readSession } from './src/lib/auth/session-cookie';
 import { BEACON_GIVE_UP_MS, BEACON_WAIT_MS, BEAT_WAIT_MS, MAX_BEACON_BYTES, cleanBeacon, cleanBeat, emailLinkCookie, ipKey, isBeat, isBot, within } from './src/lib/track/shared';
@@ -162,7 +163,11 @@ async function track(request: Request, env: Env, ctx: { waitUntil(p: Promise<unk
 // subdomain, so the root domain's Google Workspace mail is untouched) to this handler. The raw message goes to the app's
 // /api/inbound/turo with the jobs' token; the app reads it and stores only the parsed fields. A message too large is
 // refused; if the app cannot take it (the database is down), the handler throws, so the sender (Gmail) tries again.
-interface InboundEmail { from: string; to: string; raw: ReadableStream; rawSize: number; setReject(reason: string): void }
+// r36 (2110): a message to another address of in.carmacars.ca (an inbox of Program settings auto_reply_email_inboxes, help@ by
+// default) goes to /api/inbound/ask first: the FAQ's answer, when the site is sure of it, is sent back with message.reply
+// (from the address it was sent to, inside Cloudflare); anything else stays as before (the Turo reader).
+interface InboundEmail { from: string; to: string; raw: ReadableStream; rawSize: number; setReject(reason: string): void; reply?(m: unknown): Promise<void>;
+  headers?: { get(name: string): string | null } }
 const MAX_EMAIL_BYTES = 1_000_000;
 
 /** One share of the warm-up (0102): the next pages of this deploy's list, within the budget; the progress kept. */
@@ -215,9 +220,29 @@ const worker = {
     if (message.rawSize > MAX_EMAIL_BYTES) { message.setReject('Message too large'); return; }
     const base = typeof env.NEXT_PUBLIC_APP_URL === 'string' ? env.NEXT_PUBLIC_APP_URL : 'https://carmacars.ca';
     const raw = await new Response(message.raw).text();
+    const auth = `Bearer ${await workerToken(secret)}`;
+    if (!/^trips@/i.test(message.to)) {
+      const a: Response = await handler.fetch(new Request(`${base.replace(/\/$/, '')}/api/inbound/ask`, {
+        method: 'POST', body: raw, headers: { authorization: auth, 'content-type': 'message/rfc822', 'x-envelope-from': message.from, 'x-envelope-to': message.to }
+      }), env, ctx);
+      if (a.status !== 404) {
+        const j = (await a.json().catch(() => null)) as { reply?: { subject: string; text: string; in_reply_to: string | null } } | null;
+        if (j?.reply && message.reply) {
+          try {
+            const { replyMime } = await import('./src/features/auto-reply/faq');
+            const mod = 'cloudflare:' + 'email';
+            const { EmailMessage } = (await import(/* webpackIgnore: true */ mod)) as { EmailMessage: new (from: string, to: string, raw: string) => unknown };
+            const domain = message.to.split('@')[1] ?? 'in.carmacars.ca';
+            await message.reply(new EmailMessage(message.to, message.from, replyMime({ from: message.to, to: message.from, subject: j.reply.subject, text: j.reply.text,
+              inReplyTo: j.reply.in_reply_to, id: `${crypto.randomUUID()}@${domain}`, date: new Date() })));
+          } catch (e) { console.warn(`inbound email: the automatic answer was not sent (${e instanceof Error ? e.message.slice(0, 120) : 'error'})`); }
+        }
+        return;
+      }
+    }
     const r: Response = await handler.fetch(new Request(`${base.replace(/\/$/, '')}/api/inbound/turo`, {
       method: 'POST', body: raw,
-      headers: { authorization: `Bearer ${await workerToken(secret)}`, 'content-type': 'message/rfc822', 'x-envelope-from': message.from, 'x-envelope-to': message.to }
+      headers: { authorization: auth, 'content-type': 'message/rfc822', 'x-envelope-from': message.from, 'x-envelope-to': message.to }
     }), env, ctx);
     if (r.status === 413) { message.setReject('Message too large'); return; }
     if (!r.ok) throw new Error(`inbound email: the app answered ${r.status}`);
@@ -261,6 +286,8 @@ const worker = {
     if (due.reviews) run('/api/jobs/reviews');
     // the ads job (migration 0167): posted ads checked against the rates, the week's social drafts, Meta publishing when on
     if (due.ads) run('/api/jobs/ads');
+    // 1202: the AI value estimate of cars with no Black Book value (the RentalCover cap), within the free Workers AI allowance
+    if (due.car_values) run('/api/jobs/car-values');
     // a car put on or taken off the site in the database alone (0070's automatic publishing, a slug changed, a car
     // deleted): the fleet page, home, the model pages and the sitemaps are rebuilt (src/lib/edge/fleet-sig.ts)
     // (only with a tag store: pages served as built from the assets are never rebuilt)
@@ -321,7 +348,7 @@ const worker = {
     if (path.startsWith('/_next/static/')) return new Response('Not found', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store', ...securityHeaders() } });
     // scanners asking for PHP, WordPress or dot files: answered before the app loads (a render costs a second of CPU
     // on a fresh isolate)
-    if (isProbe(path)) return new Response('Not found', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=3600', ...securityHeaders() } });
+    if (isProbe(path) || unusedFrameworkPath(path)) return new Response('Not found', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=3600', ...securityHeaders() } });
     // 2026-10-30: SEO tools and scrapers, crawlers on the portals and on query-string views: answered here, before the
     // session refresh and the app (src/lib/edge/bot-shield.ts)
     // R23: the search scope flag is read (one KV read, kept 30 s) only for a crawler on a page outside the core crawl scope.
@@ -359,6 +386,8 @@ const worker = {
     // crawler guard above keeps only the crawlers that are not search or answer crawlers to the crawl scope
     if (path === '/api/t' && request.method === 'POST') { const t = await track(request, env, ctx); if (t) return t; }
     if (path === '/api/jobs/warm-up' && request.method === 'POST') return warmUp(request, env, ctx);
+    // r35: a write from another site stops here, for every route and server action (src/lib/security/request-guard.ts)
+    if (crossSiteWriteRefused(request.method, request.url, request.headers.get('origin'), request.headers.get('sec-fetch-site'))) return crossSiteRefusal(securityHeaders());
     // An Admin viewing as someone is read only: every write outside the Admin portal stops here
     // (src/lib/security/view-as-guard.ts). Server actions are POSTs, so this covers all of them.
     if (viewAsWriteRefused(request.method, path, request.headers.get('cookie'))) return viewAsRefusal(request.headers.has('next-action'), securityHeaders());

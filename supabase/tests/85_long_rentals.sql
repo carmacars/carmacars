@@ -117,11 +117,14 @@ select test.ok('the edit form: the rental on trip may be edited by customer serv
   (select x ->> 'refusal' is null and x ->> 'status' = 'on_rent' from (select app.door(test.id('lng_cs'), 'aal2', 'ops_read', 'booking_edit_form', jsonb_build_object('booking', (test.lngb('r1')).booking_number)) x) q));
 select test.throws('fleet does not edit a booking', $$select app.door(test.id('lng_fleet'), 'aal2', 'ops_do', 'booking_staff_edit',
   jsonb_build_object('booking', (test.lngb('r1')).booking_number, 'changes', jsonb_build_object('notes', 'x')))$$, 'edits a booking');
+-- 1201: a live booking made longer by staff costs the booked period's all-in total plus the added days at its all-in price a day
+insert into test.lng select 'e1_target', to_jsonb(app.extension_all_in_target((test.lngb('r1')).id, (test.lngb('r1')).return_at + interval '7 days'));
 insert into test.lng select 'e1', app.door(test.id('lng_cs'), 'aal2', 'ops_do', 'booking_staff_edit', jsonb_build_object('booking', (test.lngb('r1')).booking_number,
   'changes', jsonb_build_object('return_at', (test.lngb('r1')).return_at + interval '7 days'), 'lines', '{"young_driver_21_25": 30000}'::jsonb,
   'reason', 'Extended a week by phone', 'tell_renter', true));
 select test.eq('extended a week: 49 days', (test.lngb('r1')).billable_days, 49);
-select test.eq('the rental is repriced at the monthly rate', (test.lngb('r1')).rental_charge_cents, 490000::bigint);
+select test.eq('the longer booking costs the all-in target (1201: the added week at the booking''s all-in price a day, not the monthly rate)',
+  (test.lngb('r1')).total_due_at_booking_cents, (test.lngv('e1_target'))::text::bigint);
 select test.eq('the young driver fee as changed in the same edit', (select amount_cents from booking_line_items where booking_id = (test.lngb('r1')).id and charge_type = 'young_driver_21_25' and voided_at is null), 30000::bigint);
 select test.eq('still on trip', (test.lngb('r1')).status::text, 'on_rent');
 select test.ok('the edit is recorded with who, why and the totals',

@@ -82,7 +82,7 @@ export async function ServicePage({ v }: { v: 'detailing' | 'bodyshop' }) {
       {home && arranged.length > 0 && (
         <section className="section--tight" aria-labelledby="h-arranged"><div className="wrap stack">
           <h2 className="d2" id="h-arranged">Mechanical work we arrange</h2>
-          <p className="measure">CarmaCars does not do mechanical work. Request it and we arrange it with a trusted shop or connect you with one, and you can rent a car from us while yours is in.</p>
+          <p className="measure">Request it and CarmaCars arranges it with a trusted shop or connect you with one, and you can rent a car from us while yours is in.</p>
           <nav aria-label="Mechanical work we arrange in Toronto"><ul className="linklist" data-testid="arranged-terms">
             {arranged.map((t) => <li key={t.slug}><Link prefetch={false} className="link" href={hubPath('bodyshop', t.slug, home)}>{t.title} in Toronto</Link></li>)}
           </ul></nav>

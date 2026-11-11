@@ -2,6 +2,7 @@ import { pageMeta } from '@/features/seo/meta';
 import { bookingPath } from '@/features/portal/status';
 import { Back } from '@/features/portal/Blocks';
 import { ReviewForm } from '@/features/portal/ReviewForm';
+import { ReviewPhotos } from '@/features/portal/ReviewPhotos';
 import { getSettings } from '@/lib/site';
 import { rpc } from '@/lib/db/repo';
 import { ReviewHelper } from '@/features/reviews/ReviewHelper';
@@ -43,6 +44,8 @@ export default async function ReviewPage({ params }: { params: Promise<{ number:
             {st.review.body && <p>{st.review.body}</p>}
             <p className="small muted">Thank you. {STATUS[st.review.status] ?? st.review.status}.</p>
             {st.review.staff_reply && <p className="small"><b>Our reply:</b> {st.review.staff_reply}</p>}
+            {/* r35a (1305): photos with the review earn the photo reward once per rental */}
+            <ReviewPhotos number={b.booking_number} count={0} points={null} />
             {google && st.review.status === 'pending' && <p><a className="btn btn--ghost" href={google} target="_blank" rel="noopener">Also review us on Google</a></p>}
           </div>
         ) : st.can_review ? <ReviewForm number={b.booking_number} googleUrl={google} />

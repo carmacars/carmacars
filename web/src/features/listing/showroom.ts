@@ -535,3 +535,19 @@ export function marketingPrompt(o: { label: string; place: string; reference: bo
     'Do not add other cars, people, signs, text, logos, watermarks or objects in front of the car. Landscape 3:2, the car where it is in the frame.'
   ].filter(Boolean).join(' ');
 }
+
+// ================================================================ r36 (2100): the listing's first photo with a model
+/** The image model's words for the cover "with model": the owner's words from Program settings (listing_cover_model_prompt)
+ *  inside the site's own rules, which no setting can loosen: one adult, fully clothed, nothing explicit or suggestive, the
+ *  car unchanged and never covered. */
+export function coverModelPrompt(settings: string | null | undefined): string {
+  const words = (settings ?? '').replace(/\s+/g, ' ').trim().slice(0, 2000);
+  return [
+    'Edit this image into a real, high-end auto-show photograph of this car in this dark, modern showroom.',
+    words,
+    'RULES THAT ALWAYS APPLY: exactly one person, a clearly adult professional model (over 25 years old), fully clothed in a stylish outfit that covers the body; nothing revealing, see-through, explicit or sexual; no lingerie or swimwear; a natural, professional pose.',
+    'THE CAR: it must stay clearly the same car: the same make, model, generation, body style, trim, wheels and colour, the same size and place in the frame, not cropped. The person stands beside it and never covers the car, its wheels, lights or badge. Never change it into another car or another colour, and never distort it.',
+    'Do not add or show a licence plate, and never add letters or numbers on the car; where the plate area is plain or covered, leave it exactly so.',
+    'Keep the showroom as in the image: the CarmaCars logo sign on the wall exactly as it is, the dark walls and the polished floor with soft reflections. No other people, cars, text or watermarks. Landscape 3:2.'
+  ].filter(Boolean).join(' ');
+}

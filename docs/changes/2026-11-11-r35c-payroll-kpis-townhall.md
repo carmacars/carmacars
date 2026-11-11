@@ -87,3 +87,5 @@ sends when all of these hold:
 ## Guides: `1508_r35c_guides.sql`
 
 Admin > Owner money (Payroll for everyone, Schedules, KPIs, townhall tools, Intent, Search traction) and the office staff's Your workday (KPIs, schedule, pay stubs, payroll, the townhall's 30 minutes and the lock): `docs/guides/content/*.json` (and `docs/guides/src/guides/*.py`), generator `supabase/seed/1508_gen_guides.mjs` (`--check` up to date).
+
+Chapters: `admin/owner-money`, `va/your-workday`.

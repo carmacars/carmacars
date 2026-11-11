@@ -1,6 +1,8 @@
+import { AutoReplies } from '@/features/auto-reply/AutoReplies';
 import { SceneReferences } from '@/features/listing/Marketing';
 import { StaffOnboarding } from '@/features/staff-onboarding/StaffOnboarding';
-import type { OnboardingRow } from '@/features/staff-onboarding/model';
+import type { ApprovalRow, OnboardingRow } from '@/features/staff-onboarding/model';
+import { OnboardingApprovals } from '@/features/staff-onboarding/Approvals';
 import Link from '@/components/Link';
 import { notFound } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
@@ -35,7 +37,7 @@ import { TextAlertsSettings, type SmsSettings } from '@/features/admin/TextAlert
 import { SalesSettings } from '@/features/sales-leads/SalesSettings';
 import type { LeadSettings } from '@/features/sales-leads/model';
 import { PlaceRegions, PlaceSettings, PlaceTerms, type PlacesOverview } from '@/features/places/PlacesAdmin';
-import { COVERAGE_LABEL, type CardList, type CoverageKind } from '@/features/coverage/cards';
+import { COVERAGE_LABEL, NETWORK_LABEL, VEHICLE_TYPE_LABEL, YES_NO_LABEL, type CardList, type CoverageKind } from '@/features/coverage/cards';
 import { ReviewSettings, type ReviewSettingsData } from '@/features/reviews/ReviewSettings';
 import { googleKeys } from '@/server/reviews/google';
 import { SalesModesCard, type SalesModes } from '@/features/sales/SalesModesAdmin';
@@ -68,6 +70,9 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Company', (k) => k.startsWith('company_') || ['incident_line_phone', 'privacy_officer_name', 'privacy_officer_email', 'signing_officer_name', 'signing_officer_title', 'signing_officer_authorized_on', 'timezone', 'hst_bps'].includes(k)],
   ['Booking requests and offers', (k) => /^(booking_|offer_|request_|max_|min_|standard_min|accepted_licence|other_licence|info_request|tentative|turnaround|non_refundable|verification|early_return|chase_|addon_|extension_|late_fee_)/.test(k)],
   ['Driver\'s licence reader', (k) => k.startsWith('licence_')],
+  // 1402: the fuel shortfall at each return (update the pump prices weekly); 1400 and 1401: card coverage and OPCF 27
+  ['Fuel and charging at the return', (k) => /^(fuel_price|fuel_prices_updated_on|refuel_fee_cents|ev_charge_kwh_cents|fuel_tank_default_litres|ev_battery_default_kwh)/.test(k)],
+  ['Coverage checks', (k) => ['card_exotic_makes', 'opcf27_before_payment'].includes(k)],
   ['Owner debits and statement emails', (k) => /^(owner_debit_|billing_day|retry_day|owner_late_fee|owner_statement_email|company_statement_email)/.test(k)],
   ['Deposits, refunds and money', (k) => /^(deposit_|refund_|statement_|holdback|insurer_|liability|deductible|kickback|shareholder|install_fee|owner_late|billing_day|retry_day|payout_day|fleet_report_day|investor_|buyout|take_deposit)/.test(k)],
   ['Delivery', (k) => k.startsWith('delivery_') || ['company_latitude', 'company_longitude'].includes(k)],
@@ -83,6 +88,7 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Staff commissions and prices typed by hand', (k) => /^(staff_commission_|sales_tier_|sales_remote_|custom_price_)/.test(k)],
   ['Referral partners (body shops, tow trucks)', (k) => k.startsWith('referral_partner_')],
   ['Advertising and owner recruitment', (k) => /^(ads_|recruit_)/.test(k)],
+  ['AI auto-replies (FAQ answers by text, email, chat, WhatsApp, Messenger, Instagram)', (k) => k.startsWith('auto_reply_')],
   ['Live visitors and live chat', (k) => /^(visitor_|chat_)/.test(k)],
   ['The CarmaCars app (App Store and Google Play)', (k) => ['app_store_url', 'play_store_url'].includes(k)],
   ['Review requests', (k) => k.startsWith('review_')],
@@ -99,6 +105,10 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Facebook Marketplace', (k) => k.startsWith('marketplace_')],
   ['Stuck? help', (k) => k.startsWith('stuck_')],
   ['Photo import from Google Drive', (k) => k === 'google_drive_api_key'],
+  // r35 UX (1108): how to pay on invoices (empty until entered), insurer invoices as Blind Spot Car Rental, add-ons not returned
+  ['Invoices: how to pay CarmaCars (direct deposit and e-Transfer; empty sections are left off the PDF)', (k) => k.startsWith('cc_pay_')],
+  ['Insurer invoices as Blind Spot Car Rental (name, contact, direct deposit and e-Transfer)', (k) => k.startsWith('bs_')],
+  ['Add-ons not returned (the agreement\'s fine print, the FAQ and the deposit review\'s suggestion)', (k) => k.startsWith('unreturned_')],
   ['Staff, privacy and housekeeping', () => true]
 ];
 const yes = (v: unknown) => (v ? 'Yes' : 'No');
@@ -406,6 +416,8 @@ export default async function Section({ params, searchParams }: { params: Promis
       {PROGRAM_GROUPS.map(([title, test]) => { const ks = keys.filter((k) => k !== 'google_drive_api_key' && !used.has(k) && test(k)); ks.forEach((k) => used.add(k)); if (!ks.length) return null; return (
         <Card key={title} title={title}><details open={title === 'Booking requests and offers'}><summary className="link">{ks.length} settings</summary>
           <SaveForm table="program_settings" rowKey="current" testId={`program-${title.split(' ')[0]!.toLowerCase()}`} fields={fieldsFrom(s.program, ks)} /></details></Card>); })}
+      {/* r36 (2110): what the AI auto-replies did (their settings are the group above) */}
+      <Card title="AI auto-replies: the last answers" testId="auto-replies-card"><AutoReplies /></Card>
       <Card title="Staff agreement defaults by function" testId="staff-defaults"><StaffDefaults value={(s.program.staff_agreement_defaults ?? {}) as StaffDefaultsValue} /></Card>
       <StuckReport d={await read<StuckReportData>('help_stuck').catch(() => null)} />
     </>);
@@ -426,7 +438,7 @@ export default async function Section({ params, searchParams }: { params: Promis
           <SaveForm table="program_settings" rowKey="current" testId="km-default-form" fields={fieldsFrom(s.program, ['default_km_allowance_per_day'])} /></Card> },
       classes: { table: 'vehicle_classes', key: 'code', rows: s.classes, fields: (r) => [{ name: 'code', label: 'Code', required: true, value: r.code }, { name: 'label', label: 'Label', required: true, value: r.label }, { name: 'sort_order', label: 'Order', type: 'number', value: r.sort_order }, { name: 'is_active', label: 'Shown', type: 'bool', value: r.is_active ?? true }] },
       airports: { table: 'airports', key: 'id', rows: s.airports, fields: (r) => [{ name: 'code', label: 'Code', required: true, value: r.code }, { name: 'name', label: 'Name', required: true, value: r.name }, { name: 'latitude', label: 'Latitude', type: 'number', required: true, value: r.latitude }, { name: 'longitude', label: 'Longitude', type: 'number', required: true, value: r.longitude }, { name: 'distance_km', label: 'Distance (km)', type: 'number', value: r.distance_km }, { name: 'surcharge_cents', label: 'Surcharge', type: 'money', value: r.surcharge_cents }, { name: 'is_active', label: 'Offered', type: 'bool', value: r.is_active ?? true }],
-        extra: <Card title="Delivery rate and origin"><SaveForm table="program_settings" rowKey="current" testId="delivery" fields={fieldsFrom(s.program, ['delivery_per_km_cents', 'delivery_min_cents', 'delivery_max_cents', 'delivery_round_cents', 'company_latitude', 'company_longitude', 'company_address'])} /></Card> },
+        extra: <Card title="Delivery rate and origin"><SaveForm table="program_settings" rowKey="current" testId="delivery" fields={fieldsFrom(s.program, ['delivery_base_cents', 'delivery_included_km', 'delivery_per_km_cents', 'delivery_road_factor', 'delivery_min_cents', 'delivery_max_cents', 'delivery_round_cents', 'company_latitude', 'company_longitude', 'company_address'])} /></Card> },
       insurers: { table: 'insurers', key: 'id', rows: s.insurers, fields: (r) => [{ name: 'name', label: 'Name', required: true, value: r.name }, { name: 'billing_contact_name', label: 'Billing contact (optional: invoices go to each booking\'s adjuster)', value: r.billing_contact_name }, { name: 'billing_email', label: 'Billing email (optional: used when a booking has no adjuster email)', type: 'email', value: r.billing_email }, { name: 'billing_phone', label: 'Billing phone', type: 'tel', value: r.billing_phone }, { name: 'billing_address', label: 'Billing address', type: 'address', value: r.billing_address }, { name: 'notes', label: 'Notes', type: 'textarea', value: r.notes }, { name: 'is_active', label: 'Active', type: 'bool', value: r.is_active ?? true }] },
       'promo-codes': { table: 'promo_codes', key: 'id', rows: s.promo_codes, extra: <PromoExtra s={s} />, fields: (r) => [{ name: 'code', label: 'Code', required: true, value: r.code }, { name: 'description', label: 'Description', value: r.description }, { name: 'percent_bps', label: 'Percent off the rental', type: 'percent', value: r.percent_bps, info: 'discount_scope' }, { name: 'amount_cents', label: 'or amount off', type: 'money', value: r.amount_cents }, { name: 'valid_from', label: 'Valid from', type: 'datetime', value: r.valid_from }, { name: 'valid_until', label: 'Valid until', type: 'datetime', value: 'id' in r ? r.valid_until : promoEnd(s.program), hint: 'Starts 30 days ahead. Empty means no end date: only for a public code. A code for one person always has an end date.' }, { name: 'max_uses', label: 'Maximum uses', type: 'number', value: r.max_uses }, { name: 'once_per_renter', label: 'Once per renter', type: 'bool', value: r.once_per_renter ?? true }, { name: 'is_active', label: 'Active', type: 'bool', value: r.is_active ?? true }] },
       'quick-replies': { table: 'quick_replies', key: 'id', rows: s.quick_replies, fields: (r) => [{ name: 'title', label: 'Title', required: true, value: r.title }, { name: 'body', label: 'Text', type: 'textarea', required: true, value: r.body }, { name: 'category', label: 'Category', value: r.category }, { name: 'is_active', label: 'Active', type: 'bool', value: r.is_active ?? true }] }
@@ -449,6 +461,13 @@ export default async function Section({ params, searchParams }: { params: Promis
       { name: 'max_msrp_cents', label: 'Car value limit (MSRP)', type: 'money', value: r.max_msrp_cents, hint: 'Empty when the guide gives no MSRP limit: say what it does say below.' },
       { name: 'value_note', label: 'Value limit in the guide\'s words', value: r.value_note, wide: true },
       { name: 'max_days', label: 'Longest rental (days)', type: 'number', min: 1, max: 366, value: r.max_days },
+      // 1400: the facts the booking check uses (the renter picks the card; the database checks the car against them)
+      { name: 'network', label: 'Network', type: 'select', required: true, options: Object.entries(NETWORK_LABEL), value: r.network ?? 'unknown' },
+      { name: 'cdw_included', label: 'Includes rental car damage coverage (CDW)', type: 'select', required: true, options: Object.entries(YES_NO_LABEL), value: r.cdw_included ?? 'unknown', hint: 'Unknown sends every renter with this card to staff review.' },
+      { name: 'excluded_types', label: 'Vehicle types not covered', value: Array.isArray(r.excluded_types) ? (r.excluded_types as string[]).join(', ') : '', wide: true,
+        hint: `Comma separated, from: ${Object.keys(VEHICLE_TYPE_LABEL).join(', ')}. A car of one of them is refused for this card.` },
+      { name: 'must_decline_cdw', label: 'Must decline the rental company\'s CDW', type: 'select', required: true, options: Object.entries(YES_NO_LABEL), value: r.must_decline_cdw ?? 'unknown' },
+      { name: 'must_pay_full', label: 'Must pay the full rental on the card', type: 'select', required: true, options: Object.entries(YES_NO_LABEL), value: r.must_pay_full ?? 'unknown' },
       { name: 'exclusions', label: 'Key exclusions', type: 'textarea', value: r.exclusions ?? '', wide: true },
       { name: 'conditions', label: 'To use it (decline the waiver, pay with the card)', type: 'textarea', value: r.conditions ?? '', wide: true },
       { name: 'car_sharing', label: 'Car sharing and peer-to-peer', value: r.car_sharing, wide: true },
@@ -462,7 +481,9 @@ export default async function Section({ params, searchParams }: { params: Promis
     return (<>{head}
       <p className="small muted">The list on <Link prefetch={false} className="link" href="/credit-card-rental-coverage">/credit-card-rental-coverage</Link> and in the staff quick reference. Facts only: open the issuer&apos;s guide, correct the card and save it. A card not checked for 6 months shows on Today.</p>
       <Card title={`${rows.length} cards`} testId="card-coverage-admin"><Table rows={rows} cols={[{ key: 'card', label: 'Card', render: (r) => `${String(r.issuer)} ${String(r.card)}${r.country === 'US' ? ' (US)' : ''}${r.is_active === false ? ' (hidden)' : ''}` },
-        { key: 'coverage', label: 'Pays', render: (r) => COVERAGE_LABEL[r.coverage as CoverageKind] }, { key: 'max_msrp_cents', label: 'MSRP limit', num: true, render: (r) => $(r.max_msrp_cents) },
+        { key: 'coverage', label: 'Pays', render: (r) => COVERAGE_LABEL[r.coverage as CoverageKind] }, { key: 'cdw_included', label: 'CDW', render: (r) => YES_NO_LABEL[String(r.cdw_included ?? 'unknown')] ?? '' },
+        { key: 'max_msrp_cents', label: 'MSRP limit', num: true, render: (r) => $(r.max_msrp_cents) },
+        { key: 'excluded_types', label: 'Not covered', render: (r) => (Array.isArray(r.excluded_types) ? (r.excluded_types as string[]).map((x) => VEHICLE_TYPE_LABEL[x] ?? x).join(', ') : '') },
         { key: 'max_days', label: 'Days', num: true }, { key: 'issuer_checked', label: 'Issuer\'s document', render: (r) => yes(r.issuer_checked) }, { key: 'last_checked', label: 'Checked', render: (r) => d(r.last_checked) }]} /></Card>
       <Card title="Change a card">{rows.map((r) => <details key={String(r.id)}><summary className="link" data-testid={`card-edit-${String(r.issuer)}-${String(r.card)}`.toLowerCase().replace(/[^a-z0-9]+/g, '-')}>{String(r.issuer)} {String(r.card)}{r.country === 'US' ? ' (US)' : ''}</summary>
         <SaveForm table="card_rental_coverage" rowKey={String(r.id)} compact fields={fields(r)} /></details>)}</Card>
@@ -525,7 +546,10 @@ export default async function Section({ params, searchParams }: { params: Promis
         const sm = await read<SalesModes>('sales_modes').catch(() => null);
         return sm ? <SalesModesCard data={sm} /> : null;
       })()}
-      <Card title="Staff onboarding" testId="staff-onboarding-card"><StaffOnboarding rows={await door<OnboardingRow[]>(user.id, 'ops_read', 'staff_onboarding_list', {}).catch(() => [])} /></Card>
+      <Card title="Staff onboarding" testId="staff-onboarding-card">
+        {/* 1154: step 4, Approve or Reject (with the reason) */}
+        <OnboardingApprovals admin refresh={['/admin/settings/staff']} rows={await door<ApprovalRow[]>(user.id, 'ops_read', 'staff_onboarding_approvals', {}).catch(() => [])} />
+        <StaffOnboarding rows={await door<OnboardingRow[]>(user.id, 'ops_read', 'staff_onboarding_list', {}).catch(() => [])} /></Card>
       <Card title="Staff agreements" testId="staff-agreements"><AgreementGate rows={await door<AgreementGateRow[]>(user.id, 'ops_read', 'staff_agreements_status', {}).catch(() => [])} />
         <StaffAgreements rows={await door<StaffAgreementRow[]>(user.id, 'ops_read', 'staff_agreements', {}).catch(() => [])} today={new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())} /></Card>
     </>);

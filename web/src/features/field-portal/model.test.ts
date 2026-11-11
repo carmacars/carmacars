@@ -40,7 +40,7 @@ test('one primary step per card: the job screen first, a missing clean check las
 });
 
 test('a car and time is one card: clean check, add-ons and the handover are its steps', () => {
-  assert.deepEqual(cardSteps(pickup()).map((s) => s.label), ['Clean check (tick and photo)', 'Add-ons in the car (0 of 1)', 'Pickup photos and handover']);
+  assert.deepEqual(cardSteps(pickup()).map((s) => s.label), ['Clean check (tick and photo)', 'Prepare the add-ons (0 of 1)', 'Pickup photos and handover']);
   assert.deepEqual(cardSteps(pickup({ leg: 'return', kind: 'return_check_in', clean: { moment: 'after_return', done: true } })).map((s) => s.done), [false, true]);
   assert.equal(cardTitle({ type: 'job', kind: 'delivery' }), 'Delivery to the renter');
   assert.equal(cardTitle({ type: 'service' }), 'Needs service');

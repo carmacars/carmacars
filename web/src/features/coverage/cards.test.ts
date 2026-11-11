@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { cardFaq, checkedOn, daysLimit, filterCards, NO_FILTER, reaching, valueLimit, type CardRow } from './cards.ts';
+import { cardFaq, checkedOn, daysLimit, filterCards, NO_FILTER, reaching, searchCards, valueLimit, type CardRow } from './cards.ts';
 
 // The credit card coverage list (0131): its words and filters, and the rules of the page that shows it.
 const row = (o: Partial<CardRow> = {}): CardRow => ({
@@ -75,4 +75,14 @@ test('the page: the issuer confirms, CarmaCars decides no claim, the checklist, 
   assert.match(read('web/src/features/seo/facts.ts'), /path: '\/credit-card-rental-coverage'/);
   assert.match(read('web/src/features/seo/sitemap.ts'), /'\/credit-card-rental-coverage'/);
   assert.match(read('supabase/migrations/0131_card_coverage.sql'), /'question', 'Which credit cards include rental car coverage\?'/);
+});
+
+test('the renter\'s card search (1400): every word, amex means American Express, Canadian cards first, hidden cards left out', () => {
+  const list = [...rows, row({ id: 'g', issuer: 'American Express', card: 'Cobalt Card', network: 'amex' }), row({ id: 'h', issuer: 'Hotel', card: 'Gone', is_active: false })];
+  assert.deepEqual(searchCards(list, 'amex cobalt').map((c) => c.id), ['g']);
+  assert.deepEqual(searchCards(list, 'gold').map((c) => c.id), ['a']);
+  assert.deepEqual(searchCards(list, 'ALPHA gold').map((c) => c.id), ['a']);
+  assert.equal(searchCards(list, 'gone').length, 0);
+  assert.equal(searchCards(list, '').at(-1)?.country, 'US');
+  assert.equal(searchCards(list, '', 2).length, 2);
 });

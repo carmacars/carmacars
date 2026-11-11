@@ -331,8 +331,9 @@ select test.eq('9 the provider is never named: renters read "Protection Plan" (t
 -- =====================================================================================
 -- 10. Delivery, airports, places
 -- =====================================================================================
+-- (1403 adds km included in the base: none here, so the rule of this suite is the per-km rate from the first km)
 update program_settings set company_latitude = 43.645000, company_longitude = -79.380000, delivery_per_km_cents = 150,
-       delivery_min_cents = 5000, delivery_max_cents = 25000
+       delivery_min_cents = 5000, delivery_max_cents = 25000, delivery_included_km = 0
  where effective_from = (select effective_from from app.settings());
 update airports set surcharge_cents = 2000, distance_km = 25 where code = 'YYZ';
 select test.eq('10 delivery: the car''s $75 fee plus $1.50 a km for 20.4 km = $105.60, rounded to $106; capped at $250',

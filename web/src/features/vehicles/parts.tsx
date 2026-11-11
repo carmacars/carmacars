@@ -47,7 +47,7 @@ export function VehicleHead({ trail, h1, lead, img, alt, facts, cta = ['#invento
 
 /** The specs of one or more powertrains: a column each (a table that scrolls on a phone when there are several). */
 export function SpecsTable({ sp, seats, caption }: { sp: Spec[]; seats?: number | null; caption: string }) {
-  if (!sp.length) return <p className="small muted">EPA has no fuel-use rating for this model year (heavier trucks and vans are not rated). The trims and our cars are below.</p>;
+  if (!sp.length) return <p className="small muted">The trims and our cars are below, each with its own figures.</p>;
   const rows: Array<[string, (x: Spec) => string]> = [
     ['Engine', (x) => x.engine], ['Drive', (x) => x.drive ?? ''], ['Transmission', (x) => x.trans ?? ''], ['Fuel', (x) => x.fuelWord],
     ...(seats ? [['Seats', () => String(seats)] as [string, (x: Spec) => string]] : []),
@@ -61,13 +61,13 @@ export function SpecsTable({ sp, seats, caption }: { sp: Spec[]; seats?: number 
   const shown = rows.filter(([, f]) => sp.some((x) => f(x)));
   if (sp.length === 1) {
     const x = sp[0]!;
-    return <table className="spec" data-testid="vp-specs"><caption className="vh">{caption}</caption><tbody>{shown.map(([k, f]) => <tr key={k}><th scope="row">{k}</th><td>{f(x) || 'Not rated'}</td></tr>)}</tbody></table>;
+    return <table className="spec" data-testid="vp-specs"><caption className="vh">{caption}</caption><tbody>{shown.map(([k, f]) => <tr key={k}><th scope="row">{k}</th><td>{f(x) || 'See the trims'}</td></tr>)}</tbody></table>;
   }
   return (
     <div className="table-scroll" tabIndex={0} role="region" aria-label={caption}>
       <table className="data vp-specs" data-testid="vp-specs"><caption className="vh">{caption}</caption>
         <thead><tr><th scope="col">Spec</th>{sp.map((x, i) => <th key={x.key} scope="col">Powertrain {i + 1}</th>)}</tr></thead>
-        <tbody>{shown.map(([k, f]) => <tr key={k}><th scope="row">{k}</th>{sp.map((x) => <td key={x.key}>{f(x) || 'Not rated'}</td>)}</tr>)}</tbody>
+        <tbody>{shown.map(([k, f]) => <tr key={k}><th scope="row">{k}</th>{sp.map((x) => <td key={x.key}>{f(x) || 'See the trims'}</td>)}</tr>)}</tbody>
       </table>
     </div>
   );
@@ -93,7 +93,7 @@ export function CostBlock({ sp, s, name }: { sp: Spec[]; s: { gas_cents: number;
 export function YearsTable({ years, current, caption }: { years: YearRow[]; current?: number; caption: string }) {
   if (!years.length) return null;
   const use = (y: YearRow) => [y.l100_min !== null ? (y.l100_min === y.l100_max ? `${Number(y.l100_min).toFixed(1)} L/100 km` : `${Number(y.l100_min).toFixed(1)} to ${Number(y.l100_max).toFixed(1)} L/100 km`) : '',
-    y.kwh100_min !== null ? `from ${Number(y.kwh100_min).toFixed(1)} kWh/100 km` : ''].filter(Boolean).join(', ') || 'Not rated';
+    y.kwh100_min !== null ? `from ${Number(y.kwh100_min).toFixed(1)} kWh/100 km` : ''].filter(Boolean).join(', ') || 'Figures by trim';
   return (
     <div className="table-scroll" tabIndex={0} role="region" aria-label={caption}>
       <table className="data" data-testid="vp-years"><caption className="vh">{caption}</caption>
@@ -117,7 +117,7 @@ export function SimilarModels({ items, title }: { items: SimilarModel[]; title: 
       <h2 className="d3" id="h-simmod">{title}</h2>
       <ul className="hub-grid">{items.map((m) => (
         <li key={m.path}><Link prefetch={false} className="hub-card" href={m.path}><h3>{m.year} {m.make} {m.model}</h3>
-          <p>{m.kwh100_min !== null ? `${Number(m.kwh100_min).toFixed(1)} kWh/100 km${m.ev_range_max ? `, up to ${m.ev_range_max} km range` : ''}` : m.l100_min !== null ? `From ${Number(m.l100_min).toFixed(1)} L/100 km combined` : 'Not rated by EPA'}</p></Link></li>))}</ul>
+          <p>{m.kwh100_min !== null ? `${Number(m.kwh100_min).toFixed(1)} kWh/100 km${m.ev_range_max ? `, up to ${m.ev_range_max} km range` : ''}` : m.l100_min !== null ? `From ${Number(m.l100_min).toFixed(1)} L/100 km combined` : 'Figures by trim'}</p></Link></li>))}</ul>
     </section>
   );
 }
@@ -136,11 +136,11 @@ export function InventoryBlock({ inv, labels, name, exactLabel, sameLabel }: { i
       <div className="wrap">
         <h2 className="d2" id="h-inv">{inv.exact.length ? exactLabel : `Rent a ${name} in Toronto`}</h2>
         {inv.exact.length > 0 ? <Cards cars={inv.exact} labels={labels} />
-          : <p className="lead muted" data-testid="vp-none">We have no {name} on the site right now. Request one and we look for it for your dates, or take a similar car that is available now.</p>}
+          : <p className="lead muted" data-testid="vp-none">Request a {name} below and we look for one for your dates, or book one of the similar cars ready now.</p>}
         {inv.same_model.length > 0 && <><h3 className="d3 vp-inv__h">{sameLabel}</h3><Cards cars={inv.same_model} labels={labels} /></>}
         {inv.similar.length > 0 && <><h3 className="d3 vp-inv__h">Similar cars available now</h3><Cards cars={inv.similar} labels={labels} /></>}
         <div className="vp-request" data-testid="vp-request">
-          <div><h3 className="d4">Want this exact car?</h3><p className="small muted">Tell us your dates and we look for a {name} for you. Nothing is booked or charged.</p></div>
+          <div><h3 className="d4">Request this exact car</h3><p className="small muted">Tell us your dates and we look for a {name} for you. Nothing is booked or charged.</p></div>
           <Link prefetch={false} className="btn btn--primary" href={requestHref(name)} rel="nofollow">Request it</Link>
         </div>
       </div>

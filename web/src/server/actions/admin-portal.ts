@@ -1,18 +1,20 @@
 'use server';
 import { revalidatePath } from 'next/cache';
+import { refusalMessage } from '@/lib/db/refusal';
 import { randomUUID } from 'node:crypto';
-import { DbError } from '@/lib/db/repo';
 import { door } from '@/server/door';
 import { auth } from '@/lib/auth';
 import type { ActionResult } from '@/features/forms/schemas';
 import { assertAdmin } from '@/server/admin/data';
 import { adminRead } from '@/server/admin/api';
+import { imageSniff } from '@/lib/file-sniff';
 
 // The admin portal's actions (migration 0030). One door for every action: the Admin is checked here
 // (and two-step sign-in when required), then the database checks the Admin again and runs the function
 // of the migration that owns the rule. The database's refusal is shown to the Admin as it is written.
 type R<T = unknown> = ActionResult<T>;
-const fail = (e: unknown): R<never> => ({ ok: false, code: 'refused', message: e instanceof DbError || e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '') : 'Something went wrong.' });
+// r35a: never an empty refusal (src/lib/db/refusal.ts)
+const fail = (e: unknown): R<never> => ({ ok: false, code: 'refused', message: refusalMessage(e) });
 
 // what the public site shows, by action: the pages to rebuild after the change
 const PUBLIC: Record<string, string[]> = {
@@ -59,7 +61,9 @@ export async function adminAct<T = Record<string, unknown>>(action: string, p: R
       const { generatedFile } = await import('@/server/files');
       if (!(await generatedFile('owner_statement', p.id, admin.id))) throw new Error('The statement PDF could not be made.');
     }
-    const data = await door<T>(admin.id, 'admin_do', action, p);
+    // 1202: an offer sent or saved from the review screen: the Protection Plan priced from a RentalCover quote
+    const q = action === 'send_offer' || action === 'booking_save' ? await (await import('@/server/rentalcover')).withRentalCover(p, 'review') : p;
+    const data = await door<T>(admin.id, 'admin_do', action, q);
     // 0770: an offer sent with Book it now: its agreement and the renter's Sign and pay link
     if (action === 'send_offer' && p.book_now) await (await import('@/server/book-now')).bookNowAgreement(data);
     rebuild([...(PUBLIC[action] ?? []), ...refresh]);
@@ -83,7 +87,8 @@ export async function adminSaveRow<T = Record<string, unknown>>(table: string, v
 export async function adminPreview<T = Record<string, unknown>>(what: 'booking_preview' | 'calendar_preview' | 'bulk_rate_preview' | 'cancellation_preview' | 'quote_vehicles' | 'calendar' | 'toll_profile' | 'change_preview' | 'change_vehicles' | 'driver_links' | 'vehicle_similarity' | 'addons_for_car', p: Record<string, unknown>): Promise<R<T>> {
   try {
     const admin = await assertAdmin();
-    return { ok: true, data: await adminRead<T>(admin.id, what, p) };
+    const q = what === 'booking_preview' ? await (await import('@/server/rentalcover')).withRentalCover(p, 'review') : p;
+    return { ok: true, data: await adminRead<T>(admin.id, what, q) };
   } catch (e) { return fail(e); }
 }
 
@@ -169,8 +174,7 @@ export async function uploadAdminDocument(form: FormData): Promise<R<{ id: strin
     if (file.size > 15_000_000) return { ok: false, code: 'invalid', message: 'The file must be under 15 MB.' };
     const bytes = new Uint8Array(await file.arrayBuffer());
     const pdf = bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46;
-    const jpg = bytes[0] === 0xff && bytes[1] === 0xd8;
-    const png = bytes[0] === 0x89 && bytes[1] === 0x50;
+    const { jpg, png } = imageSniff(bytes);
     if (!pdf && !jpg && !png) return { ok: false, code: 'invalid', message: 'Use a PDF, JPEG or PNG file.' };
     const type = pdf ? 'application/pdf' : jpg ? 'image/jpeg' : 'image/png';
     const { createHash } = await import('node:crypto');

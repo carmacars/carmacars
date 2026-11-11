@@ -1,9 +1,9 @@
 'use server';
 import { revalidatePath } from 'next/cache';
+import { refusalMessage } from '@/lib/db/refusal';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { env } from '@/lib/env';
-import { DbError } from '@/lib/db/repo';
 import type { ActionResult } from '@/features/forms/schemas';
 import { currentUser } from '@/server/portal/data';
 import { door, rolesOf, sessionAal, VA_FN_COOKIE } from '@/server/door';
@@ -12,7 +12,8 @@ import { door, rolesOf, sessionAal, VA_FN_COOKIE } from '@/server/door';
 // the door with the assistant's id and session. The database checks the function's allow-list and then
 // the rule of the function that owns the step; its refusal is shown as written.
 type R<T = unknown> = ActionResult<T>;
-const fail = (e: unknown): R<never> => ({ ok: false, code: 'refused', message: e instanceof DbError || e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '') : 'Something went wrong.' });
+// r35a: never an empty refusal (src/lib/db/refusal.ts)
+const fail = (e: unknown): R<never> => ({ ok: false, code: 'refused', message: refusalMessage(e) });
 
 async function assertVa() {
   const user = await currentUser();
@@ -27,7 +28,9 @@ async function assertVa() {
 export async function vaAct<T = Record<string, unknown>>(action: string, p: Record<string, unknown> = {}, refresh: string[] = []): Promise<R<T>> {
   try {
     const { user, aal } = await assertVa();
-    const data = await door<T>(user.id, 'va_do', action, p, aal);
+    // 1202: an offer sent or saved from the review screen: the Protection Plan priced from a RentalCover quote
+    const q = action === 'send_offer' || action === 'booking_save' ? await (await import('@/server/rentalcover')).withRentalCover(p, 'review') : p;
+    const data = await door<T>(user.id, 'va_do', action, q, aal);
     // 0770: an offer sent with Book it now (staff: it waits for an Admin; nothing to make yet)
     if (action === 'send_offer' && p.book_now) await (await import('@/server/book-now')).bookNowAgreement(data);
     for (const x of refresh) if (x.startsWith('/staff')) revalidatePath(x);
@@ -39,7 +42,8 @@ export async function vaAct<T = Record<string, unknown>>(action: string, p: Reco
 export async function vaPreview<T = Record<string, unknown>>(what: 'booking_preview' | 'calendar_preview' | 'bulk_rate_preview' | 'cancellation_preview' | 'quote_vehicles' | 'calendar' | 'toll_profile' | 'change_preview' | 'change_vehicles' | 'driver_links' | 'vehicle_similarity' | 'addons_for_car', p: Record<string, unknown>): Promise<R<T>> {
   try {
     const { user, aal } = await assertVa();
-    return { ok: true, data: await door<T>(user.id, 'va_read', what, p, aal) };
+    const q = what === 'booking_preview' ? await (await import('@/server/rentalcover')).withRentalCover(p, 'review') : p;
+    return { ok: true, data: await door<T>(user.id, 'va_read', what, q, aal) };
   } catch (e) { return fail(e); }
 }
 

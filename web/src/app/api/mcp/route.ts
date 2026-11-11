@@ -3,6 +3,8 @@ import { siteUrl } from '@/lib/site';
 import { TOOLS, bearer, sha256Hex } from '@/features/api-access/tools';
 import { oneStepHire } from '@/server/hire';
 import { bookNowAgreement } from '@/server/book-now';
+import { storage } from '@/integrations/storage';
+import { MAX_PHOTO_BYTES } from '@/features/returns/claim';
 
 // The CarmaCars MCP server (release 28, B3; migration 0562): Claude's connector for Abbas and Mahad. Streamable HTTP
 // without a stream: each POST is one JSON-RPC message answered with one JSON response. The bearer is an API key from
@@ -58,7 +60,7 @@ export async function POST(req: Request) {
         protocolVersion: VERSIONS.includes(asked) ? asked : VERSIONS[1],
         capabilities: { tools: { listChanged: false } },
         serverInfo: { name: 'carmacars', title: 'CarmaCars', version: '1.0.0' },
-        instructions: 'CarmaCars car rental, as its Admin: bookings, offers, payments, refunds, returns, cars, rates, listings, owners, invoices, staff and hiring. Every write is two calls: first without confirm, which previews what will change and changes nothing; show the preview to the person, and only when they agree call again with the same arguments plus confirm: true and the preview_id. The database checks each action exactly as the Admin screens do. Every call is logged with the values before and after.'
+        instructions: 'CarmaCars car rental, as its Admin: bookings, offers, payments, refunds, returns, cars, rates, listings, owners, statements, invoices, payouts, claims, tolls, expenses, leads, chats, To do\'s, field jobs, staff, onboarding and hiring. Every write is two calls: first without confirm, which previews what will change and changes nothing; show the preview to the person, and only when they agree call again with the same arguments plus confirm: true and the preview_id. The database checks each action exactly as the Admin screens do. Lists page with next_cursor (up to 200 a page) and hide test records unless include_test. Money out (refunds, deposit releases, payouts, charges) is only prepared as an Admin To do: never done here. Every call is logged with the values before and after, as the person whose key it is.'
       }));
     }
     case 'notifications/initialized': case 'notifications/cancelled':
@@ -79,6 +81,9 @@ export async function POST(req: Request) {
       // here as that Admin (the sign-in is made in the web layer), and its outcome is logged
       const run = r.ok ? (r.result as { run?: string; actor?: string; params?: { id?: string } & Record<string, unknown> } | undefined) : undefined;
       if (run?.run === 'hire' && run.actor && run.params?.id) r = await hire(hash, run.actor, run.params as { id: string } & Record<string, unknown>, client);
+      // a confirmed booking photo (1156): the database checked the key, the scope, the preview and the booking's condition report;
+      // the bytes, held here only, are checked against the fingerprint, stored privately, then recorded on the report
+      if (run?.run === 'photo') r = await photo(hash, msg.params?.arguments as Record<string, unknown>, run.params as Record<string, unknown>, client);
       // Book it now (0770, 0810): a confirmed offer booked at once gets the renter's agreement made here, as the screens do
       // (staff-style requests wait for an Admin: bookNowAgreement does nothing until the booking is approved)
       if (r.ok && BOOK_NOW_TOOLS.includes(name)) {
@@ -92,6 +97,23 @@ export async function POST(req: Request) {
       if (isNote) return new Response(null, { status: 202 });
       return json(fail(msg.id, -32601, `Method not found: ${msg.method}`));
   }
+}
+
+async function photo(hash: string, args: Record<string, unknown> | undefined, p: Record<string, unknown>, client: string): Promise<{ ok: boolean; status?: number; result?: unknown; error?: string }> {
+  const b64 = typeof args?.image_base64 === 'string' ? args.image_base64 : '';
+  if (!b64 || (await sha256Hex(b64)) !== p.image_sha256) return { ok: false, status: 400, error: 'The photo differs from the preview: preview again' };
+  let bytes: Uint8Array;
+  try { bytes = Uint8Array.from(atob(b64.replace(/^data:image\/[a-z]+;base64,/, '')), (c) => c.charCodeAt(0)); } catch { return { ok: false, status: 400, error: 'image_base64 is not base64' }; }
+  const jpg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  const png = bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
+  if (!jpg && !png) return { ok: false, status: 400, error: 'That file is not a photo (JPEG or PNG)' };
+  if (bytes.length > MAX_PHOTO_BYTES) return { ok: false, status: 400, error: 'Each photo must be under 8 MB' };
+  const path = `bookings/${String(p.booking_id)}/claude/${crypto.randomUUID()}.${png ? 'png' : 'jpg'}`;
+  try {
+    await (await storage()).put('condition-photos', path, bytes, png ? 'image/png' : 'image/jpeg');
+    const out = await rpc('server_api_photo_record' as never, { p_hash: hash, p_preview: String(args?.preview_id ?? ''), p_path: path, p_width: 0, p_height: 0, p_client: client } as never, SR);
+    return { ok: true, result: out };
+  } catch (e) { return { ok: false, status: 400, error: e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '') : 'The photo was not stored' }; }
 }
 
 async function hire(hash: string, actor: string, p: { id: string } & Record<string, unknown>, client: string): Promise<{ ok: boolean; status?: number; result?: unknown; error?: string }> {

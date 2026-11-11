@@ -4,9 +4,11 @@ import { browserRpc } from '@/lib/browser-rpc';
 import { emitTrack } from '@/lib/track/emit';
 import { clock, shortDate, torontoInstant } from '@/lib/dates';
 import { money, plural } from '@/lib/format';
+import { deliveryWords } from '@/features/delivery/words';
 
 // PriceBreakdown (docs/blueprint/00-overview.md section 6): shows exactly the lines
 // public.quote_booking returns. No arithmetic on money here; the labels only describe the lines.
+
 export interface QuoteLine { charge_type: string; label: string; description?: string; amount_cents: number; quantity: number; unit_amount_cents: number; detail: Record<string, unknown> }
 export interface Quote {
   lines: QuoteLine[]; hst_cents: number; total_cents: number; deposit_cents: number; deposit_method: string; billable_days: number;
@@ -52,7 +54,8 @@ function describe(l: QuoteLine, t: LabelTokens): { k: string; note?: string } {
   const d = l.detail ?? {};
   const perDay = typeof d.per_day_cents === 'number' ? money(d.per_day_cents, { cents: true }) : '';
   const cap = typeof d.cap_cents === 'number' ? `, up to ${money(d.cap_cents)}` : ', no maximum';
-  const distance = d.needs_distance ? 'Plus distance from our location, priced in your offer' : typeof d.distance_km === 'number' ? `${d.distance_km} km from our location` : undefined;
+  // 1403: the base includes the first km from our location, then a rate per km
+  const distance = deliveryWords(d);
   const airport = d.kind === 'airport';
   // 0066: an add-on line (the old baby seat and winter tire codes included) names itself
   if (typeof d.pricing_unit === 'string' && typeof d.unit_price_cents === 'number') {
@@ -67,6 +70,8 @@ function describe(l: QuoteLine, t: LabelTokens): { k: string; note?: string } {
     case 'non_refundable_discount': return { k: `Non-refundable booking, ${t.nonRef} off` };
     // 0360: one plain line, "Short-notice pricing +10%" or "Booked ahead −5%" (the database words it)
     case 'lead_time': return { k: l.description ?? l.label };
+    // 1205: the car's daily minimum or maximum (the database words it)
+    case 'price_limit': return { k: l.description ?? l.label };
     case 'delivery': return { k: airport ? `Delivery to ${String(d.airport_name ?? 'the airport')}` : 'Delivery to you', note: distance && (airport ? `${distance}. An airport surcharge may apply` : distance) };
     case 'pickup': return { k: airport ? `Pickup at ${String(d.airport_name ?? 'the airport')} at the end` : 'Pickup from you at the end', note: distance };
     case 'young_driver_18_20': return { k: 'Young driver fee, ages 18 to 20', note: perDay && `${perDay} a day${cap}` };

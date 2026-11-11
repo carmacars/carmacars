@@ -5,6 +5,7 @@ import type { ActionResult } from '@/features/forms/schemas';
 import { currentUser } from '@/server/portal/data';
 import { door, sessionAal } from '@/server/door';
 import { sha256Hex } from '@/server/links';
+import { imageSniff } from '@/lib/file-sniff';
 
 // Payments received outside the processor, signatures on paper and documents sent to sign (migration 0044), for
 // Admins and staff, through the staff door; the database decides who may do what (Admins; Finance within its single
@@ -28,8 +29,7 @@ async function fileFrom(form: FormData, name: string, required: boolean): Promis
   if (file.size > MAX) return 'The file must be under 15 MB.';
   const bytes = new Uint8Array(await file.arrayBuffer());
   const pdf = bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46;
-  const jpg = bytes[0] === 0xff && bytes[1] === 0xd8;
-  const png = bytes[0] === 0x89 && bytes[1] === 0x50;
+  const { jpg, png } = imageSniff(bytes);
   if (!pdf && !jpg && !png) return 'Use a PDF, JPEG or PNG file.';
   return { bytes, type: pdf ? 'application/pdf' : jpg ? 'image/jpeg' : 'image/png', ext: pdf ? 'pdf' : jpg ? 'jpg' : 'png' };
 }

@@ -28,9 +28,15 @@ const changes = (fields: readonly string[], what: string) => ({
   description: `The ${what} fields to set, and only those. Anything else (prices, payments, status) is changed in the portal.`,
   properties: Object.fromEntries(fields.map((f) => [f, f === 'do_not_email' ? { type: 'boolean' } : f.endsWith('_at') ? { type: 'string', format: 'date-time' } : { type: ['string', 'null'] }]))
 });
+// 1156: every list pages past 50 rows with a cursor and hides test records unless asked
+const PAGE = {
+  limit: { type: 'integer', minimum: 1, maximum: 200, default: 20, description: 'Rows a page (up to 200)' },
+  cursor: { type: 'string', description: 'The next_cursor of the page before, for the next page' },
+  include_test: { type: 'boolean', description: 'Include test records (verify and test accounts, sample cars); hidden by default' }
+};
 const listInput = (extra: Record<string, unknown> = {}) => ({
   type: 'object', additionalProperties: false,
-  properties: { query: str('A booking number, the renter\'s name or email, or a plate'), limit: { type: 'integer', minimum: 1, maximum: 50, default: 20 }, ...extra }
+  properties: { query: str('A booking number, the renter\'s name or email, or a plate'), ...PAGE, ...extra }
 });
 
 export const TOOLS: Tool[] = [
@@ -71,7 +77,7 @@ const confirmProps = {
   preview_id: { type: 'string', format: 'uuid', description: 'The preview_id the preview returned (only with confirm: true).' }
 };
 // the offer and booking forms take more fields than are listed (the same names as the screen's form): extra ones pass to the database, which checks them
-const OPEN_FORMS = ['create_offer', 'revise_offer', 'change_booking'];
+const OPEN_FORMS = ['create_offer', 'revise_offer', 'change_booking', 'record_past_trip'];
 const write = (name: string, title: string, description: string, required: string[], properties: Record<string, unknown>, destructive = false): Tool => ({
   name, scope: 'admin:write', readOnly: false, destructive, title,
   description: `${description} Two steps: call without confirm for a preview of what will change (nothing is changed), then again with the same arguments plus confirm: true and the preview_id.`,
@@ -87,13 +93,13 @@ export const ADMIN_TOOLS: Tool[] = [
   read('get_settings', 'Settings', 'Settings as Admin > Settings shows them. Without section: the Program settings (prices, policies, switches) and the site settings, with the names of the other parts; with section (fee_defaults, fee_types, deposit_tiers, classes, coverage, promo_codes, ...): that part. Read only.',
     { section: str('One part, for example program, site, fee_defaults, deposit_tiers, staff') }),
   read('list_cars', 'List cars', 'Cars in the fleet with their status, owner, current rates and fee overrides. Filter by status or search by plate, name or VIN.',
-    { query: str('A plate, a car name or a VIN'), status: str('A vehicle status'), limit: { type: 'integer', minimum: 1, maximum: 50, default: 20 } }),
+    { query: str('A plate, a car name or a VIN'), status: str('A vehicle status'), ...PAGE }),
   read('get_car', 'Get a car', 'One car by vehicle_id: status, owner, rates, fee overrides.', { vehicle_id: id('The car') }, ['vehicle_id']),
   read('list_applicants', 'List candidates', 'Job applications, newest first, with the role, status and score. Filter by status (new, screened, invited, booked, interviewed, hired, ...) or search by name or email.',
-    { query: str('A name or email'), status: str('An application status'), limit: { type: 'integer', minimum: 1, maximum: 50, default: 20 } }),
+    { query: str('A name or email'), status: str('An application status'), ...PAGE }),
   read('get_hire_status', 'Onboarding of a hire', 'The onboarding steps of a candidate hired with one-step Hire: sign-in, agreement, pay details, academy, first-day To do\'s.',
     { application_id: id('The application') }, ['application_id']),
-  read('list_staff', 'List staff', 'Staff and Admins with their roles, functions, start date and pay details (masked).', { query: str('A name or email') }),
+  read('list_staff', 'List staff', 'Staff and Admins with their roles, functions, start date and pay details (masked).', { query: str('A name or email'), ...PAGE }),
 
   write('send_offer', 'Send an offer', 'Send the offer of a request (Admin > the booking > Send the offer), with an optional message and expiry.', ['booking'],
     { ...booking, message: str('A message to the renter'), expires_at: { type: 'string', format: 'date-time' }, book_now: { type: 'boolean', description: 'Book it now: the offer is approved at once as if the renter had approved it; the booking waits for the renter to sign and pay (the Sign and pay link is emailed) and holds the car. Use when the renter already agreed.' }, book_now_reason: str('Why it is booked without the renter\'s approval (kept in the booking\'s history)') }),
@@ -141,6 +147,58 @@ export const ADMIN_TOOLS: Tool[] = [
   write('verify_staff_pay_details', 'Verify pay details', 'Mark a staff member\'s new pay details verified, saying how they were checked.', ['id', 'method'], { id: id('The pay details (from get_hire_status or list_staff)'), method: str('How they were checked') })
 ];
 TOOLS.push(...ADMIN_TOOLS);
+
+// ---------------------------------------------------------------- release 35 (1156): the Admin's daily operations without a browser
+// Reads (admin:read): lists page with a cursor and hide test records; writes (admin:write) are previewed then confirmed like
+// the ones above. Money out (refunds, deposit releases, payouts, charges) is only prepared, as an Admin To do: never done here.
+const list = (name: string, title: string, description: string, extra: Record<string, unknown> = {}): Tool =>
+  read(name, title, `${description} Newest first; pages with cursor (next_cursor), test records hidden unless include_test.`, { ...extra, ...PAGE });
+const date = (description: string) => ({ type: 'string', format: 'date', description });
+const when = (description: string) => ({ type: 'string', format: 'date-time', description });
+export const OPS_TOOLS: Tool[] = [
+  list('list_booking_photos', 'Booking photos', 'The photos of a booking\'s pickup, return and damage condition reports.', booking),
+  read('get_agreement', 'A booking\'s agreements', 'The rental agreements of a booking: each one\'s status, who must sign, who signed and when, and when the link was last sent.', booking, ['booking']),
+  list('list_claims', 'List claims', 'Damage and insurance claims with their status, amounts and booking.', { status: str('A claim status'), query: str('A claim number or insurer reference') }),
+  read('get_claim', 'Get a claim', 'One claim by number or id, with its damages.', { claim: str('The claim number or id') }, ['claim']),
+  list('list_expenses', 'List expenses', 'Company expenses (not voided).', { from: date('From'), to: date('To'), category: str('An expense category code') }),
+  list('list_owner_statements', 'Owner statements', 'Owner statements with their period (cut off on the 7th), payout date, status, payout and whether it was paid.', { owner_id: id('One owner'), status: str('draft, approved, ...') }),
+  read('get_owner_statement', 'Get an owner statement', 'One owner statement with its lines (a rental across the cutoff shows the days of this period).', { id: id('The statement') }, ['id']),
+  list('list_owner_invoices', 'Owner invoices', 'Owner invoices: how each is paid (bank debit or deducted from payouts), deduct_from_payout_on, paid and balance.', { owner_id: id('One owner'), status: str('An invoice status'), unpaid: { type: 'boolean' } }),
+  list('list_payouts', 'Payouts', 'Payouts to owners, staff and partners, paid or not.', { payee_type: str('owner, staff, ...'), status: str('A payout status'), unpaid: { type: 'boolean' } }),
+  list('list_commissions', 'Staff commissions', 'Staff commissions with their status and whether paid.', { staff_id: id('One person'), status: str('A commission status'), unpaid: { type: 'boolean' } }),
+  list('list_insurer_invoices', 'Insurer invoices', 'Invoices to insurers with paid, balance and write-offs.', { status: str('An invoice status'), unpaid: { type: 'boolean' } }),
+  list('list_tolls', 'Tolls and tickets', 'Tolls and parking or traffic tickets, matched to a booking or not.', { status: str('A status'), unmatched: { type: 'boolean' }, query: str('A notice number or plate') }),
+  list('list_leads', 'Leads', 'Leads with who holds each (assigned or claimed), the marketing source and the message.', { status: str('A lead status'), assigned_to: id('A salesperson'), source: str('A source or UTM source'), from: when('From'), to: when('To'), query: str('A name, email or phone') }),
+  list('list_chats', 'Live chats', 'Website chats with the last messages.', { status: str('A chat status') }),
+  list('list_visitor_leads', 'Visitor leads', 'Website visitors who left contact details or turned hot, with their source.', { from: when('Seen since') }),
+  read('rep_summary', 'Leads and bookings per rep', 'Each salesperson\'s leads claimed, held now and brought, and bookings credited, between from and to.', { from: when('From (default 30 days ago)'), to: when('To (default now)'), include_test: { type: 'boolean' } }),
+  list('list_todos', 'To do queues', 'Open To do\'s (or a status), by queue and person.', { queue: str('admin, cs, fleet, finance, sales, ...'), status: str('open, in_progress, waiting, done, ...'), assigned_to: id('One person') }),
+  read('car_calendar', 'A car\'s calendar', 'The bookings of a car between from and to.', { vehicle_id: id('The car'), from: when('From'), to: when('To') }, ['vehicle_id']),
+  list('list_field_jobs', 'Field jobs', 'Deliveries, pickups and other field jobs with who is assigned.', { status: str('A job status'), from: when('From'), to: when('To') }),
+  read('staff_onboarding_status', 'Staff onboarding', 'Where each staff member is in onboarding (academy, agreement, WhatsApp, approval) and who waits for approval.'),
+  list('list_deposit_reviews', 'Deposit reviews', 'Returned trips whose deposit review is not finished (all: true for every one).', { all: { type: 'boolean' } }),
+
+  write('upload_booking_photo', 'Upload a booking photo', 'Add a photo to a booking\'s pickup or return condition report, or to a damage on it: image_base64 (JPEG or PNG, under 8 MB).', ['booking', 'stage', 'image_base64'],
+    { ...booking, stage: { type: 'string', enum: ['pickup', 'return', 'damage'] }, shot: str('front, rear, left, interior, ... (pickup or return)'), damage_id: id('The damage (stage damage)'), image_base64: str('The photo, base64') }),
+  write('resend_agreement', 'Resend an agreement', 'Send the booking\'s agreement signing link again to whoever has not signed.', ['booking'], booking),
+  write('update_claim', 'Update a claim', 'Set a claim\'s status, as the claim page does.', ['id', 'status'], { id: id('The claim'), status: str('The new status'), note: str('A note') }),
+  write('add_expense', 'Add an expense', 'Add a company expense (Admin > Expenses).', ['category', 'amount_cents', 'description'],
+    { expense_on: date('The day'), category: str('An expense category code'), amount_cents: cents('Amount before HST'), hst_cents: cents('HST'), description: str('What it was'), vehicle_id: id('The car, if any') }),
+  write('set_invoice_collect_by', 'How an owner invoice is paid', 'Bank debit on the 15th, or deducted from the owner\'s payouts.', ['id', 'collect_by'], { id: id('The invoice'), collect_by: { type: 'string', enum: ['bank_debit', 'payout'] } }),
+  write('set_invoice_deduct_from', 'Deduct from payouts starting', 'The first payout date an owner invoice is deducted from (empty: the next payout).', ['id'], { id: str('The invoice id or number'), date: date('The first payout date') }),
+  write('match_toll', 'Match a toll or ticket', 'Match a toll or ticket to a booking (or to the owner, staff or CarmaCars), as the tolls page does.', ['id', 'to'], { id: id('The toll or ticket'), to: str('A booking number, or owner, staff, company'), note: str('Why') }),
+  write('complete_todo', 'Complete a To do', 'Mark a To do done with a note.', ['id'], { id: id('The To do'), note: str('What was done') }),
+  write('assign_field_job', 'Assign a field job', 'Give a field job to a field staff member on a shift that day (or an Admin).', ['id', 'to'], { id: id('The job'), to: id('The person') }),
+  write('approve_onboarding', 'Approve onboarding', 'Approve a staff member waiting at onboarding step 4: their portal opens.', ['user'], { user: id('The person') }),
+  write('reject_onboarding', 'Reject onboarding', 'Reject a staff member at onboarding step 4 with the reason they see on Welcome.', ['user', 'reason'], { user: id('The person'), reason: str('What to fix') }),
+  write('restore_staff_access', 'Restore staff access', 'Give back staff portal access ended before.', ['user'], { user: id('The person') }),
+  write('record_past_trip', 'Record a past trip', 'Record a trip that happened without being recorded (the past-trip form): the pickup and return times, km and fuel, and an Admin\'s deposit waiver reason if no deposit was taken.', ['booking'],
+    { ...booking, pickup_at: when('When it was picked up'), return_at: when('When it came back'), odometer_out_km: { type: 'integer', minimum: 0 }, odometer_in_km: { type: 'integer', minimum: 0 },
+      fuel_out_pct: { type: 'integer', minimum: 0, maximum: 100 }, fuel_in_pct: { type: 'integer', minimum: 0, maximum: 100 }, reason: str('Why it was not recorded'), deposit_waiver_reason: str('Admin: why no deposit') }),
+  write('prepare_money_action', 'Prepare a refund, release, payout or charge', 'Prepare money out for an Admin to do in the portal: kind refund, deposit_release, payout or charge, with the amount and the reason. It becomes an Admin To do with its link; no money moves.', ['kind', 'amount_cents', 'reason'],
+    { kind: { type: 'string', enum: ['refund', 'deposit_release', 'payout', 'charge'] }, ...booking, payout_id: id('The payout (kind payout)'), amount_cents: cents('The amount'), reason: str('Why') })
+];
+TOOLS.push(...OPS_TOOLS);
 
 /** The tools a set of scopes may call (whoami always). */
 export const toolsFor = (scopes: readonly string[]) => TOOLS.filter((t) => t.scope === 'any' || scopes.includes(t.scope));

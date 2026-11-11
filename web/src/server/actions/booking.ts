@@ -1,5 +1,6 @@
 'use server';
 import { cookies } from 'next/headers';
+import { bookNowAgreement } from '@/server/book-now';
 import { auth } from '@/lib/auth';
 import { DbError, rpc } from '@/lib/db/repo';
 import type { Json } from '@/lib/db/types';
@@ -22,21 +23,27 @@ import { PARTNER_COOKIE } from '@/features/partner-crm/feed-key';
 // No card and no payment at this step.
 
 const TOKEN = /^[A-Za-z0-9_-]{8,64}$/;
-async function distance(placeId: string, session?: string): Promise<number | null> {
-  if (!placeId) return null;
+// the road distance and the place itself (1403: without a road distance the database prices the straight line from the
+// company's location to the place times the road factor)
+interface Measured { km: number | null; lat: number | null; lng: number | null }
+async function distance(placeId: string, session?: string): Promise<Measured> {
+  const none: Measured = { km: null, lat: null, lng: null };
+  if (!placeId) return none;
   try {
-    const origin = (await rpc('delivery_origin', {}, { role: 'service_role' })) as unknown as { lat: number; lng: number } | null;
-    if (!origin) return null;
     const m = await maps();
     const p = await m.place(placeId, session && TOKEN.test(session) ? session : crypto.randomUUID());
-    return p ? await m.distanceKm(origin, { lat: p.lat, lng: p.lng }) : null;
+    if (!p) return none;
+    const origin = (await rpc('delivery_origin', {}, { role: 'service_role' })) as unknown as { lat: number; lng: number } | null;
+    const km = origin ? await m.distanceKm(origin, { lat: p.lat, lng: p.lng }).catch(() => null) : null;
+    return { km, lat: p.lat, lng: p.lng };
   } catch {
-    return null;
+    return none;
   }
 }
 
 export interface SubmitInput { data: RequestData; requestKey: string; token: string | null; draftId?: string | null }
-export type SubmitResult = ActionResult<{ bookingNumber: string; totalCents: number | null; depositCents: number | null; created: boolean }>;
+export type SubmitResult = ActionResult<{ bookingNumber: string; totalCents: number | null; depositCents: number | null; created: boolean;
+  /** r35a (1304): booked at once (a verified repeat renter): the renter goes to Sign and pay */ instant?: boolean }>;
 
 export async function submitBookingRequest(input: SubmitInput): Promise<SubmitResult> {
   const meta = await requestMeta();
@@ -57,7 +64,7 @@ export async function submitBookingRequest(input: SubmitInput): Promise<SubmitRe
   const airport = (code: string) => f.airports.find((a) => a.code === code);
   const returnAddress = v.returnAt === 'delivery' ? (v.returnAddress.label.trim() ? v.returnAddress : v.pickupAddress) : v.returnAddress;
   // a delivery and a return to the same place ask Google once (each lookup counts against the daily cap, 0113)
-  const distances = new Map<string, Promise<number | null>>();
+  const distances = new Map<string, Promise<Measured>>();
   const distanceOnce = (addr: { placeId: string; session?: string }) => {
     if (!distances.has(addr.placeId)) distances.set(addr.placeId, distance(addr.placeId, addr.session));
     return distances.get(addr.placeId)!;
@@ -65,7 +72,7 @@ export async function submitBookingRequest(input: SubmitInput): Promise<SubmitRe
   const loc = async (kind: string, addr: { label: string; placeId: string; session?: string }, ap: string) => {
     if (kind === 'owner') return { kind: 'owner_location' };
     if (kind === 'airport') return { kind: 'airport', airport_code: ap };
-    if (kind === 'delivery') return { kind: 'delivery', address: addr.label, distance_km: await distanceOnce(addr) };
+    if (kind === 'delivery') { const d = await distanceOnce(addr); return { kind: 'delivery', address: addr.label, distance_km: d.km, lat: d.lat, lng: d.lng }; }
     return { kind: 'our_location' };
   };
   const far = (k: string) => k === 'delivery' || k === 'airport';
@@ -120,6 +127,8 @@ export async function submitBookingRequest(input: SubmitInput): Promise<SubmitRe
       else throw e;
     }
     if (!res.ok) return { ok: false, code: String(res.error ?? 'refused'), message: String(res.message ?? 'We could not send the request. Please try again or call us.') };
+    // 1202: the Protection Plan priced from a RentalCover quote for this renter and these dates (none: its table price)
+    if (Number(v.coverage) === 3) await (await import('@/server/rentalcover')).rentalcoverForRequest(String(res.booking_number)).catch(() => undefined);
     // 0096: how we reach the renter, chosen in the form (empty: the default)
     if (v.notifyChannel) await rpc('server_request_notify_channel', { p_booking_number: String(res.booking_number), p_channel: v.notifyChannel, p_user: user?.id }, { role: 'service_role' }).catch(() => undefined);
     // 0410: "How did you hear about us?" (empty: not answered)
@@ -134,7 +143,14 @@ export async function submitBookingRequest(input: SubmitInput): Promise<SubmitRe
     await captureDone('booking_request');
     // 0280: the request counts for the phone number box report (from a visitor who saw the box, or not); no personal data
     if (res.created !== false) await rpc('server_phone_gate_request', { p: { visitor_id: await visitorCookie() } as unknown as Json }, { role: 'service_role' }).catch(() => undefined);
-    return { ok: true, data: { bookingNumber: String(res.booking_number), totalCents: (res.total_due_at_booking_cents as number) ?? null, depositCents: (res.deposit_cents as number) ?? null, created: res.created === true } };
+    // r35a (1304): a verified repeat renter books at once: the database decides (eligible, the car free, the licence on file);
+    // then the agreement is made as for Book it now and the renter goes straight to Sign and pay. Anything else stays a request.
+    let instant = false;
+    if (user && res.created !== false) {
+      const ib = (await rpc('server_instant_book', { p_number: String(res.booking_number), p_user: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as { instant?: boolean; status?: string; booking_id?: string; renter_user_id?: string } | null;
+      if (ib?.instant) { instant = true; await bookNowAgreement(ib).catch(() => undefined); }
+    }
+    return { ok: true, data: { bookingNumber: String(res.booking_number), totalCents: (res.total_due_at_booking_cents as number) ?? null, depositCents: (res.deposit_cents as number) ?? null, created: res.created === true, instant } };
   } catch (e) {
     return { ok: false, code: 'refused', message: e instanceof DbError ? e.message : 'We could not send the request. Please try again or call us.' };
   }

@@ -10,6 +10,7 @@ import { requestMeta } from '@/server/request';
 import { fileScheduleChangeCopy } from '@/server/signing/certified';
 import type { EsignReady } from '@/features/signing/types';
 import { outsidePayment } from '@/features/owner-billing/paid-outside';
+import { imageSniff } from '@/lib/file-sniff';
 
 // Negotiated terms, owner invoices, the Approve step and cars staff add for an owner (migration 0067). Every call goes
 // through the staff door; the database decides who may do what (Admins; customer service and fleet add cars) and
@@ -212,8 +213,7 @@ async function fileOf(form: FormData, name: string): Promise<{ bytes: Uint8Array
   if (file.size > 10_000_000) return 'The file must be under 10 MB.';
   const bytes = new Uint8Array(await file.arrayBuffer());
   const pdf = bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46;
-  const jpg = bytes[0] === 0xff && bytes[1] === 0xd8;
-  const png = bytes[0] === 0x89 && bytes[1] === 0x50;
+  const { jpg, png } = imageSniff(bytes);
   if (!pdf && !jpg && !png) return 'Use a PDF, JPEG or PNG file.';
   return { bytes, type: pdf ? 'application/pdf' : jpg ? 'image/jpeg' : 'image/png', ext: pdf ? 'pdf' : jpg ? 'jpg' : 'png' };
 }

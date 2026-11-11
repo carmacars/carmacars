@@ -1,0 +1,77 @@
+name: addresses
+
+# The Canadian address database of the address fields (migration 2120): Statistics Canada's Open Database of Addresses
+# (ODA, Open Government Licence - Canada), one zipped CSV a province, loaded into ca_addresses by
+# web/scripts/addresses/load.mjs, Ontario first, then the others in the order given. The site's address suggestions read it
+# first (web/src/integrations/maps/address-book.ts); Google is asked only when it has nothing and a key is configured.
+# Each run is recorded in address_imports; a province that would take the database past Program settings place_db_cap_mb
+# is skipped and named. A re-run replaces a province's rows. The ODA has no file for Newfoundland and Labrador, Yukon or
+# Nunavut: those are left to the fallback. Run workflow only; nothing runs on a push.
+on:
+  workflow_dispatch:
+    inputs:
+      provinces:
+        description: Provinces in order, comma separated (ON first), or all
+        type: string
+        default: ON
+      environment:
+        description: Target
+        type: choice
+        options: [production, staging]
+        default: production
+
+concurrency:
+  group: addresses
+  cancel-in-progress: false
+
+env:
+  DB_BACKEND: ${{ vars.DB_BACKEND }}
+  VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+
+jobs:
+  load:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    environment: ${{ inputs.environment }}
+    defaults:
+      run:
+        working-directory: web
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      DEPLOY_ENV: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: Download the ODA (one zip a province)
+        id: dl
+        run: |
+          set -euo pipefail
+          P="${{ inputs.provinces }}"
+          [ "$P" = all ] && P="ON,QC,BC,AB,MB,SK,NS,NB,PE,NT"
+          echo "$P" | grep -Eq '^[A-Z]{2}(,[A-Z]{2})*$' || { echo "::error::provinces: two-letter codes, comma separated"; exit 1; }
+          echo "provinces=$P" >> "$GITHUB_OUTPUT"
+          mkdir -p "$RUNNER_TEMP/oda"
+          for p in ${P//,/ }; do
+            if curl -fsSL --retry 3 -o "$RUNNER_TEMP/oda/$p.zip" "https://www150.statcan.gc.ca/n1/en/pub/46-26-0001/2021001/ODA_${p}_v1.zip"; then
+              unzip -o -q -j "$RUNNER_TEMP/oda/$p.zip" '*.csv' -d "$RUNNER_TEMP/oda" && rm "$RUNNER_TEMP/oda/$p.zip"
+            else
+              echo "::warning title=addresses::$p: no ODA file"
+            fi
+          done
+          ls -la "$RUNNER_TEMP/oda" | sed 's/^/::notice title=files::/'
+      - name: Load (province by province, under the database size cap)
+        run: |
+          set -euo pipefail
+          DATABASE_URL=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" db-url)
+          [ -n "$DATABASE_URL" ] || { echo "::error::No database address (SUPABASE_DB_PASSWORD, or the server with DB_BACKEND=vps)"; exit 1; }
+          export DATABASE_URL
+          ../.github/ci-run.sh "Addresses load" node scripts/addresses/load.mjs --in "$RUNNER_TEMP/oda" --provinces "${{ steps.dl.outputs.provinces }}" \
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" | tee "$RUNNER_TEMP/load.txt"
+          grep -E '^[A-Z]{2}:|^loaded' "$RUNNER_TEMP/load.txt" | sed 's/^/::notice title=addresses::/'

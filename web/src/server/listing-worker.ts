@@ -96,7 +96,9 @@ export async function runListingWorkerNow(o: { maxJobs?: number; deadlineMs?: nu
       getPrivate: (path) => s.get('vehicle-originals', path),
       putPrivate: (path, bytes, type) => s.put('vehicle-originals', path, bytes, type),
       putPublic: (path, bytes, type) => s.put('vehicle-public', path, bytes, type),
-      hasPublic: async (path) => (await s.get('vehicle-public', path)) !== null
+      hasPublic: async (path) => (await s.get('vehicle-public', path)) !== null,
+      // r36 (2100): the cover photo the flyer is drawn on
+      getPublic: (path) => s.get('vehicle-public', path)
     }
   }, o);
 }

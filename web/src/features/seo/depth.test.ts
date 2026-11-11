@@ -58,7 +58,7 @@ test('every number on the page comes from the input (no invented figure)', () =>
 test('a page with no matching car lists the nearest similar cars instead, and says so', () => {
   const d = buildDepth({ ...full, cars: [], fallbackCars: CARS });
   const cars = d.sections.find((s) => s.id === 'cars')!;
-  assert.match(cars.paras[0]!, /No car matches this page exactly right now\. The nearest similar cars on CarmaCars start at \$49 a day \(2024 Toyota Corolla\)/);
+  assert.match(cars.paras[0]!, /The closest cars to this page on CarmaCars, ready to book now, start at \$49 a day \(2024 Toyota Corolla\)/);
   assert.match(cars.paras[0]!, /brought to Mississauga, about \d+ minutes by road/);
 });
 
@@ -68,7 +68,7 @@ test('sample cars never set a price; a fact that is missing leaves its sentence 
   const all = d.sections.flatMap((s) => s.paras).join(' ');
   assert.doesNotMatch(all, /\$10 a day/);
   assert.doesNotMatch(all, /GO station|Highway|parking|toll/i);
-  assert.match(all, /beyond the 80 km CarmaCars delivers to/);
+  assert.match(all, /CarmaCars delivers within 80 km and replies on any address further out/);
 });
 
 test('car pages: the figures from vehicle_specs with their sources, the cost to drive 100 km, colours and features by trim', () => {
@@ -113,7 +113,7 @@ test('maintenance: shown only from the cost table, with its assumptions and sour
 test('comparison pages: our own figures only, the other company named as what was compared, nothing about it', () => {
   const d = buildDepth({ ...full, compare: { company: '01 Motors', versus: true } });
   const c = d.sections.find((s) => s.id === 'compare')!;
-  assert.match(c.paras[0]!, /01 Motors is named only because it is what you compared; we do not publish its prices or terms/);
+  assert.match(c.paras[0]!, /01 Motors is named only because it is what you compared; check its current prices and terms with 01 Motors/);
   assert.doesNotMatch(JSON.stringify(c), /cheaper|better than|unlike|not affiliated/i);
   assert.ok(c.table!.rows.some((r) => r[0] === 'Daily rate' && r[1] === 'from $49'));
   assert.ok(d.faq.some((q) => q.question === 'Is this page from 01 Motors?'));

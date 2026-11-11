@@ -4,6 +4,7 @@ import '@/styles/admin.css';
 import '@/components/portal-ui/portal-ui.css';
 import '@/components/portal-ui/queue.css';
 import '@/styles/va.css';
+import '@/styles/ui-kit.css';
 import Link from '@/components/Link';
 import { currentUser } from '@/server/portal/data';
 import { PortalSwitch, SignOutOrExit } from '@/features/access/Access';
@@ -32,7 +33,7 @@ import { TownhallLink } from '@/features/townhall/TownhallLink';
 // The staff portal's frame (0197; docs/blueprint/05-va.md and 06-field.md): one portal for every kind of staff work. The
 // menu holds the groups of every function the person has (customer service, fleet, finance, sales, field work); the
 // switcher picks the office function the screens work in. Every page checks the function and the second factor itself
-// (vaPage, requireStaff).
+// (vaPage, requireStaff). 1154: the Academy link sits in the rail's header in every state, held or not.
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
   const user = await currentUser();
   const roles = user ? await rolesOf(user.id).catch(() => null) : null;
@@ -64,7 +65,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
         {staff && roles ? (
           <aside className="ad__rail">
             <div className="ad__who"><span className="muted"><BrandMark size={22} className="ad__mark" />{office ? STAFF_FN_LABEL[roles.va!] : STAFF_FN_LABEL.field} · <b data-testid="account-email">{roles.preferred_name ?? roles.name ?? user?.email}</b></span>
-              <span className="gd-frame-links">{user ? <AlertPulse /> : null}{user ? <AlertsBell userId={user.id} href="/staff/alerts" /> : null}<Link prefetch={false} className="btn btn--quiet btn--sm hd-act" href={office ? '/staff/profile' : '/staff/field/profile'} title="Profile" data-testid="va-profile-link"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="3.5" /><path d="M5 20c.6-3.6 3.2-5.5 7-5.5s6.4 1.9 7 5.5" /></svg><span className="hd-lbl">Profile</span></Link><AssistantPanel portal={portal} /><GuideLink portal={portal} /><SignOutOrExit /></span></div>
+              <span className="gd-frame-links">{user ? <AlertPulse /> : null}{user ? <AlertsBell userId={user.id} href="/staff/alerts" /> : null}<Link prefetch={false} className="btn btn--quiet btn--sm hd-act" href={office ? '/staff/profile' : '/staff/field/profile'} title="Profile" data-testid="va-profile-link"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="3.5" /><path d="M5 20c.6-3.6 3.2-5.5 7-5.5s6.4 1.9 7 5.5" /></svg><span className="hd-lbl">Profile</span></Link><Link prefetch={false} className="btn btn--quiet btn--sm hd-act" href="/staff/academy" title="Academy" data-testid="va-academy-link"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8l9-4 9 4-9 4-9-4z" /><path d="M7 10v5c1.5 1.5 3 2 5 2s3.5-.5 5-2v-5" /></svg><span className="hd-lbl">Academy</span></Link><AssistantPanel portal={portal} /><GuideLink portal={portal} /><SignOutOrExit /></span></div>
             <PortalSwitch current="va" />
             {/* r35 part C (1505): the weekly townhall's call link, on every staff portal */}
             {user && !viewing ? <TownhallLink userId={user.id} /> : null}

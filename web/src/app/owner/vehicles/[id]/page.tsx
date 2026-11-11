@@ -25,6 +25,8 @@ import { OwnerHandoffs } from '@/features/handover/OwnerHandoffs';
 import { OnboardingChecklist } from '@/features/onboarding/OnboardingChecklist';
 import { OnboardingPhotos } from '@/features/onboarding/OnboardingPhotos';
 import { onboardingData } from '@/server/onboarding';
+import { PriceLimitsForm } from '@/features/rates/PriceLimits';
+import type { PriceLimitsData } from '@/features/rates/price-limits';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Vehicle', path: '/owner/vehicles', noindex: true, description: 'One of your vehicles: status, fees, bookings and leaving.' });
@@ -55,6 +57,9 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
   const fleetCar = home.fleet_supplier ? home.fleet_lease?.cars.find((c) => c.vehicle_id === id) ?? null : null;
   // r34: the one Onboarding checklist and the car's onboarding photos (replace or remove one)
   const ob = v.checklist ? await onboardingData(user.id, 'ops_read', { owner_id: home.owner.id, vehicle_id: id }) : null;
+  // 1205: the lowest and highest daily rate for this car (empty: the owner's limits for every car, or none)
+  const limits = fleetCar ? null : ((await rpc('server_owner_price_limits', { p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as PriceLimitsData | null);
+  const carLimits = limits?.cars.find((c) => c.vehicle_id === id) ?? null;
   const terms = fleetCar ? null : ((await rpc('server_owner_car_terms', { p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as CarTermsData | null)?.cars.find((c) => c.vehicle_id === id) ?? null;
   return (
     <>
@@ -112,6 +117,9 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
             {!home.trackers_available && home.tracker_pending.includes(id) && <p className="small muted">{TRACKER_LATER}</p>}
             {terms && <OwnerTermsHistory car={terms} />}
           </section>}
+          {limits && carLimits && <section className="pt-card stack" aria-labelledby="ow-limits" data-testid="vehicle-price-limits"><h2 className="d4" id="ow-limits">Price limits</h2>
+            <p className="small">The lowest and highest daily rate this car is rented at. Short-notice and booked-ahead pricing, promo codes and our offers stay between them.</p>
+            <PriceLimitsForm who="owner" scope="car" vehicleId={id} min={carLimits.car.min_daily_cents} max={carLimits.car.max_daily_cents} inherited={limits.owner} /></section>}
           <section className="pt-card" aria-labelledby="ow-exit"><h2 className="d4" id="ow-exit">Leaving</h2>
             {exit ? <p>Notice given. Exit Date <b>{day(exit.exit_date)}</b>. Transfer-back fees are paid by {exit.retransfer_fees_paid_by === 'carmacars' ? 'CarmaCars' : 'you'}.</p>
               : EXIT_ALLOWED.includes(v.status) ? <ExitNoticeForm vehicleId={id} />

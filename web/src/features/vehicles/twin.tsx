@@ -20,6 +20,7 @@ import { KitText } from '@/features/kit/KitText';
 import { vehicleInput, vehicleKit } from '@/features/kit/pages';
 import { stockPhoto } from './photo';
 import { vehicleDepth } from '@/features/seo/depth-data';
+import { SiteReviews } from '@/features/seo/SiteReviews';
 import { DepthSections } from '@/features/seo/Depth';
 import '@/styles/vehicles.css';
 
@@ -146,7 +147,7 @@ function ForSaleBlock({ items, name }: { items: ForSale[]; name: string }) {
         <li key={i}><div className="hub-card"><h3>{c.name}</h3>
           <p><b>{money(c.asking_price_cents)}</b>{c.odometer_km ? `, ${c.odometer_km.toLocaleString('en-CA')} km` : ''}{c.colour ? `, ${c.colour.toLowerCase()}` : ''}</p>
           {c.listing?.slug && <p><Link prefetch={false} className="link" href={`/cars/${c.listing.slug}`}>See the car and rent it first</Link></p>}</div></li>))}</ul>
-        : <p className="measure" data-testid="buy-none">We do not have a {name} for sale right now. We are a rental company: rent one for a week to try it, or tell us what you want and we look for one for you.</p>}
+        : <p className="measure" data-testid="buy-none">Rent a {name} for a week to try it on your own roads, and tell us what you want: we look for one for you.</p>}
     </section>
   );
 }
@@ -194,7 +195,7 @@ function RentFirst({ rentPath, name, title, text, request, testId, linkText }: {
 }
 
 function buyFaq(name: string, x: BuyExtras, sp: Spec[]): Array<{ question: string; answer: string }> {
-  const q = [{ question: `Does {{brand}} sell the ${name}?`, answer: x.for_sale.length ? `Yes: ${x.for_sale.length === 1 ? 'one is' : `${x.for_sale.length} are`} for sale by us now, listed at the top of this page with the asking price.` : `Not right now. {{brand}} rents cars; it sells one only now and then. Tell us what you want and we look for one, or rent one for a week first.` },
+  const q = [{ question: `Does {{brand}} sell the ${name}?`, answer: x.for_sale.length ? `Yes: ${x.for_sale.length === 1 ? 'one is' : `${x.for_sale.length} are`} for sale by us now, listed at the top of this page with the asking price.` : `{{brand}} rents cars and sells one now and then. Tell us what you want and we look for one, or rent one for a week first.` },
     { question: `Can I rent a ${name} before I buy one?`, answer: 'Yes. Request it for a week (or longer, up to {{maxDays}} days) and drive it as your own; nothing is charged until we confirm and you approve.' }];
   if (x.recalls) q.push({ question: `Does the ${name} have recalls?`, answer: x.recalls.length ? `NHTSA lists ${x.recalls.length} recall campaign${x.recalls.length === 1 ? '' : 's'} for it, in the table on this page. Ask for proof each was fixed.` : 'NHTSA lists no recall campaign for this model year.' });
   const fc = sp.find((s) => s.fuel_cost_usd);
@@ -255,9 +256,9 @@ export async function TwinView(tw: Twin) {
   const finance = mode === 'sale' && !!tree.term && (tree.term.lead === 'finance' || FINANCE.test(tree.term.slug));
   const disclaimer = String((p.settings as unknown as Record<string, unknown>).finance_disclaimer ?? '');
   const lead = mode === 'sale'
-    ? [x.for_sale.length ? `${x.for_sale.length === 1 ? 'One' : x.for_sale.length} for sale by us now, from ${money(Math.min(...x.for_sale.map((c) => c.asking_price_cents)))}.` : `None for sale by us right now: rent one for a week first, or ask us to find one.`,
+    ? [x.for_sale.length ? `${x.for_sale.length === 1 ? 'One' : x.for_sale.length} for sale by us now, from ${money(Math.min(...x.for_sale.map((c) => c.asking_price_cents)))}.` : `Rent one for a week first, or ask us to find one for you.`,
        sp.length ? `Rated ${ratingRange(sp)} combined (EPA).` : '', x.recalls ? `${x.recalls.length} NHTSA recall campaign${x.recalls.length === 1 ? '' : 's'}.` : '', finance ? disclaimer : ''].filter(Boolean).join(' ')
-    : auto ? `${tree.term!.name} for the ${full}${where}: CarmaCars does not do this work itself. Request it and we arrange it with a trusted shop or connect you with one, and we can deliver a rental car to you while yours is in.`
+    : auto ? `${tree.term!.name} for the ${full}${where}: request it and CarmaCars arranges it with a trusted shop or connect you with one, and we can deliver a rental car to you while yours is in.`
     : svc ? `${tree.term!.name} for the ${full}${where}: request it here. ${mode === 'bodyshop' ? 'Rent a car from us while it is repaired, as an insurance replacement rental when it is a claim.' : 'Rent a car from us while yours is detailed.'}`
     : `${tree.term!.name} for the ${full}${where}. ${sp.length ? `Rated ${ratingRange(sp)} combined (EPA).` : ''} ${inv.exact.length ? `${inv.exact.length} of ours to rent now.` : 'Request one, or rent a similar car now.'}`.replace(/\s+/g, ' ').trim();
   const cheapest = sp.filter((s) => s.cost100 !== null)[0];
@@ -296,7 +297,7 @@ export async function TwinView(tw: Twin) {
           ...(mode === 'sale' ? [['Recalls', x.recalls ? String(x.recalls.length) : ''] as [string, string]] : [])].filter(([, v]) => v) as Array<[string, string]>} />
       <div className="wrap vp-body">
         {auto && <RentFirst rentPath={rentShop} name={name} testId="svc-rent-first" linkText="See cars to rent" title="A rental while yours is in the shop"
-          text="CarmaCars does not do this work; you keep driving while the shop has your car. We deliver a rental to you, by the day, at our usual rates." request={`a rental while my ${name} is in the shop`} />}
+          text="A trusted shop does the work and you keep driving while it has your car. We deliver a rental to you, by the day, at our usual rates." request={`a rental while my ${name} is in the shop`} />}
         {svc && !auto && <RentFirst rentPath={mode === 'bodyshop' ? rentReplacement : rentPath} name={name} testId="svc-rent-first" linkText="See cars to rent"
           title={mode === 'bodyshop' ? 'An insurance replacement rental while it is repaired' : 'Rent a car while yours is detailed'}
           text={mode === 'bodyshop' ? 'Your car is in the shop; you keep driving. We deliver a rental to you, by the day, and bill your insurer when the claim covers it.' : 'Keep driving while your car is in: we deliver a rental to you and collect it when yours is ready.'}
@@ -320,6 +321,7 @@ export async function TwinView(tw: Twin) {
         {(mode === 'sale' || mode === 'bodyshop') && <Safety x={x} name={name} />}
         <KitText sections={text.sections} source={text.source} look="vehicle" />
         {depth && <DepthSections d={depth} look="vehicle" />}
+        <SiteReviews look="vehicle" />
         {p.level === 'year' && (p as YearPage).trims.length > 0 && <section className="vp-sec" aria-labelledby="h-trims"><h2 className="d3" id="h-trims">The {name} trims in Canada</h2>
           <ul className="chips">{(p as YearPage).trims.map((tr) => <li key={tr.slug}><Link prefetch={false} className="chip" href={at(tree, tr.path)}>{tr.name}</Link></li>)}</ul></section>}
         {(p.level === 'trim' || isTier(p)) && <TwinLinks tree={tree} base={at(tree, trimPath)} tiers={tiers} city={isTier(p) ? p.city?.slug : null} colour={isTier(p) ? p.colour?.slug : null} siblings={(p as TrimPage).siblings} trim={(p as TrimPage).trim.slug} trimPath={trimPath} />}

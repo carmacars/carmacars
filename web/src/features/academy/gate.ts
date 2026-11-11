@@ -12,13 +12,14 @@ export const opensWhileUnsigned = (path: string) => AGREEMENT_OPEN.test(path);
 export const ONBOARDING_OPEN = AGREEMENT_OPEN;
 export const opensWhileOnboarding = (path: string) => ONBOARDING_OPEN.test(path);
 
-export type StepKey = 'welcome' | 'profile' | 'academy' | 'agreement' | 'team' | 'tasks';
+export type StepKey = 'welcome' | 'profile' | 'academy' | 'agreement' | 'team' | 'approval' | 'tasks';
 export interface WelcomeTask { id: string; title: string; detail: string | null; done: boolean }
 export interface WelcomeStep { key: StepKey; done: boolean; phone?: boolean; phone_verified?: boolean; address?: boolean; passed?: number; sections?: number; waived?: boolean; tasks?: WelcomeTask[];
-  /** 1060 */ preferred_name?: string | null; /** 1067 */ location?: string | null; state?: 'signed' | 'waived' | 'sent' | 'none'; request_id?: string | null; waiting_for_academy?: boolean; missing?: string[]; open?: boolean; groups?: Array<{ key: string; name: string; url: string; /** 1151 */ joined?: boolean }>; /** 1151: one checkbox a group */ confirm?: boolean }
-export interface Welcome { name: string; portal: 'va' | 'field'; locked: boolean; steps: WelcomeStep[]; /** 1151 */ onboarding_step?: 'academy' | 'agreement' | 'whatsapp' | 'done' }
+  /** 1060 */ preferred_name?: string | null; /** 1067 */ location?: string | null; state?: 'signed' | 'waived' | 'sent' | 'none'; request_id?: string | null; waiting_for_academy?: boolean; missing?: string[]; open?: boolean; groups?: Array<{ key: string; name: string; url: string; /** 1151 */ joined?: boolean }>; /** 1151: one checkbox a group */ confirm?: boolean;
+  /** 1154: step 4, approved by an Admin or a Fleet VA */ asked_at?: string | null; rejected_at?: string | null; reject_reason?: string | null; approved_by?: string | null }
+export interface Welcome { name: string; portal: 'va' | 'field'; locked: boolean; steps: WelcomeStep[]; /** 1151 */ onboarding_step?: 'academy' | 'agreement' | 'whatsapp' | 'approval' | 'done' }
 
-export const STEP_TITLE: Record<StepKey, string> = { welcome: 'Welcome', profile: 'Your profile and phone', academy: 'The academy', agreement: 'Your staff agreement', team: 'Join the WhatsApp groups', tasks: 'Your first tasks' };
+export const STEP_TITLE: Record<StepKey, string> = { welcome: 'Welcome', profile: 'Your profile and phone', academy: 'The academy', agreement: 'Your staff agreement', team: 'Join the WhatsApp groups', approval: 'Approval', tasks: 'Your first tasks' };
 
 /** The step to do now: the first one not done (null when all are). */
 export function currentStep(steps: WelcomeStep[]): StepKey | null {
@@ -35,14 +36,16 @@ export function signHref(portal: 'va' | 'field'): string {
 /** The words under a step. */
 export function stepWords(s: WelcomeStep): string {
   switch (s.key) {
-    case 'welcome': return 'Your portal opens step by step: the academy first, then your agreement, then the WhatsApp groups, then everything else. This page keeps your place.';
+    case 'welcome': return 'Your portal opens step by step: the academy first, then your agreement, then the WhatsApp groups, then an approval, then everything else. This page keeps your place.';
     case 'profile': return s.done ? 'Your home address, phone, preferred name and where you live are in.' : `Add ${[!s.preferred_name && 'the name you go by', s.location === null && 'where you live (city and country)', !s.address && 'your home address', !s.phone && 'your mobile number'].filter(Boolean).join(', ') || 'your details'}.`;
     case 'agreement': return s.state === 'signed' ? 'Signed.' : s.state === 'waived' ? 'An Admin waived the agreement for you.'
       : s.waiting_for_academy ? 'It opens for signing once the academy is passed.' : s.state === 'sent' ? 'Ready to sign: read it and sign on screen. The rest of your portal opens once it is signed.'
       : 'It is being prepared from your record. An Admin has been told if anything is missing.';
     case 'team': return !s.open ? 'Opens once the academy is passed and the agreement is signed.' : !s.groups?.length ? 'No group to join.' : s.done ? 'Joined.'
       : `Join ${s.groups.map((g) => g.name).join(' and ')} on WhatsApp, then tick each group you joined. Your portal opens once every group is ticked.`;
-    case 'academy': return s.waived ? 'An Admin waived the academy for you.' : s.done ? 'Passed. The rest of your portal is open.' : `${s.passed ?? 0} of ${s.sections ?? 0} sections passed. Each quiz passes at 80%, and you can retake it.`;
+    case 'academy': return s.waived ? 'An Admin waived the academy for you.' : s.done ? 'Passed. The rest of your portal is open.' : `${s.passed ?? 0} of ${s.sections ?? 0} sections passed. Each quiz passes at 90%; after a failed try, wait 30 minutes (3 tries a day).`;
+    case 'approval': return s.done ? `Approved${s.approved_by ? ` by ${s.approved_by}` : ''}.` : !s.open ? 'Opens once you confirm the WhatsApp groups.'
+      : s.reject_reason ? `Not approved yet: ${s.reject_reason}. Fix it, then ask again.` : 'Waiting for approval: an Admin or a Fleet VA checks your onboarding and opens your portal.';
     case 'tasks': return !s.tasks?.length ? 'No first-day tasks for you.' : s.done ? 'All done.' : `${s.tasks.filter((t) => !t.done).length} left.`;
   }
 }

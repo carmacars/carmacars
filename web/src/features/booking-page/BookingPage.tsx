@@ -57,6 +57,14 @@ import type { AccidentCardData } from '@/features/accident-card/model';
 import { CountdownTable } from '@/features/deposit-review/Countdowns';
 import { stageWords, type Countdowns, type ReviewView } from '@/features/deposit-review/model';
 import { activityQuery, readParams, type ActivityPage } from '@/features/activity/model';
+import { readinessLines, readinessSummary, showReadiness } from './readiness';
+import { PrepareProgress } from '@/features/field-portal/PrepareProgress';
+import type { PrepareProgressData } from '@/features/field-portal/prepare';
+import { NameChangeCard } from '@/features/admin/NameChangeCard';
+import type { NameChange } from '@/server/self-profile';
+import { BookingKindChips, CoverageStrip, RequestHistory } from '@/features/request-history/RequestHistory';
+import { InstantBookCard, RideshareStaffCard, SecondaryContactCard, type InstantState, type RideshareFacts, type SecondaryContact } from '@/features/request-history/BookingExtras';
+import type { History, Revert } from '@/features/request-history/model';
 
 // r31 "Simple": one booking page for Admin and staff (03-admin.md section 4, 05-va.md sections 2 to 5). The loader picks
 // the access path from the viewer (PageCtx) and reads only what the viewer's function uses; every section and button
@@ -175,6 +183,18 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
     on('messages') ? ops<Conversation>('booking_conversation', { booking: b.booking_number }, true).catch(none(null)) : null]);
   // r35 (0890): card coverage or the Protection Plan, on an offer or an active booking
   const coverageSwitch = (on('overview') || on('money')) && notOwner && !['cancelled', 'declined', 'expired'].includes(b.status) ? await ops<SwitchState>('coverage_switch_state', { booking: b.booking_number }, true).catch(none(null)) : null;
+  // r35a (1300 to 1304): the original request and its offers with the coverage card; an old offer loaded back (?revert=N);
+  // the secondary contact; the rideshare documents the renter made; the renter's instant booking (an Admin)
+  const near = on('overview') || on('review');
+  const [hist, revert, second, ride, instant] = await Promise.all([
+    can.requestHistory && near ? ops<History>('request_history', { booking: b.id }).catch(none(null)) : null,
+    can.offer && arranging && sp.revert && /^\d{1,3}$/.test(sp.revert) ? ops<Revert>('offer_revert', { booking: b.id, version: Number(sp.revert) })
+      .catch((e: unknown) => ({ error: e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '') : 'That offer could not be loaded.' })) : null,
+    near ? ops<SecondaryContact | null>('secondary_contact', { booking: b.id }).catch(none(null)) : null,
+    (near || section === 'documents') && notOwner && ['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) ? ops<RideshareFacts>('rideshare_docs', { booking: b.id }).catch(none(null)) : null,
+    can.admin && notOwner && near && b.renter ? ops<InstantState>('instant_book_state', { booking: b.id }).catch(none(null)) : null]);
+  const revertOk = revert && !('error' in revert) ? revert : null;
+  const instantBooking = (b as { instant_book?: boolean }).instant_book === true || hist?.instant_book === true;
   const [policyNote, adjusters, pay, periods, duplicates] = await Promise.all([
     on('review') && ['requested', 'offered', 'pending_payment', 'confirmed'].includes(b.status) ? (can.admin ? ops : own)<{ handover_note: string | null }>('listing_state', { vehicle_id: b.vehicle_id }).then((x) => x?.handover_note ?? null).catch(none(null)) : null,
     can.admin && on('overview') && notOwner && !['cancelled', 'declined', 'expired'].includes(b.status) ? own<AdjusterOpt[]>('insurer_adjusters', {}).catch(none([] as AdjusterOpt[])) : null,
@@ -190,6 +210,12 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
       ? ops<ReviewView>('deposit_review', { booking: b.id }, true).catch(none(null)) : null,
     moneyStaff && notOwner && (on('overview') || on('money')) && ['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status)
       ? ops<Countdowns>('finance_countdowns', { booking: b.id }, true).catch(none(null)) : null]);
+  // r35 UX (1107): the field staff's progress on preparing the rental (the add-ons in the car), read only, for every office viewer
+  const prepare = ['pending_payment', 'confirmed', 'tentative', 'on_rent'].includes(b.status) && notOwner && (on('overview') || section === 'car')
+    ? await ops<PrepareProgressData | null>('prepare_progress', { booking: b.id }).catch(none(null)) : null;
+  // r35 UX (1110): a verified renter's name or date of birth correction, for Sales, customer service or an Admin to check
+  const corrections = can.readiness && b.renter?.id && (on('overview') || section === 'documents')
+    ? await ops<NameChange[]>('name_change_pending', { renter_id: b.renter.id }).catch(none([] as NameChange[])) : [] as NameChange[];
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   const insurerBilled = b.bill_to !== 'renter' && !!b.insurer_id;
   const extrasCount = b.change_requests.filter((c) => ['requested', 'proposed'].includes(String(c.status))).length + b.extensions.filter((x) => x.status === 'requested').length;
@@ -217,7 +243,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
   return (
     <RequestClaim booking={b.id} status={b.status} answering={b.status === 'requested' && on('review') && can.offer} va={fn}>
       <PageHead kicker={<>{can.admin ? <Link prefetch={false} className="link" href="/admin/bookings">Bookings</Link> : <Link prefetch={false} className="link" href="/staff">Queue</Link>} · {b.vehicle?.name} · {b.renter?.legal_name}</>}
-        title={<>{b.booking_number} <Badge s={b.status} />{can.admin && b.readiness?.awaiting_signature === true && <> <Badge s="awaiting_signature" /></>} {can.admin && (b.placeholder?.on ? <span className="ad-flag ad-flag--ph" data-testid="placeholder-flag">placeholder</span> : !b.blocks_calendar && <span className="ad-flag">not blocking</span>)}</>}>
+        title={<>{b.booking_number} <Badge s={b.status} /> <BookingKindChips ownerTrip={!notOwner} instant={instantBooking} />{can.admin && b.readiness?.awaiting_signature === true && <> <Badge s="awaiting_signature" /></>} {can.admin && (b.placeholder?.on ? <span className="ad-flag ad-flag--ph" data-testid="placeholder-flag">placeholder</span> : !b.blocks_calendar && <span className="ad-flag">not blocking</span>)}</>}>
         {/* r32: one tap when the car is back (overdue or due today), the late return alert's page included */}
         {can.handover && showReturned(b) && <ReturnedButton booking={b.id} number={b.booking_number} refresh={refresh} testId="returned-top" />}
         {b.renter && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=messages`} data-testid="email-renter-link">Email the renter</Link>}
@@ -227,7 +253,9 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
         {can.offer && (can.editOfferPending || b.status === 'offered') && ['offered', 'pending_payment'].includes(b.status) && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=review`} data-testid="edit-offer">Edit the offer</Link>}
         {can.extras && ['confirmed', 'on_rent'].includes(b.status) && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=changes`} data-testid="edit-booking">Change the booking</Link>}
         {can.offer && ['offered', 'pending_payment'].includes(b.status) && <Act action="withdraw_offer" payload={{ ...P, expected_version: b.current_offer_version }} label="Withdraw the offer" confirm="The renter's offer is withdrawn and they are told. To change it instead, press Edit the offer." fields={[{ name: 'note', label: 'Note to the renter', type: 'text' }]} refresh={refresh} />}
-        {can.admin && b.status === 'offered' && <Act action="resend_offer" payload={{ ...P, expected_version: b.current_offer_version }} label="Send again, later expiry" fields={[{ name: 'expires_at', label: 'Open until', type: 'datetime', required: true }, { name: 'message', label: 'Message', type: 'textarea' }]} refresh={refresh} />}
+        {can.resendOffer && b.status === 'offered' && <Act action="resend_offer" payload={{ ...P, expected_version: b.current_offer_version }} label="Send again, later expiry" testId="resend-offer" fields={[{ name: 'expires_at', label: 'Open until', type: 'datetime', required: true }, { name: 'message', label: 'Message', type: 'textarea' },
+          // staff choose once who found the client (0058), when the booking has no choice yet
+          ...(can.admin || (b as R).sales_choice ? [] : [{ name: 'sales_choice', label: 'Who found this client?', type: 'select' as const, required: true, options: [['sourced', 'I sourced this client'], ['for_carmacars', 'Entered for CarmaCars']] as Array<[string, string]> }])]} refresh={refresh} />}
         {can.offer && b.status === 'offered' && <Act action="approve_offer_by_phone" payload={{ ...P, expected_version: b.current_offer_version }} label="Renter approved by phone" confirm="Record that the renter approved this offer on the phone. The history shows it was staff." refresh={refresh} />}
         {can.offer && b.status === 'expired' && <ReopenOffer booking={b.id} pickupAt={b.pickup_at} returnAt={b.return_at} refresh={refresh} />}
         {can.admin && ['confirmed', 'requested', 'offered', 'pending_payment', 'tentative'].includes(b.status) && !b.handed_over_at && (b.placeholder?.on
@@ -254,8 +282,25 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
         </MoreActions>
       </PageHead>
       {can.admin && b.placeholder?.on ? <PlaceholderBanner p={b.placeholder} items={b.competing} /> : <NextStepPanel s={step} />}
+      {/* r35 UX (1106): is the renter good to go? one line per thing the pickup needs (Admin, customer service, Sales) */}
+      {can.readiness && notOwner && showReadiness(b.status) && (section === 'overview' || section === 'money' || section === 'documents') && (() => {
+        const lines = readinessLines({ status: b.status, dueCents: Number(b.renter_due_at_booking_cents ?? b.total_due_at_booking_cents ?? 0),
+          paidCents: (payments ?? []).filter((r) => r.kind === 'charge' && r.status === 'succeeded').reduce((a, r) => a + Number(r.amount_cents ?? 0), 0),
+          readiness: b.readiness, insurerBilled: b.bill_to !== 'renter', addons: prepare ? { total: prepare.total, ticked: prepare.ticked } : null });
+        return (
+          <Card title="Ready for the rental" testId="booking-readiness" aside={<span className="small" data-testid="booking-readiness-summary">{readinessSummary(lines)}</span>}>
+            <ul className="ready-list">{lines.map((l) => (
+              <li key={l.key} className={l.done ? 'is-done' : ''} data-testid={`ready-${l.key}`}>
+                <span className="ready-list__mark" aria-hidden="true">{l.done ? '✓' : ''}</span>
+                <span><b>{l.label}</b><span className="vh">{l.done ? ', done' : ', not yet'}</span>{!l.done && <small className="muted"> {l.hint}</small>}</span>
+              </li>))}</ul>
+          </Card>);
+      })()}
       <ClaimBanner />
       <ReplacedNote chain={chain} portal={portal} />
+      {/* r35a (1300): the coverage the renter chose and its proof, at the top */}
+      {near && hist && <CoverageStrip c={hist.coverage} ownerTrip={hist.owner_trip} />}
+      {near && !notOwner && <p className="alert alert--info" role="note" data-testid="owner-trip-note"><span className="alert__title">Owner&apos;s own trip ($0)</span><span>The owner booked their own car for their own use: no charge, nothing to price or send. Get the car ready for the dates.</span></p>}
       {noShift.length > 0 && <p className="alert alert--warn" role="status" data-testid="no-shift-warning">{noShift.map((w) => `${w.leg === 'handover' ? 'The handover' : 'The return'} is on ${w.day}, a day with no field shifts${w.work_day ? `: its job is planned for ${w.work_day}` : ''}.`).join(' ')} Someone must cover it, or the booking time must move.</p>}
 
       {late?.late && <LatePanel l={late} fleet={fn === 'fleet'} refresh={refresh} returning={can.returningNow} />}
@@ -290,8 +335,14 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
           <StaffDocUpload bookingId={String(b.id)} drivers={(b.drivers ?? []).map((d) => ({ driver_id: String(d.driver_id), full_name: String(d.full_name ?? '') }))} />
         </Card>)}
       {/* what the owner sees of this booking (0156) */}
+      {prepare && (prepare.total > 0 || prepare.job) && <PrepareProgress d={prepare} />}
+      <NameChangeCard items={corrections} refresh={[base]} />
       {section === 'car' && <OwnerVisibilityPanel userId={user.id} aal={aal} va={fn} booking={b.booking_number} refresh={refresh} />}
       {section === 'car' && <BookingCarSection base={base} number={b.booking_number} vehicleId={b.vehicle_id} vehicleName={b.vehicle?.name ?? null} vehicleHref={carHref} status={b.status} canSign={can.sign} />}
+      {hist && near && <RequestHistory h={hist} base={base} />}
+      {revert && 'error' in revert && <p className="alert alert--error" role="alert" data-testid="revert-error"><span>{revert.error}</span></p>}
+      {near && <div className={can.admin ? 'ad-cols ad-cols--2' : undefined}><SecondaryContactCard c={second ?? null} booking={b.booking_number} />{instant && <InstantBookCard s={instant} refresh={[base]} />}</div>}
+      {ride && <RideshareStaffCard f={ride} lettersHref={`${base}/rideshare`} />}
       {on('review') && (
         <>
           <div className={can.admin ? 'ad-cols ad-cols--2' : undefined}>
@@ -316,7 +367,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
             : <span>Requests, offers and payment are fine; the car cannot be handed over until the insurer confirms it (the car&apos;s onboarding).</span>}</p>}
           {/* the renter's licence, uploaded with the request (0130) */}
           {can.renterDocs && <RenterDocs b={b} refresh={[base]} />}
-          <ClaimGate testId="claim-gate-review" explain><BookingReview b={b} insurers={ins.rows} insurerRates={insurerCard?.rates ?? []} kmChoices={km.rows.map((k) => k.km_per_day)} offerHours={settings?.program.offer_expiry_hours ?? 24}
+          <ClaimGate testId="claim-gate-review" explain><BookingReview key={revertOk ? `revert-${revertOk.version}` : 'review'} revert={revertOk} ownerTrip={!notOwner} b={b} insurers={ins.rows} insurerRates={insurerCard?.rates ?? []} kmChoices={km.rows.map((k) => k.km_per_day)} offerHours={settings?.program.offer_expiry_hours ?? 24}
             editable={['requested', 'offered'].includes(b.status) || (b.status === 'pending_payment' && can.editOfferPending)} /></ClaimGate>
         </>
       )}
@@ -352,7 +403,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
             <dl className="pt-dl pt-dl--money">{b.lines.map((l) => <div key={l.id}><dt>{l.description || label(l.charge_type)} <span className="muted small">{l.stage}</span></dt><dd>{$(l.amount_cents)}</dd></div>)}
               <div><dt><b>Total at booking</b></dt><dd><b>{$(b.total_due_at_booking_cents)}</b></dd></div></dl>
           </Card>}
-          <Card title="Add-ons" testId="booking-addons-card"><BookingAddons items={b.addons ?? []} status={b.status} refresh={[base]} /></Card>
+          <Card title="Add-ons" testId="booking-addons-card"><BookingAddons items={b.addons ?? []} status={b.status} refresh={[base]} canRemove={can.addonRemove} /></Card>
           <Card title="Open tasks"><Table rows={b.tasks} empty="No open tasks." cols={[{ key: 'title', label: 'Task', className: 'wrap' }, { key: 'queue', label: 'Queue' }, { key: 'due_at', label: 'Due', render: (r) => t(r.due_at) }]} /></Card>
         </div>
       )}

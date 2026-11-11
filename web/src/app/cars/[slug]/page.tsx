@@ -15,6 +15,9 @@ import { absUrl, breadcrumbLd, faqLd, type Trail, seoMeta } from '@/features/seo
 import { getHubLinks, getSeoLinks } from '@/features/seo/data';
 import { rpc } from '@/lib/db/repo';
 import { money, FUEL_LABEL } from '@/lib/format';
+import { pickSimilar } from '@/features/seo/steer';
+import { getReviews, ReviewList } from '@/features/seo/SiteReviews';
+import { reviewLd } from '@/features/seo/reviews-ld';
 import { deliveryFrom, fill, getClasses, getFacts, getFleet, getSettings, getTokens, listItems, photoUrl, siteUrl } from '@/lib/site';
 import type { CarPage as Car } from '@/lib/types';
 import { makePage, type MakePage } from '@/features/vehicles/data';
@@ -110,14 +113,18 @@ export default async function CarPage({ params }: Params) {
   const common = carFaq(c, { ydA, ydB, ev }, t);
   const key = (q: string) => q.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
   const faq0 = [...common, ...c.faq.filter((q) => !common.some((x) => key(x.question) === key(q.question)))];
-  const similar = fleet.filter((x) => x.slug !== c.slug)
+  // 2000: the closest cars, the popular ones last, rotated by the page (a popular car's page shows six, not three)
+  const similar = pickSimilar(fleet.filter((x) => x.slug !== c.slug)
     .map((x) => ({ x, d: (x.class === c.class ? 0 : 6000) + Math.abs(x.daily_rate_cents - c.daily_rate_cents) }))
-    .sort((a, b) => a.d - b.d).slice(0, 3).map((o) => o.x);
+    .sort((a, b) => a.d - b.d).map((o) => o.x), c.popular ? 6 : 3, c.slug);
   const trail: Trail = [['Home', '/'], ['Fleet', '/cars'], [name(c), c.model_hub_path], [[c.year, name(c), c.trim].filter(Boolean).join(' ')]];
   // 0073: real cars render exactly like the sample cars. The written copy feeds the listing's headline, blurb,
   // features and questions (synced by the database); its other parts are not shown, as the samples have none.
   const drive = driveOf(c.drivetrain);
-  const rv = c.reviews ?? { count: 0, average: null, min_for_rating: 3, items: [] };
+  // 2002: the car's real reviews (the site's and those received elsewhere, each with its source), else the fleet's
+  const sum = await getReviews(c.is_sample ? null : c.vehicle_id);
+  const own = sum && sum.scope === 'car' ? sum : null;
+  const rvLd = reviewLd(own);
   // the landing pages this car belongs on (only those that may be indexed), for the links under the car
   const has = (k: string) => c.classes.includes(k);
   const want = new Set(['toronto', 'car-delivery', 'monthly', 'weekly', ...(has('suv') ? ['suv'] : []), ...(has('luxury') || has('premium') || has('exotic') ? ['luxury'] : []),
@@ -144,12 +151,8 @@ export default async function CarPage({ params }: Params) {
     fuelType: FUEL_LABEL[c.fuel] ?? c.fuel, vehicleTransmission: c.transmission ?? undefined,
     ...(drive && DRIVE[drive] ? { driveWheelConfiguration: `https://schema.org/${DRIVE[drive]}` } : {}),
     seatingCapacity: c.seats ?? undefined, numberOfDoors: c.doors ?? undefined, itemCondition: 'https://schema.org/UsedCondition',
-    ...(rv.count >= rv.min_for_rating && rv.average !== null ? {
-      // only this car's own reviews, collected on the site after a completed rental and shown in full on this page
-      aggregateRating: { '@type': 'AggregateRating', ratingValue: String(rv.average), reviewCount: rv.count, bestRating: 5, worstRating: 1 },
-      review: rv.items.slice(0, 5).map((r) => ({ '@type': 'Review', author: { '@type': 'Person', name: r.name ?? 'Renter' }, datePublished: r.month,
-        reviewRating: { '@type': 'Rating', ratingValue: r.rating, bestRating: 5, worstRating: 1 }, ...(r.body ? { reviewBody: r.body } : {}), ...(r.title ? { name: r.title } : {}) }))
-    } : {}),
+    // only this car's own real reviews, shown in full on this page (2002: with those received elsewhere, labelled)
+    ...(rvLd ?? {}),
     offers: {
       '@type': 'Offer', url, businessFunction: 'http://purl.org/goodrelations/v1#LeaseOut', priceCurrency: 'CAD', price: (c.daily_rate_cents / 100).toFixed(2),
       priceSpecification: [['DAY', c.daily_rate_cents, 'per day'], ['WEE', c.weekly_rate_cents, 'per week'], ['MON', c.monthly_rate_cents, 'per 30 days']].map(([u, p, txt]) => ({ '@type': 'UnitPriceSpecification', price: ((p as number) / 100).toFixed(2), priceCurrency: 'CAD', unitCode: u, unitText: txt, valueAddedTaxIncluded: false })),
@@ -189,7 +192,8 @@ export default async function CarPage({ params }: Params) {
               <p className="car-top__price"><span className="small muted">From</span> <b className="num" data-testid="car-from-price">{money(fromDay(c))}</b> <span className="small muted">a day</span></p>
               {c.guideline_rates && <p className="small muted" data-testid="guideline-note">Guideline rates; final price confirmed after review.</p>}
               {c.car_code && <p className="small muted" data-testid="car-code">Car code <b className="num">{c.car_code}</b>: quote it when you call or chat with us.</p>}
-              {c.taking_requests ? <a className="btn btn--primary btn--lg" href="#dates">Check dates and price</a> : <p className="alert alert--warn"><span>Not taking requests right now.</span></p>}
+              {c.taking_requests ? <a className="btn btn--primary btn--lg" href="#dates">Check dates and price</a> : <p className="alert alert--info"><span>Booked up for now. <a className="link" href="#h-sim">Similar cars are ready to book</a>.</span></p>}
+              {c.popular && !c.is_sample && <p className="small car-top__popular" data-testid="car-popular"><b>Popular:</b> this car is in high demand. <a className="link" href="#h-sim">See similar cars</a> ready for your dates.</p>}
               {c.is_sample
                 ? <p className="small car-top__example-note" data-testid="example-car-note">This is an example of the cars we rent. Send your dates and we suggest a similar real car with its price. Nothing is booked or charged.</p>
                 : <p className="small muted">Request to book. No payment until we confirm and you approve. A request does not hold the car.</p>}
@@ -318,15 +322,11 @@ export default async function CarPage({ params }: Params) {
             <p className="small muted measure">{F('The first row that fits applies. A non-refundable booking takes {{nonRef}} off the rental charge and is not refunded if you cancel. If we cancel, you get everything back.')} <Link className="link" href="/cancellation-policy">Cancellation policy</Link>.</p>
           </section>
 
-          {rv.count > 0 && (
-            <section id="reviews" className="car-sec" aria-labelledby="h-rv">
-              <h2 className="d2" id="h-rv">Reviews of this car</h2>
-              <p className="small muted">{rv.count} {rv.count === 1 ? 'review' : 'reviews'} from renters of this car{rv.average !== null ? `, ${rv.average} out of 5 on average` : ''}. Every review comes from a completed rental and is published in full.</p>
-              <ul className="linklist">{rv.items.map((r, i) => (
-                <li key={i}><p><b>{r.rating} out of 5</b>{r.title ? `: ${r.title}` : ''}</p>{r.body && <p className="small">{r.body}</p>}
-                  <p className="xs muted">{r.name ?? 'A renter'}, {new Intl.DateTimeFormat('en-CA', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(r.month))}</p>
-                  {r.rewarded && <p className="xs muted" data-testid="review-rewarded">Received reward points</p>}
-                  {r.reply && <p className="small muted">Our reply: {r.reply}</p>}</li>))}</ul>
+          {sum && sum.count > 0 && (
+            <section id="reviews" className="car-sec" aria-labelledby="h-rv" data-testid="car-reviews">
+              <h2 className="d2" id="h-rv">{own ? 'Reviews of this car' : 'What renters say about CarmaCars'}</h2>
+              <p className="small muted">{sum.count} {sum.count === 1 ? 'review' : 'reviews'} {own ? 'from renters of this car' : 'from our renters'}{sum.average !== null ? `, ${sum.average} out of 5 on average` : ''}. Each shows where we received it.{own?.rentals ? ` This car has completed ${own.rentals} rentals with us.` : ''}</p>
+              <ReviewList s={sum} />
             </section>
           )}
 
@@ -343,7 +343,7 @@ export default async function CarPage({ params }: Params) {
         <div className="wrap">
           {hubs.places.length > 0 && <nav className="car-landing" aria-label="Delivered to"><p className="small muted">Delivered to</p><ul className="chips">{hubs.places.slice(0, 10).map((p) => <li key={p.path}><Link prefetch={false} className="chip" href={p.path}>{c.make} {c.model} rental in {p.name}</Link></li>)}</ul></nav>}
           {landing.length > 0 && <nav className="car-landing" aria-label="Rent in your area or your way"><ul className="chips">{landing.map((l) => <li key={l.slug}><Link prefetch={false} className="chip" href={l.path}>{l.kind === 'location' ? `Car rental in ${l.name}` : `${l.name} in ${s.city}`}</Link></li>)}</ul></nav>}
-          <div className="section-head"><h2 className="d2" id="h-sim">Similar cars</h2><Link className="link link--go" href={c.model_hub_path}>More {c.make} {c.model} <Icon name="arrow" /></Link> <Link className="link link--go" href="/cars">See every car <Icon name="arrow" /></Link></div>
+          <div className="section-head"><h2 className="d2" id="h-sim">{c.popular ? 'Popular: see similar cars' : 'Similar cars'}</h2><Link className="link link--go" href={c.model_hub_path}>More {c.make} {c.model} <Icon name="arrow" /></Link> <Link className="link link--go" href="/cars">See every car <Icon name="arrow" /></Link></div>
           <ul className="fleet-grid fleet-grid--3">{similar.map((x) => <li key={x.slug}><CarCard c={x} labels={labels} photosMax={cardPhotoCap(f.phone_gate)} /></li>)}</ul>
         </div>
       </section>

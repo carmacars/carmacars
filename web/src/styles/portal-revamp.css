@@ -57,7 +57,7 @@
 .now__s { font-size: var(--fs-2xs); color: var(--grey-400); }
 .now__fact.is-warn .now__v, .now__fact.is-warn .now__s { color: var(--red-400); }
 .now__actions { display: flex; flex-wrap: wrap; gap: var(--s-2); }
-.now__actions .btn { min-height: 44px; border-radius: 999px; padding-inline: var(--s-4); }
+.now__actions .btn { min-height: 44px; padding-inline: var(--s-4); }
 .now__actions .btn--primary { background: var(--red-600); border-color: var(--red-600); color: var(--white); }
 .now__actions .btn--primary:hover { background: var(--red-700); border-color: var(--red-700); }
 .now__btn { background: transparent; color: var(--white); border: 1px solid rgb(255 255 255 / 0.4); }

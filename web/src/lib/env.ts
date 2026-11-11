@@ -38,6 +38,10 @@ const schema = z.object({
   /** 0910: Google Gemini, the vision fallback when set (free trial tier: its quota and model errors fall back to typing) */
   GEMINI_API_KEY: z.string().optional(),
   GEMINI_VISION_MODEL: z.string().optional(),
+  /** r36 (2110): the Meta app's secret (checks the webhook's signature: Messenger, Instagram, WhatsApp) and the WhatsApp
+   *  Cloud API token; unset: the Meta webhook answers nothing */
+  META_APP_SECRET: z.string().optional(),
+  WHATSAPP_TOKEN: z.string().optional(),
   VIN_DECODER: z.enum(['vpic', 'fake']).default('fake'),
   /** The listing pipeline: copy drafts (workers-ai: the Worker's AI binding) and photos (cloudflare: Images transformations). */
   LLM_PROVIDER: z.enum(['workers-ai', 'fake']).default('fake'),
@@ -46,6 +50,11 @@ const schema = z.object({
   PAYOUT_ENCRYPTION_KEY: z.string().min(32).optional(),
   /** The business phone line (migration 0085): quo sends texts through Quo's API with QUO_API_KEY (CarmaCars' own Quo
    *  account only); fake records them without sending (local work and tests). */
+  /** RentalCover (Cover Genius) partner API (migration 1202): the Protection Plan's quote for a renter. The key is a Worker
+   *  secret (GitHub secret RENTALCOVER_API_KEY); unset: no quote is asked and the plan keeps its table price. The base URL
+   *  defaults to RentalCover's staging API; set RENTALCOVER_API_BASE to the production URL RentalCover gives. */
+  RENTALCOVER_API_KEY: z.string().optional(),
+  RENTALCOVER_API_BASE: z.string().url().default('https://api-staging.rentalcover.com'),
   QUO_PROVIDER: z.enum(['quo', 'fake']).default('fake'),
   QUO_API_KEY: z.string().optional(),
   QUO_API_BASE: z.string().url().optional(),

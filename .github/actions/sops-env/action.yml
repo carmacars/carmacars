@@ -1,0 +1,54 @@
+name: Secrets from the SOPS file
+description: >-
+  r36: decrypts secrets/deploy.sops.yaml (SOPS with age) with the one GitHub secret SOPS_AGE_KEY and makes each value
+  available to every later step of the job, without ever printing one. A value only fills a variable that is empty, so the
+  GitHub secrets already in use keep working until the owner moves them into the file and deletes them
+  (docs/runbooks/sops-secrets.md). No key or no file: nothing changes.
+inputs:
+  age-key:
+    description: The age private key (the SOPS_AGE_KEY secret); empty leaves the GitHub secrets only
+    required: false
+    default: ''
+  file:
+    description: The encrypted secrets file
+    required: false
+    default: secrets/deploy.sops.yaml
+runs:
+  using: composite
+  steps:
+    - name: Decrypt into the job's environment
+      shell: bash
+      env:
+        SOPS_AGE_KEY: ${{ inputs.age-key }}
+        SOPS_FILE: ${{ inputs.file }}
+        SOPS_VERSION: v3.9.4
+        # the linux amd64 binary of the release, from its sops-v3.9.4.checksums.txt
+        SOPS_SHA256: 5488e32bc471de7982ad895dd054bbab3ab91c417a118426134551e9626e4e85
+      run: |
+        set -euo pipefail
+        if [ -z "$SOPS_AGE_KEY" ]; then echo "::notice title=secrets::SOPS_AGE_KEY is not set: the GitHub secrets only"; exit 0; fi
+        if [ ! -f "$SOPS_FILE" ]; then echo "::notice title=secrets::$SOPS_FILE is not in the repository yet: the GitHub secrets only"; exit 0; fi
+        umask 077
+        bin="$RUNNER_TEMP/sops"
+        curl -fsSL --retry 3 -o "$bin" "https://github.com/getsops/sops/releases/download/$SOPS_VERSION/sops-$SOPS_VERSION.linux.amd64"
+        echo "$SOPS_SHA256  $bin" | sha256sum -c --quiet - || { echo "::error title=secrets::the sops binary does not match its checksum"; exit 1; }
+        chmod 700 "$bin"
+        json="$RUNNER_TEMP/sops-secrets.json"; out="$RUNNER_TEMP/sops-env.sh"
+        trap 'rm -f "$json"' EXIT
+        "$bin" --decrypt --output-type json "$SOPS_FILE" > "$json"
+        jq -e 'type == "object"' "$json" > /dev/null || { echo "::error title=secrets::$SOPS_FILE must be a map of NAME: value"; exit 1; }
+        : > "$out"
+        n=0
+        while IFS= read -r k; do
+          if ! [[ "$k" =~ ^[A-Z][A-Z0-9_]{1,63}$ ]] || [[ "$k" =~ ^(GITHUB_|RUNNER_|ACTIONS_|BASH_ENV$|PATH$|HOME$) ]]; then
+            echo "::warning title=secrets::$SOPS_FILE: a key that is not an environment variable name is left out"; continue
+          fi
+          v=$(jq -r --arg k "$k" '.[$k] | if type == "string" then . else tojson end' "$json")
+          [ -n "$v" ] || continue
+          while IFS= read -r line; do [ -n "$line" ] && echo "::add-mask::$line"; done <<< "$v"
+          # only an empty variable is filled: a GitHub secret still set keeps its value until it is deleted
+          printf 'if [ -z "${%s:-}" ]; then export %s=%q; fi\n' "$k" "$k" "$v" >> "$out"
+          n=$((n + 1))
+        done < <(jq -r 'keys[]' "$json")
+        echo "BASH_ENV=$out" >> "$GITHUB_ENV"
+        echo "::notice title=secrets::$n values from $SOPS_FILE (a GitHub secret of the same name, while set, still wins)"

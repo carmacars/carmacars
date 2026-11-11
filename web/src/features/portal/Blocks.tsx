@@ -7,6 +7,7 @@ import { CarImage } from '@/components/Picture';
 import type { Photo } from '@/lib/types';
 import { AWAITING_SIGNATURE, STATUS, bookingPath, carName } from './status';
 import type { BookingStatus, BookingSummary, Line, OfferLine } from './types';
+import { deliveryWords, type LegDetail } from '@/features/delivery/words';
 
 // Server-rendered pieces of the portal. Money is shown exactly as the database stored it.
 export function StatusBadge({ s, awaiting = false }: { s: BookingStatus; awaiting?: boolean }) {
@@ -35,7 +36,12 @@ export function TripRow({ b, photo }: { b: BookingSummary; photo: Photo | null }
 }
 
 type AnyLine = Pick<Line, 'charge_type' | 'description' | 'amount_cents'> | OfferLine;
-const label = (l: AnyLine) => String(('description' in l && l.description) || ('label' in l && l.label) || l.charge_type.replace(/_/g, ' ')).replace(/\s*\((daily|the daily)[^)]*\)$/, '');
+const baseLabel = (l: AnyLine) => String(('description' in l && l.description) || ('label' in l && l.label) || l.charge_type.replace(/_/g, ' ')).replace(/\s*\((daily|the daily)[^)]*\)$/, '');
+// 1403: a delivery or pickup line says its distance and what the base includes
+const label = (l: AnyLine) => {
+  const words = (l.charge_type === 'delivery' || l.charge_type === 'pickup') && 'detail' in l ? deliveryWords((l as { detail?: LegDetail | null }).detail) : undefined;
+  return words ? `${baseLabel(l)} (${words})` : baseLabel(l);
+};
 
 export function PriceBreakdown({ lines, hst, total, totalLabel = 'Total due now', insurer, deposit }: { lines: AnyLine[]; hst: number; total: number; totalLabel?: string; insurer?: number; deposit?: number }) {
   return (

@@ -42,7 +42,7 @@
 .rv .ad-table td.num, .rv .ad-table th.num { font-variant-numeric: tabular-nums; }
 /* the row's next action: one red button; the others quiet */
 .rv .ad-actions { display: inline-flex; flex-wrap: wrap; gap: var(--s-1); align-items: center; }
-.rv .ad-table .btn { min-height: 34px; border-radius: 999px; padding-inline: var(--s-3); }
+.rv .ad-table .btn { min-height: 34px; padding-inline: var(--s-3); }
 .rv .ad-table .btn--primary { background: var(--red-600); border-color: var(--red-600); color: var(--white); }
 .rv .ad-table .btn--primary:hover { background: var(--red-700); border-color: var(--red-700); }
 .rv .ad-table .btn--ghost { background: var(--white); border-color: var(--grey-300); }

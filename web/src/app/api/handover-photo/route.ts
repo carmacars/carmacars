@@ -5,6 +5,7 @@ import { door } from '@/server/door';
 import { realUser } from '@/server/portal/data';
 import { photoKey, type PhotoScope } from '@/features/handover/angles';
 import { MAX_PHOTO_BYTES, UUID } from '@/features/returns/claim';
+import { imageSniff } from '@/lib/file-sniff';
 
 // One photo of a check-in or check-out (migration 0545) or of a car picked up from or returned to its owner (0546). The
 // browser made it a smaller JPEG first. Who may: self-pickup, the booking's renter; one-screen, staff who hand cars over;
@@ -39,8 +40,7 @@ export async function POST(req: Request) {
   const file = form?.get('file');
   if (!(file instanceof Blob) || file.size === 0 || file.size > MAX_PHOTO_BYTES) return NextResponse.json({ ok: false, message: 'Each photo must be under 8 MB.' }, { status: 400, headers: H });
   const bytes = new Uint8Array(await file.arrayBuffer());
-  const jpg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
-  const png = bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
+  const { jpg, png } = imageSniff(bytes);
   if (!jpg && !png) return NextResponse.json({ ok: false, message: 'That file is not a photo.' }, { status: 400, headers: H });
   const key = photoKey(scope, id, crypto.randomUUID(), png);
   await (await storage()).put('condition-photos', key, bytes, png ? 'image/png' : 'image/jpeg');

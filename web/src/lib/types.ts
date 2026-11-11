@@ -25,6 +25,8 @@ export interface CarRow {
   year_approximate?: boolean; guideline_rates?: boolean;
   /** 0352: the website's fleet read (public.fleet) in the Trending order: the place, pinned by an Admin, and the Hot badge */
   trend_rank?: number; pinned?: boolean; hot?: boolean;
+  /** demand steering (2000): this car draws more than its share of the requests; pages show similar cars first */
+  popular?: boolean;
 }
 
 export interface CarPage extends CarRow {
@@ -70,6 +72,7 @@ export interface SiteFacts {
   payout_day: number; billing_day: number; notice_period_days: number; kickback_bps: number; install_fee_cents: number;
   delivery_per_km_cents: number; delivery_min_cents?: number | null; delivery_max_cents?: number | null; privacy_officer_name: string | null; privacy_officer_email: string | null;
   company_email: string | null; incident_line_phone: string | null;
+  /** r35 UX (1108): add-ons not returned */ unreturned?: { ev_charger_cents: number; phone_mount_cents: number; child_seat_cents: number; booster_seat_cents: number; other_times: number | string; other_min_cents: number };
   late_fee_hourly_bps?: number; late_fee_hourly_min_cents?: number; extension_discount_bps?: number; extension_short_discount_bps?: number; booking_buffer_minutes?: number;
   young_driver_bands: { code: string; from_age: number; to_age: number }[];
   fees: Record<string, Fee>; deposit_tiers_cents: number[]; km_choices: number[];

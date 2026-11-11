@@ -21,7 +21,9 @@ type Row = { path: string; kind: string; lastmod: string | null; images: Array<{
 // 0115: 'priority', first in the index: the pages most worth crawling first (the fleet's cars, the landing pages, the
 // make pages, the popular models from the newest years, the place pages nearest us for the first terms), at most 50,000.
 // 0128: without the cars and landing pages, which are in their own files (each address in one sitemap file).
-export const SITEMAPS = ['priority', 'pages', 'cars', 'landing', 'guides', 'hubs'] as const;
+// release 36 (2004): 'families', the new page families (events, airports, the GPS tracker, renting vs owning), and
+// 'languages', each ready language's versions with their hreflang alternates (xhtml:link), both with their own dates.
+export const SITEMAPS = ['priority', 'pages', 'cars', 'landing', 'guides', 'hubs', 'families', 'languages'] as const;
 export type SitemapName = (typeof SITEMAPS)[number];
 
 // 1100: the content epoch, when every programmatic page's content last changed together (the facts all pages show, the
@@ -79,7 +81,25 @@ async function hubRows(all: Row[]): Promise<Prio> {
   catch { return all.filter((r) => r.kind === 'model_hub'); }
 }
 
-function entries(name: SitemapName, all: Row[], prio: Prio = [], hubs: Prio = [], core = false): Array<{ loc: string; lastmod: string | null; images?: string[] }> {
+type Entry = { loc: string; lastmod: string | null; images?: string[]; alternates?: Array<[string, string]> };
+type Fam = Prio;
+type Langs = { languages: Array<{ code: string; hreflang: string }>; pages: Prio };
+async function familyRows(): Promise<Fam> {
+  try { return ((await memo('sitemap_families', () => rpc('sitemap_families', {}, SR))) ?? []) as unknown as Fam; } catch { return []; }
+}
+async function languageRows(): Promise<Langs> {
+  try { return ((await memo('sitemap_languages', () => rpc('sitemap_languages', {}, SR))) ?? { languages: [], pages: [] }) as unknown as Langs; } catch { return { languages: [], pages: [] }; }
+}
+/** The language versions: each ready language's page, with every version (English, x-default and each language) as its alternates. */
+export function languageEntries(l: Langs, base: string, lastmod: (d: string | null) => string | null): Entry[] {
+  if (!l.languages.length) return [];
+  return l.pages.flatMap((p) => {
+    const alts: Array<[string, string]> = [['en-CA', base + p.path], ['x-default', base + p.path], ...l.languages.map((x) => [x.hreflang, `${base}/${x.code}${p.path}`] as [string, string])];
+    return l.languages.map((x) => ({ loc: `${base}/${x.code}${p.path}`, lastmod: lastmod(p.lastmod), alternates: alts }));
+  }).slice(0, 50_000);
+}
+
+function entries(name: SitemapName, all: Row[], prio: Prio = [], hubs: Prio = [], core = false, fam: Fam = [], langs: Langs = { languages: [], pages: [] }): Entry[] {
   const base = siteUrl();
   const url = (p: string) => base + (p === '/' ? '' : p);
   switch (name) {
@@ -98,6 +118,8 @@ function entries(name: SitemapName, all: Row[], prio: Prio = [], hubs: Prio = []
     case 'landing': return all.filter((r) => r.kind === 'landing').map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod) }));
     case 'guides': return all.filter((r) => r.kind === 'article').map((r) => ({ loc: url(r.path), lastmod: own(r.lastmod) }));
     case 'hubs': return hubs.filter((r) => !core || inCrawlScope(r.path, new Set())).map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod) }));
+    case 'families': return fam.map((r) => ({ loc: url(r.path), lastmod: own(r.lastmod) }));
+    case 'languages': return languageEntries(langs, base, own);
   }
 }
 
@@ -176,10 +198,11 @@ const sm = (loc: string, last: string | null | undefined) => `<sitemap><loc>${es
 async function siteEntries(): Promise<string[]> {
   // R23, Core: no place files (the place pages are out of the crawl scope; the landing pages have their own file)
   const core = await coreScope();
-  const [all, places, prio] = await Promise.all([rows(), core ? Promise.resolve([] as PlaceFile[]) : placeFiles(), priorityRows()]);
+  const [all, places, prio, fam, langs] = await Promise.all([rows(), core ? Promise.resolve([] as PlaceFile[]) : placeFiles(), priorityRows(), familyRows(), languageRows()]);
   const hubs = await hubRows(all);
   return [...SITEMAPS.flatMap((name) => {
-    const e = entries(name, all, prio, hubs, core);
+    const e = entries(name, all, prio, hubs, core, fam, langs);
+    if (name === 'languages' && !e.length) return [];
     if (name === 'priority') return chunk(e, PRIORITY_CHUNK).map((c, i) => sm(sitemapUrl.priority(i + 1), lastOf(c)));
     return [sm(`${siteUrl()}/sitemap-${name}.xml`, lastOf(e))];
   }), ...places.slice(0, 49_000).map((f) => sm(sitemapUrl.places(f.file), iso(f.lastmod)))];
@@ -218,7 +241,8 @@ export async function sitemapIndex(n = 1): Promise<Response> {
 
 export async function sitemapFile(name: Exclude<SitemapName, 'priority'>): Promise<Response> {
   const all = await rows();
-  return urlset(entries(name, all, [], name === 'hubs' ? await hubRows(all) : [], await coreScope()), name === 'cars');
+  const [fam, langs] = await Promise.all([name === 'families' ? familyRows() : Promise.resolve([]), name === 'languages' ? languageRows() : Promise.resolve(undefined)]);
+  return urlset(entries(name, all, [], name === 'hubs' ? await hubRows(all) : [], await coreScope(), fam, langs), name === 'cars');
 }
 /** Part n of the priority sitemap (/sitemap-priority-<n>.xml, 0124); 404 past the last part. */
 export async function prioritySitemapFile(n: number): Promise<Response> {
@@ -227,9 +251,10 @@ export async function prioritySitemapFile(n: number): Promise<Response> {
   if (!Number.isInteger(n) || n < 1 || n > parts.length) return NOT_FOUND();
   return urlset(parts[n - 1]!, false);
 }
-function urlset(e: Array<{ loc: string; lastmod: string | null; images?: string[] }>, img: boolean): Response {
-  const body = e.map((x) => `<url><loc>${esc(x.loc)}</loc>${x.lastmod ? `<lastmod>${x.lastmod}</lastmod>` : ''}${(x.images ?? []).map((i) => `<image:image><image:loc>${esc(i)}</image:loc></image:image>`).join('')}</url>`).join('\n');
-  return new Response(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"${img ? ' xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"' : ''}>\n${body}\n</urlset>\n`, { headers: XML });
+function urlset(e: Entry[], img: boolean): Response {
+  const alt = e.some((x) => x.alternates?.length);
+  const body = e.map((x) => `<url><loc>${esc(x.loc)}</loc>${x.lastmod ? `<lastmod>${x.lastmod}</lastmod>` : ''}${(x.images ?? []).map((i) => `<image:image><image:loc>${esc(i)}</image:loc></image:image>`).join('')}${(x.alternates ?? []).map(([h, u]) => `<xhtml:link rel="alternate" hreflang="${esc(h)}" href="${esc(u)}"/>`).join('')}</url>`).join('\n');
+  return new Response(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"${img ? ' xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"' : ''}${alt ? ' xmlns:xhtml="http://www.w3.org/1999/xhtml"' : ''}>\n${body}\n</urlset>\n`, { headers: XML });
 }
 
 const NOT_FOUND = () => new Response('Not found', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=0, s-maxage=600' } });

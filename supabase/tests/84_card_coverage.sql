@@ -12,7 +12,7 @@ select test.ok('seeded: at least 40 cards, Canadian and US',
 select test.eq('seeded: the issuers the renters ask about',
   (select count(distinct issuer) from card_rental_coverage where issuer in ('American Express', 'RBC', 'TD', 'CIBC', 'Scotiabank', 'BMO', 'National Bank', 'Desjardins',
      'HSBC', 'Tangerine', 'Simplii Financial', 'PC Financial', 'Rogers Bank', 'Brim', 'Neo Financial', 'Chase', 'Capital One', 'American Express (US)', 'Citi')), 19::bigint);
-select test.eq('seeded: every card checked on October 23, 2026', (select count(*) from card_rental_coverage where last_checked <> '2026-10-23'), 0::bigint);
+select test.eq('seeded: every card checked on October 23, 2026 (two more added on November 11 by 1400)', (select count(*) from card_rental_coverage where last_checked not in ('2026-10-23', '2026-11-11')), 0::bigint);
 select test.eq('seeded: a card read in the issuer''s document links to it', (select count(*) from card_rental_coverage where issuer_checked and guide_url is null), 0::bigint);
 select test.eq('seeded: an unverified card says where its numbers came from', (select count(*) from card_rental_coverage where not issuer_checked and source_url is null and note is null), 0::bigint);
 select test.eq('seeded: the value limits (Cobalt $85,000, eclipse Visa Infinite $65,000 secondary, Aventura Visa Infinite Privilege $100,000)',
@@ -34,7 +34,7 @@ select test.eq('anon: the site''s read lists the active cards, Canadian first',
 select test.eq('anon: a hidden card is not listed',
   (select count(*) from jsonb_array_elements(public.card_coverage_public() -> 'cards') c where c ->> 'issuer' = 'Simplii Financial'), 0::bigint);
 select test.eq('anon: the read leaves out who changed a card', (public.card_coverage_public() #> '{cards,0}') ? 'updated_by', false);
-select test.eq('anon: the newest check date', public.card_coverage_public() ->> 'checked', '2026-10-23');
+select test.eq('anon: the newest check date (1400 added two cards checked November 11)', public.card_coverage_public() ->> 'checked', '2026-11-11');
 select test.eq('anon: no privilege on the table itself (the site reads the function)', test.visible('select * from card_rental_coverage'), -1::bigint);
 select test.throws('anon: cannot change the list', $$update card_rental_coverage set max_days = 1$$, null);
 select test.throws('anon: cannot reach the door', $$select app.door(null, 'aal1', 'admin_read', 'card_coverage', '{}')$$, null);

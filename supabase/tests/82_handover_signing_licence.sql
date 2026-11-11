@@ -211,8 +211,10 @@ select test.eq('check-in: the late, kilometre and fuel charges are in the settle
   (select string_agg(assessment_key, ',' order by assessment_key) from booking_line_items where booking_id = test.b('hoA') and voided_at is null and assessment_key is not null and amount_cents > 0),
   'fuel,fuel_service_fee,late_return_fee,mileage_overage');
 select test.eq('check-in: the kilometres over at the booking''s rate', test.op_line('hoA', 'mileage_overage') like (50 * 35)::text || '+%', true);
-select test.eq('check-in: no receipt yet: two eighths at the refill price, before the markup',
-  (select (supporting_refs ->> 'pump_cost_cents') from booking_line_items where booking_id = test.b('hoA') and assessment_key = 'fuel' and voided_at is null), '2000');
+-- 1402: no receipt: the tank x the fuel missing x the pump price x the multiplier (the line keeps the working), no pump cost
+select test.eq('check-in: no receipt yet: the fuel shortfall formula, with its working kept on the line',
+  (select (supporting_refs ->> 'pump_cost_cents') is null and amount_cents = (supporting_refs #>> '{shortfall,energy_cents}')::bigint and amount_cents > 0
+     from booking_line_items where booking_id = test.b('hoA') and assessment_key = 'fuel' and voided_at is null), true);
 select test.eq('check-in: the photo report has both sets, the times, late by, km over and fuel short',
   (select jsonb_array_length(r -> 'reports') || '/' || (r ->> 'km_over') || '/' || (r ->> 'fuel_short_pct') || '/' || ((r ->> 'minutes_late')::int between 179 and 181)
           || '/' || jsonb_array_length(r -> 'reports' -> 0 -> 'photos') || '/' || (r -> 'reports' -> 0 ->> 'odometer_km') || ':' || (r -> 'reports' -> 1 ->> 'odometer_km')

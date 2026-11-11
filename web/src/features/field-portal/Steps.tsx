@@ -83,11 +83,11 @@ export function AddonTicks({ addons }: { addons: Addon[] }) {
   const { pending, msg, run } = useRun();
   return (
     <div className="fp-step" data-testid="addon-ticks">
-      <p className="fp-step__h">Put in the car, then tick</p>
+      <p className="fp-step__h">Prepare: put each in the car, then tick ({addons.filter((a) => a.ticked).length} of {addons.length})</p>
       {addons.map((a) => (
         <label key={a.id} className={`fp-tick${a.ticked ? ' is-on' : ''}`}>
           <input type="checkbox" checked={a.ticked} disabled={pending} onChange={(e) => run(() => fieldAct('addon_tick', { id: a.id, ticked: e.target.checked }), e.target.checked ? `${a.name}: in the car.` : `${a.name}: not ticked.`)} data-testid={`addon-${a.id}`} />
-          <span>{a.quantity > 1 ? `${a.quantity} x ` : ''}{a.name}{a.note ? <small>{a.note}</small> : null}{a.ticked && a.ticked_by ? <small>Ticked by {a.ticked_by}</small> : null}</span>
+          <span><b className="fp-tick__qty">{a.quantity} x</b> {a.name}{a.note ? <small>{a.note}</small> : null}{a.ticked && a.ticked_by ? <small>Ticked by {a.ticked_by}</small> : null}</span>
         </label>))}
       <p className="small">The pickup waits until every add-on is ticked. If the trip must go without one, ask an Admin to override on the job.</p>
       <Msg m={msg} />

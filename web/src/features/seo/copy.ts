@@ -3,6 +3,7 @@
 // lengths, the brand, no long dashes, no AI-sounding words, the Protection Plan wording, no claim the facts do not
 // support and no number that is not in the facts. A car's copy must also read differently from every other car's.
 // Pure functions: no server imports, so the unit tests run them directly (copy.test.ts).
+import { negativeHits } from './copy-lint.ts';
 
 export const CAR_PROMPT_VERSION = 'car-copy-v2';
 export const PAGE_PROMPT_VERSION = 'landing-v1';
@@ -127,6 +128,9 @@ export function styleProblems(text: string, o: StyleOpts = {}): string[] {
   const low = text.toLowerCase();
   const hits = [...new Set([...AI_WORDS, ...(o.banned ?? [])].filter((b) => b && new RegExp(`(^|[^a-z])${b.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^a-z]|$)`).test(low)))];
   if (hits.length) p.push(`do not use these words: ${hits.map((h) => `"${h}"`).join(', ')}`);
+  // release 36: positive copy only (copy-lint.ts): never what we lack, always what the reader can do
+  const neg = negativeHits(text);
+  if (neg.length) p.push(`say it positively, never what we lack: ${neg.map((h) => `"${h.phrase}" (${h.say})`).join('; ')}`);
   return p;
 }
 

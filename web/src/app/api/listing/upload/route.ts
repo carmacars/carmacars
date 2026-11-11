@@ -4,6 +4,7 @@ import { door, sessionAal } from '@/server/door';
 import { storage } from '@/integrations/storage';
 import { sha256Hex } from '@/server/links';
 import { recordSort, sortShot, type SortRecord } from '@/server/listing-sort';
+import { imageSniff } from '@/lib/file-sniff';
 
 // One listing photo from the capture screen (docs/blueprint/09-listing-pipeline.md section 4). The browser
 // resized it (3000 px on the long side, JPEG); here the user's right to list this car is checked by the
@@ -35,8 +36,7 @@ export async function POST(req: Request) {
   }
   if (!cap.may_upload) return NextResponse.json({ ok: false, message: 'This listing no longer takes photos.' }, { status: 409 });
   const bytes = new Uint8Array(await file.arrayBuffer());
-  const jpg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
-  const png = bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
+  const { jpg, png } = imageSniff(bytes);
   if (!jpg && !png) return NextResponse.json({ ok: false, message: 'That file is not a photo (JPEG or PNG).' }, { status: 400 });
   const type = jpg ? 'image/jpeg' : 'image/png';
   let shot = asked;

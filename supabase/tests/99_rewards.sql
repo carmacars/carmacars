@@ -51,7 +51,8 @@ select test.throws('redeem at least the minimum', $$select public.rewards_mine_r
 create temp table rwd_r as select public.rewards_mine_redeem(1000) r;
 select test.ok('redeem 1000 points: a $10 code of his own, one use', exists (select 1 from promo_codes p, rwd_r where p.code = rwd_r.r ->> 'code'
   and p.amount_cents = 1000 and p.max_uses = 1 and p.renter_id = test.id('renter:rwd_ben') and p.source = 'rewards'));
-select test.eq('the points left (2,300 earned less 1,000)', (public.my_rewards() ->> 'balance')::int, 1300);
+-- 1305: RWD-2 is Ben's second completed rental: booking again earns rebook (150)
+select test.eq('the points left (2,450 earned with the rebook, less 1,000)', (public.my_rewards() ->> 'balance')::int, 1450);
 select test.eq('an unused code cancelled gives the points back',
   (public.rewards_mine_code_cancel((select code from promo_codes where renter_id = test.id('renter:rwd_ben') and source = 'rewards' limit 1)) ->> 'points')::int, 1000);
 select set_config('request.jwt.claim.sub', '', false);

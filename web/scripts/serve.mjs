@@ -65,6 +65,10 @@ function viewAsWriteRefused(method, pathname, cookie) {
 // from this machine makes the app's answer for that path a 5xx (status 0 clears it): tests/e2e/stale-on-error.spec.ts.
 let pageCache = null;
 try { pageCache = await import('../src/lib/edge/page-cache.ts'); } catch { /* Node without type stripping: no copies */ }
+// r35: the Worker's request guard (src/lib/security/request-guard.ts): a write from another site is refused, the unused
+// image optimizer answers 404
+let requestGuard = null;
+try { requestGuard = await import('../src/lib/security/request-guard.ts'); } catch { /* Node without type stripping: the app's own checks only */ }
 const staleStore = new Map();
 const staleCache = async () => ({ match: async (k) => staleStore.get(k)?.clone(), put: async (k, r) => { staleStore.set(k, new Response(await r.arrayBuffer(), r)); } });
 const faults = new Map();
@@ -159,6 +163,10 @@ http.createServer(async (req, res) => {
   if (req.method === 'GET' && faults.has(pathname)) {
     res.writeHead(faults.get(pathname), { ...security, 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' }); res.end('<html><body>Internal Server Error</body></html>');
     return;
+  }
+  if (requestGuard?.unusedFrameworkPath(pathname)) { res.writeHead(404, { ...security, 'content-type': 'text/plain; charset=utf-8' }); res.end('Not found'); req.resume(); return; }
+  if (requestGuard?.crossSiteWriteRefused(req.method, `http://${req.headers.host ?? 'localhost'}${req.url ?? '/'}`, req.headers.origin ?? null, req.headers['sec-fetch-site'] ?? null)) {
+    res.writeHead(403, { ...security, 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' }); res.end(requestGuard.CROSS_SITE_REFUSAL); req.resume(); return;
   }
   if (viewAsWriteRefused(req.method, pathname, req.headers.cookie)) {
     if (req.headers['next-action']) { res.writeHead(200, { ...security, 'content-type': 'text/plain', 'cache-control': 'no-store', 'x-action-redirect': '/read-only;push' }); res.end(); }

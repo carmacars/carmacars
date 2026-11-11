@@ -251,3 +251,15 @@ export async function confirmOwnerUpload(ticket: string): Promise<R> {
 }
 
 // Forms C and D: signed on screen only since 0720 (src/server/actions/form-c.ts); the photo of a paper copy is no longer taken.
+
+// 1205: the owner's price limits, for every car or one car (the database checks the car is theirs and the numbers)
+export async function saveOwnerPriceLimits(p: { scope: 'owner' | 'car'; vehicle_id: string | null; min_daily_cents: number | null; max_daily_cents: number | null }): Promise<R> {
+  try {
+    const { user, home } = await owner();
+    if (p.scope === 'car' && !home.vehicles.some((v) => v.vehicle_id === p.vehicle_id)) return fail('Vehicle not found');
+    await rpc('server_owner_price_limits_save', { p_by: user.id, p: { scope: p.scope, vehicle_id: p.scope === 'car' ? p.vehicle_id : null, min_daily_cents: p.min_daily_cents, max_daily_cents: p.max_daily_cents } }, SR);
+    revalidatePath('/owner/vehicles');
+    if (p.vehicle_id) revalidatePath(`/owner/vehicles/${p.vehicle_id}`);
+    return { ok: true, data: null };
+  } catch (e) { return fail(dbMessage(e)); }
+}

@@ -32,7 +32,9 @@ import { TypedInput } from '@/components/DateInput';
 // (sticky on a desktop, a bottom sheet on a phone); the rate card folded away; and the choices drive the charges: a fee
 // set by hand is kept only while the choice that makes its line is chosen (model.ts liveFees, and the database again,
 // migration 0250), shown as "Set by hand" with Reset to automatic.
-type Car = { id: string; name: string; plate: string | null; car_code: string | null; daily_rate_cents: number | null; weekly_rate_cents: number | null; deposit_cents: number | null; free: boolean | null; class?: string | null; body_type?: string | null };
+type Car = { id: string; name: string; plate: string | null; car_code: string | null; daily_rate_cents: number | null; weekly_rate_cents: number | null; deposit_cents: number | null; free: boolean | null; class?: string | null; body_type?: string | null;
+  /** 1202: whether the Protection Plan (RentalCover) may be offered for the car, with the reason when not */
+  rentalcover?: { allowed: boolean; reason: string | null; value_cents: number | null } };
 type Form = { role: Role; offer_hours: number; min_notice_minutes: number; km_choices: number[]; text_enabled: boolean; cars: Car[]; may_edit_fees?: boolean; period_days?: number; cycle?: string };
 type Found = { id: string; legal_name: string; email: string | null; mobile: string | null; date_of_birth: string | null; is_blocked: boolean; bookings: number; card: { brand: string; last4: string } | null };
 type Line = { id: string; charge_type: string; description: string | null; amount_cents: number; hst_cents: number; hst_applies?: boolean; stage: string; charged_to_renter: boolean; booking_addon_id?: string | null; addon_code?: string | null };
@@ -243,10 +245,14 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
   const [editing, setEditing] = useState<string[]>([]);
   // Send pressed with something missing: each missing field then says so beside it
   const [tried, setTried] = useState(false);
-  const send = (draft = false) => run(async () => {
+  // r35a: one send at a time (a double tap made two offers), and never on a price still being worked out for changed dates
+  const sending = useRef(false);
+  const send = (draft = false) => { if (sending.current) return; sending.current = true; run(async () => {
+    try {
     setErr(null); setTried(true);
     const m = missingNow();
     if (m.length) { setErr(`Still needed: ${m.join(', ')}.`); return; }
+    if (!draft && priced && !fresh) { setErr('The price is still updating for what you changed: check it and send again.'); return; }
     const o = ownerChoicePayload(ownerChoice, owner);
     const r = await offersDo<Sent & { booking_id: string }>('offer_create', draft ? { ...payload, ...o, draft: true } : { ...payload, ...o, ...(bookNow ? { book_now: true } : {}) }, [`${base}/bookings`]);
     if (!r.ok) { setErr(r.message); return; }
@@ -254,7 +260,8 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
     if (draft) { router.push(`${base}/bookings/${encodeURIComponent(r.data.booking_number)}?tab=review`, scrollOption(`${base}/bookings/${encodeURIComponent(r.data.booking_number)}?tab=review`)); return; }
     setSent(r.data);
     playMoment('offer');
-  });
+    } finally { sending.current = false; }
+  }); };
 
   if (sent) return (
     <section className="pt-card stack" aria-labelledby="oc-sent" data-testid="offer-sent">
@@ -339,8 +346,9 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
     {(f[`${leg}_kind`] as PlaceKind) === 'airport' && text(`${leg}_address`, 'Airport code', { placeholder: 'YYZ' })}
     {feeNote(leg === 'pickup' ? 'delivery' : 'pickup', leg === 'pickup' ? 'Delivery fee' : 'Collection fee')}
   </div>);
-  const step = (n: number, title: string, lead: string, body: React.ReactNode, o: { testId?: string } = {}) => (
-    <fieldset className="oc-step" data-testid={o.testId}><legend className="oc-step__head"><span className="oc-step__n" aria-hidden="true">{n}</span><span className="d4">{title}</span></legend>
+  // r35a: three steps for everyone (1. car and dates, 2. price, 3. review and send); each step's parts are fieldsets without a number
+  const step = (_n: number | null, title: string, lead: string, body: React.ReactNode, o: { testId?: string } = {}) => (
+    <fieldset className="oc-step" data-testid={o.testId}><legend className="oc-step__head"><span className="d4">{title}</span></legend>
       <p className="small muted oc-step__lead">{lead}</p>{body}</fieldset>);
   // "More options" of a step: closed unless something in it is in use
   const more = (testId: string, label: string, inUse: boolean, body: React.ReactNode) => (
@@ -351,7 +359,9 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
   const priceInUse = f.price_mode !== 'sheet' || !!totalTyped.trim() || handKeys.size > 0 || customs.length > 0 || !!f.km || !!f.promo_code.trim() || !!f.deposit.trim() || cents0(f.discount) || editing.length > 0;
   const payInUse = f.rental_pay !== 'card' || f.deposit_pay !== 'card';
   const payWords = `${RENTAL_PAY.find(([v]) => v === f.rental_pay)?.[1]}; deposit: ${DEPOSIT_PAY.find(([v]) => v === f.deposit_pay)?.[1].toLowerCase()}`;
-  let n = 0;
+  const n = null;
+  const phase = (k: 1 | 2 | 3, title: string) => (
+    <h2 className="oc-phase" id={`oc-phase-${k}`} data-testid={`oc-phase-${k}`}><span className="oc-step__n" aria-hidden="true">{k}</span> <span className="d4">{title}</span></h2>);
 
   return (
     <div className="oc-flow" data-testid="offer-composer">
@@ -359,7 +369,9 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
         <p className="small muted" role="status" aria-live="polite" data-testid="oc-draft-status">{savedAt ? `Saved as a draft at ${new Date(savedAt).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' })}: finish it later from Unfinished rentals.` : 'Saved as a draft as you type.'}
           {draftId && <> <button className="btn btn--quiet btn--sm" type="button" onClick={() => run(async () => { await draftClose(draftId, 'discarded'); router.push(`${base}/offers/new`, scrollOption(`${base}/offers/new`)); })} data-testid="oc-discard-draft">Discard the draft</button></>}</p>
 
-        {step(++n, 'Who is renting and when', 'Find the renter (or add them), then set when they pick up and return the car.', <>
+        <nav className="oc-phases small" aria-label="Steps" data-testid="oc-phases"><a href="#oc-phase-1">1. Car and dates</a> · <a href="#oc-phase-2">2. Price</a> · <a href="#oc-phase-3">3. Review and send</a></nav>
+        {phase(1, 'Car and dates')}
+        {step(n, 'Who is renting and when', 'Find the renter (or add them), then set when they pick up and return the car.', <>
           {chosen ? (
             <p data-testid="oc-customer"><b>{chosen.legal_name}</b> <span className="small">{chosen.email} · {chosen.mobile} · {chosen.bookings ? `${chosen.bookings} past rental${chosen.bookings === 1 ? '' : 's'}` : 'no rental yet'}{chosen.card ? ` · card ${chosen.card.brand} ${chosen.card.last4}` : ''}</span>{' '}
               <button className="btn btn--quiet btn--sm" type="button" onClick={() => { setChosen(null); set('renter_id')(null); }}>Change</button></p>
@@ -389,7 +401,7 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
           </div>
         </>, { testId: 'oc-step-renter' })}
 
-        {step(++n, 'Which car', 'Search by car code, plate or name. Each car says whether it is free for these dates.', <>
+        {step(n, 'Which car', 'Search by car code, plate or name. Each car says whether it is free for these dates.', <>
           <div className="ad-fields">
             <div className="field ad-field ad-field--wide"><label className="label" htmlFor="oc-car-q">Find the car</label>
               <input className="input" id="oc-car-q" type="search" placeholder="Car code, plate or name" value={carQ} onChange={(e) => {
@@ -427,22 +439,24 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
           {periods}
         </>, { testId: 'oc-step-car' })}
 
-        {step(++n, 'Where they pick up and return', 'At our location unless you deliver or collect the car. A delivery fee is added for you.', <div className="oc-legs">{placeFields('pickup')}{placeFields('return')}</div>, { testId: 'oc-step-places' })}
+        {step(n, 'Where they pick up and return', 'At our location unless you deliver or collect the car. A delivery fee is added for you.', <div className="oc-legs">{placeFields('pickup')}{placeFields('return')}</div>, { testId: 'oc-step-places' })}
 
-        {step(++n, 'How damage is covered', 'Ask the renter: their own insurance, their credit card, or our Protection Plan.', <>
+        {step(n, 'How damage is covered', 'Ask the renter: their own insurance, their credit card, or our Protection Plan.', <>
           <div className="field"><span className="label-line"><label className="label" htmlFor="oc-coverage_option">Coverage</label><Info text={lineHelp('coverage_sold')} label="About coverage" /></span>
             <select className="select" id="oc-coverage_option" value={f.coverage_option} onChange={(e) => choose({ coverage_option: e.target.value })} data-testid="oc-coverage_option" aria-describedby="oc-coverage-h">
-              {COVERAGE.map(([v]) => <option key={v} value={v}>{COVER_SHORT[v] ?? v}</option>)}</select>
-            <p className="hint" id="oc-coverage-h">{COVER_HELP[f.coverage_option] ?? ''}</p></div>
+              {COVERAGE.filter(([v]) => v !== '3' || car?.rentalcover?.allowed !== false || f.coverage_option === '3').map(([v]) => <option key={v} value={v}>{COVER_SHORT[v] ?? v}</option>)}</select>
+            <p className="hint" id="oc-coverage-h">{COVER_HELP[f.coverage_option] ?? ''}</p>
+            {car?.rentalcover?.allowed === false && <p className="hint" data-testid="oc-plan-not-offered">{car.rentalcover.reason ?? 'The Protection Plan is not offered for this car.'}</p>}</div>
           {f.coverage_option === '3' && feeNote('coverage_sold', 'Protection Plan')}
           {f.coverage_option === '3' && editFees && more('oc-coverage-more', 'More options: another Protection Plan price', !!f.plan_price.trim(),
             <div className="ad-fields">{text('plan_price', `Protection Plan price for the trip, ${tw} ($)`, { inputMode: 'decimal', hint: 'Empty: the price from the Protection Plan table' })}</div>)}
         </>, { testId: 'oc-step-coverage' })}
 
-        {addonOptions.length > 0 && step(++n, 'Extras', 'Optional: add-ons the renter asked for. Their price is added for you.', <details className="oc-disclose" open={addons.length > 0 || undefined} data-testid="oc-addons"><summary>{addons.length ? `${addons.length} chosen: change` : 'Choose add-ons'}</summary>
+        {addonOptions.length > 0 && step(n, 'Extras', 'Optional: add-ons the renter asked for. Their price is added for you.', <details className="oc-disclose" open={addons.length > 0 || undefined} data-testid="oc-addons"><summary>{addons.length ? `${addons.length} chosen: change` : 'Choose add-ons'}</summary>
           <AddonPicker idPrefix="oc" staff compact options={addonOptions} value={addons} onChange={changeAddons} /></details>, { testId: 'oc-step-addons' })}
 
-        {step(++n, 'The price', 'The rate sheet price is filled in for you. Change it only if you agreed another price with the renter.', <>
+        {phase(2, 'Price')}
+        {step(n, 'The price', 'The rate sheet price is filled in for you. Change it only if you agreed another price with the renter.', <>
           <p className="oc-pricenow" data-testid="oc-price-now">{!b ? 'The price shows once the renter, the dates and the car are in.'
             : totalCents !== null ? `Worked out from the total you typed: ${fmt(total)}.`
             : f.price_mode === 'sheet' ? <>Rate sheet price: <b className="num">{fmt(rentalLine?.amount_cents ?? b.rate_sheet_rental_cents ?? 0)}</b> for {b.billable_days} day{b.billable_days === 1 ? '' : 's'}, before tax.</>
@@ -513,7 +527,8 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
             <p className="hint" data-testid="oc-pay-hint">{RENTAL_PAY.find(([v]) => v === f.rental_pay)?.[2]} {DEPOSIT_PAY.find(([v]) => v === f.deposit_pay)?.[2]}</p></>)}
         </>, { testId: 'oc-step-price' })}
 
-        {step(++n, 'Send it', 'Add a short message if you like, choose how the link goes, then send.', <>
+        {phase(3, 'Review and send')}
+        {step(n, 'Send it', 'Add a short message if you like, choose how the link goes, then send.', <>
           {!admin && <div>{needMsg('choice')}<SourcedChoice id="oc" value={f.choice} onChange={(v) => set('choice')(v)} optional={admin} /></div>}
           <div className="field"><label className="label" htmlFor="oc-message">Message to the renter (optional)</label>
             <textarea className="input ad-textarea" id="oc-message" maxLength={1000} value={f.message} onChange={(e) => set('message')(e.target.value)} data-testid="oc-message" /></div>

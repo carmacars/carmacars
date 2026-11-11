@@ -7,8 +7,8 @@ select test.eq('every car has a cache row', (select count(*) from vehicles v whe
 select test.eq('every car: the cached row is the live row',
   (select count(*) from vehicles v where app.public_listing_row(v.id) is distinct from app.public_listing_row_live(v.id)), 0::bigint);
 select test.eq('the fleet is the same rows as computed live',
-  -- 0352: the website's read adds its Trending place, pin and Hot badge to each row
-  (select jsonb_agg(f - 'trend_rank' - 'pinned' - 'hot' order by f ->> 'slug') from public.fleet() f),
+  -- 0352: the website's read adds its Trending place, pin and Hot badge to each row (2000: and the popular flag)
+  (select jsonb_agg(f - 'trend_rank' - 'pinned' - 'hot' - 'popular' order by f ->> 'slug') from public.fleet() f),
   (select jsonb_agg(r order by r ->> 'slug') from vehicle_listings l join vehicles v on v.id = l.vehicle_id
      cross join lateral (select app.public_listing_row_live(l.vehicle_id) r) x
     where l.status = 'published' and v.management_mode <> 'turo_only' and x.r is not null));

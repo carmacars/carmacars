@@ -21,14 +21,14 @@ export type Tier = 'assistant' | 'live' | 'background';
 /** The tier of a purpose, as app.ai_tier (migration 0133) has it. */
 export function tierOf(purpose: string): Tier {
   if (purpose === 'staff_assistant') return 'assistant';
-  if (['chat', 'phone_draft', 'phone_summary', 'toll_read', 'plate_detect', 'guide_review', 'permit_read', 'vin_read', 'photo_sort', 'licence_read', 'interview_transcribe', 'interview_followup'].includes(purpose)) return 'live';
+  if (['chat', 'phone_draft', 'phone_summary', 'toll_read', 'plate_detect', 'guide_review', 'permit_read', 'vin_read', 'photo_sort', 'licence_read', 'interview_transcribe', 'interview_followup', 'faq_reply'].includes(purpose)) return 'live';
   return 'background';
 }
 /** The purpose each text task is recorded with in provider_calls. */
 export const TASK_PURPOSE: Record<GenerateRequest['task'], string> = {
   listing_draft: 'draft_copy', guide_rewrite: 'guide_rewrite', chat: 'chat', car_copy: 'seo_car', seo_page: 'seo_page', article: 'seo_article',
   turo_email: 'turo_email', phone_draft: 'phone_draft', phone_summary: 'phone_summary',
-  interview_followup: 'interview_followup', interview_score: 'interview_score',
+  interview_followup: 'interview_followup', interview_score: 'interview_score', faq_reply: 'faq_reply', value_estimate: 'car_value',
   // r35 part C (1506): the lead intent reading, background tier (within the free allowance only)
   intent_read: 'intent_enrich'
 };

@@ -9,6 +9,7 @@ import { readLicence } from '@/server/licence-read';
 import { consents, CONSENT_VERSION, consentLine, SIGN_STATEMENT } from '@/features/agreement/model';
 import { bookingPath } from '@/features/portal/status';
 import { addedLive, type MyBooking } from '@/features/portal/types';
+import type { CardProductCheck } from '@/features/coverage/types';
 import type { ActionResult } from '@/features/forms/schemas';
 import { requestMeta } from '@/server/request';
 import { readToken, sha256Hex, signToken } from '@/server/links';
@@ -272,6 +273,8 @@ export async function startPayment(number: string): Promise<R<StartedPayment>> {
     }
     // the licence before payment (0130: the switch in Program settings)
     if (f.licence_missing?.length) return fail(`Upload your driver's licence before you pay: ${f.licence_missing.join(', ')} still needed.`, 'licence');
+    // OPCF 27 (1401): the pink slip and the endorsement page before payment (Program settings opcf27_before_payment)
+    if (f.coverage_missing?.length) return fail(`Upload your insurance before you pay: ${f.coverage_missing.join(' and ')} still needed (Licence, selfie and coverage).`, 'coverage');
     if (f.renter_due_at_booking_cents <= 0) return fail('Nothing is due now. We will confirm the booking on your signature.', 'nothing_due');
     // the car may already be confirmed for someone else: then nothing is authorized (section 6)
     if (!f.vehicle_free) return fail(reasonMessage('vehicle_taken'), 'pushed_back');
@@ -579,7 +582,7 @@ export async function confirmUpload(ticket: string, details: Record<string, stri
   try {
     const d = details ?? {};
     const clean: Record<string, string> = {};
-    for (const k of ['coverage_option', 'insurer_name', 'policy_number', 'policy_expiry']) if (d[k]) clean[k] = String(d[k]).slice(0, 120);
+    for (const k of ['coverage_option', 'insurer_name', 'policy_number', 'policy_expiry', 'page_kind']) if (d[k]) clean[k] = String(d[k]).slice(0, 120);
     const r = (await rpc('renter_register_upload', { p_booking: t.b, p_by: user.id, p_kind: t.k, p_driver: t.d ?? undefined, p_storage_path: t.key, p_sha256: await sha256Hex(bytes), p_mime_type: t.ct, p_details: clean, p_storage_bucket: t.bucket }, SR)) as unknown as { ok: boolean; error?: string };
     if (!r.ok) { await s.remove(t.bucket, t.key); return fail('Too many uploads in the last hour. Try again later.', 'rate_limited'); }
     // the licence read straight away (release 31): a photo that cannot be used is taken again now
@@ -604,12 +607,29 @@ export async function setCoverageOption(number: string, option: 1 | 2): Promise<
   } catch (e) { return fail(dbMessage(e)); }
 }
 
-/** Option 2: the renter ticks that the card they paid with includes rental car coverage for this car and length. */
-export async function confirmCardCoverage(number: string, ticked: boolean, text: string): Promise<R> {
-  if (!ticked) return { ok: false, code: 'invalid', message: 'Tick the box to confirm.', fieldErrors: { confirm: 'Tick the box to confirm.' } };
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Option 2 (1400): what the database says of the card the renter picked (covered, not covered with the reasons, or review). */
+export async function previewCardCoverage(number: string, cardId: string | null): Promise<R<CardProductCheck>> {
+  if (cardId !== null && !UUID.test(cardId)) return fail('Choose your card from the list.');
   try {
     const { userId, b } = await mine(number);
-    await rpc('renter_submit_card_coverage', { p_booking: b.id, p_by: userId, p_confirm: true, p_text: (text ?? '').slice(0, 600) || undefined }, SR);
+    const c = (await rpc('server_card_coverage_preview', { p_booking: b.id, p_by: userId, p_card: cardId ?? undefined }, SR)) as unknown as CardProductCheck;
+    return { ok: true, data: c };
+  } catch (e) { return fail(dbMessage(e)); }
+}
+
+/** Option 2: the renter picks their card (from the list, or types it when it is not there) and ticks that it includes
+ *  rental car coverage for this car and length. The database refuses a card that does not cover the car (1400). */
+export async function confirmCardCoverage(number: string, ticked: boolean, text: string, card: { id: string | null; other?: string | null } = { id: null }): Promise<R> {
+  if (!ticked) return { ok: false, code: 'invalid', message: 'Tick the box to confirm.', fieldErrors: { confirm: 'Tick the box to confirm.' } };
+  if (card.id !== null && !UUID.test(card.id)) return fail('Choose your card from the list.');
+  const other = (card.other ?? '').trim().slice(0, 120);
+  if (!card.id && !other) return { ok: false, code: 'invalid', message: 'Choose your card from the list, or type its name if it is not there.', fieldErrors: { card: 'Choose your card.' } };
+  try {
+    const { userId, b } = await mine(number);
+    await rpc('renter_submit_card_coverage', { p_booking: b.id, p_by: userId, p_confirm: true, p_text: (text ?? '').slice(0, 600) || undefined,
+      p_card: card.id ?? undefined, p_card_other: card.id ? undefined : other }, SR);
     refresh(number); revalidatePath(bookingPath(number, 'verify'));
     return { ok: true, data: null };
   } catch (e) { return fail(dbMessage(e)); }

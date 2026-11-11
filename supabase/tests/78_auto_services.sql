@@ -21,7 +21,7 @@ select test.eq('terms: the owner''s words each have a page or a synonym',
      'car-battery-replacement', 'battery-boost', 'wheel-alignment', 'transmission-repair', 'engine-repair', 'car-inspection', 'safety-certificate', 'emissions-test',
      'car-ac-repair', 'car-diagnostics']) w where not exists (select 1 from place_terms t where t.slug = w and t.is_active)), null);
 select test.ok('terms: body repair still says it is not mechanical work, and the windshield stays body work',
-  (select bool_and(intent_note ~* 'do not do mechanical') from place_terms where slug in ('car-repair', 'auto-repair'))
+  (select bool_and(intent_note ~* 'we arrange a trusted shop') from place_terms where slug in ('car-repair', 'auto-repair'))
   and (select lead_kind from place_terms where slug = 'windshield-repair') = 'bodyshop');
 select test.throws('terms: a lead kind must be one we handle', $$update place_terms set lead_kind = 'garage' where slug = 'oil-change'$$, 'place_terms_lead_kind_check');
 

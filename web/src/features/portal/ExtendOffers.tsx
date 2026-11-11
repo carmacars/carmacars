@@ -19,6 +19,8 @@ export interface ExtOffers {
   booking_number: string; return_at: string; offers: boolean; message: string | null; options: ExtOption[];
   discount_bps: number; short_discount_bps: number; available_until: string | null; available_until_text: string | null;
   late: { minutes: number; owed_cents: number } | null; card: { brand: string; last4: string } | null;
+  /** 1201: the booking's all-in price a day (fees and HST included), what each added day costs */
+  per_day_cents?: number | null;
 }
 
 export const at = (iso: string) => { const p = torontoParts(iso); return `${shortDate(p.date)}, ${minutesToClock(p.minutes)}`; };
@@ -60,6 +62,7 @@ export function ExtendOffers({ data, children }: { data: ExtOffers; children?: R
       <fieldset className="ext__set">
         <legend className="vh">How much longer do you need?</legend>
         {data.available_until_text && <p className="small muted ext__until" data-testid="extend-until">{data.available_until_text}</p>}
+        {data.per_day_cents ? <p className="small ext__perday" data-testid="extend-per-day">Each added day: <b>{$(data.per_day_cents)}</b>, your booking&apos;s price a day with its fees and HST included. A few hours cost the hourly rate, never more than a day.</p> : null}
         <div className="ext__grid">
           {shown.map((x) => {
             const id = `ext-${x.code}`;
@@ -72,6 +75,7 @@ export function ExtendOffers({ data, children }: { data: ExtOffers; children?: R
                 {x.available ? (
                   <span className="ext__price">
                     <b>{$(x.total_cents)}</b>
+                    {data.per_day_cents && x.days > 0 && x.pricing !== 'short' ? <span className="ext__note" data-testid={`extend-opt-${x.code}-perday`}>{x.days} x {$(data.per_day_cents)}</span> : null}
                     {save && <s aria-label={`Regular price ${$(x.regular_total_cents)}`}>{$(x.regular_total_cents)}</s>}
                   </span>
                 ) : <span className="ext__reason">{x.reason}</span>}
@@ -103,7 +107,7 @@ export function ExtendOffers({ data, children }: { data: ExtOffers; children?: R
             onClick={() => go.run(() => extendWithOption(data.booking_number, o.code), (r) => { if (!r.ok) return; if (r.data.state === 'link' && r.data.url) window.location.assign(r.data.url); else router.refresh(); })}>
             {go.pending ? 'Working' : data.card ? `Pay ${$(o.total_cents)} with ${brand(data.card.brand)} ending ${data.card.last4}` : `Pay ${$(o.total_cents)} by card`}
           </button>
-          <p className="small"><b>New return: {at(o.new_return_at)}</b></p>
+          <p className="small"><b>New return: {at(o.new_return_at)}</b>{data.per_day_cents && o.days > 0 && o.pricing !== 'short' ? ` (${o.days} ${o.days === 1 ? 'day' : 'days'} at ${$(data.per_day_cents)} a day: ${$(o.total_cents)})` : ''}</p>
           <p className="small muted">HST included. Approved at once when the car is free; otherwise our team confirms it first and nothing is charged until then.{data.card ? '' : ' You enter the card on Stripe\'s secure page.'}</p>
         </div>
       )}

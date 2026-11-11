@@ -1,4 +1,5 @@
 import '@/styles/portal-revamp.css';
+import '@/styles/ui-kit.css';
 import { notFound } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
 import { loadPortal, partnerLink } from '@/server/referral/portal';

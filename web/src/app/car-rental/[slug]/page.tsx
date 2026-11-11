@@ -9,7 +9,8 @@ import { Icon } from '@/components/Icon';
 import { JsonLd } from '@/components/JsonLd';
 import { businessLd, napAddress } from '@/features/seo/business';
 import { getArticles, getSeoLinks, getSeoPage, paras, type SeoPage } from '@/features/seo/data';
-import { absUrl, breadcrumbLd, faqLd, type Trail, seoMeta } from '@/features/seo/meta';
+import { absUrl, breadcrumbLd, faqLd, type Trail, seoMeta, withLanguages } from '@/features/seo/meta';
+import { langAlternates } from '@/features/i18n/data';
 import { money } from '@/lib/format';
 import { fill, getClasses, getFleet, getSettings, getTokens, siteUrl } from '@/lib/site';
 import OG from '@/features/seo/og-images.json';
@@ -19,7 +20,10 @@ import { HubPage, hubMeta } from '@/features/places/HubPage';
 import { buildDepth } from '@/features/seo/depth';
 import { depthCar, getDepthFacts } from '@/features/seo/depth-data';
 import { DepthSections } from '@/features/seo/Depth';
+import { ReadyCars } from '@/features/seo/ReadyCars';
+import { SiteReviews } from '@/features/seo/SiteReviews';
 import '@/styles/seo.css';
+import '@/styles/vehicles.css';
 
 // Landing pages (migration 0061): a place we deliver to or a way of renting, with the live matching cars and prices
 // from the database and copy written for that page (Admin > Settings > Search). Every active page is indexed (1100):
@@ -49,8 +53,10 @@ export async function generateMetadata({ params }: Params) {
   const { p, hub } = await load((await params).slug);
   if (!p) return hubMeta(hub!);
   const t = await getTokens();
-  return seoMeta({ title: fill(p.copy.seo_title, t), description: fill(p.copy.meta_description, t), path: p.path, noindex: !p.indexable,
+  const m = await seoMeta({ title: fill(p.copy.seo_title, t), description: fill(p.copy.meta_description, t), path: p.path, noindex: !p.indexable,
     image: OG.pages.includes(p.slug) ? `${siteUrl()}/og/pages/${p.slug}.png` : null, imageAlt: fill(p.copy.h1, t) });
+  // release 36: the language versions of the landing page (only the ready languages)
+  return withLanguages(m, await langAlternates(p.path, siteUrl()));
 }
 
 export default async function LandingPage({ params }: Params) {
@@ -119,7 +125,7 @@ export default async function LandingPage({ params }: Params) {
             <p className="muted small">Live prices before {t.hst} HST. Each car has its own page, photos and calendar.{p.distance_km ? ` About ${p.distance_km} km from our location in a straight line.` : ''}</p></div>
           {p.cars.length
             ? <ul className="fleet-grid fleet-grid--3">{p.cars.slice(0, 12).map((c) => <li key={c.slug}><CarCard c={c} labels={labels} /></li>)}</ul>
-            : <p className="alert alert--info"><span>No car matches this right now. <Link className="link" href="/cars">See every car</Link>.</span></p>}
+            : <ReadyCars cars={fleet} labels={labels} want={`a car for ${p.name.replace(/ \(.*\)$/, '').toLowerCase()}`} pageKey={`/car-rental/${p.slug}`} />}
           <p className="small"><Link prefetch={false} className="link link--go" href="/cars">{p.car_count > 12 ? `See all ${p.car_count} cars` : 'See every car'} <Icon name="arrow" /></Link></p>
         </div>
       </section>
@@ -132,6 +138,7 @@ export default async function LandingPage({ params }: Params) {
           </section>
         ))}
         <DepthSections d={depth} />
+        <SiteReviews />
         {faq.length > 0 && (
           <section className="car-sec" aria-labelledby="h-faq">
             <h2 className="d2" id="h-faq">Questions</h2>

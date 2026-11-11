@@ -3,7 +3,7 @@
 //   node --test --experimental-strip-types src/features/listing/showroom.test.ts   (npm run test:unit)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { FALLBACK_TEXT, ROOM, SHOWROOM_PRESET, composeShowroom, decodeImage, fitFrame, encodeJpeg, localShowroom, sameCar, makeShowroom, marketingPrompt, nameBox, sceneOf, showroomBackdrop, showroomPrompt, whiteStudio,
+import { FALLBACK_TEXT, ROOM, SHOWROOM_PRESET, composeShowroom, coverModelPrompt, decodeImage, fitFrame, encodeJpeg, localShowroom, sameCar, makeShowroom, marketingPrompt, nameBox, sceneOf, showroomBackdrop, showroomPrompt, whiteStudio,
   type ShowroomProvider } from './showroom.ts';
 import { encodePng, type Rgba } from './subject-frame.ts';
 import { resample } from '../../integrations/photos/local.ts';
@@ -280,4 +280,37 @@ test('marketing scenes: the white studio, the words per scene, a copy made or "n
   assert.equal((withRef.output as { marketing: { status: string } }).marketing.status, 'made');
   assert.ok(seen.reference, 'the photo of the real place is given to the image model');
   assert.match(String(seen.prompt), /second image/);
+});
+
+// ---------------------------------------------------------------- r36 (2100): the listing's first photo
+test('first photo: the model words keep the site\'s own rules; the flyer drawn on the cover photo; "with model" needs the image model', async () => {
+  const p = coverModelPrompt('A glamorous model in a red evening dress.');
+  assert.match(p, /glamorous model in a red evening dress/);
+  assert.match(p, /fully clothed/);
+  assert.match(p, /clearly adult professional model \(over 25/);
+  assert.match(p, /nothing revealing, see-through, explicit or sexual/);
+  assert.match(p, /clearly the same car/);
+  assert.match(coverModelPrompt(''), /fully clothed/, 'the rules hold with no words in the settings');
+  const W = 1000, H = 650, data = new Uint8ClampedArray(W * H * 4);
+  for (let y = 250; y < 420; y++) for (let x = 320; x < 680; x++) { const i = (y * W + x) * 4; data[i] = 40; data[i + 1] = 60; data[i + 2] = 200; data[i + 3] = 255; }
+  const priv = new Map<string, Uint8Array>([['vehicles/v1/work/p1-mask.png', await encodePng({ width: W, height: H, data })]]);
+  const pub = new Map<string, Uint8Array>([['vehicles/v1/p1.jpg', encodeJpeg(whiteStudio())]]);
+  const files = { privateUrl: async (x: string) => `priv:${x}`, publicUrl: (x: string) => `pub:${x}`, getPrivate: async (x: string) => priv.get(x) ?? null,
+    putPrivate: async (x: string, b: Uint8Array) => { priv.set(x, b); }, putPublic: async (x: string, b: Uint8Array) => { pub.set(x, b); }, getPublic: async (x: string) => pub.get(x) ?? null };
+  const deps = (over: Partial<WorkerDeps> = {}): WorkerDeps => ({ claim: async () => ({ jobs: [], budget, held: { photos: false, copy: false }, due: 0 }), report: async () => ({}),
+    decodeVin: async () => ({ provider: 'fake', result: { ok: true } }), text: fakeText(), photos: fakePhotos(async () => null), files, ...over });
+  const mk = (style: 'model' | 'flyer'): JobContext => ({ id: 'c1', kind: style === 'model' ? 'cover_model' : 'cover_flyer', intake_id: 'i1', vehicle_id: 'v1', attempts: 1, max_attempts: 4,
+    input: { cover: { id: `cv-${style}`, vehicle_id: 'v1', photo_id: 'p1', style, source: 'vehicles/v1/p1.jpg', mask: 'vehicles/v1/work/p1-mask.png', adjust: null, model: 'C 300',
+      prompt: 'A model in an evening dress.', flyer: { headline: '2023 MERCEDES-BENZ C 300', offer: 'FROM $89 A DAY', cta: 'BOOK NOW', logo: true } } } });
+  const fl = (await runJob(deps(), mk('flyer'), budget)).output as { cover: { status: string; path: string; width: number } };
+  assert.deepEqual([fl.cover.status, fl.cover.path, fl.cover.width], ['made', 'vehicles/v1/cover/cv-flyer.jpg', 1800]);
+  assert.ok(pub.get(fl.cover.path), 'a file of its own: the cover photo is not changed');
+  const none = (await runJob(deps({ showroomNoKey: true }), mk('model'), budget)).output as { cover: { status: string; note: string } };
+  assert.deepEqual([none.cover.status, /needs the image model/.test(none.cover.note)], ['needs_gemini', true]);
+  let seen = '';
+  const ai: ShowroomProvider = { name: 'ai', make: async (i, b) => { seen = String(i.prompt); return { ok: true, bytes: b, contentType: 'image/jpeg', provider: 'ai', model: 'm1' }; } };
+  const md = (await runJob(deps({ showroomAi: ai }), mk('model'), budget)).output as { cover: { status: string; path: string } };
+  assert.deepEqual([md.cover.status, md.cover.path], ['made', 'vehicles/v1/cover/cv-model.jpg']);
+  assert.match(seen, /evening dress/);
+  assert.match(seen, /fully clothed/);
 });

@@ -106,7 +106,7 @@ select app.api_key_create(test.id('rqz_admin'), test.id('rqz_admin'), 'Requests'
 select test.eq('a request''s note changes', app.api_call(test.rqz_h('cc_live_rqz_req'), 'update_request', '{"booking_number": "RQZ-101", "changes": {"request_note": "Two child seats"}}') ->> 'ok', 'true');
 select test.eq('a confirmed booking is not a request', app.api_call(test.rqz_h('cc_live_rqz_req'), 'update_request', '{"booking_number": "RQZ-102", "changes": {"request_note": "x"}}') ->> 'status', '400');
 select test.ok('list_requests lists the request, not the booking', (select bool_or(x ->> 'booking_number' = 'RQZ-101') and not bool_or(x ->> 'booking_number' = 'RQZ-102')
-  from jsonb_array_elements(app.api_call(test.rqz_h('cc_live_rqz_req'), 'list_requests', '{"query": "RQZ-10"}') -> 'result') x));
+  from jsonb_array_elements(app.api_call(test.rqz_h('cc_live_rqz_req'), 'list_requests', '{"query": "RQZ-10", "include_test": true}') #> '{result,items}') x));
 -- OAuth: a code becomes a token once, with PKCE
 select app.api_oauth_register('ccc_rqz_client_000000000001', 'Claude', array['https://claude.ai/api/mcp/auth_callback']);
 select test.throws('a client may return only to Claude or a loopback address', $$select app.api_oauth_register('ccc_rqz_client_000000000002', 'Evil', array['https://evil.example.test/cb'])$$, '%not allowed%');

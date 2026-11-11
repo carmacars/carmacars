@@ -2,7 +2,8 @@
 // What each rate means is what public.calc_rental_charge() (0003) does with it: each 24 hours from the pickup time is
 // one day; a day that starts on a Friday or Saturday (Toronto time) is charged the weekend rate, any other day the
 // daily rate; 1 to 6 days never cost more than the weekly rate; 7 to 29 days cost the weekly rate for each 7 days, by
-// the day, never more than the monthly rate; 30 days cost the monthly rate.
+// the day, never more than the monthly rate; 30 days cost the monthly rate. A stay never costs less than a shorter one from
+// the same pickup (1200): a 3+ day rate or a monthly rate set low cannot make a longer stay cheaper.
 
 export type RateKey = 'daily' | 'weekend' | 'weekly' | 'monthly';
 export const RATE_FIELDS: Array<{ key: RateKey; label: string; hint: string }> = [

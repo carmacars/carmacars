@@ -38,7 +38,8 @@ const PRIVATE = new Set(['admin', 'account', 'owner', 'va', 'field', 'staff', 'i
  *  for PROGRAMMATIC_TTL_S whatever Next.js says (force-dynamic answers "private, no-store"), and sent to browsers and
  *  crawlers with PROGRAMMATIC_CC. */
 // 0124: the directories that lead to them (/makes, /places and its pages) too: rendered on demand, crawled often
-export const PROGRAMMATIC = /^\/(cars\/[^/]+\/[^/]+(\/[^/]+){0,5}|buy(\/[^/]+){1,7}|t\/[^/]+(\/[^/]+){1,7}|makes|places(\/\d{1,6})?)$/;
+// release 36: the events, airport, renting vs owning and GPS tracker pages, and the language versions (/<lang>/...)
+export const PROGRAMMATIC = /^\/(cars\/[^/]+\/[^/]+(\/[^/]+){0,5}|buy(\/[^/]+){1,7}|t\/[^/]+(\/[^/]+){1,7}|makes|places(\/\d{1,6})?|events(\/[a-z0-9-]+)?|airport-car-rental(\/[a-z0-9]+)?|rent-vs-own(\/[a-z0-9-]+){0,4}|gps-tracker|(fr|pa|zh|yue|ar|ur|tl|es|pt|it|ta|fa|ko|ru|hi|gu|vi|pl)(\/(car-rental|events|airport-car-rental)\/[a-z0-9-]+)?)$/;
 export const PROGRAMMATIC_TTL_S = 86_400;
 export const PROGRAMMATIC_CC = 'public, max-age=600, s-maxage=86400, stale-while-revalidate=604800';
 // 0124: the sitemaps at the site's root (/sitemap-index-<n>.xml, /sitemap-priority-<n>.xml, /sitemap-vehicles-<file>.xml,

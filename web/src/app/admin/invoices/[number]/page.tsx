@@ -95,6 +95,11 @@ export default async function AdminInvoice({ params, searchParams }: { params: P
             {!['paid', 'deducted', 'void'].includes(i.status) && i.kind !== 'credit_note' && <Act action="owner_invoice_collect_by" payload={{ id: i.id }} label="Change how it's paid" variant="quiet" refresh={paths} testId="invoice-collect-by-change"
               done="Saved." submitLabel="Save" fields={[{ name: 'collect_by', label: 'How it is paid', type: 'select', required: true, value: String((i as unknown as Record<string, unknown>).collect_by ?? 'bank_debit'),
                 options: [['bank_debit', 'Bank debit on the 15th'], ['payout', 'Deduct from payouts']] }]} />}
+            {/* 1155: deduct from payouts starting a payout date (a statement paid before it deducts nothing of this invoice) */}
+            <p className="small" data-testid="invoice-deduct-from-now">{(i as unknown as Record<string, unknown>).deduct_from_payout_on
+              ? `Deducted from payouts starting ${d(String((i as unknown as Record<string, unknown>).deduct_from_payout_on))}.` : 'Deducted from the next payout when it is deducted from payouts.'}</p>
+            {!['paid', 'deducted', 'void'].includes(i.status) && i.kind !== 'credit_note' && <Act action="owner_invoice_deduct_from" payload={{ id: i.id }} label="Deduct from payouts starting" variant="quiet" refresh={paths} testId="invoice-deduct-from-change"
+              done="Saved." submitLabel="Save" fields={[{ name: 'date', label: 'First payout date to deduct from (empty: the next payout)', type: 'date', value: String((i as unknown as Record<string, unknown>).deduct_from_payout_on ?? '') }]} />}
           </Card>
           <Card title="Actions"><InvoiceActions id={i.id} number={i.invoice_number} status={i.status} can={i.can} paths={paths} /></Card>
           <Card title="Emails" testId="invoice-emails">

@@ -99,6 +99,9 @@ async function makeTokens(fleet: CarRow[]): Promise<Tokens> {
     offerHours: String(f.offer_expiry_hours), verifyHours: String(f.verification_due_hours_before_pickup),
     callHours: String(extra.accident_call_hours ?? ''), reportHours: String(f.incident_report_hours), hiddenHours: String(f.damage_late_report_hours),
     payoutDay: ordinal(f.payout_day), billDay: ordinal(f.billing_day), noticeDays: String(f.notice_period_days), referralPct: pct(f.kickback_bps),
+    // r35 UX (1108): add-ons not returned (the FAQ, Payment and deposit)
+    unretCharger: money(f.unreturned?.ev_charger_cents ?? 15000), unretMount: money(f.unreturned?.phone_mount_cents ?? 7500), unretSeat: money(f.unreturned?.child_seat_cents ?? 45000),
+    unretBooster: money(f.unreturned?.booster_seat_cents ?? 20000), unretTimes: String(Number(f.unreturned?.other_times ?? 3)), unretMin: money(f.unreturned?.other_min_cents ?? 10000),
     ownerReply: extra.owner_reply ?? '', listDays: s.listing_time_promise ?? '', minDaily: dailies.length ? money(Math.min(...dailies)) : ''
   };
 }

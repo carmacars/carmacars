@@ -173,8 +173,12 @@ select test.ok('stock: Fleet adds a seat, and one is free again',
 update addons set stock_count = 2 where code = 'baby_seat';
 
 -- ================================================================ 4. money: commission base, Owner Revenue, the company statement
-select test.eq('commission base: the rental charge after discounts only, never the add-ons ($300 of $625)',
-  app.commission_base_cents((test.s43b('m1')).id) || '/' || app.sales_revenue_cents((test.s43b('m1')).id), '30000/30000');
+-- r35 UX (1109): the owner, November 9: "sales people should get the same commission rates on the add-ons too". The base is
+-- the rental charge after discounts plus the confirmed add-ons before HST (prepaid fuel aside); the revenue stays the rental
+select test.eq('commission base: the rental charge after discounts plus the add-ons (1109); the revenue the rental only',
+  app.commission_base_cents((test.s43b('m1')).id) || '/' || app.sales_revenue_cents((test.s43b('m1')).id),
+  (30000 + app.commission_addon_cents((test.s43b('m1')).id)) || '/30000');
+select test.ok('commission base: the add-on part is the add-ons'' lines (1109)', app.commission_addon_cents((test.s43b('m1')).id) > 0);
 -- a past rental on a program owner's car, with add-ons, against the same rental without
 insert into s43 select 'p1', app.manual_rental_create(test.id('ao_admin'), jsonb_build_object('vehicle_id', test.id('vehicle:ao_prog'),
   'pickup_at', app.local_midnight((app.month_start(app.today()) - interval '1 month')::date + 2) + interval '10 hours',

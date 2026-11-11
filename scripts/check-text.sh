@@ -32,4 +32,6 @@ if [ "$HITS" -gt 0 ]; then
 fi
 # every change record belongs to a release note of the investor Updates page (release 29)
 node scripts/check-release-notes.mjs
+# the SEO templates say what we do, never what we lack (release 36; web/src/features/seo/copy-lint.ts)
+node --experimental-strip-types --no-warnings scripts/check-seo-copy.mjs
 echo "TEXT CHECK PASSED"

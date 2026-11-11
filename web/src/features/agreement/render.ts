@@ -34,6 +34,12 @@ export interface PdfExtras {
   logoMark?: boolean;
   /** 0154: the drawn initials (PNG) of the key terms, by the term's code. */
   initials?: Map<string, Uint8Array>;
+  /** r35 UX (1108): the document's author in its properties (CarmaCars by default; an insurer invoice is Blind Spot Car Rental's). */
+  author?: string;
+  /** r35 UX (1108): a branded document's header shows this name as a text wordmark instead of the CarmaCars logo (no logo is drawn). */
+  wordmark?: string;
+  /** r35 UX (1108): every value of a two-column (kv) table is right-aligned, the labels left (invoices and statements). */
+  valuesRight?: boolean;
 }
 
 /** The brand logo (features/brand/logo-paths.ts) with its top left corner at (x, top), `width` points wide. */
@@ -46,13 +52,14 @@ function drawLogo(p: PDFPage, x: number, top: number, width: number) {
 
 export async function agreementPdf(blocks: Block[], x: PdfExtras): Promise<Uint8Array> {
   const doc = await PDFDocument.create({ updateMetadata: false });
-  doc.setTitle(pdfSafe(x.title)); doc.setAuthor('CarmaCars'); doc.setCreator('CarmaCars'); doc.setProducer('CarmaCars');
+  const author = pdfSafe(x.author ?? 'CarmaCars');
+  doc.setTitle(pdfSafe(x.title)); doc.setAuthor(author); doc.setCreator(author); doc.setProducer(author);
   doc.setCreationDate(x.createdAt); doc.setModificationDate(x.createdAt);
   const reg = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const boldFont = bold;
   let logo: PDFImage | null = null;
-  if (x.brand && x.logo && x.logo.length > 8) {
+  if (x.brand && !x.wordmark && x.logo && x.logo.length > 8) {
     try { logo = x.logo[0] === 0x89 ? await doc.embedPng(x.logo) : x.logo[0] === 0xff ? await doc.embedJpg(x.logo) : null; } catch { logo = null; }
   }
   const images = new Map<number, PDFImage>();
@@ -135,7 +142,7 @@ export async function agreementPdf(blocks: Block[], x: PdfExtras): Promise<Uint8
       if (total) page.drawLine({ start: { x: M, y }, end: { x: M + full, y }, thickness: 1.2, color: RED });
       let xx = M;
       wrapped.forEach((ls, i) => {
-        const right = x.brand && i > 0 && (isHead ? rows.some((r) => NUMERIC.test((r[i] ?? '').trim())) && !kv : NUMERIC.test((cells[i] ?? '').trim()));
+        const right = x.brand && i > 0 && (kv && x.valuesRight ? true : isHead ? rows.some((r) => NUMERIC.test((r[i] ?? '').trim())) && !kv : NUMERIC.test((cells[i] ?? '').trim()));
         ls.forEach((l, k) => {
           const tw = l.reduce((a, sg) => a + (sg.bold ? bold : reg).widthOfTextAtSize(sg.text, size), 0);
           drawLine(l, right ? xx + widths[i]! - pad - tw : xx + pad, y - pad - (k + 1) * lead + 2.5, size, isHead && x.brand ? WHITE : INK);
@@ -240,7 +247,12 @@ export async function agreementPdf(blocks: Block[], x: PdfExtras): Promise<Uint8
     p.drawText(pdfSafe(`${x.footer}   Page ${i + 1} of ${total}`), { x: M, y: 30, size: 7.5, font: reg, color: GREY });
     if (x.brand) {
       // the header: the logo (or the CarmaCars wordmark) on the left, the document's title on the right, a red rule
-      if (logo) {
+      if (x.wordmark) {
+        // r35 UX (1108): a text wordmark (an insurer invoice is issued as Blind Spot Car Rental: no CarmaCars logo)
+        const wm = pdfSafe(x.wordmark).toUpperCase();
+        p.drawText(wm, { x: M, y: H - 40, size: 13, font: bold, color: LOGO_INK });
+        p.drawRectangle({ x: M, y: H - 45, width: Math.min(bold.widthOfTextAtSize(wm, 13), 40), height: 2, color: LOGO_RED });
+      } else if (logo) {
         const sc = Math.min(120 / logo.width, 24 / logo.height);
         p.drawImage(logo, { x: M, y: H - 44, width: logo.width * sc, height: logo.height * sc });
       } else {

@@ -145,7 +145,7 @@ test('cron tick: asks the database once; runs everything when it cannot tell', a
   const env = { DATA_BACKEND: 'supabase', NEXT_PUBLIC_SUPABASE_URL: 'https://p.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'svc' };
   const calls: string[] = [];
   const f = (body: string, status = 200) => (async (url: string | URL | Request, init?: RequestInit) => { calls.push(String(url) + ' ' + (init?.headers as Record<string, string>).authorization); return new Response(body, { status }); }) as typeof fetch;
-  assert.deepEqual(await jobsToRun(env, f('{"listing":false,"seo":false,"pdf":false,"phone":false,"agreements":false}')), { listing: false, seo: false, pdf: false, phone: false, turo: false, agreements: false, reviews: false, crm: false, deposits: true, ads: false, interviews: false, cpu_guard: false, search_core: false, checked: true });
+  assert.deepEqual(await jobsToRun(env, f('{"listing":false,"seo":false,"pdf":false,"phone":false,"agreements":false}')), { listing: false, seo: false, pdf: false, phone: false, turo: false, agreements: false, reviews: false, crm: false, deposits: true, ads: false, interviews: false, car_values: false, cpu_guard: false, search_core: false, checked: true });
   assert.equal(calls[0], 'https://p.supabase.co/rest/v1/rpc/server_jobs_due Bearer svc');
   assert.equal((await jobsToRun(env, f('{"reviews":true}'))).reviews, true, 'the Google reviews sync only when the database says it is due (0146)');
   // 0147: a partner CRM link due
@@ -154,7 +154,7 @@ test('cron tick: asks the database once; runs everything when it cannot tell', a
   assert.equal((await jobsToRun(env, f('{"deposits":false}'))).deposits, false);
   // 0167: the ads job only when the database says so
   assert.equal((await jobsToRun(env, f('{"ads":true}'))).ads, true);
-  assert.deepEqual(await jobsToRun(env, f('{"listing":true,"seo":false}')), { listing: true, seo: false, pdf: true, phone: true, turo: false, agreements: true, reviews: false, crm: false, deposits: true, ads: false, interviews: false, cpu_guard: false, search_core: false, checked: true });
+  assert.deepEqual(await jobsToRun(env, f('{"listing":true,"seo":false}')), { listing: true, seo: false, pdf: true, phone: true, turo: false, agreements: true, reviews: false, crm: false, deposits: true, ads: false, interviews: false, car_values: false, cpu_guard: false, search_core: false, checked: true });
   assert.deepEqual(await jobsToRun(env, f('{"message":"function not found"}', 404)), { listing: true, seo: true, pdf: true, phone: true, turo: true, agreements: true, reviews: false, crm: true, deposits: true, ads: false, interviews: true, checked: false });
   assert.deepEqual(await jobsToRun(env, (async () => { throw new TypeError('fetch failed'); }) as typeof fetch), { listing: true, seo: true, pdf: true, phone: true, turo: true, agreements: true, reviews: false, crm: true, deposits: true, ads: false, interviews: true, checked: false });
   assert.deepEqual(await jobsToRun({ ...env, SUPABASE_SERVICE_ROLE_KEY: undefined }, f('{}')), { listing: true, seo: true, pdf: true, phone: true, turo: true, agreements: true, reviews: false, crm: true, deposits: true, ads: false, interviews: true, checked: false });
@@ -202,6 +202,10 @@ test('the programmatic vehicle pages: no ISR entry, kept at the edge for 6 hours
   for (const p of ['/cars/volkswagen/jetta', '/cars/volkswagen/jetta/2020/sportline/port-credit/black', '/buy/volkswagen', '/t/car-hire/volkswagen/jetta/2020/sportline/streetsville'])
     assert.ok(PROGRAMMATIC.test(p), p);
   for (const p of ['/makes', '/places', '/places/3']) assert.ok(PROGRAMMATIC.test(p), p);
+  // release 36: the new page families and the language versions
+  for (const p of ['/events', '/events/tiff', '/airport-car-rental/yyz', '/rent-vs-own/toyota/camry/2022/mississauga', '/gps-tracker', '/fr', '/fr/car-rental/mississauga', '/pa/events/tiff'])
+    assert.ok(PROGRAMMATIC.test(p), p);
+  for (const p of ['/xx/car-rental/a', '/fr/admin/x', '/events/a/b']) assert.ok(!PROGRAMMATIC.test(p), p);
   for (const p of ['/cars', '/cars/porsche-911', '/buy', '/t/car-hire', '/admin/x']) assert.ok(!PROGRAMMATIC.test(p), p);
   assert.equal(edgeTtl('/cars/volkswagen/jetta/2020', 200, h({ 'cache-control': 'private, no-cache, no-store, max-age=0, must-revalidate' })), PROGRAMMATIC_TTL_S);
   assert.equal(edgeTtl('/buy/volkswagen', 200, h({ 'cache-control': 'private, no-store', 'set-cookie': 'a=1' })), 0);

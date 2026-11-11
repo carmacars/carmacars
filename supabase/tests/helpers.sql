@@ -351,3 +351,8 @@ do $$ begin
     execute 'update sales_lead_settings set claim_cooldown_minutes = 0, lead_cap_base = 25, lead_cap_max = 25';
   end if;
 end $$;
+-- 1202: the Protection Plan (RentalCover) is offered only on a car worth less than the cap, and a car with no value on file
+-- counts as over it; the older suites price the plan on cars made without a value. 99_r35h_rentalcover.sql switches the
+-- rule back on, tests it and switches it off.
+alter table program_settings alter column rentalcover_unknown_value_allowed set default true;
+update program_settings set rentalcover_unknown_value_allowed = true;

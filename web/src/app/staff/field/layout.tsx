@@ -1,5 +1,6 @@
 import '@/styles/field.css';
 import '@/styles/field-portal.css';
+import '@/styles/ui-kit.css';
 import type { Metadata, Viewport } from 'next';
 import { currentUser } from '@/server/portal/data';
 import { rolesOf } from '@/server/door';

@@ -133,15 +133,15 @@ insert into leads (id, kind, name, email, source) values (test.id('lal_o2'), 'ow
 select app.process_events(1000);
 select test.eq('an owner lead: the Admin and the Sales person it is assigned to, not other Sales or customer service',
   test.lal_who('staff_owner_lead_new', 'New owner lead: Website form') , 'lal_admin,lal_sales');
-select test.eq('an unassigned owner lead: the Admin only', test.lal_n('lal_admin', 'staff_owner_lead_new', 'New owner lead%') || '/' || test.lal_n('lal_sales', 'staff_owner_lead_new', 'New owner lead%') || '/' || test.lal_n('lal_cs', 'staff_owner_lead_new'), '2/1/0');
+select test.eq('an unassigned owner lead: the Admin and Sales on duty (1153), not Sales off duty or customer service', test.lal_n('lal_admin', 'staff_owner_lead_new', 'New owner lead%') || '/' || test.lal_n('lal_sales', 'staff_owner_lead_new', 'New owner lead%') || '/' || test.lal_n('lal_cs', 'staff_owner_lead_new') || '/' || test.lal_n('lal_sales2', 'staff_owner_lead_new'), '2/2/0/0');
 select test.eq('an owner lead''s link is that lead (r35, 0950)',
-  (select url from notifications where user_id = test.id('lal_sales') and code = 'staff_owner_lead_new' and title like 'New owner lead%') ~ '/staff/sales-leads/[0-9a-f-]{36}$', true);
+  (select url from notifications where user_id = test.id('lal_sales') and code = 'staff_owner_lead_new' and title like 'New owner lead%' and entity_id = test.id('lal_o1')) ~ '/staff/sales-leads/[0-9a-f-]{36}$', true);
 -- the unfinished application: a capture's lead made as "other", then an owner lead, then the 30-minute chase
 insert into leads (id, kind, name, email, source, payload) values (test.id('lal_o3'), 'other', 'Ula Unfinished', 'lal_ula@example.test', 'unfinished_form', jsonb_build_object('form', 'owner_application'));
 select test.eq('an unfinished application is not an owner alert until it becomes an owner lead', (select count(*) from app_events where code in ('staff_lead_new', 'staff_owner_lead_new') and payload ->> 'lead_id' = test.id('lal_o3')::text), 0::bigint);
 update leads set kind = 'owner_program', pipeline_stage = 'new', pipeline_source = 'unfinished_form' where id = test.id('lal_o3');
 select app.process_events(1000);
-select test.eq('it becomes "Website form, unfinished": the Admin', test.lal_who('staff_owner_lead_new', 'New owner lead: Website form, unfinished'), 'lal_admin');
+select test.eq('it becomes "Website form, unfinished": the Admin and Sales on duty (1153)', test.lal_who('staff_owner_lead_new', 'New owner lead: Website form, unfinished'), 'lal_admin,lal_sales');
 update leads set payload = payload || jsonb_build_object('chased_at', now()), assigned_to = test.id('lal_sales') where id = test.id('lal_o3');
 select app.process_events(1000);
 select test.eq('the 30-minute chase: the Admin and the Sales person it was given to', test.lal_who('staff_owner_lead_new', 'Owner lead to chase%'), 'lal_admin,lal_sales');

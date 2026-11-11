@@ -8,6 +8,9 @@ export interface CardRow {
   max_msrp_cents: number | null; value_note: string | null; max_days: number | null;
   exclusions: string; conditions: string; car_sharing: string | null; note: string | null;
   guide_url: string | null; source_url: string | null; issuer_checked: boolean; last_checked: string; sort_order: number; is_active: boolean;
+  /** 1400: the structured facts the booking check uses */
+  network?: 'visa' | 'mastercard' | 'amex' | 'unknown'; cdw_included?: 'yes' | 'no' | 'unknown'; excluded_types?: string[];
+  must_decline_cdw?: 'yes' | 'no' | 'unknown'; must_pay_full?: 'yes' | 'no' | 'unknown';
 }
 export interface CardList { cards: CardRow[]; checked: string | null; oldest: string | null }
 
@@ -80,3 +83,21 @@ export function cardFaq(rows: CardRow[]): Array<{ question: string; answer: stri
       answer: 'Your card issuer and its insurer. CarmaCars does not decide claims and is not an insurer. If the car is damaged, you pay what your rental agreement says and claim it back from your card\'s coverage.' }
   ];
 }
+
+export const NETWORK_LABEL: Record<string, string> = { visa: 'Visa', mastercard: 'Mastercard', amex: 'American Express', unknown: 'Unknown' };
+export const YES_NO_LABEL: Record<string, string> = { yes: 'Yes', no: 'No', unknown: 'Unknown' };
+export const VEHICLE_TYPE_LABEL: Record<string, string> = {
+  exotic: 'Exotic', luxury: 'Luxury', truck: 'Trucks and pickups', van: 'Vans', off_road: 'Off-road', antique: 'Antique',
+  motorcycle: 'Motorcycles', limousine: 'Limousines', rv: 'RVs and campers'
+};
+
+/** The renter's card search (1400): Canadian cards first, every word of the query in the issuer or the card's name
+ *  ("td aeroplan", "amex cobalt": amex finds American Express). At most `limit` rows. */
+export function searchCards(rows: CardRow[], q: string, limit = 12): CardRow[] {
+  const norm = (s: string) => s.toLowerCase().replace(/\bamex\b/g, 'american express').replace(/[^a-z0-9+ ]+/g, ' ');
+  const words = norm(q).split(/\s+/).filter(Boolean);
+  const live = rows.filter((c) => c.is_active !== false).sort((a, b) => (a.country === b.country ? 0 : a.country === 'CA' ? -1 : 1));
+  if (!words.length) return live.slice(0, limit);
+  return live.filter((c) => { const hay = norm(`${c.issuer} ${c.card} ${c.network ?? ''}`); return words.every((w) => hay.includes(w)); }).slice(0, limit);
+}
+export const cardName = (c: Pick<CardRow, 'issuer' | 'card'>) => `${c.issuer} ${c.card}`;

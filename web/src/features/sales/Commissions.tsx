@@ -15,7 +15,7 @@ export interface MonthLine { month: string; label: string; work_mode: 'in_person
   below_minimum: boolean; dropped: boolean; locked: boolean; line: string }
 export interface CommissionRow {
   id: string; booking_number: string; kind: 'commission' | 'clawback' | 'adjustment' | 'owner_recruit'; month: string; month_label: string; rental_days: number; tier_days: number | null;
-  base_cents: number; rate_bps: number; amount_cents: number; status: 'accruing' | 'pending_approval' | 'approved' | 'paid' | 'reversed' | 'void'; reason: string | null; note: string | null;
+  base_cents: number; /** r35 UX (1109): the add-on part of the base */ addon_base_cents?: number; rate_bps: number; amount_cents: number; status: 'accruing' | 'pending_approval' | 'approved' | 'paid' | 'reversed' | 'void'; reason: string | null; note: string | null;
   scheme: string | null; earned_at: string | null; approved_at: string | null; paid_at: string | null; month_open: boolean; work_mode?: 'in_person' | 'remote' | null;
   paid: { method: string; reference: string | null; paid_on: string; pay_period: string | null } | null;
   /** 0340: a commission for an owner brought in, and its clawbacks: what it is for */
@@ -102,7 +102,7 @@ export function Commissions({ c, own, compact, rowAction }: { c: StaffCommission
           { key: 'booking_number', label: 'Booking', className: 'wrap', render: (r) => <>{r.booking_number}{r.what ? <span className="ad-sub">{r.what}</span> : null}</> },
           { key: 'month_label', label: 'Month' },
           { key: 'rental_days', label: 'Days', num: true, render: (r) => (r.kind === 'commission' ? r.rental_days : '') },
-          { key: 'base_cents', label: 'Rental charge', num: true, render: (r) => (r.scheme === 'recruit_flat' ? '' : $(r.base_cents)) },
+          { key: 'base_cents', label: 'Rental charge and add-ons', num: true, render: (r) => (r.scheme === 'recruit_flat' ? '' : <>{$(r.base_cents)}{Number(r.addon_base_cents ?? 0) > 0 ? <span className="ad-sub" data-testid="commission-addons">incl. {$(r.addon_base_cents)} add-ons</span> : null}</>) },
           { key: 'rate_bps', label: 'Rate', num: true, render: (r) => <>{r.scheme === 'recruit_flat' ? 'flat' : pctBps(r.rate_bps)}{r.work_mode ? <span className="ad-sub">{r.work_mode === 'remote' ? 'remote' : 'in person'}</span> : null}</> },
           { key: 'amount_cents', label: 'Commission', num: true, render: (r) => $(r.amount_cents) },
           { key: 'status', label: 'Status', className: 'wrap', render: (r) => <span data-testid={`commission-status-${r.booking_number}-${r.kind}`}>{statusWords(r)}{r.reason ? <span className="ad-sub">{r.reason}</span> : null}{r.note ? <span className="ad-sub">{r.note}</span> : null}</span> },

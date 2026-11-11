@@ -1,0 +1,7 @@
+# SOPS (r36): the deploy's secrets live encrypted in secrets/deploy.sops.yaml, readable with one age key.
+# The public key below is the recipient; the private key is the GitHub secret SOPS_AGE_KEY (and the owner's own copy).
+# scripts/secrets/sops-init.sh writes the public key here the first time (docs/runbooks/sops-secrets.md).
+# Only the values are encrypted; the names stay readable so a change shows in review. Never commit a decrypted file.
+creation_rules:
+  - path_regex: secrets/.*\.sops\.(yaml|yml|json)$
+    age: AGE_PUBLIC_KEY_NOT_SET
