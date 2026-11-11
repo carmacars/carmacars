@@ -257,8 +257,10 @@ select test.ok('close: no longer on the board', not exists (select 1 from jsonb_
 insert into bn select 'cards', app.door(test.id('bn_cs'), 'aal2', 'ops_read', 'booking_cards',
   jsonb_build_object('_va', 'cs', 'ids', jsonb_build_array(test.id('booking:BN-WEEK'), test.id('booking:BN-INS'), 'not-a-uuid')));
 select test.eq('booking cards: the car, the mobile, the licence and the money of each row',
-  (select (x #>> '{car,code}' is not null) || '/' || (x ->> 'phone') || '/' || (x ->> 'licence') || '/' || (x #>> '{money,state}') || '/' || (x ->> 'bill_to')
-     from (select test.bn('cards') -> test.id('booking:BN-WEEK')::text x) z), 'true/647-555-0199/verified/upcoming/renter');
+  (select (x #>> '{car,code}' is not null) || '/' || (x ->> 'phone') || '/' || (x ->> 'licence') || '/' || (case when x #>> '{money,state}' in ('soon', 'upcoming') then 'due' else x #>> '{money,state}' end) || '/' || (x ->> 'bill_to')
+     from (select test.bn('cards') -> test.id('booking:BN-WEEK')::text x) z), 'true/647-555-0199/verified/due/renter');
+-- (the cards read the real clock, the board bn_now: before 14:00 bn_now is yesterday noon, so the instalment 4 days from it is
+-- 3 days from now, soon; after, upcoming)
 select test.eq('booking cards: an insurer-billed rental says so', test.bn('cards') #>> array[test.id('booking:BN-INS')::text, 'money', 'state'], 'none');
 select test.throws('booking cards: not for field staff', format($$select app.door(%L, 'aal2', 'ops_read', 'booking_cards', '{"ids": []}')$$, test.id('bn_field')), 'office staff');
 select test.ok('car thumbs: field staff read the calendar''s car rows',
