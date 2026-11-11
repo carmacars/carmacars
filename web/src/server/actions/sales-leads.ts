@@ -8,7 +8,7 @@ import { door, sessionAal } from '@/server/door';
 // The Sales lead list's actions (migration 0950), through the door's ops calls: the database checks the person (an Admin,
 // Sales or customer service; reassign, release and the settings are Admins') and the claim rules; its refusal is shown as
 // written.
-const ACTIONS = new Set(['lead_claim', 'lead_unclaim', 'lead_contact', 'lead_outcome', 'lead_handled', 'lead_reassign', 'lead_return', 'lead_next', 'sales_lead_settings_save', 'renter_merge_undo']);
+const ACTIONS = new Set(['lead_claim', 'lead_unclaim', 'lead_contact', 'lead_outcome', 'lead_handled', 'lead_reassign', 'lead_return', 'lead_hold_release', 'lead_next', 'sales_lead_settings_save', 'renter_merge_undo']);
 
 export async function leadAct<T = Record<string, unknown>>(action: string, p: Record<string, unknown> = {}): Promise<ActionResult<T>> {
   if (!ACTIONS.has(action)) return { ok: false, code: 'invalid', message: 'Unknown action.' };

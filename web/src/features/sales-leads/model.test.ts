@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { age, claimPaceWords, claimWords, contactLinks, listQuery, minutes, pct, stateOf, type LeadClaim } from './model.ts';
+import { age, claimPaceWords, claimWords, contactLinks, holdWords, HISTORY_LABEL, listQuery, minutes, pct, stateOf, type LeadClaim, type LeadHold } from './model.ts';
 import { taskHref, adminTaskHref, type Task } from '../va/tasks.ts';
 
 const now = Date.parse('2026-11-08T15:00:00Z');
@@ -73,4 +73,21 @@ test('1152: the claiming limits in words: held of the most, and the next claim i
   assert.equal(claimPaceWords({ held: 4, max: 3, nextAt: '2026-11-09T15:04:05Z', cooldown: 5, paced: false }, at), 'you hold 4');
   assert.equal(claimPaceWords({ held: 2, max: 4, nextAt: null, cooldown: 0, paced: true, winsToNext: 1 }, at), 'you hold 2 of 4 · 1 more win for one more');
   assert.equal(claimPaceWords({ held: 2, max: 4, nextAt: null, cooldown: 0, paced: true, winsToNext: 3 }, at), 'you hold 2 of 4 · 3 more wins for one more');
+});
+
+const hold = (mine: boolean, locked: boolean, min = 10): LeadHold => ({ by: 'u', name: 'Sam Cs', first_name: 'Sam', role: 'cs', role_label: 'Customer service', since: '2026-11-08T14:55:00Z', until: new Date(now + min * 60_000).toISOString(), mine, locked });
+
+test('2320: the hold line names the first name, the role and the time; it locks Sales, not the holder', () => {
+  assert.deepEqual(holdWords(hold(false, true), now), { text: 'Being handled by Sam (Customer service) until 10:10 am', mine: false, locked: true });
+  assert.deepEqual(holdWords({ ...hold(false, true), role: 'fleet', role_label: 'Fleet' }, now).text, 'Being handled by Sam (Fleet) until 10:10 am');
+  const m = holdWords(hold(true, false), now);
+  assert.equal(m.mine, true); assert.equal(m.locked, false); assert.match(m.text ?? '', /^You are handling this lead until 10:10 am/);
+  assert.equal(holdWords(hold(false, false), now).locked, false);   // other customer service staff and Admins may still work it
+});
+
+test('2320: an ended or missing hold is no hold; the log words exist', () => {
+  assert.deepEqual(holdWords(hold(false, true, -1), now), { text: null, mine: false, locked: false });
+  assert.deepEqual(holdWords(null, now), { text: null, mine: false, locked: false });
+  assert.deepEqual(holdWords(undefined, now), { text: null, mine: false, locked: false });
+  for (const a of ['hold', 'hold_extend', 'hold_end']) assert.ok(HISTORY_LABEL[a], a);
 });

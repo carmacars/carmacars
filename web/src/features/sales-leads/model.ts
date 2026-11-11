@@ -4,10 +4,12 @@
 export type LeadType = 'renter' | 'owner' | 'partner';
 export type Outcome = 'contacted' | 'call_booked' | 'applied' | 'won' | 'lost';
 export interface LeadClaim { by: string; name: string; since: string; until: string; cap: string; mine: boolean }
+/** 2320: a customer service or fleet person handling the lead on a call, for a while; `locked` is true for the person who may not work it meanwhile (Sales) */
+export interface LeadHold { by: string; name: string; first_name: string; role: 'cs' | 'fleet'; role_label: string; since: string; until: string; mine: boolean; locked: boolean }
 export interface LeadRow {
   id: string; type: LeadType; source: string; source_key: string; kind: string; name: string | null; phone: string | null; email: string | null;
   excerpt: string; vehicle: string | null; created_at: string; status: string; outcome: Outcome | null; outcome_reason: string | null;
-  assigned_to: string | null; assigned_name: string | null; claim: LeadClaim | null; priority: number; hot: boolean; value_cents: number | null;
+  assigned_to: string | null; assigned_name: string | null; claim: LeadClaim | null; /** 2320 */ hold?: LeadHold | null; priority: number; hot: boolean; value_cents: number | null;
   first_contact_at: string | null; handled_at: string | null; new: boolean;
 }
 export interface Person { id: string; name: string }
@@ -27,13 +29,13 @@ export interface TeamRow extends Figures { id: string; name: string; active: num
 /** my_call_minutes for an Admin: each person who called with the site's Call button in the last 40 days, with this month's connected minutes */
 export type CallTeam = Array<{ user_id: string; name: string | null; month: number }>;
 export interface Dashboard { today: Figures; week: Figures; month: Figures; period: 'today' | 'week' | 'month'; team: TeamRow[] | null; active: number; max_active: number; open_pool: number }
-export interface LeadSettings { claim_minutes: Record<LeadType, number>; extend_max_minutes: number; max_active: number; hot_hours: number; updated_at: string; updated_by: string | null; /** 1152 */ claim_cooldown_minutes?: number; lead_cap_base?: number; lead_cap_per_wins?: number; lead_cap_max?: number }
+export interface LeadSettings { claim_minutes: Record<LeadType, number>; extend_max_minutes: number; max_active: number; hot_hours: number; updated_at: string; updated_by: string | null; /** 1152 */ claim_cooldown_minutes?: number; /** 2320: empty is the Sales claim window */ lead_cs_hold_minutes?: number | null; lead_cap_base?: number; lead_cap_per_wins?: number; lead_cap_max?: number }
 
 export const TYPE_LABEL: Record<LeadType, string> = { renter: 'Renter', owner: 'Owner', partner: 'Partner' };
 export const OUTCOME_LABEL: Record<Outcome, string> = { contacted: 'Contacted', call_booked: 'Call booked', applied: 'Applied', won: 'Won', lost: 'Lost' };
 export const OUTCOMES = Object.keys(OUTCOME_LABEL) as Outcome[];
 export const STATUS_CHIPS: Array<[string, string]> = [['', 'Open'], ['new', 'New'], ['unclaimed', 'Not claimed'], ['claimed', 'Claimed'], ['contacted', 'Contacted'], ['won', 'Won'], ['lost', 'Lost'], ['handled', 'Handled'], ['all', 'All']];
-export const HISTORY_LABEL: Record<string, string> = { claim: 'Claimed', extend: 'Claim extended', unclaim: 'Unclaimed', expire: 'Claim ran out', reassign: 'Reassigned to', release: 'Claim released', return: 'Returned to' };
+export const HISTORY_LABEL: Record<string, string> = { claim: 'Claimed', extend: 'Claim extended', unclaim: 'Unclaimed', expire: 'Claim ran out', reassign: 'Reassigned to', release: 'Claim released', return: 'Returned to', hold: 'Handling a call:', hold_extend: 'Another call handled by', hold_end: 'Hold ended for' };
 export const CHANNEL_LABEL: Record<string, string> = { call: 'Call', text: 'Text', email: 'Email', note: 'Note' };
 
 const time = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', hour: 'numeric', minute: '2-digit', hour12: true }).format(new Date(iso)).replace(/\s?([ap])\.?m\.?/i, ' $1m').toLowerCase();
@@ -54,6 +56,14 @@ export function claimWords(c: LeadClaim | null, now: number = Date.now()): { tex
   const left = Math.max(1, Math.ceil((new Date(c.until).getTime() - now) / 60000));
   if (c.mine) return { text: `Yours until ${time(c.until)} (${left} min). Each call, text, email or note adds time, up to ${time(c.cap)}.`, mine: true, locked: false };
   return { text: `${c.name} is on it until ${time(c.until)}`, mine: false, locked: true };
+}
+
+/** 2320: what the hold line says to this person, and whether they may work the lead meanwhile. Sales read
+ *  "Being handled by Sam (Customer service) until 10:10 am"; the holder reads that the lead is theirs. */
+export function holdWords(h: LeadHold | null | undefined, now: number = Date.now()): { text: string | null; mine: boolean; locked: boolean } {
+  if (!h || new Date(h.until).getTime() <= now) return { text: null, mine: false, locked: false };
+  if (h.mine) return { text: `You are handling this lead until ${time(h.until)}. Each call you handle adds time.`, mine: true, locked: false };
+  return { text: `Being handled by ${h.first_name} (${h.role_label}) until ${time(h.until)}`, mine: false, locked: h.locked };
 }
 
 /** The lead's state in a word for its badge. */

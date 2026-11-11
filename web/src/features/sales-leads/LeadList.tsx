@@ -4,7 +4,7 @@ import { ListFilters } from '@/features/list-filters/ListFilters';
 import { $ } from '@/features/admin/ui';
 import { LeadActions, NextLead } from './LeadActions';
 import { ClaimPace } from './ClaimPace';
-import { age, leadHref, stateOf, TYPE_LABEL, STATUS_CHIPS, type LeadList as Data, type LeadRow, type LeadType } from './model';
+import { age, holdWords, leadHref, stateOf, TYPE_LABEL, STATUS_CHIPS, type LeadList as Data, type LeadRow, type LeadType } from './model';
 
 /** The lead cards (phone-friendly: one column at 375, two or three on wider screens). */
 export function LeadCards({ rows, base, admin, people, testId = 'lead-cards' }: { rows: LeadRow[]; base: string; admin: boolean; people: Data['people']; testId?: string }) {
@@ -24,6 +24,7 @@ export function LeadCards({ rows, base, admin, people, testId = 'lead-cards' }: 
           <p className="small sl-card__src"><b data-testid="lead-source">{r.source}</b> · {age(r.created_at)}{r.vehicle ? ` · ${r.vehicle}` : ''}{r.value_cents ? ` · ${$(r.value_cents)}` : ''}</p>
           <p className="small sl-card__contact">{[r.phone, r.email].filter(Boolean).join(' · ') || <span className="muted">No phone or email</span>}</p>
           {r.excerpt && <p className="small muted sl-card__text">{r.excerpt}</p>}
+          {holdWords(r.hold).text && <p className="small" data-testid="lead-hold">{holdWords(r.hold).text}</p>}
           {r.assigned_name && <p className="small">Assigned to {r.assigned_name}</p>}
           <LeadActions lead={r} admin={admin} people={people} compact />
         </li>))}

@@ -11487,6 +11487,7 @@ export type Database = {
           by_user: string | null;
           at: string;
           note: string | null;
+          hold_role: string | null;
         };
         Insert: {
           id?: number;
@@ -11496,6 +11497,7 @@ export type Database = {
           by_user?: string | null;
           at?: string;
           note?: string | null;
+          hold_role?: string | null;
         };
         Update: {
           id?: number;
@@ -11505,6 +11507,7 @@ export type Database = {
           by_user?: string | null;
           at?: string;
           note?: string | null;
+          hold_role?: string | null;
         };
         Relationships: [];
       };
@@ -11559,6 +11562,36 @@ export type Database = {
           channel?: string;
           note?: string | null;
           at?: string;
+        };
+        Relationships: [];
+      };
+      lead_holds: {
+        Row: {
+          lead_id: string;
+          held_by: string;
+          role: string;
+          held_at: string;
+          last_call_at: string;
+          expires_at: string;
+          prev_claimed_by: string | null;
+        };
+        Insert: {
+          lead_id: string;
+          held_by: string;
+          role: string;
+          held_at?: string;
+          last_call_at?: string;
+          expires_at: string;
+          prev_claimed_by?: string | null;
+        };
+        Update: {
+          lead_id?: string;
+          held_by?: string;
+          role?: string;
+          held_at?: string;
+          last_call_at?: string;
+          expires_at?: string;
+          prev_claimed_by?: string | null;
         };
         Relationships: [];
       };
@@ -22420,6 +22453,7 @@ export type Database = {
           lead_cap_base: number;
           lead_cap_per_wins: number;
           lead_cap_max: number;
+          lead_cs_hold_minutes: number | null;
         };
         Insert: {
           id?: boolean;
@@ -22433,6 +22467,7 @@ export type Database = {
           lead_cap_base?: number;
           lead_cap_per_wins?: number;
           lead_cap_max?: number;
+          lead_cs_hold_minutes?: number | null;
         };
         Update: {
           id?: boolean;
@@ -22446,6 +22481,7 @@ export type Database = {
           lead_cap_base?: number;
           lead_cap_per_wins?: number;
           lead_cap_max?: number;
+          lead_cs_hold_minutes?: number | null;
         };
         Relationships: [];
       };
