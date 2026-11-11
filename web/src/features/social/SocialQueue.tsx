@@ -4,6 +4,7 @@ import { staffDo, staffRead } from '@/server/actions/staff-tools';
 import { photoUrl } from '@/lib/photo';
 import { CopyText } from '@/features/ads/CopyText';
 import Link from '@/components/Link';
+import { DateInput } from '@/components/DateInput';
 
 // Release 36b (2220): the social post scheduler. Marketing staff queue a post for a time: the Facebook Page, Instagram or
 // TikTok, a photo or a short video, the caption from a draft or typed. With Meta publishing connected (Admin > Settings >
@@ -75,7 +76,7 @@ export function SocialQueue({ admin = false }: { admin?: boolean }) {
         <div className="row" style={{ gap: '0.75rem', flexWrap: 'wrap' }}>
           <label className="small">Where <select className="select" value={form.channel} onChange={(e) => setForm({ ...form, channel: e.target.value as Channel })} data-testid="sq-channel">
             {(Object.keys(CH) as Channel[]).map((c) => <option key={c} value={c}>{CH[c]}</option>)}</select></label>
-          <label className="small">When <input className="input" type="datetime-local" value={form.at} onChange={(e) => setForm({ ...form, at: e.target.value })} data-testid="sq-when" /></label>
+          <label className="small">When <DateInput className="input" type="datetime-local" value={form.at} onChange={(e) => setForm({ ...form, at: e.target.value })} data-testid="sq-when" /></label>
           <label className="small">Caption from a draft <select className="select" value={form.draft} onChange={(e) => setForm({ ...form, draft: e.target.value })} data-testid="sq-draft">
             <option value="">None (write it below)</option>{d.drafts.map((x) => <option key={x.id} value={x.id}>{x.day} · {x.kind.replace(/_/g, ' ')}{x.car ? ` · ${x.car}` : ''}</option>)}</select></label>
           <label className="small">Video <select className="select" value={form.video} onChange={(e) => setForm({ ...form, video: e.target.value })} data-testid="sq-video">
