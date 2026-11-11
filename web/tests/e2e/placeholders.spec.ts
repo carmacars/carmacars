@@ -86,6 +86,9 @@ test('placeholder and real rental on one car: the booking pages and the calendar
       await expect(page.getByTestId('cal-agenda-clash')).toContainText(`clashes with ${real}`);
       await page.getByRole('button', { name: 'Timeline' }).click();
     }
+    // a call another test made in the last minutes shows the caller pop-up to an Admin (0970); on a phone it covers the
+    // timeline, so it is closed as a person would
+    for (const x of await page.getByTestId('caller-close').all()) await x.click().catch(() => undefined);
     const lane = page.getByTestId(`lane-${plate}`);
     await expect(lane).toBeVisible();
     await expect(lane.getByTestId(`bar-${req}`)).toHaveAttribute('data-clash', real);

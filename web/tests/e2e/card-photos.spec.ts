@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { acceptCookies, db, watch } from './helpers';
 
 // The car card's photos (src/lib/card-photos.ts, docs/changes/2026-11-06-stale-chunks-car-card-photos.md): a mouse
@@ -8,6 +8,14 @@ import { acceptCookies, db, watch } from './helpers';
 test.use({ contextOptions: { reducedMotion: 'no-preference' } });
 
 const firstCard = (page: Page) => page.locator('#fleet-grid .car-card:has(.car-card__deck)').first();
+// Root cause of the swipe test's flakes (r35): the card arrives with the page's reveal (Effects.tsx: .rv slides it up
+// into place over about a second, with motion on as here), and its box was measured while it was still sliding, so the
+// finger landed below the photo, pointerdown missed the photo and the swipe was ignored. The box is measured once the
+// card is revealed and nothing on it is moving (finite animations only: an endless one would never settle).
+async function settled(card: Locator) {
+  await expect.poll(() => card.evaluate((el) => (!el.classList.contains('rv') || el.classList.contains('is-in'))
+    && el.getAnimations({ subtree: true }).every((a) => a.playState !== 'running' || a.effect?.getComputedTiming().endTime === Infinity)), { timeout: 5000 }).toBe(true);
+}
 const at = (page: Page) => firstCard(page).locator('.car-card__deck').evaluate((d) => (d as HTMLElement).dataset.at ?? '');
 
 test('hover cycles the photos, leaving goes back to the cover; no console error', async ({ page }, ti) => {
@@ -17,6 +25,7 @@ test('hover cycles the photos, leaving goes back to the cover; no console error'
   await acceptCookies(page);
   const card = firstCard(page);
   await card.scrollIntoViewIfNeeded();
+  await settled(card);
   const deck = card.locator('.car-card__deck');
   // nothing is downloaded before the first hover
   await expect(deck.locator('img')).toHaveCount(0);
@@ -54,8 +63,11 @@ test('a swipe on a phone moves to the next photo and opens nothing; a tap opens 
   await acceptCookies(page);
   const card = firstCard(page);
   await card.scrollIntoViewIfNeeded();
+  await settled(card);
   const m = (await card.locator('.car-card__media').boundingBox())!;
   const y = Math.round(m.y + m.height / 2), x0 = Math.round(m.x + m.width * 0.8), x1 = Math.round(m.x + m.width * 0.15);
+  // the finger starts on this card's photo (not on the text under it, nor on another card)
+  expect(await page.evaluate(([x, yy]) => !!document.elementFromPoint(x!, yy!)?.closest('.car-card__media'), [x0, y])).toBe(true);
   const cdp = await page.context().newCDPSession(page);
   const url = page.url();
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: x0, y }] });
