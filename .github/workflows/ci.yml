@@ -98,7 +98,7 @@ jobs:
         run: .github/ci-run.sh "Database" scripts/test.sh
       - name: Text check
         working-directory: .
-        run: scripts/check-text.sh
+        run: .github/ci-run.sh "Text check" scripts/check-text.sh
       - name: Each change record names the guide chapters it changed (or "No guide change" and why)
         working-directory: .
         run: node scripts/check-change-guides.mjs
