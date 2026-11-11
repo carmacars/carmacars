@@ -68,6 +68,8 @@ export interface BookingCan {
   settleDeposit: boolean;
   /** issue the final statement after the return */
   statement: boolean;
+  /** r35 gaps (2435/2437): the insurer claim and adjuster card, on insurer-billed bookings only (app.booking_insurer_save: Admin, CS, Finance) */
+  insurerClaim: boolean;
   /** the texts inbox for the Text button */
   inbox: boolean;
   /** verify a driver in person */
@@ -131,7 +133,8 @@ export function bookingCan(v: Viewer): BookingCan {
     resendOffer: office,
     readiness: office,
     addonRemove: admin || fn === 'cs' || fn === 'fleet' || fn === 'finance',
-    requestHistory: admin || fn === 'cs' || fn === 'sales' || fn === 'fleet'
+    requestHistory: admin || fn === 'cs' || fn === 'sales' || fn === 'fleet',
+    insurerClaim: admin || fn === 'cs' || fn === 'finance'
   };
 }
 
@@ -141,7 +144,7 @@ function fieldCan(): BookingCan {
   const no = { admin: false, offer: false, editOfferPending: false, money: false, extras: false, cancelForRenter: false, scheduleJob: false, latePanel: false, photoReview: false,
     handover: false, sign: false, agreementMoney: false, licenceReview: false, renterDocs: false, staffUpload: false, carLink: false, manualPayments: false, voidRecords: false,
     paperSignatures: false, driverLinks: false, refund: false, refundApprove: false, settleDeposit: false, statement: false, inbox: false, verifyInPerson: false, changeCar: false, collectOnly: false, returningNow: false,
-    resendOffer: false, readiness: false, addonRemove: false, requestHistory: false };
+    resendOffer: false, readiness: false, addonRemove: false, requestHistory: false, insurerClaim: false };
   return { ...no, money: true, handover: true, sign: true, paperSignatures: true, verifyInPerson: true };
 }
 

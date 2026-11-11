@@ -19,9 +19,9 @@ export type AdjusterOpt = { id: string; insurer_id: string; name: string | null;
 type K = 'bill_to' | 'insurer_id' | 'claim_number' | 'adjuster_name' | 'adjuster_email' | 'adjuster_phone' | 'policy_number' | 'policy_province' | 'authorized_days' | 'authorized_until' | 'authorized_daily_rate';
 const BILL: Array<[string, string]> = [['renter', 'Renter'], ['insurer', 'Insurer pays rental and fees'], ['split', 'Insurer pays the rental only']];
 
-export function InsurerClaimEdit({ x, insurers, adjusters = [] }: { x: InsurerClaimData; insurers: Array<{ id: string; name: string }>; adjusters?: AdjusterOpt[] }) {
+export function InsurerClaimEdit({ x, insurers, adjusters = [], compact = x.bill_to === 'renter' }: { x: InsurerClaimData; insurers: Array<{ id: string; name: string }>; adjusters?: AdjusterOpt[]; compact?: boolean }) {
   const router = useRouter();
-  const { act } = useDoor();
+  const { act, base } = useDoor();
   const init: Record<K, string> = {
     bill_to: x.bill_to, insurer_id: x.insurer_id ?? '', claim_number: x.claim_number ?? '', adjuster_name: x.adjuster_name ?? '', adjuster_email: x.adjuster_email ?? '',
     adjuster_phone: x.adjuster_phone ?? '', policy_number: x.policy_number ?? '', policy_province: x.policy_province ?? '', authorized_days: x.authorized_days?.toString() ?? '',
@@ -52,7 +52,7 @@ export function InsurerClaimEdit({ x, insurers, adjusters = [] }: { x: InsurerCl
     if (adj && adj !== 'new') { p.adjuster_id = adj; delete p.adjuster_name; delete p.adjuster_email; delete p.adjuster_phone; }
     else if (adj === '' && initAdj !== '') { p.adjuster_id = ''; }
     if (reason.trim()) p.reason = reason.trim();
-    const r = await act('booking_insurer_save', p, [`/admin/bookings/${x.booking}`]);
+    const r = await act('booking_insurer_save', p, [`${base}/bookings/${x.booking}`]);
     if (!r.ok) { setMsg({ ok: false, text: r.message }); return; }
     setMsg({ ok: true, text: 'Saved.' }); setOpen(false); router.refresh();
   });
@@ -61,7 +61,8 @@ export function InsurerClaimEdit({ x, insurers, adjusters = [] }: { x: InsurerCl
       <TypedInput className="input" id={`ic-${k}`} type={type} value={f[k]} onChange={set(k)} data-testid={`ic-${k}`} /></div>);
   const insurerName = insurers.find((i) => i.id === x.insurer_id)?.name;
   // a booking billed to the renter: only the way to start billing an insurer, no card
-  if (x.bill_to === 'renter' && !open) {
+  // r35 gaps (2435/2437): the full card only on an insurer-billed booking; otherwise just the switch
+  if (compact && !open) {
     return <p className="small"><button className="btn btn--ghost btn--sm" type="button" onClick={() => { setOpen(true); setF((s) => ({ ...s, bill_to: 'insurer' })); }} data-testid="ic-bill-insurer">Bill an insurer instead</button></p>;
   }
   return (

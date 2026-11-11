@@ -26,10 +26,10 @@ describe('the shared booking page', () => {
       // r35 UX (1106): Sales gets a renter ready (pay links, the offer while it is paid, ID and coverage, drivers, the checklist);
       // never refunds, cancellations, settlements or removing a paid add-on
       sales: ['changeCar', 'driverLinks', 'editOfferPending', 'handover', 'inbox', 'money', 'offer', 'readiness', 'renterDocs', 'requestHistory', 'resendOffer', 'sign', 'staffUpload'],
-      cs: ['addonRemove', 'cancelForRenter', 'carLink', 'changeCar', 'driverLinks', 'editOfferPending', 'extras', 'handover', 'inbox', 'latePanel', 'money', 'offer', 'paperSignatures', 'readiness', 'requestHistory', 'resendOffer', 'returningNow', 'sign', 'staffUpload'],
+      cs: ['addonRemove', 'cancelForRenter', 'carLink', 'changeCar', 'driverLinks', 'editOfferPending', 'extras', 'handover', 'inbox', 'insurerClaim', 'latePanel', 'money', 'offer', 'paperSignatures', 'readiness', 'requestHistory', 'resendOffer', 'returningNow', 'sign', 'staffUpload'],
       // r35 (0970): Fleet collects payments and texts on its own lane; never refunds, offers, cancellations or extras
       fleet: ['addonRemove', 'carLink', 'changeCar', 'collectOnly', 'handover', 'inbox', 'latePanel', 'manualPayments', 'money', 'photoReview', 'requestHistory', 'returningNow', 'scheduleJob', 'sign', 'staffUpload'],
-      finance: ['addonRemove', 'agreementMoney', 'manualPayments', 'money', 'refund', 'refundApprove', 'settleDeposit', 'staffUpload', 'statement']
+      finance: ['addonRemove', 'agreementMoney', 'insurerClaim', 'manualPayments', 'money', 'refund', 'refundApprove', 'settleDeposit', 'staffUpload', 'statement']
     };
     for (const fn of FNS) assert.deepEqual(yes(bookingCan(staffViewer(fn))), want[fn].sort(), fn);
   });
