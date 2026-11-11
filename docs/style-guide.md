@@ -56,6 +56,10 @@ portal and every page and every staff member."
 
 - Every portal layout loads `ui-kit.css` last: buttons, tabs, chips, cards, tables, badges and empty states share one look
   in admin, every staff function (Sales, customer service, Fleet, Finance), field, renter, owner, investor and partner.
+- The renter's and owner's pages outside the portal layouts load it too (pay, the three signing pages, the owner application,
+  the partner portal); the guard lists them.
+- Page heads read the same in every portal: the admin and staff sheets' stronger head selectors are matched in `ui-kit.css`
+  (Requests' head is now the exact size and spacing of Bookings', for Admin and for staff).
 - Admin > Requests and offers uses the Bookings head (`PageHeader`) and the segmented tabs.
 - One-off button corners removed (`.ad .btn--sm`, the revamp tables, the renter's Now actions).
 

@@ -10,6 +10,7 @@ import { ownerHome } from '@/server/owner/data';
 import { readToken } from '@/server/links';
 import '@/styles/portal.css';
 import '@/styles/owner.css';
+import '@/styles/ui-kit.css';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Apply to list your car', path: '/list-your-car/apply', noindex: true, description: 'Enrol one or more vehicles in the CarmaCars owner program: about you, your vehicles, how each will work, and the costs to start.' });

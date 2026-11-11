@@ -58,7 +58,8 @@
 .ad-filters a[aria-current="page"], .bn-chip[aria-pressed="true"], .ui-chip[aria-pressed="true"], .ui-chip[aria-current="page"] { background: var(--black); border-color: var(--black); color: var(--white); }
 
 /* ---------------------------------------------------------------- the page head (Bookings) */
-.ad-head .d3, .ui-head__title, .bk-head__title {
+/* the per-portal sheets size the admin and staff heads with stronger selectors: listed here so every head reads the same */
+.ad .ad-head h1, .va .ad-head .d3, .rv .ad-head h1, .ad-head .d3, .ui-head__title, .bk-head__title {
   font-family: var(--font-display); font-weight: 700; font-size: clamp(1.75rem, 1.4rem + 1.4vw, 2.5rem); letter-spacing: -0.025em; line-height: 1.05;
 }
 .ad-head__purpose, .ui-head__lead { font-size: var(--fs-sm); color: var(--text-2); }
@@ -67,6 +68,9 @@
 .ui-head__title { margin: 0; }
 .ui-head__lead { margin: 2px 0 0; }
 .ui-head__acts { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+/* the head's spacing follows the portal's own head (staff: a hairline under it, as .va .ad-head) */
+.ad .ui-head { padding-bottom: var(--s-1); }
+.va .ui-head { padding-bottom: var(--s-3); border-bottom: 1px solid var(--grey-200); }
 
 /* ---------------------------------------------------------------- cards and sections (Bookings' white sections) */
 .pt-card, .ad .pt-card.ad-card, .va .pt-card, .va .ad-card, .pt--rv .pt-card, .ui-card {

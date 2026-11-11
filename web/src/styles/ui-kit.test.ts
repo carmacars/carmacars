@@ -50,7 +50,10 @@ test('no .btn button has an inline look of its own (background, border or corner
 });
 
 test('every portal layout loads the style guide last', () => {
-  for (const p of ['app/admin/layout.tsx', 'app/staff/layout.tsx', 'app/staff/field/layout.tsx', 'app/account/layout.tsx', 'app/owner/layout.tsx', 'app/investor/layout.tsx']) {
+  for (const p of ['app/admin/layout.tsx', 'app/staff/layout.tsx', 'app/staff/field/layout.tsx', 'app/account/layout.tsx', 'app/owner/layout.tsx', 'app/investor/layout.tsx',
+    // the renter's and owner's pages outside the portal layouts: pay, sign, the owner application
+    'app/pay/[token]/page.tsx', 'app/sign/agreement/[token]/page.tsx', 'app/sign/driver/[token]/page.tsx', 'app/sign/owner/[token]/page.tsx',
+    'app/list-your-car/apply/page.tsx', 'app/partners/portal/[id]/[key]/page.tsx']) {
     const css = [...readFileSync(join(SRC, p), 'utf8').matchAll(/import '@\/styles\/([\w-]+)\.css'/g)].map((m) => m[1]);
     assert.equal(css[css.length - 1], 'ui-kit', p);
   }
