@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
-import { bridgeTwiml, callToken, dialOutcome, hangupTwiml, startCallForm, twilioReady, twilioSignature, verifyCallToken, verifyTwilioSignature } from './twilio.ts';
+import { bridgeTwiml, callToken, dialOutcome, hangupTwiml, recordingKey, recordingReady, recordingUrls, startCallForm, twilioReady, twilioSignature, verifyCallToken, verifyTwilioSignature } from './twilio.ts';
 
 // Twilio's documented scheme, computed here independently with Node's own HMAC: the full URL, then each POST parameter
 // sorted by name, each name followed by its value; HMAC-SHA1 with the Auth Token; base64.
@@ -75,4 +75,39 @@ test('outcome words', () => {
   assert.equal(dialOutcome('completed'), 'connected');
   assert.equal(dialOutcome('no-answer'), 'no answer');
   assert.equal(dialOutcome('failed'), 'did not connect');
+});
+
+// 1880: the recording of the customer leg and its callback
+test('recording: the Dial records the customer leg and posts to the recording webhook', () => {
+  const x = bridgeTwiml({ to: '+16475550199', callerId: '+16475550100', actionUrl: 'https://carmacars.example.test/api/webhooks/twilio/dial?id=1&t=abc',
+    recordingUrl: 'https://carmacars.example.test/api/webhooks/twilio/recording?id=1&t=abc' });
+  assert.match(x, / record="record-from-answer-dual" /);
+  assert.match(x, /recordingStatusCallback="https:\/\/carmacars\.example\.test\/api\/webhooks\/twilio\/recording\?id=1&amp;t=abc"/);
+  assert.match(x, /recordingStatusCallbackEvent="completed"/);
+  assert.doesNotMatch(bridgeTwiml({ to: '+16475550199', callerId: '+16475550100', actionUrl: 'https://x.example.test/d' }), /record=/);
+});
+test('recording webhook: the signature covers the recording callback\'s parameters, and the per-call token is bound to the call', async () => {
+  const url = 'https://carmacars.example.test/api/webhooks/twilio/recording?id=0b8f6a52-6c1e-4c3b-9d7e-2a1f3c4d5e6f&t=abc';
+  const p = { AccountSid: 'AC' + '0'.repeat(32), CallSid: 'CA' + '1'.repeat(32), RecordingSid: 'RE' + 'a'.repeat(32), RecordingStatus: 'completed', RecordingDuration: '42', RecordingChannels: '2' };
+  const sig = nodeSig(TOKEN, url, p);
+  assert.equal(await verifyTwilioSignature(TOKEN, url, p, sig), true);
+  assert.equal(await verifyTwilioSignature(TOKEN, url, { ...p, RecordingSid: 'RE' + 'b'.repeat(32) }, sig), false, 'another recording');
+  assert.equal(await verifyTwilioSignature(TOKEN, url.replace('recording', 'dial'), p, sig), false, 'another webhook');
+  assert.equal(await verifyTwilioSignature(null, url, p, sig), false, 'no token: closed');
+  const id = '0b8f6a52-6c1e-4c3b-9d7e-2a1f3c4d5e6f';
+  const t = await callToken('secret-1', id);
+  assert.equal(await verifyCallToken('secret-1', id, t), true);
+  assert.equal(await verifyCallToken('secret-1', id.replace('0b', '1b'), t), false, 'token of another call');
+  assert.equal(await verifyCallToken('secret-2', id, t), false, 'another secret');
+  assert.equal(await verifyCallToken('secret-1', id, null), false, 'no token');
+});
+test('recording: only a completed recording with a real SID is copied; its URLs and our key', () => {
+  assert.deepEqual(recordingReady({ RecordingSid: 'RE' + 'a'.repeat(32), RecordingStatus: 'completed', RecordingDuration: '42' }), { sid: 'RE' + 'a'.repeat(32), seconds: 42 });
+  assert.equal(recordingReady({ RecordingSid: 'RE' + 'a'.repeat(32), RecordingStatus: 'failed' }), null);
+  assert.equal(recordingReady({ RecordingSid: '../../x', RecordingStatus: 'completed' }), null);
+  const u = recordingUrls('AC' + '0'.repeat(32), 'RE' + 'a'.repeat(32));
+  assert.equal(u.audio, `https://api.twilio.com/2010-04-01/Accounts/AC${'0'.repeat(32)}/Recordings/RE${'a'.repeat(32)}.mp3`);
+  assert.ok(u.resource.endsWith('.json'));
+  assert.equal(recordingKey('0B8F6A52-6C1E-4C3B-9D7E-2A1F3C4D5E6F'), 'calls/twilio/0b8f6a52-6c1e-4c3b-9d7e-2a1f3c4d5e6f.mp3');
+  assert.throws(() => recordingKey('../x'));
 });

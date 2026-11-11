@@ -204,7 +204,7 @@ const LABELS: Record<string, string> = {
   phone_missed_call_text_enabled: 'Missed call: text the caller back from the CarmaCars number', phone_missed_call_text: 'Missed call: the text',
   phone_missed_call_text_hours: 'Missed call: at most one text per number in (hours)', phone_missed_call_task: 'Missed call: a task to call back',
   phone_missed_call_queue: 'Missed call: who calls back (cs, sales, fleet, finance or admin)', phone_ai_drafts: 'Texts: Suggest a reply with AI (never sent by itself)',
-  phone_ai_summaries: 'Calls: a one-line AI summary when Quo gives none', phone_ai_daily_neurons: 'Phone and texts: AI neurons a day',
+  phone_ai_summaries: 'Calls: a one-line AI summary when Quo gives none', phone_twilio_record: 'Calls from the site (Twilio): record, transcribe and summarise each call on the person\'s history', phone_twilio_delete_recording: 'Calls from the site (Twilio): delete the recording at Twilio once our copy is stored', phone_ai_daily_neurons: 'Phone and texts: AI neurons a day',
   phone_link_visitors: 'Show the site visit of a caller who gave the same phone in live chat or a game',
   phone_quo_buttons: 'Call and Text buttons go through Quo (Text sends from the CarmaCars number; Call opens Quo). Off: the device\'s own phone and messages apps',
   phone_quo_contacts: 'Keep a Quo contact for everyone on the site with a phone number (same name, email and company; Settings > Quo contacts)',phone_keep_months: 'Keep calls and texts of people who are not customers (months)',

@@ -85,8 +85,11 @@ export async function runPhoneJob(): Promise<Record<string, unknown>> {
   // r35 part C (1506): one AI reading of a lead's or renter's words, within the free allowance (never fails the job)
   let intent: Record<string, unknown>;
   try { const { runIntentAi } = await import('@/server/intent-ai'); intent = await runIntentAi(); } catch (e) { intent = { error: e instanceof Error ? e.message.slice(0, 200) : 'failed' }; }
+  // 1880: the site's recorded calls to text (background tier, free allowance only; never fails the job)
+  let calls: Record<string, unknown>;
+  try { const { runCallTranscripts } = await import('@/server/twilio-call'); calls = await runCallTranscripts(); } catch (e) { calls = { error: e instanceof Error ? e.message.slice(0, 200) : 'failed' }; }
   if (failed) throw failed;
-  return { ...texts, contacts, intent };
+  return { ...texts, contacts, intent, calls };
 }
 
 /** Quo contacts (0190): the database's side of the sync (src/features/phone/quo-contacts.ts). */
