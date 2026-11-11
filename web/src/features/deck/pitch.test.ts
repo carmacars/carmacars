@@ -3,16 +3,16 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 // @ts-expect-error a plain .mjs module of the video scripts, no types
 import { forbidden } from '../../../scripts/investor-video/forbidden.mjs';
-import { ABOUT, COMPETITORS, COVER, DEMAND, DIFFERENCE, EXAMPLE_AMOUNTS, FOOTNOTES, LEGAL_ENTITY, MODEL, PER_CAR, RAISE, SLIDES, TERMS, monthlyInterest, optionOneRow, perCarRevenue } from './pitch.ts';
+import { ABOUT, BUSINESS_LINES, COMPETITORS, COVER, DEMAND, DIFFERENCE, EXAMPLE_AMOUNTS, FOOTNOTES, LEGAL_ENTITY, MODEL, PER_CAR, PLATFORM, RAISE, SLIDES, TERMS, monthlyInterest, optionOneRow, perCarRevenue } from './pitch.ts';
 
 // The 2026 pitch deck (release 35): the owner's numbers, worked out the way the deck states them, and the investor rules
 // (no fleet size, utilization, insurance premium or internal costs; only 18122211 Canada Inc. as the legal entity).
 const f = forbidden as (t: string, w: string) => string[];
 const all = [COVER.kicker, COVER.title, COVER.line, ...MODEL.supply, MODEL.lead, ...MODEL.extras, ...COMPETITORS.others.flatMap((x) => [x.title, x.text]), ...COMPETITORS.carmacars,
-  ...DIFFERENCE, ...DEMAND.flatMap((x) => [x.big, x.text]), ABOUT.text, ...ABOUT.people.flatMap((p) => [p.name, p.role]), ...TERMS.flat(), ...Object.values(FOOTNOTES), ...SLIDES.map((s) => s.title)].join('\n');
+  ...DIFFERENCE, ...BUSINESS_LINES.flatMap((x) => [x.title, x.text]), ...PLATFORM.search.flatMap((x) => [x.big, x.text]), ...PLATFORM.ai, ...DEMAND.flatMap((x) => [x.big, x.text]), ABOUT.text, ...ABOUT.people.flatMap((p) => [p.name, p.role]), ...TERMS.flat(), ...Object.values(FOOTNOTES), ...SLIDES.map((s) => s.title)].join('\n');
 
-test('eight slides, in the deck\'s order', () => {
-  assert.deepEqual(SLIDES.map((s) => s.id), ['cover', 'model', 'competitors', 'difference', 'demand', 'per-car', 'ask', 'about']);
+test('ten slides, in the deck\'s order', () => {
+  assert.deepEqual(SLIDES.map((s) => s.id), ['cover', 'model', 'lines', 'competitors', 'difference', 'platform', 'demand', 'per-car', 'ask', 'about']);
   assert.equal(COVER.title, 'Car rental, rebuilt for Ontario.');
   assert.equal(COVER.line, 'What goes around, drives around.');
 });
@@ -36,6 +36,16 @@ test('per car: $112 a rented day, 25 days is $2,800, 3.2x, with the footnotes', 
   assert.equal(PER_CAR.multiplier, 3.2);
   assert.match(FOOTNOTES.illustration, /illustration, not a forecast/);
   assert.match(FOOTNOTES.internal, /internal and unaudited/);
+});
+
+test('five business lines, brokering included; the search footprint and the AI in the work', () => {
+  assert.equal(BUSINESS_LINES.length, 5);
+  assert.match(BUSINESS_LINES.map((x) => x.title).join(' '), /Brokering/);
+  assert.match(BUSINESS_LINES.map((x) => x.title).join(' '), /Turo management/);
+  assert.equal(PLATFORM.search[0]!.big, '18');
+  assert.match(PLATFORM.ai.join(' '), /recorded, transcribed/);
+  assert.match(PLATFORM.ai.join(' '), /intent score/);
+  assert.match(PLATFORM.ai.join(' '), /Automatic answers/);
 });
 
 test('Option 1 examples are simple interest, paid monthly', () => {

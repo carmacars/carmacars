@@ -55,8 +55,10 @@ export interface PitchSlide { id: string; title: string; kicker: string; tone?: 
 export const SLIDES: PitchSlide[] = [
   { id: 'cover', title: 'Investor presentation 2026', kicker: 'CarmaCars', tone: 'dark' },
   { id: 'model', title: 'Three ways to put cars on the road', kicker: 'The model' },
+  { id: 'lines', title: 'Five business lines', kicker: 'Business lines', tone: 'grey' },
   { id: 'competitors', title: 'Big chains, peer-to-peer, and CarmaCars', kicker: 'Competitors', tone: 'grey' },
   { id: 'difference', title: 'What makes us different', kicker: 'The difference' },
+  { id: 'platform', title: 'Found in search, answered by AI', kicker: 'Search and AI' },
   { id: 'demand', title: 'The demand is already here', kicker: 'Demand', tone: 'dark' },
   { id: 'per-car', title: 'What one car earns', kicker: 'Per car' },
   { id: 'ask', title: `The ask: ${dollars(RAISE.amount)}`, kicker: 'The ask', tone: 'red' },
@@ -75,6 +77,29 @@ export const MODEL = {
 export const COMPETITORS = {
   others: [{ title: 'Big chains', text: 'Rental counters and desks' }, { title: 'Peer-to-peer', text: 'Cars listed by individual hosts' }],
   carmacars: ['18+ on most cars', 'Delivered anywhere in Ontario', 'Your own policy, your card\u2019s coverage, or ours', 'Real staff, 24/7', 'Weekly and monthly plans', 'Billed straight to the insurer']
+} as const;
+
+/** The five business lines (the owner, release 35): every line is CarmaCars' own revenue. */
+export const BUSINESS_LINES = [
+  { title: 'Our own cars', text: 'Rented directly; we keep the full rental income.' },
+  { title: 'Owners\u2019 cars, fully managed', text: 'Covered under our fleet policy; we run every rental for a management fee.' },
+  { title: 'Coverage for self-managing owners', text: 'Owners who run their own cars get coverage under our fleet policy for a monthly fee.' },
+  { title: 'Turo management', text: 'We run an owner\u2019s Turo listing and trips for a management fee.' },
+  { title: 'Brokering partner fleets', text: 'Other rental companies\u2019 cars rented through us for a commission.' }
+] as const;
+
+/** Search and AI (releases 35 and 36): the footprint and what AI does in the daily work. The live Search Console
+ *  figures (clicks, impressions, the weekly trend) follow the deck (SearchTraction). */
+export const PLATFORM = {
+  search: [
+    { big: '18', text: 'languages spoken across the GTA, every search page in each' },
+    { big: '7', text: 'page families: places, needs, cars and models, events, airports, comparisons, renting vs owning' }
+  ],
+  ai: [
+    'Automatic answers to common questions by text, email, chat and social messages, around the clock',
+    'Every call from the site recorded, transcribed and summarised on the customer\u2019s history',
+    'An intent score on every lead (hot, warm or cold) with what they want, so sales call the right person first'
+  ]
 } as const;
 
 export const DIFFERENCE = ['Capital-light supply', 'One fleet insurance policy', 'Our own platform, with no per-booking fee', 'Search and AI visibility'] as const;
