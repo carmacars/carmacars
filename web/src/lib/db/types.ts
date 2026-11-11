@@ -4022,6 +4022,11 @@ export type Database = {
           created_at: string;
           updated_at: string;
           updated_by: string | null;
+          network: string;
+          cdw_included: string;
+          excluded_types: string[];
+          must_decline_cdw: string;
+          must_pay_full: string;
         };
         Insert: {
           id?: string;
@@ -4045,6 +4050,11 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           updated_by?: string | null;
+          network?: string;
+          cdw_included?: string;
+          excluded_types?: string[];
+          must_decline_cdw?: string;
+          must_pay_full?: string;
         };
         Update: {
           id?: string;
@@ -4068,6 +4078,11 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           updated_by?: string | null;
+          network?: string;
+          cdw_included?: string;
+          excluded_types?: string[];
+          must_decline_cdw?: string;
+          must_pay_full?: string;
         };
         Relationships: [];
       };
@@ -5584,6 +5599,9 @@ export type Database = {
           submitted_at: string | null;
           reviewed_checks: Json | null;
           coverage_provider: string | null;
+          card_coverage_id: string | null;
+          card_other: string | null;
+          card_check: Json | null;
         };
         Insert: {
           id?: string;
@@ -5618,6 +5636,9 @@ export type Database = {
           submitted_at?: string | null;
           reviewed_checks?: Json | null;
           coverage_provider?: string | null;
+          card_coverage_id?: string | null;
+          card_other?: string | null;
+          card_check?: Json | null;
         };
         Update: {
           id?: string;
@@ -5652,6 +5673,9 @@ export type Database = {
           submitted_at?: string | null;
           reviewed_checks?: Json | null;
           coverage_provider?: string | null;
+          card_coverage_id?: string | null;
+          card_other?: string | null;
+          card_check?: Json | null;
         };
         Relationships: [];
       };
@@ -17347,6 +17371,20 @@ export type Database = {
           indexnow_sweep_batch: number;
           indexnow_queue_batch: number;
           staff_onboarding_gate: boolean;
+          card_exotic_makes: string[];
+          opcf27_before_payment: boolean;
+          fuel_price_regular_cents: number;
+          fuel_price_premium_cents: number;
+          fuel_price_diesel_cents: number;
+          fuel_prices_updated_on: string;
+          fuel_price_multiplier: number;
+          refuel_fee_cents: number;
+          ev_charge_kwh_cents: number;
+          fuel_tank_default_litres: number;
+          ev_battery_default_kwh: number;
+          delivery_base_cents: number;
+          delivery_included_km: number;
+          delivery_road_factor: number;
         };
         Insert: {
           id?: string;
@@ -18038,6 +18076,20 @@ export type Database = {
           indexnow_sweep_batch?: number;
           indexnow_queue_batch?: number;
           staff_onboarding_gate?: boolean;
+          card_exotic_makes?: string[];
+          opcf27_before_payment?: boolean;
+          fuel_price_regular_cents?: number;
+          fuel_price_premium_cents?: number;
+          fuel_price_diesel_cents?: number;
+          fuel_prices_updated_on?: string;
+          fuel_price_multiplier?: number;
+          refuel_fee_cents?: number;
+          ev_charge_kwh_cents?: number;
+          fuel_tank_default_litres?: number;
+          ev_battery_default_kwh?: number;
+          delivery_base_cents?: number;
+          delivery_included_km?: number;
+          delivery_road_factor?: number;
         };
         Update: {
           id?: string;
@@ -18729,6 +18781,20 @@ export type Database = {
           indexnow_sweep_batch?: number;
           indexnow_queue_batch?: number;
           staff_onboarding_gate?: boolean;
+          card_exotic_makes?: string[];
+          opcf27_before_payment?: boolean;
+          fuel_price_regular_cents?: number;
+          fuel_price_premium_cents?: number;
+          fuel_price_diesel_cents?: number;
+          fuel_prices_updated_on?: string;
+          fuel_price_multiplier?: number;
+          refuel_fee_cents?: number;
+          ev_charge_kwh_cents?: number;
+          fuel_tank_default_litres?: number;
+          ev_battery_default_kwh?: number;
+          delivery_base_cents?: number;
+          delivery_included_km?: number;
+          delivery_road_factor?: number;
         };
         Relationships: [];
       };
@@ -19242,6 +19308,7 @@ export type Database = {
           km_uses_defaults: boolean;
           auto_defaults: Json;
           multi_day_rate_cents: number | null;
+          delivery_fee_custom: boolean;
         };
         Insert: {
           id?: string;
@@ -19263,6 +19330,7 @@ export type Database = {
           km_uses_defaults?: boolean;
           auto_defaults?: Json;
           multi_day_rate_cents?: number | null;
+          delivery_fee_custom?: boolean;
         };
         Update: {
           id?: string;
@@ -19284,6 +19352,7 @@ export type Database = {
           km_uses_defaults?: boolean;
           auto_defaults?: Json;
           multi_day_rate_cents?: number | null;
+          delivery_fee_custom?: boolean;
         };
         Relationships: [];
       };
@@ -27818,6 +27887,12 @@ export type Database = {
           lead_time_tiers: Json | null;
           partner_discount_bps: number | null;
           extension_offers: boolean;
+          black_book_value_cents: number | null;
+          black_book_checked_on: string | null;
+          estimated_value_cents: number | null;
+          fuel_tank_litres: number | null;
+          battery_kwh: number | null;
+          fuel_grade: string | null;
         };
         Insert: {
           id?: string;
@@ -27892,6 +27967,12 @@ export type Database = {
           lead_time_tiers?: Json | null;
           partner_discount_bps?: number | null;
           extension_offers?: boolean;
+          black_book_value_cents?: number | null;
+          black_book_checked_on?: string | null;
+          estimated_value_cents?: number | null;
+          fuel_tank_litres?: number | null;
+          battery_kwh?: number | null;
+          fuel_grade?: string | null;
         };
         Update: {
           id?: string;
@@ -27966,6 +28047,12 @@ export type Database = {
           lead_time_tiers?: Json | null;
           partner_discount_bps?: number | null;
           extension_offers?: boolean;
+          black_book_value_cents?: number | null;
+          black_book_checked_on?: string | null;
+          estimated_value_cents?: number | null;
+          fuel_tank_litres?: number | null;
+          battery_kwh?: number | null;
+          fuel_grade?: string | null;
         };
         Relationships: [];
       };
@@ -27984,6 +28071,7 @@ export type Database = {
           uploaded_at: string;
           reviewed_by: string | null;
           reviewed_at: string | null;
+          page_kind: string | null;
         };
         Insert: {
           id?: string;
@@ -27999,6 +28087,7 @@ export type Database = {
           uploaded_at?: string;
           reviewed_by?: string | null;
           reviewed_at?: string | null;
+          page_kind?: string | null;
         };
         Update: {
           id?: string;
@@ -28014,6 +28103,7 @@ export type Database = {
           uploaded_at?: string;
           reviewed_by?: string | null;
           reviewed_at?: string | null;
+          page_kind?: string | null;
         };
         Relationships: [];
       };
@@ -29785,7 +29875,7 @@ export type Database = {
       renter_set_marketing: { Args: { p_by: string; p_opt_in: boolean; p_text?: string; p_version?: string; p_ip?: string; p_user_agent?: string }; Returns: Json };
       renter_sign_agreement: { Args: { p_booking: string; p_by: string; p_consent_text: string; p_document_sha256: string; p_consents: Json; p_typed_name?: string; p_drawn_signature?: string; p_ip?: string; p_user_agent?: string; p_companion_sha256?: string }; Returns: string };
       renter_sign_amendment: { Args: { p_amendment: string; p_by: string; p_consent_text: string; p_document_sha256: string; p_typed_name?: string; p_drawn_signature?: string; p_ip?: string; p_user_agent?: string }; Returns: Json };
-      renter_submit_card_coverage: { Args: { p_booking: string; p_by: string; p_confirm: boolean; p_text?: string }; Returns: Json };
+      renter_submit_card_coverage: { Args: { p_booking: string; p_by: string; p_confirm: boolean; p_text?: string; p_card?: string; p_card_other?: string }; Returns: Json };
       renter_submit_review: { Args: { p_booking: string; p_by: string; p_rating: number; p_title?: string; p_body?: string; p_publish_consent?: boolean }; Returns: string };
       renter_withdraw_booking_change: { Args: { p_request: string; p_by: string }; Returns: undefined };
       renter_withdraw_request: { Args: { p_booking: string; p_by: string; p_note?: string }; Returns: undefined };
@@ -29896,6 +29986,7 @@ export type Database = {
       server_capture_session_read: { Args: { p_token: string; p_visitor?: string }; Returns: Json };
       server_capture_sign_in_made: { Args: { p_user: string }; Returns: undefined };
       server_capture_unconfirmed: { Args: { p_user: string }; Returns: boolean };
+      server_card_coverage_preview: { Args: { p_booking: string; p_by: string; p_card?: string }; Returns: Json };
       server_cf_email_result: { Args: { p: Json }; Returns: Json };
       server_change_facts: { Args: { p_request: string; p_by: string }; Returns: Json };
       server_channel_feed: { Args: { p_token: string }; Returns: Json };

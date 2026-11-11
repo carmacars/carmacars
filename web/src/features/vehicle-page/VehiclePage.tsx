@@ -28,6 +28,7 @@ import type { PageCtx } from '@/features/shared-pages/context';
 import { vehicleCan } from '@/features/shared-pages/viewer';
 import { vehicleTab, vehicleTabs } from './tabs';
 import { HashTab } from './HashTab';
+import { ValueFuel, type ValueFuelData } from './ValueFuel';
 import { GovernmentForms, type GovData } from '@/features/onboarding/GovernmentForms';
 
 type R = Record<string, unknown>;
@@ -65,6 +66,8 @@ export async function VehiclePage({ ctx, id, sp }: { ctx: PageCtx; id: string; s
   const refresh = [base, '/admin/vehicles'];
   // interest in the car on the site (0060)
   const interest = tab === 'overview' ? await read<Interest>('vehicle_interest', { vehicle_id: id }).catch(() => null) : null;
+  // 1400 and 1402: the value card coverage is checked against, the tank and the grade the fuel shortfall uses
+  const valueFuel = tab === 'overview' ? await ops<ValueFuelData>('vehicle_value_fuel', { vehicle_id: id }).catch(() => null) : null;
   const classes = tab === 'overview' ? (await list<{ code: string; label: string }>('vehicle_classes', { eq: { is_active: true }, order: 'sort_order', asc: true })).rows : [];
   const cal = tab === 'calendar' ? await (async () => { const { from } = rangeFrom(sp.start, 'month'); return read<CalData>('calendar', { from: from.toISOString(), to: new Date(from.getTime() + 31 * 86_400_000).toISOString(), vehicle: id }); })() : null;
   const slug = v.listing?.slug ? String(v.listing.slug) : null;
@@ -128,6 +131,7 @@ export async function VehiclePage({ ctx, id, sp }: { ctx: PageCtx; id: string; s
               { name: 'bookings_enabled', label: 'Open for bookings', type: 'bool', value: v.bookings_enabled },
               { name: 'extension_offers', label: 'Renters extend themselves', type: 'bool', value: v.extension_offers ?? true, hint: 'At the extension discount, approved at once when the car is free. Off: renters of this car ask and staff approve, at the regular price.' }]} />
           </Card>
+          <ValueFuel v={valueFuel} canEdit refresh={refresh} />
           <Card title="For sale" testId="vehicle-for-sale">
             <p className="small muted">With the flag and a price, the car shows at the top of its /buy pages.</p>
             <Kv rows={[['For sale', v.for_sale ? `Yes, ${v.asking_price_cents ? `$${(Number(v.asking_price_cents) / 100).toLocaleString('en-CA', { minimumFractionDigits: 2 })}` : 'no price'}` : 'No']]} />
@@ -324,6 +328,7 @@ async function StaffVehicle({ ctx, id, sp }: { ctx: PageCtx; id: string; sp: Rec
     can.maintenance && tab === 'maintenance' ? ops<CarMaintenance>('maint_vehicle', { vehicle_id: id }).catch(() => null) : null,
     // the listing (0070): Publish now and what is still open, for Fleet and customer service
     tab === 'listing' ? own<StaffListingState>('listing_state', { vehicle_id: id }).catch(() => null) : null]);
+  const staffValueFuel = tab === 'overview' ? await ops<ValueFuelData>('vehicle_value_fuel', { vehicle_id: id }).catch(() => null) : null;
   return (
     <>
       <PageHead title={`${String(c.year ?? '')} ${String(c.make ?? '')} ${String(c.model ?? '')}`} kicker={String(c.plate ?? '')}>
@@ -334,6 +339,7 @@ async function StaffVehicle({ ctx, id, sp }: { ctx: PageCtx; id: string; sp: Rec
       {tab === 'overview' && <div className="ad-cols ad-cols--2">
         <Card title="Vehicle"><Kv rows={[['Plate', String(c.plate ?? '')], ['Colour', String(c.colour ?? '')], ['Status', label(c.status)], ['Odometer', c.odometer_km ? `${String(c.odometer_km)} km` : ''], ['Class', String(c.class ?? '')]]} /></Card>
         {can.ownerHandoffs && <OwnerHandoffs vehicleId={id} userId={user.id} aal={aal} refresh={[base]} />}
+        <ValueFuel v={staffValueFuel} canEdit={viewer.role === 'staff' && viewer.fn === 'fleet'} refresh={[base]} />
       </div>}
       {tab === 'rates' && rates && <Card title="Rates and kilometres" testId="va-rates"><p className="small muted">Rates, kilometres and deposit save together. Bookings already made keep their rates.</p>
         <RateCardForm vehicleId={id} card={rates.current} refresh={[base]} testId="va-rate-form" /></Card>}

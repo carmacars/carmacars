@@ -5,6 +5,12 @@ import type { Field } from './Act';
 const nice = (k: string) => { const s = k.replace(/_(cents|bps)$/, '').replace(/_/g, ' '); return s.charAt(0).toUpperCase() + s.slice(1); };
 // settings whose meaning needs a sentence (0042: one turnaround between trips; the tolls, plates and vision settings)
 const LABELS: Record<string, string> = {
+  // 1402 and 1403
+  fuel_price_regular_cents: 'Regular gas, a litre', fuel_price_premium_cents: 'Premium gas, a litre', fuel_price_diesel_cents: 'Diesel, a litre',
+  fuel_prices_updated_on: 'Pump prices updated on', fuel_price_multiplier: 'Fuel shortfall: pump price times', refuel_fee_cents: 'Refuelling or recharging fee',
+  ev_charge_kwh_cents: 'Charge shortfall, a kWh', fuel_tank_default_litres: 'Tank size when the car has none (litres)', ev_battery_default_kwh: 'Battery size when the car has none (kWh)',
+  delivery_base_cents: 'Delivery or pickup base fee, each way', delivery_included_km: 'Km included in the base fee', delivery_road_factor: 'Straight line to road distance factor',
+  card_exotic_makes: 'Makes counted as exotic for card coverage', opcf27_before_payment: 'OPCF 27: pink slip and endorsement before payment',
   app_store_url: 'The CarmaCars app on the App Store (https://apps.apple.com/...)', play_store_url: 'The CarmaCars app on Google Play (https://play.google.com/...)',
   phone_gate_gallery: 'Phone number box: before more photos of a car', phone_gate_free_photos: 'Phone number box: photos shown before the number is asked',
   phone_gate_dates: 'Phone number box: before the full availability', phone_gate_request: 'Phone number box: before a booking request',
@@ -196,6 +202,12 @@ const LABELS: Record<string, string> = {
   esign_typed_fallback: 'E-signing: a signer who cannot draw may type their name and initials', esign_code_minutes: 'E-signing: the code works for (minutes)'
 };
 const HINTS: Record<string, string> = {
+  fuel_price_regular_cents: 'Local pump price (1.55 by default). Update the three prices weekly: Admin > Today reminds you after 7 days. The date updates itself.',
+  fuel_price_multiplier: '1.25 by default. At each return: tank size x the fuel missing (pickup % minus return %) x the pump price of the car\'s grade x this, plus the refuelling fee. A suggested line on the deposit review: staff confirm it; no card is charged by it.',
+  ev_charge_kwh_cents: '0.40 by default. An electric car: battery kWh x the charge missing x this, plus the refuelling fee.',
+  delivery_base_cents: '$75 by default, each way, with the km below included from the company\'s location; then the rate per km. A car with its own delivery fee on its rate card keeps it (the per-car override); every other car follows this.',
+  delivery_road_factor: '1.3 by default. Without a road distance from the maps service, the straight line from the company\'s location times this.',
+  opcf27_before_payment: 'On by default. A booking on OPCF 27 is paid, and so confirmed, only once the renter uploaded the pink slip and the OPCF 27 endorsement page. Staff approve or reject them as before.',
   app_store_url: 'Empty until the app is live. When set, iPhones browsing the site see "Download the CarmaCars app" in the footer and in the alerts invitation.',
   play_store_url: 'Empty until the app is live. When set, Android phones browsing the site see "Download the CarmaCars app" in the footer and in the alerts invitation.',
   phone_gate_gallery: 'Never on a car with that many photos or fewer. Every photo stays in the page for search engines.',

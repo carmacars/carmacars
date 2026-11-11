@@ -3,7 +3,7 @@ import Link from '@/components/Link';
 import { notFound } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
-import { Badge, Card, Kv, PageHead, d, label } from '@/features/admin/ui';
+import { $, Badge, Card, Kv, PageHead, d, label } from '@/features/admin/ui';
 import { VerifyUpload } from '@/features/va/VerifyUpload';
 import { LicenceChecks, PrimarySwapBox } from '@/features/licence/LicenceChecks';
 import type { LicenceCheck, LicenceRead, PrimarySwap } from '@/features/admin/todo/types';
@@ -13,6 +13,7 @@ import { storage, type Bucket } from '@/integrations/storage';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Identity review', path: '/staff', noindex: true, description: 'Identity and coverage documents of one booking.' });
+const PAGE_KIND: Record<string, string> = { pink_slip: 'pink slip', endorsement: 'OPCF 27 endorsement', card_benefit: 'card benefit document' };
 
 type U = { id: string; kind: string; driver_id: string | null; status: string; uploaded_at: string; bucket: string; path: string; mime_type: string | null };
 type V = { coverage?: ReviewCoverage | null; booking_id: string; booking_number: string; return_at: string; coverage_option: number | null; readiness: { all_drivers_verified: boolean; coverage_confirmed?: boolean };
@@ -72,15 +73,19 @@ export default async function Verify({ params }: { params: Promise<{ number: str
         {cov && <Kv rows={[
           ['Option', cov.option_label], ['Confirmed', cov.confirmed ? 'Yes' : 'Not yet: the car is not handed over until it is'], ['Return', cov.return_date],
           ...(cov.option === 1 && cp ? [['Insurer', cp.insurer_name ?? ''], ['Policy number', cp.policy_number ?? ''],
-            ['Policy expiry', `${cp.policy_expiry ?? ''}${cp.policy_valid ? ', after the return: fine' : ', NOT after the return date'}`]] as Array<[string, string]> : []),
+            ['Policy expiry', `${cp.policy_expiry ?? ''}${cp.policy_valid ? ', after the return: fine' : ', NOT after the return date'}`],
+            ['Pages (1401)', cov.opcf27_missing?.length ? `Still missing: ${cov.opcf27_missing.join(' and ')}. Approve is refused until both are in` : 'Pink slip and OPCF 27 endorsement page both sent']] as Array<[string, string]> : []),
           ...(cov.option === 2 ? [['Card paid with', cov.card.brand ? `${cov.card.brand.toUpperCase()} ending ${cov.card.last4 ?? ''}, ${cov.card.funding ?? 'unknown'}` : 'Not paid yet'],
             ['Cardholder', `${cov.card.cardholder_name ?? ''}${cov.card.name_matches ? ' (matches the renter)' : ' (does NOT match the renter)'}`],
             ['Eligible', cov.card.eligible ? 'Yes: a credit card in the renter\u2019s name' : (cov.card.message ?? 'No')],
+            ['Card picked (1400)', cov.card_pick ? `${cov.card_pick.label ?? ''}${cov.card_pick.card_other ? ' (typed: not on the list)' : ''}` : 'Not picked'],
+            ['Card check', cov.card_pick ? `${cov.card_pick.check.result === 'covered' ? 'Covers this car' : cov.card_pick.check.result === 'review' ? 'Check it' : 'Does NOT cover this car'}: ${cov.card_pick.check.message}` : ''],
+            ['Car value used', cov.card_pick?.check.vehicle_value_cents ? `${$(cov.card_pick.check.vehicle_value_cents)} (${cov.card_pick.check.vehicle_value_source === 'black_book' ? 'Black Book' : 'estimate'})` : 'None on file: set it on the car'],
             ['Renter confirmed', cp?.renter_confirmed_at ? `${d(cp.renter_confirmed_at)}: ${cp.confirmation_text ?? ''}` : 'Not yet'],
             ['Still the Card on File', cp ? (cp.card_is_card_on_file ? 'Yes' : 'No: ask the renter again') : '']] as Array<[string, string]> : []),
           ...(cov.option === 3 ? [['Protection Plan on the booking', cov.protection_plan_line ? 'Yes' : 'No line yet']] as Array<[string, string]> : [])]} />}
         {cp && cp.pages.length > 0 && <div className="ad-cols ad-cols--3">{cp.pages.map((pg, i) => (
-          <div key={pg.id}><p className="pt-kicker">Page {i + 1} <Badge s={pg.status === 'submitted' ? 'needs_review' : pg.status} /></p>
+          <div key={pg.id}><p className="pt-kicker">Page {i + 1}{cov?.page_kinds?.[pg.id] ? `: ${PAGE_KIND[cov.page_kinds[pg.id]!]}` : ''} <Badge s={pg.status === 'submitted' ? 'needs_review' : pg.status} /></p>
             {pageLinks.get(pg.id) ? <a className="link" href={pageLinks.get(pg.id)!} target="_blank" rel="noreferrer">{pg.mime_type === 'application/pdf' ? 'Open the PDF' : 'Open the photo'} (link valid one minute)</a> : null}</div>))}</div>}
         {cov && cp && cp.status === 'submitted' && (cov.option === 1 || cov.option === 2) && (
           <div className="ad-actions">
