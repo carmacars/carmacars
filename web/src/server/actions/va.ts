@@ -1,9 +1,9 @@
 'use server';
 import { revalidatePath } from 'next/cache';
+import { refusalMessage } from '@/lib/db/refusal';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { env } from '@/lib/env';
-import { DbError } from '@/lib/db/repo';
 import type { ActionResult } from '@/features/forms/schemas';
 import { currentUser } from '@/server/portal/data';
 import { door, rolesOf, sessionAal, VA_FN_COOKIE } from '@/server/door';
@@ -12,7 +12,8 @@ import { door, rolesOf, sessionAal, VA_FN_COOKIE } from '@/server/door';
 // the door with the assistant's id and session. The database checks the function's allow-list and then
 // the rule of the function that owns the step; its refusal is shown as written.
 type R<T = unknown> = ActionResult<T>;
-const fail = (e: unknown): R<never> => ({ ok: false, code: 'refused', message: e instanceof DbError || e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '') : 'Something went wrong.' });
+// r35a: never an empty refusal (src/lib/db/refusal.ts)
+const fail = (e: unknown): R<never> => ({ ok: false, code: 'refused', message: refusalMessage(e) });
 
 async function assertVa() {
   const user = await currentUser();

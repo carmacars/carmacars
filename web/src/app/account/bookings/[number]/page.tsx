@@ -36,6 +36,7 @@ import { AccidentReport } from '@/features/accident-card/AccidentReport';
 import { incidentHref } from '@/features/incident-cards/digital';
 import type { AccidentCardData } from '@/features/accident-card/model';
 import { READING_CHARGE_KEYS } from '@/features/handover/reading';
+import { SecondaryContactForm, type ContactValue } from '@/features/portal/SecondaryContactForm';
 
 export const dynamic = 'force-dynamic';
 export async function generateMetadata({ params }: { params: Promise<{ number: string }> }) {
@@ -73,6 +74,10 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
   // 0910: the accident card of this booking (its own coverage), from confirmation to the return
   const accident = ['pending_payment', 'confirmed', 'on_rent'].includes(b.status) && b.booking_type !== 'owner'
     ? await rpc('server_accident_card' as never, { p_booking: b.id, p_by: user.id } as never, { role: 'service_role' }).then((x) => x as unknown as AccidentCardData).catch(() => null) : null;
+  // r35a (1302): the secondary contact of this booking (else the profile's)
+  const second = b.booking_type !== 'owner' && !['closed', 'cancelled', 'declined', 'expired'].includes(b.status)
+    ? await rpc('server_secondary_contact', { p_by: user.id, p_booking: b.id }, { role: 'service_role' }).then((x) => x as unknown as { profile: ContactValue | null; booking: ContactValue | null }).catch(() => null) : null;
+  const rideshareOpen = b.booking_type !== 'owner' && ['pending_payment', 'confirmed', 'on_rent'].includes(b.status);
   const readingCharges = (report?.charges ?? []).filter((c) => READING_CHARGE_KEYS.has(c.key) && c.amount_cents !== 0);
   const laterLines = new Set((addons?.items ?? []).filter((a) => a.after_booking).map((a) => a.line_item_id).filter(Boolean));
   const step = nextStep(b);
@@ -234,6 +239,18 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
               {b.extensions.map((e) => <div key={e.id} className="pt-msg"><p><b>Extension to {when(e.new_return_at)}:</b> {e.status}{e.total_cents ? `, ${money(e.total_cents, { cents: true })}` : ''}</p>{e.status === 'approved' && <Link prefetch={false} className="btn btn--primary btn--sm" href={bookingPath(b.booking_number, 'extend')}>Pay for the extension</Link>}</div>)}
             </PortalCard>
           )}
+          {/* r35a: the less-used things, folded: a secondary contact (1302) and rideshare documents (1303) */}
+          {(second || rideshareOpen) && <PortalCard id="pt-more" title="More" testId="trip-more">
+            <Disclosure summary="More options for this trip" open={false} testId="trip-more-menu">
+              <ul className="pt-list">
+                {second && <li className="stack" data-testid="trip-secondary-contact"><b>Secondary contact</b>
+                  <p className="small muted">{second.booking ? `For this trip: ${second.booking.name} (${second.booking.relationship}).` : second.profile ? `From your profile: ${second.profile.name} (${second.profile.relationship}). Change it for this trip below.` : 'Someone we may call if we cannot reach you during the trip. Optional.'}</p>
+                  <SecondaryContactForm initial={second.booking ?? second.profile} booking={b.booking_number} testId="trip-secondary-form" /></li>}
+                {rideshareOpen && <li><Link prefetch={false} className="link" href={bookingPath(b.booking_number, 'rideshare')} data-testid="trip-rideshare-link">Rideshare or delivery documents</Link>
+                  <p className="small muted">For Uber, Lyft, DoorDash, Uber Eats, Instacart and others.</p></li>}
+              </ul>
+            </Disclosure>
+          </PortalCard>}
           <Messages key={sp.ask ?? 'none'} number={b.booking_number} thread={thread} prefill={sp.ask ? ASK[sp.ask] : undefined} />
           <PortalCard id="documents" title="Documents" testId="booking-documents">
             {b.documents.length ? <DocumentList plain>{b.documents.filter((d) => !d.purged).map((d) => (

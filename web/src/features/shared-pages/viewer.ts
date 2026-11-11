@@ -85,6 +85,8 @@ export interface BookingCan {
   readiness: boolean;
   /** r35 UX (1106): remove an add-on after booking (a paid one is refunded): never Sales */
   addonRemove: boolean;
+  /** r35a (1300): the original request, the offer history and the coverage card (Admin, customer service, Sales, Fleet) */
+  requestHistory: boolean;
 }
 
 export function bookingCan(v: Viewer): BookingCan {
@@ -128,7 +130,8 @@ export function bookingCan(v: Viewer): BookingCan {
     returningNow: admin || fn === 'fleet' || fn === 'cs',
     resendOffer: office,
     readiness: office,
-    addonRemove: admin || fn === 'cs' || fn === 'fleet' || fn === 'finance'
+    addonRemove: admin || fn === 'cs' || fn === 'fleet' || fn === 'finance',
+    requestHistory: admin || fn === 'cs' || fn === 'sales' || fn === 'fleet'
   };
 }
 
@@ -138,7 +141,7 @@ function fieldCan(): BookingCan {
   const no = { admin: false, offer: false, editOfferPending: false, money: false, extras: false, cancelForRenter: false, scheduleJob: false, latePanel: false, photoReview: false,
     handover: false, sign: false, agreementMoney: false, licenceReview: false, renterDocs: false, staffUpload: false, carLink: false, manualPayments: false, voidRecords: false,
     paperSignatures: false, driverLinks: false, refund: false, refundApprove: false, settleDeposit: false, statement: false, inbox: false, verifyInPerson: false, changeCar: false, collectOnly: false, returningNow: false,
-    resendOffer: false, readiness: false, addonRemove: false };
+    resendOffer: false, readiness: false, addonRemove: false, requestHistory: false };
   return { ...no, money: true, handover: true, sign: true, paperSignatures: true, verifyInPerson: true };
 }
 

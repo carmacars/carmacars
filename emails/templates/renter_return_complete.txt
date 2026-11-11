@@ -25,6 +25,17 @@ What happens next
 View the return report:
 https://carmacars.ca/account/bookings/{{booking_number}}/condition-report
 
+Earn reward points
+------------------------
+
+- Review your rental on carmacars.ca, and add a photo of your trip for extra points
+- Review us on Google
+- Follow us on Instagram, TikTok and Facebook from your Rewards page
+- Refer a friend with your own link: you both earn when they complete their first rental
+- Book with us again: every rental after your first earns extra points
+
+See your rewards and your referral link: https://carmacars.ca/account/rewards
+
 ----------------------------------------
 
 Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.

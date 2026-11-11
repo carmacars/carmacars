@@ -1,7 +1,8 @@
 'use server';
 import { revalidatePath } from 'next/cache';
+import { refusalMessage } from '@/lib/db/refusal';
 import { cookies } from 'next/headers';
-import { DbError, rpc } from '@/lib/db/repo';
+import { rpc } from '@/lib/db/repo';
 import type { ActionResult } from '@/features/forms/schemas';
 import { currentUser } from '@/server/portal/data';
 import { door, sessionAal, VA_FN_COOKIE } from '@/server/door';
@@ -17,7 +18,8 @@ import { isLapsedError, plainProcessorError } from '@/features/money/charge-reas
 // decides who may do what and refuses with the reason, shown as written. Card numbers never reach these actions: the
 // renter types the card in Stripe's frame on the pay page (/pay/<token>), on their phone or on the staff device.
 type R<T = unknown> = ActionResult<T>;
-const fail = (e: unknown): R<never> => ({ ok: false, code: 'refused', message: e instanceof DbError || e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '') : 'Something went wrong.' });
+// r35a: never an empty refusal (src/lib/db/refusal.ts)
+const fail = (e: unknown): R<never> => ({ ok: false, code: 'refused', message: refusalMessage(e) });
 const SR = { role: 'service_role' as const };
 
 async function me() {

@@ -1,4 +1,5 @@
 import Link from '@/components/Link';
+import { OWNER_TRIP } from '@/features/request-history/model';
 import { CarLine, Chip, Who } from './parts';
 import { BILL_WORDS, money, when, type Car } from './model';
 import type { Card, Cards } from './cards';
@@ -44,7 +45,7 @@ export function BookingRows({ rows, cards, base, at, empty, testId = 'bookings' 
           <article key={r.id} className={`bk-row${r.late ? ' is-late' : ''}`} role="listitem" data-testid={`bk-${r.booking_number}`}>
             <div className="bk-row__st">
               <Link prefetch={false} className="bk-row__no" href={href}>{r.booking_number}</Link>
-              <span className="bk-row__chips"><Chip tone={tone}>{word}</Chip>{c?.placeholder && <Chip>Placeholder</Chip>}{r.blocks_calendar === false && !c?.placeholder && <Chip>Not blocking</Chip>}{r.tags?.map(([t, k]) => <Chip key={t} tone={k}>{t}</Chip>)}</span>
+              <span className="bk-row__chips"><Chip tone={tone}>{word}</Chip>{c?.owner_trip && <Chip tone="amber" testId={`bk-owner-${r.booking_number}`}>{OWNER_TRIP}</Chip>}{c?.placeholder && <Chip>Placeholder</Chip>}{r.blocks_calendar === false && !c?.placeholder && <Chip>Not blocking</Chip>}{r.tags?.map(([t, k]) => <Chip key={t} tone={k}>{t}</Chip>)}</span>
               {r.late && <span className="bk-row__late" data-testid="list-late">{r.late}</span>}
               {r.found && <span className="bn-sub">Found by {r.found}</span>}
             </div>

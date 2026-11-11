@@ -14,6 +14,17 @@ It takes about two minutes. A star rating and a line or two about the car and th
 Write a review:
 https://carmacars.ca/account/bookings/{{booking_number}}/review
 
+Earn reward points
+------------------------
+
+- Review your rental on carmacars.ca, and add a photo of your trip for extra points
+- Review us on Google
+- Follow us on Instagram, TikTok and Facebook from your Rewards page
+- Refer a friend with your own link: you both earn when they complete their first rental
+- Book with us again: every rental after your first earns extra points
+
+See your rewards and your referral link: https://carmacars.ca/account/rewards
+
 If something went wrong and you would rather tell us directly, reply to this email. It reaches a person.
 
 ----------------------------------------

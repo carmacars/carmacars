@@ -62,6 +62,9 @@ import { PrepareProgress } from '@/features/field-portal/PrepareProgress';
 import type { PrepareProgressData } from '@/features/field-portal/prepare';
 import { NameChangeCard } from '@/features/admin/NameChangeCard';
 import type { NameChange } from '@/server/self-profile';
+import { BookingKindChips, CoverageStrip, RequestHistory } from '@/features/request-history/RequestHistory';
+import { InstantBookCard, RideshareStaffCard, SecondaryContactCard, type InstantState, type RideshareFacts, type SecondaryContact } from '@/features/request-history/BookingExtras';
+import type { History, Revert } from '@/features/request-history/model';
 
 // r31 "Simple": one booking page for Admin and staff (03-admin.md section 4, 05-va.md sections 2 to 5). The loader picks
 // the access path from the viewer (PageCtx) and reads only what the viewer's function uses; every section and button
@@ -180,6 +183,18 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
     on('messages') ? ops<Conversation>('booking_conversation', { booking: b.booking_number }, true).catch(none(null)) : null]);
   // r35 (0890): card coverage or the Protection Plan, on an offer or an active booking
   const coverageSwitch = (on('overview') || on('money')) && notOwner && !['cancelled', 'declined', 'expired'].includes(b.status) ? await ops<SwitchState>('coverage_switch_state', { booking: b.booking_number }, true).catch(none(null)) : null;
+  // r35a (1300 to 1304): the original request and its offers with the coverage card; an old offer loaded back (?revert=N);
+  // the secondary contact; the rideshare documents the renter made; the renter's instant booking (an Admin)
+  const near = on('overview') || on('review');
+  const [hist, revert, second, ride, instant] = await Promise.all([
+    can.requestHistory && near ? ops<History>('request_history', { booking: b.id }).catch(none(null)) : null,
+    can.offer && arranging && sp.revert && /^\d{1,3}$/.test(sp.revert) ? ops<Revert>('offer_revert', { booking: b.id, version: Number(sp.revert) })
+      .catch((e: unknown) => ({ error: e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '') : 'That offer could not be loaded.' })) : null,
+    near ? ops<SecondaryContact | null>('secondary_contact', { booking: b.id }).catch(none(null)) : null,
+    (near || section === 'documents') && notOwner && ['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) ? ops<RideshareFacts>('rideshare_docs', { booking: b.id }).catch(none(null)) : null,
+    can.admin && notOwner && near && b.renter ? ops<InstantState>('instant_book_state', { booking: b.id }).catch(none(null)) : null]);
+  const revertOk = revert && !('error' in revert) ? revert : null;
+  const instantBooking = (b as { instant_book?: boolean }).instant_book === true || hist?.instant_book === true;
   const [policyNote, adjusters, pay, periods, duplicates] = await Promise.all([
     on('review') && ['requested', 'offered', 'pending_payment', 'confirmed'].includes(b.status) ? (can.admin ? ops : own)<{ handover_note: string | null }>('listing_state', { vehicle_id: b.vehicle_id }).then((x) => x?.handover_note ?? null).catch(none(null)) : null,
     can.admin && on('overview') && notOwner && !['cancelled', 'declined', 'expired'].includes(b.status) ? own<AdjusterOpt[]>('insurer_adjusters', {}).catch(none([] as AdjusterOpt[])) : null,
@@ -228,7 +243,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
   return (
     <RequestClaim booking={b.id} status={b.status} answering={b.status === 'requested' && on('review') && can.offer} va={fn}>
       <PageHead kicker={<>{can.admin ? <Link prefetch={false} className="link" href="/admin/bookings">Bookings</Link> : <Link prefetch={false} className="link" href="/staff">Queue</Link>} · {b.vehicle?.name} · {b.renter?.legal_name}</>}
-        title={<>{b.booking_number} <Badge s={b.status} />{can.admin && b.readiness?.awaiting_signature === true && <> <Badge s="awaiting_signature" /></>} {can.admin && (b.placeholder?.on ? <span className="ad-flag ad-flag--ph" data-testid="placeholder-flag">placeholder</span> : !b.blocks_calendar && <span className="ad-flag">not blocking</span>)}</>}>
+        title={<>{b.booking_number} <Badge s={b.status} /> <BookingKindChips ownerTrip={!notOwner} instant={instantBooking} />{can.admin && b.readiness?.awaiting_signature === true && <> <Badge s="awaiting_signature" /></>} {can.admin && (b.placeholder?.on ? <span className="ad-flag ad-flag--ph" data-testid="placeholder-flag">placeholder</span> : !b.blocks_calendar && <span className="ad-flag">not blocking</span>)}</>}>
         {/* r32: one tap when the car is back (overdue or due today), the late return alert's page included */}
         {can.handover && showReturned(b) && <ReturnedButton booking={b.id} number={b.booking_number} refresh={refresh} testId="returned-top" />}
         {b.renter && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=messages`} data-testid="email-renter-link">Email the renter</Link>}
@@ -283,6 +298,9 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
       })()}
       <ClaimBanner />
       <ReplacedNote chain={chain} portal={portal} />
+      {/* r35a (1300): the coverage the renter chose and its proof, at the top */}
+      {near && hist && <CoverageStrip c={hist.coverage} ownerTrip={hist.owner_trip} />}
+      {near && !notOwner && <p className="alert alert--info" role="note" data-testid="owner-trip-note"><span className="alert__title">Owner&apos;s own trip ($0)</span><span>The owner booked their own car for their own use: no charge, nothing to price or send. Get the car ready for the dates.</span></p>}
       {noShift.length > 0 && <p className="alert alert--warn" role="status" data-testid="no-shift-warning">{noShift.map((w) => `${w.leg === 'handover' ? 'The handover' : 'The return'} is on ${w.day}, a day with no field shifts${w.work_day ? `: its job is planned for ${w.work_day}` : ''}.`).join(' ')} Someone must cover it, or the booking time must move.</p>}
 
       {late?.late && <LatePanel l={late} fleet={fn === 'fleet'} refresh={refresh} returning={can.returningNow} />}
@@ -321,6 +339,10 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
       <NameChangeCard items={corrections} refresh={[base]} />
       {section === 'car' && <OwnerVisibilityPanel userId={user.id} aal={aal} va={fn} booking={b.booking_number} refresh={refresh} />}
       {section === 'car' && <BookingCarSection base={base} number={b.booking_number} vehicleId={b.vehicle_id} vehicleName={b.vehicle?.name ?? null} vehicleHref={carHref} status={b.status} canSign={can.sign} />}
+      {hist && near && <RequestHistory h={hist} base={base} />}
+      {revert && 'error' in revert && <p className="alert alert--error" role="alert" data-testid="revert-error"><span>{revert.error}</span></p>}
+      {near && <div className={can.admin ? 'ad-cols ad-cols--2' : undefined}><SecondaryContactCard c={second ?? null} booking={b.booking_number} />{instant && <InstantBookCard s={instant} refresh={[base]} />}</div>}
+      {ride && <RideshareStaffCard f={ride} lettersHref={`${base}/rideshare`} />}
       {on('review') && (
         <>
           <div className={can.admin ? 'ad-cols ad-cols--2' : undefined}>
@@ -345,7 +367,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
             : <span>Requests, offers and payment are fine; the car cannot be handed over until the insurer confirms it (the car&apos;s onboarding).</span>}</p>}
           {/* the renter's licence, uploaded with the request (0130) */}
           {can.renterDocs && <RenterDocs b={b} refresh={[base]} />}
-          <ClaimGate testId="claim-gate-review" explain><BookingReview b={b} insurers={ins.rows} insurerRates={insurerCard?.rates ?? []} kmChoices={km.rows.map((k) => k.km_per_day)} offerHours={settings?.program.offer_expiry_hours ?? 24}
+          <ClaimGate testId="claim-gate-review" explain><BookingReview key={revertOk ? `revert-${revertOk.version}` : 'review'} revert={revertOk} ownerTrip={!notOwner} b={b} insurers={ins.rows} insurerRates={insurerCard?.rates ?? []} kmChoices={km.rows.map((k) => k.km_per_day)} offerHours={settings?.program.offer_expiry_hours ?? 24}
             editable={['requested', 'offered'].includes(b.status) || (b.status === 'pending_payment' && can.editOfferPending)} /></ClaimGate>
         </>
       )}

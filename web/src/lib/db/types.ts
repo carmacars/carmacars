@@ -2799,6 +2799,63 @@ export type Database = {
         };
         Relationships: [];
       };
+      booking_request_snapshots: {
+        Row: {
+          booking_id: string;
+          source: string;
+          captured_at: string;
+          vehicle_id: string | null;
+          vehicle_name: string | null;
+          pickup_at: string | null;
+          return_at: string | null;
+          billable_days: number | null;
+          pickup_place: string | null;
+          return_place: string | null;
+          booking_type: string | null;
+          coverage_option: number | null;
+          note: string | null;
+          details: Json;
+          addons: Json;
+          price: Json | null;
+        };
+        Insert: {
+          booking_id: string;
+          source?: string;
+          captured_at?: string;
+          vehicle_id?: string | null;
+          vehicle_name?: string | null;
+          pickup_at?: string | null;
+          return_at?: string | null;
+          billable_days?: number | null;
+          pickup_place?: string | null;
+          return_place?: string | null;
+          booking_type?: string | null;
+          coverage_option?: number | null;
+          note?: string | null;
+          details?: Json;
+          addons?: Json;
+          price?: Json | null;
+        };
+        Update: {
+          booking_id?: string;
+          source?: string;
+          captured_at?: string;
+          vehicle_id?: string | null;
+          vehicle_name?: string | null;
+          pickup_at?: string | null;
+          return_at?: string | null;
+          billable_days?: number | null;
+          pickup_place?: string | null;
+          return_place?: string | null;
+          booking_type?: string | null;
+          coverage_option?: number | null;
+          note?: string | null;
+          details?: Json;
+          addons?: Json;
+          price?: Json | null;
+        };
+        Relationships: [];
+      };
       booking_splits: {
         Row: {
           booking_id: string;
@@ -3281,6 +3338,8 @@ export type Database = {
           returning_now_return_at: string | null;
           plan_policy_number: string | null;
           pay_fixed_cents: number | null;
+          secondary_contact: Json | null;
+          instant_book: boolean;
         };
         Insert: {
           id?: string;
@@ -3466,6 +3525,8 @@ export type Database = {
           returning_now_return_at?: string | null;
           plan_policy_number?: string | null;
           pay_fixed_cents?: number | null;
+          secondary_contact?: Json | null;
+          instant_book?: boolean;
         };
         Update: {
           id?: string;
@@ -3651,6 +3712,8 @@ export type Database = {
           returning_now_return_at?: string | null;
           plan_policy_number?: string | null;
           pay_fixed_cents?: number | null;
+          secondary_contact?: Json | null;
+          instant_book?: boolean;
         };
         Relationships: [];
       };
@@ -17347,6 +17410,8 @@ export type Database = {
           indexnow_sweep_batch: number;
           indexnow_queue_batch: number;
           staff_onboarding_gate: boolean;
+          instant_book_repeat_enabled: boolean;
+          instant_book_min_rentals: number;
         };
         Insert: {
           id?: string;
@@ -18038,6 +18103,8 @@ export type Database = {
           indexnow_sweep_batch?: number;
           indexnow_queue_batch?: number;
           staff_onboarding_gate?: boolean;
+          instant_book_repeat_enabled?: boolean;
+          instant_book_min_rentals?: number;
         };
         Update: {
           id?: string;
@@ -18729,6 +18796,8 @@ export type Database = {
           indexnow_sweep_batch?: number;
           indexnow_queue_batch?: number;
           staff_onboarding_gate?: boolean;
+          instant_book_repeat_enabled?: boolean;
+          instant_book_min_rentals?: number;
         };
         Relationships: [];
       };
@@ -20257,6 +20326,10 @@ export type Database = {
           notify_channel: string | null;
           staff_note: string | null;
           merged_into: string | null;
+          secondary_contact: Json | null;
+          instant_book_revoked_at: string | null;
+          instant_book_revoked_by: string | null;
+          instant_book_revoked_reason: string | null;
         };
         Insert: {
           id?: string;
@@ -20282,6 +20355,10 @@ export type Database = {
           notify_channel?: string | null;
           staff_note?: string | null;
           merged_into?: string | null;
+          secondary_contact?: Json | null;
+          instant_book_revoked_at?: string | null;
+          instant_book_revoked_by?: string | null;
+          instant_book_revoked_reason?: string | null;
         };
         Update: {
           id?: string;
@@ -20307,6 +20384,10 @@ export type Database = {
           notify_channel?: string | null;
           staff_note?: string | null;
           merged_into?: string | null;
+          secondary_contact?: Json | null;
+          instant_book_revoked_at?: string | null;
+          instant_book_revoked_by?: string | null;
+          instant_book_revoked_reason?: string | null;
         };
         Relationships: [];
       };
@@ -20627,6 +20708,7 @@ export type Database = {
           publish_consent_at: string | null;
           google_prompt_clicked_at: string | null;
           reward_points: boolean;
+          photos: Json;
         };
         Insert: {
           id?: string;
@@ -20647,6 +20729,7 @@ export type Database = {
           publish_consent_at?: string | null;
           google_prompt_clicked_at?: string | null;
           reward_points?: boolean;
+          photos?: Json;
         };
         Update: {
           id?: string;
@@ -20667,6 +20750,7 @@ export type Database = {
           publish_consent_at?: string | null;
           google_prompt_clicked_at?: string | null;
           reward_points?: boolean;
+          photos?: Json;
         };
         Relationships: [];
       };
@@ -20847,6 +20931,36 @@ export type Database = {
           late_grace_minutes?: number;
           updated_by?: string | null;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      rideshare_doc_requests: {
+        Row: {
+          id: string;
+          booking_id: string;
+          renter_id: string | null;
+          platforms: string[];
+          other_platform: string | null;
+          requested_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          renter_id?: string | null;
+          platforms: string[];
+          other_platform?: string | null;
+          requested_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          renter_id?: string | null;
+          platforms?: string[];
+          other_platform?: string | null;
+          requested_by?: string | null;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -30013,6 +30127,7 @@ export type Database = {
       server_indexnow_claim: { Args: { p_limit: number }; Returns: Json };
       server_indexnow_report: { Args: { p: Json }; Returns: Json };
       server_indexnow_sent: { Args: { p: Json }; Returns: number };
+      server_instant_book: { Args: { p_number: string; p_user: string }; Returns: Json };
       server_jobs_due: { Args: never; Returns: Json };
       server_licence_read_gate: { Args: never; Returns: Json };
       server_licence_read_record: { Args: { p: Json }; Returns: Json };
@@ -30171,11 +30286,16 @@ export type Database = {
       server_review_google_sync_finish: { Args: { p: Json }; Returns: Json };
       server_review_helper: { Args: { p_token: string }; Returns: Json };
       server_review_helper_act: { Args: { p_token: string; p_act: string }; Returns: Json };
+      server_review_photos_set: { Args: { p_booking: string; p_by: string; p_photos: Json }; Returns: Json };
+      server_rideshare_docs: { Args: { p_by: string; p_booking: string }; Returns: Json };
+      server_rideshare_docs_request: { Args: { p_by: string; p: Json }; Returns: Json };
       server_row_car_photos: { Args: { p_vehicles: string[] }; Returns: Json };
       server_schedule_change_attach: { Args: { p_change: string; p_path: string; p_sha256: string }; Returns: string };
       server_schedule_change_sign: { Args: { p_by: string; p: Json }; Returns: Json };
       server_schedule_change_signed_facts: { Args: { p_change: string }; Returns: Json };
       server_search_mine: { Args: { p_user: string; p_aal: string; p_q: string }; Returns: Json };
+      server_secondary_contact: { Args: { p_by: string; p_booking?: string }; Returns: Json };
+      server_secondary_contact_save: { Args: { p_by: string; p: Json }; Returns: Json };
       server_seen_account_links: { Args: { p_user: string }; Returns: number };
       server_self_handover_submit: { Args: { p_user: string; p: Json }; Returns: Json };
       server_send_link_email: { Args: { p_email: string; p_name: string; p_url: string; p_expiry?: string; p_key?: string }; Returns: number };

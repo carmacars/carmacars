@@ -1,4 +1,5 @@
 import Link from '@/components/Link';
+import { OWNER_TRIP } from '@/features/request-history/model';
 import { ListFilters } from '@/features/list-filters/ListFilters';
 import { ReopenOffer } from '@/features/offers/ReopenOffer';
 import { Act } from '@/features/admin/Act';
@@ -120,6 +121,7 @@ function RequestRow({ r, c, target, at, base, admin, refresh }: { r: Req; c: Car
       <div className="rq__who">
         <Who r={{ id: r.id, name: r.renter, phone: c?.phone ?? null }} booking={r.booking_number} />
         <span className="rq__tags">
+          {c?.owner_trip && <Chip tone="amber" testId={`rq-owner-${r.booking_number}`}>{OWNER_TRIP}</Chip>}
           <Chip tone={r.returning ? 'ok' : 'quiet'}>{r.returning ? 'Returning' : 'New renter'}</Chip>
           <Chip tone={lic === 'verified' ? 'ok' : lic === 'pending' ? 'amber' : 'red'} testId={`rq-licence-${r.booking_number}`}>{lic === 'verified' ? 'Licence verified' : lic === 'pending' ? 'Licence to review' : 'No licence yet'}</Chip>
           {c?.bill_to && c.bill_to !== 'renter' && <Chip tone="dark">Insurer</Chip>}
