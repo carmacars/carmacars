@@ -17991,6 +17991,12 @@ export type Database = {
           intent_ai_enabled: boolean;
           intent_hot_score: number;
           intent_warm_score: number;
+          seo_click_goal: number;
+          seo_low_ctr_pct: number;
+          seo_low_ctr_min_impressions: number;
+          seo_digest_on: boolean;
+          usage_cached_pct: number;
+          usage_cached_since: string | null;
           fleet_demand_cap_bps: number;
           fleet_demand_cap_rank: number;
           fleet_demand_min_requests: number;
@@ -18783,6 +18789,12 @@ export type Database = {
           intent_ai_enabled?: boolean;
           intent_hot_score?: number;
           intent_warm_score?: number;
+          seo_click_goal?: number;
+          seo_low_ctr_pct?: number;
+          seo_low_ctr_min_impressions?: number;
+          seo_digest_on?: boolean;
+          usage_cached_pct?: number;
+          usage_cached_since?: string | null;
           fleet_demand_cap_bps?: number;
           fleet_demand_cap_rank?: number;
           fleet_demand_min_requests?: number;
@@ -19575,6 +19587,12 @@ export type Database = {
           intent_ai_enabled?: boolean;
           intent_hot_score?: number;
           intent_warm_score?: number;
+          seo_click_goal?: number;
+          seo_low_ctr_pct?: number;
+          seo_low_ctr_min_impressions?: number;
+          seo_digest_on?: boolean;
+          usage_cached_pct?: number;
+          usage_cached_since?: string | null;
           fleet_demand_cap_bps?: number;
           fleet_demand_cap_rank?: number;
           fleet_demand_min_requests?: number;
@@ -31556,6 +31574,7 @@ export type Database = {
       server_seen_account_links: { Args: { p_user: string }; Returns: number };
       server_self_handover_submit: { Args: { p_user: string; p: Json }; Returns: Json };
       server_send_link_email: { Args: { p_email: string; p_name: string; p_url: string; p_expiry?: string; p_key?: string }; Returns: number };
+      server_seo_actions: { Args: { p_user: string }; Returns: Json };
       server_seo_claim: { Args: { p_worker: string; p_limit?: number }; Returns: Json };
       server_seo_result: { Args: { p: Json }; Returns: Json };
       server_seo_snapshots: { Args: never; Returns: number };

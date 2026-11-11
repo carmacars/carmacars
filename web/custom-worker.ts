@@ -12,7 +12,7 @@ import { parseCookieHeader, readSession } from './src/lib/auth/session-cookie';
 import { BEACON_GIVE_UP_MS, BEACON_WAIT_MS, BEAT_WAIT_MS, MAX_BEACON_BYTES, cleanBeacon, cleanBeat, emailLinkCookie, ipKey, isBeat, isBot, within } from './src/lib/track/shared';
 import { SCHEMA_HEADER, SCHEMA_MARKER } from './src/lib/schema-marker';
 import { EDGE_CACHE_NAME, STALE_HEADER, STALE_TTL_S, busyPage, crawlerCopy, hasSession, deploymentOf, edgeKey, isProbe, serveEdge, staleKey } from './src/lib/edge/page-cache';
-import { BUSY_KEY, BUSY_MS, BusyMeter, checkPage, httpsRedirect, longTail, renderFailed, scraperGuard, tooMany } from './src/lib/edge/scraper-guard';
+import { BUSY_KEY, BUSY_MS, BusyMeter, USAGE_CACHED_KEY, checkPage, httpsRedirect, longTail, renderFailed, scraperGuard, tailServing, tooMany } from './src/lib/edge/scraper-guard';
 import { jobsToRun, pushWaiting } from './src/lib/edge/cron-gate';
 import { RATE_LIMITED_BOT, isCrawler, keptToScope, shield, shieldResponse } from './src/lib/edge/bot-shield';
 import { CPU_GUARD_KEY, SEARCH_SCOPE_KEY, FLEET_SIG_CONFIRM_KEY, FLEET_SIG_KEY, fleetRows, signatureOf } from './src/lib/edge/fleet-sig';
@@ -272,6 +272,9 @@ const worker = {
       // the search scope (Settings > Vehicle pages): 1 for Core, which keeps crawlers to the crawl scope here
       const core = due.search_core ? 1 : 0;
       if ((await readNumber(env, SEARCH_SCOPE_KEY)) !== core) await writeNumber(env, SEARCH_SCOPE_KEY, core);
+      // 1860: cached-only serving by usage (the month's Worker requests or CPU time past Program settings usage_cached_pct)
+      const cached = due.cached_only ? 1 : 0;
+      if ((await readNumber(env, USAGE_CACHED_KEY)) !== cached) await writeNumber(env, USAGE_CACHED_KEY, cached);
     })().catch(() => undefined));
     if (due.listing) run('/api/jobs/listing');
     // the search copy (cars, landing pages, articles) and IndexNow (migration 0061)
@@ -372,10 +375,11 @@ const worker = {
     let guardCopy: Response | null = null;
     // cached-only mode (the database busy, tripped by the Worker itself below): long-tail pages from their kept copies only
     const tail = (request.method === 'GET' || request.method === 'HEAD') && longTail(path) && !hasSession(request.headers.get('cookie'));
-    if (g === 'pass' && tail && (await busyUntil(env)) > Date.now()) {
+    const serving = g === 'pass' && tail ? tailServing((await busyUntil(env)) > Date.now(), await flag(env, USAGE_CACHED_KEY)) : 'render';
+    if (serving !== 'render') {
       const k = staleKey(request);
       guardCopy = k ? await crawlerCopy(k, request.headers.get('if-modified-since'), { cache: () => caches.open(EDGE_CACHE_NAME), env }, STALE_TTL_S) : null;
-      if (!guardCopy) return request.headers.get('rsc') === '1' ? tooMany(120, securityHeaders()) : busyPage();
+      if (!guardCopy && serving === 'copy-or-busy') return request.headers.get('rsc') === '1' ? tooMany(120, securityHeaders()) : busyPage();
     }
     if (g !== 'pass') {
       const k = staleKey(request);

@@ -39,6 +39,9 @@ const sample = pickSample(priority, tail.filter((u) => !u.endsWith('.xml')), N, 
 const prioritySet = new Set(priority);
 const byState = {}, byKind = {}, byBucket = emptyBuckets(), byPart = { priority: emptyBuckets(), tail: emptyBuckets() };
 let errors = 0, done = 0;
+const urls = [];
+// 1860: the sitemap file name Google lists for the page (the API names the sitemaps that contain it)
+const sitemapOf = (st) => { const m = Array.isArray(st.sitemap) ? st.sitemap[0] : null; try { return m ? new URL(m).pathname.slice(1) : null; } catch { return null; } };
 for (const url of sample) {
   try {
     const r = await fetch('https://searchconsole.googleapis.com/v1/urlInspection/index:inspect', {
@@ -58,10 +61,12 @@ for (const url of sample) {
     const k = pageKind(new URL(url).pathname);
     byKind[k] ??= emptyBuckets();
     byKind[k][b]++;
+    // 1860: the page itself, for the SEO page (by sitemap) and for IndexNow when it is not indexed
+    { const u = new URL(url); if (!u.search) urls.push({ path: u.pathname.length > 1 ? u.pathname.replace(/\/$/, '') : u.pathname, state, bucket: b, sitemap: sitemapOf(st) ?? (prioritySet.has(url) ? 'sitemap-priority' : null), last_crawl: st.lastCrawlTime ?? null }); }
     done++;
   } catch { errors++; }
 }
-const out = { inspected: done, by_state: byState, by_kind: byKind, by_bucket: byBucket, by_part: byPart, errors };
+const out = { inspected: done, by_state: byState, by_kind: byKind, by_bucket: byBucket, by_part: byPart, errors, urls };
 if (process.env.OUT) fs.writeFileSync(process.env.OUT, JSON.stringify(out));
 const sh = coverageShares(byBucket);
 const share = (x) => (x === null ? 'n/a' : `${Math.round(x * 100)}%`);

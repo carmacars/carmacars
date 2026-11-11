@@ -1,3 +1,4 @@
+import Link from '@/components/Link';
 import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
 import { MarketingView, type MarketingData } from '@/features/marketplace/MarketingView';
@@ -16,6 +17,8 @@ export default async function StaffMarketing({ searchParams }: { searchParams: P
   return <>
     <MarketingView data={data} car={sp.car} academyHref={`/staff/academy/${path}/marketplace-with-claude`}
       scenes={(v) => scenePhotos(user.id, v, aal).then((x) => x.length > 0).catch(() => false)} />
+    {/* 1860: Search Console clicks against the goal, read only */}
+    <p className="small"><Link prefetch={false} className="link" href="/staff/marketing/seo" data-testid="staff-seo-link">SEO: clicks from Google, queries and indexing</Link></p>
     {/* release 36: the event pages, the same list as Admin > Marketing > Event pages */}
     <EventsAdmin rows={events} refresh={['/staff/marketing']} />
   </>;

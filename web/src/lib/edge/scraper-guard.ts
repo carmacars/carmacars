@@ -80,6 +80,16 @@ export function tooMany(retryAfterS: number, headers: Record<string, string> = {
 // "come back later"); signed-in staff and the portals are never affected.
 export const BUSY_KEY = 'carmacars/busy-until';
 export const BUSY_MS = 10 * 60_000;
+/** 1860: cached-only serving by usage. The tag store holds 1 while the month's Worker requests or CPU time are at the Program
+ *  setting usage_cached_pct (70) of the allowance (the five-minute tick writes it from the database's answer, cron-gate.ts
+ *  cached_only); the vehicle and SEO pages then come from the kept copy only. A page with no copy yet is rendered once (its
+ *  copy then serves the rest), where busy mode answers 503: a search engine is never told to go away because of the bill. */
+export const USAGE_CACHED_KEY = 'carmacars/usage-cached';
+export type TailServing = 'render' | 'copy-or-busy' | 'copy-or-render';
+/** How a long-tail page of a visitor without a session is served: busy mode (the database failing) wins over the usage line. */
+export function tailServing(busy: boolean, usageCached: boolean): TailServing {
+  return busy ? 'copy-or-busy' : usageCached ? 'copy-or-render' : 'render';
+}
 export const BUSY_TRIP = 5;
 export const BUSY_WINDOW_MS = 60_000;
 

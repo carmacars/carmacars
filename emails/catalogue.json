@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 215,
+  "count": 216,
   "emails": [
     {
       "code": "account_password_reset",
@@ -15787,6 +15787,106 @@
       ],
       "template_html": "templates/staff_payouts_due.html",
       "template_text": "templates/staff_payouts_due.txt"
+    },
+    {
+      "code": "staff_seo_digest",
+      "audience": "staff_admin",
+      "category": "transactional",
+      "trigger": "Scheduled (the hourly usage job, migration 1860): every Monday morning, Toronto time, to the alert address in Program settings (uptime_alert_email) while Program settings \"SEO digest\" is on. It goes through the email outbox like every email, at the lowest priority, so the day's email limit and the providers' budgets apply and it waits for the next day when the limit is used. Search Console clicks against the monthly goal, the best queries and pages, and the pages Google shows but nobody clicks.",
+      "timing": "Monday morning",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Search this week: {{clicks_28d}} clicks in 28 days, {{goal_share}} of the monthly goal",
+      "preheader": "{{indexed_line}}",
+      "sample_subject": "Search this week: 41,200 clicks in 28 days, 1% of the monthly goal",
+      "variables": [
+        {
+          "name": "clicks_28d",
+          "type": "string",
+          "sample": "41,200"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "goal",
+          "type": "string",
+          "sample": "5,000,000"
+        },
+        {
+          "name": "goal_line",
+          "type": "string",
+          "sample": "At this pace the month brings about 44,000 clicks, 1% of the 5,000,000 goal."
+        },
+        {
+          "name": "goal_share",
+          "type": "string",
+          "sample": "1%"
+        },
+        {
+          "name": "impressions_28d",
+          "type": "string",
+          "sample": "2,300,000"
+        },
+        {
+          "name": "indexed_line",
+          "type": "string",
+          "sample": "62% of the sampled pages Google knows are indexed; 1,200 crawled, not indexed"
+        },
+        {
+          "name": "indexnow_line",
+          "type": "string",
+          "sample": "800 addresses sent in 7 days, 40 waiting"
+        },
+        {
+          "name": "low_ctr",
+          "type": "list",
+          "sample": [
+            {
+              "key": "/car-rental/mississauga",
+              "impressions": "18,400",
+              "ctr": "0.4%"
+            },
+            {
+              "key": "/buy/toyota/camry",
+              "impressions": "9,900",
+              "ctr": "0.6%"
+            }
+          ],
+          "fields": [
+            "key",
+            "impressions",
+            "ctr"
+          ]
+        },
+        {
+          "name": "top_queries",
+          "type": "list",
+          "sample": [
+            {
+              "key": "rent a mercedes toronto",
+              "clicks": "812",
+              "position": "4.1"
+            },
+            {
+              "key": "car rental pearson airport",
+              "clicks": "640",
+              "position": "7.9"
+            }
+          ],
+          "fields": [
+            "key",
+            "clicks",
+            "position"
+          ]
+        }
+      ],
+      "template_html": "templates/staff_seo_digest.html",
+      "template_text": "templates/staff_seo_digest.txt"
     },
     {
       "code": "staff_site_alert",
