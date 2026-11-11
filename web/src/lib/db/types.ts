@@ -18260,6 +18260,10 @@ export type Database = {
           auto_reply_meta_verify_token: string;
           auto_reply_whatsapp_phone_id: string | null;
           listing_angle_prompt: string;
+          social_video_cta: string;
+          social_video_brand: string;
+          social_video_seconds_per_photo: number;
+          social_video_max_photos: number;
         };
         Insert: {
           id?: string;
@@ -19078,6 +19082,10 @@ export type Database = {
           auto_reply_meta_verify_token?: string;
           auto_reply_whatsapp_phone_id?: string | null;
           listing_angle_prompt?: string;
+          social_video_cta?: string;
+          social_video_brand?: string;
+          social_video_seconds_per_photo?: number;
+          social_video_max_photos?: number;
         };
         Update: {
           id?: string;
@@ -19896,6 +19904,10 @@ export type Database = {
           auto_reply_meta_verify_token?: string;
           auto_reply_whatsapp_phone_id?: string | null;
           listing_angle_prompt?: string;
+          social_video_cta?: string;
+          social_video_brand?: string;
+          social_video_seconds_per_photo?: number;
+          social_video_max_photos?: number;
         };
         Relationships: [];
       };
@@ -23577,6 +23589,45 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      social_videos: {
+        Row: {
+          id: string;
+          vehicle_id: string;
+          path: string;
+          mime: string;
+          seconds: number;
+          bytes: number;
+          price_cents: number | null;
+          created_by: string | null;
+          created_at: string;
+          removed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          vehicle_id: string;
+          path: string;
+          mime: string;
+          seconds: number;
+          bytes: number;
+          price_cents?: number | null;
+          created_by?: string | null;
+          created_at?: string;
+          removed_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          vehicle_id?: string;
+          path?: string;
+          mime?: string;
+          seconds?: number;
+          bytes?: number;
+          price_cents?: number | null;
+          created_by?: string | null;
+          created_at?: string;
+          removed_at?: string | null;
         };
         Relationships: [];
       };
