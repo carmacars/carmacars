@@ -1,3 +1,4 @@
+import Link from '@/components/Link';
 import { PageHead, Tabs } from '@/features/admin/ui';
 import { ModelChart } from './Chart';
 import { AssumptionsForm } from './AssumptionsForm';
@@ -98,7 +99,7 @@ export function CompanyModelView({ read, inputs, model, tab: asked, actions }: {
     ];
     const noExp = A.filter((a) => a.complete && a.expenses_cents === 0).map((a) => mon(a.month));
     return (<>{head}{tabs}
-      {noExp.length > 0 && <ul className="im-warnings"><li>No expenses entered in Admin &gt; Expenses for {noExp.join(', ')}: the forecast uses the assumptions for those months&apos; costs (marked est.). Enter them in <a className="link" href="/admin/expenses">Expenses</a>.</li></ul>}
+      {noExp.length > 0 && <ul className="im-warnings"><li>No expenses entered in Admin &gt; Expenses for {noExp.join(', ')}: the forecast uses the assumptions for those months&apos; costs (marked est.). Enter them in <Link className="link" href="/admin/expenses">Expenses</Link>.</li></ul>}
       <section className="pu-panel" aria-labelledby="ac-h">
         <h2 className="pu-title" id="ac-h">Actuals by month</h2>
         <div className="im-scroll" tabIndex={0} role="region" aria-label="Actuals by month">

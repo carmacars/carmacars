@@ -1,3 +1,4 @@
+import Link from '@/components/Link';
 import qrcode from 'qrcode-generator';
 import { pageMeta } from '@/features/seo/meta';
 import { door, requireStaff } from '@/server/door';
@@ -30,7 +31,7 @@ export default async function Referrals() {
         <p className="small" style={{ overflowWrap: 'anywhere' }}>{url}</p>
         <CopyLink url={url} label="Copy the link" />
         <div className="fd-qr" role="img" aria-label="QR code of your referral link" dangerouslySetInnerHTML={{ __html: qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true }) }} />
-        <p className="small">A booking made with your link counts as a rental you sourced. You earn {pctText(r.rate_bps)} of the rental charge of each one, once it is completed and paid in full and an Admin approves it. See them on <a className="link" href="/staff/field/sales">My sales</a>.</p>
+        <p className="small">A booking made with your link counts as a rental you sourced. You earn {pctText(r.rate_bps)} of the rental charge of each one, once it is completed and paid in full and an Admin approves it. See them on <Link className="link" href="/staff/field/sales">My sales</Link>.</p>
       </section>
       {r.kickbacks.length > 0 && <section className="fd-card" aria-labelledby="kb-t"><h2 className="d4" id="kb-t">Referral fees before October 18, 2026</h2>
         {r.kickbacks.length ? <ul className="fd-shots" data-testid="kickbacks">{r.kickbacks.map((k) => <li key={k.booking_number}><span>{month(k.month)} · {k.booking_number}</span><span>{money(k.amount_cents, { cents: true })}, {k.status}{k.payroll_period ? ` (${when(`${k.payroll_period}T12:00:00Z`, false)})` : ''}</span></li>)}</ul>

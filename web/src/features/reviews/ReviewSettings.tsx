@@ -44,6 +44,7 @@ export function ReviewSettings({ data, message, keysSet, timings, link }: { data
       </Card>
       <Card title="Google Business Profile" testId="review-google" tone={g.status === 'error' ? 'warn' : undefined}
         aside={<span className="ad-actions">
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- an API route (a file download or an OAuth redirect), not a page */}
           {keysSet ? <a className="btn btn--primary btn--sm" href="/api/google/reviews/connect" data-testid="review-google-connect">{g.status === 'not_connected' ? 'Connect Google' : 'Connect again'}</a>
             : <span className="small muted" data-testid="review-google-nokeys">Google app keys not set</span>}
           {g.status !== 'not_connected' && <Act action="review_google_disconnect" label="Disconnect" variant="quiet" confirm="Stop reading Google reviews. The reviews already read and their matches stay." refresh={['/admin/settings/reviews']} done="Disconnected." />}

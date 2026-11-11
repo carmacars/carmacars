@@ -22,6 +22,7 @@ export async function PartnerInvoices({ userId, aal, base, sp, partner }: { user
   const link = (q: string) => `${base}${base.includes('?') ? '&' : '?'}${q}`;
   return (
     <div className="stack" data-testid="partner-invoices">
+      {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- an API route (a file download or an OAuth redirect), not a page */}
       <p className="small">Invoiced {$(l.totals.invoiced_cents)} · received {$(l.totals.received_cents)} · <b>outstanding {$(l.totals.outstanding_cents)}</b>{l.totals.overdue ? ` · ${l.totals.overdue} overdue` : ''} · <a className="link" href="/api/staff/partner-invoice?csv=1">CSV for the bookkeeper</a></p>
       {one ? <Card title={`Invoice ${one.invoice_number ?? '(draft)'} · ${one.partner.business_name}`} testId="pi-one">
         <p>{STATE_WORDS[one.state] ?? one.state} · total {$(one.total_cents)} · received {$(one.paid_cents)} · balance <b>{$(one.balance_cents)}</b>{one.sent_to ? ` · sent to ${one.sent_to} (${one.sends}x)` : ''}</p>

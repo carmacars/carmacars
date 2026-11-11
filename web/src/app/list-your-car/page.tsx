@@ -1,3 +1,4 @@
+import Link from '@/components/Link';
 import { Crumbs } from '@/components/Crumbs';
 import { EarningsCalculator } from '@/features/owner/EarningsCalculator';
 import type { CalcData } from '@/features/owner/earnings';
@@ -34,8 +35,8 @@ export default async function Owners() {
           <p className="eyebrow">Owner program, {s.city}</p>
           <h1 className="d1">Your car, earning its keep.</h1>
           <p className="lead">{F('List your car with {{brand}}. We find the renters, check their licences, hand over the keys and collect the money. Every handover is photographed, so it comes back the way it left, and you get a statement and a payout every month.')}</p>
-          <p className="row"><a className="btn btn--primary btn--lg" href="/list-your-car/apply">Apply to list your car</a><a className="btn btn--ghost btn--lg" href="#apply">Ask us first</a></p>
-          <p className="small"><a className="link" href="/list-your-car/apply?route=fleet" data-testid="lyc-fleet">A corporation with a fleet? Lease your cars to us as a fleet supplier</a></p>
+          <p className="row"><Link className="btn btn--primary btn--lg" href="/list-your-car/apply">Apply to list your car</Link><a className="btn btn--ghost btn--lg" href="#apply">Ask us first</a></p>
+          <p className="small"><Link className="link" href="/list-your-car/apply?route=fleet" data-testid="lyc-fleet">A corporation with a fleet? Lease your cars to us as a fleet supplier</Link></p>
         </div></div>
       </section>
       <section className="facts on-dark" aria-label="Owner program at a glance"><div className="wrap"><dl className="facts__list">
