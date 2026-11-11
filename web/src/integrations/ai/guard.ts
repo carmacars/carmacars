@@ -69,14 +69,14 @@ export function guardVision(model: VisionModel, paused: PausedCheck, spent?: (pu
 }
 
 /** 0380: the interviews' speech to text, live work: about 47 neurons a minute of audio must fit the live share. */
-export function guardTranscriber(t: Transcriber, paused: PausedCheck, spent?: (purpose: string, neurons: number) => void): Transcriber {
+export function guardTranscriber(t: Transcriber, paused: PausedCheck, spent?: (purpose: string, neurons: number) => void, purpose = 'interview_transcribe'): Transcriber {
   return {
     name: t.name,
     async transcribe(req: TranscribeRequest): Promise<TranscribeResult> {
       const estimate = Math.ceil((Math.max(req.seconds, 1) / 60) * 47);
-      if (await paused({ purpose: 'interview_transcribe', estimate })) return { ok: false, reason: 'quota', message: (await paused()) ? PAUSED_MESSAGE : SHARE_MESSAGE };
+      if (await paused({ purpose, estimate })) return { ok: false, reason: 'quota', message: (await paused()) ? PAUSED_MESSAGE : SHARE_MESSAGE };
       const r = await t.transcribe(req);
-      if (r.neurons) spent?.('interview_transcribe', r.neurons);
+      if (r.neurons) spent?.(purpose, r.neurons);
       return r;
     }
   };

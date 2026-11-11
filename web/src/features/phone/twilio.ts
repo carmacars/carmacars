@@ -58,12 +58,15 @@ const xml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 const E164 = /^\+[1-9][0-9]{7,14}$/;
 
 /** The TwiML when the staff member answers: a short message, then the customer with the CarmaCars number as caller ID. */
-export function bridgeTwiml(o: { to: string; callerId: string; actionUrl: string; say?: string; timeoutSeconds?: number }): string {
+export function bridgeTwiml(o: { to: string; callerId: string; actionUrl: string; say?: string; timeoutSeconds?: number; recordingUrl?: string | null }): string {
   if (!E164.test(o.to)) throw new Error('The customer number is not in E.164 form');
   if (!E164.test(o.callerId)) throw new Error('The caller ID is not in E.164 form');
   const t = Math.max(5, Math.min(60, Math.round(o.timeoutSeconds ?? 30)));
   const say = o.say ? `<Say voice="alice" language="en-CA">${xml(o.say)}</Say>` : '';
-  return `<?xml version="1.0" encoding="UTF-8"?><Response>${say}<Dial callerId="${xml(o.callerId)}" timeout="${t}" answerOnBridge="true" action="${xml(o.actionUrl)}" method="POST"><Number>${xml(o.to)}</Number></Dial></Response>`;
+  // 1880: the customer leg recorded from the answer, each side on its own channel; Twilio posts the finished recording to
+  // our recording webhook (same token and signature as the other legs)
+  const rec = o.recordingUrl ? ` record="record-from-answer-dual" recordingStatusCallback="${xml(o.recordingUrl)}" recordingStatusCallbackMethod="POST" recordingStatusCallbackEvent="completed"` : '';
+  return `<?xml version="1.0" encoding="UTF-8"?><Response>${say}<Dial callerId="${xml(o.callerId)}" timeout="${t}" answerOnBridge="true" action="${xml(o.actionUrl)}" method="POST"${rec}><Number>${xml(o.to)}</Number></Dial></Response>`;
 }
 
 /** The TwiML that ends the call (after the customer leg, or when the call is not ours). */
@@ -106,4 +109,23 @@ export function dialOutcome(status: string | null | undefined): string {
     case 'canceled': return 'hung up before they answered';
     default: return 'did not connect';
   }
+}
+
+/** 1880: a recording callback worth copying: completed, with a recording SID of this account's form (RE + 32 hex). */
+export function recordingReady(params: Record<string, string>): { sid: string; seconds: number } | null {
+  const sid = params.RecordingSid ?? '';
+  if (!/^RE[0-9a-f]{32}$/i.test(sid)) return null;
+  if ((params.RecordingStatus ?? '').toLowerCase() !== 'completed') return null;
+  const seconds = Math.max(0, Math.round(Number(params.RecordingDuration ?? '0')) || 0);
+  return { sid, seconds };
+}
+/** The recording's audio (MP3) and the recording itself (DELETE), on Twilio's REST API. */
+export function recordingUrls(accountSid: string, recordingSid: string): { audio: string; resource: string } {
+  const base = `${TWILIO_API}/Accounts/${encodeURIComponent(accountSid)}/Recordings/${encodeURIComponent(recordingSid)}`;
+  return { audio: `${base}.mp3`, resource: `${base}.json` };
+}
+/** Where our copy is kept (private documents bucket); the database checks this form. */
+export function recordingKey(callId: string): string {
+  if (!/^[0-9a-f-]{36}$/i.test(callId)) throw new Error('Not a call id');
+  return `calls/twilio/${callId.toLowerCase()}.mp3`;
 }

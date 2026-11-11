@@ -7,9 +7,9 @@ import type { SessionDetail } from '../live/staff';
 export interface PhoneItem {
   id: string; thread_id: string; kind: 'call' | 'text'; direction: 'in' | 'out'; at: string; status: string | null; body: string | null;
   media: Array<{ url: string; type: string | null }>; missed: boolean; duration: number | null; answered_at: string | null;
-  voicemail_text: string | null; voicemail_url: string | null; recordings: Array<{ url: string; duration: number | null }>;
+  voicemail_text: string | null; voicemail_url: string | null; recordings: Array<{ url: string; duration?: number | null; source?: 'site'; seconds?: number | null }>;
   summary: string | null; summary_lines: string[] | null; summary_by: 'quo' | 'ai' | null; next_steps: string[] | null;
-  transcript: Array<{ who: 'us' | 'them'; text: string }> | null; sms_kind: string | null; error_code: string | null; by: string | null; number: string; booking_number: string | null;
+  transcript: Array<{ who: 'us' | 'them' | 'call'; text: string }> | null; sms_kind: string | null; error_code: string | null; by: string | null; number: string; booking_number: string | null;
 }
 export interface PhoneThreadRow {
   id: string; number: string; display: string; who: string; name: string | null; match_kind: 'staff' | 'renter' | 'owner' | 'lead' | 'unknown'; manual: boolean;
@@ -54,10 +54,13 @@ export function CallBody({ m }: { m: PhoneItem }) {
       {m.next_steps && m.next_steps.length > 0 && <p><b>Next steps:</b> {m.next_steps.join(' ')}</p>}
       {m.voicemail_text && <p><b>Voicemail:</b> {m.voicemail_text}</p>}
       {m.voicemail_url && <p><a className="link" href={m.voicemail_url} target="_blank" rel="noreferrer noopener">Play the voicemail</a></p>}
-      {m.recordings.length > 0 && <p>{m.recordings.map((r, i) => <a key={i} className="link" href={r.url} target="_blank" rel="noreferrer noopener">Recording{m.recordings.length > 1 ? ` ${i + 1}` : ''}</a>)}</p>}
+      {m.recordings.length > 0 && <p>{m.recordings.map((r, i) => r.source === 'site'
+        // 1880: a call made from the site: our own copy, played in the page (the server checks who may hear it)
+        ? <span key={i} className="stack"><b>Play recording</b><audio controls preload="none" src={r.url} aria-label="Play recording" data-testid="call-recording" /></span>
+        : <a key={i} className="link" href={r.url} target="_blank" rel="noreferrer noopener">Recording{m.recordings.length > 1 ? ` ${i + 1}` : ''}</a>)}</p>}
       {transcript.length > 0 && (
         <div><button type="button" className="btn btn--quiet btn--sm" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? 'Hide the transcript' : 'Transcript'}</button>
-          {open && <ol className="ph-transcript">{transcript.map((d, i) => <li key={i}><b>{d.who === 'us' ? 'CarmaCars' : 'Caller'}:</b> {d.text}</li>)}</ol>}</div>)}
+          {open && <ol className="ph-transcript">{transcript.map((d, i) => <li key={i}>{d.who === 'call' ? null : <b>{d.who === 'us' ? 'CarmaCars' : 'Caller'}: </b>}{d.text}</li>)}</ol>}</div>)}
     </div>
   );
 }
