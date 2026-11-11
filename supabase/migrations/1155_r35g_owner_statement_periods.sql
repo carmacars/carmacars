@@ -88,6 +88,8 @@ language sql stable security definer set search_path = public, app as $$
            (b.status::text in ('returned', 'closed', 'cancelled', 'no_show') and x.counts_on <= p_end) as final
       from booking_splits x join bookings b on b.id = x.booking_id
      where x.vehicle_id = p_vehicle and x.owner_id = p_owner and x.owner_statement_id is null and x.status <> 'reversed'
+       -- the owner's month to date leaves a hidden booking out by moving its split far ahead (0156): kept out here too
+       and x.payout_month < date '9999-01-01'
   ),
   d as (
     select s.*, case when s.final then s.total when s.bstatus in ('cancelled', 'no_show') then 0

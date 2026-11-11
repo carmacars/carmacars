@@ -174,8 +174,8 @@ values (test.id('refund:D2'), test.id('booking:D2'), test.id('payment:D2'), 'can
 select app.allocate_refund(test.id('refund:D2'));
 select test.eq('R5 the retained amount is split across the lines in proportion: rental $300 + HST $39 refunded',
   (select amount_cents || '+' || hst_cents from refund_allocations where refund_id = test.id('refund:D2')), '30000+3900');
--- D3: Nov 26 to Dec 3. Rental Charge $700, paid
-select test.mk_booking('D3', 'V2', 'd3', '2026-11-30 10:00', '2026-12-03 10:00', 'closed', 70000);
+-- D3: a December rental, after the statement's December 7 cutoff (1155: the November statement covers through Dec 7). Rental Charge $700, paid
+select test.mk_booking('D3', 'V2', 'd3', '2026-12-08 10:00', '2026-12-11 10:00', 'closed', 70000);
 -- E9: another Owner's vehicle. Ended Nov 18. Rental Charge $500. First rental, referred by this Owner
 select test.mk_booking('E9', 'E', 'e9', '2026-11-13 10:00', '2026-11-18 10:00', 'closed', 50000, 'standard', 'PAULA20');
 
