@@ -5,6 +5,7 @@ import type { ActionResult } from '@/features/forms/schemas';
 import { currentUser } from '@/server/portal/data';
 import { door, sessionAal } from '@/server/door';
 import type { CarMaintenance } from '@/features/maintenance/model';
+import { imageSniff } from '@/lib/file-sniff';
 
 // The maintenance tracker's actions (migration 0089), through the door's ops calls: the same for an Admin, Fleet and
 // Finance. The database checks the person and the rule; its refusal is shown as written.
@@ -44,8 +45,7 @@ export async function recordService(form: FormData): Promise<R<{ id: string; bil
       if (file.size > MAX) return { ok: false, code: 'invalid', message: 'The receipt must be under 15 MB.' };
       const bytes = new Uint8Array(await file.arrayBuffer());
       const pdf = bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46;
-      const jpg = bytes[0] === 0xff && bytes[1] === 0xd8;
-      const png = bytes[0] === 0x89 && bytes[1] === 0x50;
+      const { jpg, png } = imageSniff(bytes);
       if (!pdf && !jpg && !png) return { ok: false, code: 'invalid', message: 'The receipt must be a PDF, JPEG or PNG file.' };
       const [type, ext] = pdf ? ['application/pdf', 'pdf'] : jpg ? ['image/jpeg', 'jpg'] : ['image/png', 'png'];
       const key = `maintenance/${new Date().getUTCFullYear()}/${crypto.randomUUID()}.${ext}`;

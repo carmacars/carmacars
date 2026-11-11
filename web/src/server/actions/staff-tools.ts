@@ -5,6 +5,7 @@ import type { ActionResult } from '@/features/forms/schemas';
 import { currentUser } from '@/server/portal/data';
 import { door, sessionAal } from '@/server/door';
 import { sha256Hex } from '@/server/links';
+import { imageSniff } from '@/lib/file-sniff';
 
 // The staff tools of migration 0042 (toll reading, plate covering, official forms) through the staff door's ops
 // calls: the same screens for an Admin and an assistant; the database decides who may do what (Finance and
@@ -45,8 +46,7 @@ export async function uploadNotice(form: FormData): Promise<R<{ id: string }>> {
     if (file.size > MAX) return { ok: false, code: 'invalid', message: 'The file must be under 15 MB.' };
     const bytes = new Uint8Array(await file.arrayBuffer());
     const pdf = bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46;
-    const jpg = bytes[0] === 0xff && bytes[1] === 0xd8;
-    const png = bytes[0] === 0x89 && bytes[1] === 0x50;
+    const { jpg, png } = imageSniff(bytes);
     const csv = !pdf && !jpg && !png && /\.csv$/i.test(file.name) && !bytes.slice(0, 2048).some((b) => b === 0);
     if (!pdf && !jpg && !png && !csv) return { ok: false, code: 'invalid', message: 'Use a PDF, JPEG, PNG or CSV file.' };
     const [type, ext] = pdf ? ['application/pdf', 'pdf'] : jpg ? ['image/jpeg', 'jpg'] : png ? ['image/png', 'png'] : ['text/csv', 'csv'];
@@ -142,7 +142,7 @@ export async function uploadSceneReference(form: FormData): Promise<R<Record<str
     if (!(file instanceof File) || file.size === 0) return { ok: false, code: 'invalid', message: 'Choose the photo.' };
     if (file.size > MAX) return { ok: false, code: 'invalid', message: 'The file must be under 15 MB.' };
     const bytes = new Uint8Array(await file.arrayBuffer());
-    const jpg = bytes[0] === 0xff && bytes[1] === 0xd8, png = bytes[0] === 0x89 && bytes[1] === 0x50;
+    const { jpg, png } = imageSniff(bytes);
     if (!jpg && !png) return { ok: false, code: 'invalid', message: 'Use a JPEG or PNG photo.' };
     const key = `site/scenes/${code}-${crypto.randomUUID()}.${jpg ? 'jpg' : 'png'}`;
     const { storage } = await import('@/integrations/storage');

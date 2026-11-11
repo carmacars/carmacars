@@ -6,6 +6,7 @@ import { default as handler } from './.open-next/worker.js';
 import { cspHeader, embeddable, newNonce, securityHeaders } from './src/lib/security/csp';
 import { roundGeo } from './src/features/live-map/config';
 import { ADMIN_AREA_HEADER, isAdminArea, viewAsRefusal, viewAsWriteRefused } from './src/lib/security/view-as-guard';
+import { crossSiteRefusal, crossSiteWriteRefused, unusedFrameworkPath } from './src/lib/security/request-guard';
 import { refreshSession } from './src/lib/auth/edge-refresh';
 import { parseCookieHeader, readSession } from './src/lib/auth/session-cookie';
 import { BEACON_GIVE_UP_MS, BEACON_WAIT_MS, BEAT_WAIT_MS, MAX_BEACON_BYTES, cleanBeacon, cleanBeat, emailLinkCookie, ipKey, isBeat, isBot, within } from './src/lib/track/shared';
@@ -321,7 +322,7 @@ const worker = {
     if (path.startsWith('/_next/static/')) return new Response('Not found', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store', ...securityHeaders() } });
     // scanners asking for PHP, WordPress or dot files: answered before the app loads (a render costs a second of CPU
     // on a fresh isolate)
-    if (isProbe(path)) return new Response('Not found', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=3600', ...securityHeaders() } });
+    if (isProbe(path) || unusedFrameworkPath(path)) return new Response('Not found', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=3600', ...securityHeaders() } });
     // 2026-10-30: SEO tools and scrapers, crawlers on the portals and on query-string views: answered here, before the
     // session refresh and the app (src/lib/edge/bot-shield.ts)
     // R23: the search scope flag is read (one KV read, kept 30 s) only for a crawler on a page outside the core crawl scope.
@@ -359,6 +360,8 @@ const worker = {
     // crawler guard above keeps only the crawlers that are not search or answer crawlers to the crawl scope
     if (path === '/api/t' && request.method === 'POST') { const t = await track(request, env, ctx); if (t) return t; }
     if (path === '/api/jobs/warm-up' && request.method === 'POST') return warmUp(request, env, ctx);
+    // r35: a write from another site stops here, for every route and server action (src/lib/security/request-guard.ts)
+    if (crossSiteWriteRefused(request.method, request.url, request.headers.get('origin'), request.headers.get('sec-fetch-site'))) return crossSiteRefusal(securityHeaders());
     // An Admin viewing as someone is read only: every write outside the Admin portal stops here
     // (src/lib/security/view-as-guard.ts). Server actions are POSTs, so this covers all of them.
     if (viewAsWriteRefused(request.method, path, request.headers.get('cookie'))) return viewAsRefusal(request.headers.has('next-action'), securityHeaders());

@@ -1,11 +1,13 @@
+import { imageSniff } from '../../lib/file-sniff.ts';
 // The renter's accident report (release 35, migration 0912): what the form sends, checked the same way on the phone and the
 // server, and the kind of each uploaded file from its first bytes. Pure: the form, the route and the unit tests share it.
 export const ACCIDENT_MEDIA_MAX = 25 * 1024 * 1024;
 
 /** A photo or a video, from its first bytes: JPEG, PNG, MP4, QuickTime or WebM. */
 export function mediaKind(b: Uint8Array): { ext: 'jpg' | 'png' | 'mp4' | 'mov' | 'webm'; mime: string; video: boolean } | null {
-  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return { ext: 'jpg', mime: 'image/jpeg', video: false };
-  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return { ext: 'png', mime: 'image/png', video: false };
+  const { jpg, png } = imageSniff(b);
+  if (jpg) return { ext: 'jpg', mime: 'image/jpeg', video: false };
+  if (png) return { ext: 'png', mime: 'image/png', video: false };
   if (b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3) return { ext: 'webm', mime: 'video/webm', video: true };
   if (b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70) {
     const brand = String.fromCharCode(b[8] ?? 0, b[9] ?? 0, b[10] ?? 0, b[11] ?? 0);

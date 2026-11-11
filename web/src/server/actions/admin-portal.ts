@@ -7,6 +7,7 @@ import { auth } from '@/lib/auth';
 import type { ActionResult } from '@/features/forms/schemas';
 import { assertAdmin } from '@/server/admin/data';
 import { adminRead } from '@/server/admin/api';
+import { imageSniff } from '@/lib/file-sniff';
 
 // The admin portal's actions (migration 0030). One door for every action: the Admin is checked here
 // (and two-step sign-in when required), then the database checks the Admin again and runs the function
@@ -170,8 +171,7 @@ export async function uploadAdminDocument(form: FormData): Promise<R<{ id: strin
     if (file.size > 15_000_000) return { ok: false, code: 'invalid', message: 'The file must be under 15 MB.' };
     const bytes = new Uint8Array(await file.arrayBuffer());
     const pdf = bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46;
-    const jpg = bytes[0] === 0xff && bytes[1] === 0xd8;
-    const png = bytes[0] === 0x89 && bytes[1] === 0x50;
+    const { jpg, png } = imageSniff(bytes);
     if (!pdf && !jpg && !png) return { ok: false, code: 'invalid', message: 'Use a PDF, JPEG or PNG file.' };
     const type = pdf ? 'application/pdf' : jpg ? 'image/jpeg' : 'image/png';
     const { createHash } = await import('node:crypto');

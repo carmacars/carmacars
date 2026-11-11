@@ -8,6 +8,7 @@ import { sha256Hex } from '@/server/links';
 import { storage } from '@/integrations/storage';
 import { cleanVin, trimOf, VIN_RE } from '@/features/vin/vin';
 import { vinFacts } from '@/server/actions/vin';
+import { imageSniff } from '@/lib/file-sniff';
 
 // A car's registration in Admin (migration 0237): the VIN (decoded again with vPIC for the body style and trim), the year,
 // the body style, the permit number and the plate sticker expiry; and the car's documents, the ownership permit first.
@@ -58,8 +59,7 @@ export async function uploadVehicleDocument(form: FormData): Promise<R<{ documen
     if (!/^[0-9a-f-]{36}$/.test(vehicle) || !['ownership_permit', 'safety_certificate', 'owner_insurance_proof', 'other'].includes(kind)) return { ok: false, code: 'invalid', message: 'Unknown upload.' };
     if (!(file instanceof Blob) || file.size === 0 || file.size > 15 * 1024 * 1024) return { ok: false, code: 'invalid', message: 'The file must be under 15 MB.' };
     const bytes = new Uint8Array(await file.arrayBuffer());
-    const jpg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
-    const png = bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
+    const { jpg, png } = imageSniff(bytes);
     const pdf = bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46;
     if (!jpg && !png && !pdf) return { ok: false, code: 'invalid', message: 'Upload a photo (JPG or PNG) or a PDF.' };
     const [ext, mime] = pdf ? ['pdf', 'application/pdf'] : jpg ? ['jpg', 'image/jpeg'] : ['png', 'image/png'];

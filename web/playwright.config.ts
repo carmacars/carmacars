@@ -16,6 +16,8 @@ export default defineConfig({
   // CI: one retry, so a test that fails only under the runner's load is reported as flaky (it still has to pass once);
   // a defect fails both tries. Local runs never retry.
   retries: process.env.CI ? 1 : 0,
+  // r35: a test.only left in a commit fails CI instead of skipping every other test
+  forbidOnly: !!process.env.CI,
   // CI runs the suite in parallel shards (ci.yml, e2e): PW_BLOB names this shard's blob report, which the e2e-report job
   // merges into one list and one reports/e2e.json
   reporter: [['list'], ['json', { outputFile: 'reports/e2e.json' }], ...(process.env.PW_BLOB ? [['blob', { fileName: `report-${process.env.PW_BLOB}.zip` }] as const] : [])],
