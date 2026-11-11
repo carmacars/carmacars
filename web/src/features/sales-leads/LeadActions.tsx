@@ -37,10 +37,10 @@ export function LeadActions({ lead, admin, people, compact = false }: { lead: Pi
         {/* calls first, texts after (r37): Call leads; while the lead is held or claimed by someone else the links are off, with the reason */}
         {links.call && (h.locked && !admin ? <button type="button" className="btn btn--ghost btn--sm" disabled title={h.text ?? undefined} data-testid="lead-call">Call</button>
           : <a className="btn btn--ghost btn--sm" href={links.call} onClick={blocked ? undefined : log('call')} data-testid="lead-call">Call</a>)}
-        {links.text && (h.locked && !admin ? <button type="button" className="btn btn--ghost btn--sm" disabled title={h.text ?? undefined} data-testid="lead-text">Text</button>
-          : <a className="btn btn--ghost btn--sm" href={links.text} onClick={blocked ? undefined : log('text')} data-testid="lead-text">Text</a>)}
-        {links.email && (h.locked && !admin ? <button type="button" className="btn btn--ghost btn--sm" disabled title={h.text ?? undefined} data-testid="lead-email">Email</button>
-          : <a className="btn btn--ghost btn--sm" href={links.email} onClick={blocked ? undefined : log('email')} data-testid="lead-email">Email</a>)}
+        {links.text && (h.locked && !admin ? <button type="button" className="btn btn--quiet btn--sm" disabled title={h.text ?? undefined} data-testid="lead-text">Text</button>
+          : <a className="btn btn--quiet btn--sm" href={links.text} onClick={blocked ? undefined : log('text')} data-testid="lead-text">Text</a>)}
+        {links.email && (h.locked && !admin ? <button type="button" className="btn btn--quiet btn--sm" disabled title={h.text ?? undefined} data-testid="lead-email">Email</button>
+          : <a className="btn btn--quiet btn--sm" href={links.email} onClick={blocked ? undefined : log('email')} data-testid="lead-email">Email</a>)}
         {!compact && <button type="button" className="btn btn--ghost btn--sm" disabled={pending || blocked} onClick={() => setPanel(panel === 'note' ? null : 'note')} data-testid="lead-note">Note</button>}
         {!closed && <button type="button" className="btn btn--ghost btn--sm" disabled={pending || blocked} onClick={() => run('lead_handled', {}, 'Marked handled.')} data-testid="lead-handled">Mark handled</button>}
         {lead.handled_at && lead.outcome !== 'won' && lead.outcome !== 'lost' && <button type="button" className="btn btn--ghost btn--sm" disabled={pending} onClick={() => run('lead_handled', { undo: true }, 'Open again.')}>Open again</button>}

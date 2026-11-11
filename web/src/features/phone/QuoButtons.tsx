@@ -104,7 +104,7 @@ function MaskedButtons({ phone, name, booking, look = 'buttons', inbox, only, te
     <span className={`qb qb--${look}${className ? ` ${className}` : ''}`} data-testid={`${testId}-masked`}>
       <span className="qb-masked" title="Hidden for Sales: call or text from here">{shown ?? (look === 'link' ? m : null)}</span>
       {only !== 'text' && <button type="button" className={look === 'buttons' ? `${btnClass} qb-btn` : 'qb-icon'} onClick={() => void onCall()} aria-label={`Call ${who}`} data-testid={`${testId}-call`}><Phone />{look === 'buttons' ? (children ?? 'Call') : null}</button>}
-      {only !== 'call' && <button type="button" className={look === 'buttons' ? `${btnClass} qb-btn` : 'qb-icon'} onClick={() => setSheet('text')} aria-label={`Text ${who}`} data-testid={`${testId}-text`}><Bubble />{look === 'buttons' ? 'Text' : null}</button>}
+      {only !== 'call' && <button type="button" className={look === 'buttons' ? 'btn btn--quiet btn--sm qb-btn qb-btn--text' : 'qb-icon'} onClick={() => setSheet('text')} aria-label={`Text ${who}`} data-testid={`${testId}-text`}><Bubble />{look === 'buttons' ? 'Text' : null}</button>}
       {cfg?.can_reveal && !shown && <button type="button" className="btn btn--quiet btn--sm" onClick={() => void reveal()} data-testid={`${testId}-reveal`}>Reveal</button>}
       {sheet === 'text' && <Composer n={m} who={who} booking={booking} from={cfg?.from ?? null} inbox={inbox} onClose={() => setSheet(null)} testId={testId} />}
       {sheet === 'call' && <TwilioSheet who={who} state={call} onClose={() => setSheet(null)} testId={testId} />}
@@ -167,7 +167,7 @@ function PlainButtons({ phone, name, booking, look = 'buttons', inbox, only, tes
       ? <a className="link" href={telHref(n)} onClick={onCall} title={`Call ${who}${quo ? ' in Quo' : ''}`} data-testid={testId}>{children ?? prettyNumber(n)}</a>
       : <a className={`${btnClass} qb-btn`} href={telHref(n)} onClick={onCall} data-testid={`${testId}-call`}><Phone />{children ?? 'Call'}</a>;
   const text = only === 'call' ? null : look === 'buttons'
-    ? <a className={`${btnClass} qb-btn`} href={smsHref(n)} onClick={onText} data-testid={`${testId}-text`}><Bubble />Text</a>
+    ? <a className="btn btn--quiet btn--sm qb-btn qb-btn--text" href={smsHref(n)} onClick={onText} data-testid={`${testId}-text`}><Bubble />Text</a>
     : <a className="qb-icon" href={smsHref(n)} onClick={onText} aria-label={`Text ${who}`} title={`Text ${prettyNumber(n)}`} data-testid={`${testId}-text`}><Bubble /></a>;
   return (
     <span className={`qb qb--${look}${className ? ` ${className}` : ''}`}>

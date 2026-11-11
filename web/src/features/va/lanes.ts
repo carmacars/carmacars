@@ -42,9 +42,10 @@ const CARS: LaneDef = { key: 'cars', label: 'Car paperwork and service', verb: '
   types: ['plate_renewal', 'safety_certificate_window', 'book_registry', 'turo_expiry', 'record_registration', 'maintenance_due', 'maintenance_backfill', 'maintenance_bill', 'list_vehicle',
     'listing_failed', 'listing_similarity', 'calendar_conflict', 'calendar_feed_failing', 'turo_email_review', 'owner_exit', 'addon_stock'] };
 
+// calls go first, texts after (r37): the missed calls and call-backs lane leads the others in its function
 export const LANES: Record<Fn, LaneDef[]> = {
-  cs: [REQUESTS, MESSAGES, PHONE, CHAT, OFFERS, SIGNING, FOLLOW],
-  sales: [CHAT, REQUESTS, OFFERS, FOLLOW, PHONE, SIGNING],
+  cs: [PHONE, REQUESTS, MESSAGES, CHAT, OFFERS, SIGNING, FOLLOW],
+  sales: [PHONE, CHAT, REQUESTS, OFFERS, FOLLOW, SIGNING],
   finance: [PAYMENTS, DEPOSITS, REFUNDS, STATEMENTS, TOLLS],
   fleet: [INCIDENTS, HANDOVERS, CHECKS, CARS]
 };
@@ -63,13 +64,15 @@ export interface Lane extends LaneDef {
   /** 0 calm, 1 due, 2 past the reply target or overdue, 3 urgent and late */ heat: number;
 }
 
+/** the tasks that are a call to make: a missed call, a call-back. They rank above the same-age text or message (r37) */
+export const CALL_TYPES = new Set(['phone_missed_call', 'call_back', 'callback']);
 const PRI: Record<string, number> = { urgent: 3, high: 2, normal: 1, low: 0 };
 
 /** How urgent a task is: higher first. Overdue and escalated tasks lead, then priority, then the longest waiting. */
 export function taskScore(t: Task, now: number, targetMin: number, reply: boolean): number {
   const waited = Math.max(0, (now - Date.parse(t.created_at)) / 60_000);
   const late = t.overdue || (t.due_at !== null && Date.parse(t.due_at) < now);
-  return (t.escalated ? 4000 : 0) + (late ? 2000 : 0) + (reply && waited > targetMin ? 1500 : 0) + (PRI[t.priority] ?? 1) * 300 + Math.min(waited, 299);
+  return (t.escalated ? 4000 : 0) + (late ? 2000 : 0) + (reply && waited > targetMin ? 1500 : 0) + (PRI[t.priority] ?? 1) * 300 + (CALL_TYPES.has(t.task_type) ? 200 : 0) + Math.min(waited, 299);
 }
 
 /** The most urgent task first. */
@@ -99,7 +102,7 @@ export function buildLanes(fn: Fn, tasks: Task[], now: number, targetMin: number
   });
   return lanes
     .filter(({ lane }) => lane.key !== 'other' || lane.count > 0)
-    .sort((a, b) => (b.lane.heat - a.lane.heat) || ((b.lane.count ? 1 : 0) - (a.lane.count ? 1 : 0)) || (b.lane.count && a.lane.count ? (b.lane.waited ?? 0) - (a.lane.waited ?? 0) : 0) || a.order - b.order)
+    .sort((a, b) => (b.lane.heat - a.lane.heat) || (Number(b.lane.key === 'phone' && b.lane.count > 0) - Number(a.lane.key === 'phone' && a.lane.count > 0)) || ((b.lane.count ? 1 : 0) - (a.lane.count ? 1 : 0)) || (b.lane.count && a.lane.count ? (b.lane.waited ?? 0) - (a.lane.waited ?? 0) : 0) || a.order - b.order)
     .map(({ lane }) => lane);
 }
 
