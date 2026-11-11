@@ -72,7 +72,7 @@ a{text-decoration:underline;}
 <tr><td class="tx-mid rule fl" width="36%" valign="top" style="width:36%;padding:11px 12px 11px 0;border-bottom:1px solid #E2E2E2;font-family:Inter, 'Helvetica Neue', Helvetica, 'Segoe UI', Roboto, Arial, sans-serif;font-size:14px;line-height:22px;color:#5E5E5E;">Length</td><td class="tx rule" valign="top" style="padding:11px 0;border-bottom:1px solid #E2E2E2;font-family:Inter, 'Helvetica Neue', Helvetica, 'Segoe UI', Roboto, Arial, sans-serif;font-size:15px;line-height:22px;color:#000000;font-weight:600;word-break:break-word;overflow-wrap:anywhere;">About {{call_minutes}} minutes</td></tr>
 </table></td></tr>
 {{#if is_video}}
-<tr><td class="px" style="padding:0 36px 20px 36px;"><p class="tx" style="margin:0;font-family:Inter, 'Helvetica Neue', Helvetica, 'Segoe UI', Roboto, Arial, sans-serif;font-size:16px;line-height:26px;color:#000000;">It is a video call. Open this link a minute before the time, in a browser or the Jitsi Meet app: {{meet_url}}</p></td></tr>
+<tr><td class="px" style="padding:0 36px 20px 36px;"><p class="tx" style="margin:0;font-family:Inter, 'Helvetica Neue', Helvetica, 'Segoe UI', Roboto, Arial, sans-serif;font-size:16px;line-height:26px;color:#000000;">It is a video call. Open this link a minute before the time, in a browser (Google Meet, or Jitsi when Google is not connected): {{meet_url}}</p></td></tr>
 {{else}}
 <tr><td class="px" style="padding:0 36px 20px 36px;"><p class="tx" style="margin:0;font-family:Inter, 'Helvetica Neue', Helvetica, 'Segoe UI', Roboto, Arial, sans-serif;font-size:16px;line-height:26px;color:#000000;">We will call you at {{phone_display}}. Please be somewhere quiet with good reception.</p></td></tr>
 {{/if}}

@@ -11,6 +11,7 @@ import { applyPath, DECISIONS, fmtSlot, inviteMessage, SOURCE_WORDS, STATUS_FILT
 import { siteUrl } from '@/lib/site';
 import { AI_STATE_WORDS, RECOMMENDATION_WORDS, type InterviewState, type Recommendation } from '@/features/careers/ai-interview';
 import { ContactButtons } from '@/features/phone/QuoButtons';
+import { MeetCard, type MeetState } from '@/features/meet/MeetCard';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Hiring', path: '/admin/hiring', noindex: true, description: 'Applications from carmacars.ca/careers, interview days, the calls, the rubric and the ranked shortlist.' });
@@ -37,7 +38,10 @@ export default async function Hiring({ searchParams }: { searchParams: Promise<R
   const waiting = data.roles.reduce((n, r) => n + (r.counts.below_bar ?? 0), 0);
   const tabs = <Tabs current={`${base}?tab=${tab}`} items={[[`${base}?tab=pipeline`, 'Applications', waiting], [`${base}?tab=calls`, 'Calls'], [`${base}?tab=shortlist`, 'Shortlist'],
     [`${base}?tab=days`, 'Interview days'], [`${base}?tab=roles`, 'Roles and links'], [`${base}?tab=emails`, 'Emails to send', data.decisions_waiting ?? 0]]} />;
-  const head = <PageHead title="Hiring" kicker={`${data.roles.filter((r) => r.active).length} roles open`} purpose="Every applicant is scored on the server: a knock-out gets a decline (Field staff: an offer to apply for Sales), a pass gets a booking link (remote assistants: an AI interview), the rest wait here for you." />;
+  const pageHead = <PageHead title="Hiring" kicker={`${data.roles.filter((r) => r.active).length} roles open`} purpose="Every applicant is scored on the server: a knock-out gets a decline (Field staff: an offer to apply for Sales), a pass gets a booking link (remote assistants: an AI interview), the rest wait here for you." />;
+  // r37 (2303): video calls on Google Meet once the company calendar is connected, else Jitsi
+  const meet = await read<MeetState>('calendar_google_state').catch(() => null);
+  const head = <>{pageHead}<MeetCard s={meet} flash={sp.calendar} /></>;
   // 0211: per role, applicants invited while no interview day is open (their invitation, or "New times are open", goes when a day is added)
   const noDay = (data.waiting ?? []).map((w) => (
     <p key={w.slug} className="alert alert--warn" role="status" data-testid={`hiring-no-day-${w.slug}`}><span>{w.count} applicant{w.count === 1 ? '' : 's'} invited but no interview day is open for {w.title}. <Link prefetch={false} className="link" href={`${base}?tab=days`}>Add an interview day</Link></span></p>));

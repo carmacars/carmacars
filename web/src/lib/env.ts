@@ -85,6 +85,10 @@ const schema = z.object({
    *  says so and the rest of the review program works. The refresh token itself is in the vault, never here. */
   GOOGLE_REVIEWS_CLIENT_ID: z.string().optional(),
   GOOGLE_REVIEWS_CLIENT_SECRET: z.string().optional(),
+  /** Interview calls on Google Meet (release 37, 2303): a Google Web application client for the Calendar API (redirect URI
+   *  <site>/api/google/calendar/callback). Unset: the reviews client above is used. The refresh token is in the vault. */
+  GOOGLE_CALENDAR_CLIENT_ID: z.string().optional(),
+  GOOGLE_CALENDAR_CLIENT_SECRET: z.string().optional(),
   /** Apple Wallet passes for a confirmed booking (Release 22): the Pass Type ID certificate (PEM), its private key (PKCS#8 PEM,
    *  RSA), Apple's WWDR intermediate certificate (PEM), the Pass Type ID (pass.ca.carmacars.booking) and the Team ID. All five
    *  set: "Add to Apple Wallet" shows on the booking page; any missing: hidden, and Admin > Settings lists it under setup. */

@@ -4119,6 +4119,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      calendar_google_link: {
+        Row: {
+          id: boolean;
+          status: string;
+          account_email: string | null;
+          calendar_id: string;
+          connected_at: string | null;
+          connected_by: string | null;
+          last_error: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: boolean;
+          status?: string;
+          account_email?: string | null;
+          calendar_id?: string;
+          connected_at?: string | null;
+          connected_by?: string | null;
+          last_error?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          id?: boolean;
+          status?: string;
+          account_email?: string | null;
+          calendar_id?: string;
+          connected_at?: string | null;
+          connected_by?: string | null;
+          last_error?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       capture_accounts: {
         Row: {
           user_id: string;
@@ -11141,6 +11174,11 @@ export type Database = {
           phone_country: string | null;
           ip_country: string | null;
           location_area: string | null;
+          meet_provider: string | null;
+          meet_event_id: string | null;
+          meet_sync: string | null;
+          meet_sync_since: string | null;
+          meet_error: string | null;
         };
         Insert: {
           id?: string;
@@ -11191,6 +11229,11 @@ export type Database = {
           phone_country?: string | null;
           ip_country?: string | null;
           location_area?: string | null;
+          meet_provider?: string | null;
+          meet_event_id?: string | null;
+          meet_sync?: string | null;
+          meet_sync_since?: string | null;
+          meet_error?: string | null;
         };
         Update: {
           id?: string;
@@ -11241,6 +11284,11 @@ export type Database = {
           phone_country?: string | null;
           ip_country?: string | null;
           location_area?: string | null;
+          meet_provider?: string | null;
+          meet_event_id?: string | null;
+          meet_sync?: string | null;
+          meet_sync_since?: string | null;
+          meet_error?: string | null;
         };
         Relationships: [];
       };
@@ -18304,6 +18352,7 @@ export type Database = {
           social_video_seconds_per_photo: number;
           social_video_max_photos: number;
           seo_i18n_vehicle_places: number;
+          meet_hold_minutes: number;
         };
         Insert: {
           id?: string;
@@ -19127,6 +19176,7 @@ export type Database = {
           social_video_seconds_per_photo?: number;
           social_video_max_photos?: number;
           seo_i18n_vehicle_places?: number;
+          meet_hold_minutes?: number;
         };
         Update: {
           id?: string;
@@ -19950,6 +20000,7 @@ export type Database = {
           social_video_seconds_per_photo?: number;
           social_video_max_photos?: number;
           seo_i18n_vehicle_places?: number;
+          meet_hold_minutes?: number;
         };
         Relationships: [];
       };
@@ -31956,6 +32007,8 @@ export type Database = {
       server_hiring_cancel: { Args: { p_token: string }; Returns: Json };
       server_hiring_closed_role: { Args: { p_slug: string }; Returns: Json };
       server_hiring_confirm: { Args: { p_token: string; p_seq?: number }; Returns: Json };
+      server_hiring_meet_done: { Args: { p: Json }; Returns: Json };
+      server_hiring_meet_due: { Args: never; Returns: Json };
       server_hiring_prefill: { Args: { p_token: string; p_slug: string }; Returns: Json };
       server_in_person_lines: { Args: { p_request: string }; Returns: Json };
       server_incident_digital: { Args: { p_by: string; p?: Json }; Returns: Json };
