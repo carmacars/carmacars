@@ -1,0 +1,46 @@
+name: worker-rollback
+
+# Emergency: roll the production Worker (carmacars-prod) back to an earlier version without touching the database, or
+# list the recent versions. `version` empty = the version before the current one (wrangler rollback's default).
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: list or rollback
+        type: choice
+        options: [list, rollback]
+        default: list
+      version:
+        description: Version id to roll back to (empty = the previous one)
+        type: string
+        default: ''
+
+concurrency:
+  group: worker-rollback
+
+jobs:
+  rollback:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: web
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Versions and deployments
+        run: |
+          npx --yes wrangler@4 deployments list --name carmacars-prod 2>&1 | tail -40 | sed 's/^/::notice title=deployments::/'
+          npx --yes wrangler@4 versions list --name carmacars-prod 2>&1 | tail -40 | sed 's/^/::notice title=versions::/'
+      - name: Roll back
+        if: inputs.action == 'rollback'
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          case "$VERSION" in ''|[0-9a-f-]*) ;; *) echo "bad version id"; exit 1;; esac
+          npx --yes wrangler@4 rollback ${VERSION:+"$VERSION"} --name carmacars-prod --message "emergency rollback" -y 2>&1 | sed 's/^/::notice title=rollback::/'
