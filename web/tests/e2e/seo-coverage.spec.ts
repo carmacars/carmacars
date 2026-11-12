@@ -24,8 +24,8 @@ test('new terms: own pages indexable as their tier allows; synonyms point to the
 
   const r = await page.goto('/buy/car-loan/kingston-on');
   expect(r?.status()).toBe(200);
-  expect(new URL(page.url()).pathname).toBe('/buy/auto-loans/kingston-on');
-  expect(await canonical(page)).toMatch(/\/buy\/auto-loans\/kingston-on$/);
+  expect(new URL(page.url()).pathname).toBe('/buy/car-financing/kingston-on');
+  expect(await canonical(page)).toMatch(/\/buy\/car-financing\/kingston-on$/);
   // r36 seo (positive copy): what we are not, said once
   await expect(page.locator('body')).toContainText(/we are not a lender/i);
 });
