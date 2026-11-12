@@ -62,7 +62,7 @@ export async function BookingsTab({ user, home, vehicle }: OwnerCtx & { vehicle?
           <section className="stack" aria-labelledby="ow-bl"><h2 className="pt-section-title" id="ow-bl">All bookings</h2>
             {list.length ? <ul className="ow-rows">{list.map((b) => <OwnerBookingRow key={b.booking_id} b={b} />)}</ul>
               : <p className="pt-empty muted">No bookings on your vehicles yet.</p>}
-            <p className="small muted">On a managed rental we show dates and status only; renter details stay with CarmaCars. A booking marked Booked shows its amounts once CarmaCars approves the statement that covers it; your statement always includes every booking.</p>
+            <p className="small muted">On a managed rental we show dates and status only; renter details stay with CarmaCars. A booking marked Booked shows its amounts once CarmaCars approves the statement that covers it, and your statement includes it. Dates marked Unavailable are not part of your revenue.</p>
           </section>
           <More summary="Calendar: this month and next" testId="owner-calendar">
             <Month year={y} month={m - 1} bookings={list} />
