@@ -53,14 +53,22 @@ test('an Admin reads, snoozes and clears alerts behind the bell, and sets quiet 
   try {
     const me = await mkStaff(sql, 'admin');
     await seed(sql, me.id);
+    // every staff alert goes to every Admin, this one too: the parallel tests' alerts (a bug report, an onboarding approval, a
+    // payment) land here while it runs. Only this test's three are kept (run 43202711951: 5 instead of 3)
+    const ownOnly = () => sql`delete from notifications where user_id = ${me.id} and dedupe_key not like 'e2e:%'`;
+    const settle = async (url: string, assert: () => Promise<void>) => expect(async () => {
+      await ownOnly(); await page.goto(url, { waitUntil: 'networkidle' }); await assert();
+    }).toPass({ timeout: 45_000 });
     await signIn(page, me.email, '/admin');
     const bell = page.getByTestId('alerts-bell');
-    await expect(bell.getByTestId('alerts-bell-count')).toHaveText('3');
+    await settle('/admin', () => expect(bell.getByTestId('alerts-bell-count')).toHaveText('3', { timeout: 3_000 }));
     await bell.click();
     await page.waitForURL((u) => u.pathname === '/admin/alerts');
     const feed = page.getByTestId('alerts-feed');
-    await expect(feed.getByTestId('alert-item')).toHaveCount(3);
-    await expect(feed.getByTestId('alerts-unread')).toHaveText('3 unread');
+    await settle('/admin/alerts', async () => {
+      await expect(feed.getByTestId('alert-item')).toHaveCount(3, { timeout: 3_000 });
+      await expect(feed.getByTestId('alerts-unread')).toHaveText('3 unread', { timeout: 3_000 });
+    });
     await check(page, '/admin/alerts', '[data-testid="alerts-feed"], [data-testid="alerts-bell"]');
 
     await feed.getByTestId('alerts-filter-urgent').click();
@@ -70,15 +78,16 @@ test('an Admin reads, snoozes and clears alerts behind the bell, and sets quiet 
     await expect(page.getByTestId('alerts-feed').getByRole('status')).toContainText('Snoozed until');
     expect((await sql`select count(*)::int n from notifications where user_id = ${me.id} and snoozed_until > now() + interval '25 minutes'`)[0]?.n).toBe(1);
 
-    await page.getByTestId('alerts-filter-all').click();
-    await expect(page.getByTestId('alerts-feed').getByTestId('alert-item')).toHaveCount(3);
+    await settle('/admin/alerts', () => expect(page.getByTestId('alerts-feed').getByTestId('alert-item')).toHaveCount(3, { timeout: 3_000 }));
+    await ownOnly();
     await page.getByTestId('alert-read').first().click();
     await expect(page.getByTestId('alerts-unread')).toHaveText('2 unread');
     await page.getByTestId('alerts-read-all').click();
     await expect(page.getByTestId('alerts-unread')).toHaveCount(0);
-    await expect.poll(async () => (await sql`select count(*)::int n from notifications where user_id = ${me.id} and read_at is null`)[0]?.n).toBe(0);
+    await expect.poll(async () => (await sql`select count(*)::int n from notifications where user_id = ${me.id} and read_at is null and dedupe_key like 'e2e:%'`)[0]?.n).toBe(0);
     await page.getByTestId('alerts-filter-unread').click();
-    await expect(page.getByTestId('alerts-empty')).toContainText('Nothing unread');
+    await expect(page).toHaveURL(/f=unread/);
+    await settle(page.url(), () => expect(page.getByTestId('alerts-empty')).toContainText('Nothing unread', { timeout: 3_000 }));
 
     await page.goto('/admin/alerts?tab=settings', { waitUntil: 'networkidle' });
     const s = page.getByTestId('alert-settings');

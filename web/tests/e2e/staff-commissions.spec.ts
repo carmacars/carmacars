@@ -195,11 +195,12 @@ test('Commissions: completed and paid, approved, paid by hand, reversed by a ref
   test.setTimeout(240_000);
   const sql = db();
   const admin = await mkUser(sql, 'admin', `Ada Admin ${tag()}`);
-  const cs = await mkUser(sql, 'va', `Cory Service ${tag()}`, 'cs');
+  // 2330: customer service is never credited, so the credited person here is a second Sales person (the variable keeps its name)
+  const cs = await mkUser(sql, 'va', `Cory Closer ${tag()}`, 'sales');
   const sales = await mkUser(sql, 'va', `Sasha Seller ${tag()}`, 'sales');
   const renter = await mkUser(sql, 'renter', `Rowan Renter ${tag()}`);
   const carId = await companyCar(sql, admin.id);
-  // a rental completed and paid (recorded after the fact), credited to customer service as sourced by them
+  // a rental completed and paid (recorded after the fact), credited to the second Sales person as sourced by them
   const back = 3 + Math.floor(Math.random() * 2);
   const [m] = await sql`select app.manual_rental_create(${admin.id}, ${sql.json({ vehicle_id: carId, source: 'phone', coverage_option: 1, renter_id: renter.renterId, past: true,
     pickup_at: new Date(Date.now() - (back + 2) * 86_400_000).toISOString(), return_at: new Date(Date.now() - back * 86_400_000).toISOString(),
