@@ -145,16 +145,18 @@ export async function sesSend(c: SesConfig, m: SesMail, fetcher: typeof fetch = 
 export const sesMaySend = (category: string, sesMarketing: boolean) => category !== 'marketing' || sesMarketing;
 
 // ---------------------------------------------------------------- which provider first
-// SES first when its keys are set, the Program setting email_ses_enabled is on, today's SES count is under
-// email_ses_daily_max and it is not resting after an account-level refusal; then Cloudflare (its daily budget), then
-// Resend's free plan. An empty list: nothing may send now (the email is held as before).
+// 2600 (the owner, 2026-11-12): booking and system email (every category but marketing) goes through SES first when its
+// keys are set, the Program setting email_ses_enabled is on, today's SES count is under email_ses_daily_max and it is not
+// resting after an account-level refusal; when SES cannot or refuses, Resend's free plan sends it. Cloudflare only when the
+// Program setting email_cloudflare_enabled is on (cfOn/cfLeft are 0 otherwise) and never for marketing. Marketing: Resend's
+// free plan only (SES only with email_ses_marketing). An empty list: nothing may send now (the email is held as before).
 export type Provider = 'ses' | 'cf' | 'resend';
 // With a category, SES only for the emails it may send (sesMaySend).
 export function emailProviderOrder(s: { sesConfigured: boolean; sesEnabled: boolean; sesLeft: number; sesResting?: boolean; cfOn: boolean; cfLeft: number; resendLeft: number;
   category?: string; sesMarketing?: boolean }): Provider[] {
   const out: Provider[] = [];
   if (s.sesConfigured && s.sesEnabled && s.sesLeft > 0 && !s.sesResting && (s.category === undefined || sesMaySend(s.category, s.sesMarketing === true))) out.push('ses');
-  if (s.cfOn && s.cfLeft > 0) out.push('cf');
+  if (s.cfOn && s.cfLeft > 0 && s.category !== 'marketing') out.push('cf');
   if (s.resendLeft > 0) out.push('resend');
   return out;
 }

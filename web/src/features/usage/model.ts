@@ -122,7 +122,7 @@ export function resendDay(n: number | string | null | undefined): string {
  * result was a success). The reason is the database's, from Cloudflare's own last error. */
 export function cfEmailSentence(c: CfEmail | null | undefined): string | null {
   if (!c || c.state === 'ok') return null;
-  if (c.state === 'off') return 'Cloudflare Email Service is turned off in Program settings, so every email goes through Resend.';
+  if (c.state === 'off') return 'Cloudflare Email Service is turned off in Program settings: booking and system email go through Amazon SES, then Resend\'s free plan; marketing through Resend\'s free plan.';
   const why = c.reason ?? (c.state === 'failing' ? `Cloudflare refused the last email${c.error ? `: ${c.error}` : ''}` : 'no email went through Cloudflare in the last 48 hours');
   return `Cloudflare Email Service has not sent in the last 48 hours: ${why}. Emails go through Resend meanwhile.`;
 }

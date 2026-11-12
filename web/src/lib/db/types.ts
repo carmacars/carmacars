@@ -18764,6 +18764,7 @@ export type Database = {
           marketing_transactional_reserve: number;
           email_ses_enabled: boolean;
           email_ses_daily_max: number;
+          email_cloudflare_enabled: boolean;
           email_ses_marketing: boolean;
         };
         Insert: {
@@ -19607,6 +19608,7 @@ export type Database = {
           marketing_transactional_reserve?: number;
           email_ses_enabled?: boolean;
           email_ses_daily_max?: number;
+          email_cloudflare_enabled?: boolean;
           email_ses_marketing?: boolean;
         };
         Update: {
@@ -20450,6 +20452,7 @@ export type Database = {
           marketing_transactional_reserve?: number;
           email_ses_enabled?: boolean;
           email_ses_daily_max?: number;
+          email_cloudflare_enabled?: boolean;
           email_ses_marketing?: boolean;
         };
         Relationships: [];

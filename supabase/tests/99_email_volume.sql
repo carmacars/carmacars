@@ -8,7 +8,7 @@ create temp table ev_code as select code from notification_catalogue where audie
 update program_settings set notify_daily_cap = 300, cf_email_daily_budget = 100, notify_resend_daily_budget = 100, cf_email_monthly_included = 3000;
 select test.eq('Cloudflare switched off (the suites): Resend''s 100', app.email_day_cap(), 100);
 -- 0900: switched on for this file (off for the suites, helpers.sql)
-update program_settings set cf_email_enabled = true;
+update program_settings set cf_email_enabled = true, email_cloudflare_enabled = true;
 update email_provider_state set cf_failed_at = null, cf_error = null;
 create temp table ev_cfmonth as select id from notification_outbox where provider_id like 'cf:%' and sent_at > now() - interval '40 days';
 update notification_outbox set sent_at = sent_at - interval '400 days' where id in (select id from ev_cfmonth);

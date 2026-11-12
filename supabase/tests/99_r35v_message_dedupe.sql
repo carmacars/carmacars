@@ -174,7 +174,7 @@ create temp table v35_cf as select bool_or(cf_email_enabled) as was_on from prog
 create temp table v35_recent as select id, sent_at from notification_outbox where provider_id like 'cf:%' and sent_at > now() - interval '48 hours';
 update notification_outbox o set sent_at = r.sent_at - interval '3 days' from v35_recent r where o.id = r.id;
 update email_provider_state set cf_ok_at = now() - interval '3 days', cf_failed_at = null, cf_error = null;
-update program_settings set cf_email_enabled = true;
+update program_settings set cf_email_enabled = true, email_cloudflare_enabled = true;
 select test.ok('a recorded success counts as Cloudflare sending', app.cf_email_ever_sent());
 select test.eq('ok after a success, even days ago', app.cf_email_setup(now()) ->> 'state', 'ok');
 select test.eq('the cap is Cloudflare''s budget plus Resend''s',
