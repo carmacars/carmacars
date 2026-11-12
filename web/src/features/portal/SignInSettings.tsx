@@ -1,5 +1,5 @@
 'use client';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { requestPhoneCode, saveAccountEmail, saveContactPhone, setSignInMethod, verifyPhoneCode } from '@/server/actions/phone-auth';
 import { cleanCode, formatPhone } from '@/features/auth/phone';
@@ -31,11 +31,31 @@ export function SignInSettings({ state, className = 'pt-card' }: { state: SignIn
     router.refresh();
   });
 
-  const ask = () => start(async () => {
+  // r40 hotfix (the owner, Nov 12: a salesperson "waits for a code and then he never gets it"): once a code is asked for,
+  // Resend after 30 seconds, and the number can be kept without a code (calls ring it; it does not sign in)
+  const [sentAt, setSentAt] = useState(0);
+  const [now, setNow] = useState(0);
+  useEffect(() => {
+    if (!sentAt) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [sentAt]);
+  const wait = sentAt ? Math.max(0, 30 - Math.floor((Math.max(now, sentAt) - sentAt) / 1000)) : 0;
+  const ask = (again = false) => start(async () => {
     setMsg(null);
-    const r = await requestPhoneCode({ phone, purpose: 'add' });
-    if (!r.ok) { setMsg({ ok: false, text: r.message, field: r.fieldErrors?.phone ? 'phone' : undefined }); return; }
-    setSentTo(r.data); setCode('');
+    const r = await requestPhoneCode({ phone: again && sentTo ? sentTo.phone : phone, purpose: 'add' });
+    if (!r.ok) { setMsg({ ok: false, text: r.message, field: !again && r.fieldErrors?.phone ? 'phone' : undefined }); return; }
+    setSentTo(r.data); setCode(''); setSentAt(Date.now()); setNow(Date.now());
+    if (again) setMsg({ ok: true, text: `A new code is on its way to ${r.data.display}. Use the newest text.` });
+  });
+  const keepWithoutCode = () => start(async () => {
+    if (!sentTo) return;
+    setMsg(null);
+    const r = await saveContactPhone({ phone: sentTo.phone });
+    if (!r.ok) { setMsg({ ok: false, text: r.message }); return; }
+    setAdding(false); setSentTo(null);
+    setMsg({ ok: true, text: `${r.data?.display ?? sentTo.display} is saved as your contact number (not verified): calls from the site ring it. To sign in with it, verify it later with a code.` });
+    router.refresh();
   });
   const check = (v = code) => start(async () => {
     setMsg(null);
@@ -80,14 +100,22 @@ export function SignInSettings({ state, className = 'pt-card' }: { state: SignIn
             <p role="status" data-testid="phone-sent">We texted a 6-digit code to <strong>{sentTo.display}</strong>.</p>
             <PhoneCodeInput id="si-code" value={code} autoFocus error={err('code')} onChange={(v) => { setCode(v); if (cleanCode(v) && !pending) check(v); }} />
             <p className="row"><button className="btn btn--primary btn--sm" type="submit" disabled={pending} data-testid="phone-verify">{pending ? 'Checking' : 'Verify'}</button>
-              <button className="btn btn--ghost btn--sm" type="button" onClick={() => { setSentTo(null); setMsg(null); }}>Use another number</button></p>
+              <button className="btn btn--ghost btn--sm" type="button" onClick={() => { setSentTo(null); setSentAt(0); setMsg(null); }}>Use another number</button></p>
+            <div className="stack small" data-testid="phone-no-code">
+              <p className="muted">No text yet? Texts can take a minute. Check the number above is your mobile.</p>
+              <p className="row" style={{ flexWrap: 'wrap' }}>
+                <button className="btn btn--ghost btn--sm" type="button" disabled={pending || wait > 0} onClick={() => ask(true)} data-testid="phone-resend">{wait > 0 ? `Resend the code (${wait}s)` : 'Resend the code'}</button>
+                {!state.phone_verified && <button className="btn btn--quiet btn--sm" type="button" disabled={pending} onClick={keepWithoutCode} data-testid="phone-keep-unverified">Save it without a code</button>}
+              </p>
+              {!state.phone_verified && <p className="muted">Saved without a code, the number is your contact number: calls from the site ring it, but you cannot sign in with it until it is verified.</p>}
+            </div>
           </>}
         </form>
       )}
 
       {!state.phone_verified && (
         <form className="stack" noValidate aria-label="Save a contact number" onSubmit={(e) => { e.preventDefault(); saveContact(); }} data-testid="contact-phone-form">
-          <Field id="si-contact" label="Number outside Canada? Save it as your contact number" error={err('contact')}
+          <Field id="si-contact" label="Number outside Canada, or the code never arrives? Save it as your contact number" error={err('contact')}
             hint={state.phone_on_file ? `On file: ${formatPhone(state.phone_on_file)} (not verified). Include the country code, for example +63 917 123 4567. No code is texted.` : 'Include the country code, for example +63 917 123 4567. No code is texted; it is used to reach you, not to sign in.'}>
             <input className="input" id="si-contact" name="contact" type="tel" inputMode="tel" autoComplete="tel" value={contact} placeholder="+63 917 123 4567"
               aria-invalid={!!err('contact') || undefined} onChange={(e) => setContact(e.target.value)} data-testid="contact-phone" />

@@ -17,9 +17,9 @@ const H = { 'cache-control': 'no-store' };
 // r34 (0800): caller_live (the caller pop-up of Admins and customer service) and the renter notes; the database decides who
 const READS = new Set(['phone_inbox', 'phone_thread', 'phone_timeline', 'phone_renter_search', 'phone_buttons', 'caller_live', 'renter_notes']);
 const ACTS = new Set(['phone_read', 'phone_reply', 'phone_link', 'phone_create_lead', 'phone_opt_out', 'phone_draft', 'phone_compose', 'phone_call_log',
-  'renter_note_add', 'renter_note_remove', 'caller_open', 'phone_call']);
+  'renter_note_add', 'renter_note_remove', 'caller_open', 'phone_call', 'phone_my_number']);
 // the buttons are for every staff member; the inbox stays Admins', customer service's and Sales's (the database decides)
-const BUTTONS = new Set(['phone_buttons', 'phone_compose', 'phone_call_log', 'phone_call']);
+const BUTTONS = new Set(['phone_buttons', 'phone_compose', 'phone_call_log', 'phone_call', 'phone_my_number']);
 // r35 (0970): Sales is shown masked numbers ("(647) •••-••00"); the buttons send the masked number and the server finds
 // the real one (app.server_phone_unmask: only numbers this person was shown), so it never reaches the browser
 const MASKED = /\u2022/;
@@ -83,6 +83,11 @@ export async function POST(req: Request) {
   const d = staffDoor(w.user.id, w.admin, w.aal);
   const call = w.va ? 'va_do' : 'field_do';
   try {
+    if (action === 'phone_my_number') {
+      // r40 (2460): the caller's own mobile from the Call button's pop-up, saved without a texted code (the call rings it)
+      if (await viewAs()) return NextResponse.json({ error: 'Viewing as someone else: their number is not changed from this view.' }, { status: 403, headers: H });
+      return NextResponse.json(await rpc('server_staff_set_call_phone', { p_user: w.user.id, p_phone: String(p.phone ?? '').slice(0, 40) }, { role: 'service_role' }), { headers: H });
+    }
     if (action === 'phone_call') {
       // r35 (0970): the outbound Call button through Twilio (the staff member's own cell rings first); never as someone else
       if (await viewAs()) return NextResponse.json({ ok: false, fallback: null, message: 'Viewing as someone else: calls are not made from this view.' }, { headers: H });
