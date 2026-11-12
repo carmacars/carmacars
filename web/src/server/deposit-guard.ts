@@ -158,7 +158,7 @@ export async function stripeUnlinkedCheck(force = false): Promise<{ ran: boolean
 export async function placeDepositHolds(limit = 10): Promise<{ held: number; failed: number; errors: string[] }> {
   const due = ((await call('server_deposit_autos_due', {})) as Array<{ booking_id: string; booking_number: string }> | null) ?? [];
   const out = { held: 0, failed: 0, errors: [] as string[] };
-  // 0541: Program settings, Extended deposit holds (off until Stripe confirms IC+): asked if available, never required
+  // 0541: Program settings, Extended deposit holds (on since r42, 2650: Stripe approved the account): asked if available, never required
   const extendedHold = due.length ? Boolean(await call('server_deposit_extended_holds', {}).catch(() => false)) : false;
   for (const d of due.slice(0, limit)) {
     try {
@@ -206,6 +206,7 @@ export async function sendDepositLinks(limit = 20): Promise<{ sent: number; not_
       const p = await payments();
       const customerId = q.renter.customer_id ?? (await p.createCustomer({ email: q.renter.email ?? '', name: q.renter.legal_name, renterId: q.renter.id, idempotencyKey: `customer:${q.renter.id}` })).id;
       const intent = await p.createStaffIntent({ amountCents: q.amount_cents, customerId, capture: 'manual', description: `CarmaCars booking ${q.booking_number}: deposit hold`,
+        extendedHold: Boolean(await call('server_deposit_extended_holds', {}).catch(() => false)),
         metadata: { booking_id: d.booking_id, booking_number: q.booking_number, purpose: 'staff_request', payment_request_id: q.id, covers: 'deposit' }, idempotencyKey: `payreq:${q.id}` });
       await call('server_payreq_attach', { p_id: q.id, p_intent: intent.id });
       const r = (await call('server_deposit_link_send', { p_id: q.id, p_link: `${siteUrl()}/pay/${token}` })) as { ok: boolean } | null;

@@ -65,7 +65,7 @@ select test.eq('A1: run again: still one', (select count(*) from tasks where boo
 
 -- ================================================================ A5. deposits stay holds
 select test.eq('A5: a deposit is a hold for any rental length', public.calc_deposit_method(45, 7), 'card_hold');
-select test.ok('A5: nothing is captured by itself; extended holds start off', not (app.settings()).deposit_auto_capture and not (app.settings()).deposit_extended_holds);
+select test.ok('A5: nothing is captured by itself; extended holds are on (2650: Stripe approved the account)', not (app.settings()).deposit_auto_capture and (app.settings()).deposit_extended_holds);
 select test.mk_owner('r8_o');
 select test.mk_vehicle('R8V', 'r8_o');
 select test.mk_renter('r8_dee');
@@ -89,7 +89,7 @@ update payment_methods set status = 'active' where id = test.id('card:r8_dee');
 select test.throws('A5: fleet does not re-authorize', format($$select app.door(%L, 'aal2', 'ops_do', 'hold_reauth_begin', '{"booking": "R8-D1"}')$$, test.id('r8_fleet')), 'Finance or an Admin');
 insert into test.r8 select 'reauth', app.door(test.id('r8_fin'), 'aal2', 'ops_do', 'hold_reauth_begin', '{"booking": "R8-D1"}');
 select test.eq('A5: re-authorize: what is still held, on the saved card, the old hold to release',
-  (test.r8v('reauth') ->> 'amount_cents') || ':' || (test.r8v('reauth') ->> 'method_id') || ':' || (test.r8v('reauth') ->> 'old_intent') || ':' || (test.r8v('reauth') ->> 'extended'), '100000:pm_r8:pi_r8_old_hold:false');
+  (test.r8v('reauth') ->> 'amount_cents') || ':' || (test.r8v('reauth') ->> 'method_id') || ':' || (test.r8v('reauth') ->> 'old_intent') || ':' || (test.r8v('reauth') ->> 'extended'), '100000:pm_r8:pi_r8_old_hold:true');
 select app.door(test.id('r8_fin'), 'aal2', 'ops_do', 'hold_reauth_finish', jsonb_build_object('deposit', test.r8v('reauth') ->> 'deposit_id', 'amount_cents', 100000, 'ok', true,
   'intent_id', 'pi_r8_new_hold', 'capture_before', extract(epoch from now() + interval '29 days')::bigint, 'extended', true));
 select test.eq('A5: the new hold is the deposit''s, the old one cancelled, the To do closed, the ledger says so',

@@ -77,6 +77,8 @@ export async function startCardRequest(p: { booking: string; kind: 'charge' | 'h
     const intent = q.kind === 'setup'
       ? await pay.createCardSetup({ customerId, description: `CarmaCars booking ${q.booking_number}: card on file`, metadata, idempotencyKey: `payreq:${q.id}` })
       : await pay.createStaffIntent({ amountCents: q.amount_cents, customerId, capture: 'manual',
+          // r42: the deposit hold only asks for an extended authorization (never a payment)
+          extendedHold: q.kind === 'hold' && Boolean(await rpc('server_deposit_extended_holds' as never, {} as never, SR).catch(() => false)),
           description: `CarmaCars booking ${q.booking_number}: ${q.kind === 'hold' ? 'deposit hold' : p.reason || q.covers}`, metadata, idempotencyKey: `payreq:${q.id}` });
     await rpc('server_payreq_attach', { p_id: q.id, p_intent: intent.id }, SR);
     const url = `${baseUrl()}/pay/${token}`;

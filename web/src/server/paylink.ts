@@ -22,6 +22,11 @@ export async function markPayLinkOpened(token: string): Promise<void> {
   await rpc('server_payreq_opened', { p_token_sha256: await payTokenHash(token) }, SR).catch(() => undefined);
 }
 
+/** r42: Program settings, Extended deposit holds: a deposit hold asks Stripe for up to about 30 days, if available. */
+export async function extendedHolds(): Promise<boolean> {
+  return Boolean(await rpc('server_deposit_extended_holds' as never, {} as never, SR).catch(() => false));
+}
+
 export async function settlePayreq(id: string, intentId: string, kind: PayLinkFacts['kind'], placed?: Intent | null): Promise<{ ok: boolean; reason?: string; message?: string }> {
   const p = await payments();
   let i: Intent = kind === 'setup' ? await p.retrieveCardSetup(intentId) : await p.retrieveIntent(intentId);
@@ -38,7 +43,7 @@ export async function settlePayreq(id: string, intentId: string, kind: PayLinkFa
       if (i.status === 'requires_capture') await p.cancelIntent(i.id, `void:${i.id}`).catch(() => undefined);
       else await p.refund({ paymentIntentId: i.id, chargeId: i.chargeId, amountCents: i.amountCents, idempotencyKey: `not-credit-refund:${i.id}`, metadata: { payment_request_id: id, reason: 'card_not_credit' } }).catch(() => undefined);
       // a new authorization on the same link, for another card
-      const fresh = await p.createStaffIntent({ amountCents: i.amountCents, customerId: i.customerId ?? '', capture: 'manual', description: `CarmaCars booking ${i.metadata.booking_number ?? ''}: ${kind === 'hold' ? 'deposit hold' : 'payment'}`.trim(),
+      const fresh = await p.createStaffIntent({ amountCents: i.amountCents, customerId: i.customerId ?? '', capture: 'manual', extendedHold: kind === 'hold' && await extendedHolds(), description: `CarmaCars booking ${i.metadata.booking_number ?? ''}: ${kind === 'hold' ? 'deposit hold' : 'payment'}`.trim(),
         metadata: { ...i.metadata }, idempotencyKey: `payreq:${id}:after:${i.id}` });
       await rpc('server_payreq_attach', { p_id: id, p_intent: fresh.id }, SR);
       return { ok: false, reason: 'card_not_credit', message: CARD_NOT_CREDIT };
@@ -52,7 +57,7 @@ export async function settlePayreq(id: string, intentId: string, kind: PayLinkFa
     const step = holdAmountStep(i.amountCents, need);
     if (step.reask) {
       await p.cancelIntent(i.id, `void:${i.id}`).catch(() => undefined);
-      const fresh = await p.createStaffIntent({ amountCents: step.amountCents, customerId: i.customerId ?? '', capture: 'manual', description: `CarmaCars booking ${i.metadata.booking_number ?? ''}: deposit hold`.trim(),
+      const fresh = await p.createStaffIntent({ amountCents: step.amountCents, customerId: i.customerId ?? '', capture: 'manual', extendedHold: await extendedHolds(), description: `CarmaCars booking ${i.metadata.booking_number ?? ''}: deposit hold`.trim(),
         metadata: { ...i.metadata }, idempotencyKey: `payreq:${id}:amount:${i.id}` });
       await rpc('server_payreq_hold_reset', { p_id: id, p_intent: fresh.id, p_amount: step.amountCents }, SR);
       return { ok: false, reason: 'hold_amount', message: holdAmountMessage(i.card.funding, step.amountCents) };

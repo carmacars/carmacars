@@ -158,6 +158,7 @@ export function fakePayments(): FakePayments {
       if (r.capture === 'automatic') ledger().auto.add(i.id);
       return i;
     },
+    async standardHold(id) { return { ...get(id) }; },
     async createCardSetup(r) {
       const i = once(r.idempotencyKey, () => { const x = blank(0, { ...r.metadata, fake_setup: 'true' }, r.customerId); x.id = x.id.replace('pi_', 'seti_'); x.clientSecret = `${x.id}_secret_fake`; return x; });
       ledger().auto.add(i.id);

@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { money } from '@/lib/format';
-import { payLinkFakeConfirm, payLinkFinish, payLinkStart, type PayLinkStart } from '@/server/actions/paylink';
+import { payLinkFakeConfirm, payLinkFinish, payLinkStandardHold, payLinkStart, type PayLinkStart } from '@/server/actions/paylink';
 
 // The card form of a pay link (0129): Stripe's Payment Element in Stripe's own frame (locally, the fake adapter's test
 // card form). The result is read again from Stripe on the server and recorded there.
@@ -67,7 +67,13 @@ export function PayLinkForm({ token, kind, amountCents, legalName, backTo = null
         if (!['succeeded', 'requires_capture'].includes(c.data.status)) { setMsg(c.data.error ?? 'Your card was declined.'); setBusy(false); return; }
       } else if (stripe.current) {
         const params = { elements: stripe.current.elements, redirect: 'if_required' as const, confirmParams: { payment_method_data: { billing_details: { name } }, return_url: location.href } };
-        const r = kind === 'setup' ? await stripe.current.js.confirmSetup(params) : await stripe.current.js.confirmPayment(params);
+        let r = kind === 'setup' ? await stripe.current.js.confirmSetup(params) : await stripe.current.js.confirmPayment(params);
+        // r42: a deposit hold asks for a longer hold (an extended authorization). Refused for that alone: the same hold
+        // is asked once more as a standard one, so the longer hold never stops the renter
+        if (r.error && kind === 'hold') {
+          const s = await payLinkStandardHold(token, r.error.message ?? '').catch(() => null);
+          if (s?.ok && s.data.retry) r = await stripe.current.js.confirmPayment(params);
+        }
         if (r.error) { setMsg(r.error.message ?? 'Your card was declined.'); setBusy(false); return; }
       }
       const f = await payLinkFinish(token);
