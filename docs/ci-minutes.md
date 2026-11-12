@@ -15,12 +15,12 @@ and the audit job 13, in parallel). The workflows now spend minutes only where t
 
 | Workflow | Trigger | What runs | Billed minutes (estimate) |
 | --- | --- | --- | --- |
-| `ci` | push | One job, `fast`: database suite (every migration and test), text check, lint, types, unit tests, generated types | about 7 |
+| `ci` | push | `fast` (text check, lint, types, unit tests, generated types) and, beside it, the database suite in 3 slices (`db`: each builds a fresh database with every migration and runs the base test files `00_` to `98_`, then its share of the release files `99_*`; `db-suite`: the one summary, and every test file answered for exactly once). November 12, 2026: the suite had grown to 35 minutes in one job, so it was split | about 6 + 3 x 15 (not billed while public) |
 | `ci` | push that changes only `docs/**`, `*.md`, email previews | Nothing (paths-ignore) | 0 |
 | `ci` | a newer push to the same branch | The older run is cancelled (concurrency) | only what ran |
-| `ci` | Run workflow, `deploy` | `fast`, and the full suite in 8 parallel jobs (each: its own stack and Worker build, a quarter of the end-to-end tests at 375 or 1440 with axe, then against the data its tests left the emails with database values and its share of links, copy lint, crawl as every role with Admin in 4 parts, SEO), the gate job `full`, then `deploy`; about 25 minutes until `deploy` starts (one job in turn took 2.5 to 3.7 hours) | about 175 (7 + 8 x 20 + 5; not billed while public) |
+| `ci` | Run workflow, `deploy` | `fast`, the database suite (`db` x 3, `db-suite`), and the full suite in 16 parallel jobs (each: its own stack and Worker build, an eighth of the end-to-end tests at 375 or 1440 with axe, then against the data its tests left the emails with database values and one of: links, copy lint, SEO, the crawl as a role, one of the 6 parts of the Admin crawl), the gate job `full`, then `deploy`; 20 jobs at once, about 20 to 25 minutes until `deploy` starts (8 jobs took up to 43 minutes by November 12, 2026; one job in turn took 2.5 to 3.7 hours) | about 350 (not billed while public) |
 | `ci` | Run workflow, `deploy`, `checks` off | `deploy` only (a commit that already passed) | about 5 |
-| `ci` | Run workflow, `full` (no deploy) | `fast` and the full suite (8 parallel jobs and `full`) | about 170 (not billed while public) |
+| `ci` | Run workflow, `full` (no deploy) | `fast`, the database suite and the full suite (16 parallel jobs and `full`) | about 345 (not billed while public) |
 | `verify` | Run workflow | Slim: public pages, headers and nonce, console errors, statement emails job, Worker analytics | about 5 |
 | `verify` | Run workflow, `full` | Adds sign-in as every portal, view as, invitation, reset, live SEO audit | about 12 |
 | `backup` | nightly | Encrypted database and storage backup | about 2 |

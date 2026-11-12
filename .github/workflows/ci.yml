@@ -5,9 +5,10 @@ name: ci
 # this repository (write access) and Run workflow; secrets are passed only to the deploy job, which runs only on Run
 # workflow. Logs are public: no step prints a secret or personal data (secrets are masked; the checks use test data).
 #
-#   push                 the fast gates only, in one job: the database suite (every migration, every test), the
-#                        text check, lint, types, unit tests and the generated types. Skipped entirely when only
-#                        documentation changed (docs/**, *.md). A newer push to the same branch cancels the older run.
+#   push                 the fast gates only: the database suite (every migration, every test; in parallel slices,
+#                        jobs db and db-suite) and, in the job fast, the text check, lint, types, unit tests and the
+#                        generated types. Skipped entirely when only documentation changed (docs/**, *.md). A newer
+#                        push to the same branch cancels the older run.
 #   Run workflow         deploy = true: the fast gates, then the full suite (Worker build, every end-to-end test at
 #                        375 and 1440 with axe, link check, copy lint, crawl as every role, SEO, emails with
 #                        database values), then the deploy. full = true without deploy: the same checks, no deploy.
@@ -76,9 +77,8 @@ jobs:
   fast:
     if: github.event_name != 'workflow_dispatch' || inputs.checks
     runs-on: ubuntu-24.04
-    # 45 (was 30): the database suite reached 30 minutes on busy runners (each staff alert goes to every Admin the suites
-    # make; r34's 0827 makes that faster); the full suite beside it takes longer, so this never delays a deploy
-    timeout-minutes: 45
+    # the database suite (35 of this job's 41 minutes in November) runs beside this job, in the db jobs below
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: web
@@ -93,9 +93,6 @@ jobs:
         run: |
           if [ ! -x /usr/lib/postgresql/16/bin/initdb ]; then sudo apt-get update -q && sudo apt-get install -y -q postgresql-16 postgresql-client-16; fi
           echo "/usr/lib/postgresql/16/bin" >> "$GITHUB_PATH"
-      - name: Database suite (every migration, every test)
-        working-directory: .
-        run: .github/ci-run.sh "Database" scripts/test.sh
       - name: Text check
         working-directory: .
         run: .github/ci-run.sh "Text check" scripts/check-text.sh
@@ -127,33 +124,102 @@ jobs:
           bash scripts/local-db.sh up --no-seed
           npm run db:types && git diff --exit-code src/lib/db/types.ts
 
+  # ---------------------------------------------------------------- the database suite (every push), in slices
+  # One job ran every test file in turn against one database: 35 minutes (run 43215627781: migrations 39 s, tests 2,100 s),
+  # the longest wait before a deploy. Now each db job builds the same fresh database (every migration) and runs, in the
+  # same order (scripts/test.sh, CARMACARS_TEST_SLICE): the base files 00_ to 98_, which build on each other's data, all
+  # of them in every slice; then its share of the release files 99_* (a checksum of the file name, so a file keeps its
+  # slice when others are added). A 99_ file must therefore not need the data of another 99_ file: one that does fails
+  # here in its slice; give it its own data or a number below 99. db-suite waits for all slices, prints the one summary
+  # in the format of scripts/test.sh, and fails when a slice failed, an assertion failed, or a test file was not
+  # answered for exactly once (scripts/test-merge.sh). The slices, the 16 e2e jobs and fast together stay within 20 jobs
+  # at once. To change the number of slices, change the lines marked "slices" below.
+  db:
+    name: db ${{ matrix.slice }}/3
+    if: github.event_name != 'workflow_dispatch' || inputs.checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        slice: [1, 2, 3]   # slices
+    steps:
+      - uses: actions/checkout@v4
+      - name: PostgreSQL 16 (preinstalled on the runner image; installed only if missing)
+        run: |
+          if [ ! -x /usr/lib/postgresql/16/bin/initdb ]; then sudo apt-get update -q && sudo apt-get install -y -q postgresql-16 postgresql-client-16; fi
+          echo "/usr/lib/postgresql/16/bin" >> "$GITHUB_PATH"
+      - name: Database suite (every migration, the base tests, this slice of the release tests)
+        env:
+          CARMACARS_TEST_SLICE: ${{ matrix.slice }}/3   # slices
+          CARMACARS_TEST_RESULTS: ${{ runner.temp }}/db-results
+        run: .github/ci-run.sh "Database ${{ matrix.slice }}/3" scripts/test.sh
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: db-results-${{ matrix.slice }}
+          retention-days: 1
+          path: ${{ runner.temp }}/db-results
+
+  # The database suite passed: every slice succeeded and together they ran every test file once. deploy needs this job.
+  db-suite:
+    name: Database suite (every migration, every test)
+    needs: db
+    if: ${{ !cancelled() && needs.db.result != 'skipped' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: db-results-*
+          path: ${{ runner.temp }}/db-results
+      - name: One summary (every suite, TOTAL, each failed assertion)
+        run: |
+          set +e; .github/ci-run.sh "Database" scripts/test-merge.sh "$RUNNER_TEMP"/db-results/db-results-* | tee /tmp/db.log; s=${PIPESTATUS[0]}
+          echo "::notice title=database::$(grep -E '^TOTAL' /tmp/db.log | sed -E 's/ +/ /g')"
+          echo "database slices: ${{ needs.db.result }}"
+          [ "${{ needs.db.result }}" = success ] || { echo "::error title=database suite failed::a db job failed (${{ needs.db.result }}); see its annotations"; exit 1; }
+          exit $s
+
   # ---------------------------------------------------------------- the full suite (deploy, or full = true)
-  # Eight jobs side by side (one job used to run everything in turn: 2.5 to 3.7 hours). Each brings up its own local
-  # stack, Worker build and server (.github/actions/full-stack, about 4 minutes), runs a quarter of the end-to-end tests
+  # Sixteen jobs side by side (one job used to run everything in turn: 2.5 to 3.7 hours; eight jobs: 20 to 43 minutes,
+  # the slowest an e2e quarter of 17 minutes followed by an Admin crawl part of 18). Each brings up its own local
+  # stack, Worker build and server (.github/actions/full-stack, about 4 minutes), runs an eighth of the end-to-end tests
   # at one width (375 or 1440, with axe), and then, against the same server and the data its tests left, as the one job
   # did: the emails with database values (every job: together they render every email the tests queued) and its share
-  # of the audits below (link check, copy lint, crawl as every role with Admin in 4 parts, SEO). The job named full
-  # waits for all eight and fails when one did, so deploy still needs [fast, full]. docs/ci-minutes.md.
+  # of the audits below (link check, copy lint, crawl as every role with Admin in 6 parts, SEO): one heavy audit a job.
+  # The job named full waits for all sixteen and fails when one did, so deploy still needs full (and fast, db-suite).
+  # docs/ci-minutes.md.
   e2e:
-    name: e2e ${{ matrix.project }} ${{ matrix.shard }}/4${{ inputs.e2e_grep == '' && format(', {0}', matrix.label) || '' }}
+    name: e2e ${{ matrix.project }} ${{ matrix.shard }}/8${{ inputs.e2e_grep == '' && format(', {0}', matrix.label) || '' }}
     if: github.event_name == 'workflow_dispatch' && inputs.checks && (inputs.deploy || inputs.full)
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
-        # Balanced on run 40145710637 (after its tests, the data each shard left): setup 2-3 min, e2e shards 4-8.5,
-        # link check 9.5, copy lint 10, SEO 8.5, crawl Admin parts 5-8, va_cs 5, va_fleet 4.7, va_sales 3.7,
-        # va_finance 3.4, anon 3.2, renter, owner, investor, field 1-1.5 each; every job about 20 minutes
+        # Timings of run 43215627781 (8 jobs): setup 2.5-4 min, e2e quarters 8-17 (so eighths about 4-9), link check 6,
+        # copy lint 9, SEO 9, crawl Admin quarters 10-18, va_cs with va_fleet 19.5, va_sales 11, va_finance 10.5, anon 8,
+        # field 3.6, renter 2.8, owner and investor 2 each. Every test still runs once at each width (shard i/8), and
+        # every audit and role is in exactly one job; the Admin crawl is in 6 parts (crawl-roles.mjs --part i/6).
         include:
           - { project: phone-375, shard: 1, label: 'link check, crawl owner', links: true, roles: owner, part: '1/1' }
-          - { project: phone-375, shard: 2, label: 'crawl anon, admin 1 of 4', roles: anon, part: '1/1', roles2: admin, part2: '1/4' }
-          - { project: phone-375, shard: 3, label: 'copy lint, crawl va_finance', copy: true, roles: va_finance, part: '1/1' }
-          - { project: phone-375, shard: 4, label: 'SEO, crawl investor', seo: true, roles: investor, part: '1/1' }
-          - { project: desktop-1440, shard: 1, label: 'crawl va_sales, admin 4 of 4', roles: va_sales, part: '1/1', roles2: admin, part2: '4/4' }
-          - { project: desktop-1440, shard: 2, label: 'crawl renter, admin 3 of 4', roles: renter, part: '1/1', roles2: admin, part2: '3/4' }
-          - { project: desktop-1440, shard: 3, label: 'crawl field, admin 2 of 4', roles: field, part: '1/1', roles2: admin, part2: '2/4' }
-          - { project: desktop-1440, shard: 4, label: 'crawl va_cs, va_fleet', roles: 'va_cs,va_fleet', part: '1/1' }
+          - { project: phone-375, shard: 2, label: 'crawl anon, investor', roles: 'anon,investor', part: '1/1' }
+          - { project: phone-375, shard: 3, label: 'copy lint', copy: true }
+          - { project: phone-375, shard: 4, label: 'SEO', seo: true }
+          - { project: phone-375, shard: 5, label: 'crawl va_finance', roles: va_finance, part: '1/1' }
+          - { project: phone-375, shard: 6, label: 'crawl admin 1 of 6', roles: admin, part: '1/6' }
+          - { project: phone-375, shard: 7, label: 'crawl admin 2 of 6', roles: admin, part: '2/6' }
+          - { project: phone-375, shard: 8, label: 'crawl field', roles: field, part: '1/1' }
+          - { project: desktop-1440, shard: 1, label: 'crawl va_sales', roles: va_sales, part: '1/1' }
+          - { project: desktop-1440, shard: 2, label: 'crawl admin 3 of 6', roles: admin, part: '3/6' }
+          - { project: desktop-1440, shard: 3, label: 'crawl admin 4 of 6', roles: admin, part: '4/6' }
+          - { project: desktop-1440, shard: 4, label: 'crawl va_cs', roles: va_cs, part: '1/1' }
+          - { project: desktop-1440, shard: 5, label: 'crawl va_fleet', roles: va_fleet, part: '1/1' }
+          - { project: desktop-1440, shard: 6, label: 'crawl admin 5 of 6', roles: admin, part: '5/6' }
+          - { project: desktop-1440, shard: 7, label: 'crawl admin 6 of 6', roles: admin, part: '6/6' }
+          - { project: desktop-1440, shard: 8, label: 'crawl renter', roles: renter, part: '1/1' }
     defaults:
       run:
         working-directory: web
@@ -175,8 +241,8 @@ jobs:
           BASE_URL: http://localhost:3000
           PW_BLOB: ${{ matrix.project }}-${{ matrix.shard }}
         run: |
-          set +e; ../.github/ci-run.sh "End to end" npx playwright test --project ${{ matrix.project }} --shard ${{ matrix.shard }}/4 ${{ inputs.e2e_grep && format('--pass-with-no-tests --grep "{0}"', inputs.e2e_grep) || '' }} | tee /tmp/e2e.log; s=${PIPESTATUS[0]}
-          echo "::notice title=e2e ${{ matrix.project }} ${{ matrix.shard }}/4::$(sed -e 's/\x1b\[[0-9;]*[A-Za-z]//g' /tmp/e2e.log | grep -E '^ +[0-9]+ (passed|failed|flaky|skipped|did not run)' | sed -E 's/^ +//' | paste -sd ';' -)"; exit $s
+          set +e; ../.github/ci-run.sh "End to end" npx playwright test --project ${{ matrix.project }} --shard ${{ matrix.shard }}/8 ${{ inputs.e2e_grep && format('--pass-with-no-tests --grep "{0}"', inputs.e2e_grep) || '' }} | tee /tmp/e2e.log; s=${PIPESTATUS[0]}
+          echo "::notice title=e2e ${{ matrix.project }} ${{ matrix.shard }}/8::$(sed -e 's/\x1b\[[0-9;]*[A-Za-z]//g' /tmp/e2e.log | grep -E '^ +[0-9]+ (passed|failed|flaky|skipped|did not run)' | sed -E 's/^ +//' | paste -sd ';' -)"; exit $s
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
@@ -209,11 +275,6 @@ jobs:
         run: |
           set +e; ../.github/ci-run.sh "Crawl" node tests/lint/crawl-roles.mjs --per-shape 1 --roles ${{ matrix.roles }} --part ${{ matrix.part }} --out reports/crawl.json > /tmp/crawl.log; s=$?
           tail -n 40 /tmp/crawl.log; echo "::notice title=crawl::$(grep -E '^crawl' /tmp/crawl.log | sed -E 's/ +/ /g' | paste -sd ';' -)"; exit $s
-      - name: Crawl as ${{ matrix.roles2 }} ${{ matrix.part2 }}
-        if: ${{ !cancelled() && inputs.e2e_grep == '' && matrix.roles2 }}
-        run: |
-          set +e; ../.github/ci-run.sh "Crawl" node tests/lint/crawl-roles.mjs --per-shape 1 --roles ${{ matrix.roles2 }} --part ${{ matrix.part2 }} --out reports/crawl-2.json > /tmp/crawl2.log; s=$?
-          tail -n 40 /tmp/crawl2.log; echo "::notice title=crawl::$(grep -E '^crawl' /tmp/crawl2.log | sed -E 's/ +/ /g' | paste -sd ';' -)"; exit $s
       - name: SEO
         if: ${{ !cancelled() && inputs.e2e_grep == '' && matrix.seo }}
         run: |
@@ -234,7 +295,7 @@ jobs:
             web/reports
             /tmp/serve.log
 
-  # the eight reports as one: the same "e2e" notice as one run (passed, failed, flaky, skipped), and reports/e2e.json
+  # the sixteen reports as one: the same "e2e" notice as one run (passed, failed, flaky, skipped), and reports/e2e.json
   e2e-report:
     needs: e2e
     if: ${{ !cancelled() && needs.e2e.result != 'skipped' }}
@@ -287,7 +348,7 @@ jobs:
           CHROME_PATH="$(node -e "console.log(require('@playwright/test').chromium.executablePath())")" node tests/lint/lighthouse.mjs
           jq -r 'to_entries[] | "::notice title=lighthouse::\(.key) performance \(.value.performance), accessibility \(.value.accessibility), best practices \(.value.bestPractices), SEO \(.value.seo); LCP \(.value.lcp), CLS \(.value.cls), TBT \(.value.tbt)"' reports/lighthouse.json
 
-  # The full suite passed: all eight jobs succeeded. deploy needs this job, as it needed the one full job before.
+  # The full suite passed: all sixteen jobs succeeded. deploy needs this job, as it needed the one full job before.
   full:
     needs: e2e
     if: ${{ !cancelled() && github.event_name == 'workflow_dispatch' && inputs.checks && (inputs.deploy || inputs.full) }}
@@ -297,15 +358,15 @@ jobs:
       - name: Every job of the full suite passed
         run: |
           echo "full suite: ${{ needs.e2e.result }}"
-          [ "${{ needs.e2e.result }}" = success ] || { echo "::error title=full suite failed::one of the eight jobs failed (${{ needs.e2e.result }}); see its annotations"; exit 1; }
+          [ "${{ needs.e2e.result }}" = success ] || { echo "::error title=full suite failed::one of the sixteen jobs failed (${{ needs.e2e.result }}); see its annotations"; exit 1; }
 
   # ---------------------------------------------------------------- deploy
   deploy:
     if: >-
       !cancelled() && github.event_name == 'workflow_dispatch' && inputs.deploy
-      && needs.fast.result != 'failure' && needs.full.result != 'failure'
-      && (inputs.checks == false || (needs.fast.result == 'success' && needs.full.result == 'success'))
-    needs: [fast, full]
+      && needs.fast.result != 'failure' && needs.db-suite.result != 'failure' && needs.full.result != 'failure'
+      && (inputs.checks == false || (needs.fast.result == 'success' && needs.db-suite.result == 'success' && needs.full.result == 'success'))
+    needs: [fast, db-suite, full]
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     environment: ${{ inputs.environment }}
