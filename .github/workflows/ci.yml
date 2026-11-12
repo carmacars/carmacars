@@ -512,6 +512,16 @@ jobs:
             [ "$code" = 200 ] && break; sleep 10
           done
           echo "::notice title=deploy::https://carmacars.ca answered $code; /cars $(curl -s -o /dev/null -w '%{http_code}' https://carmacars.ca/cars); photos $(curl -s -o /dev/null -w '%{http_code}' "$NEXT_PUBLIC_VEHICLE_PHOTOS_URL/.seeded/stand-in-photos-v1")"
+      # r39 (2400): the site checks itself (web/scripts/verify-live.mjs --selfqa, no browser, under three minutes): a 5xx or Error 1101
+      # on a key public page or the sign-in page fails the deploy; listing photo and SEO problems are warnings, saved for the Admins
+      # with the staff alert site_selfqa (server_site_selfqa, with the database's own findings)
+      - name: Self-check of the live site (fails on a 5xx or Error 1101; warnings to the Admins)
+        if: inputs.environment == 'production'
+        working-directory: web
+        timeout-minutes: 4
+        env:
+          BASE_URL: ${{ env.APP_URL }}
+        run: $RUN "Self-check" node scripts/verify-live.mjs --selfqa --out "$RUNNER_TEMP/selfqa"
       - name: Sign-in by phone (Supabase Auth's phone provider and its Send SMS hook to the Worker; production only)
         if: inputs.environment == 'production'
         continue-on-error: true

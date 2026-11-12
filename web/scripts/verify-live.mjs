@@ -4,7 +4,7 @@
 //   BASE_URL=https://carmacars.ca node scripts/verify-live.mjs --out /tmp/verify [--request]
 import fs from 'node:fs';
 import path from 'node:path';
-import { chromium } from '@playwright/test';
+import { serverFailure, standinUrls, standinSlugs, letteringOverflow, noindex, sitemapLocs } from './selfqa-checks.mjs';
 
 // The database and Supabase Auth's settings: the hosted project through the Management API, or the company's own
 // server (DB_BACKEND=vps, infra/vps/CUTOVER.md): SQL_API_URL (pg-meta through the job's SSH tunnel) and
@@ -27,6 +27,88 @@ const out = process.argv[process.argv.indexOf('--out') + 1] ?? '/tmp/verify';
 const doRequest = process.argv.includes('--request');
 fs.mkdirSync(out, { recursive: true });
 const report = { base: BASE, at: new Date().toISOString(), pages: [], headers: {}, nonce: null, admin: null, console: [], request: null, shots: [] };
+
+// r39 (2400): --selfqa, the deploy's self-check right after "The site answers" (no browser, under three minutes):
+// FAIL (exit 1) on a 5xx or Error 1101 on a key public page or the sign-in page; WARN for listed cars on the studio
+// stand-in while they have a real photo, stand-in lettering off its wall, covers made from a poor cut-out, empty sitemap
+// files and indexable pages carrying noindex. The report goes to the database (server_site_selfqa: saved, the database's
+// own findings added, the Admins alerted with the staff alert site_selfqa) with the deploy's service key.
+if (process.argv.includes('--selfqa')) process.exit(await selfQa());
+async function selfQa() {
+  const T0 = Date.now(), BUDGET = 165_000;
+  const fails = [], warns = [], seen = new Map();
+  const get = async (p, o = {}) => {
+    if (seen.has(p)) return seen.get(p);
+    for (let i = 0; ; i++) {
+      try {
+        const r = await fetch(p.startsWith('http') ? p : BASE + p, { redirect: 'manual', headers: { 'user-agent': 'CarmaCarsSelfCheck/1.0' }, signal: AbortSignal.timeout(o.timeout ?? 20_000) });
+        const v = { status: r.status, headers: r.headers, body: await r.text() };
+        seen.set(p, v); return v;
+      } catch (e) {
+        if (i >= 1) { const v = { status: 0, headers: new Headers(), body: '', error: String(e?.message ?? e).slice(0, 120) }; seen.set(p, v); return v; }
+      }
+    }
+  };
+  const pool = async (items, n, fn) => { const q = [...items]; await Promise.all(Array.from({ length: n }, async () => { while (q.length && Date.now() - T0 < BUDGET) await fn(q.shift()); })); };
+  // 1. the key pages and the sign-in page: a 5xx or Error 1101 fails the deploy
+  const KEY = ['/', '/cars', '/how-it-works', '/requirements', '/delivery', '/faq', '/contact', '/list-your-car', '/investors', '/sign-in', '/create-account', '/sitemap.xml', '/robots.txt'];
+  const cars = await get('/cars');
+  const slug = process.env.SLUG || (/\/cars\/([a-z0-9]+(?:-[a-z0-9]+)+)/.exec(cars.body)?.[1] ?? null);
+  if (slug) KEY.push(`/cars/${slug}`);
+  await pool(KEY, 6, async (p) => {
+    const r = await get(p);
+    const why = r.status === 0 ? `did not answer (${r.error})` : serverFailure(r.status, r.body);
+    if (why) fails.push({ check: 'http_5xx', detail: `${p} ${why}` });
+  });
+  // 2. the stand-ins: a listed car on one while it has a real photo (the database knows the photos), lettering off its wall
+  const standins = [...new Set([...standinSlugs(cars.body)])];
+  const svgs = standinUrls(cars.body).concat(slug ? standinUrls((await get(`/cars/${slug}`)).body) : []).slice(0, 24);
+  await pool([...new Set(svgs)], 6, async (u) => {
+    const r = await get(u);
+    if (r.status !== 200) { warns.push({ check: 'standin_broken', detail: `${u} answered ${r.status}` }); return; }
+    for (const p of letteringOverflow(r.body)) warns.push({ check: 'standin_text_overflow', detail: `${decodeURIComponent(u.split('/').pop())}: ${p}` });
+  });
+  // 3. the sitemaps: none empty; a sample of their pages answers and is indexable
+  const sm = sitemapLocs((await get('/sitemap.xml')).body);
+  const children = sm.index ? sm.locs.slice(0, 60) : [];
+  const pages = sm.index ? [] : sm.locs.slice(0, 20);
+  if (!sm.locs.length) warns.push({ check: 'sitemap_empty', detail: '/sitemap.xml has no addresses' });
+  await pool(children, 6, async (u) => {
+    const r = await get(u);
+    const l = sitemapLocs(r.body);
+    if (r.status !== 200 || !l.locs.length) warns.push({ check: 'sitemap_empty', detail: `${new URL(u).pathname} ${r.status !== 200 ? `answered ${r.status}` : 'has no addresses'}` });
+    pages.push(...l.locs.slice(0, 2));
+  });
+  const indexable = [...new Set(['/', '/cars', '/how-it-works', '/faq', '/list-your-car', ...(slug ? [`/cars/${slug}`] : []), ...pages.slice(0, 40)])];
+  await pool(indexable, 6, async (u) => {
+    const r = await get(u);
+    const path = u.startsWith('http') ? new URL(u).pathname : u;
+    if (r.status >= 500) warns.push({ check: 'sitemap_page_5xx', detail: `${path} answered ${r.status}` });
+    else if (r.status === 200 && noindex(r.body, r.headers)) warns.push({ check: 'noindex_indexable', detail: `${path} carries noindex` });
+  });
+  if (Date.now() - T0 >= BUDGET) warns.push({ check: 'selfqa_time', detail: 'The self-check stopped at its time budget; some pages were not checked' });
+  // 4. the database: saved, its own findings (stand-in with a real photo, covers from a poor cut-out), the Admins alerted
+  const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '').replace(/\/$/, ''), key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  let db = null;
+  if (url && key) {
+    try {
+      const r = await fetch(`${url}/rest/v1/rpc/server_site_selfqa`, { method: 'POST', headers: { apikey: key, authorization: `Bearer ${key}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ p: { sha: process.env.GITHUB_SHA ?? null, base: BASE, ms: Date.now() - T0, fails, warns, standin_slugs: standins } }), signal: AbortSignal.timeout(20_000) });
+      db = r.ok ? await r.json() : { error: `${r.status} ${(await r.text()).slice(0, 160)}` };
+    } catch (e) { db = { error: String(e?.message ?? e).slice(0, 160) }; }
+  } else db = { error: 'no database address or service key: the report was not saved and no alert was sent' };
+  const dbWarns = Array.isArray(db?.db) ? db.db : [];
+  const esc = (t) => String(t).replace(/%/g, '%25').replace(/\r?\n/g, ' ');
+  for (const f of fails) console.log(`::error title=self-check FAIL ${f.check}::${esc(f.detail)}`);
+  for (const w of [...warns, ...dbWarns].slice(0, 40)) console.log(`::warning title=self-check ${w.check}::${esc(w.detail)}`);
+  if (db?.error) console.log(`::warning title=self-check report::${esc(db.error)}`);
+  const summary = { base: BASE, ms: Date.now() - T0, pages: seen.size, fails: fails.length, warns: warns.length + dbWarns.length, run: db?.id ?? null, status: db?.status ?? null };
+  fs.writeFileSync(path.join(out, 'selfqa.json'), JSON.stringify({ ...summary, fails, warns: [...warns, ...dbWarns] }, null, 2));
+  console.log(`::notice title=self-check::${JSON.stringify(summary)}`);
+  return fails.length ? 1 : 0;
+}
+
+const { chromium } = await import('@playwright/test');
 
 const PAGES = ['/', '/cars', '/how-it-works', '/requirements', '/delivery', '/faq', '/contact', '/terms', '/privacy', '/cancellation-policy',
   '/list-your-car', '/investors', '/sign-in', '/create-account', '/reset-password', '/robots.txt', '/sitemap.xml', '/no-such-page'];
