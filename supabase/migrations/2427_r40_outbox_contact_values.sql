@@ -8,7 +8,10 @@
 create function app.outbox_fill_contact() returns trigger
 language plpgsql security definer set search_path = public, app as $$
 begin
-  new.payload := coalesce(app.ntf_contact(), '{}'::jsonb) || coalesce(new.payload, '{}'::jsonb);
+  -- a row without values of its own (a suppression record, a placeholder) is left as it is
+  if coalesce(new.payload, '{}'::jsonb) <> '{}'::jsonb then
+    new.payload := coalesce(app.ntf_contact(), '{}'::jsonb) || new.payload;
+  end if;
   return new;
 end $$;
 revoke all on function app.outbox_fill_contact() from public, anon, authenticated;
