@@ -115,13 +115,15 @@ test('the VA agreement for Sales: commission only, no Rate, no hours, a clear co
   assert.equal(blanksIn(monthly), 0);
 });
 
-test('the field agreement is complete without the address and licence number (r38): nothing waits, the wording points to the profile', () => {
+test('the field agreement (2373): the licence number the staff member entered is filled in; without it, it waits for that alone', () => {
   const f = staff('field');
-  assert.deepEqual(missingRequired(staffFields(f), fill(f)), []);
-  const md = staffMarkdown(f, fill(f));
+  assert.deepEqual(missingRequired(staffFields(f), fill(f)), ['Home address', "Driver's licence number"]);
+  const withNo: StaffFacts = { ...f, staff: { ...f.staff, licence_number: 'C1234-56789-01234', home_address: '12 Queen Street, Toronto' } };
+  assert.deepEqual(missingRequired(staffFields(withNo), fill(withNo)), []);
+  const md = staffMarkdown(withNo, fill(withNo));
   assert.equal(blanksIn(md), 0);
-  assert.match(md, /\| Driver's licence \| Ontario Class G, as shown on the licence copy the Employee provides in the staff portal \|/);
-  assert.match(md, /the home address in the Employee's staff profile \(address\)/);
+  assert.match(md, /\| Driver's licence \| Ontario Class G, number C1234-56789-01234 \|/);
+  assert.match(md, /12 Queen Street, Toronto \(address\)/);
 });
 
 test('the field agreement: the home address the staff member entered is filled in (0059)', () => {

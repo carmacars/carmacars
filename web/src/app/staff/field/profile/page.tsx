@@ -12,6 +12,7 @@ import { SelfProfile } from '@/features/portal/SelfProfile';
 import { NotifyChannelCard } from '@/features/portal/NotifyChannel';
 import { PushAlerts } from '@/features/push/PushAlerts';
 import { AppProfile } from '@/features/app-shell/AppProfile';
+import { Act } from '@/features/admin/Act';
 import { AvailabilityGrid } from '@/features/field-portal/AvailabilityGrid';
 import type { Availability } from '@/features/field-portal/shift-picker';
 
@@ -27,6 +28,7 @@ export default async function Profile() {
     door<{ opted_in: boolean; ready: boolean } | null>(user.id, 'field_read', 'sales_state').catch(() => null)]);
   const avail = await door<Availability>(user.id, 'field_read', 'my_availability').catch(() => null);
   const [nc, sp] = await Promise.all([notifyReach(user.id), selfProfile(user.id)]);
+  const lic = await door<{ set: boolean; last4: string | null }>(user.id, 'field_read', 'staff_licence_number').catch(() => null);
   const twoStep = factors.some((f) => f.verified);
   return (
     <div className="stack">
@@ -37,6 +39,11 @@ export default async function Profile() {
         <FieldButton action="profile_save" payload={{}} label="Save my phone" testId="profile-save" fields={[{ name: 'phone', label: 'Mobile phone', required: true }]} />
       </section>
       {home.missing ? <p className="small" data-testid="home-address-above">Fill in your home address at the top of the page.</p> : <HomeAddressSection portal="field" state={home} />}
+      {/* 2373: the driver's licence number, for the Field Staff Agreement */}
+      <section className="fd-card stack" aria-labelledby="lic-t" id="licence"><h2 className="d4" id="lic-t">Driver&apos;s licence</h2>
+        <p className="small" data-testid="profile-licence">{lic?.set ? `On file, ending ${lic.last4}.` : 'Not given yet. Your Field Staff Agreement is made from it.'}</p>
+        <div><Act ops action="staff_licence_number_save" label={lic?.set ? 'Change my licence number' : 'Add my driver\'s licence number'} variant={lic?.set ? 'ghost' : 'primary'} title="Your driver's licence number" submitLabel="Save"
+          testId="profile-licence-save" refresh={['/staff/field/profile', '/staff/welcome']} done="Saved." fields={[{ name: 'licence_number', label: 'Driver\'s licence number', type: 'text', required: true, placeholder: 'A1234-12345-12345', hint: 'As it is on your licence card.' }]} /></div></section>
       {/* r35 SP (1770): when you can usually work; Fleet plans the shifts from it */}
       <section className="fd-card stack" aria-labelledby="avail-t" id="availability"><h2 className="d4" id="avail-t">When you can work</h2>
         <p className="small">Tick the times you can usually work. Fleet sees it when they publish shifts and asks the people who are free.</p>

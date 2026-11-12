@@ -19,6 +19,8 @@ export interface InvestorFacts {
 export interface StaffFacts {
   staff: { user_id: string; full_name: string; email: string | null; phone: string | null; staff_type: string; va_function: string | null; field_function: string | null; started_on: string | null;
     referral_code: string | null; single_limit_cents: number | null; dual_approval_threshold_cents: number | null; has_signed: boolean; home_address?: string | null;
+    /** 2373: entered by the staff member (Welcome, the agreement step) */
+    licence_number?: string | null;
     /** 0197: which agreement (in_person: the Field Staff Agreement, for field work or in-person sales; remote: the VA contractor agreement) */
     agreement?: 'in_person' | 'remote'; functions?: string[]; sales_work_mode?: string | null };
   defaults: Record<string, string>;
@@ -154,10 +156,9 @@ export function staffFields(f: StaffFacts): Field[] {
     ];
   }
   return [
-    // address and licence number are not required (r38): the agreement is generated and sent by itself, and a blank one
-    // reads as the record the employee keeps in their profile and the licence copy they upload, so no field hire waits
-    { key: 'address', label: 'Home address', value: s.home_address ?? '', hint: 'The staff member enters it in their profile; change it here only if it is wrong' },
-    { key: 'licence', label: 'Driver\'s licence number', value: '', hint: 'Optional: left blank, the agreement refers to the licence copy the employee uploads' },
+    // 2373: both come from the staff member, asked on their Welcome page and their profile (never left blank)
+    { key: 'address', label: 'Home address', value: s.home_address ?? '', required: true, hint: 'The staff member enters it in their profile; change it here only if it is wrong' },
+    { key: 'licence', label: 'Driver\'s licence number', value: s.licence_number ?? '', required: true, hint: 'The staff member enters it on their Welcome page' },
     { key: 'wage', label: 'Hourly Wage (CA$)', value: d.wage ?? '', required: true, hint: 'For example 18.00' },
     { key: 'start', label: 'Start Date', value: day(s.started_on), required: true },
     { key: 'vehicle_types', label: 'Vehicle types authorized', value: d.vehicle_types ?? '', required: true },
@@ -166,8 +167,7 @@ export function staffFields(f: StaffFacts): Field[] {
   ];
 }
 
-const addressWords = (v: Record<string, string>) => (v.address ?? '').trim() || 'the home address in the Employee\'s staff profile';
-const licenceWords = (v: Record<string, string>) => (v.licence ?? '').trim() ? `Ontario Class G, number ${(v.licence ?? '').trim()}` : 'Ontario Class G, as shown on the licence copy the Employee provides in the staff portal';
+const licenceWords = (v: Record<string, string>) => `Ontario Class G, number ${(v.licence ?? '').trim()}`;
 
 const signatureLines = (md: string, c: Company, name: string) => md
   .replace(/^By: \[●\], \[●\] \(title\)\. Date: \[●\]$/m, `By: ${c.signing_officer_name ?? ''}, ${c.signing_officer_title ?? ''} (title). Date: ${DATE_SIGNED}. Signature: ${ON_SIGNATURE}.`)
@@ -201,7 +201,7 @@ export function staffMarkdown(f: StaffFacts, v: Record<string, string>): string 
     return md;
   }
   let md = signatureLines(FIELD_MD, c, s.full_name);
-  md = row(md, 'Employee', `${s.full_name} (legal name), ${addressWords(v)} (address), ${phone(s.phone)} (phone), ${s.email ?? ''} (email)`);
+  md = row(md, 'Employee', `${s.full_name} (legal name), ${v.address ?? ''} (address), ${phone(s.phone)} (phone), ${s.email ?? ''} (email)`);
   md = row(md, 'Driver\'s licence', licenceWords(v));
   md = row(md, 'Role', inPersonRole(s));
   md = row(md, 'Hourly Wage', `$${(v.wage ?? '').replace(/^\$/, '')} an hour`);
@@ -223,7 +223,7 @@ export function staffSummary(f: StaffFacts, v: Record<string, string>): Array<{ 
        ...(isCommissionOnly(v) ? [] : [{ label: 'Schedule', value: scheduleWords(v), fix: null }, { label: 'Coverage Hours', value: `${v.coverage ?? ''}, ${v.hours_per_week ?? ''} hours a week`, fix: null },
          { label: 'Rate', value: rateWords(v), fix: null }]),
        { label: 'Start Date', value: v.start ?? '', fix: null }, { label: 'Paid through', value: `${v.platform ?? ''}, ${v.pay_timing ?? ''}`, fix: null }]
-    : [{ label: 'Employee', value: `${s.full_name}, ${addressWords(v)}`, fix: base }, { label: 'Driver\'s licence', value: licenceWords(v), fix: null },
+    : [{ label: 'Employee', value: `${s.full_name}, ${v.address ?? ''}`, fix: base }, { label: 'Driver\'s licence', value: licenceWords(v), fix: null },
        { label: 'Role', value: inPersonRole(s), fix: null }, { label: 'Hourly Wage', value: `$${(v.wage ?? '').replace(/^\$/, '')} an hour`, fix: null },
        { label: 'Start Date', value: v.start ?? '', fix: null }, { label: 'Pay Dates', value: v.pay_dates ?? '', fix: null }];
 }
