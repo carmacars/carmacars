@@ -68,6 +68,14 @@
   .now__actions .btn { width: 100%; padding-inline: var(--s-2); justify-content: center; }
   .now__actions > :first-child { grid-column: 1 / -1; }
 }
+/* r40: the Do this next card's other buttons, folded behind More (the primary and two others stay in view) */
+.now__more { grid-column: 1 / -1; min-width: 0; }
+.now__more > summary { list-style: none; cursor: pointer; }
+.now__more > summary::-webkit-details-marker { display: none; }
+.now__more[open] > summary { border-color: var(--white); }
+.now__more-body { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-2); margin-top: var(--s-2); }
+.now__more-body > * { width: 100%; justify-content: center; }
+@media (min-width: 64rem) { .now__more { grid-column: auto; } .now__more-body { display: flex; flex-wrap: wrap; justify-content: end; } .now__more-body > * { width: auto; } }
 @media (min-width: 64rem) { .now { padding: var(--s-5) var(--s-6); grid-template-columns: minmax(0, 1fr) auto; align-items: end; column-gap: var(--s-6); } .now__facts { grid-column: 1 / -1; } .now__actions { justify-content: end; } }
 
 /* ---------------------------------------------------------------- cards, panels, chips: the revamp's shapes */

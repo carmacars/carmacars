@@ -171,8 +171,10 @@ select test.mk_renter('ra_i');
 select test.mk_renter('ra_n');
 select test.mk_vehicle('RAX', 'ra_o');
 select test.mk_booking('RA-I1', 'RAX', 'ra_i', '2026-01-05 10:00', '2026-01-08 10:00');
-select test.eq('instant: a verified renter with one completed rental is eligible; a first-time renter is not',
-  (app.instant_book_check(test.id('renter:ra_i')) ->> 'eligible') || '/' || (app.instant_book_check(test.id('renter:ra_n')) ->> 'reason'), 'true/0 of 1 completed rentals');
+-- r40 (2421): Instant Book is the Gold tier's perk (1,000 points earned in 12 months)
+insert into reward_ledger (renter_id, points, kind, action, source_key, reason) values (test.id('renter:ra_i'), 1000, 'earn', 'adjust', 'ra_i_gold', 'Test: Gold');
+select test.eq('instant: a verified Gold renter is eligible; a renter below Gold is not, with the points in the reason',
+  (app.instant_book_check(test.id('renter:ra_i')) ->> 'eligible') || '/' || (app.instant_book_check(test.id('renter:ra_n')) ->> 'reason'), 'true/Instant Book comes with a Rewards tier: 0 points earned in 12 months');
 select test.rq_new('raI', 'ra_i', 'RAX', test.ho_local(interval '40 days'), test.ho_local(interval '42 days'));
 create temp table ra_ib as select public.server_instant_book((select booking_number from bookings where id = test.b('raI')), test.id('ra_i')) r;
 select test.eq('instant: the request becomes an accepted offer at once: waiting for payment, marked Instant, the To do closed',
@@ -191,9 +193,10 @@ select public.door(test.id('ra_admin'), 'aal2', 'ops_do', 'instant_book_set', js
 select test.eq('instant: taken away by an Admin, with why; staff see it',
   test.ra_read('ra_cs', 'instant_book_state', jsonb_build_object('renter', test.id('renter:ra_i'))) ->> 'reason', 'Taken away by an Admin: Late returns');
 select public.door(test.id('ra_admin'), 'aal2', 'ops_do', 'instant_book_set', jsonb_build_object('renter', test.id('renter:ra_i'), 'revoke', false));
-update program_settings set instant_book_min_rentals = 2;
-select test.eq('instant: the completed rentals needed are a Program setting', app.instant_book_check(test.id('renter:ra_i')) ->> 'reason', '1 of 2 completed rentals');
-update program_settings set instant_book_min_rentals = 1, instant_book_repeat_enabled = false;
+update reward_tiers set min_points = 1000000 where code = 'gold';
+select test.eq('instant: the tier''s points are an Admin setting (Gold out of reach: not eligible)', app.instant_book_check(test.id('renter:ra_i')) ->> 'eligible', 'false');
+update reward_tiers set min_points = 1000 where code = 'gold';
+update program_settings set instant_book_repeat_enabled = false;
 select test.eq('instant: switched off in the Program settings', app.instant_book_check(test.id('renter:ra_i')) ->> 'eligible', 'false');
 update program_settings set instant_book_repeat_enabled = true;
 select test.mk_line('RA-I1', 'damage_at_cost', 45000);

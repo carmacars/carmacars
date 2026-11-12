@@ -1,5 +1,6 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { playMoment } from '@/features/motion/moment';
 import { useRouter } from 'next/navigation';
 import { useAct } from '@/features/portal/useAct';
 import { cancelRewardCode, claimGoogleReview, redeemPoints } from '@/server/actions/rewards';
@@ -63,4 +64,35 @@ export function GoogleClaim({ number }: { number: string }) {
 export function CopyLink({ url }: { url: string }) {
   const [done, setDone] = useState(false);
   return <button type="button" className="btn btn--ghost btn--sm" onClick={() => { void navigator.clipboard?.writeText(url).then(() => setDone(true)); }}>{done ? 'Copied' : 'Copy my link'}</button>;
+}
+
+/** r40 (2421): a new tier since this device last saw the page: the tier moment (ring, check, confetti) and the words for
+ *  a screen reader. The first visit on a device only notes the tier (nothing to celebrate against). */
+export function TierUpOnce({ rank, name }: { rank: number; name: string }) {
+  const done = useRef(false);
+  const [said, setSaid] = useState('');
+  useEffect(() => {
+    if (done.current) return;
+    done.current = true;
+    let before: number | null = null;
+    try { const v = localStorage.getItem('cc-tier'); before = v === null ? null : Number(v); localStorage.setItem('cc-tier', String(rank)); } catch { return; }
+    if (before === null || !(rank > before)) return;
+    playMoment('tier');
+    const t = setTimeout(() => setSaid(`You reached ${name}. Your new perks are below.`), 0);
+    return () => clearTimeout(t);
+  }, [rank, name]);
+  return <p className="vh" aria-live="polite" data-testid="rewards-tier-up">{said}</p>;
+}
+
+/** r40 (2421): Any car, any time on this device: the car page lets a Platinum renter pick dates shown as taken. Only a
+ *  hint for the page (the database checks the tier again when the request is sent); gone when the perk is. */
+export const ANY_CAR_COOKIE = 'cc-anycar';
+export function PerkHint({ anyCar, hours }: { anyCar: boolean; hours: number }) {
+  useEffect(() => {
+    try {
+      const secure = location.protocol === 'https:' ? '; secure' : '';
+      document.cookie = anyCar ? `${ANY_CAR_COOKIE}=${Math.max(1, Math.round(hours))}; path=/; max-age=${30 * 86400}; samesite=lax${secure}` : `${ANY_CAR_COOKIE}=; path=/; max-age=0; samesite=lax${secure}`;
+    } catch { /* cookies off: the car page keeps taken dates closed */ }
+  }, [anyCar, hours]);
+  return null;
 }

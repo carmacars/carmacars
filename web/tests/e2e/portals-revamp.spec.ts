@@ -73,6 +73,10 @@ test('renter portal: Trips opens on what to do now, Account has two tabs, old ad
     await expect(now).toContainText(/Return the \d{4} Mercedes-Benz GLC (today|tomorrow) at \d{1,2}:\d\d [ap]\.m\./);
     await expect(now.getByTestId('now-extend')).toHaveAttribute('href', `/account/bookings/${number}/extend`);
     await expect(now.getByTestId('now-message')).toBeVisible();
+    // r40: a return within the day: the time left on the card, the steps under it (pickup done, return now)
+    await expect(now.getByTestId('next-step-deadline')).toBeVisible();
+    await expect(page.getByTestId('step-tracker-pickup')).toHaveAttribute('data-state', 'done');
+    await expect(page.getByTestId('step-tracker-return')).toHaveAttribute('data-state', 'now');
     const box = await now.boundingBox();
     const hero = await page.locator('.pu-ph, [data-testid="booking-number"]').first().boundingBox();
     if (box && hero) expect(box.y).toBeLessThan(hero.y);

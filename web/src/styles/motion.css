@@ -296,6 +296,19 @@
   @keyframes mo-ring { 0% { opacity: .9; transform: scale(.6); } 100% { opacity: 0; transform: scale(3.2); } }
   .mo--offer .mo-mail { position: absolute; left: 50%; top: 42%; opacity: 0; animation: mo-mail 1.1s .25s var(--ease-out) forwards; }
   @keyframes mo-mail { 0% { opacity: 0; transform: translate(10px, 0); } 30% { opacity: 1; } 100% { opacity: 0; transform: translate(40vw, -30vh) rotate(-12deg); } }
+  /* r40: the car drives in under the check (confirmed); the pen draws the signature, then the check (signed);
+     the ring and the stars burst from the check (review) */
+  .mo--confirmed .mo-car { position: absolute; left: 50%; top: calc(42% + 56px); opacity: 0; filter: drop-shadow(0 6px 14px rgba(0, 0, 0, .35)); animation: mo-car 1.1s var(--ease-out) forwards; }
+  @keyframes mo-car { 0% { opacity: 0; transform: translateX(-60vw); } 45% { opacity: 1; transform: translateX(-50%); } 80% { opacity: 1; transform: translateX(-50%); } 100% { opacity: 0; transform: translateX(-50%); } }
+  .mo--signed .mo-sign { position: absolute; left: 50%; top: calc(42% + 52px); transform: translateX(-50%); filter: drop-shadow(0 4px 10px rgba(0, 0, 0, .45)); animation: mo-fade 1.1s var(--ease-out) forwards; }
+  .mo-sign__line { stroke-dasharray: 360; stroke-dashoffset: 360; animation: mo-tick .6s var(--ease-out) forwards; }
+  .mo--signed .mo-check { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%) scale(.4); opacity: 0; animation: mo-pop 1.1s .35s var(--ease-spring) forwards; }
+  .mo--signed .mo-check__tick { animation-delay: .6s; }
+  @keyframes mo-fade { 0%, 80% { opacity: 1; } 100% { opacity: 0; } }
+  .mo--review .mo-check, .mo--tier .mo-check { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%) scale(.4); opacity: 0; animation: mo-pop 1.1s var(--ease-spring) forwards; }
+  .mo--review .mo-ring, .mo--tier .mo-ring { position: absolute; left: 50%; top: 42%; width: 80px; height: 80px; margin: -40px 0 0 -40px; border-radius: 50%; border: 3px solid #D0111B; opacity: 0; animation: mo-ring 1s var(--ease-out) forwards; }
+  .mo-star { position: absolute; left: 50%; top: 42%; margin: -11px 0 0 -11px; opacity: 0; animation: mo-star 1s var(--d) var(--ease-out) forwards; }
+  @keyframes mo-star { 0% { opacity: 0; transform: rotate(var(--a)) translateY(0) scale(.4); } 30% { opacity: 1; } 100% { opacity: 0; transform: rotate(var(--a)) translateY(-120px) scale(1); } }
   .mo-toast { animation: mo-toast-in .35s var(--ease-spring); transition: opacity .25s; }
   @keyframes mo-toast-in { from { opacity: 0; transform: translateY(-10px) scale(.96); } to { opacity: 1; transform: none; } }
   .mo-toast__dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: #D0111B; animation: mo-pulse 1.2s var(--ease-out) 3; }
@@ -329,3 +342,19 @@
   .pt-ok::after { content: ""; position: absolute; left: 0; right: 0; top: -4px; height: 4px; background: var(--red-600, #D0111B); transform-origin: left; transform: scaleX(0); animation: pt-ok-rule 900ms 200ms var(--ease-out) forwards; pointer-events: none; }
   @keyframes pt-ok-rule { 0% { transform: scaleX(0); opacity: 1; } 70% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1); opacity: 0; } }
 }
+
+/* ---------- r40: the renter's Do this next card and step tracker (shared pieces: .now, .pt-steps, .ck-progress) ---------- */
+/* the stage to do now: the red ring of the portals' accent, its words bold; "your turn" under it */
+.pt-steps li.is-now { font-weight: 700; }
+.pt-steps li.is-now::before { border-color: var(--red-600, #D0111B); box-shadow: 0 0 0 3px rgb(208 17 27 / 0.18); }
+.pt-steps li small { display: block; color: var(--text-2); font-size: var(--fs-xs); font-weight: 500; }
+@media (prefers-reduced-motion: no-preference) {
+  /* a stage done since the last visit: its tick pops in after the bar has moved (ck-tick, as the checklists) */
+  .pt-steps li.is-new::before { animation: ck-tick 620ms 700ms var(--ease-spring) backwards; }
+  /* the step to do now breathes once, as on the Sign and pay page (sp-now) */
+  .pt-steps li.is-now { animation: sp-now 1400ms 300ms var(--ease-out) 1 backwards; }
+  /* something to do: the card's red top rule draws across once (as the done panel's, pt-ok-rule, but it stays) */
+  .now--urgent::after { transform-origin: left; animation: ck-fill 900ms 120ms var(--ease-out) backwards; }
+  .now__fact.is-warn .now__v { animation: sp-now 1400ms 400ms var(--ease-out) 1 backwards; }
+}
+

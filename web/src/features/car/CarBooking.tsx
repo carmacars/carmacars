@@ -46,6 +46,18 @@ export function useBlocks(vehicleId: string | null) {
   return { blocks: useMemo(() => mine?.blocks ?? [], [mine]), failed: mine?.failed ?? false };
 }
 
+/** r40 (2421): the hours Fleet takes to answer when this device's renter has Any car, any time (the cookie the account
+ *  pages set), else null. A hint only: the database checks the tier again when the request is sent. */
+function useAnyCar(): number | null {
+  const [h, setH] = useState<number | null>(null);
+  useEffect(() => {
+    const v = Number(document.cookie.split('; ').find((c) => c.startsWith('cc-anycar='))?.split('=')[1] ?? '');
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (Number.isFinite(v) && v >= 1 && v <= 72) setH(v);
+  }, []);
+  return h;
+}
+
 /** Today in Toronto, again when the tab comes back after midnight (2026-11-06: a car page left open overnight kept
  *  yesterday as its first day, and its calendar the month before). */
 export function useToday() {
@@ -72,6 +84,9 @@ export function CarBooking(p: CarBookingProps) {
   const [collect, setCollect] = useState(!!sp.get('collect'));
   const [age, setAge] = useState<AgeBand>(() => { const a = sp.get('age') as AgeBand | null; return a && a in AGE_BANDS ? a : '26_plus'; });
   const [clashNote, setClashNote] = useState('');
+  // r40 (2421): a Platinum renter's Any car, any time: taken dates may be picked; the request goes to Fleet first
+  const anyCarHours = useAnyCar();
+  const open = anyCarHours !== null;
   // 0066: add-ons chosen here are priced live and carried to the request (?addons=code:count:hours)
   const [addons, setAddons] = useState<AddonChoice[]>(() => (sp.get('addons') ?? '').split(',').map((x) => x.split(':'))
     .filter(([c]) => /^[a-z0-9_]{2,40}$/.test(c ?? '')).map(([c, n, h]) => ({ code: c!, quantity: Math.min(Math.max(Number(n) || 1, 1), 20), hours: h ? Number(h) || null : null })));
@@ -84,7 +99,7 @@ export function CarBooking(p: CarBookingProps) {
 
   // dates carried from the fleet that this car cannot do are cleared, with a note
   useEffect(() => {
-    if (checked.current || !blocks.length || !from || !to) return;
+    if (checked.current || open || !blocks.length || !from || !to) return;
     checked.current = true;
     if (clash(from, tf, to, tt, blocks)) {
       // the calendar arrived after the page: the carried dates are taken, so clear them once
@@ -92,7 +107,7 @@ export function CarBooking(p: CarBookingProps) {
       setClashNote(`This car is booked for part of ${shortDate(from)} to ${shortDate(to)}. Pick other dates below, or look at similar cars.`);
       setFrom(''); setTo('');
     }
-  }, [blocks, from, to, tf, tt]);
+  }, [blocks, from, to, tf, tt, open]);
 
   const ready = !!(from && to);
   const options = useMemo(() => ({
@@ -102,7 +117,7 @@ export function CarBooking(p: CarBookingProps) {
   }), [deliver, collect, age, addons]);
   const { options: addonOptions } = useAddonOptions(p.vehicleId, ready ? from : undefined, ready ? to : undefined, tf, tt);
   const { q, error, loading } = useQuote(ready ? { vehicleId: p.vehicleId, from, to, tf, tt, options } : null);
-  const problem = ready ? timeProblem({ name: p.name, from, tf, to, tt, blocks, todayIso: today, nowMinutes: torontoMinutesNow(), noticeMinutes: p.noticeMinutes, noticeText: p.tokens.notice, turnaroundText: p.tokens.turnaround }) : '';
+  const problem = ready ? timeProblem({ name: p.name, from, tf, to, tt, blocks: open ? NO_BLOCKS : blocks, todayIso: today, nowMinutes: torontoMinutesNow(), noticeMinutes: p.noticeMinutes, noticeText: p.tokens.notice, turnaroundText: p.tokens.turnaround }) : '';
 
   const query = new URLSearchParams();
   if (ready) { query.set('from', from); query.set('to', to); query.set('tf', tf); query.set('tt', tt); }
@@ -121,6 +136,7 @@ export function CarBooking(p: CarBookingProps) {
   return (
     <section className="car-sec" aria-labelledby="h-dates">
       <h2 className="d2" id="h-dates">Dates and price</h2>
+      {open && <p className="alert alert--ok" data-testid="any-car-note"><span className="alert__title">Any car, any time</span><span>Your tier lets you request this car on any dates, even ones it shows as taken. We will open it up for you and answer within {anyCarHours} {anyCarHours === 1 ? 'hour' : 'hours'}.{ready && clash(from, tf, to, tt, blocks) ? ' These dates are taken now: your request goes to our Fleet team first.' : ''}</span></p>}
       {clashNote && <p className="alert alert--warn"><span className="alert__title">Those dates are taken</span><span>{clashNote}</span></p>}
       {failed && <p className="alert alert--warn"><span className="alert__title">Live availability is not loading</span><span>You can still send a request and we will confirm.</span></p>}
       <div className="booking">
@@ -128,7 +144,7 @@ export function CarBooking(p: CarBookingProps) {
           <p className="small booking__full" data-testid="full-availability">{gated
             ? <button type="button" className="link" onClick={() => void ask('dates', () => undefined)} data-testid="see-full-availability">See full availability</button>
             : <span className="muted">Days already booked are crossed out.</span>}</p>
-          <Calendar months={1} min={today} today={today} maxDays={p.maxDays} blocks={gated ? NO_BLOCKS : blocks} from={from} to={to}
+          <Calendar months={1} min={today} today={today} maxDays={p.maxDays} blocks={gated || open ? NO_BLOCKS : blocks} from={from} to={to}
             onChange={(v) => { setFrom(v.from); setTo(v.to); if (v.to) setClashNote(''); }} />
           <div className="field-row booking__times">
             <TimeSelect id="car-tf" label="Pickup time" value={tf} onChange={setTf} />

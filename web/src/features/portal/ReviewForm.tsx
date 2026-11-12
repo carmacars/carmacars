@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { submitReview } from '@/server/actions/portal';
 import { useAct } from './useAct';
+import { playMoment } from '@/features/motion/moment';
 
 // The renter's review of a closed booking: stars as radio buttons (keyboard and screen reader friendly),
 // an optional title and text, and the consent to show it on the site. Staff publish it after a read.
@@ -19,7 +20,7 @@ export function ReviewForm({ number, googleUrl }: { number: string; googleUrl: s
     </div>
   );
   return (
-    <form className="stack" noValidate onSubmit={(e) => { e.preventDefault(); a.run(() => submitReview(number, { rating, title, body, consent })); }} data-testid="review-form">
+    <form className="stack" noValidate onSubmit={(e) => { e.preventDefault(); a.run(() => submitReview(number, { rating, title, body, consent }), (r) => { if (r.ok) playMoment('review'); }); }} data-testid="review-form">
       <fieldset className={`field${a.err('rating') ? ' has-error' : ''}`} style={{ border: 0, padding: 0, margin: 0 }}>
         <legend className="label">Your rating</legend>
         <div className="pt-stars" role="radiogroup" aria-describedby="pt-rating-err">

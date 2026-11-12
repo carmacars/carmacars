@@ -2,26 +2,27 @@ import Link from '@/components/Link';
 import { incidentHref } from '@/features/incident-cards/digital';
 import { pageMeta } from '@/features/seo/meta';
 import { getFleet, getSettings } from '@/lib/site';
-import { group, nextStep, bookingPath } from '@/features/portal/status';
-import { currentUser, findBooking, myBookings, myTripPhotos, requireUser } from '@/server/portal/data';
+import { group, nextStep, bookingPath, progress } from '@/features/portal/status';
+import { currentUser, findBooking, myBookings, myTripPhotos, requireUser, reviewState } from '@/server/portal/data';
 import { redirect } from 'next/navigation';
 import { pendingToken } from '@/server/capture';
 import { rpc } from '@/lib/db/repo';
 import { when } from '@/features/agreement/model';
 import { LinkedNotice } from '@/features/portal/LinkedNotice';
 import { More, PageHeader } from '@/features/portal/Chrome';
-import { MyCodes, type MyCode } from '@/features/portal/MyCodes';
+import { MyDiscounts } from '@/features/rewards/MyDiscounts';
+import type { SavedDiscount } from '@/features/rewards/discounts';
 import { PastTripCard, TripCard, TripHero, carTitle, ourAddress, tripPhoto } from '@/features/portal/trip';
 import { placeText } from '@/features/portal/Blocks';
-import { renterNow } from '@/features/portal/now';
-import { NowPanel } from '@/features/portal-nav/NowPanel';
-import { EmptyState, PortalIcon } from '@/components/portal-ui';
+import { nextAction, stageSummary, stages, todos } from '@/features/portal/next-action';
+import { NextActionPanel } from '@/features/portal/NextActionPanel';
+import { StepTracker } from '@/features/portal/StepTracker';
+import { EmptyState, PortalCard, PortalIcon } from '@/components/portal-ui';
 import { licenceState, renterMissing } from '@/features/portal/LicenceNotice';
 import { quickLinks } from '@/features/portal/quick-links';
-import { QuickLinks } from '@/features/portal/QuickLinks';
 import { SignPayCard } from '@/features/portal/SignPayCard';
-import { StillNeeded } from '@/features/portal/StillNeeded';
-import { showNeeds, stillNeededOf } from '@/features/portal/still-needed';
+import { stillNeededOf } from '@/features/portal/still-needed';
+import { PerkHint } from '@/features/rewards/RewardsClient';
 
 type Links = { verified: boolean; new: Array<{ kind: string; detail: string | null; booking_number: string | null }>; driver_trips: Array<{ booking_number: string; status: string; pickup_at: string; return_at: string; vehicle_name: string; accepted: boolean }> };
 
@@ -39,8 +40,10 @@ export default async function Account({ searchParams }: { searchParams: Promise<
     // earlier requests attached when the address was confirmed, and trips as an additional driver (migration 0040)
     rpc('server_my_account_links', { p_user: user.id }, { role: 'service_role' }).then((x) => x as unknown as Links).catch(() => null),
     myTripPhotos(user), getSettings().catch(() => null),
-    // the codes issued to this renter, with their end dates (migration 0161)
-    rpc('server_my_promo_codes', { p_user: user.id }, { role: 'service_role' }).then((x) => x as unknown as MyCode[]).catch(() => [] as MyCode[])]);
+    // r40 (2423): every discount code the renter holds (points, tier, free day, referral, our team's), with its status
+    rpc('server_my_discounts' as never, { p_user: user.id } as never, { role: 'service_role' }).then((x) => x as unknown as SavedDiscount[]).catch(() => [] as SavedDiscount[])]);
+  // r40 (2421): Platinum's Any car, any time, remembered on this device for the car page
+  const anyCar = (await rpc('my_any_car' as never, {} as never, { role: 'authenticated', userId: user.id }).catch(() => null)) as unknown as { any_car?: boolean; hours?: number } | null;
   const cover = (slug: string | null) => fleet.find((c) => c.slug === slug)?.cover ?? null;
   const photo = (b: (typeof list)[number]) => tripPhoto(photos, b, cover(b.slug));
   const { current, upcoming, past, nearest } = group(list);
@@ -53,11 +56,20 @@ export default async function Account({ searchParams }: { searchParams: Promise<
   const lic = full && ['requested', 'offered', 'pending_payment', 'confirmed', 'on_rent'].includes(full.status) ? await licenceState(full.id, user.id) : null;
   const quick = full ? quickLinks({ ...full, missing: full.readiness?.missing ?? null }, (renterMissing(lic)?.length ?? 0) > 0) : [];
   const addr = ourAddress(settings);
-  const now = full && step ? renterNow(full, step, { pickupPlace: placeText(full.pickup_place ?? addr, full.pickup_method, true), returnPlace: placeText(full.return_place ?? addr, full.return_method, false), balanceCents: balance }) : null;
+  // r40: no trip ahead: the latest complete rental not reviewed yet asks for its review
+  const lastClosed = !full ? past.find((b) => b.status === 'closed' && b.booking_type !== 'owner') ?? null : null;
+  const reviewDue = lastClosed ? await reviewState(user, lastClosed.id).then((r) => !r.review && !!r.can_review).catch(() => false) : false;
+  const target = full ?? (reviewDue ? lastClosed : null);
+  const tStep = full ? step : target ? nextStep(target) : null;
+  // r40 "Do this next": the one action for the nearest trip, from its next step, what is still needed and the balance
+  const now = target && tStep ? nextAction(target, tStep, { pickupPlace: placeText(target.pickup_place ?? addr, target.pickup_method, true), returnPlace: placeText(target.return_place ?? addr, target.return_method, false),
+    balanceCents: balance, needs: stillNeededOf(target), reviewDue }) : null;
+  const track = full ? stages(progress(full), full.status) : null;
   const phone = settings?.phone_display ?? settings?.phone ?? null;
   const others = [...current, ...upcoming].filter((b) => b.id !== nearest?.id);
   return (
     <>
+      {anyCar && <PerkHint anyCar={!!anyCar.any_car} hours={anyCar.hours ?? 4} />}
       {sp.welcome && <p className="alert alert--ok" role="status"><span className="alert__title">Account created</span><span>You are signed in.</span></p>}
       {sp.password && <p className="alert alert--ok" role="status"><span className="alert__title">Password saved</span><span>You are signed in with your new password.</span></p>}
       {links && links.new.length > 0 && <LinkedNotice bookings={links.new.filter((l) => l.kind === 'booking').map((l) => l.booking_number ?? '')} drivers={links.new.filter((l) => l.kind === 'driver').length} />}
@@ -69,15 +81,16 @@ export default async function Account({ searchParams }: { searchParams: Promise<
         </EmptyState>
       ) : (
         <div className="pu-home">
-          {/* 1203: what each request and booking still needs from the renter, first, while anything is not done */}
-          {[...current, ...upcoming].map((b) => { const n = stillNeededOf(b); return showNeeds(n) ? <StillNeeded key={`sn-${b.id}`} number={b.booking_number} needs={n} carLabel={`${carTitle(b)}, ${b.booking_number}`} testId={`still-needed-${b.booking_number}`} /> : null; })}
-          {now && <NowPanel testId="next-step" titleId="now-renter" kicker={now.kicker} headline={now.headline} detail={now.detail} urgent={now.urgent} actions={now.actions}
-            extra={<>{phone && ['confirmed', 'on_rent'].includes(full!.status) ? <a className="btn now__btn" href={`tel:${settings?.phone ?? phone}`} data-testid="now-call">Call us</a> : null}
+          {now && <NextActionPanel a={now} testId="next-step" titleId="now-renter"
+            extra={<>{phone && full && ['confirmed', 'on_rent'].includes(full.status) ? <a className="btn now__btn" href={`tel:${settings?.phone ?? phone}`} data-testid="now-call">Call us</a> : null}
               {/* 1150: the digital incident card of the trip in progress */}
-              {full!.status === 'on_rent' ? <Link prefetch={false} className="btn now__btn" href={incidentHref(full!.booking_number)} data-testid="now-incident-card">Incident card</Link> : null}</>} />}
-          {/* r33: every other trip still to sign or pay, one card each (the nearest one's is the panel above) */}
-          {others.map((b) => <SignPayCard key={`sp-${b.id}`} b={b} testId={`sign-pay-${b.booking_number}`} label={`${carTitle(b)}, ${b.booking_number}`} />)}
-          {full && <QuickLinks number={full.booking_number} links={quick} />}
+              {full?.status === 'on_rent' ? <Link prefetch={false} className="btn now__btn" href={incidentHref(full.booking_number)} data-testid="now-incident-card">Incident card</Link> : null}</>} />}
+          {/* r40: one place for the to-dos: the stages, then what is still needed (1203) and the quick links (r32), one small button each */}
+          {full && track && ['requested', 'offered', 'pending_payment', 'confirmed', 'on_rent'].includes(full.status) && (
+            <PortalCard id="pt-track" title={stageSummary(track).text} testId="trip-steps"><StepTracker number={full.booking_number} stages={track} todos={todos(full.booking_number, stillNeededOf(full), quick)} /></PortalCard>
+          )}
+          {/* r33: every other trip still to sign or pay, one card each (the nearest one's is the card above) */}
+          {others.map((b) => <SignPayCard key={`sp-${b.id}`} quiet b={b} testId={`sign-pay-${b.booking_number}`} label={`${carTitle(b)}, ${b.booking_number}`} />)}
           {full && <TripHero b={full} photo={photo(full)} titleAs="h2" settings={settings} href={bookingPath(full.booking_number)} />}
           {others.length > 0 && (
             <section className="stack" aria-labelledby="pt-more-trips">
@@ -97,7 +110,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
           ))}
         </div>
       )}
-      <MyCodes codes={codes} />
+      <MyDiscounts list={codes} compact />
       {links && links.driver_trips.length > 0 && (
         <section className="stack" aria-labelledby="pt-driver-trips" data-testid="driver-trips">
           <h2 className="pu-section-title" id="pt-driver-trips">Trips where you are a driver</h2>
