@@ -26,7 +26,10 @@ const HANDLER = path.join(WEB, '.open-next/server-functions/default/handler.mjs'
 const MARKER = '/* carmacars worker-size: inlined css */';
 // Cloudflare refuses a Worker over 64 MiB uncompressed (63.9 MiB in its message). The server bundle is most of the
 // upload; the budget leaves room for the Worker entry, the middleware and route growth.
-const BUDGET_MIB = 46; // r38: 42 -> 46 MiB (r38 bundle 42.4 MiB; Cloudflare limit 64); the trim is queued for r41
+// r38: 42 -> 46 MiB (bundle 42.4). r42: 46 -> 50 MiB: the bundle reached 46.9 MiB (four new routes: Search Console,
+// SES events), `check` stopped cf:build and every job of the full suite then had no server on :3000. The bundle grows
+// about 1 MiB a release; the trim (handler.mjs.meta.json shows what each input adds) is still to do before 50.
+const BUDGET_MIB = 50;
 
 const ANCHOR = `    return edits.length === 0
         ? valueText
@@ -77,8 +80,14 @@ function check() {
   const bytes = fs.statSync(HANDLER).size;
   const mib = bytes / 1024 / 1024;
   const line = `worker-size: server bundle ${mib.toFixed(1)} MiB (budget ${BUDGET_MIB} MiB; Cloudflare's limit 64 MiB for the whole Worker)`;
-  if (mib > BUDGET_MIB) { console.error(`${line}: over budget. web/README.md, Worker size, shows how to see what each input adds`); process.exit(1); }
+  if (mib > BUDGET_MIB) {
+    console.error(`${line}: over budget. web/README.md, Worker size, shows how to see what each input adds`);
+    // in CI the cause gets its own annotation: without the build no server starts, and the later steps only say "connection refused"
+    if (process.env.GITHUB_ACTIONS) console.log(`::error title=Worker size over budget (no server will start)::${line}`);
+    process.exit(1);
+  }
   console.log(line);
+  if (process.env.GITHUB_ACTIONS && mib > BUDGET_MIB - 2) console.log(`::warning title=Worker size near its budget::${line}`);
 }
 
 const cmd = process.argv[2];

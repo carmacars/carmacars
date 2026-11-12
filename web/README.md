@@ -257,7 +257,7 @@ reference manifest carries the full text of the stylesheets its layouts use, and
 the Worker: release 4 came to 131 MiB, almost all of it the same 15 stylesheets repeated about 2,600 times.
 `scripts/worker-size.mjs patch` (part of `npm run cf:build`, which CI runs) adds a step to OpenNext's load-manifest
 plugin so each stylesheet text is written once and shared by every page (19 MiB); `check` stops the build when the
-server bundle is over 40 MiB. The patch stops the build if an OpenNext upgrade changes that plugin.
+server bundle is over its budget (50 MiB since release 42; a warning in CI from 48). The patch stops the build if an OpenNext upgrade changes that plugin.
 
 To measure: `npm run cf:build`, then
 `npx wrangler deploy --dry-run --outdir /tmp/w` prints `Total Upload: ... / gzip: ...`;
