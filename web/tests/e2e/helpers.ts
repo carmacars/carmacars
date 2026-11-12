@@ -348,7 +348,7 @@ export async function chooseCardCoverage(page: import('@playwright/test').Page) 
   if (slug) {
     const sql = db();
     try {
-      await sql`update vehicles set estimated_value_cents = 2500000 where slug = ${decodeURIComponent(slug)} and estimated_value_cents is null and black_book_value_cents is null`;
+      await sql`update vehicles v set estimated_value_cents = 2500000 from vehicle_listings l where l.vehicle_id = v.id and l.slug = ${decodeURIComponent(slug)} and v.estimated_value_cents is null and v.black_book_value_cents is null`;
     } finally { await sql.end(); }
   }
   await page.locator('label.option', { hasText: 'Option 2' }).click();
