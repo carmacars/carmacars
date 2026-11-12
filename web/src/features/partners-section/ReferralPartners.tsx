@@ -19,10 +19,10 @@ export async function ReferralPartnersView({ userId, base, sp, read }: { userId:
   const user = { id: userId };
   const tab = sp.tab ?? 'partners';
   const root = `${base}/referral-partners`;
-  const list = await read<{ today: string; settings: { flat_cents: number; percent_bps: number }; partners: Partner[]; waiting: number }>('referral_partners');
+  const list = await read<{ today: string; settings: { flat_cents: number; percent_bps: number; sales_staff?: Array<[string, string]> }; partners: Partner[]; waiting: number }>('referral_partners');
   const tabs = <Tabs current={`${root}?tab=${tab}`} items={[[`${root}?tab=partners`, 'Partners', list.waiting], [`${root}?tab=ledger`, 'Kickbacks'], [`${root}?tab=payments`, 'Payments made'], [`${root}?tab=invoices`, 'Invoices']]} />;
   const head = <PageHead title="Referral partners" kicker={`${list.partners.filter((p) => p.status === 'active').length} active`} purpose="Body shops and tow trucks that send renters. A partner earns when the rental is completed and paid in full; you approve it and record the payment.">
-    <Act action="referral_partner_save" label="Add a partner" variant="primary" testId="rp-add" go={`${root}/{id}`} fields={PARTNER_FIELDS({}, { flat_cents: list.settings.flat_cents, percent_bps: list.settings.percent_bps })} /></PageHead>;
+    <Act action="referral_partner_save" label="Add a partner" variant="primary" testId="rp-add" go={`${root}/{id}`} fields={PARTNER_FIELDS({}, list.settings)} /></PageHead>;
   // 0547: invoices to partners for their kickback on claim, towing or storage money, and the money they send
   if (tab === 'invoices') return (<>{head}{tabs}<PartnerInvoices userId={user.id} base={`${root}?tab=invoices`} sp={sp} /></>);
   if (tab === 'payments') {

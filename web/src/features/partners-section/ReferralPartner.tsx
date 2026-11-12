@@ -20,7 +20,7 @@ export async function ReferralPartnerView({ base, id, read }: { base: '/admin' |
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const [r, list] = await Promise.all([
     read<{ partner: Partner; today: string; earnings: Earning[]; payouts: R[] } | null>('referral_partner', { id }).catch(() => null),
-    read<{ settings: { flat_cents: number; percent_bps: number } }>('referral_partners')]);
+    read<{ settings: { flat_cents: number; percent_bps: number; sales_staff?: Array<[string, string]> } }>('referral_partners')]);
   if (!r) notFound();
   const p = r.partner;
   const refresh = [`${base}/referral-partners/${id}`, `${base}/referral-partners`];
