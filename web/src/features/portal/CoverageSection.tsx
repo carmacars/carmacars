@@ -9,6 +9,7 @@ import type { CardRow } from '@/features/coverage/cards';
 import { CardPicker } from '@/features/coverage/CardPicker';
 import { TypedInput } from '@/components/DateInput';
 import { money } from '@/lib/format';
+import { when } from '@/features/agreement/model';
 
 // Coverage for damage to the car (migration 0071), on the booking's verification page:
 //   option 1, OPCF 27: insurer, policy number, expiry after the return date, then the pink slip and the OPCF 27
@@ -20,7 +21,8 @@ import { money } from '@/lib/format';
 const OPCF_PAGES: Array<[string, string, string]> = [
   ['pink_slip', 'Pink slip', 'Your liability insurance card (the pink slip), with the policy number and dates.'],
   ['endorsement', 'OPCF 27 endorsement page', 'The page of your policy that lists the OPCF 27 endorsement (Liability for Damage to Non-Owned Automobiles).']];
-const fmtDay = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+// r40: the same words on the server and in the browser (React error 418)
+const fmtDay = (d: string) => when(`${d.slice(0, 10)}T12:00:00Z`, false);
 
 export function CoverageSection({ number, c, cards = [] }: { number: string; c: RenterCoverage; cards?: CardRow[] }) {
   const router = useRouter();

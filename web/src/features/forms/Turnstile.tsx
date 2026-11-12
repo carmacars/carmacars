@@ -2,6 +2,7 @@
 import { useEffect, useRef } from 'react';
 import Script from 'next/script';
 import { publicEnv } from '@/lib/public-env';
+import { turnstileRetry } from './turnstile-retry';
 
 // Cloudflare Turnstile, invisible unless Cloudflare asks for a challenge. It writes its token to a
 // hidden input named cf-turnstile-response inside the form. The script loads only on pages with a
@@ -13,16 +14,32 @@ import { publicEnv } from '@/lib/public-env';
 // was never rendered and never gave a token ("security check did not load", Oct 21).
 export const FAKE_TOKEN = 'XXXX.DUMMY.TOKEN.XXXX';
 
-type RenderApi = { render: (el: Element, o: Record<string, unknown>) => string | undefined; remove?: (id: string) => void };
+type RenderApi = { render: (el: Element, o: Record<string, unknown>) => string | undefined; remove?: (id: string) => void; reset?: (el?: Element | string) => void };
+
 
 function renderBox(box: HTMLElement | null, action: string): string | undefined {
   const api = (window as unknown as { turnstile?: RenderApi }).turnstile;
   if (!api || !box || box.dataset.rendered === '1') return undefined;
   box.dataset.rendered = '1';
+  let tries = 0;
+  let id: string | undefined;
+  const again = () => { try { api.reset?.(id ?? box); } catch { /* removed meanwhile */ } };
   try {
-    return api.render(box, { sitekey: publicEnv.turnstileSiteKey, action, size: 'flexible', appearance: 'interaction-only' });
+    id = api.render(box, { sitekey: publicEnv.turnstileSiteKey, action, size: 'flexible', appearance: 'interaction-only', retry: 'auto', 'refresh-expired': 'auto',
+      // handled here (a truthy return), so Turnstile does not throw into the page; the form says so when it is sent
+      'error-callback': (code: unknown) => {
+        box.dataset.error = String(code ?? 'error');
+        if (turnstileRetry(code, tries)) { tries += 1; setTimeout(again, 1500 * tries); }
+        return true;
+      },
+      callback: () => { tries = 0; delete box.dataset.error; },
+      'expired-callback': again, 'timeout-callback': again });
+    return id;
   } catch { box.dataset.rendered = ''; return undefined; }
 }
+
+/** What the person is told when the security check gave no token. */
+export const TURNSTILE_FAILED = 'The security check did not load. Check your connection, turn off any content blocker for this page, then press Send again.';
 
 export function Turnstile({ action }: { action: string }) {
   const box = useRef<HTMLDivElement>(null);

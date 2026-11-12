@@ -2,7 +2,14 @@
 //   npm run test:unit
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { activeTab, cardSteps, cardTitle, fieldTabs, isLate, jobsText, nextStep, sinShown, toCents, validSin, type Card } from './model.ts';
+import { activeTab, cardSteps, cardTitle, fieldTabs, isLate, jobsText, nextStep, safeToday, sinShown, toCents, validSin, type Card } from './model.ts';
+
+test('safeToday: a failed or partial read of Today still renders (r40, React error 441)', () => {
+  const a = safeToday(null, '2026-11-12');
+  assert.equal(a.failed, true); assert.equal(a.day, '2026-11-12'); assert.deepEqual(a.cards, []); assert.deepEqual(a.counts, { must: 0, done: 0 });
+  const b = safeToday({ day: '2026-11-13', cards: null as never, counts: undefined as never }, '2026-11-12');
+  assert.equal(b.failed, false); assert.equal(b.day, '2026-11-13'); assert.deepEqual(b.cards, []); assert.deepEqual(b.todo, []); assert.deepEqual(b.mates, []);
+});
 
 const car = { id: 'v', name: '2024 Example Sedan', plate: 'ABCD 123' };
 const pickup = (x: Partial<Card> = {}): Card => ({ type: 'job', key: 'job:1', must: true, done: false, kind: 'handover', leg: 'pickup', status: 'acknowledged', vehicle: car,

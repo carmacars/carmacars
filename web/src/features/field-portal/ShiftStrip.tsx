@@ -28,7 +28,8 @@ export function ShiftStrip({ t, open }: { t: Today; open: OpenMust[] }) {
     setMsg(null);
     if (what === 'out' && open.length > 0 && !closing) { setClosing(true); return; }
     const loc = await here();
-    const r = await fieldClock(what, null, loc, why, what === 'out' && open.length ? reasons : null);
+    let r: Awaited<ReturnType<typeof fieldClock>>;
+    try { r = await fieldClock(what, null, loc, why, what === 'out' && open.length ? reasons : null); } catch { setMsg('No connection. Nothing was saved: try again when you have signal.'); return; }
     if (!r.ok) { setMsg(r.message); if (/location is needed|clocking here/i.test(r.message)) setAskWhy(true); return; }
     setWhy(''); setAskWhy(false); setClosing(false); setReasons({});
     router.refresh();

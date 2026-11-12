@@ -19,7 +19,7 @@ export const viewport: Viewport = { themeColor: '#000000' };
 // frame around them gives the menu, the guide and Sign out. Every page checks field work itself (requireStaff).
 // r35 part X: the four tabs at the thumb (Today, My shifts, My pay, Training; Sales for a person who opted in).
 export default async function FieldLayout({ children }: { children: React.ReactNode }) {
-  const user = await currentUser();
+  const user = await currentUser().catch(() => null);
   const roles = user ? await rolesOf(user.id).catch(() => null) : null;
   return <div className="fd fd--in-staff"><div className="fd__frame">{children}</div>{roles?.field ? <FieldTabs salesOptIn={!!roles.sales_opt_in} /> : null}</div>;
 }

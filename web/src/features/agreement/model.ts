@@ -3,6 +3,7 @@
 // is what the PDF holds. Text markup inside blocks: **bold** only.
 // Relative imports with their extension: the unit tests render these documents in Node directly (render.test.ts).
 import { companyParty, money, phone } from '../../lib/format.ts';
+import { clockTo, torontoAt } from '../../lib/clock.ts';
 import { AGREEMENT_CLOSING, AGREEMENT_PARTS, AGREEMENT_TEMPLATE_VERSION } from './source.generated.ts';
 import { carName, depositText, fuelLabel, km, paidText, stageLines, sum, unreturnedText, type AgreementExtra, type VersionHeader } from './extra.ts';
 import { shortWording, wordedPart, wordingNotice, type Wording } from './wording.ts';
@@ -48,15 +49,16 @@ export interface AgreementFacts {
   period?: { seq: number; of: number; starts_at: string; ends_at: string; days: number; amount_cents: number } | null;
 }
 
-const TZ = 'America/Toronto';
+const W_DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const W_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+/** "Thu, Nov 12, 2026, 3:05 p.m." in Toronto time. r40: only Intl's numbers are used (lib/clock.ts), the words are ours, so
+ *  the server and every browser write the same text (Intl's words change with the ICU version: React error 418 on bookings). */
 export function when(iso: string | null | undefined, withTime = true): string {
   if (!iso) return '';
-  const d = new Date(iso);
-  const date = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }).format(d);
-  if (!withTime) return date;
-  const time = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, hour: 'numeric', minute: '2-digit', hour12: true }).format(d)
-    .replace(/\s?a\.?m\.?/i, ' a.m.').replace(/\s?p\.?m\.?/i, ' p.m.');
-  return `${date}, ${time}`;
+  const p = torontoAt(iso);
+  if (!p) return '';
+  const date = `${W_DAY[p.weekday]}, ${W_MON[p.month - 1]} ${p.day}, ${p.year}`;
+  return withTime ? `${date}, ${clockTo(iso)}` : date;
 }
 const day = (iso: string | null | undefined) => (iso ? when(`${iso.slice(0, 10)}T12:00:00Z`, false) : '');
 const LATER = 'To be given before pickup';

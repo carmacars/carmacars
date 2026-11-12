@@ -23,6 +23,17 @@ export interface Today {
   /** r35 (1051): the jobs on the person's shift that day held by someone else on it (either may take one) */
   mates?: Mate[];
 }
+/** r40: Today as the page can always render it. A failed or partial read of field_read today gave an uncaught error in the
+ *  page's server render, which reached the phone as React error 441 after every action (the actions revalidate /staff/field). */
+export function safeToday(t: Partial<Today> | null | undefined, day: string): Today & { failed: boolean } {
+  const ok = !!t && typeof t === 'object';
+  const x = (ok ? t : {}) as Partial<Today>;
+  return {
+    day: typeof x.day === 'string' && x.day ? x.day : day, on_shift: !!x.on_shift, shift: x.shift ?? null, clock: x.clock ?? null,
+    cards: Array.isArray(x.cards) ? x.cards.filter((c) => !!c && !!c.vehicle) : [], todo: Array.isArray(x.todo) ? x.todo : [],
+    counts: { must: Number(x.counts?.must) || 0, done: Number(x.counts?.done) || 0 }, mates: Array.isArray(x.mates) ? x.mates : [], failed: !ok
+  };
+}
 export interface Mate { id: string; kind: string; leg: 'pickup' | 'return' | null; at: string; status: string; place: string | null; vehicle: string; booking: string | null; who: string | null }
 /** r35 (1051): the jobs of a shift by kind (the database's fx_slot_jobs). */
 export interface ShiftJobs { pickups: number; returns: number; cleans: number; other: number; total: number }
