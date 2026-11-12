@@ -66,8 +66,8 @@ insert into vehicle_listings (vehicle_id, slug, status, published_at, seats, tra
   (test.id('vehicle:zm_sample'), 'zm-sample-car', 'published', now(), 5, 'automatic');
 -- a Thursday at 11:00, Toronto time: the weekly email's day and hour, inside the marketing hours
 create function pg_temp.at(p text) returns timestamptz language sql as $$ select (p::timestamp) at time zone 'America/Toronto' $$;
-update program_settings set marketing_weekly_dow = extract(isodow from pg_temp.at('2026-11-19 11:00'))::smallint, marketing_weekly_hour = 10;
-select app.job_marketing(pg_temp.at('2026-11-19 11:00'));
+update program_settings set marketing_weekly_dow = extract(isodow from pg_temp.at('2031-01-16 11:00'))::smallint, marketing_weekly_hour = 10;
+select app.job_marketing(pg_temp.at('2031-01-16 11:00'));
 select test.eq('new car: one campaign for the car', (select count(*) from marketing_campaigns where vehicle_id = test.id('vehicle:zm_car')), 1::bigint);
 select test.eq('new car: never for a sample car', (select count(*) from marketing_campaigns where vehicle_id = test.id('vehicle:zm_sample')), 0::bigint);
 select test.eq('new car: the renter, the lead and the unfinished form are on it',
@@ -75,13 +75,13 @@ select test.eq('new car: the renter, the lead and the unfinished form are on it'
     where m.vehicle_id = test.id('vehicle:zm_car') and s.email in ('zm_cap@example.test', 'zm_lead@example.test', 'zm_r@example.test')), 3::bigint);
 select test.eq('new car: its email names the car and links to it',
   (select payload ->> 'car_url' from marketing_campaigns where vehicle_id = test.id('vehicle:zm_car')), 'https://carmacars.ca/cars/zm-test-car');
-select test.eq('weekly: one campaign for the week', (select count(*) from marketing_campaigns where kind = 'weekly' and week_of = date '2026-11-16'), 1::bigint);
+select test.eq('weekly: one campaign for the week', (select count(*) from marketing_campaigns where kind = 'weekly' and week_of = date '2031-01-13'), 1::bigint);
 select test.ok('weekly: the cars come from the live listings',
   (select payload -> 'cars' @> jsonb_build_array(jsonb_build_object('url', 'https://carmacars.ca/cars/zm-test-car')) or jsonb_array_length(payload -> 'cars') = 6
-     from marketing_campaigns where kind = 'weekly' and week_of = date '2026-11-16'));
+     from marketing_campaigns where kind = 'weekly' and week_of = date '2031-01-13'));
 select test.ok('weekly: never a sample car',
   not (select payload -> 'cars' @> jsonb_build_array(jsonb_build_object('url', 'https://carmacars.ca/cars/zm-sample-car'))
-         from marketing_campaigns where kind = 'weekly' and week_of = date '2026-11-16'));
+         from marketing_campaigns where kind = 'weekly' and week_of = date '2031-01-13'));
 
 -- the test's own people go next (everyone else in the shared test database is set aside)
 update marketing_campaign_sends set status = 'skipped', reason = 'test' where status = 'waiting'
@@ -91,22 +91,22 @@ update marketing_campaign_sends set status = 'skipped', reason = 'test' where st
 -- the cars the earlier suites listed have their own new-car campaigns to the same people: set aside too
 update marketing_campaign_sends s set status = 'skipped', reason = 'test' from marketing_campaigns m
  where m.id = s.campaign_id and s.status = 'waiting' and m.kind = 'new_vehicle' and m.vehicle_id is distinct from test.id('vehicle:zm_car');
-select app.job_marketing(pg_temp.at('2026-11-19 13:00'));
+select app.job_marketing(pg_temp.at('2031-01-16 13:00'));
 select test.eq('queue: each of them gets the new car email first',
   (select count(*) from marketing_campaign_sends s join marketing_campaigns m on m.id = s.campaign_id
     where m.vehicle_id = test.id('vehicle:zm_car') and s.status = 'queued' and s.event_id is not null
       and s.email in ('zm_cap@example.test', 'zm_lead@example.test', 'zm_r@example.test')), 3::bigint);
 select test.eq('queue: at most one campaign email a person a day (the weekly email waits for tomorrow)',
   (select s.status from marketing_campaign_sends s join marketing_campaigns m on m.id = s.campaign_id
-    where m.kind = 'weekly' and m.week_of = date '2026-11-16' and s.email = 'zm_r@example.test'), 'waiting');
-select app.process_events(null, pg_temp.at('2026-11-19 13:01'));
+    where m.kind = 'weekly' and m.week_of = date '2031-01-13' and s.email = 'zm_r@example.test'), 'waiting');
+select app.process_events(null, pg_temp.at('2031-01-16 13:01'));
 select test.eq('outbox: a marketing email at the lowest priority, with its unsubscribe link and nothing missing',
   (select category || ':' || priority || ':' || (payload ->> 'unsubscribe_url' like 'https://carmacars.ca/%unsubscribe?token=%') || ':' || cardinality(missing_variables)
      from notification_outbox where code = 'marketing_new_vehicle' and to_address = 'zm_r@example.test'), 'marketing:5:true:0');
 select test.eq('outbox: addressed by first name', (select payload ->> 'first_name' from notification_outbox where code = 'marketing_new_vehicle' and to_address = 'zm_r@example.test'), 'Zm');
 select test.eq('outbox: no portal notice for a campaign email',
   (select count(*) from notifications where code like 'marketing_%' and user_id = test.id('zm_r')), 0::bigint);
-select app.job_marketing(pg_temp.at('2026-11-19 13:30'));
+select app.job_marketing(pg_temp.at('2031-01-16 13:30'));
 select test.eq('once per car: running again starts nothing new for it', (select count(*) from marketing_campaigns where vehicle_id = test.id('vehicle:zm_car')), 1::bigint);
 select test.eq('once per person: nobody is on a campaign twice',
   (select count(*) from (select campaign_id, email from marketing_campaign_sends group by 1, 2 having count(*) > 1) z), 0::bigint);
@@ -117,26 +117,26 @@ select test.eq('unsubscribe: the address is suppressed for marketing', app.email
 select test.eq('unsubscribe: the account with that address is unsubscribed too',
   (select marketing_unsubscribed_at is not null from users where id = test.id('zm_r')), true);
 select test.eq('unsubscribe: the waiting weekly email is not sent', (select s.status || ':' || s.reason from marketing_campaign_sends s join marketing_campaigns m on m.id = s.campaign_id
-    where m.kind = 'weekly' and m.week_of = date '2026-11-16' and s.email = 'zm_r@example.test'), 'skipped:unsubscribed');
+    where m.kind = 'weekly' and m.week_of = date '2031-01-13' and s.email = 'zm_r@example.test'), 'skipped:unsubscribed');
 select test.eq('unsubscribe: no marketing email may go to them', app.marketing_can_email('zm_r@example.test'), false);
 select test.eq('unsubscribe: nor any marketing email of the event queue', app.has_marketing_consent(test.id('zm_r'), 'implied'), false);
 -- the account's own box (renter_set_marketing false) unsubscribes the same way
 select public.renter_set_marketing(test.id('zm_r2'), false);
 select test.eq('account box off: no marketing email', app.marketing_can_email('zm_r2@example.test'), false);
-select app.job_marketing(pg_temp.at('2026-11-20 11:00'));
+select app.job_marketing(pg_temp.at('2031-01-17 11:00'));
 select test.eq('account box off: their waiting weekly email is skipped, not queued',
   (select s.status from marketing_campaign_sends s join marketing_campaigns m on m.id = s.campaign_id
-    where m.kind = 'weekly' and m.week_of = date '2026-11-16' and s.email = 'zm_r2@example.test'), 'skipped');
+    where m.kind = 'weekly' and m.week_of = date '2031-01-13' and s.email = 'zm_r2@example.test'), 'skipped');
 
 -- a car that stops being listed: the people still waiting for its email do not get it
 select test.mk_vehicle('zm_car2', 'zm_owner');
 update vehicles set bookings_enabled = true where id = test.id('vehicle:zm_car2');
 insert into vehicle_listings (vehicle_id, slug, status, published_at) values (test.id('vehicle:zm_car2'), 'zm-test-car2', 'published', now());
-select app.job_marketing(pg_temp.at('2026-11-21 09:00'));
+select app.job_marketing(pg_temp.at('2031-01-18 09:00'));
 update marketing_campaign_sends s set status = 'skipped', reason = 'test' from marketing_campaigns m
  where m.id = s.campaign_id and m.vehicle_id = test.id('vehicle:zm_car2') and s.status = 'waiting' and s.email <> 'zm_lead@example.test';
 update vehicle_listings set status = 'unpublished' where vehicle_id = test.id('vehicle:zm_car2');
-select app.job_marketing(pg_temp.at('2026-11-21 12:00'));
+select app.job_marketing(pg_temp.at('2031-01-18 12:00'));
 select test.eq('car no longer listed: its email is not sent',
   (select s.status || ':' || s.reason from marketing_campaign_sends s join marketing_campaigns m on m.id = s.campaign_id
     where m.vehicle_id = test.id('vehicle:zm_car2') and s.email = 'zm_lead@example.test'), 'skipped:the car is no longer listed');

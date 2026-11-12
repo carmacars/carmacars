@@ -1,10 +1,17 @@
--- 99: no interview invitation without an open call time (migration 0211). Uses test.h99field of 99_careers_hiring.sql.
+-- 99: no interview invitation without an open call time (migration 0211).
 -- Fixtures start with "hwd".
 select test.suite('99 hiring waiting for a day');
 -- the events earlier suites left are theirs: this suite processes only its own (r27: each staff alert goes to every
 -- Admin the suites made, minutes of work on the CI's fast job)
 update app_events set processed_at = now() where processed_at is null;
 select test.mk_user('hwd_admin', 'admin');
+-- a strong field applicant (the same answers as 99_careers_hiring.sql's; defined here too: a release file runs without the others in its CI slice)
+create or replace function test.h99field(p jsonb default '{}'::jsonb) returns jsonb language sql immutable as $$
+  select '{"english":"Fluent: I handle calls on my own every day","licence":"Yes, a full G","years":"5 years or more","record":"None","days":["Saturday","Sunday","Monday","Tuesday","Wednesday"],
+    "hours":"Full time (35 or more)","transport":"My own car","experience":["Delivery driver","Car detailing or car wash"],
+    "late":"Message the office at once, keep the renter updated and follow the office''s instructions",
+    "dent":"Stay polite, photograph everything, note it in the app and let the office decide",
+    "cash":"Count it in front of them, record it in the app right away and give them the receipt","start":"2026-11-02","pay":"20"}'::jsonb || p $$;
 
 -- no open day for any role (the days of earlier tests are put back at the end)
 create temp table hwd_days as select id from interview_days where active;

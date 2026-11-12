@@ -34,7 +34,10 @@ delete from townhall_attendance where user_id = test.id('r41r_admin') and meetin
 
 -- the card's read: shown from the day before; the warning to whoever missed the last one (staff only)
 update program_settings set townhall_weekday = extract(isodow from app.today() + 1)::int, townhall_time = '13:00';
-insert into townhall_meetings (meeting_at, absent) values (now() - interval '6 days', array[test.id('r41r_cs')]) on conflict do nothing;
+-- the last townhall before the next one, whatever meetings the other suites left
+insert into townhall_meetings (meeting_at, absent)
+select greatest(now() - interval '6 days', coalesce((select max(m.meeting_at) + interval '1 second' from townhall_meetings m where m.meeting_at < app.townhall_next(now())), '-infinity')),
+       array[test.id('r41r_cs')];
 select test.eq('the card shows tomorrow''s townhall, with the warning for staff who missed the last one',
   (select (v ->> 'card') || '/' || (v ->> 'missed_last') || '/' || (v ->> 'checked_in') from (select app.door(test.id('r41r_cs'), 'aal2', 'ops_read', 'townhall_link', '{}') v) x), 'true/true/false');
 select test.eq('an Admin sees the card, never the lock warning', (select (v ->> 'card') || '/' || (v ->> 'missed_last') from (select app.door(test.id('r41r_admin'), 'aal2', 'admin_read', 'townhall_link', '{}') v) x), 'true/false');
