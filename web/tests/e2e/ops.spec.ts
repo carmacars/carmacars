@@ -265,10 +265,10 @@ test('change: staff propose a longer trip, the renter signs the amendment and pa
     expect(text).not.toContain('Signed electronically for CarmaCars ');
     await rp.goto('/account/documents');
     await expect(rp.locator('table')).toContainText('Signed booking amendment');
-    // the renter has the signed copy by email; the owner hears the car is booked longer; the cleaning block moved
+    // the renter has the signed copy by email; the owner is not emailed about changes (r42, 2620: owners hear when the trip is done); the cleaning block moved
     const applied = await outbox(sql, 'renter_change_applied', { booking: req.booking_id });
     expect(applied.length).toBe(1);
-    expect((await outbox(sql, 'owner_booking_changed', { booking: req.booking_id })).length).toBeGreaterThanOrEqual(1);
+    expect((await outbox(sql, 'owner_booking_changed', { booking: req.booking_id })).length).toBe(0);
     const [moved] = await sql`select id, starts_at from vehicle_calendar_blocks where booking_id = ${req.booking_id} and source = 'turnaround' and removed_at is null`;
     expect(new Date(moved!.starts_at as string).getTime()).toBe(later.getTime());
 
