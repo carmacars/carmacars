@@ -51,3 +51,38 @@ export function cardCoverageHint(card: Pick<CardFacts, 'brand' | 'funding' | 'co
     default: return null;
   }
 }
+
+// ---------------------------------------------------------------- the card that covers the rental (release 42)
+/** One key per card network, whatever the spelling (Stripe's "amex", our "American Express"); null when unknown. Same as app.card_brand_key. */
+export function networkKey(brand: string | null | undefined): string | null {
+  const k = (brand ?? '').toLowerCase().replace(/[^a-z]/g, '');
+  if (!k) return null;
+  if (k === 'americanexpress') return 'amex';
+  if (k === 'master') return 'mastercard';
+  if (k === 'dinersclub') return 'diners';
+  if (k === 'chinaunionpay') return 'unionpay';
+  return k;
+}
+
+/** The network a card number belongs to by its first digits (the test cards of the fake adapter); null when it cannot tell yet. */
+export function networkFromNumber(number: string): string | null {
+  const d = number.replace(/\D/g, '');
+  if (d.length < 2) return null;
+  if (/^4/.test(d)) return 'visa';
+  if (/^(5[1-5]|2[2-7])/.test(d)) return 'mastercard';
+  if (/^3[47]/.test(d)) return 'amex';
+  if (/^(6011|65|64[4-9])/.test(d)) return 'discover';
+  if (/^35/.test(d)) return 'jcb';
+  if (/^3(0[0-5]|[689])/.test(d)) return 'diners';
+  return null;
+}
+
+/** "Pay with the card that covers this rental (Visa)" */
+export const coverageNetworkNotice = (label: string) => `Pay with the card that covers this rental (${label}).`;
+
+/** The refusal before a card of another network is charged, or null when it matches or either network is unknown. */
+export function coverageNetworkProblem(coverage: string | null | undefined, paying: string | null | undefined, label: string): string | null {
+  const need = networkKey(coverage), got = networkKey(paying);
+  if (!need || !got || need === got) return null;
+  return `${coverageNetworkNotice(label)} The card you entered is a ${brandLabel(got)} card. Nothing was charged.`;
+}

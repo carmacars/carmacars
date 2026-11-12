@@ -35,7 +35,8 @@ const REASONS: Record<string, string> = {
   card_not_credit: 'Please use a credit card. If you only have a debit or prepaid card, contact us. Nothing was charged.',
   amount_mismatch: 'The amount changed. Nothing was charged. Reload the page.',
   already_confirmed: 'This booking is already confirmed.',
-  name_mismatch: 'The card must be in the renter\'s name. Nothing was charged.'
+  name_mismatch: 'The card must be in the renter\'s name. Nothing was charged.',
+  card_network_mismatch: 'Pay with the card that covers this rental. The card you used is of another network. Nothing was charged.'
 };
 export const reasonMessage = (r: string, fallback?: string) => REASONS[r] ?? fallback ?? 'We could not confirm the booking. Nothing was charged.';
 
