@@ -20,6 +20,9 @@ services:
       CRON_ENABLED: ${CRON_ENABLED:-0}
     expose:
       - "3000"
+    volumes:
+      # the last good copies of the public pages (web/src/lib/platform/node-edge.ts): kept across deploys
+      - web-copies:/data/copies
     networks:
       - supabase
     stop_grace_period: 20s
@@ -29,6 +32,9 @@ services:
       options:
         max-size: 20m
         max-file: "5"
+
+volumes:
+  web-copies:
 
 networks:
   # the Supabase stack's network (compose project `supabase`), so Caddy finds this container by name

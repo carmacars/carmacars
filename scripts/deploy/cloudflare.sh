@@ -164,6 +164,8 @@ turnstile() {
 
 dns() {
   [ "$DEPLOY_ENV" = production ] || { log "dns: staging has no custom domain"; return; }
+  # r42: the site's records point at the company's server; they are never removed for the Worker again
+  if [ "${WEB_LIVE_ON:-}" = vps ]; then notice "DNS: left as it is (WEB_LIVE_ON=vps: the site is served by the company's server)"; return; fi
   local zone recs attached
   zone=$(cfapi GET "/zones?name=$DOMAIN" | jq -r '.result[0].id // empty') || die "The token cannot read the $DOMAIN zone"
   [ -n "$zone" ] || die "Zone $DOMAIN is not in this account"
@@ -236,6 +238,8 @@ images() {
 # the enable or DNS endpoints, so the root domain's MX records (Google Workspace) can never change here.
 email() {
   [ "$DEPLOY_ENV" = production ] || { log "email: production only"; return; }
+  # r42: inbound mail goes to the free forwarder Worker (deploy-vps, email: forwarder); never pointed back from here
+  if [ "${WEB_LIVE_ON:-}" = vps ]; then notice "Turo by email: left as it is (WEB_LIVE_ON=vps: the forwarder Worker hands mail to the company's server)"; return; fi
   local sub="in.$DOMAIN" addr="trips@in.$DOMAIN" worker="carmacars-prod" zone out mx rules rid body steps
   steps="Cloudflare dashboard > $DOMAIN > Email > Email Routing > Settings > Subdomains: add 'in', then Routing rules > Custom address trips@$sub > Send to a Worker > $worker (the owner steps in docs/changes/2026-10-19-turo-email-quiet-alerts.md)"
   zone=$(cfapi GET "/zones?name=$DOMAIN" 2>/dev/null | jq -r '.result[0].id // empty') || zone=""

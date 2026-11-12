@@ -18,5 +18,8 @@ for (const c of [cfg, ...Object.values(cfg.env ?? {})]) {
   else delete c.d1_databases;
   if (cache === 'kv') c.kv_namespaces = [{ binding: 'NEXT_INC_CACHE_KV', id: kvId }, { binding: 'NEXT_TAG_CACHE_KV', id: kvId }];
 }
+// r42: once the site is served by the company's server (repository variable WEB_LIVE_ON=vps), the Worker stays deployed as
+// a standby only: no custom domains, no cron (the jobs must never run twice). docs/hosting/off-cloudflare.md
+if (process.env.WEB_LIVE_ON === 'vps') { delete cfg.routes; cfg.triggers = { crons: [] }; console.log('wrangler config: standby (WEB_LIVE_ON=vps): no custom domains, no cron'); }
 fs.writeFileSync(file, JSON.stringify(cfg, null, 2) + '\n');
 console.log(`wrangler.jsonc: cache=${cache} tag=${tag} storage=${storage}`);

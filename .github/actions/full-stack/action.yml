@@ -8,6 +8,9 @@ inputs:
   save-caches:
     description: Save the Playwright browser and Next.js build caches (one job per run, so the parallel jobs do not race)
     default: 'false'
+  build:
+    description: worker (the OpenNext Worker build and the local production server) or node (release 42, the standalone build and the Node entry of the company's server, scripts/vps-server.mjs)
+    default: worker
 runs:
   using: composite
   steps:
@@ -69,7 +72,20 @@ runs:
       run: |
         cp .env.example .env.local
         bash scripts/local-db.sh up || { echo "::error title=full-stack::local stack (migrations, seed) failed"; exit 1; }
+    - name: Node build (next build, standalone) and the Node entry on :3000
+      if: inputs.build == 'node'
+      shell: bash
+      working-directory: web
+      run: |
+        ../.github/ci-run.sh "Node build" npm run -s build:node
+        d="$PWD/.next/standalone"; [ -f "$d/server.js" ] || d="$d/web"
+        [ -f "$d/server.js" ] || { echo "::error title=full-stack::the standalone build has no server.js"; exit 1; }
+        mkdir -p "$d/.next" && cp -r .next/static "$d/.next/static" && cp -r public "$d/public"
+        (NEXT_STANDALONE_DIR="$d" ENV_FILE="$PWD/.env.local" PORT=3000 DEPLOY_VERSION="${GITHUB_SHA:0:12}" node --no-warnings scripts/vps-server.mjs > /tmp/serve.log 2>&1 &)
+        for i in $(seq 1 120); do curl -sf -o /dev/null http://localhost:3000/healthz && exit 0; sleep 1; done
+        echo "::error title=full-stack::the Node entry did not become healthy"; tail -n 40 /tmp/serve.log; exit 1
     - name: Worker build (runs next build)
+      if: inputs.build != 'node'
       # cf:build: the OpenNext build with the Worker size step and its budget check (scripts/worker-size.mjs)
       shell: bash
       working-directory: web
@@ -81,6 +97,7 @@ runs:
         path: web/.next/cache
         key: nextjs-${{ hashFiles('web/package-lock.json') }}-${{ github.sha }}
     - name: Server
+      if: inputs.build != 'node'
       shell: bash
       working-directory: web
       run: |

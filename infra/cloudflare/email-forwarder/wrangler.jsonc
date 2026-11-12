@@ -1,0 +1,12 @@
+// Release 42: the inbound email forwarder, a Worker on Cloudflare's FREE plan (worker.js; docs/hosting/off-cloudflare.md).
+// Deployed by the deploy-vps job (scripts/deploy/web-vps.sh forwarder), which sets INBOUND_URL to the server's first
+// hostname and the secret INBOUND_EMAIL_SECRET. No bindings, no routes, no cron: nothing here is a paid feature.
+{
+  "name": "carmacars-email-forwarder",
+  "main": "worker.js",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": false,
+  "preview_urls": false,
+  "observability": { "enabled": true },
+  "vars": { "INBOUND_URL": "https://carmacars.ca/api/inbound/email" }
+}

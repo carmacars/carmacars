@@ -3,6 +3,8 @@
 # web-vps.sh ship; the files it copied are next to this script.
 #   deploy    the image loaded, /opt/carmacars/web installed, the container started and healthy, then Caddy's site file
 #   rollback  the image that ran before the last deploy
+#   switch    no new image: the running one restarted with the cron setting asked for, and Caddy reloaded so it asks
+#             for the certificates of hostnames whose DNS has just moved here (the DNS switch, in a minute or two)
 # The Supabase stack is touched in one way only: the first run gives its Caddy the folder of site files (the container
 # is recreated once, a few seconds), and only when that mount is the whole difference to the server's compose file.
 set -euo pipefail
@@ -88,5 +90,12 @@ case "${1:-}" in
     CRON=keep
     start "$prev"
     ;;
-  *) echo "usage: remote.sh deploy|rollback" >&2; exit 2 ;;
+  switch)
+    cur=$(grep -s '^WEB_IMAGE_TAG=' "$W/.env" | cut -d= -f2 || true)
+    [ -n "$cur" ] || { say "nothing is deployed yet: run the deploy action first"; exit 1; }
+    start "$cur"
+    docker exec supabase-caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile --force
+    say "Caddy reloaded (certificates are asked for again now)"
+    ;;
+  *) echo "usage: remote.sh deploy|rollback|switch" >&2; exit 2 ;;
 esac

@@ -11,6 +11,35 @@ import type { PhotoOut, PhotoProcessor } from './types';
 type Cf = { image: Record<string, unknown> };
 type FetchCf = (url: string, init: RequestInit & { cf?: Cf }) => Promise<Response>;
 
+/** r42, on the company's server: the same transformations asked for by address (/cdn-cgi/image/<options>/<source>) on
+ *  the zone, which Cloudflare's free proxy answers (5,000 unique transformations a month free; no Worker). Options that
+ *  an address cannot carry (draw: the composite and the layers) are refused here as not available, and the caller's
+ *  local step does them (local.ts, the default since release 35); the cut-out and a HEIC photo made a JPEG go through. */
+export function imageOptions(image: Record<string, unknown>): string | null {
+  const parts: string[] = [];
+  for (const [k, v] of Object.entries(image)) {
+    if (v === undefined || v === null) continue;
+    if (typeof v === 'object') {
+      // trim: the four sides, as top;right;bottom;left
+      const t = v as Record<string, unknown>;
+      if (k === 'trim' && ['top', 'right', 'bottom', 'left'].every((s) => typeof t[s] === 'number')) { parts.push(`trim=${t.top};${t.right};${t.bottom};${t.left}`); continue; }
+      return null;
+    }
+    if (!/^[a-z-]+$/.test(k) || !/^[\w.-]+$/.test(String(v))) return null;
+    parts.push(`${k}=${v}`);
+  }
+  return parts.length ? parts.join(',') : null;
+}
+export function urlFormatFetch(zoneOrigin: string, f: typeof fetch = fetch): FetchCf {
+  const base = zoneOrigin.replace(/\/$/, '');
+  return async (url, init) => {
+    const opts = init.cf ? imageOptions(init.cf.image) : null;
+    // no address form for these options: an answer the adapter reads as "did not run" (not retryable)
+    if (!opts || !/^https:\/\//.test(url)) return new Response('not available by address', { status: 400, headers: { 'content-type': 'text/plain' } });
+    return f(`${base}/cdn-cgi/image/${opts}/${url}`, { signal: init.signal, headers: { accept: 'image/*' } });
+  };
+}
+
 const MIN_CUTOUT_BYTES = 8_000;   // a cut-out this small found no car in the frame
 
 export function cloudflareImages(f: FetchCf = (u, i) => fetch(u, i as RequestInit), timeoutMs = 45_000): PhotoProcessor {

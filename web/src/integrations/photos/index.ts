@@ -14,7 +14,11 @@ export async function photoProcessor(read: (url: string) => Promise<Uint8Array |
     const [{ cloudflareImages }, { localImages, hybridPhotos }] = await Promise.all([import('./cloudflare'), import('./local')]);
     const load = async (url: string) => (await read(url).catch(() => null))
       ?? await fetch(url, { signal: AbortSignal.timeout(20_000) }).then(async (r) => (r.ok ? new Uint8Array(await r.arrayBuffer()) : null)).catch(() => null);
-    return hybridPhotos(localImages(load), cloudflareImages(), !!o.cfAll);
+    // r42: on the company's server the transformations are asked for by address on the zone (Cloudflare's free proxy)
+    const { hostingTarget } = await import('@/lib/platform/runtime');
+    const { urlFormatFetch } = await import('./cloudflare');
+    const cf = hostingTarget() === 'node' ? cloudflareImages(urlFormatFetch(e.NEXT_PUBLIC_APP_URL)) : cloudflareImages();
+    return hybridPhotos(localImages(load), cf, !!o.cfAll);
   }
   return fakePhotos(read, e.PHOTO_FAKE_MODE);
 }
