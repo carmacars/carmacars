@@ -43,6 +43,8 @@ revoke all on table public.booking_request_failures from public, anon, authentic
 grant select, insert, update, delete on table public.booking_request_failures to service_role;
 -- Admins may read it (every table carries the admin policy); the request path writes it as the service role
 create policy admin_all on public.booking_request_failures for select to authenticated using (app.is_admin());
+create index booking_request_failures_user_idx on public.booking_request_failures (user_id);
+create index booking_request_failures_vehicle_idx on public.booking_request_failures (vehicle_id);
 
 -- ================================================================ 1. every refusal, in plain words, with its field
 create function app.request_refusal(p_code text, p_message text, p_request jsonb default null) returns jsonb
@@ -264,3 +266,6 @@ grant execute on function public.server_request_failures(uuid) to service_role;
 -- 5 an hour refused real people who share an address (a mobile network, an office or campus Wi-Fi). An Admin's own value stays.
 alter table program_settings alter column booking_request_hourly_limit set default 30;
 update program_settings set booking_request_hourly_limit = 30 where booking_request_hourly_limit = 5;
+
+-- a trigger function: nobody calls it directly
+revoke all on function app.booking_request_failures_resolve() from public;
