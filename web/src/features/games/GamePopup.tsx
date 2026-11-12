@@ -325,8 +325,7 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
                 aria-invalid={err('phone') ? true : undefined} aria-describedby={err('phone') ? `${id}-phone-e` : undefined} /></label>
             {err('phone') && <p className="ccg-err" id={`${id}-phone-e`}>{err('phone')}</p>}
           </>}
-          {play.consent && <label className="check ccg-check"><input type="checkbox" name="marketing" checked={form.marketing} onChange={(e) => setForm({ ...form, marketing: e.target.checked })} />
-            <span>{play.consent}</span></label>}
+          {/* r41 (2490): no "send me deals" box; the marketing emails go to everyone who gave an address, with one-click unsubscribe */}
           <button type="submit" className="btn btn--primary ccg-play" disabled={busy} data-testid="game-get-code">{busy ? 'Sending...' : booking ? 'Apply my discount' : 'Get my code'}</button>
           {failure && <p className="ccg-err" role="alert">{failure}</p>}
           <SavedAsYouType className="ccg-fine" newTab={!!booking} />

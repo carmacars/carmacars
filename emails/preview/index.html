@@ -21,10 +21,10 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>217 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>86</span></a><a href="#owner">Owner <span>47</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>20</span></a><a href="#staff_va_finance">Staff: finance <span>9</span></a><a href="#staff_va_fleet">Staff: fleet <span>10</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>5</span></a><a href="#staff_field">Staff: field <span>8</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>14</span></a><a href="#partner">Partner (body shop, tow truck, storage) <span>1</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>219 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>88</span></a><a href="#owner">Owner <span>47</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>20</span></a><a href="#staff_va_finance">Staff: finance <span>9</span></a><a href="#staff_va_fleet">Staff: fleet <span>10</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>5</span></a><a href="#staff_field">Staff: field <span>8</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>14</span></a><a href="#partner">Partner (body shop, tow truck, storage) <span>1</span></a></nav>
 <main>
-<h2 id="renter">Renter (86)</h2>
+<h2 id="renter">Renter (88)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/account_password_reset.html"><img loading="lazy" src="../shots/account_password_reset.desktop.png" alt="Screenshot of account_password_reset"></a><div class="b">
 <div class="code">account_password_reset</div><div class="sub">Reset your CarmaCars password</div>
@@ -49,6 +49,18 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">A staff member writes from a booking billed to an insurer and sends it as Blind Spot Car Rental (insurance): Email the adjuster (to the adjuster's email on the booking), or Email the renter with Blind Spot Car Rental chosen as the sender (migration 0187). The subject is the one they typed. The message is kept on the booking with who sent it. One email per message.</div>
 <div class="ln"><a href="../dist/insurance_staff_message.html">HTML</a><a href="../dist/insurance_staff_message.txt">Text</a><a href="../shots/insurance_staff_message.desktop.png">Desktop</a><a href="../shots/insurance_staff_message.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/marketing_new_vehicle.html"><img loading="lazy" src="../shots/marketing_new_vehicle.desktop.png" alt="Screenshot of marketing_new_vehicle"></a><div class="b">
+<div class="code">marketing_new_vehicle</div><div class="sub">New in the fleet: the 2024 Honda Civic Sport</div>
+<div class="tags"><span class="m">Marketing</span></div>
+<div class="tr">New car campaign (2490, app.job_marketing): a car's listing goes live on the site (published, bookable, not a sample car). Once per car, to every address in the marketing audience (anyone who gave us their email on carmacars.ca), minus anyone unsubscribed, bounced, complained or suppressed. Queued at the marketing priority and spread over the days within the free email budgets; an address still waiting when the car stops being listed is not sent. Switch: marketing_new_vehicle_enabled.</div>
+<div class="ln"><a href="../dist/marketing_new_vehicle.html">HTML</a><a href="../dist/marketing_new_vehicle.txt">Text</a><a href="../shots/marketing_new_vehicle.desktop.png">Desktop</a><a href="../shots/marketing_new_vehicle.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/marketing_weekly.html"><img loading="lazy" src="../shots/marketing_weekly.desktop.png" alt="Screenshot of marketing_weekly"></a><div class="b">
+<div class="code">marketing_weekly</div><div class="sub">12 cars ready to rent this week</div>
+<div class="tags"><span class="m">Marketing</span></div>
+<div class="tr">Weekly marketing campaign (2490, app.job_marketing): once a week, on Program settings marketing_weekly_dow at marketing_weekly_hour (Toronto time), to every address in the marketing audience (anyone who gave us their email on carmacars.ca: renters, accounts, leads, forms left unfinished), minus anyone unsubscribed, bounced, complained or suppressed. The cars and deals come from the live listings and the active public promo codes when the campaign is made. Queued at the marketing priority: booking, payment and sign-in emails always go first, and the sends are spread over the days within the free email budgets. Switch: marketing_weekly_enabled.</div>
+<div class="ln"><a href="../dist/marketing_weekly.html">HTML</a><a href="../dist/marketing_weekly.txt">Text</a><a href="../shots/marketing_weekly.desktop.png">Desktop</a><a href="../shots/marketing_weekly.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_accident_instructions.html"><img loading="lazy" src="../shots/renter_accident_instructions.desktop.png" alt="Screenshot of renter_accident_instructions"></a><div class="b">
 <div class="code">renter_accident_instructions</div><div class="sub">What to do now, booking CC-10482</div>

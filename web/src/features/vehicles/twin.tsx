@@ -8,7 +8,6 @@ import { breadcrumbLd, faqLd, type Trail } from '@/features/seo/meta';
 import { rpc } from '@/lib/db/repo';
 import { money } from '@/lib/format';
 import { fill, getClasses, getTokens, siteUrl } from '@/lib/site';
-import { consentTexts } from '@/server/booking-data';
 import { LeadForm } from './LeadForm';
 import { buyDescriptionOptions, buyTitleOptions, dimRows, dimsFor, dollars, fit, fuelWord, list, priceBasis, ptName, ratingRange, ratingText, rentalFaq, specs, type Spec,
   termDescriptionOptions, termTitleOptions, type TermMode } from './content';
@@ -238,7 +237,7 @@ export async function TermIndex({ tree }: { tree: Tree }) {
 
 export async function TwinView(tw: Twin) {
   const { p, x, tree } = tw;
-  const [t, consent, tiers, labels, photo] = await Promise.all([getTokens(), consentTexts(), getTiers(), labelsOf(), twinPhoto(p)]);
+  const [t, tiers, labels, photo] = await Promise.all([getTokens(), getTiers(), labelsOf(), twinPhoto(p)]);
   const F = (s: string) => fill(s, t);
   const o = parts(p);
   const name = nameOf(p);
@@ -336,7 +335,7 @@ export async function TwinView(tw: Twin) {
         {mode !== 'rental' && <section className="vp-sec" aria-labelledby="h-find" id="find">
           <h2 className="d3" id="h-find">{mode === 'sale' ? (finance ? `Ask us about the ${full}` : 'Find me this car') : `Request ${tree.term!.name.toLowerCase()}`}</h2>
           <p className="small muted measure">{mode === 'sale' ? `Tell us your budget and when you want to buy; we look for a ${full} for you and reply within one business day.` : auto ? 'Tell us when suits you. A person replies within one business day and arranges it with a trusted shop or recommends one; the shop sets its own price and time.' : `Tell us when suits you; we reply within one business day with a time and a price.`}</p>
-          <LeadForm kind={kindForm} vehicle={full} service={tree.term?.name} place={o.city} marketingText={consent.marketing.text} disclaimer={finance ? disclaimer : undefined} />
+          <LeadForm kind={kindForm} vehicle={full} service={tree.term?.name} place={o.city} disclaimer={finance ? disclaimer : undefined} />
         </section>}
       </div>
       {(mode === 'rental' || svc) && <InventoryBlock inv={svc ? { ...inv, exact: [], same_model: [] } : inv} labels={labels} name={svc ? 'car while yours is in' : full}

@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 217,
+  "count": 219,
   "emails": [
     {
       "code": "account_password_reset",
@@ -419,6 +419,232 @@
       ],
       "template_html": "templates/insurance_staff_message.html",
       "template_text": "templates/insurance_staff_message.txt"
+    },
+    {
+      "code": "marketing_new_vehicle",
+      "audience": "renter",
+      "category": "marketing",
+      "trigger": "New car campaign (2490, app.job_marketing): a car's listing goes live on the site (published, bookable, not a sample car). Once per car, to every address in the marketing audience (anyone who gave us their email on carmacars.ca), minus anyone unsubscribed, bounced, complained or suppressed. Queued at the marketing priority and spread over the days within the free email budgets; an address still waiting when the car stops being listed is not sent. Switch: marketing_new_vehicle_enabled.",
+      "timing": "When a new car is listed",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "New in the fleet: the {{vehicle_name}}",
+      "preheader": "From {{daily_price}} a day. Ready to book now.",
+      "sample_subject": "New in the fleet: the 2024 Honda Civic Sport",
+      "variables": [
+        {
+          "name": "car_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/cars/mercedes-benz-c300"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "daily_price",
+          "type": "string",
+          "sample": "$129"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "seats",
+          "type": "string",
+          "sample": "5"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "transmission",
+          "type": "string",
+          "sample": "Automatic"
+        },
+        {
+          "name": "unsubscribe_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/unsubscribe?token=sample",
+          "note": "One-click unsubscribe link, tokenised per recipient. Also send it in the List-Unsubscribe header."
+        },
+        {
+          "name": "vehicle_image_url",
+          "type": "url",
+          "sample": "",
+          "note": "Public listing photo, 1200px wide or more. Leave empty when there is none; the dark name block shows instead."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2024 Honda Civic Sport",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/marketing_new_vehicle.html",
+      "template_text": "templates/marketing_new_vehicle.txt"
+    },
+    {
+      "code": "marketing_weekly",
+      "audience": "renter",
+      "category": "marketing",
+      "trigger": "Weekly marketing campaign (2490, app.job_marketing): once a week, on Program settings marketing_weekly_dow at marketing_weekly_hour (Toronto time), to every address in the marketing audience (anyone who gave us their email on carmacars.ca: renters, accounts, leads, forms left unfinished), minus anyone unsubscribed, bounced, complained or suppressed. The cars and deals come from the live listings and the active public promo codes when the campaign is made. Queued at the marketing priority: booking, payment and sign-in emails always go first, and the sends are spread over the days within the free email budgets. Switch: marketing_weekly_enabled.",
+      "timing": "Weekly",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "{{headline}}",
+      "preheader": "{{preheader_text}}",
+      "sample_subject": "12 cars ready to rent this week",
+      "variables": [
+        {
+          "name": "cars",
+          "type": "list",
+          "sample": [
+            {
+              "name": "2024 Mercedes-Benz C 300",
+              "meta": "From $129 a day. 5 seats, automatic.",
+              "url": "https://carmacars.ca/cars/mercedes-benz-c300"
+            },
+            {
+              "name": "2023 Toyota Corolla",
+              "meta": "From $59 a day. 5 seats, automatic.",
+              "url": "https://carmacars.ca/cars/toyota-corolla"
+            }
+          ],
+          "fields": [
+            "name",
+            "meta",
+            "url"
+          ]
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "deals",
+          "type": "list",
+          "sample": [
+            {
+              "label": "Code WINTER15",
+              "detail": "15% off the rental charge, until Mon, Nov 30, 2026.",
+              "url": "https://carmacars.ca/cars"
+            }
+          ],
+          "fields": [
+            "label",
+            "detail",
+            "url"
+          ]
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "has_deals",
+          "type": "boolean",
+          "sample": true
+        },
+        {
+          "name": "headline",
+          "type": "string",
+          "sample": "12 cars ready to rent this week"
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "preheader_text",
+          "type": "string",
+          "sample": "From $59 a day. Delivery across the GTA."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "unsubscribe_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/unsubscribe?token=sample",
+          "note": "One-click unsubscribe link, tokenised per recipient. Also send it in the List-Unsubscribe header."
+        }
+      ],
+      "template_html": "templates/marketing_weekly.html",
+      "template_text": "templates/marketing_weekly.txt"
     },
     {
       "code": "renter_accident_instructions",

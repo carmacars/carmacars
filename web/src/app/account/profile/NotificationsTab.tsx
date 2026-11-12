@@ -11,7 +11,7 @@ export async function NotificationsTab({ user, title = 'Messages' }: { user: Ses
     <div className="pt-split">
       <section className="stack" aria-labelledby="pt-inbox"><h2 className="pt-section-title" id="pt-inbox">{title}</h2><NoticeList items={items} /></section>
       <aside className="pt-split__aside"><section className="pt-card" aria-labelledby="pt-prefs"><h2 className="d4" id="pt-prefs">Email preferences</h2>
-        <Preferences prefs={prefs} marketing={!!profile.user?.marketing_opt_in} marketingText={c.marketing.text} />
+        <Preferences prefs={prefs} marketing={profile.user?.marketing_on ?? !!profile.user?.marketing_opt_in} marketingText={c.marketing.text} />
       </section></aside>
     </div>
   );

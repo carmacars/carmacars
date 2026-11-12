@@ -58,7 +58,7 @@ export function addedLive(b: { added_by_staff?: boolean; added_live?: boolean; s
 }
 
 export interface Profile {
-  user: { id: string; email: string; phone: string | null; full_name: string | null; marketing_opt_in: boolean; marketing_opt_in_at: string | null } | null;
+  user: { id: string; email: string; phone: string | null; full_name: string | null; marketing_opt_in: boolean; marketing_opt_in_at: string | null; /** r41 (2490): gets the offers by email (not unsubscribed) */ marketing_on?: boolean } | null;
   renter: { id: string; legal_name: string | null; mobile: string | null; email: string | null; address_line1: string | null; address_line2: string | null; city: string | null; province: string | null; postal_code: string | null; country: string | null; identity_status: string } | null;
   drivers: Array<{ id: string; full_name: string; is_account_holder: boolean; licence_class: string | null; licence_issuer: string | null; licence_expiry: string | null; identity_status: string }>;
   cards: Array<{ id: string; brand: string; last4: string; exp_month: number; exp_year: number; cardholder_name: string | null }>;

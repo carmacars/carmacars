@@ -36,6 +36,12 @@ const LABELS: Record<string, string> = {
   ai_release_hour: 'Workers AI: from this hour (Toronto) what is left goes to the others (empty: never)', ai_assistant_cushion: 'Workers AI: neurons always kept for the assistant after the release hour',
   owner_lower_share_without_signature: 'Lower management % without owner signature',
   owner_revenue_visibility: 'Owners see a booking\'s revenue',
+  // r41 (2490): the marketing emails
+  marketing_everyone_enabled: 'Marketing emails go to everyone who gave us their email on the site, unless they unsubscribed (off: only those who ticked the old marketing box)',
+  marketing_weekly_enabled: 'Weekly email to everyone: the cars listed and the deals running', marketing_weekly_dow: 'Weekly email: day of the week (1 Monday ... 7 Sunday)',
+  marketing_weekly_hour: 'Weekly email: from this hour (Toronto time)', marketing_weekly_cars: 'Weekly email: cars it shows',
+  marketing_new_vehicle_enabled: 'Email everyone once each time a new car is listed', marketing_auto_volume: 'Send more marketing automatically: use the free email capacity left after the reserve below',
+  marketing_transactional_reserve: 'Emails a day kept for booking, payment and sign-in emails (at least)', notify_marketing_daily_max: 'Marketing emails a day, at least',
   // review requests (0146)
   review_program_enabled: 'Send review requests (mid-trip check, request, reminder, final follow-up)', review_checkin_enabled: 'Mid-trip check ("How\'s the car?")', review_preask_enabled: 'Soft review ask on the last full day of the rental (replaces the mid-trip check that day)', review_preask_days_before: 'Soft review ask this many days before the return date (1 is the last full day)',
   review_checkin_min_days: 'Mid-trip check only for rentals of at least (days)', review_checkin_after_hours: 'Mid-trip check this many hours after the pickup',

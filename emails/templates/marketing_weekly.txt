@@ -1,0 +1,45 @@
+CarmaCars  |  This week
+
+========================================
+
+[This week]
+{{headline}}
+
+Hi {{first_name}}, here are cars ready to rent this week, with their prices. Send a request in two minutes: we reply with a firm offer, and nothing is charged until you approve, sign and pay.
+
+{{#each cars}}
+- {{name}}
+  {{meta}}
+  {{url}}
+{{/each}}
+
+{{#if has_deals}}
+Deals
+------------------------
+
+{{#each deals}}
+- {{label}}
+  {{detail}}
+  {{url}}
+{{/each}}
+{{/if}}
+
+See every car:
+https://carmacars.ca/cars
+
+Questions about a car or your dates? Reply to this email.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you gave us your email address on carmacars.ca.
+Unsubscribe at any time (it takes effect at once): {{unsubscribe_url}}
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}
