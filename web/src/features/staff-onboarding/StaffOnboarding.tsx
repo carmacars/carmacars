@@ -24,7 +24,7 @@ export function StaffOnboarding({ rows }: { rows: OnboardingRow[] }) {
           {!r.state.exempt && (r.state.whatsapp
             ? <Act ops action="staff_whatsapp_mark" payload={{ user: r.user_id, joined: false }} label="Take back WhatsApp" refresh={REFRESH} done="Taken back."
                 confirm={`Take back ${r.name}'s WhatsApp confirmation? They lose access until they confirm again, and their leads go back.`} testId={`onboarding-revoke-${r.user_id}`} />
-            : <Act ops action="staff_whatsapp_mark" payload={{ user: r.user_id, joined: true }} label="Mark WhatsApp joined (only this step)" refresh={REFRESH} done="Marked." testId={`onboarding-mark-${r.user_id}`} />)}
+            : <Act ops action="staff_whatsapp_mark" payload={{ user: r.user_id, joined: true }} label="Mark WhatsApp joined" refresh={REFRESH} done="Marked." testId={`onboarding-mark-${r.user_id}`} />)}
         </li>))}</ul>
     </div>
   );

@@ -1,7 +1,7 @@
 // Referral partners (migration 0164): the words, the link of a partner's own page and the RentalCoverage link, in one place with
 // no imports so the Worker, the pages and `node --test` share them.
-export type PartnerKind = 'body_shop' | 'tow_truck' | 'dealership' | 'insurance_broker';
-export const KIND_OPTIONS: Array<[PartnerKind, string]> = [['body_shop', 'Body shop'], ['tow_truck', 'Tow truck company'], ['dealership', 'Dealership'], ['insurance_broker', 'Insurance broker']];
+export type PartnerKind = 'body_shop' | 'tow_truck' | 'dealership' | 'insurance_broker' | 'insurer_rentals';
+export const KIND_OPTIONS: Array<[PartnerKind, string]> = [['body_shop', 'Body shop'], ['tow_truck', 'Tow truck company'], ['dealership', 'Dealership'], ['insurance_broker', 'Insurance broker'], ['insurer_rentals', 'Insurer rentals (insurance replacement referrals)']];
 export const kindLabel = (k: string) => KIND_OPTIONS.find(([v]) => v === k)?.[1] ?? k.replace(/_/g, ' ');
 
 export const STATUS_WORDS: Record<string, string> = { pending: 'Waiting for approval', active: 'Active', paused: 'Paused', ended: 'Ended', declined: 'Declined' };

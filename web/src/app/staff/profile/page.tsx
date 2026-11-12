@@ -31,7 +31,7 @@ export default async function VaProfile() {
         <section className="pt-card stack" aria-labelledby="me-t"><h2 className="d4" id="me-t">{roles.name ?? user.email}</h2>
           <dl className="pt-dl"><div><dt>Email</dt><dd>{user.email}</dd></div><div><dt>Function</dt><dd>{FN_LABEL[roles.va!]}</dd></div></dl></section>
         {home.missing ? <p className="small" data-testid="home-address-above">Fill in your home address at the top of the page.</p> : <HomeAddressSection portal="va" state={home} />}
-        <PayDetails portal="va" view={pay} />
+        <PayDetails portal="va" view={pay} canada={!!home.canada} />
         {sp && <SelfProfile data={sp} password={false} />}
         {si && <SignInSettings state={si} className="pt-card stack" />}
         {nc && <NotifyChannelCard reach={nc} className="pt-card stack" />}

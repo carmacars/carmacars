@@ -1,11 +1,11 @@
 'use client';
 import { useState } from 'react';
 import { savePayDetails } from '@/server/actions/staff-pay';
-import { PAY_METHODS, PAY_METHOD_LABEL, type PayDetailsInput, type PayDetailsView, type PayMethod } from '@/features/staff/pay-details';
+import { payMethodsFor, PAY_METHOD_LABEL, type PayDetailsInput, type PayDetailsView, type PayMethod } from '@/features/staff/pay-details';
 
 // Profile > Pay details (release 33, migration 0730): how the staff member wants to be paid. The account number is never
 // shown again after it is saved: only its last 4 digits. An Admin verifies new details with them.
-export function PayDetails({ portal, view }: { portal: 'va' | 'field'; view: PayDetailsView | null }) {
+export function PayDetails({ portal, view, canada = portal === 'field' }: { portal: 'va' | 'field'; view: PayDetailsView | null; canada?: boolean }) {
   const [cur, setCur] = useState(view?.current ?? null);
   const [open, setOpen] = useState(!view?.current);
   const [f, setF] = useState<PayDetailsInput>({ method: portal === 'field' ? 'e_transfer' : 'bank_transfer', account_holder: '' });
@@ -35,7 +35,7 @@ export function PayDetails({ portal, view }: { portal: 'va' | 'field'; view: Pay
         <form className="stack" noValidate onSubmit={save} aria-label="Pay details">
           <div className="field"><label className="label" htmlFor="pay-method">How you are paid</label>
             <select className="select" id="pay-method" value={f.method} onChange={(e) => set('method', e.target.value as PayMethod)} data-testid="pay-method">
-              {PAY_METHODS.map((m) => <option key={m} value={m}>{PAY_METHOD_LABEL[m]}</option>)}</select></div>
+              {payMethodsFor(canada, cur?.method).map((m) => <option key={m} value={m}>{m === 'bank_transfer' && canada ? 'Direct deposit (Canadian bank account)' : PAY_METHOD_LABEL[m]}</option>)}</select></div>
           {input('account_holder', 'Account holder (your name as the bank has it)', { autoComplete: 'name' })}
           {f.method === 'bank_transfer' && <>
             {input('bank_name', 'Bank')}

@@ -3,8 +3,9 @@ import { KIND_OPTIONS, PAYOUT_METHODS } from './model';
 
 // The fields of Add a referral partner and Edit (migration 0164). The address fills city, province and postal code from a suggestion.
 export interface PartnerValues { kind?: string; business_name?: string; contact_name?: string | null; phone?: string | null; email?: string | null; address_line1?: string | null; city?: string | null;
-  province?: string | null; postal_code?: string | null; payout_method?: string; payout_email?: string | null; rate_kind?: string; flat_cents?: number; rate_bps?: number; referral_code?: string; notes?: string | null }
-export const PARTNER_FIELDS = (v: PartnerValues, defaults: { flat_cents: number; percent_bps: number }, editing = false): Field[] => [
+  province?: string | null; postal_code?: string | null; payout_method?: string; payout_email?: string | null; rate_kind?: string; flat_cents?: number; rate_bps?: number; referral_code?: string; notes?: string | null;
+  /** 2361 */ commission_hst?: boolean; sourced_by?: string | null; sourced_by_bps?: number }
+export const PARTNER_FIELDS = (v: PartnerValues, defaults: { flat_cents: number; percent_bps: number; sales_staff?: Array<[string, string]> }, editing = false): Field[] => [
   { name: 'kind', label: 'Kind of business', type: 'select', required: true, options: KIND_OPTIONS as unknown as Array<[string, string]>, value: v.kind ?? 'body_shop' },
   { name: 'business_name', label: 'Business name', type: 'text', required: true, value: v.business_name },
   { name: 'contact_name', label: 'Contact', type: 'text', value: v.contact_name },
@@ -19,7 +20,10 @@ export const PARTNER_FIELDS = (v: PartnerValues, defaults: { flat_cents: number;
   { name: 'rate_kind', label: 'Kickback', type: 'select', required: true, options: [['flat', 'A flat amount for each completed rental'], ['percent', 'A percentage of the rental charge (after discounts)']], value: v.rate_kind ?? 'flat',
     hint: editing ? 'A change applies to rentals tied to the partner from now on; what is already earned keeps its rate.' : undefined },
   { name: 'flat_cents', label: 'Flat amount', type: 'money', value: v.flat_cents ?? defaults.flat_cents, hint: 'Used when the kickback is a flat amount. $50 unless you change it.' },
-  { name: 'rate_bps', label: 'Percentage', type: 'percent', value: v.rate_bps ?? defaults.percent_bps, hint: 'Used when the kickback is a percentage.' },
+  { name: 'rate_bps', label: 'Percentage (up to 100%)', type: 'percent', value: v.rate_bps ?? defaults.percent_bps, hint: 'Used when the kickback is a percentage: of the rental before tax, after discounts.' },
+  { name: 'commission_hst', label: 'Add HST (13%) on top of their commission', type: 'bool', value: v.commission_hst ?? false, hint: 'Off unless the partner charges HST. The commission is always worked out before tax.' },
+  { name: 'sourced_by', label: 'Sourced by (the Sales person who brought this partner)', type: 'select', options: [['', 'Nobody'], ...(defaults.sales_staff ?? [])], value: v.sourced_by ?? '' },
+  { name: 'sourced_by_bps', label: 'Their percentage of each referred rental', type: 'percent', value: v.sourced_by_bps ?? 0, hint: 'Of the rental before tax, no HST; on their commission statement. Customer service, Fleet and Finance never earn it.' },
   ...(editing ? [{ name: 'referral_code', label: 'Code (4 to 12 letters and digits)', type: 'text' as const, value: v.referral_code, hint: 'Changing it ends the old link and flyer.' }] : []),
   { name: 'notes', label: 'Notes (only Admins see them)', type: 'textarea', value: v.notes }
 ];

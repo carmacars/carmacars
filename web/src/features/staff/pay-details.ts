@@ -23,3 +23,8 @@ export function checkPayDetails(p: PayDetailsInput): Record<string, string> {
   if (['e_transfer', 'paypal', 'wise'].includes(p.method) && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test((p.email ?? '').trim())) fe.email = 'Enter the email address.';
   return fe;
 }
+
+/** 2361: the methods offered to a person working in Canada (direct deposit, Interac e-Transfer); everyone else sees them all. */
+export const CANADA_PAY_METHODS: PayMethod[] = ['bank_transfer', 'e_transfer'];
+export const payMethodsFor = (canada: boolean, current?: PayMethod | null): PayMethod[] =>
+  canada ? PAY_METHODS.filter((m) => CANADA_PAY_METHODS.includes(m) || m === current) : [...PAY_METHODS];

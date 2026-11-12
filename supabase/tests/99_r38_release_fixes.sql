@@ -58,3 +58,31 @@ select test.eq('C no browser session deletes a bug report', has_table_privilege(
 
 -- ---------------------------------------------------------------- D. a person never credited is not asked who found the client
 select test.eq('D customer service is never credited', app.credit_blocked(test.id('r38_cs')), true);
+
+-- ---------------------------------------------------------------- E. a partner who sends insurer rentals: 60%, sourced by 10% (2361)
+select test.mk_user('r38_sales', 'va', 'sales');
+select test.mk_renter('r38_rita');
+create temp table r38 as select null::text as k, null::jsonb as v limit 0;
+insert into r38 select 'car', app.vehicle_add(test.id('r38_admin'), jsonb_build_object('supply_type', 'company', 'vin', '1R38XMM0000000001', 'plate', 'R38001', 'year', 2024,
+  'make', 'Kia', 'model', 'K5', 'rates', jsonb_build_object('daily', 10000, 'weekend', 10000, 'weekly', 70000, 'monthly', 300000, 'deposit', 30000)));
+select test.throws('E customer service cannot be Sourced by', format('select app.referral_partner_save(%L, %L::jsonb)', test.id('r38_admin'),
+  jsonb_build_object('kind', 'insurer_rentals', 'business_name', 'R38 Broker', 'sourced_by', test.id('r38_cs'), 'sourced_by_bps', 1000)), 'pick a Sales person');
+insert into r38 select 'p', app.door(test.id('r38_admin'), 'aal2', 'admin_do', 'referral_partner_save', jsonb_build_object('kind', 'insurer_rentals', 'business_name', 'R38 Broker',
+  'rate_kind', 'percent', 'rate_bps', 6000, 'sourced_by', test.id('r38_sales'), 'sourced_by_bps', 1000));
+select test.eq('E 60% of the rental, insurer rentals, no HST, sourced by 10%',
+  (select kind || '/' || rate_bps || '/' || commission_hst || '/' || sourced_by_bps from referral_partners where id = ((select v from r38 where k = 'p') ->> 'id')::uuid), 'insurer_rentals/6000/false/1000');
+insert into r38 select 'b', app.manual_rental_create(test.id('r38_admin'), jsonb_build_object('vehicle_id', ((select v from r38 where k = 'car') ->> 'vehicle_id')::uuid,
+  'pickup_at', app.local_midnight(app.today() - 10) + interval '10 hours', 'return_at', app.local_midnight(app.today() - 7) + interval '10 hours', 'source', 'phone',
+  'coverage_option', 1, 'past', true, 'renter_id', test.id('renter:r38_rita'), 'payment', jsonb_build_object('mode', 'other_way', 'method', 'cash'),
+  'referral_code', (select referral_code from referral_partners where id = ((select v from r38 where k = 'p') ->> 'id')::uuid)));
+create function pg_temp.r38b() returns uuid language sql as $$ select coalesce((v ->> 'booking_id')::uuid, (v ->> 'id')::uuid) from r38 where k = 'b' $$;
+select test.ok('E the base is the rental before tax', (select e.base_cents = app.commission_base_cents(pg_temp.r38b()) and e.base_cents > 0
+  and e.base_cents < (select total_due_at_booking_cents from bookings where id = pg_temp.r38b()) from referral_partner_earnings e where e.booking_id = pg_temp.r38b() and e.kind = 'earning'));
+select test.ok('E the partner earns 60% of it, no HST', (select e.amount_cents = round(e.base_cents * 0.6) and (app.referral_earning_row(e) ->> 'hst_cents')::int = 0
+  from referral_partner_earnings e where e.booking_id = pg_temp.r38b() and e.kind = 'earning'));
+select test.ok('E the Sales person earns 10% of it, no HST, on their commissions', (select c.amount_cents = round(e.base_cents * 0.1) and c.base_cents = e.base_cents and c.status = e.status
+  from staff_commissions c join referral_partner_earnings e on e.booking_id = c.booking_id and e.kind = 'earning'
+  where c.booking_id = pg_temp.r38b() and c.kind = 'partner_sourced' and c.staff_id = test.id('r38_sales')));
+select app.referral_partner_save(test.id('r38_admin'), jsonb_build_object('id', ((select v from r38 where k = 'p') ->> 'id')::uuid, 'commission_hst', true));
+select test.ok('E HST on: 13% on top on the partner''s statement', (select (app.referral_earning_row(e) ->> 'hst_cents')::bigint = round(e.amount_cents * 0.13)
+  from referral_partner_earnings e where e.booking_id = pg_temp.r38b() and e.kind = 'earning'));
