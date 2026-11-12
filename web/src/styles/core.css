@@ -261,8 +261,8 @@ input[type="checkbox"][aria-invalid="true"], input[type="radio"][aria-invalid="t
 .alert::before { content: "i"; grid-row: span 2; width: 22px; height: 22px; border-radius: 50%; background: var(--black); color: var(--white); display: grid; place-items: center; font: 700 0.8rem/1 var(--font-text); }
 .alert__title { font-weight: 600; font-size: var(--fs-body); }
 .alert > :not(.alert__title) { grid-column: 2; }
-.alert--error { border-color: var(--red-600); background: var(--red-50); }
-.alert--error::before { content: "!"; background: var(--red-600); }
+.alert--error, .fg-summary { border-color: var(--red-600); background: var(--red-50); }
+.alert--error::before, .fg-summary::before { content: "!"; background: var(--red-600); }
 .alert--ok::before { content: ""; background: var(--black) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='%23fff' stroke-width='2'/%3E%3C/svg%3E") center/14px no-repeat; }
 .alert--warn { background: var(--white); border: var(--bw) solid var(--black); border-left-width: 4px; }
 .alert--warn::before { content: "!"; }

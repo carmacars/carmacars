@@ -31,7 +31,7 @@ export function SignProgress({ items, title = 'Your documents' }: { items: Progr
 // The key values the documents were filled with, each with a Fix link to where it is kept: checked in seconds instead
 // of reading every page (the full text stays one tap away).
 export interface SummaryRow { label: string; value: string; fix?: string | null }
-export function SignSummary({ rows, title = 'Check what we filled in' }: { rows: SummaryRow[]; title?: string }) {
+export function SignSummary({ rows, title = 'Check your details', next }: { rows: SummaryRow[]; title?: string; /** what to do once checked (r40) */ next?: string }) {
   if (!rows.length) return null;
   return (
     <section className="pt-card stack" aria-labelledby="sg-summary-h" data-testid="sign-summary-values">
@@ -41,6 +41,7 @@ export function SignSummary({ rows, title = 'Check what we filled in' }: { rows:
           <div key={`${r.label}-${n}`}><dt>{r.label}</dt><dd><span>{r.value || 'Not given yet'}</span>{r.fix ? <> <a className="link small" href={r.fix} data-testid="sign-fix">Fix</a></> : null}</dd></div>
         ))}
       </dl>
+      {next ? <p className="small" data-testid="sign-summary-next">{next}</p> : null}
     </section>
   );
 }

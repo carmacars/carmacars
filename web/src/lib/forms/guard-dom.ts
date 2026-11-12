@@ -137,7 +137,7 @@ function renderSummary(form: HTMLFormElement, problems: Problem[]) {
   if (box && box.dataset.sig === sig) return;
   const fresh = !box;
   if (!box) {
-    box = document.createElement('div'); box.className = 'alert alert--error fg-summary'; box.setAttribute('data-fg', ''); box.setAttribute('role', 'alert'); box.tabIndex = -1;
+    box = document.createElement('div'); box.className = 'alert fg-summary'; box.setAttribute('data-fg', ''); box.setAttribute('role', 'status'); box.setAttribute('aria-live', 'assertive'); box.tabIndex = -1;
   }
   box.dataset.sig = sig;
   box.replaceChildren();

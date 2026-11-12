@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { blanksIn, investmentMarkdown, investmentSummary, investorFields, missingRequired, staffFields, staffMarkdown, staffSummary, staffTitle, type InvestorFacts, type StaffFacts } from './model.ts';
+import { blanksIn, investmentMarkdown, investmentSummary, investorFields, maskLicence, missingRequired, safeSummary, staffFields, staffMarkdown, staffSummary, staffTitle, type InvestorFacts, type StaffFacts } from './model.ts';
 
 // Agreements generated from the records (migration 0049): every blank of the source document is filled, the values
 // land in Schedule A, and the signature lines say the signature is given electronically.
@@ -144,4 +144,20 @@ test('0197: the in-person agreement for field work or Sales in person, the remot
   const fieldAndCs: StaffFacts = { ...f, staff: { ...f.staff, va_function: 'cs', field_function: 'driver', functions: ['cs', 'field'], agreement: 'in_person' } };
   assert.equal(staffTitle(fieldAndCs), 'Field Staff Agreement');
   assert.equal(staffTitle(staff('field')), 'Field Staff Agreement');
+});
+
+test('r40: the signer sees every value of the field summary, and the licence number is never shown in full', () => {
+  const f: StaffFacts = { ...staff('field'), staff: { ...staff('field').staff, licence_number: 'C1234-56789-01234', home_address: '12 Queen Street, Toronto' } };
+  const rows = staffSummary(f, fill(f));
+  assert.deepEqual(rows.map((r) => r.label), ['Employee', "Driver's licence", 'Role', 'Hourly Wage', 'Start Date', 'Pay Dates']);
+  for (const r of rows) assert.ok(r.value.trim(), `${r.label} has a value`);
+  assert.equal(rows[1]!.value, 'Ontario Class G, on file, ending ••34');
+  assert.ok(!rows.some((r) => /56789|01234/.test(r.value)));
+  assert.equal(maskLicence(''), 'not given yet');
+  assert.equal(maskLicence('C12'), 'on file');
+  // a summary saved before r40 still holds the number: masked when shown
+  const old = safeSummary([{ label: "Field Staff Agreement: Driver's licence", value: 'Ontario Class G, number C1234-56789-01234', fix: null }, { label: 'Hourly Wage', value: '$18.00 an hour' }]);
+  assert.equal(old[0]!.value, 'Ontario Class G, on file, ending ••34');
+  assert.equal(old[1]!.value, '$18.00 an hour');
+  assert.equal(safeSummary([{ label: "Driver's licence", value: 'Ontario Class G, number ' }])[0]!.value, 'Ontario Class G, not given yet');
 });

@@ -71,7 +71,12 @@ select test.eq('B a booking that went to confirmed gets exactly one confirmation
   (select count(*) from bookings b
     where b.booking_type <> 'owner'
       and exists (select 1 from status_history h where h.entity = 'booking' and h.entity_id = b.id and h.to_status = 'confirmed' and h.from_status is not null)
-      and (test.ob('renter_booking_confirmed', b.id) <> 1 or test.ob('owner_new_booking', b.id) <> 1)), 0::bigint);
+      -- 2480: a booking confirmed while it was not part of the owner's revenue (an insurer rental off the calendar) sends
+      -- the owner no notice; its event is processed at once with the 0156 note
+      and (test.ob('renter_booking_confirmed', b.id) <> 1
+           or (test.ob('owner_new_booking', b.id) <> 1
+               and not exists (select 1 from app_events e where e.code = 'owner_new_booking' and e.entity_id = b.id
+                                  and e.process_note = 'not shown to the owner (0156)')))), 0::bigint);
 select test.eq('B the payment that confirms a booking never gets a separate receipt (the confirmation carries it)',
   (select count(*) from notification_outbox o join payments p on p.id = o.entity_id where o.code = 'renter_payment_receipt' and p.purpose = 'booking_total'), 0::bigint);
 select test.eq('B an extension request is acknowledged once (0019 emits it; nothing here emits it again)',
