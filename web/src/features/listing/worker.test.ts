@@ -10,6 +10,7 @@ import { fakePhotos } from '../../integrations/photos/fake.ts';
 import { cloudflareImages } from '../../integrations/photos/cloudflare.ts';
 import { neuronsFor, workersAi } from '../../integrations/llm/workers-ai.ts';
 import type { TextGenerator } from '../../integrations/llm/types.ts';
+import type { PhotoProcessor } from '../../integrations/photos/types.ts';
 
 const FACTS = { year: 2023, make: 'Toyota', model: 'RAV4', trim: 'XLE', colour: 'Grey', fuel: 'hybrid', body_style: 'SUV', seats: 5, transmission: 'automatic', doors: 4, drivetrain: 'AWD', home_area: 'Toronto' };
 const budget = { ai_neurons_today: 0, ai_neurons_limit: 9000, transformations_month: 0, transformations_free: 5000 };
@@ -442,4 +443,51 @@ test('r38 (2372): the image service refusing never fails a listing: sizes, a mas
   const down = { ...fakePhotos(getter(f)), cutout: async () => ({ ok: false as const, reason: 'unavailable' as const, retryable: true, message: 'down' }) };
   const local = await runJob(deps({ photos: down }, f), job('process_photo', { input: { local_only: true } }), budget);
   assert.deepEqual([local.ok, (local.output as Record<string, unknown>).used_original], [true, true]);
+});
+
+// ---------------------------------------------------------------- r40 (2450): camera-sized photos and one photo at a time
+const bigPhoto = (over: Partial<NonNullable<JobContext['photo']>> = {}) => job('process_photo', { photo: { ...job('process_photo').photo!, width: 6000, height: 4000, ...over } });
+
+test('photo r40: a camera-sized photo is made from the image service\'s smaller copy, never decoded here', async () => {
+  const f = files();
+  const small = encodeJpeg({ width: 2400, height: 1600, data: new Uint8ClampedArray(2400 * 1600 * 4).fill(90) }, 80);
+  const asked: number[] = [];
+  const photos = { ...fakePhotos(getter(f), 'not_enabled'), shrink: async (r: { sourceUrl: string; width: number }) => { asked.push(r.width); return { ok: true as const, bytes: small, contentType: 'image/jpeg', transformations: 1 }; } };
+  const r = await runJob(deps({ photos }, f), bigPhoto(), budget);
+  const o = r.output as Record<string, unknown>;
+  assert.deepEqual(asked, [2400], 'one copy, 2400 pixels on its long side');
+  assert.equal(o.work_copy, 'vehicles/v1/work/p1-src.jpg');
+  assert.ok(f.priv.has('vehicles/v1/work/p1-src.jpg'), 'kept privately');
+  const img = await decodeImage(f.pub.get(String(o.processed_path))!);
+  assert.deepEqual([r.ok, img?.width, img?.height], [true, 1800, 1200], 'the site\'s size, made from the copy');
+});
+
+test('photo r40: without a smaller copy a camera-sized photo goes on the site as it is (no decode, no sizes)', async () => {
+  const f = files();
+  let asked = false;
+  const photos: PhotoProcessor = { ...fakePhotos(getter(f)), shrink: undefined, cutout: async () => { asked = true; return { ok: false as const, reason: 'unavailable' as const, retryable: true, message: 'x' }; } };
+  const r = await runJob(deps({ photos }, f), bigPhoto(), budget);
+  const o = r.output as Record<string, unknown>;
+  assert.deepEqual([r.ok, o.used_original, o.flags, o.width, asked], [true, true, ['too_large'], 6000, false]);
+  assert.deepEqual(f.pub.get(String(o.processed_path)), JPEG, 'the original file itself');
+  const sizes = await runJob(deps({ photos }, f), job('resize', { photo: { ...bigPhoto().photo!, processed_path: String(o.processed_path) } }), budget);
+  assert.deepEqual([sizes.ok, (sizes.output as Record<string, unknown>).variants], [true, []], 'its sizes are not made here either');
+});
+
+test('worker r40: the photo steps of a claim run one after another, the copy steps beside them', async () => {
+  let open = 0, most = 0;
+  const f = files();
+  const slowPhotos = { ...fakePhotos(getter(f)), normalize: async (r: { sourceUrl: string }) => {
+    open++; most = Math.max(most, open); await new Promise((ok) => setTimeout(ok, 15)); open--;
+    return { ok: true as const, bytes: (await getter(f)(r.sourceUrl))!, contentType: 'image/jpeg', transformations: 0 };
+  } };
+  const inside = (id: string) => job('process_photo', { id, photo: { ...job('process_photo').photo!, id, rebackground: false, shot_type: 'wheel', angle: 'wheel' } });
+  let given = false;
+  const d = deps({ photos: slowPhotos, claim: async () => {
+    if (given) return { jobs: [], budget, held: { photos: false, copy: false }, due: 0 };
+    given = true;
+    return { jobs: [inside('a'), inside('b'), inside('c'), job('decode_vin', { id: 'd', vin: 'JTMB1RFV7PD000001' })], budget, held: { photos: false, copy: false }, due: 0 };
+  } }, f);
+  const s = await runListingWorker(d);
+  assert.deepEqual([s.claimed, s.succeeded, most], [4, 4, 1]);
 });

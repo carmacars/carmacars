@@ -32,6 +32,9 @@ export interface PhotoProcessor {
   enhance?(r: { sourceUrl: string; width: number; height: number; values: { brightness: number; contrast: number; gamma: number; saturation: number; sharpen: number } }): Promise<PhotoOut>;
   /** r33 (0760): a photo in a format the listing takes only as JPEG (HEIC from a phone, WebP), as a JPEG at most `width` pixels wide. */
   toJpeg?(r: { sourceUrl: string; width: number }): Promise<PhotoOut>;
+  /** r40 (2450): a camera-sized photo (a Google Drive import) as a JPEG at most `width` pixels on its long side, made by
+   *  the image service (never decoded in the Worker, whose memory a 20-megapixel photo fills); none: not available. */
+  shrink?(r: { sourceUrl: string; width: number }): Promise<PhotoOut>;
   /** One size variant (WebP). */
   resize(r: { sourceUrl: string; width: number }): Promise<PhotoOut>;
 }

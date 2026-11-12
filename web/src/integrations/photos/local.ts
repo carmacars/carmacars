@@ -234,6 +234,8 @@ export function hybridPhotos(local: PhotoProcessor, cf: PhotoProcessor | null, c
       const l = await local.toJpeg!(r);
       if (l.ok || !cf?.toJpeg) return l;
       return cf.toJpeg(r);
-    }
+    },
+    // r40 (2450): a camera-sized photo is made smaller by Cloudflare only: decoding it here would fill the Worker's memory
+    ...(cf?.toJpeg ? { shrink: (r: { sourceUrl: string; width: number }) => cf.toJpeg!(r) } : {})
   };
 }

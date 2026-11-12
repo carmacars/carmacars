@@ -17,6 +17,7 @@ import { resample, scaleDown } from '../../integrations/photos/local.ts';
 import { applyPlates, type PlateEnd, type PxBox } from './plate-photo.ts';
 import { enhanceValues, statsOf, type Enhance } from './enhance.ts';
 import { cropAway, type MarkBox } from './photo-sort.ts';
+import { imageSize } from '../drive-import/image-size.ts';
 
 // 0073: the sample cars' black studio with the model's name behind the car (was brand_background_v1, a light grey room).
 // r28 (0567): studio_v3, the car framed to its own edges (subject-frame.ts): about 80% of the width, the wheels on the floor
@@ -61,6 +62,8 @@ export interface JobContext {
   facts?: Record<string, unknown> | null; staff_notes?: string | null; classes?: string[] | null;
   copy_rules?: { headline_chars: [number, number]; description_words: [number, number]; features: [number, number]; faq: [number, number]; banned_phrases: string[] } | null;
   photo?: { id: string; shot_type: string; angle: string; original_path: string; processed_path: string | null; rebackground: boolean; is_public: boolean; file_base: string; model?: string | null;
+    /** the photo's size as recorded (the original's at upload; the site file's once processed) */
+    width?: number | null; height?: number | null;
     /** 0567: the photo is flagged "watermark" (the sorter saw a mark, or it is queued for the check) */
     watermark?: boolean;
     /** 0568: the light touch-up applies (Admin "Auto-enhance listing photos" on, the photo's "Use original colours" off) */
@@ -126,6 +129,14 @@ export interface RunSummary { claimed: number; succeeded: number; failed: number
 
 const ext = (type: string) => (type === 'image/png' ? 'png' : type === 'image/webp' ? 'webp' : 'jpg');
 
+/** The steps that hold no photo in memory (run side by side); every other step is run one at a time. */
+export const LIGHT_KINDS: ReadonlySet<JobContext['kind']> = new Set(['decode_vin', 'draft_copy', 'publish']);
+/** r40 (2450): a photo larger than this (pixels) is never decoded here: the image service makes a working copy of
+ *  WORK_SIDE pixels first, else the photo goes on the site as it is (its sizes are not made either). */
+export const LOCAL_MAX_PIXELS = 12_000_000;
+export const WORK_SIDE = 2400;
+const tooLarge = (w: number | null | undefined, h: number | null | undefined) => !!w && !!h && w * h > LOCAL_MAX_PIXELS;
+
 /** Runs due jobs until none are left, the limit is reached or the time is up. */
 export async function runListingWorker(d: WorkerDeps, o: { maxJobs?: number; batch?: number; deadlineMs?: number } = {}): Promise<RunSummary> {
   const now = d.now ?? (() => Date.now());
@@ -142,7 +153,7 @@ export async function runListingWorker(d: WorkerDeps, o: { maxJobs?: number; bat
     sum.claimed += c.jobs.length;
     // the copy and the photos of one car run side by side; the reports go one at a time (each moves the intake on)
     let reports: Promise<unknown> = Promise.resolve();
-    await Promise.all(c.jobs.map(async (j) => {
+    const one = async (j: JobContext) => {
       const t0 = now();
       let r: JobResult;
       try {
@@ -162,7 +173,12 @@ export async function runListingWorker(d: WorkerDeps, o: { maxJobs?: number; bat
       };
       reports = reports.then(report);
       await reports;
-    }));
+    };
+    // r40 (2450): the copy steps side by side, the photo steps one after another: a few camera-sized photos decoded at once
+    // filled the Worker's memory and the whole run was stopped (every claimed job, the VIN decode too, then failed "did not
+    // finish within the lock time")
+    const light = c.jobs.filter((j) => LIGHT_KINDS.has(j.kind)), heavy = c.jobs.filter((j) => !LIGHT_KINDS.has(j.kind));
+    await Promise.all([...light.map(one), (async () => { for (const j of heavy) await one(j); })()]);
   }
   return sum;
 }
@@ -255,6 +271,19 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
   // 0700: an edit or a mask waits for the allowance instead (the photo keeps its studio file meanwhile)
   if (b.images_paused && j.input?.mask_only) return { ok: false, provider: d.photos.name, error: `${USAGE_PAUSED}: the month's included image transformations are used`, retryable: true };
   // r35: only the cut-out needs the image service (every other step is made locally): an inside photo goes ahead
+  // r40 (2450): a camera-sized photo (a Google Drive import) is made smaller by the image service first, and the photo is
+  // made from that copy; when it cannot be, it goes on the site as it is (never decoded here: it fills the Worker's memory)
+  if (!j.input?.work_copy && !editOf(j.input)) {
+    let size: { width: number; height: number } | null = p.width && p.height ? { width: p.width, height: p.height } : null;
+    if (!size) { const head = await d.files.getPrivate(p.original_path).catch(() => null); size = head ? imageSize(head) : null; }
+    if (size && tooLarge(size.width, size.height)) {
+      const w = await workingCopy(d, j);
+      if (!w) return asIs(d, j, size);
+      const r = await processPhoto(d, { ...j, input: { ...j.input, work_copy: true }, photo: { ...p, original_path: w.path, width: null, height: null } }, b, used);
+      if (r.ok && r.output) r.output = { ...r.output, work_copy: w.path };
+      return r;
+    }
+  }
   if (b.images_paused && p.rebackground && !editOf(j.input)) return fallback(d, j, USAGE_PAUSED, `${USAGE_PAUSED}: the month's included image transformations are used`, 0, b, used);
   const src = await d.files.privateUrl(p.original_path);
   // 0700: a mask asked for by the cut-out editor (a photo made before the mask was kept): the segmenter's cut-out only
@@ -473,19 +502,47 @@ export async function photoRoom(d: WorkerDeps, j: JobContext): Promise<{ img: Rg
   return { img: { width: img.width, height: img.height, data: new Uint8ClampedArray(img.data) }, slug: bg.slug, floor: num(bg.floor, 0.82), reflect: num(bg.reflect, 0.12) };
 }
 
+/** r40 (2450): a working copy of a camera-sized photo, WORK_SIDE pixels on its long side, made by the image service and kept
+ *  privately; null when the service cannot make it (or made one still too large). */
+async function workingCopy(d: WorkerDeps, j: JobContext): Promise<{ path: string } | null> {
+  const p = j.photo!;
+  if (!d.photos.shrink) return null;
+  const o = await d.photos.shrink({ sourceUrl: await d.files.privateUrl(p.original_path), width: WORK_SIDE }).catch(() => null);
+  if (!o || !o.ok) return null;
+  const sz = imageSize(o.bytes);
+  if (!sz || tooLarge(sz.width, sz.height)) return null;
+  const path = `vehicles/${j.vehicle_id}/work/${p.id}-src.${ext(o.contentType)}`;
+  await d.files.putPrivate(path, o.bytes, o.contentType);
+  return { path };
+}
+
+/** r40 (2450): the original on the site as it is (not decoded, not resized), flagged so staff see it. */
+async function asIs(d: WorkerDeps, j: JobContext, size: { width: number; height: number }): Promise<JobResult> {
+  const p = j.photo!;
+  const bytes = await d.files.getPrivate(p.original_path);
+  if (!bytes) return { ok: false, provider: d.photos.name, error: 'The original photo could not be read', retryable: true };
+  const type = bytes[0] === 0x89 ? 'image/png' : 'image/jpeg';
+  const path = `vehicles/${j.vehicle_id}/${p.file_base}.${ext(type)}`;
+  await d.files.putPublic(path, bytes, type);
+  return { ok: true, provider: `${d.photos.name}:fallback`, units: 0, unit: 'transformations', cost_microusd: 0,
+    output: { processed_path: path, used_original: true, preset_version: 'original', width: size.width, height: size.height, flags: ['too_large'],
+      fallback_reason: 'The photo is too large to make here and the image service did not make a smaller copy: it is on the site as it is' } };
+}
+
 async function fallback(d: WorkerDeps, j: JobContext, reason: string, message: string, n: number, b: Budget, used: { transformations: number }): Promise<JobResult> {
   const p = j.photo!;
   const bytes = await d.files.getPrivate(p.original_path);
   if (!bytes) return { ok: false, provider: d.photos.name, error: `The original photo could not be read (${message})`, retryable: true };
   // r35: made the site's size here (one decode, one pass down, one encode), never the camera's full file
   const img = await decodeImage(bytes).catch(() => null);
-  const small = img ? encodeJpeg(scaleDown(img, EXTERIOR.width, EXTERIOR.width), 86) : null;
+  const scaled = img ? scaleDown(img, EXTERIOR.width, EXTERIOR.width) : null;
+  const small = scaled ? encodeJpeg(scaled, 86) : null;
   const type = small ? 'image/jpeg' : bytes[0] === 0x89 ? 'image/png' : 'image/jpeg';
   const path = `vehicles/${j.vehicle_id}/${p.file_base}.${ext(type)}`;
   await d.files.putPublic(path, small ?? bytes, type);
   const flag = reason === 'no_subject' ? 'bad_cutout' : 'background_not_replaced';
   return { ok: true, provider: `${d.photos.name}:fallback`, ...imageCost(n, b, used),
-    output: { processed_path: path, used_original: true, preset_version: 'original', flags: [flag], fallback_reason: message } };
+    output: { processed_path: path, used_original: true, preset_version: 'original', flags: [flag], fallback_reason: message, ...(scaled ? { width: scaled.width, height: scaled.height } : {}) } };
 }
 
 /** 1053: one marketing copy of an outside photo in a scene (never the website's photo). The car from its kept cut-out, placed as
@@ -640,6 +697,8 @@ async function plateRedo(d: WorkerDeps, j: JobContext): Promise<JobResult> {
 async function resize(d: WorkerDeps, j: JobContext, b: Budget, used: { transformations: number }): Promise<JobResult> {
   const p = j.photo;
   if (!p?.processed_path || !p.is_public) return { ok: true, provider: 'carmacars', output: { variants: [] } };
+  // r40 (2450): a photo kept as it was taken because it is too large to decode here: the site uses that file alone
+  if (tooLarge(p.width, p.height)) return { ok: true, provider: 'carmacars', output: { variants: [], flags: ['no_variants'] } };
   // r35: the sizes are made locally, so a used allowance no longer stops them (paused with the service asked for everything:
   // the local processor answers anyway, see integrations/photos/local.ts)
   const src = d.files.publicUrl(p.processed_path);
