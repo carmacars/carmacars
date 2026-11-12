@@ -79,8 +79,8 @@ Our Privacy Officer is responsible for this policy: [●], [●] (email), [●] 
 | Site data: IP address (security logs only), device, approximate city, pages and cars viewed, booking steps and cookies | To secure and improve the Site, and, with your consent, to help you while you browse (section 10) |
 | Live chat: the conversation and the page you were on, and your name, email or phone if you give them | To answer you and follow up on your request |
 | Trips booked through another platform (such as Turo): the name, and the phone or email if the platform gives them to us, of the guest who booked one of our cars there | To manage that trip with the guest, never for marketing |
-| Discount games: your first name, email, mobile number if given, the code and the pages and cars you viewed in that visit | To send the code and a reminder, and to help you book; offers only with your consent |
-| Forms you start: the name, email and mobile number you type into our forms (a booking request, the contact form, listing your car, the owner application, creating an account, a discount game or the live chat), saved as you type, even if you do not send the form | To open an account in your name that you can continue on the same device, to send you one email with a link that confirms your email and lets you continue on any device, and so our team can follow up on your request; never for offers without your consent. Until you confirm your email, the account cannot be used to upload identification, see payment cards, accept an offer, sign or pay |
+| Discount games: your first name, email, mobile number if given, the code and the pages and cars you viewed in that visit | To send the code and a reminder, and to help you book; offers by email as described in section 11 |
+| Forms you start: the name, email and mobile number you type into our forms (a booking request, the contact form, listing your car, the owner application, creating an account, a discount game or the live chat), saved as you type, even if you do not send the form | To open an account in your name that you can continue on the same device, to send you one email with a link that confirms your email and lets you continue on any device, and so our team can follow up on your request; and for our marketing emails (section 11). Until you confirm your email, the account cannot be used to upload identification, see payment cards, accept an offer, sign or pay |
 | Job applications: your name, email, phone number, the profile name you give, where you saw the job, your answers to the screening questions, the interview time you book, and the interviewer's scores and notes | To assess your application, arrange the interview and decide whom to hire. Your answers are scored automatically against the role's requirements; a person reviews the results before anyone is hired. Only our Admins see applications |
 | Recorded interviews (remote assistant roles): a video of each spoken answer (your camera and your voice) or the text you type, a written transcript, and a summary written by AI (how your answers match the role, your spoken English and anything to check). You agree before anything is recorded | To assess your application. Speech is turned into text and summarized by Cloudflare Workers AI on our behalf. A person at CarmaCars reviews the recording and makes every decision; the videos are deleted after 90 days; the AI never hires or declines anyone. Only our Admins see interviews |
 
@@ -162,7 +162,15 @@ If you turn on alerts on a phone or computer, your browser gives us an address a
 
 ### 11. Marketing messages
 
-We send promotional emails and texts only if you opted in, or where Canada's anti-spam law otherwise allows. Every message identifies us and lets you unsubscribe. We act on an unsubscribe within 10 business days. Messages about your booking, payments or safety are not marketing and are always sent.
+**Marketing emails.** If you give us your email address anywhere on carmacars.ca (a booking, an account, a contact or listing form, a discount game, or a form you started but did not send), we may send you marketing emails: a weekly email with the cars ready to rent and the deals running, and an email each time a new car joins our fleet. Under Canada's anti-spam law (CASL), your inquiry or business relationship with us, and the address you gave us, is implied consent to these emails. We do not send them to anyone who has unsubscribed.
+
+**Who sends them.** 18122211 Canada Inc., operating as CarmaCars{{mailingAddress}}. Questions: {{contactEmail}}, or our privacy officer, {{privacyOfficer}}.
+
+**Unsubscribe.** Every marketing email has an unsubscribe link. One click stops all our marketing emails to that address, and it takes effect at once. You can also turn offers off in your account under Notifications.
+
+**Always sent.** Messages about your booking, payments, account or safety are not marketing and are always sent.
+
+**Texts.** We send promotional texts only if you opted in.
 
 ### 12. Changes
 
