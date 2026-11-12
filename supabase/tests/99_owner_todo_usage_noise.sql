@@ -83,7 +83,7 @@ select app.usage_put('resend_day', app.today(), 'app', 0);
 
 -- ================================================================ 5. Cloudflare Email Service: absent, failing, sending
 create temp table on_cf as select cf_ok_at, cf_failed_at, cf_error from email_provider_state limit 1;
-update program_settings set cf_email_enabled = true;  -- off for the other suites (helpers.sql)
+update program_settings set cf_email_enabled = true, email_cloudflare_enabled = true;  -- off for the other suites (helpers.sql)
 update email_provider_state set cf_ok_at = null, cf_failed_at = now(), cf_error = 'no EMAIL binding on the Worker (Email Service not set up)';
 select test.eq('never sent, no binding: absent', app.cf_email_setup() ->> 'state', 'absent');
 update email_provider_state set cf_ok_at = now() - interval '2 hours', cf_failed_at = now() - interval '1 hour', cf_error = 'domain not verified';

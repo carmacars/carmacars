@@ -1,10 +1,11 @@
+-- 2600: Cloudflare sends only with the Program setting email_cloudflare_enabled (off by default; this suite switches it on).
 -- 99: Cloudflare email first (1750, the owner's rule of 2026-11-11). Sending whenever Cloudflare sent in the last 48 hours;
 -- a problem only without such a send, with the real reason. Each Toronto day Cloudflare sends first up to its daily
 -- budget (100), never past the month's included 3,000; then Resend's free 100; when both are used the emails wait by
 -- priority. No hourly hold, never a paid send. Fixtures start with "cff"; every address is example.test.
 select test.suite('99 r35 email cloudflare first');
 
-update program_settings set cf_email_enabled = true, cf_email_monthly_included = 3000, cf_email_daily_budget = 100,
+update program_settings set cf_email_enabled = true, email_cloudflare_enabled = true, cf_email_monthly_included = 3000, cf_email_daily_budget = 100,
                             notify_daily_cap = 300, notify_cf_daily_budget = 200, notify_resend_daily_budget = 100, notify_class_limits = '{97,95,90,80,60}';
 select test.eq('Cloudflare''s daily budget is 100 by default (3,000 a month spread over the month)',
   (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'cf_email_daily_budget'), '100');
@@ -58,7 +59,7 @@ select test.ok('a success with no provider row recreates it', (app.server_cf_ema
 select test.eq('and the status is sending', app.cf_email_setup() ->> 'state', 'ok');
 update program_settings set cf_email_enabled = false;
 select test.ok('switched off: off, and says so', (select c ->> 'state' = 'off' and c ->> 'reason' ilike '%turned off%' from (select app.cf_email_setup() c) x));
-update program_settings set cf_email_enabled = true;
+update program_settings set cf_email_enabled = true, email_cloudflare_enabled = true;
 
 -- ================================================================ 2. Cloudflare's day: 100, no hourly hold
 update email_provider_state set cf_ok_at = now() - interval '1 hour', cf_failed_at = null, cf_error = null;

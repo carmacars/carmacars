@@ -94,10 +94,27 @@ test('ses order: SES first when configured, on, with budget and not resting; the
 
 test('ses order: marketing never goes through SES unless email_ses_marketing is on', () => {
   const base = { sesConfigured: true, sesEnabled: true, sesLeft: 200, cfOn: true, cfLeft: 100, resendLeft: 100 };
-  assert.deepEqual(emailProviderOrder({ ...base, category: 'marketing' }), ['cf', 'resend']);
-  assert.deepEqual(emailProviderOrder({ ...base, category: 'marketing', sesMarketing: true }), ['ses', 'cf', 'resend']);
+  assert.deepEqual(emailProviderOrder({ ...base, category: 'marketing' }), ['resend']);
+  assert.deepEqual(emailProviderOrder({ ...base, category: 'marketing', sesMarketing: true }), ['ses', 'resend']);
   assert.deepEqual(emailProviderOrder({ ...base, category: 'transactional' }), ['ses', 'cf', 'resend']);
   assert.equal(sesMaySend('marketing', false), false);
   assert.equal(sesMaySend('transactional', false), true);
   assert.equal(sesMaySend('staff', false), true);
+});
+
+test('email route (2600): booking and system email SES then Resend; marketing Resend only; Cloudflare off by default', () => {
+  // email_cloudflare_enabled off: the database reports no Cloudflare budget (cfOn false, cfLeft 0)
+  const off = { sesConfigured: true, sesEnabled: true, sesLeft: 200, sesResting: false, cfOn: false, cfLeft: 0, resendLeft: 100 };
+  for (const category of ['transactional', 'staff', 'digest', undefined]) assert.deepEqual(emailProviderOrder({ ...off, category }), ['ses', 'resend']);
+  assert.deepEqual(emailProviderOrder({ ...off, category: 'marketing' }), ['resend']);
+  // SES not set up, resting, used up or off: Resend's free plan sends the booking email
+  assert.deepEqual(emailProviderOrder({ ...off, category: 'transactional', sesConfigured: false }), ['resend']);
+  assert.deepEqual(emailProviderOrder({ ...off, category: 'transactional', sesResting: true }), ['resend']);
+  assert.deepEqual(emailProviderOrder({ ...off, category: 'transactional', sesLeft: 0 }), ['resend']);
+  // Resend's free day used: nothing may send (held, never a paid plan)
+  assert.deepEqual(emailProviderOrder({ ...off, category: 'marketing', resendLeft: 0 }), []);
+  // Cloudflare switched on again: booking email may use it after SES, marketing never
+  const on = { ...off, cfOn: true, cfLeft: 50 };
+  assert.deepEqual(emailProviderOrder({ ...on, category: 'transactional' }), ['ses', 'cf', 'resend']);
+  assert.deepEqual(emailProviderOrder({ ...on, category: 'marketing' }), ['resend']);
 });

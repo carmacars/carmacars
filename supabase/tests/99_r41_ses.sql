@@ -1,11 +1,12 @@
 -- 99: Amazon SES first (2570, release 41). SES sends first while the sender has its keys (seen in the last hour), the
 -- Program setting email_ses_enabled is on and today's SES sends are under email_ses_daily_max (200 in the sandbox); then
--- Cloudflare, then Resend's free plan. SES's day adds to the day's capacity (and so to the marketing allowance of 2520);
--- its sends never count as Resend's. Marketing never goes through SES unless email_ses_marketing is on (off by default):
--- SES's day then covers the reserve for booking email, and marketing uses the free capacity it frees. Fixtures start with "zses"; every address is example.test.
-select test.suite('99 r41 Amazon SES first (2570)');
+-- Resend's free plan (Cloudflare only with email_cloudflare_enabled, off by default, 2600). SES's day adds to the day's
+-- capacity; its sends never count as Resend's. Marketing never goes through SES unless email_ses_marketing is on (off by
+-- default): the marketing allowance (2600) is Resend's free capacity less what booking email used of it through the
+-- fallback. Fixtures start with "zses"; every address is example.test.
+select test.suite('99 r41 Amazon SES first (2570), email route (2600)');
 
-update program_settings set cf_email_enabled = false, notify_resend_daily_budget = 100, notify_daily_cap = 300;
+update program_settings set cf_email_enabled = false, email_cloudflare_enabled = false, notify_resend_daily_budget = 100, notify_daily_cap = 300;
 create temp table zses_code as select code from notification_catalogue where audience = 'renter' and has_email and is_enabled and category = 'transactional'
   and code not like '%reminder%' order by code limit 1;
 -- every other email of the earlier suites out of the way, and their sends of today on a far past day
@@ -27,6 +28,12 @@ select test.eq('settings: SES on, 200 a day by default (the sandbox), never mark
     where table_name = 'program_settings' and column_name in ('email_ses_enabled', 'email_ses_daily_max', 'email_ses_marketing')),
   'email_ses_daily_max=200,email_ses_enabled=true,email_ses_marketing=false');
 update program_settings set email_ses_enabled = true, email_ses_daily_max = 200, email_ses_marketing = false;
+select test.eq('2600: Cloudflare sending is off by default',
+  (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'email_cloudflare_enabled'), 'false');
+update program_settings set cf_email_enabled = true;
+select test.eq('2600: Cloudflare set up but email_cloudflare_enabled off: no budget, not tried, the banner says off',
+  format('%s|%s|%s', app.cf_email_left(), app.cf_email_try(), app.cf_email_setup() ->> 'state'), '0|f|off');
+update program_settings set cf_email_enabled = false;
 
 -- ================================================================ without keys nothing changes
 update email_provider_state set ses_seen_at = null, ses_ok_at = null, ses_failed_at = null, ses_error = null;
@@ -39,18 +46,21 @@ select test.eq('keys seen over an hour ago: not tried', app.ses_email_left(), 0)
 create temp table zses_before as select app.email_day_cap_pre2570() cap0, app.marketing_daily_max() mkt0, app.outbox_sent_today() resend0;
 select test.eq('the sender reports its keys: SES may send 200 today', (public.server_ses_email_result('{"seen": true}') ->> 'ses_left')::integer, 200);
 select test.eq('the day''s capacity is SES''s 200 on top', app.email_day_cap() - (select cap0 from zses_before), 200);
-select test.eq('marketing stays off SES: its allowance is the free capacity, the reserve now covered by SES''s day',
-  app.marketing_daily_max(), greatest((select notify_marketing_daily_max from app.settings()), app.email_day_cap_pre2570()));
-select test.ok('so it still grows, by the reserve SES takes over', app.marketing_daily_max() > (select mkt0 from zses_before));
+select test.eq('2600: marketing stays off SES and Cloudflare: its allowance is Resend''s free capacity (100), none of it used by booking email yet',
+  app.marketing_daily_max(), 100);
 update program_settings set email_ses_marketing = true;
-select test.eq('with email_ses_marketing on: the whole capacity, SES''s included, less the reserve',
-  app.marketing_daily_max() - (select mkt0 from zses_before), 200);
+select test.eq('with email_ses_marketing on: SES''s day is added to it',
+  app.marketing_daily_max(), 300);
 select test.eq('and the sender is told', (public.server_email_budgets() ->> 'ses_marketing')::boolean, true);
 update program_settings set email_ses_marketing = false;
 select test.eq('off again: the sender keeps marketing off SES', (public.server_email_budgets() ->> 'ses_marketing')::boolean, false);
 select test.zses_sent('s1', 'ses:0100abc');
 select test.eq('an SES send counts against SES''s day', app.ses_email_left(), 199);
 select test.eq('and never as Resend''s', app.outbox_sent_today(), (select resend0 from zses_before));
+select test.eq('and it takes nothing off the marketing allowance', app.marketing_daily_max(), 100);
+select test.zses_sent('f0', 're_zses_f0');
+select test.eq('2600: a booking email Resend sent after an SES refusal takes one off the marketing allowance', app.marketing_daily_max(), 99);
+delete from notification_outbox where dedupe_key = 'zses-f0';
 select test.eq('the sender''s budgets', (select format('%s|%s|%s', b ->> 'ses_used', b ->> 'ses_left', b ->> 'resend_used') from (select public.server_email_budgets() b) x), '1|199|0');
 select test.eq('Settings > Usage: SES 1 of 200, sending through SES, Resend 0',
   (select format('%s of %s|%s|%s', p ->> 'ses_today', p ->> 'ses_day_budget', p ->> 'limited_by', p ->> 'resend_today') from (select app.email_pace() p) x), '1 of 200|ses|0');
@@ -58,6 +68,7 @@ select test.eq('the booking page''s email box says SES', app.email_capacity() ->
 
 -- the claim: with Cloudflare off and Resend's day used, SES's turn still claims (at most what SES has left)
 select test.zses_sent('r' || g, 're_zses' || g) from generate_series(1, 100) g;
+select test.eq('2600: Resend''s day used by booking email leaves marketing nothing', app.marketing_daily_max(), 0);
 select test.zses_queue('q' || g) from generate_series(1, 5) g;
 update program_settings set email_ses_daily_max = 4;
 select test.eq('SES''s turn: the claim takes what SES has left (3 of 5), Resend''s day used', (select count(*) from app.outbox_claim(20, now())), 3::bigint);

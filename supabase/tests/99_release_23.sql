@@ -87,7 +87,7 @@ update program_settings p set usage_banner_red_usd = x.r from r23red x where x.i
 select test.ok('a 70% level exists for the CPU time', (select warn_bps = 7000 from usage_services where service = 'workers_cpu'));
 
 -- ================================================================ 3. Cloudflare email first (0222)
-update program_settings set cf_email_enabled = true;  -- off for the other suites (helpers.sql)
+update program_settings set cf_email_enabled = true, email_cloudflare_enabled = true;  -- off for the other suites (helpers.sql)
 select test.ok('the sender tries Cloudflare (on, under the month''s 3,000)', app.cf_email_try());
 -- 0535: Cloudflare gets its chance before its first send (the claim held every email until it had sent, so it never did)
 select test.ok('while Cloudflare may send, Resend''s limits hold nothing, before its first send too', app.cf_email_available());

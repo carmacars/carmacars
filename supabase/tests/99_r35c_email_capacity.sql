@@ -3,7 +3,7 @@
 -- binding, off, refused). The booking page's email box carries the same.
 select test.suite('99 r35c email capacity');
 
-update program_settings set notify_daily_cap = 300, cf_email_daily_budget = 100, notify_resend_daily_budget = 100, cf_email_monthly_included = 3000, cf_email_enabled = true;
+update program_settings set notify_daily_cap = 300, cf_email_daily_budget = 100, notify_resend_daily_budget = 100, cf_email_monthly_included = 3000, cf_email_enabled = true, email_cloudflare_enabled = true;
 update email_provider_state set cf_ok_at = null, cf_failed_at = now() - interval '1 hour', cf_error = 'no EMAIL binding on the Worker (Email Service not set up)';
 create temp table c35_cf as select id, provider_id from notification_outbox where provider_id like 'cf:%';
 update notification_outbox set provider_id = 'x' || provider_id where id in (select id from c35_cf);
@@ -16,7 +16,7 @@ select test.eq('Cloudflare''s day and Resend''s together make the day (Cloudflar
 update program_settings set cf_email_enabled = false;
 select test.ok('switched off: the reason says so', (select app.email_pace() ->> 'cf_reason') ilike '%turned off%');
 select test.eq('switched off: Resend''s day only', (select (p ->> 'day_cap')::integer from (select app.email_pace() p) x), 100);
-update program_settings set cf_email_enabled = true;
+update program_settings set cf_email_enabled = true, email_cloudflare_enabled = true;
 
 update email_provider_state set cf_ok_at = now(), cf_failed_at = null, cf_error = null;
 select test.eq('Cloudflare sends: no reason, Cloudflare''s turn',

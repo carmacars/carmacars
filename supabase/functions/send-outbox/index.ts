@@ -29,6 +29,11 @@
 // keys nothing changes. SES is paid per use: the owner approved it (the one exception to "never a paid send").
 // Marketing email never goes through SES unless the Program setting email_ses_marketing is on (off: SES production access
 // is for transactional email; marketing stays on Cloudflare and Resend).
+//
+// R41 (2600, docs/changes/2026-11-12-r41-email-route.md, the owner's final rule): booking and system email (every category
+// but marketing) goes through SES first, then Resend's free plan when SES is not set up or refuses it; marketing goes
+// through Resend's free plan only. Cloudflare sends nothing while the Program setting email_cloudflare_enabled is off (the
+// default: the database reports a Cloudflare budget of 0) and never marketing. Never a paid plan but SES.
 import postgres from 'npm:postgres@3.4.5';
 import { render, renderText } from './engine.mjs';
 import { combineEmails } from './combine.ts';
@@ -239,11 +244,14 @@ async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
     }
     const noteSes = async () => { if (sesError) await sql`select public.server_outbox_note_ses_fallback(${r.id}::uuid, ${sesError})`.catch(() => {}); };
     if (cfOn && budget.cfLeft <= 0) cfOn = false;
-    if (!cfOn && budget.resendLeft <= 0) {
+    // 2600: Cloudflare never sends marketing, and sends nothing while email_cloudflare_enabled is off (its budget is 0 then)
+    const cfHere = cfOn && r.category !== 'marketing';
+    const cfHelps = budget.cfLeft > 0 && r.category !== 'marketing';
+    if (!cfHere && budget.resendLeft <= 0) {
       // 0535: Resend's budget is used and Cloudflare cannot send right now. With Cloudflare budget left today (it rests 15
       // minutes after a refusal) the email waits 16 minutes; only when both budgets are used it waits for tomorrow,
       // attempts untouched (oldest, highest priority first when it comes due)
-      if (budget.cfLeft > 0) {
+      if (cfHelps) {
         const h = new Held('waiting for Cloudflare email (Resend\'s budget for today is used)', 'later', false, new Date(Date.now() + 16 * 60_000));
         await defer(r, h);
         return h;
@@ -251,7 +259,7 @@ async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
       await sql`select app.outbox_defer(${r.id}::uuid, ${'the day\'s email budget is used'}, ${budget.midnight})`;
       return new Held('the day\'s email budget is used', 'later', true);
     }
-    if (cfOn) {
+    if (cfHere) {
       const cf = await viaCloudflare({ from: fromHeader(r.from_address), to: r.to_address, reply_to: r.reply_to || undefined, subject, html, text,
         headers: Object.keys(headers).length ? headers : undefined, attachments: files.length ? files : undefined });
       if ('id' in cf) {
@@ -280,7 +288,7 @@ async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
         // 2026-11-06: Resend refused for its rate or quota: the Cloudflare email binding sends this one instead (the site's
         // Worker), and the rest of the batch goes there too; only when that fails too the row waits, attempts untouched
         // 1750: only within Cloudflare's budget for today (never past the month's included emails)
-        if (LINK_KEY && budget.cfLeft > 0) {
+        if (LINK_KEY && cfHelps) {
           const cf = await viaCloudflare({ from: fromHeader(r.from_address), to: r.to_address, reply_to: r.reply_to || undefined, subject, html, text,
             headers: Object.keys(headers).length ? headers : undefined, attachments: files.length ? files : undefined });
           if ('id' in cf) {
