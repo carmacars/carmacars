@@ -167,7 +167,7 @@ export function staffFields(f: StaffFacts): Field[] {
 }
 
 const addressWords = (v: Record<string, string>) => (v.address ?? '').trim() || 'the home address in the Employee\'s staff profile';
-const licenceWords = (v: Record<string, string>) => (v.licence ?? '').trim() ? `Ontario Class G, number ${v.licence.trim()}` : 'Ontario Class G, as shown on the licence copy the Employee provides in the staff portal';
+const licenceWords = (v: Record<string, string>) => (v.licence ?? '').trim() ? `Ontario Class G, number ${(v.licence ?? '').trim()}` : 'Ontario Class G, as shown on the licence copy the Employee provides in the staff portal';
 
 const signatureLines = (md: string, c: Company, name: string) => md
   .replace(/^By: \[●\], \[●\] \(title\)\. Date: \[●\]$/m, `By: ${c.signing_officer_name ?? ''}, ${c.signing_officer_title ?? ''} (title). Date: ${DATE_SIGNED}. Signature: ${ON_SIGNATURE}.`)
