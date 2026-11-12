@@ -15,3 +15,15 @@
 .sl-transcript { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); max-height: 28rem; overflow: auto; }
 .sl-transcript li { overflow-wrap: anywhere; }
 .sl-table-wrap { overflow-x: auto; }
+/* 2411: the person behind the lead (RenterContext), on the lead page and under a card's Renter button; bulk assignment */
+.rc { gap: var(--s-2); min-width: 0; }
+.rc-head p { margin: 0; }
+.rc-sec { border-top: 1px solid var(--grey-200); padding-top: var(--s-2); min-width: 0; }
+.rc-sec > summary { cursor: pointer; min-height: 2.75rem; display: flex; align-items: center; gap: var(--s-1); }
+.rc-sec__body { display: grid; gap: var(--s-2); padding-bottom: var(--s-2); min-width: 0; }
+.rc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-1); max-height: 22rem; overflow: auto; }
+.rc-list li { overflow-wrap: anywhere; }
+.rc-red { color: var(--red-600); }
+.sl-pick { display: inline-flex; align-items: center; gap: var(--s-1); min-height: 2.75rem; }
+.sl-bulk { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; padding: var(--s-3); border: 1px solid var(--grey-200); border-radius: 0.5rem; }
+.sl-bulk select { max-width: 100%; }
