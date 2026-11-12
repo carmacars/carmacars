@@ -32537,6 +32537,7 @@ export type Database = {
       server_company_signers: { Args: never; Returns: Json };
       server_complete_signature_request: { Args: { p_request: string; p_signed_storage_path: string; p_signed_sha256: string }; Returns: string };
       server_confirm_extension_payment: { Args: { p_extension: string; p_processor: Json; p_amount_cents: number; p_by: string }; Returns: Json };
+      server_coverage_card_network: { Args: { p_booking: string }; Returns: Json };
       server_coverage_click: { Args: { p: Json; p_ip?: string }; Returns: Json };
       server_coverage_detail: { Args: { p_booking: string }; Returns: Json };
       server_dash_read_gate: { Args: { p_booking: string; p_by: string; p_token?: string }; Returns: Json };

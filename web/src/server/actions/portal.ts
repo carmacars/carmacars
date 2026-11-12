@@ -254,7 +254,8 @@ export async function signAsDriver(token: string, input: SignInput): Promise<R> 
 }
 
 // ---------------------------------------------------------------- payment
-export interface StartedPayment { provider: 'stripe' | 'fake'; intentId: string; clientSecret: string; amountCents: number; publishableKey: string | null; legalName: string }
+export interface StartedPayment { provider: 'stripe' | 'fake'; intentId: string; clientSecret: string; amountCents: number; publishableKey: string | null; legalName: string;
+  /** release 42: the network of the card that covers this rental (credit card coverage), else null */ coverageNetwork: { brand: string; label: string } | null }
 
 export async function startPayment(number: string): Promise<R<StartedPayment>> {
   try {
@@ -280,7 +281,10 @@ export async function startPayment(number: string): Promise<R<StartedPayment>> {
     if (!f.vehicle_free) return fail(reasonMessage('vehicle_taken'), 'pushed_back');
     const i = await bookingIntent(f);
     const p = await payments();
-    return { ok: true, data: { provider: p.name, intentId: i.id, clientSecret: i.clientSecret ?? '', amountCents: i.amountCents, publishableKey: env().NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? null, legalName: f.legal_name } };
+    // credit card coverage: the notice and the browser check name the network of the covering card (2610)
+    const need = (await rpc('server_coverage_card_network', { p_booking: b.id }, { role: 'service_role' as const }).catch(() => null)) as unknown as { required?: boolean; brand?: string; label?: string } | null;
+    const coverageNetwork = need?.required && need.brand && need.label ? { brand: need.brand, label: need.label } : null;
+    return { ok: true, data: { provider: p.name, intentId: i.id, clientSecret: i.clientSecret ?? '', amountCents: i.amountCents, publishableKey: env().NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? null, legalName: f.legal_name, coverageNetwork } };
   } catch (e) { return fail(dbMessage(e)); }
 }
 

@@ -4,12 +4,15 @@ import { scrollOption } from '@/lib/nav/same-page';
 import { useRouter } from 'next/navigation';
 import { fakeConfirmCard, finalizePayment, startPayment, type StartedPayment } from '@/server/actions/portal';
 import { money } from '@/lib/format';
+import { coverageNetworkNotice, coverageNetworkProblem, networkFromNumber } from '@/features/coverage/card';
 
 // The pay step (02 section 6). The card form is Stripe's Payment Element in Stripe's own frame (the card
 // number never touches our pages); locally the fake adapter stands in with Stripe's test card numbers.
 // The card is authorized here; the server confirms the booking and only then captures.
 interface StripeJs {
   elements(o: { clientSecret: string; appearance?: unknown }): { create(type: 'payment', o?: unknown): { mount(el: HTMLElement): void; destroy(): void } };
+  /** Stripe.js: the card's brand before it is charged, when the Payment Element can tell */
+  createPaymentMethod?(o: { elements: unknown; params?: Record<string, unknown> }): Promise<{ error?: { message?: string }; paymentMethod?: { card?: { brand?: string } } }>;
   confirmPayment(o: { elements: unknown; redirect: 'if_required'; confirmParams: Record<string, unknown> }): Promise<{ error?: { message?: string }; paymentIntent?: { id: string; status: string } }>;
 }
 declare global { interface Window { Stripe?: (key: string) => StripeJs } }
@@ -60,7 +63,7 @@ export function PayForm({ number, amountCents, depositCents, coverageOption = nu
     if (r.ok && r.data.ok) { router.push(`/account/bookings/${encodeURIComponent(number)}?paid=1`, scrollOption(`/account/bookings/${encodeURIComponent(number)}?paid=1`)); return; }
     const text = r.ok ? (r.data as { message: string }).message : r.message;
     const reason = r.ok && !r.data.ok ? r.data.reason : '';
-    setMsg({ kind: ['vehicle_taken', 'not_awaiting_payment', 'vehicle_not_bookable', 'offer_changed'].includes(reason) ? 'pushed' : 'error', text, coverage: reason === 'card_not_credit_coverage' });
+    setMsg({ kind: ['vehicle_taken', 'not_awaiting_payment', 'vehicle_not_bookable', 'offer_changed'].includes(reason) ? 'pushed' : 'error', text, coverage: reason === 'card_not_credit_coverage' || reason === 'card_network_mismatch' });
     setBusy(false);
   };
 
@@ -75,6 +78,11 @@ export function PayForm({ number, amountCents, depositCents, coverageOption = nu
       if (!/^\d{2}\s*\/\s*\d{2}$/.test(card.exp)) fe.exp = 'Use MM / YY.';
       if (!/^\d{3,4}$/.test(card.cvc)) fe.cvc = 'Enter the 3 or 4 digits.';
     }
+    // release 42: credit card coverage pays on the covering card; a card of another network is stopped before it is charged
+    if (p.coverageNetwork && p.provider === 'fake') {
+      const bad = coverageNetworkProblem(p.coverageNetwork.brand, networkFromNumber(card.number), p.coverageNetwork.label);
+      if (bad) fe.number = bad;
+    }
     setErrors(fe);
     if (Object.keys(fe).length) { requestAnimationFrame(() => document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()); return; }
     setBusy(true); setMsg(null);
@@ -85,6 +93,12 @@ export function PayForm({ number, amountCents, depositCents, coverageOption = nu
         if (c.data.status !== 'requires_capture') { setMsg({ kind: 'error', text: c.data.error ?? 'Your card was declined.' }); setBusy(false); return; }
         await finish(p.intentId);
       } else if (stripe.current) {
+        // the brand of the card typed in Stripe's frame, when Stripe can tell before charging (otherwise the server checks it)
+        if (p.coverageNetwork && stripe.current.js.createPaymentMethod) {
+          const pm = await stripe.current.js.createPaymentMethod({ elements: stripe.current.elements, params: { billing_details: { name } } }).catch(() => null);
+          const bad = coverageNetworkProblem(p.coverageNetwork.brand, pm?.paymentMethod?.card?.brand, p.coverageNetwork.label);
+          if (bad) { setMsg({ kind: 'error', text: bad, coverage: true }); setBusy(false); return; }
+        }
         const r = await stripe.current.js.confirmPayment({ elements: stripe.current.elements, redirect: 'if_required', confirmParams: { payment_method_data: { billing_details: { name } }, return_url: `${location.origin}/account/bookings/${encodeURIComponent(number)}/checkout` } });
         if (r.error) { setMsg({ kind: 'error', text: r.error.message ?? 'Your card was declined.' }); setBusy(false); return; }
         await finish(r.paymentIntent?.id ?? p.intentId);
@@ -138,6 +152,7 @@ export function PayForm({ number, amountCents, depositCents, coverageOption = nu
           </div>
         </div>
       ) : <div className="pt-cardbox" ref={mount} role="group" aria-label="Card details">{!p && <div className="skeleton sk-line" aria-hidden="true" />}</div>}
+      {p?.coverageNetwork && <p className="alert alert--warn" role="note" data-testid="pay-coverage-network"><span>{coverageNetworkNotice(p.coverageNetwork.label)}</span></p>}
       <p className="small">This card becomes your Card on File for the {money(depositCents)} deposit hold on the day of pickup and any later charges, as you authorized when signing.</p>
       {debitOk && coverageOption !== 2 && <p className="small muted" data-testid="pay-debit-note">With a debit or prepaid card, the deposit hold lowers the money available on your card or account until it is released, and the release can take several business days.</p>}
       {msg && <p className={`alert ${msg.kind === 'wait' ? 'alert--warn' : 'alert--error'}`} role={msg.kind === 'wait' ? 'status' : 'alert'} data-testid="pay-message"><span>{msg.text}

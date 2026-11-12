@@ -48,3 +48,38 @@ test('the staff hint per card type comes from the brand and funding only', () =>
   assert.equal(cardCoverageHint(null), null);
   assert.equal(cardLabel({ brand: 'amex', last4: '0005' }), 'American Express ending 0005');
 });
+
+// Release 42: the pay page names the network of the card that covers the rental and stops a card of another network
+import { coverageNetworkNotice, coverageNetworkProblem, networkFromNumber, networkKey } from './card.ts';
+
+test('network keys: one key per network whatever the spelling', () => {
+  assert.equal(networkKey('American Express'), 'amex');
+  assert.equal(networkKey('amex'), 'amex');
+  assert.equal(networkKey(' MasterCard '), 'mastercard');
+  assert.equal(networkKey('Visa'), 'visa');
+  assert.equal(networkKey(''), null);
+  assert.equal(networkKey(null), null);
+});
+
+test('network from the digits: the test cards and the common ranges', () => {
+  assert.equal(networkFromNumber('4242 4242 4242 4242'), 'visa');
+  assert.equal(networkFromNumber('5555 5555 5555 4444'), 'mastercard');
+  assert.equal(networkFromNumber('2223 0000 0000 0000'), 'mastercard');
+  assert.equal(networkFromNumber('3782 822463 10005'), 'amex');
+  assert.equal(networkFromNumber('6011 1111 1111 1117'), 'discover');
+  assert.equal(networkFromNumber('4'), null);
+  assert.equal(networkFromNumber(''), null);
+});
+
+test('coverage network: the notice, and a card of another network is blocked with a plain message', () => {
+  assert.equal(coverageNetworkNotice('Visa'), 'Pay with the card that covers this rental (Visa).');
+  assert.equal(coverageNetworkProblem('visa', 'visa', 'Visa'), null);
+  assert.equal(coverageNetworkProblem('amex', 'American Express', 'American Express'), null);
+  assert.equal(coverageNetworkProblem('visa', null, 'Visa'), null, 'unknown network: the server decides');
+  assert.equal(coverageNetworkProblem(null, 'mastercard', 'Visa'), null, 'no coverage network known: nothing to check');
+  const m = coverageNetworkProblem('visa', 'mastercard', 'Visa')!;
+  assert.match(m, /^Pay with the card that covers this rental \(Visa\)\./);
+  assert.match(m, /Mastercard card/);
+  assert.match(m, /Nothing was charged/);
+  assert.doesNotMatch(m, /—/);
+});
