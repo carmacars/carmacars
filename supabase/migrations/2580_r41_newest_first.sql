@@ -25,11 +25,11 @@ select pg_temp.patch_fn('app.admin_list(uuid, text, jsonb)'::regprocedure,
                                                   ''started_at'', ''at'', ''changed_at'', ''updated_at'']) c where c = any (v_cols) limit 1),
                       v_cols[1]);');
 select pg_temp.patch_fn('app.admin_list(uuid, text, jsonb)'::regprocedure,
-  'order by t.%I %s nulls last), ''[]''::jsonb)
+  'order by t.%I %s nulls last), ''''[]''''::jsonb)
                     from (select * from public.%I t where %s order by t.%I %s nulls last limit %s offset %s) t'',
                  v_order, case when coalesce((p ->> ''asc'')::boolean, false) then ''asc'' else ''desc'' end,
                  p_rel, v_where, v_order, case when coalesce((p ->> ''asc'')::boolean, false) then ''asc'' else ''desc'' end, v_limit, v_offset)',
-  'order by t.%I %s nulls last%s), ''[]''::jsonb)
+  'order by t.%I %s nulls last%s), ''''[]''''::jsonb)
                     from (select * from public.%I t where %s order by t.%I %s nulls last%s limit %s offset %s) t'',
                  v_order, case when coalesce((p ->> ''asc'')::boolean, false) then ''asc'' else ''desc'' end, case when ''id'' = any (v_cols) and v_order <> ''id'' then '', t.id desc'' else '''' end,
                  p_rel, v_where, v_order, case when coalesce((p ->> ''asc'')::boolean, false) then ''asc'' else ''desc'' end, case when ''id'' = any (v_cols) and v_order <> ''id'' then '', t.id desc'' else '''' end, v_limit, v_offset)');
