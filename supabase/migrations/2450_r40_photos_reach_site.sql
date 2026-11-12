@@ -84,16 +84,17 @@ begin
       || coalesce((select jsonb_agg(e order by k) from jsonb_array_elements(ph) with ordinality t(e, k) where k > 1 or not coalesce((e ->> 'is_cover')::boolean, false)), '[]'::jsonb);
 end $$;
 
-alter function app.public_listing_row(uuid) rename to public_listing_row_pre2450;
-create function app.public_listing_row(p_vehicle uuid) returns jsonb
+-- 5: the cover fallback is part of the live row (app.public_listing_row_live), so the listing cache (0102) holds it and
+-- the fleet, the car page and the cache all give the same row; the cache refreshes on every vehicle_photos change.
+alter function app.public_listing_row_live(uuid) rename to public_listing_row_live_pre2450;
+create function app.public_listing_row_live(p_vehicle uuid) returns jsonb
 language plpgsql stable security definer set search_path = public, app as $$
 declare
-  r jsonb := app.public_listing_row_pre2100(p_vehicle);
-  c record;
+  r jsonb := app.public_listing_row_live_pre2450(p_vehicle);
   ph vehicle_photos;
 begin
   if r is null then return null; end if;
-  -- 5: no public cover photo while the car has an approved public photo: that photo is the cover, not a sample
+  -- no public cover photo while the car has an approved public photo: that photo is the cover, not a sample
   if coalesce((r ->> 'sample_photos')::boolean, false) then
     ph := app.cover_photo(p_vehicle);
     if ph.id is not null then
@@ -101,6 +102,18 @@ begin
                                    'sample_photos', false);
     end if;
   end if;
+  return r;
+end $$;
+select pg_temp.copy_grants('app.public_listing_row_live(uuid)'::regprocedure, 'app.public_listing_row_live_pre2450(uuid)'::regprocedure);
+
+alter function app.public_listing_row(uuid) rename to public_listing_row_pre2450;
+create function app.public_listing_row(p_vehicle uuid) returns jsonb
+language plpgsql stable security definer set search_path = public, app as $$
+declare
+  r jsonb := app.public_listing_row_pre2100(p_vehicle);
+  c record;
+begin
+  if r is null then return null; end if;
   -- 2100: a made cover (with a model, or the flyer) first when the listing's style asks for one and it is current
   select * into c from app.listing_cover_shown(p_vehicle) s where s.id is not null;
   if c.id is not null then
@@ -264,7 +277,7 @@ do $$
 declare f record;
 begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-            where n.nspname = 'app' and p.proname in ('listing_job_context_pre2450', 'public_listing_row_pre2450', 'worker_claim_listing_jobs_pre2450',
+            where n.nspname = 'app' and p.proname in ('listing_job_context_pre2450', 'public_listing_row_pre2450', 'public_listing_row_live_pre2450', 'worker_claim_listing_jobs_pre2450',
               'worker_listing_result_pre2450', 'listing_photos_reprocess_local_pre2450', 'listing_photo_problems_pre2450') loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);
     execute format('grant execute on function %s to service_role', f.sig);
@@ -287,3 +300,6 @@ begin
   values (null, 'listing_photos_reprocess_local', 'listing_jobs', null, r || jsonb_build_object('approved_live', n, 'by', 'migration 2450'));
   raise notice '2450: % photo steps of % listings queued again, % photos of live listings approved', r ->> 'steps', r ->> 'listings', n;
 end $$;
+
+-- every car's cached row again, with the cover of 5
+select app.listing_cache_refresh_all();
