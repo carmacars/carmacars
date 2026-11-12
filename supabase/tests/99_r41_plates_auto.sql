@@ -4,8 +4,9 @@
 -- plate" saves the CARMA plate. Fixtures start with "rpa"; addresses example.test.
 select test.suite('99 r41 plates checked by themselves (2530)');
 
-create temp table rpa_prev as select listing_plate_check_required as plate, plate_auto_enabled as auto from app.settings();
-update program_settings set listing_plate_check_required = true, plate_auto_enabled = true where id = (select id from app.settings());
+create temp table rpa_prev as select listing_plate_check_required as plate, plate_auto_enabled as auto, ai_vision_enabled as vision from app.settings();
+-- the check needs the vision model on (an earlier suite may have turned it off)
+update program_settings set listing_plate_check_required = true, plate_auto_enabled = true, ai_vision_enabled = true where id = (select id from app.settings());
 
 select test.mk_user('rpa_admin', 'admin');
 select test.mk_user('rpa_fleet', 'va', 'fleet');
@@ -104,7 +105,9 @@ select app.plate_auto_apply(jsonb_build_object('photo_id', (select dash from rpa
   'decision', 'not_visible', 'confidence', 92));
 select app.photo_plate_auto_undo(test.id('rpa_admin'), jsonb_build_object('photo', (select dash from rpap)));
 select test.eq('an automatic "No plate visible" undone: not checked', (select plate_status from vehicle_photos where id = (select dash from rpap)), 'unchecked');
-select test.ok('the door takes the undo for staff', (select position('photo_plate_auto_undo' in prosrc) > 0 from pg_proc where oid = 'app.door(uuid, text, text, text, jsonb)'::regprocedure));
+-- through the door (wrapped again by 2540 and 2590): it reaches the undo, which refuses a photo already undone
+select test.throws('the door takes the undo for staff',
+  format($q$select app.door(%L, 'aal2', 'ops_do', 'photo_plate_auto_undo', jsonb_build_object('photo', %L::uuid))$q$, test.id('rpa_fleet'), (select fl from rpap)), 'not checked automatically');
 
 -- ---------------------------------------------------------------- 4. "Cover the plate" with the CARMA plate saves
 select app.photo_plate_record(test.id('rpa_fleet'), jsonb_build_object('photo', (select fl from rpap), 'status', 'covered', 'style', 'carma',
@@ -120,4 +123,4 @@ update program_settings set plate_auto_enabled = false where id = (select id fro
 update listing_jobs set status = 'cancelled' where vehicle_id = test.id('vehicle:rpa_car') and kind = 'plate_auto' and status in ('queued', 'running');
 select test.eq('with the check off nothing is queued', app.plate_auto_queue(null, test.id('vehicle:rpa_car')), 0);
 
-update program_settings set listing_plate_check_required = (select plate from rpa_prev), plate_auto_enabled = (select auto from rpa_prev) where id = (select id from app.settings());
+update program_settings set listing_plate_check_required = (select plate from rpa_prev), plate_auto_enabled = (select auto from rpa_prev), ai_vision_enabled = (select vision from rpa_prev) where id = (select id from app.settings());

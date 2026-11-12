@@ -226,13 +226,16 @@ insert into visitor_signals (dedupe_key, visitor_id, renter_id, kind, label, boo
 values ('offer:c62r4:1', test.id('c62vid'), test.id('renter:c62_rita'), 'offer_opened', 'Opened offer C62-R4', test.id('booking:C62-R4'), test.t62(), test.t62());
 select test.eq('an offer that expires within 7 hours gets no recovery email', app.job_booking_recovery(test.t62('4 hours 30 minutes')), 'sent 0, stopped 0');
 
--- a request started and stopped: marketing, so only with express consent
+-- a request started and stopped: marketing. With marketing to everyone off, only with express consent; with it on (r41,
+-- 2520: the owner's rule, an address given on the site is the basis, unless unsubscribed) the tick is not needed
 insert into visitor_signals (dedupe_key, visitor_id, renter_id, kind, label, vehicle_id, first_at, last_at)
 values ('request:c62:1', test.id('c62vid'), test.id('renter:c62_rita'), 'request_stopped', 'Started a request and stopped', test.id('vehicle:c62car2'), test.t62(), test.t62());
 update users set marketing_opt_in = false, marketing_opt_in_at = null where id = test.id('c62_rita');
+update program_settings set marketing_everyone_enabled = false;
 select test.eq('a request: no consent, no email', app.job_booking_recovery(test.t62('3 hours')), 'sent 0, stopped 0');
+update program_settings set marketing_everyone_enabled = true;
+select test.eq('marketing to everyone (2520): one reminder without the tick', app.job_booking_recovery(test.t62('3 hours')), 'sent 1, stopped 0');
 update users set marketing_opt_in = true, marketing_opt_in_at = test.t62('-30 days') where id = test.id('c62_rita');
-select test.eq('with consent: one reminder', app.job_booking_recovery(test.t62('3 hours')), 'sent 1, stopped 0');
 select test.flush62();
 select test.eq('marketing: queued with an unsubscribe link and the car''s page',
   (select format('%s %s %s %s', category, status, (payload ->> 'unsubscribe_url') like 'https://carmacars.ca/%token=%', payload ->> 'car_url') from notification_outbox where code = 'renter_recovery_request' and to_address = 'c62_rita@example.test'),

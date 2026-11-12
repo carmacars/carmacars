@@ -69,7 +69,9 @@ insert into r35sec_anon_ok values
   -- r35/r36 public reads (2140 checked each: read-only, public page data only)
   ('airport_pages'), ('calc_rental_charge_tiers'), ('delivery_to_point'), ('fleet_popular_ids'), ('rent_vs_own_inputs'),
   ('rent_vs_own_page'), ('review_summary'), ('seo_event'), ('seo_events_list'), ('seo_i18n_bundle'), ('seo_languages_state'), ('vehicle_language_ok'),
-  ('sitemap_families'), ('sitemap_languages'), ('tracker_product');
+  ('sitemap_families'), ('sitemap_languages'), ('tracker_product'),
+  -- r41 live updates (2522): the versions of keyed, unguessable topic names an open screen was given; no data, read-only
+  ('live_poll');
 create temporary table r35sec_signed_in_ok (name text primary key);
 insert into r35sec_signed_in_ok values
   ('mark_notifications_read'), ('my_booking'), ('my_booking_change_preview'), ('my_booking_messages'), ('my_booking_readiness'),
