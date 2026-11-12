@@ -6,6 +6,7 @@ import { SignProgress, SignSummary, type SummaryRow } from '@/features/signing/P
 import { signPortalPackage } from '@/server/actions/signing';
 import { viewAs } from '@/server/view-as';
 import { homeAddressOf } from '@/features/staff/HomeAddress';
+import { safeSummary } from '@/features/person-agreements/model';
 
 // The signing pages of the investor, VA and Field portals (migrations 0044 and 0049): every document waiting for the
 // person's signature in one package (a generated agreement shows the key values it was filled with, each with a Fix
@@ -31,17 +32,17 @@ export async function SignList({ userId, base, embedded = false }: { userId: str
   const facts = (await Promise.all(r.open.map((x) => rpc('sign_request_facts', { p_by: userId, p_id: x.id }, SR).catch(() => null)))) as unknown as Array<Facts | null>;
   const open = facts.filter((f): f is Facts => !!f && f.status === 'sent');
   const viewing = !!(await viewAs());
-  const summary = open.flatMap((f) => (f.extra?.summary ?? []).map((row) => ({ ...row, label: open.length > 1 ? `${f.title}: ${row.label}` : row.label })));
+  const summary = safeSummary(open.flatMap((f) => (f.extra?.summary ?? []).map((row) => ({ ...row, label: open.length > 1 ? `${f.title}: ${row.label}` : row.label }))));
   return (
     <div className="stack-lg">
       <header className="stack">{embedded ? <h2 className="d3">Documents to sign</h2> : <h1 className="d2">Documents to sign</h1>}
-        <p className="muted">{open.length ? `Everything is filled in from your record. Check the values, then sign ${open.length > 1 ? 'once for all of them' : 'it'}. It takes about a minute.` : 'Nothing is waiting for your signature.'}</p></header>
+        <p className="muted">{open.length ? `Everything is filled in from your record. Check your details below, then sign ${open.length > 1 ? 'once for all of them' : 'it'} in the Sign box. You do not need to type anything in the details. It takes about a minute.` : 'Nothing is waiting for your signature.'}</p></header>
       <SignProgress items={[...r.signed.map((x) => ({ key: x.id, label: x.title, done: true, note: x.method === 'paper' ? 'signed on paper' : null })),
         ...open.map((x) => ({ key: x.id, label: x.title, done: false, here: true }))]} />
       {open.length > 0 && (
         <div className="pt-split">
           <div className="stack-lg">
-            <SignSummary rows={summary} />
+            <SignSummary rows={summary} next="All correct? Sign in the Sign box below. Something wrong? Tap Fix, or call us before you sign." />
             <section className="pt-card stack" aria-labelledby="sg-open"><h2 className="d4" id="sg-open">The documents ({open.length})</h2>
               <ul className="ow-rows" data-testid="sign-open">{open.map((x) => (
                 <li key={x.id}><span><b>{x.title}</b>{x.agreement_number ? `, ${x.agreement_number}` : ''}</span>
@@ -78,12 +79,13 @@ export async function SignOne({ userId, base, id }: { userId: string; base: stri
   const viewing = !!(await viewAs());
   const inv = f.doc_type === 'investment_agreement';
   // a staff agreement (0059): the staff member's own home address comes first (the layout asks for it at the top)
-  const staffPortal = base.startsWith('/staff') ? 'va' : base.startsWith('/staff/field') ? 'field' : null;
+  const staffPortal = base.startsWith('/staff/field') ? 'field' : base.startsWith('/staff') ? 'va' : null;
   const needsAddress = f.doc_type === 'staff_agreement' && staffPortal !== null && !viewing && (await homeAddressOf(userId, staffPortal)).missing;
   return (
     <div className="stack-lg">
       <p><Link prefetch={false} className="link" href={base}>Documents to sign</Link></p>
-      <header className="stack"><h1 className="d2">{f.title}</h1>{f.agreement_number && <p className="muted">Agreement {f.agreement_number}</p>}</header>
+      <header className="stack"><h1 className="d2">{f.title}</h1>{f.agreement_number && <p className="muted">Agreement {f.agreement_number}</p>}
+        {f.status === 'sent' && <p data-testid="sign-one-next">Check your details below, then sign at the bottom of the page. You do not need to type anything in the details.</p>}</header>
       {f.status === 'signed' ? (
         <section className="ow-status ow-status--paid" data-testid="sign-one-signed"><h2 className="d3">Signed</h2>
           <p>Signed {f.method === 'paper' ? 'on paper' : 'here'}{f.signed_at ? ` on ${day(f.signed_at)}` : ''}.</p>
@@ -92,7 +94,7 @@ export async function SignOne({ userId, base, id }: { userId: string; base: stri
         <p className="pt-empty muted">This document was withdrawn. Nothing to sign.</p>
       ) : (
         <>
-          <SignSummary rows={f.extra?.summary ?? []} />
+          <SignSummary rows={safeSummary(f.extra?.summary ?? [])} next="All correct? Sign below. Something wrong? Tap Fix, or call us before you sign." />
           <section className="pt-card stack" aria-labelledby="sg-read"><h2 className="d4" id="sg-read">Read the document</h2>
             <p><a className="btn btn--ghost" href={`/sign-document/${f.document_id}`} target="_blank" rel="noreferrer" data-testid="sign-read">Open the PDF</a></p>
             <p className="small muted">It opens in a new tab. Questions before you sign? Reply to the email it came with, or call us.</p></section>
