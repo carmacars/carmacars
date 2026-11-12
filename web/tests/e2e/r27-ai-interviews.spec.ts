@@ -103,6 +103,9 @@ test('AI interview on video: apply, consent, the camera check, answers recorded 
   // this test is the finance role's own interview, so the referral is off while it runs
   const [refer] = await sql`select hiring_refer_va_to_sales v from program_settings where id = (select id from app.settings())`;
   await sql`update program_settings set hiring_refer_va_to_sales = false where id = (select id from app.settings())`;
+  // 2590 (r41): a scored interview is decided by itself by default; this test is the Admin watching and inviting, so that is off while it runs
+  const [auto] = await sql`select hiring_ai_auto_decide v from program_settings where id = (select id from app.settings())`;
+  await sql`update program_settings set hiring_ai_auto_decide = false where id = (select id from app.settings())`;
   // a Chrome of its own with a fake camera and microphone (PW_CHROMIUM: another build of Chrome, for a local run)
   const browser = await playwright.chromium.launch({ args: ['--no-proxy-server', '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--autoplay-policy=no-user-gesture-required'],
     ...(process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMIUM } : {}) });
@@ -179,19 +182,28 @@ test('AI interview on video: apply, consent, the camera check, answers recorded 
     expect(`${w2!.kind}/${w2!.mode}/${w2!.video_key ? 'video' : 'none'}`).toBe('followup/voice/video');
     expect(Number(w2!.audio_seconds)).toBeGreaterThan(40);
 
-    // 6. the rest, each recorded and sent (one more follow-up may come: at most two an interview)
-    for (let i = 0; i < 12 && await page.getByTestId('iv-question').isVisible(); i++) {
+    // 6. the rest, each answered the way the page asks: recorded, or typed for the written question (2590); follow-ups may come (up to 4)
+    let typedSent = 0;
+    for (let i = 0; i < 25 && await page.getByTestId('iv-question').isVisible(); i++) {
       const seq = await page.getByTestId('iv-question').getAttribute('data-seq');
-      await recordAnswer(page, 1000);
-      await expect(page.getByTestId('iv-question').or(page.getByTestId('iv-done'))).toBeVisible({ timeout: 60_000 });
+      if ((await page.getByTestId('iv-question').getAttribute('data-key')) === 'written' && (await page.getByTestId('iv-question').getAttribute('data-kind')) === 'question') {
+        await expect(page.getByTestId('iv-typed')).toBeEnabled({ timeout: 40_000 });
+        await page.getByTestId('iv-typed').fill('Hello, your car is running about 30 minutes late for pickup, and we are sorry for the wait. It will be at the agreed address by 10:30 am. Please reply here if that time no longer works for you.');
+        await page.getByTestId('iv-send-typed').click();
+        typedSent++;
+      } else await recordAnswer(page, 1000);
       await expect.poll(async () => (await page.getByTestId('iv-done').isVisible()) || (await page.getByTestId('iv-question').getAttribute('data-seq').catch(() => seq)) !== seq, { timeout: 120_000 }).toBe(true);
     }
+    expect(typedSent, 'the written question is typed').toBe(1);
     await expect(page.getByTestId('iv-done')).toBeVisible({ timeout: 60_000 });
     await check(page, 'interview done');
     const [st] = await sql`select a.status, i.state, (select count(*)::int from ai_interview_answers w where w.interview_id = i.id) n from job_applications a join ai_interviews i on i.application_id = a.id where a.id = ${app!.id}`;
     expect(`${st!.status}/${st!.state}`).toBe('interviewed/submitted');
-    expect(st!.n).toBe(11);
-    expect((await sql`select count(*)::int n from ai_interview_answers w join ai_interviews i on i.id = w.interview_id where i.application_id = ${app!.id} and (w.video_key is null or w.mode <> 'voice')`)[0]!.n).toBe(0);
+    // nine questions and the reliability and written ones (2590), then the follow-ups (at most 4)
+    expect(st!.n).toBeGreaterThanOrEqual(11);
+    expect(st!.n).toBeLessThanOrEqual(15);
+    expect((await sql`select count(*)::int n from ai_interview_answers w join ai_interviews i on i.id = w.interview_id where i.application_id = ${app!.id} and w.mode = 'typed' and w.video_key is null`)[0]!.n).toBe(1);
+    expect((await sql`select count(*)::int n from ai_interview_answers w join ai_interviews i on i.id = w.interview_id where i.application_id = ${app!.id} and w.mode <> 'typed' and (w.video_key is null or w.mode <> 'voice')`)[0]!.n).toBe(0);
 
     // 6. the interviews job scores it (the fake model), and the AI decides nothing
     const token = jobToken();
@@ -212,7 +224,7 @@ test('AI interview on video: apply, consent, the camera check, answers recorded 
     await expect(page.getByTestId('cand-ai-topics')).toBeVisible();
     await expect(page.getByTestId('cand-ai-answers')).toContainText(FAKE_SENTENCE);
     await expect(page.getByTestId('cand-ai-answers')).toContainText('Follow-up');
-    await expect(page.getByTestId('cand-ai-video')).toHaveCount(11);
+    await expect(page.getByTestId('cand-ai-video')).toHaveCount(st!.n - 1);
     await expect(page.getByTestId('cand-ai-hint')).toContainText('You decide');
     const src = await page.getByTestId('cand-ai-video').first().getAttribute('src');
     expect(src).toBeTruthy();
@@ -240,7 +252,7 @@ test('AI interview on video: apply, consent, the camera check, answers recorded 
     expect(quiet(errors)).toEqual([]);
     await sql`update job_applications set status = 'withdrawn' where id = ${app!.id}`;
   } finally {
-    await sql`update program_settings set hiring_refer_va_to_sales = ${refer!.v as boolean} where id = (select id from app.settings())`;
+    await sql`update program_settings set hiring_refer_va_to_sales = ${refer!.v as boolean}, hiring_ai_auto_decide = ${auto!.v as boolean} where id = (select id from app.settings())`;
     await browser.close();
     await sql`update program_settings set hiring_ai_answer_seconds = 120, hiring_ai_retakes = 0 where id = (select id from app.settings())`;
     await sql`update hiring_roles set active = false where slug = 'va-finance-billing'`;
