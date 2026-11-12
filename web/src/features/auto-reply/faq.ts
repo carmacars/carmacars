@@ -39,7 +39,8 @@ export function systemPrompt(brand: string): string {
   return [
     `You answer customer questions for ${brand}, a car rental company in Toronto, using ONLY the FAQ entries given.`,
     'Rules: answer only when one or more FAQ entries clearly answer the question; use their facts and numbers exactly, never add a fact, price, promise or policy that is not in them.',
-    'If the question is about a booking, a payment, a complaint, an accident, damage, a specific car\'s availability or anything personal, or no entry answers it, set confident to false and answer to "".',
+    'If the question is about a booking, a payment, a complaint, an accident, damage, a specific car\'s availability or anything personal, if it asks for more than one thing, if it is vague, or no entry answers it fully and directly, set confident to false and answer to "".',
+    'Only a basic, clear, general question (hours, deposit, age, licence, delivery, how booking works) gets an answer; when in doubt, do not answer.',
     'Write plainly and briefly, friendly, no greeting line, no sign-off, no long dashes.',
     'Reply in JSON only: {"faq": [keys of the entries used], "answer": "...", "confident": true or false, "confidence": 0 to 1}.'
   ].join(' ');
@@ -58,12 +59,20 @@ export function readAnswer(raw: unknown, given: FaqEntry[], channel: Channel): M
   const faq = Array.isArray(r.faq) ? r.faq.map(String).filter((k) => keys.has(k)) : [];
   const confidence = typeof r.confidence === 'number' && Number.isFinite(r.confidence) ? Math.max(0, Math.min(1, r.confidence)) : 0;
   let answer = typeof r.answer === 'string' ? tidy(r.answer) : '';
-  const max = channel === 'sms' ? 320 : 1200;
+  const lab = AI_LABEL[channel === 'sms' ? 'sms' : 'other'];
+  const max = (channel === 'sms' ? 320 : 1200) - lab.before.length - lab.after.length;
   if (answer.length > max) answer = `${answer.slice(0, max - 1).replace(/\s+\S*$/, '')}…`;
   // an answer that names no FAQ entry it used is not from the FAQ
   const confident = r.confident === true && faq.length > 0 && answer.length >= 8;
-  return { faq, answer: confident ? answer : '', confident, confidence: confident ? confidence : 0 };
+  return { faq, answer: confident ? `${lab.before}${answer}${lab.after}` : '', confident, confidence: confident ? confidence : 0 };
 }
+
+/** r40 (the owner, Nov 12: "make it more informative and obvious that it's ai"): every automatic answer says plainly it is
+ *  the AI assistant answering from the FAQ, and that a person follows up. */
+export const AI_LABEL = {
+  sms: { before: 'CarmaCars AI assistant (automatic reply): ', after: ' A person from our team will follow up if you need more.' },
+  other: { before: 'This is an automatic answer from the CarmaCars AI assistant, written from our FAQ.\n\n', after: '\n\nIf this does not answer your question, reply and a person from our team will help you.' }
+} as const;
 
 export function tidy(s: string): string {
   return s.replace(/\s*\u2014\s*/g, ', ').replace(/\u2013/g, '-').replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').replace(/^(hi|hello|hey)[^a-z0-9]*\s*/i, '').trim();
@@ -73,7 +82,9 @@ export function tidy(s: string): string {
 export function isQuestion(text: string): boolean {
   const t = text.trim();
   if (/^(stop|start|unstop|unsubscribe|cancel|end|quit|help|yes|no|ok|okay|thanks|thank you|k|y|n)[.!]*$/i.test(t)) return false;
-  return words(t).length >= 2;
+  // r40: only a basic, clear question gets an automatic answer: a question mark or a question word, and a few words
+  const asks = /\?/.test(t) || /^(what|when|where|how|do|does|can|is|are|which|who|why|will|should|could|would)\b/i.test(t);
+  return asks && t.split(/\s+/).filter(Boolean).length >= 3 && words(t).length >= 1;
 }
 
 /** An email that must never get an automatic answer: from a robot or a list, an automatic reply, a bounce, our own address. */

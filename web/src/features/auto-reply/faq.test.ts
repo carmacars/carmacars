@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { closest, isQuestion, readAnswer, replyMime, robotEmail, systemPrompt, userPrompt, words, type FaqEntry } from './faq.ts';
+import { AI_LABEL, closest, isQuestion, readAnswer, replyMime, robotEmail, systemPrompt, userPrompt, words, type FaqEntry } from './faq.ts';
 
 const FAQ: FaqEntry[] = [
   { key: 'f1', q: 'How old do I have to be to rent?', a: 'You must be 21 or older. Drivers aged 18 to 20 can rent selected cars.' },
@@ -23,7 +23,7 @@ test('the prompt: only the FAQ, the rules, the length of the channel', () => {
 
 test('the answer is checked: unknown keys dropped, no key means not sure, long answers cut for a text', () => {
   const ok = readAnswer({ faq: ['f2', 'zz'], answer: 'Hi! Yes — a refundable deposit is held on your card.', confident: true, confidence: 0.9 }, FAQ, 'email');
-  assert.deepEqual(ok, { faq: ['f2'], answer: 'Yes, a refundable deposit is held on your card.', confident: true, confidence: 0.9 });
+  assert.deepEqual(ok, { faq: ['f2'], answer: `${AI_LABEL.other.before}Yes, a refundable deposit is held on your card.${AI_LABEL.other.after}`, confident: true, confidence: 0.9 });
   assert.equal(readAnswer({ faq: ['zz'], answer: 'Made up.', confident: true, confidence: 1 }, FAQ, 'sms').confident, false);
   assert.equal(readAnswer('not json', FAQ, 'sms').confident, false);
   const long = readAnswer({ faq: ['f1'], answer: 'word '.repeat(200), confident: true, confidence: 0.8 }, FAQ, 'sms');
@@ -34,6 +34,11 @@ test('a question, not a keyword or a thank you', () => {
   assert.equal(isQuestion('STOP'), false);
   assert.equal(isQuestion('thanks'), false);
   assert.equal(isQuestion('do you deliver to pearson?'), true);
+  // r40: only clear questions: a statement or a two-word note gets no automatic answer
+  assert.equal(isQuestion('I am outside now'), false);
+  assert.equal(isQuestion('deposit?'), false);
+  const sms = readAnswer({ faq: ['f1'], answer: 'word '.repeat(200), confident: true, confidence: 0.95 }, FAQ, 'sms');
+  assert.ok(sms.answer.startsWith(AI_LABEL.sms.before) && sms.answer.endsWith(AI_LABEL.sms.after) && sms.answer.length <= 320);
 });
 
 test('robots, lists, bounces and our own address never get an answer', () => {
