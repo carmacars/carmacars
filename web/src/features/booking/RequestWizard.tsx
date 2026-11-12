@@ -102,7 +102,7 @@ export function RequestWizard(p: WizardProps) {
   }, [gatePh, step]);
   const fromGate = () => { const g = gatePhone(); if (g) { setGatePh(g); setD((x) => ({ ...x, phone: formatPhone(g) })); } };
   // signed in (0091): the account's verified phone and email fill the form; an account made by phone may leave the email
-  const [account, setAccount] = useState<{ signedIn: boolean; email: string | null; phone: string | null; discounts?: Array<{ code: string; what: string; days_left: number | null }> } | null>(null);
+  const [account, setAccount] = useState<{ signedIn: boolean; email: string | null; phone: string | null; discounts?: Array<{ code: string; what: string; days_left: number | null }>; canBookNow?: boolean } | null>(null);
   useEffect(() => {
     requestAccount().then((r) => { if (r.ok) setAccount(r.data); }).catch(() => undefined);
   }, []);
@@ -251,8 +251,11 @@ export function RequestWizard(p: WizardProps) {
       form.current?.closest('.req')?.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
     });
   }
+  // r40 (2430): Send request leaves a request for everyone; Book now (offered to a renter who may book at once) pays the website price
+  const bookNow = useRef(false);
   async function send(e: React.FormEvent) {
     e.preventDefault(); setFailure('');
+    const now = bookNow.current; bookNow.current = false;
     for (let n = 1; n <= LAST; n++) if (!validate(n)) { if (n !== step) show(n); setTimeout(() => validate(n), 0); return; }
     setSending(true);
     // a fresh security-check token just before sending (single use, 5 minutes: a long form or a second try outlives one)
@@ -263,10 +266,10 @@ export function RequestWizard(p: WizardProps) {
       const sv = await saveRequestDraft({ data: d, step, token: meta.current.token }).catch(() => null);
       if (sv?.ok) { meta.current.token = sv.data.token; meta.current.draftId = sv.data.draftId; }
     }
-    let r = await submitBookingRequest({ data: { ...d, bookingType }, requestKey: meta.current.key, token, draftId: meta.current.draftId }).catch(() => null);
+    let r = await submitBookingRequest({ data: { ...d, bookingType }, requestKey: meta.current.key, token, draftId: meta.current.draftId, bookNow: now }).catch(() => null);
     if (r && !r.ok && r.code === 'turnstile' && form.current) {
       const again = await freshTurnstileToken(form.current);
-      if (again) r = await submitBookingRequest({ data: { ...d, bookingType }, requestKey: meta.current.key, token: again, draftId: meta.current.draftId }).catch(() => null);
+      if (again) r = await submitBookingRequest({ data: { ...d, bookingType }, requestKey: meta.current.key, token: again, draftId: meta.current.draftId, bookNow: now }).catch(() => null);
     }
     setSending(false);
     if (!r) { setFailure('We could not reach the server. Check your connection and send again.'); return; }
@@ -527,8 +530,9 @@ export function RequestWizard(p: WizardProps) {
             </div>
             <label className="check"><input type="checkbox" name="marketing" checked={d.marketing} onChange={(e) => set('marketing', e.target.checked)} /><span className="small">{p.marketingText}</span></label>
             <Turnstile action="booking_request" />
-            <div className="req__nav"><button type="button" className="btn btn--ghost" onClick={() => show(4)}>Back</button><button type="submit" className="btn btn--primary btn--lg" disabled={sending}>{sending ? 'Sending' : 'Send request'}</button></div>
-            <p className="small muted">No payment now. No card needed.</p>
+            <div className="req__nav"><button type="button" className="btn btn--ghost" onClick={() => show(4)}>Back</button><button type="submit" className={`btn btn--lg ${account?.canBookNow ? 'btn--ghost' : 'btn--primary'}`} disabled={sending} data-testid="rq-send">{sending ? 'Sending' : 'Send request'}</button>
+              {account?.canBookNow && <button type="submit" className="btn btn--primary btn--lg" disabled={sending} data-testid="rq-book-now" onClick={() => { bookNow.current = true; }}>Book now</button>}</div>
+            <p className="small muted">{account?.canBookNow ? 'Send request: no payment now, no card needed. Book now: the car is yours at the website price, then you sign and pay.' : 'No payment now. No card needed.'}</p>
           </section>
         </form>
         {gateDialog}
