@@ -26,6 +26,14 @@
   .fd .btn:not(.btn--primary):not(.btn--ghost):not(.btn--light):not(.btn--quiet):not([disabled]):not(.fd-go):not(.fd-yes):not(.fd-no) { --btn-bg: var(--white); --btn-fg: var(--black); }
   .fd .btn[disabled] { --btn-bg: var(--grey-800); --btn-fg: var(--grey-300); --btn-bd: var(--grey-800); }
   .fd .pt-dl > div { border-bottom-color: var(--grey-800); }
+  /* r40 hotfix: the shared cards (.pt-card, .ow-rows, .ow-status, .pt-empty) paint a white background while the dark
+     field frame sets the text white: on a phone in dark mode the signing page showed only grey labels and blank values.
+     Here they take the frame's dark surface and ink. */
+  .fd .pt-card, .fd .ow-rows, .fd .ow-status, .fd .pt-empty { background: var(--fd-surface); border-color: var(--fd-hair); color: var(--fd-ink); box-shadow: none; }
+  .fd .ow-rows > li { border-bottom-color: var(--fd-hair); }
+  .fd .pt-dl dt { color: var(--fd-ink-2); }
+  .fd .sg-progress__bar { background: var(--fd-hair); }
+  .fd .ck-dot.is-done { background: var(--fd-ink); }
 }
 
 .fd { background: var(--fd-bg); color: var(--fd-ink); min-height: 100vh; }

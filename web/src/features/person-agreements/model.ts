@@ -168,6 +168,15 @@ export function staffFields(f: StaffFacts): Field[] {
 }
 
 const licenceWords = (v: Record<string, string>) => `Ontario Class G, number ${(v.licence ?? '').trim()}`;
+/** A licence number as shown on screen (r40): never in full, only "on file, ending ••12". */
+export const maskLicence = (n: string | null | undefined) => {
+  const chars = (n ?? '').replace(/[^0-9a-z]/gi, '');
+  return chars.length >= 6 ? `on file, ending ••${chars.slice(-2)}` : chars ? 'on file' : 'not given yet';
+};
+const licenceShown = (v: Record<string, string>) => `Ontario Class G, ${maskLicence(v.licence)}`;
+/** The summary rows as shown to anyone (r40): a licence row's number masked, also in summaries saved before r40. */
+export const safeSummary = <T extends { label: string; value: string }>(rows: T[]): T[] => rows.map((r) => (/licen[cs]e$/i.test(r.label.trim())
+  ? { ...r, value: ((x) => (/\d{3,}/.test(x) ? 'On file' : x))(r.value.replace(/number\s*(.*)$/i, (_m, n: string) => maskLicence(n))) } : r));
 
 const signatureLines = (md: string, c: Company, name: string) => md
   .replace(/^By: \[●\], \[●\] \(title\)\. Date: \[●\]$/m, `By: ${c.signing_officer_name ?? ''}, ${c.signing_officer_title ?? ''} (title). Date: ${DATE_SIGNED}. Signature: ${ON_SIGNATURE}.`)
@@ -223,7 +232,7 @@ export function staffSummary(f: StaffFacts, v: Record<string, string>): Array<{ 
        ...(isCommissionOnly(v) ? [] : [{ label: 'Schedule', value: scheduleWords(v), fix: null }, { label: 'Coverage Hours', value: `${v.coverage ?? ''}, ${v.hours_per_week ?? ''} hours a week`, fix: null },
          { label: 'Rate', value: rateWords(v), fix: null }]),
        { label: 'Start Date', value: v.start ?? '', fix: null }, { label: 'Paid through', value: `${v.platform ?? ''}, ${v.pay_timing ?? ''}`, fix: null }]
-    : [{ label: 'Employee', value: `${s.full_name}, ${v.address ?? ''}`, fix: base }, { label: 'Driver\'s licence', value: licenceWords(v), fix: null },
+    : [{ label: 'Employee', value: `${s.full_name}, ${v.address ?? ''}`, fix: base }, { label: 'Driver\'s licence', value: licenceShown(v), fix: null },
        { label: 'Role', value: inPersonRole(s), fix: null }, { label: 'Hourly Wage', value: `$${(v.wage ?? '').replace(/^\$/, '')} an hour`, fix: null },
        { label: 'Start Date', value: v.start ?? '', fix: null }, { label: 'Pay Dates', value: v.pay_dates ?? '', fix: null }];
 }

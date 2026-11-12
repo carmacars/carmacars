@@ -259,7 +259,8 @@
 .sg-progress__bar { height: 6px; border-radius: 3px; background: var(--grey-200); overflow: hidden; }
 .sg-progress__bar span { display: block; height: 100%; background: var(--red-600); }
 .sg-summary > div { display: grid; grid-template-columns: minmax(7rem, 40%) minmax(0, 1fr); gap: var(--s-2); }
-.sg-summary dd { margin: 0; overflow-wrap: anywhere; }
+.sg-summary dd { margin: 0; overflow-wrap: anywhere; color: var(--text); font-weight: 600; }
+.sg-summary dd .link { font-weight: 400; }
 .sg-docs details { border-top: 1px solid var(--grey-200); padding: var(--s-2) 0; }
 .sg-docs summary { cursor: pointer; font-weight: 600; }
 .sg-progress .ck-items li { flex-wrap: nowrap; align-items: flex-start; }
