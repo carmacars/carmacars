@@ -302,7 +302,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
           paidCents: (payments ?? []).filter((r) => r.kind === 'charge' && r.status === 'succeeded').reduce((a, r) => a + Number(r.amount_cents ?? 0), 0),
           readiness: b.readiness, insurerBilled: b.bill_to !== 'renter', addons: prepare ? { total: prepare.total, ticked: prepare.ticked } : null });
         return (
-          <div id="booking-readiness"><Card title="What's left" testId="booking-readiness" aside={<span className="small" data-testid="booking-readiness-summary">{readinessSummary(lines)}</span>}>
+          <div id="booking-readiness"><Card title="Ready for the rental: what's left" testId="booking-readiness" aside={<span className="small" data-testid="booking-readiness-summary">{readinessSummary(lines)}</span>}>
             {/* r38 (owner, Nov 11): each thing left jumps straight to where it is done; ticked once done */}
             <ul className="ready-list">{lines.map((l) => (
               <li key={l.key} className={l.done ? 'is-done' : ''} data-testid={`ready-${l.key}`}>
