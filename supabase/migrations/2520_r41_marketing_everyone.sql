@@ -217,14 +217,16 @@ begin
       from contact_captures c
      where c.form in ('booking_request', 'contact', 'chat', 'game', 'signup')
   ), ok as (
-    select * from src where email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' and not app.email_is_test(email)
+    select *, case source when 'renter' then 0 when 'account' then 1 when 'lead' then 2 else 3 end as ord from src where email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' and not app.email_is_test(email)
   ), agg as (
     select email,
-           (array_agg(nullif(first_name, '') order by rank, at) filter (where nullif(first_name, '') is not null))[1] as first_name,
-           (array_agg(user_id order by at) filter (where user_id is not null))[1] as user_id,
-           (array_agg(renter_id order by at) filter (where renter_id is not null))[1] as renter_id,
+           -- ties (a renter and their account are made in one transaction, so at the same instant) fall in the order of
+           -- the sources above: renter, account, lead, unfinished form; then by the name or id itself, never by chance
+           (array_agg(nullif(first_name, '') order by rank, at, ord, first_name) filter (where nullif(first_name, '') is not null))[1] as first_name,
+           (array_agg(user_id order by at, ord, user_id) filter (where user_id is not null))[1] as user_id,
+           (array_agg(renter_id order by at, ord, renter_id) filter (where renter_id is not null))[1] as renter_id,
            array_agg(distinct source order by source) as sources,
-           (array_agg(source order by at, rank))[1] as first_source,
+           (array_agg(source order by at, rank, ord))[1] as first_source,
            min(rank)::smallint as rank, min(at) as first_seen_at, max(at) as last_seen_at
       from ok group by email
   ), up as (

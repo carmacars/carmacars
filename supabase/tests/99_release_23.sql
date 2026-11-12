@@ -73,6 +73,9 @@ delete from usage_alerts where service = 'workers_cpu';
 -- past the red line whatever the day of the month (the projection of the month so far is smaller later in the month)
 create temp table r23red as select id, usage_banner_red_usd r from program_settings;
 update program_settings set usage_banner_red_usd = 0;
+-- and the month's reading above the allowance: an alert of a service that costs nothing so far is kept quiet (0320), whatever the red line
+create temp table r23cpu as select coalesce((app.usage_state('workers_cpu') ->> 'used')::numeric, 0) v;
+select app.usage_put('workers_cpu', app.today(), 'cloudflare', 1090000000);
 insert into usage_alerts (service, period_start, level, used, included) values ('workers_cpu', date_trunc('month', app.local_date(now()))::date, 100, 1090000000, 30000000);
 create temp table r23q as select uptime_quiet_from_hour f, uptime_quiet_until_hour u from app.settings();
 update program_settings set uptime_quiet_from_hour = 0, uptime_quiet_until_hour = 0 where id = (app.settings()).id;
@@ -84,6 +87,7 @@ select test.eq('once per figure and level a month', (select count(*) from phone_
 select test.ok('the banner shows a figure past its allowance', jsonb_typeof(app.usage_banner(test.id('r23_admin'))) = 'array');
 select test.throws('only Admins read the banner', $$ select app.usage_banner(test.id('r23_cs')) $$, 'Admin');
 update program_settings p set usage_banner_red_usd = x.r from r23red x where x.id = p.id;
+select app.usage_put('workers_cpu', app.today(), 'cloudflare', (select v from r23cpu));
 select test.ok('a 70% level exists for the CPU time', (select warn_bps = 7000 from usage_services where service = 'workers_cpu'));
 
 -- ================================================================ 3. Cloudflare email first (0222)

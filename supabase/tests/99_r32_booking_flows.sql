@@ -49,7 +49,7 @@ select test.ok('the late return To do is closed', not exists (select 1 from task
 select app.notify_reminders(now());
 select app.notify_booking_staff(now());
 select test.ok('no new late alert once returned', not exists (select 1 from app_events e where e.entity_id = test.id('booking:R32F-1')
-  and e.code in ('staff_late_return_alert', 'renter_late_return_first', 'renter_late_return_final', 'renter_return_due') and e.created_at > now() - interval '1 second' and e.dedupe_key <> 'rf-t13'));
+  and e.code in ('staff_late_return_alert', 'renter_late_return_first', 'renter_late_return_final', 'renter_return_due') and e.dedupe_key not like '%:rf-t13'));  -- the suite's own notice (above) is not a new alert, however fast the suite runs
 select test.throws('twice: refused (already recorded)', $$select test.rf_returned('r32f_fleet', 'R32F-1')$$, null);
 
 -- due today, not yet late: field staff mark it returned now, no readings: no late charge
