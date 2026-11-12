@@ -123,7 +123,7 @@ function RequestRow({ r, c, target, at, base, admin, refresh }: { r: Req; c: Car
         <span className="rq__tags">
           {c?.owner_trip && <Chip tone="amber" testId={`rq-owner-${r.booking_number}`}>{OWNER_TRIP}</Chip>}
           <Chip tone={r.returning ? 'ok' : 'quiet'}>{r.returning ? 'Returning' : 'New renter'}</Chip>
-          <Chip tone={lic === 'verified' ? 'ok' : lic === 'pending' ? 'amber' : 'red'} testId={`rq-licence-${r.booking_number}`}>{lic === 'verified' ? 'Licence verified' : lic === 'pending' ? 'Licence to review' : 'No licence yet'}</Chip>
+          <Chip tone={lic === 'verified' ? 'ok' : lic === 'pending' ? 'amber' : 'red'} testId={`rq-licence-${r.booking_number}`}>{lic === 'verified' ? 'Licence verified' : lic === 'pending' ? 'Licence to review: not bookable until verified' : 'No licence yet: not bookable until verified'}</Chip>
           {c?.bill_to && c.bill_to !== 'renter' && <Chip tone="dark">Insurer</Chip>}
           {r.flags.map((f) => <Chip key={f} tone={FLAG_RED.has(f) ? 'red' : 'amber'}>{f}</Chip>)}
         </span>

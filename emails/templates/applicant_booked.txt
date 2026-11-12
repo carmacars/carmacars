@@ -14,7 +14,7 @@ In Manila: {{call_when_manila}}
 Length: About {{call_minutes}} minutes
 
 {{#if is_video}}
-It is a video call. Open this link a minute before the time, in a browser or the Jitsi Meet app: {{meet_url}}
+It is a video call. Open this link a minute before the time, in a browser (Google Meet, or Jitsi when Google is not connected): {{meet_url}}
 {{else}}
 We will call you at {{phone_display}}. Please be somewhere quiet with good reception.
 {{/if}}

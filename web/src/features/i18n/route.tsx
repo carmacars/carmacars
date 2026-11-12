@@ -14,6 +14,9 @@ import { money } from '@/lib/format';
 import { getClasses, getFacts, getFleet, getSettings, siteUrl } from '@/lib/site';
 import type { CarRow } from '@/lib/types';
 import { translator } from './catalog';
+import { rpc } from '@/lib/db/repo';
+import { tierPage, trimPage } from '@/features/vehicles/data';
+import { termTree } from '@/features/vehicles/twin';
 import { getBundle, getLang, getLanguages, langAlternates, type Lang } from './data';
 import '@/styles/seo.css';
 import '@/styles/vehicles.css';
@@ -22,7 +25,7 @@ import '@/styles/vehicles.css';
 // /<lang>/events/<event>, /<lang>/airport-car-rental/<code> and the language hub /<lang>. Built from the page's data and
 // the translated templates; a string not translated yet shows in English, and a language under the coverage setting
 // is noindex (Program settings seo_i18n_min_coverage_bps). Edge copy only.
-export type Kind = 'landing' | 'event' | 'airport' | 'hub';
+export type Kind = 'landing' | 'event' | 'airport' | 'hub' | 'vehicle';
 interface Built { lang: Lang; english: string; title: string; description: string; h1: string; lead: string[]; facts: Array<[string, string]>; cars: CarRow[]; want: string;
   faq: Array<{ question: string; answer: string }>; links: Array<{ href: string; label: string }>; linksTitle: string; missing: number; t: ReturnType<typeof translator>['t'] }
 
@@ -63,6 +66,23 @@ async function build(code: string, kind: Kind, slug: string): Promise<Built | nu
     out = { ...base, english: `/airport-car-rental/${slug}`, title: `${h1} | ${brand}`.slice(0, 90), description: t('airport.lead', { brand }), h1,
       lead: [t('airport.lead', { brand }), ...(a.delivery_from_cents ? [t('airport.fee', { price: money(a.delivery_from_cents) })] : []), ...req], cars: fleet, want: a.code,
       facts: [...(a.delivery_from_cents ? [[t('facts.delivery'), money(a.delivery_from_cents)] as [string, string]] : []), ...(lo ? [[t('facts.from'), money(lo)] as [string, string]] : [])], links: [], linksTitle: '', missing: 0 };
+  } else if (kind === 'vehicle') {
+    // r37 (2302): slug is the English path (/cars/<make>/<model>/<year>/<trim>[/<place>[/<colour>]] or /t/<term>/<make>/...);
+    // only a path a real car backs has a language version (public.vehicle_language_ok), else a 404
+    if (!(await rpc('vehicle_language_ok', { p_path: slug }).catch(() => false))) return null;
+    const seg = slug.split('/').filter(Boolean);
+    const service = seg[0] === 't' ? (await termTree(seg[1]!)).term : null;
+    const [make, model, year, trim, place, colour] = service ? seg.slice(2) : seg.slice(1);
+    const p = place ? await tierPage(make!, model!, year!, trim!, place, colour ?? null) : await trimPage(make!, model!, year!, trim!);
+    const car = `${p.year} ${p.make.name} ${p.model.name} ${p.trim.name}`;
+    const pl = 'city' in p && p.city ? p.city.name : '';
+    const col = 'colour' in p && p.colour ? p.colour.name.toLowerCase() : '';
+    const h1 = service ? t('vehicle.h1_service', { service: service.name, car }) : col ? t('vehicle.h1_place_colour', { car, place: pl, colour: col }) : pl ? t('vehicle.h1_place', { car, place: pl }) : t('vehicle.h1', { car });
+    const own = p.inventory.exact.filter((c) => !c.is_sample);
+    const from = own.length ? Math.min(...own.map((c) => c.daily_rate_cents).filter((x) => x > 0)) : null;
+    const lead = [service ? t('vehicle.lead_service', { service: service.name, car, brand }) : t('vehicle.lead', { brand, car }), ...(col ? [t('vehicle.colour_note', { colour: col })] : []), ...(service ? [] : req)];
+    out = { ...base, english: slug, title: `${h1} | ${brand}`.slice(0, 90), description: lead[0]!, h1, lead, cars: own.length ? own : fleet, want: car,
+      facts: [[t('facts.cars'), String(own.length)], ...(from && Number.isFinite(from) ? [[t('facts.from'), money(from)] as [string, string]] : [])], links: [], linksTitle: '', missing: 0 };
   } else {
     const [pages, events, airports] = await Promise.all([getSeoPages().catch(() => []), getEvents(), getAirports()]);
     const h1 = t('hub.h1', { language: lang.native_name });

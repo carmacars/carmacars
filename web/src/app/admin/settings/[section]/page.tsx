@@ -17,6 +17,7 @@ import { SampleCarsToggle } from '@/features/supply/SampleCarsToggle';
 import { SECTIONS } from '../sections';
 import { rpc } from '@/lib/db/repo';
 import { ApiAccessPage } from '@/features/api-access/ApiAccessPage';
+import { ChannelPartners, type ChannelState } from '@/features/channel/ChannelPartners';
 import { door } from '@/server/door';
 import { OfficialForms, type FormsData } from '@/features/official-forms/OfficialForms';
 import { RentalForms, type RentalForm } from '@/features/blindspot/RentalForms';
@@ -158,6 +159,8 @@ export default async function Section({ params, searchParams }: { params: Promis
   switch (section) {
   // release 28: API access (Claude connector and keys)
   case 'api': return (<>{head}<ApiAccessPage adminId={user.id} /></>);
+  // r37 (2304): the channel partners, their keys and calls (Admin only)
+  case 'channel-partners': return (<>{head}<ChannelPartners s={await read<ChannelState>('channel_state')} /></>);
   // r35 (0950): Settings > Sales, the lead claim rules
   case 'sales': return (<>{head}<SalesSettings s={await door<LeadSettings>(user.id, 'admin_read', 'sales_lead_settings')} /></>);
   case 'site': {

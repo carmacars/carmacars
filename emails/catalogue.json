@@ -20347,7 +20347,7 @@
       "code": "applicant_booked",
       "audience": "applicant",
       "category": "transactional",
-      "trigger": "A candidate books, or moves, their interview call from their booking link on carmacars.ca/careers/book (migration 0173). By phone, CarmaCars calls the number on the application; by video, the email has the Jitsi Meet link made for this booking. One email per booking or move.",
+      "trigger": "A candidate books, or moves, their interview call from their booking link on carmacars.ca/careers/book (migration 0173). By phone, CarmaCars calls the number on the application; by video, the email has the Google Meet link made for this booking (Jitsi when the company calendar is not connected). One email per booking or move.",
       "timing": "Immediate",
       "digest": false,
       "from": "CarmaCars <hello@carmacars.ca>",

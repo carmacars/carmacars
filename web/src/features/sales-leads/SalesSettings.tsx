@@ -17,7 +17,7 @@ export function SalesSettings({ s }: { s: LeadSettings }) {
   return (
     <form className="pt-card ad-card stack" data-testid="sales-settings" onSubmit={(e) => {
       e.preventDefault();
-      const p = Object.fromEntries([...new FormData(e.currentTarget)].map(([k, v]) => [k, Number(v)]));
+      const p = Object.fromEntries([...new FormData(e.currentTarget)].map(([k, v]) => [k, k === 'lead_cs_hold_minutes' ? String(v).trim() : Number(v)]));
       start(async () => { const r = await leadAct('sales_lead_settings_save', p); setMsg(r.ok ? { ok: true, text: 'Saved.' } : { ok: false, text: r.message }); if (r.ok) router.refresh(); });
     }}>
       <h2 className="d4">Lead claims</h2>
@@ -29,6 +29,9 @@ export function SalesSettings({ s }: { s: LeadSettings }) {
       {num('lead_cap_max', 'The most open leads anyone may hold', s.lead_cap_max ?? 10, 1, 500, '10 by default.')}
       {num('claim_cooldown_minutes', 'One new claim every (minutes)', s.claim_cooldown_minutes ?? 5, 0, 120, '5 by default. 0: no pacing. Admins are not paced.')}
       {num('hot_hours', 'A lead is hot for (hours after it came in)', s.hot_hours, 1, 720, 'Next lead gives the oldest hot lead nobody holds first. 24 by default.')}
+      <div className="field"><label htmlFor="ss-lead_cs_hold_minutes">Customer service and Fleet: a lead they handle on a call is held for (minutes)</label>
+        <input className="input" id="ss-lead_cs_hold_minutes" name="lead_cs_hold_minutes" type="number" min={1} max={1440} defaultValue={s.lead_cs_hold_minutes ?? ''} placeholder="Same as a Sales claim" />
+        <p className="small muted">When customer service or Fleet answer or place a call with a lead, or add a note, the lead is theirs for this long so Sales do not contact it meanwhile; each new handled call adds the time again. Empty: the Sales claim minutes above for the lead&apos;s type. When it ends, the lead goes back to the salesperson who had or brought it, else the pool. An Admin can release it early.</p></div>
       <button className="btn btn--primary btn--sm" type="submit" disabled={pending} data-testid="sales-settings-save">Save</button>
       {s.updated_by && <p className="small muted">Last changed by {s.updated_by}.</p>}
       {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'}><span>{msg.text}</span></p>}

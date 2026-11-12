@@ -5,6 +5,7 @@ import { adminRead } from '@/server/admin/api';
 import { Card, PageHead, Table } from '@/features/admin/ui';
 import { InfoTip } from '@/components/InfoTip';
 import { Act } from '@/features/admin/Act';
+import { RenderAllVideos } from '@/features/academy/LessonVideo';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Academy', path: '/admin/academy', noindex: true, description: 'Training progress of every staff member, and the lessons and quizzes.' });
@@ -25,6 +26,8 @@ export default async function AdminAcademy() {
     <>
       <PageHead title="Academy" kicker="People" purpose="Training paths by staff function: lessons played and narrated in the browser, a quiz per section (pass mark in Settings > Program)."><Link prefetch={false} className="btn btn--sm btn--primary" href="/admin/academy/learn">Take the Admin path</Link></PageHead>
       <p className="small" data-testid="academy-gate">Academy gate: <b>{p.gate ? 'on' : 'off'}</b><InfoTip k="academy_gate" topic="the academy gate" />. Change it in <Link prefetch={false} className="link" href="/admin/settings/program">Settings &gt; Program</Link>.</p>
+      {/* r37 (2301): every lesson as a real video file, made in this browser */}
+      <RenderAllVideos />
       {reviews.length > 0 && <Card title="To review: the guide changed" testId="academy-reviews" tone="warn">
         <p className="small muted">These sections were written from a guide chapter that has been updated since. Check the lessons and the quiz against the guide, then mark them reviewed.</p>
         <ul className="stack-s">{reviews.map((r) => (

@@ -46,3 +46,12 @@ test('escalated and overdue tasks come first, then priority, then the longest wa
 test('waits in words', () => {
   assert.deepEqual([waitWords(0), waitWords(4), waitWords(60), waitWords(72), waitWords(1500)], ['just now', '4 min', '1 h', '1 h 12 min', '1 d 1 h']);
 });
+
+test('calls go first (r37): a missed call leads a message of the same age, in its lane and among the lanes', () => {
+  const lanes = buildLanes('cs', [task('m', 'renter_message', 3), task('c', 'phone_missed_call', 3), task('r', 'booking_request', 3)], NOW, 5);
+  assert.deepEqual(lanes.slice(0, 3).map((l) => l.key), ['phone', 'requests', 'messages']);
+  const s = sortTasks('cs', [task('t', 'account_phone_review', 4), task('c', 'phone_missed_call', 4), task('m', 'renter_message', 4)], NOW, 5);
+  assert.equal(s[0]!.id, 'c');
+  assert.ok(sortTasks('cs', [task('m', 'renter_message', 3), task('c', 'phone_missed_call', 3)], NOW, 5)[0]!.id === 'c');
+  assert.equal(buildLanes('sales', [], NOW, 5)[0]!.key, 'phone');
+});

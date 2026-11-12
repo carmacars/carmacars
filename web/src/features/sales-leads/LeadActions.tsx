@@ -2,18 +2,20 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { leadAct } from '@/server/actions/sales-leads';
-import { claimWords, contactLinks, OUTCOME_LABEL, OUTCOMES, type LeadRow, type Outcome, type Person } from './model';
+import { claimWords, contactLinks, holdWords, OUTCOME_LABEL, OUTCOMES, type LeadRow, type Outcome, type Person } from './model';
 
 type Msg = { ok: boolean; text: string } | null;
 
 /** One lead's buttons: Claim or Unclaim, Call, Text and Email (each logged on the lead and extending the claim), a note,
  *  Mark handled, the outcome, and for an Admin Reassign. Phone-sized: the buttons wrap. */
-export function LeadActions({ lead, admin, people, compact = false }: { lead: Pick<LeadRow, 'id' | 'phone' | 'email' | 'claim' | 'handled_at' | 'outcome'> & { assigned_to?: string | null }; admin: boolean; people: Person[]; compact?: boolean }) {
+export function LeadActions({ lead, admin, people, compact = false }: { lead: Pick<LeadRow, 'id' | 'phone' | 'email' | 'claim' | 'hold' | 'handled_at' | 'outcome'> & { assigned_to?: string | null }; admin: boolean; people: Person[]; compact?: boolean }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<Msg>(null);
   const [panel, setPanel] = useState<'note' | 'outcome' | 'reassign' | null>(null);
   const c = claimWords(lead.claim);
+  const h = holdWords(lead.hold);
+  const blocked = (c.locked || h.locked) && !admin;   // another person's claim, or a hold Sales may not work through
   const links = contactLinks(lead);
   const closed = Boolean(lead.handled_at) || lead.outcome === 'won' || lead.outcome === 'lost';
   const run = (action: string, p: Record<string, unknown>, ok?: string) => start(async () => {
@@ -26,17 +28,23 @@ export function LeadActions({ lead, admin, people, compact = false }: { lead: Pi
   return (
     <div className="stack" style={{ gap: 'var(--s-2)' }} data-testid="lead-actions">
       {c.text && <p className={`small ${c.locked ? 'muted' : ''}`} data-testid="lead-claim">{c.text}</p>}
+      {h.text && <p className={`small ${h.locked ? 'muted' : ''}`} data-testid="lead-hold" role="status">{h.text}</p>}
       <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}>
-        {!closed && !lead.claim && <button type="button" className="btn btn--primary btn--sm" disabled={pending} onClick={() => run('lead_claim', {})} data-testid="lead-claim-go">Claim</button>}
+        {!closed && !lead.claim && !lead.hold && <button type="button" className="btn btn--primary btn--sm" disabled={pending} onClick={() => run('lead_claim', {})} data-testid="lead-claim-go">Claim</button>}
         {c.mine && <button type="button" className="btn btn--ghost btn--sm" disabled={pending} onClick={() => run('lead_unclaim', {}, 'Back in the pool.')} data-testid="lead-unclaim">Unclaim</button>}
         {admin && lead.claim && !c.mine && <button type="button" className="btn btn--ghost btn--sm" disabled={pending} onClick={() => run('lead_unclaim', { note: 'Released by an Admin' }, 'Released.')} data-testid="lead-release">Release</button>}
-        {links.call && <a className="btn btn--ghost btn--sm" href={links.call} onClick={c.locked && !admin ? undefined : log('call')} data-testid="lead-call">Call</a>}
-        {links.text && <a className="btn btn--ghost btn--sm" href={links.text} onClick={c.locked && !admin ? undefined : log('text')} data-testid="lead-text">Text</a>}
-        {links.email && <a className="btn btn--ghost btn--sm" href={links.email} onClick={c.locked && !admin ? undefined : log('email')} data-testid="lead-email">Email</a>}
-        {!compact && <button type="button" className="btn btn--ghost btn--sm" disabled={pending || (c.locked && !admin)} onClick={() => setPanel(panel === 'note' ? null : 'note')} data-testid="lead-note">Note</button>}
-        {!closed && <button type="button" className="btn btn--ghost btn--sm" disabled={pending || (c.locked && !admin)} onClick={() => run('lead_handled', {}, 'Marked handled.')} data-testid="lead-handled">Mark handled</button>}
+        {admin && lead.hold && h.text && <button type="button" className="btn btn--ghost btn--sm" disabled={pending} onClick={() => run('lead_hold_release', {}, 'Hold released.')} data-testid="lead-hold-release">Release hold</button>}
+        {/* calls first, texts after (r37): Call leads; while the lead is held or claimed by someone else the links are off, with the reason */}
+        {links.call && (h.locked && !admin ? <button type="button" className="btn btn--ghost btn--sm" disabled title={h.text ?? undefined} data-testid="lead-call">Call</button>
+          : <a className="btn btn--ghost btn--sm" href={links.call} onClick={blocked ? undefined : log('call')} data-testid="lead-call">Call</a>)}
+        {links.text && (h.locked && !admin ? <button type="button" className="btn btn--quiet btn--sm" disabled title={h.text ?? undefined} data-testid="lead-text">Text</button>
+          : <a className="btn btn--quiet btn--sm" href={links.text} onClick={blocked ? undefined : log('text')} data-testid="lead-text">Text</a>)}
+        {links.email && (h.locked && !admin ? <button type="button" className="btn btn--quiet btn--sm" disabled title={h.text ?? undefined} data-testid="lead-email">Email</button>
+          : <a className="btn btn--quiet btn--sm" href={links.email} onClick={blocked ? undefined : log('email')} data-testid="lead-email">Email</a>)}
+        {!compact && <button type="button" className="btn btn--ghost btn--sm" disabled={pending || blocked} onClick={() => setPanel(panel === 'note' ? null : 'note')} data-testid="lead-note">Note</button>}
+        {!closed && <button type="button" className="btn btn--ghost btn--sm" disabled={pending || blocked} onClick={() => run('lead_handled', {}, 'Marked handled.')} data-testid="lead-handled">Mark handled</button>}
         {lead.handled_at && lead.outcome !== 'won' && lead.outcome !== 'lost' && <button type="button" className="btn btn--ghost btn--sm" disabled={pending} onClick={() => run('lead_handled', { undo: true }, 'Open again.')}>Open again</button>}
-        <button type="button" className="btn btn--ghost btn--sm" disabled={pending || (c.locked && !admin)} onClick={() => setPanel(panel === 'outcome' ? null : 'outcome')} data-testid="lead-outcome">Outcome</button>
+        <button type="button" className="btn btn--ghost btn--sm" disabled={pending || blocked} onClick={() => setPanel(panel === 'outcome' ? null : 'outcome')} data-testid="lead-outcome">Outcome</button>
         {admin && <button type="button" className="btn btn--ghost btn--sm" disabled={pending} onClick={() => setPanel(panel === 'reassign' ? null : 'reassign')} data-testid="lead-reassign">Reassign</button>}
         {/* 1151: back to the salesperson who brought or last had it (else the pool) */}
         {admin && (lead.claim || lead.assigned_to) && <button type="button" className="btn btn--ghost btn--sm" disabled={pending} onClick={() => run('lead_return', {}, 'Returned to the previous owner.')} data-testid="lead-return">Return lead to previous owner</button>}

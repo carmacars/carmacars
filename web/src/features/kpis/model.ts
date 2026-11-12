@@ -7,7 +7,7 @@ export function kpiValue(k: Kpi): string {
   return k.unit === 'pct' ? `${k.value}%` : k.unit === 'min' ? `${k.value} min` : k.unit === 'days' ? `${k.value} day${k.value === 1 ? '' : 's'}` : String(k.value);
 }
 export function kpiTarget(k: Kpi): string {
-  if (!k.target) return 'no target';
+  if (!k.target) return k.key === 'helped' ? 'thanks, no commission' : 'no target';
   // 1800: a minutes KPI (idle minutes) is a ceiling
   return k.unit === 'pct' ? `${k.target}% or more` : k.unit === 'min' ? `at most ${k.target} min a week` : k.unit === 'days' ? `${k.target} day${k.target === 1 ? '' : 's'}` : `${k.target} a week`;
 }

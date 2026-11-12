@@ -3,10 +3,10 @@
 
 /** Held by the gate: the academy, the guide, the profile, Welcome (the onboarding checklist) and the no-access page only; for field
  *  staff also Training, the field guide and My pay (the pay details step), r35 part X. */
-export const ACADEMY_OPEN = /^\/staff\/(academy|guide|profile|field\/profile|field\/training|field\/guide|field\/pay|no-access|welcome)(\/|\?|$)/;
+export const ACADEMY_OPEN = /^\/staff\/(academy|guide|profile|bug-reports|field\/profile|field\/training|field\/guide|field\/pay|no-access|welcome)(\/|\?|$)/;
 export const opensWhileHeld = (path: string) => ACADEMY_OPEN.test(path);
 /** Held by the agreement (1060: the academy first, then the agreement, then access): the academy's pages and the documents to sign. */
-export const AGREEMENT_OPEN = /^\/staff\/(academy|guide|profile|field\/profile|field\/training|field\/guide|field\/pay|field\/sign|sign|documents|no-access|welcome)(\/|\?|$)/;
+export const AGREEMENT_OPEN = /^\/staff\/(academy|guide|profile|bug-reports|field\/profile|field\/training|field\/guide|field\/pay|field\/sign|sign|documents|no-access|welcome)(\/|\?|$)/;
 export const opensWhileUnsigned = (path: string) => AGREEMENT_OPEN.test(path);
 /** Not fully onboarded (1151: the academy, the agreement, then the WhatsApp groups confirmed): the same onboarding pages only. */
 export const ONBOARDING_OPEN = AGREEMENT_OPEN;

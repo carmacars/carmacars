@@ -21,6 +21,7 @@ import { InsurerFeesFields } from '@/features/insurers/InsurerFeesFields';
 import { INSURER_FEES, insurerFeesPayload, isInsurerFee, rateProblem } from '@/features/insurers/fees';
 import { DEPOSIT_PAY, PART_METHODS, RENTAL_LINE, RENTAL_PAID_BY, droppedByPrice, feeOverrides, lineKey, lineLive, liveFees, needsReference, paidSoFar, paymentOf, periodShares, youngBand, type DepositPay, type LineChoices, type PayPart, type RentalPaidBy } from '@/features/offers/model';
 import { TypedInput } from '@/components/DateInput';
+import { CONTACT_OPTIONAL_NOTE, contactOptional, renterProblem } from '@/features/supply/renter-contact';
 
 // Add a rental by hand (migration 0046): Admin > Bookings > Add a rental, the same screen for every assistant function
 // and for field staff (0058). The database decides what each may do (staff: the rate sheet or a price typed with its
@@ -104,6 +105,8 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
   const [blocks, setBlocks] = useState(true);
   // 0283: the Placeholder quick start (the source says so, so a draft opened again keeps it)
   const placeholder = isAdmin && f.source === 'other' && (f.source_note ?? '').startsWith('Placeholder');
+  // 2310: billed to an insurer and off the calendar, the renter needs only a name: no email, phone or account
+  const contactFree = contactOptional({ paidBy, blocks, placeholder });
   // 0132: fee lines typed by hand ({key: dollars}), the rental paid in more than one part
   const [fees, setFees] = useState<Record<string, string>>({});
   const [parts, setParts] = useState<PayPart[]>([]);
@@ -415,6 +418,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
     if (paidBy === 'insurer' && rateState.state === 'differs' && !(f.rate_reason ?? '').trim()) { setErr(`${rateState.message.replace(/: say why\.$/, '')}: type the reason for the different rate, or empty the field to take the sheet's.`); return; }
     setErr(null);
     if (!blocks && !(f.blocks_reason ?? '').trim()) { setErr('Say why it does not block the calendar (for example: insurance replacement, dates not known yet).'); return; }
+    if (!renter) { const bad = renterProblem(f, { paidBy, blocks, placeholder }); if (bad) { setErr(bad); return; } }
     if (needsReference(paidBy) && !(f.reference ?? '').trim()) { setErr('Enter the reference of the payment (the e-Transfer, cheque or transfer number).'); return; }
     if (!choice) { setErr('Choose "I sourced this client" or "Entered for CarmaCars".'); return; }
     if (quote && quote.has_rates === false && rentalSent === undefined) { setErr('This car has no rates yet: type the rental charge for the whole rental and the reason.'); return; }
@@ -550,8 +554,9 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
             </div>
           ) : (
             <div className="ad-fields">
-              {text('full_name', 'Full legal name')}{text('email', 'Email', { type: 'email', inputMode: 'email' })}{text('mobile', 'Phone', { inputMode: 'tel' })}{text('date_of_birth', 'Date of birth', { type: 'date', hint: 'Decides the young driver fee' })}
+              {text('full_name', 'Full legal name')}{text('email', contactFree ? 'Email (optional)' : 'Email', { type: 'email', inputMode: 'email' })}{text('mobile', contactFree ? 'Phone (optional)' : 'Phone', { inputMode: 'tel' })}{text('date_of_birth', 'Date of birth', { type: 'date', hint: 'Decides the young driver fee' })}
               {text('licence_number', 'Licence number')}{text('licence_expiry', 'Licence expiry', { type: 'date' })}
+              {contactFree && <p className="hint ad-field--wide" data-testid="mr-contact-optional">{CONTACT_OPTIONAL_NOTE}</p>}
               <details className="ad-field ad-field--wide" data-testid="mr-renter-more"><summary className="link small">Licence class and home address (optional now: the agreement asks the renter)</summary>
                 <div className="ad-fields">
                   {text('licence_class', 'Licence class', { hint: 'G unless another class' })}{text('licence_issuer', 'Licence issued by', { hint: 'ON unless another province or country' })}
@@ -726,7 +731,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
           {depositBy === 'e_transfer' && text('deposit_reference', 'Deposit e-Transfer reference')}
           {(depositBy === 'e_transfer' || depositBy === 'cash') && text('deposit_received_on', 'Deposit received on', { type: 'date', hint: 'Empty: the same day as the rental payment' })}
           <div className="field ad-field"><span className="label">The rental agreement</span>
-            <p className="small" data-testid="mr-agreement-send">Sent to the renter to sign online (the e-signature). A rental agreement signed on paper is not accepted.</p></div>
+            <p className="small" data-testid="mr-agreement-send">Sent to the renter to sign online (the e-signature). A rental agreement signed on paper is not accepted.{contactFree && !renter && !(f.email ?? '').trim() ? ' With no email, nothing is sent now: add the renter\'s email when the dates are known.' : ''}</p></div>
           <div className="field ad-field"><span className="label">The calendar</span>
             <label className="check" htmlFor={id('blocks')}><input type="checkbox" id={id('blocks')} checked={blocks && !placeholder} disabled={placeholder} onChange={(e) => setBlocks(e.target.checked)} data-testid="mr-blocks" /> <span>Blocks the car&apos;s calendar</span></label>
             {placeholder ? <p className="hint">A placeholder never blocks the calendar.</p> : !blocks && <p className="hint">For dates not known yet (an insurance replacement) or a trip another calendar holds.</p>}</div>

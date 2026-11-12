@@ -78,6 +78,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      academy_lesson_videos: {
+        Row: {
+          id: string;
+          lesson_id: string;
+          scenes_hash: string;
+          path: string;
+          mime: string;
+          seconds: number;
+          bytes: number;
+          created_by: string | null;
+          created_at: string;
+          removed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          lesson_id: string;
+          scenes_hash: string;
+          path: string;
+          mime: string;
+          seconds: number;
+          bytes: number;
+          created_by?: string | null;
+          created_at?: string;
+          removed_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          lesson_id?: string;
+          scenes_hash?: string;
+          path?: string;
+          mime?: string;
+          seconds?: number;
+          bytes?: number;
+          created_by?: string | null;
+          created_at?: string;
+          removed_at?: string | null;
+        };
+        Relationships: [];
+      };
       academy_lesson_views: {
         Row: {
           user_id: string;
@@ -3894,6 +3933,72 @@ export type Database = {
         };
         Relationships: [];
       };
+      bug_reports: {
+        Row: {
+          id: string;
+          number: number;
+          reporter_id: string;
+          portal: string;
+          happened: string;
+          expected: string | null;
+          steps: string | null;
+          severity: string;
+          page_path: string;
+          context: Json;
+          client_logs: Json;
+          screenshots: Json;
+          status: string;
+          admin_notes: string | null;
+          fixed_in: string | null;
+          status_changed_at: string | null;
+          status_changed_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          number?: number;
+          reporter_id: string;
+          portal?: string;
+          happened: string;
+          expected?: string | null;
+          steps?: string | null;
+          severity: string;
+          page_path: string;
+          context?: Json;
+          client_logs?: Json;
+          screenshots?: Json;
+          status?: string;
+          admin_notes?: string | null;
+          fixed_in?: string | null;
+          status_changed_at?: string | null;
+          status_changed_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          number?: number;
+          reporter_id?: string;
+          portal?: string;
+          happened?: string;
+          expected?: string | null;
+          steps?: string | null;
+          severity?: string;
+          page_path?: string;
+          context?: Json;
+          client_logs?: Json;
+          screenshots?: Json;
+          status?: string;
+          admin_notes?: string | null;
+          fixed_in?: string | null;
+          status_changed_at?: string | null;
+          status_changed_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       ca_addresses: {
         Row: {
           id: number;
@@ -4077,6 +4182,39 @@ export type Database = {
           etag?: string | null;
           last_modified?: string | null;
           kind?: string;
+        };
+        Relationships: [];
+      };
+      calendar_google_link: {
+        Row: {
+          id: boolean;
+          status: string;
+          account_email: string | null;
+          calendar_id: string;
+          connected_at: string | null;
+          connected_by: string | null;
+          last_error: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: boolean;
+          status?: string;
+          account_email?: string | null;
+          calendar_id?: string;
+          connected_at?: string | null;
+          connected_by?: string | null;
+          last_error?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          id?: boolean;
+          status?: string;
+          account_email?: string | null;
+          calendar_id?: string;
+          connected_at?: string | null;
+          connected_by?: string | null;
+          last_error?: string | null;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -4383,6 +4521,135 @@ export type Database = {
           note?: string | null;
           counted_by?: string;
           counted_at?: string;
+        };
+        Relationships: [];
+      };
+      channel_bookings: {
+        Row: {
+          booking_id: string;
+          partner_id: string;
+          partner_ref: string | null;
+          created_at: string;
+        };
+        Insert: {
+          booking_id: string;
+          partner_id: string;
+          partner_ref?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          booking_id?: string;
+          partner_id?: string;
+          partner_ref?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      channel_calls: {
+        Row: {
+          id: number;
+          partner_id: string | null;
+          key_id: string | null;
+          call: string;
+          ok: boolean;
+          code: string | null;
+          at: string;
+        };
+        Insert: {
+          id?: number;
+          partner_id?: string | null;
+          key_id?: string | null;
+          call: string;
+          ok: boolean;
+          code?: string | null;
+          at?: string;
+        };
+        Update: {
+          id?: number;
+          partner_id?: string | null;
+          key_id?: string | null;
+          call?: string;
+          ok?: boolean;
+          code?: string | null;
+          at?: string;
+        };
+        Relationships: [];
+      };
+      channel_keys: {
+        Row: {
+          id: string;
+          partner_id: string;
+          prefix: string;
+          key_hash: string;
+          scopes: string[];
+          created_by: string | null;
+          created_at: string;
+          last_used_at: string | null;
+          revoked_at: string | null;
+          revoked_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          partner_id: string;
+          prefix: string;
+          key_hash: string;
+          scopes: string[];
+          created_by?: string | null;
+          created_at?: string;
+          last_used_at?: string | null;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          partner_id?: string;
+          prefix?: string;
+          key_hash?: string;
+          scopes?: string[];
+          created_by?: string | null;
+          created_at?: string;
+          last_used_at?: string | null;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+        };
+        Relationships: [];
+      };
+      channel_partners: {
+        Row: {
+          id: string;
+          name: string;
+          status: string;
+          markup_bps: number;
+          commission_bps: number;
+          allowed_classes: string[];
+          allowed_vehicles: string[];
+          calls_per_minute: number;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          status?: string;
+          markup_bps?: number;
+          commission_bps?: number;
+          allowed_classes?: string[];
+          allowed_vehicles?: string[];
+          calls_per_minute?: number;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          status?: string;
+          markup_bps?: number;
+          commission_bps?: number;
+          allowed_classes?: string[];
+          allowed_vehicles?: string[];
+          calls_per_minute?: number;
+          created_by?: string | null;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -4965,6 +5232,7 @@ export type Database = {
           stack: string | null;
           ua: string | null;
           digest: string | null;
+          user_id: string | null;
         };
         Insert: {
           id?: number;
@@ -4974,6 +5242,7 @@ export type Database = {
           stack?: string | null;
           ua?: string | null;
           digest?: string | null;
+          user_id?: string | null;
         };
         Update: {
           id?: number;
@@ -4983,6 +5252,7 @@ export type Database = {
           stack?: string | null;
           ua?: string | null;
           digest?: string | null;
+          user_id?: string | null;
         };
         Relationships: [];
       };
@@ -11102,6 +11372,11 @@ export type Database = {
           phone_country: string | null;
           ip_country: string | null;
           location_area: string | null;
+          meet_provider: string | null;
+          meet_event_id: string | null;
+          meet_sync: string | null;
+          meet_sync_since: string | null;
+          meet_error: string | null;
         };
         Insert: {
           id?: string;
@@ -11152,6 +11427,11 @@ export type Database = {
           phone_country?: string | null;
           ip_country?: string | null;
           location_area?: string | null;
+          meet_provider?: string | null;
+          meet_event_id?: string | null;
+          meet_sync?: string | null;
+          meet_sync_since?: string | null;
+          meet_error?: string | null;
         };
         Update: {
           id?: string;
@@ -11202,6 +11482,11 @@ export type Database = {
           phone_country?: string | null;
           ip_country?: string | null;
           location_area?: string | null;
+          meet_provider?: string | null;
+          meet_event_id?: string | null;
+          meet_sync?: string | null;
+          meet_sync_since?: string | null;
+          meet_error?: string | null;
         };
         Relationships: [];
       };
@@ -11271,6 +11556,7 @@ export type Database = {
           by_user: string | null;
           at: string;
           note: string | null;
+          hold_role: string | null;
         };
         Insert: {
           id?: number;
@@ -11280,6 +11566,7 @@ export type Database = {
           by_user?: string | null;
           at?: string;
           note?: string | null;
+          hold_role?: string | null;
         };
         Update: {
           id?: number;
@@ -11289,6 +11576,7 @@ export type Database = {
           by_user?: string | null;
           at?: string;
           note?: string | null;
+          hold_role?: string | null;
         };
         Relationships: [];
       };
@@ -11343,6 +11631,36 @@ export type Database = {
           channel?: string;
           note?: string | null;
           at?: string;
+        };
+        Relationships: [];
+      };
+      lead_holds: {
+        Row: {
+          lead_id: string;
+          held_by: string;
+          role: string;
+          held_at: string;
+          last_call_at: string;
+          expires_at: string;
+          prev_claimed_by: string | null;
+        };
+        Insert: {
+          lead_id: string;
+          held_by: string;
+          role: string;
+          held_at?: string;
+          last_call_at?: string;
+          expires_at: string;
+          prev_claimed_by?: string | null;
+        };
+        Update: {
+          lead_id?: string;
+          held_by?: string;
+          role?: string;
+          held_at?: string;
+          last_call_at?: string;
+          expires_at?: string;
+          prev_claimed_by?: string | null;
         };
         Relationships: [];
       };
@@ -18264,6 +18582,9 @@ export type Database = {
           social_video_brand: string;
           social_video_seconds_per_photo: number;
           social_video_max_photos: number;
+          seo_i18n_vehicle_places: number;
+          meet_hold_minutes: number;
+          channel_api_enabled: boolean;
         };
         Insert: {
           id?: string;
@@ -19086,6 +19407,9 @@ export type Database = {
           social_video_brand?: string;
           social_video_seconds_per_photo?: number;
           social_video_max_photos?: number;
+          seo_i18n_vehicle_places?: number;
+          meet_hold_minutes?: number;
+          channel_api_enabled?: boolean;
         };
         Update: {
           id?: string;
@@ -19908,6 +20232,9 @@ export type Database = {
           social_video_brand?: string;
           social_video_seconds_per_photo?: number;
           social_video_max_photos?: number;
+          seo_i18n_vehicle_places?: number;
+          meet_hold_minutes?: number;
+          channel_api_enabled?: boolean;
         };
         Relationships: [];
       };
@@ -22195,6 +22522,7 @@ export type Database = {
           lead_cap_base: number;
           lead_cap_per_wins: number;
           lead_cap_max: number;
+          lead_cs_hold_minutes: number | null;
         };
         Insert: {
           id?: boolean;
@@ -22208,6 +22536,7 @@ export type Database = {
           lead_cap_base?: number;
           lead_cap_per_wins?: number;
           lead_cap_max?: number;
+          lead_cs_hold_minutes?: number | null;
         };
         Update: {
           id?: boolean;
@@ -22221,6 +22550,7 @@ export type Database = {
           lead_cap_base?: number;
           lead_cap_per_wins?: number;
           lead_cap_max?: number;
+          lead_cs_hold_minutes?: number | null;
         };
         Relationships: [];
       };
@@ -31533,6 +31863,7 @@ export type Database = {
       calendar_export_ics: { Args: { p_token: string; p_for?: string }; Returns: string };
       car_page: { Args: { p_slug: string }; Returns: Json };
       card_coverage_public: { Args: never; Returns: Json };
+      channel_api: { Args: { p_key: string; p_call: string; p?: Json }; Returns: Json };
       chat_greeting: { Args: { p_page: string }; Returns: Json };
       chat_poll: { Args: { p_token: string; p_after?: number }; Returns: Json };
       chat_typing: { Args: { p_token: string }; Returns: boolean };
@@ -31789,6 +32120,7 @@ export type Database = {
       server_booking_debit_deposit: { Args: { p_booking: string }; Returns: number };
       server_booking_driver_links: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_booking_heard_about: { Args: { p_booking_number: string; p_value: string }; Returns: boolean };
+      server_booking_licence_state: { Args: { p_numbers: string[] }; Returns: Json };
       server_booking_payment_capture_failed: { Args: { p_booking: string; p_processor: Json; p_error: string }; Returns: undefined };
       server_booking_payment_facts: { Args: { p_booking: string }; Returns: Json };
       server_booking_sign_pay: { Args: { p_booking: string }; Returns: Json };
@@ -31817,6 +32149,7 @@ export type Database = {
       server_chat_visitor_message: { Args: { p_token: string; p_body: string }; Returns: Json };
       server_client_error: { Args: { p: Json }; Returns: string };
       server_client_error_pre0532: { Args: { p: Json }; Returns: string };
+      server_client_error_pre2340: { Args: { p: Json }; Returns: string };
       server_colour_read_due: { Args: { p_limit?: number }; Returns: Json };
       server_colour_read_record: { Args: { p: Json }; Returns: Json };
       server_company_signers: { Args: never; Returns: Json };
@@ -31913,6 +32246,8 @@ export type Database = {
       server_hiring_cancel: { Args: { p_token: string }; Returns: Json };
       server_hiring_closed_role: { Args: { p_slug: string }; Returns: Json };
       server_hiring_confirm: { Args: { p_token: string; p_seq?: number }; Returns: Json };
+      server_hiring_meet_done: { Args: { p: Json }; Returns: Json };
+      server_hiring_meet_due: { Args: never; Returns: Json };
       server_hiring_prefill: { Args: { p_token: string; p_slug: string }; Returns: Json };
       server_in_person_lines: { Args: { p_request: string }; Returns: Json };
       server_incident_digital: { Args: { p_by: string; p?: Json }; Returns: Json };
@@ -32205,6 +32540,7 @@ export type Database = {
       vehicle_fleet_makes: { Args: never; Returns: Json };
       vehicle_hub_path: { Args: { p_hub: string }; Returns: string };
       vehicle_is_available: { Args: { p_vehicle: string; p_from: string; p_to: string }; Returns: boolean };
+      vehicle_language_ok: { Args: { p_path: string }; Returns: boolean };
       vehicle_make_index: { Args: never; Returns: Json };
       vehicle_make_page: { Args: { p_make: string }; Returns: Json };
       vehicle_makes: { Args: never; Returns: Json };

@@ -33,7 +33,7 @@ export async function visitorCookie(): Promise<string | null> {
 export interface PendingView {
   ok: true; user_id: string; email: string; name: string; expires_at: string;
   drafts: Array<{ id: string; form_code: string; step: string | null; saved_at: string; car: string | null; car_name: string | null; from: string | null; to: string | null }>;
-  bookings: Array<{ number: string; status: string; pickup_at: string; return_at: string; car: string }>;
+  bookings: Array<{ number: string; status: string; pickup_at: string; return_at: string; car: string; licence?: 'verified' | 'pending' | 'missing' }>;
   chats: Array<{ number: string; status: string; at: string }>;
 }
 /** This browser's unverified session, or null. */
@@ -41,7 +41,13 @@ export async function pendingView(): Promise<PendingView | null> {
   const t = await pendingToken();
   if (!t) return null;
   const r = (await rpc('server_capture_session_read', { p_token: t, p_visitor: (await visitorCookie()) ?? undefined }, SR).catch(() => null)) as unknown as PendingView | { ok: false } | null;
-  return r && r.ok ? r : null;
+  if (!r || !r.ok) return null;
+  // release 37 (2300): each sent request's licence state; not bookable until it is verified
+  if (r.bookings.length) {
+    const st = (await rpc('server_booking_licence_state', { p_numbers: r.bookings.slice(0, 50).map((b) => b.number) }, SR).catch(() => null)) as unknown as Record<string, 'verified' | 'pending' | 'missing'> | null;
+    for (const b of r.bookings) b.licence = st?.[b.number] ?? 'missing';
+  }
+  return r;
 }
 
 /** A request sent from this browser during its unverified session becomes visible to it. */

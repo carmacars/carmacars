@@ -10,6 +10,7 @@ select test.mk_user('go_syed', 'va', 'sales');      -- onboarded (exempt as ever
 select test.mk_user('go_harman', 'va', 'sales');    -- the new hire
 select test.mk_user('go_cs', 'va', 'cs');
 select test.mk_user('go_verify', 'va', 'sales');
+select test.mk_user('go_ret', 'va', 'sales');      -- 2330: a lead claim is Sales credit, so the person it is handed to in the return test is Sales
 update staff_profiles set onboarding_exempt = false where user_id in (test.id('go_harman'), test.id('go_cs'), test.id('go_verify'));
 update users set email = 'verify-go@carmacars.ca' where id = test.id('go_verify');
 
@@ -95,12 +96,12 @@ select test.eq('sweep: one lead moved', app.leads_return_unonboarded(null, null)
 select test.ok('sweep: no salesperson before: the pool', (select assigned_to from leads where id = test.id('lead:go2')) is null);
 select test.eq('sweep: logged as a release from Harman', (select count(*) from lead_claim_log where lead_id = test.id('lead:go2') and action = 'release' and user_id = test.id('go_harman'))::int, 1);
 
--- Admin: Return lead to previous owner (Syed had it; Admin gave it to the customer service person, now onboarded)
+-- Admin: Return lead to previous owner (Syed had it; Admin gave it to another Sales person; customer service cannot hold a Sales claim, 2330)
 select pg_temp.academy_ok('go_cs'); select pg_temp.agreement_ok('go_cs');
 select pg_temp.dr('go_cs', 'ops_do', 'staff_whatsapp_confirm', '{"team": true}');
 select pg_temp.dr('go_admin', 'ops_do', 'staff_onboarding_approve', jsonb_build_object('user', test.id('go_cs')));
 select test.eq('cs: onboarded with the Team group', app.staff_fully_onboarded(test.id('go_cs')), true);
-select pg_temp.dr('go_admin', 'ops_do', 'lead_reassign', jsonb_build_object('lead', test.id('lead:go1'), 'to', test.id('go_cs')));
+select pg_temp.dr('go_admin', 'ops_do', 'lead_reassign', jsonb_build_object('lead', test.id('lead:go1'), 'to', test.id('go_ret')));
 select test.eq('return: back to Syed', pg_temp.dr('go_admin', 'ops_do', 'lead_return', jsonb_build_object('lead', test.id('lead:go1'))) ->> 'to', test.id('go_syed')::text);
 select test.eq('return: Syed holds it', (select claimed_by from lead_claims where lead_id = test.id('lead:go1')), test.id('go_syed'));
 select test.throws('return: an Admin''s action', format($$select pg_temp.dr('go_syed', 'ops_do', 'lead_return', jsonb_build_object('lead', %L))$$, test.id('lead:go1')), 'Admin');

@@ -287,6 +287,8 @@ const worker = {
     ctx.waitUntil(pushWaiting(env).then((w) => { if (w) run('/api/jobs/push'); }).catch(() => undefined));
     // the Google reviews sync of the review request program (migration 0138), every 6 hours while connected
     if (due.reviews) run('/api/jobs/reviews');
+    // r37 (2303): interview calls waiting for their Google Calendar event and Meet link
+    if (due.meet) run('/api/jobs/meet');
     // the ads job (migration 0167): posted ads checked against the rates, the week's social drafts, Meta publishing when on
     if (due.ads) run('/api/jobs/ads');
     // 1202: the AI value estimate of cars with no Black Book value (the RentalCover cap), within the free Workers AI allowance
