@@ -13,6 +13,8 @@ import { needCount, needSentence, ownClear, ownLines } from '@/features/admin/to
 import { UsageBanner, UsageCards } from '@/features/usage/UsageCards';
 import { More } from '@/features/portal/Chrome';
 import { DataHealthCard } from '@/features/admin/data-health/DataHealthCard';
+import { TownhallCard } from '@/features/townhall/TownhallCard';
+import { InterviewsToday } from '@/features/careers/admin/InterviewsToday';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'To do', path: '/admin', noindex: true, description: 'What needs an Admin now, in order.' });
@@ -83,6 +85,9 @@ export default async function AdminToDo() {
           {h && <SiteHealth h={h} />}
         </div>
         <div className="ad-home__side">
+          {/* 2590: the weekly townhall from the day before, and the day's interview calls */}
+          <TownhallCard userId={user.id} admin />
+          <InterviewsToday userId={user.id} />
           <Card title={`Pickups today (${d.pickups.length})`} testId="todo-pickups" aside={<Link prefetch={false} className="link small" href="/admin/calendar">Calendar</Link>}>
             {d.pickups.length ? <ul className="ad-sched">{d.pickups.map((r) => (
               <li key={r.booking_number}><time className="ad-sched__time">{time(r.at)}</time>

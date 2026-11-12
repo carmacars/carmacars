@@ -30,9 +30,11 @@ create temp table aiv_days as select id from interview_days where active;
 update interview_days set active = false where id in (select id from aiv_days);
 
 -- ================================================================ 1. settings and who gets the interview
-select test.eq('on by default: 7 days, 2 follow-ups, the Whisper model',
+select test.eq('on by default: 7 days, 4 follow-ups (2590), the Whisper model',
   (select hiring_ai_interviews::text || '/' || hiring_ai_interview_days || '/' || hiring_ai_followups || '/' || hiring_ai_transcribe_model from app.settings()),
-  'true/7/2/@cf/openai/whisper-large-v3-turbo');
+  'true/7/4/@cf/openai/whisper-large-v3-turbo');
+-- this suite walks the 0380 interview: nine questions, two follow-ups at most, the Admin deciding (2590 has them as settings)
+update program_settings set hiring_ai_followups = 2, hiring_ai_harder = false, hiring_ai_auto_decide = false;
 
 select test.aiv_app('aivcs', 'va-customer-service');
 select app.hiring_screen((test.aiv('aivcs')).id);
@@ -63,8 +65,8 @@ select test.eq('Invite anyway: the interview link', test.aiv_out('aivfin', 'appl
 
 -- ================================================================ 2. the questions and the consent
 select test.eq('nine questions, from the role', jsonb_array_length((test.aiv_iv('aivcs')).questions), 9);
-select test.ok('they cover every rubric topic', (select bool_and(exists (select 1 from jsonb_array_elements((test.aiv_iv('aivcs')).questions) q where q -> 'topics' ? (t ->> 'key')))
-  from jsonb_array_elements(app.ai_interview_topics()) t));
+select test.ok('they cover every rubric topic (2590''s reliability and written English come with the harder questions)', (select bool_and(exists (select 1 from jsonb_array_elements((test.aiv_iv('aivcs')).questions) q where q -> 'topics' ? (t ->> 'key')))
+  from jsonb_array_elements(app.ai_interview_topics()) t where t ->> 'key' not in ('reliability', 'written')));
 select test.ok('the role''s own scenario, schedule and pay are asked', (test.aiv_iv('aivcs')).questions::text like '%Three chats and a call arrive together%'
   and (test.aiv_iv('aivcs')).questions::text like '%US$400 a month%' and (test.aiv_iv('aivcs')).questions::text like '%9:00 am Toronto time%');
 select test.ok('the finance role asks its own', (test.aiv_iv('aivfin')).questions::text like '%bookkeeping or billing%' and (test.aiv_iv('aivfin')).questions::text like '%new bank details%');
@@ -227,3 +229,4 @@ select test.ok('the interview functions are server only', not has_function_privi
 select test.ok('the tables are for Admins only', not has_table_privilege('anon', 'ai_interviews', 'select')
   and (select count(*) = 2 from pg_policies where tablename in ('ai_interviews', 'ai_interview_answers') and qual like '%is_admin%'));
 update interview_days set active = true where id in (select id from aiv_days);
+update program_settings set hiring_ai_followups = 4, hiring_ai_harder = true, hiring_ai_auto_decide = true;

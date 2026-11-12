@@ -80,3 +80,10 @@ test('the pay asked above what the role pays', () => {
   assert.equal(payOver('anything', 2000), false);
   assert.equal(payOver('30', null), false);
 });
+
+test('2590: the button of an interview call today: Call for a phone number, Join for a video link', async () => {
+  const { callLinkLabel } = await import('./model.ts');
+  assert.equal(callLinkLabel({ link: 'tel:+15550100', mode: 'phone' }), 'Call');
+  assert.equal(callLinkLabel({ link: 'https://meet.example.test/x', mode: 'video' }), 'Join the video call');
+  assert.equal(callLinkLabel({ link: 'https://meet.example.test/x', mode: 'phone' }), 'Open the call');
+});

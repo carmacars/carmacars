@@ -146,13 +146,14 @@ export function Interview({ token, initial }: { token: string; initial: Intervie
     <p><Link prefetch={false} className="link" href="/careers">Open roles</Link></p></div>);
   if (done) return (<div className="stack-lg" data-testid="iv-done">{head}
     <h1 className="d2" tabIndex={-1}>Thank you, {v.first_name}. Your interview is done.</h1>
-    <p className="lead">Our hiring team will watch your answers. We will write to you with the next step within two days.</p>
+    <p className="lead">Your answers are scored against the role. We will write to you with the next step within two days.</p>
     <p className="small muted">You can close this page.</p></div>);
   if (v.state === 'sent' || v.consent_needed) return (
     <div className="stack-lg" data-testid="iv-intro">
       {head}
       <h1 className="d2">Your interview, {v.first_name}</h1>
       <p className="lead">{v.total} questions, about {Math.max(10, Math.round((v.total * total) / 60))} minutes, on video. Do it now or any time before {new Date(v.expires_at).toLocaleDateString('en-CA', { month: 'long', day: 'numeric', timeZone: 'America/Toronto' })}.</p>
+      <p data-testid="iv-prescreen">This interview is the pre-screen to our training academy, and the bar is high: give real examples with names, numbers and what you said. Pass it and your training starts right away.</p>
       <ol className="iv-how">
         <li>First we check your camera and microphone.</li>
         <li>Each question is shown and read aloud. Then you have {mins} to answer: press <b>Record</b> when you are ready and speak to the camera, as you would on a video call.</li>

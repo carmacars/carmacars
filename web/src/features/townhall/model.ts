@@ -51,3 +51,37 @@ export function townhallIcs(o: { nextAt: string; minutes: number; url: string | 
     'BEGIN:VALARM', 'TRIGGER:-PT60M', 'ACTION:DISPLAY', 'DESCRIPTION:Townhall in an hour', 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'];
   return lines.join('\r\n') + '\r\n';
 }
+
+// ---------------------------------------------------------------- 2590: the townhall card of every portal home
+export interface TownhallLinkRead { has_link: boolean; next_at: string | null; minutes: number; live: boolean; card?: boolean; ends_at?: string | null;
+  checked_in?: boolean; missed_last?: boolean }
+export interface TownhallCardModel { headline: string; when: string; countdown: string; joinOpen: boolean; live: boolean; checkedIn: boolean; warn: string | null }
+const torontoWhen = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(iso));
+const torontoDay = (ms: number) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto' }).format(new Date(ms));
+/** "in 2 h 5 min", "in 12 min", "now" */
+export function countdown(ms: number): string {
+  if (ms <= 0) return 'now';
+  const m = Math.ceil(ms / 60_000);
+  if (m < 60) return `in ${m} min`;
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  return h >= 24 ? `in ${Math.floor(h / 24)} d ${h % 24} h` : `in ${h} h${r ? ` ${r} min` : ''}`;
+}
+/** The card: from the day before (the read says) until the call ends; Join from 15 minutes before; the warning after a miss. */
+export function townhallCard(v: TownhallLinkRead | null | undefined, now: number): TownhallCardModel | null {
+  if (!v?.next_at || !v.card) return null;
+  const at = Date.parse(v.next_at);
+  const end = v.ends_at ? Date.parse(v.ends_at) : at + (v.minutes || 30) * 60_000;
+  if (!Number.isFinite(at) || now >= end) return null;
+  const live = now >= at;
+  const today = torontoDay(now) === torontoDay(at);
+  return {
+    headline: live ? 'The townhall is on now' : today ? 'Townhall today' : 'Townhall tomorrow',
+    when: `${torontoWhen(v.next_at)}, Toronto time`,
+    countdown: live ? 'on now' : countdown(at - now),
+    joinOpen: now >= at - 15 * 60_000,
+    live,
+    checkedIn: Boolean(v.checked_in),
+    warn: v.missed_last ? 'You missed the last townhall: one more miss locks your account.' : null
+  };
+}

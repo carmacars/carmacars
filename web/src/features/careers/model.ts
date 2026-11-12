@@ -150,3 +150,7 @@ export function nextTorontoMorning(weekday: number | null, hour: number, now: Da
   const label = new Intl.DateTimeFormat('en-CA', { timeZone: TORONTO, weekday: 'long', month: 'long', day: 'numeric' }).format(at);
   return { iso: at.toISOString(), label };
 }
+
+// 2590: Admin Today's interview calls and the button on each
+export interface InterviewCall { id: string; starts_at: string; name: string; role: string; mode: 'phone' | 'video' | string; link: string | null; status: string }
+export const callLinkLabel = (c: Pick<InterviewCall, 'link' | 'mode'>): string => (c.link?.startsWith('tel:') ? 'Call' : c.mode === 'phone' ? 'Open the call' : 'Join the video call');

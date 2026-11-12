@@ -11,7 +11,7 @@ const topics = [{ key: 'internet', label: 'Internet and backup', weight: 10, goo
   { key: 'canada', label: 'Moving to Canada', weight: 0, good: 'noted' }];
 
 test('follow-ups: a long answer never gets one; a vague one gets the model\'s question, or the plain one without the model', () => {
-  const long = 'word '.repeat(80);
+  const long = 'word '.repeat(170);
   assert.equal(pickFollowup(long, { vague: true, followup: 'Which tools?' }), '', 'a detailed answer is never followed up');
   assert.equal(pickFollowup('I did support.', { vague: true, followup: 'Which tools did you use, and for how many customers a day?' }), 'Which tools did you use, and for how many customers a day?');
   assert.equal(pickFollowup('I did support for a US company for two years with many tickets every day of the week.', { vague: false, followup: '' }), '');

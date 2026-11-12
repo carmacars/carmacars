@@ -13,6 +13,11 @@ import { AI_STATE_WORDS, RECOMMENDATION_WORDS, type InterviewState, type Recomme
 import { ContactButtons } from '@/features/phone/QuoButtons';
 import { MeetCard, type MeetState } from '@/features/meet/MeetCard';
 
+// 2590: what the AI interviews decided by themselves this week
+const AI_WEEK: Array<[string, string]> = [['hire', 'hired'], ['live_call', 'live call'], ['sales', 'to Sales'], ['decline', 'declined'], ['failed', 'failed']];
+const aiWeek = (w?: Record<string, number>) => AI_WEEK
+  .filter(([k]) => (w?.[k] ?? 0) > 0).map(([k, l]) => `${w![k]} ${l}`).join(', ') || 'none';
+
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Hiring', path: '/admin/hiring', noindex: true, description: 'Applications from carmacars.ca/careers, interview days, the calls, the rubric and the ranked shortlist.' });
 type R = Record<string, unknown>;
@@ -33,7 +38,8 @@ export default async function Hiring({ searchParams }: { searchParams: Promise<R
   const tab = sp.tab ?? 'pipeline';
   const base = '/admin/hiring';
   const data = await read<{ today: string; phone_enabled: boolean; roles: Role[]; applications: App[]; days: Day[]; waiting?: Array<{ slug: string; title: string; count: number }>; decisions_waiting?: number;
-    ai_interviews?: { enabled: boolean; days: number; followups: number; waiting: number; answer_seconds?: number; retakes?: number; video_days?: number } }>('hiring',
+    ai_interviews?: { enabled: boolean; days: number; followups: number; waiting: number; answer_seconds?: number; retakes?: number; video_days?: number;
+      /** 2590 */ pass_mark?: number; auto_decide?: boolean; week?: Record<string, number> } }>('hiring',
     { role: sp.role ?? '', status: sp.status ?? '', source: sp.source ?? '', min_score: sp.min_score ?? '' });
   const waiting = data.roles.reduce((n, r) => n + (r.counts.below_bar ?? 0), 0);
   const tabs = <Tabs current={`${base}?tab=${tab}`} items={[[`${base}?tab=pipeline`, 'Applications', waiting], [`${base}?tab=calls`, 'Calls'], [`${base}?tab=shortlist`, 'Shortlist'],
@@ -119,16 +125,21 @@ export default async function Hiring({ searchParams }: { searchParams: Promise<R
     return (<>{head}{noDay}{tabs}
       {ai && <Card title="AI interviews for the remote roles" testId="hiring-ai-setting" aside={<Badge s={ai.enabled ? 'published' : 'closed'}>{ai.enabled ? 'On' : 'Off'}</Badge>}>
         <p className="small">{ai.enabled
-          ? `A remote assistant who passes screening (customer service, fleet, finance, remote sales) gets a link to an interview recorded on video instead of a live call: ${ai.days} days to take it, up to ${ai.followups} follow-up questions. The AI scores it and recommends; you decide. In-person roles keep their phone calls.`
+          ? `Every applicant who passes screening takes an interview recorded on video, the pre-screen to the academy: ${ai.days} days to take it, up to ${ai.followups} probing follow-up questions. ${ai.auto_decide === false ? 'The AI scores it and recommends; you decide.' : `It decides by itself: ${ai.pass_mark ?? 80} of 100 or more with no knock-out answer is hired (field roles: invited to book a live call, the one step that needs you); under it, the decline or Sales email goes. You are told, never asked.`}`
           : 'Off: remote assistants who pass screening get the link to book a live call, as the in-person roles do.'}</p>
         <Kv rows={[['Answer time', `${(ai.answer_seconds ?? 120) / 60} minute${(ai.answer_seconds ?? 120) === 60 ? '' : 's'} for each answer`],
-          ['Retakes allowed', String(ai.retakes ?? 0)], ['Keep interview videos', `${ai.video_days ?? 90} days, then deleted`]]} />
+          ['Retakes allowed', String(ai.retakes ?? 0)], ['Keep interview videos', `${ai.video_days ?? 90} days, then deleted`],
+          ['The bar to pass', `${ai.pass_mark ?? 80} of 100`], ['Decided in the last 7 days', aiWeek(ai.week)]]} />
         <div className="row"><Act action="hiring_ai_settings" payload={{ enabled: !ai.enabled }} label={ai.enabled ? 'Turn off' : 'Turn on'} variant={ai.enabled ? 'ghost' : 'primary'} testId="hiring-ai-toggle"
           refresh={[base]} done={ai.enabled ? 'AI interviews are off.' : 'AI interviews are on.'} />
           <Act action="hiring_ai_settings" payload={{}} label="Interview settings" testId="hiring-ai-settings" refresh={[base]} done="Saved."
             fields={[{ name: 'answer_minutes', label: 'Answer time (minutes, 1 to 3)', type: 'number', min: 1, max: 3, value: (ai.answer_seconds ?? 120) / 60, required: true },
               { name: 'retakes', label: 'Retakes allowed (0 to 3)', type: 'number', min: 0, max: 3, value: ai.retakes ?? 0, required: true },
-              { name: 'video_days', label: 'Keep interview videos (days)', type: 'number', min: 1, max: 365, value: ai.video_days ?? 90, required: true }]} /></div>
+              { name: 'video_days', label: 'Keep interview videos (days)', type: 'number', min: 1, max: 365, value: ai.video_days ?? 90, required: true },
+              { name: 'pass_mark', label: 'The bar to pass (50 to 100)', type: 'number', min: 50, max: 100, value: ai.pass_mark ?? 80, required: true },
+              { name: 'followups', label: 'Follow-up questions (0 to 6)', type: 'number', min: 0, max: 6, value: ai.followups, required: true }]} />
+          <Act action="hiring_ai_settings" payload={{ auto_decide: ai.auto_decide === false }} label={ai.auto_decide === false ? 'Decide automatically' : 'Decide by hand'} variant="ghost" testId="hiring-ai-auto"
+            refresh={[base]} done="Saved." /></div>
       </Card>}
       {data.roles.map((r) => {
         const src = r.remote ? 'onlinejobs' : 'indeed';
@@ -152,7 +163,7 @@ export default async function Hiring({ searchParams }: { searchParams: Promise<R
   }
   const aiWaiting = data.ai_interviews?.waiting ?? 0;
   return (<>{head}{noDay}{tabs}
-    {aiWaiting > 0 && <p className="alert" role="status" data-testid="hiring-ai-waiting"><span>{aiWaiting} AI interview{aiWaiting === 1 ? '' : 's'} done and waiting for your decision. <Link prefetch={false} className="link" href={`${base}?tab=pipeline&status=interviewed`}>Show interviewed</Link></span></p>}
+    {aiWaiting > 0 && <p className="alert" role="status" data-testid="hiring-ai-waiting"><span>{aiWaiting} AI interview{aiWaiting === 1 ? '' : 's'} done and waiting for your decision (automatic decisions are off in Interview settings). <Link prefetch={false} className="link" href={`${base}?tab=pipeline&status=interviewed`}>Show interviewed</Link></span></p>}
     <ListFilters id="admin-hiring" base={`${base}?tab=pipeline`} sp={sp} chips={{ name: 'status', label: 'Status', options: STATUS_FILTERS.filter(([v]) => ['', 'open', 'invited', 'booked', 'interviewed'].includes(v)) }}
       kept={['role', 'source', 'min_score']} />
     <Card title={`Applications (${data.applications.length})`} testId="hiring-apps">
