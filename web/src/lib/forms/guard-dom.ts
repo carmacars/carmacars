@@ -10,21 +10,37 @@
 //   2. fields the form itself marked aria-invalid (the wizards, the contact forms, Act and SaveForm): listed in the summary with
 //      the message the form wrote under them, and focused;
 //   3. an error message the server sent, shown by the form as an alert: the field whose label the message names is marked.
+// The guard is purely additive (r41): it never calls preventDefault or stopPropagation, so the browser's and the app's own
+// validation and handlers run as without it; a form that shows its own errors (noValidate, aria-invalid set by the app) gets only
+// the summary and the focus. The summary lists field LABELS (the message is under the field), so no message appears twice.
+// A button outside any form (a wizard's Next) is covered too: the scope is the nearest block around it that holds fields.
 // A form opts out with data-form-guard="off". The words and the matching are in guard.ts (unit tested).
-import { cleanLabel, fieldsNamedIn, humanName, problemLine, problemSig, summaryTitle, validityMessage, type ControlFacts, type FieldRef, type Problem } from './guard';
+import { cleanLabel, fieldsNamedIn, humanName, problemSig, summaryTitle, validityMessage, type ControlFacts, type FieldRef, type Problem } from './guard';
 
 type Control = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
 interface State {
-  native: boolean; until: number; focusPending: boolean; seen: Set<string>; stale: Set<string>; forced: Set<Element>;
+  native: boolean; button: Element | null; until: number; focusPending: boolean; seen: Set<string>; stale: Set<string>; forced: Set<Element>;
   dismissed: WeakMap<Element, string>; obs: MutationObserver; timer: number | undefined; beganAt: number;
 }
 
 const WINDOW_MS = 10_000;
-const states = new WeakMap<HTMLFormElement, State>();
+const states = new WeakMap<Scope, State>();
 let counter = 0;
 
-const off = (form: HTMLFormElement) => form.dataset.formGuard === 'off';
-const formOf = (el: Element | null): HTMLFormElement | null => (el ? ((el as Control).form ?? el.closest('form')) : null);
+const off = (form: Scope) => form.dataset.formGuard === 'off';
+type Scope = HTMLElement;
+const FIELDS = 'input:not([type="hidden"]):not([type="submit"]):not([type="button"]), select, textarea';
+/** The form of an element; for a button outside any form, the nearest block around it that holds fields. */
+const formOf = (el: Element | null): Scope | null => {
+  if (!el) return null;
+  const f = (el as Control).form ?? el.closest('form');
+  if (f) return f;
+  if (el.closest('header, footer, nav, [role="dialog"], [data-fg]')) return null;
+  for (let n = el.parentElement; n && n !== document.body; n = n.parentElement) if (n.querySelector(FIELDS)) return n;
+  return null;
+};
+/** The scope with a running state that holds this element (a field of a wizard has no form). */
+const stateOwner = (el: Element): Scope | null => { for (let n: Element | null = el; n; n = n.parentElement) if (states.has(n as Scope)) return n as Scope; return null; };
 const isControl = (el: Element): el is Control => /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName) && !['hidden', 'submit', 'button', 'reset', 'image'].includes((el as HTMLInputElement).type);
 const visible = (el: Element) => (el as HTMLElement).getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden' && !el.closest('[hidden], [inert]');
 const ensureId = (el: Element): string => { if (!el.id) el.id = `fg-${++counter}`; return el.id; };
@@ -83,7 +99,7 @@ function nativeMessage(c: Control): string {
 const failsNative = (c: Control, st: State) => c.willValidate && !c.validity.valid && visible(c) && (NOT_STEP(c.validity) || st.forced.has(c));
 
 /** The alerts a form shows (a server error, a failed save): not the field messages and not the guard's own parts. */
-function alertsOf(form: HTMLFormElement): Array<{ el: Element; text: string }> {
+function alertsOf(form: Scope): Array<{ el: Element; text: string }> {
   const out: Array<{ el: Element; text: string }> = [];
   form.querySelectorAll('[role="alert"], .alert--error').forEach((el) => {
     if (el.hasAttribute('data-fg') || el.closest('[data-fg]') || el.classList.contains('error') || el.closest('.error')) return;
@@ -108,9 +124,11 @@ function applyMark(c: Control, message: string, src: 'native' | 'server') {
   if (!c.hasAttribute('data-fg-own')) {
     c.setAttribute('data-fg-own', '1'); c.dataset.fgDesc = c.getAttribute('aria-describedby') ?? '';
     c.setAttribute('aria-invalid', 'true'); c.classList.add('fg-invalid');
-    c.setAttribute('aria-describedby', [c.dataset.fgDesc, eid].filter(Boolean).join(' '));
+    if (src === 'native') c.setAttribute('aria-describedby', [c.dataset.fgDesc, eid].filter(Boolean).join(' '));
   }
   c.dataset.fgSrc = src; c.dataset.fgMsg = message;
+  // a server message is already on the page as the form's own alert: the field is marked, the words are not repeated
+  if (src === 'server') return;
   let m = document.getElementById(eid);
   if (!m) {
     m = document.createElement('p'); m.id = eid; m.className = 'error fg-msg'; m.setAttribute('data-fg', '');
@@ -121,23 +139,23 @@ function applyMark(c: Control, message: string, src: 'native' | 'server') {
   if (m.textContent !== message) m.textContent = message;
 }
 
-function submitSpot(form: HTMLFormElement): { parent: Node; before: Node | null } {
+function submitSpot(form: Scope, hint: Element | null): { parent: Node; before: Node | null } {
   const btns = Array.from(form.querySelectorAll<HTMLElement>('button[type="submit"], input[type="submit"], button:not([type])')).filter((b) => !b.closest('[data-fg]'));
-  const b = btns[btns.length - 1];
+  const b = form instanceof HTMLFormElement ? btns[btns.length - 1] : (hint instanceof HTMLElement && form.contains(hint) ? hint : btns[btns.length - 1]);
   if (!b) return { parent: form, before: null };
   let anchor: HTMLElement = b;
   while (anchor.parentElement && anchor.parentElement !== form && anchor.parentElement.children.length <= 3 && !anchor.parentElement.matches('.field, fieldset, .ad-fields')) anchor = anchor.parentElement;
   return { parent: anchor.parentNode ?? form, before: anchor };
 }
 
-function renderSummary(form: HTMLFormElement, problems: Problem[]) {
+function renderSummary(form: Scope, problems: Problem[], hint: Element | null) {
   let box = form.querySelector<HTMLElement>('.fg-summary');
   if (!problems.length) { box?.remove(); return; }
   const sig = problemSig(problems);
   if (box && box.dataset.sig === sig) return;
   const fresh = !box;
   if (!box) {
-    box = document.createElement('div'); box.className = 'alert alert--error fg-summary'; box.setAttribute('data-fg', ''); box.setAttribute('role', 'alert'); box.tabIndex = -1;
+    box = document.createElement('div'); box.className = 'alert fg-summary'; box.setAttribute('data-fg', ''); box.setAttribute('role', 'status'); box.setAttribute('aria-live', 'assertive'); box.tabIndex = -1;
   }
   box.dataset.sig = sig;
   box.replaceChildren();
@@ -145,10 +163,10 @@ function renderSummary(form: HTMLFormElement, problems: Problem[]) {
   const ul = document.createElement('ul'); ul.className = 'fg-summary__list';
   for (const p of problems) {
     const li = document.createElement('li'); const a = document.createElement('a');
-    a.href = `#${p.id}`; a.setAttribute('data-fg-go', p.id); a.textContent = problemLine(p); li.appendChild(a); ul.appendChild(li);
+    a.href = `#${p.id}`; a.setAttribute('data-fg-go', p.id); a.textContent = p.label || 'This field'; li.appendChild(a); ul.appendChild(li);
   }
   box.append(title, ul);
-  if (fresh) { const s = submitSpot(form); s.parent.insertBefore(box, s.before); }
+  if (fresh) { const s = submitSpot(form, hint); s.parent.insertBefore(box, s.before); }
 }
 
 /** Scroll to the field and put the focus in it. */
@@ -161,7 +179,7 @@ export function goTo(id: string) {
 
 const OBS: MutationObserverInit = { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['aria-invalid'] };
 
-function evaluate(form: HTMLFormElement) {
+function evaluate(form: Scope) {
   const st = states.get(form);
   if (!st) return;
   st.timer = undefined;
@@ -173,7 +191,7 @@ function evaluate(form: HTMLFormElement) {
     const controls = Array.from(form.querySelectorAll<Element>('input, select, textarea')).filter(isControl);
     const alerts = alertsOf(form);
     const desired = new Map<Control, { message: string; stale: boolean; src: 'native' | 'server' }>();
-    if (st.native) {
+    if (st.native && form instanceof HTMLFormElement && !form.noValidate) {
       const groups = new Set<string>();
       for (const c of controls) {
         if (!failsNative(c, st)) continue;
@@ -204,7 +222,7 @@ function evaluate(form: HTMLFormElement) {
       problems.push({ id, label: labelOf(el), message: d ? d.message : appMessage(el), stale: d?.stale ?? false });
     });
     count = problems.length;
-    renderSummary(form, problems);
+    renderSummary(form, problems, st.button);
 
     // focus: once for an attempt (the first problem), and again for a problem that appears later (a server answer)
     const keys = problems.map((p) => `${p.id}|${p.message}`);
@@ -224,21 +242,21 @@ function evaluate(form: HTMLFormElement) {
   if (!expired) st.timer = window.setTimeout(() => schedule(form, 0), Math.max(50, st.until - Date.now() + 50));
 }
 
-function schedule(form: HTMLFormElement, delay = 80) {
+function schedule(form: Scope, delay = 80) {
   const st = states.get(form);
   if (!st) return;
   if (st.timer !== undefined) clearTimeout(st.timer);
   st.timer = window.setTimeout(() => evaluate(form), delay);
 }
 
-function begin(form: HTMLFormElement, native: boolean): State {
+function begin(form: Scope, native: boolean, button: Element | null = null): State {
   let st = states.get(form);
   if (!st) {
     const obs = new MutationObserver(() => schedule(form));
-    st = { native: false, until: 0, focusPending: false, seen: new Set(), stale: new Set(), forced: new Set(), dismissed: new WeakMap(), obs, timer: undefined, beganAt: 0 };
+    st = { native: false, button: null, until: 0, focusPending: false, seen: new Set(), stale: new Set(), forced: new Set(), dismissed: new WeakMap(), obs, timer: undefined, beganAt: 0 };
     states.set(form, st);
   }
-  st.beganAt = Date.now(); st.until = Date.now() + WINDOW_MS; st.focusPending = true; st.dismissed = new WeakMap(); st.seen = new Set();
+  st.button = button; st.beganAt = Date.now(); st.until = Date.now() + WINDOW_MS; st.focusPending = true; st.dismissed = new WeakMap(); st.seen = new Set();
   if (native) st.native = true;
   st.stale = new Set(alertsOf(form).map((a) => a.text));
   schedule(form, 0);
@@ -251,25 +269,19 @@ let installed = false;
 export function installFormGuard(): () => void {
   if (installed || typeof document === 'undefined') return () => undefined;
   installed = true;
-  // the browser's check failed on a field: keep its one-field bubble away, the guard shows every field
+  // the browser's check failed on a field (the browser still shows its own bubble and stops the send; the guard lists every field)
   const onInvalid = (e: Event) => {
     const c = e.target as Element;
     const form = formOf(c);
     if (!form || off(form)) return;
-    e.preventDefault();
     const st = states.get(form);
     if (!st || Date.now() - st.beganAt > 200) begin(form, true).forced.add(c); else { st.native = true; st.forced.add(c); }
   };
-  // a form with noValidate is checked here before its own handler runs (a visible field that is empty or wrong stops it)
+  // a send: the app's own checks run as usual (the guard is first in line but changes nothing); its errors are listed when they appear
   const onSubmit = (e: Event) => {
     const form = e.target as HTMLFormElement;
     if (!(form instanceof HTMLFormElement) || off(form) || form.method === 'dialog') return;
-    const submitter = (e as SubmitEvent).submitter as HTMLButtonElement | null;
-    const skip = !!submitter?.formNoValidate;
-    const st = begin(form, false);
-    if (!form.noValidate || skip) return;
-    const bad = Array.from(form.querySelectorAll<Element>('input, select, textarea')).filter(isControl).some((c) => failsNative(c, st));
-    if (bad) { st.native = true; e.preventDefault(); e.stopImmediatePropagation(); schedule(form, 0); }
+    begin(form, false);
   };
   // a click on a button of a form that is not a submit (a wizard's Next): the form's own errors are listed too
   const onClick = (e: Event) => {
@@ -279,15 +291,14 @@ export function installFormGuard(): () => void {
     const form = formOf(b);
     if (!form || off(form) || (b as HTMLButtonElement).type === 'submit' || !form.contains(b)) return;
     if ((b as HTMLButtonElement).type === 'reset') return;
-    begin(form, false);
+    begin(form, false, b);
   };
   // the person fixes a field: its mark goes, the summary follows
   const onEdit = (e: Event) => {
     const c = e.target as Element;
-    const form = formOf(c);
-    if (!form) return;
-    const st = states.get(form);
-    if (!st) return;
+    const form = stateOwner(c);
+    const st = form && states.get(form);
+    if (!form || !st) return;
     // a server message that named this field is answered by the edit: it stays off the field until the next attempt
     if (c.hasAttribute('data-fg-own') && (c as HTMLElement).dataset.fgSrc === 'server') st.dismissed.set(c, (c as HTMLElement).dataset.fgMsg ?? '');
     schedule(form);

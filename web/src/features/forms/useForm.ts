@@ -7,7 +7,10 @@ import { fieldErrors, type ActionResult, type FieldErrors } from './schemas';
 // runs (and the action checks again). The first field with a problem gets focus.
 export function useForm<T extends z.ZodTypeAny>(schema: T, action: (prev: unknown, fd: FormData) => Promise<ActionResult<unknown>>, extra?: (fd: FormData) => Record<string, unknown>) {
   const [local, setLocal] = useState<FieldErrors>({});
+  // fields edited since the last send: their error (from the server's answer too) is gone until the next send
+  const [cleared, setCleared] = useState<ReadonlySet<string>>(new Set());
   const [state, run, pending] = useActionState(async (prev: unknown, fd: FormData) => {
+    setCleared(new Set());
     const values = { ...Object.fromEntries(fd), ...(extra ? extra(fd) : {}) };
     const p = schema.safeParse(values);
     if (!p.success) {
@@ -18,8 +21,9 @@ export function useForm<T extends z.ZodTypeAny>(schema: T, action: (prev: unknow
     setLocal({});
     return action(prev, fd);
   }, null as ActionResult<unknown> | null);
-  const errors: FieldErrors = { ...(state && !state.ok ? state.fieldErrors ?? {} : {}), ...local };
-  const clear = (k: string) => { if (local[k]) setLocal((l) => { const n = { ...l }; delete n[k]; return n; }); };
+  const merged: FieldErrors = { ...(state && !state.ok ? state.fieldErrors ?? {} : {}), ...local };
+  const errors: FieldErrors = Object.fromEntries(Object.entries(merged).filter(([k]) => !cleared.has(k)));
+  const clear = (k: string) => { if (merged[k] && !cleared.has(k)) setCleared((c) => new Set(c).add(k)); if (local[k]) setLocal((l) => { const n = { ...l }; delete n[k]; return n; }); };
   // Submitted from onSubmit (not the form's action attribute), so React does not reset the fields
   // when the server sends back an error.
   const submit = (e: FormEvent<HTMLFormElement>) => { e.preventDefault(); const fd = new FormData(e.currentTarget); startTransition(() => run(fd)); };
