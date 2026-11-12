@@ -23,6 +23,33 @@ export interface Welcome { name: string; portal: 'va' | 'field'; locked: boolean
 
 export const STEP_TITLE: Record<StepKey, string> = { welcome: 'Welcome', profile: 'Your profile and phone', availability: 'When you can work', academy: 'The academy', agreement: 'Your staff agreement', team: 'Join the WhatsApp groups', approval: 'Approval', tasks: 'Your first tasks' };
 
+/** How often the agreements job runs: the Worker's five-minute tick (custom-worker.ts), when the database says an agreement is due. */
+export const AGREEMENT_JOB_WORDS = 'within about 5 minutes';
+export interface AgreementWaiting { mine: Array<{ label: string; to: 'profile' | 'licence' }>; theirs: string[]; headline: string | null; theirsLine: string | null; timing: string }
+/**
+ * What the staff agreement waits for (r40-forms), from the agreement step and the profile step: the values the person gives
+ * themselves (home address on the profile, the driver's licence number in the box of this page) and the values only an Admin
+ * can set (start date, pay, the vehicle types). Null when it is signed, waived, already sent, or nothing is known to be missing.
+ * Labels only; a licence number is never read here.
+ */
+export function agreementWaiting(ag: WelcomeStep, profile?: WelcomeStep): AgreementWaiting | null {
+  if (ag.state === 'signed' || ag.state === 'waived' || ag.state === 'sent') return null;
+  const missing = ag.missing ?? [];
+  const noAddress = profile?.address === false;
+  const mine: AgreementWaiting['mine'] = [];
+  if (noAddress && (ag.needs_licence || missing.some((m) => /home address/i.test(m)))) mine.push({ label: 'Home address', to: 'profile' });
+  if (ag.needs_licence) mine.push({ label: 'Driver\'s licence number', to: 'licence' });
+  const theirs = missing.filter((m) => !/home address|licence number/i.test(m)).map((m) => m.replace(/\s*\([^)]*\)/g, '').trim().toLowerCase());
+  if (!mine.length && !theirs.length) return null;
+  const list = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}` : (xs[0] ?? ''));
+  return {
+    mine, theirs,
+    headline: mine.length ? `Complete your profile to get your agreement: missing ${list(mine.map((m) => m.label.toLowerCase()))}` : null,
+    theirsLine: theirs.length ? `Waiting for CarmaCars to set your ${list(theirs)}` : null,
+    timing: mine.length ? `Your agreement arrives here ${AGREEMENT_JOB_WORDS} after your profile is complete.` : `Your agreement arrives here ${AGREEMENT_JOB_WORDS} after CarmaCars sets ${theirs.length > 1 ? 'them' : 'it'}.`
+  };
+}
+
 /** The step to do now: the first one not done (null when all are). */
 export function currentStep(steps: WelcomeStep[]): StepKey | null {
   return steps.find((s) => !s.done)?.key ?? null;
@@ -43,6 +70,7 @@ export function stepWords(s: WelcomeStep): string {
     case 'availability': return s.done ? 'Given. Change it any time on your profile.' : `Tick the mornings, afternoons and evenings you can usually work. Fleet plans the shifts from it${s.required === false ? '' : ', and your portal opens once it is in'}.`;
     case 'agreement': return s.state === 'signed' ? 'Signed.' : s.state === 'waived' ? 'An Admin waived the agreement for you.'
       : s.waiting_for_academy ? 'It opens for signing once the academy is passed.' : s.state === 'sent' ? 'Ready to sign: read it and sign on screen. The rest of your portal opens once it is signed.'
+      : agreementWaiting(s) ? 'Your agreement is made as soon as everything it needs is in. What is missing is listed below.'
       : s.needs_licence ? 'Add your driver\'s licence number below. Your agreement is made from it within minutes and appears here to sign.'
       : 'It is being prepared from your record. An Admin has been told if anything is missing.';
     case 'team': return !s.open ? 'Opens once the academy is passed and the agreement is signed.' : !s.groups?.length ? 'No group to join.' : s.done ? 'Joined.'
