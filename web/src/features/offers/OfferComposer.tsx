@@ -11,6 +11,7 @@ import { offersDo, offersRead } from '@/server/actions/offers';
 import { deliveryDistance, draftClose, draftSave, supplyRead } from '@/server/actions/supply';
 import { SourcedChoice } from '@/features/sales/SourcedChoice';
 import { TaxModeToggle, useTaxMode } from '@/features/sales/TaxModeToggle';
+import { ShortNoticeWaiver } from '@/features/sales/ShortNoticeWaiver';
 import { beforeTax, convertTyped, hstOf, linesBeforeTax, shownAmount, solveRental, totalDifference, type TaxMode } from '@/features/sales/taxIncluded';
 import { AddonPicker } from '@/features/addons/AddonPicker';
 import { Info } from '@/features/forms/Info';
@@ -96,6 +97,9 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
   const [pricedKey, setPricedKey] = useState('');
   // 2026-10-27: amounts typed before or after tax (remembered on this device), and the total the renter pays (after tax)
   const [taxMode, setTaxMode] = useTaxMode();
+  // 2370: the short-notice upcharge waived for this offer, with its reason (Admin and staff; the owner's minimum still applies)
+  const [waive, setWaive] = useState(false);
+  const [waiveReason, setWaiveReason] = useState('');
   const [totalTyped, setTotalTyped] = useState(draft?.data.total ?? '');
   const [solvedW, setSolvedW] = useState<number | null>(null);
   const restoredTax = useRef(false);
@@ -188,8 +192,9 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
     const cc = linesBeforeTax(typedC.map((x, i) => ({ key: String(i), typed: Math.round(Number(x.amount) * 100), hst: x.hst })), after && bps !== null ? 'after' : 'before', bps ?? 0);
     const p = offerPayload(f, role, days, addonsPayload(addons), editFees, { after, bps, hstFor, rentalWithTax: totalCents !== null ? solvedW : null, extraResidual: editFees ? cc.residual : 0 });
     const c = typedC.map((x, i) => ({ label: x.label.trim(), amount_cents: cc.cents[String(i)], hst: x.hst }));
-    return editFees && c.length ? { ...p, custom_fees: c, fee_reason: p.fee_reason ?? (f.fee_reason.trim() || 'Agreed with the renter') } : p;
-  }, [f, role, days, addons, editFees, customs, taxMode, bps, hstSig, totalCents, solvedW]);
+    const w: Record<string, unknown> = waive && waiveReason.trim().length >= 3 ? { waive_short_notice: true, short_notice_waive_reason: waiveReason.trim() } : {};
+    return (editFees && c.length ? { ...p, ...w, custom_fees: c, fee_reason: p.fee_reason ?? (f.fee_reason.trim() || 'Agreed with the renter') } : { ...p, ...w }) as typeof p;
+  }, [f, role, days, addons, editFees, customs, taxMode, bps, hstSig, totalCents, solvedW, waive, waiveReason]);
   const payloadKey = JSON.stringify({ ...payload, expires_at: null });
   // the price and the renter's view, from the database, as you type
   const seq = useRef(0);
@@ -252,6 +257,7 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
     setErr(null); setTried(true);
     const m = missingNow();
     if (m.length) { setErr(`Still needed: ${m.join(', ')}.`); return; }
+    if (waive && waiveReason.trim().length < 3) { setErr('Type why the short-notice upcharge is waived, or switch it off.'); return; }
     if (!draft && priced && !fresh) { setErr('The price is still updating for what you changed: check it and send again.'); return; }
     const o = ownerChoicePayload(ownerChoice, owner);
     const r = await offersDo<Sent & { booking_id: string }>('offer_create', draft ? { ...payload, ...o, draft: true } : { ...payload, ...o, ...(bookNow ? { book_now: true } : {}) }, [`${base}/bookings`]);
@@ -477,6 +483,8 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
                   : `Before tax: ${b.lines.filter((l) => l.stage === 'booking' && l.amount_cents !== 0).map((l) => `${plain(l)} ${fmt(l.amount_cents)}`).join(' + ')}; HST ${fmt(b.hst_at_booking_cents)}; total ${fmt(b.total_due_at_booking_cents)}.`}</p>
               </details>
             </TaxModeToggle>
+            {(waive || (b?.lines ?? []).some((l) => l.stage === 'booking' && l.charge_type === 'lead_time' && l.amount_cents > 0)) && <ShortNoticeWaiver idPrefix="oc" on={waive} reason={waiveReason}
+              onChange={(on, r) => { setWaive(on); setWaiveReason(r); }} amount={(b?.lines ?? []).find((l) => l.stage === 'booking' && l.charge_type === 'lead_time')} fmt={fmt} />}
             <div className="stack oc-sub"><p className="label-line"><span className="label">Car rental price</span><Info text={lineHelp('rental_charge')} label="About the car rental price" /></p>
               {totalCents !== null && <p className="small" data-testid="oc-rent-from-total">{solvedW !== null ? `From the total: ${fmt(solvedW)} with HST${bps !== null ? ` (${fmt(beforeTax(solvedW, bps))} before tax)` : ''}.` : 'Worked out from the total.'}</p>}
               {totalCents === null && <div className="ad-taxmode__opts oc-seg" role="radiogroup" aria-label="Car rental price">

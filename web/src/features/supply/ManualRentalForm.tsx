@@ -9,6 +9,7 @@ import { money } from '@/lib/format';
 import { SourcedChoice, priceFlags, type Choice } from '@/features/sales/SourcedChoice';
 import { PRICE_TAX_LABEL, type PriceTaxSplit } from '@/features/sales/priceTax';
 import { TaxModeToggle, useTaxMode } from '@/features/sales/TaxModeToggle';
+import { ShortNoticeWaiver } from '@/features/sales/ShortNoticeWaiver';
 import { beforeTax, convertTyped, linesBeforeTax, shownAmount, solveRental, totalDifference, type TaxMode } from '@/features/sales/taxIncluded';
 import { AddonPicker } from '@/features/addons/AddonPicker';
 import { Info } from '@/features/forms/Info';
@@ -136,6 +137,9 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
   const [quoteKey, setQuoteKey] = useState('');
   // 2026-10-27: amounts typed before or after tax (remembered on this device), and the total the renter pays (after tax)
   const [taxMode, setTaxMode] = useTaxMode();
+  // 2370: the short-notice upcharge waived for this rental, with its reason
+  const [waive, setWaive] = useState(false);
+  const [waiveReason, setWaiveReason] = useState('');
   const [totalTyped, setTotalTyped] = useState('');
   const [solvedW, setSolvedW] = useState<number | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -230,6 +234,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
     ...(customsSent.length ? { custom_fees: customsSent } : {}),
     ...(Object.keys(insSent).length ? { insurer_fees: insSent, bill_to_insurer: true } : {}),
     ...(f.km && /^\d+$/.test(f.km.trim()) ? { km_allowance_per_day: Number(f.km) } : {}),
+    ...(waive && waiveReason.trim().length >= 3 ? { waive_short_notice: true, short_notice_waive_reason: waiveReason.trim() } : {}),
     drivers: [{ role: 'renter', date_of_birth: renter?.date_of_birth ?? (f.date_of_birth || undefined) }, ...drivers.filter((d) => d.date_of_birth).map((d) => ({ role: 'additional', date_of_birth: d.date_of_birth }))] });
   const specNow = useRef('');
   specNow.current = JSON.stringify(spec());
@@ -423,6 +428,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
     if (!choice) { setErr('Choose "I sourced this client" or "Entered for CarmaCars".'); return; }
     if (quote && quote.has_rates === false && rentalSent === undefined) { setErr('This car has no rates yet: type the rental charge for the whole rental and the reason.'); return; }
     if (quote?.needs_policy_confirm && !past && !flags.policy) { setErr('This car is not on the fleet insurance policy yet: tick the confirmation that it is insured for this rental.'); return; }
+    if (waive && waiveReason.trim().length < 3) { setErr('Type why the short-notice upcharge is waived, or switch it off.'); return; }
     if (parts.length) {
       if (cents(f.amount ?? '') === undefined) { setErr('With more than one payment, enter the amount of the first one too.'); return; }
       const bad = parts.findIndex((x) => !cents(x.amount) || (needsReference(x.method) && x.reference.trim().length < 3));
@@ -666,6 +672,8 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
                 <table className="ad-table"><caption className="sr-only">Monthly periods</caption><thead><tr><th scope="col">Period</th><th scope="col">From</th><th scope="col">To</th><th scope="col" className="num">Days</th><th scope="col" className="num">About</th></tr></thead>
                   <tbody>{ps.map((x, i) => <tr key={x.seq}><td>{x.seq}</td><td>{new Date(x.starts_at).toLocaleDateString('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric' })}</td><td>{new Date(x.ends_at).toLocaleDateString('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric' })}</td><td className="num">{x.days}</td><td className="num">{fmt(shares[i])}</td></tr>)}</tbody></table></div>; })()}
             <p className="small muted">Rental charge: {quote.quote.rate_rule}; {quote.quote.km_allowance_total} km included. Type a new amount in any line to change it ({taxMode === 'after' ? 'amounts with HST, as the renter pays them' : 'amounts before HST'}).{quote.quote.problems.length ? ` ${quote.quote.problems.map((p) => p.message).join(' ')}` : ''}{quote.quote.promo?.problem ? ` Promo code: ${quote.quote.promo.problem}` : ''}</p>
+            {(waive || quote.quote.lines.some((l) => l.charge_type === 'lead_time' && l.amount_cents > 0)) && <ShortNoticeWaiver idPrefix="mr" on={waive} reason={waiveReason}
+              onChange={(on, r) => { setWaive(on); setWaiveReason(r); }} amount={quote.quote.lines.find((l) => l.charge_type === 'lead_time')} fmt={fmt} />}
             {quote.may_override_price && (
               <div className="stack" data-testid="mr-custom-price">
                 {quote.has_rates === false ? <p className="small">This car has no rates yet. Type the rental charge for the whole rental.</p>
