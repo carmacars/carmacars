@@ -186,6 +186,16 @@ button.link { background: none; border: 0; padding: 0; font: inherit; color: inh
 .error { display: flex; gap: 0.4rem; align-items: flex-start; font-size: var(--fs-xs); font-weight: 600; color: var(--red-600); }
 .error::before { content: ""; flex: none; width: 14px; height: 14px; margin-top: 2px; background: var(--red-600); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
 .error:empty { display: none; }
+/* r40-forms: the form guard (src/lib/forms/guard-dom.ts): every field a form marks invalid (or the guard does) is outlined in red,
+   and the summary near the submit button lists what to fix. The same tokens as .error and .alert--error, so light and dark follow. */
+input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--red-600); box-shadow: 0 0 0 1px var(--red-600); }
+input[type="checkbox"][aria-invalid="true"], input[type="radio"][aria-invalid="true"] { outline: 2px solid var(--red-600); outline-offset: 2px; box-shadow: none; }
+.fg-msg { margin-top: 0.3rem; }
+.fg-summary { scroll-margin-block: var(--s-4); }
+.fg-summary::before { content: "!"; }
+.fg-summary:focus-visible { outline: 2px solid var(--red-600); outline-offset: 2px; }
+.fg-summary__list { margin: 0.2rem 0 0; padding-left: 1.1rem; display: grid; gap: 0.2rem; }
+.fg-summary__list a { color: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
 .field.is-ok .input { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2.5 8.5l3.5 3.5 7.5-8' fill='none' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.8rem center; background-size: 16px; padding-right: 2.4rem; }
 .field-row { display: grid; gap: var(--s-4); }
 @media (min-width: 36rem) { .field-row { grid-template-columns: 1fr 1fr; } .field-row--3 { grid-template-columns: 1fr 1fr 1fr; } .field-row--21 { grid-template-columns: 2fr 1fr; } }

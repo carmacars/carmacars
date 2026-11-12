@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { currentStep, gateWords, opensWhileHeld, opensWhileOnboarding, opensWhileUnsigned, profileHref, signHref, stepWords, type GateState, type WelcomeStep } from './gate.ts';
+import { agreementWaiting, currentStep, gateWords, opensWhileHeld, opensWhileOnboarding, opensWhileUnsigned, profileHref, signHref, stepWords, type GateState, type WelcomeStep } from './gate.ts';
 
 // The academy gate (0802): what a held person still opens, the Welcome steps of a new hire, the Admin's words for the gate,
 // and the content of releases 33 and 34 (supabase/seed/academy/r34.mjs): a quiz per section, on every role that uses it,
@@ -71,4 +71,28 @@ test('1154: step 4, approval, in words', () => {
   assert.match(stepWords({ key: 'approval', done: false, open: true, reject_reason: 'Use your work number' }), /Use your work number\. Fix it, then ask again/);
   assert.match(stepWords({ key: 'approval', done: false, open: false }), /^Opens once you confirm the WhatsApp groups/);
   assert.equal(stepWords({ key: 'approval', done: true, approved_by: 'Fay Fleet' }), 'Approved by Fay Fleet.');
+});
+
+test('Welcome: the agreement says what it waits for, who gives it and how soon it comes (r40-forms)', () => {
+  const profile: WelcomeStep = { key: 'profile', done: false, address: false };
+  // a field hire with no address and no licence number: both are theirs to give
+  const a = agreementWaiting({ key: 'agreement', done: false, state: 'none', needs_licence: true, missing: ["Driver's licence number", 'Home address', 'Start Date', 'Hourly Wage (CA$)'] }, profile)!;
+  assert.deepEqual(a.mine, [{ label: 'Home address', to: 'profile' }, { label: "Driver's licence number", to: 'licence' }]);
+  assert.deepEqual(a.theirs, ['start date', 'hourly wage']);
+  assert.equal(a.headline, "Complete your profile to get your agreement: missing home address and driver's licence number");
+  assert.equal(a.theirsLine, 'Waiting for CarmaCars to set your start date and hourly wage');
+  assert.match(a.timing, /within about 5 minutes/);
+  // the address is in now: only the licence number is left, and a stale "Home address" in the job's list is not shown
+  const b = agreementWaiting({ key: 'agreement', done: false, state: 'none', needs_licence: true, missing: ['Home address'] }, { key: 'profile', done: true, address: true })!;
+  assert.deepEqual(b.mine, [{ label: "Driver's licence number", to: 'licence' }]);
+  // only an Admin can fill the rest
+  const c = agreementWaiting({ key: 'agreement', done: false, state: 'none', missing: ['Start Date'] }, { key: 'profile', done: true, address: true })!;
+  assert.equal(c.headline, null);
+  assert.equal(c.theirsLine, 'Waiting for CarmaCars to set your start date');
+  assert.match(c.timing, /after CarmaCars sets it/);
+  // nothing known to be missing, or the agreement is out: nothing to say
+  assert.equal(agreementWaiting({ key: 'agreement', done: false, state: 'none' }, profile), null);
+  assert.equal(agreementWaiting({ key: 'agreement', done: false, state: 'sent', needs_licence: true, missing: ['Start Date'] }, profile), null);
+  assert.equal(agreementWaiting({ key: 'agreement', done: true, state: 'signed' }, profile), null);
+  assert.ok(!JSON.stringify(a).match(/[A-Z]\d{4}-\d{5}/));
 });

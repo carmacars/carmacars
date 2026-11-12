@@ -2,7 +2,7 @@ import Link from '@/components/Link';
 import { pageMeta } from '@/features/seo/meta';
 import { academyUser } from '@/server/academy';
 import { door } from '@/server/door';
-import { STEP_TITLE, currentStep, profileHref, signHref, stepWords, type Welcome } from '@/features/academy/gate';
+import { STEP_TITLE, agreementWaiting, currentStep, profileHref, signHref, stepWords, type Welcome } from '@/features/academy/gate';
 import { Act } from '@/features/admin/Act';
 import { TaskDone } from './TaskDone';
 import { WhatsAppConfirm } from '@/features/staff-onboarding/WhatsAppConfirm';
@@ -23,6 +23,8 @@ export default async function StaffWelcome() {
   const tasks = w.steps.find((s) => s.key === 'tasks');
   const href: Record<string, string> = { profile: profileHref(w.portal), academy: '/staff/academy' };
   const ag = w.steps.find((s) => s.key === 'agreement');
+  // r40-forms: what the agreement waits for, who can give it, and how soon it arrives once it is in
+  const wait = ag ? agreementWaiting(ag, w.steps.find((s) => s.key === 'profile')) : null;
   if (ag && ag.state === 'sent' && !ag.waiting_for_academy) href.agreement = signHref(w.portal);
   const label: Record<string, string> = { profile: 'Open your profile', academy: 'Open the academy', agreement: 'Read and sign' };
   return (
@@ -43,8 +45,18 @@ export default async function StaffWelcome() {
               testId="welcome-location" refresh={['/staff/welcome']} done="Saved." fields={[{ name: 'city', label: 'City or town', type: 'text', required: true },
                 { name: 'country', label: 'Country', type: 'select', required: true, value: 'CA', options: [['CA', 'Canada'], ['US', 'United States'], ['PH', 'Philippines'], ['IN', 'India'], ['PK', 'Pakistan'], ['MX', 'Mexico'], ['GB', 'United Kingdom'], ['ZZ', 'Another country']],
                   hint: 'Sales in person is for the Toronto area; elsewhere your Sales work is remote.' }]} /></div>}
+            {s.key === 'agreement' && wait && (
+              <div className="alert alert--warn" role="status" data-testid="welcome-agreement-waiting">
+                <span className="alert__title">{wait.headline ?? wait.theirsLine}</span>
+                <span>
+                  {wait.mine.length > 0 && <span className="stack" data-testid="welcome-agreement-mine">{wait.mine.map((m) => (
+                    <span key={m.to}>{m.label}: <Link prefetch={false} className="link" href={m.to === 'profile' ? profileHref(w.portal) : '#agreement-licence'} data-testid={`welcome-agreement-fix-${m.to}`}>{m.to === 'profile' ? 'Add it on your profile' : 'Add it below'}</Link></span>))}</span>}
+                  {wait.headline && wait.theirsLine && <span data-testid="welcome-agreement-theirs">{wait.theirsLine}.</span>}
+                  <span className="small"> {wait.timing}</span>
+                </span>
+              </div>)}
             {/* 2373: the Field Staff Agreement is made once the person gives their licence number */}
-            {s.key === 'agreement' && s.needs_licence && <div><Act ops action="staff_licence_number_save" label="Add my driver's licence number" variant="primary" title="Your driver's licence number" submitLabel="Save"
+            {s.key === 'agreement' && s.needs_licence && <div id="agreement-licence"><Act ops action="staff_licence_number_save" label="Add my driver's licence number" variant="primary" title="Your driver's licence number" submitLabel="Save"
               testId="welcome-licence" refresh={['/staff/welcome']} done="Saved. Your agreement is being made." fields={[{ name: 'licence_number', label: 'Driver\'s licence number', type: 'text', required: true, placeholder: 'A1234-12345-12345', hint: 'As it is on your licence card. It goes in your Field Staff Agreement.' }]} /></div>}
             {/* 1151: step 3, one checkbox a group (Sales: the Sales group and the Team group) */}
             {s.key === 'team' && s.open && !!s.groups?.length && !s.done && <WhatsAppConfirm groups={s.groups} primary={s.key === now} refresh="/staff/welcome" />}
