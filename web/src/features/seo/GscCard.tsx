@@ -8,7 +8,7 @@ import { GSC_STATUS, ctrText, gscReason, num, positionText, type GscCard as Gsc,
 // An Admin connects and disconnects here; Sales sees the same card read only (no account, no buttons).
 const FLASH: Record<string, [string, boolean]> = {
   connected: ['Google Search Console is connected. The first figures arrive within a few minutes.', true],
-  'no-keys': ['The site has no Google app keys yet (GOOGLE_REVIEWS_CLIENT_ID and SECRET).', false],
+  'no-keys': ['Add the Google app keys first (GOOGLE_REVIEWS_CLIENT_ID and SECRET), then press Connect again.', false],
   'no-refresh': ['Google sent no lasting access: press Connect Google Search Console again and allow it.', false],
   'no-scope': ['Search Console was not ticked on Google\'s screen: press Connect Google Search Console again and allow it.', false],
   'no-vault': ['The database has no vault to keep the connection in.', false],
