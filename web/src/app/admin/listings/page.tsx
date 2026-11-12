@@ -29,6 +29,9 @@ export default async function Listings() {
       <PageHead title="Listings" kicker={`${rows.filter((r) => r.state === 'needs_review').length} waiting for review`}>
         {/* r35 (1050): every failed photo made again by the retry job, a few each run */}
         {rows.some((r) => r.state === 'failed') && <Act ops action="photo_retry_failed" payload={{ all: true }} label="Retry failed photos" testId="retry-failed-all" confirm="Make every failed photo again? They are redone a few at a time over the next minutes." done="Queued. The failed photos are made again a few at a time." />}
+        {/* r38 (2372): the failed and stuck photo steps made again in the Worker, the image service not asked */}
+        {rows.some((r) => r.state === 'failed' || r.state === 'processing_photos') && <Act action="listing_photos_reprocess_local" label="Process photos without the resize service" testId="photos-local-all"
+          confirm="Make every failed or stuck photo again without the image service? Sizes are made here; a photo whose background cannot be replaced now goes on the site as taken, flagged to redo later." done="Queued. The photos are made again over the next minutes." />}
         <Act action="listing_start" label="Start a listing" variant="primary" fields={[{ name: 'plate', label: 'Plate', type: 'text' }, { name: 'vin', label: 'or VIN', type: 'vin' }, { name: 'colour', label: 'Colour', type: 'text' }, { name: 'odometer_km', label: 'Odometer (km)', type: 'number' }]} go="/admin/listings/{intake_id}" />
       </PageHead>
       <Table<I> testId="listings" caption="Listing intakes" rows={rows} empty="No listings in progress. Press Start a listing to list a car: real photos are optional, sample photos are shown until they are added." cols={[

@@ -38,3 +38,23 @@ export function readinessSummary(lines: ReadyLine[]): string {
   const done = lines.filter((l) => l.done).length;
   return done === lines.length ? 'Good to go: everything is ready for the pickup.' : `${done} of ${lines.length} ready`;
 }
+
+/** r38 (owner, Nov 11): where each line's action is, so "What's left" jumps straight to it: the booking page's tab and the
+ *  section's anchor id on that tab (BookingPage puts the ids). */
+export const READY_TARGET: Record<string, { tab: string; anchor: string }> = {
+  offer: { tab: 'review', anchor: 'bk-review' },
+  paid: { tab: 'money', anchor: 'bk-money' },
+  deposit: { tab: 'money', anchor: 'bk-money' },
+  identity: { tab: 'documents', anchor: 'bk-documents' },
+  coverage: { tab: 'documents', anchor: 'bk-documents' },
+  drivers: { tab: 'documents', anchor: 'bk-documents' },
+  agreement: { tab: 'documents', anchor: 'bk-documents' },
+  prepare: { tab: 'overview', anchor: 'booking-readiness' }
+};
+/** The link of a line: its tab and anchor on the booking page at `base`. */
+export function readinessHref(key: string, base: string): string {
+  const t = READY_TARGET[key] ?? { tab: 'overview', anchor: 'booking-readiness' };
+  return `${base}?tab=${t.tab}#${t.anchor}`;
+}
+/** The first thing still to do (the phone's compact bar), or null when all is done. */
+export const readyNext = (lines: ReadyLine[]) => lines.find((l) => !l.done) ?? null;

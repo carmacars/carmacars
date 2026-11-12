@@ -11,6 +11,7 @@ import { Info } from '@/features/forms/Info';
 import { lineHelp } from '@/features/offers/help';
 import { AddressInput } from '@/features/forms/AddressInput';
 import { TypedInput } from '@/components/DateInput';
+import { ShortNoticeWaiver } from '@/features/sales/ShortNoticeWaiver';
 
 // Edit a booking that is confirmed, on trip, returned or (an Admin) closed, directly (migration 0132): the pickup and the
 // return (extend or shorten), the car, the rental charge, each fee, the kilometres, the deposit and the note, in one form.
@@ -32,6 +33,9 @@ export function BookingEdit({ x, fees }: { x: EditForm; fees: Fees | null }) {
   const [f, setF] = useState({ pickup_at: local(x.now.pickup_at), return_at: local(x.now.return_at), vehicle_id: x.now.vehicle_id, rental: '', km: String(x.now.km_allowance_per_day), deposit: '', notes: x.now.notes ?? '', reason: '', pickup_place: x.now.pickup_place ?? '', return_place: x.now.return_place ?? '' });
   const [lines, setLines] = useState<Record<string, string>>({});
   const [tell, setTell] = useState(false);
+  // 2370: an extension may leave the short-notice upcharge out of its all-in price a day (with the reason)
+  const [waive, setWaive] = useState(false);
+  const [waiveReason, setWaiveReason] = useState('');
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, run] = useTransition();
   if (x.refusal && !x.edits.length) return null;
@@ -39,6 +43,8 @@ export function BookingEdit({ x, fees }: { x: EditForm; fees: Fees | null }) {
   const newDays = Math.max(1, Math.ceil((new Date(f.return_at).getTime() - new Date(f.pickup_at).getTime()) / 86_400_000));
   const sameRate = Number.isFinite(newDays) && newDays !== x.now.billable_days && x.now.billable_days > 0 && cents(f.rental) === null
     ? { days: newDays, cents: Math.round(x.now.rental_charge_cents * newDays / x.now.billable_days) } : null;
+  const shortNotice = fees?.lines.find((l) => l.key === 'lead_time' && l.amount_cents > 0) ?? null;
+  const extending = new Date(f.return_at).getTime() > new Date(x.now.return_at).getTime();
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF((s) => ({ ...s, [k]: e.target.value }));
   const save = () => run(async () => {
     setMsg(null);
@@ -53,9 +59,11 @@ export function BookingEdit({ x, fees }: { x: EditForm; fees: Fees | null }) {
     if (f.pickup_place !== (x.now.pickup_place ?? '')) changes.pickup_place = f.pickup_place;
     if (f.return_place !== (x.now.return_place ?? '')) changes.return_place = f.return_place;
     const fl = Object.fromEntries(Object.entries(lines).filter(([, v]) => cents(v) !== null).map(([k, v]) => [k, cents(v)]));
+    if (waive && shortNotice && extending && waiveReason.trim().length < 3) { setMsg({ ok: false, text: 'Type why the short-notice upcharge is waived, or switch it off.' }); return; }
     if (!Object.keys(changes).length && !Object.keys(fl).length) { setMsg({ ok: false, text: 'Nothing changed yet: change a date, the car, a price or a fee.' }); return; }
     const r = await offersDo<{ changed: boolean; note: string; total_before_cents: number; total_cents: number; open_cents: number }>('booking_staff_edit',
-      { booking: x.booking_number, changes, lines: fl, reason: f.reason.trim() || undefined, tell_renter: tell });
+      { booking: x.booking_number, changes, lines: fl, reason: f.reason.trim() || undefined, tell_renter: tell,
+        ...(waive && shortNotice && extending ? { waive_short_notice: true, short_notice_waive_reason: waiveReason.trim() } : {}) });
     if (!r.ok) { setMsg({ ok: false, text: r.message }); return; }
     setMsg({ ok: true, text: `Saved. Total ${fmt(r.data.total_before_cents)} to ${fmt(r.data.total_cents)}.${r.data.open_cents > 0 ? ` ${fmt(r.data.open_cents)} to collect (Money tab).` : ''}${tell ? ' The renter has an email with what changed.' : ''}` });
     setOpen(false); setLines({}); setF((s) => ({ ...s, rental: '', deposit: '', reason: '' })); router.refresh();
@@ -72,6 +80,8 @@ export function BookingEdit({ x, fees }: { x: EditForm; fees: Fees | null }) {
         <div className="ad-fields">
           {text('pickup_at', 'Pickup', { type: 'datetime-local' })}
           {text('return_at', 'Return', { type: 'datetime-local', hint: `Now ${x.now.billable_days} days. A new length keeps the rate of the booked period, and each per-trip fee (like the Protection Plan) scales with it.` })}
+          {shortNotice && extending && <ShortNoticeWaiver idPrefix="be" on={waive} reason={waiveReason} onChange={(on, r) => { setWaive(on); setWaiveReason(r); }}
+            amount={{ amount_cents: shortNotice.amount_cents, description: shortNotice.label }} fmt={(c) => fmt(c)} />}
           {sameRate && <p className="alert alert--info small" role="status" data-testid="be-same-rate"><span>Same rate as the booked period: about {sameRate.days} days, rental about {fmt(sameRate.cents)} ({fmt(Math.round(x.now.rental_charge_cents / Math.max(1, x.now.billable_days)))} a day). Per-trip fees scale the same way. Type a rental charge to set another price.</span></p>}
           <div className="field ad-field ad-field--wide"><label className="label" htmlFor="be-vehicle_id">Car</label>
             <select className="select" id="be-vehicle_id" value={f.vehicle_id} onChange={set('vehicle_id')} data-testid="be-vehicle_id">

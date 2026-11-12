@@ -3534,6 +3534,14 @@ export type Database = {
           test_reason: string | null;
           test_by: string | null;
           test_at: string | null;
+          short_notice_waived_at: string | null;
+          short_notice_waived_by: string | null;
+          short_notice_waive_reason: string | null;
+          short_notice_waived_bps: number | null;
+          owner_revenue_excluded: boolean;
+          owner_revenue_excluded_reason: string | null;
+          owner_revenue_excluded_by: string | null;
+          owner_revenue_excluded_at: string | null;
         };
         Insert: {
           id?: string;
@@ -3732,6 +3740,14 @@ export type Database = {
           test_reason?: string | null;
           test_by?: string | null;
           test_at?: string | null;
+          short_notice_waived_at?: string | null;
+          short_notice_waived_by?: string | null;
+          short_notice_waive_reason?: string | null;
+          short_notice_waived_bps?: number | null;
+          owner_revenue_excluded?: boolean;
+          owner_revenue_excluded_reason?: string | null;
+          owner_revenue_excluded_by?: string | null;
+          owner_revenue_excluded_at?: string | null;
         };
         Update: {
           id?: string;
@@ -3930,6 +3946,14 @@ export type Database = {
           test_reason?: string | null;
           test_by?: string | null;
           test_at?: string | null;
+          short_notice_waived_at?: string | null;
+          short_notice_waived_by?: string | null;
+          short_notice_waive_reason?: string | null;
+          short_notice_waived_bps?: number | null;
+          owner_revenue_excluded?: boolean;
+          owner_revenue_excluded_reason?: string | null;
+          owner_revenue_excluded_by?: string | null;
+          owner_revenue_excluded_at?: string | null;
         };
         Relationships: [];
       };
@@ -21183,6 +21207,9 @@ export type Database = {
           updated_at: string;
           default_kickback_bps: number | null;
           billing_email: string | null;
+          commission_hst: boolean;
+          sourced_by: string | null;
+          sourced_by_bps: number;
         };
         Insert: {
           id?: string;
@@ -21213,6 +21240,9 @@ export type Database = {
           updated_at?: string;
           default_kickback_bps?: number | null;
           billing_email?: string | null;
+          commission_hst?: boolean;
+          sourced_by?: string | null;
+          sourced_by_bps?: number;
         };
         Update: {
           id?: string;
@@ -21243,6 +21273,9 @@ export type Database = {
           updated_at?: string;
           default_kickback_bps?: number | null;
           billing_email?: string | null;
+          commission_hst?: boolean;
+          sourced_by?: string | null;
+          sourced_by_bps?: number;
         };
         Relationships: [];
       };
@@ -24366,6 +24399,7 @@ export type Database = {
           work_mode: string | null;
           owner_recruit_request_id: string | null;
           addon_base_cents: number;
+          referral_partner_id: string | null;
         };
         Insert: {
           id?: string;
@@ -24396,6 +24430,7 @@ export type Database = {
           work_mode?: string | null;
           owner_recruit_request_id?: string | null;
           addon_base_cents?: number;
+          referral_partner_id?: string | null;
         };
         Update: {
           id?: string;
@@ -24426,6 +24461,7 @@ export type Database = {
           work_mode?: string | null;
           owner_recruit_request_id?: string | null;
           addon_base_cents?: number;
+          referral_partner_id?: string | null;
         };
         Relationships: [];
       };

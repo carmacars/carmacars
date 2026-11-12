@@ -426,3 +426,19 @@ test('r36b (2200): the missing angle is made from the car\'s photos by the image
   const limit = await runJob(deps({ files: { ...f.api, getPublic }, angleAi: async () => ({ ok: false, reason: 'limit', message: 'x' }) }, f), job('angle_make', { input: { angle } }), budget);
   assert.match(JSON.stringify(limit.output), /needs_gemini.*free daily use/);
 });
+
+test('r38 (2372): the image service refusing never fails a listing: sizes, a mask, and a photo queued without the service', async () => {
+  const f = files();
+  f.pub.set('vehicles/v1/a.jpg', JPEG);
+  const quota = { ...fakePhotos(getter(f)), resize: async () => ({ ok: false as const, reason: 'quota' as const, retryable: true, message: 'Image transformations are rate limited or over the month\'s allowance' }),
+    cutout: async () => ({ ok: false as const, reason: 'quota' as const, retryable: true, message: 'rate limited' }) };
+  const sized = await runJob(deps({ photos: quota }, f), job('resize', { photo: { ...job('process_photo').photo!, processed_path: 'vehicles/v1/a.jpg' } }), budget);
+  assert.deepEqual([sized.ok, (sized.output as Record<string, unknown>).variants, (sized.output as Record<string, unknown>).flags], [true, [], ['no_variants']], 'the master alone, never a failed step');
+  const mask = await runJob(deps({ photos: quota }, f), job('process_photo', { input: { mask_only: true } }), budget);
+  assert.deepEqual([mask.ok, (mask.output as Record<string, unknown>).mask_pending], [true, true], 'the mask is asked again later; the photo keeps its studio file');
+  // queued by "Process photos without the resize service": an outage is not retried, the original goes on the site
+  f.priv.set('vehicles/v1/original/fl.jpg', JPEG);
+  const down = { ...fakePhotos(getter(f)), cutout: async () => ({ ok: false as const, reason: 'unavailable' as const, retryable: true, message: 'down' }) };
+  const local = await runJob(deps({ photos: down }, f), job('process_photo', { input: { local_only: true } }), budget);
+  assert.deepEqual([local.ok, (local.output as Record<string, unknown>).used_original], [true, true]);
+});

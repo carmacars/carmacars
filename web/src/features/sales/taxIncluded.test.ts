@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { beforeTax, bpsOf, breakdown, convertBoxes, convertTyped, dollarsToCents, hstOf, linesBeforeTax, solveRental, splitIncluded, toBeforeTax, totalDifference, withTax } from './taxIncluded.ts';
+import { beforeTax, bpsOf, breakdown, convertBoxes, convertTyped, dollarsToCents, hstOf, linesBeforeTax, solveRental, shownAmount, splitIncluded, taxWords, toBeforeTax, totalDifference, withTax } from './taxIncluded.ts';
 
 const HST = 1300;   // the tests' setting; the screens read it from the quote or the booking
 
@@ -104,4 +104,26 @@ test('convertBoxes: before, after and back is exact to the cent at 13%, for ever
   const a = convertBoxes({ coverage: '100.00', 'fee:x': '25.00', empty: '', price_tax: 'plus' }, keys, 'before', 'after', 1300);
   assert.deepEqual(a, { coverage: '113.00', 'fee:x': '25.00', empty: '', price_tax: 'included' });
   assert.equal(convertBoxes(a, keys, 'after', 'after', 1300), a);
+});
+
+// 2026-11-11: the toggle of the price step works end to end: a total typed after tax is exactly the total priced
+test('after tax: $410.19 and $1,490.00 typed split into before tax + HST that add back exactly', () => {
+  for (const [typed, before, hst] of [[41019, 36300, 4719], [149000, 131858, 17142]] as const) {
+    const s = splitIncluded(typed, HST);
+    assert.deepEqual([s.before, s.hst], [before, hst]);
+    assert.equal(s.before + s.hst, typed);
+    assert.equal(toBeforeTax(typed, 'after', true, HST), before);
+    assert.equal(toBeforeTax(typed, 'before', true, HST), typed);   // before tax: sent as typed
+  }
+});
+
+test('the price step shows each line in the way of typing chosen', () => {
+  assert.equal(shownAmount(36300, 4719, 'after'), 41019);
+  assert.equal(shownAmount(36300, 4719, 'before'), 36300);
+  assert.equal(shownAmount(5000, 0, 'after'), 5000);                 // a line without HST is the same either way
+  assert.equal(taxWords('after'), 'HST included');
+  assert.equal(taxWords('before'), 'before tax');
+  // the boxes keep meaning the same money when the toggle moves, and back
+  assert.equal(convertTyped(36300, 'before', 'after', true, HST), 41019);
+  assert.equal(convertTyped(41019, 'after', 'before', true, HST), 36300);
 });

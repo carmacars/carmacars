@@ -255,6 +255,8 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
   if (j.input?.mask_only) {
     if (!p.rebackground) return { ok: true, provider: 'carmacars', output: { mask_only: true } };
     const cut = await d.photos.cutout(src);
+    // r38 (2372): a quota, or the last attempt, never fails the photo: it keeps its studio file, the mask is asked again later
+    if (!cut.ok && (cut.reason === 'quota' || j.input?.local_only || j.attempts >= j.max_attempts)) return { ok: true, provider: `${d.photos.name}:fallback`, output: { mask_only: true, mask_pending: true, fallback_reason: cut.message } };
     if (!cut.ok) return { ok: false, provider: d.photos.name, error: `${cut.reason}: ${cut.message}`, retryable: cut.retryable };
     const maskPath = `vehicles/${j.vehicle_id}/work/${p.id}-mask.png`;
     await d.files.putPrivate(maskPath, cut.bytes, 'image/png');
@@ -263,7 +265,8 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
   let n = 0;
   // r35: a quota never fails a photo (the original goes on the site, made again when the service may be used, 0080's
   // usage_retry_photos); an outage is tried again, and on the last attempt the original is used too
-  const fail = (o: Extract<PhotoOut, { ok: false }>): JobResult | null => o.retryable && o.reason !== 'quota' && j.attempts < j.max_attempts
+  // r38 (2372): queued again by "Process photos without the resize service" (local_only): no retry, the original goes on
+  const fail = (o: Extract<PhotoOut, { ok: false }>): JobResult | null => o.retryable && o.reason !== 'quota' && !j.input?.local_only && j.attempts < j.max_attempts
     ? { ok: false, provider: d.photos.name, error: `${o.reason}: ${o.message}`, retryable: true, ...imageCost(n, b, used) } : null;
   const why = (o: Extract<PhotoOut, { ok: false }>) => (o.reason === 'quota' ? `${USAGE_PAUSED}: ${o.message}` : o.message);
   let out: PhotoOut;
@@ -601,7 +604,8 @@ async function resize(d: WorkerDeps, j: JobContext, b: Budget, used: { transform
   for (const w of VARIANT_WIDTHS) {
     const o = await d.photos.resize({ sourceUrl: src, width: w });
     if (!o.ok) {
-      if (o.retryable) return { ok: false, provider: d.photos.name, error: `${o.reason}: ${o.message}`, retryable: true, ...imageCost(n, b, used) };
+      // r38 (2372): a quota, local_only, or the last attempt: the site uses the master file alone (never a failed listing)
+      if (o.retryable && o.reason !== 'quota' && !j.input?.local_only && j.attempts < j.max_attempts) return { ok: false, provider: d.photos.name, error: `${o.reason}: ${o.message}`, retryable: true, ...imageCost(n, b, used) };
       // no transformations: the site uses the master file alone
       return { ok: true, provider: `${d.photos.name}:fallback`, ...imageCost(n, b, used), output: { variants: [], flags: ['no_variants'] } };
     }

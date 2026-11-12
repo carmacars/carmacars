@@ -16,7 +16,9 @@ export async function supabaseServer() {
       getAll: () => store.getAll(),
       setAll: (list) => {
         try {
-          for (const { name, value, options } of list) store.set(name, value, options);
+          // the session cookie is never readable by scripts on the page (HttpOnly), SameSite=Lax, Secure over https
+          const secure = (process.env.NEXT_PUBLIC_APP_URL ?? '').startsWith('https:');
+          for (const { name, value, options } of list) store.set(name, value, { ...options, httpOnly: true, sameSite: 'lax', secure });
         } catch {
           // Called from a server component, where cookies are read-only. Sign-in actions set them.
         }
