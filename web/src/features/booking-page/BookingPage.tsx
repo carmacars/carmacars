@@ -21,8 +21,11 @@ import { $, Badge, Card, Kv, PageHead, Table, Tabs, t, label } from '@/features/
 import { REFUND_OF } from '@/features/admin/refunds';
 import { BookingMoney, type Money, type PanelLine } from '@/features/money/BookingMoney';
 import { BookingFees, type Fees } from '@/features/money/BookingFees';
-import { CoverageSwitch } from '@/features/money/CoverageSwitch';
-import type { SwitchState } from '@/features/money/coverage-switch';
+import { ProtectionChange } from '@/features/protection/ProtectionChange';
+import type { ProtectionOptions } from '@/features/protection/model';
+import type { CardList } from '@/features/coverage/cards';
+import { storage } from '@/integrations/storage';
+import type { Bucket } from '@/integrations/storage/types';
 import { BookingEdit, type EditForm } from '@/features/money/BookingEdit';
 import { BookingPeriods, type PeriodRow } from '@/features/money/BookingPeriods';
 import { RenterEdit, type RenterForm } from '@/features/money/RenterEdit';
@@ -191,7 +194,11 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
     // Email the renter or the adjuster, with the booking's conversation and emails (0187)
     on('messages') ? ops<Conversation>('booking_conversation', { booking: b.booking_number }, true).catch(none(null)) : null]);
   // r35 (0890): card coverage or the Protection Plan, on an offer or an active booking
-  const coverageSwitch = (on('overview') || on('money')) && notOwner && !['cancelled', 'declined', 'expired'].includes(b.status) ? await ops<SwitchState>('coverage_switch_state', { booking: b.booking_number }, true).catch(none(null)) : null;
+  // r41 (2540, 2541): Change protection, one control on the top card, the three options in a small dialog
+  const protection = (on('overview') || on('money')) && notOwner && !['cancelled', 'declined', 'expired'].includes(b.status) ? await ops<ProtectionOptions>('protection_options', { booking: b.booking_number }, true).catch(none(null)) : null;
+  const protectionCards = protection?.may ? (((await rpc('card_coverage_public', {}).catch(() => null)) as unknown as CardList | null)?.cards ?? []).filter((c) => c.is_active).map((c) => ({ id: c.id, label: `${c.issuer} ${c.card}` })) : [];
+  const pReq = protection?.request?.status === 'pending' ? protection.request : null;
+  const protectionProof = pReq?.proof_bucket && pReq.proof_path ? await (await storage()).signedDownloadUrl(pReq.proof_bucket as Bucket, pReq.proof_path, 300).catch(() => null) : null;
   // r35a (1300 to 1304): the original request and its offers with the coverage card; an old offer loaded back (?revert=N);
   // the secondary contact; the rideshare documents the renter made; the renter's instant booking (an Admin)
   const near = on('overview') || on('review');
@@ -317,6 +324,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
       <ReplacedNote chain={chain} portal={portal} />
       {/* r35a (1300): the coverage the renter chose and its proof, at the top */}
       {near && hist && <CoverageStrip c={hist.coverage} ownerTrip={hist.owner_trip} />}
+      {protection && (on('overview') || on('money')) && <Card title="Protection" testId="protection-card"><ProtectionChange x={protection} cards={protectionCards} proofUrl={protectionProof} admin={!!can.admin} /></Card>}
       {near && !notOwner && <p className="alert alert--info" role="note" data-testid="owner-trip-note"><span className="alert__title">Owner&apos;s own trip ($0)</span><span>The owner booked their own car for their own use: no charge, nothing to price or send. Get the car ready for the dates.</span></p>}
       {noShift.length > 0 && <p className="alert alert--warn" role="status" data-testid="no-shift-warning">{noShift.map((w) => `${w.leg === 'handover' ? 'The handover' : 'The return'} is on ${w.day}, a day with no field shifts${w.work_day ? `: its job is planned for ${w.work_day}` : ''}.`).join(' ')} Someone must cover it, or the booking time must move.</p>}
 
@@ -391,7 +399,6 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
       {/* conflicting dates on this car (0284), once the booking is past the request */}
       {can.admin && on('overview') && b.competing.length > 0 && <Card title="Also on this car for these dates" testId="date-conflicts-card"><DateConflicts items={b.competing} self={{ placeholder: !!b.placeholder?.on }} /></Card>}
       {on('overview') && editForm && <BookingEdit x={editForm} fees={fees} />}
-      {on('overview') && coverageSwitch && <CoverageSwitch x={coverageSwitch} />}
       {(on('overview') || on('money')) && insurerCard?.billed_to_insurer && <BookingInsurer x={insurerCard} />}
       {adjusters && <InsurerClaimEdit compact={!['insurer', 'split'].includes(b.bill_to)} insurers={ins.rows} adjusters={adjusters} x={{
         booking: b.booking_number, bill_to: b.bill_to, insurer_id: b.insurer_id, claim_number: b.insurer_claim_number, adjuster_name: b.insurer_adjuster_name,
@@ -433,7 +440,6 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
           {moneyByPart && <BookingMoney m={moneyByPart} reasons={reasons} lines={(b.lines as PanelLine[] | undefined) ?? []} totalCents={(b.total_due_at_booking_cents as number | null | undefined) ?? null}
             waived={!!(b as unknown as R).deposit_waived_at} lineAdmin={can.admin} expiredSettle={can.admin || can.settleDeposit || (viewer.role === 'staff' && viewer.fn === 'fleet')}
             rentalExtras={<>
-              {coverageSwitch && <CoverageSwitch x={coverageSwitch} />}
               {fees && <BookingFees x={fees} withBalance={false} />}
               {payments?.some((r) => r.status === 'failed') && <Card title="Card payments that failed"><Table rows={payments.filter((r) => r.status === 'failed')} empty="No payments."
                 cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'purpose', label: 'Purpose' }, ...(can.admin ? [{ key: 'method', label: 'Method' }] : []), { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'card_last4', label: 'Card' },

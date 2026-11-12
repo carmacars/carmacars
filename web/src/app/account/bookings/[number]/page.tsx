@@ -45,6 +45,9 @@ import { incidentHref } from '@/features/incident-cards/digital';
 import type { AccidentCardData } from '@/features/accident-card/model';
 import { READING_CHARGE_KEYS } from '@/features/handover/reading';
 import { SecondaryContactForm, type ContactValue } from '@/features/portal/SecondaryContactForm';
+import { MyProtection } from '@/features/protection/MyProtection';
+import type { ProtectionOptions } from '@/features/protection/model';
+import type { CardList } from '@/features/coverage/cards';
 
 export const dynamic = 'force-dynamic';
 export async function generateMetadata({ params }: { params: Promise<{ number: string }> }) {
@@ -85,6 +88,11 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
   // r35a (1302): the secondary contact of this booking (else the profile's)
   const second = b.booking_type !== 'owner' && !['closed', 'cancelled', 'declined', 'expired'].includes(b.status)
     ? await rpc('server_secondary_contact', { p_by: user.id, p_booking: b.id }, { role: 'service_role' }).then((x) => x as unknown as { profile: ContactValue | null; booking: ContactValue | null }).catch(() => null) : null;
+  // r41 (2540, 2541): Change my protection, once the offer is approved and until the return
+  const protection = b.booking_type !== 'owner' && ['pending_payment', 'confirmed', 'on_rent'].includes(b.status)
+    ? await rpc('renter_protection_options' as never, { p_booking: b.id, p_by: user.id } as never, { role: 'service_role' }).then((x) => x as unknown as ProtectionOptions).catch(() => null) : null;
+  const protectionCards = protection && protection.option !== 4 ? (((await rpc('card_coverage_public', {}).catch(() => null)) as unknown as CardList | null)?.cards ?? [])
+    .filter((c) => c.is_active && c.coverage !== 'none').map((c) => ({ id: c.id, label: `${c.issuer} ${c.card}` })) : [];
   const rideshareOpen = b.booking_type !== 'owner' && ['pending_payment', 'confirmed', 'on_rent'].includes(b.status);
   const readingCharges = (report?.charges ?? []).filter((c) => READING_CHARGE_KEYS.has(c.key) && c.amount_cents !== 0);
   const laterLines = new Set((addons?.items ?? []).filter((a) => a.after_booking).map((a) => a.line_item_id).filter(Boolean));
@@ -215,6 +223,11 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
             {['requested', 'pending_payment'].includes(b.status) && <div><Withdraw number={b.booking_number} /></div>}
           </PortalCard>
 
+          {protection && protection.option !== 4 && (
+            <PortalCard id="pt-protection" title="Protection" testId="renter-protection">
+              <MyProtection number={b.booking_number} x={protection} cards={protectionCards} />
+            </PortalCard>
+          )}
           {accident && (
             <PortalCard id="pt-accident" title="Accident card" testId="renter-accident"
               action={<Link prefetch={false} className="btn btn--ghost btn--sm" href={bookingPath(b.booking_number, 'accident-card')} data-testid="accident-card-open">Print it</Link>}>

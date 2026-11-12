@@ -18,7 +18,8 @@ import { SampleMatch } from './SampleMatch';
 import { clock, longDate, MONTHS, torontoMinutesNow, torontoToday, validIso, validTime } from '@/lib/dates';
 import { money } from '@/lib/format';
 import { photoUrl } from '@/lib/photo';
-import { loadRequestDraft, requestAccount, saveRequestDraft, submitBookingRequest } from '@/server/actions/booking';
+import { coverageCardCheck, coverageCards, loadRequestDraft, requestAccount, saveRequestDraft, submitBookingRequest, type CoverageCardCheck } from '@/server/actions/booking';
+import { CARD_ACK, OPCF_ACK } from '@/features/protection/model';
 import { checkoutCoverQuote } from '@/server/actions/cover-quote';
 import { formatPhone } from '@/features/auth/phone';
 import { ChannelChoice } from '@/features/portal/NotifyChannel';
@@ -184,6 +185,18 @@ export function RequestWizard(p: WizardProps) {
     return () => { live = false; };
   }, [d.car, cars, p.options]);
   const { blocks } = useBlocks(car?.vehicleId ?? null);
+  // 2541: the card checker (our list and its rules) for credit card coverage
+  const [cardList, setCardList] = useState<Array<{ id: string; label: string }> | null>(null);
+  const [checked, setChecked] = useState<{ key: string; r: CoverageCardCheck | null } | null>(null);
+  const cardKey = d.coverage === '2' && d.coverageCard && d.car && d.from && d.to ? `${d.coverageCard}|${d.car}|${d.from}|${d.to}` : '';
+  const cardCheck = checked && checked.key === cardKey ? checked.r : null;
+  useEffect(() => { if (d.coverage === '2' && cardList === null) void coverageCards().then(setCardList).catch(() => setCardList([])); }, [d.coverage, cardList]);
+  useEffect(() => {
+    if (!cardKey) return;
+    let live = true;
+    void coverageCardCheck({ car: d.car, from: d.from, to: d.to, card: d.coverageCard, ack: true }).then((r) => { if (live) setChecked({ key: cardKey, r }); });
+    return () => { live = false; };
+  }, [cardKey, d.car, d.from, d.to, d.coverageCard]);
   const set = <K extends keyof RequestData>(k: K, v: RequestData[K]) => { setMoved(true); setD((x) => ({ ...x, [k]: v })); setErrors((e) => { const n = { ...e }; delete n[k as string]; if (k === 'from' || k === 'to') delete n.dates; if (String(k).startsWith('dob')) delete n.dob; return n; }); };
 
   const age = ageOn(d.dobY, d.dobM, d.dobD, d.from || today);
@@ -474,6 +487,16 @@ export function RequestWizard(p: WizardProps) {
                     <span className="option__body">{v === '1' ? 'You will send the policy page or an insurer letter showing OPCF 27.' : v === '2' ? <>You will pay with that card and send its benefits certificate. Most cards stop at a car priced $65,000 or $85,000. <a className="link" href="/credit-card-rental-coverage" target="_blank" rel="noopener" data-testid="coverage-cards-link">Which cards include it<span className="vh"> (opens in a new tab)</span></a></> : 'Priced in your offer, for your car and the driver’s age. We send the Protection Plan’s terms before you buy.'}</span></label>
                 ))}
               </div>{car?.planOffered === false && <p className="hint" data-testid="coverage-plan-not-offered">The Protection Plan covers up to $50,000, so it is not offered for this car: choose your own policy with OPCF 27, or credit card coverage.</p>}<p className="error" role="alert">{err('coverage') ?? ''}</p>
+              {d.coverage === '2' && (
+                <div className="stack" data-testid="coverage-card-check">
+                  <div className={fieldCls('coverageCard')}><label className="label" htmlFor="rq-card">Which credit card will you pay with?</label>
+                    <select className="input" id="rq-card" value={d.coverageCard} onChange={(e) => set('coverageCard', e.target.value)} data-testid="coverage-card-select" {...aria('coverageCard', 'rq-card')}>
+                      <option value="">{cardList === null ? 'Loading the cards' : 'Choose your card'}</option>{(cardList ?? []).map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}</select>
+                    <p className="hint">Not on the list? Then credit card coverage cannot be used: choose OPCF 27 or the Protection Plan.</p>{errEl('coverageCard', 'rq-card')}</div>
+                  {cardCheck && <p className={`alert ${cardCheck.result === 'covered' ? 'alert--ok' : 'alert--error'}`} role="status" data-testid="coverage-card-result"><span>{cardCheck.result === 'covered' ? cardCheck.message : `${cardCheck.message} Credit card coverage needs a card on our list that covers this car: choose OPCF 27 on your own auto policy, or the Protection Plan.`}</span></p>}
+                  <label className={`check ${fieldCls('coverageCardAck')}`}><input type="checkbox" checked={d.coverageCardAck} onChange={(e) => set('coverageCardAck', e.target.checked)} data-testid="coverage-card-ack" /> <span>{CARD_ACK}</span></label>{errEl('coverageCardAck', 'rq-card-ack')}
+                </div>)}
+              {d.coverage === '1' && <><label className={`check ${fieldCls('opcfAck')}`}><input type="checkbox" checked={d.opcfAck} onChange={(e) => set('opcfAck', e.target.checked)} data-testid="coverage-opcf-ack" /> <span>{OPCF_ACK}</span></label>{errEl('opcfAck', 'rq-opcf-ack')}</>}
               {p.affiliate && <AffiliateNote name={p.affiliate} placement="booking_step" />}
             </fieldset>
             )}

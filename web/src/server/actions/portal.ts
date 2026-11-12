@@ -601,7 +601,8 @@ export async function setCoverageOption(number: string, option: 1 | 2): Promise<
   if (option !== 1 && option !== 2) return fail('Choose option 1 or option 2.');
   try {
     const { userId, b } = await mine(number);
-    await rpc('renter_set_coverage_option', { p_booking: b.id, p_by: userId, p_option: option }, SR);
+    // 2541: the same rule as Change my protection (a card from the list that covers the car, the acknowledgements)
+    await rpc('renter_protection_change' as never, { p_booking: b.id, p_by: userId, p: { to: option } } as never, SR);
     refresh(number); revalidatePath(bookingPath(number, 'verify'));
     return { ok: true, data: null };
   } catch (e) { return fail(dbMessage(e)); }
@@ -642,6 +643,54 @@ export async function requestProtectionPlan(number: string, note: string): Promi
     await rpc('renter_request_protection_plan', { p_booking: b.id, p_by: userId, p_note: (note ?? '').trim().slice(0, 500) || undefined }, SR);
     refresh(number); revalidatePath(bookingPath(number, 'verify'));
     return { ok: true, data: null };
+  } catch (e) { return fail(dbMessage(e)); }
+}
+
+// ---------------------------------------------------------------- change my protection (2540, 2541)
+/** The proof for leaving the Protection Plan (a photo or PDF of the policy, or of the card's coverage letter): a short-lived
+ *  upload link to private storage; changeProtection checks the file and sends it with the request for review. */
+export async function protectionProofUpload(number: string, contentType: string, size: number): Promise<R<{ url: string; headers: Record<string, string>; ticket: string }>> {
+  try {
+    const { userId, b } = await mine(number);
+    if (!TYPES[contentType]) return fail('Upload a photo or a PDF.');
+    if (!(size > 0 && size <= MAX_BYTES)) return fail('The file must be under 10 MB.');
+    const key = `renters/${userId}/${b.id}/protection-${crypto.randomUUID()}.${TYPES[contentType]}`;
+    const up = await (await storage()).signedUploadUrl('documents', key, contentType, 300);
+    const ticket = await signToken('protection', { b: b.id, key, ct: contentType, u: userId }, 300);
+    return { ok: true, data: { ...up, ticket } };
+  } catch (e) { return fail(dbMessage(e)); }
+}
+
+export interface ProtectionInput { to?: 1 | 2 | 3; reason?: string; card?: string; card_ack?: boolean; opcf27_ack?: boolean;
+  insurer_name?: string; policy_number?: string; policy_expiry?: string; ticket?: string; withdraw?: boolean }
+/** The renter's own change: the Protection Plan at once (the difference is a balance to pay here), their own insurance or card
+ *  coverage before pickup at once, leaving the Protection Plan by a request with the proof that our team reviews. */
+export async function changeProtection(number: string, p: ProtectionInput): Promise<R<Record<string, unknown>>> {
+  try {
+    const { userId, b } = await mine(number);
+    const q: Record<string, unknown> = {};
+    if (p.withdraw) q.withdraw = true;
+    else {
+      if (![1, 2, 3].includes(Number(p.to))) return fail('Choose how the car is covered.');
+      q.to = Number(p.to);
+      if (p.reason) q.reason = String(p.reason).slice(0, 500);
+      if (p.card && UUID.test(p.card)) q.card = p.card;
+      if (p.card_ack) q.card_ack = true;
+      if (p.opcf27_ack) q.opcf27_ack = true;
+      for (const k of ['insurer_name', 'policy_number', 'policy_expiry'] as const) if (p[k]) q[k] = String(p[k]).slice(0, 120);
+      if (p.ticket) {
+        const t = await readToken<{ b: string; key: string; ct: string; u: string }>('protection', p.ticket);
+        if (!t || t.u !== userId || t.b !== b.id) return fail('The upload link expired. Choose the file again.', 'expired');
+        const s = await storage();
+        const bytes = await s.get('documents', t.key);
+        if (!bytes) return fail('The file did not arrive. Try again.');
+        if (bytes.byteLength > MAX_BYTES || !magicOk(bytes, t.ct)) { await s.remove('documents', t.key); return fail('That file is not a photo or PDF we can read. Try another.'); }
+        Object.assign(q, { proof_path: t.key, proof_bucket: 'documents', proof_mime: t.ct, proof_sha256: await sha256Hex(bytes) });
+      }
+    }
+    const data = (await rpc('renter_protection_change' as never, { p_booking: b.id, p_by: userId, p: q } as never, SR)) as unknown as Record<string, unknown>;
+    refresh(number); revalidatePath(bookingPath(number, 'verify'));
+    return { ok: true, data };
   } catch (e) { return fail(dbMessage(e)); }
 }
 
