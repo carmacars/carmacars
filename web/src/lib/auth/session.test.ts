@@ -49,7 +49,7 @@ test('a fresh session is left alone; one about to expire is refreshed once and s
   assert.equal(seen?.session.expires_at, 1_000_000 + 3600);
   assert.ok(r!.request.headers.get('cookie')!.includes('cc-cookie=1'));
   assert.equal(r!.setCookies.length, 1);
-  assert.match(r!.setCookies[0]!, new RegExp(`^${NAME}=base64-.*; Path=/; Max-Age=34560000; SameSite=Lax; Secure$`));
+  assert.match(r!.setCookies[0]!, new RegExp(`^${NAME}=base64-.*; Path=/; Max-Age=34560000; HttpOnly; SameSite=Lax; Secure$`));
 });
 
 test('a spent refresh token signs the person out cleanly; Supabase unreachable changes nothing', async () => {

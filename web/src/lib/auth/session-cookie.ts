@@ -96,6 +96,8 @@ export function jwtHeader(token: string): Record<string, unknown> | null {
 }
 
 export const cookieHeader = (cookies: Map<string, string>) => [...cookies].map(([k, v]) => `${k}=${v}`).join('; ');
+/** A session cookie: HttpOnly (no script on the page reads it; the browser client makes only anonymous public reads),
+ *  SameSite=Lax, Secure over https. */
 export function setCookie(name: string, value: string, secure: boolean, maxAge = 400 * 86400): string {
-  return `${name}=${value}; Path=/; Max-Age=${maxAge}; SameSite=Lax${secure ? '; Secure' : ''}`;
+  return `${name}=${value}; Path=/; Max-Age=${maxAge}; HttpOnly; SameSite=Lax${secure ? '; Secure' : ''}`;
 }
