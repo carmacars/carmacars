@@ -1,20 +1,20 @@
 -- 99: migration 2670 (release 42): every refusal of a request to book has a code, a field and a plain message; a refused or
 -- failed request is kept once per person, car and day with a Sales To-do; a request that goes through closes it; the Admin
--- reads the count. Fixtures start with "rf"; addresses are example.test and numbers are 555.
+-- reads the count. Fixtures start with "rq42"; addresses are example.test and numbers are 555.
 select test.suite('99 r42 requests that did not go through (2670)');
 
-select test.mk_user('rf_admin', 'admin');
-select test.mk_user('rf_sales', 'va', 'sales');
-select test.mk_owner('rf_owner');
-select test.mk_vehicle('rf_car', 'rf_owner');
-select test.mk_renter('rf_rita');
-update renters set email = 'rf.rita@example.test' where id = test.id('renter:rf_rita');
+select test.mk_user('rq42_admin', 'admin');
+select test.mk_user('rq42_sales', 'va', 'sales');
+select test.mk_owner('rq42_owner');
+select test.mk_vehicle('rq42_car', 'rq42_owner');
+select test.mk_renter('rq42_rita');
+update renters set email = 'rf.rita@example.test' where id = test.id('renter:rq42_rita');
 
 create function pg_temp.r(p_message text, p_code text default null, p_request jsonb default null) returns text language sql as
 $$ select (v ->> 'code') || '/' || coalesce(v ->> 'field', '-') from app.request_refusal(p_code, p_message, p_request) v $$;
 create function pg_temp.fail(p_email text, p_message text, p_code text default null, p_ip text default null) returns jsonb language sql as $$
   select public.server_booking_request_failed(jsonb_build_object('code', p_code, 'message', p_message, 'ip', p_ip, 'request', jsonb_build_object(
-    'vehicle_id', test.id('vehicle:rf_car'), 'pickup_at', '2031-05-02T14:00:00Z', 'return_at', '2031-05-05T14:00:00Z',
+    'vehicle_id', test.id('vehicle:rq42_car'), 'pickup_at', '2031-05-02T14:00:00Z', 'return_at', '2031-05-05T14:00:00Z',
     'renter', jsonb_build_object('email', p_email, 'full_name', 'Rita Fixture', 'mobile', '416-555-0171')))) $$;
 
 -- ---------------------------------------------------------------- every refusal names its field
@@ -65,7 +65,7 @@ select test.eq('a second try the same day adds to the same row, with the newest 
   (select (v ->> 'tries') || '/' || (v ->> 'code') from pg_temp.fail('RF.Rita@example.test', 'A mobile number is needed') v)
   || '/' || (select count(*) from booking_request_failures where email = 'rf.rita@example.test'), '2/phone/1');
 select test.eq('one open Sales To-do with the contact, the car, the dates and the reason',
-  (select count(*) || '/' || min(queue) || '/' || min(priority) || '/' || bool_and(detail ~ 'rf.rita@example.test' and detail ~ '416-555-0171' and detail ~ 'May 2' and vehicle_id = test.id('vehicle:rf_car'))
+  (select count(*) || '/' || min(queue) || '/' || min(priority) || '/' || bool_and(detail ~ 'rf.rita@example.test' and detail ~ '416-555-0171' and detail ~ 'May 2' and vehicle_id = test.id('vehicle:rq42_car'))
      from tasks where task_type = 'request_not_sent' and dedupe_key like 'request-not-sent:%' and detail ~ 'rf.rita@example.test' and status = 'open'), '1/sales/high/true');
 select test.eq('an unexpected error is kept',
   (select (v ->> 'code') || '/' || (v ->> 'logged') from pg_temp.fail('rf.uma@example.test', 'null value in column "x" violates not-null constraint') v), 'unexpected/true');
@@ -78,13 +78,13 @@ select test.eq('a flood from one network address is not kept after 30 an hour',
 
 -- ---------------------------------------------------------------- the Admin's count; a request that goes through closes it
 select test.eq('the Admin reads the count, the reasons and the rows', (select (v ->> 'count') || '/' || (v #>> '{reasons,0,code}') || '/' || (v #>> '{reasons,0,n}') || '/' || jsonb_array_length(v -> 'rows')
-  from public.server_request_failures(test.id('rf_admin')) v), '32/unexpected/31/30');
-select test.throws('staff do not', format($$select public.server_request_failures(%L)$$, test.id('rf_sales')));
-select test.mk_booking('RF-1', 'rf_car', 'rf_rita', '2031-05-02 10:00', '2031-05-05 10:00', 'requested');
+  from public.server_request_failures(test.id('rq42_admin')) v), '32/unexpected/31/30');
+select test.throws('staff do not', format($$select public.server_request_failures(%L)$$, test.id('rq42_sales')));
+select test.mk_booking('RF-1', 'rq42_car', 'rq42_rita', '2031-05-02 10:00', '2031-05-05 10:00', 'requested');
 select test.eq('her request went through: the row is closed and the To-do is done',
   (select (resolved_at is not null) || '/' || (resolved_booking_id = test.id('booking:RF-1')) from booking_request_failures where email = 'rf.rita@example.test')
   || '/' || (select status || '/' || (completion_note ~ 'RF-1') from tasks where task_type = 'request_not_sent' and detail ~ 'rf.rita@example.test'), 'true/true/done/true');
-select test.eq('and it leaves the Admin''s count', (public.server_request_failures(test.id('rf_admin')) ->> 'count'), '31');
+select test.eq('and it leaves the Admin''s count', (public.server_request_failures(test.id('rq42_admin')) ->> 'count'), '31');
 select test.eq('a later failure the same day adds to the row', (select (v ->> 'tries') from pg_temp.fail('rf.rita@example.test', 'boom') v), '3');
 select test.eq('and opens it again with a new To-do', (select (resolved_at is null)::text from booking_request_failures where email = 'rf.rita@example.test')
   || '/' || (select count(*) from tasks where task_type = 'request_not_sent' and detail ~ 'rf.rita@example.test' and status = 'open'), 'true/1');
