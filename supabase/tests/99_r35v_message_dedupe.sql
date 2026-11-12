@@ -178,7 +178,7 @@ update program_settings set cf_email_enabled = true, email_cloudflare_enabled = 
 select test.ok('a recorded success counts as Cloudflare sending', app.cf_email_ever_sent());
 select test.eq('ok after a success, even days ago', app.cf_email_setup(now()) ->> 'state', 'ok');
 select test.eq('the cap is Cloudflare''s budget plus Resend''s',
-  app.email_day_cap(now()), (select least(s.notify_daily_cap, s.notify_cf_daily_budget + s.notify_resend_daily_budget) from app.settings_base(app.local_date(now())) s));
+  app.email_day_cap(now()), (select s.cf_email_daily_budget + least(s.notify_daily_cap, s.notify_resend_daily_budget) from app.settings_base(app.local_date(now())) s));  -- 1750: Cloudflare's day is cf_email_daily_budget (notify_cf_daily_budget is unused)
 select test.eq('the pace read says so', (app.email_pace(now()) ->> 'cf_counted')::boolean, true);
 update email_provider_state set cf_failed_at = now() - interval '1 hour', cf_error = 'Cloudflare: The operation was aborted due to timeout';
 select test.eq('a timeout an hour ago is not a refusal', app.cf_email_setup(now()) ->> 'state', 'ok');

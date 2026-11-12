@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { acceptCookies, db, noOverflow, phoneGatePassed, watch } from './helpers';
+import { acceptCookies, db, noOverflow, phoneGatePassed, watch , chooseCardCoverage } from './helpers';
 
 // The request flow end to end: car page, dates, the four steps, send; then the database holds a
 // booking with status requested and the renter_request_received event, and the draft is closed.
@@ -59,7 +59,7 @@ test('request to book creates a requested booking and its event', async ({ page 
   await page.getByRole('button', { name: 'Continue to add-ons' }).click();
   await expect(page.getByText('Choose your licence class.')).toBeVisible();
   await page.locator('label', { hasText: 'Ontario G2' }).click();
-  await page.locator('label.option', { hasText: 'Option 2' }).click();
+  await chooseCardCoverage(page);
   await page.locator('#rq-notes').fill('Flight AC 123.');
   await page.getByRole('button', { name: 'Continue to add-ons' }).click();
   // step 4: add-ons (0070), priced in the estimate

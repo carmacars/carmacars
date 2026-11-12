@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { acceptCookies, db, noOverflow } from './helpers';
+import { acceptCookies, db, noOverflow , chooseCardCoverage } from './helpers';
 
 // Migration 0065 end to end: the sample cars marked "Example car" on the fleet and the car page, a request on a sample
 // car sent through the real form becoming an enquiry (EQ-) with a customer service task and no booking, Admin > Cars and
@@ -53,7 +53,7 @@ test('a request on a sample car becomes an enquiry for a similar real car, never
   await page.locator('#rq-doby').fill('1989');
   await page.getByRole('button', { name: 'Continue to licence' }).click();
   await page.locator('label', { hasText: 'Ontario G' }).first().click();
-  await page.locator('label.option', { hasText: 'Option 2' }).click();
+  await chooseCardCoverage(page);
   await page.locator('#rq-notes').fill('A truck for a move.');
   await page.getByRole('button', { name: 'Continue to add-ons' }).click();
   await page.getByRole('button', { name: 'Review request' }).click();

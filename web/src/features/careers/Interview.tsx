@@ -194,10 +194,12 @@ export function Interview({ token, initial }: { token: string; initial: Intervie
 }
 
 // One question: a component of its own (keyed by the question), so each starts with a fresh clock and nothing recorded.
-function Question({ token, v, q, total, allowed, typing, stream, post, msg, setMsg, head, mins }: {
+function Question({ token, v, q, total, allowed, typing: typingAll, stream, post, msg, setMsg, head, mins }: {
   token: string; v: InterviewView; q: NextQuestion; total: number; allowed: number; typing: boolean; stream: MediaStream | null; post: Post;
   msg: Msg; setMsg: (m: Msg) => void; head: React.ReactNode; mins: string;
 }) {
+  // 2590: the written-English question says "type this answer instead of speaking it", so it is typed even with a camera
+  const typing = typingAll || (q.key === 'written' && q.kind === 'question');
   const [phase, setPhase] = useState<Phase>('reading');
   const [left, setLeft] = useState(total);
   const [text, setText] = useState('');
@@ -300,7 +302,7 @@ function Question({ token, v, q, total, allowed, typing, stream, post, msg, setM
   const n = Math.min(v.answered + (q.kind === 'question' ? 1 : 0), v.total);
   const alert = msg && <p className={`alert${msg.tone === 'error' ? ' alert--error' : ''}`} role={msg.tone === 'error' ? 'alert' : 'status'} data-testid="iv-msg"><span>{msg.text}</span></p>;
   return (
-    <div className="stack-lg" data-testid="iv-question" data-seq={q.seq} data-kind={q.kind} data-phase={phase}>
+    <div className="stack-lg" data-testid="iv-question" data-seq={q.seq} data-kind={q.kind} data-key={q.key} data-phase={phase}>
       {head}
       <div className="iv-head">
         <div className="iv-progress" aria-hidden="true"><span style={{ width: `${Math.round(((n - 1) / v.total) * 100)}%` }} /></div>

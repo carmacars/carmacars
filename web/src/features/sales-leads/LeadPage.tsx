@@ -10,7 +10,7 @@ const FORM_LABEL: Record<string, string> = { topic: 'Topic', booking_number: 'Bo
 
 /** One lead (the page every new-lead alert opens): who, the source in plain words, the form text or the chat transcript, the
  *  calls, every contact logged, the claim history, and the buttons. `base` is the list on this portal. */
-export function LeadPage({ d, base, chatHref, context }: { d: LeadDetail; base: string; chatHref: string | null; /** 2411: the whole person behind the lead */ context?: LeadContext | null }) {
+export function LeadPage({ d, base, chatHref, context, renterLink = true }: { d: LeadDetail; base: string; chatHref: string | null; /** 2411: the whole person behind the lead */ context?: LeadContext | null; renterLink?: boolean }) {
   const form = Object.entries(d.form ?? {}).filter(([, v]) => v);
   return (
     <>
@@ -27,7 +27,7 @@ export function LeadPage({ d, base, chatHref, context }: { d: LeadDetail; base: 
             ...(d.outcome ? [['Outcome', `${OUTCOME_LABEL[d.outcome]}${d.outcome_reason ? `: ${d.outcome_reason}` : ''}${d.outcome_by ? ` (${d.outcome_by})` : ''}${d.won_booking ? `, booking ${d.won_booking}` : ''}`] as [string, string]] : [])]} />
           <LeadActions lead={d} admin={d.admin} people={d.people} />
         </Card>
-        {context && <Card title="The person: everything we know" testId="lead-person"><RenterContext c={context} portal={base.startsWith('/admin') ? '/admin' : '/staff'} /></Card>}
+        {context && <Card title="The person: everything we know" testId="lead-person"><RenterContext c={context} portal={base.startsWith('/admin') ? '/admin' : '/staff'} renterLink={renterLink} /></Card>}
         {(d.message || form.length > 0) && <Card title="What they wrote" testId="lead-form">
           {d.message && <p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{d.message}</p>}
           {form.length > 0 && <Kv rows={form.map(([k, v]) => [FORM_LABEL[k] ?? k, v])} />}

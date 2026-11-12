@@ -88,6 +88,9 @@ update marketing_campaign_sends set status = 'skipped', reason = 'test' where st
    and email not in ('zm_cap@example.test', 'zm_lead@example.test', 'zm_r@example.test', 'zm_r2@example.test');
 update marketing_campaign_sends set status = 'skipped', reason = 'test' where status = 'queued'
    and email not in ('zm_cap@example.test', 'zm_lead@example.test', 'zm_r@example.test', 'zm_r2@example.test');
+-- the cars the earlier suites listed have their own new-car campaigns to the same people: set aside too
+update marketing_campaign_sends s set status = 'skipped', reason = 'test' from marketing_campaigns m
+ where m.id = s.campaign_id and s.status = 'waiting' and m.kind = 'new_vehicle' and m.vehicle_id is distinct from test.id('vehicle:zm_car');
 select app.job_marketing(pg_temp.at('2026-11-19 13:00'));
 select test.eq('queue: each of them gets the new car email first',
   (select count(*) from marketing_campaign_sends s join marketing_campaigns m on m.id = s.campaign_id

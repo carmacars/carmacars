@@ -29,7 +29,7 @@ begin
 end $$;
 
 -- ================================================================== A. catalogue
-select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign, 0370 a visitor message waiting in live chat, 0430 the start and end notices, 0400 the two tracker alerts, 0441 the data health notice, 0380 adds one email, 0460 the lead and visitor alerts, 0462 the staff alerts, 0532 the return report denied, 0535 the apology to remote applicants moved to the AI interview, 0547 the partner invoice, 0583 the staff email digest, 0955 the accounts merged note)',
+select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign, 0370 a visitor message waiting in live chat, 0430 the start and end notices, 0400 the two tracker alerts, 0441 the data health notice, 0380 adds one email, 0460 the lead and visitor alerts, 0462 the staff alerts, 0532 the return report denied, 0535 the apology to remote applicants moved to the AI interview, 0547 the partner invoice, 0583 the staff email digest, 0955 the accounts merged note, 2520 the weekly and new-car marketing emails, 2620 the owner trip and weekly emails)',
   (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '221/21');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
@@ -44,9 +44,9 @@ select test.eq('A priority classes: customer, owner and investor, staff, digests
   (select string_agg(distinct priority::text || ':' || case when category = 'marketing' then 'mkt' when audience like 'staff%' then 'staff' else audience end, ',')
      from notification_catalogue where code in ('renter_offer_ready', 'owner_fee_invoice', 'staff_booking_request_new', 'staff_digest_morning_admin', 'renter_comeback_1w')),
   '1:renter,2:owner,3:staff,4:staff,5:mkt');
-select test.eq('A each come-back email needs express consent, the review request implied consent',
+select test.eq('A each come-back email needs express consent, the review request and the 2520 campaigns (an address given on the site) implied consent',
   (select string_agg(code || '=' || consent_rule, ',' order by code) from notification_catalogue where category = 'marketing'),
-  'owner_recruit_outreach=express,renter_comeback_1m=express,renter_comeback_1w=express,renter_google_review_request=implied,renter_promo_expiry_1d=express,renter_promo_expiry_3d=express,renter_recovery_request=express,renter_review_ask=implied,renter_review_final=implied,renter_review_preask=implied,renter_review_reminder=implied,renter_review_request=implied');
+  'marketing_new_vehicle=implied,marketing_weekly=implied,owner_recruit_outreach=express,renter_comeback_1m=express,renter_comeback_1w=express,renter_google_review_request=implied,renter_promo_expiry_1d=express,renter_promo_expiry_3d=express,renter_recovery_request=express,renter_review_ask=implied,renter_review_final=implied,renter_review_preask=implied,renter_review_reminder=implied,renter_review_request=implied');
 select test.ok('A every program setting the layer reads has a value',
   (select notify_daily_cap = 100 and notify_class_limits = array[97, 95, 90, 80, 60] and notify_comeback_1w_bps = 1000
           and notify_comeback_1m_bps = 1500 and notify_comeback_valid_days = 30 and notify_digest_morning = time '07:30'
@@ -902,6 +902,7 @@ select test.eq('G every wired email code has been built at least once in these t
       and c.is_enabled -- the booking-time owner emails are off since 2620 (their events are processed with the note "code disabled")
       and c.code <> 'renter_accounts_merged' -- a merge of two renter records (0955), built in 99_r35y_leads_merge
       and c.code not in ('staff_agreement_reminder', 'staff_inactivity_warning', 'staff_team_group') -- the staff jobs of 1060, built in 99_r35k_staff_onboarding
+      and c.code not in ('marketing_weekly', 'marketing_new_vehicle') -- the campaigns of 2520, built in 99_r41_marketing
       and not exists (select 1 from notification_outbox o where o.code = c.code)
       and not exists (select 1 from staff_digest_items d where d.code = c.code)),
   null::text);

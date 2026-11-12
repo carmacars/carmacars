@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { acceptCookies, db, noOverflow, watch, giveLicence, strongSign, completeAgreementDetails } from './helpers';
+import { acceptCookies, db, noOverflow, watch, giveLicence, strongSign, completeAgreementDetails , chooseCardCoverage } from './helpers';
 
 // The renter portal end to end, at 375 and 1440: request (the wizard, signed in), the staff step seeded
 // through app.send_offer, approve, details, sign by drawing on the canvas, pay with the fake adapter
@@ -76,7 +76,7 @@ test('renter portal: offer, approve, sign, pay, confirmed, documents, uploads, s
   await page.locator('#rq-doby').fill('1990');
   await page.getByRole('button', { name: 'Continue to licence' }).click();
   await page.locator('label', { hasText: 'Ontario G2' }).click();
-  await page.locator('label.option', { hasText: 'Option 2' }).click();
+  await chooseCardCoverage(page);
   await page.getByRole('button', { name: 'Continue to add-ons' }).click();
   await page.getByRole('button', { name: 'Review request' }).click();
   await page.locator('input[name="agree"]').check();

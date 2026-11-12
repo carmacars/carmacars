@@ -188,8 +188,9 @@ test('va: finance asks for a refund above the limit and it becomes an Admin appr
   await page.goto('/staff/money'); await expect(page.getByTestId('failed-payments').or(page.getByTestId('failed-payments-empty'))).toBeVisible(); await check(page, 'va money');
   await page.goto(`/staff/bookings/${req.booking_number}?tab=money`);
   await page.getByTestId('request-refund').click();
-  await page.getByLabel('Reason').selectOption('goodwill');
-  await page.getByLabel('Amount ($)').fill('75.00');
+  const rf = page.getByTestId('request-refund-form'); // the booking's protection change has its own Reason (2540)
+  await rf.getByLabel('Reason').selectOption('goodwill');
+  await rf.getByLabel('Amount ($)').fill('75.00');
   await page.getByTestId('request-refund-submit').click();
   await expect(page.getByTestId('refunds')).toContainText('Waiting for an Admin', { timeout: 15_000 });
   await check(page, 'va booking money');

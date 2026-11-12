@@ -146,6 +146,16 @@ language sql stable security definer set search_path = public, app as $$
               else app.has_marketing_consent_pre2520(p_user, p_rule) end
 $$;
 select pg_temp.copy_grants('app.has_marketing_consent(uuid, text)'::regprocedure, 'app.has_marketing_consent_pre2520(uuid, text)'::regprocedure);
+-- Texts are not part of it: the owner's rule is for email. A marketing email becomes a text only on the consent it
+-- needed before 2520 (the "send me deals" tick, or the catalogue's implied rule), never on an address given on the site.
+do $$
+declare
+  d text := pg_get_functiondef('app.notify_route()'::regprocedure);
+  o text := $o$if new.category = 'marketing' and not app.has_marketing_consent(v_user, coalesce(c.consent_rule, 'express')) then return new; end if;$o$;
+begin
+  if position(o in d) = 0 then raise exception '2520: the marketing check of app.notify_route was not found'; end if;
+  execute replace(d, o, $n$if new.category = 'marketing' and not app.has_marketing_consent_pre2520(v_user, coalesce(c.consent_rule, 'express')) then return new; end if;$n$);
+end $$;
 
 -- May this address get a marketing email now? Not suppressed (unsubscribed, bounced, complained, manual), the account with
 -- the address not unsubscribed, not a test address; with the everyone switch off, only with the account's express consent.
@@ -551,6 +561,11 @@ on conflict (code) do update set
   in_catalogue = true, updated_at = now();
 select app.notification_catalogue_refresh();
 -- CATALOGUE 2520 END
+-- what emits them; email only (a campaign never becomes a text: texts keep their own consent); the consent basis is
+-- implied (CASL: an address given to us on the site, an existing business relationship or inquiry), as the owner set
+update notification_catalogue
+   set emitted_by = 'app.job_marketing through app.marketing_campaign_start (2520)', no_text = true, consent_rule = 'implied'
+ where code in ('marketing_weekly', 'marketing_new_vehicle');
 
 -- ================================================================ 11. grants and the schedule
 do $$

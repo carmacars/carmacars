@@ -1,4 +1,4 @@
--- 2500_r41_live_updates.sql
+-- 2522_r41_live_updates.sql
 -- Release 41 (the owner, Nov 12: "I need real time ... currently not everything is loading right away"). The portals'
 -- key screens update within about two seconds of a change made elsewhere, without a reload
 -- (web/src/features/live/realtime/hub.ts). The database keeps a version per "topic" and bumps it when a row behind it
@@ -161,6 +161,9 @@ begin
     'live_del_' || n, p_table, p_area, p_booking, p_user);
 end $$;
 revoke all on function app.live_watch(regclass, text, text, text) from public, anon, authenticated;
+-- the server role runs every function (99_r35sec): the triggers and helpers too
+grant execute on function app.live_topic(text), app.live_add(text[]), app.live_rows(), app.live_commit(),
+  app.live_watch(regclass, text, text, text) to service_role;
 
 do $$
 declare w record;

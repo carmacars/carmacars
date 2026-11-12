@@ -33,7 +33,7 @@ test('a new alert reaches an open Admin page live, without a reload, keeping typ
 
     // the page's own marker: a reload would drop it
     await page.evaluate(() => { (window as unknown as { __liveMark: number }).__liveMark = 41; });
-    const search = page.locator('input[type="search"], input[name="q"]').first();
+    const search = page.locator('input[type="search"]:visible, input[name="q"]:visible').first(); // on a phone the site search is folded away
     const typed = (await search.count()) > 0;
     if (typed) { await search.fill('half typed'); await search.blur(); }
 

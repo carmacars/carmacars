@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { db, noOverflow } from './helpers';
+import { db, noOverflow , chooseCardCoverage } from './helpers';
 
 // Migrations 0069 and 0081 end to end, at 375 and 1440: each of the five games shows after one car page to a visitor
 // who is not signed in, plays (the wheel turns, the card is scratched, a hand is played, the cups shuffle, the disc
@@ -331,7 +331,7 @@ async function toAddons(page: Page, slug: string, days: number, email: string) {
   await page.locator('#rq-doby').fill('1990');
   await page.getByRole('button', { name: 'Continue to licence' }).click();
   await page.locator('label', { hasText: 'Ontario G2' }).click();
-  await page.locator('label.option', { hasText: 'Option 2' }).click();
+  await chooseCardCoverage(page);
   await page.getByRole('button', { name: 'Continue to add-ons' }).click();
 }
 const total = async (page: Page) => (await page.locator('.req__sum summary b.num').innerText()).trim();
@@ -434,7 +434,7 @@ test('the code fills in the request form, takes $50 off a 4-day request and goes
   await page.locator('#rq-doby').fill('1990');
   await page.getByRole('button', { name: 'Continue to licence' }).click();
   await page.locator('label', { hasText: 'Ontario G2' }).click();
-  await page.locator('label.option', { hasText: 'Option 2' }).click();
+  await chooseCardCoverage(page);
   await page.getByRole('button', { name: 'Continue to add-ons' }).click();
   await page.getByRole('button', { name: 'Review request' }).click();
   await expect(page.getByTestId('promo-code')).toHaveValue(code);
