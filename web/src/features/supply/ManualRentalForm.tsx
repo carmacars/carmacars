@@ -139,6 +139,8 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
   const [taxMode, setTaxMode] = useTaxMode();
   // 2370: the short-notice upcharge waived for this rental, with its reason
   const [waive, setWaive] = useState(false);
+  // 2371: an insurer-billed rental may be left out of the car owner's revenue (with the reason)
+  const [countsOwner, setCountsOwner] = useState(true);
   const [waiveReason, setWaiveReason] = useState('');
   const [totalTyped, setTotalTyped] = useState('');
   const [solvedW, setSolvedW] = useState<number | null>(null);
@@ -429,6 +431,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
     if (quote && quote.has_rates === false && rentalSent === undefined) { setErr('This car has no rates yet: type the rental charge for the whole rental and the reason.'); return; }
     if (quote?.needs_policy_confirm && !past && !flags.policy) { setErr('This car is not on the fleet insurance policy yet: tick the confirmation that it is insured for this rental.'); return; }
     if (waive && waiveReason.trim().length < 3) { setErr('Type why the short-notice upcharge is waived, or switch it off.'); return; }
+    if (paidBy === 'insurer' && hasOwner && !countsOwner && (f.counts_owner_reason ?? '').trim().length < 3) { setErr('Type why the rental does not count toward the owner\'s revenue, or switch it back on.'); return; }
     if (parts.length) {
       if (cents(f.amount ?? '') === undefined) { setErr('With more than one payment, enter the amount of the first one too.'); return; }
       const bad = parts.findIndex((x) => !cents(x.amount) || (needsReference(x.method) && x.reference.trim().length < 3));
@@ -449,7 +452,8 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
         authorized_days: f.authorized_days ? Number(f.authorized_days) : undefined, authorized_daily_rate_cents: cents(f.authorized_rate ?? ''), authorized_until: f.authorized_until || undefined, rate_reason: rateState.state === 'differs' ? (f.rate_reason ?? '').trim() || undefined : undefined,
         dates_provisional: f.dates_provisional === 'yes', pays: f.insurer_pays === 'rental' ? 'split' : 'insurer' } } : {}),
       ...(draftId ? { draft_id: draftId } : {}), ...(f.odometer_out ? { odometer_out_km: Number(f.odometer_out.replace(/\D/g, '')) } : {}), ...(f.fuel_out ? { fuel_out_pct: Number(f.fuel_out) } : {}),
-      ...(hasOwner ? ownerChoicePayload(ownerChoice, owner, true) : {}) };
+      ...(hasOwner ? ownerChoicePayload(ownerChoice, owner, true) : {}),
+      ...(paidBy === 'insurer' && hasOwner && !countsOwner ? { counts_for_owner: false, counts_for_owner_reason: (f.counts_owner_reason ?? '').trim() } : {}) };
     const r = await createManualRental(p);
     if (!r.ok) { setErr(r.message); return; }
     setDone(r.data);
@@ -715,6 +719,11 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
               {text('authorized_until', 'Authorized until (provisional end)', { type: 'date' })}
               {select('insurer_pays', 'The insurer pays', [['all', 'The rental and the fees'], ['rental', 'The rental only (the renter pays the other fees)']])}
               <InsurerFeesFields idPrefix="mr" value={insFees} onChange={(k, x) => setInsFees((y) => ({ ...y, [k]: x }))} days={quote?.quote.billable_days ?? 0} />
+              {hasOwner && <div className="stack ad-field--wide" data-testid="mr-owner-revenue">
+                <label className="check" htmlFor={id('counts_owner')}><input id={id('counts_owner')} type="checkbox" checked={countsOwner} onChange={(e) => setCountsOwner(e.target.checked)} data-testid="mr-counts-owner" />
+                  {' '}<span>Counts toward the owner&apos;s revenue</span></label>
+                <p className="hint">Off: left out of the car owner&apos;s statements, payouts and earnings (they see the car as unavailable). It stays company revenue and on the insurer invoice.</p>
+                {!countsOwner && text('counts_owner_reason', 'Why it does not count toward the owner\'s revenue (required)', { wide: true })}</div>}
               <label className="check ad-field--wide" htmlFor={id('dates_provisional')}><input id={id('dates_provisional')} type="checkbox" checked={f.dates_provisional === 'yes'} onChange={(e) => setF((x) => ({ ...x, dates_provisional: e.target.checked ? 'yes' : '' }))} /> <span>The return date is provisional (the repair is not finished)</span></label>
             </div></fieldset>}
           {['e_transfer', 'cash', 'cheque', 'bank_transfer', 'platform_payout'].includes(paidBy) && <>

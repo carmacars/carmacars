@@ -3538,6 +3538,10 @@ export type Database = {
           short_notice_waived_by: string | null;
           short_notice_waive_reason: string | null;
           short_notice_waived_bps: number | null;
+          owner_revenue_excluded: boolean;
+          owner_revenue_excluded_reason: string | null;
+          owner_revenue_excluded_by: string | null;
+          owner_revenue_excluded_at: string | null;
         };
         Insert: {
           id?: string;
@@ -3740,6 +3744,10 @@ export type Database = {
           short_notice_waived_by?: string | null;
           short_notice_waive_reason?: string | null;
           short_notice_waived_bps?: number | null;
+          owner_revenue_excluded?: boolean;
+          owner_revenue_excluded_reason?: string | null;
+          owner_revenue_excluded_by?: string | null;
+          owner_revenue_excluded_at?: string | null;
         };
         Update: {
           id?: string;
@@ -3942,6 +3950,10 @@ export type Database = {
           short_notice_waived_by?: string | null;
           short_notice_waive_reason?: string | null;
           short_notice_waived_bps?: number | null;
+          owner_revenue_excluded?: boolean;
+          owner_revenue_excluded_reason?: string | null;
+          owner_revenue_excluded_by?: string | null;
+          owner_revenue_excluded_at?: string | null;
         };
         Relationships: [];
       };
