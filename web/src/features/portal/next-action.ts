@@ -63,7 +63,7 @@ export function nextAction(b: BookingSummary, step: NextStep, opts: {
     out = {
       ...base,
       kicker: `${DO_NEXT} · ${b.booking_number}`,
-      headline: need.status === 'rejected' ? `Send your ${need.label.toLowerCase()} again` : need.label,
+      headline: need.status === 'rejected' ? `Send your ${String(need.label ?? 'document').toLowerCase()} again` : (need.label ?? 'Send what is still needed'),
       detail: need.reason ? `${need.reason}.${when}` : `${need.action.label} takes a minute.${when}`,
       urgent: true,
       actions: [{ key: 'need', label: need.action.label, href: needHref(b.booking_number, need.action.path), primary: true, testId: 'now-need' },

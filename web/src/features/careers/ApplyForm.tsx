@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { submitApplication, type ApplyResult } from '@/server/actions/careers';
 import { DateInput } from '@/components/DateInput';
 import { describedBy, Field } from '@/features/forms/Field';
-import { Turnstile } from '@/features/forms/Turnstile';
+import { TURNSTILE_FAILED, Turnstile, freshTurnstileToken } from '@/features/forms/Turnstile';
 import { OUTCOME_WORDS, payOver, type Question, type RolePublic } from './model';
 
 // The screening form of one role (migration 0173): contact details, then the role's questions, one column, about five minutes.
@@ -81,10 +81,17 @@ export function ApplyForm({ role, src, utm, prefill, refToken }: { role: RolePub
     if (Object.keys(e).length) { setMessage('Check the highlighted answers.'); focusFirst(); return; }
     if (!payAcked.current && askedOver()) { setPayNote('over'); return; }
     setBusy(true);
-    const fd = new FormData(ev.currentTarget);
-    const r = await submitApplication({ role: role.slug, full_name: d.full_name, email: d.email, phone: d.phone, profile_name: d.profile_name, answers: d.answers, src, utm,
-      location: role.remote ? undefined : { city: d.city, region: d.region, country: d.country },
-      ref: refToken ?? null, turnstile: (fd.get('cf-turnstile-response') as string | null) ?? null, website: String(fd.get('website') ?? '') });
+    const form = ev.currentTarget;
+    const fd = new FormData(form);
+    // r40: a fresh token at Send (the widget is reset; one taken at load expires); no token gives a clear message, never a crash
+    const token = await freshTurnstileToken(form).catch(() => null) ?? ((fd.get('cf-turnstile-response') as string | null) || null);
+    if (!token) { setBusy(false); setMessage(TURNSTILE_FAILED); return; }
+    let r: ApplyResult;
+    try {
+      r = await submitApplication({ role: role.slug, full_name: d.full_name, email: d.email, phone: d.phone, profile_name: d.profile_name, answers: d.answers, src, utm,
+        location: role.remote ? undefined : { city: d.city, region: d.region, country: d.country },
+        ref: refToken ?? null, turnstile: token, website: String(fd.get('website') ?? '') });
+    } catch { setBusy(false); setMessage('Your answers did not send: check your connection and press Send again. They are kept on this device.'); return; }
     setBusy(false);
     if (!r.ok && r.code === 'outside_area') { setAway({ slug: r.remote_slug ?? null, title: r.remote_title ?? null }); requestAnimationFrame(() => document.getElementById('apply-away')?.focus()); return; }
     if (!r.ok) { setErrors(r.errors ?? {}); setMessage(r.message); if (r.errors) focusFirst(); return; }

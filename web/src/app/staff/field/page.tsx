@@ -15,7 +15,7 @@ import { signCount } from '@/features/manual/SignPages';
 import { ShiftStrip } from '@/features/field-portal/ShiftStrip';
 import { WorkCard } from '@/features/field-portal/WorkCard';
 import { AddButton } from '@/features/field-portal/AddButton';
-import { cardTitle, clockText, type OpenMust, type Today } from '@/features/field-portal/model';
+import { cardTitle, clockText, safeToday, type OpenMust, type Today } from '@/features/field-portal/model';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Today', path: '/staff/field', noindex: true, description: 'Your shift and your work list for the day.' });
@@ -31,12 +31,15 @@ const tomorrowIso = () => { const d = new Date(new Intl.DateTimeFormat('en-CA', 
 export default async function FieldToday({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const [{ user }, sp] = await Promise.all([requireStaff('field', '/staff/field'), searchParams]);
   const tomorrow = sp.day === 'tomorrow';
-  const [t, open, list, tk, toSign, licences, report] = await Promise.all([
-    door<Today>(user.id, 'field_read', 'today', tomorrow ? { day: tomorrowIso() } : {}),
+  // r40: every read is caught. These actions revalidate this page, so one failed read crashed the phone (React error 441).
+  const todayIso = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto' }).format(new Date());
+  const [raw, open, list, tk, toSign, licences, report] = await Promise.all([
+    door<Today>(user.id, 'field_read', 'today', tomorrow ? { day: tomorrowIso() } : {}).catch(() => null),
     tomorrow ? Promise.resolve([] as OpenMust[]) : door<OpenMust[]>(user.id, 'field_read', 'open_musts').catch(() => [] as OpenMust[]),
-    door<FieldList>(user.id, 'field_read', 'jobs').catch(() => null), getTokens(), signCount(user.id),
+    door<FieldList>(user.id, 'field_read', 'jobs').catch(() => null), getTokens().catch(() => ({}) as Partial<Awaited<ReturnType<typeof getTokens>>>), signCount(user.id).catch(() => 0),
     door<LicenceCard[]>(user.id, 'field_read', 'licences').catch(() => [] as LicenceCard[]),
     door<{ vehicles: Array<{ id: string; name: string; job: string }> }>(user.id, 'field_read', 'report_form').catch(() => ({ vehicles: [] }))]);
+  const t = safeToday(raw, tomorrow ? tomorrowIso() : todayIso);
   const musts = t.cards.filter((c) => c.must);
   const spare = t.cards.filter((c) => !c.must);
   const now = requestNow();
@@ -50,6 +53,7 @@ export default async function FieldToday({ searchParams }: { searchParams: Promi
         <h1>{tomorrow ? 'Tomorrow' : `Today${first ? `, ${first}` : ''}`}</h1>
         <p>{dateText(t.day)}</p>
       </header>
+      {t.failed && <p className="error" role="alert" data-testid="today-failed">Your work list did not load. Pull down or <Link prefetch={false} className="link" href="/staff/field">try again</Link> in a moment.</p>}
       <TeamGroupCard userId={user.id} refresh="/staff/field" />
       <nav className="fd-days" aria-label="Day">
         <Link prefetch={false} href="/staff/field" aria-current={!tomorrow ? 'page' : undefined}>Today</Link>
