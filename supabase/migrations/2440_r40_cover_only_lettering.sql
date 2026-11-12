@@ -13,6 +13,8 @@ begin
     select x.id from vehicle_photos x join listing_shot_types s on s.code = x.shot_type join vehicles c on c.id = x.vehicle_id
      where not coalesce(c.is_sample, false) and x.replaced_at is null and x.status <> 'rejected' and x.intake_id is not null
        and s.rebackground and s.is_public and x.processed_path is not null
+       -- only from a kept cut-out: a photo without one would leave the site until its plate is checked again
+       and coalesce(nullif(x.cutout ->> 'mask', ''), nullif(x.cutout ->> 'auto_mask', '')) is not null
        and ((x.is_cover and coalesce(x.scene, 'studio') = 'showroom')
             or (not x.is_cover and coalesce(x.preset_version, '') not like '%showroom%'))
        and not exists (select 1 from listing_jobs j where j.vehicle_photo_id = x.id and j.kind = 'process_photo' and j.status in ('queued', 'running'))
