@@ -78,7 +78,7 @@ begin
   if nullif(p ->> 'refresh_token', '') is null then raise exception 'Google sent no refresh token: connect again and allow offline access' using errcode = '22023'; end if;
   perform app.calendar_google_token_set(p ->> 'refresh_token');
   update calendar_google_link set status = 'connected', account_email = nullif(btrim(coalesce(p ->> 'email', '')), ''), connected_at = now(), connected_by = p_admin,
-         last_error = null, updated_at = now();
+         last_error = null, updated_at = now() where id;
   return app.calendar_google_state(p_admin, '{}'::jsonb);
 end $$;
 
@@ -87,7 +87,7 @@ language plpgsql security definer set search_path = public, app as $$
 begin
   perform app.assert_admin(p_admin);
   perform app.calendar_google_token_set(null);
-  update calendar_google_link set status = 'not_connected', account_email = null, connected_at = null, connected_by = null, last_error = null, updated_at = now();
+  update calendar_google_link set status = 'not_connected', account_email = null, connected_at = null, connected_by = null, last_error = null, updated_at = now() where id;
   -- calls waiting for a Meet link keep their Jitsi link
   update job_applications set meet_sync = null, meet_sync_since = null where meet_sync in ('create', 'update');
   update notification_outbox set send_after = now() where entity = 'job_application' and status in ('queued', 'delayed') and send_after > now()
@@ -174,7 +174,7 @@ begin
     update job_applications set meet_sync = null, meet_sync_since = null, meet_error = left(coalesce(p ->> 'error', 'Google refused the event'), 300) where id = a.id;
     update notification_outbox set send_after = now() where entity = 'job_application' and entity_id::text = a.id::text and status in ('queued', 'delayed') and send_after > now()
        and code in ('applicant_booked', 'applicant_confirm');
-    update calendar_google_link set last_error = left(coalesce(p ->> 'error', 'Google refused the event'), 300), updated_at = now();
+    update calendar_google_link set last_error = left(coalesce(p ->> 'error', 'Google refused the event'), 300), updated_at = now() where id;
   end if;
   return jsonb_build_object('ok', true);
 end $$;

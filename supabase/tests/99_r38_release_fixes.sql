@@ -7,6 +7,8 @@ select test.mk_user('r38_fleet', 'va', 'fleet');
 select test.mk_user('r38_hire', 'va', 'sales');
 select test.mk_user('r38_cs', 'va', 'cs');
 update staff_profiles set onboarding_exempt = false where user_id in (test.id('r38_hire'), test.id('r38_cs'));
+-- the gate on, whatever an earlier suite left (99_r35g_staff_onboarding turns it off at its end)
+update program_settings set staff_onboarding_gate = true, academy_gate = true, staff_agreement_gate = true where id = (app.settings()).id;
 
 create function pg_temp.dr(p_user text, p_call text, p_name text, p jsonb default '{}'::jsonb) returns jsonb language sql as
 $$ select public.door(test.id(p_user), 'aal2', p_call, p_name, p) $$;
