@@ -32,12 +32,12 @@ create table app.live_versions (
   ver bigint not null default 1,
   at timestamptz not null default now()
 );
-comment on table app.live_versions is 'Live updates (2500): the version of each topic (a keyed hash of its scope); bumped at commit by app.live_commit.';
+comment on table app.live_versions is 'Live updates (2522): the version of each topic (a keyed hash of its scope); bumped at commit by app.live_commit.';
 
 create table app.live_flush (
   tx bigint primary key
 );
-comment on table app.live_flush is 'Live updates (2500): one row while a transaction has topics to bump; its deferred trigger bumps them at commit and removes it.';
+comment on table app.live_flush is 'Live updates (2522): one row while a transaction has topics to bump; its deferred trigger bumps them at commit and removes it.';
 
 alter table app.live_key enable row level security;
 alter table app.live_versions enable row level security;
@@ -266,7 +266,7 @@ language sql stable security definer set search_path = public, app as $$
 $$;
 revoke all on function public.live_poll(text[]) from public;
 grant execute on function public.live_poll(text[]) to anon, authenticated, service_role;
-comment on function public.live_poll(text[]) is 'Live updates (2500): the versions of up to 24 topics, by their names (server_live_topics). Read every 2 s by an open portal screen while Realtime is not joined.';
+comment on function public.live_poll(text[]) is 'Live updates (2522): the versions of up to 24 topics, by their names (server_live_topics). Read every 2 s by an open portal screen while Realtime is not joined.';
 
 -- ================================================================ 6. Realtime's own schema
 -- the self-hosted Realtime container (infra/vps, compose profile "realtime") keeps its tenants in _realtime, which the

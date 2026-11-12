@@ -1,4 +1,4 @@
--- 99: live updates (migration 2500): topics are handed out only to who may read them, a change bumps its topics at
+-- 99: live updates (migration 2522): topics are handed out only to who may read them, a change bumps its topics at
 -- commit, and live_poll answers versions by name only. Fixtures start with "lvu". Each statement here is its own
 -- transaction (psql autocommit), so the deferred bump has run when the next line reads.
 select test.suite('99 live updates');

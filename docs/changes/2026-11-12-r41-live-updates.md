@@ -1,7 +1,7 @@
-# Live updates on every portal (Release 41: 2500)
+# Live updates on every portal (Release 41: 2522)
 
 The owner, November 12: "I need real time or whatever it's called. Because currently not everything is loading right
-away." Branch `r41-realtime`. Migration `2500_r41_live_updates.sql`; SCHEMA_MARKER 2500. Tests:
+away." Branch `r41-realtime`. Migration `2500_r41_live_updates.sql`; SCHEMA_MARKER 2522. Tests:
 `supabase/tests/99_live_updates.sql`; unit tests `web/src/features/live/realtime/hub.test.ts`, `socket.test.ts`,
 `areas.test.ts`; e2e `web/tests/e2e/live-updates.spec.ts`.
 
@@ -27,7 +27,7 @@ refresh. Hidden tabs read nothing; a tab shown again catches up at once.
 | Reading | `public.live_poll(p_topics)` (anon): the versions of up to 24 names, straight from the browser to the database API (`publicRead`), never the Worker. `features/live/realtime/hub.ts`: every 2 s while visible and Realtime is not joined, every 60 s as a safety net while it is, nothing while hidden, longer waits after failures (to 30 s) |
 | Realtime | `features/live/realtime/socket.ts` speaks the Realtime websocket (Phoenix 1.0.0) directly, so no page carries the Supabase client: public broadcast channels named by the topics. A server without Realtime fails twice and the tab stops trying for 10 minutes (sessionStorage) |
 | Screens | `LivePortal` (the frames: areas by path, `areas.ts`), `LiveRefresh` (`router.refresh`, the typing wait, one refresh per burst), `AlertPulse` (moved to `features/motion/AlertPulse.tsx`): reads the newest alert when the person's topic moves, every 5 minutes otherwise (was 30 seconds) |
-| Server | Kong routes `/realtime/v1/` to the Realtime container; the container is in `infra/vps/supabase/docker-compose.yml` behind the profile `realtime` (off); 2500 makes the `_realtime` schema it needs. `infra/vps/CUTOVER.md` has the one step to switch it on |
+| Server | Kong routes `/realtime/v1/` to the Realtime container; the container is in `infra/vps/supabase/docker-compose.yml` behind the profile `realtime` (off); 2522 makes the `_realtime` schema it needs. `infra/vps/CUTOVER.md` has the one step to switch it on |
 
 No data travels through a topic: a bump only makes the screen read again through its usual checked reads.
 

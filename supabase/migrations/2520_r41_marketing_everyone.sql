@@ -1,4 +1,4 @@
--- 2490_r41_marketing_everyone.sql
+-- 2520_r41_marketing_everyone.sql
 -- Release 41 (docs/changes/2026-11-12-r41-marketing-emails.md). The owner's instructions (November 12, 2026, approved by
 -- his lawyer):
 --   "If they unsubscribe then do not email them. However, if they have put their email anywhere on our website, then that
@@ -29,7 +29,7 @@
 --      is more), never below notify_marketing_daily_max. Campaign emails are queued at the marketing priority (class 5:
 --      every other email goes first), in the marketing hours, paced across the window, at most one campaign email per
 --      person a day; what does not fit waits for the next day. Never a paid send: the claim's budgets are unchanged.
--- No applied migration is edited: functions are wrapped (renamed _pre2490) or patched in place.
+-- No applied migration is edited: functions are wrapped (renamed _pre2520) or patched in place.
 set local check_function_bodies = off;
 
 create function pg_temp.copy_grants(p_new regprocedure, p_old regprocedure) returns void
@@ -52,13 +52,13 @@ alter table program_settings
   add column if not exists marketing_new_vehicle_enabled boolean not null default true,
   add column if not exists marketing_auto_volume boolean not null default true,
   add column if not exists marketing_transactional_reserve integer not null default 60 check (marketing_transactional_reserve >= 0);
-comment on column program_settings.marketing_everyone_enabled is 'Marketing emails go to everyone who gave us their email on the site (renters, accounts, leads, forms left unfinished) unless they unsubscribed (2490). Off: only those who ticked the marketing box.';
-comment on column program_settings.marketing_weekly_enabled is 'The weekly email to the whole marketing audience: the cars listed now and the deals running now (2490).';
+comment on column program_settings.marketing_everyone_enabled is 'Marketing emails go to everyone who gave us their email on the site (renters, accounts, leads, forms left unfinished) unless they unsubscribed (2520). Off: only those who ticked the marketing box.';
+comment on column program_settings.marketing_weekly_enabled is 'The weekly email to the whole marketing audience: the cars listed now and the deals running now (2520).';
 comment on column program_settings.marketing_weekly_dow is 'The weekly email: day of the week (1 Monday ... 7 Sunday), Toronto time.';
 comment on column program_settings.marketing_weekly_hour is 'The weekly email: from this hour (Toronto time); it goes within the marketing hours.';
 comment on column program_settings.marketing_weekly_cars is 'The weekly email: how many cars it shows (the newest listings first).';
-comment on column program_settings.marketing_new_vehicle_enabled is 'Email the whole marketing audience once each time a new car is listed on the site (2490). Sample cars are never announced.';
-comment on column program_settings.marketing_auto_volume is 'Raise the day''s marketing emails to the free email capacity left after the reserve for booking, payment and sign-in emails (2490). Off: notify_marketing_daily_max only.';
+comment on column program_settings.marketing_new_vehicle_enabled is 'Email the whole marketing audience once each time a new car is listed on the site (2520). Sample cars are never announced.';
+comment on column program_settings.marketing_auto_volume is 'Raise the day''s marketing emails to the free email capacity left after the reserve for booking, payment and sign-in emails (2520). Off: notify_marketing_daily_max only.';
 comment on column program_settings.marketing_transactional_reserve is 'Emails a day kept for booking, payment and sign-in emails before marketing may use the rest of the free capacity (at least; twice the recent daily average when that is more).';
 
 -- cars listed before this migration are not announced as new
@@ -84,7 +84,7 @@ create table marketing_contacts (
 );
 create index marketing_contacts_user_idx on marketing_contacts (user_id) where user_id is not null;
 create index marketing_contacts_renter_idx on marketing_contacts (renter_id) where renter_id is not null;
-comment on table marketing_contacts is 'The marketing audience (2490): every address a person gave us on the site, with where it came from and the consent basis (provided on site). Rebuilt hourly from the sources; unsubscribed and bounced addresses stay here and are left out when sending.';
+comment on table marketing_contacts is 'The marketing audience (2520): every address a person gave us on the site, with where it came from and the consent basis (provided on site). Rebuilt hourly from the sources; unsubscribed and bounced addresses stay here and are left out when sending.';
 
 create table marketing_campaigns (
   id           uuid primary key default gen_random_uuid(),
@@ -105,7 +105,7 @@ create unique index marketing_campaigns_vehicle_key on marketing_campaigns (vehi
 create unique index marketing_campaigns_week_key on marketing_campaigns (week_of) where kind = 'weekly';
 create index marketing_campaigns_code_idx on marketing_campaigns (code);
 create index marketing_campaigns_vehicle_idx on marketing_campaigns (vehicle_id) where vehicle_id is not null;
-comment on table marketing_campaigns is 'Marketing campaigns (2490): the weekly email and one email per new car, each to the whole marketing audience, sent over the days within the free email budgets.';
+comment on table marketing_campaigns is 'Marketing campaigns (2520): the weekly email and one email per new car, each to the whole marketing audience, sent over the days within the free email budgets.';
 
 create table marketing_campaign_sends (
   campaign_id  uuid not null references marketing_campaigns (id) on delete cascade,
@@ -120,7 +120,7 @@ create table marketing_campaign_sends (
 create index marketing_campaign_sends_waiting_idx on marketing_campaign_sends (campaign_id, created_at) where status = 'waiting';
 create index marketing_campaign_sends_email_idx on marketing_campaign_sends (email, queued_at desc);
 create index marketing_campaign_sends_event_idx on marketing_campaign_sends (event_id) where event_id is not null;
-comment on table marketing_campaign_sends is 'One row per person and campaign (2490): waiting, queued (its event and outbox email) or skipped with the reason. Nobody gets the same campaign twice.';
+comment on table marketing_campaign_sends is 'One row per person and campaign (2520): waiting, queued (its event and outbox email) or skipped with the reason. Nobody gets the same campaign twice.';
 
 -- the person-spacing check reads the marketing emails of one address
 create index if not exists notification_outbox_marketing_to_idx on notification_outbox (to_address, created_at desc) where category = 'marketing';
@@ -137,15 +137,15 @@ end $$;
 create trigger audit_marketing_campaigns after insert or update or delete on marketing_campaigns for each row execute function app.audit_row();
 
 -- ================================================================ 3. consent: everyone who gave us their email, unless they unsubscribed
-alter function app.has_marketing_consent(uuid, text) rename to has_marketing_consent_pre2490;
+alter function app.has_marketing_consent(uuid, text) rename to has_marketing_consent_pre2520;
 create function app.has_marketing_consent(p_user uuid, p_rule text default 'express') returns boolean
 language sql stable security definer set search_path = public, app as $$
   select case when coalesce((app.settings()).marketing_everyone_enabled, false)
               -- the address itself is checked against the suppressions (unsubscribed, bounced, complained) by the caller
-              then p_user is null or app.has_marketing_consent_pre2490(p_user, 'implied')
-              else app.has_marketing_consent_pre2490(p_user, p_rule) end
+              then p_user is null or app.has_marketing_consent_pre2520(p_user, 'implied')
+              else app.has_marketing_consent_pre2520(p_user, p_rule) end
 $$;
-select pg_temp.copy_grants('app.has_marketing_consent(uuid, text)'::regprocedure, 'app.has_marketing_consent_pre2490(uuid, text)'::regprocedure);
+select pg_temp.copy_grants('app.has_marketing_consent(uuid, text)'::regprocedure, 'app.has_marketing_consent_pre2520(uuid, text)'::regprocedure);
 
 -- May this address get a marketing email now? Not suppressed (unsubscribed, bounced, complained, manual), the account with
 -- the address not unsubscribed, not a test address; with the everyone switch off, only with the account's express consent.
@@ -159,11 +159,11 @@ language sql stable security definer set search_path = public, app as $$
 $$;
 
 -- the one-click unsubscribe also marks the account with that address (campaign emails carry no account id)
-alter function app.unsubscribe(uuid, timestamptz) rename to unsubscribe_pre2490;
+alter function app.unsubscribe(uuid, timestamptz) rename to unsubscribe_pre2520;
 create function app.unsubscribe(p_token uuid, p_now timestamptz default now()) returns boolean
 language plpgsql security definer set search_path = public, app as $$
 declare
-  v boolean := app.unsubscribe_pre2490(p_token, p_now);
+  v boolean := app.unsubscribe_pre2520(p_token, p_now);
   v_to text;
 begin
   if not v then return v; end if;
@@ -175,7 +175,7 @@ begin
   update marketing_campaign_sends set status = 'skipped', reason = 'unsubscribed' where email = v_to and status = 'waiting';
   return v;
 end $$;
-select pg_temp.copy_grants('app.unsubscribe(uuid, timestamptz)'::regprocedure, 'app.unsubscribe_pre2490(uuid, timestamptz)'::regprocedure);
+select pg_temp.copy_grants('app.unsubscribe(uuid, timestamptz)'::regprocedure, 'app.unsubscribe_pre2520(uuid, timestamptz)'::regprocedure);
 
 -- ================================================================ 4. the audience
 create function app.marketing_audience_refresh(p_now timestamptz default now()) returns integer
@@ -260,7 +260,7 @@ begin
     execute replace(d, 's.notify_marketing_daily_max', 'app.marketing_daily_max(p_now)');
     n := n + 1;
   end loop;
-  if n = 0 then raise exception '2490: no version of the outbox claim reads notify_marketing_daily_max'; end if;
+  if n = 0 then raise exception '2520: no version of the outbox claim reads notify_marketing_daily_max'; end if;
 end $$;
 
 -- ================================================================ 6. campaign content from the live listings
@@ -349,7 +349,7 @@ begin
 end $$;
 
 -- ================================================================ 7. who receives a campaign email: the address it was queued for
-alter function app.notification_recipients(app_events, notification_catalogue) rename to notification_recipients_pre2490;
+alter function app.notification_recipients(app_events, notification_catalogue) rename to notification_recipients_pre2520;
 create function app.notification_recipients(p_event app_events, p_c notification_catalogue)
 returns table (audience text, user_id uuid, email text, name text, renter_id uuid, owner_id uuid, immediate boolean)
 language plpgsql stable security definer set search_path = public, app as $$
@@ -361,10 +361,10 @@ begin
                   where nullif(p_event.payload ->> '_to_email', '') is not null;
     return;
   end if;
-  return query select * from app.notification_recipients_pre2490(p_event, p_c);
+  return query select * from app.notification_recipients_pre2520(p_event, p_c);
 end $$;
 select pg_temp.copy_grants('app.notification_recipients(app_events, notification_catalogue)'::regprocedure,
-                           'app.notification_recipients_pre2490(app_events, notification_catalogue)'::regprocedure);
+                           'app.notification_recipients_pre2520(app_events, notification_catalogue)'::regprocedure);
 
 -- ================================================================ 8. the job (every 15 minutes)
 create function app.job_marketing(p_now timestamptz default now()) returns text
@@ -537,11 +537,11 @@ language sql stable security invoker set search_path = public, app as $$
 $$;
 
 -- ================================================================ 10. the catalogue rows (the two campaign emails)
--- CATALOGUE 2490 START (generated by supabase/seed/2490_gen_catalogue.mjs; do not edit by hand)
+-- CATALOGUE 2520 START (generated by supabase/seed/2520_gen_catalogue.mjs; do not edit by hand)
 insert into notification_catalogue (code, audience, also_sent_to, category, is_digest, digest_slot, from_address, reply_to,
     subject, preheader, timing, trigger_text, replaces_template, link_path, variables, template_html, template_text) values
-  ('marketing_weekly', 'renter', '{}'::text[], 'marketing', false, null, 'CarmaCars <hello@carmacars.ca>', 'contact@carmacars.ca', '{{headline}}', '{{preheader_text}}', 'Weekly', 'Weekly marketing campaign (2490, app.job_marketing): once a week, on Program settings marketing_weekly_dow at marketing_weekly_hour (Toronto time), to every address in the marketing audience (anyone who gave us their email on carmacars.ca: renters, accounts, leads, forms left unfinished), minus anyone unsubscribed, bounced, complained or suppressed. The cars and deals come from the live listings and the active public promo codes when the campaign is made. Queued at the marketing priority: booking, payment and sign-in emails always go first, and the sends are spread over the days within the free email budgets. Switch: marketing_weekly_enabled.', null, '/cars', '[{"name":"cars","type":"list","fields":["name","meta","url"]},{"name":"company_address","type":"string","global":true},{"name":"contact_email","type":"string","global":true},{"name":"deals","type":"list","fields":["label","detail","url"]},{"name":"first_name","type":"string"},{"name":"has_deals","type":"boolean"},{"name":"headline","type":"string"},{"name":"instagram_url","type":"url","global":true},{"name":"opening_hours","type":"string","global":true},{"name":"preheader_text","type":"string"},{"name":"reply_time","type":"string","global":true},{"name":"support_phone","type":"string","global":true},{"name":"tiktok_url","type":"url","global":true},{"name":"unsubscribe_url","type":"url"}]'::jsonb, 'templates/marketing_weekly.html', 'templates/marketing_weekly.txt'),
-  ('marketing_new_vehicle', 'renter', '{}'::text[], 'marketing', false, null, 'CarmaCars <hello@carmacars.ca>', 'contact@carmacars.ca', 'New in the fleet: the {{vehicle_name}}', 'From {{daily_price}} a day. Ready to book now.', 'When a new car is listed', 'New car campaign (2490, app.job_marketing): a car''s listing goes live on the site (published, bookable, not a sample car). Once per car, to every address in the marketing audience (anyone who gave us their email on carmacars.ca), minus anyone unsubscribed, bounced, complained or suppressed. Queued at the marketing priority and spread over the days within the free email budgets; an address still waiting when the car stops being listed is not sent. Switch: marketing_new_vehicle_enabled.', null, null, '[{"name":"car_url","type":"url"},{"name":"company_address","type":"string","global":true},{"name":"contact_email","type":"string","global":true},{"name":"daily_price","type":"string"},{"name":"first_name","type":"string"},{"name":"instagram_url","type":"url","global":true},{"name":"opening_hours","type":"string","global":true},{"name":"reply_time","type":"string","global":true},{"name":"seats","type":"string"},{"name":"support_phone","type":"string","global":true},{"name":"tiktok_url","type":"url","global":true},{"name":"transmission","type":"string"},{"name":"unsubscribe_url","type":"url"},{"name":"vehicle_image_url","type":"url"},{"name":"vehicle_name","type":"string"}]'::jsonb, 'templates/marketing_new_vehicle.html', 'templates/marketing_new_vehicle.txt')
+  ('marketing_weekly', 'renter', '{}'::text[], 'marketing', false, null, 'CarmaCars <hello@carmacars.ca>', 'contact@carmacars.ca', '{{headline}}', '{{preheader_text}}', 'Weekly', 'Weekly marketing campaign (2520, app.job_marketing): once a week, on Program settings marketing_weekly_dow at marketing_weekly_hour (Toronto time), to every address in the marketing audience (anyone who gave us their email on carmacars.ca: renters, accounts, leads, forms left unfinished), minus anyone unsubscribed, bounced, complained or suppressed. The cars and deals come from the live listings and the active public promo codes when the campaign is made. Queued at the marketing priority: booking, payment and sign-in emails always go first, and the sends are spread over the days within the free email budgets. Switch: marketing_weekly_enabled.', null, '/cars', '[{"name":"cars","type":"list","fields":["name","meta","url"]},{"name":"company_address","type":"string","global":true},{"name":"contact_email","type":"string","global":true},{"name":"deals","type":"list","fields":["label","detail","url"]},{"name":"first_name","type":"string"},{"name":"has_deals","type":"boolean"},{"name":"headline","type":"string"},{"name":"instagram_url","type":"url","global":true},{"name":"opening_hours","type":"string","global":true},{"name":"preheader_text","type":"string"},{"name":"reply_time","type":"string","global":true},{"name":"support_phone","type":"string","global":true},{"name":"tiktok_url","type":"url","global":true},{"name":"unsubscribe_url","type":"url"}]'::jsonb, 'templates/marketing_weekly.html', 'templates/marketing_weekly.txt'),
+  ('marketing_new_vehicle', 'renter', '{}'::text[], 'marketing', false, null, 'CarmaCars <hello@carmacars.ca>', 'contact@carmacars.ca', 'New in the fleet: the {{vehicle_name}}', 'From {{daily_price}} a day. Ready to book now.', 'When a new car is listed', 'New car campaign (2520, app.job_marketing): a car''s listing goes live on the site (published, bookable, not a sample car). Once per car, to every address in the marketing audience (anyone who gave us their email on carmacars.ca), minus anyone unsubscribed, bounced, complained or suppressed. Queued at the marketing priority and spread over the days within the free email budgets; an address still waiting when the car stops being listed is not sent. Switch: marketing_new_vehicle_enabled.', null, null, '[{"name":"car_url","type":"url"},{"name":"company_address","type":"string","global":true},{"name":"contact_email","type":"string","global":true},{"name":"daily_price","type":"string"},{"name":"first_name","type":"string"},{"name":"instagram_url","type":"url","global":true},{"name":"opening_hours","type":"string","global":true},{"name":"reply_time","type":"string","global":true},{"name":"seats","type":"string"},{"name":"support_phone","type":"string","global":true},{"name":"tiktok_url","type":"url","global":true},{"name":"transmission","type":"string"},{"name":"unsubscribe_url","type":"url"},{"name":"vehicle_image_url","type":"url"},{"name":"vehicle_name","type":"string"}]'::jsonb, 'templates/marketing_new_vehicle.html', 'templates/marketing_new_vehicle.txt')
 on conflict (code) do update set
   audience = excluded.audience, also_sent_to = excluded.also_sent_to, category = excluded.category,
   is_digest = excluded.is_digest, digest_slot = excluded.digest_slot, from_address = excluded.from_address,
@@ -550,7 +550,7 @@ on conflict (code) do update set
   variables = excluded.variables, template_html = excluded.template_html, template_text = excluded.template_text,
   in_catalogue = true, updated_at = now();
 select app.notification_catalogue_refresh();
--- CATALOGUE 2490 END
+-- CATALOGUE 2520 END
 
 -- ================================================================ 11. grants and the schedule
 do $$
@@ -560,7 +560,7 @@ begin
     select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
      where (n.nspname = 'app' and p.proname = any (array['marketing_new_vehicle_since', 'marketing_can_email', 'marketing_audience_refresh', 'marketing_daily_max',
               'marketing_price', 'marketing_listed_cars', 'marketing_weekly_payload', 'marketing_new_vehicle_payload', 'marketing_campaign_start', 'job_marketing',
-              'has_marketing_consent_pre2490', 'unsubscribe_pre2490', 'notification_recipients_pre2490']))
+              'has_marketing_consent_pre2520', 'unsubscribe_pre2520', 'notification_recipients_pre2520']))
         or (n.nspname = 'public' and p.proname = 'server_marketing_emails')
   loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);

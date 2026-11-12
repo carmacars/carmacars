@@ -1,7 +1,7 @@
--- 99: migration 2490 (release 41): marketing emails to everyone who gave us their email on the site, unless they unsubscribed;
+-- 99: migration 2520 (release 41): marketing emails to everyone who gave us their email on the site, unless they unsubscribed;
 -- the weekly email and one email per new car, queued at the marketing priority within the day's allowance.
 -- Fixtures: "zm". Test data only (example.test addresses, 555 numbers).
-select test.suite('99 r41 marketing emails to everyone, weekly and new car campaigns (2490)');
+select test.suite('99 r41 marketing emails to everyone, weekly and new car campaigns (2520)');
 
 select test.mk_user('zm_admin', 'admin');
 select test.mk_user('zm_sales', 'va', 'sales');

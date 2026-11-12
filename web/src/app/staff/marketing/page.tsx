@@ -20,7 +20,7 @@ export default async function StaffMarketing({ searchParams }: { searchParams: P
       scenes={(v) => scenePhotos(user.id, v, aal).then((x) => x.length > 0).catch(() => false)} />
     {/* 1860: Search Console clicks against the goal, read only */}
     <p className="small"><Link prefetch={false} className="link" href="/staff/marketing/seo" data-testid="staff-seo-link">SEO: clicks from Google, queries and indexing</Link></p>
-    {/* r41 (2490): the email campaigns, read only */}
+    {/* r41 (2520): the email campaigns, read only */}
     <p className="small"><Link prefetch={false} className="link" href="/staff/marketing/emails" data-testid="staff-marketing-emails-link">Email campaigns: the audience, the weekly email and the new car emails</Link></p>
     {/* release 36: the event pages, the same list as Admin > Marketing > Event pages */}
     <EventsAdmin rows={events} refresh={['/staff/marketing']} />

@@ -9,7 +9,7 @@ import { MARKETING_EMAIL_KEYS, MarketingEmailsView, type MarketingEmailsData } f
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Email campaigns', path: '/admin/marketing/emails', noindex: true, description: 'The marketing audience, the weekly email and the new car emails: waiting, queued, sent and unsubscribed.' });
 
-// Admin > Marketing > Email campaigns (migration 2490). Sales sees the same page, read only, on Sales > Marketing.
+// Admin > Marketing > Email campaigns (migration 2520). Sales sees the same page, read only, on Sales > Marketing.
 export default async function AdminMarketingEmails() {
   const { user } = await page('/admin/marketing/emails');
   const d = (await rpc('server_marketing_emails', { p_user: user.id }, { role: 'service_role' })) as unknown as MarketingEmailsData;

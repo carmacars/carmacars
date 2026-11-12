@@ -2,7 +2,7 @@ import 'server-only';
 import { rpc } from '@/lib/db/repo';
 import type { LiveArea } from '@/features/live/realtime/areas';
 
-// Live updates (release 41, migration 2500): the topics a person may watch, as opaque tokens. The database decides
+// Live updates (release 41, migration 2522): the topics a person may watch, as opaque tokens. The database decides
 // (server_live_topics): staff areas for Admin and staff (field staff: the field area only), the person's own alerts and
 // messages, a renter's own bookings, an owner's own bookings, one booking for staff or for its renter or owner. A scope
 // the person may not read gets no token, so the screen simply does not update live. One small read per frame render.
