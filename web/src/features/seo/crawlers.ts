@@ -52,3 +52,15 @@ export const FULL_SCOPE_CRAWLERS = ['Googlebot', 'Googlebot-Image', 'Bingbot', '
 
 // Every search and AI crawler of the list, with full access (r27b: none is refused).
 export const ANSWER_CRAWLERS = ANSWER_ALL.filter((b) => !(BLOCKED_CRAWLERS as readonly string[]).includes(b));
+
+// 2350 (the owner: cut the AI crawler load; Cloudflare, Nov 11: ClaudeBot about 21,000 and Applebot about 15,000 requests a
+// window, most on the programmatic place and vehicle pages): the AI crawlers that crawl in bulk keep to the crawl scope
+// (src/lib/edge/crawl-scope.ts: the fixed pages, the cars, the landing pages, the guides, the vehicle tree to the trim), in
+// robots.txt and at the edge (bot-shield.ts AI_SCOPED, a 403 on the deeper pages). The AI search crawlers keep every core
+// page with no delay (docs/changes/2026-10-23-ai-search.md); the training crawlers also get a Crawl-delay. Googlebot,
+// Bingbot, DuckDuckBot, YandexBot and the fetchers a person triggers (ChatGPT-User, Claude-User, Perplexity-User) are
+// unchanged.
+export const AI_SEARCH_SCOPED = ['Applebot', 'OAI-SearchBot', 'Claude-SearchBot', 'PerplexityBot', 'DuckAssistBot', 'Amzn-SearchBot'] as const;
+export const AI_TRAINING_SCOPED = ['GPTBot', 'ClaudeBot', 'Google-Extended', 'GoogleOther', 'Applebot-Extended', 'Meta-ExternalAgent', 'Meta-WebIndexer', 'FacebookBot',
+  'Amazonbot', 'YandexAdditional', 'cohere-ai', 'cohere-training-data-crawler', 'YouBot', 'PhindBot', 'Diffbot', 'CCBot', 'Bytespider'] as const;
+export const AI_SCOPED_CRAWLERS: readonly string[] = [...AI_SEARCH_SCOPED, ...AI_TRAINING_SCOPED];

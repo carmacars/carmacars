@@ -78,3 +78,7 @@ export function translator(strings: Record<string, string>) {
   };
   return { t, missing };
 }
+
+/** 2350: a language page is indexed when its language is ready (strings added in the last seo_i18n_grace_days days do not
+ *  count against it) and none of this page's own strings is missing; a page whose own strings are missing stays noindex. */
+export function localizedIndexable(ready: boolean, missing: number): boolean { return ready && missing === 0; }

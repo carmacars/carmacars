@@ -69,5 +69,25 @@ test('1860: cached-only serving by usage: copy first, render on a miss; busy mod
   assert.equal(tailServing(false, true), 'copy-or-render');
   assert.equal(tailServing(true, false), 'copy-or-busy');
   assert.equal(tailServing(true, true), 'copy-or-busy');
+  // 2350: a verified search engine is never given the 503 busy page for a normal page
+  assert.equal(tailServing(true, false, true), 'copy-or-render');
+  assert.equal(tailServing(false, false, true), 'render');
   assert.match(USAGE_CACHED_KEY, /^carmacars\//);
+});
+
+// 2350: the market (place pages outside Canada answer 404 at the edge while every region outside Canada is off)
+import { foreignPlacePage, outOfMarket, verifiedSearchEngine } from './scraper-guard.ts';
+test('2350: US and Mexican term-and-place pages are out of market; Canadian places, landing pages and the vehicle tree are not', () => {
+  for (const p of ['/detailing/clear-bra/toddsville-ny', '/body-shop/exhaust-repair/villa-del-mar-ciudad-del-carmen-cam', '/buy/used-cars-for-sale/centerville-itawamba-county-ms',
+    '/car-rental/suv-rental/austin-tx', '/car-rental/suv-rental/guadalajara-jal']) assert.ok(foreignPlacePage(p), p);
+  for (const p of ['/car-rental/debit-card-car-rental/wynndel-bc', '/car-rental/rideshare-car-rental/saskatchewan', '/car-rental/suv-rental/markham-on',
+    '/car-rental/car-rental-near-me', '/car-rental/toronto', '/buy/ford/f-150-ca', '/buy/honda/civic', '/car-rental/suv-rental/yyz-airport', '/cars/bmw/x5/2021/xdrive40i/austin-tx',
+    '/detailing/clear-bra/kingston-on', '/car-rental/suv-rental/st-louis-qc']) assert.equal(foreignPlacePage(p), false, p);
+  const r = outOfMarket();
+  assert.equal(r.status, 404);
+  assert.match(r.headers.get('cache-control') ?? '', /max-age=86400/);
+  assert.equal(r.headers.get('x-robots-tag'), 'noindex');
+  assert.ok(verifiedSearchEngine({ verifiedBotCategory: 'Search Engine Crawler' }));
+  assert.equal(verifiedSearchEngine({ verifiedBotCategory: 'AI Crawler' }), false);
+  assert.equal(verifiedSearchEngine(undefined), false);
 });

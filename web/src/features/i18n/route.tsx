@@ -13,7 +13,7 @@ import { faqLd } from '@/features/seo/meta';
 import { money } from '@/lib/format';
 import { getClasses, getFacts, getFleet, getSettings, siteUrl } from '@/lib/site';
 import type { CarRow } from '@/lib/types';
-import { translator } from './catalog';
+import { localizedIndexable, translator } from './catalog';
 import { rpc } from '@/lib/db/repo';
 import { tierPage, trimPage } from '@/features/vehicles/data';
 import { termTree } from '@/features/vehicles/twin';
@@ -102,7 +102,7 @@ export async function localizedMeta(code: string, kind: Kind, slug = ''): Promis
   if (!b) return {};
   const base = siteUrl();
   const alternates = b.english === '/' ? { canonical: base + pathOf(code, b) } : { canonical: base + pathOf(code, b), languages: await langAlternates(b.english, base) };
-  return { title: b.title, description: b.description.slice(0, 165), alternates, robots: b.lang.ready ? undefined : { index: false, follow: true },
+  return { title: b.title, description: b.description.slice(0, 165), alternates, robots: localizedIndexable(b.lang.ready, b.missing) ? undefined : { index: false, follow: true },
     openGraph: { title: b.title, description: b.description.slice(0, 165), url: base + pathOf(code, b), locale: b.lang.hreflang.replace('-', '_') } };
 }
 

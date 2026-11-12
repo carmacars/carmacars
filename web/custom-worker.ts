@@ -12,7 +12,7 @@ import { parseCookieHeader, readSession } from './src/lib/auth/session-cookie';
 import { BEACON_GIVE_UP_MS, BEACON_WAIT_MS, BEAT_WAIT_MS, MAX_BEACON_BYTES, cleanBeacon, cleanBeat, emailLinkCookie, ipKey, isBeat, isBot, within } from './src/lib/track/shared';
 import { SCHEMA_HEADER, SCHEMA_MARKER } from './src/lib/schema-marker';
 import { EDGE_CACHE_NAME, STALE_HEADER, STALE_TTL_S, busyPage, crawlerCopy, hasSession, deploymentOf, edgeKey, isProbe, serveEdge, staleKey } from './src/lib/edge/page-cache';
-import { BUSY_KEY, BUSY_MS, BusyMeter, USAGE_CACHED_KEY, checkPage, httpsRedirect, longTail, renderFailed, scraperGuard, tailServing, tooMany } from './src/lib/edge/scraper-guard';
+import { BUSY_KEY, BUSY_MS, BusyMeter, PLACE_FOREIGN_KEY, USAGE_CACHED_KEY, checkPage, foreignPlacePage, httpsRedirect, longTail, outOfMarket, renderFailed, scraperGuard, tailServing, tooMany, verifiedSearchEngine } from './src/lib/edge/scraper-guard';
 import { jobsToRun, pushWaiting } from './src/lib/edge/cron-gate';
 import { RATE_LIMITED_BOT, isCrawler, keptToScope, shield, shieldResponse } from './src/lib/edge/bot-shield';
 import { CPU_GUARD_KEY, SEARCH_SCOPE_KEY, FLEET_SIG_CONFIRM_KEY, FLEET_SIG_KEY, fleetRows, signatureOf } from './src/lib/edge/fleet-sig';
@@ -275,6 +275,10 @@ const worker = {
       // 1860: cached-only serving by usage (the month's Worker requests or CPU time past Program settings usage_cached_pct)
       const cached = due.cached_only ? 1 : 0;
       if ((await readNumber(env, USAGE_CACHED_KEY)) !== cached) await writeNumber(env, USAGE_CACHED_KEY, cached);
+      // 2350: whether any place region outside Canada is on (the market); while none is, the fetch handler answers a US or
+      // Mexican place page 404 before the app loads
+      const foreign = due.place_foreign ? 1 : 0;
+      if ((await readNumber(env, PLACE_FOREIGN_KEY)) !== foreign) await writeNumber(env, PLACE_FOREIGN_KEY, foreign);
     })().catch(() => undefined));
     if (due.listing) run('/api/jobs/listing');
     // the search copy (cars, landing pages, articles) and IndexNow (migration 0061)
@@ -360,6 +364,9 @@ const worker = {
     // 0324: every crawler reaches every page (the owner's decision); while the month's crawler guard is on (CPU_GUARD_KEY,
     // the database's projected CPU cost above crawler_guard_usd), a crawler that is not a search or answer crawler is kept
     // to the crawl scope (bot-shield.ts keptToScope)
+    // 2350: a place page outside our market (a US or Mexican place while every region outside Canada is off): 404 here,
+    // kept a day by the caches, never a render (they were most of the crawl and many answered 503)
+    if ((request.method === 'GET' || request.method === 'HEAD') && foreignPlacePage(path) && !(await flag(env, PLACE_FOREIGN_KEY))) return outOfMarket(securityHeaders());
     const ua0 = request.headers.get('user-agent');
     const core = await keptToScope(ua0, path, () => flag(env, SEARCH_SCOPE_KEY), () => flag(env, CPU_GUARD_KEY));
     const sh = shield(request.method, request.url, ua0, core);
@@ -377,7 +384,7 @@ const worker = {
     let guardCopy: Response | null = null;
     // cached-only mode (the database busy, tripped by the Worker itself below): long-tail pages from their kept copies only
     const tail = (request.method === 'GET' || request.method === 'HEAD') && longTail(path) && !hasSession(request.headers.get('cookie'));
-    const serving = g === 'pass' && tail ? tailServing((await busyUntil(env)) > Date.now(), await flag(env, USAGE_CACHED_KEY)) : 'render';
+    const serving = g === 'pass' && tail ? tailServing((await busyUntil(env)) > Date.now(), await flag(env, USAGE_CACHED_KEY), verifiedSearchEngine((request as unknown as { cf?: Record<string, unknown> }).cf)) : 'render';
     if (serving !== 'render') {
       const k = staleKey(request);
       guardCopy = k ? await crawlerCopy(k, request.headers.get('if-modified-since'), { cache: () => caches.open(EDGE_CACHE_NAME), env }, STALE_TTL_S) : null;

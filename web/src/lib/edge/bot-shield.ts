@@ -36,6 +36,9 @@ export type Shield = { kind: 'pass' } | { kind: 'refuse'; reason: 'blocked' | 'p
 
 /** 0320: the search and answer crawlers that bring visitors (features/seo/crawlers.ts FULL_SCOPE_CRAWLERS): they read every
  *  public page the search scope allows. Any other crawler reads the crawl scope only (crawl-scope.ts), whatever the scope. */
+/** 2350: the AI crawlers kept to the crawl scope on the programmatic pages (keep in step with features/seo/crawlers.ts
+ *  AI_SCOPED_CRAWLERS). Applebot here also matches Applebot-Extended. */
+export const AI_SCOPED = /GPTBot|OAI-SearchBot|ClaudeBot|Claude-SearchBot|anthropic-ai|PerplexityBot(?!-User)|Google-Extended|GoogleOther|Applebot|CCBot|Amazonbot|Amzn-SearchBot|meta-externalagent|meta-webindexer|FacebookBot|DuckAssistBot|Bytespider|YouBot|cohere-ai|cohere-training-data-crawler|PhindBot|Diffbot|YandexAdditional/i;
 export const SEARCH_CRAWLER = /Googlebot|Google-InspectionTool|Storebot-Google|AdsBot-Google|Mediapartners-Google|Google-CloudVertexBot|Gemini-Deep-Research|bingbot|BingPreview|msnbot|DuckDuckBot|DuckAssistBot|Applebot(?!-Extended)|OAI-SearchBot|ChatGPT-User|Claude-SearchBot|Claude-User|PerplexityBot|Perplexity-User|Meta-ExternalFetcher|Amzn-SearchBot|Amzn-User|MistralAI-User|YandexBot/i;
 export const isSearchCrawler = (ua: string | null | undefined): boolean => !!ua && SEARCH_CRAWLER.test(ua);
 
@@ -49,6 +52,11 @@ export const isCrawler = (ua: string | null | undefined): boolean => !!ua && CRA
  *  read from the tag store only when it matters. */
 export async function keptToScope(ua: string | null | undefined, path: string, coreFlag: () => Promise<boolean>, guardFlag: () => Promise<boolean> = async () => false): Promise<boolean> {
   if (!isCrawler(ua) || !deepOutOfScope(path)) return false;
+  // 2350 (the owner: cut the AI crawler load): the AI training and AI search crawlers that crawl in bulk keep to the crawl
+  // scope always (the fixed pages, the cars, the landing pages, the guides, the vehicle tree to the trim); robots.txt
+  // says the same (features/seo/crawlers.ts AI_SCOPED_CRAWLERS). Googlebot, Bingbot and the fetchers a person triggers
+  // (ChatGPT-User, Claude-User, Perplexity-User) are not limited here.
+  if (AI_SCOPED.test(ua!)) return true;
   if (!isSearchCrawler(ua) && !AI_CRAWLER.test(ua!) && (await guardFlag())) return true;
   return coreFlag();
 }

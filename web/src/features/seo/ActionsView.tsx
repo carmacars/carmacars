@@ -38,6 +38,12 @@ export function SeoActionsView({ data, settingsHref }: { data: SeoData; settings
       aside={<span className="small muted">From {num(data.low_ctr_line.min_impressions)} impressions and under {data.low_ctr_line.pct}% click rate: a better title and description are the fix</span>}>
       <Table testId="seo-low-ctr-table" caption="Pages with impressions but a low click rate" rows={data.low_ctr as unknown as Array<Record<string, unknown>>} rowKey={(r) => String(r.key)} cols={rowCols('Page') as never} empty="No page is shown a lot and clicked little." />
     </Card>
+    {data.striking_line && (
+      <Card title="Within reach: queries ranking 5 to 30" testId="seo-striking"
+        aside={<span className="small muted">Average position {data.striking_line.min_pos} to {data.striking_line.max_pos}, from {num(data.striking_line.min_impressions)} impressions: tune the page&apos;s title and description, answer the query on the page, and link to it from home</span>}>
+        <Table testId="seo-striking-table" caption="Queries ranking within reach of the first results" rows={(data.striking ?? []) as unknown as Array<Record<string, unknown>>} rowKey={(r) => String(r.key)} cols={rowCols('Query') as never} empty="No query ranks within reach yet." />
+      </Card>
+    )}
     <Card title="Indexing" testId="seo-index">
       <Kv rows={[
         ['Sample inspected', data.coverage ? `${num(data.coverage.inspected)} pages, last run ${d(data.coverage.at)}` : 'No sample yet'],

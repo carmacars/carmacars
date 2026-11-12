@@ -87,8 +87,38 @@ export const BUSY_MS = 10 * 60_000;
 export const USAGE_CACHED_KEY = 'carmacars/usage-cached';
 export type TailServing = 'render' | 'copy-or-busy' | 'copy-or-render';
 /** How a long-tail page of a visitor without a session is served: busy mode (the database failing) wins over the usage line. */
-export function tailServing(busy: boolean, usageCached: boolean): TailServing {
-  return busy ? 'copy-or-busy' : usageCached ? 'copy-or-render' : 'render';
+export function tailServing(busy: boolean, usageCached: boolean, searchEngine = false): TailServing {
+  // 2350: a verified search engine crawler (Googlebot, Bingbot) is never told to go away from a normal page: in busy mode
+  // it gets the kept copy or a render, never the 503 busy page (Search Console listed hundreds of place pages as 5xx)
+  return busy ? (searchEngine ? 'copy-or-render' : 'copy-or-busy') : usageCached ? 'copy-or-render' : 'render';
+}
+
+/** 2350: a crawler Cloudflare verified as a search engine (its verifiedBotCategory), not an AI or other bot. */
+export function verifiedSearchEngine(cf: CfLike | undefined): boolean {
+  return cf?.verifiedBotCategory === 'Search Engine Crawler';
+}
+
+// ------------------------------------------------------------------ the market (2350)
+// The place pages keep to our market: the regions of the United States and Mexico are off (place_regions.is_enabled,
+// migration 2350). A place slug ends with its region's code (gazetteer.ts: kingston-on, toddsville-ny, ...-cam), and no
+// code of a US state or a Mexican state is a Canadian one, so while every region outside Canada is off (the tick's
+// place_foreign flag) the Worker answers a term-and-place address of a US or Mexican place 404 before the app loads.
+// The one-segment /car-rental/<slug> is left to the database (a landing page slug such as ...-near-me could end like one).
+const US_CODES = 'ny|mi|oh|pa|vt|nh|me|ma|ct|ri|nj|de|md|dc|va|wv|nc|sc|ga|fl|al|ms|tn|ky|in|il|wi|mn|ia|mo|ar|la|tx|ok|ks|ne|sd|nd|mt|wy|co|nm|az|ut|id|nv|ca|or|wa|ak|hi|pr|vi|gu|as|mp';
+const MX_CODES = 'agu|bcn|bcs|cam|chp|chh|coa|col|cmx|dur|gua|gro|hid|jal|mex|mic|mor|nay|nle|oax|pue|que|roo|slp|sin|son|tab|tam|tla|ver|yuc|zac';
+const FOREIGN_PLACE = new RegExp(`^(?:/[a-z]{2,3})?/(?:car-rental|detailing|body-shop|buy)/([a-z0-9-]+)/[a-z0-9-]+-(?:${US_CODES}|${MX_CODES})/?$`);
+/** The buying help terms (/buy/<term>/<place>); any other /buy/<a>/<b> is the vehicle tree (a make and a model). */
+const SALE_TERM = /(sale|loan|financ|lease|leasing|credit|dealer|trade|sell|buy)/;
+export const PLACE_FOREIGN_KEY = 'carmacars/place-foreign';
+export function foreignPlacePage(pathname: string): boolean {
+  const m = FOREIGN_PLACE.exec(pathname);
+  if (!m) return false;
+  return !/\/buy\//.test(pathname) || SALE_TERM.test(m[1]!);
+}
+/** The answer to a place page outside our market: a plain 404 kept a day by every cache. */
+export function outOfMarket(headers: Record<string, string> = {}): Response {
+  return new Response('Not found: CarmaCars serves Toronto and the Greater Toronto Area.', { status: 404, headers: {
+    'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=86400', 'x-robots-tag': 'noindex', ...headers } });
 }
 export const BUSY_TRIP = 5;
 export const BUSY_WINDOW_MS = 60_000;

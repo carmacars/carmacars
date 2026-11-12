@@ -45,8 +45,8 @@ select test.ok('rating: none below seo_rating_min_reviews published reviews',
   public.business_rating() is null or ((public.business_rating() ->> 'count')::integer >= (app.settings()).seo_rating_min_reviews));
 
 -- ================================================================ 3. places
-select test.eq('regions: Canada 13, the United States 56 (states, DC, territories), Mexico 32, all on',
-  (select string_agg(country || '=' || n || '/' || on_, ',' order by country) from (select country, count(*) n, bool_and(is_enabled) on_ from place_regions group by country) x), 'CA=13/true,MX=32/true,US=56/true');
+select test.eq('regions: Canada 13, the United States 56 (states, DC, territories), Mexico 32; Canada on (2350: our market)',
+  (select string_agg(country || '=' || n || '/' || on_, ',' order by country) from (select country, count(*) n, bool_and(is_enabled) on_ from place_regions group by country) x), 'CA=13/true,MX=32/false,US=56/false');
 select test.eq('places: the curated top', (select string_agg(slug || ':' || app.place_kind(kind), ',' order by id) from places where flags & 16 <> 0 and slug in ('canada', 'united-states', 'mexico', 'ontario', 'gta')),
   'canada:country,united-states:country,mexico:country,ontario:province,gta:area');
 select test.ok('places: the size cap is 6 GB by default', (app.settings()).place_db_cap_mb = 6144);
@@ -133,7 +133,7 @@ select test.throws('request: a way to reply is required', $$select public.submit
 -- ================================================================ 8. the door
 select public.door(test.id('lp_admin'), null, 'admin_do', 'place_settings_save', '{"region": "MX-JAL", "enabled": false, "place_delivery_reach_km": 60}');
 select test.eq('door: an Admin switches a region off and sets the reach', (select (not is_enabled)::text from place_regions where code = 'MX-JAL') || '/' || (app.settings()).place_delivery_reach_km, 'true/60');
-select public.door(test.id('lp_admin'), null, 'admin_do', 'place_settings_save', '{"region": "MX-JAL", "enabled": true, "place_delivery_reach_km": 80}');
+select public.door(test.id('lp_admin'), null, 'admin_do', 'place_settings_save', '{"region": "MX-JAL", "enabled": false, "place_delivery_reach_km": 80}');
 select public.door(test.id('lp_admin'), null, 'admin_do', 'place_term_save', '{"slug": "car-hire", "canonical_slug": "car-rental"}');
 select test.eq('door: a synonym points to its term; its pages are not indexed', (public.place_hub('rental', 'car-hire', 'lp-port-credit-mississauga-on') -> 'term' ->> 'canonical_path'), '/car-rental/lp-port-credit-mississauga-on');
 select public.door(test.id('lp_admin'), null, 'admin_do', 'place_term_save', '{"slug": "car-hire", "canonical_slug": ""}');

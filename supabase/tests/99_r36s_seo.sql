@@ -129,6 +129,8 @@ select test.ok('languages: the bundle has the current strings', (public.seo_i18n
 select app.server_i18n_load(jsonb_build_object('strings', jsonb_build_array(jsonb_build_object('lang', 'fr', 'key', 'rs.two', 'text', 'Machine', 'source_hash', md5('From {price} a day')))));
 select test.eq('languages: a reviewed string is never replaced by a machine one', (select text from seo_strings where lang = 'fr' and key = 'rs.two'), 'À partir de {price} par jour');
 select app.server_i18n_load('{"sources": [{"key": "rs.one", "text": "Hello again {brand}"}, {"key": "rs.two", "text": "From {price} a day"}]}');
+-- 2350: a changed string is given seo_i18n_grace_days before it counts against the language (99_r37_seo_market); with no grace, as before
+update program_settings set seo_i18n_grace_days = 0;
 select test.ok('languages: a changed English string makes its translation stale (not ready, not in the bundle)',
   (public.seo_i18n_bundle('fr') -> 'strings' -> 'rs.one') is null and not exists (select 1 from jsonb_array_elements(public.seo_languages_state()) x where x ->> 'code' = 'fr' and (x ->> 'ready')::boolean));
 select test.ok('languages: the missing list names what to translate', (select jsonb_array_length(app.server_i18n_load('{"missing": true}') -> 'missing') > 0));
@@ -138,4 +140,5 @@ select test.eq('sitemaps: no language version is listed while none is ready', js
 update program_settings set seo_i18n_min_coverage_bps = 5000;
 select test.ok('sitemaps: a ready language is listed (the coverage is a setting)', exists (select 1 from jsonb_array_elements(public.sitemap_languages() -> 'languages') x where x ->> 'code' = 'fr'));
 update program_settings set seo_i18n_min_coverage_bps = 9000;
+update program_settings set seo_i18n_grace_days = 7;
 delete from seo_string_sources where key like 'rs.%';
