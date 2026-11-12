@@ -182,8 +182,9 @@ test('a booking request with Text: the email is skipped, the text is queued with
     }, { timeout: 90_000 }).toEqual({ status: 'skipped', status_reason: 'Sent by text (the person chose text)', channel: 'text' });
     const [sms] = await sql<Array<{ id: string; status: string; to_number: string; body: string; waits: boolean; quiet: boolean }>>`
       select o.id, o.status, o.to_number, o.body,
-             o.send_after > greatest(now(), o.created_at + make_interval(mins => coalesce((app.settings()).notify_merge_window_minutes, 2))) + interval '1 second' as waits,
-             app.sms_quiet_end(o.created_at) > o.created_at as quiet
+             o.send_after > o.created_at + make_interval(mins => coalesce((app.settings()).notify_merge_window_minutes, 2)) + interval '1 second' as waits,
+             -- the quiet hours hold it only past the merge window: queued at 4:59 (quiet ends at 5:00) it goes at 5:01 either way
+             app.sms_quiet_end(o.created_at) > o.created_at + make_interval(mins => coalesce((app.settings()).notify_merge_window_minutes, 2)) + interval '1 second' as quiet
         from phone_outbox o join bookings b on b.id = o.booking_id where b.booking_number = ${number} and o.kind = 'notify' and o.sms_kind = 'renter_request_received'`;
     // queued; or already claimed by the phone job of the other width's run (both widths run at once)
     expect(['queued', 'sending', 'sent']).toContain(sms!.status);

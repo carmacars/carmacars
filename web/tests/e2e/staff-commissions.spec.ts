@@ -152,7 +152,8 @@ test('Staff add rentals: a typed price and "I sourced this client", "Entered for
   await expect(fp.getByTestId('mr-done-choice')).toContainText('Entered for CarmaCars: no commission');
   const n2 = await doneNumber(fp);
   const [b2] = await sql`select b.sales_sourced, b.sales_choice, (b.sales_staff_id = ${fin.id}) mine, (select count(*)::int from staff_commissions c where c.booking_id = b.id) n from bookings b where b.booking_number = ${n2}`;
-  expect(`${b2!.sales_sourced}/${b2!.sales_choice}/${b2!.mine}/${b2!.n}`).toBe('false/for_carmacars/true/0');
+  // 2330: Finance is never the credited person (no sales_staff_id); the choice "Entered for CarmaCars" is kept on the booking
+  expect(`${b2!.sales_sourced}/${b2!.sales_choice}/${b2!.mine}/${b2!.n}`).toBe('false/for_carmacars/null/0');
   const [t2] = await sql`select b.price_tax, b.price_with_tax_cents::int w, b.rental_charge_cents::int rc, b.total_due_at_booking_cents::int t,
     (select li.description || ' ' || li.hst_cents from booking_line_items li where li.booking_id = b.id and li.charge_type = 'rental_charge' and li.voided_at is null) line
     from bookings b where b.booking_number = ${n2}`;
