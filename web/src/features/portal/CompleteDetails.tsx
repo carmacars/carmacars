@@ -16,9 +16,11 @@ const PROVINCES: [string, string][] = [['ON', 'Ontario'], ['QC', 'Quebec'], ['BC
 
 // "Complete your details" (migration 0195): the blanks of the rental agreement the renter fills in, exactly those,
 // before signing or paying and at the top of the booking. Saved once; the agreement follows.
-export function CompleteDetails({ number, missing, then }: { number: string; missing: RenterMissing[];
+export function CompleteDetails({ number, missing, then, bare }: { number: string; missing: RenterMissing[];
   /** what comes after: "sign" or "pay" (the line under the title) */
-  then?: 'sign' | 'pay' }) {
+  then?: 'sign' | 'pay';
+  /** r40: inside the booking's to-do list (its own heading there): the form without the panel */
+  bare?: boolean }) {
   const router = useRouter();
   const a = useAct<{ missing: unknown[] }>();
   const fields = detailFields(missing);
@@ -35,8 +37,8 @@ export function CompleteDetails({ number, missing, then }: { number: string; mis
     a.run(() => completeAgreementDetails(number, detailPayload(fields, vals)), (r) => { if (r.ok) router.refresh(); });
   };
   return (
-    <section className="pu-panel pu-panel--next" aria-labelledby="pt-complete" data-testid="complete-details">
-      <h2 className="pu-title" id="pt-complete">Complete your details</h2>
+    <section className={bare ? 'stack' : 'pu-panel pu-panel--next'} aria-labelledby="pt-complete" data-testid="complete-details">
+      <h2 className={bare ? 'vh' : 'pu-title'} id="pt-complete">Complete your details</h2>
       <p>Your rental agreement needs {fields.length === 1 ? 'this' : 'these'} before you {then === 'pay' ? 'pay' : then === 'sign' ? 'sign' : 'sign or pay'}. Add {fields.length === 1 ? 'it' : 'them'} once; the agreement then shows {fields.length === 1 ? 'it' : 'them'}.</p>
       <form className="stack" noValidate onSubmit={(e) => { e.preventDefault(); submit(); }} aria-label="Complete your details">
         {fields.map((f) => {

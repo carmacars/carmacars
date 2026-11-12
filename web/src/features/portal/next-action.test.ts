@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { nextAction, newlyDone, stageSummary, stages } from './next-action.ts';
+import { nextAction, newlyDone, splitActions, stageSummary, stages, todos } from './next-action.ts';
 import type { NextStep, Progress } from './status.ts';
 import type { BookingSummary } from './types.ts';
 import type { StillNeeded } from './still-needed.ts';
@@ -93,4 +93,28 @@ test('a booked rental has its offer behind it; after pickup every earlier stage 
   assert.equal(stages(prog(['Request sent', 'Paid', 'Agreement signed']), 'confirmed')[0]!.state, 'done');
   const s = stages(prog(['Request sent', 'Paid', 'Pickup']), 'on_rent');
   assert.deepEqual(s.map((x) => x.state), ['done', 'done', 'done', 'done', 'now', 'later']);
+});
+
+test('one to-do list: the database\'s items first (not accepted, needed, done), then only the card check from the quick links', () => {
+  const n: StillNeeded = { items: [
+    { key: 'address', label: 'Your home address', status: 'done', reason: null, action: { label: 'Add it', path: '#details' } },
+    { key: 'licence', label: 'Driver licence photos', status: 'rejected', reason: 'Blurry', action: { label: 'Upload', path: 'verify' } },
+    { key: 'deposit', label: 'Deposit $500.00', status: 'missing', reason: null, action: { label: 'Add a card', path: 'checkout' } }], done: 1, total: 3, complete: false };
+  const quick = [{ key: 'licence' as const, label: 'Upload your licence', href: '/account/bookings/CC-1001/verify' },
+    { key: 'insurance' as const, label: 'Upload proof of insurance', href: '/account/bookings/CC-1001/verify#pt-cov' },
+    { key: 'card_coverage' as const, label: 'Check if your credit card covers rentals', href: '/credit-card-rental-coverage' }];
+  const t = todos('CC-1001', n, quick);
+  assert.deepEqual(t.map((x) => x.key), ['licence', 'deposit', 'address', 'quick:card_coverage']);
+  assert.equal(t[0]!.state, 'Not accepted');
+  assert.equal(t[0]!.href, '/account/bookings/CC-1001/verify');
+  assert.equal(t[2]!.href, null);
+  assert.deepEqual(todos('CC-1001', null, quick).map((x) => x.key), ['quick:licence', 'quick:insurance', 'quick:card_coverage']);
+});
+
+test('the card shows the primary button and two more; the rest go behind More', () => {
+  const a: Array<{ k: string; primary?: boolean }> = [{ k: 'step', primary: true }, { k: 'pay' }, { k: 'extend' }, { k: 'trip' }, { k: 'message' }];
+  const s = splitActions(a);
+  assert.deepEqual(s.shown.map((x) => x.k), ['step', 'pay', 'extend']);
+  assert.deepEqual(s.more.map((x) => x.k), ['trip', 'message']);
+  assert.equal(splitActions([{ k: 'a', primary: false }]).more.length, 0);
 });

@@ -14,16 +14,14 @@ import { MyDiscounts } from '@/features/rewards/MyDiscounts';
 import type { SavedDiscount } from '@/features/rewards/discounts';
 import { PastTripCard, TripCard, TripHero, carTitle, ourAddress, tripPhoto } from '@/features/portal/trip';
 import { placeText } from '@/features/portal/Blocks';
-import { nextAction, stageSummary, stages } from '@/features/portal/next-action';
+import { nextAction, stageSummary, stages, todos } from '@/features/portal/next-action';
 import { NextActionPanel } from '@/features/portal/NextActionPanel';
 import { StepTracker } from '@/features/portal/StepTracker';
 import { EmptyState, PortalCard, PortalIcon } from '@/components/portal-ui';
 import { licenceState, renterMissing } from '@/features/portal/LicenceNotice';
 import { quickLinks } from '@/features/portal/quick-links';
-import { QuickLinks } from '@/features/portal/QuickLinks';
 import { SignPayCard } from '@/features/portal/SignPayCard';
-import { StillNeeded } from '@/features/portal/StillNeeded';
-import { showNeeds, stillNeededOf } from '@/features/portal/still-needed';
+import { stillNeededOf } from '@/features/portal/still-needed';
 import { PerkHint } from '@/features/rewards/RewardsClient';
 
 type Links = { verified: boolean; new: Array<{ kind: string; detail: string | null; booking_number: string | null }>; driver_trips: Array<{ booking_number: string; status: string; pickup_at: string; return_at: string; vehicle_name: string; accepted: boolean }> };
@@ -87,14 +85,12 @@ export default async function Account({ searchParams }: { searchParams: Promise<
             extra={<>{phone && full && ['confirmed', 'on_rent'].includes(full.status) ? <a className="btn now__btn" href={`tel:${settings?.phone ?? phone}`} data-testid="now-call">Call us</a> : null}
               {/* 1150: the digital incident card of the trip in progress */}
               {full?.status === 'on_rent' ? <Link prefetch={false} className="btn now__btn" href={incidentHref(full.booking_number)} data-testid="now-incident-card">Incident card</Link> : null}</>} />}
+          {/* r40: one place for the to-dos: the stages, then what is still needed (1203) and the quick links (r32), one small button each */}
           {full && track && ['requested', 'offered', 'pending_payment', 'confirmed', 'on_rent'].includes(full.status) && (
-            <PortalCard id="pt-track" title={stageSummary(track).text} testId="trip-steps"><StepTracker number={full.booking_number} stages={track} /></PortalCard>
+            <PortalCard id="pt-track" title={stageSummary(track).text} testId="trip-steps"><StepTracker number={full.booking_number} stages={track} todos={todos(full.booking_number, stillNeededOf(full), quick)} /></PortalCard>
           )}
-          {/* 1203: what each request and booking still needs from the renter, under the one card (its buttons plain) */}
-          {[...current, ...upcoming].map((b) => { const n = stillNeededOf(b); return showNeeds(n) ? <StillNeeded key={`sn-${b.id}`} quiet number={b.booking_number} needs={n} carLabel={`${carTitle(b)}, ${b.booking_number}`} testId={`still-needed-${b.booking_number}`} /> : null; })}
           {/* r33: every other trip still to sign or pay, one card each (the nearest one's is the card above) */}
           {others.map((b) => <SignPayCard key={`sp-${b.id}`} quiet b={b} testId={`sign-pay-${b.booking_number}`} label={`${carTitle(b)}, ${b.booking_number}`} />)}
-          {full && <QuickLinks number={full.booking_number} links={quick} />}
           {full && <TripHero b={full} photo={photo(full)} titleAs="h2" settings={settings} href={bookingPath(full.booking_number)} />}
           {others.length > 0 && (
             <section className="stack" aria-labelledby="pt-more-trips">

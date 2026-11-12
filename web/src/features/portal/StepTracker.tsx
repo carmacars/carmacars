@@ -1,9 +1,9 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from '@/components/Link';
 import { motionOK } from '@/lib/motion';
 import { ChecklistProgress } from '@/features/motion/Progress';
-import { newlyDone, stageSummary, type Stage } from './next-action';
+import { newlyDone, stageSummary, type Stage, type Todo } from './next-action';
 
 // r40: the booking's steps, done, now and later, in plain words (the owner: "make things that need to be done very
 // obvious"). On the shared pieces: the checklist bar (ChecklistProgress) and the step list of the owner's onboarding and
@@ -12,7 +12,9 @@ import { newlyDone, stageSummary, type Stage } from './next-action';
 // screen reader hears the change (aria-live).
 const WORD: Record<Stage['state'], string> = { done: 'done', now: 'now', later: 'later' };
 
-export function StepTracker({ number, stages, testId = 'step-tracker' }: { number: string; stages: Stage[]; testId?: string }) {
+/** todos: the booking's one to-do list (still needed, the quick links), each with its small button, under the stages;
+ *  children: a to-do done in place (the agreement's details form on the booking page). */
+export function StepTracker({ number, stages, todos = [], testId = 'step-tracker', children }: { number: string; stages: Stage[]; todos?: Todo[]; testId?: string; children?: ReactNode }) {
   const sum = stageSummary(stages);
   const root = useRef<HTMLDivElement>(null);
   const [fresh, setFresh] = useState<string[]>([]);
@@ -56,6 +58,21 @@ export function StepTracker({ number, stages, testId = 'step-tracker' }: { numbe
           </li>
         ))}
       </ol>
+      {(todos.length > 0 || children) && <>
+        <p className="pu-eyebrow" id={`${testId}-todo-h`}>To do</p>
+        {todos.length > 0 && <ul className="pt-steps" aria-labelledby={`${testId}-todo-h`} data-testid={`${testId}-todo`}>
+          {todos.map((t) => (
+            <li key={t.key} className={t.tone === 'ok' ? 'is-done' : t.tone === 'bad' ? 'is-now' : ''} data-tone={t.tone} data-testid={`todo-${t.key.split(':').pop()}`}>
+              <span>
+                {t.label}
+                <small>{t.state}{t.reason ? `: ${t.reason}` : ''}</small>
+                {t.href && t.cta && <Link prefetch={false} className="btn btn--ghost btn--sm" style={{ marginTop: 'var(--s-1)' }} href={t.href} data-testid="todo-action">{t.cta}</Link>}
+              </span>
+            </li>
+          ))}
+        </ul>}
+        {children}
+      </>}
       <p className="vh" aria-live="polite" data-testid={`${testId}-live`}>{said}</p>
     </div>
   );

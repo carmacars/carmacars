@@ -1,7 +1,8 @@
 import type { NextStep, Progress } from './status.ts';
 import type { BookingSummary } from './types.ts';
 import { renterNow, type RenterNow } from './now.ts';
-import { needHref, orderNeeds, type StillNeeded } from './still-needed.ts';
+import { NEED_STATUS, needHref, orderNeeds, type StillNeeded } from './still-needed.ts';
+import type { QuickLink } from './quick-links.ts';
 import { span } from '../../components/portal-ui/time.ts';
 
 // r40 renter portal: "Do this next" (the owner: "make things that need to be done very obvious"). One card at the top of
@@ -134,4 +135,34 @@ export function stageSummary(list: Stage[]): { done: number; total: number; text
 export function newlyDone(list: Stage[], seen: string[] | null): string[] {
   if (!seen) return [];
   return list.filter((s) => s.state === 'done' && !seen.includes(s.key)).map((s) => s.key);
+}
+
+/** One thing on the booking's to-do list, under the steps (r40: one list instead of three). */
+export interface Todo { key: string; label: string; state: string; tone: 'todo' | 'wait' | 'bad' | 'ok'; reason: string | null; href: string | null; cta: string | null }
+
+/**
+ * The booking's to-do list: what the database still needs (1203, in its order: not accepted, needed, under review,
+ * done), then the quick links (r32) it does not already cover. With the database's list, the licence and the proof of
+ * insurance are in it, so only the card coverage check is added; without it (an older read), the quick links are the list.
+ */
+export function todos(number: string, needs: StillNeeded | null, quick: QuickLink[] = []): Todo[] {
+  const out: Todo[] = (needs ? orderNeeds(needs.items) : []).map((i) => ({
+    key: i.key, label: i.label, state: NEED_STATUS[i.status].word, tone: NEED_STATUS[i.status].tone, reason: i.reason,
+    href: i.action && i.status !== 'done' ? needHref(number, i.action.path) : null, cta: i.action && i.status !== 'done' ? i.action.label : null
+  }));
+  const hrefs = new Set(out.map((t) => t.href));
+  for (const q of quick) {
+    if (needs && q.key !== 'card_coverage') continue;
+    if (hrefs.has(q.href)) continue;
+    out.push({ key: `quick:${q.key}`, label: q.label, state: q.key === 'card_coverage' ? 'Worth a check' : 'Needed', tone: q.key === 'card_coverage' ? 'wait' : 'todo', reason: null,
+      href: q.href, cta: q.key === 'card_coverage' ? 'Check' : 'Upload' });
+  }
+  return out;
+}
+
+/** The card's buttons: the primary one and at most two others in view; the rest go behind More. */
+export function splitActions<T extends { primary?: boolean }>(actions: T[], inView = 2): { shown: T[]; more: T[] } {
+  const primary = actions.filter((a) => a.primary);
+  const rest = actions.filter((a) => !a.primary);
+  return { shown: [...primary, ...rest.slice(0, inView)], more: rest.slice(inView) };
 }

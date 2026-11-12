@@ -29,7 +29,8 @@ import type { HandoverReportData } from '@/features/handover/types';
 import { AnimatedNumber, Disclosure, DocumentList, DocumentRow, MoneyCard, PortalCard, ProgressRing, QuickAction, QuickActions, type MoneyPart } from '@/components/portal-ui';
 import { TripHero, ourAddress, tripPhoto } from '@/features/portal/trip';
 import { placeText } from '@/features/portal/Blocks';
-import { nextAction, stageSummary, stages } from '@/features/portal/next-action';
+import { nextAction, stageSummary, stages, todos } from '@/features/portal/next-action';
+import { quickLinks } from '@/features/portal/quick-links';
 import { NextActionPanel } from '@/features/portal/NextActionPanel';
 import { StepTracker } from '@/features/portal/StepTracker';
 import { moneyParts } from '@/features/portal/trip-model';
@@ -148,13 +149,17 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
       {b.status === 'confirmed' && <ConfirmedOnce booking={b.booking_number} silent={!!sp.paid} />}
       {sp.paid && b.status === 'confirmed' && <div className="pt-ok" role="status" data-testid="paid-panel"><h2 className="d3">Booking confirmed</h2><p>Your card was charged {money(card?.amount_cents ?? b.renter_due_at_booking_cents, { cents: true })} and the car is reserved for you. Your signed agreement and receipt are below.</p></div>}
 
-      {detailsMissing.length > 0 && <CompleteDetails number={b.booking_number} missing={detailsMissing} />}
-      {/* r40 "Do this next": the one action and its button, then the steps; nothing above it competes */}
+      {/* r40 "Do this next": the one action and its button, then the steps and the one to-do list (what is still needed,
+          the quick links and the agreement's details form); nothing above it competes */}
       {next}
-      {!['cancelled', 'declined', 'expired', 'closed'].includes(b.status) && (
-        <PortalCard id="pt-prog" title={stageSummary(track).text} testId="trip-progress"><StepTracker number={b.booking_number} stages={track} /></PortalCard>
-      )}
-      {(() => { const n = stillNeededOf(b); return showNeeds(n) ? <StillNeeded quiet number={b.booking_number} needs={n} title={b.status === 'requested' || b.status === 'offered' ? 'What we still need for this request' : undefined} testId="still-needed" /> : null; })()}
+      {!['cancelled', 'declined', 'expired', 'closed'].includes(b.status) ? (
+        <PortalCard id="pt-prog" title={stageSummary(track).text} testId="trip-progress">
+          <StepTracker number={b.booking_number} stages={track} todos={todos(b.booking_number, stillNeededOf(b), quickLinks({ ...b, missing: b.readiness?.missing ?? null }, (licMissing?.length ?? 0) > 0))}>
+            {detailsMissing.length > 0 && <Disclosure summary={<>Your details for the agreement <span className="pu-pill pu-pill--ready">Needed</span></>} open testId="todo-details">
+              <CompleteDetails bare number={b.booking_number} missing={detailsMissing} /></Disclosure>}
+          </StepTracker>
+        </PortalCard>
+      ) : (() => { const n = stillNeededOf(b); return showNeeds(n) ? <StillNeeded quiet number={b.booking_number} needs={n} testId="still-needed" /> : null; })()}
       <TripHero b={b} photo={photo} settings={s} kmDriven={report?.km_driven ?? null} prepaidFuel={(addons?.items ?? []).some((a) => a.prepaid_fuel)}>
         <p className="small muted" data-testid="status-blurb">{awaitingSignature(b) ? AWAITING_SIGNATURE.blurb : STATUS[b.status].blurb}
           {b.status === 'confirmed' && <> Bring your original licence{card ? ` and the card ending ${card.card_last4}` : ' and the card you paid with'}.</>}</p>
@@ -165,7 +170,8 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
           <p>Your booking changed, or a charge was added: this is what is still owing. Pay it by card now (the price lines are below), or pay our team by e-Transfer or cash.</p>
           <form action={renterPayBalance}><input type="hidden" name="booking" value={b.id} /><button className="btn btn--primary" type="submit" data-testid="renter-pay-balance">Pay {money(balanceDue, { cents: true })}</button></form></section>
       )}
-      <LicenceNotice number={b.booking_number} missing={licMissing} when={b.status === 'requested' ? 'request' : b.status === 'offered' ? 'offer' : 'pay'} />
+      {/* the licence is on the to-do list above while the steps show */}
+      {['cancelled', 'declined', 'expired', 'closed'].includes(b.status) && <LicenceNotice number={b.booking_number} missing={licMissing} when={b.status === 'requested' ? 'request' : b.status === 'offered' ? 'offer' : 'pay'} />}
       {waiting && (
         <section className="pu-panel pu-panel--next" aria-labelledby="pt-chg" data-testid="change-waiting"><h2 className="pu-title" id="pt-chg">{waiting.status === 'proposed' ? 'We suggest a change to your booking' : 'Your change is approved'}</h2>
           <p>{waiting.note ?? 'Review the new details and answer.'}</p>
