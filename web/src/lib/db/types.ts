@@ -18804,6 +18804,7 @@ export type Database = {
           vpage_min_year: number;
           marketing_everyone_enabled: boolean;
           marketing_weekly_enabled: boolean;
+          owner_weekly_summary_enabled: boolean;
           marketing_weekly_dow: number;
           marketing_weekly_hour: number;
           marketing_weekly_cars: number;
@@ -19653,6 +19654,7 @@ export type Database = {
           vpage_min_year?: number;
           marketing_everyone_enabled?: boolean;
           marketing_weekly_enabled?: boolean;
+          owner_weekly_summary_enabled?: boolean;
           marketing_weekly_dow?: number;
           marketing_weekly_hour?: number;
           marketing_weekly_cars?: number;
@@ -20502,6 +20504,7 @@ export type Database = {
           vpage_min_year?: number;
           marketing_everyone_enabled?: boolean;
           marketing_weekly_enabled?: boolean;
+          owner_weekly_summary_enabled?: boolean;
           marketing_weekly_dow?: number;
           marketing_weekly_hour?: number;
           marketing_weekly_cars?: number;

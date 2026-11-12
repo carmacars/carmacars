@@ -21,8 +21,8 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>219 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>88</span></a><a href="#owner">Owner <span>47</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>20</span></a><a href="#staff_va_finance">Staff: finance <span>9</span></a><a href="#staff_va_fleet">Staff: fleet <span>10</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>5</span></a><a href="#staff_field">Staff: field <span>8</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>14</span></a><a href="#partner">Partner (body shop, tow truck, storage) <span>1</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>221 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>88</span></a><a href="#owner">Owner <span>49</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>20</span></a><a href="#staff_va_finance">Staff: finance <span>9</span></a><a href="#staff_va_fleet">Staff: fleet <span>10</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>5</span></a><a href="#staff_field">Staff: field <span>8</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>14</span></a><a href="#partner">Partner (body shop, tow truck, storage) <span>1</span></a></nav>
 <main>
 <h2 id="renter">Renter (88)</h2>
 <div class="grid">
@@ -555,7 +555,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/renter_vehicle_disabled.html">HTML</a><a href="../dist/renter_vehicle_disabled.txt">Text</a><a href="../shots/renter_vehicle_disabled.desktop.png">Desktop</a><a href="../shots/renter_vehicle_disabled.phone.png">Phone</a></div>
 </div></div>
 </div>
-<h2 id="owner">Owner (47)</h2>
+<h2 id="owner">Owner (49)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/document_signing_code.html"><img loading="lazy" src="../shots/document_signing_code.desktop.png" alt="Screenshot of document_signing_code"></a><div class="b">
 <div class="code">document_signing_code</div><div class="sub">Your CarmaCars signing code: 482913</div>
@@ -821,6 +821,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tr">A toll or ticket is matched to the owner rather than a renter. is_forwarded true: the owner had the car outside the program, or the car is Turo-Only, and the notice is forwarded for the owner to pay. is_forwarded false: the owner had the car on an Owner Booking, CarmaCars paid it and an owner deduction is created at cost with no fee.</div>
 <div class="ln"><a href="../dist/owner_toll_ticket.html">HTML</a><a href="../dist/owner_toll_ticket.txt">Text</a><a href="../shots/owner_toll_ticket.desktop.png">Desktop</a><a href="../shots/owner_toll_ticket.phone.png">Phone</a></div>
 </div></div>
+<div class="c"><a class="th" href="../dist/owner_trip_completed.html"><img loading="lazy" src="../shots/owner_trip_completed.desktop.png" alt="Screenshot of owner_trip_completed"></a><div class="b">
+<div class="code">owner_trip_completed</div><div class="sub">Trip complete: your 2023 Toyota RAV4 XLE is back</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A standard or non-refundable booking on the owner's vehicle is returned (its status changes to returned: the car came back and was checked in), once per booking (2620, app.ntf_bookings_status_after). It replaces the booking-time emails owner_new_booking and owner_booking_confirmed, which are off since the owner's decision of November 12, 2026: many bookings are cancelled, so owners hear about a booking when it is complete. Sent only when the booking counts toward the owner's revenue (app.booking_counts_for_owner, 2480). Not sent for Owner Bookings or Turo trips, nor for a booking not shown to the owner (0156). show_amounts is false while the owner may not see the booking's revenue yet (hidden until the statement, 0156) and for a flat monthly pay car: the share is left out and the email says it shows on the next statement. has_km is true when the check-out and check-in odometers were both recorded.</div>
+<div class="ln"><a href="../dist/owner_trip_completed.html">HTML</a><a href="../dist/owner_trip_completed.txt">Text</a><a href="../shots/owner_trip_completed.desktop.png">Desktop</a><a href="../shots/owner_trip_completed.phone.png">Phone</a></div>
+</div></div>
 <div class="c"><a class="th" href="../dist/owner_upfront_invoice.html"><img loading="lazy" src="../shots/owner_upfront_invoice.desktop.png" alt="Screenshot of owner_upfront_invoice"></a><div class="b">
 <div class="code">owner_upfront_invoice</div><div class="sub">Upfront invoice INV-U-0031 for the 2023 Toyota RAV4 XLE: $1,130.00</div>
 <div class="tags"><span>Transactional</span></div>
@@ -838,6 +844,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">Vehicle status changes from ready_to_list to available and its listing is published (staff approved the listing). Never for a partner's car (a partner fleet such as 01 Motors, imported with its photos) and never queued without an owner address to send to (migration 0900).</div>
 <div class="ln"><a href="../dist/owner_vehicle_listed.html">HTML</a><a href="../dist/owner_vehicle_listed.txt">Text</a><a href="../shots/owner_vehicle_listed.desktop.png">Desktop</a><a href="../shots/owner_vehicle_listed.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_weekly_summary.html"><img loading="lazy" src="../shots/owner_weekly_summary.desktop.png" alt="Screenshot of owner_weekly_summary"></a><div class="b">
+<div class="code">owner_weekly_summary</div><div class="sub">Your week with CarmaCars: Mon, Nov 2 to Sun, Nov 8, 2026</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Every Monday at about 9:00 Toronto time (2620, app.job_owner_weekly, every 15 minutes), once per owner per week (the dedupe key is the owner and the Monday), only for an owner with any activity: a trip returned last week (Monday to Sunday), a confirmed booking in the next 14 days, or earnings this month so far. Switch: Program settings owner_weekly_summary_enabled (on by default). Per car: the trips completed last week with dates and the owner's share, the confirmed bookings of the next 14 days (dates only, no renter details), and the month to date, provisional (app.owner_month_to_date). Only bookings that count toward the owner's revenue (app.booking_counts_for_owner, 2480) are listed; a trip whose revenue is not shown to the owner yet lists its dates and &quot;On your statement&quot; in place of the share (0156).</div>
+<div class="ln"><a href="../dist/owner_weekly_summary.html">HTML</a><a href="../dist/owner_weekly_summary.txt">Text</a><a href="../shots/owner_weekly_summary.desktop.png">Desktop</a><a href="../shots/owner_weekly_summary.phone.png">Phone</a></div>
 </div></div>
 </div>
 <h2 id="investor">Investor (3)</h2>

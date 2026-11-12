@@ -1,0 +1,46 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Trip complete]
+Your {{vehicle_name}} is back
+
+The trip is finished and the car was checked in, {{first_name}}.
+
+Pickup: {{pickup_date}}
+Return: {{return_date}}
+
+Length: {{billable_days}} days
+{{#if has_km}}
+Distance driven: {{km_driven}}
+{{/if}}
+{{#if show_amounts}}
+Your share of this trip: {{owner_share}}
+{{/if}}
+
+{{#if show_amounts}}
+An estimate
+Your share is worked out from the rental charge and your Revenue Share. Your monthly statement shows the final figures.
+{{else}}
+Your share
+The amount shows on your next statement.
+{{/if}}
+
+View this trip:
+https://carmacars.ca/owner/bookings/{{booking_number}}
+
+We email you when a trip is complete and the car is back, not when a booking comes in. The bookings coming up are always in your owner portal.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}
