@@ -43,10 +43,12 @@ select test.eq('onboarded: app.is_va() is true', app.is_va(), true);
 select test.logout();
 
 -- ---------------------------------------------------------------- 2. in order: the WhatsApp step opens last
-select test.throws('order: WhatsApp before the academy is refused', $$select pg_temp.dr('go_harman', 'ops_do', 'staff_whatsapp_confirm', '{"sales": true, "team": true}')$$, 'Pass the academy first');
+-- 2360: the WhatsApp confirmation is its own fact, at any step; the gate's order stays (it counts when the person gets there)
+select test.lives('order: the Team group confirmed before the academy', $$select pg_temp.dr('go_harman', 'ops_do', 'staff_whatsapp_confirm', '{"team": true}')$$);
+select test.eq('order: still at the academy', pg_temp.st('go_harman'), 'academy');
+select pg_temp.dr('go_admin', 'ops_do', 'staff_whatsapp_mark', jsonb_build_object('user', test.id('go_harman'), 'joined', false));
 select pg_temp.academy_ok('go_harman');
 select test.eq('order: the agreement next', pg_temp.st('go_harman'), 'agreement');
-select test.throws('order: WhatsApp before the agreement is refused', $$select pg_temp.dr('go_harman', 'ops_do', 'staff_whatsapp_confirm', '{"sales": true, "team": true}')$$, 'Sign your staff agreement first');
 select pg_temp.agreement_ok('go_harman');
 select test.eq('order: then the WhatsApp groups', pg_temp.st('go_harman'), 'whatsapp');
 select test.eq('Sales: the Sales group and the Team group', (select string_agg(g ->> 'key', ',' order by g ->> 'key') from jsonb_array_elements(app.staff_group_list(test.id('go_harman'))) g), 'sales,team');

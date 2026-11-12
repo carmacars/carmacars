@@ -505,7 +505,9 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             'staff_activity',
                             -- the shift reminder (1770): when a field person was last told they hold too few shifts (at most
                             -- once a day); no money, pricing or status
-                            'field_shift_nags')
+                            'field_shift_nags',
+                            -- the Channel API's call log (2304): every call, allowed or refused; no money, pricing or status
+                            'channel_calls')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',
   (select count(*) > 0 from audit_log where entity_table = 'rate_cards' and action = 'INSERT' and after ->> 'daily_rate_cents' = '10000'), true);

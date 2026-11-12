@@ -1,5 +1,5 @@
 import { Act } from '@/features/admin/Act';
-import type { ApprovalRow } from './model';
+import { waitingWords, type ApprovalRow } from './model';
 
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '');
 
@@ -11,13 +11,17 @@ export function OnboardingApprovals({ rows, refresh, admin }: { rows: ApprovalRo
   const others = rows.filter((r) => !r.self);
   return (
     <div className="stack" id="onboarding-approvals" data-testid="onboarding-approvals">
-      <p className="small">{rows.length} waiting for approval: they passed the academy, signed the agreement and joined the WhatsApp groups. Their portal opens once you approve.</p>
-      {admin && others.length > 1 && <div><Act ops action="staff_onboarding_approve_all" label={`Approve all ${others.length}`} variant="primary" refresh={refresh} done="Approved."
-        confirm={`Approve the onboarding of ${others.map((r) => r.name).join(', ')}?`} testId="onboarding-approve-all" /></div>}
+      <p className="small">{rows.filter((r) => r.step !== 'whatsapp').length} waiting for approval (academy passed, agreement signed, WhatsApp groups confirmed); {rows.filter((r) => r.step === 'whatsapp').length} waiting only on the WhatsApp groups. Each row says what is missing. Their portal opens once approved.</p>
+      {admin && others.filter((r) => r.step !== 'whatsapp').length > 1 && <div><Act ops action="staff_onboarding_approve_all" label={`Approve all ${others.filter((r) => r.step !== 'whatsapp').length}`} variant="primary" refresh={refresh} done="Approved."
+        confirm={`Approve the onboarding of ${others.filter((r) => r.step !== 'whatsapp').map((r) => r.name).join(', ')}?`} testId="onboarding-approve-all" /></div>}
       <ul className="mr-list">{rows.map((r) => (
         <li key={r.user_id} data-testid={`onboarding-approval-${r.user_id}`}>
-          <span><b>{r.name}</b> ({r.functions.join(', ') || 'staff'}){r.asked_at ? `, asked ${when(r.asked_at)}` : ''}{r.reject_reason ? `. Rejected: ${r.reject_reason}` : ''}</span>
-          {r.self ? <span className="small muted">Someone else approves your own onboarding.</span> : <span className="ad-actions">
+          <span><b>{r.name}</b> ({r.functions.join(', ') || 'staff'}){r.asked_at ? `, asked ${when(r.asked_at)}` : ''}{r.reject_reason ? `. Rejected: ${r.reject_reason}` : ''}
+            {waitingWords(r.waiting_on) && <span className="small muted" data-testid={`onboarding-waiting-${r.user_id}`}><br />{waitingWords(r.waiting_on)}</span>}</span>
+          {r.self ? <span className="small muted">Someone else approves your own onboarding.</span> : r.step === 'whatsapp' ? (admin
+            ? <span className="ad-actions"><Act ops action="staff_whatsapp_approve" payload={{ user: r.user_id }} label="Confirm WhatsApp and approve" variant="primary" refresh={refresh} done="Approved."
+                confirm={`Mark ${r.name}'s WhatsApp groups confirmed and approve their onboarding? Their portal opens now.`} testId={`onboarding-wa-approve-${r.user_id}`} /></span>
+            : <span className="small muted">An Admin confirms the WhatsApp groups (or they do, on Welcome).</span>) : <span className="ad-actions">
             <Act ops action="staff_onboarding_approve" payload={{ user: r.user_id }} label={`Approve ${r.name}'s onboarding`} variant="primary" refresh={refresh} done="Approved."
               confirm={`Approve ${r.name}'s onboarding? Their portal opens now.`} testId={`onboarding-approve-${r.user_id}`} />
             <Act ops action="staff_onboarding_reject" payload={{ user: r.user_id }} label="Reject" title={`Reject ${r.name}'s onboarding`} submitLabel="Reject" refresh={refresh} done="Rejected."

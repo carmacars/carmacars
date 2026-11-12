@@ -162,6 +162,14 @@ jobs:
       - uses: ./.github/actions/full-stack
         with:
           save-caches: ${{ matrix.project == 'phone-375' && matrix.shard == 3 }}
+      # r38: the Worker build of the full-stack step, run in workerd (wrangler dev, local mode, no secrets): health, home,
+      # sign-in and a car page answer without a 5xx or a Worker crash. The tests above run next start, never the Worker, so
+      # Nov 11's Error 1101 (Next 16.4.6: "Unexpected loadManifest(preview-props.json)") passed them all. One job is enough
+      # (every job builds the same Worker); about a minute. deploy needs full, which needs this job.
+      - name: Worker runtime smoke (workerd)
+        if: matrix.project == 'desktop-1440' && matrix.shard == 4
+        timeout-minutes: 6
+        run: ../.github/ci-run.sh "Worker smoke" node scripts/worker-smoke.mjs
       - name: End to end, accessibility
         env:
           BASE_URL: http://localhost:3000
