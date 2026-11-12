@@ -43,8 +43,16 @@ select test.eq('Partner A cannot book (scope off by default)', (select public.ch
 select test.eq('a partner cancels only its own bookings', (select public.channel_api(b, 'booking_cancel', '{"booking_number": "CC-1"}') ->> 'code' from r37k), 'scope');
 
 -- rate limit: Partner A has 3 calls a minute (scope refusals are not counted): vehicles, availability, then locations
+-- one transaction (one now(), so one minute window: the window is the clock minute, and the calls above can take longer
+-- than that on a slow runner): the two calls above are counted in this minute, then the 3rd answers and the 4th is refused
+begin;
+insert into app.rate_limit_hits (key, window_start, window_length, hits)
+select 'channel:' || k.id, date_bin(interval '1 minute', now(), timestamptz '2000-01-01 00:00:00+00'), interval '1 minute', 2
+  from channel_keys k where k.partner_id = test.id('partner:A')
+on conflict (key, window_start) do update set hits = 2;
 select test.eq('the 3rd call in the minute answers', (select public.channel_api(a, 'locations', '{}') ->> 'ok' from r37k), 'true');
 select test.eq('the 4th call in the minute is refused', (select public.channel_api(a, 'vehicles', '{}') ->> 'code' from r37k), 'rate');
+commit;
 select test.eq('the other partner is not affected', (select public.channel_api(b, 'vehicles', '{}') ->> 'ok' from r37k), 'true');
 -- revoked at once
 select pg_temp.adm('channel_key_revoke', jsonb_build_object('id', (select id from channel_keys where partner_id = test.id('partner:B'))));
