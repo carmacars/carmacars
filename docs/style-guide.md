@@ -24,7 +24,8 @@ portal and every page and every staff member."
 ## Tokens
 
 - Shape: `--r-pill` / `--ui-r-pill` 999px (buttons, tabs, chips, badges), `--ui-r-card` 16px (cards, sections),
-  `--ui-r-tile` 12px (tables, tiles, empty states). Inputs keep `--r-2` (6px).
+  `--ui-r-tile` 12px (tables, tiles, empty states). Inputs keep `--r-2` (6px). Since Release 41 these tokens are in
+  `web/src/styles/tokens.css`, read by the public site too; `--r-3` (panels, sheets, modals) is 16px.
 - Colour: black for the firm thing, CarmaCars red (`--red-600`) for what needs someone and the one primary action, true
   greys (`--grey-100` tracks, `--grey-200` hairlines, `--grey-600` quiet text), `--ui-ok` green only beside a word.
 - Type: the display face (`--font-display`) for page titles, section titles and big figures; the text face for the rest.
@@ -68,3 +69,16 @@ portal and every page and every staff member."
 - Page-by-page markup passes (replacing per-page head markup with `PageHeader` beyond Requests; the renter, owner and
   investor heroes keep their own layout, restyled through the shared classes only).
 - The field portal keeps its large tap targets (`fd-*`); it shares the button shape and the tokens.
+
+## The public site (Release 41)
+
+The owner: "A lot of the buttons and stuff on the actual public pages don't follow the design language ... for the portals."
+The public sheets (`core.css`, `pages.css`, `app.css`, `seo.css`, `vehicles.css`) now use the same tokens, with no page-level rules:
+
+- Pills: icon buttons, the header's search button, the Google sign-in button, the quantity stepper, badges, perks, filter
+  chips (a grey hairline, black on hover, as the portals' chips) and the segmented control (grey track, black pill, red underline).
+- Cards (16px, hairline, the soft shadow): panels, the search panel, the request form's sections, hub and guide cards,
+  careers cards, the vehicle pages' request box.
+- Tiles (12px): choices and add-ons in the request form, the calendar and seat boxes, the address lookup, car photos in cards.
+- A button that is working: `aria-busy="true"` on a `.btn` shows the spinner and blocks a second press.
+

@@ -12,7 +12,7 @@
 .hub-grid { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-4); grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 40rem) { .hub-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (min-width: 64rem) { .hub-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-.hub-card { display: grid; gap: var(--s-2); padding: var(--s-5); border: 1px solid var(--line); background: var(--white); height: 100%; text-decoration: none; color: var(--text); }
+.hub-card { display: grid; gap: var(--s-2); padding: var(--s-5); border: 1px solid var(--ui-line); border-radius: var(--ui-r-card); box-shadow: var(--ui-shadow); background: var(--white); height: 100%; text-decoration: none; color: var(--text); }
 .hub-card:hover { border-color: var(--black); }
 .hub-card h3 { font: 700 1.2rem/1.15 var(--font-display); letter-spacing: -0.02em; margin: 0; }
 .hub-card p { margin: 0; font-size: var(--fs-sm); color: var(--text-2); }
@@ -34,7 +34,7 @@
 .art__meta { font-size: var(--fs-xs); color: var(--grey-400); margin-top: var(--s-4); }
 .art-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-5); grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 48rem) { .art-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.art-list a { display: grid; gap: var(--s-2); padding: var(--s-5); border: 1px solid var(--line); text-decoration: none; color: var(--text); height: 100%; background: var(--white); }
+.art-list a { display: grid; gap: var(--s-2); padding: var(--s-5); border: 1px solid var(--ui-line); border-radius: var(--ui-r-card); box-shadow: var(--ui-shadow); text-decoration: none; color: var(--text); height: 100%; background: var(--white); }
 .art-list a:hover { border-color: var(--black); }
 .art-list h2 { font: 700 1.25rem/1.15 var(--font-display); letter-spacing: -0.02em; margin: 0; }
 .art-list p { margin: 0; color: var(--text-2); font-size: var(--fs-sm); }

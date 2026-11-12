@@ -18,7 +18,7 @@
 .vp-inv__h { margin-top: var(--s-7); }
 .vp-avail { margin: var(--s-2) 0 0; min-height: 1.5em; }
 .vp-avail__free { color: var(--green-700, #1d6b3a); font-weight: 600; }
-.vp-request { margin-top: var(--s-7); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-4); padding: var(--s-5); border: var(--bw) solid var(--black); background: var(--white); }
+.vp-request { margin-top: var(--s-7); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-4); padding: var(--s-5); border: 1px solid var(--ui-line); border-radius: var(--ui-r-card); box-shadow: var(--ui-shadow); background: var(--white); }
 .vp-request h3 { margin: 0 0 var(--s-1); }
 .vp-request p { margin: 0; }
 .data tr[aria-current="page"] { background: var(--grey-100); }
@@ -34,7 +34,7 @@
 /* 0149: the licensed stock photo (the vehicle pages' head, the place and service pages) with its credit, always visible.
    The image keeps its own shape (its width and height attributes reserve the space: no layout shift). */
 .vp-photo { margin: 0; min-width: 0; }
-.vp-photo img { display: block; width: 100%; height: auto; background: #0b0b0b; }
+.vp-photo img { display: block; width: 100%; height: auto; background: #0b0b0b; border-radius: var(--ui-r-tile); }
 .vp-head__media.vp-photo { overflow: visible; background: transparent; }
 .vp-photo__credit { margin-top: var(--s-2); font-size: var(--fs-2xs); line-height: 1.4; color: var(--grey-600); overflow-wrap: anywhere; }
 .vp-photo__credit .link { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
