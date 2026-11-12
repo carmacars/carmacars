@@ -150,9 +150,13 @@ test('apply from Indeed and pass, book a call, the Admin scores it, the rank fol
   await ad.goto(`/admin/hiring/${app!.id}#rubric`, { waitUntil: 'networkidle' });
   await expect(ad.getByTestId('cand-guide')).toContainText('0:00 to 1:00');
   await expect(ad.getByTestId('cand-breakdown')).toContainText('Yes, a full G');
-  for (const [k, n] of Object.entries({ communication: 5, reliability: 4, role_skills: 4, customer: 3, judgement: 5, attitude: 5 })) await ad.getByTestId(`crit-${k}-${n}`).check({ force: true });
-  await ad.getByTestId('decision-hire').check({ force: true });
-  await expect(ad.getByTestId('rubric-totals')).toContainText('Interview 86');
+  // the rubric's radios are controlled: a click before the page has hydrated is undone by React ("Clicking the checkbox did not
+  // change its state", run 43123677220 on a slow runner), so the choices are made again until the totals show them
+  await expect(async () => {
+    for (const [k, n] of Object.entries({ communication: 5, reliability: 4, role_skills: 4, customer: 3, judgement: 5, attitude: 5 })) await ad.getByTestId(`crit-${k}-${n}`).check({ force: true, timeout: 5_000 });
+    await ad.getByTestId('decision-hire').check({ force: true, timeout: 5_000 });
+    await expect(ad.getByTestId('rubric-totals')).toContainText('Interview 86', { timeout: 2_000 });
+  }).toPass({ timeout: 60_000 });
   await ad.getByTestId('rubric-save').click();
   await expect(ad.getByTestId('rubric-msg')).toContainText('Rank', { timeout: 60_000 });
   const rankBefore = Number(/Rank (\d+)/.exec((await ad.getByTestId('rubric-msg').textContent()) ?? '')?.[1]);

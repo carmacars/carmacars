@@ -142,9 +142,10 @@ test('Admin: the pop-up on any Admin page, and the renter page\'s notes with Rem
   await check(page, 'admin renter notes');
   page.once('dialog', (d) => void d.accept('Duplicate'));
   await notes.getByTestId('renter-note-remove').first().click();
-  await expect(notes.getByRole('status').filter({ hasText: 'Note removed.' })).toBeVisible();
-  const [x] = await sql<Array<{ removed_reason: string }>>`select removed_reason from renter_notes where renter_id = ${r!.id}`;
-  expect(x?.removed_reason).toBe('Duplicate');
+  // "Note removed." shows until the log reads again; the removed note then leaves the log and its message with it (a fast
+  // refresh took it before the check could see it, run 43123677220), so the check is the stored reason and the log
+  await expect.poll(async () => (await sql<Array<{ removed_reason: string | null }>>`select removed_reason from renter_notes where renter_id = ${r!.id}`)[0]?.removed_reason, { timeout: 15_000 }).toBe('Duplicate');
+  await expect(notes.getByText('Wants a weekly rate.')).toHaveCount(0, { timeout: 15_000 });
   await hangUp(sql, [mobile]);
   await sql.end();
 });
