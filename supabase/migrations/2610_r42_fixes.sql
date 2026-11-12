@@ -77,7 +77,7 @@ end $$;
 
 alter function app.record_booking_payment(uuid, jsonb, bigint, integer, jsonb, text, uuid) rename to record_booking_payment_pre2610;
 create function app.record_booking_payment(p_booking uuid, p_processor jsonb, p_amount_cents bigint, p_offer_version integer,
-                                           p_card jsonb, p_event_id text, p_by uuid) returns jsonb
+                                           p_card jsonb default null, p_event_id text default null, p_by uuid default null) returns jsonb
 language plpgsql security definer set search_path = public, app as $$
 declare
   v_need jsonb;
