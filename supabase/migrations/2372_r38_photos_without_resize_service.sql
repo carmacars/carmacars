@@ -15,13 +15,22 @@ declare
   v_intakes integer := 0;
 begin
   perform app.assert_admin(p_by);
-  with picked as (
-    select j.id from listing_jobs j join listing_intakes i on i.id = j.intake_id
+  -- one step per photo: listing_jobs_one_open allows one open (queued or running) job per intake, kind and photo, so a failed
+  -- step is queued again only when no other job of that photo is open, and of several only one (an open one first)
+  with cand as (
+    select distinct on (j.intake_id, j.kind, coalesce(j.vehicle_photo_id, '00000000-0000-0000-0000-000000000000'::uuid)) j.id
+      from listing_jobs j join listing_intakes i on i.id = j.intake_id
      where j.kind in ('process_photo', 'resize') and i.state not in ('published', 'cancelled')
        and (j.status = 'failed'
             or (j.status = 'queued' and j.attempts > 0)
             or (j.status = 'running' and j.locked_at < now() - interval '30 minutes'))
-     for update of j
+       and not exists (select 1 from listing_jobs o where o.id <> j.id and o.intake_id = j.intake_id and o.kind = j.kind
+                         and coalesce(o.vehicle_photo_id, '00000000-0000-0000-0000-000000000000'::uuid) = coalesce(j.vehicle_photo_id, '00000000-0000-0000-0000-000000000000'::uuid)
+                         and o.status in ('queued', 'running')
+                         and not ((o.status = 'queued' and o.attempts > 0) or (o.status = 'running' and o.locked_at < now() - interval '30 minutes')))
+     order by j.intake_id, j.kind, coalesce(j.vehicle_photo_id, '00000000-0000-0000-0000-000000000000'::uuid), (j.status <> 'failed') desc, j.id desc
+  ), picked as (
+    select j.id from listing_jobs j where j.id in (select id from cand) for update of j
   ), upd as (
     update listing_jobs j set status = 'queued', attempts = 0, next_attempt_at = now(), error = null, finished_at = null, locked_at = null, locked_by = null,
            input = coalesce(j.input, '{}'::jsonb) || jsonb_build_object('local_only', true)

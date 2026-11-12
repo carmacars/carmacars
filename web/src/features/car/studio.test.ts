@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { carShot, standInSvg, studioName, studioPaint, studioShape } from './studio.ts';
+import { carShot, LETTER_MAX, standInSvg, studioLettering, studioName, studioPaint, studioShape } from './studio.ts';
 
 // The 2023 Toyota Camry of the sample set (prototype/tools/src/data.mjs): shape sedan, paint black.
 const camry = { year: 2023, name: 'Toyota Camry', model: 'Camry', colour: 'Midnight Black', shape: 'sedan', paint: 'black' };
@@ -68,4 +68,21 @@ test('r33 letteringName: the word behind the car from the model', async () => {
   assert.equal(letteringName('C CLASS'), 'C CLASS', 'idempotent');
   assert.equal(letteringName('CLA CLASS'), 'CLA');
   assert.equal(letteringName('E-Class Cabriolet'), 'E CLASS CABRIOLET');
+});
+
+test('r38: a long model name fits the wall panel: smaller, or two lines, never wider than the panel', () => {
+  for (const n of ['MERCEDES-BENZ GLA-CLASS', '4 SERIES GRAN COUPE', 'GLA', 'RANGE ROVER SPORT', 'AMG GT 63 S E PERFORMANCE', 'ABCDEFGHIJKLMNOPQRSTUVWX']) {
+    const { lines } = studioLettering(n);
+    assert.ok(lines.length >= 1 && lines.length <= 2, n);
+    assert.equal(lines.map((l) => l.text).join(' '), n);
+    for (const l of lines) {
+      assert.ok(l.length <= LETTER_MAX, `${n}: ${l.length}`);
+      assert.ok(l.text.length * l.size * 0.7 <= LETTER_MAX + 1 || l.size === 56, `${n}: ${l.text} at ${l.size}`);
+      assert.ok(l.y - l.size >= 300 && l.y < 690, `${n}: on the panel (${l.y})`);
+    }
+  }
+  assert.equal(studioLettering('GLA').lines[0]!.size, 150);
+  assert.equal(studioLettering('MERCEDES-BENZ GLA-CLASS').lines.length, 2);
+  const svg = standInSvg({ shape: 'suv', paint: 'black', shot: 'lead', name: '4 Series Gran Coupe' })!;
+  for (const m of svg.matchAll(/textLength="(\d+)"/g)) assert.ok(Number(m[1]) <= LETTER_MAX);
 });

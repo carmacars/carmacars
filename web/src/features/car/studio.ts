@@ -188,7 +188,7 @@ export function studio(w: number, h: number, { content, name = '', slate = '', f
     <g transform="translate(${lx} ${ly}) scale(${lk.toFixed(5)}) translate(${-LOGO_VB[0]} ${-LOGO_VB[1]})">
       <g filter="url(#srg)" opacity=".75" fill="#fff6ea">${LOGO_D.map((p) => `<path d="${p.d}"/>`).join('')}</g>${logo}
     </g>
-    ${nm ? `<text x="900" y="${338 + 112}" text-anchor="middle" ${FONT} font-size="150" textLength="${Math.min(1100, nm.length * 105)}" lengthAdjust="spacingAndGlyphs" fill="url(#srm)" opacity=".92">${nm}</text>` : ''}
+    ${nm ? studioLettering(name.toUpperCase()).lines.map((l) => `<text x="900" y="${l.y}" text-anchor="middle" ${FONT} font-size="${l.size}" textLength="${l.length}" lengthAdjust="spacingAndGlyphs" fill="url(#srm)" opacity=".92">${esc(l.text)}</text>`).join('') : ''}
   </g>
   <rect y="700" width="1800" height="500" fill="url(#srf)" clip-path="url(#srfc)"/>
   <g clip-path="url(#srfc)" opacity=".22" filter="url(#srb)"><use href="#srwall" transform="translate(0 1400) scale(1 -1)"/></g>
@@ -263,6 +263,26 @@ export function studioPaint(colour: string | null | undefined): string {
     [/gold/, 'gold'], [/beige|tan|sand|champagne|cream|khaki/, 'beige'], [/brown|bronze|copper|mocha|espresso/, 'brown'], [/orange|amber/, 'orange'], [/yellow/, 'yellow']];
   return m.find(([re]) => re.test(c))?.[1] ?? 'grey';
 }
+/** r38: the model's name on the wall panel (x 380 to 1420), never wider than LETTER_MAX: one line at up to 150 units, smaller
+ *  when long, else two lines split at the space nearest the middle (the owner, Nov 11: "writing in the photos that doesn't fit").
+ *  A letter of the font is about 0.7 of its size wide; textLength holds each line to its width. */
+export const LETTER_MAX = 960;
+const LETTER_W = 0.7;
+export function studioLettering(name: string): { lines: Array<{ text: string; size: number; length: number; y: number }> } {
+  const t = name.replace(/\s+/g, ' ').trim();
+  if (!t) return { lines: [] };
+  const fit = (n: number, cap: number) => Math.max(56, Math.min(cap, Math.floor(LETTER_MAX / (Math.max(1, n) * LETTER_W))));
+  const len = (text: string, size: number) => Math.min(LETTER_MAX, Math.round(text.length * size * LETTER_W));
+  const one = fit(t.length, 150);
+  const sp = [...t].map((c, i) => (c === ' ' ? i : -1)).filter((i) => i > 0);
+  if (one >= 110 || !sp.length) return { lines: [{ text: t, size: one, length: len(t, one), y: 450 }] };
+  const cut = sp.reduce((a, b) => (Math.abs(b - t.length / 2) < Math.abs(a - t.length / 2) ? b : a));
+  const [a, b] = [t.slice(0, cut).trim(), t.slice(cut + 1).trim()];
+  const size = fit(Math.max(a.length, b.length), 120);
+  const top = 300 + size; // below the logo, as the one line of 150 (its top at 300)
+  return { lines: [{ text: a, size, length: len(a, size), y: top }, { text: b, size, length: len(b, size), y: top + Math.round(size * 1.08) }] };
+}
+
 /** The shot keys, in gallery order, with the listing shot type each stands for (as the sample cars use them). */
 export const STUDIO_SHOT_TYPE: Record<string, string> = { lead: 'front_left', side: 'left', rear34: 'rear_left', front: 'front', rear: 'rear', dash: 'dashboard', seats: 'front_seats', wheel: 'wheel' };
 /** The lettering behind the car: the model's name, as the sample cars show it (letters, digits, spaces and - & . / only). */
