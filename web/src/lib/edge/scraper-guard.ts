@@ -108,7 +108,7 @@ const US_CODES = 'ny|mi|oh|pa|vt|nh|me|ma|ct|ri|nj|de|md|dc|va|wv|nc|sc|ga|fl|al
 const MX_CODES = 'agu|bcn|bcs|cam|chp|chh|coa|col|cmx|dur|gua|gro|hid|jal|mex|mic|mor|nay|nle|oax|pue|que|roo|slp|sin|son|tab|tam|tla|ver|yuc|zac';
 const FOREIGN_PLACE = new RegExp(`^(?:/[a-z]{2,3})?/(?:car-rental|detailing|body-shop|buy)/([a-z0-9-]+)/[a-z0-9-]+-(?:${US_CODES}|${MX_CODES})/?$`);
 /** The buying help terms (/buy/<term>/<place>); any other /buy/<a>/<b> is the vehicle tree (a make and a model). */
-const SALE_TERM = /(sale|loan|financ|lease|leasing|credit|dealer|trade|sell|buy)/;
+const SALE_TERM = /(sale|loan|financ|lease|leasing|credit|dealer|trade|sell|buy|used|owned|second-hand|cash-for|new-cars|certified|rent-to-own)/;
 export const PLACE_FOREIGN_KEY = 'carmacars/place-foreign';
 export function foreignPlacePage(pathname: string): boolean {
   const m = FOREIGN_PLACE.exec(pathname);
@@ -118,6 +118,72 @@ export function foreignPlacePage(pathname: string): boolean {
 /** The answer to a place page outside our market: a plain 404 kept a day by every cache. */
 export function outOfMarket(headers: Record<string, string> = {}): Response {
   return new Response('Not found: CarmaCars serves Toronto and the Greater Toronto Area.', { status: 404, headers: {
+    'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=86400', 'x-robots-tag': 'noindex', ...headers } });
+}
+
+// ------------------------------------------------------------------ the market by region (2402)
+// Release 40 keeps the place pages to Ontario: every other province and territory is off too. The tick stores the regions
+// that are on (app.place_market_mask: a bit for each Canadian province and territory in CA_CODES order, MARKET_US_BIT for
+// any US state, MARKET_MX_BIT for any Mexican state), and the Worker answers a term-and-place address of a region that is
+// off 404 before the app loads. The tag store reads 0 for a key never written, so the mask is stored plus one.
+export const CA_CODES = ['on', 'qc', 'bc', 'ab', 'mb', 'sk', 'ns', 'nb', 'nl', 'pe', 'yt', 'nt', 'nu'] as const;
+export const MARKET_US_BIT = 13;
+export const MARKET_MX_BIT = 14;
+export const PLACE_MARKET_KEY = 'carmacars/place-market';
+/** Until the tick has written the mask: Ontario only (the market since release 40). */
+export const MARKET_DEFAULT = 1;
+const US_SET = new Set(US_CODES.split('|'));
+const REGION_PLACE = new RegExp(`^(?:/[a-z]{2,3})?/(?:car-rental|detailing|body-shop|buy)/([a-z0-9-]+)/[a-z0-9-]+-(${CA_CODES.join('|')}|${US_CODES}|${MX_CODES})/?$`);
+/** The pages of a whole province, territory or country (no region code in the slug): /car-rental/quebec, the term pages
+ *  in it (/detailing/<term>/quebec), and the countries (/car-rental/united-states). Ontario and Canada are not here: they
+ *  stay on (Canada's page says we operate in Ontario). */
+export const REGION_ROOTS: Record<string, number> = { quebec: 1, 'british-columbia': 2, alberta: 3, manitoba: 4, saskatchewan: 5, 'nova-scotia': 6,
+  'new-brunswick-nouveau-brunswick': 7, 'new-brunswick': 7, 'newfoundland-and-labrador': 8, 'prince-edward-island': 9, yukon: 10, 'northwest-territories': 11, nunavut: 12,
+  'united-states': MARKET_US_BIT, mexico: MARKET_MX_BIT };
+const REGION_ROOT_PAGE = /^(?:\/[a-z]{2,3}(?:-[a-z]{2,4})?)?\/(?:car-rental\/([a-z0-9-]+)|(?:car-rental|detailing|body-shop|buy)\/([a-z0-9-]+)\/([a-z0-9-]+))\/?$/;
+/** The market bit of a term-and-place address (its place slug ends with its region's code, or is a province, territory or
+ *  country of REGION_ROOTS), or null for any other address. */
+export function placeRegionBit(pathname: string): number | null {
+  const r = REGION_ROOT_PAGE.exec(pathname);
+  if (r) {
+    const slug = r[1] ?? r[3]!;
+    if (Object.prototype.hasOwnProperty.call(REGION_ROOTS, slug) && (!/\/buy\//.test(pathname) || SALE_TERM.test(r[2]!))) return REGION_ROOTS[slug]!;
+  }
+  const m = REGION_PLACE.exec(pathname);
+  if (!m) return null;
+  // /buy/<a>/<b> is the vehicle tree (a make and a model) unless <a> is a buying help term
+  if (/\/buy\//.test(pathname) && !SALE_TERM.test(m[1]!)) return null;
+  const code = m[2]!;
+  const ca = (CA_CODES as readonly string[]).indexOf(code);
+  return ca >= 0 ? ca : US_SET.has(code) ? MARKET_US_BIT : MARKET_MX_BIT;
+}
+/** The stored value of a mask (plus one: 0 is "never written"), and the mask a stored value stands for. */
+export const marketStored = (mask: number) => mask + 1;
+export const marketOf = (stored: number | null | undefined) => (stored && stored > 0 ? stored - 1 : MARKET_DEFAULT);
+/** True when the address is a place page of a region that is off. */
+export function offMarketPlace(pathname: string, mask: number): boolean {
+  const b = placeRegionBit(pathname);
+  return b !== null && (mask & (1 << b)) === 0;
+}
+
+// ------------------------------------------------------------------ model years (2402)
+// Cars from vpage_min_year (Program setting, 2005) on: an older model year has no vehicle page in any tree. The tick stores
+// the year; the Worker answers a year, trim, place or colour page of an older year 404 before the app loads.
+export const VPAGE_MIN_YEAR_KEY = 'carmacars/vpage-min-year';
+const VEHICLE_YEAR = /^(?:\/[a-z]{2,3})?\/(?:cars|buy|t\/[a-z0-9-]+)\/[a-z0-9-]+\/[a-z0-9-]+\/((?:19|20)\d\d)(?:\/|$)/;
+/** The model year of a vehicle page address (/cars, /buy, /t/<term>, with a language), or null. */
+export function vehiclePageYear(pathname: string): number | null {
+  const m = VEHICLE_YEAR.exec(pathname);
+  return m ? Number(m[1]) : null;
+}
+/** True when the address is a vehicle page of a model year below the oldest one with pages (0: not known yet, never). */
+export function oldModelYear(pathname: string, minYear: number): boolean {
+  const y = vehiclePageYear(pathname);
+  return y !== null && minYear > 0 && y < minYear;
+}
+/** The answer to a vehicle page of an older model year: a plain 404 kept a day by every cache. */
+export function oldYearGone(headers: Record<string, string> = {}): Response {
+  return new Response('Not found: CarmaCars has pages for newer model years.', { status: 404, headers: {
     'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=86400', 'x-robots-tag': 'noindex', ...headers } });
 }
 export const BUSY_TRIP = 5;

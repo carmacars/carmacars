@@ -17,6 +17,8 @@ import type { StockPhoto } from './stock-photos';
 type Named = { slug: string; name: string };
 // written: text written for this page (seo-import, the daily batch), shown instead of the writing kit's when present
 type Base = { path: string; inventory: Inventory; settings: Settings; indexable: boolean; canonical: string; lastmod: string | null; make: Named;
+  /** 2402: the synonyms of the car rental group (car hire, vehicle rental ...), listed on the /cars pages */
+  also?: string[];
   written?: { intro?: string | null; sections?: Array<{ heading: string; body: string }> | null; faq?: Array<{ question: string; answer: string }> | null } | null };
 export type MakePage = Base & { level: 'make'; models: Array<{ slug: string; name: string; vclass: string | null; path: string; first_year: number; last_year: number; years: number;
   l100_min: number | null; kwh100_min: number | null; ev_range_max: number | null; fuels: string[]; trims: number }> };

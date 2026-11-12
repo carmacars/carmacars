@@ -157,6 +157,13 @@ test('cron tick: asks the database once; runs everything when it cannot tell', a
   assert.deepEqual(await jobsToRun(env, f('{"listing":true,"seo":false}')), { listing: true, seo: false, pdf: true, phone: true, turo: false, agreements: true, reviews: false, crm: false, deposits: true, ads: false, interviews: false, car_values: false, cpu_guard: false, cached_only: false, search_core: false, place_foreign: false, checked: true });
   // 2350: the market flag: a region outside Canada on
   assert.equal((await jobsToRun(env, f('{"place_foreign":true}'))).place_foreign, true);
+  // 2402: the regions that are on and the oldest model year, for the edge 404s; absent or malformed, left out
+  const mk = await jobsToRun(env, f('{"place_market":1,"vpage_min_year":2005}'));
+  assert.equal(mk.place_market, 1);
+  assert.equal(mk.vpage_min_year, 2005);
+  assert.equal((await jobsToRun(env, f('{"place_market":0}'))).place_market, 0, 'every region off is a mask too');
+  const bad = await jobsToRun(env, f('{"place_market":"x","vpage_min_year":-1}'));
+  assert.equal('place_market' in bad || 'vpage_min_year' in bad, false);
   assert.deepEqual(await jobsToRun(env, f('{"message":"function not found"}', 404)), { listing: true, seo: true, pdf: true, phone: true, turo: true, agreements: true, reviews: false, crm: true, deposits: true, ads: false, interviews: true, checked: false });
   assert.deepEqual(await jobsToRun(env, (async () => { throw new TypeError('fetch failed'); }) as typeof fetch), { listing: true, seo: true, pdf: true, phone: true, turo: true, agreements: true, reviews: false, crm: true, deposits: true, ads: false, interviews: true, checked: false });
   assert.deepEqual(await jobsToRun({ ...env, SUPABASE_SERVICE_ROLE_KEY: undefined }, f('{}')), { listing: true, seo: true, pdf: true, phone: true, turo: true, agreements: true, reviews: false, crm: true, deposits: true, ads: false, interviews: true, checked: false });

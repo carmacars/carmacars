@@ -24,8 +24,12 @@ export type Colour = { slug: string; name: string; hex: string };
 export type City = { slug: string; name: string; kind: string; parent: string | null; facts: Record<string, unknown>; landing: string | null; km: number | null;
   delivery: { fee_cents: number | null; km: number | null; airport_code?: string | null; airport_name?: string | null; per_km_cents?: number | null; min_cents?: number | null } | null;
   nearby: Array<{ slug: string; name: string; km: number | null }>; within: Array<{ slug: string; name: string }> };
-export type Term = { slug: string; name: string; kind: 'rental' | 'sale' | 'detailing' | 'bodyshop'; lead?: string | null; phrase?: string };
-export type Tiers = { settings: Record<string, unknown>; places: Array<{ slug: string; name: string; kind: string }>; colours: Colour[]; terms: Term[] };
+export type Term = { slug: string; name: string; kind: 'rental' | 'sale' | 'detailing' | 'bodyshop'; lead?: string | null; phrase?: string;
+  /** 2402: the phrases of the group's synonyms (their trees answer 301 with this one) */
+  also?: string[] };
+export type Tiers = { settings: Record<string, unknown>; places: Array<{ slug: string; name: string; kind: string }>; colours: Colour[]; terms: Term[];
+  /** 2402: each synonym's group term ('' for the car rental group, whose tree is /cars) */
+  synonyms?: Record<string, string> };
 export type TierPage = Omit<TrimPage, 'level'> & { level: 'city' | 'colour' | 'city_colour'; trim_path: string; city: City | null; colour: Colour | null; tiers: Tiers; dims?: Dim[] };
 
 const labelsOf = async () => Object.fromEntries((await getClasses()).map((c) => [c.code, c.label]));
@@ -196,7 +200,7 @@ export async function TierView({ p }: { p: TierPage }) {
     <div className="p-vehicle" data-page={`vehicle-${p.level.replace('_', '-')}`}>
       <JsonLd graph={[breadcrumbLd(trail, p.path), productLd({ name: p.colour ? `${p.colour.name} ${name}` : name, make: p.make.name, model: p.model.name, year: p.year, trim: p.trim.name, path: p.path, image: img, description: lead,
         inv, fuel: sp[0] ? fuelWord(sp[0].fuel) : undefined, body: p.vclass, extra: vehicleProps(sp, dimsFor(p.dims, p.model.name, p.trim.name), seats, p.colour?.name ?? null), photo }), faqLd(questions)]} />
-      <VehicleHead trail={trail} h1={h1u} lead={lead} img={img} alt={`${p.colour ? `${p.colour.name} ` : ''}${name} in the studio, a representative image`} photo={photo}
+      <VehicleHead trail={trail} h1={h1u} lead={lead} img={img} alt={`${p.colour ? `${p.colour.name} ` : ''}${name} in the studio, a representative image`} photo={photo} also={p.also}
         facts={[['Engine', sp.length === 1 ? sp[0]!.engine : sp.length ? `${sp.length} choices` : ''], ['Combined', sp.length ? ratingRange(sp).split(', or')[0]! : ''],
           ...(p.city ? [['Delivery', p.city.delivery?.fee_cents ? `from ${money(p.city.delivery.fee_cents)}` : 'in your offer'] as [string, string]] : []),
           ...(p.colour ? [['Colour', p.colour.name] as [string, string]] : []), ['Our cars', String(inv.exact.length)]].filter(([, v]) => v) as Array<[string, string]>} />

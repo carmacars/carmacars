@@ -31,7 +31,7 @@ select test.eq('hub: a place page in the body shop family, a request we arrange,
      from (select public.place_hub('bodyshop', 'oil-change', 'canada') h) x), '/body-shop/oil-change/canada request auto_service none');
 select test.eq('hub: a synonym is served with its term''s page as canonical',
   (select public.place_hub('bodyshop', 'tow-truck', 'canada') -> 'term' ->> 'canonical_path'), '/body-shop/towing/canada');
-select test.eq('hub: a synonym is never indexed', (select (public.place_hub('bodyshop', 'tow-truck', 'canada') ->> 'indexable')::boolean), false);
+select test.eq('hub: a synonym is never indexed: it answers 301 (2402)', (select public.place_hub('bodyshop', 'tow-truck', 'canada') ->> 'redirect'), '/body-shop/towing/canada');
 select test.eq('the public term list gives the lead kind',
   (select e ->> 'lead_kind' from jsonb_array_elements(public.place_terms_public()) e where e ->> 'slug' = 'oil-change'), 'auto_service');
 

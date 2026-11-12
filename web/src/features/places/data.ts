@@ -7,9 +7,15 @@ import type { Counts } from '@/features/seo/data';
 export type Vertical = 'rental' | 'sale' | 'detailing' | 'bodyshop';
 export interface PlaceBrief { slug: string; kind: 'country' | 'province' | 'region' | 'area' | 'city' | 'neighbourhood' | 'airport' | 'landmark'; name: string; country: 'CA' | 'US' | 'MX'; region: string | null; region_name: string | null }
 export interface HubTerm { slug: string; vertical: Vertical; phrase: string; title: string; served: 'yes' | 'request'; landing_slug: string | null; lead_kind: string | null;
-  service_code: string | null; intent_note: string; faq: Array<{ question: string; answer: string }>; canonical_path: string | null; landing_path: string | null }
+  service_code: string | null; intent_note: string; faq: Array<{ question: string; answer: string }>; canonical_path: string | null; landing_path: string | null;
+  /** 2402: the phrases of the group's synonyms (their pages answer 301 with this one) */
+  synonyms?: string[] }
 export interface Hub {
   term: HubTerm; path: string;
+  /** 2402: a synonym's page: the group's page it answers 301 with (the read has nothing else) */
+  redirect?: string;
+  /** 2402: on a country page, its provinces that are on (where we operate: Ontario) */
+  operating?: PlaceBrief[] | null;
   place: PlaceBrief & { lat: number | null; lng: number | null; gta: boolean; landing_slug: string | null; iata: string | null; sources: { geonames?: true; osm?: true; census?: true; fixture?: true } };
   ancestors: PlaceBrief[]; children: PlaceBrief[]; gta_members: PlaceBrief[] | null; nearby: Array<PlaceBrief & { km: number }>; landmarks: Array<{ name: string; km: number }>;
   airport: { name: string; iata: string | null; slug: string; km: number } | null; origin: { lat: number; lng: number; label: string };

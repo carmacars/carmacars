@@ -18185,6 +18185,7 @@ export type Database = {
           vpage_popular_from_year: number;
           vpage_year_min_cars: number;
           vpage_trim_min_cars: number;
+          vpage_min_year: number;
           vpage_gas_cents_per_litre: number;
           vpage_premium_extra_cents: number;
           vpage_electricity_cents_per_kwh: number;
@@ -19016,6 +19017,7 @@ export type Database = {
           vpage_popular_from_year?: number;
           vpage_year_min_cars?: number;
           vpage_trim_min_cars?: number;
+          vpage_min_year?: number;
           vpage_gas_cents_per_litre?: number;
           vpage_premium_extra_cents?: number;
           vpage_electricity_cents_per_kwh?: number;
@@ -19847,6 +19849,7 @@ export type Database = {
           vpage_popular_from_year?: number;
           vpage_year_min_cars?: number;
           vpage_trim_min_cars?: number;
+          vpage_min_year?: number;
           vpage_gas_cents_per_litre?: number;
           vpage_premium_extra_cents?: number;
           vpage_electricity_cents_per_kwh?: number;

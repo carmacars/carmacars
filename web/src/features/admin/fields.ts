@@ -48,6 +48,7 @@ const LABELS: Record<string, string> = {
   vpage_place_index: 'Index the place pages', vpage_colour_index: 'Index the colour pages', vpage_term_index: 'Index the search term pages', vpage_buy_index: 'Index the /buy pages',
   vpage_detailing_index: 'Index the detailing pages', vpage_bodyshop_index: 'Index the body shop pages', vpage_finance_disclaimer: 'Financing disclaimer',
   vpage_stock_photos: 'Show stock photos (licensed, credited) on the vehicle, place and service pages',
+  vpage_min_year: 'Oldest model year with vehicle pages (older years: no page, in no sitemap)',
   search_scope: 'Search scope',
   card_types_accepted: 'Card types accepted',
   deposit_timing: 'Deposit timing', deposit_auto_hour: 'Deposit hold: hour on the pickup day', deposit_extended_holds: 'Extended deposit holds (up to about 30 days)',

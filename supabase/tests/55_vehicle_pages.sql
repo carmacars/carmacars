@@ -219,7 +219,7 @@ select test.eq('every trim has its place pages, place and colour pages and colou
 select test.ok('no file past the last', not exists (select 1 from app.vehicle_tier_sitemap(public.vehicle_tier_files_count() + 1, -1, 4000)));
 select test.ok('the index: every tree has the level files and the tiers files', (public.vehicle_sitemap_index(0, 1) ->> 'total')::integer
   = (select count(*) from app.vpage_trees()) * ((select count(*) from app.vehicle_sitemap_files()) + public.vehicle_tier_files_count()));
-select test.ok('every tree is allowed by default', public.vehicle_sitemap_tree('') and public.vehicle_sitemap_tree('buy-') and public.vehicle_sitemap_tree('t-car-hire-') and public.vehicle_sitemap_tree('t-ceramic-coating-'));
+select test.ok('every tree is allowed by default', public.vehicle_sitemap_tree('') and public.vehicle_sitemap_tree('buy-') and public.vehicle_sitemap_tree('t-suv-rental-') and public.vehicle_sitemap_tree('t-ceramic-coating-'));
 -- (earlier suites send IndexNow batches too: one quota, one sweep; start from a clean cursor)
 update indexnow_sweep set backoff_until = null, backoff_s = 0, file_i = 0, pos = -1, sent_today = 0, day = (now() at time zone 'America/Toronto')::date;
 -- 0220: the changed pages go first and the sweep waits for them; this suite looks at the sweep alone
@@ -247,7 +247,7 @@ select test.ok('place switch off: noindex, canonical at the trim; the colour pag
   and (public.vehicle_tier_page('volkswagen', 'jetta', 2020, 'sportline', null, 'gold') ->> 'indexable')::boolean
   and not exists (select 1 from pg_temp.vp_all_tiers() where path !~ '/colour/'));
 select test.ok('/buy and detailing switches off: those trees leave the sitemaps', not public.vehicle_sitemap_tree('buy-') and not public.vehicle_sitemap_tree('t-used-')
-  and not public.vehicle_sitemap_tree('t-ceramic-coating-') and public.vehicle_sitemap_tree('t-car-hire-') and public.vehicle_sitemap_tree('t-bumper-repair-'));
+  and not public.vehicle_sitemap_tree('t-ceramic-coating-') and public.vehicle_sitemap_tree('t-suv-rental-') and public.vehicle_sitemap_tree('t-bumper-repair-'));
 update program_settings set vpage_place_index = true, vpage_buy_index = true, vpage_detailing_index = true where id = (app.settings()).id;
 select test.ok('0119: switched back on, the stored shape is read again', public.vehicle_sitemap_shape() -> 'trees' ? 'buy-'
   and public.vehicle_sitemap_shape() = (select shape from app.vehicle_sitemap_files_cache_state limit 1));

@@ -12,7 +12,7 @@ export type Variant = {
 };
 /** A body's Canadian dimensions (vPIC): cm and kg. */
 export type Dim = { body: string; length_cm: number | null; width_cm: number | null; height_cm: number | null; wheelbase_cm: number | null; curb_kg: number | null };
-export type Settings = { index_mode: 'all' | 'rules'; gas_cents: number; premium_extra_cents: number; elec_cents: number; model_min_years: number; popular_from_year: number; year_min_cars: number; trim_min_cars: number };
+export type Settings = { index_mode: 'all' | 'rules'; gas_cents: number; premium_extra_cents: number; elec_cents: number; model_min_years: number; popular_from_year: number; year_min_cars: number; trim_min_cars: number; min_year?: number };
 export type YearRow = { year: number; path: string; vclass: string | null; powertrains: number; l100_min: number | null; l100_max: number | null; kwh100_min: number | null; ev_range_max: number | null;
   fuels: string[]; drives: string[]; engines: Array<{ displ: number | null; cyl: number | null; turbo: boolean | null; fuel: string }>; trims: Array<{ slug: string; name: string }> };
 export type TrimRef = { slug: string; name: string; rank: number; variant_ids: number[]; path: string };

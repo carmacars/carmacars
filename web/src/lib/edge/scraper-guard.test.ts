@@ -91,3 +91,52 @@ test('2350: US and Mexican term-and-place pages are out of market; Canadian plac
   assert.equal(verifiedSearchEngine({ verifiedBotCategory: 'AI Crawler' }), false);
   assert.equal(verifiedSearchEngine(undefined), false);
 });
+
+// 2402: the market by region (Ontario only by default) and the oldest model year, answered at the edge
+import { CA_CODES, MARKET_DEFAULT, MARKET_MX_BIT, MARKET_US_BIT, marketOf, marketStored, offMarketPlace, oldModelYear, oldYearGone, placeRegionBit, vehiclePageYear } from './scraper-guard.ts';
+test('2402: a place page of any region that is off answers 404 at the edge; Ontario stays on', () => {
+  const ontario = 1;
+  for (const p of ['/car-rental/suv-rental/wynndel-bc', '/car-rental/suv-rental/st-louis-qc', '/detailing/ceramic-coating/calgary-ab', '/body-shop/collision-repair/halifax-ns',
+    '/fr/car-rental/suv-rental/gatineau-qc', '/car-rental/suv-rental/austin-tx', '/car-rental/suv-rental/guadalajara-jal', '/buy/used-cars/regina-sk']) assert.ok(offMarketPlace(p, ontario), p);
+  for (const p of ['/car-rental/suv-rental/markham-on', '/detailing/clear-bra/kingston-on', '/body-shop/dent-repair/the-annex-toronto-on', '/car-rental/suv-rental/yyz-airport',
+    '/car-rental/car-rental-near-me', '/car-rental/toronto', '/buy/ford/f-150-ca', '/cars/bmw/x5/2021/xdrive40i/austin-tx',
+    '/car-rental/suv-rental/toronto-on-3fa9c']) assert.equal(offMarketPlace(p, ontario), false, p);
+  assert.ok(offMarketPlace('/car-rental/rideshare-car-rental/saskatchewan', ontario), 'a province page is its region too');
+  assert.equal(placeRegionBit('/car-rental/suv-rental/markham-on'), 0);
+  assert.equal(placeRegionBit('/car-rental/suv-rental/st-louis-qc'), CA_CODES.indexOf('qc'));
+  assert.equal(placeRegionBit('/car-rental/suv-rental/austin-tx'), MARKET_US_BIT);
+  assert.equal(placeRegionBit('/car-rental/suv-rental/guadalajara-jal'), MARKET_MX_BIT);
+  assert.equal(placeRegionBit('/cars/toyota/camry'), null);
+  // an Admin switches Quebec on: its places pass to the app, the others stay 404
+  const withQc = ontario | (1 << CA_CODES.indexOf('qc'));
+  assert.equal(offMarketPlace('/car-rental/suv-rental/st-louis-qc', withQc), false);
+  assert.ok(offMarketPlace('/car-rental/suv-rental/wynndel-bc', withQc));
+  assert.equal(offMarketPlace('/car-rental/suv-rental/austin-tx', ontario | (1 << MARKET_US_BIT)), false);
+  // stored plus one: a key never written (0) is Ontario only
+  assert.equal(marketOf(0), MARKET_DEFAULT);
+  assert.equal(marketOf(null), MARKET_DEFAULT);
+  assert.equal(marketOf(marketStored(0)), 0, 'every region off');
+  assert.equal(marketOf(marketStored(withQc)), withQc);
+});
+test('2402: a vehicle page of a model year below the oldest one answers 404 at the edge, in every tree', () => {
+  for (const p of ['/cars/honda/civic/2004', '/cars/honda/civic/1999/lx', '/cars/honda/civic/2001/lx/markham-on/black', '/buy/honda/civic/2003', '/t/car-detailing/honda/civic/2004/ex',
+    '/fr/cars/honda/civic/2002/lx', '/fr/t/car-detailing/honda/civic/2002/lx']) assert.ok(oldModelYear(p, 2005), p);
+  for (const p of ['/cars/honda/civic/2005', '/cars/honda/civic', '/cars/honda', '/buy/used-cars/markham-on', '/t/car-detailing/honda/civic/2019/ex', '/rent-vs-own/honda/civic/2003',
+    '/cars/honda-civic-2004-abc', '/car-rental/suv-rental/markham-on']) assert.equal(oldModelYear(p, 2005), false, p);
+  assert.equal(oldModelYear('/cars/honda/civic/2004', 0), false, 'not known yet: never');
+  assert.equal(vehiclePageYear('/t/car-detailing/honda/civic/2019/ex'), 2019);
+  const r = oldYearGone();
+  assert.equal(r.status, 404);
+  assert.equal(r.headers.get('x-robots-tag'), 'noindex');
+});
+test('2402: province, territory and country pages follow their region (the /car-rental hub links, every place tree)', () => {
+  const ontario = 1;
+  for (const p of ['/car-rental/quebec', '/car-rental/british-columbia', '/car-rental/new-brunswick-nouveau-brunswick', '/car-rental/nunavut', '/car-rental/united-states',
+    '/car-rental/mexico', '/fr/car-rental/quebec', '/car-rental/suv-rental/alberta', '/detailing/car-detailing/manitoba', '/body-shop/collision-repair/mexico',
+    '/buy/used-cars/united-states', '/body-shop/collision-repair/villa-del-mar-ciudad-del-carmen-cam', '/buy/car-financing/austin-tx', '/buy/pre-owned-cars/houston-tx',
+    '/buy/cash-for-cars/dallas-tx']) assert.ok(offMarketPlace(p, ontario), p);
+  for (const p of ['/car-rental/ontario', '/car-rental/canada', '/car-rental/gta', '/car-rental/suv-rental/ontario', '/buy/toyota/mexico', '/car-rental/quebec-city-qc-extra/x/y'])
+    assert.equal(offMarketPlace(p, ontario), false, p);
+  assert.equal(offMarketPlace('/car-rental/quebec', ontario | (1 << CA_CODES.indexOf('qc'))), false, 'switched on: the app answers');
+  assert.equal(offMarketPlace('/car-rental/united-states', ontario | (1 << MARKET_US_BIT)), false);
+});

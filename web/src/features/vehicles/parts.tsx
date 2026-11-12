@@ -1,4 +1,5 @@
 import Link from '@/components/Link';
+import { alsoSearched } from '@/features/places/synonyms';
 import { CarCard } from '@/components/CarCard';
 import { Crumbs } from '@/components/Crumbs';
 import { Faq } from '@/components/Faq';
@@ -22,7 +23,10 @@ export function standIn(o: { path: string; group: string; vclass: string | null;
   return `/sample-photos/studio/${shapeFor(o.group, o.vclass)}/${o.paint ?? paintFor(o.path)}/lead/${encodeURIComponent(studioName(o.model) || 'CAR')}.svg`;
 }
 
-export function VehicleHead({ trail, h1, lead, img, alt, facts, cta = ['#inventory', 'See cars to rent'], photo = null }: { trail: Trail; h1: string; lead: string; img: string; alt: string; facts: Array<[string, string]>; cta?: [string, string]; photo?: StockPhoto | null }) {
+export function VehicleHead({ trail, h1, lead, img, alt, facts, cta = ['#inventory', 'See cars to rent'], photo = null, also }: { trail: Trail; h1: string; lead: string; img: string; alt: string; facts: Array<[string, string]>; cta?: [string, string]; photo?: StockPhoto | null;
+  /** 2402: the synonyms of the page's service group, shown as one line ("Also searched as: ...") */
+  also?: readonly string[] | null }) {
+  const alsoLine = alsoSearched(also);
   return (
     <section className="page-head on-dark vp-head">
       <div className="wrap vp-head__grid">
@@ -30,6 +34,7 @@ export function VehicleHead({ trail, h1, lead, img, alt, facts, cta = ['#invento
           <Crumbs trail={trail} />
           <h1 className="d1 vp-head__h1">{h1}</h1>
           <p className="lead muted">{lead}</p>
+          {alsoLine && <p className="small muted vp-head__also" data-testid="also-searched">{alsoLine}</p>}
           {facts.length > 0 && <dl className="keyspecs vp-head__facts">{facts.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>}
           <p className="vp-head__cta"><a className="btn btn--primary btn--lg" href={cta[0]}>{cta[1]}</a></p>
         </div>

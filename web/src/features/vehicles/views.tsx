@@ -56,7 +56,7 @@ export async function MakeView({ p }: { p: MakePage }) {
     <div className="p-vehicle" data-page="vehicle-make">
       <JsonLd graph={[breadcrumbLd(trail, p.path), faqLd(faq.map((q) => ({ question: F(q.question), answer: F(q.answer) }))),
         { '@type': 'ItemList', name: `${name} models`, itemListElement: p.models.slice(0, 100).map((m, i) => ({ '@type': 'ListItem', position: i + 1, url: siteUrl() + m.path, name: `${name} ${m.name}` })) }]} />
-      <VehicleHead trail={trail} h1={`Rent a ${name} in ${t.city}`} lead={lead} img={img} alt={`${name} in the studio, a representative image`} photo={photo}
+      <VehicleHead trail={trail} h1={`Rent a ${name} in ${t.city}`} lead={lead} img={img} alt={`${name} in the studio, a representative image`} photo={photo} also={p.also}
         facts={[['Models', String(p.models.length)], ['Years', years.length ? `${Math.min(...years)} to ${Math.max(...years)}` : ''], ['Our cars', String(p.inventory.exact.length)]].filter(([, v]) => v) as Array<[string, string]>} />
       <div className="wrap vp-body">
         <section className="vp-sec" aria-labelledby="h-models">
@@ -114,7 +114,7 @@ export async function ModelView({ p }: { p: ModelPage }) {
     <div className="p-vehicle" data-page="vehicle-model">
       <JsonLd graph={[breadcrumbLd(trail, p.path), productLd({ name, make: p.make.name, model: p.model.name, path: p.path, image: img, description: lead, inv: p.inventory, photo }),
         faqLd(faq.map((q) => ({ question: F(q.question), answer: F(q.answer) })))]} />
-      <VehicleHead trail={trail} h1={`Rent a ${name} in ${t.city}`} lead={lead} img={img} alt={`${name} in the studio, a representative image`} photo={photo}
+      <VehicleHead trail={trail} h1={`Rent a ${name} in ${t.city}`} lead={lead} img={img} alt={`${name} in the studio, a representative image`} photo={photo} also={p.also}
         facts={[['Years', ys.length ? `${Math.min(...ys)} to ${Math.max(...ys)}` : ''], ['Our cars', String(p.inventory.exact.length)], ...(price ? [['From', `${price} a day`]] : [])].filter(([, v]) => v) as Array<[string, string]>} />
       <div className="wrap vp-body">
         {p.years.length > 0 && <section className="vp-sec" aria-labelledby="h-years">
@@ -165,7 +165,7 @@ export async function YearView({ p }: { p: YearPage }) {
     <div className="p-vehicle" data-page="vehicle-year">
       <JsonLd graph={[breadcrumbLd(trail, p.path), productLd({ name, make: p.make.name, model: p.model.name, year: p.year, path: p.path, image: img, description: lead, inv: p.inventory,
         fuel: sp[0] ? fuelWord(sp[0].fuel) : undefined, body: p.vclass, photo }), faqLd(faq.map((q) => ({ question: F(q.question), answer: F(q.answer) })))]} />
-      <VehicleHead trail={trail} h1={`Rent a ${name} in ${t.city}`} lead={lead} img={img} alt={`${name} in the studio, a representative image`} photo={photo}
+      <VehicleHead trail={trail} h1={`Rent a ${name} in ${t.city}`} lead={lead} img={img} alt={`${name} in the studio, a representative image`} photo={photo} also={p.also}
         facts={[['Powertrains', String(sp.length || '')], ['Combined', sp.length ? ratingRange(sp).split(', or')[0]! : ''], ['Trims', String(p.trims.length || '')], ['Our cars', String(p.inventory.exact.length)]].filter(([, v]) => v) as Array<[string, string]>} />
       <div className="wrap vp-body">
         <section className="vp-sec" aria-labelledby="h-specs">
@@ -231,7 +231,7 @@ export async function TrimView({ p }: { p: TrimPage }) {
     <div className="p-vehicle" data-page="vehicle-trim">
       <JsonLd graph={[breadcrumbLd(trail, p.path), productLd({ name, make: p.make.name, model: p.model.name, year: p.year, trim: p.trim.name, path: p.path, image: img, description: lead, inv: p.inventory,
         fuel: sp[0] ? fuelWord(sp[0].fuel) : undefined, body: p.vclass, extra: vehicleProps(sp, dimsFor(p.dims, p.model.name, p.trim.name), seats), photo }), faqLd(faq.map((q) => ({ question: F(q.question), answer: F(q.answer) })))]} />
-      <VehicleHead trail={trail} h1={`Rent a ${name} in ${t.city}`} lead={lead} img={img} alt={`${name} in the studio, a representative image`} photo={photo}
+      <VehicleHead trail={trail} h1={`Rent a ${name} in ${t.city}`} lead={lead} img={img} alt={`${name} in the studio, a representative image`} photo={photo} also={p.also}
         facts={[['Engine', sp.length === 1 ? sp[0]!.engine : sp.length ? `${sp.length} choices` : ''], ['Combined', sp.length ? ratingRange(sp).split(', or')[0]! : ''],
           ['Trim', `${p.trim.rank} of ${p.siblings.length}`], ['Our cars', String(p.inventory.exact.length)]].filter(([, v]) => v) as Array<[string, string]>} />
       <div className="wrap vp-body">

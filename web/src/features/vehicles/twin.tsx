@@ -19,6 +19,7 @@ import { chooseText, writeKit } from '@/features/kit';
 import { KitText } from '@/features/kit/KitText';
 import { vehicleInput, vehicleKit } from '@/features/kit/pages';
 import { stockPhoto } from './photo';
+import { termTreeRedirect } from '@/features/places/synonyms';
 import { vehicleDepth } from '@/features/seo/depth-data';
 import { SiteReviews } from '@/features/seo/SiteReviews';
 import { DepthSections } from '@/features/seo/Depth';
@@ -46,6 +47,11 @@ const extras = cache(async (make: string, model: string | null, year: number | n
   ((await rpc('vehicle_buy_extras', { p_make: make, p_model: model as string, p_year: year as number, p_trim: trim as string })) as unknown as BuyExtras));
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const labelsOf = async () => Object.fromEntries((await getClasses()).map((c) => [c.code, c.label]));
+
+/** 2402: the 301 of a synonym's tree (/t/<synonym>/... to its group's tree, or /cars for the car rental group), else null. */
+export async function termRedirect(seg: string[], lang = ''): Promise<string | null> {
+  return termTreeRedirect(seg, (await getTiers()).synonyms, lang);
+}
 
 /** The tree of /t/<term> (404 for a term that is not active). */
 export async function termTree(slug: string): Promise<Tree> {
@@ -223,7 +229,7 @@ export async function TermIndex({ tree }: { tree: Tree }) {
   return (
     <div className="p-vehicle" data-page="term-index">
       <JsonLd graph={[breadcrumbLd(trail, tree.base)]} />
-      <VehicleHead trail={trail} h1={`${label}: every make, model, year and trim`} lead={`${label} for every car: its own figures from the EPA and NHTSA, by place and colour.`} img="/sample-photos/studio/sedan/grey/lead/CARMACARS.svg" alt="A car in the studio, a representative image" facts={[]} cta={['#h-makes', 'Choose a make']} />
+      <VehicleHead trail={trail} h1={`${label}: every make, model, year and trim`} lead={`${label} for every car: its own figures from the EPA and NHTSA, by place and colour.`} img="/sample-photos/studio/sedan/grey/lead/CARMACARS.svg" alt="A car in the studio, a representative image" facts={[]} cta={['#h-makes', 'Choose a make']} also={tree.term?.also} />
       <div className="wrap vp-body"><section className="vp-sec" aria-labelledby="h-makes"><h2 className="d3" id="h-makes">Makes</h2>
         <ul className="chips">{makes.map((m) => <li key={m.slug}><Link prefetch={false} className="chip" href={`${tree.base}/${m.slug}`}>{m.name}</Link></li>)}</ul></section></div>
     </div>
@@ -290,7 +296,7 @@ export async function TwinView(tw: Twin) {
   return (
     <div className="p-vehicle" data-page={`${tree.term ? `term-${mode}` : 'buy'}-${p.level.replace('_', '-')}`}>
       <JsonLd graph={[breadcrumbLd(trail, path), ...(ld ? [ld] : []), ...(faq.length ? [faqLd(faq)] : [])]} />
-      <VehicleHead trail={trail} h1={h1} lead={lead} img={img} alt={`${full} in the studio, a representative image`} photo={photo}
+      <VehicleHead trail={trail} h1={h1} lead={lead} img={img} alt={`${full} in the studio, a representative image`} photo={photo} also={tree.term?.also}
         cta={mode === 'sale' ? (x.for_sale.length ? ['#h-sale', 'See the cars for sale'] : ['#find', finance ? 'Ask about it' : 'Find me this car']) : svc ? ['#find', 'Request it'] : ['#inventory', 'See cars to rent']}
         facts={[...(mode === 'sale' ? [['For sale by us', String(x.for_sale.length)] as [string, string]] : []), ['Combined', sp.length ? ratingRange(sp).split(', or')[0]! : ''],
           ...(svc && bodyOf(p) ? [['Body', String(bodyOf(p))] as [string, string]] : []), ...(svc && lengthOf(p) ? [['Length', String(lengthOf(p))] as [string, string]] : []),

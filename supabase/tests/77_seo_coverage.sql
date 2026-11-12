@@ -6,22 +6,25 @@
 select test.suite('77 seo coverage');
 
 -- ================================================================ 1. the terms
+-- 2402: loaner, courtesy and replacement cars, Amazon Flex, car service, executive car service and auto repair joined their
+-- service groups (the rental while a car is in the shop, delivery driver rentals, chauffeur service, black car service, car repair)
 select test.eq('terms: the new own terms are in, each in its vertical',
   (select string_agg(slug || ':' || vertical || ':' || served, ',' order by slug) from place_terms where canonical_slug is null and slug = any (array[
      'car-rental-pickup', 'rental-car-while-car-is-in-the-shop', 'loaner-car', 'courtesy-car', 'replacement-car-rental', 'car-subscription', 'short-term-car-lease',
      'amazon-flex-car-rental', 'uber-black-car-rental', 'car-service', 'black-car-service', 'black-suv-service', 'executive-car-service', 'limo-service', 'airport-car-service',
      'new-cars', 'trucks-for-sale', 'suvs-for-sale', 'rent-to-own-cars', 'car-repair', 'auto-repair'])),
-  'airport-car-service:rental:request,amazon-flex-car-rental:rental:yes,auto-repair:bodyshop:yes,black-car-service:rental:request,black-suv-service:rental:request,'
-  || 'car-rental-pickup:rental:yes,car-repair:bodyshop:yes,car-service:rental:request,car-subscription:rental:yes,courtesy-car:rental:yes,executive-car-service:rental:request,'
-  || 'limo-service:rental:request,loaner-car:rental:yes,new-cars:sale:request,rent-to-own-cars:sale:request,rental-car-while-car-is-in-the-shop:rental:yes,'
-  || 'replacement-car-rental:rental:yes,short-term-car-lease:rental:yes,suvs-for-sale:sale:request,trucks-for-sale:sale:request,uber-black-car-rental:rental:yes');
-select test.eq('terms: the synonyms of 0115 (0121''s mechanical work aside, suite 78)', (select count(*)::integer from place_terms where canonical_slug is not null and lead_kind is distinct from 'auto_service'), 97);
+  'airport-car-service:rental:request,black-car-service:rental:request,black-suv-service:rental:request,'
+  || 'car-rental-pickup:rental:yes,car-repair:bodyshop:yes,car-subscription:rental:yes,'
+  || 'limo-service:rental:request,new-cars:sale:request,rent-to-own-cars:sale:request,rental-car-while-car-is-in-the-shop:rental:yes,'
+  || 'short-term-car-lease:rental:yes,suvs-for-sale:sale:request,trucks-for-sale:sale:request,uber-black-car-rental:rental:yes');
+select test.eq('terms: the synonyms of 0115 and the service groups of 2402 (0121''s mechanical work aside, suite 78)', (select count(*)::integer from place_terms where canonical_slug is not null and lead_kind is distinct from 'auto_service'), 152);
 select test.eq('terms: a synonym points to an own term of its own vertical (no chain, no other vertical)',
   (select count(*)::integer from place_terms s left join place_terms t on t.slug = s.canonical_slug
     where s.canonical_slug is not null and (t.slug is null or t.canonical_slug is not null or t.vertical <> s.vertical)), 0);
-select test.eq('terms: a synonym says what its term says (served, rules, landing page, service, lead kind, note)',
-  (select count(*)::integer from place_terms s join place_terms t on t.slug = s.canonical_slug
-    where (s.served, s.match, s.landing_slug, s.service_code, s.lead_kind, s.intent_note) is distinct from (t.served, t.match, t.landing_slug, t.service_code, t.lead_kind, t.intent_note)), 0);
+-- 2402: a synonym never shows a page of its own (it answers 301 with its group's page), so it can never say something else
+select test.eq('terms: a synonym never shows a page of its own (301 to its group''s page)',
+  (select count(*)::integer from place_terms s where s.canonical_slug is not null and s.is_active
+     and public.place_hub(s.vertical, s.slug, 'canada') ->> 'redirect' is distinct from app.place_hub_path(s.vertical, s.canonical_slug, 'canada')), 0);
 select test.eq('terms: the owner''s words each have a page or a synonym',
   (select string_agg(w, ',') from unnest(array['car-rental', 'cars-for-sale', 'car-financing', 'car-repair', 'car-service', 'car-detailing', 'uber-eats-car-rental',
      'uber-rental-car', 'black-truck-rental', 'black-truck-service', 'chauffeur-service', 'car-rental-delivery', 'car-rental-pickup', 'insurance-replacement-rental',
@@ -58,21 +61,21 @@ select test.eq('terms: no em or en dash in what a page says',
 -- ================================================================ 2. synonyms on the pages and in the sitemaps
 select test.eq('hub: a synonym''s page is served with its term''s page as canonical',
   (select public.place_hub('rental', 'car-rentals', 'canada') -> 'term' ->> 'canonical_path'), '/car-rental/canada');
-select test.eq('hub: a synonym''s page is never indexed', (select (public.place_hub('rental', 'car-rentals', 'canada') ->> 'indexable')::boolean), false);
+select test.eq('hub: a synonym''s page is never indexed: it answers 301 (2402)', (select public.place_hub('rental', 'car-rentals', 'canada') ->> 'redirect'), '/car-rental/canada');
 select test.eq('hub: a synonym of a buying term points to its term''s page',
-  (select public.place_hub('sale', 'car-loan', 'canada') -> 'term' ->> 'canonical_path'), '/buy/auto-loans/canada');
+  (select public.place_hub('sale', 'car-loan', 'canada') -> 'term' ->> 'canonical_path'), '/buy/car-financing/canada');
 select test.ok('hub: a new own term has its page, indexable as its tier allows',
-  (select public.place_hub('rental', 'loaner-car', 'canada') ->> 'path') = '/car-rental/loaner-car/canada');
+  (select public.place_hub('rental', 'rental-car-while-car-is-in-the-shop', 'canada') ->> 'path') = '/car-rental/rental-car-while-car-is-in-the-shop/canada');
 select test.eq('hub: a chauffeur term takes a request',
   (select public.place_hub('rental', 'black-car-service', 'canada') -> 'term' ->> 'lead_kind'), 'place_request');
 select test.eq('sitemaps: no synonym has a sitemap file',
   (select count(*)::integer from jsonb_array_elements(public.place_sitemap_files()) f join place_terms t on t.slug = f ->> 'term' where t.canonical_slug is not null), 0);
 select test.ok('sitemaps: the new own terms have their files',
-  (select count(distinct f ->> 'term') from jsonb_array_elements(public.place_sitemap_files()) f where f ->> 'term' in ('loaner-car', 'car-service', 'new-cars', 'car-repair')) = 4);
+  (select count(distinct f ->> 'term') from jsonb_array_elements(public.place_sitemap_files()) f where f ->> 'term' in ('rental-car-while-car-is-in-the-shop', 'black-car-service', 'new-cars', 'car-repair')) = 4);
 select test.eq('vehicle pages: synonyms have no tree of their own',
   (select count(*)::integer from app.vpage_terms() v join place_terms t on t.slug = v.slug where t.canonical_slug is not null), 0);
 select test.ok('vehicle pages: the new own terms each have a tree',
-  (select count(*) from app.vpage_terms() where slug in ('loaner-car', 'car-service', 'new-cars', 'car-repair')) = 4);
+  (select count(*) from app.vpage_terms() where slug in ('rental-car-while-car-is-in-the-shop', 'black-car-service', 'new-cars', 'car-repair')) = 4);
 select test.ok('the public term list: own terms only', not exists (select 1 from jsonb_array_elements(public.place_terms_public()) e join place_terms t on t.slug = e ->> 'slug' where t.canonical_slug is not null));
 
 -- ================================================================ 3. the catalog
@@ -90,7 +93,7 @@ select test.ok('priority sitemap: the refresh runs and the file reads the store'
 select test.ok('priority sitemap: at most 49,500 addresses, no synonym, every make page first',
   jsonb_array_length(public.sitemap_priority()) <= 49500
   and not exists (select 1 from jsonb_array_elements(public.sitemap_priority()) e join place_terms t on t.canonical_slug is not null
-                   and (e ->> 'path') like '%/' || t.slug || '/%')
+                   and (e ->> 'path') ~ ('^/(car-rental|buy|detailing|body-shop)/' || t.slug || '/'))
   and coalesce((select min(c.sort) from app.sitemap_priority_cache c where c.path !~ '^/cars/[a-z0-9-]+$'), 2147483647)
       > coalesce((select max(c.sort) from app.sitemap_priority_cache c where c.path ~ '^/cars/[a-z0-9-]+$'), 0));
 select test.eq('priority sitemap: only the stored vehicle pages (indexed ones)',

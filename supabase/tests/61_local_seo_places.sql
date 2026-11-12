@@ -45,8 +45,8 @@ select test.ok('rating: none below seo_rating_min_reviews published reviews',
   public.business_rating() is null or ((public.business_rating() ->> 'count')::integer >= (app.settings()).seo_rating_min_reviews));
 
 -- ================================================================ 3. places
-select test.eq('regions: Canada 13, the United States 56 (states, DC, territories), Mexico 32; Canada on (2350: our market)',
-  (select string_agg(country || '=' || n || '/' || on_, ',' order by country) from (select country, count(*) n, bool_and(is_enabled) on_ from place_regions group by country) x), 'CA=13/true,MX=32/false,US=56/false');
+select test.eq('regions: Canada 13, the United States 56 (states, DC, territories), Mexico 32; Ontario alone on (2402: our market)',
+  (select string_agg(country || '=' || n || '/' || on_, ',' order by country) from (select country, count(*) n, coalesce(string_agg(code, ' ') filter (where is_enabled), '') on_ from place_regions group by country) x), 'CA=13/CA-ON,MX=32/,US=56/');
 select test.eq('places: the curated top', (select string_agg(slug || ':' || app.place_kind(kind), ',' order by id) from places where flags & 16 <> 0 and slug in ('canada', 'united-states', 'mexico', 'ontario', 'gta')),
   'canada:country,united-states:country,mexico:country,ontario:province,gta:area');
 select test.ok('places: the size cap is 6 GB by default', (app.settings()).place_db_cap_mb = 6144);
@@ -76,8 +76,8 @@ select test.eq('finish: the airport is the place of the landing page with its co
 select test.ok('budget: the database size and the cap', (public.server_places_budget() ->> 'cap_bytes')::bigint = 6144::bigint * 1048576);
 
 -- ================================================================ 4. terms
-select test.eq('terms with pages of their own: rental 31, 36 more (0098), 15 more (0115) and the 3 alternatives (0522) and the 2 01 Motors terms (1102), buying help 14 and 4 more (0115), detailing 27, body shop 20 and 2 more (0115) and 20 for the mechanical work we arrange (0121); synonyms are counted in suites 77 and 78',
-  (select string_agg(vertical || '=' || n, ',' order by vertical) from (select vertical, count(*) n from place_terms where canonical_slug is null group by vertical) x), 'bodyshop=42,detailing=27,rental=87,sale=18');
+select test.eq('terms with pages of their own: rental 31, 36 more (0098), 15 more (0115) and the 3 alternatives (0522) and the 2 01 Motors terms (1102), buying help 14 and 4 more (0115), detailing 27, body shop 20 and 2 more (0115) and 20 for the mechanical work we arrange (0121); synonyms are counted in suites 77 and 78; 2402 grouped the same search intent (rental 32, buying help 4, detailing 9 and body shop 10 joined their groups)',
+  (select string_agg(vertical || '=' || n, ',' order by vertical) from (select vertical, count(*) n from place_terms where canonical_slug is null group by vertical) x), 'bodyshop=32,detailing=18,rental=55,sale=14');
 select test.ok('terms: buying help always takes a request, never "served"', not exists (select 1 from place_terms where vertical = 'sale' and served <> 'request'));
 select test.ok('terms (0098): every rideshare and delivery page says the companies named are not affiliated',
   not exists (select 1 from place_terms where slug in ('uber-rental-car', 'lyft-rental-car', 'rideshare-car-rental', 'uber-eats-car-rental', 'doordash-car-rental',
@@ -134,9 +134,9 @@ select test.throws('request: a way to reply is required', $$select public.submit
 select public.door(test.id('lp_admin'), null, 'admin_do', 'place_settings_save', '{"region": "MX-JAL", "enabled": false, "place_delivery_reach_km": 60}');
 select test.eq('door: an Admin switches a region off and sets the reach', (select (not is_enabled)::text from place_regions where code = 'MX-JAL') || '/' || (app.settings()).place_delivery_reach_km, 'true/60');
 select public.door(test.id('lp_admin'), null, 'admin_do', 'place_settings_save', '{"region": "MX-JAL", "enabled": false, "place_delivery_reach_km": 80}');
-select public.door(test.id('lp_admin'), null, 'admin_do', 'place_term_save', '{"slug": "car-hire", "canonical_slug": "car-rental"}');
-select test.eq('door: a synonym points to its term; its pages are not indexed', (public.place_hub('rental', 'car-hire', 'lp-port-credit-mississauga-on') -> 'term' ->> 'canonical_path'), '/car-rental/lp-port-credit-mississauga-on');
-select public.door(test.id('lp_admin'), null, 'admin_do', 'place_term_save', '{"slug": "car-hire", "canonical_slug": ""}');
+select public.door(test.id('lp_admin'), null, 'admin_do', 'place_term_save', '{"slug": "weekend-car-rental", "canonical_slug": "car-rental"}');
+select test.eq('door: a synonym points to its term; its pages are not indexed', (public.place_hub('rental', 'weekend-car-rental', 'lp-port-credit-mississauga-on') -> 'term' ->> 'canonical_path'), '/car-rental/lp-port-credit-mississauga-on');
+select public.door(test.id('lp_admin'), null, 'admin_do', 'place_term_save', '{"slug": "weekend-car-rental", "canonical_slug": ""}');
 select test.throws('door: a long dash is refused in a note', format($$select public.door(%L, null, 'admin_do', 'place_term_save', jsonb_build_object('slug', 'wax', 'intent_note', 'Wax ' || chr(8212) || ' shine'))$$, test.id('lp_admin')), 'long dashes');
 select public.door(test.id('lp_admin'), null, 'admin_do', 'shop_service_save', '{"code": "glass", "from_price_cents": 9900}');
 select test.eq('door: a starting price on a service', (select from_price_cents from shop_services where code = 'glass'), 9900::bigint);

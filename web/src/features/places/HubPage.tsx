@@ -11,6 +11,7 @@ import { chooseText, mergeFaq, writeKit } from '@/features/kit';
 import { KitText } from '@/features/kit/KitText';
 import { hubKit } from '@/features/kit/pages';
 import { hubCopy, isAutoService, placeLabel } from './copy';
+import { alsoSearched } from './synonyms';
 import { getTerms, hubPath, VERTICAL_ROOT, type Hub, type Vertical } from './data';
 import { PlaceLeadForm, type Kind } from './PlaceLeadForm';
 import { genericPhoto, photoLd, StockFigure } from '@/features/vehicles/photo';
@@ -102,6 +103,10 @@ export async function HubPage({ h }: { h: Hub }) {
           <Crumbs trail={trail} />
           <h1 className="d1 landing__h1">{c.h1}</h1>
           {c.lead.map((x, i) => <p key={i} className="lead muted">{x}</p>)}
+          {/* 2402: the group's synonyms, one page for all of them */}
+          {alsoSearched(h.term.synonyms) && <p className="small muted landing__also" data-testid="also-searched">{alsoSearched(h.term.synonyms)}</p>}
+          {/* 2402: a country page says where we operate (the provinces that are on: Ontario) */}
+          {(h.operating?.length ?? 0) > 0 && <p className="small landing__operating" data-testid="operating-in">We operate in {h.operating!.map((x, i) => <span key={x.slug}>{i > 0 ? ', ' : ''}<Link prefetch={false} className="link" href={hubPath(v, h.term.slug, x.slug)}>{x.name}</Link></span>)}.</p>}
           {h.disclaimer && <p className="small muted" data-testid="sale-disclaimer">{h.disclaimer}</p>}
           <p className="row landing__cta">
             {v === 'rental' && h.term.served === 'yes'

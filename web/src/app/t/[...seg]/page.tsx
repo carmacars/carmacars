@@ -1,15 +1,20 @@
 import { seoMeta } from '@/features/seo/meta';
-import { TermIndex, TwinView, termTree, twinMeta, twinPage } from '@/features/vehicles/twin';
+import { permanentRedirect } from 'next/navigation';
+import { TermIndex, TwinView, termRedirect, termTree, twinMeta, twinPage } from '@/features/vehicles/twin';
 import { fill, getTokens } from '@/lib/site';
 
 // A search term's twin of every vehicle page (migration 0097): /t/<term>/<make>[/<model>[/<year>[/<trim>[/<place>[/<colour>]]]]]
 // ("car hire", "financing", "ceramic coating", "bumper repair": the active search terms), and /t/<term> listing the
-// makes. Rendered on demand with no ISR entry; the Worker's edge copy keeps it for 6 hours.
+// makes. Rendered on demand with no ISR entry; the Worker's edge copy keeps it for 6 hours. A synonym of a service group
+// (2402: car hire, auto detailing) answers 301 with its group's tree, /cars for the car rental group.
 export const dynamic = 'force-dynamic';
 type Params = { params: Promise<{ seg: string[] }> };
 
 export async function generateMetadata({ params }: Params) {
-  const [term, ...rest] = (await params).seg;
+  const seg = (await params).seg;
+  const to = await termRedirect(seg);
+  if (to) permanentRedirect(to);
+  const [term, ...rest] = seg;
   const tree = await termTree(term ?? '');
   if (!rest.length) {
     const t = await getTokens();
@@ -19,7 +24,10 @@ export async function generateMetadata({ params }: Params) {
   return twinMeta(await twinPage(tree, rest));
 }
 export default async function Page({ params }: Params) {
-  const [term, ...rest] = (await params).seg;
+  const seg = (await params).seg;
+  const to = await termRedirect(seg);
+  if (to) permanentRedirect(to);
+  const [term, ...rest] = seg;
   const tree = await termTree(term ?? '');
   if (!rest.length) return <TermIndex tree={tree} />;
   return <TwinView {...await twinPage(tree, rest)} />;

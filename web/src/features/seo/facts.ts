@@ -16,7 +16,8 @@ const latest = (xs: Array<string | null | undefined>) => xs.map(day).filter((x):
 const minOf = (xs: number[]) => (xs.length ? Math.min(...xs) : null);
 
 // the rideshare and delivery-work rental terms (0098); the companies are named only to describe the work
-const WORK_TERMS = ['uber-rental-car', 'uber-eats-car-rental', 'rideshare-car-rental'];
+// 2402: the rideshare and delivery groups (Lyft, rideshare, DoorDash and the others are their synonyms)
+const WORK_TERMS = ['uber-rental-car', 'uber-eats-car-rental'];
 
 export const getEntityFacts = cache(async (): Promise<EntityFacts> => {
   const [s, f, t, fleet, classes, pages, articles, faq, chauffeur, known] = await Promise.all([
@@ -43,7 +44,7 @@ export const getEntityFacts = cache(async (): Promise<EntityFacts> => {
     { name: 'Delivery to your door or the airport', path: '/delivery' },
     ...(ch ? [{ name: 'Chauffeur service by the hour', path: '/chauffeur' }] : []),
     ...ix.filter((p) => p.slug === 'insurance-replacement').map((p) => ({ name: 'Insurance replacement rental', path: p.path, note: 'A car while yours is repaired; we can bill your insurer when the adjuster approves' })),
-    ...(toronto ? WORK_TERMS.map((slug) => ({ name: slug === 'uber-eats-car-rental' ? 'Car rental for Uber Eats and delivery work' : slug === 'uber-rental-car' ? 'Car rental for Uber drivers' : 'Rideshare car rental',
+    ...(toronto ? WORK_TERMS.map((slug) => ({ name: slug === 'uber-eats-car-rental' ? 'Car rental for Uber Eats and delivery work' : 'Car rental for Uber and rideshare drivers',
       path: hubPath('rental', slug, 'toronto'), note: 'Weekly and monthly rates; not affiliated with or endorsed by Uber or any other platform' })) : []),
     { name: 'Car detailing', path: '/detailing' },
     { name: 'Auto body shop and collision repair', path: '/body-shop' },

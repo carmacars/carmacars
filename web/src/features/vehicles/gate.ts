@@ -2,7 +2,9 @@
 // gate.test.ts and supabase/tests/55_vehicle_pages.sql). "all" (the owner's default, October 21, 2026) indexes every
 // page; "rules" indexes makes, models with enough years of data or one of our real cars, years with enough of our real
 // cars or of a popular model from the set year, and trims with enough of our real cars.
-export type GateSettings = { index_mode: 'all' | 'rules'; model_min_years: number; popular_from_year: number; year_min_cars: number; trim_min_cars: number };
+export type GateSettings = { index_mode: 'all' | 'rules'; model_min_years: number; popular_from_year: number; year_min_cars: number; trim_min_cars: number;
+  /** 2402: the oldest model year with pages (older years have none: 404, in no sitemap) */
+  min_year?: number };
 export type Level = 'make' | 'model' | 'year' | 'trim';
 
 export function vpageGate(level: Level, o: { years?: number; realCars?: number; popular?: boolean; year?: number }, s: GateSettings): boolean {
@@ -24,8 +26,10 @@ export function parentPath(path: string): string {
 
 /** The rules in words, for Admin > Settings > Vehicle pages. */
 export function gateRules(s: GateSettings): Array<[Level, string]> {
-  if (s.index_mode === 'all') return [['make', 'Every page is indexed and in the sitemaps, with its own canonical (the default).']];
-  return [
+  // 2402: the model years before the oldest one have no page at all
+  const years: Array<[Level, string]> = s.min_year ? [['year', `Model years from ${s.min_year} only: older years have no page.`]] : [];
+  if (s.index_mode === 'all') return [['make', 'Every page is indexed and in the sitemaps, with its own canonical (the default).'], ...years];
+  return [...years,
     ['make', 'Every make page.'],
     ['model', `Models with ${s.model_min_years} or more years of data, or one of our real cars.`],
     ['year', `Years with ${s.year_min_cars} or more of our real cars of that year, or of a popular model from ${s.popular_from_year} on.`],

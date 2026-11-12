@@ -15,7 +15,7 @@ import '@/styles/vehicles.css';
 // /detailing and /body-shop (migration 0095): the services CarmaCars offers, a starting price only when an Admin set
 // one, the area we work in, a request, and rentals first: a car to drive while yours is with us.
 // The hubs' titles name what they cover: the place page of their first term in Toronto (/detailing/car-detailing/toronto,
-// /body-shop/auto-body-shop/toronto) is titled "<Term> in Toronto | CarmaCars", and two pages never share a title.
+// /body-shop/collision-repair/toronto) is titled "<Term> in Toronto | CarmaCars", and two pages never share a title.
 const COPY = {
   detailing: { path: '/detailing', label: 'Detailing', title: 'Car Detailing in Toronto: Ceramic, Tint, PPF | CarmaCars', h1: 'Car detailing in Toronto',
     lead: 'Interior and exterior detailing, paint correction and ceramic coating, mobile detailing at your place, window tint, PPF and wraps.',
@@ -24,7 +24,7 @@ const COPY = {
   bodyshop: { path: '/body-shop', label: 'Body shop', title: 'Auto Body Shop in Toronto: Collision, Dents, Paint | CarmaCars', h1: 'Auto body shop in Toronto',
     lead: 'Collision and accident repair, dents and scratches, bumpers, painting and rust repair, and windshield repair.',
     rent: ['Your car is in the shop? Get an insurance replacement rental, delivered.', 'When your adjuster approves a rental, we can bill your insurance company directly.', '/car-rental/insurance-replacement'],
-    terms: ['collision-repair', 'auto-body-shop', 'dent-repair', 'paintless-dent-repair', 'bumper-repair', 'scratch-repair', 'car-painting', 'windshield-repair'] }
+    terms: ['collision-repair', 'car-repair', 'dent-repair', 'paintless-dent-repair', 'bumper-repair', 'scratch-repair', 'car-painting', 'windshield-repair'] }
 } as const;
 
 export async function serviceMeta(v: 'detailing' | 'bodyshop') {

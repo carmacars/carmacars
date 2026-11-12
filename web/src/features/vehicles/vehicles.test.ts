@@ -74,6 +74,9 @@ test('the gate: everything indexed by default; the rules when an Admin turns the
   assert.equal(parentPath('/cars/volkswagen/jetta'), '/cars/volkswagen');
   assert.equal(gateRules(all).length, 1);
   assert.equal(gateRules(r).length, 4);
+  // 2402: the oldest model year with pages is said first
+  assert.equal(gateRules({ ...all, min_year: 2005 }).length, 2);
+  assert.match(gateRules({ ...r, min_year: 2005 })[0]![1], /from 2005 only/);
 });
 
 test('EPA model words beyond the base model tie a trim to a powertrain', () => {

@@ -15,7 +15,11 @@ export interface JobsDue { /** r37 (2303) */ meet?: boolean; listing: boolean; s
   /** R23: the search scope is Core (crawlers kept to the crawl scope at the edge, bot-shield.ts shield) */
   search_core?: boolean;
   /** 2350: a place region outside Canada is on (the Worker then leaves US and Mexican place pages to the app). */
-  place_foreign?: boolean }
+  place_foreign?: boolean;
+  /** 2402: the place regions that are on (app.place_market_mask), for the edge 404 of the place pages of the others */
+  place_market?: number;
+  /** 2402: the oldest model year with vehicle pages (Program setting vpage_min_year), for the edge 404 of older years */
+  vpage_min_year?: number }
 
 export async function jobsToRun(env: Record<string, unknown>, f: typeof fetch = fetch): Promise<JobsDue> {
   // reviews (the Google reviews sync, 0146) only when the database says so: it calls Google's API
@@ -28,7 +32,7 @@ export async function jobsToRun(env: Record<string, unknown>, f: typeof fetch = 
       signal: AbortSignal.timeout(5000)
     });
     if (!r.ok) return all;
-    const d = (await r.json()) as { listing?: unknown; seo?: unknown; pdf?: unknown; phone?: unknown; turo?: unknown; agreements?: unknown; reviews?: unknown; meet?: unknown; crm?: unknown; deposits?: unknown; ads?: unknown; interviews?: unknown; car_values?: unknown; cpu_guard?: unknown; cached_only?: unknown; search_scope?: unknown; place_foreign?: unknown } | null;
+    const d = (await r.json()) as { listing?: unknown; seo?: unknown; pdf?: unknown; phone?: unknown; turo?: unknown; agreements?: unknown; reviews?: unknown; meet?: unknown; crm?: unknown; deposits?: unknown; ads?: unknown; interviews?: unknown; car_values?: unknown; cpu_guard?: unknown; cached_only?: unknown; search_scope?: unknown; place_foreign?: unknown; place_market?: unknown; vpage_min_year?: unknown } | null;
     if (!d || typeof d !== 'object') return all;
     // pdf: the signed copies waiting (0077); phone: texts and call summaries due (0085); turo: Turo emails waiting for
     // their car to match again (0088)
@@ -36,7 +40,9 @@ export async function jobsToRun(env: Record<string, unknown>, f: typeof fetch = 
     // connected and not run for 6 hours (0146); crm: a partner CRM link due a sync (0147); deposits: a card hold to capture
     // before it lapses, a money step waiting for Stripe, or the day's balance follow-up (0155; run when in doubt: money);
     // ads: the posted ads, the week's social drafts and Meta publishing (0167), only when the database says so
-    return { listing: d.listing !== false, seo: d.seo !== false, pdf: d.pdf !== false, phone: d.phone !== false, turo: d.turo === true, agreements: d.agreements !== false, reviews: d.reviews === true, ...(d.meet === true ? { meet: true } : {}), crm: d.crm === true, deposits: d.deposits !== false, ads: d.ads === true, interviews: d.interviews === true, car_values: d.car_values === true, cpu_guard: d.cpu_guard === true, cached_only: d.cached_only === true, search_core: d.search_scope === 'core', place_foreign: d.place_foreign === true, checked: true };
+    return { listing: d.listing !== false, seo: d.seo !== false, pdf: d.pdf !== false, phone: d.phone !== false, turo: d.turo === true, agreements: d.agreements !== false, reviews: d.reviews === true, ...(d.meet === true ? { meet: true } : {}), crm: d.crm === true, deposits: d.deposits !== false, ads: d.ads === true, interviews: d.interviews === true, car_values: d.car_values === true, cpu_guard: d.cpu_guard === true, cached_only: d.cached_only === true, search_core: d.search_scope === 'core', place_foreign: d.place_foreign === true,
+      ...(Number.isInteger(d.place_market) && (d.place_market as number) >= 0 ? { place_market: d.place_market as number } : {}),
+      ...(Number.isInteger(d.vpage_min_year) && (d.vpage_min_year as number) > 0 ? { vpage_min_year: d.vpage_min_year as number } : {}), checked: true };
   } catch {
     return all;
   }

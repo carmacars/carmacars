@@ -12,7 +12,7 @@ import { parseCookieHeader, readSession } from './src/lib/auth/session-cookie';
 import { BEACON_GIVE_UP_MS, BEACON_WAIT_MS, BEAT_WAIT_MS, MAX_BEACON_BYTES, cleanBeacon, cleanBeat, emailLinkCookie, ipKey, isBeat, isBot, within } from './src/lib/track/shared';
 import { SCHEMA_HEADER, SCHEMA_MARKER } from './src/lib/schema-marker';
 import { EDGE_CACHE_NAME, STALE_HEADER, STALE_TTL_S, busyPage, crawlerCopy, hasSession, deploymentOf, edgeKey, isProbe, serveEdge, staleKey } from './src/lib/edge/page-cache';
-import { BUSY_KEY, BUSY_MS, BusyMeter, PLACE_FOREIGN_KEY, USAGE_CACHED_KEY, checkPage, foreignPlacePage, httpsRedirect, longTail, outOfMarket, renderFailed, scraperGuard, tailServing, tooMany, verifiedSearchEngine } from './src/lib/edge/scraper-guard';
+import { BUSY_KEY, BUSY_MS, BusyMeter, PLACE_FOREIGN_KEY, PLACE_MARKET_KEY, USAGE_CACHED_KEY, VPAGE_MIN_YEAR_KEY, checkPage, httpsRedirect, longTail, marketOf, marketStored, offMarketPlace, oldModelYear, oldYearGone, outOfMarket, placeRegionBit, renderFailed, scraperGuard, tailServing, tooMany, vehiclePageYear, verifiedSearchEngine } from './src/lib/edge/scraper-guard';
 import { jobsToRun, pushWaiting } from './src/lib/edge/cron-gate';
 import { RATE_LIMITED_BOT, isCrawler, keptToScope, shield, shieldResponse } from './src/lib/edge/bot-shield';
 import { CPU_GUARD_KEY, SEARCH_SCOPE_KEY, FLEET_SIG_CONFIRM_KEY, FLEET_SIG_KEY, fleetRows, signatureOf } from './src/lib/edge/fleet-sig';
@@ -49,6 +49,16 @@ async function flag(env: Env, key: string): Promise<boolean> {
   if (f && now - f.at < 30_000) return f.v;
   const v = (await readNumber(env, key).catch(() => null)) === 1;
   flagSeen.set(key, { at: now, v });
+  return v;
+}
+/** 2402: a number of the tag store (the market mask, the oldest model year), read at most every 30 s per isolate */
+const numberSeen = new Map<string, { at: number; v: number }>();
+async function storedNumber(env: Env, key: string): Promise<number> {
+  const now = Date.now();
+  const f = numberSeen.get(key);
+  if (f && now - f.at < 30_000) return f.v;
+  const v = (await readNumber(env, key).catch(() => null)) ?? 0;
+  numberSeen.set(key, { at: now, v });
   return v;
 }
 
@@ -279,6 +289,9 @@ const worker = {
       // Mexican place page 404 before the app loads
       const foreign = due.place_foreign ? 1 : 0;
       if ((await readNumber(env, PLACE_FOREIGN_KEY)) !== foreign) await writeNumber(env, PLACE_FOREIGN_KEY, foreign);
+      // 2402: the regions that are on (stored plus one) and the oldest model year with vehicle pages, for the edge 404s
+      if (due.place_market !== undefined && (await readNumber(env, PLACE_MARKET_KEY)) !== marketStored(due.place_market)) await writeNumber(env, PLACE_MARKET_KEY, marketStored(due.place_market));
+      if (due.vpage_min_year !== undefined && (await readNumber(env, VPAGE_MIN_YEAR_KEY)) !== due.vpage_min_year) await writeNumber(env, VPAGE_MIN_YEAR_KEY, due.vpage_min_year);
     })().catch(() => undefined));
     if (due.listing) run('/api/jobs/listing');
     // the search copy (cars, landing pages, articles) and IndexNow (migration 0061)
@@ -364,9 +377,14 @@ const worker = {
     // 0324: every crawler reaches every page (the owner's decision); while the month's crawler guard is on (CPU_GUARD_KEY,
     // the database's projected CPU cost above crawler_guard_usd), a crawler that is not a search or answer crawler is kept
     // to the crawl scope (bot-shield.ts keptToScope)
-    // 2350: a place page outside our market (a US or Mexican place while every region outside Canada is off): 404 here,
-    // kept a day by the caches, never a render (they were most of the crawl and many answered 503)
-    if ((request.method === 'GET' || request.method === 'HEAD') && foreignPlacePage(path) && !(await flag(env, PLACE_FOREIGN_KEY))) return outOfMarket(securityHeaders());
+    // 2350: a place page outside our market: 404 here, kept a day by the caches, never a render (they were most of the
+    // crawl and many answered 503).
+    // 2402: any region that is off (release 40 keeps the place pages to Ontario), from the tick's mask; and a vehicle page of
+    // a model year below the oldest one with pages (Program setting vpage_min_year). The tag store is read only for such an address.
+    if (request.method === 'GET' || request.method === 'HEAD') {
+      if (placeRegionBit(path) !== null && offMarketPlace(path, marketOf(await storedNumber(env, PLACE_MARKET_KEY)))) return outOfMarket(securityHeaders());
+      if (vehiclePageYear(path) !== null && oldModelYear(path, await storedNumber(env, VPAGE_MIN_YEAR_KEY))) return oldYearGone(securityHeaders());
+    }
     const ua0 = request.headers.get('user-agent');
     const core = await keptToScope(ua0, path, () => flag(env, SEARCH_SCOPE_KEY), () => flag(env, CPU_GUARD_KEY));
     const sh = shield(request.method, request.url, ua0, core);
