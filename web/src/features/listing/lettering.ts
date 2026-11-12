@@ -5,7 +5,6 @@
 // presets/ghost-glyphs.json (scripts/gen-ghost-glyphs.py), the PNG is written here, deflate by CompressionStream.
 import glyphData from './presets/ghost-glyphs.json' with { type: 'json' };
 import { letteringName } from '../car/studio.ts';
-import { NAMED_EXTERIOR } from './photo-sort.ts';
 
 type Glyphs = { unitsPerEm: number; glyphs: Record<string, { advance: number; contours: number[][][] }> };
 const G = glyphData as unknown as Glyphs;
@@ -14,11 +13,11 @@ const G = glyphData as unknown as Glyphs;
 export { letteringName };
 /** r33 (0700): the model's name is lettered behind real photos again (r31 had it off). */
 export const LETTER_REAL_PHOTOS = true;
-/** The outside views the sample photos letter the model's name behind (car/studio.ts: lead, side, rear three-quarter,
- *  front, rear); the cover is lettered whatever its shot. Not the extra outside photos. */
-export const LETTER_SHOTS: readonly string[] = NAMED_EXTERIOR;
+/** r40: no outside view is lettered by its shot any more (the owner, Nov 12: only the first photo carries the name). */
+export const LETTER_SHOTS: readonly string[] = [];
+/** r40: only the cover (the first photo) of a car has the model's name behind it; every other photo is the plain room. */
 export const letterThis = (p: { rebackground: boolean; shot_type: string; is_cover?: boolean }) =>
-  LETTER_REAL_PHOTOS && p.rebackground && (LETTER_SHOTS.includes(p.shot_type) || !!p.is_cover);
+  LETTER_REAL_PHOTOS && p.rebackground && !!p.is_cover;
 export const LETTERING = { width: 1800, height: 360, top: 348, frameWidth: 1800, frameHeight: 1200 } as const;
 const BASELINE = 648 - LETTERING.top;   // floor line 888 minus 20% of the height
 const FONT_SIZE = 360;

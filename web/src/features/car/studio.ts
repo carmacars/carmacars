@@ -231,11 +231,11 @@ export function carShot(c: Car, shot: string, w: number, h: number, slateText?: 
   if (shot === 'seats') return studio(w, h, { slate, ghost: false, content: () => box(interior('seats')) });
   if (shot === 'wheel') return studio(w, h, { slate, ghost: false, content: () => box(wheelDetail(c.paint)) });
   if (shot === 'front' || shot === 'rear') {
-    return studio(w, h, { slate, name: c.model, content: (W: number, H: number, fy: number) => place(carEnd(c.shape, c.paint, shot === 'rear'), { w: W, lw: 600, scale: 0.52, cx: W / 2, fy }) });
+    return studio(w, h, { slate, content: (W: number, H: number, fy: number) => place(carEnd(c.shape, c.paint, shot === 'rear'), { w: W, lw: 600, scale: 0.52, cx: W / 2, fy }) });
   }
   const flip = shot === 'rear34';
   const scale = shot === 'side' ? 0.8 : 0.9; const cxk = shot === 'lead' ? 0.52 : shot === 'rear34' ? 0.48 : 0.5;
-  return studio(w, h, { slate, name: c.model, spotX: cxk, content: (W: number, H: number, fy: number) => {
+  return studio(w, h, { slate, ...(shot === 'lead' ? { name: c.model } : {}), spotX: cxk, content: (W: number, H: number, fy: number) => {
     const o = { w: W, lw: 1000, scale, cx: W * cxk, fy };
     const inner = carSide(c.shape, c.paint, { flip });
     return reflect(inner, o) + place(inner, o);
@@ -287,16 +287,43 @@ export function studioLettering(name: string): { lines: Array<{ text: string; si
 export const STUDIO_SHOT_TYPE: Record<string, string> = { lead: 'front_left', side: 'left', rear34: 'rear_left', front: 'front', rear: 'rear', dash: 'dashboard', seats: 'front_seats', wheel: 'wheel' };
 /** The lettering behind the car: the model's name, as the sample cars show it (letters, digits, spaces and - & . / only). */
 export const studioName = (s: string) => s.toUpperCase().replace(/[^A-Z0-9 &./-]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 24);
-/** r33 (0700): the word lettered behind the car from the car's model (vehicles.model, the family as the maker names it:
- *  0520). A Mercedes class of one letter keeps the word ("C-Class": C CLASS, "A-Class": A CLASS); a longer one is its
- *  letters alone ("CLA-Class": CLA, "GLA-Class": GLA), which r31 lettered "CLA CLASS"; anything else as studioName
- *  (AMG GT, CTS, F-150, CR-V). Idempotent. */
+/** The longest name lettered behind a car (characters), so it stays big enough to read and fits the wall. */
+export const LETTER_NAME_MAX = 18;
+const MAKES = /^(?:MERCEDES(?:[- ]BENZ)?|LAND ROVER|VOLKSWAGEN|CHEVROLET|ROLLS[- ]ROYCE|ASTON MARTIN|ALFA ROMEO|MINI|BMW|AUDI|PORSCHE|TOYOTA|HONDA|FORD|NISSAN|HYUNDAI|KIA|MAZDA|SUBARU|LEXUS|ACURA|INFINITI|CADILLAC|GMC|JEEP|DODGE|RAM|TESLA|VOLVO|JAGUAR|BENTLEY|LAMBORGHINI|FERRARI|MASERATI|GENESIS|LINCOLN|BUICK|CHRYSLER|VW|CHEVY)(?=[ -]|$)[ -]*/;
+/** Words that say the body, drive or trim, not the model: left out of the lettering. */
+const DROP = new Set(['COUPE', 'SEDAN', '4-DOOR', '2-DOOR', '4DOOR', '2DOOR', 'GRAN', 'SPORTBACK', 'CABRIOLET', 'CONVERTIBLE', 'ROADSTER', 'HATCHBACK', 'WAGON',
+  'ESTATE', 'SUV', 'SAV', 'SAC', 'AVANT', 'LIFTBACK', 'CREW', 'CAB', '4MATIC', '4MATIC+', 'XDRIVE', 'AWD', '4WD', 'FWD', 'RWD', 'COMFORTLINE', 'HIGHLINE', 'TRENDLINE',
+  'EXECLINE', 'LIMITED', 'PREMIUM', 'LUXURY', 'TECHNIK', 'STINGRAY', 'BASE', 'EDITION']);
+/** r33 (0700), r40: the short word lettered behind the cover photo from the car's model. Owner, Nov 12: the name was too long.
+ *  The year, the maker, body styles, drive and trims go ("2024 Volkswagen Jetta Comfortline Sport": JETTA; "Mercedes-Benz GLC
+ *  GLC43 AMG Coupe": GLC43 AMG); a class word the model code repeats goes ("S-Class Maybach S580": MAYBACH S580, "AMG GT GT53
+ *  4-Door Coupe": AMG GT 53, "BMW 4 Series M440i Gran Coupe": M440I); an engine (V8) goes; at most LETTER_NAME_MAX characters.
+ *  A Mercedes class of one letter keeps the word when no code follows ("C-Class": C CLASS); a longer one is its letters alone
+ *  ("CLA-Class": CLA); anything else as is (AMG GT, CTS, F-150, CR-V). Idempotent. */
 export function letteringName(model: string): string {
-  const s = studioName(model ?? '');
-  const m = /^([A-Z]{1,4})[ -]?CLASS\b(.*)$/.exec(s);
-  if (!m) return s;
-  const rest = m[2]!.replace(/^[ -]+/, '').trim();
-  return `${m[1]!.length === 1 ? `${m[1]} CLASS` : m[1]}${rest ? ` ${rest}` : ''}`.slice(0, 24);
+  let s = (model ?? '').toUpperCase().replace(/[^A-Z0-9 &./+-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  s = s.replace(/^(?:19|20)\d\d\s+/, '');
+  const noMake = s.replace(MAKES, '').trim();
+  if (noMake) s = noMake;
+  s = s.replace(/\b([A-Z]{1,4})[ -]?CLASS\b/g, (_m, c: string) => (c.length === 1 ? `${c} CLASS` : c));
+  const toks = s.split(' ').filter(Boolean);
+  const hasCode = (from: number) => toks.slice(from).some((x) => /\d/.test(x) && x.length >= 2 && !DROP.has(x) && !/^V\d{1,2}$/.test(x));
+  const out: string[] = [];
+  toks.forEach((t, i) => {
+    if (DROP.has(t) || /^V\d{1,2}$/.test(t) || /^\d\.\d$/.test(t)) return;
+    // "SPORT" after a trim word (Jetta Comfortline Sport) is a trim; "Range Rover Sport" keeps it
+    if (t === 'SPORT' && i > 0 && DROP.has(toks[i - 1]!)) return;
+    // "S CLASS ... S580", "4 SERIES M440I": the model code says it
+    if ((t === 'CLASS' || t === 'SERIES') && out.length && hasCode(i + 1)) { out.pop(); return; }
+    out.push(t);
+  });
+  // a family word the model code repeats (GLC GLC43, GLS ... GLS600): the code says it
+  const kept = out.filter((t, i) => !(/^[A-Z]+$/.test(t) && t !== 'AMG' && out.slice(i + 1).some((x) => x.length > t.length && x.startsWith(t) && /^\d/.test(x.slice(t.length)))));
+  // AMG GT53 -> AMG GT 53 (the maker writes GT 53)
+  let words = kept.flatMap((t, i) => { const m = /^GT(\d{2,3})$/.exec(t); return m && kept[i - 1] === 'AMG' ? ['GT', m[1]!] : [t]; });
+  if (!words.length) words = toks.length ? [toks[0]!] : [];
+  while (words.length > 1 && words.join(' ').length > LETTER_NAME_MAX) words = words.slice(0, -1); // trailing words go first
+  return words.join(' ').slice(0, LETTER_NAME_MAX).trim();
 }
 /** One stand-in image of a real car without photos: same drawing as the samples, a quiet "Representative photo" slate. */
 export function standInSvg(o: { shape: string; paint: string; shot: string; name: string }): string | null {

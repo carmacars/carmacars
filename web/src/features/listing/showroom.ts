@@ -508,7 +508,7 @@ export function showroomPrompt(o: { cover: boolean; name?: string | null }): str
     'a feature panel of vertical dark walnut wood slats in the middle of the back wall, with a thin vertical warm-white LED strip on each side of it;',
     'a cove light along the top of the back wall washing softly down it, and recessed linear LED light strips in the dark ceiling;',
     'the CarmaCars logo as a large illuminated sign, the dominant feature of the back wall: exactly the shapes and colours of the logo in the image, at least as large as in the image (about half the width of the wall panel), centred high on the wall above the car, its letters lit with a soft backlit glow on the wall behind them;',
-    o.cover && o.name ? `the large brushed-metal lettering "${o.name}" on the wall exactly as in the image, behind the car and never in front of it;` : 'no lettering on the wall other than the logo;',
+    o.cover && o.name ? `the large brushed-metal lettering "${o.name}" on the wall exactly as in the image, behind the car and never in front of it;` : 'no lettering on the wall other than the logo: no model name, no car name, no words or numbers anywhere on the wall;',
     'a polished dark epoxy floor with faint large tiles, showing soft, blurred reflections of the wall lights and of the car, and a real, soft contact shadow under each tyre where it meets the floor.',
     'Light it like a professional dealership photo: soft overhead light, gentle falloff, a subtle vignette, realistic camera noise. Everything outside the car stays dark and minimal.',
     'Do not add other cars, people, furniture, plants, signs, text, watermarks or objects. Same framing, landscape 3:2.'

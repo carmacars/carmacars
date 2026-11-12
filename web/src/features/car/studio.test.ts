@@ -67,7 +67,37 @@ test('r33 letteringName: the word behind the car from the model', async () => {
   assert.equal(letteringName('F-150'), 'F-150');
   assert.equal(letteringName('C CLASS'), 'C CLASS', 'idempotent');
   assert.equal(letteringName('CLA CLASS'), 'CLA');
-  assert.equal(letteringName('E-Class Cabriolet'), 'E CLASS CABRIOLET');
+  assert.equal(letteringName('E-Class Cabriolet'), 'E CLASS', 'body styles are left out');
+});
+
+test('r40 letteringName: a short display name for the fleet\'s long models (owner, Nov 12: too long)', async () => {
+  const { letteringName, LETTER_NAME_MAX } = await import('./studio.ts');
+  const want: Record<string, string> = {
+    'Mercedes-Benz GLC GLC43 AMG Coupe': 'GLC43 AMG',
+    'Mercedes-Benz AMG GT GT53 4-Door Coupe': 'AMG GT 53',
+    'Mercedes-Benz S-Class Maybach S580': 'MAYBACH S580',
+    'Land Rover Range Rover Sport V8': 'RANGE ROVER SPORT',
+    'BMW 4 Series M440i Gran Coupe': 'M440I',
+    'Mercedes-Benz GLS Maybach GLS600': 'MAYBACH GLS600',
+    '2024 Volkswagen Jetta Comfortline Sport': 'JETTA',
+    'Chevrolet Corvette Stingray': 'CORVETTE',
+    'Mercedes-Benz C-Class': 'C CLASS',
+    'Mercedes-AMG GT': 'AMG GT'
+  };
+  for (const [k, v] of Object.entries(want)) {
+    assert.equal(letteringName(k), v, k);
+    assert.equal(letteringName(v), v, `${k}: idempotent`);
+    assert.ok(letteringName(k).length <= LETTER_NAME_MAX);
+  }
+  assert.ok(letteringName('Some Very Long Model Name Of Many Words Indeed').length <= LETTER_NAME_MAX);
+  assert.equal(letteringName('Coupe'), 'COUPE', 'never empty');
+  assert.equal(letteringName(''), '');
+});
+
+test('r40: only the lead stand-in carries the name', () => {
+  const lettered = (shot: string) => /font-weight="800"[^>]*font-size="\d+"[^>]*>CAMRY</.test(carShot(camry, shot, 1800, 1200));
+  assert.equal(lettered('lead'), true);
+  for (const shot of ['side', 'rear34', 'front', 'rear', 'dash', 'seats', 'wheel']) assert.equal(lettered(shot), false, shot);
 });
 
 test('r38: a long model name fits the wall panel: smaller, or two lines, never wider than the panel', () => {
