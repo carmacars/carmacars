@@ -2,7 +2,7 @@
 -- sitemaps), the Worker's tick says whether any region outside Canada is on, the place sitemap index lists only files that
 -- hold pages, and a language keeps its pages indexed while new strings wait for translation. Fixtures start with "sm".
 select test.suite('99 r37 SEO market');
-select test.mk_user('sm_admin', 'admin');
+select test.mk_user('r37sm_admin', 'admin');
 
 select test.eq('market: Canada on, the United States and Mexico off',
   (select string_agg(country || '=' || on_::text, ',' order by country) from (select country, bool_or(is_enabled) on_ from place_regions group by country) x),
@@ -38,10 +38,10 @@ select test.ok('sitemap index: each indexed term still has a file', (select coun
 
 -- the Worker's tick
 select test.eq('tick: no region outside Canada on', (app.server_jobs_due() ->> 'place_foreign')::boolean, false);
-select public.door(test.id('sm_admin'), null, 'admin_do', 'place_settings_save', '{"region": "US-NY", "enabled": true}');
+select public.door(test.id('r37sm_admin'), null, 'admin_do', 'place_settings_save', '{"region": "US-NY", "enabled": true}');
 select test.eq('tick: an Admin switches New York back on', (app.server_jobs_due() ->> 'place_foreign')::boolean, true);
 select test.ok('hub: then the New York place has its page again', public.place_hub('rental', 'suv-rental', 'sm-toddsville-ny') is not null);
-select public.door(test.id('sm_admin'), null, 'admin_do', 'place_settings_save', '{"region": "US-NY", "enabled": false}');
+select public.door(test.id('r37sm_admin'), null, 'admin_do', 'place_settings_save', '{"region": "US-NY", "enabled": false}');
 select test.throws('anon: cannot call the tick flag', $$set local role anon; select app.place_foreign_on()$$, 'permission');
 reset role;
 

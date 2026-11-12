@@ -27,13 +27,15 @@ select test.eq('scopes: availability and rates by default, bookings off', (selec
 select test.throws('staff do not manage partners', $$select public.door(test.id('r37c_sales'), 'aal2', 'admin_do', 'channel_key_create', jsonb_build_object('partner', test.id('partner:A')))$$, null);
 
 create temp table r37v as select public.channel_api((select a from r37k), 'vehicles', '{}') r;
-select test.eq('Partner A sees only its allowed class', (select jsonb_array_length(r #> '{data,vehicles}') from r37v), 1);
+-- other suites' published cars are listed too: this suite's two cars, and only the allowed class
+select test.eq('Partner A sees only its allowed class', (select count(*) filter (where v ->> 'ref' like 'r37c-%') || '/' || count(*) filter (where v ->> 'class' <> 'standard')
+  from r37v, jsonb_array_elements(r #> '{data,vehicles}') v), '1/0');
 select test.ok('only public fields: no plate, VIN, owner or cost', (select not (r::text ~* '(3R37CHANNEL000001|plate|vin|owner|cost|odometer)') from r37v)
   and (select (select array_agg(k order by k) from jsonb_object_keys(r #> '{data,vehicles,0}') k) <@ array['body_style', 'class', 'doors', 'features', 'luggage', 'make', 'model', 'photos', 'ref', 'seats', 'transmission', 'trim', 'year'] from r37v));
 select test.ok('Partner B sees every class (both cars)', (select count(*) = 2 from jsonb_array_elements(public.channel_api((select b from r37k), 'vehicles', '{}') #> '{data,vehicles}') v where v ->> 'ref' like 'r37c-%'));
 
 create temp table r37q as select public.channel_api((select b from r37k), 'availability', jsonb_build_object('pickup_at', now() + interval '10 days', 'return_at', now() + interval '12 days', 'ref', 'r37c-car-' || left(test.id('vehicle:r37c_car')::text, 6))) r;
-create temp table r37qa as select public.channel_api((select a from r37k), 'availability', jsonb_build_object('pickup_at', now() + interval '10 days', 'return_at', now() + interval '12 days')) r;
+create temp table r37qa as select public.channel_api((select a from r37k), 'availability', jsonb_build_object('pickup_at', now() + interval '10 days', 'return_at', now() + interval '12 days', 'ref', 'r37c-car-' || left(test.id('vehicle:r37c_car')::text, 6))) r;
 select test.ok('availability answers the public quote (no personal data)', (select (r ->> 'ok')::boolean and jsonb_array_length(r #> '{data,vehicles}') = 1 and not (r::text ~* '(owner|email|phone|vin|plate|legal_name|date_of_birth|cost)') from r37q));
 select test.eq('Partner A''s 10% markup is on the rental', (select ((r #>> '{data,vehicles,0,rental_cents}')::bigint) from r37qa),
   (select round(((r #>> '{data,vehicles,0,rental_cents}')::bigint) * 1.1)::bigint from r37q));
