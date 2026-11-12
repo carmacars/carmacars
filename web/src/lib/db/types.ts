@@ -7468,6 +7468,10 @@ export type Database = {
           cf_error: string | null;
           cf_ok_at: string | null;
           updated_at: string;
+          ses_seen_at: string | null;
+          ses_ok_at: string | null;
+          ses_failed_at: string | null;
+          ses_error: string | null;
         };
         Insert: {
           id?: boolean;
@@ -7475,6 +7479,10 @@ export type Database = {
           cf_error?: string | null;
           cf_ok_at?: string | null;
           updated_at?: string;
+          ses_seen_at?: string | null;
+          ses_ok_at?: string | null;
+          ses_failed_at?: string | null;
+          ses_error?: string | null;
         };
         Update: {
           id?: boolean;
@@ -7482,6 +7490,10 @@ export type Database = {
           cf_error?: string | null;
           cf_ok_at?: string | null;
           updated_at?: string;
+          ses_seen_at?: string | null;
+          ses_ok_at?: string | null;
+          ses_failed_at?: string | null;
+          ses_error?: string | null;
         };
         Relationships: [];
       };
@@ -18750,6 +18762,9 @@ export type Database = {
           marketing_new_vehicle_enabled: boolean;
           marketing_auto_volume: boolean;
           marketing_transactional_reserve: number;
+          email_ses_enabled: boolean;
+          email_ses_daily_max: number;
+          email_ses_marketing: boolean;
         };
         Insert: {
           id?: string;
@@ -19590,6 +19605,9 @@ export type Database = {
           marketing_new_vehicle_enabled?: boolean;
           marketing_auto_volume?: boolean;
           marketing_transactional_reserve?: number;
+          email_ses_enabled?: boolean;
+          email_ses_daily_max?: number;
+          email_ses_marketing?: boolean;
         };
         Update: {
           id?: string;
@@ -20430,6 +20448,9 @@ export type Database = {
           marketing_new_vehicle_enabled?: boolean;
           marketing_auto_volume?: boolean;
           marketing_transactional_reserve?: number;
+          email_ses_enabled?: boolean;
+          email_ses_daily_max?: number;
+          email_ses_marketing?: boolean;
         };
         Relationships: [];
       };

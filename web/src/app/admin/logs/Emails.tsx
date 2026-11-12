@@ -5,6 +5,8 @@ import { Badge, BookingLink, PageHead, Search, Table, Tiles, t } from '@/feature
 import Link from '@/components/Link';
 
 type R = Record<string, unknown>;
+// r41 (2570): which provider sent each email, from its provider id (ses:, cf:, else Resend)
+const sentBy = (id: unknown) => { const s = typeof id === 'string' ? id : ''; return !s ? null : s.startsWith('ses:') ? 'Amazon SES' : s.startsWith('cf:') ? 'Cloudflare' : 'Resend'; };
 
 // Settings > Logs > Emails and Blocked addresses (was /admin/messages until r27, which redirects): every email the site
 // queued, with resend, cancel and text it instead; and the addresses no email goes to.
@@ -24,7 +26,8 @@ export async function Emails({ ctx: { list, read }, sp, tab }: { ctx: AdminPage;
     {u && <p className={`alert ${u.total >= u.warn_at ? 'alert--warn' : 'alert--info'}`} data-testid="email-usage"><span>Today: {u.total} sent ({u.outbox} from this list, {u.auth} sign-in emails.) On a busy day digests and marketing wait first; booking and sign-in emails go last. The daily capacity is on <Link prefetch={false} className="link" href="/admin/settings/usage">Settings &gt; Usage</Link>. Held for the limit: {u.held}. Failed today: {u.failed_today}.</span></p>}
     <ListFilters id="admin-logs-emails-status" base="/admin/logs?tab=emails" sp={sp} chips={{ name: 'status', label: 'Status', value: sp.status ?? '', options: [['', 'All'], ['queued', 'Queued'], ['delayed', 'Held'], ['sent', 'Sent'], ['merged', 'Sent combined'], ['suppressed', 'Repeats held back'], ['failed', 'Failed']] }} />
     <Table<R> testId="outbox" rows={rows} empty="No emails match. Clear a filter, or search by address or booking." cols={[{ key: 'created_at', label: 'Created', render: (r) => t(r.created_at) }, { key: 'code', label: 'Email' }, { key: 'to_address', label: 'To' }, { key: 'booking_number', label: 'Booking', render: (r) => r.booking_number ? <BookingLink n={r.booking_number} /> : null },
-      { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'attempts', label: 'Tries', num: true }, { key: 'sent_at', label: 'Sent', render: (r) => t(r.sent_at) }, { key: 'last_error', label: 'Error', className: 'wrap' },
+      { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'attempts', label: 'Tries', num: true }, { key: 'sent_at', label: 'Sent', render: (r) => t(r.sent_at) },
+      { key: 'provider_id', label: 'Sent by', render: (r) => sentBy(r.provider_id) }, { key: 'last_error', label: 'Error', className: 'wrap' },
       { key: 'status_reason', label: 'Why', className: 'wrap' },
       { key: 'act', label: '', render: (r) => <span className="ad-actions"><Act action="outbox_resend" payload={{ id: r.id }} label="Resend" refresh={['/admin/logs']} />{['queued', 'delayed'].includes(String(r.status)) && <Act action="outbox_cancel" payload={{ id: r.id }} label="Cancel" refresh={['/admin/logs']} />}
         {/* 0212: an email waiting (held for the limit, or queued) goes by text at once; the email still goes later */}

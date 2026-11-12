@@ -272,7 +272,8 @@ job_token() { # vault_name description
 # The files of each Edge Function, as deployed (index.ts and what it imports), into a directory.
 fn_files() { # slug dir
   case "$1" in
-    send-outbox) cp "$ROOT/supabase/functions/send-outbox/index.ts" "$2/index.ts"; cp "$ROOT/emails/src/engine.mjs" "$2/engine.mjs"; cp "$ROOT/web/src/lib/email-combine.ts" "$2/combine.ts" ;;
+    send-outbox) cp "$ROOT/supabase/functions/send-outbox/index.ts" "$2/index.ts"; cp "$ROOT/emails/src/engine.mjs" "$2/engine.mjs"; cp "$ROOT/web/src/lib/email-combine.ts" "$2/combine.ts"
+                 cp "$ROOT/web/src/lib/email-ses.ts" "$2/ses.ts" ;;
     owner-debit) cp "$ROOT/supabase/functions/owner-debit/index.ts" "$ROOT/supabase/functions/owner-debit/run.ts" "$2/" ;;
     calendar-sync) cp "$ROOT/supabase/functions/calendar-sync/index.ts" "$2/index.ts"
                    cp "$ROOT/web/src/features/calendar/ical.ts" "$2/ical.ts"
@@ -289,8 +290,17 @@ fn_secrets_json() { # slug
       : "${RESEND_API_KEY:=$(vault_get deploy_resend_api_key)}"; mask "$RESEND_API_KEY"
       # LINK_SIGNING_KEY: the 7-day file links in emails are signed here and opened by the site (/d/<token>)
       : "${LINK_SIGNING_KEY:=$(vault_get deploy_link_signing_key)}"; mask "$LINK_SIGNING_KEY"
-      jq -n --arg t "$token" --arg r "$RESEND_API_KEY" --arg u "$APP_URL" --arg l "$LINK_SIGNING_KEY" \
-        '[{name: "OUTBOX_JOB_TOKEN", value: $t}, {name: "RESEND_API_KEY", value: $r}, {name: "APP_URL", value: $u}, {name: "LINK_SIGNING_KEY", value: $l}]' ;;
+      # r41 (2570): Amazon SES first when the repository secrets AWS_SES_ACCESS_KEY_ID and AWS_SES_SECRET_ACCESS_KEY are set
+      # (docs/email-providers.md); without them the function skips SES (Cloudflare, then Resend, as before)
+      local ses='[]'
+      if [ -n "${AWS_SES_ACCESS_KEY_ID:-}" ] && [ -n "${AWS_SES_SECRET_ACCESS_KEY:-}" ]; then
+        mask "$AWS_SES_ACCESS_KEY_ID"; mask "$AWS_SES_SECRET_ACCESS_KEY"
+        ses=$(jq -n --arg k "$AWS_SES_ACCESS_KEY_ID" --arg s "$AWS_SES_SECRET_ACCESS_KEY" --arg g "${AWS_SES_REGION:-ca-central-1}" --arg c "${AWS_SES_CONFIGURATION_SET:-}" \
+          '[{name: "AWS_SES_ACCESS_KEY_ID", value: $k}, {name: "AWS_SES_SECRET_ACCESS_KEY", value: $s}, {name: "AWS_SES_REGION", value: $g}]
+           + (if $c == "" then [] else [{name: "AWS_SES_CONFIGURATION_SET", value: $c}] end)')
+      fi
+      jq -n --arg t "$token" --arg r "$RESEND_API_KEY" --arg u "$APP_URL" --arg l "$LINK_SIGNING_KEY" --argjson ses "$ses" \
+        '[{name: "OUTBOX_JOB_TOKEN", value: $t}, {name: "RESEND_API_KEY", value: $r}, {name: "APP_URL", value: $u}, {name: "LINK_SIGNING_KEY", value: $l}] + $ses' ;;
     owner-debit)
       token=$(job_token debit_job_token "Bearer token pg_cron sends to the owner-debit Edge Function")
       : "${STRIPE_SECRET_KEY:=$(vault_get deploy_stripe_secret_key)}"; mask "$STRIPE_SECRET_KEY"

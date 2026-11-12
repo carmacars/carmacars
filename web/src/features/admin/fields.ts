@@ -99,6 +99,10 @@ const LABELS: Record<string, string> = {
   notify_daily_cap: 'Resend\'s part of a day at most (Cloudflare\'s emails a day come on top)',
   cf_email_enabled: 'Send emails through Cloudflare Email Service first (then Resend\'s free plan, or after a Cloudflare error)',
   cf_email_monthly_included: 'Cloudflare emails included each month (Workers Paid): never exceeded',
+  // r41 (2570): Amazon SES first, paid per use (owner approved); its keys are GitHub secrets (docs/email-providers.md)
+  email_ses_enabled: 'Send emails through Amazon SES first when its keys are set (paid per use; then Cloudflare, then Resend\'s free plan)',
+  email_ses_daily_max: 'Amazon SES emails a day at most (200 while SES is in the sandbox; raise it after AWS grants production access)',
+  email_ses_marketing: 'Marketing emails may go through Amazon SES too (off: SES sends booking, payment, sign-in, staff and owner email only; marketing stays on Cloudflare and Resend)',
   cf_email_daily_budget: 'Cloudflare emails a day, sent first (never past the month\'s included emails; then Resend\'s free plan)', notify_class_limits: 'Daily count under which each kind may still send: customer, owner and investor, staff, digests, marketing',
   notify_cap_warn_bps: 'Warn the Admins in the portal at this share of the daily limit', notify_count_auth_emails: 'Count sign-in emails (sent by the sign-in service through the same provider) in the daily limit',
   owner_debit_notice_days: 'Pre-debit notice (days before each debit, 10 to 30)',
