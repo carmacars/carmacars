@@ -73,8 +73,9 @@ select test.eq('sent at once: offered, version 1, the price typed, the payment p
 select test.eq('the same records as a request: a request event, then the offer', (select string_agg(kind, ',' order by created_at, id) filter (where kind in ('requested', 'offer_sent')) from booking_events where booking_id = (test.ofb('o1')).id), 'requested,offer_sent');
 select test.eq('no "request received" to the renter, no new-request alert to staff; the offer email is queued',
   (select string_agg(distinct code, ',' order by code) from app_events where entity_id = (test.ofb('o1')).id and code in ('renter_request_received', 'staff_booking_request_new', 'renter_offer_ready')), 'renter_offer_ready');
-select test.eq('the customer was made once, with the sales choice (sourced by the assistant)',
-  (select count(*) || '/' || (select sales_sourced from test.ofb('o1')) from renters where lower(email) = 'nora.offer@example.test'), '1/true');
+-- 2330: customer service is never the sourced (credited) person, whatever it chose
+select test.eq('the customer was made once; customer service is never "sourced" (2330)',
+  (select count(*) || '/' || (select sales_sourced from test.ofb('o1')) from renters where lower(email) = 'nora.offer@example.test'), '1/false');
 
 -- the same person again, by mobile only: found, not made twice
 insert into test.of select 'o2', app.door(test.id('of_sales'), 'aal2', 'ops_do', 'offer_create',

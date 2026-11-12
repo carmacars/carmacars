@@ -11,7 +11,8 @@ select test.mk_vehicle('r37c_car', 'r37c_olive');
 select test.mk_vehicle('r37c_suv', 'r37c_olive');
 insert into vehicle_listings (vehicle_id) values (test.id('vehicle:r37c_car')), (test.id('vehicle:r37c_suv')) on conflict (vehicle_id) do nothing;
 update vehicle_listings set status = 'published', slug = 'r37c-car-' || left(vehicle_id::text, 6), seats = 5 where vehicle_id in (test.id('vehicle:r37c_car'), test.id('vehicle:r37c_suv'));
-update vehicles set vin = '1HGCM82633A004352', class = 'standard' where id = test.id('vehicle:r37c_car');
+-- a VIN of its own: 87 and 99_r28 use 1HGCM82633A004352 (vehicles.vin is unique)
+update vehicles set vin = '3R37CHANNEL000001', class = 'standard' where id = test.id('vehicle:r37c_car');
 update vehicles set class = 'suv' where id = test.id('vehicle:r37c_suv');
 create function pg_temp.adm(p_name text, p jsonb) returns jsonb language sql as $$ select public.door(test.id('r37c_admin'), 'aal2', case when p_name = 'channel_state' then 'admin_read' else 'admin_do' end, p_name, p) $$;
 
@@ -27,7 +28,7 @@ select test.throws('staff do not manage partners', $$select public.door(test.id(
 
 create temp table r37v as select public.channel_api((select a from r37k), 'vehicles', '{}') r;
 select test.eq('Partner A sees only its allowed class', (select jsonb_array_length(r #> '{data,vehicles}') from r37v), 1);
-select test.ok('only public fields: no plate, VIN, owner or cost', (select not (r::text ~* '(1HGCM82633A004352|plate|vin|owner|cost|odometer)') from r37v)
+select test.ok('only public fields: no plate, VIN, owner or cost', (select not (r::text ~* '(3R37CHANNEL000001|plate|vin|owner|cost|odometer)') from r37v)
   and (select (select array_agg(k order by k) from jsonb_object_keys(r #> '{data,vehicles,0}') k) <@ array['body_style', 'class', 'doors', 'features', 'luggage', 'make', 'model', 'photos', 'ref', 'seats', 'transmission', 'trim', 'year'] from r37v));
 select test.ok('Partner B sees every class (both cars)', (select count(*) = 2 from jsonb_array_elements(public.channel_api((select b from r37k), 'vehicles', '{}') #> '{data,vehicles}') v where v ->> 'ref' like 'r37c-%'));
 
