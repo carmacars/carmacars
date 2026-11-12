@@ -15,8 +15,10 @@ select test.eq('only the website (service role) asks', (select count(*) from inf
 -- a request from the Gold renter stays a request until Book now: server_instant_book is not called by Send request
 select test.rq_new('r40bq', 'r40b_gold', 'R40B', test.ho_local(interval '40 days'), test.ho_local(interval '42 days'));
 select test.eq('Send request: the Gold renter''s request stays a request, no payment up front', test.st('r40bq'), 'requested');
-select test.eq('Book now: the same request books at once (waiting for payment)',
-  (public.server_instant_book((select booking_number from bookings where id = test.b('r40bq')), test.id('r40b_gold')) ->> 'instant') || '/' || test.st('r40bq'), 'true/pending_payment');
+-- (two statements: test.st is stable and would read the status from before the call in the same statement)
+select test.eq('Book now: the same request books at once',
+  public.server_instant_book((select booking_number from bookings where id = test.b('r40bq')), test.id('r40b_gold')) ->> 'instant', 'true');
+select test.eq('Book now: waiting for payment', test.st('r40bq'), 'pending_payment');
 update program_settings set instant_book_repeat_enabled = false;
 select test.eq('switched off in the Program settings: no Book now', public.server_instant_book_available(test.id('r40b_gold')), false);
 update program_settings set instant_book_repeat_enabled = true;
