@@ -193,7 +193,7 @@ button.link { background: none; border: 0; padding: 0; font: inherit; color: inh
 input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--red-600); box-shadow: 0 0 0 1px var(--red-600); }
 input[type="checkbox"][aria-invalid="true"], input[type="radio"][aria-invalid="true"] { outline: 2px solid var(--red-600); outline-offset: 2px; box-shadow: none; }
 .fg-msg { margin-top: 0.3rem; }
-.fg-summary { scroll-margin-block: var(--s-4); }
+.fg-summary { scroll-margin-block: var(--s-4); border-color: var(--red-600); background: var(--red-50); }
 .fg-summary::before { content: "!"; }
 .fg-summary:focus-visible { outline: 2px solid var(--red-600); outline-offset: 2px; }
 .fg-summary__list { margin: 0.2rem 0 0; padding-left: 1.1rem; display: grid; gap: 0.2rem; }
