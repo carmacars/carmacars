@@ -12579,6 +12579,120 @@ export type Database = {
         };
         Relationships: [];
       };
+      marketing_campaign_sends: {
+        Row: {
+          campaign_id: string;
+          email: string;
+          status: string;
+          reason: string | null;
+          event_id: number | null;
+          created_at: string;
+          queued_at: string | null;
+        };
+        Insert: {
+          campaign_id: string;
+          email: string;
+          status?: string;
+          reason?: string | null;
+          event_id?: number | null;
+          created_at?: string;
+          queued_at?: string | null;
+        };
+        Update: {
+          campaign_id?: string;
+          email?: string;
+          status?: string;
+          reason?: string | null;
+          event_id?: number | null;
+          created_at?: string;
+          queued_at?: string | null;
+        };
+        Relationships: [];
+      };
+      marketing_campaigns: {
+        Row: {
+          id: string;
+          kind: string;
+          code: string;
+          vehicle_id: string | null;
+          week_of: string | null;
+          payload: Json;
+          audience: number;
+          status: string;
+          stop_reason: string | null;
+          created_at: string;
+          finished_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          kind: string;
+          code: string;
+          vehicle_id?: string | null;
+          week_of?: string | null;
+          payload?: Json;
+          audience?: number;
+          status?: string;
+          stop_reason?: string | null;
+          created_at?: string;
+          finished_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          kind?: string;
+          code?: string;
+          vehicle_id?: string | null;
+          week_of?: string | null;
+          payload?: Json;
+          audience?: number;
+          status?: string;
+          stop_reason?: string | null;
+          created_at?: string;
+          finished_at?: string | null;
+        };
+        Relationships: [];
+      };
+      marketing_contacts: {
+        Row: {
+          email: string;
+          first_name: string | null;
+          user_id: string | null;
+          renter_id: string | null;
+          sources: string[];
+          first_source: string;
+          consent_basis: string;
+          rank: number;
+          first_seen_at: string;
+          last_seen_at: string;
+          refreshed_at: string;
+        };
+        Insert: {
+          email: string;
+          first_name?: string | null;
+          user_id?: string | null;
+          renter_id?: string | null;
+          sources: string[];
+          first_source: string;
+          consent_basis?: string;
+          rank?: number;
+          first_seen_at: string;
+          last_seen_at: string;
+          refreshed_at?: string;
+        };
+        Update: {
+          email?: string;
+          first_name?: string | null;
+          user_id?: string | null;
+          renter_id?: string | null;
+          sources?: string[];
+          first_source?: string;
+          consent_basis?: string;
+          rank?: number;
+          first_seen_at?: string;
+          last_seen_at?: string;
+          refreshed_at?: string;
+        };
+        Relationships: [];
+      };
       marketing_sends: {
         Row: {
           id: string;
@@ -18628,6 +18742,14 @@ export type Database = {
           listing_showroom_car_width: number;
           listing_cutout_min_quality: number;
           vpage_min_year: number;
+          marketing_everyone_enabled: boolean;
+          marketing_weekly_enabled: boolean;
+          marketing_weekly_dow: number;
+          marketing_weekly_hour: number;
+          marketing_weekly_cars: number;
+          marketing_new_vehicle_enabled: boolean;
+          marketing_auto_volume: boolean;
+          marketing_transactional_reserve: number;
         };
         Insert: {
           id?: string;
@@ -19460,6 +19582,14 @@ export type Database = {
           listing_showroom_car_width?: number;
           listing_cutout_min_quality?: number;
           vpage_min_year?: number;
+          marketing_everyone_enabled?: boolean;
+          marketing_weekly_enabled?: boolean;
+          marketing_weekly_dow?: number;
+          marketing_weekly_hour?: number;
+          marketing_weekly_cars?: number;
+          marketing_new_vehicle_enabled?: boolean;
+          marketing_auto_volume?: boolean;
+          marketing_transactional_reserve?: number;
         };
         Update: {
           id?: string;
@@ -20292,6 +20422,14 @@ export type Database = {
           listing_showroom_car_width?: number;
           listing_cutout_min_quality?: number;
           vpage_min_year?: number;
+          marketing_everyone_enabled?: boolean;
+          marketing_weekly_enabled?: boolean;
+          marketing_weekly_dow?: number;
+          marketing_weekly_hour?: number;
+          marketing_weekly_cars?: number;
+          marketing_new_vehicle_enabled?: boolean;
+          marketing_auto_volume?: boolean;
+          marketing_transactional_reserve?: number;
         };
         Relationships: [];
       };
@@ -32489,6 +32627,7 @@ export type Database = {
       server_manual_rental_sign_charged: { Args: { p_booking: string; p_by: string; p: Json }; Returns: Json };
       server_maps_take: { Args: { p_sku: string }; Returns: boolean };
       server_mark_documents_purged: { Args: { p_ids: string[] }; Returns: number };
+      server_marketing_emails: { Args: { p_user: string }; Returns: Json };
       server_meta_messaging: { Args: never; Returns: Json };
       server_money_action: { Args: { p_payment: string }; Returns: Json };
       server_money_action_finish: { Args: { p_payment: string; p: Json }; Returns: Json };

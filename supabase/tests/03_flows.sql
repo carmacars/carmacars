@@ -509,7 +509,10 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             -- the Channel API's call log (2304): every call, allowed or refused; no money, pricing or status
                             'channel_calls',
                             -- the self-QA run log (2400): one row per deploy, FAIL and WARN lines; no money, pricing or status
-                            'site_selfqa_runs')
+                            'site_selfqa_runs',
+                            -- the marketing audience and campaign sends (2490): rebuilt hourly from the sources and written by the
+                            -- campaign job, one row per address and campaign; no money, pricing or status (the campaigns are audited)
+                            'marketing_contacts', 'marketing_campaign_sends')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',
   (select count(*) > 0 from audit_log where entity_table = 'rate_cards' and action = 'INSERT' and after ->> 'daily_rate_cents' = '10000'), true);

@@ -211,6 +211,7 @@ const companyLine = (email) => (email.audience === 'owner' && /<billing@/.test(e
 const CONTACT_LINE = 'Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.';
 function reason(email) {
   if (email.footer) return email.footer;
+  if (email.category === 'marketing' && email.audience === 'renter') return 'You are receiving this because you gave us your email address on carmacars.ca.';
   if (email.category === 'marketing') return 'You are receiving this because you agreed to get CarmaCars offers by email.';
   if (STAFF(email.audience)) return 'Internal CarmaCars notice. It may contain customer information. Do not forward it.';
   if (email.audience === 'investor') return 'This is a servicing notice for an existing investor. It is not an offer or a solicitation.';
@@ -300,7 +301,7 @@ ${blocksHtml(rest)}<tr><td class="px" style="padding:4px ${PAD}px 34px ${PAD}px;
 <tr><td class="px foot" bgcolor="${C.wash}" style="background-color:${C.wash};padding:26px ${PAD}px 30px ${PAD}px;">
 <div>${logo(118, 'on-light', 'logo-light')}<!--[if !mso]><!--><div class="logo-dark" style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${logo(118, 'on-dark')}</div><!--<![endif]--></div>
 <div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;">${esc(reason(email))}</div>
-${marketing ? `<div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;"><a href="{{unsubscribe_url}}" class="tx" style="color:${C.ink};text-decoration:underline;font-weight:700;">Unsubscribe</a> at any time. We act on it within 10 business days.</div>` : ''}
+${marketing ? `<div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;"><a href="{{unsubscribe_url}}" class="tx" style="color:${C.ink};text-decoration:underline;font-weight:700;">Unsubscribe</a> at any time. It takes effect at once.</div>` : ''}
 ${staff ? '' : `<div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;">${inlineHtml(CONTACT_LINE).replace(/class="tx"/g, '')}</div>`}
 <div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;">${companyLine(email)}{{#if company_address}}<br>{{company_address}}{{/if}}</div>
 <div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;">${fl('home', 'carmacars.ca')}${staff ? '' : ` &nbsp;&middot;&nbsp; ${fl('terms', 'Terms')} &nbsp;&middot;&nbsp; ${fl('privacy', 'Privacy')}{{#if instagram_url}} &nbsp;&middot;&nbsp; <a href="{{instagram_url}}" class="tx-mid" style="color:${C.mid};text-decoration:underline;">Instagram</a>{{/if}}{{#if tiktok_url}} &nbsp;&middot;&nbsp; <a href="{{tiktok_url}}" class="tx-mid" style="color:${C.mid};text-decoration:underline;">TikTok</a>{{/if}}`}</div>
@@ -324,7 +325,7 @@ export function textTemplate(email) {
     blocksText(rest),
     '----------------------------------------',
     inlineText(helpLine(email)),
-    reason(email) + (email.category === 'marketing' ? '\nUnsubscribe at any time: {{unsubscribe_url}}\nWe act on it within 10 business days.' : ''),
+    reason(email) + (email.category === 'marketing' ? '\nUnsubscribe at any time (it takes effect at once): {{unsubscribe_url}}' : ''),
     STAFF(email.audience) ? '' : CONTACT_LINE,
     `${companyLine(email)}\n{{#if company_address}}{{company_address}}\n{{/if}}${url('home')}` + (STAFF(email.audience) ? '' : '\n{{#if instagram_url}}Instagram: {{instagram_url}}\n{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}'),
   ];

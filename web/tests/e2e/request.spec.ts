@@ -74,7 +74,8 @@ test('request to book creates a requested booking and its event', async ({ page 
   await page.getByRole('button', { name: 'Send request' }).click();
   await expect(page.getByText('Tick this box to send your request.')).toBeVisible();
   await page.locator('input[name="agree"]').check();
-  await page.locator('input[name="marketing"]').check();
+  // r41 (2490): no "send me deals" box
+  await expect(page.locator('input[name="marketing"]')).toHaveCount(0);
   await page.getByRole('button', { name: 'Send request' }).click();
   // confirmation
   await page.waitForURL(/\/book\/sent\//, { timeout: 30_000 });

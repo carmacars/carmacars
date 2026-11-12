@@ -10,7 +10,7 @@ import { useForm } from '@/features/forms/useForm';
 // auto_service (0123): mechanical work we arrange with a trusted shop, never do ourselves; no marketing consent asked
 type Kind = 'buyer' | 'finance' | 'detailing' | 'bodyshop' | 'auto_service';
 const BUTTON: Record<Kind, string> = { buyer: 'Find me this car', finance: 'Send my question', detailing: 'Request detailing', bodyshop: 'Request the repair', auto_service: 'Request it' };
-export function LeadForm({ kind, vehicle, service, place, marketingText, disclaimer }: { kind: Kind; vehicle: string; service?: string; place?: string; marketingText: string; disclaimer?: string }) {
+export function LeadForm({ kind, vehicle, service, place, disclaimer }: { kind: Kind; vehicle: string; service?: string; place?: string; disclaimer?: string }) {
   const { state, run, pending, errors: e, clear } = useForm(vehicleLeadSchema, submitVehicleLead);
   const id = (x: string) => `vl-${x}`;
   if (state?.ok) return <div className="stack" tabIndex={-1} ref={(el) => el?.focus()} data-testid="lead-sent"><p className="d4">Thanks. We have your request.</p><p className="small muted">Someone from our team replies within one business day.</p></div>;
@@ -33,7 +33,6 @@ export function LeadForm({ kind, vehicle, service, place, marketingText, disclai
             {!money && <option value="week">This week</option>}<option value="now">{money ? 'Now' : 'As soon as possible'}</option><option value="month">Within a month</option><option value="three">Within three months</option><option value="later">Later</option></select></div>
       </div>
       {disclaimer && <p className="small muted" data-testid="lead-disclaimer">{disclaimer}</p>}
-      {marketingText && kind !== 'auto_service' && <label className="check"><input type="checkbox" name="marketing" /><span className="small">{marketingText}</span></label>}
       <Turnstile action={`lead-${kind}`} />
       <button className="btn btn--primary" type="submit" disabled={pending}>{pending ? 'Sending' : BUTTON[kind]}</button>
     </form>

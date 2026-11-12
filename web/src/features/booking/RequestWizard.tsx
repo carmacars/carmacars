@@ -42,7 +42,7 @@ export interface CarOption { slug: string; vehicleId: string; label: string; fro
 export interface WizardProps {
   options: CarOption[]; initialCar: WizardCar | null; initialSlug: string | null; rules: RequestRules; airports: { code: string; name: string; surcharge_cents: number | null }[];
   tokens: LabelTokens & Record<'notice' | 'turnaround' | 'offerHours' | 'hst' | 'minAge' | 'licence' | 'addDrvPct' | 'cEarly' | 'c2' | 'nonRef' | 'winter' | 'winterCap' | 'baby' | 'babyCap' | 'maxDays' | 'brand', string>;
-  marketingText: string; agreeLine: string; ourAddress: string | null;
+  agreeLine: string; ourAddress: string | null;
   /** the RentalCoverage suggestion's name when an Admin has turned it on, else null */
   affiliate?: string | null;
   /** 0280: the phone number box (site_facts().phone_gate) */
@@ -525,7 +525,6 @@ export function RequestWizard(p: WizardProps) {
               <label className="check"><input type="checkbox" name="agree" checked={d.agree} onChange={(e) => set('agree', e.target.checked)} aria-invalid={err('agree') ? true : undefined} aria-describedby={err('agree') ? 'rq-agree-err' : undefined} /><span>{p.agreeLine.replace(/Terms of use and Privacy policy\.$/, '')}<Link className="link" href="/terms">Terms of use</Link> and <Link className="link" href="/privacy">Privacy policy</Link>.</span></label>
               <p className="error" role="alert" id="rq-agree-err">{err('agree') ?? ''}</p>
             </div>
-            <label className="check"><input type="checkbox" name="marketing" checked={d.marketing} onChange={(e) => set('marketing', e.target.checked)} /><span className="small">{p.marketingText}</span></label>
             <Turnstile action="booking_request" />
             <div className="req__nav"><button type="button" className="btn btn--ghost" onClick={() => show(4)}>Back</button><button type="submit" className="btn btn--primary btn--lg" disabled={sending}>{sending ? 'Sending' : 'Send request'}</button></div>
             <p className="small muted">No payment now. No card needed.</p>
