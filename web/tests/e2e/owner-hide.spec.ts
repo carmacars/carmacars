@@ -51,6 +51,9 @@ test('hide a booking\'s revenue from the owner, and a booking expense the owner 
   // 0791: only an insurance replacement can be hidden from the owner, so this booking is billed to an insurer
   const [ins] = await sql`insert into insurers (name) values (${`Oh Example Insurance ${Date.now()}`}) returning id`;
   await sql`update bookings set bill_to = 'insurer', insurer_id = ${ins!.id as string} where booking_number = ${hidden}`;
+  // r40 (2480): with owner_hide_insurance_only on (the default), a hidden insurer booking is left out of the owner's revenue and
+  // shows as unavailable; this test checks the 0156 hide-until-statement behaviour, which is what the setting off keeps
+  await sql`update program_settings set owner_hide_insurance_only = false where id = (app.settings()).id`;
 
   // the Admin hides it, with a reason
   const a = await ctx(browser, false);
