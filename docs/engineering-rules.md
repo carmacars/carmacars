@@ -64,7 +64,7 @@ Each rule says how it is enforced. "Test" means it fails CI; "review" means noth
 
 ## Worker size
 
-The Worker's server bundle has a budget (`web/scripts/worker-size.mjs`, 42 MiB). Before adding a dependency to server code,
+The Worker's server bundle has a budget (`web/scripts/worker-size.mjs`, 50 MiB). Before adding a dependency to server code,
 check its size; heavy libraries used by one route load with a dynamic `import()`. The r35 measurement (esbuild metafile
 of the Nov 9 build): of 40.5 MiB, 30.7 MiB are Turbopack's server chunks, and 16.3 MiB of those are second and later
 copies of the same modules compiled into each route's chunks. Removing that duplication is the large win (see

@@ -102,4 +102,8 @@ runs:
       working-directory: web
       run: |
         (node scripts/serve.mjs > /tmp/serve.log 2>&1 &)
-        for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000/robots.txt && break; sleep 1; done
+        for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000/robots.txt && exit 0; sleep 1; done
+        # no answer in a minute: the server's last lines as an annotation (readable through the API without the logs)
+        msg="$(tail -n 60 /tmp/serve.log 2>/dev/null | sed -e 's/\x1b\[[0-9;]*[A-Za-z]//g' -e 's/\r//g' -e 's/%/%25/g' | awk 'BEGIN{ORS="%0A"} {print}')"
+        echo "::error title=full-stack: the server did not answer on :3000 (last lines of /tmp/serve.log)::${msg:-the log is empty}"
+        exit 1
