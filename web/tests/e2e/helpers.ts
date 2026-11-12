@@ -343,15 +343,26 @@ export async function pickRange(page: Page, label: string, to: { quick: string }
  *  first card the live check says covers this car. */
 export async function chooseCardCoverage(page: import('@playwright/test').Page) {
   const { expect } = await import('@playwright/test');
+  // 2541: a card covers a car only when the car's value is known; give a test car without one a typical value
+  const slug = new URL(page.url()).pathname.match(/^\/book\/([^/]+)/)?.[1];
+  if (slug) {
+    const sql = db();
+    try {
+      await sql`update vehicles set estimated_value_cents = 2500000 where slug = ${decodeURIComponent(slug)} and estimated_value_cents is null and black_book_value_cents is null`;
+    } finally { await sql.end(); }
+  }
   await page.locator('label.option', { hasText: 'Option 2' }).click();
   const sel = page.getByTestId('coverage-card-select');
   await expect(sel.locator('option').nth(1)).toBeAttached({ timeout: 15_000 });
   const values = await sel.locator('option').evaluateAll((os) => os.map((o) => (o as HTMLOptionElement).value).filter(Boolean));
+  let covered = false;
   for (const v of values) {
     await sel.selectOption(v);
+    const label = (await sel.locator(`option[value="${v}"]`).innerText()).trim();
     const res = page.getByTestId('coverage-card-result');
-    await expect(res).toBeVisible({ timeout: 15_000 });
-    if (await res.evaluate((el) => el.classList.contains('alert--ok'))) break;
+    await expect(res).toContainText(label, { timeout: 15_000 }); // this card's answer, not the previous card's
+    if (await res.evaluate((el) => el.classList.contains('alert--ok'))) { covered = true; break; }
   }
+  expect(covered, 'a card on the list covers this car').toBe(true);
   await page.getByTestId('coverage-card-ack').check();
 }
