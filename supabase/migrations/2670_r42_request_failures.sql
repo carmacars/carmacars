@@ -41,6 +41,8 @@ create index booking_request_failures_email_idx on public.booking_request_failur
 alter table public.booking_request_failures enable row level security;
 revoke all on table public.booking_request_failures from public, anon, authenticated;
 grant select, insert, update, delete on table public.booking_request_failures to service_role;
+-- Admins may read it (every table carries the admin policy); the request path writes it as the service role
+create policy admin_all on public.booking_request_failures for select to authenticated using (app.is_admin());
 
 -- ================================================================ 1. every refusal, in plain words, with its field
 create function app.request_refusal(p_code text, p_message text, p_request jsonb default null) returns jsonb
