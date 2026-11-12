@@ -126,6 +126,9 @@ export interface StaffIntentRequest {
   amountCents: number;
   customerId: string;
   capture: 'automatic' | 'manual';
+  /** r42: a deposit hold only (capture manual): ask for an extended authorization (up to about 30 days) if available,
+   *  falling back to a standard hold when Stripe refuses it. Never for a payment, a balance or a later charge. */
+  extendedHold?: boolean;
   description: string;
   metadata: Record<string, string>;
   idempotencyKey: string;
@@ -179,6 +182,9 @@ export interface PaymentsAdapter {
   captureIntent(id: string, idempotencyKey: string, amountCents?: number): Promise<Intent>;
   /** A card payment or deposit hold started by staff (0129). */
   createStaffIntent(r: StaffIntentRequest): Promise<Intent>;
+  /** r42: a deposit hold not confirmed yet stops asking for an extended authorization (Stripe refused it as the renter
+   *  confirmed the card): the same intent and client secret, so the pay page tries again at once. */
+  standardHold(id: string, idempotencyKey: string): Promise<Intent>;
   /** Save a card for later charges, no money (0129). */
   createCardSetup(r: CardSetupRequest): Promise<Intent>;
   retrieveCardSetup(id: string): Promise<Intent>;

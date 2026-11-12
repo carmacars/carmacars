@@ -281,3 +281,49 @@ test('no customer yet: one is made, its idempotency key carries the name and ema
   assert.equal(h['idempotency-key'], `customer:${rid}:${customerFingerprint('r@example.test', 'A Name')}`);
   assert.notEqual(customerFingerprint('r@example.test', 'A Name'), customerFingerprint('r@example.test', 'Another Name'));
 });
+
+test('r42: a deposit hold on the pay page asks for the extended authorization if available', async () => {
+  const { f, calls } = mock([{ body: pi({ status: 'requires_payment_method' }) }]);
+  await stripeAdapter('sk_test_abc', f).createStaffIntent({ amountCents: 50000, customerId: 'cus_1', capture: 'manual', extendedHold: true, description: 'Deposit hold', metadata: { payment_request_id: 'q1' }, idempotencyKey: 'payreq:q1' });
+  assert.equal(calls.length, 1);
+  const body = new URLSearchParams(String(calls[0]!.init.body));
+  assert.equal(body.get('payment_method_options[card][request_extended_authorization]'), 'if_available');
+  assert.equal(body.get('capture_method'), 'manual');
+  assert.equal(body.get('setup_future_usage'), 'off_session');
+  assert.equal((calls[0]!.init.headers as Record<string, string>)['idempotency-key'], 'payreq:q1:ext');
+});
+
+test('r42: a staff intent without the flag, or one that is not a hold, never asks for an extended authorization', async () => {
+  const { f, calls } = mock([{ body: pi({ status: 'requires_payment_method' }) }, { body: pi({ status: 'requires_payment_method' }) }]);
+  const a = stripeAdapter('sk_test_abc', f);
+  await a.createStaffIntent({ amountCents: 50000, customerId: 'cus_1', capture: 'manual', description: 'The balance', metadata: {}, idempotencyKey: 'payreq:q2' });
+  await a.createStaffIntent({ amountCents: 50000, customerId: 'cus_1', capture: 'automatic', extendedHold: true, description: 'A payment', metadata: {}, idempotencyKey: 'payreq:q3' });
+  assert.equal(calls.length, 2);
+  for (const c of calls) assert.equal(new URLSearchParams(String(c.init.body)).get('payment_method_options[card][request_extended_authorization]'), null);
+  assert.equal((calls[0]!.init.headers as Record<string, string>)['idempotency-key'], 'payreq:q2');
+  assert.equal((calls[1]!.init.headers as Record<string, string>)['idempotency-key'], 'payreq:q3');
+});
+
+test('r42: an extended hold Stripe refuses when the intent is made falls back to a standard hold; a real error is thrown', async () => {
+  const { f, calls } = mock([
+    { status: 400, body: { error: { type: 'invalid_request_error', message: 'This account is not eligible for the requested card features.' } } },
+    { body: pi({ status: 'requires_payment_method' }) }
+  ]);
+  const i = await stripeAdapter('sk_test_abc', f).createStaffIntent({ amountCents: 50000, customerId: 'cus_1', capture: 'manual', extendedHold: true, description: 'Deposit hold', metadata: {}, idempotencyKey: 'payreq:q4' });
+  assert.equal(calls.length, 2);
+  assert.equal(new URLSearchParams(String(calls[1]!.init.body)).get('payment_method_options[card][request_extended_authorization]'), null);
+  assert.equal((calls[1]!.init.headers as Record<string, string>)['idempotency-key'], 'payreq:q4');
+  assert.equal(i.status, 'requires_payment_method');
+  const bad = mock([{ status: 400, body: { error: { type: 'invalid_request_error', code: 'resource_missing', message: 'No such customer: cus_x' } } }]);
+  await assert.rejects(() => stripeAdapter('sk_test_abc', bad.f).createStaffIntent({ amountCents: 50000, customerId: 'cus_x', capture: 'manual', extendedHold: true, description: 'Deposit hold', metadata: {}, idempotencyKey: 'payreq:q5' }), StripeError);
+  assert.equal(bad.calls.length, 1);
+});
+
+test('r42: a hold refused at confirmation is asked again as a standard hold on the same intent', async () => {
+  const { f, calls } = mock([{ body: pi({ status: 'requires_payment_method' }) }]);
+  const i = await stripeAdapter('sk_test_abc', f).standardHold('pi_123', 'standard-hold:pi_123');
+  assert.equal(calls[0]!.url, 'https://api.stripe.com/v1/payment_intents/pi_123');
+  assert.equal(calls[0]!.init.method, 'POST');
+  assert.equal(new URLSearchParams(String(calls[0]!.init.body)).get('payment_method_options[card][request_extended_authorization]'), 'never');
+  assert.equal(i.clientSecret, 'pi_123_secret_x');
+});

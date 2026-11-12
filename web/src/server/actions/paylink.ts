@@ -2,6 +2,7 @@
 import type { ActionResult } from '@/features/forms/schemas';
 import { env } from '@/lib/env';
 import { fakeOnly, payments } from '@/integrations/payments';
+import { extendedRefusedText } from '@/server/pay-card';
 import { payLinkFacts, settlePayreq, type PayLinkFacts } from '@/server/paylink';
 
 // The pay page of a card request staff started (0129): no account needed, the link's token is the key. The renter types
@@ -27,6 +28,23 @@ export async function payLinkFakeConfirm(token: string, card: { number: string; 
   if (!mm || mm > 12 || !yy) return { ok: false, code: 'invalid', message: 'Check the expiry date (MM / YY).' };
   const r = await fake.confirm(f.intent_id, { number: card.number, name: card.name, expMonth: mm, expYear: 2000 + (yy % 100) });
   return { ok: true, data: { status: r.status, error: r.lastError } };
+}
+
+/** r42: Stripe refused the extended authorization as the renter confirmed the card on a deposit hold (its words, from
+ *  the browser, are only the trigger: the request and the intent are read here). The same intent stops asking for it,
+ *  and the form confirms again: the renter is never blocked by the longer hold. Anything else: nothing is changed. */
+export async function payLinkStandardHold(token: string, message: string): Promise<R<{ retry: boolean }>> {
+  const no: R<{ retry: boolean }> = { ok: true, data: { retry: false } };
+  if (!extendedRefusedText(message)) return no;
+  const f = await payLinkFacts(token);
+  if (!f || f.status !== 'open' || f.kind !== 'hold' || !f.intent_id) return no;
+  try {
+    const p = await payments();
+    const i = await p.retrieveIntent(f.intent_id);
+    if (i.status !== 'requires_payment_method' && i.status !== 'requires_confirmation') return no;
+    await p.standardHold(i.id, `standard-hold:${i.id}`);
+    return { ok: true, data: { retry: true } };
+  } catch { return no; }
 }
 
 export async function payLinkFinish(token: string): Promise<R<{ ok: boolean; reason?: string; message?: string }>> {

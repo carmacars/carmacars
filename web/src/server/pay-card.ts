@@ -24,3 +24,10 @@ export function holdAmountMessage(funding: string | null | undefined, cents: num
     ? `With a debit or prepaid card the deposit hold is ${dollars(cents)}. Nothing was held: enter the card again to place it.`
     : `With a credit card the deposit hold is ${dollars(cents)}. Nothing was held: enter the card again to place it.`;
 }
+
+/** r42: the words Stripe gives the renter's browser when it refuses the extended authorization of a deposit hold as the
+ *  card is confirmed (the refusal of 2026-10-30). An ordinary decline never matches: only this makes the pay page ask
+ *  for the same hold again as a standard one. */
+export function extendedRefusedText(message: string | null | undefined): boolean {
+  return /not eligible for the requested card features|extended authori[sz]ation|request_extended_authorization/i.test(message ?? '');
+}

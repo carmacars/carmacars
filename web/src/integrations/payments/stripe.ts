@@ -200,8 +200,11 @@ export function stripeAdapter(secretKey: string, f: typeof fetch = (...a) => fet
       return toIntent(await call('POST', '/payment_intents', {
         amount: r.amountCents, currency: 'cad', customer: r.customerId, capture_method: 'manual', setup_future_usage: 'off_session',
         payment_method_types: ['card'], description: r.description,
-        // no extended authorization (2026-10-30): the account is not eligible and Stripe refused the payment at
-        // confirmation ("not eligible for the requested card features"); the platform renews holds before they lapse
+        // no extended authorization on the booking total, on purpose (r42: the account is approved for it now, and deposit
+        // holds ask for it, createStaffIntent and chargeOffSession). The booking total is a rental charge: it is captured
+        // when the booking is confirmed, so a longer hold gains nothing, and on 2026-10-30 the request made Stripe refuse
+        // the renter's payment at confirmation ("not eligible for the requested card features"). hotfix-stripe-ext-auth:
+        // never on a rental charge
         metadata: { booking_id: r.bookingId, booking_number: r.bookingNumber, offer_version: String(r.offerVersion), purpose: 'booking_total' },
         expand
       }, r.idempotencyKey));
@@ -220,11 +223,25 @@ export function stripeAdapter(secretKey: string, f: typeof fetch = (...a) => fet
       return toIntent(await call('POST', `/payment_intents/${encodeURIComponent(id)}/capture`, { amount_to_capture: amountCents, expand }, key));
     },
     async createStaffIntent(r) {
-      return toIntent(await call('POST', '/payment_intents', {
+      const p: Params = {
         amount: r.amountCents, currency: 'cad', customer: r.customerId, capture_method: r.capture, setup_future_usage: 'off_session',
         payment_method_types: ['card'], description: r.description, metadata: r.metadata,
         expand
-      }, r.idempotencyKey));
+      };
+      // r42: a deposit hold the renter places on the pay page asks for an extended authorization "if available" (up to
+      // about 30 days on Visa, Mastercard, Amex and Discover; a card that cannot gets the standard hold). Refused when
+      // the intent is made: the same intent again without it. Refused when the renter confirms: standardHold, below
+      if (r.capture === 'manual' && r.extendedHold) {
+        try {
+          return toIntent(await call('POST', '/payment_intents', { ...p, 'payment_method_options[card][request_extended_authorization]': 'if_available' }, `${r.idempotencyKey}:ext`));
+        } catch (e) {
+          if (!extendedRefused(e)) throw e;
+        }
+      }
+      return toIntent(await call('POST', '/payment_intents', p, r.idempotencyKey));
+    },
+    async standardHold(id, key) {
+      return toIntent(await call('POST', `/payment_intents/${encodeURIComponent(id)}`, { 'payment_method_options[card][request_extended_authorization]': 'never', expand }, key));
     },
     async createCardSetup(r) {
       return setupToIntent(await call('POST', '/setup_intents', {
