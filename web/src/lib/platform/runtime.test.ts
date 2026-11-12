@@ -117,9 +117,9 @@ test('jobsForTick: nothing between the five-minute ticks; the due jobs, the hour
 });
 
 test('jobsForTick: every job the Worker\'s cron runs when all are due', () => {
-  const all: JobsDue = { ...DUE, seo: true, turo: true, reviews: true, crm: true, ads: true, meet: true, interviews: true, car_values: true };
+  const all: JobsDue = { ...DUE, seo: true, turo: true, reviews: true, crm: true, ads: true, meet: true, gsc: true, interviews: true, car_values: true };
   const paths = jobsForTick({ full: true, minute: 0 }, all, true).map((j) => j.path.replace('/api/jobs/', ''));
-  assert.deepEqual(paths, ['listing', 'seo', 'phone', 'interviews', 'push', 'reviews', 'meet', 'ads', 'car-values', 'public-rebuild', 'statements', 'pdf', 'turo-rematch', 'agreements', 'partner-crm', 'deposits']);
+  assert.deepEqual(paths, ['listing', 'seo', 'phone', 'interviews', 'push', 'reviews', 'meet', 'gsc', 'ads', 'car-values', 'public-rebuild', 'statements', 'pdf', 'turo-rematch', 'agreements', 'partner-crm', 'deposits']);
 });
 
 test('cronEnabled: only when asked for, so the jobs never run twice while the Worker\'s cron still does', () => {

@@ -19,6 +19,7 @@ export function jobsForTick(plan: { full: boolean; minute: number }, due: JobsDu
   add(pushDue, '/api/jobs/push');
   add(due.reviews, '/api/jobs/reviews');
   add(due.meet, '/api/jobs/meet');
+  add(due.gsc, '/api/jobs/gsc');
   add(due.ads, '/api/jobs/ads');
   add(due.car_values, '/api/jobs/car-values');
   // a car put on or taken off the site in the database alone: the route rebuilds only when the fleet's signature changed

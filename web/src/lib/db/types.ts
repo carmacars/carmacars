@@ -18841,6 +18841,10 @@ export type Database = {
           hiring_ai_harder: boolean;
           email_cloudflare_enabled: boolean;
           owner_weekly_summary_enabled: boolean;
+          gsc_sync_on: boolean;
+          gsc_rewrite_on: boolean;
+          gsc_rewrite_daily_max: number;
+          gsc_inspect_daily_max: number;
         };
         Insert: {
           id?: string;
@@ -19691,6 +19695,10 @@ export type Database = {
           hiring_ai_harder?: boolean;
           email_cloudflare_enabled?: boolean;
           owner_weekly_summary_enabled?: boolean;
+          gsc_sync_on?: boolean;
+          gsc_rewrite_on?: boolean;
+          gsc_rewrite_daily_max?: number;
+          gsc_inspect_daily_max?: number;
         };
         Update: {
           id?: string;
@@ -20541,6 +20549,10 @@ export type Database = {
           hiring_ai_harder?: boolean;
           email_cloudflare_enabled?: boolean;
           owner_weekly_summary_enabled?: boolean;
+          gsc_sync_on?: boolean;
+          gsc_rewrite_on?: boolean;
+          gsc_rewrite_daily_max?: number;
+          gsc_inspect_daily_max?: number;
         };
         Relationships: [];
       };
@@ -32772,6 +32784,8 @@ export type Database = {
       server_game_claim: { Args: { p: Json; p_user?: string }; Returns: Json };
       server_game_start: { Args: { p: Json; p_user?: string }; Returns: Json };
       server_gsc_coverage_trend: { Args: { p_admin: string }; Returns: Json };
+      server_gsc_sync_begin: { Args: never; Returns: Json };
+      server_gsc_sync_finish: { Args: { p: Json }; Returns: Json };
       server_guide_auto_update: { Args: { p: Json }; Returns: Json };
       server_guide_images_replaced: { Args: never; Returns: Json };
       server_guide_pdf_record: { Args: { p: Json }; Returns: Json };

@@ -1,11 +1,12 @@
 import Link from '@/components/Link';
 import { Card, Kv, Table, Tiles, d } from '@/features/admin/ui';
+import { GscCard } from './GscCard';
 import { ctrText, goalShare, indexedShare, num, positionText, type SeoData, type SeoRow, type SeoSitemapRow } from './actions-model';
 
 // Marketing > SEO (Admin) and Sales > Marketing > SEO (read only), migration 1860: the goal in Google clicks a month, the best
 // queries and pages, the pages shown a lot and clicked little, and the pages Google knows but has not indexed, by sitemap.
 // The figures come from the gsc workflow (Search Console's API, every three hours).
-export function SeoActionsView({ data, settingsHref }: { data: SeoData; settingsHref?: string }) {
+export function SeoActionsView({ data, settingsHref, gscFlash }: { data: SeoData; settingsHref?: string; /** 2640: the word the Search Console connection came back with */ gscFlash?: string }) {
   const g = data.goal;
   const cov = data.coverage?.buckets;
   const share = indexedShare(cov);
@@ -23,6 +24,7 @@ export function SeoActionsView({ data, settingsHref }: { data: SeoData; settings
       { k: 'Monthly goal', v: num(g.target), sub: data.read_only ? undefined : <Link prefetch={false} className="link" href={settingsHref ?? '/admin/settings'}>Change in Program settings</Link> },
       { k: 'Month so far', v: num(g.month_to_date) }
     ]} />
+    {data.gsc && <GscCard g={data.gsc} readOnly={data.read_only} flash={gscFlash} settingsHref={settingsHref} />}
     <Card title="Goal tracker" testId="seo-goal">
       <div className="ug-meter" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(100, Math.round(g.share_bps / 100))} aria-label={`Clicks a month against the goal: ${goalShare(g.share_bps)}`}>
         <span className="ug-meter__bar" style={{ width: `${Math.max(0.5, Math.min(100, g.share_bps / 100))}%` }} />

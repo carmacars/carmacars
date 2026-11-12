@@ -306,6 +306,8 @@ const worker = {
     if (due.reviews) run('/api/jobs/reviews');
     // r37 (2303): interview calls waiting for their Google Calendar event and Meet link
     if (due.meet) run('/api/jobs/meet');
+    // r42 (2640): the day's Search Console sync, once a day while connected
+    if (due.gsc) run('/api/jobs/gsc');
     // the ads job (migration 0167): posted ads checked against the rates, the week's social drafts, Meta publishing when on
     if (due.ads) run('/api/jobs/ads');
     // 1202: the AI value estimate of cars with no Black Book value (the RentalCover cap), within the free Workers AI allowance

@@ -12,8 +12,9 @@ import {
 
 export interface SeoClaim {
   cars: Array<{ vehicle_id: string; slug?: string | null; facts: Record<string, unknown>; locked: string[]; current: Partial<CarCopy>; others: string[]; all_intros: string[] }>;
-  pages: Array<{ slug: string; kind: string; name: string; facts: Record<string, unknown>; copy: Partial<PageCopy>; locked: string[]; city?: string }>;
-  articles: Array<{ slug: string; title: string; description: string; brief: string | null; body_md: string; faq: Faq[]; locked: string[] }>;
+  pages: Array<{ slug: string; kind: string; name: string; facts: Record<string, unknown>; copy: Partial<PageCopy>; locked: string[]; city?: string;
+    /** 2640: the searches Search Console shows the page for, when it asked for this rewrite */ queries?: string[] }>;
+  articles: Array<{ slug: string; title: string; description: string; brief: string | null; body_md: string; faq: Faq[]; locked: string[]; queries?: string[] }>;
   ai: boolean; max_attempts: number; similarity_max_bps: number; banned: string[];
   indexnow: { enabled: boolean; key: string; paths: string[] };
   budget: Record<string, unknown>; due: Record<string, number>;
@@ -134,7 +135,7 @@ export async function writeCar(t: TextGenerator, car: SeoClaim['cars'][number], 
 export async function writePage(t: TextGenerator, pg: SeoClaim['pages'][number], o: { tries: number; banned: string[]; tokens?: string[] }): Promise<Result> {
   const locked = pg.locked ?? [];
   const r = await attempt(t, o.tries,
-    (problems) => ({ task: 'seo_page', system: pageSystemPrompt(), prompt: pageUserPrompt(pg, { locked, current: pg.copy, problems }), schema: PAGE_COPY_SCHEMA as unknown as Record<string, unknown>, max: 2200 }),
+    (problems) => ({ task: 'seo_page', system: pageSystemPrompt(), prompt: pageUserPrompt(pg, { locked, current: pg.copy, problems, queries: pg.queries }), schema: PAGE_COPY_SCHEMA as unknown as Record<string, unknown>, max: 2200 }),
     (x) => { const c = normalizePageCopy(x); if (!c) return null; for (const k of locked) if (k in (pg.copy ?? {})) (c as unknown as Record<string, unknown>)[k] = (pg.copy as Record<string, unknown>)[k]; return c; },
     (c) => pageCopyProblems(c, pg, { banned: o.banned, skip: locked, tokens: o.tokens }));
   return { ok: !!r.best, copy: r.best ?? undefined, problems: r.problems, error: r.best ? undefined : r.error ?? 'The page did not pass the checks', model: r.model, prompt_version: PAGE_PROMPT_VERSION, neurons: r.neurons, ms: r.ms, provider: t.name };

@@ -12,7 +12,25 @@ export interface SeoData {
   indexnow: { waiting: number; sent_7d: number; not_indexed_scheduled: number };
   digest: { on: boolean };
   read_only: boolean;
+  /** 2640: the site's own Search Console connection and daily sync; absent before the migration. */
+  gsc?: GscCard;
 }
+export interface GscQueued { path: string; kind: 'page' | 'article'; reason: 'position' | 'low_ctr'; status: 'queued' | 'written' | 'dropped'; queued_at: string; done_at: string | null;
+  impressions: number; ctr: number | null; position: number | null; queries: string[] }
+export interface GscCard {
+  status: 'not_connected' | 'connected' | 'error'; account_email: string | null; property: string | null; connected_at: string | null;
+  last_sync_at: string | null; last_error: string | null; last_error_at: string | null; sync_on: boolean; rewrite_on: boolean; rewrite_daily_max: number;
+  totals: { clicks: number; impressions: number; ctr: number | null; position: number | null; window_start: string | null; window_end: string | null } | null;
+  sitemap: { path: string | null; at: string | null; error: string | null }; inspected_last: number;
+  top_queries: SeoRow[]; queued: GscQueued[]; queued_waiting: number;
+}
+/** Why Search Console had a page written again, in words. */
+export function gscReason(q: Pick<GscQueued, 'reason' | 'impressions' | 'ctr' | 'position'>): string {
+  return q.reason === 'position'
+    ? `Position ${positionText(q.position) || 'not known'}, close to the first results`
+    : `Shown ${num(q.impressions)} times, clicked ${ctrText({ key: '', clicks: 0, impressions: 0, ctr: q.ctr ?? 0, position: null })}`;
+}
+export const GSC_STATUS: Record<GscQueued['status'], string> = { queued: 'Waiting for the writer', written: 'Written again', dropped: 'Not written in two weeks, let go' };
 const nf = new Intl.NumberFormat('en-CA');
 export const num = (n: number | null | undefined) => (n === null || n === undefined ? '' : nf.format(Math.round(n)));
 /** 4,200 bps -> "42%"; under 1% keeps a decimal so a small start still reads as moving */
