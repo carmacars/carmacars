@@ -17,7 +17,8 @@ export interface WelcomeTask { id: string; title: string; detail: string | null;
 export interface WelcomeStep { key: StepKey; done: boolean; phone?: boolean; phone_verified?: boolean; address?: boolean; passed?: number; sections?: number; waived?: boolean; tasks?: WelcomeTask[];
   /** 1060 */ preferred_name?: string | null; /** 1067 */ location?: string | null; state?: 'signed' | 'waived' | 'sent' | 'none'; request_id?: string | null; waiting_for_academy?: boolean; missing?: string[]; open?: boolean; groups?: Array<{ key: string; name: string; url: string; /** 1151 */ joined?: boolean }>; /** 1151: one checkbox a group */ confirm?: boolean;
   /** 1154: step 4, approved by an Admin or a Fleet VA */ asked_at?: string | null; rejected_at?: string | null; reject_reason?: string | null; approved_by?: string | null;
-  /** 1770: field staff, when they can usually work (open from the start; required for the portal) */ slots?: string[]; note?: string | null; required?: boolean }
+  /** 1770: field staff, when they can usually work (open from the start; required for the portal) */ slots?: string[]; note?: string | null; required?: boolean;
+  /** 2373: the Field Staff Agreement waits for the driver's licence number the person gives here */ needs_licence?: boolean }
 export interface Welcome { name: string; portal: 'va' | 'field'; locked: boolean; steps: WelcomeStep[]; /** 1151 */ onboarding_step?: 'academy' | 'agreement' | 'whatsapp' | 'approval' | 'availability' | 'done' }
 
 export const STEP_TITLE: Record<StepKey, string> = { welcome: 'Welcome', profile: 'Your profile and phone', availability: 'When you can work', academy: 'The academy', agreement: 'Your staff agreement', team: 'Join the WhatsApp groups', approval: 'Approval', tasks: 'Your first tasks' };
@@ -42,6 +43,7 @@ export function stepWords(s: WelcomeStep): string {
     case 'availability': return s.done ? 'Given. Change it any time on your profile.' : `Tick the mornings, afternoons and evenings you can usually work. Fleet plans the shifts from it${s.required === false ? '' : ', and your portal opens once it is in'}.`;
     case 'agreement': return s.state === 'signed' ? 'Signed.' : s.state === 'waived' ? 'An Admin waived the agreement for you.'
       : s.waiting_for_academy ? 'It opens for signing once the academy is passed.' : s.state === 'sent' ? 'Ready to sign: read it and sign on screen. The rest of your portal opens once it is signed.'
+      : s.needs_licence ? 'Add your driver\'s licence number below. Your agreement is made from it within minutes and appears here to sign.'
       : 'It is being prepared from your record. An Admin has been told if anything is missing.';
     case 'team': return !s.open ? 'Opens once the academy is passed and the agreement is signed.' : !s.groups?.length ? 'No group to join.' : s.done ? 'Joined.'
       : `Join ${s.groups.map((g) => g.name).join(' and ')} on WhatsApp, then tick each group you joined. Your portal opens once every group is ticked.`;
