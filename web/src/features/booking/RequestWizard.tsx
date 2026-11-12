@@ -100,7 +100,7 @@ export function RequestWizard(p: WizardProps) {
   }, [gatePh, step]);
   const fromGate = () => { const g = gatePhone(); if (g) { setGatePh(g); setD((x) => ({ ...x, phone: formatPhone(g) })); } };
   // signed in (0091): the account's verified phone and email fill the form; an account made by phone may leave the email
-  const [account, setAccount] = useState<{ signedIn: boolean; email: string | null; phone: string | null } | null>(null);
+  const [account, setAccount] = useState<{ signedIn: boolean; email: string | null; phone: string | null; discounts?: Array<{ code: string; what: string; days_left: number | null }> } | null>(null);
   useEffect(() => {
     requestAccount().then((r) => { if (r.ok) setAccount(r.data); }).catch(() => undefined);
   }, []);
@@ -504,6 +504,19 @@ export function RequestWizard(p: WizardProps) {
                 ? `Code ${q.promo.code} applied: ${money(-(q.lines.find((l) => l.charge_type === 'promo_discount')?.amount_cents ?? 0), { cents: true })} off the rental charge.`
                 : q.promo?.problem ?? ''}</p>
               {errEl('promo', 'rq-promo')}
+              {/* r40 (2423): the renter's saved discounts, one tap fills the box (the quote checks it as for a typed code) */}
+              {(account?.discounts?.length ?? 0) > 0 && (
+                <fieldset className="stack" style={{ gap: 'var(--s-1)', border: 0, padding: 0, margin: 'var(--s-2) 0 0' }} data-testid="saved-discounts">
+                  <legend className="small"><b>Use a saved discount</b></legend>
+                  <div className="row" style={{ gap: 'var(--s-2)', flexWrap: 'wrap' }}>
+                    {account!.discounts!.map((c) => (
+                      <button key={c.code} type="button" className={`btn btn--sm ${d.promo === c.code ? 'btn--primary' : 'btn--ghost'}`} aria-pressed={d.promo === c.code}
+                        onClick={() => set('promo', d.promo === c.code ? '' : c.code)} data-testid={`saved-discount-${c.code}`}>
+                        {c.code}: {c.what}{c.days_left !== null && c.days_left < 30 ? ` (${c.days_left === 0 ? 'ends today' : `${c.days_left} ${c.days_left === 1 ? 'day' : 'days'} left`})` : ''}
+                      </button>))}
+                  </div>
+                </fieldset>
+              )}
             </div>
             <div className="alert"><span className="alert__title">What sending this does</span><span>It asks us to check the car and price. It does not book or hold the car, and it takes no payment. We send the final price as an offer that stays open for {p.tokens.offerHours} hours. The car is booked only when you approve, sign and pay. If someone else pays for the same car and dates first, we tell you and offer another car or other dates.</span></div>
             <div className={fieldCls('agree')}>

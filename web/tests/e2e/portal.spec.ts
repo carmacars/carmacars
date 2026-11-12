@@ -184,7 +184,11 @@ test('renter portal: offer, approve, sign, pay, confirmed, documents, uploads, s
   await expect(page.getByTestId('money-paid-booking_total')).toContainText('card ending 4242');
   await expect(page.getByTestId('trip-actions')).toContainText('Licence and coverage');
   await expect(page.getByTestId('trip-actions')).toContainText('Cancel booking');
-  await expect(page.getByTestId('progress-ring')).toBeVisible();
+  // r40: Do this next first (pickup, with the time left), then the steps: sign and pay done, licence and insurance now
+  await expect(page.getByTestId('booking-next-step')).toContainText(/Pick up the|Upload|licence/i);
+  await expect(page.getByTestId('booking-next-step-deadline')).toBeVisible();
+  await expect(page.getByTestId('step-tracker-sign-pay')).toHaveAttribute('data-state', 'done');
+  await expect(page.getByTestId('step-tracker').locator('li[aria-current="step"]')).toHaveCount(1);
   await page.getByTestId('action-add-driver').click();
   await expect(page.locator('#pt-msg-body')).toHaveValue(/add a driver/);
   await axe(page, 'booking');

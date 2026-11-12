@@ -1,4 +1,5 @@
 'use client';
+import { playMoment } from '@/features/motion/moment';
 import { useState } from 'react';
 import { signAgreement, signAsDriver } from '@/server/actions/portal';
 import type { Consent } from '@/features/agreement/model';
@@ -25,7 +26,7 @@ export function SignForm({ number, token, sha, companionSha, consents, legalName
     setLocal(fe);
     if (Object.keys(fe).length) { requestAnimationFrame(() => document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()); return; }
     const input = { consents: [...ticked], sha, companionSha: companionSha ?? undefined, session: sig!.session, drawnPath: sig!.method === 'drawn' ? sig!.drawnPath : undefined, typedName: sig!.method === 'typed' ? sig!.typedName : undefined };
-    a.run(() => (token ? signAsDriver(token, input) : signAgreement(number!, input)), (r) => { if (r.ok) onDone?.(); });
+    a.run(() => (token ? signAsDriver(token, input) : signAgreement(number!, input)), (r) => { if (r.ok) { playMoment('signed'); onDone?.(); } });
   };
   return (
     <form className="stack-lg" noValidate onSubmit={submit} aria-label="Sign the rental agreement">

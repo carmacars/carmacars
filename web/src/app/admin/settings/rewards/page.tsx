@@ -4,7 +4,6 @@ import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
 import { $, Badge, Card, Kv, PageHead, Table, Tiles, t } from '@/features/admin/ui';
-import { pct } from '@/lib/format';
 import type { RewardsState } from '@/features/rewards/types';
 
 export const dynamic = 'force-dynamic';
@@ -12,6 +11,7 @@ export const metadata = pageMeta({ title: 'Rewards', path: '/admin/settings/rewa
 type R = Record<string, unknown>;
 type Settings = { enabled: boolean; points_per_dollar: number; point_value_cents: number; min_redeem_points: number; code_valid_days: number; expiry_months: number; reminder_days: number; late_grace_minutes: number };
 type Data = { settings: Settings; google_review_link: string | null; social_links: Record<string, string | null> | null; actions: R[]; tiers: R[];
+  /** r40 (2421) */ perks?: R[]; any_car_response_hours?: number; any_car_open?: Array<{ number: string; due_at: string; late: boolean; vehicle: string }>;
   totals: { members: number; outstanding: number; earned_30d: number; redeemed_30d: number }; google_claims: R[]; recent: R[];
   matches: Array<{ id: string; name: string; email: string | null; balance: number }> | null; renter: (RewardsState & { id: string; name: string }) | null };
 
@@ -51,12 +51,24 @@ export default async function RewardsAdmin({ searchParams }: { searchParams: Pro
       <p className="small muted">Follows are granted on the click from the Rewards page (a follow cannot be checked); a platform shows only with its page in Settings &gt; Site (social links). Google reviews are on the renter&apos;s word and listed below.</p>
     </Card>
     <Card title="Tiers" testId="rw-tiers">
-      <Table<R> rows={a.tiers} rowKey={(x) => String(x.code)} cols={[{ key: 'name', label: 'Tier' }, { key: 'min_days', label: 'Rental days in 12 months', num: true },
-        { key: 'discount_bps', label: 'Discount', render: (x) => pct(Number(x.discount_bps)) }, { key: 'perk', label: 'Perk', className: 'wrap' },
-        { key: 'act', label: '', render: (x) => <Act action="rewards_tier_save" payload={{ code: x.code }} label="Change" refresh={refresh} done="Saved."
-          fields={[{ name: 'name', label: 'Name', type: 'text', value: x.name }, { name: 'min_days', label: 'From rental days', type: 'number', value: x.min_days, min: 0 },
-            { name: 'discount_bps', label: 'Discount off the rental charge', type: 'percent', value: x.discount_bps }, { name: 'perk', label: 'Perk', type: 'text', value: x.perk, wide: true }]} /> }]} />
-      <p className="small muted">A tier&apos;s discount is a promo code of the renter&apos;s own, so it comes off the rental charge only and reduces Owner Revenue like any promo code.</p>
+      <Table<R> rows={a.tiers} rowKey={(x) => String(x.code)} cols={[{ key: 'name', label: 'Tier' }, { key: 'min_points', label: 'Points earned in 12 months', num: true, render: (x) => Number(x.min_points ?? 0).toLocaleString('en-CA') },
+        { key: 'act', label: '', render: (x) => <Act action="rewards_tier_save" payload={{ code: x.code }} label="Change" refresh={refresh} done="Saved." testId={`rw-tier-${x.code}`}
+          fields={[{ name: 'name', label: 'Name', type: 'text', value: x.name }, { name: 'min_points', label: 'From points earned in 12 months', type: 'number', value: x.min_points, min: 1 }]} /> }]} />
+      <p className="small muted">Points earned count, not the balance: using points never lowers a tier. Below the first tier a renter is a Member. Tiers give perks, not discounts; tier codes issued before release 40 work until they end.</p>
+    </Card>
+    <Card title="Perks" testId="rw-perks">
+      <Table<R> rows={a.perks ?? []} rowKey={(x) => String(x.code)} empty="Perks arrive with migration 2421." cols={[{ key: 'label', label: 'Perk' },
+        { key: 'tier_code', label: 'From tier', render: (x) => String(a.tiers.find((y) => y.code === x.tier_code)?.name ?? x.tier_code) },
+        { key: 'detail', label: 'What renters read', className: 'wrap' }, { key: 'enabled', label: 'On', render: (x) => (x.enabled ? <Badge s="published">On</Badge> : <Badge s="draft">Off</Badge>) },
+        { key: 'act', label: '', render: (x) => <Act action="rewards_perk_save" payload={{ code: x.code }} label="Change" refresh={refresh} done="Saved." testId={`rw-perk-${x.code}`}
+          fields={[{ name: 'enabled', label: 'On', type: 'bool', value: x.enabled }, { name: 'tier_code', label: 'From tier', type: 'select', value: x.tier_code, options: a.tiers.map((y) => [String(y.code), String(y.name)] as [string, string]) },
+            { name: 'label', label: 'Name', type: 'text', value: x.label }, { name: 'detail', label: 'What renters read', type: 'text', value: x.detail, wide: true }]} /> }]} />
+      <p className="small muted">A perk belongs to one tier and every tier above keeps it. Instant Book: the request is booked at once (an Admin can still take it away from a renter). Any car, any time: a request on taken dates is a priority request for Fleet; it never cancels or moves another booking. The free day: one code a year that CarmaCars pays for, never the owner.</p>
+      <Kv rows={[['Fleet answers a priority request within', `${a.any_car_response_hours ?? 4} hours`]]} />
+      <Act action="rewards_settings_save" label="Change the response time" refresh={refresh} done="Saved." testId="rw-any-car-hours"
+        fields={[{ name: 'any_car_response_hours', label: 'Hours to answer', type: 'number', value: a.any_car_response_hours ?? 4, min: 1, max: 72 }]} />
+      {(a.any_car_open ?? []).length > 0 && <ul className="linklist" data-testid="rw-any-car-open">{(a.any_car_open ?? []).map((o) => (
+        <li key={o.number}><Link prefetch={false} className="link" href={`/admin/bookings/${o.number}`}>{o.number}</Link> {o.vehicle}: answer by {t(o.due_at)} {o.late ? <Badge s="failed">Late</Badge> : null}</li>))}</ul>}
     </Card>
     <Card title="Google reviews claimed" testId="rw-google">
       <Table<R> rows={a.google_claims} rowKey={(x) => String(x.id)} empty="No claims yet." cols={[{ key: 'at', label: 'When', render: (x) => t(x.at) },

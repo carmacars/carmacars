@@ -183,10 +183,15 @@ export async function loadRequestDraft(token: string | null): Promise<ActionResu
 }
 
 /** The signed-in person's contact details for the request form (0091): an account made by phone has a verified
- *  number and may have no email yet. */
-export async function requestAccount(): Promise<ActionResult<{ signedIn: boolean; email: string | null; phone: string | null }>> {
+ *  number and may have no email yet. r40 (2423): with the discount codes they can use now, for "Use a saved discount". */
+export type SavedCode = { code: string; what: string; days_left: number | null };
+export async function requestAccount(): Promise<ActionResult<{ signedIn: boolean; email: string | null; phone: string | null; discounts: SavedCode[] }>> {
   const user = await (await auth()).currentUser();
-  if (!user) return { ok: true, data: { signedIn: false, email: null, phone: null } };
-  const si = (await rpc('server_my_sign_in', { p_user: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as { email: string | null; phone: string | null } | null;
-  return { ok: true, data: { signedIn: true, email: si?.email ?? (user.email || null), phone: si?.phone ?? user.phone ?? null } };
+  if (!user) return { ok: true, data: { signedIn: false, email: null, phone: null, discounts: [] } };
+  const [si, saved] = await Promise.all([
+    rpc('server_my_sign_in', { p_user: user.id }, { role: 'service_role' }).catch(() => null) as Promise<unknown>,
+    rpc('server_my_discounts' as never, { p_user: user.id } as never, { role: 'service_role' }).catch(() => []) as Promise<unknown>]);
+  const c = si as { email: string | null; phone: string | null } | null;
+  const { usableDiscounts } = await import('@/features/rewards/discounts');
+  return { ok: true, data: { signedIn: true, email: c?.email ?? (user.email || null), phone: c?.phone ?? user.phone ?? null, discounts: usableDiscounts(saved as never).slice(0, 6) } };
 }

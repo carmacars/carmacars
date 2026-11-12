@@ -17,7 +17,7 @@ import { Messages, type Msg } from '@/features/portal/Messages';
 import { rpc } from '@/lib/db/repo';
 import { Withdraw } from '@/features/portal/Withdraw';
 import { ChangeRequestActions } from '@/features/portal/SelfService';
-import { myBooking, myTripPhotos } from '@/server/portal/data';
+import { myBooking, myTripPhotos, reviewState } from '@/server/portal/data';
 import { LicenceNotice, licenceState, renterMissing } from '@/features/portal/LicenceNotice';
 import { door } from '@/server/door';
 import { bookingDriverLinks } from '@/server/portal/driver-links';
@@ -26,8 +26,12 @@ import { PushInvite } from '@/features/push/PushAlerts';
 import { PortalAddons, type MyAddons } from '@/features/addons/PortalAddons';
 import { renterPayBalance } from '@/server/actions/balance';
 import type { HandoverReportData } from '@/features/handover/types';
-import { AnimatedNumber, Disclosure, DocumentList, DocumentRow, MoneyCard, PortalCard, ProgressRing, QuickAction, QuickActions, Timeline, TimelineItem, type MoneyPart } from '@/components/portal-ui';
-import { NextStepBox, TripHero, tripPhoto } from '@/features/portal/trip';
+import { AnimatedNumber, Disclosure, DocumentList, DocumentRow, MoneyCard, PortalCard, ProgressRing, QuickAction, QuickActions, type MoneyPart } from '@/components/portal-ui';
+import { TripHero, ourAddress, tripPhoto } from '@/features/portal/trip';
+import { placeText } from '@/features/portal/Blocks';
+import { nextAction, stageSummary, stages } from '@/features/portal/next-action';
+import { NextActionPanel } from '@/features/portal/NextActionPanel';
+import { StepTracker } from '@/features/portal/StepTracker';
 import { moneyParts } from '@/features/portal/trip-model';
 import { CompleteDetails } from '@/features/portal/CompleteDetails';
 import { StillNeeded } from '@/features/portal/StillNeeded';
@@ -107,12 +111,14 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
   // 0750: the one rule (the Sign and pay page and the payment read the same)
   const rule = signPayOf(b);
   const signed = rule.signed || (!signPayOpen(rule) && !!b.agreement?.renter_signed_at);
-  const actionable = !!step.href && step.href !== bookingPath(b.booking_number);
   // the hero's next step names the action the tests and the guide know (live-sign, live-pay)
   const stepId = b.status === 'on_rent' && b.added_live && !signed ? 'live-sign' : b.link_due && signed ? 'live-pay' : 'booking-next-step-cta';
-  const steps = progress(b);
-  const done = steps.filter((p) => p.done).length;
-  const firstTodo = steps.findIndex((p) => !p.done);
+  // r40: the booking's steps in six plain stages (done, now, later), from progress()
+  const track = stages(progress(b), b.status);
+  const reviewDue = b.status === 'closed' && b.booking_type !== 'owner' ? await reviewState(user, b.id).then((r) => !r.review && !!r.can_review).catch(() => false) : false;
+  const addr = ourAddress(s);
+  const act = nextAction(b, step, { pickupPlace: placeText(b.pickup_place ?? addr, b.pickup_method, true), returnPlace: placeText(b.return_place ?? addr, b.return_method, false),
+    balanceCents: balanceDue, needs: stillNeededOf(b), reviewDue });
 
   // money: what is paid and what is open, by part, as the database stored it
   const m = moneyParts({ status: b.status, renter_due_at_booking_cents: b.renter_due_at_booking_cents, deposit_cents: b.deposit_cents, link_due: b.link_due, signed,
@@ -126,15 +132,12 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
   const receipts = [...b.documents.filter((d) => !d.purged && ['receipt', 'renter_statement'].includes(d.kind)).map((d) => ({ key: d.id, kind: d.kind, title: KIND[d.kind] ?? d.title ?? 'Receipt', at: d.created_at, href: `/account/documents/${d.id}` })),
     ...files.filter((f) => ['receipt', 'renter_statement', 'statement'].includes(f.kind)).map((f) => ({ key: `${f.kind}:${f.key}`, kind: f.kind, title: f.title, at: f.at, href: `/files/${f.kind}/${f.key}` }))];
 
-  const next = actionable
-    ? <NextStepBox step={step} testId="booking-next-step" ctaTestId={stepId} calm={!step.urgent} />
-    : <NextStepBox step={{ ...step, href: undefined }} calm kicker={live ? 'All set' : STATUS[b.status].label} testId="booking-next-step"
-        extra={live ? <div className="row" style={{ gap: 'var(--s-2)', flexWrap: 'wrap' }}><AddToCalendar number={b.booking_number} car={`${b.vehicle_year} ${b.vehicle_make} ${b.vehicle_model}`} pickup={b.pickup_at} ret={b.return_at} place={b.pickup_place ?? 'CarmaCars'} />{wallet && <a className="btn btn--ghost btn--sm" href={bookingPath(b.booking_number, 'wallet')} data-testid="add-to-wallet">Add to Apple Wallet</a>}{phone && <a className="btn btn--quiet btn--sm" href={`tel:${tel}`}>Call us {phone}</a>}</div> : null} />;
+  const next = <NextActionPanel a={act} testId="booking-next-step" titleId="booking-next-step-h" primaryTestId={stepId} dropTrip
+    extra={live ? <><AddToCalendar number={b.booking_number} car={`${b.vehicle_year} ${b.vehicle_make} ${b.vehicle_model}`} pickup={b.pickup_at} ret={b.return_at} place={b.pickup_place ?? 'CarmaCars'} />{wallet && <a className="btn now__btn" href={bookingPath(b.booking_number, 'wallet')} data-testid="add-to-wallet">Add to Apple Wallet</a>}{phone && <a className="btn now__btn" href={`tel:${tel}`}>Call us {phone}</a>}</> : null} />;
 
   return (
     <>
       <Back href="/account">Your trips</Back>
-      {(() => { const n = stillNeededOf(b); return showNeeds(n) ? <StillNeeded number={b.booking_number} needs={n} title={b.status === 'requested' || b.status === 'offered' ? 'What we still need for this request' : undefined} testId="still-needed" /> : null; })()}
       {sp.changed && <div className="pt-ok" role="status" data-testid="changed-panel"><h2 className="d3">Booking updated</h2><p>Your booking has the new details. The signed amendment is under Documents, and we emailed you a copy.</p></div>}
       {sp.declined && <div className="pt-ok" role="status" data-testid="declined-panel"><h2 className="d3">Change declined</h2><p>Your booking stays as it was. We let our team know.</p></div>}
       {sp.paid && b.status === 'on_rent' && b.added_live && !b.link_due && <div className="pt-ok" role="status" data-testid="paid-live-panel"><h2 className="d3">Paid, thank you</h2><p>Your card was charged {money(b.renter_due_at_booking_cents, { cents: true })} for your rental. Your signed agreement and receipt are below.</p></div>}
@@ -146,7 +149,13 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
       {sp.paid && b.status === 'confirmed' && <div className="pt-ok" role="status" data-testid="paid-panel"><h2 className="d3">Booking confirmed</h2><p>Your card was charged {money(card?.amount_cents ?? b.renter_due_at_booking_cents, { cents: true })} and the car is reserved for you. Your signed agreement and receipt are below.</p></div>}
 
       {detailsMissing.length > 0 && <CompleteDetails number={b.booking_number} missing={detailsMissing} />}
-      <TripHero b={b} photo={photo} settings={s} next={next} kmDriven={report?.km_driven ?? null} prepaidFuel={(addons?.items ?? []).some((a) => a.prepaid_fuel)}>
+      {/* r40 "Do this next": the one action and its button, then the steps; nothing above it competes */}
+      {next}
+      {!['cancelled', 'declined', 'expired', 'closed'].includes(b.status) && (
+        <PortalCard id="pt-prog" title={stageSummary(track).text} testId="trip-progress"><StepTracker number={b.booking_number} stages={track} /></PortalCard>
+      )}
+      {(() => { const n = stillNeededOf(b); return showNeeds(n) ? <StillNeeded quiet number={b.booking_number} needs={n} title={b.status === 'requested' || b.status === 'offered' ? 'What we still need for this request' : undefined} testId="still-needed" /> : null; })()}
+      <TripHero b={b} photo={photo} settings={s} kmDriven={report?.km_driven ?? null} prepaidFuel={(addons?.items ?? []).some((a) => a.prepaid_fuel)}>
         <p className="small muted" data-testid="status-blurb">{awaitingSignature(b) ? AWAITING_SIGNATURE.blurb : STATUS[b.status].blurb}
           {b.status === 'confirmed' && <> Bring your original licence{card ? ` and the card ending ${card.card_last4}` : ' and the card you paid with'}.</>}</p>
       </TripHero>
@@ -198,14 +207,6 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
               {['closed', 'returned', 'cancelled', 'expired', 'declined'].includes(b.status) && <QuickAction href={b.slug ? `/cars/${b.slug}` : '/cars'} icon="repeat" title="Book again" note="Same car, new dates" testId="book-again" />}
             </QuickActions>
             {['requested', 'pending_payment'].includes(b.status) && <div><Withdraw number={b.booking_number} /></div>}
-          </PortalCard>
-
-          <PortalCard id="pt-prog" title="Progress" testId="trip-progress">
-            <div className="pu-ringrow"><ProgressRing value={done} max={steps.length} size={88} stroke={8} accent title={`${done} of ${steps.length} steps done`} label={`${done}/${steps.length}`} testId="progress-ring" />
-              <span className="pu-ringrow__label"><b>{firstTodo >= 0 ? steps[firstTodo]!.label : 'All done'}</b>{firstTodo >= 0 ? 'is next' : 'Every step is complete'}</span></div>
-            <Disclosure summary="Every step" open={false} testId="progress-steps">
-              <Timeline label="Booking progress">{steps.map((p, i) => <TimelineItem key={p.label} title={p.label} href={p.href} state={p.done ? 'done' : i === firstTodo ? 'current' : 'todo'} />)}</Timeline>
-            </Disclosure>
           </PortalCard>
 
           {accident && (

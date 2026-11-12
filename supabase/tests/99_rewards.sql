@@ -32,8 +32,9 @@ select test.eq('closing twice gives nothing more', app.rewards_balance(test.id('
 select test.mk_booking('RWD-2', 'rwd_car', 'rwd_ben', '2026-09-10 10:00', '2026-09-20 10:00', 'returned', 100000, 'standard', null, null, '2026-09-20 13:00');
 update bookings set status = 'closed' where id = test.id('booking:RWD-2');
 select test.ok('late: no damage-free points', not exists (select 1 from reward_ledger where source_key = 'damage_free:' || test.id('booking:RWD-2')));
-select test.ok('10+ rental days in 12 months: Silver, with its own 5% code', (select tier_code from reward_accounts where renter_id = test.id('renter:rwd_ben')) = 'silver'
-  and exists (select 1 from reward_accounts a join promo_codes p on p.id = a.tier_promo_id where a.renter_id = test.id('renter:rwd_ben') and p.percent_bps = 500 and p.is_active and p.renter_id = a.renter_id));
+-- r40 (2421): tiers by points earned in 12 months (Gold 1,000): Ben earned 1,050 on RWD-1 and more on RWD-2; no tier code any more
+select test.ok('1,000+ points earned in 12 months: Gold, with no discount code made', (select tier_code from reward_accounts where renter_id = test.id('renter:rwd_ben')) = 'gold'
+  and (select tier_promo_id from reward_accounts where renter_id = test.id('renter:rwd_ben')) is null);
 
 -- a review on the site: points whatever the rating, and the review says so
 insert into reviews (booking_id, renter_id, vehicle_id, rating, body) values (test.id('booking:RWD-1'), test.id('renter:rwd_ben'), test.id('vehicle:rwd_car'), 2, 'The car was late.');
