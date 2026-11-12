@@ -1,6 +1,7 @@
 -- 99: "Waive short-notice upcharge" (2370): Admin or staff, with a reason, audited; offers, Add a rental and extensions;
 -- the owner's minimum daily rate (1205) still applies to staff. Fixtures start with "sw".
 select test.suite('99 r38 short-notice waiver');
+create temp table sw_prog as select id, lead_time_enabled, weekend_premium_bps from program_settings;
 update program_settings set lead_time_enabled = true, weekend_premium_bps = 0 where id is not null;
 select test.mk_user('sw_admin', 'admin');
 select test.mk_user('sw_sales', 'va', 'sales');
@@ -97,4 +98,7 @@ select test.eq('taken back by an Admin: the waiver is gone and extensions count 
   'true ' || (select v ->> 'per_day_cents' from s99sw where k = 'allin0'));
 select test.ok('both changes are in the audit log', (select count(*) from audit_log where entity_id = (test.s99swb('plain')).id::text and action in ('short_notice_waive', 'short_notice_unwaive')) = 2);
 
-update program_settings set lead_time_enabled = false where id is not null;
+-- the settings as they were (99_weekend_above_daily and later suites read the weekend premium), and the cards made at 0%
+-- raised again by their own rule (0271's trigger)
+update program_settings p set lead_time_enabled = w.lead_time_enabled, weekend_premium_bps = w.weekend_premium_bps from sw_prog w where w.id = p.id;
+update rate_cards set weekend_rate_cents = weekend_rate_cents where effective_to is null and weekend_rate_cents <= daily_rate_cents;
