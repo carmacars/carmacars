@@ -30,10 +30,10 @@ export function SignalTimeline({ items }: { items: Signal[] }) {
 
 /** The whole person behind a lead (read lead_context, migration 2411), on the lead page and under a lead card's Renter button,
  *  the same for an Admin and staff. `portal` is /admin or /staff, for the booking and renter links. */
-export function RenterContext({ c, portal }: { c: LeadContext; portal: '/admin' | '/staff' }) {
+export function RenterContext({ c, portal, renterLink = true }: { c: LeadContext; portal: '/admin' | '/staff'; /** the viewer may open Find a renter (Admin, CS, Finance, Fleet; not Sales) */ renterLink?: boolean }) {
   const owed = owedWords(c.balance ?? null, $);
   const name = c.contact.preferred_name && c.contact.preferred_name !== c.contact.name ? `${c.contact.name ?? ''} (goes by ${c.contact.preferred_name})` : c.contact.name;
-  const renterHref = c.renter_id ? (portal === '/admin' ? `/admin/renters/${c.renter_id}` : `/staff/renters?id=${c.renter_id}`) : null;
+  const renterHref = c.renter_id && renterLink ? (portal === '/admin' ? `/admin/renters/${c.renter_id}` : `/staff/renters?id=${c.renter_id}`) : null;
   return (
     <section className="rc stack" aria-label="The person behind this lead" data-testid="renter-context" data-full={c.full ? 'true' : 'false'}>
       <div className="rc-head">

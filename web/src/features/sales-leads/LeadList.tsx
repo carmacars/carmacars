@@ -9,7 +9,7 @@ import { BulkAssign, BULK_FORM } from './BulkAssign';
 import { RenterToggle } from './RenterToggle';
 
 /** The lead cards (phone-friendly: one column at 375, two or three on wider screens). */
-export function LeadCards({ rows, base, admin, people, testId = 'lead-cards', pick = false }: { rows: LeadRow[]; base: string; admin: boolean; people: Data['people']; testId?: string; /** 2411: a tick box for the bulk bar */ pick?: boolean }) {
+export function LeadCards({ rows, base, admin, people, testId = 'lead-cards', pick = false, renterLink = true }: { renterLink?: boolean; rows: LeadRow[]; base: string; admin: boolean; people: Data['people']; testId?: string; /** 2411: a tick box for the bulk bar */ pick?: boolean }) {
   const portal = base.startsWith('/admin') ? '/admin' : '/staff';
   if (!rows.length) return <p className="small muted" data-testid={`${testId}-empty`}>No leads here.</p>;
   return (
@@ -33,7 +33,7 @@ export function LeadCards({ rows, base, admin, people, testId = 'lead-cards', pi
           {holdWords(r.hold).text && <p className="small" data-testid="lead-hold">{holdWords(r.hold).text}</p>}
           {r.assigned_name && <p className="small" data-testid="lead-assigned">Assigned to {r.assigned_name}{r.admin_assigned ? ' by an Admin' : ''}</p>}
           <LeadActions lead={r} admin={admin} people={people} compact />
-          <RenterToggle lead={r.id} portal={portal} />
+          <RenterToggle lead={r.id} portal={portal} renterLink={renterLink} />
         </li>))}
     </ul>
   );
@@ -41,7 +41,7 @@ export function LeadCards({ rows, base, admin, people, testId = 'lead-cards', pi
 
 /** The one Sales lead list (Admin, Sales and customer service; the same on the staff portal): filters, search, priority sort,
  *  Next lead, and the lead cards. `type` fixes the lead type (Owners > Leads). */
-export function LeadList({ d, base, listBase, sp, type }: { d: Data; base: string; listBase: string; sp: Record<string, string | undefined>; type?: LeadType }) {
+export function LeadList({ d, base, listBase, sp, type, renterLink = true }: { d: Data; base: string; listBase: string; sp: Record<string, string | undefined>; type?: LeadType; renterLink?: boolean }) {
   const page = Math.max(1, Number(sp.page ?? '1') || 1);
   const pages = Math.max(1, Math.ceil(d.count / 50));
   const pageHref = (n: number) => { const q = new URLSearchParams(Object.entries({ ...sp, page: String(n) }).filter(([, v]) => v) as Array<[string, string]>); const [p, own = ''] = listBase.split('?'); for (const [k, v] of new URLSearchParams(own)) q.set(k, v); return `${p}?${q.toString()}`; };
@@ -55,7 +55,7 @@ export function LeadList({ d, base, listBase, sp, type }: { d: Data; base: strin
         chips={{ name: 'status', label: 'Status', options: STATUS_CHIPS }}
         sort={{ name: 'sort', label: 'Sort', options: [['', 'Newest'], ['priority', 'Priority'], ['oldest', 'Oldest']] }} kept={['type', 'source', 'age', 'assigned', 'mine']} />
       {d.admin && <BulkAssign people={d.assignees ?? []} filter={bulkFilter(sp, type)} count={d.count} />}
-      <LeadCards rows={d.rows} base={base} admin={d.admin} people={d.people} pick={d.admin} />
+      <LeadCards rows={d.rows} base={base} admin={d.admin} people={d.people} pick={d.admin} renterLink={renterLink} />
       {pages > 1 && <nav className="row small" style={{ gap: 'var(--s-2)' }} aria-label="Pages">
         {page > 1 && <Link prefetch={false} className="link" href={pageHref(page - 1)}>Newer page</Link>}<span>Page {page} of {pages}</span>
         {page < pages && <Link prefetch={false} className="link" href={pageHref(page + 1)}>Next page</Link>}</nav>}
