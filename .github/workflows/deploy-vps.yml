@@ -5,8 +5,16 @@ name: deploy-vps
 # It never changes DNS and never touches the Cloudflare Worker (ci.yml's deploy keeps doing that), so running it does not
 # move a single visitor: the site answers on the hostnames of the repository variable WEB_VPS_HOSTNAMES only
 # (a temporary hostname first; the public ones are added there for the DNS switch).
-#   action  deploy    build the image from this commit, send it, start it, load Caddy's site file, check /api/health
+#   action  deploy    the Node smoke first (below), then: build the image from this commit, send it, start it, load
+#                     Caddy's site file, check /api/health, deploy the free inbound email forwarder
 #           rollback  the image that ran before the last deploy
+#           switch    no build (two minutes): the running image restarted with the cron setting, Caddy reloaded so it
+#                     gets the certificates of hostnames whose DNS has just moved, then the email rules. The DNS switch
+#           test      only the Node smoke: the standalone build and the Node entry on the runner with the local stack,
+#                     the smoke script and an end-to-end subset (sign-in, the Admin portal). Needs no secret, no server
+#   email   keep      leave the Email Routing rules
+#           forwarder mail to in.carmacars.ca goes to the free forwarder Worker, which posts it to the server
+#           worker    back to the website Worker (the rollback)
 #   cron    keep      leave the server's setting (off on a first deploy)
 #           on / off  the minute tick of the job routes on the server: on only once the Worker's cron trigger is off
 on:
@@ -15,12 +23,17 @@ on:
       action:
         description: deploy or rollback
         type: choice
-        options: [deploy, rollback]
+        options: [deploy, rollback, switch, test]
         default: deploy
       cron:
         description: The job tick on the server (on only after the Worker's cron is off)
         type: choice
         options: [keep, 'on', 'off']
+        default: keep
+      email:
+        description: Inbound email (forwarder at the switch; worker to go back)
+        type: choice
+        options: [keep, forwarder, worker]
         default: keep
 
 permissions:
@@ -31,8 +44,34 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # The switch tested before DNS changes: HOSTING_TARGET=node built on the runner (7 GB of memory), the Node entry started
+  # with the local stack (test data, no secret), then the smoke script (health, home, sign-in, the fleet, a car page,
+  # the nonce policy, inbound email signed and unsigned) and the sign-in and Admin end-to-end tests against it.
+  node-smoke:
+    if: inputs.action == 'deploy' || inputs.action == 'test'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/full-stack
+        with:
+          build: node
+      - name: Node entry smoke (pages, headers, inbound email)
+        run: ../.github/ci-run.sh "Node smoke" node --no-warnings scripts/node-smoke.mjs
+      - name: End to end against the Node entry (sign-in, the Admin portal)
+        env:
+          BASE_URL: http://localhost:3000
+        run: ../.github/ci-run.sh "End to end (Node entry)" npx playwright test tests/e2e/signin.spec.ts tests/e2e/admin.spec.ts --project desktop-1440
+      - name: The server's last lines
+        if: failure()
+        run: tail -n 80 /tmp/serve.log || true
+
   deploy-vps:
-    if: vars.WEB_ON_VPS == '1'
+    needs: node-smoke
+    if: ${{ !cancelled() && vars.WEB_ON_VPS == '1' && inputs.action != 'test' && (inputs.action != 'deploy' || needs.node-smoke.result == 'success') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
@@ -59,12 +98,23 @@ jobs:
       DOMAIN: carmacars.ca
       WEB_VPS_HOSTNAMES: ${{ vars.WEB_VPS_HOSTNAMES }}
       WEB_CRON: ${{ inputs.cron }}
+      # cloudflare (the default): Cloudflare's free proxy in front of the server (location headers, static file cache,
+      # DDoS protection); off: DNS-only records
+      WEB_PROXY: ${{ vars.WEB_PROXY }}
+      # files: production keeps them in Supabase Storage on the server (FILES_ON_R2 was never set). Only if they are ever
+      # moved to R2: FILES_ON_R2=yes and the two R2 S3 keys below (R2 is free under 10 GB)
+      FILES_ON_R2: ${{ vars.FILES_ON_R2 }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
       RUN: ${{ github.workspace }}/.github/ci-run.sh
     steps:
       - uses: actions/checkout@v4
       - name: Rollback (the image that ran before the last deploy)
         if: inputs.action == 'rollback'
         run: $RUN "Rollback" scripts/deploy/web-vps.sh rollback
+      - name: Switch (cron, Caddy's certificates; no build)
+        if: inputs.action == 'switch'
+        run: $RUN "Switch" scripts/deploy/web-vps.sh switch
       - name: Secrets from the SOPS file
         if: inputs.action == 'deploy'
         uses: ./.github/actions/sops-env
@@ -89,6 +139,11 @@ jobs:
           export MAPS_PROVIDER="${MAPS_PROVIDER:-fake}"
           # files: Supabase Storage on the server (the Worker's R2 bindings do not exist there); photos from its public bucket
           export STORAGE_PROVIDER=supabase
+          if [ "${FILES_ON_R2:-no}" = yes ]; then
+            # the same buckets the Worker's bindings used, over R2's S3 API: no file is copied
+            [ -n "${R2_ACCESS_KEY_ID:-}" ] && [ -n "${R2_SECRET_ACCESS_KEY:-}" ] && [ -n "${PHOTOS_URL:-}" ] || { echo "::error title=deploy-vps::FILES_ON_R2=yes needs the secrets R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY and the variable NEXT_PUBLIC_VEHICLE_PHOTOS_URL (the public bucket's address)"; exit 1; }
+            export STORAGE_PROVIDER=r2 R2_ACCOUNT_ID="$CLOUDFLARE_ACCOUNT_ID" R2_BUCKET_PREFIX=carmacars-prod-
+          fi
           export NEXT_PUBLIC_VEHICLE_PHOTOS_URL="${PHOTOS_URL:-$NEXT_PUBLIC_SUPABASE_URL/storage/v1/object/public/vehicle-public}"
           # AI: Workers AI over REST when the token is there, else the fake (never a failed deploy)
           if [ -n "${WORKERS_AI_API_TOKEN:-}" ] && [ -n "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then export LLM_PROVIDER=workers-ai; else export LLM_PROVIDER=fake; echo "::warning title=deploy-vps::WORKERS_AI_API_TOKEN is not set: AI drafts and replies use the fake on the server"; fi
@@ -111,6 +166,15 @@ jobs:
       - name: To the server (start, health, Caddy's site file), then /api/health from outside
         if: inputs.action == 'deploy'
         run: $RUN "Server" scripts/deploy/web-vps.sh ship "$RUNNER_TEMP/web-image.tgz" "$RUNNER_TEMP/web.env"
+      # Inbound email without Workers Paid: the forwarder is deployed on every deploy (it receives nothing until the rules
+      # point at it); a failure only fails the job when the rules are being pointed at it in this run
+      - name: Inbound email forwarder (a Worker on Cloudflare's free plan)
+        if: inputs.action == 'deploy'
+        continue-on-error: ${{ inputs.email != 'forwarder' }}
+        run: $RUN "Email forwarder" scripts/deploy/web-vps.sh forwarder
+      - name: Inbound email rules (to the forwarder, or back to the website Worker)
+        if: inputs.email != 'keep'
+        run: $RUN "Email rules" scripts/deploy/web-vps.sh email ${{ inputs.email }}
       - name: Remove the settings file
         if: always()
         run: rm -f "$RUNNER_TEMP/web.env" "$RUNNER_TEMP/web-image.tgz" web/.env.production

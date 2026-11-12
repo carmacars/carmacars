@@ -1,7 +1,13 @@
 # Release 42: the website behind the Supabase stack's Caddy (docs/hosting/off-cloudflare.md). The deploy-vps job puts
 # the hostnames in place of __WEB_HOSTNAMES__ (the repository variable WEB_VPS_HOSTNAMES, comma separated) and installs
 # this file as /opt/carmacars/supabase/caddy/sites/web.caddy; the Caddyfile imports sites/*.caddy.
-# Certificates: Let's Encrypt, by Caddy, as for the API: each hostname needs a DNS-only A record to this server.
+# Certificates: Let's Encrypt, by Caddy, over port 80 (HTTP-01). That works for a DNS-only record and for a record
+# proxied through Cloudflare's free plan, as long as the zone's "Always Use HTTPS" is off (Caddy itself redirects
+# http to https) and its SSL mode is Full (strict).
+# Behind Cloudflare's free proxy (repository variable WEB_PROXY=cloudflare, the default): the deploy fills
+# __CF_RANGES__ with Cloudflare's published address ranges, read at deploy time; requests from them keep Cloudflare's
+# headers (the visitor's address, country, region, city). With WEB_PROXY=off the block between the two proxy markers
+# is left out. Any other request gets the address Caddy saw and none of those headers, so a visitor can never set them.
 __WEB_HOSTNAMES__ {
 	encode zstd gzip
 	# server actions take 15 MB, an interview recording 60 MB
@@ -11,22 +17,38 @@ __WEB_HOSTNAMES__ {
 	header {
 		-Server
 	}
-	reverse_proxy carmacars-web:3000 {
-		# The app reads the visitor's address from CF-Connecting-IP (web/src/server/request.ts). Here it is always the
-		# address Caddy saw, never a header the visitor sent; Cloudflare's other request headers are dropped for the
-		# same reason. (If the records are ever proxied through Cloudflare's free plan again: add Cloudflare's ranges
-		# to trusted_proxies in the Caddyfile and remove the four header_up -CF lines.)
-		header_up CF-Connecting-IP {client_ip}
-		header_up -CF-IPCountry
-		header_up -CF-IPCity
-		header_up -CF-Region-Code
-		header_up -CF-Ray
-		# a redeploy restarts the container: requests wait for it instead of failing
-		lb_try_duration 30s
-		lb_try_interval 500ms
-		transport http {
-			read_timeout 300s
-			write_timeout 300s
+	# proxy-begin
+	@cloudflare remote_ip __CF_RANGES__
+	handle @cloudflare {
+		reverse_proxy carmacars-web:3000 {
+			# a redeploy restarts the container: requests wait for it instead of failing
+			lb_try_duration 30s
+			lb_try_interval 500ms
+			transport http {
+				read_timeout 300s
+				write_timeout 300s
+			}
+		}
+	}
+	# proxy-end
+	handle {
+		reverse_proxy carmacars-web:3000 {
+			# The app reads the visitor's address from CF-Connecting-IP (web/src/server/request.ts) and the place from
+			# Cloudflare's location headers (web/src/lib/platform/node-edge.ts): here never what the visitor sent.
+			header_up CF-Connecting-IP {client_ip}
+			header_up -CF-IPCountry
+			header_up -CF-IPCity
+			header_up -CF-Region-Code
+			header_up -CF-Region
+			header_up -CF-IPLatitude
+			header_up -CF-IPLongitude
+			header_up -CF-Ray
+			lb_try_duration 30s
+			lb_try_interval 500ms
+			transport http {
+				read_timeout 300s
+				write_timeout 300s
+			}
 		}
 	}
 	log {

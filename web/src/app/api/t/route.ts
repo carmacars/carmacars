@@ -2,7 +2,9 @@ import { NextResponse, after } from 'next/server';
 import { rpc } from '@/lib/db/repo';
 import { env } from '@/lib/env';
 import { currentUser } from '@/server/portal/data';
-import { BEACON_WAIT_MS, BEAT_WAIT_MS, MAX_BEACON_BYTES, cleanBeacon, cleanBeat, isBeat, isBot, within } from '@/lib/track/shared';
+import { BEACON_WAIT_MS, BEAT_WAIT_MS, MAX_BEACON_BYTES, cleanBeacon, cleanBeat, ipKey, isBeat, isBot, within } from '@/lib/track/shared';
+import { hostingTarget } from '@/lib/platform/runtime';
+import { geoFromHeaders } from '@/lib/platform/node-edge';
 import type { Json } from '@/lib/db/types';
 import { roundGeo } from '@/features/live-map/config';
 
@@ -41,7 +43,11 @@ export async function POST(req: Request) {
   const { end, ...batch } = b;
   // outside production a test may say where the visitor is (Cloudflare does it in production)
   // (the Live map's position, 0242: x-cc-lat and x-cc-lon, rounded as the Worker rounds Cloudflare's)
-  const geo = e.APP_ENV === 'production' ? {} : { city: req.headers.get('x-cc-city'), region: req.headers.get('x-cc-region'), country: req.headers.get('x-cc-country'),
+  // r42, on the company's server: the place from the headers of Cloudflare's free proxy (Caddy drops them from any request
+  // that did not come from Cloudflare) and the salted key of the address, as the Worker entry sends them
+  const onServer = e.APP_ENV === 'production' && hostingTarget() === 'node';
+  const geo = onServer ? { ...geoFromHeaders((n) => req.headers.get(n)), ip_key: await ipKey(req.headers.get('cf-connecting-ip'), (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '').slice(-24)) }
+    : e.APP_ENV === 'production' ? {} : { city: req.headers.get('x-cc-city'), region: req.headers.get('x-cc-region'), country: req.headers.get('x-cc-country'),
     lat: roundGeo(req.headers.get('x-cc-lat')), lon: roundGeo(req.headers.get('x-cc-lon')) };
   const user = await currentUser().catch(() => null);
   const p = background((async () => {

@@ -26,6 +26,11 @@ COPY --from=build --chown=node:node /src/public ./public
 # the entry and the modules it shares with the Worker entry (loaded as TypeScript by Node itself)
 COPY --from=build --chown=node:node /src/scripts/vps-server.mjs ./scripts/vps-server.mjs
 COPY --from=build --chown=node:node /src/src/lib ./src/lib
+# the automatic answer's message (inbound email), read by the entry
+COPY --from=build --chown=node:node /src/src/features/auto-reply/faq.ts ./src/features/auto-reply/faq.ts
+# the last good copies of the public pages (a volume in docker-compose.yml: they outlive a deploy)
+RUN mkdir -p /data/copies && chown node:node /data/copies
+ENV COPIES_DIR=/data/copies
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=60s --retries=4 \
