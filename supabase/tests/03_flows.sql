@@ -512,7 +512,10 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             'site_selfqa_runs',
                             -- the marketing audience and campaign sends (2490): rebuilt hourly from the sources and written by the
                             -- campaign job, one row per address and campaign; no money, pricing or status (the campaigns are audited)
-                            'marketing_contacts', 'marketing_campaign_sends')
+                            'marketing_contacts', 'marketing_campaign_sends',
+                            -- the owners' Monday email (2620): one row per owner and week the weekly job considered, so no owner is
+                            -- handled twice; no money, pricing or status (the email itself is in app_events and the outbox)
+                            'owner_weekly_summaries')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',
   (select count(*) > 0 from audit_log where entity_table = 'rate_cards' and action = 'INSERT' and after ->> 'daily_rate_cents' = '10000'), true);
