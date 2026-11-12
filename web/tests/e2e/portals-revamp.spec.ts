@@ -72,6 +72,9 @@ test('renter portal: Trips opens on what to do now, Account has two tabs, old ad
     const now = page.getByTestId('next-step');
     await expect(now).toContainText(/Return the \d{4} Mercedes-Benz GLC (today|tomorrow) at \d{1,2}:\d\d [ap]\.m\./);
     await expect(now.getByTestId('now-extend')).toHaveAttribute('href', `/account/bookings/${number}/extend`);
+    // r40: the card's other buttons are behind More
+    await expect(now.getByTestId('now-message')).toBeHidden();
+    await now.getByTestId('next-step-more').locator('summary').click();
     await expect(now.getByTestId('now-message')).toBeVisible();
     // r40: a return within the day: the time left on the card, the steps under it (pickup done, return now)
     await expect(now.getByTestId('next-step-deadline')).toBeVisible();

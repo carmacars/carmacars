@@ -8,19 +8,23 @@ const canonical = (page: Page) => page.locator('link[rel="canonical"]').first().
 const robots = async (page: Page) => ((await page.locator('meta[name="robots"]').count()) ? page.locator('meta[name="robots"]').first().getAttribute('content') : null);
 
 test('new terms: own pages indexable as their tier allows; synonyms point to their term and stay out of search', async ({ page }) => {
+  // r40 (2402): loaner car is a synonym of the group "rental car while your car is in the shop"
   await page.goto('/car-rental/loaner-car/kingston-on');
-  await expect(page.locator('h1')).toHaveText('Loaner Car in Kingston');
-  expect(await canonical(page)).toMatch(/\/car-rental\/loaner-car\/kingston-on$/);
+  expect(new URL(page.url()).pathname).toBe('/car-rental/rental-car-while-car-is-in-the-shop/kingston-on');
+  await expect(page.locator('h1')).toHaveText(/ in Kingston$/);
+  expect(await canonical(page)).toMatch(/\/car-rental\/rental-car-while-car-is-in-the-shop\/kingston-on$/);
+  await expect(page.getByTestId('also-searched')).toContainText(/loaner car/i);
   await noOverflow(page);
 
+  // r40 (2402): one page per service group: a synonym's address answers 301 with its group's page, which lists it
   await page.goto('/car-rental/car-rentals/kingston-on');
-  await expect(page.locator('h1')).toHaveText('Car Rentals in Kingston');
-  expect(await robots(page)).toMatch(/noindex/);
-  expect(await canonical(page)).toMatch(/\/car-rental\/kingston-on$/);
+  expect(new URL(page.url()).pathname).toBe('/car-rental/kingston-on');
+  expect(await robots(page) ?? '').not.toMatch(/noindex/);
+  await expect(page.getByTestId('also-searched')).toContainText(/car rentals/i);
 
   const r = await page.goto('/buy/car-loan/kingston-on');
   expect(r?.status()).toBe(200);
-  expect(await robots(page)).toMatch(/noindex/);
+  expect(new URL(page.url()).pathname).toBe('/buy/auto-loans/kingston-on');
   expect(await canonical(page)).toMatch(/\/buy\/auto-loans\/kingston-on$/);
   // r36 seo (positive copy): what we are not, said once
   await expect(page.locator('body')).toContainText(/we are not a lender/i);
@@ -104,11 +108,12 @@ test('click depth: footer Browse leads to every place (directory) and every make
 
 test('structured data: a rental page for a place we deliver to has its Service; a far one does not; no rating without reviews', async ({ page, request }) => {
   const ld = async () => (await page.locator('script[type="application/ld+json"]').allTextContents()).join(' ');
-  const near = (await priority(request)).find((u) => /^\/car-rental\/rent-a-car\/(?!gta$)[a-z0-9-]+$/.test(u));
+  // r40 (2402): rent-a-car is a synonym of the car rental group, whose place pages are /car-rental/<place>
+  const near = (await priority(request)).find((u) => /^\/car-rental\/(?!gta$)(?!rent-a-car\/)[a-z0-9-]+$/.test(u));
   expect(near).toBeTruthy();
   await page.goto(near!);
   expect(await ld()).toContain('"serviceType":"Car rental"');
-  await page.goto('/car-rental/loaner-car/kingston-on');
+  await page.goto('/car-rental/rental-car-while-car-is-in-the-shop/kingston-on');
   expect(await ld()).not.toContain('"serviceType":"Car rental"');
   expect(await ld()).not.toContain('AggregateRating');
 });
@@ -143,7 +148,7 @@ test('mechanical work we arrange: a request, never our work, no questions; synon
   await expect(page.locator('body')).toContainText('call 911 first');
   await expect(page.locator('body')).toContainText('honestly whether we know a shop there');
   await page.goto('/body-shop/tow-truck/kingston-on');
-  expect(await robots(page)).toMatch(/noindex/);
+  expect(new URL(page.url()).pathname).toBe('/body-shop/towing/kingston-on');
   expect(await canonical(page)).toMatch(/\/body-shop\/towing\/kingston-on$/);
 
   await page.goto('/body-shop');

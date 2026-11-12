@@ -304,11 +304,20 @@ test('"Find me this car" makes a buyer lead for Sales with a To do line', async 
 });
 
 const TERMS: Array<[string, string, RegExp, string]> = [
-  ['renting search', '/t/car-hire/volkswagen/jetta/2020/sportline/mississauga', /^Car hire: 2020 Volkswagen Jetta Sportline in Mississauga$/, 'vp-inventory'],
   ['financing', '/t/car-financing/volkswagen/jetta/2020/sportline/oakville', /^Car financing: 2020 Volkswagen Jetta Sportline in Oakville$/, 'finance-disclaimer'],
   ['detailing', '/t/ceramic-coating/volkswagen/jetta/2020/sportline/mississauga/black', /^Ceramic coating for a black 2020 Volkswagen Jetta Sportline in Mississauga$/, 'svc-rent-first'],
   ['body shop', '/t/bumper-repair/volkswagen/jetta/2020/sportline/scarborough', /^Bumper repair for a 2020 Volkswagen Jetta Sportline in Scarborough$/, 'svc-rent-first']
 ];
+// r40 (2402): car hire is a synonym of the car rental group: its tree answers 301 with the car's own page (/cars/...)
+test('a renting search synonym (car hire) answers with the car rental page, which lists it', async ({ page }) => {
+  test.setTimeout(120_000);
+  const res = await page.goto('/t/car-hire/volkswagen/jetta/2020/sportline/mississauga');
+  expect(res?.status()).toBe(200);
+  expect(new URL(page.url()).pathname).toBe('/cars/volkswagen/jetta/2020/sportline/mississauga');
+  await expect(page.locator('h1')).toHaveText(/^Rent a 2020 Volkswagen Jetta Sportline in Mississauga$/);
+  const m = await meta(page);
+  expect(m.robots ?? '').not.toContain('noindex');
+});
 for (const [kind, url, h1, block] of TERMS) {
   test(`a ${kind} page renders, indexed and self-canonical, with its own block`, async ({ page }) => {
     test.setTimeout(120_000);
@@ -331,11 +340,14 @@ for (const [kind, url, h1, block] of TERMS) {
 
 test('the term index and an unknown term', async ({ request }, info) => {
   test.skip(info.project.name.startsWith('phone'), 'once is enough');
-  expect((await request.get('/t/car-hire')).status()).toBe(200);
-  expect(await (await request.get('/t/car-hire')).text()).toContain('href="/t/car-hire/volkswagen"');
+  expect((await request.get('/t/bumper-repair')).status()).toBe(200);
+  expect(await (await request.get('/t/bumper-repair')).text()).toContain('href="/t/bumper-repair/volkswagen"');
   expect((await request.get('/t/nosuchterm/volkswagen')).status()).toBe(404);
+  // r40 (2402): a synonym (car hire) has no tree of its own: it answers 301 and is in no sitemap
+  expect([301, 308]).toContain((await request.get('/t/car-hire/volkswagen', { maxRedirects: 0 })).status());
   const idx = await (await request.get('/sitemap.xml')).text();
-  expect(idx).toContain('/sitemap-vehicles-t-car-hire-makes.xml');
+  expect(idx).not.toContain('/sitemap-vehicles-t-car-hire-makes.xml');
+  expect(idx).toContain('/sitemap-vehicles-t-bumper-repair-makes.xml');
   expect(idx).toContain('/sitemap-vehicles-t-bumper-repair-tiers-1.xml');
   const f = await (await request.get('/sitemap-vehicles-t-ceramic-coating-volkswagen-trims.xml')).text();
   expect(f).toContain('/t/ceramic-coating/volkswagen/jetta/2020/sportline</loc>');
