@@ -30,7 +30,7 @@ end $$;
 
 -- ================================================================== A. catalogue
 select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign, 0370 a visitor message waiting in live chat, 0430 the start and end notices, 0400 the two tracker alerts, 0441 the data health notice, 0380 adds one email, 0460 the lead and visitor alerts, 0462 the staff alerts, 0532 the return report denied, 0535 the apology to remote applicants moved to the AI interview, 0547 the partner invoice, 0583 the staff email digest, 0955 the accounts merged note)',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '217/21');
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '221/21');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
@@ -67,16 +67,12 @@ select test.ok('B a new request reaches every active customer service assistant 
   (select bool_and(n = (select count(*) from users u join staff_profiles sp on sp.user_id = u.id
                           where u.status = 'active' and sp.is_active and sp.va_function = 'cs') and n = d)
      from (select count(*) n, count(distinct recipient_user_id) d from notification_outbox where code = 'staff_booking_request_new' group by event_id) x));
-select test.eq('B a booking that went to confirmed gets exactly one confirmation and its owner one new-booking notice',
+select test.eq('B a booking that went to confirmed gets exactly one confirmation and its owner none (2620: the owner hears when the trip is complete)',
   (select count(*) from bookings b
     where b.booking_type <> 'owner'
       and exists (select 1 from status_history h where h.entity = 'booking' and h.entity_id = b.id and h.to_status = 'confirmed' and h.from_status is not null)
-      -- 2480: a booking confirmed while it was not part of the owner's revenue (an insurer rental off the calendar) sends
-      -- the owner no notice; its event is processed at once with the 0156 note
-      and (test.ob('renter_booking_confirmed', b.id) <> 1
-           or (test.ob('owner_new_booking', b.id) <> 1
-               and not exists (select 1 from app_events e where e.code = 'owner_new_booking' and e.entity_id = b.id
-                                  and e.process_note = 'not shown to the owner (0156)')))), 0::bigint);
+      -- 2620: the owner is not emailed when a booking comes in (owner_new_booking is off): the event is processed at once
+      and (test.ob('renter_booking_confirmed', b.id) <> 1 or test.ob('owner_new_booking', b.id) <> 0)), 0::bigint);
 select test.eq('B the payment that confirms a booking never gets a separate receipt (the confirmation carries it)',
   (select count(*) from notification_outbox o join payments p on p.id = o.entity_id where o.code = 'renter_payment_receipt' and p.purpose = 'booking_total'), 0::bigint);
 select test.eq('B an extension request is acknowledged once (0019 emits it; nothing here emits it again)',
@@ -136,12 +132,13 @@ insert into signature_requests (id, document_id, provider, provider_envelope, st
 update bookings set signature_request_id = test.id('sig:NT-2'), agreement_document_id = test.id('doc:NT-2') where id = test.id('booking:NT-2');
 update bookings set status = 'confirmed' where id = test.id('booking:NT-2');
 select test.flush();
-select test.eq('C confirmation: one email to the renter, one to the owner, and a digest line for customer service and fleet (pickup is far away)',
+select test.eq('C confirmation: one email to the renter, none to the owner (2620), and a digest line for customer service and fleet (pickup is far away)',
   (select string_agg(code || '>' || to_address, ',' order by code) from notification_outbox where entity_id = test.id('booking:NT-2'))
   || ' | ' || (select string_agg(role, ',' order by role) from staff_digest_items where entity_id = test.id('booking:NT-2') and code = 'staff_offer_approved_paid'),
-  'owner_new_booking>nt_olga@example.test,renter_booking_confirmed>nt_rita@example.test | va_cs,va_fleet');
-select test.eq('C the owner of a managed car does not get the renter''s name or phone',
-  (select payload ->> 'renter_name' || '/' || (payload ->> 'renter_phone') from notification_outbox where code = 'owner_new_booking' and entity_id = test.id('booking:NT-2')), '/');
+  'renter_booking_confirmed>nt_rita@example.test | va_cs,va_fleet');
+select test.eq('C the owner is not emailed about the booking (2620): the event is recorded and processed at once',
+  (select count(*) from notification_outbox where code = 'owner_new_booking' and entity_id = test.id('booking:NT-2')) || '/'
+  || (select process_note from app_events where code = 'owner_new_booking' and entity_id = test.id('booking:NT-2')), '0/code disabled');
 select test.eq('C money and dates are formatted the catalogue way (Toronto time)',
   (select payload ->> 'pickup_date' || ' ' || (payload ->> 'pickup_time') || ' ' || (payload ->> 'deposit_amount') || ' ' || (payload ->> 'km_allowance')
      from notification_outbox where code = 'renter_booking_confirmed' and entity_id = test.id('booking:NT-2')),
@@ -901,6 +898,8 @@ select test.eq('G every wired email code has been built at least once in these t
       and c.code <> 'renter_coverage_switched' -- a staff switch (0890), built in 99_r35u_coverage_switch
       and c.code <> 'staff_seo_digest' -- the weekly SEO digest (1860), built in 99_r35g3_seo_loop
       and c.code <> 'renter_review_preask' -- the review ask before the trip ends (1870), built in 99_gaps4_review_quiet
+      and c.code not in ('owner_trip_completed', 'owner_weekly_summary') -- the owner's trip email and the Monday email (2620), built in 99_r41_owner_trip_email
+      and c.is_enabled -- the booking-time owner emails are off since 2620 (their events are processed with the note "code disabled")
       and c.code <> 'renter_accounts_merged' -- a merge of two renter records (0955), built in 99_r35y_leads_merge
       and c.code not in ('staff_agreement_reminder', 'staff_inactivity_warning', 'staff_team_group') -- the staff jobs of 1060, built in 99_r35k_staff_onboarding
       and not exists (select 1 from notification_outbox o where o.code = c.code)

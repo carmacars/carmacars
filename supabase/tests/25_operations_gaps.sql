@@ -151,9 +151,9 @@ select app.process_events(100000);
 select test.eq('email: the renter''s confirmation says what was charged and links the signed amendment',
   (select (o.payload ->> 'money_text' like 'We charged $%') || '/' || (o.payload ->> 'amendment_number') || '/' || (app.outbox_file_refs(o.id) #>> '{signed_agreement_url,k}')
      from notification_outbox o where o.code = 'renter_change_applied' and o.entity_id = test.og('c1')), 'true/OG-1-A1/document');
-select test.eq('email: the owner sees what their car earns before and after',
-  (select (payload ->> 'income_changed') || '/' || (payload ->> 'income_after' <> payload ->> 'income_before') || '/' || to_address
-     from notification_outbox where code = 'owner_booking_changed' and entity_id = test.og('c1')), 'true/true/og_olive@example.test');
+select test.eq('email: the owner is not emailed about a change to an upcoming booking (2620); the event is recorded and processed at once',
+  (select count(*) from notification_outbox where code = 'owner_booking_changed' and entity_id = test.og('c1')) || '/'
+  || (select process_note from app_events where code = 'owner_booking_changed' and entity_id = test.og('c1')), '0/code disabled');
 select test.eq('email: customer service hears it was accepted, in their next digest',
   (select count(*) from staff_digest_items where code = 'staff_change_proposal_answered' and entity_id = test.og('c1') and role = 'va_cs'), 1::bigint);
 select test.eq('email: the line says the renter accepted', app.notification_payload('staff_change_proposal_answered',
