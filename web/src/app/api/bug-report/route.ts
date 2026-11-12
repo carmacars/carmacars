@@ -3,7 +3,6 @@ import { currentUser } from '@/server/portal/data';
 import { door, sessionAal } from '@/server/door';
 import { storage } from '@/integrations/storage';
 import { SCHEMA_MARKER } from '@/lib/schema-marker';
-import { deploymentOf } from '@/lib/edge/page-cache';
 import { MAX_SHOTS, MAX_SHOT_BYTES, MIN_HAPPENED, SEVERITIES, cleanContext, cleanLogs, imageKind, pagePath, redact } from '@/features/bug-report/logs';
 
 // Release 37 (2340): a bug report from a staff member or an Admin. POST (form: report = JSON of the fields, the browser's
@@ -18,11 +17,7 @@ type Shot = { path: string; mime: string; bytes: number; kind: string };
 const msg = (e: unknown, d: string) => (e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '') : d);
 
 async function build(): Promise<string | null> {
-  try {
-    const { getCloudflareContext } = await import('@opennextjs/cloudflare');
-    const { env } = await getCloudflareContext({ async: true });
-    return deploymentOf(env as unknown as Record<string, unknown>);
-  } catch { return null; }
+  try { return await (await import('@/lib/platform/runtime')).deploymentId(); } catch { return null; }
 }
 
 export async function POST(req: Request) {

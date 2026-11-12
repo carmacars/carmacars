@@ -1,0 +1,37 @@
+# Release 42: the website on the company's server (docs/hosting/off-cloudflare.md), next to the Supabase stack
+# (infra/vps/supabase). Installed to /opt/carmacars/web by the deploy-vps job (.github/workflows/deploy-vps.yml).
+#   web.env   the site's settings and secrets (mode 600, written by the deploy job; web.env.example lists the names)
+#   .env      WEB_IMAGE_TAG (the commit of the image to run) and CRON_ENABLED (0 until the DNS switch)
+# The port is not published: only Caddy (the Supabase stack's, infra/vps/web/site.caddy) reaches it on the Docker network.
+name: carmacars-web
+
+services:
+  web:
+    container_name: carmacars-web
+    image: carmacars-web:${WEB_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    init: true
+    env_file:
+      - web.env
+    environment:
+      HOSTING_TARGET: node
+      PORT: "3000"
+      # 1 only once the Worker's cron trigger is off: the jobs (deposits, statements, emails) must never run twice
+      CRON_ENABLED: ${CRON_ENABLED:-0}
+    expose:
+      - "3000"
+    networks:
+      - supabase
+    stop_grace_period: 20s
+    mem_limit: 3g
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: "5"
+
+networks:
+  # the Supabase stack's network (compose project `supabase`), so Caddy finds this container by name
+  supabase:
+    external: true
+    name: supabase_default

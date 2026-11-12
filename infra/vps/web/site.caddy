@@ -1,0 +1,36 @@
+# Release 42: the website behind the Supabase stack's Caddy (docs/hosting/off-cloudflare.md). The deploy-vps job puts
+# the hostnames in place of __WEB_HOSTNAMES__ (the repository variable WEB_VPS_HOSTNAMES, comma separated) and installs
+# this file as /opt/carmacars/supabase/caddy/sites/web.caddy; the Caddyfile imports sites/*.caddy.
+# Certificates: Let's Encrypt, by Caddy, as for the API: each hostname needs a DNS-only A record to this server.
+__WEB_HOSTNAMES__ {
+	encode zstd gzip
+	# server actions take 15 MB, an interview recording 60 MB
+	request_body {
+		max_size 70MB
+	}
+	header {
+		-Server
+	}
+	reverse_proxy carmacars-web:3000 {
+		# The app reads the visitor's address from CF-Connecting-IP (web/src/server/request.ts). Here it is always the
+		# address Caddy saw, never a header the visitor sent; Cloudflare's other request headers are dropped for the
+		# same reason. (If the records are ever proxied through Cloudflare's free plan again: add Cloudflare's ranges
+		# to trusted_proxies in the Caddyfile and remove the four header_up -CF lines.)
+		header_up CF-Connecting-IP {client_ip}
+		header_up -CF-IPCountry
+		header_up -CF-IPCity
+		header_up -CF-Region-Code
+		header_up -CF-Ray
+		# a redeploy restarts the container: requests wait for it instead of failing
+		lb_try_duration 30s
+		lb_try_interval 500ms
+		transport http {
+			read_timeout 300s
+			write_timeout 300s
+		}
+	}
+	log {
+		output stdout
+		format console
+	}
+}

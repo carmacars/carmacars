@@ -1,19 +1,22 @@
 import 'server-only';
 import { env, required } from '@/lib/env';
 import { linkSecret } from '@/server/links';
+import { storageProviderFor } from '@/lib/platform/runtime';
 import type { StorageAdapter } from './types';
 
 let cached: StorageAdapter | undefined;
 export async function storage(): Promise<StorageAdapter> {
   if (cached) return cached;
   const e = env();
-  if (e.STORAGE_PROVIDER === 'supabase') {
+  // r42: on the company's server the Worker's R2 bindings do not exist (src/lib/platform/runtime.ts)
+  const provider = storageProviderFor(e.STORAGE_PROVIDER);
+  if (provider === 'supabase') {
     const { supabaseStorage } = await import('./supabase');
     cached = supabaseStorage({ url: required('NEXT_PUBLIC_SUPABASE_URL'), serviceKey: required('SUPABASE_SERVICE_ROLE_KEY'), publicBase: e.NEXT_PUBLIC_VEHICLE_PHOTOS_URL });
-  } else if (e.STORAGE_PROVIDER === 'r2-binding') {
+  } else if (provider === 'r2-binding') {
     const { r2BindingStorage } = await import('./r2-binding');
     cached = r2BindingStorage(e.NEXT_PUBLIC_VEHICLE_PHOTOS_URL, linkSecret());
-  } else if (e.STORAGE_PROVIDER === 'r2') {
+  } else if (provider === 'r2') {
     const { r2Storage } = await import('./r2');
     cached = r2Storage({ accountId: required('R2_ACCOUNT_ID'), accessKeyId: required('R2_ACCESS_KEY_ID'), secretAccessKey: required('R2_SECRET_ACCESS_KEY'), bucketPrefix: e.R2_BUCKET_PREFIX, publicBase: e.NEXT_PUBLIC_VEHICLE_PHOTOS_URL });
   } else {

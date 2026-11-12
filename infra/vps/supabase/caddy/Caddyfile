@@ -39,3 +39,7 @@
 	root * /srv/auth-templates
 	file_server
 }
+
+# Release 42: further sites served by this Caddy, one file each (the website: infra/vps/web/site.caddy, installed as
+# sites/web.caddy by the deploy-vps job). No file there: nothing is added.
+import sites/*.caddy
