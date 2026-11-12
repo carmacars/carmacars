@@ -31,6 +31,7 @@ alter table bookings
   add column if not exists coverage_card_id uuid references card_rental_coverage (id) on delete set null,
   add column if not exists coverage_card_ack_at timestamptz,
   add column if not exists opcf27_ack_at timestamptz;
+create index if not exists bookings_coverage_card_idx on bookings (coverage_card_id) where coverage_card_id is not null;
 comment on column bookings.coverage_card_id is 'Credit card coverage: the card (issuer and product) the renter picked from the card list (2541)';
 comment on column bookings.coverage_card_ack_at is 'Credit card coverage: when the renter acknowledged they must pay for the rental with that card (2541)';
 comment on column bookings.opcf27_ack_at is 'OPCF 27: when the renter acknowledged they must upload their auto policy with the endorsement (2541)';

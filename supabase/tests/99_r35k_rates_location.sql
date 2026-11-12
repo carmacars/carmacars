@@ -97,8 +97,9 @@ select test.eq('six 10-minute slots in the hour before the townhall', (select co
 select test.ok('Fleet sees them', jsonb_array_length(test.r35m('r35m_fleet', 'ops_read', 'field_call_slots')) >= 6);
 select test.throws('customer service does not', $$select test.r35m('r35m_cs', 'ops_read', 'field_call_slots')$$);
 insert into job_applications (id, role_id, full_name, email, phone, status, knockouts) values (test.id('r35m_app_field'), (select id from hiring_roles where slug = 'field-staff'), 'R35m Driver', 'r35m_driver@example.test', '4165550101', 'interviewed', '{}');
+-- r41 (2590): the bar is the AI interview's (hiring_auto_hire_mark, 80), no longer the role's pass mark of 60
 insert into ai_interviews (application_id, role_id, questions, state, expires_at, interview_score, recommendation, scored_at)
-values (test.id('r35m_app_field'), (select id from hiring_roles where slug = 'field-staff'), '[]', 'scored', now() + interval '7 days', 70, 'live_call', now());
+values (test.id('r35m_app_field'), (select id from hiring_roles where slug = 'field-staff'), '[]', 'scored', now() + interval '7 days', 85, 'live_call', now());
 select app.hiring_field_to_call(now());
 select test.eq('a field applicant who passed the AI interview is invited to the live call with the booking link',
   (select status from job_applications where id = test.id('r35m_app_field')) || '/' || exists (select 1 from app_events where code = 'applicant_invited' and payload ->> 'application_id' = test.id('r35m_app_field')::text), 'invited/true');

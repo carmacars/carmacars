@@ -66,6 +66,11 @@ create table protection_requests (
 );
 create index protection_requests_booking on protection_requests (booking_id, created_at desc);
 create unique index protection_requests_one_pending on protection_requests (booking_id) where status = 'pending';
+-- the other join paths (a task or switch deleted, a user's account deleted: set null) look these up
+create index protection_requests_task on protection_requests (task_id) where task_id is not null;
+create index protection_requests_switch on protection_requests (switch_id) where switch_id is not null;
+create index protection_requests_decided_by on protection_requests (decided_by) where decided_by is not null;
+create index protection_requests_created_by on protection_requests (created_by) where created_by is not null;
 alter table protection_requests enable row level security;
 create policy admin_all on protection_requests for all to authenticated using (app.is_admin()) with check (app.is_admin());
 create trigger audit_protection_requests after insert or update or delete on protection_requests for each row execute function app.audit_row();
