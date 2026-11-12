@@ -136,7 +136,7 @@ test('photo: an exterior is cut out, placed on the backdrop with the shadow, sto
   const photos = { ...fakePhotos(getter(f)), name: 'cloudflare-images' as const,
     composite: async (r: { backdropUrl: string; shadowUrl: string; cutoutUrl: string; lettering?: { url: string; top: number } | null }) => { calls.push(`${r.backdropUrl}|${r.lettering?.url ?? '-'}@${r.lettering?.top ?? '-'}|${r.shadowUrl}|${r.cutoutUrl}`); return { ok: true as const, bytes: JPEG, contentType: 'image/jpeg', transformations: 1 }; },
     cutout: async () => ({ ok: true as const, bytes: new Uint8Array(20000), contentType: 'image/png', transformations: 1 }) };
-  const r = await runJob(deps({ photos }, f), job('process_photo', { photo: { ...job('process_photo').photo!, model: 'RAV4' } }), budget);
+  const r = await runJob(deps({ photos }, f), job('process_photo', { photo: { ...job('process_photo').photo!, model: 'RAV4', is_cover: true } }), budget);
   assert.equal(r.ok, true);
   const o = r.output as Record<string, unknown>;
   assert.equal(o.processed_path, 'vehicles/v1/2023-toyota-rav4-front-left-abcd1234.jpg');
@@ -342,10 +342,11 @@ test('the run: a job that throws is reported as a retryable failure, not lost', 
   assert.deepEqual([reported[0]!.ok, reported[0]!.retryable, reported[0]!.error], [false, true, 'boom']);
 });
 
-// r33 (0700): the lettering on the cover and the named outside views only; the cut-out editor's edit and mask jobs
-test('photo r33: the model name behind the cover and the named outside views, not behind an extra outside photo', async () => {
+// r33 (0700), r40: the lettering on the cover only (the owner, Nov 12); the cut-out editor's edit and mask jobs
+test('photo r40: the model name behind the cover only, not behind any other photo', async () => {
   const { letterThis } = await import('./worker.ts');
-  assert.equal(letterThis({ rebackground: true, shot_type: 'left' }), true);
+  assert.equal(letterThis({ rebackground: true, shot_type: 'left' }), false, 'a named outside view that is not the cover');
+  assert.equal(letterThis({ rebackground: true, shot_type: 'left', is_cover: true }), true);
   assert.equal(letterThis({ rebackground: true, shot_type: 'exterior_more' }), false);
   assert.equal(letterThis({ rebackground: true, shot_type: 'exterior_more', is_cover: true }), true, 'the cover, whatever its shot');
   assert.equal(letterThis({ rebackground: false, shot_type: 'dashboard', is_cover: true }), false, 'never behind an inside photo');
@@ -357,7 +358,7 @@ test('photo r33: the model name behind the cover and the named outside views, no
   const r = await runJob(deps({ photos }, f), job('process_photo', { photo: { ...job('process_photo').photo!, shot_type: 'exterior_more', model: 'CLA-Class' } }), budget);
   assert.equal((r.output as Record<string, unknown>).lettered, false);
   assert.deepEqual(lett, [null]);
-  await runJob(deps({ photos }, f), job('process_photo', { photo: { ...job('process_photo').photo!, model: 'CLA-Class' } }), budget);
+  await runJob(deps({ photos }, f), job('process_photo', { photo: { ...job('process_photo').photo!, model: 'CLA-Class', is_cover: true } }), budget);
   assert.equal(lett[1], 'pub:site/backdrop/lettering-v2-cla.png', 'CLA-Class is lettered CLA');
 });
 

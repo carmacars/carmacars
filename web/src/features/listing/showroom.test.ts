@@ -185,6 +185,8 @@ test('the image model: key in a header, image in and out; 429 is a quota, 404 a 
   assert.match(showroomPrompt({ cover: false }), /walnut wood slats/);
   assert.match(showroomPrompt({ cover: false }), /no lettering on the wall other than the logo/);
   assert.match(showroomPrompt({ cover: false }), /licence plate/);
+  assert.doesNotMatch(showroomPrompt({ cover: false, name: 'GLC43 AMG' }), /GLC43/, 'r40: only the cover has the name');
+  assert.match(showroomPrompt({ cover: false }), /no model name/);
 });
 
 // ---------------------------------------------------------------- the worker with the showroom scene
