@@ -287,7 +287,11 @@ export interface Place { width: number; height: number; left: number; bottom: nu
  *  `place` (as placeSubject gives it: from the frame's bottom edge): a soft shadow under the whole car, a dark contact
  *  shadow where the tyres meet the floor, its reflection in the polished floor, then the car itself, its pixels untouched.
  *  Pure. */
-export function composeShowroom(car: Rgba & { ground: number }, place: Place, o: { model?: string | null; cover?: boolean } = {}, backdrop?: Rgba | null): Rgba {
+export function composeShowroom(car: Rgba & { ground: number }, place: Place, o: { model?: string | null; cover?: boolean;
+  /** r39: the floor's reflection (0.22 on the drawn floor); a photographed room's own strength */
+  reflect?: number;
+  /** r39: the car's light nudged towards a photographed room's (photo-room.ts lightMatch) */
+  gain?: readonly [number, number, number] } = {}, backdrop?: Rgba | null): Rgba {
   const W = ROOM.width, H = ROOM.height;
   const top = H - place.bottom - place.height;
   const wheel = top + place.height * (1 - car.ground);
@@ -328,7 +332,7 @@ export function composeShowroom(car: Rgba & { ground: number }, place: Place, o:
   // the reflection: the car mirrored at its wheel line in the polished floor, faint and darker, fading out over 45% of its height
   const R = Math.min(carH * 0.45, H - wheel);
   for (let y = Math.max(0, Math.ceil(wheel)); y < Math.min(H, wheel + R); y++) {
-    const dd = y - wheel, f = 0.22 * (1 - dd / R) ** 2;
+    const dd = y - wheel, f = (o.reflect ?? 0.22) * (1 - dd / R) ** 2;
     const srcY = (wheel - dd - top) * sy - 0.5;
     if (srcY < 0) continue;
     for (let x = x0; x < x1; x++) {
@@ -339,7 +343,8 @@ export function composeShowroom(car: Rgba & { ground: number }, place: Place, o:
       d[i] = d[i]! + (px[0]! * 0.62 - d[i]!) * a; d[i + 1] = d[i + 1]! + (px[1]! * 0.62 - d[i + 1]!) * a; d[i + 2] = d[i + 2]! + (px[2]! * 0.62 - d[i + 2]!) * a;
     }
   }
-  // the car with its own contact shadow, as it is
+  // the car with its own contact shadow, as it is (r39: its light nudged towards a photographed room's)
+  const [gr, gg, gb] = o.gain ?? [1, 1, 1];
   for (let y = Math.max(0, Math.floor(top)); y < Math.min(H, Math.ceil(top + place.height)); y++) {
     const srcY = (y - top) * sy - 0.5;
     for (let x = x0; x < x1; x++) {
@@ -347,7 +352,7 @@ export function composeShowroom(car: Rgba & { ground: number }, place: Place, o:
       const a = px[3]!;
       if (a <= 0.002) continue;
       const i = (y * W + x) * 4;
-      d[i] = d[i]! + (px[0]! - d[i]!) * a; d[i + 1] = d[i + 1]! + (px[1]! - d[i + 1]!) * a; d[i + 2] = d[i + 2]! + (px[2]! - d[i + 2]!) * a;
+      d[i] = d[i]! + (Math.min(255, px[0]! * gr) - d[i]!) * a; d[i + 1] = d[i + 1]! + (Math.min(255, px[1]! * gg) - d[i + 1]!) * a; d[i + 2] = d[i + 2]! + (Math.min(255, px[2]! * gb) - d[i + 2]!) * a;
     }
   }
   return room;
@@ -402,7 +407,7 @@ export function sameCar(ai: Rgba, local: Rgba, car: Rgba & { ground: number }, p
 }
 
 /** An image scaled to cover W x H and centred (an image model answers in its own size). */
-export function fitFrame(img: Rgba, W = ROOM.width, H = ROOM.height): Rgba {
+export function fitFrame(img: Rgba, W: number = ROOM.width, H: number = ROOM.height): Rgba {
   if (img.width === W && img.height === H) return img;
   const k = Math.max(W / img.width, H / img.height);
   const ox = (img.width * k - W) / 2, oy = (img.height * k - H) / 2;
@@ -441,7 +446,9 @@ export type ShowroomOut =
   | { ok: false; reason: ShowroomFailure; message: string };
 export interface ShowroomInput { car: Rgba & { ground: number }; place: Place; model?: string | null; cover: boolean; photoId: string;
   /** 1053, a marketing scene: the room drawn here (else the showroom), the image model's words, a photo of the real place */
-  room?: Rgba | null; prompt?: string | null; reference?: { bytes: Uint8Array; contentType: string } | null }
+  room?: Rgba | null; prompt?: string | null; reference?: { bytes: Uint8Array; contentType: string } | null;
+  /** r39 (2400): a photographed room's floor reflection and the car's light matched to it (photo-room.ts) */
+  look?: { reflect?: number; gain?: readonly [number, number, number] } | null }
 /** One way of making the showroom photo; swappable (the worker takes any list, the last is the local one). */
 export interface ShowroomProvider { readonly name: string; make(i: ShowroomInput, local: Uint8Array): Promise<ShowroomOut> }
 
@@ -449,7 +456,7 @@ export interface ShowroomProvider { readonly name: string; make(i: ShowroomInput
 export const localShowroom = {
   name: 'local',
   make(i: ShowroomInput): ShowroomOut {
-    return { ok: true, bytes: encodeJpeg(composeShowroom(i.car, i.place, { model: i.model, cover: i.cover }, i.room)), contentType: 'image/jpeg', provider: 'local' };
+    return { ok: true, bytes: encodeJpeg(composeShowroom(i.car, i.place, { model: i.model, cover: i.cover, ...(i.look ?? {}) }, i.room)), contentType: 'image/jpeg', provider: 'local' };
   }
 };
 
@@ -469,7 +476,7 @@ export const FALLBACK_TEXT: Record<ShowroomFailure, string> = {
 /** The local scene, then the providers in turn (the first that answers with the car unchanged wins); the local scene when
  *  none does, with why. A model's photo is used as it is when it shows the same car (sameCar). */
 export async function makeShowroom(i: ShowroomInput, providers: ShowroomProvider[], noKey = false): Promise<{ bytes: Uint8Array; contentType: string; provider: 'local' | 'ai'; model?: string; note: string | null; reason: ShowroomFailure | null }> {
-  const scene = composeShowroom(i.car, i.place, { model: i.model, cover: i.cover }, i.room);
+  const scene = composeShowroom(i.car, i.place, { model: i.model, cover: i.cover, ...(i.look ?? {}) }, i.room);
   const local = { bytes: encodeJpeg(scene), contentType: 'image/jpeg' };
   let last: Extract<ShowroomOut, { ok: false }> | null = noKey && !providers.length ? { ok: false, reason: 'no_key', message: 'no key' } : null;
   for (const p of providers) {
@@ -508,6 +515,18 @@ export function showroomPrompt(o: { cover: boolean; name?: string | null }): str
   ].join(' ');
 }
 
+/** r39 (2400): the image model's words for a car composited into a real photographed room: the room is a photo already,
+ *  so it is kept as it is; only the car is blended in (light, reflections, contact shadow). */
+export function photoRoomPrompt(): string {
+  return [
+    'This image is a real photograph of a car dealership interior with a car placed in it. Make it one seamless, real, high-end dealership photograph.',
+    'THE ROOM: keep it exactly as it is: the same walls, floor, lights, windows and perspective. Do not add or remove anything in the room, and add no signs, logos or text.',
+    'THE CAR: it must stay clearly the same car: the same make, model, generation, body style, trim, wheels and colour, about the same size and place in the frame, not cropped. Light it like the room (direction, colour and softness of the light), with believable reflections of the room on its paint and glass, a real soft contact shadow under each tyre on this floor and a faint reflection where the floor is polished. Never change it into another car, another model or another colour, and never distort it.',
+    'Do not add or show a licence plate, and never add letters or numbers on the car; where the plate area is plain or covered, leave it exactly so.',
+    'No people, no other cars, no watermarks. Same framing, landscape 3:2.'
+  ].join(' ');
+}
+
 // ================================================================ 1053: marketing scenes
 let white: Rgba | null = null;
 /** The plain white studio of the marketing photos: a white wall fading into a light grey floor, soft light. Deterministic. */
@@ -540,7 +559,7 @@ export function marketingPrompt(o: { label: string; place: string; reference: bo
 /** The image model's words for the cover "with model": the owner's words from Program settings (listing_cover_model_prompt)
  *  inside the site's own rules, which no setting can loosen: one adult, fully clothed, nothing explicit or suggestive, the
  *  car unchanged and never covered. */
-export function coverModelPrompt(settings: string | null | undefined): string {
+export function coverModelPrompt(settings: string | null | undefined, photoRoom = false): string {
   const words = (settings ?? '').replace(/\s+/g, ' ').trim().slice(0, 2000);
   return [
     'Edit this image into a real, high-end auto-show photograph of this car in this dark, modern showroom.',
@@ -548,6 +567,7 @@ export function coverModelPrompt(settings: string | null | undefined): string {
     'RULES THAT ALWAYS APPLY: exactly one person, a clearly adult professional model (over 25 years old), fully clothed in a stylish outfit that covers the body; nothing revealing, see-through, explicit or sexual; no lingerie or swimwear; a natural, professional pose.',
     'THE CAR: it must stay clearly the same car: the same make, model, generation, body style, trim, wheels and colour, the same size and place in the frame, not cropped. The person stands beside it and never covers the car, its wheels, lights or badge. Never change it into another car or another colour, and never distort it.',
     'Do not add or show a licence plate, and never add letters or numbers on the car; where the plate area is plain or covered, leave it exactly so.',
-    'Keep the showroom as in the image: the CarmaCars logo sign on the wall exactly as it is, the dark walls and the polished floor with soft reflections. No other people, cars, text or watermarks. Landscape 3:2.'
+    photoRoom ? 'Keep the room exactly as in the image (a real photograph): the same walls, floor and lights; add no signs, logos or text. No other people, cars, text or watermarks. Landscape 3:2.'
+      : 'Keep the showroom as in the image: the CarmaCars logo sign on the wall exactly as it is, the dark walls and the polished floor with soft reflections. No other people, cars, text or watermarks. Landscape 3:2.'
   ].filter(Boolean).join(' ');
 }

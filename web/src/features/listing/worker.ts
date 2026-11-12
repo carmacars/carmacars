@@ -9,7 +9,9 @@ import { plainDraft } from '../seo/copy.ts';
 import { LETTERING, LETTER_REAL_PHOTOS, LETTER_SHOTS, letterThis, letteringPath, letteringPng } from './lettering.ts';
 import { WINDOW_SHOTS, readAlpha, windowPlan, type WindowPlan } from './window-check.ts';
 import { adjustPlace, decodePng, encodePng, frameRgba, frameSubject, placeSubject, type Adjust } from './subject-frame.ts';
-import { SHOWROOM_FIT, SHOWROOM_PRESET, coverModelPrompt, decodeImage, encodeJpeg, makeShowroom, marketingPrompt, sceneOf, showroomBackdrop, whiteStudio, type ShowroomOut, type ShowroomProvider } from './showroom.ts';
+import { SHOWROOM_FIT, SHOWROOM_PRESET, coverModelPrompt, decodeImage, encodeJpeg, fitFrame, makeShowroom, marketingPrompt, photoRoomPrompt, sceneOf, showroomBackdrop, whiteStudio, type ShowroomOut, type ShowroomProvider } from './showroom.ts';
+import { lightMatch, maskQuality, photoPlace } from './photo-room.ts';
+import type { Rgba } from './subject-frame.ts';
 import { drawFlyer, type FlyerSpec } from './flyer.ts';
 import { resample, scaleDown } from '../../integrations/photos/local.ts';
 import { applyPlates, type PlateEnd, type PxBox } from './plate-photo.ts';
@@ -67,6 +69,10 @@ export interface JobContext {
     is_cover?: boolean;
     /** 0990: the car's scene: "showroom" (the dark showroom) or "studio" (the black studio, also when missing) */
     scene?: 'studio' | 'showroom' | null } | null;
+  /** r39 (2400): the car's photographed room (the same for every angle of the car); none: the drawn room */
+  background?: { slug: string; path: string; floor: number; reflect: number } | null;
+  /** r39 (2400): Program settings: the car's share of the frame in a photographed room, the cut-out's quality floor */
+  cutout?: { car_width?: number; min_quality?: number } | null;
 }
 export interface Budget { ai_neurons_today: number; ai_neurons_limit: number; transformations_month: number; transformations_free: number;
   /** The usage guard (0080): the month's included image transformations are used and paid usage is not allowed. */
@@ -280,7 +286,7 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
   let lettered = false;
   const edit = p.rebackground ? editOf(j.input) : null;
   const showroom = sceneOf(p) === 'showroom';
-  let room: { provider: 'local' | 'ai'; model?: string; note: string | null; reason: string | null } | null = null;
+  let room: { provider: 'local' | 'ai'; model?: string; note: string | null; reason: string | null; mask_quality?: number; background?: string } | null = null;
   let roomOut: PhotoOut | null = null;
   if (p.rebackground) {
     let cutBytes: Uint8Array;
@@ -303,21 +309,35 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
     // cannot be read, the cut-out is placed as before (studio_v2 framing)
     // r35: the showroom draws the framed car itself, so its pixels are kept (one decode)
     let carImg: Awaited<ReturnType<typeof decodePng>> = null;
-    if (showroom) {
-      const img = await decodePng(cutBytes).catch(() => null);
-      const f = img ? frameRgba(img) : null;
-      if (f) { const { image, ...rest } = f; carImg = image; framed = { ...rest, png: await encodePng(image) }; }
-    } else framed = await frameSubject(cutBytes).catch(() => null);
+    const raw = await decodePng(cutBytes).catch(() => null);
+    // r39 (2400): the segmenter's mask scored (one piece, firm and smooth edges); a poor one is never composited: the real
+    // photo goes on (its plates covered as every photo). A cut-out staff edited is theirs and is used.
+    const mq = raw && !edit ? maskQuality(raw) : null;
+    if (mq && mq.score < (j.cutout?.min_quality ?? 0.6)) {
+      const fb = await fallback(d, j, 'low_mask', `The cut-out is not clean enough to place in a room (mask quality ${mq.score}): the real photo is used`, n, b, used);
+      if (fb.ok && fb.output) fb.output = { ...fb.output, ...(maskPath ? { mask_path: maskPath } : {}),
+        showroom: { provider: 'local', reason: 'low_mask', note: `The real photo is used: the cut-out's mask is poor (quality ${mq.score}).`, mask_quality: mq.score, used_original: true } };
+      return fb;
+    }
+    const f = raw ? frameRgba(raw) : null;
+    if (f) { const { image, ...rest } = f; carImg = image; framed = { ...rest, png: await encodePng(image) }; }
     await d.files.putPrivate(cutPath, framed?.png ?? cutBytes, 'image/png');
     // the model's name behind the car, as on the sample cars: one band per model, kept in the public bucket
     let lettering: { url: string; top: number; width: number } | null = null;
     if (showroom && framed && carImg) {
       // r35: the showroom, made here (no transformation); the image model on top when it may be asked
-      place = adjustPlace(placeSubject(framed, EXTERIOR.width, EXTERIOR.height, SHOWROOM_FIT), edit?.adjust ?? null, EXTERIOR.width, EXTERIOR.height);
-      const m = await makeShowroom({ car: { ...carImg, ground: framed.ground }, place, model: p.model ?? null, cover: !!p.is_cover, photoId: p.id },
+      // r39 (2400): a photographed room when one is stored (the car about 70% wide, its wheels on the room's floor line,
+      // its light matched; no logo or lettering on a real wall), else the drawn room
+      const pr = await photoRoom(d, j);
+      const car = { ...carImg, ground: framed.ground };
+      place = adjustPlace(pr ? photoPlace(framed, EXTERIOR.width, EXTERIOR.height, { floor: pr.floor, carWidth: j.cutout?.car_width ?? 0.7 })
+        : placeSubject(framed, EXTERIOR.width, EXTERIOR.height, SHOWROOM_FIT), edit?.adjust ?? null, EXTERIOR.width, EXTERIOR.height);
+      const m = await makeShowroom({ car, place, model: p.model ?? null, cover: !!p.is_cover, photoId: p.id,
+        ...(pr ? { room: pr.img, prompt: photoRoomPrompt(), look: { reflect: pr.reflect, gain: lightMatch(pr.img, car, pr.floor) } } : {}) },
         d.showroomAi ? [d.showroomAi] : [], !d.showroomAi && !!d.showroomNoKey);
-      room = { provider: m.provider, ...(m.model ? { model: m.model } : {}), note: m.note, reason: m.reason };
-      lettered = !!(p.is_cover && p.model);
+      room = { provider: m.provider, ...(m.model ? { model: m.model } : {}), note: m.note, reason: m.reason,
+        ...(mq ? { mask_quality: mq.score } : {}), ...(pr ? { background: pr.slug } : {}) };
+      lettered = !pr && !!(p.is_cover && p.model);
       roomOut = { ok: true, bytes: m.bytes, contentType: m.contentType, transformations: 0 };
     } else if (p.model && letterThis(p)) {
       const lp = letteringPath(p.model);
@@ -435,6 +455,24 @@ async function windows(d: WorkerDeps, j: JobContext, src: string, roomUrl: strin
 }
 
 /** Transformations are off (or found no car): keep the original on the site and flag it for staff. */
+/** r39 (2400): the car's photographed room (showroom_backgrounds, stored by web/scripts/showroom-photos.mjs) at the frame's
+ *  size, read once per worker run; null when none is set, it cannot be read, or the store cannot be read (the drawn room). */
+const rooms = new Map<string, Rgba | null>();
+export async function photoRoom(d: WorkerDeps, j: JobContext): Promise<{ img: Rgba; slug: string; floor: number; reflect: number } | null> {
+  const bg = j.background;
+  if (!bg?.path || !d.files.getPublic) return null;
+  if (!rooms.has(bg.path)) {
+    const bytes = await d.files.getPublic(bg.path).catch(() => null);
+    const img = bytes ? await decodeImage(bytes).catch(() => null) : null;
+    if (rooms.size > 3) rooms.delete(rooms.keys().next().value!);
+    rooms.set(bg.path, img ? fitFrame(img, EXTERIOR.width, EXTERIOR.height) : null);
+  }
+  const img = rooms.get(bg.path);
+  if (!img) return null;
+  const num = (v: unknown, dflt: number) => (typeof v === 'number' && Number.isFinite(v) ? v : typeof v === 'string' && Number.isFinite(Number(v)) ? Number(v) : dflt);
+  return { img: { width: img.width, height: img.height, data: new Uint8ClampedArray(img.data) }, slug: bg.slug, floor: num(bg.floor, 0.82), reflect: num(bg.reflect, 0.12) };
+}
+
 async function fallback(d: WorkerDeps, j: JobContext, reason: string, message: string, n: number, b: Budget, used: { transformations: number }): Promise<JobResult> {
   const p = j.photo!;
   const bytes = await d.files.getPrivate(p.original_path);
@@ -463,12 +501,15 @@ async function marketingPhoto(d: WorkerDeps, j: JobContext): Promise<JobResult> 
   const img = cut ? await decodePng(cut).catch(() => null) : null;
   const f = img ? frameRgba(img) : null;
   if (!f) return { ok: true, provider: 'carmacars', output: { marketing: { id: m.id, status: 'failed', note: 'The car\'s cut-out could not be read' } } };
-  const place = adjustPlace(placeSubject(f, EXTERIOR.width, EXTERIOR.height, SHOWROOM_FIT), m.adjust ?? null, EXTERIOR.width, EXTERIOR.height);
+  const pr = m.scene === 'showroom_dark' ? await photoRoom(d, j) : null;
+  const place = adjustPlace(pr ? photoPlace(f, EXTERIOR.width, EXTERIOR.height, { floor: pr.floor, carWidth: j.cutout?.car_width ?? 0.7 })
+    : placeSubject(f, EXTERIOR.width, EXTERIOR.height, SHOWROOM_FIT), m.adjust ?? null, EXTERIOR.width, EXTERIOR.height);
   const refBytes = m.reference ? await d.files.getPrivate(m.reference).catch(() => null) : null;
   const reference = refBytes ? { bytes: refBytes, contentType: refBytes[0] === 0x89 ? 'image/png' : 'image/jpeg' } : null;
   const made = await makeShowroom({ car: { ...f.image, ground: f.ground }, place, cover: false, photoId: m.photo_id,
-    room: m.scene === 'showroom_dark' ? null : whiteStudio(),
-    prompt: m.scene === 'showroom_dark' ? null : marketingPrompt({ label: m.label, place: m.place ?? m.label, reference: !!reference }), reference },
+    room: m.scene === 'showroom_dark' ? pr?.img ?? null : whiteStudio(),
+    ...(pr ? { look: { reflect: pr.reflect, gain: lightMatch(pr.img, { ...f.image, ground: f.ground }, pr.floor) } } : {}),
+    prompt: m.scene === 'showroom_dark' ? (pr ? photoRoomPrompt() : null) : marketingPrompt({ label: m.label, place: m.place ?? m.label, reference: !!reference }), reference },
     d.showroomAi ? [d.showroomAi] : [], !d.showroomAi && !!d.showroomNoKey);
   if (made.provider !== 'ai' && m.made === 'photo') {
     return { ok: true, provider: 'carmacars', output: { marketing: { id: m.id, status: 'needs_gemini',
@@ -503,9 +544,12 @@ async function listingCover(d: WorkerDeps, j: JobContext): Promise<JobResult> {
   const img = cut ? await decodePng(cut).catch(() => null) : null;
   const f = img ? frameRgba(img) : null;
   if (!f) return done({ status: 'failed', note: 'The car\'s cut-out could not be read' });
-  const place = adjustPlace(placeSubject(f, EXTERIOR.width, EXTERIOR.height, SHOWROOM_FIT), c.adjust ?? null, EXTERIOR.width, EXTERIOR.height);
-  const made = await makeShowroom({ car: { ...f.image, ground: f.ground }, place, cover: false, photoId: c.photo_id, room: null,
-    prompt: coverModelPrompt(c.prompt) }, d.showroomAi ? [d.showroomAi] : [], !d.showroomAi && !!d.showroomNoKey);
+  const pr = await photoRoom(d, j);
+  const place = adjustPlace(pr ? photoPlace(f, EXTERIOR.width, EXTERIOR.height, { floor: pr.floor, carWidth: j.cutout?.car_width ?? 0.7 })
+    : placeSubject(f, EXTERIOR.width, EXTERIOR.height, SHOWROOM_FIT), c.adjust ?? null, EXTERIOR.width, EXTERIOR.height);
+  const made = await makeShowroom({ car: { ...f.image, ground: f.ground }, place, cover: false, photoId: c.photo_id, room: pr?.img ?? null,
+    ...(pr ? { look: { reflect: pr.reflect, gain: lightMatch(pr.img, { ...f.image, ground: f.ground }, pr.floor) } } : {}),
+    prompt: coverModelPrompt(c.prompt, !!pr) }, d.showroomAi ? [d.showroomAi] : [], !d.showroomAi && !!d.showroomNoKey);
   if (made.provider !== 'ai') {
     return done({ status: 'needs_gemini', note: `With a model needs the image model. ${(made.note ?? 'It is not set up.').replace(/^Made with the free showroom: /, '')}`.slice(0, 300) });
   }

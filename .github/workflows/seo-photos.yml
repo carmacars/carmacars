@@ -47,6 +47,7 @@ on:
     paths:
       - '.github/workflows/seo-photos.yml'
       - 'web/scripts/seo-photos/**'
+      - 'web/scripts/showroom-photos.mjs'
       - 'web/src/features/vehicles/stock-photos.ts'
 
 concurrency:
@@ -145,6 +146,22 @@ jobs:
           echo "::notice title=seo-photos::$(jq -c '{models, found, photos, stored, failed, pending, http, errors: (.errors | length)}' "$RUNNER_TEMP/manifest.json")"
           echo "::notice title=seo-photos missing::$(jq -r '.missing | join(", ")' "$RUNNER_TEMP/manifest.json" | head -c 3900)"
           echo "::notice title=seo-photos errors::$(jq -r '.errors | join(" | ")' "$RUNNER_TEMP/manifest.json" | head -c 3900)"
+      # r39 (2400): the photographed rooms of the listing showroom, fetched once (kept when stored; the drawn room until then)
+      - name: Showroom rooms (real dealership photos, CC0, public domain or CC BY; once)
+        if: steps.due.outputs.mode == 'write'
+        continue-on-error: true
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: |
+          set -euo pipefail
+          ok=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" sql "select to_regclass('public.showroom_backgrounds') is not null as ok" | jq -r '.[0].ok // false')
+          if [ "$ok" != true ]; then echo "::notice title=showroom rooms::waiting for migration 2400"; exit 0; fi
+          SERVICE_KEY=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" service-key); echo "::add-mask::$SERVICE_KEY"; export SERVICE_KEY
+          STORAGE_URL=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" storage-url); export STORAGE_URL
+          SQL_API_URL=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" sql-api-url); if [ -n "$SQL_API_URL" ]; then export SQL_API_URL; else unset SQL_API_URL; fi
+          node scripts/showroom-photos.mjs --write --count 3 --manifest "$RUNNER_TEMP/rooms.json" | tee "$RUNNER_TEMP/rooms.txt"
+          echo "::notice title=showroom rooms::$(head -n 5 "$RUNNER_TEMP/rooms.txt" | tr '\n' ' ' | head -c 3900)"
       - name: Coverage
         if: steps.due.outputs.mode == 'write'
         env:

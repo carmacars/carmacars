@@ -218,7 +218,7 @@ test('worker: a showroom photo is made here (no draw call), lettered on the cove
   assert.equal(o.preset_version, SHOWROOM_PRESET);
   assert.equal(s.composited(), 0, 'no transformation for the scene');
   assert.equal(o.lettered, true);
-  assert.deepEqual(o.showroom, { provider: 'local', note: FALLBACK_TEXT.no_key, reason: 'no_key' });
+  assert.deepEqual(o.showroom, { provider: 'local', note: FALLBACK_TEXT.no_key, reason: 'no_key', mask_quality: 1 });
   assert.ok(o.place, 'the placement is kept (the plate cover can carry over)');
   const file = s.pub.get('vehicles/v1/car-front-left-abcd1234.jpg')!;
   assert.equal(file[0], 0xff);
@@ -236,7 +236,7 @@ test('worker: the image model\'s photo is used without a placement; a quota keep
   const ai: ShowroomProvider = { name: 'ai', make: async (_i, local) => ({ ok: true, bytes: local, contentType: 'image/jpeg', provider: 'ai', model: 'm1' }) };
   const r = await runJob(s.deps({ showroomAi: ai }), s.job({ enhance: true }), budget);
   const o = r.output as Record<string, unknown>;
-  assert.deepEqual(o.showroom, { provider: 'ai', model: 'm1', note: null, reason: null });
+  assert.deepEqual(o.showroom, { provider: 'ai', model: 'm1', note: null, reason: null, mask_quality: 1 });
   assert.equal('place' in o, false, 'no exact placement: the plate is checked again');
   assert.equal(o.enhance, null, 'not touched up again');
   const quota: ShowroomProvider = { name: 'ai', make: async () => ({ ok: false, reason: 'quota', message: 'Quota exceeded' }) };

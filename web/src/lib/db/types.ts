@@ -18612,6 +18612,9 @@ export type Database = {
           seo_i18n_grace_days: number;
           seo_striking_min_pos: number;
           seo_striking_max_pos: number;
+          listing_showroom_photo_bg: boolean;
+          listing_showroom_car_width: number;
+          listing_cutout_min_quality: number;
         };
         Insert: {
           id?: string;
@@ -19440,6 +19443,9 @@ export type Database = {
           seo_i18n_grace_days?: number;
           seo_striking_min_pos?: number;
           seo_striking_max_pos?: number;
+          listing_showroom_photo_bg?: boolean;
+          listing_showroom_car_width?: number;
+          listing_cutout_min_quality?: number;
         };
         Update: {
           id?: string;
@@ -20268,6 +20274,9 @@ export type Database = {
           seo_i18n_grace_days?: number;
           seo_striking_min_pos?: number;
           seo_striking_max_pos?: number;
+          listing_showroom_photo_bg?: boolean;
+          listing_showroom_car_width?: number;
+          listing_cutout_min_quality?: number;
         };
         Relationships: [];
       };
@@ -23214,6 +23223,66 @@ export type Database = {
         };
         Relationships: [];
       };
+      showroom_backgrounds: {
+        Row: {
+          id: string;
+          slug: string;
+          title: string;
+          storage_path: string;
+          width: number;
+          height: number;
+          source_url: string;
+          author: string;
+          author_url: string | null;
+          licence: string;
+          licence_url: string | null;
+          floor_line: number;
+          reflect: number;
+          active: boolean;
+          sort: number;
+          fetched_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          slug: string;
+          title: string;
+          storage_path: string;
+          width?: number;
+          height?: number;
+          source_url: string;
+          author: string;
+          author_url?: string | null;
+          licence: string;
+          licence_url?: string | null;
+          floor_line?: number;
+          reflect?: number;
+          active?: boolean;
+          sort?: number;
+          fetched_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          slug?: string;
+          title?: string;
+          storage_path?: string;
+          width?: number;
+          height?: number;
+          source_url?: string;
+          author?: string;
+          author_url?: string | null;
+          licence?: string;
+          licence_url?: string | null;
+          floor_line?: number;
+          reflect?: number;
+          active?: boolean;
+          sort?: number;
+          fetched_at?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       sign_in_events: {
         Row: {
           id: number;
@@ -23622,6 +23691,39 @@ export type Database = {
           updated_by?: string | null;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      site_selfqa_runs: {
+        Row: {
+          id: number;
+          at: string;
+          sha: string | null;
+          base: string | null;
+          status: string;
+          fails: Json;
+          warns: Json;
+          ms: number | null;
+        };
+        Insert: {
+          id?: number;
+          at?: string;
+          sha?: string | null;
+          base?: string | null;
+          status: string;
+          fails?: Json;
+          warns?: Json;
+          ms?: number | null;
+        };
+        Update: {
+          id?: number;
+          at?: string;
+          sha?: string | null;
+          base?: string | null;
+          status?: string;
+          fails?: Json;
+          warns?: Json;
+          ms?: number | null;
         };
         Relationships: [];
       };
@@ -32502,6 +32604,7 @@ export type Database = {
       server_signin_phone_request: { Args: { p: Json }; Returns: Json };
       server_signing_package_record: { Args: { p_by: string; p: Json }; Returns: Json };
       server_signing_record: { Args: { p_booking: string }; Returns: Json };
+      server_site_selfqa: { Args: { p: Json }; Returns: Json };
       server_social_drafts_put: { Args: { p: Json }; Returns: number };
       server_social_published: { Args: { p: Json }; Returns: Json };
       server_social_queue_claim: { Args: never; Returns: Json };
