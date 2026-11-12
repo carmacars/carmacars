@@ -13,16 +13,20 @@ import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
 import { StuckHelp } from '@/features/help/StuckHelp';
 import { TermsGate } from '@/features/terms/TermsGate';
 import { PushInvite } from '@/features/push/PushAlerts';
+import { LivePortal } from '@/features/live/realtime/LiveRefresh';
+import { liveTokens } from '@/server/live';
 
 // The renter portal shell (02-booking-and-renter.md section 7): phone-first tabs, then the page.
 // Each page checks the session itself (a page without one redirects to sign in).
 export default async function AccountLayout({ children }: { children: React.ReactNode }) {
   const user = await currentUser();
   if (!user) return <>{children}</>;
-  const [unread, v, roles] = await Promise.all([
+  const [unread, v, roles, live] = await Promise.all([
     rpc('my_unread_count', {}, { role: 'authenticated', userId: user.id }).then(Number).catch(() => 0),
     viewAs(),
-    rolesOf(user.id).catch(() => null)
+    rolesOf(user.id).catch(() => null),
+    // r41: live updates (server/live.ts): the renter's own trips (status, payment, agreement) and alerts
+    liveTokens(user.id, ['me', 'renter'])
   ]);
   // an Admin account has no renter portal (the owner, November 7): its renter profile and bookings stay on file
   if (roles?.admin && !v) redirect('/admin');
@@ -37,6 +41,7 @@ export default async function AccountLayout({ children }: { children: React.Reac
         <PortalNav unread={unread || 0} />
         <GuideBanner portal="renter" userId={user.id} /><StuckHelp portal="renter" />
         <PushInvite portal="renter" home="/account" />
+        <LivePortal tokens={live} />
       </div>
       <div className="wrap pt__body"><TermsGate userId={user.id} portal="renter">{children}</TermsGate></div>
     </div>

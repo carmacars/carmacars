@@ -3,8 +3,9 @@
 #   - Kong is the gateway (the official Kong override), published on 127.0.0.1 only; Caddy terminates TLS for
 #     api.carmacars.ca in front of it. Nothing but Caddy listens on a public address (ufw allows 22/80/443, and
 #     every other published port is bound to 127.0.0.1, which Docker's iptables rules cannot open to the world).
-#   - Realtime, Analytics (Logflare) and Vector are left out: the app uses none of them (no channel/subscribe in
-#     web/src). imgproxy is left out: the app never asks Storage for image transformations (render/image).
+#   - Realtime is behind the compose profile "realtime" (release 41, live updates: off until enabled; the portals read
+#     every 2 seconds without it). Analytics (Logflare) and Vector are left out: the app uses neither. imgproxy is left
+#     out: the app never asks Storage for image transformations (render/image).
 #   - Supavisor is behind the compose profile "pooler" (off): nothing outside the server connects to Postgres
 #     directly; CI reaches it through an SSH tunnel and the services connect on the Docker network.
 #   - Studio and pg-meta are bound to 127.0.0.1 (SSH tunnel only); Kong has no dashboard or /pg routes.
@@ -377,6 +378,42 @@ services:
       - track_io_timing=on
       - -c
       - log_min_duration_statement=${PG_LOG_MIN_DURATION_STATEMENT}
+
+  # Live updates (release 41): Supabase Realtime, public broadcast channels only (the database sends a bare "bump" at
+  # commit, migration 2500; web/src/features/live/realtime). Off by default (profile "realtime"); enable with
+  # COMPOSE_PROFILES=realtime in .env, then dc up -d. The container name is the tenant (realtime-dev), as upstream.
+  realtime:
+    profiles: ["realtime"]
+    container_name: realtime-dev.supabase-realtime
+    image: supabase/realtime:v2.34.47
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sSfL", "--head", "-o", "/dev/null", "-H", "Authorization: Bearer ${ANON_KEY}", "http://localhost:4000/api/tenants/realtime-dev/health"]
+      timeout: 5s
+      interval: 10s
+      retries: 3
+      start_period: 10s
+    environment:
+      PORT: 4000
+      DB_HOST: ${POSTGRES_HOST}
+      DB_PORT: ${POSTGRES_PORT}
+      DB_USER: supabase_admin
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DB}
+      DB_AFTER_CONNECT_QUERY: 'SET search_path TO _realtime'
+      DB_ENC_KEY: supabaserealtime
+      API_JWT_SECRET: ${JWT_SECRET}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      ERL_AFLAGS: -proto_dist inet_tcp
+      DNS_NODES: "''"
+      RLIMIT_NOFILE: "10000"
+      APP_NAME: realtime
+      SEED_SELF_HOST: "true"
+      RUN_JANITOR: "true"
 
   # Off by default (profile "pooler"): nothing outside the server needs a pooled connection today.
   supavisor:
