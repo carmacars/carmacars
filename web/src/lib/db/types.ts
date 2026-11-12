@@ -24928,6 +24928,8 @@ export type Database = {
           lock_reason: string | null;
           availability_grandfathered: boolean;
           quo_user_id: string | null;
+          licence_number: string | null;
+          licence_number_set_at: string | null;
         };
         Insert: {
           user_id: string;
@@ -24983,6 +24985,8 @@ export type Database = {
           lock_reason?: string | null;
           availability_grandfathered?: boolean;
           quo_user_id?: string | null;
+          licence_number?: string | null;
+          licence_number_set_at?: string | null;
         };
         Update: {
           user_id?: string;
@@ -25038,6 +25042,8 @@ export type Database = {
           lock_reason?: string | null;
           availability_grandfathered?: boolean;
           quo_user_id?: string | null;
+          licence_number?: string | null;
+          licence_number_set_at?: string | null;
         };
         Relationships: [];
       };

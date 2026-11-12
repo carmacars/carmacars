@@ -123,7 +123,9 @@ test('fleet: changes a value, maps the forms (sample car, history, no upload); M
   // the mapping page: the sample car first, the history, no upload
   await page.goto('/staff/government-forms', { waitUntil: 'networkidle' });
   await expect(page.getByTestId('official-forms')).toBeVisible();
-  await expect(page.locator('input[type="file"]')).toHaveCount(0);
+  // the forms page has no upload (the frame's Report a bug dialog, r37, has its own picture field: not part of the page)
+  await expect(page.getByTestId('official-forms').locator('input[type="file"]')).toHaveCount(0);
+  await expect(page.locator('.ad__main input[type="file"]')).toHaveCount(0);
   const card = page.getByTestId('form-SR-LV-006');
   if (await card.locator('summary', { hasText: 'Fields and what goes in them' }).count()) {
     const sel = card.locator('#fp-SR-LV-006');

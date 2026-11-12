@@ -76,7 +76,7 @@ test('intent landing pages: render with their facts, FAQPage, breadcrumbs; the f
   }
 });
 
-test('place pages: a neighbourhood near us, a far city, a US city, the GTA; honest distance and delivery, never a branch', async ({ page }) => {
+test('place pages: a neighbourhood near us, a far city, a term in a far city (US places are off), the GTA; honest distance and delivery, never a branch', async ({ page }) => {
   test.setTimeout(180_000);
   await page.goto('/car-rental/port-credit-mississauga-on', { waitUntil: 'networkidle' });
   await acceptCookies(page);
@@ -93,10 +93,11 @@ test('place pages: a neighbourhood near us, a far city, a US city, the GTA; hone
   await expect(page.getByTestId('place-lead-form')).toBeVisible();
   await check(page, 'kingston');
 
-  await page.goto('/car-rental/suv-rental/buffalo-ny', { waitUntil: 'networkidle' });
-  await expect(page.locator('h1')).toHaveText('SUV Rental in Buffalo, NY');
-  await expect(page.locator('#cars')).toContainText('Canadian dollars');
-  await check(page, 'buffalo');
+  // 2350: US and Mexico place pages are off (a 404); a term in an Ontario city instead
+  expect((await page.goto('/car-rental/suv-rental/buffalo-ny'))?.status()).toBe(404);
+  await page.goto('/car-rental/suv-rental/kingston-on', { waitUntil: 'networkidle' });
+  await expect(page.locator('h1')).toContainText('SUV Rental in Kingston');
+  await check(page, 'suv kingston');
 
   await page.goto('/car-rental/gta', { waitUntil: 'networkidle' });
   await expect(page.locator('h1')).toHaveText('Car Rental in Greater Toronto Area');

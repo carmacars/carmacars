@@ -56,9 +56,9 @@ test('the crawler guard: training and unnamed crawlers on deep pages only while 
   const GPT = 'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; GPTBot/1.2; +https://openai.com/gptbot)';
   const off = async () => false, on = async () => true;
   assert.equal(await keptToScope('SomeNewBot/1.0', deep, off, off), false, 'guard off: every page');
-  // 2350: the bulk AI crawlers keep to the crawl scope always (the owner: cut the AI crawler load)
-  assert.equal(await keptToScope(GPT, deep, off, off), true);
-  assert.equal(await keptToScope('Mozilla/5.0 (compatible; ClaudeBot/1.0; +claudebot@anthropic.com)', deep, off, off), true);
+  // r38 (the owner: crawlers are never restricted, as r27b): the AI crawlers read every page in Full (2350 had kept them out)
+  assert.equal(await keptToScope(GPT, deep, off, off), false);
+  assert.equal(await keptToScope('Mozilla/5.0 (compatible; ClaudeBot/1.0; +claudebot@anthropic.com)', deep, off, on), false);
   assert.equal(await keptToScope('SomeNewBot/1.0', deep, off, on), true);
   assert.equal(await keptToScope(GOOGLE, deep, off, on), false, 'search crawlers are never limited by the guard');
   assert.equal(await keptToScope('Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)', deep, off, on), false);
@@ -91,13 +91,14 @@ test('AI and search crawlers are never refused, Bytespider is only paced', () =>
 // 2350: the AI crawlers that crawl in bulk keep to the crawl scope; Google, Bing and the fetchers a person triggers do not
 import { AI_SCOPED } from './bot-shield.ts';
 import { AI_SCOPED_CRAWLERS } from '../../features/seo/crawlers.ts';
-test('2350: bulk AI crawlers keep to the crawl scope, search engines and user fetchers keep every page', async () => {
+test('r38: in Full the AI crawlers keep every page like the search engines (2350 had kept them to the crawl scope); Core limits all', async () => {
   const off = async () => false;
   const place = '/car-rental/suv-rental/markham-on';
   for (const b of AI_SCOPED_CRAWLERS) assert.ok(AI_SCOPED.test(`Mozilla/5.0 (compatible; ${b}/1.0)`), b);
   for (const b of ['ClaudeBot/1.0', 'Applebot/0.1', 'GPTBot/1.2', 'PerplexityBot/1.0', 'OAI-SearchBot/1.0']) {
     const ua = `Mozilla/5.0 (compatible; ${b}; +https://example.test/bot)`;
-    assert.equal(await keptToScope(ua, place, off, off), true, b);
+    assert.equal(await keptToScope(ua, place, off, off), false, b);
+    assert.equal(await keptToScope(ua, place, async () => true, off), true, `${b}: Core limits every crawler`);
     assert.equal(shield('GET', u(place), ua, true).kind, 'refuse', b);
     assert.equal(await keptToScope(ua, '/car-rental/markham-on', off, off), false, `${b}: one-segment pages are left to robots.txt`);
     assert.equal(await keptToScope(ua, '/cars/bmw/x5', off, off), false, `${b}: core pages stay open`);

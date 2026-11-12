@@ -39,6 +39,8 @@ select test.eq('customer service adds a rental and says sourced: no credit, not 
 insert into ncs select 'fin1', app.door(test.id('ncs_fin'), 'aal2', 'ops_do', 'manual_rental_create', test.ncsrental(8, 'for_carmacars'));
 select test.eq('Finance entered for CarmaCars: no credit either (the tracking credit went too)',
   (select coalesce(sales_staff_id::text, 'none') from test.ncsb('fin1')), 'none');
+select test.eq('Finance entered for CarmaCars: the choice stays on the booking (it is no credit), so no later offer asks again',
+  (select coalesce(sales_choice, 'none') || '/' || (sales_choice_by = test.id('ncs_fin'))::text from test.ncsb('fin1')), 'for_carmacars/true');
 -- Sales still can
 insert into ncs select 'sales1', app.door(test.id('ncs_sales'), 'aal2', 'ops_do', 'manual_rental_create', test.ncsrental(13, 'sourced'));
 select test.eq('Sales adds a rental and says sourced: credited, sourced, a commission accruing',

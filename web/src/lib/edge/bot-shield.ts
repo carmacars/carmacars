@@ -52,11 +52,8 @@ export const isCrawler = (ua: string | null | undefined): boolean => !!ua && CRA
  *  read from the tag store only when it matters. */
 export async function keptToScope(ua: string | null | undefined, path: string, coreFlag: () => Promise<boolean>, guardFlag: () => Promise<boolean> = async () => false): Promise<boolean> {
   if (!isCrawler(ua) || !deepOutOfScope(path)) return false;
-  // 2350 (the owner: cut the AI crawler load): the AI training and AI search crawlers that crawl in bulk keep to the crawl
-  // scope always (the fixed pages, the cars, the landing pages, the guides, the vehicle tree to the trim); robots.txt
-  // says the same (features/seo/crawlers.ts AI_SCOPED_CRAWLERS). Googlebot, Bingbot and the fetchers a person triggers
-  // (ChatGPT-User, Claude-User, Perplexity-User) are not limited here.
-  if (AI_SCOPED.test(ua!)) return true;
+  // r38 (the owner: crawlers are never restricted, as r27b): the AI crawlers (AI_SCOPED) are no longer kept to the crawl
+  // scope here (2350 did); robots.txt paces the training ones with a Crawl-delay.
   if (!isSearchCrawler(ua) && !AI_CRAWLER.test(ua!) && (await guardFlag())) return true;
   return coreFlag();
 }

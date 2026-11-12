@@ -43,6 +43,9 @@ export default async function StaffWelcome() {
               testId="welcome-location" refresh={['/staff/welcome']} done="Saved." fields={[{ name: 'city', label: 'City or town', type: 'text', required: true },
                 { name: 'country', label: 'Country', type: 'select', required: true, value: 'CA', options: [['CA', 'Canada'], ['US', 'United States'], ['PH', 'Philippines'], ['IN', 'India'], ['PK', 'Pakistan'], ['MX', 'Mexico'], ['GB', 'United Kingdom'], ['ZZ', 'Another country']],
                   hint: 'Sales in person is for the Toronto area; elsewhere your Sales work is remote.' }]} /></div>}
+            {/* 2373: the Field Staff Agreement is made once the person gives their licence number */}
+            {s.key === 'agreement' && s.needs_licence && <div><Act ops action="staff_licence_number_save" label="Add my driver's licence number" variant="primary" title="Your driver's licence number" submitLabel="Save"
+              testId="welcome-licence" refresh={['/staff/welcome']} done="Saved. Your agreement is being made." fields={[{ name: 'licence_number', label: 'Driver\'s licence number', type: 'text', required: true, placeholder: 'A1234-12345-12345', hint: 'As it is on your licence card. It goes in your Field Staff Agreement.' }]} /></div>}
             {/* 1151: step 3, one checkbox a group (Sales: the Sales group and the Team group) */}
             {s.key === 'team' && s.open && !!s.groups?.length && !s.done && <WhatsAppConfirm groups={s.groups} primary={s.key === now} refresh="/staff/welcome" />}
             {/* 1770: field staff tick when they can usually work (open from the start, required for the portal) */}

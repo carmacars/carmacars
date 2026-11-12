@@ -163,7 +163,8 @@ select test.ok('past trips: Fleet sees both (confirmed and on rent, return passe
   (select count(*) from jsonb_array_elements(test.rw_read('rw_fleet', 'past_trips', '{}'::jsonb) -> 'rows') x where x ->> 'booking_number' in
      ((select booking_number from bookings where id = test.b('rwP')), (select booking_number from bookings where id = test.b('rwQ')))) = 2);
 select test.throws('past trips: customer service does not close them', $$select test.rw_read('rw_cs', 'past_trips', '{}'::jsonb)$$, 'closes past trips');
-select app.past_trips_sweep(now());
+-- the digest line is written from 5:00 Toronto time: the sweep runs at 9:00 when the suite runs in the night (r38)
+select app.past_trips_sweep(greatest(now(), app.local_midnight(app.today()) + interval '9 hours'));
 select test.eq('past trips: a Fleet To do for each trip open 2 hours after its return',
   (select count(*) from tasks where task_type = 'past_trip_open' and queue = 'fleet' and status = 'open' and booking_id in (test.b('rwP'), test.b('rwQ'))), 2::bigint);
 select test.ok('past trips: a line in the Admin and Fleet morning digest',

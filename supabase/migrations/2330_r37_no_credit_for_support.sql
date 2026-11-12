@@ -69,7 +69,9 @@ begin
   if new.sales_staff_id is not null and (tg_op = 'INSERT' or new.sales_staff_id is distinct from old.sales_staff_id) and app.credit_blocked(new.sales_staff_id) then
     if tg_op = 'INSERT' then
       new.sales_staff_id := null; new.sales_source := null; new.sales_attributed_at := null; new.sales_attributed_by := null;
-      new.sales_sourced := false; new.sales_choice := null; new.sales_choice_by := null; new.sales_choice_at := null;
+      -- r38: "Entered for CarmaCars" is no credit: that choice stays on the booking (only "sourced" is taken away)
+      new.sales_sourced := false;
+      if new.sales_choice is distinct from 'for_carmacars' then new.sales_choice := null; new.sales_choice_by := null; new.sales_choice_at := null; end if;
     else
       new.sales_staff_id := old.sales_staff_id; new.sales_source := old.sales_source; new.sales_attributed_at := old.sales_attributed_at; new.sales_attributed_by := old.sales_attributed_by;
       new.sales_sourced := old.sales_sourced; new.sales_choice := old.sales_choice; new.sales_choice_by := old.sales_choice_by; new.sales_choice_at := old.sales_choice_at;

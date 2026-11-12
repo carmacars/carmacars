@@ -116,17 +116,16 @@ test('Staff add rentals: a typed price and "I sourced this client", "Entered for
   await check(page, 'cs add a rental, sourced, typed price');
   await page.getByTestId('mr-submit').click();
   await expect(page.getByTestId('mr-done')).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByTestId('mr-done-choice')).toContainText('Marked as sourced by you');
+  // 2330 (the owner: customer service, Fleet and Finance never get sales credit or commission): "I sourced this client" from
+  // customer service is recorded as entered for CarmaCars, no commission; the typed price is still flagged
+  await expect(page.getByTestId('mr-done-choice')).toContainText('Entered for CarmaCars: no commission');
   await expect(page.getByTestId('mr-done-choice')).toContainText('flagged for an Admin');
   const n1 = await doneNumber(page);
   const [b1] = await sql`select b.rental_charge_cents::int rc, b.rate_sheet_rental_cents::int rs, b.sales_sourced, array_to_string(b.price_flags, ',') flags,
-    (select status from staff_commissions c where c.booking_id = b.id and c.kind = 'commission') cstatus from bookings b where b.booking_number = ${n1}`;
-  expect(`${b1!.rc}/${b1!.rs}/${b1!.sales_sourced}/${b1!.flags}/${b1!.cstatus}`).toBe('21000/30000/true/discount_over_limit/accruing');
-  // My sales: the commission not earned yet, at 10%
+    (select count(*)::int from staff_commissions c where c.booking_id = b.id) n from bookings b where b.booking_number = ${n1}`;
+  expect(`${b1!.rc}/${b1!.rs}/${b1!.sales_sourced}/${b1!.flags}/${b1!.n}`).toBe('21000/30000/false/discount_over_limit/0');
   await page.goto('/staff/my-sales', { waitUntil: 'networkidle' });
-  await expect(page.getByTestId('commission-rate')).toContainText('10%');
-  await expect(page.getByTestId(`commission-status-${n1}-commission`)).toContainText('Not earned yet');
-  await expect(page.getByTestId('sales-deals').locator('tr', { hasText: n1 })).toContainText('sourced');
+  await expect(page.getByTestId(`commission-status-${n1}-commission`)).toHaveCount(0);
   await check(page, 'cs my sales');
   await page.context().close();
 
@@ -153,7 +152,8 @@ test('Staff add rentals: a typed price and "I sourced this client", "Entered for
   await expect(fp.getByTestId('mr-done-choice')).toContainText('Entered for CarmaCars: no commission');
   const n2 = await doneNumber(fp);
   const [b2] = await sql`select b.sales_sourced, b.sales_choice, (b.sales_staff_id = ${fin.id}) mine, (select count(*)::int from staff_commissions c where c.booking_id = b.id) n from bookings b where b.booking_number = ${n2}`;
-  expect(`${b2!.sales_sourced}/${b2!.sales_choice}/${b2!.mine}/${b2!.n}`).toBe('false/for_carmacars/true/0');
+  // 2330: Finance is never the credited person (no sales_staff_id); the choice "Entered for CarmaCars" is kept on the booking
+  expect(`${b2!.sales_sourced}/${b2!.sales_choice}/${b2!.mine}/${b2!.n}`).toBe('false/for_carmacars/null/0');
   const [t2] = await sql`select b.price_tax, b.price_with_tax_cents::int w, b.rental_charge_cents::int rc, b.total_due_at_booking_cents::int t,
     (select li.description || ' ' || li.hst_cents from booking_line_items li where li.booking_id = b.id and li.charge_type = 'rental_charge' and li.voided_at is null) line
     from bookings b where b.booking_number = ${n2}`;
@@ -195,11 +195,15 @@ test('Commissions: completed and paid, approved, paid by hand, reversed by a ref
   test.setTimeout(240_000);
   const sql = db();
   const admin = await mkUser(sql, 'admin', `Ada Admin ${tag()}`);
-  const cs = await mkUser(sql, 'va', `Cory Service ${tag()}`, 'cs');
+  // 2330: customer service is never credited, so the credited person here is a second Sales person (the variable keeps its name)
+  const cs = await mkUser(sql, 'va', `Cory Closer ${tag()}`, 'sales');
+  // a Sales tier commission is approved only once its month closes (0058: the month's tier applies to all of its rentals):
+  // this person has an Admin's flat 10% (Commission rate on their Sales page), approvable at once as customer service's was
+  await sql`update staff_profiles set commission_bps = 1000 where user_id = ${cs.id}`;
   const sales = await mkUser(sql, 'va', `Sasha Seller ${tag()}`, 'sales');
   const renter = await mkUser(sql, 'renter', `Rowan Renter ${tag()}`);
   const carId = await companyCar(sql, admin.id);
-  // a rental completed and paid (recorded after the fact), credited to customer service as sourced by them
+  // a rental completed and paid (recorded after the fact), credited to the second Sales person as sourced by them
   const back = 3 + Math.floor(Math.random() * 2);
   const [m] = await sql`select app.manual_rental_create(${admin.id}, ${sql.json({ vehicle_id: carId, source: 'phone', coverage_option: 1, renter_id: renter.renterId, past: true,
     pickup_at: new Date(Date.now() - (back + 2) * 86_400_000).toISOString(), return_at: new Date(Date.now() - back * 86_400_000).toISOString(),

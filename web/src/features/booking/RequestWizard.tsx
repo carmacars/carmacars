@@ -75,6 +75,8 @@ export function RequestWizard(p: WizardProps) {
   const [failure, setFailure] = useState('');
   const meta = useRef<{ token: string | null; draftId: string | null; key: string }>({ token: null, draftId: null, key: '' });
   const ready = useRef(false);
+  // r38: the person typed before the draft lookup answered: the autosave runs once the form is ready (it skipped those changes)
+  const [readyTick, setReadyTick] = useState(0);
   // the person has typed or moved on: a draft that arrives later (another device, a slow lookup) never takes the form back
   const touched = useRef(false);
   const [moved, setMoved] = useState(false);
@@ -146,10 +148,10 @@ export function RequestWizard(p: WizardProps) {
       setD((x) => { const next = migrateExtras({ ...x, ...fromLink }); if (next.from && next.from < today) { next.from = ''; next.to = ''; } return next; });
       // another device: a signed-in person's draft, or the token kept here
       loadRequestDraft(meta.current.token).then((r) => {
-        if (touched.current) { if (r.ok && r.data && !fresh) meta.current.draftId = r.data.draftId; ready.current = true; return; }
+        if (touched.current) { if (r.ok && r.data && !fresh) meta.current.draftId = r.data.draftId; ready.current = true; setReadyTick((n) => n + 1); return; }
         if (r.ok && r.data && !fresh) { meta.current.draftId = r.data.draftId; apply({ ...emptyRequest(), ...r.data.data }, r.data.step, true); }
         else apply({ ...emptyRequest(), car: p.initialSlug ?? '' }, 1, false);
-      }).catch(() => { if (touched.current) ready.current = true; else apply(emptyRequest(), 1, false); });
+      }).catch(() => { if (touched.current) { ready.current = true; setReadyTick((n) => n + 1); } else apply(emptyRequest(), 1, false); });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -164,7 +166,7 @@ export function RequestWizard(p: WizardProps) {
       }).catch(() => setSaved(true));
     }, 800);
     return () => clearTimeout(t);
-  }, [d, step, relink]);
+  }, [d, step, relink, readyTick]);
 
   // 0102: the car's details come with the page for the car it opens on, and are read when another car is chosen
   const [cars, setCars] = useState<Record<string, WizardCar>>(() => (p.initialCar ? { [p.initialCar.slug]: p.initialCar } : {}));

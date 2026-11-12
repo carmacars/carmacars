@@ -27,8 +27,9 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
   const scoped = guard ? { allow: ['/', '/llms.txt', '/llms-full.txt', ...landing], disallow: [...PRIVATE_PATHS, ...OUT_OF_SCOPE] } : { allow, disallow };
   const full = new Set<string>(FULL_SCOPE_CRAWLERS);
   const ai = new Set<string>(AI_SCOPED_CRAWLERS);
-  // 2350: the bulk AI crawlers read the crawl scope only (the landing pages allowed by name), the training ones paced
-  const aiScope = { allow: ['/', '/llms.txt', '/llms-full.txt', ...landing], disallow: [...PRIVATE_PATHS, ...OUT_OF_SCOPE] };
+  // r38 (the owner: crawlers are never restricted, as r27b): the AI crawlers read every public page the search scope allows,
+  // like the search engines; the training ones are only paced (Crawl-delay). 2350 had kept them to the crawl scope.
+  const aiScope = { allow, disallow };
   // 2026-11-06 (r27b, the owner: every search and AI engine may index everything): every named search and AI crawler
   // reads every public page the search scope allows (the crawler guard no longer narrows them); Bytespider is paced
   return {
