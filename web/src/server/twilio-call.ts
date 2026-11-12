@@ -19,19 +19,22 @@ export function twilioState(): { ready: true } | { ready: false; why: string } {
   return twilioReady(cfg());
 }
 
-export type StartResult = { ok: true; who: string; calling: string } | { ok: false; fallback: 'quo' | null; message: string };
+export type StartResult = { ok: true; who: string; calling: string } | { ok: false; fallback: 'quo' | null; message: string; need_phone?: boolean };
 
 /** Starts a call for this staff member to this number (E.164). */
 export async function startStaffCall(userId: string, number: string, bookingNumber?: string | null): Promise<StartResult> {
   const c = cfg();
   const r = twilioReady(c);
   if (!r.ready) return { ok: false, fallback: 'quo', message: r.why };
-  let call: { id: string; staff_number: string; caller_id: string | null; who: string };
+  let call: { id: string; staff_number: string; caller_id: string | null; who: string; ok?: boolean; need_phone?: boolean; message?: string };
   try {
     call = (await rpc('server_twilio_call_start', { p: { user_id: userId, number, booking_number: bookingNumber ?? null } as unknown as Json }, SR)) as unknown as typeof call;
   } catch (e) {
     return { ok: false, fallback: null, message: e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '').slice(0, 200) : 'The call could not start' };
   }
+  // 2460: no mobile of their own on file: the Call button asks for it, saves it and calls again
+  if (call?.need_phone) return { ok: false, fallback: null, need_phone: true, message: call.message ?? 'Add your mobile number first: the call rings your phone, then connects the customer.' };
+  if (!call?.id || !call.staff_number) return { ok: false, fallback: null, message: 'The call could not start. Try again in a moment.' };
   const callerId = c.callerId || call.caller_id;
   if (!callerId) return { ok: false, fallback: 'quo', message: 'The CarmaCars number is not set (Site settings, Phone).' };
   const t = await callToken(c.apiSecret!, call.id);
@@ -49,7 +52,8 @@ export async function startStaffCall(userId: string, number: string, bookingNumb
   const j = (await res.json().catch(() => ({}))) as { sid?: string; message?: string };
   if (!res.ok || !j.sid) {
     await event({ id: call.id, kind: 'failed_to_start', error: (j.message ?? `status ${res.status}`).slice(0, 200) });
-    return { ok: false, fallback: 'quo', message: `The call did not start: ${(j.message ?? `the phone service answered ${res.status}`).slice(0, 160)}` };
+    // r40: say what to do (a wrong mobile on the profile, or the Twilio account: keys, caller ID, calling permissions)
+    return { ok: false, fallback: 'quo', message: `The call did not start: ${(j.message ?? `the phone service answered ${res.status}`).slice(0, 160)}. Check your mobile number on your profile; if it is right, ask an Admin to check the Twilio account.` };
   }
   await event({ id: call.id, kind: 'started', call_sid: j.sid });
   return { ok: true, who: call.who, calling: call.staff_number.slice(0, -4).replace(/[0-9]/g, '•') + call.staff_number.slice(-4) };

@@ -1,4 +1,5 @@
 import { Act } from '@/features/admin/Act';
+import { ContactButtons } from '@/features/phone/QuoButtons';
 import { $, Badge, Card, Table, Tabs, d } from '@/features/admin/ui';
 
 type Row = Record<string, unknown> & { id: string; reference: string; status: string; service_date: string; start_time: string; hours: number; vehicle: string; chauffeur_vehicle_id: string;
@@ -35,7 +36,7 @@ export function ChauffeurRequests({ data, base, status }: { data: ChauffeurData;
           { key: 'reference', label: 'Request', render: (r) => <span data-testid={`ch-row-${r.reference}`}><b>{r.reference}</b><br /><Badge s={r.status} /></span> },
           { key: 'service_date', label: 'When', render: (r) => `${d(r.service_date)}, ${r.start_time.slice(0, 5)}, ${r.hours} hours` },
           { key: 'vehicle', label: 'Vehicle and trip', render: (r) => <>{r.vehicle}<br /><span className="small muted">{r.pickup_address}{r.dropoff_address ? ` to ${r.dropoff_address}` : ''}, {r.passengers} passengers{r.occasion ? `, ${r.occasion}` : ''}</span>{r.notes && <><br /><span className="small">{r.notes}</span></>}</> },
-          { key: 'name', label: 'Client', render: (r) => <>{r.name}<br /><span className="small">{[r.email, r.phone].filter(Boolean).join(', ')}</span></> },
+          { key: 'name', label: 'Client', render: (r) => <>{r.name}<br /><span className="small">{r.email}{r.email && r.phone ? ', ' : ''}{r.phone ? <ContactButtons phone={r.phone} name={r.name} look="link" testId="chauffeur-phone">{r.phone}</ContactButtons> : null}</span></> },
           { key: 'total_cents', label: 'Quote', num: true, render: (r) => <span title={r.line}>{$(r.renter_cents)} + HST {$(r.hst_cents)} = <b>{$(r.total_cents)}</b><br /><span className="small muted">{r.line}</span></span> },
           { key: 'partner_payout_cents', label: 'Payout and keep', num: true, render: (r) => <span className="small">Sheet {$(r.sheet_cents)}, partner {$(r.partner_payout_cents)}<br />CarmaCars keeps {$(r.carmacars_keep_cents)} ({r.cut_bps / 100}% cut plus markup)</span> },
           { key: 'id', label: '', render: (r) => (

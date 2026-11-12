@@ -2,13 +2,14 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { leadAct } from '@/server/actions/sales-leads';
+import { ContactButtons } from '@/features/phone/QuoButtons';
 import { claimWords, contactLinks, holdWords, OUTCOME_LABEL, OUTCOMES, type LeadRow, type Outcome, type Person } from './model';
 
 type Msg = { ok: boolean; text: string } | null;
 
 /** One lead's buttons: Claim or Unclaim, Call, Text and Email (each logged on the lead and extending the claim), a note,
  *  Mark handled, the outcome, and for an Admin Reassign. Phone-sized: the buttons wrap. */
-export function LeadActions({ lead, admin, people, compact = false }: { lead: Pick<LeadRow, 'id' | 'phone' | 'email' | 'claim' | 'hold' | 'handled_at' | 'outcome'> & { assigned_to?: string | null }; admin: boolean; people: Person[]; compact?: boolean }) {
+export function LeadActions({ lead, admin, people, compact = false }: { lead: Pick<LeadRow, 'id' | 'phone' | 'email' | 'claim' | 'hold' | 'handled_at' | 'outcome'> & { assigned_to?: string | null; name?: string | null }; admin: boolean; people: Person[]; compact?: boolean }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<Msg>(null);
@@ -25,6 +26,11 @@ export function LeadActions({ lead, admin, people, compact = false }: { lead: Pi
   });
   // the phone or mail app opens at once; the contact is logged beside it
   const log = (channel: 'call' | 'text' | 'email') => () => { void leadAct('lead_contact', { lead: lead.id, channel }).then((r) => { if (!r.ok) setMsg({ ok: false, text: r.message }); else router.refresh(); }); };
+  // r40 hotfix: Call and Text go through the platform (the Call and Text buttons of every staff page): Sales sees the number
+  // masked, and the old tel: link of the masked digits dialled nothing. Logged when the button itself is pressed (not the pop-up).
+  const logOn = (channel: 'call' | 'text', tid: string) => blocked ? undefined : (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest(`[data-testid="${tid}"]`)) log(channel)();
+  };
   return (
     <div className="stack" style={{ gap: 'var(--s-2)' }} data-testid="lead-actions">
       {c.text && <p className={`small ${c.locked ? 'muted' : ''}`} data-testid="lead-claim">{c.text}</p>}
@@ -36,9 +42,9 @@ export function LeadActions({ lead, admin, people, compact = false }: { lead: Pi
         {admin && lead.hold && h.text && <button type="button" className="btn btn--ghost btn--sm" disabled={pending} onClick={() => run('lead_hold_release', {}, 'Hold released.')} data-testid="lead-hold-release">Release hold</button>}
         {/* calls first, texts after (r37): Call leads; while the lead is held or claimed by someone else the links are off, with the reason */}
         {links.call && (h.locked && !admin ? <button type="button" className="btn btn--ghost btn--sm" disabled title={h.text ?? undefined} data-testid="lead-call">Call</button>
-          : <a className="btn btn--ghost btn--sm" href={links.call} onClick={blocked ? undefined : log('call')} data-testid="lead-call">Call</a>)}
+          : <span onClickCapture={logOn('call', 'lead-call')}><ContactButtons phone={lead.phone} name={lead.name} only="call" testId="lead" /></span>)}
         {links.text && (h.locked && !admin ? <button type="button" className="btn btn--quiet btn--sm" disabled title={h.text ?? undefined} data-testid="lead-text">Text</button>
-          : <a className="btn btn--quiet btn--sm" href={links.text} onClick={blocked ? undefined : log('text')} data-testid="lead-text">Text</a>)}
+          : <span onClickCapture={logOn('text', 'lead-text')}><ContactButtons phone={lead.phone} name={lead.name} only="text" testId="lead" /></span>)}
         {links.email && (h.locked && !admin ? <button type="button" className="btn btn--quiet btn--sm" disabled title={h.text ?? undefined} data-testid="lead-email">Email</button>
           : <a className="btn btn--quiet btn--sm" href={links.email} onClick={blocked ? undefined : log('email')} data-testid="lead-email">Email</a>)}
         {!compact && <button type="button" className="btn btn--ghost btn--sm" disabled={pending || blocked} onClick={() => setPanel(panel === 'note' ? null : 'note')} data-testid="lead-note">Note</button>}

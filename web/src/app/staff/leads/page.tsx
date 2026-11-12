@@ -2,6 +2,7 @@ import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
 import { Act } from '@/features/admin/Act';
 import Link from '@/components/Link';
+import { ContactButtons } from '@/features/phone/QuoButtons';
 import { Badge, Card, PageHead, Table, t, label } from '@/features/admin/ui';
 
 export const dynamic = 'force-dynamic';
@@ -27,10 +28,10 @@ export default async function Leads() {
       <PageHead title={fn === 'cs' ? 'Owners and enquiries' : 'Buyer leads'} />
       <div className="stack">
         {sales && <p className="small muted" data-testid="leads-owners-moved">The owners you bring in, with your invitations and applications, are on <Link prefetch={false} className="link" href="/staff/my-sales#owners">My sales</Link>.</p>}
-        {!sales && <Card title="Owner leads"><Table rows={o.leads} testId="owner-leads" empty="No open owner leads." cols={[{ key: 'created_at', label: 'Received', render: (r) => t(r.created_at) }, { key: 'name', label: 'Name' }, { key: 'email', label: 'Email' }, { key: 'phone', label: 'Phone' },
+        {!sales && <Card title="Owner leads"><Table rows={o.leads} testId="owner-leads" empty="No open owner leads." cols={[{ key: 'created_at', label: 'Received', render: (r) => t(r.created_at) }, { key: 'name', label: 'Name' }, { key: 'email', label: 'Email' }, { key: 'phone', label: 'Phone', render: (r) => (r.phone ? <ContactButtons phone={String(r.phone)} name={r.name ? String(r.name) : null} look="link" testId="lead-phone">{String(r.phone)}</ContactButtons> : null) },
           { key: 'vehicle', label: 'Car' }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'assignee_name', label: 'With' }, { key: 'act', label: '', render: actions }]} /></Card>}
         {/* buyer leads from the /buy pages' "Find me this car" (0097); each also raised a To do line for Sales */}
-        <Card title="Buyer leads"><Table rows={buyers.rows} testId="buyer-leads" empty="No open buyer leads." cols={[{ key: 'created_at', label: 'Received', render: (r) => t(r.created_at) }, { key: 'name', label: 'Name' }, { key: 'email', label: 'Email' }, { key: 'phone', label: 'Phone' },
+        <Card title="Buyer leads"><Table rows={buyers.rows} testId="buyer-leads" empty="No open buyer leads." cols={[{ key: 'created_at', label: 'Received', render: (r) => t(r.created_at) }, { key: 'name', label: 'Name' }, { key: 'email', label: 'Email' }, { key: 'phone', label: 'Phone', render: (r) => (r.phone ? <ContactButtons phone={String(r.phone)} name={r.name ? String(r.name) : null} look="link" testId="lead-phone">{String(r.phone)}</ContactButtons> : null) },
           { key: 'car', label: 'Car', render: (r) => String((r.payload as R | null)?.vehicle ?? '') }, { key: 'budget', label: 'Budget', render: (r) => String((r.payload as R | null)?.budget ?? '') }, { key: 'when', label: 'When', render: (r) => String((r.payload as R | null)?.timeline ?? '') },
           { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'act', label: '', render: actions }]} /></Card>
         {!sales && <Card title="Owner applications, last 90 days"><Table rows={o.applications} rowKey={(r) => String(r.application_number)} empty="No applications." cols={[{ key: 'application_number', label: 'Application' }, { key: 'owner_name', label: 'Owner' }, { key: 'vehicle_count', label: 'Cars', num: true },

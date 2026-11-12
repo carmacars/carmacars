@@ -32683,6 +32683,7 @@ export type Database = {
       server_social_queue_result: { Args: { p: Json }; Returns: Json };
       server_staff_agreement_auto_done: { Args: { p_user: string; p: Json }; Returns: Json };
       server_staff_agreements_due: { Args: { p_limit?: number }; Returns: Json };
+      server_staff_set_call_phone: { Args: { p_user: string; p_phone: string }; Returns: Json };
       server_statement_mail_due: { Args: never; Returns: Json };
       server_statement_mail_release: { Args: { p_kind: string; p_key: string }; Returns: Json };
       server_stripe_dispute_event: { Args: { p: Json }; Returns: Json };

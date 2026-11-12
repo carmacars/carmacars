@@ -95,7 +95,8 @@ select test.eq('reveal: an Admin gets the number', (app.door(test.id('rz_admin')
 select test.eq('reveal: audited', (select count(*) from audit_log where action = 'phone_reveal' and actor_user_id = test.id('rz_admin')), 1::bigint);
 
 -- ================================================================ 4. the Call button (Twilio): the log and the minutes
-select test.throws('calls: the staff member''s own cell is needed', format($$select app.server_twilio_call_start(%L)$$, jsonb_build_object('user_id', test.id('rz_cs'), 'number', '+16475550199')), '%own cell number%');
+-- 2460: no cell on file asks for it (the Call button's pop-up) instead of failing
+select test.eq('calls: the staff member''s own cell is needed', app.server_twilio_call_start(jsonb_build_object('user_id', test.id('rz_cs'), 'number', '+16475550199')) ->> 'need_phone', 'true');
 create temp table rz_call as select (app.server_twilio_call_start(jsonb_build_object('user_id', test.id('rz_sales'), 'number', '+16475550199', 'booking_number', 'RZ-1')) ->> 'id')::uuid id;
 select test.eq('calls: the TwiML needs the customer and our number', (select (app.server_twilio_call_get(id) ->> 'to') from rz_call), '+16475550199');
 select app.server_twilio_call_event(jsonb_build_object('id', id, 'kind', 'started', 'call_sid', 'CA' || repeat('1', 32))) from rz_call;
