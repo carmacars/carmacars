@@ -4,7 +4,7 @@ import { acceptCookies } from './helpers';
 // The form guard (r40-forms, src/lib/forms/guard-dom.ts): when a form cannot be sent, the person sees a summary of what is
 // missing, each such field outlined with a message, and the focus in the first one. One mechanism for every form; checked on
 // the contact form (its own field errors) and on the first step of the list-your-car application (a wizard step).
-test.fixme('contact form (r41: guard switched on in r41): an empty send lists what is missing, marks the fields and focuses the first', async ({ page }) => {
+test('contact form: an empty send lists what is missing, marks the fields and focuses the first', async ({ page }) => {
   await page.goto('/contact', { waitUntil: 'networkidle' });
   await acceptCookies(page);
   await page.getByRole('button', { name: 'Send message' }).click();
@@ -18,10 +18,14 @@ test.fixme('contact form (r41: guard switched on in r41): an empty send lists wh
   // the summary links go to the field
   await summary.locator('a[data-fg-go]').last().click();
   await expect(page.locator('#ct-msg')).toBeFocused();
-  // r41: fixing a field takes it off the list (the live update of the list is checked there)
+  // fixing a field takes it off the list
+  const before = await summary.locator('li').count();
+  await name.fill('Alex Example');
+  await expect(summary.locator('li')).toHaveCount(before - 1);
+  await expect(name).not.toHaveAttribute('aria-invalid', 'true');
 });
 
-test.fixme('list your car (r41: the wizard step button sits outside the form): the first step says what is missing and puts the focus on it', async ({ page }) => {
+test('list your car: the first step says what is missing and puts the focus on it', async ({ page }) => {
   await page.goto('/list-your-car/apply', { waitUntil: 'networkidle' });
   await acceptCookies(page);
   await page.getByTestId('apply-start-next').click();
