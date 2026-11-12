@@ -8,9 +8,8 @@ import { fakeText } from './fake';
 export async function textGenerator(model?: string, timeoutMs?: number): Promise<TextGenerator> {
   if (env().LLM_PROVIDER === 'workers-ai') {
     try {
-      const { getCloudflareContext } = await import('@opennextjs/cloudflare');
-      const { env: cf } = await getCloudflareContext({ async: true });
-      const ai = (cf as unknown as { AI?: import('./workers-ai').AiBinding }).AI;
+      // the Worker's AI binding, or Workers AI's REST API on the company's server (src/lib/platform/runtime.ts)
+      const ai = await (await import('@/lib/platform/runtime')).aiBinding();
       if (ai) {
         const { workersAi } = await import('./workers-ai');
         // every call goes through the usage guard (0080, 0104): nothing is asked while Workers AI is paused

@@ -1,3 +1,4 @@
+import { storageProviderFor } from '@/lib/platform/runtime';
 import { env } from '@/lib/env';
 import { linkSecret } from '@/server/links';
 import { checkStorageUrl } from '@/integrations/storage/sign';
@@ -27,7 +28,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ key: str
   const q = new URL(req.url).searchParams;
   if (!(await checkStorageUrl(linkSecret(), 'GET', t.bucket, t.key, q))) return new Response('This link has expired.', { status: 403 });
   // 0585: an interview video on R2 is read by the byte range asked (never the whole file into memory)
-  if (isVideo(t.key) && env().STORAGE_PROVIDER === 'r2-binding') return videoFromR2(req, t.bucket, t.key);
+  if (isVideo(t.key) && storageProviderFor(env().STORAGE_PROVIDER) === 'r2-binding') return videoFromR2(req, t.bucket, t.key);
   const { storage } = await import('@/integrations/storage');
   const body = await (await storage()).get(t.bucket, t.key);
   if (!body) return new Response('Not found', { status: 404 });
@@ -61,7 +62,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ key: str
   const limit = isVideo(t.key) ? MAX_VIDEO_BYTES : MAX;
   if (Number(req.headers.get('content-length') ?? 0) > limit) return new Response('Too large', { status: 413 });
   // 0585: a video goes to R2 as it arrives (its length is known from the request), never whole in memory
-  if (isVideo(t.key) && env().STORAGE_PROVIDER === 'r2-binding' && req.body && Number(req.headers.get('content-length') ?? 0) > 0) {
+  if (isVideo(t.key) && storageProviderFor(env().STORAGE_PROVIDER) === 'r2-binding' && req.body && Number(req.headers.get('content-length') ?? 0) > 0) {
     const { r2Binding } = await import('@/integrations/storage/r2-binding');
     await (await r2Binding(t.bucket)).put(t.key, req.body, { httpMetadata: { contentType: ct } });
     return new Response(null, { status: 200 });

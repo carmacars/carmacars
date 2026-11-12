@@ -23,7 +23,13 @@ const EMAIL_PATHS: Array<[string, string]> = [
   ['/field/no-access', '/staff/no-access'], ['/va', '/staff'], ['/va/:path*', '/staff/:path*'], ['/field', '/staff/field'], ['/field/:path*', '/staff/field/:path*']
 ];
 
+// Release 42 (docs/hosting/off-cloudflare.md): HOSTING_TARGET=node builds the self-contained Node server
+// (.next/standalone, run by scripts/vps-server.mjs on the company's server). Without it the build is what it was:
+// `next build` for the local server and OpenNext for the Worker (cf:build).
+const nodeTarget = (process.env.HOSTING_TARGET ?? '').trim().toLowerCase() === 'node';
+
 const config: NextConfig = {
+  ...(nodeTarget ? { output: 'standalone' as const } : {}),
   reactStrictMode: true,
   poweredByHeader: false,
   typedRoutes: false,

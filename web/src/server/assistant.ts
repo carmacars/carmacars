@@ -23,9 +23,7 @@ const SR = { role: 'service_role' as const };
 export async function workersModel(): Promise<AssistantModel> {
   if (env().LLM_PROVIDER === 'workers-ai' && process.env.ASSISTANT_PROVIDER !== 'fake') {
     try {
-      const { getCloudflareContext } = await import('@opennextjs/cloudflare');
-      const { env: cf } = await getCloudflareContext({ async: true });
-      const ai = (cf as unknown as { AI?: import('@/integrations/llm/workers-ai').AiBinding }).AI;
+      const ai = await (await import('@/lib/platform/runtime')).aiBinding();
       if (ai) return workersAiModel(ai);
     } catch { /* not running in the Worker */ }
   }

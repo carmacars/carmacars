@@ -56,12 +56,9 @@ export function kickDriveImport(): void {
 async function callJobs(): Promise<void> {
   const url = `${env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '')}/api/jobs/drive-import`;
   const init = { method: 'POST', headers: { authorization: `Bearer ${await workerToken()}` } };
-  let self: { fetch(r: Request): Promise<Response> } | undefined;
-  try {
-    const { getCloudflareContext } = await import('@opennextjs/cloudflare');
-    self = ((await getCloudflareContext({ async: true })).env as Record<string, unknown>).WORKER_SELF_REFERENCE as typeof self;
-  } catch { self = undefined; }
-  const r = self ? await self.fetch(new Request(url, init)) : await fetch(url, init);
+  // the Worker's service binding to itself, or a plain request on the company's server (src/lib/platform/runtime.ts)
+  const self = await (await import('@/lib/platform/runtime')).selfFetcher();
+  const r = await self.fetch(new Request(url, init));
   await r.text().catch(() => undefined);
 }
 

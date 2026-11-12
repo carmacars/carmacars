@@ -475,6 +475,8 @@ services:
       ACME_EMAIL: ${ACME_EMAIL}
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro,z
+      # release 42: the website's site file (infra/vps/web/site.caddy), imported by the Caddyfile; empty until deploy-vps runs
+      - ./caddy/sites:/etc/caddy/sites:ro,z
       - ./volumes/auth-templates:/srv/auth-templates:ro,z
       - caddy-data:/data
       - caddy-config:/config

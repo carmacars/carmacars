@@ -8,9 +8,7 @@ import { fakeVision } from './fake';
 export async function visionModel(): Promise<VisionModel> {
   if (env().LLM_PROVIDER === 'workers-ai') {
     try {
-      const { getCloudflareContext } = await import('@opennextjs/cloudflare');
-      const { env: cf } = await getCloudflareContext({ async: true });
-      const ai = (cf as unknown as { AI?: import('./workers-ai').AiBinding }).AI;
+      const ai = await (await import('@/lib/platform/runtime')).aiBinding();
       if (ai) {
         const { workersAiVision } = await import('./workers-ai');
         // the toll notices and plates go through the usage guard too (0080, 0104)

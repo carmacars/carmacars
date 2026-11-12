@@ -10,9 +10,7 @@ import { fakeTranscriber } from './fake';
 export async function transcriber(purpose = 'interview_transcribe'): Promise<Transcriber> {
   if (env().LLM_PROVIDER === 'workers-ai') {
     try {
-      const { getCloudflareContext } = await import('@opennextjs/cloudflare');
-      const { env: cf } = await getCloudflareContext({ async: true });
-      const ai = (cf as unknown as { AI?: import('./workers-ai').AiBinding }).AI;
+      const ai = await (await import('@/lib/platform/runtime')).aiBinding();
       if (ai) {
         const { workersAiTranscriber } = await import('./workers-ai');
         const [{ guardTranscriber }, { aiRoom }] = await Promise.all([import('../ai/guard'), import('../ai/paused')]);
