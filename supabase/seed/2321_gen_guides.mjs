@@ -5,7 +5,7 @@
 //   node supabase/seed/2321_gen_guides.mjs           rewrites the block in the migration
 //   node supabase/seed/2321_gen_guides.mjs --check   exits 1 if the block is out of date (needs git)
 import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { renderGuide } from '../../web/src/features/guides/markdown.ts';
@@ -22,8 +22,17 @@ const ADDED = git('log', '--first-parent', '--format=%H', '-1', '--diff-filter=A
 const BASE = process.env.GUIDES_BASE || (ADDED ? git('rev-parse', `${ADDED}^1`) : git('rev-parse', 'HEAD'));
 const q = (v) => (v === null || v === undefined ? 'null' : "'" + String(v).replace(/'/g, "''") + "'");
 
+// One merge can bring several releases' guide generators in together (r37 into r38: 2321, 2330 and 2340 all share the base
+// main left). The newest of those publishes every changed chapter; an older one with the same base publishes none, so the
+// chapters are not repeated in three migrations and every generator's --check passes.
+const LATER = readdirSync(join(ROOT, 'supabase', 'seed')).filter((f) => /^\d{4}_gen_guides\.mjs$/.test(f) && f.slice(0, 4) > '2321').find((f) => {
+  const mig = readdirSync(DIR).find((m) => m.startsWith(f.slice(0, 4) + '_') && m.endsWith('.sql'));
+  if (!mig) return false;
+  const added = git('log', '--first-parent', '--format=%H', '-1', '--diff-filter=A', 'HEAD', '--', `supabase/migrations/${mig}`);
+  return (added ? git('rev-parse', `${added}^1`) : git('rev-parse', 'HEAD')) === BASE;
+});
 const lines = [];
-for (const portal of ['renter', 'owner', 'admin', 'va', 'field', 'investor']) {
+if (!LATER) for (const portal of ['renter', 'owner', 'admin', 'va', 'field', 'investor']) {
   const now = JSON.parse(readFileSync(join(ROOT, 'docs', 'guides', 'content', `${portal}.json`), 'utf8'));
   const base = JSON.parse(execFileSync('git', ['show', `${BASE}:docs/guides/content/${portal}.json`], { cwd: ROOT, encoding: 'utf8' }));
   let after = null;
@@ -36,7 +45,7 @@ for (const portal of ['renter', 'owner', 'admin', 'va', 'field', 'investor']) {
     lines.push(`select app.guide_release_section(${q(portal)}, ${q(s.slug)}, ${q(s.kind)}, ${q(prev)}, ${q(b?.body_md ?? null)}, ${q(s.title)}, ${q(s.blurb)},\n  ${q(s.body_md)},\n  ${q(html.x)});`);
   }
 }
-const block = `${START}\n${lines.join('\n')}\n${END}`;
+const block = LATER ? `${START}\n-- the chapters are published by supabase/seed/${LATER} (same release base)\n${END}` : `${START}\n${lines.join('\n')}\n${END}`;
 const sql = readFileSync(MIGRATION, 'utf8');
 const a = sql.indexOf(START), b = sql.indexOf(END);
 if (a < 0 || b < 0) throw new Error('markers missing');
