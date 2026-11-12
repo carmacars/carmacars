@@ -39,7 +39,7 @@ export function OwnerChoice({ d, value, onChange, withDeductions = false, testPr
         <div className="field ad-field"><label className="label" htmlFor={`${id}-vis`}>What the owner sees</label>
           <select className="select" id={`${id}-vis`} value={value.visibility} onChange={(e) => set('visibility', e.target.value)} data-testid={`${testPrefix}-owner-visibility`}>
             {VISIBILITY.map(([k, l]) => <option key={k} value={k}>{l}{k === d.visibility ? ' (the default)' : ''}</option>)}</select>
-          <p className="hint">The owner&apos;s statement always includes every booking at its true amounts. A hidden booking shows to the owner as Booked, with its dates.</p></div>
+          <p className="hint">A hidden booking shows to the owner as Booked, with its dates, and the owner&apos;s statement includes it. An insurance replacement hidden from the owner, and any booking that does not block the calendar, is not part of the owner&apos;s revenue: it stays off their statements and payouts.</p></div>
         {value.visibility !== 'shown' && <div className="field ad-field"><label className="label" htmlFor={`${id}-why`}>Reason (optional, kept in the history)</label>
           <input className="input" id={`${id}-why`} value={value.reason} onChange={(e) => set('reason', e.target.value)} data-testid={`${testPrefix}-owner-reason`} /></div>}
       </div>}

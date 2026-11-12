@@ -9,7 +9,9 @@ import { $, Card, t } from './ui';
 type Vis = {
   booking_id: string; booking_number: string; has_owner: boolean; owner_name: string | null; visibility: 'shown' | 'until_return' | 'until_statement' | 'never';
   owner_view: 'full' | 'booked' | 'unavailable'; label: string; reason: string | null; at: string | null; by: string | null; may: boolean; no_owner_revenue: boolean;
-  on_statement: string | null; default: string; log: Array<{ from: string | null; to: string; reason: string | null; how: string; by: string | null; at: string }>;
+  on_statement: string | null; default: string;
+  /** 2480: false when the booking is not part of the owner's revenue (off the calendar, an insurance replacement hidden, or switched off) */
+  counts_for_owner?: boolean; hide_drops_revenue?: boolean; log: Array<{ from: string | null; to: string; reason: string | null; how: string; by: string | null; at: string }>;
 };
 type Ded = {
   booking_id: string; booking_number: string; has_owner: boolean; may: boolean; may_override: boolean; terms_bps: number; partner: boolean;
@@ -35,7 +37,10 @@ export async function OwnerVisibilityPanel({ userId, booking, refresh, aal, va }
     <Card title="What the owner sees" testId="owner-visibility" tone={v.owner_view === 'full' ? undefined : 'warn'}
       aside={<span className={`badge${v.owner_view === 'full' ? '' : ' badge--outline'}`} data-testid="owner-visibility-state" data-view={v.owner_view}>{v.owner_view === 'full' ? 'The owner can see it' : v.owner_view === 'unavailable' ? 'Not shown to the owner' : 'Hidden from the owner'}</span>}>
       <p className="small" data-testid="owner-visibility-label">{v.label}{v.reason ? ` Reason: ${v.reason}.` : ''}{v.by ? ` Set by ${v.by}${v.at ? `, ${t(v.at)}` : ''}.` : ''}</p>
-      <p className="small muted">The owner&apos;s statement always includes every booking at its true amounts{v.owner_view === 'booked' ? '; approving it shows this booking to the owner' : ''}. The calendar shows the owner the car is busy either way.</p>
+      <p className="small muted" data-testid="owner-visibility-revenue">{v.counts_for_owner === false
+        ? 'This booking is not part of the owner\'s revenue: it stays off their statements and payouts.'
+        : `The owner's statement includes this booking at its true amounts${v.owner_view === 'booked' ? '; approving it shows this booking to the owner' : ''}.`}
+        {v.counts_for_owner !== false && v.visibility === 'shown' && v.hide_drops_revenue ? ' Hiding this insurance replacement takes it out of the owner\'s revenue.' : ''} The calendar shows the owner the car is busy either way.</p>
       {v.may && !v.on_statement && <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}>
         {v.visibility === 'shown'
           ? <Act ops action="booking_owner_visibility_set" payload={{ booking: v.booking_number }} label="Hide from the owner" testId="owner-hide" refresh={refresh} done="Hidden from the owner."
