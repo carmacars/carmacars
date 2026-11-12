@@ -5,6 +5,8 @@ export interface SeoData {
   goal: { target: number; clicks_28d: number; impressions_28d: number; month_to_date: number; last_day: string | null; pace_30d: number; share_bps: number };
   weeks: Array<{ week: string; clicks: number; impressions: number }>;
   top_queries: SeoRow[]; top_pages: SeoRow[]; low_ctr: SeoRow[]; low_ctr_line: { pct: number; min_impressions: number };
+  /** 2350: the queries ranking between min_pos and max_pos (Program settings), by impressions; absent before the migration. */
+  striking?: SeoRow[]; striking_line?: { min_pos: number; max_pos: number; min_impressions: number };
   by_sitemap: SeoSitemapRow[];
   coverage: { at: string; inspected: number; buckets: Record<string, number> } | null;
   indexnow: { waiting: number; sent_7d: number; not_indexed_scheduled: number };

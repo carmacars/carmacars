@@ -98,3 +98,36 @@ language sql stable security definer set search_path = public, app as $$
                     and coalesce(c.done, 0) * 10000 >= (n.total - coalesce(f.fresh, 0)) * (select bps from s)) order by l.sort_order), '[]'::jsonb)
     from seo_languages l cross join n left join c on c.lang = l.code left join f on f.lang = l.code where l.is_active
 $$;
+
+-- ================================================================ E. the queries within reach (ranking 5 to 30)
+-- The SEO page (Marketing > SEO, Sales > SEO) lists the queries Google shows the site for at an average position between
+-- seo_striking_min_pos and seo_striking_max_pos (Program settings, 5 and 30) with at least seo_low_ctr_min_impressions
+-- impressions in 28 days, by impressions: the pages to tune (title, description, the answer on the page, links from home).
+alter table program_settings
+  add column seo_striking_min_pos numeric(5, 1) not null default 5 check (seo_striking_min_pos >= 1),
+  add column seo_striking_max_pos numeric(5, 1) not null default 30 check (seo_striking_max_pos >= 1);
+alter table program_settings add constraint program_settings_seo_striking_range check (seo_striking_min_pos <= seo_striking_max_pos);
+comment on column program_settings.seo_striking_min_pos is 'SEO (2350): the best average position of a query listed as within reach on the SEO page (5).';
+comment on column program_settings.seo_striking_max_pos is 'SEO (2350): the worst average position of a query listed as within reach on the SEO page (30).';
+
+alter function app.seo_data(timestamptz, boolean) rename to seo_data_pre2350;
+create function app.seo_data(p_now timestamptz default now(), p_read_only boolean default false) returns jsonb
+language plpgsql stable security definer set search_path = public, app as $$
+declare
+  v jsonb := app.seo_data_pre2350(p_now, p_read_only);
+  ps program_settings := app.settings(app.local_date(p_now));
+begin
+  return v || jsonb_build_object(
+    'striking', coalesce((select jsonb_agg(jsonb_build_object('key', key, 'clicks', clicks, 'impressions', impressions, 'ctr', ctr, 'position', position) order by impressions desc, key)
+        from (select * from app.gsc_page_query where kind = 'query' and impressions >= ps.seo_low_ctr_min_impressions
+                 and position between ps.seo_striking_min_pos and ps.seo_striking_max_pos
+               order by impressions desc, key limit 25) x), '[]'::jsonb),
+    'striking_line', jsonb_build_object('min_pos', ps.seo_striking_min_pos, 'max_pos', ps.seo_striking_max_pos, 'min_impressions', ps.seo_low_ctr_min_impressions));
+end $$;
+select pg_temp.copy_grants('app.seo_data(timestamptz, boolean)'::regprocedure, 'app.seo_data_pre2350(timestamptz, boolean)'::regprocedure);
+revoke all on function app.seo_data_pre2350(timestamptz, boolean) from public, anon, authenticated;
+
+-- ================================================================ F. r37's vehicle language check: granted by name, not to PUBLIC
+-- (2302 granted it to anon, authenticated and service_role but left PUBLIC's default execute; the security suite names it)
+revoke all on function public.vehicle_language_ok(text) from public;
+grant execute on function public.vehicle_language_ok(text) to anon, authenticated, service_role;

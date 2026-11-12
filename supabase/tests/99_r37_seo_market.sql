@@ -68,3 +68,19 @@ select test.eq('languages: the grace follows the setting',
 update program_settings set seo_i18n_grace_days = 7;
 delete from seo_string_sources where key like 'sm.%';
 delete from seo_languages where code = 'sm';
+
+-- the queries within reach (ranking 5 to 30) on the SEO page, Admin and staff alike
+delete from app.gsc_page_query where key like 'sm %';
+insert into app.gsc_page_query (kind, key, clicks, impressions, ctr, position, window_end) values
+  ('query', 'sm suv rental markham', 3, 900, 0.0033, 8.4, current_date),
+  ('query', 'sm car rental toronto', 40, 2000, 0.02, 2.1, current_date),
+  ('query', 'sm cheap van rental', 0, 500, 0, 41, current_date),
+  ('query', 'sm rare query', 0, 5, 0, 12, current_date);
+select test.eq('within reach: positions 5 to 30 with enough impressions only',
+  (select string_agg(x ->> 'key', ',') from jsonb_array_elements(app.seo_data() -> 'striking') x where x ->> 'key' like 'sm %'), 'sm suv rental markham');
+select test.eq('within reach: the line follows the Program settings', app.seo_data() -> 'striking_line' ->> 'max_pos', '30.0');
+select test.ok('within reach: the read-only staff view has it too', jsonb_typeof(app.seo_data(now(), true) -> 'striking') = 'array');
+select test.throws('within reach: the range is checked', $$update program_settings set seo_striking_min_pos = 40, seo_striking_max_pos = 30$$, 'program_settings_seo_striking_range');
+select test.throws('anon: cannot read the SEO data', $$set local role anon; select app.seo_data()$$, 'permission');
+reset role;
+delete from app.gsc_page_query where key like 'sm %';

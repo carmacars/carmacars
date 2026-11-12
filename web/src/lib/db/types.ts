@@ -18586,6 +18586,8 @@ export type Database = {
           meet_hold_minutes: number;
           channel_api_enabled: boolean;
           seo_i18n_grace_days: number;
+          seo_striking_min_pos: number;
+          seo_striking_max_pos: number;
         };
         Insert: {
           id?: string;
@@ -19412,6 +19414,8 @@ export type Database = {
           meet_hold_minutes?: number;
           channel_api_enabled?: boolean;
           seo_i18n_grace_days?: number;
+          seo_striking_min_pos?: number;
+          seo_striking_max_pos?: number;
         };
         Update: {
           id?: string;
@@ -20238,6 +20242,8 @@ export type Database = {
           meet_hold_minutes?: number;
           channel_api_enabled?: boolean;
           seo_i18n_grace_days?: number;
+          seo_striking_min_pos?: number;
+          seo_striking_max_pos?: number;
         };
         Relationships: [];
       };

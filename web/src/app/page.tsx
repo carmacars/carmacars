@@ -13,6 +13,8 @@ import { Reviews } from '@/components/Reviews';
 import { SearchForm } from '@/features/home/SearchForm';
 import { Rail } from '@/features/home/Rail';
 import { businessLd } from '@/features/seo/business';
+import { getSeoPages } from '@/features/seo/data';
+import { homeAreaLinks } from '@/features/home/area-links';
 import { getBusinessFacts } from '@/features/seo/business-data';
 import { getEntityFacts } from '@/features/seo/facts';
 import { keyFacts, summary } from '@/features/seo/llms';
@@ -45,6 +47,8 @@ export default async function Home() {
   const studio = ((await rpc('site_hero_photos', { p_limit: 6 }).catch(() => [])) ?? []) as unknown as Array<{ vehicle_id: string; path: string; width: number; height: number; alt: string | null }>;
   const heroCars: HeroCar[] = studio.flatMap((p) => { const c = fleet.find((x) => x.vehicle_id === p.vehicle_id);
     return c ? [{ ...p, name: [c.year, c.make, c.model].filter(Boolean).join(' '), href: c.path }] : []; });
+  // 2350: links from home to the indexable landing pages (the GTA areas and the ways to rent)
+  const areas = homeAreaLinks(await getSeoPages().catch(() => []));
   const F = (x: string) => fill(x, t);
   const labels = Object.fromEntries(classes.map((c) => [c.code, c.label]));
   const tagline = s.tagline ?? '';
@@ -149,6 +153,18 @@ export default async function Home() {
           <div className="c-8"><Reviews /></div>
         </div>
       </section>
+
+      {(areas.places.length > 0 || areas.uses.length > 0) && (
+        <section className="section" aria-labelledby="h-areas" data-testid="home-areas">
+          <div className="wrap grid">
+            <div className="c-4"><h2 className="d2" id="h-areas">Car rental across the GTA</h2><p><Link className="link link--go" href="/car-rental">Every area and use <Icon name="arrow" /></Link></p></div>
+            <div className="c-8 stack">
+              {areas.places.length > 0 && <nav aria-label="Areas we deliver to"><ul className="chips">{areas.places.map((p) => <li key={p.slug}><Link prefetch={false} className="chip" href={p.path}>Car rental in {p.name.replace(/ \(.*\)$/, '')}</Link></li>)}</ul></nav>}
+              {areas.uses.length > 0 && <nav aria-label="Ways to rent"><ul className="chips">{areas.uses.map((p) => <li key={p.slug}><Link prefetch={false} className="chip" href={p.path}>{p.name}</Link></li>)}</ul></nav>}
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="section on-grey" aria-labelledby="h-faq">
         <div className="wrap grid">
