@@ -107,7 +107,7 @@ select test.eq('bulk: an Admin assignment, not a claim and not a hold, logged as
    from leads l where l.id in (test.id('lead:zlb1'), test.id('lead:zlb2'))), '2/0/0/2');
 select test.ok('bulk: one audit log entry with the leads', exists (select 1 from audit_log a where a.action = 'leads_bulk_assign' and a.actor_user_id = test.id('zl_admin') and a.after -> 'leads' ? test.id('lead:zlb1')::text));
 select test.eq('bulk: the rows say it is an Admin assignment',
-  (select x ->> 'admin_assigned' from jsonb_array_elements(pg_temp.dr('zl_admin', 'admin_read', 'sales_leads', '{"status": "all"}'::jsonb) -> 'rows') x where x ->> 'id' = test.id('lead:zlb1')::text), 'true');
+  (select x ->> 'admin_assigned' from jsonb_array_elements(pg_temp.dr('zl_admin', 'admin_read', 'sales_leads', '{"status": "all", "q": "zlb1.lead"}'::jsonb) -> 'rows') x where x ->> 'id' = test.id('lead:zlb1')::text), 'true');
 select test.eq('bulk again: nothing changes the second time', pg_temp.dr('zl_admin', 'admin_do', 'leads_bulk_assign', jsonb_build_object('ids', jsonb_build_array(test.id('lead:zlb1')), 'to', test.id('zl_sales'))) ->> 'unchanged', '1');
 select test.throws('another salesperson cannot claim an assigned lead', format($$select pg_temp.dr('zl_sales2', 'va_do', 'lead_claim', jsonb_build_object('lead', %L))$$, test.id('lead:zlb1')), 'An Admin assigned this lead to');
 select test.ok('Next lead skips leads assigned to someone else',

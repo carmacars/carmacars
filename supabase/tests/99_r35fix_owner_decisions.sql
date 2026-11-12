@@ -96,6 +96,8 @@ create function pg_temp.cls(p_kind text, p_id uuid) returns text language sql as
 select test.mk_renter('rfx_i_call'); select test.mk_renter('rfx_i_quo'); select test.mk_renter('rfx_i_vm'); select test.mk_renter('rfx_i_text');
 select test.mk_renter('rfx_i_email'); select test.mk_renter('rfx_i_chat'); select test.mk_renter('rfx_i_staff'); select test.mk_renter('rfx_i_note');
 select test.mk_renter('rfx_i_bnote'); select test.mk_renter('rfx_i_wa'); select test.mk_renter('rfx_i_web'); select test.mk_renter('rfx_i_none');
+-- every test renter has the same mobile; since 2411 a person is every lead with their phone, so these have numbers of their own
+update renters r set mobile = '647-555-' || lpad((8000 + x.n)::text, 4, '0') from (select id, row_number() over (order by legal_name) n from renters where legal_name like 'Rfx I %') x where r.id = x.id;
 insert into phone_threads (id, number, renter_id)
 select test.id('thread:rfx_' || k), '+1647555' || lpad(n::text, 4, '0'), pg_temp.renter(k)
   from (values ('call', 1201), ('quo', 1202), ('vm', 1203), ('text', 1204)) v(k, n);

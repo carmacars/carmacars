@@ -17,6 +17,9 @@ select test.mk_user('inx_admin', 'admin');
 select test.mk_user('inx_cs', 'va', 'cs');
 select test.mk_renter('inx_rita');
 select test.mk_renter('inx_quiet');
+-- every test renter has the same mobile; since 2411 a person is every lead with their phone, so these two have numbers of their own
+update renters set mobile = '647-555-0911' where id = test.id('renter:inx_rita');
+update renters set mobile = '647-555-0912' where id = test.id('renter:inx_quiet');
 insert into phone_threads (id, number, renter_id) values (test.id('thread:inx'), '+16475550911', test.id('renter:inx_rita'));
 insert into phone_activity (thread_id, kind, direction, started_at, body, renter_id)
 values (test.id('thread:inx'), 'text', 'in', now() - interval '1 hour', 'Need an SUV today for 2 weeks, $600 a week, can you deliver?', test.id('renter:inx_rita'));

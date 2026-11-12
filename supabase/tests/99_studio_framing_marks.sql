@@ -21,7 +21,8 @@ select test.eq('the job of a flagged photo says so; the others do not',
      from listing_jobs j join vehicle_photos p on p.id = j.vehicle_photo_id where j.kind = 'process_photo' and j.intake_id = (select i from s99sf)),
   'front_left=false,other=true,trunk=true');
 
-create temp table s99cl as select j.id, j.vehicle_photo_id from app.claim_listing_jobs('sfm-w', 100, array['process_photo']) j;
+create temp table s99cl as select j.id, j.vehicle_photo_id from app.claim_listing_jobs('sfm-w', 5000, array['process_photo']) j
+  where j.vehicle_photo_id in (select kept from s99ph union select cleared from s99ph union select outside from s99ph);  -- jobs queued by other suites are claimed too (and left)
 select app.worker_listing_result(c.id, jsonb_build_object('ok', true, 'provider', 'fake', 'output', jsonb_build_object(
          'processed_path', 'vehicles/sfm/' || c.vehicle_photo_id || '.jpg', 'width', 1600, 'height', 1200, 'flags', '[]'::jsonb,
          'preset_version', case when c.vehicle_photo_id = (select outside from s99ph) then 'studio_v3' else 'normalize_v1' end,
@@ -62,7 +63,7 @@ update program_settings set listing_photo_enhance = true;
 update vehicle_photos set enhance_off = true where id = (select ph from s99en);
 select test.ok('the photo''s "Use original colours": not touched up', (select not (app.listing_job_context(id) #>> '{photo,enhance}')::boolean from s99ej));
 update vehicle_photos set enhance_off = false where id = (select ph from s99en);
-select app.claim_listing_jobs('sfm-e', 100, array['process_photo']);
+select app.claim_listing_jobs('sfm-e', 5000, array['process_photo']);
 select app.worker_listing_result((select id from s99ej), jsonb_build_object('ok', true, 'provider', 'fake', 'output', jsonb_build_object(
   'processed_path', 'vehicles/sfm/dash.jpg', 'width', 1600, 'height', 1200, 'flags', '[]'::jsonb, 'preset_version', 'normalize_v1',
   'enhance', jsonb_build_object('version', 'enhance_v1', 'brightness', 1.02, 'contrast', 1.04, 'gamma', 1.01, 'saturation', 1.06, 'sharpen', 1))));

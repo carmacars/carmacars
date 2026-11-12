@@ -74,7 +74,7 @@ create temporary table r35sec_signed_in_ok (name text primary key);
 insert into r35sec_signed_in_ok values
   ('mark_notifications_read'), ('my_booking'), ('my_booking_change_preview'), ('my_booking_messages'), ('my_booking_readiness'),
   ('my_bookings'), ('my_cancellation_preview'), ('my_document'), ('my_documents'), ('my_extension_offers'), ('my_extension_preview'),
-  ('my_notification_preferences'), ('my_notifications'), ('my_profile'), ('my_promo_code_problem'), ('my_rewards'), ('my_trip_photos'),
+  ('my_notification_preferences'), ('my_notifications'), ('my_profile'), ('my_promo_code_problem'), ('my_any_car'), ('my_rewards'), ('my_trip_photos'),
   ('my_unread_count'), ('rewards_mine_code_cancel'), ('rewards_mine_google_claim'), ('rewards_mine_redeem'), ('rewards_mine_social'),
   ('set_notification_preference');
 

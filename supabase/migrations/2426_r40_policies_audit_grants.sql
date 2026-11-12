@@ -4,6 +4,7 @@
 --     one; the browser still reaches nothing, the tables are not granted to the browser roles beyond the old read policies).
 --   * showroom_backgrounds and reward_tier_perks are settings an Admin edits: audited like the others. site_selfqa_runs is a
 --     run log (one row per deploy, no money, pricing or status); the suite lists it with the other logs.
+--   * leads.admin_assigned_by had no foreign key index, app.any_car_answered was executable by PUBLIC and public.my_any_car by anon.
 --   * the server (service_role) may run every function of the app schema: three of 2421 lacked the grant.
 do $$
 declare t text;
@@ -19,3 +20,10 @@ create trigger audit_showroom_backgrounds after insert or update or delete on sh
 create trigger audit_reward_tier_perks after insert or update or delete on reward_tier_perks for each row execute function app.audit_row();
 
 grant execute on function app.rewards_points_12m(uuid), app.rewards_has_perk(uuid, text), app.rewards_tiers_admin_do(uuid, text, jsonb) to service_role;
+
+-- the security suite (35sec): a trigger function is not executable by PUBLIC (the server may run it), the renter's Any car answer is
+-- for a signed-in session only (the account page), and leads.admin_assigned_by (2411) has its foreign key index
+revoke all on function app.any_car_answered() from public, anon, authenticated;
+grant execute on function app.any_car_answered() to service_role;
+revoke all on function public.my_any_car() from anon;
+create index if not exists leads_admin_assigned_by_idx on leads (admin_assigned_by) where admin_assigned_by is not null;

@@ -87,8 +87,11 @@ select test.ok('the Admins get the staff alert site_selfqa',
 create temp table sq_f as select app.server_site_selfqa(jsonb_build_object('sha', 'abc1234def', 'fails', jsonb_build_array(jsonb_build_object('check', 'http_5xx', 'detail', '/cars answered 503')))) r;
 select test.eq('a failing page: the run is "fail"', (select r ->> 'status' from sq_f), 'fail');
 update vehicle_listings set status = 'paused' where vehicle_id in (test.id('vehicle:sqY'), test.id('vehicle:sqZ'));
-select test.eq('nothing wrong: "pass", no alert line',
-  (select app.server_site_selfqa('{"sha": "fff0000"}') ->> 'status' where not exists (select 1 from jsonb_array_elements(app.selfqa_db_findings('{}')) e where e ->> 'detail' like '%sq-%')), 'pass');
+-- cars of other suites may be listed too (stand-ins, low cut-outs), so: no finding of this suite's cars, and "pass" when the database has none at all
+select test.ok('nothing wrong: "pass", no alert line',
+  (select r ->> 'status' = case when jsonb_array_length(r -> 'db') > 0 then 'warn' else 'pass' end
+      and not exists (select 1 from jsonb_array_elements(r -> 'db') e where e ->> 'detail' like '%sq-%')
+     from (select app.server_site_selfqa('{"sha": "fff0000"}') r) x));
 create temp table sq_g as select app.server_site_selfqa('{"sha": "zz", "base": "javascript:x", "fails": "x"}') r;
 select test.eq('garbage in the report is cleaned (no sha, no address)',
   (select coalesce(sha, '-') || coalesce(base, '-') from site_selfqa_runs where id = (select (r ->> 'id')::bigint from sq_g)), '--');
