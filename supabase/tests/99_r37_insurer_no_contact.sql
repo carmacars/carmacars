@@ -42,8 +42,8 @@ insert into test.nc select 'mail', app.door(test.id('r37nc_admin'), 'aal2', 'ops
 select test.ok('an email alone is kept (the phone is optional)', (select count(*) = 1 from users where email = 'em.mailonly@example.test') and not app.renter_is_contactless((test.ncr('mail')).id));
 select test.throws('an email typed must still look like one', $$ select app.door(test.id('r37nc_admin'), 'aal2', 'ops_do', 'manual_rental_create',
   test.ncmr(jsonb_build_object('renter', jsonb_build_object('full_name', 'Bad Mail', 'date_of_birth', '1980-01-01', 'email', 'not-an-email')), 14)) $$, '%does not look right%');
-select test.throws('the name and the date of birth are still needed', $$ select app.door(test.id('r37nc_admin'), 'aal2', 'ops_do', 'manual_rental_create',
-  test.ncmr(jsonb_build_object('renter', jsonb_build_object('full_name', 'No Birthday')), 18)) $$, '%full legal name and date of birth%');
+select test.throws('the name is still needed (the date of birth is optional since 2510)', $$ select app.door(test.id('r37nc_admin'), 'aal2', 'ops_do', 'manual_rental_create',
+  test.ncmr(jsonb_build_object('renter', jsonb_build_object('full_name', '', 'date_of_birth', '1980-01-01')), 18)) $$, '%full legal name%');
 
 -- ================================================================ 2. every other case still asks for the email and the phone
 select test.throws('an insurer rental that blocks the calendar: the email is needed', $$ select app.door(test.id('r37nc_admin'), 'aal2', 'ops_do', 'manual_rental_create',

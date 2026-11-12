@@ -22,7 +22,7 @@ import { InsurerFeesFields } from '@/features/insurers/InsurerFeesFields';
 import { INSURER_FEES, insurerFeesPayload, isInsurerFee, rateProblem } from '@/features/insurers/fees';
 import { DEPOSIT_PAY, PART_METHODS, RENTAL_LINE, RENTAL_PAID_BY, droppedByPrice, feeOverrides, lineKey, lineLive, liveFees, needsReference, paidSoFar, paymentOf, periodShares, youngBand, type DepositPay, type LineChoices, type PayPart, type RentalPaidBy } from '@/features/offers/model';
 import { TypedInput } from '@/components/DateInput';
-import { CONTACT_OPTIONAL_NOTE, contactOptional, renterProblem } from '@/features/supply/renter-contact';
+import { CONTACT_OPTIONAL_NOTE, DOB_OPTIONAL_HINT, contactOptional, dobOptional, renterProblem } from '@/features/supply/renter-contact';
 
 // Add a rental by hand (migration 0046): Admin > Bookings > Add a rental, the same screen for every assistant function
 // and for field staff (0058). The database decides what each may do (staff: the rate sheet or a price typed with its
@@ -564,7 +564,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
             </div>
           ) : (
             <div className="ad-fields">
-              {text('full_name', 'Full legal name')}{text('email', contactFree ? 'Email (optional)' : 'Email', { type: 'email', inputMode: 'email' })}{text('mobile', contactFree ? 'Phone (optional)' : 'Phone', { inputMode: 'tel' })}{text('date_of_birth', 'Date of birth', { type: 'date', hint: 'Decides the young driver fee' })}
+              {text('full_name', 'Full legal name')}{text('email', contactFree ? 'Email (optional)' : 'Email', { type: 'email', inputMode: 'email' })}{text('mobile', contactFree ? 'Phone (optional)' : 'Phone', { inputMode: 'tel' })}{text('date_of_birth', dobOptional({ paidBy, blocks, placeholder }) ? 'Date of birth (optional)' : 'Date of birth', { type: 'date', hint: dobOptional({ paidBy, blocks, placeholder }) ? DOB_OPTIONAL_HINT : 'Decides the young driver fee' })}
               {text('licence_number', 'Licence number')}{text('licence_expiry', 'Licence expiry', { type: 'date' })}
               {contactFree && <p className="hint ad-field--wide" data-testid="mr-contact-optional">{CONTACT_OPTIONAL_NOTE}</p>}
               <details className="ad-field ad-field--wide" data-testid="mr-renter-more"><summary className="link small">Licence class and home address (optional now: the agreement asks the renter)</summary>
