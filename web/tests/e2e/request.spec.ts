@@ -94,7 +94,7 @@ test('request to book creates a requested booking and its event', async ({ page 
   expect(b.coverage_option).toBe(2);
   expect(b.pickup_location_kind).toBe('delivery');
   expect(b.drivers).toBe(2);
-  expect(b.consents).toBe(3); // terms, privacy and the separate marketing opt-in
+  expect(b.consents).toBe(2); // terms and privacy (r41: no marketing opt-in box on the request; implied consent covers marketing)
   const ev = await sql`select code from app_events where entity = 'booking' and entity_id = ${b.id} and code = 'renter_request_received'`;
   expect(ev).toHaveLength(1);
   const draft = await sql`select count(*)::int n from form_drafts where form_code = 'booking_request' and submitted_at is not null and result ->> 'booking_number' = ${number}`;

@@ -290,7 +290,8 @@ test('legal: a rental added with the saved card is charged only when the renter 
   await cloneRow(sql, 'vehicles', src!.id as string, { id: carId, vin: vin(), plate: plate(), fleet_number: null, car_code: null, is_sample: false, sample_bookable: false,
     supply_type: 'company', owner_id: co!.id, partner_id: null });
   const [srcList] = await sql`select id from vehicle_listings where vehicle_id = ${src!.id}`;
-  await cloneRow(sql, 'vehicle_listings', srcList!.id as string, { id: randomUUID(), vehicle_id: carId, slug: `lr-card-${tag()}`, canonical_vehicle_id: null });
+  // paused: a published copy would share the source car's title and description while the SEO audit crawls (r41)
+  await cloneRow(sql, 'vehicle_listings', srcList!.id as string, { id: randomUUID(), vehicle_id: carId, slug: `lr-card-${tag()}`, canonical_vehicle_id: null, status: 'paused' });
   for (const rc of await sql`select id from rate_cards where vehicle_id = ${src!.id} and (effective_to is null or effective_to > now())`) await cloneRow(sql, 'rate_cards', rc.id as string, { id: randomUUID(), vehicle_id: carId });
   const car = { id: carId };
   const page = await ctx(browser);
