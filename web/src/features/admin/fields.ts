@@ -36,7 +36,7 @@ const LABELS: Record<string, string> = {
   ai_release_hour: 'Workers AI: from this hour (Toronto) what is left goes to the others (empty: never)', ai_assistant_cushion: 'Workers AI: neurons always kept for the assistant after the release hour',
   owner_lower_share_without_signature: 'Lower management % without owner signature',
   owner_revenue_visibility: 'Owners see a booking\'s revenue',
-  // r41 (2490): the marketing emails
+  // r41 (2520): the marketing emails
   marketing_everyone_enabled: 'Marketing emails go to everyone who gave us their email on the site, unless they unsubscribed (off: only those who ticked the old marketing box)',
   marketing_weekly_enabled: 'Weekly email to everyone: the cars listed and the deals running', marketing_weekly_dow: 'Weekly email: day of the week (1 Monday ... 7 Sunday)',
   marketing_weekly_hour: 'Weekly email: from this hour (Toronto time)', marketing_weekly_cars: 'Weekly email: cars it shows',

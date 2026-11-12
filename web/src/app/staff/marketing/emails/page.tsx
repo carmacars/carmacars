@@ -7,7 +7,7 @@ import { MarketingEmailsView, type MarketingEmailsData } from '@/features/market
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Email campaigns', path: '/staff/marketing/emails', noindex: true, description: 'The marketing audience, the weekly email and the new car emails: waiting, queued, sent and unsubscribed.' });
 
-// Sales > Marketing > Email campaigns (migration 2490): the Admin's Marketing > Email campaigns page, read only. The database
+// Sales > Marketing > Email campaigns (migration 2520): the Admin's Marketing > Email campaigns page, read only. The database
 // checks the person again.
 export default async function StaffMarketingEmails() {
   const { user } = await vaPage('/staff/marketing/emails', ['sales']);
