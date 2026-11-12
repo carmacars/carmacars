@@ -335,6 +335,12 @@ jobs:
       # r35 (1202): the RentalCover partner API key (the Protection Plan's quotes); unset: the plan keeps its table price.
       # RENTALCOVER_API_BASE (repository variable): RentalCover's production URL once they give it; unset: their staging API
       RENTALCOVER_API_KEY: ${{ secrets.RENTALCOVER_API_KEY }}
+      # r41 (2570): Amazon SES, the first email sender of send-outbox (docs/email-providers.md); optional, without the keys the
+      # sender skips SES. AWS_SES_REGION (repository variable) defaults to ca-central-1; AWS_SES_CONFIGURATION_SET is optional
+      AWS_SES_ACCESS_KEY_ID: ${{ secrets.AWS_SES_ACCESS_KEY_ID }}
+      AWS_SES_SECRET_ACCESS_KEY: ${{ secrets.AWS_SES_SECRET_ACCESS_KEY }}
+      AWS_SES_REGION: ${{ vars.AWS_SES_REGION }}
+      AWS_SES_CONFIGURATION_SET: ${{ vars.AWS_SES_CONFIGURATION_SET }}
       # where Supabase is: the hosted project (default) or the company's own server (repository variable
       # DB_BACKEND=vps, infra/vps/CUTOVER.md; scripts/deploy/lib.sh). VPS_SSH_KEY is used only with vps.
       DB_BACKEND: ${{ vars.DB_BACKEND }}

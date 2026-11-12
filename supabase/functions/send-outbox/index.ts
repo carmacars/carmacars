@@ -19,15 +19,27 @@
 // as before. The daily and monthly holds of 0018 then apply only when Cloudflare cannot send either. 1750 (the owner's
 // rule): Cloudflare first up to its daily budget (cf_email_daily_budget, never past the month's included emails), then
 // Resend's free plan; when both are used the claim holds the emails by priority. No hourly pace.
+//
+// R41 (2570, docs/changes/2026-11-12-r41-ses.md): Amazon SES first, when its keys are set (AWS_SES_ACCESS_KEY_ID,
+// AWS_SES_SECRET_ACCESS_KEY; AWS_SES_REGION, ca-central-1 by default; AWS_SES_CONFIGURATION_SET optional), the Program
+// setting email_ses_enabled is on and today's SES sends are under email_ses_daily_max. SES v2 SendEmail with a raw MIME
+// email, signed with SigV4 by hand (web/src/lib/email-ses.ts, copied next to this file at deploy time as ses.ts). SES's
+// sending rate → the email waits a minute; a refusal of this email (MessageRejected, e.g. a recipient the sandbox has not
+// verified) → Cloudflare or Resend sends it; an account-level refusal → the same, and SES rests 15 minutes. Without the
+// keys nothing changes. SES is paid per use: the owner approved it (the one exception to "never a paid send").
+// Marketing email never goes through SES unless the Program setting email_ses_marketing is on (off: SES production access
+// is for transactional email; marketing stays on Cloudflare and Resend).
 import postgres from 'npm:postgres@3.4.5';
 import { render, renderText } from './engine.mjs';
 import { combineEmails } from './combine.ts';
+import { emailProviderOrder, sesConfig, sesMaySend, sesSend } from './ses.ts';
 
 const TOKEN = Deno.env.get('OUTBOX_JOB_TOKEN') ?? '';
 const RESEND = Deno.env.get('RESEND_API_KEY') ?? '';
 const APP_URL = (Deno.env.get('APP_URL') ?? 'https://carmacars.ca').replace(/\/$/, '');
 const LINK_KEY = Deno.env.get('LINK_SIGNING_KEY') ?? '';
 const LINK_TTL = 7 * 24 * 3600;
+const SES = sesConfig((k) => Deno.env.get(k));
 const BATCH = 20;
 
 const sql = postgres(Deno.env.get('SUPABASE_DB_URL')!, { max: 1, prepare: false, idle_timeout: 20, onnotice: () => {} });
@@ -126,13 +138,20 @@ let cfOn = false;
 let cfRest = '';
 // 0531, 1750: what each provider may still send (Cloudflare: what is left of the month's included emails, no daily
 // limit; Resend: its own daily plan, used only when Cloudflare cannot send); counts kept here as this batch sends
-const budget = { cfLeft: 0, resendLeft: 0, midnight: new Date(Date.now() + 3600_000) };
+// 2570: SES's day (email_ses_daily_max less today's SES sends; 0 when switched off or resting) first
+const budget = { sesLeft: 0, sesEnabled: false, sesResting: false, sesMarketing: false, cfLeft: 0, resendLeft: 0, midnight: new Date(Date.now() + 3600_000) };
 async function loadBudgets() {
   try {
-    const [{ b }] = (await sql`select public.server_email_budgets() as b`) as unknown as [{ b: { cf_budget: number; cf_left?: number; resend_budget: number; cf_used: number; resend_used: number; midnight: string } }];
+    const [{ b }] = (await sql`select public.server_email_budgets() as b`) as unknown as [{ b: { cf_budget: number; cf_left?: number; resend_budget: number; cf_used: number; resend_used: number; midnight: string;
+      ses_enabled?: boolean; ses_left?: number; ses_resting?: boolean; ses_marketing?: boolean } }];
     budget.cfLeft = Math.max(0, b.cf_left ?? b.cf_budget - b.cf_used); budget.resendLeft = Math.max(0, b.resend_budget - b.resend_used); budget.midnight = new Date(b.midnight);
-  } catch { /* an older database: no budgets, the claim's caps apply */ budget.cfLeft = 1e9; budget.resendLeft = 1e9; }
+    budget.sesEnabled = b.ses_enabled === true; budget.sesLeft = Math.max(0, b.ses_left ?? 0); budget.sesResting = b.ses_resting === true; budget.sesMarketing = b.ses_marketing === true;
+  } catch { /* an older database: no budgets, the claim's caps apply */ budget.cfLeft = 1e9; budget.resendLeft = 1e9; budget.sesLeft = 0; }
 }
+let sesOn = false;
+let sesReported = false;
+// the provider of the last send (SES's sandbox allows one email a second)
+let lastVia: 'ses' | 'cf' | 'resend' | '' = '';
 
 // Resend's 429 body names the limit: rate_limit_exceeded, daily_quota_exceeded or monthly_quota_exceeded.
 // 2026-11-06: a quota refusal no longer waits for midnight (the whole backlog then came due at the same minute, spent the
@@ -196,6 +215,29 @@ async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
     }
     const files = await attachments(r);
     for (const p of more) files.push(...(await attachments(p)));
+    lastVia = '';
+    // 2570: Amazon SES first (its keys set, switched on, its day not used, not resting; never marketing unless email_ses_marketing)
+    let sesError = '';
+    if (sesOn && SES && budget.sesLeft > 0 && sesMaySend(r.category, budget.sesMarketing)) {
+      lastVia = 'ses';
+      const s = await sesSend(SES, { from: fromHeader(r.from_address), to: r.to_address, reply_to: r.reply_to || undefined, subject, html, text,
+        headers: Object.keys(headers).length ? headers : undefined, attachments: files.length ? files : undefined });
+      if ('id' in s) {
+        await sql`select app.outbox_mark_sent(${r.id}::uuid, ${'ses:' + s.id}, ${text})`;
+        budget.sesLeft--;
+        if (!sesReported) { sesReported = true; await sql`select public.server_ses_email_result(${JSON.stringify({ ok: true })}::jsonb)`.catch(() => {}); }
+        return 'sent';
+      }
+      // SES's sending rate: this email goes again in a minute, attempts untouched
+      if (s.kind === 'throttle') { const h = new Held('held by Amazon SES\'s sending rate', 'minute'); await defer(r, h); return h; }
+      // refused: Cloudflare or Resend sends this one; an account-level refusal also rests SES 15 minutes (the database records it)
+      sesError = s.error;
+      if (s.kind === 'account') {
+        sesOn = false;
+        await sql`select public.server_ses_email_result(${JSON.stringify({ ok: false, error: s.error })}::jsonb)`.catch(() => {});
+      }
+    }
+    const noteSes = async () => { if (sesError) await sql`select public.server_outbox_note_ses_fallback(${r.id}::uuid, ${sesError})`.catch(() => {}); };
     if (cfOn && budget.cfLeft <= 0) cfOn = false;
     if (!cfOn && budget.resendLeft <= 0) {
       // 0535: Resend's budget is used and Cloudflare cannot send right now. With Cloudflare budget left today (it rests 15
@@ -216,6 +258,8 @@ async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
         await sql`select public.server_cf_email_result(${JSON.stringify({ ok: true })}::jsonb)`;
         await sql`select app.outbox_mark_sent(${r.id}::uuid, ${'cf:' + cf.id}, ${text})`;
         budget.cfLeft--;
+        lastVia = 'cf';
+        await noteSes();
         return 'sent';
       }
       // not this time: reported (Cloudflare rests 15 minutes), and this email goes through Resend
@@ -245,6 +289,8 @@ async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
             await sql`select public.server_cf_email_result(${JSON.stringify({ ok: true })}::jsonb)`;
             await sql`select app.outbox_mark_sent(${r.id}::uuid, ${'cf:' + cf.id}, ${text})`;
             budget.cfLeft--;
+            lastVia = 'cf';
+            await noteSes();
             return 'sent';
           }
           await sql`select public.server_cf_email_result(${JSON.stringify({ ok: false, error: cf.error })}::jsonb)`;
@@ -256,7 +302,9 @@ async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
     }
     const { id } = (await res.json()) as { id: string };
     budget.resendLeft--;
+    lastVia = 'resend';
     await sql`select app.outbox_mark_sent(${r.id}::uuid, ${id}, ${text})`;
+    await noteSes();
     // 1750: an email Resend sent because Cloudflare refused says so (Settings > Usage counts them)
     if (cfError) await sql`select public.server_outbox_note_cf_fallback(${r.id}::uuid, ${cfError})`.catch(() => {});
     return 'sent';
@@ -279,7 +327,12 @@ Deno.serve(async (req) => {
       cfRest = x?.cf_error ?? '';
     } catch { cfRest = ''; }
   }
+  // 2570: the keys are set: the database may count SES's day (it tries SES only while this was seen within the hour)
+  sesReported = false;
+  if (SES) await sql`select public.server_ses_email_result(${JSON.stringify({ seen: true })}::jsonb)`.catch(() => {});
   await loadBudgets();
+  sesOn = emailProviderOrder({ sesConfigured: !!SES, sesEnabled: budget.sesEnabled, sesLeft: budget.sesLeft, sesResting: budget.sesResting,
+    cfOn, cfLeft: budget.cfLeft, resendLeft: budget.resendLeft })[0] === 'ses';
   const rows = (await sql`select * from app.outbox_claim(${BATCH})`) as unknown as Row[];
   let sent = 0, failed = 0, deferred = 0;
   let stop: Held | null = null;
@@ -290,8 +343,8 @@ Deno.serve(async (req) => {
     const out = await sendOne(r);
     if (out instanceof Held) { deferred++; if (out.until === 'later') stop = out; }
     else if (out === 'sent') sent++; else failed++;
-    // Resend allows 2 requests a second per account (Cloudflare's sends need no spacing)
-    const wait = (cfOn ? 0 : 550) - (Date.now() - t0);
+    // Resend allows 2 requests a second per account, SES's sandbox one a second (Cloudflare's sends need no spacing)
+    const wait = (lastVia === 'ses' ? 1000 : cfOn ? 0 : 550) - (Date.now() - t0);
     if (wait > 0) await pause(wait);
   }
   return Response.json({ claimed: rows.length, sent, failed, deferred });
