@@ -15399,6 +15399,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      owner_weekly_summaries: {
+        Row: {
+          owner_id: string;
+          week_of: string;
+          event_id: number | null;
+          created_at: string;
+        };
+        Insert: {
+          owner_id: string;
+          week_of: string;
+          event_id?: number | null;
+          created_at?: string;
+        };
+        Update: {
+          owner_id?: string;
+          week_of?: string;
+          event_id?: number | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       owners: {
         Row: {
           id: string;
@@ -18804,7 +18825,6 @@ export type Database = {
           vpage_min_year: number;
           marketing_everyone_enabled: boolean;
           marketing_weekly_enabled: boolean;
-          owner_weekly_summary_enabled: boolean;
           marketing_weekly_dow: number;
           marketing_weekly_hour: number;
           marketing_weekly_cars: number;
@@ -18820,6 +18840,7 @@ export type Database = {
           hiring_ai_auto_decide: boolean;
           hiring_ai_harder: boolean;
           email_cloudflare_enabled: boolean;
+          owner_weekly_summary_enabled: boolean;
         };
         Insert: {
           id?: string;
@@ -19654,7 +19675,6 @@ export type Database = {
           vpage_min_year?: number;
           marketing_everyone_enabled?: boolean;
           marketing_weekly_enabled?: boolean;
-          owner_weekly_summary_enabled?: boolean;
           marketing_weekly_dow?: number;
           marketing_weekly_hour?: number;
           marketing_weekly_cars?: number;
@@ -19670,6 +19690,7 @@ export type Database = {
           hiring_ai_auto_decide?: boolean;
           hiring_ai_harder?: boolean;
           email_cloudflare_enabled?: boolean;
+          owner_weekly_summary_enabled?: boolean;
         };
         Update: {
           id?: string;
@@ -20504,7 +20525,6 @@ export type Database = {
           vpage_min_year?: number;
           marketing_everyone_enabled?: boolean;
           marketing_weekly_enabled?: boolean;
-          owner_weekly_summary_enabled?: boolean;
           marketing_weekly_dow?: number;
           marketing_weekly_hour?: number;
           marketing_weekly_cars?: number;
@@ -20520,6 +20540,7 @@ export type Database = {
           hiring_ai_auto_decide?: boolean;
           hiring_ai_harder?: boolean;
           email_cloudflare_enabled?: boolean;
+          owner_weekly_summary_enabled?: boolean;
         };
         Relationships: [];
       };
@@ -32678,6 +32699,7 @@ export type Database = {
       server_company_signers: { Args: never; Returns: Json };
       server_complete_signature_request: { Args: { p_request: string; p_signed_storage_path: string; p_signed_sha256: string }; Returns: string };
       server_confirm_extension_payment: { Args: { p_extension: string; p_processor: Json; p_amount_cents: number; p_by: string }; Returns: Json };
+      server_coverage_card_network: { Args: { p_booking: string }; Returns: Json };
       server_coverage_choice_check: { Args: { p: Json }; Returns: Json };
       server_coverage_click: { Args: { p: Json; p_ip?: string }; Returns: Json };
       server_coverage_detail: { Args: { p_booking: string }; Returns: Json };
