@@ -62,7 +62,8 @@ test('fleet: dates ask the database which cars are free; filters and sort', asyn
   await page.goto(`/cars?from=${from}&to=${to}&tf=10:00&tt=10:00`);
   await acceptCookies(page);
   await expect(page.locator('.fleet-results__head .d3')).toContainText('free');
-  await expect(page.locator('#fleet-grid .car-card__price span').first()).toContainText('before HST');
+  // a car another test just added may have no rates yet (it shows its daily rate): the priced cars show the trip total
+  await expect(page.locator('#fleet-grid .car-card__price span', { hasText: 'before HST' }).first()).toBeVisible();
   await page.locator('#fl-sort').selectOption('price-desc');
   // real cars always come before the sample cars (0104), whatever the sort; each group is sorted on its own
   const cards = await page.locator('#fleet-grid .car-card').evaluateAll((els) => els.map((e) => ({
