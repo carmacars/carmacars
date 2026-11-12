@@ -34,10 +34,15 @@ browser ─┐
   (`scripts/deploy/lib.sh`, `scripts/deploy/vps.sh`, `scripts/deploy/sb.sh`).
 - **Left out:** Analytics, Vector and imgproxy (the app uses none of them). Supavisor is there but off
   (compose profile `pooler`): nothing outside the server connects to Postgres directly. Studio is on 127.0.0.1 only.
-- **Realtime (release 41, live updates):** there but off (compose profile `realtime`). Without it the portals read their
+- **Realtime (release 41, live updates):** a compose profile (`realtime`). Without it the portals read their
   live versions every 2 seconds (`live_poll`, straight to the database API); with it they listen on public broadcast
-  channels and read once a minute. To enable: add `COMPOSE_PROFILES=realtime` to `/opt/carmacars/supabase/.env`, then
-  `dc up -d` (Kong already routes `/realtime/v1/`; migration 2500 creates the `_realtime` schema it needs).
+  channels and read once a minute (Kong already routes `/realtime/v1/`; migration 2500 creates the `_realtime` schema it needs).
+  **Release 42 switches it on from the `vps-provision` workflow** (the deploy in ci.yml does not run compose): `make-env.sh`
+  adds `realtime` to `COMPOSE_PROFILES` in `/opt/carmacars/supabase/.env` only when it is missing and only after
+  `docker manifest inspect` finds the pinned image, then `stack-up` pulls and starts it. The repository variable
+  `REALTIME_ENABLED` (default true; `false` leaves the line as it is) is the switch. One run of vps-provision (Actions > vps-provision >
+  Run workflow, defaults) turns it on; every later run keeps it. By hand, on the server: add `COMPOSE_PROFILES=realtime` to `.env` if
+  the line is missing, then `sudo /opt/carmacars/bin/dc up -d`.
 
 ### Files
 

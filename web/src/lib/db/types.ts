@@ -32814,6 +32814,7 @@ export type Database = {
       server_open_by_content: { Args: { p_by: string; p_keys: string[] }; Returns: Json };
       server_outbox_note_cf_fallback: { Args: { p_id: string; p_error: string }; Returns: undefined };
       server_outbox_note_ses_fallback: { Args: { p_id: string; p_error: string }; Returns: undefined };
+      server_outbox_record_bounce: { Args: { p_provider_id: string; p_kind: string; p_detail?: string; p_email?: string }; Returns: string };
       server_outbox_stale_report: { Args: { p_since?: string }; Returns: Json };
       server_owner_agreement_extras: { Args: { p_owner: string }; Returns: Json };
       server_owner_agreement_facts: { Args: { p_owner: string; p_by: string }; Returns: Json };
