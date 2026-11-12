@@ -2,7 +2,7 @@
 -- cars from vpage_min_year (2005) on in every tree and sitemap, and one page per service group (synonyms answer 301 and are
 -- listed on the group's pages). Fixtures start with "r40".
 select test.suite('99 r40 SEO scope');
-select test.mk_user('r40_admin', 'admin');
+select test.mk_user('r40s_admin', 'admin');
 
 -- ================================================================ A. Ontario only
 select test.eq('market: Ontario is the only region on', (select string_agg(code, ',') from place_regions where is_enabled), 'CA-ON');
@@ -42,15 +42,15 @@ select test.ok('tier sitemaps: they span the places of the regions that are on',
 -- the Worker's tick: the mask of the regions that are on (bit 0 Ontario), and the old flag (any region but Ontario)
 select test.eq('tick: the market mask is Ontario', (app.server_jobs_due() ->> 'place_market')::integer, 1);
 select test.eq('tick: no region but Ontario on', (app.server_jobs_due() ->> 'place_foreign')::boolean, false);
-select public.door(test.id('r40_admin'), null, 'admin_do', 'place_settings_save', '{"region": "CA-QC", "enabled": true}');
+select public.door(test.id('r40s_admin'), null, 'admin_do', 'place_settings_save', '{"region": "CA-QC", "enabled": true}');
 select test.eq('tick: an Admin switches Quebec back on (bit 1)', (app.server_jobs_due() ->> 'place_market')::integer, 3);
 select test.eq('tick: the old flag follows', (app.server_jobs_due() ->> 'place_foreign')::boolean, true);
 select test.ok('hub: then the Quebec place has its page again', public.place_hub('rental', 'suv-rental', 'r40-gatineau-qc') is not null);
 select test.ok('roots: Quebec is listed at once', exists (select 1 from jsonb_array_elements(public.place_roots() -> 'tops') x where x ->> 'slug' = 'r40-quebec'));
-select public.door(test.id('r40_admin'), null, 'admin_do', 'place_settings_save', '{"region": "US-NY", "enabled": true}');
+select public.door(test.id('r40s_admin'), null, 'admin_do', 'place_settings_save', '{"region": "US-NY", "enabled": true}');
 select test.eq('tick: any US state on sets the US bit', (app.server_jobs_due() ->> 'place_market')::integer, 3 | (1 << 13));
-select public.door(test.id('r40_admin'), null, 'admin_do', 'place_settings_save', '{"region": "US-NY", "enabled": false}');
-select public.door(test.id('r40_admin'), null, 'admin_do', 'place_settings_save', '{"region": "CA-QC", "enabled": false}');
+select public.door(test.id('r40s_admin'), null, 'admin_do', 'place_settings_save', '{"region": "US-NY", "enabled": false}');
+select public.door(test.id('r40s_admin'), null, 'admin_do', 'place_settings_save', '{"region": "CA-QC", "enabled": false}');
 select test.eq('tick: back to Ontario', (app.server_jobs_due() ->> 'place_market')::integer, 1);
 select test.ok('roots: Quebec leaves them at once', not exists (select 1 from jsonb_array_elements(public.place_roots() -> 'tops') x where x ->> 'slug' = 'r40-quebec'));
 select test.throws('anon: cannot call the market mask', $$set local role anon; select app.place_market_mask()$$, 'permission');
@@ -152,7 +152,7 @@ select test.ok('vehicle pages: a place page of a trim too', (app.vehicle_tier_pa
 -- an Admin's synonym is always one hop: pointed at a synonym, it goes to the group; a group made a synonym takes its own along
 insert into place_terms (slug, vertical, phrase, title) values ('r40-hire-a-car', 'rental', 'r40 hire a car', 'R40 Hire a Car'), ('r40-wheels', 'rental', 'r40 wheels', 'R40 Wheels'),
   ('r40-wheels-hire', 'rental', 'r40 wheels hire', 'R40 Wheels Hire');
-select public.door(test.id('r40_admin'), null, 'admin_do', 'place_term_save', '{"slug": "r40-hire-a-car", "canonical_slug": "car-hire"}');
+select public.door(test.id('r40s_admin'), null, 'admin_do', 'place_term_save', '{"slug": "r40-hire-a-car", "canonical_slug": "car-hire"}');
 select test.eq('trigger: a synonym of a synonym goes to the group', (select canonical_slug from place_terms where slug = 'r40-hire-a-car'), 'car-rental');
 update place_terms set canonical_slug = 'r40-wheels' where slug = 'r40-wheels-hire';
 update place_terms set canonical_slug = 'car-rental' where slug = 'r40-wheels';
