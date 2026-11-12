@@ -25,7 +25,7 @@ end $$;
 
 select test.zly_lead('chat', 'chat', 'chat', 'Zly Chat', 'zly.chat@example.test', null, '{"chat": 9901}'::jsonb);
 insert into chat_conversations (id, number, status, name, phone, lead_id, created_at)
-values (test.id('chat:zly'), 9901, 'human', 'Zly Chat', '+14165550142', test.id('lead:chat'), now() - interval '6 minutes');
+values (test.id('chat:zly'), 9901, 'human', 'Zly Chat', '+14375559871', test.id('lead:chat'), now() - interval '6 minutes');
 select test.zly_lead('form', 'contact', 'web', 'Zly Form', 'zly.form@example.test', '+14165550143');
 select test.zly_lead('owner', 'owner_program', 'web', 'Zly Owner', 'zly.owner@example.test', '+14165550144');
 select test.zly_lead('partner', 'insurer', 'web', 'Zly Insurer', 'zly.ins@example.test', null);
@@ -36,7 +36,7 @@ select test.zly_lead('old', 'contact', 'expired_offer', 'Zly Old', 'zly.old@exam
 select test.eq('source: a live chat lead says Live chat', app.sl_source((select l from leads l where id = test.id('lead:chat'))), 'Live chat');
 select test.eq('source: a chat typed and not sent says Live chat too (the alert''s words)', app.lead_alert_source((select l from leads l where id = test.id('lead:capchat'))), 'Live chat');
 select test.eq('source: the contact form', app.sl_source((select l from leads l where id = test.id('lead:form'))), 'Contact form');
-select test.eq('phone: the chat lead shows the phone of its chat', app.sl_phone((select l from leads l where id = test.id('lead:chat'))), '+14165550142');
+select test.eq('phone: the chat lead shows the phone of its chat', app.sl_phone((select l from leads l where id = test.id('lead:chat'))), '+14375559871');
 select test.eq('type: renter, owner, partner', (select string_agg(app.sl_type(l), ',' order by l.name) from leads l where l.id in (test.id('lead:form'), test.id('lead:owner'), test.id('lead:partner'))),
   'renter,partner,owner');
 insert into app_events (code, entity, entity_id, payload, dedupe_key) values ('staff_lead_new', 'lead', test.id('lead:form'), jsonb_build_object('lead_id', test.id('lead:form')), 'zly-ev-1');
@@ -52,7 +52,7 @@ create table test.zly_list as select test.zly('zly_s1', 'va_read', 'sales_leads'
 select test.ok('list: Sales see renter, owner and partner leads in one list', (select count(*) from test.zly_list, jsonb_array_elements(j -> 'rows') x where x ->> 'id' in
   (test.id('lead:chat')::text, test.id('lead:owner')::text, test.id('lead:partner')::text)) = 3);
 select test.eq('list: the chat lead row shows its phone (masked for Sales, 0970) and Live chat', (select (x ->> 'phone') || '/' || (x ->> 'source') from test.zly_list, jsonb_array_elements(j -> 'rows') x where x ->> 'id' = test.id('lead:chat')::text),
-  '+(416) •••-••42/Live chat');
+  '+(437) •••-••71/Live chat');
 select test.ok('list: new leads first (the old expired offer is last)', (select x ->> 'id' from test.zly_list, jsonb_array_elements(j -> 'rows') with ordinality y(x, o) order by o desc limit 1) = test.id('lead:old')::text);
 select test.eq('list: the type filter', (select string_agg(distinct x ->> 'type', ',') from jsonb_array_elements(test.zly('zly_admin', 'admin_read', 'sales_leads', '{"q": "zly", "type": "owner"}'::jsonb) -> 'rows') x), 'owner');
 select test.eq('list: search by phone digits', (select string_agg(x ->> 'name', ',') from jsonb_array_elements(test.zly('zly_cs', 'va_read', 'sales_leads', '{"q": "555-0143"}'::jsonb) -> 'rows') x), 'Zly Form');

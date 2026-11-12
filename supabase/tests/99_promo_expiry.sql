@@ -164,12 +164,18 @@ select app.promo_reminders_run(test.pe_at(9, 1));
 select test.eq('a code ended 5 days before the second run: no reminder after the last day', test.pe_sent('ann2'), '-');
 
 -- no consent, an unsubscribe, a blocked renter
+-- 2520 (marketing to everyone, on by default) reminds a renter who never ticked the box; with that switch off the tick decides again
+update program_settings set marketing_everyone_enabled = false where id = (app.settings()).id;
 select test.pe_code('bob1', 'pe_bob', 'followup_30d', 10), test.pe_code('cy1', 'pe_cy', 'followup_30d', 10), test.pe_code('gus1', 'pe_gus', 'followup_30d', 10);
 select app.promo_reminders_run(test.pe_at(7, 2));
 select app.promo_reminders_run(test.pe_at(9, 2));
 select test.eq('a renter who never agreed to offers: no reminder, no email', test.pe_sent('bob1') || ' ' || test.pe_mail('bob1', 'renter_promo_expiry_3d'), '- -');
 select test.eq('a renter who unsubscribed: no reminder, no email', test.pe_sent('cy1') || ' ' || test.pe_mail('cy1', 'renter_promo_expiry_3d') || ' ' || test.pe_mail('cy1', 'renter_promo_expiry_1d'), '- - -');
 select test.eq('a blocked renter: none', test.pe_sent('gus1'), '-');
+update program_settings set marketing_everyone_enabled = true where id = (app.settings()).id;
+select app.promo_reminders_run(test.pe_at(9, 3));
+select test.eq('marketing to everyone (2520): the renter who never ticked the box is reminded; the unsubscribed and the blocked renter still are not',
+  test.pe_sent('bob1') || ' ' || test.pe_sent('cy1') || ' ' || test.pe_sent('gus1'), '1d - -');
 -- even when an event is forced for an unsubscribed renter, the pipeline refuses it (the same consent rule as the come-back offer)
 select app.emit_event('renter_promo_expiry_3d', 'promo_code', test.pe_id('cy1'), jsonb_build_object('renter_id', test.id('renter:pe_cy')), 'pe-forced');
 select app.process_events(100000);
