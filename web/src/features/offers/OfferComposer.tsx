@@ -11,7 +11,7 @@ import { offersDo, offersRead } from '@/server/actions/offers';
 import { deliveryDistance, draftClose, draftSave, supplyRead } from '@/server/actions/supply';
 import { SourcedChoice } from '@/features/sales/SourcedChoice';
 import { TaxModeToggle, useTaxMode } from '@/features/sales/TaxModeToggle';
-import { beforeTax, convertTyped, hstOf, linesBeforeTax, solveRental, totalDifference, type TaxMode } from '@/features/sales/taxIncluded';
+import { beforeTax, convertTyped, hstOf, linesBeforeTax, shownAmount, solveRental, totalDifference, type TaxMode } from '@/features/sales/taxIncluded';
 import { AddonPicker } from '@/features/addons/AddonPicker';
 import { Info } from '@/features/forms/Info';
 import { AddressInput } from '@/features/forms/AddressInput';
@@ -295,6 +295,8 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
   const typedOver = (payload.line_overrides ?? {}) as Record<string, number>;
   const shownCents = (l: Line) => { const k = PLAN_TYPES.includes(l.charge_type) ? 'coverage_sold' : keyOf(l); return !fresh && k in typedOver && !RENTAL_LINE.has(l.charge_type) ? typedOver[k]! : l.amount_cents; };
   const lineDelta = (l: Line) => { const c = shownCents(l); if (c === l.amount_cents) return 0; const hst = l.hst_applies ?? l.hst_cents !== 0; return c - l.amount_cents + (hst && bps !== null ? hstOf(c, bps) - l.hst_cents : 0); };
+  // 2026-11-11: after tax, each fee shows what the renter pays for it (its HST in); before tax, its amount before HST
+  const feeShown = (l: Line) => { const c = shownCents(l); return taxMode !== 'after' || !(l.hst_applies ?? l.hst_cents !== 0) ? c : c === l.amount_cents ? c + l.hst_cents : bps !== null ? c + hstOf(c, bps) : c; };
   const hstDelta = (l: Line) => { const c = shownCents(l); return c === l.amount_cents || !(l.hst_applies ?? l.hst_cents !== 0) || bps === null ? 0 : hstOf(c, bps) - l.hst_cents; };
   const total = priced0 + (b ? b.lines.filter((l) => l.stage === 'booking').reduce((x, l) => x + lineDelta(l), 0) : 0);
   const hstShown = b ? b.hst_at_booking_cents + b.lines.filter((l) => l.stage === 'booking').reduce((x, l) => x + hstDelta(l), 0) : 0;
@@ -459,12 +461,12 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
         {step(n, 'The price', 'The rate sheet price is filled in for you. Change it only if you agreed another price with the renter.', <>
           <p className="oc-pricenow" data-testid="oc-price-now">{!b ? 'The price shows once the renter, the dates and the car are in.'
             : totalCents !== null ? `Worked out from the total you typed: ${fmt(total)}.`
-            : f.price_mode === 'sheet' ? <>Rate sheet price: <b className="num">{fmt(rentalLine?.amount_cents ?? b.rate_sheet_rental_cents ?? 0)}</b> for {b.billable_days} day{b.billable_days === 1 ? '' : 's'}, before tax.</>
-            : <>Price you typed: <b className="num">{fmt(rentalLine?.amount_cents ?? 0)}</b> before tax (rate sheet {fmt(b.rate_sheet_rental_cents ?? 0)}).</>}</p>
+            : f.price_mode === 'sheet' ? <>Rate sheet price: <b className="num">{fmt(rentalLine ? shownAmount(rentalLine.amount_cents, rentalLine.hst_cents, taxMode) : b.rate_sheet_rental_cents ?? 0)}</b> for {b.billable_days} day{b.billable_days === 1 ? '' : 's'}, {rentalLine ? tw : 'before tax'}.{taxMode === 'after' ? ` Total the renter pays: ${fmt(b.total_due_at_booking_cents)}.` : ''}</>
+            : <>Price you typed: <b className="num">{fmt(rentalLine ? shownAmount(rentalLine.amount_cents, rentalLine.hst_cents, taxMode) : 0)}</b> {tw} (rate sheet {fmt(b.rate_sheet_rental_cents ?? 0)} before tax).{taxMode === 'after' ? ` Total the renter pays: ${fmt(b.total_due_at_booking_cents)}.` : ''}</>}</p>
           {needMsg('price')}{needMsg('price_reason')}
           {more('oc-price-more', 'More options: another price, fees, deposit, discount', priceInUse, <>
             <TaxModeToggle value={taxMode} onChange={changeTaxMode} idPrefix="oc" bps={bps}>
-              <details className="oc-disclose" open={!!totalTyped.trim() || undefined} data-testid="oc-total-typed-d"><summary>Type the total the renter pays</summary>
+              <details className="oc-disclose" open={!!totalTyped.trim() || taxMode === 'after' || undefined} data-testid="oc-total-typed-d"><summary>Type the total the renter pays</summary>
                 <div className="ad-taxtotal">
                   <div className="field"><label className="label" htmlFor="oc-total-typed">Total the renter pays (after tax, $)</label>
                     <input className="input input--sm" id="oc-total-typed" inputMode="decimal" placeholder={b ? (b.total_due_at_booking_cents / 100).toFixed(2) : ''} value={totalTyped} onChange={(e) => setTotalTyped(e.target.value)} data-testid="oc-total-typed" aria-describedby="oc-total-typed-h" /></div>
@@ -497,11 +499,11 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
                 {feeLines.map((l) => { const k = keyOf(l); const hand = isHand(l); const open = hand || editing.includes(k); return (
                   <li key={l.id} className={`oc-charge${editFees && open ? ' is-editing' : ''}`} data-testid={`oc-charge-${k}`}>
                     <span className="oc-charge__label">{plain(l)}<Info text={lineHelp(l.charge_type)} /></span>
-                    <span className="oc-charge__amt num">{fmt(shownCents(l))}</span>
+                    <span className="oc-charge__amt num" data-tax={taxMode}>{fmt(feeShown(l))}</span>
                     <span className="oc-charge__state">{hand ? <span className="ad-b ad-b--amber">Set by hand</span> : <span className="ad-b ad-b--light">Automatic</span>}</span>
                     {editFees && <span className="oc-charge__do">{open ? <>
                       <label className="vh" htmlFor={`oc-fee-${k}`}>{plain(l)}: amount for the trip, {taxMode === 'after' && (l.hst_applies ?? l.hst_cents !== 0) ? 'HST included' : 'before tax'} ($)</label>
-                      <input className="input input--sm" id={`oc-fee-${k}`} inputMode="decimal" placeholder={(l.amount_cents / 100).toFixed(2)} value={f.fees[k] ?? ''} data-testid={`oc-fee-${k}`}
+                      <input className="input input--sm" id={`oc-fee-${k}`} inputMode="decimal" placeholder={(shownAmount(l.amount_cents, l.hst_cents, taxMode) / 100).toFixed(2)} value={f.fees[k] ?? ''} data-testid={`oc-fee-${k}`}
                         onChange={(e) => setF((s) => ({ ...s, fees: { ...s.fees, [k]: e.target.value } }))} />
                       <button className="btn btn--quiet btn--sm" type="button" onClick={() => reset(k)} data-testid={`oc-reset-${k}`}>{hand ? 'Reset to automatic' : 'Cancel'}</button></>
                       : <button className="btn btn--quiet btn--sm" type="button" onClick={() => setEditing((e) => [...e, k])} data-testid={`oc-change-${k}`}>Change</button>}</span>}

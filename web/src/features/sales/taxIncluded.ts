@@ -81,6 +81,14 @@ export function solveRental(target: number, totalNow: number, rentalWithTaxNow: 
   return w < 0 ? null : w;
 }
 
+/** A line's amount as the price step shows it in the way of typing chosen (2026-11-11, "the toggle does nothing"): with
+ *  its HST after tax, before tax otherwise; a line without HST is the same either way. */
+export function shownAmount(amountCents: number, hstCents: number, mode: TaxMode): number {
+  return mode === 'after' ? amountCents + hstCents : amountCents;
+}
+/** The words beside an amount in the way of typing chosen. */
+export const taxWords = (mode: TaxMode) => (mode === 'after' ? 'HST included' : 'before tax');
+
 /** The price lines' before-tax breakdown, for the live summary under the total typed. */
 export function breakdown(lines: Array<{ amount_cents: number; hst_cents: number }>): { subtotal: number; hst: number; total: number } {
   const subtotal = lines.reduce((s, l) => s + l.amount_cents, 0);

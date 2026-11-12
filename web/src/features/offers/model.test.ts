@@ -206,3 +206,18 @@ test('what is missing, next to its field, in plain words', () => {
   assert.equal(firstName('  Nora  Offer '), 'Nora');
   assert.equal(firstName(''), '');
 });
+
+// 2026-11-11: "Amounts I type: Before tax | After tax" on the price step, end to end: the payload the database prices
+test('the toggle: a total typed after tax goes tax included, before tax goes plus tax', () => {
+  const tax = (after: boolean) => ({ after, bps: 1300, hstFor: () => true });
+  for (const [typed, c] of [['410.19', 41019], ['1490', 149000]] as const) {
+    const a = offerPayload(base({ price_mode: 'total', price_total: typed, price_reason: 'Agreed' }), 'admin', 3, [], true, tax(true));
+    assert.deepEqual([a.rental_charge_cents, a.price_tax], [c, 'included']);
+    const b = offerPayload(base({ price_mode: 'total', price_total: typed, price_reason: 'Agreed' }), 'admin', 3, [], true, tax(false));
+    assert.deepEqual([b.rental_charge_cents, b.price_tax], [c, 'plus']);
+  }
+  // a fee typed after tax goes before tax ($56.50 with HST is $50.00), its rounding cent on the rental charge
+  const f = offerPayload(base({ price_mode: 'total', price_total: '410.19', price_reason: 'Agreed', fees: { delivery_fee: '56.50' } as OfferForm['fees'] }), 'admin', 3, [], true, tax(true));
+  assert.equal((f.line_overrides as Record<string, number>).delivery_fee, 5000);
+  assert.equal(f.rental_charge_cents, 41019);
+});

@@ -9,7 +9,7 @@ import { money } from '@/lib/format';
 import { SourcedChoice, priceFlags, type Choice } from '@/features/sales/SourcedChoice';
 import { PRICE_TAX_LABEL, type PriceTaxSplit } from '@/features/sales/priceTax';
 import { TaxModeToggle, useTaxMode } from '@/features/sales/TaxModeToggle';
-import { beforeTax, convertTyped, linesBeforeTax, solveRental, totalDifference, type TaxMode } from '@/features/sales/taxIncluded';
+import { beforeTax, convertTyped, linesBeforeTax, shownAmount, solveRental, totalDifference, type TaxMode } from '@/features/sales/taxIncluded';
 import { AddonPicker } from '@/features/addons/AddonPicker';
 import { Info } from '@/features/forms/Info';
 import { infoText } from '@/features/info/text';
@@ -631,10 +631,10 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
                 value={fees[k] ?? ''} onChange={(e) => setFees((x) => ({ ...x, [k]: e.target.value }))} data-testid={`mr-fee-${k}`} />;
               const remove = (k: string) => <button className="btn btn--quiet btn--sm" type="button" onClick={() => setFees((x) => ({ ...x, [k]: '0' }))} data-testid={`mr-remove-${k}`} aria-label="Remove this line">Remove</button>;
               return <table className="ad-table" data-testid="mr-price"><caption className="sr-only">Price</caption>
-              <thead><tr><th scope="col">Line</th><th scope="col" className="num">Amount</th>{edit && <th scope="col">Change it ($, {taxMode === 'after' ? 'after tax' : 'before tax'})</th>}</tr></thead><tbody>
+              <thead><tr><th scope="col">Line</th><th scope="col" className="num">{taxMode === 'after' ? 'Amount (HST included)' : 'Amount (before tax)'}</th>{edit && <th scope="col">Change it ($, {taxMode === 'after' ? 'after tax' : 'before tax'})</th>}</tr></thead><tbody>
               {quote.quote.lines.map((l, i) => { const k = lineKey(l); const rent = l.charge_type === 'rental_charge'; const editable = edit && !RENTAL_LINE.has(l.charge_type) && !isInsurerFee(l.charge_type);
                 return <tr key={i} data-testid={`mr-line-${k}`}><td>{rent ? `Rental charge (${days} day${days === 1 ? '' : 's'})` : l.description}<Info text={lineHelp(l.charge_type)} />
-                  {l.set_by_hand || l.detail?.set_by_hand ? <span className="small muted"> (changed)</span> : null}</td><td className="num">{fmt(l.amount_cents)}</td>
+                  {l.set_by_hand || l.detail?.set_by_hand ? <span className="small muted"> (changed)</span> : null}</td><td className="num" data-tax={taxMode}>{fmt(shownAmount(l.amount_cents, l.hst_cents, taxMode))}</td>
                   {edit && <td>{editable ? <span className="row">{box(k, l.description, l.amount_cents + (taxMode === 'after' ? l.hst_cents : 0))}{remove(k)}</span>
                     : rent && quote.may_override_price && quote.has_rates !== false ? totalCents !== undefined ? <span className="small" data-testid="mr-rent-from-total">{solvedW !== null ? `From the total: ${fmt(solvedW)} with HST (${fmt(bps !== null ? beforeTax(solvedW, bps) : l.amount_cents)} before tax)` : 'From the total'}</span> : <span className="stack">
                       <span className="row"><input className="input input--sm" inputMode="decimal" aria-label={rentMode === 'day' ? `Rental rate a day, ${taxMode === 'after' ? 'HST included' : 'before tax'} ($)` : `Rental charge for the whole trip, ${taxMode === 'after' ? 'HST included' : 'before fees and tax'} ($)`}
@@ -654,7 +654,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
                   <option value="">+ Add a line (a fee from the list, or a charge of its own)</option>
                   {Object.entries(FEE_LABEL).filter(([k]) => !keys.has(k) && !(k in fees) && lineLive(k, addable)).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
                   <option value="custom">A charge of its own</option></select></td></tr>}
-              <tr><td>HST<Info text={lineHelp('hst')} /></td><td className="num">{fmt(quote.quote.lines.reduce((sum, l) => sum + l.hst_cents, 0))}</td>{edit && <td><span className="small muted">worked out for you</span></td>}</tr>
+              <tr><td>{taxMode === 'after' ? 'HST (included in the amounts above)' : 'HST'}<Info text={lineHelp('hst')} /></td><td className="num">{fmt(quote.quote.lines.reduce((sum, l) => sum + l.hst_cents, 0))}</td>{edit && <td><span className="small muted">worked out for you</span></td>}</tr>
               <tr><th scope="row">{quote.has_rates === false ? 'Total with the price you typed' : Object.keys(feeOverrides(fees)).length || customs.length || priceChanged ? 'Total with your changes' : 'Total from the rate sheet'}</th><td className="num"><b data-testid="mr-total" data-fresh={fresh ? 'yes' : 'no'}>{fmt(quote.quote.total_due_at_booking_cents)}</b>{!fresh && <span className="small muted" data-testid="mr-total-updating"> updating</span>}</td>{edit && <td />}</tr>
               <tr><td>Deposit at pickup<Info text={lineHelp('deposit')} /></td><td className="num">{fmt(quote.quote.deposit_cents)}</td>{edit && <td>{isAdmin ? <input className="input input--sm" inputMode="decimal" aria-label="Deposit: change it to ($)" placeholder={(quote.quote.deposit_cents / 100).toFixed(2)} value={f.deposit ?? ''} onChange={set('deposit')} data-testid="mr-deposit-inline" /> : null}</td>}</tr>
               <tr><td>Kilometres included<Info text={lineHelp('km')} /></td><td className="num">{quote.quote.km_allowance_total} km</td>{edit && <td><span className="row"><input className="input input--sm" inputMode="numeric" aria-label="Kilometres a day" placeholder={String(Math.round(quote.quote.km_allowance_total / days))} value={f.km ?? ''} onChange={set('km')} data-testid="mr-km-inline" /><span className="small muted">a day</span></span></td>}</tr>
