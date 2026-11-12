@@ -2982,6 +2982,78 @@ export type Database = {
         };
         Relationships: [];
       };
+      booking_request_failures: {
+        Row: {
+          id: string;
+          dedupe_key: string;
+          day: string;
+          email: string | null;
+          phone: string | null;
+          full_name: string | null;
+          user_id: string | null;
+          vehicle_id: string | null;
+          pickup_at: string | null;
+          return_at: string | null;
+          code: string;
+          field: string | null;
+          reason: string;
+          raw: string | null;
+          unexpected: boolean;
+          tries: number;
+          task_id: string | null;
+          resolved_at: string | null;
+          resolved_booking_id: string | null;
+          created_at: string;
+          last_at: string;
+        };
+        Insert: {
+          id?: string;
+          dedupe_key: string;
+          day: string;
+          email?: string | null;
+          phone?: string | null;
+          full_name?: string | null;
+          user_id?: string | null;
+          vehicle_id?: string | null;
+          pickup_at?: string | null;
+          return_at?: string | null;
+          code: string;
+          field?: string | null;
+          reason: string;
+          raw?: string | null;
+          unexpected?: boolean;
+          tries?: number;
+          task_id?: string | null;
+          resolved_at?: string | null;
+          resolved_booking_id?: string | null;
+          created_at?: string;
+          last_at?: string;
+        };
+        Update: {
+          id?: string;
+          dedupe_key?: string;
+          day?: string;
+          email?: string | null;
+          phone?: string | null;
+          full_name?: string | null;
+          user_id?: string | null;
+          vehicle_id?: string | null;
+          pickup_at?: string | null;
+          return_at?: string | null;
+          code?: string;
+          field?: string | null;
+          reason?: string;
+          raw?: string | null;
+          unexpected?: boolean;
+          tries?: number;
+          task_id?: string | null;
+          resolved_at?: string | null;
+          resolved_booking_id?: string | null;
+          created_at?: string;
+          last_at?: string;
+        };
+        Relationships: [];
+      };
       booking_request_snapshots: {
         Row: {
           booking_id: string;
@@ -32679,6 +32751,7 @@ export type Database = {
       server_booking_licence_state: { Args: { p_numbers: string[] }; Returns: Json };
       server_booking_payment_capture_failed: { Args: { p_booking: string; p_processor: Json; p_error: string }; Returns: undefined };
       server_booking_payment_facts: { Args: { p_booking: string }; Returns: Json };
+      server_booking_request_failed: { Args: { p: Json }; Returns: Json };
       server_booking_sign_pay: { Args: { p_booking: string }; Returns: Json };
       server_capture_contact: { Args: { p: Json }; Returns: Json };
       server_capture_continue_open: { Args: { p_token: string }; Returns: Json };
@@ -32980,6 +33053,7 @@ export type Database = {
       server_renter_handover_report: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_renter_readings: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_request_account_deletion: { Args: { p_user: string; p_reason?: string }; Returns: Json };
+      server_request_failures: { Args: { p_by: string }; Returns: Json };
       server_request_notify_channel: { Args: { p_booking_number: string; p_channel: string; p_user?: string }; Returns: Json };
       server_resume_form_draft: { Args: { p_link_token: string; p_user?: string; p_device_label?: string }; Returns: Json };
       server_return_claim_read: { Args: { p_token: string }; Returns: Json };

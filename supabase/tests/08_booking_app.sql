@@ -156,7 +156,7 @@ select test.eq('S the numbers an Admin may change are program settings, with the
           || '/' || array_to_string(accepted_licence_classes, ',') || '/' || other_licence_for_review || '/' || max_additional_drivers || '/' || max_baby_seats
           || '/' || request_note_max_chars || '/' || info_request_reply_hours || '/' || verification_due_hours_before_pickup || '/' || verification_review_hours
           || '/' || require_staff_two_step || '/' || max_rental_days || '/' || min_renter_age || '/' || standard_min_age
-     from app.settings()), '120/5/3/0/G,G2/true/4/3/500/24/24/2/false/365/18/21');
+     from app.settings()), '120/30/3/0/G,G2/true/4/3/500/24/24/2/false/365/18/21');
 select test.eq('S an extension can now be approved between asking and paying',
   (select pg_get_constraintdef(oid) ~ 'requested.*approved.*confirmed.*declined.*lapsed' from pg_constraint
     where conrelid = 'public.booking_extensions'::regclass and conname = 'booking_extensions_status_check'), true);
@@ -593,6 +593,8 @@ update program_settings set booking_open_request_limit = 4 where effective_from 
 select test.eq('R the limit is a setting: at 4 the same request is accepted',
   (select v ->> 'ok' from app.submit_booking_request(test.ba_req('r7', 'amy.adams@example.test', 'BA5', test.soon('50 days'), test.soon('53 days'))) v), 'true');
 update program_settings set booking_open_request_limit = 3 where effective_from = (select effective_from from app.settings());
+-- 2670: the standard value is 30 an hour (people share a network address); the limit is a setting, tested here at 5
+update program_settings set booking_request_hourly_limit = 5 where effective_from = (select effective_from from app.settings());
 select test.eq('R five requests an hour are accepted from one network address',
   (select string_agg(app.submit_booking_request(test.ba_req('ip' || i, 'ip' || i || '.user@example.test', 'BA6', test.soon('10 days'), test.soon('12 days')),
                                                 inet '198.51.100.7', 'bot') ->> 'ok', ',' order by i) from generate_series(1, 5) i), 'true,true,true,true,true');
@@ -605,6 +607,8 @@ select test.eq('R another network address is not affected, and a repeat of an ac
   (select v ->> 'ok' from app.submit_booking_request(test.ba_req('ip6', 'ip6.user@example.test', 'BA6', test.soon('10 days'), test.soon('12 days')), inet '198.51.100.8', 'ok') v)
   || '/' || (select v ->> 'created' from app.submit_booking_request(test.ba_req('ip1', 'ip1.user@example.test', 'BA6', test.soon('10 days'), test.soon('12 days')), inet '198.51.100.7', 'bot') v)
   || '/' || (select hits from app.rate_limit_hits where key = 'booking_request:ip:198.51.100.7'), 'true/false/6');
+
+update program_settings set booking_request_hourly_limit = 30 where effective_from = (select effective_from from app.settings());
 
 -- promo codes, a blocked customer, a conflict at submit
 select test.ba_new('r8', 'eve.evans@example.test', 'BA3', test.soon('10 days'), test.soon('20 days'), '{"promo_code": "BAOLD"}');

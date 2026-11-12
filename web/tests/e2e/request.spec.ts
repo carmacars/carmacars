@@ -158,3 +158,61 @@ test('car page: calendar shows the turnaround, estimate comes from the database,
   await expect(page.locator('.estimate__lines')).toContainText('Rental charge');
   expect(errors).toEqual([]);
 });
+
+// 2670: a refused request says exactly why, keeps everything typed, and reaches Sales once per person, car and day.
+test('a refused request says why, keeps the answers and leaves one Sales follow-up', async ({ page }, info) => {
+  const sql = db();
+  const slug = 'honda-civic';
+  const email = `e2e.refused.${info.project.name}.${Date.now()}@example.test`.toLowerCase();
+  // this person already has 3 requests open (the limit): the fourth is refused with a result
+  const [car] = await sql`select vehicle_id from vehicle_listings where slug = ${slug}`;
+  for (let i = 0; i < 3; i++) {
+    const from = new Date(Date.now() + (200 + i * 6) * 864e5).toISOString(); const to = new Date(Date.now() + (203 + i * 6) * 864e5).toISOString();
+    const made = await sql`select app.submit_booking_request(${sql.json({ request_key: `e2e-refused-${i}-${Date.now()}`, vehicle_id: car!.vehicle_id, pickup_at: from, return_at: to, booking_type: 'standard', coverage_option: 2,
+      consents: { terms: { accepted: true, version: 'e2e', text: 'I agree to the Terms of use.' }, privacy: { accepted: true, version: 'e2e', text: 'I agree to the Privacy policy.' } },
+      renter: { email, full_name: 'Robin Refused', mobile: '647-555-0163', date_of_birth: '1990-04-09', licence_class: 'G', licence_issuer: 'ON' } })}::jsonb) as r`;
+    expect((made[0]!.r as { ok: boolean }).ok).toBe(true);
+  }
+  const range = await freeWindow(slug);
+  await page.goto(`/book/${slug}?from=${range.from}&to=${range.to}&tf=10:00&tt=10:00`);
+  await acceptCookies(page);
+  await page.getByRole('button', { name: 'Continue to driver details' }).click();
+  await expect(page.getByRole('heading', { name: 'The driver' })).toBeVisible();
+  await page.locator('#rq-first').fill('Robin');
+  await page.locator('#rq-last').fill('Refused');
+  await page.locator('#rq-email').fill(email);
+  await page.locator('#rq-phone').fill('647-555-0163');
+  await page.locator('#rq-dobm').selectOption('4');
+  await page.locator('#rq-dobd').fill('9');
+  await page.locator('#rq-doby').fill('1990');
+  await page.getByRole('button', { name: 'Continue to licence' }).click();
+  await page.locator('label', { hasText: 'Ontario G2' }).click();
+  await chooseCardCoverage(page);
+  await page.getByRole('button', { name: 'Continue to add-ons' }).click();
+  await page.getByRole('button', { name: 'Review request' }).click();
+  await page.locator('input[name="agree"]').check();
+  await page.getByRole('button', { name: 'Send request' }).click();
+  // the exact reason and what to do, never "try again or call us"; the form stays with everything typed
+  const failure = page.getByTestId('rq-failure');
+  await expect(failure).toContainText('You already have 3 requests open', { timeout: 30_000 });
+  await expect(failure).toContainText('Your answers are saved');
+  await expect(failure).not.toContainText('call us');
+  await expect(page.locator('#rq-first')).toHaveValue('Robin');
+  await expect(page.locator('#rq-email')).toHaveValue(email);
+  // staff: one row with the reason, the car and the dates, and one Sales To-do; a second try adds to the same row
+  const kept = async () => sql`select f.code, f.tries, f.full_name, (f.vehicle_id = ${car!.vehicle_id}) car, (f.pickup_at is not null) dates,
+                                     (select count(*)::int from tasks t where t.id = f.task_id and t.queue = 'sales' and t.status = 'open') todo
+                                from booking_request_failures f where f.email = ${email}`;
+  await expect.poll(async () => (await kept()).length, { timeout: 15_000 }).toBe(1);
+  expect((await kept())[0]).toMatchObject({ code: 'too_many_open_requests', tries: 1, full_name: 'Robin Refused', car: true, dates: true, todo: 1 });
+  await page.getByRole('button', { name: 'Send request' }).click();
+  await expect.poll(async () => (await kept())[0]?.tries, { timeout: 30_000 }).toBe(2);
+  expect(await kept()).toHaveLength(1);
+  // the draft is on the device and on the server: coming back fills the form in again
+  await page.reload();
+  await expect(page.getByText('We kept your place')).toBeVisible({ timeout: 10_000 });
+  await expect(page.locator('#rq-email')).toHaveValue(email);
+  const draft = await sql`select count(*)::int n from form_drafts where form_code = 'booking_request' and submitted_at is null and data ->> 'email' = ${email}`;
+  expect(draft[0]!.n).toBeGreaterThan(0);
+  await sql.end();
+});

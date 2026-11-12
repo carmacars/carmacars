@@ -243,6 +243,8 @@ export function RequestWizard(p: WizardProps) {
   function validate(n: number): boolean {
     const all = checkRequest(d, p.rules, { todayIso: today, nowMinutes: torontoMinutesNow(), knownCar: !!car || !!option, emailOptional, insuranceIncluded: !!car?.insuranceIncluded });
     if (n === 1 && problem && !all.dates) all.dates = problem;
+    // 2670: a card that does not cover this car is said at its step, not after Send (the database refuses it)
+    if (!car?.insuranceIncluded && d.coverage === '2' && cardCheck && cardCheck.result !== 'covered' && !all.coverageCard) all.coverageCard = 'This card does not cover this car. Pick another card from the list, or choose OPCF 27 or the Protection Plan.';
     const mine = Object.fromEntries(Object.entries(all).filter(([k]) => stepOfKey(k) === n));
     setErrors(mine);
     if (Object.keys(mine).length) {
@@ -285,9 +287,18 @@ export function RequestWizard(p: WizardProps) {
       if (again) r = await submitBookingRequest({ data: { ...d, bookingType }, requestKey: meta.current.key, token: again, draftId: meta.current.draftId, bookNow: now }).catch(() => null);
     }
     setSending(false);
-    if (!r) { setFailure('We could not reach the server. Check your connection and send again.'); return; }
+    if (!r || !r.ok) {
+      // 2670: nothing typed is lost: the draft is saved at once (this device already has it), whatever the reason
+      writeStore({ data: d, step, ...meta.current, at: Date.now() });
+      void saveRequestDraft({ data: d, step, token: meta.current.token }).then((sv) => { if (sv.ok) { meta.current.token = sv.data.token; meta.current.draftId = sv.data.draftId; writeStore({ data: d, step, ...meta.current, at: Date.now() }); } }).catch(() => undefined);
+    }
+    if (!r) { setFailure('We could not reach our server. Check your connection and press Send request again. Your answers are saved on this device.'); return; }
     if (!r.ok) {
-      if (r.fieldErrors) { const first = Math.min(...Object.keys(r.fieldErrors).map(stepOfKey)); setErrors(Object.fromEntries(Object.entries(r.fieldErrors).filter(([k]) => stepOfKey(k) === first))); show(first); }
+      // the reason beside its field, on the step that has it
+      if (r.fieldErrors && Object.keys(r.fieldErrors).length) {
+        const first = Math.min(...Object.keys(r.fieldErrors).map(stepOfKey)); setErrors(Object.fromEntries(Object.entries(r.fieldErrors).filter(([k]) => stepOfKey(k) === first))); show(first);
+        requestAnimationFrame(() => { const el = form.current?.querySelector<HTMLElement>('.has-error input, .has-error select, .has-error textarea, .has-error button'); el?.focus({ preventScroll: true }); });
+      }
       setFailure(r.message); return;
     }
     try {
@@ -317,7 +328,7 @@ export function RequestWizard(p: WizardProps) {
     const addrKey = kind === 'pickup' ? 'pickupAddress' : 'returnAddress'; const apKey = kind === 'pickup' ? 'pickupAirport' : 'returnAirport';
     const id = kind === 'pickup' ? 'rq-addr1' : 'rq-addr2'; const apId = kind === 'pickup' ? 'rq-airport1' : 'rq-airport2';
     return (
-      <fieldset className="stack"><legend className="label">{kind === 'pickup' ? 'Where do you want to get the car?' : 'Where will you return it?'}</legend>
+      <fieldset className={`stack${err(k) ? ' has-error' : ''}`}><legend className="label">{kind === 'pickup' ? 'Where do you want to get the car?' : 'Where will you return it?'}</legend>
         {opt('ours', <>At our location <span className="muted">No charge</span></>, p.ourAddress ?? 'We send the address with your offer.')}
         {opt('owner', <>At the car owner’s location <span className="muted">No charge</span></>, 'Offered for this car. We send the address with your offer.', !car?.ownerLocation)}
         {opt('delivery', <>{kind === 'pickup' ? 'Deliver it to an address' : 'Pick it up from an address'} <span className="muted num">+{fee || 'the car’s fee'} plus distance</span></>, kind === 'pickup' ? 'Home, office or hotel, anywhere. We hand it over in person.' : 'Leave it with our driver instead of bringing it back.')}
@@ -330,6 +341,7 @@ export function RequestWizard(p: WizardProps) {
           </div>
         )}
         {opt('airport', <>At the airport <span className="muted num">+{fee || 'the car’s fee'} plus distance</span></>, `${p.airports.map((a) => a.name).join(' and ')}. An airport surcharge may apply.`)}
+        <p className="error" role="alert" data-testid={`rq-${k}-err`}>{err(k) ?? ''}</p>
         {val === 'airport' && (
           <div className={fieldCls(apKey)}>
             <label className="label" htmlFor={apId}>Airport</label>
@@ -392,7 +404,7 @@ export function RequestWizard(p: WizardProps) {
 
       <div className="wrap req__layout">
         <form className="req__form" noValidate aria-label="Request to book" ref={form} onSubmit={send}>
-          {failure && <p className="alert alert--error" role="alert"><span className="alert__title">Not sent yet</span><span>{failure}</span></p>}
+          {failure && <p className="alert alert--error" role="alert" data-testid="rq-failure"><span className="alert__title">Not sent yet</span><span>{failure}</span></p>}
           <section data-step="1" className="req__step stack-lg" aria-labelledby="rs1" hidden={step !== 1}>
             <h2 className="d3" id="rs1" tabIndex={-1}>Your dates</h2>
             <div className={fieldCls('car')}><label className="label" htmlFor="rq-car">Car</label>
@@ -500,11 +512,12 @@ export function RequestWizard(p: WizardProps) {
               {p.affiliate && <AffiliateNote name={p.affiliate} placement="booking_step" />}
             </fieldset>
             )}
-            <fieldset className="field"><legend className="label">Booking type</legend><InfoTip k="cancellation" topic="the cancellation rules" />
+            <fieldset className={fieldCls('bookingType')}><legend className="label">Booking type</legend><InfoTip k="cancellation" topic="the cancellation rules" />
               <div className="stack">
                 <label className="option"><input type="radio" name="bookingType" value="standard" checked={bookingType === 'standard'} onChange={() => set('bookingType', 'standard')} /><span className="option__title">Standard</span><span className="option__body">Cancel {p.tokens.cEarly} hours or more before pickup for {p.tokens.c2} back. <Link className="link" href="/cancellation-policy">All tiers</Link>.</span></label>
                 <label className="option"><input type="radio" name="bookingType" value="non_refundable" disabled={!nonRefOk} checked={bookingType === 'non_refundable'} onChange={() => set('bookingType', 'non_refundable')} /><span className="option__title">Non-refundable, {p.tokens.nonRef} off the rental charge</span><span className="option__body">{nonRefOk ? 'Cheaper, but no refund if you cancel, miss pickup or return early.' : `Only when you book at least ${p.rules.nonRefMinDays} days before pickup.`}</span></label>
               </div>
+              <p className="error" role="alert">{err('bookingType') ?? ''}</p>
             </fieldset>
             <div className={fieldCls('notes')}><label className="label" htmlFor="rq-notes">Anything we should know? <span className="opt">optional</span></label><textarea className="textarea" id="rq-notes" maxLength={p.rules.noteMax} value={d.notes} onChange={(e) => set('notes', e.target.value)} placeholder="Flight number, a trip outside Ontario, a pet coming along" aria-describedby="rq-notes-hint" /><p className="hint" id="rq-notes-hint">Trips outside Ontario and pets need our approval first, so mention them here.</p>{errEl('notes', 'rq-notes')}</div>
             <div className="req__nav"><button type="button" className="btn btn--ghost" onClick={() => show(2)}>Back</button><button type="button" className="btn btn--primary btn--lg" onClick={() => { if (validate(3)) show(4); }}>Continue to add-ons</button></div>
@@ -513,7 +526,8 @@ export function RequestWizard(p: WizardProps) {
           <section data-step="4" className="req__step stack-lg" aria-labelledby="rs4" hidden={step !== 4}>
             <h2 className="d3" id="rs4" tabIndex={-1}>Add-ons</h2>
             <p className="hint">Optional extras for your trip. The estimate shows the price as you choose. Anything that needs our confirmation is confirmed in your offer.</p>
-            {!car ? <p className="muted">Choose a car first.</p> : <AddonPicker idPrefix="rq" options={addonOptions} value={d.addons} onChange={(v) => set('addons', v)} />}
+            <div className={fieldCls('addons')}>{!car ? <p className="muted">Choose a car first.</p> : <AddonPicker idPrefix="rq" options={addonOptions} value={d.addons} onChange={(v) => set('addons', v)} />}
+              <p className="error" role="alert">{err('addons') ?? ''}</p></div>
             {game.card(4)}
             <div className="req__nav"><button type="button" className="btn btn--ghost" onClick={() => show(3)}>Back</button><button type="button" className="btn btn--primary btn--lg" onClick={() => { if (validate(4)) show(5); }}>Review request</button></div>
           </section>
