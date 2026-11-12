@@ -291,6 +291,38 @@ services:
     plugins:
       - name: cors
 
+  ## Realtime websocket (release 41, live updates): /realtime/v1/websocket -> the realtime container (compose profile
+  ## "realtime"). Public broadcast channels only (web/src/features/live/realtime/socket.ts); the anon key is required.
+  ## While the container is off, this answers 502/503 and the portals read every 2 seconds instead.
+  - name: realtime-v1-ws
+    _comment: 'Realtime: /realtime/v1/* -> ws://realtime-dev.supabase-realtime:4000/socket/*'
+    url: http://realtime-dev.supabase-realtime:4000/socket
+    protocol: ws
+    routes:
+      - name: realtime-v1-ws
+        strip_path: true
+        paths:
+          - /realtime/v1/
+    plugins:
+      - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: false
+      - name: request-transformer
+        config:
+          add:
+            headers:
+              - "x-api-key:$LUA_RT_WS_EXPR"
+          replace:
+            headers:
+              - "x-api-key:$LUA_RT_WS_EXPR"
+      - name: acl
+        config:
+          hide_groups_header: true
+          allow:
+            - admin
+            - anon
+
   ## Everything else: 404 (no Studio behind the public address)
   - name: not-found
     url: http://127.0.0.1:1/

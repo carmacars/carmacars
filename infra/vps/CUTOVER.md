@@ -32,8 +32,12 @@ browser ─┐
   `DB_BACKEND`, if one is ever set, wins) decides whether the
   deploy and every workflow use the Management API and `<ref>.supabase.co`, or the server over SSH
   (`scripts/deploy/lib.sh`, `scripts/deploy/vps.sh`, `scripts/deploy/sb.sh`).
-- **Left out:** Realtime, Analytics, Vector and imgproxy (the app uses none of them). Supavisor is there but off
+- **Left out:** Analytics, Vector and imgproxy (the app uses none of them). Supavisor is there but off
   (compose profile `pooler`): nothing outside the server connects to Postgres directly. Studio is on 127.0.0.1 only.
+- **Realtime (release 41, live updates):** there but off (compose profile `realtime`). Without it the portals read their
+  live versions every 2 seconds (`live_poll`, straight to the database API); with it they listen on public broadcast
+  channels and read once a minute. To enable: add `COMPOSE_PROFILES=realtime` to `/opt/carmacars/supabase/.env`, then
+  `dc up -d` (Kong already routes `/realtime/v1/`; migration 2500 creates the `_realtime` schema it needs).
 
 ### Files
 

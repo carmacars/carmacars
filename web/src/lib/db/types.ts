@@ -32112,6 +32112,7 @@ export type Database = {
       help_stuck_settings: { Args: never; Returns: Json };
       hiring_role_public: { Args: { p_slug: string }; Returns: Json };
       hiring_roles_public: { Args: never; Returns: Json };
+      live_poll: { Args: { p_topics: string[] }; Returns: Json };
       load_form_draft: { Args: { p_form_code: string; p_user?: string; p_token?: string; p_entity_table?: string; p_entity_id?: string }; Returns: Json };
       maintenance_cost_for: { Args: { p_make: string; p_segment: string }; Returns: Json };
       mark_notifications_read: { Args: { p_ids?: string[] }; Returns: number };
@@ -32486,6 +32487,7 @@ export type Database = {
       server_listing_claim: { Args: { p_worker: string; p_limit?: number }; Returns: Json };
       server_listing_image_mode: { Args: never; Returns: Json };
       server_listing_result: { Args: { p_job: string; p: Json }; Returns: Json };
+      server_live_topics: { Args: { p_user: string; p_scopes: string[] }; Returns: Json };
       server_manual_rental_sign_charge: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_manual_rental_sign_charged: { Args: { p_booking: string; p_by: string; p: Json }; Returns: Json };
       server_maps_take: { Args: { p_sku: string }; Returns: boolean };

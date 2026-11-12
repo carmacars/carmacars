@@ -11,15 +11,19 @@ import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
 import { StuckHelp } from '@/features/help/StuckHelp';
 import { TermsGate } from '@/features/terms/TermsGate';
 import { PushInvite } from '@/features/push/PushAlerts';
+import { LivePortal } from '@/features/live/realtime/LiveRefresh';
+import { liveTokens } from '@/server/live';
 
 // The owner portal shell (04-owner.md): the same phone-first frame as the renter portal. Each page
 // checks the session and the owner role itself (requireOwner).
 export default async function OwnerLayout({ children }: { children: React.ReactNode }) {
   const user = await currentUser();
   if (!user) return <>{children}</>;
-  const [unread, partner] = await Promise.all([
+  const [unread, partner, live] = await Promise.all([
     rpc('my_unread_count', {}, { role: 'authenticated', userId: user.id }).then(Number).catch(() => 0),
-    rpc('partner_agreement_state', { p_by: user.id }, { role: 'service_role' }).then((r) => !!r).catch(() => false)
+    rpc('partner_agreement_state', { p_by: user.id }, { role: 'service_role' }).then((r) => !!r).catch(() => false),
+    // r41: live updates (server/live.ts): the owner's own bookings and alerts
+    liveTokens(user.id, ['me', 'owner'])
   ]);
   return (
     <div className="pt pt--lux pt--rv">
@@ -32,6 +36,7 @@ export default async function OwnerLayout({ children }: { children: React.ReactN
         <OwnerNav unread={unread || 0} partner={partner} />
         <GuideBanner portal="owner" userId={user.id} /><StuckHelp portal="owner" />
         <PushInvite portal="owner" home="/owner" userId={user.id} />
+        <LivePortal tokens={live} />
       </div>
       <div className="wrap pt__body"><TermsGate userId={user.id} portal="owner">{children}</TermsGate></div>
     </div>
