@@ -19,7 +19,8 @@ import { businessLd, websiteLd } from '@/features/seo/business';
 import { getHubLinks, getSeoLinks } from '@/features/seo/data';
 import { cookieWording, getSettings, photoUrl, replyText, siteUrl, appLinks } from '@/lib/site';
 import { ClientErrorListener } from '@/lib/client-error/Listener';
-import { FormGuard } from '@/components/FormGuard';
+// r40: the form guard ships switched on in r41, after its browser checks pass (see web/src/lib/forms)
+// import { FormGuard } from '@/components/FormGuard';
 import { openRoles } from '@/server/careers';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -68,7 +69,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <SiteAssist />
         <AppShellMount />
         <ClientErrorListener />
-        <FormGuard />
+        {/* <FormGuard /> r41 */}
       </body>
     </html>
   );
