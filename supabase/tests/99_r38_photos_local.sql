@@ -24,8 +24,10 @@ select test.throws('only an Admin runs it', $$select app.door(test.id('pl_fleet'
 create temp table pl_r as select app.door(test.id('r38pl_admin'), 'aal2', 'admin_do', 'listing_photos_reprocess_local', '{}') r;
 -- the action covers every listing (earlier suites leave failed photo steps too): this listing's three are among them
 select test.ok('the three steps of the one listing are queued again', (select (r ->> 'steps')::int >= 3 and (r ->> 'listings')::int >= 1 from pl_r));
+-- r40 (2450): every photo step of the listing, also the ones still waiting in the queue (held by the day's budget before)
 select test.eq('each of them now runs without the service, from its first attempt, at once',
-  (select count(*) from listing_jobs where intake_id = test.pl_i() and status = 'queued' and attempts = 0 and (input ->> 'local_only')::boolean and next_attempt_at <= now() and error is null), 3::bigint);
+  (select count(*) from listing_jobs where intake_id = test.pl_i() and status = 'queued' and attempts = 0 and (input ->> 'local_only')::boolean and next_attempt_at <= now() and error is null),
+  (select count(*) from listing_jobs where intake_id = test.pl_i() and kind = 'process_photo'));
 select test.eq('the failed listing is back to processing its photos', (select state from listing_intakes where id = test.pl_i()), 'processing_photos');
 select test.ok('steps not stuck are left as they were', not exists (select 1 from listing_jobs where intake_id = test.pl_i() and status = 'queued' and attempts = 0 and input ? 'local_only' is false and kind = 'decode_vin' and error is not null));
 select test.ok('it is in the audit log', exists (select 1 from audit_log where action = 'listing_photos_reprocess_local' and actor_user_id = test.id('r38pl_admin')));

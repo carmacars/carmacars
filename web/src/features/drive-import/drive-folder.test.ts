@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { apiDownloadUrl, apiListUrl, byFileName, FOLDER_MIME, htmlReason, imageKindOf, isJunkName, mergeEntries, parseApiList, parseDriveLink, parseEmbeddedView, parseFolderPage, publicDownloadUrl, sniffBytes, unescapeJsString } from './drive-folder.ts';
+import { apiDownloadUrl, apiListUrl, byFileName, FOLDER_MIME, htmlReason, imageKindOf, isJunkName, mergeEntries, parseApiList, parseDriveLink, parseEmbeddedView, parseFolderPage, publicDownloadUrl, sniffBytes, thumbnailUrl, unescapeJsString } from './drive-folder.ts';
 
 // Synthetic pages: made-up ids (example only), shaped as Drive's folder page and embedded view are.
 const id = (n: number) => `SyntheticId${String(n).padStart(6, '0')}`;
@@ -86,6 +86,8 @@ test('the API: list address, answer, next page, download address', () => {
   assert.equal(parseApiList({}).next, null);
   assert.match(apiDownloadUrl(id(1), 'K'), /files\/SyntheticId000001\?alt=media&supportsAllDrives=true&key=K$/);
   assert.equal(publicDownloadUrl(id(1)), `https://drive.usercontent.google.com/download?id=${id(1)}&export=download&confirm=t`);
+  assert.equal(thumbnailUrl(id(1), 1024), `https://drive.google.com/thumbnail?id=${id(1)}&sz=w1024`, 'r40: the sorter\'s small copy');
+  assert.equal(thumbnailUrl(id(1), 99999), `https://drive.google.com/thumbnail?id=${id(1)}&sz=w2000`);
 });
 
 test('imageKindOf: images by mime or extension; junk, videos and documents are not photos', () => {

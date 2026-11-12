@@ -7,10 +7,10 @@ import { storage, type Bucket } from '@/integrations/storage';
 import { photoProcessor } from '@/integrations/photos';
 import { sha256Hex } from '@/server/links';
 import { workerToken } from '@/server/listing-worker';
-import { recordSort, sortShot } from '@/server/listing-sort';
+import { SORT_MAX_BYTES, recordSort, sortShot } from '@/server/listing-sort';
 import {
   apiDownloadUrl, apiListUrl, byFileName, embeddedViewUrl, folderPageUrl, htmlReason, imageKindOf, mergeEntries, parseApiList, parseEmbeddedView, parseFolderPage,
-  publicDownloadUrl, sniffBytes, type DriveEntry, type ImageKind
+  publicDownloadUrl, sniffBytes, thumbnailUrl, type DriveEntry, type ImageKind
 } from '@/features/drive-import/drive-folder';
 import { imageSize } from '@/features/drive-import/image-size';
 import { matchFolder, type Car } from '@/features/drive-import/drive-match';
@@ -157,6 +157,18 @@ export async function downloadPhoto(id: string, key: string | null, maxBytes: nu
   }
 }
 
+/** Drive's smaller copy of a shared photo (for the shot sorter); null when Drive does not give one. */
+export async function downloadThumb(id: string, f: typeof fetch = fetch): Promise<{ bytes: Uint8Array; type: string } | null> {
+  try {
+    const r = await f(thumbnailUrl(id, 1024), { headers: { 'user-agent': UA }, signal: AbortSignal.timeout(15_000), redirect: 'follow' });
+    if (!r.ok) return null;
+    const bytes = new Uint8Array(await r.arrayBuffer());
+    const kind = sniffBytes(bytes);
+    if ((kind !== 'jpeg' && kind !== 'png') || bytes.length >= SORT_MAX_BYTES) return null;
+    return { bytes, type: kind === 'png' ? 'image/png' : 'image/jpeg' };
+  } catch { return null; }
+}
+
 const EXT: Record<string, string> = { jpeg: 'jpg', png: 'png' };
 
 /** One photo: prepared by the database, downloaded, made a JPEG when it is HEIC or WebP, sorted to its shot, stored, recorded. */
@@ -196,7 +208,10 @@ async function importOne(file: FileJob, lim: Limits, apiKey: string | null): Pro
   if (bytes.length > lim.max_file_bytes) { await rpc('server_drive_import_skip', { p_file: file.id, p_reason: `Larger than ${Math.round(lim.max_file_bytes / 1048576)} MB` }, SR); return 'skipped'; }
   const type = kind === 'png' ? 'image/png' : 'image/jpeg';
   const size = imageSize(bytes);
-  const sorted = await sortShot(prep.created_by, bytes, type, new Set(prep.taken ?? []));
+  // r40 (2450): a camera's file is too large for the vision model, which then could not sort it (every photo of a Drive
+  // import was filed "Other detail"): the shot is read from Drive's own smaller copy of the photo
+  const small = bytes.length >= SORT_MAX_BYTES ? await downloadThumb(file.drive_id) : null;
+  const sorted = await sortShot(prep.created_by, small?.bytes ?? bytes, small?.type ?? type, new Set(prep.taken ?? []));
   const path = `vehicles/${prep.vehicle_id}/original/${prep.intake}/${sorted.shot}-${crypto.randomUUID().slice(0, 8)}.${EXT[kind] ?? 'jpg'}`;
   await s.put('vehicle-originals', path, bytes, type);
   let rec: { photo_id?: string; skipped?: boolean; failed?: boolean };

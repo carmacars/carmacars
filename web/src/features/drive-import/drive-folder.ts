@@ -31,6 +31,9 @@ export const folderPageUrl = (id: string) => `https://drive.google.com/drive/fol
 export const embeddedViewUrl = (id: string) => `https://drive.google.com/embeddedfolderview?id=${encodeURIComponent(id)}#list`;
 /** A public file's download (no key). `confirm=t` skips the virus-scan page of large files. */
 export const publicDownloadUrl = (id: string) => `https://drive.usercontent.google.com/download?id=${encodeURIComponent(id)}&export=download&confirm=t`;
+/** r40 (2450): a smaller copy of a shared photo that Drive makes itself (at most `width` pixels wide), for the shot sorter:
+ *  a camera's file is too large to send to the vision model. */
+export const thumbnailUrl = (id: string, width: number) => `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w${Math.max(64, Math.min(2000, Math.round(width)))}`;
 
 // ---------------------------------------------------------------- the folder page's embedded data
 /** Undoes the page's JavaScript string escapes (\xNN, \uNNNN, \\, \', \", \/, \n). */
