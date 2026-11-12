@@ -12,6 +12,7 @@ begin
   return new;
 end $$;
 revoke all on function app.staff_agreement_retry() from public, anon, authenticated;
+grant execute on function app.staff_agreement_retry() to service_role;
 
 drop trigger if exists staff_profiles_agreement_retry on staff_profiles;
 create trigger staff_profiles_agreement_retry after update of home_address, started_on, licence_number on staff_profiles
