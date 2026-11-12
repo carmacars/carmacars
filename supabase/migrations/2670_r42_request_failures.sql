@@ -269,3 +269,4 @@ update program_settings set booking_request_hourly_limit = 30 where booking_requ
 
 -- a trigger function: nobody calls it directly
 revoke all on function app.booking_request_failures_resolve() from public;
+grant execute on function app.booking_request_failures_resolve() to service_role;
