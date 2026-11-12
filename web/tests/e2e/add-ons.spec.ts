@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { acceptCookies, db, noOverflow } from './helpers';
+import { acceptCookies, db, noOverflow , chooseCardCoverage } from './helpers';
 
 // Add-ons (migration 0066) end to end, at 375 and 1440: a renter chooses a baby seat and flowers on the car page (priced
 // live), carries them into the request and sends it; customer service adds a chauffeur in the offer; field staff see
@@ -94,7 +94,7 @@ test('A renter adds a baby seat and flowers on the car page and sends the reques
   await page.locator('#rq-doby').fill('1990');
   await page.getByRole('button', { name: 'Continue to licence' }).click();
   await page.locator('label', { hasText: 'Ontario G2' }).click();
-  await page.locator('label.option', { hasText: 'Option 2' }).click();
+  await chooseCardCoverage(page);
   await page.getByRole('button', { name: 'Continue to add-ons' }).click();
   await expect(page.getByRole('heading', { name: 'Add-ons' })).toBeVisible();
   await expect(page.locator('#rq-flowers')).toBeChecked();

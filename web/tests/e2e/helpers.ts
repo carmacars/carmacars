@@ -338,3 +338,20 @@ export async function pickRange(page: Page, label: string, to: { quick: string }
   await clickDay(pop, to.from);
   await clickDay(pop, to.to);
 }
+
+/** r41 (2541): credit card coverage needs a card from the list that covers the car, and the tick to pay with it. Picks the
+ *  first card the live check says covers this car. */
+export async function chooseCardCoverage(page: import('@playwright/test').Page) {
+  const { expect } = await import('@playwright/test');
+  await page.locator('label.option', { hasText: 'Option 2' }).click();
+  const sel = page.getByTestId('coverage-card-select');
+  await expect(sel.locator('option').nth(1)).toBeAttached({ timeout: 15_000 });
+  const values = await sel.locator('option').evaluateAll((os) => os.map((o) => (o as HTMLOptionElement).value).filter(Boolean));
+  for (const v of values) {
+    await sel.selectOption(v);
+    const res = page.getByTestId('coverage-card-result');
+    await expect(res).toBeVisible({ timeout: 15_000 });
+    if (await res.evaluate((el) => el.classList.contains('alert--ok'))) break;
+  }
+  await page.getByTestId('coverage-card-ack').check();
+}

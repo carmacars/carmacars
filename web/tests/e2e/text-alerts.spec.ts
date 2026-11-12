@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { createHmac, randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { acceptCookies, db, noOverflow } from './helpers';
+import { acceptCookies, db, noOverflow , chooseCardCoverage } from './helpers';
 import { signQuo } from '../../src/features/phone/webhook';
 import { SAMPLES } from '../../src/features/phone/samples';
 
@@ -159,7 +159,7 @@ test('a booking request with Text: the email is skipped, the text is queued with
     await check(page, 'request, the driver');
     await page.getByRole('button', { name: 'Continue to licence' }).click();
     await page.locator('label', { hasText: 'Ontario G2' }).click();
-    await page.locator('label.option', { hasText: 'Option 2' }).click();
+    await chooseCardCoverage(page);
     await page.getByRole('button', { name: 'Continue to add-ons' }).click();
     await expect(page.getByRole('heading', { name: 'Add-ons' })).toBeVisible();
     await page.getByRole('button', { name: 'Review request' }).click();

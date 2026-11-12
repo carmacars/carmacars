@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { acceptCookies, db, noOverflow } from './helpers';
+import { acceptCookies, db, noOverflow , chooseCardCoverage } from './helpers';
 
 // Migration 0102 end to end: the /book car list labels (year, make, model, trim, colour and the from price, a car code
 // only between two identical labels, by price), the form rendered on the server with its car and price summary, the
@@ -61,7 +61,7 @@ test('review step: the Edit links stay on one line at 375, 768, 1024 and 1440', 
   await page.locator('#rq-doby').fill('1988');
   await page.getByRole('button', { name: 'Continue to licence' }).click();
   await page.locator('label', { hasText: 'Ontario G' }).first().click();
-  await page.locator('label.option', { hasText: 'Option 2' }).click();
+  await chooseCardCoverage(page);
   await page.getByRole('button', { name: 'Continue to add-ons' }).click();
   await page.getByRole('button', { name: 'Review request' }).click();
   for (const width of [375, 768, 1024, 1440]) {
@@ -116,7 +116,7 @@ test('a sample car: a real car free for the dates is offered; one tap switches; 
     await page.locator('#rq-doby').fill('1987');
     await page.getByRole('button', { name: 'Continue to licence' }).click();
     await page.locator('label', { hasText: 'Ontario G' }).first().click();
-    await page.locator('label.option', { hasText: 'Option 2' }).click();
+    await chooseCardCoverage(page);
     await page.getByRole('button', { name: 'Continue to add-ons' }).click();
     await page.getByRole('button', { name: 'Review request' }).click();
     await page.locator('input[name="agree"]').check();
