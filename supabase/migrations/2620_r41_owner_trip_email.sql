@@ -55,6 +55,12 @@ select app.notification_catalogue_refresh();
 -- CATALOGUE 2620 END
 update notification_catalogue set emitted_by = 'bookings_owner_trip_completed (2620): a booking on the owner''s car is returned' where code = 'owner_trip_completed';
 update notification_catalogue set emitted_by = 'app.job_owner_weekly (2620): Mondays from 9:00 Toronto time, once an owner a week', user_can_mute = true where code = 'owner_weekly_summary';
+-- text alerts (0096): the trip-complete notice has its own short text, as owner_new_booking had; the Monday summary is a
+-- list of cars and trips, so it is an email only and never a text
+insert into sms_templates (code, label, body, sort_order) values
+  ('owner_trip_completed', 'Owner: trip complete', 'CarmaCars: your {{vehicle_name}} is back, trip {{pickup_date}} to {{return_date}} complete. Details: {{link}}', 203)
+on conflict (code) do nothing;
+update notification_catalogue set no_text = true where code = 'owner_weekly_summary';
 
 -- a booking that is part of the owner's revenue and shown to the owner, other than an Owner Booking or a Turo trip
 create function app.owner_mail_booking(b bookings) returns boolean
@@ -122,6 +128,8 @@ comment on table owner_weekly_summaries is 'One row per owner and week once the 
 alter table owner_weekly_summaries enable row level security;
 revoke all on owner_weekly_summaries from public, anon, authenticated;
 grant select, insert, update, delete on owner_weekly_summaries to service_role;
+-- Admins may read it (every table carries the admin policy); the weekly job writes it
+create policy admin_all on owner_weekly_summaries for select to authenticated using (app.is_admin());
 
 -- the payload of one owner's Monday email, or null when there is nothing to report
 create function app.owner_weekly_payload(p_owner uuid, p_now timestamptz default now()) returns jsonb

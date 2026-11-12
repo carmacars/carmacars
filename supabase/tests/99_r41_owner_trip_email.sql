@@ -47,6 +47,9 @@ update bookings set odometer_out_km = 10000, odometer_in_km = 10412 where id = t
 update bookings set source = 'turo' where id = test.zob('ZO-3');
 update bookings set owner_visibility = 'until_statement' where id = test.zob('ZO-4');
 update bookings set owner_revenue_excluded = true where id = test.zob('ZO-5');
+-- the return Condition Report comes first: check-in needs it (0011)
+insert into condition_reports (vehicle_id, booking_id, kind, performed_by_role)
+select vehicle_id, id, 'return', 'staff' from bookings where booking_number in ('ZO-1', 'ZO-2', 'ZO-3', 'ZO-4', 'ZO-5', 'ZO-OWN');
 update bookings set status = 'returned', checked_in_at = return_at where booking_number in ('ZO-1', 'ZO-2', 'ZO-3', 'ZO-4', 'ZO-5', 'ZO-OWN');
 select app.compute_booking_split(test.zob('ZO-1'));
 select app.compute_booking_split(test.zob('ZO-4'));
