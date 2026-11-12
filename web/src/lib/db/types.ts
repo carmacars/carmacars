@@ -3542,6 +3542,8 @@ export type Database = {
           owner_revenue_excluded_reason: string | null;
           owner_revenue_excluded_by: string | null;
           owner_revenue_excluded_at: string | null;
+          any_car_priority: boolean;
+          any_car_due_at: string | null;
         };
         Insert: {
           id?: string;
@@ -3748,6 +3750,8 @@ export type Database = {
           owner_revenue_excluded_reason?: string | null;
           owner_revenue_excluded_by?: string | null;
           owner_revenue_excluded_at?: string | null;
+          any_car_priority?: boolean;
+          any_car_due_at?: string | null;
         };
         Update: {
           id?: string;
@@ -3954,6 +3958,8 @@ export type Database = {
           owner_revenue_excluded_reason?: string | null;
           owner_revenue_excluded_by?: string | null;
           owner_revenue_excluded_at?: string | null;
+          any_car_priority?: boolean;
+          any_car_due_at?: string | null;
         };
         Relationships: [];
       };
@@ -11739,6 +11745,8 @@ export type Database = {
           handled_at: string | null;
           handled_by: string | null;
           won_booking_id: string | null;
+          admin_assigned_by: string | null;
+          admin_assigned_at: string | null;
         };
         Insert: {
           id?: string;
@@ -11790,6 +11798,8 @@ export type Database = {
           handled_at?: string | null;
           handled_by?: string | null;
           won_booking_id?: string | null;
+          admin_assigned_by?: string | null;
+          admin_assigned_at?: string | null;
         };
         Update: {
           id?: string;
@@ -11841,6 +11851,8 @@ export type Database = {
           handled_at?: string | null;
           handled_by?: string | null;
           won_booking_id?: string | null;
+          admin_assigned_by?: string | null;
+          admin_assigned_at?: string | null;
         };
         Relationships: [];
       };
@@ -18185,7 +18197,6 @@ export type Database = {
           vpage_popular_from_year: number;
           vpage_year_min_cars: number;
           vpage_trim_min_cars: number;
-          vpage_min_year: number;
           vpage_gas_cents_per_litre: number;
           vpage_premium_extra_cents: number;
           vpage_electricity_cents_per_kwh: number;
@@ -18616,6 +18627,7 @@ export type Database = {
           listing_showroom_photo_bg: boolean;
           listing_showroom_car_width: number;
           listing_cutout_min_quality: number;
+          vpage_min_year: number;
         };
         Insert: {
           id?: string;
@@ -19017,7 +19029,6 @@ export type Database = {
           vpage_popular_from_year?: number;
           vpage_year_min_cars?: number;
           vpage_trim_min_cars?: number;
-          vpage_min_year?: number;
           vpage_gas_cents_per_litre?: number;
           vpage_premium_extra_cents?: number;
           vpage_electricity_cents_per_kwh?: number;
@@ -19448,6 +19459,7 @@ export type Database = {
           listing_showroom_photo_bg?: boolean;
           listing_showroom_car_width?: number;
           listing_cutout_min_quality?: number;
+          vpage_min_year?: number;
         };
         Update: {
           id?: string;
@@ -19849,7 +19861,6 @@ export type Database = {
           vpage_popular_from_year?: number;
           vpage_year_min_cars?: number;
           vpage_trim_min_cars?: number;
-          vpage_min_year?: number;
           vpage_gas_cents_per_litre?: number;
           vpage_premium_extra_cents?: number;
           vpage_electricity_cents_per_kwh?: number;
@@ -20280,6 +20291,7 @@ export type Database = {
           listing_showroom_photo_bg?: boolean;
           listing_showroom_car_width?: number;
           listing_cutout_min_quality?: number;
+          vpage_min_year?: number;
         };
         Relationships: [];
       };
@@ -20302,6 +20314,7 @@ export type Database = {
           max_discount_cents: number | null;
           min_rental_days: number | null;
           free_days: number | null;
+          company_funded: boolean;
         };
         Insert: {
           id?: string;
@@ -20321,6 +20334,7 @@ export type Database = {
           max_discount_cents?: number | null;
           min_rental_days?: number | null;
           free_days?: number | null;
+          company_funded?: boolean;
         };
         Update: {
           id?: string;
@@ -20340,6 +20354,7 @@ export type Database = {
           max_discount_cents?: number | null;
           min_rental_days?: number | null;
           free_days?: number | null;
+          company_funded?: boolean;
         };
         Relationships: [];
       };
@@ -22334,6 +22349,7 @@ export type Database = {
           tier_promo_id: string | null;
           reminded_for: string | null;
           created_at: string;
+          free_day_promo_id: string | null;
         };
         Insert: {
           renter_id: string;
@@ -22342,6 +22358,7 @@ export type Database = {
           tier_promo_id?: string | null;
           reminded_for?: string | null;
           created_at?: string;
+          free_day_promo_id?: string | null;
         };
         Update: {
           renter_id?: string;
@@ -22350,6 +22367,7 @@ export type Database = {
           tier_promo_id?: string | null;
           reminded_for?: string | null;
           created_at?: string;
+          free_day_promo_id?: string | null;
         };
         Relationships: [];
       };
@@ -22437,6 +22455,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      reward_tier_perks: {
+        Row: {
+          code: string;
+          tier_code: string;
+          label: string;
+          detail: string | null;
+          enabled: boolean;
+          sort: number;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          code: string;
+          tier_code: string;
+          label: string;
+          detail?: string | null;
+          enabled?: boolean;
+          sort?: number;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          code?: string;
+          tier_code?: string;
+          label?: string;
+          detail?: string | null;
+          enabled?: boolean;
+          sort?: number;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       reward_tiers: {
         Row: {
           code: string;
@@ -22445,14 +22496,18 @@ export type Database = {
           discount_bps: number;
           perk: string | null;
           sort: number;
+          min_points: number;
+          active: boolean;
         };
         Insert: {
           code: string;
           name: string;
-          min_days: number;
+          min_days?: number;
           discount_bps?: number;
           perk?: string | null;
           sort?: number;
+          min_points?: number;
+          active?: boolean;
         };
         Update: {
           code?: string;
@@ -22461,6 +22516,8 @@ export type Database = {
           discount_bps?: number;
           perk?: string | null;
           sort?: number;
+          min_points?: number;
+          active?: boolean;
         };
         Relationships: [];
       };
@@ -22477,6 +22534,7 @@ export type Database = {
           late_grace_minutes: number;
           updated_by: string | null;
           updated_at: string;
+          any_car_response_hours: number;
         };
         Insert: {
           singleton?: boolean;
@@ -22490,6 +22548,7 @@ export type Database = {
           late_grace_minutes?: number;
           updated_by?: string | null;
           updated_at?: string;
+          any_car_response_hours?: number;
         };
         Update: {
           singleton?: boolean;
@@ -22503,6 +22562,7 @@ export type Database = {
           late_grace_minutes?: number;
           updated_by?: string | null;
           updated_at?: string;
+          any_car_response_hours?: number;
         };
         Relationships: [];
       };
@@ -32057,6 +32117,7 @@ export type Database = {
       mark_notifications_read: { Args: { p_ids?: string[] }; Returns: number };
       model_hub: { Args: { p_hub: string }; Returns: Json };
       model_hubs: { Args: never; Returns: Json[] };
+      my_any_car: { Args: never; Returns: Json };
       my_booking: { Args: { p_number: string }; Returns: Json };
       my_booking_change_preview: { Args: { p_booking: string; p_changes: Json }; Returns: Json };
       my_booking_messages: { Args: { p_number: string }; Returns: Json };
@@ -32130,6 +32191,7 @@ export type Database = {
       register_account: { Args: { p_user: string; p_email: string; p_full_name: string; p_phone?: string }; Returns: Json };
       rent_vs_own_inputs: { Args: { p_make: string; p_model: string; p_year: number; p_city?: string }; Returns: Json };
       rent_vs_own_page: { Args: { p_make: string; p_model: string; p_year: number; p_city?: string }; Returns: Json };
+      rent_vs_own_page_pre2402: { Args: { p_make: string; p_model: string; p_year: number; p_city?: string }; Returns: Json };
       renter_agree_booking_change: { Args: { p_request: string; p_by: string; p_ip?: string; p_user_agent?: string }; Returns: undefined };
       renter_agreement_fill: { Args: { p_by: string; p_booking: string; p: Json }; Returns: Json };
       renter_agreement_missing: { Args: { p_booking: string; p_by: string }; Returns: Json };
@@ -32432,6 +32494,7 @@ export type Database = {
       server_money_action_finish: { Args: { p_payment: string; p: Json }; Returns: Json };
       server_my_account_links: { Args: { p_user: string }; Returns: Json };
       server_my_booking_addons: { Args: { p_booking: string; p_by: string }; Returns: Json };
+      server_my_discounts: { Args: { p_user: string }; Returns: Json };
       server_my_notify_channel: { Args: { p_user: string }; Returns: Json };
       server_my_promo_codes: { Args: { p_user: string }; Returns: Json };
       server_my_sign_in: { Args: { p_user: string }; Returns: Json };
