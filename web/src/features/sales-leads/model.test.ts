@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { age, claimPaceWords, claimWords, contactLinks, holdWords, HISTORY_LABEL, listQuery, minutes, pct, stateOf, type LeadClaim, type LeadHold } from './model.ts';
+import { age, BEFORE_TODAY_FILTER, bulkFilter, bulkWords, claimPaceWords, claimWords, contactLinks, contextLine, holdWords, HISTORY_LABEL, listQuery, minutes, owedWords, pct, signalGroup, stateOf, type LeadClaim, type LeadHold } from './model.ts';
 import { taskHref, adminTaskHref, type Task } from '../va/tasks.ts';
 
 const now = Date.parse('2026-11-08T15:00:00Z');
@@ -90,4 +90,51 @@ test('2320: an ended or missing hold is no hold; the log words exist', () => {
   assert.deepEqual(holdWords(null, now), { text: null, mine: false, locked: false });
   assert.deepEqual(holdWords(undefined, now), { text: null, mine: false, locked: false });
   for (const a of ['hold', 'hold_extend', 'hold_end']) assert.ok(HISTORY_LABEL[a], a);
+});
+
+// ---------------------------------------------------------------- 2411: the person behind the lead, bulk assignment
+test('2411: the person in one line: account, bookings, licence verified (never a number), leads', () => {
+  const account = { renter: true, has_sign_in: true, email_confirmed: true, identity_status: 'verified', licence_verified: true, blocked: false, since: null };
+  assert.equal(contextLine({ account, counts: { bookings: 2, leads: 1 } }), 'Has an account · 2 bookings · licence verified · 1 lead');
+  assert.equal(contextLine({ account: { ...account, has_sign_in: false, licence_verified: false, blocked: true }, counts: { bookings: 1, leads: 3 } }), 'Known renter · 1 booking · licence not verified · blocked · 3 leads');
+  assert.equal(contextLine({ account: { ...account, renter: false, has_sign_in: false }, counts: { bookings: 0, leads: 1 } }), 'Not a renter yet · 0 bookings · 1 lead');
+});
+
+test('2411: money owed in words, or nothing', () => {
+  const fmt = (c: number) => `$${(c / 100).toFixed(2)}`;
+  assert.equal(owedWords(null, fmt), null);
+  assert.equal(owedWords({ owed_cents: 0, rental_cents: 0, charges_cents: 0, overdue: false }, fmt), null);
+  assert.equal(owedWords({ owed_cents: 15000, rental_cents: 10000, charges_cents: 5000, overdue: true }, fmt), '$150.00 owed ($100.00 rental, $50.00 charges after a rental), overdue');
+});
+
+test('2411: signals fall in groups (talk, site, money, lead); an unknown kind is a site signal', () => {
+  for (const t of ['call', 'text', 'whatsapp', 'chat', 'email']) assert.equal(signalGroup(t), 'talk', t);
+  for (const t of ['visit', 'car_view', 'quote_seen', 'offer_viewed', 'pay_viewed', 'email_link_opened']) assert.equal(signalGroup(t), 'site', t);
+  for (const t of ['booking', 'rented', 'cancelled', 'review']) assert.equal(signalGroup(t), 'money', t);
+  assert.equal(signalGroup('lead'), 'lead'); assert.equal(signalGroup('something_new'), 'site');
+});
+
+test('2411: the bulk filter is the list filter without the page, sort or Mine; the one press is unassigned and before today', () => {
+  assert.deepEqual(bulkFilter({ status: 'unclaimed', source: 'Live chat', age: '30', assigned: 'none', q: 'suv', sort: 'oldest', page: '3', mine: '1' }),
+    { status: 'unclaimed', source: 'Live chat', age: 30, assigned: 'none', q: 'suv' });
+  assert.deepEqual(bulkFilter({ type: 'renter' }, 'owner'), { type: 'owner' });
+  assert.deepEqual({ ...BEFORE_TODAY_FILTER }, { before_today: true, assigned: 'none', status: 'unclaimed' });
+});
+
+test('2411: bulk results in words: preview, assigned, already assigned, left for the next press, the pool', () => {
+  assert.equal(bulkWords({ preview: true, matched: 0, cap: 500 }), 'No open lead matches.');
+  assert.equal(bulkWords({ preview: true, matched: 3, cap: 500 }), '3 leads match.');
+  assert.equal(bulkWords({ preview: true, matched: 620, cap: 500 }), '620 leads match. 500 go each time you press; press again for the rest.');
+  assert.equal(bulkWords({ matched: 620, changed: 499, unchanged: 1, left: 120, cap: 500, to_name: 'Val Sales' }), '499 leads assigned to Val Sales. 1 lead already was. 120 leads left: press again.');
+  assert.equal(bulkWords({ matched: 1, changed: 1, cap: 500, pool: true }), '1 lead back in the pool.');
+  assert.equal(HISTORY_LABEL.assign, 'Assigned by an Admin to');
+});
+
+test('2411: the lead page and the cards carry the person; the database never sends a licence number', () => {
+  const pages = readFileSync(join(import.meta.dirname, 'pages.tsx'), 'utf8');
+  assert.match(pages, /'lead_context'/);
+  assert.match(readFileSync(join(import.meta.dirname, 'LeadList.tsx'), 'utf8'), /<RenterToggle /);
+  const sql = readFileSync(join(import.meta.dirname, '../../../../supabase/migrations/2411_r40_leads.sql'), 'utf8');
+  const ctx = sql.slice(sql.indexOf('create or replace function app.lead_context('), sql.indexOf('create or replace function app.lead_context_open('));
+  for (const banned of ['licence_number', 'date_of_birth', 'card_last4', 'payment_methods', 'sin']) assert.ok(!new RegExp(`\\b${banned}\\b`).test(ctx), banned);
 });

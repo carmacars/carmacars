@@ -6,7 +6,7 @@ import { PageHead } from '@/features/admin/ui';
 import { LeadList } from './LeadList';
 import { LeadPage } from './LeadPage';
 import { SalesDashboard, SalesTeam } from './SalesDashboard';
-import { listQuery, type CallTeam, type Dashboard, type LeadDetail, type LeadList as Data, type LeadType } from './model';
+import { listQuery, type CallTeam, type Dashboard, type LeadContext, type LeadDetail, type LeadList as Data, type LeadType } from './model';
 
 /** The one Sales lead list, the same for an Admin and staff (r35): the page's base decides the portal. The Admin's copy has
  *  the team tab (the leaderboard); staff see their own numbers on top. `type` fixes the lead type (Owners > Leads). */
@@ -35,6 +35,7 @@ export async function SalesLeadPage({ ctx, id, base, chatBase }: { ctx: PageCtx;
   const d = await ctx.read<LeadDetail>('sales_lead', { id }).catch(() => null);
   if (!d) notFound();
   // r35 part C (1506): the lead's intent signals
-  const intent = await ctx.ops<Intent | null>('intent', { lead: id }).catch(() => null);
-  return <><IntentCard intent={intent} /><LeadPage d={d} base={base} chatHref={d.chat_id ? `${chatBase}?view=chat&id=${d.chat_id}` : null} /></>;
+  // r40 (2411): the whole person behind the lead, the same for an Admin and staff (the database decides how much)
+  const [intent, context] = await Promise.all([ctx.ops<Intent | null>('intent', { lead: id }).catch(() => null), ctx.read<LeadContext>('lead_context', { lead: id }).catch(() => null)]);
+  return <><IntentCard intent={intent} /><LeadPage d={d} base={base} chatHref={d.chat_id ? `${chatBase}?view=chat&id=${d.chat_id}` : null} context={context} /></>;
 }

@@ -11,9 +11,11 @@ export interface LeadRow {
   excerpt: string; vehicle: string | null; created_at: string; status: string; outcome: Outcome | null; outcome_reason: string | null;
   assigned_to: string | null; assigned_name: string | null; claim: LeadClaim | null; /** 2320 */ hold?: LeadHold | null; priority: number; hot: boolean; value_cents: number | null;
   first_contact_at: string | null; handled_at: string | null; new: boolean;
+  /** 2411: the assignment is an Admin's (bulk Assign to): it does not run out and nobody else claims it */ admin_assigned?: boolean;
 }
 export interface Person { id: string; name: string }
 export interface LeadList { rows: LeadRow[]; count: number; sources: Array<{ source: string; n: number }>; mine_active: number; max_active: number; admin: boolean; people: Person[];
+  /** 2411: who an Admin can assign leads to (active, onboarded Sales) */ assignees?: Person[];
   /** 1152: the pacing and the person's cap */ next_claim_at?: string | null; claim_cooldown_minutes?: number; paced?: boolean; cap?: LeadCap }
 export interface LeadDetail extends LeadRow {
   message: string | null; source_url: string | null; owner_id: string | null; pipeline_stage: string | null; form: Record<string, string>; chat_id: string | null;
@@ -36,7 +38,7 @@ export const TYPE_LABEL: Record<LeadType, string> = { renter: 'Renter', owner: '
 export const OUTCOME_LABEL: Record<Outcome, string> = { contacted: 'Contacted', call_booked: 'Call booked', applied: 'Applied', won: 'Won', lost: 'Lost' };
 export const OUTCOMES = Object.keys(OUTCOME_LABEL) as Outcome[];
 export const STATUS_CHIPS: Array<[string, string]> = [['', 'Open'], ['new', 'New'], ['unclaimed', 'Not claimed'], ['claimed', 'Claimed'], ['contacted', 'Contacted'], ['won', 'Won'], ['lost', 'Lost'], ['handled', 'Handled'], ['all', 'All']];
-export const HISTORY_LABEL: Record<string, string> = { claim: 'Claimed', extend: 'Claim extended', unclaim: 'Unclaimed', expire: 'Claim ran out', reassign: 'Reassigned to', release: 'Claim released', return: 'Returned to', hold: 'Handling a call:', hold_extend: 'Another call handled by', hold_end: 'Hold ended for' };
+export const HISTORY_LABEL: Record<string, string> = { claim: 'Claimed', extend: 'Claim extended', unclaim: 'Unclaimed', expire: 'Claim ran out', reassign: 'Reassigned to', release: 'Claim released', return: 'Returned to', hold: 'Handling a call:', hold_extend: 'Another call handled by', hold_end: 'Hold ended for', assign: 'Assigned by an Admin to' };
 export const CHANNEL_LABEL: Record<string, string> = { call: 'Call', text: 'Text', email: 'Email', note: 'Note' };
 
 const time = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', hour: 'numeric', minute: '2-digit', hour12: true }).format(new Date(iso)).replace(/\s?([ap])\.?m\.?/i, ' $1m').toLowerCase();
@@ -117,3 +119,74 @@ export function claimPaceWords(p: { held: number; max: number; nextAt: string | 
   const grow = p.winsToNext ? ` · ${p.winsToNext} more win${p.winsToNext === 1 ? '' : 's'} for one more` : '';
   return [`you hold ${p.held} of ${p.max}${cap}${grow}`, pace].filter(Boolean).join(' · ');
 }
+
+// ---------------------------------------------------------------- 2411: the person behind the lead, bulk assignment
+
+/** One thing the person did with us (app.person_signals), newest first. */
+export interface Signal { at: string; type: string; title: string; detail: string | null; dir: 'in' | 'out' | null }
+export interface ContextBooking { number: string; car: string | null; status: string; pickup_at: string; return_at: string; total_cents: number | null; open_cents: number | null; upcoming: boolean }
+/** read lead_context {lead}: the whole person behind the lead. `full` false: staff outside the renter's window who do not
+ *  have the lead (contact, account and counts only). Never a licence number, a card or a date of birth. */
+export interface LeadContext {
+  lead_id: string; full: boolean; admin: boolean; why_limited: string | null; renter_id: string | null;
+  contact: { name: string | null; preferred_name: string | null; email: string | null; phone: string | null; city: string | null };
+  account: { renter: boolean; has_sign_in: boolean; email_confirmed: boolean; identity_status: string | null; licence_verified: boolean; blocked: boolean; since: string | null };
+  roles: string[]; counts: { bookings: number; leads: number };
+  intent: { score: number; label: string; reasons?: Array<{ label: string; points: number }> } | null;
+  bookings?: ContextBooking[];
+  balance?: { owed_cents: number; rental_cents: number; charges_cents: number; overdue: boolean } | null;
+  deposit?: { required_cents: number; held_cents: number; how: string | null; state: string } | null;
+  requests?: Array<{ kind: string; label: string; booking_number: string | null; at: string }>;
+  offers?: Array<{ booking: string; version: number; status: string; sent_at: string | null; expires_at: string | null; total_cents: number | null; car: string | null; by: string | null }>;
+  leads?: Array<{ id: string; at: string; source: string; status: string; outcome: string | null; handled: boolean; excerpt: string | null; this: boolean }>;
+  activity?: Array<{ at: string; type: string; title: string; body: string | null; by: string | null }>;
+  notes?: Array<{ id: string; body: string; at: string; author: string; role: string; booking_number: string | null }>;
+  staff_note?: string | null;
+  reviews?: Array<{ at: string; rating: number; title: string | null; body: string | null; status: string; booking: string | null }>;
+  incidents?: Array<{ number: string; kind: string; status: string; at: string; booking: string; claims: Array<{ number: string; status: string }> }>;
+  handled_by?: Array<{ id: string; name: string; what: string[] }>;
+  behaviour?: Record<string, number | boolean | string | null>;
+  signals?: Signal[];
+}
+
+export const DEPOSIT_WORDS: Record<string, string> = { held: 'Held', waived: 'Waived', released: 'Released', failed: 'Failed', none: 'None needed', not_taken: 'Not taken yet' };
+const SIGNAL_GROUP: Record<string, 'talk' | 'site' | 'money' | 'lead'> = {
+  call: 'talk', text: 'talk', whatsapp: 'talk', messenger: 'talk', instagram: 'talk', chat: 'talk', email: 'talk',
+  visit: 'site', car_view: 'site', quote_seen: 'site', offer_viewed: 'site', pay_viewed: 'site', change_viewed: 'site', email_link_opened: 'site', request_submitted: 'site',
+  booking: 'money', rented: 'money', cancelled: 'money', review: 'money', lead: 'lead' };
+/** Which group a signal belongs to (the timeline's filter chips): talk (calls, texts, WhatsApp, chat, email), site (visits and
+ *  what they looked at), money (bookings, rentals, cancellations, reviews), lead. Unknown types are 'site'. */
+export const signalGroup = (type: string) => SIGNAL_GROUP[type] ?? 'site';
+
+/** The person in one line: "Known renter · 2 bookings · licence verified · 3 leads". */
+export function contextLine(c: Pick<LeadContext, 'account' | 'counts'>): string {
+  const n = (k: number, w: string) => `${k} ${w}${k === 1 ? '' : 's'}`;
+  return [c.account.renter ? (c.account.has_sign_in ? 'Has an account' : 'Known renter') : 'Not a renter yet',
+    n(c.counts.bookings, 'booking'), c.account.renter ? (c.account.licence_verified ? 'licence verified' : 'licence not verified') : null,
+    c.account.blocked ? 'blocked' : null, n(c.counts.leads, 'lead')].filter(Boolean).join(' · ');
+}
+
+/** The money owed in words, or null when nothing is owed. */
+export function owedWords(b: LeadContext['balance'], fmt: (cents: number) => string): string | null {
+  if (!b || !b.owed_cents) return null;
+  const parts = [b.rental_cents ? `${fmt(b.rental_cents)} rental` : null, b.charges_cents ? `${fmt(b.charges_cents)} charges after a rental` : null].filter(Boolean);
+  return `${fmt(b.owed_cents)} owed${parts.length ? ` (${parts.join(', ')})` : ''}${b.overdue ? ', overdue' : ''}`;
+}
+
+/** The result of a bulk assignment, bulk return or preview, as the Admin reads it. */
+export interface BulkResult { matched: number; changed?: number; unchanged?: number; left?: number; cap: number; preview?: boolean; to_name?: string | null; pool?: boolean }
+export function bulkWords(r: BulkResult): string {
+  const n = (k: number) => `${k} lead${k === 1 ? '' : 's'}`;
+  if (r.preview) return r.matched ? `${n(r.matched)} match.${r.matched > r.cap ? ` ${r.cap} go each time you press; press again for the rest.` : ''}` : 'No open lead matches.';
+  const done = r.pool ? `${n(r.changed ?? 0)} back in the pool` : `${n(r.changed ?? 0)} assigned to ${r.to_name ?? 'them'}`;
+  return [`${done}.`, r.unchanged ? `${n(r.unchanged)} already ${r.unchanged === 1 ? 'was' : 'were'}.` : null, r.left ? `${n(r.left)} left: press again.` : null].filter(Boolean).join(' ');
+}
+
+/** The filter of a bulk assignment: the list's own filters (status, type, source, age, assigned, words), never the page or sort. */
+export function bulkFilter(sp: Record<string, string | undefined>, fixedType?: LeadType): Record<string, unknown> {
+  const f = listQuery(sp, fixedType);
+  for (const k of ['offset', 'limit', 'sort', 'mine']) delete f[k];
+  return f;
+}
+/** The one press: every open lead nobody has (no assignee, no claim, no hold) that came in before today. */
+export const BEFORE_TODAY_FILTER = { before_today: true, assigned: 'none', status: 'unclaimed' } as const;
