@@ -57,7 +57,8 @@ import type { AccidentCardData } from '@/features/accident-card/model';
 import { CountdownTable } from '@/features/deposit-review/Countdowns';
 import { stageWords, type Countdowns, type ReviewView } from '@/features/deposit-review/model';
 import { activityQuery, readParams, type ActivityPage } from '@/features/activity/model';
-import { readinessLines, readinessSummary, showReadiness } from './readiness';
+import { readyNext, readinessHref, readinessLines, readinessSummary, showReadiness } from './readiness';
+import { JumpLink } from './JumpLink';
 import { PrepareProgress } from '@/features/field-portal/PrepareProgress';
 import type { PrepareProgressData } from '@/features/field-portal/prepare';
 import { NameChangeCard } from '@/features/admin/NameChangeCard';
@@ -301,13 +302,16 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
           paidCents: (payments ?? []).filter((r) => r.kind === 'charge' && r.status === 'succeeded').reduce((a, r) => a + Number(r.amount_cents ?? 0), 0),
           readiness: b.readiness, insurerBilled: b.bill_to !== 'renter', addons: prepare ? { total: prepare.total, ticked: prepare.ticked } : null });
         return (
-          <Card title="Ready for the rental" testId="booking-readiness" aside={<span className="small" data-testid="booking-readiness-summary">{readinessSummary(lines)}</span>}>
+          <div id="booking-readiness"><Card title="What's left" testId="booking-readiness" aside={<span className="small" data-testid="booking-readiness-summary">{readinessSummary(lines)}</span>}>
+            {/* r38 (owner, Nov 11): each thing left jumps straight to where it is done; ticked once done */}
             <ul className="ready-list">{lines.map((l) => (
               <li key={l.key} className={l.done ? 'is-done' : ''} data-testid={`ready-${l.key}`}>
                 <span className="ready-list__mark" aria-hidden="true">{l.done ? '✓' : ''}</span>
-                <span><b>{l.label}</b><span className="vh">{l.done ? ', done' : ', not yet'}</span>{!l.done && <small className="muted"> {l.hint}</small>}</span>
+                <span>{l.done ? <b>{l.label}</b> : <JumpLink href={readinessHref(l.key, base)} testId={`ready-go-${l.key}`}><b>{l.label}</b></JumpLink>}
+                  <span className="vh">{l.done ? ', done' : ', not yet'}</span>{!l.done && <small className="muted"> {l.hint}</small>}</span>
               </li>))}</ul>
-          </Card>);
+            {readyNext(lines) && <div className="ready-next" data-testid="ready-next"><JumpLink href={readinessHref(readyNext(lines)!.key, base)} testId="ready-next-go">Next: {readyNext(lines)!.label}</JumpLink></div>}
+          </Card></div>);
       })()}
       <ClaimBanner />
       <ReplacedNote chain={chain} portal={portal} />
@@ -358,7 +362,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
       {ride && <RideshareStaffCard f={ride} lettersHref={`${base}/rideshare`} />}
       {on('review') && (
         <>
-          <div className={can.admin ? 'ad-cols ad-cols--2' : undefined}>
+          <div id="bk-review" className={can.admin ? 'ad-cols ad-cols--2' : undefined}>
             <Card title="The request as sent">
               <Kv rows={[['Pickup', t(b.request_sent.pickup_at)], ['Return', t(b.request_sent.return_at)], ['Note', String(b.request_note ?? '')],
                 ['Renter', renterContact ? <>{renterContact('renter-phone')} · {b.renter?.bookings ? `${b.renter.bookings} past bookings` : 'first booking'}{b.renter?.is_blocked ? <b className="ad-late"> blocked</b> : null}</>
@@ -423,7 +427,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
         </div>
       )}
       {on('money') && (
-        <div className="stack">
+        <div className="stack" id="bk-money">
           {/* r29 C0: Rental charges and Security deposit, two panels; every money tool sits in the panel it belongs to, and the
               database decides who may do each */}
           {moneyByPart && <BookingMoney m={moneyByPart} reasons={reasons} lines={(b.lines as PanelLine[] | undefined) ?? []} totalCents={(b.total_due_at_booking_cents as number | null | undefined) ?? null}
@@ -489,7 +493,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
         <div id="email">{conv ? <BookingConversation c={conv} refresh={[base]} initialTo={sp.to === 'adjuster' ? 'adjuster' : 'renter'} composeOnly /> : <p className="small muted">The email form could not be read. Reload the page.</p>}</div>
       </div>}
       {section === 'documents' && (
-        <div className="ad-cols ad-cols--2" data-testid="booking-documents-section">
+        <div className="ad-cols ad-cols--2" id="bk-documents" data-testid="booking-documents-section">
           {can.renterDocs && ['pending_payment', 'confirmed', 'on_rent', 'requested', 'offered'].includes(b.status) && <RenterDocs b={b} refresh={[base]} />}
           <Card title="Drivers"><Table rows={b.drivers} empty="No drivers." cols={[{ key: 'full_name', label: 'Name' }, { key: 'role', label: 'Role' }, ...(can.admin ? [{ key: 'age_band', label: 'Age band' }, { key: 'licence_last4', label: 'Licence' }, { key: 'accepted_at', label: 'Accepted', render: (r: R) => t(r.accepted_at) },
             { key: 'identity_verified_on', label: 'Identity', render: (r: R) => r.identity_verified_on ? `Verified${r.identity_method === 'in_person' ? ' in person' : ''}`

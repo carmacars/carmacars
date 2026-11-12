@@ -95,6 +95,13 @@
 .ready-list, .prep-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
 .ready-list li, .prep-list li { display: grid; grid-template-columns: 1.5rem minmax(0, 1fr); gap: var(--s-2); align-items: start; font-size: var(--fs-sm); }
 .ready-list li small, .prep-list li small { display: block; }
+/* r38: What's left on the booking page: the section a line jumps to is lit for a moment; on a phone the next step stays in view */
+.is-jump-target { outline: 3px solid var(--red-600); outline-offset: 4px; transition: outline-color .6s ease; border-radius: var(--ui-r-tile, 8px); }
+.ready-next { margin-top: var(--s-2); font-size: var(--fs-sm); }
+@media (max-width: 640px) {
+  .ready-next { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; margin: 0; padding: var(--s-2) var(--s-3); background: var(--white, #fff); border-top: 1px solid var(--ui-line, #ddd); box-shadow: 0 -2px 8px rgb(0 0 0 / .08); }
+}
+@media (prefers-reduced-motion: reduce) { .is-jump-target { transition: none; } }
 .ready-list__mark, .prep-list__mark { display: inline-grid; place-items: center; width: 1.5rem; height: 1.5rem; border-radius: var(--ui-r-pill); border: 1.5px solid var(--grey-300); background: var(--white); color: var(--white); font-size: 0.8rem; font-weight: 700; }
 .ready-list li.is-done .ready-list__mark, .prep-list li.is-done .prep-list__mark { background: var(--ui-ok); border-color: var(--ui-ok); }
 .fp-tick__qty { font-variant-numeric: tabular-nums; }
