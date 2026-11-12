@@ -197,6 +197,9 @@ test('Commissions: completed and paid, approved, paid by hand, reversed by a ref
   const admin = await mkUser(sql, 'admin', `Ada Admin ${tag()}`);
   // 2330: customer service is never credited, so the credited person here is a second Sales person (the variable keeps its name)
   const cs = await mkUser(sql, 'va', `Cory Closer ${tag()}`, 'sales');
+  // a Sales tier commission is approved only once its month closes (0058: the month's tier applies to all of its rentals):
+  // this person has an Admin's flat 10% (Commission rate on their Sales page), approvable at once as customer service's was
+  await sql`update staff_profiles set commission_bps = 1000 where user_id = ${cs.id}`;
   const sales = await mkUser(sql, 'va', `Sasha Seller ${tag()}`, 'sales');
   const renter = await mkUser(sql, 'renter', `Rowan Renter ${tag()}`);
   const carId = await companyCar(sql, admin.id);
