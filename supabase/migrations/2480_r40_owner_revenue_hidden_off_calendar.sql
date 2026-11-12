@@ -8,7 +8,8 @@
 -- payouts and the owner's month to date.
 -- The rule now, in one place (app.booking_counts_for_owner): a booking is part of its car owner's revenue unless
 --   a. "Counts toward the owner's revenue" is off (2371), or
---   b. it does not block the calendar (blocks_calendar false), or
+--   b. it is billed to an insurer and does not block the calendar (an insurer rental added off the calendar; a renter's
+--      booking added over a clash keeps counting), or
 --   c. it is hidden from the owner (owner_visibility not shown) while the owner's rule of 0791 holds (Program setting
 --      owner_hide_insurance_only, on by default: only an insurance replacement is hidden from an owner) and it is billed to
 --      an insurer (bill_to insurer or split). With that setting off, the 0156 rule stays: "hidden until the return" or
@@ -53,7 +54,7 @@ end $$;
 create function app.booking_counts_for_owner(b bookings) returns boolean
 language sql stable security definer set search_path = public, app as $$
   select not coalesce(b.owner_revenue_excluded, false)
-     and coalesce(b.blocks_calendar, true)
+     and (coalesce(b.blocks_calendar, true) or coalesce(b.bill_to::text, 'renter') = 'renter')
      and (coalesce(b.owner_visibility, 'shown') = 'shown'
           or not (coalesce((app.settings()).owner_hide_insurance_only, true) and coalesce(b.bill_to::text, 'renter') <> 'renter'))
 $$;
@@ -115,7 +116,7 @@ language sql stable security definer set search_path = public, app as $$
       || case when x.c then '{}'::jsonb else jsonb_build_object('label',
            'Not part of the owner''s revenue (' ||
            case when coalesce(b.owner_revenue_excluded, false) then 'it does not count toward the owner''s revenue'
-                when not coalesce(b.blocks_calendar, true) then 'it does not block the calendar'
+                when not coalesce(b.blocks_calendar, true) then 'an insurer rental that does not block the calendar'
                 else 'an insurance replacement hidden from the owner' end ||
            '): it stays off their statements and payouts, and they see only that the car is unavailable for these dates.') end end
     from (select app.booking_owner_visibility_read_pre2480(p_by, b) as r, (b.booking_type::text = 'owner' or app.booking_counts_for_owner(b)) as c) x
