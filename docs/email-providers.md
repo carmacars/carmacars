@@ -56,8 +56,18 @@ Without the keys the function skips SES: nothing changes: Resend sends everythin
 
 ## Bounces and complaints
 
-SES keeps its own account-level suppression list (bounced and complaining addresses are not sent to again), and AWS watches
-the bounce and complaint rates. To record them here as well, create a configuration set in the SES console with an event
-destination (SNS topic) for Bounce and Complaint, and set the repository variable `AWS_SES_CONFIGURATION_SET` to its name:
-every SES email then carries it. Feeding those events into Blocked addresses (`email_suppressions`) needs a webhook that
-checks SNS signatures; it is not built yet.
+SES keeps its own account-level suppression list, and AWS watches the bounce and complaint rates. Release 42 also records them
+here: a Permanent bounce or a Complaint puts the address in Blocked addresses (`email_suppressions`), so it is never emailed
+again. The endpoint is `https://carmacars.ca/api/ses/events` (`web/src/lib/ses-sns.ts` checks the SNS signature of every message).
+
+In the AWS console, region ca-central-1:
+
+1. SNS > Topics > Create topic (Standard), name `carmacars-ses-events`. Create subscription: protocol **HTTPS**, endpoint
+   `https://carmacars.ca/api/ses/events`. It confirms itself within seconds (status Confirmed).
+2. SES > Configuration sets > Create set `carmacars`; Event destinations > Add: event types **Bounces** and **Complaints**,
+   destination Amazon SNS, the topic above.
+3. In GitHub, carmacars/carmacars > Settings > Secrets and variables > Actions > Variables: `AWS_SES_CONFIGURATION_SET` =
+   `carmacars`. The next deploy gives the sender the name; every SES email then carries it.
+
+Check: SES > Mailbox simulator, send to `bounce@simulator.amazonses.com`; Blocked addresses shows it within a minute.
+Transient bounces are ignored. Only an email this site sent, to that address, is acted on.

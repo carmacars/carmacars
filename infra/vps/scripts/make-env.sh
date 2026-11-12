@@ -99,6 +99,27 @@ else
   SRC[PG_IMAGE]=defaults.env
 fi
 
+# ---------------------------------------------------------------- compose profiles (live updates, release 42)
+# COMPOSE_PROFILES is kept as it is and "realtime" is added when missing (idempotent), unless the repository variable
+# REALTIME_ENABLED is false (default true). The image tag is checked in the registry first; a tag that is not there leaves
+# the profile as it was (a warning), so stack-up never pulls an image that does not exist.
+cp=$(old COMPOSE_PROFILES)
+if [ "${REALTIME_ENABLED:-true}" = true ]; then
+  case ",$cp," in
+    *,realtime,*) SRC[COMPOSE_PROFILES]=kept ;;
+    *)
+      rt_image=$(sed -n 's/^[[:space:]]*image:[[:space:]]*\(supabase\/realtime:[^[:space:]]*\).*/\1/p' "$ROOT/infra/vps/supabase/docker-compose.yml" | head -n 1)
+      if [ -n "$rt_image" ] && docker manifest inspect "$rt_image" > /dev/null 2>&1; then
+        cp="${cp:+$cp,}realtime"; SRC[COMPOSE_PROFILES]=realtime-added; say "Realtime switched on ($rt_image exists)"
+      else
+        SRC[COMPOSE_PROFILES]=realtime-skipped; echo "::warning title=realtime::the image ${rt_image:-supabase/realtime} was not found in the registry; Realtime stays off" >&2
+      fi ;;
+  esac
+else
+  SRC[COMPOSE_PROFILES]=realtime-disabled
+fi
+V[COMPOSE_PROFILES]="$cp"
+
 # ---------------------------------------------------------------- JWT keys
 hjwks='{"keys":[]}'; $hosted && hjwks=$(cat "$W/jwks.json")
 JWT_SECRET="${V[JWT_SECRET]}" JWT_KEYS="$(old JWT_KEYS)" HOSTED_JWKS="$hjwks" TRUST_HOSTED_JWKS="${TRUST_HOSTED_JWKS:-1}" \
@@ -111,7 +132,7 @@ SRC[JWT_KEYS]=derived; SRC[JWT_JWKS]=derived
 {
   echo "# Written by infra/vps/scripts/make-env.sh ($(date -u +%FT%TZ)). Secret: root only, never in the repository."
   for n in POSTGRES_PASSWORD JWT_SECRET ANON_KEY SERVICE_ROLE_KEY JWT_KEYS JWT_JWKS PG_META_CRYPTO_KEY SECRET_KEY_BASE VAULT_ENC_KEY \
-           PG_IMAGE PGRST_DB_SCHEMAS PGRST_DB_MAX_ROWS PGRST_DB_EXTRA_SEARCH_PATH; do
+           PG_IMAGE PGRST_DB_SCHEMAS PGRST_DB_MAX_ROWS PGRST_DB_EXTRA_SEARCH_PATH COMPOSE_PROFILES; do
     [ -n "${V[$n]:-}" ] || continue
     case "${V[$n]}" in *"'"*|*$'\n'*) _vps_die "$n holds a quote or a newline; refusing to write it" ;; esac
     printf "%s='%s'\n" "$n" "${V[$n]}"

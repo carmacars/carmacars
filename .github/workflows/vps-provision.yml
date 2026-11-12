@@ -85,6 +85,8 @@ jobs:
         env:
           TRUST_HOSTED_JWKS: ${{ inputs.trust_hosted_jwks && '1' || '0' }}
           PG_IMAGE_OVERRIDE: ${{ inputs.pg_image }}
+          # r42: Realtime (compose profile) on unless the repository variable REALTIME_ENABLED is false
+          REALTIME_ENABLED: ${{ vars.REALTIME_ENABLED || 'true' }}
         run: infra/vps/scripts/make-env.sh
       - name: Stack up (pull the pinned images, start, wait for every health check)
         env:
