@@ -53,7 +53,7 @@ export function LeadList({ d, base, listBase, sp, type }: { d: Data; base: strin
       </div>
       <ListFilters id={`sales-leads${type ? `-${type}` : ''}`} base={listBase} sp={sp} search={{ placeholder: 'Name, phone, email or words' }}
         chips={{ name: 'status', label: 'Status', options: STATUS_CHIPS }}
-        sort={{ name: 'sort', label: 'Sort', options: [['', 'Priority'], ['newest', 'Newest'], ['oldest', 'Oldest']] }} kept={['type', 'source', 'age', 'assigned', 'mine']} />
+        sort={{ name: 'sort', label: 'Sort', options: [['', 'Newest'], ['priority', 'Priority'], ['oldest', 'Oldest']] }} kept={['type', 'source', 'age', 'assigned', 'mine']} />
       {d.admin && <BulkAssign people={d.assignees ?? []} filter={bulkFilter(sp, type)} count={d.count} />}
       <LeadCards rows={d.rows} base={base} admin={d.admin} people={d.people} pick={d.admin} />
       {pages > 1 && <nav className="row small" style={{ gap: 'var(--s-2)' }} aria-label="Pages">

@@ -13,7 +13,7 @@ type R = Record<string, unknown>;
 export default async function Investors() {
   const { list, read } = await page('/admin/investors');
   const deck = await read<{ settings: { show_to_investors: boolean; deck_return_bps?: number } }>('investor_deck').then((d) => d.settings).catch(() => null);
-  const { rows } = await list('investors', { order: 'legal_name', asc: true, limit: 300 });
+  const { rows } = await list('investors', { order: 'created_at', limit: 300 });
   const last = new Date(); last.setUTCDate(1); last.setUTCMonth(last.getUTCMonth() - 1);
   return (<>
     <PageHead title="Investors"><Link className="btn btn--ghost btn--sm" href="/investor/updates" prefetch={false} data-testid="admin-updates-link">Updates (as investors see it)</Link><Link className="btn btn--ghost btn--sm" href="/admin/investors/deck" prefetch={false} data-testid="admin-deck-link">Investor deck{deck ? (deck.show_to_investors ? ' (shown to investors)' : ' (hidden)') : ''}</Link>

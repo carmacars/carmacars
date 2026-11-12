@@ -67,7 +67,7 @@ async function AdminBookings({ ctx, sp }: { ctx: PageCtx; sp: Record<string, str
   const NONE = '00000000-0000-0000-0000-000000000000';
   const res = outIds
     ? await list<Row>('bookings', { eq: { ...billEq, id: (found ? outIds.filter((x) => found.includes(x)) : outIds).concat(NONE) }, order: 'return_at', asc: true, limit: 200 })
-    : await list<Row>('bookings', { eq: byQ(status ? { status } : {}), order: 'pickup_at', limit: 200 });
+    : await list<Row>('bookings', { eq: byQ(status ? { status } : {}), order: 'created_at', limit: 200 });
   // by who supplies the car, or only the rentals added by hand (0046)
   const keep = sp.supply || sp.added ? new Set((await ops<Array<{ id: string }>>('bookings_by_supply', { supply: sp.supply ?? '', added: !!sp.added, status: status === 'out' ? '' : status, limit: 2000 })).map((b) => b.id)) : null;
   const rows = keep ? res.rows.filter((r) => keep.has(r.id)) : res.rows;
@@ -82,7 +82,7 @@ async function AdminBookings({ ctx, sp }: { ctx: PageCtx; sp: Record<string, str
   const at = new Date().getTime();
   return (
     <>
-      <BookingsHead current="all" lead={`${count} found. Every booking, newest pickup first; open one for its trip, payments and documents.`} />
+      <BookingsHead current="all" lead={`${count} found. Every booking, newest first by when it came in; open one for its trip, payments and documents.`} />
       <ListFilters id="admin-bookings" base="/admin/bookings?view=all" sp={sp} search={{ placeholder: 'Booking number, name, email, phone, plate, car code or insurer', action: '/admin/bookings' }}
         chips={{ name: 'status', label: 'Status', options: STATUSES }} kept={['bill', 'supply', 'added']} />
       <UnfinishedRentals rows={drafts} base="/admin" />
