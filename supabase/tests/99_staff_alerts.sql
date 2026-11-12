@@ -148,11 +148,13 @@ select test.eq('data health and usage are in the app only (0465): no push topic,
 insert into job_applications (role_id, status, full_name, email) select id, 'interviewed', 'Sta Applicant', 'sta_applicant@example.test' from hiring_roles where slug = 'va-customer-service';
 insert into ai_interviews (application_id, role_id, questions, state, expires_at, interview_score, recommendation)
   select a.id, a.role_id, '[]'::jsonb, 'submitted', now() + interval '3 days', 72, 'live_call' from job_applications a where a.email = 'sta_applicant@example.test';
-update ai_interviews set state = 'scored' where application_id = (select id from job_applications where email = 'sta_applicant@example.test');
+update ai_interviews set state = 'scored', scored_at = now() where application_id = (select id from job_applications where email = 'sta_applicant@example.test');
+-- 2590: the interview decides by itself; the Admin is told the score and the outcome (nothing to do)
+select app.hiring_ai_auto_decide(now());
 select app.process_events(1000);
-select test.eq('interview scored: one normal alert to the Admin, with the score and the suggestion',
-  (select string_agg(n.body, '|') from notifications n join users u on u.id = n.user_id where n.code = 'staff_alert_normal' and n.title = 'AI interview scored: Sta Applicant' and u.email = 'sta_admin@example.test'),
-  '72 of 100, suggests a live call.');
+select test.eq('interview done: one normal alert to the Admin, with the score, the bar and what happened by itself',
+  (select string_agg(n.body, '|') from notifications n join users u on u.id = n.user_id where n.code = 'staff_alert_normal' and n.title like 'AI interview 72 of 100: Sta Applicant%' and u.email = 'sta_admin@example.test'),
+  'Under the bar of 80: the decline email went. Nothing to do.');
 
 select app.request_account_deletion(test.id('sta_rita'), 'moving away');
 select app.process_events(1000);

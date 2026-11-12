@@ -25,3 +25,27 @@ test('1505: the run clock gives each section its start minute', async () => {
   const { runClock } = await import('./model.ts');
   assert.deepEqual(runClock([{ key: 'a', title: 'A', admin_only: false, points: [], minutes: 1 }, { key: 'b', title: 'B', admin_only: false, points: [], minutes: 2 }, { key: 'c', title: 'C', admin_only: true, points: [] }]), [0, 1, 3]);
 });
+
+test('2590: the townhall card: from the day before until the end, Join from 15 minutes before, the warning after a miss', async () => {
+  const { townhallCard, countdown } = await import('./model.ts');
+  const at = Date.parse('2026-11-18T18:00:00Z'); // Wednesday 1:00 pm Toronto
+  const v = { has_link: true, next_at: '2026-11-18T18:00:00Z', minutes: 30, live: false, card: true, ends_at: '2026-11-18T18:30:00Z', checked_in: false, missed_last: true };
+  assert.equal(townhallCard({ ...v, card: false }, at - 86_400_000), null);
+  const dayBefore = townhallCard(v, at - 24 * 3_600_000)!;
+  assert.equal(dayBefore.headline, 'Townhall tomorrow');
+  assert.equal(dayBefore.joinOpen, false);
+  assert.equal(dayBefore.warn, 'You missed the last townhall: one more miss locks your account.');
+  const morning = townhallCard({ ...v, missed_last: false }, at - 4 * 3_600_000)!;
+  assert.equal(morning.headline, 'Townhall today');
+  assert.equal(morning.countdown, 'in 4 h');
+  assert.equal(morning.warn, null);
+  assert.equal(townhallCard(v, at - 16 * 60_000)!.joinOpen, false);
+  assert.equal(townhallCard(v, at - 15 * 60_000)!.joinOpen, true);
+  const on = townhallCard(v, at + 5 * 60_000)!;
+  assert.equal(on.live, true);
+  assert.equal(on.headline, 'The townhall is on now');
+  assert.equal(townhallCard(v, at + 30 * 60_000), null);
+  assert.equal(countdown(12 * 60_000), 'in 12 min');
+  assert.equal(countdown(125 * 60_000), 'in 2 h 5 min');
+  assert.equal(countdown(0), 'now');
+});

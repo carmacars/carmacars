@@ -74,14 +74,14 @@ export const words = (s: string | null | undefined) => (s ?? '').trim().split(/\
 export const TEST_WORDS = /\b(test|tests|tested|exam|exams|quiz|assessment)\b/i;
 
 // ---------------------------------------------------------------- the follow-up after an answer
-/** Clear without the model: a long answer is never vague (no call is made). */
-export const DETAILED_WORDS = 70;
+/** Clear without the model: a long answer is never vague (no call is made). 2590: a probing interview asks the model up to 160 words. */
+export const DETAILED_WORDS = 160;
 /** Vague without the model: a very short answer gets the plain follow-up when the model cannot be asked. */
 export const SHORT_WORDS = 15;
 export const PLAIN_FOLLOWUP = 'Could you tell me a bit more, with a real example from your work?';
 
 export const FOLLOWUP_SCHEMA = { type: 'object', properties: { vague: { type: 'boolean' }, followup: { type: 'string' } }, required: ['vague', 'followup'] };
-export const FOLLOWUP_SYSTEM = 'You interview applicants for a remote assistant role at CarmaCars, a car rental company in Toronto. You read one answer and decide if it is vague: too short, general, off the question, or missing the specifics asked for (tasks, tools, numbers, examples, a clear yes or no). Answer in JSON {"vague": true or false, "followup": "..."}. When vague, followup is ONE short, friendly question of at most 25 words that asks for exactly what is missing. When not vague, followup is "". Never call this a test, exam or assessment. Do not judge or praise the answer. Plain words, no long dashes.';
+export const FOLLOWUP_SYSTEM = 'You interview applicants for a role at CarmaCars, a car rental company in Toronto. This interview is the pre-screen to our training academy, so the bar is high. You read one answer and decide if it needs a probing follow-up: too short, general, rehearsed, off the question, or missing the specifics asked for (tasks, tools, numbers, a real example, what they said word for word, a clear yes or no). Probe hardest on: how they handle a real situation from the job, how they answer a customer who objects (Sales), their reliability (missed shifts, outages, backup plans), their internet and hours, and whether the pay works. Answer in JSON {"vague": true or false, "followup": "..."}. When vague, followup is ONE short, polite question of at most 25 words that asks for exactly what is missing or tests the claim with a concrete case. When not vague, followup is "". Never call this a test, exam or assessment. Do not judge or praise the answer. Plain words, no long dashes.';
 export function followupPrompt(question: string, answer: string): string {
   return `<question>\n${question}\n</question>\n<answer>\n${answer.slice(0, 3000)}\n</answer>`;
 }
@@ -106,11 +106,12 @@ export const SCORE_SCHEMA = {
     topics: { type: 'array', items: { type: 'object', properties: { key: { type: 'string' }, score: { type: 'integer' }, evidence: { type: 'string' } }, required: ['key', 'score', 'evidence'] } },
     english: { type: 'object', properties: { level: { type: 'string', enum: ['fluent', 'good', 'basic'] }, score: { type: 'integer' }, notes: { type: 'string' } }, required: ['level', 'score', 'notes'] },
     red_flags: { type: 'array', items: { type: 'string' } },
+    knockouts: { type: 'array', items: { type: 'string' } },
     recommendation: { type: 'string', enum: ['live_call', 'hire', 'decline', 'sales'] },
     reason: { type: 'string' },
     summary: { type: 'string' }
   },
-  required: ['topics', 'english', 'red_flags', 'recommendation', 'reason', 'summary']
+  required: ['topics', 'english', 'red_flags', 'knockouts', 'recommendation', 'reason', 'summary']
 };
 
 export interface ScoreInput {
@@ -125,16 +126,18 @@ export function topicsFor(topics: Topic[], inPerson: boolean): Topic[] {
 }
 export function scoreSystem(topics: Topic[], salesRole: boolean): string {
   return [
-    'You help the hiring team of CarmaCars, a car rental company in Toronto, review a recorded interview for a remote assistant role. The candidate answered each question out loud (transcribed by speech-to-text, so small transcription errors are not the candidate\'s) or in writing.',
+    'You help the hiring team of CarmaCars, a car rental company in Toronto, review a recorded interview for a role. The interview is the pre-screen to our training academy: the score decides by itself who is hired into the academy, so be strict and score only what is shown, never what is promised. The candidate answered each question out loud (transcribed by speech-to-text, so small transcription errors are not the candidate\'s) or in writing.',
     'Score each topic from 1 (poor or not answered) to 5 (excellent) using only what the candidate said. For each topic give as evidence one short quote copied word for word from the answers (empty when nothing was said about it).',
     'Topics (key: label; what good looks like):',
     ...topics.map((t) => `- ${t.key}: ${t.label}; ${t.good}`),
     'Spoken English: judge clarity, grammar and vocabulary from the wording; level fluent, good or basic, a score 1 to 5, and one sentence of notes.',
     'Red flags: short plain statements of anything that needs checking (refuses the schedule or the pay, works for another car rental business serving Ontario, classes or other jobs during the hours, no backup internet, contradictions, an answer read from somewhere). An empty list when none.',
     'The minimum for every role: at least a year of relevant experience and good spoken English.',
+    'Score 5 only for a specific, convincing answer with a real example; 3 for adequate but general; 1 or 2 for vague, rehearsed or missing. The written English topic is judged from the typed customer message only.',
+    'Knock-outs: short plain statements of any answer that rules the candidate out by itself: refuses or cannot work the schedule, refuses the pay, works for another car rental business serving Ontario, classes or another job during the hours, no internet backup for a remote role, no licence where the role drives, an answer clearly read or written by someone else. An empty list when none. Any knock-out fails the interview.',
     `Recommendation, one of: "hire" (clearly strong on every point), "live_call" (promising, with points to check in a short live call), ${salesRole ? '"decline" (the minimum is not met, or a red flag rules them out; never "sales" for this Sales role)' : '"sales" (does not pass for this role but could sell: good English and motivation; this is the usual outcome for a candidate who does not pass), "decline" (only when a red flag rules them out of any role)'}.`,
     'The hiring team decides; you only recommend. Reason: one sentence for the recommendation. Summary: two or three plain sentences about the candidate. Never call the interview a test or an exam. No long dashes.',
-    'Answer in JSON with the keys topics, english, red_flags, recommendation, reason, summary.'
+    'Answer in JSON with the keys topics, english, red_flags, knockouts, recommendation, reason, summary.'
   ].join('\n');
 }
 export function scorePrompt(x: ScoreInput): string {
@@ -158,7 +161,7 @@ export function fakeScores(prompt: string, topics: Array<Pick<Topic, 'key'>>): R
   const answers = [...prompt.matchAll(/^Q\d+(?: \(follow-up\))? \[([a-z_]+)\]: [^\n]*\nA\d+ \([a-z ]+\): ([^\n]*)$/gm)].map((m) => ({ key: m[1]!, text: m[2]! }));
   const by = (k: string) => answers.filter((a) => a.key === k).map((a) => a.text).join(' ');
   const map: Record<string, string> = { internet: 'internet', english: 'experience', social: 'social', skills: 'skills', experience: 'experience', understanding: 'understanding',
-    hours_pay: 'hours_pay', other_jobs: 'other_jobs', education: 'other_jobs', career: 'career', canada: 'career' };
+    hours_pay: 'hours_pay', other_jobs: 'other_jobs', education: 'other_jobs', career: 'career', canada: 'career', reliability: 'reliability', written: 'written' };
   const out = topics.map((t) => {
     const text = by(map[t.key] ?? t.key);
     const n = words(text);
@@ -167,5 +170,6 @@ export function fakeScores(prompt: string, topics: Array<Pick<Topic, 'key'>>): R
   const avg = out.reduce((s, x) => s + x.score, 0) / Math.max(out.length, 1);
   return { topics: out, english: { level: avg >= 3.5 ? 'good' : 'basic', score: Math.round(avg), notes: 'Read from the transcript (fake model).' },
     red_flags: answers.some((a) => /\bno\b/i.test(a.text) && a.key === 'hours_pay') ? ['Did not agree to the schedule or the pay'] : [],
+    knockouts: answers.some((a) => /\bno\b/i.test(a.text) && a.key === 'hours_pay') ? ['Did not agree to the schedule or the pay'] : [],
     recommendation: avg >= 3.5 ? 'live_call' : 'sales', reason: 'Scored by the fake model from the answers.', summary: `Answered ${answers.length} questions.` };
 }

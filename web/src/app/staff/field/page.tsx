@@ -3,6 +3,7 @@ import { requestNow } from '@/features/va/lanes';
 import { pageMeta } from '@/features/seo/meta';
 import { door, requireStaff } from '@/server/door';
 import { TeamGroupCard } from '@/features/staff-clock/TeamGroupCard';
+import { TownhallCard } from '@/features/townhall/TownhallCard';
 import { FieldButton } from '@/features/field/FieldButton';
 import { Plate } from '@/features/field/Plate';
 import { FdIcon } from '@/features/field/icons';
@@ -55,6 +56,8 @@ export default async function FieldToday({ searchParams }: { searchParams: Promi
       </header>
       {t.failed && <p className="error" role="alert" data-testid="today-failed">Your work list did not load. Pull down or <Link prefetch={false} className="link" href="/staff/field">try again</Link> in a moment.</p>}
       <TeamGroupCard userId={user.id} refresh="/staff/field" />
+      {/* 2590: the weekly townhall, from the day before until it ends */}
+      <TownhallCard userId={user.id} />
       <nav className="fd-days" aria-label="Day">
         <Link prefetch={false} href="/staff/field" aria-current={!tomorrow ? 'page' : undefined}>Today</Link>
         <Link prefetch={false} href="/staff/field?day=tomorrow" aria-current={tomorrow ? 'page' : undefined}>Tomorrow</Link>

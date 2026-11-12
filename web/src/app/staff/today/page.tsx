@@ -7,6 +7,7 @@ import { UnfinishedRentals } from '@/features/supply/UnfinishedRentals';
 import type { DraftRow } from '@/server/actions/supply';
 import { door } from '@/server/door';
 import { FieldToday } from '@/features/staff-schedule/FieldToday';
+import { TownhallCard } from '@/features/townhall/TownhallCard';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Today at a glance', path: '/staff/today', noindex: true, description: 'The day at a glance.' });
@@ -27,6 +28,7 @@ export default async function Today() {
         { k: 'Pickups today', v: d.pickups_today }, { k: 'Returns today', v: d.returns_today },
         ...(d.requests_waiting !== null ? [{ k: 'Requests waiting', v: d.requests_waiting, href: '/staff/requests', warn: d.requests_waiting > 0 }] : []),
         ...(d.payments_failed !== null ? [{ k: 'Payments failed (30 days)', v: d.payments_failed, href: '/staff/money', warn: d.payments_failed > 0 }] : [])]} /></div>
+      <TownhallCard userId={user.id} />
       <FieldToday userId={user.id} aal={aal} />
       <UnfinishedRentals rows={drafts} base="/staff" />
       <div className="ad-cols ad-cols--2">

@@ -127,8 +127,8 @@ select test.ok('with the referral email', exists (select 1 from app_events where
 update hiring_roles set active = false where slug = 'va-fleet-operations';
 select test.eq('AI interviews for every role, the in-person ones too', (select string_agg(r.slug || '=' || app.ai_interview_applies(jsonb_populate_record(null::job_applications, jsonb_build_object('role_id', r.id))), ',' order by r.slug)
   from hiring_roles r where r.slug in ('field-staff', 'sales-in-person', 'sales-remote')), 'field-staff=true,sales-in-person=true,sales-remote=true');
-select test.eq('every role has its nine questions', (select string_agg(r.slug || '=' || jsonb_array_length(app.ai_interview_questions(r.id)), ',' order by r.slug) from hiring_roles r),
-  'field-staff=9,sales-in-person=9,sales-remote=9,va-customer-service=9,va-finance-billing=9,va-fleet-operations=9');
+select test.eq('every role has its questions (2590: reliability, a typed message, and an objection for Sales)', (select string_agg(r.slug || '=' || jsonb_array_length(app.ai_interview_questions(r.id)), ',' order by r.slug) from hiring_roles r),
+  'field-staff=11,sales-in-person=12,sales-remote=12,va-customer-service=11,va-finance-billing=11,va-fleet-operations=11');
 select test.ok('the field interview asks about driving, not the internet',
   (select bool_or(q ->> 'text' like '%driving and car care%') and not bool_or(q ->> 'text' like 'Describe your internet%') from jsonb_array_elements(app.ai_interview_questions((select id from hiring_roles where slug = 'field-staff'))) q));
 -- apply, interview, score: a remote and an in-person Sales applicant at the pass mark (60), one below
@@ -138,9 +138,11 @@ select test.id('r35k_app_' || x.k), (select id from hiring_roles where slug = x.
 insert into ai_interviews (application_id, role_id, questions, state, expires_at, interview_score, recommendation, scored_at)
 select a.id, a.role_id, '[]'::jsonb, 'scored', now() + interval '7 days', case when a.id = test.id('r35k_app_low') then 55 else 82 end, 'hire', now() from job_applications a
  where a.id in (test.id('r35k_app_rem'), test.id('r35k_app_inp'), test.id('r35k_app_low'));
+-- 2590: the interviews decide by themselves first (the bar is 80): two pass, one is declined
+select app.hiring_ai_auto_decide(now());
 select test.eq('auto-hire picks the two at the mark, each with its Sales mode',
   (select string_agg(x ->> 'function' || ':' || (x ->> 'mark'), ',' order by x ->> 'function') from jsonb_array_elements(public.server_hire_auto_due(10) -> 'applications') x
-    where (x ->> 'id')::uuid in (test.id('r35k_app_rem'), test.id('r35k_app_inp'), test.id('r35k_app_low'))), 'sales_in_person:60,sales_remote:60');
+    where (x ->> 'id')::uuid in (test.id('r35k_app_rem'), test.id('r35k_app_inp'), test.id('r35k_app_low'))), 'sales_in_person:80,sales_remote:80');
 select test.ok('as the Admin the automatic work acts as', public.server_hire_auto_due(10) ->> 'actor' is not null);
 select public.server_hire_auto_done(test.id('r35k_app_rem'), '{"ok": true, "score": 82, "mark": 60}');
 select test.ok('an Admin alert per auto-hire', exists (select 1 from app_events where code like 'staff_alert_%' and payload ->> 'rule' = 'hire_auto'));
