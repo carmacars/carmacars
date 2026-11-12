@@ -344,7 +344,7 @@ export async function pickRange(page: Page, label: string, to: { quick: string }
 export async function chooseCardCoverage(page: import('@playwright/test').Page) {
   const { expect } = await import('@playwright/test');
   // 2541: a card covers a car only when the car's value is known; give a test car without one a typical value
-  const slug = new URL(page.url()).pathname.match(/^\/book\/([^/]+)/)?.[1];
+  const slug = new URL(page.url()).pathname.match(/^\/(?:book|cars)\/([^/?]+)/)?.[1];
   if (slug) {
     const sql = db();
     try {
