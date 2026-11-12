@@ -67,9 +67,17 @@
   --r-0: 0;          /* photos, sections, tables */
   --r-1: 4px;        /* plates, badges, calendar days */
   --r-2: 6px;        /* buttons, inputs */
-  --r-3: 14px;       /* sheets, modals, toasts */
+  --r-3: 16px;       /* sheets, modals, toasts, panels: the portals' card corner */
   --r-pill: 999px;   /* buttons, tabs, chips, badges (r35 UX: the style guide, docs/style-guide.md) */
   --bw: 1.5px;
+  /* the style guide's shapes (docs/style-guide.md): one set for the portals and the public site (r41) */
+  --ui-r-pill: 999px;       /* buttons, tabs, chips, badges */
+  --ui-r-card: 16px;        /* cards and sections */
+  --ui-r-tile: 12px;        /* tables, tiles, choices, photos in cards, empty states */
+  --ui-line: var(--grey-200);
+  --ui-track: var(--grey-100);
+  --ui-shadow: 0 1px 0 rgb(0 0 0 / 0.03), 0 10px 28px -22px rgb(0 0 0 / 0.35);
+  --ui-ok: #1F7A3A;
 
   /* elevation: used only for things that float */
   --shadow-float: 0 18px 50px -12px rgb(0 0 0 / 0.45);

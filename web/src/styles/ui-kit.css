@@ -11,15 +11,7 @@
    per-portal sheets with the same selectors. Only class names the pages already use are styled: no markup changes,
    data-testids and accessible names stay as they were. Tokens first, then each component. */
 
-:root {
-  --ui-r-pill: 999px;       /* buttons, tabs, chips, badges */
-  --ui-r-card: 16px;        /* cards and sections */
-  --ui-r-tile: 12px;        /* tables, tiles, empty states, inputs in cards */
-  --ui-line: var(--grey-200);
-  --ui-track: var(--grey-100);
-  --ui-shadow: 0 1px 0 rgb(0 0 0 / 0.03), 0 10px 28px -22px rgb(0 0 0 / 0.35);
-  --ui-ok: #1F7A3A;
-}
+/* the tokens (--ui-r-pill, --ui-r-card, --ui-r-tile, --ui-line, --ui-track, --ui-shadow, --ui-ok) are in tokens.css since r41 */
 
 /* ---------------------------------------------------------------- buttons: one shape everywhere (the Visitors pill) */
 .btn { border-radius: var(--ui-r-pill); }
