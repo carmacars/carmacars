@@ -95,6 +95,8 @@ export async function submitBookingRequest(input: SubmitInput): Promise<SubmitRe
     return_location: await loc(v.returnAt, returnAddress, v.returnAirport),
     note: v.notes.trim() || null,
     coverage_option: Number(v.coverage),
+    // 2541: the card picked from the list and the acknowledgements; the database refuses a website request without them
+    coverage_choice: { card: v.coverage === '2' && /^[0-9a-f-]{36}$/i.test(v.coverageCard) ? v.coverageCard : null, card_ack: v.coverage === '2' && v.coverageCardAck, opcf27_ack: v.coverage === '1' && v.opcfAck },
     // 0066: add-ons (an older draft's winter tires and baby seats included); the database checks notice and stock
     addons: addonsPayload(migrateExtras(v).addons),
     renter: { email: v.email, full_name: `${v.first} ${v.last}`, mobile: v.phone, date_of_birth: dobIso(v.dobY, v.dobM, v.dobD), licence_class: lic, licence_issuer: v.licClass === 'other' ? v.licIssuer : 'ON' },
@@ -198,4 +200,20 @@ export async function requestAccount(): Promise<ActionResult<{ signedIn: boolean
   const c = si as { email: string | null; phone: string | null } | null;
   const { usableDiscounts } = await import('@/features/rewards/discounts');
   return { ok: true, data: { signedIn: true, email: c?.email ?? (user.email || null), phone: c?.phone ?? user.phone ?? null, discounts: usableDiscounts(saved as never).slice(0, 6), canBookNow: bookNow === true } };
+}
+
+// ---------------------------------------------------------------- 2541: the card checker in the request form
+export interface CoverageCardCheck { result: 'covered' | 'not_covered' | 'review'; card_id: string | null; card_label?: string; message: string; problem: string | null }
+/** The cards on our list (for the form's picker) and, with a card, whether it covers this car for these dates. */
+export async function coverageCards(): Promise<Array<{ id: string; label: string }>> {
+  const list = (await rpc('card_coverage_public', {}).catch(() => null)) as unknown as { cards?: Array<{ id: string; issuer: string; card: string; is_active: boolean; coverage: string }> } | null;
+  return (list?.cards ?? []).filter((c) => c.is_active && c.coverage !== 'none').map((c) => ({ id: c.id, label: `${c.issuer} ${c.card}` }));
+}
+export async function coverageCardCheck(p: { car: string; from: string; to: string; card: string; ack: boolean }): Promise<CoverageCardCheck | null> {
+  try {
+    const car = (await getFleet()).find((c) => c.slug === p.car);
+    if (!car || !/^[0-9a-f-]{36}$/i.test(p.card) || !p.from || !p.to) return null;
+    return (await rpc('server_coverage_choice_check' as never, { p: { vehicle_id: car.vehicle_id, option: 2, card: p.card, card_ack: p.ack,
+      pickup_at: torontoInstant(p.from, '10:00'), return_at: torontoInstant(p.to, '10:00') } } as never, { role: 'service_role' })) as unknown as CoverageCardCheck;
+  } catch { return null; }
 }

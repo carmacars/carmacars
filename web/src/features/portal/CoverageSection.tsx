@@ -1,9 +1,7 @@
 'use client';
-import { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { UploadCard } from './UploadCard';
 import { InsurerSelect } from '@/features/insurers/InsurerSelect';
-import { requestProtectionPlan, setCoverageOption } from '@/server/actions/portal';
 import type { RenterCoverage } from '@/features/coverage/types';
 import type { CardRow } from '@/features/coverage/cards';
 import { CardPicker } from '@/features/coverage/CardPicker';
@@ -25,13 +23,7 @@ const OPCF_PAGES: Array<[string, string, string]> = [
 const fmtDay = (d: string) => when(`${d.slice(0, 10)}T12:00:00Z`, false);
 
 export function CoverageSection({ number, c, cards = [] }: { number: string; c: RenterCoverage; cards?: CardRow[] }) {
-  const router = useRouter();
-  const [pending, start] = useTransition();
-  const [msg, setMsg] = useState('');
   const [d, setD] = useState<Record<string, string>>({ insurer_name: c.proof?.insurer_name ?? '', policy_number: c.proof?.policy_number ?? '', policy_expiry: c.proof?.policy_expiry ?? '' });
-  const run = (f: () => Promise<{ ok: boolean; message?: string }>, done: string) => start(async () => {
-    const r = await f(); setMsg(r.ok ? done : (r.message ?? 'Something went wrong.')); if (r.ok) router.refresh();
-  });
   const p = c.proof && c.proof.option === c.option ? c.proof : null;
   const pages = p?.pages ?? [];
   const missing = c.opcf27_missing ?? [];
@@ -83,13 +75,10 @@ export function CoverageSection({ number, c, cards = [] }: { number: string; c: 
       {c.option === 4 && <p className="small" data-testid="coverage-included">Insurance is included with this car: no personal auto policy is needed and there is nothing to send.</p>}
       {c.option === 3 && <p className="small">{c.confirmed ? 'The CarmaCars Protection Plan is active for this rental.' : 'You chose the CarmaCars Protection Plan. We send you its terms before pickup.'}</p>}
 
+      {/* r41 (2540, 2541): every change goes through Change my protection on the booking page (the card checker, the
+          acknowledgements, the prices), so the rule is the same everywhere */}
       {c.can_change && !c.confirmed && (
-        <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-3)' }}>
-          {c.option !== 1 && <button className="btn btn--ghost btn--sm" type="button" disabled={pending} onClick={() => run(() => setCoverageOption(number, 1), 'Changed to option 1.')} data-testid="coverage-to-1">Use OPCF 27 on my policy instead</button>}
-          {c.option !== 2 && <button className="btn btn--ghost btn--sm" type="button" disabled={pending} onClick={() => run(() => setCoverageOption(number, 2), 'Changed to option 2.')} data-testid="coverage-to-2">Use my credit card&apos;s coverage instead</button>}
-          {!c.protection_plan_requested && <button className="btn btn--quiet btn--sm" type="button" disabled={pending} onClick={() => run(() => requestProtectionPlan(number, ''), 'We will send you the Protection Plan’s price and terms.')} data-testid="coverage-plan">Ask for the Protection Plan</button>}
-        </div>)}
-      {msg && <p className="small" role="status" data-testid="coverage-msg">{msg}</p>}
+        <p><a className="btn btn--ghost btn--sm" href={`/account/bookings/${encodeURIComponent(number)}#protection`} data-testid="coverage-change-link">Change my protection</a></p>)}
     </div>
   );
 }

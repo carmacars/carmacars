@@ -22,7 +22,11 @@ export const requestShape = z.object({
   // 0410: "How did you hear about us?" (optional), kept on the booking for the bookings-by-channel report
   heardAbout: z.enum(['', 'fb_marketplace', 'instagram', 'tiktok', 'facebook', 'google', 'kijiji', 'word_of_mouth', 'repeat', 'other']).catch('').default(''),
   licClass: z.string().default(''), licIssuer: z.string().trim().max(100).default(''),
-  coverage: z.string().default(''), bookingType: z.enum(['standard', 'non_refundable']).default('standard'),
+  coverage: z.string().default(''),
+  // 2541: card coverage only with a card from our list that covers the car and the promise to pay with it; OPCF 27 only
+  // with the promise to upload the policy; otherwise the Protection Plan
+  coverageCard: z.string().max(40).default(''), coverageCardAck: z.boolean().default(false), opcfAck: z.boolean().default(false),
+  bookingType: z.enum(['standard', 'non_refundable']).default('standard'),
   // 0066: add-ons replace the winter tire and baby seat fields (kept so an older saved draft still loads; it is converted)
   winter: z.boolean().default(false), babySeats: z.number().int().min(0).default(0), notes: z.string().default(''),
   addons: z.array(z.object({ code: z.string().trim().regex(/^[a-z0-9_]{2,40}$/), quantity: z.number().int().min(0).max(20), hours: z.number().min(0).max(24).nullable().optional() })).max(30).default([]),
@@ -39,7 +43,7 @@ export const emptyRequest = (): RequestData => requestShape.parse({});
 export const STEP_OF: Record<string, number> = {
   car: 1, dates: 1, from: 1, to: 1, tf: 1, tt: 1, pickupAt: 1, pickupAddress: 1, pickupAirport: 1, returnAt: 1, returnAddress: 1, returnAirport: 1,
   first: 2, last: 2, email: 2, phone: 2, dob: 2, drivers: 2, referrer: 2, heardAbout: 2, notifyChannel: 2,
-  licClass: 3, licIssuer: 3, coverage: 3, bookingType: 3, notes: 3, addons: 4, winter: 4, babySeats: 4, agree: 5, marketing: 5, promo: 5
+  licClass: 3, licIssuer: 3, coverage: 3, coverageCard: 3, coverageCardAck: 3, opcfAck: 3, bookingType: 3, notes: 3, addons: 4, winter: 4, babySeats: 4, agree: 5, marketing: 5, promo: 5
 };
 
 export function ageOn(y: string, m: string, d: string, onIso: string): number | null {
@@ -98,6 +102,10 @@ export function checkRequest(v: RequestData, r: RequestRules, ctx: { todayIso: s
   if (v.licClass === 'other' && v.licIssuer.length < 2) set('licIssuer', 'Tell us which province, state or country issued it.');
   // 0093: a car with insurance included needs no choice (the database sets option 4)
   if (!ctx.insuranceIncluded && !['1', '2', '3'].includes(v.coverage)) set('coverage', 'Choose how the car will be covered. You can change it before pickup.');
+  // 2541: the coverage order (the database checks the card against the list again when the request is sent)
+  if (!ctx.insuranceIncluded && v.coverage === '2' && !v.coverageCard) set('coverageCard', 'Pick your credit card from the list to check its rental car coverage.');
+  if (!ctx.insuranceIncluded && v.coverage === '2' && !v.coverageCardAck) set('coverageCardAck', 'Tick that you will pay for the rental with this card.');
+  if (!ctx.insuranceIncluded && v.coverage === '1' && !v.opcfAck) set('opcfAck', 'Tick that you will upload your auto policy with the OPCF 27 endorsement.');
   if (v.notes.length > r.noteMax) set('notes', `Keep the note under ${r.noteMax} characters.`);
   // step 4: add-ons are checked by the database (notice, stock, the car)
   // step 5
