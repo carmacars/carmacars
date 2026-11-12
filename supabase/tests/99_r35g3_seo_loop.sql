@@ -24,6 +24,9 @@ select test.eq('B the old query is gone', (select count(*) from app.gsc_page_que
 select app.gsc_pages_store(jsonb_build_object('rows', jsonb_build_array(
   jsonb_build_object('kind', 'query', 'key', 'rent a mercedes toronto', 'clicks', 81, 'impressions', 910, 'ctr', 0.089, 'position', 4.1),
   jsonb_build_object('kind', 'query', 'key', 'car rental pearson', 'clicks', 30, 'impressions', 4000, 'ctr', 0.0075, 'position', 9.1))));
+-- only this test's days: an earlier suite (99_r35c_investor_search) stores days from current_date, which is UTC, so after 19:00
+-- Toronto its newest day is later than these and moved the 28-day window (run 43123677220)
+delete from app.gsc_search_daily;
 insert into app.gsc_search_daily (day, clicks, impressions, ctr, position)
   select app.today() - 3 - g, 1000 + g, 50000, 0.02, 9 from generate_series(0, 27) g
   on conflict (day) do update set clicks = excluded.clicks, impressions = excluded.impressions;
