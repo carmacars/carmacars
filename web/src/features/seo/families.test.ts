@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { eventCopy, eventWhen } from '../events/copy.ts';
 import { airportCopy } from '../airports/copy.ts';
 import { loanPayment, ownLines, type OwnInputs } from '../rent-vs-own/calc.ts';
-import { CATALOG, protect, restore, translator, validTranslation } from '../i18n/catalog.ts';
+import { CATALOG, localizedIndexable, protect, restore, translator, validTranslation } from '../i18n/catalog.ts';
 import { negativeHits } from './copy-lint.ts';
 
 const E = { name: 'Example Fest', venue: 'Example Park', venue_address: '1 Park Rd, Toronto', city: 'Toronto', usual_months: 'July', starts_on: null, ends_on: null, summary: 'A summer festival in the park.', source_name: 'Example', category: 'festival' };
@@ -53,4 +53,10 @@ test('languages: placeholders are protected through translation and checked afte
   assert.equal(t('common.from_day', { price: '$49' }), 'From $49 a day');
   assert.deepEqual([...missing], ['common.from_day']);
   for (const v of Object.values(CATALOG)) { assert.equal(negativeHits(v).length, 0, v); assert.doesNotMatch(v, /[—–!]/); }
+});
+
+test('2350: a language page is noindex only when its language is not ready or its own strings are missing', () => {
+  assert.equal(localizedIndexable(true, 0), true);
+  assert.equal(localizedIndexable(true, 2), false);
+  assert.equal(localizedIndexable(false, 0), false);
 });

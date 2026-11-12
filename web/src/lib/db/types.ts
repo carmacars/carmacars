@@ -18585,6 +18585,7 @@ export type Database = {
           seo_i18n_vehicle_places: number;
           meet_hold_minutes: number;
           channel_api_enabled: boolean;
+          seo_i18n_grace_days: number;
         };
         Insert: {
           id?: string;
@@ -19410,6 +19411,7 @@ export type Database = {
           seo_i18n_vehicle_places?: number;
           meet_hold_minutes?: number;
           channel_api_enabled?: boolean;
+          seo_i18n_grace_days?: number;
         };
         Update: {
           id?: string;
@@ -20235,6 +20237,7 @@ export type Database = {
           seo_i18n_vehicle_places?: number;
           meet_hold_minutes?: number;
           channel_api_enabled?: boolean;
+          seo_i18n_grace_days?: number;
         };
         Relationships: [];
       };
@@ -31960,6 +31963,7 @@ export type Database = {
       place_roots: { Args: never; Returns: Json };
       place_sitemap: { Args: { p_vertical: string; p_term: string; p_page: number }; Returns: Json };
       place_sitemap_files: { Args: never; Returns: Json };
+      place_sitemap_files_pre2350: { Args: never; Returns: Json };
       place_terms_public: { Args: never; Returns: Json };
       places_known: { Args: { p_slugs: string[] }; Returns: string[] };
       public_reviews: { Args: { p_vehicle?: string; p_limit?: number; p_offset?: number }; Returns: { review_id: string; vehicle_id: string; vehicle_label: string; rating: number; title: string; body: string; reviewer_first_name: string; review_month: string; staff_reply: string }[] };
