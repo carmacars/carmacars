@@ -10,6 +10,7 @@ import { linkSecret } from '@/server/links';
 import { runListingWorker, type Claim, type RunSummary } from '@/features/listing/worker';
 import { visionModel } from '@/integrations/vision';
 import { MARK_PROMPT, MARK_SYSTEM, parseMarks, type MarkBox } from '@/features/listing/photo-sort';
+import { PLATE_AUTO_SCHEMA, PLATE_AUTO_SYSTEM, plateAutoPrompt } from '@/features/listing/plate-auto';
 import { letteringName } from '@/features/car/studio';
 import { showroomPrompt, type ShowroomOut, type ShowroomProvider } from '@/features/listing/showroom';
 import { geminiEditImage } from '@/integrations/photos/gemini';
@@ -40,6 +41,18 @@ async function findMarks(img: { bytes: Uint8Array; contentType: string; width: n
   const marks = r?.ok ? parseMarks(r.data, img) : null;
   await rpc('server_photo_mark_record', { p: { model: r?.model ?? null, ok: !!marks, neurons: r?.usage?.neurons ?? 0, duration_ms: Date.now() - t0, photo_id: img.photoId, marks: marks?.length ?? null } }, SR).catch(() => undefined);
   return marks;
+}
+
+/** r41 (2530): where the plates are on a listing photo (the vision model behind the marks' gate, within the live AI share);
+ *  null when the model may not be asked now or did not answer (the job waits an hour). Every call is recorded. */
+async function findPlates(img: { bytes: Uint8Array; contentType: string; width: number; height: number; photoId: string }): Promise<{ data: unknown; model: string } | null> {
+  const gate = (await rpc('server_photo_mark_gate', {}, SR).catch(() => null)) as unknown as { allowed?: boolean; model?: string; fallback_model?: string | null } | null;
+  if (!gate?.allowed || !gate.model || img.bytes.length > 3_400_000) return null;
+  const t0 = Date.now();
+  const r = await (await visionModel()).read({ purpose: 'plate_detect', imageDataUrl: `data:${img.contentType};base64,${b64(img.bytes)}`, system: PLATE_AUTO_SYSTEM,
+    prompt: plateAutoPrompt(img), schema: PLATE_AUTO_SCHEMA as unknown as Record<string, unknown>, maxOutputTokens: 300 }, [gate.model, gate.fallback_model ?? ''].filter(Boolean)).catch(() => null);
+  await rpc('server_photo_mark_record', { p: { model: r?.model ?? null, ok: !!r?.ok, neurons: r?.usage?.neurons ?? 0, duration_ms: Date.now() - t0, photo_id: img.photoId, marks: null } }, SR).catch(() => undefined);
+  return r?.ok ? { data: r.data, model: r.model } : null;
 }
 
 /** r35 (0990): the image model of the showroom photos, behind the database's gate (Program settings: on, the model, the
@@ -103,6 +116,11 @@ export async function runListingWorkerNow(o: { maxJobs?: number; deadlineMs?: nu
     // r35: local steps by default; Cloudflare for everything only when Program settings say so (listing_cf_transformations)
     photos: await photoProcessor(read, { cfAll: ((await rpc('server_listing_image_mode', {}, SR).catch(() => null)) as unknown as { cf_transformations?: boolean } | null)?.cf_transformations === true }),
     findMarks,
+    findPlates,
+    plateAutoApply: async (p) => {
+      const r = (await rpc('server_plate_auto_apply', { p: p as unknown as Json }, SR)) as unknown as { applied?: boolean; previous?: string[] } | null;
+      return { applied: !!r?.applied, previous: Array.isArray(r?.previous) ? r!.previous : [] };
+    },
     showroomAi: env().GEMINI_API_KEY ? showroomAi(env().GEMINI_API_KEY!) : null,
     showroomNoKey: !env().GEMINI_API_KEY,
     angleAi: env().GEMINI_API_KEY ? angleAi(env().GEMINI_API_KEY!) : null,
@@ -114,7 +132,10 @@ export async function runListingWorkerNow(o: { maxJobs?: number; deadlineMs?: nu
       putPublic: (path, bytes, type) => s.put('vehicle-public', path, bytes, type),
       hasPublic: async (path) => (await s.get('vehicle-public', path)) !== null,
       // r36 (2100): the cover photo the flyer is drawn on
-      getPublic: (path) => s.get('vehicle-public', path)
+      getPublic: (path) => s.get('vehicle-public', path),
+      // r41 (2530): the uncovered file an automatic cover replaced
+      removePublic: (path) => s.remove('vehicle-public', path),
+      removePrivate: (path) => s.remove('vehicle-originals', path)
     }
   }, o);
 }

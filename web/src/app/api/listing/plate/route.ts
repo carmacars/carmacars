@@ -11,7 +11,35 @@ import { storage } from '@/integrations/storage';
 // row points to the covered file; the old public files are removed; the car's pages are rebuilt.
 export const dynamic = 'force-dynamic';
 const MAX = 15 * 1024 * 1024;
-type Ctx = { id: string; vehicle_id: string; processed_path: string | null; variants: Array<{ width: number; format: string; path: string }> | null; uncovered_path: string | null; replaced: boolean };
+type Ctx = { id: string; vehicle_id: string; processed_path: string | null; variants: Array<{ width: number; format: string; path: string }> | null; uncovered_path: string | null; replaced: boolean;
+  plate_status?: string; plate_auto?: { who?: string; uncovered?: string | null; prev_path?: string | null } | null };
+const revalidateCars = () => { revalidatePath('/cars/[slug]', 'page'); revalidatePath('/cars'); for (const x of ['/cars/[slug]/[model]', '/cars/[slug]/[model]/[year]', '/cars/[slug]/[model]/[year]/[trim]']) revalidatePath(x, 'page'); revalidatePath('/', 'layout'); };
+const errText = (e: unknown, d: string) => (e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '') : d);
+
+/** r41 (2530): an automatic decision undone. A cover: the photo as it was (kept privately when it was covered) goes back on the
+ *  public bucket under a new name, the database points the photo to it (its sizes are made again) and the covered files are
+ *  removed. "No plate visible": the database alone. */
+async function undoAuto(userId: string, aal: Awaited<ReturnType<typeof sessionAal>>, ctx: Ctx, to: 'unchecked' | 'not_visible') {
+  const s = await storage();
+  let restored: string | null = null;
+  if (ctx.plate_status === 'covered') {
+    const kept = ctx.plate_auto?.uncovered ?? ctx.uncovered_path;
+    const bytes = kept ? await s.get('vehicle-originals', kept).catch(() => null) : null;
+    if (!kept || !bytes) return NextResponse.json({ ok: false, message: 'The photo as it was could not be found. Use "Cover again" to fix the box instead.' }, { status: 409 });
+    const name = (ctx.plate_auto?.prev_path ?? ctx.processed_path ?? 'photo').split('/').pop()!.replace(/\.\w+$/, '').replace(/-[acu][0-9a-f]{6}(-\d+)?$/, '').replace(/[^\w-]+/g, '-').slice(0, 80) || 'photo';
+    restored = `vehicles/${ctx.vehicle_id}/${name}-u${crypto.randomUUID().slice(0, 6)}.${ext(kept)}`;
+    await s.put('vehicle-public', restored, bytes, type(kept));
+  }
+  let res: { previous?: string[] };
+  try { res = await door(userId, 'ops_do', 'photo_plate_auto_undo', { photo: ctx.id, to, ...(restored ? { processed_path: restored } : {}) }, aal); }
+  catch (e) {
+    if (restored) await s.remove('vehicle-public', restored).catch(() => undefined);
+    return NextResponse.json({ ok: false, message: errText(e, 'The decision could not be undone.') }, { status: 422 });
+  }
+  for (const p of res.previous ?? []) if (p && p !== restored) await s.remove('vehicle-public', p).catch(() => undefined);
+  revalidateCars();
+  return NextResponse.json({ ok: true, path: restored });
+}
 const jpeg = (b: Uint8Array) => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
 const ext = (p: string) => (/\.(\w+)$/.exec(p)?.[1] ?? 'jpg').toLowerCase();
 const type = (p: string) => ({ png: 'image/png', webp: 'image/webp', avif: 'image/avif' } as Record<string, string>)[ext(p)] ?? 'image/jpeg';
@@ -54,6 +82,9 @@ export async function POST(req: Request) {
   try { ctx = await door<Ctx>(user.id, 'ops_read', 'photo_plate_context', { photo }, aal); }
   catch (e) { return NextResponse.json({ ok: false, message: e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '') : 'Not permitted.' }, { status: 403 }); }
   if (!ctx || ctx.replaced || !ctx.processed_path) return NextResponse.json({ ok: false, message: 'This photo is not ready to edit.' }, { status: 409 });
+  // r41 (2530): undo an automatic decision; "to" is unchecked (Plate not checked) or not_visible (No plate visible)
+  const undo = String(form?.get('undo') ?? '');
+  if (undo) return undoAuto(user.id, aal, ctx, undo === 'not_visible' ? 'not_visible' : 'unchecked');
   let boxes: unknown;
   try { boxes = JSON.parse(String(form?.get('boxes') ?? '[]')); } catch { return NextResponse.json({ ok: false, message: 'The boxes could not be read.' }, { status: 400 }); }
   const main = form?.get('file');

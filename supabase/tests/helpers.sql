@@ -356,3 +356,7 @@ end $$;
 -- rule back on, tests it and switches it off.
 alter table program_settings alter column rentalcover_unknown_value_allowed set default true;
 update program_settings set rentalcover_unknown_value_allowed = true;
+-- 2530: the automatic plate check (on by default) queues a job for every processed photo whose plate is not checked; the
+-- older suites count the listing jobs of their photos. 99_r41_plates_auto.sql switches it on, tests it and switches it off.
+alter table program_settings alter column plate_auto_enabled set default false;
+update program_settings set plate_auto_enabled = false;

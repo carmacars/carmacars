@@ -1,5 +1,5 @@
 'use client';
-import { useState, useTransition } from 'react';
+import { Fragment, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { photoUrl } from '@/lib/photo';
 import { staffDo } from '@/server/actions/staff-tools';
@@ -18,6 +18,8 @@ import { MarketingPhotos } from '@/features/listing/Marketing';
 import { ListingCover } from '@/features/listing/Cover';
 import { MissingAngles } from '@/features/listing/MissingAngle';
 import { ShortVideo } from '@/features/social/ShortVideo';
+import { autoShown, autoText, type AutoPlate } from '@/features/listing/plate-auto-view';
+import { WideRow } from '@/features/listing/WideRow';
 
 // Review a listing (09-listing-pipeline.md section 6): the copy, written by itself (0061: nothing to type), every photo
 // (approve, reject, use the original, choose the cover), the problems the database still sees, then
@@ -29,8 +31,10 @@ type Photo = { id: string; vehicle_id: string; shot_type: string; shot_label: st
   /** 0700: the plate cover carried over an edit that did not move the car; how many times the cut-out was edited */
   plate_carry?: { boxes?: Array<{ x: number; y: number; w: number; h: number }>; style?: 'cover' | 'pixelate' | 'blur' } | null; edit_version?: number;
   /** 0990: the scene (showroom or the black studio) and how the showroom photo was made */
-  scene?: string | null; preset_version?: string | null; showroom?: { provider?: string; model?: string | null; note?: string | null } | null };
-export type Plates = { required: boolean; unchecked: string[]; private_shots: string[]; detect?: boolean };
+  scene?: string | null; preset_version?: string | null; showroom?: { provider?: string; model?: string | null; note?: string | null } | null;
+  /** r41 (2530): the automatic plate check's decision, and who checked the plate (null: nobody, or the check by itself) */
+  plate_auto?: AutoPlate | null; plate_checked_by?: string | null };
+export type Plates = { required: boolean; unchecked: string[]; private_shots: string[]; detect?: boolean; auto?: boolean; auto_waiting?: number };
 const PLATE: Record<Photo['plate_status'], string> = { unchecked: 'Plate not checked', covered: 'Plate covered', not_visible: 'No plate visible' };
 export type L = { id: string; vehicle_id: string; state: string; reason: string | null; vehicle: { name: string; plate: string | null };
   listing: { status: string; slug: string | null; headline: string | null; description: string | null; features: string[] | null; faq: Array<{ question: string; answer: string }> | null; seo_title: string | null; seo_description: string | null } | null;
@@ -62,6 +66,15 @@ export function ListingReview({ l, plates, copy, exterior = [] }: { l: L; plates
   });
   const problems = [...(l.problems.copy ?? []), ...(l.problems.photos ?? []), ...(l.problems.specs ?? []), ...(l.problems.missing_shots ?? []).map((s) => `missing photo: ${s.replace(/_/g, ' ')}`),
     ...(plates?.required && toCheck.length ? [`licence plate not covered or marked "no plate visible": ${toCheck.map((p) => p.shot_label ?? p.shot_type).join(', ')}`] : [])];
+  // r41 (2530): an automatic decision undone (a cover: the photo as it was is put back by the save route)
+  const undoAuto = (p: Photo, to: 'unchecked' | 'not_visible') => start(async () => {
+    const fd = new FormData(); fd.set('photo', p.id); fd.set('undo', to);
+    const r = await fetch('/api/listing/plate', { method: 'POST', body: fd }).catch(() => null);
+    const j = (r ? await r.json().catch(() => null) : null) as { ok?: boolean; message?: string } | null;
+    if (!j?.ok) { setRes({ ok: false, text: j?.message ?? 'The decision could not be undone.' }); return; }
+    setRes({ ok: true, text: to === 'not_visible' ? 'The cover is off and the photo is marked "No plate visible".' : 'Undone: the plate is not checked. Cover it or mark it "No plate visible".' });
+    router.refresh();
+  });
   const noneVisible = () => start(async () => {
     for (const p of toCheck) { const r = await staffDo('photo_plate_record', { photo: p.id, status: 'not_visible' }); if (!r.ok) { setRes({ ok: false, text: r.message }); return; } }
     setRes({ ok: true, text: 'Marked: no plate visible.' }); router.refresh();
@@ -74,7 +87,9 @@ export function ListingReview({ l, plates, copy, exterior = [] }: { l: L; plates
         <section className="pt-card ad-card" aria-labelledby="lr-ph"><h2 className="d4" id="lr-ph">Photos</h2>
           {plates && <p className="small muted">Every photo that goes on the website needs its licence plate covered, or a check that no plate can be read{plates.required ? ' before the listing is published' : ''}. The photo as it was is kept privately.</p>}
           {plates && <PlateCarry photos={l.photos} />}
-          {plates && <PlateAutoSuggest photos={l.photos.filter((p) => plateCheck(p)).map((p) => ({ ...p, vehicle_id: l.vehicle_id }))} exterior={exterior} on={plates.detect !== false} />}
+          {/* r41 (2530): the plates are checked by itself on the server; the browser's box suggestion only when that is off */}
+          {plates?.auto && (plates.auto_waiting ?? 0) > 0 && <p className="small muted" role="status" data-testid="plate-auto-waiting">The plates are being checked automatically: {plates.auto_waiting} photo{plates.auto_waiting === 1 ? '' : 's'} waiting. A plate found is covered, a photo with none is marked &quot;No plate visible&quot;, and a photo the check is not sure of stays for you.</p>}
+          {plates && <PlateAutoSuggest photos={l.photos.filter((p) => plateCheck(p)).map((p) => ({ ...p, vehicle_id: l.vehicle_id }))} exterior={exterior} on={plates.detect !== false && !plates.auto} />}
           {plates && toCheck.length > 1 && <p className="row">{!sure
             ? <button className="btn btn--ghost btn--sm" type="button" disabled={pending} data-testid="plates-none-visible" onClick={() => setSure(true)}>No plate visible on the {toCheck.length} photos left</button>
             : <><span className="small">No plate can be read on any of these {toCheck.length} photos?</span>
@@ -101,7 +116,8 @@ export function ListingReview({ l, plates, copy, exterior = [] }: { l: L; plates
           <ShortVideo vehicle={l.vehicle_id} />
           {/* a shot kept as taken (the odometer, never published) stays in the private originals: shown through its signed link */}
           <ul className="ad-photos">{l.photos.map((p) => { const path = p.processed_path && p.processed_path !== p.original_path ? photoUrl(p.processed_path) : p.original_url ?? null; return (
-            <li key={p.id} className={`${cover === p.id ? 'is-cover' : ''}${(ph[p.id] ?? p.status) === 'reject' ? ' is-rejected' : ''}`}>
+            <Fragment key={p.id}>
+            <li className={`${cover === p.id ? 'is-cover' : ''}${(ph[p.id] ?? p.status) === 'reject' ? ' is-rejected' : ''}`}>
               {/* eslint-disable-next-line @next/next/no-img-element -- photos come pre-sized from the pipeline */}
               {path ? <img src={path} alt={p.alt_text ?? p.shot_label ?? p.shot_type} loading="lazy" width={300} height={200} /> : <span className="muted">no file</span>}
               <span><b>{p.shot_label ?? p.shot_type}</b> · {p.status}</span>
@@ -124,10 +140,17 @@ export function ListingReview({ l, plates, copy, exterior = [] }: { l: L; plates
                 <button className="btn btn--ghost btn--sm" type="button" onClick={() => { setCutting(null); setEditing(editing === p.id ? null : p.id); }} aria-expanded={editing === p.id} data-testid={`plate-edit-${p.shot_type}`}>{p.plate_status === 'covered' ? 'Cover again' : 'Cover the plate'}</button>
                 {p.plate_status === 'unchecked' && <button className="btn btn--ghost btn--sm" type="button" disabled={pending} data-testid={`plate-none-${p.shot_type}`}
                   onClick={() => start(async () => { const r = await staffDo('photo_plate_record', { photo: p.id, status: 'not_visible' }); if (r.ok) router.refresh(); else setRes({ ok: false, text: r.message }); })}>No plate visible</button>}
+                {/* r41 (2530): a decision made by itself: shown, and undone in one click */}
+                {autoText(p.plate_auto) && (autoShown(p) || p.plate_auto?.decision === 'unsure' && p.plate_status === 'unchecked') && <span className="ad-b ad-b--light" data-testid={`plate-auto-${p.shot_type}`} data-auto={p.plate_auto?.decision}>{autoText(p.plate_auto)}</span>}
+                {autoShown(p) && <button className="btn btn--ghost btn--sm" type="button" disabled={pending} data-testid={`plate-auto-undo-${p.shot_type}`}
+                  onClick={() => undoAuto(p, 'unchecked')}>Undo</button>}
+                {autoShown(p) && p.plate_status === 'covered' && <button className="btn btn--ghost btn--sm" type="button" disabled={pending} data-testid={`plate-auto-none-${p.shot_type}`}
+                  onClick={() => undoAuto(p, 'not_visible')}>Not a plate: no plate visible</button>}
               </span>}
-            </li>); })}</ul>
-          {editing && (() => { const p = l.photos.find((x) => x.id === editing); return p ? <PlateEditor key={p.id} photo={{ ...p, vehicle_id: l.vehicle_id }} onClose={() => setEditing(null)} /> : null; })()}
-          {cutting && (() => { const p = l.photos.find((x) => x.id === cutting); return p ? <CutoutEditor key={p.id} photo={p} onClose={() => setCutting(null)} /> : null; })()}
+            </li>
+            {editing === p.id && <WideRow label={`Plate on the ${p.shot_label ?? p.shot_type} photo`}><PlateEditor key={p.id} photo={{ ...p, vehicle_id: l.vehicle_id }} onClose={() => setEditing(null)} /></WideRow>}
+            {cutting === p.id && <WideRow label={`Cut-out of the ${p.shot_label ?? p.shot_type} photo`}><CutoutEditor key={p.id} photo={p} onClose={() => setCutting(null)} /></WideRow>}
+            </Fragment>); })}</ul>
           <ExtraOrder key={l.photos.filter((p) => isExtra(p.shot_type)).map((p) => p.id).join()} vehicle={l.vehicle_id}
             photos={l.photos.filter((p) => isExtra(p.shot_type) && p.status !== 'rejected')} />
           {!l.photos.length && <p className="small muted">No photos uploaded yet.</p>}

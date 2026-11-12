@@ -31,6 +31,10 @@ export function fakeVision(): VisionModel {
       // a dashboard photo (release 35): a reading the person confirms or corrects; FAKE_VISION_DASH=none for one it cannot read
       if (req.purpose === 'dash_read') return { ok: true, model: FAKE_MODEL, usage, tried: [FAKE_MODEL], data: process.env.FAKE_VISION_DASH === 'none'
         ? { odometer: null, fuel_eighths: null, readable: false } : { odometer: 45210, unit: 'km', fuel_eighths: 6, readable: true } };
+      // r41 (2530): the automatic plate check: unsure (the photo stays for a person, as before), or FAKE_VISION_PLATE=plate | none
+      if (req.purpose === 'plate_detect' && req.prompt.includes('"plate_visible"')) return { ok: true, model: FAKE_MODEL, usage, tried: [FAKE_MODEL], data:
+        process.env.FAKE_VISION_PLATE === 'plate' ? { plates: [{ x1: 420, y1: 450, x2: 580, y2: 492, confidence: 88 }], plate_visible: 'yes', confidence: 90 }
+          : process.env.FAKE_VISION_PLATE === 'none' ? { plates: [], plate_visible: 'no', confidence: 95 } : { plates: [], plate_visible: 'unsure', confidence: 40 } };
       if (req.purpose === 'plate_detect') return { ok: true, model: FAKE_MODEL, usage, tried: [FAKE_MODEL], data: { plates: [{ x: 0.42, y: 0.66, w: 0.16, h: 0.06, confidence: 72 }] } };
       return { ok: true, model: FAKE_MODEL, usage, tried: [FAKE_MODEL], data: {
         issuer: 'City of Toronto', kind: 'parking', notice_number: 'PN 7710-0042', due_date: '2026-11-01', total: 50,

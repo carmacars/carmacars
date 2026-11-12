@@ -79,6 +79,8 @@ const LABELS: Record<string, string> = {
   listing_publish_new_cars_automatically: 'Publish new cars automatically (as soon as the year, make, model, plate or VIN and rates are in)',
   listing_default_daily_rate_cents: 'Starting daily rate by class, in cents (used when no similar car has rates)',
   plate_cover_style: 'Default way to treat a plate: carma (the front plate edited out, the rear plate the CARMA Ontario plate), or the older cover, pixelate or blur', plate_cover_text: 'Text on the plate cover (empty: the brand name)', plate_detect_enabled: 'Suggest the plate box with the vision model',
+  plate_auto_enabled: 'Check the licence plate on every listing photo automatically (covered when found, "No plate visible" when sure there is none, else left for a person)',
+  plate_auto_cover_min: 'Automatic plate check: how sure the model must be to cover a plate (0 to 100)', plate_auto_clear_min: 'Automatic plate check: how sure the model must be to mark an outside photo "No plate visible" (0 to 100)',
   listing_photo_enhance: 'Auto-enhance listing photos (a light touch-up: exposure, levels, a little contrast and colour, mild sharpening; never the paint colour)',
   listing_showroom: 'Showroom photos: new outside photos in the dark CarmaCars showroom (logo on the wall, the model behind the car on the cover) instead of the black studio',
   listing_showroom_ai: 'Showroom photos: let the image model make them look photographed (needs its key on the server; else the free showroom)',

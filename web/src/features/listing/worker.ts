@@ -15,6 +15,7 @@ import type { Rgba } from './subject-frame.ts';
 import { drawFlyer, type FlyerSpec } from './flyer.ts';
 import { resample, scaleDown } from '../../integrations/photos/local.ts';
 import { applyPlates, type PlateEnd, type PxBox } from './plate-photo.ts';
+import { boxesForSave, decidePlate, greyOfRgba, refineAll, toPx } from './plate-auto.ts';
 import { enhanceValues, statsOf, type Enhance } from './enhance.ts';
 import { cropAway, type MarkBox } from './photo-sort.ts';
 import { imageSize } from '../drive-import/image-size.ts';
@@ -57,7 +58,7 @@ const MICROUSD_PER_TRANSFORMATION = 500;     // US$0.50 per 1,000 unique transfo
 const FREE_DAILY_NEURONS = 10_000;
 
 export interface JobContext {
-  id: string; kind: 'decode_vin' | 'draft_copy' | 'process_photo' | 'resize' | 'publish' | 'marketing_photo' | 'plate_redo' | 'cover_model' | 'cover_flyer' | 'angle_make'; intake_id: string; vehicle_id: string;
+  id: string; kind: 'decode_vin' | 'draft_copy' | 'process_photo' | 'resize' | 'publish' | 'marketing_photo' | 'plate_redo' | 'cover_model' | 'cover_flyer' | 'angle_make' | 'plate_auto'; intake_id: string; vehicle_id: string;
   attempts: number; max_attempts: number; input: Record<string, unknown>; vin?: string | null;
   facts?: Record<string, unknown> | null; staff_notes?: string | null; classes?: string[] | null;
   copy_rules?: { headline_chars: [number, number]; description_words: [number, number]; features: [number, number]; faq: [number, number]; banned_phrases: string[] } | null;
@@ -108,11 +109,19 @@ export interface WorkerDeps {
     hasPublic?(path: string): Promise<boolean>;
     /** r36 (2100): a public file's bytes (the cover photo a flyer is drawn on); null when missing. */
     getPublic?(path: string): Promise<Uint8Array | null>;
+    /** r41 (2530): a file taken off its bucket (the uncovered file an automatic cover replaced, or a cover that came too late). */
+    removePublic?(path: string): Promise<void>;
+    removePrivate?(path: string): Promise<void>;
   };
   /** 0567: where the overlaid marks (watermark, logo, caption) are on an edited inside or detail photo, as fractions;
    *  [] none; null the model could not be asked (the photo then stays flagged, off the site). */
   findMarks?(img: { bytes: Uint8Array; contentType: string; width: number; height: number; photoId: string }): Promise<MarkBox[] | null>;
   now?(): number;
+  /** r41 (2530): the vision model's answer on where the plates are (plate-auto.ts prompt), behind the marks' gate (the
+   *  day's free AI share); null: the model may not be asked now (the job waits an hour). */
+  findPlates?(img: { bytes: Uint8Array; contentType: string; width: number; height: number; photoId: string }): Promise<{ data: unknown; model: string } | null>;
+  /** r41 (2530): the automatic plate decision recorded (server_plate_auto_apply): applied, and the files a cover replaced. */
+  plateAutoApply?(p: Record<string, unknown>): Promise<{ applied: boolean; previous?: string[] }>;
   /** r35 (0990): the image model that makes the showroom look photographed (gated by the database's daily limit); none: the
    *  free local showroom alone, noted "no key" on the photo when showroomNoKey. */
   showroomAi?: ShowroomProvider | null;
@@ -194,6 +203,7 @@ export async function runJob(d: WorkerDeps, j: JobContext, b: Budget, used = { n
     case 'plate_redo': return plateRedo(d, j);
     case 'cover_model': case 'cover_flyer': return listingCover(d, j);
     case 'angle_make': return angleMake(d, j);
+    case 'plate_auto': return plateAuto(d, j);
   }
 }
 
@@ -692,6 +702,69 @@ async function plateRedo(d: WorkerDeps, j: JobContext): Promise<JobResult> {
     variants.push({ width: w, format: 'jpg', path: vp });
   }
   return { ok: true, provider, output: { plate: { processed_path: path, variants, width: W, height: H, end: m.end } } };
+}
+
+/** r41 (2530): the plate checked by itself: plate-auto.ts decides; the cover is "Cover the plate"'s (applyPlates). */
+export interface PlateAutoInput { photo_id: string; vehicle_id: string; shot_type: string; source: string; detect_path?: string | null; inside: boolean; end: PlateEnd;
+  uncovered_path?: string | null; widths?: number[]; cover_min?: number; clear_min?: number }
+const DETECT_MAX_BYTES = 3_400_000;
+async function plateAuto(d: WorkerDeps, j: JobContext): Promise<JobResult> {
+  const m = (j.input as { plate?: PlateAutoInput }).plate;
+  if (!m?.photo_id || !m.source) return { ok: false, error: 'The plate check is missing its photo', retryable: false };
+  if (!d.findPlates || !d.plateAutoApply || !d.files.getPublic) return { ok: true, provider: 'carmacars', output: { plate_auto: { decision: 'deferred', why: 'not wired' } } };
+  // the model sees a smaller size when the photo has one; the cover is drawn on the photo itself
+  let seen = m.detect_path ? await d.files.getPublic(m.detect_path).catch(() => null) : null;
+  let full: Uint8Array | null = null;
+  if (!seen) { full = await d.files.getPublic(m.source).catch(() => null); seen = full; }
+  if (!seen) return { ok: false, error: 'The photo could not be read', retryable: true };
+  let size: { width: number; height: number } | null = imageSize(seen);
+  let contentType = seen[0] === 0x89 ? 'image/png' : 'image/jpeg';
+  if (size && tooLarge(size.width, size.height)) return { ok: true, provider: 'carmacars', output: { plate_auto: { decision: 'unsure', why: 'too large to read here' } } };
+  if (!size || seen.length > DETECT_MAX_BYTES) {
+    const img = await decodeImage(seen).catch(() => null);
+    if (!img) return { ok: true, provider: 'carmacars', output: { plate_auto: { decision: 'unsure', why: 'unreadable' } } };
+    const small = scaleDown(img, 1280, 1280);
+    seen = encodeJpeg(small, 85); size = { width: small.width, height: small.height }; contentType = 'image/jpeg';
+  }
+  const asked = await d.findPlates({ bytes: seen, contentType, width: size.width, height: size.height, photoId: m.photo_id }).catch(() => null);
+  if (!asked) return { ok: true, provider: 'carmacars', output: { plate_auto: { decision: 'deferred' } } };
+  const dec = decidePlate(asked.data, { width: size.width, height: size.height, inside: !!m.inside, coverMin: m.cover_min, clearMin: m.clear_min });
+  const base = { photo_id: m.photo_id, path: m.source, confidence: dec.confidence, model: asked.model };
+  if (dec.decision !== 'cover') {
+    const r = await d.plateAutoApply({ ...base, decision: dec.decision === 'no_plate' ? 'not_visible' : 'unsure', boxes: boxesForSave(dec.boxes) });
+    return { ok: true, provider: asked.model, output: { plate_auto: { decision: dec.decision, confidence: dec.confidence, why: dec.why, applied: r.applied } } };
+  }
+  full ??= await d.files.getPublic(m.source).catch(() => null);
+  const src = full ? await decodeImage(full).catch(() => null) : null;
+  if (!src) return { ok: false, error: 'The photo could not be read to cover its plate', retryable: !full };
+  const img = scaleDown(src, 3000, 3000);
+  const W = img.width, H = img.height;
+  const boxes = refineAll(greyOfRgba(img), dec.boxes);
+  applyPlates(img, boxes.map((b) => toPx(b, W, H)), m.end ?? 'rear');
+  const tag = j.id.replace(/-/g, '').slice(0, 6);
+  const name = (m.source.split('/').pop() ?? 'photo').replace(/\.\w+$/, '').replace(/-[acp][0-9a-f]{6}(-\d+)?$/, '').replace(/[^\w-]+/g, '-').slice(0, 80) || 'photo';
+  const path = `vehicles/${m.vehicle_id}/${name}-a${tag}.jpg`;
+  const main = encodeJpeg(img, 90);
+  const written: string[] = [path];
+  await d.files.putPublic(path, main, 'image/jpeg');
+  const variants: Array<{ width: number; format: string; path: string }> = [];
+  for (const w of [...new Set(m.widths ?? [])].filter((x) => x > 0 && x < W).sort((a, b) => b - a)) {
+    const vp = `vehicles/${m.vehicle_id}/${name}-a${tag}-${w}.jpg`;
+    await d.files.putPublic(vp, encodeJpeg(scaleDown(img, w), 86), 'image/jpeg');
+    written.push(vp); variants.push({ width: w, format: 'jpg', path: vp });
+  }
+  // the photo exactly as it was, kept privately (never shown): undo puts this file back
+  const png = /\.png$/i.test(m.source);
+  let uncovered: string | null = null, wrotePrivate = false;
+  if (full) {
+    uncovered = `vehicles/${m.vehicle_id}/uncovered/${m.photo_id}-${tag}.${png ? 'png' : 'jpg'}`;
+    await d.files.putPrivate(uncovered, full, png ? 'image/png' : 'image/jpeg'); wrotePrivate = true;
+  }
+  const r = await d.plateAutoApply({ ...base, decision: 'covered', boxes: boxesForSave(boxes), processed_path: path, variants, uncovered_path: uncovered, width: W, height: H, byte_size: main.length });
+  // as /api/listing/plate: the replaced files go off the public bucket; a cover that came too late takes its own files away
+  for (const p of r.applied ? (r.previous ?? []) : written) await d.files.removePublic?.(p).catch(() => undefined);
+  if (!r.applied && wrotePrivate && uncovered) await d.files.removePrivate?.(uncovered).catch(() => undefined);
+  return { ok: true, provider: asked.model, output: { plate_auto: { decision: 'cover', confidence: dec.confidence, boxes: boxes.length, applied: r.applied, processed_path: r.applied ? path : null } } };
 }
 
 async function resize(d: WorkerDeps, j: JobContext, b: Budget, used: { transformations: number }): Promise<JobResult> {

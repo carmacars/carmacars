@@ -32744,6 +32744,7 @@ export type Database = {
       server_places_import_finish: { Args: { p_import: number; p_skipped?: Json }; Returns: Json };
       server_places_import_region_done: { Args: { p_import: number; p_region: string; p_counts: Json }; Returns: Json };
       server_places_stage_clear: { Args: never; Returns: undefined };
+      server_plate_auto_apply: { Args: { p: Json }; Returns: Json };
       server_push_device_topics: { Args: { p_user: string; p_endpoint: string; p_topics: string[] }; Returns: Json };
       server_push_due: { Args: { p_limit?: number; p_kinds?: string[] }; Returns: Json };
       server_push_result: { Args: { p: Json }; Returns: Json };
