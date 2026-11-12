@@ -25,7 +25,7 @@ async function prepare(file: File): Promise<Blob> {
   return new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('Could not read the image'))), 'image/jpeg', 0.9));
 }
 
-function Photo({ p, ownerId, viewer, refresh, view }: { p: PhotoRow; ownerId: string; viewer: Viewer; refresh: string[]; view: string }) {
+function Photo({ p, ownerId, viewer, refresh, view, say }: { p: PhotoRow; ownerId: string; viewer: Viewer; refresh: string[]; view: string; say: (text: string) => void }) {
   const id = useId().replace(/:/g, '');
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -43,7 +43,9 @@ function Photo({ p, ownerId, viewer, refresh, view }: { p: PhotoRow; ownerId: st
         fd.set('document_id', p.id); fd.set('owner_id', ownerId); fd.set('paths', JSON.stringify(refresh));
         fd.set('file', new File([body], file.type === 'application/pdf' ? 'photo.pdf' : 'photo.jpg', { type: file.type === 'application/pdf' ? 'application/pdf' : 'image/jpeg' }));
         const r = await onboardingPhotoReplace(fd);
-        done(r.ok, r.ok ? (r.data.back_to_review ? 'Replaced. It was approved, so it is checked again.' : 'Replaced. It waits for the check.') : r.message);
+        // a replaced photo is a new row: this one leaves the list with the refresh, so the list says it (r38: the message went with it)
+        if (r.ok) { say(r.data.back_to_review ? 'Replaced. It was approved, so it is checked again.' : 'Replaced. It waits for the check.'); router.refresh(); }
+        else done(false, r.message);
       } catch (e) { done(false, e instanceof Error ? e.message : 'The upload did not finish. Try again.'); }
     });
   };
@@ -118,14 +120,16 @@ function AddPhoto({ cars, refresh, ownerId }: { cars: Array<{ vehicle_id: string
 export function OnboardingPhotos({ photos, ownerId, viewer, refresh, cars = [], title = 'Onboarding photos', only }: {
   photos: PhotoRow[]; ownerId: string; viewer: Viewer; refresh: string[]; cars?: Array<{ vehicle_id: string; name: string }>; title?: string; only?: string }) {
   const list = photos.filter((p) => !only || p.vehicle_id === only);
+  const [notice, setNotice] = useState<string | null>(null);
   const view = (p: PhotoRow) => viewer === 'owner' ? `/owner/documents/${p.id}` : viewer === 'admin' ? `/admin/documents/${p.id}` : `/staff/documents/${p.id}`;
   return (
     <section className="pt-card stack" id="photos" aria-labelledby="ob-photos-h" data-testid="onboarding-photos">
       <h2 className="d4" id="ob-photos-h">{title}</h2>
       <p className="small muted">{viewer === 'owner' ? 'The ownership permit, insurance and lender photos you or we added. A wrong one? Replace it or remove it: a new photo is checked again.'
         : 'The ownership permit, insurance and lender photos of the owner\'s cars. Replace or remove any of them (kept in the history); approve or mark one not accepted. A replaced photo is checked again.'}</p>
-      {list.length ? <ul className="ob-photos">{list.map((p) => <Photo key={p.id} p={p} ownerId={ownerId} viewer={viewer} refresh={refresh} view={view(p)} />)}</ul>
+      {list.length ? <ul className="ob-photos">{list.map((p) => <Photo key={p.id} p={p} ownerId={ownerId} viewer={viewer} refresh={refresh} view={view(p)} say={setNotice} />)}</ul>
         : <p className="small muted" data-testid="onboarding-photos-none">No photo yet.</p>}
+      {notice && <p className="small" role="status" data-testid="onboarding-photo-msg">{notice}</p>}
       {viewer !== 'owner' && <AddPhoto cars={cars.filter((c) => !only || c.vehicle_id === only)} refresh={refresh} ownerId={ownerId} />}
     </section>
   );

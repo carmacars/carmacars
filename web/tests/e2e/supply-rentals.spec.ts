@@ -366,7 +366,7 @@ test('manual rental: amounts typed after tax, the total the renter pays, no depo
     await page.getByTestId('mr-submit').click();
     await expect(page.getByTestId('mr-done')).toContainText('Rental', { timeout: 30_000 });
     const number = (await page.getByTestId('mr-done').locator('h2').innerText()).match(/Rental (\S+) added/)![1]!;
-    const [bk] = await sql`select total_due_at_booking_cents::int t, price_tax, price_with_tax_cents::int w, rental_charge_cents::int r from bookings where booking_number = ${number}`;
+    const [bk] = await sql`select total_due_at_booking_cents::int t, price_tax, price_with_tax_cents::int w, rental_charge_cents::int r, id from bookings where booking_number = ${number}`;
     return bk!;
   };
 
@@ -378,8 +378,10 @@ test('manual rental: amounts typed after tax, the total the renter pays, no depo
   await page.getByTestId('mr-rental_charge').fill('270');
   await page.getByTestId('mr-fee-coverage_sold').fill('50');
   await expect(page.getByTestId('mr-total')).toHaveText('$320.00', { timeout: 20_000 });
-  await expect(page.getByTestId('mr-line-rental_charge')).toContainText('$238.94');
-  await expect(page.getByTestId('mr-line-coverage_sold')).toContainText('$44.25');
+  // r38 (the owner's Before/After tax toggle): After tax, each line shows what the renter pays for it, HST included; the
+  // HST line says it is included, and the booking keeps the amounts before tax ($238.94 and $44.25, checked after saving)
+  await expect(page.getByTestId('mr-line-rental_charge')).toContainText('$270.00');
+  await expect(page.getByTestId('mr-line-coverage_sold')).toContainText('$50.00');
   await expect(page.getByTestId('mr-price')).toContainText('$36.81');
   await expect(page.getByTestId('mr-sum-total')).toContainText('$320.00');
   await expect(page.getByTestId('mr-sum-total')).not.toContainText('updating');
@@ -389,6 +391,8 @@ test('manual rental: amounts typed after tax, the total the renter pays, no depo
   await check(page, 'add a rental, amounts after tax');
   const a = await save();
   expect(`${a.t}/${a.price_tax}/${a.w}/${a.r}`).toBe('32000/included/27000/23894');
+  const [cov] = await sql`select li.amount_cents::int c from booking_line_items li where li.booking_id = ${a.id} and li.charge_type = 'coverage_sold' and li.voided_at is null`;
+  expect(cov?.c).toBe(4425);
   await expect(page.getByTestId('mr-done-total')).toContainText('Total $320.00.');
 
   // 2. The choice is remembered on this device; the total the renter pays typed: the rental charge is worked out

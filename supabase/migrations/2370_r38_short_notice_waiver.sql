@@ -83,6 +83,11 @@ language plpgsql stable security definer set search_path = public, app as $$
 declare
   l jsonb := app.quote_lead_time_pre2370(p_vehicle, p_pickup, o);
 begin
+  -- a rental whose pickup has passed (a walk-in, a rental recorded after it started) is not short notice: no upcharge
+  -- (r38: Add a rental's check now prices the line, and a pickup yesterday took the highest short-notice tier)
+  if coalesce((l ->> 'bps')::integer, 0) > 0 and p_pickup <= now() then
+    return l || jsonb_build_object('bps', 0, 'source', 'started');
+  end if;
   if coalesce((l ->> 'bps')::integer, 0) > 0 and app.short_notice_waiving() then
     return l || jsonb_build_object('bps', 0, 'waived_bps', (l ->> 'bps')::integer, 'source', 'waived');
   end if;
@@ -96,6 +101,11 @@ language plpgsql security definer set search_path = public, app as $$
 declare
   w jsonb;
 begin
+  -- a pickup already passed when the booking is made carries no short-notice percentage (as the quote above)
+  if coalesce(new.lead_time_bps, 0) > 0 and new.pickup_at <= coalesce(new.booked_at, now()) then
+    new.lead_time_bps := null;
+    return new;
+  end if;
   if coalesce(new.lead_time_bps, 0) > 0 and app.short_notice_waiving() then
     w := current_setting('app.short_notice_waive', true)::jsonb;
     new.short_notice_waived_bps := new.lead_time_bps;

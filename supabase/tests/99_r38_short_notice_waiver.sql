@@ -58,6 +58,9 @@ select test.eq('staff within the price limits: waived, the minimum daily rate br
 -- ================================================================ Add a rental
 select test.eq('Add a rental''s check shows the short-notice line its booking gets',
   (select test.s99swl(x #> '{quote,lines}', 'lead_time') from (select app.door(test.id('sw_admin'), 'aal2', 'ops_read', 'manual_rental_quote', test.s99sw('car2')) x) q), 4500::bigint);
+select test.eq('a pickup already passed (a walk-in, picked up yesterday) is not short notice: no line in the check',
+  (select coalesce(test.s99swl(x #> '{quote,lines}', 'lead_time'), 0) from (select app.door(test.id('sw_admin'), 'aal2', 'ops_read', 'manual_rental_quote',
+     test.s99sw('car2', jsonb_build_object('pickup_at', date_trunc('hour', now()) - interval '24 hours', 'return_at', date_trunc('hour', now()) + interval '48 hours'))) x) q), 0::bigint);
 select test.eq('waived in the check: no line, and the check says so',
   (select coalesce(test.s99swl(x #> '{quote,lines}', 'lead_time'), 0) || ' ' || (x ->> 'short_notice_waived') from (select app.door(test.id('sw_admin'), 'aal2', 'ops_read', 'manual_rental_quote',
      test.s99sw('car2', '{"waive_short_notice": true, "short_notice_waive_reason": "Insurer approved rate"}')) x) q), '0 true');

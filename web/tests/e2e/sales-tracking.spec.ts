@@ -160,6 +160,8 @@ test('Admin: a staff member\'s sales, reassign, the team\'s month, the booking\'
   const admin = await mkUser(sql, 'admin', `Ada Admin ${tag()}`);
   const sales = await mkUser(sql, 'va', `Sasha Seller ${tag()}`, 'sales');
   const cs = await mkUser(sql, 'va', `Cory Service ${tag()}`, 'cs');
+  // 2330: customer service is never credited, so the deal is reassigned to another Sales person
+  const closer = await mkUser(sql, 'va', `Cory Closer ${tag()}`, 'sales');
   const renter = await mkUser(sql, 'renter', `Rowan Renter ${tag()}`);
   const carId = await companyCar(sql, admin.id);
   // a rental Sales added, paid at the counter within its limit: confirmed at once and credited to Sales
@@ -181,21 +183,21 @@ test('Admin: a staff member\'s sales, reassign, the team\'s month, the booking\'
   await expect(page.getByTestId('sales-deals').locator('tr', { hasText: number })).toContainText('Rental they added');
   await check(page, 'admin staff sales');
 
-  // reassign the deal to customer service, with a reason
+  // reassign the deal to another Sales person, with a reason
   await page.getByTestId(`reassign-${number}`).click();
   const form = page.getByTestId(`reassign-${number}-form`);
-  await form.getByLabel('Credit it to').selectOption(cs.id);
+  await form.getByLabel('Credit it to').selectOption(closer.id);
   await form.getByLabel('Reason').fill('Cory closed it on the phone');
   await check(page, 'reassign dialog');
   await page.getByTestId(`reassign-${number}-submit`).click();
-  await expect(page.getByTestId('sales-deals').locator('tr', { hasText: number })).toContainText(`credited to ${cs.name}`, { timeout: 15_000 });
-  const [cr] = await sql`select b.sales_staff_id = ${cs.id} as to_cs, b.sales_source, (select count(*) from booking_events e where e.booking_id = b.id and e.kind = 'sales_credit')::int as events
+  await expect(page.getByTestId('sales-deals').locator('tr', { hasText: number })).toContainText(`credited to ${closer.name}`, { timeout: 15_000 });
+  const [cr] = await sql`select b.sales_staff_id = ${closer.id} as to_closer, b.sales_source, (select count(*) from booking_events e where e.booking_id = b.id and e.kind = 'sales_credit')::int as events
     from bookings b where b.booking_number = ${number}`;
-  expect(`${cr!.to_cs}/${cr!.sales_source}/${cr!.events}`).toBe('true/admin/1');
+  expect(`${cr!.to_closer}/${cr!.sales_source}/${cr!.events}`).toBe('true/admin/1');
 
   // the booking's page: the credit and who gave it
   await page.goto(`/admin/bookings/${number}`, { waitUntil: 'networkidle' });
-  await expect(page.getByTestId('booking-sales-credit')).toContainText(cs.name);
+  await expect(page.getByTestId('booking-sales-credit')).toContainText(closer.name);
   await expect(page.getByTestId('booking-sales-credit')).toContainText('given by an Admin');
   await check(page, 'booking sales credit');
 
@@ -203,7 +205,7 @@ test('Admin: a staff member\'s sales, reassign, the team\'s month, the booking\'
   await page.goto('/admin/overview', { waitUntil: 'networkidle' });
   const team = page.getByTestId('team-sales');
   await expect(team.locator('tr', { hasText: sales.name })).toBeVisible();
-  await expect(team.locator('tr', { hasText: cs.name })).toBeVisible();
+  await expect(team.locator('tr', { hasText: closer.name })).toBeVisible();
   await expect(page.getByTestId('dash-requests')).toContainText('first reply target 5 min');
   await check(page, 'overview with the team');
   const prev = await page.getByTestId('team-sales-month').locator('option').nth(1).getAttribute('value');

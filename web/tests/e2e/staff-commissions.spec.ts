@@ -116,17 +116,16 @@ test('Staff add rentals: a typed price and "I sourced this client", "Entered for
   await check(page, 'cs add a rental, sourced, typed price');
   await page.getByTestId('mr-submit').click();
   await expect(page.getByTestId('mr-done')).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByTestId('mr-done-choice')).toContainText('Marked as sourced by you');
+  // 2330 (the owner: customer service, Fleet and Finance never get sales credit or commission): "I sourced this client" from
+  // customer service is recorded as entered for CarmaCars, no commission; the typed price is still flagged
+  await expect(page.getByTestId('mr-done-choice')).toContainText('Entered for CarmaCars: no commission');
   await expect(page.getByTestId('mr-done-choice')).toContainText('flagged for an Admin');
   const n1 = await doneNumber(page);
   const [b1] = await sql`select b.rental_charge_cents::int rc, b.rate_sheet_rental_cents::int rs, b.sales_sourced, array_to_string(b.price_flags, ',') flags,
-    (select status from staff_commissions c where c.booking_id = b.id and c.kind = 'commission') cstatus from bookings b where b.booking_number = ${n1}`;
-  expect(`${b1!.rc}/${b1!.rs}/${b1!.sales_sourced}/${b1!.flags}/${b1!.cstatus}`).toBe('21000/30000/true/discount_over_limit/accruing');
-  // My sales: the commission not earned yet, at 10%
+    (select count(*)::int from staff_commissions c where c.booking_id = b.id) n from bookings b where b.booking_number = ${n1}`;
+  expect(`${b1!.rc}/${b1!.rs}/${b1!.sales_sourced}/${b1!.flags}/${b1!.n}`).toBe('21000/30000/false/discount_over_limit/0');
   await page.goto('/staff/my-sales', { waitUntil: 'networkidle' });
-  await expect(page.getByTestId('commission-rate')).toContainText('10%');
-  await expect(page.getByTestId(`commission-status-${n1}-commission`)).toContainText('Not earned yet');
-  await expect(page.getByTestId('sales-deals').locator('tr', { hasText: n1 })).toContainText('sourced');
+  await expect(page.getByTestId(`commission-status-${n1}-commission`)).toHaveCount(0);
   await check(page, 'cs my sales');
   await page.context().close();
 

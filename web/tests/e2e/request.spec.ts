@@ -107,9 +107,10 @@ test('the wizard keeps a draft and resumes it', async ({ page }) => {
   await acceptCookies(page);
   await page.locator('label.option', { hasText: 'At the airport' }).first().click();
   await page.locator('#rq-airport1').selectOption({ index: 1 });
-  await page.waitForTimeout(1500); // autosave
+  // the autosave is done when the draft (with its token) is on the device: a fixed 1.5 s wait was too short on a busy runner
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('cc.request.v2') ?? '{}').token ?? null), { timeout: 15_000 }).toBeTruthy();
   await page.reload();
-  await expect(page.getByText('We kept your place')).toBeVisible();
+  await expect(page.getByText('We kept your place')).toBeVisible({ timeout: 10_000 });
   await expect(page.locator('#rq-airport1')).not.toHaveValue('');
   const token = await page.evaluate(() => JSON.parse(localStorage.getItem('cc.request.v2') ?? '{}').token as string | null);
   expect(token).toBeTruthy();
