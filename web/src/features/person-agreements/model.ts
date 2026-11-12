@@ -154,8 +154,10 @@ export function staffFields(f: StaffFacts): Field[] {
     ];
   }
   return [
-    { key: 'address', label: 'Home address', value: s.home_address ?? '', required: true, hint: 'The staff member enters it in their profile; change it here only if it is wrong' },
-    { key: 'licence', label: 'Driver\'s licence number', value: '', required: true },
+    // address and licence number are not required (r38): the agreement is generated and sent by itself, and a blank one
+    // reads as the record the employee keeps in their profile and the licence copy they upload, so no field hire waits
+    { key: 'address', label: 'Home address', value: s.home_address ?? '', hint: 'The staff member enters it in their profile; change it here only if it is wrong' },
+    { key: 'licence', label: 'Driver\'s licence number', value: '', hint: 'Optional: left blank, the agreement refers to the licence copy the employee uploads' },
     { key: 'wage', label: 'Hourly Wage (CA$)', value: d.wage ?? '', required: true, hint: 'For example 18.00' },
     { key: 'start', label: 'Start Date', value: day(s.started_on), required: true },
     { key: 'vehicle_types', label: 'Vehicle types authorized', value: d.vehicle_types ?? '', required: true },
@@ -163,6 +165,9 @@ export function staffFields(f: StaffFacts): Field[] {
     { key: 'licence_years', label: 'Minimum licence period (years)', value: d.licence_years ?? '', required: true }
   ];
 }
+
+const addressWords = (v: Record<string, string>) => (v.address ?? '').trim() || 'the home address in the Employee\'s staff profile';
+const licenceWords = (v: Record<string, string>) => (v.licence ?? '').trim() ? `Ontario Class G, number ${v.licence.trim()}` : 'Ontario Class G, as shown on the licence copy the Employee provides in the staff portal';
 
 const signatureLines = (md: string, c: Company, name: string) => md
   .replace(/^By: \[●\], \[●\] \(title\)\. Date: \[●\]$/m, `By: ${c.signing_officer_name ?? ''}, ${c.signing_officer_title ?? ''} (title). Date: ${DATE_SIGNED}. Signature: ${ON_SIGNATURE}.`)
@@ -196,8 +201,8 @@ export function staffMarkdown(f: StaffFacts, v: Record<string, string>): string 
     return md;
   }
   let md = signatureLines(FIELD_MD, c, s.full_name);
-  md = row(md, 'Employee', `${s.full_name} (legal name), ${v.address ?? ''} (address), ${phone(s.phone)} (phone), ${s.email ?? ''} (email)`);
-  md = row(md, 'Driver\'s licence', `Ontario Class G, number ${v.licence ?? ''}`);
+  md = row(md, 'Employee', `${s.full_name} (legal name), ${addressWords(v)} (address), ${phone(s.phone)} (phone), ${s.email ?? ''} (email)`);
+  md = row(md, 'Driver\'s licence', licenceWords(v));
   md = row(md, 'Role', inPersonRole(s));
   md = row(md, 'Hourly Wage', `$${(v.wage ?? '').replace(/^\$/, '')} an hour`);
   md = row(md, 'Start Date', v.start ?? '');
@@ -218,7 +223,7 @@ export function staffSummary(f: StaffFacts, v: Record<string, string>): Array<{ 
        ...(isCommissionOnly(v) ? [] : [{ label: 'Schedule', value: scheduleWords(v), fix: null }, { label: 'Coverage Hours', value: `${v.coverage ?? ''}, ${v.hours_per_week ?? ''} hours a week`, fix: null },
          { label: 'Rate', value: rateWords(v), fix: null }]),
        { label: 'Start Date', value: v.start ?? '', fix: null }, { label: 'Paid through', value: `${v.platform ?? ''}, ${v.pay_timing ?? ''}`, fix: null }]
-    : [{ label: 'Employee', value: `${s.full_name}, ${v.address ?? ''}`, fix: base }, { label: 'Driver\'s licence', value: `Ontario Class G, number ${v.licence ?? ''}`, fix: null },
+    : [{ label: 'Employee', value: `${s.full_name}, ${addressWords(v)}`, fix: base }, { label: 'Driver\'s licence', value: licenceWords(v), fix: null },
        { label: 'Role', value: inPersonRole(s), fix: null }, { label: 'Hourly Wage', value: `$${(v.wage ?? '').replace(/^\$/, '')} an hour`, fix: null },
        { label: 'Start Date', value: v.start ?? '', fix: null }, { label: 'Pay Dates', value: v.pay_dates ?? '', fix: null }];
 }
