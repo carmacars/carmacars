@@ -91,7 +91,7 @@ const LABELS: Record<string, string> = {
   auto_reply_sms: 'AI auto-replies: texts to the CarmaCars number (Quo)', auto_reply_email: 'AI auto-replies: emails to the inboxes below', auto_reply_chat: 'AI auto-replies: the website live chat (its assistant)',
   auto_reply_whatsapp: 'AI auto-replies: WhatsApp (needs the WhatsApp number id and the WHATSAPP_TOKEN secret)', auto_reply_messenger: 'AI auto-replies: Facebook Page messages (Messenger)', auto_reply_instagram: 'AI auto-replies: Instagram direct messages',
   auto_reply_quiet_from_hour: 'AI auto-replies: texts wait from this hour (Toronto, 1 is 1 am)', auto_reply_quiet_until_hour: 'AI auto-replies: ... until this hour (5 is 5 am)',
-  auto_reply_per_sender_day: 'AI auto-replies: automatic answers one person gets a day at most', auto_reply_min_confidence_bps: 'AI auto-replies: how sure the model must be (else staff answer)',
+  auto_reply_per_sender_day: 'AI auto-replies: automatic answers one person gets a day at most', auto_reply_after_staff_minutes: 'AI auto-replies: minutes the AI stays quiet after a person replied to that customer (0: no pause)', auto_reply_min_confidence_bps: 'AI auto-replies: how sure the model must be (else staff answer)',
   auto_reply_model: 'AI auto-replies: Workers AI model (the small one stays within the free allowance)', auto_reply_email_inboxes: 'AI auto-replies: inboxes answered, before the @ (help: help@in.carmacars.ca)',
   auto_reply_handoff_text: 'AI auto-replies: what a person is told when staff will answer (empty: nothing)', auto_reply_meta_verify_token: 'AI auto-replies: verify token for the Meta webhook (https://carmacars.ca/api/webhooks/meta)',
   auto_reply_whatsapp_phone_id: 'AI auto-replies: WhatsApp Business phone number id (Meta)',
