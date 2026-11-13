@@ -13,3 +13,20 @@ export function periodOf(s: { statement_month?: string | null; period_starts_on?
   }
   return s.statement_month ? new Intl.DateTimeFormat('en-CA', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${s.statement_month.slice(0, 10)}T12:00:00Z`)) : '';
 }
+
+const addDays = (iso: string, n: number) => { const d = new Date(`${iso.slice(0, 10)}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+const lessMonth = (iso: string) => { const [y, m, d] = iso.slice(0, 10).split('-').map(Number) as [number, number, number]; const last = new Date(Date.UTC(y, m - 1, 0)).getUTCDate();
+  return new Date(Date.UTC(y, m - 2, Math.min(d, last), 12)).toISOString().slice(0, 10); };
+
+/** r44 (2783): a statement shorter than a full period (a car's first statement, usually): it starts after the day following
+ *  the cutoff of the month before. The same rule as app.owner_statement_partial; the database's answer wins when it is given. */
+export function partialMonth(s: { period_starts_on?: string | null; period_ends_on?: string | null; partial_month?: boolean | null }): boolean {
+  if (typeof s.partial_month === 'boolean') return s.partial_month;
+  if (!s.period_starts_on || !s.period_ends_on) return false;
+  return s.period_starts_on.slice(0, 10) > addDays(lessMonth(s.period_ends_on), 1);
+}
+
+/** The notice a partial-month statement shows on its page, in the owner portal and on the PDF; null for a full period. */
+export function partialMonthNotice(s: { statement_month?: string | null; period_starts_on?: string | null; period_ends_on?: string | null; partial_month?: boolean | null }): string | null {
+  return partialMonth(s) ? `This statement covers a partial month (${periodOf(s)}), not a full month.` : null;
+}

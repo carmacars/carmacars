@@ -1,5 +1,5 @@
 import { pageMeta } from '@/features/seo/meta';
-import { periodOf } from '@/features/owner/period';
+import { partialMonthNotice, periodOf } from '@/features/owner/period';
 import { InfoTip } from '@/components/InfoTip';
 import { money } from '@/lib/format';
 import { Back, Dl } from '@/features/portal/Blocks';
@@ -36,10 +36,13 @@ export default async function OwnerStatementPage({ params }: { params: Promise<{
   const [{ user, home }, { id }] = await Promise.all([requireOwner('/owner/statements'), params]);
   const s = await ownerStatement(user, id);
   const st = s.statement;
+  // r44 (2783): a statement shorter than a full period says so
+  const partial = partialMonthNotice({ statement_month: st.statement_month, period_starts_on: s.period_starts_on ?? st.period_starts_on, period_ends_on: s.period_ends_on ?? st.period_ends_on, partial_month: s.partial_month });
   return (
     <>
       <Back href="/owner/money">Statements</Back>
       <header className="stack"><p className="pt-kicker">Statement {st.statement_number}{st.is_final ? ' · Final statement' : ''}</p><h1 className="d2">{periodOf(st)}</h1><p className="muted">Payout date {day(st.payout_date)}, for the revenue earned in this period. Fees are billed separately on the {home.auto_debit.terms.debit_day_text}.</p>
+        {partial && <p className="alert" role="note" data-testid="statement-partial"><span>{partial}</span></p>}
         <p><a className="btn btn--ghost btn--sm" href={`/files/owner_statement/${id}`} data-testid="statement-pdf">Download PDF</a></p></header>
       <div className="pt-split">
         <div className="stack-lg">
