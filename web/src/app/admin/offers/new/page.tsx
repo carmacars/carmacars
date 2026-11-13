@@ -24,6 +24,6 @@ export default async function NewOffer({ searchParams }: { searchParams: Promise
     <PageHead kicker={<Link prefetch={false} className="link" href="/admin/bookings">Bookings</Link>} title="Send an offer" />
     <p className="small muted" style={{ maxWidth: '52rem' }}>For a customer on the phone, by text or in person: no request needed. The renter gets the offer link, approves, signs and pays (or you record the payment); then it is on the calendar. For a rental that is already agreed and paid, use <Link prefetch={false} className="link" href="/admin/bookings/new">Add a rental</Link>.</p>
     <UnfinishedRentals rows={drafts} base="/admin" current={open?.id} title="Unfinished offers" />
-    <OfferComposer key={open?.id ?? 'new'} base="/admin" initialCar={sp.car ?? null} draft={open} owner={owner} />
+    <OfferComposer key={open?.id ?? 'new'} base="/admin" initialCar={sp.car ?? null} initialFrom={sp.from ?? null} initialTo={sp.to ?? null} draft={open} owner={owner} />
   </>);
 }

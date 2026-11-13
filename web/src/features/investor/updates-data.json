@@ -1,5 +1,30 @@
 [
  {
+  "release": "r44",
+  "title": "Release 44",
+  "date": "2026-11-13",
+  "seq": 0,
+  "summary": "Staff make and take calls in the browser on the business number from anywhere, Sales sees at a glance which cars are free for any dates, the AI interview decides by itself again, new hires are welcomed with training and the team chat, and Sales reads only its own leads.",
+  "areas": [
+   {
+    "area": "Staff tools",
+    "items": [
+     "Staff make and take calls in the browser of the staff and Admin portals on the business number, from anywhere, without using their own phone number",
+     "A call to the business number rings the staff who are online by role, and a call nobody answers becomes a missed call with its follow-up task",
+     "The calendar shows, for any pickup and return, which cars are available, why the others are not and when they are free next, with one click to an offer for those dates",
+     "The AI interview decides by itself again by default, and new hires are welcomed with their training, shift claiming and the team chat"
+    ]
+   },
+   {
+    "area": "Reliability & security",
+    "items": [
+     "Every request from the phone service is checked against its signature before anything is done",
+     "A person who works in Sales only can read only their own leads"
+    ]
+   }
+  ]
+ },
+ {
   "release": "r39",
   "title": "Release 39",
   "date": "2026-11-12",

@@ -25,6 +25,19 @@ export interface CspOptions {
   upgrade?: boolean;
   /** Who may frame the page: 'none' unless the page is embeddable (the partner widget, 0147). */
   frameAncestors?: string;
+  /** r44 (2790): calls in the browser on the staff and Admin portals (Twilio's Voice SDK, self-hosted): its signalling
+   *  (wss), its call quality reports and its ring sounds. Public pages never get these origins. */
+  voice?: boolean;
+}
+
+// Twilio's Voice SDK: signalling on wss://*.twilio.com (voice-js and the regional chunderw hosts), call insights on
+// eventgw, the ringing and dial tones on sdk.twilio.com. The audio itself is WebRTC media, which the policy does not cover.
+const TWILIO_VOICE_CONNECT = ['wss://*.twilio.com', 'https://eventgw.twilio.com', 'https://sdk.twilio.com'];
+const TWILIO_VOICE_MEDIA = 'https://sdk.twilio.com';
+
+/** The pages with the browser's phone (r44): the staff and Admin portals. */
+export function voicePage(path: string): boolean {
+  return /^\/(staff|admin)(\/|$)/.test(path);
 }
 
 /** The pages other sites may put in an iframe: the partner inventory widget only (migration 0147). */
@@ -35,7 +48,7 @@ export function embeddable(path: string): boolean {
 export function cspHeader(nonce: string, o: CspOptions = {}): string {
   const turnstile = o.turnstile ? ' https://challenges.cloudflare.com' : '';
   const img = ['\'self\'', 'data:', 'blob:', ...(o.imgOrigins ?? [])].join(' ');
-  const connect = ['\'self\'', ...(o.connectOrigins ?? []), 'https://*.supabase.co', 'wss://*.supabase.co', STRIPE_API, R2_UPLOADS].join(' ');
+  const connect = ['\'self\'', ...(o.connectOrigins ?? []), 'https://*.supabase.co', 'wss://*.supabase.co', STRIPE_API, R2_UPLOADS, ...(o.voice ? TWILIO_VOICE_CONNECT : [])].join(' ');
   return [
     `default-src 'self'`,
     // 'wasm-unsafe-eval': WebAssembly only (release 28: the VIN barcode reader, self-hosted zxing-wasm), never eval of strings
@@ -44,7 +57,7 @@ export function cspHeader(nonce: string, o: CspOptions = {}): string {
     `img-src ${img} https:`,
     `font-src 'self'`,
     // the investor deck's narrated video, its poster and captions: short-lived signed links to Supabase Storage
-    `media-src 'self' blob: ${['https://*.supabase.co', ...(o.connectOrigins ?? [])].join(' ')}`,
+    `media-src 'self' blob: ${['https://*.supabase.co', ...(o.connectOrigins ?? []), ...(o.voice ? [TWILIO_VOICE_MEDIA] : [])].join(' ')}`,
     `connect-src ${connect}${turnstile}`,
     `frame-src${turnstile} ${STRIPE_JS} ${STRIPE_HOOKS}`,
     `frame-ancestors ${o.frameAncestors ?? "'none'"}`,

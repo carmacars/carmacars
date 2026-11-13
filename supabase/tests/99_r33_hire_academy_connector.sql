@@ -40,15 +40,16 @@ select test.eq('the staff profile has the start date', (select started_on = app.
 select test.ok('the welcome email goes once, with the pay details link', exists (select 1 from hiring_decisions d where d.application_id = (test.rqg_app()).id and d.sent_at is not null and d.personal_note like '%/staff/profile#pay%')
   and (select count(*) from app_events e where e.code = 'applicant_hired' and e.processed_at is null and e.payload ->> 'email' = 'hana@rqg.example.test') = 1);
 select test.eq('the candidate''s open To do is closed', (select status from tasks where related_id = (test.rqg_app()).id and task_type = 'hiring_follow_up'), 'done');
-select test.eq('five first-day To do''s are theirs, due on the start date, and one for the Admins',
+-- r44 (2790): a sixth, the hello in the team chat and the WhatsApp member tag
+select test.eq('six first-day To do''s are theirs, due on the start date, and one for the Admins',
   (select count(*) filter (where task_type = 'first_day' and assigned_to = test.id('rqg_hana') and queue = 'cs' and (due_at at time zone 'America/Toronto')::date = app.today() + 3)
-          || '/' || count(*) filter (where task_type = 'first_day_admin') from tasks where related_id in (test.id('rqg_hana'), (test.rqg_app()).id)), '5/1');
+          || '/' || count(*) filter (where task_type = 'first_day_admin') from tasks where related_id in (test.id('rqg_hana'), (test.rqg_app()).id)), '6/1');
 select test.ok('enrolled in their path with the gate on, held from now', exists (select 1 from academy_enrollments where user_id = test.id('rqg_hana') and path_code = 'cs' and gate and source = 'hire' and lock_from <= now()));
 select test.ok('the gate holds the new hire until they pass', app.academy_locked(test.id('rqg_hana')));
 select test.lives('Hire again changes nothing twice', format($$select app.door(%L, 'aal2', 'admin_do', 'hire_onboard', %L)$$, test.id('rqg_admin'),
   jsonb_build_object('id', (test.rqg_app()).id, 'user_id', test.id('rqg_hana'), 'function', 'cs', 'start_on', (app.today() + 3)::text, 'pay_cents', 42500)));
-select test.eq('still five first-day To do''s and one welcome email', (select count(*) from tasks where task_type = 'first_day' and related_id = test.id('rqg_hana'))
-  || '/' || (select count(*) from app_events e where e.code = 'applicant_hired' and e.payload ->> 'email' = 'hana@rqg.example.test'), '5/1');
+select test.eq('still six first-day To do''s and one welcome email', (select count(*) from tasks where task_type = 'first_day' and related_id = test.id('rqg_hana'))
+  || '/' || (select count(*) from app_events e where e.code = 'applicant_hired' and e.payload ->> 'email' = 'hana@rqg.example.test'), '6/1');
 select test.eq('the agreement step records what it waits for', (select s ->> 'state' || ' ' || (s ->> 'detail' like 'Waiting for: Home address%') from (select app.door(test.id('rqg_admin'), 'aal2', 'admin_do', 'hire_agreement_record',
   jsonb_build_object('id', (test.rqg_app()).id, 'missing', '["Home address"]'::jsonb)) v) x, jsonb_array_elements(v -> 'steps') s where s ->> 'key' = 'agreement'), 'todo true');
 

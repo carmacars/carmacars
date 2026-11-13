@@ -13763,6 +13763,7 @@ export type Database = {
           transcribe_due_at: string | null;
           transcribe_tries: number;
           transcribe_error: string | null;
+          via: string;
         };
         Insert: {
           id?: string;
@@ -13795,6 +13796,7 @@ export type Database = {
           transcribe_due_at?: string | null;
           transcribe_tries?: number;
           transcribe_error?: string | null;
+          via?: string;
         };
         Update: {
           id?: string;
@@ -13827,6 +13829,7 @@ export type Database = {
           transcribe_due_at?: string | null;
           transcribe_tries?: number;
           transcribe_error?: string | null;
+          via?: string;
         };
         Relationships: [];
       };
@@ -18996,6 +18999,12 @@ export type Database = {
           gsc_rewrite_daily_max: number;
           gsc_inspect_daily_max: number;
           auto_reply_after_staff_minutes: number;
+          phone_browser_calls: boolean;
+          phone_inbound_ring: string;
+          phone_inbound_ring_seconds: number;
+          phone_inbound_forward_number: string;
+          phone_inbound_message: string;
+          phone_call_own_mobile: boolean;
         };
         Insert: {
           id?: string;
@@ -19851,6 +19860,12 @@ export type Database = {
           gsc_rewrite_daily_max?: number;
           gsc_inspect_daily_max?: number;
           auto_reply_after_staff_minutes?: number;
+          phone_browser_calls?: boolean;
+          phone_inbound_ring?: string;
+          phone_inbound_ring_seconds?: number;
+          phone_inbound_forward_number?: string;
+          phone_inbound_message?: string;
+          phone_call_own_mobile?: boolean;
         };
         Update: {
           id?: string;
@@ -20706,6 +20721,12 @@ export type Database = {
           gsc_rewrite_daily_max?: number;
           gsc_inspect_daily_max?: number;
           auto_reply_after_staff_minutes?: number;
+          phone_browser_calls?: boolean;
+          phone_inbound_ring?: string;
+          phone_inbound_ring_seconds?: number;
+          phone_inbound_forward_number?: string;
+          phone_inbound_message?: string;
+          phone_call_own_mobile?: boolean;
         };
         Relationships: [];
       };
@@ -31599,6 +31620,24 @@ export type Database = {
         };
         Relationships: [];
       };
+      voice_presence: {
+        Row: {
+          user_id: string;
+          online: boolean;
+          seen_at: string;
+        };
+        Insert: {
+          user_id: string;
+          online?: boolean;
+          seen_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          online?: boolean;
+          seen_at?: string;
+        };
+        Relationships: [];
+      };
       webhook_events: {
         Row: {
           id: string;
@@ -33228,6 +33267,8 @@ export type Database = {
       server_terms_pending: { Args: { p_by: string }; Returns: Json };
       server_tracker_ingest: { Args: { p: Json }; Returns: Json };
       server_tracker_ingest_key: { Args: never; Returns: string };
+      server_twilio_browser_call_get: { Args: { p_id: string; p_user: string }; Returns: Json };
+      server_twilio_browser_call_start: { Args: { p: Json }; Returns: Json };
       server_twilio_call_event: { Args: { p: Json }; Returns: Json };
       server_twilio_call_get: { Args: { p_id: string }; Returns: Json };
       server_twilio_call_start: { Args: { p: Json }; Returns: Json };
@@ -33255,6 +33296,9 @@ export type Database = {
       server_vin_lookup: { Args: { p_vin: string }; Returns: Json };
       server_vin_read_gate: { Args: { p_client: string; p_by?: string }; Returns: Json };
       server_vin_read_record: { Args: { p_client: string; p: Json; p_by?: string }; Returns: Json };
+      server_voice_presence: { Args: { p_user: string; p: Json }; Returns: Json };
+      server_voice_ring: { Args: { p: Json }; Returns: Json };
+      server_voice_settings: { Args: never; Returns: Json };
       server_webhook_event_claim: { Args: { p_provider: string; p_event_id: string; p_event_type?: string; p_booking?: string; p_summary?: Json }; Returns: Json };
       server_webhook_event_finish: { Args: { p_provider: string; p_event_id: string; p_result?: Json; p_error?: string }; Returns: undefined };
       server_withdraw_account_deletion: { Args: { p_user: string }; Returns: Json };

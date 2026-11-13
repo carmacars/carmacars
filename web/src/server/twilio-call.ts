@@ -2,18 +2,24 @@ import 'server-only';
 import { env } from '@/lib/env';
 import { rpc } from '@/lib/db/repo';
 import type { Json } from '@/lib/db/types';
-import { TWILIO_API, bridgeTwiml, callToken, hangupTwiml, recordingKey, recordingReady, recordingUrls, startCallForm, twilioReady, verifyCallToken, verifyTwilioSignature } from '@/features/phone/twilio';
+import { TWILIO_API, bridgeTwiml, callToken, hangupTwiml, identityUser, noAnswerTwiml, recordingKey, recordingReady, recordingUrls, ringBrowsersTwiml, signedUrlCandidates,
+  staffIdentity, startCallForm, toE164, twilioReady, verifyCallToken, verifyTwilioSignature, voiceAccessToken } from '@/features/phone/twilio';
 
 // The site's outbound Call button (release 35, migration 0970): the server rings the signed-in staff member's own cell
 // (their profile phone) through Twilio, and when they answer bridges the customer with the CarmaCars number as caller ID.
 // The database checks the person, keeps the call and logs it on the person's history with its length and outcome.
 const SR = { role: 'service_role' as const };
 
+// r44 (2790): every value trimmed (a pasted secret often ends with a newline); the caller ID in E.164 whatever form it was
+// typed in, so the TwiML never fails on "289-555-0123"
 function cfg() {
   const e = env();
-  return { accountSid: e.TWILIO_ACCOUNT_SID, apiKey: e.TWILIO_API_KEY, apiSecret: e.TWILIO_API_SECRET, callerId: e.TWILIO_CALLER_ID, authToken: e.TWILIO_AUTH_TOKEN,
-    base: e.NEXT_PUBLIC_APP_URL.replace(/\/$/, '') };
+  const t = (v: string | undefined) => v?.trim() || undefined;
+  const callerRaw = t(e.TWILIO_CALLER_ID);
+  return { accountSid: t(e.TWILIO_ACCOUNT_SID), apiKey: t(e.TWILIO_API_KEY), apiSecret: t(e.TWILIO_API_SECRET), callerId: callerRaw ? (toE164(callerRaw) ?? callerRaw) : undefined,
+    authToken: t(e.TWILIO_AUTH_TOKEN), appSid: t(e.TWILIO_TWIML_APP_SID), base: e.NEXT_PUBLIC_APP_URL.replace(/\/$/, '') };
 }
+const ourCallerId = (c: ReturnType<typeof cfg>, fromDb: string | null | undefined) => c.callerId || toE164(fromDb) || null;
 
 export function twilioState(): { ready: true } | { ready: false; why: string } {
   return twilioReady(cfg());
@@ -26,6 +32,9 @@ export async function startStaffCall(userId: string, number: string, bookingNumb
   const c = cfg();
   const r = twilioReady(c);
   if (!r.ready) return { ok: false, fallback: 'quo', message: r.why };
+  // r44 (2790): ringing the staff member's own mobile first is off by default (staff abroad have international numbers):
+  // calls are placed in the browser
+  if (!(await voiceSettings()).own_mobile) return { ok: false, fallback: null, message: 'Calls are made in your browser: reload the page and press Call again.' };
   let call: { id: string; staff_number: string; caller_id: string | null; who: string; ok?: boolean; need_phone?: boolean; message?: string };
   try {
     call = (await rpc('server_twilio_call_start', { p: { user_id: userId, number, booking_number: bookingNumber ?? null } as unknown as Json }, SR)) as unknown as typeof call;
@@ -35,7 +44,7 @@ export async function startStaffCall(userId: string, number: string, bookingNumb
   // 2460: no mobile of their own on file: the Call button asks for it, saves it and calls again
   if (call?.need_phone) return { ok: false, fallback: null, need_phone: true, message: call.message ?? 'Add your mobile number first: the call rings your phone, then connects the customer.' };
   if (!call?.id || !call.staff_number) return { ok: false, fallback: null, message: 'The call could not start. Try again in a moment.' };
-  const callerId = c.callerId || call.caller_id;
+  const callerId = ourCallerId(c, call.caller_id);
   if (!callerId) return { ok: false, fallback: 'quo', message: 'The CarmaCars number is not set (Site settings, Phone).' };
   const t = await callToken(c.apiSecret!, call.id);
   const q = `id=${encodeURIComponent(call.id)}&t=${t}`;
@@ -65,19 +74,32 @@ async function event(p: Record<string, unknown>) {
 
 const xmlResponse = (body: string, status = 200) => new Response(body, { status, headers: { 'content-type': 'text/xml; charset=utf-8', 'cache-control': 'no-store' } });
 
-/** A webhook from Twilio: our token, then (with the Auth Token set) Twilio's signature. */
+/** Twilio's signature on a webhook, against the address we gave Twilio (and the host the request came to). Fail closed:
+ *  no Auth Token, no header or no match is refused. Cloudflare ends TLS in front of the Worker, so the address is rebuilt
+ *  from the site's own https address, never trusted from req.url as it arrives. */
+async function signed(req: Request, params: Record<string, string>): Promise<boolean> {
+  const c = cfg();
+  const sig = req.headers.get('x-twilio-signature');
+  if (!c.authToken || !sig) return false;
+  for (const url of signedUrlCandidates(c.base, req.url, req.headers.get('x-forwarded-host') ?? req.headers.get('host'))) {
+    if (await verifyTwilioSignature(c.authToken, url, params, sig)) return true;
+  }
+  return false;
+}
+async function formOf(req: Request): Promise<Record<string, string> | null> {
+  const raw = await req.text();
+  if (raw.length > 20_000) return null;
+  return Object.fromEntries(new URLSearchParams(raw));
+}
+
+/** A webhook of one call we started: our token, then Twilio's signature (both always). */
 async function checked(req: Request): Promise<{ id: string; params: Record<string, string> } | null> {
   const c = cfg();
   const u = new URL(req.url);
   const id = u.searchParams.get('id');
   if (!(await verifyCallToken(c.apiSecret, id, u.searchParams.get('t')))) return null;
-  const raw = await req.text();
-  if (raw.length > 20_000) return null;
-  const params = Object.fromEntries(new URLSearchParams(raw));
-  if (c.authToken) {
-    const url = `${c.base}${u.pathname}${u.search}`;
-    if (!(await verifyTwilioSignature(c.authToken, url, params, req.headers.get('x-twilio-signature')))) return null;
-  }
+  const params = await formOf(req);
+  if (!params || !(await signed(req, params))) return null;
   return { id: id!, params };
 }
 
@@ -87,7 +109,7 @@ export async function voiceWebhook(req: Request): Promise<Response> {
   if (!w) return xmlResponse(hangupTwiml(), 403);
   const c = cfg();
   const call = (await rpc('server_twilio_call_get', { p_id: w.id }, SR).catch(() => null)) as unknown as { to: string; caller_id: string | null; record?: boolean } | null;
-  const callerId = c.callerId || call?.caller_id;
+  const callerId = ourCallerId(c, call?.caller_id);
   if (!call?.to || !callerId) return xmlResponse(hangupTwiml('This call can no longer be connected.'));
   await event({ id: w.id, kind: 'staff_answered', call_sid: w.params.CallSid });
   const t = await callToken(c.apiSecret!, w.id);
@@ -167,4 +189,155 @@ export async function runCallTranscripts(limit = 2): Promise<Record<string, unkn
     if (!r.ok && r.reason === 'quota') break;
   }
   return { transcribed: n, of: due.items.length };
+}
+
+// ================================================================ r44 (2790): calls in the browser
+// Staff place and take calls in the browser (Twilio's Voice SDK) with the CarmaCars number as caller ID. Sales staff abroad
+// never use their own international number: the "ring my mobile" way (above) is used only when Program settings turn it on
+// (phone_call_own_mobile, off by default). The database decides who may call, who rings, and logs every call.
+
+export type VoiceSettings = { calls: boolean; inbound: boolean; own_mobile: boolean; seconds: number; forward_to: string | null; message: string | null };
+const VOICE_OFF: VoiceSettings = { calls: false, inbound: false, own_mobile: false, seconds: 25, forward_to: null, message: null };
+
+/** Program settings of calls (2790): in the browser, incoming calls ring the browser, the old "ring my mobile" way. */
+export async function voiceSettings(): Promise<VoiceSettings> {
+  return ((await rpc('server_voice_settings', {}, SR).catch(() => null)) as unknown as VoiceSettings | null) ?? VOICE_OFF;
+}
+
+const APP_NAME = 'CarmaCars browser calls';
+let appCache: { sid: string; at: number } | null = null;
+let numberChecked = 0;
+
+/** The TwiML App that browser calls go through: TWILIO_TWIML_APP_SID, or the app of that name in the account, made when
+ *  missing and pointed at our client webhook when it points elsewhere (one look-up per server instance every 6 hours).
+ *  The business number, when it is a Twilio number with no Voice URL of its own (or Twilio's demo), is pointed at our
+ *  incoming webhook, so incoming calls ring the browser with no step in Twilio's console. */
+async function twimlApp(c: ReturnType<typeof cfg>): Promise<string | null> {
+  if (c.appSid) return c.appSid;
+  if (appCache && Date.now() - appCache.at < 6 * 3600_000) return appCache.sid;
+  const auth = { authorization: basic(c) };
+  const acct = `${TWILIO_API}/Accounts/${encodeURIComponent(c.accountSid!)}`;
+  const voiceUrl = `${c.base}/api/webhooks/twilio/client`;
+  try {
+    const list = (await (await fetch(`${acct}/Applications.json?FriendlyName=${encodeURIComponent(APP_NAME)}`, { headers: auth, signal: AbortSignal.timeout(8_000) })).json()) as { applications?: Array<{ sid: string; voice_url: string | null }> };
+    let app = list.applications?.[0] ?? null;
+    if (!app || app.voice_url !== voiceUrl) {
+      const f = new URLSearchParams({ FriendlyName: APP_NAME, VoiceUrl: voiceUrl, VoiceMethod: 'POST' });
+      const res = await fetch(app ? `${acct}/Applications/${encodeURIComponent(app.sid)}.json` : `${acct}/Applications.json`, { method: 'POST', body: f, headers: { ...auth, 'content-type': 'application/x-www-form-urlencoded' }, signal: AbortSignal.timeout(8_000) });
+      const j = (await res.json().catch(() => ({}))) as { sid?: string };
+      if (!res.ok || !j.sid) return null;
+      app = { sid: j.sid, voice_url: voiceUrl };
+    }
+    appCache = { sid: app.sid, at: Date.now() };
+    if (Date.now() - numberChecked > 6 * 3600_000) { numberChecked = Date.now(); await pointNumber(c, auth, acct).catch(() => undefined); }
+    return app.sid;
+  } catch { return null; }
+}
+async function pointNumber(c: ReturnType<typeof cfg>, auth: Record<string, string>, acct: string) {
+  const num = c.callerId ?? toE164((await voiceCallerId()) ?? '');
+  if (!num) return;
+  const j = (await (await fetch(`${acct}/IncomingPhoneNumbers.json?PhoneNumber=${encodeURIComponent(num)}`, { headers: auth, signal: AbortSignal.timeout(8_000) })).json()) as { incoming_phone_numbers?: Array<{ sid: string; voice_url: string | null; voice_application_sid: string | null }> };
+  const n = j.incoming_phone_numbers?.[0];
+  if (!n || n.voice_application_sid || (n.voice_url && !/demo\.twilio\.com/i.test(n.voice_url))) return;
+  await fetch(`${acct}/IncomingPhoneNumbers/${encodeURIComponent(n.sid)}.json`, { method: 'POST', headers: { ...auth, 'content-type': 'application/x-www-form-urlencoded' }, signal: AbortSignal.timeout(8_000),
+    body: new URLSearchParams({ VoiceUrl: `${c.base}/api/webhooks/twilio/incoming`, VoiceMethod: 'POST' }) });
+}
+async function voiceCallerId(): Promise<string | null> {
+  return ((await rpc('server_voice_settings', {}, SR).catch(() => null)) as unknown as { caller_id?: string | null } | null)?.caller_id ?? null;
+}
+
+export type TokenResult = { ok: true; token: string; ring: boolean; ttl: number } | { ok: false; message: string };
+
+/** A Voice SDK token for this staff member (an hour; the browser renews it before it ends). The database checks the person
+ *  and says whether incoming calls ring them; it also marks them online (presence) for incoming calls. */
+export async function voiceToken(userId: string): Promise<TokenResult> {
+  const c = cfg();
+  const r = twilioReady(c);
+  if (!r.ready) return { ok: false, message: r.why };
+  let p: { ok?: boolean; ring?: boolean; calls?: boolean; message?: string } | null;
+  try { p = (await rpc('server_voice_presence', { p_user: userId, p: { online: true } as unknown as Json }, SR)) as unknown as typeof p; }
+  catch (e) { return { ok: false, message: e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '').slice(0, 200) : 'Not permitted' }; }
+  if (!p?.calls) return { ok: false, message: p?.message ?? 'Calls in the browser are off (Program settings, Calls in the browser).' };
+  const app = await twimlApp(c);
+  if (!app) return { ok: false, message: 'The phone service did not accept the API key (Twilio). Ask an Admin to check the Twilio account.' };
+  const ttl = 3600;
+  return { ok: true, ring: !!p.ring, ttl, token: await voiceAccessToken({ accountSid: c.accountSid!, apiKey: c.apiKey!, apiSecret: c.apiSecret!, appSid: app, identity: staffIdentity(userId), ring: !!p.ring, ttlSeconds: ttl }) };
+}
+
+/** The browser says it is still online (every minute while the page is open) or that it closed. */
+export async function voicePresence(userId: string, online: boolean): Promise<{ ok: boolean; ring?: boolean }> {
+  return ((await rpc('server_voice_presence', { p_user: userId, p: { online } as unknown as Json }, SR).catch(() => null)) as unknown as { ok: boolean; ring?: boolean } | null) ?? { ok: false };
+}
+
+export type BrowserStart = { ok: true; id: string; t: string; who: string } | { ok: false; message: string };
+
+/** A call from the browser: the database checks the person and keeps the call; the browser gets only the call's id and
+ *  our token for it (never the customer's number when it is masked for them), and Twilio asks our client webhook. */
+export async function startBrowserCall(userId: string, number: string, bookingNumber?: string | null): Promise<BrowserStart> {
+  const c = cfg();
+  const r = twilioReady(c);
+  if (!r.ready) return { ok: false, message: r.why };
+  try {
+    const call = (await rpc('server_twilio_browser_call_start', { p: { user_id: userId, number, booking_number: bookingNumber ?? null } as unknown as Json }, SR)) as unknown as { id: string; who: string };
+    return { ok: true, id: call.id, t: await callToken(c.apiSecret!, call.id), who: call.who };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '').slice(0, 200) : 'The call could not start' };
+  }
+}
+
+/** The TwiML App's Voice URL: a browser placed a call. Twilio's signature, our token for the call, and the browser's
+ *  identity must be the staff member who started it; then the customer is dialled with the CarmaCars number. */
+export async function clientWebhook(req: Request): Promise<Response> {
+  const params = await formOf(req);
+  if (!params || !(await signed(req, params))) return xmlResponse(hangupTwiml(), 403);
+  const c = cfg();
+  const id = params.call ?? null;
+  const user = identityUser(params.From ?? params.Caller);
+  if (!user || !(await verifyCallToken(c.apiSecret, id, params.t ?? null))) return xmlResponse(hangupTwiml('This call can no longer be connected.'));
+  const call = (await rpc('server_twilio_browser_call_get', { p_id: id!, p_user: user }, SR).catch(() => null)) as unknown as { to: string; caller_id: string | null; record?: boolean } | null;
+  const callerId = ourCallerId(c, call?.caller_id);
+  if (!call?.to || !callerId) return xmlResponse(hangupTwiml('This call can no longer be connected.'));
+  await event({ id: id!, kind: 'staff_answered', call_sid: params.CallSid });
+  const q = `id=${encodeURIComponent(id!)}&t=${await callToken(c.apiSecret!, id!)}`;
+  return xmlResponse(bridgeTwiml({ to: call.to, callerId, actionUrl: `${c.base}/api/webhooks/twilio/dial?${q}`,
+    recordingUrl: call.record === false ? null : `${c.base}/api/webhooks/twilio/recording?${q}` }));
+}
+
+async function logIncoming(params: Record<string, string>, type: 'call.ringing' | 'call.completed' | 'call.missed', extra: Record<string, unknown> = {}) {
+  const sid = params.CallSid ?? '';
+  if (!/^CA[0-9a-f]{32}$/i.test(sid)) return null;
+  const r = (await rpc('server_phone_event', { p: { event_id: `twilio:${sid}:${type}`, type, call_id: sid, quo_id: sid, direction: 'in', their_number: params.From ?? null,
+    status: type.slice(5), at: new Date().toISOString(), missed: type === 'call.missed', ...extra } as unknown as Json }, SR).catch(() => null)) as unknown as { send?: Array<{ id: string; to: string; body: string }> } | null;
+  if (r?.send?.length) { const { sendTexts } = await import('@/server/phone'); await sendTexts(r.send).catch(() => undefined); }
+  return r;
+}
+
+/** The business number's Voice URL (a Twilio number): the browsers of the staff online ring; nobody online, the no-answer
+ *  way at once. The call is on the caller's history (and the caller pop-up) as every call to the CarmaCars number. */
+export async function incomingWebhook(req: Request): Promise<Response> {
+  const params = await formOf(req);
+  if (!params || !(await signed(req, params))) return xmlResponse(hangupTwiml(), 403);
+  const c = cfg();
+  const ring = (await rpc('server_voice_ring', { p: { from: params.From ?? null } as unknown as Json }, SR).catch(() => null)) as unknown as
+    { enabled?: boolean; ring?: Array<{ identity: string; who: string }>; seconds?: number; forward_to?: string | null; message?: string | null; caller_id?: string | null } | null;
+  await logIncoming(params, 'call.ringing');
+  if (!ring?.enabled || !ring.ring?.length) {
+    await logIncoming(params, 'call.missed', { completed_at: new Date().toISOString(), duration: 0 });
+    return xmlResponse(noAnswerTwiml({ forwardTo: toE164(ring?.forward_to), callerId: params.From ?? null, message: ring?.message, timeoutSeconds: ring?.seconds }));
+  }
+  return xmlResponse(ringBrowsersTwiml({ ring: ring.ring, callerId: ourCallerId(c, ring.caller_id), actionUrl: `${c.base}/api/webhooks/twilio/ring-end`, timeoutSeconds: ring.seconds }));
+}
+
+/** The ring ended: answered in a browser (logged with its length), or nobody answered (a missed call, then the no-answer way). */
+export async function ringEndWebhook(req: Request): Promise<Response> {
+  const params = await formOf(req);
+  if (!params || !(await signed(req, params))) return xmlResponse(hangupTwiml(), 403);
+  const s = (params.DialCallStatus ?? '').toLowerCase();
+  if (s === 'completed' || s === 'answered') {
+    await logIncoming(params, 'call.completed', { completed_at: new Date().toISOString(), duration: Number(params.DialCallDuration ?? '0') || 0 });
+    return xmlResponse(hangupTwiml());
+  }
+  await logIncoming(params, 'call.missed', { completed_at: new Date().toISOString(), duration: 0 });
+  const v = await voiceSettings();
+  return xmlResponse(noAnswerTwiml({ forwardTo: toE164(v.forward_to), callerId: params.From ?? null, message: v.message, timeoutSeconds: v.seconds }));
 }

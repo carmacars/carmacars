@@ -39,7 +39,8 @@ const isoDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padSt
 const snap = (ms: number) => Math.round(ms / SNAP) * SNAP;
 
 function cls(e: Entry, now: number) {
-  if (e.type === 'block') return 'is-block';
+  // r44: maintenance (service, repair, cleaning) apart from the other blocks
+  if (e.type === 'block') return ['service', 'repair', 'cleaning'].includes(e.reason ?? '') ? 'is-block is-maint' : 'is-block';
   if (e.type === 'turo_trip') return 'is-turo';
   if (e.type === 'field_job') return 'is-job';
   if (e.type === 'vehicle_move') return 'is-move';
@@ -210,8 +211,8 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
       </div>
       {problem && <p className="alert alert--error" role="alert"><span>{problem}</span></p>}
       <div className="mcal__legend" aria-hidden="true">
-        <span><i className="mcal__item is-on_rent" /> out</span><span><i className="mcal__item is-confirmed" /> booked</span><span><i className="mcal__item is-requested" /> request</span>
-        <span><i className="mcal__item is-offered" /> offer</span><span><i className="mcal__item is-confirmed is-outline" /> not blocking</span><span><i className="mcal__item is-confirmed is-placeholder" /> placeholder</span><span><i className="mcal__item is-block" /> block</span>
+        <span><i className="mcal__item is-on_rent" /> on rent</span><span><i className="mcal__item is-confirmed" /> confirmed</span><span><i className="mcal__item is-requested" /> request</span>
+        <span><i className="mcal__item is-offered" /> offer or hold</span><span><i className="mcal__item is-block is-maint" /> maintenance</span><span><i className="mcal__item is-confirmed is-outline" /> not blocking</span><span><i className="mcal__item is-confirmed is-placeholder" /> placeholder</span><span><i className="mcal__item is-block" /> block</span>
         <span><i className="mcal__item is-requested has-clash" /> dates taken</span><span><i className="mcal__item" style={{ background: '#0f7b6c' }} /> Turo</span>
       </div>
       {agenda ? (
