@@ -4,7 +4,7 @@
   "title": "Release 44",
   "date": "2026-11-13",
   "seq": 0,
-  "summary": "Booking totals follow every change of a line, insurer paperwork matches the insurer's numbers, ended rentals can be signed for the file, and money records show only money received.",
+  "summary": "Staff make and take calls in the browser from anywhere, Sales sees which cars are free for any dates, every car's listing photos are made to one Gemini standard with the front exterior first, and owner statements count a cancellation only for what it kept.",
   "areas": [
    {
     "area": "Renters",
@@ -13,13 +13,40 @@
     ]
    },
    {
+    "area": "Owners",
+    "items": [
+     "A cancelled or no-show booking is on the owner's statement only for the charge actually kept: nothing paid, no line"
+    ]
+   },
+   {
     "area": "Staff tools",
     "items": [
+     "Staff make and take calls in the browser of the staff and Admin portals on the business number, from anywhere, without using their own phone number",
+     "A call to the business number rings the staff who are online by role, and a call nobody answers becomes a missed call with its follow-up task",
+     "The calendar shows, for any pickup and return, which cars are available, why the others are not and when they are free next, with one click to an offer for those dates",
+     "The AI interview decides by itself again by default, and new hires are welcomed with their training, shift claiming and the team chat",
      "A booking's total and balance follow every change of a line, and an Admin can set a total directly",
      "Paperwork for insurer-billed rentals matches the insurer's own numbers exactly, and an ended rental can be signed for the file",
      "Payment records show only money actually received, and a new data check lists any booking where they disagree",
      "The automatic answers wait while a person is talking with the customer, also in the live chat",
      "Field staff can add the photos and readings of past check-ins and check-outs, from a list of the ones still missing"
+    ]
+   },
+   {
+    "area": "Website & search",
+    "items": [
+     "Every outside photo has the same CarmaCars showroom behind it: when a car cannot be cut out cleanly, Gemini replaces the background from the original photo instead of leaving the place it was taken in",
+     "The plate is only ever on the car's plate: no plate text on the wall sign, the model name or anywhere else on the photo",
+     "Inside photos are sharp across the whole cabin, never blurred; the blurred ones are made again",
+     "The first photo of every car is its outside front three-quarter: outside photos filed as details are found and moved, so Redo photos with Gemini no longer answers that there is nothing to redo",
+     "Redo every car with Gemini brings the whole fleet to the current photo standard, and the rest follows by itself within Gemini's daily allowance"
+    ]
+   },
+   {
+    "area": "Reliability & security",
+    "items": [
+     "Every request from the phone service is checked against its signature before anything is done",
+     "A person who works in Sales only can read only their own leads"
     ]
    }
   ]
