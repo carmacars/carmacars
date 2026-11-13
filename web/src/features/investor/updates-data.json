@@ -1,5 +1,30 @@
 [
  {
+  "release": "r44",
+  "title": "Release 44",
+  "date": "2026-11-13",
+  "seq": 0,
+  "summary": "Every car's listing photos are made to one standard with Gemini, the same showroom behind every outside photo, the plate only on the plate, sharp interiors and the front exterior first, and owner statements count a cancellation only for what it kept.",
+  "areas": [
+   {
+    "area": "Owners",
+    "items": [
+     "A cancelled or no-show booking is on the owner's statement only for the charge actually kept: nothing paid, no line"
+    ]
+   },
+   {
+    "area": "Website & search",
+    "items": [
+     "Every outside photo has the same CarmaCars showroom behind it: when a car cannot be cut out cleanly, Gemini replaces the background from the original photo instead of leaving the place it was taken in",
+     "The plate is only ever on the car's plate: no plate text on the wall sign, the model name or anywhere else on the photo",
+     "Inside photos are sharp across the whole cabin, never blurred; the blurred ones are made again",
+     "The first photo of every car is its outside front three-quarter: outside photos filed as details are found and moved, so Redo photos with Gemini no longer answers that there is nothing to redo",
+     "Redo every car with Gemini brings the whole fleet to the current photo standard, and the rest follows by itself within Gemini's daily allowance"
+    ]
+   }
+  ]
+ },
+ {
   "release": "r39",
   "title": "Release 39",
   "date": "2026-11-12",
