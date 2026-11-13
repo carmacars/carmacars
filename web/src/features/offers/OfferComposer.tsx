@@ -57,14 +57,17 @@ export interface OcDraft { f?: Partial<OfferForm>; addons?: AddonChoice[]; custo
   /** 2026-10-27: how the amounts were typed, and the total the renter pays typed */
   tax_mode?: TaxMode; total?: string }
 
-export function OfferComposer({ base, initialCar = null, draft = null, owner = null }: { base: '/admin' | '/staff'; initialCar?: string | null; draft?: { id: string; data: OcDraft } | null; owner?: OwnerDefaults | null }) {
+// r44: initialFrom / initialTo (YYYY-MM-DDTHH:MM, from the availability view's "Offer these dates") fill the dates
+const LOCAL_AT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+export function OfferComposer({ base, initialCar = null, initialFrom = null, initialTo = null, draft = null, owner = null }: { base: '/admin' | '/staff'; initialCar?: string | null; initialFrom?: string | null; initialTo?: string | null; draft?: { id: string; data: OcDraft } | null; owner?: OwnerDefaults | null }) {
   // 0156: what the car's owner sees of the booking
   const [ownerChoice, setOwnerChoice] = useState(() => ownerChoiceInitial(owner));
   const start = useMemo(() => { const d = new Date(Date.now() + 86_400_000); d.setMinutes(0, 0, 0); d.setHours(10); return d; }, []);
   const [form, setForm] = useState<Form | null>(null);
   const [f, setF] = useState<OfferForm>(() => ({
     renter_id: null, full_name: '', email: '', mobile: '', date_of_birth: '',
-    vehicle_id: initialCar ?? '', pickup_at: local(start), return_at: local(new Date(start.getTime() + 3 * 86_400_000)),
+    vehicle_id: initialCar ?? '', pickup_at: initialFrom && LOCAL_AT.test(initialFrom) ? initialFrom : local(start),
+    return_at: initialTo && LOCAL_AT.test(initialTo) && (!initialFrom || initialTo > initialFrom) ? initialTo : local(new Date((initialFrom && LOCAL_AT.test(initialFrom) ? new Date(initialFrom) : start).getTime() + 3 * 86_400_000)),
     pickup_kind: 'our_location', pickup_address: '', pickup_km: '', return_kind: 'our_location', return_address: '', return_km: '',
     price_mode: 'sheet', price_total: '', price_day: '', price_tax: 'plus', price_reason: '',
     deposit: '', discount: '', discount_reason: '', promo_code: '', km: '', coverage_option: '1', plan_price: '', fees: {}, fee_reason: '',

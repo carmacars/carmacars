@@ -87,6 +87,7 @@ jobs:
       TWILIO_API_SECRET: ${{ secrets.TWILIO_API_SECRET }}
       TWILIO_CALLER_ID: ${{ secrets.TWILIO_CALLER_ID }}
       TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+      TWILIO_TWIML_APP_SID: ${{ secrets.TWILIO_TWIML_APP_SID }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       META_APP_SECRET: ${{ secrets.META_APP_SECRET }}
       WHATSAPP_TOKEN: ${{ secrets.WHATSAPP_TOKEN }}

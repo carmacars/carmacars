@@ -178,8 +178,9 @@ set role authenticated;
 select test.eq('row security: Ana reads her own requests and commissions only, and no owner records',
   (select count(*) from owner_recruit_requests where staff_id <> test.id('sor_ana')) || '/' || (select count(*) from staff_commissions where staff_id <> test.id('sor_ana'))
   || '/' || ((select count(*) from owner_recruit_requests) > 0) || '/' || test.visible($$select 1 from owners where id = '$$ || test.id('owner:sor_tom') || $$'$$) , '0/0/true/' || '0');
-select test.eq('row security: Sales read the owner leads they invited or added, no other owner lead; other leads as before',
-  (select count(*) from leads where kind in ('owner_program', 'owner_recruit')) || '/' || (select count(*) from leads where email = 'sor_buyer@example.test'), '2/1');
+-- r44 (2790): a person who works in Sales only reads only their own leads, the buyers' leads of others included
+select test.eq('row security: Sales read the owner leads they invited or added, no other owner lead; no other person''s lead (release 44)',
+  (select count(*) from leads where kind in ('owner_program', 'owner_recruit')) || '/' || (select count(*) from leads where email = 'sor_buyer@example.test'), '2/0');
 select test.eq('row security: Sales cannot update another owner lead', test.affected($$update leads set status = 'contacted' where email = 'sor_web@example.test'$$), 0::bigint);
 select test.throws('row security: a browser session writes no request', $$insert into owner_recruit_requests (owner_id, staff_id, kind, amount_cents) values ((select id from owners limit 1), app.uid(), 'flat', 100)$$);
 reset role;

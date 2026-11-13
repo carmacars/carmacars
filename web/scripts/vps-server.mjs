@@ -27,7 +27,7 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { createHmac, randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { cspHeader, embeddable, newNonce, securityHeaders } from '../src/lib/security/csp.ts';
+import { cspHeader, embeddable, newNonce, securityHeaders, voicePage } from '../src/lib/security/csp.ts';
 import { ADMIN_AREA_HEADER, isAdminArea, viewAsRefusal, viewAsWriteRefused } from '../src/lib/security/view-as-guard.ts';
 import { crossSiteRefusal, crossSiteWriteRefused, unusedFrameworkPath } from '../src/lib/security/request-guard.ts';
 import { refreshSession } from '../src/lib/auth/edge-refresh.ts';
@@ -149,7 +149,7 @@ function sendHtml(res, o) {
   const framed = embeddable(pathname);
   // a signed-in page is the visitor's own: marked private, so no proxy between here and the browser keeps it
   h['cache-control'] = hasSession(cookieHeader) ? 'private, no-cache' : 'no-cache';
-  h['content-security-policy'] = cspHeader(nonce, { turnstile: true, connectOrigins: supabaseOrigin(), frameAncestors: framed ? 'https:' : undefined, upgrade: proto === 'https' });
+  h['content-security-policy'] = cspHeader(nonce, { turnstile: true, connectOrigins: supabaseOrigin(), frameAncestors: framed ? 'https:' : undefined, upgrade: proto === 'https', voice: voicePage(pathname) });
   h['content-length'] = String(body.length);
   // where the visitor is browsing from (country-region, e.g. CA-ON), for the cookie notice; not stored
   const g = geoCookie(geo, cookieHeader, proto === 'https');

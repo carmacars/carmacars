@@ -1,5 +1,6 @@
-// The site's outbound Call button through Twilio (release 35, migration 0970; the owner's decision of November 8: Quo keeps
-// incoming calls, texts and AI answering; staff call out from the site). No imports, so it runs in the Worker, in Node and
+// The site's Call button through Twilio (release 35, migration 0970; the owner's decision of November 8: Quo keeps
+// incoming calls, texts and AI answering; staff call out from the site). Release 44 (2790): calls are made and taken in the
+// browser (Twilio's Voice SDK): staff abroad never use their own international number; the business number is the caller ID. No imports, so it runs in the Worker, in Node and
 // in the unit tests (twilio.test.ts). Only Twilio's documented REST API and TwiML:
 //   1. POST /2010-04-01/Accounts/{AccountSid}/Calls.json (Basic auth with an API key SID and its secret) calls the staff
 //      member's own cell; From is the CarmaCars number (a Twilio verified caller ID); Url is our voice webhook.
@@ -92,12 +93,93 @@ export function startCallForm(o: { staffNumber: string; callerId: string; voiceU
 
 export interface TwilioConfig { accountSid?: string | null; apiKey?: string | null; apiSecret?: string | null; callerId?: string | null; authToken?: string | null }
 
-/** Ready to call, or the reason it is not (the button then falls back to the Quo link and says why). */
+/** Ready to call, or the reason it is not (the button then says why). r44: the Auth Token is required (every webhook is
+ *  checked against Twilio's signature, fail closed); the account SID, the API key SID and the caller ID are checked for
+ *  their form, so a value pasted in the wrong secret is named instead of failing at Twilio. */
 export function twilioReady(c: TwilioConfig): { ready: true } | { ready: false; why: string } {
-  const missing = [!c.accountSid && 'TWILIO_ACCOUNT_SID', !c.apiKey && 'TWILIO_API_KEY', !c.apiSecret && 'TWILIO_API_SECRET'].filter(Boolean) as string[];
+  const missing = [!c.accountSid && 'TWILIO_ACCOUNT_SID', !c.apiKey && 'TWILIO_API_KEY', !c.apiSecret && 'TWILIO_API_SECRET', !c.authToken && 'TWILIO_AUTH_TOKEN'].filter(Boolean) as string[];
   if (missing.length) return { ready: false, why: `Calling from the site is not set up yet (${missing.join(', ')} not saved).` };
-  if (!/^AC[0-9a-f]{32}$/i.test(c.accountSid!)) return { ready: false, why: 'TWILIO_ACCOUNT_SID does not look like an account SID (AC...).' };
+  if (!/^AC[0-9a-f]{32}$/i.test(c.accountSid!.trim())) return { ready: false, why: 'TWILIO_ACCOUNT_SID does not look like an account SID (AC...).' };
+  if (!/^SK[0-9a-f]{32}$/i.test(c.apiKey!.trim())) return { ready: false, why: 'TWILIO_API_KEY does not look like an API key SID (SK...).' };
+  if (c.callerId && !toE164(c.callerId)) return { ready: false, why: 'TWILIO_CALLER_ID is not a phone number (use the form +12895550123).' };
   return { ready: true };
+}
+
+/** A phone number in E.164 (+ and up to 15 digits), from "+1 (289) 555-0123", "289-555-0123" or "12895550123"; null if it
+ *  is not one. Ten digits are a North American number. */
+export function toE164(raw: string | null | undefined): string | null {
+  const s = (raw ?? '').trim();
+  if (!s) return null;
+  if (/[^\d\s()+.\-]/.test(s)) return null;
+  let d = s.replace(/\D/g, '');
+  if (!s.startsWith('+')) { if (d.length === 10) d = `1${d}`; else if (!(d.length === 11 && d.startsWith('1'))) return null; }
+  const e = `+${d}`;
+  return E164.test(e) ? e : null;
+}
+
+// ================================================================ r44 (2790): calls in the browser (Voice SDK)
+
+/** The Voice SDK identity of a staff member: letters, digits and _ only, never a name or a number. */
+export function staffIdentity(userId: string): string {
+  if (!/^[0-9a-f-]{36}$/i.test(userId)) throw new Error('Not a user id');
+  return `staff_${userId.toLowerCase().replace(/-/g, '')}`;
+}
+/** The user id of a Voice SDK identity (From "client:staff_..."), or null. */
+export function identityUser(from: string | null | undefined): string | null {
+  const m = /^(?:client:)?staff_([0-9a-f]{32})$/i.exec((from ?? '').trim());
+  if (!m) return null;
+  const h = m[1]!.toLowerCase();
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
+
+const b64url = (b: Uint8Array | string) => bytesToB64(typeof b === 'string' ? enc.encode(b) : b).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
+
+/** A Twilio access token with a Voice grant (Twilio's documented JWT: HS256 with the API key secret, cty twilio-fpa;v=1):
+ *  outgoing calls through our TwiML App, incoming calls to this identity when ring is on. */
+export async function voiceAccessToken(o: { accountSid: string; apiKey: string; apiSecret: string; appSid: string; identity: string; ring: boolean; ttlSeconds?: number; now?: number }): Promise<string> {
+  const iat = Math.floor((o.now ?? Date.now()) / 1000);
+  const ttl = Math.max(300, Math.min(3600, Math.round(o.ttlSeconds ?? 3600)));
+  const header = { alg: 'HS256', typ: 'JWT', cty: 'twilio-fpa;v=1' };
+  const voice: Record<string, unknown> = { outgoing: { application_sid: o.appSid } };
+  if (o.ring) voice.incoming = { allow: true };
+  const payload = { jti: `${o.apiKey}-${iat}`, iss: o.apiKey, sub: o.accountSid, iat, nbf: iat - 5, exp: iat + ttl, grants: { identity: o.identity, voice } };
+  const data = `${b64url(JSON.stringify(header))}.${b64url(JSON.stringify(payload))}`;
+  return `${data}.${b64url(await hmac('SHA-256', o.apiSecret, data))}`;
+}
+
+/** The TwiML for a call to the business number: the browsers of the staff online ring together (at most 10, Twilio's limit
+ *  of Client nouns in one Dial). The browser is shown the business number as From and, as a parameter, who is calling as
+ *  that staff member may see it (a name, or the number masked for Sales, 0970): the caller's own number never reaches a
+ *  browser that may not see it. action reports whether anybody answered. */
+export function ringBrowsersTwiml(o: { ring: Array<{ identity: string; who: string }>; callerId: string | null; actionUrl: string; timeoutSeconds?: number }): string {
+  const ring = o.ring.filter((x) => /^staff_[0-9a-f]{32}$/.test(x.identity)).slice(0, 10);
+  if (!ring.length) throw new Error('Nobody to ring');
+  const t = Math.max(5, Math.min(60, Math.round(o.timeoutSeconds ?? 25)));
+  const cid = o.callerId && E164.test(o.callerId) ? ` callerId="${xml(o.callerId)}"` : '';
+  const clients = ring.map((x) => `<Client><Identity>${x.identity}</Identity><Parameter name="who" value="${xml(x.who.slice(0, 80))}"/></Client>`).join('');
+  return `<?xml version="1.0" encoding="UTF-8"?><Response><Dial timeout="${t}" answerOnBridge="true"${cid} action="${xml(o.actionUrl)}" method="POST">${clients}</Dial></Response>`;
+}
+
+/** Nobody answered (or nobody is online): forward to the number an Admin set (never a staff member's own number), or a
+ *  short message and the end of the call (the missed call is logged and handled as every missed call). */
+export function noAnswerTwiml(o: { forwardTo?: string | null; callerId?: string | null; message?: string | null; timeoutSeconds?: number }): string {
+  const to = o.forwardTo && E164.test(o.forwardTo) ? o.forwardTo : null;
+  if (to && o.callerId && E164.test(o.callerId)) {
+    const t = Math.max(5, Math.min(60, Math.round(o.timeoutSeconds ?? 25)));
+    return `<?xml version="1.0" encoding="UTF-8"?><Response><Dial callerId="${xml(o.callerId)}" timeout="${t}"><Number>${xml(to)}</Number></Dial></Response>`;
+  }
+  return hangupTwiml(o.message?.trim() || 'Sorry, we could not take your call. We will call you back shortly.');
+}
+
+/** The addresses Twilio may have signed: the site's own address (the one we give Twilio) first, then the host the request
+ *  came to (a number whose Voice URL was typed by hand), always https: Cloudflare ends TLS, so req.url may say http. */
+export function signedUrlCandidates(base: string, reqUrl: string, host: string | null | undefined): string[] {
+  const u = new URL(reqUrl);
+  const tail = `${u.pathname}${u.search}`;
+  const out = [`${base.replace(/\/$/, '')}${tail}`];
+  const h = (host ?? '').trim().toLowerCase();
+  if (/^[a-z0-9.-]+(:\d+)?$/.test(h)) out.push(`https://${h}${tail}`);
+  return [...new Set(out)];
 }
 
 /** Outcome words for the history, from the customer leg's DialCallStatus. */

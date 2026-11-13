@@ -18,6 +18,8 @@ import { AlertPulse } from '@/features/motion/AlertPulse';
 import { LivePortal } from '@/features/live/realtime/LiveRefresh';
 import { liveTokens } from '@/server/live';
 import { CallerPopup } from '@/features/caller/CallerPopup';
+// r44 (2790): calls in the browser: the phone bar on every page (incoming calls ring here, calls placed show here)
+import { VoiceDock } from '@/features/phone/VoiceDock';
 import { viewAs } from '@/server/view-as';
 import { AssistantPanel } from '@/features/assistant/AssistantPanel';
 import { switchFunction } from '@/server/actions/va';
@@ -89,7 +91,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
             <StaffNav functions={held} open={open} chat={chat} hot={hot} />
           </aside>
         ) : <div />}
-        <div className="ad__main">{needsAddress ? <HomeAddressCard portal={portal} canada={canada} /> : null}{staff && user ? <GuideBanner portal={portal} userId={user.id} /> : null}{staff && user ? <StuckHelp portal={portal} /> : null}{office && user && (held.includes('cs') || held.includes('fleet')) ? <CallerPopup portal="va" quiet={Boolean(viewing)} /> : null}{staff && user && !needsAddress ? <PushInvite portal={office ? 'staff' : 'field'} home={office ? '/staff' : ['/staff', '/staff/field']} userId={user.id} /> : null}{staff ? <HubBar hubs={staffHubs(held)} sections={staffSections(held)} /> : null}<DoorProvider kind="va"><RevampScope list={REVAMP_STAFF}>{staff && user ? <TermsGate userId={user.id} portal={office ? 'staff' : 'field'}>{children}</TermsGate> : children}</RevampScope></DoorProvider></div>
+        <div className="ad__main">{needsAddress ? <HomeAddressCard portal={portal} canada={canada} /> : null}{staff && user ? <GuideBanner portal={portal} userId={user.id} /> : null}{staff && user ? <StuckHelp portal={portal} /> : null}{office && user && (held.includes('cs') || held.includes('fleet')) ? <CallerPopup portal="va" quiet={Boolean(viewing)} /> : null}{staff && user ? <VoiceDock quiet={Boolean(viewing)} /> : null}{staff && user && !needsAddress ? <PushInvite portal={office ? 'staff' : 'field'} home={office ? '/staff' : ['/staff', '/staff/field']} userId={user.id} /> : null}{staff ? <HubBar hubs={staffHubs(held)} sections={staffSections(held)} /> : null}<DoorProvider kind="va"><RevampScope list={REVAMP_STAFF}>{staff && user ? <TermsGate userId={user.id} portal={office ? 'staff' : 'field'}>{children}</TermsGate> : children}</RevampScope></DoorProvider></div>
       </div>
     </div>
   );
