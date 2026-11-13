@@ -31,6 +31,10 @@ on:
         options: [production, staging]
         default: production
 
+# The workflow's token only reads the repository (a job that needs more says so itself).
+permissions:
+  contents: read
+
 concurrency:
   group: places
   cancel-in-progress: false
@@ -140,8 +144,10 @@ jobs:
           path: ${{ runner.temp }}/src/osm
           merge-multiple: true
       - name: Build (merge the sources, kinds, parents, slugs)
+        env:
+          REGIONS: ${{ inputs.regions }}
         run: |
-          node --max-old-space-size=6144 scripts/places/build.mjs --in "$RUNNER_TEMP/src" --out "$RUNNER_TEMP/out" --regions "${{ inputs.regions }}" | tee "$RUNNER_TEMP/build.txt"
+          node --max-old-space-size=6144 scripts/places/build.mjs --in "$RUNNER_TEMP/src" --out "$RUNNER_TEMP/out" --regions "$REGIONS" | tee "$RUNNER_TEMP/build.txt"
           echo "::notice title=build::$(tail -n 1 "$RUNNER_TEMP/build.txt")"
       - name: Load (region by region, under the database size cap)
         run: |

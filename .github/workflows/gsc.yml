@@ -39,6 +39,10 @@ on:
   schedule:
     - cron: '17 */3 * * *'
 
+# The workflow's token only reads the repository (a job that needs more says so itself).
+permissions:
+  contents: read
+
 concurrency:
   group: gsc
   cancel-in-progress: false

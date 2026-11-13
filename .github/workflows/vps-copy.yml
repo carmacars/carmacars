@@ -61,7 +61,7 @@ jobs:
           echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
       # the CLI's db dump leaves out Supabase's own schemas and reserved roles (Supabase's guide for this move); it runs
       # pg_dump in Docker. The newest CLI follows the hosted platform's internals.
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1
         with:
           version: latest
       - name: Copy

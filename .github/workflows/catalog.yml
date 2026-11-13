@@ -41,6 +41,10 @@ on:
       - 'web/src/features/vehicles/normalise.ts'
       - 'web/src/features/vehicles/units.ts'
 
+# The workflow's token only reads the repository (a job that needs more says so itself).
+permissions:
+  contents: read
+
 concurrency:
   group: catalog-${{ github.event_name == 'push' && github.ref || 'write' }}
   cancel-in-progress: false
@@ -68,9 +72,10 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          EXTRA_IN: ${{ inputs.extra }}
         run: |
           # the further sources (0115): a manual run's list, else the setting (never on a push)
-          extra="${{ inputs.extra }}"
+          extra="$EXTRA_IN"
           if [ "${{ github.event_name }}" != push ] && [ -z "$extra" ]; then
             extra=$(curl -sS -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'content-type: application/json' \
               --data '{"query":"select coalesce(array_to_string(vpage_extra_sources, $$,$$), $$$$) as x from program_settings limit 1"}' | jq -r '.[0].x // empty' 2>/dev/null || true)
@@ -109,11 +114,13 @@ jobs:
       - name: Further source flags
         id: extra
         if: steps.due.outputs.mode != 'skip'
+        env:
+          EXTRA: ${{ steps.due.outputs.extra }}
         run: |
           f=''
-          case ",${{ steps.due.outputs.extra }}," in *,vpicdb,*) [ -s "$RUNNER_TEMP/vpic-export.tsv" ] && f="$f --vpic-export $RUNNER_TEMP/vpic-export.tsv" ;; esac
-          case ",${{ steps.due.outputs.extra }}," in *,nrcan,*) f="$f --nrcan download" ;; esac
-          case ",${{ steps.due.outputs.extra }}," in *,wikidata,*) f="$f --wikidata download" ;; esac
+          case ",$EXTRA," in *,vpicdb,*) [ -s "$RUNNER_TEMP/vpic-export.tsv" ] && f="$f --vpic-export $RUNNER_TEMP/vpic-export.tsv" ;; esac
+          case ",$EXTRA," in *,nrcan,*) f="$f --nrcan download" ;; esac
+          case ",$EXTRA," in *,wikidata,*) f="$f --wikidata download" ;; esac
           echo "flags=$f" >> "$GITHUB_OUTPUT"
       - name: Dry run (download, normalise, counts, fixture)
         if: steps.due.outputs.mode == 'dry'

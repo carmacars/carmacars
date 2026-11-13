@@ -15,6 +15,10 @@ on:
 
 # Where Supabase is: the hosted project (default) or the company's own server (repository variable DB_BACKEND=vps;
 # infra/vps/CUTOVER.md). VPS_SSH_KEY is used only with vps (scripts/deploy/vps.sh).
+# The workflow's token only reads the repository (a job that needs more says so itself).
+permissions:
+  contents: read
+
 env:
   DB_BACKEND: ${{ vars.DB_BACKEND }}
   VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
@@ -43,11 +47,14 @@ jobs:
           case "$HOURS" in ''|*[!0-9]*) HOURS=24;; esac
           node scripts/cf-errors.mjs --hours "$HOURS" --out "$RUNNER_TEMP/worker-errors.json" > /dev/null
           f="$RUNNER_TEMP/worker-errors.json"
+          # the run's log and summary are public: addresses, tokens and long numbers in a message or stack are never printed
+          # (the full report is in the private bucket, below)
+          MASK='s/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+/[email]/g; s/eyJ[A-Za-z0-9_-]{10,}(\.[A-Za-z0-9_-]+)*/[token]/g; s/\+?[0-9][0-9 ().-]{8,}[0-9]/[number]/g'
           jq -r 'if .unavailable then empty else "by outcome: " + ((.outcomes // {}) | to_entries | map("\(.key) \(.value.n)") | join(", ")) + "; failures kept: \(.failures // [] | length)" end' "$f" | sed 's/^/::notice title=worker errors::/'
           jq -r '.failures_by_route // [] | .[:9][] | "\(.count)x \(.key)"' "$f" | sed 's/^/::notice title=worker errors::/'
-          jq -r '.failures // [] | map(select(.outcome != "ok")) | .[:12][] | "\(.outcome) \(.status) \(.route) :: \(.message // "" | .[0:300]) :: \(.stack // "" | .[0:500])"' "$f" | sed 's/^/::notice title=worker exception::/' || true
+          jq -r '.failures // [] | map(select(.outcome != "ok")) | .[:12][] | "\(.outcome) \(.status) \(.route) :: \(.message // "" | .[0:300]) :: \(.stack // "" | .[0:500])"' "$f" | sed -E "$MASK" | sed 's/^/::notice title=worker exception::/' || true
           jq -r 'select(.unavailable) | "Workers Observability could not be read: \(.unavailable). \(if .permission_needed then "Missing permission: \(.permission_needed)." else "" end)"' "$f" | sed 's/^/::warning title=worker errors::/'
-          { echo "## The Worker's failures (last $HOURS hours)"; echo; echo '```json'; jq '{outcomes, failures_by_route, failures: (.failures // [] | .[:20]), unavailable, permission_needed}' "$f"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          { echo "## The Worker's failures (last $HOURS hours)"; echo; echo '```json'; jq '{outcomes, failures_by_route, failures: (.failures // [] | .[:20]), unavailable, permission_needed}' "$f" | sed -E "$MASK"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
       # 2026-11-06 (r27b): which agents send the requests, how many the edge copy answered, by user agent and path
       - name: Who sends the traffic
         continue-on-error: true

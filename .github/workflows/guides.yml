@@ -48,6 +48,10 @@ on:
         type: boolean
         default: false
 
+# The workflow's token only reads the repository (a job that needs more says so itself).
+permissions:
+  contents: read
+
 concurrency:
   group: guides
   cancel-in-progress: false
@@ -152,9 +156,11 @@ jobs:
             echo "::notice title=guides::no Stripe test keys in the vault: the payment screen shows the local card form"
           fi
       - name: Screenshots
+        env:
+          PORTALS: ${{ inputs.portals }}
         run: |
           D=$(TZ=America/Toronto date +%Y-%m-%d); echo "GUIDE_DATE=$D" >> "$GITHUB_ENV"
-          BASE_URL=http://localhost:3000 ../.github/ci-run.sh "Screenshots" node scripts/guide-shots.mjs --out "$RUNNER_TEMP/guides" ${{ inputs.portals && format('--portals {0}', inputs.portals) || '' }}
+          BASE_URL=http://localhost:3000 ../.github/ci-run.sh "Screenshots" node scripts/guide-shots.mjs --out "$RUNNER_TEMP/guides" ${PORTALS:+--portals "$PORTALS"}
           jq -r '"\(.screens | length) screenshots, \(.problems | length) problems"' "$RUNNER_TEMP/guides/manifest.json" | sed 's/^/::notice title=guides::/'
           jq -r '.problems[:10][]' "$RUNNER_TEMP/guides/manifest.json" | sed 's/^/::warning title=guides::/'
       - name: The link key (the jobs' token is derived from it)

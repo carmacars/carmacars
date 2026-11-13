@@ -33,7 +33,7 @@ import { crossSiteRefusal, crossSiteWriteRefused, unusedFrameworkPath } from '..
 import { refreshSession } from '../src/lib/auth/edge-refresh.ts';
 import { emailLinkCookie } from '../src/lib/track/shared.ts';
 import { SCHEMA_HEADER, SCHEMA_MARKER } from '../src/lib/schema-marker.ts';
-import { ORIGIN_WAIT_MS, STALE_HEADER, isProbe, staleKey, staleWorthy } from '../src/lib/edge/page-cache.ts';
+import { ORIGIN_WAIT_MS, STALE_HEADER, hasSession, isProbe, staleKey, staleWorthy } from '../src/lib/edge/page-cache.ts';
 import { checkPage, marketOf, marketStored, offMarketPlace, oldModelYear, oldYearGone, outOfMarket, placeRegionBit, scraperGuard, tooMany, vehiclePageYear } from '../src/lib/edge/scraper-guard.ts';
 import { RATE_LIMITED_BOT, keptToScope, shield, shieldResponse } from '../src/lib/edge/bot-shield.ts';
 import { jobsToRun, pushWaiting } from '../src/lib/edge/cron-gate.ts';
@@ -147,7 +147,8 @@ function sendHtml(res, o) {
   const nonce = newNonce();
   const body = Buffer.from(raw.toString('utf8').replace(/<script(?=[\s>])/g, `<script nonce="${nonce}"`));
   const framed = embeddable(pathname);
-  h['cache-control'] = 'no-cache';
+  // a signed-in page is the visitor's own: marked private, so no proxy between here and the browser keeps it
+  h['cache-control'] = hasSession(cookieHeader) ? 'private, no-cache' : 'no-cache';
   h['content-security-policy'] = cspHeader(nonce, { turnstile: true, connectOrigins: supabaseOrigin(), frameAncestors: framed ? 'https:' : undefined, upgrade: proto === 'https' });
   h['content-length'] = String(body.length);
   // where the visitor is browsing from (country-region, e.g. CA-ON), for the cookie notice; not stored

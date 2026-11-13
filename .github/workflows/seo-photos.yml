@@ -50,6 +50,10 @@ on:
       - 'web/scripts/showroom-photos.mjs'
       - 'web/src/features/vehicles/stock-photos.ts'
 
+# The workflow's token only reads the repository (a job that needs more says so itself).
+permissions:
+  contents: read
+
 concurrency:
   group: seo-photos-${{ github.event_name == 'push' && github.ref || 'write' }}
   cancel-in-progress: false
@@ -103,10 +107,14 @@ jobs:
       # ---------------------------------------------------------------- the dry run (push, or write = false)
       - name: Dry run (the popular list, chosen live; nothing stored)
         if: steps.due.outputs.mode == 'dry'
+        env:
+          LIMIT: ${{ inputs.limit || '160' }}
+          MINUTES: ${{ inputs.minutes || '90' }}
+          MODELS: ${{ inputs.models }}
         run: |
           set -euo pipefail
-          node --experimental-strip-types --no-warnings scripts/seo-photos/run.mjs --targets popular --limit "${{ inputs.limit || '160' }}" --minutes "${{ inputs.minutes || '90' }}" --first-year 2010 --shard "${{ matrix.shard }}/2" \
-            ${{ inputs.models && format('--models {0}', inputs.models) || '' }} --samples 3 --generic --manifest "$RUNNER_TEMP/manifest.json" | tee "$RUNNER_TEMP/dry.txt"
+          node --experimental-strip-types --no-warnings scripts/seo-photos/run.mjs --targets popular --limit "$LIMIT" --minutes "$MINUTES" --first-year 2010 --shard "${{ matrix.shard }}/2" \
+            ${MODELS:+--models "$MODELS"} --samples 3 --generic --manifest "$RUNNER_TEMP/manifest.json" | tee "$RUNNER_TEMP/dry.txt"
           echo "::notice title=seo-photos dry run::$(jq -c '{models, found, photos, failed, http, errors: (.errors | length)}' "$RUNNER_TEMP/manifest.json")"
           echo "::notice title=seo-photos coverage::$(jq -c '.coverage | del(.without_generation)' "$RUNNER_TEMP/manifest.json")"
           echo "::notice title=seo-photos without generation photos::$(jq -r '.coverage.without_generation | join(", ")' "$RUNNER_TEMP/manifest.json" | head -c 3900)"
@@ -135,13 +143,16 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          LIMIT: ${{ inputs.limit || '400' }}
+          MINUTES: ${{ inputs.minutes || '50' }}
+          MODELS: ${{ inputs.models }}
         run: |
           set -euo pipefail
           SERVICE_KEY=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" service-key); echo "::add-mask::$SERVICE_KEY"; export SERVICE_KEY
           STORAGE_URL=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" storage-url); export STORAGE_URL
           SQL_API_URL=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" sql-api-url); if [ -n "$SQL_API_URL" ]; then export SQL_API_URL; else unset SQL_API_URL; fi
-          node --experimental-strip-types --no-warnings scripts/seo-photos/run.mjs --write --limit "${{ inputs.limit || '400' }}" --minutes "${{ inputs.minutes || '50' }}" \
-            ${{ inputs.models && format('--models {0}', inputs.models) || '' }} ${{ steps.due.outputs.generic }} \
+          node --experimental-strip-types --no-warnings scripts/seo-photos/run.mjs --write --limit "$LIMIT" --minutes "$MINUTES" \
+            ${MODELS:+--models "$MODELS"} ${{ steps.due.outputs.generic }} \
             --manifest "$RUNNER_TEMP/manifest.json" --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" | tee "$RUNNER_TEMP/write.txt"
           echo "::notice title=seo-photos::$(jq -c '{models, found, photos, stored, failed, pending, http, errors: (.errors | length)}' "$RUNNER_TEMP/manifest.json")"
           echo "::notice title=seo-photos missing::$(jq -r '.missing | join(", ")' "$RUNNER_TEMP/manifest.json" | head -c 3900)"

@@ -29,6 +29,10 @@ on:
         type: boolean
         default: false
 
+# The workflow's token only reads the repository (a job that needs more says so itself).
+permissions:
+  contents: read
+
 concurrency:
   group: backup
   cancel-in-progress: false

@@ -15,6 +15,11 @@ __WEB_HOSTNAMES__ {
 		max_size 70MB
 	}
 	header {
+		# the app sends its own security headers (web/src/lib/security/csp.ts); these cover what Caddy answers itself
+		# (an error while the container restarts), and never replace the app's
+		?Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		?X-Content-Type-Options "nosniff"
+		?Referrer-Policy "strict-origin-when-cross-origin"
 		-Server
 	}
 	# proxy-begin

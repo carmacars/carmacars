@@ -10,6 +10,10 @@ on:
         type: string
         default: '90'
 
+# The workflow's token only reads the repository (a job that needs more says so itself).
+permissions:
+  contents: read
+
 jobs:
   tail:
     runs-on: ubuntu-24.04
@@ -26,10 +30,12 @@ jobs:
           SECS: ${{ inputs.seconds }}
         run: |
           case "$SECS" in ''|*[!0-9]*) SECS=90;; esac
+          # the run's log is public: addresses, tokens and long numbers in a message or stack are never printed
+          MASK='s/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+/[email]/g; s/eyJ[A-Za-z0-9_-]{10,}(\.[A-Za-z0-9_-]+)*/[token]/g; s/\+?[0-9][0-9 ().-]{8,}[0-9]/[number]/g'
           mkdir -p /tmp/t && cd /tmp/t
           timeout "$SECS" npx --yes wrangler@4 tail carmacars-prod --format json --status error > tail.jsonl 2> tail.err || true
           echo "events: $(wc -l < tail.jsonl)"
           jq -c 'select(.outcome != "ok" or (.exceptions|length) > 0) | {o: .outcome, path: ((.event.request.url // "") | sub("\\?.*$"; "") | sub("^https?://[^/]+"; "")), ex: [.exceptions[]? | {name, message, stack: ((.stack // "") | .[0:600])}], logs: [.logs[]? | select(.level == "error") | (.message | tostring | .[0:400])]}' tail.jsonl \
-            | head -40 | sed 's/^/::notice title=tail::/'
+            | head -40 | sed -E "$MASK" | sed 's/^/::notice title=tail::/'
           tail -5 tail.err | sed 's/^/::notice title=tail-stderr::/'
-          jq -r '[.exceptions[]?.message] | .[]' tail.jsonl | sort | uniq -c | sort -rn | head -10 | sed 's/^/::warning title=exception counts::/'
+          jq -r '[.exceptions[]?.message] | .[]' tail.jsonl | sed -E "$MASK" | sort | uniq -c | sort -rn | head -10 | sed 's/^/::warning title=exception counts::/'

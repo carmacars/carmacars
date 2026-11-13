@@ -83,6 +83,10 @@ connection, the database gets one call per batch, and the endpoint stays the sam
 3. Install `carmacars-tracker-relay.service`, open TCP port 5023 in the firewall, start it.
 4. Set each tracker (SMS command per its manual) to the server's address and port 5023, reporting every 10 to 30 seconds.
 5. Pair each tracker with its car in Admin > Cars > Fleet tracking (it shows under "Reporting, not on a car yet").
+6. Once the trackers are paired, add `TRACKER_IMEIS=<imei>,<imei>,...` to `/opt/carmacars/tracker-relay.env` and restart the
+   relay: GT06 has no device password, so the relay then refuses a login with any other IMEI. Add a new tracker's IMEI to
+   the list before it is switched on. The relay also limits connections (500 in all, 20 from one address), closes a
+   connection that does not log in within 30 seconds, and closes one that sends more than 240 frames a minute.
 
 ## The simulator
 

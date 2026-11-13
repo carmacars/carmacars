@@ -64,6 +64,10 @@ on:
 
 # A newer push to the same branch cancels the run it supersedes. A deploy run never cancels (or is cancelled by)
 # a push run, and a second deploy waits for the first.
+# The workflow's token only reads the repository (a job that needs more says so itself).
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.event_name == 'workflow_dispatch' && 'dispatch' || 'push' }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
@@ -240,8 +244,9 @@ jobs:
         env:
           BASE_URL: http://localhost:3000
           PW_BLOB: ${{ matrix.project }}-${{ matrix.shard }}
+          E2E_GREP: ${{ inputs.e2e_grep }}
         run: |
-          set +e; ../.github/ci-run.sh "End to end" npx playwright test --project ${{ matrix.project }} --shard ${{ matrix.shard }}/8 ${{ inputs.e2e_grep && format('--pass-with-no-tests --grep "{0}"', inputs.e2e_grep) || '' }} | tee /tmp/e2e.log; s=${PIPESTATUS[0]}
+          set +e; ../.github/ci-run.sh "End to end" npx playwright test --project ${{ matrix.project }} --shard ${{ matrix.shard }}/8 ${E2E_GREP:+--pass-with-no-tests --grep "$E2E_GREP"} | tee /tmp/e2e.log; s=${PIPESTATUS[0]}
           echo "::notice title=e2e ${{ matrix.project }} ${{ matrix.shard }}/8::$(sed -e 's/\x1b\[[0-9;]*[A-Za-z]//g' /tmp/e2e.log | grep -E '^ +[0-9]+ (passed|failed|flaky|skipped|did not run)' | sed -E 's/^ +//' | paste -sd ';' -)"; exit $s
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
@@ -607,7 +612,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh workflow run guides.yml -R "${{ github.repository }}" --ref "${{ github.ref_name }}" -f auto=true
+          gh workflow run guides.yml -R "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME" -f auto=true
           echo "::notice title=guides::started the guides workflow (auto) for ${GITHUB_SHA::7}: screenshots, the text of the sections that changed, the PDFs"
       - name: Crawl warm-up and Search Console (the gsc workflow, after a deploy; 0124)
         if: inputs.environment == 'production'
@@ -615,7 +620,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh workflow run gsc.yml -R "${{ github.repository }}" --ref "${{ github.ref_name }}" -f submit=true -f warm=3000 -f indexnow_rounds=10
+          gh workflow run gsc.yml -R "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME" -f submit=true -f warm=3000 -f indexnow_rounds=10
           echo "::notice title=gsc::started the gsc workflow: the first 3,000 priority addresses fetched once, the sitemaps submitted, IndexNow batches sent"
       # 0466: the Admins get a staff alert when a deploy finishes or fails (Alerts, and the phone; never fails the deploy).
       # Runs only once the Secrets step gave this job the database address and its server key.

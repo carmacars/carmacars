@@ -4,7 +4,8 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
-# TRACKER_INGEST_URL and TRACKER_INGEST_KEY (Admin > Cars > Fleet tracking > Settings > Make the ingest key)
+# TRACKER_INGEST_URL and TRACKER_INGEST_KEY (Admin > Cars > Fleet tracking > Settings > Make the ingest key), and
+# TRACKER_IMEIS (the trackers' IMEIs, comma separated: any other device is refused). Keep the file root-owned, mode 600.
 EnvironmentFile=/opt/carmacars/tracker-relay.env
 WorkingDirectory=/opt/carmacars/repo
 ExecStart=/usr/bin/node --experimental-strip-types infra/vps/tracker-relay/relay.mjs
@@ -12,6 +13,22 @@ Restart=always
 RestartSec=5
 DynamicUser=yes
 NoNewPrivileges=yes
+# the relay only listens on its port and posts to the website: nothing else of the machine is its business
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+RestrictNamespaces=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+SystemCallArchitectures=native
+MemoryMax=512M
+TasksMax=128
+LimitNOFILE=4096
 
 [Install]
 WantedBy=multi-user.target
