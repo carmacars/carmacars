@@ -34,6 +34,16 @@ export function ShowroomCar({ vehicle, studio }: { vehicle: string; studio: numb
   );
 }
 
+/** r44 (2780): what Redo with Gemini did: the outside photos made again, and the detail photos sorted again (an outside view
+ *  filed as a detail becomes the car's primary photo once Gemini has made it). */
+export function geminiDone(queued: number, resorting: number): string {
+  const parts: string[] = [];
+  if (queued) parts.push(`${queued} outside photo${queued === 1 ? ' is' : 's are'} being made again with Gemini`);
+  if (resorting) parts.push(`${resorting} detail photo${resorting === 1 ? ' is' : 's are'} being checked: an outside view among them is moved to the outside photos and made in the showroom`);
+  if (!parts.length) return 'Every photo of this car is already made to the current photo standard, or is being made now.';
+  return `${parts.join('. ')}. Check the plates when asked.`;
+}
+
 /** r43 (2690): "Redo photos with Gemini": every outside photo of the car is made again in the showroom with the image model
  *  (Gemini) as the only engine. If Gemini cannot make a photo (no key, its daily limit, a refusal, a changed car) the photo is
  *  left as it was and the step fails with the reason (the listing's steps show it): never the free showroom or Cloudflare. */
@@ -48,8 +58,8 @@ export function GeminiRedoCar({ vehicle }: { vehicle: string }) {
         ? <button className="btn btn--ghost btn--sm" type="button" disabled={pending} data-testid="gemini-redo" onClick={() => setSure(true)}>Redo photos with Gemini</button>
         : <span className="row"><span className="small">Make this car&apos;s outside photos again in the showroom with Gemini only? A photo Gemini cannot make is left as it is, and the reason is shown. The versions before are kept.</span>
           <button className="btn btn--primary btn--sm" type="button" disabled={pending} data-testid="gemini-redo-yes" onClick={() => { setSure(false); start(async () => {
-            const r = await staffDo<{ queued: number }>('photo_showroom', { action: 'gemini', vehicle });
-            setRes(r.ok ? { ok: true, text: r.data.queued ? `${r.data.queued} outside photo${r.data.queued === 1 ? ' is' : 's are'} being made again with Gemini. Check the plates when asked.` : 'No outside photo to make again now (none, or they are being made already).' } : { ok: false, text: r.message });
+            const r = await staffDo<{ queued: number; resorting?: number }>('photo_showroom', { action: 'gemini', vehicle });
+            setRes(r.ok ? { ok: true, text: geminiDone(r.data.queued, r.data.resorting ?? 0) } : { ok: false, text: r.message });
             if (r.ok) router.refresh(); }); }}>Yes, redo with Gemini</button>
           <button className="btn btn--ghost btn--sm" type="button" onClick={() => setSure(false)}>Cancel</button></span>}
       <Note r={res} />
@@ -96,6 +106,29 @@ function ShowroomCarry() {
   return <span data-testid="showroom-carry"><PlateCarry photos={photos} /></span>;
 }
 
+/** r44 (2780): every car to the current photo standard with Gemini (Admin and fleet): the outside photos made under an older
+ *  standard, within today's Gemini allowance (the rest are made by themselves over the next days), detail photos sorted
+ *  again, blurred interiors made sharp. */
+function GeminiAll() {
+  const router = useRouter();
+  const [sure, setSure] = useState(false);
+  const [res, setRes] = useState<Res>(null);
+  const [pending, start] = useTransition();
+  return (
+    <>
+      {!sure
+        ? <p><button className="btn btn--ghost btn--sm" type="button" disabled={pending} data-testid="gemini-all" onClick={() => setSure(true)}>Redo every car with Gemini</button></p>
+        : <p className="row"><span className="small">Make every car&apos;s outside photos again to the current photo standard with Gemini (today&apos;s allowance now, the rest by themselves over the next days)? The versions before are kept.</span>
+          <button className="btn btn--primary btn--sm" type="button" disabled={pending} data-testid="gemini-all-yes" onClick={() => { setSure(false); start(async () => {
+            const r = await staffDo<{ queued: number; resorting: number; sharpened: number; waiting: number }>('photo_showroom', { action: 'gemini', all: true });
+            setRes(r.ok ? { ok: true, text: `${geminiDone(r.data.queued, r.data.resorting)}${r.data.sharpened ? ` ${r.data.sharpened} blurred inside photo${r.data.sharpened === 1 ? ' is' : 's are'} made again sharp.` : ''}${r.data.waiting > 0 ? ` ${r.data.waiting} more follow by themselves within Gemini's daily allowance.` : ''}` } : { ok: false, text: r.message });
+            if (r.ok) router.refresh(); }); }}>Yes, every car</button>
+          <button className="btn btn--ghost btn--sm" type="button" onClick={() => setSure(false)}>Cancel</button></p>}
+      <Note r={res} />
+    </>
+  );
+}
+
 /** Every car at once (the listings page, Admin and fleet). */
 export function ShowroomAll() {
   const router = useRouter();
@@ -115,6 +148,7 @@ export function ShowroomAll() {
             if (r.ok) router.refresh(); }); }}>Yes, every car</button>
           <button className="btn btn--ghost btn--sm" type="button" onClick={() => setSure(false)}>Cancel</button></p>}
       <Note r={res} />
+      <GeminiAll />
     </div>
   );
 }

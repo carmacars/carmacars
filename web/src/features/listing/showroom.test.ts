@@ -3,7 +3,7 @@
 //   node --test --experimental-strip-types src/features/listing/showroom.test.ts   (npm run test:unit)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { FALLBACK_TEXT, ROOM, SHOWROOM_PRESET, composeShowroom, coverModelPrompt, decodeImage, fitFrame, encodeJpeg, localShowroom, sameCar, makeShowroom, marketingPrompt, nameBox, sceneOf, showroomBackdrop, showroomPrompt, whiteStudio,
+import { FALLBACK_TEXT, PHOTO_SPEC, PLATE_RULE, SHARP_RULE, backgroundReplaced, backgroundSwapPrompt, ROOM, SHOWROOM_PRESET, composeShowroom, coverModelPrompt, decodeImage, fitFrame, encodeJpeg, localShowroom, sameCar, makeShowroom, marketingPrompt, nameBox, sceneOf, showroomBackdrop, showroomPrompt, whiteStudio,
   type ShowroomProvider } from './showroom.ts';
 import { encodePng, type Rgba } from './subject-frame.ts';
 import { resample } from '../../integrations/photos/local.ts';
@@ -184,7 +184,7 @@ test('the image model: key in a header, image in and out; 429 is a quota, 404 a 
   assert.match(showroomPrompt({ cover: false }), /large illuminated sign, the dominant feature/);
   assert.match(showroomPrompt({ cover: false }), /walnut wood slats/);
   assert.match(showroomPrompt({ cover: false }), /no lettering on the wall other than the logo/);
-  assert.match(showroomPrompt({ cover: false }), /licence plate/);
+  assert.match(showroomPrompt({ cover: false }), /licence plate/i);
   assert.doesNotMatch(showroomPrompt({ cover: false, name: 'GLC43 AMG' }), /GLC43/, 'r40: only the cover has the name');
   assert.match(showroomPrompt({ cover: false }), /no model name/);
 });
@@ -220,7 +220,7 @@ test('worker: a showroom photo is made here (no draw call), lettered on the cove
   assert.equal(o.preset_version, SHOWROOM_PRESET);
   assert.equal(s.composited(), 0, 'no transformation for the scene');
   assert.equal(o.lettered, true);
-  assert.deepEqual(o.showroom, { provider: 'local', note: FALLBACK_TEXT.no_key, reason: 'no_key', mask_quality: 1 });
+  assert.deepEqual(o.showroom, { provider: 'local', note: FALLBACK_TEXT.no_key, reason: 'no_key', mask_quality: 1, spec: PHOTO_SPEC });
   assert.ok(o.place, 'the placement is kept (the plate cover can carry over)');
   const file = s.pub.get('vehicles/v1/car-front-left-abcd1234.jpg')!;
   assert.equal(file[0], 0xff);
@@ -238,7 +238,7 @@ test('worker: the image model\'s photo is used without a placement; a quota keep
   const ai: ShowroomProvider = { name: 'ai', make: async (_i, local) => ({ ok: true, bytes: local, contentType: 'image/jpeg', provider: 'ai', model: 'm1' }) };
   const r = await runJob(s.deps({ showroomAi: ai }), s.job({ enhance: true }), budget);
   const o = r.output as Record<string, unknown>;
-  assert.deepEqual(o.showroom, { provider: 'ai', model: 'm1', note: null, reason: null, mask_quality: 1 });
+  assert.deepEqual(o.showroom, { provider: 'ai', model: 'm1', note: null, reason: null, mask_quality: 1, spec: PHOTO_SPEC });
   assert.equal('place' in o, false, 'no exact placement: the plate is checked again');
   assert.equal(o.enhance, null, 'not touched up again');
   const quota: ShowroomProvider = { name: 'ai', make: async () => ({ ok: false, reason: 'quota', message: 'Quota exceeded' }) };
@@ -256,7 +256,7 @@ test('marketing scenes: the white studio, the words per scene, a copy made or "n
   const p = marketingPrompt({ label: 'Brick building', place: 'in front of the same brick building', reference: true });
   assert.match(p, /second image is a photo of that real place/);
   assert.match(p, /clearly the same car/);
-  assert.match(p, /licence plate/);
+  assert.match(p, /licence plate/i);
   assert.doesNotMatch(marketingPrompt({ label: 'Highway', place: 'an open highway', reference: false }), /second image/);
   // the worker: the car's kept cut-out in the scene
   const W = 1000, H = 650, data = new Uint8ClampedArray(W * H * 4);
@@ -339,6 +339,8 @@ test('worker: engine gemini fails with the reason when Gemini refuses, hits its 
     assert.equal(r.ok, false, reason);
     assert.match(r.error ?? '', /^Redo with Gemini: Gemini did not make it/, reason);
     assert.equal(r.retryable, false);
+    // r44: the daily limit and a quota tell the database to queue the step again later (the others are final)
+    assert.equal((r.output as { gemini_wait?: string } | undefined)?.gemini_wait, reason === 'limit' || reason === 'quota' ? reason : undefined, reason);
   }
   assert.equal(s.pub.size, 0, 'no file reached the site');
   assert.equal(s.composited(), 0);
@@ -360,4 +362,38 @@ test('worker: engine gemini uses the model\'s photo when it answers, and refuses
   assert.match(studio.error ?? '', /only an outside photo in the showroom/);
   const inside = await runJob(s.deps({ showroomAi: ai }), { ...s.job({ rebackground: false, shot_type: 'dashboard', angle: 'dashboard' }), input: { engine: 'gemini' } }, budget);
   assert.equal(inside.ok, false);
+});
+
+// ---------------------------------------------------------------- r44 (2780): the owner's four points
+test('r44: every prompt keeps the plate on the plate and writes no text anywhere else', () => {
+  for (const p of [showroomPrompt({ cover: false }), showroomPrompt({ cover: true, name: 'CLA' }), backgroundSwapPrompt({ cover: false }), marketingPrompt({ label: 'x', place: 'a street', reference: false }), coverModelPrompt('')]) {
+    assert.ok(p.includes(PLATE_RULE), p.slice(0, 80));
+    assert.match(p, /exactly where it is on the bumper/);
+    assert.match(p, /nothing floating in the air/);
+    assert.doesNotMatch(p, /Do not add or show a licence plate/, 'the old words made the model drop the plate and write its text elsewhere');
+  }
+});
+
+test('r44: the showroom and the background swap replace every trace of the place, sharp from front to back', () => {
+  for (const p of [showroomPrompt({ cover: false }), backgroundSwapPrompt({ cover: true, name: 'GLE' })]) {
+    assert.match(p, /street, parking lot, sky, trees/);
+    assert.ok(p.includes(SHARP_RULE));
+    assert.match(p, /no bokeh/);
+    assert.doesNotMatch(p, /shallow depth|blurred background/i);
+  }
+  const swap = backgroundSwapPrompt({ cover: true, name: 'GLE' });
+  assert.match(swap, /second image is an empty, dark CarmaCars car showroom/);
+  assert.match(swap, /"GLE"/);
+  assert.doesNotMatch(backgroundSwapPrompt({ cover: false, name: 'GLE' }), /"GLE"/, 'only the cover has the name');
+});
+
+test('r44: the background check: the room passes, a sky or a white garage does not', () => {
+  assert.equal(backgroundReplaced(showroomBackdrop()), true, 'the drawn room');
+  assert.equal(backgroundReplaced(showroomBackdrop({ model: 'CLA', cover: true })), true, 'the cover room');
+  const sky = showroomBackdrop();
+  for (let y = 0; y < 200; y++) for (let x = 0; x < sky.width; x++) { const i = (y * sky.width + x) * 4; sky.data[i] = 150; sky.data[i + 1] = 190; sky.data[i + 2] = 240; }
+  assert.equal(backgroundReplaced(sky), false, 'a sky at the top');
+  const white = { width: 300, height: 200, data: new Uint8ClampedArray(300 * 200 * 4).fill(235) };
+  assert.equal(backgroundReplaced(white), false, 'a white garage');
+  assert.equal(PHOTO_SPEC, 'r44.1', 'keep equal to app.photo_spec() (migration 2780)');
 });

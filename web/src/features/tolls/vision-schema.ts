@@ -88,7 +88,10 @@ export function normalizePlateBoxes(data: unknown, img: { width: number; height:
     const b = it as Obj;
     const arr = Array.isArray(b.bbox) ? b.bbox : Array.isArray(b.box) ? b.box : null;
     let x: number, y: number, w: number, h: number;
-    if (arr && arr.length === 4 && arr.every((n) => typeof n === 'number')) { [x, y] = [arr[0] as number, arr[1] as number]; w = (arr[2] as number) - x; h = (arr[3] as number) - y; }
+    // r44: Gemini's own box format, box_2d [ymin, xmin, ymax, xmax] on a 0 to 1000 grid (y first)
+    const b2 = Array.isArray(b.box_2d) && b.box_2d.length === 4 && b.box_2d.every((n) => typeof n === 'number') ? b.box_2d as number[] : null;
+    if (b2) { y = b2[0]! / 1000; x = b2[1]! / 1000; h = (b2[2]! - b2[0]!) / 1000; w = (b2[3]! - b2[1]!) / 1000; }
+    else if (arr && arr.length === 4 && arr.every((n) => typeof n === 'number')) { [x, y] = [arr[0] as number, arr[1] as number]; w = (arr[2] as number) - x; h = (arr[3] as number) - y; }
     else if (['x1', 'y1', 'x2', 'y2'].every((k) => typeof b[k] === 'number')) { x = b.x1 as number; y = b.y1 as number; w = (b.x2 as number) - x; h = (b.y2 as number) - y; }
     else if (['x', 'y', 'w', 'h'].every((k) => typeof b[k] === 'number')) { x = b.x as number; y = b.y as number; w = b.w as number; h = b.h as number; }
     else if (['x', 'y', 'width', 'height'].every((k) => typeof b[k] === 'number')) { x = b.x as number; y = b.y as number; w = b.width as number; h = b.height as number; }

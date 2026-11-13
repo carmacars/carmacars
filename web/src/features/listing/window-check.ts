@@ -78,9 +78,12 @@ export async function readAlpha(png: Uint8Array, grid = GRID): Promise<AlphaGrid
   return { w: grid.w, h: grid.h, clear, soft: soft / (width * height) };
 }
 
-/** The quality check above, on the grid: replace, blur or none, with the measures and the rules that failed. */
+/** The quality check above, on the grid: replace or none (r44: never blur), with the measures and the rules that failed. */
 export function windowPlan(g: AlphaGrid | null): WindowPlan {
-  if (!g) return { action: 'blur', reasons: ['the cut-out could not be read'], metrics: {} };
+  // r44: a cut-out that fails the check keeps the photo sharp as taken ("none"): the old "blur" blurred everything the
+  // segmenter did not keep (on a dashboard photo it often kept only the steering wheel), so the cabin came out soft with an
+  // artificial focus on the wheel. An interior is never blurred now.
+  if (!g) return { action: 'none', reasons: ['the cut-out could not be read'], metrics: {} };
   const n = g.w * g.h;
   const on = Array.from(g.clear, (c) => c >= 0.5);
   const total = on.filter(Boolean).length;
@@ -113,7 +116,7 @@ export function windowPlan(g: AlphaGrid | null): WindowPlan {
   if (regions > RULES.maxRegions) reasons.push(`${regions} see-through regions, more than ${RULES.maxRegions}`);
   if (specks > RULES.maxSpecks) reasons.push(`${specks} specks, more than ${RULES.maxSpecks}`);
   if (g.soft > RULES.maxSoft) reasons.push(`${Math.round(g.soft * 100)}% half-transparent edge, more than ${RULES.maxSoft * 100}%`);
-  return { action: reasons.length ? 'blur' : 'replace', reasons, metrics };
+  return { action: reasons.length ? 'none' : 'replace', reasons, metrics };
 }
 
 /** The interior shots whose windows are treated (the others are edited as before). */

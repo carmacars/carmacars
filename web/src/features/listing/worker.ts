@@ -9,7 +9,8 @@ import { plainDraft } from '../seo/copy.ts';
 import { LETTERING, LETTER_REAL_PHOTOS, LETTER_SHOTS, letterThis, letteringPath, letteringPng } from './lettering.ts';
 import { WINDOW_SHOTS, readAlpha, windowPlan, type WindowPlan } from './window-check.ts';
 import { adjustPlace, decodePng, encodePng, frameRgba, frameSubject, placeSubject, type Adjust } from './subject-frame.ts';
-import { SHOWROOM_FIT, SHOWROOM_PRESET, coverModelPrompt, decodeImage, encodeJpeg, fitFrame, makeShowroom, marketingPrompt, photoRoomPrompt, sceneOf, showroomBackdrop, whiteStudio, type ShowroomOut, type ShowroomProvider } from './showroom.ts';
+import { PHOTO_SPEC, SHOWROOM_FIT, SHOWROOM_PRESET, backgroundReplaced, backgroundSwapPrompt, coverModelPrompt, decodeImage, encodeJpeg, fitFrame, makeShowroom, marketingPrompt, photoRoomPrompt, sceneOf, showroomBackdrop, whiteStudio, type ShowroomOut, type ShowroomProvider } from './showroom.ts';
+import { letteringName } from '../car/studio.ts';
 import { lightMatch, maskQuality, photoPlace } from './photo-room.ts';
 import type { Rgba } from './subject-frame.ts';
 import { drawFlyer, type FlyerSpec } from './flyer.ts';
@@ -60,7 +61,7 @@ const FREE_DAILY_NEURONS = 10_000;
 export const GEMINI_ONLY = 'Redo with Gemini: ';
 
 export interface JobContext {
-  id: string; kind: 'decode_vin' | 'draft_copy' | 'process_photo' | 'resize' | 'publish' | 'marketing_photo' | 'plate_redo' | 'cover_model' | 'cover_flyer' | 'angle_make' | 'plate_auto'; intake_id: string; vehicle_id: string;
+  id: string; kind: 'decode_vin' | 'draft_copy' | 'process_photo' | 'resize' | 'publish' | 'marketing_photo' | 'plate_redo' | 'cover_model' | 'cover_flyer' | 'angle_make' | 'plate_auto' | 'photo_resort'; intake_id: string; vehicle_id: string;
   attempts: number; max_attempts: number; input: Record<string, unknown>; vin?: string | null;
   facts?: Record<string, unknown> | null; staff_notes?: string | null; classes?: string[] | null;
   copy_rules?: { headline_chars: [number, number]; description_words: [number, number]; features: [number, number]; faq: [number, number]; banned_phrases: string[] } | null;
@@ -124,6 +125,9 @@ export interface WorkerDeps {
   findPlates?(img: { bytes: Uint8Array; contentType: string; width: number; height: number; photoId: string }): Promise<{ data: unknown; model: string } | null>;
   /** r41 (2530): the automatic plate decision recorded (server_plate_auto_apply): applied, and the files a cover replaced. */
   plateAutoApply?(p: Record<string, unknown>): Promise<{ applied: boolean; previous?: string[] }>;
+  /** r44 (2780): a photo filed as "Other detail" sorted again by the vision model (Gemini first): its shot, 'unsure' when the
+   *  model answered without a shot, null when it may not be asked now (the job waits an hour). */
+  sortPhoto?(img: { bytes: Uint8Array; contentType: string; photoId: string }): Promise<{ shot: string; model: string } | 'unsure' | null>;
   /** r35 (0990): the image model that makes the showroom look photographed (gated by the database's daily limit); none: the
    *  free local showroom alone, noted "no key" on the photo when showroomNoKey. */
   showroomAi?: ShowroomProvider | null;
@@ -206,6 +210,7 @@ export async function runJob(d: WorkerDeps, j: JobContext, b: Budget, used = { n
     case 'cover_model': case 'cover_flyer': return listingCover(d, j);
     case 'angle_make': return angleMake(d, j);
     case 'plate_auto': return plateAuto(d, j);
+    case 'photo_resort': return resortPhoto(d, j);
   }
 }
 
@@ -280,7 +285,10 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
   // fails the step with the reason and leaves the photo as it was: never the free showroom, the Cloudflare composite or the
   // unprocessed original (those would replace a poor photo with another poor one, or put an original on the site).
   const strict = j.input?.engine === 'gemini';
-  const strictFail = (why: string): JobResult => ({ ok: false, provider: 'gemini', error: `${GEMINI_ONLY}${why}. The photo was not changed.`, retryable: false });
+  // r44 (2780): Gemini's daily limit or a quota answer is not the photo's fault: the database queues the step again when Gemini
+  // may be asked (gemini_wait), so a fleet-wide redo finishes over the following days by itself
+  const strictFail = (why: string, wait?: string | null): JobResult => ({ ok: false, provider: 'gemini', error: `${GEMINI_ONLY}${why}. The photo was not changed.`, retryable: false,
+    ...(wait === 'limit' || wait === 'quota' ? { output: { gemini_wait: wait } } : {}) });
   if (strict && !d.showroomAi) return strictFail('Gemini is not set up on the website (no GEMINI_API_KEY)');
   if (strict && !(p.rebackground && sceneOf(p) === 'showroom')) return strictFail('only an outside photo in the showroom is made with Gemini');
   const fb: typeof fallback = strict ? async (_d, _j, reason, message) => strictFail(`${reason}: ${message}`) : fallback;
@@ -333,9 +341,19 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
   let maskPath: string | null = null;
   let place: ReturnType<typeof placeSubject> | null = null;
   let lettered = false;
-  const edit = p.rebackground ? editOf(j.input) : null;
   const showroom = sceneOf(p) === 'showroom';
-  let room: { provider: 'local' | 'ai'; model?: string; note: string | null; reason: string | null; mask_quality?: number; background?: string } | null = null;
+  const edit = p.rebackground ? editOf(j.input) : null;
+  // r44 (2780): a cut-out staff edited is theirs; the segmenter's own kept mask (auto_mask, sent again by a redo) is scored like a new one
+  const trusted = !!edit && !j.input?.auto_mask;
+  // r44: a car the site cannot cut out cleanly gets its background replaced by the image model from the original (the same
+  // room every outside photo has), instead of going on the site with the place it was photographed in
+  const swap = async (why: string): Promise<JobResult | null> => {
+    if (!p.rebackground || !showroom || !d.showroomAi) return null;
+    const r = await swapBackground(d, j, n, b, used);
+    if (r.ok) return r;
+    return strict ? strictFail(`${why}; Gemini could not replace the background (${r.why})`, r.why?.split(':')[0]) : null;
+  };
+  let room: { provider: 'local' | 'ai'; model?: string; note: string | null; reason: string | null; mask_quality?: number; background?: string; spec?: string } | null = null;
   let roomOut: PhotoOut | null = null;
   if (p.rebackground) {
     let cutBytes: Uint8Array;
@@ -346,7 +364,7 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
       cutBytes = e;
     } else {
       const cut = await d.photos.cutout(src);
-      if (!cut.ok) return fail(cut) ?? fb(d, j, cut.reason, why(cut), n, b, used);
+      if (!cut.ok) return fail(cut) ?? (await swap(`no cut-out (${cut.message})`)) ?? fb(d, j, cut.reason, why(cut), n, b, used);
       n += cut.transformations;
       cutBytes = cut.bytes;
       // 0700: the segmenter's cut-out as it came (its alpha is the mask), for the cut-out editor
@@ -361,8 +379,10 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
     const raw = await decodePng(cutBytes).catch(() => null);
     // r39 (2400): the segmenter's mask scored (one piece, firm and smooth edges); a poor one is never composited: the real
     // photo goes on (its plates covered as every photo). A cut-out staff edited is theirs and is used.
-    const mq = raw && !edit ? maskQuality(raw) : null;
+    const mq = raw && !trusted ? maskQuality(raw) : null;
     if (mq && mq.score < (j.cutout?.min_quality ?? 0.6)) {
+      const swapped = await swap(`the cut-out is not clean enough to place in a room (mask quality ${mq.score})`);
+      if (swapped) return swapped;
       if (strict) return strictFail(`the cut-out is not clean enough to place in a room (mask quality ${mq.score}); edit the cut-out first`);
       const lowFb = await fallback(d, j, 'low_mask', `The cut-out is not clean enough to place in a room (mask quality ${mq.score}): the real photo is used`, n, b, used);
       if (lowFb.ok && lowFb.output) lowFb.output = { ...lowFb.output, ...(maskPath ? { mask_path: maskPath } : {}),
@@ -371,7 +391,7 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
     }
     const f = raw ? frameRgba(raw) : null;
     if (f) { const { image, ...rest } = f; carImg = image; framed = { ...rest, png: await encodePng(image) }; }
-    if (strict && !(showroom && framed && carImg)) return strictFail('the car could not be framed from its cut-out');
+    if (strict && !(showroom && framed && carImg)) return (await swap('the car could not be framed from its cut-out')) ?? strictFail('the car could not be framed from its cut-out');
     await d.files.putPrivate(cutPath, framed?.png ?? cutBytes, 'image/png');
     // the model's name behind the car, as on the sample cars: one band per model, kept in the public bucket
     let lettering: { url: string; top: number; width: number } | null = null;
@@ -386,9 +406,9 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
       const m = await makeShowroom({ car, place, model: p.model ?? null, cover: !!p.is_cover, photoId: p.id,
         ...(pr ? { room: pr.img, prompt: photoRoomPrompt(), look: { reflect: pr.reflect, gain: lightMatch(pr.img, car, pr.floor) } } : {}) },
         d.showroomAi ? [d.showroomAi] : [], !d.showroomAi && !!d.showroomNoKey);
-      if (strict && m.provider !== 'ai') return strictFail(`Gemini did not make it${m.note ? ` (${m.note.replace(/^Made with the free showroom: /, '').replace(/\.$/, '')})` : ''}`);
+      if (strict && m.provider !== 'ai') return strictFail(`Gemini did not make it${m.note ? ` (${m.note.replace(/^Made with the free showroom: /, '').replace(/\.$/, '')})` : ''}`, m.reason);
       room = { provider: m.provider, ...(m.model ? { model: m.model } : {}), note: m.note, reason: m.reason,
-        ...(mq ? { mask_quality: mq.score } : {}), ...(pr ? { background: pr.slug } : {}) };
+        ...(mq ? { mask_quality: mq.score } : {}), ...(pr ? { background: pr.slug } : {}), spec: PHOTO_SPEC };
       lettered = !pr && !!(p.is_cover && p.model);
       roomOut = { ok: true, bytes: m.bytes, contentType: m.contentType, transformations: 0 };
     } else if (p.model && letterThis(p)) {
@@ -504,6 +524,35 @@ async function windows(d: WorkerDeps, j: JobContext, src: string, roomUrl: strin
     ? { baseUrl: roomUrl ?? d.files.publicUrl(BACKDROP_PATH), overlayUrl: await d.files.privateUrl(cutPath), ...INTERIOR }
     : { baseUrl: src, baseBlur: 40, overlayUrl: await d.files.privateUrl(cutPath), ...INTERIOR });
   return { out: out.ok ? out : null, n: cut.transformations, plan: out.ok ? plan : null };
+}
+
+/** r44 (2780): the original photo with its background replaced by the image model: the original and the empty room (the car's
+ *  photographed room when it has one, else the drawn showroom without lettering) go to the model; its answer is fitted to the
+ *  frame and used only when the room shows around the car (backgroundReplaced). The plate is checked again afterwards. */
+export async function swapBackground(d: WorkerDeps, j: JobContext, n: number, b: Budget, used: { transformations: number }): Promise<JobResult & { why?: string }> {
+  const p = j.photo!;
+  const no = (why: string) => ({ ok: false, why } as JobResult & { why: string });
+  if (!d.showroomAi) return no('no key');
+  const bytes = await d.files.getPrivate(p.original_path).catch(() => null);
+  const img = bytes ? await decodeImage(bytes).catch(() => null) : null;
+  if (!img) return no('the original could not be read');
+  const pr = await photoRoom(d, j);
+  const roomJpeg = encodeJpeg(pr?.img ?? showroomBackdrop(), 86);
+  const name = p.is_cover && p.model && !pr ? letteringName(p.model) : null;
+  const r = await d.showroomAi.make({ car: { width: 1, height: 1, data: new Uint8ClampedArray(4), ground: 0 }, place: { width: 1, height: 1, left: 0, bottom: 0 },
+    model: p.model ?? null, cover: !!p.is_cover, photoId: p.id, prompt: backgroundSwapPrompt({ cover: !!p.is_cover, name }),
+    reference: { bytes: roomJpeg, contentType: 'image/jpeg' } }, encodeJpeg(scaleDown(img, EXTERIOR.width, EXTERIOR.width), 90)).catch((e: unknown) => ({ ok: false as const, reason: 'error' as const, message: e instanceof Error ? e.message : String(e) }));
+  if (!r.ok) return no(`${r.reason}: ${r.message}`);
+  const ai = await decodeImage(r.bytes).catch(() => null);
+  if (!ai) return no('the answer could not be read');
+  const fitted = fitFrame(ai, EXTERIOR.width, EXTERIOR.height);
+  if (!pr && !backgroundReplaced(fitted)) return no('the answer still shows the place the photo was taken');
+  const path = `vehicles/${j.vehicle_id}/${p.file_base}.jpg`;
+  await d.files.putPublic(path, encodeJpeg(fitted), 'image/jpeg');
+  return { ok: true, provider: 'ai', ...imageCost(n, b, used),
+    output: { processed_path: path, width: EXTERIOR.width, height: EXTERIOR.height, preset_version: SHOWROOM_PRESET, flags: [], lettered: !!name,
+      showroom: { provider: 'ai', ...(r.model ? { model: r.model } : {}), note: null, reason: null, mode: 'swap', spec: PHOTO_SPEC, ...(pr ? { background: pr.slug } : {}) },
+      ...(p.enhance !== undefined ? { enhance: null } : {}) } };
 }
 
 /** Transformations are off (or found no car): keep the original on the site and flag it for staff. */
@@ -779,6 +828,33 @@ async function plateAuto(d: WorkerDeps, j: JobContext): Promise<JobResult> {
   if (!r.applied && wrotePrivate && uncovered) await d.files.removePrivate?.(uncovered).catch(() => undefined);
   return { ok: true, provider: asked.model, output: { plate_auto: { decision: 'cover', confidence: dec.confidence, boxes: boxes.length, applied: r.applied, processed_path: r.applied ? path : null } } };
 }
+
+/** r44 (2780): a photo filed as "Other detail" (the sorter could not say, or it was imported before the sorter could read it)
+ *  is sorted again. The answer goes to the database, which files an outside photo under its shot (the front three-quarter
+ *  becomes the car's primary photo) and makes it in the showroom with Gemini. Nothing is changed here. */
+export interface ResortInput { photo_id: string; vehicle_id: string; source: string }
+async function resortPhoto(d: WorkerDeps, j: JobContext): Promise<JobResult> {
+  const m = (j.input as { resort?: ResortInput }).resort;
+  if (!m?.photo_id || !m.source) return { ok: false, error: 'The sort job is missing its photo', retryable: false };
+  if (!d.sortPhoto) return { ok: true, provider: 'carmacars', output: { resort: { photo_id: m.photo_id, decision: 'deferred', why: 'not wired' } } };
+  const bytes = await d.files.getPrivate(m.source).catch(() => null);
+  if (!bytes) return { ok: false, error: 'The photo could not be read', retryable: true };
+  let seen = bytes, contentType = bytes[0] === 0x89 ? 'image/png' : 'image/jpeg';
+  const size = imageSize(bytes);
+  if (size && tooLarge(size.width, size.height)) return { ok: true, provider: 'carmacars', output: { resort: { photo_id: m.photo_id, decision: 'unsure', why: 'too large to read here' } } };
+  if (bytes.length > DETECT_MAX_BYTES || (size && Math.max(size.width, size.height) > 1600)) {
+    const img = await decodeImage(bytes).catch(() => null);
+    if (!img) return { ok: true, provider: 'carmacars', output: { resort: { photo_id: m.photo_id, decision: 'unsure', why: 'unreadable' } } };
+    seen = encodeJpeg(scaleDown(img, 1280, 1280), 85); contentType = 'image/jpeg';
+  }
+  const r = await d.sortPhoto({ bytes: seen, contentType, photoId: m.photo_id }).catch(() => null);
+  if (!r) return { ok: true, provider: 'carmacars', output: { resort: { photo_id: m.photo_id, decision: 'deferred' } } };
+  if (r === 'unsure') return { ok: true, provider: 'carmacars', output: { resort: { photo_id: m.photo_id, decision: 'unsure' } } };
+  return { ok: true, provider: r.model, output: { resort: { photo_id: m.photo_id, decision: 'sorted', shot: r.shot, exterior: resortExterior(r.shot) } } };
+}
+/** The shots that are an outside view of the whole car (made in the showroom); a body detail, the roof or the engine bay
+ *  (exterior_other) stays a detail photo, kept as taken. */
+export const resortExterior = (shot: string) => ['front_left', 'front', 'left', 'rear_left', 'rear', 'rear_right', 'right', 'front_right'].includes(shot);
 
 async function resize(d: WorkerDeps, j: JobContext, b: Budget, used: { transformations: number }): Promise<JobResult> {
   const p = j.photo;

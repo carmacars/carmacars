@@ -13,6 +13,14 @@ export const PLATE_AUTO_SYSTEM = 'You find licence plates in photos of cars for 
 export function plateAutoPrompt(size: { width: number; height: number }): string {
   return `This photo is ${Math.round(size.width)} pixels wide and ${Math.round(size.height)} pixels high. Find every licence plate (number plate) in it: the front or rear plate of any car, also a plate seen at an angle, small, partly hidden or in a reflection. Answer with one JSON object: {"plates": [{"x1": 0, "y1": 0, "x2": 0, "y2": 0, "confidence": 0}], "plate_visible": "yes", "confidence": 0}. Each entry of "plates" is one plate: x1 and y1 the pixel position of its top left corner, x2 and y2 of its bottom right corner (x from the left edge, y from the top edge), confidence 0 to 100. "plate_visible" is "yes" when any plate can be seen, "no" when you are sure none can be seen (an interior, a dashboard, a seat, a trunk, a wheel, a close-up without a plate), "unsure" otherwise; the outer "confidence" (0 to 100) is how sure you are of "plate_visible". Answer {"plates": [], "plate_visible": "no", "confidence": 95} only when no plate can be seen.`;
 }
+/** r44: the same question in Gemini's own box format (box_2d, y first, on a 0 to 1000 grid), which it places far better than
+ *  pixel corners; normalizePlateBoxes reads both. */
+export const PLATE_AUTO_PROMPT_GEMINI = 'Find every licence plate (number plate) in this photo: the front or rear plate of any car, also one seen at an angle, small or partly hidden. A sign, a logo or lettering on a wall, a badge or a model name on the car is not a plate. Answer with one JSON object: {"plates": [{"box_2d": [ymin, xmin, ymax, xmax], "confidence": 0}], "plate_visible": "yes", "confidence": 0}. box_2d is the plate\'s box on a 0 to 1000 grid of the image (y first), confidence 0 to 100. "plate_visible" is "yes" when any plate can be seen, "no" when you are sure none can be seen, "unsure" otherwise; the outer "confidence" is how sure you are of "plate_visible". Answer {"plates": [], "plate_visible": "no", "confidence": 95} only when no plate can be seen.';
+/** r44: where a plate can be on an outside photo of one car: on the car's bumper, so in the lower part of the frame and not
+ *  wider than a plate can be. A box higher up or wider is a sign, the CarmaCars logo or the model's name on the showroom wall
+ *  (the owner saw the plate drawn there: "the plate text placed somewhere random"), and is never covered. */
+export const PLATE_ZONE = { minCentreY: 0.42, maxWidth: 0.24 } as const;
+export const onCarPlate = (b: NBox) => b.y + b.h / 2 >= PLATE_ZONE.minCentreY && b.w <= PLATE_ZONE.maxWidth;
 export const PLATE_AUTO_SCHEMA = {
   type: 'object',
   properties: {
@@ -52,7 +60,11 @@ export function decidePlate(answer: unknown, o: { width: number; height: number;
   const coverMin = o.coverMin ?? COVER_MIN, clearMin = o.clearMin ?? CLEAR_MIN;
   const a = (answer && typeof answer === 'object' ? answer : null) as Record<string, unknown> | null;
   if (!a || !(Array.isArray(a.plates) || Array.isArray(a.boxes))) return { decision: 'unsure', confidence: null, boxes: [], why: 'no usable answer' };
-  const boxes = dedupeBoxes(normalizePlateBoxes(a, { width: o.width, height: o.height }));
+  const all = dedupeBoxes(normalizePlateBoxes(a, { width: o.width, height: o.height }));
+  // r44: on an outside photo only a box where a plate can be (onCarPlate) is covered; one elsewhere is never drawn on, but
+  // it still stops the photo being cleared by itself (a person looks)
+  const boxes = o.inside ? all : all.filter(onCarPlate);
+  const offCar = all.filter((b) => !boxes.includes(b) && b.confidence >= WEAK_MIN);
   const strong = boxes.filter((b) => b.confidence >= coverMin);
   if (strong.length) {
     // every plate the model is fairly sure of is covered, the weaker ones with it (a cover where none was is undone by a person)
@@ -60,6 +72,7 @@ export function decidePlate(answer: unknown, o: { width: number; height: number;
     return { decision: 'cover', confidence: Math.round(Math.max(...strong.map((b) => b.confidence))), boxes: cover, why: `${cover.length} plate${cover.length === 1 ? '' : 's'} found` };
   }
   if (boxes.some((b) => b.confidence >= WEAK_MIN)) return { decision: 'unsure', confidence: Math.round(Math.max(...boxes.map((b) => b.confidence))), boxes, why: 'a possible plate' };
+  if (offCar.length) return { decision: 'unsure', confidence: Math.round(Math.max(...offCar.map((b) => b.confidence))), boxes: [], why: 'a box where no plate can be (a sign or lettering?)' };
   const visible = typeof a.plate_visible === 'string' ? a.plate_visible.toLowerCase() : null;
   const sure = pct(a.confidence);
   if (visible === 'yes') return { decision: 'unsure', confidence: sure, boxes: [], why: 'a plate seen but not placed' };
