@@ -20615,7 +20615,7 @@
       "code": "applicant_ai_interview",
       "audience": "applicant",
       "category": "transactional",
-      "trigger": "A candidate for a remote assistant role (customer service, fleet, finance or remote sales) passes screening, or an Admin presses Invite anyway or New interview link in Admin > People > Hiring, while AI interviews are on (migration 0380): the personal link to the recorded interview they take on their own, instead of the link to book a live call. In-person roles keep their calls. One email per link; no reminders and no texts.",
+      "trigger": "A candidate for a remote assistant role (customer service, fleet, finance or remote sales) passes screening, or an Admin presses Invite anyway or New interview link in Admin > People > Hiring, while AI interviews are on (migration 0380): the personal link to the recorded interview they take on their own, instead of the link to book a live call. In-person roles keep their calls. One email per link; no reminders and no texts. Since migration 2680 an Admin can also redo a hired or interviewed applicant's interview (Admin > People > Hiring > the candidate > Redo the AI interview): the same email with a friendly explanation that the role needs the recorded video interview.",
       "timing": "Immediate",
       "digest": false,
       "from": "CarmaCars <hello@carmacars.ca>",
@@ -20673,6 +20673,11 @@
           "name": "question_count",
           "type": "string",
           "sample": "9"
+        },
+        {
+          "name": "redo",
+          "type": "boolean",
+          "sample": true
         },
         {
           "name": "reply_time",
