@@ -407,7 +407,10 @@ test('field staff open a check-out from their job card in one tap', async ({ bro
   // field staff member, who can be this new one
   await page.getByTestId('job-card').filter({ has: page.locator(`a[href="/staff/field/jobs/${job!.id}"]`) }).getByTestId('field-checkout').click();
   await page.waitForURL(new RegExp(`/staff/field/jobs/${job!.id}`), { timeout: 30_000 });
-  await expect(page.getByTestId('ready-check')).toBeVisible({ timeout: 15_000 });
+  // r43 one screen: the ready check is on the page; its six lines fold into one line when everything is ready
+  await expect(page.getByTestId('ready-open')).toBeVisible({ timeout: 15_000 });
+  await page.getByTestId('ready-open').click();
+  await expect(page.getByTestId('ready-check')).toBeVisible();
   await sql.end();
 });
 
