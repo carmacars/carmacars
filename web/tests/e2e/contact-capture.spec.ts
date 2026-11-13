@@ -36,6 +36,8 @@ test('an abandoned request leaves a lead and an account; the continue link signs
   // the first step took the request (any message it shows is the reason it did not)
   expect((await page.locator('[data-step="1"] p.error').allInnerTexts()).filter((t) => t.trim()).join(' | '), 'the first step\'s messages').toBe('');
   await expect(page.getByRole('heading', { name: 'The driver' })).toBeVisible();
+  // the save that carries the draft (the first one, or the same values sent again once the draft exists)
+  const withDraft = page.waitForResponse((r) => r.url().endsWith('/api/capture') && /"ref":"[0-9a-f-]{36}"/.test(r.request().postData() ?? ''), { timeout: 30_000 });
   await page.locator('#rq-first').fill('Casey');
   await page.locator('#rq-last').fill('Capture');
   await page.locator('#rq-phone').fill('647-555-0177');
@@ -63,6 +65,10 @@ test('an abandoned request leaves a lead and an account; the continue link signs
   expect(cookie?.httpOnly).toBe(true);
   // wait for the draft to reach the server, then the capture carries it
   await expect.poll(async () => (await sql`select draft_id from contact_captures where id = ${cap[0]!.id}`)[0]!.draft_id, { timeout: 15_000 }).toBeTruthy();
+  // the note stays once the draft is linked (it used to vanish with that second save's answer, about a second after it appeared)
+  expect(await (await withDraft).json()).toMatchObject({ ok: true });
+  await page.waitForTimeout(300);
+  await expect(page.getByTestId('capture-note')).toContainText('We opened an account for you with this email');
 
   // this device: /account shows what it started, with "Email not confirmed yet", and nothing else
   await page.goto('/account');

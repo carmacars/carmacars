@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { captureNote, cleanEmail, cleanFields, cleanName, cleanPhone } from './fields.ts';
+import { captureNote, cleanEmail, cleanFields, cleanName, cleanPhone, keepReply } from './fields.ts';
 
 test('only valid values are kept', () => {
   assert.equal(cleanName(' Maya   Chen '), 'Maya Chen');
@@ -34,4 +34,16 @@ test('the note never says more about an existing account than the spec allows', 
   assert.equal(captureNote({ ok: true, state: 'phone_only' }), null);
   assert.equal(captureNote({ ok: false }), null);
   assert.equal(captureNote(null), null);
+});
+
+test('the note about a new account stays when the same values are saved again with the draft', () => {
+  const opened = { ok: true, state: 'new' as const };
+  // the relink save: the database answers "this_device" (the account this browser just opened)
+  assert.equal(keepReply(opened, { ok: true, state: 'this_device' }), opened);
+  assert.ok(captureNote(keepReply(opened, { ok: true, state: 'this_device' }))?.text.includes('We opened an account'));
+  // a failed save changes nothing shown
+  assert.equal(keepReply(opened, { ok: false, rateLimited: true }), opened);
+  // another answer replaces it; with nothing shown before, "this_device" still says nothing
+  assert.equal(keepReply(opened, { ok: true, state: 'existing', linkSent: true }).state, 'existing');
+  assert.equal(captureNote(keepReply(null, { ok: true, state: 'this_device' })), null);
 });

@@ -49,3 +49,11 @@ export function captureNote(r: CaptureReply | null): { tone: 'ok' | 'info'; text
   if (r.state === 'existing') return { tone: 'info', text: 'You have an account: sign in to continue, or use the link we emailed you.', signIn: true };
   return null;
 }
+
+/** The reply the form keeps after a save. A form that gets its draft after the first save sends the same values again
+ *  (useCapture's relink) and the database answers "this_device": that is the account this browser has just opened, so the
+ *  note about it stays (it used to vanish about a second after it appeared). A failed save changes nothing shown. */
+export function keepReply(prev: CaptureReply | null, next: CaptureReply): CaptureReply {
+  if (prev?.ok && prev.state === 'new' && (!next.ok || next.state === 'this_device')) return prev;
+  return next;
+}

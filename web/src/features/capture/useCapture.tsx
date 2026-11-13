@@ -2,7 +2,7 @@
 import Link from '@/components/Link';
 import { useCallback, useEffect, useRef, useState, type FocusEvent } from 'react';
 import { visitorId } from '@/features/live/beacon';
-import { captureNote, cleanFields, type CaptureFields, type CaptureForm, type CaptureReply } from './fields';
+import { captureNote, cleanFields, keepReply, type CaptureFields, type CaptureForm, type CaptureReply } from './fields';
 
 // Contact capture (migration 0090), the browser's side: when a field loses focus and is valid, what the person typed
 // (name, email, phone, nothing else) is sent to /api/capture after a short pause, once per change. Never blocks the
@@ -11,6 +11,9 @@ export function useCapture(form: CaptureForm, ctx?: () => { ref?: string | null;
   const last = useRef('');
   const sent = useRef<{ f: CaptureFields; ref: string } | null>(null);
   const timer = useRef<number | undefined>(undefined);
+  // one save at a time: the next waits for the reply before it (a new account's session cookie comes with that reply; a
+  // save sent before it arrived would be answered as another browser's: "You have an account" and an emailed link)
+  const flight = useRef<Promise<void>>(Promise.resolve());
   const ctxRef = useRef(ctx);
   useEffect(() => { ctxRef.current = ctx; });
   const [reply, setReply] = useState<CaptureReply | null>(null);
@@ -27,11 +30,11 @@ export function useCapture(form: CaptureForm, ctx?: () => { ref?: string | null;
       sent.current = { f, ref: c.ref ?? '' };
       let vid: string | undefined;
       try { vid = visitorId(); } catch { vid = undefined; }
-      fetch('/api/capture', { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'same-origin', keepalive: true,
+      flight.current = flight.current.then(() => fetch('/api/capture', { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'same-origin', keepalive: true,
         body: JSON.stringify({ form, ...f, ref: c.ref ?? null, draftToken: c.draftToken ?? null, vid, page: location.pathname }) })
         .then((r) => (r.ok ? (r.json() as Promise<CaptureReply>) : null))
-        .then((r) => { if (r) setReply(r); })
-        .catch(() => { last.current = ''; });
+        .then((r) => { if (r) setReply((prev) => keepReply(prev, r)); })
+        .catch(() => { last.current = ''; }));
     }, 600);
   }, [form]);
   /** The form got its draft after the last save: the same values again, now with the draft (never new values). */
