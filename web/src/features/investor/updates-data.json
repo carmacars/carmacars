@@ -162,6 +162,50 @@
   ]
  },
  {
+  "release": "r43",
+  "title": "Release 43",
+  "date": "2026-11-12",
+  "seq": 0,
+  "summary": "Staff taking calls get a Call helper, only Sales is hired by the AI interview by itself, with video answers scored out of 10 and a stricter pass, every car shows its front exterior first, and the Protection Plan switch uses the car's own price.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "The first photo of every car on the site is its exterior at the front angle"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "Only a Sales applicant who passes the AI interview is hired by itself; every other role that passes is invited to book an interview date",
+     "An Admin can press **Redo the AI interview**: the old interview is kept as history and the applicant gets a new link",
+     "**Primary photo is not exterior** flags a car whose first photo is an inside one, and **Redo photos with Gemini** makes its outside photos again",
+     "Switching a booking to the Protection Plan uses the car's own plan price instead of being refused (included through the release 42 hotfix)",
+     "Check-in and check-out are one screen on the phone instead of ten to fourteen steps: each part shows a tick when it is done, and the button at the bottom says what is still needed",
+     "The odometer, fuel and keys are filled in from the tracker or the car's last report, photos are one tap each, and anything optional is folded away; an interrupted handover opens where it was left",
+     "A late return is no longer charged by itself: staff choose on the return screen or on the booking between an extension, extra days, the late return fee, a custom amount with a reason, or waiving it with a reason",
+     "The same one-screen handover opens for Admins, the assistants and field staff",
+     "The caller pop-up has a Call helper: a greeting to read out with the staff member's own first name and the caller's, a button for each kind of call (new booking, change a booking, late return, damage or accident, payment or deposit, owner calling, job applicant, other) with what to say and the next action, and a search over quick answers",
+     "The greetings, the steps and the quick answers are written by an Admin in Settings, Call helper, and change on the next call; the amounts, days and percentages in them are read from the settings, never typed",
+     "The caller pop-up minimizes to a small bar with the caller's name and the call's timer, and opens again from it; a click outside the panel or Esc minimizes it instead of closing it, and it follows the device's dark mode",
+     "Every list of people and records has a sort: Newest first, Oldest first, Recently active and A to Z, and people lists open newest first",
+     "Hiring and onboarding are one pipeline, one stage per person, with the next action on each line",
+     "Waiting for your approval is the first thing on Staff and roles and on Today, with Approve and Reject",
+     "After every release, each portal shows a What's new pop-up once with what changed for that person, and **What's new** in the menu opens it again",
+     "Owners see each car's current kilometres and its next service (what, in how many km or by which date) on their dashboard and car page",
+     "Add a rental: the renter's email is optional for a rental that already ended, is billed to an insurer, or is marked not to email the renter"
+    ]
+   },
+   {
+    "area": "Reliability & security",
+    "items": [
+     "Every late return choice is recorded with who made it and why, the renter gets a message that says what was chosen, and an amount above a person's limit or a waiver still waits for an Admin",
+     "The AI interview takes video answers only, scores every answer out of 10, and passes only answers averaging 7 or more with none under 5 and good or fluent English"
+    ]
+   }
+  ]
+ },
+ {
   "release": "r33",
   "title": "Release 33",
   "date": "2026-11-08",

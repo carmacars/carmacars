@@ -34,6 +34,40 @@
      "The site reads its own search figures every day and rewrites pages that rank just under the first results"
     ]
    }
+  },
+  "r43": {
+   "date": "2026-11-12",
+   "seq": 0,
+   "summary": "Staff taking calls get a Call helper, only Sales is hired by the AI interview by itself, with video answers scored out of 10 and a stricter pass, every car shows its front exterior first, and the Protection Plan switch uses the car's own price.",
+   "sections": {
+    "staff": [
+     "Check-in and check-out are one screen instead of ten to fourteen steps, with the odometer, fuel and keys filled in for you and a tick on each part when it is done",
+     "A late return is never charged by itself: on the return screen or the booking you choose an extension, extra days, the late return fee, a custom amount or a waiver, each with a reason where needed",
+     "The caller pop-up has a Call helper with a greeting, a button for each kind of call and quick answers; it minimizes to a small bar when you click outside it",
+     "Every list of people and records can be sorted newest first, and opens newest first",
+     "Hiring and onboarding are one pipeline with the next action on each line",
+     "After each release a What's new pop-up shows what changed"
+    ],
+    "admins": [
+     "Only Sales applicants are hired by the AI interview by themselves; every other role that passes books an interview date",
+     "The AI interview takes video answers only, with two minutes per question, scores each answer out of 10 and is stricter; Redo the AI interview sends a new link",
+     "Approvals waiting for you are first on Staff and roles and on Today",
+     "Redo photos with Gemini remakes a car's outside photos, and every car's first photo is its front exterior",
+     "Switching a booking to the Protection Plan uses the car's plan price",
+     "Add a rental: the renter's email is optional for past rentals, insurer-billed rentals, or when marked not to email"
+    ],
+    "owners": [
+     "Your dashboard and car pages show each car's current kilometres and its next service, in km or by date"
+    ],
+    "renters": [
+     "Every car's first photo is its exterior from the front",
+     "Returning the car yourself always sends your report: if a photo or reading is missing, staff confirm the return instead of the form refusing"
+    ],
+    "investors": [
+     "Hiring is stricter: video-only AI interviews scored per answer, and only Sales is hired without a person",
+     "Check-in and check-out are faster and late returns are charged by a staff decision, never automatically"
+    ]
+   }
   }
  }
 }
