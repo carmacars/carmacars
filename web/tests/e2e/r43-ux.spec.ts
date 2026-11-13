@@ -60,8 +60,9 @@ test('A staff member waiting for onboarding approval is approvable from the top 
   await expect(page.getByTestId('pipeline-count-approval')).toContainText(/[1-9]/);
   // approve: the card goes away
   await page.goto('/admin', { waitUntil: 'networkidle' });
-  page.once('dialog', (d) => void d.accept());
+  // the button opens the page's own confirmation dialog; confirm it there
   await card.getByTestId(`onboarding-approve-${id}`).click();
+  await page.getByTestId(`onboarding-approve-${id}-submit`).click();
   // the approval is recorded (the card may stay for others in the suite who are still waiting)
   await expect.poll(async () => (await sql`select onboarding_approved_at is not null as ok from staff_profiles where user_id = ${id}`)[0]?.ok, { timeout: 20_000 }).toBe(true);
 });
