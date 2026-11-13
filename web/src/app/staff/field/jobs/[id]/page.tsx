@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
 import { door, requireStaff } from '@/server/door';
 import { Checklist } from '@/features/field/Checklist';
+import { StartChecklist } from '@/features/field/StartChecklist';
 import { FieldButton } from '@/features/field/FieldButton';
 import { JobChecklist } from '@/features/field/JobChecklist';
 import { ListingCapture, type Capture } from '@/features/listing/ListingCapture';
@@ -92,7 +93,10 @@ export default async function FieldJobPage({ params }: { params: Promise<{ id: s
           <LicenceReview job={id} waiting={lic.waiting} />
         </section>
       )}
-      {j.job.status === 'scheduled' && <div className="fd-nextstep"><p className="small">Press Acknowledge so the office knows you have this job. Start comes next, when you are with the car.</p><FieldButton action="acknowledge" payload={{ job: id }} label="Acknowledge" primary testId="acknowledge" /></div>}
+      {/* release 42: with the car already? One tap acknowledges, starts and opens the one-screen checklist */}
+      {j.job.status === 'scheduled' && <div className="fd-nextstep"><p className="small">{checklist ? 'With the car now? Start it in one tap. Not there yet? Press Acknowledge so the office knows you have this job.' : 'Press Acknowledge so the office knows you have this job. Start comes next, when you are with the car.'}</p>
+        {checklist && <StartChecklist job={id} status={j.job.status} label={j.report_kind === 'pickup' ? 'Start the check-in now' : 'Start the check-out now'} testId="start-now" />}
+        <FieldButton action="acknowledge" payload={{ job: id }} label="Acknowledge" primary={!checklist} testId="acknowledge" /></div>}
       {j.job.status === 'acknowledged' && <div className="fd-nextstep"><p className="small">With the car? Start opens the checklist.</p><FieldButton action="start" payload={{ job: id }} label="Start" primary testId="start" /></div>}
       {/* the rental agreement still waits for a signature: the renter (or a driver) signs on this phone (0130) */}
       {b && !done && (j.ready?.signed === false || b.drivers.some((d) => d.role !== 'renter' && !d.accepted)) && (
