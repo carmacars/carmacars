@@ -33197,6 +33197,7 @@ export type Database = {
       server_showroom_ai_gate: { Args: { p?: Json }; Returns: Json };
       server_showroom_ai_record: { Args: { p: Json }; Returns: Json };
       server_sign_in_alias: { Args: { p_email?: string; p_user?: string }; Returns: Json };
+      server_sign_in_allowed: { Args: { p_email: string }; Returns: boolean };
       server_sign_in_event: { Args: { p: Json }; Returns: undefined };
       server_sign_now_prepare: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_sign_request_attach: { Args: { p_id: string; p_path: string; p_sha256: string }; Returns: string };
