@@ -18995,6 +18995,7 @@ export type Database = {
           gsc_rewrite_on: boolean;
           gsc_rewrite_daily_max: number;
           gsc_inspect_daily_max: number;
+          auto_reply_after_staff_minutes: number;
         };
         Insert: {
           id?: string;
@@ -19849,6 +19850,7 @@ export type Database = {
           gsc_rewrite_on?: boolean;
           gsc_rewrite_daily_max?: number;
           gsc_inspect_daily_max?: number;
+          auto_reply_after_staff_minutes?: number;
         };
         Update: {
           id?: string;
@@ -20703,6 +20705,7 @@ export type Database = {
           gsc_rewrite_on?: boolean;
           gsc_rewrite_daily_max?: number;
           gsc_inspect_daily_max?: number;
+          auto_reply_after_staff_minutes?: number;
         };
         Relationships: [];
       };
