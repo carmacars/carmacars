@@ -41,6 +41,9 @@ export interface CarMaintenance {
   rules: Array<Record<string, unknown>>; can_settings: boolean; is_admin: boolean; limit_cents: number | null; hst_bps: number;
 }
 export interface OwnerHistory {
+  /** 2740: the car's current odometer (latest reading), the day it was read, and the next service due */
+  km?: number | null; km_on?: string | null;
+  next?: { label: string; status: Status; km_left: number | null; due_on: string | null } | null;
   items: Array<{ label: string; status: Status; detail: string | null; last_done_on: string | null }>;
   tires: { season: string; tread_mm: number | null } | null;
   records: Array<{ done_on: string; odometer_km: number | null; shop: string | null; items: string | null; billed_to_you_cents: number | null; paid_by: string }>;
