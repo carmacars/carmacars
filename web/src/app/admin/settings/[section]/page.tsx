@@ -1,7 +1,6 @@
 import { AutoReplies } from '@/features/auto-reply/AutoReplies';
 import { SceneReferences } from '@/features/listing/Marketing';
-import { StaffOnboarding } from '@/features/staff-onboarding/StaffOnboarding';
-import type { ApprovalRow, OnboardingRow } from '@/features/staff-onboarding/model';
+import type { ApprovalRow } from '@/features/staff-onboarding/model';
 import { OnboardingApprovals } from '@/features/staff-onboarding/Approvals';
 import Link from '@/components/Link';
 import { notFound } from 'next/navigation';
@@ -512,7 +511,12 @@ export default async function Section({ params, searchParams }: { params: Promis
   case 'staff': {
     // 1060: the preferred name, the last use and the inactivity lock
     const access = await door<Record<string, { last_active_at: string | null; locked_at: string | null; lock_reason?: string | null; preferred_name: string | null; location?: string | null; townhalls_missed?: number }>>(user.id, 'admin_read', 'staff_access_facts', {}).catch(() => ({} as Record<string, { last_active_at: string | null; locked_at: string | null; lock_reason?: string | null; preferred_name: string | null; location?: string | null; townhalls_missed?: number }>));
+    // r43: who waits for approval is the first thing on this page (the alert lands here), with Approve and Reject; the pipeline of hiring and onboarding is under People > Hiring
+    const approvals = await door<ApprovalRow[]>(user.id, 'ops_read', 'staff_onboarding_approvals', {}).catch(() => [] as ApprovalRow[]);
+    const waitingFor = new Map(approvals.map((a) => [a.user_id, a]));
     return (<>{head}
+      {approvals.length > 0 && <Card title="Waiting for your approval" id="onboarding-approvals-card" testId="staff-top-approvals" tone="next"><OnboardingApprovals admin refresh={['/admin/settings/staff']} rows={approvals} /></Card>}
+      <p className="small" data-testid="onboarding-pipeline-link">Hiring and onboarding in one place, stage by stage: <Link prefetch={false} className="link" href="/admin/hiring?tab=stages">People &gt; Hiring &gt; Pipeline</Link>.</p>
       <Card title="Invite"><p className="small muted">An invitation email with a link to choose a password (24 hours), then their portal. Owners and investors on file are invited from <Link prefetch={false} className="link" href="/admin/portals#invite">Admin &gt; Portals</Link>. Admin access is only through the addresses under Admin access below.</p><InviteForm roles={['staff']} testId="staff-invite" /></Card>
       {await (async () => {
         const acc = await door<{ allowed: string[]; test: string[]; holders: Array<{ email: string; name: string | null; allowed: boolean; test: boolean }> }>(user.id, 'ops_read', 'admin_access').catch(() => null);
@@ -525,7 +529,7 @@ export default async function Section({ params, searchParams }: { params: Promis
             <ul className="ad-list" data-testid="admin-holders">{acc.holders.map((h) => <li key={h.email}><span>{h.email}{h.name ? ` (${h.name})` : ''}</span><span className="small">{h.test ? 'automated test account' : h.allowed ? 'allowed' : 'not on the list'}</span></li>)}</ul>
           </Card>);
       })()}
-      <Card title="Staff"><Table rows={s.staff} testId="staff" cols={[{ key: 'full_name', label: 'Name', render: (r) => <>{String(r.full_name ?? '')}{access[String(r.id)]?.preferred_name ? <span className="small muted"> ({access[String(r.id)]!.preferred_name})</span> : null}{access[String(r.id)]?.locked_at ? <> <span className="ad-flag ad-flag--red" data-testid={`locked-${String(r.email)}`}>{access[String(r.id)]!.lock_reason === 'townhall' ? 'Locked: two townhalls missed' : 'Locked for inactivity'}</span></> : null}
+      <Card title="Staff"><Table rows={s.staff} testId="staff" defaultSort="newest" cols={[{ key: 'full_name', label: 'Name', render: (r) => <>{String(r.full_name ?? '')}{access[String(r.id)]?.preferred_name ? <span className="small muted"> ({access[String(r.id)]!.preferred_name})</span> : null}{access[String(r.id)]?.locked_at ? <> <span className="ad-flag ad-flag--red" data-testid={`locked-${String(r.email)}`}>{access[String(r.id)]!.lock_reason === 'townhall' ? 'Locked: two townhalls missed' : 'Locked for inactivity'}</span></> : null}
           {access[String(r.id)]?.location ? <span className="cr-sub small muted">{access[String(r.id)]!.location}</span> : null}
           {(access[String(r.id)]?.townhalls_missed ?? 0) > 0 ? <> <span className="ad-flag" data-testid={`th-missed-${String(r.email)}`}>Missed {access[String(r.id)]!.townhalls_missed} townhall{access[String(r.id)]!.townhalls_missed === 1 ? '' : 's'} (8 weeks)</span></> : null}</> }, { key: 'email', label: 'Email' }, { key: 'roles', label: 'Roles', render: (r) => (r.roles as string[] | null)?.join(', ') },
         { key: 'fn', label: 'Functions', render: (r) => { const p = r.profile as R | null; if (!p) return ''; return staffFns(p).map((f) => `${STAFF_FN_LABEL[f]}${f === 'sales' && p.sales_work_mode ? ` (${p.sales_work_mode === 'remote' ? 'remote' : 'in person'})` : ''}${f === 'field' && p.field_function ? ` (${label(p.field_function)})` : ''}`).join(', '); } }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'last_sign_in_at', label: 'Last sign-in', render: (r) => t(r.last_sign_in_at ?? access[String(r.id)]?.last_active_at ?? null) },
@@ -533,6 +537,9 @@ export default async function Section({ params, searchParams }: { params: Promis
         { key: 'academy', label: 'Academy', render: (r) => { const a = academy?.get(String(r.id)); return a && a.sections ? <Link prefetch={false} className="link" href={`/admin/academy/staff/${String(r.id)}`} data-testid={`academy-${String(r.email)}`}>{a.done ? 'Passed' : `${a.passed} of ${a.sections}`}</Link> : ''; } },
         { key: 'act', label: 'Actions', render: (r) => r.id === user.id ? <span className="muted small">you</span> : <span className="ad-actions">
           {access[String(r.id)]?.locked_at && <Act action="staff_unlock" payload={{ user_id: r.id }} label="Unlock" variant="primary" testId={`unlock-${String(r.email)}`} refresh={['/admin/settings/staff']} done="Unlocked: they can sign in again." />}
+          {waitingFor.has(String(r.id)) && !waitingFor.get(String(r.id))!.self && (waitingFor.get(String(r.id))!.step === 'whatsapp'
+            ? <Act ops action="staff_whatsapp_approve" payload={{ user: r.id }} label="Approve onboarding" variant="primary" confirm={`Mark ${String(r.full_name)}'s WhatsApp groups confirmed and approve their onboarding? Their portal opens now.`} testId={`row-approve-${String(r.email)}`} refresh={['/admin/settings/staff']} done="Approved." />
+            : <Act ops action="staff_onboarding_approve" payload={{ user: r.id }} label="Approve onboarding" variant="primary" confirm={`Approve ${String(r.full_name)}'s onboarding? Their portal opens now.`} testId={`row-approve-${String(r.email)}`} refresh={['/admin/settings/staff']} done="Approved." />)}
           {r.status === 'active' && <PasswordLinkButton userId={String(r.id)} testId={`pw-${String(r.email)}`} />}
           {r.status === 'active' && (r.profile as R | null) && staffFns(r.profile as R).filter((f) => f !== 'field')
             .map((f) => <ViewAsButton key={f} user={String(r.id)} portal="va" fn={f} label={`View as (${STAFF_FN_LABEL[f]})`} testId={`view-as-${String(r.email)}-${f}`} />)}
@@ -549,10 +556,6 @@ export default async function Section({ params, searchParams }: { params: Promis
         const sm = await read<SalesModes>('sales_modes').catch(() => null);
         return sm ? <SalesModesCard data={sm} /> : null;
       })()}
-      <Card title="Staff onboarding" testId="staff-onboarding-card">
-        {/* 1154: step 4, Approve or Reject (with the reason) */}
-        <OnboardingApprovals admin refresh={['/admin/settings/staff']} rows={await door<ApprovalRow[]>(user.id, 'ops_read', 'staff_onboarding_approvals', {}).catch(() => [])} />
-        <StaffOnboarding rows={await door<OnboardingRow[]>(user.id, 'ops_read', 'staff_onboarding_list', {}).catch(() => [])} /></Card>
       <Card title="Staff agreements" testId="staff-agreements"><AgreementGate rows={await door<AgreementGateRow[]>(user.id, 'ops_read', 'staff_agreements_status', {}).catch(() => [])} />
         <StaffAgreements rows={await door<StaffAgreementRow[]>(user.id, 'ops_read', 'staff_agreements', {}).catch(() => [])} today={new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())} /></Card>
     </>);

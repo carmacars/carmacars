@@ -1,4 +1,8 @@
 import Link from '@/components/Link';
+import { door } from '@/server/door';
+import { OnboardingPipeline } from '@/features/staff-onboarding/Pipeline';
+import type { ApprovalRow, OnboardingRow } from '@/features/staff-onboarding/model';
+import type { StaffAgreementRow } from '@/features/manual/StaffAgreements';
 import { ListFilters } from '@/features/list-filters/ListFilters';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
@@ -34,7 +38,7 @@ const tone = (s: string) => (['hired', 'interviewed', 'booked'].includes(s) ? 'p
 // of a day with Start (the rubric beside the call guide), the ranked shortlist per role, the interview days, and the roles
 // with their apply links for Indeed and OnlineJobs.ph. Only Admins see it.
 export default async function Hiring({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const [{ read }, sp] = await Promise.all([page('/admin/hiring'), searchParams]);
+  const [{ read, user }, sp] = await Promise.all([page('/admin/hiring'), searchParams]);
   const tab = sp.tab ?? 'pipeline';
   const base = '/admin/hiring';
   const data = await read<{ today: string; phone_enabled: boolean; roles: Role[]; applications: App[]; days: Day[]; waiting?: Array<{ slug: string; title: string; count: number }>; decisions_waiting?: number;
@@ -42,7 +46,7 @@ export default async function Hiring({ searchParams }: { searchParams: Promise<R
       /** 2590 */ pass_mark?: number; auto_decide?: boolean; week?: Record<string, number> } }>('hiring',
     { role: sp.role ?? '', status: sp.status ?? '', source: sp.source ?? '', min_score: sp.min_score ?? '' });
   const waiting = data.roles.reduce((n, r) => n + (r.counts.below_bar ?? 0), 0);
-  const tabs = <Tabs current={`${base}?tab=${tab}`} items={[[`${base}?tab=pipeline`, 'Applications', waiting], [`${base}?tab=calls`, 'Calls'], [`${base}?tab=shortlist`, 'Shortlist'],
+  const tabs = <Tabs current={`${base}?tab=${tab}`} items={[[`${base}?tab=stages`, 'Pipeline'], [`${base}?tab=pipeline`, 'Applications', waiting], [`${base}?tab=calls`, 'Calls'], [`${base}?tab=shortlist`, 'Shortlist'],
     [`${base}?tab=days`, 'Interview days'], [`${base}?tab=roles`, 'Roles and links'], [`${base}?tab=emails`, 'Emails to send', data.decisions_waiting ?? 0]]} />;
   const pageHead = <PageHead title="Hiring" kicker={`${data.roles.filter((r) => r.active).length} roles open`} purpose="Every applicant is scored on the server: a knock-out gets a decline (Field staff: an offer to apply for Sales), a pass gets a booking link (remote assistants: an AI interview), the rest wait here for you." />;
   // r37 (2303): video calls on Google Meet once the company calendar is connected, else Jitsi
@@ -51,6 +55,16 @@ export default async function Hiring({ searchParams }: { searchParams: Promise<R
   // 0211: per role, applicants invited while no interview day is open (their invitation, or "New times are open", goes when a day is added)
   const noDay = (data.waiting ?? []).map((w) => (
     <p key={w.slug} className="alert alert--warn" role="status" data-testid={`hiring-no-day-${w.slug}`}><span>{w.count} applicant{w.count === 1 ? '' : 's'} invited but no interview day is open for {w.title}. <Link prefetch={false} className="link" href={`${base}?tab=days`}>Add an interview day</Link></span></p>));
+  // r43: one pipeline, one stage per person: Applied > AI interview > Interview booked > Decision > Agreement > Academy > WhatsApp > Approval > Onboarded
+  if (tab === 'stages') {
+    const [staff, approvals, agreements] = await Promise.all([
+      door<OnboardingRow[]>(user.id, 'ops_read', 'staff_onboarding_list', {}).catch(() => [] as OnboardingRow[]),
+      door<ApprovalRow[]>(user.id, 'ops_read', 'staff_onboarding_approvals', {}).catch(() => [] as ApprovalRow[]),
+      door<StaffAgreementRow[]>(user.id, 'ops_read', 'staff_agreements', {}).catch(() => [] as StaffAgreementRow[])]);
+    return (<>{head}{noDay}{tabs}
+      <OnboardingPipeline admin refresh={[base + '?tab=stages', '/admin/settings/staff']} apps={data.applications} staff={staff} approvals={approvals} agreements={agreements} />
+      <p className="small muted">Staff agreements for everyone, the limits and the functions are on <Link prefetch={false} className="link" href="/admin/settings/staff">Staff and roles</Link>.</p></>);
+  }
   // R23 (0226): the decisions of the calls and the emails they send, all at once
   if (tab === 'emails') return (<>{head}{tabs}<DecisionEmails d={await read<DecisionsData>('hiring_decisions')} /></>);
 
@@ -86,7 +100,7 @@ export default async function Hiring({ searchParams }: { searchParams: Promise<R
       {s.roles.length === 0 && <p className="muted" data-testid="hiring-shortlist-empty">No interviews scored yet. Score a call and it shows here, ranked.</p>}
       {s.roles.map((r) => (
         <Card key={r.slug} title={r.title} testId={`shortlist-${r.slug}`}>
-          <Table<App & R> rows={r.rows} rowKey={(x) => x.id} cols={[
+          <Table<App & R> sort={false} rows={r.rows} rowKey={(x) => x.id} cols={[
             { key: 'rank', label: 'Rank', num: true }, { key: 'full_name', label: 'Candidate', render: (x) => <Link prefetch={false} className="link" href={`${base}/${x.id}`}>{x.full_name}</Link> },
             { key: 'score', label: 'Screening', num: true }, { key: 'interview_score', label: 'Interview', num: true }, { key: 'final_score', label: 'Final (40/60)', num: true },
             { key: 'decision', label: 'Decision', render: (x) => (x.decision ? (DECISIONS.find(([k]) => k === x.decision)?.[1] ?? String(x.decision).replace('_', ' ')) : '') },
@@ -167,7 +181,7 @@ export default async function Hiring({ searchParams }: { searchParams: Promise<R
     <ListFilters id="admin-hiring" base={`${base}?tab=pipeline`} sp={sp} chips={{ name: 'status', label: 'Status', options: STATUS_FILTERS.filter(([v]) => ['', 'open', 'invited', 'booked', 'interviewed'].includes(v)) }}
       kept={['role', 'source', 'min_score']} />
     <Card title={`Applications (${data.applications.length})`} testId="hiring-apps">
-      <Table<App & R> rows={data.applications as Array<App & R>} rowKey={(x) => x.id} empty="No applications match. Paste the apply link of a role into Indeed messages (Roles and links)." cols={[
+      <Table<App & R> defaultSort="newest" rows={data.applications as Array<App & R>} rowKey={(x) => x.id} empty="No applications match. Paste the apply link of a role into Indeed messages (Roles and links)." cols={[
         { key: 'full_name', label: 'Candidate', render: (x) => <span><Link prefetch={false} className="link" href={`${base}/${x.id}`} data-testid={`app-${x.email ?? x.id}`}>{x.full_name}</Link>
           {x.referred_from && <span className="cr-sub">Referred from another role</span>}{x.referral_application && <span className="cr-sub">Applied for {x.referred_role} too</span>}</span> },
         { key: 'role', label: 'Role' },
