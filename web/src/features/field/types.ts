@@ -37,6 +37,10 @@ export interface FieldJob {
   now: string;
   /** 0291: how much of the rental walkthrough the renter has read (the steps to read, and every step) */
   walkthrough?: { read: number; of: number; done: number; total: number; stage: string } | null;
+  /** 2710: what the one-screen handover prefills (the Tracker, else the car's last report or the pickup) */
+  defaults?: import('./one-screen').HandoverDefaults | null;
+  /** 2710: a return: how late the car is now and what each late return choice costs */
+  late?: import('@/features/handover/late-return').LateReturn | null;
   /** The checklist of a job of any other kind, or a re-shoot (migration 0033). */
   checklist?: JobChecklistData | null;
 }

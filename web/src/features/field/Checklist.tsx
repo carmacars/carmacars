@@ -12,11 +12,17 @@ import { Plate } from './Plate';
 import type { FieldJob } from './types';
 import { depositAutoText } from '@/features/money/deposit-auto-text';
 import { money } from '@/lib/format';
+import { mergeAnswers, prefill, sourceHint, stillNeeded, type Part } from './one-screen';
+import { LateReturnChoice } from '@/features/handover/LateReturnChoice';
+import { NO_CHOICE, afterReturnText, choicePayload, choiceProblem, decisionText, type LateChoice } from '@/features/handover/late-return';
 
-// The handover and return checklists (06-field.md sections 4 and 5): one decision or one photo per screen,
-// the primary button at the bottom within thumb reach. Answers autosave on the phone and on the server
-// (save_condition_report); photos go through the queue; the database completes the handover or the
-// return in one transaction and refuses anything missing.
+// The handover and return checklists (06-field.md sections 4 and 5) on one screen (release 42, migration 2710): every
+// part of the handover is on the page in the order it is done, with a tick once it is complete; what can be known is
+// filled in already (the odometer and fuel from the Tracker or the last report, the keys, the cleanliness); what is
+// optional is folded away; the one button at the bottom, within thumb reach, says what is still needed and takes you to
+// it. Nothing the handover requires was dropped: the database completes the handover or the return in one transaction
+// and refuses anything missing, as before. Answers save as they are given, on the phone and on the server
+// (save_condition_report); photos go through the queue: an interrupted handover opens where it was left.
 type Report = {
   odometer_km?: number; fuel_pct?: number; keys_count?: number; licence_seen?: boolean; card_seen?: boolean; renter_present?: boolean; unattended?: boolean;
   cleanliness?: string; odour?: boolean; belongings_found?: string; notes?: string; renter_signature_ref?: string; staff_signature_ref?: string;
@@ -49,45 +55,51 @@ export function Checklist({ j, back = '/staff/field', backLabel = 'Back to my jo
   const pickup = j.report_kind === 'pickup';
   const jobId = j.job.id;
   const key = `cc-field-${jobId}`;
+  // 0195: a pickup or return recorded with the details later: the photos, readings and staff signature only
+  const later = Boolean(j.details_later);
+  const unattended = Boolean(j.booking?.unattended) || later;
+  // 2710: the screen starts with what is known (the Tracker, the last report, the pickup); then what the server has; then
+  // what this phone kept
   const [r, setR] = useState<Report>(() => {
+    const pre: Report = prefill(j.defaults, pickup ? 'pickup' : 'return', !unattended);
     const server: Report = j.report ? { odometer_km: j.report.odometer_km ?? undefined, fuel_pct: j.report.fuel_pct ?? undefined, keys_count: j.report.keys_count ?? undefined, cleanliness: j.report.cleanliness ?? undefined } : {};
-    try { return { ...server, ...(JSON.parse(localStorage.getItem(key) ?? '{}') as Report) }; } catch { return server; }
+    let local: Report = {};
+    try { local = JSON.parse(localStorage.getItem(key) ?? '{}') as Report; } catch { local = {}; }
+    return { ...mergeAnswers<Report>(pre, server), ...local };
   });
   const [damages, setDamages] = useState<Damage[]>(() => (j.report?.damages ?? []).map((d) => ({ ...d, kind: d.kind ?? 'other', size_cm: d.size_cm ?? null, position: d.position ?? null, is_new: d.is_new ?? true })));
-  const [step, setStep] = useState(0);
   const [stop, setStop] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
+  const [lateChoice, setLateChoice] = useState<LateChoice>(NO_CHOICE);
   const [pending, start] = useTransition();
-  // the answers' save state, shown on every step (2026-10-25): saved on the server, or kept on this phone while there
-  // is no signal and sent again as soon as there is
+  // the answers' save state (2026-10-25): saved on the server, or kept on this phone while there is no signal and sent
+  // again as soon as there is
   const [saved, setSaved] = useState<'idle' | 'saving' | 'saved' | 'phone'>('idle');
   const q = useUploads(jobId);
   const onServer = useMemo(() => new Set((j.report?.photos ?? []).map((p) => p.seq)), [j.report]);
   const has = (seq: number) => onServer.has(seq) || q.arrived(seq) || q.pending.some((x) => x.seq === seq && x.mode === 'photo');
   const set = (p: Partial<Report>) => setR((s) => { const n = { ...s, ...p }; try { localStorage.setItem(key, JSON.stringify(n)); } catch { /* private mode */ } return n; });
-  // 0195: a pickup or return recorded with the details later: the photos, readings and staff signature only
-  const later = Boolean(j.details_later);
-  const unattended = Boolean(j.booking?.unattended) || later;
   const ready = j.ready;
   const res = j.resolve ?? null;
   const at = here ?? { signNow: `/staff/field/jobs/${jobId}/sign-now`, self: `/staff/field/jobs/${jobId}` };
 
   const save = (extra: Record<string, unknown> = {}) => fieldAct('save_report', { job: jobId, report: { ...strip(r), ...extra } });
-  const forward = () => { setStep((n) => n + 1); window.scrollTo(0, 0); };
-  // no signal: the answers stay on the phone (they are kept there as they are given) and the step moves on; the
-  // completion sends every answer again, and a refused answer still stops the step
-  const next = () => { setMsg(null); start(async () => {
-    setSaved('saving');
-    let s: Awaited<ReturnType<typeof save>>;
-    try { s = await save(); } catch { setSaved('phone'); forward(); return; }
-    if (!s.ok) { setSaved('idle'); setMsg(s.message); return; }
-    setSaved('saved'); forward();
-  }); };
-  const resend = () => start(async () => { setSaved('saving'); try { const s = await save(); setSaved(s.ok ? 'saved' : 'phone'); } catch { setSaved('phone'); } });
+  // the answers go to the server a moment after the last change (no Next button to press); with no signal they stay on
+  // the phone and are sent again when it is back; the completion sends every answer once more
+  const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const first = useRef(true);
+  const send = (answers: Report) => { setSaved('saving'); void fieldAct('save_report', { job: jobId, report: strip(answers) }).then((s) => { setSaved(s.ok ? 'saved' : 'idle'); setSaveMsg(s.ok ? null : s.message); }).catch(() => setSaved('phone')); };
+  const resend = () => send(r);
+  useEffect(() => {
+    if (first.current) { first.current = false; return; }
+    const t = setTimeout(() => send(r), 1200);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the answers are the only thing that starts a save
+  }, [r]);
   useEffect(() => {
     if (saved !== 'phone') return;
-    const on = () => resend();
+    const on = () => send(r);
     window.addEventListener('online', on);
     return () => window.removeEventListener('online', on);
   });
@@ -109,20 +121,56 @@ export function Checklist({ j, back = '/staff/field', backLabel = 'Back to my jo
     set(who === 'renter' ? { renter_signature_ref: k } : { staff_signature_ref: k });
   };
 
-  // ---------------------------------------------------------------- the screens
+  // ---------------------------------------------------------------- the parts of the screen
   const required = j.shots;
   const shotsDone = required.filter((s) => has(s.seq)).length;
   const closeupsMissing = damages.filter((d) => d.is_new && !damageSeqs(damages).some(([l, s]) => l === d.label && has(s)));
   const queueEmpty = q.pending.length === 0;
   const oldMarks: Mark[] = (pickup ? j.baseline_damages : j.pickup?.damages ?? []).map((d) => ({ label: d.label, position: d.position ?? null, old: true }));
   const marks: Mark[] = [...oldMarks, ...damages.map((d) => ({ label: d.label, position: d.position }))];
+  const newDamage = damages.some((d) => d.is_new);
+  const late = !pickup && !later && j.late?.late ? j.late : null;
+  const lateProblem = late ? choiceProblem(lateChoice, late) : null;
 
   // the ready check: a rental added by hand also needs the renter's signature (0051), as a booking made online already has
-  const readyOk = Boolean(ready && ready.signed !== false && ready.identity && ready.coverage && ready.drivers_accepted && ready.calendar && ['taken', 'waived', 'none'].includes(ready.deposit));
-  const allScreens: Array<{ title: string; body: React.ReactNode; can?: boolean; primary?: string; onPrimary?: () => void; skip?: boolean }> = pickup ? [
-    { title: 'Ready check', can: readyOk, skip: later, body: (
+  const depositOk = Boolean(ready && ['taken', 'waived', 'none'].includes(ready.deposit));
+  const readyOk = Boolean(ready && ready.signed !== false && ready.identity && ready.coverage && ready.drivers_accepted && ready.calendar && depositOk);
+  const odoLow = pickup && (j.vehicle.odometer_km ?? 0) > (r.odometer_km ?? 0) && (r.odometer_km ?? 0) > 0;
+  const odoOk = (r.odometer_km ?? 0) > 0 && !(odoLow && !r.odometer_confirmed);
+  const readingsOk = odoOk && r.fuel_pct !== undefined && (r.keys_count ?? 0) >= 1 && (pickup || Boolean(r.cleanliness));
+  const atCarOk = r.renter_present === true && r.licence_seen === true && (r.card_seen === true || j.booking?.booking_type === 'owner');
+  const signOk = pickup ? Boolean((unattended || r.renter_signature_ref) && r.staff_signature_ref)
+    : Boolean(r.staff_signature_ref) && (later || Boolean(r.renter_signature_ref || (r.renter_declined_to_sign && (r.renter_decline_reason ?? '').trim()) || r.renter_present === false));
+  const trackerOk = Boolean(j.tracker.reporting || j.tracker.override);
+  const renterToSign = pickup ? !unattended && !r.renter_signature_ref
+    : !later && !(r.renter_signature_ref || (r.renter_declined_to_sign && (r.renter_decline_reason ?? '').trim()) || r.renter_present === false);
+
+  const go = (id: string) => { document.getElementById(`hs-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+  const complete = () => start(async () => {
+    setMsg(null);
+    if (lateProblem) { setMsg(lateProblem); go('late'); return; }
+    try {
+      if (pickup) {
+        const x = await fieldAct<{ booking_status: string }>('complete_handover', { job: jobId, report: { ...strip(r), fuel_or_charge_ok: r.fuel_or_charge_ok ?? (r.fuel_pct ?? 0) >= 80, unattended, renter_present: unattended ? false : r.renter_present } });
+        if (!x.ok) { setMsg(x.message); return; }
+        setDone(later ? 'Check-in details saved. The task is closed.' : 'Checked in. The rental has started; the renter gets the photo report by email.');
+      } else {
+        const choice = late ? choicePayload(lateChoice, late) : null;
+        const x = await fieldAct<{ booking_status: string; minutes_late?: number; late?: { status?: string; problem?: string } | null }>('complete_return', { job: jobId, report: { ...strip(r), ...(choice ? { late_choice: choice } : {}) } });
+        if (!x.ok) { setMsg(x.message); return; }
+        setDone(later ? 'Check-out details saved. The kilometre and fuel charges follow the readings; Fleet reviews the photos.'
+          : `Checked out. The kilometre and fuel charges are on the return statement; Fleet reviews the photos.${afterReturnText(x.data.late)} The deposit is not given back today: Finance settles it once tolls and tickets have had time to come in (about 7 days), and any damage you marked keeps it held.`);
+      }
+      try { localStorage.removeItem(key); } catch { /* ignore */ }
+    } catch { setMsg(OFFLINE); }
+  });
+
+  const parts: Array<Part & { body: React.ReactNode; skip?: boolean; fold?: string }> = [
+    { id: 'ready', title: 'Ready check', ok: readyOk, need: 'Ready check', skip: !pickup || later, body: (
       <div className="stack">
-      <ReadySum items={ready ? [ready.signed !== false, ready.identity, ready.coverage, ready.drivers_accepted, ready.calendar, ['taken', 'waived', 'none'].includes(ready.deposit)] : []} />
+      <ReadySum items={ready ? [ready.signed !== false, ready.identity, ready.coverage, ready.drivers_accepted, ready.calendar, depositOk] : []} />
+      {/* ready: one green line; the six lines open only when something is to fix */}
+      <details className="fd-more" open={!readyOk || undefined}><summary data-testid="ready-open">The six checks</summary>
       <ul className="fd-checks" data-testid="ready-check">
         {/* 0151: what is not ready is fixed here, under its line; Stop stays for what cannot be */}
         <Row ok={ready ? ready.signed !== false : false} text={ready?.signed === false ? 'Awaiting signature: the renter has not signed the rental agreement' : 'Rental agreement signed'}>
@@ -135,139 +183,141 @@ export function Checklist({ j, back = '/staff/field', backLabel = 'Back to my jo
           {ready && !ready.drivers_accepted && <Link prefetch={false} className="btn btn--ghost fd-wide" href={at.signNow} data-testid="fix-driver-sign">Sign now on this device (additional driver)</Link>}</Row>
         <Row ok={ready?.calendar} text="The booking holds the calendar">
           {ready && !ready.calendar && <p className="fd-office small">The office turns the calendar on for this booking. Call CarmaCars.</p>}</Row>
-        <Row ok={ready ? ['taken', 'waived', 'none'].includes(ready.deposit) : false} text={`Deposit: ${ready?.deposit === 'taken' ? 'taken' : ready?.deposit === 'waived' ? 'waived by an Admin' : ready?.deposit === 'declined' ? 'declined' : ready?.deposit === 'none' ? 'none on this booking' : 'not taken yet'}`}>
-          {ready && !['taken', 'waived', 'none'].includes(ready.deposit) && <strong className="small" data-testid="ready-deposit-missing">{' '}No deposit yet: take it now.</strong>}
+        <Row ok={depositOk} text={`Deposit: ${ready?.deposit === 'taken' ? 'taken' : ready?.deposit === 'waived' ? 'waived by an Admin' : ready?.deposit === 'declined' ? 'declined' : ready?.deposit === 'none' ? 'none on this booking' : 'not taken yet'}`}>
+          {ready && !depositOk && <strong className="small" data-testid="ready-deposit-missing">{' '}No deposit yet: take it now.</strong>}
           {ready && ready.deposit_auto && depositAutoText(ready.deposit_auto, linkWhen, (c) => money(c)) && <span className="small muted" data-testid="ready-deposit-auto">{' '}{depositAutoText(ready.deposit_auto, linkWhen, (c) => money(c))}</span>}
-          {ready && !['taken', 'waived', 'none'].includes(ready.deposit) && ready.deposit_link && <span className="small muted" data-testid="ready-deposit-link">{' '}{ready.deposit_link.texted_at
+          {ready && !depositOk && ready.deposit_link && <span className="small muted" data-testid="ready-deposit-link">{' '}{ready.deposit_link.texted_at
             ? `The deposit link was texted ${linkWhen(ready.deposit_link.texted_at)}${ready.deposit_link.opened_at ? ` and opened ${linkWhen(ready.deposit_link.opened_at)}` : ', not opened yet'}.`
             : ready.deposit_link.error ? `The deposit link was not sent: ${ready.deposit_link.error}.` : ''}</span>}
-          {ready && !['taken', 'waived', 'none'].includes(ready.deposit) && res && j.job.status === 'in_progress' && <ResolveDeposit j={j} r={res} back={at.self} />}</Row>
+          {ready && !depositOk && res && j.job.status === 'in_progress' && <ResolveDeposit j={j} r={res} back={at.self} />}</Row>
         <li><button className="btn btn--ghost fd-wide" type="button" onClick={() => router.refresh()} data-testid="ready-refresh"><FdIcon name="retry" />Check again</button></li>
         {ready && !readyOk &&
           <li><button className="btn btn--primary fd-stop" type="button" onClick={() => block('The ready check failed')}>Stop: do not release the car</button></li>}
-      </ul></div>) },
-    { title: 'Car ready', body: (
+      </ul></details></div>) },
+    { id: 'person', title: 'Renter, licence and card', ok: atCarOk, need: 'Renter, licence and card', skip: !pickup || unattended, body: (
       <div className="stack">
-        <YesNo label="Fuel full, or charge 80% or more" value={r.fuel_or_charge_ok} set={(v) => set({ fuel_or_charge_ok: v })} />
-        {j.booking?.addons?.length ? <p className="small" data-testid="checklist-addons">Add-ons to put in the car: {j.booking.addons.map((a) => `${a.quantity > 1 ? `${a.quantity} x ` : ''}${a.name}`).join(', ')}{j.booking.prepaid_fuel ? '. Prepaid fuel: no fuel charge at the return.' : ''}</p>
-          : j.booking?.extras?.length ? <p className="small">Extras ordered: {j.booking.extras.join(', ')}</p> : null}
-        <label className="field"><span className="label">Note for Fleet (anything missing or not clean)</span><textarea className="input" value={r.notes ?? ''} onChange={(e) => set({ notes: e.target.value })} /></label>
+        <p className="fd-who">{j.booking?.renter?.name}</p>
+        <Tick label="This is the renter named on the booking" on={r.renter_present === true} set={(v) => set({ renter_present: v })} testId="tick-renter" />
+        <Tick label="I checked the original licence: the name and photo match, and it is not expired" on={r.licence_seen === true} set={(v) => set({ licence_seen: v })} testId="tick-licence" />
+        {(j.booking?.drivers ?? []).map((d) => <p key={d.name} className="small"><b>{d.name}</b> · licence {d.licence_number ?? ''} · class {d.licence_class ?? ''} · expires {d.licence_expiry ?? ''}</p>)}
+        {j.booking?.booking_type !== 'owner' && <Tick label={`I have seen the physical card ending in ${j.booking?.card?.last4 ?? '----'} in the renter's name`} on={r.card_seen === true} set={(v) => set({ card_seen: v })} testId="tick-card" />}
+        <details className="fd-more"><summary data-testid="person-wrong">Something is wrong</summary><div className="stack">
+          <p className="small">Each of these stops the handover and tells the office at once.</p>
+          <button className="btn btn--ghost fd-wide" type="button" onClick={() => block('The person is not the renter on the booking')}>This is not the renter</button>
+          <button className="btn btn--ghost fd-wide" type="button" onClick={() => block('The licence does not match or has expired')}>The licence does not match or has expired</button>
+          {j.booking?.booking_type !== 'owner' && <button className="btn btn--ghost fd-wide" type="button" onClick={() => block('The Card on File was not shown')}>The card was not shown</button>}
+          <button className="btn btn--ghost fd-wide" type="button" onClick={() => block('The renter seems unfit to drive')}>The renter seems unfit to drive</button>
+        </div></details>
       </div>) },
-    ...(unattended ? [] : [
-      { title: 'Is this the renter?', can: r.renter_present === true, body: (
-        <div className="stack"><p className="fd-who">{j.booking?.renter?.name}</p>
-          <YesNo label="The person in front of me is the renter named on the booking" value={r.renter_present} set={(v) => { set({ renter_present: v }); if (!v) block('The person is not the renter on the booking'); }} /></div>) },
-      { title: 'Original licence', can: r.licence_seen === true, body: (
+    { id: 'readings', title: pickup ? 'Odometer, fuel and keys' : 'Odometer, fuel, keys and cleanliness', ok: readingsOk,
+      need: !odoOk ? 'Odometer' : r.fuel_pct === undefined ? 'Fuel or charge' : (r.keys_count ?? 0) < 1 ? 'Keys' : 'Cleanliness', body: (
+      <div className="stack">
+        <Odo value={r.odometer_km} set={(v) => set({ odometer_km: v })}
+          hint={sourceHint('odometer', j.defaults, r.odometer_km) ?? (pickup ? (j.vehicle.odometer_km ? `Last reading: ${j.vehicle.odometer_km.toLocaleString('en-CA')} km` : null) : (j.pickup?.odometer_km ? `At pickup: ${j.pickup.odometer_km.toLocaleString('en-CA')} km` : null))} />
+        {odoLow ? <label className="check"><input type="checkbox" checked={Boolean(r.odometer_confirmed)} onChange={(e) => set({ odometer_confirmed: e.target.checked })} /> <span>Lower than the last reading ({j.vehicle.odometer_km} km). I checked it.</span></label> : null}
+        {!pickup && j.pickup?.odometer_km && r.odometer_km ? <p className="fd-delta">Driven: {r.odometer_km - j.pickup.odometer_km} km{j.booking?.km_allowance_total ? ` of ${j.booking.km_allowance_total} km included` : ''}</p> : null}
+        <Fuel value={r.fuel_pct} set={(v) => set({ fuel_pct: v })} />
+        {sourceHint('fuel', j.defaults, r.fuel_pct) && <p className="small muted" data-testid="fuel-hint">{sourceHint('fuel', j.defaults, r.fuel_pct)}</p>}
+        {!pickup && j.pickup?.fuel_pct !== undefined && j.pickup?.fuel_pct !== null && r.fuel_pct !== undefined ? <p className="fd-delta">At pickup: {j.pickup.fuel_pct}%. Difference: {r.fuel_pct - (j.pickup.fuel_pct ?? 0)}%.</p> : null}
+        <Stepper label={pickup ? 'Keys and fobs handed over' : `Keys returned${j.pickup?.keys_count ? ` (${j.pickup.keys_count} handed over)` : ''}`} value={r.keys_count ?? 0} set={(v) => set({ keys_count: v })} />
+        {sourceHint('keys', j.defaults, r.keys_count) && <p className="small muted">{sourceHint('keys', j.defaults, r.keys_count)}</p>}
+        {!pickup && <fieldset className="fd-choices"><legend className="label">How is the car?</legend>
+          {CLEAN.map(([v, l]) => <label key={v} className="fd-choice"><input type="radio" name="clean" value={v} checked={r.cleanliness === v} onChange={() => set({ cleanliness: v, odour: v === 'heavy' || v === 'smoking' })} /> <span>{l}</span></label>)}
+          {r.cleanliness && r.cleanliness !== 'clean' && <p className="small">Take photos of it in the photo set before any cleaning.</p>}
+        </fieldset>}
+        {pickup && (j.booking?.addons?.length ? <p className="small" data-testid="checklist-addons">Add-ons to put in the car: {j.booking.addons.map((a) => `${a.quantity > 1 ? `${a.quantity} x ` : ''}${a.name}`).join(', ')}{j.booking.prepaid_fuel ? '. Prepaid fuel: no fuel charge at the return.' : ''}</p>
+          : j.booking?.extras?.length ? <p className="small">Extras ordered: {j.booking.extras.join(', ')}</p> : null)}
+      </div>) },
+    { id: 'photos', title: 'Photos', ok: shotsDone === required.length, need: `Photos (${required.length - shotsDone} left)`, body: <Shots j={j} has={has} q={q} photo={photo} /> },
+    { id: 'damage', title: pickup ? 'Damage' : 'Damage, compared with pickup', ok: closeupsMissing.length === 0, need: 'Damage close-up', body: (
+      <details className="fd-more" open={newDamage || (!pickup && (j.pickup?.damages ?? []).length > 0) || undefined}>
+        <summary data-testid="damage-open">{newDamage ? `New damage: ${damages.filter((d) => d.is_new).length}` : 'No new damage. Found some? Add it here'}</summary>
         <div className="stack">
-          <p className="small">Name matches, the photo matches the person, not expired.</p>
-          {(j.booking?.drivers ?? []).map((d) => <p key={d.name} className="small"><b>{d.name}</b> · licence {d.licence_number ?? ''} · class {d.licence_class ?? ''} · expires {d.licence_expiry ?? ''}</p>)}
-          <YesNo label="I checked the original licence and it matches" value={r.licence_seen} set={(v) => { set({ licence_seen: v }); if (!v) block('The licence does not match or has expired'); }} />
-          <button className="btn btn--ghost" type="button" onClick={() => block('The renter seems unfit to drive')}>The renter seems unfit to drive</button>
-        </div>) },
-      { title: 'Card on File', can: r.card_seen === true || j.booking?.booking_type === 'owner', body: (
-        <YesNo label={`I have seen the physical card ending in ${j.booking?.card?.last4 ?? '----'} in the renter's name`} value={r.card_seen} set={(v) => { set({ card_seen: v }); if (!v) block('The Card on File was not shown'); }} />) }
-    ]),
-    { title: 'Odometer', can: (r.odometer_km ?? 0) > 0 && !((j.vehicle.odometer_km ?? 0) > (r.odometer_km ?? 0) && !r.odometer_confirmed), body: (
-      <div className="stack">
-        <Odo value={r.odometer_km} set={(v) => set({ odometer_km: v })} hint={j.vehicle.odometer_km ? `Last reading: ${j.vehicle.odometer_km.toLocaleString('en-CA')} km` : null} />
-        {j.vehicle.odometer_km && (r.odometer_km ?? 0) > 0 && (r.odometer_km ?? 0) < j.vehicle.odometer_km ? <label className="check"><input type="checkbox" checked={Boolean(r.odometer_confirmed)} onChange={(e) => set({ odometer_confirmed: e.target.checked })} /> <span>Lower than the last reading ({j.vehicle.odometer_km} km). I checked it.</span></label> : null}
-      </div>) },
-    { title: 'Fuel or charge', can: r.fuel_pct !== undefined, body: <Fuel value={r.fuel_pct} set={(v) => set({ fuel_pct: v })} /> },
-    { title: 'Keys', can: (r.keys_count ?? 0) >= 1, body: <Stepper label="Keys and fobs handed over" value={r.keys_count ?? 0} set={(v) => set({ keys_count: v })} /> },
-    { title: 'Photo set', can: shotsDone === required.length, body: <Shots j={j} has={has} q={q} photo={photo} /> },
-    { title: 'Damage', can: closeupsMissing.length === 0, body: <Damages j={j} marks={marks} damages={damages} setDamages={setDamages} save={save} has={has} photo={photo} oldLabel="Recorded before" /> },
-    { title: 'Tracker', can: Boolean(j.tracker.reporting || j.tracker.override), skip: later, body: (
+          {!pickup && (j.pickup?.damages ?? []).map((d) => (
+            <fieldset key={d.label} className="fd-choices"><legend className="label">{d.label}: {d.location}, {d.description}</legend>
+              {['unchanged', 'worse'].map((v) => <label key={v} className="fd-choice"><input type="radio" name={`cmp-${d.label}`} checked={((r.car_diagram?.[d.label] as string | undefined) ?? 'unchanged') === v} onChange={() => set({ car_diagram: { ...(r.car_diagram ?? {}), [d.label]: v } })} /> <span>{v === 'worse' ? 'Worse: add it as new damage below' : 'Unchanged'}</span></label>)}
+            </fieldset>))}
+          <Damages j={j} marks={marks} damages={damages} setDamages={setDamages} save={save} has={has} photo={photo} oldLabel={pickup ? 'Recorded before' : 'At pickup'} />
+        </div>
+      </details>) },
+    { id: 'tracker', title: 'Tracker', ok: trackerOk, need: 'Tracker', skip: !pickup || later, body: (
       <div className="stack" data-testid="tracker">
         <ul className="fd-checks"><Line ok={j.tracker.reporting}>{j.tracker.reporting ? 'Tracker in place and reporting' : j.tracker.installed ? 'Tracker not reporting' : 'No tracker installed'}</Line></ul>
-        <p className="small">Last reading: {j.tracker.reported_at ? new Date(j.tracker.reported_at).toLocaleTimeString('en-CA') : 'none'}</p>
-        <button className="btn btn--ghost fd-wide" type="button" onClick={() => router.refresh()}><FdIcon name="retry" />Check again</button>
-        {!j.tracker.reporting && res && <TrackerOverride j={j} r={res} />}
-        {!j.tracker.reporting && !j.tracker.override && <button className="btn btn--primary fd-stop" type="button" onClick={() => block('The Tracker is not reporting')}>Stop: do not release the car</button>}
+        {!j.tracker.reporting && <>
+          <p className="small">Last reading: {j.tracker.reported_at ? new Date(j.tracker.reported_at).toLocaleTimeString('en-CA') : 'none'}</p>
+          <button className="btn btn--ghost fd-wide" type="button" onClick={() => router.refresh()}><FdIcon name="retry" />Check again</button>
+          {res && <TrackerOverride j={j} r={res} />}
+          {!j.tracker.override && <button className="btn btn--primary fd-stop" type="button" onClick={() => block('The Tracker is not reporting')}>Stop: do not release the car</button>}
+        </>}
       </div>) },
-    { title: 'Renter reviews', body: <Summary r={r} damages={damages} old={oldMarks.length} shots={shotsDone} /> },
-    { title: 'Signatures', can: Boolean((unattended || r.renter_signature_ref) && r.staff_signature_ref), body: (
-      <div className="stack">
-        {!unattended ? <Sign who="renter" label={`${j.booking?.renter?.name ?? 'Renter'} signs`} done={Boolean(r.renter_signature_ref)} sign={sign} /> : <p className="pt-note small">{later ? 'Recorded with the details later: the renter does not sign here.' : 'Unattended handover: the renter\'s own photo set stands in for their signature.'}</p>}
-        <Sign who="staff" label="You sign" done={Boolean(r.staff_signature_ref)} sign={sign} />
-      </div>) },
-    { title: later ? 'Save the check-in details' : 'Hand over the keys', can: queueEmpty && shotsDone === required.length, primary: later ? 'Save the details' : 'Hand over the keys', onPrimary: () => start(async () => {
-      setMsg(null);
-      let x: Awaited<ReturnType<typeof fieldAct<{ booking_status: string }>>>;
-      try { x = await fieldAct<{ booking_status: string }>('complete_handover', { job: jobId, report: { ...strip(r), unattended, renter_present: unattended ? false : r.renter_present } }); } catch { setMsg(OFFLINE); return; }
-      if (!x.ok) { setMsg(x.message); return; }
-      try { localStorage.removeItem(key); } catch { /* ignore */ }
-      setDone(later ? 'Check-in details saved. The task is closed.' : 'Checked in. The rental has started; the renter gets the photo report by email.');
-    }), body: <Upload q={q} total={required.length} shotsDone={shotsDone} /> }
-  ] : [
-    { title: 'Car and keys received', can: r.renter_present !== undefined, body: (
-      <div className="stack"><YesNo label="I have the car and all keys. The renter is here." value={r.renter_present} set={(v) => set({ renter_present: v })} />
-        <p className="small muted">Check-out is the moment you complete this return; the server stamps the time.</p></div>) },
-    { title: 'Odometer', can: (r.odometer_km ?? 0) > 0, body: (
-      <div className="stack">
-        <Odo value={r.odometer_km} set={(v) => set({ odometer_km: v })} hint={j.pickup?.odometer_km ? `At pickup: ${j.pickup.odometer_km.toLocaleString('en-CA')} km` : null} />
-        {j.pickup?.odometer_km && r.odometer_km ? <p className="fd-delta">Driven: {r.odometer_km - j.pickup.odometer_km} km{j.booking?.km_allowance_total ? ` of ${j.booking.km_allowance_total} km included` : ''}</p> : null}
-      </div>) },
-    { title: 'Fuel or charge', can: r.fuel_pct !== undefined, body: <><Fuel value={r.fuel_pct} set={(v) => set({ fuel_pct: v })} />{j.pickup?.fuel_pct !== undefined && r.fuel_pct !== undefined ? <p className="fd-delta">At pickup: {j.pickup.fuel_pct}%. Difference: {r.fuel_pct - (j.pickup.fuel_pct ?? 0)}%.</p> : null}</> },
-    { title: 'Keys and extras', can: (r.keys_count ?? 0) >= 1, body: <Stepper label={`Keys returned${j.pickup?.keys_count ? ` (${j.pickup.keys_count} handed over)` : ''}`} value={r.keys_count ?? 0} set={(v) => set({ keys_count: v })} /> },
-    { title: 'Cleanliness', can: Boolean(r.cleanliness), body: (
-      <fieldset className="fd-choices"><legend className="label">How is the car?</legend>
-        {CLEAN.map(([v, l]) => <label key={v} className="fd-choice"><input type="radio" name="clean" value={v} checked={r.cleanliness === v} onChange={() => set({ cleanliness: v, odour: v === 'heavy' || v === 'smoking' })} /> <span>{l}</span></label>)}
-        {r.cleanliness && r.cleanliness !== 'clean' && <p className="small">Take photos of it in the photo set before any cleaning.</p>}
-      </fieldset>) },
-    { title: 'Photo set', can: shotsDone === required.length, body: <Shots j={j} has={has} q={q} photo={photo} /> },
-    { title: 'Compare with pickup', can: closeupsMissing.length === 0, body: (
-      <div className="stack">
-        {(j.pickup?.damages ?? []).map((d) => (
-          <fieldset key={d.label} className="fd-choices"><legend className="label">{d.label}: {d.location}, {d.description}</legend>
-            {['unchanged', 'worse'].map((v) => <label key={v} className="fd-choice"><input type="radio" name={`cmp-${d.label}`} checked={(r.car_diagram?.[d.label] as string | undefined) === v} onChange={() => set({ car_diagram: { ...(r.car_diagram ?? {}), [d.label]: v } })} /> <span>{v === 'worse' ? 'Worse: add it as new damage below' : 'Unchanged'}</span></label>)}
-          </fieldset>))}
-        <Damages j={j} marks={marks} damages={damages} setDamages={setDamages} save={save} has={has} photo={photo} oldLabel="At pickup" />
-      </div>) },
-    { title: 'Belongings', body: <label className="field"><span className="label">Anything left in the car (bag and label it with {j.booking?.booking_number})</span><textarea className="input" value={r.belongings_found ?? ''} onChange={(e) => set({ belongings_found: e.target.value })} /></label> },
-    { title: 'Renter reviews and signs', can: Boolean(r.renter_signature_ref || r.renter_declined_to_sign || r.renter_present === false), body: (
+    { id: 'late', title: `Late return: late by ${late?.late_text ?? ''}`, ok: !lateProblem, need: 'Late return choice', skip: !late, body: late ? (
+      late.decision && late.decision.status !== 'pending' ? <p className="small">{decisionText(late.decision)}</p>
+        : late.may.decide ? <><p className="small">The car is back after the return time. A late return is not charged by itself: choose now, or leave it to the office. The amounts are as of now; the charge follows the time you complete the return.</p>
+            <LateReturnChoice late={late} value={lateChoice} onChange={setLateChoice} later /></>
+        : <p className="small">The office chooses the late return charge on the booking.</p>) : null },
+    { id: 'notes', title: 'Notes and belongings', ok: true, optional: true, body: (
+      <details className="fd-more" open={Boolean(r.notes || r.belongings_found) || undefined}><summary data-testid="notes-open">{pickup ? 'Add a note for Fleet (optional)' : 'Belongings left in the car, or a note (optional)'}</summary><div className="stack">
+        {!pickup && <label className="field"><span className="label">Anything left in the car (bag and label it with {j.booking?.booking_number})</span><textarea className="input" value={r.belongings_found ?? ''} onChange={(e) => set({ belongings_found: e.target.value })} /></label>}
+        <label className="field"><span className="label">{pickup ? 'Note for Fleet (anything missing or not clean)' : 'The renter\'s note, if they dispute a finding'}</span><textarea className="input" value={r.notes ?? ''} onChange={(e) => set({ notes: e.target.value })} /></label>
+      </div></details>) },
+    { id: 'sign', title: 'Review and sign', ok: signOk, need: renterToSign ? 'The renter\'s signature' : 'Your signature', body: (
       <div className="stack">
         <Summary r={r} damages={damages} old={oldMarks.length} shots={shotsDone} />
-        <label className="field"><span className="label">The renter&apos;s note, if they dispute a finding</span><textarea className="input" value={r.notes ?? ''} onChange={(e) => set({ notes: e.target.value })} /></label>
-        {r.renter_present !== false && !r.renter_declined_to_sign && <Sign who="renter" label={`${j.booking?.renter?.name ?? 'Renter'} signs`} done={Boolean(r.renter_signature_ref)} sign={sign} />}
-        <label className="check"><input type="checkbox" checked={Boolean(r.renter_declined_to_sign)} onChange={(e) => set({ renter_declined_to_sign: e.target.checked })} /> <span>The renter declined to sign</span></label>
-        {r.renter_declined_to_sign && <label className="field"><span className="label">Their reason</span><input className="input" value={r.renter_decline_reason ?? ''} onChange={(e) => set({ renter_decline_reason: e.target.value })} /></label>}
-      </div>) },
-    { title: 'You sign and complete', can: Boolean(r.staff_signature_ref) && queueEmpty && shotsDone === required.length, primary: 'Complete the return', onPrimary: () => start(async () => {
-      setMsg(null);
-      let x: Awaited<ReturnType<typeof fieldAct<{ booking_status: string; minutes_late?: number }>>>;
-      try { x = await fieldAct<{ booking_status: string; minutes_late?: number }>('complete_return', { job: jobId, report: strip(r) }); } catch { setMsg(OFFLINE); return; }
-      if (!x.ok) { setMsg(x.message); return; }
-      try { localStorage.removeItem(key); } catch { /* ignore */ }
-      setDone(later ? 'Check-out details saved. The kilometre and fuel charges follow the readings; Fleet reviews the photos.' : 'Checked out. The late, kilometre and fuel charges are on the return statement; Fleet reviews the photos. The deposit is not given back today: Finance settles it once tolls and tickets have had time to come in (about 7 days), and any damage you marked keeps it held.');
-    }), body: <><Sign who="staff" label="You sign" done={Boolean(r.staff_signature_ref)} sign={sign} /><Upload q={q} total={required.length} shotsDone={shotsDone} /></> }
+        {pickup ? (!unattended ? <Sign who="renter" label={`${j.booking?.renter?.name ?? 'Renter'} signs`} done={Boolean(r.renter_signature_ref)} sign={sign} />
+            : <p className="pt-note small">{later ? 'Recorded with the details later: the renter does not sign here.' : 'Unattended handover: the renter\'s own photo set stands in for their signature.'}</p>)
+          : later ? <p className="pt-note small">Recorded with the details later: the renter does not sign here.</p> : <>
+            {r.renter_present !== false && !r.renter_declined_to_sign && <Sign who="renter" label={`${j.booking?.renter?.name ?? 'Renter'} signs`} done={Boolean(r.renter_signature_ref)} sign={sign} />}
+            <details className="fd-more" open={r.renter_present === false || r.renter_declined_to_sign || undefined}><summary data-testid="sign-other">The renter is not here, or will not sign</summary><div className="stack">
+              <label className="check"><input type="checkbox" checked={r.renter_present === false} onChange={(e) => set({ renter_present: !e.target.checked })} data-testid="renter-absent" /> <span>The renter is not here: I have the car and the keys</span></label>
+              <label className="check"><input type="checkbox" checked={Boolean(r.renter_declined_to_sign)} onChange={(e) => set({ renter_declined_to_sign: e.target.checked })} /> <span>The renter declined to sign</span></label>
+              {r.renter_declined_to_sign && <label className="field"><span className="label">Their reason</span><input className="input" value={r.renter_decline_reason ?? ''} onChange={(e) => set({ renter_decline_reason: e.target.value })} /></label>}
+            </div></details></>}
+        <Sign who="staff" label="You sign" done={Boolean(r.staff_signature_ref)} sign={sign} />
+        {!pickup && <p className="small muted">Check-out is the moment you complete this return; the server stamps the time.</p>}
+      </div>) }
   ];
 
-  const screens = allScreens.filter((x) => !x.skip);
+  const shown = parts.filter((x) => !x.skip);
+  const needed = stillNeeded(shown);
+  const uploadsLeft = !queueEmpty;
+  const can = needed.length === 0 && !uploadsLeft;
+  const primary = pickup ? (later ? 'Save the details' : 'Hand over the keys') : later ? 'Save the details' : 'Complete the return';
   if (done) return <div className="fd-screen fd-finish" role="status" data-testid="field-done"><span className="fd-finish__mark" aria-hidden="true"><FdIcon name="check" /></span><h2 className="d3">{done}</h2><Link className="btn btn--primary fd-wide" href={back} data-testid="checklist-back">{backLabel}</Link></div>;
   if (stop) return <div className="fd-screen fd-stopped" role="alert" data-testid="field-stop"><span className="fd-finish__mark" aria-hidden="true"><FdIcon name="cross" /></span><h2 className="d3">Do not release the car. Call CarmaCars.</h2><p>{stop}</p><Link className="btn btn--ghost fd-wide" href={back}>{backLabel}</Link></div>;
-  const s = screens[Math.min(step, screens.length - 1)]!;
-  const last = step >= screens.length - 1;
+  const doneCount = shown.filter((x) => x.ok && !x.optional).length;
+  const mustCount = shown.filter((x) => !x.optional).length;
   return (
-    <div className="fd-screen fd-flow" data-testid="checklist">
+    <div className="fd-screen fd-flow fd-one" data-testid="checklist">
       <div className="fd-flow__head">
-        <p className="fd-stepcount">Step {step + 1} of {screens.length}<span className="fd-stepcount__job">{pickup ? 'Check in' : 'Check out'}{j.vehicle.plate ? <>, <Plate plate={j.vehicle.plate} small /></> : null}</span></p>
-        <div className="fd-progress" role="progressbar" aria-label="Checklist progress" aria-valuemin={1} aria-valuemax={screens.length} aria-valuenow={step + 1} aria-valuetext={`Step ${step + 1} of ${screens.length}`}>
-          {screens.map((x, i) => <span key={x.title} className={i < step ? 'is-done' : i === step ? 'is-now' : undefined} />)}
+        <p className="fd-stepcount" data-testid="step-count">{doneCount} of {mustCount} done<span className="fd-stepcount__job">{pickup ? 'Check in' : 'Check out'}{j.vehicle.plate ? <>, <Plate plate={j.vehicle.plate} small /></> : null}</span></p>
+        <div className="fd-progress" role="progressbar" aria-label="Checklist progress" aria-valuemin={0} aria-valuemax={mustCount} aria-valuenow={doneCount} aria-valuetext={`${doneCount} of ${mustCount} done`}>
+          {shown.filter((x) => !x.optional).map((x) => <span key={x.id} className={x.ok ? 'is-done' : needed[0]?.id === x.id ? 'is-now' : undefined} />)}
         </div>
         <SaveState state={saved} pending={q.pending.length} resend={resend} />
       </div>
-      <div className="fd-screen fd-step" data-step-panel key={step}>
-        <h2 className="fd-step__h" data-testid="step-title">{s.title}</h2>
-        {s.body}
-      </div>
-      {msg && <p className="alert alert--error" role="alert"><span>{msg}</span></p>}
-      <div className="fd-bar">
-        {step > 0 && <button className="btn btn--ghost fd-bar__back" type="button" onClick={() => { setMsg(null); setStep((n) => n - 1); }}><FdIcon name="back" />Back</button>}
-        {last
-          ? <button className="btn btn--primary" type="button" disabled={pending || s.can === false} onClick={s.onPrimary} data-testid="complete">{pending ? 'Working' : s.primary}</button>
-          : <button className="btn btn--primary" type="button" disabled={pending || s.can === false} onClick={next} data-testid="next">{pending ? 'Saving' : 'Next'}</button>}
+      {shown.map((x) => (
+        <section key={x.id} id={`hs-${x.id}`} className={`fd-sec${x.optional ? ' is-optional' : x.ok ? ' is-ok' : ' is-todo'}`} aria-labelledby={`hs-${x.id}-t`} data-testid={`part-${x.id}`} data-ok={x.ok ? 'yes' : 'no'}>
+          {!x.optional && <h2 className="fd-sec__h" id={`hs-${x.id}-t`}><span className="fd-sec__mark" aria-hidden="true">{x.ok ? <FdIcon name="check" /> : null}</span><span>{x.title}</span><span className="vh">{x.ok ? ': done' : ': to do'}</span></h2>}
+          {x.optional && <h2 className="vh" id={`hs-${x.id}-t`}>{x.title}</h2>}
+          {x.body}
+        </section>
+      ))}
+      {(msg ?? saveMsg) && <p className="alert alert--error" role="alert" data-testid="checklist-message"><span>{msg ?? saveMsg}</span></p>}
+      <div className="fd-bar fd-bar--one">
+        {!can && <button className="btn btn--ghost fd-bar__need" type="button" onClick={() => go(needed[0]?.id ?? 'photos')} data-testid="still-needed">
+          {needed.length ? <>Next: {needed[0]!.label}{needed.length > 1 ? <span className="fd-bar__more"> and {needed.length - 1} more</span> : null}</> : <>Photos still uploading</>}</button>}
+        <button className="btn btn--primary" type="button" disabled={pending || !can} onClick={complete} data-testid="complete">{pending ? 'Working' : primary}</button>
       </div>
     </div>
+  );
+}
+
+// one tap ticks it; a second tap unticks. Big enough for a thumb.
+function Tick({ label, on, set, testId }: { label: string; on: boolean; set: (v: boolean) => void; testId: string }) {
+  return (
+    <button type="button" className={`fd-tick${on ? ' is-on' : ''}`} aria-pressed={on} onClick={() => set(!on)} data-testid={testId}>
+      <span className="fd-tick__box" aria-hidden="true">{on ? <FdIcon name="check" /> : null}</span><span>{label}</span>
+    </button>
   );
 }
 
@@ -314,15 +364,6 @@ function SaveState({ state, pending, resend }: { state: 'idle' | 'saving' | 'sav
         : <><FdIcon name="cloud" /><span>Answers save as you go</span></>}
       {pending > 0 && <span className="fd-savestate__photos">{pending} photo{pending > 1 ? 's' : ''} sending</span>}
     </div>
-  );
-}
-function YesNo({ label, value, set }: { label: string; value: boolean | undefined; set: (v: boolean) => void }) {
-  return (
-    <fieldset className="fd-yesno"><legend className="label">{label}</legend>
-      <div className="fd-yesno__row">
-        <button type="button" className={`btn fd-yes${value === true ? ' is-on' : ''}`} aria-pressed={value === true} onClick={() => set(true)}><FdIcon name="check" />Yes</button>
-        <button type="button" className={`btn fd-no${value === false ? ' is-on' : ''}`} aria-pressed={value === false} onClick={() => set(false)}><FdIcon name="cross" />No</button></div>
-    </fieldset>
   );
 }
 function Odo({ value, set, hint }: { value: number | undefined; set: (v: number | undefined) => void; hint: string | null }) {
@@ -392,6 +433,7 @@ function Shots({ j, has, q, photo }: { j: FieldJob; has: (seq: number) => boolea
         </label>
       ) : <p className="fd-line is-ok"><span className="fd-line__mark" aria-hidden="true"><FdIcon name="check" /></span><span>Every photo taken</span></p>}
       <p className="small">Landscape, whole car in frame. Confirm the plate is <b>{j.vehicle.plate}</b> in the first photo; a different car stops the job.</p>
+      <details className="fd-more" open={!todo || undefined}><summary data-testid="shots-all">All {j.shots.length} photos: see or retake one</summary>
       <ol className="fd-shotgrid">{j.shots.map((s) => {
         const f = q.pending.find((x) => x.seq === s.seq && x.mode === 'photo');
         const ok = has(s.seq);
@@ -406,7 +448,7 @@ function Shots({ j, has, q, photo }: { j: FieldJob; has: (seq: number) => boolea
               <input className="vh" type="file" accept="image/*" capture="environment" data-testid={`shot-${s.seq}`} onChange={(e) => { void photo(s.seq, s.shot, e.target.files?.[0]); e.target.value = ''; }} />
             </label>
           </li>);
-      })}</ol>
+      })}</ol></details>
     </div>
   );
 }

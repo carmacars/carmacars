@@ -67,3 +67,18 @@ export function returnReportable(status: string, returnAt: string, now: Date = n
 export function selfPickupOffered(status: string): boolean {
   return status === 'confirmed' || status === 'pending_payment' || status === 'on_rent';
 }
+
+/** Photos the renter picks: the dashboard photo and the selfie ride along, and the database takes 30 in all. */
+export const MAX_PICKED_PHOTOS = MAX_PHOTOS - 2;
+
+/**
+ * A renter's report is always taken, whatever is missing (hotfix Nov 12: the form refused to send without the dashboard
+ * photo, the numbers and a live selfie, so renters on a phone browser without a camera texted their photos instead).
+ * With all of them the trip is completed at once; without, staff confirm the return. What this says is shown before the
+ * report is sent.
+ */
+export function reportNote(readingProblem: string | null): string {
+  return readingProblem
+    ? `Not complete yet: ${readingProblem.charAt(0).toLowerCase()}${readingProblem.slice(1)} You can send the report anyway; we then check the car and confirm the return ourselves.`
+    : 'With the photos, the dashboard reading and the selfie, your return is completed at once.';
+}
