@@ -21,7 +21,7 @@ const int = (v: unknown, max: number) => (typeof v === 'number' && Number.isFini
 
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
-  if (foreignOrigin(origin, req.headers.get('host'))) return NextResponse.json({ ok: false }, { status: 403, headers: H });
+  if (foreignOrigin(origin, req.headers.get('host'), req.headers.get('sec-fetch-site'))) return NextResponse.json({ ok: false }, { status: 403, headers: H });
   const b = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   if (b && b.action === 'start') return start(b.p);
   if (!b || typeof b.token !== 'string' || !/^[0-9a-f]{64}$/.test(b.token)) return NextResponse.json({ ok: false, error: 'not_found', message: 'This game has ended. Reload the page.' }, { status: 400, headers: H });

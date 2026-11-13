@@ -33,6 +33,9 @@ export interface AgreementFacts {
     deposit_cents: number; deductible_cents: number | null; coverage_option: number | null; subtotal_at_booking_cents: number;
     hst_at_booking_cents: number; total_due_at_booking_cents: number; renter_due_at_booking_cents: number; offer_approved_version: number | null;
     offer_approved_at: string | null; renews_booking_id: string | null;
+    /** r44 (2812): an agreement an Admin made for a rental that has already ended (an insurer's file needs it signed):
+     *  a detail not on file is printed blank, never "To be given before pickup" */
+    after_trip?: boolean | null;
   };
   renter: { legal_name: string | null; date_of_birth: string | null; mobile: string | null; email: string | null; address_line1: string | null;
     address_line2: string | null; city: string | null; province: string | null; postal_code: string | null; country: string | null } | null;
@@ -62,7 +65,7 @@ export function when(iso: string | null | undefined, withTime = true): string {
 }
 const day = (iso: string | null | undefined) => (iso ? when(`${iso.slice(0, 10)}T12:00:00Z`, false) : '');
 const LATER = 'To be given before pickup';
-const or = (v: string | null | undefined, fallback = LATER) => (v && String(v).trim() ? String(v) : fallback);
+const orBase = (v: string | null | undefined, fallback = LATER) => (v && String(v).trim() ? String(v) : fallback);
 const ISSUERS: Record<string, string> = { ON: 'Ontario', QC: 'Quebec', BC: 'British Columbia', AB: 'Alberta', MB: 'Manitoba', SK: 'Saskatchewan', NS: 'Nova Scotia', NB: 'New Brunswick', NL: 'Newfoundland and Labrador', PE: 'Prince Edward Island', YT: 'Yukon', NT: 'Northwest Territories', NU: 'Nunavut' };
 export const issuerName = (c: string | null | undefined) => (c ? ISSUERS[c] ?? c : '');
 
@@ -191,6 +194,9 @@ function returnBlocks(f: AgreementFacts, x: AgreementExtra): Block[] {
 
 export function agreementBlocks(f: AgreementFacts, o: BuildOptions): Block[] {
   const b = f.booking;
+  // r44: after the trip nothing is "to be given before pickup": what is not on file is left blank
+  const later = b.after_trip ? '' : LATER;
+  const or = (v: string | null | undefined, fallback = later) => orBase(v, fallback);
   const r = f.renter;
   const renter = f.drivers.find((d) => d.role === 'renter');
   const extra = f.drivers.filter((d) => d.role === 'additional');
@@ -202,7 +208,7 @@ export function agreementBlocks(f: AgreementFacts, o: BuildOptions): Block[] {
     : b.rate_applied === 'multi_day' && o.multiDayRateCents ? `3 days or more: ${b.billable_days} days × ${money(o.multiDayRateCents)}`
     : b.rate_applied === 'manual' || b.rate_applied === 'custom' ? `${b.billable_days} days, rental charge ${money(b.rental_charge_cents, { cents: true })} as agreed`
     : `1 to 6 days: ${b.daily_days ?? 0} daily days × ${money(b.daily_rate_cents)}, plus ${b.weekend_days ?? 0} weekend days × ${money(b.weekend_rate_cents)}`;
-  const licence = (d?: AgreementFacts['drivers'][number]) => d ? `No.: ${or(d.licence_number)}  Class: ${or(d.licence_class)}  Issued by: ${or(issuerName(d.licence_issuer))}  Expiry: ${or(day(d.licence_expiry))}` : LATER;
+  const licence = (d?: AgreementFacts['drivers'][number]) => d ? `No.: ${or(d.licence_number)}  Class: ${or(d.licence_class)}  Issued by: ${or(issuerName(d.licence_issuer))}  Expiry: ${or(day(d.licence_expiry))}` : later;
   const cov = f.coverage;
   const coverageText = b.coverage_option ? `${COVERAGE[b.coverage_option] ?? b.coverage_option}${cov?.coverage_option === 1 && cov.insurer_name ? ` (${cov.insurer_name}, policy ${cov.policy_number ?? ''}, expiry ${day(cov.policy_expiry)})` : ''}${cov?.coverage_option === 2 && cov.card_issuer ? ` (${cov.card_issuer}, last four digits ${cov.card_last4 ?? ''})` : ''}. Proof confirmed: ${cov?.status === 'approved' ? 'yes' : 'not yet'}` : 'To be chosen before pickup';
   const deductible = b.deductible_cents ?? f.company.deductible_cents;

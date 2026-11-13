@@ -20,6 +20,7 @@ import { ManualPaymentForm, ManualPaymentList, PaperSignatureList, type ManualRo
 import { $, Badge, Card, Kv, PageHead, Table, Tabs, t, label } from '@/features/admin/ui';
 import { REFUND_OF } from '@/features/admin/refunds';
 import { BookingMoney, type Money, type PanelLine } from '@/features/money/BookingMoney';
+import { failedAttemptState } from '@/features/money/money-panels';
 import { BookingFees, type Fees } from '@/features/money/BookingFees';
 import { ProtectionChange } from '@/features/protection/ProtectionChange';
 import type { ProtectionOptions } from '@/features/protection/model';
@@ -443,7 +444,14 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
               {fees && <BookingFees x={fees} withBalance={false} />}
               {payments?.some((r) => r.status === 'failed') && <Card title="Card payments that failed"><Table rows={payments.filter((r) => r.status === 'failed')} empty="No payments."
                 cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'purpose', label: 'Purpose' }, ...(can.admin ? [{ key: 'method', label: 'Method' }] : []), { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'card_last4', label: 'Card' },
-                  { key: 'act', label: '', render: (r) => can.manualPayments && r.kind === 'charge' ? <ManualPaymentForm prefix="bk-rp" booking={b.id} settlesPayment={String(r.id)} number={String(r.id).slice(0, 8)} balance={Number(r.amount_cents)} today={today} refresh={[base]} label="Paid another way" /> : null }]} /></Card>}
+                  // r44: what became of the attempt, from real money only: settled by a payment recorded another way, nothing
+                  // owing any more, or still open (then the button records a payment received another way)
+                  { key: 'act', label: 'Now', render: (r) => {
+                    const st = failedAttemptState({ id: String(r.id), purpose: String(r.purpose ?? '') }, manual, moneyByPart?.parts ?? null);
+                    if (st === 'settled') return <span className="small" data-testid="failed-settled">Settled by a payment received another way</span>;
+                    if (st === 'nothing_owing') return <span className="small muted" data-testid="failed-nothing-owing">Nothing owing for it now</span>;
+                    return can.manualPayments && r.kind === 'charge' ? <ManualPaymentForm prefix="bk-rp" booking={b.id} settlesPayment={String(r.id)} number={String(r.id).slice(0, 8)} balance={Number(r.amount_cents)} today={today} refresh={[base]} label="Record a payment received another way" /> : null;
+                  } }]} /></Card>}
               {/* r35 (0970): Fleet records cash and e-Transfers, so it sees them too (without the card payments list) */}
               {can.manualPayments && manual.length > 0 && <details className="pt-card ad-card" data-testid="booking-manual-payments"><summary className="small">{can.voidRecords ? 'Correct or void a payment received another way' : 'Payments received another way'} ({manual.length})</summary>
                 <ManualPaymentList rows={manual} canVoid={can.voidRecords} {...(can.voidRecords ? { refresh: [base] } : { docBase: '/staff/documents' })} /></details>}

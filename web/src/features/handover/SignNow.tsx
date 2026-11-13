@@ -147,7 +147,8 @@ function PrepareNow({ s }: { s: SigningState }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
-  const can = ['pending_payment', 'confirmed', 'on_rent'].includes(s.status) && !s.agreement;
+  // r44 (2812): an ended rental too (an Admin makes its agreement for the insurer's file; the database says who may)
+  const can = ['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(s.status) && !s.agreement;
   return (
     <div className="pt-empty stack" data-testid="sign-now-none">
       <p>No rental agreement is waiting for a signature on this booking yet.</p>

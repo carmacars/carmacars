@@ -1,6 +1,6 @@
 // Shared layout: turns an email definition into an HTML template and a plain-text template.
 // Table-based, inline-styled, single column, 600px. Merge tags are left in place for the engine.
-import { BRAND, C, FONT, FONT_WORDMARK } from './brand.mjs';
+import { BRAND, C, FONT, FONT_WORDMARK, FROM } from './brand.mjs';
 
 // The logo (release 28): the brand kit's PNG at carmacars.ca/brand/email/<surface>.png, which serves the logo uploaded in
 // Admin > Settings > Site (PNG or JPEG) when there is one, else the brand kit's (web/src/app/brand/email). White letters on
@@ -11,6 +11,13 @@ import { url, PATHS } from './links.mjs';
 import { escapeHtml } from './engine.mjs';
 
 const PAD = 36;
+
+// r44: an email sent as Blind Spot Car Rental (insurers, adjusters, an insurance replacement's renter) is that brand's
+// throughout: its name as a text wordmark in place of the CarmaCars logo, its name in the footer, replies to this email
+// in place of the CarmaCars contact line, and no CarmaCars link. Nothing in it names CarmaCars.
+export const BS_NAME = 'Blind Spot Car Rental';
+const isBS = (email) => email.from === FROM.blindspot;
+const bsMark = (size, color) => `<span style="display:block;font-family:${FONT_WORDMARK};font-size:${size}px;line-height:${Math.round(size * 1.3)}px;font-weight:700;color:${color};">${BS_NAME}</span>`;
 
 // ---------- inline copy ----------
 function href(target) {
@@ -206,11 +213,14 @@ function helpLine(email) {
 }
 // The company line of the footer: an owner billing email names the payee of the pre-authorized debit (the legal review
 // of October 16, 2026: "<legal name>, operating as CarmaCars", never the numbered company alone, 0128); every other email the business name.
-const companyLine = (email) => (email.audience === 'owner' && /<billing@/.test(email.from) ? '{{payee_name}}' : 'CarmaCars');
+const companyLine = (email) => (isBS(email) ? BS_NAME : email.audience === 'owner' && /<billing@/.test(email.from) ? '{{payee_name}}' : 'CarmaCars');
+const BS_CONTACT = 'Questions about this rental or invoice: reply to this email.';
 // Public contact and social lines for renters, owners and investors (not on internal staff notices).
 const CONTACT_LINE = 'Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.';
 function reason(email) {
   if (email.footer) return email.footer;
+  if (isBS(email)) return email.audience === 'insurer' ? `You are receiving this because you are the billing contact for a claim with a replacement rental from ${BS_NAME}.`
+    : `You are receiving this about a replacement rental with ${BS_NAME}.`;
   if (email.category === 'marketing' && email.audience === 'renter') return 'You are receiving this because you gave us your email address on carmacars.ca.';
   if (email.category === 'marketing') return 'You are receiving this because you agreed to get CarmaCars offers by email.';
   if (STAFF(email.audience)) return 'Internal CarmaCars notice. It may contain customer information. Do not forward it.';
@@ -227,6 +237,7 @@ export function htmlTemplate(email) {
   const rest = email.body.filter((b) => b.type !== 'hero');
   const marketing = email.category === 'marketing';
   const staff = STAFF(email.audience);
+  const bs = isBS(email);
   const fl = (name, text) => `<a href="${url(name)}" class="tx-mid" style="color:${C.mid};text-decoration:underline;">${text}</a>`;
 
   return `<!DOCTYPE html>
@@ -286,7 +297,7 @@ a{text-decoration:underline;}
 <tr><td bgcolor="${C.red}" height="4" style="height:4px;background-color:${C.red};font-size:0;line-height:0;">&nbsp;</td></tr>
 <tr><td class="px" bgcolor="${C.black}" style="background-color:${C.black};padding:26px ${PAD}px 0 ${PAD}px;">
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr>
-<td align="left" valign="middle"><a href="${url('home')}" style="text-decoration:none;color:#FFFFFF;">${logo(170, 'on-dark')}</a></td>
+<td align="left" valign="middle">${bs ? bsMark(20, '#FFFFFF') : `<a href="${url('home')}" style="text-decoration:none;color:#FFFFFF;">${logo(170, 'on-dark')}</a>`}</td>
 <td class="ref" align="right" valign="middle" style="font-family:${FONT};font-size:11px;line-height:16px;letter-spacing:1.4px;text-transform:uppercase;font-weight:700;color:${C.labelOnBlack};">${esc(email.ref || '')}</td>
 </tr></table>
 </td></tr>
@@ -299,12 +310,12 @@ ${heroB.lead ? `<div style="font-family:${FONT};font-size:16px;line-height:25px;
 <tr><td height="34" style="height:34px;font-size:0;line-height:0;">&nbsp;</td></tr>
 ${blocksHtml(rest)}<tr><td class="px" style="padding:4px ${PAD}px 34px ${PAD}px;"><div class="rule" style="border-top:1px solid ${C.rule};padding-top:20px;font-family:${FONT};font-size:15px;line-height:23px;color:${C.ink};"><span class="tx">${inlineHtml(helpLine(email))}</span></div></td></tr>
 <tr><td class="px foot" bgcolor="${C.wash}" style="background-color:${C.wash};padding:26px ${PAD}px 30px ${PAD}px;">
-<div>${logo(118, 'on-light', 'logo-light')}<!--[if !mso]><!--><div class="logo-dark" style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${logo(118, 'on-dark')}</div><!--<![endif]--></div>
+<div>${bs ? `<span class="tx">${bsMark(15, C.ink)}</span>` : `${logo(118, 'on-light', 'logo-light')}<!--[if !mso]><!--><div class="logo-dark" style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${logo(118, 'on-dark')}</div><!--<![endif]-->`}</div>
 <div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;">${esc(reason(email))}</div>
 ${marketing ? `<div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;"><a href="{{unsubscribe_url}}" class="tx" style="color:${C.ink};text-decoration:underline;font-weight:700;">Unsubscribe</a> at any time. It takes effect at once.</div>` : ''}
-${staff ? '' : `<div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;">${inlineHtml(CONTACT_LINE).replace(/class="tx"/g, '')}</div>`}
+${staff ? '' : `<div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;">${inlineHtml(bs ? BS_CONTACT : CONTACT_LINE).replace(/class="tx"/g, '')}</div>`}
 <div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;">${companyLine(email)}{{#if company_address}}<br>{{company_address}}{{/if}}</div>
-<div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;">${fl('home', 'carmacars.ca')}${staff ? '' : ` &nbsp;&middot;&nbsp; ${fl('terms', 'Terms')} &nbsp;&middot;&nbsp; ${fl('privacy', 'Privacy')}{{#if instagram_url}} &nbsp;&middot;&nbsp; <a href="{{instagram_url}}" class="tx-mid" style="color:${C.mid};text-decoration:underline;">Instagram</a>{{/if}}{{#if tiktok_url}} &nbsp;&middot;&nbsp; <a href="{{tiktok_url}}" class="tx-mid" style="color:${C.mid};text-decoration:underline;">TikTok</a>{{/if}}`}</div>
+${bs ? '' : `<div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;">${fl('home', 'carmacars.ca')}${staff ? '' : ` &nbsp;&middot;&nbsp; ${fl('terms', 'Terms')} &nbsp;&middot;&nbsp; ${fl('privacy', 'Privacy')}{{#if instagram_url}} &nbsp;&middot;&nbsp; <a href="{{instagram_url}}" class="tx-mid" style="color:${C.mid};text-decoration:underline;">Instagram</a>{{/if}}{{#if tiktok_url}} &nbsp;&middot;&nbsp; <a href="{{tiktok_url}}" class="tx-mid" style="color:${C.mid};text-decoration:underline;">TikTok</a>{{/if}}`}</div>`}
 </td></tr>
 </table>
 <!--[if mso]></td></tr></table><![endif]-->
@@ -319,15 +330,15 @@ export function textTemplate(email) {
   const heroB = email.body.find((b) => b.type === 'hero');
   const rest = email.body.filter((b) => b.type !== 'hero');
   const parts = [
-    'CarmaCars' + (email.ref ? '  |  ' + email.ref : ''),
+    (isBS(email) ? BS_NAME : 'CarmaCars') + (email.ref ? '  |  ' + email.ref : ''),
     '========================================',
     '[' + heroB.eyebrow + ']\n' + inlineText(heroB.title) + (heroB.lead ? '\n\n' + inlineText(heroB.lead) : ''),
     blocksText(rest),
     '----------------------------------------',
     inlineText(helpLine(email)),
     reason(email) + (email.category === 'marketing' ? '\nUnsubscribe at any time (it takes effect at once): {{unsubscribe_url}}' : ''),
-    STAFF(email.audience) ? '' : CONTACT_LINE,
-    `${companyLine(email)}\n{{#if company_address}}{{company_address}}\n{{/if}}${url('home')}` + (STAFF(email.audience) ? '' : '\n{{#if instagram_url}}Instagram: {{instagram_url}}\n{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}'),
+    STAFF(email.audience) ? '' : isBS(email) ? BS_CONTACT : CONTACT_LINE,
+    isBS(email) ? `${BS_NAME}\n{{#if company_address}}{{company_address}}{{/if}}` : `${companyLine(email)}\n{{#if company_address}}{{company_address}}\n{{/if}}${url('home')}` + (STAFF(email.audience) ? '' : '\n{{#if instagram_url}}Instagram: {{instagram_url}}\n{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}'),
   ];
   return parts.join('\n\n').replace(/\n{3,}/g, '\n\n') + '\n';
 }

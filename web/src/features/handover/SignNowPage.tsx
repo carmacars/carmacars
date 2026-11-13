@@ -12,7 +12,8 @@ import type { SigningState } from './types';
 export async function SignNowPage({ userId, aal, booking, base, backLabel }: { userId: string; aal?: 'aal1' | 'aal2' | null; booking: string; base: string; backLabel: string }) {
   let s = await door<SigningState | null>(userId, 'ops_read', 'in_person_signing', { booking }, aal).catch(() => null);
   if (!s?.booking_id) notFound();
-  let bundle = s.renter_user_id && s.agreement ? await loadBundle(s.booking_id, s.renter_user_id).catch(() => null) : null;
+  // r44: a renter with no account (an insurer-billed rental) reads the agreement as staff render it
+  let bundle = s.agreement ? await loadBundle(s.booking_id, s.renter_user_id ?? userId).catch(() => null) : null;
   // signed at pickup after the check-in readings (0154): the agreement is rendered again with them before anyone signs,
   // so the signed copy already holds the time, kilometres and fuel out (the same facts give the same document)
   if (bundle?.x.pickup && s.agreement?.status === 'open' && s.signers.every((g) => !g.signed_at) && s.renter_user_id) {

@@ -90,7 +90,7 @@ export function BookingMoney({ m, lines = [], totalCents, waived = false, rental
   const dep = m.deposit;
   // r33: a capture Stripe refused because the hold lapsed marks it expired at once (the page then reloads it so)
   const [lapsedNow, setLapsedNow] = useState(false);
-  const word = lapsedNow && dep?.status === 'held' ? 'Hold expired' : depositWord(dep, m.deposit_cents, waived);
+  const word = lapsedNow && dep?.status === 'held' ? 'Hold expired' : depositWord(dep, m.deposit_cents, waived, undefined, paid.deposit_cents);
   const next = depositNext(word, m.status);
   const depAmount = dep && !['pending', 'failed'].includes(dep.status) ? dep.amount_cents : (m.debit_deposit?.takes && m.debit_deposit.cents ? m.debit_deposit.cents : m.deposit_cents);
   const openPart = (c: string) => (c === 'balance' ? due : m.parts.find((p) => p.covers === c)?.open_cents ?? 0);
@@ -248,7 +248,10 @@ export function BookingMoney({ m, lines = [], totalCents, waived = false, rental
             {lines.map((l) => <div key={l.id}><dt>{l.description || l.charge_type.replace(/_/g, ' ')}{l.stage ? <span className="muted small"> {l.stage}</span> : null}</dt><dd>{fmt(l.amount_cents)}{lineAdmin && !l.statement_id && !l.payment_id && l.amount_cents > 0 ? <span className="ad-actions" data-testid={`bm-line-${l.id}`}>
               <Act ops action="line_adjust" payload={{ line: l.id }} label="Change amount" refresh={[]} done="Changed. It is in the booking history." fields={[{ name: 'amount_cents', label: 'New amount (lower)', type: 'money', required: true }, { name: 'reason', label: 'Why', type: 'text', required: true }]} />
               <Act ops action="line_adjust" payload={{ line: l.id, waive: true }} label="Waive" refresh={[]} done="Waived. It is in the booking history." fields={[{ name: 'reason', label: 'Why it is waived', type: 'text', required: true }]} /></span> : null}</dd></div>)}
-            {totalCents != null && <div><dt><b>Total</b></dt><dd><b>{fmt(totalCents)}</b></dd></div>}
+            {totalCents != null && <div><dt><b>Total</b></dt><dd><b data-testid="bm-total">{fmt(totalCents)}</b>{lineAdmin && <span className="ad-actions">
+              {/* r44 (2810): an Admin sets the total (HST included); the rental charge line takes the difference */}
+              <Act ops action="booking_total_set" payload={{ booking: m.booking_number }} label="Change the total" testId="bm-total-set" refresh={[]} done="Total changed. It is in the booking history."
+                fields={[{ name: 'total_cents', label: 'New total, HST included', type: 'money', required: true, value: totalCents }, { name: 'reason', label: 'Why', type: 'text', required: true }]} /></span>}</dd></div>}
             <div><dt>Paid</dt><dd data-testid="bm-rental-paid">{fmt(paid.rental_cents)}</dd></div>
             <div><dt><b>Balance due</b></dt><dd><b data-testid="bm-rental-due">{fmt(due)}</b></dd></div>
             {later > 0 && <div><dt>Later charges open</dt><dd>{fmt(later)}</dd></div>}

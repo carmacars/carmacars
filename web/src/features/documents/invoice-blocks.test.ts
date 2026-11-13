@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { agreementPdf } from '../agreement/render.ts';
-import { insurerInvoiceBlocks, invoiceFooter, itemizeLines, payBlocks, type InvoiceCompany } from './invoice-blocks.ts';
+import { chequeBlock, insurerInvoiceBlocks, invoiceFooter, itemizeLines, noCarmaCars, payBlocks, type InvoiceCompany } from './invoice-blocks.ts';
 
 const BS: InvoiceCompany = { brand: 'Blind Spot Car Rental', legal_name: '18122211 Canada Inc.', address: '1 Example Street, Toronto ON', hst_number: '000000000RT0001', phone: '555-0100', email: 'billing@blindspot.example.test' };
 const facts = (x: Record<string, unknown> = {}) => ({
@@ -76,4 +76,32 @@ test('how to pay: an empty section is left out; nothing at all, no heading', () 
 test('a draft says so in the footer; an issued invoice has no Draft and no Preview', () => {
   assert.equal(invoiceFooter({ ...facts(), status: 'draft', final: false }), 'Blind Spot Car Rental. Invoice INS-5001. Draft: not yet issued.');
   assert.equal(invoiceFooter(facts()), 'Blind Spot Car Rental. Invoice INS-5001.');
+});
+
+test('r44: a Cheque section: payable to the legal entity, mailed to the company address, quoting the invoice and the claim', async () => {
+  const f = facts();
+  const r = await pdfText(await agreementPdf(insurerInvoiceBlocks(f), { title: f.title, createdAt: new Date(0), brand: true, valuesRight: true, wordmark: BS.brand, footer: invoiceFooter(f) }));
+  for (const t of ['Cheque', 'Payable to', '18122211 Canada Inc.', 'Mail to', '1 Example Street, Toronto ON', 'Invoice INS-5001, claim CL-4471', 'Interac e-Transfer']) assert.ok(r.text.includes(t), t);
+  // with no other way to pay set, the cheque still has its heading
+  const only = insurerInvoiceBlocks(facts({ pay: {} }));
+  assert.ok(JSON.stringify(only).includes('How to pay') && JSON.stringify(only).includes('Payable to'));
+  assert.equal(chequeBlock({ ...BS, address: '' }, 'INS-1', ''), null, 'no address: no cheque section');
+});
+
+test('r44: the CarmaCars name never reaches an insurer invoice, whatever a fee or a setting says', async () => {
+  const f = facts({ fee_items: [{ description: 'CarmaCars Protection Plan', amount_cents: 6000 }, { description: 'Young driver, 21 to 25', amount_cents: 4000 }, { description: 'Delivery', amount_cents: 1700 }],
+    pay: { etransfer_email: 'rent@carmacars.ca' }, company: { ...BS, email: 'billing@carmacars.ca' }, note: 'Taxes as agreed with CarmaCars.' });
+  const bytes = await agreementPdf(insurerInvoiceBlocks(f), { title: f.title, createdAt: new Date(0), brand: true, valuesRight: true, wordmark: BS.brand, author: BS.brand, footer: invoiceFooter(f) });
+  const r = await pdfText(bytes);
+  assert.doesNotMatch(r.text, /carma/i);
+  assert.doesNotMatch(Buffer.from(bytes).toString('latin1'), /carma/i);
+  assert.ok(r.text.includes('Protection Plan'));
+  assert.equal(noCarmaCars("CarmaCars' Protection Plan"), 'Protection Plan');
+  assert.equal(noCarmaCars('rent@carmacars.ca'), '');
+});
+
+test('r44: an issued invoice never says Draft, even when its facts say it is not final', () => {
+  assert.equal(invoiceFooter({ ...facts(), status: 'sent', final: false }), 'Blind Spot Car Rental. Invoice INS-5001.');
+  assert.equal(invoiceFooter({ ...facts(), status: 'paid' }), 'Blind Spot Car Rental. Invoice INS-5001.');
+  assert.match(invoiceFooter({ ...facts(), status: 'draft' }), /Draft: not yet issued/);
 });

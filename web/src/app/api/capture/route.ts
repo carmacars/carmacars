@@ -9,7 +9,7 @@ const H = { 'cache-control': 'no-store' };
 
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
-  if (foreignOrigin(origin, req.headers.get('host'))) return NextResponse.json({ ok: false }, { status: 403, headers: H });
+  if (foreignOrigin(origin, req.headers.get('host'), req.headers.get('sec-fetch-site'))) return NextResponse.json({ ok: false }, { status: 403, headers: H });
   const b = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   if (!b || typeof b !== 'object') return NextResponse.json({ ok: false }, { status: 400, headers: H });
   try {

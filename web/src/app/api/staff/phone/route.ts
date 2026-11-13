@@ -90,7 +90,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
-  if (foreignOrigin(origin, req.headers.get('host'))) return NextResponse.json({ error: 'Not permitted' }, { status: 403, headers: H });
+  if (foreignOrigin(origin, req.headers.get('host'), req.headers.get('sec-fetch-site'))) return NextResponse.json({ error: 'Not permitted' }, { status: 403, headers: H });
   const w = await who();
   if (!w) return NextResponse.json({ error: 'Sign in first' }, { status: 401, headers: H });
   const b = (await req.json().catch(() => null)) as ({ action?: string } & Record<string, unknown>) | null;

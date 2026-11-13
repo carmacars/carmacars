@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { foreignOrigin } from '@/lib/security/same-origin';
 import { rpc } from '@/lib/db/repo';
 import { currentUser } from '@/server/portal/data';
 import { claimPayload, UUID, type ClaimInput } from '@/features/returns/claim';
@@ -8,14 +9,11 @@ import { claimPayload, UUID, type ClaimInput } from '@/features/returns/claim';
 // as renter-provided and opens Fleet's To do. Sending it twice changes nothing.
 export const dynamic = 'force-dynamic';
 
-// An unreadable Origin header ("null" from some in-app browsers) is a foreign origin, never a crash with a non-JSON 500.
-function originHost(origin: string): string | null {
-  try { return new URL(origin).host; } catch { return null; }
-}
 
 export async function POST(req: Request, { params }: { params: Promise<{ token: string }> }) {
   const origin = req.headers.get('origin');
-  if (origin && originHost(origin) !== req.headers.get('host')) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
+  // r44: the shared rule: "null" from an in-app browser (the text message's link) is this site when same-origin
+  if (foreignOrigin(origin, req.headers.get('host'), req.headers.get('sec-fetch-site'))) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
   const { token } = await params;
   if (!UUID.test(token)) return NextResponse.json({ ok: false, message: 'This link is not valid.' }, { status: 404 });
   const body = (await req.json().catch(() => null)) as ClaimInput | null;

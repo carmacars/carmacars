@@ -38,7 +38,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
-  if (foreignOrigin(origin, req.headers.get('host'))) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
+  if (foreignOrigin(origin, req.headers.get('host'), req.headers.get('sec-fetch-site'))) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
   const form = await req.formData().catch(() => null);
   const lesson = String(form?.get('lesson') ?? '');
   const file = form?.get('file');
@@ -69,7 +69,7 @@ export async function POST(req: Request) {
 /** DELETE ?id=<video>: an Admin removes a bad recording and its file (the next "Watch as video" makes it again). */
 export async function DELETE(req: Request) {
   const origin = req.headers.get('origin');
-  if (foreignOrigin(origin, req.headers.get('host'))) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
+  if (foreignOrigin(origin, req.headers.get('host'), req.headers.get('sec-fetch-site'))) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
   const id = new URL(req.url).searchParams.get('id') ?? '';
   const user = await currentUser();
   if (!user || !UUID.test(id)) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });

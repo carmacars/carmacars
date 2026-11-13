@@ -12,7 +12,7 @@ const s = (v: unknown, n: number) => (typeof v === 'string' ? v.slice(0, n) : un
 
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
-  if (foreignOrigin(origin, req.headers.get('host'))) return NextResponse.json({ ok: false }, { status: 403, headers: H });
+  if (foreignOrigin(origin, req.headers.get('host'), req.headers.get('sec-fetch-site'))) return NextResponse.json({ ok: false }, { status: 403, headers: H });
   const text = await req.text().catch(() => '');
   if (!text || text.length > 12000) return NextResponse.json({ ok: false }, { status: 400, headers: H });
   let b: Record<string, unknown>;

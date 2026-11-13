@@ -24,7 +24,7 @@ async function build(): Promise<string | null> {
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
   const host = req.headers.get('host');
-  if (foreignOrigin(origin, host)) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403, headers: H });
+  if (foreignOrigin(origin, host, req.headers.get('sec-fetch-site'))) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403, headers: H });
   const user = await currentUser();
   if (!user) return NextResponse.json({ ok: false, message: 'Sign in first.' }, { status: 401, headers: H });
   const form = await req.formData().catch(() => null);

@@ -20,7 +20,7 @@ const NOT_READ = { ok: false, message: 'The photo could not be read. Type the od
 
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
-  if (foreignOrigin(origin, req.headers.get('host'))) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
+  if (foreignOrigin(origin, req.headers.get('host'), req.headers.get('sec-fetch-site'))) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
   const body = (await req.json().catch(() => null)) as { booking?: string; token?: string; image?: string } | null;
   const image = typeof body?.image === 'string' ? body.image : '';
   const booking = body?.booking && UUID.test(body.booking) ? body.booking : null;
