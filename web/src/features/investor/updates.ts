@@ -41,14 +41,19 @@ export function parseNote(text: string, file = 'note'): ReleaseNote {
   if (head.date !== 'pending' && !/^\d{4}-\d{2}-\d{2}$/.test(head.date!)) throw new Error(`${file}: the date is YYYY-MM-DD or "pending"`);
   const areas: ReleaseNote['areas'] = [];
   let cur: ReleaseNote['areas'][number] | null = null;
+  // "## For staff", "## For owners" ... are the "What's new" pop-up's per-portal sections (scripts/whats-new.mjs): not investor areas
+  let popup = false;
   for (const line of m[2]!.split('\n')) {
     if (!line.trim()) continue;
     const h = /^##\s+(.+)$/.exec(line);
     if (h) {
+      popup = /^For (staff|owners|renters|investors|partners|admins)$/.test(h[1]!.trim());
+      if (popup) { cur = null; continue; }
       const a = h[1]!.trim() as Area;
       if (!AREAS.includes(a)) throw new Error(`${file}: "${a}" is not an area (${AREAS.join(', ')})`);
       cur = { area: a, items: [] }; areas.push(cur); continue;
     }
+    if (popup) continue;
     const it = /^-\s+(.+)$/.exec(line);
     if (!it || !cur) throw new Error(`${file}: an item is a "- " line under an area heading ("${line}")`);
     cur.items.push(it[1]!.trim());

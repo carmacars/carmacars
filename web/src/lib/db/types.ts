@@ -27849,6 +27849,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      user_release_seen: {
+        Row: {
+          user_id: string;
+          release: string;
+          portal: string;
+          seen_at: string;
+        };
+        Insert: {
+          user_id: string;
+          release: string;
+          portal: string;
+          seen_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          release?: string;
+          portal?: string;
+          seen_at?: string;
+        };
+        Relationships: [];
+      };
       user_roles: {
         Row: {
           user_id: string;
@@ -32625,6 +32646,8 @@ export type Database = {
       referral_partner_code_ok: { Args: { p_code: string }; Returns: boolean };
       referral_program_public: { Args: never; Returns: Json };
       register_account: { Args: { p_user: string; p_email: string; p_full_name: string; p_phone?: string }; Returns: Json };
+      release_seen_list: { Args: { p_by: string; p_portal: string }; Returns: string[] };
+      release_seen_mark: { Args: { p_release: string; p_portal: string; p_by: string }; Returns: boolean };
       rent_vs_own_inputs: { Args: { p_make: string; p_model: string; p_year: number; p_city?: string }; Returns: Json };
       rent_vs_own_page: { Args: { p_make: string; p_model: string; p_year: number; p_city?: string }; Returns: Json };
       rent_vs_own_page_pre2402: { Args: { p_make: string; p_model: string; p_year: number; p_city?: string }; Returns: Json };

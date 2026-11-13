@@ -10,6 +10,7 @@ import { currentUser } from '@/server/portal/data';
 import { viewAs } from '@/server/view-as';
 import { PortalSwitch, SignOutOrExit } from '@/features/access/Access';
 import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
+import { WhatsNew } from '@/features/whats-new/WhatsNew';
 import { StuckHelp } from '@/features/help/StuckHelp';
 import { TermsGate } from '@/features/terms/TermsGate';
 import { PushInvite } from '@/features/push/PushAlerts';
@@ -35,7 +36,7 @@ export default async function AccountLayout({ children }: { children: React.Reac
       <div className="wrap pt__top">
         <div className="pt__hello">
           <p className="small muted">{v ? 'Viewing as' : 'Signed in as'} <b data-testid="account-email">{user.email}</b></p>
-          <span className="gd-frame-links"><GuideLink portal="renter" /><SignOutOrExit /></span>
+          <span className="gd-frame-links"><WhatsNew portal="renter" userId={user.id} /><GuideLink portal="renter" /><SignOutOrExit /></span>
         </div>
         <PortalSwitch current="account" />
         <PortalNav unread={unread || 0} />
