@@ -1,0 +1,39 @@
+{
+ "batch": "2026-11-13-3",
+ "items": [
+  {
+   "kind": "car",
+   "id": "443db7d7-8cc0-49a8-916a-510621e17047",
+   "copy": {
+    "intro": "Eight seats and third-row seating on a Hyundai SUV. Made for hockey carpools, visiting grandparents and a cottage run in one trip.",
+    "highlights": [
+     "Third-row seating",
+     "Adaptive cruise control",
+     "Blind spot assist",
+     "Lane keeping assist",
+     "Automatic emergency braking",
+     "Backup camera"
+    ],
+    "good_for": [
+     "Airport runs for the whole group",
+     "Long family drives"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit?",
+      "answer": "The 2026 Hyundai Palisade SEL has 8 seats and 5 doors."
+     },
+     {
+      "question": "Does it have third-row seating?",
+      "answer": "Yes, it has third-row seating."
+     },
+     {
+      "question": "Do I pay when I send a request?",
+      "answer": "No. A request has no payment up front. You pay after we confirm."
+     }
+    ],
+    "alt_texts": {}
+   }
+  }
+ ]
+}
