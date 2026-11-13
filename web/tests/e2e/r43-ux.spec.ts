@@ -56,12 +56,14 @@ test('A staff member waiting for onboarding approval is approvable from the top 
   // the hiring pipeline counts them in "Waiting for approval"
   await page.goto('/admin/hiring?tab=stages', { waitUntil: 'networkidle' });
   await expect(page.getByTestId('pipeline-stage-approval')).toContainText('Wanda Waiting');
-  await expect(page.getByTestId('pipeline-count-approval')).toContainText('1');
+  // other tests in the suite may leave people waiting too: the count is at least this one
+  await expect(page.getByTestId('pipeline-count-approval')).toContainText(/[1-9]/);
   // approve: the card goes away
   await page.goto('/admin', { waitUntil: 'networkidle' });
   page.once('dialog', (d) => void d.accept());
   await card.getByTestId(`onboarding-approve-${id}`).click();
-  await expect(page.getByTestId('today-onboarding-approvals')).toHaveCount(0, { timeout: 20_000 });
+  // this person leaves the card (others in the suite may still be waiting, so the card itself can stay)
+  await expect(page.getByTestId(`onboarding-approve-${id}`)).toHaveCount(0, { timeout: 20_000 });
 });
 
 test('A people list sorts newest first by default, and by the address: ?sort=oldest, ?sort=az', async ({ page }) => {
@@ -75,7 +77,9 @@ test('A people list sorts newest first by default, and by the address: ?sort=old
     const rid = randomUUID(); const e = `sort.r43.${i}.${t}@example.test`;
     await sql`insert into local_auth.users (id, email, password_hash) values (${rid}, ${e}, ${hash(PW)})`;
     await sql`select public.register_account(${rid}, ${e}, ${names[i]!}, null)`;
-    await sql`update renters set created_at = now() - make_interval(days => ${days[i]!}) where user_id = ${rid}`;
+    // an account is not a renter until their details are on file: make each one a renter, created that many days ago
+    await sql`insert into renters (user_id, legal_name, date_of_birth, mobile, email, created_at)
+              values (${rid}, ${names[i]!}, '1990-01-01', ${`+1416555${String(1000 + i).slice(-4)}`}, ${e}, now() - make_interval(days => ${days[i]!}))`;
   }
   await signIn(page, admin.email, '/admin/renters');
   const order = async (qs: string) => {

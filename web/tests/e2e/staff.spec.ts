@@ -231,7 +231,8 @@ test('va: fleet checks and assigns the field job made from a booking', async ({ 
   const other = await mkUser(sql, 'fj2', 'field');
   await sql`select app.assign_field_job(${j!.id}::uuid, ${other.id}::uuid, ${admin.id}::uuid)`;
   await page.reload();
-  await page.getByTestId(`assign-${j!.id}`).click();
+  // once assigned, the job shows in its day and in the assigned person's list: either Reassign button opens the same form
+  await page.getByTestId(`assign-${j!.id}`).first().click();
   await page.locator('dialog[open]').getByLabel('Field staff').selectOption(field.id);
   await page.getByTestId(`assign-${j!.id}-submit`).click();
   await expect.poll(async () => (await sql`select assigned_to from field_jobs where id = ${j!.id}`)[0]?.assigned_to, { timeout: 15_000 }).toBe(field.id);
