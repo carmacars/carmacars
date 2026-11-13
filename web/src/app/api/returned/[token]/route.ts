@@ -8,9 +8,14 @@ import { claimPayload, UUID, type ClaimInput } from '@/features/returns/claim';
 // as renter-provided and opens Fleet's To do. Sending it twice changes nothing.
 export const dynamic = 'force-dynamic';
 
+// An unreadable Origin header ("null" from some in-app browsers) is a foreign origin, never a crash with a non-JSON 500.
+function originHost(origin: string): string | null {
+  try { return new URL(origin).host; } catch { return null; }
+}
+
 export async function POST(req: Request, { params }: { params: Promise<{ token: string }> }) {
   const origin = req.headers.get('origin');
-  if (origin && new URL(origin).host !== req.headers.get('host')) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
+  if (origin && originHost(origin) !== req.headers.get('host')) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
   const { token } = await params;
   if (!UUID.test(token)) return NextResponse.json({ ok: false, message: 'This link is not valid.' }, { status: 404 });
   const body = (await req.json().catch(() => null)) as ClaimInput | null;

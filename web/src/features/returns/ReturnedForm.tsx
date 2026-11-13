@@ -46,9 +46,20 @@ export function ReturnedForm({ token }: { token: string }) {
     if (!v.ok) { setErr(v.message); return; }
     setBusy(true);
     try {
-      const r = await fetch(`/api/returned/${token}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(v.payload) });
-      const j = (await r.json().catch(() => ({}))) as { ok?: boolean; message?: string };
-      if (!j.ok) throw new Error(j.message ?? 'The report could not be sent. Call us instead.');
+      // A reply that is not JSON (a gateway error or a dropped connection) is tried once more by itself; sending twice
+      // changes nothing in the database. The status code is shown so staff can tell what happened.
+      const send = async () => {
+        const r = await fetch(`/api/returned/${token}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(v.payload) });
+        const j = (await r.json().catch(() => null)) as { ok?: boolean; message?: string } | null;
+        return { status: r.status, j };
+      };
+      let res = await send().catch(() => null);
+      if (!res || !res.j) {
+        await new Promise((ok) => setTimeout(ok, 1500));
+        res = await send().catch(() => null);
+      }
+      if (!res || !res.j) throw new Error(`The report could not be sent${res ? ` (error ${res.status})` : ''}. Try again, or call us.`);
+      if (!res.j.ok) throw new Error(res.j.message ?? 'The report could not be sent. Try again, or call us.');
       setDone(true);
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'The report could not be sent. Call us instead.');
