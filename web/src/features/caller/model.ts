@@ -95,3 +95,102 @@ export function noteProblem(body: string): string | null {
   if (s.length > 4000) return 'Keep a note under 4,000 characters';
   return null;
 }
+
+// ---------------------------------------------------------------- the pop-up minimized (r42, migration 2670)
+/** The call's timer: from the answer (the first ring before it) to the end, as 2:05 or 1:02:05. */
+export function callTimer(c: Pick<LiveCall, 'at' | 'answered_at' | 'ended_at'>, now: number): string {
+  const from = Date.parse(c.answered_at ?? c.at);
+  const to = c.ended_at ? Date.parse(c.ended_at) : now;
+  const s = Number.isFinite(from) && Number.isFinite(to) ? Math.max(0, Math.floor((to - from) / 1000)) : 0;
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = String(s % 60).padStart(2, '0');
+  return h ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`;
+}
+/** The same for a screen reader: "2 minutes 5 seconds". */
+export function callTimerWords(timer: string): string {
+  const p = timer.split(':').map(Number);
+  const [h, m, s] = p.length === 3 ? [p[0] ?? 0, p[1] ?? 0, p[2] ?? 0] : [0, p[0] ?? 0, p[1] ?? 0];
+  const w = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`;
+  return [h ? w(h, 'hour') : '', h || m ? w(m, 'minute') : '', w(s, 'second')].filter(Boolean).join(' ');
+}
+/** The calls open as panels and the calls minimized to a chip (each in the order of visibleCalls). */
+export function splitCalls(shown: LiveCall[], minimized: Record<string, number>): { open: LiveCall[]; chips: LiveCall[] } {
+  return { open: shown.filter((c) => !(c.id in minimized)), chips: shown.filter((c) => c.id in minimized) };
+}
+
+// ---------------------------------------------------------------- the Call helper (r42, migration 2670)
+export interface HelpSituation { code: string; title: string; steps: string[] }
+export interface HelpFaq { code: string; q: string; a: string; keywords: string }
+/** The call_helper read: the staff member's first name, the greeting for each kind of caller, the situations and the FAQ. */
+export interface CallHelp { staff: string; can_edit: boolean; greetings: Record<string, string>; situations: HelpSituation[]; faq: HelpFaq[] }
+
+/** The caller's first name when we know one (never a phone number). */
+export function callerFirstName(c: LiveCall): string | null {
+  if (c.kind === 'unknown') return null;
+  const name = (c.kind === 'renter' && c.renter ? c.renter.name : c.who).trim();
+  if (!name || !/\p{L}/u.test(name) || name === c.display) return null;
+  return name.split(/\s+/)[0] ?? null;
+}
+/** Which greeting fits the caller: a renter with a booking, a renter, a lead, an owner, a staff member, or unknown. */
+export function greetingKey(c: LiveCall): string {
+  if (!callerFirstName(c)) return 'unknown';
+  if (c.kind === 'renter') return c.renter?.booking ? 'renter_booking' : 'renter';
+  return c.kind;
+}
+const FALLBACK_GREETING = 'Thank you for calling CarmaCars, this is {staff}, how can I help?';
+/** The greeting to read out, with the names filled in. A greeting that is off, or one whose words we cannot fill, falls
+ *  back to the one for a caller we do not know. */
+export function greetingFor(c: LiveCall, h: Pick<CallHelp, 'staff' | 'greetings'>): string {
+  const words: Record<string, string | null | undefined> = { staff: h.staff, caller: callerFirstName(c), booking: c.renter?.booking?.number, car: c.renter?.booking?.car };
+  const fill = (t: string) => t.replace(/\{(staff|caller|booking|car)\}/g, (all, k: string) => words[k] || all);
+  const first = fill(h.greetings[greetingKey(c)] ?? '');
+  if (first && !/\{[a-z_]+\}/.test(first)) return first;
+  return fill(h.greetings.unknown ?? FALLBACK_GREETING).replace(/\{[a-z_]+\}/g, '').replace(/\s{2,}/g, ' ').trim();
+}
+
+// The pages a step may link to: the first part of the path under /admin and under /staff (model.test.ts checks each is a
+// real folder of the app). A link written for one portal's page is sent to the other portal's page of the same job.
+export const HELP_PAGES: Record<Portal, ReadonlySet<string>> = {
+  admin: new Set(['offers', 'requests', 'bookings', 'renters', 'owners', 'leads', 'tasks', 'unanswered', 'messages', 'calendar', 'money', 'tolls', 'maintenance', 'visitors',
+    'applications', 'hiring', 'damages', 'incidents', 'settings', 'vehicles', 'guide', 'sales-leads', 'deposit-reviews', 'referral-partners', 'owner-forms', 'owner-money', 'reviews']),
+  va: new Set(['offers', 'requests', 'bookings', 'renters', 'owners', 'leads', 'tasks', 'unanswered', 'messages', 'calendar', 'money', 'tolls', 'maintenance', 'visitors',
+    'quotes', 'card-coverage', 'today', 'cars', 'fleet', 'guide', 'sales-leads', 'deposit-reviews', 'referral-partners', 'owner-forms', 'owner-money', 'reviews', 'owner-leads', 'addons'])
+};
+const SAME_JOB: Record<Portal, Record<string, string>> = {
+  admin: { '/quotes/new': '/offers/new', '/card-coverage': '/settings/card-coverage', '/owner-leads': '/owners?view=leads', '/cars': '/vehicles', '/today': '/tasks' },
+  va: { '/vehicles': '/cars', '/settings/card-coverage': '/card-coverage' }
+};
+/** Where a helper link goes in this portal: its page, an https address as written, or null when this portal has no such
+ *  page (the words are then shown without a link). */
+export function helperHref(portal: Portal, target: string): string | null {
+  if (/^https:\/\/[^\s]+$/.test(target)) return target;
+  if (!/^\/[a-z0-9][a-z0-9/_?=&-]*$/.test(target)) return null;
+  const path = SAME_JOB[portal][target] ?? target;
+  const first = path.slice(1).split(/[/?]/)[0] ?? '';
+  if (!HELP_PAGES[portal].has(first)) return null;
+  return `${portal === 'admin' ? '/admin' : '/staff'}${path}`;
+}
+export type HelpPart = { text: string; href?: string; outside?: boolean };
+/** A step or an answer as words and links: [Bookings](/bookings) becomes a link to the reader's own portal. */
+export function helpParts(portal: Portal, text: string): HelpPart[] {
+  const out: HelpPart[] = [];
+  let last = 0;
+  for (const m of text.matchAll(/\[([^\]\n]+)\]\(([^)\s]+)\)/g)) {
+    if (m.index > last) out.push({ text: text.slice(last, m.index) });
+    const href = helperHref(portal, m[2]!);
+    out.push(href ? { text: m[1]!, href, ...(href.startsWith('https://') ? { outside: true } : {}) } : { text: m[1]! });
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) out.push({ text: text.slice(last) });
+  return out;
+}
+/** The quick answers that match what was typed: every word, in the question, the answer or the search words (any case);
+ *  a match in the question first. Nothing typed: nothing. */
+export function faqSearch(faq: HelpFaq[], q: string, max = 5): HelpFaq[] {
+  const words = q.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((w) => w.length > 1);
+  if (!words.length) return [];
+  const plain = (s: string) => s.toLowerCase().replace(/\[([^\]]+)\]\([^)]*\)/g, '$1');
+  return faq.map((f, i) => {
+    const title = plain(f.q), all = `${title} ${plain(f.a)} ${f.keywords.toLowerCase()}`;
+    return { f, i, hit: words.every((w) => all.includes(w)), inTitle: words.filter((w) => title.includes(w)).length };
+  }).filter((x) => x.hit).sort((a, b) => b.inTitle - a.inTitle || a.i - b.i).slice(0, max).map((x) => x.f);
+}
