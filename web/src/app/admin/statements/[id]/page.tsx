@@ -1,5 +1,5 @@
 import Link from '@/components/Link';
-import { periodOf } from '@/features/owner/period';
+import { partialMonthNotice, periodOf } from '@/features/owner/period';
 import { notFound } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
@@ -20,6 +20,8 @@ export default async function Statement({ params }: { params: Promise<{ id: stri
   if (!s?.row) notFound();
   const r = s.row; const status = String(r.status);
   const R = [`/admin/statements/${id}`, '/admin/owner-money'];
+  // r44 (2783): a statement shorter than a full period says so
+  const partial = partialMonthNotice({ ...(r as { statement_month: string; period_starts_on?: string | null; period_ends_on?: string | null }), partial_month: (s as { partial_month?: boolean }).partial_month });
   return (<>
     <PageHead kicker={<><Link prefetch={false} className="link" href="/admin/owner-money?tab=statements">Owner statements</Link> · {String(r.owner_name)}</>} title={<>{periodOf(r as { statement_month: string })} statement, v{String(r.version)} <Badge s={status} /></>}>
       <a className="btn btn--ghost btn--sm" href={`/files/owner_statement/${id}`} data-testid="statement-pdf">{status === 'draft' ? 'Preview PDF' : 'PDF'}</a>
@@ -29,6 +31,7 @@ export default async function Statement({ params }: { params: Promise<{ id: stri
       {['approved', 'paid'].includes(status) && !r.sent_at && <Act action="statement_issue" payload={{ id }} label="Issue to the owner" refresh={R} />}
       {status === 'approved' && <Act action="statement_reissue" payload={{ id }} label="Reissue" variant="danger" fields={[{ name: 'reason', label: 'Reason', required: true }]} go="/admin/statements/{id}" />}
     </PageHead>
+    {partial && <p className="alert" role="note" data-testid="statement-partial"><span>{partial}</span></p>}
     <Kv rows={[['Owner Revenue', $(r.owner_revenue_cents)], ['Management fee (Revenue Share)', $(r.revenue_share_cents)], ['Deductions', $(r.deductions_cents)], ['Credits', $(r.credits_cents)], ['Balance brought forward', $(r.balance_brought_forward_cents)], ['Payout', <b key="p" data-testid="statement-payout">{$(r.payout_cents)}</b>], ['Payout date', d(r.payout_date)], ['Approved', r.approved_at ? `${d(r.approved_at)}` : ''], ['Issued', d(r.sent_at)]]} />
     {/* 1702: revenue counts when earned; the part not paid yet, with the bookings behind it */}
     {s.not_collected?.line && <Card title={s.not_collected.line} testId="statement-not-collected">

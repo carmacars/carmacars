@@ -113,12 +113,14 @@ export interface OwnerStatement {
   statement: { id: string; statement_number: string; statement_month: string; payout_date: string; status: string; is_final: boolean;
     owner_revenue_cents: number; revenue_share_cents: number; net_earnings_cents: number; deductions_cents: number; vehicles_payable_cents: number;
     arrears_moved_cents: number; kickbacks_earned_cents: number; hst_on_payout_cents: number; balance_brought_forward_cents: number;
-    payout_cents: number; balance_carried_forward_cents: number };
+    payout_cents: number; balance_carried_forward_cents: number; period_starts_on?: string | null; period_ends_on?: string | null };
   vehicles: Array<{ vehicle_id: string; name: string; plate: string | null; management_mode: string; totals: Record<string, number>; lines: StatementLine[] }>;
   owner_lines: StatementLine[];
   payout: { amount_cents: number; status: string; method: string; paid_at: string | null; reference: string | null; scheduled_for: string } | null;
   /** 1702: the part of the rentals not paid yet (revenue counts when earned), with the bookings behind it */
   not_collected?: NotCollected;
+  /** r44 (2783): the period shorter than a full one, and the period itself */
+  partial_month?: boolean; period_starts_on?: string | null; period_ends_on?: string | null;
 }
 export interface NotCollected {
   total_cents: number; line: string | null; by_vehicle: Record<string, number>;

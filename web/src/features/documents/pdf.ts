@@ -3,6 +3,7 @@ import { companyParty } from '@/lib/format';
 import { agreementPdf } from '@/features/agreement/pdf';
 import type { Block } from '@/features/agreement/model';
 import { hoursText } from '@/features/field-pay/model';
+import { partialMonthNotice, periodOf } from '@/features/owner/period';
 import { insurerInvoiceBlocks, invoiceFooter, issuerBlock, payBlocks, type Pay } from './invoice-blocks';
 
 // The generated documents (docs/blueprint/11-statements-and-reports.md sections 2, 4 and 7): owner
@@ -51,7 +52,13 @@ function ownerStatement(f: F): Block[] {
   const t = (f.totals ?? {}) as Row;
   const paid = f.paid as Row | null;
   const blocks = header(f, [['Owner', s(o.legal_name)], ...(s(o.address) ? [['Address', s(o.address)] as [string, string]] : []), ...(o.hst_number ? [['HST number', s(o.hst_number)] as [string, string]] : [])],
-    [['Statement', s(f.statement_number)], ['Month', month(f.statement_month)], ['Payout date', day(f.payout_date)], ['Status', label(f.status)], ...(f.is_final ? [['Final statement', 'Yes'] as [string, string]] : [])]);
+    [['Statement', s(f.statement_number)], ['Month', month(f.statement_month)],
+      // r44 (2783): the period, and a notice when it is shorter than a full one
+      ...(f.period_ends_on ? [['Period', periodOf({ statement_month: s(f.statement_month), period_starts_on: f.period_starts_on ? s(f.period_starts_on) : null, period_ends_on: s(f.period_ends_on) })] as [string, string]] : []),
+      ['Payout date', day(f.payout_date)], ['Status', label(f.status)], ...(f.is_final ? [['Final statement', 'Yes'] as [string, string]] : [])]);
+  const partial = partialMonthNotice({ statement_month: f.statement_month ? s(f.statement_month) : null, period_starts_on: f.period_starts_on ? s(f.period_starts_on) : null,
+    period_ends_on: f.period_ends_on ? s(f.period_ends_on) : null, partial_month: typeof f.partial_month === 'boolean' ? f.partial_month : null });
+  if (partial) blocks.push({ t: 'p', text: `**${partial}**` });
   for (const v of (f.vehicles ?? []) as Row[]) {
     blocks.push({ t: 'h2', text: `${s(v.vehicle)}${v.plate ? `, ${s(v.plate)}` : ''}` });
     const lines = (v.lines ?? []) as Row[];
