@@ -46,13 +46,15 @@ export async function renderUnsigned(raw: Bundle): Promise<Uint8Array> {
 /** Renders, stores and opens the agreement for the approved offer. The same document returns the open agreement.
  *  The agreement number is assigned by the opening itself, so the unsigned document carries the booking number
  *  and the signed copy carries both. */
-export async function openAgreement(bookingId: string, by: string): Promise<string> {
+export async function openAgreement(bookingId: string, by: string, o: { asStaff?: boolean } = {}): Promise<string> {
   const b = await loadBundle(bookingId, by);
   const pdf = await renderUnsigned(b);
   const sha = await sha256Hex(pdf);
   const key = `bookings/${bookingId}/agreement-v${b.f.booking.offer_approved_version ?? 'owner'}-${sha.slice(0, 16)}.pdf`;
   await (await storage()).put('agreements', key, pdf, 'application/pdf');
-  const id = (await rpc('renter_open_agreement', { p_booking: bookingId, p_by: by, p_template_version: AGREEMENT_TEMPLATE_VERSION, p_document_sha256: sha, p_storage_path: key }, SR)) as unknown as string;
+  // r44 (2812): staff open it when the renter has no account, or for a rental that has ended (an Admin's request)
+  const args = { p_booking: bookingId, p_by: by, p_template_version: AGREEMENT_TEMPLATE_VERSION, p_document_sha256: sha, p_storage_path: key };
+  const id = (await rpc(o.asStaff ? 'server_agreement_open_staff' : 'renter_open_agreement', args, SR)) as unknown as string;
   // what the document printed of the check-in (an agreement signed at pickup after the readings): the database
   // compares it with the completed check-in, so no separate pickup copy is made when they match
   const p = b.x.pickup;

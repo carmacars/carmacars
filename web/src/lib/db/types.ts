@@ -3649,6 +3649,8 @@ export type Database = {
           coverage_card_id: string | null;
           coverage_card_ack_at: string | null;
           opcf27_ack_at: string | null;
+          agreement_after_trip_at: string | null;
+          agreement_after_trip_by: string | null;
         };
         Insert: {
           id?: string;
@@ -3860,6 +3862,8 @@ export type Database = {
           coverage_card_id?: string | null;
           coverage_card_ack_at?: string | null;
           opcf27_ack_at?: string | null;
+          agreement_after_trip_at?: string | null;
+          agreement_after_trip_by?: string | null;
         };
         Update: {
           id?: string;
@@ -4071,6 +4075,8 @@ export type Database = {
           coverage_card_id?: string | null;
           coverage_card_ack_at?: string | null;
           opcf27_ack_at?: string | null;
+          agreement_after_trip_at?: string | null;
+          agreement_after_trip_by?: string | null;
         };
         Relationships: [];
       };
@@ -32781,9 +32787,11 @@ export type Database = {
       server_agreement_extra: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_agreement_facts: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_agreement_facts_pre0148: { Args: { p_booking: string; p_by: string }; Returns: Json };
+      server_agreement_facts_pre2812: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_agreement_job_done: { Args: { p_kind: string; p_ref: string; p_seq: number }; Returns: undefined };
       server_agreement_job_fail: { Args: { p_kind: string; p_ref: string; p_error: string }; Returns: undefined };
       server_agreement_jobs_claim: { Args: { p_limit?: number; p_ahead_seconds?: number }; Returns: Json };
+      server_agreement_open_staff: { Args: { p_booking: string; p_by: string; p_template_version: string; p_document_sha256: string; p_storage_path: string }; Returns: string };
       server_agreement_plan: { Args: { p_booking: string }; Returns: Json };
       server_agreement_rendered: { Args: { p_booking: string; p_pickup: Json }; Returns: undefined };
       server_agreement_version_add: { Args: { p_booking: string; p: Json }; Returns: Json };

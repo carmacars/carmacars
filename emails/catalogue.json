@@ -360,22 +360,10 @@
           "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
         },
         {
-          "name": "contact_email",
-          "type": "string",
-          "sample": "contact@carmacars.ca",
-          "note": "Public contact address shown in the footer (site_settings public email)."
-        },
-        {
           "name": "first_name",
           "type": "string",
           "sample": "Maya",
           "note": "First name of the person the email is addressed to."
-        },
-        {
-          "name": "instagram_url",
-          "type": "url",
-          "sample": "https://instagram.com/carmacars.ca",
-          "note": "Instagram profile address (social_links)."
         },
         {
           "name": "message_body",
@@ -386,12 +374,6 @@
           "name": "message_subject",
           "type": "string",
           "sample": "Replacement rental for claim CL-2026-77812"
-        },
-        {
-          "name": "opening_hours",
-          "type": "string",
-          "sample": "Open 24 hours, every day",
-          "note": "Opening hours wording (site_settings.opening_hours_text)."
         },
         {
           "name": "reply_time",
@@ -409,12 +391,6 @@
           "type": "string",
           "sample": "289-312-5991",
           "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
-        },
-        {
-          "name": "tiktok_url",
-          "type": "url",
-          "sample": "https://tiktok.com/@carmacars.ca",
-          "note": "TikTok profile address (social_links)."
         }
       ],
       "template_html": "templates/insurance_staff_message.html",
@@ -20500,22 +20476,10 @@
           "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
         },
         {
-          "name": "contact_email",
-          "type": "string",
-          "sample": "contact@carmacars.ca",
-          "note": "Public contact address shown in the footer (site_settings public email)."
-        },
-        {
           "name": "first_name",
           "type": "string",
           "sample": "Clara",
           "note": "First name of the person the email is addressed to."
-        },
-        {
-          "name": "instagram_url",
-          "type": "url",
-          "sample": "https://instagram.com/carmacars.ca",
-          "note": "Instagram profile address (social_links)."
         },
         {
           "name": "insurer_name",
@@ -20568,12 +20532,6 @@
           "note": "How long the one-time link stays valid."
         },
         {
-          "name": "opening_hours",
-          "type": "string",
-          "sample": "Open 24 hours, every day",
-          "note": "Opening hours wording (site_settings.opening_hours_text)."
-        },
-        {
           "name": "period",
           "type": "string",
           "sample": "Fri, Oct 23, 2026 to Mon, Oct 26, 2026"
@@ -20594,12 +20552,6 @@
           "type": "string",
           "sample": "289-312-5991",
           "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
-        },
-        {
-          "name": "tiktok_url",
-          "type": "url",
-          "sample": "https://tiktok.com/@carmacars.ca",
-          "note": "TikTok profile address (social_links)."
         },
         {
           "name": "vehicle_name",

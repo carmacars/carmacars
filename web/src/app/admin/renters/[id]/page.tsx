@@ -1,4 +1,5 @@
 import { IntentCard } from '@/features/intent/IntentCard';
+import { InstantBookCard, type InstantState } from '@/features/request-history/BookingExtras';
 import type { Intent } from '@/features/intent/model';
 import Link from '@/components/Link';
 import { notFound } from 'next/navigation';
@@ -45,7 +46,9 @@ export default async function Renter({ params, searchParams }: { params: Promise
   // r35 (0955): the merges of this renter, automatic or by staff, with Undo for an Admin
   const merges = await door<{ admin: boolean; rows: MergeRow[] }>(user.id, 'ops_read', 'renter_merges', { renter: id }).catch(() => ({ admin: false, rows: [] as MergeRow[] }));
   // r35 part C (1506): the renter's intent signals
-  const intent = await door<Intent | null>(user.id, 'ops_read', 'intent', { renter: id }).catch(() => null);
+  const [intent, instant] = await Promise.all([door<Intent | null>(user.id, 'ops_read', 'intent', { renter: id }).catch(() => null),
+    // r44: instant booking, with Take it away (and Give it back) for an Admin, here as on the booking page
+    door<InstantState | null>(user.id, 'ops_read', 'instant_book_state', { renter: id }).catch(() => null)]);
   // Email the renter (0187): an email goes with one of their bookings (the latest unless another is chosen), so it is kept
   // on that booking's messages and the renter can answer it in their account
   const latest = [...r.bookings].sort((a, b) => (a.pickup_at < b.pickup_at ? 1 : -1))[0];
@@ -57,6 +60,7 @@ export default async function Renter({ params, searchParams }: { params: Promise
       <div className="ad-cols ad-cols--2">
         <div className="stack">
           <IntentCard intent={intent} />
+          <InstantBookCard s={instant} refresh={[`/admin/renters/${id}`]} />
           <NameChangeCard items={nameChanges} refresh={[`/admin/renters/${id}`]} />
           {rf && <RenterEdit x={rf} />}
           <RenterMerge renterId={id} name={r.name} rows={dupes} />

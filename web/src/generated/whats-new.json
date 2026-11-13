@@ -71,6 +71,36 @@
      "Check-in and check-out are faster and late returns are charged by a staff decision, never automatically"
     ]
    }
+  },
+  "r44": {
+   "date": "2026-11-13",
+   "seq": 0,
+   "summary": "Booking totals follow every change of a line, insurer paperwork matches the insurer's numbers, ended rentals can be signed for the file, and money records show only money received.",
+   "sections": {
+    "staff": [
+     "Changing the amount of a line on the Money tab now changes the booking's total and balance with it, so no balance appears that nobody owes",
+     "A failed card attempt says what became of it: settled by a payment received another way, nothing owing any more, or a button to record the payment",
+     "A Sales person who closed a sale keeps that customer's chats, calls and conversations on every later booking",
+     "The automatic AI answer waits when a person replied to that customer in the last 30 minutes, also when the reply went to their booking or account, and in the live chat",
+     "The Protection Plan can be offered on a car with no value on file, on every screen that offers it",
+     "Field staff see Missing check-in and check-out on Today: past rentals they handled or were given, each with Add the photos and readings (odometer, fuel, damage photos), including closed bookings and pickups recorded with the details later",
+     "Fleet sees every missing one on the Field jobs page and gives each to a field staff member"
+    ],
+    "admins": [
+     "Change the total on the Money tab sets a booking's total cleanly; the difference goes on the rental charge",
+     "An ended rental can get its rental agreement for the insurer's file: Make the agreements again or Sign on this device prepares it, and details not on file print blank",
+     "The replacement rental agreement shows the insurer's authorized days and daily rate, with totals that match the insurer invoice exactly",
+     "Insurer invoices carry a cheque section beside the e-Transfer details, never show the CarmaCars name, and stop saying Draft once issued",
+     "Take instant booking away is on the renter's page as well as the booking page",
+     "Data Health lists bookings whose deposit reads as charged with no deposit money recorded",
+     "Missing check-in and check-out on Field jobs lists every past rental without its photos and readings, with Give to field staff",
+     "An insurer invoice can be sent or marked sent from the booking; Send by email goes to the adjuster's email on the booking, else the insurer's billing email"
+    ],
+    "renters": [
+     "A deposit that was never paid no longer reads as charged on the booking",
+     "I've returned the car and photos for Report a problem send from a phone browser opened by a text message link"
+    ]
+   }
   }
  }
 }

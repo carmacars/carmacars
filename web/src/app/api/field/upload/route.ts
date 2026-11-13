@@ -19,7 +19,7 @@ type Job = { job: { id: string; booking_id: string | null; vehicle_id: string };
 export async function POST(req: Request) {
   // same-origin only: the session cookie must not be usable from another site
   const origin = req.headers.get('origin');
-  if (foreignOrigin(origin, req.headers.get('host'))) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
+  if (foreignOrigin(origin, req.headers.get('host'), req.headers.get('sec-fetch-site'))) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
   const user = await currentUser();
   if (!user) return NextResponse.json({ ok: false, message: 'Sign in first.' }, { status: 401 });
   const roles = await rolesOf(user.id);

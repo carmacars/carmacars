@@ -1,4 +1,5 @@
 import Link from '@/components/Link';
+import { MissingHandovers } from '@/features/handover/MissingHandovers';
 import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
 import { redirect } from 'next/navigation';
@@ -45,6 +46,7 @@ export default async function Fleet() {
       {wl && <WorkListsPanel w={wl} />}
       <FieldJobsBoard b={b} cal={cal} now={now} photos={photos} base="/staff" />
       {prep && <PrepPanel p={prep} />}
+      <MissingHandovers userId={user.id} aal={aal} mode="fleet" base="/staff" />
       {calls.length > 0 && <FieldCallsCard calls={calls} />}
       {approvals.length > 0 && onboarding.length > 0 && <section className="pt-card stack" aria-labelledby="onb-appr" data-testid="fleet-onboarding"><h2 className="d4" id="onb-appr">Onboarding</h2><OnboardingPipeline staff={onboarding} approvals={approvals} refresh={['/staff/fleet']} /></section>}
       {approvals.length > 0 && onboarding.length === 0 && <section className="pt-card stack" aria-labelledby="onb-appr"><h2 className="d4" id="onb-appr">Onboarding approvals</h2><OnboardingApprovals rows={approvals} refresh={['/staff/fleet']} /></section>}

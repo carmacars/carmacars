@@ -12,7 +12,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
-  if (foreignOrigin(origin, req.headers.get('host'))) return NextResponse.json({ ok: false }, { status: 403, headers: H });
+  if (foreignOrigin(origin, req.headers.get('host'), req.headers.get('sec-fetch-site'))) return NextResponse.json({ ok: false }, { status: 403, headers: H });
   if (isBot(req.headers.get('user-agent'), true)) return NextResponse.json({ ok: true }, { headers: H });
   const b = (await req.json().catch(() => null)) as { e?: unknown; gate?: unknown; vid?: unknown } | null;
   if (!b || (b.e !== 'shown' && b.e !== 'closed') || !['gallery', 'dates', 'request'].includes(String(b.gate))) return NextResponse.json({ ok: false }, { status: 400, headers: H });

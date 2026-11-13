@@ -38,7 +38,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
-  if (foreignOrigin(origin, req.headers.get('host'))) return Response.json({ ok: false, message: 'Not permitted.' }, { status: 403, headers: H });
+  if (foreignOrigin(origin, req.headers.get('host'), req.headers.get('sec-fetch-site'))) return Response.json({ ok: false, message: 'Not permitted.' }, { status: 403, headers: H });
   const user = await realUser();
   if (!user) return Response.json({ ok: false, message: 'Sign in first.' }, { status: 401, headers: H });
   // the people who may record repair costs (the cost itself is checked again when it is saved)

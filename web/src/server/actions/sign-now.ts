@@ -138,10 +138,15 @@ export async function staffDocumentUpload(form: FormData): Promise<R> {
  *  home): make it now, as the five-minute job would, so the renter signs on this device. */
 export async function prepareAgreementNow(bookingId: string): Promise<R<{ ready: boolean }>> {
   try {
-    const { user } = await staff();
+    const { user, aal } = await staff();
     const { rpc } = await import('@/lib/db/repo');
-    const r = (await rpc('server_sign_now_prepare', { p_booking: bookingId, p_by: user.id }, { role: 'service_role' })) as unknown as { ready: boolean; renter_user_id?: string };
-    if (!r.ready && r.renter_user_id) {
+    const r = (await rpc('server_sign_now_prepare', { p_booking: bookingId, p_by: user.id }, { role: 'service_role' })) as unknown as { ready: boolean; renter_user_id?: string | null; after_trip?: boolean; as_staff?: boolean };
+    if (!r.ready && (r.after_trip || r.as_staff)) {
+      // r44 (2812): a rental that has ended (an Admin's request) or a renter with no account: staff make the agreement
+      if (r.after_trip) await door(user.id, 'ops_do', 'agreement_after_trip', { booking: bookingId }, aal);
+      const { openAgreement } = await import('@/server/portal/agreement');
+      await openAgreement(bookingId, user.id, { asStaff: true });
+    } else if (!r.ready && r.renter_user_id) {
       const { ensureAgreement } = await import('@/server/agreement-auto');
       if (!(await ensureAgreement(bookingId, r.renter_user_id, 'sign_now'))) throw new Error('The agreement could not be made just now: try again in a minute.');
     }

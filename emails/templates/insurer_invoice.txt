@@ -1,4 +1,4 @@
-CarmaCars  |  Invoice {{invoice_number}}
+Blind Spot Car Rental  |  Invoice {{invoice_number}}
 
 ========================================
 
@@ -36,12 +36,9 @@ The download link works for {{link_expiry}}. To pay by bank transfer or ask abou
 
 Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
 
-You are receiving this because you are the billing contact for a claim with a replacement rental from CarmaCars.
+You are receiving this because you are the billing contact for a claim with a replacement rental from Blind Spot Car Rental.
 
-Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+Questions about this rental or invoice: reply to this email.
 
-CarmaCars
-{{#if company_address}}{{company_address}}
-{{/if}}https://carmacars.ca/
-{{#if instagram_url}}Instagram: {{instagram_url}}
-{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}
+Blind Spot Car Rental
+{{#if company_address}}{{company_address}}{{/if}}

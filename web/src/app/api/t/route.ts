@@ -20,7 +20,7 @@ const none = () => new Response(null, { status: 204, headers: H });
 
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
-  if (foreignOrigin(origin, req.headers.get('host'))) return NextResponse.json({ ok: false }, { status: 403, headers: H });
+  if (foreignOrigin(origin, req.headers.get('host'), req.headers.get('sec-fetch-site'))) return NextResponse.json({ ok: false }, { status: 403, headers: H });
   const ua = req.headers.get('user-agent');
   const e = env();
   if (isBot(ua, e.APP_ENV !== 'production' && process.env.TRACK_ALLOW_HEADLESS !== '0')) return NextResponse.json({ ok: true, bot: true }, { headers: H });

@@ -16,6 +16,15 @@ test('another site, or an Origin that is not an address: refused, never thrown',
   assert.equal(foreignOrigin('https://www.example.test', null), true);
 });
 
+test('r44: the www. form of this site, and "null" from a same-origin in-app browser, are this site', () => {
+  assert.equal(foreignOrigin('https://example.test', 'www.example.test'), false);
+  assert.equal(foreignOrigin('https://www.example.test', 'example.test'), false);
+  assert.equal(foreignOrigin('null', 'www.example.test', 'same-origin'), false);
+  assert.equal(foreignOrigin('null', 'www.example.test', 'cross-site'), true);
+  assert.equal(foreignOrigin('null', 'www.example.test', null), true);
+  assert.equal(foreignOrigin('https://example.test.other.test', 'example.test'), true);
+});
+
 test('secrets: equal only when every character and the length match', () => {
   assert.equal(sameSecret('Bearer abc123', 'Bearer abc123'), true);
   for (const g of ['', 'Bearer abc124', 'Bearer abc12', 'Bearer abc1234', 'bearer abc123']) assert.equal(sameSecret(g, 'Bearer abc123'), false, g);

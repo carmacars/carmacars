@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const origin = req.headers.get('origin');
-  if (foreignOrigin(origin, req.headers.get('host'))) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
+  if (foreignOrigin(origin, req.headers.get('host'), req.headers.get('sec-fetch-site'))) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
   if (!TOKEN.test(token ?? '')) return NextResponse.json({ ok: false, message: 'This link is not valid.' }, { status: 404 });
   if (Number(req.headers.get('content-length') ?? 0) > MAX_AUDIO_BYTES + 64 * 1024) return NextResponse.json({ ok: false, message: 'That recording is too large. Please record it again.' }, { status: 413 });
   try {

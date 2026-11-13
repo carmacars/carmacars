@@ -429,3 +429,60 @@ test('0544: the renter signs on the x line below box 2 and in box 40 as well as 
   assert.ok(SIG.initialsCleanup.top > 119 && SIG.initialsCleanup.top < 145, 'below box 2');
   assert.ok(SIG.initialsDue.top > 425 && SIG.initialsDue.top < 450, 'in box 40');
 });
+
+// ---------------------------------------------------------------- r44: an insurer-billed rental at the insurer's daily rate
+// 35 days booked at the monthly rate ($4,840.00 / 30 x 35 = $5,646.67 on the booking), billed to the insurer at its
+// authorized $80.00 a day, with VLF at $5.00 a day: the form shows the insurer's numbers, as its invoice does.
+function insurerBooking(days: number, rate: number, monthly = true): BlindSpotFacts {
+  const f = sampleFacts({ mailing: MAILING, hst_number: '79878 1234 RT0001' });
+  const booked = monthly ? Math.round(484000 / 30 * days) : Math.round(33000 / 7 * days);
+  const vlf = 500 * days;
+  const lines: Line[] = [
+    { charge_type: 'rental_charge', description: 'Rental charge', amount_cents: booked, hst_cents: Math.round(booked * 0.13), stage: 'booking' },
+    { charge_type: 'vlf', description: 'VLF (vehicle licence fee)', amount_cents: vlf, hst_cents: Math.round(vlf * 0.13), stage: 'booking' }
+  ];
+  f.booking = { ...f.booking, pickup_at: '2026-10-01T15:00:00Z', return_at: new Date(Date.parse('2026-10-01T15:00:00Z') + days * 86_400_000).toISOString(), billable_days: days,
+    rate_applied: monthly ? 'monthly' : 'weekly', monthly_rate_cents: 484000, weekly_rate_cents: 33000, rental_charge_cents: booked, deposit_cents: 0, coverage_option: null,
+    subtotal_at_booking_cents: booked + vlf, hst_at_booking_cents: Math.round((booked + vlf) * 0.13), total_due_at_booking_cents: Math.round((booked + vlf) * 1.13) };
+  f.lines = lines.map(({ charge_type, description, amount_cents }) => ({ charge_type, description, amount_cents }));
+  const x: AgreementExtra = { ...richFacts('pickup').x, lines, payments: [], swaps: [], insurer_policy: null,
+    deposit: { amount_cents: 0, pay_method: 'card', method: 'card_hold', paid_method: null, status: 'pending', taken_at: null, applied_cents: 0, released_cents: 0, held_back_cents: 0, card_hold_days: 7 } };
+  const rentalShare = days * rate;
+  const hst = Math.round(rentalShare * 0.13) + Math.round(vlf * 0.13);
+  f.extra = { ...f.extra, more: x, insurer: { name: 'Example Insurance Co', claim_number: 'CLM-EXAMPLE-1', adjuster_name: null, adjuster_phone: null, authorized_days: days, authorized_daily_rate_cents: rate,
+    share: { bill_to: 'insurer', covered_days: days, daily_rate_cents: rate, rental_share_cents: rentalShare, fees_share_cents: vlf, share_cents: rentalShare + vlf, hst_cents: hst } } };
+  return f;
+}
+
+test('insurer-billed: box 35 is the insurer days at its daily rate (35 x $80.00), never a monthly rate by the day', () => {
+  const l = layout(insurerBooking(35, 8000));
+  assert.equal(box(l, '35-count'), '35');
+  assert.equal(box(l, '35-rate'), '$80.00');
+  assert.equal(box(l, '35-amount'), '$2,800.00');
+  assert.equal(box(l, '39'), '$2,800.00');
+  const info = l.texts.filter((t) => t.box.startsWith('14-')).map((t) => t.text).join(' ');
+  assert.ok(!/monthly rate|weekly rate|rounded/.test(info), info);
+  assert.equal(box(l, '43-amount'), '$175.00', 'VLF: 35 days at $5.00');
+  assert.equal(box(l, '43-rate'), '$5.00');
+  // the totals are the insurer invoice's: 2,800 + 175 = 2,975.00; HST 364.00 + 22.75 = 386.75; total 3,361.75
+  assert.equal(box(l, '49'), '$2,975.00');
+  assert.equal(box(l, '50'), '$386.75');
+  assert.equal(box(l, '55'), '$3,361.75');
+});
+
+test('insurer-billed: 17 days at $75.00 (a weekly-rate booking) is 17 x $75.00 = $1,275.00', () => {
+  const l = layout(insurerBooking(17, 7500, false));
+  assert.equal(box(l, '35-count'), '17');
+  assert.equal(box(l, '35-rate'), '$75.00');
+  assert.equal(box(l, '35-amount'), '$1,275.00');
+  const info = l.texts.filter((t) => t.box.startsWith('14-')).map((t) => t.text).join(' ');
+  assert.ok(!/weekly rate|rounded/.test(info), info);
+  assert.equal(box(l, '49'), '$1,360.00');
+  assert.equal(cents(box(l, '55')), cents(box(l, '49')) + cents(box(l, '50')));
+});
+
+test('a renter-billed booking keeps its own rental (no insurer share)', () => {
+  const f = insurerBooking(35, 8000);
+  f.extra.insurer = { ...f.extra.insurer!, share: { ...f.extra.insurer!.share!, bill_to: 'split' } };
+  assert.notEqual(box(layout(f), '35-amount'), '$2,800.00');
+});

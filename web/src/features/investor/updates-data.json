@@ -1,5 +1,30 @@
 [
  {
+  "release": "r44",
+  "title": "Release 44",
+  "date": "2026-11-13",
+  "seq": 0,
+  "summary": "Booking totals follow every change of a line, insurer paperwork matches the insurer's numbers, ended rentals can be signed for the file, and money records show only money received.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "Telling us the car is back, and sending photos of a problem, now work from a phone browser opened by a text message link"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "A booking's total and balance follow every change of a line, and an Admin can set a total directly",
+     "Paperwork for insurer-billed rentals matches the insurer's own numbers exactly, and an ended rental can be signed for the file",
+     "Payment records show only money actually received, and a new data check lists any booking where they disagree",
+     "The automatic answers wait while a person is talking with the customer, also in the live chat",
+     "Field staff can add the photos and readings of past check-ins and check-outs, from a list of the ones still missing"
+    ]
+   }
+  ]
+ },
+ {
   "release": "r39",
   "title": "Release 39",
   "date": "2026-11-12",

@@ -11,7 +11,7 @@ const H = { 'cache-control': 'no-store' };
 
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
-  if (foreignOrigin(origin, req.headers.get('host'))) return NextResponse.json({ error: 'Not permitted' }, { status: 403, headers: H });
+  if (foreignOrigin(origin, req.headers.get('host'), req.headers.get('sec-fetch-site'))) return NextResponse.json({ error: 'Not permitted' }, { status: 403, headers: H });
   const user = await realUser();
   if (!user) return NextResponse.json({ error: 'Sign in first' }, { status: 401, headers: H });
   if (await viewAs()) return NextResponse.json({ error: 'Not while viewing as someone' }, { status: 403, headers: H });

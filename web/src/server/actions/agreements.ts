@@ -41,7 +41,19 @@ export async function agreementResend(booking: string, refresh?: string[]): Prom
   try { const { user, aal } = await staff(); const r = await door<{ sent: number }>(user.id, 'ops_do', 'agreement_resend', { booking }, aal); for (const p of refresh ?? []) revalidatePath(p); return { ok: true, data: r }; } catch (e) { return fail(e); }
 }
 export async function agreementRegenerate(booking: string, refresh?: string[]): Promise<R> {
-  try { const { user, aal } = await staff(); await door(user.id, 'ops_do', 'agreement_regenerate', { booking }, aal); again(refresh); return { ok: true, data: null }; } catch (e) { return fail(e); }
+  try {
+    const { user, aal } = await staff();
+    const r = await door<{ after_trip?: boolean; ready?: boolean; booking_id?: string }>(user.id, 'ops_do', 'agreement_regenerate', { booking }, aal);
+    // r44 (2812): a rental that has ended gets its agreement now, made by staff, ready to sign (an insurer's file)
+    if (r?.after_trip && !r.ready && r.booking_id) await openAfterTrip(r.booking_id, user.id);
+    again(refresh); return { ok: true, data: null };
+  } catch (e) { return fail(e); }
+}
+
+/** r44: the agreement of a rental that has ended, opened as staff (the renter may have no account). */
+async function openAfterTrip(bookingId: string, staffId: string): Promise<void> {
+  const { openAgreement } = await import('@/server/portal/agreement');
+  await openAgreement(bookingId, staffId, { asStaff: true });
 }
 export async function disputePackBuild(booking: string, refresh?: string[]): Promise<R<{ id: string }>> {
   try { const { user, aal } = await staff(); const r = await door<{ id: string }>(user.id, 'ops_do', 'dispute_pack_build', { booking }, aal); again(refresh); return { ok: true, data: r }; } catch (e) { return fail(e); }

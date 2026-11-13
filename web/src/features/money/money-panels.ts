@@ -5,9 +5,12 @@ export interface DepositRow { hold_expires_at?: string | null; method: string; p
 export interface PayRow { purpose: string; kind: string; method: string; amount_cents: number; status: string; covers: string | null; voided?: boolean }
 
 /** The deposit's status as one word. */
-export function depositWord(d: DepositRow | null, depositCents: number, waived = false, now = Date.now()): DepositWord {
+export function depositWord(d: DepositRow | null, depositCents: number, waived = false, now = Date.now(), moneyIn: number | null = null): DepositWord {
   if (waived) return 'Waived';
   if (!d || ['pending', 'failed'].includes(d.status)) return depositCents > 0 ? 'Not collected' : 'No deposit';
+  // r44: a deposit charged or taken in cash or by e-Transfer is money received: with no such money on the booking (a
+  // payment that failed, was voided or was never made), it is not "Charged" (a card hold is checked by its own status)
+  if (moneyIn !== null && moneyIn <= 0 && d.method !== 'card_hold' && d.status === 'captured') return depositCents > 0 ? 'Not collected' : 'No deposit';
   // r33 (0750): a card hold past its expiry (or ended by Stripe) can no longer be kept from
   if (d.status === 'held' && d.method === 'card_hold' && d.hold_expires_at && new Date(d.hold_expires_at).getTime() <= now) return 'Hold expired';
   if (d.status === 'held') return 'Held';
@@ -47,4 +50,15 @@ export function paidTotals(rows: PayRow[]): { rental_cents: number; deposit_cent
 export function rentalDue(parts: Array<{ covers: string; open_cents: number }>): { due_cents: number; later_cents: number } {
   const open = (c: string) => Math.max(0, parts.find((p) => p.covers === c)?.open_cents ?? 0);
   return { due_cents: open('rental') + open('fees'), later_cents: open('later') };
+}
+
+/** r44: a failed card attempt, as the payments list shows it: settled by a payment recorded another way (one that names
+ *  it and is not voided), nothing owing for its part any more, or open. Read from the money recorded, never assumed. */
+export function failedAttemptState(p: { id: string; purpose: string }, manual: Array<{ settles_payment_id?: string | null; voided_at: string | null }>,
+  parts: Array<{ covers: string; open_cents: number }> | null): 'settled' | 'nothing_owing' | 'open' {
+  if (manual.some((m) => m.settles_payment_id === p.id && !m.voided_at)) return 'settled';
+  if (!parts) return 'open';
+  const open = (c: string) => Math.max(0, parts.find((x) => x.covers === c)?.open_cents ?? 0);
+  const owing = p.purpose === 'deposit' ? null : p.purpose === 'later_charge' || p.purpose === 'damage' ? open('later') : open('rental') + open('fees') + open('later');
+  return owing === 0 ? 'nothing_owing' : 'open';
 }

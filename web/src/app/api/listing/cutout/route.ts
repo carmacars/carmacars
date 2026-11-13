@@ -63,7 +63,7 @@ function kick() {
 
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
-  if (foreignOrigin(origin, req.headers.get('host'))) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
+  if (foreignOrigin(origin, req.headers.get('host'), req.headers.get('sec-fetch-site'))) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
   const m = await me();
   if (!m) return NextResponse.json({ ok: false, message: 'Sign in first.' }, { status: 401 });
   const form = await req.formData().catch(() => null);
