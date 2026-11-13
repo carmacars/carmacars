@@ -75,9 +75,15 @@
   "r44": {
    "date": "2026-11-13",
    "seq": 0,
-   "summary": "Booking totals follow every change of a line, insurer paperwork matches the insurer's numbers, ended rentals can be signed for the file, and money records show only money received.",
+   "summary": "Staff make and take calls in the browser from anywhere, Sales sees which cars are free for any dates, every car's listing photos are made to one Gemini standard with the front exterior first, and owner statements count a cancellation only for what it kept.",
    "sections": {
     "staff": [
+     "Calls are made and taken in the browser, in the staff portal, on the business number: your own phone number is never used or shown, wherever you work from",
+     "A call to the business number rings the browsers of customer service and Sales who have a staff page open, with Answer and Decline; nobody answering gives the caller a short message and a missed call with its task",
+     "During a call: Mute, a keypad and Hang up, with the call's timer",
+     "At the top of Calendar, pick the customer's dates: every car says Available or Not available with the reason and the next free date, and Offer these dates starts the offer",
+     "The calendar's colours now say on rent, confirmed, offer or hold, maintenance and block",
+     "Once hired: training first and claiming shifts online, then a hello in the team chat and your member tag \"Name - Position\" in each WhatsApp group",
      "Changing the amount of a line on the Money tab now changes the booking's total and balance with it, so no balance appears that nobody owes",
      "A failed card attempt says what became of it: settled by a payment received another way, nothing owing any more, or a button to record the payment",
      "A Sales person who closed a sale keeps that customer's chats, calls and conversations on every later booking",
@@ -87,6 +93,12 @@
      "Fleet sees every missing one on the Field jobs page and gives each to a field staff member"
     ],
     "admins": [
+     "The same phone bar on every Admin page: Admins call and answer in the browser too",
+     "The same Which cars are free view on the Admin calendar, with Offer these dates",
+     "New settings: calls in the browser, whose browser rings, how long it rings, a forward number when nobody answers (empty by default) and the message callers hear",
+     "The AI interview decides by itself again by default: only Sales passes are hired; every other role books an interview",
+     "The welcome email gives no start date, shows each step in full, and has a button to the staff portal",
+     "A person who works in Sales only reads only their own leads from their own session",
      "Change the total on the Money tab sets a booking's total cleanly; the difference goes on the rental charge",
      "An ended rental can get its rental agreement for the insurer's file: Make the agreements again or Sign on this device prepares it, and details not on file print blank",
      "The replacement rental agreement shows the insurer's authorized days and daily rate, with totals that match the insurer invoice exactly",
@@ -97,6 +109,7 @@
      "An insurer invoice can be sent or marked sent from the booking; Send by email goes to the adjuster's email on the booking, else the insurer's billing email"
     ],
     "renters": [
+     "Calls from CarmaCars always show the business number",
      "A deposit that was never paid no longer reads as charged on the booking",
      "I've returned the car and photos for Report a problem send from a phone browser opened by a text message link"
     ]

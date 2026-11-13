@@ -1,5 +1,6 @@
 'use client';
 import Link from '@/components/Link';
+import { DateInput } from '@/components/DateInput';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useId, useState, useTransition } from 'react';
 import { money } from '@/lib/format';
@@ -40,8 +41,8 @@ export function AvailabilityView({ data, from, to, base, canOffer, error }: { da
     <section className="av" aria-labelledby={`${id}-h`} data-testid="availability">
       <h2 className="av__h" id={`${id}-h`}>Which cars are free</h2>
       <div className="av__form">
-        <label className="av__f"><span>Pickup</span><input className="input" type="datetime-local" value={f.af} onChange={(e) => go({ ...f, af: e.target.value })} data-testid="av-from" /></label>
-        <label className="av__f"><span>Return</span><input className="input" type="datetime-local" value={f.at} min={f.af} onChange={(e) => go({ ...f, at: e.target.value })} data-testid="av-to" /></label>
+        <label className="av__f"><span>Pickup</span><DateInput className="input" type="datetime-local" value={f.af} onChange={(e) => go({ ...f, af: e.target.value })} data-testid="av-from" /></label>
+        <label className="av__f"><span>Return</span><DateInput className="input" type="datetime-local" value={f.at} min={f.af} onChange={(e) => go({ ...f, at: e.target.value })} data-testid="av-to" /></label>
         <label className="av__f"><span>Class</span><select className="select" value={f.ac} onChange={(e) => go({ ...f, ac: e.target.value })} data-testid="av-class">
           <option value="">Every class</option>{AVAIL_CLASSES.map((c) => <option key={c} value={c}>{c === 'suv' ? 'SUV' : c[0]!.toUpperCase() + c.slice(1)}</option>)}</select></label>
         <label className="av__f"><span>Seats at least</span><select className="select" value={f.as} onChange={(e) => go({ ...f, as: e.target.value })} data-testid="av-seats">
