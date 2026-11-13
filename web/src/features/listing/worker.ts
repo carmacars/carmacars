@@ -56,6 +56,8 @@ const INTERIOR = { width: 1600, height: 1200 };
 const MICROUSD_PER_NEURON = 11;              // US$0.011 per 1,000 neurons
 const MICROUSD_PER_TRANSFORMATION = 500;     // US$0.50 per 1,000 unique transformations
 const FREE_DAILY_NEURONS = 10_000;
+/** r43 (2690): the start of the error of a photo that was to be made with Gemini and could not be (the photo is left as it was). */
+export const GEMINI_ONLY = 'Redo with Gemini: ';
 
 export interface JobContext {
   id: string; kind: 'decode_vin' | 'draft_copy' | 'process_photo' | 'resize' | 'publish' | 'marketing_photo' | 'plate_redo' | 'cover_model' | 'cover_flyer' | 'angle_make' | 'plate_auto'; intake_id: string; vehicle_id: string;
@@ -274,6 +276,14 @@ function imageCost(n: number, b: Budget, used: { transformations: number }) {
 async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { transformations: number }): Promise<JobResult> {
   const p = j.photo;
   if (!p) return { ok: false, error: 'The photo is missing', retryable: false };
+  // r43 (2690): "Redo photos with Gemini": the image model is the only engine. No key, no cut-out, a refusal or a changed car
+  // fails the step with the reason and leaves the photo as it was: never the free showroom, the Cloudflare composite or the
+  // unprocessed original (those would replace a poor photo with another poor one, or put an original on the site).
+  const strict = j.input?.engine === 'gemini';
+  const strictFail = (why: string): JobResult => ({ ok: false, provider: 'gemini', error: `${GEMINI_ONLY}${why}. The photo was not changed.`, retryable: false });
+  if (strict && !d.showroomAi) return strictFail('Gemini is not set up on the website (no GEMINI_API_KEY)');
+  if (strict && !(p.rebackground && sceneOf(p) === 'showroom')) return strictFail('only an outside photo in the showroom is made with Gemini');
+  const fb: typeof fallback = strict ? async (_d, _j, reason, message) => strictFail(`${reason}: ${message}`) : fallback;
   // a photo that never goes on the website (the odometer) is kept as it was taken
   if (!p.is_public) return { ok: true, provider: 'carmacars', output: { used_original: true, flags: [], preset_version: 'original' } };
   // the usage guard (0080): no transformations while the allowance is used up; the original goes on the site now and the
@@ -288,13 +298,13 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
     if (!size) { const head = await d.files.getPrivate(p.original_path).catch(() => null); size = head ? imageSize(head) : null; }
     if (size && tooLarge(size.width, size.height)) {
       const w = await workingCopy(d, j);
-      if (!w) return asIs(d, j, size);
+      if (!w) return strict ? strictFail('the photo is too large to edit here') : asIs(d, j, size);
       const r = await processPhoto(d, { ...j, input: { ...j.input, work_copy: true }, photo: { ...p, original_path: w.path, width: null, height: null } }, b, used);
       if (r.ok && r.output) r.output = { ...r.output, work_copy: w.path };
       return r;
     }
   }
-  if (b.images_paused && p.rebackground && !editOf(j.input)) return fallback(d, j, USAGE_PAUSED, `${USAGE_PAUSED}: the month's included image transformations are used`, 0, b, used);
+  if (b.images_paused && p.rebackground && !editOf(j.input)) return fb(d, j, USAGE_PAUSED, `${USAGE_PAUSED}: the month's included image transformations are used`, 0, b, used);
   const src = await d.files.privateUrl(p.original_path);
   // 0700: a mask asked for by the cut-out editor (a photo made before the mask was kept): the segmenter's cut-out only
   if (j.input?.mask_only) {
@@ -336,7 +346,7 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
       cutBytes = e;
     } else {
       const cut = await d.photos.cutout(src);
-      if (!cut.ok) return fail(cut) ?? fallback(d, j, cut.reason, why(cut), n, b, used);
+      if (!cut.ok) return fail(cut) ?? fb(d, j, cut.reason, why(cut), n, b, used);
       n += cut.transformations;
       cutBytes = cut.bytes;
       // 0700: the segmenter's cut-out as it came (its alpha is the mask), for the cut-out editor
@@ -353,13 +363,15 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
     // photo goes on (its plates covered as every photo). A cut-out staff edited is theirs and is used.
     const mq = raw && !edit ? maskQuality(raw) : null;
     if (mq && mq.score < (j.cutout?.min_quality ?? 0.6)) {
-      const fb = await fallback(d, j, 'low_mask', `The cut-out is not clean enough to place in a room (mask quality ${mq.score}): the real photo is used`, n, b, used);
-      if (fb.ok && fb.output) fb.output = { ...fb.output, ...(maskPath ? { mask_path: maskPath } : {}),
+      if (strict) return strictFail(`the cut-out is not clean enough to place in a room (mask quality ${mq.score}); edit the cut-out first`);
+      const lowFb = await fallback(d, j, 'low_mask', `The cut-out is not clean enough to place in a room (mask quality ${mq.score}): the real photo is used`, n, b, used);
+      if (lowFb.ok && lowFb.output) lowFb.output = { ...lowFb.output, ...(maskPath ? { mask_path: maskPath } : {}),
         showroom: { provider: 'local', reason: 'low_mask', note: `The real photo is used: the cut-out's mask is poor (quality ${mq.score}).`, mask_quality: mq.score, used_original: true } };
-      return fb;
+      return lowFb;
     }
     const f = raw ? frameRgba(raw) : null;
     if (f) { const { image, ...rest } = f; carImg = image; framed = { ...rest, png: await encodePng(image) }; }
+    if (strict && !(showroom && framed && carImg)) return strictFail('the car could not be framed from its cut-out');
     await d.files.putPrivate(cutPath, framed?.png ?? cutBytes, 'image/png');
     // the model's name behind the car, as on the sample cars: one band per model, kept in the public bucket
     let lettering: { url: string; top: number; width: number } | null = null;
@@ -374,6 +386,7 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
       const m = await makeShowroom({ car, place, model: p.model ?? null, cover: !!p.is_cover, photoId: p.id,
         ...(pr ? { room: pr.img, prompt: photoRoomPrompt(), look: { reflect: pr.reflect, gain: lightMatch(pr.img, car, pr.floor) } } : {}) },
         d.showroomAi ? [d.showroomAi] : [], !d.showroomAi && !!d.showroomNoKey);
+      if (strict && m.provider !== 'ai') return strictFail(`Gemini did not make it${m.note ? ` (${m.note.replace(/^Made with the free showroom: /, '').replace(/\.$/, '')})` : ''}`);
       room = { provider: m.provider, ...(m.model ? { model: m.model } : {}), note: m.note, reason: m.reason,
         ...(mq ? { mask_quality: mq.score } : {}), ...(pr ? { background: pr.slug } : {}) };
       lettered = !pr && !!(p.is_cover && p.model);
@@ -398,7 +411,7 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
     else { n += w?.n ?? 0; out = await d.photos.normalize({ sourceUrl: src, ...INTERIOR }); }
   }
   if (!out.ok) return fail(out) ?? (edit ? { ok: false, provider: d.photos.name, error: `${out.reason}: ${out.message}`, retryable: false, ...imageCost(n, b, used) }
-    : fallback(d, j, out.reason, why(out), n, b, used));
+    : fb(d, j, out.reason, why(out), n, b, used));
   let done: Extract<PhotoOut, { ok: true }> = out;
   n += done.transformations;
   // 0567: an inside or detail photo flagged for a mark: the vision model says where; the edge band holding it is cut off

@@ -6,6 +6,7 @@
 // Pure (no I/O): the unit tests run it in Node. Relative imports only.
 import { carPage, withUtm } from '../ads/channels.ts';
 import { ageWords, carName, money, priceLine, textProblem, type AdPhoto, type CarFacts, type Rules } from '../ads/listing.ts';
+import { primaryPhoto } from '../../lib/photo-order.ts';
 
 export interface KitExtra { odometer_km?: number | null; home_area?: string | null; supply?: 'program_owner' | 'company' | 'partner' | null; drivetrain?: string | null; doors?: number | null }
 export interface KitSettings { posts_per_day: number; renew_days: number; location: string }
@@ -87,7 +88,8 @@ const rankOf = (p: AdPhoto & { is_cover?: boolean }) => (p.is_cover ? -1 : (() =
 /** The ten best photos in posting order: the cover first, then the shots buyers look for, never a sample. */
 export function bestPhotos(photos: Array<AdPhoto & { is_cover?: boolean }>, max = 10): AdPhoto[] {
   const real = photos.filter((p) => p && p.path && !p.sample);
-  const first = real[0];
+  // r43: the first photo is the exterior front three-quarter (the database orders the list that way; this keeps it so for any list)
+  const first = primaryPhoto(real);
   return real.map((p, i) => ({ p, i, r: p === first ? -2 : rankOf(p) })).sort((a, b) => a.r - b.r || a.i - b.i).slice(0, max).map((x) => x.p);
 }
 

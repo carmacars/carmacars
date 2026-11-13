@@ -25,6 +25,7 @@ import { MakeView, makeMeta } from '@/features/vehicles/views';
 import { buildDepth, parseL100 } from '@/features/seo/depth';
 import { depthCar, getDepthFacts, getMaintenance, getSpecs } from '@/features/seo/depth-data';
 import { DepthSections } from '@/features/seo/Depth';
+import { primaryPhoto } from '@/lib/photo-order';
 
 export const revalidate = 3600;
 export const dynamicParams = true;
@@ -78,10 +79,12 @@ export async function generateMetadata({ params }: Params) {
     : fit(160, `Rent the ${yr(c)}${nm} in {{city}}: ${money(c.daily_rate_cents)} a day, ${money(c.weekly_rate_cents)} a week. ${spec}${c.insurance_included ? ', insurance included' : ''}. Pickup or delivery, no payment to request.`,
       `Rent the ${yr(c)}${nm} in {{city}}: ${money(c.daily_rate_cents)} a day, ${money(c.weekly_rate_cents)} a week, ${spec}. No payment to request.`,
       `Rent the ${yr(c)}${nm} in {{city}} from ${money(fromDay(c))} a day, ${spec}. Request with no payment up front.`);
+  // r43: the OG image is the car's first photo: the exterior front three-quarter
+  const og = primaryPhoto(c.photos);
   return seoMeta({
     title, description,
-    path: c.canonical_path, image: c.photos[0] ? absUrl(c.photos[0].path) : null,
-    imageSize: c.photos[0]?.width && c.photos[0]?.height ? [c.photos[0].width, c.photos[0].height] : undefined, imageAlt: c.photos[0]?.alt ?? undefined,
+    path: c.canonical_path, image: og ? absUrl(og.path) : null,
+    imageSize: og?.width && og?.height ? [og.width, og.height] : undefined, imageAlt: og?.alt ?? undefined,
     noindex: !c.indexable
   });
 }
