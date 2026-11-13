@@ -22,7 +22,7 @@ import { InsurerFeesFields } from '@/features/insurers/InsurerFeesFields';
 import { INSURER_FEES, insurerFeesPayload, isInsurerFee, rateProblem } from '@/features/insurers/fees';
 import { DEPOSIT_PAY, PART_METHODS, RENTAL_LINE, RENTAL_PAID_BY, droppedByPrice, feeOverrides, lineKey, lineLive, liveFees, needsReference, paidSoFar, paymentOf, periodShares, youngBand, type DepositPay, type LineChoices, type PayPart, type RentalPaidBy } from '@/features/offers/model';
 import { TypedInput } from '@/components/DateInput';
-import { CONTACT_OPTIONAL_NOTE, DOB_OPTIONAL_HINT, contactOptional, dobOptional, renterProblem } from '@/features/supply/renter-contact';
+import { CONTACT_OPTIONAL_NOTE, DOB_OPTIONAL_HINT, contactOptional, dobOptional, emailOptional, EMAIL_OPTIONAL_NOTE, renterProblem } from '@/features/supply/renter-contact';
 
 // Add a rental by hand (migration 0046): Admin > Bookings > Add a rental, the same screen for every assistant function
 // and for field staff (0058). The database decides what each may do (staff: the rate sheet or a price typed with its
@@ -167,6 +167,8 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(t); }, []);
   const phase = phaseOf(f.pickup_at, f.return_at, now);
   const past = phase === 'past';
+  // 2740: the email is optional when the rental has ended, is billed to an insurer, or "Do not email the renter" is ticked
+  const emailFree = emailOptional({ paidBy, blocks, placeholder, past, doNotEmail: flags.do_not_email });
   const hasOwner = ['program_owner', 'partner'].includes(cars.find((c) => c.id === f.vehicle_id)?.supply_type ?? '');
   // 2026-10-27: what is sent is always before tax (or the rental charge tax included, 0112), whatever the way of typing.
   // The HST rate is the settings' (the quote carries it); each line's own HST flag decides whether it is converted.
@@ -425,7 +427,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
     if (paidBy === 'insurer' && rateState.state === 'differs' && !(f.rate_reason ?? '').trim()) { setErr(`${rateState.message.replace(/: say why\.$/, '')}: type the reason for the different rate, or empty the field to take the sheet's.`); return; }
     setErr(null);
     if (!blocks && !(f.blocks_reason ?? '').trim()) { setErr('Say why it does not block the calendar (for example: insurance replacement, dates not known yet).'); return; }
-    if (!renter) { const bad = renterProblem(f, { paidBy, blocks, placeholder }); if (bad) { setErr(bad); return; } }
+    if (!renter) { const bad = renterProblem(f, { paidBy, blocks, placeholder, past, doNotEmail: flags.do_not_email }); if (bad) { setErr(bad); return; } }
     if (needsReference(paidBy) && !(f.reference ?? '').trim()) { setErr('Enter the reference of the payment (the e-Transfer, cheque or transfer number).'); return; }
     if (!choice) { setErr('Choose "I sourced this client" or "Entered for CarmaCars".'); return; }
     if (quote && quote.has_rates === false && rentalSent === undefined) { setErr('This car has no rates yet: type the rental charge for the whole rental and the reason.'); return; }
@@ -564,9 +566,10 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
             </div>
           ) : (
             <div className="ad-fields">
-              {text('full_name', 'Full legal name')}{text('email', contactFree ? 'Email (optional)' : 'Email', { type: 'email', inputMode: 'email' })}{text('mobile', contactFree ? 'Phone (optional)' : 'Phone', { inputMode: 'tel' })}{text('date_of_birth', dobOptional({ paidBy, blocks, placeholder }) ? 'Date of birth (optional)' : 'Date of birth', { type: 'date', hint: dobOptional({ paidBy, blocks, placeholder }) ? DOB_OPTIONAL_HINT : 'Decides the young driver fee' })}
+              {text('full_name', 'Full legal name')}{text('email', contactFree || emailFree ? 'Email (optional)' : 'Email', { type: 'email', inputMode: 'email' })}{text('mobile', contactFree ? 'Phone (optional)' : 'Phone', { inputMode: 'tel' })}{text('date_of_birth', dobOptional({ paidBy, blocks, placeholder }) ? 'Date of birth (optional)' : 'Date of birth', { type: 'date', hint: dobOptional({ paidBy, blocks, placeholder }) ? DOB_OPTIONAL_HINT : 'Decides the young driver fee' })}
               {text('licence_number', 'Licence number')}{text('licence_expiry', 'Licence expiry', { type: 'date' })}
               {contactFree && <p className="hint ad-field--wide" data-testid="mr-contact-optional">{CONTACT_OPTIONAL_NOTE}</p>}
+              {!contactFree && emailFree && <p className="hint ad-field--wide" data-testid="mr-email-optional">{EMAIL_OPTIONAL_NOTE}</p>}
               <details className="ad-field ad-field--wide" data-testid="mr-renter-more"><summary className="link small">Licence class and home address (optional now: the agreement asks the renter)</summary>
                 <div className="ad-fields">
                   {text('licence_class', 'Licence class', { hint: 'G unless another class' })}{text('licence_issuer', 'Licence issued by', { hint: 'ON unless another province or country' })}
@@ -748,7 +751,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
           {depositBy === 'e_transfer' && text('deposit_reference', 'Deposit e-Transfer reference')}
           {(depositBy === 'e_transfer' || depositBy === 'cash') && text('deposit_received_on', 'Deposit received on', { type: 'date', hint: 'Empty: the same day as the rental payment' })}
           <div className="field ad-field"><span className="label">The rental agreement</span>
-            <p className="small" data-testid="mr-agreement-send">Sent to the renter to sign online (the e-signature). A rental agreement signed on paper is not accepted.{contactFree && !renter && !(f.email ?? '').trim() ? ' With no email, nothing is sent now: add the renter\'s email when the dates are known.' : ''}</p></div>
+            <p className="small" data-testid="mr-agreement-send">Sent to the renter to sign online (the e-signature). A rental agreement signed on paper is not accepted.{(contactFree || emailFree) && !renter && !(f.email ?? '').trim() ? ' With no email, nothing is sent now: add the renter\'s email when the dates are known.' : ''}</p></div>
           <div className="field ad-field"><span className="label">The calendar</span>
             <label className="check" htmlFor={id('blocks')}><input type="checkbox" id={id('blocks')} checked={blocks && !placeholder} disabled={placeholder} onChange={(e) => setBlocks(e.target.checked)} data-testid="mr-blocks" /> <span>Blocks the car&apos;s calendar</span></label>
             {placeholder ? <p className="hint">A placeholder never blocks the calendar.</p> : !blocks && <p className="hint">For dates not known yet (an insurance replacement) or a trip another calendar holds.</p>}</div>

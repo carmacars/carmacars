@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { contactOptional, dobOptional, renterProblem } from './renter-contact.ts';
+import { contactOptional, dobOptional, emailOptional, renterProblem } from './renter-contact.ts';
 
 const insurerOff = { paidBy: 'insurer', blocks: false };
 const name = { full_name: 'Nia Example', date_of_birth: '1980-01-01' };
@@ -32,14 +32,33 @@ describe('renterProblem', () => {
     assert.equal(dobOptional({ paidBy: 'insurer', blocks: true }), true);
     assert.equal(dobOptional({ paidBy: 'cash', blocks: false }), false);
     assert.equal(renterProblem({ full_name: 'Nia Example' }, insurerOff), null);
-    assert.match(renterProblem({ full_name: 'Nia Example' }, { paidBy: 'insurer', blocks: true }) ?? '', /email/);
+    assert.equal(renterProblem({ full_name: 'Nia Example' }, { paidBy: 'insurer', blocks: true }), null);
     assert.equal(renterProblem({ full_name: 'Nia Example', email: 'nia@example.test', mobile: '4165550100' }, { paidBy: 'insurer', blocks: true }), null);
   });
   it('every other case still needs the email and the phone', () => {
-    for (const c of [{ paidBy: 'insurer', blocks: true }, { paidBy: 'e_transfer', blocks: false }, { paidBy: 'link', blocks: true }]) {
+    for (const c of [{ paidBy: 'e_transfer', blocks: false }, { paidBy: 'link', blocks: true }]) {
       assert.match(renterProblem(name, c) ?? '', /email/);
       assert.match(renterProblem({ ...name, email: 'nia@example.test' }, c) ?? '', /phone/);
       assert.equal(renterProblem({ ...name, email: 'nia@example.test', mobile: '4165550100' }, c), null);
     }
+  });
+});
+
+describe('emailOptional (2740)', () => {
+  it('is true for a rental that has ended, an insurer-billed one, or "Do not email the renter"', () => {
+    assert.equal(emailOptional({ paidBy: 'cash', blocks: true, past: true }), true);
+    assert.equal(emailOptional({ paidBy: 'insurer', blocks: true }), true);
+    assert.equal(emailOptional({ paidBy: 'cash', blocks: true, doNotEmail: true }), true);
+    assert.equal(emailOptional({ paidBy: 'cash', blocks: true }), false);
+  });
+  it('an upcoming rental that is not insurer-billed still needs a phone or an email', () => {
+    const c = { paidBy: 'cash', blocks: true, doNotEmail: true };
+    assert.match(renterProblem(name, c) ?? '', /email address or phone/);
+    assert.equal(renterProblem({ ...name, mobile: '4165550100' }, c), null);
+    assert.equal(renterProblem({ ...name, email: 'nia@example.test' }, c), null);
+  });
+  it('a rental that has ended needs neither', () => {
+    assert.equal(renterProblem(name, { paidBy: 'cash', blocks: true, past: true }), null);
+    assert.match(renterProblem({ ...name, email: 'nope' }, { paidBy: 'cash', blocks: true, past: true }) ?? '', /does not look right/);
   });
 });
