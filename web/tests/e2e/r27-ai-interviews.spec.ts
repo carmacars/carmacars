@@ -218,7 +218,8 @@ test('AI interview on video: apply, consent, the camera check, answers recorded 
     await expect(page.getByTestId('cand-ai-topics')).toBeVisible();
     await expect(page.getByTestId('cand-ai-answers')).toContainText(FAKE_SENTENCE);
     await expect(page.getByTestId('cand-ai-answers')).toContainText('Follow-up');
-    await expect(page.getByTestId('cand-ai-video')).toHaveCount(st!.n - 1);
+    // release 43: every answer is a video, the English one included
+    await expect(page.getByTestId('cand-ai-video')).toHaveCount(st!.n);
     await expect(page.getByTestId('cand-ai-hint')).toContainText('You decide');
     const src = await page.getByTestId('cand-ai-video').first().getAttribute('src');
     expect(src).toBeTruthy();

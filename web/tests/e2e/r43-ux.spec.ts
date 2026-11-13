@@ -62,8 +62,8 @@ test('A staff member waiting for onboarding approval is approvable from the top 
   await page.goto('/admin', { waitUntil: 'networkidle' });
   page.once('dialog', (d) => void d.accept());
   await card.getByTestId(`onboarding-approve-${id}`).click();
-  // this person leaves the card (others in the suite may still be waiting, so the card itself can stay)
-  await expect(page.getByTestId(`onboarding-approve-${id}`)).toHaveCount(0, { timeout: 20_000 });
+  // the approval is recorded (the card may stay for others in the suite who are still waiting)
+  await expect.poll(async () => (await sql`select onboarding_approved_at is not null as ok from staff_profiles where user_id = ${id}`)[0]?.ok, { timeout: 20_000 }).toBe(true);
 });
 
 test('A people list sorts newest first by default, and by the address: ?sort=oldest, ?sort=az', async ({ page }) => {
