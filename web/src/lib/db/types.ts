@@ -19005,6 +19005,7 @@ export type Database = {
           gsc_rewrite_daily_max: number;
           gsc_inspect_daily_max: number;
           auto_reply_after_staff_minutes: number;
+          listing_photo_spec_auto: boolean;
           phone_browser_calls: boolean;
           phone_inbound_ring: string;
           phone_inbound_ring_seconds: number;
@@ -19866,6 +19867,7 @@ export type Database = {
           gsc_rewrite_daily_max?: number;
           gsc_inspect_daily_max?: number;
           auto_reply_after_staff_minutes?: number;
+          listing_photo_spec_auto?: boolean;
           phone_browser_calls?: boolean;
           phone_inbound_ring?: string;
           phone_inbound_ring_seconds?: number;
@@ -20727,6 +20729,7 @@ export type Database = {
           gsc_rewrite_daily_max?: number;
           gsc_inspect_daily_max?: number;
           auto_reply_after_staff_minutes?: number;
+          listing_photo_spec_auto?: boolean;
           phone_browser_calls?: boolean;
           phone_inbound_ring?: string;
           phone_inbound_ring_seconds?: number;
@@ -29659,6 +29662,8 @@ export type Database = {
           scene: string | null;
           showroom: Json | null;
           plate_auto: Json | null;
+          photo_spec_tried: string | null;
+          resort: Json | null;
         };
         Insert: {
           id?: string;
@@ -29705,6 +29710,8 @@ export type Database = {
           scene?: string | null;
           showroom?: Json | null;
           plate_auto?: Json | null;
+          photo_spec_tried?: string | null;
+          resort?: Json | null;
         };
         Update: {
           id?: string;
@@ -29751,6 +29758,8 @@ export type Database = {
           scene?: string | null;
           showroom?: Json | null;
           plate_auto?: Json | null;
+          photo_spec_tried?: string | null;
+          resort?: Json | null;
         };
         Relationships: [];
       };
