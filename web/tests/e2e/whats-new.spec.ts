@@ -20,8 +20,8 @@ async function signIn(page: Page, email: string) {
 }
 
 
-// this file checks the pop-up itself, so it does not send the header that keeps it shut under the other tests
-test.use({ extraHTTPHeaders: {} });
+// on a test server the pop-up opens by itself only when asked for (src/server/whats-new.ts)
+test.use({ extraHTTPHeaders: { 'x-cc-whats-new': 'show' } });
 
 test('the What\'s new pop-up opens once after a release, closes with Esc, and the link opens it again', async ({ page }) => {
   const sql = db();
