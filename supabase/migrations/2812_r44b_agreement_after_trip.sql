@@ -32,6 +32,7 @@ end $$;
 alter table bookings
   add column if not exists agreement_after_trip_at timestamptz,
   add column if not exists agreement_after_trip_by uuid references users (id) on delete set null;
+create index if not exists bookings_agreement_after_trip_by_idx on bookings (agreement_after_trip_by) where agreement_after_trip_by is not null;
 comment on column bookings.agreement_after_trip_at is 'r44 (2812): an Admin asked for a signable agreement after the rental ended (an insurer''s file): it is opened and signed as a rental added by hand is.';
 
 create function app.booking_after_trip(b bookings) returns boolean

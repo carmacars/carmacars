@@ -137,6 +137,8 @@ update program_settings set listing_showroom_ai_daily = 0 where id = (select id 
 select test.eq('no Gemini call left today: nothing queued', (app.photo_showroom(test.id('rq44p_admin'), jsonb_build_object('action', 'gemini', 'all', true)) ->> 'queued'), '0');
 update program_settings set listing_showroom_ai_daily = 100 where id = (select id from app.settings());
 
+-- start the job from a clean queue: Gemini steps queued by hand above (or by other test files of this run) are not the job's
+update listing_jobs set status = 'succeeded', finished_at = now() where kind = 'process_photo' and status = 'queued' and input ->> 'engine' = 'gemini';
 -- a blurred interior (before r44) is made again sharp by the job
 update vehicle_photos set preset_version = 'windows_blur_v1' where id = (select dash from rq44p_gp);
 select test.ok('the job runs and reports', app.job_photo_spec() like '% photo(s) queued, % sorting, % made sharp, % waiting');
