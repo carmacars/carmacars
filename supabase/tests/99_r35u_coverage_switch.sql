@@ -162,7 +162,12 @@ select test.eq('back on card coverage while on rent: the line is gone, the confi
 -- ================================================================ 4. when it cannot be done
 update fee_defaults set amount_cents = null where fee_type_code = 'coverage_sold' and note = 'test';
 insert into test.cs select 'o4', app.door(test.id('cs_cs'), 'aal2', 'ops_do', 'offer_create', test.csreq('car4', interval '10 days', interval '12 days'));
+-- the price now comes from the Protection Plan line itself (2673); force it to read as unpriced for this check
+alter function app.protection_plan_priced(uuid) rename to protection_plan_priced_real;
+create function app.protection_plan_priced(p_booking uuid) returns boolean language sql stable as $f$ select false $f$;
 select test.throws('no price for the Protection Plan: refused with the reason', format($$select app.coverage_switch(%L, jsonb_build_object('booking', %L, 'to', 'plan'))$$, test.id('cs_admin'), (test.csb('o4')).booking_number), 'no price');
+drop function app.protection_plan_priced(uuid);
+alter function app.protection_plan_priced_real(uuid) rename to protection_plan_priced;
 select test.throws('a booking that is cancelled is refused', format($$select app.coverage_switch(%L, jsonb_build_object('booking', %L, 'to', 'plan'))$$, test.id('cs_admin'), (test.csb('o2')).booking_number || 'X'), 'not found');
 set session_replication_role = replica;
 update bookings set status = 'cancelled' where id = (test.csb('o4')).id;
