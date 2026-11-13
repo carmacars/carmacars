@@ -4,6 +4,7 @@ import type { Json } from '@/lib/db/types';
 import { currentUser } from '@/server/portal/data';
 import { ipKey } from '@/lib/track/shared';
 import { env } from '@/lib/env';
+import { foreignOrigin } from '@/lib/security/same-origin';
 
 // Discount games (migrations 0069 and 0081): the claim, and the request-to-book form's play. The site's game itself
 // (settings, the play, the reveal) is read straight from the database by the browser; the claim comes here, once per
@@ -20,7 +21,7 @@ const int = (v: unknown, max: number) => (typeof v === 'number' && Number.isFini
 
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
-  if (origin && new URL(origin).host !== req.headers.get('host')) return NextResponse.json({ ok: false }, { status: 403, headers: H });
+  if (foreignOrigin(origin, req.headers.get('host'))) return NextResponse.json({ ok: false }, { status: 403, headers: H });
   const b = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   if (b && b.action === 'start') return start(b.p);
   if (!b || typeof b.token !== 'string' || !/^[0-9a-f]{64}$/.test(b.token)) return NextResponse.json({ ok: false, error: 'not_found', message: 'This game has ended. Reload the page.' }, { status: 400, headers: H });

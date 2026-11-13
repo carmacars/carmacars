@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { currentUser } from '@/server/portal/data';
 import { door, sessionAal } from '@/server/door';
 import { storage } from '@/integrations/storage';
+import { foreignOrigin } from '@/lib/security/same-origin';
 
 // A listing photo with its plate covered (migration 0042). The browser drew the cover, pixelation or blur on a
 // canvas and sends the new file (and its smaller sizes when the photo had them). Here: the person's right to edit
@@ -71,7 +72,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
-  if (origin && new URL(origin).host !== req.headers.get('host')) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
+  if (foreignOrigin(origin, req.headers.get('host'))) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
   const user = await currentUser();
   if (!user) return NextResponse.json({ ok: false, message: 'Sign in first.' }, { status: 401 });
   const aal = await sessionAal();

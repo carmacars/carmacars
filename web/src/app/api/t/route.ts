@@ -7,6 +7,7 @@ import { hostingTarget } from '@/lib/platform/runtime';
 import { geoFromHeaders } from '@/lib/platform/node-edge';
 import type { Json } from '@/lib/db/types';
 import { roundGeo } from '@/features/live-map/config';
+import { foreignOrigin } from '@/lib/security/same-origin';
 
 // Live visitors (migration 0060): the beacon when the Worker entry does not answer it (the local stack, `next start`).
 // On Cloudflare custom-worker.ts answers /api/t itself, with the same checks, before the app is loaded.
@@ -19,7 +20,7 @@ const none = () => new Response(null, { status: 204, headers: H });
 
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
-  if (origin && new URL(origin).host !== req.headers.get('host')) return NextResponse.json({ ok: false }, { status: 403, headers: H });
+  if (foreignOrigin(origin, req.headers.get('host'))) return NextResponse.json({ ok: false }, { status: 403, headers: H });
   const ua = req.headers.get('user-agent');
   const e = env();
   if (isBot(ua, e.APP_ENV !== 'production' && process.env.TRACK_ALLOW_HEADLESS !== '0')) return NextResponse.json({ ok: true, bot: true }, { headers: H });

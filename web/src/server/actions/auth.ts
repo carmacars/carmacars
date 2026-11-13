@@ -11,6 +11,7 @@ import { landingFor, safeNext } from '@/server/portals';
 import { afterSignIn, clearSessionCookies, rememberSignIn } from '@/server/after-sign-in';
 import { passwordLinkTarget, rememberEmail, siteBase } from '@/server/auth-links';
 import { captureDone, claimPendingAccount, passwordLinkForCaptured } from '@/server/capture';
+import { SIGN_IN_PAUSED, signInPaused } from '@/features/auth/sign-in-pause';
 
 // Sign-in is Supabase Auth (email and password, reset by email). A new account also gets its users
 // row and the renter role (public.register_account, 0027) with the same id as the sign-in account.
@@ -22,6 +23,10 @@ const afterPassword = afterSignIn;
 export async function signIn(_: unknown, fd: FormData): Promise<ActionResult> {
   const p = signInSchema.safeParse(Object.fromEntries(fd));
   if (!p.success) return { ok: false, code: 'invalid', message: 'Check the highlighted fields.', fieldErrors: fieldErrors(p.error) };
+  // 2770: an address with many wrong passwords in the last 15 minutes is not checked again until they pass (the count
+  // is sign-in security's own, 0466; the same answer whether or not the address has an account)
+  const allowed = await rpc('server_sign_in_allowed' as never, { p_email: p.data.email } as never, { role: 'service_role' }).catch(() => null);
+  if (signInPaused(allowed)) return { ok: false, code: 'rate_limited', message: SIGN_IN_PAUSED };
   const a = await auth();
   // 0955: two accounts of one person were merged: either email signs in, to the kept account (the kept address with this
   // password first, else the other address with its own password, then on to the kept account by a one-time link)

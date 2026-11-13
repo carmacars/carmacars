@@ -5,6 +5,7 @@ import { storage } from '@/integrations/storage';
 import { sha256Hex } from '@/server/links';
 import { recordSort, sortShot, type SortRecord } from '@/server/listing-sort';
 import { imageSniff } from '@/lib/file-sniff';
+import { foreignOrigin } from '@/lib/security/same-origin';
 
 // One listing photo from the capture screen (docs/blueprint/09-listing-pipeline.md section 4). The browser
 // resized it (3000 px on the long side, JPEG); here the user's right to list this car is checked by the
@@ -18,7 +19,7 @@ const MAX = 15 * 1024 * 1024;
 
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
-  if (origin && new URL(origin).host !== req.headers.get('host')) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
+  if (foreignOrigin(origin, req.headers.get('host'))) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
   const user = await currentUser();
   if (!user) return NextResponse.json({ ok: false, message: 'Sign in first.' }, { status: 401 });
   const aal = await sessionAal();

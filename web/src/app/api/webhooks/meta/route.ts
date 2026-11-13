@@ -3,6 +3,7 @@ import { rpc } from '@/lib/db/repo';
 import { env } from '@/lib/env';
 import { incomingMessages, sendMetaReply, verifyMetaSignature } from '@/integrations/meta-messaging';
 import { autoReply } from '@/server/auto-reply';
+import { sameSecret } from '@/lib/security/same-origin';
 
 // AI auto-replies on Messenger, Instagram and WhatsApp (release 36, migration 2110): Meta's webhook. GET is Meta's check
 // when the webhook is added (the verify token of Program settings auto_reply_meta_verify_token); POST is a delivery,
@@ -17,7 +18,7 @@ export async function GET(req: Request) {
   if (u.searchParams.get('hub.mode') !== 'subscribe') return new NextResponse('Not found', { status: 404 });
   const cfg = (await rpc('server_meta_messaging', {}, SR).catch(() => null)) as unknown as Cfg | null;
   const token = u.searchParams.get('hub.verify_token') ?? '';
-  if (!cfg?.verify_token || token !== cfg.verify_token) return new NextResponse('Forbidden', { status: 403 });
+  if (!cfg?.verify_token || !sameSecret(token, cfg.verify_token)) return new NextResponse('Forbidden', { status: 403 });
   return new NextResponse((u.searchParams.get('hub.challenge') ?? '').replace(/[^\w.-]/g, '').slice(0, 200), { headers: { 'content-type': 'text/plain' } });
 }
 

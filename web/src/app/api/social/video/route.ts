@@ -4,6 +4,7 @@ import { currentUser } from '@/server/portal/data';
 import { door, sessionAal } from '@/server/door';
 import { storage } from '@/integrations/storage';
 import { MAX_BYTES } from '@/features/social/video';
+import { foreignOrigin } from '@/lib/security/same-origin';
 
 // Release 36b (2210): the short video of a car. GET ?vehicle=&photo=N: the kit's Nth photo from this site's own address
 // (a photo drawn from the storage host taints the canvas and the recording then fails); GET ?vehicle=&video=<id>: the
@@ -48,7 +49,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
-  if (origin && new URL(origin).host !== req.headers.get('host')) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
+  if (foreignOrigin(origin, req.headers.get('host'))) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
   const form = await req.formData().catch(() => null);
   const vehicle = String(form?.get('vehicle') ?? '');
   const file = form?.get('file');

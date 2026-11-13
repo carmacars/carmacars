@@ -6,6 +6,7 @@ import { viewAs } from '@/server/view-as';
 import { decide, runAssistant } from '@/server/assistant';
 import type { Portal } from '@/features/assistant/tools';
 import type { Turn } from '@/features/assistant/agent';
+import { foreignOrigin } from '@/lib/security/same-origin';
 
 // The staff assistant (migration 0080): a question, or Confirm or Cancel on a card. The signed-in person only, in a
 // portal of theirs; nothing while an Admin views as someone. The database checks every read and change again.
@@ -15,7 +16,7 @@ const msg = (e: unknown) => (e instanceof Error ? e.message.replace(/^.*?ERROR:\
 
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
-  if (origin && new URL(origin).host !== req.headers.get('host')) return NextResponse.json({ error: 'Not permitted' }, { status: 403, headers: H });
+  if (foreignOrigin(origin, req.headers.get('host'))) return NextResponse.json({ error: 'Not permitted' }, { status: 403, headers: H });
   const user = await realUser();
   if (!user) return NextResponse.json({ error: 'Sign in first' }, { status: 401, headers: H });
   if (await viewAs()) return NextResponse.json({ out: [{ type: 'text', text: 'The assistant is off while you view as someone. Exit view as to use it.' }] }, { headers: H });

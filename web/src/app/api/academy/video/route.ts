@@ -3,6 +3,7 @@ import { currentUser } from '@/server/portal/data';
 import { door, sessionAal } from '@/server/door';
 import { storage } from '@/integrations/storage';
 import { LESSON_MAX_BYTES } from '@/features/academy/video';
+import { foreignOrigin } from '@/lib/security/same-origin';
 
 // Release 37 (2301): an academy lesson's video file. GET ?lesson=<id>[&download=1]: the lesson's current video from the
 // private documents bucket, for whoever may watch the lesson (the database decides: app.academy_may_watch). POST (form:
@@ -37,7 +38,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
-  if (origin && new URL(origin).host !== req.headers.get('host')) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
+  if (foreignOrigin(origin, req.headers.get('host'))) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
   const form = await req.formData().catch(() => null);
   const lesson = String(form?.get('lesson') ?? '');
   const file = form?.get('file');
@@ -68,7 +69,7 @@ export async function POST(req: Request) {
 /** DELETE ?id=<video>: an Admin removes a bad recording and its file (the next "Watch as video" makes it again). */
 export async function DELETE(req: Request) {
   const origin = req.headers.get('origin');
-  if (origin && new URL(origin).host !== req.headers.get('host')) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
+  if (foreignOrigin(origin, req.headers.get('host'))) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
   const id = new URL(req.url).searchParams.get('id') ?? '';
   const user = await currentUser();
   if (!user || !UUID.test(id)) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });

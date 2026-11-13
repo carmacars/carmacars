@@ -17,7 +17,8 @@ export function publicHttps(u: string): URL | null {
   try {
     const x = new URL(u);
     if (x.protocol !== 'https:' || x.username || x.password) return null;
-    const h = x.hostname.toLowerCase();
+    // a trailing dot ("name.") is the same host: without it a name of the server's own network has no dot
+    const h = x.hostname.toLowerCase().replace(/\.+$/, '');
     if (!h.includes('.') || /^[\d.]+$/.test(h) || h.includes(':') || h === 'localhost' || h.endsWith('.local') || h.endsWith('.internal') || h.endsWith('.localhost')) return null;
     return x;
   } catch { return null; }

@@ -3,6 +3,7 @@ import { currentUser } from '@/server/portal/data';
 import { door, rolesOf, sessionAal } from '@/server/door';
 import { storage } from '@/integrations/storage';
 import { imageSniff } from '@/lib/file-sniff';
+import { foreignOrigin } from '@/lib/security/same-origin';
 
 // A photo or a signature from the field checklist (06-field.md section 6). The phone resized it; here the
 // job is checked to be the user's, the bytes are checked to be a JPEG or PNG under 8 MB, the file goes to
@@ -18,7 +19,7 @@ type Job = { job: { id: string; booking_id: string | null; vehicle_id: string };
 export async function POST(req: Request) {
   // same-origin only: the session cookie must not be usable from another site
   const origin = req.headers.get('origin');
-  if (origin && new URL(origin).host !== req.headers.get('host')) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
+  if (foreignOrigin(origin, req.headers.get('host'))) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
   const user = await currentUser();
   if (!user) return NextResponse.json({ ok: false, message: 'Sign in first.' }, { status: 401 });
   const roles = await rolesOf(user.id);

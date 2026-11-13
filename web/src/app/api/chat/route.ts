@@ -6,6 +6,7 @@ import { answer, answerFailed, staffNote, type VisitorMessageState } from '@/ser
 import { notAnsweredFor } from '@/features/chat/reply-path';
 import { PAUSE } from '@/features/usage/model';
 import { chatAutoReplyOn } from '@/server/auto-reply';
+import { foreignOrigin } from '@/lib/security/same-origin';
 
 // Live chat (migration 0060), the visitor's side: open or continue a conversation, send a message (the assistant
 // answers while no person has the chat), ask for a person, leave contact details, end the chat. The conversation's
@@ -21,7 +22,7 @@ const str = (v: unknown, n: number) => (typeof v === 'string' ? v.slice(0, n) : 
 
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
-  if (origin && new URL(origin).host !== req.headers.get('host')) return NextResponse.json({ ok: false }, { status: 403, headers: H });
+  if (foreignOrigin(origin, req.headers.get('host'))) return NextResponse.json({ ok: false }, { status: 403, headers: H });
   const b = (await req.json().catch(() => null)) as Body | null;
   if (!b || typeof b.action !== 'string') return NextResponse.json({ ok: false, error: 'bad request' }, { status: 400, headers: H });
   const token = typeof b.token === 'string' && /^[0-9a-f]{64}$/.test(b.token) ? b.token : null;

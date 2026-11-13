@@ -13,7 +13,9 @@ export interface SnsMessage {
   Subject?: string; Token?: string; SubscribeURL?: string; UnsubscribeURL?: string;
 }
 
-const SNS_HOST = /^sns\.[a-z0-9-]{4,30}\.amazonaws\.com$/;
+// sns.<region>.amazonaws.com only, the region in AWS's own form (us-east-1, ap-southeast-2, us-gov-west-1): any other
+// name under amazonaws.com that starts with "sns." (a storage bucket called sns, say) is not Amazon SNS
+const SNS_HOST = /^sns\.[a-z]{2}(-gov|-iso[a-z]?)?-[a-z]{4,12}-\d\.amazonaws\.com$/;
 
 /** A URL that is https, on sns.<region>.amazonaws.com, the default port, no credentials. */
 export function isSnsUrl(raw: unknown): raw is string {

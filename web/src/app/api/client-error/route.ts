@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { rpc } from '@/lib/db/repo';
 import type { Json } from '@/lib/db/types';
 import { currentUser } from '@/server/portal/data';
+import { foreignOrigin } from '@/lib/security/same-origin';
 
 // A crash in a visitor's browser (migration 0433): the error page and the window listeners post here; the database
 // keeps it and opens one Admin task a day per kind. Same-origin only; small bodies only.
@@ -11,7 +12,7 @@ const s = (v: unknown, n: number) => (typeof v === 'string' ? v.slice(0, n) : un
 
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
-  if (origin && new URL(origin).host !== req.headers.get('host')) return NextResponse.json({ ok: false }, { status: 403, headers: H });
+  if (foreignOrigin(origin, req.headers.get('host'))) return NextResponse.json({ ok: false }, { status: 403, headers: H });
   const text = await req.text().catch(() => '');
   if (!text || text.length > 12000) return NextResponse.json({ ok: false }, { status: 400, headers: H });
   let b: Record<string, unknown>;

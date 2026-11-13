@@ -6,6 +6,7 @@ import { runListingWorkerNow } from '@/server/listing-worker';
 import { BACKDROP_PATH, SHOWROOM_BACKDROP_PATH } from '@/features/listing/worker';
 import { showroomBackdrop } from '@/features/listing/showroom';
 import { encodePng } from '@/features/listing/subject-frame';
+import { foreignOrigin } from '@/lib/security/same-origin';
 
 // The cut-out editor of an outside listing photo (release 33, migration 0700; features/listing/CutoutEditor.tsx).
 // GET: what the editor works from, from this site's own address so the canvas can be read back (the plate route's
@@ -62,7 +63,7 @@ function kick() {
 
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
-  if (origin && new URL(origin).host !== req.headers.get('host')) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
+  if (foreignOrigin(origin, req.headers.get('host'))) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
   const m = await me();
   if (!m) return NextResponse.json({ ok: false, message: 'Sign in first.' }, { status: 401 });
   const form = await req.formData().catch(() => null);
