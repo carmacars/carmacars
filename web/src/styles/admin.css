@@ -703,3 +703,8 @@ ul.sd-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
 .oc-phase .oc-step__n { width: 1.75rem; height: 1.75rem; }
 .rv-stepbar { display: flex; flex-wrap: wrap; gap: var(--s-2); margin: 0 0 var(--s-3); }
 .rv-stepbar button[aria-current="step"] { background: var(--black); color: var(--white); }
+
+/* r43: the sort control above a list */
+.ad-sortbar { display: flex; justify-content: flex-end; margin-block: var(--s-2, 8px); }
+.ad-sort { display: inline-flex; align-items: center; gap: var(--s-2, 8px); }
+.ad-sort .select { min-height: 44px; }

@@ -1,3 +1,5 @@
+import { sqlOrder } from '@/lib/sort';
+import { SortSelect } from '@/features/admin/SortTable';
 import { IntentCard } from '@/features/intent/IntentCard';
 import type { Intent } from '@/features/intent/model';
 import Link from '@/components/Link';
@@ -29,14 +31,17 @@ async function AdminRenters({ ctx, sp }: { ctx: PageCtx; sp: Record<string, stri
   // r27: Renter leads is the Leads tab here (/admin/leads redirects)
   if (tabOf(['renters', 'leads'] as const, sp.tab) === 'leads') return <Leads ctx={ctx} sp={sp} />;
   const { list } = ctx;
-  const res = await list<Row>('renters', { q: sp.q, order: 'created_at', limit: 200 });
+  // r43: Newest first by default; the choice is in ?sort= and orders in SQL (the list is capped at 200)
+  const by = sqlOrder(sp.sort, { created: 'created_at', name: 'legal_name' });
+  const res = await list<Row>('renters', { q: sp.q, order: by.order, asc: by.asc, limit: 200 });
   return (
     <>
       <PageHead title="Renters" kicker={`${res.count} found`}>
         <Search action="/admin/renters" value={sp.q} placeholder="Name, email or phone" />
         <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/bookings/new">Add a rental</Link>
       </PageHead>
-      <Table<Row> testId="renters" caption="Renters" rows={res.rows} empty={sp.q ? `No renter matches "${sp.q}". Search by part of the name, the email or the phone number.` : 'No renters yet. They appear here after their first booking request, or when you add a rental.'} cols={[
+      <div className="ad-sortbar"><SortSelect options={['newest', 'oldest', 'az']} def="newest" /></div>
+      <Table<Row> testId="renters" caption="Renters" sort={false} rows={res.rows} empty={sp.q ? `No renter matches "${sp.q}". Search by part of the name, the email or the phone number.` : 'No renters yet. They appear here after their first booking request, or when you add a rental.'} cols={[
         { key: 'legal_name', label: 'Renter', render: (r) => <><Link prefetch={false} className="link" href={`/admin/renters/${r.id}`}>{r.legal_name}</Link> <Link prefetch={false} className="small link" href={`/admin/bookings?q=${encodeURIComponent(r.email ?? r.legal_name)}`}>bookings</Link></> },
         { key: 'email', label: 'Email' }, { key: 'mobile', label: 'Phone' },
         { key: 'identity_status', label: 'Identity', render: (r) => <Badge s={r.identity_status} /> },

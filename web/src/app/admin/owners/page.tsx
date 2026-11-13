@@ -1,3 +1,5 @@
+import { parseSort, sortRows } from '@/lib/sort';
+import { SortSelect } from '@/features/admin/SortTable';
 import Link from '@/components/Link';
 import { pageMeta } from '@/features/seo/meta';
 import { day } from '@/features/owner/Blocks';
@@ -21,7 +23,7 @@ type Acct = { id: string; email: string; name: string; status: string };
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Owner applications', path: '/admin/owners', noindex: true, description: 'Owner applications.' });
 
-export default async function AdminOwners({ searchParams }: { searchParams: Promise<{ view?: string; show?: string; q?: string; status?: string }> }) {
+export default async function AdminOwners({ searchParams }: { searchParams: Promise<{ view?: string; show?: string; q?: string; status?: string; sort?: string }> }) {
   const [{ user }, sp] = await Promise.all([requireAdmin('/admin/owners'), searchParams]);
   if (sp.view === 'checklist') return <Checklists userId={user.id} show={sp.show === 'all' ? 'all' : 'open'} />;
   if (sp.view === 'agreements') return <Agreements userId={user.id} show={sp.show === 'all' ? 'all' : 'open'} />;
@@ -32,8 +34,10 @@ export default async function AdminOwners({ searchParams }: { searchParams: Prom
     rpc('admin_account_index', { p_admin: user.id }, { role: 'service_role' }) as unknown as Promise<{ owners: Record<string, Acct> }>]);
   // r32: one search across the name, email and applications; chips for what needs action
   const q = (sp.q ?? '').trim().toLowerCase();
-  const rows = every.filter((o) => (!q || `${o.legal_name} ${o.email} ${o.applications.join(' ')}`.toLowerCase().includes(q))
+  const rows0 = every.filter((o) => (!q || `${o.legal_name} ${o.email} ${o.applications.join(' ')}`.toLowerCase().includes(q))
     && (sp.status === 'terms' ? o.pending_terms > 0 : sp.status === 'invoices' ? o.invoices_open > 0 : sp.status === 'no_account' ? !idx.owners[o.owner_id] : true));
+  // r43: Newest first (by their latest application) unless ?sort= says otherwise
+  const rows = sortRows(rows0, parseSort(sp.sort) ?? 'newest', { created: 'last_at', active: 'last_at', name: 'legal_name' });
   return (
     <>
       <PageHead title="Owners" purpose="Every owner with their cars, applications, terms and invoices.">
@@ -41,6 +45,7 @@ export default async function AdminOwners({ searchParams }: { searchParams: Prom
         <Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/owners?view=agreements" data-testid="owners-agreements">Agreements</Link></PageHead>
       <ListFilters id="admin-owners" base="/admin/owners" sp={sp} search={{ placeholder: 'Name, email or car' }}
         chips={{ name: 'status', label: 'Needs', options: [['', `All (${every.length})`], ['terms', 'Terms to approve'], ['invoices', 'Invoices open'], ['no_account', 'Not invited yet']] }} />
+      <div className="ad-sortbar"><SortSelect options={['newest', 'oldest', 'az']} def="newest" /></div>
       <p className="small"><Link prefetch={false} className="link" href="/admin/owners?view=checklist">What each owner has left to pay or sign</Link></p>
       <div className="pt-split">
         <section className="stack" aria-labelledby="ad-list"><h2 className="pt-section-title" id="ad-list">{rows.length} owners</h2>
