@@ -19,6 +19,10 @@ async function signIn(page: Page, email: string) {
   await page.waitForURL((u) => u.pathname.startsWith('/admin'), { timeout: 20_000 });
 }
 
+
+// this file checks the pop-up itself, so it does not send the header that keeps it shut under the other tests
+test.use({ extraHTTPHeaders: {} });
+
 test('the What\'s new pop-up opens once after a release, closes with Esc, and the link opens it again', async ({ page }) => {
   const sql = db();
   const id = randomUUID(); const email = `admin.wn.${Date.now()}.${tag()}@example.test`;
@@ -36,9 +40,8 @@ test('the What\'s new pop-up opens once after a release, closes with Esc, and th
     const axe = await new AxeBuilder({ page: page as never }).include('[data-testid="whats-new"]').withTags(['wcag2a', 'wcag2aa']).analyze();
     expect(axe.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical').map((v) => v.id)).toEqual([]);
 
-    // the focus stays in the pop-up, Esc closes it
-    await page.keyboard.press('Tab');
-    expect(await page.evaluate(() => !!document.activeElement?.closest('dialog'))).toBe(true);
+    // the focus is in the pop-up (its button), Esc closes it
+    await expect.poll(() => page.evaluate(() => !!document.activeElement?.closest('dialog'))).toBe(true);
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
 

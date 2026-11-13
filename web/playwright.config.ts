@@ -22,8 +22,9 @@ export default defineConfig({
   // merges into one list and one reports/e2e.json
   reporter: [['list'], ['json', { outputFile: 'reports/e2e.json' }], ...(process.env.PW_BLOB ? [['blob', { fileName: `report-${process.env.PW_BLOB}.zip` }] as const] : [])],
   // test mode: prefers-reduced-motion, so the site's motion (src/styles/motion.css) never moves under a test or axe;
-  // tests/e2e/motion.spec.ts turns it on and checks it
-  use: { baseURL: base, trace: 'retain-on-failure', contextOptions: { reducedMotion: 'reduce' }, launchOptions: { args: ['--no-proxy-server', '--force-prefers-reduced-motion'] } },
+  // tests/e2e/motion.spec.ts turns it on and checks it. The What's new pop-up never opens by itself under a test
+  // (x-cc-whats-new: quiet); tests/e2e/whats-new.spec.ts clears the header.
+  use: { baseURL: base, trace: 'retain-on-failure', extraHTTPHeaders: { 'x-cc-whats-new': 'quiet' }, contextOptions: { reducedMotion: 'reduce' }, launchOptions: { args: ['--no-proxy-server', '--force-prefers-reduced-motion'] } },
   projects: [
     { name: 'phone-375', use: { viewport: { width: 375, height: 812 }, isMobile: false, hasTouch: true } },
     { name: 'desktop-1440', use: { viewport: { width: 1440, height: 900 } } }
