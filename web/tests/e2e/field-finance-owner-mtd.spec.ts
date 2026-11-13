@@ -104,7 +104,6 @@ async function draw(page: Page, testId: string) {
   for (let i = 1; i <= 30; i++) await page.mouse.move(b.x + 20 + i * ((b.width - 60) / 30), b.y + b.height * (0.6 + 0.25 * Math.sin(i / 2.5)), { steps: 2 });
   await page.mouse.up();
 }
-const next = async (page: Page, title: string) => { await page.getByTestId('next').click(); await expect(page.getByTestId('step-title')).toHaveText(title, { timeout: 15_000 }); };
 
 test('field staff fix the ready check on the phone and release a car whose tracker is not reporting; Fleet sees the jobs made from the booking', async ({ browser }, info) => {
   test.setTimeout(600_000);
@@ -146,7 +145,9 @@ test('field staff fix the ready check on the phone and release a car whose track
   await expect(page.getByTestId('fix-identity')).toBeVisible();
   await expect(page.getByTestId('fix-deposit')).toBeVisible();
   await check(page, 'ready check with its fixes');
-  await expect(page.getByTestId('next')).toBeDisabled();
+  await expect(page.getByTestId('part-ready')).toHaveAttribute('data-ok', 'no');
+  await expect(page.getByTestId('complete')).toBeDisabled();
+  await expect(page.getByTestId('still-needed')).toContainText('Ready check');
 
   // the licence, in person: three photos, four checks
   for (const k of ['licence_front', 'licence_back', 'selfie']) {
@@ -161,7 +162,7 @@ test('field staff fix the ready check on the phone and release a car whose track
   await page.getByTestId('fix-etransfer-ref').fill(`CA${tag().toUpperCase()}`);
   await page.getByTestId('fix-etransfer-save').click();
   await expect(page.getByTestId('fix-deposit')).toHaveCount(0, { timeout: 30_000 });
-  await expect(page.getByTestId('next')).toBeEnabled({ timeout: 15_000 });
+  await expect(page.getByTestId('part-ready')).toHaveAttribute('data-ok', 'yes', { timeout: 15_000 });
   await check(page, 'ready check all green');
   const [st] = await sql`select (select identity_verified_on is not null from booking_drivers where booking_id = ${b.booking_id} and role = 'renter') v,
                                 (select status from deposits where booking_id = ${b.booking_id}) d,
@@ -169,39 +170,24 @@ test('field staff fix the ready check on the phone and release a car whose track
   expect([st!.v, st!.d, st!.n]).toEqual([true, 'captured', 2]);
 
   const [odo] = await sql`select coalesce(odometer_km, 0)::int o from vehicles where id = ${car.id}`;
-  await next(page, 'Car ready');
-  await page.getByRole('button', { name: 'Yes' }).click();
-  await next(page, 'Is this the renter?');
-  await page.getByRole('button', { name: 'Yes' }).click();
-  await next(page, 'Original licence');
-  await page.getByRole('button', { name: 'Yes' }).click();
-  await next(page, 'Card on File');
-  await page.getByRole('button', { name: 'Yes' }).click();
-  await next(page, 'Odometer');
+  // one screen (release 42): the renter, the licence and the card are one tap each
+  for (const t of ['tick-renter', 'tick-licence', 'tick-card']) await page.getByTestId(t).click();
   await page.getByTestId('odometer').fill(String(odo!.o + 10));
-  await next(page, 'Fuel or charge');
   await page.getByTestId('fuel').fill('7');
   await page.getByTestId('fuel').fill('8');
-  await next(page, 'Keys');
   await page.getByTestId('keys-more').click();
-  await next(page, 'Photo set');
   const shots = await page.locator('[data-testid^="shot-"]').count();
   for (let i = 1; i <= shots; i++) await page.getByTestId(`shot-${i}`).setInputFiles({ name: `${i}.png`, mimeType: 'image/png', buffer: PNG });
   await expect(page.getByTestId('upload-count')).toContainText('all uploaded', { timeout: 60_000 });
-  await next(page, 'Damage');
-  await next(page, 'Tracker');
   // the tracker is not reporting: release with a reason
-  await expect(page.getByTestId('next')).toBeDisabled();
+  await expect(page.getByTestId('part-tracker')).toHaveAttribute('data-ok', 'no');
   await page.getByTestId('fix-tracker').locator('summary').click();
   await check(page, 'tracker override');
   await page.getByTestId('fix-tracker-reason').fill('Underground parking, no signal; office told by phone');
   await page.getByTestId('fix-tracker-save').click();
   await expect(page.getByTestId('tracker-overridden')).toBeVisible({ timeout: 30_000 });
-  await next(page, 'Renter reviews');
-  await next(page, 'Signatures');
   await draw(page, 'sign-renter'); await page.getByTestId('use-renter').click(); await expect(page.getByTestId('signed-renter')).toBeVisible({ timeout: 30_000 });
   await draw(page, 'sign-staff'); await page.getByTestId('use-staff').click(); await expect(page.getByTestId('signed-staff')).toBeVisible({ timeout: 30_000 });
-  await next(page, 'Hand over the keys');
   await expect(page.getByTestId('upload-count')).toContainText('all uploaded', { timeout: 60_000 });
   await page.getByTestId('complete').click();
   // the finished checklist, or (once the server action's refresh reloads the job page) the job as done: the refresh

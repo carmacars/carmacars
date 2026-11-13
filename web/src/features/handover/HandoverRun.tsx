@@ -10,6 +10,7 @@ import { ContactButtons } from '@/features/phone/QuoButtons';
 // Check-in or check-out from the booking page (migration 0130): the field portal's checklist, run by an Admin or an
 // assistant on the job the database assigned to them (app.handover_open). The same screens, the same rules: the ready
 // check, the readings, the photo set with its upload queue, damage marks, signatures; the database completes it.
+// Release 42: the checklist is one screen (features/field/Checklist), the same here as in the field portal.
 export async function HandoverRun({ userId, aal, job, number, base }: { userId: string; aal?: 'aal1' | 'aal2' | null; job: string; number: string; base: string }) {
   if (!/^[0-9a-f-]{36}$/.test(job)) notFound();
   const j = await door<FieldJob | null>(userId, 'field_read', 'job', { id: job }, aal).catch(() => null);
@@ -30,7 +31,7 @@ export async function HandoverRun({ userId, aal, job, number, base }: { userId: 
       {j.job.status === 'done'
         ? <div className="fd-screen stack" role="status" data-testid="field-done">
             <h2 className="d3">{pickup ? 'Checked in. The rental has started; the renter gets the photo report by email.'
-              : 'Checked out. The late, kilometre and fuel charges are on the return statement; Fleet reviews the photos.'}</h2>
+              : 'Checked out. The kilometre and fuel charges are on the return statement; Fleet reviews the photos. A late return is charged only once someone chooses how, on the booking.'}</h2>
             <p className="fd-line is-ok" data-testid="job-done"><span aria-hidden="true">✓</span> Done {j.job.completed_at ? when(j.job.completed_at) : ''}</p>
             <Link prefetch={false} className="btn btn--primary fd-wide" href={`${base}/report`} data-testid="checklist-back">See the photo report</Link></div>
         : <Checklist j={j} back={`${base}/report`} backLabel="See the photo report" here={{ signNow: `${base}/sign-now`, self: `${base}/handover/${job}` }} />}

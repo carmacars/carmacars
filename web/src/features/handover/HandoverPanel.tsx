@@ -8,12 +8,17 @@ import { ReturnClaimCard } from './ReturnClaimCard';
 import { SendSigningLink } from './SendSigningLink';
 import type { SigningState } from './types';
 import { HandoverOneScreen } from './HandoverOneScreen';
+import { LateReturnDecide } from './LateReturnChoice';
+import type { LateReturn } from './late-return';
 
 // The booking page's check-in, check-out and signing card (migration 0130), the same for an Admin and an assistant
 // (Fleet, Sales, Customer service): "Check in (pickup)" on a confirmed booking, "Check out (return)" while it is on rent,
 // each opening the field checklist (all sides, interior, odometer, fuel, plate, damage close-ups, readings, signatures);
 // the photo report; the late return; "Sign now on this device" and "Text or email the signing link" while the rental
 // agreement waits for a signature (0185: waiting for payment too; what it shows is decided in panel.ts).
+// Release 42 (2660): the first button opens the one-screen checklist, the same on every portal (Admin, the assistants,
+// field staff); the form with photos from the gallery is folded under it. A car that came back late shows the late
+// return choice here: nothing is charged for it until someone chooses.
 // 0195: the car went out or came back but the checklist could not be done (no photos, no time): the actual time,
 // km and fuel if known, and why. A pickup without the deposit or the renter's signature needs an Admin and a reason.
 function recordFields(kind: 'pickup' | 'return'): Field[] {
@@ -36,6 +41,9 @@ export async function HandoverPanel({ b, base, userId, aal, canHandover, canSign
   const signing = canSign && (SIGNING_STATUSES as readonly string[]).includes(b.status)
     ? await door<SigningState>(userId, 'ops_read', 'in_person_signing', { booking: b.id }, aal).catch(() => null) : null;
   const late = lateLabel(b);
+  // 2660: a late return is a choice (extension, extra days, the late fee, a custom amount, waived), never a charge by itself
+  const lateReturn = b.checked_in_at && late && ['returned', 'closed'].includes(b.status)
+    ? await door<LateReturn | null>(userId, 'ops_read', 'late_return', { booking: b.id }, aal).catch(() => null) : null;
   // 0195: the check-in or check-out reports recorded now whose photos and readings come later
   const pending = canHandover && ['on_rent', 'returned', 'closed'].includes(b.status)
     ? ((await door<{ details_pending?: Array<'pickup' | 'return'> }>(userId, 'ops_read', 'handover_report', { booking: b.id }, aal).catch(() => null))?.details_pending ?? []) : [];
@@ -48,10 +56,11 @@ export async function HandoverPanel({ b, base, userId, aal, canHandover, canSign
     {claim}
     <Card title="Check-in, check-out and signing" testId="handover-panel" tone={late ? 'warn' : b.status === 'confirmed' || b.status === 'on_rent' ? 'next' : undefined}>
       <div className="stack">
-        {late && <p className="ad-late" data-testid="booking-late"><b>{late}</b>{b.checked_in_at ? '' : '. Check the car in as soon as it is back: the late return charges follow the actual time.'}</p>}
+        {late && !lateReturn?.late && <p className="ad-late" data-testid="booking-late"><b>{late}</b>{b.checked_in_at ? '' : '. Check the car in as soon as it is back. A late return is not charged by itself: you choose how when the car is back.'}</p>}
+        {lateReturn?.late && <section aria-label="Late return" data-testid="booking-late"><h3 className="d4">Late return</h3><LateReturnDecide late={lateReturn} refresh={[base]} /></section>}
         {(v.checkout || v.checkin || v.report || v.signNow) && <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}>
-          {v.checkout && <Act ops action="handover_open" payload={{ booking: b.id, kind: 'pickup' }} label="Full checklist (pickup)" go={`${base}/handover/{job}`} testId="checkout-start" />}
-          {v.checkin && <Act ops action="handover_open" payload={{ booking: b.id, kind: 'return' }} label="Full checklist (return)" go={`${base}/handover/{job}`} testId="checkin-start" />}
+          {v.checkout && <Act ops action="handover_open" payload={{ booking: b.id, kind: 'pickup' }} label="Start the check-in (pickup)" variant="primary" go={`${base}/handover/{job}`} testId="checkout-start" />}
+          {v.checkin && <Act ops action="handover_open" payload={{ booking: b.id, kind: 'return' }} label="Start the check-out (return)" variant="primary" go={`${base}/handover/{job}`} testId="checkin-start" />}
           {v.addDetails.map((k) => <Act key={k} ops action="handover_open" payload={{ booking: b.id, kind: k }} label={`Add the ${k === 'pickup' ? 'check-in' : 'check-out'} photos and readings`} variant="primary" go={`${base}/handover/{job}`} testId={`add-details-${k}`} />)}
           {v.recordPickup && <Act ops action="handover_record_now" payload={{ booking: b.id, kind: 'pickup' }} label="Record the pickup now (details later)" testId="record-pickup-now" refresh={[base]}
             done="Pickup recorded. Fleet has a task to add the photos and readings." fields={recordFields('pickup')} />}
@@ -62,14 +71,14 @@ export async function HandoverPanel({ b, base, userId, aal, canHandover, canSign
         </div>}
         {/* 0545: one screen: the time, km, fuel, many photos at once with the suggested angles, a note; the renter's own
             photos join the same report. The full checklist stays one tap away. */}
-        {(v.checkout || v.checkin) && <section aria-label={v.checkout ? 'Check in on one screen' : 'Check out on one screen'} data-testid="one-screen">
-          <h3 className="d4">{v.checkout ? 'Check in (pickup)' : 'Check out (return)'}</h3>
-          <HandoverOneScreen booking={b.id} number={b.booking_number} kind={v.checkout ? 'pickup' : 'return'} who="staff" refresh={[base]} isAdmin={base.startsWith('/admin')} /></section>}
+        {(v.checkout || v.checkin) && <p className="small muted">{b.status === 'confirmed'
+          ? 'One screen on your phone: the ready check, the renter, licence and card, the odometer, fuel and keys (filled in when the car reports them), the photos one tap each, then the renter and you sign.'
+          : 'One screen on your phone: the odometer, fuel, keys and cleanliness (filled in when known), the photos one tap each, the late return choice if the car is late, then the renter and you sign.'}</p>}
+        {/* 0545: the form with photos from the gallery, a dashboard photo and a note; the renter's own photos join the same report */}
+        {(v.checkout || v.checkin) && <details data-testid="one-screen"><summary className="small link">{v.checkout ? 'Check in with photos already taken (from the gallery)' : 'Check out with photos already taken (from the gallery)'}</summary>
+          <HandoverOneScreen booking={b.id} number={b.booking_number} kind={v.checkout ? 'pickup' : 'return'} who="staff" refresh={[base]} isAdmin={base.startsWith('/admin')} /></details>}
         {v.addDetails.map((k) => <details key={`os-${k}`} data-testid={`one-screen-add-${k}`}><summary className="small link">Add photos and readings to the {k === 'pickup' ? 'check-in' : 'check-out'} on one screen</summary>
           <HandoverOneScreen booking={b.id} number={b.booking_number} kind={k} who="staff" refresh={[base]} /></details>)}
-        {(v.checkout || v.checkin) && <p className="small muted">The full checklist, when you want it: {b.status === 'confirmed'
-          ? 'The checklist: ready check, licence and card, odometer and fuel, the photo set (every side, wheels, interior, odometer and fuel gauge, plate), damage close-ups, then the renter and you sign. Photos upload in the background and wait on the phone without a connection.'
-          : 'The checklist: odometer and fuel, keys, cleanliness, the photo set, comparison with the check-in, belongings, then the renter and you sign. The late, kilometre and fuel charges are written at once.'}</p>}
         {v.addDetails.length > 0 && <p className="small" data-testid="details-pending">{v.addDetails.map((k) => (k === 'pickup' ? 'The check-in' : 'The check-out')).join(' and ')} was recorded with the details later: add the photos, the readings and your signature with the checklist.</p>}
         {v.waiting.length > 0 && <p className="small" data-testid="sign-waiting">Waiting for a signature: {v.waiting.join(', ')}.</p>}
         {v.note && <p className="small muted" data-testid="sign-state">{v.note}</p>}

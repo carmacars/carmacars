@@ -307,6 +307,8 @@ select test.eq('R findings confirmed: a finance task due the same day, the T7 no
   '1:finance:normal/1/1/150:190:false');
 
 -- ------------------------------------------------------------------ assessment: the charge lines and who they belong to
+-- 2660: a late return is charged only once someone chooses how: Fleet chooses the late return fee of the rental terms
+select app.late_return_decide(test.id('op_fleet'), jsonb_build_object('booking', test.b('opA'), 'option', 'late_fee', 'quiet', true));
 select test.throws('A Fleet does not price findings', format('select app.assess_check_in(%L, %L, %L)', test.b('opA'), '{}', test.id('op_fleet')), 'Finance or an Admin');
 create table test.op_assess as select app.assess_check_in(test.b('opA'), '{}', test.id('op_fin')) as r;
 -- 1402: without a pump receipt the fuel line is the formula (tank x missing fraction x pump price x multiplier): nothing waits

@@ -204,10 +204,10 @@ create temp table ho_ret as select (public.door(test.id('ho_admin'), null, 'ops_
 select test.eq('check-in: with no return job, one is made for the Admin', (select kind || '/' || (assigned_to = test.id('ho_admin')) from field_jobs where id = (select id from ho_ret)), 'return_check_in/true');
 create temp table ho_rt as select public.door(test.id('ho_admin'), null, 'field_do', 'complete_return', jsonb_build_object('job', (select id from ho_ret), 'report', jsonb_build_object(
   'odometer_km', 20450, 'fuel_pct', 75, 'keys_count', 2, 'cleanliness', 'clean', 'renter_present', true, 'renter_signature_ref', 'sig/r2', 'staff_signature_ref', 'sig/s2',
-  'photos', test.op_photos('return')))) r;
+  'photos', test.op_photos('return'), 'late_choice', jsonb_build_object('option', 'late_fee')))) r;
 select test.eq('check-in: returned, with the minutes late against the due-back time',
   (select r ->> 'booking_status' from ho_rt) || '/' || (select (minutes_late between 179 and 181)::text || ':' || extra_days from bookings where id = test.b('hoA')), 'returned/true:0');
-select test.eq('check-in: the late, kilometre and fuel charges are in the settlement at once (no Finance step)',
+select test.eq('check-in: the kilometre and fuel charges are in the settlement at once, and the late fee chosen on the return screen (2660)',
   (select string_agg(assessment_key, ',' order by assessment_key) from booking_line_items where booking_id = test.b('hoA') and voided_at is null and assessment_key is not null and amount_cents > 0),
   'fuel,fuel_service_fee,late_return_fee,mileage_overage');
 select test.eq('check-in: the kilometres over at the booking''s rate', test.op_line('hoA', 'mileage_overage') like (50 * 35)::text || '+%', true);

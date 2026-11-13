@@ -1,0 +1,9 @@
+/* The late return choice (release 42): five choices, each a whole row to tap, with what it costs under its name. Used on
+   the return screen (the field portal) and on the booking (Admin and staff). */
+.lr-choices { border: 0; padding: 0; margin: 0; display: grid; gap: var(--s-2); min-width: 0; }
+.lr-choices > legend { padding: 0; margin-bottom: var(--s-2); }
+.lr-choice { display: flex; align-items: flex-start; gap: var(--s-3); padding: var(--s-3); min-height: 3.5rem; border: 2px solid currentColor; border-radius: var(--r-2); cursor: pointer; }
+.lr-choice:has(input:checked) { box-shadow: inset 0 0 0 2px currentColor; }
+.lr-choice input { flex: 0 0 auto; width: 1.5rem; height: 1.5rem; margin: 0.1rem 0 0; }
+.lr-choice > span { display: grid; gap: 0.15rem; min-width: 0; }
+.lr-choice .small { font-weight: 400; overflow-wrap: anywhere; }
