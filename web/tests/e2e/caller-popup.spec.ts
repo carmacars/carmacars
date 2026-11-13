@@ -92,6 +92,70 @@ test('Customer service: a renter calls, the pop-up shows who it is, a note from 
   await expect(card.getByText('Ringing now')).toBeVisible();
   await expect(card.getByTestId('caller-balance')).toHaveText('Nothing owed');
   await check(page, 'staff caller pop-up');
+
+  // r42 (2670): the Call helper inside the call. The greeting carries the staff member's first name and the caller's
+  await expect(card.getByTestId('caller-kind')).toHaveText('Renter');
+  const greeting = card.getByTestId('call-greeting');
+  await expect(greeting).toContainText('Thank you for calling CarmaCars, this is Casey.');
+  await expect(greeting).toContainText('Hi Callum');
+  await expect(greeting).not.toContainText('{');
+  // one tap on a situation: its short steps, with a link to the page of this portal, and the way back
+  await expect(card.getByTestId('call-helper-tools').locator('.chelp-sit')).toHaveCount(10);
+  await card.getByTestId('call-sit-situation_late_return').click();
+  const steps = card.getByTestId('call-steps');
+  await expect(steps.getByRole('heading', { name: 'Running late or late return' })).toBeVisible();
+  expect(await steps.locator('ol > li').count()).toBeGreaterThanOrEqual(3);
+  expect(await steps.locator('ol > li').count()).toBeLessThanOrEqual(6);
+  await expect(steps.getByRole('link', { name: 'Bookings' })).toHaveAttribute('href', '/staff/bookings');
+  await expect(steps, 'the numbers come from the settings: no brace is left').not.toContainText('{');
+  await check(page, 'staff call helper steps');
+  await card.getByTestId('call-steps-back').click();
+  await expect(card.getByTestId('call-sit-situation_new_booking')).toBeVisible();
+  // the search over the quick answers
+  await card.getByTestId('call-faq-search').fill('deposit back');
+  await expect(card.getByTestId('call-faq-results').getByText('When do I get my deposit back?')).toBeVisible();
+  await card.getByTestId('call-faq-search').fill('helicopter');
+  await expect(card.getByTestId('call-faq-none')).toBeVisible();
+  await card.getByTestId('call-faq-search').fill('');
+  // the device in dark mode: the panel turns dark and still passes the contrast checks
+  await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
+  await check(page, 'staff caller pop-up, dark');
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+  // Hide puts the helper away (remembered in the browser), Show brings it back
+  await card.getByTestId('call-helper-toggle').click();
+  await expect(card.getByTestId('call-greeting')).toHaveCount(0);
+  await expect(card.getByTestId('call-helper-tools')).toHaveCount(0);
+  await card.getByTestId('call-helper-toggle').click();
+  await expect(card.getByTestId('call-greeting')).toBeVisible();
+
+  // minimized to a chip with the caller's name and the call's timer, and opened again from it
+  const chip = page.getByTestId('caller-chip').filter({ hasText: `Callum Caller ${t}` });
+  await card.getByTestId('caller-minimize').click();
+  await expect(card).toHaveCount(0);
+  await expect(chip).toBeVisible();
+  await expect(chip.getByTestId('caller-chip-timer')).toHaveText(/^\d+:\d\d(:\d\d)?$/);
+  await check(page, 'staff caller chip');
+  await chip.click();
+  await expect(card).toBeVisible();
+  // Esc minimizes (the keyboard lands on the chip), Enter on the chip opens the call again
+  await card.getByTestId('caller-minimize').focus();
+  await page.keyboard.press('Escape');
+  await expect(card).toHaveCount(0);
+  await expect(chip).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(card).toBeVisible();
+  await expect(card.getByTestId('caller-minimize')).toBeFocused();
+  // a click outside the panel minimizes it, never closes it
+  await page.locator('h1').first().click();
+  await expect(card).toHaveCount(0);
+  await expect(chip).toBeVisible();
+  // it stays a chip on the next page, and opens from there
+  await page.goto('/staff/requests', { waitUntil: 'networkidle' });
+  await expect(chip).toBeVisible({ timeout: 25_000 });
+  await expect(card).toHaveCount(0);
+  await chip.click();
+  await expect(card).toBeVisible();
+
   await card.getByTestId('renter-note-body').fill('Asked about adding a second driver; sent the link.');
   await card.getByTestId('renter-note-add').click();
   await expect(card.getByRole('status').filter({ hasText: 'Note added.' })).toBeVisible();

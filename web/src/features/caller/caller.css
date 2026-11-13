@@ -1,34 +1,90 @@
-/* Who is calling and renter notes (migration 0800): the caller panel docked bottom right (a sheet across the bottom on a
-   phone), black on white with the portals' red for a live call, and the notes list. */
-.cpop { position: fixed; right: 16px; bottom: 16px; z-index: 60; width: min(24rem, calc(100vw - 32px)); pointer-events: none; }
-.cpop-panel { display: grid; gap: 10px; max-height: calc(100vh - 32px); overflow-y: auto; pointer-events: auto; }
-.cpop-card { background: var(--white); color: var(--text); border: 1px solid var(--grey-300); border-top: 4px solid var(--grey-700); border-radius: 14px;
-  box-shadow: 0 18px 48px -18px rgb(0 0 0 / 0.45); padding: 12px 14px; display: grid; gap: 10px; overflow-wrap: anywhere; }
-.cpop-card.is-live { border-top-color: var(--red-600); }
-.cpop-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+/* Who is calling and renter notes (migration 0800), restyled in r43 (2720): the caller panel docked bottom right (a sheet
+   across the bottom on a phone), the chip it minimizes to, the Call helper inside it, and the notes list. Only the design
+   tokens (styles/tokens.css): the panel sets the semantic ones (--bg, --text, --line...) for itself, so the shared
+   buttons, links and quiet text inside follow, and it turns dark with the device (prefers-color-scheme). */
+.cpop { --cp-warn: var(--red-700); --cp-live: var(--red-600); --cp-shadow: 0 1px 0 rgb(0 0 0 / 0.04), 0 22px 48px -20px rgb(0 0 0 / 0.5);
+  position: fixed; right: 16px; bottom: 16px; z-index: 60; width: min(26rem, calc(100vw - 32px)); pointer-events: none; display: grid; gap: 8px; justify-items: end; }
+@media (prefers-color-scheme: dark) {
+  .cpop { --bg: var(--grey-950); --surface: var(--grey-800); --text: var(--white); --text-2: var(--grey-400); --line: var(--grey-700); --line-strong: var(--white);
+    --accent-text: var(--red-400); --cp-warn: var(--red-400); --cp-live: var(--red-400); --cp-shadow: 0 0 0 1px rgb(255 255 255 / 0.06), 0 22px 48px -18px rgb(0 0 0 / 0.9); }
+}
+.cpop-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.cpop-panel { display: grid; gap: 10px; width: 100%; max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain; pointer-events: auto; border-radius: var(--ui-r-card); }
+.cpop-card { background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: var(--ui-r-card); box-shadow: var(--cp-shadow);
+  padding: var(--s-4); display: grid; gap: var(--s-3); overflow-wrap: anywhere; min-width: 0; }
+.cpop-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--s-2); }
 .cpop-head p { margin: 0; }
-.cpop-title { margin: 2px 0; font-size: 1.15rem; line-height: 1.25; }
-.cpop-state { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.cpop-who { min-width: 0; display: grid; gap: 2px; }
+.cpop-title { margin: 0; font-family: var(--font-display); font-size: 1.25rem; line-height: var(--lh-tight); letter-spacing: -0.01em; }
+.cpop-state { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--text-2); }
+.cpop-card.is-live .cpop-state { color: var(--text); }
+.cpop-timer { font-variant-numeric: tabular-nums; font-weight: 600; }
+.cpop-state .cpop-timer::before { content: "·"; margin-right: 6px; color: var(--text-2); }
 .cpop-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--grey-500); flex: none; }
-.cpop-card.is-live .cpop-dot { background: var(--red-600); }
-@media (prefers-reduced-motion: no-preference) { .cpop-card.is-live .cpop-dot { animation: cpop-pulse 1.4s ease-in-out infinite; } }
+.is-live .cpop-dot { background: var(--cp-live); }
+@media (prefers-reduced-motion: no-preference) { .is-live .cpop-dot { animation: cpop-pulse 1.4s ease-in-out infinite; } }
 @keyframes cpop-pulse { 50% { opacity: 0.35; } }
-.cpop-x { border: 0; background: none; font-size: 1.5rem; line-height: 1; width: 44px; height: 44px; margin: -8px -8px 0 0; cursor: pointer; color: var(--grey-700); border-radius: 50%; flex: none; }
-.cpop-x:hover { background: var(--grey-100); }
-.cpop-x:focus-visible { outline: 3px solid var(--red-600); outline-offset: 2px; }
-.cpop-body { display: grid; gap: 10px; }
+.cpop-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; color: var(--text-2); }
+.cpop-kind { display: inline-block; padding: 1px 8px; border-radius: var(--r-pill); background: var(--surface); color: var(--text); font-weight: 600; font-size: var(--fs-xs); }
+.cpop-tools { display: flex; gap: 2px; margin: -6px -8px 0 0; flex: none; }
+.cpop-tool { display: grid; place-items: center; width: 44px; height: 44px; border: 0; background: none; color: var(--text-2); border-radius: 50%; cursor: pointer; }
+.cpop-tool:hover { background: var(--surface); color: var(--text); }
+.cpop-tool:focus-visible, .cpop-chip:focus-visible, .chelp-sit:focus-visible, .chelp-toggle:focus-visible, .chelp-back:focus-visible { outline: 3px solid var(--cp-live); outline-offset: 2px; }
+.cpop-body { display: grid; gap: var(--s-3); }
 .cpop-body > p { margin: 0; }
-.cpop-kv { display: grid; gap: 4px; margin: 0; }
+.cpop-kv { display: grid; gap: 4px; margin: 0; padding: var(--s-3); background: var(--surface); border-radius: var(--ui-r-tile); }
 .cpop-kv > div { display: grid; grid-template-columns: 6.5rem 1fr; gap: 8px; font-size: 0.9rem; }
-.cpop-kv dt { color: var(--grey-700); }
+.cpop-kv dt { color: var(--text-2); }
 .cpop-kv dd { margin: 0; min-width: 0; }
 .cpop-reqs { margin: 0; padding-left: 1.1em; }
-.cpop-warn { color: var(--red-700, var(--red-600)); font-weight: 600; }
+.cpop-warn, .cpop .rn-err { color: var(--cp-warn); font-weight: 600; }
 .cpop-foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0; }
+
+/* minimized: a chip with the caller's name and the call's timer; tap it to open the call again */
+.cpop-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; pointer-events: none; max-width: 100%; }
+.cpop-chips li { min-width: 0; max-width: 100%; }
+.cpop-chip { pointer-events: auto; display: inline-flex; align-items: center; gap: 8px; max-width: 100%; min-height: 44px; padding: 0 16px 0 14px; border: 1px solid var(--line);
+  border-radius: var(--r-pill); background: var(--bg); color: var(--text); box-shadow: var(--cp-shadow); font: inherit; font-size: var(--fs-sm); font-weight: 600; cursor: pointer; }
+.cpop-chip:hover { border-color: var(--line-strong); }
+.cpop-chip-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 12rem; }
+.cpop-chip .cpop-timer { color: var(--text-2); }
+
+/* the Call helper: what to say, the situations, the quick answers */
+.chelp-top { display: grid; gap: var(--s-2); }
+.chelp-bar { display: flex; align-items: center; gap: var(--s-3); }
+.chelp-name { margin: 0 auto 0 0; font-size: var(--fs-xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-2); }
+.chelp-toggle, .chelp-back { border: 0; background: none; padding: 0; min-height: 28px; font: inherit; font-size: var(--fs-sm); font-weight: 600; color: var(--text); text-decoration: underline; text-underline-offset: 0.2em; cursor: pointer; border-radius: var(--r-1); }
+.chelp-back { display: inline-flex; align-items: center; gap: 4px; }
+.chelp-say { margin: 0; padding: var(--s-3) var(--s-3) var(--s-3) var(--s-4); border-left: 4px solid var(--cp-live); background: var(--surface); border-radius: 0 var(--ui-r-tile) var(--ui-r-tile) 0;
+  font-size: 1.0625rem; line-height: 1.45; font-weight: 500; }
+.chelp-say-k { display: block; margin-bottom: 2px; font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-2); }
+.chelp { display: grid; gap: var(--s-3); }
+.chelp-label { display: block; margin: 0 0 6px; font-size: var(--fs-sm); font-weight: 600; }
+.chelp-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.chelp-sit { width: 100%; height: 100%; min-height: 52px; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--ui-r-tile); background: var(--bg); color: var(--text);
+  font: inherit; font-size: var(--fs-sm); font-weight: 600; line-height: 1.25; text-align: left; cursor: pointer; }
+.chelp-sit:hover { border-color: var(--line-strong); background: var(--surface); }
+.chelp-steps { display: grid; gap: var(--s-2); }
+.chelp-steps-head, .chelp-steps-title { margin: 0; }
+.chelp-steps-title { font-family: var(--font-display); font-size: 1.0625rem; line-height: var(--lh-tight); }
+.chelp-steps ol { margin: 0; padding: 0; list-style: none; counter-reset: chelp; display: grid; gap: 8px; }
+.chelp-steps li { counter-increment: chelp; display: grid; grid-template-columns: 1.5rem 1fr; gap: 8px; font-size: 0.9375rem; line-height: 1.45; }
+.chelp-steps li::before { content: counter(chelp); display: grid; place-items: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; background: var(--text); color: var(--bg); font-size: var(--fs-2xs); font-weight: 700; }
+.chelp-steps li > :first-child { min-width: 0; }
+.chelp-quote { font-weight: 700; }
+.chelp-q { min-height: 44px; font-size: 16px; }
+.chelp-answers { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.chelp-answers li { padding: var(--s-2) var(--s-3); border: 1px solid var(--line); border-radius: var(--ui-r-tile); }
+.chelp-answers p { margin: 0; }
+.chelp-q-title { font-weight: 700; font-size: var(--fs-sm); }
+.chelp-a { font-size: 0.9375rem; line-height: 1.45; }
+.chelp-none { margin: 8px 0 0; color: var(--text-2); }
+
 @media (max-width: 37.49rem) {
   .cpop { right: 8px; left: 8px; bottom: 8px; width: auto; }
   /* at most half the screen, so the page's own menu and buttons stay reachable under a ringing call */
-  .cpop-panel { max-height: 50vh; }
+  .cpop-panel { max-height: 50vh; max-height: 50dvh; }
+  .cpop-card { padding: var(--s-3); }
 }
 
 .rn { display: grid; gap: 10px; }
