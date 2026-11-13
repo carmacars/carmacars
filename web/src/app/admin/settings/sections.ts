@@ -37,5 +37,6 @@ export const SECTIONS: Array<[string, string, string]> = [
   ['api', 'API access', 'Connect Claude to bookings, requests and owners: keys, connections and every call with before and after'],
   ['insurers', 'Insurers', 'Insurance companies billed for bookings (their rates: Money > Insurers)'],
   ['promo-codes', 'Promo codes', 'Codes, values, dates and uses'],
-  ['quick-replies', 'Quick replies', 'Snippets for staff messages']
+  ['quick-replies', 'Quick replies', 'Snippets for staff messages'],
+  ['call-helper', 'Call helper', 'What staff say on a call: the greetings, a button for each situation with its steps, and the quick answers they search, inside the caller pop-up']
 ];
