@@ -97,6 +97,14 @@ test('sns: URL checks', () => {
   assert.equal(isSnsCertUrl('https://sns.ca-central-1.amazonaws.com/a'), false);
 });
 
+test('sns: only a region of AWS, never another name that starts with sns.', () => {
+  for (const h of ['sns.us-east-1', 'sns.ap-southeast-2', 'sns.eu-central-1', 'sns.us-gov-west-1', 'sns.me-central-1']) assert.equal(isSnsCertUrl(`https://${h}.amazonaws.com/x.pem`), true, h);
+  for (const h of ['sns.s3-us-west-2', 'sns.s3-accelerate', 'sns.s3-website-us-east-1', 'sns.execute-api', 'sns.abcd', 'sns.us-east-1.s3', 'sns']) assert.equal(isSnsCertUrl(`https://${h}.amazonaws.com/x.pem`), false, h);
+  assert.equal(isSnsCertUrl('http://sns.us-east-1.amazonaws.com/x.pem'), false);
+  assert.equal(isSnsCertUrl('https://sns.us-east-1.amazonaws.com:8443/x.pem'), false);
+  assert.equal(isSnsCertUrl('https://user@sns.us-east-1.amazonaws.com/x.pem'), false);
+});
+
 const bounce = (type: string, extra = '') => JSON.stringify({ eventType: 'Bounce', mail: { messageId: 'abc' },
   bounce: { bounceType: type, bounceSubType: 'General', bouncedRecipients: [{ emailAddress: 'A@Example.com', diagnosticCode: 'smtp; 550 no such user' }, { emailAddress: 'b@example.com' }] }, ...(extra ? JSON.parse(extra) : {}) });
 

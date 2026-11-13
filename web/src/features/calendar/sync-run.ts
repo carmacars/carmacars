@@ -21,13 +21,30 @@ export function normalizeUrl(url: string): string {
   return url.trim().replace(/^webcal:\/\//i, 'https://');
 }
 
-/** A host that must never be read from the server (the machine itself or a private network), unless allowed. */
+/** An IPv4 address (four numbers) that is not a public one: this machine, a private or carrier network, link-local
+ *  (cloud metadata), multicast and the reserved ranges. */
+function privateV4(h: string): boolean {
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(h);
+  if (!m) return false;
+  const a = Number(m[1]), b = Number(m[2]);
+  return a === 0 || a === 10 || a === 127 || a >= 224 || (a === 100 && b >= 64 && b <= 127) || (a === 169 && b === 254)
+    || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 192 && b === 0) || (a === 198 && (b === 18 || b === 19));
+}
+
+/** A host that must never be read from the server (the machine itself, a private network, or a name only the server's
+ *  own network knows), unless allowed. A name without a dot (a container or a machine beside the server) is never
+ *  public; an IPv6 literal is refused unless it is a global unicast address that does not carry an IPv4 one. */
 export function privateHost(url: string): boolean {
   let h: string;
-  try { h = new URL(url).hostname.toLowerCase().replace(/^\[|\]$/g, ''); } catch { return true; }
-  return h === 'localhost' || h.endsWith('.localhost') || h.endsWith('.internal') || h.endsWith('.local') || h === '0.0.0.0' || h === '::1'
-    || /^127\./.test(h) || /^10\./.test(h) || /^192\.168\./.test(h) || /^169\.254\./.test(h) || /^172\.(1[6-9]|2\d|3[01])\./.test(h) || /^f[cd][0-9a-f]{2}:/.test(h);
+  try { h = new URL(url).hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.+$/, ''); } catch { return true; }
+  if (!h) return true;
+  if (h.includes(':')) return !/^[23][0-9a-f]{3}:/.test(h) || /^(2001:(0?db8|0{0,4}):|2002:)/.test(h) || /\d+\.\d+\.\d+\.\d+$/.test(h);
+  if (/^[\d.]+$/.test(h)) return !/^\d{1,3}(\.\d{1,3}){3}$/.test(h) || privateV4(h);
+  return !h.includes('.') || h === 'localhost' || /\.(localhost|internal|local|lan|home|intranet|corp|svc|cluster)$/.test(h) || h.endsWith('.home.arpa');
 }
+
+/** Redirects are followed here, one at a time, so every address on the way is checked like the first one. */
+export const MAX_REDIRECTS = 5;
 
 /** Why a read failed, in words a Fleet assistant can act on. */
 export function httpReason(status: number): string {
@@ -52,7 +69,18 @@ export async function syncOne(feed: DueFeed, store: Store, fetchFn: Fetch, opts:
   const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
   let res: Response;
   try {
-    res = await fetchFn(url, { headers, redirect: 'follow', signal: ctl.signal });
+    let at = url;
+    for (let hop = 0; ; hop++) {
+      res = await fetchFn(at, { headers, redirect: 'manual', signal: ctl.signal });
+      const loc = res.status >= 300 && res.status < 400 && res.status !== 304 ? res.headers.get('location') : null;
+      if (!loc) break;
+      await res.body?.cancel().catch(() => undefined);
+      let next: string;
+      try { next = new URL(loc, at).toString(); } catch { clearTimeout(timer); return fail('The link redirects to an address that cannot be read.'); }
+      if (hop >= MAX_REDIRECTS) { clearTimeout(timer); return fail('The link redirects too many times.'); }
+      if (!/^https?:\/\//i.test(next) || (!opts.allowPrivate && privateHost(next))) { clearTimeout(timer); return fail('The link redirects to an address that cannot be read from the server.'); }
+      at = next;
+    }
   } catch (e) {
     clearTimeout(timer);
     return fail(ctl.signal.aborted ? `No answer within ${TIMEOUT_MS / 1000} seconds.` : `The link could not be reached (${e instanceof Error ? e.message.slice(0, 120) : 'network error'}).`);

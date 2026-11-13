@@ -6,6 +6,7 @@ import { rpc } from '@/lib/db/repo';
 import type { Json } from '@/lib/db/types';
 import { viewAs } from '@/server/view-as';
 import { startStaffCall, twilioState } from '@/server/twilio-call';
+import { foreignOrigin } from '@/lib/security/same-origin';
 
 // Texts and calls for staff (migration 0085): the inbox and threads poll this; replies are sent through Quo from the
 // CarmaCars number; AI suggestions only fill the reply box. Admins, customer service and Sales; the database checks it
@@ -75,7 +76,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
-  if (origin && new URL(origin).host !== req.headers.get('host')) return NextResponse.json({ error: 'Not permitted' }, { status: 403, headers: H });
+  if (foreignOrigin(origin, req.headers.get('host'))) return NextResponse.json({ error: 'Not permitted' }, { status: 403, headers: H });
   const w = await who();
   if (!w) return NextResponse.json({ error: 'Sign in first' }, { status: 401, headers: H });
   const b = (await req.json().catch(() => null)) as ({ action?: string } & Record<string, unknown>) | null;

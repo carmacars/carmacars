@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { answerQuestion, prepareUpload, startInterview, TOKEN } from '@/server/interviews';
 import { MAX_AUDIO_BYTES, MAX_VIDEO_BYTES } from '@/features/careers/ai-interview';
+import { foreignOrigin } from '@/lib/security/same-origin';
 
 // The AI interview's answers (migration 0380), from the candidate's page: no sign-in, the personal link's token is the
 // key. POST form data: start (the consent); prepare (0585: seq, video_type, audio_type: two signed upload links, the
@@ -12,7 +13,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const origin = req.headers.get('origin');
-  if (origin && new URL(origin).host !== req.headers.get('host')) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
+  if (foreignOrigin(origin, req.headers.get('host'))) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
   if (!TOKEN.test(token ?? '')) return NextResponse.json({ ok: false, message: 'This link is not valid.' }, { status: 404 });
   if (Number(req.headers.get('content-length') ?? 0) > MAX_AUDIO_BYTES + 64 * 1024) return NextResponse.json({ ok: false, message: 'That recording is too large. Please record it again.' }, { status: 413 });
   try {
