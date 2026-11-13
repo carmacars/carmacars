@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { claimPayload, claimPhotoKey, fuelLabel, MAX_PHOTOS } from './claim.ts';
+import { claimPayload, claimPhotoKey, fuelLabel, MAX_PHOTOS, MAX_PICKED_PHOTOS, reportNote } from './claim.ts';
 
 const now = new Date('2026-11-06T15:00:00Z');
 
@@ -35,4 +35,12 @@ test('fuel labels', () => {
   assert.equal(fuelLabel(25), '1/4');
   assert.equal(fuelLabel(60), '60%');
   assert.equal(fuelLabel(null), 'not given');
+});
+
+test('a report with a missing reading is still sent: the note says staff will confirm, and the photo cap leaves room for the reading photos', () => {
+  assert.match(reportNote('Take the selfie in front of the car with the camera.'), /send the report anyway/);
+  assert.match(reportNote('Take the selfie in front of the car with the camera.'), /take the selfie/i);
+  assert.match(reportNote(null), /completed at once/);
+  assert.equal(MAX_PICKED_PHOTOS + 2, MAX_PHOTOS);
+  assert.ok(claimPayload({ photos: Array.from({ length: MAX_PHOTOS }, (_, i) => ({ bucket: 'condition-photos', path: String(i) })) }, now).ok);
 });

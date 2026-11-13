@@ -52,7 +52,7 @@ export function LateReturnDecide({ late, refresh = [] }: { late: LateReturn; ref
     setC(NO_CHOICE); router.refresh();
   });
   const go = () => { const p = choicePayload(c, late); if (!p) { setMsg({ ok: false, text: choiceProblem(c, late) ?? 'Choose how the late return is charged.' }); return; } send(p); };
-  const open = !late.locked && late.may.decide && (!d || d.status === 'pending' || (late.may.admin && d.status !== 'pending'));
+  const open = !late.locked && late.may.decide && (!d || d.status === 'pending' || late.may.admin);
   return (
     <div className="stack" data-testid="late-return">
       <p className="ad-late" data-testid="late-return-facts"><b>Late by {late.late_text}.</b> {d ? decisionText(d) : 'No late return charge is chosen yet. Nothing is charged until someone chooses.'}</p>

@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { DateInput } from '@/components/DateInput';
-import { MAX_PHOTOS, claimPayload } from './claim';
+import { MAX_PICKED_PHOTOS, claimPayload, reportNote } from './claim';
 import { PhotoPicker } from '@/features/handover/PhotoPicker';
 import { DashReading } from '@/features/handover/DashReading';
 import { emptyReading, readingPayload, readingPhotos, readingProblem, readingValues } from '@/features/handover/reading';
@@ -40,8 +40,6 @@ export function ReturnedForm({ token }: { token: string }) {
 
   async function send() {
     setErr(null);
-    const problem = readingProblem(reading);
-    if (problem) { setErr(problem); return; }
     const { odometer_km: km, fuel_pct: fuel } = readingValues(reading);
     const v = claimPayload({ returned_at: at ? new Date(at).toISOString() : undefined, odometer_km: km, fuel_pct: fuel, note,
       photos: [...photos.map(({ bucket, path, angle }) => ({ bucket, path, angle })), ...readingPhotos(reading)], reading: readingPayload(reading) });
@@ -68,8 +66,8 @@ export function ReturnedForm({ token }: { token: string }) {
 
   return (
     <form className="stack" data-testid="returned-form" onSubmit={(e) => { e.preventDefault(); void send(); }}>
-      <PhotoPicker scope="return-claim" id={token} upload={upload} photos={photos} onChange={setPhotos} onBusy={setUploading} max={MAX_PHOTOS} label="Photos of the car where you left it (all sides, keys)" testId="returned-photos" />
-      <p className="small muted">With the photos, the dashboard reading and the selfie, your return is completed at once.</p>
+      <PhotoPicker scope="return-claim" id={token} upload={upload} photos={photos} onChange={setPhotos} onBusy={setUploading} max={MAX_PICKED_PHOTOS} label="Photos of the car where you left it (all sides, keys)" testId="returned-photos" />
+      <p className="small muted" data-testid="returned-note">{reportNote(readingProblem(reading))}</p>
       <div className="field">
         <label className="label" htmlFor="ret-at">When you returned it</label>
         <DateInput className="input" id="ret-at" type="datetime-local" value={at} max={localNow()} onChange={(e) => setAt(e.target.value)} />
