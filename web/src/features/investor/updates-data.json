@@ -171,12 +171,15 @@
    {
     "area": "Renters",
     "items": [
+     "Sending \"I've returned the car\" no longer fails on a server hiccup: it is tried again by itself, and an error shows its code instead of only asking to call",
      "The first photo of every car on the site is its exterior at the front angle"
     ]
    },
    {
     "area": "Staff tools",
     "items": [
+     "A Sales person who closed a sale with a customer keeps that customer's conversation and activity on every booking, the later ones included",
+     "The automatic AI answer waits when a person replied to that customer in the last 30 minutes, by text (from the site or the phone app) or by email; the minutes are a setting in Program settings, AI auto-replies",
      "Only a Sales applicant who passes the AI interview is hired by itself; every other role that passes is invited to book an interview date",
      "An Admin can press **Redo the AI interview**: the old interview is kept as history and the applicant gets a new link",
      "**Primary photo is not exterior** flags a car whose first photo is an inside one, and **Redo photos with Gemini** makes its outside photos again",

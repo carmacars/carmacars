@@ -41,6 +41,8 @@
    "summary": "Staff taking calls get a Call helper, only Sales is hired by the AI interview by itself, with video answers scored out of 10 and a stricter pass, every car shows its front exterior first, and the Protection Plan switch uses the car's own price.",
    "sections": {
     "staff": [
+     "When you close a sale with a customer, you keep their conversation on every later booking too",
+     "The AI does not answer a customer for 30 minutes after a person replied to them",
      "Check-in and check-out are one screen instead of ten to fourteen steps, with the odometer, fuel and keys filled in for you and a tick on each part when it is done",
      "A late return is never charged by itself: on the return screen or the booking you choose an extension, extra days, the late return fee, a custom amount or a waiver, each with a reason where needed",
      "The caller pop-up has a Call helper with a greeting, a button for each kind of call and quick answers; it minimizes to a small bar when you click outside it",
@@ -60,6 +62,7 @@
      "Your dashboard and car pages show each car's current kilometres and its next service, in km or by date"
     ],
     "renters": [
+     "If sending \"I've returned the car\" hits a server hiccup it is tried again by itself",
      "Every car's first photo is its exterior from the front",
      "Returning the car yourself always sends your report: if a photo or reading is missing, staff confirm the return instead of the form refusing"
     ],
