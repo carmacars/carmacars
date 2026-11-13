@@ -25,6 +25,10 @@ on:
   schedule:
     - cron: '41 6 * * 1'
 
+# The workflow's token only reads the repository (a job that needs more says so itself).
+permissions:
+  contents: read
+
 concurrency:
   group: seo-data
   cancel-in-progress: false

@@ -17,6 +17,10 @@ on:
         type: boolean
         default: false
 
+# The workflow's token only reads the repository (a job that needs more says so itself).
+permissions:
+  contents: read
+
 concurrency:
   group: guides-pdf
   cancel-in-progress: false
@@ -59,13 +63,15 @@ jobs:
         run: |
           if [ "${{ steps.pw.outputs.cache-hit }}" = true ]; then npx playwright install-deps chromium; else npx playwright install --with-deps chromium; fi
       - name: Print and store
+        env:
+          PORTALS: ${{ inputs.portals }}
         run: |
           # the site's link key (the jobs' bearer token is derived from it), from the Supabase vault as verify.yml reads it
           L=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" vault deploy_link_signing_key)
           if [ -z "$L" ]; then echo "::error title=guides-pdf::The link key is not in the vault (deploy_link_signing_key)"; exit 1; fi
           echo "::add-mask::$L"
           export LINK_SIGNING_KEY="$L"
-          P="${{ inputs.portals }}"
+          P="$PORTALS"
           node scripts/guides-pdf.mjs --base "$APP_URL" ${{ inputs.committed && '--committed' || '--out "$RUNNER_TEMP/guides"' }} ${P:+--portals "$P"} | tee "$RUNNER_TEMP/report.txt"
           sed 's/^/::notice title=guides-pdf::/' "$RUNNER_TEMP/report.txt"
       - uses: actions/upload-artifact@v4

@@ -16,6 +16,10 @@ on:
         type: boolean
         default: true
 
+# The workflow's token only reads the repository (a job that needs more says so itself).
+permissions:
+  contents: read
+
 concurrency:
   group: forms-fetch
   cancel-in-progress: false

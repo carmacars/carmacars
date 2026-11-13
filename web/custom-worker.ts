@@ -491,7 +491,8 @@ const worker = {
     // a page is never reused by the browser without asking first: OpenNext's stale-while-revalidate let Safari show a
     // page kept from a previous deploy, whose style files are gone (home loaded unstyled on phones, Oct 21). The
     // data centre's copy above is unaffected (it is kept before this line).
-    headers.set('cache-control', response.headers.get(STALE_HEADER) === 'busy' ? 'no-store' : 'no-cache');
+    // A signed-in page is the visitor's own: marked private, so no proxy between here and the browser keeps it.
+    headers.set('cache-control', response.headers.get(STALE_HEADER) === 'busy' ? 'no-store' : hasSession(request.headers.get('cookie')) ? 'private, no-cache' : 'no-cache');
     const nonce = newNonce();
     headers.set('Content-Security-Policy', cspHeader(nonce, { turnstile: true, connectOrigins: supabaseOrigin(env.NEXT_PUBLIC_SUPABASE_URL), frameAncestors: framed ? 'https:' : undefined }));
     const out = new Response(response.body, { status: response.status, statusText: response.statusText, headers });
