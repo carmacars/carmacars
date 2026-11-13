@@ -29,7 +29,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
       return u.ok ? NextResponse.json(u) : NextResponse.json({ ok: false, message: u.message }, { status: u.status });
     }
     const m = f.get('mode');
-    const mode = m === 'voice' ? 'voice' : m === 'typed' ? 'typed' : m === 'none' ? 'none' : null;
+    // 2680: video answers only; a typed answer is not accepted (the database refuses it too)
+    const mode = m === 'voice' ? 'voice' : m === 'none' ? 'none' : null;
     if (!Number.isInteger(seq) || seq < 1 || seq > 40 || !mode) return NextResponse.json({ ok: false, message: 'Something is missing. Reload the page.' }, { status: 400 });
     const audioKey = String(f.get('audio_key') ?? '') || undefined;
     const audio = f.get('audio');
@@ -38,7 +39,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
     const seconds = Math.min(Math.max(Number(f.get('seconds')) || 0, 0), 240);
     const videoBytes = Number(f.get('video_bytes')) || 0;
     if (videoBytes > MAX_VIDEO_BYTES) return NextResponse.json({ ok: false, message: 'That video is too large. Please record it again.' }, { status: 413 });
-    const r = await answerQuestion(token, { seq, mode, text: mode === 'typed' ? String(f.get('text') ?? '').slice(0, 4000) : undefined,
+    const r = await answerQuestion(token, { seq, mode,
       audio: blob ? new Uint8Array(await blob.arrayBuffer()) : undefined, type: blob?.type || String(f.get('type') ?? ''), seconds,
       audio_key: audioKey, video_key: String(f.get('video_key') ?? '') || undefined, video_type: String(f.get('video_type') ?? '') || undefined,
       video_bytes: videoBytes || undefined, retakes_used: Number(f.get('retakes_used')) || 0 });

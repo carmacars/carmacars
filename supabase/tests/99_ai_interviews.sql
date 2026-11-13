@@ -1,5 +1,5 @@
 -- 99: the AI interview of the remote assistant roles (migration 0380, docs/changes/2026-11-07-ai-interviews.md). The link
--- instead of the live call, the consent before recording, answers in order (voice or typed), the follow-ups (two at most),
+-- instead of the live call, the consent before recording, answers in order (video only since 2680), the follow-ups (two at most),
 -- the transcripts and the scores counted in the AI budget, the AI's scores checked (quotes from the answers only), the
 -- Admin's reads and doors (a live call, a new link), the expiry, the removal with the application, and the privileges.
 -- Fixtures start with "aiv"; example.test addresses only.
@@ -25,6 +25,18 @@ begin
   return (select count(*) from notification_outbox o where o.code = p_code and o.to_address = p_k || '@aiv.example.test');
 end $$;
 create or replace function test.aiv_tok(p_k text) returns text language sql stable as $$ select token from test.aiv(p_k) $$;
+-- 2680: answers are video only; a typed answer is refused. This helper answers by voice (the file key) and gives the transcript at once.
+create or replace function test.aiv_say(p_tok text, p_seq int, p_text text) returns jsonb language plpgsql as $$
+declare v jsonb; v_iv uuid;
+begin
+  select i.id into v_iv from job_applications a join ai_interviews i on i.application_id = a.id where a.token = p_tok;
+  v := public.server_ai_interview_answer(p_tok, jsonb_build_object('seq', p_seq, 'mode', 'voice', 'audio_key', 'hiring/interviews/' || v_iv || '/' || p_seq || '-h' || p_seq || '.webm',
+         'audio_type', 'audio/webm', 'audio_bytes', 5000, 'audio_seconds', 20));
+  if v ? 'answer_id' and not coalesce((v ->> 'repeat')::boolean, false) then
+    update ai_interview_answers set transcript = p_text, transcript_state = 'done' where id = (v ->> 'answer_id')::uuid;
+  end if;
+  return v;
+end $$;
 -- no interview day open for any role during this suite: the live invitation waits for a day (0211)
 create temp table aiv_days as select id from interview_days where active;
 update interview_days set active = false where id in (select id from aiv_days);
@@ -81,17 +93,16 @@ grant all on aiv_v to public;
 select test.eq('the page: sent, consent needed, question 1 first', (select (v ->> 'state') || '/' || (v ->> 'consent_needed') || '/' || (v #>> '{next,seq}') || '/' || (v #>> '{next,key}') from aiv_v),
   'sent/true/1/experience');
 select test.eq('an unknown link', public.server_ai_interview(repeat('0', 64)) ->> 'error', 'not_found');
-select test.eq('no answer before the consent', public.server_ai_interview_answer(test.aiv_tok('aivcs'), '{"seq":1,"mode":"typed","text":"Hello"}') ->> 'error', 'consent');
+select test.eq('no answer before the consent', test.aiv_say(test.aiv_tok('aivcs'), 1, 'Hello') ->> 'error', 'consent');
 select test.eq('the start needs the consent', public.server_ai_interview_start(test.aiv_tok('aivcs'), '{}') ->> 'error', 'consent');
 select test.eq('consent given: started', public.server_ai_interview_start(test.aiv_tok('aivcs'), '{"consent":true}') ->> 'state', 'started');
 select test.ok('the consent is kept with the words shown', (select consent_at is not null and consent_text = app.ai_interview_consent_text() from test.aiv_iv('aivcs')));
 
--- ================================================================ 3. answers in order, voice or typed
-select test.eq('an answer out of order', public.server_ai_interview_answer(test.aiv_tok('aivcs'), '{"seq":2,"mode":"typed","text":"Hello"}') ->> 'error', 'order');
-select test.eq('an empty typed answer', public.server_ai_interview_answer(test.aiv_tok('aivcs'), '{"seq":1,"mode":"typed","text":"  "}') ->> 'error', 'empty');
-select test.eq('typed answer 1: the next is question 2', public.server_ai_interview_answer(test.aiv_tok('aivcs'),
-  '{"seq":1,"mode":"typed","text":"I worked two years as a chat support agent for a US internet provider, answering about sixty chats a day."}') #>> '{next,seq}', '2');
-select test.eq('the same answer pressed twice: answered as the first', public.server_ai_interview_answer(test.aiv_tok('aivcs'), '{"seq":1,"mode":"typed","text":"again"}') ->> 'repeat', 'true');
+-- ================================================================ 3. answers in order, video only
+select test.eq('an answer out of order', test.aiv_say(test.aiv_tok('aivcs'), 2, 'Hello') ->> 'error', 'order');
+select test.eq('a typed answer is refused (2680: video answers only)', public.server_ai_interview_answer(test.aiv_tok('aivcs'), '{"seq":1,"mode":"typed","text":"I typed this"}') ->> 'error', 'video_only');
+select test.eq('answer 1 (video): the next is question 2', test.aiv_say(test.aiv_tok('aivcs'), 1, 'I worked two years as a chat support agent for a US internet provider, answering about sixty chats a day.') #>> '{next,seq}', '2');
+select test.eq('the same answer pressed twice: answered as the first', test.aiv_say(test.aiv_tok('aivcs'), 1, 'again') ->> 'repeat', 'true');
 select test.eq('a voice answer needs its own audio key', public.server_ai_interview_answer(test.aiv_tok('aivcs'), '{"seq":2,"mode":"voice","audio_key":"hiring/interviews/other/2-abc.webm"}') ->> 'error', 'invalid');
 select test.eq('voice answer 2: kept, its transcript waits', (select public.server_ai_interview_answer(test.aiv_tok('aivcs'), jsonb_build_object('seq', 2, 'mode', 'voice',
   'audio_key', 'hiring/interviews/' || (test.aiv_iv('aivcs')).id || '/2-k3x9.webm', 'audio_type', 'audio/webm', 'audio_bytes', 81234, 'audio_seconds', 41.5)) #>> '{next,seq}'), '3');
@@ -116,29 +127,29 @@ select test.eq('a follow-up after answer 2: asked next, as answer 3', (public.se
   (select id from ai_interview_answers where interview_id = (test.aiv_iv('aivcs')).id and seq = 2), 'text', 'What exactly did you check on the account?', 'called', true, 'ok', true, 'neurons', 12))
   -> 'next') ->> 'kind' || '/' || ((public.server_ai_interview(test.aiv_tok('aivcs')) -> 'next') ->> 'seq'), 'followup/3');
 select test.ok('its neurons are counted too', exists (select 1 from provider_calls where purpose = 'interview_followup' and units = 12));
-select test.eq('the follow-up answered: back to question 3', public.server_ai_interview_answer(test.aiv_tok('aivcs'), '{"seq":3,"mode":"typed","text":"The refund date and the payment method."}') #>> '{next,key}', 'social');
+select test.eq('the follow-up answered: back to question 3', test.aiv_say(test.aiv_tok('aivcs'), 3, 'The refund date and the payment method.') #>> '{next,key}', 'social');
 select test.ok('no follow-up of a follow-up', (public.server_ai_interview_followup(test.aiv_tok('aivcs'), jsonb_build_object('answer_id',
   (select id from ai_interview_answers where interview_id = (test.aiv_iv('aivcs')).id and seq = 3), 'text', 'And then?')) -> 'next') ->> 'kind' = 'question');
-select public.server_ai_interview_answer(test.aiv_tok('aivcs'), '{"seq":4,"mode":"typed","text":"Some posts."}');
+select test.aiv_say(test.aiv_tok('aivcs'), 4, 'Some posts.');
 select test.ok('a follow-up that calls it a test is not asked', (public.server_ai_interview_followup(test.aiv_tok('aivcs'), jsonb_build_object('answer_id',
   (select id from ai_interview_answers where interview_id = (test.aiv_iv('aivcs')).id and seq = 4), 'text', 'For this test, give an example?')) -> 'next') ->> 'kind' = 'question');
 select public.server_ai_interview_followup(test.aiv_tok('aivcs'), jsonb_build_object('answer_id', (select id from ai_interview_answers where interview_id = (test.aiv_iv('aivcs')).id and seq = 4),
   'text', 'Which page did you post for, and what did you post?'));
-select public.server_ai_interview_answer(test.aiv_tok('aivcs'), '{"seq":5,"mode":"typed","text":"A furniture shop page: Marketplace listings and Canva posts every week."}');
-select public.server_ai_interview_answer(test.aiv_tok('aivcs'), '{"seq":6,"mode":"typed","text":"Car rentals."}');
+select test.aiv_say(test.aiv_tok('aivcs'), 5, 'A furniture shop page: Marketplace listings and Canva posts every week.');
+select test.aiv_say(test.aiv_tok('aivcs'), 6, 'Car rentals.');
 select test.eq('two follow-ups used: a third is not asked', (public.server_ai_interview_followup(test.aiv_tok('aivcs'), jsonb_build_object('answer_id',
   (select id from ai_interview_answers where interview_id = (test.aiv_iv('aivcs')).id and seq = 6), 'text', 'Tell me more?')) -> 'next') ->> 'kind' || '/' || (test.aiv_iv('aivcs')).followups_used, 'question/2');
 
 -- ================================================================ 5. the last answer: submitted, Interviewed, waiting for an Admin
-select public.server_ai_interview_answer(test.aiv_tok('aivcs'), jsonb_build_object('seq', s, 'mode', 'typed', 'text',
+select test.aiv_say(test.aiv_tok('aivcs'), s,
   case s when 7 then 'I acknowledge every chat and the call within fifteen minutes, use the templates and log each one.'
          when 8 then 'Yes, I can work six days a week from nine in the morning Toronto time, and the pay works for me.'
          when 9 then 'Fiber at 100 Mbps with a mobile backup and a power station.'
          when 10 then 'I finished a college degree in business. I am not studying and I have no other clients.'
-         else 'A long-term career. Maybe Canada one day.' end)) from generate_series(7, 11) s;
+         else 'A long-term career. Maybe Canada one day.' end) from generate_series(7, 11) s;
 select test.eq('all nine answered: submitted, the application Interviewed', (test.aiv_iv('aivcs')).state || '/' || (test.aiv('aivcs')).status, 'submitted/interviewed');
 select test.eq('the page says it is done, with nothing more to ask', (select (v ->> 'state') || '/' || coalesce(v ->> 'next', 'none') from (select public.server_ai_interview(test.aiv_tok('aivcs')) v) x), 'submitted/none');
-select test.eq('no answer after it', public.server_ai_interview_answer(test.aiv_tok('aivcs'), '{"seq":12,"mode":"typed","text":"More"}') ->> 'error', 'closed');
+select test.eq('no answer after it', test.aiv_say(test.aiv_tok('aivcs'), 12, 'More') ->> 'error', 'closed');
 select test.ok('the scoring is due with every answer and the role', (app.server_jobs_due() ->> 'interviews')::boolean
   and (select jsonb_array_length(x -> 'answers') = 11 and x ->> 'role_slug' = 'va-customer-service' from jsonb_array_elements(public.server_ai_interviews_due(5) -> 'score') x
         where (x ->> 'interview_id')::uuid = (test.aiv_iv('aivcs')).id));
@@ -169,7 +180,7 @@ select test.eq('the AI never decides: the application waits as Interviewed, no d
 select test.aiv_app('aivsales', 'sales-remote');
 select app.hiring_screen((test.aiv('aivsales')).id);
 select public.server_ai_interview_start(test.aiv_tok('aivsales'), '{"consent":true}');
-select public.server_ai_interview_answer(test.aiv_tok('aivsales'), jsonb_build_object('seq', s, 'mode', 'typed', 'text', 'I sold phones in a mall for a year.')) from generate_series(1, 9) s;
+select test.aiv_say(test.aiv_tok('aivsales'), s, 'I sold phones in a mall for a year.') from generate_series(1, 9) s;
 select test.eq('remote sales: Sales instead becomes decline', public.server_ai_interview_scored(jsonb_build_object('interview_id', (test.aiv_iv('aivsales')).id, 'ok', true,
   'result', '{"recommendation":"sales","topics":[]}'::jsonb)) ->> 'recommendation', 'decline');
 

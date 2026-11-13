@@ -182,19 +182,13 @@ test('AI interview on video: apply, consent, the camera check, answers recorded 
     expect(`${w2!.kind}/${w2!.mode}/${w2!.video_key ? 'video' : 'none'}`).toBe('followup/voice/video');
     expect(Number(w2!.audio_seconds)).toBeGreaterThan(40);
 
-    // 6. the rest, each answered the way the page asks: recorded, or typed for the written question (2590); follow-ups may come (up to 4)
-    let typedSent = 0;
+    // 6. the rest, every answer recorded on video (2680: nothing is typed, the written question is spoken too); follow-ups may come (up to 4)
     for (let i = 0; i < 25 && await page.getByTestId('iv-question').isVisible(); i++) {
       const seq = await page.getByTestId('iv-question').getAttribute('data-seq');
-      if ((await page.getByTestId('iv-question').getAttribute('data-key')) === 'written' && (await page.getByTestId('iv-question').getAttribute('data-kind')) === 'question') {
-        await expect(page.getByTestId('iv-typed')).toBeEnabled({ timeout: 40_000 });
-        await page.getByTestId('iv-typed').fill('Hello, your car is running about 30 minutes late for pickup, and we are sorry for the wait. It will be at the agreed address by 10:30 am. Please reply here if that time no longer works for you.');
-        await page.getByTestId('iv-send-typed').click();
-        typedSent++;
-      } else await recordAnswer(page, 1000);
+      expect(await page.getByTestId('iv-typed').count(), 'no typing').toBe(0);
+      await recordAnswer(page, 1000);
       await expect.poll(async () => (await page.getByTestId('iv-done').isVisible()) || (await page.getByTestId('iv-question').getAttribute('data-seq').catch(() => seq)) !== seq, { timeout: 120_000 }).toBe(true);
     }
-    expect(typedSent, 'the written question is typed').toBe(1);
     await expect(page.getByTestId('iv-done')).toBeVisible({ timeout: 60_000 });
     await check(page, 'interview done');
     const [st] = await sql`select a.status, i.state, (select count(*)::int from ai_interview_answers w where w.interview_id = i.id) n from job_applications a join ai_interviews i on i.application_id = a.id where a.id = ${app!.id}`;
@@ -202,8 +196,8 @@ test('AI interview on video: apply, consent, the camera check, answers recorded 
     // nine questions and the reliability and written ones (2590), then the follow-ups (at most 4)
     expect(st!.n).toBeGreaterThanOrEqual(11);
     expect(st!.n).toBeLessThanOrEqual(15);
-    expect((await sql`select count(*)::int n from ai_interview_answers w join ai_interviews i on i.id = w.interview_id where i.application_id = ${app!.id} and w.mode = 'typed' and w.video_key is null`)[0]!.n).toBe(1);
-    expect((await sql`select count(*)::int n from ai_interview_answers w join ai_interviews i on i.id = w.interview_id where i.application_id = ${app!.id} and w.mode <> 'typed' and (w.video_key is null or w.mode <> 'voice')`)[0]!.n).toBe(0);
+    expect((await sql`select count(*)::int n from ai_interview_answers w join ai_interviews i on i.id = w.interview_id where i.application_id = ${app!.id} and w.mode = 'typed'`)[0]!.n).toBe(0);
+    expect((await sql`select count(*)::int n from ai_interview_answers w join ai_interviews i on i.id = w.interview_id where i.application_id = ${app!.id} and (w.video_key is null or w.mode <> 'voice')`)[0]!.n).toBe(0);
 
     // 6. the interviews job scores it (the fake model), and the AI decides nothing
     const token = jobToken();

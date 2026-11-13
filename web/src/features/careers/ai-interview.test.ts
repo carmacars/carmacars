@@ -31,9 +31,9 @@ test('the prompts: the answer is quoted for the follow-up; the scores see every 
   assert.doesNotMatch(sys, /—|–/, 'no long dashes');
   const p = scorePrompt({ role_title: 'Customer Service', va_function: 'cs', hours: '6 days.', pay_text: 'US$400 a month', answers: [
     { seq: 1, kind: 'question', key: 'experience', prompt: 'Your last job?', mode: 'voice', transcript: 'Two years of chat support.' },
-    { seq: 2, kind: 'followup', key: 'experience', prompt: 'Which tools?', mode: 'typed', transcript: 'Zendesk.' }] });
+    { seq: 2, kind: 'followup', key: 'experience', prompt: 'Which tools?', mode: 'voice', transcript: 'Zendesk.' }] });
   assert.match(p, /Q1 \[experience\]: Your last job\?\nA1 \(spoken\): Two years of chat support\./);
-  assert.match(p, /Q2 \(follow-up\) \[experience\]: Which tools\?\nA2 \(typed\): Zendesk\./);
+  assert.match(p, /Q2 \(follow-up\) \[experience\]: Which tools\?\nA2 \(spoken\): Zendesk\./);
 });
 
 test('the fake model: a follow-up below 25 words; scores with quotes taken from the answers', () => {
@@ -41,11 +41,16 @@ test('the fake model: a follow-up below 25 words; scores with quotes taken from 
   assert.equal(fakeFollowup(followupPrompt('Q', 'word '.repeat(30))).vague, false);
   const p = scorePrompt({ role_title: 'R', va_function: 'cs', hours: null, pay_text: 'US$400', answers: [
     { seq: 1, kind: 'question', key: 'experience', prompt: 'Q', mode: 'voice', transcript: 'I answered sixty chats a day for an internet provider in Texas for two full years' },
-    { seq: 2, kind: 'question', key: 'internet', prompt: 'Q', mode: 'typed', transcript: 'Fiber 100 Mbps' }] });
+    { seq: 2, kind: 'question', key: 'internet', prompt: 'Q', mode: 'voice', transcript: 'Fiber 100 Mbps' }] });
   const s = fakeScores(p, topics) as { topics: Array<{ key: string; score: number; evidence: string }>; recommendation: string };
   assert.deepEqual(s.topics.map((t) => [t.key, t.score]), [['internet', 2], ['experience', 3], ['canada', 1]]);
   assert.equal(s.topics[1]!.evidence, 'I answered sixty chats a day for an');
   assert.ok(p.includes(s.topics[1]!.evidence));
+  // 2680: every answer is scored out of 10 on its own, by its number, with a reason
+  const per = (fakeScores(p, topics) as { answers: Array<{ seq: number; score: number; reason: string }> }).answers;
+  assert.deepEqual(per.map((a) => [a.seq, a.score]), [[1, 5], [2, 3]]);
+  assert.ok(per.every((a) => a.score >= 1 && a.score <= 10 && a.reason.length > 0 && a.reason.length <= 200));
+  assert.match(scoreSystem(topics, false), /score every answer on its own from 1/);
 });
 
 test('recordings: the browser types kept, with their file extension; anything else refused', () => {

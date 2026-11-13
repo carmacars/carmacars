@@ -7,7 +7,11 @@ Let's talk, {{first_name}}
 
 Thank you for applying for {{role_title}}. Your answers stood out, and the next step is a short interview.
 
-You do it on your own, at any time that suits you, from your phone or computer: {{question_count}} questions, about {{minutes}} minutes. Each question is shown and read aloud, and you answer out loud. If you prefer, you can type your answers.
+You do it on your own, at any time that suits you, from your phone or computer: {{question_count}} questions, about {{minutes}} minutes. Each question is shown and read aloud, and you answer on video, out loud, to your camera. You need a phone or computer with a camera and a microphone.
+
+{{#if redo}}
+Why you are getting this link: this role needs a recorded video interview, and we would like you to take it before going further. Please record it with the link below. Your access to the team portal is on hold until then. Thank you for your patience, we are glad to have you.
+{{/if}}
 
 Start my interview:
 {{interview_url}}

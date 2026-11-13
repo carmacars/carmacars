@@ -27,7 +27,7 @@ export async function startInterview(token: string): Promise<InterviewView | Fai
 }
 
 export interface AnswerInput {
-  seq: number; mode: 'voice' | 'typed' | 'none'; text?: string; audio?: Uint8Array; type?: string; seconds?: number;
+  seq: number; mode: 'voice' | 'none'; audio?: Uint8Array; type?: string; seconds?: number;
   /** 0585: the answer's video and its audio track, uploaded by the browser to the keys prepareUpload gave */
   audio_key?: string; video_key?: string; video_type?: string; video_bytes?: number; retakes_used?: number;
 }
@@ -54,7 +54,8 @@ export async function prepareUpload(token: string, seq: number, videoType: strin
 export type AnswerResult = { ok: true; view: InterviewView; heard: 'typed' | 'transcribed' | 'later' } | { ok: false; status: number; message: string };
 const ERRORS: Record<string, string> = {
   consent: 'Please agree to the recording first.', order: 'This question was answered already. The page has the next one.', closed: 'This interview is closed.',
-  empty: 'Type your answer first.', invalid: 'We could not keep that recording. Please try again, or type your answer.', not_found: 'This link is not valid.'
+  empty: 'Record your answer first.', video_only: 'This interview is answered on video. Switch to a device or browser with a camera and microphone and open the same link again.',
+  invalid: 'We could not keep that recording. Please try again, or switch to another device or browser and open the same link again.', not_found: 'This link is not valid.'
 };
 
 export async function answerQuestion(token: string, i: AnswerInput): Promise<AnswerResult> {
@@ -81,12 +82,12 @@ export async function answerQuestion(token: string, i: AnswerInput): Promise<Ans
     const { storage } = await import('@/integrations/storage');
     await (await storage()).put('documents', key, i.audio, (i.type ?? '').split(';')[0]!.trim() || 'application/octet-stream');
   }
-  const r = (await rpc('server_ai_interview_answer', { p_token: token, p: { seq: i.seq, mode: i.mode, text: i.text ?? null, audio_key: key, audio_type: i.type ?? null,
+  const r = (await rpc('server_ai_interview_answer', { p_token: token, p: { seq: i.seq, mode: i.mode, audio_key: key, audio_type: i.type ?? null,
     audio_bytes: i.audio?.byteLength ?? null, audio_seconds: i.seconds ?? null, video_key: i.video_key ?? null, video_type: i.video_type ?? null,
     video_bytes: i.video_bytes ?? null, retakes_used: i.retakes_used ?? 0 } as unknown as Json }, SR)) as unknown as Answered | Fail;
   if (!r.ok) return { ok: false, status: r.error === 'order' ? 409 : 400, message: ERRORS[r.error] ?? 'We could not keep that answer. Please try again.' };
   if (r.repeat) return { ok: true, view: r, heard: 'typed' };
-  let said = i.mode === 'typed' ? (i.text ?? '') : '';
+  let said = '';
   let heard: 'typed' | 'transcribed' | 'later' = i.mode !== 'voice' ? 'typed' : 'later';
   if (i.mode === 'voice' && i.audio && r.answer_id) {
     const t0 = Date.now();
@@ -156,18 +157,18 @@ export async function runInterviewJob(): Promise<Record<string, unknown>> {
   for (const x of due.score) {
     const t0 = Date.now();
     const g = await (await textGenerator(undefined, 60_000)).generate<Record<string, unknown>>({ task: 'interview_score', system: scoreSystem(topicsFor(due.topics, (due.in_person_roles ?? []).includes(x.role_slug)), x.va_function === 'sales'),
-      prompt: scorePrompt(x), schema: SCORE_SCHEMA, maxOutputTokens: 1200, temperature: 0.2 });
+      prompt: scorePrompt(x), schema: SCORE_SCHEMA, maxOutputTokens: 2400, temperature: 0.2 });
     await rpc('server_ai_interview_scored', { p: { interview_id: x.interview_id, ok: g.ok, result: g.ok ? g.data : null, model: g.ok ? g.model : null,
       neurons: g.usage?.neurons ?? 0, duration_ms: Date.now() - t0, error: g.ok ? null : g.message, reason: g.ok ? null : g.reason,
       called: g.ok || g.reason !== 'quota' } as unknown as Json }, SR);
     if (g.ok) scored++;
   }
-  // 1060: Sales applicants at the auto-hire mark are hired with one-step Hire
+  // 1060, 2680: Sales applicants (not field) at the auto-hire mark are hired with one-step Hire; every other role books an interview date
   const hired = await runAutoHires().catch((e) => ({ error: e instanceof Error ? e.message.slice(0, 200) : 'failed' }));
   return { ok: true, purged: gone.length, videos_deleted: vids.length, transcribed, scored, hired };
 }
 
-/** Auto-hire (1060): each Sales applicant whose AI interview score meets the mark, hired as the Admin the automatic work acts
+/** Auto-hire (1060, 2680: Sales only, the database lists no one else): each Sales applicant whose AI interview score meets the mark, hired as the Admin the automatic work acts
  *  as, with the same one-step Hire an Admin presses (the account, the agreement, the academy with the gate, the welcome). */
 export async function runAutoHires(max = 2): Promise<{ hired: number; failed: number }> {
   const due = (await rpc('server_hire_auto_due', { p_limit: max }, SR)) as unknown as { actor: string | null; applications: Array<{ id: string; score: number; mark: number; function: string }> };
