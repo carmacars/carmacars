@@ -13,7 +13,8 @@ export interface AiInterviewData {
   id: string; state: InterviewState; sent_at: string; expires_at: string; links_sent: number; consent_at: string | null; consent_text: string | null; started_at: string | null;
   submitted_at: string | null; scored_at: string | null; followups_used: number; interview_score: number | null; recommendation: Recommendation | null; score_model: string | null;
   score_attempts: number; last_error: string | null; purged: boolean; questions_total: number; live_call_at: string | null; video_days?: number;
-  result: { topics: Array<{ key: string; label: string; weight: number; score: number | null; evidence: string | null }>; english: { level: string | null; score: number | null; notes: string | null };
+  result: { /** 2680: each answer out of 10, by its seq, with a one-line reason */ answers?: Array<{ seq: number; score: number; reason: string }>;
+    topics: Array<{ key: string; label: string; weight: number; score: number | null; evidence: string | null }>; english: { level: string | null; score: number | null; notes: string | null };
     red_flags: string[]; summary: string | null; reason: string | null } | null;
   answers: AiAnswer[];
 }
@@ -56,6 +57,7 @@ export function AiInterview({ x }: { x: AiInterviewData }) {
         <ol className="ai-answers" data-testid="cand-ai-answers">
           {x.answers.map((a) => {
             const score = scoreOf(a);
+            const per = r?.answers?.find((e) => e.seq === a.seq) ?? null;
             return (
             <li key={a.id} className={a.kind === 'followup' ? 'is-follow' : undefined} data-testid={`cand-ai-answer-${a.seq}`}>
               <p className="small muted">{label(a)}{a.mode === 'typed' ? ' · typed' : a.mode === 'none' ? ' · no answer in the time' : a.audio_seconds ? ` · ${secs(a.audio_seconds)}` : ''}{a.retakes_used ? ` · recorded ${a.retakes_used + 1} times` : ''}</p>
@@ -67,6 +69,7 @@ export function AiInterview({ x }: { x: AiInterviewData }) {
                     <audio controls preload="none" src={a.audio_url} className="iv-audio" aria-label={`Recording of answer ${a.seq}`} data-testid="cand-ai-audio" /></>
                   : <p className="small muted">Recording removed.</p>)}
               {a.mode !== 'none' && <p className="ai-said">{a.transcript ?? <span className="muted">{a.transcript_state === 'failed' ? 'No transcript: watch the video.' : 'Transcript on its way.'}</span>}</p>}
+              {per && <p className="small" data-testid="cand-ai-answer-score10">Answer score: <b>{per.score}/10</b> <span className="muted">{per.reason}</span></p>}
               {score && <p className="small" data-testid="cand-ai-answer-score">AI score, {score.label}: <b>{score.score} / 5</b></p>}
             </li>);
           })}

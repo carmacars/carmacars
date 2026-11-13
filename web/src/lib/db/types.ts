@@ -1026,6 +1026,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      ai_interview_history: {
+        Row: {
+          id: string;
+          application_id: string;
+          archived_at: string;
+          archived_by: string | null;
+          previous_user_id: string | null;
+          interview: Json;
+          answers: Json;
+        };
+        Insert: {
+          id?: string;
+          application_id: string;
+          archived_at?: string;
+          archived_by?: string | null;
+          previous_user_id?: string | null;
+          interview: Json;
+          answers?: Json;
+        };
+        Update: {
+          id?: string;
+          application_id?: string;
+          archived_at?: string;
+          archived_by?: string | null;
+          previous_user_id?: string | null;
+          interview?: Json;
+          answers?: Json;
+        };
+        Relationships: [];
+      };
       ai_interviews: {
         Row: {
           id: string;
@@ -32691,6 +32721,7 @@ export type Database = {
       server_agreements_due: { Args: { p_limit?: number }; Returns: Json };
       server_ai_allow: { Args: { p_purpose: string; p_est?: number }; Returns: Json };
       server_ai_audio_purged: { Args: { p_ids: string[] }; Returns: number };
+      server_ai_audio_purged_pre2680: { Args: { p_ids: string[] }; Returns: number };
       server_ai_budget: { Args: never; Returns: Json };
       server_ai_interview: { Args: { p_token: string }; Returns: Json };
       server_ai_interview_answer: { Args: { p_token: string; p: Json }; Returns: Json };
@@ -32698,12 +32729,15 @@ export type Database = {
       server_ai_interview_followup: { Args: { p_token: string; p: Json }; Returns: Json };
       server_ai_interview_scored: { Args: { p: Json }; Returns: Json };
       server_ai_interview_scored_pre2590: { Args: { p: Json }; Returns: Json };
+      server_ai_interview_scored_pre2680: { Args: { p: Json }; Returns: Json };
       server_ai_interview_start: { Args: { p_token: string; p?: Json }; Returns: Json };
       server_ai_interview_transcript: { Args: { p: Json }; Returns: Json };
       server_ai_interviews_due: { Args: { p_limit?: number }; Returns: Json };
       server_ai_interviews_due_pre0585: { Args: { p_limit?: number }; Returns: Json };
       server_ai_interviews_due_pre1060: { Args: { p_limit?: number }; Returns: Json };
+      server_ai_interviews_due_pre2680: { Args: { p_limit?: number }; Returns: Json };
       server_ai_video_purged: { Args: { p_ids: string[] }; Returns: number };
+      server_ai_video_purged_pre2680: { Args: { p_ids: string[] }; Returns: number };
       server_alert_feed: { Args: { p_user: string; p_limit?: number; p_filter?: string }; Returns: Json };
       server_alert_latest: { Args: { p_user: string }; Returns: Json };
       server_alert_prefs: { Args: { p_user: string }; Returns: Json };
