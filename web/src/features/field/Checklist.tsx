@@ -70,6 +70,8 @@ export function Checklist({ j, back = '/staff/field', backLabel = 'Back to my jo
   const [damages, setDamages] = useState<Damage[]>(() => (j.report?.damages ?? []).map((d) => ({ ...d, kind: d.kind ?? 'other', size_cm: d.size_cm ?? null, position: d.position ?? null, is_new: d.is_new ?? true })));
   const [stop, setStop] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  // a photo that looks dark or blurry is kept: a tip, not an error (the error box means the save was refused)
+  const [tip, setTip] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [lateChoice, setLateChoice] = useState<LateChoice>(NO_CHOICE);
   const [pending, start] = useTransition();
@@ -113,7 +115,8 @@ export function Checklist({ j, back = '/staff/field', backLabel = 'Back to my jo
   const photo = async (seq: number, shot: string, file: File | undefined, damage_label?: string) => {
     if (!file) return;
     const p = await preparePhoto(file);
-    if (p.flags.some((f) => ['dark', 'blurry'].includes(f))) setMsg(`That photo looks ${p.flags.filter((f) => ['dark', 'blurry'].includes(f)).join(' and ')}. Take it again if you can; it is kept otherwise.`);
+    setTip(null);
+    if (p.flags.some((f) => ['dark', 'blurry'].includes(f))) setTip(`That photo looks ${p.flags.filter((f) => ['dark', 'blurry'].includes(f)).join(' and ')}. Take it again if you can; it is kept otherwise.`);
     await uploads.add({ job: jobId, seq, shot, mode: 'photo', damage_label: damage_label ?? null, blob: p.blob, taken_at: new Date().toISOString(), width: p.width, height: p.height, flags: p.flags, ...(where.current ?? {}) });
   };
   const sign = async (who: 'renter' | 'staff', png: string) => {
@@ -303,6 +306,7 @@ export function Checklist({ j, back = '/staff/field', backLabel = 'Back to my jo
         </section>
       ))}
       {(msg ?? saveMsg) && <p className="alert alert--error" role="alert" data-testid="checklist-message"><span>{msg ?? saveMsg}</span></p>}
+      {tip && !(msg ?? saveMsg) && <p className="alert alert--warn" role="status" data-testid="checklist-tip"><span>{tip}</span></p>}
       <div className="fd-bar fd-bar--one">
         {!can && <button className="btn btn--ghost fd-bar__need" type="button" onClick={() => go(needed[0]?.id ?? 'photos')} data-testid="still-needed">
           {needed.length ? <>Next: {needed[0]!.label}{needed.length > 1 ? <span className="fd-bar__more"> and {needed.length - 1} more</span> : null}</> : <>Photos still uploading</>}</button>}
