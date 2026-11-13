@@ -17,6 +17,7 @@ import { rpc } from '@/lib/db/repo';
 import { door } from '@/server/door';
 import { PortalSwitch } from '@/features/access/Access';
 import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
+import { WhatsNew } from '@/features/whats-new/WhatsNew';
 import { StuckHelp } from '@/features/help/StuckHelp';
 import { PushInvite } from '@/features/push/PushAlerts';
 import { AssistantPanel } from '@/features/assistant/AssistantPanel';
@@ -63,7 +64,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         {gate?.admin ? (
           <aside className="ad__rail">
             <div className="ad__who"><span className="muted"><BrandMark size={22} className="ad__mark" />Admin · <b data-testid="account-email">{gate.name ?? user?.email}</b></span>
-              <span className="gd-frame-links">{user ? <AlertPulse topic={live.me} /> : null}{user && gate?.admin ? <LivePortal tokens={live} /> : null}{user ? <AlertsBell userId={user.id} href="/admin/alerts" /> : null}<AssistantPanel portal="admin" greeting={greetName(gate)} /><GuideLink portal="admin" />{user ? <BugReportButton portal="admin" mineHref="/admin/bug-reports?mine=1" /> : null}<form action={signOut}><button className="btn btn--quiet btn--sm hd-act" type="submit" title="Sign out"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 4H6.5A2.5 2.5 0 0 0 4 6.5v11A2.5 2.5 0 0 0 6.5 20H9M15 8l4 4-4 4M19 12H9" /></svg><span className="hd-lbl">Sign out</span></button></form></span></div>
+              <span className="gd-frame-links">{user ? <AlertPulse topic={live.me} /> : null}{user && gate?.admin ? <LivePortal tokens={live} /> : null}{user ? <AlertsBell userId={user.id} href="/admin/alerts" /> : null}<AssistantPanel portal="admin" greeting={greetName(gate)} />{user ? <WhatsNew portal="admin" userId={user.id} /> : null}<GuideLink portal="admin" />{user ? <BugReportButton portal="admin" mineHref="/admin/bug-reports?mine=1" /> : null}<form action={signOut}><button className="btn btn--quiet btn--sm hd-act" type="submit" title="Sign out"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 4H6.5A2.5 2.5 0 0 0 4 6.5v11A2.5 2.5 0 0 0 6.5 20H9M15 8l4 4-4 4M19 12H9" /></svg><span className="hd-lbl">Sign out</span></button></form></span></div>
             <PortalSwitch current="admin" />
             <div className="ad__find"><AdminSearch /><AdminCommand groups={JUMP} /></div>
             <AdminNav counts={counts} />

@@ -411,6 +411,8 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             'game_plays',
                             -- 0074: the count of guide opens per person (app_events, the internal event queue, is listed above)
                             'guide_reads',
+                            -- the "What's new" pop-up (2730): who has seen which release, written by release_seen_mark only
+                            'user_release_seen',
                             -- signed copies made after signing (0077): the server's work list; the signatures themselves are in signature_records
                             'pdf_jobs',
                             -- the vehicle catalog (0097): reference data the catalog workflow imports in bulk from public sources (the
