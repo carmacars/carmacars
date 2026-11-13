@@ -34,6 +34,29 @@ export function ShowroomCar({ vehicle, studio }: { vehicle: string; studio: numb
   );
 }
 
+/** r43 (2690): "Redo photos with Gemini": every outside photo of the car is made again in the showroom with the image model
+ *  (Gemini) as the only engine. If Gemini cannot make a photo (no key, its daily limit, a refusal, a changed car) the photo is
+ *  left as it was and the step fails with the reason (the listing's steps show it): never the free showroom or Cloudflare. */
+export function GeminiRedoCar({ vehicle }: { vehicle: string }) {
+  const router = useRouter();
+  const [sure, setSure] = useState(false);
+  const [res, setRes] = useState<Res>(null);
+  const [pending, start] = useTransition();
+  return (
+    <span className="stack" data-testid="gemini-redo-car">
+      {!sure
+        ? <button className="btn btn--ghost btn--sm" type="button" disabled={pending} data-testid="gemini-redo" onClick={() => setSure(true)}>Redo photos with Gemini</button>
+        : <span className="row"><span className="small">Make this car&apos;s outside photos again in the showroom with Gemini only? A photo Gemini cannot make is left as it is, and the reason is shown. The versions before are kept.</span>
+          <button className="btn btn--primary btn--sm" type="button" disabled={pending} data-testid="gemini-redo-yes" onClick={() => { setSure(false); start(async () => {
+            const r = await staffDo<{ queued: number }>('photo_showroom', { action: 'gemini', vehicle });
+            setRes(r.ok ? { ok: true, text: r.data.queued ? `${r.data.queued} outside photo${r.data.queued === 1 ? ' is' : 's are'} being made again with Gemini. Check the plates when asked.` : 'No outside photo to make again now (none, or they are being made already).' } : { ok: false, text: r.message });
+            if (r.ok) router.refresh(); }); }}>Yes, redo with Gemini</button>
+          <button className="btn btn--ghost btn--sm" type="button" onClick={() => setSure(false)}>Cancel</button></span>}
+      <Note r={res} />
+    </span>
+  );
+}
+
 type Made = { provider?: string; model?: string | null; note?: string | null } | null;
 export function ShowroomPhoto({ photo }: { photo: { id: string; scene?: string | null; preset_version?: string | null; showroom?: Made } }) {
   const router = useRouter();

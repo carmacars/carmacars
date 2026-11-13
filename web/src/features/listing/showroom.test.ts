@@ -316,3 +316,48 @@ test('first photo: the model words keep the site\'s own rules; the flyer drawn o
   assert.match(seen, /evening dress/);
   assert.match(seen, /fully clothed/);
 });
+
+// ---------------------------------------------------------------- r43 (2690): Redo photos with Gemini: the image model is the only engine
+test('worker: engine gemini with no key fails the step and puts nothing on the site (no free showroom, no original)', async () => {
+  const s = await setup();
+  const gem = (): JobContext => ({ ...s.job(), input: { engine: 'gemini' } });
+  const none = await runJob(s.deps({ showroomNoKey: true }), gem(), budget);
+  assert.equal(none.ok, false);
+  assert.equal(none.retryable, false);
+  assert.match(none.error ?? '', /^Redo with Gemini: Gemini is not set up/);
+  assert.match(none.error ?? '', /The photo was not changed/);
+  assert.equal(s.pub.size, 0, 'nothing was stored on the site');
+  assert.equal(s.composited(), 0, 'and nothing was drawn by the Cloudflare composite');
+});
+
+test('worker: engine gemini fails with the reason when Gemini refuses, hits its limit or changes the car; it never falls back', async () => {
+  const s = await setup();
+  const gem = (): JobContext => ({ ...s.job(), input: { engine: 'gemini' } });
+  for (const reason of ['quota', 'limit', 'off', 'blocked', 'error'] as const) {
+    const ai: ShowroomProvider = { name: 'ai', make: async () => ({ ok: false, reason, message: `no: ${reason}` }) };
+    const r = await runJob(s.deps({ showroomAi: ai }), gem(), budget);
+    assert.equal(r.ok, false, reason);
+    assert.match(r.error ?? '', /^Redo with Gemini: Gemini did not make it/, reason);
+    assert.equal(r.retryable, false);
+  }
+  assert.equal(s.pub.size, 0, 'no file reached the site');
+  assert.equal(s.composited(), 0);
+  // the same job without the engine keeps the free showroom (the plain Redo)
+  const quota: ShowroomProvider = { name: 'ai', make: async () => ({ ok: false, reason: 'quota', message: 'Quota exceeded' }) };
+  const plain = await runJob(s.deps({ showroomAi: quota }), s.job(), budget);
+  assert.equal(plain.ok, true);
+});
+
+test('worker: engine gemini uses the model\'s photo when it answers, and refuses an inside or studio photo', async () => {
+  const s = await setup();
+  const ai: ShowroomProvider = { name: 'ai', make: async (_i, local) => ({ ok: true, bytes: local, contentType: 'image/jpeg', provider: 'ai', model: 'm1' }) };
+  const r = await runJob(s.deps({ showroomAi: ai }), { ...s.job(), input: { engine: 'gemini' } }, budget);
+  assert.equal(r.ok, true);
+  assert.equal(((r.output as Record<string, unknown>).showroom as { provider: string }).provider, 'ai');
+  assert.ok(s.pub.has('vehicles/v1/car-front-left-abcd1234.jpg'));
+  const studio = await runJob(s.deps({ showroomAi: ai }), { ...s.job({ scene: 'studio' }), input: { engine: 'gemini' } }, budget);
+  assert.equal(studio.ok, false);
+  assert.match(studio.error ?? '', /only an outside photo in the showroom/);
+  const inside = await runJob(s.deps({ showroomAi: ai }), { ...s.job({ rebackground: false, shot_type: 'dashboard', angle: 'dashboard' }), input: { engine: 'gemini' } }, budget);
+  assert.equal(inside.ok, false);
+});

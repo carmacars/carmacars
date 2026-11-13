@@ -15,7 +15,8 @@ type Gate = { code: string; label: string; action: string; who: string | null };
 type NotPublic = { vehicle_id: string; name: string; status: string; gates: Gate[]; next: string | null; sample_photos: boolean };
 type V = { id: string; fleet_number: string | null; name: string; plate: string | null; owner_name: string | null; management_mode: string; status: string; listing_status: string | null;
   daily_rate_cents: number | null; next_booking: { booking_number: string; pickup_at: string } | null; tracker_seen: string | null; in_arrears: boolean; on_fleet_policy: boolean; class: string | null;
-  supply_type: string; supply_label: string; partner_id: string | null; retired_at: string | null; is_sample: boolean; seats?: number | null; seats_missing?: boolean };
+  supply_type: string; supply_label: string; partner_id: string | null; retired_at: string | null; is_sample: boolean; seats?: number | null; seats_missing?: boolean;
+  /** r43 (2690): the photo the site shows first: exterior, not_exterior (an inside photo) or none */ primary_photo?: 'exterior' | 'not_exterior' | 'none'; primary_not_exterior?: boolean };
 
 // The fleet (03-admin.md section 8.1).
 export default async function Vehicles({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
@@ -27,7 +28,7 @@ export default async function Vehicles({ searchParams }: { searchParams: Promise
     door<NotPublic[]>(user.id, 'ops_read', 'cars_not_public').catch(() => [] as NotPublic[])]);
   const s = (sp.q ?? '').toLowerCase();
   const rows = all.filter((v) => (!sp.status || v.status === sp.status) && (!sp.mode || v.management_mode === sp.mode)
-    && (!sp.supply || v.supply_type === sp.supply) && (sp.retired === 'show' ? true : sp.retired === 'only' ? !!v.retired_at : !v.retired_at) && (!s || `${v.name} ${v.plate} ${v.fleet_number} ${v.owner_name} ${v.supply_type} ${v.management_mode} ${v.supply_type.replace(/_/g, ' ')} ${v.management_mode.replace(/_/g, ' ')}`.toLowerCase().includes(s)));
+    && (!sp.supply || v.supply_type === sp.supply) && (sp.retired === 'show' ? true : sp.retired === 'only' ? !!v.retired_at : !v.retired_at) && (sp.photo !== 'not_exterior' || !!v.primary_not_exterior) && (!s || `${v.name} ${v.plate} ${v.fleet_number} ${v.owner_name} ${v.supply_type} ${v.management_mode} ${v.supply_type.replace(/_/g, ' ')} ${v.management_mode.replace(/_/g, ' ')}`.toLowerCase().includes(s)));
   // the five chips are the statuses most cars are in (the rest under More)
   const statuses = [...all.reduce((m, v) => m.set(v.status, (m.get(v.status) ?? 0) + 1), new Map<string, number>())].sort((a, z) => z[1] - a[1]).map(([x]) => x);
   return (
@@ -42,7 +43,7 @@ export default async function Vehicles({ searchParams }: { searchParams: Promise
       </PageHead>
       {/* 0400: the list and Fleet tracking are the two views of Cars */}
       <ListFilters id="admin-vehicles" base="/admin/vehicles" sp={sp} search={{ placeholder: 'Plate, model, owner, fleet number, supplier or mode' }}
-        chips={{ name: 'status', label: 'Status', options: [['', 'All'], ...statuses.slice(0, 4).map((x) => [x, x.replace(/_/g, ' ')] as [string, string])] }} kept={['supply', 'mode', 'retired']} />
+        chips={{ name: 'status', label: 'Status', options: [['', 'All'], ...statuses.slice(0, 4).map((x) => [x, x.replace(/_/g, ' ')] as [string, string])] }} kept={['supply', 'mode', 'retired', 'photo']} />
       {sp.deleted && <p className="alert alert--ok" role="status"><span>The car was deleted.</span></p>}
       {notPublic.length > 0 && (
         <Card title={`Not on the site yet (${notPublic.length})`} testId="cars-not-public">
@@ -67,8 +68,12 @@ export default async function Vehicles({ searchParams }: { searchParams: Promise
         { key: 'daily', label: 'Daily', num: true, render: (v) => $(v.daily_rate_cents) },
         { key: 'next', label: 'Next booking', render: (v) => v.next_booking ? <><BookingLink n={v.next_booking.booking_number} /> {t(v.next_booking.pickup_at)}</> : null },
         { key: 'tracker_seen', label: 'Tracker seen', render: (v) => t(v.tracker_seen) },
-        { key: 'flags', label: 'Flags', render: (v) => <>{v.in_arrears && <span className="ad-flag ad-flag--red">arrears</span>}{v.on_fleet_policy && <span className="ad-flag">fleet policy</span>}{v.seats_missing && <span className="ad-flag ad-flag--red" data-testid="seats-missing" title="The seat count is not known: the 7+ seats filter cannot show it. Set the seats on the listing review, or confirm them on Today.">Seats missing</span>}</> }
+        { key: 'flags', label: 'Flags', render: (v) => <>{v.in_arrears && <span className="ad-flag ad-flag--red">arrears</span>}{v.on_fleet_policy && <span className="ad-flag">fleet policy</span>}{v.seats_missing && <span className="ad-flag ad-flag--red" data-testid="seats-missing" title="The seat count is not known: the 7+ seats filter cannot show it. Set the seats on the listing review, or confirm them on Today.">Seats missing</span>}{v.primary_not_exterior && <span className="ad-flag ad-flag--red" data-testid="primary-not-exterior" title="The photo shown first on the site is an inside photo: its front three-quarter outside photo is not on the site yet, or the car has none. Open the car and press Redo photos with Gemini, or check its plates.">Primary photo is not exterior</span>}</> }
       ]} />
+      {/* r43 (2690): the cars whose first photo on the site is an inside one */}
+      {(() => { const n = all.filter((v) => v.primary_not_exterior && !v.retired_at).length; return n > 0 || sp.photo ? (
+        <p className="small" data-testid="primary-not-exterior-link">{sp.photo === 'not_exterior' ? <Link prefetch={false} className="link" href="/admin/vehicles">Show every car</Link>
+          : <Link prefetch={false} className="link" href="/admin/vehicles?photo=not_exterior">Primary photo is not exterior ({n})</Link>}</p>) : null; })()}
       {/* r32: retired cars are a link (a saved view), not a filter */}
       <p className="small" data-testid="retired-cars-link">{sp.retired ? <Link prefetch={false} className="link" href="/admin/vehicles">Back to the fleet</Link>
         : <Link prefetch={false} className="link" href="/admin/vehicles?retired=only">Retired cars</Link>}</p>

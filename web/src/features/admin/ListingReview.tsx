@@ -13,7 +13,7 @@ import { CutoutEditor } from '@/features/listing/CutoutEditor';
 import { ExtraOrder } from '@/features/listing/ExtraOrder';
 import { PlateCarry } from '@/features/listing/PlateCarry';
 import { isExtra } from '@/features/listing/extra-order';
-import { ShowroomCar, ShowroomPhoto } from '@/features/listing/Showroom';
+import { GeminiRedoCar, ShowroomCar, ShowroomPhoto } from '@/features/listing/Showroom';
 import { MarketingPhotos } from '@/features/listing/Marketing';
 import { ListingCover } from '@/features/listing/Cover';
 import { MissingAngles } from '@/features/listing/MissingAngle';
@@ -106,6 +106,8 @@ export function ListingReview({ l, plates, copy, exterior = [] }: { l: L; plates
               <button className="btn btn--ghost btn--sm" type="button" onClick={() => setReframe(false)}>Cancel</button></>}</p>}
           {/* r35 (0990): the car's outside photos into the dark showroom */}
           <ShowroomCar vehicle={l.vehicle_id} studio={l.photos.filter((p) => exterior.includes(p.shot_type) && p.processed_path && p.processed_path !== p.original_path && p.status !== 'rejected' && p.scene !== 'showroom').length} />
+          {/* r43 (2690): the car's outside photos again with Gemini only */}
+          <GeminiRedoCar vehicle={l.vehicle_id} />
           {/* r35 S2 (1053): marketing copies in other scenes (never the website's photos) */}
           <MarketingPhotos vehicle={l.vehicle_id} />
           {/* r36 (2100): the first photo on the site and Marketplace: plain, with a model, or the flyer */}
