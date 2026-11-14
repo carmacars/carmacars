@@ -1,0 +1,1311 @@
+{
+ "version": "seo-queue-v1",
+ "generated_at": "2026-11-14T15:44:56.763202+00:00",
+ "count": 5,
+ "waiting": {
+  "cars": 5,
+  "pages": 0,
+  "articles": 0
+ },
+ "rules": {
+  "banned": [
+   "adventure awaits",
+   "best in class",
+   "boasts",
+   "breathtaking",
+   "cutting-edge",
+   "delve",
+   "dream car",
+   "effortless",
+   "elevate",
+   "embark",
+   "exhilarating",
+   "game changer",
+   "game-changer",
+   "head-turning",
+   "hidden gem",
+   "hit the road",
+   "in today's",
+   "look no",
+   "look no further",
+   "luxurious ride",
+   "must-have",
+   "nestled",
+   "open road awaits",
+   "seamless",
+   "second to none",
+   "state-of-the-art",
+   "testament",
+   "thrill",
+   "top-notch",
+   "turn heads",
+   "unforgettable",
+   "unleash",
+   "unlock",
+   "unparalleled",
+   "whether you are",
+   "whether you're",
+   "world-class"
+  ],
+  "similarity_max": 0.5,
+  "limits": {
+   "seo_title": [
+    25,
+    60
+   ],
+   "meta_description": [
+    90,
+    155
+   ],
+   "h1": [
+    20,
+    70
+   ],
+   "intro_words": [
+    8,
+    40
+   ],
+   "highlights": [
+    4,
+    6
+   ],
+   "highlight_chars": 70,
+   "good_for": [
+    2,
+    4
+   ],
+   "included": [
+    3,
+    5
+   ],
+   "item_chars": 90,
+   "pickup": [
+    60,
+    420
+   ],
+   "requirements": [
+    3,
+    5
+   ],
+   "faq": [
+    3,
+    6
+   ],
+   "question_chars": 110,
+   "answer_chars": 360,
+   "alt_chars": 125,
+   "page_intro_words": [
+    50,
+    160
+   ],
+   "page_sections": [
+    2,
+    4
+   ],
+   "section_words": [
+    40,
+    220
+   ],
+   "page_faq": [
+    3,
+    6
+   ],
+   "article_words": [
+    500,
+    2200
+   ],
+   "article_title": [
+    20,
+    100
+   ],
+   "article_description": [
+    90,
+    160
+   ]
+  },
+  "house": [
+   "No em dash or en dash anywhere.",
+   "Write CarmaCars exactly so; never name a numbered or legal company.",
+   "No exclamation marks, no hype words.",
+   "Never present insurance as something renters get from CarmaCars: say nothing, or name \"the Protection Plan\".",
+   "Only numbers that are in the facts; no prices on landing pages or articles (articles use the {{tokens}} only).",
+   "Claim no equipment, condition, rating or service the facts do not state; promise no guarantee, warranty, same-day service or free extra.",
+   "Every page reads differently from every other page (cars of the same model, other landing pages, other items of the batch)."
+  ]
+ },
+ "output": {
+  "file": "seo/batches/<date>-<name>.json",
+  "shape": "{\"batch\": \"name\", \"items\": [{\"kind\": \"car|page|article\", \"id\": \"<id from the queue>\", \"copy\": {...} | \"title\", \"description\", \"body_md\", \"faq\"}]}"
+ },
+ "items": [
+  {
+   "kind": "car",
+   "id": "0a436b1e-06b8-4598-9f47-98e944bd46ee",
+   "url": "/cars/cadillac-escalade",
+   "priority": 1,
+   "page_type": "car",
+   "name": "Cadillac Escalade",
+   "locked": [],
+   "current": {
+    "h1": "Cadillac Escalade for rent in Toronto",
+    "faq": [
+     {
+      "answer": "It has 7 seats and 4 doors.",
+      "question": "Is there room for my group in the Cadillac Escalade?"
+     },
+     {
+      "answer": "Yes, 200 km a day. Beyond that it is $0.75 a kilometre.",
+      "question": "Is there a kilometre limit?"
+     },
+     {
+      "answer": "Collect it from us at no charge, or choose delivery to your address for $75.",
+      "question": "Where do I pick it up?"
+     },
+     {
+      "answer": "It has a backup camera to help when you reverse.",
+      "question": "Is parking easier with a camera?"
+     }
+    ],
+    "intro": "A tall Cadillac with seven seats and four-wheel drive. Good for a wedding party, a night out at the game or a cottage weekend.",
+    "good_for": [
+     "School and team carpools",
+     "Cottage weekends"
+    ],
+    "included": [
+     "Third-party liability coverage",
+     "Roadside assistance, 24 hours a day",
+     "200 km a day",
+     "Handover in person with a walk-around of the car"
+    ],
+    "alt_texts": {
+     "other": "Cadillac Escalade, detail view"
+    },
+    "seo_title": "Rent a Cadillac Escalade in Toronto | CarmaCars",
+    "highlights": [
+     "Automatic transmission",
+     "Four-wheel drive",
+     "Third-row seating",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning"
+    ],
+    "requirements": [
+     "Drivers 18 or older",
+     "Ontario G or G2 licence",
+     "A credit card in the renter's name",
+     "Licence and identity checked before pickup"
+    ],
+    "pickup_delivery": "Collect it at our location at no charge, or we deliver it to your address for $75. We hand it over in person and walk around the car with you.",
+    "meta_description": "Rent the Cadillac Escalade in Toronto from $540 a day. 7 seats, automatic. Pickup or delivery, and a request with no payment up front."
+   },
+   "current_source": "claude-batch",
+   "facts": {
+    "car": {
+     "fuel": "Gas",
+     "make": "Cadillac",
+     "doors": 4,
+     "model": "Escalade",
+     "seats": 7,
+     "colour": "Black",
+     "classes": [
+      "Luxury",
+      "SUV"
+     ],
+     "body_style": "SUV",
+     "drivetrain": "Four-wheel drive",
+     "transmission": "Automatic",
+     "equipment_known": [
+      "Four-wheel drive",
+      "Third-row seating",
+      "Backup camera",
+      "Bluetooth",
+      "Air conditioning",
+      "Cruise control",
+      "Automatic transmission"
+     ],
+     "equipment_maybe": [
+      "Apple CarPlay and Android Auto",
+      "Heated front seats",
+      "Heated steering wheel",
+      "Remote start",
+      "Sunroof",
+      "Leather seats",
+      "Wireless phone charging",
+      "Power tailgate",
+      "Roof rails"
+     ]
+    },
+    "brand": "CarmaCars",
+    "place": {
+     "city": "Toronto",
+     "pickup": "Collect it at our location at no charge, or have it delivered",
+     "region": "Ontario",
+     "airports": [
+      "Toronto Pearson International Airport",
+      "Billy Bishop Toronto City Airport"
+     ],
+     "delivery": "Delivered to any address for the car's delivery fee plus distance"
+    },
+    "rules": {
+     "card": "A credit card in the renter's name",
+     "licence": "Ontario G or G2 licence",
+     "min_age": 18,
+     "request": "Request to book with no payment; pay after we confirm",
+     "identity": "Licence and identity checked before pickup",
+     "max_rental_days": 365,
+     "drivers_18_to_20": true,
+     "young_driver_fee_ages": [
+      "18 to 20",
+      "21 to 25"
+     ]
+    },
+    "prices": {
+     "tax": "HST 13% added",
+     "daily": "$540",
+     "weekly": "$3,150",
+     "deposit": "$2,500",
+     "monthly": "$13,500",
+     "extra_km": "$0.75",
+     "km_per_day": 200,
+     "weekend_day": "$621",
+     "delivery_fee": "$75",
+     "monthly_days": 365,
+     "return_pickup_fee": "$75"
+    },
+    "included": [
+     "Third-party liability coverage",
+     "Roadside assistance, 24 hours a day",
+     "200 km a day",
+     "Handover in person with a walk-around of the car"
+    ]
+   },
+   "brief": null,
+   "avoid": [
+    "An Escalade ESV with third-row seating and four-wheel drive. Plenty of space for the group and the luggage on a long drive."
+   ],
+   "write": [
+    "intro",
+    "highlights",
+    "good_for",
+    "faq",
+    "alt_texts"
+   ],
+   "word_target": "intro 10 to 30 words; 6 highlights copied from the equipment lists; 2 to 4 good_for; 3 to 4 questions",
+   "instructions": {
+    "system": "You write the car pages of CarmaCars, a car rental company in Toronto, Ontario. Every page has the same structure as the example cars of the site and is written only from the facts given.\nWrite in plain Canadian English, like a helpful person at a local rental counter: short sentences, everyday words, the second person (\"you\").\nNo superlatives, no hype, no exclamation marks, no emoji. Never use an em dash or an en dash: use commas, colons or full stops.\nWrite the company name exactly as CarmaCars. Never name any other company except the car maker.\nNever mention the VIN, the licence plate, the odometer, the owner, damage or the car's history.\nNever mention insurance or coverage that can be bought. The only coverage you may mention is the third-party liability coverage listed under included.\nAvoid these words and phrases: look no further, elevate, seamless, whether you are, whether you're, unparalleled, best in class, unleash, nestled, boasts, delve, testament, embark, game changer, game-changer, unforgettable, effortless, in today's, top-notch, second to none, hidden gem, must-have, dream car, thrill, exhilarating, world-class, cutting-edge, state-of-the-art, breathtaking, turn heads, head-turning, hit the road, open road awaits, adventure awaits, unlock, experience the, look and feel, the perfect, perfect for, ultimate.\nUse only the facts. Every number you write (years, prices, seats, kilometres, ages, hours) must appear in the facts exactly as given. Do not add, multiply or round numbers.\nDo not claim equipment, fuel economy, range, power, safety ratings or condition that the facts do not state.\nAnswer with one JSON object that follows the schema exactly, and nothing else.",
+    "prompt": "<facts>{\"car\":{\"fuel\":\"Gas\",\"make\":\"Cadillac\",\"doors\":4,\"model\":\"Escalade\",\"seats\":7,\"colour\":\"Black\",\"classes\":[\"Luxury\",\"SUV\"],\"body_style\":\"SUV\",\"drivetrain\":\"Four-wheel drive\",\"transmission\":\"Automatic\",\"equipment_known\":[\"Four-wheel drive\",\"Third-row seating\",\"Backup camera\",\"Bluetooth\",\"Air conditioning\",\"Cruise control\",\"Automatic transmission\"],\"equipment_maybe\":[\"Apple CarPlay and Android Auto\",\"Heated front seats\",\"Heated steering wheel\",\"Remote start\",\"Sunroof\",\"Leather seats\",\"Wireless phone charging\",\"Power tailgate\",\"Roof rails\"]},\"brand\":\"CarmaCars\",\"place\":{\"city\":\"Toronto\",\"pickup\":\"Collect it at our location at no charge, or have it delivered\",\"region\":\"Ontario\",\"airports\":[\"Toronto Pearson International Airport\",\"Billy Bishop Toronto City Airport\"],\"delivery\":\"Delivered to any address for the car's delivery fee plus distance\"},\"rules\":{\"card\":\"A credit card in the renter's name\",\"licence\":\"Ontario G or G2 licence\",\"min_age\":18,\"request\":\"Request to book with no payment; pay after we confirm\",\"identity\":\"Licence and identity checked before pickup\",\"max_rental_days\":365,\"drivers_18_to_20\":true,\"young_driver_fee_ages\":[\"18 to 20\",\"21 to 25\"]},\"prices\":{\"tax\":\"HST 13% added\",\"daily\":\"$540\",\"weekly\":\"$3,150\",\"deposit\":\"$2,500\",\"monthly\":\"$13,500\",\"extra_km\":\"$0.75\",\"km_per_day\":200,\"weekend_day\":\"$621\",\"delivery_fee\":\"$75\",\"monthly_days\":365,\"return_pickup_fee\":\"$75\"},\"included\":[\"Third-party liability coverage\",\"Roadside assistance, 24 hours a day\",\"200 km a day\",\"Handover in person with a walk-around of the car\"]}</facts>\nWrite the page for this car, a Cadillac Escalade:\n- intro: 1 or 2 short sentences, 10 to 30 words, in exactly the voice of these examples from other cars of the site:\n  \"Room for four adults and their bags, and the quiet cabin Toyota is known for.\"\n  \"A roomy trunk and a soft ride. The commuter that does not mind a road trip.\"\n  \"Cheap to rent, cheap to fuel, and it starts every morning.\"\n  \"A big boot, a high seat and all-wheel drive for whatever February brings.\"\n  \"Seven seats and doors that open themselves. The airport run with everybody in one car.\"\n  \"The small Mercedes. Easy to park downtown, all-wheel drive for the 401 in November.\"\n  Say what this car is good for and what it is like to live with, from its body, seats, drivetrain, fuel and equipment. Do not start with \"This car\" or \"This vehicle\", do not name the year, the trim, the colour or where the car is kept, and do not list specifications.\n- highlights: exactly 6 selling features, each copied word for word from these lists. Known to be on this car: [\"Four-wheel drive\",\"Third-row seating\",\"Backup camera\",\"Bluetooth\",\"Air conditioning\",\"Cruise control\",\"Automatic transmission\"]. Possibly on it: [\"Apple CarPlay and Android Auto\",\"Heated front seats\",\"Heated steering wheel\",\"Remote start\",\"Sunroof\",\"Leather seats\",\"Wireless phone charging\",\"Power tailgate\",\"Roof rails\"]. Take an item from the second list only if you are sure it is standard on every Cadillac Escalade sold in Canada; if you are not sure, leave it out. The features renters care most about first.\n- good_for: 2 to 4 short phrases naming the trips or people this car suits (for example \"Airport runs with luggage\"), based on its body, seats and fuel.\n- faq: 3 to 4 questions a renter asks about this model (passengers, luggage, winter driving, charging or fuel), each answered in one or two sentences from the facts. Do not ask about delivery, kilometres, prices or payment: the page answers those. If the facts do not answer a question, do not ask it.\n- alt_texts: an empty object.\n- seo_title, meta_description, h1, pickup_delivery, included, requirements: filled in by the site. Return empty strings and empty lists for them.\nOther cars of the same model already use these introductions. Write yours differently, with different sentences:\n\"An Escalade ESV with third-row seating and four-wheel drive. Plenty of space for the group and the luggage on a long drive.\""
+   },
+   "output_schema": {
+    "type": "object",
+    "properties": {
+     "seo_title": {
+      "type": "string"
+     },
+     "meta_description": {
+      "type": "string"
+     },
+     "h1": {
+      "type": "string"
+     },
+     "intro": {
+      "type": "string"
+     },
+     "highlights": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "good_for": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "included": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "pickup_delivery": {
+      "type": "string"
+     },
+     "requirements": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "faq": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "question": {
+         "type": "string"
+        },
+        "answer": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "question",
+        "answer"
+       ]
+      }
+     },
+     "alt_texts": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "string"
+      }
+     }
+    },
+    "required": [
+     "seo_title",
+     "meta_description",
+     "h1",
+     "intro",
+     "highlights",
+     "good_for",
+     "included",
+     "pickup_delivery",
+     "requirements",
+     "faq",
+     "alt_texts"
+    ]
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "3003c462-580a-4bd0-862b-ee77dba73f8f",
+   "url": "/cars/bmw-3-series-330i-m-sport",
+   "priority": 2,
+   "page_type": "car",
+   "name": "BMW 3 Series 330i M Sport",
+   "locked": [],
+   "current": {
+    "h1": "BMW 3 Series 330i M Sport for rent in Toronto",
+    "faq": [
+     {
+      "answer": "5 seats and 4 doors.",
+      "question": "How many seats does the BMW 3 Series 330i M Sport have?"
+     },
+     {
+      "answer": "Yes, around the clock, 24 hours a day.",
+      "question": "Is roadside help on the BMW included?"
+     },
+     {
+      "answer": "Drivers 18 or older with an Ontario G or G2 licence.",
+      "question": "Who can drive the BMW?"
+     },
+     {
+      "answer": "It has all-wheel drive, which helps on wet and snowy roads.",
+      "question": "Is the BMW good in winter?"
+     }
+    ],
+    "intro": "A BMW 3 Series for people who like driving. Seats five, with all-wheel drive and a backup camera for tight parking.",
+    "good_for": [
+     "Airport pickups",
+     "Weekend drives"
+    ],
+    "included": [
+     "Third-party liability coverage",
+     "Roadside assistance, 24 hours a day",
+     "200 km a day",
+     "Handover in person with a walk-around of the car"
+    ],
+    "alt_texts": {},
+    "seo_title": "Rent a BMW 3 Series 330i M Sport in Toronto | CarmaCars",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "requirements": [
+     "Drivers 18 or older",
+     "Ontario G or G2 licence",
+     "A credit card in the renter's name",
+     "Licence and identity checked before pickup"
+    ],
+    "pickup_delivery": "Collect it at our location at no charge, or we deliver it to your address for $75. We hand it over in person and walk around the car with you.",
+    "meta_description": "Rent the BMW 3 Series 330i M Sport in Toronto from $180 a day. 5 seats, automatic. Pickup or delivery, and a request with no payment up front."
+   },
+   "current_source": "claude-batch",
+   "facts": {
+    "car": {
+     "fuel": "Gas",
+     "make": "BMW",
+     "trim": "330i M Sport",
+     "doors": 4,
+     "model": "3 Series",
+     "seats": 5,
+     "colour": "White",
+     "classes": [
+      "Premium",
+      "Sedan"
+     ],
+     "body_style": "Sedan",
+     "drivetrain": "All-wheel drive",
+     "transmission": "Automatic",
+     "equipment_known": [
+      "All-wheel drive",
+      "Backup camera",
+      "Bluetooth",
+      "Air conditioning",
+      "Cruise control",
+      "Automatic transmission"
+     ],
+     "equipment_maybe": [
+      "Apple CarPlay and Android Auto",
+      "Heated front seats",
+      "Heated steering wheel",
+      "Remote start",
+      "Sunroof",
+      "Leather seats",
+      "Wireless phone charging"
+     ]
+    },
+    "brand": "CarmaCars",
+    "place": {
+     "city": "Toronto",
+     "pickup": "Collect it at our location at no charge, or have it delivered",
+     "region": "Ontario",
+     "airports": [
+      "Toronto Pearson International Airport",
+      "Billy Bishop Toronto City Airport"
+     ],
+     "delivery": "Delivered to any address for the car's delivery fee plus distance"
+    },
+    "rules": {
+     "card": "A credit card in the renter's name",
+     "licence": "Ontario G or G2 licence",
+     "min_age": 18,
+     "request": "Request to book with no payment; pay after we confirm",
+     "identity": "Licence and identity checked before pickup",
+     "max_rental_days": 365,
+     "drivers_18_to_20": true,
+     "young_driver_fee_ages": [
+      "18 to 20",
+      "21 to 25"
+     ]
+    },
+    "photos": [
+     "front_left",
+     "rear"
+    ],
+    "prices": {
+     "tax": "HST 13% added",
+     "daily": "$180",
+     "weekly": "$756",
+     "deposit": "$1,000",
+     "monthly": "$3,240",
+     "extra_km": "$0.35",
+     "km_per_day": 200,
+     "weekend_day": "$207",
+     "delivery_fee": "$75",
+     "monthly_days": 365,
+     "return_pickup_fee": "$75"
+    },
+    "included": [
+     "Third-party liability coverage",
+     "Roadside assistance, 24 hours a day",
+     "200 km a day",
+     "Handover in person with a walk-around of the car"
+    ]
+   },
+   "brief": null,
+   "avoid": [
+    "A BMW 3 Series with all-wheel drive and seating for five. Practical every day, with something extra for the open stretch of highway."
+   ],
+   "write": [
+    "intro",
+    "highlights",
+    "good_for",
+    "faq",
+    "alt_texts"
+   ],
+   "word_target": "intro 10 to 30 words; 6 highlights copied from the equipment lists; 2 to 4 good_for; 3 to 4 questions",
+   "instructions": {
+    "system": "You write the car pages of CarmaCars, a car rental company in Toronto, Ontario. Every page has the same structure as the example cars of the site and is written only from the facts given.\nWrite in plain Canadian English, like a helpful person at a local rental counter: short sentences, everyday words, the second person (\"you\").\nNo superlatives, no hype, no exclamation marks, no emoji. Never use an em dash or an en dash: use commas, colons or full stops.\nWrite the company name exactly as CarmaCars. Never name any other company except the car maker.\nNever mention the VIN, the licence plate, the odometer, the owner, damage or the car's history.\nNever mention insurance or coverage that can be bought. The only coverage you may mention is the third-party liability coverage listed under included.\nAvoid these words and phrases: look no further, elevate, seamless, whether you are, whether you're, unparalleled, best in class, unleash, nestled, boasts, delve, testament, embark, game changer, game-changer, unforgettable, effortless, in today's, top-notch, second to none, hidden gem, must-have, dream car, thrill, exhilarating, world-class, cutting-edge, state-of-the-art, breathtaking, turn heads, head-turning, hit the road, open road awaits, adventure awaits, unlock, experience the, look and feel, the perfect, perfect for, ultimate.\nUse only the facts. Every number you write (years, prices, seats, kilometres, ages, hours) must appear in the facts exactly as given. Do not add, multiply or round numbers.\nDo not claim equipment, fuel economy, range, power, safety ratings or condition that the facts do not state.\nAnswer with one JSON object that follows the schema exactly, and nothing else.",
+    "prompt": "<facts>{\"car\":{\"fuel\":\"Gas\",\"make\":\"BMW\",\"trim\":\"330i M Sport\",\"doors\":4,\"model\":\"3 Series\",\"seats\":5,\"colour\":\"White\",\"classes\":[\"Premium\",\"Sedan\"],\"body_style\":\"Sedan\",\"drivetrain\":\"All-wheel drive\",\"transmission\":\"Automatic\",\"equipment_known\":[\"All-wheel drive\",\"Backup camera\",\"Bluetooth\",\"Air conditioning\",\"Cruise control\",\"Automatic transmission\"],\"equipment_maybe\":[\"Apple CarPlay and Android Auto\",\"Heated front seats\",\"Heated steering wheel\",\"Remote start\",\"Sunroof\",\"Leather seats\",\"Wireless phone charging\"]},\"brand\":\"CarmaCars\",\"place\":{\"city\":\"Toronto\",\"pickup\":\"Collect it at our location at no charge, or have it delivered\",\"region\":\"Ontario\",\"airports\":[\"Toronto Pearson International Airport\",\"Billy Bishop Toronto City Airport\"],\"delivery\":\"Delivered to any address for the car's delivery fee plus distance\"},\"rules\":{\"card\":\"A credit card in the renter's name\",\"licence\":\"Ontario G or G2 licence\",\"min_age\":18,\"request\":\"Request to book with no payment; pay after we confirm\",\"identity\":\"Licence and identity checked before pickup\",\"max_rental_days\":365,\"drivers_18_to_20\":true,\"young_driver_fee_ages\":[\"18 to 20\",\"21 to 25\"]},\"photos\":[\"front_left\",\"rear\"],\"prices\":{\"tax\":\"HST 13% added\",\"daily\":\"$180\",\"weekly\":\"$756\",\"deposit\":\"$1,000\",\"monthly\":\"$3,240\",\"extra_km\":\"$0.35\",\"km_per_day\":200,\"weekend_day\":\"$207\",\"delivery_fee\":\"$75\",\"monthly_days\":365,\"return_pickup_fee\":\"$75\"},\"included\":[\"Third-party liability coverage\",\"Roadside assistance, 24 hours a day\",\"200 km a day\",\"Handover in person with a walk-around of the car\"]}</facts>\nWrite the page for this car, a BMW 3 Series 330i M Sport:\n- intro: 1 or 2 short sentences, 10 to 30 words, in exactly the voice of these examples from other cars of the site:\n  \"Room for four adults and their bags, and the quiet cabin Toyota is known for.\"\n  \"A roomy trunk and a soft ride. The commuter that does not mind a road trip.\"\n  \"Cheap to rent, cheap to fuel, and it starts every morning.\"\n  \"A big boot, a high seat and all-wheel drive for whatever February brings.\"\n  \"Seven seats and doors that open themselves. The airport run with everybody in one car.\"\n  \"The small Mercedes. Easy to park downtown, all-wheel drive for the 401 in November.\"\n  Say what this car is good for and what it is like to live with, from its body, seats, drivetrain, fuel and equipment. Do not start with \"This car\" or \"This vehicle\", do not name the year, the trim, the colour or where the car is kept, and do not list specifications.\n- highlights: exactly 6 selling features, each copied word for word from these lists. Known to be on this car: [\"All-wheel drive\",\"Backup camera\",\"Bluetooth\",\"Air conditioning\",\"Cruise control\",\"Automatic transmission\"]. Possibly on it: [\"Apple CarPlay and Android Auto\",\"Heated front seats\",\"Heated steering wheel\",\"Remote start\",\"Sunroof\",\"Leather seats\",\"Wireless phone charging\"]. Take an item from the second list only if you are sure it is standard on every BMW 3 Series 330i M Sport sold in Canada; if you are not sure, leave it out. The features renters care most about first.\n- good_for: 2 to 4 short phrases naming the trips or people this car suits (for example \"Airport runs with luggage\"), based on its body, seats and fuel.\n- faq: 3 to 4 questions a renter asks about this model (passengers, luggage, winter driving, charging or fuel), each answered in one or two sentences from the facts. Do not ask about delivery, kilometres, prices or payment: the page answers those. If the facts do not answer a question, do not ask it.\n- alt_texts: an object with exactly these keys: front_left, rear. Each value describes that photo in under 125 characters, like \"BMW 3 Series in white, front left view\".\n- seo_title, meta_description, h1, pickup_delivery, included, requirements: filled in by the site. Return empty strings and empty lists for them.\nOther cars of the same model already use these introductions. Write yours differently, with different sentences:\n\"A BMW 3 Series with all-wheel drive and seating for five. Practical every day, with something extra for the open stretch of highway.\""
+   },
+   "output_schema": {
+    "type": "object",
+    "properties": {
+     "seo_title": {
+      "type": "string"
+     },
+     "meta_description": {
+      "type": "string"
+     },
+     "h1": {
+      "type": "string"
+     },
+     "intro": {
+      "type": "string"
+     },
+     "highlights": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "good_for": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "included": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "pickup_delivery": {
+      "type": "string"
+     },
+     "requirements": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "faq": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "question": {
+         "type": "string"
+        },
+        "answer": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "question",
+        "answer"
+       ]
+      }
+     },
+     "alt_texts": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "string"
+      }
+     }
+    },
+    "required": [
+     "seo_title",
+     "meta_description",
+     "h1",
+     "intro",
+     "highlights",
+     "good_for",
+     "included",
+     "pickup_delivery",
+     "requirements",
+     "faq",
+     "alt_texts"
+    ]
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "8043b1ef-61d5-49b1-9e5e-c76ce4731f17",
+   "url": "/cars/mclaren-570s",
+   "priority": 3,
+   "page_type": "car",
+   "name": "McLaren 570S",
+   "locked": [],
+   "current": {
+    "h1": "McLaren 570S for rent in Toronto",
+    "faq": [
+     {
+      "answer": "The McLaren 570S has 2 seats and 2 doors.",
+      "question": "How many people fit?"
+     },
+     {
+      "answer": "No. A request has no payment up front. You pay after we confirm.",
+      "question": "Do I pay when I send a request?"
+     },
+     {
+      "answer": "Yes, roadside assistance is included 24 hours a day.",
+      "question": "Is roadside assistance included?"
+     }
+    ],
+    "intro": "A McLaren with two seats and rear-wheel drive. A coupe for one driver, one passenger and a clear road.",
+    "good_for": [
+     "Birthdays and anniversaries",
+     "Weekend drives"
+    ],
+    "included": [
+     "Third-party liability coverage",
+     "Roadside assistance, 24 hours a day",
+     "200 km a day",
+     "Handover in person with a walk-around of the car"
+    ],
+    "alt_texts": {},
+    "seo_title": "Rent a McLaren 570S in Toronto | CarmaCars",
+    "highlights": [
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "requirements": [
+     "Drivers 18 or older",
+     "Ontario G or G2 licence",
+     "A credit card in the renter's name",
+     "Licence and identity checked before pickup"
+    ],
+    "pickup_delivery": "Collect it at our location at no charge, or we deliver it to your address for $75. We hand it over in person and walk around the car with you.",
+    "meta_description": "Rent the McLaren 570S in Toronto from $1,350 a day. 2 seats, Automatic (dual-clutch). Pickup or delivery, and a request with no payment up front."
+   },
+   "current_source": "claude-batch",
+   "facts": {
+    "car": {
+     "fuel": "Gas",
+     "make": "McLaren",
+     "doors": 2,
+     "model": "570S",
+     "seats": 2,
+     "colour": "Blue",
+     "classes": [
+      "Coupe",
+      "Exotic"
+     ],
+     "body_style": "Coupe",
+     "drivetrain": "Rear-wheel drive",
+     "transmission": "Automatic (dual-clutch)",
+     "equipment_known": [
+      "Backup camera",
+      "Bluetooth",
+      "Air conditioning",
+      "Cruise control",
+      "Automatic transmission"
+     ],
+     "equipment_maybe": [
+      "Apple CarPlay and Android Auto",
+      "Heated front seats",
+      "Heated steering wheel",
+      "Remote start",
+      "Sunroof",
+      "Leather seats",
+      "Wireless phone charging"
+     ]
+    },
+    "brand": "CarmaCars",
+    "place": {
+     "city": "Toronto",
+     "pickup": "Collect it at our location at no charge, or have it delivered",
+     "region": "Ontario",
+     "airports": [
+      "Toronto Pearson International Airport",
+      "Billy Bishop Toronto City Airport"
+     ],
+     "delivery": "Delivered to any address for the car's delivery fee plus distance"
+    },
+    "rules": {
+     "card": "A credit card in the renter's name",
+     "licence": "Ontario G or G2 licence",
+     "min_age": 18,
+     "request": "Request to book with no payment; pay after we confirm",
+     "identity": "Licence and identity checked before pickup",
+     "max_rental_days": 365,
+     "drivers_18_to_20": true,
+     "young_driver_fee_ages": [
+      "18 to 20",
+      "21 to 25"
+     ]
+    },
+    "photos": [
+     "other"
+    ],
+    "prices": {
+     "tax": "HST 13% added",
+     "daily": "$1,350",
+     "weekly": "$8,820",
+     "deposit": "$2,500",
+     "monthly": "$37,800",
+     "extra_km": "$0.75",
+     "km_per_day": 200,
+     "weekend_day": "$1,553",
+     "delivery_fee": "$75",
+     "monthly_days": 365,
+     "return_pickup_fee": "$75"
+    },
+    "included": [
+     "Third-party liability coverage",
+     "Roadside assistance, 24 hours a day",
+     "200 km a day",
+     "Handover in person with a walk-around of the car"
+    ]
+   },
+   "brief": null,
+   "avoid": [],
+   "write": [
+    "intro",
+    "highlights",
+    "good_for",
+    "faq",
+    "alt_texts"
+   ],
+   "word_target": "intro 10 to 30 words; 6 highlights copied from the equipment lists; 2 to 4 good_for; 3 to 4 questions",
+   "instructions": {
+    "system": "You write the car pages of CarmaCars, a car rental company in Toronto, Ontario. Every page has the same structure as the example cars of the site and is written only from the facts given.\nWrite in plain Canadian English, like a helpful person at a local rental counter: short sentences, everyday words, the second person (\"you\").\nNo superlatives, no hype, no exclamation marks, no emoji. Never use an em dash or an en dash: use commas, colons or full stops.\nWrite the company name exactly as CarmaCars. Never name any other company except the car maker.\nNever mention the VIN, the licence plate, the odometer, the owner, damage or the car's history.\nNever mention insurance or coverage that can be bought. The only coverage you may mention is the third-party liability coverage listed under included.\nAvoid these words and phrases: look no further, elevate, seamless, whether you are, whether you're, unparalleled, best in class, unleash, nestled, boasts, delve, testament, embark, game changer, game-changer, unforgettable, effortless, in today's, top-notch, second to none, hidden gem, must-have, dream car, thrill, exhilarating, world-class, cutting-edge, state-of-the-art, breathtaking, turn heads, head-turning, hit the road, open road awaits, adventure awaits, unlock, experience the, look and feel, the perfect, perfect for, ultimate.\nUse only the facts. Every number you write (years, prices, seats, kilometres, ages, hours) must appear in the facts exactly as given. Do not add, multiply or round numbers.\nDo not claim equipment, fuel economy, range, power, safety ratings or condition that the facts do not state.\nAnswer with one JSON object that follows the schema exactly, and nothing else.",
+    "prompt": "<facts>{\"car\":{\"fuel\":\"Gas\",\"make\":\"McLaren\",\"doors\":2,\"model\":\"570S\",\"seats\":2,\"colour\":\"Blue\",\"classes\":[\"Coupe\",\"Exotic\"],\"body_style\":\"Coupe\",\"drivetrain\":\"Rear-wheel drive\",\"transmission\":\"Automatic (dual-clutch)\",\"equipment_known\":[\"Backup camera\",\"Bluetooth\",\"Air conditioning\",\"Cruise control\",\"Automatic transmission\"],\"equipment_maybe\":[\"Apple CarPlay and Android Auto\",\"Heated front seats\",\"Heated steering wheel\",\"Remote start\",\"Sunroof\",\"Leather seats\",\"Wireless phone charging\"]},\"brand\":\"CarmaCars\",\"place\":{\"city\":\"Toronto\",\"pickup\":\"Collect it at our location at no charge, or have it delivered\",\"region\":\"Ontario\",\"airports\":[\"Toronto Pearson International Airport\",\"Billy Bishop Toronto City Airport\"],\"delivery\":\"Delivered to any address for the car's delivery fee plus distance\"},\"rules\":{\"card\":\"A credit card in the renter's name\",\"licence\":\"Ontario G or G2 licence\",\"min_age\":18,\"request\":\"Request to book with no payment; pay after we confirm\",\"identity\":\"Licence and identity checked before pickup\",\"max_rental_days\":365,\"drivers_18_to_20\":true,\"young_driver_fee_ages\":[\"18 to 20\",\"21 to 25\"]},\"photos\":[\"other\"],\"prices\":{\"tax\":\"HST 13% added\",\"daily\":\"$1,350\",\"weekly\":\"$8,820\",\"deposit\":\"$2,500\",\"monthly\":\"$37,800\",\"extra_km\":\"$0.75\",\"km_per_day\":200,\"weekend_day\":\"$1,553\",\"delivery_fee\":\"$75\",\"monthly_days\":365,\"return_pickup_fee\":\"$75\"},\"included\":[\"Third-party liability coverage\",\"Roadside assistance, 24 hours a day\",\"200 km a day\",\"Handover in person with a walk-around of the car\"]}</facts>\nWrite the page for this car, a McLaren 570S:\n- intro: 1 or 2 short sentences, 10 to 30 words, in exactly the voice of these examples from other cars of the site:\n  \"Room for four adults and their bags, and the quiet cabin Toyota is known for.\"\n  \"A roomy trunk and a soft ride. The commuter that does not mind a road trip.\"\n  \"Cheap to rent, cheap to fuel, and it starts every morning.\"\n  \"A big boot, a high seat and all-wheel drive for whatever February brings.\"\n  \"Seven seats and doors that open themselves. The airport run with everybody in one car.\"\n  \"The small Mercedes. Easy to park downtown, all-wheel drive for the 401 in November.\"\n  Say what this car is good for and what it is like to live with, from its body, seats, drivetrain, fuel and equipment. Do not start with \"This car\" or \"This vehicle\", do not name the year, the trim, the colour or where the car is kept, and do not list specifications.\n- highlights: exactly 6 selling features, each copied word for word from these lists. Known to be on this car: [\"Backup camera\",\"Bluetooth\",\"Air conditioning\",\"Cruise control\",\"Automatic transmission\"]. Possibly on it: [\"Apple CarPlay and Android Auto\",\"Heated front seats\",\"Heated steering wheel\",\"Remote start\",\"Sunroof\",\"Leather seats\",\"Wireless phone charging\"]. Take an item from the second list only if you are sure it is standard on every McLaren 570S sold in Canada; if you are not sure, leave it out. The features renters care most about first.\n- good_for: 2 to 4 short phrases naming the trips or people this car suits (for example \"Airport runs with luggage\"), based on its body, seats and fuel.\n- faq: 3 to 4 questions a renter asks about this model (passengers, luggage, winter driving, charging or fuel), each answered in one or two sentences from the facts. Do not ask about delivery, kilometres, prices or payment: the page answers those. If the facts do not answer a question, do not ask it.\n- alt_texts: an object with exactly these keys: other. Each value describes that photo in under 125 characters, like \"McLaren 570S in blue, front left view\".\n- seo_title, meta_description, h1, pickup_delivery, included, requirements: filled in by the site. Return empty strings and empty lists for them."
+   },
+   "output_schema": {
+    "type": "object",
+    "properties": {
+     "seo_title": {
+      "type": "string"
+     },
+     "meta_description": {
+      "type": "string"
+     },
+     "h1": {
+      "type": "string"
+     },
+     "intro": {
+      "type": "string"
+     },
+     "highlights": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "good_for": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "included": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "pickup_delivery": {
+      "type": "string"
+     },
+     "requirements": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "faq": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "question": {
+         "type": "string"
+        },
+        "answer": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "question",
+        "answer"
+       ]
+      }
+     },
+     "alt_texts": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "string"
+      }
+     }
+    },
+    "required": [
+     "seo_title",
+     "meta_description",
+     "h1",
+     "intro",
+     "highlights",
+     "good_for",
+     "included",
+     "pickup_delivery",
+     "requirements",
+     "faq",
+     "alt_texts"
+    ]
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "94570239-4cd1-4882-942a-dc710c2732f7",
+   "url": "/cars/mercedes-benz-c-class-c43-amg-white",
+   "priority": 4,
+   "page_type": "car",
+   "name": "Mercedes-Benz C-Class C43 AMG",
+   "locked": [],
+   "current": {
+    "h1": "Mercedes-Benz C-Class C43 AMG for rent in Toronto (white)",
+    "faq": [
+     {
+      "answer": "5 seats and 4 doors.",
+      "question": "How many seats does the Mercedes-Benz C-Class C43 AMG have?"
+     },
+     {
+      "answer": "Yes. Delivery to an address is $75. Collecting from us has no charge.",
+      "question": "Can the Mercedes-Benz be delivered?"
+     },
+     {
+      "answer": "Yes, it has a backup camera.",
+      "question": "Does the Mercedes-Benz have a backup camera?"
+     }
+    ],
+    "intro": "The sporty AMG take on the C-Class: all-wheel drive, five seats and a backup camera for the downtown lot.",
+    "good_for": [
+     "Business trips",
+     "Dinners and events"
+    ],
+    "included": [
+     "Third-party liability coverage",
+     "Roadside assistance, 24 hours a day",
+     "200 km a day",
+     "Handover in person with a walk-around of the car"
+    ],
+    "alt_texts": {},
+    "seo_title": "Rent a Mercedes-Benz C-Class C43 AMG in Toronto (white)",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "requirements": [
+     "Drivers 18 or older",
+     "Ontario G or G2 licence",
+     "A credit card in the renter's name",
+     "Licence and identity checked before pickup"
+    ],
+    "pickup_delivery": "Collect it at our location at no charge, or we deliver it to your address for $75. We hand it over in person and walk around the car with you.",
+    "meta_description": "Rent the Mercedes-Benz C-Class C43 AMG in Toronto from $225 a day. 5 seats, automatic. Pickup or delivery, and a request with no payment up front."
+   },
+   "current_source": "claude-batch",
+   "facts": {
+    "car": {
+     "fuel": "Gas",
+     "make": "Mercedes-Benz",
+     "trim": "C43 AMG",
+     "doors": 4,
+     "model": "C-Class",
+     "seats": 5,
+     "colour": "White",
+     "classes": [
+      "Luxury",
+      "Sedan"
+     ],
+     "body_style": "Sedan",
+     "drivetrain": "All-wheel drive",
+     "transmission": "Automatic",
+     "equipment_known": [
+      "All-wheel drive",
+      "Backup camera",
+      "Bluetooth",
+      "Air conditioning",
+      "Cruise control",
+      "Automatic transmission"
+     ],
+     "equipment_maybe": [
+      "Apple CarPlay and Android Auto",
+      "Heated front seats",
+      "Heated steering wheel",
+      "Remote start",
+      "Sunroof",
+      "Leather seats",
+      "Wireless phone charging"
+     ]
+    },
+    "brand": "CarmaCars",
+    "place": {
+     "city": "Toronto",
+     "pickup": "Collect it at our location at no charge, or have it delivered",
+     "region": "Ontario",
+     "airports": [
+      "Toronto Pearson International Airport",
+      "Billy Bishop Toronto City Airport"
+     ],
+     "delivery": "Delivered to any address for the car's delivery fee plus distance"
+    },
+    "rules": {
+     "card": "A credit card in the renter's name",
+     "licence": "Ontario G or G2 licence",
+     "min_age": 18,
+     "request": "Request to book with no payment; pay after we confirm",
+     "identity": "Licence and identity checked before pickup",
+     "max_rental_days": 365,
+     "drivers_18_to_20": true,
+     "young_driver_fee_ages": [
+      "18 to 20",
+      "21 to 25"
+     ]
+    },
+    "photos": [
+     "other"
+    ],
+    "prices": {
+     "tax": "HST 13% added",
+     "daily": "$225",
+     "weekly": "$1,260",
+     "deposit": "$2,500",
+     "monthly": "$5,400",
+     "extra_km": "$0.75",
+     "km_per_day": 200,
+     "weekend_day": "$259",
+     "delivery_fee": "$75",
+     "monthly_days": 365,
+     "return_pickup_fee": "$75"
+    },
+    "included": [
+     "Third-party liability coverage",
+     "Roadside assistance, 24 hours a day",
+     "200 km a day",
+     "Handover in person with a walk-around of the car"
+    ]
+   },
+   "brief": null,
+   "avoid": [
+    "A Mercedes C-Class for everyday luxury: five seats, all-wheel drive and an automatic. Easy to park and easy to enjoy.",
+    "A Mercedes AMG sedan with seating for five. All-wheel drive and Bluetooth for the commute, the school run and the drive to a game.",
+    "An AMG C-Class sedan that suits a weekday meeting and a Saturday drive. All-wheel drive for the winter months."
+   ],
+   "write": [
+    "intro",
+    "highlights",
+    "good_for",
+    "faq",
+    "alt_texts"
+   ],
+   "word_target": "intro 10 to 30 words; 6 highlights copied from the equipment lists; 2 to 4 good_for; 3 to 4 questions",
+   "instructions": {
+    "system": "You write the car pages of CarmaCars, a car rental company in Toronto, Ontario. Every page has the same structure as the example cars of the site and is written only from the facts given.\nWrite in plain Canadian English, like a helpful person at a local rental counter: short sentences, everyday words, the second person (\"you\").\nNo superlatives, no hype, no exclamation marks, no emoji. Never use an em dash or an en dash: use commas, colons or full stops.\nWrite the company name exactly as CarmaCars. Never name any other company except the car maker.\nNever mention the VIN, the licence plate, the odometer, the owner, damage or the car's history.\nNever mention insurance or coverage that can be bought. The only coverage you may mention is the third-party liability coverage listed under included.\nAvoid these words and phrases: look no further, elevate, seamless, whether you are, whether you're, unparalleled, best in class, unleash, nestled, boasts, delve, testament, embark, game changer, game-changer, unforgettable, effortless, in today's, top-notch, second to none, hidden gem, must-have, dream car, thrill, exhilarating, world-class, cutting-edge, state-of-the-art, breathtaking, turn heads, head-turning, hit the road, open road awaits, adventure awaits, unlock, experience the, look and feel, the perfect, perfect for, ultimate.\nUse only the facts. Every number you write (years, prices, seats, kilometres, ages, hours) must appear in the facts exactly as given. Do not add, multiply or round numbers.\nDo not claim equipment, fuel economy, range, power, safety ratings or condition that the facts do not state.\nAnswer with one JSON object that follows the schema exactly, and nothing else.",
+    "prompt": "<facts>{\"car\":{\"fuel\":\"Gas\",\"make\":\"Mercedes-Benz\",\"trim\":\"C43 AMG\",\"doors\":4,\"model\":\"C-Class\",\"seats\":5,\"colour\":\"White\",\"classes\":[\"Luxury\",\"Sedan\"],\"body_style\":\"Sedan\",\"drivetrain\":\"All-wheel drive\",\"transmission\":\"Automatic\",\"equipment_known\":[\"All-wheel drive\",\"Backup camera\",\"Bluetooth\",\"Air conditioning\",\"Cruise control\",\"Automatic transmission\"],\"equipment_maybe\":[\"Apple CarPlay and Android Auto\",\"Heated front seats\",\"Heated steering wheel\",\"Remote start\",\"Sunroof\",\"Leather seats\",\"Wireless phone charging\"]},\"brand\":\"CarmaCars\",\"place\":{\"city\":\"Toronto\",\"pickup\":\"Collect it at our location at no charge, or have it delivered\",\"region\":\"Ontario\",\"airports\":[\"Toronto Pearson International Airport\",\"Billy Bishop Toronto City Airport\"],\"delivery\":\"Delivered to any address for the car's delivery fee plus distance\"},\"rules\":{\"card\":\"A credit card in the renter's name\",\"licence\":\"Ontario G or G2 licence\",\"min_age\":18,\"request\":\"Request to book with no payment; pay after we confirm\",\"identity\":\"Licence and identity checked before pickup\",\"max_rental_days\":365,\"drivers_18_to_20\":true,\"young_driver_fee_ages\":[\"18 to 20\",\"21 to 25\"]},\"photos\":[\"other\"],\"prices\":{\"tax\":\"HST 13% added\",\"daily\":\"$225\",\"weekly\":\"$1,260\",\"deposit\":\"$2,500\",\"monthly\":\"$5,400\",\"extra_km\":\"$0.75\",\"km_per_day\":200,\"weekend_day\":\"$259\",\"delivery_fee\":\"$75\",\"monthly_days\":365,\"return_pickup_fee\":\"$75\"},\"included\":[\"Third-party liability coverage\",\"Roadside assistance, 24 hours a day\",\"200 km a day\",\"Handover in person with a walk-around of the car\"]}</facts>\nWrite the page for this car, a Mercedes-Benz C-Class C43 AMG:\n- intro: 1 or 2 short sentences, 10 to 30 words, in exactly the voice of these examples from other cars of the site:\n  \"Room for four adults and their bags, and the quiet cabin Toyota is known for.\"\n  \"A roomy trunk and a soft ride. The commuter that does not mind a road trip.\"\n  \"Cheap to rent, cheap to fuel, and it starts every morning.\"\n  \"A big boot, a high seat and all-wheel drive for whatever February brings.\"\n  \"Seven seats and doors that open themselves. The airport run with everybody in one car.\"\n  \"The small Mercedes. Easy to park downtown, all-wheel drive for the 401 in November.\"\n  Say what this car is good for and what it is like to live with, from its body, seats, drivetrain, fuel and equipment. Do not start with \"This car\" or \"This vehicle\", do not name the year, the trim, the colour or where the car is kept, and do not list specifications.\n- highlights: exactly 6 selling features, each copied word for word from these lists. Known to be on this car: [\"All-wheel drive\",\"Backup camera\",\"Bluetooth\",\"Air conditioning\",\"Cruise control\",\"Automatic transmission\"]. Possibly on it: [\"Apple CarPlay and Android Auto\",\"Heated front seats\",\"Heated steering wheel\",\"Remote start\",\"Sunroof\",\"Leather seats\",\"Wireless phone charging\"]. Take an item from the second list only if you are sure it is standard on every Mercedes-Benz C-Class C43 AMG sold in Canada; if you are not sure, leave it out. The features renters care most about first.\n- good_for: 2 to 4 short phrases naming the trips or people this car suits (for example \"Airport runs with luggage\"), based on its body, seats and fuel.\n- faq: 3 to 4 questions a renter asks about this model (passengers, luggage, winter driving, charging or fuel), each answered in one or two sentences from the facts. Do not ask about delivery, kilometres, prices or payment: the page answers those. If the facts do not answer a question, do not ask it.\n- alt_texts: an object with exactly these keys: other. Each value describes that photo in under 125 characters, like \"Mercedes-Benz C-Class in white, front left view\".\n- seo_title, meta_description, h1, pickup_delivery, included, requirements: filled in by the site. Return empty strings and empty lists for them.\nOther cars of the same model already use these introductions. Write yours differently, with different sentences:\n\"A Mercedes C-Class for everyday luxury: five seats, all-wheel drive and an automatic. Easy to park and easy to enjoy.\"\n\"A Mercedes AMG sedan with seating for five. All-wheel drive and Bluetooth for the commute, the school run and the drive to a game.\"\n\"An AMG C-Class sedan that suits a weekday meeting and a Saturday drive. All-wheel drive for the winter months.\""
+   },
+   "output_schema": {
+    "type": "object",
+    "properties": {
+     "seo_title": {
+      "type": "string"
+     },
+     "meta_description": {
+      "type": "string"
+     },
+     "h1": {
+      "type": "string"
+     },
+     "intro": {
+      "type": "string"
+     },
+     "highlights": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "good_for": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "included": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "pickup_delivery": {
+      "type": "string"
+     },
+     "requirements": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "faq": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "question": {
+         "type": "string"
+        },
+        "answer": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "question",
+        "answer"
+       ]
+      }
+     },
+     "alt_texts": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "string"
+      }
+     }
+    },
+    "required": [
+     "seo_title",
+     "meta_description",
+     "h1",
+     "intro",
+     "highlights",
+     "good_for",
+     "included",
+     "pickup_delivery",
+     "requirements",
+     "faq",
+     "alt_texts"
+    ]
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "07f68ffc-f8f2-491b-ba25-0d98c33f753d",
+   "url": null,
+   "priority": 5,
+   "page_type": "car",
+   "name": "2012 Mercedes-Benz S-Class S63 AMG",
+   "locked": [],
+   "current": {
+    "h1": "2012 Mercedes-Benz S-Class S63 AMG for rent in Toronto",
+    "faq": [
+     {
+      "answer": "It has 5 seats.",
+      "question": "How many people fit in the S-Class?"
+     }
+    ],
+    "intro": "A comfortable Mercedes-Benz sedan with room for five and a proper trunk. Easy to park in the city and quiet on the highway.",
+    "good_for": [
+     "Trips in and around Toronto",
+     "Weekly and monthly rentals"
+    ],
+    "included": [
+     "Third-party liability coverage",
+     "Roadside assistance, 24 hours a day",
+     "200 km a day",
+     "Handover in person with a walk-around of the car"
+    ],
+    "alt_texts": {},
+    "seo_title": "Rent a 2012 Mercedes-Benz S-Class in Toronto | CarmaCars",
+    "highlights": [
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "requirements": [
+     "Drivers 18 or older",
+     "Ontario G or G2 licence",
+     "A credit card in the renter's name",
+     "Licence and identity checked before pickup"
+    ],
+    "pickup_delivery": "Collect it at our location at no charge, or we deliver it to your address for $75. We hand it over in person and walk around the car with you.",
+    "meta_description": "Rent this black 2012 Mercedes-Benz S-Class in Toronto from $472 a day. 5 seats, automatic. Request with no payment up front."
+   },
+   "current_source": "template",
+   "facts": {
+    "car": {
+     "fuel": "Gas",
+     "make": "Mercedes-Benz",
+     "trim": "S63 AMG",
+     "year": 2012,
+     "doors": 4,
+     "model": "S-Class",
+     "seats": 5,
+     "colour": "Black",
+     "engine": "5.5 L, V8",
+     "classes": [
+      "Premium",
+      "Sedan"
+     ],
+     "body_style": "Sedan",
+     "transmission": "Automatic",
+     "equipment_known": [
+      "Bluetooth",
+      "Air conditioning",
+      "Cruise control",
+      "Automatic transmission"
+     ],
+     "equipment_maybe": [
+      "Heated front seats",
+      "Heated steering wheel",
+      "Remote start",
+      "Sunroof",
+      "Leather seats",
+      "Wireless phone charging"
+     ]
+    },
+    "brand": "CarmaCars",
+    "place": {
+     "city": "Toronto",
+     "pickup": "Collect it at our location at no charge, or have it delivered",
+     "region": "Ontario",
+     "airports": [
+      "Toronto Pearson International Airport",
+      "Billy Bishop Toronto City Airport"
+     ],
+     "delivery": "Delivered to any address for the car's delivery fee plus distance"
+    },
+    "rules": {
+     "card": "A credit card in the renter's name",
+     "licence": "Ontario G or G2 licence",
+     "min_age": 18,
+     "request": "Request to book with no payment; pay after we confirm",
+     "identity": "Licence and identity checked before pickup",
+     "max_rental_days": 365,
+     "drivers_18_to_20": true,
+     "young_driver_fee_ages": [
+      "18 to 20",
+      "21 to 25"
+     ]
+    },
+    "prices": {
+     "tax": "HST 13% added",
+     "daily": "$472",
+     "weekly": "$2,832",
+     "deposit": "$1,000",
+     "monthly": "$10,384",
+     "extra_km": "$0.35",
+     "km_per_day": 200,
+     "weekend_day": "$543",
+     "delivery_fee": "$75",
+     "monthly_days": 365,
+     "return_pickup_fee": "$75"
+    },
+    "included": [
+     "Third-party liability coverage",
+     "Roadside assistance, 24 hours a day",
+     "200 km a day",
+     "Handover in person with a walk-around of the car"
+    ]
+   },
+   "brief": null,
+   "avoid": [
+    "An S-Class from the AMG range with all-wheel drive and five seats. A statement for a special night or a big weekend.",
+    "A Mercedes S-Class that makes a long drive feel shorter. All-wheel drive and a backup camera, with seating for five.",
+    "A Maybach with four seats and all-wheel drive. Arrive at the gala, the airport or the client dinner from the back seat."
+   ],
+   "write": [
+    "intro",
+    "highlights",
+    "good_for",
+    "faq",
+    "alt_texts"
+   ],
+   "word_target": "intro 10 to 30 words; 6 highlights copied from the equipment lists; 2 to 4 good_for; 3 to 4 questions",
+   "instructions": {
+    "system": "You write the car pages of CarmaCars, a car rental company in Toronto, Ontario. Every page has the same structure as the example cars of the site and is written only from the facts given.\nWrite in plain Canadian English, like a helpful person at a local rental counter: short sentences, everyday words, the second person (\"you\").\nNo superlatives, no hype, no exclamation marks, no emoji. Never use an em dash or an en dash: use commas, colons or full stops.\nWrite the company name exactly as CarmaCars. Never name any other company except the car maker.\nNever mention the VIN, the licence plate, the odometer, the owner, damage or the car's history.\nNever mention insurance or coverage that can be bought. The only coverage you may mention is the third-party liability coverage listed under included.\nAvoid these words and phrases: look no further, elevate, seamless, whether you are, whether you're, unparalleled, best in class, unleash, nestled, boasts, delve, testament, embark, game changer, game-changer, unforgettable, effortless, in today's, top-notch, second to none, hidden gem, must-have, dream car, thrill, exhilarating, world-class, cutting-edge, state-of-the-art, breathtaking, turn heads, head-turning, hit the road, open road awaits, adventure awaits, unlock, experience the, look and feel, the perfect, perfect for, ultimate.\nUse only the facts. Every number you write (years, prices, seats, kilometres, ages, hours) must appear in the facts exactly as given. Do not add, multiply or round numbers.\nDo not claim equipment, fuel economy, range, power, safety ratings or condition that the facts do not state.\nAnswer with one JSON object that follows the schema exactly, and nothing else.",
+    "prompt": "<facts>{\"car\":{\"fuel\":\"Gas\",\"make\":\"Mercedes-Benz\",\"trim\":\"S63 AMG\",\"year\":2012,\"doors\":4,\"model\":\"S-Class\",\"seats\":5,\"colour\":\"Black\",\"engine\":\"5.5 L, V8\",\"classes\":[\"Premium\",\"Sedan\"],\"body_style\":\"Sedan\",\"transmission\":\"Automatic\",\"equipment_known\":[\"Bluetooth\",\"Air conditioning\",\"Cruise control\",\"Automatic transmission\"],\"equipment_maybe\":[\"Heated front seats\",\"Heated steering wheel\",\"Remote start\",\"Sunroof\",\"Leather seats\",\"Wireless phone charging\"]},\"brand\":\"CarmaCars\",\"place\":{\"city\":\"Toronto\",\"pickup\":\"Collect it at our location at no charge, or have it delivered\",\"region\":\"Ontario\",\"airports\":[\"Toronto Pearson International Airport\",\"Billy Bishop Toronto City Airport\"],\"delivery\":\"Delivered to any address for the car's delivery fee plus distance\"},\"rules\":{\"card\":\"A credit card in the renter's name\",\"licence\":\"Ontario G or G2 licence\",\"min_age\":18,\"request\":\"Request to book with no payment; pay after we confirm\",\"identity\":\"Licence and identity checked before pickup\",\"max_rental_days\":365,\"drivers_18_to_20\":true,\"young_driver_fee_ages\":[\"18 to 20\",\"21 to 25\"]},\"prices\":{\"tax\":\"HST 13% added\",\"daily\":\"$472\",\"weekly\":\"$2,832\",\"deposit\":\"$1,000\",\"monthly\":\"$10,384\",\"extra_km\":\"$0.35\",\"km_per_day\":200,\"weekend_day\":\"$543\",\"delivery_fee\":\"$75\",\"monthly_days\":365,\"return_pickup_fee\":\"$75\"},\"included\":[\"Third-party liability coverage\",\"Roadside assistance, 24 hours a day\",\"200 km a day\",\"Handover in person with a walk-around of the car\"]}</facts>\nWrite the page for this car, a 2012 Mercedes-Benz S-Class S63 AMG:\n- intro: 1 or 2 short sentences, 10 to 30 words, in exactly the voice of these examples from other cars of the site:\n  \"Room for four adults and their bags, and the quiet cabin Toyota is known for.\"\n  \"A roomy trunk and a soft ride. The commuter that does not mind a road trip.\"\n  \"Cheap to rent, cheap to fuel, and it starts every morning.\"\n  \"A big boot, a high seat and all-wheel drive for whatever February brings.\"\n  \"Seven seats and doors that open themselves. The airport run with everybody in one car.\"\n  \"The small Mercedes. Easy to park downtown, all-wheel drive for the 401 in November.\"\n  Say what this car is good for and what it is like to live with, from its body, seats, drivetrain, fuel and equipment. Do not start with \"This car\" or \"This vehicle\", do not name the year, the trim, the colour or where the car is kept, and do not list specifications.\n- highlights: exactly 6 selling features, each copied word for word from these lists. Known to be on this car: [\"Bluetooth\",\"Air conditioning\",\"Cruise control\",\"Automatic transmission\"]. Possibly on it: [\"Heated front seats\",\"Heated steering wheel\",\"Remote start\",\"Sunroof\",\"Leather seats\",\"Wireless phone charging\"]. Take an item from the second list only if you are sure it is standard on every 2012 Mercedes-Benz S-Class S63 AMG sold in Canada; if you are not sure, leave it out. The features renters care most about first.\n- good_for: 2 to 4 short phrases naming the trips or people this car suits (for example \"Airport runs with luggage\"), based on its body, seats and fuel.\n- faq: 3 to 4 questions a renter asks about this model (passengers, luggage, winter driving, charging or fuel), each answered in one or two sentences from the facts. Do not ask about delivery, kilometres, prices or payment: the page answers those. If the facts do not answer a question, do not ask it.\n- alt_texts: an empty object.\n- seo_title, meta_description, h1, pickup_delivery, included, requirements: filled in by the site. Return empty strings and empty lists for them.\nOther cars of the same model already use these introductions. Write yours differently, with different sentences:\n\"An S-Class from the AMG range with all-wheel drive and five seats. A statement for a special night or a big weekend.\"\n\"A Mercedes S-Class that makes a long drive feel shorter. All-wheel drive and a backup camera, with seating for five.\"\n\"A Maybach with four seats and all-wheel drive. Arrive at the gala, the airport or the client dinner from the back seat.\""
+   },
+   "output_schema": {
+    "type": "object",
+    "properties": {
+     "seo_title": {
+      "type": "string"
+     },
+     "meta_description": {
+      "type": "string"
+     },
+     "h1": {
+      "type": "string"
+     },
+     "intro": {
+      "type": "string"
+     },
+     "highlights": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "good_for": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "included": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "pickup_delivery": {
+      "type": "string"
+     },
+     "requirements": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "faq": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "properties": {
+        "question": {
+         "type": "string"
+        },
+        "answer": {
+         "type": "string"
+        }
+       },
+       "required": [
+        "question",
+        "answer"
+       ]
+      }
+     },
+     "alt_texts": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "string"
+      }
+     }
+    },
+    "required": [
+     "seo_title",
+     "meta_description",
+     "h1",
+     "intro",
+     "highlights",
+     "good_for",
+     "included",
+     "pickup_delivery",
+     "requirements",
+     "faq",
+     "alt_texts"
+    ]
+   },
+   "prompt_version": "car-copy-v2"
+  }
+ ]
+}
