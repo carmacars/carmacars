@@ -89,10 +89,8 @@ export async function settleIntent(intentId: string, by: string | null, eventId:
     p_card: i.card ? { brand: i.card.brand, last4: i.card.last4, cardholder_name: i.card.name, exp_month: i.card.expMonth, exp_year: i.card.expYear, is_credit: i.card.funding === 'credit', funding: i.card.funding, country: i.card.country ?? null } : null,
     p_event_id: eventId ?? `action:${i.id}`,
     p_by: by ?? f.renter_user_id
-  }, SR)) as unknown as { ok: boolean; reason?: string; message?: string; action?: string; duplicate?: boolean };
+  }, SR)) as unknown as { ok: boolean; reason?: string; message?: string; action?: string };
   if (!res.ok) return void_(res.reason ?? 'refused', res.message);
-  // 2820: the same payment settled a second time (the browser and the webhook at once): the first settlement captures it
-  if (res.duplicate) return { ok: true, status: 'confirmed', bookingNumber: f.booking_number };
   if (i.status === 'requires_capture') {
     try {
       await p.captureIntent(i.id, `capture:${i.id}`);

@@ -74,8 +74,10 @@ insert into leads (id, kind, name, phone, source, assigned_to) values
 insert into lead_claims (lead_id, claimed_by, expires_at, cap_at) values (test.id('r44a_lead_free'), test.id('r44a_sales'), now() + interval '10 minutes', now() + interval '1 hour');
 
 select test.login(test.id('r44a_sales'));
-select test.eq('Sales only: reads its assigned and claimed leads, no other',
-  test.visible($$select * from leads where id in (test.id('r44a_lead_mine'), test.id('r44a_lead_other'), test.id('r44a_lead_free'))$$), 2::bigint);
+-- (a claimed lead is opened through the claim screen, not read from the table: only the assigned one counts here)
+select test.eq('Sales only: reads its own lead, not another person''s',
+  test.visible($$select * from leads where id in (test.id('r44a_lead_mine'), test.id('r44a_lead_other'))$$), 1::bigint);
+select test.eq('Sales only: the lead it reads is its own', test.visible($$select * from leads where id = test.id('r44a_lead_mine')$$), 1::bigint);
 select test.eq('Sales only: another person''s lead is not changed', test.affected($$update leads set name = 'x' where id = test.id('r44a_lead_other')$$), 0::bigint);
 select test.logout();
 

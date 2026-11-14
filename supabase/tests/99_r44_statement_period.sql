@@ -13,6 +13,8 @@ select test.mk_renter('osx_r1', false); select test.mk_renter('osx_r2', false);
 select test.mk_booking('OSX-H1', 'OSX1', 'osx_r1', '2026-09-02 10:00', '2026-09-05 10:00', 'closed', 30000);
 update bookings set owner_visibility = 'never' where id = test.id('booking:OSX-H1');
 select test.mk_booking('OSX-V1', 'OSX1', 'osx_r2', '2026-10-25 10:00', '2026-10-28 10:00', 'closed', 30000);
+-- the owner's revenue rows, as a closed booking has them before any statement is built
+select app.compute_booking_split(id) from bookings where id in (test.id('booking:OSX-H1'), test.id('booking:OSX-V1'));
 
 select test.ok('the hidden booking is not visible to the owner', not app.booking_visible_to_owner((select b from bookings b where b.id = test.id('booking:OSX-H1'))));
 select test.eq('the first period starts at the first booking the owner sees, not at the hidden one (the program start is only used without one)',
@@ -20,8 +22,10 @@ select test.eq('the first period starts at the first booking the owner sees, not
 update vehicles set enrollment_date = null where id = test.id('vehicle:OSX1');
 select test.eq('without a program start: the first booking the owner sees', app.statement_period_start(test.id('owner:osx_sala'), date '2026-10-01'), date '2026-10-25');
 update bookings set owner_visibility = 'shown' where id = test.id('booking:OSX-H1');
+select app.compute_booking_split(test.id('booking:OSX-H1'));
 select test.eq('a booking shown to the owner still sets it (as before)', app.statement_period_start(test.id('owner:osx_sala'), date '2026-10-01'), date '2026-09-02');
 update bookings set owner_visibility = 'never' where id = test.id('booking:OSX-H1');
+select app.compute_booking_split(test.id('booking:OSX-H1'));
 update vehicles set enrollment_date = date '2026-10-24' where id = test.id('vehicle:OSX1');
 
 select app.build_owner_statement(test.id('owner:osx_sala'), date '2026-10-01');
