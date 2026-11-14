@@ -226,6 +226,29 @@ export async function esignStep(ctx: EsignContext, session: string, step: EsignS
   } catch (e) { return fail(e); }
 }
 
+/** Release 48 (2911): what this signer has saved (a signature, initials: yes or no, never the key) and their initials.
+ *  Only the signed-in renter's own booking (or amendment); a driver's link or a staff member's device gets nothing. */
+export async function esignSaved(ctx: EsignContext, session: string): Promise<R<{ saved_signature: boolean; saved_initials: boolean; initials: string | null }>> {
+  try {
+    if (ctx.kind !== 'renter' && ctx.kind !== 'amendment') return { ok: true, data: { saved_signature: false, saved_initials: false, initials: null } };
+    await own(ctx, session);
+    const d = (await rpc('server_esign_saved', { p_session: session }, SR)) as unknown as { saved_signature: boolean; saved_initials: boolean; initials: string | null };
+    return { ok: true, data: d };
+  } catch (e) { return fail(e); }
+}
+
+/** One tap (2911): the renter's saved initials on every key term, or their saved signature. The database finds them
+ *  from the booking's renter; the page never sends or sees the stored key. */
+export async function esignUseSaved(ctx: EsignContext, session: string, part: 'initials' | 'signature'): Promise<R<EsignView>> {
+  try {
+    if (ctx.kind !== 'renter' && ctx.kind !== 'amendment') throw new Error('Draw it in the box.');
+    await own(ctx, session);
+    const meta = await requestMeta();
+    const v = (await rpc('server_esign_use_saved', { p_session: session, p_part: part, p_ip: meta.ip ?? undefined, p_user_agent: meta.userAgent }, SR)) as unknown as EsignView;
+    return { ok: true, data: v };
+  } catch (e) { return fail(e); }
+}
+
 /** A wrong mobile number while signing (migration 0183): the signed-in renter, or the staff member collecting the
  *  signature in person, corrects it; the next code goes there and the renter's profile keeps it. */
 export async function esignSetMobile(ctx: EsignContext, session: string, phone: string): Promise<R<EsignView>> {

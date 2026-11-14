@@ -268,9 +268,11 @@ const LABELS: Record<string, string> = {
   licence_auto_approve: 'Approve automatically when every check passes', licence_primary_ontario: 'Primary driver must hold an Ontario licence',
   ai_vision_enabled: 'Vision model on', ai_vision_model: 'Vision model', ai_vision_fallback_model: 'Vision model if the first is not available', ai_vision_daily_neurons: 'Vision model: neurons a day',
   esign_code_required: 'E-signing: ask for a one-time code by text or email first', esign_strict: 'E-signing: sign only after reading, initialling, consenting and drawing the signature',
-  esign_typed_fallback: 'E-signing: a signer who cannot draw may type their name and initials', esign_code_minutes: 'E-signing: the code works for (minutes)'
+  esign_typed_fallback: 'E-signing: a signer who cannot draw may type their name and initials', esign_code_minutes: 'E-signing: the code works for (minutes)',
+  card_name_check: 'Card in the renter\'s name: check the name on the card (a name that differs goes to staff, never blocks)'
 };
 const HINTS: Record<string, string> = {
+  card_name_check: 'On by default. Names are compared the way people write them: middle names, initials, a shorter first name, accents, order and hyphens do not matter. A card that still differs never blocks the booking: staff get a To do and press Accept this card with a reason. Off: no check at all.',
   fuel_price_regular_cents: 'Local pump price (1.55 by default). Update the three prices weekly: Admin > Today reminds you after 7 days. The date updates itself.',
   fuel_price_multiplier: '1.25 by default. At each return: tank size x the fuel missing (pickup % minus return %) x the pump price of the car\'s grade x this, plus the refuelling fee. A suggested line on the deposit review: staff confirm it; no card is charged by it.',
   ev_charge_kwh_cents: '0.40 by default. An electric car: battery kWh x the charge missing x this, plus the refuelling fee.',

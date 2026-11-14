@@ -58,7 +58,8 @@ select test.eq('the card check: a credit card in the renter''s name qualifies, w
 select test.eq('a debit card does not qualify, and the message offers OPCF 27 or the Protection Plan',
   (select (c ->> 'problem') || '/' || (c ->> 'message') from app.card_coverage_check(test.id('booking:CV-3')) c),
   'not_credit/The card you paid with (Visa ending 4242) is a debit card. Rental coverage counts only on a credit card: choose OPCF 27 on your own auto policy or the Protection Plan instead.');
-select test.eq('a card in someone else''s name does not qualify', app.card_coverage_check(test.id('booking:CV-4')) ->> 'problem', 'name_mismatch');
+-- r48 (2912): a card in another name is not refused; it is flagged for staff (name_matches false, a To do)
+select test.eq('a card in someone else''s name is not refused, and shows it does not match', (select coalesce(c ->> 'problem', 'none') || '/' || (c ->> 'name_matches') from app.card_coverage_check(test.id('booking:CV-4')) c), 'none/false');
 update bookings set card_on_file_id = null where booking_number = 'CV-4';
 select test.eq('no card yet: pay with the card first', app.card_coverage_check(test.id('booking:CV-4')) ->> 'problem', 'no_card');
 update bookings set card_on_file_id = test.id('card:cv_nora') where booking_number = 'CV-4';
@@ -140,7 +141,8 @@ select test.eq('the tick is required', test.cv_err($$select app.submit_card_cove
   'Tick that your card includes rental car coverage for this car and this length of rental, and that you will claim on it');
 select test.eq('a debit card is refused with the message', test.cv_err($$select app.submit_card_coverage(test.id('booking:CV-3'), test.id('cv_debi'), true)$$),
   'The card you paid with (Visa ending 4242) is a debit card. Rental coverage counts only on a credit card: choose OPCF 27 on your own auto policy or the Protection Plan instead.');
-select test.ok('a card in another name is refused', test.cv_err($$select app.submit_card_coverage(test.id('booking:CV-4'), test.id('cv_nora'), true)$$) like 'The card you paid with is not in your name.%');
+select test.lives('a card in another name is accepted for staff review (r48)', $$select app.submit_card_coverage(test.id('booking:CV-4'), test.id('cv_nora'), true)$$);
+select test.eq('the proof records that the name does not match', (select p.name_matches from test.cv_proof('CV-4') p), false);
 select app.submit_card_coverage(test.id('booking:CV-2'), test.id('cv_carl'), true);
 select test.eq('the renter''s tick: the proof takes the Card on File (brand, last four, credit, the cardholder), the words ticked with the class and days, and staff are asked once',
   (select p.status || '/' || p.card_issuer || '/' || p.card_last4 || '/' || p.card_funding || '/' || p.cardholder_name || '/' || p.name_matches || '/' || (p.renter_confirmed_by = test.id('cv_carl'))

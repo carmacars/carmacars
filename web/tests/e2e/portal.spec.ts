@@ -159,18 +159,14 @@ test('renter portal: offer, approve, sign, pay, confirmed, documents, uploads, s
   expect(sig?.user_agent).toContain('Mozilla');
   expect(sig?.consents).toBe(4);
 
-  // 5. pay with the fake adapter: wrong name and a declined card first
+  // 5. pay with the fake adapter: a declined card first (r48: a name that differs a little never blocks paying)
   await expect(page.getByTestId('fake-card')).toBeVisible();
   await axe(page, 'pay');
   await page.screenshot({ path: `${SHOTS}-${info.project.name}-pay.png`, fullPage: true });
-  await page.locator('#pt-card-name').fill('Someone Else');
-  await page.locator('#pt-card-number').fill('4242 4242 4242 4242');
-  await page.locator('#pt-card-exp').fill('12 / 30');
-  await page.locator('#pt-card-cvc').fill('123');
-  await page.getByRole('button', { name: /^Pay \$/ }).click();
-  await expect(page.getByText('The card must be in the renter\'s name.')).toBeVisible();
   await page.locator('#pt-card-name').fill('Morgan Payer');
   await page.locator('#pt-card-number').fill('4000 0000 0000 0002');
+  await page.locator('#pt-card-exp').fill('12 / 30');
+  await page.locator('#pt-card-cvc').fill('123');
   await page.getByRole('button', { name: /^Pay \$/ }).click();
   await expect(page.getByText('Your card was declined.')).toBeVisible();
   await page.locator('#pt-card-number').fill('4242 4242 4242 4242');

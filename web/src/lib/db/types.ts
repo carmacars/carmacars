@@ -3663,6 +3663,9 @@ export type Database = {
           opcf27_ack_at: string | null;
           agreement_after_trip_at: string | null;
           agreement_after_trip_by: string | null;
+          card_name_accepted_at: string | null;
+          card_name_accepted_by: string | null;
+          card_name_accepted_reason: string | null;
         };
         Insert: {
           id?: string;
@@ -3876,6 +3879,9 @@ export type Database = {
           opcf27_ack_at?: string | null;
           agreement_after_trip_at?: string | null;
           agreement_after_trip_by?: string | null;
+          card_name_accepted_at?: string | null;
+          card_name_accepted_by?: string | null;
+          card_name_accepted_reason?: string | null;
         };
         Update: {
           id?: string;
@@ -4089,6 +4095,9 @@ export type Database = {
           opcf27_ack_at?: string | null;
           agreement_after_trip_at?: string | null;
           agreement_after_trip_by?: string | null;
+          card_name_accepted_at?: string | null;
+          card_name_accepted_by?: string | null;
+          card_name_accepted_reason?: string | null;
         };
         Relationships: [];
       };
@@ -19124,6 +19133,7 @@ export type Database = {
           field_slots_auto_from: string;
           fleet_low_occupancy_first: boolean;
           listing_photo_r48_auto: boolean;
+          card_name_check: boolean;
         };
         Insert: {
           id?: string;
@@ -19996,6 +20006,7 @@ export type Database = {
           field_slots_auto_from?: string;
           fleet_low_occupancy_first?: boolean;
           listing_photo_r48_auto?: boolean;
+          card_name_check?: boolean;
         };
         Update: {
           id?: string;
@@ -20868,6 +20879,7 @@ export type Database = {
           field_slots_auto_from?: string;
           fleet_low_occupancy_first?: boolean;
           listing_photo_r48_auto?: boolean;
+          card_name_check?: boolean;
         };
         Relationships: [];
       };
@@ -22560,6 +22572,9 @@ export type Database = {
           instant_book_revoked_by: string | null;
           instant_book_revoked_reason: string | null;
           address_updated_at: string | null;
+          saved_signature_path: string | null;
+          saved_signature_at: string | null;
+          saved_initials_path: string | null;
         };
         Insert: {
           id?: string;
@@ -22590,6 +22605,9 @@ export type Database = {
           instant_book_revoked_by?: string | null;
           instant_book_revoked_reason?: string | null;
           address_updated_at?: string | null;
+          saved_signature_path?: string | null;
+          saved_signature_at?: string | null;
+          saved_initials_path?: string | null;
         };
         Update: {
           id?: string;
@@ -22620,6 +22638,9 @@ export type Database = {
           instant_book_revoked_by?: string | null;
           instant_book_revoked_reason?: string | null;
           address_updated_at?: string | null;
+          saved_signature_path?: string | null;
+          saved_signature_at?: string | null;
+          saved_initials_path?: string | null;
         };
         Relationships: [];
       };
@@ -32954,6 +32975,7 @@ export type Database = {
       renter_licence_read: { Args: { p_booking: string; p_by: string }; Returns: Json };
       renter_offline_pay_facts: { Args: { p_booking: string }; Returns: Json };
       renter_open_agreement: { Args: { p_booking: string; p_by: string; p_template_version: string; p_document_sha256: string; p_storage_path: string }; Returns: string };
+      renter_prefill: { Args: { p_booking: string; p_by: string }; Returns: Json };
       renter_primary_driver_add: { Args: { p_booking: string; p_by: string; p: Json }; Returns: Json };
       renter_primary_swap: { Args: { p_booking: string; p_by: string }; Returns: Json };
       renter_protection_change: { Args: { p_booking: string; p_by: string; p: Json }; Returns: Json };
@@ -33193,10 +33215,12 @@ export type Database = {
       server_esign_code_email: { Args: { p_session: string; p_code: string }; Returns: undefined };
       server_esign_code_set: { Args: { p_session: string; p_channel: string; p_hash: string; p_ip?: string; p_user_agent?: string }; Returns: Json };
       server_esign_owner: { Args: { p_session: string }; Returns: Json };
+      server_esign_saved: { Args: { p_session: string }; Returns: Json };
       server_esign_set_mobile: { Args: { p_session: string; p_mobile: string; p_by: string }; Returns: Json };
       server_esign_signer: { Args: { p_booking: string; p_user: string; p_signer?: string }; Returns: Json };
       server_esign_start: { Args: { p: Json }; Returns: Json };
       server_esign_step: { Args: { p_session: string; p_kind: string; p_detail: Json; p_ip?: string; p_user_agent?: string }; Returns: Json };
+      server_esign_use_saved: { Args: { p_session: string; p_part: string; p_ip?: string; p_user_agent?: string }; Returns: Json };
       server_esign_view: { Args: { p_session: string }; Returns: Json };
       server_extension_payment_facts: { Args: { p_extension: string; p_by: string }; Returns: Json };
       server_file_access: { Args: { p_user: string; p_kind: string; p_key: string }; Returns: boolean };
@@ -33522,6 +33546,7 @@ export type Database = {
       sitemap_languages: { Args: never; Returns: Json };
       sitemap_priority: { Args: never; Returns: Json };
       sitemap_rows: { Args: never; Returns: { path: string; kind: string; lastmod: string }[] };
+      staff_accept_card_name: { Args: { p_by: string; p_booking: string; p_reason: string }; Returns: Json };
       stock_photos_generic: { Args: { p_slot: string }; Returns: Json };
       submit_booking_request: { Args: { p_request: Json; p_ip?: string; p_user_agent?: string; p_user?: string }; Returns: Json };
       submit_chauffeur_request: { Args: { p: Json; p_ip?: string }; Returns: Json };

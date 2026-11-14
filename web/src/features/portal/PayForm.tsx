@@ -27,7 +27,6 @@ function loadStripe(key: string): Promise<StripeJs> {
     document.head.appendChild(s);
   });
 }
-const same = (a: string, b: string) => a.replace(/\s+/g, '').toLowerCase() === b.replace(/\s+/g, '').toLowerCase();
 
 export function PayForm({ number, amountCents, depositCents, coverageOption = null, debitOk = false }: { number: string; amountCents: number; depositCents: number; coverageOption?: number | null;
   /** 0093 and 0230: this booking takes a debit card (a car marked no credit card needed, an Admin's override or the site-wide setting) */ debitOk?: boolean }) {
@@ -73,7 +72,7 @@ export function PayForm({ number, amountCents, depositCents, coverageOption = nu
     if (!p) return;
     const fe: Record<string, string> = {};
     if (!name.trim()) fe.name = 'Enter the name on the card.';
-    else if (!same(name, p.legalName)) fe.name = 'The card must be in the renter\'s name.';
+    // r48 (2912): a name that differs from the renter's never blocks paying; staff check it after (Check the name on the card)
     if (p.provider === 'fake') {
       if (card.number.replace(/\D/g, '').length < 13) fe.number = 'Enter the card number.';
       if (!/^\d{2}\s*\/\s*\d{2}$/.test(card.exp)) fe.exp = 'Use MM / YY.';

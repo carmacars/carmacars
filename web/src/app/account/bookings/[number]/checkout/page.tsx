@@ -24,7 +24,7 @@ import { companionOf, openCompanionQuietly } from '@/server/portal/blindspot';
 import { rpc } from '@/lib/db/repo';
 import { PUSH_BACK } from '@/server/portal/payment';
 import { accountGate, GATE_MESSAGE } from '@/server/sign-in-settings';
-import { renterDetailsMissing } from '@/server/portal/renter-details';
+import { renterDetails } from '@/server/portal/renter-details';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Sign and pay', path: '/account/bookings', noindex: true, description: 'Sign the rental agreement and pay for your booking, on one page.' });
@@ -59,8 +59,8 @@ export default async function SignAndPayPage({ params, searchParams }: { params:
   const paying = s.step === 'pay';
   // OPCF 27 (1401): the pink slip and the endorsement page come before payment (the payment refuses without them)
   const opcfMissing = b.coverage_option === 1 && s.pay_after ? (((await rpc('server_booking_payment_facts', { p_booking: b.id }, SR).catch(() => null)) as unknown as { coverage_missing?: string[] } | null)?.coverage_missing ?? []) : [];
-  const [bundle, photos, detailsMissing, gate, debitOk, debitDeposit, offline] = await Promise.all([
-    signing ? loadBundle(b.id, user.id) : Promise.resolve(null), myTripPhotos(user), renterDetailsMissing(b, user.id),
+  const [bundle, photos, rd, gate, debitOk, debitDeposit, offline] = await Promise.all([
+    signing ? loadBundle(b.id, user.id) : Promise.resolve(null), myTripPhotos(user), renterDetails(b, user.id),
     paying ? accountGate(user.id, 'pay') : Promise.resolve(null),
     // 0093 and 0230: a car marked no credit card needed, a booking an Admin allowed, or every booking per Settings
     Promise.all([rpc('vehicle_takes_debit', { p_vehicle: b.vehicle_id }, SR).catch(() => false), rpc('booking_takes_debit', { p_booking: b.id }, SR).catch(() => false)]).then(([v, k]) => v === true || k === true),
@@ -68,6 +68,7 @@ export default async function SignAndPayPage({ params, searchParams }: { params:
     rpc('server_booking_debit_deposit', { p_booking: b.id }, SR).catch(() => null) as Promise<number | null>,
     // 0129: paid another way (e-Transfer, cash, a platform, the insurer): the way to pay instead of the card form
     rpc('renter_offline_pay_facts', { p_booking: b.id }, SR).catch(() => null) as unknown as Promise<{ rental_pay_method: string; deposit_pay_method: string; e_transfer_email: string | null; open_cents: number } | null>]);
+  const detailsMissing = rd.missing;
   // 0750: a deposit charged (not held) on a debit or prepaid card carries the card processing fee, non-refundable
   const debitFee = debitDeposit ? Number((await rpc('server_debit_deposit_fee', { p_amount: debitDeposit }, SR).catch(() => 0)) ?? 0) : 0;
   s = signPayOf(b);
@@ -127,7 +128,7 @@ export default async function SignAndPayPage({ params, searchParams }: { params:
               <div><span>Cancellation</span>{b.booking_type === 'non_refundable' ? 'Non-refundable' : 'Standard tiers'}</div>
             </div>
             <p className="small muted" data-testid="sign-fix-line">Car, dates or price not right? <Link prefetch={false} className="link" href={bookingPath(b.booking_number)}>Message us from your booking</Link> before you sign.</p>
-            {detailsMissing.length > 0 ? <CompleteDetails number={b.booking_number} missing={detailsMissing} then="sign" />
+            {detailsMissing.length > 0 ? <CompleteDetails number={b.booking_number} missing={detailsMissing} known={rd.known} then="sign" />
               : !signing || !b.agreement ? <PrepareAgreement number={b.booking_number} /> : (
               <>
                 <section className={`pt-card${needDetails ? ' pt-card--next' : ''}`} aria-labelledby="pt-details">
@@ -180,7 +181,7 @@ export default async function SignAndPayPage({ params, searchParams }: { params:
                   </section>
                 ) : (
                   <section className="pt-card" aria-labelledby="pt-pay"><h3 className="d4" id="pt-pay">Card</h3>
-                    {detailsMissing.length > 0 ? <CompleteDetails number={b.booking_number} missing={detailsMissing} then="pay" />
+                    {detailsMissing.length > 0 ? <CompleteDetails number={b.booking_number} missing={detailsMissing} known={rd.known} then="pay" />
                       : gate?.ok ? <PayForm number={b.booking_number} amountCents={b.renter_due_at_booking_cents} depositCents={b.deposit_cents} coverageOption={b.coverage_option} debitOk={debitOk} />
                       : gate?.reason === 'email_needed' ? <ReceiptEmail path={bookingPath(b.booking_number, 'checkout')} />
                       : <p className="alert alert--error" role="alert" data-testid="pay-unconfirmed"><span>{GATE_MESSAGE} <Link prefetch={false} className="link" href="/account/profile">Profile</Link></span></p>}

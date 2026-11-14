@@ -8,6 +8,7 @@ import { VerifyUpload } from '@/features/va/VerifyUpload';
 import { LicenceChecks, PrimarySwapBox } from '@/features/licence/LicenceChecks';
 import type { LicenceCheck, LicenceRead, PrimarySwap } from '@/features/admin/todo/types';
 import { Act } from '@/features/admin/Act';
+import { AcceptCard } from '@/features/card/AcceptCard';
 import type { ReviewCoverage } from '@/features/coverage/types';
 import { storage, type Bucket } from '@/integrations/storage';
 
@@ -84,6 +85,8 @@ export default async function Verify({ params }: { params: Promise<{ number: str
             ['Renter confirmed', cp?.renter_confirmed_at ? `${d(cp.renter_confirmed_at)}: ${cp.confirmation_text ?? ''}` : 'Not yet'],
             ['Still the Card on File', cp ? (cp.card_is_card_on_file ? 'Yes' : 'No: ask the renter again') : '']] as Array<[string, string]> : []),
           ...(cov.option === 3 ? [['Protection Plan on the booking', cov.protection_plan_line ? 'Yes' : 'No line yet']] as Array<[string, string]> : [])]} />}
+        {/* r48 (2912): the card's name differs: never blocked, a person accepts it with a reason */}
+        {cov?.card.cardholder_name && !cov.card.name_matches && <AcceptCard booking={v.booking_id} cardholder={cov.card.cardholder_name} renter={cov.card.renter_name ?? ''} />}
         {cp && cp.pages.length > 0 && <div className="ad-cols ad-cols--3">{cp.pages.map((pg, i) => (
           <div key={pg.id}><p className="pt-kicker">Page {i + 1}{cov?.page_kinds?.[pg.id] ? `: ${PAGE_KIND[cov.page_kinds[pg.id]!]}` : ''} <Badge s={pg.status === 'submitted' ? 'needs_review' : pg.status} /></p>
             {pageLinks.get(pg.id) ? <a className="link" href={pageLinks.get(pg.id)!} target="_blank" rel="noreferrer">{pg.mime_type === 'application/pdf' ? 'Open the PDF' : 'Open the photo'} (link valid one minute)</a> : null}</div>))}</div>}

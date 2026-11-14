@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { SignaturePad } from '@/features/portal/SignaturePad';
 import { CONSENTS, type ConsentCode } from '@/features/agreement/extra';
 import { DOC_CONSENTS, type Term } from './terms';
-import { esignCheckCode, esignSendCode, esignSetMobile, esignStart, esignStep } from '@/server/actions/esign';
+import { esignCheckCode, esignSaved, esignSendCode, esignSetMobile, esignStart, esignStep, esignUseSaved } from '@/server/actions/esign';
+import { sameName } from './names';
 import type { EsignContext, EsignReady, EsignView } from './types';
 
 // The signature that holds up (migration 0154), the same on every signing page (since 0193 every signature on the site): 1. confirm it is you with a code sent
@@ -29,19 +30,33 @@ export function EsignFlow({ ctx, terms, onReady, docsLabel = 'the agreement abov
   const [drafts, setDrafts] = useState<Record<string, string | null>>({});
   const [typedIni, setTypedIni] = useState<Record<string, string>>({});
   const geoAsked = useRef(false);
+  // r48: the drawing is stored once the signer stops drawing (not at every stroke), and the Sign button waits for it:
+  // a Sign pressed while the last stroke was uploading sent an earlier stroke ("does not match the one drawn")
+  const [sigBusy, setSigBusy] = useState(false);
+  const sigTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sigSeq = useRef(0);
+  // r48 (2911): a returning renter's saved signature and initials, one tap each
+  const [saved, setSaved] = useState<{ saved_signature: boolean; saved_initials: boolean; initials: string | null } | null>(null);
+  const [usedSaved, setUsedSaved] = useState(false);
 
   useEffect(() => {
     let live = true;
-    esignStart(ctx).then((r) => { if (!live) return; if (r.ok) { setV(r.data); setChannel(r.data.default_channel ?? r.data.channels[0]?.channel ?? 'email'); } else setErr(r.message); });
-    return () => { live = false; };
+    esignStart(ctx).then((r) => {
+      if (!live) return;
+      if (r.ok) {
+        setV(r.data); setChannel(r.data.default_channel ?? r.data.channels[0]?.channel ?? 'email');
+        void esignSaved(ctx, r.data.id).then((s) => { if (live && s.ok) setSaved(s.data); });
+      } else setErr(r.message);
+    });
+    return () => { live = false; if (sigTimer.current) clearTimeout(sigTimer.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
-    if (v?.ready && sigPath) onReady({ session: v.id, method: 'drawn', drawnPath: sigPath });
+    if (v?.ready && sigPath && !sigBusy) onReady({ session: v.id, method: 'drawn', drawnPath: sigPath });
     else if (v?.ready && typed && typedName.trim()) onReady({ session: v.id, method: 'typed', typedName: typedName.trim() });
     else onReady(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [v?.ready, sigPath, typed, typedName]);
+  }, [v?.ready, sigPath, sigBusy, typed, typedName]);
   // the place, once identity is confirmed (or the code is not asked for), if the signer's device allows it (never in the way)
   const codeOk = !!v && (v.verified || !v.code_required);
   useEffect(() => {
@@ -64,6 +79,33 @@ export function EsignFlow({ ctx, terms, onReady, docsLabel = 'the agreement abov
     return p;
   };
   if (!v) return <p className="small muted" role="status" data-testid="esign-loading">{err ?? 'Preparing your signature…'}</p>;
+  // the drawing: stored 600 ms after the last stroke; only the newest drawing's answer is kept
+  const drew = (png: string | null) => {
+    // an empty box (it is fitted again when the screen turns) leaves a saved signature in place
+    if (!png && usedSaved) return;
+    if (sigTimer.current) clearTimeout(sigTimer.current);
+    const seq = ++sigSeq.current;
+    setUsedSaved(false);
+    if (!png) { setSigPath(null); setSigBusy(false); return; }
+    setSigBusy(true);
+    sigTimer.current = setTimeout(() => {
+      void run(() => esignStep(ctx, v.id, { kind: 'signature', png })).then((d) => {
+        if (seq !== sigSeq.current) return;
+        setSigPath((d as { path?: string } | null)?.path ?? null); setSigBusy(false);
+      });
+    }, 600);
+  };
+  const useSavedSignature = () => {
+    if (sigTimer.current) clearTimeout(sigTimer.current);
+    const seq = ++sigSeq.current;
+    setSigBusy(true);
+    void run(() => esignUseSaved(ctx, v.id, 'signature')).then((d) => {
+      if (seq !== sigSeq.current) return;
+      const p = (d as { path?: string } | null)?.path ?? null;
+      setSigPath(p); setUsedSaved(!!p); setSigBusy(false);
+    });
+  };
+  const nameDiffers = typed && typedName.trim().length > 2 && !sameName(typedName, v.signer_name);
   const want = terms.filter((t) => v.required_initials.includes(t.code));
   const initialsDone = want.every((t) => v.initials.includes(t.code));
   const consentsDone = v.required_consents.every((c) => v.consents.includes(c));
@@ -76,7 +118,7 @@ export function EsignFlow({ ctx, terms, onReady, docsLabel = 'the agreement abov
   const clearInitials = (code: string) => run(() => esignStep(ctx, v.id, { kind: 'initial_clear', code }))
     .then((d) => { if (d) { setDrafts((x) => ({ ...x, [code]: null })); setSigPath(null); } });
   return (
-    <div className="es-flow" data-testid="esign-flow" data-ready={v.ready ? 'true' : 'false'} data-complete={v.ready && (sigPath || (typed && typedName.trim())) ? 'true' : 'false'}>
+    <div className="es-flow" data-testid="esign-flow" data-ready={v.ready ? 'true' : 'false'} data-complete={v.ready && ((sigPath && !sigBusy) || (typed && typedName.trim())) ? 'true' : 'false'}>
       {!askCode && <p className="small" data-testid="esign-code-optional">
         <button type="button" className="link" onClick={() => setShowCode(true)} data-testid="esign-code-open">Verify by code (optional)</button></p>}
       {askCode && <section className="es-step" data-state={v.verified ? 'done' : 'open'} aria-labelledby="es-1">
@@ -118,6 +160,10 @@ export function EsignFlow({ ctx, terms, onReady, docsLabel = 'the agreement abov
 
       {codeOk && v.viewed && want.length > 0 && <section className="es-step" data-state={initialsDone ? 'done' : 'open'} aria-labelledby="es-3">
         <div className="es-step__head"><h3 className="d4" id="es-3">{n0 + 2}. Initial the key terms</h3><span className="small muted">{v.initials.filter((c) => want.some((t) => t.code === c)).length} of {want.length}</span></div>
+        {saved?.saved_initials && !initialsDone && <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)', alignItems: 'center' }}>
+          <button className="btn btn--primary btn--sm" type="button" disabled={busy} onClick={() => void run(() => esignUseSaved(ctx, v.id, 'initials'))} data-testid="esign-saved-initials">
+            Initial all with your saved initials{saved.initials ? ` (${saved.initials})` : ''}</button>
+          <span className="small muted">Read each term below first. Or initial each one yourself.</span></div>}
         {want.map((t) => <div key={t.code} className="es-term" data-testid={`esign-term-${t.code}`}>
           <p className="small"><b>{t.title}.</b> {t.text}</p>
           {v.initials.includes(t.code) ? <div className="row" style={{ gap: 'var(--s-2)', alignItems: 'center' }}><p className="fd-line is-ok" style={{ margin: 0 }}><span aria-hidden="true">✓</span> Initialled</p>
@@ -145,7 +191,15 @@ export function EsignFlow({ ctx, terms, onReady, docsLabel = 'the agreement abov
           {v.typed_fallback_allowed && <button type="button" className="btn btn--quiet btn--sm" onClick={() => setTyped(!typed)} data-testid="esign-typed-toggle">{typed ? 'Draw instead' : 'I cannot draw a signature'}</button>}</div>
         {typed ? <label className="field"><span className="label">Type your full legal name: {v.signer_name}</span>
             <input className="input sigpad__typed" value={typedName} onChange={(e) => setTypedName(e.target.value)} onBlur={() => { if (typedName.trim()) void run(() => esignStep(ctx, v.id, { kind: 'signature', typed: typedName.trim() })); }} /></label>
-          : <SignaturePad id="es-sig" onChange={(png) => { if (!png) { setSigPath(null); return; } void run(() => esignStep(ctx, v.id, { kind: 'signature', png })).then((d) => setSigPath((d as { path?: string } | null)?.path ?? null)); }} />}
+          : <>
+            {saved?.saved_signature && <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)', alignItems: 'center', marginBottom: 'var(--s-2)' }}>
+              <button className={`btn btn--sm ${usedSaved ? 'btn--ghost' : 'btn--primary'}`} type="button" disabled={busy || usedSaved} onClick={useSavedSignature} data-testid="esign-saved-signature">
+                {usedSaved ? 'Your saved signature is in' : 'Sign with your saved signature'}</button>
+              <span className="small muted">{usedSaved ? 'Press the button below to finish. To change it, draw a new one in the box.' : 'The one you used last time. Or draw a new one below.'}</span></div>}
+            <SignaturePad id="es-sig" onChange={drew} />
+            {sigBusy && <p className="xs muted" role="status" data-testid="esign-sig-saving">Saving your signature…</p>}
+          </>}
+        {nameDiffers && <p className="small muted" data-testid="esign-name-differs">This is not quite the name on your booking ({v.signer_name}). You can still sign: we check it and may ask you to confirm.</p>}
       </section>}
       {err && <p className="alert alert--error" role="alert" data-testid="esign-error"><span>{err}</span></p>}
       <p className="xs muted">Your electronic signature and initials are binding. We record the time, IP address and device of each step, and the place if your device shares it, in a certificate attached to your signed copy.</p>

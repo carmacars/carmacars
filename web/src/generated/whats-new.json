@@ -196,6 +196,17 @@
      "Showroom background plates in Program settings: upload a real showroom photo to replace the background of every outside view"
     ]
    }
+  },
+  "r48": {
+   "date": "2026-11-14",
+   "seq": 0,
+   "summary": "Signing never wrongly refuses a renter, a returning renter signs in one tap, and a card in a slightly different name never blocks a booking.",
+   "sections": {
+    "admins": [
+     "A card whose name still differs goes to a To do, Check the name on the card; press Accept this card with a short reason (staff who verify bookings can too). Program setting Card in the renter's name turns the rule off",
+     "A typed signature whose name differs is accepted and listed as Check a typed signature"
+    ]
+   }
   }
  }
 }

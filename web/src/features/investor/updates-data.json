@@ -80,6 +80,24 @@
   ]
  },
  {
+  "release": "r48",
+  "title": "Release 48",
+  "date": "2026-11-14",
+  "seq": 0,
+  "summary": "Signing never wrongly refuses a renter, a returning renter signs in one tap, and a card in a slightly different name never blocks a booking.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "Signing no longer says \"your signature does not match\": the signature you drew is the one recorded, even if you press Sign quickly or sign on two devices",
+     "Coming back? Initial all the key terms and sign with your saved signature, one tap each",
+     "The details form is filled in with what you gave us last time: check it and save",
+     "A card in your name written a little differently (a middle name, a short first name, accents) no longer stops your booking"
+    ]
+   }
+  ]
+ },
+ {
   "release": "r44",
   "title": "Release 44",
   "date": "2026-11-13",
