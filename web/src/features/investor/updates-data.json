@@ -29,6 +29,22 @@
   ]
  },
  {
+  "release": "r46",
+  "title": "Release 46",
+  "date": "2026-11-14",
+  "seq": 0,
+  "summary": "An Admin can show one lead's full phone number to one salesperson, and hide it again; every other number stays hidden from Sales, and a salesperson can ask for it in one tap.",
+  "areas": [
+   {
+    "area": "Staff tools",
+    "items": [
+     "An Admin shows a lead's full phone number to its salesperson, lead by lead, and hides it again; every other lead stays hidden",
+     "Sales asks for a lead's number in one tap, and the request reaches an Admin as a To do"
+    ]
+   }
+  ]
+ },
+ {
   "release": "r44",
   "title": "Release 44",
   "date": "2026-11-13",

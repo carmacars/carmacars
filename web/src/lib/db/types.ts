@@ -11931,6 +11931,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      lead_phone_unlocks: {
+        Row: {
+          id: string;
+          lead_id: string;
+          user_id: string;
+          number: string;
+          reason: string | null;
+          unlocked_by: string | null;
+          unlocked_at: string;
+          hidden_at: string | null;
+          hidden_by: string | null;
+          hidden_why: string | null;
+        };
+        Insert: {
+          id?: string;
+          lead_id: string;
+          user_id: string;
+          number: string;
+          reason?: string | null;
+          unlocked_by?: string | null;
+          unlocked_at?: string;
+          hidden_at?: string | null;
+          hidden_by?: string | null;
+          hidden_why?: string | null;
+        };
+        Update: {
+          id?: string;
+          lead_id?: string;
+          user_id?: string;
+          number?: string;
+          reason?: string | null;
+          unlocked_by?: string | null;
+          unlocked_at?: string;
+          hidden_at?: string | null;
+          hidden_by?: string | null;
+          hidden_why?: string | null;
+        };
+        Relationships: [];
+      };
       leads: {
         Row: {
           id: string;

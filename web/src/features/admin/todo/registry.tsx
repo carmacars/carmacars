@@ -24,6 +24,12 @@ export const TASK_PROMPTS: Record<string, (p: Prompt) => ReactNode> = {
       <Act ops action="name_change_decide" payload={{ id: p.related_id, decision: 'approve' }} label="Approve" variant="primary" refresh={['/admin']} testId={`todo-act-${p.key}-approve`} done="Name changed." />
       <Act ops action="name_change_decide" payload={{ id: p.related_id, decision: 'decline' }} label="Decline" fields={[{ name: 'note', label: 'Why (kept in the log)', type: 'text' }]} refresh={['/admin']} testId={`todo-act-${p.key}-decline`} done="Declined." />
     </span>) : null),
+  // 2870: a salesperson asked to see a lead's full phone: one tap shows it to them (for that lead only)
+  lead_phone_ask: (p) => (p.related_id ? (
+    <span className="ad-actions">
+      <Act ops action="lead_phone_unlock" payload={{ lead: p.related_id, from_ask: true }} label="Show the phone" variant="primary" fields={[{ name: 'reason', label: 'Reason (optional, kept in the audit log)', type: 'text' }]} refresh={['/admin']} testId={`todo-act-${p.key}-show`} done="Shown for this lead only." />
+      <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/admin/sales-leads/${p.related_id}`} data-testid={`todo-act-${p.key}-open`}>Open the lead</Link>
+    </span>) : null),
   override_approve: (p) => (p.related_id ? (
     <span className="ad-actions">
       <Act ops action="override_decide" payload={{ id: p.related_id, decision: 'approve' }} label="Approve" variant="primary" refresh={['/admin']} testId={`todo-act-${p.key}-approve`} done="Approved." />

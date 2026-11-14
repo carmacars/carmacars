@@ -12,7 +12,12 @@ export interface LeadRow {
   assigned_to: string | null; assigned_name: string | null; claim: LeadClaim | null; /** 2320 */ hold?: LeadHold | null; priority: number; hot: boolean; value_cents: number | null;
   first_contact_at: string | null; handled_at: string | null; new: boolean;
   /** 2411: the assignment is an Admin's (bulk Assign to): it does not run out and nobody else claims it */ admin_assigned?: boolean;
+  /** 2870: for an Admin, who an Admin showed the full phone to (Sales see numbers masked) */ phone_unlocks?: PhoneUnlock[];
+  /** 2870: the viewer sees this lead's phone in full because an Admin showed it */ phone_unlocked?: boolean;
+  /** 2870: a salesperson asked an Admin to show the number and it is still waiting */ phone_ask_open?: boolean;
 }
+/** 2870: one salesperson an Admin showed a lead's phone to */
+export interface PhoneUnlock { to: string; name: string; at: string; by: string; reason: string | null }
 export interface Person { id: string; name: string }
 export interface LeadList { rows: LeadRow[]; count: number; sources: Array<{ source: string; n: number }>; mine_active: number; max_active: number; admin: boolean; people: Person[];
   /** 2411: who an Admin can assign leads to (active, onboarded Sales) */ assignees?: Person[];
@@ -24,6 +29,7 @@ export interface LeadDetail extends LeadRow {
   history: Array<{ at: string; action: string; who: string; by: string | null; note: string | null }>;
   outcome_by: string | null; outcome_at: string | null; won_booking: string | null; admin: boolean; people: Person[];
   /** 2330: who helped (customer service, Fleet, Finance...), no money */ helped_by?: Array<{ id: string; name: string; what: string[] }>;
+  /** 2870: for an Admin, the Sales people the phone can be shown to */ phone_people?: Person[];
 }
 export interface Figures { claimed: number; won: number; close_rate: number; contacted_pct: number; first_contact_minutes: number | null; expired: number }
 /** 1152: a person's cap of open leads: the base, plus one for every per_wins won in 30 days, up to max */
@@ -79,6 +85,14 @@ export function stateOf(r: Pick<LeadRow, 'outcome' | 'handled_at' | 'status' | '
 }
 
 /** tel:, sms: and mailto: links, or null when the lead has no such contact. */
+/** 0970: a number masked for Sales ("(647) •••-••00") */
+export const phoneMasked = (p: string | null | undefined): boolean => Boolean(p && p.includes('\u2022'));
+/** 2870: who the Admin's Show the phone goes to by default: the lead's salesperson, else the person holding its claim */
+export function phoneOwner(r: Pick<LeadRow, 'assigned_to' | 'assigned_name' | 'claim'>): { id: string; name: string } | null {
+  if (r.assigned_to) return { id: r.assigned_to, name: r.assigned_name ?? 'the salesperson' };
+  return r.claim ? { id: r.claim.by, name: r.claim.name } : null;
+}
+
 export function contactLinks(r: Pick<LeadRow, 'phone' | 'email'>): { call: string | null; text: string | null; email: string | null } {
   const digits = (r.phone ?? '').replace(/[^\d+]/g, '');
   return { call: digits ? `tel:${digits}` : null, text: digits ? `sms:${digits}` : null, email: r.email ? `mailto:${r.email}` : null };

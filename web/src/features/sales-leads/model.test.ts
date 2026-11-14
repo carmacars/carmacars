@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { age, BEFORE_TODAY_FILTER, bulkFilter, bulkWords, claimPaceWords, claimWords, contactLinks, contextLine, holdWords, HISTORY_LABEL, listQuery, minutes, owedWords, pct, signalGroup, stateOf, type LeadClaim, type LeadHold } from './model.ts';
+import { age, BEFORE_TODAY_FILTER, bulkFilter, bulkWords, claimPaceWords, claimWords, contactLinks, contextLine, holdWords, HISTORY_LABEL, listQuery, minutes, owedWords, pct, phoneMasked, phoneOwner, signalGroup, stateOf, type LeadClaim, type LeadHold } from './model.ts';
 import { taskHref, adminTaskHref, type Task } from '../va/tasks.ts';
 
 const now = Date.parse('2026-11-08T15:00:00Z');
@@ -137,4 +137,19 @@ test('2411: the lead page and the cards carry the person; the database never sen
   const sql = readFileSync(join(import.meta.dirname, '../../../../supabase/migrations/2411_r40_leads.sql'), 'utf8');
   const ctx = sql.slice(sql.indexOf('create or replace function app.lead_context('), sql.indexOf('create or replace function app.lead_context_open('));
   for (const banned of ['licence_number', 'date_of_birth', 'card_last4', 'payment_methods', 'sin']) assert.ok(!new RegExp(`\\b${banned}\\b`).test(ctx), banned);
+});
+
+// 2870: an Admin shows a lead's phone to its salesperson (the claim holder when nobody is assigned); masked means the dots
+test('lead phone: masked, and who Show the phone goes to', () => {
+  assert.equal(phoneMasked('(905) \u2022\u2022\u2022-\u2022\u202271'), true);
+  assert.equal(phoneMasked('905-555-0171'), false);
+  assert.equal(phoneMasked(null), false);
+  const claim = { by: 'c1', name: 'Cora', since: '', until: '', cap: '', mine: false } as LeadClaim;
+  assert.deepEqual(phoneOwner({ assigned_to: 'a1', assigned_name: 'Ana', claim }), { id: 'a1', name: 'Ana' });
+  assert.deepEqual(phoneOwner({ assigned_to: null, assigned_name: null, claim }), { id: 'c1', name: 'Cora' });
+  assert.equal(phoneOwner({ assigned_to: null, assigned_name: null, claim: null }), null);
+  // the lead page, the cards and the To do of the ask all carry it
+  assert.match(readFileSync(join(import.meta.dirname, 'LeadActions.tsx'), 'utf8'), /<LeadPhoneAccess /);
+  assert.match(readFileSync(join(import.meta.dirname, 'LeadList.tsx'), 'utf8'), /<PhoneValue /);
+  assert.match(readFileSync(join(import.meta.dirname, '../admin/todo/registry.tsx'), 'utf8'), /lead_phone_ask:/);
 });

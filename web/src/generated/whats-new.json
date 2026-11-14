@@ -150,6 +150,22 @@
      "The guides and the academy cover the new flows of Releases 44 and 45"
     ]
    }
+  },
+  "r46": {
+   "date": "2026-11-14",
+   "seq": 0,
+   "summary": "An Admin can show one lead's full phone number to one salesperson, and hide it again; every other number stays hidden from Sales, and a salesperson can ask for it in one tap.",
+   "sections": {
+    "admins": [
+     "Show the phone to on a lead (its page or its card) shows its full number to the lead's salesperson, or to a Sales person you choose, with an optional reason kept in the audit log",
+     "Hide it again hides it; reassigning the lead hides it by itself, so the new salesperson needs it shown again",
+     "A salesperson's ask arrives as a To do with Show the phone"
+    ],
+    "staff": [
+     "Sales: Ask an Admin to show the number on a lead whose number is hidden; once shown, that lead says Number shown by an Admin and has the full number with a call link and Copy",
+     "The number is shown for that lead only, and hidden again if the lead goes to another salesperson"
+    ]
+   }
   }
  }
 }
