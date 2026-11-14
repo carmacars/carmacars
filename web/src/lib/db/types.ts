@@ -5392,6 +5392,8 @@ export type Database = {
           ua: string | null;
           digest: string | null;
           user_id: string | null;
+          kind: string;
+          visitor: string | null;
         };
         Insert: {
           id?: number;
@@ -5402,6 +5404,8 @@ export type Database = {
           ua?: string | null;
           digest?: string | null;
           user_id?: string | null;
+          kind?: string;
+          visitor?: string | null;
         };
         Update: {
           id?: number;
@@ -5412,6 +5416,8 @@ export type Database = {
           ua?: string | null;
           digest?: string | null;
           user_id?: string | null;
+          kind?: string;
+          visitor?: string | null;
         };
         Relationships: [];
       };
@@ -33092,6 +33098,7 @@ export type Database = {
       server_booking_heard_about: { Args: { p_booking_number: string; p_value: string }; Returns: boolean };
       server_booking_licence_state: { Args: { p_numbers: string[] }; Returns: Json };
       server_booking_payment_capture_failed: { Args: { p_booking: string; p_processor: Json; p_error: string }; Returns: undefined };
+      server_booking_payment_captured: { Args: { p_booking: string; p_processor: Json }; Returns: number };
       server_booking_payment_facts: { Args: { p_booking: string }; Returns: Json };
       server_booking_request_failed: { Args: { p: Json }; Returns: Json };
       server_booking_sign_pay: { Args: { p_booking: string }; Returns: Json };

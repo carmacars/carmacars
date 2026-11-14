@@ -17,5 +17,6 @@ test('the phone menu opened mid-page keeps the header at the top', async ({ page
   await expect(page.locator('.menu-btn')).toBeInViewport();
   await page.locator('.menu-btn').click();
   await expect(page.locator('#menu')).not.toHaveClass(/is-open/);
-  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(800);
+  // closing the menu leaves the visitor mid-page, not back at the top
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(300);
 });

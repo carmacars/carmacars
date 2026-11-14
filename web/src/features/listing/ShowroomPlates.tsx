@@ -31,10 +31,10 @@ export function ShowroomPlates() {
           <p className="small"><b>{FAMILY_LABEL[f]}</b>{p ? ` (${p.source === 'admin' ? 'uploaded' : 'made by Gemini'})` : ''}</p>
           {p && <button className="btn btn--sm btn--quiet" type="button" disabled={pending} onClick={() => start(async () => done(await staffDo('photo_r48_plate', { family: f, clear: true }), 'Taken off: Gemini makes a new one with the next view.'))}>Make a new one</button>}
         </li>); })}</ul>
-      <p className="row">
+      <p className="row" style={{ flexWrap: 'wrap' }}>
         <label className="small">For <select value={family} onChange={(e) => setFamily(e.target.value)} aria-label="Which views the photo is for">
           <option value="all">every outside view</option><option value="front">front three-quarter and front</option><option value="side">side profile</option><option value="rear">rear three-quarter and rear</option></select></label>
-        <input ref={file} type="file" accept="image/jpeg,image/png" aria-label="A real photo of a showroom" />
+        <input ref={file} type="file" accept="image/jpeg,image/png" aria-label="A real photo of a showroom" style={{ maxWidth: '100%', minWidth: 0 }} />
         <button className="btn btn--sm btn--primary" type="button" disabled={pending} data-testid="r48-plate-upload" onClick={() => start(async () => {
           const f = file.current?.files?.[0]; if (!f) { setMsg({ ok: false, text: 'Choose the photo.' }); return; }
           const fd = new FormData(); fd.set('family', family); fd.set('file', f);
