@@ -8,8 +8,15 @@ import { fakePhotos } from './fake';
 // fake behave like a zone without transformations, to exercise the fallback.
 // r35 (owner, Nov 8): in production the steps are made locally (local.ts) and Cloudflare is asked only for the cut-out and
 // a HEIC photo, unless Program settings' listing_cf_transformations (off) is on; any refusal of Cloudflare's falls back to local.
-export async function photoProcessor(read: (url: string) => Promise<Uint8Array | null>, o: { cfAll?: boolean } = {}): Promise<PhotoProcessor> {
+export async function photoProcessor(read: (url: string) => Promise<Uint8Array | null>, o: { cfAll?: boolean; localOnly?: boolean } = {}): Promise<PhotoProcessor> {
   const e = env();
+  // r45 (2840): the listing pipeline asks Cloudflare for nothing (no cut-out, no transformation): the local steps only
+  if (e.PHOTO_PROVIDER === 'cloudflare' && o.localOnly) {
+    const { localImages, hybridPhotos } = await import('./local');
+    const load = async (url: string) => (await read(url).catch(() => null))
+      ?? await fetch(url, { signal: AbortSignal.timeout(20_000) }).then(async (r) => (r.ok ? new Uint8Array(await r.arrayBuffer()) : null)).catch(() => null);
+    return hybridPhotos(localImages(load), null, false);
+  }
   if (e.PHOTO_PROVIDER === 'cloudflare') {
     const [{ cloudflareImages }, { localImages, hybridPhotos }] = await Promise.all([import('./cloudflare'), import('./local')]);
     const load = async (url: string) => (await read(url).catch(() => null))

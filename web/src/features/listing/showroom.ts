@@ -27,7 +27,7 @@ export const SHOWROOM_PRESET = 'studio_showroom_v2';
  *  change, so "Redo photos with Gemini" and the daily upgrade make the old photos again instead of answering "nothing to redo".
  *  r44.1: one room for every outside photo (a photo whose cut-out is poor gets its background replaced by Gemini from the
  *  original, never the original's own background), the plate kept on the plate (never text anywhere else), interiors sharp. */
-export const PHOTO_SPEC = 'r44.1';
+export const PHOTO_SPEC = 'r45.1';  // r45 (2840): the same as R45_SPEC in r45.ts and app.photo_spec()
 /** The one primary (first) photo every car has: the front three-quarter from the driver's side, the whole car, in the room. */
 export const PRIMARY_SHOT = 'front_left';
 export type Scene = 'studio' | 'showroom';

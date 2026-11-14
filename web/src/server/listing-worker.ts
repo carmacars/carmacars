@@ -15,7 +15,7 @@ import { SORT_PROMPT, SORT_SYSTEM, parseSort } from '@/features/listing/photo-so
 import { GEMINI_DEFAULT_MODEL as GEMINI_VISION_DEFAULT, geminiVision } from '@/integrations/vision/gemini';
 import { letteringName } from '@/features/car/studio';
 import { showroomPrompt, type ShowroomOut, type ShowroomProvider } from '@/features/listing/showroom';
-import { geminiEditImage } from '@/integrations/photos/gemini';
+import { geminiCheckImages, geminiEditImage } from '@/integrations/photos/gemini';
 
 // The listing worker as the site runs it: the Cloudflare cron trigger (custom-worker.ts, every five
 // minutes) and a submitted capture (right away, after the response) call runListingWorkerNow. The queue
@@ -115,6 +115,17 @@ export function angleAi(apiKey: string, f: typeof fetch = fetch) {
   };
 }
 
+/** r45 (2840): the second Gemini pass on a made photo (no image is made: not counted in the image model's daily limit),
+ *  recorded with the photo checks. */
+async function checkPhoto(i: { images: Array<{ bytes: Uint8Array; contentType: string }>; system: string; prompt: string; photoId: string }): Promise<{ data: unknown; model: string } | null> {
+  const key = env().GEMINI_API_KEY;
+  if (!key) return null;
+  const t0 = Date.now();
+  const r = await geminiCheckImages({ apiKey: key, model: env().GEMINI_CHECK_MODEL || null }, i.images, i.system, i.prompt).catch(() => null);
+  await rpc('server_photo_mark_record', { p: { model: r?.model ?? null, ok: !!r, neurons: 0, duration_ms: Date.now() - t0, photo_id: i.photoId, marks: null } }, SR).catch(() => undefined);
+  return r;
+}
+
 const absolute = (u: string) => (/^https?:\/\//.test(u) ? u : `${env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '')}${u.startsWith('/') ? '' : '/'}${u}`);
 
 export async function runListingWorkerNow(o: { maxJobs?: number; deadlineMs?: number } = {}): Promise<RunSummary> {
@@ -140,8 +151,10 @@ export async function runListingWorkerNow(o: { maxJobs?: number; deadlineMs?: nu
     },
     text: await textGenerator(),
     plainCopy: true,
-    // r35: local steps by default; Cloudflare for everything only when Program settings say so (listing_cf_transformations)
-    photos: await photoProcessor(read, { cfAll: ((await rpc('server_listing_image_mode', {}, SR).catch(() => null)) as unknown as { cf_transformations?: boolean } | null)?.cf_transformations === true }),
+    // r45 (2840): no Cloudflare image processing in the listing pipeline (the owner: its cut-outs look poor): the steps that
+    // are not Gemini's (the sizes, an odometer photo) are made here
+    photos: await photoProcessor(read, { localOnly: true }),
+    checkPhoto: env().GEMINI_API_KEY ? checkPhoto : null,
     findMarks,
     findPlates,
     sortPhoto,

@@ -19012,6 +19012,9 @@ export type Database = {
           phone_inbound_forward_number: string;
           phone_inbound_message: string;
           phone_call_own_mobile: boolean;
+          listing_photo_r45_auto: boolean;
+          listing_photo_r45_reserve: number;
+          listing_photo_r45_batch: number;
         };
         Insert: {
           id?: string;
@@ -19874,6 +19877,9 @@ export type Database = {
           phone_inbound_forward_number?: string;
           phone_inbound_message?: string;
           phone_call_own_mobile?: boolean;
+          listing_photo_r45_auto?: boolean;
+          listing_photo_r45_reserve?: number;
+          listing_photo_r45_batch?: number;
         };
         Update: {
           id?: string;
@@ -20736,6 +20742,9 @@ export type Database = {
           phone_inbound_forward_number?: string;
           phone_inbound_message?: string;
           phone_call_own_mobile?: boolean;
+          listing_photo_r45_auto?: boolean;
+          listing_photo_r45_reserve?: number;
+          listing_photo_r45_batch?: number;
         };
         Relationships: [];
       };
@@ -29664,6 +29673,8 @@ export type Database = {
           plate_auto: Json | null;
           photo_spec_tried: string | null;
           resort: Json | null;
+          ai_generated: boolean;
+          r45: Json | null;
         };
         Insert: {
           id?: string;
@@ -29712,6 +29723,8 @@ export type Database = {
           plate_auto?: Json | null;
           photo_spec_tried?: string | null;
           resort?: Json | null;
+          ai_generated?: boolean;
+          r45?: Json | null;
         };
         Update: {
           id?: string;
@@ -29760,6 +29773,8 @@ export type Database = {
           plate_auto?: Json | null;
           photo_spec_tried?: string | null;
           resort?: Json | null;
+          ai_generated?: boolean;
+          r45?: Json | null;
         };
         Relationships: [];
       };

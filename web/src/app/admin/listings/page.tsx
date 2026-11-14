@@ -9,6 +9,7 @@ import { NeedCell, type NeedRow } from '@/features/listing/PhotosNeeded';
 import { CarCell } from '@/features/admin/revamp/CarCell';
 import { carPhotos } from '@/server/car-photos';
 import { ShowroomAll } from '@/features/listing/Showroom';
+import { PhotoStandard } from '@/features/listing/PhotoStandard';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Listings', path: '/admin/listings', noindex: true, description: 'Listing intake and review.' });
@@ -42,6 +43,8 @@ export default async function Listings() {
         { key: 'updated_at', label: 'Updated', render: (r) => t(r.updated_at) }
       ]} />
       {/* r35 (0990): every car's outside photos into the showroom at once */}
+      {/* r45 (2842): the photo standard of every car */}
+      <Card title="Photo standard" testId="photo-standard-card"><PhotoStandard /></Card>
       <Card title="Showroom photos" testId="showroom-card"><ShowroomAll /></Card>
       <Card title={`Cars on sample photos (${need.cars.length})`} testId="photos-needed">
         <p className="small">Each real car whose page still shows sample photos. Where a handover photographed the car (the check-in and check-out photos), use them: the studio editor puts the car on the CarmaCars backdrop and the listing waits for your review. The others need photos at their next handover.</p>

@@ -20,7 +20,7 @@ select test.ok('showroom on by default, the image model on, a sensible model and
   (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'listing_showroom') = 'true'
   and (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'listing_showroom_ai') = 'true'
   and (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'listing_showroom_ai_model') like '%gemini-2.5-flash-image%'
-  and (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'listing_showroom_ai_daily') = '100');
+  and (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'listing_showroom_ai_daily') = '2000');  -- 2840
 select test.throws('the model name is checked', $$update program_settings set listing_showroom_ai_model = 'bad name; drop' where id = (select id from app.settings())$$, 'check');
 
 -- ---------------------------------------------------------------- a new photo takes the scene

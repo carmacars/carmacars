@@ -110,7 +110,7 @@ select test.ok('the job functions are the service role''s only', not has_functio
   and not has_function_privilege('anon', 'app.field_job_to_shift(uuid, jsonb)', 'execute') and has_function_privilege('service_role', 'app.job_field_shift_jobs(timestamptz)', 'execute'));
 
 -- ================================================================ the showroom v2 and the image service
-select test.eq('the image model''s daily limit is 100 by default', (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'listing_showroom_ai_daily'), '100');
+select test.eq('the image model''s daily limit is 2000 by default (2840: the paid tier)', (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'listing_showroom_ai_daily'), '2000');
 -- r44 (2780) wraps photo_showroom: the v2 comparison is in the function it wraps
 select test.ok('Apply showroom and Frame again compare with v2', (pg_get_functiondef('app.photo_showroom(uuid, jsonb)'::regprocedure) || coalesce(pg_get_functiondef(to_regprocedure('app.photo_showroom_pre2780(uuid, jsonb)')), '')) like '%studio_showroom_v2%'
   and pg_get_functiondef('app.listing_photos_reframe(uuid, jsonb)'::regprocedure) like '%studio_showroom_v2%'

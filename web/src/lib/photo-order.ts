@@ -8,10 +8,14 @@
 
 /** Rank of each exterior shot, the best first. */
 const EXTERIOR: Record<string, number> = {
-  front_left: 0, front_right: 1, front: 2, rear_left: 3, rear_right: 4, left: 5, right: 6, rear: 7, exterior_more: 8
+  // r45 (2841): the standard set first in its order (features/listing/r45.ts STANDARD_ANGLES), then the other outside views
+  front_left: 0, front: 1, left: 2, rear_left: 3, rear: 4, front_right: 5, right: 6, rear_right: 7, exterior_more: 8
 };
 /** Rank of anything that is not an exterior shot (dashboard, seats, trunk, wheel, other detail): always after every exterior. */
 export const NOT_EXTERIOR_RANK = 20;
+/** r45 (2841): the inside photos in the standard order (dashboard, front seats, rear seats, trunk), then any other detail. */
+const INTERIOR: Record<string, number> = { dashboard: 20, front_seats: 21, rear_seats: 22, trunk: 23, wheel: 24 };
+const OTHER_RANK = 30;
 /** A made cover is the first photo whatever the rest says. */
 export const MADE_COVER_RANK = -1;
 
@@ -19,9 +23,9 @@ export const isExteriorShot = (shot: string | null | undefined) => !!shot && Obj
 
 /** The rank of a shot type (lower is earlier). */
 export function photoRank(shot: string | null | undefined): number {
-  if (!shot) return NOT_EXTERIOR_RANK;
+  if (!shot) return OTHER_RANK;
   if (shot.startsWith('cover_')) return MADE_COVER_RANK;
-  return Object.hasOwn(EXTERIOR, shot) ? EXTERIOR[shot]! : NOT_EXTERIOR_RANK;
+  return Object.hasOwn(EXTERIOR, shot) ? EXTERIOR[shot]! : Object.hasOwn(INTERIOR, shot) ? INTERIOR[shot]! : OTHER_RANK;
 }
 
 export interface OrderablePhoto { shot?: string | null; shot_type?: string | null; is_cover?: boolean | null; sort_order?: number | null }

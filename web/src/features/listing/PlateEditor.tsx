@@ -23,7 +23,8 @@ export function PlateEditor({ photo, onClose }: { photo: Photo; onClose: () => v
   // 0521: the box suggested by itself when the review opened (ListingReview's PlateAutoSuggest), else the boxes saved
   const [boxes, setBoxes] = useState<NBox[]>(() => (photo.plate_boxes?.length ? photo.plate_boxes : suggestedBoxes(photo.plate_suggestion, normalizePlateBoxes)));
   const [sel, setSel] = useState<number>(-1);
-  const [style, setStyle] = useState<PlateStyle>('carma');
+  // r45 (2840): every plate is blurred (the owner): no drawn plate, no edited-out plate, no cover with text
+  const [style] = useState<PlateStyle>('blur');
   // r35 S2: a front shot's plate is edited out, any other the CARMA plate
   const end = plateEnd(photo.shot_type);
   const [ready, setReady] = useState(false);
@@ -49,7 +50,7 @@ export function PlateEditor({ photo, onClose }: { photo: Photo; onClose: () => v
 
   useEffect(() => {
     let gone = false;
-    void staffRead<Ctx>('photo_plate_context', { photo: photo.id }).then((r) => { if (gone) return; if (r.ok) { setCtx(r.data); setStyle(r.data.default_style); } else setErr(r.message); });
+    void staffRead<Ctx>('photo_plate_context', { photo: photo.id }).then((r) => { if (gone) return; if (r.ok) setCtx(r.data); else setErr(r.message); });
     if (!photo.processed_path) return () => { gone = true; };
     const i = new Image();
     // same origin (r28): a photo from the storage host would taint the canvas and every read of it would throw
@@ -177,10 +178,7 @@ export function PlateEditor({ photo, onClose }: { photo: Photo; onClose: () => v
           <canvas ref={canvas} className="pe__canvas" tabIndex={0} role="img" aria-label={`The photo with ${boxes.length} box${boxes.length === 1 ? '' : 'es'} over the plate`} aria-describedby={`pe-help-${photo.id}`}
             onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onKeyDown={key} data-testid="plate-canvas" data-boxes={JSON.stringify(forSave(boxes))} />
         </div>
-        <fieldset className="pe__styles"><legend className="label">Cover the plate with</legend>
-          {([['carma', end === 'front' ? 'Edit the front plate out' : 'The CARMA Ontario plate'], ['cover', `A ${ctx?.cover_text ?? 'CarmaCars'} plate`], ['pixelate', 'Pixelation'], ['blur', 'Blur']] as Array<[PlateStyle, string]>).map(([k, t]) => (
-            <label key={k} className="check"><input type="radio" name={`pe-style-${photo.id}`} value={k} checked={style === k} onChange={() => setStyle(k)} data-testid={`plate-style-${k}`} /> <span>{t}</span></label>))}
-        </fieldset>
+        <p className="small muted" data-testid="plate-style-blur">The plate is blurred so no character can be read.</p>
         {note && <p className="small" role="status" data-testid="plate-note">{note}</p>}
         <div className="row">
           <button type="button" className="btn btn--primary btn--sm" disabled={busy || !boxes.length || !ready} onClick={save} data-testid="plate-save">{busy ? 'Saving' : 'Save the covered photo'}</button>

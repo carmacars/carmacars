@@ -6,7 +6,7 @@ import { isExteriorShot, orderPhotos, photoRank, primaryNotExterior, primaryPhot
 test('the front three-quarter is first, then the other exterior shots, then the inside', () => {
   const shots = ['dashboard', 'rear', 'front_seats', 'front_left', 'left', 'other', 'front', 'wheel', 'front_right'];
   assert.deepEqual(orderPhotos(shots.map((shot) => ({ shot }))).map((p) => p.shot),
-    ['front_left', 'front_right', 'front', 'left', 'rear', 'dashboard', 'front_seats', 'other', 'wheel']);
+    ['front_left', 'front', 'left', 'rear', 'front_right', 'dashboard', 'front_seats', 'wheel', 'other']);
 });
 
 test('an interior photo marked cover or first in the list is never first while an exterior exists', () => {
@@ -37,7 +37,7 @@ test('same shot: the cover, then the order; the sort is stable', () => {
 
 test('a made cover stays first; ranks match the database', () => {
   assert.equal(primaryPhoto([{ shot: 'front_left' }, { shot: 'cover_flyer' }])?.shot, 'cover_flyer');
-  assert.deepEqual(['front_left', 'front_right', 'front', 'rear_left', 'rear_right', 'left', 'right', 'rear', 'exterior_more', 'dashboard', null].map(photoRank), [0, 1, 2, 3, 4, 5, 6, 7, 8, 20, 20]);
+  assert.deepEqual(['front_left', 'front', 'left', 'rear_left', 'rear', 'front_right', 'right', 'rear_right', 'exterior_more', 'dashboard', 'trunk', null].map(photoRank), [0, 1, 2, 3, 4, 5, 6, 7, 8, 20, 23, 30]);
   assert.equal(isExteriorShot('front_left'), true);
   assert.equal(isExteriorShot('trunk'), false);
   assert.equal(isExteriorShot('toString'), false);

@@ -14,11 +14,12 @@ import { letteringName } from '../car/studio.ts';
 import { lightMatch, maskQuality, photoPlace } from './photo-room.ts';
 import type { Rgba } from './subject-frame.ts';
 import { drawFlyer, type FlyerSpec } from './flyer.ts';
-import { resample, scaleDown } from '../../integrations/photos/local.ts';
-import { applyPlates, type PlateEnd, type PxBox } from './plate-photo.ts';
-import { boxesForSave, decidePlate, greyOfRgba, refineAll, toPx } from './plate-auto.ts';
+import { scaleDown } from '../../integrations/photos/local.ts';
+import { type PlateEnd } from './plate-photo.ts';
+import { boxesForSave, decidePlate, greyOfRgba, refineAll } from './plate-auto.ts';
 import { enhanceValues, statsOf, type Enhance } from './enhance.ts';
 import { cropAway, type MarkBox } from './photo-sort.ts';
+import { R45_PRESET, R45_SPEC, blurPlates, checkPrompt, CHECK_SCHEMA, CHECK_SYSTEM, isExterior, judgeCheck, promptFor, type CarFacts, type Verdict } from './r45.ts';
 import { imageSize } from '../drive-import/image-size.ts';
 
 // 0073: the sample cars' black studio with the model's name behind the car (was brand_background_v1, a light grey room).
@@ -61,7 +62,7 @@ const FREE_DAILY_NEURONS = 10_000;
 export const GEMINI_ONLY = 'Redo with Gemini: ';
 
 export interface JobContext {
-  id: string; kind: 'decode_vin' | 'draft_copy' | 'process_photo' | 'resize' | 'publish' | 'marketing_photo' | 'plate_redo' | 'cover_model' | 'cover_flyer' | 'angle_make' | 'plate_auto' | 'photo_resort'; intake_id: string; vehicle_id: string;
+  id: string; kind: 'decode_vin' | 'draft_copy' | 'process_photo' | 'resize' | 'publish' | 'marketing_photo' | 'plate_redo' | 'cover_model' | 'cover_flyer' | 'angle_make' | 'plate_auto' | 'photo_resort' | 'photo_r45'; intake_id: string; vehicle_id: string;
   attempts: number; max_attempts: number; input: Record<string, unknown>; vin?: string | null;
   facts?: Record<string, unknown> | null; staff_notes?: string | null; classes?: string[] | null;
   copy_rules?: { headline_chars: [number, number]; description_words: [number, number]; features: [number, number]; faq: [number, number]; banned_phrases: string[] } | null;
@@ -135,6 +136,9 @@ export interface WorkerDeps {
   /** r36b (2200): a view of the car from an angle never photographed, made by the image model from the car's other photos,
    *  behind the same gate and free daily limit as the showroom; none: the view waits for the image model. */
   angleAi?: ((i: { images: Array<{ bytes: Uint8Array; contentType: string }>; prompt: string; photoId: string }) => Promise<ShowroomOut>) | null;
+  /** r45 (2840): the second Gemini pass on a made photo (r45.ts checkPrompt): the JSON answer and the model; null when it may
+   *  not be asked or did not answer (the photo is then not published). With angleAi, every listing photo is made by r45. */
+  checkPhoto?: ((i: { images: Array<{ bytes: Uint8Array; contentType: string }>; system: string; prompt: string; schema: Record<string, unknown>; photoId: string }) => Promise<{ data: unknown; model: string } | null>) | null;
   /** The car copy is written by the search job (0061, features/seo): the draft step stores a plain copy from the
    *  facts without calling the model, so no neurons are spent twice. */
   plainCopy?: boolean;
@@ -150,6 +154,8 @@ export const LIGHT_KINDS: ReadonlySet<JobContext['kind']> = new Set(['decode_vin
  *  WORK_SIDE pixels first, else the photo goes on the site as it is (its sizes are not made either). */
 export const LOCAL_MAX_PIXELS = 12_000_000;
 export const WORK_SIDE = 2400;
+/** r45 (2840): the fleet's Gemini photos made side by side in one run. */
+export const R45_PARALLEL = 2;
 const tooLarge = (w: number | null | undefined, h: number | null | undefined) => !!w && !!h && w * h > LOCAL_MAX_PIXELS;
 
 /** Runs due jobs until none are left, the limit is reached or the time is up. */
@@ -192,8 +198,11 @@ export async function runListingWorker(d: WorkerDeps, o: { maxJobs?: number; bat
     // r40 (2450): the copy steps side by side, the photo steps one after another: a few camera-sized photos decoded at once
     // filled the Worker's memory and the whole run was stopped (every claimed job, the VIN decode too, then failed "did not
     // finish within the lock time")
-    const light = c.jobs.filter((j) => LIGHT_KINDS.has(j.kind)), heavy = c.jobs.filter((j) => !LIGHT_KINDS.has(j.kind));
-    await Promise.all([...light.map(one), (async () => { for (const j of heavy) await one(j); })()]);
+    const light = c.jobs.filter((j) => LIGHT_KINDS.has(j.kind)), heavy = c.jobs.filter((j) => !LIGHT_KINDS.has(j.kind) && j.kind !== 'photo_r45');
+    // r45 (2840): the fleet's Gemini photos two at a time (each waits on Gemini most of its time; two keep the memory low)
+    const r45 = c.jobs.filter((j) => j.kind === 'photo_r45');
+    const pool = async (list: JobContext[], n: number) => { let k = 0; await Promise.all(Array.from({ length: Math.min(n, list.length) }, async () => { while (k < list.length) await one(list[k++]!); })); };
+    await Promise.all([...light.map(one), (async () => { for (const j of heavy) await one(j); })(), pool(r45, R45_PARALLEL)]);
   }
   return sum;
 }
@@ -211,6 +220,7 @@ export async function runJob(d: WorkerDeps, j: JobContext, b: Budget, used = { n
     case 'angle_make': return angleMake(d, j);
     case 'plate_auto': return plateAuto(d, j);
     case 'photo_resort': return resortPhoto(d, j);
+    case 'photo_r45': return r45Job(d, j);
   }
 }
 
@@ -294,6 +304,16 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
   const fb: typeof fallback = strict ? async (_d, _j, reason, message) => strictFail(`${reason}: ${message}`) : fallback;
   // a photo that never goes on the website (the odometer) is kept as it was taken
   if (!p.is_public) return { ok: true, provider: 'carmacars', output: { used_original: true, flags: [], preset_version: 'original' } };
+  // r45 (2840): every listing photo is made by Gemini from the original (r45.ts); no Cloudflare cut-out, composite or resize.
+  // Also a photo queued with its kept cut-out (Apply showroom, Redo, a detail sorted again, the cut-out editor): the original
+  // is used, never the cut-out. Only a mask asked for by the cut-out editor keeps its own step.
+  if (d.angleAi && d.checkPhoto && !j.input?.mask_only) {
+    const r = await makeR45(d, j);
+    if (r.pass) return { ok: true, provider: 'ai', units: 1, unit: 'requests', cost_microusd: 0, output: r.output };
+    const wait = r.wait === 'limit' || r.wait === 'quota' ? r.wait : null;
+    return { ok: false, provider: 'gemini', error: `${GEMINI_ONLY}${r.why}. The photo was not changed.`, retryable: !wait && j.attempts < Math.min(j.max_attempts, 3),
+      output: { r45: r.output.r45, ...(wait ? { gemini_wait: wait } : {}) } };
+  }
   // the usage guard (0080): no transformations while the allowance is used up; the original goes on the site now and the
   // database queues the studio background again once transformations may be used (app.usage_retry_photos)
   // 0700: an edit or a mask waits for the allowance instead (the photo keeps its studio file meanwhile)
@@ -726,33 +746,10 @@ async function plateRedo(d: WorkerDeps, j: JobContext): Promise<JobResult> {
   if (!src) return { ok: false, error: 'The uncovered photo could not be read', retryable: !bytes };
   const img = scaleDown(src, 3000, 3000);
   const W = img.width, H = img.height;
-  const boxes: PxBox[] = m.boxes.map((b) => ({ x: Math.floor(b.x * W), y: Math.floor(b.y * H), w: Math.max(2, Math.ceil(b.w * W)), h: Math.max(2, Math.ceil(b.h * H)) }));
-  let provider = 'carmacars';
-  if (m.end === 'front' && d.showroomAi) {
-    // the image model edits the front plate out; only the plate's area (a little larger, feathered) is taken from its photo
-    const r = await d.showroomAi.make({ car: { width: 1, height: 1, data: new Uint8ClampedArray(4), ground: 0 }, place: { width: 1, height: 1, left: 0, bottom: 0 }, cover: false, photoId: m.photo_id, prompt: FRONT_PLATE_PROMPT },
-      encodeJpeg(img, 90)).catch(() => null);
-    const ai = r && r.ok ? await decodeImage(r.bytes).catch(() => null) : null;
-    if (ai) {
-      const fit = resample(ai, { x: 0, y: 0, w: ai.width, h: ai.height }, W, H);
-      for (const b of boxes) {
-        const mx = b.w * 0.15, my = b.h * 0.25;
-        for (let y = Math.max(0, Math.floor(b.y - my)); y < Math.min(H, b.y + b.h + my); y++) for (let x = Math.max(0, Math.floor(b.x - mx)); x < Math.min(W, b.x + b.w + mx); x++) {
-          const fx = Math.min(1, Math.min(x - (b.x - mx), b.x + b.w + mx - x) / mx), fy = Math.min(1, Math.min(y - (b.y - my), b.y + b.h + my - y) / my);
-          const a = Math.max(0, Math.min(1, Math.min(fx, fy) * 1.5)), i = (y * W + x) * 4;
-          for (let c = 0; c < 3; c++) img.data[i + c] = img.data[i + c]! + (fit.data[i + c]! - img.data[i + c]!) * a;
-        }
-      }
-      provider = 'ai';
-      // a plate still readable there (high contrast left): the site's own fill on that box
-      for (const b of boxes) {
-        let n = 0, sum = 0, sq = 0;
-        for (let y = b.y; y < b.y + b.h; y += 2) for (let x = b.x; x < b.x + b.w; x += 2) { const i = (y * W + x) * 4, l = (img.data[i]! + img.data[i + 1]! + img.data[i + 2]!) / 3; n++; sum += l; sq += l * l; }
-        if (n && Math.sqrt(Math.max(0, sq / n - (sum / n) ** 2)) > 28) applyPlates(img, [b], 'front');
-      }
-    }
-  }
-  if (provider !== 'ai') applyPlates(img, boxes, m.end);
+  const boxes = m.boxes.map((b) => ({ x: Math.floor(b.x * W), y: Math.floor(b.y * H), w: Math.max(2, Math.ceil(b.w * W)), h: Math.max(2, Math.ceil(b.h * H)) }));
+  // r45 (2840): every plate is blurred (the owner): nothing is drawn on a plate and no plate is edited out
+  const provider = 'carmacars';
+  blurPlates(img, boxes.map((b) => ({ x: b.x / W, y: b.y / H, w: b.w / W, h: b.h / H })));
   const tag = j.id.replace(/-/g, '').slice(0, 6);
   const name = (m.prev_path?.split('/').pop() ?? 'photo').replace(/\.\w+$/, '').replace(/-[cp][0-9a-f]{6}(-\d+)?$/, '').replace(/[^\w-]+/g, '-').slice(0, 80) || 'photo';
   const path = `vehicles/${m.vehicle_id}/${name}-p${tag}.jpg`;
@@ -802,7 +799,8 @@ async function plateAuto(d: WorkerDeps, j: JobContext): Promise<JobResult> {
   const img = scaleDown(src, 3000, 3000);
   const W = img.width, H = img.height;
   const boxes = refineAll(greyOfRgba(img), dec.boxes);
-  applyPlates(img, boxes.map((b) => toPx(b, W, H)), m.end ?? 'rear');
+  // r45 (2840): blurred so no character can be read; nothing drawn on the plate
+  blurPlates(img, boxes);
   const tag = j.id.replace(/-/g, '').slice(0, 6);
   const name = (m.source.split('/').pop() ?? 'photo').replace(/\.\w+$/, '').replace(/-[acp][0-9a-f]{6}(-\d+)?$/, '').replace(/[^\w-]+/g, '-').slice(0, 80) || 'photo';
   const path = `vehicles/${m.vehicle_id}/${name}-a${tag}.jpg`;
@@ -880,4 +878,99 @@ async function resize(d: WorkerDeps, j: JobContext, b: Budget, used: { transform
     variants.push({ width: w, format: ext(o.contentType), path });
   }
   return { ok: true, provider: d.photos.name, ...imageCost(n, b, used), output: { variants } };
+}
+
+// ================================================================ r45 (2840): every listing photo made by Gemini from the original
+/** The job's r45 words: edit (a real photo) or generate (a missing standard angle from the car's own photos). */
+export interface R45Input { mode?: 'edit' | 'generate'; car?: CarFacts | null; sources?: string[] }
+/** Gemini takes the original as it is (HEIC too) up to this size; a larger JPEG or PNG is made smaller here first. */
+const R45_MAX_BYTES = 7_000_000;
+const R45_SIDE = 2400;
+const R45_SIZES = { exterior: EXTERIOR, interior: INTERIOR };
+const mimeOf = (b: Uint8Array): string | null => {
+  if (b[0] === 0xff && b[1] === 0xd8) return 'image/jpeg';
+  if (b[0] === 0x89 && b[1] === 0x50) return 'image/png';
+  if (b[0] === 0x52 && b[1] === 0x49 && b[8] === 0x57 && b[9] === 0x45) return 'image/webp';
+  const brand = String.fromCharCode(...b.subarray(8, 12));
+  if (String.fromCharCode(...b.subarray(4, 8)) === 'ftyp') return /^(heic|heix|hevc|mif1|msf1|heim|heis)/.test(brand) ? 'image/heic' : /^avif/.test(brand) ? 'image/avif' : 'image/heif';
+  return null;
+};
+/** An original as Gemini is sent it: the file itself when it is small enough, else a smaller JPEG; null when it cannot be. */
+export async function forModel(bytes: Uint8Array | null): Promise<{ bytes: Uint8Array; contentType: string } | null> {
+  if (!bytes?.length) return null;
+  const type = mimeOf(bytes);
+  if (!type) return null;
+  const size = imageSize(bytes);
+  const big = bytes.length > R45_MAX_BYTES || (!!size && Math.max(size.width, size.height) > R45_SIDE * 1.7);
+  if (!big) return { bytes, contentType: type };
+  if (type !== 'image/jpeg' && type !== 'image/png') return bytes.length <= 15_000_000 ? { bytes, contentType: type } : null;
+  if (size && tooLarge(size.width, size.height)) return bytes.length <= 15_000_000 ? { bytes, contentType: type } : null;
+  const img = await decodeImage(bytes).catch(() => null);
+  return img ? { bytes: encodeJpeg(scaleDown(img, R45_SIDE, R45_SIDE), 90), contentType: 'image/jpeg' } : null;
+}
+
+export interface R45Made { pass: boolean; why: string; wait?: string | null; output: Record<string, unknown> & { r45: Record<string, unknown> } }
+/** One photo made to r45.1: Gemini edits the original (or generates the view from the car's photos), the site checks the
+ *  edges of an outside photo, Gemini's second pass checks the rest, the plates it found are blurred by the site, and the
+ *  photo and its sizes are stored. Nothing is stored when the check refuses it. */
+export async function makeR45(d: WorkerDeps, j: JobContext): Promise<R45Made> {
+  const p = j.photo!;
+  const inp = ((j.input as { r45?: R45Input }).r45 ?? {}) as R45Input;
+  const generated = inp.mode === 'generate';
+  const shot = p.shot_type;
+  const ext = isExterior(shot);
+  const car: CarFacts = inp.car ?? { model: p.model ?? null };
+  const no = (why: string, extra: Record<string, unknown> = {}, wait: string | null = null): R45Made =>
+    ({ pass: false, why, wait, output: { r45: { pass: false, spec: R45_SPEC, why, generated, ...(wait ? { wait } : {}), ...extra } } });
+  if (!d.angleAi || !d.checkPhoto) return no('Gemini is not set up on the website (no GEMINI_API_KEY)', {}, 'no_key');
+  const paths = generated ? (inp.sources ?? []).slice(0, 3) : [p.original_path];
+  const real: Array<{ bytes: Uint8Array; contentType: string }> = [];
+  for (const path of paths) { const m = await forModel(await d.files.getPrivate(path).catch(() => null)); if (m) real.push(m); }
+  if (!real.length) return no(generated ? 'the car\'s photos could not be read' : 'the original photo could not be read');
+  const room = ext ? await photoRoom(d, j) : null;
+  const roomImg = ext ? { bytes: encodeJpeg(room?.img ?? showroomBackdrop(), 86), contentType: 'image/jpeg' } : null;
+  const prompt = promptFor({ car, shot, generated, sources: real.length });
+  const made = await d.angleAi({ images: [...real, ...(roomImg ? [roomImg] : [])], prompt, photoId: p.id })
+    .catch((e: unknown): ShowroomOut => ({ ok: false, reason: 'error', message: e instanceof Error ? e.message : String(e) }));
+  if (!made.ok) return no(`Gemini did not make it (${made.reason}: ${made.message})`, {}, ['limit', 'quota', 'off'].includes(made.reason) ? made.reason : null);
+  const ai = await decodeImage(made.bytes).catch(() => null);
+  if (!ai) return no('Gemini\'s photo could not be read');
+  const size = ext ? R45_SIZES.exterior : R45_SIZES.interior;
+  const fitted = fitFrame(ai, size.width, size.height);
+  // the site's own check: the top and the side walls of the drawn room are dark (a photographed room has its own light)
+  const edgesDark = ext && !room ? backgroundReplaced(fitted) : null;
+  const seen = encodeJpeg(scaleDown(fitted, 1280, 1280), 85);
+  const asked = await d.checkPhoto({ images: [{ bytes: seen, contentType: 'image/jpeg' }, ...real], system: CHECK_SYSTEM, prompt: checkPrompt({ car, shot, generated }),
+    schema: CHECK_SCHEMA as unknown as Record<string, unknown>, photoId: p.id }).catch(() => null);
+  if (!asked) return no('the check could not be asked now', {}, 'quota');
+  const v: Verdict = judgeCheck(asked.data, { shot, generated, edgesDark });
+  const base = { model: made.model ?? null, check_model: asked.model, view: v.view, reasons: v.reasons };
+  if (!v.pass) return no(`the check refused it: ${v.reasons.join(', ')}`, base);
+  // the plates: blurred by the site on top of Gemini's blur, so no character can be read whatever Gemini left
+  blurPlates(fitted, v.plates);
+  const tag = j.id.replace(/-/g, '').slice(0, 6);
+  const path = `vehicles/${j.vehicle_id}/${p.file_base}-r45${tag}.jpg`;
+  await d.files.putPublic(path, encodeJpeg(fitted, 88), 'image/jpeg');
+  // the sizes the site uses, made here (never the image service)
+  const variants: Array<{ width: number; format: string; path: string }> = [];
+  for (const w of VARIANT_WIDTHS) {
+    if (w >= fitted.width) continue;
+    const vp = `vehicles/${j.vehicle_id}/${p.file_base}-r45${tag}-${w}.jpg`;
+    await d.files.putPublic(vp, encodeJpeg(scaleDown(fitted, w), 84), 'image/jpeg');
+    variants.push({ width: w, format: 'jpg', path: vp });
+  }
+  const plates = v.plates.map((b) => ({ x: +b.x.toFixed(4), y: +b.y.toFixed(4), w: +b.w.toFixed(4), h: +b.h.toFixed(4) }));
+  return { pass: true, why: '', output: {
+    processed_path: path, width: size.width, height: size.height, variants, preset_version: R45_PRESET, flags: [],
+    showroom: { provider: 'ai', ...(made.model ? { model: made.model } : {}), note: null, reason: null, mode: generated ? 'generate' : 'edit', spec: R45_SPEC, ...(room ? { background: room.slug } : {}) },
+    ...(p.enhance !== undefined ? { enhance: null } : {}), ...(p.rebackground ? { lettered: false } : {}),
+    r45: { pass: true, spec: R45_SPEC, generated, plates, ...base } } };
+}
+
+/** The fleet's r45 step (job photo_r45): made, or refused with the reasons; the database files it, tries again (twice) or
+ *  flags it, and waits for Gemini's daily limit or a quota without counting a try. */
+async function r45Job(d: WorkerDeps, j: JobContext): Promise<JobResult> {
+  if (!j.photo) return { ok: false, error: 'The photo is missing', retryable: false };
+  const r = await makeR45(d, j);
+  return { ok: true, provider: r.pass ? 'ai' : 'gemini', units: 1, unit: 'requests', cost_microusd: 0, output: r.output };
 }

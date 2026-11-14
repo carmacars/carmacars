@@ -38,6 +38,8 @@ const schema = z.object({
   /** 0910: Google Gemini, the vision fallback when set (free trial tier: its quota and model errors fall back to typing) */
   GEMINI_API_KEY: z.string().optional(),
   GEMINI_VISION_MODEL: z.string().optional(),
+  /** r45 (2840): the model of the second pass on a made listing photo (default gemini-2.5-flash). */
+  GEMINI_CHECK_MODEL: z.string().optional(),
   /** r36 (2110): the Meta app's secret (checks the webhook's signature: Messenger, Instagram, WhatsApp) and the WhatsApp
    *  Cloud API token; unset: the Meta webhook answers nothing */
   META_APP_SECRET: z.string().optional(),

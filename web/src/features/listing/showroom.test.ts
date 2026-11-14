@@ -395,5 +395,5 @@ test('r44: the background check: the room passes, a sky or a white garage does n
   assert.equal(backgroundReplaced(sky), false, 'a sky at the top');
   const white = { width: 300, height: 200, data: new Uint8ClampedArray(300 * 200 * 4).fill(235) };
   assert.equal(backgroundReplaced(white), false, 'a white garage');
-  assert.equal(PHOTO_SPEC, 'r44.1', 'keep equal to app.photo_spec() (migration 2780)');
+  assert.equal(PHOTO_SPEC, 'r45.1', 'keep equal to app.photo_spec() (migration 2840)');
 });

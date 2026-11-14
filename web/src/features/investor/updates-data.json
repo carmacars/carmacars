@@ -1,5 +1,24 @@
 [
  {
+  "release": "r45",
+  "title": "Release 45",
+  "date": "2026-11-14",
+  "seq": 0,
+  "summary": "Every car's listing photos are made again by Gemini from the original photos, in the CarmaCars showroom with every plate blurred, the missing angles generated, and the front exterior always first.",
+  "areas": [
+   {
+    "area": "Website & search",
+    "items": [
+     "Every listing photo is made by Gemini from the original photo: outside photos stand in the CarmaCars showroom with nothing of the place they were taken in, inside photos are clean and sharp",
+     "Every licence plate is blurred so no character can be read, and no text appears anywhere else on a photo",
+     "Every car shows the full set of angles: front three-quarter, front, side profile, rear three-quarter, rear, dashboard, front seats, rear seats and trunk, the ones never photographed generated from the car's own photos",
+     "The front three-quarter is always the first photo, then the other outside photos, then the inside ones",
+     "A second check refuses any photo with the old background, a warped car, another colour or model, missing or added parts, or text, and such a photo never goes on the site"
+    ]
+   }
+  ]
+ },
+ {
   "release": "r44",
   "title": "Release 44",
   "date": "2026-11-13",

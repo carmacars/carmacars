@@ -121,6 +121,20 @@
      "I've returned the car and photos for Report a problem send from a phone browser opened by a text message link"
     ]
    }
+  },
+  "r45": {
+   "date": "2026-11-14",
+   "seq": 0,
+   "summary": "Every car's listing photos are made again by Gemini from the original photos, in the CarmaCars showroom with every plate blurred, the missing angles generated, and the front exterior always first.",
+   "sections": {
+    "admins": [
+     "Photo standard on Listings: each car's photos at the standard, angles generated, photos flagged and the last run, with Redo this car now and Redo every car (Fleet has the same card)",
+     "The whole fleet is brought to the standard by itself every 5 minutes, newest listed cars first, within about a day; a photo already at the standard is never made again unless asked",
+     "New settings: the daily Gemini limit is 2000 calls, with 50 kept for new uploads",
+     "Generated angles are marked AI generated on the listing; a real photo of that angle replaces it by itself",
+     "The plate editor blurs the plate; it no longer draws a plate"
+    ]
+   }
   }
  }
 }
