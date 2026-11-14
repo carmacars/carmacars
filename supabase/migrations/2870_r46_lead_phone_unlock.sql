@@ -20,6 +20,10 @@
 --   the lead rows (sl_row)    phone_unlocks (for an Admin: who sees it, since when, by whom, why), phone_unlocked (the
 --                             viewer sees it in full by an unlock), phone_ask_open (an ask is waiting)
 --   sales_lead                phone_people (for an Admin: the Sales people it can be shown to)
+--   admin_read lead_phone_state  {leads: [ids]}: the same row facts for Admin lead views that list leads straight from
+--                             the table (the expired offers of People > Renters > Leads)
+--   the alert                 the salesperson gets a bell alert (staff alert lead_phone_shown, to them only) that opens
+--                             the lead; their ask To do closes
 -- The masking itself now runs once, on the outermost door: the lead's whole person (lead_context, 2411) and the other
 -- reads wrapped after 0970 were returned to Sales unmasked; they are masked like every other read now.
 -- No applied migration is edited: the door, sl_row and sales_lead are wrapped (_pre2870); mask_phone_text, the 0970
@@ -91,6 +95,11 @@ insert into task_rules (task_type, queue, title, priority, due_kind, due_amount,
    'A salesperson pressed Ask an Admin to show the number on a lead (2870). Open the lead and press Show the phone, or leave it hidden. Done by itself when the phone is shown to them.')
 on conflict (task_type) do nothing;
 
+insert into staff_alert_rules (rule, label, grp, who, tier, topic, wired, fixed, hint, sort) values
+  ('lead_phone_shown', 'An Admin showed you a lead''s phone number', 'Sales', '{assigned}', 'normal', 'leads', true, false,
+   'To the salesperson only (2870): an Admin pressed Show the phone on a lead; the alert opens the lead.', 118)
+on conflict (rule) do nothing;
+
 -- a person the number is masked for: works in Sales, not an Admin, active
 create function app.lead_phone_target_ok(p_user uuid) returns boolean
 language sql stable security definer set search_path = public, app as $$
@@ -137,6 +146,15 @@ begin
     insert into audit_log (actor_user_id, action, entity_table, entity_id, after)
     values (p_by, 'lead_phone_unlock', 'leads', l.id::text, jsonb_build_object('to', v_to, 'reason', v_reason, 'unlock', u.id));
     v_new := true;
+    -- the salesperson is told, and the alert opens the lead (never the number itself)
+    begin
+      perform app.staff_alert('lead_phone_shown', 'lead', l.id, v_to::text || ':' || u.id::text,
+        left(format('Phone shown to you: %s', coalesce(nullif(btrim(l.name), ''), 'a lead')), 140),
+        'An Admin showed you the full phone number of this lead, for this lead only. Open the lead to call or copy it.',
+        jsonb_build_object('assigned_to', v_to, 'path_staff', '/staff/sales-leads/' || l.id, 'path_admin', '/admin/sales-leads/' || l.id));
+    exception when others then
+      raise warning 'lead phone alert not made: %', sqlerrm;
+    end;
   end if;
   update tasks set status = 'done', completed_at = now(), completed_by = p_by, completion_note = 'The phone was shown to ' || app.sl_name(v_to)
    where task_type = 'lead_phone_ask' and related_table = 'leads' and related_id = l.id and status in ('open', 'in_progress', 'waiting');
@@ -192,6 +210,15 @@ begin
   insert into audit_log (actor_user_id, action, entity_table, entity_id, after)
   values (p_by, 'lead_phone_ask', 'leads', l.id::text, jsonb_build_object('task', v_task, 'note', v_note));
   return jsonb_build_object('ok', true, 'lead', l.id, 'asked', true, 'already', false);
+end $$;
+
+-- p: {leads: [ids]}. For an Admin's lead views that list leads from the table: each lead's owner, claim and phone facts.
+create function app.lead_phone_state(p_by uuid, p jsonb) returns jsonb
+language plpgsql stable security definer set search_path = public, app as $$
+begin
+  if p_by is null or not coalesce(app.user_is_admin(p_by), false) then raise exception 'Only an Admin may do this' using errcode = '42501'; end if;
+  return coalesce((select jsonb_object_agg(l.id, app.sl_row(l, p_by)) from leads l
+    where l.id in (select x::uuid from jsonb_array_elements_text(coalesce(p -> 'leads', '[]'::jsonb)) x where x ~* '^[0-9a-f-]{36}$' limit 200)), '{}'::jsonb);
 end $$;
 
 -- ================================================================ 3. reassignment hides it
@@ -275,6 +302,10 @@ begin
                        when 'lead_phone_hide' then app.lead_phone_hide(p_user, p_)
                        else app.lead_phone_ask(p_user, p_) end;
   end if;
+  if p_call in ('admin_read', 'ops_read') and p_name = 'lead_phone_state' then
+    perform app.door_begin(p_user, p_aal);
+    return app.lead_phone_state(p_user, p_);
+  end if;
   if p_call in ('va_read', 'va_list', 'ops_read') then
     -- Sales sees customer numbers masked (0970), on every read, whichever wrapper answers it
     perform set_config('app.mask_outer', 'on', true);
@@ -294,7 +325,7 @@ begin
   for f in
     select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
      where n.nspname = 'app' and p.proname = any (array['phone_unlocked_for', 'lead_phone_target_ok', 'lead_phone_unlock', 'lead_phone_hide', 'lead_phone_ask',
-             'lead_phone_unlocks_follow', 'sl_row_pre2870', 'sales_lead_pre2870', 'door_pre2870'])
+             'lead_phone_state', 'lead_phone_unlocks_follow', 'sl_row_pre2870', 'sales_lead_pre2870', 'door_pre2870'])
   loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);
     execute format('grant execute on function %s to service_role', f.sig);

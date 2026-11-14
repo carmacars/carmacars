@@ -40,6 +40,14 @@ select test.eq('unlock: the lead''s salesperson by default',
 select test.eq('unlock: audited with who, for whom and why',
   (select count(*) from audit_log where action = 'lead_phone_unlock' and actor_user_id = test.id('zp_admin') and entity_id = test.id('lead:zp1')::text
      and after ->> 'to' = test.id('zp_sales')::text and after ->> 'reason' = 'Calling from the counter')::int, 1);
+select test.eq('unlock: the salesperson gets an alert that opens the lead, with no number in it',
+  (select count(*) || '/' || max(e.payload ->> 'path_staff') || '/' || max(e.payload ->> 'assigned_to') || '/' || (position('555' in max(e.payload::text)) = 0)::text
+     from app_events e where e.code like 'staff_alert_%' and e.payload ->> 'rule' = 'lead_phone_shown' and e.entity_id = test.id('lead:zp1')),
+  '1/' || '/staff/sales-leads/' || test.id('lead:zp1') || '/' || test.id('zp_sales') || '/true');
+select test.eq('Admin lead views: lead_phone_state gives the row facts of the leads asked for',
+  pg_temp.dr('zp_admin', 'admin_read', 'lead_phone_state', jsonb_build_object('leads', jsonb_build_array(test.id('lead:zp1')))) #>> array[test.id('lead:zp1')::text, 'phone_unlocks', '0', 'name'],
+  app.sl_name(test.id('zp_sales')));
+select test.throws('Admin lead views: Sales cannot read lead_phone_state', format($$select app.door(%L, 'aal2', 'ops_read', 'lead_phone_state', '{}')$$, test.id('zp_sales')), '%Only an Admin%');
 select test.eq('unlocked: Sales sees the full number of that lead', pg_temp.phone('zp_sales', 'zp1'), '905-555-0171');
 select test.eq('unlocked: the lead says so', pg_temp.dr('zp_sales', 'va_read', 'sales_lead', jsonb_build_object('id', test.id('lead:zp1'))) ->> 'phone_unlocked', 'true');
 select test.eq('unlocked: the other lead stays masked', pg_temp.phone('zp_sales', 'zp2'), pg_temp.masked('72'));
@@ -93,6 +101,6 @@ select test.eq('a new phone on the lead is masked until an Admin shows it', pg_t
 
 select test.eq('the table and the functions are the server''s only',
   (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-    where n.nspname = 'app' and p.proname in ('lead_phone_unlock', 'lead_phone_hide', 'lead_phone_ask', 'phone_unlocked_for')
+    where n.nspname = 'app' and p.proname in ('lead_phone_unlock', 'lead_phone_hide', 'lead_phone_ask', 'lead_phone_state', 'phone_unlocked_for')
       and (has_function_privilege('authenticated', p.oid, 'execute') or has_function_privilege('anon', p.oid, 'execute')))::int
   + (case when has_table_privilege('authenticated', 'lead_phone_unlocks', 'select') then 1 else 0 end), 0);

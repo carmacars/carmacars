@@ -525,7 +525,7 @@ def build():
     g.task('A lead\'s phone number', f'Customer numbers show with dots in place of most digits. {B("Call")} and {B("Text")} still reach the person through the business number.')
     g.steps([
         f'Need the whole number of one lead? On the lead, press {B("Ask an Admin to show the number")}. An Admin gets a To do on that lead; asking again adds no second one.',
-        f'When an Admin shows it to you, the lead says {B("Number shown by an Admin")}: the full number, with a call link and {B("Copy")}, on that lead only. Every other lead stays hidden.',
+        f'When an Admin shows it to you, the lead says {B("Number shown by an Admin")}: the full number, with a call link and {B("Copy")}, on that lead only, and you get an alert that opens the lead. Every other lead stays hidden, except the same number where it belongs to the same person (their renter record or another lead with that phone).',
         'If the lead goes to another salesperson, the number is hidden from you again by itself, and the new salesperson sees it hidden until an Admin shows it to them.',
     ])
 

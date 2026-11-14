@@ -152,4 +152,5 @@ test('lead phone: masked, and who Show the phone goes to', () => {
   assert.match(readFileSync(join(import.meta.dirname, 'LeadActions.tsx'), 'utf8'), /<LeadPhoneAccess /);
   assert.match(readFileSync(join(import.meta.dirname, 'LeadList.tsx'), 'utf8'), /<PhoneValue /);
   assert.match(readFileSync(join(import.meta.dirname, '../admin/todo/registry.tsx'), 'utf8'), /lead_phone_ask:/);
+  assert.match(readFileSync(join(import.meta.dirname, '../../app/admin/renters/ExpiredOfferLeads.tsx'), 'utf8'), /<LeadPhoneAccess /);
 });
