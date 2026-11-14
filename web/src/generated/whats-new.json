@@ -184,7 +184,9 @@
    "summary": "A car's own photos stay on the site while their new versions are made, and the first outside photo always leads.",
    "sections": {
     "admins": [
-     "A refused remake is flagged on Photo standard for Redo this car now; the photo stays on the site meanwhile"
+     "A refused remake is flagged on Photo standard for Redo this car now; the photo stays on the site meanwhile",
+     "Photo standard shows each car's Generated set; a car with too few photos uses its check-in and check-out photos as references (never shown)",
+     "Showroom background plates in Program settings: upload a real showroom photo to replace the background of every outside view"
     ]
    }
   }

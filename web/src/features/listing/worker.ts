@@ -19,6 +19,8 @@ import { type PlateEnd } from './plate-photo.ts';
 import { boxesForSave, decidePlate, greyOfRgba, refineAll } from './plate-auto.ts';
 import { enhanceValues, statsOf, type Enhance } from './enhance.ts';
 import { cropAway, type MarkBox } from './photo-sort.ts';
+import { R48_MAX_BYTES, R48_MAX_REFS, R48_PRESET, R48_REF_SIDE, R48_SPEC, PLATE_CHECK_PROMPT, PLATE_CHECK_SCHEMA, PLATE_CHECK_SYSTEM, R48_CHECK_SCHEMA, R48_CHECK_SYSTEM, judgePlate, judgeR48,
+  platePath, platePrompt, r48CheckPrompt, r48Prompt, type PlateFamily } from './r48.ts';
 import { R45_PRESET, R45_SPEC, blurPlates, checkPrompt, CHECK_SCHEMA, CHECK_SYSTEM, isExterior, judgeCheck, promptFor, type CarFacts, type Verdict } from './r45.ts';
 import { imageSize } from '../drive-import/image-size.ts';
 
@@ -116,6 +118,8 @@ export interface WorkerDeps {
     /** r41 (2530): a file taken off its bucket (the uncovered file an automatic cover replaced, or a cover that came too late). */
     removePublic?(path: string): Promise<void>;
     removePrivate?(path: string): Promise<void>;
+    /** r48 (2900): a check-in or check-out photo (the condition-photos bucket), read as a reference only: never published. */
+    getCondition?(path: string): Promise<Uint8Array | null>;
   };
   /** 0567: where the overlaid marks (watermark, logo, caption) are on an edited inside or detail photo, as fractions;
    *  [] none; null the model could not be asked (the photo then stays flagged, off the site). */
@@ -971,6 +975,118 @@ export async function makeR45(d: WorkerDeps, j: JobContext): Promise<R45Made> {
  *  flags it, and waits for Gemini's daily limit or a quota without counting a try. */
 async function r45Job(d: WorkerDeps, j: JobContext): Promise<JobResult> {
   if (!j.photo) return { ok: false, error: 'The photo is missing', retryable: false };
-  const r = await makeR45(d, j);
+  const r = ((j.input as { r45?: { mode?: string } } | null)?.r45?.mode === 'r48') ? await makeR48(d, j) : await makeR45(d, j);
   return { ok: true, provider: r.pass ? 'ai' : 'gemini', units: 1, unit: 'requests', cost_microusd: 0, output: r.output };
+}
+
+// ================================================================ r48 (2900): every standard angle generated from references
+/** The job's r48 words (app.listing_job_context fills them fresh on every try). */
+export interface R48Input { mode: 'r48'; car?: CarFacts | null; shot?: string; refs?: Array<{ bucket: string; path: string; shot?: string; from?: 'listing' | 'handover' }>;
+  family?: PlateFamily | null; plate?: string | null; guide?: string | null; stock?: string | null; body?: string | null; feedback?: string[] | null }
+type Img = { bytes: Uint8Array; contentType: string };
+/** A reference as Gemini is sent it: a decodable photo made at most R48_REF_SIDE on its long side; another kind kept when small. */
+export async function refForModel(bytes: Uint8Array | null): Promise<Img | null> {
+  const m = await forModel(bytes);
+  if (!m) return null;
+  if (m.contentType === 'image/jpeg' || m.contentType === 'image/png') {
+    const size = imageSize(m.bytes);
+    if (size && Math.max(size.width, size.height) <= R48_REF_SIDE && m.bytes.length <= 1_500_000) return m;
+    const img = await decodeImage(m.bytes).catch(() => null);
+    return img ? { bytes: encodeJpeg(scaleDown(img, R48_REF_SIDE, R48_REF_SIDE), 86), contentType: 'image/jpeg' } : null;
+  }
+  return m.bytes.length <= 3_000_000 ? m : null;
+}
+
+/** The background plate of a family made once: Gemini draws the empty showroom from the words alone, the check must say it
+ *  looks like a real photo with no text, logo, car or person; stored in the public bucket. null when it could not be made. */
+export async function makePlate(d: WorkerDeps, f: PlateFamily, photoId: string, tag: string): Promise<{ img: Img; path: string; model: string | null; check: Record<string, unknown> } | null> {
+  if (!d.angleAi || !d.checkPhoto) return null;
+  // the plate model is asked with a blank square of light grey as its only image (the image call needs one)
+  const blank = { bytes: encodeJpeg({ width: 48, height: 32, data: new Uint8ClampedArray(48 * 32 * 4).fill(200) }, 80), contentType: 'image/jpeg' };
+  const made = await d.angleAi({ images: [blank], prompt: `${platePrompt(f)} Ignore the plain grey image: it is only a blank canvas.`, photoId }).catch(() => null);
+  if (!made?.ok) return null;
+  const img = await decodeImage(made.bytes).catch(() => null);
+  if (!img) return null;
+  const fitted = fitFrame(img, EXTERIOR.width, EXTERIOR.height);
+  const bytes = encodeJpeg(fitted, 90);
+  const asked = await d.checkPhoto({ images: [{ bytes: encodeJpeg(scaleDown(fitted, 1280, 1280), 85), contentType: 'image/jpeg' }], system: PLATE_CHECK_SYSTEM, prompt: PLATE_CHECK_PROMPT,
+    schema: PLATE_CHECK_SCHEMA as unknown as Record<string, unknown>, photoId }).catch(() => null);
+  const v = judgePlate(asked?.data);
+  if (!v.pass) return null;
+  const path = platePath(f, tag);
+  await d.files.putPublic(path, bytes, 'image/jpeg');
+  const issues = Array.isArray((asked!.data as { issues?: unknown }).issues) ? ((asked!.data as { issues: unknown[] }).issues).slice(0, 5).map(String) : [];
+  return { img: { bytes, contentType: 'image/jpeg' }, path, model: made.model ?? null, check: { pass: true, model: asked!.model, issues } };
+}
+
+/** One standard angle of a car made to r48.1: Gemini generates it from the car's real photos (or its check-in and check-out
+ *  photos), the composition guide, the stock photo and the background plate, with the angle's framing in words; Gemini's
+ *  second pass compares it with the real photos and the framing; the plates it found are blurred by the site; stored.
+ *  Nothing is stored when the check refuses it. The references themselves are never stored or published here. */
+export async function makeR48(d: WorkerDeps, j: JobContext): Promise<R45Made> {
+  const p = j.photo!;
+  const inp = ((j.input as { r45?: R48Input }).r45 ?? { mode: 'r48' }) as R48Input;
+  const shot = inp.shot ?? p.shot_type;
+  const ext = isExterior(shot);
+  const car: CarFacts = inp.car ?? { model: p.model ?? null };
+  let plateMade: Record<string, unknown> | null = null;
+  const no = (why: string, extra: Record<string, unknown> = {}, wait: string | null = null): R45Made =>
+    ({ pass: false, why, wait, output: { r45: { pass: false, spec: R48_SPEC, why, generated: true, ...(wait ? { wait } : {}), ...(plateMade ? { plate_made: plateMade } : {}), ...extra } } });
+  if (!d.angleAi || !d.checkPhoto) return no('Gemini is not set up on the website (no GEMINI_API_KEY)', {}, 'no_key');
+  // the car: its real photos (the same angle first), within the request's size
+  const refs: Img[] = [];
+  let total = 0, handover = 0;
+  for (const r of (inp.refs ?? []).slice(0, R48_MAX_REFS)) {
+    const raw = r.bucket === 'condition-photos' ? (d.files.getCondition ? await d.files.getCondition(r.path).catch(() => null) : null)
+      : r.bucket === 'vehicle-originals' ? await d.files.getPrivate(r.path).catch(() => null) : null;
+    const m = await refForModel(raw);
+    if (!m || total + m.bytes.length > R48_MAX_BYTES * 0.75) continue;
+    refs.push(m); total += m.bytes.length;
+    if (r.from === 'handover') handover++;
+  }
+  if (!refs.length) return no('the car\'s photos could not be read');
+  const pub = async (path: string | null | undefined): Promise<Img | null> => {
+    if (!path || !d.files.getPublic) return null;
+    const b = await d.files.getPublic(path).catch(() => null);
+    const m = b ? await refForModel(b) : null;
+    return m && total + m.bytes.length <= R48_MAX_BYTES ? (total += m.bytes.length, m) : null;
+  };
+  const guide = await pub(inp.guide);
+  const stock = ext ? await pub(inp.stock) : null;
+  let plate = ext ? await pub(inp.plate) : null;
+  if (ext && !plate && inp.family) {
+    const made = await makePlate(d, inp.family, p.id, j.id.replace(/-/g, '').slice(0, 8));
+    if (made) { plate = made.img; total += made.img.bytes.length; plateMade = { family: inp.family, path: made.path, model: made.model, check: made.check }; }
+  }
+  const prompt = r48Prompt({ car, shot, refs: refs.length, guide: !!guide, stock: !!stock, plate: !!plate, feedback: inp.feedback ?? null });
+  const made = await d.angleAi({ images: [...refs, ...(guide ? [guide] : []), ...(stock ? [stock] : []), ...(plate ? [plate] : [])], prompt, photoId: p.id })
+    .catch((e: unknown): ShowroomOut => ({ ok: false, reason: 'error', message: e instanceof Error ? e.message : String(e) }));
+  if (!made.ok) return no(`Gemini did not make it (${made.reason}: ${made.message})`, {}, ['limit', 'quota', 'off'].includes(made.reason) ? made.reason : null);
+  const ai = await decodeImage(made.bytes).catch(() => null);
+  if (!ai) return no('Gemini\'s photo could not be read');
+  const size = ext ? EXTERIOR : INTERIOR;
+  const fitted = fitFrame(ai, size.width, size.height);
+  const seen = encodeJpeg(scaleDown(fitted, 1280, 1280), 85);
+  const asked = await d.checkPhoto({ images: [{ bytes: seen, contentType: 'image/jpeg' }, ...refs.slice(0, 4), ...(plate ? [plate] : [])], system: R48_CHECK_SYSTEM,
+    prompt: r48CheckPrompt({ car, shot, plate: !!plate }), schema: R48_CHECK_SCHEMA as unknown as Record<string, unknown>, photoId: p.id }).catch(() => null);
+  if (!asked) return no('the check could not be asked now', {}, 'quota');
+  const v = judgeR48(asked.data, { shot, plate: !!plate });
+  const base = { model: made.model ?? null, check_model: asked.model, view: v.view, reasons: v.reasons, refs: refs.length, handover_refs: handover };
+  if (!v.pass) return no(`the check refused it: ${v.reasons.join(', ')}`, base);
+  blurPlates(fitted, v.plates);
+  const tag = j.id.replace(/-/g, '').slice(0, 6);
+  const path = `vehicles/${j.vehicle_id}/${p.file_base}-r48${tag}.jpg`;
+  await d.files.putPublic(path, encodeJpeg(fitted, 88), 'image/jpeg');
+  const variants: Array<{ width: number; format: string; path: string }> = [];
+  for (const w of VARIANT_WIDTHS) {
+    if (w >= fitted.width) continue;
+    const vp = `vehicles/${j.vehicle_id}/${p.file_base}-r48${tag}-${w}.jpg`;
+    await d.files.putPublic(vp, encodeJpeg(scaleDown(fitted, w), 84), 'image/jpeg');
+    variants.push({ width: w, format: 'jpg', path: vp });
+  }
+  const plates = v.plates.map((b) => ({ x: +b.x.toFixed(4), y: +b.y.toFixed(4), w: +b.w.toFixed(4), h: +b.h.toFixed(4) }));
+  return { pass: true, why: '', output: {
+    processed_path: path, width: size.width, height: size.height, variants, preset_version: R48_PRESET, flags: [],
+    showroom: { provider: 'ai', ...(made.model ? { model: made.model } : {}), note: null, reason: null, mode: 'r48', spec: R48_SPEC, ...(plate && inp.plate ? { background: inp.plate } : plateMade ? { background: plateMade.path } : {}) },
+    r45: { pass: true, spec: R48_SPEC, generated: true, plates, ...base, ...(plateMade ? { plate_made: plateMade } : {}) } } };
 }

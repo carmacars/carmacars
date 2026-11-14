@@ -12618,6 +12618,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      listing_r48_plates: {
+        Row: {
+          id: string;
+          family: string;
+          path: string;
+          source: string;
+          model: string | null;
+          check: Json | null;
+          made_by: string | null;
+          made_at: string;
+        };
+        Insert: {
+          id?: string;
+          family: string;
+          path: string;
+          source: string;
+          model?: string | null;
+          check?: Json | null;
+          made_by?: string | null;
+          made_at?: string;
+        };
+        Update: {
+          id?: string;
+          family?: string;
+          path?: string;
+          source?: string;
+          model?: string | null;
+          check?: Json | null;
+          made_by?: string | null;
+          made_at?: string;
+        };
+        Relationships: [];
+      };
       listing_redirects: {
         Row: {
           from_path: string;
@@ -19084,6 +19117,7 @@ export type Database = {
           field_slots_auto_days: number;
           field_slots_auto_from: string;
           fleet_low_occupancy_first: boolean;
+          listing_photo_r48_auto: boolean;
         };
         Insert: {
           id?: string;
@@ -19955,6 +19989,7 @@ export type Database = {
           field_slots_auto_days?: number;
           field_slots_auto_from?: string;
           fleet_low_occupancy_first?: boolean;
+          listing_photo_r48_auto?: boolean;
         };
         Update: {
           id?: string;
@@ -20826,6 +20861,7 @@ export type Database = {
           field_slots_auto_days?: number;
           field_slots_auto_from?: string;
           fleet_low_occupancy_first?: boolean;
+          listing_photo_r48_auto?: boolean;
         };
         Relationships: [];
       };
@@ -29798,6 +29834,7 @@ export type Database = {
           resort: Json | null;
           ai_generated: boolean;
           r45: Json | null;
+          r48: boolean;
         };
         Insert: {
           id?: string;
@@ -29848,6 +29885,7 @@ export type Database = {
           resort?: Json | null;
           ai_generated?: boolean;
           r45?: Json | null;
+          r48?: boolean;
         };
         Update: {
           id?: string;
@@ -29898,6 +29936,7 @@ export type Database = {
           resort?: Json | null;
           ai_generated?: boolean;
           r45?: Json | null;
+          r48?: boolean;
         };
         Relationships: [];
       };
