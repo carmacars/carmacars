@@ -52,8 +52,8 @@ test('an abandoned request leaves a lead and an account; the continue link signs
   // the first save opens the account ('new'); the save that carries the draft may follow from this same browser, and the row
   // then reads 'this_device' (its own unverified account): either way the account was opened brand new by this capture
   expect(['new', 'this_device']).toContain(cap[0]!.state);
-  const [acct] = await sql`select brand_new, opened_by_capture from capture_accounts where user_id = ${cap[0]!.user_id}`;
-  expect([acct?.brand_new, acct?.opened_by_capture]).toEqual([true, true]);
+  const [capAcct] = await sql`select brand_new, opened_by_capture from capture_accounts where user_id = ${cap[0]!.user_id}`;
+  expect([capAcct?.brand_new, capAcct?.opened_by_capture]).toEqual([true, true]);
   expect(cap[0]!.consent_marketing).toBe(false);
   expect(cap[0]!.source).toBe('unfinished_form');
   const userId = cap[0]!.user_id as string;
