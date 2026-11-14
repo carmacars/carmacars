@@ -2,7 +2,7 @@
 //   npm run test:unit
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { activeTab, cardSteps, cardTitle, fieldTabs, isLate, jobsText, nextStep, safeToday, sinShown, toCents, validSin, type Card } from './model.ts';
+import { activeTab, cardSteps, clockText, dayText, shiftText, cardTitle, fieldTabs, isLate, jobsText, nextStep, safeToday, sinShown, toCents, validSin, type Card } from './model.ts';
 
 test('safeToday: a failed or partial read of Today still renders (r40, React error 441)', () => {
   const a = safeToday(null, '2026-11-12');
@@ -72,4 +72,13 @@ test('a give-up under 24 hours before the start is late', () => {
   const now = Date.parse('2026-11-08T12:00:00Z');
   assert.equal(isLate('2026-11-09T10:00:00Z', now), true);
   assert.equal(isLate('2026-11-10T10:00:00Z', now), false);
+});
+
+test('r46: times and days are written the same by every ICU (no Intl words: React 418 on Admin > Field jobs)', () => {
+  assert.equal(clockText('2026-11-14T14:05:00Z'), '9:05 AM');
+  assert.equal(clockText('2026-11-14T17:30:00Z'), '12:30 PM');
+  assert.equal(clockText('2026-11-15T04:59:00Z'), '11:59 PM');
+  assert.equal(dayText('2026-11-14T14:05:00Z'), 'Sat, Nov 14');
+  assert.doesNotMatch(shiftText('2026-11-14T14:00:00Z', '2026-11-14T22:00:00Z'), /[  ]/);
+  assert.equal(clockText('not a date'), '');
 });

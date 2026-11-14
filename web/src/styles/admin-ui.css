@@ -332,7 +332,10 @@ td .ad-sub { display: block; font-size: var(--fs-2xs); color: var(--text-2); mar
   font-size: var(--fs-2xs); font-weight: 600; line-height: 1.1; color: var(--text-2); background: transparent; border: 0; text-decoration: none; position: relative; white-space: nowrap; cursor: pointer; }
 .ad .ad__who .hd-act:hover { background: var(--grey-100); color: var(--text); }
 .ad .ad__who .hd-act svg { width: 20px; height: 20px; }
-.ad .ad__who .hd-act .hd-lbl { display: block; }
+.ad .ad__who .hd-act .hd-lbl { display: block; max-width: 100%; }
+/* r46: on a phone the row's six equal buttons are about 50px wide, and "What's new" and "Report a bug" ran past their button
+   on one line (over the neighbours and off the side): a label wraps onto a second line inside its button instead */
+@media (max-width: 63.99rem) { .ad .ad__who .hd-act { white-space: normal; text-align: center; } .ad .ad__who .hd-act .hd-lbl { overflow-wrap: anywhere; hyphens: none; } }
 .ad .ad__who .al-bell__n { top: 3px; right: auto; left: calc(50% + 2px); min-width: 1rem; height: 1rem; padding: 0 0.25rem; font-size: 0.625rem; line-height: 1rem; }
 .ad__find .gn-search { position: relative; }
 .ad__find .gn-search .input { padding-right: 2.6rem; }

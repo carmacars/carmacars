@@ -6,7 +6,7 @@
 
 export const RECOVER_KEY = 'cc-error-reload';
 /** A page of an older deploy: a server action, a script or a stylesheet the new build does not have. */
-export const STALE_BUILD = /Failed to find Server Action|Server Action .* was not found|older or newer deployment|ChunkLoadError|Loading (CSS )?chunk|Failed to load chunk|Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module|An unexpected response was received from the server/i;
+export const STALE_BUILD = /Failed to find Server Action|Server Action .* was not found|UnrecognizedActionError|older or newer deployment|ChunkLoadError|Loading (CSS )?chunk|Failed to load chunk|Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module|An unexpected response was received from the server/i;
 /** The server could not finish the page (React 441 in production, or the network dropped the answer). */
 export const SERVER_RENDER = /Minified React error #441|Server Components render|Failed to fetch|NetworkError|Load failed|Connection closed/i;
 
@@ -27,6 +27,14 @@ export function recoverInBrowser(e: { message?: string; digest?: string }): bool
   try { window.sessionStorage.setItem(RECOVER_KEY, String(Date.now())); } catch { /* nothing kept */ }
   window.setTimeout(() => window.location.reload(), 1200);
   return true;
+}
+
+/** r46: a server action or chunk of an older deploy, met outside the error page (an event handler, an effect, a promise
+ *  nobody awaited: the renter checkout's "Server Action ... was not found on the server"): the page reloads once instead
+ *  of failing; true when it is reloading (the caller then shows nothing and reports nothing). */
+export function reloadIfStale(e: unknown): boolean {
+  const m = e instanceof Error ? `${e.name} ${e.message}` : String(e ?? '');
+  return STALE_BUILD.test(m) && recoverInBrowser({ message: m });
 }
 
 // ------------------------------------------------------------------ what the page says (r27b, the owner: "Try again and Reload

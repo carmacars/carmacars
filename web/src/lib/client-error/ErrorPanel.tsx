@@ -23,9 +23,11 @@ export function ErrorPanel({ error, reset, plain = false }: { error: Error & { d
   const [contact, setContact] = useState(readContact(null));
   const [left, setLeft] = useState<number | null>(null);
   useEffect(() => {
-    reportClientError(error, error.digest);
     queueMicrotask(() => setContact(readContact(document)));
-    if (cause === 'stale') { recoverInBrowser(error); return; }
+    // r46: a page of an older deploy reloads once and is not a crash; reported only when it cannot reload (twice in a minute)
+    if (cause === 'stale' && recoverInBrowser(error)) return;
+    reportClientError(error, error.digest);
+    if (cause === 'stale') return;
     if (cause !== 'server') return;
     const n = nextAttempt(window.location.pathname);
     const until = Date.now() + retryDelayS(n) * 1000;

@@ -29,6 +29,28 @@
   ]
  },
  {
+  "release": "r46",
+  "title": "Release 46",
+  "date": "2026-11-14",
+  "seq": 0,
+  "summary": "Pop-ups and the top row fit a phone, four pages are sturdier, and the Canada agreements To do leaves out test accounts.",
+  "areas": [
+   {
+    "area": "Staff tools",
+    "items": [
+     "The To do to send staff in Canada a new agreement leaves out test accounts"
+    ]
+   },
+   {
+    "area": "Reliability & security",
+    "items": [
+     "Four pages made sturdier: a time written the same by the server and every browser, a leads page that still opens when one of its lists cannot load, the pay page under the browser's own translation, and a page left open across an update that reloads by itself",
+     "Every pop-up and the portals' top row fit a phone at 375 and 320 pixels wide, checked by a test"
+    ]
+   }
+  ]
+ },
+ {
   "release": "r44",
   "title": "Release 44",
   "date": "2026-11-13",

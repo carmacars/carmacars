@@ -147,7 +147,9 @@ a.ad-tile:hover { border-color: var(--black); }
 .ad-field .input, .ad-field .select { min-height: 40px; }
 .ad-textarea { min-height: 5rem; resize: vertical; }
 .ad-form--compact .ad-fields { grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); }
-.ad-dialog { border: 1px solid var(--black); padding: var(--s-5); width: min(40rem, calc(100vw - 2rem)); max-height: calc(100vh - 2rem); overflow-y: auto; }
+.ad-dialog { border: 1px solid var(--black); padding: var(--s-5); width: min(40rem, calc(100vw - 2rem)); max-height: calc(100vh - 2rem); max-height: calc(100dvh - 2rem); overflow-y: auto; }
+/* r46: a phone keeps the dialog's words, not its padding (Report a bug at 320 px) */
+@media (max-width: 30rem) { .ad-dialog { padding: var(--s-4); width: calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)); } }
 .ad-dialog::backdrop { background: rgb(0 0 0 / 0.4); }
 .ad-dialog--wide { width: min(56rem, calc(100vw - 2rem)); }
 .ad-form-pages { display: grid; gap: var(--s-3); }

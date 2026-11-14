@@ -353,6 +353,18 @@ input[type="checkbox"][aria-invalid="true"], input[type="radio"][aria-invalid="t
 /* r43: a closed dialog never shows, whatever card class it wears (".pt-card { display: grid }" put the closed Change protection
    box inline on the booking page, on top of the late return choice on phones) */
 dialog:not([open]) { display: none !important; }
+/* r46: the phone net of every pop-up (dialogs, sheets and panels: What's new, Report a bug, the assistant, the guide, the
+   caller's, the shared modals). Each stays inside the screen and its safe area (a notch in landscape: the browser's own
+   limit, less the notch; a sheet that sets its own width keeps it), and a long word or link wraps instead of running past
+   the sides. A dialog in a
+   portal's top row (What's new, Report a bug) is that row's child in the page, so it took the row's small one-line type:
+   it starts again from the body's. */
+dialog { max-width: calc(100% - 6px - 2em - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)); }
+.gd-frame-links dialog, .ad__who dialog, .fd__top dialog, .pt__hello dialog { font-size: var(--fs-body); white-space: normal; text-align: start; letter-spacing: normal; text-transform: none; }
+@media (max-width: 47.99rem) {
+  dialog, .popover, .cpop, .toasts, .ad-toasts, .mo-toasts, .stk, .stk-panel, .vd, .ccg, .ccw-panel, .fp-sheet, .mcal__panel, .as-toast { overflow-wrap: anywhere; }
+  dialog :is(h1, h2, h3, p, li, label, legend, dd, dt) { min-width: 0; }
+}
 dialog.modal { --text: var(--black); --text-2: var(--grey-600); --line: var(--grey-200); --line-strong: var(--black); --accent-text: var(--red-600); border: 0; padding: 0; background: var(--white); color: var(--black); width: min(34rem, calc(100vw - 2rem)); max-height: min(44rem, calc(100dvh - 2rem)); border-radius: var(--r-3); box-shadow: var(--shadow-float); overflow: hidden; }
 dialog.modal::backdrop { background: rgb(0 0 0 / 0.62); }
 dialog.modal[open] { display: flex; flex-direction: column; animation: modal-in var(--t-3) var(--ease); }

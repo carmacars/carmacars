@@ -4,6 +4,7 @@ import { scrollOption } from '@/lib/nav/same-page';
 import { useRouter } from 'next/navigation';
 import { fakeConfirmCard, finalizePayment, startPayment, type StartedPayment } from '@/server/actions/portal';
 import { money } from '@/lib/format';
+import { reloadIfStale } from '@/lib/client-error/recover';
 import { coverageNetworkNotice, coverageNetworkProblem, networkFromNumber } from '@/features/coverage/card';
 
 // The pay step (02 section 6). The card form is Stripe's Payment Element in Stripe's own frame (the card
@@ -53,7 +54,7 @@ export function PayForm({ number, amountCents, depositCents, coverageOption = nu
         elements.create('payment', { layout: 'tabs', wallets: { applePay: 'never', googlePay: 'never' }, fields: { billingDetails: { name: 'never' } }, defaultValues: { billingDetails: { address: { country: 'CA' } } } }).mount(mount.current);
         stripe.current = { js, elements };
       }
-    }).catch(() => live && setFatal({ code: 'error', message: 'The payment form did not load. Reload the page.' }));
+    }).catch((e) => !reloadIfStale(e) && live && setFatal({ code: 'error', message: 'The payment form did not load. Reload the page.' }));
     return () => { live = false; };
   }, [number]);
 
@@ -132,7 +133,7 @@ export function PayForm({ number, amountCents, depositCents, coverageOption = nu
     </div>
   );
   return (
-    <form className="pt-pay" noValidate onSubmit={pay} aria-label="Pay for your booking" aria-busy={!p || busy}>
+    <form className="pt-pay" noValidate onSubmit={pay} aria-label="Pay for your booking" aria-busy={!p || busy} translate="no">
       <div className={`field${err('name') ? ' has-error' : ''}`}>
         <label className="label" htmlFor="pt-card-name">Name on the card</label>
         <input className="input" id="pt-card-name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="cc-name" aria-invalid={!!err('name') || undefined} aria-describedby="pt-card-name-hint pt-card-name-err" />
@@ -151,7 +152,7 @@ export function PayForm({ number, amountCents, depositCents, coverageOption = nu
             {input('cvc', 'Security code', { inputMode: 'numeric', autoComplete: 'cc-csc', placeholder: '123' })}
           </div>
         </div>
-      ) : <div className="pt-cardbox" ref={mount} role="group" aria-label="Card details">{!p && <div className="skeleton sk-line" aria-hidden="true" />}</div>}
+      ) : <div className="pt-cardwrap"><div className="pt-cardbox" ref={mount} role="group" aria-label="Card details" />{!p && <div className="skeleton sk-line" aria-hidden="true" />}</div>}
       {p?.coverageNetwork && <p className="alert alert--warn" role="note" data-testid="pay-coverage-network"><span>{coverageNetworkNotice(p.coverageNetwork.label)}</span></p>}
       <p className="small">This card becomes your Card on File for the {money(depositCents)} deposit hold on the day of pickup and any later charges, as you authorized when signing.</p>
       {debitOk && coverageOption !== 2 && <p className="small muted" data-testid="pay-debit-note">With a debit or prepaid card, the deposit hold lowers the money available on your card or account until it is released, and the release can take several business days.</p>}
