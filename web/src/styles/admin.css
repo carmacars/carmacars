@@ -711,3 +711,10 @@ ul.sd-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
 .ad-sortbar { display: flex; justify-content: flex-end; margin-block: var(--s-2, 8px); }
 .ad-sort { display: inline-flex; align-items: center; gap: var(--s-2, 8px); }
 .ad-sort .select { min-height: 44px; }
+
+/* r44: on a phone the open menu covers the page under the header with its Close button kept at the top, so a long menu
+   can be scrolled and still closed (the inline list used to push the button off screen). */
+@media (max-width: 63.99rem) {
+  .gn:has(.gn__groups.is-open) { position: fixed; inset: var(--header-h) 0 0 0; z-index: 48; background: var(--white); overflow-y: auto; overscroll-behavior: contain; padding-top: var(--s-3); padding-bottom: calc(var(--s-6) + env(safe-area-inset-bottom, 0px)); }
+  .gn:has(.gn__groups.is-open) .gn__menu { position: sticky; top: 0; z-index: 1; border-color: var(--black); }
+}

@@ -45,6 +45,7 @@ export function GroupNav({ groups, counts = {}, label, testId, alwaysOpen = [] }
     const keys = new Map(groups.flatMap((x) => x.links.filter((l) => l.key).map((l) => [l.key!, l.href] as [string, string])));
     const on = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null;
+      if (e.key === 'Escape') { setMenuFor(null); return; }
       if (el && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)) || e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key === '/') { const s = document.querySelector<HTMLInputElement>('[data-shortcut="/"]'); if (s) { e.preventDefault(); s.focus(); } return; }
       if (g) { const href = keys.get(e.key); g = false; if (href) { e.preventDefault(); router.push(href); } return; }
