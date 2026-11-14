@@ -4,6 +4,7 @@ import { rpc } from '@/lib/db/repo';
 import { realUser } from '@/server/portal/data';
 import { UUID } from '@/features/returns/claim';
 import { mediaKind, ACCIDENT_MEDIA_MAX } from '@/features/accident-card/report';
+import { foreignOrigin } from '@/lib/security/same-origin';
 
 // One photo or video of a renter's accident report (release 35, migration 0912): the renter of the booking only, from the
 // camera roll (photos are made smaller on the phone first; a video goes as it is, up to 25 MB). Private storage; the report
@@ -14,7 +15,7 @@ const SR = { role: 'service_role' as const, skipViewAs: true };
 
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
-  if (origin && new URL(origin).host !== req.headers.get('host')) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403, headers: H });
+  if (foreignOrigin(origin, req.headers.get('host'), req.headers.get('sec-fetch-site'))) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403, headers: H });
   const user = await realUser();
   if (!user) return NextResponse.json({ ok: false, message: 'Sign in first.' }, { status: 401, headers: H });
   const form = await req.formData().catch(() => null);

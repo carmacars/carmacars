@@ -137,7 +137,6 @@ async function complete(page: Page, text: string) {
   expect(err, 'the database refused the completion').toBe('');
   if (await page.getByTestId('field-done').isVisible()) await expect(page.getByTestId('field-done')).toContainText(text);
 }
-const next = async (page: Page, title: string) => { await page.getByTestId('next').click(); await expect(page.getByTestId('step-title')).toHaveText(title, { timeout: 15_000 }); };
 
 test('va: customer service reviews a request from the queue and sends the offer', async ({ browser }, info) => {
   test.setTimeout(150_000);
@@ -232,7 +231,8 @@ test('va: fleet checks and assigns the field job made from a booking', async ({ 
   const other = await mkUser(sql, 'fj2', 'field');
   await sql`select app.assign_field_job(${j!.id}::uuid, ${other.id}::uuid, ${admin.id}::uuid)`;
   await page.reload();
-  await page.getByTestId(`assign-${j!.id}`).click();
+  // once assigned, the job shows in its day and in the assigned person's list: either Reassign button opens the same form
+  await page.getByTestId(`assign-${j!.id}`).first().click();
   await page.locator('dialog[open]').getByLabel('Field staff').selectOption(field.id);
   await page.getByTestId(`assign-${j!.id}-submit`).click();
   await expect.poll(async () => (await sql`select assigned_to from field_jobs where id = ${j!.id}`)[0]?.assigned_to, { timeout: 15_000 }).toBe(field.id);
@@ -274,38 +274,25 @@ test('field: a full handover with every photo and the renter signature, then a l
   await page.goto(`/staff/field/jobs/${job!.id}`);
   await page.getByTestId('acknowledge').click();
   await page.getByTestId('start').click();
-  await expect(page.getByTestId('ready-check')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByTestId('checklist')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByTestId('part-ready')).toHaveAttribute('data-ok', 'yes');
   await check(page, 'field ready check');
-  await next(page, 'Car ready');
-  await page.getByRole('button', { name: 'Yes' }).click();
-  await next(page, 'Is this the renter?');
-  await page.getByRole('button', { name: 'Yes' }).click();
-  await next(page, 'Original licence');
-  await page.getByRole('button', { name: 'Yes' }).click();
-  await next(page, 'Card on File');
-  await page.getByRole('button', { name: 'Yes' }).click();
-  await next(page, 'Odometer');
+  // one screen (release 42): the renter, the licence and the card are one tap each
+  for (const t of ['tick-renter', 'tick-licence', 'tick-card']) await page.getByTestId(t).click();
   await page.getByTestId('odometer').fill(String(odo!.o + 12));
-  await next(page, 'Fuel or charge');
   await page.getByTestId('fuel').fill('7');
-  await next(page, 'Keys');
   await page.getByTestId('keys-more').click(); await page.getByTestId('keys-more').click();
-  await next(page, 'Photo set');
   const shots = await page.locator('[data-testid^="shot-"]').count();
   expect(shots).toBe(19);
   await check(page, 'field photos');
   for (let i = 1; i <= shots; i++) await page.getByTestId(`shot-${i}`).setInputFiles({ name: `${i}.png`, mimeType: 'image/png', buffer: PNG });
   await expect(page.getByTestId('upload-count')).toContainText('19 of 19 photos taken · all uploaded', { timeout: 60_000 });
-  await next(page, 'Damage');
+  await page.getByTestId('damage-open').click();
   await expect(page.getByTestId('car-diagram')).toBeVisible();
-  await next(page, 'Tracker');
-  await next(page, 'Renter reviews');
   await expect(page.getByTestId('summary')).toContainText(`${odo!.o + 12} km`);
-  await next(page, 'Signatures');
   await draw(page, 'sign-renter'); await page.getByTestId('use-renter').click(); await expect(page.getByTestId('signed-renter')).toBeVisible({ timeout: 15_000 });
   await draw(page, 'sign-staff'); await page.getByTestId('use-staff').click(); await expect(page.getByTestId('signed-staff')).toBeVisible({ timeout: 15_000 });
   await check(page, 'field signatures');
-  await next(page, 'Hand over the keys');
   await complete(page, 'Checked in');
   const [after] = await sql`select b.status::text s, (select count(*)::int from condition_report_photos p join condition_reports c on c.id = p.condition_report_id where c.booking_id = b.id and c.kind = 'pickup') photos,
     (select renter_signature_ref is not null and completed_at is not null from condition_reports c where c.booking_id = b.id and c.kind = 'pickup') signed from bookings b where b.id = ${req.booking_id}`;
@@ -320,20 +307,16 @@ test('field: a full handover with every photo and the renter signature, then a l
   await page.goto(`/staff/field/jobs/${rj!.id}`);
   await page.getByTestId('acknowledge').click();
   await page.getByTestId('start').click();
-  await expect(page.getByTestId('step-title')).toHaveText('Car and keys received', { timeout: 15_000 });
-  await page.getByRole('button', { name: 'Yes' }).click();
-  await next(page, 'Odometer');
+  await expect(page.getByTestId('checklist')).toBeVisible({ timeout: 15_000 });
+  // the keys and the cleanliness start filled in (as at pickup, Standard); the renter is taken as present
+  await expect(page.getByLabel('Standard')).toBeChecked();
   await page.getByTestId('odometer').fill(String(odo!.o + 412));
-  await next(page, 'Fuel or charge');
   await page.getByTestId('fuel').fill('6');
-  await next(page, 'Keys and extras');
   await page.getByTestId('keys-more').click(); await page.getByTestId('keys-more').click();
-  await next(page, 'Cleanliness');
   await page.getByLabel('Standard').check();
-  await next(page, 'Photo set');
   for (let i = 1; i <= 19; i++) await page.getByTestId(`shot-${i}`).setInputFiles({ name: `r${i}.png`, mimeType: 'image/png', buffer: PNG });
   await expect(page.getByTestId('upload-count')).toContainText('19 of 19 photos taken · all uploaded', { timeout: 60_000 });
-  await next(page, 'Compare with pickup');
+  await page.getByTestId('damage-open').click();
   const box = (await page.getByTestId('car-diagram').boundingBox())!;
   await page.getByTestId('car-diagram').click({ position: { x: box.width * 0.5, y: box.height * 0.9 } });
   await page.getByTestId('damage-location').selectOption('rear bumper');
@@ -345,13 +328,14 @@ test('field: a full handover with every photo and the renter signature, then a l
   // contrast is read once the pointer has left the buttons and Next has finished its transition (a run on October 17
   // caught it mid-transition)
   await page.mouse.move(0, 0);
-  await expect(page.getByTestId('next')).toBeEnabled();
+  await expect(page.getByTestId('part-damage')).toHaveAttribute('data-ok', 'yes');
   await page.waitForTimeout(400);
   await check(page, 'field damage');
-  await next(page, 'Belongings');
-  await next(page, 'Renter reviews and signs');
+  // three hours late: the return screen asks how it is charged (never charged by itself); the late return fee here
+  await expect(page.getByTestId('part-late')).toContainText('Late return');
+  await page.getByTestId('late-late_fee').check();
+  await expect(page.getByTestId('late-summary')).toContainText('plus tax');
   await draw(page, 'sign-renter'); await page.getByTestId('use-renter').click(); await expect(page.getByTestId('signed-renter')).toBeVisible({ timeout: 15_000 });
-  await next(page, 'You sign and complete');
   await draw(page, 'sign-staff'); await page.getByTestId('use-staff').click(); await expect(page.getByTestId('signed-staff')).toBeVisible({ timeout: 15_000 });
   await complete(page, 'Checked out');
   const [ret] = await sql`select b.status::text s, b.minutes_late::int late, b.extra_days::int extra,
@@ -362,7 +346,10 @@ test('field: a full handover with every photo and the renter signature, then a l
   expect(ret!.late).toBeGreaterThanOrEqual(170);
   expect(ret!.incidents).toBe(1);
   expect(ret!.marked, 'the damage carries its place on the car diagram').toBe(true);
-  // the late fee is assessed from these findings by Finance (assess_check_in): the per-hour line is there
+  // the late return was charged as chosen on the return screen (2710): the decision, and the per-hour line
+  const [lr] = await sql`select d.status, d.option, (select count(*)::int from booking_line_items li where li.booking_id = d.booking_id and li.assessment_key = 'late_return_fee' and li.voided_at is null and li.amount_cents > 0) lines from late_return_decisions d where d.booking_id = ${req.booking_id}`;
+  expect(lr).toMatchObject({ status: 'decided', option: 'late_fee', lines: 1 });
+  // and the assessment by Finance (assess_check_in) keeps it
   const [fee] = await sql`select app.assess_check_in(${req.booking_id}::uuid, (select findings from condition_reports where booking_id = ${req.booking_id} and kind = 'return'), ${admin.id}::uuid) a`;
   expect(JSON.stringify(fee!.a)).toContain('late_return');
   expect(errors.filter((e) => !/favicon|Failed to load resource/.test(e))).toEqual([]);

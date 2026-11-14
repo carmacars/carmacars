@@ -37,7 +37,10 @@ export function useBlocks(vehicleId: string | null) {
   useEffect(() => {
     if (!vehicleId) return;
     let live = true; const today = torontoToday();
-    browserRpc<{ unavailable_from: string; unavailable_to: string }[]>('public_vehicle_calendar', { p_vehicle: vehicleId, p_from: today, p_to: addDays(today, 183) })
+    type Row = { unavailable_from: string; unavailable_to: string };
+    // one quiet retry before the visitor is told the calendar did not load (Nov 14)
+    const ask = () => browserRpc<Row[]>('public_vehicle_calendar', { p_vehicle: vehicleId, p_from: today, p_to: addDays(today, 183) });
+    ask().catch(() => new Promise<Row[]>((ok, no) => { setTimeout(() => { if (live) ask().then(ok, no); else no(new Error('gone')); }, 1200); }))
       .then((rows) => { if (live) setGot({ id: vehicleId, blocks: blocksFromCalendar(rows), failed: false }); })
       .catch(() => { if (live) setGot({ id: vehicleId, blocks: [], failed: true }); });
     return () => { live = false; };

@@ -4,6 +4,7 @@ import { door, sessionAal } from '@/server/door';
 import { storage } from '@/integrations/storage';
 import { SCHEMA_MARKER } from '@/lib/schema-marker';
 import { MAX_SHOTS, MAX_SHOT_BYTES, MIN_HAPPENED, SEVERITIES, cleanContext, cleanLogs, imageKind, pagePath, redact } from '@/features/bug-report/logs';
+import { foreignOrigin } from '@/lib/security/same-origin';
 
 // Release 37 (2340): a bug report from a staff member or an Admin. POST (form: report = JSON of the fields, the browser's
 // context and its last errors; shot = up to six images, the page's own picture first): the images go to the private
@@ -23,7 +24,7 @@ async function build(): Promise<string | null> {
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
   const host = req.headers.get('host');
-  if (origin && new URL(origin).host !== host) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403, headers: H });
+  if (foreignOrigin(origin, host, req.headers.get('sec-fetch-site'))) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403, headers: H });
   const user = await currentUser();
   if (!user) return NextResponse.json({ ok: false, message: 'Sign in first.' }, { status: 401, headers: H });
   const form = await req.formData().catch(() => null);

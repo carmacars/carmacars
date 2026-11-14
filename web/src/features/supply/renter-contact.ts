@@ -6,7 +6,16 @@ export interface RenterContactCase {
   /** the "paid by" choice on the form */ paidBy: string;
   /** the "Blocks the car's calendar" box */ blocks: boolean;
   /** an Admin's placeholder booking */ placeholder?: boolean;
+  /** the rental has already ended (2740) */ past?: boolean;
+  /** "Do not email the renter" is ticked (2740) */ doNotEmail?: boolean;
 }
+
+/** True when the renter's email may be left empty (migration 2740): the rental already ended, is billed to an insurer, or "Do not email the renter" is ticked. */
+export function emailOptional(c: RenterContactCase): boolean {
+  return c.paidBy === 'insurer' || !!c.past || !!c.doNotEmail;
+}
+
+export const EMAIL_OPTIONAL_NOTE = 'No email needed here: the rental has ended, is billed to an insurer, or "Do not email the renter" is ticked. The agreement is signed online, so nothing is sent until you add an email later.';
 
 /** True when the renter's email and phone are optional: billed to an insurer and off the calendar. */
 export function contactOptional(c: RenterContactCase): boolean {
@@ -35,6 +44,12 @@ export function renterProblem(f: NewRenterFields, c: RenterContactCase): string 
   } else if (!(f.full_name ?? '').trim() || !(f.date_of_birth ?? '').trim()) return 'Enter the renter\'s full legal name and date of birth.';
   if (contactOptional(c)) {
     if (email && !EMAIL.test(email)) return 'The email address does not look right: correct it, or leave it empty.';
+    return null;
+  }
+  if (emailOptional(c)) {
+    if (email && !EMAIL.test(email)) return 'The email address does not look right: correct it, or leave it empty.';
+    // an upcoming or underway rental that is not billed to an insurer still needs a way to reach the renter
+    if (!email && !mobile && c.paidBy !== 'insurer' && !c.past) return 'Enter the renter\'s email address or phone number.';
     return null;
   }
   if (!email || !EMAIL.test(email)) return 'Enter the renter\'s email address (like name@example.com).';

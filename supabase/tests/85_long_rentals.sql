@@ -129,7 +129,7 @@ select test.eq('the young driver fee as changed in the same edit', (select amoun
 select test.eq('still on trip', (test.lngb('r1')).status::text, 'on_rent');
 select test.ok('the edit is recorded with who, why and the totals',
   (select e.edited_by = test.id('lng_cs') and e.reason = 'Extended a week by phone' and e.told_renter and e.total_after_cents > e.total_before_cents
-     from booking_staff_edits e where e.booking_id = (test.lngb('r1')).id));
+     from booking_staff_edits e where e.booking_id = (test.lngb('r1')).id order by e.seq desc limit 1));   -- 2861: a fee change alone is kept as a change too
 select test.ok('the renter is told: an applied change by staff', exists (select 1 from booking_change_requests c where c.booking_id = (test.lngb('r1')).id and c.status = 'applied' and c.source = 'staff_calendar'));
 select test.ok('more to collect after the extension', (test.lngv('e1') ->> 'open_cents')::bigint > 0);
 select test.lives('a second cash payment recorded', $$select app.door(test.id('lng_cs'), 'aal2', 'ops_do', 'record_booking_payment',

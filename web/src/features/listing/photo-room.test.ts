@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { PHOTO_MAX_HEIGHT, PHOTO_TOP_MARGIN, lightMatch, maskQuality, photoPlace } from './photo-room.ts';
-import { composeShowroom, encodeJpeg, photoRoomPrompt, coverModelPrompt } from './showroom.ts';
+import { PHOTO_SPEC, composeShowroom, encodeJpeg, photoRoomPrompt, coverModelPrompt, type ShowroomProvider } from './showroom.ts';
 import { encodePng, type Rgba } from './subject-frame.ts';
 import { runJob, type JobContext, type WorkerDeps } from './worker.ts';
 import { fakePhotos } from '../../integrations/photos/fake.ts';
@@ -175,6 +175,38 @@ test('worker: a poor cut-out is never composited: the real photo is used, flagge
   // a cut-out staff edited is theirs: used even when the segmenter's mask was poor
   const edited = await runJob(s.deps({ showroomNoKey: true }), s.job({ input: { edit: { cutout_path: 'vehicles/v1/work/edited-cutout.png' } } }), budget);
   assert.notEqual((edited.output as Record<string, unknown> | undefined)?.used_original, true);
+});
+
+// r44 (2780): the owner: "backgrounds are not removed on the outside photos". A poor cut-out used to put the real photo on the
+// site with the place it was taken; now Gemini replaces its background from the original, in the same room every car has.
+test('r44 worker: a poor cut-out gets its background replaced by Gemini from the original; a bright answer is not used', async () => {
+  const s = await setup(mask(800, 400, (x, y) => (carShape(x, y) === 255 ? 255 : y > 40 && y < 360 && x > 40 && x < 760 ? 110 : 0)));
+  const asked: Array<{ prompt: string; ref: boolean; first: number }> = [];
+  const dark = encodeJpeg({ width: 1500, height: 1000, data: new Uint8ClampedArray(1500 * 1000 * 4).fill(25) });
+  const gem: ShowroomProvider = { name: 'ai', make: async (i, first) => { asked.push({ prompt: i.prompt ?? '', ref: !!i.reference, first: first[0]! }); return { ok: true, bytes: dark, contentType: 'image/jpeg', provider: 'ai', model: 'g1' }; } };
+  const noRoom = { background: null };
+  const r = await runJob(s.deps({ showroomAi: gem }), s.job(noRoom), budget);
+  const o = r.output as Record<string, unknown>;
+  assert.equal(r.ok, true);
+  assert.equal(o.used_original, undefined, 'not the original');
+  assert.equal(o.preset_version, 'studio_showroom_v2');
+  assert.deepEqual([o.width, o.height], [1800, 1200]);
+  assert.deepEqual(o.showroom, { provider: 'ai', model: 'g1', note: null, reason: null, mode: 'swap', spec: PHOTO_SPEC });
+  assert.equal(asked.length, 1);
+  assert.match(asked[0]!.prompt, /second image is an empty, dark CarmaCars car showroom/);
+  assert.ok(asked[0]!.ref, 'the empty room goes with it');
+  assert.equal(asked[0]!.first, 0xff, 'the original goes first (a JPEG)');
+  // an answer that still shows a bright place is not used: the old fallback (flagged), and with Redo with Gemini a failure
+  const bright = encodeJpeg({ width: 1500, height: 1000, data: new Uint8ClampedArray(1500 * 1000 * 4).fill(230) });
+  const sky: ShowroomProvider = { name: 'ai', make: async () => ({ ok: true, bytes: bright, contentType: 'image/jpeg', provider: 'ai', model: 'g1' }) };
+  const fb = await runJob(s.deps({ showroomAi: sky }), s.job(noRoom), budget);
+  assert.equal((fb.output as Record<string, unknown>).used_original, true);
+  const strict = await runJob(s.deps({ showroomAi: sky }), s.job({ ...noRoom, input: { engine: 'gemini' } }), budget);
+  assert.equal(strict.ok, false);
+  assert.match(strict.error ?? '', /Gemini could not replace the background \(the answer still shows the place/);
+  // the segmenter's own kept mask sent again by a redo is scored like a new one (only a staff edit is trusted as it is)
+  const redo = await runJob(s.deps({ showroomAi: gem }), s.job({ ...noRoom, input: { edit: { cutout_path: 'vehicles/v1/work/edited-cutout.png' }, auto_mask: true } }), budget);
+  assert.equal(((redo.output as Record<string, unknown>).showroom as Record<string, unknown>).mode, 'swap');
 });
 
 test('the room fetcher keeps only CC0, public domain and CC BY, and landscape interiors without people or shows', () => {

@@ -1,5 +1,347 @@
 [
  {
+  "release": "r45",
+  "title": "Release 45",
+  "date": "2026-11-14",
+  "seq": 0,
+  "summary": "Every car's listing photos are made again by Gemini from the originals, in the CarmaCars showroom with every plate blurred, every angle present and the front exterior first. Booking requests fill themselves from the renter's profile, a changed booking can be put back to an earlier version, field shifts open by themselves, staff agreements can be redone and a townhall that did not happen counts nobody absent.",
+  "areas": [
+   {
+    "area": "Staff tools",
+    "items": [
+     "A changed booking can be put back to any earlier version after a preview, without touching a payment",
+     "Offers and rentals entered by staff show the renter's licence, address and drivers already on file",
+     "Field shifts open by themselves ahead, with a shift for every handover and return",
+     "A townhall that did not happen no longer counts anyone absent",
+     "Staff agreements can be redone with the current terms, keeping the signed one on file"
+    ]
+   },
+   {
+    "area": "Website & search",
+    "items": [
+     "Every listing photo is made by Gemini from the original photo: outside photos stand in the CarmaCars showroom with nothing of the place they were taken in, inside photos are clean and sharp",
+     "Every licence plate is blurred so no character can be read, and no text appears anywhere else on a photo",
+     "Every car shows the full set of angles: front three-quarter, front, side profile, rear three-quarter, rear, dashboard, front seats, rear seats and trunk, the ones never photographed generated from the car's own photos",
+     "The front three-quarter is always the first photo, then the other outside photos, then the inside ones",
+     "A second check refuses any photo with the old background, a warped car, another colour or model, missing or added parts, or text, and such a photo never goes on the site"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "r46",
+  "title": "Release 46",
+  "date": "2026-11-14",
+  "seq": 0,
+  "summary": "An Admin can show one lead's full phone number to one salesperson and hide it again; pop-ups and the top row fit a phone; four pages are sturdier; the Canada agreements To do leaves out test accounts.",
+  "areas": [
+   {
+    "area": "Staff tools",
+    "items": [
+     "An Admin shows a lead's full phone number to its salesperson, lead by lead, and hides it again; every other lead stays hidden",
+     "Sales asks for a lead's number in one tap, and the request reaches an Admin as a To do",
+     "The To do to send staff in Canada a new agreement leaves out test accounts"
+    ]
+   },
+   {
+    "area": "Reliability & security",
+    "items": [
+     "Four pages made sturdier: a time written the same by the server and every browser, a leads page that still opens when one of its lists cannot load, the pay page under the browser's own translation, and a page left open across an update that reloads by itself",
+     "Every pop-up and the portals' top row fit a phone at 375 and 320 pixels wide, checked by a test"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "r47",
+  "title": "Release 47",
+  "date": "2026-11-14",
+  "seq": 0,
+  "summary": "A car's own photos stay on the site while their new versions are made, and the first outside photo always leads.",
+  "areas": [
+   {
+    "area": "Website & search",
+    "items": [
+     "On a phone, the menu opened partway down a page keeps the header (logo and Close) at the top",
+     "The cars list for chosen dates loads again: each car is priced once, about seven times faster, and a busy moment is retried quietly",
+     "A car's own photos stay on the site while their new Gemini versions are made; one that is refused stays as it was and is flagged",
+     "The first outside photo leads the gallery and the cards wherever it sits, so no car shows a drawn sample while it has photos",
+     "The cars that rent least come first in the fleet, with a partner's fleet after our own cars",
+     "Every car shows nine views generated from its own photos in a photorealistic showroom, the front three-quarter first; a view that fails the check leaves the car's real photo in its place"
+    ]
+   },
+   {
+    "area": "Reliability & security",
+    "items": [
+     "Website error alerts count only real errors, once a page a day with how many people met it; dropped connections, stale tabs and browser translation are kept on record without an alert",
+     "Pages no longer fail when the browser translates them, or when a busy moment delays a page's title"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "r44",
+  "title": "Release 44",
+  "date": "2026-11-13",
+  "seq": 0,
+  "summary": "Staff make and take calls in the browser from anywhere, Sales sees which cars are free for any dates, every car's listing photos are made to one Gemini standard with the front exterior first, and owner statements count a cancellation only for what it kept.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "Telling us the car is back, and sending photos of a problem, now work from a phone browser opened by a text message link"
+    ]
+   },
+   {
+    "area": "Owners",
+    "items": [
+     "A cancelled or no-show booking is on the owner's statement only for the charge actually kept: nothing paid, no line",
+     "Owners see every rental their cars have been on, oldest or newest first, with their earnings for each as their statements count them"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "Staff make and take calls in the browser of the staff and Admin portals on the business number, from anywhere, without using their own phone number",
+     "A call to the business number rings the staff who are online by role, and a call nobody answers becomes a missed call with its follow-up task",
+     "The calendar shows, for any pickup and return, which cars are available, why the others are not and when they are free next, with one click to an offer for those dates",
+     "The AI interview decides by itself again by default, and new hires are welcomed with their training, shift claiming and the team chat",
+     "A booking's total and balance follow every change of a line, and an Admin can set a total directly",
+     "Paperwork for insurer-billed rentals matches the insurer's own numbers exactly, and an ended rental can be signed for the file",
+     "Payment records show only money actually received, and a new data check lists any booking where they disagree",
+     "The automatic answers wait while a person is talking with the customer, also in the live chat",
+     "Field staff can add the photos and readings of past check-ins and check-outs, from a list of the ones still missing"
+    ]
+   },
+   {
+    "area": "Website & search",
+    "items": [
+     "Every outside photo has the same CarmaCars showroom behind it: when a car cannot be cut out cleanly, Gemini replaces the background from the original photo instead of leaving the place it was taken in",
+     "The plate is only ever on the car's plate: no plate text on the wall sign, the model name or anywhere else on the photo",
+     "Inside photos are sharp across the whole cabin, never blurred; the blurred ones are made again",
+     "The first photo of every car is its outside front three-quarter: outside photos filed as details are found and moved, so Redo photos with Gemini no longer answers that there is nothing to redo",
+     "Redo every car with Gemini brings the whole fleet to the current photo standard, and the rest follows by itself within Gemini's daily allowance"
+    ]
+   },
+   {
+    "area": "Reliability & security",
+    "items": [
+     "Every request from the phone service is checked against its signature before anything is done",
+     "A person who works in Sales only can read only their own leads"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "r39",
+  "title": "Release 39",
+  "date": "2026-11-12",
+  "seq": 0,
+  "summary": "Listing photos in real photographed showroom rooms (or the real photo when the cut-out is not clean), and a self-check of the live site after every deploy.",
+  "areas": [
+   {
+    "area": "Staff tools",
+    "items": [
+     "Outside listing photos stand in a real photographed dealership room when one is stored: the car about 70% of the width, its wheels on the floor, a soft contact shadow and a faint reflection, its light matched to the room; no sign or lettering on a real wall",
+     "The rooms are real photos licensed for commercial use (CC0, public domain or CC BY), fetched once from Wikimedia Commons with their author, licence and source kept; until one is stored the drawn showroom stays",
+     "A cut-out that is not clean enough (pieces, a blurry or ragged edge) is never placed in a room: the real photo is used, its plate covered as usual, and the photo says why",
+     "Program settings > Listings: the photographed rooms switch (on), the car's width in the room (0.70) and the cut-out quality floor (0.60)"
+    ]
+   },
+   {
+    "area": "Reliability & security",
+    "items": [
+     "After every deploy the site checks itself: a key page or the sign-in page failing (5xx, Error 1101) fails the deploy; listed cars on the stand-in while they have a real photo, stand-in lettering that overflows, covers made from a poor cut-out, empty sitemaps and pages wrongly marked noindex send the Admins an alert (Site self-check) and are kept as a report"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "r40",
+  "title": "Release 40",
+  "date": "2026-11-12",
+  "seq": 0,
+  "summary": "Search pages kept to Ontario, cars from 2005 and newer, and one page per service with its other names listed on it.",
+  "areas": [
+   {
+    "area": "Staff tools",
+    "items": [
+     "Welcome tells a new staff member what their agreement is waiting for (home address, driver's licence number) with a link to each place, what only CarmaCars can set, and that it arrives within about 5 minutes once the profile is complete; filling in a missing value now makes the agreement at the next run instead of the next day",
+     "Every form on the website, when it cannot be sent, lists what is missing or wrong near the send button, outlines each such field in red with a short message and moves the cursor to the first one",
+     "Sales calls and texts every lead and request through the site again while customer numbers stay hidden; the first call asks for the salesperson's own mobile once and saves it without a texted code, and a call that cannot start says what to do",
+     "Settings > Search: Ontario is the only region on; any region can be switched back on, and the place pages, sitemaps and the list of provinces follow at once",
+     "Settings > Vehicle pages: the oldest model year with pages (2005), a setting",
+     "The other names of a service send visitors to the service's page with a permanent redirect and are in no sitemap; different services (interior and exterior detailing, ceramic coating, window tint, PPF, financing, leasing, lease takeover, the replacement rental while a car is repaired, each mechanical service) keep their own pages",
+     "Pages of the regions that are off and of older model years are answered at the edge, before the site renders anything"
+    ]
+   },
+   {
+    "area": "Website & search",
+    "items": [
+     "The place pages cover Ontario only: every city, town and neighbourhood in Ontario keeps its pages; the other provinces, the United States and Mexico are switched off (kept, not deleted) and answer not found",
+     "The pages of a whole province, territory or country that is off (Quebec, British Columbia, the United States, Mexico ...) answer not found and leave the /car-rental hub; the Canada page says we operate in Ontario",
+     "Vehicle pages cover model years from 2005 on; older years have no page and are in no sitemap or list of years",
+     "One page per service in each place and for each make, model and year: car hire, cars for hire and vehicle rental lead to the car rental page, auto body repair to collision repair, auto detailing to car detailing; each page lists the other names it is searched by (\"Also searched as: ...\")"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "r41",
+  "title": "Release 41",
+  "date": "2026-11-12",
+  "seq": 0,
+  "summary": "Every portal updates by itself, marketing emails go to everyone who gave us their email with one-click unsubscribe, and protection is changed in one step by staff and renters.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "A trip's status, payment, agreement and checklist update on the page by themselves",
+     "A weekly email with the cars ready to rent and the deals running, and an email each time a new car joins the fleet",
+     "One click unsubscribes from every marketing email, at once; booking, payment and safety emails always go",
+     "The privacy policy (updated November 12, 2026) says who gets marketing emails, why (CASL implied consent), who sends them and how to unsubscribe",
+     "Renters change their own protection on their booking page: the Protection Plan at once, their own policy or card coverage before pickup, and leaving the Protection Plan after our team checks their proof",
+     "Credit card coverage is chosen only with a card from our list that covers the car and a promise to pay with it; otherwise the renter's own auto policy with a promise to upload the policy; otherwise the Protection Plan",
+     "No more \"send me deals\" box on the booking request, the car pages or the discount game"
+    ]
+   },
+   {
+    "area": "Owners",
+    "items": [
+     "The owner's dashboard, bookings and money update by themselves",
+     "Owners are no longer emailed when a booking comes in, since many bookings are cancelled: they are emailed when a trip is complete and the car is back (dates, distance driven and their share), and every Monday with a summary of last week's trips, the next 14 days and the month so far"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "Bookings, a booking's page, requests and offers, leads, messages, the calendar, Today, field jobs and shifts show changes made elsewhere within about two seconds, without a reload",
+     "The alerts bell and its pop-up react as soon as an alert arrives",
+     "What someone is typing is kept: an update waits until they leave the field",
+     "Marketing > Email campaigns: the audience, what is waiting, queued and sent, who unsubscribed, and each campaign; Sales sees it read only",
+     "Lists show the newest first, in the order they came in: bookings, hiring applications, leads (Sort still offers Priority and Oldest), investors and every other list; queues ordered by urgency or time stay as they are",
+     "Each campaign has its own switch and timing; marketing email volume rises automatically to the free capacity left after booking emails, never on a paid plan",
+     "Staff change how damage to the car is covered with one button on the booking: the three options with their prices, a required reason, and the new price applied at once without moving money by itself",
+     "Every listing photo has its licence plate checked automatically: a plate found is covered, a photo with no plate is marked \"No plate visible\", and a photo the check is not sure of is left for staff, each with one-click undo",
+     "\"Cover the plate\" opens the editor right under its photo and saves the CARMA plate again",
+     "Photos already on file are checked the same way, within the day's free AI allowance",
+     "Townhall reminders to every staff member and Admin: the day before, the morning of, an hour before and 15 minutes before with the join link",
+     "A townhall card on every portal home from the day before: the time, a countdown, Join / check in, Add to calendar, and a warning after a missed townhall",
+     "Interview call reminders for Admins (the morning of, an hour before the first call, 10 minutes before each) and Interviews today on Admin Today",
+     "AI interviews decide by themselves at a higher bar: a pass is hired into the academy (field: invited to a live call), a fail gets the decline or Sales email once; only a booked live call is a To-do",
+     "A harder AI interview: reliability, a typed customer message, an objection for Sales, and more probing follow-ups"
+    ]
+   },
+   {
+    "area": "Reliability & security",
+    "items": [
+     "Live updates read a tiny version number straight from the database while a tab is open and visible, and nothing while it is hidden; a faster push channel switches on when the server's live service is enabled",
+     "Emails can go through Amazon SES first, a high-volume sender in Canada, with the existing senders taking over on their own when it cannot send",
+     "Booking and system emails keep a free backup sender for when the main one cannot send, and marketing emails use a free sender only, so no email goes through a paid plan beyond the main sender"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "r42",
+  "title": "Release 42",
+  "date": "2026-11-12",
+  "seq": 0,
+  "summary": "Addresses that bounce or complain are never emailed again, the faster live channel switches on, owners hear about a booking the moment it starts counting toward their revenue, and a rental covered by a credit card must be paid with that card's network.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "When a rental is covered by the renter's credit card, the pay page says \"Pay with the card that covers this rental\" with the card's network, and stops a card of another network before it is charged",
+     "A request to book that cannot be sent now says exactly what to change, beside the field, and keeps everything typed",
+     "An add-on that cannot be added online no longer stops the request: staff confirm it in the offer"
+    ]
+   },
+   {
+    "area": "Owners",
+    "items": [
+     "The owner and admin guides now say which bookings an owner statement carries: bookings paid by the renter always, and not a booking billed to an insurer that is hidden from the owner or that does not block the calendar",
+     "A booking that starts counting later reaches the owner with the new booking email"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "A deposit hold on a card now lasts about 30 days on Visa, Mastercard, Amex and Discover cards (about 7 days on other cards), so fewer holds need to be placed again during a rental",
+     "When a booking that was left out of the owner's revenue starts counting (it blocks the calendar, is shown to the owner or is billed to the renter), the owner gets the new booking email once, at that moment, never twice",
+     "Admins see **Requests that did not go through** on All leads: how many, the reasons, and each person with the car and dates",
+     "Sales gets a To-do for every request to book that was refused or failed, once per person, car and day; it closes by itself when the request arrives"
+    ]
+   },
+   {
+    "area": "Website & search",
+    "items": [
+     "The site reads its own search figures every day once an Admin connects the search console with one button: clicks, impressions and average position for the last 28 days, and the searches behind each page",
+     "A landing page or a guide that ranks just under the first results, or is shown often and rarely clicked, is written again by itself with the searches people used, a few pages a day",
+     "The sitemap is submitted every day, and written pages that appear in no search are checked and sent to the search engines again"
+    ]
+   },
+   {
+    "area": "Reliability & security",
+    "items": [
+     "If a card cannot take the longer deposit hold, the usual hold is placed by itself, so the renter is never stopped",
+     "A card of another network than the one that covers the rental is refused on the server before the booking is confirmed, with a plain message and nothing charged",
+     "An address whose mailbox does not exist, or that reports one of our emails as unwanted, is blocked automatically and not emailed again",
+     "The faster push channel for live updates switches on with the server's next update",
+     "If the request form hits a problem on our side, the request is kept, the customer is told we will contact them, and it is tried once more by itself first",
+     "More people can send requests from one shared internet connection in an hour (30, was 5)"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "r43",
+  "title": "Release 43",
+  "date": "2026-11-12",
+  "seq": 0,
+  "summary": "Staff taking calls get a Call helper, only Sales is hired by the AI interview by itself, with video answers scored out of 10 and a stricter pass, every car shows its front exterior first, and the Protection Plan switch uses the car's own price.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "Sending \"I've returned the car\" no longer fails on a server hiccup: it is tried again by itself, and an error shows its code instead of only asking to call",
+     "The first photo of every car on the site is its exterior at the front angle"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "A Sales person who closed a sale with a customer keeps that customer's conversation and activity on every booking, the later ones included",
+     "The automatic AI answer waits when a person replied to that customer in the last 30 minutes, by text (from the site or the phone app) or by email; the minutes are a setting in Program settings, AI auto-replies",
+     "Only a Sales applicant who passes the AI interview is hired by itself; every other role that passes is invited to book an interview date",
+     "An Admin can press **Redo the AI interview**: the old interview is kept as history and the applicant gets a new link",
+     "**Primary photo is not exterior** flags a car whose first photo is an inside one, and **Redo photos with Gemini** makes its outside photos again",
+     "Switching a booking to the Protection Plan uses the car's own plan price instead of being refused (included through the release 42 hotfix)",
+     "Check-in and check-out are one screen on the phone instead of ten to fourteen steps: each part shows a tick when it is done, and the button at the bottom says what is still needed",
+     "The odometer, fuel and keys are filled in from the tracker or the car's last report, photos are one tap each, and anything optional is folded away; an interrupted handover opens where it was left",
+     "A late return is no longer charged by itself: staff choose on the return screen or on the booking between an extension, extra days, the late return fee, a custom amount with a reason, or waiving it with a reason",
+     "The same one-screen handover opens for Admins, the assistants and field staff",
+     "The caller pop-up has a Call helper: a greeting to read out with the staff member's own first name and the caller's, a button for each kind of call (new booking, change a booking, late return, damage or accident, payment or deposit, owner calling, job applicant, other) with what to say and the next action, and a search over quick answers",
+     "The greetings, the steps and the quick answers are written by an Admin in Settings, Call helper, and change on the next call; the amounts, days and percentages in them are read from the settings, never typed",
+     "The caller pop-up minimizes to a small bar with the caller's name and the call's timer, and opens again from it; a click outside the panel or Esc minimizes it instead of closing it, and it follows the device's dark mode",
+     "Every list of people and records has a sort: Newest first, Oldest first, Recently active and A to Z, and people lists open newest first",
+     "Hiring and onboarding are one pipeline, one stage per person, with the next action on each line",
+     "Waiting for your approval is the first thing on Staff and roles and on Today, with Approve and Reject",
+     "After every release, each portal shows a What's new pop-up once with what changed for that person, and **What's new** in the menu opens it again",
+     "Owners see each car's current kilometres and its next service (what, in how many km or by which date) on their dashboard and car page",
+     "Add a rental: the renter's email is optional for a rental that already ended, is billed to an insurer, or is marked not to email the renter"
+    ]
+   },
+   {
+    "area": "Reliability & security",
+    "items": [
+     "Every late return choice is recorded with who made it and why, the renter gets a message that says what was chosen, and an amount above a person's limit or a waiver still waits for an Admin",
+     "The AI interview takes video answers only, scores every answer out of 10, and passes only answers averaging 7 or more with none under 5 and good or fluent English"
+    ]
+   }
+  ]
+ },
+ {
   "release": "r33",
   "title": "Release 33",
   "date": "2026-11-08",

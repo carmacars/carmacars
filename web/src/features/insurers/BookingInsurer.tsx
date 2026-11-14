@@ -2,6 +2,7 @@ import Link from '@/components/Link';
 import { $, Badge, Card, Kv, d } from '@/features/admin/ui';
 import { rateLine, rateSource, type SheetRate } from './rates';
 import { InsurerFeesCard, type InsurerFeeRow } from './InsurerFeesCard';
+import { Act } from '@/features/admin/Act';
 
 // The booking's Insurance replacement card (migration 0163): the insurer and claim, the daily rate and where it comes
 // from (the rate sheet, or typed with its reason, flagged when it differs from the sheet), the caps and allowance, what
@@ -33,6 +34,10 @@ export function BookingInsurer({ x }: { x: BookingInsurerData }) {
       {x.invoices?.length ? <ul className="ad-list" data-testid="booking-insurer-invoices">{x.invoices.map((i) => (
         <li key={i.id}><a className="link" href={`/files/insurer_invoice/${i.id}`}>{i.invoice_number}</a> <Badge s={i.status} />
           <span className="ad-sub">{$(i.total_cents)}{i.balance_cents > 0 && i.status !== 'draft' ? `, ${$(i.balance_cents)} outstanding` : ''}{i.daily_rate_cents != null ? `, at ${$(i.daily_rate_cents)} a day` : ''}</span>
+          {/* r44: issue it from the booking: by email (the adjuster's email on the booking, else the insurer's billing email), or mark it sent */}
+          {i.status === 'draft' && <span className="ad-actions"><Act ops action="insurer_invoice_email" payload={{ id: i.id }} label="Send by email" variant="primary" testId="booking-insurer-invoice-email"
+            confirm={`Email invoice ${i.invoice_number} to the adjuster's email on the booking (else the insurer's billing email) with a link to the PDF. The invoice is marked sent.`} refresh={[]} done="Sent. The invoice is issued." />
+            <Act action="insurer_invoice_send" payload={{ id: i.id }} label="Mark sent (no email)" confirm="Record the invoice as sent without an email from here (sent another way)." refresh={[]} done="Marked sent. The invoice is issued." testId="booking-insurer-invoice-sent" /></span>}
           {' '}<Link prefetch={false} className="link small" href={`/admin/insurers?tab=invoices${i.status === 'draft' ? '&status=draft' : ''}`}>Insurer invoices</Link></li>))}</ul>
         : <p className="small muted">No invoice yet: press Draft insurer invoice once the booking is confirmed.</p>}
     </Card>

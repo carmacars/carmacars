@@ -3,6 +3,7 @@ import { currentUser } from '@/server/portal/data';
 import { door, rolesOf, sessionAal } from '@/server/door';
 import type { LiveData, SessionDetail } from '@/features/live/staff';
 import { liveWithoutContact, visitorWithoutContact } from '@/features/live/contact';
+import { foreignOrigin } from '@/lib/security/same-origin';
 
 // Live visitors and Live chat for staff (migration 0060): the pages poll this every few seconds (short polling: one
 // small read through the door, no open connection), and every action goes the same way. Admins, customer service
@@ -45,7 +46,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
-  if (origin && new URL(origin).host !== req.headers.get('host')) return NextResponse.json({ error: 'Not permitted' }, { status: 403, headers: H });
+  if (foreignOrigin(origin, req.headers.get('host'), req.headers.get('sec-fetch-site'))) return NextResponse.json({ error: 'Not permitted' }, { status: 403, headers: H });
   const w = await who();
   if (!w) return NextResponse.json({ error: 'Sign in first' }, { status: 401, headers: H });
   const b = (await req.json().catch(() => null)) as ({ action?: string } & Record<string, unknown>) | null;

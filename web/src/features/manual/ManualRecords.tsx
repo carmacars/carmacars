@@ -72,7 +72,7 @@ export function ManualPaymentForm({ invoice, booking, number, balance, today, re
   );
 }
 
-export interface ManualRow { id: string; method: string; method_label: string; amount_cents: number; received_on: string; reference: string | null; voided_at: string | null; void_reason?: string | null; note?: string | null; proof_document_id?: string | null; recorded_by_name?: string | null }
+export interface ManualRow { id: string; method: string; method_label: string; amount_cents: number; received_on: string; reference: string | null; voided_at: string | null; void_reason?: string | null; note?: string | null; proof_document_id?: string | null; recorded_by_name?: string | null; settles_payment_id?: string | null }
 
 /** The payments recorded by hand on one invoice or booking, with Void (Admins). */
 export function ManualPaymentList({ rows, canVoid, docBase = '/admin/documents', refresh = [] }: { rows: ManualRow[]; canVoid: boolean; docBase?: string; refresh?: string[] }) {

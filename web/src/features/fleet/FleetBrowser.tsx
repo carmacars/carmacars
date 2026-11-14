@@ -93,7 +93,9 @@ function Browser({ cars, labels, classes, maxDays, gate, p, sync }: Props & { p:
   useEffect(() => {
     if (!availKey) return;
     let live = true;
-    browserRpc<Avail[]>('search_available', { p_pickup: torontoInstant(dates.from, tf), p_return: torontoInstant(dates.to, tt), p_filters: {} })
+    // one quiet retry: a busy moment of the database is not shown to the visitor (the owner's report, Nov 14)
+    const ask = () => browserRpc<Avail[]>('search_available', { p_pickup: torontoInstant(dates.from, tf), p_return: torontoInstant(dates.to, tt), p_filters: {} });
+    ask().catch(() => new Promise<Avail[]>((ok, no) => { setTimeout(() => { if (live) ask().then(ok, no); else no(new Error('gone')); }, 1200); }))
       .then((rows) => { if (live) setRes({ key: availKey, avail: new Map(rows.map((r) => [r.vehicle_id, r])), failed: false }); })
       .catch(() => { if (live) setRes({ key: availKey, avail: null, failed: true }); });
     return () => { live = false; };
@@ -125,7 +127,7 @@ function Browser({ cars, labels, classes, maxDays, gate, p, sync }: Props & { p:
     if (sync && window.location.pathname + window.location.search !== next) window.history.replaceState(window.history.state, '', next);
   }, [sync, hasDates, dates.from, dates.to, tf, tt, mode, cls, seats, trans, make, modelOk, col, max, sort, maxP, qText]);
 
-  useEffect(() => { document.body.style.overflow = panel ? 'hidden' : ''; return () => { document.body.style.overflow = ''; }; }, [panel]);
+  useEffect(() => { document.documentElement.style.overflow = panel ? 'hidden' : ''; return () => { document.documentElement.style.overflow = ''; }; }, [panel]);
 
   // fold on a phone once the cars have scrolled 200px under the stuck bar; open again once the bar is back in its place.
   // Measured from a mark above the bar (the bar's own height changes when it folds), with a wide gap between the two

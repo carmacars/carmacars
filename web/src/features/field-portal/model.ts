@@ -1,6 +1,8 @@
 // The field staff portal (release 35, part X; migrations 0930 and 0931): the shapes the database returns, the tabs, and the
 // plain words of each card. Pure, unit-tested (model.test.ts).
 
+import { torontoAt } from '../../lib/clock.ts';
+
 export type CardType = 'job' | 'prep' | 'clean' | 'service' | 'photos';
 export interface Addon { id: string; name: string; quantity: number; note: string | null; ticked: boolean; ticked_at: string | null; ticked_by: string | null }
 export interface Blocker { code: string; label: string }
@@ -125,9 +127,15 @@ export function toCents(s: string): number | null {
   return Math.round(Number(t) * 100);
 }
 
-const tz = 'America/Toronto';
-export const clockText = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: tz, hour: 'numeric', minute: '2-digit' }).format(new Date(iso)).replace('a.m.', 'AM').replace('p.m.', 'PM');
-export const dayText = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: tz, weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(iso));
+// r46: only Intl's numbers (lib/clock.ts), the words are ours. Intl's own "9:00 a.m." has a narrow no-break space on the
+// server's ICU and a plain space in Chrome, so Admin > Field jobs (its work lists are drawn again in the browser) failed
+// with React error 418 (the server's text did not match the browser's).
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+/** "9:05 AM" in Toronto. */
+export const clockText = (iso: string) => { const p = torontoAt(iso); return p ? `${((p.hour + 11) % 12) + 1}:${String(p.minute).padStart(2, '0')} ${p.hour < 12 ? 'AM' : 'PM'}` : ''; };
+/** "Sat, Nov 8" in Toronto. */
+export const dayText = (iso: string) => { const p = torontoAt(iso); return p ? `${DAYS[p.weekday]}, ${MONTHS[p.month - 1]} ${p.day}` : ''; };
 export const shiftText = (a: string, b: string) => `${dayText(a)}, ${clockText(a)} to ${clockText(b)}`;
 /** Hours under 24 before the start: a give-up then is flagged as late. */
 export const isLate = (startIso: string, now: number, hours = 24) => new Date(startIso).getTime() - now < hours * 3_600_000;

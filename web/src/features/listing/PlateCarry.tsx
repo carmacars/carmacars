@@ -29,7 +29,7 @@ export function PlateCarry({ photos }: { photos: Photo[] }) {
           const c = await staffRead<{ cover_text: string }>('photo_plate_context', { photo: p.id });
           if (!c.ok || gone) continue;
           const img = await new Promise<HTMLImageElement>((res, rej) => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => res(i); i.onerror = rej; i.src = editorPhotoSrc(p.id); });
-          const boxes = p.plate_carry!.boxes!, style = p.plate_carry!.style ?? 'carma';
+          const boxes = p.plate_carry!.boxes!, style = 'blur' as const;
           const out = await exportCovered(img, boxes, style, c.data.cover_text, (p.variants ?? []).map((v) => v.width), undefined, plateEnd(p.shot_type));
           const fd = new FormData();
           fd.set('photo', p.id); fd.set('style', style); fd.set('boxes', JSON.stringify(forSave(boxes)));

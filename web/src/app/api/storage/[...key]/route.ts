@@ -17,7 +17,9 @@ interface R2Ranged { get(key: string, o?: { range?: { offset: number; length?: n
 
 async function target(params: Promise<{ key: string[] }>) {
   if (env().STORAGE_PROVIDER !== 'local' && env().STORAGE_PROVIDER !== 'r2-binding') return null;
-  const [bucket, ...rest] = (await params).key.map(decodeURIComponent);
+  let parts: string[];
+  try { parts = (await params).key.map((k) => decodeURIComponent(k)); } catch { return null; }
+  const [bucket, ...rest] = parts;
   if (!bucket || !PRIVATE_BUCKETS.includes(bucket as Bucket) || !rest.length) return null;
   return { bucket: bucket as Bucket, key: rest.join('/') };
 }
@@ -44,7 +46,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ key: str
     const end = range[1] && range[2] ? Math.min(Number(range[2]), size - 1) : size - 1;
     if (start >= size || start > end) return new Response(null, { status: 416, headers: { 'content-range': `bytes */${size}` } });
     return new Response(body.slice(start, end + 1) as unknown as BodyInit, { status: 206, headers: {
-      'content-type': type, 'content-range': `bytes ${start}-${end}/${size}`, 'accept-ranges': 'bytes', 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff' } });
+      'content-type': type, 'content-range': `bytes ${start}-${end}/${size}`, 'accept-ranges': 'bytes', 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff', 'content-security-policy': 'sandbox' } });
   }
   return new Response(body as unknown as BodyInit, { headers: {
     ...(media ? { 'accept-ranges': 'bytes' } : {}),

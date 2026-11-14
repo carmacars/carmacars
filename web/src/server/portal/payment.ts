@@ -3,6 +3,7 @@ import { rpc } from '@/lib/db/repo';
 import { payments, type Intent } from '@/integrations/payments';
 import { enqueuePdfJobs } from '@/server/pdf-jobs';
 import { intentOpened } from './intent-log';
+import { recheckCapture } from './capture-check';
 
 // Paying for a booking (02-booking-and-renter.md section 6 and section 2 step 9). The card is
 // authorized first (manual capture); public.server_record_booking_payment then locks the car and
@@ -70,6 +71,9 @@ export async function settleIntent(intentId: string, by: string | null, eventId:
   if (!bookingId || i.metadata.purpose !== 'booking_total') return { ok: false, reason: 'not_a_booking_payment', message: 'This payment is not for a booking.' };
   const f = await paymentFacts(bookingId);
   if (i.status === 'canceled') return { ok: false, reason: 'canceled', message: 'This payment was cancelled. Nothing was charged.', bookingNumber: f.booking_number };
+  // r47 (2899): a captured intent whose capture was recorded as failed (a clash before r47) is recorded as paid again and
+  // its capture_failed To do closed; nothing for any other booking
+  if (i.status === 'succeeded') await rpc('server_booking_payment_captured' as never, { p_booking: bookingId, p_processor: { processor: 'stripe', payment_id: i.id } } as never, SR).catch(() => undefined);
   if (i.status !== 'requires_capture' && i.status !== 'succeeded') {
     return { ok: false, reason: 'not_authorized', message: i.lastError ?? 'The card was not approved. Nothing was charged.', bookingNumber: f.booking_number };
   }
@@ -95,7 +99,13 @@ export async function settleIntent(intentId: string, by: string | null, eventId:
     try {
       await p.captureIntent(i.id, `capture:${i.id}`);
     } catch (e) {
-      await rpc('server_booking_payment_capture_failed', { p_booking: bookingId, p_processor: { processor: 'stripe', payment_id: i.id }, p_error: e instanceof Error ? e.message : String(e) }, SR).catch(() => undefined);
+      // captured after all (a retry, or the other settlement): never mark a paid booking unpaid. r47: an idempotency clash
+      // (the other request still capturing) is read again a few times before anything is recorded (capture-check.ts)
+      const msg = e instanceof Error ? e.message : String(e);
+      const check = await recheckCapture(msg, () => p.retrieveIntent(i.id), (ms) => new Promise((r) => setTimeout(r, ms)));
+      if (check === 'failed') {
+        await rpc('server_booking_payment_capture_failed', { p_booking: bookingId, p_processor: { processor: 'stripe', payment_id: i.id }, p_error: msg }, SR).catch(() => undefined);
+      }
     }
   }
   // the signed copy: a background job in its own request (0077), so paying never waits for a PDF

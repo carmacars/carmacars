@@ -22,7 +22,8 @@ export default defineConfig({
   // merges into one list and one reports/e2e.json
   reporter: [['list'], ['json', { outputFile: 'reports/e2e.json' }], ...(process.env.PW_BLOB ? [['blob', { fileName: `report-${process.env.PW_BLOB}.zip` }] as const] : [])],
   // test mode: prefers-reduced-motion, so the site's motion (src/styles/motion.css) never moves under a test or axe;
-  // tests/e2e/motion.spec.ts turns it on and checks it
+  // tests/e2e/motion.spec.ts turns it on and checks it. The What's new pop-up does not open by itself on a test server;
+  // tests/e2e/whats-new.spec.ts asks for it (x-cc-whats-new: show).
   use: { baseURL: base, trace: 'retain-on-failure', contextOptions: { reducedMotion: 'reduce' }, launchOptions: { args: ['--no-proxy-server', '--force-prefers-reduced-motion'] } },
   projects: [
     { name: 'phone-375', use: { viewport: { width: 375, height: 812 }, isMobile: false, hasTouch: true } },

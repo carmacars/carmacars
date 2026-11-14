@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { foreignOrigin } from '@/lib/security/same-origin';
 import { storage } from '@/integrations/storage';
 import { claimPhotoKey, MAX_PHOTO_BYTES } from '@/features/returns/claim';
 import { readClaim } from '@/features/returns/server';
@@ -10,9 +11,11 @@ import { imageSniff } from '@/lib/file-sniff';
 // report itself (POST /api/returned/<token>) lists the keys, and the database accepts only keys of this booking.
 export const dynamic = 'force-dynamic';
 
+
 export async function POST(req: Request, { params }: { params: Promise<{ token: string }> }) {
   const origin = req.headers.get('origin');
-  if (origin && new URL(origin).host !== req.headers.get('host')) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
+  // r44: the shared rule: "null" from an in-app browser (the text message's link) is this site when same-origin
+  if (foreignOrigin(origin, req.headers.get('host'), req.headers.get('sec-fetch-site'))) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
   const c = await readClaim((await params).token);
   if (!c) return NextResponse.json({ ok: false, message: 'This link is not valid.' }, { status: 404 });
   if (!c.can_report) return NextResponse.json({ ok: false, message: 'This booking has no return to report.' }, { status: 409 });

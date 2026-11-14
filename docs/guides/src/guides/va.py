@@ -106,7 +106,7 @@ def build():
         f'Something wild happened this week? {B("Tell yours")} under Craziest story of the week: an Admin picks one for the deck.',
         'Each week\'s recording is listed on the Townhall page.',
     ])
-    g.tip('Two townhalls missed in a row lock your account until an Admin restores it.', 'Watch out')
+    g.tip('Two townhalls missed in a row lock your account until an Admin restores it. A townhall that did not happen (nobody attended, or an Admin cancelled it) counts nobody absent, and a cancelled one sends no reminders.', 'Watch out')
 
     # ---------------------------------------------------------------- 2
     g.chapter('Customer service',
@@ -180,6 +180,10 @@ def build():
         f'The same renter twice? Under the renter, Possible duplicates: {B("Merge into this record")} moves everything of the other record here.',
     ])
     g.tip('Each edit is recorded with your name, the time, the reason and the before and after.', label='Good to know')
+    g.steps([
+        f'Changed it and need it back? Overview, {B("Versions of this booking")}: press {B("Restore this version")} on the one to go back to. The preview shows the new dates, car, rental charge and total, and what the renter would owe or be owed.',
+        f'Type why and press {B("Restore version")} with its number: the dates, the car, the rental charge and the fees go back exactly. Payments are not touched; a difference is a balance or a credit. Customer service and Sales can do it while Program settings let staff change bookings.',
+    ])
 
     g.task('Renter messages and Find a renter')
     g.steps([
@@ -375,6 +379,8 @@ def build():
         f'Change a job with {B("Assign")}, {B("Reassign")}, {B("Move")} (time and place) or {B("Cancel")}.',
         f'Handovers and returns without a job (when the automatic jobs are off, or one was cancelled) are listed first: press {B("Schedule")}, the place filled in from the booking.',
         'An Admin turns the automatic jobs or the assignment off in Settings > Program.',
+        'Shifts for field staff to claim are published by themselves every hour, up to 14 days ahead, from the shift template in Settings > Program (Field jobs and handovers: one shift of 10:00 to 17:00 for one person, every second day). They only extend forward from the latest shift already published. A handover or return no shift covers gets a shift of its own (90 minutes either side). You can still publish or cancel a shift by hand; a cancelled one is not published again.',
+        'A shift nobody has claimed 48 hours before it starts alerts you and the Admins with the people to ask.',
     ], shot=S('va-fleet/02-field-jobs-desktop', 210, 60, 1440, 625, pins=[(1, 430, 350)]), fig_w=4.3)
 
     g.task('Field hours', 'Field staff clock in and out on their phones. You see who is clocked in and every shift of the two-week pay period, and you fix what they cannot.')
@@ -425,7 +431,7 @@ def build():
     g.steps([
         f'Press {B("Cover the plate")}. Check the suggested box; {B("Suggest the plate")} asks again.',
         'Drag over a plate to draw a box; drag a box to move it, its corner to resize it.',
-        f'Choose {B("A CarmaCars plate")}, {B("Pixelation")} or {B("Blur")}, then {B("Save the covered photo")}.',
+        f'The plate is blurred so no character can be read (nothing is drawn on it). Press {B("Save the covered photo")}.',
         f'No plate in the shot? {B("No plate visible on this photo")}.',
     ], shot=S('admin/11-plate-editor-phone', 0, 0, 390, 776, hdr=True, pins=[(3, 205, 612), (4, 195, 340), (5, 240, 482), (6, 168, 716)]))
     g.warn('The plate check never holds a car back: a photo whose plate is not checked stays private, and goes public by itself once it is covered or marked. The covered photo replaces the public one; the original is kept privately.')
@@ -516,6 +522,12 @@ def build():
         f'Press {B("Update")} to set the status. When you close a lead, say why.',
         'Owner applications, last 90 days, shows who applied and how far onboarding has come.',
     ], shot=S('va-sales/04-leads-desktop', 210, 60, 1440, 460, pins=[(1, 290, 166), (3, 1376, 236), (4, 400, 312)]))
+    g.task('A lead\'s phone number', f'Customer numbers show with dots in place of most digits. {B("Call")} and {B("Text")} still reach the person through the business number.')
+    g.steps([
+        f'Need the whole number of one lead? On the lead, press {B("Ask an Admin to show the number")}. An Admin gets a To do on that lead; asking again adds no second one.',
+        f'When an Admin shows it to you, the lead says {B("Number shown by an Admin")}: the full number, with a call link and {B("Copy")}, on that lead only, and you get an alert that opens the lead. Every other lead stays hidden, except the same number where it belongs to the same person (their renter record or another lead with that phone).',
+        'If the lead goes to another salesperson, the number is hidden from you again by itself, and the new salesperson sees it hidden until an Admin shows it to them.',
+    ])
 
     # ---------------------------------------------------------------- 5b
     g.chapter('Add a rental by hand',

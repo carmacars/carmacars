@@ -59,3 +59,32 @@ export async function geminiEditImage(o: GeminiOptions, img: { bytes: Uint8Array
   }
   return { ok: false, reason: 'blocked', message: body?.promptFeedback?.blockReason ?? body?.candidates?.[0]?.finishReason ?? 'No image in the answer' };
 }
+
+/** r45 (2840): the second pass on a made listing photo: several images in (the made photo first, then the originals), JSON
+ *  out (features/listing/r45.ts checkPrompt). null on any refusal, quota or error: the photo is then not published. */
+export const GEMINI_CHECK_MODEL = 'gemini-2.5-flash';
+export async function geminiCheckImages(o: GeminiOptions, images: Array<{ bytes: Uint8Array; contentType: string }>, system: string, prompt: string): Promise<{ data: unknown; model: string } | null> {
+  const model = (o.model ?? '').trim() || GEMINI_CHECK_MODEL;
+  if (!/^[a-z0-9][a-z0-9.-]{2,80}$/.test(model) || !images.length) return null;
+  const f = o.fetch ?? fetch;
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), o.timeoutMs ?? 45_000);
+  try {
+    const res = await f(`${BASE}/${model}:generateContent`, {
+      method: 'POST', signal: ctl.signal,
+      headers: { 'content-type': 'application/json', 'x-goog-api-key': o.apiKey },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: system }] },
+        contents: [{ role: 'user', parts: [{ text: prompt }, ...images.map((x) => ({ inline_data: { mime_type: x.contentType, data: b64(x.bytes) } }))] }],
+        generationConfig: { temperature: 0, maxOutputTokens: 1200, responseMimeType: 'application/json' }
+      })
+    });
+    if (!res.ok) return null;
+    const j = (await res.json().catch(() => null)) as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> } | null;
+    const text = j?.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
+    try {
+      const data: unknown = JSON.parse(text.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, ''));
+      return data && typeof data === 'object' ? { data, model: `gemini:${model}` } : null;
+    } catch { return null; }
+  } catch { return null; } finally { clearTimeout(timer); }
+}

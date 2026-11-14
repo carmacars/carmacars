@@ -38,6 +38,8 @@ const schema = z.object({
   /** 0910: Google Gemini, the vision fallback when set (free trial tier: its quota and model errors fall back to typing) */
   GEMINI_API_KEY: z.string().optional(),
   GEMINI_VISION_MODEL: z.string().optional(),
+  /** r45 (2840): the model of the second pass on a made listing photo (default gemini-2.5-flash). */
+  GEMINI_CHECK_MODEL: z.string().optional(),
   /** r36 (2110): the Meta app's secret (checks the webhook's signature: Messenger, Instagram, WhatsApp) and the WhatsApp
    *  Cloud API token; unset: the Meta webhook answers nothing */
   META_APP_SECRET: z.string().optional(),
@@ -64,12 +66,15 @@ const schema = z.object({
    *  CarmaCars number as caller ID (a Twilio verified caller ID). The account SID and an API key (SID and secret) from the
    *  owner's Twilio account, saved as GitHub secrets; unset: the Call button opens Quo as before and says why.
    *  TWILIO_CALLER_ID: the number shown to the customer (unset: the CarmaCars number of Site settings). TWILIO_AUTH_TOKEN
-   *  (optional): also checks Twilio's request signature on the call webhooks (our own per-call token is always checked). */
+   *  (required since r44): checks Twilio's request signature on every call webhook, fail closed. */
   TWILIO_ACCOUNT_SID: z.string().optional(),
   TWILIO_API_KEY: z.string().optional(),
   TWILIO_API_SECRET: z.string().optional(),
   TWILIO_CALLER_ID: z.string().optional(),
   TWILIO_AUTH_TOKEN: z.string().optional(),
+  /** r44 (2790): calls in the browser. The TwiML App whose Voice URL is /api/webhooks/twilio/client. Optional: unset, the
+   *  server finds or makes the app "CarmaCars browser calls" in the account itself (src/server/twilio-call.ts). */
+  TWILIO_TWIML_APP_SID: z.string().optional(),
   /** The partner CRM link (migration 0147): gohighlevel calls GoHighLevel's API with each partner's own token (kept in the
    *  vault, pasted in Admin); fake answers from an in-memory stand-in (local work and tests). Unset: gohighlevel in
    *  production, fake elsewhere. */

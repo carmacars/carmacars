@@ -64,6 +64,10 @@ on:
 
 # A newer push to the same branch cancels the run it supersedes. A deploy run never cancels (or is cancelled by)
 # a push run, and a second deploy waits for the first.
+# The workflow's token only reads the repository (a job that needs more says so itself).
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.event_name == 'workflow_dispatch' && 'dispatch' || 'push' }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
@@ -240,8 +244,9 @@ jobs:
         env:
           BASE_URL: http://localhost:3000
           PW_BLOB: ${{ matrix.project }}-${{ matrix.shard }}
+          E2E_GREP: ${{ inputs.e2e_grep }}
         run: |
-          set +e; ../.github/ci-run.sh "End to end" npx playwright test --project ${{ matrix.project }} --shard ${{ matrix.shard }}/8 ${{ inputs.e2e_grep && format('--pass-with-no-tests --grep "{0}"', inputs.e2e_grep) || '' }} | tee /tmp/e2e.log; s=${PIPESTATUS[0]}
+          set +e; ../.github/ci-run.sh "End to end" npx playwright test --project ${{ matrix.project }} --shard ${{ matrix.shard }}/8 ${E2E_GREP:+--pass-with-no-tests --grep "$E2E_GREP"} | tee /tmp/e2e.log; s=${PIPESTATUS[0]}
           echo "::notice title=e2e ${{ matrix.project }} ${{ matrix.shard }}/8::$(sed -e 's/\x1b\[[0-9;]*[A-Za-z]//g' /tmp/e2e.log | grep -E '^ +[0-9]+ (passed|failed|flaky|skipped|did not run)' | sed -E 's/^ +//' | paste -sd ';' -)"; exit $s
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
@@ -381,12 +386,14 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       # the Quo phone line (0085): the CarmaCars workspace's key; kept in the vault too (deploy_quo_api_key)
       QUO_API_KEY: ${{ secrets.QUO_API_KEY }}
-      # r35 (0970): the site's outbound Call button (Twilio rings the staff member's cell, then the customer); unset: Quo
+      # r35 (0970): the site's Call button; r44 (2790): calls made and taken in the browser. TWILIO_AUTH_TOKEN is required
+      # (every Twilio webhook is signed); TWILIO_TWIML_APP_SID is optional (the site finds or makes its TwiML App); unset: Quo
       TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
       TWILIO_API_KEY: ${{ secrets.TWILIO_API_KEY }}
       TWILIO_API_SECRET: ${{ secrets.TWILIO_API_SECRET }}
       TWILIO_CALLER_ID: ${{ secrets.TWILIO_CALLER_ID }}
       TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+      TWILIO_TWIML_APP_SID: ${{ secrets.TWILIO_TWIML_APP_SID }}
       # r35 (0990): the image model of the showroom listing photos (Google AI Studio); optional, without it the free showroom
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       # r36 (2110): AI auto-replies on Messenger, Instagram and WhatsApp (the Meta app's secret checks the webhook; the WhatsApp
@@ -532,6 +539,7 @@ jobs:
                  + (if env.TWILIO_ACCOUNT_SID and env.TWILIO_API_KEY and env.TWILIO_API_SECRET then {TWILIO_ACCOUNT_SID: env.TWILIO_ACCOUNT_SID, TWILIO_API_KEY: env.TWILIO_API_KEY, TWILIO_API_SECRET: env.TWILIO_API_SECRET} else {} end)
                  + (if env.TWILIO_CALLER_ID then {TWILIO_CALLER_ID: env.TWILIO_CALLER_ID} else {} end)
                  + (if env.TWILIO_AUTH_TOKEN then {TWILIO_AUTH_TOKEN: env.TWILIO_AUTH_TOKEN} else {} end)
+                 + (if env.TWILIO_TWIML_APP_SID then {TWILIO_TWIML_APP_SID: env.TWILIO_TWIML_APP_SID} else {} end)
                  + (if env.AUTH_SMS_HOOK_SECRET then {AUTH_SMS_HOOK_SECRET: env.AUTH_SMS_HOOK_SECRET} else {} end)
                  + (if env.VAPID_PRIVATE_KEY then {VAPID_PUBLIC_KEY: env.VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY: env.VAPID_PRIVATE_KEY} else {} end)
                  + (if env.WALLET_PASS_CERT and env.WALLET_PASS_KEY and env.WALLET_WWDR_CERT and env.WALLET_PASS_TYPE_ID and env.WALLET_TEAM_ID
@@ -607,7 +615,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh workflow run guides.yml -R "${{ github.repository }}" --ref "${{ github.ref_name }}" -f auto=true
+          gh workflow run guides.yml -R "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME" -f auto=true
           echo "::notice title=guides::started the guides workflow (auto) for ${GITHUB_SHA::7}: screenshots, the text of the sections that changed, the PDFs"
       - name: Crawl warm-up and Search Console (the gsc workflow, after a deploy; 0124)
         if: inputs.environment == 'production'
@@ -615,7 +623,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh workflow run gsc.yml -R "${{ github.repository }}" --ref "${{ github.ref_name }}" -f submit=true -f warm=3000 -f indexnow_rounds=10
+          gh workflow run gsc.yml -R "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME" -f submit=true -f warm=3000 -f indexnow_rounds=10
           echo "::notice title=gsc::started the gsc workflow: the first 3,000 priority addresses fetched once, the sitemaps submitted, IndexNow batches sent"
       # 0466: the Admins get a staff alert when a deploy finishes or fails (Alerts, and the phone; never fails the deploy).
       # Runs only once the Secrets step gave this job the database address and its server key.

@@ -3,6 +3,7 @@ import { currentUser } from '@/server/portal/data';
 import { rpc } from '@/lib/db/repo';
 import { visionModel } from '@/integrations/vision';
 import { PERMIT_PROMPT, PERMIT_SCHEMA, PERMIT_SYSTEM, normalizePermit, permitScore } from '@/features/vehicles/permit-read';
+import { foreignOrigin } from '@/lib/security/same-origin';
 
 // An ownership permit photo read by the vision model (migration 0290), when staff or an owner add a car. The browser made
 // the photo small; the database says whether this person may ask now (staff, or a signed-in owner within the daily
@@ -24,7 +25,7 @@ export async function POST(req: Request) {
 
 async function handle(req: Request): Promise<Response> {
   const origin = req.headers.get('origin');
-  if (origin && new URL(origin).host !== req.headers.get('host')) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
+  if (foreignOrigin(origin, req.headers.get('host'), req.headers.get('sec-fetch-site'))) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
   const user = await currentUser();
   if (!user) return NextResponse.json({ ok: false, message: 'Sign in first.' }, { status: 401 });
   const body = (await req.json().catch(() => null)) as { image?: string } | null;

@@ -9,6 +9,7 @@ import Link from '@/components/Link';
 import { currentUser } from '@/server/portal/data';
 import { PortalSwitch, SignOutOrExit } from '@/features/access/Access';
 import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
+import { WhatsNew } from '@/features/whats-new/WhatsNew';
 import { StuckHelp } from '@/features/help/StuckHelp';
 import { PushInvite } from '@/features/push/PushAlerts';
 import { BrandMark } from '@/components/BrandMark';
@@ -17,6 +18,8 @@ import { AlertPulse } from '@/features/motion/AlertPulse';
 import { LivePortal } from '@/features/live/realtime/LiveRefresh';
 import { liveTokens } from '@/server/live';
 import { CallerPopup } from '@/features/caller/CallerPopup';
+// r44 (2790): calls in the browser: the phone bar on every page (incoming calls ring here, calls placed show here)
+import { VoiceDock } from '@/features/phone/VoiceDock';
 import { viewAs } from '@/server/view-as';
 import { AssistantPanel } from '@/features/assistant/AssistantPanel';
 import { switchFunction } from '@/server/actions/va';
@@ -72,7 +75,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
         {staff && roles ? (
           <aside className="ad__rail">
             <div className="ad__who"><span className="muted"><BrandMark size={22} className="ad__mark" />{office ? STAFF_FN_LABEL[roles.va!] : STAFF_FN_LABEL.field} · <b data-testid="account-email">{roles.preferred_name ?? roles.name ?? user?.email}</b></span>
-              <span className="gd-frame-links">{user ? <AlertPulse topic={live.me} /> : null}{user && staff ? <LivePortal tokens={live} /> : null}{user ? <AlertsBell userId={user.id} href="/staff/alerts" /> : null}<Link prefetch={false} className="btn btn--quiet btn--sm hd-act" href={office ? '/staff/profile' : '/staff/field/profile'} title="Profile" data-testid="va-profile-link"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="3.5" /><path d="M5 20c.6-3.6 3.2-5.5 7-5.5s6.4 1.9 7 5.5" /></svg><span className="hd-lbl">Profile</span></Link><Link prefetch={false} className="btn btn--quiet btn--sm hd-act" href="/staff/academy" title="Academy" data-testid="va-academy-link"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8l9-4 9 4-9 4-9-4z" /><path d="M7 10v5c1.5 1.5 3 2 5 2s3.5-.5 5-2v-5" /></svg><span className="hd-lbl">Academy</span></Link><AssistantPanel portal={portal} /><GuideLink portal={portal} />{user && !viewing ? <BugReportButton portal={office ? 'staff' : 'field'} mineHref="/staff/bug-reports" /> : null}<SignOutOrExit /></span></div>
+              <span className="gd-frame-links">{user ? <AlertPulse topic={live.me} /> : null}{user && staff ? <LivePortal tokens={live} /> : null}{user ? <AlertsBell userId={user.id} href="/staff/alerts" /> : null}<Link prefetch={false} className="btn btn--quiet btn--sm hd-act" href={office ? '/staff/profile' : '/staff/field/profile'} title="Profile" data-testid="va-profile-link"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="3.5" /><path d="M5 20c.6-3.6 3.2-5.5 7-5.5s6.4 1.9 7 5.5" /></svg><span className="hd-lbl">Profile</span></Link><Link prefetch={false} className="btn btn--quiet btn--sm hd-act" href="/staff/academy" title="Academy" data-testid="va-academy-link"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8l9-4 9 4-9 4-9-4z" /><path d="M7 10v5c1.5 1.5 3 2 5 2s3.5-.5 5-2v-5" /></svg><span className="hd-lbl">Academy</span></Link><AssistantPanel portal={portal} />{user ? <WhatsNew portal="staff" userId={user.id} /> : null}<GuideLink portal={portal} />{user && !viewing ? <BugReportButton portal={office ? 'staff' : 'field'} mineHref="/staff/bug-reports" /> : null}<SignOutOrExit /></span></div>
             <PortalSwitch current="va" />
             {/* r35 part C (1505): the weekly townhall's call link, on every staff portal */}
             {user && !viewing ? <TownhallLink userId={user.id} /> : null}
@@ -88,7 +91,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
             <StaffNav functions={held} open={open} chat={chat} hot={hot} />
           </aside>
         ) : <div />}
-        <div className="ad__main">{needsAddress ? <HomeAddressCard portal={portal} canada={canada} /> : null}{staff && user ? <GuideBanner portal={portal} userId={user.id} /> : null}{staff && user ? <StuckHelp portal={portal} /> : null}{office && user && (held.includes('cs') || held.includes('fleet')) ? <CallerPopup portal="va" quiet={Boolean(viewing)} /> : null}{staff && user && !needsAddress ? <PushInvite portal={office ? 'staff' : 'field'} home={office ? '/staff' : ['/staff', '/staff/field']} userId={user.id} /> : null}{staff ? <HubBar hubs={staffHubs(held)} sections={staffSections(held)} /> : null}<DoorProvider kind="va"><RevampScope list={REVAMP_STAFF}>{staff && user ? <TermsGate userId={user.id} portal={office ? 'staff' : 'field'}>{children}</TermsGate> : children}</RevampScope></DoorProvider></div>
+        <div className="ad__main">{needsAddress ? <HomeAddressCard portal={portal} canada={canada} /> : null}{staff && user ? <GuideBanner portal={portal} userId={user.id} /> : null}{staff && user ? <StuckHelp portal={portal} /> : null}{office && user && (held.includes('cs') || held.includes('fleet')) ? <CallerPopup portal="va" quiet={Boolean(viewing)} /> : null}{staff && user ? <VoiceDock quiet={Boolean(viewing)} /> : null}{staff && user && !needsAddress ? <PushInvite portal={office ? 'staff' : 'field'} home={office ? '/staff' : ['/staff', '/staff/field']} userId={user.id} /> : null}{staff ? <HubBar hubs={staffHubs(held)} sections={staffSections(held)} /> : null}<DoorProvider kind="va"><RevampScope list={REVAMP_STAFF}>{staff && user ? <TermsGate userId={user.id} portal={office ? 'staff' : 'field'}>{children}</TermsGate> : children}</RevampScope></DoorProvider></div>
       </div>
     </div>
   );

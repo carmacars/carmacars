@@ -3,6 +3,7 @@ import { currentUser } from '@/server/portal/data';
 import { rpc } from '@/lib/db/repo';
 import { visionModel } from '@/integrations/vision';
 import { VIN_PROMPT, VIN_SYSTEM, vinsFromModel } from '@/features/vin/vin-read';
+import { foreignOrigin } from '@/lib/security/same-origin';
 
 // A photo of a VIN read by the vision model (release 28, migration 0560; features/vin/VinScan.tsx), when the photo has no
 // barcode the browser could read. Anyone may ask (the owner's application and the earnings calculator are public): the
@@ -30,7 +31,7 @@ export async function POST(req: Request) {
 
 async function handle(req: Request): Promise<Response> {
   const origin = req.headers.get('origin');
-  if (origin && new URL(origin).host !== req.headers.get('host')) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
+  if (foreignOrigin(origin, req.headers.get('host'), req.headers.get('sec-fetch-site'))) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
   const body = (await req.json().catch(() => null)) as { image?: string } | null;
   const image = typeof body?.image === 'string' ? body.image : '';
   if (!/^data:image\/(jpeg|png);base64,/.test(image) || image.length > MAX) {

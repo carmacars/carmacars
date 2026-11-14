@@ -60,12 +60,12 @@ export function recordingMime(key: string): string | null {
 export const clock = (s: number) => { const x = Math.max(0, Math.ceil(s)); return `${Math.floor(x / 60)}:${String(x % 60).padStart(2, '0')}`; };
 /** Why the browser cannot record, in plain words (the error of getUserMedia, or none of MediaRecorder). */
 export function cannotRecordWhy(err: { name?: string } | null, hasRecorder: boolean): string {
-  if (!hasRecorder) return 'This browser cannot record video. Update it, or open the link in Chrome, Safari or Edge.';
+  if (!hasRecorder) return 'This browser cannot record video. Open the same link in Chrome, Safari or Edge, or on another phone or computer.';
   switch (err?.name) {
     case 'NotAllowedError': case 'SecurityError': return 'The camera or microphone is blocked. Allow both for carmacars.ca in your browser (the icon in the address bar), then press Try again.';
-    case 'NotFoundError': case 'OverconstrainedError': return 'We could not find a camera and a microphone on this device.';
+    case 'NotFoundError': case 'OverconstrainedError': return 'We could not find a camera and a microphone on this device. The interview is answered on video only: switch to a phone or computer that has both (or another browser) and open the same link again.';
     case 'NotReadableError': case 'AbortError': return 'Another app is using the camera or the microphone. Close it, then press Try again.';
-    default: return 'We could not start the camera and the microphone. Press Try again, or open the link on another device.';
+    default: return 'We could not start the camera and the microphone. Press Try again, or switch to another device or browser and open the same link again.';
   }
 }
 
@@ -104,6 +104,8 @@ export const SCORE_SCHEMA = {
   type: 'object',
   properties: {
     topics: { type: 'array', items: { type: 'object', properties: { key: { type: 'string' }, score: { type: 'integer' }, evidence: { type: 'string' } }, required: ['key', 'score', 'evidence'] } },
+    /** 2680: each answer scored out of 10 on its own, with a one-line reason (kept as shown to the Admin under the answer) */
+    answers: { type: 'array', items: { type: 'object', properties: { seq: { type: 'integer' }, score: { type: 'integer' }, reason: { type: 'string' } }, required: ['seq', 'score', 'reason'] } },
     english: { type: 'object', properties: { level: { type: 'string', enum: ['fluent', 'good', 'basic'] }, score: { type: 'integer' }, notes: { type: 'string' } }, required: ['level', 'score', 'notes'] },
     red_flags: { type: 'array', items: { type: 'string' } },
     knockouts: { type: 'array', items: { type: 'string' } },
@@ -111,7 +113,7 @@ export const SCORE_SCHEMA = {
     reason: { type: 'string' },
     summary: { type: 'string' }
   },
-  required: ['topics', 'english', 'red_flags', 'knockouts', 'recommendation', 'reason', 'summary']
+  required: ['topics', 'answers', 'english', 'red_flags', 'knockouts', 'recommendation', 'reason', 'summary']
 };
 
 export interface ScoreInput {
@@ -126,22 +128,24 @@ export function topicsFor(topics: Topic[], inPerson: boolean): Topic[] {
 }
 export function scoreSystem(topics: Topic[], salesRole: boolean): string {
   return [
-    'You help the hiring team of CarmaCars, a car rental company in Toronto, review a recorded interview for a role. The interview is the pre-screen to our training academy: the score decides by itself who is hired into the academy, so be strict and score only what is shown, never what is promised. The candidate answered each question out loud (transcribed by speech-to-text, so small transcription errors are not the candidate\'s) or in writing.',
+    'You help the hiring team of CarmaCars, a car rental company in Toronto, review a recorded interview for a role. The interview is the pre-screen to our training academy: the score decides by itself who is hired into the academy, so be strict and score only what is shown, never what is promised. Every answer was recorded on video, spoken out loud (transcribed by speech-to-text, so small transcription errors are not the candidate\'s).',
     'Score each topic from 1 (poor or not answered) to 5 (excellent) using only what the candidate said. For each topic give as evidence one short quote copied word for word from the answers (empty when nothing was said about it).',
     'Topics (key: label; what good looks like):',
     ...topics.map((t) => `- ${t.key}: ${t.label}; ${t.good}`),
+    'Answers: also score every answer on its own from 1 (no answer, off the question or vague) to 10 (specific, honest, convincing, with a real example), by its number (seq, the Q and A number below), with one plain line of reason (200 characters at most). One entry for each answer.',
     'Spoken English: judge clarity, grammar and vocabulary from the wording; level fluent, good or basic, a score 1 to 5, and one sentence of notes.',
     'Red flags: short plain statements of anything that needs checking (refuses the schedule or the pay, works for another car rental business serving Ontario, classes or other jobs during the hours, no backup internet, contradictions, an answer read from somewhere). An empty list when none.',
     'The minimum for every role: at least a year of relevant experience and good spoken English.',
-    'Score 5 only for a specific, convincing answer with a real example; 3 for adequate but general; 1 or 2 for vague, rehearsed or missing. The written English topic is judged from the typed customer message only.',
+    'Score 5 only for a specific, convincing answer with a real example; 3 for adequate but general; 1 or 2 for vague, rehearsed or missing. The written English topic is judged from the spoken customer message only.',
+    'Calibration (2695): most applicants are average. Expect a typical candidate to land around 3 of 5 on topics and 5 or 6 of 10 on answers; give 4 or 5 (8 to 10) only with concrete proof in the answer itself: a named past employer or tool, numbers, a real situation and what they did. Generic claims ("I am hardworking", "I have good communication skills", "I can handle it") earn at most 2 of 5 and 4 of 10. An answer under about 40 words, off the question, repeated from the question, or that sounds read from a script or written by AI earns at most 3 of 10. When unsure between two scores, give the lower one. "hire" should be rare: only when every topic is 4 or 5 and English is good or fluent.',
     'Knock-outs: short plain statements of any answer that rules the candidate out by itself: refuses or cannot work the schedule, refuses the pay, works for another car rental business serving Ontario, classes or another job during the hours, no internet backup for a remote role, no licence where the role drives, an answer clearly read or written by someone else. An empty list when none. Any knock-out fails the interview.',
     `Recommendation, one of: "hire" (clearly strong on every point), "live_call" (promising, with points to check in a short live call), ${salesRole ? '"decline" (the minimum is not met, or a red flag rules them out; never "sales" for this Sales role)' : '"sales" (does not pass for this role but could sell: good English and motivation; this is the usual outcome for a candidate who does not pass), "decline" (only when a red flag rules them out of any role)'}.`,
     'The hiring team decides; you only recommend. Reason: one sentence for the recommendation. Summary: two or three plain sentences about the candidate. Never call the interview a test or an exam. No long dashes.',
-    'Answer in JSON with the keys topics, english, red_flags, knockouts, recommendation, reason, summary.'
+    'Answer in JSON with the keys topics, answers, english, red_flags, knockouts, recommendation, reason, summary.'
   ].join('\n');
 }
 export function scorePrompt(x: ScoreInput): string {
-  const qa = x.answers.map((a) => `Q${a.seq}${a.kind === 'followup' ? ' (follow-up)' : ''} [${a.key}]: ${a.prompt}\nA${a.seq} (${a.mode === 'voice' ? 'spoken' : a.mode === 'none' ? 'no answer' : 'typed'}): ${a.transcript.slice(0, 2500)}`).join('\n\n');
+  const qa = x.answers.map((a) => `Q${a.seq}${a.kind === 'followup' ? ' (follow-up)' : ''} [${a.key}]: ${a.prompt}\nA${a.seq} (${a.mode === 'none' ? 'no answer' : 'spoken'}): ${a.transcript.slice(0, 2500)}`).join('\n\n');
   return `<role>${x.role_title}. Hours: ${x.hours ?? 'see the job page'} Pay: ${x.pay_text}</role>\n<interview>\n${qa}\n</interview>`;
 }
 
@@ -168,7 +172,11 @@ export function fakeScores(prompt: string, topics: Array<Pick<Topic, 'key'>>): R
     return { key: t.key, score: n === 0 ? 1 : n < 10 ? 2 : n < 25 ? 3 : 4, evidence: text.split(/\s+/).slice(0, 8).join(' ') };
   });
   const avg = out.reduce((s, x) => s + x.score, 0) / Math.max(out.length, 1);
-  return { topics: out, english: { level: avg >= 3.5 ? 'good' : 'basic', score: Math.round(avg), notes: 'Read from the transcript (fake model).' },
+  const per = answers.length ? [...prompt.matchAll(/^Q(\d+)(?: \(follow-up\))? \[[a-z_]+\]: [^\n]*\nA\d+ \([a-z ]+\): ([^\n]*)$/gm)].map((m) => {
+    const n = words(m[2]);
+    return { seq: Number(m[1]), score: n === 0 ? 1 : n < 10 ? 3 : n < 25 ? 5 : 7, reason: n === 0 ? 'No answer.' : n < 25 ? 'Short and general (fake model).' : 'Detailed enough (fake model).' };
+  }) : [];
+  return { topics: out, answers: per, english: { level: avg >= 3.5 ? 'good' : 'basic', score: Math.round(avg), notes: 'Read from the transcript (fake model).' },
     red_flags: answers.some((a) => /\bno\b/i.test(a.text) && a.key === 'hours_pay') ? ['Did not agree to the schedule or the pay'] : [],
     knockouts: answers.some((a) => /\bno\b/i.test(a.text) && a.key === 'hours_pay') ? ['Did not agree to the schedule or the pay'] : [],
     recommendation: avg >= 3.5 ? 'live_call' : 'sales', reason: 'Scored by the fake model from the answers.', summary: `Answered ${answers.length} questions.` };

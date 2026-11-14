@@ -43,7 +43,10 @@ export interface BlindSpotFacts {
     hst_number: string | null;
     fleet_number: string | null;
     odometer_out_km: number | null;
-    insurer: { name: string | null; claim_number: string | null; adjuster_name: string | null; adjuster_phone: string | null; authorized_days: number | null; authorized_daily_rate_cents: number | null } | null;
+    insurer: { name: string | null; claim_number: string | null; adjuster_name: string | null; adjuster_phone: string | null; authorized_days: number | null; authorized_daily_rate_cents: number | null;
+      /** r44 (2811): what the insurer is billed (app.booking_insurer_share, the insurer invoice's own numbers): the days
+       *  covered at the insurer's daily rate, the fees, the HST */
+      share?: InsurerShare | null } | null;
     /** 0154: the facts beyond the booking's own (pickup and return records, swaps, payments, every line...) */
     more?: AgreementExtra | null;
     /** 0154: the coverage proof (OPCF 27 insurer and policy, the card of card coverage) */
@@ -59,6 +62,31 @@ export interface BlindSpotFacts {
     /** 0544: what staff typed over the filled form (Type into the agreement), by box: replaces that box's value */
     overrides?: Record<string, string> | null;
   };
+}
+
+/** r44 (2811): the insurer's share of an insurer-billed booking, as its invoice has it. */
+export interface InsurerShare { bill_to: string; covered_days: number; daily_rate_cents: number | null; rental_share_cents: number; fees_share_cents: number; share_cents: number; hst_cents: number }
+
+/** r44: the rental of a booking billed wholly to an insurer at its daily rate is what the insurer is billed: the days
+ *  covered at the insurer's authorized daily rate (35 x $80.00), never a weekly or monthly rate counted by the day. The
+ *  rental lines (the charge and its discounts) become one line of that amount, with the HST the invoice charges on it, so
+ *  boxes 35, 39, 49, 50 and 55 match the insurer invoice to the cent. Null: not such a booking. */
+export function insurerRental(share: InsurerShare | null | undefined): InsurerShare | null {
+  if (!share || share.bill_to !== 'insurer' || !share.daily_rate_cents || !(share.covered_days > 0) || !(share.rental_share_cents > 0)) return null;
+  return share;
+}
+const RENTAL_FAMILY = new Set(['rental_charge', 'non_refundable_discount', 'staff_discount', 'promo_discount', 'discount']);
+const SHARED_STAGES = ['booking', 'extension'];
+type FormLine = { charge_type: string; description: string; amount_cents: number; hst_cents: number; stage: string };
+/** The lines of the booking with its rental replaced by the insurer's (see insurerRental). */
+export function withInsurerRental<L extends FormLine>(lines: L[], s: InsurerShare): L[] {
+  const shared = (l: L) => SHARED_STAGES.includes(l.stage);
+  const otherHst = lines.filter((l) => shared(l) && !RENTAL_FAMILY.has(l.charge_type)).reduce((t, l) => t + l.hst_cents, 0);
+  const first = lines.find((l) => shared(l) && RENTAL_FAMILY.has(l.charge_type));
+  const rental = { ...(first ?? lines[0] ?? {}), charge_type: 'rental_charge', description: first?.description ?? 'Rental charge', stage: 'booking',
+    amount_cents: s.rental_share_cents, hst_cents: Math.max(0, s.hst_cents - otherHst) } as L;
+  const out = lines.filter((l) => !(shared(l) && RENTAL_FAMILY.has(l.charge_type)));
+  return [rental, ...out];
 }
 
 export type Align = 'left' | 'right' | 'center';
@@ -355,7 +383,9 @@ export function layout(f0: BlindSpotFacts): Layout {
 
   const more = x.more ?? null;
   // every line of the version (booking and extension stages; the return stage on the closing copy)
-  const all = more ? more.lines.filter((l) => more.return ? true : PRE.includes(l.stage)) : f.lines.map((l) => ({ ...l, hst_cents: 0, stage: 'booking' }));
+  const insShare = insurerRental(ins?.share);
+  const all0 = more ? more.lines.filter((l) => more.return ? true : PRE.includes(l.stage)) : f.lines.map((l) => ({ ...l, hst_cents: 0, stage: 'booking' }));
+  const all = insShare ? withInsurerRental(all0, insShare) : all0;
   // the rates (33 to 38): COUNT @ RATE = AMOUNT on the row of the rate, so the count times the rate is the amount. The
   // weeks or months row when the weekly or monthly rate makes the charge exactly; otherwise the days row at the daily
   // (or 3+ day) rate, or, when no one rate makes it (a monthly or weekly rate counted by the day, daily and weekend
@@ -378,7 +408,12 @@ export function layout(f0: BlindSpotFacts): Layout {
   if (b.overage_cents_per_km != null || ret) R('33', 305.5, ret ? (ret.km_charged ?? 0).toLocaleString('en-CA') : null, b.overage_cents_per_km, ret ? overage : null);
   const ra = b.rate_applied ?? 'daily';
   let rateNote: string | null = null;
-  if (rental > 0) {
+  if (rental > 0 && insShare) {
+    // the insurer's authorized daily rate and days, exactly as invoiced; a weekly or monthly cap of its rate sheet is said in 14
+    const each = insShare.daily_rate_cents!;
+    R('35', 346, String(insShare.covered_days), each, rental);
+    if (insShare.covered_days * each !== rental) rateNote = `Box 35: ${insShare.covered_days} days at the insurer's rate ${dollars(each)} a day, capped at ${dollars(rental)} by the insurer's rate sheet.`;
+  } else if (rental > 0) {
     const perDay = ra === 'multi_day' ? b.multi_day_rate_cents ?? null : ra === 'daily' || ra === 'weekend' ? b.daily_rate_cents : null;
     if (ra === 'weekly' && days > 0 && days % 7 === 0 && b.weekly_rate_cents && (days / 7) * b.weekly_rate_cents === rental) R('36', 366.5, String(days / 7), b.weekly_rate_cents, rental);
     else if (ra === 'monthly' && days > 0 && days % 30 === 0 && b.monthly_rate_cents && (days / 30) * b.monthly_rate_cents === rental) R('37', 387, String(days / 30), b.monthly_rate_cents, rental);
@@ -497,9 +532,9 @@ export function layout(f0: BlindSpotFacts): Layout {
   const after = new Set([...damages, ...fuels, ...postAdjust]);
   const in49 = lines ? lines.filter((l) => !after.has(l)) : null;
   const withHst = (ls: Array<{ amount_cents: number; hst_cents: number }>) => ls.reduce((t2, l) => t2 + l.amount_cents + l.hst_cents, 0);
-  const allTotal = lines ? withHst(lines) : b.total_due_at_booking_cents;
-  t.push(T('49', dollars(in49 ? in49.reduce((t2, l) => t2 + l.amount_cents, 0) : b.subtotal_at_booking_cents), 577, 630.5, 72, { align: 'right' }));
-  t.push(T('50', dollars(in49 ? in49.reduce((t2, l) => t2 + l.hst_cents, 0) : b.hst_at_booking_cents), 577, 650.5, 72, { align: 'right' }));
+  const allTotal = lines ? withHst(lines) : insShare ? insShare.share_cents + insShare.hst_cents : b.total_due_at_booking_cents;
+  t.push(T('49', dollars(in49 ? in49.reduce((t2, l) => t2 + l.amount_cents, 0) : insShare ? insShare.share_cents : b.subtotal_at_booking_cents), 577, 630.5, 72, { align: 'right' }));
+  t.push(T('50', dollars(in49 ? in49.reduce((t2, l) => t2 + l.hst_cents, 0) : insShare ? insShare.hst_cents : b.hst_at_booking_cents), 577, 650.5, 72, { align: 'right' }));
   if (lines) {
     const dmg = withHst(damages as Array<{ amount_cents: number; hst_cents: number }>); const fuel = withHst(fuels as Array<{ amount_cents: number; hst_cents: number }>);
     const post = withHst(postAdjust as Array<{ amount_cents: number; hst_cents: number }>);

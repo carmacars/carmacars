@@ -147,7 +147,9 @@ a.ad-tile:hover { border-color: var(--black); }
 .ad-field .input, .ad-field .select { min-height: 40px; }
 .ad-textarea { min-height: 5rem; resize: vertical; }
 .ad-form--compact .ad-fields { grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); }
-.ad-dialog { border: 1px solid var(--black); padding: var(--s-5); width: min(40rem, calc(100vw - 2rem)); max-height: calc(100vh - 2rem); overflow-y: auto; }
+.ad-dialog { border: 1px solid var(--black); padding: var(--s-5); width: min(40rem, calc(100vw - 2rem)); max-height: calc(100vh - 2rem); max-height: calc(100dvh - 2rem); overflow-y: auto; }
+/* r46: a phone keeps the dialog's words, not its padding (Report a bug at 320 px) */
+@media (max-width: 30rem) { .ad-dialog { padding: var(--s-4); width: calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)); } }
 .ad-dialog::backdrop { background: rgb(0 0 0 / 0.4); }
 .ad-dialog--wide { width: min(56rem, calc(100vw - 2rem)); }
 .ad-form-pages { display: grid; gap: var(--s-3); }
@@ -214,10 +216,13 @@ a.ad-tile:hover { border-color: var(--black); }
 .mcal__item.is-closed { background: var(--grey-200); border-color: var(--grey-300); color: var(--text); }
 .mcal__item.is-requested { background: repeating-linear-gradient(135deg, var(--grey-200) 0 4px, var(--white) 4px 8px); border: 1px dashed var(--grey-700); color: var(--text); }
 .mcal__item.is-offered { background: repeating-linear-gradient(135deg, #f2c94c 0 4px, var(--white) 4px 8px); border-color: #8a5a00; color: var(--text); }
+.mcal__item.is-tentative { background: repeating-linear-gradient(135deg, #f2c94c 0 4px, var(--white) 4px 8px); border-color: #8a5a00; color: var(--text); } /* r44: a short hold, as an offer */
 .mcal__item.is-pending_payment { background: repeating-linear-gradient(135deg, #f2c94c 0 4px, var(--white) 4px 8px); border-color: #8a5a00; border-left-width: 5px; color: var(--text); }
 .mcal__item.is-outline { background: var(--white); color: var(--text); border-width: 2px; }
 .mcal__item.is-outline.is-on_rent { color: var(--red-700, #a1121a); border-color: var(--red-600); }
 .mcal__item.is-block { background: repeating-linear-gradient(45deg, var(--grey-300) 0 3px, var(--grey-100) 3px 8px); border-color: var(--grey-500); color: var(--text); }
+/* r44: maintenance blocks (service, repair, cleaning) in blue stripes, apart from the grey blocks */
+.mcal__item.is-block.is-maint { background: repeating-linear-gradient(45deg, #b9d3f0 0 3px, #eaf2fb 3px 8px); border-color: #2f5f93; color: var(--text); }
 .mcal__item.is-turo { height: 6px; top: auto; bottom: 2px; background: #0f7b6c; border-color: #0f7b6c; padding: 0; font-size: 0; }
 .mcal__item.is-job { width: 14px !important; height: 14px; top: auto; bottom: 4px; border-radius: 999px; background: var(--white); border-color: var(--black); padding: 0; font-size: 0; }
 .mcal__item.is-move { height: 4px; top: auto; bottom: 2px; background: var(--grey-700); border-color: var(--grey-700); padding: 0; font-size: 0; }
@@ -703,3 +708,15 @@ ul.sd-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
 .oc-phase .oc-step__n { width: 1.75rem; height: 1.75rem; }
 .rv-stepbar { display: flex; flex-wrap: wrap; gap: var(--s-2); margin: 0 0 var(--s-3); }
 .rv-stepbar button[aria-current="step"] { background: var(--black); color: var(--white); }
+
+/* r43: the sort control above a list */
+.ad-sortbar { display: flex; justify-content: flex-end; margin-block: var(--s-2, 8px); }
+.ad-sort { display: inline-flex; align-items: center; gap: var(--s-2, 8px); }
+.ad-sort .select { min-height: 44px; }
+
+/* r44: on a phone the open menu covers the page under the header with its Close button kept at the top, so a long menu
+   can be scrolled and still closed (the inline list used to push the button off screen). */
+@media (max-width: 63.99rem) {
+  .gn:has(.gn__groups.is-open) { position: fixed; inset: var(--header-h) 0 0 0; z-index: 48; background: var(--white); overflow-y: auto; overscroll-behavior: contain; padding-top: var(--s-3); padding-bottom: calc(var(--s-6) + env(safe-area-inset-bottom, 0px)); }
+  .gn:has(.gn__groups.is-open) .gn__menu { position: sticky; top: 0; z-index: 1; border-color: var(--black); }
+}

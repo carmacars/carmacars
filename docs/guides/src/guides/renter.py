@@ -64,7 +64,7 @@ def build():
         f'Press {B("Continue to driver details")}.',
     ], shot=S('public/04-book-1-trip-desktop', 0, 1240, 760, 2110, pins=[(4, 40, 1415), (5, 470, 2047)]), fig_w=3.4)
     g.steps([
-        'Step 2, The driver: fill in your first and last name, email, mobile number and date of birth.',
+        'Step 2, The driver: fill in your first and last name, email, mobile number and date of birth. Signed in? They are filled in from your profile, with your licence class and how we reach you: check them and change anything. A licence that has expired or an address over a year old is flagged to update in your profile, and drivers you named before are one tap away under Additional drivers.',
         'Someone else will drive too? Add them under Additional drivers. Each needs a G2 or G licence and signs the agreement.',
         f'Press {B("Continue to licence")}.',
     ], shot=S('public/05-book-2-driver-desktop', 0, 330, 980, 1290,

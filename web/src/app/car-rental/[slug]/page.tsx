@@ -20,6 +20,7 @@ import { HubPage, hubMeta } from '@/features/places/HubPage';
 import { buildDepth } from '@/features/seo/depth';
 import { depthCar, getDepthFacts } from '@/features/seo/depth-data';
 import { DepthSections } from '@/features/seo/Depth';
+import { metaOr, titleFromPath } from '@/features/seo/meta-fallback';
 import { ReadyCars } from '@/features/seo/ReadyCars';
 import { SiteReviews } from '@/features/seo/SiteReviews';
 import '@/styles/seo.css';
@@ -50,7 +51,12 @@ async function load(slug: string) {
   return { p: null, hub };
 }
 export async function generateMetadata({ params }: Params) {
-  const { p, hub } = await load((await params).slug);
+  const slug = (await params).slug;
+  // r47: a failed read gives plain metadata, never React #441 (features/seo/meta-fallback.ts)
+  return metaOr(() => landingMeta(slug), { title: titleFromPath(`/car-rental/${slug}`) }, (m) => console.warn('landing', m));
+}
+async function landingMeta(slug: string) {
+  const { p, hub } = await load(slug);
   if (!p) return hubMeta(hub!);
   const t = await getTokens();
   const m = await seoMeta({ title: fill(p.copy.seo_title, t), description: fill(p.copy.meta_description, t), path: p.path, noindex: !p.indexable,

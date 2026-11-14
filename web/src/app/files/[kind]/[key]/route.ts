@@ -9,7 +9,8 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request, { params }: { params: Promise<{ kind: string; key: string }> }) {
   const { kind, key: raw } = await params;
-  const key = decodeURIComponent(raw);
+  let key = '';
+  try { key = decodeURIComponent(raw); } catch { return new Response('Not found', { status: 404 }); }
   if (!isDocKind(kind) || !validKey(key)) return new Response('Not found', { status: 404 });
   const user = await currentUser();
   if (!user) redirect(`/sign-in?next=${encodeURIComponent(new URL(req.url).pathname)}`);

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { realUser } from '@/server/portal/data';
 import { viewAs } from '@/server/view-as';
 import { rpc } from '@/lib/db/repo';
+import { foreignOrigin } from '@/lib/security/same-origin';
 
 // Snooze 30 min on a staff phone alert (migration 0466): the service worker (public/push-sw.js) posts the notice id; the
 // alert comes again 30 minutes later and its escalation waits. Only the signed-in person's own unread alert.
@@ -10,7 +11,7 @@ const H = { 'cache-control': 'no-store' };
 
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
-  if (origin && new URL(origin).host !== req.headers.get('host')) return NextResponse.json({ error: 'Not permitted' }, { status: 403, headers: H });
+  if (foreignOrigin(origin, req.headers.get('host'), req.headers.get('sec-fetch-site'))) return NextResponse.json({ error: 'Not permitted' }, { status: 403, headers: H });
   const user = await realUser();
   if (!user) return NextResponse.json({ error: 'Sign in first' }, { status: 401, headers: H });
   if (await viewAs()) return NextResponse.json({ error: 'Not while viewing as someone' }, { status: 403, headers: H });

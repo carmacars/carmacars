@@ -3,13 +3,14 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { leadAct } from '@/server/actions/sales-leads';
 import { ContactButtons } from '@/features/phone/QuoButtons';
+import { LeadPhoneAccess } from './LeadPhone';
 import { claimWords, contactLinks, holdWords, OUTCOME_LABEL, OUTCOMES, type LeadRow, type Outcome, type Person } from './model';
 
 type Msg = { ok: boolean; text: string } | null;
 
 /** One lead's buttons: Claim or Unclaim, Call, Text and Email (each logged on the lead and extending the claim), a note,
  *  Mark handled, the outcome, and for an Admin Reassign. Phone-sized: the buttons wrap. */
-export function LeadActions({ lead, admin, people, compact = false }: { lead: Pick<LeadRow, 'id' | 'phone' | 'email' | 'claim' | 'hold' | 'handled_at' | 'outcome'> & { assigned_to?: string | null; name?: string | null }; admin: boolean; people: Person[]; compact?: boolean }) {
+export function LeadActions({ lead, admin, people, phonePeople, compact = false }: { lead: Pick<LeadRow, 'id' | 'phone' | 'email' | 'claim' | 'hold' | 'handled_at' | 'outcome'> & Partial<Pick<LeadRow, 'assigned_name' | 'phone_unlocks' | 'phone_unlocked' | 'phone_ask_open'>> & { assigned_to?: string | null; name?: string | null }; admin: boolean; people: Person[]; /** 2870: the Sales people an Admin can show the phone to (the lead page) */ phonePeople?: Person[]; compact?: boolean }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<Msg>(null);
@@ -55,6 +56,8 @@ export function LeadActions({ lead, admin, people, compact = false }: { lead: Pi
         {/* 1151: back to the salesperson who brought or last had it (else the pool) */}
         {admin && (lead.claim || lead.assigned_to) && <button type="button" className="btn btn--ghost btn--sm" disabled={pending} onClick={() => run('lead_return', {}, 'Returned to the previous owner.')} data-testid="lead-return">Return lead to previous owner</button>}
       </div>
+      {/* 2870: an Admin shows this lead's phone to a salesperson; Sales asks for it */}
+      <LeadPhoneAccess lead={{ ...lead, assigned_to: lead.assigned_to ?? null, assigned_name: lead.assigned_name ?? null }} admin={admin} people={phonePeople} compact={compact} />
       {panel === 'note' && <form className="stack" onSubmit={(e) => { e.preventDefault(); const note = String(new FormData(e.currentTarget).get('note') ?? ''); run('lead_contact', { channel: 'note', note }, 'Note saved.'); }}>
         <label className="small" htmlFor={`ln-${lead.id}`}>Note</label>
         <textarea className="input" id={`ln-${lead.id}`} name="note" rows={2} maxLength={1000} required />

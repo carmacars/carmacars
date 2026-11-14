@@ -65,10 +65,32 @@ export function payBlocks(pay: Pay | null | undefined, invoiceNumber: string): B
   return out;
 }
 
+/** r44: an insurer document never shows the CarmaCars name: the word is taken out of a text (a fee named "CarmaCars
+ *  Protection Plan" reads "Protection Plan"), and a value that is a CarmaCars address (an email, a site) is left out. */
+export function noCarmaCars(v: unknown): string {
+  const t = s(v);
+  if (/carma\S*\.(ca|com)|@\S*carma/i.test(t)) return '';
+  return t.replace(/\bcarma\s*cars?['\u2019]?s?\s*/gi, '').replace(/\s{2,}/g, ' ').trim();
+}
+const scrubRow = (r: Row): Row => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, typeof v === 'string' ? noCarmaCars(v) : v]));
+
+/** r44: how to pay by cheque: payable to the company's legal entity, mailed to its address, quoting the invoice and the claim. */
+export function chequeBlock(c: InvoiceCompany, invoiceNumber: string, claim: string): Block | null {
+  const payee = noCarmaCars(c.legal_name) || noCarmaCars(c.brand);
+  const address = noCarmaCars(c.address);
+  if (!payee || !address) return null;
+  return kv('Cheque', [['Payable to', payee], ['Mail to', address], ['Quote', `Invoice ${invoiceNumber}${claim ? `, claim ${claim}` : ''}`]]);
+}
+
 /** The insurer invoice: issued as Blind Spot Car Rental (the company block the database gives it), the fees by name. */
-export function insurerInvoiceBlocks(f: Row & { company: InvoiceCompany }): Block[] {
+export function insurerInvoiceBlocks(f0: Row & { company: InvoiceCompany }): Block[] {
+  // r44: nothing on it names CarmaCars, whatever a description or a setting holds
+  const f = { ...scrubRow(f0), company: scrubRow(f0.company as unknown as Row) as unknown as InvoiceCompany,
+    lines: ((f0.lines ?? []) as Row[]).map(scrubRow), fee_items: ((f0.fee_items ?? []) as Row[]).map(scrubRow),
+    insurer: f0.insurer ? scrubRow(f0.insurer as Row) : f0.insurer, pay: f0.pay ? scrubRow(f0.pay as Row) : f0.pay } as Row & { company: InvoiceCompany };
   const i = (f.insurer ?? {}) as Row;
   const num = s(f.invoice_number);
+  const claim = s(f.claim_number);
   const lines = itemizeLines((f.lines ?? []) as Row[], f.fee_items as Row[] | undefined);
   const items: Array<[string, number]> = lines.length ? lines : [['Replacement rental', n(f.amount_cents)]];
   const paid = n(f.paid_cents);
@@ -84,7 +106,13 @@ export function insurerInvoiceBlocks(f: Row & { company: InvoiceCompany }): Bloc
   ];
   // the insurer's taxes note from its rate sheet (0163)
   if (s(f.note)) blocks.push({ t: 'p', text: s(f.note) });
-  blocks.push(...payBlocks(f.pay as Pay | undefined, num));
+  const pay = payBlocks(f.pay as Pay | undefined, num);
+  const cheque = chequeBlock(f.company, num, claim);
+  if (cheque) {
+    // the cheque beside the e-Transfer and the direct deposit, under the one heading
+    if (pay.length) pay.splice(pay.length - 1, 0, cheque); else pay.push({ t: 'h2', text: 'How to pay' }, cheque);
+  }
+  blocks.push(...pay);
   blocks.push({ t: 'h2', text: 'Terms' });
   blocks.push({ t: 'p', text: `Payment is due within 30 days of the invoice date. Please quote invoice ${num} and claim ${s(f.claim_number) || 'number'} with your payment.${f.company.email ? ` Questions: ${f.company.email}.` : ''}` });
   return blocks;
@@ -92,6 +120,7 @@ export function insurerInvoiceBlocks(f: Row & { company: InvoiceCompany }): Bloc
 
 /** The footer of an invoice: the issuer and the title; "Draft" only while it can still change, never "Preview" on an issued one. */
 export function invoiceFooter(f: Row & { title: string; company: InvoiceCompany }): string {
-  const draft = s(f.status) === 'draft' || f.final === false;
-  return `${s(f.company.brand)}. ${f.title}.${draft ? ' Draft: not yet issued.' : ''}`;
+  // r44: the invoice's own status decides: once issued (sent, paid...) it never says Draft
+  const draft = f.status === undefined || f.status === null ? f.final === false : s(f.status) === 'draft';
+  return `${noCarmaCars(f.company.brand) || 'Blind Spot Car Rental'}. ${noCarmaCars(f.title)}.${draft ? ' Draft: not yet issued.' : ''}`;
 }

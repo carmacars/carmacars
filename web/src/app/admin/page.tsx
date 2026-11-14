@@ -14,6 +14,8 @@ import { UsageBanner, UsageCards } from '@/features/usage/UsageCards';
 import { More } from '@/features/portal/Chrome';
 import { DataHealthCard } from '@/features/admin/data-health/DataHealthCard';
 import { TownhallCard } from '@/features/townhall/TownhallCard';
+import { OnboardingApprovals } from '@/features/staff-onboarding/Approvals';
+import type { ApprovalRow } from '@/features/staff-onboarding/model';
 import { InterviewsToday } from '@/features/careers/admin/InterviewsToday';
 
 export const dynamic = 'force-dynamic';
@@ -36,11 +38,13 @@ interface Health {
 // are under Today > Overview).
 export default async function AdminToDo() {
   const { user, gate, read } = await page('/admin');
-  const [d, h, dash] = await Promise.all([
+  const [d, h, dash, approvals] = await Promise.all([
     door<Todo>(user.id, 'ops_read', 'admin_todo'),
     door<Health>(user.id, 'admin_read', 'site_health').catch(() => null),
     // the counts on the board (the same read as Overview); the page works without them
-    read<Dash>('dashboard').catch(() => null)]);
+    read<Dash>('dashboard').catch(() => null),
+    // r43: staff waiting for onboarding approval: Approve or Reject right on Today
+    door<ApprovalRow[]>(user.id, 'ops_read', 'staff_onboarding_approvals', {}).catch(() => [] as ApprovalRow[])]);
   // the guided prompts (0078): each piece of work on its own line with its pop-up; the counts below are what has no
   // prompt of its own. 0320: only the Admin's own lines; each staff team's work is one quiet line in Your teams, and the
   // headline counts lines, never records (need.ts, app.todo_need)
@@ -57,6 +61,7 @@ export default async function AdminToDo() {
       <TodayBoard name={greetName(gate)} tiles={boardTiles(dash, d, siteProblems)}
         lead={needSentence(need)}
         actions={<><Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/bookings" data-testid="today-cars-now">Cars out now</Link><Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/overview">Overview</Link><Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/bookings/new">Add a rental</Link></>} />
+      {approvals.length > 0 && <Card title="Waiting for your approval" id="today-onboarding" testId="today-onboarding-approvals" tone="next"><OnboardingApprovals admin refresh={['/admin']} rows={approvals} /></Card>}
       <div className="ad-home">
         <div className="ad-home__main">
           <section className="pt-card ad-card ad-needs" aria-labelledby="todo-h" data-testid="todo-list">

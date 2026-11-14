@@ -276,9 +276,10 @@ test('photo: interiors are normalized (no backdrop); the odometer is never publi
   const f = files();
   const r = await runJob(deps({}, f), job('process_photo', { photo: { ...job('process_photo').photo!, rebackground: false, shot_type: 'trunk', angle: 'trunk' } }), budget);
   assert.deepEqual([(r.output as Record<string, unknown>).width, (r.output as Record<string, unknown>).preset_version], [1600, 'normalize_v1']);
-  // 0521: a dashboard or seats photo gets its windows treated: a cut-out this check cannot read is blurred, never the studio
+  // 0521: a dashboard or seats photo gets its windows treated; r44: a cut-out this check cannot read leaves the photo sharp
+  // as taken (normalized), never blurred and never the studio
   const dash = await runJob(deps({}, f), job('process_photo', { photo: { ...job('process_photo').photo!, rebackground: false, shot_type: 'dashboard', angle: 'dashboard' } }), budget);
-  assert.deepEqual([(dash.output as Record<string, unknown>).width, (dash.output as Record<string, unknown>).preset_version, (dash.output as Record<string, unknown>).flags], [1600, 'windows_blur_v1', ['windows_blurred']]);
+  assert.deepEqual([(dash.output as Record<string, unknown>).width, (dash.output as Record<string, unknown>).preset_version, (dash.output as Record<string, unknown>).flags], [1600, 'normalize_v1', []]);
   const odo = await runJob(deps({}, f), job('process_photo', { photo: { ...job('process_photo').photo!, is_public: false, shot_type: 'odometer' } }), budget);
   assert.deepEqual([odo.ok, (odo.output as Record<string, unknown>).used_original, (odo.output as Record<string, unknown>).processed_path], [true, true, undefined]);
 });
@@ -490,4 +491,24 @@ test('worker r40: the photo steps of a claim run one after another, the copy ste
   } }, f);
   const s = await runListingWorker(d);
   assert.deepEqual([s.claimed, s.succeeded, most], [4, 4, 1]);
+});
+
+// r44 (2780): a photo filed as "Other detail" is sorted again; the database files it and makes it with Gemini
+test('photo_resort: the shot the model sees goes back to the database; no model now waits; nothing is changed here', async () => {
+  const f = files();
+  f.priv.set('vehicles/v1/original/o1.jpg', JPEG);
+  const rj = (over: Partial<WorkerDeps>) => runJob(deps(over, f), { ...job('process_photo'), kind: 'photo_resort', input: { resort: { photo_id: 'p9', vehicle_id: 'v1', source: 'vehicles/v1/original/o1.jpg' } } }, budget);
+  const seen: string[] = [];
+  const sorted = await rj({ sortPhoto: async (i) => { seen.push(i.contentType); return { shot: 'front_left', model: 'gemini:x' }; } });
+  assert.deepEqual(sorted.output, { resort: { photo_id: 'p9', decision: 'sorted', shot: 'front_left', exterior: true } });
+  assert.equal(sorted.provider, 'gemini:x');
+  const inside = await rj({ sortPhoto: async () => ({ shot: 'dashboard', model: 'm' }) });
+  assert.equal((inside.output as { resort: { exterior: boolean } }).resort.exterior, false);
+  const later = await rj({ sortPhoto: async () => null });
+  assert.equal((later.output as { resort: { decision: string } }).resort.decision, 'deferred');
+  const unsure = await rj({ sortPhoto: async () => 'unsure' });
+  assert.equal((unsure.output as { resort: { decision: string } }).resort.decision, 'unsure');
+  const missing = await runJob(deps({ sortPhoto: async () => null }, f), { ...job('process_photo'), kind: 'photo_resort', input: {} }, budget);
+  assert.deepEqual([missing.ok, missing.retryable], [false, false]);
+  assert.equal(f.pub.size, 0, 'no file written');
 });

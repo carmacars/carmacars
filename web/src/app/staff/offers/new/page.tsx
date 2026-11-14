@@ -25,6 +25,6 @@ export default async function VaNewOffer({ searchParams }: { searchParams: Promi
     <PageHead title="Send an offer" />
     <p className="small muted" style={{ maxWidth: '52rem' }}>For a customer on the phone, by text or in person: no request needed. Already agreed and paid? Use <Link prefetch={false} className="link" href="/staff/bookings/new">Add a rental</Link>.</p>
     <UnfinishedRentals rows={drafts} base="/staff" current={open?.id} title="Unfinished offers" />
-    <OfferComposer key={open?.id ?? 'new'} base="/staff" initialCar={sp.car ?? null} draft={open} owner={owner} />
+    <OfferComposer key={open?.id ?? 'new'} base="/staff" initialCar={sp.car ?? null} initialFrom={sp.from ?? null} initialTo={sp.to ?? null} draft={open} owner={owner} />
   </>);
 }

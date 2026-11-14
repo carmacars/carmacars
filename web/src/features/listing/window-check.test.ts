@@ -1,5 +1,5 @@
 // The windows of interior photos (0521): the cut-out's transparency read from the PNG, and the quality check that keeps
-// the studio behind the windows only when the cut is clean, else blurs them.
+// the studio behind the windows only when the cut is clean, else (r44) keeps the photo sharp as taken: an interior is never blurred.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { deflateSync } from 'node:zlib';
@@ -35,24 +35,29 @@ test('two clean side windows high in the frame: the studio goes behind them', as
 test('no window seen: the photo is edited as before', async () => {
   assert.equal(windowPlan(await readAlpha(png(240, 160, () => false))).action, 'none');
 });
-test('the seat cut away low in the frame: blurred, with the reason', async () => {
+test('the seat cut away low in the frame: kept sharp, with the reason', async () => {
   const p = windowPlan(await readAlpha(png(240, 160, (x, y) => y > 100 && x > 60 && x < 180)));
-  assert.equal(p.action, 'blur');
+  assert.equal(p.action, 'none');
   assert.match(p.reasons.join(' '), /low in the frame/);
 });
-test('most of the frame see-through (the cabin lost): blurred', async () => {
-  assert.equal(windowPlan(await readAlpha(png(240, 160, (_x, y) => y < 120))).action, 'blur');
+test('most of the frame see-through (the cabin lost, e.g. only the steering wheel kept): kept sharp, never blurred', async () => {
+  assert.equal(windowPlan(await readAlpha(png(240, 160, (_x, y) => y < 120))).action, 'none');
 });
-test('speckled: blurred', async () => {
+test('speckled: kept sharp', async () => {
   const p = windowPlan(await readAlpha(png(480, 320, (x, y) => y < 200 && x % 40 < 15 && y % 40 < 15)));
-  assert.equal(p.action, 'blur', JSON.stringify(p));
+  assert.equal(p.action, 'none', JSON.stringify(p));
 });
-test('a mushy edge (many half-transparent pixels): blurred', async () => {
+test('a mushy edge (many half-transparent pixels): kept sharp', async () => {
   let k = 0;
   const p = windowPlan(await readAlpha(png(240, 160, (x, y) => y < 60 && x < 50, () => (k++ % 6) === 0)));
-  assert.equal(p.action, 'blur');
+  assert.equal(p.action, 'none');
   assert.match(p.reasons.join(' '), /half-transparent/);
 });
-test('not a PNG (a cut-out that is a JPEG): blurred, never the studio', async () => {
-  assert.equal(windowPlan(await readAlpha(new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]))).action, 'blur');
+test('not a PNG (a cut-out that is a JPEG): kept sharp, never the studio', async () => {
+  assert.equal(windowPlan(await readAlpha(new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]))).action, 'none');
+});
+
+test('r44: no plan ever blurs an interior', async () => {
+  const cases = [png(240, 160, (_x, y) => y < 150), png(240, 160, (x, y) => y > 100 && x > 60), png(240, 160, () => true), new Uint8Array([1, 2, 3])];
+  for (const c of cases) assert.notEqual(windowPlan(await readAlpha(c)).action, 'blur');
 });

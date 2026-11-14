@@ -8,6 +8,7 @@ import { ProgressCell, type Progress } from '@/features/listing/ListingProgress'
 import { CarCell } from '@/features/admin/revamp/CarCell';
 import { carPhotos } from '@/server/car-photos';
 import { ShowroomAll } from '@/features/listing/Showroom';
+import { PhotoStandard } from '@/features/listing/PhotoStandard';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Listings', path: '/staff/listings', noindex: true, description: 'Listing intake and review.' });
@@ -32,6 +33,8 @@ export default async function VaListings() {
         { key: 'state', label: 'State', render: (r) => <Badge s={r.state} /> }, { key: 'photos', label: 'Photos', num: true }, { key: 'progress', label: 'Work done', render: (r) => <ProgressCell p={prog[r.id]} /> },
         { key: 'listing_status', label: 'Listing', render: (r) => r.listing_status ? <Badge s={r.listing_status} /> : null }, { key: 'reason', label: 'Note', className: 'wrap' }, { key: 'updated_at', label: 'Updated', render: (r) => t(r.updated_at) }]} />
       {/* r35 (0990): every car's outside photos into the showroom at once (fleet, as the Admin) */}
+      {/* r45 (2842): the photo standard of every car, as the Admin's */}
+      {fn === 'fleet' && <Card title="Photo standard" testId="photo-standard-card"><PhotoStandard /></Card>}
       {fn === 'fleet' && <Card title="Showroom photos" testId="showroom-card"><ShowroomAll /></Card>}
     </>
   );

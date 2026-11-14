@@ -22,6 +22,14 @@ import { SHOWROOM_FIT, decodePng, type Rgba } from './subject-frame.ts';
 import { fillPolys } from './raster.ts';
 
 export const SHOWROOM_PRESET = 'studio_showroom_v2';
+/** r44 (2780): the listing photo standard. Every photo made under an older standard is made again (the database compares
+ *  vehicle_photos.showroom.spec with app.photo_spec(); keep the two equal). Raise it whenever the words or the rules below
+ *  change, so "Redo photos with Gemini" and the daily upgrade make the old photos again instead of answering "nothing to redo".
+ *  r44.1: one room for every outside photo (a photo whose cut-out is poor gets its background replaced by Gemini from the
+ *  original, never the original's own background), the plate kept on the plate (never text anywhere else), interiors sharp. */
+export const PHOTO_SPEC = 'r45.1';  // r45 (2840): the same as R45_SPEC in r45.ts and app.photo_spec()
+/** The one primary (first) photo every car has: the front three-quarter from the driver's side, the whole car, in the room. */
+export const PRIMARY_SHOT = 'front_left';
 export type Scene = 'studio' | 'showroom';
 /** The scene a job's photo asks for (the database's vehicle_photos.scene); anything else is the black studio. */
 export const sceneOf = (p: { scene?: unknown } | null | undefined): Scene => (p?.scene === 'showroom' ? 'showroom' : 'studio');
@@ -502,8 +510,9 @@ export function showroomPrompt(o: { cover: boolean; name?: string | null }): str
   return [
     'Edit this image into a real, high-end photograph of a car inside a modern, minimal, dark car dealership showroom at night.',
     'THE CAR: it must stay clearly the same car: the same make, model, generation, body style, trim, wheels and colour, about the same size and place in the frame, not cropped. You may improve how it looks: realistic showroom lighting and reflections on the paint, cleaned-up paint, and a slight change of pose or camera angle. Never change it into another car, another model or another colour, and never distort it.',
-    'Do not add or show a licence plate, and never add letters or numbers on the car; where the plate area is plain or covered, leave it exactly so.',
-    'THE ROOM (keep the same layout as the image, so every photo of this car shows the same room):',
+    PLATE_RULE,
+    'THE BACKGROUND: everything that is not the car is the room described here and nothing else: no trace of where the photo was taken (no street, parking lot, sky, trees, buildings, other cars, garage or driveway), even at the edges and in the windows.',
+    'THE ROOM (keep the same layout as the image, so every photo of every car shows the same room):',
     'a dark charcoal back wall meeting a polished dark floor at the same line as in the image, with the side walls and corners at the edges in the same perspective;',
     'a feature panel of vertical dark walnut wood slats in the middle of the back wall, with a thin vertical warm-white LED strip on each side of it;',
     'a cove light along the top of the back wall washing softly down it, and recessed linear LED light strips in the dark ceiling;',
@@ -511,8 +520,45 @@ export function showroomPrompt(o: { cover: boolean; name?: string | null }): str
     o.cover && o.name ? `the large brushed-metal lettering "${o.name}" on the wall exactly as in the image, behind the car and never in front of it;` : 'no lettering on the wall other than the logo: no model name, no car name, no words or numbers anywhere on the wall;',
     'a polished dark epoxy floor with faint large tiles, showing soft, blurred reflections of the wall lights and of the car, and a real, soft contact shadow under each tyre where it meets the floor.',
     'Light it like a professional dealership photo: soft overhead light, gentle falloff, a subtle vignette, realistic camera noise. Everything outside the car stays dark and minimal.',
-    'Do not add other cars, people, furniture, plants, signs, text, watermarks or objects. Same framing, landscape 3:2.'
+    'Do not add other cars, people, furniture, plants, signs, text, watermarks or objects. Same framing, landscape 3:2.',
+    SHARP_RULE
   ].join(' ');
+}
+
+/** r44: the licence plate stays on the plate. The image the model is given is the real car with its real plate (or the
+ *  site's plate cover): the plate keeps its place, size and angle on the bumper and its face is left plain, so the plate step
+ *  that follows (plate-auto.ts) finds it there and puts the CarmaCars plate on it. Text anywhere else is what the owner saw
+ *  as "the plate text placed somewhere random": never. */
+export const PLATE_RULE = 'THE LICENCE PLATE: keep the plate holder exactly where it is on the bumper, the same size, shape and angle, with a plain blank face (no letters, numbers or logos on it). Never write letters, numbers or a plate anywhere else: nothing floating in the air, on the floor, on the wall, on the windows or over the car.';
+/** r44: the whole photo in focus, no fake depth of field (the owner: "no blur, sharp across the whole frame"). */
+export const SHARP_RULE = 'The whole photo is sharp and in focus from front to back, like a photo taken at a small aperture: no background blur, no bokeh, no depth-of-field effect, no motion blur.';
+
+/** r44 (2780): the background of an original photo replaced by the image model when the car could not be cut out cleanly
+ *  enough to place in the room by the site (a poor mask, or no cut-out): the first image is the original photo, the second
+ *  the empty CarmaCars room (the same room every outside photo has), so the answer looks like the rest of the fleet. */
+export function backgroundSwapPrompt(o: { cover: boolean; name?: string | null }): string {
+  return [
+    'The first image is a photo of a car. The second image is an empty, dark CarmaCars car showroom. Make one real, high-end photograph of this exact car standing in that showroom.',
+    'THE CAR: it must stay clearly the same car: the same make, model, generation, body style, trim, wheels and colour, the same side of the car facing the camera, the whole car in the frame with a little room around it, not cropped. Never change it into another car, another model or another colour, and never distort it.',
+    'THE BACKGROUND: remove everything around the car in the first image (street, parking lot, sky, trees, buildings, other cars, people, garage, driveway) and put the car in the showroom of the second image, kept exactly as it is: the same walls, lights, floor and any sign or logo, in the same perspective. The car stands on that floor with its wheels on the ground, a real soft contact shadow under each tyre and a faint reflection where the floor is polished. Nothing of the first image other than the car may remain, even at the edges or through the windows.',
+    o.cover && o.name ? `On the wall behind the car, the model name "${o.name}" in large brushed-metal letters, never in front of the car.` : 'No lettering on the wall other than the logo.',
+    PLATE_RULE,
+    'Do not add other cars, people, signs, text, watermarks or objects. Landscape 3:2, the car centred, its wheels about four fifths of the way down the frame.',
+    SHARP_RULE
+  ].join(' ');
+}
+
+/** r44: whether the answer shows the dark room around the car, not the original surroundings: the top band (the ceiling)
+ *  and the outer columns (the side walls) are dark on every photo in the room. A bright sky, street or white garage there
+ *  means the background was not replaced, and the answer is not used. Pure. */
+export function backgroundReplaced(img: Rgba, maxLuma = 95): boolean {
+  const { width: W, height: H, data } = img;
+  let sum = 0, n = 0;
+  const add = (x: number, y: number) => { const i = (y * W + x) * 4; sum += data[i]! * 0.299 + data[i + 1]! * 0.587 + data[i + 2]! * 0.114; n++; };
+  const top = Math.max(1, Math.round(H * 0.1)), side = Math.max(1, Math.round(W * 0.05)), step = Math.max(1, Math.round(Math.min(W, H) / 240));
+  for (let y = 0; y < top; y += step) for (let x = 0; x < W; x += step) add(x, y);
+  for (let y = top; y < Math.round(H * 0.6); y += step) { for (let x = 0; x < side; x += step) add(x, y); for (let x = W - side; x < W; x += step) add(x, y); }
+  return n > 0 && sum / n <= maxLuma;
 }
 
 /** r39 (2400): the image model's words for a car composited into a real photographed room: the room is a photo already,
@@ -522,8 +568,9 @@ export function photoRoomPrompt(): string {
     'This image is a real photograph of a car dealership interior with a car placed in it. Make it one seamless, real, high-end dealership photograph.',
     'THE ROOM: keep it exactly as it is: the same walls, floor, lights, windows and perspective. Do not add or remove anything in the room, and add no signs, logos or text.',
     'THE CAR: it must stay clearly the same car: the same make, model, generation, body style, trim, wheels and colour, about the same size and place in the frame, not cropped. Light it like the room (direction, colour and softness of the light), with believable reflections of the room on its paint and glass, a real soft contact shadow under each tyre on this floor and a faint reflection where the floor is polished. Never change it into another car, another model or another colour, and never distort it.',
-    'Do not add or show a licence plate, and never add letters or numbers on the car; where the plate area is plain or covered, leave it exactly so.',
-    'No people, no other cars, no watermarks. Same framing, landscape 3:2.'
+    PLATE_RULE,
+    'No people, no other cars, no watermarks. Same framing, landscape 3:2.',
+    SHARP_RULE
   ].join(' ');
 }
 
@@ -549,7 +596,7 @@ export function marketingPrompt(o: { label: string; place: string; reference: bo
     `Edit this image into a real, high-end marketing photograph of the car in this place: ${o.place}.`,
     o.reference ? 'The second image is a photo of that real place: put the car in exactly that place, in front of the same building and wall, on the same ground, in the same light and weather. Do not copy any car, person or sign from it.' : '',
     'THE CAR: it must stay clearly the same car: the same make, model, generation, body style, trim, wheels and colour, about the same size and place in the frame, not cropped. You may relight it for the place, clean up the paint and change the pose or camera angle slightly. Never change it into another car, another model or another colour, and never distort it.',
-    'Do not add or show a licence plate, and never add letters or numbers on the car; where the plate area is plain or covered, leave it exactly so.',
+    PLATE_RULE,
     'Give the car a real, soft contact shadow under each tyre on the ground and believable reflections for the place.',
     'Do not add other cars, people, signs, text, logos, watermarks or objects in front of the car. Landscape 3:2, the car where it is in the frame.'
   ].filter(Boolean).join(' ');
@@ -566,7 +613,7 @@ export function coverModelPrompt(settings: string | null | undefined, photoRoom 
     words,
     'RULES THAT ALWAYS APPLY: exactly one person, a clearly adult professional model (over 25 years old), fully clothed in a stylish outfit that covers the body; nothing revealing, see-through, explicit or sexual; no lingerie or swimwear; a natural, professional pose.',
     'THE CAR: it must stay clearly the same car: the same make, model, generation, body style, trim, wheels and colour, the same size and place in the frame, not cropped. The person stands beside it and never covers the car, its wheels, lights or badge. Never change it into another car or another colour, and never distort it.',
-    'Do not add or show a licence plate, and never add letters or numbers on the car; where the plate area is plain or covered, leave it exactly so.',
+    PLATE_RULE,
     photoRoom ? 'Keep the room exactly as in the image (a real photograph): the same walls, floor and lights; add no signs, logos or text. No other people, cars, text or watermarks. Landscape 3:2.'
       : 'Keep the showroom as in the image: the CarmaCars logo sign on the wall exactly as it is, the dark walls and the polished floor with soft reflections. No other people, cars, text or watermarks. Landscape 3:2.'
   ].filter(Boolean).join(' ');

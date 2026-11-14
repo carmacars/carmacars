@@ -12,7 +12,8 @@ const err = (e: string, d?: string, status = 400) => Response.json({ error: e, .
 export async function POST(req: Request) {
   const type = req.headers.get('content-type') ?? '';
   const f: Record<string, string> = {};
-  if (type.includes('application/json')) Object.assign(f, (await req.json().catch(() => ({}))) as Record<string, string>);
+  // only text values are read: a JSON body may carry objects or arrays where a string is expected
+  if (type.includes('application/json')) { const j = (await req.json().catch(() => null)) as unknown; if (j && typeof j === 'object' && !Array.isArray(j)) for (const [k, v] of Object.entries(j)) if (typeof v === 'string') f[k] = v.slice(0, 4096); }
   else for (const [k, v] of new URLSearchParams(await req.text())) f[k] = v;
   const grant = f.grant_type;
   if (grant !== 'authorization_code' && grant !== 'refresh_token') return err('unsupported_grant_type');

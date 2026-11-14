@@ -11,6 +11,7 @@ import { PortalTabs } from '@/features/portal-nav/PortalTabs';
 import { tabOf } from '@/features/portal-nav/tabs';
 import { OWNER_CARS_TABS } from '@/features/owner/menu';
 import { BookingsTab } from './BookingsTab';
+import { historyQuery } from '@/features/owner/history';
 import { ReferredCars, type ReferredCar } from '@/features/owner/ReferredCars';
 import { PriceLimitsForm } from '@/features/rates/PriceLimits';
 import type { PriceLimitsData } from '@/features/rates/price-limits';
@@ -47,9 +48,9 @@ export default async function OwnerCars({ searchParams }: { searchParams: Promis
   if (tab.key === 'bookings') {
     return (
       <>
-        <PageHeader title="Cars" purpose="Every booking on your vehicles, and your own bookings of them." />
+        <PageHeader title="Cars" purpose="Every rental your cars have been on, every booking on your vehicles, and your own bookings of them." />
         <PortalTabs label="Cars" tabs={tabs} current={tab.key} />
-        <BookingsTab {...ctx} vehicle={sp.vehicle} />
+        <BookingsTab {...ctx} vehicle={sp.vehicle} history={historyQuery(sp)} />
       </>
     );
   }

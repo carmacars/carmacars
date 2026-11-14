@@ -1,4 +1,5 @@
 import Link from '@/components/Link';
+import { MissingHandovers } from '@/features/handover/MissingHandovers';
 import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
 import { redirect } from 'next/navigation';
@@ -11,7 +12,8 @@ import { carPhotos } from '@/server/car-photos';
 import { FieldCallsCard, type FieldCall } from '@/features/field-portal/FieldCalls';
 import { PrepPanel, WorkListsPanel, type PrepList, type WorkLists } from '@/features/field-portal/FleetPanels';
 import { OnboardingApprovals } from '@/features/staff-onboarding/Approvals';
-import type { ApprovalRow } from '@/features/staff-onboarding/model';
+import { OnboardingPipeline } from '@/features/staff-onboarding/Pipeline';
+import type { ApprovalRow, OnboardingRow } from '@/features/staff-onboarding/model';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Field jobs', path: '/staff/fleet', noindex: true, description: 'Field job scheduling and assignment.' });
@@ -36,14 +38,18 @@ export default async function Fleet() {
     door<FieldCall[]>(user.id, 'ops_read', 'field_call_slots', {}, aal).catch(() => [] as FieldCall[])]);
   // 1154: onboarding step 4, the staff waiting for an Admin or a Fleet VA to approve
   const approvals = await door<ApprovalRow[]>(user.id, 'ops_read', 'staff_onboarding_approvals', {}, aal).catch(() => [] as ApprovalRow[]);
+  // r43: the same pipeline as the Admin's (staff stages only), when this role may read the list; else the approvals alone
+  const onboarding = await door<OnboardingRow[]>(user.id, 'ops_read', 'staff_onboarding_list', {}, aal).catch(() => [] as OnboardingRow[]);
   return (
     <>
       {past > 0 && <p className="alert alert--warn" role="status" data-testid="past-trips-banner"><span>{past} {past === 1 ? 'trip is' : 'trips are'} still open after the return time. <Link prefetch={false} className="link" href="/staff/past-trips">Close past trips</Link></span></p>}
       {wl && <WorkListsPanel w={wl} />}
       <FieldJobsBoard b={b} cal={cal} now={now} photos={photos} base="/staff" />
       {prep && <PrepPanel p={prep} />}
+      <MissingHandovers userId={user.id} aal={aal} mode="fleet" base="/staff" />
       {calls.length > 0 && <FieldCallsCard calls={calls} />}
-      {approvals.length > 0 && <section className="pt-card stack" aria-labelledby="onb-appr"><h2 className="d4" id="onb-appr">Onboarding approvals</h2><OnboardingApprovals rows={approvals} refresh={['/staff/fleet']} /></section>}
+      {approvals.length > 0 && onboarding.length > 0 && <section className="pt-card stack" aria-labelledby="onb-appr" data-testid="fleet-onboarding"><h2 className="d4" id="onb-appr">Onboarding</h2><OnboardingPipeline staff={onboarding} approvals={approvals} refresh={['/staff/fleet']} /></section>}
+      {approvals.length > 0 && onboarding.length === 0 && <section className="pt-card stack" aria-labelledby="onb-appr"><h2 className="d4" id="onb-appr">Onboarding approvals</h2><OnboardingApprovals rows={approvals} refresh={['/staff/fleet']} /></section>}
     </>
   );
 }

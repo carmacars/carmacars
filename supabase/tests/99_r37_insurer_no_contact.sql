@@ -46,14 +46,14 @@ select test.throws('the name is still needed (the date of birth is optional sinc
   test.ncmr(jsonb_build_object('renter', jsonb_build_object('full_name', '', 'date_of_birth', '1980-01-01')), 18)) $$, '%full legal name%');
 
 -- ================================================================ 2. every other case still asks for the email and the phone
-select test.throws('an insurer rental that blocks the calendar: the email is needed', $$ select app.door(test.id('r37nc_admin'), 'aal2', 'ops_do', 'manual_rental_create',
-  test.ncmr(jsonb_build_object('blocks_calendar', true), 22)) $$, '%renter''s email%');
+select test.ok('an insurer rental that blocks the calendar: the email is optional since 2740', (app.door(test.id('r37nc_admin'), 'aal2', 'ops_do', 'manual_rental_create',
+  test.ncmr(jsonb_build_object('blocks_calendar', true), 22)) ->> 'booking_id') is not null);
 select test.throws('a rental billed to the renter, off the calendar: the email is needed', $$ select app.door(test.id('r37nc_admin'), 'aal2', 'ops_do', 'manual_rental_create',
   test.ncmr(jsonb_build_object('payment', jsonb_build_object('mode', 'other_way', 'method', 'cash', 'reference', 'x'), 'insurance', null), 26)) $$, '%renter''s email%');
 select test.throws('a payment link to the renter needs the email even for an insurer rental', $$ select app.door(test.id('r37nc_admin'), 'aal2', 'ops_do', 'manual_rental_create',
   test.ncmr(jsonb_build_object('payment', jsonb_build_object('mode', 'link', 'method', 'insurer')), 30)) $$, '%renter''s email%');
-select test.throws('an email without a phone: the phone is needed when the rental is not the insurer case', $$ select app.door(test.id('r37nc_admin'), 'aal2', 'ops_do', 'manual_rental_create',
-  test.ncmr(jsonb_build_object('blocks_calendar', true, 'renter', jsonb_build_object('full_name', 'Em Nophone', 'date_of_birth', '1980-01-01', 'email', 'em.nophone@example.test')), 34)) $$, '%renter''s phone%');
+select test.throws('an email without a phone, billed to the renter: the phone is still needed', $$ select app.door(test.id('r37nc_admin'), 'aal2', 'ops_do', 'manual_rental_create',
+  test.ncmr(jsonb_build_object('payment', jsonb_build_object('mode', 'other_way', 'method', 'cash', 'reference', 'x'), 'insurance', null, 'renter', jsonb_build_object('full_name', 'Em Nophone', 'date_of_birth', '1980-01-01', 'email', 'em.nophone@example.test')), 34)) $$, '%renter''s phone%');
 select test.eq('nothing was left behind by the refused calls', (select count(*) from renters where legal_name in ('Bad Mail', 'No Birthday', 'Em Nophone')), 0::bigint);
 
 -- ================================================================ 3. nothing is queued without an address

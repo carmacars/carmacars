@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { money } from '@/lib/format';
+import { reloadIfStale } from '@/lib/client-error/recover';
 import { payLinkFakeConfirm, payLinkFinish, payLinkStandardHold, payLinkStart, type PayLinkStart } from '@/server/actions/paylink';
 
 // The card form of a pay link (0129): Stripe's Payment Element in Stripe's own frame (locally, the fake adapter's test
@@ -51,7 +52,7 @@ export function PayLinkForm({ token, kind, amountCents, legalName, backTo = null
         elements.create('payment', { layout: 'tabs', wallets: { applePay: 'auto', googlePay: 'auto' }, fields: { billingDetails: { name: 'never' } } }).mount(mount.current);
         stripe.current = { js, elements };
       }
-    }).catch(() => live && setFatal('The card form did not load. Reload the page.'));
+    }).catch((e) => !reloadIfStale(e) && live && setFatal('The card form did not load. Reload the page.'));
     return () => { live = false; };
   }, [token, round]);
 
@@ -83,10 +84,14 @@ export function PayLinkForm({ token, kind, amountCents, legalName, backTo = null
     } catch { setMsg('We could not finish. If your card was charged, we will see it: call us.'); setBusy(false); }
   };
 
-  if (fatal) return <p className="alert alert--error" role="alert"><span>{fatal}</span></p>;
-  if (done) return <p className="alert alert--ok" role="status" data-testid="paylink-done"><span className="alert__title">{kind === 'hold' ? 'Hold placed' : kind === 'setup' ? 'Card saved' : 'Paid'}</span><span>Thank you. {kind === 'charge' ? 'Your receipt is on its way by email.' : 'Nothing was charged now.'} You can hand the device back.</span>{backTo && <a className="btn btn--ghost btn--sm" href={backTo} data-testid="paylink-back">Back to the job</a>}</p>;
+  // r46: Chrome on Android translates the page by itself, putting its own elements in place of React's text; React then
+  // failed to remove a node it no longer found ("Failed to execute 'removeChild' on 'Node'"). The form's changing words
+  // (amounts, Working, the messages) are kept out of translation, and Stripe's box holds no React child (the loading line
+  // is beside it, so Stripe's mount and React never touch the same nodes).
+  if (fatal) return <p className="alert alert--error" role="alert" translate="no"><span>{fatal}</span></p>;
+  if (done) return <p className="alert alert--ok" role="status" data-testid="paylink-done" translate="no"><span className="alert__title">{kind === 'hold' ? 'Hold placed' : kind === 'setup' ? 'Card saved' : 'Paid'}</span><span>Thank you. {kind === 'charge' ? 'Your receipt is on its way by email.' : 'Nothing was charged now.'} You can hand the device back.</span>{backTo && <a className="btn btn--ghost btn--sm" href={backTo} data-testid="paylink-back">Back to the job</a>}</p>;
   return (
-    <form className="pt-pay stack" noValidate onSubmit={submit} aria-label="Card" aria-busy={!p || busy}>
+    <form className="pt-pay stack" noValidate onSubmit={submit} aria-label="Card" aria-busy={!p || busy} translate="no">
       <div className="field"><label className="label" htmlFor="pl-name">Name on the card</label>
         <input className="input" id="pl-name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="cc-name" placeholder={legalName} aria-describedby="pl-name-h" />
         <p className="hint" id="pl-name-h">{debitOk ? 'A credit card in the renter\'s name is preferred. This booking also takes a debit or prepaid card in the renter\'s name.' : 'A credit card in the renter\'s name. If you only have a debit or prepaid card, contact us.'}</p></div>
@@ -99,7 +104,7 @@ export function PayLinkForm({ token, kind, amountCents, legalName, backTo = null
             <div className="field"><label className="label" htmlFor="pl-cvc">Security code</label><input className="input" id="pl-cvc" inputMode="numeric" autoComplete="cc-csc" value={card.cvc} onChange={(e) => setCard({ ...card, cvc: e.target.value })} /></div>
           </div>
         </div>
-      ) : <div className="pt-cardbox" ref={mount} role="group" aria-label="Card details">{!p && <div className="skeleton sk-line" aria-hidden="true" />}</div>}
+      ) : <div className="pt-cardwrap"><div className="pt-cardbox" ref={mount} role="group" aria-label="Card details" />{!p && <div className="skeleton sk-line" aria-hidden="true" />}</div>}
       {debitOk && kind !== 'setup' && <p className="small muted" data-testid="paylink-debit-note">With a debit or prepaid card, {kind === 'hold' ? 'this hold lowers' : 'a deposit hold lowers'} the money available on the card or account until it is released, and the release can take several business days.{debitDepositCents ? ` The deposit is ${money(debitDepositCents, { cents: true })} with a debit or prepaid card.` : ''}</p>}
       {msg && <p className="alert alert--error" role="alert" data-testid="paylink-message"><span>{msg}</span></p>}
       <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={!p || busy} data-testid="paylink-submit">{busy ? 'Working' : kind === 'hold' ? `Place the hold of ${money(amountCents, { cents: true })}` : kind === 'setup' ? 'Save the card' : `Pay ${money(amountCents, { cents: true })}`}</button>

@@ -118,7 +118,6 @@ async function draw(page: Page, testId: string) {
   for (let i = 1; i <= 30; i++) await page.mouse.move(b.x + 20 + i * ((b.width - 60) / 30), b.y + b.height * (0.6 + 0.25 * Math.sin(i / 2.5)), { steps: 2 });
   await page.mouse.up();
 }
-const next = async (page: Page, title: string) => { await page.getByTestId('next').click(); await expect(page.getByTestId('step-title')).toHaveText(title, { timeout: 15_000 }); };
 async function complete(page: Page, text: string) {
   await expect(page.getByTestId('upload-count')).toContainText('all uploaded', { timeout: 60_000 });
   await expect(page.getByTestId('complete')).toBeEnabled({ timeout: 10_000 });
@@ -154,38 +153,24 @@ test('check-out by Sales from the booking, a late check-in by an Admin from Toda
   await check(page, 'va booking with the check-out card');
   await page.getByTestId('checkout-start').click();
   await page.waitForURL(/\/handover\//, { timeout: 30_000 });
-  await expect(page.getByTestId('ready-check')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByTestId('checklist')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByTestId('part-ready')).toHaveAttribute('data-ok', 'yes');
   await check(page, 'staff ready check');
-  await next(page, 'Car ready');
-  await page.getByRole('button', { name: 'Yes' }).click();
-  await next(page, 'Is this the renter?');
-  await page.getByRole('button', { name: 'Yes' }).click();
-  await next(page, 'Original licence');
-  await page.getByRole('button', { name: 'Yes' }).click();
-  await next(page, 'Card on File');
-  await page.getByRole('button', { name: 'Yes' }).click();
-  await next(page, 'Odometer');
+  // one screen (release 42): the renter, the licence and the card are one tap each
+  for (const t of ['tick-renter', 'tick-licence', 'tick-card']) await page.getByTestId(t).click();
   await page.getByTestId('odometer').fill(String(odo!.o + 10));
-  await next(page, 'Fuel or charge');
   // the slider starts at 8/8 but unset: move it to set it (filling the same value fires no change)
   await page.getByTestId('fuel').fill('7');
   await page.getByTestId('fuel').fill('8');
-  await next(page, 'Keys');
   await page.getByTestId('keys-more').click();
-  await next(page, 'Photo set');
   await expect(page.getByText('front plate readable').first()).toBeVisible();
   const shots = await page.locator('[data-testid^="shot-"]').count();
   expect(shots).toBe(19);
   for (let i = 1; i <= shots; i++) await page.getByTestId(`shot-${i}`).setInputFiles({ name: `${i}.png`, mimeType: 'image/png', buffer: PNG });
   await expect(page.getByTestId('upload-count')).toContainText('19 of 19 photos taken · all uploaded', { timeout: 60_000 });
   await page.screenshot({ path: `${SHOTS}/${w}-checkout-photos.png`, fullPage: true });
-  await next(page, 'Damage');
-  await next(page, 'Tracker');
-  await next(page, 'Renter reviews');
-  await next(page, 'Signatures');
   await draw(page, 'sign-renter'); await page.getByTestId('use-renter').click(); await expect(page.getByTestId('signed-renter')).toBeVisible({ timeout: 15_000 });
   await draw(page, 'sign-staff'); await page.getByTestId('use-staff').click(); await expect(page.getByTestId('signed-staff')).toBeVisible({ timeout: 15_000 });
-  await next(page, 'Hand over the keys');
   await complete(page, 'Checked in');
   const [out] = await sql`select status::text s, odometer_out_km::int km, fuel_out_pct::int f, (select assigned_to from field_jobs j where j.booking_id = b.id and j.kind = 'handover') who from bookings b where b.id = ${req.booking_id}`;
   expect(out).toMatchObject({ s: 'on_rent', km: odo!.o + 10, f: 100, who: sales.id });
@@ -204,28 +189,30 @@ test('check-out by Sales from the booking, a late check-in by an Admin from Toda
   await ap.goto('/admin', { waitUntil: 'networkidle' });
   await ap.getByTestId(`today-return-${req.booking_number}`).click();
   await ap.waitForURL(/\/handover\//, { timeout: 30_000 });
-  await expect(ap.getByTestId('step-title')).toHaveText('Car and keys received', { timeout: 15_000 });
-  await ap.getByRole('button', { name: 'Yes' }).click();
-  await next(ap, 'Odometer');
+  await expect(ap.getByTestId('checklist')).toBeVisible({ timeout: 15_000 });
+  // late: the screen offers the choice; the Admin leaves it for the booking (Decide later)
+  await expect(ap.getByTestId('late-later')).toBeChecked();
   await ap.getByTestId('odometer').fill(String(odo!.o + 460));
-  await next(ap, 'Fuel or charge');
   await ap.getByTestId('fuel').fill('6');
-  await next(ap, 'Keys and extras');
   await ap.getByTestId('keys-more').click();
-  await next(ap, 'Cleanliness');
   await ap.getByLabel('Standard').check();
-  await next(ap, 'Photo set');
   for (let i = 1; i <= 19; i++) await ap.getByTestId(`shot-${i}`).setInputFiles({ name: `r${i}.png`, mimeType: 'image/png', buffer: PNG });
   await expect(ap.getByTestId('upload-count')).toContainText('19 of 19 photos taken · all uploaded', { timeout: 60_000 });
-  await next(ap, 'Compare with pickup');
-  await next(ap, 'Belongings');
-  await next(ap, 'Renter reviews and signs');
   await draw(ap, 'sign-renter'); await ap.getByTestId('use-renter').click(); await expect(ap.getByTestId('signed-renter')).toBeVisible({ timeout: 15_000 });
-  await next(ap, 'You sign and complete');
   await draw(ap, 'sign-staff'); await ap.getByTestId('use-staff').click(); await expect(ap.getByTestId('signed-staff')).toBeVisible({ timeout: 15_000 });
   await complete(ap, 'Checked out');
-  await ap.getByTestId('checklist-back').click();
-  await ap.waitForURL(/\/report$/, { timeout: 20_000 });
+  // nothing is charged for the late return by itself (2710): it waits as a choice, with a To do
+  const [lr0] = await sql`select d.status, (select count(*)::int from booking_line_items li where li.booking_id = d.booking_id and li.assessment_key like 'late_return%' and li.voided_at is null) lines,
+      (select count(*)::int from tasks t where t.booking_id = d.booking_id and t.task_type = 'late_return_decision' and t.status = 'open') todo from late_return_decisions d where d.booking_id = ${req.booking_id}`;
+  expect(lr0).toMatchObject({ status: 'pending', lines: 0, todo: 1 });
+  // on the booking: the Admin charges the late return fee of the rental terms
+  await ap.goto(`/admin/bookings/${req.booking_number}`, { waitUntil: 'networkidle' });
+  await expect(ap.getByTestId('late-return-facts')).toContainText('Late by 3 h');
+  await check(ap, 'admin late return choice');
+  await ap.getByTestId('late-late_fee').check();
+  await ap.getByTestId('late-save').click();
+  await expect(ap.getByTestId('late-return-facts')).toContainText('charged the late return fee', { timeout: 15_000 });
+  await ap.goto(`/admin/bookings/${req.booking_number}/report`, { waitUntil: 'networkidle' });
   await expect(ap.getByTestId('report-facts')).toContainText('Late by 3 h');
   await expect(ap.getByTestId('report-facts')).toContainText('350 km over');
   await expect(ap.getByTestId('report-facts')).toContainText('25% lower');
@@ -420,7 +407,10 @@ test('field staff open a check-out from their job card in one tap', async ({ bro
   // field staff member, who can be this new one
   await page.getByTestId('job-card').filter({ has: page.locator(`a[href="/staff/field/jobs/${job!.id}"]`) }).getByTestId('field-checkout').click();
   await page.waitForURL(new RegExp(`/staff/field/jobs/${job!.id}`), { timeout: 30_000 });
-  await expect(page.getByTestId('ready-check')).toBeVisible({ timeout: 15_000 });
+  // r43 one screen: the ready check is on the page; its six lines fold into one line when everything is ready
+  await expect(page.getByTestId('ready-open')).toBeVisible({ timeout: 15_000 });
+  await page.getByTestId('ready-open').click();
+  await expect(page.getByTestId('ready-check')).toBeVisible();
   await sql.end();
 });
 

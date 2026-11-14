@@ -92,7 +92,7 @@ test('the CARMA plate: Ontario, the company plate, blue on white, drawn without 
   assert.ok(inQuadBox(img, 20, 20, 180, 100, (r, g, b) => b > r + 40) > 300);
 });
 
-test('the worker makes a covered photo again: the rear plate CARMA, the sizes, never the real characters', async () => {
+test('the worker makes a covered photo again: the plate blurred (r45, nothing drawn), the sizes, never the real characters', async () => {
   const { runJob } = await import('./worker.ts');
   const { encodeJpeg, decodeImage } = await import('./showroom.ts');
   const { fakeText } = await import('../../integrations/llm/fake.ts');
@@ -111,6 +111,6 @@ test('the worker makes a covered photo again: the rear plate CARMA, the sizes, n
   assert.match(o.processed_path, /^vehicles\/v1\/car-rear-pabcdef\.jpg$/);
   assert.deepEqual(o.variants.map((v) => v.width), [200]);
   const out = (await decodeImage(pub.get(o.processed_path)!))!;
-  assert.ok(inQuadBox(out, 130, 100, 270, 186, (r2, g, b) => b > r2 + 40) > 500, 'CARMA');
+  assert.ok(inQuadBox(out, 130, 100, 270, 186, (r2, g, b) => b > r2 + 40) < 40, 'no CARMA plate drawn');
   assert.ok(inQuadBox(out, 135, 125, 265, 160, (r2, g, b) => r2 < 60 && g < 60 && b < 60) < 40, 'no real characters');
 });

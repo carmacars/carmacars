@@ -5,6 +5,7 @@ import { CarInterest, type Interest } from '@/features/live/CarInterest';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import { Act } from '@/features/admin/Act';
+import { GeminiRedoCar } from '@/features/listing/Showroom';
 import { MoreActions } from '@/features/admin/NextStep';
 import { Registration, type RegistrationData } from '@/features/vehicles/Registration';
 import { MasterCalendar, type CalData } from '@/features/admin/MasterCalendar';
@@ -99,6 +100,8 @@ export async function VehiclePage({ ctx, id, sp }: { ctx: PageCtx; id: string; s
         title={<>{v.name} {v.retired_at ? <Badge s="retired">Retired</Badge> : <Badge s={v.status} />}{usingSamples && <> <Badge s="needs_review">Using sample photos</Badge></>}</>}>
         {slug && v.listing?.status === 'published' && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/cars/${slug}`} target="_blank">Public page</Link>}
         <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/admin/vehicles/incident-cards`} data-testid="incident-card-link">Incident card</Link>
+        {/* r43 (2690): this car's outside photos made again with Gemini only */}
+        <GeminiRedoCar vehicle={id} />
       </PageHead>
       <Tabs current={`${base}?tab=${tab}`} items={tabs.map(([k, l]) => [`${base}?tab=${k}`, l] as [string, string])} />
       <HashTab tabs={tabs.map(([k]) => k)} current={tab} />

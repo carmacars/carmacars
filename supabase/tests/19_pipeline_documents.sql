@@ -318,7 +318,7 @@ select test.eq('insurer: one email to the insurer, from billing, with every valu
 select test.eq('insurer: the sender adds a 7-day link to the invoice PDF', (app.outbox_file_refs((test.pd_ob()).id) -> 'invoice_url' ->> 'k'), 'insurer_invoice');
 select test.eq('insurer: sending again is a second email', (public.door(test.id('pd_fin'), null, 'ops_do', 'insurer_invoice_email', jsonb_build_object('id', test.id('ii:pd'))) ->> 'sends'), '2');
 update insurers set billing_email = null where id = test.id('ins:pd');
-select test.throws('insurer: no billing email, no send', format($$select public.door(%L, null, 'ops_do', 'insurer_invoice_email', jsonb_build_object('id', %L))$$, test.id('pd_fin'), test.id('ii:pd')), 'no billing email');
+select test.throws('insurer: no billing email, no send', format($$select public.door(%L, null, 'ops_do', 'insurer_invoice_email', jsonb_build_object('id', %L))$$, test.id('pd_fin'), test.id('ii:pd')), 'No email to send it to');
 select test.eq('catalogue: invoice_url is a sender value, like the other signed links',
   (select 'invoice_url' = any (sender_supplied) from notification_catalogue where code = 'insurer_invoice'), true);
 

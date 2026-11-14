@@ -20,11 +20,13 @@ export default async function Visitors({ searchParams }: { searchParams: Promise
   const [{ user, read }, sp] = await Promise.all([page('/admin/visitors'), searchParams]);
   const view = viewOf(sp.view);
   const id = typeof sp.id === 'string' && ID.test(sp.id) ? sp.id : undefined;
+  // r47: every read has a fallback (the page says which part did not load), as r46 did for Game leads: one busy read
+  // failed the whole page (React #441)
   const [map, live, hist, chat, phone, counts] = await Promise.all([
     view === 'chat' ? Promise.resolve(null) : liveMap(user.id, false).catch(() => null),
-    view === 'live' ? read<LiveData>('live_visitors').then(liveWithoutContact) : Promise.resolve(null),
-    view === 'history' ? read<HistoryData>('visitor_history', historyParams(sp)) : Promise.resolve(null),
-    view === 'chat' && sp.inbox !== 'phone' ? read<Inbox>('chat_inbox') : Promise.resolve(null),
+    view === 'live' ? read<LiveData>('live_visitors').then(liveWithoutContact).catch(() => null) : Promise.resolve(null),
+    view === 'history' ? read<HistoryData>('visitor_history', historyParams(sp)).catch(() => null) : Promise.resolve(null),
+    view === 'chat' && sp.inbox !== 'phone' ? read<Inbox>('chat_inbox').catch(() => null) : Promise.resolve(null),
     view === 'chat' ? read<PhoneInboxData>('phone_inbox').catch(() => null) : Promise.resolve(null),
     read<{ waiting: number; hot?: number }>('chat_counts').catch(() => ({ waiting: 0, hot: 0 }))
   ]);

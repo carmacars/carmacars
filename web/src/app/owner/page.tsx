@@ -6,6 +6,8 @@ import { CarPhoto, day, InvoiceRows, VehicleCard } from '@/features/owner/Blocks
 import { ownerMonthToDate, ownerView, requireOwner } from '@/server/owner/data';
 import { carsOutLine, earnedThisMonth } from '@/features/owner/now';
 import { rpc } from '@/lib/db/repo';
+import { door } from '@/server/door';
+import type { OwnerHistory } from '@/features/maintenance/model';
 import { TRACKER_LATER } from '@/features/owner/types';
 import { ApplicationTask, type AppTask } from '@/features/owner/ApplicationTask';
 import { amountText, carThisMonth, nextPayout, upcoming, viewOf } from '@/features/owner/insights';
@@ -71,6 +73,10 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
   const onRent = enrolled.filter((v) => live[v.vehicle_id]?.key === 'on_rent').length;
   const coming = upcoming(bookings, new Date(), 6);
   const nextOf = (id: string) => upcoming(bookings.filter((b) => b.vehicle_id === id), new Date(), 1)[0] ?? null;
+  // 2740: each shown car's kilometres and next service (read only, the owner's own cars through the existing owner read)
+  const shownCars = home.vehicles.slice(0, 4).filter((v) => !['declined', 'exited', 'total_loss'].includes(v.status));
+  const service: Record<string, OwnerHistory | null> = Object.fromEntries(await Promise.all(shownCars.map(async (v) =>
+    [v.vehicle_id, await door<OwnerHistory>(user.id, 'ops_read', 'maint_owner', { vehicle_id: v.vehicle_id }).catch(() => null)] as const)));
   const banners = (
     <>
       {sp.signed && <p className="alert alert--ok" role="status" data-testid="owner-signed-banner"><span className="alert__title">Signed</span><span>Thank you: your signature is recorded and CarmaCars countersigned. Your signed copies appear in Documents within a few minutes, and we email them to you.</span></p>}
@@ -159,7 +165,7 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
       {onboarding && onboarding.cars.length > 0 && <OnboardingChecklist data={onboarding} />}
       <section className="stack" aria-labelledby="ow-cars">
         <div className="row" style={{ justifyContent: 'space-between' }}><h2 className="pt-section-title" id="ow-cars">Your cars ({home.vehicles.length})</h2>{!partner && <Link prefetch={false} className="btn btn--ghost btn--sm" href="/list-your-car/apply">Add a vehicle</Link>}</div>
-        <ul className="ow-cars">{home.vehicles.slice(0, 4).map((v) => <VehicleCard key={v.vehicle_id} v={v} compact trackers={home.trackers_available} photo={photo[v.vehicle_id]} live={live[v.vehicle_id]} month={carThisMonth(months, v.vehicle_id)} next={nextOf(v.vehicle_id)} />)}</ul>
+        <ul className="ow-cars">{home.vehicles.slice(0, 4).map((v) => <VehicleCard key={v.vehicle_id} v={v} compact trackers={home.trackers_available} photo={photo[v.vehicle_id]} live={live[v.vehicle_id]} month={carThisMonth(months, v.vehicle_id)} next={nextOf(v.vehicle_id)} service={service[v.vehicle_id] ?? null} />)}</ul>
         {home.vehicles.length > 4 && <p><Link prefetch={false} className="link" href="/owner/vehicles">All {home.vehicles.length} cars</Link></p>}
       </section>
     </>

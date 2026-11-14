@@ -8,6 +8,7 @@ import { OwnerNav } from '@/features/owner/OwnerNav';
 import { currentUser } from '@/server/portal/data';
 import { PortalSwitch, SignOutOrExit } from '@/features/access/Access';
 import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
+import { WhatsNew } from '@/features/whats-new/WhatsNew';
 import { StuckHelp } from '@/features/help/StuckHelp';
 import { TermsGate } from '@/features/terms/TermsGate';
 import { PushInvite } from '@/features/push/PushAlerts';
@@ -30,7 +31,7 @@ export default async function OwnerLayout({ children }: { children: React.ReactN
       <div className="wrap pt__top">
         <div className="pt__hello">
           <p className="small muted">{partner ? 'Partner portal' : 'Owner portal'} · <b data-testid="account-email">{user.email}</b></p>
-          <span className="gd-frame-links"><GuideLink portal="owner" /><SignOutOrExit /></span>
+          <span className="gd-frame-links"><WhatsNew portal={partner ? 'partner' : 'owner'} userId={user.id} /><GuideLink portal="owner" /><SignOutOrExit /></span>
         </div>
         <PortalSwitch current="owner" />
         <OwnerNav unread={unread || 0} partner={partner} />

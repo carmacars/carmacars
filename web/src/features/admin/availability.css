@@ -1,0 +1,20 @@
+/* Which cars are free (r44, AvailabilityView.tsx): one card a car, available first; a green edge for free, red for not.
+   Works from phone width up: the form wraps, each card stacks. */
+.av { display: grid; gap: var(--s-2); margin: 0 0 var(--s-4); padding: var(--s-3); border: 1px solid var(--grey-200); border-radius: 12px; background: var(--white); }
+.av__h { margin: 0; font-size: 1.05rem; }
+.av__form { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: end; }
+.av__f { display: grid; gap: 2px; flex: 1 1 11rem; min-width: 0; font-size: 0.85rem; }
+.av__f .input, .av__f .select { width: 100%; min-height: 40px; font-size: 16px; }
+.av__chk { display: inline-flex; gap: 6px; align-items: center; min-height: 40px; font-size: 0.9rem; }
+.av__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
+.av__car { display: grid; gap: 4px; padding: 10px 12px; border: 1px solid var(--grey-200); border-left: 5px solid var(--ok); border-radius: 10px; overflow-wrap: anywhere; }
+.av__car.is-taken { border-left-color: var(--red-600); background: var(--grey-50); }
+.av__main { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.av__badge { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ok); }
+.av__car.is-taken .av__badge { color: var(--red-700); }
+.av__name { display: grid; gap: 2px; }
+.av__why { margin: 0; padding-left: 1.1em; font-size: 0.85rem; }
+.av__why--note { color: var(--grey-600); }
+.av__acts { margin: 0; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+.av__none { padding: var(--s-2); color: var(--grey-600); }
+.av__list[aria-busy] { opacity: 0.6; }

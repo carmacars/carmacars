@@ -76,7 +76,7 @@ jobs:
           sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y > /dev/null
           sudo apt-get install -y -q postgresql-client-17 > /dev/null
           echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1
         if: inputs.action == 'final-copy'
         with:
           version: latest

@@ -264,3 +264,21 @@ export const BUG_TOOLS: Tool[] = [
     { id: str('The report number (BR-...) or its id'), status: { type: 'string', enum: ['new', 'triaged', 'fixed', 'wont_fix'], description: 'The new status' }, note: str('A note to add'), fixed_in: str('The release that fixed it') })
 ];
 TOOLS.push(...BUG_TOOLS);
+
+// Release 47 (2896): the listing photo standard (r45) per car and for the fleet, with Gemini's use today. Read only.
+export const PHOTO_TOOLS: Tool[] = [
+  read('photo_standard', 'Photo standard', 'The listing photo standard (r45) per car: photos, public (on the site now), at the standard, flagged (kept off the site, each with the check\'s why and reasons), queued, AI angles (generated views) and the standard angles still missing, the first photo\'s shot type, and whether the public cover is a real photo, a sample photo or none. Also the fleet totals and Gemini today: image calls used, the daily limit, the reserve for new uploads, what is left and the photos waiting. Without vehicle: every car the standard applies to, newest listed first. Read only.',
+    { vehicle: str('One car: its vehicle id, fleet number or plate'), limit: { type: 'integer', minimum: 1, maximum: 500, description: 'At most this many cars (200 by default)' } })
+];
+TOOLS.push(...PHOTO_TOOLS);
+
+// Release 47 (2896): Stripe, read live beside what the site recorded (stripe-inspect.ts). Never moves money: the reads
+// only GET; stripe_record_paid only records a payment Stripe already shows succeeded, as the webhook would.
+export const STRIPE_TOOLS: Tool[] = [
+  read('stripe_booking', 'Stripe for a booking', 'Live from Stripe for one booking: every PaymentIntent, charge and SetupIntent the booking references or that Stripe finds by its metadata, each with its status, amount, amount received and capturable, capture method, when, the last error, refunds, disputes and the card brand and last 4 only; beside what the site recorded (payments, holds, pay links), and a one-line verdict ("paid and recorded", "paid at Stripe but not recorded (pi_...)", "hold authorized until ...", "not paid"). Read only.',
+    { booking: str('The booking number, for example CC-10482') }, ['booking']),
+  read('stripe_account', 'Stripe account', 'Live from Stripe: the balance (available and pending per currency), whether charges and payouts are enabled, the payout schedule, the next and the last payout, and the account\'s open requirements (currently_due, past_due, eventually_due, current_deadline, disabled_reason), so a verification Stripe asks for is visible. Read only.'),
+  write('stripe_record_paid', 'Record a Stripe payment', 'Record on its booking a PaymentIntent that Stripe shows succeeded but the site never recorded (stripe_booking says "paid at Stripe but not recorded"), exactly as Stripe\'s webhook would. Nothing is charged or captured: an intent that is not succeeded, or not this booking\'s total, is refused.', ['booking', 'payment_intent'],
+    { booking: str('The booking number'), payment_intent: str('The PaymentIntent id (pi_...)') })
+];
+TOOLS.push(...STRIPE_TOOLS);

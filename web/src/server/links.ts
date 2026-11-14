@@ -1,5 +1,6 @@
 import 'server-only';
 import { env } from '@/lib/env';
+import { pickLinkSecret } from '@/lib/security/link-secret';
 
 // Signed tokens for things that act without a session or must not be forged by the browser:
 // an additional driver's signing link (72 hours), an upload ticket (5 minutes, bound to the exact
@@ -9,8 +10,7 @@ const b64url = (b: Uint8Array) => btoa(String.fromCharCode(...b)).replace(/\+/g,
 const unb64url = (s: string) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
 
 export function linkSecret(): string {
-  const e = env();
-  const k = e.LINK_SIGNING_KEY ?? (e.APP_ENV === 'production' ? undefined : e.LOCAL_AUTH_SECRET ?? 'local-only-link-signing-key-not-for-production');
+  const k = pickLinkSecret(env());
   if (!k) throw new Error('Missing environment variable LINK_SIGNING_KEY');
   return k;
 }

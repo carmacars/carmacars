@@ -42,8 +42,10 @@ jobs:
         with:
           node-version: 22
       - name: The pages that need text, from the database
+        env:
+          LIMIT: ${{ inputs.limit || '500' }}
         run: |
-          N="${{ inputs.limit || '500' }}"
+          N="$LIMIT"
           case "$N" in ''|*[!0-9]*) echo "::error title=seo queue::the limit is a number"; exit 1 ;; esac
           printf 'select app.seo_batch_queue(%s) as q' "$N" > "$RUNNER_TEMP/queue.sql"
           "$GITHUB_WORKSPACE/scripts/deploy/sb.sh" sql-file "$RUNNER_TEMP/queue.sql" > "$RUNNER_TEMP/queue.json"

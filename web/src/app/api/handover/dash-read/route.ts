@@ -6,6 +6,7 @@ import { visionModel } from '@/integrations/vision';
 import { GEMINI_DEFAULT_MODEL, geminiVision } from '@/integrations/vision/gemini';
 import { DASH_PROMPT, DASH_SYSTEM, dashFromModel } from '@/features/handover/reading';
 import { UUID } from '@/features/returns/claim';
+import { foreignOrigin } from '@/lib/security/same-origin';
 
 // The dashboard photo of a check-out or check-in read by the vision model (release 35, migration 0910): the renter of the
 // booking, staff who record handovers, or the holder of the booking's return link. The database decides who and whether
@@ -19,7 +20,7 @@ const NOT_READ = { ok: false, message: 'The photo could not be read. Type the od
 
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
-  if (origin && new URL(origin).host !== req.headers.get('host')) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
+  if (foreignOrigin(origin, req.headers.get('host'), req.headers.get('sec-fetch-site'))) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
   const body = (await req.json().catch(() => null)) as { booking?: string; token?: string; image?: string } | null;
   const image = typeof body?.image === 'string' ? body.image : '';
   const booking = body?.booking && UUID.test(body.booking) ? body.booking : null;

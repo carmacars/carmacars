@@ -4,6 +4,7 @@ import Link from '@/components/Link';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { QUO_DESKTOP_KEY, QUO_WEB, callPlan, e164, isHandheld, prettyNumber, quoMessage, smsHref, telHref } from './quo-links';
 import { callView, checkMyNumber, type CallAnswer, type CallView } from './my-number';
+import { placeCall } from './voice';
 
 // The Call and Text buttons of every staff page (r27 consolidation, migration 0500; the owner on November 2, 2026: "Call and
 // Text through Quo"). Text opens a composer here that sends from the CarmaCars number through Quo, and the text is kept in
@@ -14,7 +15,8 @@ import { callView, checkMyNumber, type CallAnswer, type CallView } from './my-nu
 
 // r35 (0970): twilio: the Call button rings the staff member's own cell, then the customer (twilio_why: why not, shown on the
 // Quo fallback); can_reveal: an Admin may reveal a number masked for Sales (audited)
-type Cfg = { quo: boolean; from: string | null; any_number?: boolean; twilio?: boolean; twilio_why?: string | null; can_reveal?: boolean };
+// r44 (2790): browser: the call is placed in this browser (VoiceDock shows it), with the CarmaCars number as caller ID
+type Cfg = { quo: boolean; from: string | null; any_number?: boolean; browser?: boolean; twilio?: boolean; twilio_why?: string | null; can_reveal?: boolean };
 /** A number masked for Sales ("(647) •••-••00", migration 0970): shown as it is, called and texted through the platform only. */
 export const isMasked = (s: string | null | undefined): boolean => !!s && s.includes('\u2022');
 let cfgP: Promise<Cfg> | null = null;
@@ -99,7 +101,10 @@ function MaskedButtons({ phone, name, booking, look = 'buttons', inbox, only, te
   const [shown, setShown] = useState<string | null>(null);
   const who = name?.trim() || m;
   // r40: always through the server, which knows whether calling is set up and whether the caller has a mobile on file
-  const onCall = () => { setSheet('call'); call.start(); };
+  const onCall = () => {
+    if (cfg?.browser) { void placeCall({ number: m, booking, name }); return; }  // r44: in the browser; the server finds the number
+    setSheet('call'); call.start();
+  };
   const reveal = async () => {
     const q = new URLSearchParams({ what: 'phone_reveal', masked: m, ...(booking ? { booking } : {}), ...(name ? { name } : {}) });
     const r = await fetch(`/api/staff/phone?${q}`, { cache: 'no-store', credentials: 'same-origin' }).then((x) => x.json()).catch(() => null) as { display?: string; error?: string } | null;
@@ -173,7 +178,13 @@ function PlainButtons({ phone, name, booking, look = 'buttons', inbox, only, tes
   const quo = !!cfg?.quo;
 
   const onCall = (e: React.MouseEvent) => {
-    // r35 (0970): through Twilio when it is set up: the staff member's own cell rings, then the customer
+    // r44 (2790): in the browser when calls from the site are set up (the default)
+    if (cfg?.browser) {
+      e.preventDefault();
+      void placeCall({ number: n, booking, name });
+      return;
+    }
+    // r35 (0970): through Twilio, the staff member's own cell first (only when Program settings turn that way on)
     if (cfg?.twilio) {
       e.preventDefault();
       setSheet('twilio'); tw.start();

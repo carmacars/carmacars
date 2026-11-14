@@ -1,4 +1,5 @@
 'use client';
+import { RenterOnFile } from '@/features/booking/RenterOnFile';
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { playMoment } from '@/features/motion/moment';
 import { PICKUP_PASSED, pickupPassed } from './pickup-passed';
@@ -57,14 +58,17 @@ export interface OcDraft { f?: Partial<OfferForm>; addons?: AddonChoice[]; custo
   /** 2026-10-27: how the amounts were typed, and the total the renter pays typed */
   tax_mode?: TaxMode; total?: string }
 
-export function OfferComposer({ base, initialCar = null, draft = null, owner = null }: { base: '/admin' | '/staff'; initialCar?: string | null; draft?: { id: string; data: OcDraft } | null; owner?: OwnerDefaults | null }) {
+// r44: initialFrom / initialTo (YYYY-MM-DDTHH:MM, from the availability view's "Offer these dates") fill the dates
+const LOCAL_AT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+export function OfferComposer({ base, initialCar = null, initialFrom = null, initialTo = null, draft = null, owner = null }: { base: '/admin' | '/staff'; initialCar?: string | null; initialFrom?: string | null; initialTo?: string | null; draft?: { id: string; data: OcDraft } | null; owner?: OwnerDefaults | null }) {
   // 0156: what the car's owner sees of the booking
   const [ownerChoice, setOwnerChoice] = useState(() => ownerChoiceInitial(owner));
   const start = useMemo(() => { const d = new Date(Date.now() + 86_400_000); d.setMinutes(0, 0, 0); d.setHours(10); return d; }, []);
   const [form, setForm] = useState<Form | null>(null);
   const [f, setF] = useState<OfferForm>(() => ({
     renter_id: null, full_name: '', email: '', mobile: '', date_of_birth: '',
-    vehicle_id: initialCar ?? '', pickup_at: local(start), return_at: local(new Date(start.getTime() + 3 * 86_400_000)),
+    vehicle_id: initialCar ?? '', pickup_at: initialFrom && LOCAL_AT.test(initialFrom) ? initialFrom : local(start),
+    return_at: initialTo && LOCAL_AT.test(initialTo) && (!initialFrom || initialTo > initialFrom) ? initialTo : local(new Date((initialFrom && LOCAL_AT.test(initialFrom) ? new Date(initialFrom) : start).getTime() + 3 * 86_400_000)),
     pickup_kind: 'our_location', pickup_address: '', pickup_km: '', return_kind: 'our_location', return_address: '', return_km: '',
     price_mode: 'sheet', price_total: '', price_day: '', price_tax: 'plus', price_reason: '',
     deposit: '', discount: '', discount_reason: '', promo_code: '', km: '', coverage_option: '1', plan_price: '', fees: {}, fee_reason: '',
@@ -380,10 +384,11 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
         <nav className="oc-phases small" aria-label="Steps" data-testid="oc-phases"><a href="#oc-phase-1">1. Car and dates</a> · <a href="#oc-phase-2">2. Price</a> · <a href="#oc-phase-3">3. Review and send</a></nav>
         {phase(1, 'Car and dates')}
         {step(n, 'Who is renting and when', 'Find the renter (or add them), then set when they pick up and return the car.', <>
-          {chosen ? (
+          {chosen ? (<>
             <p data-testid="oc-customer"><b>{chosen.legal_name}</b> <span className="small">{chosen.email} · {chosen.mobile} · {chosen.bookings ? `${chosen.bookings} past rental${chosen.bookings === 1 ? '' : 's'}` : 'no rental yet'}{chosen.card ? ` · card ${chosen.card.brand} ${chosen.card.last4}` : ''}</span>{' '}
               <button className="btn btn--quiet btn--sm" type="button" onClick={() => { setChosen(null); set('renter_id')(null); }}>Change</button></p>
-          ) : !adding ? (<>
+            <RenterOnFile renterId={chosen.id} returnIso={f.return_at} testId="oc-on-file" />
+          </>) : !adding ? (<>
             <div className="field"><label className="label" htmlFor="oc-q">Find the renter</label>
               <input className={`input${tried && needOf('renter') ? ' is-invalid' : ''}`} id="oc-q" type="search" placeholder="Name, phone or email" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" data-testid="oc-q" aria-describedby="oc-q-h" />
               <p className="hint" id="oc-q-h">Type 3 or more letters or digits.</p>{needMsg('renter')}</div>

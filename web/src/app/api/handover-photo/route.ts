@@ -6,6 +6,7 @@ import { realUser } from '@/server/portal/data';
 import { photoKey, type PhotoScope } from '@/features/handover/angles';
 import { MAX_PHOTO_BYTES, UUID } from '@/features/returns/claim';
 import { imageSniff } from '@/lib/file-sniff';
+import { foreignOrigin } from '@/lib/security/same-origin';
 
 // One photo of a check-in or check-out (migration 0545) or of a car picked up from or returned to its owner (0546). The
 // browser made it a smaller JPEG first. Who may: self-pickup, the booking's renter; one-screen, staff who hand cars over;
@@ -29,7 +30,7 @@ async function allowed(userId: string, scope: string, id: string, view = false):
 
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
-  if (origin && new URL(origin).host !== req.headers.get('host')) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403, headers: H });
+  if (foreignOrigin(origin, req.headers.get('host'), req.headers.get('sec-fetch-site'))) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403, headers: H });
   const user = await realUser();
   if (!user) return NextResponse.json({ ok: false, message: 'Sign in first.' }, { status: 401, headers: H });
   const form = await req.formData().catch(() => null);

@@ -2,6 +2,7 @@ import { realUser } from '@/server/portal/data';
 import { door } from '@/server/door';
 import { storage } from '@/integrations/storage';
 import { toCsv, type Extras } from '@/features/profit-extras/model';
+import { foreignOrigin } from '@/lib/security/same-origin';
 
 // Kickbacks and repair costs (release 29, C2; migration 0581), for Admin, Finance and Fleet (the database checks who):
 // GET ?level=&id=&from=&to= the CSV of a view; GET ?receipt=<repair cost> its receipt; POST (vehicle, file) a receipt
@@ -37,7 +38,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
-  if (origin && new URL(origin).host !== req.headers.get('host')) return Response.json({ ok: false, message: 'Not permitted.' }, { status: 403, headers: H });
+  if (foreignOrigin(origin, req.headers.get('host'), req.headers.get('sec-fetch-site'))) return Response.json({ ok: false, message: 'Not permitted.' }, { status: 403, headers: H });
   const user = await realUser();
   if (!user) return Response.json({ ok: false, message: 'Sign in first.' }, { status: 401, headers: H });
   // the people who may record repair costs (the cost itself is checked again when it is saved)

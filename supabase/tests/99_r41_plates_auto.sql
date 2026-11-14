@@ -51,9 +51,9 @@ create temp table rpa_cover as select app.plate_auto_apply(jsonb_build_object('p
   'processed_path', 'vehicles/' || test.id('vehicle:rpa_car') || '/front-left-aabc123.jpg', 'variants', '[]'::jsonb,
   'uncovered_path', 'vehicles/' || test.id('vehicle:rpa_car') || '/uncovered/x.jpg', 'width', 3000, 'height', 2000, 'byte_size', 800000)) r;
 update listing_jobs set status = 'succeeded', finished_at = now() where vehicle_photo_id = (select fl from rpap) and kind = 'plate_auto';
-select test.eq('a plate found: covered with the CARMA plate, by itself, the uncovered file kept privately',
+select test.eq('a plate found: blurred (2840, never drawn), by itself, the uncovered file kept privately',
   (select concat_ws('/', plate_status, plate_style, plate_checked_by is null, plate_auto ->> 'who', plate_auto ->> 'confidence', uncovered_path like '%/uncovered/x.jpg',
-                    plate_auto ->> 'prev_path' like '%front-left.jpg') from vehicle_photos where id = (select fl from rpap)), 'covered/carma/t/auto/88/t/t');
+                    plate_auto ->> 'prev_path' like '%front-left.jpg') from vehicle_photos where id = (select fl from rpap)), 'covered/blur/t/auto/88/t/t');
 select test.ok('the files it replaced are handed back to be taken off the public bucket',
   (select (r ->> 'applied')::boolean and r -> 'previous' ? ('vehicles/' || test.id('vehicle:rpa_car') || '/front-left.jpg')
           and r -> 'previous' ? ('vehicles/' || test.id('vehicle:rpa_car') || '/front-left-1024.jpg') from rpa_cover));

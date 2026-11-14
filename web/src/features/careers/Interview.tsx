@@ -11,11 +11,11 @@ import {
 // Hiring, Answer time: 2:00 by default) counts down. The applicant presses Record whenever ready inside it; recording
 // stops by itself at 0:00 and the answer is sent. Each answer is a short video with sound (about 720p), uploaded straight
 // to private storage with its audio track, which the transcript is made from. Retakes only as the setting allows (none by
-// default). Without a camera or a microphone the answers are typed, on the same clock. Nothing is recorded before the
-// consent.
+// default). Video answers only (2680): nothing is typed, and without a working camera and microphone the applicant is told to
+// switch device or browser and open the same link again. Nothing is recorded before the consent.
 type Phase = 'reading' | 'ready' | 'recording' | 'review' | 'sending';
 type Clip = { video: Blob; audio: Blob; url: string; seconds: number };
-type Check = { state: 'idle' | 'asking' | 'ok' | 'go' | 'failed'; why?: string; typedOk?: boolean };
+type Check = { state: 'idle' | 'asking' | 'ok' | 'go' | 'failed'; why?: string };
 type Msg = { tone: 'ok' | 'error'; text: string } | null;
 type Post = (fd: FormData) => Promise<boolean>;
 
@@ -66,7 +66,6 @@ export function Interview({ token, initial }: { token: string; initial: Intervie
   const [v, setV] = useState(initial);
   const [agree, setAgree] = useState(false);
   const [check, setCheck] = useState<Check>({ state: 'idle' });
-  const [typing, setTyping] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [level, setLevel] = useState(0);
   const [starting, setStarting] = useState(false);
@@ -92,7 +91,7 @@ export function Interview({ token, initial }: { token: string; initial: Intervie
 
   async function askDevices() {
     setCheck({ state: 'asking' });
-    if (!navigator.mediaDevices?.getUserMedia || !recorderOk()) { setCheck({ state: 'failed', why: cannotRecordWhy(null, false), typedOk: true }); return; }
+    if (!navigator.mediaDevices?.getUserMedia || !recorderOk()) { setCheck({ state: 'failed', why: cannotRecordWhy(null, false) }); return; }
     try {
       stopMeter();
       const s = await navigator.mediaDevices.getUserMedia({ video: VIDEO_CONSTRAINTS, audio: { echoCancellation: true, noiseSuppression: true } });
@@ -117,7 +116,7 @@ export function Interview({ token, initial }: { token: string; initial: Intervie
       } catch { /* no meter: the preview still shows */ }
     } catch (e) {
       const err = e as { name?: string };
-      setCheck({ state: 'failed', why: cannotRecordWhy(err, true), typedOk: err?.name === 'NotFoundError' || err?.name === 'OverconstrainedError' });
+      setCheck({ state: 'failed', why: cannotRecordWhy(err, true) });
     }
   }
 
@@ -170,16 +169,15 @@ export function Interview({ token, initial }: { token: string; initial: Intervie
   if (!q) return null;
 
   // the camera and microphone check, before the first question (and again after a reload)
-  if (!typing && check.state !== 'go') return (
+  if (check.state !== 'go') return (
     <div className="stack-lg" data-testid="iv-check">
       {head}
       <h1 className="d2">Check your camera and microphone</h1>
       <p className="lead">You should see yourself below, and the bar should move when you speak.</p>
       {check.state === 'failed'
         ? <><p className="alert alert--error" role="alert" data-testid="iv-check-why"><span>{check.why}</span></p>
-          <p className="row"><button type="button" className="btn btn--primary btn--lg" onClick={askDevices} data-testid="iv-check-retry">Try again</button>
-            {check.typedOk && <button type="button" className="btn btn--ghost" onClick={() => setTyping(true)} data-testid="iv-check-typed">Type my answers instead</button>}</p>
-          {check.typedOk && <p className="small muted">Typed answers have the same time: {mins} for each.</p>}</>
+          <p className="row"><button type="button" className="btn btn--primary btn--lg" onClick={askDevices} data-testid="iv-check-retry">Try again</button></p>
+          <p className="small muted" data-testid="iv-check-switch">This interview is answered on video only. If it still does not work, switch to another phone, computer or browser and open the same link again: you carry on where you stopped.</p></>
         : check.state === 'ok'
           ? <>
             <div className="iv-cam"><video ref={live} muted playsInline autoPlay className="iv-video" aria-label="Your camera" data-testid="iv-preview" /></div>
@@ -190,19 +188,16 @@ export function Interview({ token, initial }: { token: string; initial: Intervie
           : <p><button type="button" className="btn btn--primary btn--lg" onClick={askDevices} disabled={check.state === 'asking'} data-testid="iv-check-start">{check.state === 'asking' ? 'Asking for the camera' : 'Turn on my camera and microphone'}</button></p>}
     </div>);
 
-  return <Question key={q.seq} token={token} v={v} q={q} total={total} allowed={allowed} typing={typing} stream={stream} post={post} msg={msg} setMsg={setMsg} head={head} mins={mins} />;
+  return <Question key={q.seq} token={token} v={v} q={q} total={total} allowed={allowed} stream={stream} post={post} msg={msg} setMsg={setMsg} head={head} mins={mins} />;
 }
 
 // One question: a component of its own (keyed by the question), so each starts with a fresh clock and nothing recorded.
-function Question({ token, v, q, total, allowed, typing: typingAll, stream, post, msg, setMsg, head, mins }: {
-  token: string; v: InterviewView; q: NextQuestion; total: number; allowed: number; typing: boolean; stream: MediaStream | null; post: Post;
+function Question({ token, v, q, total, allowed, stream, post, msg, setMsg, head, mins }: {
+  token: string; v: InterviewView; q: NextQuestion; total: number; allowed: number; stream: MediaStream | null; post: Post;
   msg: Msg; setMsg: (m: Msg) => void; head: React.ReactNode; mins: string;
 }) {
-  // 2590: the written-English question says "type this answer instead of speaking it", so it is typed even with a camera
-  const typing = typingAll || (q.key === 'written' && q.kind === 'question');
   const [phase, setPhase] = useState<Phase>('reading');
   const [left, setLeft] = useState(total);
-  const [text, setText] = useState('');
   const [clip, setClip] = useState<Clip | null>(null);
   const [retakes, setRetakes] = useState(0);
   const [sent, setSent] = useState<number | null>(null);
@@ -242,11 +237,11 @@ function Question({ token, v, q, total, allowed, typing: typingAll, stream, post
       if (await post(fd)) URL.revokeObjectURL(c.url); else setPhase('review');
     } finally { busy.current = false; setSent(null); }
   }
-  async function sendText(t: string) {
+  // the time ran out with nothing recorded: no answer (never typed)
+  async function sendNone() {
     if (busy.current) return;
     busy.current = true; setPhase('sending');
-    const fd = new FormData(); fd.set('seq', String(q.seq));
-    if (t.trim()) { fd.set('mode', 'typed'); fd.set('text', t); } else fd.set('mode', 'none');
+    const fd = new FormData(); fd.set('seq', String(q.seq)); fd.set('mode', 'none');
     const ok = await post(fd);
     busy.current = false;
     if (!ok) setPhase('ready');
@@ -283,7 +278,7 @@ function Question({ token, v, q, total, allowed, typing: typingAll, stream, post
   const stop = () => { const r = recs.current; if (r) { if (r.video.state === 'recording') r.video.stop(); if (r.audio.state === 'recording') r.audio.stop(); } };
   const again = () => { if (clip) URL.revokeObjectURL(clip.url); setClip(null); setRetakes((n) => n + 1); setPhase('ready'); };
 
-  // the clock: at 0:00 recording stops and the answer goes (typed as written; none when nothing was recorded or typed)
+  // the clock: at 0:00 recording stops and the answer goes (none when nothing was recorded)
   useEffect(() => {
     if (phase === 'reading' || phase === 'sending' || !deadline.current) return;
     const id = setInterval(() => {
@@ -293,7 +288,7 @@ function Question({ token, v, q, total, allowed, typing: typingAll, stream, post
       clearInterval(id);
       if (phase === 'recording') stop();
       else if (phase === 'review' && clip) void sendClip(clip, retakes);
-      else if (phase === 'ready') void sendText(typing ? text : '');
+      else if (phase === 'ready') void sendNone();
     }, 250);
     return () => clearInterval(id);
   });
@@ -314,7 +309,7 @@ function Question({ token, v, q, total, allowed, typing: typingAll, stream, post
         {phase === 'reading' ? <>Reading the question. Your {mins} start after it.</> : <><span className="iv-timer__n" role="timer">{clock(left)}</span> left to answer</>}
       </p>
       {alert}
-      {!typing && (
+      {(
         <div className="iv-answer" aria-live="polite">
           {(phase === 'reading' || phase === 'ready' || phase === 'recording') && (
             <div className={`iv-cam${phase === 'recording' ? ' is-rec' : ''}`}>
@@ -329,13 +324,6 @@ function Question({ token, v, q, total, allowed, typing: typingAll, stream, post
             {allowed - retakes > 0 && left > 0 && <button type="button" className="btn btn--ghost" onClick={again} data-testid="iv-again">Record again ({allowed - retakes} left)</button>}
           </div>}
           {phase === 'sending' && <p className="iv-up" role="status" data-testid="iv-uploading">{sent !== null ? `Sending your answer: ${sent}%` : 'Sending your answer'}</p>}
-        </div>)}
-      {typing && (
-        <div className="stack">
-          <label className="field"><span className="label">Your answer</span>
-            <textarea className="input" rows={6} value={text} maxLength={4000} onChange={(e) => setText(e.target.value)} disabled={phase !== 'ready'} data-testid="iv-typed" /></label>
-          <p className="small muted">What you have typed is sent when the time is up.</p>
-          <p><button type="button" className="btn btn--primary btn--lg" onClick={() => sendText(text)} disabled={phase !== 'ready' || !text.trim()} data-testid="iv-send-typed">{phase === 'sending' ? 'Sending your answer' : 'Send this answer'}</button></p>
         </div>)}
     </div>
   );

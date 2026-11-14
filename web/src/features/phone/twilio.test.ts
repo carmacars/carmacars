@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
-import { bridgeTwiml, callToken, dialOutcome, hangupTwiml, recordingKey, recordingReady, recordingUrls, startCallForm, twilioReady, twilioSignature, verifyCallToken, verifyTwilioSignature } from './twilio.ts';
+import { bridgeTwiml, callToken, dialOutcome, hangupTwiml, identityUser, noAnswerTwiml, recordingKey, recordingReady, recordingUrls, ringBrowsersTwiml, signedUrlCandidates, staffIdentity, startCallForm, toE164,
+  twilioReady, twilioSignature, verifyCallToken, verifyTwilioSignature, voiceAccessToken } from './twilio.ts';
 
 // Twilio's documented scheme, computed here independently with Node's own HMAC: the full URL, then each POST parameter
 // sorted by name, each name followed by its value; HMAC-SHA1 with the Auth Token; base64.
@@ -66,9 +67,15 @@ test('the REST call: rings the staff cell from our number, with the status event
 });
 
 test('ready: names the missing secrets, checks the account SID', () => {
-  assert.deepEqual(twilioReady({}), { ready: false, why: 'Calling from the site is not set up yet (TWILIO_ACCOUNT_SID, TWILIO_API_KEY, TWILIO_API_SECRET not saved).' });
-  assert.equal(twilioReady({ accountSid: 'xx', apiKey: 'SK1', apiSecret: 's' }).ready, false);
-  assert.equal(twilioReady({ accountSid: 'AC' + '0'.repeat(32), apiKey: 'SK1', apiSecret: 's' }).ready, true);
+  // r44: the Auth Token is required (every webhook is signed), and each value is checked for its form
+  assert.deepEqual(twilioReady({}), { ready: false, why: 'Calling from the site is not set up yet (TWILIO_ACCOUNT_SID, TWILIO_API_KEY, TWILIO_API_SECRET, TWILIO_AUTH_TOKEN not saved).' });
+  const good = { accountSid: 'AC' + '0'.repeat(32), apiKey: 'SK' + 'a'.repeat(32), apiSecret: 's', authToken: 't' };
+  assert.equal(twilioReady({ ...good, accountSid: 'xx' }).ready, false);
+  assert.match((twilioReady({ ...good, apiKey: 'AC' + '0'.repeat(32) }) as { why: string }).why, /TWILIO_API_KEY/);
+  assert.equal(twilioReady({ ...good, authToken: undefined }).ready, false);
+  assert.match((twilioReady({ ...good, callerId: 'the office' }) as { why: string }).why, /TWILIO_CALLER_ID/);
+  assert.equal(twilioReady(good).ready, true);
+  assert.equal(twilioReady({ ...good, callerId: '289-555-0123' }).ready, true);
 });
 
 test('outcome words', () => {
@@ -110,4 +117,66 @@ test('recording: only a completed recording with a real SID is copied; its URLs 
   assert.ok(u.resource.endsWith('.json'));
   assert.equal(recordingKey('0B8F6A52-6C1E-4C3B-9D7E-2A1F3C4D5E6F'), 'calls/twilio/0b8f6a52-6c1e-4c3b-9d7e-2a1f3c4d5e6f.mp3');
   assert.throws(() => recordingKey('../x'));
+});
+
+// ================================================================ r44 (2790): calls in the browser
+
+test('E.164: typed any way; not a number is null', () => {
+  assert.equal(toE164('+1 (289) 555-0123'), '+12895550123');
+  assert.equal(toE164('289-555-0123'), '+12895550123');
+  assert.equal(toE164('12895550123'), '+12895550123');
+  assert.equal(toE164('+63 917 555 0123'), '+639175550123');
+  assert.equal(toE164('555-0123'), null);
+  assert.equal(toE164('call me'), null);
+  assert.equal(toE164(''), null);
+});
+
+test('identity: made from the user id only, and read back', () => {
+  const id = '1b2c3d4e-0000-4000-8000-000000000001';
+  const ident = staffIdentity(id);
+  assert.match(ident, /^staff_[0-9a-f]{32}$/);
+  assert.equal(identityUser(`client:${ident}`), id);
+  assert.equal(identityUser(ident), id);
+  assert.equal(identityUser('client:someone'), null);
+  assert.equal(identityUser('+14165550100'), null);
+  assert.throws(() => staffIdentity('not-an-id'));
+});
+
+test('access token: Twilio\'s JWT, signed HS256 with the API key secret, with the Voice grant', async () => {
+  const t = await voiceAccessToken({ accountSid: 'AC' + '1'.repeat(32), apiKey: 'SK' + '2'.repeat(32), apiSecret: 'the-secret', appSid: 'AP' + '3'.repeat(32), identity: 'staff_' + 'a'.repeat(32), ring: true, ttlSeconds: 3600, now: 1_700_000_000_000 });
+  const [h, p, s] = t.split('.');
+  const dec = (x: string) => JSON.parse(Buffer.from(x, 'base64url').toString('utf8'));
+  assert.deepEqual(dec(h!), { alg: 'HS256', typ: 'JWT', cty: 'twilio-fpa;v=1' });
+  const body = dec(p!);
+  assert.equal(body.iss, 'SK' + '2'.repeat(32));
+  assert.equal(body.sub, 'AC' + '1'.repeat(32));
+  assert.equal(body.exp - body.iat, 3600);
+  assert.deepEqual(body.grants, { identity: 'staff_' + 'a'.repeat(32), voice: { outgoing: { application_sid: 'AP' + '3'.repeat(32) }, incoming: { allow: true } } });
+  assert.equal(s, createHmac('sha256', 'the-secret').update(`${h}.${p}`).digest('base64url'));
+  const quiet = await voiceAccessToken({ accountSid: 'AC' + '1'.repeat(32), apiKey: 'SK' + '2'.repeat(32), apiSecret: 'x', appSid: 'AP' + '3'.repeat(32), identity: 'staff_' + 'b'.repeat(32), ring: false });
+  assert.equal(dec(quiet.split('.')[1]!).grants.voice.incoming, undefined, 'a person who does not ring gets no incoming grant');
+});
+
+test('ring the browsers: each shown the caller as they may see them, at most 10, never a bad identity', () => {
+  const ring = Array.from({ length: 12 }, (_, i) => ({ identity: 'staff_' + String(i).padStart(32, '0'), who: i === 0 ? 'Jane <Doe>' : '(647) •••-••00' }));
+  const x = ringBrowsersTwiml({ ring: [...ring, { identity: 'client:evil"', who: 'x' }], callerId: '+12895550123', actionUrl: 'https://carmacars.example.test/api/webhooks/twilio/ring-end', timeoutSeconds: 25 });
+  assert.equal((x.match(/<Client>/g) ?? []).length, 10);
+  assert.match(x, /callerId="\+12895550123"/);
+  assert.match(x, /<Parameter name="who" value="Jane &lt;Doe&gt;"\/>/);
+  assert.doesNotMatch(x, /evil/);
+  assert.throws(() => ringBrowsersTwiml({ ring: [], callerId: null, actionUrl: 'https://x.example.test' }));
+});
+
+test('nobody answered: the message, or a forward to the number set (never anything else)', () => {
+  assert.match(noAnswerTwiml({ message: 'We will call you back.' }), /<Say[^>]*>We will call you back\.<\/Say><Hangup\/>/);
+  assert.match(noAnswerTwiml({ forwardTo: '+16475550100', callerId: '+14165550111' }), /<Dial callerId="\+14165550111"[^>]*><Number>\+16475550100<\/Number><\/Dial>/);
+  assert.match(noAnswerTwiml({ forwardTo: 'my cell', callerId: '+14165550111' }), /<Hangup\/>/);
+});
+
+test('signed address: the site\'s own https address first, then the host it came to; never http', () => {
+  assert.deepEqual(signedUrlCandidates('https://carmacars.example.test/', 'http://internal:8787/api/webhooks/twilio/incoming?a=1', 'carmacars.example.test'),
+    ['https://carmacars.example.test/api/webhooks/twilio/incoming?a=1']);
+  assert.deepEqual(signedUrlCandidates('https://carmacars.example.test', 'http://x/api/webhooks/twilio/client', 'www.carmacars.example.test'),
+    ['https://carmacars.example.test/api/webhooks/twilio/client', 'https://www.carmacars.example.test/api/webhooks/twilio/client']);
+  assert.equal(signedUrlCandidates('https://a.example.test', 'http://x/p', 'bad host/\\').length, 1);
 });

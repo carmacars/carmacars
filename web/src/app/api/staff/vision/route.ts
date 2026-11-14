@@ -3,6 +3,7 @@ import { currentUser } from '@/server/portal/data';
 import { door, sessionAal } from '@/server/door';
 import { visionModel } from '@/integrations/vision';
 import { PLATE_SCHEMA, PLATE_SYSTEM, TOLL_PROMPT, TOLL_SCHEMA, TOLL_SYSTEM, platePrompt } from '@/features/tolls/vision-schema';
+import { foreignOrigin } from '@/lib/security/same-origin';
 
 // One image to the vision model (migration 0042): a page of a scanned toll notice (Finance, Admins) or a listing
 // photo for the plate box (Fleet, customer service, Admins). The browser made the image small; the database
@@ -23,7 +24,7 @@ export async function POST(req: Request) {
 
 async function handle(req: Request): Promise<Response> {
   const origin = req.headers.get('origin');
-  if (origin && new URL(origin).host !== req.headers.get('host')) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
+  if (foreignOrigin(origin, req.headers.get('host'), req.headers.get('sec-fetch-site'))) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });
   const user = await currentUser();
   if (!user) return NextResponse.json({ ok: false, message: 'Sign in first.' }, { status: 401 });
   const aal = await sessionAal();

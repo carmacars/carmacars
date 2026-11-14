@@ -7,6 +7,7 @@ import type { OwnerBooking, OwnerDoc, OwnerForm, OwnerHome, OwnerInvoice, OwnerM
 import type { Photo } from '@/lib/types';
 import { getFleet } from '@/lib/site';
 import { liveStatus, monthStats, type Live, type MonthStat } from '@/features/owner/insights';
+import { HISTORY_PAGE, historyOffset, type HistoryQuery, type RentalHistory } from '@/features/owner/history';
 
 // Reads for the owner portal (migration 0029). The portal functions take the signed-in user's id and
 // answer only for an active owner account (app.portal_owner_id); the service role calls them because
@@ -60,6 +61,10 @@ export async function ownerStatement(u: SessionUser, key: string): Promise<Owner
 
 export async function ownerBookings(u: SessionUser, from?: string, to?: string): Promise<OwnerBooking[]> {
   return ((await rpc('owner_portal_bookings', { p_by: u.id, p_from: from, p_to: to }, SR)) ?? []) as unknown as OwnerBooking[];
+}
+/** The Rental history (2830): one page of every rental on the owner's cars that they may see, with the totals. */
+export async function ownerRentalHistory(u: SessionUser, q: HistoryQuery): Promise<RentalHistory | null> {
+  return ((await rpc('owner_portal_rental_history', { p_by: u.id, p_car: q.car ?? undefined, p_newest: q.newest, p_offset: historyOffset(q), p_limit: HISTORY_PAGE }, SR)) ?? null) as unknown as RentalHistory | null;
 }
 export async function ownerDocuments(u: SessionUser): Promise<OwnerDoc[]> {
   return ((await rpc('owner_portal_documents', { p_by: u.id }, SR)) ?? []) as unknown as OwnerDoc[];

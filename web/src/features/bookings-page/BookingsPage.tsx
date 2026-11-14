@@ -1,3 +1,5 @@
+import { SortSelect } from '@/features/admin/SortTable';
+import { sqlOrder } from '@/lib/sort';
 import Link from '@/components/Link';
 import type { DraftRow } from '@/server/actions/supply';
 import { PageHead, Search } from '@/features/admin/ui';
@@ -64,10 +66,12 @@ async function AdminBookings({ ctx, sp }: { ctx: PageCtx; sp: Record<string, str
   // Bill to: the renter, or an insurer (in full or split)
   const billEq: Record<string, unknown> = sp.bill === 'renter' ? { bill_to: 'renter' } : sp.bill === 'insurer' ? { bill_to: ['insurer', 'split'] } : {};
   const byQ = (eq: Record<string, unknown>) => ({ ...billEq, ...(found ? { ...eq, id: found.length ? found : ['00000000-0000-0000-0000-000000000000'] } : eq) });
+  // r43: Newest first (by when the booking was made) unless ?sort= says otherwise; ordered in SQL
+  const by = sqlOrder(sp.sort, { created: 'created_at' });
   const NONE = '00000000-0000-0000-0000-000000000000';
   const res = outIds
     ? await list<Row>('bookings', { eq: { ...billEq, id: (found ? outIds.filter((x) => found.includes(x)) : outIds).concat(NONE) }, order: 'return_at', asc: true, limit: 200 })
-    : await list<Row>('bookings', { eq: byQ(status ? { status } : {}), order: 'created_at', limit: 200 });
+    : await list<Row>('bookings', { eq: byQ(status ? { status } : {}), order: by.order, asc: by.asc, limit: 200 });
   // by who supplies the car, or only the rentals added by hand (0046)
   const keep = sp.supply || sp.added ? new Set((await ops<Array<{ id: string }>>('bookings_by_supply', { supply: sp.supply ?? '', added: !!sp.added, status: status === 'out' ? '' : status, limit: 2000 })).map((b) => b.id)) : null;
   const rows = keep ? res.rows.filter((r) => keep.has(r.id)) : res.rows;
@@ -85,6 +89,7 @@ async function AdminBookings({ ctx, sp }: { ctx: PageCtx; sp: Record<string, str
       <BookingsHead current="all" lead={`${count} found. Every booking, newest first by when it came in; open one for its trip, payments and documents.`} />
       <ListFilters id="admin-bookings" base="/admin/bookings?view=all" sp={sp} search={{ placeholder: 'Booking number, name, email, phone, plate, car code or insurer', action: '/admin/bookings' }}
         chips={{ name: 'status', label: 'Status', options: STATUSES }} kept={['bill', 'supply', 'added']} />
+      <div className="ad-sortbar"><SortSelect options={['newest', 'oldest']} def="newest" /></div>
       <UnfinishedRentals rows={drafts} base="/admin" />
       {waitingRows.length > 0 && <p className="small" data-testid="bookings-waiting-payment">{waitingRows.length === 1 ? '1 booking is' : `${waitingRows.length} bookings are`} booked with the payment due: the renter accepted the offer and has not paid yet. They are listed first.</p>}
       <BookingRows rows={listed.map((r) => ({ ...r, late: lateLabel(r) }))} cards={cards} base="/admin" at={at} empty={q ? `Nothing matches "${q}".` : 'No bookings with these filters.'} />

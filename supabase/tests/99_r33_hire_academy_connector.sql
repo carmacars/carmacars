@@ -40,15 +40,17 @@ select test.eq('the staff profile has the start date', (select started_on = app.
 select test.ok('the welcome email goes once, with the pay details link', exists (select 1 from hiring_decisions d where d.application_id = (test.rqg_app()).id and d.sent_at is not null and d.personal_note like '%/staff/profile#pay%')
   and (select count(*) from app_events e where e.code = 'applicant_hired' and e.processed_at is null and e.payload ->> 'email' = 'hana@rqg.example.test') = 1);
 select test.eq('the candidate''s open To do is closed', (select status from tasks where related_id = (test.rqg_app()).id and task_type = 'hiring_follow_up'), 'done');
-select test.eq('five first-day To do''s are theirs, due on the start date, and one for the Admins',
+-- r44 (2790): a sixth, the hello in the team chat and the WhatsApp member tag
+-- r47 (2897): the Admins' per-hire To do is folded into the one "New staff this week" To do, not tied to the hire
+select test.eq('six first-day To do''s are theirs, due on the start date, and none per hire for the Admins',
   (select count(*) filter (where task_type = 'first_day' and assigned_to = test.id('rqg_hana') and queue = 'cs' and (due_at at time zone 'America/Toronto')::date = app.today() + 3)
-          || '/' || count(*) filter (where task_type = 'first_day_admin') from tasks where related_id in (test.id('rqg_hana'), (test.rqg_app()).id)), '5/1');
+          || '/' || count(*) filter (where task_type = 'first_day_admin') from tasks where related_id in (test.id('rqg_hana'), (test.rqg_app()).id)), '6/0');
 select test.ok('enrolled in their path with the gate on, held from now', exists (select 1 from academy_enrollments where user_id = test.id('rqg_hana') and path_code = 'cs' and gate and source = 'hire' and lock_from <= now()));
 select test.ok('the gate holds the new hire until they pass', app.academy_locked(test.id('rqg_hana')));
 select test.lives('Hire again changes nothing twice', format($$select app.door(%L, 'aal2', 'admin_do', 'hire_onboard', %L)$$, test.id('rqg_admin'),
   jsonb_build_object('id', (test.rqg_app()).id, 'user_id', test.id('rqg_hana'), 'function', 'cs', 'start_on', (app.today() + 3)::text, 'pay_cents', 42500)));
-select test.eq('still five first-day To do''s and one welcome email', (select count(*) from tasks where task_type = 'first_day' and related_id = test.id('rqg_hana'))
-  || '/' || (select count(*) from app_events e where e.code = 'applicant_hired' and e.payload ->> 'email' = 'hana@rqg.example.test'), '5/1');
+select test.eq('still six first-day To do''s and one welcome email', (select count(*) from tasks where task_type = 'first_day' and related_id = test.id('rqg_hana'))
+  || '/' || (select count(*) from app_events e where e.code = 'applicant_hired' and e.payload ->> 'email' = 'hana@rqg.example.test'), '6/1');
 select test.eq('the agreement step records what it waits for', (select s ->> 'state' || ' ' || (s ->> 'detail' like 'Waiting for: Home address%') from (select app.door(test.id('rqg_admin'), 'aal2', 'admin_do', 'hire_agreement_record',
   jsonb_build_object('id', (test.rqg_app()).id, 'missing', '["Home address"]'::jsonb)) v) x, jsonb_array_elements(v -> 'steps') s where s ->> 'key' = 'agreement'), 'todo true');
 
@@ -74,7 +76,7 @@ select test.ok('the home read shows no hold date for staff already working (0840
 update academy_enrollments set lock_from = now() - interval '1 minute' where user_id = test.id('rqg_cs');
 select test.ok('an existing enrollment never holds, even past its date (0840: only Hire or an Admin holds)', not app.academy_locked(test.id('rqg_cs')));
 select test.eq('the new sections end each role''s path', (select string_agg(ps.path_code || ':' || s.slug, ' ' order by ps.path_code) from academy_path_sections ps join academy_sections s on s.id = ps.section_id
-  where s.slug = 'new-bookings-r28-r32' and ps.sort = (select max(x.sort) - 1 from academy_path_sections x join academy_sections y on y.id = x.section_id where x.path_code = ps.path_code and ps.path_code in ('cs', 'field') and y.slug not like 'new-r3%')), 'cs:new-bookings-r28-r32 field:new-bookings-r28-r32');
+  where s.slug = 'new-bookings-r28-r32' and ps.sort = (select max(x.sort) - 1 from academy_path_sections x join academy_sections y on y.id = x.section_id where x.path_code = ps.path_code and ps.path_code in ('cs', 'field') and y.slug not like 'new-r3%' and y.slug not like 'new-r4%')), 'cs:new-bookings-r28-r32 field:new-bookings-r28-r32');
 select test.eq('every role has a new section', (select count(distinct ps.path_code) from academy_path_sections ps join academy_sections s on s.id = ps.section_id where s.slug like 'new-%-r28-r32'), 7::bigint);
 select test.eq('9 lessons and 20 questions, every answer one of the options', (select count(*) from academy_lessons l join academy_sections s on s.id = l.section_id where s.slug like 'new-%-r28-r32')
   || '/' || (select count(*) from academy_questions q join academy_sections s on s.id = q.section_id where s.slug like 'new-%-r28-r32' and q.answer < jsonb_array_length(q.options)), '9/20');

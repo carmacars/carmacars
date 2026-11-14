@@ -10,6 +10,7 @@ import { Footer } from '@/components/Footer';
 import { CookieBanner } from '@/components/CookieBanner';
 import { Effects } from '@/components/Effects';
 import { CHUNK_GUARD_SCRIPT } from '@/lib/chunk-guard';
+import { DOM_GUARD_SCRIPT } from '@/lib/client-error/dom-guard';
 import { ViewAsBanner } from '@/features/access/ViewAsBanner';
 import { SiteAssist } from '@/features/live/SiteAssist';
 import { JsonLd } from '@/components/JsonLd';
@@ -22,8 +23,15 @@ import { ClientErrorListener } from '@/lib/client-error/Listener';
 
 import { FormGuard } from '@/components/FormGuard';
 import { openRoles } from '@/server/careers';
+import { metaOr } from '@/features/seo/meta-fallback';
 
+// r47: metadata streams to browsers after the page; a failed settings read here gave React #441 on every page's
+// navigation (features/seo/meta-fallback.ts), so it falls back to the site's plain metadata
 export async function generateMetadata(): Promise<Metadata> {
+  return metaOr(rootMetadata, { metadataBase: new URL(siteUrl()), title: { default: 'CarmaCars', template: '%s' }, manifest: '/manifest.webmanifest' },
+    (m) => console.warn('root', m));
+}
+async function rootMetadata(): Promise<Metadata> {
   const s = await getSettings();
   return {
     metadataBase: new URL(siteUrl()),
@@ -53,6 +61,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en-CA" className={`${interDisplay.variable} ${inter.variable}`} suppressHydrationWarning>
       {/* the stale page guard: a script or stylesheet of an older build that fails to load reloads the page once (src/lib/chunk-guard.ts) */}
       <head><script id="chunk-guard" dangerouslySetInnerHTML={{ __html: CHUNK_GUARD_SCRIPT }} />
+        {/* r47: a page the browser translated never crashes on React's next change (src/lib/client-error/dom-guard.ts) */}
+        <script id="dom-guard" dangerouslySetInnerHTML={{ __html: DOM_GUARD_SCRIPT }} />
         {/* r27b: the phone and email the error page shows (src/lib/client-error/ErrorPanel.tsx), from Site settings */}
         <meta name="cc-contact" content={JSON.stringify({ phone: s.phone_display || s.phone, email: s.public_email })} /></head>
       <body>

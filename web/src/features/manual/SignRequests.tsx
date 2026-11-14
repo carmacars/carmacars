@@ -79,7 +79,9 @@ function Withdraw({ id, refresh }: { id: string; refresh: string[] }) {
 
 // An agreement generated from the record (migration 0049): the investor's or staff member's values, filled in from their
 // record and the settings, shown for the Admin to confirm (or change), then rendered and sent to sign in one click.
-export function SendGenerated({ docType, who, refresh }: { docType: 'investment_agreement' | 'staff_agreement'; who: string; refresh: string[] }) {
+/** reissue (r45, 2862): "Send a new agreement" for a staff agreement already sent or signed: the current terms, the one
+ *  waiting voided, a signed one kept on file as superseded. */
+export function SendGenerated({ docType, who, refresh, reissue = false }: { docType: 'investment_agreement' | 'staff_agreement'; who: string; refresh: string[]; reissue?: boolean }) {
   const router = useRouter();
   const uid = `sg-${useId().replace(/[^\w-]/g, '')}`;
   const [fields, setFields] = useState<Field[] | null>(null);
@@ -99,7 +101,7 @@ export function SendGenerated({ docType, who, refresh }: { docType: 'investment_
   const send = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true); setErr(null);
-    const r = await sendGeneratedAgreement(docType, who, vals, { category, paragraph: vals.exemption_paragraph ?? '' }, refresh);
+    const r = await sendGeneratedAgreement(docType, who, vals, { category, paragraph: vals.exemption_paragraph ?? '' }, refresh, reissue);
     setBusy(false);
     if (!r.ok) { setErr(r.fieldErrors ? Object.values(r.fieldErrors).join(' ') : r.message); return; }
     setSent(`Sent. ${title} is waiting for their signature in their portal.`); setFields(null); router.refresh();
@@ -107,13 +109,13 @@ export function SendGenerated({ docType, who, refresh }: { docType: 'investment_
   if (sent) return <p className="small" role="status" data-testid="send-generated-done">{sent}</p>;
   if (!fields) return (
     <span className="stack">
-      <button className="btn btn--primary btn--sm" type="button" onClick={open} disabled={busy} data-testid="send-generated">{busy ? 'Preparing' : 'Send the agreement to sign'}</button>
+      <button className="btn btn--primary btn--sm" type="button" onClick={open} disabled={busy} data-testid={reissue ? 'send-generated-new' : 'send-generated'}>{busy ? 'Preparing' : reissue ? 'Send a new agreement' : 'Send the agreement to sign'}</button>
       {err && <span className="error" role="alert">{err}</span>}
     </span>
   );
   return (
     <form className="stack pt-sheet" noValidate onSubmit={send} aria-label="Send the agreement to sign" data-testid="send-generated-form">
-      <p className="small"><b>{title}</b>, filled in from the record. Check these values; everything else is the standard text.</p>
+      <p className="small"><b>{title}</b>, filled in from the record. Check these values; everything else is the standard text.{reissue ? ' Sending it replaces the agreement waiting for their signature; a signed one stays on file, marked superseded.' : ''}</p>
       <div className="ad-fields">
         {fields.filter((f) => fieldShown(f, vals)).map((f) => (
           <div key={f.key} className="field ad-field"><label className="label" htmlFor={`${uid}-${f.key}`}>{f.label}{f.required ? '' : ' (optional)'}</label>

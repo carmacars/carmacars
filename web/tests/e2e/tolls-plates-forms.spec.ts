@@ -12,7 +12,7 @@ import { sampleForm } from '../../src/features/official-forms/fill';
 //   imported and matched to the renter, the plate not in the fleet becomes an exception, fixed and imported
 // - a scanned notice (a photo) is read by the vision model, corrected beside the photo and imported
 // - a reading profile is tried on pasted text and saved
-// - an Admin covers a plate on a phone (the suggested box and a drawn one, pixelated); the covered photo replaces the
+// - an Admin covers a plate on a phone (the suggested box and a drawn one, blurred); the covered photo replaces the
 //   public one and the original is kept privately; publishing waits until every public photo is checked
 // - an Admin uploads a fillable official form, maps its fields and uses it for owners; the owner downloads it filled
 //   and signs it in ink (official forms are never signed on screen)
@@ -287,7 +287,7 @@ test('plates: an Admin covers a plate on a phone; the covered photo replaces the
     const plateBox = { x: 520 / 1200, y: 470 / 800, w: 160 / 1200, h: 60 / 800 };
     const ix = Math.max(0, Math.min(sug.x + sug.w, plateBox.x + plateBox.w) - Math.max(sug.x, plateBox.x)), iy = Math.max(0, Math.min(sug.y + sug.h, plateBox.y + plateBox.h) - Math.max(sug.y, plateBox.y));
     expect(ix * iy / (sug.w * sug.h + plateBox.w * plateBox.h - ix * iy), `suggested ${JSON.stringify(sug)}`).toBeGreaterThan(0.3);
-    // and one more box drawn by hand over the plate, pixelated
+    // and one more box drawn by hand over the plate; every plate is blurred (r45: no other style)
     const cv = phone.getByTestId('plate-canvas');
     await cv.scrollIntoViewIfNeeded();
     const b = (await cv.boundingBox())!;
@@ -297,13 +297,13 @@ test('plates: an Admin covers a plate on a phone; the covered photo replaces the
     await phone.mouse.move(b.x + b.width * 0.58, b.y + b.height * 0.68, { steps: 4 });
     await phone.mouse.up();
     await expect(cv).toHaveAttribute('aria-label', /2 boxes/);
-    await phone.getByTestId('plate-style-pixelate').check();
+    await expect(phone.getByTestId('plate-style-blur')).toBeVisible();
     await check(phone, 'plate editor 375');
     await phone.getByTestId('plate-save').click();
     await expect(phone.getByTestId('plate-front')).toHaveAttribute('data-plate', 'covered', { timeout: 20_000 });
     const [after] = await sql`select processed_path, uncovered_path, plate_style, jsonb_array_length(plate_boxes) as n, plate_checked_by from vehicle_photos where id = ${front!.id}`;
     expect(after!.processed_path).toMatch(new RegExp(`^vehicles/${car}/front-c[0-9a-f]{6}\\.jpg$`));
-    expect([after!.plate_style, after!.n, after!.plate_checked_by]).toEqual(['pixelate', 2, admin.id]);
+    expect([after!.plate_style, after!.n, after!.plate_checked_by]).toEqual(['blur', 2, admin.id]);
     // the covered file is public, the old public file is gone, the photo as it was is kept privately
     expect(existsSync(path.join(STORE, 'vehicle-public', after!.processed_path))).toBe(true);
     expect(existsSync(path.join(STORE, 'vehicle-public', front!.processed_path))).toBe(false);

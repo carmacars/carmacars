@@ -1,4 +1,5 @@
 import Link from '@/components/Link';
+import { MissingHandovers } from '@/features/handover/MissingHandovers';
 import { requestNow } from '@/features/va/lanes';
 import { pageMeta } from '@/features/seo/meta';
 import { door, requireStaff } from '@/server/door';
@@ -56,6 +57,8 @@ export default async function FieldToday({ searchParams }: { searchParams: Promi
       </header>
       {t.failed && <p className="error" role="alert" data-testid="today-failed">Your work list did not load. Pull down or <Link prefetch={false} className="link" href="/staff/field">try again</Link> in a moment.</p>}
       <TeamGroupCard userId={user.id} refresh="/staff/field" />
+      {/* r44 (2815): past check-ins and check-outs still missing their photos and readings */}
+      {!tomorrow && <MissingHandovers userId={user.id} mode="field" base="/staff" />}
       {/* 2590: the weekly townhall, from the day before until it ends */}
       <TownhallCard userId={user.id} />
       <nav className="fd-days" aria-label="Day">

@@ -16,3 +16,4 @@ playwright-report/
 public/guides/img/
 /.video/
 .wrangler-smoke.jsonc
+*.err

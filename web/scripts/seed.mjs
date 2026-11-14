@@ -282,6 +282,13 @@ try {
       // rule's own way out), one person at a time, so the gate stays on and its own test holds its hire with
       // onboarding_exempt = false without turning a setting on for every other test of the shared database.
       await tx`alter table staff_profiles alter column onboarding_exempt set default true`;
+      // 2864, the local stack only: shifts published by themselves (every second day, and around each handover and return)
+      // would put the tests' job days on shifts their field staff do not hold; the tests publish the shifts they need
+      await tx`update program_settings set field_slots_auto = false where field_slots_auto`;
+      await tx`update field_jobs set shift_slot_id = null where shift_slot_id in (select id from field_shift_slots where auto_source is not null)`;
+      await tx`delete from field_shift_slots s where s.auto_source is not null
+                and not exists (select 1 from field_shift_plans p where p.slot_id = s.id)
+                and not exists (select 1 from field_shift_offers o where o.slot_id = s.id)`;
     }
     // 0093: the partner fleet a migration imports is not "cars on the site" for the sample cars (keyed by its sheet rows)
     const already = await tx`select count(*)::int as n from vehicle_listings l join vehicles v on v.id = l.vehicle_id where v.partner_sheet_name is null`;

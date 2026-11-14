@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { DateInput } from '@/components/DateInput';
-import { MAX_PHOTOS, claimPayload } from './claim';
+import { MAX_PICKED_PHOTOS, claimPayload, reportNote } from './claim';
 import { PhotoPicker } from '@/features/handover/PhotoPicker';
 import { DashReading } from '@/features/handover/DashReading';
 import { emptyReading, readingPayload, readingPhotos, readingProblem, readingValues } from '@/features/handover/reading';
@@ -40,17 +40,26 @@ export function ReturnedForm({ token }: { token: string }) {
 
   async function send() {
     setErr(null);
-    const problem = readingProblem(reading);
-    if (problem) { setErr(problem); return; }
     const { odometer_km: km, fuel_pct: fuel } = readingValues(reading);
     const v = claimPayload({ returned_at: at ? new Date(at).toISOString() : undefined, odometer_km: km, fuel_pct: fuel, note,
       photos: [...photos.map(({ bucket, path, angle }) => ({ bucket, path, angle })), ...readingPhotos(reading)], reading: readingPayload(reading) });
     if (!v.ok) { setErr(v.message); return; }
     setBusy(true);
     try {
-      const r = await fetch(`/api/returned/${token}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(v.payload) });
-      const j = (await r.json().catch(() => ({}))) as { ok?: boolean; message?: string };
-      if (!j.ok) throw new Error(j.message ?? 'The report could not be sent. Call us instead.');
+      // A reply that is not JSON (a gateway error or a dropped connection) is tried once more by itself; sending twice
+      // changes nothing in the database. The status code is shown so staff can tell what happened.
+      const send = async () => {
+        const r = await fetch(`/api/returned/${token}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(v.payload) });
+        const j = (await r.json().catch(() => null)) as { ok?: boolean; message?: string } | null;
+        return { status: r.status, j };
+      };
+      let res = await send().catch(() => null);
+      if (!res || !res.j) {
+        await new Promise((ok) => setTimeout(ok, 1500));
+        res = await send().catch(() => null);
+      }
+      if (!res || !res.j) throw new Error(`The report could not be sent${res ? ` (error ${res.status})` : ''}. Try again, or call us.`);
+      if (!res.j.ok) throw new Error(res.j.message ?? 'The report could not be sent. Try again, or call us.');
       setDone(true);
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'The report could not be sent. Call us instead.');
@@ -68,8 +77,8 @@ export function ReturnedForm({ token }: { token: string }) {
 
   return (
     <form className="stack" data-testid="returned-form" onSubmit={(e) => { e.preventDefault(); void send(); }}>
-      <PhotoPicker scope="return-claim" id={token} upload={upload} photos={photos} onChange={setPhotos} onBusy={setUploading} max={MAX_PHOTOS} label="Photos of the car where you left it (all sides, keys)" testId="returned-photos" />
-      <p className="small muted">With the photos, the dashboard reading and the selfie, your return is completed at once.</p>
+      <PhotoPicker scope="return-claim" id={token} upload={upload} photos={photos} onChange={setPhotos} onBusy={setUploading} max={MAX_PICKED_PHOTOS} label="Photos of the car where you left it (all sides, keys)" testId="returned-photos" />
+      <p className="small muted" data-testid="returned-note">{reportNote(readingProblem(reading))}</p>
       <div className="field">
         <label className="label" htmlFor="ret-at">When you returned it</label>
         <DateInput className="input" id="ret-at" type="datetime-local" value={at} max={localNow()} onChange={(e) => setAt(e.target.value)} />

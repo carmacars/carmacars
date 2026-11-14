@@ -5,6 +5,7 @@ import { fileResponse } from '@/server/files';
 import { renderPartnerInvoice } from '@/features/documents/pdf';
 import { MAX_PHOTO_BYTES, UUID } from '@/features/returns/claim';
 import { imageSniff } from '@/lib/file-sniff';
+import { foreignOrigin } from '@/lib/security/same-origin';
 
 // 0547: Finance and Admins: ?id=<invoice> the PDF (drafts too); ?id=<invoice>&photo=<key> a cheque photo; ?csv=1 every
 // invoice for the bookkeeper. POST (id, file): a cheque photo for a payment about to be recorded, private storage.
@@ -41,7 +42,7 @@ export async function GET(req: Request) {
 const H = { 'cache-control': 'no-store' };
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
-  if (origin && new URL(origin).host !== req.headers.get('host')) return Response.json({ ok: false, message: 'Not permitted.' }, { status: 403, headers: H });
+  if (foreignOrigin(origin, req.headers.get('host'), req.headers.get('sec-fetch-site'))) return Response.json({ ok: false, message: 'Not permitted.' }, { status: 403, headers: H });
   const user = await realUser();
   if (!user) return Response.json({ ok: false, message: 'Sign in first.' }, { status: 401, headers: H });
   const form = await req.formData().catch(() => null);

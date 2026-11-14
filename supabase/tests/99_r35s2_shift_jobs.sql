@@ -95,10 +95,13 @@ select test.s2_ops('s2_fleet', 'field_job_unassign', jsonb_build_object('id', (s
 select test.eq('Unassign: no shift and nobody', (select (shift_slot_id is null and assigned_to is null)::text from field_jobs where id = (select night from s2j)), 'true');
 
 -- ================================================================ a shift with jobs and nobody, within 24 hours
-select test.s2_ops('s2_fleet', 'field_slot_publish', jsonb_build_object('starts_at', date_trunc('minute', now()) + interval '3 hours', 'ends_at', date_trunc('minute', now()) + interval '7 hours'));
-create temp table s2soon as select test.s2_job('detail', date_trunc('minute', now()) + interval '4 hours') as id;
+-- a shift that starts within 24 hours and stays on one Toronto day (a run late in the evening used to cross midnight)
+create temp table s2soon_at as select case when extract(hour from now() at time zone 'America/Toronto') < 16
+  then date_trunc('minute', now()) + interval '3 hours' else test.s2_at(1, 5) end as s;
+select test.s2_ops('s2_fleet', 'field_slot_publish', jsonb_build_object('starts_at', (select s from s2soon_at), 'ends_at', (select s from s2soon_at) + interval '3 hours'));
+create temp table s2soon as select test.s2_job('detail', (select s from s2soon_at) + interval '1 hour') as id;
 select test.eq('the soon shift holds the job', (select shift_slot_id from field_jobs where id = (select id from s2soon)) =
-  (select id from field_shift_slots where starts_at = date_trunc('minute', now()) + interval '3 hours' and cancelled_at is null), true);
+  (select id from field_shift_slots where starts_at = (select s from s2soon_at) and cancelled_at is null), true);
 select app.job_field_shift_jobs();
 select app.job_field_shift_jobs();
 select test.eq('Fleet and Admin alerted once with a To do', (select count(*) from tasks where task_type = 'field_shift_no_one'
@@ -107,10 +110,11 @@ select test.ok('the job functions are the service role''s only', not has_functio
   and not has_function_privilege('anon', 'app.field_job_to_shift(uuid, jsonb)', 'execute') and has_function_privilege('service_role', 'app.job_field_shift_jobs(timestamptz)', 'execute'));
 
 -- ================================================================ the showroom v2 and the image service
-select test.eq('the image model''s daily limit is 100 by default', (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'listing_showroom_ai_daily'), '100');
-select test.ok('Apply showroom and Frame again compare with v2', pg_get_functiondef('app.photo_showroom(uuid, jsonb)'::regprocedure) like '%studio_showroom_v2%'
+select test.eq('the image model''s daily limit is 2000 by default (2840: the paid tier)', (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'listing_showroom_ai_daily'), '2000');
+-- r44 (2780) wraps photo_showroom: the v2 comparison is in the function it wraps
+select test.ok('Apply showroom and Frame again compare with v2', (pg_get_functiondef('app.photo_showroom(uuid, jsonb)'::regprocedure) || coalesce(pg_get_functiondef(to_regprocedure('app.photo_showroom_pre2780(uuid, jsonb)')), '')) like '%studio_showroom_v2%'
   and pg_get_functiondef('app.listing_photos_reframe(uuid, jsonb)'::regprocedure) like '%studio_showroom_v2%'
-  and pg_get_functiondef('app.photo_showroom(uuid, jsonb)'::regprocedure) not like '%studio_showroom_v1%');
+  and (pg_get_functiondef('app.photo_showroom(uuid, jsonb)'::regprocedure) || coalesce(pg_get_functiondef(to_regprocedure('app.photo_showroom_pre2780(uuid, jsonb)')), '')) not like '%studio_showroom_v1%');
 select test.eq('the image service makes only the cut-out unless switched on', public.server_listing_image_mode() ->> 'cf_transformations', 'false');
 
 -- ================================================================ failed photos made again

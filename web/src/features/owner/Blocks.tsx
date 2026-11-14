@@ -4,6 +4,8 @@ import { when } from '@/features/agreement/model';
 import { CarImage } from '@/components/Picture';
 import { DocumentList, DocumentRow, PuIcon } from '@/components/portal-ui';
 import type { Photo } from '@/lib/types';
+import { OwnerKm } from '@/features/maintenance/OwnerKm';
+import type { OwnerHistory } from '@/features/maintenance/model';
 import { amountText, viewOf, type Live, type MonthCar } from './insights';
 import { debitLine, invoiceStatus, invoiceTitle, MODE_LABEL, ONBOARDING_STATUS, type ChecklistItem, type OwnerBooking, type OwnerInvoiceRow, type OwnerVehicle } from './types';
 
@@ -36,9 +38,9 @@ export function CarPhoto({ photo, name, eager = false }: { photo: Photo | null |
     : <span className="ow-photo-none" aria-hidden="true"><PuIcon name="car" /><span>{name}</span></span>;
 }
 
-export interface CarExtras { photo?: Photo | null; live?: Live; month?: MonthCar | null; next?: OwnerBooking | null }
+export interface CarExtras { photo?: Photo | null; live?: Live; month?: MonthCar | null; next?: OwnerBooking | null; service?: OwnerHistory | null }
 
-export function VehicleCard({ v, compact = false, trackers = true, photo, live, month, next }: { v: OwnerVehicle; compact?: boolean; trackers?: boolean } & CarExtras) {
+export function VehicleCard({ v, compact = false, trackers = true, photo, live, month, next, service }: { v: OwnerVehicle; compact?: boolean; trackers?: boolean } & CarExtras) {
   const status = v.onboarding_status && v.onboarding_status !== 'enrolled' ? ONBOARDING_STATUS[v.onboarding_status] ?? v.onboarding_status : v.status.replace(/_/g, ' ');
   const enrolled = live && live.key !== 'onboarding';
   return (
@@ -61,6 +63,7 @@ export function VehicleCard({ v, compact = false, trackers = true, photo, live, 
           </dl>
         )}
         {enrolled && next !== undefined && <p className="pu-car__next small">{next ? <><PuIcon name="clock" /><span>{next.status === 'on_rent' ? 'On rent until' : 'Next booking'} <b>{when(next.status === 'on_rent' ? next.return_at : next.pickup_at)}</b></span></> : <span className="muted">No booking coming up</span>}</p>}
+        {enrolled && service && <OwnerKm h={service} />}
         {v.next && (
           <div className={`ow-car__next${v.next.waits_on === 'owner' ? '' : ' is-ours'}`}>
             <b>{v.next.waits_on === 'owner' ? 'Your next step' : 'Next step'}: {v.next.item}</b>

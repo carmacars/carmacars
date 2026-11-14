@@ -2,28 +2,44 @@ import Link from '@/components/Link';
 import type { ReactNode } from 'react';
 import { money } from '@/lib/format';
 import { when } from '@/features/agreement/model';
+import { sortFields, sortOptions, valuesOf, type SortKey } from '@/lib/sort';
+import { SortedBody, SortSelect } from './SortTable';
 
 // The admin portal's server-rendered pieces: dense tables, tabs, tiles, badges. Same tokens as the
 // portals (portal.css, owner.css, admin.css); money and times exactly as the database stored them.
 export type Col<T> = { key: string; label: string; num?: boolean; render?: (r: T) => ReactNode; className?: string };
 
-export function Table<T extends Record<string, unknown>>({ cols, rows, empty = 'Nothing here yet.', caption, rowKey, testId }: {
+export function Table<T extends Record<string, unknown>>({ cols, rows, empty = 'Nothing here yet.', caption, rowKey, testId, defaultSort, sort = true }: {
   cols: Array<Col<T>>; rows: T[]; empty?: string; caption?: string; rowKey?: (r: T, i: number) => string; testId?: string;
+  /** r43: the sort a list opens in when the address has none (people lists: 'newest'); otherwise the order the page gave */
+  defaultSort?: SortKey;
+  /** r43: false for a list whose order is its meaning (a ranking, a schedule) */
+  sort?: boolean;
 }) {
   if (!rows.length) return <p className="ad-empty" data-testid={testId ? `${testId}-empty` : undefined}>{empty}</p>;
+  // r43: Newest first / Oldest first / Recently active / A to Z, for every list that has a date to order by, in ?sort=
+  const fields = sort && rows.length > 1 ? sortFields(rows) : null;
+  const options = fields ? sortOptions(fields) : [];
+  const items = options.length && fields ? rows.map((r, i) => ({ k: rowKey ? rowKey(r, i) : String(r.id ?? i), v: valuesOf(r, fields), node: (
+    <tr role="row">
+      {cols.map((c) => <td key={c.key} role="cell" data-label={c.label} className={[c.num ? 'num' : '', c.className ?? ''].join(' ').trim() || undefined}>{c.render ? c.render(r) : fmt(r[c.key])}</td>)}
+    </tr>) })) : null;
   return (
+    <>
+    {items && <div className="ad-sortbar"><SortSelect options={options} def={defaultSort ?? null} /></div>}
     <div className="table-scroll ad-scroll" tabIndex={0} role="region" aria-label={caption ?? 'Table'}>
       {/* on a phone each row is a card with its column names (admin.css, .ad-table--cards); the roles keep it a table */}
       <table className="ad-table ad-table--dense ad-table--cards" role="table" data-testid={testId}>
         {caption && <caption className="vh">{caption}</caption>}
         <thead role="rowgroup"><tr role="row">{cols.map((c) => <th key={c.key} role="columnheader" scope="col" className={c.num ? 'num' : undefined}>{c.label}</th>)}</tr></thead>
-        <tbody role="rowgroup">{rows.map((r, i) => (
+        {items ? <SortedBody items={items} def={defaultSort ?? null} /> : <tbody role="rowgroup">{rows.map((r, i) => (
           <tr key={rowKey ? rowKey(r, i) : String(r.id ?? i)} role="row">
             {cols.map((c) => <td key={c.key} role="cell" data-label={c.label} className={[c.num ? 'num' : '', c.className ?? ''].join(' ').trim() || undefined}>{c.render ? c.render(r) : fmt(r[c.key])}</td>)}
           </tr>))}
-        </tbody>
+        </tbody>}
       </table>
     </div>
+    </>
   );
 }
 

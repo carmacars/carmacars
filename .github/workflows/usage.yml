@@ -10,6 +10,10 @@ on:
     - cron: '41 * * * *'
   workflow_dispatch:
 
+# The workflow's token only reads the repository (a job that needs more says so itself).
+permissions:
+  contents: read
+
 concurrency:
   group: usage
   cancel-in-progress: false

@@ -124,6 +124,10 @@
 /* pay */
 .pt-pay { display: grid; gap: var(--s-4); }
 .pt-cardbox { border: var(--bw) solid var(--grey-500); border-radius: var(--r-2); padding: var(--s-4); background: var(--white); display: grid; gap: var(--s-3); }
+/* r46: Stripe's box holds no React child; the loading line lies over it (PayLinkForm) */
+.pt-cardwrap { position: relative; }
+.pt-cardwrap > .skeleton { position: absolute; inset: var(--s-4) var(--s-4) auto; }
+.pt-cardwrap > .pt-cardbox:empty { min-height: calc(2 * var(--s-4) + 1.25rem); }
 .pt-lock { display: flex; gap: var(--s-2); align-items: center; font-size: var(--fs-xs); color: var(--text-2); }
 .pt-ok { display: grid; gap: var(--s-3); padding: var(--s-5); background: var(--white); border: 1px solid var(--grey-200); border-top: 4px solid var(--black); }
 
@@ -369,4 +373,9 @@
 @media print {
   .rs-noprint { display: none !important; }
   .rs-letter { border: 0; padding: 0; max-width: none; break-after: page; }
+}
+/* r46: on a narrow phone (320px) the renter's and owner's links (What's new, Guide, Sign out) no longer fit beside the
+   greeting on one line: the row takes its own line and wraps instead of pushing Sign out off the side */
+@media (max-width: 30rem) {
+  .pt__hello .gd-frame-links { flex: 1 1 100%; flex-wrap: wrap; justify-content: flex-start; max-width: 100%; }
 }

@@ -6,6 +6,7 @@ import { answer, answerFailed, staffNote, type VisitorMessageState } from '@/ser
 import { notAnsweredFor } from '@/features/chat/reply-path';
 import { PAUSE } from '@/features/usage/model';
 import { chatAutoReplyOn } from '@/server/auto-reply';
+import { foreignOrigin } from '@/lib/security/same-origin';
 
 // Live chat (migration 0060), the visitor's side: open or continue a conversation, send a message (the assistant
 // answers while no person has the chat), ask for a person, leave contact details, end the chat. The conversation's
@@ -21,7 +22,7 @@ const str = (v: unknown, n: number) => (typeof v === 'string' ? v.slice(0, n) : 
 
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
-  if (origin && new URL(origin).host !== req.headers.get('host')) return NextResponse.json({ ok: false }, { status: 403, headers: H });
+  if (foreignOrigin(origin, req.headers.get('host'), req.headers.get('sec-fetch-site'))) return NextResponse.json({ ok: false }, { status: 403, headers: H });
   const b = (await req.json().catch(() => null)) as Body | null;
   if (!b || typeof b.action !== 'string') return NextResponse.json({ ok: false, error: 'bad request' }, { status: 400, headers: H });
   const token = typeof b.token === 'string' && /^[0-9a-f]{64}$/.test(b.token) ? b.token : null;
@@ -40,8 +41,12 @@ export async function POST(req: Request) {
         if (!text) return NextResponse.json({ ok: false, error: 'empty' }, { status: 400, headers: H });
         const st = (await rpc('server_chat_visitor_message', { p_token: token, p_body: text }, SR)) as unknown as VisitorMessageState;
         if (!st.ok) return NextResponse.json(st, { headers: H });
+        // r44 (2814): a person wrote in this chat a moment ago: the person goes on, the assistant stays quiet
+        if ((st as { staff_replied?: boolean }).staff_replied) {
+          await rpc('server_chat_handoff', { p_token: token, p_reason: 'a person replied in this chat a moment ago' }, SR);
+        }
         // r36 (2110): Program settings > AI auto-replies > chat off: a person answers every chat
-        if (st.ai && !(await chatAutoReplyOn())) {
+        else if (st.ai && !(await chatAutoReplyOn())) {
           await rpc('server_chat_handoff', { p_token: token, p_reason: 'AI auto-replies are off for the live chat' }, SR);
         }
         else if (st.ai) {

@@ -8,6 +8,8 @@ import { amountText, upcoming, viewOf } from '@/features/owner/insights';
 import { bookingTitle, OwnerBookingRow } from '@/features/owner/Blocks';
 import { money } from '@/lib/format';
 import { Timeline, TimelineItem } from '@/components/portal-ui';
+import type { HistoryQuery } from '@/features/owner/history';
+import { RentalHistory } from './RentalHistory';
 
 const TZ = 'America/Toronto';
 const ymd = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
@@ -41,8 +43,9 @@ function Month({ year, month, bookings }: { year: number; month: number; booking
   );
 }
 
-// Cars > Bookings: what is coming up, every booking on your cars, the calendar, and booking your own car.
-export async function BookingsTab({ user, home, vehicle }: OwnerCtx & { vehicle?: string }) {
+// Cars > Bookings: what is coming up, the rental history (r44: every rental on your cars, paged), every booking on your
+// cars, the calendar, and booking your own car.
+export async function BookingsTab({ user, home, vehicle, history }: OwnerCtx & { vehicle?: string; history: HistoryQuery }) {
   const list = await ownerBookings(user);
   const soon = upcoming(list, new Date(), 6);
   const now = new Date();
@@ -59,6 +62,7 @@ export async function BookingsTab({ user, home, vehicle }: OwnerCtx & { vehicle?
                 amount={amountText(b, (c) => money(c, { cents: true }))}
                 meta={<>{b.booking_number && <span>{b.booking_number}</span>}<span>{when(b.pickup_at)} to {when(b.return_at)}</span><span>{viewOf(b) === 'unavailable' ? 'Unavailable' : b.status === 'on_rent' ? 'On rent now' : b.status.replace(/_/g, ' ')}</span>{b.renter_name && <span>{b.renter_name}</span>}</>} />))}
             </Timeline></section>}
+          <RentalHistory user={user} q={history} />
           <section className="stack" aria-labelledby="ow-bl"><h2 className="pt-section-title" id="ow-bl">All bookings</h2>
             {list.length ? <ul className="ow-rows">{list.map((b) => <OwnerBookingRow key={b.booking_id} b={b} />)}</ul>
               : <p className="pt-empty muted">No bookings on your vehicles yet.</p>}

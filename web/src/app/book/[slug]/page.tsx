@@ -13,7 +13,7 @@ type Params = { params: Promise<{ slug: string }> };
 export async function generateMetadata({ params }: Params) {
   const { slug } = await params;
   const [t, c] = await Promise.all([getTokens(), bookingCar(slug)]);
-  return seoMeta({ title: fill(`Request to book${c ? ` the ${c.name}` : ''} | {{brand}}`, t), path: `/book/${slug}`, noindex: true, description: fill('Send a booking request in four short steps. No payment and no card at request. We confirm the car and the price before you pay.', t) });
+  return seoMeta({ title: fill(`Request to book${c ? ` the ${c.name}` : ''} | {{brand}}`, t), path: `/book/${slug}`, noindex: true, description: fill('Send a booking request in five short steps. No payment and no card at request. We confirm the car and the price before you pay.', t) });
 }
 // 0102: the form renders on the server with its car (the summary beside it shows at once); the price is asked from the
 // browser as soon as the dates are known. The car list is one light call (public.booking_cars), not the fleet's rows.

@@ -12,6 +12,8 @@ import { PATHS, SITE } from './src/links.mjs';
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const read = (...p) => readFileSync(join(ROOT, ...p), 'utf8');
 const cat = JSON.parse(read('catalogue.json'));
+// r44: the emails sent as Blind Spot Car Rental (insurers, adjusters, an insurance replacement's renter)
+const BS_CODES = new Set(cat.emails.filter((e) => /blindspotcarrental@/.test(e.from)).map((e) => e.code));
 const codes = cat.emails.map((e) => e.code);
 let failed = 0;
 const results = [];
@@ -111,6 +113,11 @@ for (const f of [...walk('src'), 'build.mjs', 'shots.mjs', 'check.mjs']) written
     if (!f.endsWith('.html')) continue;
     for (const m of s.matchAll(/text-transform:uppercase[^>]*>([^<]*)/g)) if (/carmacars/i.test(m[1])) p.push(`${f}: brand name inside an upper-case label`);
     // release 28: the brand logo image (header on black, footer on light, its dark-mode twin), alt text CarmaCars
+    // r44: an email sent as Blind Spot Car Rental carries that name and never the CarmaCars logo, name or links
+    if (BS_CODES.has(f.replace(/^.*\//, '').replace(/\.(html|txt)$/, ''))) {
+      if (/carma/i.test(s.replace(/href="[^"]*"/g, '').replace(/https:\/\/carmacars\.ca\/d\/\S+/g, '').replace(/[a-z0-9.@-]*@carmacars\.ca/gi, '').replace(/\{\{[^}]*\}\}/g, '')) || !s.includes('Blind Spot Car Rental')) p.push(`${f}: a Blind Spot email names CarmaCars or lacks its own name`);
+      continue;
+    }
     if ((s.match(/<img[^>]* src="https:\/\/carmacars\.ca\/brand\/email\/on-(dark|light)\.png"[^>]* alt="CarmaCars"/g) || []).length !== 3) p.push(`${f}: logo missing from header or footer`);
     if (s.replace(/<[^>]+>/g, '').match(/Carma\s+Cars/)) p.push(`${f}: wordmark splits when tags are stripped`);
   }
@@ -195,7 +202,7 @@ for (const f of [...walk('src'), 'build.mjs', 'shots.mjs', 'check.mjs']) written
       if (!s.includes('{{company_address}}')) p.push(`${e.code}.${kind}: no mailing address`);
       // the address line is left out while the address is empty (marketing emails wait for it: migration 0035)
       // an owner billing email names the payee of the pre-authorized debit there (the legal review, 0053)
-      const sender = e.audience === 'owner' && /<billing@/.test(e.from) ? '{{payee_name}}' : 'CarmaCars';
+      const sender = BS_CODES.has(e.code) ? 'Blind Spot Car Rental' : e.audience === 'owner' && /<billing@/.test(e.from) ? '{{payee_name}}' : 'CarmaCars';
       if (!s.includes(kind === 'html' ? `${sender}{{#if company_address}}<br>{{company_address}}` : `${sender}\n{{#if company_address}}{{company_address}}`)) p.push(`${e.code}.${kind}: no sender name above the mailing address`);
       if (/18122211|operated by/i.test(s)) p.push(`${e.code}.${kind}: names the numbered company`);
       if (e.category === 'marketing' && !s.includes('{{unsubscribe_url}}')) p.push(`${e.code}.${kind}: marketing without unsubscribe`);
@@ -234,7 +241,7 @@ for (const f of [...walk('src'), 'build.mjs', 'shots.mjs', 'check.mjs']) written
     if (/rent@carmacars\.ca/.test(s)) p.push(`${f}: names the private mailbox rent@carmacars.ca`);
   }
   for (const e of cat.emails) {
-    if (e.audience.startsWith('staff_')) continue;
+    if (e.audience.startsWith('staff_') || BS_CODES.has(e.code)) continue;
     const t = read('dist', e.code + '.txt');
     for (const need of ['contact@carmacars.ca', '289-312-5991', 'Open 24 hours', 'within 2 hours', 'https://instagram.com/carmacars.ca', 'https://tiktok.com/@carmacars.ca']) if (!t.includes(need)) p.push(`${e.code}: footer lacks ${need}`);
   }

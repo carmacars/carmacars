@@ -49,3 +49,9 @@ test('2590: the townhall card: from the day before until the end, Join from 15 m
   assert.equal(countdown(125 * 60_000), 'in 2 h 5 min');
   assert.equal(countdown(0), 'now');
 });
+
+test('a past townhall in words: held, or not held with nobody absent (r45, 2863)', async () => {
+  const { meetingWords } = await import('./model.ts');
+  assert.equal(meetingWords({ meeting_at: '', held: true, reason: null, missed: 1, attended: 6 }), 'held: 6 there, 1 missed');
+  assert.equal(meetingWords({ meeting_at: '', held: false, reason: 'Nobody attended: recorded as not held', missed: 0, attended: 0 }), 'not held (Nobody attended: recorded as not held): nobody counts as absent');
+});
