@@ -57,6 +57,7 @@ comment on column program_settings.field_slots_auto_days is 'Field shifts (2864)
 
 alter table field_shift_slots add column if not exists auto_source text check (auto_source in ('template', 'cover'));
 alter table field_shift_slots add column if not exists cover_booking_id uuid references bookings (id) on delete set null;
+create index if not exists field_shift_slots_cover_booking_idx on field_shift_slots (cover_booking_id) where cover_booking_id is not null;
 alter table field_shift_slots add column if not exists cover_leg text check (cover_leg in ('handover', 'return'));
 comment on column field_shift_slots.auto_source is 'Field shifts (2864): published by itself, from the weekly template or to cover a handover or return (cover_booking_id, cover_leg). Null: published by Fleet or an Admin.';
 create index if not exists field_shift_slots_auto_idx on field_shift_slots (starts_at, ends_at) where auto_source is not null;

@@ -20,7 +20,9 @@ export const SECTIONS = [
     quiz: [
       Q('Which number does a customer see when you call them from the portal?', ['Your own mobile number', 'The business number', 'No number', 'The office landline only'], 1, 'Calls from the portal always show the business number.'),
       Q('Whose browser rings for a call to the business number?', ['Nobody\'s', 'Customer service and Sales with a staff page open', 'Only the Admins\'', 'Every field person\'s phone'], 1, 'It rings customer service and Sales with a staff page open.'),
-      Q('Nobody answers a call. What happens?', ['The call is lost with no trace', 'The caller hears a short message, and a missed call with its task is made', 'It rings forever', 'It goes to your personal phone'], 1, 'A missed call with its task, to return first.')
+      Q('Nobody answers a call. What happens?', ['The call is lost with no trace', 'The caller hears a short message, and a missed call with its task is made', 'It rings forever', 'It goes to your personal phone'], 1, 'A missed call with its task, to return first.'),
+      Q('Which do you return first: a missed call or a text?', ['The text', 'The missed call', 'Neither', 'Whichever is older'], 1, 'Calls come before texts.'),
+      Q('Which controls does the bar have during a call?', ['Only Hang up', 'Mute, a keypad and Hang up, with the timer', 'Record and Share', 'None'], 1, 'Mute, keypad and Hang up, with the call\'s timer.')
     ]
   },
   {
@@ -67,7 +69,9 @@ export const SECTIONS = [
     quiz: [
       Q('Which shifts are published by themselves by default?', ['Every day, 6:00 to 23:00', 'One shift of 10:00 to 17:00, every second day', 'None: Fleet publishes all', 'Weekends only'], 1, 'One shift of 10:00 to 17:00 for one person, every second day.'),
       Q('A handover falls at a time no shift covers. What happens?', ['Nothing', 'A shift of its own is published around it', 'The booking is cancelled', 'The renter is told to move it'], 1, 'Every handover and return gets a shift to claim.'),
-      Q('Where do you add the photos and readings of a past check-out you handled?', ['By email to Fleet', 'Missing check-in and check-out on Today, Add the photos and readings', 'On the renter site', 'Nowhere'], 1, 'On Today, under Missing check-in and check-out.')
+      Q('Where do you add the photos and readings of a past check-out you handled?', ['By email to Fleet', 'Missing check-in and check-out on Today, Add the photos and readings', 'On the renter site', 'Nowhere'], 1, 'On Today, under Missing check-in and check-out.'),
+      Q('Nobody has claimed a shift 48 hours before it starts. What happens?', ['It is deleted', 'Fleet and the Admins are alerted', 'It is given to you by itself', 'Nothing'], 1, 'An unclaimed shift 48 hours out alerts Fleet and the Admins.'),
+      Q('How does Fleet get a missing check-in done?', ['Fills it in from memory', 'Gives it to a field staff member from the Field jobs page', 'Asks the renter', 'Closes the booking'], 1, 'Fleet gives each missing one to a field staff member.')
     ]
   },
   {
@@ -87,7 +91,8 @@ export const SECTIONS = [
       Q('Nobody attended this week\'s townhall. Does it count as a miss?', ['Yes, for everyone', 'No: it is recorded as not held', 'Only for Sales', 'Only for field staff'], 1, 'A townhall nobody attended counts nobody absent.'),
       Q('An Admin cancelled next week\'s townhall. What happens?', ['You still get reminders', 'No reminders, and nobody counts as absent', 'It moves by itself to the next day', 'Your account locks'], 1, 'A cancelled townhall sends no reminders and counts nobody absent.'),
       Q('You live in Canada. Which terms does your agreement carry?', ['The Philippines, USD, OnlineJobs.ph', 'Canada, CAD, Interac e-Transfer or direct deposit', 'Any country you choose', 'None'], 1, 'Staff in Canada get Canadian terms.'),
-      Q('You get a new agreement to sign. What happens to the one you signed before?', ['It is deleted', 'It stays on file as superseded, and your portal stays open until you sign', 'Your portal locks at once', 'It is sent to the renter'], 1, 'The signed one stays on file, marked superseded.')
+      Q('You get a new agreement to sign. What happens to the one you signed before?', ['It is deleted', 'It stays on file as superseded, and your portal stays open until you sign', 'Your portal locks at once', 'It is sent to the renter'], 1, 'The signed one stays on file, marked superseded.'),
+      Q('Do missed townhalls that were held still count?', ['No, never', 'Yes: two missed townhalls that were held still lock an account', 'Only for Admins', 'Only in December'], 1, 'Only townhalls that were held count, and two misses still lock.')
     ]
   }
 ];

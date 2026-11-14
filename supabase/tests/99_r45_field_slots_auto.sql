@@ -64,6 +64,22 @@ select test.ok('the hourly job publishes', app.job_field_shift_plan(now()) like 
 update program_settings set field_slots_auto = false;
 select test.eq('off: nothing published', (app.field_slots_auto_publish(now()) ->> 'off'), 'true');
 
+-- 2867: Fleet giving a job to a person with no shift that day puts them on that day's shift first
+select test.mk_user('fsa_field', 'field', null, 'driver');
+update academy_enrollments set lock_from = null where user_id = test.id('fsa_field');
+insert into field_shift_slots (starts_at, ends_at, capacity, note) values
+  ((app.today() + 11)::timestamp at time zone 'America/Toronto' + interval '10 hours', (app.today() + 11)::timestamp at time zone 'America/Toronto' + interval '17 hours', 1, 'fsa 2867');
+insert into field_jobs (id, kind, booking_id, vehicle_id, scheduled_at, place)
+select test.id('job:fsa2867'), 'handover', b.id, b.vehicle_id, (app.today() + 11)::timestamp at time zone 'America/Toronto' + interval '12 hours', '1 Main St'
+  from bookings b where b.booking_number = 'CC-FSA1';
+select app.assign_field_job(test.id('job:fsa2867'), test.id('fsa_field'), test.id('fsa_fleet'));
+select test.ok('assigned by Fleet with no shift that day: put on the day''s shift, then given the job',
+  (select assigned_to = test.id('fsa_field') and shift_slot_id = (select id from field_shift_slots where note = 'fsa 2867') from field_jobs where id = test.id('job:fsa2867'))
+  and exists (select 1 from field_shift_plans p join field_shift_slots s on s.id = p.slot_id where s.note = 'fsa 2867' and p.staff_id = test.id('fsa_field') and p.cancelled_at is null));
+update field_jobs set status = 'cancelled' where id = test.id('job:fsa2867');
+update field_shift_plans set cancelled_at = now(), cancelled_by = test.id('fsa_fleet') where slot_id in (select id from field_shift_slots where note = 'fsa 2867') and cancelled_at is null;
+update field_shift_slots set cancelled_at = now(), cancelled_by = test.id('fsa_fleet') where note = 'fsa 2867';
+
 -- as the other suites expect it
 delete from field_shift_slots where auto_source is not null and not exists (select 1 from field_shift_plans p where p.slot_id = field_shift_slots.id);
 update program_settings set field_slot_template = '[{"every": 2, "anchor": "2026-11-23", "start": "10:00", "end": "17:00", "people": 1}]', field_slots_auto_days = 14, field_slots_auto_from = '2026-11-23';

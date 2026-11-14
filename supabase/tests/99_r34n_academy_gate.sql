@@ -85,7 +85,7 @@ insert into guide_sections (portal, kind, sort_order, slug, title, body_md, publ
 select 'va', 'chapter', 9990, 'texts-and-calls', 'Texts and calls', 'Text', 1 where not exists (select 1 from guide_sections where portal = 'va' and slug = 'texts-and-calls');
 update guide_sections set published_version = coalesce(published_version, 0) + 1 where portal = 'va' and slug = 'texts-and-calls';
 select test.eq('review: a guide chapter published again flags the sections written from it',
-  (select string_agg(slug, ',' order by slug) from academy_sections where review_due_at is not null and 'va/texts-and-calls' = any (guide_refs)), 'new-r34-caller-notes');
+  (select string_agg(slug, ',' order by slug) from academy_sections where review_due_at is not null and 'va/texts-and-calls' = any (guide_refs)), 'new-r34-caller-notes,new-r45-calls-in-the-browser');
 select test.ok('review: the note names the chapter', (select review_note like '%va/texts-and-calls%' from academy_sections where slug = 'new-r34-caller-notes'));
 select test.eq('review: Admin > Academy lists it', (select count(*) from jsonb_array_elements(app.door(test.id('zag_admin'), 'aal2', 'admin_read', 'academy_reviews', '{}'::jsonb)) x where x ->> 'slug' = 'new-r34-caller-notes'), 1::bigint);
 select app.door(test.id('zag_admin'), 'aal2', 'admin_do', 'academy_review_done', jsonb_build_object('id', 'new-r34-caller-notes'));

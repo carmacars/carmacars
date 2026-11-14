@@ -14,6 +14,8 @@ type Sql = ReturnType<typeof db>;
 
 async function check(page: Page, where: string) {
   await noOverflow(page);
+  // the page's title is streamed in after the body; audit once it is there (a missing title is still caught)
+  await expect(page).toHaveTitle(/\S/, { timeout: 10_000 }).catch(() => {});
   const r = await new AxeBuilder({ page: page as never }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   const bad = r.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
   expect(bad.map((v) => `${where} ${v.id}: ${v.nodes.map((n) => n.target.join(' ')).slice(0, 3).join(', ')}`)).toEqual([]);
