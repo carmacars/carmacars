@@ -136,8 +136,7 @@
      "Send a new agreement redoes a staff agreement already sent or signed with the current terms; a signed one stays on file as superseded",
      "A To do lists the staff in Canada whose agreement still carries the old terms",
      "This townhall did not happen and Cancel this townhall on the Townhall page",
-     "The shift template is a Program setting, and shifts open only forward from the latest one already published",
-     "Assigning a field job to someone with no shift that day puts them on that day's shift first, when a place is free"
+     "The shift template is a Program setting, and shifts open only forward from the latest one already published"
     ],
     "renters": [
      "Signed in, a booking request fills itself from your profile: your name, date of birth, licence class and how we reach you, all editable",
