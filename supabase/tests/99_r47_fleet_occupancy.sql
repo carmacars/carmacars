@@ -1,7 +1,7 @@
 -- 99: migration 2891 (release 47): the website's fleet order puts the cars that rent least first, bookings hidden from the
 -- owner not counted, and a partner set to "low" after our own cars. Fixtures start with "fo47".
 select test.suite('99 r47 fleet occupancy (2891)');
-select test.mk_user('fo47_r', 'renter');
+select test.mk_renter('fo47_r');
 select test.mk_owner('fo47_o');
 select test.mk_vehicle('fo47_a', 'fo47_o');
 select test.mk_booking('CC-FO47A', 'fo47_a', 'fo47_r', to_char(app.today() - 10, 'YYYY-MM-DD') || ' 10:00', to_char(app.today() + 5, 'YYYY-MM-DD') || ' 10:00', 'confirmed', 10000);
