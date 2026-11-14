@@ -37,7 +37,7 @@ language sql stable security definer set search_path = public, app as $$
       where s.owner_id = p_owner and s.status <> 'void' and s.statement_month < app.month_start(p_month)),
     -- 2783: the first booking the owner sees (a hidden booking never sets it); with none, the car's program start
     (select min(app.local_date(b.pickup_at)) from bookings b join booking_splits x on x.booking_id = b.id
-      where x.owner_id = p_owner and x.status <> 'reversed' and x.payout_month < date '9999-01-01' and app.booking_visible_to_owner(b)),
+      where x.owner_id = p_owner and x.status is distinct from 'reversed' and (x.payout_month is null or x.payout_month < date '9999-01-01') and app.booking_visible_to_owner(b)),
     (select min(v.enrollment_date) from vehicles v where v.owner_id = p_owner and v.enrollment_date is not null
       and v.enrollment_date <= app.statement_period_end(p_month)),
     app.statement_period_end((app.month_start(p_month) - interval '1 month')::date) + 1)
