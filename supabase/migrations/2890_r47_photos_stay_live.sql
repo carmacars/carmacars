@@ -78,11 +78,8 @@ $$;
 create or replace function app.public_listing_photos(p_vehicle uuid) returns jsonb
 language sql stable security definer set search_path = public, app as $$
   with ph as (select coalesce(app.public_listing_photos_pre2841(p_vehicle), '[]'::jsonb) as a),
-       -- (studio stand-ins of a car with no photo keep their own order)
-       s as (select case when exists (select 1 from jsonb_array_elements(ph.a) x where coalesce((x ->> 'sample')::boolean, false)) then ph.a
-                         else (select coalesce(jsonb_agg(t.e order by app.photo_rank(t.e ->> 'shot'), t.n), '[]'::jsonb)
-                                 from jsonb_array_elements(ph.a) with ordinality t(e, n)) end as a
-               from ph)
+       s as (select coalesce(jsonb_agg(t.e order by app.photo_rank(t.e ->> 'shot'), t.n), '[]'::jsonb) as a
+               from ph, jsonb_array_elements(ph.a) with ordinality t(e, n))
   select case when jsonb_array_length(s.a) = 0 or app.photo_is_exterior(s.a -> 0 ->> 'shot')
                    or not exists (select 1 from listing_shot_types st where st.code = s.a -> 0 ->> 'shot') then s.a else '[]'::jsonb end
     from s

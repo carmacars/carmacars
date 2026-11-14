@@ -1,6 +1,7 @@
 import { notFound, permanentRedirect } from 'next/navigation';
 import { getHub, type Vertical } from './data';
 import { HubPage, hubMeta } from './HubPage';
+import { metaOr, titleFromPath } from '@/features/seo/meta-fallback';
 
 // The place and term pages of every family (migration 0095), on demand: never built ahead, never in the page cache,
 // kept only in the Worker's edge copy (src/lib/edge/page-cache.ts). The base rental term lives at /car-rental/<place>;
@@ -15,5 +16,9 @@ async function load(vertical: Vertical, term: string, place: string) {
   if (vertical === 'rental' && place === 'toronto' && h.term.landing_path) permanentRedirect(h.term.landing_path);
   return h;
 }
-export async function placeHubMeta(vertical: Vertical, term: string, place: string) { return hubMeta(await load(vertical, term, place)); }
+/** r47: a failed read gives plain metadata instead of failing the page (React #441, features/seo/meta-fallback.ts);
+ *  not found and the redirects still pass through. */
+export async function placeHubMeta(vertical: Vertical, term: string, place: string) {
+  return metaOr(async () => hubMeta(await load(vertical, term, place)), { title: titleFromPath(`/${term}/${place}`) }, (m) => console.warn('place', m));
+}
 export async function PlaceHubRoute({ vertical, term, place }: { vertical: Vertical; term: string; place: string }) { return <HubPage h={await load(vertical, term, place)} />; }

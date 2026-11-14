@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { ADMIN_TOOLS, CLAIM_TOOLS, CONNECTOR_URL, OPS_TOOLS, SCOPES, TOOLS, WRITABLE, bearer, newSecret, parseScopes, pkceChallenge, secretPrefix, sha256Hex, toolsFor, claimFileKind } from './tools.ts';
+import { ADMIN_TOOLS, CLAIM_TOOLS, CONNECTOR_URL, OPS_TOOLS, PHOTO_TOOLS, SCOPES, STRIPE_TOOLS, TOOLS, WRITABLE, bearer, newSecret, parseScopes, pkceChallenge, secretPrefix, sha256Hex, toolsFor, claimFileKind } from './tools.ts';
 
 test('every tool names a known scope, and only the update tools write', () => {
   for (const t of TOOLS) assert.ok(t.scope === 'any' || (SCOPES as readonly string[]).includes(t.scope), t.name);
@@ -144,4 +144,29 @@ test('1873: a claim file is a JPEG, a PNG or a PDF by its bytes, not by its name
   assert.deepEqual(claimFileKind(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d])), { ext: 'png', mime: 'image/png' });
   assert.deepEqual(claimFileKind(new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d])), { ext: 'pdf', mime: 'application/pdf' });
   assert.equal(claimFileKind(new Uint8Array([0x4d, 0x5a, 0x90, 0x00])), null);
+});
+
+// release 47 (2896): the photo standard, read only
+const SQL2896 = readFileSync(new URL('../../../../supabase/migrations/2896_r47b_connector_photo_standard.sql', import.meta.url), 'utf8');
+test('2896: photo_standard is a read-only admin:read tool the database answers, logged, never a write', () => {
+  const t = PHOTO_TOOLS.find((x) => x.name === 'photo_standard')!;
+  assert.ok(t && t.readOnly && t.scope === 'admin:read');
+  assert.deepEqual(Object.keys((t.inputSchema as { properties: Record<string, unknown> }).properties).sort(), ['limit', 'vehicle']);
+  assert.ok(TOOLS.includes(t));
+  assert.ok(toolsFor(['admin:read']).some((x) => x.name === 'photo_standard'));
+  assert.ok(!toolsFor(['bookings:read']).some((x) => x.name === 'photo_standard'));
+  assert.match(SQL2896, /if p_tool not in \('photo_standard', 'stripe_booking', 'stripe_account', 'stripe_record_paid'\) then return app\.api_call_pre2896/);
+  assert.match(SQL2896, /api_key_check\(p_hash, case when v_write then 'admin:write' else 'admin:read' end, p_tool/);
+  assert.match(SQL2896, /insert into api_calls/);
+});
+test('2896: the Stripe tools: two reads, and stripe_record_paid two-step on admin:write', () => {
+  const by = (n: string) => STRIPE_TOOLS.find((x) => x.name === n)!;
+  assert.ok(by('stripe_booking').readOnly && by('stripe_booking').scope === 'admin:read');
+  assert.ok(by('stripe_account').readOnly && by('stripe_account').scope === 'admin:read');
+  const w = by('stripe_record_paid');
+  assert.ok(!w.readOnly && w.scope === 'admin:write');
+  const props = (w.inputSchema as { properties: Record<string, unknown> }).properties;
+  assert.ok(props.confirm && props.preview_id && props.payment_intent);
+  assert.match(SQL2896, /'run', 'stripe_record_paid'/);
+  assert.match(SQL2896, /pv\.args is distinct from v_args/);
 });

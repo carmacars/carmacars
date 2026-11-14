@@ -5,6 +5,10 @@ import { oneStepHire } from '@/server/hire';
 import { bookNowAgreement } from '@/server/book-now';
 import { storage } from '@/integrations/storage';
 import { MAX_PHOTO_BYTES } from '@/features/returns/claim';
+import { inspectAccount, inspectBooking, recordable, stripeReader, type Recorded, type StripeGet } from '@/features/api-access/stripe-inspect';
+import { payments } from '@/integrations/payments';
+import { settleIntent } from '@/server/portal/payment';
+import { env } from '@/lib/env';
 
 // The CarmaCars MCP server (release 28, B3; migration 0562): Claude's connector for Abbas and Mahad. Streamable HTTP
 // without a stream: each POST is one JSON-RPC message answered with one JSON response. The bearer is an API key from
@@ -92,6 +96,8 @@ export async function POST(req: Request) {
         const done = r.result as { done?: boolean; result?: unknown } | undefined;
         if (done?.done) await bookNowAgreement(done.result);
       }
+      // r47 (2896): Stripe, read here with the server's key after the database checked the key, the scope and the preview
+      if (r.ok && (run?.run === 'stripe_booking' || run?.run === 'stripe_account' || run?.run === 'stripe_record_preview' || run?.run === 'stripe_record_paid')) r = await stripeTool(r.result as Record<string, unknown>);
       // a bug report's pictures (2340): private files, given as links that expire in ten minutes
       if (r.ok && name === 'bug_report_get') r = { ...r, result: await signedShots(r.result) };
       const out = r.ok ? withLinks(r.result) : { error: r.error };
@@ -172,4 +178,36 @@ function withLinks(v: unknown): unknown {
     return o;
   };
   return fix(v);
+}
+
+/** r47 (2896): the Stripe tools. Reads only GET (stripe-inspect.ts); stripe_record_paid records an intent Stripe shows
+ *  succeeded through settleIntent, the webhook's own path (a succeeded intent is never captured again). */
+function stripeGet(): StripeGet | null {
+  const e = env();
+  return e.PAYMENTS_PROVIDER === 'stripe' && e.STRIPE_SECRET_KEY ? stripeReader(e.STRIPE_SECRET_KEY) : null;
+}
+async function stripeTool(res: Record<string, unknown>): Promise<{ ok: boolean; status?: number; result?: unknown; error?: string }> {
+  const get = stripeGet();
+  try {
+    if (res.run === 'stripe_record_paid') {
+      const p = res.params as { id: string; booking_number: string; payment_intent: string };
+      const i = await (await payments()).retrieveIntent(p.payment_intent);
+      const no = recordable(i, p.id);
+      if (no) return { ok: false, status: 400, error: no };
+      const out = await settleIntent(i.id, String(res.actor), `connector:${i.id}`);
+      return out.ok ? { ok: true, result: { done: true, booking_number: out.bookingNumber, recorded: i.id, charged: false } } : { ok: false, status: 400, error: out.message };
+    }
+    if (!get) return { ok: false, status: 400, error: 'Stripe is not connected on this server (the fake payments provider is in use)' };
+    if (res.run === 'stripe_account') return { ok: true, result: await inspectAccount(get) };
+    if (res.run === 'stripe_record_preview') {
+      const i = await get(`/v1/payment_intents/${String(res.payment_intent)}`).catch(() => null);
+      const why = i ? recordable({ status: String(i.status), metadata: (i.metadata ?? {}) as Record<string, string> }, String(res.booking_id)) : 'Stripe has no such PaymentIntent';
+      const { run: _run, ...rest } = res;
+      void _run;
+      return { ok: true, result: { ...rest, stripe_status: i?.status ?? null, amount_received_cents: i?.amount_received ?? null, can_confirm: !why, ...(why ? { warning: why } : {}) } };
+    }
+    return { ok: true, result: await inspectBooking(get, res.recorded as Recorded) };
+  } catch (e) {
+    return { ok: false, status: 502, error: `Stripe could not be read: ${e instanceof Error ? e.message.slice(0, 200) : 'unknown error'}` };
+  }
 }
