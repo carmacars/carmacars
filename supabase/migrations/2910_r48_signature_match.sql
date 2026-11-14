@@ -157,6 +157,7 @@ select pg_temp.patch_fn('app.sign_request_sign_0044(uuid, uuid, jsonb)'::regproc
   $n$not app.person_names_match(v_typed, r.signer_name)$n$);
 
 revoke all on function app.typed_name_refused(uuid, text, text) from public;
+grant execute on function app.typed_name_refused(uuid, text, text) to service_role;
 grant execute on function app.person_name_tokens(text), app.person_names_match(text, text), app.person_name_covers(text[], text[]) to authenticated, service_role;
 
 comment on function app.person_names_match(text, text) is

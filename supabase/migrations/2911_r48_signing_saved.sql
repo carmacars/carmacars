@@ -132,4 +132,5 @@ end $$;
 revoke all on function public.renter_prefill(uuid, uuid), public.server_esign_saved(uuid), public.server_esign_use_saved(uuid, text, text, text) from public, anon, authenticated;
 grant execute on function public.renter_prefill(uuid, uuid), public.server_esign_saved(uuid), public.server_esign_use_saved(uuid, text, text, text) to service_role;
 revoke all on function app.save_renter_signature(), app.esign_saved_path(esign_sessions, text) from public;
+grant execute on function app.save_renter_signature(), app.esign_saved_path(esign_sessions, text) to service_role;
 grant execute on function app.person_initials(text) to authenticated, service_role;

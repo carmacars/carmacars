@@ -112,6 +112,7 @@ end $$;
 revoke all on function public.staff_accept_card_name(uuid, uuid, text) from public, anon, authenticated;
 grant execute on function public.staff_accept_card_name(uuid, uuid, text) to service_role;
 revoke all on function app.card_name_review() from public;
+grant execute on function app.card_name_review() to service_role;
 grant execute on function app.card_name_matches(text, text), app.person_name_short_covers(text[], text[]) to authenticated, service_role;
 
 comment on function app.card_name_matches(text, text) is
