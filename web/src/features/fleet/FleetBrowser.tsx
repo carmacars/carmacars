@@ -93,7 +93,9 @@ function Browser({ cars, labels, classes, maxDays, gate, p, sync }: Props & { p:
   useEffect(() => {
     if (!availKey) return;
     let live = true;
-    browserRpc<Avail[]>('search_available', { p_pickup: torontoInstant(dates.from, tf), p_return: torontoInstant(dates.to, tt), p_filters: {} })
+    // one quiet retry: a busy moment of the database is not shown to the visitor (the owner's report, Nov 14)
+    const ask = () => browserRpc<Avail[]>('search_available', { p_pickup: torontoInstant(dates.from, tf), p_return: torontoInstant(dates.to, tt), p_filters: {} });
+    ask().catch(() => new Promise<Avail[]>((ok, no) => { setTimeout(() => { if (live) ask().then(ok, no); else no(new Error('gone')); }, 1200); }))
       .then((rows) => { if (live) setRes({ key: availKey, avail: new Map(rows.map((r) => [r.vehicle_id, r])), failed: false }); })
       .catch(() => { if (live) setRes({ key: availKey, avail: null, failed: true }); });
     return () => { live = false; };

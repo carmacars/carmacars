@@ -34,7 +34,9 @@ export type StaffRead = 'toll_read_context' | 'toll_read' | 'toll_read_queue' | 
   // r37 (2301): an academy lesson's video, or (an Admin) every lesson's
   | 'academy_videos'
   // r45 (2842): the photo standard of every car
-  | 'photo_r45_fleet';
+  | 'photo_r45_fleet'
+  // r47 (2900): the showroom background plates of the generated listing views
+  | 'photo_r48_plates';
 export async function staffRead<T = Record<string, unknown>>(what: StaffRead, p: Record<string, unknown> = {}): Promise<R<T>> {
   try { const { user, aal } = await me(); return { ok: true, data: await door<T>(user.id, 'ops_read', what, p, aal) }; } catch (e) { return fail(e); }
 }
@@ -142,6 +144,29 @@ export async function uploadRentalSignature(form: FormData): Promise<R<Record<st
     const data = await door<Record<string, unknown>>(user.id, 'ops_do', 'rental_form_rep', { form_code: code, signature_key: key, signature_sha256: await sha256Hex(bytes) }, aal);
     revalidatePath('/admin/settings/forms');
     return { ok: true, data };
+  } catch (e) { return fail(e); }
+}
+
+/** r47 (2900): a real showroom photo as the background plate of the generated listing views (Settings > Program, Showroom
+ *  background plates), Admin only: kept in the public bucket (Gemini is sent it with every generated outside view of its
+ *  family; it is never shown on its own). family: front, side, rear or all. The database checks the Admin and the path. */
+export async function uploadR48Plate(form: FormData): Promise<R<Record<string, unknown>>> {
+  try {
+    const { user, aal } = await me();
+    const file = form.get('file');
+    const family = String(form.get('family') ?? '');
+    if (!['front', 'side', 'rear', 'all'].includes(family)) return { ok: false, code: 'invalid', message: 'Choose which views the photo is for.' };
+    if (!(file instanceof File) || file.size === 0) return { ok: false, code: 'invalid', message: 'Choose the photo.' };
+    if (file.size > 8_000_000) return { ok: false, code: 'invalid', message: 'The photo must be under 8 MB.' };
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const { jpg, png } = imageSniff(bytes);
+    if (!jpg && !png) return { ok: false, code: 'invalid', message: 'Use a JPEG or PNG photo.' };
+    const key = `site/r48/plates/admin-${family}-${crypto.randomUUID().slice(0, 8)}.${jpg ? 'jpg' : 'png'}`;
+    const { storage } = await import('@/integrations/storage');
+    const s = await storage();
+    await s.put('vehicle-public', key, bytes, jpg ? 'image/jpeg' : 'image/png');
+    try { return { ok: true, data: await door<Record<string, unknown>>(user.id, 'ops_do', 'photo_r48_plate', { family, path: key }, aal) }; }
+    catch (e) { await s.remove('vehicle-public', key).catch(() => undefined); throw e; }
   } catch (e) { return fail(e); }
 }
 

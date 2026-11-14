@@ -176,7 +176,9 @@ export async function runListingWorkerNow(o: { maxJobs?: number; deadlineMs?: nu
       getPublic: (path) => s.get('vehicle-public', path),
       // r41 (2530): the uncovered file an automatic cover replaced
       removePublic: (path) => s.remove('vehicle-public', path),
-      removePrivate: (path) => s.remove('vehicle-originals', path)
+      removePrivate: (path) => s.remove('vehicle-originals', path),
+      // r48 (2900): a check-in or check-out photo, a reference for the generated views only (never published)
+      getCondition: (path) => s.get('condition-photos', path)
     }
   }, o);
 }
