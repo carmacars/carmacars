@@ -32,7 +32,7 @@ export async function prepareGenerated(userId: string, aal: 'aal1' | 'aal2' | nu
 }
 
 export async function sendGenerated(userId: string, aal: 'aal1' | 'aal2' | null, kind: GeneratedKind, who: string, values: Record<string, string>,
-  exemption: { category: string; paragraph: string }): Promise<{ id: string; blanks: number }> {
+  exemption: { category: string; paragraph: string }, opts: { reissue?: boolean } = {}): Promise<{ id: string; blanks: number }> {
   const f = await facts(userId, aal, kind, who);
   const required = kind === 'investment_agreement' ? investorFields(f as InvestorFacts, exemption) : staffFields(f as StaffFacts);
   const missing = missingRequired(required, values);
@@ -60,6 +60,6 @@ export async function sendGenerated(userId: string, aal: 'aal1' | 'aal2' | null,
   const r = await door<{ id: string }>(userId, 'ops_do', 'sign_request_create', {
     doc_type: kind, investor_id: kind === 'investment_agreement' ? who : null, staff_user_id: kind === 'staff_agreement' ? who : null, title, document: { path, sha256: sha },
     exemption_category: kind === 'investment_agreement' ? exemption.category : null, exemption_paragraph: kind === 'investment_agreement' ? exemption.paragraph || null : null,
-    template_version: PERSON_AGREEMENTS_VERSION, extra: { generated: true, summary, values } }, aal);
+    template_version: PERSON_AGREEMENTS_VERSION, extra: { generated: true, summary, values, ...(opts.reissue ? { reissue: true } : {}) } }, aal);
   return { id: r.id, blanks };
 }

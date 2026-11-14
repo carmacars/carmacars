@@ -106,7 +106,7 @@ def build():
         f'Something wild happened this week? {B("Tell yours")} under Craziest story of the week: an Admin picks one for the deck.',
         'Each week\'s recording is listed on the Townhall page.',
     ])
-    g.tip('Two townhalls missed in a row lock your account until an Admin restores it.', 'Watch out')
+    g.tip('Two townhalls missed in a row lock your account until an Admin restores it. A townhall that did not happen (nobody attended, or an Admin cancelled it) counts nobody absent, and a cancelled one sends no reminders.', 'Watch out')
 
     # ---------------------------------------------------------------- 2
     g.chapter('Customer service',
@@ -180,6 +180,10 @@ def build():
         f'The same renter twice? Under the renter, Possible duplicates: {B("Merge into this record")} moves everything of the other record here.',
     ])
     g.tip('Each edit is recorded with your name, the time, the reason and the before and after.', label='Good to know')
+    g.steps([
+        f'Changed it and need it back? Overview, {B("Versions of this booking")}: press {B("Restore this version")} on the one to go back to. The preview shows the new dates, car, rental charge and total, and what the renter would owe or be owed.',
+        f'Type why and press {B("Restore version")} with its number: the dates, the car, the rental charge and the fees go back exactly. Payments are not touched; a difference is a balance or a credit. Customer service and Sales can do it while Program settings let staff change bookings.',
+    ])
 
     g.task('Renter messages and Find a renter')
     g.steps([
@@ -375,6 +379,8 @@ def build():
         f'Change a job with {B("Assign")}, {B("Reassign")}, {B("Move")} (time and place) or {B("Cancel")}.',
         f'Handovers and returns without a job (when the automatic jobs are off, or one was cancelled) are listed first: press {B("Schedule")}, the place filled in from the booking.',
         'An Admin turns the automatic jobs or the assignment off in Settings > Program.',
+        'Shifts for field staff to claim are published by themselves every hour, up to 14 days ahead, from the shift template in Settings > Program (Field jobs and handovers: one shift of 10:00 to 17:00 for one person, every second day). They only extend forward from the latest shift already published. A handover or return no shift covers gets a shift of its own (90 minutes either side). You can still publish or cancel a shift by hand; a cancelled one is not published again.',
+        'A shift nobody has claimed 48 hours before it starts alerts you and the Admins with the people to ask.',
     ], shot=S('va-fleet/02-field-jobs-desktop', 210, 60, 1440, 625, pins=[(1, 430, 350)]), fig_w=4.3)
 
     g.task('Field hours', 'Field staff clock in and out on their phones. You see who is clocked in and every shift of the two-week pay period, and you fix what they cannot.')

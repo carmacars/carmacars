@@ -360,3 +360,11 @@ update program_settings set rentalcover_unknown_value_allowed = true;
 -- older suites count the listing jobs of their photos. 99_r41_plates_auto.sql switches it on, tests it and switches it off.
 alter table program_settings alter column plate_auto_enabled set default false;
 update program_settings set plate_auto_enabled = false;
+
+-- 2864: field shift slots published by themselves (on by default) are off for the earlier suites: they publish and count
+-- slots themselves. 99_r45_field_slots_auto.sql switches it on and tests it. The slots the migration published go.
+insert into test.shipped_defaults select column_name::text, column_default::text from information_schema.columns
+ where table_name = 'program_settings' and column_name = 'field_slots_auto';
+alter table program_settings alter column field_slots_auto set default false;
+update program_settings set field_slots_auto = false;
+delete from field_shift_slots s where s.auto_source is not null and not exists (select 1 from field_shift_plans p where p.slot_id = s.id);

@@ -121,6 +121,30 @@
      "I've returned the car and photos for Report a problem send from a phone browser opened by a text message link"
     ]
    }
+  },
+  "r45": {
+   "date": "2026-11-13",
+   "seq": 0,
+   "summary": "Booking requests fill themselves from the renter's profile, a changed booking can be put back to any earlier version, field shifts open by themselves, and a townhall that did not happen counts nobody absent.",
+   "sections": {
+    "renters": [
+     "Signed in, a booking request fills itself from your profile: your name, date of birth, licence class and how we reach you, all editable",
+     "A licence that has expired or an old address on file is flagged for you to update, and drivers you named before are one tap away"
+    ],
+    "staff": [
+     "Picking a renter on Send an offer or Add a rental shows their licence, home address and drivers named before, with anything out of date flagged",
+     "Restore this version puts a confirmed booking back to an earlier version's dates, car, rental charge and fees, after a preview, without touching a payment",
+     "Field shifts are published by themselves, one shift every second day from 10:00 to 17:00, and every handover or return gets a shift to claim",
+     "A townhall that did not happen counts nobody absent, and a cancelled one sends no reminders",
+     "The guides and the academy cover the new flows of Releases 44 and 45"
+    ],
+    "admins": [
+     "Send a new agreement redoes a staff agreement already sent or signed with the current terms; a signed one stays on file as superseded",
+     "A To do lists the staff in Canada whose agreement still carries the old terms",
+     "This townhall did not happen and Cancel this townhall on the Townhall page",
+     "The shift template is a Program setting, and shifts open only forward from the latest one already published"
+    ]
+   }
   }
  }
 }

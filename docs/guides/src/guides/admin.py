@@ -190,7 +190,7 @@ def build():
     g.para(f'Opening a request takes it for you: everyone else sees "Being answered by" your name and since when, with Send the offer and Decline off, until you send, decline or leave (20 minutes, renewed while you work; Program settings). Press {B("Take over")} to answer one someone else holds; it is noted in the history. A second answer is refused with who answered and when. A request from the website opens to Sales after 15 minutes (Program settings); until then Admins, customer service and fleet answer it.')
     g.task('Send an offer without a request', f'{P("Bookings", "Send an offer")}, or {B("Send an offer")} on Bookings and on Requests. For a customer on the phone, by text or at the counter: no request needed.')
     g.steps([
-        f'The customer: type a name, phone or email and choose them. Not on file? Press {B("Add a new customer")}: full legal name, mobile, email (the offer link goes there) and date of birth. A customer already on file with the same email or phone is shown with Use: one person, one record.',
+        f'The customer: type a name, phone or email and choose them. What is on file shows under their name: the licence (class, number, expiry), the home address and the drivers named before, with a licence that has expired or an address over a year old flagged to ask them about. Not on file? Press {B("Add a new customer")}: full legal name, mobile, email (the offer link goes there) and date of birth. A customer already on file with the same email or phone is shown with Use: one person, one record.',
         'The car and the dates: type the car code, plate or name, or choose from the list; each car says Free or Not free for the dates. Then the pickup and return places (our location, delivery with the address and distance, airport).',
         'The price: the Rate sheet, A total for the whole rental, or A rate per day (times the days). A price typed by hand needs its reason. At the top of the price, Amounts I type: Before tax, or After tax (HST included) to type what the renter pays for each line, worked back to the amount before tax for you (a line without HST stays as typed; the choice is remembered on this device). Or type the Total the renter pays (after tax): the rental charge is worked out so the total comes to it exactly, the other lines kept. Set the kilometres, a promo code, the deposit, a discount and each fee (an Admin), and how damage is covered: with option 3 the Protection Plan price is the one the renter pays.',
         'How it is paid: the rental by card online (the usual way), e-Transfer, cash, cheque, bank transfer, platform payout or the insurer; the deposit by card hold, cash, e-Transfer or no deposit (an Admin).',
@@ -217,6 +217,15 @@ def build():
         f'What is open now shows at once: {B("Email a pay link")} or {B("Text a pay link")} for exactly that amount, {B("Charge")} the saved card (the renter agreed), or record cash or an e-Transfer on the Money tab.',
     ])
     g.tip('Each edit is kept with who, when, why, before and after (Edits, under the form) and in the booking\'s history. A closed booking\'s owner split and the staff commission follow. To have the renter accept and sign first, use Propose a change instead.', label='Good to know')
+
+    g.task('Restore a version of a confirmed booking', f'Once a confirmed booking has been changed, Overview shows {B("Versions of this booking")}: the booking before its first change, then one version after each change (fees changed alone too), the newest marked current.')
+    g.steps([
+        f'Find the version to go back to (its dates, days, car, rental charge and total are listed) and press {B("Restore this version")}.',
+        'The preview shows what changes: the dates, the car, the rental charge, the total, and what the renter would owe or be owed. Nothing is changed yet.',
+        f'Type why, tick {B("Tell the renter what changed")} if you like, and press {B("Restore version")} with its number. The dates, the car, the rental charge and every fee go back exactly as they were in that version.',
+        'It is one more change in the history, with your name and the reason. Payments are never touched: a difference is a balance to collect or a credit to settle, as with any edit.',
+    ])
+    g.tip('The same checks as Edit: the car must be free for those dates, and customer service and Sales restore only while Program settings let staff change bookings (and fees). A version kept before Release 45 has no fees with it: its dates, car and rental charge go back and the fees stay as they are; the preview says so.', label='Good to know')
 
     g.task('Fees, a forgotten fee and the balance', f'On the booking\'s Money tab, Fees lists each fee. Press {B("Change or add a fee")}.')
     g.steps([
@@ -1020,6 +1029,7 @@ def build():
     ])
     g.tip('Admin > Team also has Schedules (each role\'s days and hours, anyone\'s own, who is late today) and KPIs (every staff member\'s KPIs for a week against the targets in Program settings).')
     g.tip('The townhall page: pick the craziest story, enter the week\'s social media figures, add the recording link, and mark anyone present or absent. Staff who miss two townhalls in a row are locked until you press Unlock on the staff list.', 'Good to know')
+    g.tip(f'Meetings, on the townhall page: a townhall nobody attended is recorded as not held and counts nobody absent. {B("This townhall did not happen")} does the same for a past one (its absences and alerts are cleared, and a lockout it caused is lifted); {B("Cancel this townhall")} on an upcoming one sends no reminders for it, and {B("Put it back on")} undoes that.', 'Good to know')
     g.tip('Each renter and lead shows an Intent card (hot, warm or cold, with the budget, car, length, dates, urgency, delivery and coverage they mentioned). The live map shows it on each pin. An AI reading fills the gaps within the free daily allowance only (Program settings, intent_ai_enabled).', 'Good to know')
     g.tip('Investors see Search traction under the deck: Google clicks and impressions of the last 28 days, indexed pages and the weekly trend. Type the indexed pages from Search Console on the investor deck page under Investors (no API exists for it).', 'Good to know')
 
@@ -1600,6 +1610,7 @@ def build():
         f'Staff: open {P("People", "Staff")}. Under Staff agreements, press {B("Send the agreement to sign")} beside the person. Pay, schedule, hours and the other values start from the staff profile and the defaults of their function in Program settings; change any before sending. For Sales the Pay is Commission only: the agreement then has no rate, schedule or hours, and pays the commission of section 3.4.',
         'A field staff member\'s agreement prints the home address they entered themselves. Staff enter their home address at their first sign-in, before they sign, or in their profile.',
         'They get a notice, check the key values and sign in their portal in a few taps (their name is the signature, or they draw it). The signed copy is filed with their documents.',
+        f'Already sent or signed with old terms (for someone in Canada: the Philippines, USD or OnlineJobs.ph)? Press {B("Send a new agreement")} beside the person: it is filled with the current terms (Canada, CAD, Interac e-Transfer or direct deposit for staff who live in Canada) and sent to sign the same way. The one waiting is withdrawn; a signed one stays on file, marked superseded, and keeps their portal open until they sign. People in Canada still on old terms show "Lives in Canada: needs the Canadian terms", and a To do lists them.',
         f'Your own PDF instead? {B("Send a PDF to sign")} still works.',
         f'Signed on paper instead? Press {B("Record paper signature")} in the same place and upload the scan.',
         f'Sent by mistake? Press {B("Withdraw")} and give the reason.',

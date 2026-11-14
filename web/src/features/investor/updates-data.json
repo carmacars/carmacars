@@ -53,6 +53,31 @@
   ]
  },
  {
+  "release": "r45",
+  "title": "Release 45",
+  "date": "2026-11-13",
+  "seq": 0,
+  "summary": "Booking requests fill themselves from the renter's profile, a changed booking can be put back to any earlier version, field shifts open by themselves, and a townhall that did not happen counts nobody absent.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "A signed-in renter's booking request fills itself from their profile and flags anything out of date"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "A changed booking can be put back to any earlier version after a preview, without touching a payment",
+     "Offers and rentals entered by staff show the renter's licence, address and drivers already on file",
+     "Field shifts open by themselves ahead, with a shift for every handover and return",
+     "A townhall that did not happen no longer counts anyone absent",
+     "Staff agreements can be redone with the current terms, keeping the signed one on file"
+    ]
+   }
+  ]
+ },
+ {
   "release": "r39",
   "title": "Release 39",
   "date": "2026-11-12",

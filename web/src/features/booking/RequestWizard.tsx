@@ -31,6 +31,7 @@ import { Estimate, useQuote, type LabelTokens } from './Estimate';
 import { CaptureNote, SavedAsYouType, useCapture } from '@/features/capture/useCapture';
 import { gateOn, type GateRules } from '@/features/phone-gate/rules';
 import { gatePhone, usePhoneGate } from '@/features/phone-gate/usePhoneGate';
+import { addressWords, driverRow, driversToOffer, fillFromProfile, licenceWords, profileFlags, type RenterProfile } from './profile-fill';
 import { HEARD_ABOUT, ageOn, checkRequest, dobIso, emptyRequest, migrateExtras, nonRefAllowed, stepOfKey, type RequestData, type RequestRules } from './schema';
 
 // Request to book: five steps (0066: add-ons have their own), autosaved to form_drafts (and this device) and resumable, one schema
@@ -103,14 +104,27 @@ export function RequestWizard(p: WizardProps) {
   }, [gatePh, step]);
   const fromGate = () => { const g = gatePhone(); if (g) { setGatePh(g); setD((x) => ({ ...x, phone: formatPhone(g) })); } };
   // signed in (0091): the account's verified phone and email fill the form; an account made by phone may leave the email
-  const [account, setAccount] = useState<{ signedIn: boolean; email: string | null; phone: string | null; discounts?: Array<{ code: string; what: string; days_left: number | null }>; canBookNow?: boolean } | null>(null);
+  // r45 (2860): and everything the profile holds (name, date of birth, licence class, channel); only empty fields are filled,
+  // so a draft or what the person typed wins; the drivers on file are offered with one tap; what is out of date is flagged
+  const [account, setAccount] = useState<{ signedIn: boolean; email: string | null; phone: string | null; discounts?: Array<{ code: string; what: string; days_left: number | null }>; canBookNow?: boolean; profile?: RenterProfile | null } | null>(null);
+  const [fromProfile, setFromProfile] = useState<string[]>([]);
   useEffect(() => {
     requestAccount().then((r) => { if (r.ok) setAccount(r.data); }).catch(() => undefined);
   }, []);
   useEffect(() => {
     if (!account?.signedIn || !ready.current) return;
-    setD((x) => ({ ...x, phone: x.phone || (account.phone ? formatPhone(account.phone) : ''), email: x.email || (account.email ?? '') }));
-  }, [account, step]);
+    const prof = account.profile ?? null;
+    setD((x) => {
+      const base = { ...x, phone: x.phone || (account.phone ? formatPhone(account.phone) : ''), email: x.email || (account.email ?? '') };
+      if (!prof) return base;
+      const f = fillFromProfile(base, prof, p.rules);
+      if (f.filled.length) setFromProfile((was) => [...new Set([...was, ...f.filled])]);
+      return f.data;
+    });
+  }, [account, step, p.rules]);
+  const profile = account?.signedIn ? account.profile ?? null : null;
+  const profileNotes = profile ? profileFlags(profile, { todayIso: today, returnIso: d.to || null }) : [];
+  const onFile = profile ? driversToOffer(d, profile) : [];
   const emailOptional = !!account?.signedIn && !account.email;
   // 0096: the channel shown chosen until the person picks one (a verified phone: Both, or Text with no email)
   const defChannel: Channel = account?.signedIn && account.phone ? (account.email ? 'both' : 'text') : 'email';
@@ -428,6 +442,11 @@ export function RequestWizard(p: WizardProps) {
 
           <section data-step="2" className="req__step stack-lg" aria-labelledby="rs2" hidden={step !== 2} onBlur={() => cap.capture({ name: `${d.first} ${d.last}`.trim(), email: d.email, phone: d.phone })}>
             <h2 className="d3" id="rs2" tabIndex={-1}>The driver</h2>
+            {profile && (fromProfile.length > 0 || profileNotes.length > 0) && <div className="alert alert--info" role="note" data-testid="rq-from-profile">
+              <span className="alert__title">Filled in from your profile</span>
+              <span>Check each detail and change anything that is out of date. <Link prefetch={false} className="link" href="/account/profile">Your profile</Link></span>
+              {profileNotes.map((n) => <span key={n.key} className="small" data-testid={`rq-stale-${n.key}`}><b>To update:</b> {n.message}</span>)}
+            </div>}
             <div className="field-row">
               <div className={fieldCls('first')}><label className="label" htmlFor="rq-first">First name</label><input className="input" id="rq-first" autoComplete="given-name" value={d.first} onChange={(e) => set('first', e.target.value)} {...aria('first', 'rq-first')} />{errEl('first', 'rq-first')}</div>
               <div className={fieldCls('last')}><label className="label" htmlFor="rq-last">Last name</label><input className="input" id="rq-last" autoComplete="family-name" value={d.last} onChange={(e) => set('last', e.target.value)} {...aria('last', 'rq-last')} />{errEl('last', 'rq-last')}</div>
@@ -453,6 +472,8 @@ export function RequestWizard(p: WizardProps) {
               </div>
               <p className="error" role="alert">{err('drivers') ?? ''}</p>
             </div>
+            {onFile.length > 0 && d.drivers.length < p.rules.maxAdditional && <p className="small" data-testid="rq-drivers-on-file">Drivers on your profile:{' '}
+              {onFile.map((x) => <button key={x.full_name} type="button" className="btn btn--quiet btn--sm" onClick={() => set('drivers', [...d.drivers, driverRow(x)])}>Add {x.full_name}</button>)}</p>}
             {d.drivers.map((x, i) => {
               const upd = (k: keyof typeof x, v: string) => { const n = d.drivers.slice(); n[i] = { ...x, [k]: v }; set('drivers', n); setErrors((e) => { const c = { ...e }; for (const kk of Object.keys(c)) if (kk.startsWith(`drivers.${i}.`)) delete c[kk]; return c; }); };
               return (
@@ -476,6 +497,9 @@ export function RequestWizard(p: WizardProps) {
 
           <section data-step="3" className="req__step stack-lg" aria-labelledby="rs3" hidden={step !== 3}>
             <h2 className="d3" id="rs3" tabIndex={-1}>Licence and coverage</h2>
+            {profile && (profile.licence || profile.address) && <p className="small" data-testid="rq-licence-on-file">
+              {profile.licence && <>Licence on your profile: {licenceWords(profile.licence)}.{profileNotes.some((n) => n.key === 'licence') ? <b> Update it before pickup.</b> : null} </>}
+              {profile.address && <>Home address: {addressWords(profile.address)}.</>}</p>}
             <fieldset className={fieldCls('licClass')}><legend className="label">Licence class</legend>
               <div className="seg">
                 {[...p.rules.licenceClasses].sort().map((c) => <label key={c}><input type="radio" name="licClass" value={c} checked={d.licClass === c} onChange={() => set('licClass', c)} />Ontario {c}</label>)}

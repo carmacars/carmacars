@@ -68,6 +68,8 @@ import type { PrepareProgressData } from '@/features/field-portal/prepare';
 import { NameChangeCard } from '@/features/admin/NameChangeCard';
 import type { NameChange } from '@/server/self-profile';
 import { BookingKindChips, CoverageStrip, RequestHistory } from '@/features/request-history/RequestHistory';
+import { BookingVersions } from '@/features/request-history/BookingVersions';
+import type { BookingVersions as VersionsData } from '@/features/request-history/model';
 import { InstantBookCard, RideshareStaffCard, SecondaryContactCard, type InstantState, type RideshareFacts, type SecondaryContact } from '@/features/request-history/BookingExtras';
 import type { History, Revert } from '@/features/request-history/model';
 
@@ -194,6 +196,8 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
     on('history') ? ops<ActivityPage>('renter_activity', { booking: b.booking_number, ...readParams(activityQuery(sp)) }, true).catch(none(null)) : null,
     // Email the renter or the adjuster, with the booking's conversation and emails (0187)
     on('messages') ? ops<Conversation>('booking_conversation', { booking: b.booking_number }, true).catch(none(null)) : null]);
+  // r45 (2861): a confirmed booking's versions, each with Restore this version (where the viewer may change bookings)
+  const versions = on('overview') && editForm ? await ops<VersionsData>('booking_versions', { booking: b.booking_number }, true).catch(none(null)) : null;
   // r35 (0890): card coverage or the Protection Plan, on an offer or an active booking
   // r41 (2540, 2541): Change protection, one control on the top card, the three options in a small dialog
   const protection = (on('overview') || on('money')) && notOwner && !['cancelled', 'declined', 'expired'].includes(b.status) ? await ops<ProtectionOptions>('protection_options', { booking: b.booking_number }, true).catch(none(null)) : null;
@@ -400,6 +404,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
       {/* conflicting dates on this car (0284), once the booking is past the request */}
       {can.admin && on('overview') && b.competing.length > 0 && <Card title="Also on this car for these dates" testId="date-conflicts-card"><DateConflicts items={b.competing} self={{ placeholder: !!b.placeholder?.on }} /></Card>}
       {on('overview') && editForm && <BookingEdit x={editForm} fees={fees} />}
+      {on('overview') && versions && <BookingVersions x={versions} />}
       {(on('overview') || on('money')) && insurerCard?.billed_to_insurer && <BookingInsurer x={insurerCard} />}
       {adjusters && <InsurerClaimEdit compact={!['insurer', 'split'].includes(b.bill_to)} insurers={ins.rows} adjusters={adjusters} x={{
         booking: b.booking_number, bill_to: b.bill_to, insurer_id: b.insurer_id, claim_number: b.insurer_claim_number, adjuster_name: b.insurer_adjuster_name,

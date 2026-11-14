@@ -1,4 +1,5 @@
 'use client';
+import { RenterOnFile } from '@/features/booking/RenterOnFile';
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { AddressInput } from '@/features/forms/AddressInput';
 import { AddressLookup } from '@/features/forms/AddressFields';
@@ -550,8 +551,11 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
 
       <fieldset className="stack"><legend className="d4">2. The renter</legend>
         {renter ? (
+<>
           <p data-testid="mr-renter-chosen"><b>{renter.legal_name}</b> {renter.email} {renter.mobile} {renter.card ? `· card ${renter.card.brand} ending ${renter.card.last4}` : '· no saved card'} <button className="btn btn--quiet btn--sm" type="button" onClick={() => { setRenter(null); setQuote(null); }}>Change</button></p>
-        ) : (<>
+          <RenterOnFile renterId={renter.id} returnIso={f.return_at} testId="mr-on-file"
+            onDrivers={(ds) => setDrivers((s) => [...s, ...ds.filter((x) => !s.some((y) => y.full_name.trim().toLowerCase() === x.full_name.trim().toLowerCase())).map((x) => ({ full_name: x.full_name, date_of_birth: x.date_of_birth ?? '', email: x.email ?? '' }))])} />
+        </>) : (<>
           {field ? <p className="small muted">Type the renter&apos;s details. A renter already on file is found by their email.</p>
             : <label className="check" htmlFor={id('new')}><input id={id('new')} type="checkbox" checked={flags.new_renter} onChange={flag('new_renter')} data-testid="mr-new-renter" /> <span>A new renter (not on file)</span></label>}
           {!flags.new_renter ? (
