@@ -62,6 +62,7 @@
    {
     "area": "Website & search",
     "items": [
+     "On a phone, the menu opened partway down a page keeps the header (logo and Close) at the top",
      "The cars list for chosen dates loads again: each car is priced once, about seven times faster, and a busy moment is retried quietly",
      "A car's own photos stay on the site while their new Gemini versions are made; one that is refused stays as it was and is flagged",
      "The first outside photo leads the gallery and the cards wherever it sits, so no car shows a drawn sample while it has photos",

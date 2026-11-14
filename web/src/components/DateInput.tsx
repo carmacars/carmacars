@@ -54,14 +54,14 @@ export function DateInput({ type, value: valueProp, defaultValue, min: minProp, 
     const outside = (e: MouseEvent) => { const t = e.target as Node; if (!wrap.current?.contains(t) && !pop.current?.contains(t)) close(); };
     const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); close(); } };
     document.addEventListener('mousedown', outside); document.addEventListener('keydown', esc);
-    if (phone) document.body.style.overflow = 'hidden';
+    if (phone) document.documentElement.style.overflow = 'hidden';
     else if (pop.current && wrap.current) {
       pop.current.style.left = '0px';
       const r = wrap.current.getBoundingClientRect();
       pop.current.style.left = Math.min(0, window.innerWidth - r.left - pop.current.offsetWidth - 16) + 'px';
     }
     requestAnimationFrame(() => pop.current?.querySelector<HTMLButtonElement>('.cal__day[tabindex="0"]')?.focus());
-    return () => { document.removeEventListener('mousedown', outside); document.removeEventListener('keydown', esc); document.body.style.overflow = ''; };
+    return () => { document.removeEventListener('mousedown', outside); document.removeEventListener('keydown', esc); document.documentElement.style.overflow = ''; };
   }, [open, phone]);
   function close() { setOpen(false); if (opener.current && document.contains(opener.current)) opener.current.focus(); }
 

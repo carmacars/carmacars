@@ -40,7 +40,7 @@ export function MenuButton() {
     if (!panel) return;
     panel.classList.toggle('is-open', open);
     panel.inert = !open;
-    document.body.style.overflow = open ? 'hidden' : '';
+    document.documentElement.style.overflow = open ? 'hidden' : '';
     if (open) panel.querySelector('a')?.focus();
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
     const onClick = (e: MouseEvent) => { if ((e.target as HTMLElement).closest('a')) setOpen(false); };

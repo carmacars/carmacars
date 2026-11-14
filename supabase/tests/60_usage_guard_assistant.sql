@@ -90,7 +90,7 @@ select test.throws('emails cannot be paid on the free plan: upgrade', $$select a
 select test.throws('the website is never paused, so there is nothing to allow', $$select app.usage_decide(test.id('ug_admin'), '{"service": "workers_requests", "decision": "allow", "cap_usd": 5}')$$, 'never paused');
 
 -- the website and the database: alert only, with the estimated cost
-select app.usage_put('workers_requests', app.today(), 'cloudflare', 12000000);
+select app.usage_put('workers_requests', app.today(), 'cloudflare', 120000000);   -- far over: the card shows at any hour of the month (r47)
 select test.eq('website requests over the allowance: never paused', app.usage_refresh_service('workers_requests') ->> 'state', 'over');
 select test.eq('the estimated overage cost', (app.usage_state('workers_requests') ->> 'overage_usd')::numeric >= 0.6, true);
 select test.eq('its card says so', (app.usage_cards(test.id('ug_admin')) -> 'cards') @> '[{"service": "workers_requests", "level": 100}]', true);
