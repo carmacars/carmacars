@@ -16,9 +16,11 @@ update renters set email = 'ohx-test@resend.dev' where id = test.id('renter:ohx_
 -- R1: an ordinary closed rental on OHX1; R2: one on OHX2 later
 select test.mk_booking('OHX-R1', 'OHX1', 'ohx_r1', '2026-10-10 10:00', '2026-10-13 10:00', 'closed', 30000);
 select test.mk_booking('OHX-R2', 'OHX2', 'ohx_r2', '2026-10-20 10:00', '2026-10-22 10:00', 'closed', 20000);
--- H1: hidden from the owner ("never" shown)
+-- H1: an insurer replacement hidden from the owner ("never" shown; it never reaches their statement, so approval never
+-- reveals it, 0156/2480)
 select test.mk_booking('OHX-H1', 'OHX1', 'ohx_r3', '2026-10-15 10:00', '2026-10-17 10:00', 'closed', 20000);
-update bookings set owner_visibility = 'never' where id = test.id('booking:OHX-H1');
+insert into insurers (id, name) values (test.id('insurer:ohx'), 'Insurer OHX');
+update bookings set owner_visibility = 'never', bill_to = 'insurer', insurer_id = test.id('insurer:ohx') where id = test.id('booking:OHX-H1');
 -- C1: cancelled, nothing paid
 select test.mk_booking('OHX-C1', 'OHX1', 'ohx_r4', '2026-10-24 10:00', '2026-10-27 10:00', 'cancelled', 0, 'standard', null, '2026-10-10 10:00');
 select test.mk_line('OHX-C1', 'rental_charge', 40950, false);
@@ -63,6 +65,7 @@ select test.eq('revenue matches the statement figure (R1)', (pg_temp.row_of(pg_t
 select test.eq('revenue matches the statement figure (the kept no-show)', (pg_temp.row_of(pg_temp.h(), 'OHX-C3') ->> 'earned_cents')::bigint, pg_temp.line_cents('OHX-C3'));
 select test.eq('the total is the sum of the statement lines',
   (pg_temp.h() ->> 'earned_cents')::bigint, pg_temp.line_cents('OHX-R1') + pg_temp.line_cents('OHX-R2') + pg_temp.line_cents('OHX-C3'));
+select test.ok('the hidden booking is not on the statement', pg_temp.line_cents('OHX-H1') is null);
 select test.ok('hidden booking absent', pg_temp.row_of(pg_temp.h(), 'OHX-H1') is null and pg_temp.h()::text not like '%' || test.id('booking:OHX-H1')::text || '%');
 select test.ok('cancelled without a kept charge absent', pg_temp.row_of(pg_temp.h(), 'OHX-C1') is null);
 select test.ok('another owner''s car never listed, nor in the car filter',
