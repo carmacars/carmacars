@@ -385,3 +385,7 @@
 .fd-bar--one .btn { flex: 0 0 auto; max-width: none; width: 100%; }
 .fd-bar--one .fd-bar__need { min-height: 3rem; font-size: 1rem; white-space: normal; text-align: center; }
 .fd-bar__more { font-weight: 500; }
+/* r46: the same for the field portal's top links at 320px */
+@media (max-width: 30rem) {
+  .fd__top .gd-frame-links { flex: 1 1 100%; flex-wrap: wrap; max-width: 100%; }
+}

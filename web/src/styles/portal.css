@@ -374,3 +374,8 @@
   .rs-noprint { display: none !important; }
   .rs-letter { border: 0; padding: 0; max-width: none; break-after: page; }
 }
+/* r46: on a narrow phone (320px) the renter's and owner's links (What's new, Guide, Sign out) no longer fit beside the
+   greeting on one line: the row takes its own line and wraps instead of pushing Sign out off the side */
+@media (max-width: 30rem) {
+  .pt__hello .gd-frame-links { flex: 1 1 100%; flex-wrap: wrap; justify-content: flex-start; max-width: 100%; }
+}
