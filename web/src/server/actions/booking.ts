@@ -10,6 +10,7 @@ import { consentTexts, rules } from '@/server/booking-data';
 import { maps } from '@/integrations/maps';
 import { verifyTurnstile } from '@/integrations/turnstile';
 import { dobIso, migrateExtras, requestSchema, type RequestData } from '@/features/booking/schema';
+import type { RenterProfile } from '@/features/booking/profile-fill';
 import { typedReferralCode } from '@/features/referral/model';
 import { addonsPayload } from '@/features/addons/model';
 import type { ActionResult } from '@/features/forms/schemas';
@@ -234,17 +235,20 @@ export async function loadRequestDraft(token: string | null): Promise<ActionResu
 /** The signed-in person's contact details for the request form (0091): an account made by phone has a verified
  *  number and may have no email yet. r40 (2423): with the discount codes they can use now, for "Use a saved discount". */
 export type SavedCode = { code: string; what: string; days_left: number | null };
-export async function requestAccount(): Promise<ActionResult<{ signedIn: boolean; email: string | null; phone: string | null; discounts: SavedCode[]; canBookNow: boolean }>> {
+export async function requestAccount(): Promise<ActionResult<{ signedIn: boolean; email: string | null; phone: string | null; discounts: SavedCode[]; canBookNow: boolean; profile: RenterProfile | null }>> {
   const user = await (await auth()).currentUser();
-  if (!user) return { ok: true, data: { signedIn: false, email: null, phone: null, discounts: [], canBookNow: false } };
-  const [si, saved, bookNow] = await Promise.all([
+  // nobody signed in: nothing private reaches the browser
+  if (!user) return { ok: true, data: { signedIn: false, email: null, phone: null, discounts: [], canBookNow: false, profile: null } };
+  const [si, profile, saved, bookNow] = await Promise.all([
     rpc('server_my_sign_in', { p_user: user.id }, { role: 'service_role' }).catch(() => null) as Promise<unknown>,
+    // r45 (2860): the renter's own profile fills the request (the licence number only as its last 4)
+    rpc('server_request_profile', { p_user: user.id }, { role: 'service_role' }).catch(() => null) as Promise<unknown>,
     rpc('server_my_discounts' as never, { p_user: user.id } as never, { role: 'service_role' }).catch(() => []) as Promise<unknown>,
     // r40 (2430): may this renter book at once (a verified repeat renter, or Gold)? Then the form offers Book now beside Send request
     rpc('server_instant_book_available' as never, { p_user: user.id } as never, { role: 'service_role' }).catch(() => false) as Promise<unknown>]);
   const c = si as { email: string | null; phone: string | null } | null;
   const { usableDiscounts } = await import('@/features/rewards/discounts');
-  return { ok: true, data: { signedIn: true, email: c?.email ?? (user.email || null), phone: c?.phone ?? user.phone ?? null, discounts: usableDiscounts(saved as never).slice(0, 6), canBookNow: bookNow === true } };
+  return { ok: true, data: { signedIn: true, email: c?.email ?? (user.email || null), phone: c?.phone ?? user.phone ?? null, discounts: usableDiscounts(saved as never).slice(0, 6), canBookNow: bookNow === true, profile: (profile as RenterProfile | null) ?? null } };
 }
 
 // ---------------------------------------------------------------- 2541: the card checker in the request form

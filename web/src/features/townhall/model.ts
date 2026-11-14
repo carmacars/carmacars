@@ -11,7 +11,16 @@ export interface Townhall { admin: boolean; next_at: string | null; minutes: num
   joined_unconfirmed?: boolean; run_minutes?: number; recordings?: Array<{ week_of: string; url: string }>;
   my_stories?: Array<{ id: string; body: string; picked: boolean; week_of: string }>; stories?: Array<{ id: string; name: string; body: string; picked: boolean; week_of: string }> | null;
   social?: Array<{ week_of: string; platform: string; followers: number | null; posts: number | null; views: number | null }> | null;
-  mark?: { meeting_at: string | null; people: Array<{ user_id: string; name: string; present: boolean; locked: boolean }> } | null }
+  mark?: { meeting_at: string | null; people: Array<{ user_id: string; name: string; present: boolean; locked: boolean }> } | null;
+  /** r45 (2863): the next one cancelled; for an Admin the last 8 meetings (held or not) and the next 4 (cancelled or not) */
+  next_cancelled?: boolean; meetings?: { past: PastMeeting[]; upcoming: UpcomingMeeting[] } | null }
+export interface PastMeeting { meeting_at: string; held: boolean; reason: string | null; missed: number; attended: number }
+export interface UpcomingMeeting { meeting_at: string; cancelled: boolean; reason: string | null }
+
+/** r45 (2863): a past meeting in words: "held: 6 there, 1 missed" or "not held (the reason)". */
+export function meetingWords(m: PastMeeting): string {
+  return m.held ? `held: ${m.attended} there, ${m.missed} missed` : `not held${m.reason ? ` (${m.reason})` : ''}: nobody counts as absent`;
+}
 
 /** 1505: the run's clock: each section's start minute (0 for the first), for the presenter */
 export function runClock(slides: Slide[]): number[] {

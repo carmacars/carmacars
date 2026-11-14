@@ -36,13 +36,21 @@ def build():
               blurb='Your job list, a job card, maps and car moves.')
     g.task('Your job list')
     g.steps([
-        f'The menu: {B("My jobs")}, {B("Report a problem")}, {B("My hours")}, {B("Add a rental")}, {B("My sales")}, {B("Referrals")} and {B("Profile")}. {B("Sign out")} is top right.',
+        f'The tabs at the bottom: {B("Today")}, {B("My shifts")}, {B("My pay")} and {B("Training")} ({B("Sales")} too once you opt in to sales). {B("Sign out")} is top right.',
         f'Switch between {B("Today")} and {B("Tomorrow")}. Jobs are in time order.',
         f'The next job is the big card at the top: its time and how long until it, the car and its plate, the place with {B("Open in maps")} and a button to call the renter, and what to put in the car. The rest of the day follows in time order.',
         f'A handover or a return has its own button: {B("Check out (pickup)")} or {B("Check in (return)")}. One tap acknowledges and starts the job and opens its photo checklist. Other jobs: press {B("Open the job")}.',
         'Moving a car that has no job? Use Vehicle moves (see below).',
     ], shot=S('field/01-today-phone', 0, 640, 390, 2110, pins=[(1, 355, 810), (2, 350, 1395), (3, 350, 1520), (4, 350, 1930)]))
     g.tip('Need help on a job? Call CarmaCars at 289-312-5991. The link is at the bottom of My jobs.')
+
+    g.task('Claim your shifts', f'Jobs go to the people on a shift. Open {B("My shifts")}: the shifts you hold, and under {B("Free to claim")} the open ones.')
+    g.steps([
+        f'Press {B("Claim this shift")} on one you can work. First to claim takes it. Pass the academy (Training) first: until then you cannot claim.',
+        'Shifts are published by themselves, up to 14 days ahead: one shift of 10:00 to 17:00 every second day, and a shift of its own for a handover or return no shift covers. Fleet may add or cancel shifts too.',
+        'Set a standing weekly shift and the matching shifts are claimed for you as they are published.',
+        'Hold fewer shifts than the minimum for the coming week and you get a reminder each day until you claim more.',
+    ])
 
     g.task('Open a job')
     g.steps([

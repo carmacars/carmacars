@@ -1,4 +1,5 @@
 'use client';
+import { RenterOnFile } from '@/features/booking/RenterOnFile';
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { playMoment } from '@/features/motion/moment';
 import { PICKUP_PASSED, pickupPassed } from './pickup-passed';
@@ -383,10 +384,11 @@ export function OfferComposer({ base, initialCar = null, initialFrom = null, ini
         <nav className="oc-phases small" aria-label="Steps" data-testid="oc-phases"><a href="#oc-phase-1">1. Car and dates</a> · <a href="#oc-phase-2">2. Price</a> · <a href="#oc-phase-3">3. Review and send</a></nav>
         {phase(1, 'Car and dates')}
         {step(n, 'Who is renting and when', 'Find the renter (or add them), then set when they pick up and return the car.', <>
-          {chosen ? (
+          {chosen ? (<>
             <p data-testid="oc-customer"><b>{chosen.legal_name}</b> <span className="small">{chosen.email} · {chosen.mobile} · {chosen.bookings ? `${chosen.bookings} past rental${chosen.bookings === 1 ? '' : 's'}` : 'no rental yet'}{chosen.card ? ` · card ${chosen.card.brand} ${chosen.card.last4}` : ''}</span>{' '}
               <button className="btn btn--quiet btn--sm" type="button" onClick={() => { setChosen(null); set('renter_id')(null); }}>Change</button></p>
-          ) : !adding ? (<>
+            <RenterOnFile renterId={chosen.id} returnIso={f.return_at} testId="oc-on-file" />
+          </>) : !adding ? (<>
             <div className="field"><label className="label" htmlFor="oc-q">Find the renter</label>
               <input className={`input${tried && needOf('renter') ? ' is-invalid' : ''}`} id="oc-q" type="search" placeholder="Name, phone or email" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" data-testid="oc-q" aria-describedby="oc-q-h" />
               <p className="hint" id="oc-q-h">Type 3 or more letters or digits.</p>{needMsg('renter')}</div>

@@ -4,7 +4,7 @@ import { Card } from '@/features/admin/ui';
 import { door } from '@/server/door';
 import data from '@/features/investor/updates-data.json';
 import './townhall.css';
-import { WEEKDAY, runClock, visitorDays, withReleases, releasesOfWeek, type Release, type Townhall as T } from './model';
+import { WEEKDAY, meetingWords, runClock, visitorDays, withReleases, releasesOfWeek, type Release, type Townhall as T } from './model';
 
 // The weekly townhall deck (1062): one slide a section, the platform updates from the release notes of that week, the
 // notes an Admin types per slide; the next call with its link and the calendar invite. Admin builds it again any time.
@@ -17,7 +17,7 @@ export async function TownhallDeck({ userId, aal, base, week }: { userId: string
   const slides = v.deck ? withReleases(v.deck.slides, releasesOfWeek(data as unknown as Release[], v.deck.week_of)) : [];
   const clock = runClock(slides);
   return (<>
-    <Card title={v.next_at ? `Next call: ${when(v.next_at)}, ${v.minutes} minutes` : 'Weekly townhall'} testId="townhall-next"
+    <Card title={v.next_at ? `Next call: ${when(v.next_at)}, ${v.minutes} minutes${v.next_cancelled ? ' (cancelled)' : ''}` : 'Weekly townhall'} testId="townhall-next"
       aside={v.admin ? <Act action="townhall_build" payload={{ week_of: v.deck?.week_of ?? null }} label="Build again" refresh={refresh} done="Built from the live data." testId="townhall-build" /> : null}>
       <p className="small">{v.call_url ? <a className="btn btn--sm btn--primary" href="/api/townhall-join" target="_blank" rel="noopener noreferrer" data-testid="townhall-join">Join the call</a> : 'The call link is set in Program settings (Townhall call link).'}{' '}
         {v.joined_unconfirmed && !v.checked_in ? <Act ops action="townhall_attend" payload={{ method: 'confirm' }} label="Confirm I am in the call" variant="primary" refresh={refresh} done="Confirmed: you count as there." testId="townhall-confirm" /> : null}{' '}
@@ -50,6 +50,16 @@ export async function TownhallDeck({ userId, aal, base, week }: { userId: string
       {v.admin && v.deck && <Act ops action="townhall_recording" payload={{ deck: v.deck.id }} label={v.deck.recording_url ? 'Change this week\'s recording' : 'Add this week\'s recording'} refresh={refresh} done="Saved: every portal shows it." testId="townhall-recording-set"
         fields={[{ name: 'url', label: 'Recording link (https://)', type: 'text', value: v.deck.recording_url ?? '' }]} />}
     </Card> : null}
+    {v.admin && v.meetings && <Card title="Meetings" testId="townhall-meetings">
+      <p className="small muted">A townhall nobody attended is recorded as not held and counts nobody absent. One that did not happen, or one you cancel ahead, counts nobody absent either, and a cancelled one sends no reminders.</p>
+      {v.meetings.upcoming.length > 0 && <ul className="small" data-testid="townhall-upcoming">{v.meetings.upcoming.map((m) => <li key={m.meeting_at}>{when(m.meeting_at)}: {m.cancelled ? `cancelled${m.reason ? ` (${m.reason})` : ''}` : 'on'}{' '}
+        {m.cancelled ? <Act action="townhall_cancel" payload={{ meeting_at: m.meeting_at, on: false }} label="Put it back on" refresh={refresh} done="Back on: the reminders go as usual." />
+          : <Act action="townhall_cancel" payload={{ meeting_at: m.meeting_at, on: true }} label="Cancel this townhall" refresh={refresh} done="Cancelled: no reminders, and nobody counts as absent." testId="townhall-cancel"
+            fields={[{ name: 'reason', label: 'Why it is cancelled', type: 'text', required: true }]} />}</li>)}</ul>}
+      {v.meetings.past.length > 0 && <ul className="small" data-testid="townhall-past">{v.meetings.past.map((m) => <li key={m.meeting_at}>{when(m.meeting_at)}: {meetingWords(m)}{' '}
+        {m.held && <Act action="townhall_not_held" payload={{ meeting_at: m.meeting_at }} label="This townhall did not happen" refresh={refresh} done="Recorded as not held: its absences are cleared." testId="townhall-not-held"
+          fields={[{ name: 'reason', label: 'What happened (optional)', type: 'text' }]} />}</li>)}</ul>}
+    </Card>}
     {v.admin && v.mark && <Card title="Attendance" testId="townhall-mark">
       <p className="small muted">{v.mark.meeting_at ? `The townhall of ${when(v.mark.meeting_at)}.` : 'No townhall yet.'} Mark anyone who was there without joining through the site, or who was not.</p>
       <ul className="small">{v.mark.people.map((p) => <li key={p.user_id} data-testid={`townhall-mark-${p.user_id}`}>{p.name}: {p.present ? 'there' : 'not there'}{p.locked ? ' (locked: two missed)' : ''}{' '}

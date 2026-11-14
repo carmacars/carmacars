@@ -4,8 +4,18 @@
   "title": "Release 45",
   "date": "2026-11-14",
   "seq": 0,
-  "summary": "Every car's listing photos are made again by Gemini from the original photos, in the CarmaCars showroom with every plate blurred, the missing angles generated, and the front exterior always first.",
+  "summary": "Every car's listing photos are made again by Gemini from the originals, in the CarmaCars showroom with every plate blurred, every angle present and the front exterior first. Booking requests fill themselves from the renter's profile, a changed booking can be put back to an earlier version, field shifts open by themselves, staff agreements can be redone and a townhall that did not happen counts nobody absent.",
   "areas": [
+   {
+    "area": "Staff tools",
+    "items": [
+     "A changed booking can be put back to any earlier version after a preview, without touching a payment",
+     "Offers and rentals entered by staff show the renter's licence, address and drivers already on file",
+     "Field shifts open by themselves ahead, with a shift for every handover and return",
+     "A townhall that did not happen no longer counts anyone absent",
+     "Staff agreements can be redone with the current terms, keeping the signed one on file"
+    ]
+   },
    {
     "area": "Website & search",
     "items": [

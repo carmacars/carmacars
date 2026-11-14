@@ -36,3 +36,26 @@ export function priceChange(a: { total_cents: number } | null, b: { total_cents:
 
 /** The link that opens the review with an old version loaded (the booking page reads ?revert=). */
 export const revertHref = (base: string, version: number) => `${base}?tab=overview&revert=${version}#booking-review`;
+
+// r45 (2861): the versions of a confirmed booking (ops_read booking_versions) and Restore this version
+export interface BookingVersion { no: number; at: string; by: string | null; reason: string | null; kind: 'start' | 'change' | 'restore'; restored: number | null; current: boolean;
+  pickup_at: string; return_at: string; vehicle_id: string; vehicle: string | null; billable_days: number; rental_charge_cents: number; total_cents: number; lines: Record<string, number> | null }
+export interface BookingVersions { booking_number: string; status: string; refusal: string | null; may_restore: boolean; versions: BookingVersion[] }
+export interface RestorePreview { ok: boolean; problem: string | null; changed: boolean; preview: boolean; version: number; message?: string; fees_kept?: boolean;
+  total_before_cents?: number; total_after_cents?: number | null; open_before_cents?: number; open_after_cents?: number | null; unmatched?: string[];
+  before?: { pickup_at: string; return_at: string; vehicle: string | null; billable_days: number; rental_charge_cents: number };
+  after?: { pickup_at: string; return_at: string; vehicle: string | null; billable_days: number; rental_charge_cents: number } | null }
+
+/** A version's label: "Version 1, as confirmed", "Version 4 (current)", "Version 5, restored version 1". */
+export function versionLabel(v: Pick<BookingVersion, 'no' | 'kind' | 'restored' | 'current'>): string {
+  const what = v.kind === 'start' ? ', before the first change' : v.kind === 'restore' && v.restored ? `, version ${v.restored} restored` : '';
+  return `Version ${v.no}${what}${v.current ? ' (current)' : ''}`;
+}
+
+/** What the renter's balance does after a restore, in words: owes more, gets a credit, or no change. */
+export function balanceWords(before: number | null | undefined, after: number | null | undefined, fmt: (c: number) => string): string {
+  if (before === null || before === undefined || after === null || after === undefined) return '';
+  const diff = after - before;
+  if (diff === 0) return 'The balance does not change.';
+  return diff > 0 ? `The renter owes ${fmt(diff)} more (a balance to collect, as with any change).` : `The renter is owed ${fmt(-diff)} (a credit or refund to settle, as with any change). No payment is touched.`;
+}

@@ -125,14 +125,29 @@
   "r45": {
    "date": "2026-11-14",
    "seq": 0,
-   "summary": "Every car's listing photos are made again by Gemini from the original photos, in the CarmaCars showroom with every plate blurred, the missing angles generated, and the front exterior always first.",
+   "summary": "Every car's listing photos are made again by Gemini from the originals, in the CarmaCars showroom with every plate blurred, every angle present and the front exterior first. Booking requests fill themselves from the renter's profile, a changed booking can be put back to an earlier version, field shifts open by themselves, staff agreements can be redone and a townhall that did not happen counts nobody absent.",
    "sections": {
     "admins": [
      "Photo standard on Listings: each car's photos at the standard, angles generated, photos flagged and the last run, with Redo this car now and Redo every car (Fleet has the same card)",
      "The whole fleet is brought to the standard by itself every 5 minutes, newest listed cars first, within about a day; a photo already at the standard is never made again unless asked",
      "New settings: the daily Gemini limit is 2000 calls, with 50 kept for new uploads",
      "Generated angles are marked AI generated on the listing; a real photo of that angle replaces it by itself",
-     "The plate editor blurs the plate; it no longer draws a plate"
+     "The plate editor blurs the plate; it no longer draws a plate",
+     "Send a new agreement redoes a staff agreement already sent or signed with the current terms; a signed one stays on file as superseded",
+     "A To do lists the staff in Canada whose agreement still carries the old terms",
+     "This townhall did not happen and Cancel this townhall on the Townhall page",
+     "The shift template is a Program setting, and shifts open only forward from the latest one already published"
+    ],
+    "renters": [
+     "Signed in, a booking request fills itself from your profile: your name, date of birth, licence class and how we reach you, all editable",
+     "A licence that has expired or an old address on file is flagged for you to update, and drivers you named before are one tap away"
+    ],
+    "staff": [
+     "Picking a renter on Send an offer or Add a rental shows their licence, home address and drivers named before, with anything out of date flagged",
+     "Restore this version puts a confirmed booking back to an earlier version's dates, car, rental charge and fees, after a preview, without touching a payment",
+     "Field shifts are published by themselves, one shift every second day from 10:00 to 17:00, and every handover or return gets a shift to claim",
+     "A townhall that did not happen counts nobody absent, and a cancelled one sends no reminders",
+     "The guides and the academy cover the new flows of Releases 44 and 45"
     ]
    }
   }
