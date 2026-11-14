@@ -37,7 +37,7 @@ comment on column sign_requests.superseded_at is 'r45 (2862): a signed agreement
 -- the terms an agreement was made with: Canadian, or not (null: no terms recorded, as for an uploaded PDF)
 create function app.staff_terms_canadian(p_extra jsonb) returns boolean
 language sql immutable as $$
-  select case when jsonb_typeof(p_extra -> 'values') <> 'object' then null
+  select case when jsonb_typeof(p_extra -> 'values') is distinct from 'object' then null
               when coalesce(nullif(btrim(p_extra #>> '{values,country}'), ''), 'Canada') !~* '^(canada|ca)$' then false
               when coalesce(nullif(btrim(p_extra #>> '{values,currency}'), ''), 'CAD') !~* '^cad$' then false
               when coalesce(p_extra #>> '{values,platform}', '') ~* 'onlinejobs' then false

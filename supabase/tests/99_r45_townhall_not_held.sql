@@ -28,12 +28,13 @@ delete from townhall_meetings;
 insert into townhall_attendance (meeting_at, user_id, method) select m, test.id('thn_cs'), 'checkin' from thn_m;
 select app.job_townhall(now());
 select test.eq('held: the absent one counts', (select not_held || '|' || (test.id('thn_fleet') = any (absent)) || '|' || (test.id('thn_cs') = any (absent)) from townhall_meetings, thn_m where meeting_at = m), 'false|true|false');
-select test.eq('the Admin''s page lists it as held, 1 there, 1 missed', (select (x ->> 'held') || '|' || (x ->> 'attended') || '|' || (x ->> 'missed')
-  from jsonb_array_elements(test.thn('thn_admin', 'ops_read', 'townhall') #> '{meetings,past}') x, thn_m where (x ->> 'meeting_at')::timestamptz = m), 'true|1|1');
+select test.eq('the Admin''s page lists it as held, 1 there, the others missed', (select (x ->> 'held') || '|' || (x ->> 'attended') || '|' || ((x ->> 'missed')::int = (select cardinality(absent) from townhall_meetings t where t.meeting_at = m))
+  from jsonb_array_elements(test.thn('thn_admin', 'ops_read', 'townhall') #> '{meetings,past}') x, thn_m where (x ->> 'meeting_at')::timestamptz = m), 'true|1|true');
 
 -- "This townhall did not happen"
 select test.throws('only an Admin says so', format($$ select test.thn('thn_cs', 'admin_do', 'townhall_not_held', %L) $$, (select jsonb_build_object('meeting_at', m) from thn_m)), null);
-select test.eq('an Admin says it did not happen: its absence cleared', (test.thn('thn_admin', 'admin_do', 'townhall_not_held', (select jsonb_build_object('meeting_at', m, 'reason', 'The call link was down') from thn_m)) ->> 'cleared'), '1');
+create temp table thn_was as select cardinality(absent) n from townhall_meetings, thn_m where meeting_at = m;
+select test.eq('an Admin says it did not happen: its absences cleared', (test.thn('thn_admin', 'admin_do', 'townhall_not_held', (select jsonb_build_object('meeting_at', m, 'reason', 'The call link was down') from thn_m)) ->> 'cleared')::int, (select n from thn_was));
 select test.eq('recorded as not held with the reason', (select not_held || '|' || cardinality(absent) || '|' || not_held_reason from townhall_meetings, thn_m where meeting_at = m), 'true|0|The call link was down');
 select test.ok('no absence alert of it is left unread', not exists (select 1 from notifications n join app_events e on e.id = n.event_id, thn_m
   where n.read_at is null and e.payload ->> 'kind' = 'townhall_absent:absent:' || to_char(m, 'YYYYMMDDHH24MI')));

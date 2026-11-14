@@ -43,7 +43,7 @@ update program_settings set field_slots_auto_from = app.today();
 insert into field_shift_slots (starts_at, ends_at, capacity, created_by)
 select ((app.today() + 5) + time '10:00') at time zone 'America/Toronto', ((app.today() + 5) + time '17:00') at time zone 'America/Toronto', 1, test.id('fsa_fleet');
 select app.field_slots_auto_publish(now());
-select test.eq('the days before a slot already published are never filled in', (select string_agg((app.local_date(starts_at) - app.today())::text, ',' order by starts_at) from field_shift_slots), '5,7,9');
+select test.eq('the days before a slot already published are never filled in', (select string_agg((app.local_date(starts_at) - app.today())::text, ',' order by starts_at) from field_shift_slots where cover_booking_id is null), '5,7,9');
 
 -- a handover at 22:00 no slot covers: a slot of its own; one before field_slots_auto_from: none
 select test.mk_owner('fsa_o'); select test.mk_vehicle('FSA1', 'fsa_o'); select test.mk_renter('fsa_r');
@@ -65,6 +65,5 @@ update program_settings set field_slots_auto = false;
 select test.eq('off: nothing published', (app.field_slots_auto_publish(now()) ->> 'off'), 'true');
 
 -- as the other suites expect it
-update bookings set status = 'cancelled' where id in (test.id('booking:CC-FSA1'), test.id('booking:CC-FSA2'));
 delete from field_shift_slots where auto_source is not null and not exists (select 1 from field_shift_plans p where p.slot_id = field_shift_slots.id);
 update program_settings set field_slot_template = '[{"every": 2, "anchor": "2026-11-23", "start": "10:00", "end": "17:00", "people": 1}]', field_slots_auto_days = 14, field_slots_auto_from = '2026-11-23';

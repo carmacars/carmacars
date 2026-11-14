@@ -3287,6 +3287,10 @@ export type Database = {
           after: Json;
           total_before_cents: number | null;
           total_after_cents: number | null;
+          seq: number;
+          lines_before: Json | null;
+          lines_after: Json | null;
+          restored_version: number | null;
         };
         Insert: {
           id?: string;
@@ -3301,6 +3305,10 @@ export type Database = {
           after: Json;
           total_before_cents?: number | null;
           total_after_cents?: number | null;
+          seq?: number;
+          lines_before?: Json | null;
+          lines_after?: Json | null;
+          restored_version?: number | null;
         };
         Update: {
           id?: string;
@@ -3315,6 +3323,10 @@ export type Database = {
           after?: Json;
           total_before_cents?: number | null;
           total_after_cents?: number | null;
+          seq?: number;
+          lines_before?: Json | null;
+          lines_after?: Json | null;
+          restored_version?: number | null;
         };
         Relationships: [];
       };
@@ -8558,6 +8570,9 @@ export type Database = {
           updated_at: string;
           jobs_alerted_at: string | null;
           unclaimed_alerted_at: string | null;
+          auto_source: string | null;
+          cover_booking_id: string | null;
+          cover_leg: string | null;
         };
         Insert: {
           id?: string;
@@ -8572,6 +8587,9 @@ export type Database = {
           updated_at?: string;
           jobs_alerted_at?: string | null;
           unclaimed_alerted_at?: string | null;
+          auto_source?: string | null;
+          cover_booking_id?: string | null;
+          cover_leg?: string | null;
         };
         Update: {
           id?: string;
@@ -8586,6 +8604,9 @@ export type Database = {
           updated_at?: string;
           jobs_alerted_at?: string | null;
           unclaimed_alerted_at?: string | null;
+          auto_source?: string | null;
+          cover_booking_id?: string | null;
+          cover_leg?: string | null;
         };
         Relationships: [];
       };
@@ -19012,6 +19033,11 @@ export type Database = {
           phone_inbound_forward_number: string;
           phone_inbound_message: string;
           phone_call_own_mobile: boolean;
+          profile_address_max_months: number;
+          field_slots_auto: boolean;
+          field_slot_template: Json;
+          field_slots_auto_days: number;
+          field_slots_auto_from: string;
         };
         Insert: {
           id?: string;
@@ -19874,6 +19900,11 @@ export type Database = {
           phone_inbound_forward_number?: string;
           phone_inbound_message?: string;
           phone_call_own_mobile?: boolean;
+          profile_address_max_months?: number;
+          field_slots_auto?: boolean;
+          field_slot_template?: Json;
+          field_slots_auto_days?: number;
+          field_slots_auto_from?: string;
         };
         Update: {
           id?: string;
@@ -20736,6 +20767,11 @@ export type Database = {
           phone_inbound_forward_number?: string;
           phone_inbound_message?: string;
           phone_call_own_mobile?: boolean;
+          profile_address_max_months?: number;
+          field_slots_auto?: boolean;
+          field_slot_template?: Json;
+          field_slots_auto_days?: number;
+          field_slots_auto_from?: string;
         };
         Relationships: [];
       };
@@ -22427,6 +22463,7 @@ export type Database = {
           instant_book_revoked_at: string | null;
           instant_book_revoked_by: string | null;
           instant_book_revoked_reason: string | null;
+          address_updated_at: string | null;
         };
         Insert: {
           id?: string;
@@ -22456,6 +22493,7 @@ export type Database = {
           instant_book_revoked_at?: string | null;
           instant_book_revoked_by?: string | null;
           instant_book_revoked_reason?: string | null;
+          address_updated_at?: string | null;
         };
         Update: {
           id?: string;
@@ -22485,6 +22523,7 @@ export type Database = {
           instant_book_revoked_at?: string | null;
           instant_book_revoked_by?: string | null;
           instant_book_revoked_reason?: string | null;
+          address_updated_at?: string | null;
         };
         Relationships: [];
       };
@@ -23919,6 +23958,8 @@ export type Database = {
           void_reason: string | null;
           vehicle_id: string | null;
           referral_link_id: string | null;
+          superseded_at: string | null;
+          superseded_by: string | null;
         };
         Insert: {
           id?: string;
@@ -23949,6 +23990,8 @@ export type Database = {
           void_reason?: string | null;
           vehicle_id?: string | null;
           referral_link_id?: string | null;
+          superseded_at?: string | null;
+          superseded_by?: string | null;
         };
         Update: {
           id?: string;
@@ -23979,6 +24022,8 @@ export type Database = {
           void_reason?: string | null;
           vehicle_id?: string | null;
           referral_link_id?: string | null;
+          superseded_at?: string | null;
+          superseded_by?: string | null;
         };
         Relationships: [];
       };
@@ -26646,6 +26691,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      townhall_cancellations: {
+        Row: {
+          meeting_at: string;
+          reason: string;
+          cancelled_by: string | null;
+          cancelled_at: string;
+        };
+        Insert: {
+          meeting_at: string;
+          reason: string;
+          cancelled_by?: string | null;
+          cancelled_at?: string;
+        };
+        Update: {
+          meeting_at?: string;
+          reason?: string;
+          cancelled_by?: string | null;
+          cancelled_at?: string;
+        };
+        Relationships: [];
+      };
       townhall_decks: {
         Row: {
           id: string;
@@ -26684,16 +26750,28 @@ export type Database = {
           meeting_at: string;
           absent: string[];
           closed_at: string;
+          not_held: boolean;
+          not_held_reason: string | null;
+          not_held_by: string | null;
+          not_held_at: string | null;
         };
         Insert: {
           meeting_at: string;
           absent?: string[];
           closed_at?: string;
+          not_held?: boolean;
+          not_held_reason?: string | null;
+          not_held_by?: string | null;
+          not_held_at?: string | null;
         };
         Update: {
           meeting_at?: string;
           absent?: string[];
           closed_at?: string;
+          not_held?: boolean;
+          not_held_reason?: string | null;
+          not_held_by?: string | null;
+          not_held_at?: string | null;
         };
         Relationships: [];
       };
@@ -33220,6 +33298,7 @@ export type Database = {
       server_request_account_deletion: { Args: { p_user: string; p_reason?: string }; Returns: Json };
       server_request_failures: { Args: { p_by: string }; Returns: Json };
       server_request_notify_channel: { Args: { p_booking_number: string; p_channel: string; p_user?: string }; Returns: Json };
+      server_request_profile: { Args: { p_user: string }; Returns: Json };
       server_resume_form_draft: { Args: { p_link_token: string; p_user?: string; p_device_label?: string }; Returns: Json };
       server_return_claim_read: { Args: { p_token: string }; Returns: Json };
       server_return_claim_submit: { Args: { p_token: string; p: Json; p_user?: string }; Returns: Json };

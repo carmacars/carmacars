@@ -16,7 +16,8 @@ update program_settings set staff_may_edit_bookings = true, staff_may_edit_fees 
 
 select test.mk_booking('CC-RVZ1', 'RVZA', 'rvz_r', to_char(now() at time zone 'America/Toronto' + interval '20 days', 'YYYY-MM-DD 10:00'),
   to_char(now() at time zone 'America/Toronto' + interval '27 days', 'YYYY-MM-DD 10:00'), 'confirmed', 56000);
-select test.mk_line('CC-RVZ1', 'delivery', 5000, false);
+-- a fee set for this booking (a young driver fee, as typed when the rental was entered)
+select app.booking_line_overrides_store(test.id('booking:CC-RVZ1'), test.id('rvz_admin'), '{"young_driver_21_25": 5000}'::jsonb, 'Set when the rental was entered');
 select app.sync_booking_price(test.id('booking:CC-RVZ1'));
 create temp table rvz0 as select b.pickup_at, b.return_at, b.rental_charge_cents, b.total_due_at_booking_cents total, app.booking_fee_lines(b.id) lines,
   (select count(*) from payments p where p.booking_id = b.id) pays, (select coalesce(sum(amount_cents), 0) from payments p where p.booking_id = b.id) paid
@@ -36,15 +37,15 @@ select test.eq('no change yet: no versions', jsonb_array_length(pg_temp.vers() -
 select pg_temp.edit(4);
 select pg_temp.edit(3);
 select pg_temp.edit(7);
-select app.door(test.id('rvz_admin'), 'aal2', 'ops_do', 'booking_fees_change', jsonb_build_object('booking', 'CC-RVZ1', 'lines', jsonb_build_object('delivery', 9000), 'reason', 'Farther away'));
+select app.door(test.id('rvz_admin'), 'aal2', 'ops_do', 'booking_fees_change', jsonb_build_object('booking', 'CC-RVZ1', 'lines', jsonb_build_object('young_driver_21_25', 9000), 'reason', 'Driver is 24'));
 
 select test.eq('version 1 (before the first change) and one after each change, the fee change too', jsonb_array_length(pg_temp.vers() -> 'versions'), 5);
 select test.eq('version 1 is the booking as confirmed: 7 days, its rental charge, its fee lines',
-  (select (v ->> 'billable_days') || '|' || (v ->> 'rental_charge_cents') || '|' || (v -> 'lines' ->> 'delivery') from jsonb_array_elements(pg_temp.vers() -> 'versions') v where (v ->> 'no')::int = 1),
-  (select '7|' || rental_charge_cents || '|' || (lines ->> 'delivery') from rvz0));
+  (select (v ->> 'billable_days') || '|' || (v ->> 'rental_charge_cents') || '|' || (v -> 'lines' ->> 'young_driver_21_25') from jsonb_array_elements(pg_temp.vers() -> 'versions') v where (v ->> 'no')::int = 1),
+  (select '7|' || rental_charge_cents || '|' || (lines ->> 'young_driver_21_25') from rvz0));
 select test.ok('the newest is the current one, the others are not', (select bool_and((v ->> 'current')::boolean = ((v ->> 'no')::int = 5)) from jsonb_array_elements(pg_temp.vers() -> 'versions') v));
-select test.eq('each change says who and why', (select v ->> 'reason' from jsonb_array_elements(pg_temp.vers() -> 'versions') v where (v ->> 'no')::int = 5), 'Farther away');
-select test.ok('the live case: back at 7 days but priced differently from the first 7 days, with the dearer delivery',
+select test.eq('each change says who and why', (select v ->> 'reason' from jsonb_array_elements(pg_temp.vers() -> 'versions') v where (v ->> 'no')::int = 5), 'Driver is 24');
+select test.ok('the live case: back at 7 days but priced differently from the first 7 days, with the dearer fee',
   (select total_due_at_booking_cents from bookings where id = test.id('booking:CC-RVZ1')) <> (select total from rvz0));
 
 -- the preview: the difference, nothing changed
@@ -52,7 +53,7 @@ create temp table rvz_pre as select pg_temp.restore(1, true) j;
 select test.ok('the preview works out the version''s total', (select (j ->> 'ok')::boolean and (j ->> 'total_after_cents')::bigint = (select total from rvz0) from rvz_pre));
 select test.ok('the preview shows the balance before and after', (select j ? 'open_before_cents' and j ? 'open_after_cents' from rvz_pre));
 select test.ok('the preview changed nothing', (select count(*) from booking_staff_edits where booking_id = test.id('booking:CC-RVZ1')) = 4
-  and (select app.booking_fee_lines(id) ->> 'delivery' from bookings where id = test.id('booking:CC-RVZ1')) = '9000');
+  and (select app.booking_fee_lines(id) ->> 'young_driver_21_25' from bookings where id = test.id('booking:CC-RVZ1')) = '9000');
 
 -- the checks of an edit
 select test.throws('a reason is needed', $$ select pg_temp.restore(1, false, 'rvz_admin', '') $$, 'reason');
@@ -62,8 +63,8 @@ select test.throws('a version not in the history', $$ select pg_temp.restore(9, 
 -- restored
 select pg_temp.restore(1, false, 'rvz_sales');
 select test.eq('the dates, the rental charge and the fee lines are the version''s exactly',
-  (select pickup_at = r.pickup_at and return_at = r.return_at and rental_charge_cents = r.rental_charge_cents and app.booking_fee_lines(id) = r.lines
-     from bookings, rvz0 r where id = test.id('booking:CC-RVZ1'))::text, 'true');
+  (select b.pickup_at = r.pickup_at and b.return_at = r.return_at and b.rental_charge_cents = r.rental_charge_cents and app.booking_fee_lines(b.id) = r.lines
+     from bookings b, rvz0 r where b.id = test.id('booking:CC-RVZ1'))::text, 'true');
 select test.eq('so is the total', (select total_due_at_booking_cents from bookings where id = test.id('booking:CC-RVZ1')), (select total from rvz0));
 select test.eq('it is one more change, by Sales, with the reason and the version', (select e.restored_version || '|' || e.reason from booking_staff_edits e
    where e.booking_id = test.id('booking:CC-RVZ1') order by e.seq desc limit 1), '1|Restored version 1: Back as agreed');
