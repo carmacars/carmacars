@@ -49,7 +49,11 @@ test('an abandoned request leaves a lead and an account; the continue link signs
 
   const cap = await sql`select c.id, c.user_id, c.lead_id, c.draft_id, c.state, l.consent_marketing, l.source from contact_captures c join leads l on l.id = c.lead_id where c.email = ${email}`;
   expect(cap.length).toBe(1);
-  expect(cap[0]!.state).toBe('new');
+  // the first save opens the account ('new'); the save that carries the draft may follow from this same browser, and the row
+  // then reads 'this_device' (its own unverified account): either way the account was opened brand new by this capture
+  expect(['new', 'this_device']).toContain(cap[0]!.state);
+  const [acct] = await sql`select brand_new, opened_by_capture from capture_accounts where user_id = ${cap[0]!.user_id}`;
+  expect([acct?.brand_new, acct?.opened_by_capture]).toEqual([true, true]);
   expect(cap[0]!.consent_marketing).toBe(false);
   expect(cap[0]!.source).toBe('unfinished_form');
   const userId = cap[0]!.user_id as string;

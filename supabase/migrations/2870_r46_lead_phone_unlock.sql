@@ -62,6 +62,8 @@ create table if not exists lead_phone_unlocks (
 );
 create unique index if not exists lead_phone_unlocks_one_on on lead_phone_unlocks (lead_id, user_id) where hidden_at is null;
 create index if not exists lead_phone_unlocks_user_on on lead_phone_unlocks (user_id, number) where hidden_at is null;
+create index if not exists lead_phone_unlocks_unlocked_by_idx on lead_phone_unlocks (unlocked_by) where unlocked_by is not null;
+create index if not exists lead_phone_unlocks_hidden_by_idx on lead_phone_unlocks (hidden_by) where hidden_by is not null;
 comment on table lead_phone_unlocks is 'r46 (2870): an Admin showed a lead''s phone to one salesperson (numbers are masked for Sales, 0970). On while hidden_at is null and the lead''s phone is still that number; hidden by an Admin or by itself when the lead goes to someone else. Never read by a browser.';
 alter table lead_phone_unlocks enable row level security;
 create policy admin_all on lead_phone_unlocks for select to authenticated using (app.is_admin());
