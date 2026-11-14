@@ -196,6 +196,22 @@
      "Showroom background plates in Program settings: upload a real showroom photo to replace the background of every outside view"
     ]
    }
+  },
+  "r48": {
+   "date": "2026-11-14",
+   "seq": 0,
+   "summary": "The get-ready tracker and Approve all agree, renters see example pictures of what to send, and pay links ask for what is owed.",
+   "sections": {
+    "renters": [
+     "Your booking's checklist says exactly which insurance page is still missing, and its button opens that upload",
+     "Example pictures of a pink slip and an OPCF 27 endorsement page, with the parts that must show circled, and how to take the photo",
+     "A pay link asks only for what you owe; one you no longer need is cancelled by itself and never charged"
+    ],
+    "admins": [
+     "Approve all (n) counts only what it can approve; a proof missing a page says Waiting for the renter with the page named",
+     "A pay link for a booking defaults to and is capped at what is owed; a booking paid in full gets no balance link"
+    ]
+   }
   }
  }
 }

@@ -44,7 +44,8 @@ export default async function Verify({ params }: { params: Promise<{ number: str
     <>
       <PageHead kicker={<><Link prefetch={false} className="link" href="/staff">Queue</Link> · {bookingOpen ? <Link prefetch={false} className="link" href={`/staff/bookings/${encodeURIComponent(n)}`}>{n}</Link> : n}</>} title={sales ? 'Licence review' : 'Identity and coverage'} />
       <p className="small muted">Identity {v.readiness.all_drivers_verified ? 'verified' : 'not verified yet'}{sales ? '' : ` · coverage ${v.readiness.coverage_confirmed ? 'confirmed' : 'not confirmed yet'}`} · return {d(v.return_at)}</p>
-      {(v.uploads.some((u) => u.status === 'submitted') || (!sales && ((cp && cp.status === 'submitted') || (cov?.option === 3 && !cov.confirmed && cov.protection_plan_line)))) && (
+      {/* r48 (2920): the proof and the plan only when Approve all can approve them (app.coverage_state) */}
+      {(v.uploads.some((u) => u.status === 'submitted') || (!sales && (cov?.proof_waiting || cov?.plan_waiting))) && (
         <Card title="Everything waiting, in one step" testId="va-approve-all">
           <p className="small">Look at each document below and each flagged line of the licence reader: no alteration, the selfie matches{sales ? '' : ', the coverage is active to the return date'}. Reject the wrong one first, with its reason.</p>
           <Act ops action="doc_review_approve_all" payload={{ booking: n }} label="Approve all" variant="primary" refresh={[`/staff/verify/${n}`]} testId="va-approve-all-go" done="Approved." />
@@ -87,13 +88,14 @@ export default async function Verify({ params }: { params: Promise<{ number: str
         {cp && cp.pages.length > 0 && <div className="ad-cols ad-cols--3">{cp.pages.map((pg, i) => (
           <div key={pg.id}><p className="pt-kicker">Page {i + 1}{cov?.page_kinds?.[pg.id] ? `: ${PAGE_KIND[cov.page_kinds[pg.id]!]}` : ''} <Badge s={pg.status === 'submitted' ? 'needs_review' : pg.status} /></p>
             {pageLinks.get(pg.id) ? <a className="link" href={pageLinks.get(pg.id)!} target="_blank" rel="noreferrer">{pg.mime_type === 'application/pdf' ? 'Open the PDF' : 'Open the photo'} (link valid one minute)</a> : null}</div>))}</div>}
-        {cov && cp && cp.status === 'submitted' && (cov.option === 1 || cov.option === 2) && (
+        {cov && (cov.needs?.length ?? 0) > 0 && <p className="alert alert--warn" role="note" data-testid="va-coverage-needs"><span>Waiting for the renter: {cov.needs!.map((x) => x.label.replace(/^your /, 'their ')).join('; ')}. Nothing to approve until it comes; the renter&apos;s checklist asks for exactly this.</span></p>}
+        {cov && cp && cp.status === 'submitted' && (cov.option === 1 || cov.option === 2) && cov.proof_waiting !== false && (
           <div className="ad-actions">
             <Act action="coverage_review" payload={{ proof: cp.id, approve: true }} label="Approve the coverage" variant="primary" refresh={[`/staff/verify/${n}`]} testId="coverage-approve" />
             <Act action="coverage_review" payload={{ proof: cp.id, approve: false }} label="Reject" variant="danger" refresh={[`/staff/verify/${n}`]} testId="coverage-reject"
               fields={[{ name: 'reason', label: 'Reason the renter sees', type: 'text', required: true }]} />
           </div>)}
-        {cov && cov.option === 3 && !cov.confirmed && cov.protection_plan_line && (
+        {cov && cov.option === 3 && !cov.confirmed && cov.protection_plan_line && cov.plan_waiting !== false && (
           <Act action="protection_plan_confirm" payload={{ booking: n }} label="Confirm the Protection Plan is active" variant="primary" refresh={[`/staff/verify/${n}`]} testId="plan-confirm"
             fields={[{ name: 'ref', label: 'Activation reference', type: 'text' }]} />)}
         {!cp && cov?.option !== 3 && <p className="small muted">No proof of coverage yet.</p>}

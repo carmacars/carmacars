@@ -28,7 +28,7 @@ select test.eq('confirmed, nothing sent: the details, the signature and payment 
   test.hv_items('CC-HV1'),
   'dob=done address=missing signature=done payment=done licence=missing selfie=missing licence=missing selfie=missing accept=missing coverage=missing deposit=review');
 select test.eq('an item has its one action', (select i -> 'action' from jsonb_array_elements(app.renter_still_needed(test.id('booking:CC-HV1')) -> 'items') i where i ->> 'key' = 'coverage'),
-  '{"label": "Send it", "path": "verify"}'::jsonb);
+  '{"label": "Confirm your card", "path": "verify#pt-cov"}'::jsonb);  -- r48 (2920): the step says what is missing and links to it
 select test.eq('a done item has none', (select i -> 'action' from jsonb_array_elements(app.renter_still_needed(test.id('booking:CC-HV1')) -> 'items') i where i ->> 'key' = 'dob'), 'null'::jsonb);
 select test.eq('the count: done of total, not complete', (select (s ->> 'done') || '/' || (s ->> 'total') || '/' || (s ->> 'complete') from app.renter_still_needed(test.id('booking:CC-HV1')) s), '3/11/false');
 

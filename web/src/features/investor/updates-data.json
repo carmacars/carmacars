@@ -80,6 +80,29 @@
   ]
  },
  {
+  "release": "r48",
+  "title": "Release 48",
+  "date": "2026-11-14",
+  "seq": 0,
+  "summary": "The get-ready tracker and Approve all agree, renters see example pictures of what to send, and pay links ask for what is owed.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "A renter's checklist says exactly which page of their own policy is still missing, and its button opens that upload, with example pictures of a pink slip and an OPCF 27 page",
+     "A pay link asks only for what is owed: after a change, the difference; a link no longer needed is cancelled by itself and never charged"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "**Approve all (n)** counts only what it can approve, and the get-ready line says which page the renter still has to send",
+     "Open pay links that asked for more than is owed were cancelled at release; Claude's connector can cancel one pay link (an Admin, previewed first, no money moves)"
+    ]
+   }
+  ]
+ },
+ {
   "release": "r44",
   "title": "Release 44",
   "date": "2026-11-13",

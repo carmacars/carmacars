@@ -8,6 +8,7 @@ import { CardPicker } from '@/features/coverage/CardPicker';
 import { TypedInput } from '@/components/DateInput';
 import { money } from '@/lib/format';
 import { when } from '@/features/agreement/model';
+import { CoverageExample, CoverageExamples } from './CoverageExamples';
 
 // Coverage for damage to the car (migration 0071), on the booking's verification page:
 //   option 1, OPCF 27: insurer, policy number, expiry after the return date, then the pink slip and the OPCF 27
@@ -22,12 +23,16 @@ const OPCF_PAGES: Array<[string, string, string]> = [
 // r40: the same words on the server and in the browser (React error 418)
 const fmtDay = (d: string) => when(`${d.slice(0, 10)}T12:00:00Z`, false);
 
-export function CoverageSection({ number, c, cards = [] }: { number: string; c: RenterCoverage; cards?: CardRow[] }) {
+/** need (r48): the page the renter's checklist sent them to (?need=pink_slip): that upload is highlighted, its example open. */
+export function CoverageSection({ number, c, cards = [], need }: { number: string; c: RenterCoverage; cards?: CardRow[]; need?: string | null }) {
   const [d, setD] = useState<Record<string, string>>({ insurer_name: c.proof?.insurer_name ?? '', policy_number: c.proof?.policy_number ?? '', policy_expiry: c.proof?.policy_expiry ?? '' });
   const p = c.proof && c.proof.option === c.option ? c.proof : null;
   const pages = p?.pages ?? [];
   const missing = c.opcf27_missing ?? [];
   const sent = (k: string) => pages.some((x) => x.status !== 'rejected' && c.page_kinds?.[x.id] === k);
+  // r48 (2920): what is still to send, the same list as the checklist and the staff count
+  const needs = c.needs ?? [];
+  const focus = need === 'pink_slip' || need === 'endorsement' ? need : null;
   const field = (k: string, label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
     <div className="field"><label className="label" htmlFor={`pt-cov-${k}`}>{label}</label>
       <TypedInput className="input" id={`pt-cov-${k}`} value={d[k] ?? ''} onChange={(e) => setD({ ...d, [k]: e.target.value })} required {...props} /></div>);
@@ -39,7 +44,7 @@ export function CoverageSection({ number, c, cards = [] }: { number: string; c: 
       {c.last_switch && (
         <p className="small" data-testid="coverage-switched">On {fmtDay(c.last_switch.at.slice(0, 10))} our team changed your coverage from {c.last_switch.from_label} to {c.last_switch.to_label}. Your total went from {money(c.last_switch.total_before_cents, { cents: true })} to {money(c.last_switch.total_after_cents, { cents: true })}.{c.last_switch.note ? ` ${c.last_switch.note}` : ''}</p>)}
       {!c.confirmed && p?.status === 'rejected' && p.rejection_reason && (
-        <p className="alert alert--error" role="alert" data-testid="coverage-rejected"><span className="alert__title">We could not accept it</span><span>{p.rejection_reason}</span></p>)}
+        <p className="alert alert--error" role="alert" data-testid="coverage-rejected"><span className="alert__title">We could not accept it</span><span>{p.rejection_reason}{c.option === 1 ? ' Look at the examples below: send the pink slip and the OPCF 27 page again, each one clear and complete.' : ''}</span></p>)}
 
       {c.option === 1 && !c.confirmed && (
         <div className="stack">
@@ -49,12 +54,16 @@ export function CoverageSection({ number, c, cards = [] }: { number: string; c: 
           <div className="field-row">{field('policy_number', 'Policy number', { maxLength: 60 })}{field('policy_expiry', 'Policy expiry', { type: 'date', min: c.min_policy_expiry })}</div>
           {d.policy_expiry && d.policy_expiry < c.min_policy_expiry && <p className="error" role="alert">The policy must still be active after your return date.</p>}
           {pages.length > 0 && <p className="small" data-testid="coverage-pages">{pages.length} {pages.length === 1 ? 'page' : 'pages'} sent{p?.status === 'submitted' ? ', in review' : ''}.</p>}
-          {missing.length > 0 && <p className="alert alert--warn" role="note" data-testid="coverage-opcf-missing">
-            <span>Still needed: {missing.join(' and ')}.{c.opcf27_before_payment !== false && c.booking_status === 'pending_payment' ? ' Your booking is paid and confirmed once both are sent.' : ''}</span></p>}
+          {(needs.length > 0 || missing.length > 0) && <p className="alert alert--warn" role="note" data-testid="coverage-opcf-missing">
+            <span>Still needed: {needs.length ? needs.map((n) => n.label).join(' and ') : missing.join(' and ')}.{c.opcf27_before_payment !== false && c.booking_status === 'pending_payment' ? ' Your booking is paid and confirmed once both are sent.' : ''}</span></p>}
+          <CoverageExamples open={!!focus || p?.status === 'rejected'} refused={p?.status === 'rejected'} />
+          {pages.length >= c.max_pages && needs.some((n) => n.page_kind) && <p className="alert alert--warn" role="note" data-testid="coverage-pages-full"><span>You sent the most pages one proof can have. Put the pages in one PDF and message us, and we add it for you.</span></p>}
           {pages.length < c.max_pages && (details1Ok
             ? <div className="pt-uploads">{OPCF_PAGES.map(([k, title, hint]) => (
-                <UploadCard key={k} number={number} kind="coverage_proof" driverId={null} details={{ ...d, coverage_option: '1', page_kind: k }}
-                  title={sent(k) ? `${title}: sent (add another page)` : title} hint={hint} />))}</div>
+                <UploadCard key={k} number={number} kind="coverage_proof" driverId={null} details={{ ...d, coverage_option: '1', page_kind: k }} anchor={`cov-${k}`} focus={focus === k}
+                  title={sent(k) ? `${title}: sent (add another page)` : needs.some((n) => n.page_kind === k) ? `${title}: still needed` : title} hint={hint}>
+                  <details className="cx-one" open={focus === k} data-testid={`example-open-${k}`}><summary className="small">See an example</summary><CoverageExample kind={k as 'pink_slip' | 'endorsement'} /></details>
+                </UploadCard>))}</div>
             : <p className="small muted">Enter the insurer, the policy number and the expiry to send the pink slip and the endorsement page.</p>)}
         </div>)}
 

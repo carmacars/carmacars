@@ -15,8 +15,10 @@ export function BalanceActions({ booking, open, rental, fees, card, reach, why }
   if (open <= 0) return <p className="small muted" data-testid="bal-none">Nothing is open on this booking.</p>;
   const reason = why ? `the new balance of your booking (${why})` : 'the balance of your booking';
   const send = (channel: 'email' | 'text') => run(async () => {
-    const r = await startCardRequest({ booking, kind: 'charge', covers: 'balance', amount_cents: open, reason, channel });
-    setMsg(r.ok ? { ok: !!r.data.sent?.ok || !r.data.sent, text: r.data.sent?.ok === false ? `Not sent: ${r.data.sent.reason}` : `The renter has a pay link for ${money(open, { cents: true })} by ${channel === 'email' ? 'email' : 'text'}.` } : { ok: false, text: r.message });
+    // r48 (2921): no amount from the screen: the database asks for exactly what is owed when the link is made (a payment
+    // that landed since this screen was drawn is counted)
+    const r = await startCardRequest({ booking, kind: 'charge', covers: 'balance', amount_cents: null, reason, channel });
+    setMsg(r.ok ? { ok: !!r.data.sent?.ok || !r.data.sent, text: r.data.sent?.ok === false ? `Not sent: ${r.data.sent.reason}` : `The renter has a pay link for ${money(r.data.amount_cents, { cents: true })} by ${channel === 'email' ? 'email' : 'text'}.` } : { ok: false, text: r.message });
     router.refresh();
   });
   const charge = () => run(async () => {

@@ -34,3 +34,10 @@ test('r38: What\'s left: each line jumps to its tab and section; the next step i
   const page = readFileSync(new URL('./BookingPage.tsx', import.meta.url), 'utf8');
   for (const id of new Set(Object.values(READY_TARGET).map((t) => t.anchor))) assert.ok(page.includes(`id="${id}"`), id);
 });
+
+test('r48: the coverage line names what the renter still has to send, or that it waits for review', () => {
+  const line = (r: Record<string, unknown>) => readinessLines({ status: 'confirmed', dueCents: 0, paidCents: 0, insurerBilled: false, readiness: { coverage_confirmed: false, ...r } }).find((l) => l.key === 'coverage')!;
+  assert.match(line({ coverage_needs: ['your pink slip (the insurance card for your own car)'] }).hint, /^Waiting for the renter to send their pink slip.*Nothing to approve yet/);
+  assert.match(line({ coverage_needs: [], coverage_waiting: true }).hint, /Approve all on Documents/);
+  assert.match(line({}).hint, /Review the proof of coverage/);
+});

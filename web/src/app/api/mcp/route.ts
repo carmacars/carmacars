@@ -98,6 +98,8 @@ export async function POST(req: Request) {
       }
       // r47 (2896): Stripe, read here with the server's key after the database checked the key, the scope and the preview
       if (r.ok && (run?.run === 'stripe_booking' || run?.run === 'stripe_account' || run?.run === 'stripe_record_preview' || run?.run === 'stripe_record_paid')) r = await stripeTool(r.result as Record<string, unknown>);
+      // r48 (2923): the pay link is cancelled in the database; its PaymentIntent is cancelled at Stripe here (never captured)
+      if (r.ok && (r.result as { run?: string } | undefined)?.run === 'pay_link_cancel') r = await payLinkCancel(r.result as Record<string, unknown>);
       // a bug report's pictures (2340): private files, given as links that expire in ten minutes
       if (r.ok && name === 'bug_report_get') r = { ...r, result: await signedShots(r.result) };
       const out = r.ok ? withLinks(r.result) : { error: r.error };
@@ -178,6 +180,21 @@ function withLinks(v: unknown): unknown {
     return o;
   };
   return fix(v);
+}
+
+/** r48 (2923): cancel_pay_link, confirmed: the link is already cancelled in the database; the PaymentIntent is cancelled at
+ *  Stripe (an intent already canceled is fine). Nothing is captured or refunded. */
+async function payLinkCancel(res: Record<string, unknown>): Promise<{ ok: boolean; status?: number; result?: unknown; error?: string }> {
+  const { run: _run, ...rest } = res;
+  void _run;
+  const pi = String(res.payment_intent ?? '');
+  let stripe: string;
+  try {
+    const p = await payments();
+    const i = await p.retrieveIntent(pi);
+    stripe = i.status === 'canceled' ? 'already canceled' : i.status === 'succeeded' ? 'succeeded at Stripe: not cancelled, check stripe_booking' : (await p.cancelIntent(pi, `void:${pi}`)).status;
+  } catch (e) { stripe = `not cancelled at Stripe (${e instanceof Error ? e.message.slice(0, 120) : 'error'}): the link is cancelled, so it cannot be paid`; }
+  return { ok: true, result: { ...rest, stripe } };
 }
 
 /** r47 (2896): the Stripe tools. Reads only GET (stripe-inspect.ts); stripe_record_paid records an intent Stripe shows

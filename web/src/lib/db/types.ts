@@ -33334,6 +33334,8 @@ export type Database = {
       server_payreq_settle_pre0260: { Args: { p_id: string; p_intent: Json }; Returns: Json };
       server_payreq_settle_pre0261: { Args: { p_id: string; p_intent: Json }; Returns: Json };
       server_payreq_settle_pre0482: { Args: { p_id: string; p_intent: Json }; Returns: Json };
+      server_payreq_still_owed: { Args: { p_id: string }; Returns: Json };
+      server_payreq_void_overpaying: { Args: { p_id: string }; Returns: undefined };
       server_pdf_facts: { Args: { p_kind: string; p_key: string; p_user?: string }; Returns: Json };
       server_pdf_job_done: { Args: { p_job: string }; Returns: undefined };
       server_pdf_job_fail: { Args: { p_job: string; p_error: string }; Returns: undefined };

@@ -1,0 +1,14 @@
+/* r48: the pink slip and OPCF 27 examples beside the coverage uploads (CoverageExamples.tsx) */
+.cx-all { border: 1px solid var(--grey-200); background: var(--grey-50); padding: var(--s-3); }
+.cx-all > summary { cursor: pointer; }
+.cx-grid { display: grid; gap: var(--s-4); margin-top: var(--s-3); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 720px) { .cx-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.cx { margin: 0; display: grid; gap: var(--s-2); min-width: 0; }
+.cx-img { display: block; width: 100%; height: auto; max-width: 440px; }
+.cx__parts { margin: var(--s-1) 0 0; padding-left: 1.25rem; }
+.cx-how { margin-top: var(--s-3); }
+.cx-how ol, .cx-how ul { margin: var(--s-1) 0 0; padding-left: 1.25rem; }
+.cx-how__t { margin: 0; }
+.pt-up.is-focus { border-color: var(--red-600); box-shadow: 0 0 0 2px var(--red-100); }
+.pt-up { scroll-margin-top: 96px; }
+.cx-one > summary { cursor: pointer; }
