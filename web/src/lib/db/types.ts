@@ -16549,6 +16549,7 @@ export type Database = {
           markup_bps: number | null;
           payout_basis: string;
           discount_bps: number | null;
+          site_priority: string;
         };
         Insert: {
           id?: string;
@@ -16583,6 +16584,7 @@ export type Database = {
           markup_bps?: number | null;
           payout_basis?: string;
           discount_bps?: number | null;
+          site_priority?: string;
         };
         Update: {
           id?: string;
@@ -16617,6 +16619,7 @@ export type Database = {
           markup_bps?: number | null;
           payout_basis?: string;
           discount_bps?: number | null;
+          site_priority?: string;
         };
         Relationships: [];
       };
@@ -19080,6 +19083,7 @@ export type Database = {
           field_slot_template: Json;
           field_slots_auto_days: number;
           field_slots_auto_from: string;
+          fleet_low_occupancy_first: boolean;
         };
         Insert: {
           id?: string;
@@ -19950,6 +19954,7 @@ export type Database = {
           field_slot_template?: Json;
           field_slots_auto_days?: number;
           field_slots_auto_from?: string;
+          fleet_low_occupancy_first?: boolean;
         };
         Update: {
           id?: string;
@@ -20820,6 +20825,7 @@ export type Database = {
           field_slot_template?: Json;
           field_slots_auto_days?: number;
           field_slots_auto_from?: string;
+          fleet_low_occupancy_first?: boolean;
         };
         Relationships: [];
       };
