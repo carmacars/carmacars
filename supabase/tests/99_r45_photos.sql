@@ -100,10 +100,10 @@ select test.ok('refused once: queued again, the try counted', (select r45 ->> 's
   and (test.rq45p_job((select rear from rq45p_ap))).status = 'queued');
 select test.rq45p_answer((select rear from rq45p_ap), test.rq45p_refused('the check refused it: warped'));
 select test.rq45p_answer((select rear from rq45p_ap), test.rq45p_refused('the check refused it: text_elsewhere'));
-select test.ok('refused three times: flagged and off the site, no job left',
-  (select r45 ->> 'state' = 'flagged' and (r45 ->> 'tries')::int = 3 and not is_public and quality_flags ? 'r45_flagged' from vehicle_photos where id = (select rear from rq45p_ap))
+select test.ok('refused three times: flagged, the real photo stays on the site as it was (2890), no job left',
+  (select r45 ->> 'state' = 'flagged' and (r45 ->> 'tries')::int = 3 and is_public and quality_flags ? 'r45_flagged' from vehicle_photos where id = (select rear from rq45p_ap))
   and not exists (select 1 from listing_jobs where vehicle_photo_id = (select rear from rq45p_ap) and kind = 'photo_r45' and status = 'queued'));
-select test.ok('a flagged real angle counts as missing (a view is generated for it)', exists (select 1 from app.photo_r45_missing(test.id('vehicle:rq45p_a')) m where m = 'rear'));
+select test.ok('a flagged real angle still on the site is not missing (no second view of it, 2890)', not exists (select 1 from app.photo_r45_missing(test.id('vehicle:rq45p_a')) m where m = 'rear'));
 
 -- Gemini's daily limit: waits for tomorrow, no try counted
 select test.rq45p_answer((select dash from rq45p_ap), jsonb_build_object('ok', true, 'provider', 'gemini', 'output', jsonb_build_object('r45', jsonb_build_object('pass', false, 'wait', 'limit', 'why', 'limit'))));
@@ -127,6 +127,12 @@ select test.eq('the site shows no photo rather than an inside one first', jsonb_
 select test.ok('the cards and feeds get no inside cover', (app.cover_photo(test.id('vehicle:rq45p_b'))).id is null);
 select test.ok('the car with photos keeps them, the front three-quarter first', (select app.public_listing_photos(test.id('vehicle:rq45p_a')) -> 0 ->> 'shot') = 'front_left'
   and (select (app.cover_photo(test.id('vehicle:rq45p_a'))).shot_type) = 'front_left');
+-- 2890: an inside photo placed first by hand does not hide the car's outside photos further down
+update vehicle_photos set sort_order = -50 where vehicle_id = test.id('vehicle:rq45p_a') and shot_type = 'dashboard' and replaced_at is null;
+select test.ok('an inside photo sorted first: the cover and the gallery still lead with the front three-quarter (2890)',
+  (app.cover_photo(test.id('vehicle:rq45p_a'))).shot_type = 'front_left' and app.public_listing_photos(test.id('vehicle:rq45p_a')) -> 0 ->> 'shot' = 'front_left'
+  and app.vehicle_primary_state(test.id('vehicle:rq45p_a')) = 'exterior');
+update vehicle_photos set sort_order = 0 where vehicle_id = test.id('vehicle:rq45p_a') and shot_type = 'dashboard' and replaced_at is null and sort_order = -50;
 select test.throws('a listing is never published with an inside photo first',
   format('insert into vehicle_listings (vehicle_id, status, slug) values (%L, %L, %L)', test.id('vehicle:rq45p_b'), 'published', 'rq45p-b-example'), '%first photo would be an inside one%');
 -- the job generates the missing front three-quarter of that car (from its own inside photo, the only one it has); the other

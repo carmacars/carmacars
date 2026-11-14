@@ -177,6 +177,16 @@
      "The pay page works with Chrome's translation on"
     ]
    }
+  },
+  "r47": {
+   "date": "2026-11-14",
+   "seq": 0,
+   "summary": "A car's own photos stay on the site while their new versions are made, and the first outside photo always leads.",
+   "sections": {
+    "admins": [
+     "A refused remake is flagged on Photo standard for Redo this car now; the photo stays on the site meanwhile"
+    ]
+   }
   }
  }
 }
