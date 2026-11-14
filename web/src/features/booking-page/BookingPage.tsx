@@ -9,7 +9,7 @@ import { InsurerClaimEdit, type AdjusterOpt } from '@/features/insurers/InsurerC
 import { StaffDocUpload } from '@/features/admin/StaffDocUpload';
 import { Act } from '@/features/admin/Act';
 import { DepositSettle } from '@/features/admin/DepositSettle';
-import { depositStatus } from '@/features/money/deposit-words';
+import { depositChip, depositStatus } from '@/features/money/deposit-words';
 import { DocumentReview } from '@/features/admin/DocumentReview';
 import '@/features/admin/todo/todo.css';
 import { GeneratedFiles } from '@/features/admin/GeneratedFiles';
@@ -252,6 +252,8 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
     ['pending_payment', 'confirmed', 'on_rent'].includes(String(b.status)) ? rpc('server_booking_sign_pay', { p_booking: b.id }, SR).then((x) => signPayOf({ sign_pay: x as never })).catch(() => null) : null,
     on('money') ? rpc('server_booking_charge_reasons', { p_booking: b.id }, SR).then((x) => x as unknown as ChargeReasons).catch(() => null) : null]);
   const renterWords = renterRule ? signPayWords(renterRule) : null;
+  // Release 47: the deposit in one chip beside the status, for every role (Sales could not easily tell whether a hold was taken)
+  const depChip = b.bill_to === 'insurer' ? null : depositChip(b.status, Number(b.deposit_cents ?? 0), b.deposit, !!(b as unknown as R).deposit_waived_at);
   // the next step under the status (2026-10-30): one sentence, and a button only when the viewer can do the step
   const step = nextStep({ status: b.status, base, now: new Date(), pickupAt: b.pickup_at, returnAt: b.return_at, offerExpiresAt: b.offer_expires_at,
     dueCents: Number(b.renter_due_at_booking_cents ?? b.total_due_at_booking_cents ?? 0),
@@ -266,7 +268,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
   return (
     <RequestClaim booking={b.id} status={b.status} answering={b.status === 'requested' && on('review') && can.offer} va={fn}>
       <PageHead kicker={<>{can.admin ? <Link prefetch={false} className="link" href="/admin/bookings">Bookings</Link> : <Link prefetch={false} className="link" href="/staff">Queue</Link>} · {b.vehicle?.name} · {b.renter?.legal_name}</>}
-        title={<>{b.booking_number} <Badge s={b.status} /> <BookingKindChips ownerTrip={!notOwner} instant={instantBooking} />{can.admin && b.readiness?.awaiting_signature === true && <> <Badge s="awaiting_signature" /></>} {can.admin && (b.placeholder?.on ? <span className="ad-flag ad-flag--ph" data-testid="placeholder-flag">placeholder</span> : !b.blocks_calendar && <span className="ad-flag">not blocking</span>)} {can.admin && b.test?.on && <span className="ad-flag" data-testid="test-flag">test</span>}</>}>
+        title={<>{b.booking_number} <Badge s={b.status} />{depChip && <> <Badge s={depChip.tone}><span data-testid="deposit-chip">{depChip.text}</span></Badge></>} <BookingKindChips ownerTrip={!notOwner} instant={instantBooking} />{can.admin && b.readiness?.awaiting_signature === true && <> <Badge s="awaiting_signature" /></>} {can.admin && (b.placeholder?.on ? <span className="ad-flag ad-flag--ph" data-testid="placeholder-flag">placeholder</span> : !b.blocks_calendar && <span className="ad-flag">not blocking</span>)} {can.admin && b.test?.on && <span className="ad-flag" data-testid="test-flag">test</span>}</>}>
         {/* r32: one tap when the car is back (overdue or due today), the late return alert's page included */}
         {can.handover && showReturned(b) && <ReturnedButton booking={b.id} number={b.booking_number} refresh={refresh} testId="returned-top" />}
         {b.renter && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=messages`} data-testid="email-renter-link">Email the renter</Link>}

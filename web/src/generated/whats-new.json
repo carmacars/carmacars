@@ -184,6 +184,7 @@
    "summary": "A car's own photos stay on the site while their new versions are made, and the first outside photo always leads.",
    "sections": {
     "admins": [
+     "Every booking shows its deposit beside the status for every role: Deposit held $500 on the card, No deposit hold yet or Deposit hold failed",
      "The To do list is shorter: one New staff this week To do with what each hire still waits on, and one Pay details to verify",
      "An insurer rental with no known end date asks you to extend or close it instead of starting late-return notices",
      "A payment captured twice at the same moment is no longer reported as failed",
