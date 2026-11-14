@@ -29,6 +29,34 @@ export async function noOverflow(page: Page) {
   expect(over, `horizontal overflow in px; past the edge: ${wide.join(' | ') || 'none found'}`).toBeLessThanOrEqual(0);
 }
 
+/** r46: an open pop-up (dialog, sheet, panel) fits the phone: the panel inside the window, and nothing in it past either
+ *  side (a long word, a link, a row of buttons). The page's own overflow check cannot see it: a modal dialog and a fixed
+ *  panel never widen the page, they run off the screen. Names the elements past the edge. */
+export async function panelFits(page: Page, panel: Locator) {
+  await expect(panel).toBeVisible();
+  const { box, wide } = await panel.evaluate((root) => {
+    const w = window.innerWidth;
+    const r = root.getBoundingClientRect();
+    const name = (e: Element) => `${e.tagName.toLowerCase()}${e.getAttribute('class') ? '.' + String(e.getAttribute('class')).trim().split(/\s+/).join('.') : ''} ${Math.round(e.getBoundingClientRect().left)}..${Math.round(e.getBoundingClientRect().right)} "${(e.textContent ?? '').trim().slice(0, 30)}"`;
+    const wide = [...root.querySelectorAll('*')].filter((e) => { const b = e.getBoundingClientRect(); return b.width > 0 && (b.right > w + 0.5 || b.left < -0.5) && !e.closest('[aria-hidden="true"]'); })
+      .filter((e, _i, all) => !all.some((o) => o !== e && e.contains(o))).slice(0, 5).map(name);
+    return { box: r.left >= -0.5 && r.right <= w + 0.5 ? null : `the panel ${Math.round(r.left)}..${Math.round(r.right)} in ${w}`, wide };
+  });
+  expect(box, 'the panel inside the window').toBeNull();
+  expect(wide, 'nothing inside the panel past the edge').toEqual([]);
+}
+
+/** r46: each label of a portal's top row stays inside its own button (it wraps), so none runs over its neighbours. */
+export async function labelsInButtons(page: Page) {
+  const out = await page.evaluate(() => [...document.querySelectorAll('.hd-act')].filter((b) => (b as HTMLElement).offsetParent).map((b) => {
+    const l = b.querySelector('.hd-lbl'); if (!l) return null;
+    const br = b.getBoundingClientRect(); const lr = l.getBoundingClientRect();
+    if (lr.width <= 1) return null; // a label shown to screen readers only
+    return lr.left < br.left - 0.5 || lr.right > br.right + 0.5 ? `"${l.textContent}" ${Math.round(lr.left)}..${Math.round(lr.right)} in ${Math.round(br.left)}..${Math.round(br.right)}` : null;
+  }).filter(Boolean));
+  expect(out, 'top row labels past their button').toEqual([]);
+}
+
 /** Accepts the cookie banner so it does not cover what a test clicks. */
 export async function acceptCookies(page: Page) {
   const b = page.getByRole('button', { name: 'Necessary only' }).first();

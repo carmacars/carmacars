@@ -16,7 +16,7 @@ test('a bug in the page is shown, not reloaded', () => {
   assert.equal(recoveryFor(null, 0, now), 'none');
 });
 
-import { causeOf, dialable, readContact, retryDelayS } from './recover.ts';
+import { causeOf, dialable, readContact, reloadIfStale, retryDelayS, STALE_BUILD } from './recover.ts';
 test('r27b: the page says whose problem it is, retries with backoff and shows the contact', () => {
   assert.equal(causeOf({ message: 'Minified React error #441; visit https://react.dev/errors/441' }), 'server');
   assert.equal(causeOf({ message: 'error code: 504' }), 'server');
@@ -28,4 +28,13 @@ test('r27b: the page says whose problem it is, retries with backoff and shows th
   const doc = { querySelector: () => ({ getAttribute: () => JSON.stringify({ phone: '416-555-0100', email: 'hello@example.test' }) }) };
   assert.deepEqual(readContact(doc), { phone: '416-555-0100', email: 'hello@example.test' });
   assert.equal(dialable('289-312-5991'), '+12893125991');
+});
+
+test('r46: Next 16\'s missing server action after a deploy is a stale page (reloads once, not a crash)', () => {
+  const m = 'Server Action "7f3a9c" was not found on the server. \nRead more: https://nextjs.org/docs/messages/failed-to-find-server-action';
+  assert.equal(causeOf({ message: m }), 'stale');
+  assert.equal(recoveryFor({ message: m }, 0, 100_000), 'reload');
+  assert.equal(recoveryFor({ message: m }, 90_000, 100_000), 'none');
+  assert.ok(STALE_BUILD.test('UnrecognizedActionError x'));
+  assert.equal(reloadIfStale(new Error(m)), false, 'outside a browser it never reloads');
 });

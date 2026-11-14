@@ -154,18 +154,27 @@
   "r46": {
    "date": "2026-11-14",
    "seq": 0,
-   "summary": "An Admin can show one lead's full phone number to one salesperson, and hide it again; every other number stays hidden from Sales, and a salesperson can ask for it in one tap.",
+   "summary": "An Admin can show one lead's full phone number to one salesperson and hide it again; pop-ups and the top row fit a phone; four pages are sturdier; the Canada agreements To do leaves out test accounts.",
    "sections": {
     "admins": [
      "Show the phone to on a lead (its page or its card) shows its full number to the lead's salesperson, or to a Sales person you choose, with an optional reason kept in the audit log",
      "Hide it again hides it; reassigning the lead hides it by itself, so the new salesperson needs it shown again",
      "A salesperson's ask arrives as a To do with Show the phone",
-     "The same buttons are on every Admin lead view, the expired offers on Renters > Leads included"
+     "The same buttons are on every Admin lead view, the expired offers on Renters > Leads included",
+     "On a phone, What's new, Report a bug and the other buttons of the top row keep their words inside the button, and every pop-up fits the screen",
+     "Admin > Field jobs no longer fails to load",
+     "The To do to send staff in Canada a new agreement lists real staff only, never a test account"
     ],
     "staff": [
      "Sales: Ask an Admin to show the number on a lead whose number is hidden; once shown, that lead says Number shown by an Admin and has the full number with a call link and Copy",
      "An alert tells you when an Admin shows you a number, and opens the lead",
-     "The number is shown for that lead only, and hidden again if the lead goes to another salesperson"
+     "The number is shown for that lead only, and hidden again if the lead goes to another salesperson",
+     "On a phone, What's new, Report a bug and every pop-up fit the screen; long words and links wrap",
+     "Game leads no longer fails to load"
+    ],
+    "renters": [
+     "After the site is updated, a page left open reloads once by itself instead of showing an error",
+     "The pay page works with Chrome's translation on"
     ]
    }
   }

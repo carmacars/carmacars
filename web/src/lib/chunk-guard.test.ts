@@ -60,3 +60,10 @@ test('at load, a /_next/static file answered 404 reloads', async () => {
   await tick();
   assert.equal(w.location.reloads, 1);
 });
+
+test('r46: a server action of an older deploy (Next 16 words) reloads the page once', async () => {
+  const a = fakeWindow();
+  a.w.fire('unhandledrejection', { reason: { name: 'UnrecognizedActionError', message: 'Server Action "7f3a9c" was not found on the server. \nRead more: https://nextjs.org/docs/messages/failed-to-find-server-action' } });
+  await tick();
+  assert.equal(a.w.location.reloads, 1);
+});

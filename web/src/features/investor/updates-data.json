@@ -33,13 +33,21 @@
   "title": "Release 46",
   "date": "2026-11-14",
   "seq": 0,
-  "summary": "An Admin can show one lead's full phone number to one salesperson, and hide it again; every other number stays hidden from Sales, and a salesperson can ask for it in one tap.",
+  "summary": "An Admin can show one lead's full phone number to one salesperson and hide it again; pop-ups and the top row fit a phone; four pages are sturdier; the Canada agreements To do leaves out test accounts.",
   "areas": [
    {
     "area": "Staff tools",
     "items": [
      "An Admin shows a lead's full phone number to its salesperson, lead by lead, and hides it again; every other lead stays hidden",
-     "Sales asks for a lead's number in one tap, and the request reaches an Admin as a To do"
+     "Sales asks for a lead's number in one tap, and the request reaches an Admin as a To do",
+     "The To do to send staff in Canada a new agreement leaves out test accounts"
+    ]
+   },
+   {
+    "area": "Reliability & security",
+    "items": [
+     "Four pages made sturdier: a time written the same by the server and every browser, a leads page that still opens when one of its lists cannot load, the pay page under the browser's own translation, and a page left open across an update that reloads by itself",
+     "Every pop-up and the portals' top row fit a phone at 375 and 320 pixels wide, checked by a test"
     ]
    }
   ]

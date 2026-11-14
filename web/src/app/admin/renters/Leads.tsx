@@ -12,7 +12,7 @@ import type { LeadList } from '@/features/sales-leads/model';
 // expired offers, the contacts typed into forms and the discount game leads below, folded.
 export async function Leads({ ctx: { read, list }, sp }: { ctx: Pick<AdminPage, 'read' | 'list'>; sp: Record<string, string | undefined> }) {
   const [fresh, d, cap, exp] = await Promise.all([read<LeadList>('sales_leads', { type: 'renter', status: 'open', sort: 'newest', limit: 60 }).catch(() => null),
-    read<GameLeadsData>('game_leads', { q: sp.q, status: sp.status, days: 30 }),
+    read<GameLeadsData>('game_leads', { q: sp.q, status: sp.status, days: 30 }).catch(() => null),
     read<CapturedData>('captured_contacts', { q: sp.q, days: 30 }).catch(() => ({ open: 0, rows: [] })),
     list<ExpiredLead>('leads', { eq: { source: ['expired_offer'] }, order: 'created_at', limit: 50 }).catch(() => ({ rows: [] as ExpiredLead[], count: 0 }))]);
   // 2870: Show the phone to the lead's salesperson, as on the lead cards
@@ -22,5 +22,6 @@ export async function Leads({ ctx: { read, list }, sp }: { ctx: Pick<AdminPage, 
     <div className="stack">{fresh && <NewRenterLeads d={fresh} base="/admin/sales-leads" listHref="/admin/sales-leads?type=renter" />}
       <details data-testid="older-leads-expired"><summary className="link">Expired offers ({exp.count})</summary><ExpiredOfferLeads rows={exp.rows} count={exp.count} phones={phones} /></details>
       <details data-testid="older-leads-captured"><summary className="link">Contacts typed into forms ({cap.open})</summary><CapturedContacts d={cap} renterBase="/admin/renters" /></details>
-      <details data-testid="older-leads-games" open={Boolean(sp.q || sp.status)}><summary className="link">Discount game leads</summary><GameReportTiles r={d.report} settingsHref="/admin/settings/discount-games" /><GameLeads d={d} base="/admin/renters?tab=leads" sp={sp} bookingBase="/admin/bookings" /></details></div></>);
+      <details data-testid="older-leads-games" open={Boolean(sp.q || sp.status)}><summary className="link">Discount game leads</summary>{d ? <>{d.report ? <GameReportTiles r={d.report} settingsHref="/admin/settings/discount-games" /> : null}<GameLeads d={d} base="/admin/renters?tab=leads" sp={sp} bookingBase="/admin/bookings" /></>
+        : <p className="alert alert--warn" role="status" data-testid="game-leads-unavailable"><span>The discount game leads did not load just now. Reload the page in a minute.</span></p>}</details></div></>);
 }

@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { acceptCookies, db, noOverflow } from './helpers';
+import { acceptCookies, db, noOverflow, panelFits } from './helpers';
 
 // Migration 2730 end to end, at 375 and 1440: an Admin signing in after a release sees the "What's new" pop-up once, with
 // the words written for admins; Esc closes it; it does not come back on the next page or the next visit; the "What's new"
@@ -37,6 +37,7 @@ test('the What\'s new pop-up opens once after a release, closes with Esc, and th
     await expect(dialog.getByRole('heading', { name: "What's new" })).toBeVisible();
     await expect(dialog.locator('li').first()).toBeVisible();
     await noOverflow(page);
+    await panelFits(page, dialog); // r46: the pop-up itself inside the screen, nothing in it past either side
     const axe = await new AxeBuilder({ page: page as never }).include('[data-testid="whats-new"]').withTags(['wcag2a', 'wcag2aa']).analyze();
     expect(axe.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical').map((v) => v.id)).toEqual([]);
 
