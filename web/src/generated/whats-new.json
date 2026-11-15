@@ -196,6 +196,19 @@
      "Showroom background plates in Program settings: upload a real showroom photo to replace the background of every outside view"
     ]
    }
+  },
+  "r48": {
+   "date": "2026-11-14",
+   "seq": 0,
+   "summary": "Every car is photographed the same way, in one scene, and the same photos show everywhere.",
+   "sections": {
+    "admins": [
+     "On a car, Studio photos shows each made view beside the car's own photos: Make again, Take off the site, Put on the site, and the car's scene (highway, brick building and the other scenes)",
+     "Photo standard shows the fleet's progress and about how many days are left at Gemini's daily limit",
+     "The marketing set is made from the studio photos, with up to three lifestyle shots marked AI; tick the photos you want in the ZIP for a post",
+     "Gemini calls refused for where they came from are sent through the company server, and a failed call waits and tries again instead of blocking the queue"
+    ]
+   }
   }
  }
 }

@@ -12634,6 +12634,7 @@ export type Database = {
           check: Json | null;
           made_by: string | null;
           made_at: string;
+          scene: string;
         };
         Insert: {
           id?: string;
@@ -12644,6 +12645,7 @@ export type Database = {
           check?: Json | null;
           made_by?: string | null;
           made_at?: string;
+          scene?: string;
         };
         Update: {
           id?: string;
@@ -12654,6 +12656,7 @@ export type Database = {
           check?: Json | null;
           made_by?: string | null;
           made_at?: string;
+          scene?: string;
         };
         Relationships: [];
       };
@@ -19124,6 +19127,7 @@ export type Database = {
           field_slots_auto_from: string;
           fleet_low_occupancy_first: boolean;
           listing_photo_r48_auto: boolean;
+          listing_photo_scene: string;
         };
         Insert: {
           id?: string;
@@ -19996,6 +20000,7 @@ export type Database = {
           field_slots_auto_from?: string;
           fleet_low_occupancy_first?: boolean;
           listing_photo_r48_auto?: boolean;
+          listing_photo_scene?: string;
         };
         Update: {
           id?: string;
@@ -20868,6 +20873,7 @@ export type Database = {
           field_slots_auto_from?: string;
           fleet_low_occupancy_first?: boolean;
           listing_photo_r48_auto?: boolean;
+          listing_photo_scene?: string;
         };
         Relationships: [];
       };
@@ -29272,6 +29278,9 @@ export type Database = {
           created_by: string | null;
           created_at: string;
           updated_at: string;
+          lifestyle: string | null;
+          ai_generated: boolean;
+          job_input: Json | null;
         };
         Insert: {
           id?: string;
@@ -29288,6 +29297,9 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          lifestyle?: string | null;
+          ai_generated?: boolean;
+          job_input?: Json | null;
         };
         Update: {
           id?: string;
@@ -29304,6 +29316,9 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          lifestyle?: string | null;
+          ai_generated?: boolean;
+          job_input?: Json | null;
         };
         Relationships: [];
       };
@@ -30942,6 +30957,7 @@ export type Database = {
           fuel_tank_litres: number | null;
           battery_kwh: number | null;
           fuel_grade: string | null;
+          photo_scene: string | null;
         };
         Insert: {
           id?: string;
@@ -31029,6 +31045,7 @@ export type Database = {
           fuel_tank_litres?: number | null;
           battery_kwh?: number | null;
           fuel_grade?: string | null;
+          photo_scene?: string | null;
         };
         Update: {
           id?: string;
@@ -31116,6 +31133,7 @@ export type Database = {
           fuel_tank_litres?: number | null;
           battery_kwh?: number | null;
           fuel_grade?: string | null;
+          photo_scene?: string | null;
         };
         Relationships: [];
       };

@@ -16,6 +16,7 @@ import { GEMINI_DEFAULT_MODEL as GEMINI_VISION_DEFAULT, geminiVision } from '@/i
 import { letteringName } from '@/features/car/studio';
 import { showroomPrompt, type ShowroomOut, type ShowroomProvider } from '@/features/listing/showroom';
 import { geminiCheckImages, geminiEditImage } from '@/integrations/photos/gemini';
+import { geminiRelay } from '@/server/gemini-relay';
 
 // The listing worker as the site runs it: the Cloudflare cron trigger (custom-worker.ts, every five
 // minutes) and a submitted capture (right away, after the response) call runListingWorkerNow. The queue
@@ -64,7 +65,7 @@ async function findPlates(img: { bytes: Uint8Array; contentType: string; width: 
 /** r44: Gemini as the vision model of the listing photos (plates, the second sort), when GEMINI_API_KEY is set. */
 function gemini() {
   const key = env().GEMINI_API_KEY;
-  return key ? geminiVision(key, env().GEMINI_VISION_MODEL || GEMINI_VISION_DEFAULT) : null;
+  return key ? geminiVision(key, env().GEMINI_VISION_MODEL || GEMINI_VISION_DEFAULT, 30_000, fetch, geminiRelay()) : null;
 }
 
 /** r44 (2780): a photo filed as an "Other detail" sorted again (Gemini first): an outside photo there was kept as taken, with
@@ -92,7 +93,7 @@ export function showroomAi(apiKey: string, f: typeof fetch = fetch): ShowroomPro
         { allowed?: boolean; reason?: 'off' | 'limit' | 'quota'; model?: string; call_id?: string } | null;
       if (!gate?.allowed || !gate.call_id) return { ok: false, reason: gate?.reason ?? 'error', message: 'The image model may not be asked now' };
       const t0 = Date.now();
-      const r = await geminiEditImage({ apiKey, model: gate.model, fetch: f }, { bytes: local, contentType: 'image/jpeg' },
+      const r = await geminiEditImage({ apiKey, model: gate.model, fetch: f, relay: geminiRelay() }, { bytes: local, contentType: 'image/jpeg' },
         i.prompt ?? showroomPrompt({ cover: i.cover, name: i.model ? letteringName(i.model) : null }), i.reference ? [i.reference] : []);
       await rpc('server_showroom_ai_record', { p: { call_id: gate.call_id, ok: r.ok, error: r.ok ? null : `${r.reason}: ${r.message}`, duration_ms: Date.now() - t0 } }, SR).catch(() => undefined);
       return r;
@@ -109,7 +110,7 @@ export function angleAi(apiKey: string, f: typeof fetch = fetch) {
       { allowed?: boolean; reason?: 'off' | 'limit' | 'quota'; model?: string; call_id?: string } | null;
     if (!gate?.allowed || !gate.call_id) return { ok: false, reason: gate?.reason ?? 'error', message: 'The image model may not be asked now' };
     const t0 = Date.now();
-    const r = await geminiEditImage({ apiKey, model: gate.model, fetch: f }, first, i.prompt, rest);
+    const r = await geminiEditImage({ apiKey, model: gate.model, fetch: f, relay: geminiRelay() }, first, i.prompt, rest);
     await rpc('server_showroom_ai_record', { p: { call_id: gate.call_id, ok: r.ok, error: r.ok ? null : `${r.reason}: ${r.message}`, duration_ms: Date.now() - t0 } }, SR).catch(() => undefined);
     return r;
   };
@@ -121,7 +122,7 @@ async function checkPhoto(i: { images: Array<{ bytes: Uint8Array; contentType: s
   const key = env().GEMINI_API_KEY;
   if (!key) return null;
   const t0 = Date.now();
-  const r = await geminiCheckImages({ apiKey: key, model: env().GEMINI_CHECK_MODEL || null }, i.images, i.system, i.prompt).catch(() => null);
+  const r = await geminiCheckImages({ apiKey: key, model: env().GEMINI_CHECK_MODEL || null, relay: geminiRelay() }, i.images, i.system, i.prompt).catch(() => null);
   await rpc('server_photo_mark_record', { p: { model: r?.model ?? null, ok: !!r, neurons: 0, duration_ms: Date.now() - t0, photo_id: i.photoId, marks: null } }, SR).catch(() => undefined);
   return r;
 }
