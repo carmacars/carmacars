@@ -19,7 +19,8 @@ import { getBusinessFacts } from '@/features/seo/business-data';
 import { getEntityFacts } from '@/features/seo/facts';
 import { keyFacts, summary } from '@/features/seo/llms';
 import { faqLd, seoMeta } from '@/features/seo/meta';
-import { faqItems, fill, getClasses, getFacts, getFleet, getSettings, getTokens, listItems, slotPhoto, siteUrl } from '@/lib/site';
+import { faqItems, fill, getClasses, getFacts, getFleet, getSettings, getStudioCovers, getTokens, listItems, slotPhoto, siteUrl } from '@/lib/site';
+import { heroFromStudio } from '@/lib/studio-covers';
 
 export const revalidate = 3600;
 
@@ -44,8 +45,11 @@ export default async function Home() {
     getBusinessFacts(), getEntityFacts()
   ]);
   // release 28 (0563): real fleet cars on the studio background in the hero, read when the page is rebuilt (hourly)
-  const studio = ((await rpc('site_hero_photos', { p_limit: 6 }).catch(() => [])) ?? []) as unknown as Array<{ vehicle_id: string; path: string; width: number; height: number; alt: string | null }>;
-  const heroCars: HeroCar[] = studio.flatMap((p) => { const c = fleet.find((x) => x.vehicle_id === p.vehicle_id);
+  // r48 (3040): the studio covers (the same angle as the sample photo, checked) first; the older studio photos only when no car
+  // has one yet; the sample photo of Site content only when neither
+  const r48: HeroCar[] = heroFromStudio(await getStudioCovers(), fleet);
+  const studio = r48.length ? [] : ((await rpc('site_hero_photos', { p_limit: 6 }).catch(() => [])) ?? []) as unknown as Array<{ vehicle_id: string; path: string; width: number; height: number; alt: string | null }>;
+  const heroCars: HeroCar[] = r48.length ? r48 : studio.flatMap((p) => { const c = fleet.find((x) => x.vehicle_id === p.vehicle_id);
     return c ? [{ ...p, name: [c.year, c.make, c.model].filter(Boolean).join(' '), href: c.path }] : []; });
   // 2350: links from home to the indexable landing pages (the GTA areas and the ways to rent)
   const areas = homeAreaLinks(await getSeoPages().catch(() => []));

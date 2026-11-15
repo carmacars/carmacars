@@ -27,6 +27,8 @@ export interface CarRow {
   trend_rank?: number; pinned?: boolean; hot?: boolean;
   /** demand steering (2000): this car draws more than its share of the requests; pages show similar cars first */
   popular?: boolean;
+  /** r48 (3040): the cover is a sample photo: real cars' studio covers shown in turn over it (lib/studio-covers.ts) */
+  studio?: Photo[];
 }
 
 export interface CarPage extends CarRow {

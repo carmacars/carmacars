@@ -31,7 +31,7 @@
 // Pure: no I/O, so the unit tests cover the words, the angle specs, the plate families and the check's verdict.
 import type { NBox } from './plate-cover.ts';
 import type { Rgba } from './subject-frame.ts';
-import { angleOf, carName, isExterior, onCar, type CarFacts, type CheckReason } from './r45.ts';
+import { PLATES_KEY, angleOf, carName, isExterior, readPlates, type CarFacts, type CheckReason } from './r45.ts';
 
 /** The standard (app.photo_r48_spec() returns the same; keep the two equal). */
 export const R48_SPEC = 'r48.2';
@@ -92,8 +92,22 @@ export const isDealership = (s: R48Scene | null | undefined) => !s || s.code ===
 export const FACING: Readonly<Record<string, 'left' | 'right'>> = { front_left: 'left', left: 'left', rear_left: 'right' };
 /** The words of the dark dealership studio, the room every car stands in by default. */
 export const DEALERSHIP_PLACE = 'a modern, minimal, dark car dealership showroom: a charcoal back wall with a slatted walnut panel between two vertical LED light strips, the CarmaCars logo as a large softly lit sign high on the back wall, recessed linear lights in the ceiling, a polished dark tiled floor with soft reflections';
-/** The licence plates of a generated view: taken off cleanly (r48.2), never drawn or blurred into a smudge. */
-export const PLATE_REMOVE_RULE = 'THE LICENCE PLATES: no licence plate. Where the car carries a plate, show a clean, smooth, blank plate holder in the body colour or plain black, with no letters, numbers, stickers or frame text: removed cleanly, as if the plate was taken off for the photo shoot.';
+/** The licence plates of a generated view: taken off cleanly (r48.2), never drawn or blurred into a smudge. r48 (3040): a bare
+ *  bumper, never a blank plate, box or blur, and where the car has no plate nothing at all is changed (the owner: "a lot of
+ *  the cars don't have front license plates, and you're still blurring out the spot where the license plate would have been"). */
+export const PLATE_REMOVE_RULE = 'THE LICENCE PLATES: no licence plate in the photo. Look at the real photos of each end of the car. Where the car has NO plate (many Ontario cars have no front plate), leave that bumper exactly as it is in the real photos: nothing where a plate would be, no plate holder, no blank rectangle, no blur, no box, no patch. Where the car carries a plate, take it off cleanly: show the bare bumper or plate recess in the car\'s own paint, shapes and lines, as if the plate was removed cleanly for the photo shoot; no blank plate, no letters, numbers or stickers, no blur, no box, no smudge.';
+/** Which end of the car a view shows its plate on: front, rear, or none (a side profile, an inside view). */
+export const plateEndOf = (shot: string): 'front' | 'rear' | null => (/^front(_left|_right)?$/.test(shot) ? 'front' : /^rear(_left|_right)?$/.test(shot) ? 'rear' : null);
+/** r48 (3040): the plate rule of one view. `plateEnd`: whether the car's own photos show a plate at the end this view shows
+ *  ('yes', 'no', or null when not known: app.photo_r48_plate_end). */
+export function plateRule(shot: string, plateEnd?: 'yes' | 'no' | null): string {
+  const end = plateEndOf(shot);
+  if (!isExterior(shot)) return PLATE_REMOVE_RULE;
+  if (!end) return `${PLATE_REMOVE_RULE} This view shows no plate: add nothing where a plate could be.`;
+  if (plateEnd === 'no') return `${PLATE_REMOVE_RULE} THIS CAR HAS NO ${end.toUpperCase()} PLATE: its ${end} bumper stays exactly as in the real photos, untouched, with no plate, holder, rectangle, blur or box anywhere on it.`;
+  if (plateEnd === 'yes') return `${PLATE_REMOVE_RULE} This car carries a ${end} plate: take it off cleanly so the bare ${end} bumper shows, with no blank plate, blur or box left.`;
+  return end === 'front' ? `${PLATE_REMOVE_RULE} This is a front view: if the real photos show no front plate, the front bumper stays bare and untouched.` : PLATE_REMOVE_RULE;
+}
 
 // ================================================================ the real-photography cues
 /** What makes the result read as a photograph, not a render (the owner: "so fake looking"). */
@@ -107,7 +121,9 @@ export interface R48PromptInput { car: CarFacts; shot: string; refs: number; gui
   /** r48.2: the car's scene (the dark dealership when none) and, on the cover in the dealership, the model's name lettered on the wall */
   scene?: R48Scene | null; name?: string | null;
   /** r48.2: the car has no photo: the stock photo of its model is the only image of the car (sent first) */
-  stockOnly?: boolean }
+  stockOnly?: boolean;
+  /** r48 (3040): whether the car's own photos show a plate at the end this view shows (plateRule) */
+  plateEnd?: 'yes' | 'no' | null }
 /** The images in the order they are sent: the real photos, the guide, the stock photo, the plate. */
 export function imageRoles(o: Pick<R48PromptInput, 'refs' | 'guide' | 'stock' | 'plate' | 'shot' | 'stockOnly'>): string[] {
   const ext = isExterior(o.shot);
@@ -129,7 +145,9 @@ export const FEEDBACK_TEXT: Partial<Record<CheckReason | R48Reason, string>> = {
   clutter: 'the interior had loose objects', wrong_view: 'it showed the wrong view', wrong_wheels: 'the wheels were not the car\'s wheels',
   looks_cgi: 'it looked like a render, not a photograph', wrong_framing: 'the framing did not follow the angle description', background_wrong: 'the room was not the background plate',
   no_answer: 'the check did not answer', plate_off_car: 'text like a plate appeared off the car', edges_not_dark: 'the edges were not the room', original_background: 'the place of the real photos was still there',
-  wrong_direction: 'the car faced the wrong way (see where its nose must point)', logo_wrong: 'the CarmaCars sign on the wall was changed or missing', name_wrong: 'the model name on the wall was spelled wrong or missing'
+  wrong_direction: 'the car faced the wrong way (see where its nose must point)', logo_wrong: 'the CarmaCars sign on the wall was changed or missing', name_wrong: 'the model name on the wall was spelled wrong or missing',
+  plate_patch: 'there was a blur, box or blank rectangle where a plate is or would be (leave the bumper bare)', plate_oversized: 'a plate area spread over the bumper',
+  plate_added: 'a plate was added to an end of the car that has none', plate_left: 'a licence plate was still on the car (take it off cleanly)'
 };
 export const feedbackLine = (reasons: readonly string[] | null | undefined): string => {
   const words = [...new Set((reasons ?? []).map((r) => FEEDBACK_TEXT[r as R48Reason] ?? '').filter(Boolean))].slice(0, 6);
@@ -157,7 +175,7 @@ export function r48Prompt(o: R48PromptInput): string {
         + (name ? ` THE MODEL NAME: the word "${name}" in large brushed-metal capital letters fixed on the back wall under the CarmaCars sign, centred, behind the car (the car stands in front of the letters and may hide their lower part), spelled exactly "${name}".` : '')
       : 'THE INTERIOR: no background is swapped; the windows show soft, bright daylight, nothing readable outside. Clean and bright, even soft light, no clutter (no bags, bottles, cables, papers or phones), the screens dark or a plain glow.',
     ext ? REAL_PHOTO_RULE : 'REAL PHOTOGRAPHY: an unretouched interior photograph from a full-frame camera, real material textures (leather grain, stitching, plastics), real light falloff, no render look, no glow, no over-smoothing.',
-    PLATE_REMOVE_RULE,
+    plateRule(o.shot, o.plateEnd),
     deal && ext ? `NO OTHER TEXT: add no letters, numbers, words, watermarks, stickers or logos anywhere other than the CarmaCars sign on the wall${name ? ' and the model name' : ''} and the car's own maker badges.` : NO_TEXT_NO_LOGO,
     'The whole car (or interior) sharp, no depth-of-field blur, no motion blur.',
     feedbackLine(o.feedback)
@@ -165,14 +183,15 @@ export function r48Prompt(o: R48PromptInput): string {
 }
 
 // ================================================================ the check
-export type R48Reason = CheckReason | 'wrong_wheels' | 'looks_cgi' | 'wrong_framing' | 'background_wrong' | 'wrong_direction' | 'logo_wrong' | 'name_wrong';
+export type R48Reason = CheckReason | 'wrong_wheels' | 'looks_cgi' | 'wrong_framing' | 'background_wrong' | 'wrong_direction' | 'logo_wrong' | 'name_wrong'
+  | 'plate_added' | 'plate_left';
 /** r48.2: the reasons that always refuse (it is not this car, not this view, or the old background is still there). */
 export const HARD_REASONS: readonly R48Reason[] = ['wrong_colour', 'wrong_model', 'warped', 'wrong_view', 'wrong_direction', 'original_background', 'plate_readable',
-  'plate_off_car', 'text_elsewhere', 'name_wrong', 'no_answer'];
+  'plate_off_car', 'text_elsewhere', 'name_wrong', 'no_answer', 'plate_patch', 'plate_oversized', 'plate_added'];
 /** The tries after which the other reasons alone no longer refuse (a view is then kept rather than left out for a doubt). */
 export const SOFT_LAST_TRY = 2;
 export const R48_CHECK_SYSTEM = 'You are a strict quality inspector for a car rental website\'s listing photos. You compare a generated photo with real photos of the same car and with the description of the wanted view, and answer with JSON only, in the shape asked.';
-export function r48CheckPrompt(o: { car: CarFacts; shot: string; plate: boolean; scene?: R48Scene | null; name?: string | null }): string {
+export function r48CheckPrompt(o: { car: CarFacts; shot: string; plate: boolean; scene?: R48Scene | null; name?: string | null; plateEnd?: 'yes' | 'no' | null }): string {
   const a = r48Angle(o.shot);
   const ext = isExterior(o.shot);
   const deal = isDealership(o.scene);
@@ -194,12 +213,15 @@ export function r48CheckPrompt(o: { car: CarFacts; shot: string; plate: boolean;
     name ? `"name_wrong": the model name on the wall behind the car does not read exactly "${name}" (missing, misspelled, extra letters);` : '"name_wrong": always false here;',
     `"text_elsewhere": readable letters, numbers, words or logos anywhere other than the car's own maker badges${ext && deal ? ', the CarmaCars sign' : ''}${name ? ' and the model name on the wall' : ''};`,
     '"plate_readable": any licence plate character can be read;',
+    '"plate_present": a licence plate (with letters or numbers, readable or not) is on the car in the generated photo; false for a bare bumper or an empty plate recess;',
+    '"plate_cover": a blur, smudge, mosaic, box, patch or blank rectangle on the car where a plate is or would be (the plates must be gone cleanly, the bumper bare);',
+    `"real_plate": whether the real photos show a licence plate on the end of the car this view shows: "yes", "no" (for example a front bumper without a plate, common in Ontario) or "unsure"${plateEndOf(o.shot) ? '' : ' ("no" for a side profile or an inside view)'};`,
     '"blurry": the photo or a large part of it is blurred;',
     '"clutter": an interior shows loose objects that are not part of the car;',
     '"view": the view the generated photo shows, one of front_left, front_right, front, left, right, rear_left, rear_right, rear, dashboard, front_seats, rear_seats, trunk, other;',
     '"nose": where the car\'s front (nose) points in the frame: "left", "right", "camera" (straight at the camera), "away" (straight away), or "none" (an interior);',
-    '"plates": every licence plate in the generated photo, each {"box_2d": [ymin, xmin, ymax, xmax]} on a 0 to 1000 grid (y first); [] when none.',
-    'Example: {"wrong_colour": false, "wrong_model": false, "wrong_wheels": false, "parts_changed": false, "warped": false, "looks_cgi": false, "wrong_framing": false, "original_background": false, "background_wrong": false, "logo_wrong": false, "name_wrong": false, "text_elsewhere": false, "plate_readable": false, "blurry": false, "clutter": false, "view": "front_left", "nose": "left", "plates": []}'
+    `"plates": ${PLATES_KEY}`,
+    'Example: {"wrong_colour": false, "wrong_model": false, "wrong_wheels": false, "parts_changed": false, "warped": false, "looks_cgi": false, "wrong_framing": false, "original_background": false, "background_wrong": false, "logo_wrong": false, "name_wrong": false, "text_elsewhere": false, "plate_readable": false, "plate_present": false, "plate_cover": false, "real_plate": "no", "blurry": false, "clutter": false, "view": "front_left", "nose": "left", "plates": []}'
   ].join(' ');
 }
 export const R48_CHECK_SCHEMA = {
@@ -208,19 +230,23 @@ export const R48_CHECK_SCHEMA = {
     wrong_colour: { type: 'boolean' }, wrong_model: { type: 'boolean' }, wrong_wheels: { type: 'boolean' }, parts_changed: { type: 'boolean' }, warped: { type: 'boolean' },
     looks_cgi: { type: 'boolean' }, wrong_framing: { type: 'boolean' }, original_background: { type: 'boolean' }, background_wrong: { type: 'boolean' },
     logo_wrong: { type: 'boolean' }, name_wrong: { type: 'boolean' }, text_elsewhere: { type: 'boolean' },
-    plate_readable: { type: 'boolean' }, blurry: { type: 'boolean' }, clutter: { type: 'boolean' }, view: { type: 'string' }, nose: { type: 'string' },
+    plate_readable: { type: 'boolean' }, plate_present: { type: 'boolean' }, plate_cover: { type: 'boolean' }, real_plate: { type: 'string' },
+    blurry: { type: 'boolean' }, clutter: { type: 'boolean' }, view: { type: 'string' }, nose: { type: 'string' },
     plates: { type: 'array', items: { type: 'object', properties: { box_2d: { type: 'array', items: { type: 'number' } } } } }
   },
-  required: ['wrong_colour', 'wrong_model', 'wrong_wheels', 'parts_changed', 'warped', 'looks_cgi', 'wrong_framing', 'text_elsewhere', 'plate_readable', 'blurry', 'view', 'nose', 'plates']
+  required: ['wrong_colour', 'wrong_model', 'wrong_wheels', 'parts_changed', 'warped', 'looks_cgi', 'wrong_framing', 'text_elsewhere', 'plate_readable', 'plate_present', 'plate_cover', 'real_plate', 'blurry', 'view', 'nose', 'plates']
 } as const;
 
 export interface R48Verdict { pass: boolean; reasons: R48Reason[]; plates: NBox[]; view: string | null; nose?: string | null; soft?: R48Reason[] }
 const truthy = (v: unknown) => v === true || v === 'true' || v === 'yes';
-/** The check's answer as a verdict. No answer is a refusal. A plate the check placed on the car is blurred by the site
- *  afterwards, so "plate_readable" alone refuses only when the plate could not be placed. The view must be the asked one (a
+/** The check's answer as a verdict. No answer is a refusal. r48 (3040): the plates must be gone cleanly: a blur, box or blank
+ *  patch where a plate is or would be, a plate area spread over the bumper, or a plate on an end of the car that has none
+ *  (`plateEnd` 'no', or the check's own real_plate "no") always refuse; a real plate left on the car refuses the first tries
+ *  (soft), and is then blurred by the site, tight to the plate. No box is kept when the check says no plate is there, so the
+ *  site never blurs a bare bumper. "plate_readable" alone refuses only when the plate could not be placed. The view must be the asked one (a
  *  three-quarter from the other side is accepted only when the nose still points the standard's way). r48.2: from try
  *  SOFT_LAST_TRY on (`tries`, the tries made before this one), only HARD_REASONS refuse; the others are kept as `soft`. */
-export function judgeR48(answer: unknown, o: { shot: string; plate: boolean; tries?: number; scene?: R48Scene | null; name?: string | null }): R48Verdict {
+export function judgeR48(answer: unknown, o: { shot: string; plate: boolean; tries?: number; scene?: R48Scene | null; name?: string | null; plateEnd?: 'yes' | 'no' | null }): R48Verdict {
   if (!answer || typeof answer !== 'object') return { pass: false, reasons: ['no_answer'], plates: [], view: null };
   const a = answer as Record<string, unknown>;
   const ext = isExterior(o.shot);
@@ -232,16 +258,16 @@ export function judgeR48(answer: unknown, o: { shot: string; plate: boolean; tri
   if (ext && deal && truthy(a.logo_wrong)) reasons.push('logo_wrong');
   if (ext && deal && o.shot === 'front_left' && o.name && truthy(a.name_wrong)) reasons.push('name_wrong');
   if (!ext && truthy(a.clutter)) reasons.push('clutter');
-  const plates: NBox[] = [];
-  for (const it of Array.isArray(a.plates) ? a.plates.slice(0, 6) : []) {
-    const b = (it as { box_2d?: unknown })?.box_2d;
-    if (!Array.isArray(b) || b.length !== 4 || !b.every((n) => typeof n === 'number' && Number.isFinite(n))) continue;
-    const [y0, x0, y1, x1] = (b as number[]).map((n) => Math.max(0, Math.min(1000, n)) / 1000) as [number, number, number, number];
-    if (x1 <= x0 || y1 <= y0) continue;
-    plates.push({ x: x0, y: y0, w: x1 - x0, h: y1 - y0 });
-  }
-  if (plates.some((p) => !onCar(p))) reasons.push('plate_off_car');
-  if (truthy(a.plate_readable) && !plates.length) reasons.push('plate_readable');
+  const pr = readPlates(a, o.shot);
+  const plates: NBox[] = ext ? pr.plates : [];
+  if (pr.offCar) reasons.push('plate_off_car');
+  if (ext && truthy(a.plate_cover)) reasons.push('plate_patch');
+  if (ext && pr.oversized) reasons.push('plate_oversized');
+  const real = typeof a.real_plate === 'string' ? a.real_plate.toLowerCase() : null;
+  const shown = plates.length > 0 || pr.present === true;
+  if (ext && shown && plateEndOf(o.shot) && (o.plateEnd === 'no' || real === 'no')) reasons.push('plate_added');
+  else if (ext && shown) reasons.push('plate_left');
+  if (truthy(a.plate_readable) && !plates.length && !pr.oversized) reasons.push('plate_readable');
   const view = typeof a.view === 'string' ? a.view.slice(0, 20) : null;
   const nose = typeof a.nose === 'string' ? a.nose.slice(0, 10).toLowerCase() : null;
   const sameSide = (want: string, got: string) => got === want || (want === 'front_left' && got === 'front_right') || (want === 'rear_left' && got === 'rear_right') || (want === 'left' && got === 'right');
@@ -251,7 +277,7 @@ export function judgeR48(answer: unknown, o: { shot: string; plate: boolean; tri
   const all = [...new Set(reasons)];
   const late = (o.tries ?? 0) >= SOFT_LAST_TRY;
   const refusing = late ? all.filter((r) => HARD_REASONS.includes(r)) : all;
-  return { pass: !refusing.length, reasons: refusing, plates: plates.filter(onCar), view, nose, soft: all.filter((r) => !refusing.includes(r)) };
+  return { pass: !refusing.length, reasons: refusing, plates, view, nose, soft: all.filter((r) => !refusing.includes(r)) };
 }
 
 /** r48.2: how different the edges of two photos are (0 the same, 1 opposite): the top 30 percent and the outer tenth of each

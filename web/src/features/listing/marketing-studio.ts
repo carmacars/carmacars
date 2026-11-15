@@ -51,7 +51,7 @@ export function studioMovePrompt(o: StudioMove): string {
     'Nothing of the studio around the car may remain: the whole background is the new place. Give the car a real, soft contact shadow under each tyre and believable reflections for the place.',
     deal && o.cover && o.name ? `On the back wall behind the car keep the CarmaCars sign and the model name "${o.name}" in brushed-metal letters, spelled exactly "${o.name}".` : '',
     pose ? `${PERSON_RULES} Her outfit: ${o.outfit ?? OUTFITS[0]}. Her pose: ${pose.words}.` : 'No people.',
-    'No licence plate characters anywhere: a clean blank plate holder. No other text, logos, watermarks or signs added. Landscape 3:2. It must look like a real photograph, not a render.'
+    'No licence plate and no plate characters anywhere: keep each bumper as it is in the first image (bare, with nothing where a plate would be), never a blank plate, blur or box. No other text, logos, watermarks or signs added. Landscape 3:2. It must look like a real photograph, not a render.'
   ].filter(Boolean).join(' ');
 }
 

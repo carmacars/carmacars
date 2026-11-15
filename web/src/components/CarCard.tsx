@@ -1,7 +1,7 @@
 import Link from '@/components/Link';
 import type { CarRow } from '@/lib/types';
 import { money, FUEL_LABEL } from '@/lib/format';
-import { CarImage } from './Picture';
+import { CarImage, StudioTurn } from './Picture';
 
 export const carName = (c: Pick<CarRow, 'make' | 'model'>) => `${c.make} ${c.model}`;
 export const classLabel = (codes: string[], labels: Record<string, string>) => codes.map((c) => labels[c] ?? c).join(', ');
@@ -18,6 +18,7 @@ export function CarCard({ c, labels, tag: Tag = 'h3', href, price, unit, booked 
     <article className="car-card">
       <div className="car-card__media photo photo--32" data-wm={c.cover && !c.cover.sample ? "" : undefined}>
         <CarImage p={c.cover} />
+        {c.cover?.sample && c.studio && c.studio.length > 0 && <StudioTurn photos={c.studio} />}
         {c.cover && !c.cover.sample && (photosMax ?? 5) > 1
           && <span className="car-card__deck" data-slug={c.slug} data-max={photosMax} aria-hidden="true" dangerouslySetInnerHTML={{ __html: '' }} />}
         {c.cover?.sample && <span className="car-card__sample" data-testid="sample-photo-caption">Representative photo</span>}

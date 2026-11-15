@@ -228,6 +228,7 @@
      "The two pages of an OPCF 27 proof have one name on every screen: the pink slip and the OPCF 27 endorsement page",
      "On a car, Studio photos shows each made view beside the car's own photos: Make again, Take off the site, Put on the site, and the car's scene (highway, brick building and the other scenes)",
      "Photo standard shows the fleet's progress and about how many days are left at Gemini's daily limit",
+     "Studio photos with a blurred box where a plate is or would have been are made again by themselves; the photo check now refuses a blur or box where no plate is, or one larger than the plate",
      "The marketing set is made from the studio photos, with up to three lifestyle shots marked AI; tick the photos you want in the ZIP for a post",
      "Gemini calls refused for where they came from are sent through the company server, and a failed call waits and tries again instead of blocking the queue"
     ],
