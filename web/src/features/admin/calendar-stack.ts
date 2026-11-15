@@ -4,8 +4,8 @@
 // each other, so two requests or a request and a placeholder for the same days are both readable.
 export interface Bar { type: string; id: string; status: string | null; blocks: boolean | null; starts_at: string; ends_at: string | null; placeholder?: boolean }
 
-/** One bar's height and gap, in pixels. */
-export const BAR = 23;
+/** One bar's height (22) and gap, in pixels (r48: 26, room for the words). */
+export const BAR = 26;
 export const keyOf = (e: Pick<Bar, 'type' | 'id'>) => `${e.type}${e.id}`;
 export const lane = (e: Bar): 'top' | 'low' =>
   e.type === 'block' || (!e.placeholder && ['confirmed', 'on_rent', 'returned', 'closed'].includes(e.status ?? '') && e.blocks !== false) ? 'top' : 'low';
@@ -28,4 +28,4 @@ export function stack(entries: Bar[], end: number): Stack {
 /** A bar's distance from the top of the car's row. */
 export const topOf = (e: Bar, st: Stack) => 4 + BAR * ((lane(e) === 'top' ? 0 : st.top) + (st.at.get(keyOf(e)) ?? 0));
 /** The row's height: two bars and the strips under them, taller when bars stack. */
-export const rowHeight = (st: Stack) => Math.max(52, 6 + BAR * (st.top + st.low));
+export const rowHeight = (st: Stack) => Math.max(62, 10 + BAR * (st.top + st.low));
