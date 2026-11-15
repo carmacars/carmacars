@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { R45_SPEC, STANDARD_ANGLES, angleSources, blurPlates, boxContrast, checkPrompt, detailPrompt, exteriorPrompt, generatePrompt, interiorPrompt, judgeCheck, missingAngles,
-  promptFor, PLATE_BLUR_RULE, NO_TEXT_RULE } from './r45.ts';
+  promptFor, PLATE_BLUR_RULE, NO_TEXT_RULE, PLATE_MAX_W, plateArea, plateMask, readPlates } from './r45.ts';
 import { PHOTO_SPEC, encodeJpeg } from './showroom.ts';
 import { orderPhotos, photoRank } from '../../lib/photo-order.ts';
 import { runJob, type JobContext, type JobResult, type WorkerDeps } from './worker.ts';
@@ -182,3 +182,50 @@ test('r45: a new upload (process_photo) is made the same way, never by the cut-o
   const r2 = await runJob(no.d, job({ kind: 'process_photo', input: {} }), budget);
   assert.equal(r2.ok, false, 'not checked: not published');
 });
+
+// ---------------------------------------------------------------- 3040: a blur only over a plate that is there, tight to it
+test('3040 the blur is tight: a small pad, rounded, a soft edge, at most a plate\'s size; nothing past its edge changes', () => {
+  const img = textured(400, 300);
+  const before = new Uint8ClampedArray(img.data);
+  const box = { x: 0.45, y: 0.75, w: 0.1, h: 0.04 };
+  const [r] = blurPlates(img, [box]);
+  // the area is the box and a pad of a few pixels, not a quarter more each way
+  assert.ok(r && r.w <= 0.1 * 400 + 8 && r.h <= 0.04 * 300 + 6, JSON.stringify(r));
+  const feather = Math.max(2, Math.round(r!.h * 0.18));
+  // just outside the soft edge: untouched
+  for (const [x, y] of [[r!.x - feather - 2, r!.y + 3], [r!.x + r!.w + feather + 1, r!.y + 3], [r!.x + 5, r!.y - feather - 2], [r!.x + 5, r!.y + r!.h + feather + 1]] as Array<[number, number]>) {
+    const i = (y * 400 + x) * 4; assert.equal(img.data[i], before[i], `${x},${y}`);
+  }
+  assert.ok(boxContrast(img, box) < boxContrast({ ...img, data: before }, box) * 0.15);
+  // a box a model made too large is cut down to a plate's size around its centre
+  const capped = plateArea({ x: 0.1, y: 0.6, w: 0.6, h: 0.3 }, 1500, 1000);
+  assert.ok(capped.w <= PLATE_MAX_W * 1500 + 1 && capped.h <= capped.w * 0.8 + 1, JSON.stringify(capped));
+  // a box a person drew is kept as drawn (with its pad)
+  assert.ok(plateArea({ x: 0.1, y: 0.6, w: 0.6, h: 0.3 }, 1500, 1000, 0.08, false).w > 900);
+  // the mask: full inside, a soft fade outside, nothing past the feather, rounded corners
+  const R = { x: 100, y: 100, w: 60, h: 20 };
+  assert.equal(plateMask(130, 110, R, 4), 1);
+  const edge = plateMask(162, 110, R, 4);
+  assert.ok(edge > 0 && edge < 1, String(edge));
+  assert.equal(plateMask(170, 110, R, 4), 0);
+  assert.ok(plateMask(100.2, 100.2, R, 4) < 1, 'a corner is rounded');
+});
+
+test('3040 the plates read from a check: none when no plate is there, an oversized box never kept', () => {
+  assert.deepEqual(readPlates({ plate_present: false, plates: [{ box_2d: [700, 440, 740, 560] }] }, 'front'), { plates: [], offCar: false, oversized: false, present: false });
+  const ok = readPlates({ plate_present: true, plates: [{ box_2d: [700, 440, 740, 560] }] }, 'rear');
+  assert.equal(ok.plates.length, 1);
+  assert.equal(ok.oversized, false);
+  const big = readPlates({ plates: [{ box_2d: [600, 300, 900, 700] }] }, 'rear');
+  assert.deepEqual([big.plates.length, big.oversized], [0, true]);
+  // a three-quarter shows the plate turned away: narrower than a straight rear view allows
+  assert.equal(readPlates({ plates: [{ box_2d: [700, 400, 750, 600] }] }, 'rear').oversized, false);
+  assert.equal(readPlates({ plates: [{ box_2d: [700, 400, 750, 600] }] }, 'rear_left').oversized, true);
+  // the r45 check: a blur or box where no plate is refuses; a large cover refuses
+  assert.ok(judgeCheck({ ...OK, phantom_cover: true }, { shot: 'front', generated: false, edgesDark: true }).reasons.includes('plate_patch'));
+  assert.ok(judgeCheck({ ...OK, big_cover: true }, { shot: 'front', generated: false, edgesDark: true }).reasons.includes('plate_oversized'));
+  assert.deepEqual(judgeCheck({ ...OK, view: 'front', plate_present: false, plates: [{ box_2d: [700, 440, 740, 560] }] }, { shot: 'front', generated: false, edgesDark: true }).plates, []);
+  assert.match(PLATE_BLUR_RULE, /no front plate/);
+  assert.match(checkPrompt({ car: { model: 'Test' }, shot: 'front', generated: false }), /"phantom_cover"/);
+});
+

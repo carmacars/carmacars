@@ -1,5 +1,6 @@
 import 'server-only';
 import { hasAddress } from './car-address';
+import { withStudio, type StudioCover } from './studio-covers';
 import { deliveryArea, deliveryFrom } from './delivery';
 export { deliveryArea, deliveryFrom } from './delivery';
 import { cache } from 'react';
@@ -17,7 +18,14 @@ export const getFacts = cache(async () => (await rpc('site_facts', {})) as unkno
 export const getBlocks = cache(async () => (await rpc('site_content', {})) as unknown as ContentBlock[]);
 // a car without an address is left out (0310: the database gives every published car one; this keeps the site's links
 // whole even if one slips through): the home page, Cars, Delivery, Requirements and the class pages all link /cars/<slug>
-export const getFleet = cache(async () => (((await rpc('fleet', { p_filters: {} })) ?? []) as unknown as CarRow[]).filter(hasAddress));
+/** r48 (3040): the studio covers of real cars that passed the check (lib/studio-covers.ts), read once when a page is built;
+ *  none when the read fails (the sample photos then stay). */
+export const getStudioCovers = cache(async () => ((await rpc('site_studio_covers', { p_limit: 24 }).catch(() => [])) ?? []) as unknown as StudioCover[]);
+/** The fleet; a card whose photo is a sample photo carries real cars' studio covers to show in turn (`studio`). */
+export const getFleet = cache(async () => {
+  const [raw, covers] = await Promise.all([rpc('fleet', { p_filters: {} }), getStudioCovers()]);
+  return withStudio(((raw ?? []) as unknown as CarRow[]).filter(hasAddress), covers);
+});
 /** 0523: the store app's links (Program settings app_store_url, play_store_url); both null until the apps are live. */
 export type AppLinks = { ios: string | null; android: string | null };
 export const appLinks = cache(async (): Promise<AppLinks> => {

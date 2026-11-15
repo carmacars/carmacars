@@ -19,6 +19,8 @@ import { StartListing } from '@/features/listing/StartListing';
 import { ServiceHistory } from '@/features/maintenance/OwnerHistory';
 import type { OwnerHistory } from '@/features/maintenance/model';
 import { rpc } from '@/lib/db/repo';
+import { OwnerCarLocation } from '@/features/tracking/CarLocation';
+import type { OwnerLoc } from '@/features/tracking/location';
 import { OwnerTermsHistory } from '@/features/owner-billing/OwnerTerms';
 import type { CarTermsData } from '@/features/owner-billing/terms-shared';
 import { OwnerHandoffs } from '@/features/handover/OwnerHandoffs';
@@ -41,6 +43,9 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
   const bookings = view.bookings.filter((b) => b.vehicle_id === id);
   const live = view.live[id]!;
   const soon = upcoming(bookings, new Date(), 5);
+  // r48 (3041): where the car is and its trips, the location only (the database checks the car is this owner's)
+  const loc = enrolled0(v.status) ? await door<OwnerLoc>(user.id, 'ops_read', 'owner_car_location', { vehicle: id }).catch(() => null) : null;
+  const locAt = new Date().getTime();
   const enrolled = live.key !== 'onboarding';
   const exit = home.exits.find((x) => x.vehicle_id === id && x.status === 'notice');
   // the car's listing: photos and progress while one is open (an owner's listing is reviewed by staff)
@@ -99,6 +104,7 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
                 amount={b.booking_type === 'owner' ? undefined : amountText(b, (c) => money(c))} meta={<><span>{viewOf(b) === 'unavailable' ? 'Unavailable' : b.status === 'on_rent' ? 'On rent now' : 'Confirmed'}</span><span>{when(b.pickup_at)} to {when(b.return_at)}</span></>} />))}
             </Timeline></section>}
           <OwnerHandoffs vehicleId={id} userId={user.id} owner />
+          {loc && <section className="pt-card" aria-labelledby="ow-loc" data-testid="vehicle-location"><h2 className="d4" id="ow-loc">Where your car is</h2><OwnerCarLocation d={loc} at={locAt} /></section>}
           <section className="pt-card" aria-labelledby="ow-bk"><h2 className="d4" id="ow-bk">Bookings</h2>
             {bookings.length ? <ul className="ow-rows">{bookings.map((b) => <OwnerBookingRow key={b.booking_id} b={b} withCar={false} />)}</ul>
               : <p className="muted small">No bookings yet.</p>}
@@ -130,3 +136,6 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
     </>
   );
 }
+
+/** r48 (3041): a car still with us (not declined or gone) shows where it is, or "No tracker yet". */
+const enrolled0 = (status: string) => !['declined', 'exited', 'total_loss', 'withdrawn'].includes(status);

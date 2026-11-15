@@ -1,6 +1,8 @@
 import { cache } from 'react';
 import { rpc } from '@/lib/db/repo';
 import type { CarRow } from '@/lib/types';
+import { getStudioCovers } from '@/lib/site';
+import { withStudio } from '@/lib/studio-covers';
 import type { Counts } from '@/features/seo/data';
 
 // The public reads of migration 0095: one hub (a place and a term), the entry points, the service pages, the sitemaps.
@@ -31,7 +33,11 @@ export interface Hub {
 export interface ShopServices { services: Array<{ code: string; name: string; description: string; from_price_cents: number | null; terms: Array<{ slug: string; title: string }> }>; reach_km: number; origin: { label: string } }
 export interface PlaceRoots { tops: PlaceBrief[]; cities: PlaceBrief[]; attribution: { geonames: boolean; osm: boolean } }
 
-export const getHub = cache(async (vertical: Vertical, term: string, place: string) => (await rpc('place_hub', { p_vertical: vertical, p_term: term, p_place: place })) as unknown as Hub | null);
+export const getHub = cache(async (vertical: Vertical, term: string, place: string) => {
+  const [h, covers] = await Promise.all([rpc('place_hub', { p_vertical: vertical, p_term: term, p_place: place }) as unknown as Promise<Hub | null>, getStudioCovers()]);
+  // r48 (3040): a card with a sample photo shows real studio covers of the cars on the page in turn
+  return h && Array.isArray(h.cars) ? { ...h, cars: withStudio(h.cars, covers) } : h;
+});
 export const getPlaceRoots = cache(async () => ((await rpc('place_roots', {})) ?? { tops: [], cities: [], attribution: { geonames: false, osm: false } }) as unknown as PlaceRoots);
 export const getShopServices = cache(async (vertical: 'detailing' | 'bodyshop') => (await rpc('shop_services_public', { p_vertical: vertical })) as unknown as ShopServices);
 

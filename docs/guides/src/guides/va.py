@@ -431,7 +431,7 @@ def build():
     g.steps([
         f'Press {B("Cover the plate")}. Check the suggested box; {B("Suggest the plate")} asks again.',
         'Drag over a plate to draw a box; drag a box to move it, its corner to resize it.',
-        f'The plate is blurred so no character can be read (nothing is drawn on it). Press {B("Save the covered photo")}.',
+        f'Only a plate that is there is blurred, tight to the plate with a soft edge, so no character can be read (nothing is drawn on it). A car with no front plate gets no box on its front bumper. Press {B("Save the covered photo")}.',
         f'No plate in the shot? {B("No plate visible on this photo")}.',
     ], shot=S('admin/11-plate-editor-phone', 0, 0, 390, 776, hdr=True, pins=[(3, 205, 612), (4, 195, 340), (5, 240, 482), (6, 168, 716)]))
     g.warn('The plate check never holds a car back: a photo whose plate is not checked stays private, and goes public by itself once it is covered or marked. The covered photo replaces the public one; the original is kept privately.')

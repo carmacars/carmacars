@@ -183,7 +183,7 @@ You must pay all tolls (including Highway 407 ETR), parking charges, tickets, ca
 
 ### 12. Tracking, disabling and repossession
 
-**12.1 Consent.** As a condition of renting, you consent to GPS tracking of the Vehicle for the whole Rental Period and to remote disabling under this section, and you must tell every other driver. The Tracker records location, speed, distance, ignition and tampering, not sound or video. Where the Vehicle belongs to a third-party Owner, the Owner can also see its location, but the Owner's lock, alarm and shut-off controls are blocked during the Rental Period.
+**12.1 Consent.** As a condition of renting, you consent to GPS tracking of the Vehicle for the whole Rental Period and to remote disabling under this section, and you must tell every other driver. The Tracker records location, speed, distance, ignition and tampering, not sound or video. CarmaCars staff can see the Vehicle's location and trips, read only. Where the Vehicle belongs to a third-party Owner, the Owner can also see its location (the location only, not your name or booking unless the Owner manages the rental), but the Owner's lock, alarm and shut-off controls are blocked during the Rental Period.
 
 **12.2 Evidence.** Tracker data is proof of where the Vehicle was, how far and how it was driven, and who had it, unless you show it is wrong.
 
@@ -292,7 +292,7 @@ This Part applies only where the Summary is marked "Owner Rental": the Renter is
 
 The Renter must tick each box before signing. Each Additional Driver gives consents 1 to 3.
 
-1. ☐ **Tracking and disabling.** I consent to GPS tracking of the Vehicle, to its Owner seeing its location where it belongs to a third-party Owner, and to remote disabling and repossession under section 12.
+1. ☐ **Tracking and disabling.** I consent to GPS tracking of the Vehicle, to CarmaCars staff and, where it belongs to a third-party Owner, its Owner seeing its location, and to remote disabling and repossession under section 12.
 2. ☐ **Identity verification.** I consent to CarmaCars verifying my identity and licence using my identification and a live photo of my face (sections 2.2 and 13). My documents are genuine and mine.
 3. ☐ **Electronic signature.** I agree to sign this Agreement through an electronic signature service that records the time and method of my acceptance, and to receive it and all notices electronically (section 15.2). I could read and save it before signing.
 4. ☐ **Card authorization.** I authorize CarmaCars to hold or charge my card for the total, the Deposit and later Charges, without asking me again (section 5.3).

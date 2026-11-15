@@ -74,6 +74,8 @@ import { BookingVersions } from '@/features/request-history/BookingVersions';
 import type { BookingVersions as VersionsData } from '@/features/request-history/model';
 import { InstantBookCard, RideshareStaffCard, SecondaryContactCard, type InstantState, type RideshareFacts, type SecondaryContact } from '@/features/request-history/BookingExtras';
 import type { History, Revert } from '@/features/request-history/model';
+import { CarLocation } from '@/features/tracking/CarLocation';
+import type { CarLoc } from '@/features/tracking/location';
 
 // r31 "Simple": one booking page for Admin and staff (03-admin.md section 4, 05-va.md sections 2 to 5). The loader picks
 // the access path from the viewer (PageCtx) and reads only what the viewer's function uses; every section and button
@@ -151,6 +153,9 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
   const refresh = can.admin ? [base, '/admin/requests'] : [base];
   const inbox = can.inbox ? `${portal}/visitors?view=chat` : null;
   const carHref = can.carLink ? `${portal}/vehicles/${b.vehicle_id}` : null;
+  // r48 (3041): where the booking's car is now, for every staff role (read only outside Admin and Fleet)
+  const loc = on('overview') && b.vehicle_id ? await ops<CarLoc>('tracker_car', { vehicle: b.vehicle_id }).catch(none(null)) : null;
+  const locAt = new Date().getTime();
   const notOwner = b.booking_type !== 'owner';
 
   // ---- the reads, each only where the viewer's section and function use it
@@ -431,6 +436,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
       {duplicates && renterForm && <RenterMerge renterId={renterForm.renter_id} name={renterForm.now.full_name ?? 'this renter'} rows={duplicates} />}
       {on('overview') && (
         <div className="ad-cols ad-cols--2">
+          {b.vehicle_id && <Card title="Where the car is" testId="booking-car-location"><CarLocation d={loc} at={locAt} mapHref={can.admin ? '/admin/vehicles/tracking' : '/staff/fleet/map'} /></Card>}
           <Card title="Trip">
             <Kv rows={[['Car', carHref ? <Link prefetch={false} key="c" className="link" href={carHref}>{b.vehicle?.name} {b.vehicle?.plate}</Link> : `${b.vehicle?.name ?? ''} ${b.vehicle?.plate ?? ''}`],
               ['Pickup', `${t(b.pickup_at)}, ${b.pickup_place ?? 'our location'}`], ['Return', `${t(b.return_at)}, ${b.return_place ?? 'our location'}`],

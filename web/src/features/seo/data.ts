@@ -1,6 +1,8 @@
 import { cache } from 'react';
 import { rpc, sharedRead } from '@/lib/db/repo';
 import type { CarRow } from '@/lib/types';
+import { getStudioCovers } from '@/lib/site';
+import { withStudio } from '@/lib/studio-covers';
 import type { Faq } from './copy';
 
 // The public reads of migration 0061: landing pages, articles and the footer's links.
@@ -32,7 +34,11 @@ export const getHubLinks = cache(async (): Promise<HubLinks> => {
   }
 });
 export const getSeoPages = cache(async () => ((await rpc('seo_pages_public', {})) ?? []) as unknown as SeoPageRow[]);
-export const getSeoPage = cache(async (slug: string) => (await rpc('seo_page', { p_slug: slug })) as unknown as SeoPage | null);
+export const getSeoPage = cache(async (slug: string) => {
+  const [p, covers] = await Promise.all([rpc('seo_page', { p_slug: slug }) as unknown as Promise<SeoPage | null>, getStudioCovers()]);
+  // r48 (3040): a card with a sample photo shows real studio covers of the cars on the page in turn
+  return p && Array.isArray(p.cars) ? { ...p, cars: withStudio(p.cars, covers) } : p;
+});
 export const getArticles = cache(async () => ((await rpc('articles_public', {})) ?? []) as unknown as ArticleRow[]);
 export const getArticle = cache(async (slug: string) => (await rpc('article', { p_slug: slug })) as unknown as Article | null);
 

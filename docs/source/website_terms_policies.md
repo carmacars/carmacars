@@ -88,7 +88,7 @@ We also receive information from our identity verification provider, insurers, t
 
 ### 2. Tracking
 
-The Tracker records the vehicle's location continuously for the whole rental, including where it is parked. Tracking and remote disabling are a condition of renting, because we cannot protect or insure the fleet without them. Section 12 of the Rental Agreement sets when a vehicle may be disabled. Tracker data may be used as evidence. The vehicle's owner can see the vehicle's location during your rental. For owners, the Tracker also records when you drive your own vehicle.
+The Tracker records the vehicle's location continuously for the whole rental, including where it is parked. Tracking and remote disabling are a condition of renting, because we cannot protect or insure the fleet without them. Section 12 of the Rental Agreement sets when a vehicle may be disabled. Tracker data may be used as evidence. The vehicle's location is visible to CarmaCars staff (to run the fleet and help you) and to the vehicle's owner, during your rental and at any other time. Staff and owners see the location only; an owner does not see your name or your booking unless the owner manages the rental. For owners, the Tracker also records when you drive your own vehicle.
 
 ### 3. Consent
 
@@ -100,6 +100,7 @@ We do not sell personal information. We share only what each recipient needs:
 
 - **Insurance.** Our insurer and broker, and the provider of the optional Protection Plan if you buy it, for underwriting and claims.
 - **Payment and identity.** Our payment processor and our identity verification provider.
+- **CarmaCars staff.** Our staff see each vehicle's location and trips, read only, to run the fleet and help you.
 - **Vehicle owners.** The owner of a vehicle can see its location during your rental, its status and its booking dates. The owner cannot lock it, sound its alarm or shut it off during a rental we manage. An owner who manages their own rentals also receives the renter details needed to hand over the vehicle. Owners must keep this confidential and may not use it to follow, contact or monitor a renter.
 - **Authorities.** Police, courts, regulators, and toll and parking authorities, where the law requires or permits. This includes naming the driver responsible for a toll or ticket and reporting a vehicle stolen.
 - **Service providers.** Hosting, messaging, electronic signature, analytics, towing and recovery, repair shops, collection agencies, professional advisers, and our remote customer service and billing staff.

@@ -545,7 +545,7 @@ def build():
     g.steps([
         f'The editor suggests a box over the plate. Check it. {B("Suggest the plate")} asks again.',
         'Drag over a plate to draw a box. Drag a box to move it, or its corner to resize it.',
-        'The plate is blurred so no character can be read. Nothing is drawn on a plate. Photos covered the old way are made again by Gemini with the plate blurred.',
+        'The plate is blurred so no character can be read, only over the plate itself, with rounded corners and a soft edge. Nothing is drawn on a plate. A car with no front plate gets no box there. The studio photos Gemini makes have no plate at all: it is taken off cleanly, and a bumper without a plate is left as it is.',
         f'Press {B("Save the covered photo")}. {B("Clear the boxes")} starts over.',
         f'No plate in the shot? Press {B("No plate visible on this photo")}.',
     ], shot=S('admin/11-plate-editor-desktop', 270, 90, 960, 793, hdr=False,

@@ -57,16 +57,16 @@ select test.throws('Sales cannot log a post (Admin''s)', format($$select test.cn
 -- ================================================================ 4. Bookings > Now for finance
 select test.ok('finance reads the whole board with the money', (select v ->> 'scope' = 'full' and v ? 'money' from (select test.cn('cn_fin', 'ops_read', 'bookings_now', '{"_va": "finance"}') v) x));
 
--- ================================================================ 5. field staff: the cars of their own jobs on the tracker map
+-- ================================================================ 5. field staff on the tracker map (r48, 3041: every car, read only)
 insert into field_jobs (kind, vehicle_id, assigned_to, scheduled_at, status) values ('delivery', test.id('vehicle:cn_car'), test.id('cn_field'), now() + interval '3 hours', 'scheduled');
-select test.eq('field staff see their job''s car only',
-  (select string_agg(c ->> 'vehicle_id', ',') from jsonb_array_elements(test.cn('cn_field', 'ops_read', 'tracker_fleet') -> 'cars') c), test.id('vehicle:cn_car')::text);
-select test.eq('another field staff member sees none of them', jsonb_array_length(test.cn('cn_other_field', 'ops_read', 'tracker_fleet') -> 'cars'), 0);
+select test.ok('field staff see every car, read only (3041)',
+  (select bool_and(x) from (select test.id('vehicle:' || c) in (select (e ->> 'vehicle_id')::uuid from jsonb_array_elements(test.cn('cn_field', 'ops_read', 'tracker_fleet') -> 'cars') e) as x
+     from unnest(array['cn_car', 'cn_car2']) c) q) and (test.cn('cn_other_field', 'ops_read', 'tracker_fleet') ->> 'read_only')::boolean);
 select test.ok('fleet staff still see every car', jsonb_array_length(test.cn('cn_fleet', 'ops_read', 'tracker_fleet', '{"_va": "fleet"}') -> 'cars') >= 2);
 select test.throws('field staff cannot change the trackers', $$select test.cn('cn_field', 'ops_do', 'tracker_settings_save', '{}')$$, 'Only an Admin');
 insert into tracker_trips (id, vehicle_id, started_at, ended_at, km) values (test.id('trip:cn2'), test.id('vehicle:cn_car2'), now() - interval '2 hours', now() - interval '1 hour', 12);
-select test.throws('field staff cannot read the trips of other cars', format($$select test.cn('cn_field', 'ops_read', 'tracker_trip_path', '{"trip": "%s"}')$$, test.id('trip:cn2')), 'cars of your jobs');
-select test.throws('customer service still cannot read Fleet tracking', $$select test.cn('cn_cs', 'ops_read', 'tracker_fleet')$$, 'Admins and fleet staff');
+select test.ok('field staff read any car''s trip (3041)', (test.cn('cn_field', 'ops_read', 'tracker_trip_path', jsonb_build_object('trip', test.id('trip:cn2'))) -> 'trip') is not null);
+select test.ok('customer service reads Fleet tracking, read only (3041)', (test.cn('cn_cs', 'ops_read', 'tracker_fleet') ->> 'read_only')::boolean);
 
 -- ================================================================ 6. Call and Text through Quo
 select test.ok('the buttons go through Quo by default', (test.cn('cn_fleet', 'va_read', 'phone_buttons') ->> 'quo')::boolean);

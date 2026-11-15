@@ -121,6 +121,7 @@ export function FleetTracking({ initial, at, staff = false }: { initial: Fleet |
 
   const k = view?.counts;
   const open = (view?.alerts ?? []).filter((a) => !a.ack_at);
+  const ro = !!view?.read_only;
   const bookingHref = (n: string) => (staff === 'field' ? '/staff/field' : `${base}/bookings/${encodeURIComponent(n)}`);
 
   return (
@@ -141,7 +142,7 @@ export function FleetTracking({ initial, at, staff = false }: { initial: Fleet |
       <div className="ft-hero">
         <div className="lm-map ft-map" ref={boxRef} data-testid="ft-map" data-mode={mode}>
           {mode === 'nogl' && <p className="lm-map__note">The map needs WebGL, which this browser does not have. The list beside it has every car.</p>}
-          {mode === 'map' && !placed.length && <p className="ft-empty">No car is reporting yet. Each car shows here once its tracker is paired and reports{view?.admin ? ', or turn on demo mode below to see simulated cars.' : '.'}</p>}
+          {mode === 'map' && !placed.length && <p className="ft-empty" data-testid="ft-no-tracker">No tracker yet. No car is reporting yet. Each car shows here once its tracker is paired and reports{view?.admin ? ', or turn on demo mode below to see simulated cars.' : '.'}</p>}
         </div>
         <section className="ft-list" aria-label="Cars" data-testid="ft-cars">
           <h2 className="lm-h">Cars <span>{cars.length}</span></h2>
@@ -175,7 +176,7 @@ export function FleetTracking({ initial, at, staff = false }: { initial: Fleet |
       </div>
       {tab === 'alerts' ? (
         <section className="ft-sec" aria-label="Alerts" data-testid="ft-alerts">
-          {open.filter((a) => !a.demo).length > 1 && <p><button type="button" className="ft-btn" onClick={() => void ack(null)} disabled={busy === 'all'}>Mark all as seen</button></p>}
+          {!ro && open.filter((a) => !a.demo).length > 1 && <p><button type="button" className="ft-btn" onClick={() => void ack(null)} disabled={busy === 'all'}>Mark all as seen</button></p>}
           {view?.alerts.length ? <ul className="ft-alerts">{view.alerts.map((a) => (
             <li key={a.id} className={`ft-alert ft-alert--${ALERT[a.kind].tone}${a.ack_at ? ' is-seen' : ''}`} data-testid="ft-alert">
               <span className="ft-alert__k">{ALERT[a.kind].label}{a.demo ? ' · demo' : ''}</span>
@@ -183,7 +184,7 @@ export function FleetTracking({ initial, at, staff = false }: { initial: Fleet |
                 {a.ack_at && <span className="ft-sub">Seen by {a.ack_by ?? 'staff'}{a.ack_note ? `: ${a.ack_note}` : ''}</span>}</span>
               <span className="ft-alert__acts">
                 {a.lat != null && a.lng != null && <button type="button" className="ft-btn ft-btn--q" onClick={() => { boxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); engine.current?.flyTo(a.lng!, a.lat!); if (a.vehicle_id) setSel(a.vehicle_id); }}>Show</button>}
-                {!a.ack_at && !a.demo && <button type="button" className="ft-btn" onClick={() => void ack(a)} disabled={busy === a.id} data-testid="ft-ack">Seen</button>}
+                {!ro && !a.ack_at && !a.demo && <button type="button" className="ft-btn" onClick={() => void ack(a)} disabled={busy === a.id} data-testid="ft-ack">Seen</button>}
               </span>
             </li>))}</ul> : <p className="lm-quiet">No alerts. Speeding over {st?.speed_alert_kmh ?? 140} km/h, leaving Ontario{st?.zone_name ? ` or ${st.zone_name}` : ''}, driving after the return time, a low or unplugged tracker and a tracker that stops reporting show here, in the bell and as a phone alert.</p>}
         </section>
@@ -202,7 +203,7 @@ export function FleetTracking({ initial, at, staff = false }: { initial: Fleet |
         </section>
       )}
       {err && <p className="lm-err" role="status">Not refreshed: {err}.</p>}
-      <p className="lm-foot">Positions are seen by Admins and fleet staff only. History is kept {st?.history_days ?? 90} days, trips and alerts {st?.trip_days ?? 365} days. Basemap: Natural Earth; the GTA&apos;s highways drawn by CarmaCars.</p>
+      <p className="lm-foot">Positions are seen by CarmaCars staff (read only; Admins and fleet staff mark alerts as seen) and each car&apos;s owner sees their own car. History is kept {st?.history_days ?? 90} days, trips and alerts {st?.trip_days ?? 365} days. Basemap: Natural Earth; the GTA&apos;s highways drawn by CarmaCars.</p>
     </div>
   );
 }

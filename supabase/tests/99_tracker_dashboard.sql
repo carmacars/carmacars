@@ -46,8 +46,9 @@ create temp table tk_key as select test.tkdo('tk_admin', 'tracker_key_new') as v
 select test.eq('the key is shown once, kept in the vault (stand-in here), and the website reads it back',
   (select (v ->> 'key') like 'trk_%' and length(v ->> 'key') = 68 and app.tracker_ingest_key() = (v ->> 'key')
           and (select ingest_key_hint from tracker_settings) = right(v ->> 'key', 4) from tk_key), true);
-select test.throws('customer service cannot read Fleet tracking', format('select app.door(%L, %L, %L, %L)', test.id('tk_cs'), 'aal2', 'ops_read', 'tracker_fleet'), 'Admins and fleet staff');
-select test.throws('an owner cannot read Fleet tracking', format('select app.door(%L, %L, %L, %L)', test.id('tk_owner'), 'aal2', 'ops_read', 'tracker_fleet'), 'Admins and fleet staff');
+-- r48 (3041): every staff role reads the map, read only
+select test.ok('customer service reads Fleet tracking, read only', (app.door(test.id('tk_cs'), 'aal2', 'ops_read', 'tracker_fleet') ->> 'read_only')::boolean);
+select test.throws('an owner cannot read Fleet tracking', format('select app.door(%L, %L, %L, %L)', test.id('tk_owner'), 'aal2', 'ops_read', 'tracker_fleet'), 'CarmaCars staff');
 
 -- ================================================================ 3. an unknown device, then pairing
 select test.eq('a device nobody paired: kept as an in-stock device with its hot row, no history',
@@ -180,6 +181,8 @@ select test.eq('unpaired: the device is removed, the car''s position leaves the 
 select test.ok('the telemetry tables carry no row audit; the alerts and settings do',
   not exists (select 1 from pg_trigger where tgname in ('audit_tracker_points', 'audit_tracker_trips', 'audit_tracker_status'))
   and exists (select 1 from pg_trigger where tgname = 'audit_tracker_alerts') and exists (select 1 from pg_trigger where tgname = 'audit_tracker_settings'));
-select test.ok('no browser role reaches the history, trips or alerts except Admins and fleet staff (policies)',
-  (select count(*) from pg_policies where tablename in ('tracker_points', 'tracker_trips', 'tracker_alerts')) = 6
+-- r48 (3041): the position history also to every staff member and to the car's own owner (99_r48_car_location.sql)
+select test.ok('no browser role reaches the history, trips or alerts except Admins and fleet staff (policies; 3041: positions to staff and the car''s owner)',
+  (select count(*) from pg_policies where tablename in ('tracker_points', 'tracker_trips', 'tracker_alerts')) = 8
+  and (select count(*) from pg_policies where tablename = 'tracker_points' and policyname in ('staff_read', 'owner_read')) = 2
   and not exists (select 1 from pg_policies where tablename = 'tracker_status' and policyname = 'owner_read'));

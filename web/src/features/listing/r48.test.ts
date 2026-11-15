@@ -5,7 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BACKGROUND_SAME, DEFAULT_SCENE, HARD_REASONS, borderDiff } from './r48.ts';
-import { PLATE_FAMILIES, R48_ANGLES, R48_SPEC, feedbackLine, guidePath, imageRoles, judgePlate, judgeR48, plateFamily, platePath, platePrompt, r48Angle, r48CheckPrompt, r48Prompt,
+import { plateEndOf, plateRule, PLATE_FAMILIES, R48_ANGLES, R48_SPEC, feedbackLine, guidePath, imageRoles, judgePlate, judgeR48, plateFamily, platePath, platePrompt, r48Angle, r48CheckPrompt, r48Prompt,
   REAL_PHOTO_RULE } from './r48.ts';
 import { STANDARD_ANGLES } from './r45.ts';
 import { encodeJpeg } from './showroom.ts';
@@ -89,9 +89,12 @@ test('the check: each problem refuses; the plate is blurred by the site; the vie
   assert.equal(judgeR48({ ...OK, background_wrong: true, view: 'dashboard' }, { shot: 'dashboard', plate: false }).pass, true, 'no plate inside');
   assert.deepEqual(judgeR48({ ...OK, view: 'rear' }, { shot: 'front_left', plate: true }).reasons, ['wrong_view']);
   assert.equal(judgeR48({ ...OK, view: 'front_right' }, { shot: 'front_left', plate: true }).pass, true, 'a three-quarter from the other side');
+  // 3040: a plate left on the car refuses the first tries (it must be taken off cleanly), then is blurred by the site
   const plated = judgeR48({ ...OK, plate_readable: true, plates: [{ box_2d: [700, 420, 760, 560] }] }, { shot: 'front_left', plate: true });
-  assert.equal(plated.pass, true);
-  assert.equal(plated.plates.length, 1);
+  assert.deepEqual(plated.reasons, ['plate_left']);
+  const late = judgeR48({ ...OK, plate_readable: true, plates: [{ box_2d: [700, 420, 760, 560] }] }, { shot: 'front_left', plate: true, tries: 2 });
+  assert.equal(late.pass, true);
+  assert.equal(late.plates.length, 1);
   assert.deepEqual(judgeR48({ ...OK, plate_readable: true }, { shot: 'front_left', plate: true }).reasons, ['plate_readable']);
   assert.ok(judgeR48({ ...OK, plates: [{ box_2d: [50, 100, 120, 900] }] }, { shot: 'front_left', plate: true }).reasons.includes('plate_off_car'));
   assert.deepEqual(judgeR48({ ...OK, clutter: true, view: 'trunk' }, { shot: 'trunk', plate: false }).reasons, ['clutter']);
@@ -323,3 +326,51 @@ test('r48.2 worker: a car with no photo is made from the stock photo; the scene 
     { shot: 'trunk', refs: [], family: null, plate: null, guide: null }), budget));
   assert.equal(r2.r45.pass, false, 'no inside view is invented from a stock photo');
 });
+
+// ---------------------------------------------------------------- 3040: a plate only where the car has one, never a large box
+test('3040 the plate words: no plate at an end leaves that bumper untouched; a front view says so; never a blank plate', () => {
+  const none = r48Prompt({ car: CAR, shot: 'front', refs: 2, guide: false, stock: false, plate: true, plateEnd: 'no' });
+  assert.match(none, /THIS CAR HAS NO FRONT PLATE/);
+  assert.match(none, /no plate, holder, rectangle, blur or box/);
+  assert.doesNotMatch(none, /blank plate holder/);
+  const unknown = r48Prompt({ car: CAR, shot: 'front_left', refs: 2, guide: false, stock: false, plate: true });
+  assert.match(unknown, /This is a front view: if the real photos show no front plate, the front bumper stays bare and untouched/);
+  assert.match(unknown, /many Ontario cars have no front plate/);
+  const rear = r48Prompt({ car: CAR, shot: 'rear', refs: 2, guide: false, stock: false, plate: true, plateEnd: 'yes' });
+  assert.match(rear, /carries a rear plate: take it off cleanly so the bare rear bumper shows/);
+  assert.match(plateRule('left'), /This view shows no plate/);
+  assert.equal(plateEndOf('front_left'), 'front');
+  assert.equal(plateEndOf('rear'), 'rear');
+  assert.equal(plateEndOf('left'), null);
+  const check = r48CheckPrompt({ car: CAR, shot: 'front', plate: true, plateEnd: 'no' });
+  for (const k of ['plate_present', 'plate_cover', 'real_plate']) assert.match(check, new RegExp(`"${k}"`));
+  assert.match(check, /an empty plate recess or bracket is not a plate/);
+});
+
+test('3040 the check: a blur or box where no plate is, a large cover, or an added plate always refuse; no plate, no box', () => {
+  // a front bumper with no plate, left alone: passes, nothing to blur
+  const bare = judgeR48({ ...OK, view: 'front', plate_present: false, plate_cover: false, real_plate: 'no' }, { shot: 'front', plate: true, plateEnd: 'no' });
+  assert.equal(bare.pass, true);
+  assert.deepEqual(bare.plates, []);
+  // the check says no plate is there but still boxed the bumper: the box is dropped (the site never blurs a bare bumper)
+  const phantomBox = judgeR48({ ...OK, view: 'front', plate_present: false, plates: [{ box_2d: [700, 420, 760, 560] }] }, { shot: 'front', plate: true, plateEnd: 'no' });
+  assert.equal(phantomBox.pass, true);
+  assert.deepEqual(phantomBox.plates, []);
+  // a blur, box or blank patch where a plate is or would be: refused, even on the last try
+  for (const tries of [0, 2]) {
+    const patch = judgeR48({ ...OK, view: 'front', plate_cover: true }, { shot: 'front', plate: true, tries, plateEnd: 'no' });
+    assert.equal(patch.pass, false);
+    assert.ok(patch.reasons.includes('plate_patch'), String(tries));
+  }
+  // a plate drawn on an end of the car that has none: refused, even late
+  const added = judgeR48({ ...OK, view: 'front', plate_present: true, plates: [{ box_2d: [700, 440, 740, 560] }] }, { shot: 'front', plate: true, tries: 2, plateEnd: 'no' });
+  assert.deepEqual(added.reasons, ['plate_added']);
+  assert.ok(judgeR48({ ...OK, view: 'front', plate_present: true, real_plate: 'no', plates: [{ box_2d: [700, 440, 740, 560] }] }, { shot: 'front', plate: true, tries: 2 }).reasons.includes('plate_added'));
+  // a plate box far larger than a plate in that view: refused, never blurred
+  const big = judgeR48({ ...OK, view: 'front_left', plate_present: true, plates: [{ box_2d: [600, 300, 900, 700] }] }, { shot: 'front_left', plate: true, tries: 2 });
+  assert.ok(big.reasons.includes('plate_oversized'));
+  assert.deepEqual(big.plates, []);
+  // interiors: never a plate box
+  assert.deepEqual(judgeR48({ ...OK, view: 'dashboard', plates: [{ box_2d: [700, 440, 740, 560] }] }, { shot: 'dashboard', plate: false }).plates, []);
+});
+

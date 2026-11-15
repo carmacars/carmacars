@@ -13,7 +13,8 @@
 //     made again (two more tries), then kept off the site and flagged, never published.
 // Pure: no I/O, so the unit tests cover the words, the plan of the angles, the check's verdict, the plate blur and the order.
 import type { Rgba } from './subject-frame.ts';
-import type { NBox } from './plate-cover.ts';
+import { plateMask, type NBox } from './plate-cover.ts';
+export { plateMask };
 
 /** The photo standard (app.photo_spec() returns the same; keep the two equal). */
 export const R45_SPEC = 'r45.1';
@@ -64,7 +65,7 @@ export function angleSources<T extends { shot: string | null; generated?: boolea
 
 // ================================================================ the words
 /** The plate rule (owner, Nov 14): every plate blurred, nothing drawn on it, no text anywhere else. */
-export const PLATE_BLUR_RULE = 'THE LICENCE PLATES: keep each plate exactly where it is on the car (the same size, shape and angle on its plate holder) and blur its face strongly, like a heavy Gaussian blur, so that no letter or number on it can be read. Do not draw, replace or invent any plate, text or logo on it. Blur nothing else in the photo.';
+export const PLATE_BLUR_RULE = 'THE LICENCE PLATES: keep each plate exactly where it is on the car (the same size, shape and angle on its plate holder) and blur its face strongly, like a heavy Gaussian blur, so that no letter or number on it can be read, the blur tight to the plate\'s own edges. Where the car has no plate (many Ontario cars have no front plate), leave that bumper exactly as it is: no blur, no box, no patch and no plate there. Do not draw, replace or invent any plate, text or logo on it. Blur nothing else in the photo.';
 export const NO_TEXT_RULE = 'NO TEXT: no letters, numbers, words, captions, watermarks or stickers anywhere in the photo (not in the air, on the floor, on the walls, on the windows or on the car), other than the car\'s own badges and the CarmaCars logo sign on the back wall of the showroom.';
 export const SHARP_RULE_R45 = 'The whole photo is sharp and in focus from front to back, like a photo taken at a small aperture: no background blur, no bokeh, no depth-of-field effect, no motion blur.';
 const SAME_CAR = (car: string) => `THE CAR is a ${car}. It must stay exactly this car: the same make, model, generation, body style, trim, colour, wheels, badges and lights, the same body lines and proportions, not warped, stretched or bent, no part added or missing, nothing improved, no damage hidden or invented.`;
@@ -152,11 +153,14 @@ export function checkPrompt(o: { car: CarFacts; shot: string; generated: boolean
     '"parts_changed": parts are added or missing (wheels, mirrors, lights, badges, spoilers, seats, screens) compared with the real car;',
     '"text_elsewhere": readable letters, numbers or words anywhere other than the car\'s own badges and the CarmaCars logo sign on the wall (captions, watermarks, floating text, text on the floor, walls or windows);',
     '"plate_readable": any licence plate character can still be read;',
+    '"plate_present": a licence plate (with letters or numbers, readable or blurred) is mounted on the car; false for an empty bumper, an empty plate recess or bracket;',
+    '"phantom_cover": a blur, smudge, mosaic, box or blank rectangle on the car where no licence plate is (for example on a front bumper that has no plate);',
+    '"big_cover": a blurred or covered plate area clearly larger than the plate itself (it spreads over the bumper, grille or lights);',
     '"blurry": the photo, or a large part of it, is blurred or out of focus (a strongly blurred licence plate does not count);',
     '"clutter": an interior shows loose objects that are not part of the car;',
     '"view": the view the edited photo shows, one of front_left, front_right, front, left, right, rear_left, rear_right, rear, dashboard, front_seats, rear_seats, trunk, other;',
-    '"plates": every licence plate in the edited photo, each {"box_2d": [ymin, xmin, ymax, xmax]} on a 0 to 1000 grid (y first); [] when none.',
-    'Example: {"original_background": false, "warped": false, "wrong_colour": false, "wrong_model": false, "parts_changed": false, "text_elsewhere": false, "plate_readable": false, "blurry": false, "clutter": false, "view": "front_left", "plates": [{"box_2d": [700, 420, 760, 560]}]}'
+    `"plates": ${PLATES_KEY}`,
+    'Example: {"original_background": false, "warped": false, "wrong_colour": false, "wrong_model": false, "parts_changed": false, "text_elsewhere": false, "plate_readable": false, "plate_present": true, "phantom_cover": false, "big_cover": false, "blurry": false, "clutter": false, "view": "rear", "plates": [{"box_2d": [700, 440, 745, 560]}]}'
   ].join(' ');
 }
 export const CHECK_SCHEMA = {
@@ -164,24 +168,54 @@ export const CHECK_SCHEMA = {
   properties: {
     original_background: { type: 'boolean' }, warped: { type: 'boolean' }, wrong_colour: { type: 'boolean' }, wrong_model: { type: 'boolean' },
     parts_changed: { type: 'boolean' }, text_elsewhere: { type: 'boolean' }, plate_readable: { type: 'boolean' }, blurry: { type: 'boolean' },
+    plate_present: { type: 'boolean' }, phantom_cover: { type: 'boolean' }, big_cover: { type: 'boolean' },
     clutter: { type: 'boolean' }, view: { type: 'string' },
     plates: { type: 'array', items: { type: 'object', properties: { box_2d: { type: 'array', items: { type: 'number' } } } } }
   },
-  required: ['original_background', 'warped', 'wrong_colour', 'wrong_model', 'parts_changed', 'text_elsewhere', 'plate_readable', 'blurry', 'view', 'plates']
+  required: ['original_background', 'warped', 'wrong_colour', 'wrong_model', 'parts_changed', 'text_elsewhere', 'plate_readable', 'plate_present', 'blurry', 'view', 'plates']
 } as const;
 
 export type CheckReason = 'original_background' | 'warped' | 'wrong_colour' | 'wrong_model' | 'parts_changed' | 'text_elsewhere' | 'plate_readable' | 'blurry' | 'clutter'
-  | 'wrong_view' | 'edges_not_dark' | 'no_answer' | 'plate_off_car';
+  | 'wrong_view' | 'edges_not_dark' | 'no_answer' | 'plate_off_car' | 'plate_patch' | 'plate_oversized';
 export const REASON_TEXT: Record<CheckReason, string> = {
   original_background: 'the original background is still there', warped: 'the car looks warped', wrong_colour: 'the colour changed', wrong_model: 'it is not the same model',
   parts_changed: 'parts were added or are missing', text_elsewhere: 'there is text on the photo', plate_readable: 'the plate can still be read', blurry: 'the photo is blurred',
   clutter: 'the interior is cluttered', wrong_view: 'it shows the wrong view', edges_not_dark: 'the edges are not the showroom', no_answer: 'the check did not answer',
-  plate_off_car: 'something like a plate was found off the car'
+  plate_off_car: 'something like a plate was found off the car', plate_patch: 'there is a blur or box where the car has no plate',
+  plate_oversized: 'the plate cover is much larger than the plate'
 };
 /** Where a plate can be on a car in a listing photo: low in the frame and no wider than a plate (r44's plate zone). A box
  *  elsewhere is text off the car: refused, never blurred into place. */
 export const R45_PLATE_ZONE = { minCentreY: 0.4, maxWidth: 0.26 } as const;
 export const onCar = (b: NBox) => b.y + b.h / 2 >= R45_PLATE_ZONE.minCentreY && b.w <= R45_PLATE_ZONE.maxWidth;
+
+// r48 (3040): the plates the check found, only where a plate really is, tight to it
+/** The check's words for its plate boxes: a real plate only, the box on the plate itself. */
+export const PLATES_KEY = 'every licence plate actually mounted on the car (letters or numbers on it, readable or blurred), each {"box_2d": [ymin, xmin, ymax, xmax]} on a 0 to 1000 grid (y first), the box tight around the plate itself (not the bumper around it); [] when the car shows no plate (an empty bumper, an empty plate recess or bracket is not a plate).';
+/** The widest a plate can be in each outside view, as a share of a 3:2 photo's width (a straight front or rear view at about
+ *  65 percent of the frame: a plate is about a sixth; a three-quarter or a side shows it turned away, narrower). */
+export const PLATE_VIEW_MAX_W: Readonly<Record<string, number>> = { front: 0.22, rear: 0.22, front_left: 0.15, front_right: 0.15, rear_left: 0.15, rear_right: 0.15, left: 0.09, right: 0.09 };
+export interface PlateRead { plates: NBox[]; offCar: boolean; oversized: boolean; present: boolean | null }
+/** The plates of a check's answer (box_2d on 0 to 1000, y first). `plate_present: false` means no plate is on the car: no box
+ *  is kept, whatever else was answered (a blur is never put where no plate is). A box wider than a plate can be in that view,
+ *  or higher than a plate, is `oversized` and never blurred. `aspect`: the photo's width over its height (3:2 by default). */
+export function readPlates(a: Record<string, unknown>, shot: string, aspect = 1.5): PlateRead {
+  const present = a.plate_present === undefined || a.plate_present === null ? null : truthy(a.plate_present);
+  const all: NBox[] = [];
+  for (const it of Array.isArray(a.plates) ? a.plates.slice(0, 6) : []) {
+    const b = (it as { box_2d?: unknown })?.box_2d;
+    if (!Array.isArray(b) || b.length !== 4 || !b.every((n) => typeof n === 'number' && Number.isFinite(n))) continue;
+    const [y0, x0, y1, x1] = (b as number[]).map((n) => Math.max(0, Math.min(1000, n)) / 1000) as [number, number, number, number];
+    if (x1 <= x0 || y1 <= y0) continue;
+    all.push({ x: x0, y: y0, w: x1 - x0, h: y1 - y0 });
+  }
+  if (present === false) return { plates: [], offCar: false, oversized: false, present };
+  const maxW = PLATE_VIEW_MAX_W[shot] ?? PLATE_MAX_W;
+  const big = (p: NBox) => p.w > maxW || (p.h / aspect) / p.w > PLATE_MAX_HW * 1.25;
+  // high in the frame: text off the car (a sign); low but larger than a plate: an oversized box (never blurred)
+  const low = all.filter((p) => p.y + p.h / 2 >= R45_PLATE_ZONE.minCentreY);
+  return { plates: low.filter((p) => !big(p) && onCar(p)), offCar: all.some((p) => !low.includes(p)), oversized: low.some((p) => big(p) || !onCar(p)), present };
+}
 
 export interface Verdict { pass: boolean; reasons: CheckReason[]; plates: NBox[]; view: string | null }
 const truthy = (v: unknown) => v === true || v === 'true' || v === 'yes';
@@ -195,55 +229,85 @@ export function judgeCheck(answer: unknown, o: { shot: string; generated: boolea
   const ext = isExterior(o.shot);
   for (const k of ['original_background', 'warped', 'wrong_colour', 'wrong_model', 'parts_changed', 'text_elsewhere', 'blurry'] as const) if (truthy(a[k])) reasons.push(k);
   if (!ext && angleOf(o.shot) && truthy(a.clutter)) reasons.push('clutter');
-  const plates: NBox[] = [];
-  for (const it of Array.isArray(a.plates) ? a.plates.slice(0, 6) : []) {
-    const b = (it as { box_2d?: unknown })?.box_2d;
-    if (!Array.isArray(b) || b.length !== 4 || !b.every((n) => typeof n === 'number' && Number.isFinite(n))) continue;
-    const [y0, x0, y1, x1] = (b as number[]).map((n) => Math.max(0, Math.min(1000, n)) / 1000) as [number, number, number, number];
-    if (x1 <= x0 || y1 <= y0) continue;
-    plates.push({ x: x0, y: y0, w: x1 - x0, h: y1 - y0 });
-  }
-  if (plates.some((p) => !onCar(p))) reasons.push('plate_off_car');
+  const pr = readPlates(a, o.shot);
+  const plates = pr.plates;
+  if (pr.offCar) reasons.push('plate_off_car');
+  // r48 (3040): a blur or box where no plate is, or one far larger than the plate: refused (never published)
+  if (ext && truthy(a.phantom_cover)) reasons.push('plate_patch');
+  if (ext && (pr.oversized || truthy(a.big_cover))) reasons.push('plate_oversized');
   // a readable plate the check could not place cannot be blurred by the site: refused
-  if (truthy(a.plate_readable) && !plates.length) reasons.push('plate_readable');
+  if (truthy(a.plate_readable) && !plates.length && !pr.oversized) reasons.push('plate_readable');
   const view = typeof a.view === 'string' ? a.view.slice(0, 20) : null;
   // the view: an outside photo must be an outside view (the primary photo especially), an inside one inside
   if (view && view !== 'other' && angleOf(o.shot) && isExterior(view) !== ext) reasons.push('wrong_view');
   if (o.generated && view && view !== o.shot && !(o.shot === 'front_left' && view === 'front_right') && !(o.shot === 'rear_left' && view === 'rear_right')) reasons.push('wrong_view');
   if (ext && o.edgesDark === false) reasons.push('edges_not_dark');
-  return { pass: !reasons.length, reasons: [...new Set(reasons)], plates: plates.filter(onCar), view };
+  return { pass: !reasons.length, reasons: [...new Set(reasons)], plates, view };
 }
 
 // ================================================================ the plate blur (the site's own, on top of Gemini's)
-/** Every plate box blurred hard in place (a margin around it, a mosaic then three box blurs), so no character can be read
- *  whatever Gemini left; nothing outside the boxes is touched. In place; returns the boxes in pixels. */
-export function blurPlates(img: Rgba, boxes: readonly NBox[], margin = 0.25): Array<{ x: number; y: number; w: number; h: number }> {
+// r48 (3040). The owner (Nov 15): "a lot of the cars don't have front license plates, and you're still blurring out the
+// spot where the license plate would have been ... ideally the blur box is smaller". So a blur only ever covers a plate
+// that is there (the check's plate_present), tight to the plate: a small pad, at most a plate's size, rounded corners and
+// a soft edge that fades into the bumper instead of a hard square.
+/** The pad around the plate's box, as a share of its width and height (at least 2 pixels). */
+export const PLATE_PAD = 0.08;
+/** A plate is never wider than this share of the photo, and never higher than this share of its own width (in pixels). */
+export const PLATE_MAX_W = 0.22, PLATE_MAX_HW = 0.8;
+/** The blurred area of one plate in pixels, before its soft edge: the box with its pad, cut down to a plate's size around its
+ *  centre. Pure. */
+export function plateArea(b: NBox, W: number, H: number, pad = PLATE_PAD, cap = true): { x: number; y: number; w: number; h: number } {
+  let w = b.w * W, h = b.h * H;
+  const cx = (b.x + b.w / 2) * W, cy = (b.y + b.h / 2) * H;
+  w = w + Math.max(4, 2 * pad * w);
+  h = h + Math.max(4, 2 * pad * h);
+  // a box found by a model is cut down to a plate's size; a box a person drew is kept as drawn (cap false)
+  if (cap) { w = Math.min(w, PLATE_MAX_W * W); h = Math.min(h, Math.max(4, w * PLATE_MAX_HW)); }
+  const x0 = Math.max(0, Math.round(cx - w / 2)), y0 = Math.max(0, Math.round(cy - h / 2));
+  const x1 = Math.min(W, Math.round(cx + w / 2)), y1 = Math.min(H, Math.round(cy + h / 2));
+  return { x: x0, y: y0, w: Math.max(0, x1 - x0), h: Math.max(0, y1 - y0) };
+}
+/** Every plate box blurred hard in place (a mosaic then three box blurs, so no character can be read whatever Gemini left),
+ *  only over the plate itself (plateArea) with rounded corners and a soft edge (plateMask); nothing else is touched. In
+ *  place; returns the blurred areas in pixels (without their soft edge). */
+export function blurPlates(img: Rgba, boxes: readonly NBox[], o: { pad?: number; cap?: boolean } = {}): Array<{ x: number; y: number; w: number; h: number }> {
   const W = img.width, H = img.height, d = img.data, out: Array<{ x: number; y: number; w: number; h: number }> = [];
   for (const b of boxes) {
-    const x0 = Math.max(0, Math.floor((b.x - b.w * margin) * W)), y0 = Math.max(0, Math.floor((b.y - b.h * margin) * H));
-    const x1 = Math.min(W, Math.ceil((b.x + b.w * (1 + margin)) * W)), y1 = Math.min(H, Math.ceil((b.y + b.h * (1 + margin)) * H));
+    const r = plateArea(b, W, H, o.pad ?? PLATE_PAD, o.cap ?? true);
+    if (r.w < 2 || r.h < 2) continue;
+    const f = Math.max(2, Math.round(r.h * 0.18));
+    const x0 = Math.max(0, r.x - f), y0 = Math.max(0, r.y - f), x1 = Math.min(W, r.x + r.w + f), y1 = Math.min(H, r.y + r.h + f);
     const w = x1 - x0, h = y1 - y0;
-    if (w < 2 || h < 2) continue;
-    // a mosaic of blocks about a sixth of the plate's height: a character is never one block
-    const blk = Math.max(3, Math.round(h / 3));
-    for (let by = y0; by < y1; by += blk) for (let bx = x0; bx < x1; bx += blk) {
-      let r = 0, g = 0, bl = 0, n = 0;
-      for (let y = by; y < Math.min(y1, by + blk); y++) for (let x = bx; x < Math.min(x1, bx + blk); x++) { const i = (y * W + x) * 4; r += d[i]!; g += d[i + 1]!; bl += d[i + 2]!; n++; }
-      for (let y = by; y < Math.min(y1, by + blk); y++) for (let x = bx; x < Math.min(x1, bx + blk); x++) { const i = (y * W + x) * 4; d[i] = r / n; d[i + 1] = g / n; d[i + 2] = bl / n; }
+    // the blur made on a copy of the area and its soft edge
+    const buf = new Float32Array(w * h * 3);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = ((y0 + y) * W + x0 + x) * 4, t = (y * w + x) * 3; buf[t] = d[i]!; buf[t + 1] = d[i + 1]!; buf[t + 2] = d[i + 2]!; }
+    // a mosaic of blocks about a third of the plate's height: a character is never one block
+    const blk = Math.max(3, Math.round(r.h / 3));
+    for (let by = 0; by < h; by += blk) for (let bx = 0; bx < w; bx += blk) {
+      let s0 = 0, s1 = 0, s2 = 0, n = 0;
+      for (let y = by; y < Math.min(h, by + blk); y++) for (let x = bx; x < Math.min(w, bx + blk); x++) { const t = (y * w + x) * 3; s0 += buf[t]!; s1 += buf[t + 1]!; s2 += buf[t + 2]!; n++; }
+      for (let y = by; y < Math.min(h, by + blk); y++) for (let x = bx; x < Math.min(w, bx + blk); x++) { const t = (y * w + x) * 3; buf[t] = s0 / n; buf[t + 1] = s1 / n; buf[t + 2] = s2 / n; }
     }
     // then smoothed so it reads as a blur, not as squares
     const rad = Math.max(2, Math.round(blk * 0.8)), tmp = new Float32Array(Math.max(w, h) * 3);
     for (let pass = 0; pass < 3; pass++) {
-      for (let y = y0; y < y1; y++) {
-        for (let x = x0; x < x1; x++) { let r = 0, g = 0, bl = 0, n = 0; for (let k = Math.max(x0, x - rad); k <= Math.min(x1 - 1, x + rad); k++) { const i = (y * W + k) * 4; r += d[i]!; g += d[i + 1]!; bl += d[i + 2]!; n++; } const t = (x - x0) * 3; tmp[t] = r / n; tmp[t + 1] = g / n; tmp[t + 2] = bl / n; }
-        for (let x = x0; x < x1; x++) { const i = (y * W + x) * 4, t = (x - x0) * 3; d[i] = tmp[t]!; d[i + 1] = tmp[t + 1]!; d[i + 2] = tmp[t + 2]!; }
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) { let s0 = 0, s1 = 0, s2 = 0, n = 0; for (let k = Math.max(0, x - rad); k <= Math.min(w - 1, x + rad); k++) { const t = (y * w + k) * 3; s0 += buf[t]!; s1 += buf[t + 1]!; s2 += buf[t + 2]!; n++; } tmp[x * 3] = s0 / n; tmp[x * 3 + 1] = s1 / n; tmp[x * 3 + 2] = s2 / n; }
+        for (let x = 0; x < w; x++) { const t = (y * w + x) * 3; buf[t] = tmp[x * 3]!; buf[t + 1] = tmp[x * 3 + 1]!; buf[t + 2] = tmp[x * 3 + 2]!; }
       }
-      for (let x = x0; x < x1; x++) {
-        for (let y = y0; y < y1; y++) { let r = 0, g = 0, bl = 0, n = 0; for (let k = Math.max(y0, y - rad); k <= Math.min(y1 - 1, y + rad); k++) { const i = (k * W + x) * 4; r += d[i]!; g += d[i + 1]!; bl += d[i + 2]!; n++; } const t = (y - y0) * 3; tmp[t] = r / n; tmp[t + 1] = g / n; tmp[t + 2] = bl / n; }
-        for (let y = y0; y < y1; y++) { const i = (y * W + x) * 4, t = (y - y0) * 3; d[i] = tmp[t]!; d[i + 1] = tmp[t + 1]!; d[i + 2] = tmp[t + 2]!; }
+      for (let x = 0; x < w; x++) {
+        for (let y = 0; y < h; y++) { let s0 = 0, s1 = 0, s2 = 0, n = 0; for (let k = Math.max(0, y - rad); k <= Math.min(h - 1, y + rad); k++) { const t = (k * w + x) * 3; s0 += buf[t]!; s1 += buf[t + 1]!; s2 += buf[t + 2]!; n++; } tmp[y * 3] = s0 / n; tmp[y * 3 + 1] = s1 / n; tmp[y * 3 + 2] = s2 / n; }
+        for (let y = 0; y < h; y++) { const t = (y * w + x) * 3; buf[t] = tmp[y * 3]!; buf[t + 1] = tmp[y * 3 + 1]!; buf[t + 2] = tmp[y * 3 + 2]!; }
       }
     }
-    out.push({ x: x0, y: y0, w, h });
+    // laid over the photo through the rounded, soft-edged mask
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const m = plateMask(x0 + x + 0.5, y0 + y + 0.5, r, f);
+      if (m <= 0) continue;
+      const i = ((y0 + y) * W + x0 + x) * 4, t = (y * w + x) * 3;
+      d[i] = d[i]! + (buf[t]! - d[i]!) * m; d[i + 1] = d[i + 1]! + (buf[t + 1]! - d[i + 1]!) * m; d[i + 2] = d[i + 2]! + (buf[t + 2]! - d[i + 2]!) * m;
+    }
+    out.push(r);
   }
   return out;
 }

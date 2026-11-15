@@ -1,5 +1,6 @@
 import type { SlotPhoto, Photo } from '@/lib/types';
 import { photoUrl } from '@/lib/photo';
+import { CARD_FADE, CARD_STEP, cardKeyframes } from '@/lib/studio-covers';
 
 // Images come pre-sized from the photo pipeline (docs/blueprint/09-listing-pipeline.md); nothing is
 // resized in the Worker. Width and height are always set; the page's largest image is never lazy.
@@ -23,3 +24,22 @@ export function CarImage({ p, eager = false, sizes = '(min-width: 64rem) 33vw, 1
       loading={eager ? 'eager' : 'lazy'} fetchPriority={eager ? 'high' : undefined} decoding="async" />
   );
 }
+
+/** r48 (3040): real cars' studio covers shown in turn over a sample photo (lib/studio-covers.ts), a CSS cross-fade with no
+ *  script; they fill the photo's own box (no layout shift), and the sample photo shows through until the first one loads.
+ *  Reduced motion: the first one only. */
+export function StudioTurn({ photos, sizes = '(min-width: 64rem) 33vw, 100vw' }: { photos: Photo[]; sizes?: string }) {
+  const n = photos.length;
+  if (!n) return null;
+  return (
+    <span className="car-card__studio" aria-hidden="true" data-testid="card-studio" data-count={n}>
+      {n > 1 && <style>{`${cardKeyframes(n)}.car-card__studio[data-count="${n}"] img{animation:card-studio-${n} ${n * CARD_STEP}s linear infinite}`}</style>}
+      {photos.map((p, i) => (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img key={p.path} src={photoUrl(p.path)} srcSet={p.variants?.length ? p.variants.map((v) => `${photoUrl(v.path)} ${v.width}w`).join(', ') : undefined}
+          sizes={sizes} width={p.width ?? 1800} height={p.height ?? 1200} alt="" loading="lazy" decoding="async"
+          style={n > 1 ? { animationDelay: `${i === 0 ? -CARD_FADE : i * CARD_STEP - CARD_FADE}s` } : { opacity: 1 }} />))}
+    </span>
+  );
+}
+

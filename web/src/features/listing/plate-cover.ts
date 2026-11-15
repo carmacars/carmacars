@@ -22,6 +22,14 @@ export const nearCorner = (b: NBox, p: { x: number; y: number }, tol = 0.03) => 
 /** Boxes as the database keeps them: four decimals, no flag. */
 export const forSave = (boxes: NBox[]) => boxes.map((b) => { const c = clampBox(b); return { x: +c.x.toFixed(4), y: +c.y.toFixed(4), w: +c.w.toFixed(4), h: +c.h.toFixed(4) }; });
 
+/** How much of the blur shows at a pixel centre (px, py): 1 inside the rounded area, fading to 0 over `feather` pixels
+ *  outside it. Pure (the editor's canvas uses the same mask). */
+export function plateMask(px: number, py: number, r: { x: number; y: number; w: number; h: number }, feather: number): number {
+  const rad = Math.min(r.w, r.h) * 0.22;
+  const qx = Math.abs(px - (r.x + r.w / 2)) - (r.w / 2 - rad), qy = Math.abs(py - (r.y + r.h / 2)) - (r.h / 2 - rad);
+  const dist = Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - rad;
+  return dist <= 0 ? 1 : dist >= feather ? 0 : 1 - dist / feather;
+}
 type Ctx2D = CanvasRenderingContext2D;
 const px = (b: NBox, W: number, H: number) => { const c = clampBox(b); const x = Math.floor(c.x * W), y = Math.floor(c.y * H); return { x, y, w: Math.max(2, Math.ceil(c.w * W)), h: Math.max(2, Math.ceil(c.h * H)) }; };
 function scratch(w: number, h: number) { const c = document.createElement('canvas'); c.width = Math.max(1, w); c.height = Math.max(1, h); return c; }
@@ -76,8 +84,29 @@ export function paint(ctx: Ctx2D, img: CanvasImageSource, W: number, H: number, 
   }
   for (const b of boxes) {
     const r = px(b, W, H);
-    if (style === 'pixelate') pixelate(ctx, r); else if (style === 'blur') blur(ctx, r); else cover(ctx, r, text, font);
+    if (style === 'pixelate' || style === 'blur') soft(ctx, r, W, H, style); else cover(ctx, r, text, font);
   }
+}
+/** r48 (3040): a blur or pixelation only over the box, with rounded corners and a soft edge fading into the bumper (plateMask),
+ *  not a hard square. */
+function soft(ctx: Ctx2D, r: { x: number; y: number; w: number; h: number }, W: number, H: number, style: 'pixelate' | 'blur') {
+  const f = Math.max(2, Math.round(r.h * 0.18));
+  const x0 = Math.max(0, r.x - f), y0 = Math.max(0, r.y - f), x1 = Math.min(W, r.x + r.w + f), y1 = Math.min(H, r.y + r.h + f);
+  const R = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+  if (R.w < 2 || R.h < 2) return;
+  let before: ImageData;
+  // a canvas that cannot be read back (isTaintError): the plain effect over the box, as before
+  try { before = ctx.getImageData(R.x, R.y, R.w, R.h); } catch { if (style === 'pixelate') pixelate(ctx, r); else blur(ctx, r); return; }
+  if (style === 'pixelate') pixelate(ctx, R); else blur(ctx, R);
+  const after = ctx.getImageData(R.x, R.y, R.w, R.h);
+  const a = after.data, o = before.data;
+  for (let y = 0; y < R.h; y++) for (let x = 0; x < R.w; x++) {
+    const m = plateMask(R.x + x + 0.5, R.y + y + 0.5, r, f);
+    if (m >= 1) continue;
+    const i = (y * R.w + x) * 4;
+    a[i] = o[i]! + (a[i]! - o[i]!) * m; a[i + 1] = o[i + 1]! + (a[i + 1]! - o[i + 1]!) * m; a[i + 2] = o[i + 2]! + (a[i + 2]! - o[i + 2]!) * m;
+  }
+  ctx.putImageData(after, R.x, R.y);
 }
 
 /** The covered photo at its own size (at most 3000 px on the long side) and at each of its smaller widths, as JPEG files. */

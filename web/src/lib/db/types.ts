@@ -33823,6 +33823,7 @@ export type Database = {
       site_file: { Args: { p_name: string }; Returns: string };
       site_hero_photos: { Args: { p_limit?: number }; Returns: Json };
       site_settings_public: { Args: never; Returns: Json };
+      site_studio_covers: { Args: { p_limit?: number }; Returns: Json };
       sitemap_all: { Args: never; Returns: { path: string; kind: string; lastmod: string; images: Json }[] };
       sitemap_families: { Args: never; Returns: Json };
       sitemap_hubs: { Args: never; Returns: Json };

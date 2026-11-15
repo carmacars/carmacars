@@ -127,7 +127,9 @@
      "Form labels such as \"Where you are (city or neighbourhood)\" fit a small phone",
      "Every car's photos look taken in one studio: the same nine views, the same angle and framing, the covers all facing the same way, in the dark dealership with the CarmaCars sign (the model's name behind the car on the first photo)",
      "A view a car has no photo of is made from its other photos; a car with no photo at all gets its outside views from its model's stock photo, in its own colour",
-     "The home page, the cards, the car page, partner feeds and the sitemap show the same photos, the front three-quarter first"
+     "The home page, the cards, the car page, partner feeds and the sitemap show the same photos, the front three-quarter first",
+     "Where the site showed a sample photo (the home page's big photo, example cars and cars without photos yet), real cars of the same type now show in turn, all in the same studio angle",
+     "A car with no front plate gets no blur or box on its front bumper; the studio photos have the plate taken off cleanly, and where a blur is still used it covers only the plate, with a soft edge"
     ]
    },
    {

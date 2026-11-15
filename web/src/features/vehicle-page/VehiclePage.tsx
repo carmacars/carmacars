@@ -34,6 +34,8 @@ import { vehicleCan } from '@/features/shared-pages/viewer';
 import { vehicleTab, vehicleTabs } from './tabs';
 import { HashTab } from './HashTab';
 import { ValueFuel, type ValueFuelData } from './ValueFuel';
+import { CarLocation } from '@/features/tracking/CarLocation';
+import type { CarLoc } from '@/features/tracking/location';
 import { GovernmentForms, type GovData } from '@/features/onboarding/GovernmentForms';
 
 type R = Record<string, unknown>;
@@ -76,6 +78,9 @@ export async function VehiclePage({ ctx, id, sp }: { ctx: PageCtx; id: string; s
   const limits = tab === 'rates' ? await ops<PriceLimitsRead>('price_limits', { vehicle_id: id }).catch(() => null) : null;
   // 1400 and 1402: the value card coverage is checked against, the tank and the grade the fuel shortfall uses
   const valueFuel = tab === 'overview' ? await ops<ValueFuelData>('vehicle_value_fuel', { vehicle_id: id }).catch(() => null) : null;
+  // r48 (3041): where the car is now
+  const loc = tab === 'overview' ? await ops<CarLoc>('tracker_car', { vehicle: id }).catch(() => null) : null;
+  const at = new Date().getTime();
   const classes = tab === 'overview' ? (await list<{ code: string; label: string }>('vehicle_classes', { eq: { is_active: true }, order: 'sort_order', asc: true })).rows : [];
   const cal = tab === 'calendar' ? await (async () => { const { from } = rangeFrom(sp.start, 'month'); return read<CalData>('calendar', { from: from.toISOString(), to: new Date(from.getTime() + 31 * 86_400_000).toISOString(), vehicle: id }); })() : null;
   const slug = v.listing?.slug ? String(v.listing.slug) : null;
@@ -116,6 +121,7 @@ export async function VehiclePage({ ctx, id, sp }: { ctx: PageCtx; id: string; s
           fields={[{ name: 'vin', label: 'VIN (17 characters)', type: 'vin' }, { name: 'plate', label: 'Plate', type: 'text' }]} /></div>}
       {tab === 'overview' && (
         <div className="ad-cols ad-cols--2">
+          <Card title="Where the car is" testId="vehicle-location"><CarLocation d={loc} at={at} mapHref="/admin/vehicles/tracking" /></Card>
           <Card title="Notes" testId="vehicle-notes">
             <p className="small" style={{ whiteSpace: 'pre-wrap' }}>{typeof v.notes === 'string' && v.notes ? v.notes : <span className="muted">No notes.</span>}</p>
             <Act ops action="vehicle_notes_set" payload={{ vehicle_id: id }} label="Edit the notes" refresh={refresh} testId="vehicle-notes-edit"
@@ -374,6 +380,9 @@ async function StaffVehicle({ ctx, id, sp }: { ctx: PageCtx; id: string; sp: Rec
   // 1205: the price limits in force, read only (an Admin or the owner sets them)
   const limits = can.rates && tab === 'rates' ? await ops<PriceLimitsRead>('price_limits', { vehicle_id: id }).catch(() => null) : null;
   const staffValueFuel = tab === 'overview' ? await ops<ValueFuelData>('vehicle_value_fuel', { vehicle_id: id }).catch(() => null) : null;
+  // r48 (3041): where the car is now, for every staff role (read only)
+  const loc = tab === 'overview' ? await ops<CarLoc>('tracker_car', { vehicle: id }).catch(() => null) : null;
+  const at = new Date().getTime();
   return (
     <>
       <PageHead title={`${String(c.year ?? '')} ${String(c.make ?? '')} ${String(c.model ?? '')}`} kicker={String(c.plate ?? '')}>
@@ -383,6 +392,7 @@ async function StaffVehicle({ ctx, id, sp }: { ctx: PageCtx; id: string; sp: Rec
       <HashTab tabs={tabs.map(([k]) => k)} current={tab} />
       {prepare && <PrepareProgress d={prepare} title={`Next rental ${prepare.booking_number}: preparation`} />}
       {tab === 'overview' && <div className="ad-cols ad-cols--2">
+        <Card title="Where the car is" testId="vehicle-location"><CarLocation d={loc} at={at} mapHref="/staff/fleet/map" /></Card>
         <Card title="Vehicle"><Kv rows={[['Plate', String(c.plate ?? '')], ['Colour', String(c.colour ?? '')], ['Status', label(c.status)], ['Odometer', c.odometer_km ? `${String(c.odometer_km)} km` : ''], ['Class', String(c.class ?? '')]]} /></Card>
         {can.ownerHandoffs && <OwnerHandoffs vehicleId={id} userId={user.id} aal={aal} refresh={[base]} />}
         <ValueFuel v={staffValueFuel} canEdit={viewer.role === 'staff' && viewer.fn === 'fleet'} refresh={[base]} />

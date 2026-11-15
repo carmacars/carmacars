@@ -530,7 +530,7 @@ export function showroomPrompt(o: { cover: boolean; name?: string | null }): str
  *  site's plate cover): the plate keeps its place, size and angle on the bumper and its face is left plain, so the plate step
  *  that follows (plate-auto.ts) finds it there and puts the CarmaCars plate on it. Text anywhere else is what the owner saw
  *  as "the plate text placed somewhere random": never. */
-export const PLATE_RULE = 'THE LICENCE PLATE: keep the plate holder exactly where it is on the bumper, the same size, shape and angle, with a plain blank face (no letters, numbers or logos on it). Never write letters, numbers or a plate anywhere else: nothing floating in the air, on the floor, on the wall, on the windows or over the car.';
+export const PLATE_RULE = 'THE LICENCE PLATE: keep the plate holder exactly where it is on the bumper, the same size, shape and angle, with a plain blank face (no letters, numbers or logos on it). Where the car has no plate (many Ontario cars have no front plate), the bumper stays exactly as it is: add no plate, holder, blank rectangle, blur or box there. Never write letters, numbers or a plate anywhere else: nothing floating in the air, on the floor, on the wall, on the windows or over the car.';
 /** r44: the whole photo in focus, no fake depth of field (the owner: "no blur, sharp across the whole frame"). */
 export const SHARP_RULE = 'The whole photo is sharp and in focus from front to back, like a photo taken at a small aperture: no background blur, no bokeh, no depth-of-field effect, no motion blur.';
 

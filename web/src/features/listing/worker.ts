@@ -801,7 +801,7 @@ async function plateRedo(d: WorkerDeps, j: JobContext): Promise<JobResult> {
   const boxes = m.boxes.map((b) => ({ x: Math.floor(b.x * W), y: Math.floor(b.y * H), w: Math.max(2, Math.ceil(b.w * W)), h: Math.max(2, Math.ceil(b.h * H)) }));
   // r45 (2840): every plate is blurred (the owner): nothing is drawn on a plate and no plate is edited out
   const provider = 'carmacars';
-  blurPlates(img, boxes.map((b) => ({ x: b.x / W, y: b.y / H, w: b.w / W, h: b.h / H })));
+  blurPlates(img, boxes.map((b) => ({ x: b.x / W, y: b.y / H, w: b.w / W, h: b.h / H })), { cap: false });
   const tag = j.id.replace(/-/g, '').slice(0, 6);
   const name = (m.prev_path?.split('/').pop() ?? 'photo').replace(/\.\w+$/, '').replace(/-[cp][0-9a-f]{6}(-\d+)?$/, '').replace(/[^\w-]+/g, '-').slice(0, 80) || 'photo';
   const path = `vehicles/${m.vehicle_id}/${name}-p${tag}.jpg`;
@@ -1032,7 +1032,9 @@ async function r45Job(d: WorkerDeps, j: JobContext): Promise<JobResult> {
  *  photo of the real place when it has one), the tries made before, and the stock photo alone when the car has no photo. */
 export interface R48Input { mode: 'r48'; car?: CarFacts | null; shot?: string; refs?: Array<{ bucket: string; path: string; shot?: string; from?: 'listing' | 'handover' }>;
   family?: PlateFamily | null; plate?: string | null; guide?: string | null; stock?: string | null; body?: string | null; feedback?: string[] | null;
-  scene?: (R48Scene & { reference_path?: string | null }) | null; tries?: number | null }
+  scene?: (R48Scene & { reference_path?: string | null }) | null; tries?: number | null;
+  /** r48 (3040): whether the car's own photos show a plate at the end this view shows (app.photo_r48_plate_end) */
+  plate_end?: 'yes' | 'no' | null }
 type Img = { bytes: Uint8Array; contentType: string };
 /** A reference as Gemini is sent it: a decodable photo made at most R48_REF_SIDE on its long side; another kind kept when small. */
 export async function refForModel(bytes: Uint8Array | null): Promise<Img | null> {
@@ -1090,6 +1092,7 @@ export async function makeR48(d: WorkerDeps, j: JobContext): Promise<R45Made> {
   const car: CarFacts = inp.car ?? { model: p.model ?? null };
   const scene: R48Scene | null = inp.scene?.code ? { code: inp.scene.code, label: inp.scene.label ?? null, place: inp.scene.place ?? null } : null;
   const name = ext && shot === 'front_left' && isDealership(scene) && (car.model ?? p.model) ? letteringName(String(car.model ?? p.model)) : null;
+  const plateEnd = inp.plate_end === 'yes' || inp.plate_end === 'no' ? inp.plate_end : null;
   let plateMade: Record<string, unknown> | null = null;
   const no = (why: string, extra: Record<string, unknown> = {}, wait: string | null = null): R45Made =>
     ({ pass: false, why, wait, output: { r45: { pass: false, spec: R48_SPEC, why, generated: true, ...(wait ? { wait } : {}), ...(plateMade ? { plate_made: plateMade } : {}), ...extra } } });
@@ -1125,7 +1128,7 @@ export async function makeR48(d: WorkerDeps, j: JobContext): Promise<R45Made> {
     const made = await makePlate(d, inp.family, p.id, j.id.replace(/-/g, '').slice(0, 8), scene, placeImg);
     if (made) { plate = made.img; total += made.img.bytes.length; plateMade = { family: inp.family, scene: scene?.code ?? null, path: made.path, model: made.model, check: made.check }; }
   }
-  const prompt = r48Prompt({ car, shot, refs: stockOnly ? 0 : refs.length, guide: !!guide, stock: !!stock, plate: !!plate, feedback: inp.feedback ?? null, scene, name, stockOnly });
+  const prompt = r48Prompt({ car, shot, refs: stockOnly ? 0 : refs.length, guide: !!guide, stock: !!stock, plate: !!plate, feedback: inp.feedback ?? null, scene, name, stockOnly, plateEnd });
   const made = await d.angleAi({ images: [...refs, ...(guide ? [guide] : []), ...(stock ? [stock] : []), ...(plate ? [plate] : [])], prompt, photoId: p.id })
     .catch((e: unknown): ShowroomOut => ({ ok: false, reason: 'error', message: e instanceof Error ? e.message : String(e) }));
   if (!made.ok) {
@@ -1141,9 +1144,9 @@ export async function makeR48(d: WorkerDeps, j: JobContext): Promise<R45Made> {
   const bgDiff = sameImg ? +borderDiff(fitted, sameImg).toFixed(3) : null;
   const seen = encodeJpeg(scaleDown(fitted, 1280, 1280), 85);
   const asked = await d.checkPhoto({ images: [{ bytes: seen, contentType: 'image/jpeg' }, ...(stockOnly ? [stock!] : refs.slice(0, 4)), ...(plate ? [plate] : [])], system: R48_CHECK_SYSTEM,
-    prompt: r48CheckPrompt({ car, shot, plate: !!plate, scene, name }), schema: R48_CHECK_SCHEMA as unknown as Record<string, unknown>, photoId: p.id }).catch(() => null);
+    prompt: r48CheckPrompt({ car, shot, plate: !!plate, scene, name, plateEnd }), schema: R48_CHECK_SCHEMA as unknown as Record<string, unknown>, photoId: p.id }).catch(() => null);
   if (!asked) return no('the check could not be asked now', {}, 'retry');
-  const v = judgeR48(asked.data, { shot, plate: !!plate, tries: inp.tries ?? 0, scene, name });
+  const v = judgeR48(asked.data, { shot, plate: !!plate, tries: inp.tries ?? 0, scene, name, plateEnd });
   if (bgDiff !== null && bgDiff < BACKGROUND_SAME && !v.reasons.includes('original_background')) { v.reasons.push('original_background'); v.pass = false; }
   const base = { model: made.model ?? null, check_model: asked.model, view: v.view, nose: v.nose ?? null, reasons: v.reasons, soft: v.soft ?? [], refs: refs.length, handover_refs: handover,
     stock_only: stockOnly, scene: scene?.code ?? null, background_diff: bgDiff };
