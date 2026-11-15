@@ -68,7 +68,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   }
   const portal = office ? 'va' : 'field';
   // r41: live updates (server/live.ts): the areas this person's functions read (field staff: the field area)
-  const live = user && staff ? await liveTokens(user.id, office ? ['me', 'bookings', 'requests', 'leads', 'messages', 'field'] : ['me', 'field']) : ({} as Awaited<ReturnType<typeof liveTokens>>);
+  const live = user && staff ? await liveTokens(user.id, office ? ['me', 'bookings', 'requests', 'leads', 'messages', 'field', 'tasks'] : ['me', 'field', 'tasks']) : ({} as Awaited<ReturnType<typeof liveTokens>>);
   return (
     <div className="ad va">
       <div className="ad__frame">

@@ -37,6 +37,23 @@ start() { # tag
   say "running carmacars-web:$1 (cron $( [ "${cron:-0}" = 1 ] && echo on || echo off ))"
 }
 
+# r48 (migration 2980): the site's LISTEN for queued texts and emails (web/src/lib/platform/db-listen.ts) logs in as
+# carmacars_listen, a role that may connect and listen and nothing else. Its password is made here once and kept
+# ($W/listen.pw, mode 600); the address is added to web.env. No role yet (the migration not applied): no listen, the
+# minute tick sends as before.
+listen_env() {
+  local pw has
+  has=$(docker exec supabase-db psql -U supabase_admin -d postgres -XAtq -c "select 1 from pg_roles where rolname = 'carmacars_listen'" 2>/dev/null || true)
+  if [ "$has" != 1 ]; then say "listen: off (the database has no carmacars_listen role yet)"; return 0; fi
+  [ -s "$W/listen.pw" ] || (umask 077; openssl rand -hex 24 > "$W/listen.pw")
+  pw=$(tr -dc 'a-f0-9' < "$W/listen.pw")
+  docker exec -i supabase-db psql -U supabase_admin -d postgres -XAtq -v ON_ERROR_STOP=1 > /dev/null <<SQL || { say "listen: off (the password was not set)"; return 0; }
+alter role carmacars_listen with login password '$pw';
+SQL
+  printf "DATABASE_LISTEN_URL='postgresql://carmacars_listen:%s@supabase-db:5432/postgres'\n" "$pw" >> "$W/web.env"
+  say "listen: on"
+}
+
 caddy_site() {
   install -d -m 755 "$S/caddy/sites"
   if ! docker inspect -f '{{range .Mounts}}{{.Destination}} {{end}}' supabase-caddy | grep -q '/etc/caddy/sites'; then
@@ -76,6 +93,7 @@ case "${1:-}" in
     gunzip -c "$T/image.tgz" | docker load
     install -m 644 "$T/docker-compose.yml" "$W/docker-compose.yml"
     install -m 600 "$T/web.env" "$W/web.env"
+    listen_env
     prev=$(docker inspect -f '{{.Config.Image}}' carmacars-web 2>/dev/null | sed 's/^carmacars-web://' || true)
     if [ -n "$prev" ] && [ "$prev" != "$TAG" ]; then echo "$prev" > "$W/previous-tag"; fi
     start "$TAG"

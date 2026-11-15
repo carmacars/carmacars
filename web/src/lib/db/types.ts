@@ -2287,6 +2287,7 @@ export type Database = {
           pricing: string | null;
           regular_total_cents: number | null;
           auto_approved: boolean;
+          rolling: boolean;
         };
         Insert: {
           id?: string;
@@ -2321,6 +2322,7 @@ export type Database = {
           pricing?: string | null;
           regular_total_cents?: number | null;
           auto_approved?: boolean;
+          rolling?: boolean;
         };
         Update: {
           id?: string;
@@ -2355,6 +2357,7 @@ export type Database = {
           pricing?: string | null;
           regular_total_cents?: number | null;
           auto_approved?: boolean;
+          rolling?: boolean;
         };
         Relationships: [];
       };
@@ -13581,6 +13584,8 @@ export type Database = {
           limit_texted_at: string | null;
           merged_into: string | null;
           hold_until: string | null;
+          due_at: string | null;
+          send_ms: number | null;
         };
         Insert: {
           id?: string;
@@ -13620,6 +13625,8 @@ export type Database = {
           limit_texted_at?: string | null;
           merged_into?: string | null;
           hold_until?: string | null;
+          due_at?: string | null;
+          send_ms?: number | null;
         };
         Update: {
           id?: string;
@@ -13659,6 +13666,8 @@ export type Database = {
           limit_texted_at?: string | null;
           merged_into?: string | null;
           hold_until?: string | null;
+          due_at?: string | null;
+          send_ms?: number | null;
         };
         Relationships: [];
       };
@@ -17793,6 +17802,8 @@ export type Database = {
           urgent: boolean;
           merged_into: string | null;
           hold_until: string | null;
+          due_at: string | null;
+          send_ms: number | null;
         };
         Insert: {
           id?: string;
@@ -17820,6 +17831,8 @@ export type Database = {
           urgent?: boolean;
           merged_into?: string | null;
           hold_until?: string | null;
+          due_at?: string | null;
+          send_ms?: number | null;
         };
         Update: {
           id?: string;
@@ -17847,6 +17860,8 @@ export type Database = {
           urgent?: boolean;
           merged_into?: string | null;
           hold_until?: string | null;
+          due_at?: string | null;
+          send_ms?: number | null;
         };
         Relationships: [];
       };
@@ -19189,6 +19204,7 @@ export type Database = {
           listing_photo_r48_auto: boolean;
           deposit_pending_retry: boolean;
           email_production_ready: boolean;
+          rolling_weekly_lead_hours: number;
         };
         Insert: {
           id?: string;
@@ -20063,6 +20079,7 @@ export type Database = {
           listing_photo_r48_auto?: boolean;
           deposit_pending_retry?: boolean;
           email_production_ready?: boolean;
+          rolling_weekly_lead_hours?: number;
         };
         Update: {
           id?: string;
@@ -20937,6 +20954,7 @@ export type Database = {
           listing_photo_r48_auto?: boolean;
           deposit_pending_retry?: boolean;
           email_production_ready?: boolean;
+          rolling_weekly_lead_hours?: number;
         };
         Relationships: [];
       };
@@ -21206,6 +21224,8 @@ export type Database = {
           created_at: string;
           actions: Json | null;
           quiet_hold: boolean;
+          due_at: string | null;
+          send_ms: number | null;
         };
         Insert: {
           id?: string;
@@ -21226,6 +21246,8 @@ export type Database = {
           created_at?: string;
           actions?: Json | null;
           quiet_hold?: boolean;
+          due_at?: string | null;
+          send_ms?: number | null;
         };
         Update: {
           id?: string;
@@ -21246,6 +21268,8 @@ export type Database = {
           created_at?: string;
           actions?: Json | null;
           quiet_hold?: boolean;
+          due_at?: string | null;
+          send_ms?: number | null;
         };
         Relationships: [];
       };
@@ -23310,6 +23334,45 @@ export type Database = {
           other_platform?: string | null;
           requested_by?: string | null;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      rolling_rentals: {
+        Row: {
+          booking_id: string;
+          started_at: string;
+          started_by: string | null;
+          end_at: string | null;
+          end_set_by: string | null;
+          end_set_at: string | null;
+          reminded_for: string | null;
+          link_due: boolean;
+          stopped_at: string | null;
+          stopped_by: string | null;
+        };
+        Insert: {
+          booking_id: string;
+          started_at?: string;
+          started_by?: string | null;
+          end_at?: string | null;
+          end_set_by?: string | null;
+          end_set_at?: string | null;
+          reminded_for?: string | null;
+          link_due?: boolean;
+          stopped_at?: string | null;
+          stopped_by?: string | null;
+        };
+        Update: {
+          booking_id?: string;
+          started_at?: string;
+          started_by?: string | null;
+          end_at?: string | null;
+          end_set_by?: string | null;
+          end_set_at?: string | null;
+          reminded_for?: string | null;
+          link_due?: boolean;
+          stopped_at?: string | null;
+          stopped_by?: string | null;
         };
         Relationships: [];
       };
@@ -33495,6 +33558,9 @@ export type Database = {
       server_review_photos_set: { Args: { p_booking: string; p_by: string; p_photos: Json }; Returns: Json };
       server_rideshare_docs: { Args: { p_by: string; p_booking: string }; Returns: Json };
       server_rideshare_docs_request: { Args: { p_by: string; p: Json }; Returns: Json };
+      server_rolling_link_send: { Args: { p_id: string; p_link: string }; Returns: Json };
+      server_rolling_links_due: { Args: never; Returns: Json };
+      server_rolling_payreq: { Args: { p_booking: string; p_token_sha256: string }; Returns: Json };
       server_row_car_photos: { Args: { p_vehicles: string[] }; Returns: Json };
       server_schedule_change_attach: { Args: { p_change: string; p_path: string; p_sha256: string }; Returns: string };
       server_schedule_change_sign: { Args: { p_by: string; p: Json }; Returns: Json };
@@ -33504,6 +33570,7 @@ export type Database = {
       server_secondary_contact_save: { Args: { p_by: string; p: Json }; Returns: Json };
       server_seen_account_links: { Args: { p_user: string }; Returns: number };
       server_self_handover_submit: { Args: { p_user: string; p: Json }; Returns: Json };
+      server_send_latency: { Args: { p_hours?: number }; Returns: Json };
       server_send_link_email: { Args: { p_email: string; p_name: string; p_url: string; p_expiry?: string; p_key?: string }; Returns: number };
       server_seo_actions: { Args: { p_user: string }; Returns: Json };
       server_seo_claim: { Args: { p_worker: string; p_limit?: number }; Returns: Json };

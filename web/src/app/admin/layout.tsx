@@ -43,7 +43,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // while viewing a portal as someone, the pop-up keeps its region and reads nothing (the phone reads answer the viewed person)
   const viewing = user ? await viewAsCookieSet().catch(() => false) : false;
   // r41: live updates (server/live.ts): the frame's areas, read alongside the rail's counts
-  const livePromise = user && gate?.admin ? liveTokens(user.id, ['me', 'bookings', 'requests', 'leads', 'messages', 'field']) : Promise.resolve<Awaited<ReturnType<typeof liveTokens>>>({});
+  const livePromise = user && gate?.admin ? liveTokens(user.id, ['me', 'bookings', 'requests', 'leads', 'messages', 'field', 'tasks']) : Promise.resolve<Awaited<ReturnType<typeof liveTokens>>>({});
   let counts: Record<string, number> = {};
   if (user && gate?.admin) {
     // five numbers for the rail (public.admin_rail_counts, 0036), not the whole dashboard on every admin page

@@ -100,6 +100,9 @@ const contactsDb: SyncDb = {
   run: (p) => rpc('server_quo_contacts_run', { p: p as unknown as Json }, SR)
 };
 
+/** r48: the texts only (the server's listen asks for them the moment one is queued; db-listen.ts). */
+export const runPhoneTexts = () => runTextsJob();
+
 async function runTextsJob(): Promise<Record<string, unknown>> {
   if (!phoneLine().ready) return { ok: true, skipped: 'QUO_API_KEY is not set' };
   const due = (await rpc('server_phone_due', { p_limit: 20 }, SR)) as unknown as { texts: Send[]; summaries: Array<{ id: string; transcript: PhoneEvent['transcript'] | null }>; ai: Budget; from: string | null };

@@ -3,7 +3,8 @@
 // of the screen shown from its path. A booking's own page watches its booking instead (LiveBooking), so it is not read
 // again for every other booking's change. No imports: unit tested in Node (areas.test.ts).
 
-export type LiveArea = 'bookings' | 'requests' | 'leads' | 'messages' | 'field' | 'me' | 'renter' | 'owner';
+// r48: 'tasks' (the To do lists, Today and the overview; migration 2980)
+export type LiveArea = 'bookings' | 'requests' | 'leads' | 'messages' | 'field' | 'tasks' | 'me' | 'renter' | 'owner';
 
 const STAFF_ROUTES: [RegExp, LiveArea[]][] = [
   // a booking's own page and its sub pages: LiveBooking (the booking's topic)
@@ -12,9 +13,11 @@ const STAFF_ROUTES: [RegExp, LiveArea[]][] = [
   [/^\/(admin|staff)\/(requests|offers|quotes|unanswered)(\/|$)/, ['requests', 'bookings']],
   [/^\/(admin|staff)\/(leads|sales-leads|my-sales|owner-leads|game-leads|owner-pipeline|sales-start)(\/|$)/, ['leads']],
   [/^\/(admin|staff)\/(messages|chat|visitors)(\/|$)/, ['messages']],
-  [/^\/(admin|staff)\/(calendar|today|live|live-map|overview)(\/|$)/, ['bookings', 'requests', 'field']],
+  [/^\/(admin|staff)\/(today|overview)(\/|$)/, ['bookings', 'requests', 'field', 'tasks']],
+  [/^\/(admin|staff)\/(calendar|live|live-map)(\/|$)/, ['bookings', 'requests', 'field']],
+  [/^\/(admin|staff)\/(tasks|todo)(\/|$)/, ['tasks']],
   [/^\/(admin|staff)\/(field-jobs|field|schedule|schedules|field-hours|timesheet|hours|checks)(\/|$)/, ['field']],
-  [/^\/(admin|staff)\/?$/, ['bookings', 'requests', 'leads', 'field']]
+  [/^\/(admin|staff)\/?$/, ['bookings', 'requests', 'leads', 'field', 'tasks']]
 ];
 
 /** The areas a portal screen watches; 'me' (the person's own alerts and messages) is on every portal screen. */
