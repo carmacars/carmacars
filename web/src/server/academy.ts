@@ -16,7 +16,7 @@ export async function academyUser(next: string, admin = false) {
   return { user, roles, aal };
 }
 export async function academyHome(userId: string) {
-  return door<{ paths: PathRow[]; gate: boolean; locked: boolean; pass_bps: number }>(userId, 'ops_read', 'academy_home');
+  return door<{ paths: PathRow[]; gate: boolean; locked: boolean; pass_bps: number; /** 0840: when the hold starts (2990: the due date of new sections) */ lock_from?: string | null }>(userId, 'ops_read', 'academy_home');
 }
 export async function academySection(userId: string, path: string, section: string): Promise<SectionView | { closed: string }> {
   try { return await door<SectionView>(userId, 'ops_read', 'academy_section', { path, section }); }

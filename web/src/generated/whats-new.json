@@ -205,10 +205,13 @@
     "admins": [
      "A car can go out with the deposit still owed, with the reason: the booking shows Deposit pending $X for every role, the saved card is tried each morning, the renter gets the deposit link, and after 48 hours you get a To do that opens the Money tab",
      "Program settings shows each message type that can go by text with its texts in the last 30 days; once Email ready for production is on, only urgent messages keep their texts and the rest go by email",
-     "Claude's connector records a pickup with the deposit owed (deposit_pending: true with the reason), previewed first"
+     "Claude's connector records a pickup with the deposit owed (deposit_pending: true with the reason), previewed first",
+     "Admin > Academy: every role's path gains worked examples from its guide, and every staff member (and the Admin path) the new path The renter's side, nine steps of the renter guide with the renter's screen and its page; new hires pass it before their portal opens, staff already working have 7 days, and lesson scenes can show a guide screenshot"
     ],
     "staff": [
-     "Let a car go with the deposit owed from the check-in, Record the pickup now or the field job, with the reason; you do nothing more once it is taken"
+     "Let a car go with the deposit owed from the check-in, Record the pickup now or the field job, with the reason; you do nothing more once it is taken",
+     "Your academy has worked examples from your guide and the new path The renter's side: what renters see at each step, with the renter guide at Renter guide; staff already working have 7 days, shown on the academy page",
+     "Ask the guide first: the Assistant names the guide chapter of the page you are on"
     ],
     "renters": [
      "Your booking page says when the deposit is still owed and how to place it"

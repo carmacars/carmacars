@@ -5,7 +5,9 @@ export type Visual =
   | { kind: 'chat'; lines: Array<{ who: string; text: string }> }
   | { kind: 'list' | 'steps'; heading: string; items: string[] }
   | { kind: 'money'; heading: string; rows: Array<[string, string]>; total?: [string, string] }
-  | { kind: 'rule'; heading: string; text: string; tone?: 'ok' | 'warn' };
+  | { kind: 'rule'; heading: string; text: string; tone?: 'ok' | 'warn' }
+  /** 2990: a guide screenshot (img, a file of docs/guides/content/images.json) and the chapter it is from (portal/slug) */
+  | { kind: 'shot'; heading: string; guide: string; img?: string; text?: string };
 export interface Scene { caption: string; say?: string; visual: Visual }
 export interface Lesson { id: string; title: string; scenes: Scene[]; viewed?: boolean }
 export interface SectionView { id: string; slug: string; title: string; blurb: string; path: string; path_title: string; pass_bps: number; passed: boolean; best_bps: number | null; next: string | null;
@@ -51,4 +53,27 @@ export function waitLeft(untilIso: string | undefined, now: number): string {
   const t = Math.ceil(ms / 1000);
   const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), sec = t % 60;
   return h ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}` : `${m}:${String(sec).padStart(2, '0')}`;
+}
+
+/** 2990: where a guide chapter (portal/slug) opens for the person: staff read the renter guide at /staff/guide/renter and
+ *  their own guides at /staff/guide and /staff/field/guide; an Admin reads every guide under /admin/guide. */
+export function guideHref(ref: string, admin = false): string {
+  const [portal = 'va', slug = ''] = ref.split('/');
+  const hash = slug ? `#${slug}` : '';
+  if (admin) return portal === 'admin' ? `/admin/guide${hash}` : `/admin/guide/${portal}${hash}`;
+  if (portal === 'renter') return `/staff/guide/renter${hash}`;
+  if (portal === 'field') return `/staff/field/guide${hash}`;
+  return `/staff/guide${hash}`;
+}
+/** 2990: the address of a guide screenshot. */
+export const shotSrc = (img: string): string => `/guides/img/${img}`;
+
+/** 2990: the due date of new sections for staff already working (their enrollment's lock_from, still ahead): null when
+ *  everything is passed, the date has come, or there is none. */
+export function dueWords(lockFrom: string | null | undefined, allPassed: boolean, now = Date.now()): string | null {
+  if (allPassed || !lockFrom) return null;
+  const t = Date.parse(lockFrom);
+  if (!(t > now)) return null;
+  const day = new Date(t).toLocaleDateString('en-CA', { timeZone: 'America/Toronto', weekday: 'short', month: 'short', day: 'numeric' });
+  return `New sections to pass by ${day}. After that, the rest of your portal waits until they are passed.`;
 }

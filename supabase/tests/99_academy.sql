@@ -10,20 +10,20 @@ select test.mk_user('acd_field', 'field', null, 'driver');
 select test.mk_user('acd_renter', 'renter');
 
 -- ================================================================ 1. the content and the paths
-select test.eq('seven paths', (select count(*)::int from academy_paths), 7);
+select test.eq('eight paths: one per function, and The renter''s side (2990)', (select count(*)::int from academy_paths), 8);
 select test.ok('every path has sections, every section lessons and at least 5 questions',
   not exists (select 1 from academy_paths p where not exists (select 1 from academy_path_sections ps where ps.path_code = p.code))
   and not exists (select 1 from academy_sections s where not exists (select 1 from academy_lessons l where l.section_id = s.id)
                     or (select count(*) from academy_questions q where q.section_id = s.id) < 5));
 select test.ok('every scene has a caption, words and a known picture', not exists (
   select 1 from academy_lessons l, jsonb_array_elements(l.scenes) sc
-   where coalesce(sc ->> 'caption', '') = '' or coalesce(sc ->> 'say', '') = '' or sc #>> '{visual,kind}' not in ('title', 'chat', 'list', 'steps', 'money', 'rule')));
-select test.eq('customer service takes the customer service path', app.academy_paths_of(test.id('acd_cs')), array['cs']);
-select test.eq('Sales in person by default', app.academy_paths_of(test.id('acd_sales')), array['sales_in_person']);
+   where coalesce(sc ->> 'caption', '') = '' or coalesce(sc ->> 'say', '') = '' or sc #>> '{visual,kind}' not in ('title', 'chat', 'list', 'steps', 'money', 'rule', 'shot')));
+select test.eq('customer service takes the customer service path', app.academy_paths_of(test.id('acd_cs')), array['cs', 'renter_side']);
+select test.eq('Sales in person by default', app.academy_paths_of(test.id('acd_sales')), array['renter_side', 'sales_in_person']);
 update staff_profiles set sales_work_mode = 'remote' where user_id = test.id('acd_sales');
-select test.eq('remote Sales takes the remote path', app.academy_paths_of(test.id('acd_sales')), array['sales_remote']);
-select test.eq('field work', app.academy_paths_of(test.id('acd_field')), array['field']);
-select test.eq('an Admin takes the Admin path', app.academy_paths_of(test.id('acd_admin')), array['admin']);
+select test.eq('remote Sales takes the remote path', app.academy_paths_of(test.id('acd_sales')), array['renter_side', 'sales_remote']);
+select test.eq('field work', app.academy_paths_of(test.id('acd_field')), array['field', 'renter_side']);
+select test.eq('an Admin takes the Admin path', app.academy_paths_of(test.id('acd_admin')), array['admin', 'renter_side']);
 select test.eq('the gate is on by default (0731)', (app.settings()).academy_gate, true);
 select test.eq('the pass mark is 90% (1154)', (app.settings()).academy_pass_bps, 9000);
 -- 1154's reading time and cooldown have a suite of their own: off here

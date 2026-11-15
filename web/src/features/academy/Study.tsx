@@ -25,7 +25,7 @@ export function Study({ s, base }: { s: SectionView; base: string }) {
       {s.lessons.map((l, i) => (
         <section key={l.id} className="pt-card ac-lesson" aria-labelledby={`ac-l-${i}`} data-testid={`lesson-${i}`}>
           <h2 className="d4" id={`ac-l-${i}`}>{i + 1}. {l.title} {viewed[l.id] && <span className="ac-badge ac-badge--ok">Watched</span>}</h2>
-          <ScenePlayer lesson={l} onDone={() => seen(l.id)} testId={`player-${i}`} />
+          <ScenePlayer lesson={l} onDone={() => seen(l.id)} testId={`player-${i}`} admin={base.startsWith('/admin')} />
           {/* r37 (2301): the lesson as a real video file, to watch or download */}
           <LessonVideo lesson={l.id} title={l.title} scenes={l.scenes} testId={`lesson-video-${i}`} />
         </section>

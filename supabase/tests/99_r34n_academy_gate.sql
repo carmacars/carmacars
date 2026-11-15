@@ -37,7 +37,7 @@ select test.eq('content: no vendor names in the new sections', (select count(*) 
 -- every section before the last on the path passed; then the last one's quiz
 insert into academy_attempts (user_id, section_id, correct, total, score_bps, passed)
 select test.id('zag_cs'), ps.section_id, 1, 1, 10000, true from academy_path_sections ps join academy_sections s on s.id = ps.section_id
- where ps.path_code = 'cs' and s.slug <> 'new-r34-caller-notes';
+ where ps.path_code in ('cs', 'renter_side') and s.slug <> 'new-r34-caller-notes'; -- 2990: The renter's side is on every staff member's paths
 select test.eq('passing: one section left, still held', test.zag_locked('zag_cs'), true);
 -- 1154: the quiz is started first (its reading time and cooldown have a suite of their own: off here)
 update program_settings set academy_read_wpm = 0, academy_fail_cooldown_minutes = 0 where id = (app.settings()).id;
@@ -85,7 +85,7 @@ insert into guide_sections (portal, kind, sort_order, slug, title, body_md, publ
 select 'va', 'chapter', 9990, 'texts-and-calls', 'Texts and calls', 'Text', 1 where not exists (select 1 from guide_sections where portal = 'va' and slug = 'texts-and-calls');
 update guide_sections set published_version = coalesce(published_version, 0) + 1 where portal = 'va' and slug = 'texts-and-calls';
 select test.eq('review: a guide chapter published again flags the sections written from it',
-  (select string_agg(slug, ',' order by slug) from academy_sections where review_due_at is not null and 'va/texts-and-calls' = any (guide_refs)), 'new-r34-caller-notes,new-r45-calls-in-the-browser');
+  (select string_agg(slug, ',' order by slug) from academy_sections where review_due_at is not null and 'va/texts-and-calls' = any (guide_refs)), 'new-r34-caller-notes,new-r45-calls-in-the-browser,r48-cs-guide-cases');
 select test.ok('review: the note names the chapter', (select review_note like '%va/texts-and-calls%' from academy_sections where slug = 'new-r34-caller-notes'));
 select test.eq('review: Admin > Academy lists it', (select count(*) from jsonb_array_elements(app.door(test.id('zag_admin'), 'aal2', 'admin_read', 'academy_reviews', '{}'::jsonb)) x where x ->> 'slug' = 'new-r34-caller-notes'), 1::bigint);
 select app.door(test.id('zag_admin'), 'aal2', 'admin_do', 'academy_review_done', jsonb_build_object('id', 'new-r34-caller-notes'));

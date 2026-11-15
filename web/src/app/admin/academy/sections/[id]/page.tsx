@@ -13,7 +13,7 @@ export const metadata = pageMeta({ title: 'Edit an academy section', path: '/adm
 
 type Sec = { id: string; slug: string; title: string; blurb: string; paths: string[]; lessons: Array<{ id: string; sort: number; title: string; scenes: Scene[] }>;
   questions: Array<{ id: string; sort: number; prompt: string; options: string[]; answer: number; explain: string }> };
-const SCENES_HINT = 'A list of scenes: {"caption": "...", "say": "the words the voice says", "visual": {"kind": "title" | "chat" | "list" | "steps" | "money" | "rule", ...}}. title: heading, text; chat: lines [{who, text}] (who "you" is us); list and steps: heading, items; money: heading, rows [[label, amount]], total; rule: heading, text, tone ok or warn.';
+const SCENES_HINT = 'A list of scenes: {"caption": "...", "say": "the words the voice says", "visual": {"kind": "title" | "chat" | "list" | "steps" | "money" | "rule" | "shot", ...}}. title: heading, text; chat: lines [{who, text}] (who "you" is us); list and steps: heading, items; money: heading, rows [[label, amount]], total; rule: heading, text, tone ok or warn; shot (a guide screenshot): heading, guide (portal/slug, for example renter/sign-and-pay), img (a file name from the guide images), text.';
 
 // The editor of one section (Release 21b, item 9): its title, each lesson's scenes (with a preview), each question.
 export default async function AcademySectionEdit({ params }: { params: Promise<{ id: string }> }) {

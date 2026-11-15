@@ -96,7 +96,8 @@
     "area": "Staff tools",
     "items": [
      "A car can go out with the deposit still owed, with the reason: every booking page shows **Deposit pending**, the saved card is tried each morning and the renter is sent the deposit link; after 48 hours an Admin gets a To do",
-     "Each message type that can go by text shows its texts of the last 30 days and its channel; once email is ready for production, only urgent messages keep their texts and the rest go by email"
+     "Each message type that can go by text shows its texts of the last 30 days and its channel; once email is ready for production, only urgent messages keep their texts and the rest go by email",
+     "The academy teaches the guides: worked examples for every role, and the path The renter's side for every staff member"
     ]
    }
   ]

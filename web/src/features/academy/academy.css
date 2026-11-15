@@ -42,6 +42,11 @@
 .ac-badge { font-size: .75rem; font-weight: 600; padding: .1rem .5rem; border-radius: 999px; background: var(--grey-100, #f3f3f3); color: var(--text); }
 .ac-badge--ok { background: #dcfce7; color: #14532d; }
 .ac-badge--locked { background: var(--grey-200, #e5e5e5); color: #333; }
+/* 2990: a guide screenshot in a scene, with its line and the link to the guide page */
+.ac-shot { margin: 0; display: grid; gap: .4rem; min-block-size: 0; }
+.ac-shot__img { display: block; inline-size: 100%; max-block-size: clamp(7rem, 32vw, 19rem); object-fit: contain; object-position: left top; border-radius: .4rem; background: #fff; }
+.ac-shot__cap { display: flex; flex-wrap: wrap; gap: .3rem .8rem; align-items: baseline; font-size: clamp(.75rem, 2.2vw, .95rem); color: #d6d6d6; }
+.ac-shot__link { color: #fff; text-decoration: underline; text-underline-offset: 2px; }
 @keyframes ac-rise { from { opacity: 0; transform: translateY(.6rem); } to { opacity: 1; transform: none; } }
 @keyframes ac-drift { from { transform: translate(0, 0); } to { transform: translate(6%, 4%); } }
 @media (prefers-reduced-motion: reduce) {
