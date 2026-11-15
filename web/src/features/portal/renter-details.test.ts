@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { checkDetails, detailFields, detailPayload, type RenterMissing } from './renter-details.ts';
+import { checkDetails, detailFields, detailPayload, knownFor, type RenterMissing } from './renter-details.ts';
 
 const m = (field: string, key = `renter.${field}`): RenterMissing => ({ key, label: field, field });
 
@@ -21,4 +21,11 @@ test('only the asked fields are sent, trimmed; the licence number in capitals wi
   const f = detailFields([m('licence_number', 'drivers.d1.licence_number'), m('address')]);
   assert.deepEqual(detailPayload(f, { licence_number: ' a1234 12345 12345 ', address_line1: ' 1 Queen St ', city: 'Toronto', province: 'ON', postal_code: 'M5H 2N2', country: 'Canada', mobile: '416' }),
     { licence_number: 'A12341234512345', address_line1: '1 Queen St', city: 'Toronto', province: 'ON', postal_code: 'M5H 2N2', country: 'Canada' });
+});
+
+test('r48 prefill: only the asked fields, the address with its parts, never anything else', () => {
+  const known = knownFor([m('address'), m('policy_number')], { address_line1: '48 Example Street', city: 'Toronto', province: 'ON', postal_code: 'M5H 2N2', policy_number: 'TEST-1', licence_number: 'X123', saved_signature: true, drivers_before: [{ full_name: 'Dee' }] });
+  assert.deepEqual(known, { address_line1: '48 Example Street', city: 'Toronto', province: 'ON', postal_code: 'M5H 2N2', policy_number: 'TEST-1' });
+  assert.deepEqual(knownFor([m('mobile')], null), {});
+  assert.deepEqual(knownFor([m('mobile')], { mobile: '  ' }), {});
 });

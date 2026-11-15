@@ -41,8 +41,6 @@ const REASONS: Record<string, string> = {
 };
 export const reasonMessage = (r: string, fallback?: string) => REASONS[r] ?? fallback ?? 'We could not confirm the booking. Nothing was charged.';
 
-const sameName = (a: string | null | undefined, b: string | null | undefined) => !!a && !!b && a.replace(/\s+/g, '').toLowerCase() === b.replace(/\s+/g, '').toLowerCase();
-
 /** The PaymentIntent for the approved offer: one per offer version (the idempotency key). */
 export async function bookingIntent(f: PaymentFacts): Promise<Intent> {
   const p = await payments();
@@ -83,7 +81,8 @@ export async function settleIntent(intentId: string, by: string | null, eventId:
   };
   // the processor's facts, checked against the database before anything is recorded (13-security.md section 8)
   if (i.currency !== 'cad' || i.amountCents !== f.renter_due_at_booking_cents) return void_('amount_mismatch');
-  if (!sameName(i.card?.name ?? null, f.legal_name)) return void_('name_mismatch');
+  // r48 (2912): the name on the card is never a reason to void the payment. Names are compared tolerantly by the
+  // database when the card is put on file; one that still differs goes to staff review ("Check the name on the card")
   const offerVersion = Number(i.metadata.offer_version);
   const res = (await rpc('server_record_booking_payment', {
     p_booking: bookingId,

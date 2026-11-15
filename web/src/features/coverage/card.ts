@@ -3,21 +3,22 @@
 // name. The database decides (app.card_coverage_check); this module gives the same rule in words for the pages,
 // and the staff hint per card type from what Stripe tells us (brand, funding, country), with no outside lookup.
 
+import { cardNameMatches } from '../signing/names.ts';
+
 export type Funding = 'credit' | 'debit' | 'prepaid' | 'unknown';
 export type CardProblem = 'no_card' | 'not_credit' | 'name_mismatch';
 export interface CardFacts { brand: string | null; last4: string | null; funding: Funding | null; cardholder_name: string | null; country?: string | null }
 
-/** The same test as app.same_person_name: letters and digits only, case ignored. */
-export function sameName(a: string | null | undefined, b: string | null | undefined): boolean {
-  const k = (s: string | null | undefined) => (s ?? '').normalize('NFKD').replace(/[^\p{L}\p{N}]+/gu, '').toLowerCase();
-  return !!k(a) && k(a) === k(b);
-}
+/** r48 (2912): the same test as app.card_name_matches (middle names, initials, a shorter first name, accents, order and
+ *  hyphens ignored). */
+export const sameName = (a: string | null | undefined, b: string | null | undefined): boolean => cardNameMatches(a, b);
 
 /** Why the card cannot carry the renter's rental coverage, or null when it can. */
 export function cardCoverageProblem(card: CardFacts | null, renterName: string | null): CardProblem | null {
   if (!card || !card.last4) return 'no_card';
   if (card.funding !== 'credit') return 'not_credit';
-  if (!sameName(card.cardholder_name, renterName)) return 'name_mismatch';
+  // r48 (2912): a name that differs is checked by staff, never a reason to refuse the coverage
+  void renterName;
   return null;
 }
 

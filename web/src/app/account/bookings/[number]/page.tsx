@@ -37,7 +37,7 @@ import { moneyParts } from '@/features/portal/trip-model';
 import { CompleteDetails } from '@/features/portal/CompleteDetails';
 import { StillNeeded } from '@/features/portal/StillNeeded';
 import { showNeeds, stillNeededOf } from '@/features/portal/still-needed';
-import { renterDetailsMissing } from '@/server/portal/renter-details';
+import { renterDetails } from '@/server/portal/renter-details';
 import { STAGES, type Walk } from '@/features/walkthrough/model';
 import { AccidentSummary } from '@/features/accident-card/AccidentCard';
 import { AccidentReport } from '@/features/accident-card/AccidentReport';
@@ -107,7 +107,8 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
   // the licence first (0130): from the request until it is on file
   const licMissing = ['requested', 'offered', 'pending_payment'].includes(b.status) ? renterMissing(await licenceState(b.id, user.id)) : null;
   // the agreement's blanks the renter fills in (0195): a blocking step at the top, before signing and paying
-  const detailsMissing = await renterDetailsMissing(b, user.id);
+  const rd = await renterDetails(b, user.id);
+  const detailsMissing = rd.missing;
   const openQ = b.info_requests.filter((q) => q.status === 'open');
   // each additional driver's own signing link (migration 0040: versioned, expiring, renewed here)
   const links = b.agreement && b.drivers.some((d) => d.role === 'additional') ? await bookingDriverLinks(b.id, user.id) : [];
@@ -167,7 +168,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
         <PortalCard id="pt-prog" title={stageSummary(track).text} testId="trip-progress">
           <StepTracker number={b.booking_number} stages={track} todos={todos(b.booking_number, stillNeededOf(b), quickLinks({ ...b, missing: b.readiness?.missing ?? null }, (licMissing?.length ?? 0) > 0))}>
             {detailsMissing.length > 0 && <Disclosure summary={<>Your details for the agreement <span className="pu-pill pu-pill--ready">Needed</span></>} open testId="todo-details">
-              <CompleteDetails bare number={b.booking_number} missing={detailsMissing} /></Disclosure>}
+              <CompleteDetails bare number={b.booking_number} missing={detailsMissing} known={rd.known} /></Disclosure>}
           </StepTracker>
         </PortalCard>
       ) : (() => { const n = stillNeededOf(b); return showNeeds(n) ? <StillNeeded quiet number={b.booking_number} needs={n} testId="still-needed" /> : null; })()}

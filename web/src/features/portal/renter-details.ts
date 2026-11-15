@@ -55,3 +55,16 @@ export function detailPayload(fields: DetailField[], v: Record<string, string>):
   }
   return out;
 }
+
+/** Release 48: the prefilled values of the asked fields, from what the renter already gave us (public.renter_prefill).
+ *  Only text and dates of the asked fields (the address with its parts); nothing else reaches the page. */
+export function knownFor(missing: RenterMissing[], prefill: Record<string, unknown> | null | undefined): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!prefill) return out;
+  const take = (k: string) => { const x = prefill[k]; if ((typeof x === 'string' && x.trim()) || typeof x === 'number') out[k] = String(x).trim(); };
+  for (const f of detailFields(missing)) {
+    if (f.input === 'address') ADDRESS_KEYS.forEach(take);
+    else take(f.name);
+  }
+  return out;
+}

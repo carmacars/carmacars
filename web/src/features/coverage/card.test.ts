@@ -21,11 +21,11 @@ test('funding check: debit, prepaid and unknown funding are refused, with the op
   assert.doesNotMatch(m, /insurance|—/i);
 });
 
-test('funding check: no card yet, and a card in someone else\'s name', () => {
+test('funding check: no card yet; a card in another name is not refused (staff review, r48)', () => {
   assert.equal(cardCoverageProblem(null, 'Morgan Payer'), 'no_card');
   assert.equal(cardCoverageProblem(card({ last4: null }), 'Morgan Payer'), 'no_card');
-  assert.equal(cardCoverageProblem(card({ cardholder_name: 'Someone Else' }), 'Morgan Payer'), 'name_mismatch');
-  assert.equal(cardCoverageProblem(card({ cardholder_name: null }), 'Morgan Payer'), 'name_mismatch');
+  assert.equal(cardCoverageProblem(card({ cardholder_name: 'Someone Else' }), 'Morgan Payer'), null);
+  assert.equal(cardCoverageProblem(card({ cardholder_name: null }), 'Morgan Payer'), null);
   assert.match(cardCoverageMessage('name_mismatch', card())!, /not in your name/);
 });
 

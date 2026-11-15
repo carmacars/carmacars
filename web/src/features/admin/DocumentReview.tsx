@@ -5,6 +5,7 @@ import { docReviewLoad, guidedAct } from '@/server/actions/guided';
 import type { DocReview, DocUpload } from '@/features/admin/todo/types';
 import { LicenceChecks, PrimarySwapPanel } from '@/features/licence/LicenceChecks';
 import { otherUploads } from '@/features/admin/doc-split';
+import { AcceptCard } from '@/features/card/AcceptCard';
 
 // Renter documents of one booking (migration 0078), on one screen (0151): every licence image, selfie, proof of coverage
 // and the Protection Plan side by side, what to check said once, then one "Approve all" (each item through the function
@@ -133,6 +134,7 @@ export function DocumentReview({ booking, label = 'Review documents', variant = 
                 {covWaiting && cp && <Reject testId="coverage" pending={pending} onReject={(reason) => act('doc_review_coverage', { proof: cp.id, approve: false, reason }, 'Proof of coverage rejected. The renter is told why.')} />}
                 {cp && cp.status === 'rejected' && <p className="small muted">Rejected: {cp.rejection_reason}. The renter sends a new one.</p>}
                 {!cp && cov.option !== 3 && <p className="small muted">No proof sent yet.</p>}
+                {cov.card.cardholder_name && !cov.card.name_matches && <AcceptCard booking={d.booking_id} cardholder={cov.card.cardholder_name} renter={cov.card.renter_name ?? d.renter_name ?? ''} />}
                 {planWaiting && <p className="small" data-testid="plan-waiting">The Protection Plan is on the booking and waits to be confirmed active (included in Approve all).</p>}
               </section>)}
           </div>)}
