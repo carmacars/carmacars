@@ -126,7 +126,7 @@ do $$ begin
   perform app.live_watch('public.phone_activity'::regclass, 'calls', 'booking_id', '-');
   perform app.live_watch('public.outbound_calls'::regclass, 'calls', 'booking_id', '-');
 end $$;
-select pg_temp.patch_fn('app.server_live_topics(uuid, text[])'::regprocedure,
+select pg_temp.patch_fn('app.server_live_topics_pre2980(uuid, text[])'::regprocedure,
   $o$    elsif s = 'staff:field' then$o$,
   $n$    elsif s = 'staff:calls' then
       -- 2995: the caller pop-up (Admins and office staff; field staff place calls too)

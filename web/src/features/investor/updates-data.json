@@ -84,12 +84,18 @@
   "title": "Release 48",
   "date": "2026-11-14",
   "seq": 0,
-  "summary": "A car can go out with the deposit still owed, asked for each morning, and most messages go by email once email is ready.",
+  "summary": "A car can go out with the deposit still owed, signing and card names never wrongly block a renter, pay links ask only for what is owed, offers are edited in place and hold the car on time, messages go out at once, long rentals can be paid weekly, calls through the site open the caller pop-up, Rewards emails renters, and a payment plan's first payment confirms the booking.",
   "areas": [
    {
     "area": "Renters",
     "items": [
      "The booking page says when the deposit is still owed and how to place it",
+     "Signing no longer says \"your signature does not match\": the signature you drew is the one recorded, even if you press Sign quickly or sign on two devices",
+     "Coming back? Initial all the key terms and sign with your saved signature, one tap each",
+     "The details form is filled in with what you gave us last time: check it and save",
+     "A card in your name written a little differently (a middle name, a short first name, accents) no longer stops your booking",
+     "A renter's checklist says exactly which page of their own policy is still missing, and its button opens that upload, with example pictures of a pink slip and an OPCF 27 page",
+     "A pay link asks only for what is owed: after a change, the difference; a link no longer needed is cancelled by itself and never charged",
      "CarmaCars Rewards emails renters: welcome, points earned, a new tier, the free day, reminders before points end, a monthly statement, and nudges they can unsubscribe from",
      "From Gold up, a rental near the renter's birthday or on a holiday weekend is 10% to 20% off the rental charge, shown as its own line"
     ]
@@ -99,8 +105,26 @@
     "items": [
      "A car can go out with the deposit still owed, with the reason: every booking page shows **Deposit pending**, the saved card is tried each morning and the renter is sent the deposit link; after 48 hours an Admin gets a To do",
      "Each message type that can go by text shows its texts of the last 30 days and its channel; once email is ready for production, only urgent messages keep their texts and the rest go by email",
+     "**Approve all (n)** counts only what it can approve, and the get-ready line says which page the renter still has to send",
+     "Open pay links that asked for more than is owed were cancelled at release; Claude's connector can cancel one pay link (an Admin, previewed first, no money moves)",
+     "The offer screen is one clear form with one main button, and an offer that is out is changed in place: what staff save stays saved",
+     "The fleet calendar is easier to read on a computer and a phone: full car names, the renter and booking number on each bar, clear colours by status and today marked",
+     "Every car on the fleet calendar says whether it is free now, taken days are tinted so white is free, and **Only cars free for these dates** shows the cars you can offer",
+     "Every alert opens the exact thing it is about: the booking's messages, the conversation, the visitor, the field job or shift on the board, the person's Academy page; end of day alerts open that role's To do list",
+     "An offer is open 12 hours and closes 1 hour before the pickup at the latest; once accepted, the car is held 2 hours for the payment, then freed, and the renter gets a fresh link to pay while the car is still free",
      "Texts and emails go out within a second or two of being queued, whoever queued them; the To do lists, Today, Alerts and the booking lists update by themselves",
-     "A booking can be a long-term rental paid weekly: the car stays out on the calendar until the renter gives notice, and each weekly payment moves the return 7 days"
+     "A booking can be a long-term rental paid weekly: the car stays out on the calendar until the renter gives notice, and each weekly payment moves the return 7 days",
+     "The academy teaches the guides: worked examples for every role, and the path The renter's side for every staff member",
+     "Calls through the site open the caller pop-up and its Call helper within a second, for the calls you place and the ones that ring you; every call keeps its recording, transcript and summary on the renter",
+     "A booking on a weekly, every 2 weeks or monthly plan is confirmed once its first payment is paid, and a plan never shows an empty last payment",
+     "A booking partly paid but not yet confirmed can move to another car, or other dates, with **Edit**; its price and its payments stay"
+    ]
+   },
+   {
+    "area": "Website & search",
+    "items": [
+     "Words are no longer squeezed into slivers or broken letter by letter on a phone: labels, car names, buttons and notes keep their room, and a wide table scrolls instead of crushing its columns",
+     "Form labels such as \"Where you are (city or neighbourhood)\" fit a small phone"
     ]
    }
   ]

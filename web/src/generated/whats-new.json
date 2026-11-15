@@ -200,21 +200,51 @@
   "r48": {
    "date": "2026-11-14",
    "seq": 0,
-   "summary": "A car can go out with the deposit still owed, asked for each morning, and most messages go by email once email is ready.",
+   "summary": "A car can go out with the deposit still owed, signing and card names never wrongly block a renter, pay links ask only for what is owed, offers are edited in place and hold the car on time, messages go out at once, long rentals can be paid weekly, calls through the site open the caller pop-up, Rewards emails renters, and a payment plan's first payment confirms the booking.",
    "sections": {
     "admins": [
      "A car can go out with the deposit still owed, with the reason: the booking shows Deposit pending $X for every role, the saved card is tried each morning, the renter gets the deposit link, and after 48 hours you get a To do that opens the Money tab",
      "Program settings shows each message type that can go by text with its texts in the last 30 days; once Email ready for production is on, only urgent messages keep their texts and the rest go by email",
      "Claude's connector records a pickup with the deposit owed (deposit_pending: true with the reason), previewed first",
+     "A card whose name still differs goes to a To do, Check the name on the card; press Accept this card with a short reason (staff who verify bookings can too). Program setting Card in the renter's name turns the rule off",
+     "A typed signature whose name differs is accepted and listed as Check a typed signature",
+     "Approve all (n) counts only what it can approve; a proof missing a page says Waiting for the renter with the page named",
+     "A pay link for a booking defaults to and is capped at what is owed; a booking paid in full gets no balance link",
+     "The guides lay out by the room they have: no more notes or steps squeezed into a thin column in the field portal or beside a menu",
+     "Editing an offer that is out keeps what you saved: after Send the update or Save without sending, the screen and a reload show the saved car, dates, price and fees",
+     "The offer screen is one form with one main button: Send the offer for a request, Send the update for an offer that is out, with Save without sending beside it; how long it is open, Email or Text, the rate card, discounts, insurer billing and the internal note are under More options",
+     "Send the offer under Next step takes you straight to that button",
+     "The fleet calendar is easier to read on a computer and a phone: full car names, the renter and booking number on each bar, clear colours by status, today marked, and the cars and dates stay in place while you scroll",
+     "Each car on the Calendar says if it is free now (Available now) or who has it and until when; white days are free",
+     "Alerts no longer land on a general page: each opens its booking (in the right section), conversation, visit, field job, shift, staff member or car",
+     "Offers and accepted unpaid bookings stop holding the car on time; the Calendar shows them as a light hatched hold until they end. The times are in Program settings (offers open 12 hours, 1 hour before pickup at the latest, 2 hours to pay)",
      "Logs > Emails shows how long each email took from queued to sent, and the last day's average for emails, texts and phone alerts",
-     "Long-term, paid weekly on a booking: the car stays out until notice, End rental on sets the last day, and 48 hours before the return with the next week unpaid the renter gets the pay link and you a To do (Program settings sets the hours); the connector's change_booking takes rolling_weekly and rolling_end_on"
+     "Long-term, paid weekly on a booking: the car stays out until notice, End rental on sets the last day, and 48 hours before the return with the next week unpaid the renter gets the pay link and you a To do (Program settings sets the hours); the connector's change_booking takes rolling_weekly and rolling_end_on",
+     "Admin > Academy: every role's path gains worked examples from its guide, and every staff member (and the Admin path) the new path The renter's side, nine steps of the renter guide with the renter's screen and its page; new hires pass it before their portal opens, staff already working have 7 days, and lesson scenes can show a guide screenshot",
+     "Calls placed from the site and calls that ring the browsers open the caller pop-up within a second, for every office role it rings; the renter's Activity log shows each call with Play, the transcript and the summary, and calls of the last 60 days missing them are looked up at Twilio and Quo",
+     "Settings > Rewards lists every Rewards email with its 30-day counts, Preview and Turn off, and the birthday and holiday rewards by tier with the holidays",
+     "Edit on a booking waiting for payment that already has a payment: another car, the dates, the places, with the price and payments kept; the connector's change_booking does the same",
+     "Claude's connector lets a main driver keep a licence from outside Ontario on one booking (licence_let_go, your Let it go with the reason), previewed first",
+     "The two pages of an OPCF 27 proof have one name on every screen: the pink slip and the OPCF 27 endorsement page"
     ],
     "staff": [
      "Let a car go with the deposit owed from the check-in, Record the pickup now or the field job, with the reason; you do nothing more once it is taken",
-     "A renter paying week by week: turn on Long-term, paid weekly on the booking and record each week's payment; the return moves by itself"
+     "Customer service and Sales get the same offer screen: change an offer that is out and press Send the update, no need to withdraw it first",
+     "The Calendar is easier to read: full car names, the renter and booking number on each bar, today marked, and the cars and dates stay in place while you scroll",
+     "Each alert opens the exact booking, conversation, visitor or job it is about",
+     "A renter paying week by week: turn on Long-term, paid weekly on the booking and record each week's payment; the return moves by itself",
+     "Your academy has worked examples from your guide and the new path The renter's side: what renters see at each step, with the renter guide at Renter guide; staff already working have 7 days, shown on the academy page",
+     "Ask the guide first: the Assistant names the guide chapter of the page you are on",
+     "A call you place from the site, or one that rings your browser, opens the caller pop-up with the Call helper; on the renter, choose Calls to play a call or read its transcript"
     ],
     "renters": [
-     "Your booking page says when the deposit is still owed and how to place it"
+     "Your booking page says when the deposit is still owed and how to place it",
+     "Your booking's checklist says exactly which insurance page is still missing, and its button opens that upload",
+     "Example pictures of a pink slip and an OPCF 27 endorsement page, with the parts that must show circled, and how to take the photo",
+     "A pay link asks only for what you owe; one you no longer need is cancelled by itself and never charged",
+     "We email you about your Rewards points, your tier and your free day, and a reminder before points end",
+     "From Gold up, a rental near your birthday or on a holiday weekend costs less; add your birthday on the Rewards page",
+     "On a payment plan, your booking is confirmed as soon as your first payment is in"
     ]
    }
   }

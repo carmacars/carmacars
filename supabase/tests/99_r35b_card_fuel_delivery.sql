@@ -107,15 +107,15 @@ update bookings set coverage_option = 1 where id = test.id('booking:RB-OPCF');
 create function test.rb_opcf(p_page text) returns uuid language sql as $$
   select app.register_verification_upload(test.id('booking:RB-OPCF'), test.id('rb_ron'), 'coverage_proof', null, 'renters/rb/opcf-' || gen_random_uuid() || '.pdf', repeat('a', 64), 'application/pdf',
     jsonb_build_object('coverage_option', '1', 'insurer_name', 'Example Mutual', 'policy_number', 'EX-0001', 'policy_expiry', '2027-06-30', 'page_kind', p_page), 'documents') $$;
-select test.eq('both pages are missing before payment', public.server_booking_payment_facts(test.id('booking:RB-OPCF')) -> 'coverage_missing', '["pink slip", "OPCF 27 endorsement"]'::jsonb);
+select test.eq('both pages are missing before payment', public.server_booking_payment_facts(test.id('booking:RB-OPCF')) -> 'coverage_missing', '["pink slip", "OPCF 27 endorsement page"]'::jsonb);
 select test.throws('the renter''s page must say what it is', $$select public.renter_register_upload(test.id('booking:RB-OPCF'), test.id('rb_ron'), 'coverage_proof', 'renters/rb/x.pdf', repeat('b', 64), 'application/pdf', 'documents', null,
   '{"coverage_option": "1", "insurer_name": "Example Mutual", "policy_number": "EX-0001", "policy_expiry": "2027-06-30"}')$$, 'pink slip or the OPCF 27 endorsement');
 select test.throws('a page kind that is not one is refused', $$select test.rb_opcf('selfie')$$, 'pink slip or the OPCF 27 endorsement');
 select test.lives('the pink slip, through the renter''s door', $$select public.renter_register_upload(test.id('booking:RB-OPCF'), test.id('rb_ron'), 'coverage_proof', 'renters/rb/ps.pdf', repeat('c', 64), 'application/pdf', 'documents', null,
   '{"coverage_option": "1", "insurer_name": "Example Mutual", "policy_number": "EX-0001", "policy_expiry": "2027-06-30", "page_kind": "pink_slip"}')$$);
 select test.eq('the page says what it is', (select page_kind from verification_uploads where booking_id = test.id('booking:RB-OPCF') and kind = 'coverage_proof'), 'pink_slip');
-select test.eq('the endorsement is still missing', app.opcf27_missing(test.id('booking:RB-OPCF')), array['OPCF 27 endorsement']);
-select test.eq('the renter''s read says so', app.renter_coverage(test.id('booking:RB-OPCF')) -> 'opcf27_missing', '["OPCF 27 endorsement"]'::jsonb);
+select test.eq('the endorsement is still missing', app.opcf27_missing(test.id('booking:RB-OPCF')), array['OPCF 27 endorsement page']);
+select test.eq('the renter''s read says so', app.renter_coverage(test.id('booking:RB-OPCF')) -> 'opcf27_missing', '["OPCF 27 endorsement page"]'::jsonb);
 select test.throws('staff cannot approve with one page', format($$select app.review_coverage_proof(%L, %L, true)$$, (select id from coverage_proofs where booking_id = test.id('booking:RB-OPCF')), test.id('rb_cs')), 'Both pages');
 select test.lives('the endorsement page', $$select test.rb_opcf('endorsement')$$);
 select test.eq('nothing is missing: payment may go ahead', public.server_booking_payment_facts(test.id('booking:RB-OPCF')) -> 'coverage_missing', '[]'::jsonb);

@@ -14,7 +14,7 @@ import { storage, type Bucket } from '@/integrations/storage';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Identity review', path: '/staff', noindex: true, description: 'Identity and coverage documents of one booking.' });
-const PAGE_KIND: Record<string, string> = { pink_slip: 'pink slip', endorsement: 'OPCF 27 endorsement', card_benefit: 'card benefit document' };
+const PAGE_KIND: Record<string, string> = { pink_slip: 'pink slip', endorsement: 'OPCF 27 endorsement page', card_benefit: 'card benefit document' };
 
 type U = { id: string; kind: string; driver_id: string | null; status: string; uploaded_at: string; bucket: string; path: string; mime_type: string | null };
 type V = { coverage?: ReviewCoverage | null; booking_id: string; booking_number: string; return_at: string; coverage_option: number | null; readiness: { all_drivers_verified: boolean; coverage_confirmed?: boolean };

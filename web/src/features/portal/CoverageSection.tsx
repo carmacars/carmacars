@@ -64,7 +64,7 @@ export function CoverageSection({ number, c, cards = [], need }: { number: strin
                   title={sent(k) ? `${title}: sent (add another page)` : needs.some((n) => n.page_kind === k) ? `${title}: still needed` : title} hint={hint}>
                   <details className="cx-one" open={focus === k} data-testid={`example-open-${k}`}><summary className="small">See an example</summary><CoverageExample kind={k as 'pink_slip' | 'endorsement'} /></details>
                 </UploadCard>))}</div>
-            : <p className="small muted">Enter the insurer, the policy number and the expiry to send the pink slip and the endorsement page.</p>)}
+            : <p className="small muted">Enter the insurer, the policy number and the expiry to send the pink slip and the OPCF 27 endorsement page.</p>)}
         </div>)}
 
       {c.option === 2 && !c.confirmed && (

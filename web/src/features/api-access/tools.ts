@@ -113,7 +113,7 @@ export const ADMIN_TOOLS: Tool[] = [
   write('revise_offer', 'Revise an offer', 'Send a revised offer for a booking already offered.', ['booking'],
     { ...booking, message: str('A message'), expires_at: { type: 'string', format: 'date-time' }, notify: { type: 'boolean' }, internal_note: str('Kept for staff') }),
   write('withdraw_offer', 'Withdraw an offer', 'Withdraw the open offer of a booking.', ['booking'], { ...booking, note: str('Why') }, true),
-  write('change_booking', 'Change a booking', 'Change a booking as Admin > Edit booking does: changes (dates, places, car, kilometres, ...), price lines, the reason, and whether to tell the renter. changes.rolling_weekly true makes it a long-term rental paid weekly (the car stays out on the calendar until the renter gives notice; each weekly payment recorded moves the return 7 days), false turns that off; changes.rolling_end_on (a date, YYYY-MM-DD; empty for until notice) sets its last day.',
+  write('change_booking', 'Change a booking', 'Change a booking as Admin > Edit booking does: changes (dates, places, car, kilometres, ...), price lines, the reason, and whether to tell the renter. changes.rolling_weekly true makes it a long-term rental paid weekly (the car stays out on the calendar until the renter gives notice; each weekly payment recorded moves the return 7 days), false turns that off; changes.rolling_end_on (a date, YYYY-MM-DD; empty for until notice) sets its last day. A booking waiting for payment that already has a payment (the first payment of a payment plan, say) changes here too: the car, the dates, the places; its payments stay recorded.',
     ['booking', 'reason'], { ...booking, changes: { type: 'object' }, lines: { type: 'array', items: { type: 'object' } }, reason: str('Why'), tell_renter: { type: 'boolean' } }),
   write('change_booking_fees', 'Change booking fees', 'Change the fee lines of a booking (add, change or remove a fee) with the reason.', ['booking', 'lines', 'reason'],
     { ...booking, lines: { type: 'array', items: { type: 'object' } }, reason: str('Why') }),
@@ -293,3 +293,11 @@ export const PAY_LINK_TOOLS: Tool[] = [
     ['payment_intent'], { payment_intent: str('The PaymentIntent id (pi_...) of the pay link') }, true)
 ];
 TOOLS.push(...PAY_LINK_TOOLS);
+
+// Release 48 (3013): the Admin's "Let it go" for a main driver with a licence from outside Ontario (an international or
+// another province's licence), on one booking. Previewed, then confirmed; logged in the booking history and api_calls.
+export const LICENCE_TOOLS: Tool[] = [
+  write('licence_let_go', 'Accept a licence from outside Ontario', 'Let the main driver of one booking keep a licence from outside Ontario (international or another province), as the Admin\'s Let it go on the booking page does: the driver moved to additional driver because of that licence is the main driver again for this booking only, and pickup is no longer blocked by it. An Admin only, with the reason. Refused when the booking has no main driver waiting on an Ontario licence.',
+    ['booking', 'reason'], { ...booking, reason: str('Why this driver may keep the licence (5 characters or more)') })
+];
+TOOLS.push(...LICENCE_TOOLS);

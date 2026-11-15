@@ -192,7 +192,8 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
     // the money by part (0129), the fees each changeable on its own (0132), the booking and renter edit forms (0132)
     on('money') ? ops<Money>('booking_money', { booking: b.booking_number }, true).catch(none(null)) : null,
     on('money') || on('overview') ? ops<Fees>('booking_fees', { booking: b.booking_number }, true).catch(none(null)) : null,
-    on('overview') && !['requested', 'offered', 'pending_payment', 'tentative'].includes(String(b.status)) ? ops<EditForm>('booking_edit_form', { booking: b.booking_number }, true).catch(none(null)) : null,
+    // 3011: a booking waiting for payment with a payment already is edited here too (the database's refusal decides)
+    on('overview') && !['requested', 'offered', 'tentative'].includes(String(b.status)) ? ops<EditForm>('booking_edit_form', { booking: b.booking_number }, true).catch(none(null)) : null,
     on('overview') || on('review') ? ops<RenterForm>('renter_edit_form', { booking: b.booking_number }, true).catch(none(null)) : null,
     // r35 (0850): the booking's one Activity log (emails, texts, chat, calls, notes, events, payments, documents, visits)
     on('history') ? ops<ActivityPage>('renter_activity', { booking: b.booking_number, ...readParams(activityQuery(sp)) }, true).catch(none(null)) : null,

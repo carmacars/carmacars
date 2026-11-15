@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { ADMIN_TOOLS, CLAIM_TOOLS, CONNECTOR_URL, OPS_TOOLS, PHOTO_TOOLS, SCOPES, STRIPE_TOOLS, PAY_LINK_TOOLS, TOOLS, WRITABLE, bearer, newSecret, parseScopes, pkceChallenge, secretPrefix, sha256Hex, toolsFor, claimFileKind } from './tools.ts';
+import { ADMIN_TOOLS, CLAIM_TOOLS, CONNECTOR_URL, OPS_TOOLS, PHOTO_TOOLS, SCOPES, STRIPE_TOOLS, PAY_LINK_TOOLS, LICENCE_TOOLS, TOOLS, WRITABLE, bearer, newSecret, parseScopes, pkceChallenge, secretPrefix, sha256Hex, toolsFor, claimFileKind } from './tools.ts';
 
 test('every tool names a known scope, and only the update tools write', () => {
   for (const t of TOOLS) assert.ok(t.scope === 'any' || (SCOPES as readonly string[]).includes(t.scope), t.name);
@@ -192,4 +192,17 @@ test('2923: cancel_pay_link: two-step on admin:write, an Admin only, a paid link
   assert.match(SQL2923, /user_is_admin\(k\.user_id\)/);
   assert.match(SQL2923, /q\.status = 'paid' then\s+raise exception/);
   assert.match(SQL2923, /pv\.args is distinct from v_args/);
+});
+
+const SQL3013 = readFileSync(new URL('../../../../supabase/migrations/3013_r48_connector_licence_let_go.sql', import.meta.url), 'utf8');
+test('3013: licence_let_go: two-step on admin:write, an Admin only, with the reason, the Let it go of the booking page', () => {
+  const t = LICENCE_TOOLS.find((x) => x.name === 'licence_let_go')!;
+  assert.ok(t && !t.readOnly && t.scope === 'admin:write');
+  assert.ok(TOOLS.includes(t));
+  const s = t.inputSchema as { properties: Record<string, unknown>; required: string[] };
+  assert.deepEqual(s.required, ['booking', 'reason']);
+  assert.ok(s.properties.confirm && s.properties.preview_id);
+  assert.match(SQL3013, /if p_tool <> 'licence_let_go' then return app\.api_call_pre3013/);
+  assert.match(SQL3013, /app\.primary_swap_decide\(k\.user_id, jsonb_build_object\('booking', b\.id, 'action', 'override'/);
+  assert.match(SQL3013, /pv\.args is distinct from v_args/);
 });

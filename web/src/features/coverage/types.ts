@@ -26,7 +26,7 @@ export interface RenterCoverage {
   /** 0890: the last time staff switched this booking between card coverage and the Protection Plan */
   /** 1400: the card picked from the list and the database's check of it */
   card_pick?: CardPick | null;
-  /** 1401: the OPCF 27 pages still to send ("pink slip", "OPCF 27 endorsement"), and whether payment waits for them */
+  /** 1401: the OPCF 27 pages still to send ("pink slip", "OPCF 27 endorsement page"), and whether payment waits for them */
   opcf27_missing?: string[]; opcf27_before_payment?: boolean; page_kinds?: Record<string, ProofPageKind>;
   /** r48 (2920): what is still to send, from the one rule the staff count and the checklist read */
   needs?: CoverageNeed[];
