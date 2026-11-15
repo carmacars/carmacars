@@ -1,13 +1,16 @@
 -- 99: owner fees taken from the revenue statement (migration 0204, docs/changes/2026-10-31-owner-fees-from-statement.md). Fixtures "fs".
--- September 2026 (in the past): a closed rental makes revenue; the September invoice is taken from the September statement.
+-- Last month (always in the past, and never 2 months back, where the fallback to the debit would take the invoices first:
+-- the test does not depend on the day it runs): a closed rental makes revenue; that month's invoice is taken from its
+-- statement. test.fsm() is the first day of last month.
+create function test.fsm() returns date language sql stable as $$ select (date_trunc('month', app.today()) - interval '1 month')::date $$;
 select test.suite('99 owner fees from statement');
 select test.mk_user('q21fs_admin', 'admin');
 select test.mk_owner('q21fs_o');
 select test.mk_owner('q21fs_p');
-select test.mk_vehicle('FSA', 'q21fs_o', 'managed', 45000, 2500, 3500, date '2026-08-01');
-select test.mk_vehicle('FSP', 'q21fs_p', 'managed', 45000, 2500, 3500, date '2026-08-01');
+select test.mk_vehicle('FSA', 'q21fs_o', 'managed', 45000, 2500, 3500, (test.fsm() - interval '1 month')::date);
+select test.mk_vehicle('FSP', 'q21fs_p', 'managed', 45000, 2500, 3500, (test.fsm() - interval '1 month')::date);
 select test.mk_renter('q21fs_r');
-select test.mk_booking('FS-1', 'FSA', 'q21fs_r', '2026-09-05 10:00', '2026-09-08 10:00', 'closed', 30000);
+select test.mk_booking('FS-1', 'FSA', 'q21fs_r', (test.fsm() + 4)::text || ' 10:00', (test.fsm() + 7)::text || ' 10:00', 'closed', 30000);
 select app.compute_booking_split(test.id('booking:FS-1'));
 
 select test.throws('only an Admin sets how fees are paid', $$select app.door(test.id('q21fs_o'), 'aal2', 'ops_do', 'owner_fees_paid_from', jsonb_build_object('owner', test.id('owner:q21fs_o'), 'fees_paid_from', 'statement'))$$, null);
@@ -15,26 +18,26 @@ select test.eq('Bank debit by default', app.door(test.id('q21fs_admin'), 'aal2',
 select test.lives('an Admin chooses Take from revenue statement',
   $$select app.door(test.id('q21fs_admin'), 'aal2', 'ops_do', 'owner_fees_paid_from', jsonb_build_object('owner', test.id('owner:q21fs_o'), 'fees_paid_from', 'statement'))$$);
 insert into owner_invoices (id, owner_id, vehicle_id, kind, period_month, billing_date, status, fees_cents, hst_cents)
-values (test.id('inv:fs:aug'), test.id('owner:q21fs_o'), test.id('vehicle:FSA'), 'monthly', date '2026-09-01', date '2026-09-15', 'issued', 4000, 520),
-       (test.id('inv:fs:big'), test.id('owner:q21fs_o'), test.id('vehicle:FSA'), 'adjustment', null, date '2026-09-20', 'issued', 50000, 0),
-       (test.id('inv:fs:up'), test.id('owner:q21fs_o'), test.id('vehicle:FSA'), 'upfront', null, date '2026-09-01', 'issued', 1000, 0),
-       (test.id('inv:fs:p'), test.id('owner:q21fs_p'), test.id('vehicle:FSP'), 'monthly', date '2026-09-01', date '2026-09-15', 'issued', 4000, 520);
+values (test.id('inv:fs:aug'), test.id('owner:q21fs_o'), test.id('vehicle:FSA'), 'monthly', test.fsm(), test.fsm() + 14, 'issued', 4000, 520),
+       (test.id('inv:fs:big'), test.id('owner:q21fs_o'), test.id('vehicle:FSA'), 'adjustment', null, test.fsm() + 19, 'issued', 50000, 0),
+       (test.id('inv:fs:up'), test.id('owner:q21fs_o'), test.id('vehicle:FSA'), 'upfront', null, test.fsm(), 'issued', 1000, 0),
+       (test.id('inv:fs:p'), test.id('owner:q21fs_p'), test.id('vehicle:FSP'), 'monthly', test.fsm(), test.fsm() + 14, 'issued', 4000, 520);
 select test.eq('the owner''s monthly and adjustment invoices are from the statement; the upfront one and another owner''s are not',
   (select string_agg(right(invoice_number, 0) || from_statement::text, ',' order by billing_date, fees_cents) from owner_invoices where id in (test.id('inv:fs:aug'), test.id('inv:fs:big'), test.id('inv:fs:up'), test.id('inv:fs:p'))),
   'false,true,false,true');
 select test.eq('no automatic debit', app.owner_debit_block(test.id('inv:fs:aug')), 'taken from the revenue statement');
 select test.eq('the other owner is debited as before', app.owner_debit_block(test.id('inv:fs:p')) is distinct from 'taken from the revenue statement', true);
 
-create table test.r21fsst as select app.build_owner_statement(test.id('owner:q21fs_o'), date '2026-09-01') as id;
+create table test.r21fsst as select app.build_owner_statement(test.id('owner:q21fs_o'), test.fsm()) as id;
 select test.eq('the statement shows the invoice paid from it',
   (select description || ':' || amount_cents from owner_statement_lines where owner_statement_id = (select id from test.r21fsst) and owner_invoice_id = test.id('inv:fs:aug')),
   (select 'Invoice ' || invoice_number || ', paid from statement:-4520' from owner_invoices where id = test.id('inv:fs:aug')));
 select test.eq('the big one is taken as far as the payout goes: nothing left to pay out',
   (select payout_cents || '/' || balance_carried_forward_cents from owner_statements where id = (select id from test.r21fsst)), '0/0');
-select test.eq('what was taken: the September invoice in full and part of the big one',
+select test.eq('what was taken: last month''s invoice in full and part of the big one',
   (select -sum(amount_cents) > 4520 and count(*) = 2 from owner_statement_lines where owner_statement_id = (select id from test.r21fsst) and line_type = 'fees_deducted'), true);
 select app.approve_owner_statement((select id from test.r21fsst), test.id('q21fs_admin'));
-select test.eq('approved: the September invoice is paid from the statement, the big one part paid',
+select test.eq('approved: last month''s invoice is paid from the statement, the big one part paid',
   (select string_agg(status || ':' || from_statement, ',' order by billing_date) from owner_invoices where id in (test.id('inv:fs:aug'), test.id('inv:fs:big'))), 'deducted:true,partially_deducted:true');
 select test.eq('the owner portal says so', (select x ->> 'from_statement' from jsonb_array_elements(app.owner_portal_home(test.id('q21fs_o')) -> 'invoices') x where x ->> 'id' = test.id('inv:fs:aug')::text), 'true');
 -- 2 months after billing, still owing: back to the debit, with an Admin task
