@@ -170,3 +170,13 @@ test('2896: the Stripe tools: two reads, and stripe_record_paid two-step on admi
   assert.match(SQL2896, /'run', 'stripe_record_paid'/);
   assert.match(SQL2896, /pv\.args is distinct from v_args/);
 });
+
+test('r48 (2970): record_handover takes deposit_pending with its reason, previewed then confirmed like every write', () => {
+  const t = [...TOOLS, ...ADMIN_TOOLS].find((x) => x.name === 'record_handover');
+  assert.ok(t, 'record_handover is listed');
+  const props = (t!.inputSchema as { properties: Record<string, { type?: string }> }).properties;
+  assert.equal(props.deposit_pending?.type, 'boolean');
+  assert.equal(props.deposit_pending_reason?.type, 'string');
+  assert.ok(props.preview_id || props.confirm, 'a write: preview first, then confirm');
+  assert.match(t!.description, /deposit_pending true and deposit_pending_reason/);
+});
