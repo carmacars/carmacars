@@ -5,7 +5,7 @@ import type { VisionModel, VisionRequest, VisionResult } from './types';
 // 404) or any other error answers "not read" silently, and the person types the reading. The image goes inline; the answer
 // is JSON. Swappable: the reader asks any VisionModel.
 const BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
-export const GEMINI_DEFAULT_MODEL = 'gemini-2.0-flash';
+export const GEMINI_DEFAULT_MODEL = 'gemini-3.8-flash';
 
 export function geminiVision(apiKey: string, model: string = GEMINI_DEFAULT_MODEL, timeoutMs = 30_000, fetchImpl: typeof fetch = fetch): VisionModel {
   return {

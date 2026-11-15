@@ -25,7 +25,7 @@ const ONLY_G = flag('guides'), ONLY_P = flag('plates');
 const DO_G = ONLY_G || !ONLY_P, DO_P = ONLY_P || !ONLY_G;
 const OUT = opt('out', path.resolve('r48-references-out'));
 const STORAGE = process.env.STORAGE_URL, KEY = process.env.SERVICE_KEY, GEMINI = process.env.GEMINI_API_KEY;
-const IMAGE_MODEL = process.env.GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image', CHECK_MODEL = process.env.GEMINI_CHECK_MODEL || 'gemini-2.5-flash';
+const IMAGE_MODEL = process.env.GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image', CHECK_MODEL = process.env.GEMINI_CHECK_MODEL || 'gemini-3.8-flash';
 const BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 // the body types of app.sample_body_key and the studio drawing's shape of each (as scripts/gen-sample-photos.mjs)
 const BODIES = { sedan: 'sedan', suv: 'suv', truck: 'suvlg', van: 'van', coupe: 'fastback', hatchback: 'compact', ev: 'sedan' };

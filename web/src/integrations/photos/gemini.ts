@@ -62,7 +62,7 @@ export async function geminiEditImage(o: GeminiOptions, img: { bytes: Uint8Array
 
 /** r45 (2840): the second pass on a made listing photo: several images in (the made photo first, then the originals), JSON
  *  out (features/listing/r45.ts checkPrompt). null on any refusal, quota or error: the photo is then not published. */
-export const GEMINI_CHECK_MODEL = 'gemini-2.5-flash';
+export const GEMINI_CHECK_MODEL = 'gemini-3.8-flash';
 export async function geminiCheckImages(o: GeminiOptions, images: Array<{ bytes: Uint8Array; contentType: string }>, system: string, prompt: string): Promise<{ data: unknown; model: string } | null> {
   const model = (o.model ?? '').trim() || GEMINI_CHECK_MODEL;
   if (!/^[a-z0-9][a-z0-9.-]{2,80}$/.test(model) || !images.length) return null;
