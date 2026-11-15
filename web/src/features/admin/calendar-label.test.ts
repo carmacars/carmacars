@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { barLabel, VIEWS, type LabelEntry } from './calendar-label.ts';
+import { availability, barLabel, busyKind, takes, VIEWS, type LabelEntry, type Span } from './calendar-label.ts';
 
 // r48: the fleet calendar's redesign (docs/changes/2026-11-14-r48-fleet-calendar.md).
 const e = (o: Partial<LabelEntry>): LabelEntry => ({ type: 'booking', booking_type: 'standard', booking_number: 'R-100001', renter: 'Sam Lee', status: 'confirmed', reason: null, note: null, blocks: true, insurer: null, ...o });
@@ -57,5 +57,46 @@ describe('fleet calendar layout', () => {
     // the now line under the bars, never over their words
     const z = (sel: string) => Number(new RegExp(`${sel.replace(/\./g, '\\.')} \\{[^}]*z-index: (\\d+)`).exec(css)?.[1]);
     assert.ok(z('.mcal .mcal__now') < z('.mcal .mcal__item'));
+  });
+});
+
+describe('fleet calendar availability (r48 follow-up)', () => {
+  const T = Date.parse('2026-11-14T05:00:00Z'); // midnight in Toronto
+  const D = 86_400_000;
+  const days = Array.from({ length: 14 }, (_, i) => [T + (i - 2) * D, T + (i - 1) * D] as [number, number]);
+  const now = T + 13 * 3_600_000;
+  const iso = (d: number, h = 15) => new Date(T + d * D + h * 3_600_000).toISOString();
+  const bk = (o: Partial<Span>): Span => ({ type: 'booking', status: 'confirmed', blocks: true, reason: null, starts_at: iso(3), ends_at: iso(5), renter: 'Sam Lee', booking_number: 'R-1', booking_type: 'standard', ...o });
+
+  it('no taking entry: available now, free every day from today on', () => {
+    const a = availability({ status: 'available', entries: [bk({ status: 'requested' }), bk({ placeholder: true }), bk({ blocks: false })] }, now, days, T);
+    assert.deepEqual([a.kind, a.now, a.window, a.freeToday, a.freeAll, a.days], ['free', 'Available now', 'Free every day shown', true, true, 12]);
+  });
+  it('on rent now: red, the renter and the return date; days taken are counted', () => {
+    const a = availability({ status: 'available', entries: [bk({ status: 'on_rent', starts_at: iso(-3), ends_at: iso(2) })] }, now, days, T);
+    assert.equal(a.kind, 'out');
+    assert.equal(a.now, 'Out now: Sam Lee until Nov 16');
+    assert.equal(a.window, 'Free 9 of 12 days');
+    assert.equal(a.freeToday, false);
+  });
+  it('a service block now: in shop until its end; open-ended: until further notice', () => {
+    assert.equal(availability({ status: 'available', entries: [bk({ type: 'block', reason: 'repair', starts_at: iso(-1), ends_at: iso(1) })] }, now, days, T).now, 'In shop until Nov 15');
+    const a = availability({ status: 'available', entries: [bk({ type: 'block', reason: 'owner_unavailable', starts_at: iso(-1), ends_at: null })] }, now, days, T);
+    assert.deepEqual([a.kind, a.now, a.window], ['busy', 'Owner unavailable until further notice', 'No free day shown']);
+  });
+  it('a car that cannot be booked: greyed out, never free', () => {
+    assert.deepEqual(['onboarding', 'out_of_service'].map((s) => { const a = availability({ status: s, entries: [] }, now, days, T); return [a.kind, a.now, a.freeToday]; }),
+      [['off', 'Not bookable', false], ['off', 'In shop', false]]);
+  });
+  it('what takes the car and its tint', () => {
+    assert.equal(takes(bk({})), true);
+    assert.equal(takes(bk({ status: 'offered' })), false);
+    assert.equal(takes(bk({ type: 'turo_trip', status: null })), true);
+    assert.deepEqual([bk({ status: 'on_rent' }), bk({}), bk({ type: 'block', reason: 'cleaning' }), bk({ type: 'block', reason: 'admin' }), bk({ type: 'turo_trip' })].map(busyKind), ['out', 'booked', 'maint', 'block', 'turo']);
+  });
+  it('the badges, the legend and the filter are on the calendar', () => {
+    const tsx = read('./MasterCalendar.tsx');
+    for (const t of ['white: free', 'Only cars free for these dates', 'free today', 'mcal__busy', "a.kind === 'off' ? ' is-off'"]) assert.ok(tsx.includes(t), t);
+    assert.match(read('./master-calendar.css'), /\.mcal \.mcal__row\.is-off \.mcal__lane \{/);
   });
 });

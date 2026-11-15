@@ -62,6 +62,18 @@ async function checkTimeline(page: Page, where: string, phone: boolean) {
     expect(Math.abs(head1!.y - head0!.y), `${where}: sticky date header`).toBeLessThanOrEqual(1);
     await grid.evaluate((g) => { g.scrollLeft = 0; g.scrollTop = 0; });
   }
+  // r48 follow-up: every car says whether it is free now; the corner counts the cars free today; the filter keeps only
+  // the cars free every day shown (a car that cannot be booked is greyed out and never counted free)
+  const rows = cal.locator('.mcal__row');
+  const n = await rows.count();
+  await expect(cal.getByTestId('cal-avail'), where).toHaveCount(n);
+  await expect(cal.getByTestId('cal-free-count'), where).toHaveText(new RegExp(`^\\d+ of ${n} free today$`));
+  expect(await cal.locator('.mcal__row.is-off[data-free-all]').count(), `${where}: a car that cannot be booked is never free`).toBe(0);
+  const freeAll = await cal.locator('.mcal__row[data-free-all="yes"]').count();
+  await cal.getByTestId('cal-only-free').check();
+  await expect(rows, `${where}: only the free cars`).toHaveCount(freeAll);
+  await cal.getByTestId('cal-only-free').uncheck();
+  await expect(rows, where).toHaveCount(n);
   await noOverflow(page);
 }
 

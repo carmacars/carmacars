@@ -9,7 +9,7 @@ import { when } from '@/features/agreement/model';
 import { useDoor } from './door';
 import { toLocalInput } from './Act';
 import { BAR, lane, rowHeight, stack, topOf } from './calendar-stack';
-import { barLabel, VIEWS } from './calendar-label';
+import { availability, barLabel, busyKind, takes, VIEWS } from './calendar-label';
 import { photoUrl } from '@/lib/photo';
 import { photoPath, when as nowWords, type Car } from '@/features/bookings-now/model';
 import { DateInput } from '@/components/DateInput';
@@ -85,6 +85,7 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
   const [q, setQ] = useState(sp.get('q') ?? '');
   const [onlyNonBlocking, setOnlyNonBlocking] = useState(sp.get('nb') === '1');
   const [onlyInsurer, setOnlyInsurer] = useState(sp.get('ins') === '1');
+  const [onlyFree, setOnlyFree] = useState(sp.get('free') === '1'); // r48: only cars free every day shown
   const [supply, setSupply] = useState(sp.get('supply') ?? ''); // 0046: who supplies the car
   const [agenda, setAgenda] = useState(initialAgenda);
   const [sel, setSel] = useState<{ entry?: Entry; vehicle?: Veh; at?: number } | null>(null);
@@ -112,7 +113,15 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
   }), [view, vehicleId, router, sp, adminPreview]);
   const shift = (n: number) => load(new Date(from + n * DAY));
 
-  const vehicles = useMemo(() => data.vehicles.filter((v) => {
+  // by calendar day, not 24 hours at a time: on the night the clocks go back 24 hours later is still the same date ("1 Nov" twice)
+  const dayList = useMemo(() => Array.from({ length: days }, (_, i) => { const d = new Date(from); d.setDate(d.getDate() + i); return d; }), [from, days]);
+  const todayStart = torontoMidnight(new Date(now)).getTime();
+  // r48: each car's availability, now and over the days shown from today on (calendar-label.ts)
+  const avail = useMemo(() => {
+    const ranges = dayList.map((d) => { const e = new Date(d); e.setDate(e.getDate() + 1); return [d.getTime(), e.getTime()] as [number, number]; });
+    return new Map(data.vehicles.map((v) => [v.id, availability(v, now, ranges, todayStart)]));
+  }, [data, dayList, now, todayStart]);
+  const matching = useMemo(() => data.vehicles.filter((v) => {
     const s = q.trim().toLowerCase();
     const hit = !s || [v.label, v.plate, v.fleet_number].some((x) => x?.toLowerCase().includes(s)) || v.entries.some((e) => [e.booking_number, e.renter].some((x) => x?.toLowerCase().includes(s)));
     const nb = !onlyNonBlocking || v.entries.some((e) => e.type === 'booking' && e.blocks === false);
@@ -120,6 +129,8 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
     const sup = !supply || (v.supply_type ?? 'program_owner') === supply;
     return hit && nb && ins && sup;
   }), [data, q, onlyNonBlocking, onlyInsurer, supply]);
+  const vehicles = useMemo(() => onlyFree ? matching.filter((v) => avail.get(v.id)?.freeAll) : matching, [matching, onlyFree, avail]);
+  const freeToday = matching.filter((v) => avail.get(v.id)?.freeToday).length;
 
   const preview = (m: Move) => {
     setConfirm({ move: m, preview: null }); setReason(''); setMsg('');
@@ -185,8 +196,6 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
   };
 
   const pos = (s: number, e: number) => ({ left: Math.max(0, (s - from) * pxPerMs), width: Math.max(6, (Math.min(e, from + days * DAY) - Math.max(s, from)) * pxPerMs) });
-  // by calendar day, not 24 hours at a time: on the night the clocks go back 24 hours later is still the same date ("1 Nov" twice)
-  const dayList = Array.from({ length: days }, (_, i) => { const d = new Date(from); d.setDate(d.getDate() + i); return d; });
   const width = `calc(var(--namew) + ${days * dw}px)`;
   const cols = `var(--namew) ${days * dw}px`;
   const todayIdx = dayList.findIndex((d) => isoDay(d) === isoDay(torontoMidnight(new Date(now))));
@@ -208,6 +217,7 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
         <div className="row">
           <label className="vh" htmlFor="cal-q">Find a plate, fleet number, booking or surname</label>
           <input className="input" style={{ minHeight: 36, width: '13rem' }} id="cal-q" type="search" placeholder="Plate, booking, surname" value={q} onChange={(e) => setQ(e.target.value)} data-shortcut="/" />
+          <label className="check small"><input type="checkbox" checked={onlyFree} onChange={(e) => setOnlyFree(e.target.checked)} data-testid="cal-only-free" /> <span>Only cars free for these dates</span></label>
           <label className="check small"><input type="checkbox" checked={onlyNonBlocking} onChange={(e) => setOnlyNonBlocking(e.target.checked)} /> <span>Not blocking</span></label>
           <label className="check small"><input type="checkbox" checked={onlyInsurer} onChange={(e) => setOnlyInsurer(e.target.checked)} /> <span>Insurer</span></label>
           <label className="vh" htmlFor="cal-supply">Who supplies the car</label>
@@ -218,6 +228,7 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
       </div>
       {problem && <p className="alert alert--error" role="alert"><span>{problem}</span></p>}
       <div className="mcal__legend" aria-hidden="true">
+        <span><i className="mcal__swatch is-free" /> white: free</span><span><i className="mcal__swatch is-taken" /> tinted: taken</span><span><i className="mcal__swatch is-off" /> not bookable</span>
         <span><i className="mcal__item is-on_rent" /> on rent</span><span><i className="mcal__item is-confirmed" /> confirmed</span><span><i className="mcal__item is-requested" /> request</span>
         <span><i className="mcal__item is-offered" /> offer or hold</span><span><i className="mcal__item is-block is-maint" /> maintenance</span><span><i className="mcal__item is-confirmed is-outline" /> not blocking</span><span><i className="mcal__item is-confirmed is-placeholder" /> placeholder</span><span><i className="mcal__item is-block" /> block</span>
         <span><i className="mcal__item is-requested has-clash" /> dates taken</span><span><i className="mcal__item is-turo" /> Turo</span>
@@ -246,12 +257,8 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
       ) : (
         <div className="mcal__grid" ref={grid} onPointerMove={onMoveP} onPointerUp={onUp} aria-label="Vehicles by day" role="region" tabIndex={0}>
           <div className="mcal__inner" style={{ width, ['--dw' as string]: `${dw}px` }}>
-            <div className="mcal__cols" style={{ width: days * dw }} aria-hidden="true">
-              {dayList.map((d, i) => i === todayIdx ? <span key={i} className="mcal__col is-today" style={{ left: i * dw, width: dw }} />
-                : d.getDay() === 0 || d.getDay() === 6 ? <span key={i} className="mcal__col is-weekend" style={{ left: i * dw, width: dw }} /> : null)}
-            </div>
             <div className="mcal__head" style={{ gridTemplateColumns: cols }}>
-              <div className="mcal__corner"><b>{new Intl.DateTimeFormat('en-CA', { month: 'long', year: 'numeric' }).format(new Date(from))}</b><span>{vehicles.length === 1 ? '1 car' : `${vehicles.length} cars`}</span></div>
+              <div className="mcal__corner"><b>{new Intl.DateTimeFormat('en-CA', { month: 'long', year: 'numeric' }).format(new Date(from))}</b><span data-testid="cal-free-count">{freeToday} of {matching.length} free today</span></div>
               <div className="mcal__days" style={{ width: days * dw }}>
                 {dayList.map((d, i) => { const td = i === todayIdx; const we = d.getDay() === 0 || d.getDay() === 6; return (
                   <div key={d.toISOString()} className={`mcal__day${td ? ' is-today' : ''}${we ? ' is-weekend' : ''}`} style={{ left: i * dw, width: dw }} aria-current={td ? 'date' : undefined}>
@@ -260,12 +267,17 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
               </div>
             </div>
             {vehicles.length === 0 && <p className="ad-empty">No vehicles match.</p>}
-            {vehicles.map((v) => { const st = stack(v.entries, from + days * DAY); return (
-              <div key={v.id} className="mcal__row" style={{ gridTemplateColumns: cols }}>
-                <div className="mcal__name" title={[v.label, v.plate].filter(Boolean).join(' · ')}><Thumb car={cars[v.id]} label={v.label} /><span className="mcal__ntext">{vehicleLinks ? <Link prefetch={false} href={`${doorBase}/vehicles/${v.id}`}>{v.label}</Link> : <b>{v.label}</b>}<span>{[cars[v.id]?.code ?? v.fleet_number, v.plate].filter(Boolean).join(' · ')}{v.status !== 'available' ? <span className="mcal__status"> · {v.status.replace(/_/g, ' ')}</span> : null}</span></span></div>
+            {vehicles.map((v) => { const st = stack(v.entries, from + days * DAY); const a = avail.get(v.id)!; return (
+              <div key={v.id} className={`mcal__row${a.kind === 'off' ? ' is-off' : ''}`} style={{ gridTemplateColumns: cols }} data-avail={a.kind} data-free-all={a.freeAll ? 'yes' : undefined}>
+                <div className="mcal__name" title={[v.label, v.plate, a.now, a.window].filter(Boolean).join(' · ')}><Thumb car={cars[v.id]} label={v.label} /><span className="mcal__ntext">{vehicleLinks ? <Link prefetch={false} href={`${doorBase}/vehicles/${v.id}`}>{v.label}</Link> : <b>{v.label}</b>}<span>{[cars[v.id]?.code ?? v.fleet_number, v.plate].filter(Boolean).join(' · ')}{v.status !== 'available' && a.kind !== 'off' ? <span className="mcal__status"> · {v.status.replace(/_/g, ' ')}</span> : null}</span>
+                  <span className={`mcal__avail is-${a.kind}`} data-testid="cal-avail">{a.now}</span>{a.window ? <small className="mcal__win">{a.window}</small> : null}</span></div>
                 <div className={`mcal__lane${move && (move.vehicle || vehicleOf(move.entry)) === v.id ? ' is-drop' : ''}`} data-vehicle={v.id} data-testid={`lane-${v.plate ?? v.id}`} data-rows={st.top + st.low}
-                  style={{ height: rowHeight(st) }}
+                  style={{ minHeight: rowHeight(st) }}
                   onDoubleClick={(ev) => { const r = (ev.currentTarget as HTMLElement).getBoundingClientRect(); setSel({ vehicle: v, at: snap(from + (ev.clientX - r.left) / pxPerMs) }); }}>
+                  {/* r48: what takes the car, tinted across the row, so white is free */}
+                  {v.entries.filter(takes).map((e) => { const s0 = Date.parse(e.starts_at); const e0 = e.ends_at ? Date.parse(e.ends_at) : from + days * DAY;
+                    if (e0 <= from || s0 >= from + days * DAY) return null; const p = pos(s0, e0);
+                    return <span key={`busy${e.type}${e.id}`} className={`mcal__busy is-${busyKind(e)}`} style={{ left: p.left, width: p.width }} aria-hidden="true" />; })}
                   {now >= from && now <= from + days * DAY && <span className="mcal__now" style={{ left: (now - from) * pxPerMs }} aria-hidden="true" />}
                   {v.entries.map((e) => {
                     const s = new Date(e.starts_at).getTime(); const en = e.ends_at ? new Date(e.ends_at).getTime() : from + days * DAY;

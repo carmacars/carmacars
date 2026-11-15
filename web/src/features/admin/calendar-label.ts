@@ -16,3 +16,44 @@ export function barLabel(e: LabelEntry): { main: string; sub: string } {
   const flags = [state, e.placeholder ? 'placeholder' : e.blocks === false ? 'not blocking' : '', e.insurer ? 'insurer' : ''].filter(Boolean).join(', ');
   return { main: e.renter?.trim() || e.booking_number || state || 'Booking', sub: [e.renter?.trim() ? e.booking_number : '', flags].filter(Boolean).join(' · ') };
 }
+
+// ---------------------------------------------------------------- r48 follow-up: is the car free?
+const DAY = 86_400_000;
+/** Vehicle statuses that cannot be booked at all: the whole row is greyed out. */
+export const OFF_STATUSES = ['onboarding', 'ready_to_list', 'out_of_service', 'exited', 'total_loss', 'declined'];
+export interface Span { type: string; status: string | null; blocks: boolean | null; placeholder?: boolean; reason: string | null; starts_at: string; ends_at: string | null;
+  renter: string | null; booking_number: string | null; booking_type: string | null }
+/** What takes the car (the days it cannot be booked): a blocking booking, a block, a Turo trip. Requests, offers,
+ * placeholders and non-blocking bookings do not. */
+export const takes = (e: Span) => e.type === 'block' || e.type === 'turo_trip'
+  || (e.type === 'booking' && !e.placeholder && e.blocks !== false && ['confirmed', 'on_rent', 'returned', 'closed'].includes(e.status ?? ''));
+/** The tint behind a taken stretch. */
+export const busyKind = (e: Span): 'out' | 'booked' | 'maint' | 'block' | 'turo' => e.type === 'turo_trip' ? 'turo'
+  : e.type === 'block' ? (['service', 'repair', 'cleaning'].includes(e.reason ?? '') ? 'maint' : 'block') : e.status === 'on_rent' ? 'out' : 'booked';
+
+const until = (iso: string | null) => iso ? new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric' }).format(new Date(iso)).replace('.', '') : null;
+export interface Avail { kind: 'free' | 'out' | 'busy' | 'off'; now: string; window: string; freeToday: boolean; freeAll: boolean; freeDays: number; days: number }
+/**
+ * A car's availability: right now (the badge), and over the days shown from today on (free days). `days` are the
+ * calendar's [start, end) days; `todayStart` is today's midnight in Toronto.
+ */
+export function availability(v: { status: string; entries: Span[] }, now: number, days: Array<[number, number]>, todayStart: number): Avail {
+  const ahead = days.filter(([, e]) => e > todayStart);
+  if (OFF_STATUSES.includes(v.status)) return { kind: 'off', now: v.status === 'out_of_service' ? 'In shop' : 'Not bookable', window: '', freeToday: false, freeAll: false, freeDays: 0, days: ahead.length };
+  const spans = v.entries.filter(takes).map((e) => ({ e, s: Date.parse(e.starts_at), f: e.ends_at ? Date.parse(e.ends_at) : Infinity }));
+  const free = ([a, b]: [number, number]) => !spans.some((x) => x.s < b && x.f > a);
+  const freeDays = ahead.filter(free).length;
+  const freeToday = free([todayStart, todayStart + DAY]);
+  const cur = spans.filter((x) => x.s <= now && x.f > now).sort((a, b) => b.f - a.f)[0]?.e;
+  const window = !ahead.length ? '' : freeDays === ahead.length ? 'Free every day shown' : freeDays === 0 ? 'No free day shown' : `Free ${freeDays} of ${ahead.length} days`;
+  const base = { window, freeToday, freeAll: ahead.length > 0 && freeDays === ahead.length, freeDays, days: ahead.length };
+  if (!cur) return { kind: 'free', now: 'Available now', ...base };
+  const to = until(cur.ends_at); const till = to ? ` until ${to}` : ' until further notice';
+  if (cur.type === 'booking') {
+    const who = cur.booking_type === 'owner' ? 'owner' : cur.renter?.trim() || cur.booking_number || 'a renter';
+    return { kind: 'out', now: `${cur.status === 'on_rent' ? 'Out now' : 'Booked now'}: ${who}${till}`, ...base };
+  }
+  if (cur.type === 'turo_trip') return { kind: 'busy', now: `On Turo${till}`, ...base };
+  const r = (cur.reason ?? 'blocked').replace(/_/g, ' ');
+  return { kind: 'busy', now: ['service', 'repair'].includes(cur.reason ?? '') ? `In shop${till}` : `${r.charAt(0).toUpperCase()}${r.slice(1)}${till}`, ...base };
+}

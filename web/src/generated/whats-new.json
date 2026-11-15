@@ -203,7 +203,8 @@
    "summary": "A cleaner fleet calendar for the Admin and staff.",
    "sections": {
     "admins": [
-     "The fleet calendar is easier to read on a computer and a phone: full car names, the renter and booking number on each bar, clear colours by status, today marked, and the cars and dates stay in place while you scroll"
+     "The fleet calendar is easier to read on a computer and a phone: full car names, the renter and booking number on each bar, clear colours by status, today marked, and the cars and dates stay in place while you scroll",
+     "Each car on the Calendar says if it is free now (Available now) or who has it and until when; white days are free"
     ],
     "staff": [
      "The Calendar is easier to read: full car names, the renter and booking number on each bar, today marked, and the cars and dates stay in place while you scroll"

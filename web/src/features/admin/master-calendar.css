@@ -7,7 +7,9 @@
   --cal-line: var(--grey-200);
   --cal-line-soft: var(--grey-100);
   --cal-weekend: var(--grey-50);
-  --cal-today: rgb(208 17 27 / 0.06);
+  /* r48: taken stretches tinted across the row, so white is free; the badge pairs pass AA */
+  --cal-busy-out: #F9D9DB; --cal-busy-booked: #E4E4E4; --cal-busy-maint: #D9E7F6; --cal-busy-block: #ECE6D8; --cal-busy-turo: #D5ECE8;
+  --cal-free-bg: #E3F5E8; --cal-free-fg: #0B5D27;
   --cal-out-bg: var(--red-600); --cal-out-fg: var(--white);
   --cal-booked-bg: var(--grey-950); --cal-booked-fg: var(--white);
   --cal-done-bg: var(--grey-600); --cal-done-fg: var(--white);
@@ -40,6 +42,10 @@
 .mcal .mcal__legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
 .mcal .mcal__legend i.mcal__item { position: relative; display: inline-block; width: 1.6rem; height: 0.85rem; padding: 0; border-radius: 4px; cursor: default; }
 .mcal .mcal__legend i.mcal__item.is-turo { inset: auto; height: 0.85rem; background: var(--cal-turo); border-color: var(--cal-turo); }
+.mcal .mcal__legend i.mcal__swatch { display: inline-block; width: 1.6rem; height: 0.85rem; border-radius: 4px; border: 1px solid var(--grey-300); }
+.mcal .mcal__legend i.mcal__swatch.is-free { background: var(--white); }
+.mcal .mcal__legend i.mcal__swatch.is-taken { background: linear-gradient(90deg, var(--cal-busy-out) 0 33%, var(--cal-busy-booked) 33% 66%, var(--cal-busy-maint) 66%); }
+.mcal .mcal__legend i.mcal__swatch.is-off { background: var(--grey-100) repeating-linear-gradient(135deg, transparent 0 4px, rgb(0 0 0 / 0.08) 4px 6px); }
 .mcal .mcal__legend i.has-clash::after { width: 7px; font-size: 0.5rem; }
 
 /* the timeline: the only part that scrolls sideways */
@@ -67,12 +73,6 @@
 .mcal .mcal__day.is-today { color: var(--red-700); }
 .mcal .mcal__day.is-today b { background: var(--red-600); color: var(--white); }
 
-/* the columns behind every row: weekends shaded, today tinted (one layer, not one per car) */
-.mcal .mcal__cols { position: absolute; top: 0; bottom: 0; left: var(--namew); pointer-events: none; z-index: 0; }
-.mcal .mcal__col { position: absolute; top: 0; bottom: 0; }
-.mcal .mcal__col.is-weekend { background: var(--cal-weekend); }
-.mcal .mcal__col.is-today { background: var(--cal-today); }
-
 /* a car: photo, name on up to two lines (never squeezed), code and plate */
 .mcal .mcal__row { position: relative; }
 .mcal .mcal__name { z-index: 3; display: flex; align-items: center; gap: var(--s-2); min-width: 0; padding: 0.35rem var(--s-3); border-bottom: 1px solid var(--cal-line-soft); }
@@ -82,6 +82,13 @@
 .mcal .mcal__ntext a:hover { color: var(--red-700); text-decoration: underline; }
 .mcal .mcal__ntext > span { font-size: 0.6875rem; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 .mcal .mcal__ntext .mcal__status { color: var(--red-700); font-weight: 600; }
+.mcal .mcal__avail { justify-self: start; max-width: 100%; margin-top: 2px; padding: 1px 7px 1px 6px; border-radius: 8px; display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.6875rem; font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; }
+.mcal .mcal__avail::before { content: ""; flex: none; align-self: flex-start; margin-top: 0.3em; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.mcal .mcal__avail.is-free { background: var(--cal-free-bg); color: var(--cal-free-fg); }
+.mcal .mcal__avail.is-out { background: var(--red-50); color: var(--red-700); }
+.mcal .mcal__avail.is-busy, .mcal .mcal__avail.is-off { background: var(--grey-100); color: var(--grey-700); }
+.mcal .mcal__ntext .mcal__win { font-size: 0.6875rem; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mcal__thumb { width: 40px; height: 28px; flex: none; border-radius: 6px; object-fit: cover; background: var(--grey-100); }
 .mcal__thumb--none { display: inline-grid; place-items: center; font-family: var(--font-display); font-weight: 700; font-size: 0.75rem; color: var(--grey-700); background: var(--grey-100); border: 1px solid var(--cal-line); }
 @media (max-width: 40rem) {
@@ -93,8 +100,19 @@
 /* a car's lane: day lines, the bars, and the now line under them */
 .mcal .mcal__lane { position: relative; min-height: 62px; border-bottom: 1px solid var(--cal-line-soft);
   background-image: repeating-linear-gradient(90deg, transparent 0 calc(var(--dw) - 1px), var(--cal-line-soft) calc(var(--dw) - 1px) var(--dw)); }
-.mcal .mcal__row:hover .mcal__lane { background-color: rgb(0 0 0 / 0.015); }
 .mcal .mcal__lane.is-drop { background-color: var(--red-50); }
+.mcal .mcal__busy { position: absolute; top: 0; bottom: 0; z-index: 0; pointer-events: none; }
+.mcal .mcal__busy.is-out { background: var(--cal-busy-out); }
+.mcal .mcal__busy.is-booked { background: var(--cal-busy-booked); }
+.mcal .mcal__busy.is-maint { background: var(--cal-busy-maint); }
+.mcal .mcal__busy.is-block { background: var(--cal-busy-block); }
+.mcal .mcal__busy.is-turo { background: var(--cal-busy-turo); }
+/* a car that cannot be booked at all: the whole row greyed out */
+.mcal .mcal__row.is-off .mcal__lane { background-color: var(--grey-100);
+  background-image: repeating-linear-gradient(135deg, transparent 0 8px, rgb(0 0 0 / 0.05) 8px 10px); }
+.mcal .mcal__row.is-off .mcal__name { background: var(--grey-50); }
+.mcal .mcal__row.is-off .mcal__ntext a, .mcal .mcal__row.is-off .mcal__ntext b { color: var(--grey-600); }
+.mcal .mcal__row.is-off .mcal__thumb { filter: grayscale(1); opacity: 0.6; }
 .mcal .mcal__now { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--red-600); pointer-events: none; z-index: 1; }
 
 /* a bar: rounded, its words start at the visible edge (sticky) and end in an ellipsis, never over another bar */

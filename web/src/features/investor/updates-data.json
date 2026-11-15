@@ -89,7 +89,8 @@
    {
     "area": "Staff tools",
     "items": [
-     "The fleet calendar is easier to read on a computer and a phone: full car names, the renter and booking number on each bar, clear colours by status and today marked"
+     "The fleet calendar is easier to read on a computer and a phone: full car names, the renter and booking number on each bar, clear colours by status and today marked",
+     "Every car on the fleet calendar says whether it is free now, taken days are tinted so white is free, and **Only cars free for these dates** shows the cars you can offer"
     ]
    }
   ]
