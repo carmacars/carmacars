@@ -1,0 +1,219 @@
+{
+  "batch": "2026-11-15",
+  "items": [
+    {
+      "kind": "car",
+      "id": "0a436b1e-06b8-4598-9f47-98e944bd46ee",
+      "copy": {
+        "seo_title": "Cadillac Escalade Rental in Toronto, 7 Seats | CarmaCars",
+        "meta_description": "Book the black Cadillac Escalade in Toronto from $540 a day. Seven seats, four-wheel drive, pickup or delivery, and no payment until we confirm.",
+        "h1": "Cadillac Escalade, 7-seat SUV for rent in Toronto",
+        "intro": "Seven seats in a black Cadillac Escalade with four-wheel drive and a third row, built for groups that travel with their bags.",
+        "highlights": [
+          "Four-wheel drive",
+          "Third-row seating",
+          "Backup camera",
+          "Bluetooth",
+          "Air conditioning",
+          "Cruise control"
+        ],
+        "good_for": [
+          "Group airport transfers",
+          "Family trips with luggage",
+          "Wedding party transport"
+        ],
+        "faq": [
+          {
+            "question": "How many people can ride in the Escalade?",
+            "answer": "It has 7 seats and 4 doors, with a third row for the extra passengers."
+          },
+          {
+            "question": "Does the Escalade have four-wheel drive?",
+            "answer": "Yes. The car is listed with four-wheel drive and an automatic transmission."
+          },
+          {
+            "question": "Can I collect the Escalade or have it delivered?",
+            "answer": "Both work. Collect it at our location at no charge, or have it delivered to your address for the delivery fee plus distance."
+          },
+          {
+            "question": "Is there a daily kilometre limit?",
+            "answer": "200 km a day are included. Extra kilometres are $0.75 each."
+          }
+        ],
+        "alt_texts": {}
+      }
+    },
+    {
+      "kind": "car",
+      "id": "3003c462-580a-4bd0-862b-ee77dba73f8f",
+      "copy": {
+        "seo_title": "BMW 330i M Sport Rental in Toronto, AWD Sedan | CarmaCars",
+        "meta_description": "Rent the white BMW 330i M Sport in Toronto from $180 a day. All-wheel drive, five seats, delivery or pickup, and no payment up front.",
+        "h1": "BMW 330i M Sport, white AWD sedan for rent in Toronto",
+        "intro": "A white BMW 330i M Sport sedan with all-wheel drive and an automatic gearbox, sized for city streets and longer highway runs.",
+        "highlights": [
+          "All-wheel drive",
+          "Backup camera",
+          "Bluetooth",
+          "Air conditioning",
+          "Cruise control",
+          "Automatic transmission"
+        ],
+        "good_for": [
+          "Daily commutes",
+          "Weekend getaways",
+          "Airport runs"
+        ],
+        "faq": [
+          {
+            "question": "What drivetrain does the BMW 330i M Sport have?",
+            "answer": "It has all-wheel drive and an automatic transmission."
+          },
+          {
+            "question": "How many people does it seat?",
+            "answer": "Five people, with 4 doors for easy access."
+          },
+          {
+            "question": "How much does a weekend day cost?",
+            "answer": "A weekend day is $207, and HST of 13% is added. The weekly rate is $756."
+          },
+          {
+            "question": "What do I need to rent it?",
+            "answer": "An Ontario G or G2 licence and a credit card in your name. Your licence and identity are checked before pickup."
+          }
+        ],
+        "alt_texts": {
+          "front_left": "White BMW 330i M Sport sedan, front left view",
+          "rear": "White BMW 330i M Sport sedan, rear view"
+        }
+      }
+    },
+    {
+      "kind": "car",
+      "id": "8043b1ef-61d5-49b1-9e5e-c76ce4731f17",
+      "copy": {
+        "seo_title": "McLaren 570S Rental in Toronto, Blue Coupe | CarmaCars",
+        "meta_description": "Rent the blue McLaren 570S in Toronto from $1,350 a day. Two seats, dual-clutch automatic, delivery or pickup, request with no payment up front.",
+        "h1": "McLaren 570S, blue two-seat coupe for rent in Toronto",
+        "intro": "A blue McLaren 570S coupe with two seats, rear-wheel drive and a dual-clutch automatic, for a day you plan to remember.",
+        "highlights": [
+          "Backup camera",
+          "Bluetooth",
+          "Air conditioning",
+          "Cruise control",
+          "Automatic transmission"
+        ],
+        "good_for": [
+          "Special occasions",
+          "Birthday surprises",
+          "Weekend drives for two"
+        ],
+        "faq": [
+          {
+            "question": "How many seats does the McLaren 570S have?",
+            "answer": "Two seats and 2 doors, so it suits a driver and one passenger."
+          },
+          {
+            "question": "What transmission is it?",
+            "answer": "An automatic with a dual-clutch design, and the car is rear-wheel drive."
+          },
+          {
+            "question": "How many kilometres are included?",
+            "answer": "200 km a day. Extra kilometres are $0.75 each."
+          },
+          {
+            "question": "What is the deposit?",
+            "answer": "The deposit for this car is $2,500. HST of 13% is added to the rental."
+          }
+        ],
+        "alt_texts": {
+          "other": "Blue McLaren 570S coupe"
+        }
+      }
+    },
+    {
+      "kind": "car",
+      "id": "94570239-4cd1-4882-942a-dc710c2732f7",
+      "copy": {
+        "seo_title": "Mercedes-Benz C43 AMG Rental in Toronto, White | CarmaCars",
+        "meta_description": "Rent the white Mercedes-Benz C43 AMG in Toronto from $225 a day. All-wheel drive, five seats, delivery or pickup, no payment up front.",
+        "h1": "White Mercedes-Benz C43 AMG sedan for rent in Toronto",
+        "intro": "White Mercedes-Benz C43 AMG sedan, all-wheel drive with five seats. Dressed for a client meeting, ready for a long drive.",
+        "highlights": [
+          "All-wheel drive",
+          "Backup camera",
+          "Bluetooth",
+          "Air conditioning",
+          "Cruise control",
+          "Automatic transmission"
+        ],
+        "good_for": [
+          "Client meetings",
+          "Special dinners",
+          "Winter commutes"
+        ],
+        "faq": [
+          {
+            "question": "Is the C43 AMG all-wheel drive?",
+            "answer": "Yes, it is listed with all-wheel drive and an automatic transmission."
+          },
+          {
+            "question": "How many seats are there?",
+            "answer": "Five seats and 4 doors."
+          },
+          {
+            "question": "What does it cost by the day?",
+            "answer": "$225 a day, $259 on a weekend day, plus 13% HST. The weekly rate is $1,260."
+          },
+          {
+            "question": "Can the C43 AMG be delivered to me?",
+            "answer": "Yes. Delivery to any address costs the delivery fee plus distance, or you can collect it from us at no charge."
+          }
+        ],
+        "alt_texts": {
+          "other": "White Mercedes-Benz C43 AMG sedan"
+        }
+      }
+    },
+    {
+      "kind": "car",
+      "id": "07f68ffc-f8f2-491b-ba25-0d98c33f753d",
+      "copy": {
+        "seo_title": "2012 Mercedes-Benz S63 AMG Rental in Toronto | CarmaCars",
+        "meta_description": "Rent the black 2012 Mercedes-Benz S63 AMG in Toronto from $472 a day. Five seats, V8, delivery or pickup, request with no payment up front.",
+        "h1": "2012 Mercedes-Benz S63 AMG, black V8 sedan for rent in Toronto",
+        "intro": "A black 2012 S63 AMG with a 5.5 L V8 and room for five. Large Mercedes-Benz sedan for the longer journeys.",
+        "highlights": [
+          "Bluetooth",
+          "Air conditioning",
+          "Cruise control",
+          "Automatic transmission"
+        ],
+        "good_for": [
+          "Long highway drives",
+          "Executive travel",
+          "Weekly and monthly rentals"
+        ],
+        "faq": [
+          {
+            "question": "What engine does the 2012 S63 AMG have?",
+            "answer": "It has a 5.5 L V8 engine and an automatic transmission."
+          },
+          {
+            "question": "How many people can ride along?",
+            "answer": "Five people, with 4 doors."
+          },
+          {
+            "question": "What are the weekly and monthly rates?",
+            "answer": "The weekly rate is $2,832 and the monthly rate is $10,384, plus 13% HST."
+          },
+          {
+            "question": "Do I pay when I send a request?",
+            "answer": "No. You send a request first and pay only after we confirm it."
+          }
+        ],
+        "alt_texts": {}
+      }
+    }
+  ]
+}
