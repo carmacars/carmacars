@@ -18,9 +18,11 @@ const ACTIONS = ['acknowledge', 'start', 'save_report', 'complete_handover', 'co
   // r35 S2 (1051): take a job of the other person on your shift
   'job_take',
   // r35 SP (1770): standing weekly shifts
-  'standing_add', 'standing_end', 'standing_skip'] as const;
+  'standing_add', 'standing_end', 'standing_skip',
+  // r48 (2970): the car goes with the deposit still owed
+  'deposit_pending_allow'] as const;
 // the steps of a check-in that staff other than field staff may take on a job of their own (0130, 0151)
-const HANDOVER = ['save_report', 'complete_handover', 'complete_return', 'block_handover', 'identity_in_person', 'deposit_offline', 'tracker_override'];
+const HANDOVER = ['save_report', 'complete_handover', 'complete_return', 'block_handover', 'identity_in_person', 'deposit_offline', 'tracker_override', 'deposit_pending_allow'];
 
 export async function fieldAct<T = Record<string, unknown>>(action: typeof ACTIONS[number], p: Record<string, unknown>): Promise<R<T>> {
   try {
@@ -37,7 +39,7 @@ export async function fieldAct<T = Record<string, unknown>>(action: typeof ACTIO
     // to review, removes the panel; the lists are refreshed when it closes (the office's pages read the database on each visit)
     const quiet = action === 'licence_approve_all' || action === 'licence_reject';
     if (!quiet) revalidatePath('/staff/field', 'layout');
-    if (['complete_handover', 'complete_return', 'identity_in_person', 'deposit_offline', 'tracker_override'].includes(action)) { revalidatePath('/admin/bookings', 'layout'); revalidatePath('/staff/bookings', 'layout'); }
+    if (['complete_handover', 'complete_return', 'identity_in_person', 'deposit_offline', 'tracker_override', 'deposit_pending_allow'].includes(action)) { revalidatePath('/admin/bookings', 'layout'); revalidatePath('/staff/bookings', 'layout'); }
     // 0154: the "as picked up" (or closing) copies of both agreements are rendered right after this response
     if (action === 'complete_handover' || action === 'complete_return') kickPdfJobs();
     if (typeof p.job === 'string' && !quiet) revalidatePath(`/staff/field/jobs/${p.job}`);

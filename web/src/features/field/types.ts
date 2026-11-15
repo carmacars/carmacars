@@ -16,7 +16,7 @@ export interface FieldJob {
     /** 0066: the add-ons to put in the car, and whether fuel is prepaid (no fuel charge at the return) */
     addons?: Array<{ name: string; quantity: number; hours: number | null; status: string; handover_note: string | null; prepaid_fuel: boolean }>; prepaid_fuel?: boolean;
   };
-  ready: null | { identity: boolean; coverage: boolean; drivers_accepted: boolean; calendar: boolean; agreement: boolean; deposit: 'taken' | 'waived' | 'declined' | 'not_taken' | 'none';
+  ready: null | { identity: boolean; coverage: boolean; drivers_accepted: boolean; calendar: boolean; agreement: boolean; deposit: 'taken' | 'waived' | 'declined' | 'not_taken' | 'none' | 'pending';
     /** False while a rental staff added by hand waits for the renter's signature (0051): the car is not released. */
     signed?: boolean;
     /** 0071: the coverage in words */

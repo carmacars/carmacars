@@ -73,3 +73,7 @@ test('the pop-up is in the Admin frame and in customer service\'s, and its reads
   assert.match(src('../renters-page/RentersPage.tsx'), /<RenterNotes /);
   assert.match(src('./CallerPopup.tsx'), /poller\(CALLER_POLL_MS\)/);
 });
+
+test('r48: a car out with the deposit owed says pending and the amount', () => {
+  assert.equal(depositWords({ required_cents: 50000, held_cents: 0, how: null, state: 'pending' }), 'Pending: the car is out and $500.00 is still owed');
+});
