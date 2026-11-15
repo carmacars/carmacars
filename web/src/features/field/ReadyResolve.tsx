@@ -118,6 +118,7 @@ export function ResolveDeposit({ j, r, back }: { j: FieldJob; r: Resolve; back: 
   const { msg, pending, run } = useAct();
   const [card, startCard] = useTransition();
   const [ref, setRef] = useState('');
+  const [owed, setOwed] = useState('');
   const [cardErr, setCardErr] = useState<string | null>(null);
   const b = j.booking!;
   const long = (new Date(b.return_at).getTime() - new Date(b.pickup_at).getTime()) / 86_400_000 > 7;
@@ -152,6 +153,16 @@ export function ResolveDeposit({ j, r, back }: { j: FieldJob; r: Resolve; back: 
               onClick={() => run(() => fieldAct('deposit_offline', { job: j.job.id, method: 'cash' }), 'Cash deposit recorded. Hand it to Finance.')} data-testid="fix-cash-save">{pending ? 'Saving' : `I received ${money(r.deposit_cents)} in cash`}</button>
           </div>
         </details>)}
+      {/* r48 (2970): the car goes with the deposit still owed; the renter is asked for it each morning */}
+      <details className="fd-fix__more" data-testid="fix-deposit-owed">
+        <summary>Let the car go with the deposit owed</summary>
+        <div className="stack">
+          <p className="small">Only when the renter cannot place it now. They are asked for it each morning; after 48 hours an Admin gets a To do.</p>
+          <label className="field"><span className="label">Why the car goes before the deposit is taken</span><input className="input" value={owed} onChange={(e) => setOwed(e.target.value)} data-testid="fix-owed-reason" /></label>
+          <button type="button" className="btn btn--primary fd-wide" disabled={pending || owed.trim().length < 5}
+            onClick={() => run(() => fieldAct('deposit_pending_allow', { job: j.job.id, reason: owed.trim() }), 'Done. Go on with the check-in; the deposit stays owed.')} data-testid="fix-owed-save">{pending ? 'Saving' : 'Let it go with the deposit owed'}</button>
+        </div>
+      </details>
       <Msg m={msg} />
     </div>
   );

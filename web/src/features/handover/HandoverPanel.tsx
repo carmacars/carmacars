@@ -28,6 +28,8 @@ function recordFields(kind: 'pickup' | 'return'): Field[] {
     { name: 'fuel_pct', label: 'Fuel or charge (%), if known', type: 'number', min: 0, max: 100 },
     { name: 'reason', label: 'Why the details come later', type: 'text', required: true, wide: true },
     ...(kind === 'pickup' ? [
+      // r48 (2970): the car goes with the deposit still owed (any staff who records handovers); it is asked for each morning
+      { name: 'deposit_pending_reason', label: 'Deposit not taken yet: let the car go owing it, because', type: 'text', wide: true, hint: 'Leave empty when the deposit is taken. The renter is asked for it each morning; after 48 hours an Admin gets a To do.' },
       { name: 'deposit_waiver_reason', label: 'Admin: deposit not taken, waive it because', type: 'text', wide: true, hint: 'Only when the deposit is not taken. An Admin only.' },
       { name: 'signature_override_reason', label: 'Admin: no renter signature on the check-in report, because', type: 'text', wide: true, hint: 'An Admin only. Recorded on the booking.' }
     ] as Field[] : [])
@@ -64,6 +66,9 @@ export async function HandoverPanel({ b, base, userId, aal, canHandover, canSign
           {v.addDetails.map((k) => <Act key={k} ops action="handover_open" payload={{ booking: b.id, kind: k }} label={`Add the ${k === 'pickup' ? 'check-in' : 'check-out'} photos and readings`} variant="primary" go={`${base}/handover/{job}`} testId={`add-details-${k}`} />)}
           {v.recordPickup && <Act ops action="handover_record_now" payload={{ booking: b.id, kind: 'pickup' }} label="Record the pickup now (details later)" testId="record-pickup-now" refresh={[base]}
             done="Pickup recorded. Fleet has a task to add the photos and readings." fields={recordFields('pickup')} />}
+          {v.recordPickup && <Act ops action="deposit_pending_allow" payload={{ booking: b.id }} label="Deposit not taken: let the car go owing it" testId="deposit-pending-allow" refresh={[base]}
+            done="Done. The check-in can go ahead with the deposit owed; the renter is asked for it each morning."
+            fields={[{ name: 'reason', label: 'Why the car goes before the deposit is taken', type: 'text', required: true, wide: true }]} />}
           {v.recordReturn && <Act ops action="handover_record_now" payload={{ booking: b.id, kind: 'return' }} label="Record the return now (details later)" testId="record-return-now" refresh={[base]}
             done="Return recorded. Fleet has a task to add the photos and readings; the deposit can be settled." fields={recordFields('return')} />}
           {v.report && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}/report`} data-testid="photo-report-link">Photo report</Link>}

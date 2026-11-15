@@ -163,7 +163,7 @@ export interface LeadContext {
   signals?: Signal[];
 }
 
-export const DEPOSIT_WORDS: Record<string, string> = { held: 'Held', waived: 'Waived', released: 'Released', failed: 'Failed', none: 'None needed', not_taken: 'Not taken yet' };
+export const DEPOSIT_WORDS: Record<string, string> = { held: 'Held', waived: 'Waived', released: 'Released', failed: 'Failed', none: 'None needed', not_taken: 'Not taken yet', pending: 'Pending (the car is out, still owed)' };
 const SIGNAL_GROUP: Record<string, 'talk' | 'site' | 'money' | 'lead'> = {
   call: 'talk', text: 'talk', whatsapp: 'talk', messenger: 'talk', instagram: 'talk', chat: 'talk', email: 'talk',
   visit: 'site', car_view: 'site', quote_seen: 'site', offer_viewed: 'site', pay_viewed: 'site', change_viewed: 'site', email_link_opened: 'site', request_submitted: 'site',

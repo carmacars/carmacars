@@ -126,13 +126,16 @@ export async function runDepositGuard(limit = 40) {
   // 0261: the holds of the pickup day first; a try that fails makes its booking's link due at once, sent just below
   const holds = await placeDepositHolds().catch((e) => ({ held: 0, failed: 0, errors: [(e instanceof Error ? e.message : String(e)).slice(0, 200)] }));
   const links = await sendDepositLinks().catch((e) => ({ sent: 0, not_sent: 0, errors: [(e instanceof Error ? e.message : String(e)).slice(0, 200)] }));
+  // r48 (2970): a car out with the deposit owed: the morning try on the saved card, then the link of the day
+  const owed = await retryPendingDeposits().catch((e) => ({ held: 0, failed: 0, links: 0, errors: [(e instanceof Error ? e.message : String(e)).slice(0, 200)] }));
   // r33 (0750): a hold about 24 hours from its expiry, re-authorized before it lapses (an alert when it cannot be)
   const reauth = await reauthorizeDueHolds().catch((e) => ({ renewed: 0, failed: 0, errors: [(e instanceof Error ? e.message : String(e)).slice(0, 200)] }));
   // r35 (1081): once a night, the Stripe payments no booking knows
   const unlinked = await stripeUnlinkedCheck().catch((e) => ({ ran: false, unlinked: 0, error: (e instanceof Error ? e.message : String(e)).slice(0, 200) }));
   return { ...out, deposit_holds: holds.held, deposit_holds_failed: holds.failed, deposit_links: links.sent, deposit_links_not_sent: links.not_sent,
     holds_reauthorized: reauth.renewed, holds_reauth_failed: reauth.failed, stripe_unlinked: unlinked.unlinked,
-    errors: [...out.errors, ...holds.errors, ...links.errors, ...reauth.errors, ...(unlinked.error ? [unlinked.error] : [])] };
+    owed_held: owed.held, owed_failed: owed.failed, owed_links: owed.links,
+    errors: [...out.errors, ...holds.errors, ...links.errors, ...owed.errors, ...reauth.errors, ...(unlinked.error ? [unlinked.error] : [])] };
 }
 
 /** r35 (1081): the nightly "unlinked Stripe payments" check, when the database says it is due (from 3 a.m. Toronto): the
@@ -211,6 +214,61 @@ export async function sendDepositLinks(limit = 20): Promise<{ sent: number; not_
       await call('server_payreq_attach', { p_id: q.id, p_intent: intent.id });
       const r = (await call('server_deposit_link_send', { p_id: q.id, p_link: `${siteUrl()}/pay/${token}` })) as { ok: boolean } | null;
       if (r?.ok) out.sent++; else out.not_sent++;
+    } catch (e) { out.errors.push(`${d.booking_number}: ${e instanceof Error ? e.message : String(e)}`.slice(0, 200)); }
+  }
+  return out;
+}
+
+/** r48 (2970): a car that went out with the deposit owed. Once each morning (from the deposit hold hour, Toronto) the saved
+ *  card is tried for the hold, off-session, exactly as the pickup day's hold; when it fails, or there is no usable card,
+ *  the deposit link of the day goes to the renter (a text, else an email). The database decides what is due (Program
+ *  settings, deposit_pending_retry) and runs the 48 hour Admin To do in the same call. */
+export async function retryPendingDeposits(limit = 10): Promise<{ held: number; failed: number; links: number; errors: string[] }> {
+  const due = ((await call('server_deposit_pending_due', {})) as Array<{ booking_id: string; booking_number: string }> | null) ?? [];
+  const out = { held: 0, failed: 0, links: 0, errors: [] as string[] };
+  const extendedHold = due.length ? Boolean(await call('server_deposit_extended_holds', {}).catch(() => false)) : false;
+  for (const d of due.slice(0, limit)) {
+    try {
+      const b = (await call('server_deposit_pending_begin', { p_booking: d.booking_id, p_token_sha256: await payTokenHash(newPayToken()) })) as
+        { ok: boolean; link?: boolean; id?: string; booking_number?: string; amount_cents?: number; customer_id?: string; method_id?: string } | null;
+      if (!b?.ok || !b.id) { if (b?.link) out.failed++; continue; }
+      const p = await payments();
+      let intent: Awaited<ReturnType<typeof p.chargeOffSession>> | null = null;
+      let err: unknown = null;
+      try {
+        intent = await p.chargeOffSession({ customerId: b.customer_id ?? '', paymentMethodId: b.method_id ?? '', amountCents: b.amount_cents ?? 0, capture: 'manual', extendedHold,
+          description: `CarmaCars booking ${b.booking_number ?? d.booking_number}: deposit hold (still owed)`,
+          metadata: { booking_id: d.booking_id, booking_number: b.booking_number ?? d.booking_number, purpose: 'staff_request', payment_request_id: b.id, covers: 'deposit' },
+          idempotencyKey: `payreq:${b.id}` });
+      } catch (e) { err = e; }
+      if (intent) await call('server_payreq_attach', { p_id: b.id, p_intent: intent.id });
+      const step = autoHoldStep(intent, err);
+      if (step.next === 'settle' && intent) {
+        const r = await settlePayreq(b.id, intent.id, 'hold', intent);
+        if (r.ok) { out.held++; continue; }
+        await call('server_deposit_pending_failed', { p_id: b.id, p_error: r.message ?? r.reason ?? 'the hold was not recorded' });
+      } else {
+        if (step.next === 'failed' && step.cancel && intent) await p.cancelIntent(intent.id, `void:${intent.id}`).catch(() => undefined);
+        await call('server_deposit_pending_failed', { p_id: b.id, p_error: step.next === 'failed' ? step.reason : 'the hold did not go through' });
+      }
+      out.failed++;
+    } catch (e) { out.errors.push(`${d.booking_number}: ${e instanceof Error ? e.message : String(e)}`.slice(0, 200)); }
+  }
+  // the link of the day, for every booking whose try failed or found no card
+  const links = ((await call('server_deposit_pending_links_due', {})) as Array<{ booking_id: string; booking_number: string }> | null) ?? [];
+  for (const d of links.slice(0, limit)) {
+    try {
+      const token = newPayToken();
+      const q = (await call('server_deposit_pending_link', { p_booking: d.booking_id, p_token_sha256: await payTokenHash(token) })) as
+        { ok: boolean; id: string; booking_number: string; amount_cents: number; renter: { id: string; legal_name: string; email: string | null; customer_id: string | null } } | null;
+      if (!q?.ok) continue;
+      const p = await payments();
+      const customerId = q.renter.customer_id ?? (await p.createCustomer({ email: q.renter.email ?? '', name: q.renter.legal_name, renterId: q.renter.id, idempotencyKey: `customer:${q.renter.id}` })).id;
+      const intent = await p.createStaffIntent({ amountCents: q.amount_cents, customerId, capture: 'manual', description: `CarmaCars booking ${q.booking_number}: deposit hold (still owed)`,
+        extendedHold, metadata: { booking_id: d.booking_id, booking_number: q.booking_number, purpose: 'staff_request', payment_request_id: q.id, covers: 'deposit' }, idempotencyKey: `payreq:${q.id}` });
+      await call('server_payreq_attach', { p_id: q.id, p_intent: intent.id });
+      const r = (await call('server_deposit_link_send', { p_id: q.id, p_link: `${siteUrl()}/pay/${token}` })) as { ok: boolean } | null;
+      if (r?.ok) out.links++;
     } catch (e) { out.errors.push(`${d.booking_number}: ${e instanceof Error ? e.message : String(e)}`.slice(0, 200)); }
   }
   return out;
