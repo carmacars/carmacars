@@ -9,6 +9,7 @@ import { CancelCode, CopyLink, GoogleClaim, PerkHint, Redeem, TierUpOnce } from 
 import { Timeline, TimelineItem } from '@/components/portal-ui';
 import { MyDiscounts } from '@/features/rewards/MyDiscounts';
 import type { SavedDiscount } from '@/features/rewards/discounts';
+import { BirthdayForm } from '@/features/rewards/BirthdayForm';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Rewards', path: '/account/rewards', noindex: true, description: 'Your CarmaCars Rewards points, tier and codes.' });
@@ -116,6 +117,16 @@ export default async function Rewards() {
               </Timeline>
             </section>
           )}
+          {r.occasions && <section className="pt-card stack" aria-labelledby="rw-occ" data-testid="rewards-occasions">
+            <h2 className="d4" id="rw-occ">Birthday and holiday rewards</h2>
+            {r.occasions.birthday_pct || r.occasions.holiday_pct
+              ? <p className="small">As {lv?.current?.name ?? 'a member'}: {[r.occasions.birthday_pct && `${r.occasions.birthday_pct} off a rental that starts within ${r.occasions.window_days} days of your birthday`,
+                  r.occasions.holiday_pct && `${r.occasions.holiday_pct} off a rental that starts on a holiday weekend`].filter(Boolean).join(', and ')}. Sign in before you book and the price shows it. The bigger one applies, never both.</p>
+              : <p className="small">{r.occasions.tiers.filter((t) => t.birthday_pct || t.holiday_pct).map((t) => `${t.name}: ${t.birthday_pct ?? t.holiday_pct} off`).join(', ') || 'Higher tiers get a discount'} on a rental that starts near your birthday or on a holiday weekend.</p>}
+            {r.occasions.holidays.length > 0 && <ul className="linklist small" data-testid="rewards-holidays">{r.occasions.holidays.map((h) => <li key={h.name + h.from}>{h.name}: pickups {fmtDate(h.from)} to {fmtDate(h.to)}</li>)}</ul>}
+            <h3 className="d4">Your birthday</h3>
+            <BirthdayForm b={r.birthday} idp="rewards-birthday" />
+          </section>}
           <section className="pt-card" aria-labelledby="rw-hist" data-testid="rewards-history">
             <h2 className="d4" id="rw-hist">History</h2>
             {r.ledger.length ? <ul className="linklist">{r.ledger.map((l, i) => (

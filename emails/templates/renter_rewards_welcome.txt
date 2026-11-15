@@ -1,0 +1,37 @@
+CarmaCars  |  Rewards
+
+========================================
+
+[Rewards]
+Welcome to CarmaCars Rewards, {{first_name}}
+
+Every rental earns points. Points come off the rental charge of a later booking, and more points bring a higher tier with perks.
+
+Your points: {{points_balance}}
+Worth: {{points_value}}
+Your tier: {{tier_name}}
+
+{{#each ways}}
+  How to earn: {{label}} | Points: {{points}}
+{{/each}}
+
+Turn {{min_redeem_points}} points or more into a code of your own on your Rewards page, and enter it as a promo code.
+
+See my rewards:
+{{rewards_url}}
+
+Points come off the rental charge only, never fees, add-ons, coverage, tax or the deposit.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

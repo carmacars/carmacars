@@ -1,0 +1,30 @@
+CarmaCars  |  Rewards
+
+========================================
+
+[Rewards]
+Use your free day before {{free_day_until}}
+
+Hi {{first_name}}. Your free rental day has not been used yet.
+
+Your code: {{free_day_code}}
+One free day, good until {{free_day_until}}.
+
+Book with my free day:
+{{book_url}}
+
+The button opens a booking with the code already in the promo code box.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

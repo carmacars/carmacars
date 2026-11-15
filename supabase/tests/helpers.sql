@@ -368,3 +368,12 @@ insert into test.shipped_defaults select column_name::text, column_default::text
 alter table program_settings alter column field_slots_auto set default false;
 update program_settings set field_slots_auto = false;
 delete from field_shift_slots s where s.auto_source is not null and not exists (select 1 from field_shift_plans p where p.slot_id = s.id);
+
+-- 3000, 3001 (r48): the Rewards emails and notices and the birthday and holiday rewards (on by default) are off for the
+-- earlier suites: they count events, emails and notices of their own, and price bookings on fixed dates with renters
+-- born on 5 May. 99_r48_rewards_notices.sql switches them on, tests them and switches them off again.
+do $$ begin
+  if exists (select 1 from information_schema.columns where table_name = 'rewards_settings' and column_name = 'notices_enabled') then
+    execute 'update rewards_settings set notices_enabled = false, birthday_reward_enabled = false, holiday_reward_enabled = false';
+  end if;
+end $$;

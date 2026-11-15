@@ -1,0 +1,33 @@
+CarmaCars  |  Rewards
+
+========================================
+
+[Rewards]
+A free day on us, {{first_name}}
+
+As a {{tier_name}} member you get one free rental day a year. It is ready to use.
+
+Your code: {{free_day_code}}
+One free day, good until {{free_day_until}}.
+
+Book with my free day:
+{{book_url}}
+
+- The button opens a booking with the code already in the promo code box.
+- Or enter the code in the promo code box when you send your booking request.
+
+CarmaCars pays for the free day, not the car owner. The code is yours alone and works once.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}
