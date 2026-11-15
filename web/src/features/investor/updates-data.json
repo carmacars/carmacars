@@ -80,6 +80,28 @@
   ]
  },
  {
+  "release": "r48",
+  "title": "Release 48",
+  "date": "2026-11-14",
+  "seq": 0,
+  "summary": "A car can go out with the deposit still owed, asked for each morning, and most messages go by email once email is ready.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "The booking page says when the deposit is still owed and how to place it"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "A car can go out with the deposit still owed, with the reason: every booking page shows **Deposit pending**, the saved card is tried each morning and the renter is sent the deposit link; after 48 hours an Admin gets a To do",
+     "Each message type that can go by text shows its texts of the last 30 days and its channel; once email is ready for production, only urgent messages keep their texts and the rest go by email"
+    ]
+   }
+  ]
+ },
+ {
   "release": "r44",
   "title": "Release 44",
   "date": "2026-11-13",

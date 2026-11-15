@@ -1,4 +1,6 @@
 import { AutoReplies } from '@/features/auto-reply/AutoReplies';
+import { ChannelPolicyCard } from '@/features/channel-policy/ChannelPolicy';
+import type { PolicyList } from '@/features/channel-policy/model';
 import { SceneReferences } from '@/features/listing/Marketing';
 import { ShowroomPlates } from '@/features/listing/ShowroomPlates';
 import type { ApprovalRow } from '@/features/staff-onboarding/model';
@@ -401,7 +403,7 @@ export default async function Section({ params, searchParams }: { params: Promis
     // staff_agreement_defaults has its own form below, by function (0057)
     // 0360: lead-time pricing has its own card (the tiers as a table); 0361: the partner markup is no longer used
     const keys = Object.keys(s.program).filter((k) => !['id', 'effective_from', 'created_by', 'created_at', 'turnaround_block_minutes', 'owner_debit_show_legal_name', 'staff_agreement_defaults',
-      'lead_time_enabled', 'lead_time_tiers', 'lead_time_insurer', 'partner_markup_bps', 'licence_auto_approver'].includes(k)
+      'lead_time_enabled', 'lead_time_tiers', 'lead_time_insurer', 'partner_markup_bps', 'licence_auto_approver', 'email_production_ready'].includes(k)
       // 0085's booking texts, replaced by Text alerts (0096: Settings > Text alerts)
       && !k.startsWith('phone_sms_'));
     const used = new Set<string>();
@@ -410,6 +412,8 @@ export default async function Section({ params, searchParams }: { params: Promis
       <Card title="Lead-time pricing" testId="lead-time-card"><LeadTimeSettings enabled={s.program.lead_time_enabled !== false} insurer={s.program.lead_time_insurer === true}
         tiers={(s.program.lead_time_tiers ?? []) as Tier[]} /></Card>
       <Card title="Turnaround between trips" testId="turnaround-help"><p className="small">One time between trips, {String(s.program.turnaround_buffer_minutes)} minutes now (the owner&apos;s 2 hours by default). No trip may start sooner after another one ends, and a trip must end that long before the next one starts. After each trip the same time shows on the calendars as the cleaning block; it is not added on top. Removing a cleaning block frees that time for a new booking. A car can have its own turnaround under Vehicles, the car, Calendar. Change it under Booking requests and offers.</p></Card>
+      {/* r48 (2971): fewer texts, more email: the channel of each message type and the switch for production email */}
+      <ChannelPolicyCard l={await door<PolicyList>(user.id, 'admin_read', 'channel_policy').catch(() => null)} ready={s.program.email_production_ready === true} refresh="/admin/settings/program" />
       {/* r35 S2 (1053): the marketing photo scenes and the photo of each one's real place */}
       <Card title="Marketing scenes" testId="marketing-scenes-card"><SceneReferences /></Card>
       {/* r47 (2900): the background plates of the generated listing views */}
