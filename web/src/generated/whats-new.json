@@ -205,10 +205,13 @@
     "admins": [
      "A car can go out with the deposit still owed, with the reason: the booking shows Deposit pending $X for every role, the saved card is tried each morning, the renter gets the deposit link, and after 48 hours you get a To do that opens the Money tab",
      "Program settings shows each message type that can go by text with its texts in the last 30 days; once Email ready for production is on, only urgent messages keep their texts and the rest go by email",
-     "Claude's connector records a pickup with the deposit owed (deposit_pending: true with the reason), previewed first"
+     "Claude's connector records a pickup with the deposit owed (deposit_pending: true with the reason), previewed first",
+     "Logs > Emails shows how long each email took from queued to sent, and the last day's average for emails, texts and phone alerts",
+     "Long-term, paid weekly on a booking: the car stays out until notice, End rental on sets the last day, and 48 hours before the return with the next week unpaid the renter gets the pay link and you a To do (Program settings sets the hours); the connector's change_booking takes rolling_weekly and rolling_end_on"
     ],
     "staff": [
-     "Let a car go with the deposit owed from the check-in, Record the pickup now or the field job, with the reason; you do nothing more once it is taken"
+     "Let a car go with the deposit owed from the check-in, Record the pickup now or the field job, with the reason; you do nothing more once it is taken",
+     "A renter paying week by week: turn on Long-term, paid weekly on the booking and record each week's payment; the return moves by itself"
     ],
     "renters": [
      "Your booking page says when the deposit is still owed and how to place it"

@@ -96,7 +96,9 @@
     "area": "Staff tools",
     "items": [
      "A car can go out with the deposit still owed, with the reason: every booking page shows **Deposit pending**, the saved card is tried each morning and the renter is sent the deposit link; after 48 hours an Admin gets a To do",
-     "Each message type that can go by text shows its texts of the last 30 days and its channel; once email is ready for production, only urgent messages keep their texts and the rest go by email"
+     "Each message type that can go by text shows its texts of the last 30 days and its channel; once email is ready for production, only urgent messages keep their texts and the rest go by email",
+     "Texts and emails go out within a second or two of being queued, whoever queued them; the To do lists, Today, Alerts and the booking lists update by themselves",
+     "A booking can be a long-term rental paid weekly: the car stays out on the calendar until the renter gives notice, and each weekly payment moves the return 7 days"
     ]
    }
   ]

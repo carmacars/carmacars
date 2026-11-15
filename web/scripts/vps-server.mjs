@@ -5,7 +5,9 @@
 //   - a write from another site refused, an Admin viewing as someone kept read only, the Admin portal marked;
 //   - the Supabase session refreshed before the app reads it;
 //   - the security headers on every response, and on HTML a fresh nonce on every <script> with the matching policy;
-//   - the notices due asked for right after a write, and, with CRON_ENABLED=1, the minute tick of the job routes.
+//   - the notices due asked for right after a write, and, with CRON_ENABLED=1, the minute tick of the job routes;
+//   - r48: with DATABASE_LISTEN_URL, one long-lived LISTEN on the database (src/lib/platform/db-listen.ts): a text, an
+//     email, a push or a notice queued by anyone (the site, a timer, a webhook in SQL) is sent within a second or two;
 //   - inbound email: POST /api/inbound/email from the free Email Worker (infra/cloudflare/email-forwarder), signed;
 //     it runs what the Worker entry's email() runs (src/lib/platform/inbound-email.ts);
 //   - Bytespider paced (60 pages a minute), and the scraper guard's check for an agent posing as a browser on a
@@ -39,6 +41,7 @@ import { RATE_LIMITED_BOT, keptToScope, shield, shieldResponse } from '../src/li
 import { jobsToRun, pushWaiting } from '../src/lib/edge/cron-gate.ts';
 import { kickNow, notifyKick, tickPlan } from '../src/lib/edge/notify-kick.ts';
 import { cronEnabled, jobsForTick } from '../src/lib/platform/cron-plan.ts';
+import { LISTEN_CHANNEL, createKicker, createListener, listenUrl } from '../src/lib/platform/db-listen.ts';
 import { INBOUND_PATH, MAX_INBOUND_BYTES, SIGNATURE_HEADER, inboundSecret, routeInbound, verifyInbound } from '../src/lib/platform/inbound-email.ts';
 import { WindowLimiter, geoCookie, geoFromHeaders, keptCopies } from '../src/lib/platform/node-edge.ts';
 import { replyMime } from '../src/features/auto-reply/faq.ts';
@@ -169,12 +172,37 @@ async function tick() {
   const pushDue = await pushWaiting(env).catch(() => false);
   for (const j of jobsForTick(plan, due, pushDue)) void runJob(j.path, j.body);
 }
+// r48: the listen (src/lib/platform/db-listen.ts). The phone job runs only its texts here (the contacts and the AI
+// readings keep their turn on the tick). Started with the cron: the jobs must never run from two places.
+const TEXTS_ONLY = JSON.stringify({ only: 'texts' });
+const kicker = createKicker(() => kickNow(env, (p) => runJob(p, p === '/api/jobs/phone' ? TEXTS_ONLY : undefined)));
+let listener = null;
+async function startListen() {
+  const url = listenUrl(env);
+  if (!url) { log('listen: off (no DATABASE_LISTEN_URL)'); return; }
+  let postgres;
+  try { postgres = (await import('postgres')).default; } catch { log('listen: off (the postgres module is missing)'); return; }
+  listener = createListener({
+    kick: () => kicker.poke(), log,
+    connect: async (h) => {
+      let closed = false;
+      const sql = postgres(url, { max: 1, idle_timeout: null, max_lifetime: null, fetch_types: false, prepare: false, connect_timeout: 10, onnotice: () => undefined,
+        onnotify: (channel, payload) => { if (channel === LISTEN_CHANNEL) h.onNotify(payload); },
+        onclose: () => { if (!closed) { closed = true; h.onClose(); } } });
+      try { await sql.unsafe(`listen ${LISTEN_CHANNEL}`); } catch (e) { closed = true; sql.end({ timeout: 1 }).catch(() => undefined); throw e; }
+      return { ping: () => sql`select 1`, close: () => { closed = true; return sql.end({ timeout: 2 }); } };
+    }
+  });
+  log(`listen: on (${LISTEN_CHANNEL})`);
+}
+
 function startCron() {
   if (!cronEnabled(env)) { log('cron: off (CRON_ENABLED is not 1): the job routes are not asked for from here'); return; }
   if (!jobToken) { log('cron: off (no LINK_SIGNING_KEY)'); return; }
   const next = () => setTimeout(() => { tick().catch(() => undefined); next(); }, 60_000 - (Date.now() % 60_000) + 250).unref();
   next();
   log('cron: on (every minute; the jobs on every fifth)');
+  startListen().catch(() => undefined);
 }
 
 // ------------------------------------------------------------------ requests
@@ -304,4 +332,4 @@ const server = http.createServer((req, res) => {
   handle(req, res).catch(() => { if (!res.headersSent) res.writeHead(500, secHeaders()); res.end(); });
 });
 server.listen(PORT, () => { waitReady().then(startCron); });
-for (const sig of ['SIGTERM', 'SIGINT']) process.on(sig, () => { app.removeAllListeners('exit'); app.kill('SIGTERM'); server.close(() => process.exit(0)); setTimeout(() => process.exit(0), 10_000).unref(); });
+for (const sig of ['SIGTERM', 'SIGINT']) process.on(sig, () => { listener?.stop().catch(() => undefined); app.removeAllListeners('exit'); app.kill('SIGTERM'); server.close(() => process.exit(0)); setTimeout(() => process.exit(0), 10_000).unref(); });

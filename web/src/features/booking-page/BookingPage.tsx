@@ -44,6 +44,8 @@ import type { Conversation } from '@/features/messages/email-choices';
 import { MoreActions, NextStepPanel } from '@/features/admin/NextStep';
 import { nextStep } from '@/features/admin/next-step';
 import { DateConflicts, PlaceholderBanner, type Overlap } from '@/features/admin/DateConflicts';
+import { RollingCard } from '@/features/rolling-weekly/RollingCard';
+import type { RollingState } from '@/features/rolling-weekly/model';
 import { PayPlanCard } from '@/features/bookings-now/PayPlanCard';
 import type { Pay } from '@/features/bookings-now/model';
 import { ContactButtons } from '@/features/phone/QuoButtons';
@@ -216,7 +218,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
     can.admin && notOwner && near && b.renter ? ops<InstantState>('instant_book_state', { booking: b.id }).catch(none(null)) : null]);
   const revertOk = revert && !('error' in revert) ? revert : null;
   const instantBooking = (b as { instant_book?: boolean }).instant_book === true || hist?.instant_book === true;
-  const [policyNote, adjusters, pay, periods, duplicates] = await Promise.all([
+  const [policyNote, adjusters, pay, periods, duplicates, rolling] = await Promise.all([
     on('review') && ['requested', 'offered', 'pending_payment', 'confirmed'].includes(b.status) ? (can.admin ? ops : own)<{ handover_note: string | null }>('listing_state', { vehicle_id: b.vehicle_id }).then((x) => x?.handover_note ?? null).catch(none(null)) : null,
     // r35 gaps (2435/2437): the claim and adjuster card is for insurer-billed bookings only, in the Admin and the staff portals;
     // a renter-billed booking keeps only the small 'Bill an insurer instead' switch
@@ -224,7 +226,10 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
     can.admin && (on('overview') || on('money')) && ['pending_payment', 'confirmed', 'on_rent', 'returned'].includes(b.status) && notOwner && !b.placeholder?.on
       ? ops<Pay & { may_change?: boolean }>('booking_pay_plan', { booking: b.booking_number }).catch(none(null)) : null,
     (on('overview') || on('money')) && b.billable_days > 27 ? ops<PeriodRow[]>('booking_periods', { booking: b.booking_number }).catch(none([] as PeriodRow[])) : null,
-    (on('overview') || on('review')) && renterForm?.may_edit ? ops<DuplicateRow[]>('renter_duplicates', { renter: renterForm.renter_id }).catch(none([] as DuplicateRow[])) : null]);
+    (on('overview') || on('review')) && renterForm?.may_edit ? ops<DuplicateRow[]>('renter_duplicates', { renter: renterForm.renter_id }).catch(none([] as DuplicateRow[])) : null,
+    // r48 (2981): a long-term rental paid weekly (Admin and staff; the card shows when it is on or may be turned on)
+    (can.admin || viewer.role === 'staff') && (on('overview') || on('money')) && notOwner && ['confirmed', 'on_rent', 'returned'].includes(b.status)
+      ? ops<RollingState>('rolling_weekly_state', { booking: b.booking_number }).catch(none(null)) : null]);
 
   // r35 part RR (1010): the deposit review (Fleet, Finance and the Admin) and the Finance countdowns of this booking
   const moneyStaff = can.admin || fn === 'finance';
@@ -419,6 +424,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
         policy_province: (b.insurer_policy_province as string | null) ?? null, authorized_days: b.insurer_authorized_days, authorized_until: b.insurer_authorized_until,
         authorized_daily_rate_cents: b.insurer_authorized_daily_rate_cents, adjuster_id: (b.insurer_adjuster_id as string | null) ?? null }} />}
       {pay && <PayPlanCard booking={b.id} pay={pay} refresh={[base]} admin={viewer.role === 'admin'} />}
+      {rolling && (rolling.on || (rolling.may_turn_on && rolling.may_change)) && <RollingCard booking={b.booking_number} x={rolling} refresh={[base]} />}
       {periods && <BookingPeriods booking={b.booking_number} rows={periods} />}
       {(on('overview') || on('review')) && renterForm && <RenterEdit x={renterForm} />}
       {duplicates && renterForm && <RenterMerge renterId={renterForm.renter_id} name={renterForm.now.full_name ?? 'this renter'} rows={duplicates} />}

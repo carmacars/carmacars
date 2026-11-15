@@ -16,11 +16,14 @@ describe('live areas', () => {
     assert.deepEqual(areasFor('/admin/sales-leads'), ['me', 'leads']);
     assert.deepEqual(areasFor('/staff/messages'), ['me', 'messages']);
     assert.deepEqual(areasFor('/admin/calendar'), ['me', 'bookings', 'requests', 'field']);
-    assert.deepEqual(areasFor('/staff/today'), ['me', 'bookings', 'requests', 'field']);
+    assert.deepEqual(areasFor('/staff/today'), ['me', 'bookings', 'requests', 'field', 'tasks']);
+    assert.deepEqual(areasFor('/admin/tasks'), ['me', 'tasks'], 'r48: the To do list');
+    assert.deepEqual(areasFor('/staff/tasks?queue=admin'), ['me', 'tasks']);
+    assert.deepEqual(areasFor('/staff/chat/abc'), ['me', 'messages'], 'a chat thread');
     assert.deepEqual(areasFor('/admin/field-jobs'), ['me', 'field']);
     assert.deepEqual(areasFor('/staff/field/jobs/1'), ['me', 'field']);
     assert.deepEqual(areasFor('/staff/schedule'), ['me', 'field']);
-    assert.deepEqual(areasFor('/admin'), ['me', 'bookings', 'requests', 'leads', 'field']);
+    assert.deepEqual(areasFor('/admin'), ['me', 'bookings', 'requests', 'leads', 'field', 'tasks']);
     assert.deepEqual(areasFor('/admin/alerts'), ['me']);
     assert.deepEqual(areasFor('/account/bookings/CC-1'), ['me', 'renter']);
     assert.deepEqual(areasFor('/owner'), ['me', 'owner']);
@@ -29,6 +32,7 @@ describe('live areas', () => {
 
   it('keeps only the tokens the server gave', () => {
     assert.deepEqual(topicsFor('/staff/today', { me: 'm0000000', bookings: 'b0000000' }), ['m0000000', 'b0000000']);
+    assert.deepEqual(topicsFor('/staff/today', { me: 'm0000000', tasks: 't0000000' }), ['m0000000', 't0000000']);
     assert.deepEqual(topicsFor('/staff/leads', {}), []);
   });
 

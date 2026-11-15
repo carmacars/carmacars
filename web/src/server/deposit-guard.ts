@@ -128,14 +128,16 @@ export async function runDepositGuard(limit = 40) {
   const links = await sendDepositLinks().catch((e) => ({ sent: 0, not_sent: 0, errors: [(e instanceof Error ? e.message : String(e)).slice(0, 200)] }));
   // r48 (2970): a car out with the deposit owed: the morning try on the saved card, then the link of the day
   const owed = await retryPendingDeposits().catch((e) => ({ held: 0, failed: 0, links: 0, errors: [(e instanceof Error ? e.message : String(e)).slice(0, 200)] }));
+  // r48 (2981): a long-term rental paid weekly, near its return with the next week unpaid: the renter's pay link
+  const rolling = await sendRollingWeekLinks().catch((e) => ({ sent: 0, errors: [(e instanceof Error ? e.message : String(e)).slice(0, 200)] }));
   // r33 (0750): a hold about 24 hours from its expiry, re-authorized before it lapses (an alert when it cannot be)
   const reauth = await reauthorizeDueHolds().catch((e) => ({ renewed: 0, failed: 0, errors: [(e instanceof Error ? e.message : String(e)).slice(0, 200)] }));
   // r35 (1081): once a night, the Stripe payments no booking knows
   const unlinked = await stripeUnlinkedCheck().catch((e) => ({ ran: false, unlinked: 0, error: (e instanceof Error ? e.message : String(e)).slice(0, 200) }));
   return { ...out, deposit_holds: holds.held, deposit_holds_failed: holds.failed, deposit_links: links.sent, deposit_links_not_sent: links.not_sent,
     holds_reauthorized: reauth.renewed, holds_reauth_failed: reauth.failed, stripe_unlinked: unlinked.unlinked,
-    owed_held: owed.held, owed_failed: owed.failed, owed_links: owed.links,
-    errors: [...out.errors, ...holds.errors, ...links.errors, ...owed.errors, ...reauth.errors, ...(unlinked.error ? [unlinked.error] : [])] };
+    owed_held: owed.held, owed_failed: owed.failed, owed_links: owed.links, rolling_links: rolling.sent,
+    errors: [...out.errors, ...holds.errors, ...links.errors, ...owed.errors, ...rolling.errors, ...reauth.errors, ...(unlinked.error ? [unlinked.error] : [])] };
 }
 
 /** r35 (1081): the nightly "unlinked Stripe payments" check, when the database says it is due (from 3 a.m. Toronto): the
@@ -269,6 +271,29 @@ export async function retryPendingDeposits(limit = 10): Promise<{ held: number; 
       await call('server_payreq_attach', { p_id: q.id, p_intent: intent.id });
       const r = (await call('server_deposit_link_send', { p_id: q.id, p_link: `${siteUrl()}/pay/${token}` })) as { ok: boolean } | null;
       if (r?.ok) out.links++;
+    } catch (e) { out.errors.push(`${d.booking_number}: ${e instanceof Error ? e.message : String(e)}`.slice(0, 200)); }
+  }
+  return out;
+}
+
+/** r48 (2981): the next week's pay link of each long-term weekly rental the database says is due (it raises the Admin
+ *  To do in the same call): the week is an approved extension, so paying the link confirms it and moves the return. */
+export async function sendRollingWeekLinks(limit = 20): Promise<{ sent: number; errors: string[] }> {
+  const due = ((await call('server_rolling_links_due', {})) as Array<{ booking_id: string; booking_number: string }> | null) ?? [];
+  const out = { sent: 0, errors: [] as string[] };
+  for (const d of due.slice(0, limit)) {
+    try {
+      const token = newPayToken();
+      const q = (await call('server_rolling_payreq', { p_booking: d.booking_id, p_token_sha256: await payTokenHash(token) })) as
+        { ok: boolean; id: string; booking_number: string; amount_cents: number; renter: { id: string; legal_name: string; email: string | null; customer_id: string | null } } | null;
+      if (!q?.ok) continue;
+      const p = await payments();
+      const customerId = q.renter.customer_id ?? (await p.createCustomer({ email: q.renter.email ?? '', name: q.renter.legal_name, renterId: q.renter.id, idempotencyKey: `customer:${q.renter.id}` })).id;
+      const intent = await p.createStaffIntent({ amountCents: q.amount_cents, customerId, capture: 'manual', description: `CarmaCars booking ${q.booking_number}: next week`,
+        metadata: { booking_id: d.booking_id, booking_number: q.booking_number, purpose: 'staff_request', payment_request_id: q.id, covers: 'extension' }, idempotencyKey: `payreq:${q.id}` });
+      await call('server_payreq_attach', { p_id: q.id, p_intent: intent.id });
+      const r = (await call('server_rolling_link_send', { p_id: q.id, p_link: `${siteUrl()}/pay/${token}` })) as { ok: boolean } | null;
+      if (r?.ok) out.sent++;
     } catch (e) { out.errors.push(`${d.booking_number}: ${e instanceof Error ? e.message : String(e)}`.slice(0, 200)); }
   }
   return out;

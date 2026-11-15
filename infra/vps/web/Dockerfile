@@ -28,6 +28,8 @@ COPY --from=build --chown=node:node /src/scripts/vps-server.mjs ./scripts/vps-se
 COPY --from=build --chown=node:node /src/src/lib ./src/lib
 # the automatic answer's message (inbound email), read by the entry
 COPY --from=build --chown=node:node /src/src/features/auto-reply/faq.ts ./src/features/auto-reply/faq.ts
+# r48: the server's LISTEN (src/lib/platform/db-listen.ts) speaks to Postgres with this module (no dependencies of its own)
+COPY --from=build --chown=node:node /src/node_modules/postgres ./node_modules/postgres
 # the last good copies of the public pages (a volume in docker-compose.yml: they outlive a deploy)
 RUN mkdir -p /data/copies && chown node:node /data/copies
 ENV COPIES_DIR=/data/copies

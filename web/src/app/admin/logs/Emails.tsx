@@ -3,9 +3,19 @@ import { ListFilters } from '@/features/list-filters/ListFilters';
 import { Act } from '@/features/admin/Act';
 import { Badge, BookingLink, PageHead, Search, Table, Tiles, t } from '@/features/admin/ui';
 import Link from '@/components/Link';
+import { rpc } from '@/lib/db/repo';
+
+/** r48: the last day's send times per channel (server_send_latency); null when the database cannot say. */
+async function latency(): Promise<{ email?: Lat; text?: Lat; push?: Lat } | null> {
+  return ((await rpc('server_send_latency', { p_hours: 24 }, { role: 'service_role' }).catch(() => null)) as unknown as { email?: Lat; text?: Lat; push?: Lat } | null) ?? null;
+}
 
 type R = Record<string, unknown>;
 // r41 (2570): which provider sent each email, from its provider id (ses:, cf:, else Resend)
+// r48 (2980): how long a message waited from due to sent
+const took = (ms: unknown) => { const n = typeof ms === 'number' ? ms : Number.NaN; return !Number.isFinite(n) ? null : n < 1000 ? `${Math.round(n)} ms` : n < 120_000 ? `${(n / 1000).toFixed(n < 10_000 ? 1 : 0)} s` : `${Math.round(n / 60_000)} min`; };
+type Lat = { n: number; avg_ms: number; p95_ms: number };
+const latWords = (l: Lat | undefined) => (l && l.n ? `${took(l.avg_ms)} on average, 95% within ${took(l.p95_ms)} (${l.n} sent)` : 'none sent');
 const sentBy = (id: unknown) => { const s = typeof id === 'string' ? id : ''; return !s ? null : s.startsWith('ses:') ? 'Amazon SES' : s.startsWith('cf:') ? 'Cloudflare' : 'Resend'; };
 
 // Settings > Logs > Emails and Blocked addresses (was /admin/messages until r27, which redirects): every email the site
@@ -19,14 +29,17 @@ export async function Emails({ ctx: { list, read }, sp, tab }: { ctx: AdminPage;
   }
   const [{ rows, count }, u] = await Promise.all([list('notification_outbox', { eq: sp.status ? { status: sp.status } : {}, q: sp.q, limit: 200 }),
     read<{ total: number; outbox: number; auth: number; cap: number; warn_at: number; held: number; failed_today: number }>('email_usage').catch(() => null)]);
+  const lat = await latency();
   return (<><PageHead title="Emails" kicker={`${count} messages`} purpose="Every email the site sent or is waiting to send. Resend one, cancel one, or text it instead."><Search action="/admin/logs?tab=emails" value={sp.q} placeholder="Address or email code" /></PageHead>
     {u && <Tiles items={[{ k: 'Sent today', v: String(u.total), sub: `${u.auth} sign-in emails`, warn: u.total >= u.warn_at },
       { k: 'Held for the limit', v: String(u.held), href: '/admin/logs?tab=emails&status=delayed', warn: u.held > 0 }, { k: 'Failed today', v: String(u.failed_today), href: '/admin/logs?tab=emails&status=failed', warn: u.failed_today > 0 },
       { k: 'In this list', v: String(count) }]} />}
     {u && <p className={`alert ${u.total >= u.warn_at ? 'alert--warn' : 'alert--info'}`} data-testid="email-usage"><span>Today: {u.total} sent ({u.outbox} from this list, {u.auth} sign-in emails.) On a busy day digests and marketing wait first; booking and sign-in emails go last. The daily capacity is on <Link prefetch={false} className="link" href="/admin/settings/usage">Settings &gt; Usage</Link>. Held for the limit: {u.held}. Failed today: {u.failed_today}.</span></p>}
+    {lat && <p className="alert alert--info" data-testid="send-latency"><span>Time from queued to sent, last 24 hours. Emails: {latWords(lat.email)}. Texts: {latWords(lat.text)}. Phone alerts: {latWords(lat.push)}.</span></p>}
     <ListFilters id="admin-logs-emails-status" base="/admin/logs?tab=emails" sp={sp} chips={{ name: 'status', label: 'Status', value: sp.status ?? '', options: [['', 'All'], ['queued', 'Queued'], ['delayed', 'Held'], ['sent', 'Sent'], ['merged', 'Sent combined'], ['suppressed', 'Repeats held back'], ['failed', 'Failed']] }} />
     <Table<R> testId="outbox" rows={rows} empty="No emails match. Clear a filter, or search by address or booking." cols={[{ key: 'created_at', label: 'Created', render: (r) => t(r.created_at) }, { key: 'code', label: 'Email' }, { key: 'to_address', label: 'To' }, { key: 'booking_number', label: 'Booking', render: (r) => r.booking_number ? <BookingLink n={r.booking_number} /> : null },
       { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'attempts', label: 'Tries', num: true }, { key: 'sent_at', label: 'Sent', render: (r) => t(r.sent_at) },
+      { key: 'send_ms', label: 'Took', num: true, render: (r) => took(r.send_ms) },
       { key: 'provider_id', label: 'Sent by', render: (r) => sentBy(r.provider_id) }, { key: 'last_error', label: 'Error', className: 'wrap' },
       { key: 'status_reason', label: 'Why', className: 'wrap' },
       { key: 'act', label: '', render: (r) => <span className="ad-actions"><Act action="outbox_resend" payload={{ id: r.id }} label="Resend" refresh={['/admin/logs']} />{['queued', 'delayed'].includes(String(r.status)) && <Act action="outbox_cancel" payload={{ id: r.id }} label="Cancel" refresh={['/admin/logs']} />}
