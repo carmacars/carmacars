@@ -43,7 +43,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // while viewing a portal as someone, the pop-up keeps its region and reads nothing (the phone reads answer the viewed person)
   const viewing = user ? await viewAsCookieSet().catch(() => false) : false;
   // r41: live updates (server/live.ts): the frame's areas, read alongside the rail's counts
-  const livePromise = user && gate?.admin ? liveTokens(user.id, ['me', 'bookings', 'requests', 'leads', 'messages', 'field', 'tasks']) : Promise.resolve<Awaited<ReturnType<typeof liveTokens>>>({});
+  const livePromise = user && gate?.admin ? liveTokens(user.id, ['me', 'bookings', 'requests', 'leads', 'messages', 'field', 'tasks', 'calls']) : Promise.resolve<Awaited<ReturnType<typeof liveTokens>>>({});
   let counts: Record<string, number> = {};
   if (user && gate?.admin) {
     // five numbers for the rail (public.admin_rail_counts, 0036), not the whole dashboard on every admin page
@@ -72,7 +72,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <AdminNav counts={counts} />
           </aside>
         ) : <div />}
-        <div className="ad__main">{gate?.admin && user ? <GuideBanner portal="admin" userId={user.id} /> : null}{gate?.admin && user ? <StuckHelp portal="admin" /> : null}{gate?.admin && user ? <PushInvite portal="admin" home="/admin" userId={user.id} /> : null}{gate?.admin && user ? <CallerPopup portal="admin" quiet={Boolean(viewing)} /> : null}{gate?.admin && user ? <VoiceDock quiet={Boolean(viewing)} /> : null}{gate?.admin ? <HubBar hubs={ADMIN_HUBS} sections={ADMIN_SECTIONS} counts={{ '/admin/listings': counts.rowListings ?? 0, '/admin/applications': counts.rowApplications ?? 0, '/admin/tolls': counts.rowTolls ?? 0,
+        <div className="ad__main">{gate?.admin && user ? <GuideBanner portal="admin" userId={user.id} /> : null}{gate?.admin && user ? <StuckHelp portal="admin" /> : null}{gate?.admin && user ? <PushInvite portal="admin" home="/admin" userId={user.id} /> : null}{gate?.admin && user ? <CallerPopup portal="admin" quiet={Boolean(viewing)} topic={live.calls} /> : null}{gate?.admin && user ? <VoiceDock quiet={Boolean(viewing)} /> : null}{gate?.admin ? <HubBar hubs={ADMIN_HUBS} sections={ADMIN_SECTIONS} counts={{ '/admin/listings': counts.rowListings ?? 0, '/admin/applications': counts.rowApplications ?? 0, '/admin/tolls': counts.rowTolls ?? 0,
           '/admin/owner-money?tab=invoices': counts.rowStatements ?? 0, '/admin/owner-money?tab=statements': counts.rowStatements ?? 0, '/admin/money?tab=day': counts.rowRefunds ?? 0 }} /> : null}<RevampScope list={REVAMP_ADMIN}>{children}</RevampScope></div>
       </div>
     </div>

@@ -4,12 +4,13 @@ import Link from '@/components/Link';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { poller } from '@/lib/poll/poll';
+import { useLive } from '@/features/live/realtime/useLive';
 import { clock } from '@/features/live/staff';
 import { phoneDo, phoneRead } from '@/features/phone/client';
 import { RenterNotes } from './RenterNotes';
 import { HelperGreeting, HelperTools } from './CallHelper';
 import {
-  CALLER_POLL_MS, KIND_WORDS, balanceWords, bookingHref, bookingWords, callState, callTimer, callTimerWords, callerTitle, depositWords, pruneDismissed, renterHref,
+  CALLER_LIVE_POLL_MS, CALLER_POLL_MS, KIND_WORDS, balanceWords, bookingHref, bookingWords, callState, callTimer, callTimerWords, callerTitle, depositWords, pruneDismissed, renterHref,
   splitCalls, visibleCalls, type CallHelp, type CallerLive, type LiveCall, type Portal
 } from './model';
 
@@ -34,7 +35,10 @@ function readHelpHidden(): boolean { try { return window.localStorage.getItem(HE
 
 // quiet (r34): an Admin viewing a portal as someone (read only) sees the same empty region, and nothing is read: the live
 // read is the Admin's own, refused while viewing
-export function CallerPopup({ portal, quiet = false }: { portal: Portal; quiet?: boolean }) {
+// r48 (2995): topic, the live topic of calls (server/live.ts 'calls'): a call that starts, is answered or ends opens or
+// updates the pop-up within about a second (Realtime; 2 seconds while polling); the 10-second read stays as a safety net
+// (once a minute with the topic). Calls placed from the site (the browser phone) open it too.
+export function CallerPopup({ portal, quiet = false, topic }: { portal: Portal; quiet?: boolean; topic?: string | null }) {
   const [calls, setCalls] = useState<LiveCall[]>([]);
   const [dismissed, setDismissed] = useState<Record<string, number>>(() => readStore(KEY));
   const [minimized, setMinimized] = useState<Record<string, number>>(() => readStore(MIN_KEY));
@@ -49,15 +53,17 @@ export function CallerPopup({ portal, quiet = false }: { portal: Portal; quiet?:
   const load = useCallback(async () => {
     if (stopped.current) return;
     try { setCalls((await phoneRead<CallerLive>('caller_live')).calls); }
-    catch (e) { if (e instanceof Error && /Admins, customer service and Fleet|Admins and customer service|Sign in|Unknown read/.test(e.message)) stopped.current = true; }
+    catch (e) { if (e instanceof Error && /Admins, customer service and Fleet|Admins and customer service|Admins and office staff|Sign in|Unknown read/.test(e.message)) stopped.current = true; }
   }, []);
+  useLive(quiet || !topic ? [] : [topic], useCallback(() => { void load(); }, [load]));
   useEffect(() => {
     if (quiet) return;
     const first = setTimeout(() => void load(), 0);
-    const due = poller(CALLER_POLL_MS);
-    const t = setInterval(() => { if (due()) void load(); }, CALLER_POLL_MS);
+    const every = topic ? CALLER_LIVE_POLL_MS : CALLER_POLL_MS;
+    const due = poller(every);
+    const t = setInterval(() => { if (due()) void load(); }, every);
     return () => { clearTimeout(first); clearInterval(t); };
-  }, [load, quiet]);
+  }, [load, quiet, topic]);
 
   const shown = visibleCalls(calls, dismissed);
   const { open, chips } = splitCalls(shown, minimized);

@@ -151,13 +151,18 @@ export async function voiceAccessToken(o: { accountSid: string; apiKey: string; 
  *  of Client nouns in one Dial). The browser is shown the business number as From and, as a parameter, who is calling as
  *  that staff member may see it (a name, or the number masked for Sales, 0970): the caller's own number never reaches a
  *  browser that may not see it. action reports whether anybody answered. */
-export function ringBrowsersTwiml(o: { ring: Array<{ identity: string; who: string }>; callerId: string | null; actionUrl: string; timeoutSeconds?: number }): string {
+export function ringBrowsersTwiml(o: { ring: Array<{ identity: string; who: string }>; callerId: string | null; actionUrl: string; timeoutSeconds?: number;
+  recordingUrl?: string | null; answeredUrl?: string | null }): string {
   const ring = o.ring.filter((x) => /^staff_[0-9a-f]{32}$/.test(x.identity)).slice(0, 10);
   if (!ring.length) throw new Error('Nobody to ring');
   const t = Math.max(5, Math.min(60, Math.round(o.timeoutSeconds ?? 25)));
   const cid = o.callerId && E164.test(o.callerId) ? ` callerId="${xml(o.callerId)}"` : '';
-  const clients = ring.map((x) => `<Client><Identity>${x.identity}</Identity><Parameter name="who" value="${xml(x.who.slice(0, 80))}"/></Client>`).join('');
-  return `<?xml version="1.0" encoding="UTF-8"?><Response><Dial timeout="${t}" answerOnBridge="true"${cid} action="${xml(o.actionUrl)}" method="POST">${clients}</Dial></Response>`;
+  // r48 (2995): the answered browser says who took the call (the pop-up and the history name them); the call is recorded
+  // from the answer, each side on its own channel, as calls placed from the site
+  const cb = o.answeredUrl ? ` statusCallbackEvent="answered" statusCallback="${xml(o.answeredUrl)}" statusCallbackMethod="POST"` : '';
+  const rec = o.recordingUrl ? ` record="record-from-answer-dual" recordingStatusCallback="${xml(o.recordingUrl)}" recordingStatusCallbackMethod="POST" recordingStatusCallbackEvent="completed"` : '';
+  const clients = ring.map((x) => `<Client${cb}><Identity>${x.identity}</Identity><Parameter name="who" value="${xml(x.who.slice(0, 80))}"/></Client>`).join('');
+  return `<?xml version="1.0" encoding="UTF-8"?><Response><Dial timeout="${t}" answerOnBridge="true"${cid} action="${xml(o.actionUrl)}" method="POST"${rec}>${clients}</Dial></Response>`;
 }
 
 /** Nobody answered (or nobody is online): forward to the number an Admin set (never a staff member's own number), or a
@@ -206,6 +211,28 @@ export function recordingUrls(accountSid: string, recordingSid: string): { audio
   const base = `${TWILIO_API}/Accounts/${encodeURIComponent(accountSid)}/Recordings/${encodeURIComponent(recordingSid)}`;
   return { audio: `${base}.mp3`, resource: `${base}.json` };
 }
+/** r48 (2995): the recordings of one call, on Twilio's REST API (the backfill of calls whose callback never came). */
+export function callRecordingsUrl(accountSid: string, callSid: string): string {
+  if (!/^CA[0-9a-f]{32}$/i.test(callSid)) throw new Error('Not a call SID');
+  return `${TWILIO_API}/Accounts/${encodeURIComponent(accountSid)}/Calls/${encodeURIComponent(callSid)}/Recordings.json`;
+}
+/** The finished recording of a call from that list (the longest, when there are several), or null. */
+export function pickRecording(list: unknown): { sid: string; seconds: number } | null {
+  const rows = (list && typeof list === 'object' && Array.isArray((list as { recordings?: unknown }).recordings) ? (list as { recordings: unknown[] }).recordings : [])
+    .map((r) => (r && typeof r === 'object' ? (r as Record<string, unknown>) : {}))
+    .filter((r) => typeof r.sid === 'string' && /^RE[0-9a-f]{32}$/i.test(r.sid) && String(r.status ?? 'completed').toLowerCase() === 'completed')
+    .map((r) => ({ sid: r.sid as string, seconds: Math.max(0, Math.round(Number(r.duration ?? 0)) || 0) }))
+    .sort((a, b) => b.seconds - a.seconds);
+  return rows[0] ?? null;
+}
+/** The answered browser of a ring: the staff member's user id from the child leg's To ("client:staff_..."), or null. */
+export function answeredBy(params: Record<string, string>): { parent: string; user: string | null } | null {
+  const parent = params.ParentCallSid ?? '';
+  if (!/^CA[0-9a-f]{32}$/i.test(parent)) return null;
+  if (!['in-progress', 'answered'].includes((params.CallStatus ?? '').toLowerCase())) return null;
+  return { parent, user: identityUser(params.To ?? params.Called) };
+}
+
 /** Where our copy is kept (private documents bucket); the database checks this form. */
 export function recordingKey(callId: string): string {
   if (!/^[0-9a-f-]{36}$/i.test(callId)) throw new Error('Not a call id');

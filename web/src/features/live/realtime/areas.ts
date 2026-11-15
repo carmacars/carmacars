@@ -4,7 +4,8 @@
 // again for every other booking's change. No imports: unit tested in Node (areas.test.ts).
 
 // r48: 'tasks' (the To do lists, Today and the overview; migration 2980)
-export type LiveArea = 'bookings' | 'requests' | 'leads' | 'messages' | 'field' | 'tasks' | 'me' | 'renter' | 'owner';
+// r48 (2995): calls is the caller pop-up's own topic (never a screen's refresh: no route lists it)
+export type LiveArea = 'bookings' | 'requests' | 'leads' | 'messages' | 'field' | 'tasks' | 'me' | 'renter' | 'owner' | 'calls';
 
 const STAFF_ROUTES: [RegExp, LiveArea[]][] = [
   // a booking's own page and its sub pages: LiveBooking (the booking's topic)

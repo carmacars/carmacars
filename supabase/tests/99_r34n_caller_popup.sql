@@ -43,7 +43,8 @@ select test.ok('pop-up: the open question to the renter is listed', (select j #>
 select test.eq('pop-up: notes start empty', (select jsonb_array_length(j #> '{calls,0,renter,notes}') from test.zcp_l), 0);
 select test.eq('pop-up: an Admin sees it too', (select jsonb_array_length(test.zcp_live('zcp_admin', 'admin_read') -> 'calls') >= 1), true);
 select test.lives('pop-up: Fleet staff get it too (0970, the Fleet lane)', $$ select test.zcp_live('zcp_fleet') $$);
-select test.throws('pop-up: Sales do not get it', $$ select test.zcp_live('zcp_sales') $$, '%Admins, customer service and Fleet%');
+-- r48 (2995): Sales take incoming calls in the browser (phone_inbound_ring), so they get the pop-up too
+select test.lives('pop-up: Sales get it too (2995)', $$ select test.zcp_live('zcp_sales') $$);
 
 -- an unknown number
 select test.zcp_call('ACRN2', '+12895550873');
@@ -110,8 +111,8 @@ select test.eq('open from the pop-up: logged for 24 hours with the reason', (sel
 select test.eq('open from the pop-up: the renter record opens for them', (select app.door(test.id('zcp_cs'), 'aal2', 'va_read', 'renter', jsonb_build_object('id', test.id('renter:zcp_old'))) ->> 'legal_name'), 'Zcp Old');
 select test.throws('open from the pop-up: only for a call from a renter', format($$ select app.door(%L, 'aal2', 'va_do', 'caller_open', jsonb_build_object('call_id', %L)) $$,
   test.id('zcp_cs'), (select id from phone_activity where quo_id = 'ACRN2')), '%not one from a renter%');
-select test.throws('open from the pop-up: not for Sales', format($$ select app.door(%L, 'aal2', 'va_do', 'caller_open', jsonb_build_object('call_id', %L)) $$,
-  test.id('zcp_sales'), (select id from phone_activity where quo_id = 'ACRN4')), '%Admins, customer service and Fleet%');
+select test.lives('open from the pop-up: Sales too, logged (2995)', format($$ select app.door(%L, 'aal2', 'va_do', 'caller_open', jsonb_build_object('call_id', %L)) $$,
+  test.id('zcp_sales'), (select id from phone_activity where quo_id = 'ACRN4')));
 select test.eq('the door still answers what it did before', (select app.door(test.id('zcp_cs'), 'aal2', 'va_read', 'phone_inbox', '{}'::jsonb) ? 'threads'), true);
 
 -- leave no unprocessed events for the suites after this one (99_staff_alerts counts the Admin digest)

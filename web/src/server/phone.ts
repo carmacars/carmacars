@@ -88,8 +88,11 @@ export async function runPhoneJob(): Promise<Record<string, unknown>> {
   // 1880: the site's recorded calls to text (background tier, free allowance only; never fails the job)
   let calls: Record<string, unknown>;
   try { const { runCallTranscripts } = await import('@/server/twilio-call'); calls = await runCallTranscripts(); } catch (e) { calls = { error: e instanceof Error ? e.message.slice(0, 200) : 'failed' }; }
+  // r48 (2995): the last 60 days' calls missing their recording, transcript or summary, a few each run (never fails the job)
+  let backfill: Record<string, unknown>;
+  try { const { runCallBackfill } = await import('@/server/twilio-call'); backfill = await runCallBackfill(); } catch (e) { backfill = { error: e instanceof Error ? e.message.slice(0, 200) : 'failed' }; }
   if (failed) throw failed;
-  return { ...texts, contacts, intent, calls };
+  return { ...texts, contacts, intent, calls, backfill };
 }
 
 /** Quo contacts (0190): the database's side of the sync (src/features/phone/quo-contacts.ts). */

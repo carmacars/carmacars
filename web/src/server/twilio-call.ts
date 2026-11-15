@@ -2,7 +2,7 @@ import 'server-only';
 import { env } from '@/lib/env';
 import { rpc } from '@/lib/db/repo';
 import type { Json } from '@/lib/db/types';
-import { TWILIO_API, bridgeTwiml, callToken, hangupTwiml, identityUser, noAnswerTwiml, recordingKey, recordingReady, recordingUrls, ringBrowsersTwiml, signedUrlCandidates,
+import { TWILIO_API, answeredBy, bridgeTwiml, callRecordingsUrl, callToken, hangupTwiml, identityUser, noAnswerTwiml, pickRecording, recordingKey, recordingReady, recordingUrls, ringBrowsersTwiml, signedUrlCandidates,
   staffIdentity, startCallForm, toE164, twilioReady, verifyCallToken, verifyTwilioSignature, voiceAccessToken } from '@/features/phone/twilio';
 
 // The site's outbound Call button (release 35, migration 0970): the server rings the signed-in staff member's own cell
@@ -146,26 +146,47 @@ export async function recordingWebhook(req: Request): Promise<Response> {
   if (!w) return new Response('forbidden', { status: 403 });
   const r = recordingReady(w.params);
   if (!r) return new Response(null, { status: 204 });
-  const c = cfg();
-  const urls = recordingUrls(c.accountSid!, r.sid);
-  const key = recordingKey(w.id);
-  let audio: Uint8Array;
+  return (await keepOutbound(w.id, r)) ? new Response(null, { status: 204 }) : new Response('copy failed', { status: 500 });
+}
+
+/** The audio of a recording, copied to our private storage at key. Null when it is copied; else why not. */
+async function copyRecording(c: ReturnType<typeof cfg>, sid: string, key: string): Promise<string | null> {
   try {
-    const res = await fetch(urls.audio, { headers: { authorization: basic(c) }, signal: AbortSignal.timeout(20_000) });
+    const res = await fetch(recordingUrls(c.accountSid!, sid).audio, { headers: { authorization: basic(c) }, signal: AbortSignal.timeout(20_000) });
     if (!res.ok) throw new Error(`Twilio answered ${res.status}`);
-    audio = new Uint8Array(await res.arrayBuffer());
+    const audio = new Uint8Array(await res.arrayBuffer());
     if (!audio.byteLength || audio.byteLength > 50_000_000) throw new Error('The recording is empty or too large');
     const { storage } = await import('@/integrations/storage');
     await (await storage()).put('documents', key, audio, 'audio/mpeg');
-  } catch (e) {
-    await rpc('server_twilio_recording', { p: { id: w.id, recording_sid: r.sid, seconds: r.seconds, error: e instanceof Error ? e.message.slice(0, 200) : 'copy failed' } as unknown as Json }, SR).catch(() => null);
-    return new Response('copy failed', { status: 500 });
+    return null;
+  } catch (e) { return e instanceof Error ? e.message.slice(0, 200) : 'copy failed'; }
+}
+async function deleteAtTwilio(c: ReturnType<typeof cfg>, sid: string) {
+  await fetch(recordingUrls(c.accountSid!, sid).resource, { method: 'DELETE', headers: { authorization: basic(c) }, signal: AbortSignal.timeout(10_000) }).catch(() => null);
+}
+/** A call placed from the site: its recording copied and kept on the call (true), or the failure kept (false). */
+async function keepOutbound(id: string, r: { sid: string; seconds: number }): Promise<boolean> {
+  const c = cfg();
+  const key = recordingKey(id);
+  const err = await copyRecording(c, r.sid, key);
+  if (err) {
+    await rpc('server_twilio_recording', { p: { id, recording_sid: r.sid, seconds: r.seconds, error: err } as unknown as Json }, SR).catch(() => null);
+    return false;
   }
-  const saved = (await rpc('server_twilio_recording', { p: { id: w.id, recording_sid: r.sid, key, seconds: r.seconds } as unknown as Json }, SR)) as unknown as { ok?: boolean; delete?: boolean } | null;
-  if (saved?.ok && saved.delete) {
-    await fetch(urls.resource, { method: 'DELETE', headers: { authorization: basic(c) }, signal: AbortSignal.timeout(10_000) }).catch(() => null);
-  }
-  return new Response(null, { status: 204 });
+  const saved = (await rpc('server_twilio_recording', { p: { id, recording_sid: r.sid, key, seconds: r.seconds } as unknown as Json }, SR)) as unknown as { ok?: boolean; delete?: boolean } | null;
+  if (saved?.ok && saved.delete) await deleteAtTwilio(c, r.sid);
+  return !!saved?.ok;
+}
+/** r48 (2995): a call to the business number: its recording copied and kept on the call's history (by its CallSid). */
+async function keepInbound(callSid: string, activityId: string, r: { sid: string; seconds: number }): Promise<boolean> {
+  const c = cfg();
+  const key = recordingKey(activityId);
+  const err = await copyRecording(c, r.sid, key);
+  const saved = (await rpc('server_twilio_inbound', { p: { kind: 'recording', call_sid: callSid, recording_sid: r.sid, seconds: r.seconds, ...(err ? { error: err } : { key }) } as unknown as Json }, SR)
+    .catch(() => null)) as unknown as { ok?: boolean; delete?: boolean } | null;
+  if (err) return false;
+  if (saved?.ok && saved.delete) await deleteAtTwilio(c, r.sid);
+  return !!saved?.ok;
 }
 
 /** 1880: the stored recordings due for speech to text (Workers AI Whisper, background tier, free allowance only; the
@@ -319,13 +340,15 @@ export async function incomingWebhook(req: Request): Promise<Response> {
   if (!params || !(await signed(req, params))) return xmlResponse(hangupTwiml(), 403);
   const c = cfg();
   const ring = (await rpc('server_voice_ring', { p: { from: params.From ?? null } as unknown as Json }, SR).catch(() => null)) as unknown as
-    { enabled?: boolean; ring?: Array<{ identity: string; who: string }>; seconds?: number; forward_to?: string | null; message?: string | null; caller_id?: string | null } | null;
+    { enabled?: boolean; ring?: Array<{ identity: string; who: string }>; seconds?: number; forward_to?: string | null; message?: string | null; caller_id?: string | null; record?: boolean } | null;
   await logIncoming(params, 'call.ringing');
   if (!ring?.enabled || !ring.ring?.length) {
     await logIncoming(params, 'call.missed', { completed_at: new Date().toISOString(), duration: 0 });
     return xmlResponse(noAnswerTwiml({ forwardTo: toE164(ring?.forward_to), callerId: params.From ?? null, message: ring?.message, timeoutSeconds: ring?.seconds }));
   }
-  return xmlResponse(ringBrowsersTwiml({ ring: ring.ring, callerId: ourCallerId(c, ring.caller_id), actionUrl: `${c.base}/api/webhooks/twilio/ring-end`, timeoutSeconds: ring.seconds }));
+  // r48 (2995): recorded (Program setting phone_twilio_record) and the answered browser says who took it
+  return xmlResponse(ringBrowsersTwiml({ ring: ring.ring, callerId: ourCallerId(c, ring.caller_id), actionUrl: `${c.base}/api/webhooks/twilio/ring-end`, timeoutSeconds: ring.seconds,
+    answeredUrl: `${c.base}/api/webhooks/twilio/ring-answer`, recordingUrl: ring.record === false ? null : `${c.base}/api/webhooks/twilio/in-recording` }));
 }
 
 /** The ring ended: answered in a browser (logged with its length), or nobody answered (a missed call, then the no-answer way). */
@@ -340,4 +363,71 @@ export async function ringEndWebhook(req: Request): Promise<Response> {
   await logIncoming(params, 'call.missed', { completed_at: new Date().toISOString(), duration: 0 });
   const v = await voiceSettings();
   return xmlResponse(noAnswerTwiml({ forwardTo: toE164(v.forward_to), callerId: params.From ?? null, message: v.message, timeoutSeconds: v.seconds }));
+}
+
+/** r48 (2995): a browser answered a call to the business number (the Client's answered callback): the call is answered
+ *  now, by that staff member (the pop-up shows "On the phone now" at once, and the history names who took it). */
+export async function ringAnswerWebhook(req: Request): Promise<Response> {
+  const params = await formOf(req);
+  if (!params || !(await signed(req, params))) return new Response('forbidden', { status: 403 });
+  const a = answeredBy(params);
+  if (a) await rpc('server_twilio_inbound', { p: { kind: 'answered', call_sid: a.parent, user_id: a.user } as unknown as Json }, SR).catch(() => null);
+  return new Response(null, { status: 204 });
+}
+
+/** r48 (2995): the recording of a call to the business number is ready: copied to our private storage and kept on the
+ *  call (a copy that fails answers 500 so Twilio tries again). */
+export async function inRecordingWebhook(req: Request): Promise<Response> {
+  const params = await formOf(req);
+  if (!params || !(await signed(req, params))) return new Response('forbidden', { status: 403 });
+  const r = recordingReady(params);
+  if (!r) return new Response(null, { status: 204 });
+  for (const sid of [params.CallSid, params.ParentCallSid]) {
+    if (!sid || !/^CA[0-9a-f]{32}$/i.test(sid)) continue;
+    const id = (await rpc('server_twilio_inbound_id', { p_call_sid: sid }, SR).catch(() => null)) as unknown as string | null;
+    if (!id) continue;
+    return (await keepInbound(sid, id, r)) ? new Response(null, { status: 204 }) : new Response('copy failed', { status: 500 });
+  }
+  return new Response(null, { status: 204 });
+}
+
+type BackfillDue = { twilio: Array<{ ref: string; kind: 'out' | 'in'; id: string; call_sid: string }>;
+  quo: Array<{ ref: string; id: string; call_id: string; recording: boolean; transcript: boolean; summary: boolean }> };
+
+/** r48 (2995): calls of the last 60 days whose recording, transcript or summary is missing, each looked up once: site
+ *  calls at Twilio (the recording, then speech to text and the summary as for a new call), Quo calls at Quo (its
+ *  recording, transcript and summary; ours when Quo has none). A few each run of the five-minute job. */
+export async function runCallBackfill(limit = 3): Promise<Record<string, unknown>> {
+  const due = (await rpc('server_call_backfill_due', { p_limit: limit }, SR).catch(() => null)) as unknown as BackfillDue | null;
+  if (!due) return { checked: 0 };
+  const c = cfg();
+  const twilioOk = twilioReady(c).ready;
+  let found = 0, checked = 0;
+  const done = (p: Record<string, unknown>) => rpc('server_call_backfill_done', { p: p as unknown as Json }, SR).catch(() => null);
+  for (const it of twilioOk ? due.twilio : []) {
+    checked++;
+    try {
+      const res = await fetch(callRecordingsUrl(c.accountSid!, it.call_sid), { headers: { authorization: basic(c) }, signal: AbortSignal.timeout(10_000) });
+      if (!res.ok) { await done({ ref: it.ref, result: `twilio ${res.status}` }); continue; }
+      const r = pickRecording(await res.json().catch(() => null));
+      if (!r) { await done({ ref: it.ref, result: 'no recording at twilio' }); continue; }
+      const ok = it.kind === 'out' ? await keepOutbound(it.id, r) : await keepInbound(it.call_sid, it.id, r);
+      if (ok) found++;
+      await done({ ref: it.ref, result: ok ? 'recording copied' : 'copy failed' });
+    } catch (e) { await done({ ref: it.ref, result: e instanceof Error ? e.message.slice(0, 150) : 'failed' }); }
+  }
+  const key = env().QUO_API_KEY?.trim();
+  if (key && due.quo.length) {
+    const { quoCallMedia } = await import('@/features/phone/quo-api');
+    for (const it of due.quo) {
+      checked++;
+      try {
+        const m = await quoCallMedia({ key }, it.call_id, { recording: it.recording, transcript: it.transcript, summary: it.summary });
+        const any = m.recordings.length + m.transcript.length + m.summary.length > 0;
+        if (any) found++;
+        await done({ ref: it.ref, result: any ? 'found at quo' : 'nothing at quo', quo: m });
+      } catch (e) { await done({ ref: it.ref, result: e instanceof Error ? e.message.slice(0, 150) : 'failed' }); }
+    }
+  }
+  return { checked, found };
 }

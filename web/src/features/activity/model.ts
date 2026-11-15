@@ -14,7 +14,10 @@ export const TYPE_LABEL: Record<ActivityType, string> = {
 export interface ActivityItem {
   k: string; type: ActivityType; at: string; title: string; body: string | null; dir: 'in' | 'out' | null; by: string | null;
   booking_number: string | null; ref: string | null;
-  extra: { missed?: boolean; duration?: number | null; summary_by?: 'quo' | 'ai' | null; next_steps?: string[] | null; status?: string; cents?: number; chat?: string; role?: string; visit_number?: number } | null;
+  extra: { missed?: boolean; duration?: number | null; summary_by?: 'quo' | 'ai' | null; next_steps?: string[] | null;
+    /** r48 (2995): a call's recordings (a site call: our copy, played in the page), transcript and Quo's full summary */
+    recordings?: Array<{ url: string; source?: 'site'; seconds?: number | null; duration?: number | null }> | null;
+    transcript?: Array<{ who: 'us' | 'them' | 'call'; text: string }> | null; summary_lines?: string[] | null; summary?: string | null; voicemail_url?: string | null; status?: string; cents?: number; chat?: string; role?: string; visit_number?: number } | null;
 }
 export interface ActivityPage { renter_id: string | null; booking: string | null; types: ActivityType[]; items: ActivityItem[]; more: boolean; next: { before: string; before_k: string } | null }
 
