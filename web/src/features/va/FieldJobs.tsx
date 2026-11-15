@@ -30,7 +30,9 @@ export interface Board {
 const KIND: Record<string, string> = { handover: 'Handover', return_check_in: 'Return check-out' };
 const dayWord = (d: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(`${d.slice(0, 10)}T12:00:00Z`));
 
-export function FieldJobsBoard({ b, cal, now, photos, base }: { b: Board; cal: CalVehicle[]; now: number; photos: Record<string, string | undefined>; base: '/staff' | '/admin' }) {
+export function FieldJobsBoard({ b, cal, now, photos, base, focus }: { b: Board; cal: CalVehicle[]; now: number; photos: Record<string, string | undefined>; base: '/staff' | '/admin';
+  /** r48 (2960): the job or shift an alert opened (?job=, ?slot=) */
+  focus?: { job?: string | null; slot?: string | null } }) {
   const page = base === '/staff' ? '/staff/fleet' : '/admin/field-jobs';
   const R = [page];
   const eligible = b.staff.filter((s) => s.eligible);
@@ -73,7 +75,7 @@ export function FieldJobsBoard({ b, cal, now, photos, base }: { b: Board; cal: C
             { name: 'starts_at', label: 'First day, start', type: 'datetime', required: true }, { name: 'ends_at', label: 'First day, end', type: 'datetime', required: true },
             { name: 'capacity', label: 'How many people', type: 'number', required: true, min: 1, max: 50, value: 1 },
             { name: 'repeat_days', label: 'Same hours for this many days', type: 'number', min: 1, max: 14, value: 7 }, { name: 'note', label: 'Note', type: 'text' }]} refresh={R} done="Published. Field staff can take them." /></div>
-          <Table rows={b.slots as unknown as R[]} empty="No open shifts. Publish the coming week so field staff can take them." cols={[
+          <Table rows={b.slots as unknown as R[]} focus={focus?.slot} empty="No open shifts. Publish the coming week so field staff can take them." cols={[
             { key: 'starts_at', label: 'When', className: 'fj-when', render: (r) => <>{t(r.starts_at)} to {t(r.ends_at)}</> },
             { key: 'jobs', label: 'Jobs on it', className: 'wrap', render: (r) => { const s = r as unknown as Slot; const w = jobsText(s.jobs); return w ? <span className={s.people.length ? undefined : 'ad-flag ad-flag--red'} data-testid="slot-jobs">{w}{s.people.length ? '' : ', nobody on it'}</span> : <span className="muted">none yet</span>; } },
             { key: 'available', label: 'Available', className: 'wrap', render: (r) => { const s = r as unknown as Slot; return <span data-testid="slot-available">{s.available ?? 0} free{s.suggest?.length ? <>{' · ask '}{s.suggest.map((p) => <Act key={p.id} ops action="field_shift_plan_add" payload={{ slot: s.id, staff: p.id }} label={`Add ${p.name}`} variant="quiet" testId={`suggest-${s.id}-${p.id}`} refresh={R} done="Added." />)}</> : null}</span>; } },
@@ -109,7 +111,7 @@ export function FieldJobsBoard({ b, cal, now, photos, base }: { b: Board; cal: C
               { name: 'place', label: 'Place', type: 'address', required: true, value: r.place ?? 'Our location' }, { name: 'instructions', label: 'Instructions', type: 'textarea' }]} refresh={R} done="Scheduled." /> }]} />
         </Card>
         <Card title="Jobs, next three days" testId="jobs">
-          <Table rows={b.jobs} empty="No jobs." cols={[
+          <Table rows={b.jobs} focus={focus?.job} empty="No jobs." cols={[
             { key: 'scheduled_at', label: 'When', className: 'fj-when', render: (r) => <><span className={late(r) ? 'ad-late' : undefined}>{t(r.scheduled_at)}</span>{r.work_day ? <span className="muted small" data-testid="work-day"><br />planned for {dayWord(String(r.work_day))}</span> : null}{r.place ? <span className="muted small"><br />{String(r.place)}</span> : null}</> },
             { key: 'kind', label: 'Kind', render: (r) => <>{label(r.kind)}{r.auto_created ? <span className="muted small"> · made from the booking</span> : null}</> },
             { key: 'vehicle_name', label: 'Car', render: (r) => <CarCell name={r.vehicle_name} sub={r.booking_number} photo={photos[String(r.vehicle_id)]} /> },

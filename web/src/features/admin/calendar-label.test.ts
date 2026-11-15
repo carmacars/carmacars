@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { availability, barLabel, busyKind, takes, VIEWS, type LabelEntry, type Span } from './calendar-label.ts';
+import { availability, barLabel, busyKind, holdEnds, holding, holdWords, takes, VIEWS, type LabelEntry, type Span } from './calendar-label.ts';
 
 // r48: the fleet calendar's redesign (docs/changes/2026-11-14-r48-fleet-calendar.md).
 const e = (o: Partial<LabelEntry>): LabelEntry => ({ type: 'booking', booking_type: 'standard', booking_number: 'R-100001', renter: 'Sam Lee', status: 'confirmed', reason: null, note: null, blocks: true, insurer: null, ...o });
@@ -98,5 +98,43 @@ describe('fleet calendar availability (r48 follow-up)', () => {
     const tsx = read('./MasterCalendar.tsx');
     for (const t of ['white: free', 'Only cars free for these dates', 'free today', 'mcal__busy', "a.kind === 'off' ? ' is-off'"]) assert.ok(tsx.includes(t), t);
     assert.match(read('./master-calendar.css'), /\.mcal \.mcal__row\.is-off \.mcal__lane \{/);
+  });
+});
+
+describe('fleet calendar soft holds (r48, 2961)', () => {
+  const T = Date.parse('2026-11-14T05:00:00Z'); // midnight in Toronto
+  const D = 86_400_000;
+  const H = 3_600_000;
+  const days = Array.from({ length: 14 }, (_, i) => [T + (i - 2) * D, T + (i - 1) * D] as [number, number]);
+  const now = T + 13 * H;
+  const iso = (ms: number) => new Date(ms).toISOString();
+  const bk = (o: Partial<Span>): Span => ({ type: 'booking', status: 'pending_payment', blocks: true, reason: null, starts_at: iso(T - 2 * H), ends_at: iso(T + 2 * D), renter: 'Sam Lee', booking_number: 'R-1', booking_type: 'standard', ...o });
+
+  it('an open offer and an accepted unpaid booking hold softly until their time; after it nothing', () => {
+    assert.equal(holding(bk({ hold_until: iso(now + H) }), now), true);
+    assert.equal(holding(bk({ status: 'offered', hold_until: iso(now + H) }), now), true);
+    assert.equal(holding(bk({ hold_until: iso(now - 1) }), now), false);
+    assert.equal(holdEnds(bk({ status: 'confirmed', hold_until: iso(now + H) })), null);
+    assert.equal(holdEnds(bk({ placeholder: true, hold_until: iso(now + H) })), null);
+    assert.equal(holdEnds(bk({})), null);
+  });
+  it('the words: until when, then ended', () => {
+    assert.equal(holdWords(bk({ hold_until: '2026-11-14T20:40:00Z' }), now), 'Held until Nov 14, 3:40 pm');
+    assert.equal(holdWords(bk({ status: 'offered', hold_until: '2026-11-14T20:40:00Z' }), now), 'Offer open until Nov 14, 3:40 pm');
+    assert.equal(holdWords(bk({ hold_until: iso(now - 1) }), now), 'Hold ended, not paid');
+    assert.equal(holdWords(bk({ status: 'offered', hold_until: iso(now - 1) }), now), 'Offer expired');
+  });
+  it('an accepted unpaid booking takes the car while its hold runs, not after; an offer never does', () => {
+    const held = availability({ status: 'available', entries: [bk({ hold_until: iso(now + H) })] }, now, days, T);
+    assert.equal(held.kind, 'busy');
+    assert.match(held.now, /^Held until .*: Sam Lee, not paid yet$/);
+    assert.equal(held.freeToday, false);
+    assert.equal(availability({ status: 'available', entries: [bk({ hold_until: iso(now - 1) })] }, now, days, T).kind, 'free');
+    assert.equal(availability({ status: 'available', entries: [bk({ status: 'offered', hold_until: iso(now + H) })] }, now, days, T).kind, 'free');
+  });
+  it('the calendar draws the hold hatched, says so in the legend and fades a lapsed one', () => {
+    const tsx = read('./MasterCalendar.tsx');
+    for (const t of ['mcal__busy is-hold', 'hatched: held until the offer or payment time ends', "c.push('is-lapsed')"]) assert.ok(tsx.includes(t), t);
+    assert.match(read('./master-calendar.css'), /\.mcal \.mcal__busy\.is-hold \{ background: repeating-linear-gradient/);
   });
 });

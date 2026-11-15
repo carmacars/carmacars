@@ -110,8 +110,8 @@ select test.eq('S every new table has row-level security, the admin policy and a
       and c.relrowsecurity
       and exists (select 1 from pg_policies p where p.tablename = c.relname and p.policyname = 'admin_all')
       and exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), 7::bigint);
-select test.eq('S offers expire after 24 hours unless set otherwise; the turnaround buffer is 90 minutes (0025; 0480: booking_buffer_minutes)',
-  (select offer_expiry_hours || '/' || turnaround_buffer_minutes from app.settings()), '24/90');
+select test.eq('S offers expire after 12 hours unless set otherwise (2961, was 24); the turnaround buffer is 90 minutes (0025; 0480: booking_buffer_minutes)',
+  (select offer_expiry_hours || '/' || turnaround_buffer_minutes from app.settings()), '12/90');
 select test.eq('S the status flow lists the request steps',
   (select string_agg(from_status || '>' || to_status, ' ' order by from_status, to_status) from status_transitions
     where entity = 'booking' and (from_status in ('requested', 'offered') or to_status in ('requested', 'offered'))),
@@ -227,8 +227,8 @@ select test.eq('O the booking is offered, and the offer records who sent it, the
           || '/' || jsonb_array_length(o.line_items)
      from bookings b join booking_offers o on o.booking_id = b.id and o.version = b.current_offer_version where b.id = test.b('c1')),
   'offered/1/true/Hello Amy, here is your offer./36160/36160/75000/4000/true/9000/2');
-select test.eq('O the offer expires 24 hours after it is sent',
-  (select (o.expires_at - o.sent_at = interval '24 hours') || '/' || (b.offer_expires_at = o.expires_at) from bookings b join booking_offers o on o.booking_id = b.id where b.id = test.b('c1')),
+select test.eq('O the offer expires 12 hours after it is sent (2961, was 24)',
+  (select (o.expires_at - o.sent_at = interval '12 hours') || '/' || (b.offer_expires_at = o.expires_at) from bookings b join booking_offers o on o.booking_id = b.id where b.id = test.b('c1')),
   'true/true');
 select test.eq('O an offer still does not block the calendar',
   app.vehicle_is_available(test.id('vehicle:RQ3'), test.at('2029-03-05 10:00'), test.at('2029-03-09 10:00')), true);

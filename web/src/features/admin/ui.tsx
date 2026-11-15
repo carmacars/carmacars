@@ -4,13 +4,16 @@ import { money } from '@/lib/format';
 import { when } from '@/features/agreement/model';
 import { sortFields, sortOptions, valuesOf, type SortKey } from '@/lib/sort';
 import { SortedBody, SortSelect } from './SortTable';
+import { FocusRow } from './FocusRow';
 
 // The admin portal's server-rendered pieces: dense tables, tabs, tiles, badges. Same tokens as the
 // portals (portal.css, owner.css, admin.css); money and times exactly as the database stored them.
 export type Col<T> = { key: string; label: string; num?: boolean; render?: (r: T) => ReactNode; className?: string };
 
-export function Table<T extends Record<string, unknown>>({ cols, rows, empty = 'Nothing here yet.', caption, rowKey, testId, defaultSort, sort = true }: {
+export function Table<T extends Record<string, unknown>>({ cols, rows, empty = 'Nothing here yet.', caption, rowKey, testId, defaultSort, sort = true, focus }: {
   cols: Array<Col<T>>; rows: T[]; empty?: string; caption?: string; rowKey?: (r: T, i: number) => string; testId?: string;
+  /** r48: the key of the row an alert opened (?job=, ?slot=, ...): marked and scrolled into view */
+  focus?: string | null;
   /** r43: the sort a list opens in when the address has none (people lists: 'newest'); otherwise the order the page gave */
   defaultSort?: SortKey;
   /** r43: false for a list whose order is its meaning (a ranking, a schedule) */
@@ -20,8 +23,10 @@ export function Table<T extends Record<string, unknown>>({ cols, rows, empty = '
   // r43: Newest first / Oldest first / Recently active / A to Z, for every list that has a date to order by, in ?sort=
   const fields = sort && rows.length > 1 ? sortFields(rows) : null;
   const options = fields ? sortOptions(fields) : [];
-  const items = options.length && fields ? rows.map((r, i) => ({ k: rowKey ? rowKey(r, i) : String(r.id ?? i), v: valuesOf(r, fields), node: (
-    <tr role="row">
+  const keyOf = (r: T, i: number) => (rowKey ? rowKey(r, i) : String(r.id ?? i));
+  const mark = (r: T, i: number) => (focus && keyOf(r, i) === focus ? { className: 'is-focus', 'data-focus-row': '' } : {});
+  const items = options.length && fields ? rows.map((r, i) => ({ k: keyOf(r, i), v: valuesOf(r, fields), node: (
+    <tr role="row" {...mark(r, i)}>
       {cols.map((c) => <td key={c.key} role="cell" data-label={c.label} className={[c.num ? 'num' : '', c.className ?? ''].join(' ').trim() || undefined}>{c.render ? c.render(r) : fmt(r[c.key])}</td>)}
     </tr>) })) : null;
   return (
@@ -33,12 +38,13 @@ export function Table<T extends Record<string, unknown>>({ cols, rows, empty = '
         {caption && <caption className="vh">{caption}</caption>}
         <thead role="rowgroup"><tr role="row">{cols.map((c) => <th key={c.key} role="columnheader" scope="col" className={c.num ? 'num' : undefined}>{c.label}</th>)}</tr></thead>
         {items ? <SortedBody items={items} def={defaultSort ?? null} /> : <tbody role="rowgroup">{rows.map((r, i) => (
-          <tr key={rowKey ? rowKey(r, i) : String(r.id ?? i)} role="row">
+          <tr key={keyOf(r, i)} role="row" {...mark(r, i)}>
             {cols.map((c) => <td key={c.key} role="cell" data-label={c.label} className={[c.num ? 'num' : '', c.className ?? ''].join(' ').trim() || undefined}>{c.render ? c.render(r) : fmt(r[c.key])}</td>)}
           </tr>))}
         </tbody>}
       </table>
     </div>
+    {focus && rows.some((r, i) => keyOf(r, i) === focus) ? <FocusRow /> : null}
     </>
   );
 }

@@ -22,11 +22,32 @@ const DAY = 86_400_000;
 /** Vehicle statuses that cannot be booked at all: the whole row is greyed out. */
 export const OFF_STATUSES = ['onboarding', 'ready_to_list', 'out_of_service', 'exited', 'total_loss', 'declined'];
 export interface Span { type: string; status: string | null; blocks: boolean | null; placeholder?: boolean; reason: string | null; starts_at: string; ends_at: string | null;
-  renter: string | null; booking_number: string | null; booking_type: string | null }
+  renter: string | null; booking_number: string | null; booking_type: string | null;
+  /** r48 (2961): an open offer's expiry, or the end of an accepted unpaid booking's hold */
+  hold_until?: string | null }
 /** What takes the car (the days it cannot be booked): a blocking booking, a block, a Turo trip. Requests, offers,
  * placeholders and non-blocking bookings do not. */
 export const takes = (e: Span) => e.type === 'block' || e.type === 'turo_trip'
   || (e.type === 'booking' && !e.placeholder && e.blocks !== false && ['confirmed', 'on_rent', 'returned', 'closed'].includes(e.status ?? ''));
+/** r48 (2961): when a soft hold ends (an open offer at its expiry, an accepted booking not paid yet at the end of its
+ * hold), or null when the bar is not a soft hold. */
+export const holdEnds = (e: Pick<Span, 'type' | 'status' | 'placeholder' | 'blocks'> & { hold_until?: string | null }): number | null =>
+  e.type === 'booking' && !e.placeholder && e.blocks !== false && ['offered', 'pending_payment'].includes(e.status ?? '') && e.hold_until
+    ? Date.parse(e.hold_until) : null;
+/** A soft hold still running: drawn as a light hatched hold until it ends. Once it ends it never holds the car. */
+export const holding = (e: Parameters<typeof holdEnds>[0], now: number) => { const t = holdEnds(e); return t !== null && t > now; };
+/** An accepted booking waiting for payment blocks the car while its hold runs (an offer never does: the first to pay gets it). */
+const heldNow = (e: Span, now: number) => e.status === 'pending_payment' && holding(e, now);
+const clock = (ms: number) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+  .format(new Date(ms)).replace(/\./g, '').replace(/\s?a\s?m\b/i, ' am').replace(/\s?p\s?m\b/i, ' pm');
+/** The words for a soft hold: "Held until Nov 15, 3:40 pm" while it runs, "Hold ended" after. */
+export function holdWords(e: Parameters<typeof holdEnds>[0], now: number): string {
+  const t = holdEnds(e);
+  if (t === null) return '';
+  if (t <= now) return e.status === 'offered' ? 'Offer expired' : 'Hold ended, not paid';
+  return `${e.status === 'offered' ? 'Offer open until' : 'Held until'} ${clock(t)}`;
+}
+
 /** The tint behind a taken stretch. */
 export const busyKind = (e: Span): 'out' | 'booked' | 'maint' | 'block' | 'turo' => e.type === 'turo_trip' ? 'turo'
   : e.type === 'block' ? (['service', 'repair', 'cleaning'].includes(e.reason ?? '') ? 'maint' : 'block') : e.status === 'on_rent' ? 'out' : 'booked';
@@ -40,7 +61,8 @@ export interface Avail { kind: 'free' | 'out' | 'busy' | 'off'; now: string; win
 export function availability(v: { status: string; entries: Span[] }, now: number, days: Array<[number, number]>, todayStart: number): Avail {
   const ahead = days.filter(([, e]) => e > todayStart);
   if (OFF_STATUSES.includes(v.status)) return { kind: 'off', now: v.status === 'out_of_service' ? 'In shop' : 'Not bookable', window: '', freeToday: false, freeAll: false, freeDays: 0, days: ahead.length };
-  const spans = v.entries.filter(takes).map((e) => ({ e, s: Date.parse(e.starts_at), f: e.ends_at ? Date.parse(e.ends_at) : Infinity }));
+  // r48 (2961): an accepted booking not paid yet takes the car while its hold runs, then frees it
+  const spans = v.entries.filter((e) => takes(e) || heldNow(e, now)).map((e) => ({ e, s: Date.parse(e.starts_at), f: e.ends_at ? Date.parse(e.ends_at) : Infinity }));
   const free = ([a, b]: [number, number]) => !spans.some((x) => x.s < b && x.f > a);
   const freeDays = ahead.filter(free).length;
   const freeToday = free([todayStart, todayStart + DAY]);
@@ -51,6 +73,7 @@ export function availability(v: { status: string; entries: Span[] }, now: number
   const to = until(cur.ends_at); const till = to ? ` until ${to}` : ' until further notice';
   if (cur.type === 'booking') {
     const who = cur.booking_type === 'owner' ? 'owner' : cur.renter?.trim() || cur.booking_number || 'a renter';
+    if (cur.status === 'pending_payment') return { kind: 'busy', now: `${holdWords(cur, now)}: ${who}, not paid yet`, ...base };
     return { kind: 'out', now: `${cur.status === 'on_rent' ? 'Out now' : 'Booked now'}: ${who}${till}`, ...base };
   }
   if (cur.type === 'turo_trip') return { kind: 'busy', now: `On Turo${till}`, ...base };
