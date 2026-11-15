@@ -90,7 +90,9 @@
     "area": "Staff tools",
     "items": [
      "The fleet calendar is easier to read on a computer and a phone: full car names, the renter and booking number on each bar, clear colours by status and today marked",
-     "Every car on the fleet calendar says whether it is free now, taken days are tinted so white is free, and **Only cars free for these dates** shows the cars you can offer"
+     "Every car on the fleet calendar says whether it is free now, taken days are tinted so white is free, and **Only cars free for these dates** shows the cars you can offer",
+     "Every alert opens the exact thing it is about: the booking's messages, the conversation, the visitor, the field job or shift on the board, the person's Academy page; end of day alerts open that role's To do list",
+     "An offer is open 12 hours and closes 1 hour before the pickup at the latest; once accepted, the car is held 2 hours for the payment, then freed, and the renter gets a fresh link to pay while the car is still free"
     ]
    }
   ]

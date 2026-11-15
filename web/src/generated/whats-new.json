@@ -204,10 +204,13 @@
    "sections": {
     "admins": [
      "The fleet calendar is easier to read on a computer and a phone: full car names, the renter and booking number on each bar, clear colours by status, today marked, and the cars and dates stay in place while you scroll",
-     "Each car on the Calendar says if it is free now (Available now) or who has it and until when; white days are free"
+     "Each car on the Calendar says if it is free now (Available now) or who has it and until when; white days are free",
+     "Alerts no longer land on a general page: each opens its booking (in the right section), conversation, visit, field job, shift, staff member or car",
+     "Offers and accepted unpaid bookings stop holding the car on time; the Calendar shows them as a light hatched hold until they end. The times are in Program settings (offers open 12 hours, 1 hour before pickup at the latest, 2 hours to pay)"
     ],
     "staff": [
-     "The Calendar is easier to read: full car names, the renter and booking number on each bar, today marked, and the cars and dates stay in place while you scroll"
+     "The Calendar is easier to read: full car names, the renter and booking number on each bar, today marked, and the cars and dates stay in place while you scroll",
+     "Each alert opens the exact booking, conversation, visitor or job it is about"
     ]
    }
   }

@@ -399,7 +399,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
             : <span>Requests, offers and payment are fine; the car cannot be handed over until the insurer confirms it (the car&apos;s onboarding).</span>}</p>}
           {/* the renter's licence, uploaded with the request (0130) */}
           {can.renterDocs && <RenterDocs b={b} refresh={[base]} />}
-          <ClaimGate testId="claim-gate-review" explain><BookingReview key={revertOk ? `revert-${revertOk.version}` : 'review'} revert={revertOk} ownerTrip={!notOwner} b={b} insurers={ins.rows} insurerRates={insurerCard?.rates ?? []} kmChoices={km.rows.map((k) => k.km_per_day)} offerHours={settings?.program.offer_expiry_hours ?? 24}
+          <ClaimGate testId="claim-gate-review" explain><BookingReview key={revertOk ? `revert-${revertOk.version}` : 'review'} revert={revertOk} ownerTrip={!notOwner} b={b} insurers={ins.rows} insurerRates={insurerCard?.rates ?? []} kmChoices={km.rows.map((k) => k.km_per_day)} offerHours={settings?.program.offer_expiry_hours ?? 12}
             editable={['requested', 'offered'].includes(b.status) || (b.status === 'pending_payment' && can.editOfferPending)} /></ClaimGate>
         </>
       )}

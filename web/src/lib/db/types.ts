@@ -19124,6 +19124,8 @@ export type Database = {
           field_slots_auto_from: string;
           fleet_low_occupancy_first: boolean;
           listing_photo_r48_auto: boolean;
+          offer_cutoff_before_pickup_minutes: number;
+          offer_unpaid_hold_minutes: number;
         };
         Insert: {
           id?: string;
@@ -19996,6 +19998,8 @@ export type Database = {
           field_slots_auto_from?: string;
           fleet_low_occupancy_first?: boolean;
           listing_photo_r48_auto?: boolean;
+          offer_cutoff_before_pickup_minutes?: number;
+          offer_unpaid_hold_minutes?: number;
         };
         Update: {
           id?: string;
@@ -20868,6 +20872,8 @@ export type Database = {
           field_slots_auto_from?: string;
           fleet_low_occupancy_first?: boolean;
           listing_photo_r48_auto?: boolean;
+          offer_cutoff_before_pickup_minutes?: number;
+          offer_unpaid_hold_minutes?: number;
         };
         Relationships: [];
       };

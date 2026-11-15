@@ -21,10 +21,18 @@ export const metadata = pageMeta({ title: 'Field jobs', path: '/staff/fleet', no
 // Fleet Operations (05-va.md section 3): every confirmed booking gets its handover and return jobs by itself, at the booking's
 // times and place, given to the least busy field staff member who passed the academy and holds a shift that day (0880).
 // The board is the one shared with the Admin's page (features/va/FieldJobs.tsx).
-export default async function Fleet() {
-  // an Admin account is only an Admin (0882): it opens the same board in the Admin portal, with every action
+const ID = /^[0-9a-f-]{36}$/;
+const one = (v: string | string[] | undefined) => (typeof v === 'string' && ID.test(v) ? v : null);
+export default async function Fleet({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const sp = await searchParams;
+  const focus = { job: one(sp.job), slot: one(sp.slot) };
+  // an Admin account is only an Admin (0882): it opens the same board in the Admin portal, with every action (r48: and
+  // the job or shift an alert named)
   const me = await currentUser();
-  if (me && (await rolesOf(me.id)).admin) redirect('/admin/field-jobs');
+  if (me && (await rolesOf(me.id)).admin) {
+    const q = new URLSearchParams(Object.entries(focus).filter(([, v]) => v) as Array<[string, string]>).toString();
+    redirect(`/admin/field-jobs${q ? `?${q}` : ''}`);
+  }
   const { user, aal, read } = await vaPage('/staff/fleet', ['fleet']);
   const now = requestNow();
   const [b, cal, past] = await Promise.all([door<Board>(user.id, 'ops_read', 'field_board', {}, aal),
@@ -44,7 +52,7 @@ export default async function Fleet() {
     <>
       {past > 0 && <p className="alert alert--warn" role="status" data-testid="past-trips-banner"><span>{past} {past === 1 ? 'trip is' : 'trips are'} still open after the return time. <Link prefetch={false} className="link" href="/staff/past-trips">Close past trips</Link></span></p>}
       {wl && <WorkListsPanel w={wl} />}
-      <FieldJobsBoard b={b} cal={cal} now={now} photos={photos} base="/staff" />
+      <FieldJobsBoard b={b} cal={cal} now={now} photos={photos} base="/staff" focus={focus} />
       {prep && <PrepPanel p={prep} />}
       <MissingHandovers userId={user.id} aal={aal} mode="fleet" base="/staff" />
       {calls.length > 0 && <FieldCallsCard calls={calls} />}

@@ -55,7 +55,7 @@ export function VisitorsPage({ portal, view, sp, d, kicker, openId }: { portal: 
           <LiveMap initial={d.map} tv={false} at={at} embedded portal={portal} />
           <section className="vs-panel" aria-label={viewLabel(view)}>
             {portal === 'admin' && view === 'history' && <div className="vs-panel__links small"><Link prefetch={false} className="link" href="/admin/live/signals">Signal settings</Link></div>}
-            {view === 'live' && d.live ? <LiveVisitors initial={d.live} portal={lv} inVisitors />
+            {view === 'live' && d.live ? <LiveVisitors initial={d.live} portal={lv} inVisitors openId={openId} />
               : view === 'history' && d.hist ? <HistoryList d={d.hist} sp={sp} now={at} base={visitorsBase(portal)} />
               : <p className="vs-empty">This list could not be read. Reload the page.</p>}
           </section>

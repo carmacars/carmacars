@@ -45,6 +45,7 @@
 .mcal .mcal__legend i.mcal__swatch { display: inline-block; width: 1.6rem; height: 0.85rem; border-radius: 4px; border: 1px solid var(--grey-300); }
 .mcal .mcal__legend i.mcal__swatch.is-free { background: var(--white); }
 .mcal .mcal__legend i.mcal__swatch.is-taken { background: linear-gradient(90deg, var(--cal-busy-out) 0 33%, var(--cal-busy-booked) 33% 66%, var(--cal-busy-maint) 66%); }
+.mcal .mcal__legend i.mcal__swatch.is-hold { background: repeating-linear-gradient(135deg, var(--cal-offer-bg) 0 4px, var(--white) 4px 8px); border-color: var(--cal-offer-bd); }
 .mcal .mcal__legend i.mcal__swatch.is-off { background: var(--grey-100) repeating-linear-gradient(135deg, transparent 0 4px, rgb(0 0 0 / 0.08) 4px 6px); }
 .mcal .mcal__legend i.has-clash::after { width: 7px; font-size: 0.5rem; }
 
@@ -107,6 +108,9 @@
 .mcal .mcal__busy.is-maint { background: var(--cal-busy-maint); }
 .mcal .mcal__busy.is-block { background: var(--cal-busy-block); }
 .mcal .mcal__busy.is-turo { background: var(--cal-busy-turo); }
+/* r48 (2961): a soft hold (an open offer, an accepted booking not paid yet): light hatching until it ends */
+.mcal .mcal__busy.is-hold { background: repeating-linear-gradient(135deg, var(--cal-offer-bg) 0 5px, transparent 5px 10px); }
+.mcal .mcal__item.is-lapsed { opacity: 0.5; border-style: dashed; }
 /* a car that cannot be booked at all: the whole row greyed out */
 .mcal .mcal__row.is-off .mcal__lane { background-color: var(--grey-100);
   background-image: repeating-linear-gradient(135deg, transparent 0 8px, rgb(0 0 0 / 0.05) 8px 10px); }

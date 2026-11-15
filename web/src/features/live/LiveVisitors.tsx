@@ -31,9 +31,11 @@ export function liveKind(v: Visitor): { key: 'chat' | 'form' | 'draft' | 'known'
 }
 const sourceOf = (v: Visitor) => v.utm_source || v.referrer || (v.from_ad ? 'an ad' : 'direct');
 
-export function LiveVisitors({ initial, portal, inVisitors = false }: { initial: LiveData; portal: 'admin' | 'va';
+export function LiveVisitors({ initial, portal, inVisitors = false, openId }: { initial: LiveData; portal: 'admin' | 'va';
   /** Release 26: on the Visitors page, under the map: Show contact decides the phones and emails, rows find their lead on the map, filters */
-  inVisitors?: boolean }) {
+  inVisitors?: boolean;
+  /** r48 (2960): the visit an alert named (?id=): opened and scrolled into view */
+  openId?: string }) {
   const contactOn = useContact();
   // off the Visitors page (the assistants' Live visitors) nothing changes: contact details as before
   const contact = inVisitors ? contactOn : true;
@@ -42,7 +44,8 @@ export function LiveVisitors({ initial, portal, inVisitors = false }: { initial:
   const [city, setCity] = useState('');
   const [source, setSource] = useState('');
   const [err, setErr] = useState('');
-  const [open, setOpen] = useState<string | null>(null);
+  const [open, setOpen] = useState<string | null>(openId ?? null);
+  useEffect(() => { if (openId) document.getElementById(`lv-${openId}`)?.scrollIntoView({ block: 'center' }); }, [openId]);
   const [sort, setSort] = useState<'score' | 'recent'>('score');
   const [only, setOnly] = useState(false);
   const [alert, setAlert] = useState<Visitor | null>(null);

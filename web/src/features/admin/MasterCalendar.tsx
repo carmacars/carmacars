@@ -9,7 +9,7 @@ import { when } from '@/features/agreement/model';
 import { useDoor } from './door';
 import { toLocalInput } from './Act';
 import { BAR, lane, rowHeight, stack, topOf } from './calendar-stack';
-import { availability, barLabel, busyKind, takes, VIEWS } from './calendar-label';
+import { availability, barLabel, busyKind, holdEnds, holding, holdWords, takes, VIEWS } from './calendar-label';
 import { photoUrl } from '@/lib/photo';
 import { photoPath, when as nowWords, type Car } from '@/features/bookings-now/model';
 import { DateInput } from '@/components/DateInput';
@@ -23,7 +23,9 @@ export interface Entry { type: string; id: string; booking_id: string | null; bo
   starts_at: string; ends_at: string | null; blocks: boolean | null; blocking: boolean | null; bill_to: string | null; provisional: boolean | null; insurer: string | null;
   renter: string | null; reason: string | null; note: string | null; assignee: string | null; detail: string | null;
   /** 0283: a placeholder booking (insurance or a hold); 0284: the bars it collides with on this car */
-  placeholder?: boolean; clash?: string[] }
+  placeholder?: boolean; clash?: string[];
+  /** r48 (2961): when an open offer expires, or an accepted unpaid booking's hold ends */
+  hold_until?: string | null }
 export interface Veh { id: string; label: string; plate: string | null; fleet_number: string | null; status: string; class: string | null; owner: string | null; mode: string | null; supply_type?: string | null; entries: Entry[] }
 export interface CalData { from: string; to: string; now: string; vehicles: Veh[] }
 type Preview = { action: string; refusal: string | null; renter_must_approve: boolean; offer_must_be_resent: boolean; available: boolean; difference_cents: number | null;
@@ -50,6 +52,8 @@ function cls(e: Entry, now: number) {
   if (e.clash?.length) c.push('has-clash');
   if (e.booking_type === 'owner') c.push('is-owner');
   if (e.status === 'on_rent' && e.ends_at && new Date(e.ends_at).getTime() < now) c.push('is-late');
+  // r48 (2961): an offer past its expiry or a hold that ran out holds nothing (the offers job closes it within minutes)
+  if (holdEnds(e) !== null && !holding(e, now)) c.push('is-lapsed');
   return c.join(' ');
 }
 const text = (e: Entry) => e.type === 'block' ? `${(e.reason ?? '').replace(/_/g, ' ')}${e.note ? `: ${e.note}` : ''}`
@@ -228,7 +232,7 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
       </div>
       {problem && <p className="alert alert--error" role="alert"><span>{problem}</span></p>}
       <div className="mcal__legend" aria-hidden="true">
-        <span><i className="mcal__swatch is-free" /> white: free</span><span><i className="mcal__swatch is-taken" /> tinted: taken</span><span><i className="mcal__swatch is-off" /> not bookable</span>
+        <span><i className="mcal__swatch is-free" /> white: free</span><span><i className="mcal__swatch is-taken" /> tinted: taken</span><span><i className="mcal__swatch is-hold" /> hatched: held until the offer or payment time ends</span><span><i className="mcal__swatch is-off" /> not bookable</span>
         <span><i className="mcal__item is-on_rent" /> on rent</span><span><i className="mcal__item is-confirmed" /> confirmed</span><span><i className="mcal__item is-requested" /> request</span>
         <span><i className="mcal__item is-offered" /> offer or hold</span><span><i className="mcal__item is-block is-maint" /> maintenance</span><span><i className="mcal__item is-confirmed is-outline" /> not blocking</span><span><i className="mcal__item is-confirmed is-placeholder" /> placeholder</span><span><i className="mcal__item is-block" /> block</span>
         <span><i className="mcal__item is-requested has-clash" /> dates taken</span><span><i className="mcal__item is-turo" /> Turo</span>
@@ -278,6 +282,10 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
                   {v.entries.filter(takes).map((e) => { const s0 = Date.parse(e.starts_at); const e0 = e.ends_at ? Date.parse(e.ends_at) : from + days * DAY;
                     if (e0 <= from || s0 >= from + days * DAY) return null; const p = pos(s0, e0);
                     return <span key={`busy${e.type}${e.id}`} className={`mcal__busy is-${busyKind(e)}`} style={{ left: p.left, width: p.width }} aria-hidden="true" />; })}
+                  {/* r48 (2961): an open offer or an accepted booking not paid yet, a light hatched hold until it ends */}
+                  {v.entries.filter((e) => holding(e, now)).map((e) => { const s0 = Date.parse(e.starts_at); const e0 = e.ends_at ? Date.parse(e.ends_at) : from + days * DAY;
+                    if (e0 <= from || s0 >= from + days * DAY) return null; const p = pos(s0, e0);
+                    return <span key={`hold${e.id}`} className="mcal__busy is-hold" style={{ left: p.left, width: p.width }} aria-hidden="true" data-testid="cal-hold" />; })}
                   {now >= from && now <= from + days * DAY && <span className="mcal__now" style={{ left: (now - from) * pxPerMs }} aria-hidden="true" />}
                   {v.entries.map((e) => {
                     const s = new Date(e.starts_at).getTime(); const en = e.ends_at ? new Date(e.ends_at).getTime() : from + days * DAY;
@@ -291,8 +299,9 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
                       <div key={`${e.type}${e.id}`} role="button" tabIndex={0} data-testid={e.booking_number ? `bar-${e.booking_number}` : `item-${e.type}`}
                         className={`mcal__item mcal__item--${lane(e)} ${cls(e, now)}${m ? ' is-dragging' : ''}`} style={{ left: p.left, width: p.width, ...(bar ? { top: topOf(e, st) } : {}) }}
                         data-clash={e.clash?.length ? e.clash.join(',') : undefined}
-                        title={`${text(e)} · ${when(e.starts_at)}${e.ends_at ? ` to ${when(e.ends_at)}` : ''}${clash}`}
-                        aria-label={`${text(e)}, ${when(e.starts_at)}${e.ends_at ? ` to ${when(e.ends_at)}` : ''}${clash}${canDrag ? '. Arrow keys move, Shift and arrows resize, Enter confirms' : ''}`}
+                        title={`${text(e)} · ${when(e.starts_at)}${e.ends_at ? ` to ${when(e.ends_at)}` : ''}${holdWords(e, now) ? ` · ${holdWords(e, now)}` : ''}${clash}`}
+                        aria-label={`${text(e)}, ${when(e.starts_at)}${e.ends_at ? ` to ${when(e.ends_at)}` : ''}${holdWords(e, now) ? `. ${holdWords(e, now)}` : ''}${clash}${canDrag ? '. Arrow keys move, Shift and arrows resize, Enter confirms' : ''}`}
+                        data-hold={holdEnds(e) !== null ? (holding(e, now) ? 'on' : 'ended') : undefined}
                         onPointerDown={(ev) => onDown(ev, e, 'move')} onClick={() => { if (!canDrag) setSel({ entry: e }); }} onKeyDown={(ev) => onKey(ev, e)}>
                         {p.width >= 28 && <Label e={e} />}
                         {canDrag && <span className="mcal__grip" aria-hidden="true" onPointerDown={(ev) => onDown(ev, e, 'resize')} />}
