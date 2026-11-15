@@ -14,13 +14,13 @@
 .ext__opt input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: inherit; }
 .ext__opt:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; }
 .ext__label { font-weight: 700; }
-.ext__ret { font-size: var(--fs-xs); color: var(--text-2); overflow-wrap: anywhere; }
+.ext__ret { font-size: var(--fs-xs); color: var(--text-2); overflow-wrap: break-word; }
 .ext__price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--s-2); margin-top: var(--s-2); font-variant-numeric: tabular-nums; }
 .ext__price b { font-family: var(--font-display); font-size: 1.25rem; }
 .ext__price s { font-size: var(--fs-xs); color: var(--text-2); }
 .ext__save { font-size: var(--fs-xs); font-weight: 700; color: var(--pu-ok, #1F7A3A); }
 .ext__note { font-size: var(--fs-2xs, 0.75rem); color: var(--text-2); }
-.ext__reason { margin-top: var(--s-2); font-size: var(--fs-xs); color: var(--text-2); overflow-wrap: anywhere; }
+.ext__reason { margin-top: var(--s-2); font-size: var(--fs-xs); color: var(--text-2); overflow-wrap: break-word; }
 .ext__compare { margin: 0; }
 .ext__pay { display: grid; gap: var(--s-2); }
 .ext__pay p { margin: 0; }

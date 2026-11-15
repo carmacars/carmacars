@@ -41,7 +41,7 @@
 
 /* sections */
 .gd-body { display: grid; gap: var(--s-6); min-width: 0; }
-.gd-sec { scroll-margin-top: var(--s-4); display: grid; gap: var(--s-4); min-width: 0; }
+.gd-sec { scroll-margin-top: var(--s-4); display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-4); min-width: 0; }
 .gd-sec-head { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--s-4); align-items: start; border-bottom: 2px solid var(--black); padding-bottom: var(--s-4); }
 .gd-sec-num { font: 800 clamp(2.5rem, 2rem + 2vw, 3.75rem)/0.85 var(--font-display); color: var(--red-600); letter-spacing: -0.04em; }
 .gd-sec-kicker { font: 700 var(--fs-2xs)/1 var(--font-text); letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-2); margin: 0 0 var(--s-2); }
@@ -49,10 +49,10 @@
 .gd-sec--start .gd-sec-head, .gd-sec--reference .gd-sec-head { grid-template-columns: minmax(0, 1fr); }
 .gd-signin { background: var(--black); color: var(--white); padding: var(--s-4) var(--s-5); border-top: 5px solid var(--red-600); display: grid; gap: var(--s-1); max-width: 28rem; }
 .gd-signin span { font: 700 var(--fs-2xs)/1 var(--font-text); letter-spacing: 0.14em; text-transform: uppercase; color: var(--red-400); }
-.gd-signin b { font: 700 1.2rem/1.25 var(--font-display); overflow-wrap: anywhere; }
+.gd-signin b { font: 700 1.2rem/1.25 var(--font-display); overflow-wrap: break-word; }
 .gd-signin small { color: var(--grey-300); }
 
-.gd-task { display: grid; gap: var(--s-3); scroll-margin-top: var(--s-4); padding-top: var(--s-3); border-top: 1px solid var(--grey-200); min-width: 0; }
+.gd-task { display: grid; gap: var(--s-3); scroll-margin-top: var(--s-4); padding-top: var(--s-3); border-top: 1px solid var(--grey-200); min-width: 0; container-type: inline-size; }
 .gd-h2 { font: 700 1.3rem/1.2 var(--font-display); letter-spacing: -0.015em; margin: 0; }
 .gd-h3 { font: 700 1.05rem/1.25 var(--font-display); margin: var(--s-2) 0 0; }
 .gd-p { margin: 0; max-width: 46rem; }
@@ -68,9 +68,10 @@
 .gd-ol li { display: grid; grid-template-columns: 2.6rem minmax(0, 1fr); align-items: start; padding: var(--s-2) 0 var(--s-3); border-bottom: 1px solid var(--grey-200); }
 .gd-ol li:last-child { border-bottom: 0; }
 .gd-n { font: 800 1.75rem/0.95 var(--font-display); color: var(--red-600); letter-spacing: -0.03em; }
-.gd-t { padding-top: 0.15rem; min-width: 0; overflow-wrap: anywhere; }
-@media (min-width: 48rem) {
-  .gd-stepblock--side { grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: var(--s-6); }
+.gd-t { padding-top: 0.15rem; min-width: 0; overflow-wrap: break-word; }
+/* r48: asked of the task's own width, not the window's: beside a menu or inside the field portal's phone frame the window is wide and the room is not */
+@container (min-width: 38rem) {
+  .gd-stepblock--side { grid-template-columns: minmax(0, 1fr) minmax(0, 17rem); align-items: start; gap: var(--s-6); }
 }
 
 /* screenshots */
@@ -93,11 +94,11 @@
 .gd-figblock { display: grid; }
 
 /* boxes, tables, stages, phone grids */
-.gd-box { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-1); padding: var(--s-3) var(--s-4); background: var(--grey-50); border-left: 4px solid var(--black); max-width: 46rem; overflow-wrap: anywhere; }
+.gd-box { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-1); padding: var(--s-3) var(--s-4); background: var(--grey-50); border-left: 4px solid var(--black); max-width: 46rem; overflow-wrap: break-word; }
 .gd-box--warn { background: var(--red-50); border-left-color: var(--red-600); }
 .gd-lbl { font: 700 var(--fs-2xs)/1.4 var(--font-text); letter-spacing: 0.12em; text-transform: uppercase; }
 .gd-box--warn .gd-lbl { color: var(--red-700); }
-@media (min-width: 40rem) { .gd-box { grid-template-columns: 7.5rem minmax(0, 1fr); gap: var(--s-3); } }
+@container (min-width: 32rem) { .gd-box { grid-template-columns: 7.5rem minmax(0, 1fr); gap: var(--s-3); } }
 .gd-tablewrap { max-width: 100%; overflow-x: auto; }
 .gd-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
 .gd-table th { text-align: left; background: var(--black); color: var(--white); font-weight: 600; padding: var(--s-2) var(--s-3); }
@@ -189,3 +190,16 @@
 /* portal cleanup (October 23, 2026): the "New here?" strip is one slim line, not a block */
 .gd-banner { padding: var(--s-2) var(--s-3); gap: var(--s-2) var(--s-3); border-left-width: 4px; }
 .gd-banner p { font-size: var(--fs-sm); flex-basis: 12rem; }
+
+/* r48: the field portal shows the guide inside its phone-width frame (480px) even on a wide screen, so the wide layouts of the
+   queries above (contents column, label beside the note, steps beside the picture) squeezed the text to a few letters a line there */
+.fd__frame .gd { grid-template-columns: minmax(0, 1fr); }
+.fd__frame .gd-toc { position: static; max-height: none; overflow: visible; border: 1px solid var(--grey-200); background: var(--white); }
+.fd__frame .gd-toc > summary { pointer-events: auto; padding-inline: var(--s-4); }
+.fd__frame .gd-toc::details-content { content-visibility: auto; }
+.fd__frame .gd-toc > summary::after { content: '+'; }
+.fd__frame .gd-toc[open] > summary::after { content: '\2212'; }
+.fd__frame .gd-toc ol { padding-inline: var(--s-4); }
+.fd__frame .gd-box, .fd__frame .gd-stepblock--side { grid-template-columns: minmax(0, 1fr); gap: var(--s-1); }
+.fd__frame .gd-flow { grid-auto-flow: row; grid-template-columns: minmax(0, 1fr); }
+.fd__frame .gd-flow li { border-right: 0; border-bottom: 1px solid var(--grey-200); }

@@ -14,7 +14,7 @@
 .mt-car.is-overdue { border-left-color: var(--red-600); }
 .mt-car.is-due_soon { border-left-color: #8a5a00; }
 .mt-car.is-unknown { border-left-style: dashed; border-left-color: var(--grey-500); }
-.mt-car p { margin: 0; overflow-wrap: anywhere; }
+.mt-car p { margin: 0; overflow-wrap: break-word; }
 .mt-car__head { display: flex; justify-content: space-between; gap: var(--s-2); align-items: flex-start; flex-wrap: wrap; }
 .mt-car__name { font-weight: 700; }
 .mt-chips { display: flex; flex-wrap: wrap; gap: 0.3rem; list-style: none; margin: 0; padding: 0; }

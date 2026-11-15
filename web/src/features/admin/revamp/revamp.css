@@ -97,5 +97,5 @@
 .rv-car__photo { width: 48px; height: 32px; flex: none; border-radius: 8px; object-fit: cover; background: var(--grey-100); }
 .rv-car__photo--none { display: inline-grid; place-items: center; font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; color: var(--white); background: linear-gradient(135deg, var(--grey-800), var(--black)); }
 .rv-car__text { display: grid; gap: 1px; min-width: 0; }
-.rv-car__name { font-weight: 650; font-size: var(--fs-sm); line-height: 1.25; white-space: normal; overflow-wrap: anywhere; }
+.rv-car__name { font-weight: 650; font-size: var(--fs-sm); line-height: 1.25; white-space: normal; overflow-wrap: break-word; }
 .rv-car__sub { font-size: var(--fs-2xs); color: var(--text-2); font-variant-numeric: tabular-nums; }

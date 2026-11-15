@@ -200,7 +200,7 @@ html.lm-tv-root .ad__rail, html.lm-tv-root [data-testid='guide-banner'] { displa
 .lm-pop__who b { font-size: 1.15em; }
 .lm-pop__time { margin: 0; font-size: .85em; color: var(--quiet); }
 .lm-pop__noph { width: 72px; height: 48px; border-radius: 6px; background: #1b2130; display: grid; place-items: center; --c: var(--quiet); }
-.lm-pop__contact { margin: 0; font-size: .9em; overflow-wrap: anywhere; }
+.lm-pop__contact { margin: 0; font-size: .9em; overflow-wrap: break-word; }
 .lm-pop__hint { margin: 0; font-size: .8em; }
 .lm-pop__acts { margin: 0; font-size: .85em; }
 /* Show contact: a switch (Release 26) */

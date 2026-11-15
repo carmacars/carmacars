@@ -11,7 +11,7 @@
 .stk-panel__bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-2); padding: var(--s-3) var(--s-4); border-bottom: 1px solid var(--line); }
 .stk-panel__body { overflow-y: auto; overscroll-behavior: contain; padding: var(--s-4); }
 .stk-panel__body h2 { margin-top: 0; }
-.stk-panel__html { overflow-wrap: anywhere; }
+.stk-panel__html { overflow-wrap: break-word; }
 .stk-panel__html img { max-width: 100%; height: auto; }
 @media (prefers-reduced-motion: no-preference) {
   .stk, .stk-panel { animation: stk-in 160ms var(--ease, ease-out); }

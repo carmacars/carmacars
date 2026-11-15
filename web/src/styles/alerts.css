@@ -25,11 +25,11 @@
 .al__item--urgent.is-unread .al__dot { background: var(--red-600); }
 .al__main { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.15rem; }
 /* the meta line wraps its pieces too (an auto track grew to the longest line: 6px past a 375 phone in CI) */
-.al__meta > * { min-width: 0; overflow-wrap: anywhere; }
-.al__title { color: var(--text); font-weight: 500; text-decoration: none; overflow-wrap: anywhere; }
+.al__meta > * { min-width: 0; overflow-wrap: break-word; }
+.al__title { color: var(--text); font-weight: 500; text-decoration: none; overflow-wrap: break-word; }
 .al__item.is-unread .al__title { font-weight: 650; }
 .al__title:hover { text-decoration: underline; }
-.al__body { margin: 0; font-size: var(--fs-sm); color: var(--text-2); overflow-wrap: anywhere; }
+.al__body { margin: 0; font-size: var(--fs-sm); color: var(--text-2); overflow-wrap: break-word; }
 .al__meta { margin: 0; display: flex; flex-wrap: wrap; gap: 0 var(--s-2); font-size: var(--fs-xs); color: var(--text-2); }
 .al__meta > * + *::before { content: "\00b7"; margin-right: var(--s-2); }
 .al__tier { font-weight: 600; }

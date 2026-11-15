@@ -37,7 +37,7 @@ table { border-collapse: collapse; width: 100%; }
 .lead { font-size: var(--fs-lead); line-height: 1.45; max-width: 38em; }
 .muted { color: var(--text-2); }
 /* small print often carries an email or a link: a long one breaks instead of pushing the page wider at 375 px */
-.small { font-size: var(--fs-sm); overflow-wrap: anywhere; }
+.small { font-size: var(--fs-sm); overflow-wrap: break-word; }
 .xs { font-size: var(--fs-xs); }
 .strong { font-weight: 600; }
 .measure { max-width: 42em; }
@@ -119,8 +119,8 @@ button.link { background: none; border: 0; padding: 0; font: inherit; color: inh
 .ssr__opt { display: grid; gap: 0.15rem; padding: 0.6rem var(--s-4); cursor: pointer; border-left: 3px solid transparent; }
 .ssr__opt--first::before { content: attr(data-group); display: block; margin: var(--s-2) 0 0.35rem; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-2); }
 .ssr__opt.is-on { background: var(--grey-50, #f6f5f2); border-left-color: var(--red-600); }
-.ssr__label { font-weight: 600; overflow-wrap: anywhere; }
-.ssr__sub { font-size: var(--fs-sm); color: var(--text-2); overflow-wrap: anywhere; }
+.ssr__label { font-weight: 600; overflow-wrap: break-word; }
+.ssr__sub { font-size: var(--fs-sm); color: var(--text-2); overflow-wrap: break-word; }
 .ssr__foot { margin: 0; padding: var(--s-2) var(--s-4) var(--s-3); border-top: 1px solid var(--line); font-size: var(--fs-sm); color: var(--text-2); }
 
 .menu-panel { position: fixed; inset: var(--header-h) 0 0 0; z-index: 49; background: var(--black); color: var(--white); padding: var(--s-5) var(--gutter) var(--s-7); overflow-y: auto; display: flex; flex-direction: column; gap: var(--s-6); visibility: hidden; opacity: 0; transform: translateY(-8px); transition: opacity var(--t-2) var(--ease), transform var(--t-2) var(--ease), visibility 0s var(--t-2); }
@@ -362,7 +362,7 @@ dialog:not([open]) { display: none !important; }
 dialog { max-width: calc(100% - 6px - 2em - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)); }
 .gd-frame-links dialog, .ad__who dialog, .fd__top dialog, .pt__hello dialog { font-size: var(--fs-body); white-space: normal; text-align: start; letter-spacing: normal; text-transform: none; }
 @media (max-width: 47.99rem) {
-  dialog, .popover, .cpop, .toasts, .ad-toasts, .mo-toasts, .stk, .stk-panel, .vd, .ccg, .ccw-panel, .fp-sheet, .mcal__panel, .as-toast { overflow-wrap: anywhere; }
+  dialog, .popover, .cpop, .toasts, .ad-toasts, .mo-toasts, .stk, .stk-panel, .vd, .ccg, .ccw-panel, .fp-sheet, .mcal__panel, .as-toast { overflow-wrap: break-word; }
   dialog :is(h1, h2, h3, p, li, label, legend, dd, dt) { min-width: 0; }
 }
 dialog.modal { --text: var(--black); --text-2: var(--grey-600); --line: var(--grey-200); --line-strong: var(--black); --accent-text: var(--red-600); border: 0; padding: 0; background: var(--white); color: var(--black); width: min(34rem, calc(100vw - 2rem)); max-height: min(44rem, calc(100dvh - 2rem)); border-radius: var(--r-3); box-shadow: var(--shadow-float); overflow: hidden; }
@@ -582,7 +582,7 @@ a[href^="tel:"] { white-space: nowrap; }
 .addon.is-off { border-style: dashed; }
 .addon__img { width: 56px; height: 56px; object-fit: cover; border-radius: var(--r-1); }
 .addon__body { display: grid; gap: 0.2rem; min-width: 0; }
-.addon__title { overflow-wrap: anywhere; }
+.addon__title { overflow-wrap: break-word; }
 .addon__hours { display: flex; align-items: center; gap: var(--s-2); margin-top: var(--s-1); }
 .addon__hours .select { width: auto; min-width: 8rem; }
 .addons--compact .addon { padding: var(--s-2) var(--s-3); }
@@ -606,9 +606,9 @@ a[href^="tel:"] { white-space: nowrap; }
 .vin-warn { color: var(--red-700); }
 .vin-switch { justify-self: start; margin-top: var(--s-1); font-size: var(--fs-sm); }
 .vin-sum { border: 1px solid var(--line); border-left: 3px solid var(--black); padding: var(--s-3) var(--s-4); background: var(--grey-50); }
-.vin-sum__name { margin: 0; overflow-wrap: anywhere; }
+.vin-sum__name { margin: 0; overflow-wrap: break-word; }
 .vin-sum__name .link { margin-left: var(--s-2); font-size: var(--fs-sm); }
-.vin-sum__line { margin: var(--s-1) 0 0; overflow-wrap: anywhere; }
+.vin-sum__line { margin: var(--s-1) 0 0; overflow-wrap: break-word; }
 .vin-colours { border: 0; padding: 0; margin: 0; min-width: 0; }
 .vin-swatches { display: flex; flex-wrap: wrap; gap: var(--s-2); }
 .vin-swatch { position: relative; display: inline-flex; align-items: center; gap: var(--s-2); min-height: 40px; padding: 0.3rem 0.65rem 0.3rem 0.4rem; border: 1px solid var(--line); border-radius: 999px; cursor: pointer; font-size: var(--fs-sm); background: var(--white); }
@@ -625,7 +625,7 @@ a[href^="tel:"] { white-space: nowrap; }
 .vscan__btn { display: inline-flex; align-items: center; gap: 0.4em; min-height: 44px; }
 .vscan--compact .vscan__actions { gap: var(--s-1); }
 .vscan--compact .vscan__btn { min-height: 36px; padding-inline: 0.6rem; font-size: var(--fs-sm); }
-.vscan__msg { margin: 0; color: var(--text-2); overflow-wrap: anywhere; }
+.vscan__msg { margin: 0; color: var(--text-2); overflow-wrap: break-word; }
 .vscan__msg--warn { color: var(--warn-text, #8a5300); }
 .vscan__dlg { width: min(36rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); padding: 0; border: 0; border-radius: var(--r-3); background: var(--black); color: var(--white); }
 .vscan__dlg::backdrop { background: rgb(0 0 0 / 0.7); }
@@ -655,7 +655,7 @@ a[href^="tel:"] { white-space: nowrap; }
 .pscan__row { display: grid; gap: 2px; padding: 0.55rem 0.7rem; background: var(--white); min-width: 0; }
 .pscan__row dt { font-size: var(--fs-2xs); letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-2); }
 .pscan__row dd { margin: 0; display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-2); min-width: 0; }
-.pscan__val { font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.pscan__val { font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: break-word; }
 .pscan__row.is-missing .pscan__val { font-weight: 400; color: var(--grey-500); }
 .pscan__state { flex: none; font-size: var(--fs-2xs); font-weight: 600; padding: 1px 7px; border-radius: 999px; background: var(--grey-100); color: var(--grey-700); }
 .pscan__row.is-ok .pscan__state { background: #e7f4ea; color: #1d6b34; }
@@ -695,3 +695,27 @@ html[data-shell="app"] body { overscroll-behavior-y: none; }
 .ad__mark { width: 22px; height: 22px; vertical-align: -6px; margin-right: 8px; }
 @keyframes brand-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
 @media (prefers-reduced-motion: reduce) { .brand-wait .brand-mark, .pu-sk__mark .brand-mark { animation: none; } }
+
+/* r48: squished text (docs/changes/2026-11-14-r48-squished-text.md). The root cause was overflow-wrap: anywhere on text in
+   flex and grid children: it lets the child's minimum width fall to one letter, so the browser squeezed it to a sliver and
+   broke words letter by letter. Text now uses break-word (a word breaks only when it cannot fit a line of its own); only
+   the elements that hold a long code, link or address keep anywhere. The rules below keep short controls and labels whole. */
+.btn, button, .chip, .badge, .pill, th { overflow-wrap: normal; word-break: normal; hyphens: manual; }
+.ad-inline { min-width: min(15rem, 100%); }
+.check > span, .radio > span, .option__body { min-width: 0; overflow-wrap: break-word; }
+.table-scroll { max-width: 100%; }
+@media (max-width: 600px) {
+  .lm .lm-kpis li { min-width: 0; padding: 0 .8em; }
+  .lm .lm-kpis li:first-child { padding-left: 0; }
+  .lm .lm-kpis .lm-kpi__k { white-space: normal; letter-spacing: .04em; }
+  .lm, .lm--page { min-width: 0; max-width: 100%; }
+  .lm-legend__item, .lm-layers label { min-width: 0; max-width: 100%; }
+}
+.rv-car .rv-car__text, .bn-carline .bn-carline__text { min-width: min(9rem, 100%); }
+.ad .ad-table--cards td, .ad-table--cards td { min-width: 0; overflow-wrap: anywhere; } /* a flex column cell: break-word would not lower the text's minimum width, so a long email ran off the card */
+/* a text column of a wide table keeps room for a few words; the table scrolls inside its wrapper instead of crushing the column */
+.table-scroll :is(td, th):not(.num):not(:has(> input[type="checkbox"]:only-child)) { min-width: 8rem; }
+@media (max-width: 22rem) { .ad .ad__who .hd-act .hd-lbl { font-size: 0.625rem; } }
+.pu-stat, .pu-stat__value { min-width: 0; }
+/* places that hold a person's email, a long name or a code in a flex row or a list: anywhere keeps them inside the box (break-word would not lower their minimum width) */
+.alert span, .alert p, .mr-list li, .mr-list li *, .pt-dl dd, .ad-kv dd { overflow-wrap: anywhere; }

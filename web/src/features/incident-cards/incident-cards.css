@@ -21,7 +21,7 @@
 .ic-dl { margin: 0; display: grid; gap: 0.04in; }
 .ic-dl div { display: grid; grid-template-columns: 0.95in 1fr; gap: 0.05in; }
 .ic-dl dt { font-weight: 600; }
-.ic-dl dd { margin: 0; overflow-wrap: anywhere; }
+.ic-dl dd { margin: 0; overflow-wrap: break-word; }
 .ic-none { margin: 0; }
 /* 1150: the one generic card: steps, what to show (the three coverage options), the slip; a little smaller type to fit */
 .ic-card--generic { font-size: 7.6pt; line-height: 1.22; }

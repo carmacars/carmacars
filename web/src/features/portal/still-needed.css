@@ -3,7 +3,7 @@
   background: var(--pu-card, var(--white)); box-shadow: var(--pu-shadow); }
 .sn__head { display: grid; gap: var(--s-2); }
 .sn__title { margin: 0; font-family: var(--font-display); font-size: 1.35rem; line-height: 1.2; }
-.sn__for, .sn__count { margin: 0; font-size: var(--fs-sm, 0.9rem); color: var(--text-2); overflow-wrap: anywhere; }
+.sn__for, .sn__count { margin: 0; font-size: var(--fs-sm, 0.9rem); color: var(--text-2); overflow-wrap: break-word; }
 .sn__bar { height: 8px; border-radius: 999px; background: var(--grey-200); overflow: hidden; }
 .sn__bar span { display: block; height: 100%; background: var(--pu-accent, var(--red-600)); border-radius: inherit; transition: width var(--t-2, 200ms); }
 .sn__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
@@ -11,8 +11,8 @@
   border: 1px solid var(--pu-line, var(--grey-200)); border-radius: var(--pu-radius-sm, 12px); min-width: 0; }
 .sn__mark { display: grid; place-items: center; width: 1.75rem; height: 1.75rem; border-radius: 50%; border: 2px solid var(--grey-300, #bbb); font-weight: 700; font-size: 0.85rem; }
 .sn__text { display: grid; gap: 0.1rem; min-width: 0; }
-.sn__label { font-weight: 700; overflow-wrap: anywhere; }
-.sn__state { font-size: var(--fs-xs, 0.8rem); color: var(--text-2); overflow-wrap: anywhere; }
+.sn__label { font-weight: 700; overflow-wrap: break-word; }
+.sn__state { font-size: var(--fs-xs, 0.8rem); color: var(--text-2); overflow-wrap: break-word; }
 .sn__btn { white-space: nowrap; min-height: 44px; }
 .sn__item[data-tone="todo"] { border-color: var(--black); }
 .sn__item[data-tone="bad"] { border-color: var(--pu-accent, var(--red-600)); }

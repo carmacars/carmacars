@@ -5,15 +5,15 @@
 .sl-card { padding: var(--s-4); gap: var(--s-2); min-width: 0; grid-template-columns: minmax(0, 1fr); }  /* one track no wider than the card (375px overflowed by 13px) */
 .sl-card--hot { border-left: 4px solid var(--red-600); }
 .sl-card__head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--s-2); flex-wrap: wrap; }
-.sl-card__name { font-weight: 600; overflow-wrap: anywhere; }
-.sl-card__src, .sl-card__contact, .sl-card__text { margin: 0; overflow-wrap: anywhere; }
+.sl-card__name { font-weight: 600; overflow-wrap: break-word; }
+.sl-card__src, .sl-card__contact, .sl-card__text { margin: 0; overflow-wrap: break-word; }
 .sl-card__text { display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .sl-dash { display: grid; gap: var(--s-3); grid-template-columns: repeat(2, minmax(0, 1fr)); }
 @media (min-width: 48rem) { .sl-dash { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
 .sl-dash__tile { border: 1px solid var(--grey-200); border-radius: 0.5rem; padding: var(--s-3); min-width: 0; }
 .sl-dash__tile b { display: block; font-size: 1.4rem; }
 .sl-transcript { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); max-height: 28rem; overflow: auto; }
-.sl-transcript li { overflow-wrap: anywhere; }
+.sl-transcript li { overflow-wrap: break-word; }
 .sl-table-wrap { overflow-x: auto; }
 /* 2411: the person behind the lead (RenterContext), on the lead page and under a card's Renter button; bulk assignment */
 .rc { gap: var(--s-2); min-width: 0; }
@@ -22,7 +22,7 @@
 .rc-sec > summary { cursor: pointer; min-height: 2.75rem; display: flex; align-items: center; gap: var(--s-1); }
 .rc-sec__body { display: grid; gap: var(--s-2); padding-bottom: var(--s-2); min-width: 0; }
 .rc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-1); max-height: 22rem; overflow: auto; }
-.rc-list li { overflow-wrap: anywhere; }
+.rc-list li { overflow-wrap: break-word; }
 .rc-red { color: var(--red-600); }
 .sl-pick { display: inline-flex; align-items: center; gap: var(--s-1); min-height: 2.75rem; }
 .sl-bulk { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; padding: var(--s-3); border: 1px solid var(--grey-200); border-radius: 0.5rem; }

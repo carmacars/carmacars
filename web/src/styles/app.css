@@ -1,5 +1,5 @@
 /* Additions for states the static prototype never had to render. Same tokens, no new look. */
-.req__review td, .spec td, .estimate__lines th { overflow-wrap: anywhere; }
+.req__review td, .spec td, .estimate__lines th { overflow-wrap: break-word; }
 .req__step fieldset.panel { border: 1px solid var(--line); padding: var(--s-5); border-radius: var(--ui-r-card); }
 .req__step fieldset.panel > legend { padding: 0 var(--s-2); }
 /* The sign-in tabs are links between two pages; the current one wears the selected tab style. */
@@ -15,12 +15,12 @@
 /* the portals a person has: on the refusal pages, the chooser and in each portal's frame */
 .portals { display: grid; gap: var(--s-3); width: 100%; max-width: 28rem; min-width: 0; margin: 0 auto; padding: 0; list-style: none; }
 .portals > li { min-width: 0; }
-.portals .btn { width: 100%; justify-content: center; white-space: normal; overflow-wrap: anywhere; }
+.portals .btn { width: 100%; justify-content: center; white-space: normal; overflow-wrap: break-word; }
 .portal-switch { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-3); align-items: baseline; font-size: var(--fs-xs); }
 .portal-switch a { white-space: nowrap; }
 /* a refusal page names the account: a long address wraps instead of widening the page at 375 */
 .pt-empty { grid-template-columns: minmax(0, 1fr); }
-.pt-empty p { max-width: 100%; overflow-wrap: anywhere; }
+.pt-empty p { max-width: 100%; overflow-wrap: break-word; }
 /* the footer with the Locations column (0061): six columns on a wide screen */
 @media (min-width: 72rem) { .footer-grid:has(> nav[aria-label="Locations"]) { grid-template-columns: 1.5fr repeat(6, 1fr); } }
 /* 0132: a fee typed by hand in a price table, and the payments in parts: small boxes that wrap on a phone */
@@ -53,7 +53,7 @@
 /* 0148: tables that scroll inside their card on a phone (Monthly periods), and the draft bar and Quick start that wrap */
 .ad-table-wrap { overflow-x: auto; max-inline-size: 100%; }
 [data-testid="mr-quick"] .pt-card__head, [data-testid="unfinished-rentals"] li { flex-wrap: wrap; gap: var(--s-2); }
-[data-testid="mr-draft-bar"] > span { min-inline-size: 0; overflow-wrap: anywhere; }
+[data-testid="mr-draft-bar"] > span { min-inline-size: 0; overflow-wrap: break-word; }
 
 /* r28: many photos at once with the suggested angles (A3) */
 .ho-photos { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
@@ -66,7 +66,7 @@
 .cp__brand { display: flex; align-items: center; gap: var(--s-3); }
 .cp__word { font-family: var(--font-display); font-weight: 700; font-size: 1.375rem; letter-spacing: -0.02em; }
 .cp__head { display: grid; gap: var(--s-2); }
-.cp__head p { overflow-wrap: anywhere; margin: 0; }
+.cp__head p { overflow-wrap: break-word; margin: 0; }
 .cp__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-3); }
 .cp-card { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--s-4); min-height: 88px; padding: var(--s-4) var(--s-4) var(--s-4) var(--s-4);
   background: var(--bg); color: inherit; text-decoration: none; border: 1px solid var(--line); border-radius: var(--r-3); box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
@@ -82,7 +82,7 @@
 .cp-card__name { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); font-family: var(--font-display); font-weight: 700; font-size: var(--fs-d4); line-height: 1.2; }
 .cp-card__last { font-family: var(--font-text); font-weight: 600; font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent-text); }
 .cp-card__what { font-size: var(--fs-sm); color: var(--grey-600); }
-.cp-card__role { font-size: var(--fs-xs); font-weight: 600; color: var(--grey-700); overflow-wrap: anywhere; }
+.cp-card__role { font-size: var(--fs-xs); font-weight: 600; color: var(--grey-700); overflow-wrap: break-word; }
 .cp-card__go { color: var(--grey-500); }
 .cp-card__go svg { width: 20px; height: 20px; display: block; }
 .cp-card:hover .cp-card__go { color: var(--black); }
@@ -95,7 +95,7 @@
 .tg__brand { display: flex; align-items: center; gap: var(--s-3); font-family: var(--font-display); font-weight: 700; font-size: 1.125rem; }
 .tg__count { margin-left: auto; font-family: var(--font-text); font-weight: 600; font-size: var(--fs-xs); color: var(--grey-600); }
 .tg__summary { background: var(--bg); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: var(--r-3); padding: var(--s-4); }
-.tg__summary p { margin: 0; white-space: pre-line; overflow-wrap: anywhere; }
-.tg__text { background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-3); padding: var(--s-4); max-height: 50vh; overflow-y: auto; overflow-wrap: anywhere; }
+.tg__summary p { margin: 0; white-space: pre-line; overflow-wrap: break-word; }
+.tg__text { background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-3); padding: var(--s-4); max-height: 50vh; overflow-y: auto; overflow-wrap: break-word; }
 .tg__text h2 { font-size: var(--fs-d4); margin-top: var(--s-4); }
 .tg__accept { position: sticky; bottom: 0; background: var(--surface); padding-block: var(--s-3); }
