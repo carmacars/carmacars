@@ -8,13 +8,24 @@ import { photoUrl } from '@/lib/photo';
 // the scenes in turn across the photos), Make the marketing set, see each copy and download them as a ZIP (also from the
 // Marketplace kit). On Settings > Program: each scene's photo of the real place (Choose the reference photo).
 type Scene = { code: string; label: string; made: 'local' | 'photo' };
-type Copy = { id: string; scene: string; status: 'queued' | 'made' | 'needs_gemini' | 'failed'; path: string | null; provider: string | null; note: string | null; shot: string };
-type Set = { set: string | null; scenes: Scene[]; photos: Copy[] };
+// r48 (3030): made from the car's studio set when it has one (the same car, angle and cover as the website), with lifestyle
+// shots (an adult model with the car, styled like a luxury car advert) marked AI; each photo can be left out of the ZIP.
+type Copy = { id: string; scene: string; status: 'queued' | 'made' | 'needs_gemini' | 'failed'; path: string | null; provider: string | null; note: string | null; shot: string;
+  lifestyle?: string | null; ai_generated?: boolean };
+type Set = { set: string | null; scenes: Scene[]; photos: Copy[]; studio?: boolean };
+const POSE: Record<string, string> = { beside: 'beside the car', door: 'at the open door', driver: 'in the driver\'s seat', walking: 'walking past' };
+/** The ZIP's address: every made photo, or only the ones ticked. */
+export const zipHref = (vehicle: string, made: readonly Copy[], off: ReadonlySet<string>) => {
+  const on = made.filter((p) => !off.has(p.id));
+  return on.length === made.length ? `/api/marketing-photos/${vehicle}` : `/api/marketing-photos/${vehicle}?pick=${on.map((p) => p.id).join(',')}`;
+};
 const STATUS: Record<Copy['status'], string> = { queued: 'Being made', made: 'Made', needs_gemini: 'Needs the image model', failed: 'Failed' };
 
 export function MarketingPhotos({ vehicle }: { vehicle: string }) {
   const [data, setData] = useState<Set | null>(null);
   const [scene, setScene] = useState('mix');
+  const [life, setLife] = useState('2');
+  const [off, setOff] = useState<ReadonlySet<string>>(new Set());
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
   const [tick, setTick] = useState(0);
@@ -25,6 +36,7 @@ export function MarketingPhotos({ vehicle }: { vehicle: string }) {
   if (!data) return null;
   const label = (c: string) => data.scenes.find((s) => s.code === c)?.label ?? c.replace(/_/g, ' ');
   const made = data.photos.filter((p) => p.status === 'made');
+  const picked = made.filter((p) => !off.has(p.id));
   return (
     <section className="stack" data-testid="marketing-photos" aria-labelledby={`mk-${vehicle}`}>
       <h3 className="d4" id={`mk-${vehicle}`}>Marketing photos</h3>
@@ -34,11 +46,13 @@ export function MarketingPhotos({ vehicle }: { vehicle: string }) {
           <option value="mix">Mix: a different scene on each photo</option>
           {data.scenes.map((s) => <option key={s.code} value={s.code}>{s.label}{s.made === 'photo' ? ' (image model)' : ''}</option>)}
         </select></label>
+        {data.studio ? <label className="small">Lifestyle shots <select value={life} onChange={(e) => setLife(e.target.value)} data-testid="marketing-lifestyle">
+          <option value="0">None</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label> : null}
         <button className="btn btn--primary btn--sm" type="button" disabled={pending || busy} data-testid="marketing-make" onClick={() => start(async () => {
-          const r = await staffDo<{ queued: number }>('marketing_set', { vehicle, scene });
+          const r = await staffDo<{ queued: number }>('marketing_set', { vehicle, scene, ...(data.studio ? { lifestyle: Number(life) } : {}) });
           setMsg(r.ok ? { ok: true, text: `${r.data.queued} marketing photo${r.data.queued === 1 ? ' is' : 's are'} being made.` } : { ok: false, text: r.message });
           if (r.ok) load(); })}>{busy ? 'Being made…' : 'Make the marketing set'}</button>
-        {made.length > 0 && <a className="btn btn--ghost btn--sm" href={`/api/marketing-photos/${vehicle}`} download data-testid="marketing-zip">Download ({made.length}, ZIP)</a>}
+        {picked.length > 0 && <a className="btn btn--ghost btn--sm" href={zipHref(vehicle, made, off)} download data-testid="marketing-zip">Download ({picked.length}, ZIP)</a>}
       </p>
       {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'}><span>{msg.text}</span></p>}
       {data.photos.length > 0 && <ul className="ad-photos" data-testid="marketing-set">{data.photos.map((p) => (
@@ -46,6 +60,9 @@ export function MarketingPhotos({ vehicle }: { vehicle: string }) {
           {/* eslint-disable-next-line @next/next/no-img-element -- made at the frame's size by the pipeline */}
           {p.path ? <a href={photoUrl(p.path)} target="_blank" rel="noreferrer"><img src={photoUrl(p.path)} alt={`${label(p.scene)}, ${p.shot.replace(/_/g, ' ')}`} loading="lazy" /></a> : null}
           <p className="small"><b>{label(p.scene)}</b>: {STATUS[p.status]}{p.provider === 'ai' ? ' (image model)' : p.provider === 'local' ? ' (made by the site)' : ''}</p>
+          {p.lifestyle || p.ai_generated ? <p className="small"><span className="ad-b ad-b--light">AI</span>{p.lifestyle ? ` Lifestyle shot: ${POSE[p.lifestyle] ?? p.lifestyle}` : ' Made by Gemini'}</p> : null}
+          {p.status === 'made' && <label className="small"><input type="checkbox" checked={!off.has(p.id)} data-testid="marketing-pick"
+            onChange={(e) => setOff((o) => { const n = new Set(o); if (e.target.checked) n.delete(p.id); else n.add(p.id); return n; })} /> In the ZIP</label>}
           {p.note && p.status !== 'made' && <p className="small muted">{p.note}</p>}
         </li>))}</ul>}
     </section>

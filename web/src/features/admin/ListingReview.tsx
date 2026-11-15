@@ -15,6 +15,7 @@ import { PlateCarry } from '@/features/listing/PlateCarry';
 import { isExtra } from '@/features/listing/extra-order';
 import { GeminiRedoCar, ShowroomCar, ShowroomPhoto } from '@/features/listing/Showroom';
 import { MarketingPhotos } from '@/features/listing/Marketing';
+import { StudioSet } from '@/features/listing/StudioSet';
 import { ListingCover } from '@/features/listing/Cover';
 import { MissingAngles } from '@/features/listing/MissingAngle';
 import { ShortVideo } from '@/features/social/ShortVideo';
@@ -110,6 +111,8 @@ export function ListingReview({ l, plates, copy, exterior = [] }: { l: L; plates
           <ShowroomCar vehicle={l.vehicle_id} studio={l.photos.filter((p) => exterior.includes(p.shot_type) && p.processed_path && p.processed_path !== p.original_path && p.status !== 'rejected' && p.scene !== 'showroom').length} />
           {/* r43 (2690): the car's outside photos again with Gemini only */}
           <GeminiRedoCar vehicle={l.vehicle_id} />
+          {/* r48 (3030): the studio set (every standard view made by Gemini) beside the car's own photos */}
+          <StudioSet vehicle={l.vehicle_id} />
           {/* r35 S2 (1053): marketing copies in other scenes (never the website's photos) */}
           <MarketingPhotos vehicle={l.vehicle_id} />
           {/* r36 (2100): the first photo on the site and Marketplace: plain, with a model, or the flyer */}

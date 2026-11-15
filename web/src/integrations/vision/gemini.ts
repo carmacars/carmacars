@@ -1,13 +1,13 @@
 import type { VisionModel, VisionRequest, VisionResult } from './types';
+import { geminiPost, type GeminiRelay } from '../photos/gemini-route.ts';
 
 // Google Gemini as a second vision provider (release 35, migration 0910), used only when GEMINI_API_KEY is set and only as
 // the fallback of Workers AI. The key is on the free trial tier for now: a quota (429), a model the key may not use (403,
 // 404) or any other error answers "not read" silently, and the person types the reading. The image goes inline; the answer
 // is JSON. Swappable: the reader asks any VisionModel.
-const BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 export const GEMINI_DEFAULT_MODEL = 'gemini-3.8-flash';
 
-export function geminiVision(apiKey: string, model: string = GEMINI_DEFAULT_MODEL, timeoutMs = 30_000, fetchImpl: typeof fetch = fetch): VisionModel {
+export function geminiVision(apiKey: string, model: string = GEMINI_DEFAULT_MODEL, timeoutMs = 30_000, fetchImpl: typeof fetch = fetch, relay: GeminiRelay | null = null): VisionModel {
   return {
     name: 'gemini',
     async read(req: VisionRequest): Promise<VisionResult> {
@@ -17,18 +17,14 @@ export function geminiVision(apiKey: string, model: string = GEMINI_DEFAULT_MODE
       const ctl = new AbortController();
       const t = setTimeout(() => ctl.abort(), timeoutMs);
       try {
-        const r = await fetchImpl(`${BASE}/${encodeURIComponent(model)}:generateContent`, {
-          method: 'POST', signal: ctl.signal,
-          headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey },
-          body: JSON.stringify({
-            systemInstruction: { parts: [{ text: req.system }] },
-            contents: [{ role: 'user', parts: [{ text: req.prompt }, { inline_data: { mime_type: m[1], data: m[2] } }] }],
-            generationConfig: { temperature: 0, maxOutputTokens: req.maxOutputTokens, responseMimeType: 'application/json' }
-          })
+        const { res: r, json } = await geminiPost({ apiKey, relay, fetch: fetchImpl, signal: ctl.signal }, `/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+          systemInstruction: { parts: [{ text: req.system }] },
+          contents: [{ role: 'user', parts: [{ text: req.prompt }, { inline_data: { mime_type: m[1], data: m[2] } }] }],
+          generationConfig: { temperature: 0, maxOutputTokens: req.maxOutputTokens, responseMimeType: 'application/json' }
         });
         if (r.status === 429) return { ok: false, reason: 'quota', message: 'Gemini quota reached', tried };
         if (!r.ok) return { ok: false, reason: 'unavailable', message: `Gemini answered ${r.status}`, tried };
-        const j = (await r.json().catch(() => null)) as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>; usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number } } | null;
+        const j = json as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>; usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number } } | null;
         const text = j?.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
         let data: unknown = null;
         try { data = JSON.parse(text.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '')); } catch { data = null; }

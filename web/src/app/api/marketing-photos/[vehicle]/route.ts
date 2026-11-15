@@ -12,7 +12,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ vehi
   if (!user) return new NextResponse('Not permitted', { status: 403 });
   const { vehicle } = await params;
   if (!/^[0-9a-f-]{36}$/.test(vehicle)) return new NextResponse('Unknown car', { status: 400 });
-  const photos = await scenePhotos(user.id, vehicle, await sessionAal()).catch(() => null);
+  // r48 (3030): ?pick=id,id the photos chosen for one post
+  const pick = (req.nextUrl.searchParams.get('pick') ?? '').split(',').filter((x) => /^[0-9a-f-]{36}$/.test(x)).slice(0, 20);
+  const photos = await scenePhotos(user.id, vehicle, await sessionAal(), pick).catch(() => null);
   if (!photos) return new NextResponse('Not permitted', { status: 403 });
   return photoZip({ vehicle_id: vehicle, car_code: null, slug: `car-${vehicle.slice(0, 8)}` } as Parameters<typeof photoZip>[0], photos, req.nextUrl.origin, '-scenes');
 }

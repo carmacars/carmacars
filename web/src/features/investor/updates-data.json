@@ -84,7 +84,7 @@
   "title": "Release 48",
   "date": "2026-11-14",
   "seq": 0,
-  "summary": "A car can go out with the deposit still owed, signing and card names never wrongly block a renter, pay links ask only for what is owed, offers are edited in place and hold the car on time, messages go out at once, long rentals can be paid weekly, calls through the site open the caller pop-up, Rewards emails renters, and a payment plan's first payment confirms the booking.",
+  "summary": "A car can go out with the deposit still owed, signing and card names never wrongly block a renter, pay links ask only for what is owed, offers are edited in place and hold the car on time, messages go out at once, long rentals can be paid weekly, calls through the site open the caller pop-up, Rewards emails renters, every car is photographed the same way in one scene, and a payment plan's first payment confirms the booking.",
   "areas": [
    {
     "area": "Renters",
@@ -124,7 +124,16 @@
     "area": "Website & search",
     "items": [
      "Words are no longer squeezed into slivers or broken letter by letter on a phone: labels, car names, buttons and notes keep their room, and a wide table scrolls instead of crushing its columns",
-     "Form labels such as \"Where you are (city or neighbourhood)\" fit a small phone"
+     "Form labels such as \"Where you are (city or neighbourhood)\" fit a small phone",
+     "Every car's photos look taken in one studio: the same nine views, the same angle and framing, the covers all facing the same way, in the dark dealership with the CarmaCars sign (the model's name behind the car on the first photo)",
+     "A view a car has no photo of is made from its other photos; a car with no photo at all gets its outside views from its model's stock photo, in its own colour",
+     "The home page, the cards, the car page, partner feeds and the sitemap show the same photos, the front three-quarter first"
+    ]
+   },
+   {
+    "area": "Reliability & security",
+    "items": [
+     "The photo queue no longer stalls on steps waiting with no end"
     ]
    }
   ]

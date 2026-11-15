@@ -4,6 +4,7 @@
 //   node --test --experimental-strip-types src/features/listing/r48.test.ts   (npm run test:unit)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { BACKGROUND_SAME, DEFAULT_SCENE, HARD_REASONS, borderDiff } from './r48.ts';
 import { PLATE_FAMILIES, R48_ANGLES, R48_SPEC, feedbackLine, guidePath, imageRoles, judgePlate, judgeR48, plateFamily, platePath, platePrompt, r48Angle, r48CheckPrompt, r48Prompt,
   REAL_PHOTO_RULE } from './r48.ts';
 import { STANDARD_ANGLES } from './r45.ts';
@@ -16,14 +17,14 @@ import type { Rgba } from './subject-frame.ts';
 const CAR = { year: 2022, make: 'Mercedes-Benz', model: 'CLA 250', trim: '4MATIC', colour: 'Polar White' };
 
 test('the nine angles: the r45 standard set in its order, the front three-quarter first, each with its framing', () => {
-  assert.equal(R48_SPEC, 'r48.1');
+  assert.equal(R48_SPEC, 'r48.2');
   assert.deepEqual(R48_ANGLES.map((a) => a.shot), STANDARD_ANGLES.map((a) => a.shot));
   assert.equal(R48_ANGLES[0]!.shot, 'front_left');
   for (const a of R48_ANGLES) {
     assert.match(a.framing, /mm full-frame lens look/, `${a.shot}: a focal length`);
     assert.match(a.framing, /height|level/, `${a.shot}: a camera height`);
   }
-  assert.match(r48Angle('front_left')!.framing, /45 degrees/);
+  assert.match(r48Angle('front_left')!.framing, /nose points to the LEFT edge of the frame/, 'the sample covers\' direction');
   assert.match(r48Angle('rear_left')!.framing, /45 degrees/);
   assert.match(r48Angle('left')!.framing, /90 degrees/);
   assert.match(r48Angle('front_left')!.framing, /centred/);
@@ -40,22 +41,24 @@ test('plate families: outside angles only; the guide of each angle per body type
   assert.match(platePath('front', 'ab12'), /^site\/r48\/plates\/[a-z0-9-]+\.jpg$/);
 });
 
-test('the generation words: every reference named in order, the framing, identity, real-photo cues, plates blurred, no text or logo', () => {
+test('the generation words: every reference named in order, the framing, identity, real-photo cues, plates removed, only the sign', () => {
   const p = r48Prompt({ car: CAR, shot: 'front_left', refs: 4, guide: true, stock: true, plate: true });
   assert.match(p, /Images 1 to 4 are real photos of THIS car/);
   assert.match(p, /Image 5 is a composition guide/);
   assert.match(p, /Image 6 is a stock photo of the same model/);
   assert.match(p, /Image 7, the last, is the background plate/);
-  assert.match(p, /TARGET FRAMING: front three-quarter .*45 degrees/);
+  assert.match(p, /TARGET FRAMING: front three-quarter .*30 degrees/);
+  assert.match(p, /nose MUST point to the LEFT of the frame/);
   assert.match(p, /2022 Mercedes-Benz CLA 250 4MATIC, Polar White/);
   assert.match(p, /same wheels/);
   assert.match(p, /damage-free/);
   assert.ok(p.includes(REAL_PHOTO_RULE));
   assert.match(p, /contact shadow/);
   assert.match(p, /not a 3D render or CGI/);
-  assert.match(p, /blur its face strongly/);
-  assert.match(p, /NO TEXT AND NO LOGOS/);
-  assert.doesNotMatch(p, /CarmaCars logo/, 'no logo sign added any more');
+  assert.match(p, /removed cleanly/);
+  assert.doesNotMatch(p, /blur its face/);
+  assert.match(p, /NO OTHER TEXT/);
+  assert.match(p, /CarmaCars sign/, 'the dealership keeps its sign');
   assert.doesNotMatch(p, /REFUSED/);
   // inside: no plate, no stock photo, no background swap
   const i = r48Prompt({ car: CAR, shot: 'dashboard', refs: 2, guide: true, stock: true, plate: true });
@@ -64,7 +67,7 @@ test('the generation words: every reference named in order, the framing, identit
   assert.match(i, /no background is swapped/);
   assert.deepEqual(imageRoles({ refs: 1, guide: false, stock: false, plate: false, shot: 'trunk' }).length, 1);
   // without a stored plate: the room in words
-  assert.match(r48Prompt({ car: CAR, shot: 'left', refs: 1, guide: false, stock: false, plate: false }), /a real, empty, modern car dealership showroom/);
+  assert.match(r48Prompt({ car: CAR, shot: 'left', refs: 1, guide: false, stock: false, plate: false }), /dark car dealership showroom/);
 });
 
 test('a retry is told why the last try was refused', () => {
@@ -101,11 +104,14 @@ test('the check: each problem refuses; the plate is blurred by the site; the vie
 test('the plates: words for a real, empty showroom; used only when the check says it looks real', () => {
   for (const f of PLATE_FAMILIES) {
     const w = platePrompt(f);
-    assert.match(w, /real photograph of an empty/);
-    assert.match(w, /No text, no logos/);
+    assert.match(w, /A real photograph of a modern, minimal, dark car dealership/);
+    assert.match(w, /CarmaCars sign exactly as drawn/);
     assert.match(w, /Not a 3D render/);
+    const h = platePrompt(f, { code: 'highway', place: 'the paved shoulder of an open highway' });
+    assert.match(h, /paved shoulder of an open highway, empty/);
+    assert.match(h, /No text, no logos/);
   }
-  assert.match(platePrompt('side'), /square to the long back wall/);
+  assert.match(platePrompt('side'), /square to the background/);
   assert.deepEqual(judgePlate({ looks_real: true, has_text: false, has_logo: false, has_cars_or_people: false, free_floor: true }), { pass: true, reasons: [] });
   assert.deepEqual(judgePlate({ looks_real: false, has_text: true, has_logo: true, has_cars_or_people: true, free_floor: false }).reasons, ['not_real', 'text', 'logo', 'cars_or_people', 'no_free_floor']);
   assert.equal(judgePlate(null).pass, false);
@@ -149,7 +155,7 @@ test('r48 pass: the real photos, the guide, the stock photo and the plate go to 
   assert.equal(r.ok, true);
   const o = out(r);
   assert.equal(o.r45.pass, true);
-  assert.equal(o.r45.spec, 'r48.1');
+  assert.equal(o.r45.spec, 'r48.2');
   assert.equal(o.r45.generated, true);
   assert.equal(o.preset_version, 'gemini_r48');
   assert.equal(o.showroom.mode, 'r48');
@@ -183,11 +189,11 @@ test('r48 keep real: Gemini\'s limit waits, the check not answering is a refusal
   const silent = deps({ checkPhoto: async () => null });
   const r = out(await runJob(silent.d, job(), budget));
   assert.equal(r.r45.pass, false);
-  assert.equal(r.r45.wait, 'quota');
+  assert.equal(r.r45.wait, 'retry', 'the check not answering is a growing wait (3030), never a try');
   const nokey = deps({ angleAi: null });
   assert.equal(out(await runJob(nokey.d, job(), budget)).r45.wait, 'no_key');
   const none = deps();
-  const r2 = out(await runJob(none.d, job({}, { refs: [{ bucket: 'vehicle-originals', path: 'missing.jpg' }] }), budget));
+  const r2 = out(await runJob(none.d, job({}, { refs: [{ bucket: 'vehicle-originals', path: 'missing.jpg' }], stock: null }), budget));
   assert.equal(r2.r45.pass, false);
   assert.match(String((r2.r45 as { why?: string }).why), /could not be read/);
 });
@@ -199,7 +205,7 @@ test('r48 plate: none stored, Gemini makes it once, the realism check passes, it
   assert.equal(r.r45.pass, true);
   assert.equal(r.r45.plate_made?.family, 'front');
   assert.ok(pub.has(r.r45.plate_made!.path));
-  assert.match(asked[0]!.prompt, /real photograph of an empty, modern, high-end car dealership showroom/);
+  assert.match(asked[0]!.prompt, /A real photograph of a modern, minimal, dark car dealership showroom/);
   assert.equal(asked[1]!.images, 5, 'the new plate goes with the photos');
   // a plate the check says looks fake is not used (the room in words then)
   const fake = deps({}, [{ looks_real: false, has_text: false, has_logo: false, has_cars_or_people: false, free_floor: true }, OK]);
@@ -207,7 +213,7 @@ test('r48 plate: none stored, Gemini makes it once, the realism check passes, it
   const r2 = out(await runJob(fake.d, job({}, { plate: null }), budget));
   assert.equal(r2.r45.plate_made, undefined);
   assert.equal(fake.asked[1]!.images, 4);
-  assert.match(fake.asked[1]!.prompt, /a real, empty, modern car dealership showroom/);
+  assert.match(fake.asked[1]!.prompt, /THE PLACE: a modern, minimal, dark car dealership showroom/);
 });
 
 test('r48 check-in photos: read from their own bucket as references, never stored or published', async () => {
@@ -222,7 +228,7 @@ test('r48 check-in photos: read from their own bucket as references, never store
   assert.ok(added.every((k) => k.includes('-r48')), 'only the generated view and its sizes are stored');
   // a bucket the worker does not know is never read
   const odd = deps();
-  const r2 = out(await runJob(odd.d, job({}, { refs: [{ bucket: 'identity', path: 'x.jpg' }] }), budget));
+  const r2 = out(await runJob(odd.d, job({}, { refs: [{ bucket: 'identity', path: 'x.jpg' }], stock: null }), budget));
   assert.equal(r2.r45.pass, false);
 });
 
@@ -233,4 +239,87 @@ test('r48 inside: no plate, no stock photo; the trunk has no guide', async () =>
   assert.equal(r.r45.pass, true);
   assert.equal(asked[0]!.images, 2, 'the two real photos only');
   assert.match(asked[0]!.prompt, /open trunk/);
+});
+
+// ---------------------------------------------------------------- r48.2 (3030)
+test('r48.2 the scene: the dealership by default with the model name on the cover only; another scene in its words, no sign', () => {
+  const cover = r48Prompt({ car: CAR, shot: 'front_left', refs: 2, guide: true, stock: false, plate: true, name: 'CLA' });
+  assert.match(cover, /THE MODEL NAME: the word "CLA"/);
+  assert.match(cover, /spelled exactly "CLA"/);
+  assert.doesNotMatch(r48Prompt({ car: CAR, shot: 'left', refs: 2, guide: true, stock: false, plate: true, name: 'CLA' }), /THE MODEL NAME/, 'only the cover');
+  const hw = r48Prompt({ car: CAR, shot: 'front_left', refs: 2, guide: true, stock: false, plate: false, name: 'CLA', scene: { code: 'highway', place: 'the paved shoulder of an open highway' } });
+  assert.match(hw, /THE PLACE: the paved shoulder of an open highway/);
+  assert.doesNotMatch(hw, /THE MODEL NAME|CarmaCars sign/);
+  assert.match(hw, /NO TEXT AND NO LOGOS/);
+  assert.match(r48Prompt({ car: CAR, shot: 'rear_left', refs: 1, guide: true, stock: false, plate: true }), /nose MUST point to the RIGHT/);
+});
+
+test('r48.2 a car with no photo: the stock photo is the car, in the colour named', () => {
+  const p = r48Prompt({ car: CAR, shot: 'front_left', refs: 0, guide: true, stock: true, plate: true, stockOnly: true });
+  assert.match(p, /Image 1 is a stock photo of this exact model/);
+  assert.match(p, /Image 2 is a composition guide/);
+  assert.doesNotMatch(p, /Image 3 is a stock photo/);
+  assert.match(p, /in exactly the colour named here/);
+});
+
+test('r48.2 the check: direction, the old background, the sign and name; looks refuse only the first two tries', () => {
+  const o = { shot: 'front_left', plate: true };
+  assert.deepEqual(judgeR48({ ...OK, nose: 'right' }, o).reasons, ['wrong_direction']);
+  assert.equal(judgeR48({ ...OK, nose: 'left' }, o).pass, true);
+  assert.equal(judgeR48({ ...OK, nose: 'camera' }, o).pass, true, 'a direction the check cannot place is not a refusal');
+  assert.deepEqual(judgeR48({ ...OK, view: 'rear_left', nose: 'right' }, { shot: 'rear_left', plate: true }).reasons, []);
+  assert.deepEqual(judgeR48({ ...OK, original_background: true }, o).reasons, ['original_background']);
+  assert.deepEqual(judgeR48({ ...OK, name_wrong: true }, { ...o, name: 'CLA' }).reasons, ['name_wrong']);
+  assert.equal(judgeR48({ ...OK, name_wrong: true, view: 'left' }, { shot: 'left', plate: true, name: 'CLA' }).pass, true, 'no name off the cover');
+  assert.deepEqual(judgeR48({ ...OK, logo_wrong: true }, o).reasons, ['logo_wrong']);
+  assert.equal(judgeR48({ ...OK, logo_wrong: true }, { ...o, scene: { code: 'highway' } }).pass, true, 'no sign in another scene');
+  // the third try: looks alone pass (kept as soft), identity still refuses
+  const late = judgeR48({ ...OK, parts_changed: true, looks_cgi: true, wrong_framing: true }, { ...o, tries: 2 });
+  assert.equal(late.pass, true);
+  assert.deepEqual(late.soft?.sort(), ['looks_cgi', 'parts_changed', 'wrong_framing']);
+  assert.equal(judgeR48({ ...OK, wrong_colour: true, parts_changed: true }, { ...o, tries: 2 }).pass, false);
+  assert.deepEqual(judgeR48({ ...OK, parts_changed: true }, { ...o, tries: 1 }).reasons, ['parts_changed']);
+  const words = r48CheckPrompt({ car: CAR, shot: 'front_left', plate: true, name: 'CLA' });
+  assert.match(words, /"nose"/);
+  assert.match(words, /does not read exactly "CLA"/);
+  assert.match(words, /never for a part the real photos do not show/);
+});
+
+test('r48.2 borderDiff: the same photo is 0, a new background is far, the car alone changing stays close', () => {
+  const a = room(120, 80);
+  assert.equal(borderDiff(a, a), 0);
+  const b: Rgba = { width: 120, height: 80, data: new Uint8ClampedArray(120 * 80 * 4).map((_, i) => (i % 4 === 3 ? 255 : 20)) };
+  assert.ok(borderDiff(a, b) > BACKGROUND_SAME);
+  const c: Rgba = { width: 120, height: 80, data: new Uint8ClampedArray(a.data) };
+  for (let y = 40; y < 80; y++) for (let x = 20; x < 100; x++) { const i = (y * 120 + x) * 4; c.data[i] = 0; c.data[i + 1] = 0; c.data[i + 2] = 0; }
+  assert.ok(borderDiff(a, c) < BACKGROUND_SAME, 'only the middle changed');
+  assert.equal(DEFAULT_SCENE, 'showroom_dark');
+  assert.ok(HARD_REASONS.includes('wrong_direction') && !HARD_REASONS.includes('looks_cgi'));
+});
+
+test('r48.2 worker: the old background still there is refused; a location refusal and the check failing wait to retry', async () => {
+  // the same-angle real photo is the result itself: its edges are the same place
+  const same = deps({ angleAi: async () => ({ ok: true, bytes: JPEG, contentType: 'image/jpeg', provider: 'ai', model: 'm' }) });
+  const r = out(await runJob(same.d, job({}, { refs: [{ bucket: 'vehicle-originals', path: 'vehicles/v1/original/fl.jpg', from: 'listing', shot: 'front_left' }] }), budget));
+  assert.equal(r.r45.pass, false);
+  assert.ok(r.r45.reasons.includes('original_background'));
+  const loc = deps({ angleAi: async () => ({ ok: false, reason: 'location', message: 'User location is not supported for the API use.' }) });
+  assert.equal(out(await runJob(loc.d, job(), budget)).r45.wait, 'retry');
+  const blocked = deps({ angleAi: async () => ({ ok: false, reason: 'blocked', message: 'SAFETY' }) });
+  assert.equal(out(await runJob(blocked.d, job(), budget)).r45.wait, undefined, 'a refusal of the content counts as a try');
+});
+
+test('r48.2 worker: a car with no photo is made from the stock photo; the scene and the tries reach the words and the check', async () => {
+  const { d, asked, checks } = deps({}, [{ ...OK, nose: 'left' }]);
+  const r = out(await runJob(d, job({}, { refs: [], tries: 2, scene: { code: 'highway', label: 'Highway', place: 'the paved shoulder of an open highway' } }), budget));
+  assert.equal(r.r45.pass, true);
+  assert.equal((r.r45 as { stock_only?: boolean }).stock_only, true);
+  assert.equal(asked[0]!.images, 3, 'the stock photo, the guide, the plate');
+  assert.match(asked[0]!.prompt, /Image 1 is a stock photo of this exact model/);
+  assert.match(asked[0]!.prompt, /THE PLACE: the background plate/);
+  assert.equal(checks[0]!.images, 3, 'the result, the stock photo, the plate');
+  const inside = deps();
+  const r2 = out(await runJob(inside.d, job({ photo: { id: 'p9', shot_type: 'trunk', angle: 'trunk', original_path: 'x', processed_path: null, rebackground: false, is_public: false, file_base: 'cla-trunk' } },
+    { shot: 'trunk', refs: [], family: null, plate: null, guide: null }), budget));
+  assert.equal(r2.r45.pass, false, 'no inside view is invented from a stock photo');
 });

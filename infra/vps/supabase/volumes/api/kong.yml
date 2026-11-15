@@ -169,6 +169,36 @@ services:
           allow:
             - admin
 
+  ## r48 (3030): the Gemini relay. Google refuses the Gemini API from some places ("User location is not supported"), and
+  ## the site's Cloudflare cron can start in any data centre: a refused call is sent again here and leaves from this server
+  ## in Canada (web/src/integrations/photos/gemini-route.ts). Only the service key passes (key-auth, acl admin), and it is
+  ## taken off before the call leaves; Google checks its own API key (x-goog-api-key), which is passed through unchanged.
+  - name: gemini-relay
+    _comment: 'Gemini relay: /gemini/* -> https://generativelanguage.googleapis.com/* (service key only)'
+    url: https://generativelanguage.googleapis.com/
+    read_timeout: 170000
+    routes:
+      - name: gemini-relay-all
+        strip_path: true
+        methods:
+          - POST
+        paths:
+          - /gemini/
+    plugins:
+      - name: key-auth
+        config:
+          hide_credentials: true
+      - name: acl
+        config:
+          hide_groups_header: true
+          allow:
+            - admin
+      - name: request-transformer
+        config:
+          remove:
+            headers:
+              - Authorization
+
   ## Secure PostgREST routes
   - name: rest-v1
     _comment: 'PostgREST: /rest/v1/* -> http://rest:3000/*'

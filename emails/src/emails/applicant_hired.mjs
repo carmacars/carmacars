@@ -18,7 +18,7 @@ export default {
     steps(['Set up your account', 'You get an email from CarmaCars to set up your staff account: choose a password from the link in it.'],
       ['Do your training', 'Sign in and complete the CarmaCars Academy for your role (a few short lessons with a check at the end).'],
       ['Claim your shifts', 'Claim your shifts online in the portal. You pick the shifts that suit you; you do not have to take a particular first shift.'],
-      ['Say hello to the team', 'Once you are hired, send a message in the team chat (the CarmaCars Team WhatsApp group, the link is in your portal). In each WhatsApp group, set your member tag to your name and your position, for example "Maria, Sales".']),
+      ['Say hello to the team', 'Once you are hired, send a message in the team chat (the CarmaCars Team WhatsApp group, the link is in your portal). In each WhatsApp group, set your member tag to your name, a hyphen and your position, for example "Maria - Sales".']),
     button('Open the staff portal', '@va_cs'),
     when('personal_note', p('{{personal_note}}')),
     small('Questions? Reply to this email and we will help.'),

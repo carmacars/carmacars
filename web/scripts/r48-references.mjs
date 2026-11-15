@@ -3,7 +3,8 @@
 //   1. the composition guides: the sample cars' drawing of each angle (src/features/car/studio.ts carShot) for each body
 //      type, rendered once to JPEG and stored at site/r48/guides/<body>-<shot>.jpg (vehicle-public). Gemini copies only
 //      the camera position and framing from them.
-//   2. the background plates (front, side, rear): a photorealistic empty showroom made by Gemini's image model from
+//   2. the background plates (front, side, rear) of the dark dealership (r48.2, 3030: the fleet's default scene, its drawn
+//      layout with the CarmaCars sign as the image): a photorealistic empty showroom made by Gemini's image model from
 //      r48.ts platePrompt, kept only when a second Gemini look (PLATE_CHECK_PROMPT) says it looks like a real photograph
 //      with no text, logo, car or person and a free floor; up to 3 tries a family. Stored at site/r48/plates/<family>.jpg and
 //      saved in listing_r48_plates (source gemini). A plate an Admin uploaded is kept unless --replace.
@@ -78,11 +79,13 @@ async function guides() {
 }
 
 // ---------------------------------------------------------------- 2. the plates
+// r48.2 (3030): the plates of the fleet's default scene, the dark dealership: made from its drawn layout with the CarmaCars sign
 async function plate(f) {
-  const blank = Buffer.from(await (await import('sharp')).default({ create: { width: 48, height: 32, channels: 3, background: { r: 200, g: 200, b: 200 } } }).jpeg().toBuffer()).toString('base64');
+  const { showroomBackdrop, encodeJpeg } = await import('../src/features/listing/showroom.ts');
+  const layout = Buffer.from(encodeJpeg(showroomBackdrop(), 86)).toString('base64');
   for (let k = 1; k <= 3; k++) {
-    const made = await gemini(IMAGE_MODEL, { contents: [{ role: 'user', parts: [{ text: `${platePrompt(f)} Ignore the plain grey image: it is only a blank canvas.` },
-      { inline_data: { mime_type: 'image/jpeg', data: blank } }] }], generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: '3:2' } } });
+    const made = await gemini(IMAGE_MODEL, { contents: [{ role: 'user', parts: [{ text: platePrompt(f) },
+      { inline_data: { mime_type: 'image/jpeg', data: layout } }] }], generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: '3:2' } } });
     const part = made?.candidates?.[0]?.content?.parts?.find((x) => x.inlineData?.data || x.inline_data?.data);
     const data = part?.inlineData?.data ?? part?.inline_data?.data;
     if (!data) { console.log(`  ${f} try ${k}: no image`); continue; }
@@ -92,7 +95,7 @@ async function plate(f) {
       generationConfig: { temperature: 0, responseMimeType: 'application/json', responseSchema: PLATE_CHECK_SCHEMA } });
     let answer = null;
     try { answer = JSON.parse(checked?.candidates?.[0]?.content?.parts?.map((x) => x.text ?? '').join('') ?? ''); } catch { /* refused below */ }
-    const v = judgePlate(answer);
+    const v = judgePlate(answer, { logo: true });
     console.log(`  ${f} try ${k}: ${v.pass ? 'looks real' : `refused (${v.reasons.join(', ')})`}`);
     if (v.pass) return { jpg, check: { pass: true, model: `gemini:${CHECK_MODEL}`, issues: Array.isArray(answer?.issues) ? answer.issues.slice(0, 5) : [] } };
   }
@@ -100,7 +103,7 @@ async function plate(f) {
 }
 async function plates() {
   if (!GEMINI) throw new Error('GEMINI_API_KEY is needed to make the plates');
-  const have = WRITE ? await sql('select family, source from listing_r48_plates') : [];
+  const have = WRITE ? await sql("select family, source from listing_r48_plates where scene = 'showroom_dark'") : [];
   for (const f of PLATE_FAMILIES) {
     const row = have.find((r) => r.family === f);
     if (row && (row.source === 'admin' || !REPLACE)) { console.log(`  ${f}: kept (${row.source})`); continue; }
@@ -109,8 +112,8 @@ async function plates() {
     const p = platePath(f);
     if (!WRITE) { save(p, made.jpg); continue; }
     await put(p, made.jpg);
-    await sql(`insert into listing_r48_plates (family, path, source, model, "check") values (${q(f)}, ${q(p)}, 'gemini', ${q(IMAGE_MODEL)}, ${q(JSON.stringify(made.check))}::jsonb)
-      on conflict (family) do update set path = excluded.path, source = 'gemini', model = excluded.model, "check" = excluded."check", made_by = null, made_at = now()
+    await sql(`insert into listing_r48_plates (scene, family, path, source, model, "check") values ('showroom_dark', ${q(f)}, ${q(p)}, 'gemini', ${q(IMAGE_MODEL)}, ${q(JSON.stringify(made.check))}::jsonb)
+      on conflict (scene, family) do update set path = excluded.path, source = 'gemini', model = excluded.model, "check" = excluded."check", made_by = null, made_at = now()
       where listing_r48_plates.source <> 'admin'`);
   }
   console.log(`r48-references: plates ${WRITE ? 'stored' : `written to ${OUT}`}`);

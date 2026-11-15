@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { currentUser } from '@/server/portal/data';
 import { rpc } from '@/lib/db/repo';
+import { geminiRelay } from '@/server/gemini-relay';
 import { env } from '@/lib/env';
 import { visionModel } from '@/integrations/vision';
 import { GEMINI_DEFAULT_MODEL, geminiVision } from '@/integrations/vision/gemini';
@@ -37,7 +38,7 @@ export async function POST(req: Request) {
     const t0 = Date.now();
     let r = gate?.allowed && gate.model ? await (await visionModel()).read(ask, [gate.model, gate.fallback_model ?? ''].filter(Boolean)) : null;
     const key = env().GEMINI_API_KEY;
-    if ((!r || !r.ok) && key) r = await geminiVision(key, env().GEMINI_VISION_MODEL || GEMINI_DEFAULT_MODEL).read(ask, []);
+    if ((!r || !r.ok) && key) r = await geminiVision(key, env().GEMINI_VISION_MODEL || GEMINI_DEFAULT_MODEL, 30_000, fetch, geminiRelay()).read(ask, []);
     if (!r) return NextResponse.json(NOT_READ);
     const read = r.ok ? dashFromModel(r.data) : { odometer_km: null, fuel_eighths: null };
     await rpc('server_dash_read_record' as never, { p: { model: r.ok ? r.model : r.model ?? r.tried[r.tried.length - 1] ?? gate?.model, ok: r.ok && read.odometer_km !== null,

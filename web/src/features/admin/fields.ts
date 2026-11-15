@@ -92,6 +92,8 @@ const LABELS: Record<string, string> = {
   listing_showroom_ai: 'Showroom photos: let the image model make them look photographed (needs its key on the server; else the free showroom)',
   listing_showroom_photo_bg: 'Showroom photos: photographed showroom rooms (real dealership photos, stored once) instead of the drawn room', listing_showroom_car_width: 'Showroom photos: the car\'s share of the width in a photographed room (0.70 is 70%)', listing_cutout_min_quality: 'Showroom photos: cut-out quality floor (0 to 1; a cut-out below it is never placed in a room, the real photo is used)',
   listing_photo_r48_auto: 'Listing photos: generate every car\'s nine standard views with Gemini from its photos, the sample view, the stock photo and the showroom plate (every 5 minutes, front three-quarter first)',
+  // r48 (3030): the scene of every car's studio set
+  listing_photo_scene: 'Listing photos: the scene every car stands in (a marketing scene code: showroom_dark is the dark dealership with the CarmaCars sign; highway, brick_building...)',
   listing_showroom_ai_model: 'Showroom photos: image model name', listing_showroom_ai_daily: 'Showroom photos: image model calls a day at most (a hard stop, then the free showroom)',
   auto_reply_sms: 'AI auto-replies: texts to the CarmaCars number (Quo)', auto_reply_email: 'AI auto-replies: emails to the inboxes below', auto_reply_chat: 'AI auto-replies: the website live chat (its assistant)',
   auto_reply_whatsapp: 'AI auto-replies: WhatsApp (needs the WhatsApp number id and the WHATSAPP_TOKEN secret)', auto_reply_messenger: 'AI auto-replies: Facebook Page messages (Messenger)', auto_reply_instagram: 'AI auto-replies: Instagram direct messages',

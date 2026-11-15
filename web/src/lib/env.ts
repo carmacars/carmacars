@@ -40,6 +40,8 @@ const schema = z.object({
   GEMINI_VISION_MODEL: z.string().optional(),
   /** r45 (2840): the model of the second pass on a made listing photo (default gemini-2.5-flash). */
   GEMINI_CHECK_MODEL: z.string().optional(),
+  /** r48 (3030): where a Gemini call refused for its location is sent instead (default: the database API's /gemini route). */
+  GEMINI_RELAY_URL: z.string().optional(),
   /** r36 (2110): the Meta app's secret (checks the webhook's signature: Messenger, Instagram, WhatsApp) and the WhatsApp
    *  Cloud API token; unset: the Meta webhook answers nothing */
   META_APP_SECRET: z.string().optional(),

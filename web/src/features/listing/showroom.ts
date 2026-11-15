@@ -448,7 +448,7 @@ export async function decodeImage(bytes: Uint8Array): Promise<Rgba | null> {
 }
 
 // ================================================================ the providers
-export type ShowroomFailure = 'no_key' | 'off' | 'limit' | 'quota' | 'model' | 'blocked' | 'timeout' | 'error' | 'changed';
+export type ShowroomFailure = 'no_key' | 'off' | 'limit' | 'quota' | 'model' | 'blocked' | 'timeout' | 'error' | 'changed' | 'location';
 export type ShowroomOut =
   | { ok: true; bytes: Uint8Array; contentType: string; provider: 'local' | 'ai'; model?: string }
   | { ok: false; reason: ShowroomFailure; message: string };
@@ -474,6 +474,7 @@ export const FALLBACK_TEXT: Record<ShowroomFailure, string> = {
   off: 'Made with the free showroom: the image model is switched off in Program settings.',
   limit: 'Made with the free showroom: today\'s image model limit (Program settings) is used. Redo it tomorrow for the photographed look.',
   quota: 'Made with the free showroom: the image model\'s free use is used up for now. Redo it later.',
+  location: 'Made with the free showroom: Google refused the image model from the place the call came from. It is tried again through the company server.',
   model: 'Made with the free showroom: the image model named in Program settings is not available to this key.',
   blocked: 'Made with the free showroom: the image model did not return a photo.',
   timeout: 'Made with the free showroom: the image model did not answer in time.',

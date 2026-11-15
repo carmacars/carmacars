@@ -16,7 +16,7 @@ Here is what happens next. You are not working a shift right away: this gives yo
 3. Claim your shifts
    Claim your shifts online in the portal. You pick the shifts that suit you; you do not have to take a particular first shift.
 4. Say hello to the team
-   Once you are hired, send a message in the team chat (the CarmaCars Team WhatsApp group, the link is in your portal). In each WhatsApp group, set your member tag to your name and your position, for example "Maria, Sales".
+   Once you are hired, send a message in the team chat (the CarmaCars Team WhatsApp group, the link is in your portal). In each WhatsApp group, set your member tag to your name, a hyphen and your position, for example "Maria - Sales".
 
 Open the staff portal:
 https://carmacars.ca/staff

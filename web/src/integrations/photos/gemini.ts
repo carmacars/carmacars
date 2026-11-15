@@ -4,14 +4,15 @@
 // is passed in (the unit tests use a fake). Every answer is mapped to a ShowroomOut: a quota (429), a model the key may
 // not use, a refusal or any error is a failure the worker turns into the free local showroom, with the reason shown.
 import type { ShowroomOut } from '../../features/listing/showroom.ts';
+import { geminiPost, isLocationRefusal, type GeminiRelay } from './gemini-route.ts';
 
 export const GEMINI_DEFAULT_MODEL = 'gemini-2.5-flash-image';
-const BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 const b64 = (b: Uint8Array) => { let s = ''; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode(...b.subarray(i, i + 0x8000)); return btoa(s); };
 const unb64 = (s: string) => { const bin = atob(s); const out = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i); return out; };
 
-export interface GeminiOptions { apiKey: string; model?: string | null; fetch?: typeof fetch; timeoutMs?: number }
+/** `relay` (r48, 3030): the company server's relay, used when Google refuses the place the call came from (gemini-route.ts). */
+export interface GeminiOptions { apiKey: string; model?: string | null; fetch?: typeof fetch; timeoutMs?: number; relay?: GeminiRelay | null }
 
 /** The image edited by the model, or why not. */
 /** `extra`: more images after the first (1053: a photo of the real place of a marketing scene). */
@@ -22,25 +23,24 @@ export async function geminiEditImage(o: GeminiOptions, img: { bytes: Uint8Array
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), o.timeoutMs ?? 45_000);
   let res: Response;
+  let raw: unknown;
   try {
-    res = await f(`${BASE}/${model}:generateContent`, {
-      method: 'POST', signal: ctl.signal,
-      headers: { 'content-type': 'application/json', 'x-goog-api-key': o.apiKey },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: prompt }, { inline_data: { mime_type: img.contentType, data: b64(img.bytes) } },
-          ...extra.map((x) => ({ inline_data: { mime_type: x.contentType, data: b64(x.bytes) } }))] }],
-        generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: '3:2' } }
-      })
-    });
+    ({ res, json: raw } = await geminiPost({ apiKey: o.apiKey, relay: o.relay, fetch: f, signal: ctl.signal }, `/v1beta/models/${model}:generateContent`, {
+      contents: [{ role: 'user', parts: [{ text: prompt }, { inline_data: { mime_type: img.contentType, data: b64(img.bytes) } },
+        ...extra.map((x) => ({ inline_data: { mime_type: x.contentType, data: b64(x.bytes) } }))] }],
+      generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: '3:2' } }
+    }));
   } catch (e) {
     const aborted = e instanceof Error && (e.name === 'AbortError' || /abort/i.test(e.message));
     return { ok: false, reason: aborted ? 'timeout' : 'error', message: aborted ? 'No answer in time' : 'The image model could not be reached' };
   } finally { clearTimeout(timer); }
-  const body = (await res.json().catch(() => null)) as {
+  const body = raw as {
     error?: { message?: string; status?: string };
     candidates?: Array<{ finishReason?: string; content?: { parts?: Array<{ inlineData?: { mimeType?: string; data?: string }; inline_data?: { mime_type?: string; data?: string } }> } }>;
     promptFeedback?: { blockReason?: string };
   } | null;
+  // r48: refused for the place the call came from (and no relay took it): a wait, never the photo's fault
+  if (isLocationRefusal(res.status, body)) return { ok: false, reason: 'location', message: (body?.error?.message ?? 'User location is not supported').slice(0, 200) };
   if (!res.ok) {
     const status = body?.error?.status ?? '';
     const msg = (body?.error?.message ?? `HTTP ${res.status}`).slice(0, 200);
@@ -70,17 +70,13 @@ export async function geminiCheckImages(o: GeminiOptions, images: Array<{ bytes:
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), o.timeoutMs ?? 45_000);
   try {
-    const res = await f(`${BASE}/${model}:generateContent`, {
-      method: 'POST', signal: ctl.signal,
-      headers: { 'content-type': 'application/json', 'x-goog-api-key': o.apiKey },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: system }] },
-        contents: [{ role: 'user', parts: [{ text: prompt }, ...images.map((x) => ({ inline_data: { mime_type: x.contentType, data: b64(x.bytes) } }))] }],
-        generationConfig: { temperature: 0, maxOutputTokens: 1200, responseMimeType: 'application/json' }
-      })
+    const { res, json } = await geminiPost({ apiKey: o.apiKey, relay: o.relay, fetch: f, signal: ctl.signal }, `/v1beta/models/${model}:generateContent`, {
+      systemInstruction: { parts: [{ text: system }] },
+      contents: [{ role: 'user', parts: [{ text: prompt }, ...images.map((x) => ({ inline_data: { mime_type: x.contentType, data: b64(x.bytes) } }))] }],
+      generationConfig: { temperature: 0, maxOutputTokens: 1200, responseMimeType: 'application/json' }
     });
     if (!res.ok) return null;
-    const j = (await res.json().catch(() => null)) as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> } | null;
+    const j = json as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> } | null;
     const text = j?.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
     try {
       const data: unknown = JSON.parse(text.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, ''));

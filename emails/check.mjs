@@ -89,7 +89,8 @@ for (const f of [...walk('src'), 'build.mjs', 'shots.mjs', 'check.mjs']) written
   const p = [];
   for (const [f, s] of outputs) {
     if (!f.endsWith('.txt')) continue;
-    s.split('\n').forEach((line, i) => { if (/\S -{1,2} \S/.test(line)) p.push(`${f}:${i + 1}: ${line.trim().slice(0, 80)}`); });
+    s.split('\n').forEach((line, i) => { // the one allowed spaced hyphen: the WhatsApp member tag example in quotes, "Name - Position" (the owner's format)
+      if (/\S -{1,2} \S/.test(line.replace(/"[A-Z][a-z]+ - [A-Z][a-z]+"/g, ''))) p.push(`${f}:${i + 1}: ${line.trim().slice(0, 80)}`); });
   }
   check('no spaced hyphen used as a dash in the copy', p);
 }
