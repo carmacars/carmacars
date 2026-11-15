@@ -25,3 +25,7 @@
 @media (max-width: 37.49rem) {
   .al-item { grid-template-columns: minmax(0, 1fr); }
 }
+/* r48 (2995): a call's recording and transcript on the log */
+.al-call { display: grid; gap: 4px; margin-top: 4px; }
+.al-call audio { width: 100%; max-width: 360px; }
+.al-call .ph-transcript { margin: 4px 0 0; padding-left: 1.1em; display: grid; gap: 2px; }

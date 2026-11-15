@@ -30,7 +30,7 @@ select test.ok('read: no settings token is left unfilled (only the call''s own w
 select test.eq('read: customer service cannot edit', (select j ->> 'can_edit' from test.zch_r), 'false');
 select test.eq('read: an Admin gets it, and may edit', test.zch('zch_admin', 'admin_read') ->> 'can_edit', 'true');
 select test.lives('read: Fleet gets it (they have the caller pop-up)', $$ select test.zch('zch_fleet') $$);
-select test.throws('read: Sales do not', $$ select test.zch('zch_sales') $$, '%Admins, customer service and Fleet%');
+select test.lives('read: Sales too (2995)', $$ select test.zch('zch_sales') $$);
 
 -- ================================================================ 2. the numbers come from the settings
 select test.eq('facts: the late return grace is the fee default''s',

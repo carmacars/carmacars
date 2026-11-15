@@ -16,12 +16,16 @@ export interface LiveCall {
   kind: 'staff' | 'renter' | 'owner' | 'lead' | 'unknown'; who: string; lead_id: string | null; owner_id: string | null; renter: CallerRenter | null;
   /** r35 (0970): fleet when the call is about a pickup, a return, a delivery or a car on rent (it rings for Fleet first) */
   lane?: 'fleet' | 'cs';
+  /** r48 (2995): out is a call this person placed from the site (the browser phone); in, a call to the CarmaCars number */
+  direction?: 'in' | 'out';
 }
 export interface CallerLive { at: string; calls: LiveCall[] }
 export interface NotesRead { renter_id: string; notes: CallerNote[]; can_remove: boolean }
 
-/** How often the portals ask while in use (lib/poll slows it to once a minute when idle, never in a hidden tab). */
+/** How often the portals ask while in use (lib/poll slows it to once a minute when idle, never in a hidden tab). r48 (2995):
+ *  with the live topic of calls (staff:calls) the pop-up reads again within a second of a change; this is the safety net. */
 export const CALLER_POLL_MS = 10_000;
+export const CALLER_LIVE_POLL_MS = 60_000;
 /** The calls a person closed are remembered (in this browser) for this long. */
 export const DISMISS_KEEP_MS = 2 * 60 * 60_000;
 
@@ -52,6 +56,7 @@ export const KIND_WORDS: Record<LiveCall['kind'], string> = { staff: 'Staff', re
 
 /** The state of the call in a few words. */
 export function callState(c: LiveCall): string {
+  if (c.direction === 'out') return c.live ? 'Your call: on now' : 'Call ended';
   if (c.live) return c.answered_at ? 'On the phone now' : 'Ringing now';
   if (c.missed) return 'Missed call';
   return 'Call ended';

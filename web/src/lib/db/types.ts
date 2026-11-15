@@ -33171,6 +33171,8 @@ export type Database = {
       server_booking_payment_facts: { Args: { p_booking: string }; Returns: Json };
       server_booking_request_failed: { Args: { p: Json }; Returns: Json };
       server_booking_sign_pay: { Args: { p_booking: string }; Returns: Json };
+      server_call_backfill_done: { Args: { p: Json }; Returns: Json };
+      server_call_backfill_due: { Args: { p_limit: number }; Returns: Json };
       server_capture_contact: { Args: { p: Json }; Returns: Json };
       server_capture_continue_open: { Args: { p_token: string }; Returns: Json };
       server_capture_done: { Args: { p: Json }; Returns: number };
@@ -33552,6 +33554,8 @@ export type Database = {
       server_twilio_call_event: { Args: { p: Json }; Returns: Json };
       server_twilio_call_get: { Args: { p_id: string }; Returns: Json };
       server_twilio_call_start: { Args: { p: Json }; Returns: Json };
+      server_twilio_inbound: { Args: { p: Json }; Returns: Json };
+      server_twilio_inbound_id: { Args: { p_call_sid: string }; Returns: string };
       server_twilio_recording: { Args: { p: Json }; Returns: Json };
       server_twilio_transcribe_due: { Args: { p_limit: number }; Returns: Json };
       server_twilio_transcript: { Args: { p: Json }; Returns: Json };

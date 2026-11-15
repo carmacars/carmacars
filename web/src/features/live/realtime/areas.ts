@@ -3,7 +3,8 @@
 // of the screen shown from its path. A booking's own page watches its booking instead (LiveBooking), so it is not read
 // again for every other booking's change. No imports: unit tested in Node (areas.test.ts).
 
-export type LiveArea = 'bookings' | 'requests' | 'leads' | 'messages' | 'field' | 'me' | 'renter' | 'owner';
+// r48 (2995): calls is the caller pop-up's own topic (never a screen's refresh: no route lists it)
+export type LiveArea = 'bookings' | 'requests' | 'leads' | 'messages' | 'field' | 'me' | 'renter' | 'owner' | 'calls';
 
 const STAFF_ROUTES: [RegExp, LiveArea[]][] = [
   // a booking's own page and its sub pages: LiveBooking (the booking's topic)

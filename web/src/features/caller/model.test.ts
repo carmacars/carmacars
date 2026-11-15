@@ -63,15 +63,17 @@ test('a note is 1 to 4,000 characters, as the database says', () => {
   assert.match(sql, /length\(btrim\(body\)\) between 1 and 4000/);
 });
 
-test('the pop-up is in the Admin frame and in customer service\'s, and its reads go through the phone route', () => {
+test('the pop-up is in the Admin frame and every office staff frame, live, and its reads go through the phone route', () => {
   const src = (p: string) => readFileSync(new URL(p, import.meta.url), 'utf8');
-  assert.match(src('../../app/admin/layout.tsx'), /<CallerPopup portal="admin" quiet=\{Boolean\(viewing\)\} \/>/);
-  assert.match(src('../../app/staff/layout.tsx'), /held\.includes\('cs'\) \|\| held\.includes\('fleet'\)\) \? <CallerPopup portal="va" quiet=\{Boolean\(viewing\)\} \/>/);
+  // r48 (2995): every office role (Sales take incoming calls too), with the live topic of calls
+  assert.match(src('../../app/admin/layout.tsx'), /<CallerPopup portal="admin" quiet=\{Boolean\(viewing\)\} topic=\{live\.calls\} \/>/);
+  assert.match(src('../../app/staff/layout.tsx'), /\{office && user \? <CallerPopup portal="va" quiet=\{Boolean\(viewing\)\} topic=\{live\.calls\} \/>/);
   const route = src('../../app/api/staff/phone/route.ts');
   for (const n of ['caller_live', 'renter_notes', 'renter_note_add', 'renter_note_remove', 'caller_open']) assert.ok(route.includes(`'${n}'`), n);
   assert.match(src('../../app/admin/renters/[id]/page.tsx'), /<RenterNotes /);
   assert.match(src('../renters-page/RentersPage.tsx'), /<RenterNotes /);
-  assert.match(src('./CallerPopup.tsx'), /poller\(CALLER_POLL_MS\)/);
+  assert.match(src('./CallerPopup.tsx'), /poller\(every\)/);
+  assert.match(src('./CallerPopup.tsx'), /useLive\(/);
 });
 
 test('r48: a car out with the deposit owed says pending and the amount', () => {

@@ -210,3 +210,46 @@ export function throttle(f: typeof fetch, gapMs: number, sleep: (ms: number) => 
     return f(input, init);
   }) as typeof fetch;
 }
+
+// ---------------------------------------------------------------- a call's recording, transcript and summary (r48, 2995)
+//   GET /v1/call-recordings/{callId}   data[] {id, url, duration, type, status}
+//   GET /v1/call-transcripts/{callId}  data {dialogue[] {content, start, end, identifier, userId}, status}
+//   GET /v1/call-summaries/{callId}    data {summary[], nextSteps[], status}
+// The backfill of calls whose webhook never brought them. A 404 means Quo has none (recording off, no AI on the plan).
+export interface QuoCallMedia {
+  recordings: Array<{ id: string | null; url: string; duration: number | null; type: string | null }>;
+  transcript: Array<{ who: 'us' | 'them'; text: string; start: number | null; end: number | null }>;
+  summary: string[]; next_steps: string[];
+}
+type Raw = Record<string, unknown>;
+const rawObj = (v: unknown): Raw => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Raw) : {});
+const rawArr = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
+const rawStr = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null);
+const rawNum = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+
+/** Reads the three answers (each may be missing) into what the call keeps. */
+export function readCallMedia(rec: unknown, tr: unknown, sum: unknown): QuoCallMedia {
+  const recordings = rawArr(rawObj(rec).data).map(rawObj).filter((r) => rawStr(r.url) && (rawStr(r.status) ?? 'completed') === 'completed')
+    .map((r) => ({ id: rawStr(r.id), url: rawStr(r.url)!, duration: rawNum(r.duration) === null ? null : Math.round(rawNum(r.duration)!), type: rawStr(r.type) }));
+  const t = rawObj(rawObj(tr).data);
+  const transcript = (rawStr(t.status) ?? 'completed') === 'completed'
+    ? rawArr(t.dialogue).map(rawObj).map((d) => ({ who: (rawStr(d.userId) ? 'us' : 'them') as 'us' | 'them', text: rawStr(d.content) ?? '', start: rawNum(d.start), end: rawNum(d.end) })).filter((d) => d.text)
+    : [];
+  const s = rawObj(rawObj(sum).data);
+  const ok = (rawStr(s.status) ?? 'completed') === 'completed';
+  const strings = (v: unknown) => rawArr(v).map(rawStr).filter((x): x is string => !!x);
+  return { recordings, transcript, summary: ok ? strings(s.summary) : [], next_steps: ok ? strings(s.nextSteps) : [] };
+}
+
+/** One call's media from Quo (only the parts asked for). A part Quo does not have (404) is empty. */
+export async function quoCallMedia(o: QuoOptions, callId: string, want: { recording: boolean; transcript: boolean; summary: boolean }): Promise<QuoCallMedia> {
+  if (!/^[A-Za-z0-9_-]{4,64}$/.test(callId)) throw new QuoError('Not a call id', 400, null, true);
+  const id = encodeURIComponent(callId);
+  const get = async (path: string) => {
+    try { return await call<unknown>(o, 'GET', path); }
+    catch (e) { if (e instanceof QuoError && (e.status === 404 || e.status === 403)) return null; throw e; }
+  };
+  const [rec, tr, sum] = await Promise.all([want.recording ? get(`/v1/call-recordings/${id}`) : null, want.transcript ? get(`/v1/call-transcripts/${id}`) : null,
+    want.summary ? get(`/v1/call-summaries/${id}`) : null]);
+  return readCallMedia(rec, tr, sum);
+}

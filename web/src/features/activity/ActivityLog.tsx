@@ -3,6 +3,7 @@ import Link from '@/components/Link';
 import type { ReactNode } from 'react';
 import { ContactButtons } from '@/features/phone/QuoButtons';
 import { NoteRemove } from './NoteRemove';
+import { CallExtras } from './CallExtras';
 import { TYPE_LABEL, activityQuery, byDay, hiddenFields, itemAction, itemMeta, logHref, P, type ActivityItem, type ActivityPage } from './model';
 
 const clock = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', hour: 'numeric', minute: '2-digit' }).format(new Date(iso));
@@ -75,6 +76,7 @@ export function ActivityLog({ data, base, sp, emailHref, chatBase, inbox, phone,
                     <p><span className="al-type">{TYPE_LABEL[i.type]}</span><b>{i.title}</b>{meta && <span className="small muted"> · {meta}</span>}</p>
                     {i.body && <p className="small al-body">{i.body}</p>}
                     {i.type === 'call' && i.extra?.next_steps?.length ? <p className="small"><b>Next steps:</b> {i.extra.next_steps.join(' ')}</p> : null}
+                    {i.type === 'call' && i.extra ? <CallExtras x={i.extra} /> : null}
                     {action(i) && <p className="al-acts">{action(i)}</p>}
                     {canRemoveNotes && i.type === 'note' && <p className="al-acts"><NoteRemove id={i.k.slice(5)} /></p>}
                   </div>

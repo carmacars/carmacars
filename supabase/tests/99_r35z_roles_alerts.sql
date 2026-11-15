@@ -54,7 +54,7 @@ select test.throws('Fleet: never voids it', format($$select app.door(%L, 'aal2',
 select test.eq('lane: a car on rent is Fleet''s, nothing coming is customer service''s',
   app.phone_lane(test.id('renter:rz_rita')) || '/' || app.phone_lane(test.id('renter:rz_quiet')), 'fleet/cs');
 select test.lives('pop-up: Fleet gets it', format($$select app.door(%L, 'aal2', 'va_read', 'caller_live', '{}')$$, test.id('rz_fleet')));
-select test.throws('pop-up: Sales does not', format($$select app.door(%L, 'aal2', 'va_read', 'caller_live', '{}')$$, test.id('rz_sales')), '%Admins, customer service and Fleet%');
+select test.lives('pop-up: Sales too (2995)', format($$select app.door(%L, 'aal2', 'va_read', 'caller_live', '{}')$$, test.id('rz_sales')));
 select app.server_phone_event(jsonb_build_object('type', 'call.ringing', 'event_id', 'EVRZ1', 'call_id', 'ACRZ1', 'quo_id', 'ACRZ1', 'direction', 'in',
   'their_number', '+16475550199', 'at', now(), 'status', null));
 select test.eq('pop-up: a call about a car on rent rings for Fleet first, not customer service while Fleet is on duty',

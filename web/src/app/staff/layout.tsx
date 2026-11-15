@@ -68,7 +68,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   }
   const portal = office ? 'va' : 'field';
   // r41: live updates (server/live.ts): the areas this person's functions read (field staff: the field area)
-  const live = user && staff ? await liveTokens(user.id, office ? ['me', 'bookings', 'requests', 'leads', 'messages', 'field'] : ['me', 'field']) : ({} as Awaited<ReturnType<typeof liveTokens>>);
+  const live = user && staff ? await liveTokens(user.id, office ? ['me', 'bookings', 'requests', 'leads', 'messages', 'field', 'calls'] : ['me', 'field']) : ({} as Awaited<ReturnType<typeof liveTokens>>);
   return (
     <div className="ad va">
       <div className="ad__frame">
@@ -91,7 +91,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
             <StaffNav functions={held} open={open} chat={chat} hot={hot} />
           </aside>
         ) : <div />}
-        <div className="ad__main">{needsAddress ? <HomeAddressCard portal={portal} canada={canada} /> : null}{staff && user ? <GuideBanner portal={portal} userId={user.id} /> : null}{staff && user ? <StuckHelp portal={portal} /> : null}{office && user && (held.includes('cs') || held.includes('fleet')) ? <CallerPopup portal="va" quiet={Boolean(viewing)} /> : null}{staff && user ? <VoiceDock quiet={Boolean(viewing)} /> : null}{staff && user && !needsAddress ? <PushInvite portal={office ? 'staff' : 'field'} home={office ? '/staff' : ['/staff', '/staff/field']} userId={user.id} /> : null}{staff ? <HubBar hubs={staffHubs(held)} sections={staffSections(held)} /> : null}<DoorProvider kind="va"><RevampScope list={REVAMP_STAFF}>{staff && user ? <TermsGate userId={user.id} portal={office ? 'staff' : 'field'}>{children}</TermsGate> : children}</RevampScope></DoorProvider></div>
+        <div className="ad__main">{needsAddress ? <HomeAddressCard portal={portal} canada={canada} /> : null}{staff && user ? <GuideBanner portal={portal} userId={user.id} /> : null}{staff && user ? <StuckHelp portal={portal} /> : null}{office && user ? <CallerPopup portal="va" quiet={Boolean(viewing)} topic={live.calls} /> : null}{staff && user ? <VoiceDock quiet={Boolean(viewing)} /> : null}{staff && user && !needsAddress ? <PushInvite portal={office ? 'staff' : 'field'} home={office ? '/staff' : ['/staff', '/staff/field']} userId={user.id} /> : null}{staff ? <HubBar hubs={staffHubs(held)} sections={staffSections(held)} /> : null}<DoorProvider kind="va"><RevampScope list={REVAMP_STAFF}>{staff && user ? <TermsGate userId={user.id} portal={office ? 'staff' : 'field'}>{children}</TermsGate> : children}</RevampScope></DoorProvider></div>
       </div>
     </div>
   );

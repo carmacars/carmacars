@@ -202,6 +202,7 @@ export function parseQuoEvent(body: unknown, deliveryId?: string | null, ourNumb
 }
 
 /** A transcript as plain lines for the AI summary prompt. */
-export function transcriptText(t: PhoneEvent['transcript'] | null | undefined, max = 6000): string {
-  return (t ?? []).map((d) => `${d.who === 'us' ? 'CarmaCars' : 'Caller'}: ${d.text}`).join('\n').slice(0, max);
+export function transcriptText(t: Array<{ who: 'us' | 'them' | 'call'; text: string }> | null | undefined, max = 6000): string {
+  // r48: a site call's transcript is one block of both sides ('call'): no speaker label
+  return (t ?? []).map((d) => (d.who === 'call' ? d.text : `${d.who === 'us' ? 'CarmaCars' : 'Caller'}: ${d.text}`)).join('\n').slice(0, max);
 }

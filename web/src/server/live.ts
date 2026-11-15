@@ -10,7 +10,7 @@ import type { LiveArea } from '@/features/live/realtime/areas';
 const SR = { role: 'service_role' as const };
 const AREA_SCOPE: Record<LiveArea, (userId: string) => string> = {
   bookings: () => 'staff:bookings', requests: () => 'staff:requests', leads: () => 'staff:leads', messages: () => 'staff:messages',
-  field: () => 'staff:field', me: (u) => `user:${u}`, renter: (u) => `renter:${u}`, owner: (u) => `owner:${u}`
+  field: () => 'staff:field', calls: () => 'staff:calls', me: (u) => `user:${u}`, renter: (u) => `renter:${u}`, owner: (u) => `owner:${u}`
 };
 
 /** The tokens of the areas, for the portal frame's LivePortal (an area the person may not read is left out). */
