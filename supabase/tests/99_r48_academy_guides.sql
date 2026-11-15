@@ -25,7 +25,7 @@ select test.eq('each renter step shows a page of the renter guide that the secti
 select test.eq('each role section has a worked example (a chat)', (select count(*) from academy_sections s
   where s.slug like 'r48-%-guide-cases' and not exists (select 1 from academy_lessons l, jsonb_array_elements(l.scenes) sc where l.section_id = s.id and sc #>> '{visual,kind}' = 'chat')), 0::bigint);
 select test.eq('no long dash and no vendor name in the lessons', (select count(*) from academy_lessons l join academy_sections s on s.id = l.section_id
-  where s.slug like 'r48-%' and (l.scenes::text ~ '[–—]' or regexp_replace(l.scenes::text, '"img": "[^"]*"', '', 'g') ~* '(google|stripe|quo\M|openphone|cloudflare|claude|gemini)')), 0::bigint);
+  where s.slug like 'r48-%' and (l.scenes::text ~ '[\u2013\u2014]' or regexp_replace(l.scenes::text, '"img": "[^"]*"', '', 'g') ~* '(google|stripe|quo\M|openphone|cloudflare|claude|gemini)')), 0::bigint);
 select app.academy_check_scenes('[{"caption": "The offer", "say": "What the renter sees.", "visual": {"kind": "shot", "heading": "Trips", "guide": "renter/your-offer", "img": "renter-02-trips-offer-desktop-27603c14.jpg"}}]');
 select test.ok('a guide screenshot is a scene an Admin can save', true);
 select test.throws('an unknown picture is still refused', $$select app.academy_check_scenes('[{"caption": "x", "visual": {"kind": "video"}}]')$$, '%or shot%');

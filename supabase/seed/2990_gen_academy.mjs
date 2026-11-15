@@ -30,7 +30,7 @@ for (const p of ['renter', 'owner', 'admin', 'va', 'field', 'investor']) {
 const images = new Set(JSON.parse(readFileSync(join(ROOT, 'docs', 'guides', 'content', 'images.json'), 'utf8')));
 
 const problems = [];
-const LONG = /[–—]/;
+const LONG = /[\u2013\u2014]/;
 const VENDOR = /google|stripe|\bquo\b|openphone|cloudflare|claude|gemini/i;
 const seen = new Set();
 for (const s of SECTIONS) {
