@@ -82,7 +82,7 @@ begin
 end $$;
 select test.eq('open: $300 rental, $50 fees', app.booking_part_open(test.id('booking:R32F-4'), 'rental') || '/' || app.booking_part_open(test.id('booking:R32F-4'), 'fees'), '30000/5000');
 select test.throws('customer service does not charge a saved card', $$select public.door(test.id('r32f_cs'), 'aal2', 'ops_do', 'card_charge_begin', jsonb_build_object('booking', 'R32F-4', 'covers', 'balance', 'reason', 'Rental and fees'))$$, 'Fleet or an Admin');
-select test.throws('never more than is open', $$select public.door(test.id('r32f_fin'), 'aal2', 'ops_do', 'card_charge_begin', jsonb_build_object('booking', 'R32F-4', 'covers', 'balance', 'amount_cents', 40000, 'reason', 'Rental and fees'))$$, 'have $350.00 open');
+select test.throws('never more than is open', $$select public.door(test.id('r32f_fin'), 'aal2', 'ops_do', 'card_charge_begin', jsonb_build_object('booking', 'R32F-4', 'covers', 'balance', 'amount_cents', 40000, 'reason', 'Rental and fees'))$$, 'more than is owed on booking R32F-4 ($350.00)');
 insert into test.rf select 'c1', public.door(test.id('r32f_fin'), 'aal2', 'ops_do', 'card_charge_begin', jsonb_build_object('booking', 'R32F-4', 'covers', 'balance', 'reason', 'Rental and fees'));
 select test.eq('one charge for everything open, split rental first',
   (select (v ->> 'amount_cents') || '/' || (v #>> '{parts,rental}') || '/' || (v #>> '{parts,fees}') || '/' || (v ->> 'covers') from test.rf where k = 'c1'), '35000/30000/5000/balance');
@@ -113,7 +113,7 @@ select test.eq('the Money tab lists it once, for the rental and the fees, with b
   (select x ->> 'covers' || '/' || (x #>> '{parts,rental}') || '/' || (x #>> '{parts,fees}')
      from jsonb_array_elements(public.door(test.id('r32f_fin'), 'aal2', 'ops_read', 'booking_money', jsonb_build_object('booking', 'R32F-4')) -> 'payments') x
     where x ->> 'id' = (select v ->> 'payment_id' from test.rf where k = 'c1')), 'balance/30000/5000');
-select test.throws('nothing open: refused', $$select public.door(test.id('r32f_fin'), 'aal2', 'ops_do', 'card_charge_begin', jsonb_build_object('booking', 'R32F-4', 'covers', 'balance', 'reason', 'Rental and fees'))$$, 'Nothing is open');
+select test.throws('nothing open: refused', $$select public.door(test.id('r32f_fin'), 'aal2', 'ops_do', 'card_charge_begin', jsonb_build_object('booking', 'R32F-4', 'covers', 'balance', 'reason', 'Rental and fees'))$$, 'Nothing is owed on booking R32F-4');
 
 -- part of the balance: the rental first; then the fees alone with no amount: what the fees have open
 select test.mk_vehicle('R32FZ', 'r32f_o');
