@@ -196,6 +196,19 @@
      "Showroom background plates in Program settings: upload a real showroom photo to replace the background of every outside view"
     ]
    }
+  },
+  "r48": {
+   "date": "2026-11-14",
+   "seq": 0,
+   "summary": "A cleaner fleet calendar for the Admin and staff.",
+   "sections": {
+    "admins": [
+     "The fleet calendar is easier to read on a computer and a phone: full car names, the renter and booking number on each bar, clear colours by status, today marked, and the cars and dates stay in place while you scroll"
+    ],
+    "staff": [
+     "The Calendar is easier to read: full car names, the renter and booking number on each bar, today marked, and the cars and dates stay in place while you scroll"
+    ]
+   }
   }
  }
 }

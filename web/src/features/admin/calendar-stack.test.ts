@@ -28,7 +28,7 @@ describe('calendar stack', () => {
     const list = [bar('a', '01', '03', { status: 'confirmed' }), bar('b', '03', '05', { status: 'confirmed' }), bar('c', '10', '12')];
     const st = stack(list, END);
     assert.deepEqual([st.top, st.low, st.at.get('bookinga'), st.at.get('bookingb')], [1, 1, 0, 0]);
-    assert.equal(rowHeight(st), 52);
+    assert.equal(rowHeight(st), 62);
   });
   it('an open-ended block runs to the end of the view', () => {
     const st = stack([bar('k', '02', '02', { type: 'block', status: null, ends_at: null }), bar('x', '20', '22', { type: 'block', status: null })], END);

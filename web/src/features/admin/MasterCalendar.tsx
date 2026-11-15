@@ -1,14 +1,15 @@
 'use client';
 import Link from '@/components/Link';
 import { OWNER_TRIP } from '@/features/request-history/model';
-import '@/features/bookings-now/bookings-now.css';
+import './master-calendar.css';
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { money } from '@/lib/format';
 import { when } from '@/features/agreement/model';
 import { useDoor } from './door';
 import { toLocalInput } from './Act';
-import { lane, rowHeight, stack, topOf } from './calendar-stack';
+import { BAR, lane, rowHeight, stack, topOf } from './calendar-stack';
+import { barLabel, VIEWS } from './calendar-label';
 import { photoUrl } from '@/lib/photo';
 import { photoPath, when as nowWords, type Car } from '@/features/bookings-now/model';
 import { DateInput } from '@/components/DateInput';
@@ -32,7 +33,6 @@ type Move = { entry: Entry; vehicle: string; start: number; end: number };
 const DAY = 86_400_000;
 const SNAP = 30 * 60_000;
 const DRAGGABLE = ['requested', 'offered', 'pending_payment', 'confirmed', 'on_rent'];
-const VIEWS: Record<string, { days: number; dw: number; label: string }> = { week: { days: 7, dw: 120, label: 'Week' }, two: { days: 14, dw: 72, label: '2 weeks' }, month: { days: 31, dw: 38, label: 'Month' } };
 const REASONS: Array<[string, string]> = [['service', 'Service'], ['repair', 'Repair'], ['owner_unavailable', 'Owner unavailable'], ['cleaning', 'Cleaning'], ['exit', 'Exit'], ['turo_owner_use', 'Turo owner use'], ['admin', 'Admin']];
 const torontoMidnight = (d: Date) => { const s = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d); return new Date(`${s}T00:00:00`); };
 const isoDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -64,6 +64,11 @@ const dayHead = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'A
 const hm = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', hour: 'numeric', minute: '2-digit' }).format(new Date(iso)).replace(/\s?a\.m\./, ' am').replace(/\s?p\.m\./, ' pm');
 const WORDS: Record<string, string> = { requested: 'Request', offered: 'Offer', pending_payment: 'Booked, payment due', confirmed: 'Booked', on_rent: 'Out', returned: 'Returned', closed: 'Closed' };
 const kindOf = (e: Entry) => e.type === 'booking' ? (e.placeholder ? 'Placeholder' : WORDS[e.status ?? ''] ?? (e.status ?? '').replace(/_/g, ' ')) : e.type === 'block' ? 'Block' : e.type === 'turo_trip' ? 'Turo' : e.type.replace(/_/g, ' ');
+
+function Label({ e }: { e: Entry }) {
+  const l = barLabel(e);
+  return l.main || l.sub ? <span className="mcal__lbl"><b>{l.main}</b><small>{l.sub}</small></span> : null;
+}
 
 function Thumb({ car, label }: { car?: Car; label: string }) {
   const p = photoPath(car?.photo, 96);
@@ -182,7 +187,9 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
   const pos = (s: number, e: number) => ({ left: Math.max(0, (s - from) * pxPerMs), width: Math.max(6, (Math.min(e, from + days * DAY) - Math.max(s, from)) * pxPerMs) });
   // by calendar day, not 24 hours at a time: on the night the clocks go back 24 hours later is still the same date ("1 Nov" twice)
   const dayList = Array.from({ length: days }, (_, i) => { const d = new Date(from); d.setDate(d.getDate() + i); return d; });
-  const width = `calc(14rem + ${days * dw}px)`;
+  const width = `calc(var(--namew) + ${days * dw}px)`;
+  const cols = `var(--namew) ${days * dw}px`;
+  const todayIdx = dayList.findIndex((d) => isoDay(d) === isoDay(torontoMidnight(new Date(now))));
 
   return (
     <div className="mcal" data-testid="master-calendar">
@@ -213,7 +220,7 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
       <div className="mcal__legend" aria-hidden="true">
         <span><i className="mcal__item is-on_rent" /> on rent</span><span><i className="mcal__item is-confirmed" /> confirmed</span><span><i className="mcal__item is-requested" /> request</span>
         <span><i className="mcal__item is-offered" /> offer or hold</span><span><i className="mcal__item is-block is-maint" /> maintenance</span><span><i className="mcal__item is-confirmed is-outline" /> not blocking</span><span><i className="mcal__item is-confirmed is-placeholder" /> placeholder</span><span><i className="mcal__item is-block" /> block</span>
-        <span><i className="mcal__item is-requested has-clash" /> dates taken</span><span><i className="mcal__item" style={{ background: '#0f7b6c' }} /> Turo</span>
+        <span><i className="mcal__item is-requested has-clash" /> dates taken</span><span><i className="mcal__item is-turo" /> Turo</span>
       </div>
       {agenda ? (
         <div className="mcal__agenda" data-testid="cal-agenda">
@@ -239,19 +246,25 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
       ) : (
         <div className="mcal__grid" ref={grid} onPointerMove={onMoveP} onPointerUp={onUp} aria-label="Vehicles by day" role="region" tabIndex={0}>
           <div className="mcal__inner" style={{ width, ['--dw' as string]: `${dw}px` }}>
-            <div className="mcal__head" style={{ gridTemplateColumns: `14rem ${days * dw}px` }}>
-              <div className="mcal__corner">{vehicles.length} vehicles</div>
+            <div className="mcal__cols" style={{ width: days * dw }} aria-hidden="true">
+              {dayList.map((d, i) => i === todayIdx ? <span key={i} className="mcal__col is-today" style={{ left: i * dw, width: dw }} />
+                : d.getDay() === 0 || d.getDay() === 6 ? <span key={i} className="mcal__col is-weekend" style={{ left: i * dw, width: dw }} /> : null)}
+            </div>
+            <div className="mcal__head" style={{ gridTemplateColumns: cols }}>
+              <div className="mcal__corner"><b>{new Intl.DateTimeFormat('en-CA', { month: 'long', year: 'numeric' }).format(new Date(from))}</b><span>{vehicles.length === 1 ? '1 car' : `${vehicles.length} cars`}</span></div>
               <div className="mcal__days" style={{ width: days * dw }}>
-                {dayList.map((d, i) => { const td = isoDay(d) === isoDay(torontoMidnight(new Date(now))); const we = d.getDay() === 0 || d.getDay() === 6; return (
-                  <div key={d.toISOString()} className={`mcal__day${td ? ' is-today' : ''}${we ? ' is-weekend' : ''}`} style={{ left: i * dw, width: dw }}><b>{d.getDate()}</b>{new Intl.DateTimeFormat('en-CA', { weekday: 'short', month: dw > 60 ? 'short' : undefined }).format(d)}</div>); })}
+                {dayList.map((d, i) => { const td = i === todayIdx; const we = d.getDay() === 0 || d.getDay() === 6; return (
+                  <div key={d.toISOString()} className={`mcal__day${td ? ' is-today' : ''}${we ? ' is-weekend' : ''}`} style={{ left: i * dw, width: dw }} aria-current={td ? 'date' : undefined}>
+                    {/* the 1st of a month says the month where the weekday goes; the corner names the first month */}
+                    <span className={i > 0 && d.getDate() === 1 ? 'mcal__wd mcal__mo' : 'mcal__wd'}>{new Intl.DateTimeFormat('en-CA', i > 0 && d.getDate() === 1 ? { month: 'short' } : { weekday: 'short' }).format(d).replace('.', '')}</span><b>{d.getDate()}</b></div>); })}
               </div>
             </div>
             {vehicles.length === 0 && <p className="ad-empty">No vehicles match.</p>}
             {vehicles.map((v) => { const st = stack(v.entries, from + days * DAY); return (
-              <div key={v.id} className="mcal__row" style={{ gridTemplateColumns: `14rem ${days * dw}px` }}>
-                <div className="mcal__name"><Thumb car={cars[v.id]} label={v.label} /><span className="mcal__ntext">{vehicleLinks ? <Link prefetch={false} href={`${doorBase}/vehicles/${v.id}`}>{v.label}</Link> : <b>{v.label}</b>}<span>{[cars[v.id]?.code ?? v.fleet_number, v.plate].filter(Boolean).join(' · ')}{v.status !== 'available' ? ` · ${v.status.replace(/_/g, ' ')}` : ''}</span></span></div>
+              <div key={v.id} className="mcal__row" style={{ gridTemplateColumns: cols }}>
+                <div className="mcal__name" title={[v.label, v.plate].filter(Boolean).join(' · ')}><Thumb car={cars[v.id]} label={v.label} /><span className="mcal__ntext">{vehicleLinks ? <Link prefetch={false} href={`${doorBase}/vehicles/${v.id}`}>{v.label}</Link> : <b>{v.label}</b>}<span>{[cars[v.id]?.code ?? v.fleet_number, v.plate].filter(Boolean).join(' · ')}{v.status !== 'available' ? <span className="mcal__status"> · {v.status.replace(/_/g, ' ')}</span> : null}</span></span></div>
                 <div className={`mcal__lane${move && (move.vehicle || vehicleOf(move.entry)) === v.id ? ' is-drop' : ''}`} data-vehicle={v.id} data-testid={`lane-${v.plate ?? v.id}`} data-rows={st.top + st.low}
-                  style={st.top + st.low > 2 ? { height: rowHeight(st) } : undefined}
+                  style={{ height: rowHeight(st) }}
                   onDoubleClick={(ev) => { const r = (ev.currentTarget as HTMLElement).getBoundingClientRect(); setSel({ vehicle: v, at: snap(from + (ev.clientX - r.left) / pxPerMs) }); }}>
                   {now >= from && now <= from + days * DAY && <span className="mcal__now" style={{ left: (now - from) * pxPerMs }} aria-hidden="true" />}
                   {v.entries.map((e) => {
@@ -269,11 +282,11 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
                         title={`${text(e)} · ${when(e.starts_at)}${e.ends_at ? ` to ${when(e.ends_at)}` : ''}${clash}`}
                         aria-label={`${text(e)}, ${when(e.starts_at)}${e.ends_at ? ` to ${when(e.ends_at)}` : ''}${clash}${canDrag ? '. Arrow keys move, Shift and arrows resize, Enter confirms' : ''}`}
                         onPointerDown={(ev) => onDown(ev, e, 'move')} onClick={() => { if (!canDrag) setSel({ entry: e }); }} onKeyDown={(ev) => onKey(ev, e)}>
-                        {text(e)}
+                        {p.width >= 28 && <Label e={e} />}
                         {canDrag && <span className="mcal__grip" aria-hidden="true" onPointerDown={(ev) => onDown(ev, e, 'resize')} />}
                       </div>);
                   })}
-                  {move && move.vehicle === v.id && (() => { const e = move.entry; const p = pos(move.start, move.end); return <div className={`mcal__item mcal__item--${lane(e)} ${cls(e, now)} is-dragging`} style={{ left: p.left, width: p.width }} aria-hidden="true">{text(e)}</div>; })()}
+                  {move && move.vehicle === v.id && (() => { const e = move.entry; const p = pos(move.start, move.end); return <div className={`mcal__item mcal__item--${lane(e)} ${cls(e, now)} is-dragging`} style={{ left: p.left, width: p.width, ...(e.type === 'booking' ? { top: 4 + BAR * (lane(e) === 'top' ? 0 : 1) } : {}) }} aria-hidden="true"><Label e={e} /></div>; })()}
                 </div>
               </div>
             ); })}
