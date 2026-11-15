@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 import { money } from '@/lib/format';
 import { when } from '@/features/agreement/model';
 import { useDoor } from './door';
-import { toLocalInput } from './Act';
+import { fromLocalInput, toLocalInput } from './Act';
 import { SourcedChoice, type Choice } from '@/features/sales/SourcedChoice';
 import { AddonPicker } from '@/features/addons/AddonPicker';
 import { addonsPayload, type AddonChoice, type AddonOption, type BookingAddon } from '@/features/addons/model';
@@ -214,8 +214,8 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
   const payload = useMemo(() => {
     const ch: Record<string, unknown> = {};
     if (changed('vehicle_id')) ch.vehicle_id = v.vehicle_id;
-    if (changed('pickup_at') && v.pickup_at) ch.pickup_at = new Date(String(v.pickup_at)).toISOString();
-    if (changed('return_at') && v.return_at) ch.return_at = new Date(String(v.return_at)).toISOString();
+    if (changed('pickup_at') && fromLocalInput(v.pickup_at)) ch.pickup_at = fromLocalInput(v.pickup_at);
+    if (changed('return_at') && fromLocalInput(v.return_at)) ch.return_at = fromLocalInput(v.return_at);
     if (changed('booking_type')) ch.booking_type = v.booking_type;
     for (const k of MONEY_KEYS) if (changed(k)) ch[k] = cents(String(v[k])) ?? (k === 'insurer_authorized_daily_rate_cents' ? null : 0);
     if ((changed('insurer_authorized_daily_rate_cents') || changed('insurer_id')) && String(v.insurer_rate_reason).trim()) ch.insurer_rate_reason = String(v.insurer_rate_reason).trim();
@@ -283,7 +283,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
     const t = setTimeout(async () => {
       if (!v.vehicle_id) return;
       const r = await adminPreview<AddonOption[]>('addons_for_car', { vehicle_id: v.vehicle_id, booking: b.id,
-        pickup_at: v.pickup_at ? new Date(String(v.pickup_at)).toISOString() : null, return_at: v.return_at ? new Date(String(v.return_at)).toISOString() : null });
+        pickup_at: fromLocalInput(v.pickup_at), return_at: fromLocalInput(v.return_at) });
       if (r.ok) setAddonOptions(r.data ?? []);
     }, 300);
     return () => clearTimeout(t);
@@ -293,7 +293,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
   useEffect(() => {
     const t = setTimeout(async () => {
       if (!v.pickup_at || !v.return_at) return;
-      const r = await adminPreview<Opt[]>('quote_vehicles', { booking: b.id, pickup_at: new Date(String(v.pickup_at)).toISOString(), return_at: new Date(String(v.return_at)).toISOString() });
+      const r = await adminPreview<Opt[]>('quote_vehicles', { booking: b.id, pickup_at: fromLocalInput(v.pickup_at), return_at: fromLocalInput(v.return_at) });
       if (r.ok) setOpts(r.data);
     }, 300);
     return () => clearTimeout(t);
@@ -365,10 +365,12 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
     setProblem(null); setDone(null);
     if (!fresh) { setProblem('The price is still updating for what you changed: check it, then save.'); return; }
     if (!dirty && !payChanged && !String(v.message).trim() && !changed('note')) { setProblem('Nothing changed yet: change the offer first.'); return; }
+    // set before the save: the action's own response can carry the refreshed booking, and the boxes must start from it
+    saved.current = true;
     const r = await offersDo<{ version: number | null; before: Record<string, unknown>; after: Record<string, unknown>; text?: { ok: boolean; reason?: string } | null }>('offer_revise', {
       ...payload, ...pays(), internal_note: v.note, message: v.message, expires_at: expiresAt(), notify, channels: channels(), expected_version: shownVersion(b) },
       [`/admin/bookings/${b.booking_number}`, `/staff/bookings/${b.booking_number}`]);
-    if (!r.ok) { setProblem(r.message); return; }
+    if (!r.ok) { saved.current = false; setProblem(r.message); return; }
     setRevised(describeRevision(r.data.before as never, r.data.after as never, (c) => money(c, { cents: true }), when));
     setDone(r.data.version ? `Saved as offer version ${r.data.version}: ${notify ? 'the renter has the update' : 'the renter was not told'}.${r.data.text && !r.data.text.ok ? ` The text was not sent: ${r.data.text.reason}` : ''}` : 'Saved.');
     saved.current = true;
@@ -391,8 +393,9 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
       body.message = v.message; body.expires_at = expiresAt(); body.expected_version = shownVersion(b); if (needChoice && choice) body.sales_choice = choice;
       if (bookNow) body.book_now = true;
     }
+    saved.current = true;
     const r = await adminAct(action, body, va ? [] : [`/admin/bookings/${b.booking_number}`, '/admin/requests']);
-    if (!r.ok) { setProblem(r.message); return; }
+    if (!r.ok) { saved.current = false; setProblem(r.message); return; }
     const bn = action === 'send_offer' ? (r.data as { book_now?: { status?: string } } | null)?.book_now?.status : undefined;
     setDone(bn === 'approved' ? 'Booked without the renter\'s approval: the car is held and the booking waits for payment. The renter has one link to sign and pay; or have them sign and pay on this device.'
       : bn === 'requested' ? 'Offer sent. Book it now waits for an Admin\'s approval.'

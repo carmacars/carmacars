@@ -688,6 +688,8 @@ html[data-shell="app"] body { overscroll-behavior-y: none; }
   .site-header .wordmark img { max-width: 38vw; }
 }
 @media (max-width: 22.49rem) { .header-actions .btn--primary { display: none; } }
+/* r48: the header's buttons never wrap ("Find a car" on two lines at 375 with a wider fallback font): there is room for them in one line */
+.header-actions > .btn { white-space: nowrap; flex: none; }
 
 /* header action buttons (r32): an icon with its label; the Admin and staff frames line them up in one row (admin-ui.css) */
 .hd-act svg { width: 18px; height: 18px; flex: none; }
@@ -719,6 +721,9 @@ html[data-shell="app"] body { overscroll-behavior-y: none; }
   .lm-legend__item, .lm-layers label { min-width: 0; max-width: 100%; }
 }
 .rv-car .rv-car__text, .bn-carline .bn-carline__text { min-width: min(9rem, 100%); }
+/* r48: in a phone's card row the car cell can be narrower than the photo plus 9rem: the name goes under the photo there
+   (whole words, never one a line) instead of passing the edge */
+@media (max-width: 47.99rem) { .ad-table--cards .rv-car { flex-wrap: wrap; max-width: 100%; } }
 .ad .ad-table--cards td, .ad-table--cards td { min-width: 0; overflow-wrap: anywhere; } /* a flex column cell: break-word would not lower the text's minimum width, so a long email ran off the card */
 /* a text column of a wide table keeps room for a few words; the table scrolls inside its wrapper instead of crushing the column */
 .table-scroll :is(td, th):not(.num):not(:has(> input[type="checkbox"]:only-child)) { min-width: 8rem; }

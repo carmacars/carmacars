@@ -41,6 +41,9 @@
 .ow-status { display: grid; gap: var(--s-2); padding: var(--s-5); background: var(--white); border: 1px solid var(--grey-200); border-top: 4px solid var(--black); }
 .ow-status--paid { border-top-color: var(--black); }
 .ow-status--pending { border-top-color: var(--grey-500); }
+/* r48: the receipt line names the owner's email; a long address breaks inside the card instead of widening the page at 375 */
+.ow-status { grid-template-columns: minmax(0, 1fr); }
+.ow-status > p { overflow-wrap: anywhere; }
 
 /* the application wizard */
 .ow-apply { background: var(--grey-50); border-top: var(--bw) solid var(--black); }

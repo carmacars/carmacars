@@ -28,7 +28,22 @@ create function test.rn48_rental(p jsonb) returns text language sql immutable as
 
 -- ================================================================ 1. welcome: the account, or the first confirmed booking (once)
 select test.mk_renter('rn48_r');
-select test.eq('welcome: when the account is made', test.rn48_events('renter_rewards_welcome', 'rn48_r'), 1);
+-- 3050: the account's welcome goes when its address is confirmed (as renter_account_created), to a renter-only account
+select test.eq('no welcome before the address is confirmed', test.rn48_events('renter_rewards_welcome', 'rn48_r'), 0);
+update users set email_verified_at = now() where id = test.id('rn48_r');
+select test.eq('welcome: when the account is confirmed', test.rn48_events('renter_rewards_welcome', 'rn48_r'), 1);
+-- 3050: an owner who applied (a renter record at sign-up, then the owner record) gets no Rewards welcome when confirmed
+select test.mk_renter('rn48_ow');
+insert into owners (user_id, owner_type, legal_name, email, status) values (test.id('rn48_ow'), 'individual', 'Rn48 Ow', 'rn48_ow@example.test', 'lead');
+insert into user_roles (user_id, role) values (test.id('rn48_ow'), 'owner') on conflict do nothing;
+update users set email_verified_at = now() where id = test.id('rn48_ow');
+select test.eq('an owner applicant: no Rewards welcome at sign-up or when confirmed', test.rn48_events('renter_rewards_welcome', 'rn48_ow'), 0);
+-- a renter record linked to a confirmed renter-only account later (an earlier request) gets it then
+select test.mk_renter('rn48_lk', false);
+select test.mk_user('rn48_lk', 'renter');
+update users set email_verified_at = now() where id = test.id('rn48_lk');
+update renters set user_id = test.id('rn48_lk') where id = test.id('renter:rn48_lk');
+select test.eq('welcome: a record linked to a confirmed renter account', test.rn48_events('renter_rewards_welcome', 'rn48_lk'), 1);
 select test.mk_booking('CC-RN4801', 'RN48A', 'rn48_r', to_char(now() + interval '40 days', 'YYYY-MM-DD 10:00'), to_char(now() + interval '42 days', 'YYYY-MM-DD 10:00'), 'confirmed');
 select test.eq('welcome: once only (the first booking after it sends nothing more)', test.rn48_events('renter_rewards_welcome', 'rn48_r'), 1);
 select test.mk_renter('rn48_g', false);

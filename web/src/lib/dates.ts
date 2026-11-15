@@ -44,3 +44,19 @@ export function torontoParts(instant: string | Date): { date: string; minutes: n
 }
 export const minutesToClock = (m: number) => clock(`${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`);
 export const timeSlots = (step = 30) => Array.from({ length: 1440 / step }, (_, i) => `${String(Math.floor((i * step) / 60)).padStart(2, '0')}:${String((i * step) % 60).padStart(2, '0')}`);
+
+/** r48: a date and time box's value ("YYYY-MM-DDTHH:MM") for an instant, in Toronto wall-clock time (never the browser's
+ *  own zone: a staff member abroad, or a browser set to UTC, sees and types the same 10:00 the renter sees). */
+export function torontoInputOf(instant: string | Date): string {
+  const d = typeof instant === 'string' ? new Date(instant) : instant;
+  if (Number.isNaN(d.getTime())) return '';
+  const { date, minutes } = torontoParts(d);
+  return `${date}T${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+}
+/** The instant (ISO, UTC) of a date and time box's value read as Toronto time; null when it is not a date and time. */
+export function instantOfTorontoInput(v: unknown): string | null {
+  const m = typeof v === 'string' ? v.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/) : null;
+  if (!m) return null;
+  const d = new Date(torontoInstant(m[1]!, m[2]!));
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}

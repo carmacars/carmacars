@@ -708,8 +708,8 @@ select test.eq('P a move onto a confirmed booking is shown as a conflict, with t
   || ' ' || (select jsonb_array_length(r -> 'competing') from (select app.calendar_preview_change(test.b('opP2'), jsonb_build_object('pickup_at', test.at('2031-08-10 10:00'), 'return_at', test.at('2031-08-12 10:00'))) as r) x),
   'false/1/true 1');
 create table test.op_pv3 as select app.calendar_preview_change(test.b('opP2'), jsonb_build_object('return_at', test.at('2031-08-23 10:00'))) as r;
-select test.eq('P resizing a confirmed booking: the renter must approve; Wednesday to Saturday at the stored rates is $320, $135.60 more with HST',
-  (select (r ->> 'action') || '/' || (r ->> 'renter_must_approve') || '/' || (r -> 'new' ->> 'rental_charge_cents') || '/' || (r ->> 'difference_cents') from test.op_pv3), 'renter_approval/true/32000/13560');
+select test.eq('P resizing a confirmed booking: the renter must approve; one more day costs a day of the booking (3050: $226 for 2 days, so $113 more with HST, rental $300)',
+  (select (r ->> 'action') || '/' || (r ->> 'renter_must_approve') || '/' || (r -> 'new' ->> 'rental_charge_cents') || '/' || (r ->> 'difference_cents') from test.op_pv3), 'renter_approval/true/30000/11300');
 select test.eq('P (0025) a confirmed booking may move to another Owner''s car once the renter agrees, but not into the past, past 30 days, or to a car that does not exist',
   (select r ->> 'refusal' from (select app.calendar_preview_change(test.b('opP2'), jsonb_build_object('vehicle_id', test.id('vehicle:OP8'))) as r) x) is null
   and (select r ->> 'refusal' from (select app.calendar_preview_change(test.b('opP2'), jsonb_build_object('pickup_at', test.at('2020-01-01 10:00'), 'return_at', test.at('2020-01-03 10:00'))) as r) x) like '%into the past%'
@@ -725,15 +725,15 @@ create table test.op_ap4 as select app.calendar_apply_change(test.b('opP2'), tes
 select test.eq('P (0024) a change that costs the renter more is not agreed by word: the calendar''s change request waits for the renter to agree and pay online',
   (select (r ->> 'applied') || '/' || (r ->> 'renter_pays_online') from test.op_ap4)
   || ' ' || (select status || '/' || source || '/' || requested_by_role || '/' || total_difference_cents from booking_change_requests where id = (select (r ->> 'change_request_id')::uuid from test.op_ap4))
-  || ' ' || (select (return_at = test.at('2031-08-22 10:00'))::text from bookings where id = test.b('opP2')), 'false/true proposed/staff_calendar/staff/13560 true');
+  || ' ' || (select (return_at = test.at('2031-08-22 10:00'))::text from bookings where id = test.b('opP2')), 'false/true proposed/staff_calendar/staff/11300 true');
 select app.agree_booking_change((select (r ->> 'change_request_id')::uuid from test.op_ap4), test.id('op_r7'), inet '203.0.113.9', 'test browser');
-select app.apply_booking_change((select (r ->> 'change_request_id')::uuid from test.op_ap4), test.id('op_r7'), '{"payment_id": "pi_opP2", "charge_id": "ch_opP2"}', 13560);
-select test.eq('P (0024) the renter agrees and pays online: the booking moves at its stored rates through 0019, the payment is the difference, the task is closed',
+select app.apply_booking_change((select (r ->> 'change_request_id')::uuid from test.op_ap4), test.id('op_r7'), '{"payment_id": "pi_opP2", "charge_id": "ch_opP2"}', 11300);
+select test.eq('P (0024) the renter agrees and pays online: the booking moves through 0019 at a day of the booking (3050), the payment is the difference, the task is closed',
   (select (return_at = test.at('2031-08-23 10:00')) || '/' || billable_days || '/' || rental_charge_cents || '/' || km_allowance_total || '/' || total_due_at_booking_cents from bookings where id = test.b('opP2'))
   || ' ' || (select p.purpose || ':' || p.status || ':' || p.amount_cents from payments p where p.id = (select payment_id from booking_change_requests where id = (select (r ->> 'change_request_id')::uuid from test.op_ap4)))
   || ' ' || (select status from booking_change_requests where id = (select (r ->> 'change_request_id')::uuid from test.op_ap4))
   || ' ' || (select status from tasks where booking_id = test.b('opP2') and task_type = 'booking_change_approval'),
-  'true/3/32000/600/36160 extension:succeeded:13560 applied done');
+  'true/3/30000/600/33900 extension:succeeded:11300 applied done');
 select test.eq('P the return job follows the booking, and its field staff member is told the time changed',
   (select (scheduled_at = test.at('2031-08-23 10:00')) || '/' || status from field_jobs where id = test.b('jobP2'))
   || ' ' || (select (payload -> 'job_changes')::text from app_events where code = 'staff_field_job_changed' and entity_id = test.b('jobP2') order by id desc limit 1), 'true/scheduled ["time"]');

@@ -199,7 +199,8 @@ test('booking request, then create account with the same address: no email at th
   await page.getByRole('button', { name: 'Save the new password' }).click();
   await page.waitForURL((u) => u.pathname === '/account');
   expect(await accountEmails(sql, email)).toEqual(['renter_account_created:confirmed']);
-  expect((await outbox(sql, email)).map((o) => o.code)).toEqual(['renter_account_created']);
+  // Release 48 (3000, 3050): the account holds a renter record (the request), so the Rewards welcome goes with the account email
+  expect((await outbox(sql, email)).map((o) => o.code)).toEqual(['renter_account_created', 'renter_rewards_welcome']);
   await signOutAndIn(page, email, '/account');
   expect(path(page)).toBe('/account');
   await sql.end();

@@ -269,7 +269,8 @@
 .fj-board .stack > * { min-width: 0; }
 .fj-board .table-scroll { overflow-x: auto; max-width: 100%; }
 .fj-board .ad-table td { vertical-align: top; }
-.fj-board .ad-table td .rv-car { min-width: 11rem; }
+/* r48: on a phone the rows are cards (portal.css): the car keeps the card's width there, not 11rem past its edge */
+@media (min-width: 48rem) { .fj-board .ad-table td .rv-car { min-width: 11rem; } }
 .fj-board .ad-table td .rv-car__name { overflow-wrap: normal; word-break: normal; }
 .fj-board .ad-table td.fj-when { min-width: 9rem; }
 .fj-board .ad-table td:has(.ad-actions) { min-width: 13rem; }

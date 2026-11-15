@@ -190,7 +190,8 @@ test('change: staff propose a longer trip, the renter signs the amendment and pa
     await expect(desk.getByTestId('propose-card')).toBeVisible();
     const later = new Date(new Date(before!.return_at as string).getTime() + 86_400_000);
     // the date and time fields are in the browser's own time zone (staff are in Toronto; CI runs in UTC)
-    const local = await desk.evaluate((ms) => { const d = new Date(ms); const p = (n: number) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; }, later.getTime());
+    // Release 48 (3050): the date and time boxes are Toronto time, whatever the browser's zone
+    const local = new Intl.DateTimeFormat('sv-SE', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(later).replace(' ', 'T');
     await desk.locator('#pc-return').fill(local);
     await desk.getByTestId('propose-preview-btn').click();
     await expect(desk.getByTestId('propose-preview')).toContainText('Difference for the renter', { timeout: 15_000 });

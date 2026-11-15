@@ -234,7 +234,7 @@ export function render(md: string, opts: { idPrefix?: string } = {}): RenderResu
       }
       case 'table': {
         const hasHead = b.head.some((h) => h);
-        parts.push(`<div class="gd-tablewrap"><table class="gd-table">${hasHead ? `<thead><tr>${b.head.map((h) => `<th scope="col">${inline(h)}</th>`).join('')}</tr></thead>` : ''}<tbody>${b.rows.map((r) => `<tr>${r.map((c) => `<td>${inline(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`);
+        parts.push(`<div class="gd-tablewrap" tabindex="0" role="region" aria-label="Table"><table class="gd-table">${hasHead ? `<thead><tr>${b.head.map((h) => `<th scope="col">${inline(h)}</th>`).join('')}</tr></thead>` : ''}<tbody>${b.rows.map((r) => `<tr>${r.map((c) => `<td>${inline(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`);
         break;
       }
       case 'flow': parts.push(`<ol class="gd-flow">${b.items.map(([a, d], n) => `<li><b>${n + 1}</b><span>${inline(a)}</span><em>${inline(d)}</em></li>`).join('')}</ol>`); break;

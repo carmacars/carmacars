@@ -17,7 +17,7 @@ export function FleetLeaseCard({ lease }: { lease: FleetLeaseView }) {
         You pay CarmaCars no fees: no invoices, no debits.
       </p>
       {lease.cars.length ? (
-        <div className="table-scroll"><table className="pu-table" data-testid="owner-fleet-cars">
+        <div className="table-scroll" tabIndex={0} role="region" aria-label="Your cars"><table className="pu-table" data-testid="owner-fleet-cars">
           <thead><tr><th scope="col">Car</th><th scope="col">Tier</th><th scope="col">Lease a month</th><th scope="col">On the lease since</th><th scope="col">Next payment</th></tr></thead>
           <tbody>{lease.cars.map((c) => (
             <tr key={c.vehicle_id}>

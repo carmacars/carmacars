@@ -49,8 +49,10 @@ export function StudioSet({ vehicle }: { vehicle: string }) {
       <p className="small muted">Gemini makes every standard view of this car in the same angle and scene as every other car, from the car&apos;s own photos. {d.studio_cover
         ? 'The site shows only these views now, the same on the home page, the cards and the car page.'
         : 'Until the first view is made, the site shows the car\'s own photos.'}</p>
-      <p className="row" style={{ flexWrap: 'wrap' }}>
-        <label className="small">Scene <select value={d.own_scene ?? ''} disabled={pending} data-testid="studio-scene" onChange={(e) => {
+      <div className="field">
+        <label className="label" htmlFor={`studio-scene-${vehicle}`}>Scene</label>
+        {/* r48: the long first option ("Same as every car (...)") never widens the page on a phone: the box is as wide as its column at most */}
+        <select className="select" id={`studio-scene-${vehicle}`} style={{ maxWidth: '100%' }} value={d.own_scene ?? ''} disabled={pending} data-testid="studio-scene" onChange={(e) => {
           const scene = e.target.value || null;
           start(async () => {
             const r = await staffDo<{ queued: number }>('photo_r48_scene', { vehicle, scene });
@@ -60,8 +62,8 @@ export function StudioSet({ vehicle }: { vehicle: string }) {
         }}>
           <option value="">Same as every car ({sceneLabel(d.fleet_scene)})</option>
           {d.scenes.map((s) => <option key={s.code} value={s.code}>{s.label}</option>)}
-        </select></label>
-      </p>
+        </select>
+      </div>
       {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'}><span>{msg.text}</span></p>}
       <div className="ad-table-wrap" tabIndex={0} role="region" aria-label="The studio views of this car (scrolls sideways)">
         <table className="ad-table" data-testid="studio-angles">

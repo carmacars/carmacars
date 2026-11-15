@@ -1,7 +1,8 @@
 'use client';
-import { useState, useTransition } from 'react';
+import { useState, useSyncExternalStore, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { DateInput } from '@/components/DateInput';
+import { instantOfTorontoInput, torontoInputOf } from '@/lib/dates';
 import { PhotoPicker } from './PhotoPicker';
 import { DashReading } from './DashReading';
 import { emptyReading, readingPayload, readingPhotos, readingProblem, readingValues } from './reading';
@@ -12,16 +13,24 @@ import { oneScreenHandover, selfPickup } from '@/server/actions/self-handover';
 // suggested angles, a note; 0910: the odometer and fuel from a required dashboard photo (read, then confirmed or typed) and
 // a selfie in front of the car taken live. Staff (Admin, Fleet, Sales, Customer service, field) on the
 // booking page; the renter's own check-in at pickup with the same screen. The renter's photos join the same report.
+// r48: Toronto time (as every date and time box), set once the page is in the browser: the time on the server and in the
+// browser differ by the seconds between them, and a different minute was a hydration error (#418) on the pickup page
 function localNow(): string {
-  const d = new Date(Date.now() - new Date().getTimezoneOffset() * 60_000);
-  return d.toISOString().slice(0, 16);
+  return torontoInputOf(new Date());
 }
+const noop = () => () => {};
+const yes = () => true;
+const no = () => false;
 
 export function HandoverOneScreen({ booking, number, kind, who, refresh = [], isAdmin = false }: {
   booking: string; number: string; kind: 'pickup' | 'return'; who: 'staff' | 'renter'; refresh?: string[]; isAdmin?: boolean;
 }) {
   const router = useRouter();
-  const [at, setAt] = useState(localNow());
+  // the server and the first render in the browser show no time (#418 when the minute differed); then the time the page opened
+  const hydrated = useSyncExternalStore(noop, yes, no);
+  const [openedAt] = useState(localNow);
+  const [typed, setAt] = useState<string | null>(null);
+  const at = typed ?? (hydrated ? openedAt : '');
   const [reading, setReading] = useState(emptyReading());
   const [readingBusy, setReadingBusy] = useState(false);
   const [note, setNote] = useState('');
@@ -41,12 +50,12 @@ export function HandoverOneScreen({ booking, number, kind, who, refresh = [], is
     const { odometer_km: km, fuel_pct: fuel } = readingValues(reading);
     const rd = readingPayload(reading);
     if (who === 'renter') {
-      const r = await selfPickup({ number, at: at ? new Date(at).toISOString() : undefined, odometer_km: km, fuel_pct: fuel, note, photos: ph, reading: rd });
+      const r = await selfPickup({ number, at: instantOfTorontoInput(at) ?? undefined, odometer_km: km, fuel_pct: fuel, note, photos: ph, reading: rd });
       setMsg(r.ok ? { ok: true, text: r.data.status === 'applied' ? 'You are checked in. Drive safely: your photos and readings are on the check-in report.' : `Thank you, we have your photos and readings. Not finished by itself yet${r.data.reason ? `: ${r.data.reason}` : ''}. A team member confirms the pickup with you shortly.` } : { ok: false, text: r.message });
       if (r.ok) router.refresh();
       return;
     }
-    const r = await oneScreenHandover({ booking, kind, at, odometer_km: km, fuel_pct: fuel, note, photos: ph, reading: rd, deposit_waiver_reason: dep, deposit_pending_reason: owed, signature_override_reason: sig, refresh });
+    const r = await oneScreenHandover({ booking, kind, at: instantOfTorontoInput(at) ?? '', odometer_km: km, fuel_pct: fuel, note, photos: ph, reading: rd, deposit_waiver_reason: dep, deposit_pending_reason: owed, signature_override_reason: sig, refresh });
     setMsg(r.ok ? { ok: true, text: pickup ? 'Checked in: the rental has started.' : 'Checked out: the trip is completed; any extra km and fuel are charged from the rate sheet and shown on the return receipt.' } : { ok: false, text: r.message });
     if (r.ok) { setPhotos([]); setReading(emptyReading()); router.refresh(); }
   });
@@ -56,7 +65,7 @@ export function HandoverOneScreen({ booking, number, kind, who, refresh = [], is
         label={who === 'renter' ? 'Photos of the car as you get it (all sides, inside, any damage)' : 'Photos (add to the renter\'s, if they took some)'} testId={`os-${kind}-photos`} />
       <div className="field-row">
         <div className="field"><label className="label" htmlFor={`os-${kind}-at`}>{pickup ? 'Picked up at' : 'Returned at'}</label>
-          <DateInput className="input" id={`os-${kind}-at`} type="datetime-local" value={at} max={localNow()} onChange={(e) => setAt(e.target.value)} /></div>
+          <DateInput className="input" id={`os-${kind}-at`} type="datetime-local" value={at} max={hydrated ? localNow() : undefined} onChange={(e) => setAt(e.target.value)} /></div>
       </div>
       <DashReading scope={who === 'renter' ? 'self-pickup' : 'one-screen'} id={booking} read={{ booking }} value={reading} onChange={setReading} onBusy={setReadingBusy} testId={`os-${kind}-reading`} />
       <div className="field"><label className="label" htmlFor={`os-${kind}-note`}>Note (optional)</label>

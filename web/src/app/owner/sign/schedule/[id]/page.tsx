@@ -32,7 +32,7 @@ export default async function ScheduleChangePage({ params }: { params: Promise<{
       <div className="pt-split">
         <div className="stack-lg">
           <section className="pt-card stack" aria-labelledby="sc-what"><h2 className="d4" id="sc-what">What changes</h2>
-            <div className="table-scroll"><table className="ad-table" data-testid="schedule-compare"><thead><tr><th scope="col">Term</th><th scope="col">Now</th><th scope="col">Updated</th></tr></thead>
+            <div className="table-scroll" tabIndex={0} role="region" aria-label="What changes"><table className="ad-table" data-testid="schedule-compare"><thead><tr><th scope="col">Term</th><th scope="col">Now</th><th scope="col">Updated</th></tr></thead>
               <tbody>{rows.map(([l, b, n]) => <tr key={l}><td>{l}</td><td>{b}</td><td><b>{n}</b></td></tr>)}</tbody></table></div>
           </section>
           <section className="pt-card stack" aria-labelledby="sc-text"><h2 className="d4" id="sc-text">The text you sign</h2>

@@ -106,8 +106,10 @@ test('the academy: a lesson with captions, a quiz failed then passed, the next s
     const aerr = watch(ap);
     await signIn(ap, admin.email, '/admin');
     await ap.goto('/admin/academy', { waitUntil: 'networkidle' });
-    // the customer service path grows as sections are added (0731, 0802): count it rather than fix a number
-    const csSections = (await sql<Array<{ n: number }>>`select count(*)::int n from academy_path_sections where path_code = 'cs'`)[0]!.n;
+    // the customer service path grows as sections are added (0731, 0802): count it rather than fix a number; since 2990
+    // (Release 48) every staff member also has The renter's side, and the row counts the sections of all their paths
+    const csSections = (await sql<Array<{ n: number }>>`select count(*)::int n from academy_path_sections s
+      where s.path_code = any (app.academy_paths_of(${cs.id}::uuid))`)[0]!.n;
     await expect(ap.getByTestId('academy-staff').locator('tr', { hasText: cs.name })).toContainText(`1 of ${csSections}`);
     // the "i": a button with its name; a click or a tap opens it, Escape closes it and gives the focus back
     const tip = ap.getByRole('button', { name: 'About the academy gate' });
@@ -321,7 +323,11 @@ test('After tax saved on this device: a request\'s review changes nothing, and t
   const total = Number((await page.getByTestId('review-total').innerText()).replace(/[^\d.]/g, '').match(/^\d+(\.\d{1,2})?/)![0]);
   expect(Math.round(total * 100)).toBe(Number(stored!.t));
   await check(page, 'review after tax');
-  if (await page.getByTestId('choice-for_carmacars').count()) await page.getByTestId('choice-for_carmacars').check();
+  // 2940 (Release 48): an Admin's choice is optional and sits under More options (closed until something in it is used)
+  if (await page.getByTestId('choice-for_carmacars').count()) {
+    if (!(await page.getByTestId('choice-for_carmacars').isVisible())) await page.getByTestId('review-more-options').locator(':scope > summary').click();
+    await page.getByTestId('choice-for_carmacars').check();
+  }
   await page.getByTestId('review-send').click();
   await expect(page.getByRole('status').filter({ hasText: 'Offer sent' })).toBeVisible({ timeout: 15_000 });
   expect((await sql`select status::text s from bookings where id = ${v.booking_id}`)[0]!.s).toBe('offered');

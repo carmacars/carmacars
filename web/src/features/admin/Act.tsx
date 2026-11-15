@@ -11,6 +11,7 @@ import { adminToast } from './shell/toast';
 import { InfoTip } from '@/components/InfoTip';
 import { infoText } from '@/features/info/text';
 import { TypedInput } from '@/components/DateInput';
+import { instantOfTorontoInput, torontoInputOf } from '@/lib/dates';
 
 // The admin portal's action controls. One button or one form per database action: fields are typed
 // (money in dollars becomes cents, a percentage becomes basis points, a local date and time becomes an
@@ -29,13 +30,12 @@ export interface Field { name: string; label: string; type?: FieldType; options?
   info?: string | false }
 type Result = { ok: true; data: unknown } | { ok: false; message: string; fieldErrors?: Record<string, string> };
 
-const pad = (n: number) => String(n).padStart(2, '0');
+/** A date and time field's value: Toronto wall-clock time (lib/dates.ts), never the browser's own zone. */
 export function toLocalInput(iso: unknown): string {
-  if (typeof iso !== 'string' || !iso) return '';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return typeof iso === 'string' && iso ? torontoInputOf(iso) : '';
 }
+/** The instant of a date and time field's value, read as Toronto time; null when it is not a date and time. */
+export const fromLocalInput = instantOfTorontoInput;
 function initial(f: Field): string | boolean {
   const v = f.value;
   if (f.type === 'bool') return Boolean(v);
@@ -62,7 +62,7 @@ export function convert(f: Field, raw: string | boolean): { v?: unknown; err?: s
       if (f.max !== undefined && n > f.max) return { err: `At most ${f.max}.` };
       return { v: n };
     }
-    case 'datetime': { const d = new Date(s); return Number.isNaN(d.getTime()) ? { err: 'Enter a date and time.' } : { v: d.toISOString() }; }
+    case 'datetime': { const d = fromLocalInput(s); return d ? { v: d } : { err: 'Enter a date and time.' }; }
     case 'json': try { return { v: JSON.parse(s) }; } catch { return { err: 'Not valid JSON.' }; }
     case 'list': return { v: s.split(',').map((x) => x.trim()).filter(Boolean) };
     default: return { v: s };

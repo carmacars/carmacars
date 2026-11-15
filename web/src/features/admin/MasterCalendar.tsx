@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { money } from '@/lib/format';
 import { when } from '@/features/agreement/model';
 import { useDoor } from './door';
-import { toLocalInput } from './Act';
+import { fromLocalInput, toLocalInput } from './Act';
 import { BAR, lane, rowHeight, stack, topOf } from './calendar-stack';
 import { availability, barLabel, busyKind, holdEnds, holding, holdWords, takes, VIEWS } from './calendar-label';
 import { photoUrl } from '@/lib/photo';
@@ -363,7 +363,7 @@ function SidePanel({ sel, vehicles, onClose, onDone }: { sel: { entry?: Entry; v
     if (action === 'block_create' && !r.data.id && r.data.conflicts?.length) { setConflicts(r.data.conflicts); return; }
     onDone();
   });
-  const blockBody = (force = false) => ({ vehicle: f.vehicle, reason: f.reason, starts_at: new Date(f.starts_at).toISOString(), ends_at: f.ends_at ? new Date(f.ends_at).toISOString() : null, note: f.note, force });
+  const blockBody = (force = false) => ({ vehicle: f.vehicle, reason: f.reason, starts_at: fromLocalInput(f.starts_at), ends_at: fromLocalInput(f.ends_at), note: f.note, force });
   return (
     <div className="mcal__panel" role="dialog" aria-labelledby="cal-side-t" data-testid="cal-panel">
       <div className="row" style={{ justifyContent: 'space-between' }}><h2 className="d4" id="cal-side-t">{e ? (e.type === 'booking' ? e.booking_number : e.type === 'block' ? 'Calendar block' : e.type.replace(/_/g, ' ')) : 'New block'}</h2><button className="btn btn--quiet btn--sm" type="button" onClick={onClose}>Close</button></div>
