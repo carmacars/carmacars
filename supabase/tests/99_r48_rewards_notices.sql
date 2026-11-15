@@ -157,12 +157,16 @@ select test.eq('the holidays by their rules: Good Friday, Victoria Day, Thanksgi
   (select string_agg(on_date::text, ',' order by on_date) from app.reward_holidays_between('2027-03-20', '2027-10-20') where code in ('good_friday', 'victoria_day', 'thanksgiving')),
   '2027-03-26,2027-05-24,2027-10-11');
 select test.eq('a Monday holiday''s window is the weekend before it', (select w_from || ' ' || w_to from app.reward_holidays_between('2027-05-24', '2027-05-24') where code = 'victoria_day'), '2027-05-22 2027-05-24');
-select test.eq('the tiers'' defaults: Gold 10%, Platinum 15%, Black 20%', (select string_agg(code || ':' || birthday_bps || '/' || holiday_bps, ',' order by min_points) from reward_tiers where active and code <> 'member'),
-  'gold:1000/1000,platinum:1500/1500,black:2000/2000');
+select test.eq('the tiers'' defaults: Gold off, Platinum 10%, Black 20%', (select string_agg(code || ':' || birthday_bps || '/' || holiday_bps, ',' order by min_points) from reward_tiers where active and code <> 'member'),
+  'gold:0/0,platinum:1000/1000,black:2000/2000');
 -- rn48_b: Gold, born 5 May (the licence); rn48_m: a Member
 select test.mk_renter('rn48_b');
 select test.rn48_earn('rn48_b', 1200, 'b1');
 select test.mk_renter('rn48_m');
+select test.ok('Gold by default: no birthday or holiday reward', app.rewards_occasion(test.id('renter:rn48_b'), '2027-05-08 14:00+00') is null
+  and app.rewards_occasion(test.id('renter:rn48_b'), '2026-12-25 15:00+00') is null);
+-- the rest of this part: an Admin gives Gold 10% (Change on its tier)
+update reward_tiers set birthday_bps = 1000, holiday_bps = 1000 where code = 'gold';
 select test.eq('a pickup 3 days from the birthday: Gold''s 10%', app.rewards_occasion(test.id('renter:rn48_b'), '2027-05-08 14:00+00') ->> 'label', 'Birthday reward ' || chr(8722) || '10%');
 select test.ok('8 days from it: none', app.rewards_occasion(test.id('renter:rn48_b'), '2027-05-13 14:00+00') is null);
 select test.ok('a Member: none', app.rewards_occasion(test.id('renter:rn48_m'), '2027-05-05 14:00+00') is null);

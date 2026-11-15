@@ -8959,7 +8959,7 @@
       "code": "renter_rewards_birthday",
       "audience": "renter",
       "category": "marketing",
-      "trigger": "CarmaCars Rewards notices (migration 3000, hourly job): 14 days before the renter's birthday (rewards_settings.birthday_notice_days), for a renter whose tier has a birthday reward switched on (Gold 10%, Platinum 15%, Black 20% by default). Once a year. Marketing: only while the renter has not unsubscribed. Switch: Admin > Settings > Rewards, Emails and notices (on by default).",
+      "trigger": "CarmaCars Rewards notices (migration 3000, hourly job): 14 days before the renter's birthday (rewards_settings.birthday_notice_days), for a renter whose tier has a birthday reward switched on (Platinum 10%, Black 20% by default, Gold off). Once a year. Marketing: only while the renter has not unsubscribed. Switch: Admin > Settings > Rewards, Emails and notices (on by default).",
       "timing": "14 days before the birthday",
       "digest": false,
       "from": "CarmaCars <hello@carmacars.ca>",
@@ -9018,7 +9018,7 @@
         {
           "name": "tier_name",
           "type": "string",
-          "sample": "Gold"
+          "sample": "Platinum"
         },
         {
           "name": "tiktok_url",
@@ -9390,7 +9390,7 @@
       "code": "renter_rewards_holiday",
       "audience": "renter",
       "category": "marketing",
-      "trigger": "CarmaCars Rewards notices (migration 3000, hourly job): 10 days before a holiday weekend (rewards_settings.holiday_notice_days; the Ontario holidays in Admin > Settings > Rewards), for a renter whose tier has a holiday reward switched on (Gold 10%, Platinum 15%, Black 20% by default). Once per holiday. Marketing: only while the renter has not unsubscribed. Switch: Admin > Settings > Rewards, Emails and notices (on by default).",
+      "trigger": "CarmaCars Rewards notices (migration 3000, hourly job): 10 days before a holiday weekend (rewards_settings.holiday_notice_days; the Ontario holidays in Admin > Settings > Rewards), for a renter whose tier has a holiday reward switched on (Platinum 10%, Black 20% by default, Gold off). Once per holiday. Marketing: only while the renter has not unsubscribed. Switch: Admin > Settings > Rewards, Emails and notices (on by default).",
       "timing": "10 days before each holiday weekend",
       "digest": false,
       "from": "CarmaCars <hello@carmacars.ca>",
@@ -9454,7 +9454,7 @@
         {
           "name": "tier_name",
           "type": "string",
-          "sample": "Gold"
+          "sample": "Platinum"
         },
         {
           "name": "tiktok_url",

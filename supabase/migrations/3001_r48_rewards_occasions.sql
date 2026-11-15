@@ -1,8 +1,8 @@
 -- 3001 (release 48): birthday and holiday rewards by tier (docs/changes/2026-11-14-r48-rewards-notices.md).
 --
--- The owner, Nov 14: the second tier gets a discount on the renter's birthday and on holidays, the top tier a bigger one.
+-- The owner, Nov 14 (and 15: "tier 2" is Platinum): Platinum gets a discount on the renter's birthday and on holidays, the top tier a bigger one.
 --   1. Per tier (Admin > Settings > Rewards, Birthday and holiday rewards): a birthday percent and a holiday percent with
---      an on/off. Defaults: Gold (the second tier: Member is the first) 10%, Platinum (between) 15%, Black (the top) 20%.
+--      an on/off. Defaults: Gold off (0%), Platinum 10%, Black (the top) 20%; an Admin can give Gold a percent.
 --      Program switches for each kind, the birthday window (7 days either side), the notice days (14 and 10).
 --   2. The birthday: the licence date of birth when we have it, else the month and day the renter gave (Account > Profile
 --      or the Rewards page; the year is optional). 29 February is 28 February in other years.
@@ -55,11 +55,11 @@ alter table reward_tiers
   add column if not exists birthday_bps integer not null default 0 check (birthday_bps between 0 and 5000),
   add column if not exists holiday_bps integer not null default 0 check (holiday_bps between 0 and 5000),
   add column if not exists occasion_enabled boolean not null default true;
-comment on column reward_tiers.birthday_bps is 'r48 (3001): the birthday reward of the tier, basis points off the rental charge (Gold 1000, Platinum 1500, Black 2000).';
-comment on column reward_tiers.holiday_bps is 'r48 (3001): the holiday reward of the tier, basis points off the rental charge (Gold 1000, Platinum 1500, Black 2000).';
+comment on column reward_tiers.birthday_bps is 'r48 (3001): the birthday reward of the tier, basis points off the rental charge (Gold 0, Platinum 1000, Black 2000).';
+comment on column reward_tiers.holiday_bps is 'r48 (3001): the holiday reward of the tier, basis points off the rental charge (Gold 0, Platinum 1000, Black 2000).';
 comment on column reward_tiers.occasion_enabled is 'r48 (3001): the tier''s birthday and holiday rewards on or off.';
-update reward_tiers set birthday_bps = 1000, holiday_bps = 1000 where code = 'gold';
-update reward_tiers set birthday_bps = 1500, holiday_bps = 1500 where code = 'platinum';
+update reward_tiers set birthday_bps = 0, holiday_bps = 0 where code = 'gold';
+update reward_tiers set birthday_bps = 1000, holiday_bps = 1000 where code = 'platinum';
 update reward_tiers set birthday_bps = 2000, holiday_bps = 2000 where code = 'black';
 
 alter table renters
