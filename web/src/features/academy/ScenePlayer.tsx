@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { pickVoice, progress, sceneMs, words, type Lesson, type Scene, type Visual } from './model';
+import { guideHref, pickVoice, progress, sceneMs, shotSrc, words, type Lesson, type Scene, type Visual } from './model';
 
 // A lesson as a video made in the browser (Release 21b, item 9): each scene is HTML and CSS with motion (src/features/academy/
 // academy.css), its words on screen as captions, and narrated by the browser's own voice (Web Speech API, speechSynthesis) in
@@ -9,7 +9,7 @@ import { pickVoice, progress, sceneMs, words, type Lesson, type Scene, type Visu
 // player has the focus. onDone runs once the last scene has played.
 const SPEEDS = [0.75, 1, 1.25, 1.5] as const;
 
-export function ScenePlayer({ lesson, onDone, testId = 'player' }: { lesson: Lesson; onDone?: () => void; testId?: string }) {
+export function ScenePlayer({ lesson, onDone, testId = 'player', admin = false }: { lesson: Lesson; onDone?: () => void; testId?: string; /** 2990: guide links open the Admin's guide pages */ admin?: boolean }) {
   const n = lesson.scenes.length;
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -104,7 +104,7 @@ export function ScenePlayer({ lesson, onDone, testId = 'player' }: { lesson: Les
         {!started ? (
           <div className="ac-cover"><p className="ac-cover__kicker">Lesson</p><p className="ac-cover__title">{lesson.title}</p>
             <p className="ac-cover__meta">{n} scenes · about {Math.max(1, Math.round(lesson.scenes.reduce((s, x) => s + sceneMs(x), 0) / 60000))} min</p></div>
-        ) : <SceneView key={`${idx}-${take}`} scene={scene} />}
+        ) : <SceneView key={`${idx}-${take}`} scene={scene} admin={admin} />}
       </div>
       <p className="ac-caption" data-testid={`${testId}-caption`}>{started ? words(scene) : 'Press Play. The lesson is narrated by your browser\'s voice, with captions.'}</p>
       <div className="ac-bar" role="progressbar" aria-label="Lesson progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pc} data-testid={`${testId}-progress`}>
@@ -124,7 +124,7 @@ export function ScenePlayer({ lesson, onDone, testId = 'player' }: { lesson: Les
   );
 }
 
-function SceneView({ scene }: { scene: Scene }) {
+function SceneView({ scene, admin }: { scene: Scene; admin: boolean }) {
   const v: Visual = scene.visual;
   const d = (i: number) => ({ ['--i' as string]: i }) as React.CSSProperties;
   return (
@@ -138,6 +138,10 @@ function SceneView({ scene }: { scene: Scene }) {
       {v.kind === 'money' && <><p className="ac-scene__head">{v.heading}</p>
         <dl className="ac-money">{v.rows.map(([k, x], i) => <div key={i} style={d(i)}><dt>{k}</dt><dd>{x}</dd></div>)}
           {v.total && <div className="ac-money__total" style={d(v.rows.length)}><dt>{v.total[0]}</dt><dd>{v.total[1]}</dd></div>}</dl></>}
+      {v.kind === 'shot' && <figure className="ac-shot"><p className="ac-scene__head">{v.heading}</p>
+        {/* eslint-disable-next-line @next/next/no-img-element -- a static guide screenshot, served as is from /guides/img */}
+        {v.img && <img className="ac-shot__img" src={shotSrc(v.img)} alt={`${v.heading}: the screen in the guide`} loading="lazy" />}
+        <figcaption className="ac-shot__cap">{v.text && <span>{v.text}</span>}<a className="ac-shot__link" href={guideHref(v.guide, admin)} target="_blank" rel="noopener" data-testid="scene-guide-link">Open this page of the guide</a></figcaption></figure>}
       {v.kind === 'chat' && <div className="ac-chat">{v.lines.map((l, i) => <p key={i} className={`ac-bubble ac-bubble--${l.who === 'you' ? 'you' : 'them'}`} style={d(i)}><span className="ac-bubble__who">{l.who === 'you' ? 'You' : l.who.charAt(0).toUpperCase() + l.who.slice(1)}</span>{l.text}</p>)}</div>}
     </div>
   );

@@ -40,7 +40,7 @@ const STAFF: Record<string, Spec> = {
   '': ['your-workday', 'cs/cs-requests'], academy: ['academy'], addons: ['add-ons'], bookings: ['customer-service', 'cs/prices-and-deposits'], 'bookings/[number]/sign-now': 'signing',
   calendar: ['shared-tools', 'cs/trip-rules'], 'calendar-sync': ['fleet', 'fleet/fleet-cars'], 'past-trips': ['fleet', 'fleet/fleet-cars'], 'deposit-reviews': ['finance', 'finance/new-r35-finance-deposit-review'], 'sales-start': ['sales', 'sales_remote/sales-requests-and-quotes'], 'card-coverage': ['customer-service', 'cs/coverage-and-drivers'], cars: ['shared-tools'],
   chat: ['live-visitors-and-live-chat'], chauffeur: ['chauffeur-requests'], checks: ['fleet', 'fleet/fleet-cars'], documents: ['customer-service', 'cs/documents-and-signing'],
-  'field-hours': ['fleet', 'fleet/fleet-field-jobs'], fleet: ['fleet', 'fleet/fleet-field-jobs'], 'game-leads': ['discount-game-leads', 'sales_remote/sales-requests-and-quotes'], guide: 'guide',
+  'field-hours': ['fleet', 'fleet/fleet-field-jobs'], fleet: ['fleet', 'fleet/fleet-field-jobs'], 'game-leads': ['discount-game-leads', 'sales_remote/sales-requests-and-quotes'], guide: 'guide', 'guide/renter': 'guide',
   leads: ['sales', 'sales_remote/sales-requests-and-quotes'], listings: ['fleet', 'fleet/fleet-cars'], live: ['live-visitors-and-live-chat'], maintenance: ['car-maintenance', 'fleet/fleet-cars'],
   marketing: ['marketing-on-facebook-marketplace', 'sales_remote/marketplace-with-claude'], marketplace: ['marketing-on-facebook-marketplace', 'sales_remote/marketplace-with-claude'],
   messages: ['texts-and-calls'], money: ['finance', 'finance/finance-deposits-refunds'], 'my-sales': ['commissions', 'sales_remote/commission'], 'no-access': ['start-here'],
@@ -126,4 +126,13 @@ export function helpFor(pathname: string, tab?: string | null): (HelpEntry & { p
   const e = (tab && r.row.tabs?.[tab]) || r.row;
   const lessonHref = e.lesson ? (e.portal === 'admin' ? `/admin/academy/learn/${e.lesson}` : e.portal === 'va' || e.portal === 'field' ? `/staff/academy/${e.lesson}` : null) : null;
   return { portal: e.portal, guide: e.guide, ...(e.lesson ? { lesson: e.lesson } : {}), pattern: r.pattern, guideHref: `${GUIDE_PATH[e.portal]}#${e.guide}`, lessonHref };
+}
+
+/** 2990, ask the guide first: the guide chapter of a staff page for the Assistant panel (its chapter in the help map, else the
+ *  start of the portal's guide), with a short label from the chapter's slug. */
+export function askGuideFirst(pathname: string, portal: 'admin' | 'va' | 'field'): { href: string; label: string } {
+  const h = helpFor(pathname);
+  const words = (slug: string) => { const t = slug.replace(/-/g, ' '); return t.charAt(0).toUpperCase() + t.slice(1); };
+  if (h && (h.portal === 'admin' || h.portal === 'va' || h.portal === 'field')) return { href: h.guideHref, label: `the guide, ${words(h.guide)}` };
+  return { href: GUIDE_PATH[portal], label: 'the guide' };
 }

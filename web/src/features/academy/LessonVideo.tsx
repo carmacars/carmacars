@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { staffRead } from '@/server/actions/staff-tools';
 import type { Scene } from './model';
-import { LESSON_BITRATE, LESSON_FPS, LESSON_H, LESSON_MAX_BYTES, LESSON_W, drawLesson, pickMime, timeline } from './video';
+import { LESSON_BITRATE, LESSON_FPS, LESSON_H, LESSON_MAX_BYTES, LESSON_W, drawLesson, lessonImages, pickMime, timeline } from './video';
 
 // Release 37 (2301): an academy lesson as a real video file (MP4 or WebM), free: the first person to press "Watch as video"
 // records it in their browser while it plays (the scenes drawn on a canvas, MediaRecorder), and it is saved to the site's
@@ -12,6 +12,18 @@ type Video = { id: string; mime: string; seconds: number; bytes: number; at: str
 type Row = { lesson: string; title: string; scenes: Scene[]; video: Video };
 const mb = (b: number) => `${(b / 1024 / 1024).toFixed(1)} MB`;
 
+/** 2990: the lesson's guide screenshots, loaded before recording (one that fails to load is left out: the scene keeps its words). */
+async function loadImages(scenes: Scene[]): Promise<Map<string, HTMLImageElement>> {
+  const out = new Map<string, HTMLImageElement>();
+  await Promise.all(lessonImages(scenes).map((src) => new Promise<void>((res) => {
+    const im = new Image();
+    im.onload = () => { out.set(src, im); res(); };
+    im.onerror = () => res();
+    im.src = src;
+  })));
+  return out;
+}
+
 /** Records a lesson on the given canvas (shown while it records) and saves it; resolves with the saved video list. */
 async function recordAndSave(canvas: HTMLCanvasElement, row: { lesson: string; title: string; scenes: Scene[] }, onProgress: (p: number) => void): Promise<void> {
   const mime = pickMime((t) => typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(t));
@@ -20,7 +32,8 @@ async function recordAndSave(canvas: HTMLCanvasElement, row: { lesson: string; t
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('This browser cannot draw the video.');
   const tl = timeline(row.scenes);
-  drawLesson(ctx, row.title, row.scenes, tl, 0);
+  const images = await loadImages(row.scenes);
+  drawLesson(ctx, row.title, row.scenes, tl, 0, images);
   const stream = canvas.captureStream(LESSON_FPS);
   const rec = new MediaRecorder(stream, { mimeType: mime.mime, videoBitsPerSecond: LESSON_BITRATE });
   const chunks: Blob[] = [];
@@ -31,7 +44,7 @@ async function recordAndSave(canvas: HTMLCanvasElement, row: { lesson: string; t
   await new Promise<void>((res) => {
     const tick = () => {
       const t = (performance.now() - t0) / 1000;
-      drawLesson(ctx, row.title, row.scenes, tl, Math.min(t, tl.total - 0.001));
+      drawLesson(ctx, row.title, row.scenes, tl, Math.min(t, tl.total - 0.001), images);
       onProgress(Math.min(1, t / tl.total));
       if (t >= tl.total) { res(); return; }
       requestAnimationFrame(tick);

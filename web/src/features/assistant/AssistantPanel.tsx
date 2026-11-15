@@ -2,7 +2,8 @@
 import './assistant.css';
 import Link from '@/components/Link';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { askGuideFirst } from '@/features/help/routes';
 import type { Out, Turn } from './agent';
 import type { Portal } from './tools';
 
@@ -21,6 +22,9 @@ const HINTS: Record<Portal, string[]> = {
 
 export function AssistantPanel({ portal, greeting }: { portal: Portal; greeting?: string | null }) {
   const router = useRouter();
+  const pathname = usePathname();
+  // 2990: ask the guide first: the chapter of the page they are on (the Stuck help map), else their portal's guide
+  const ask = askGuideFirst(pathname ?? '', portal);
   const dlg = useRef<HTMLDialogElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
   const end = useRef<HTMLDivElement>(null);
@@ -84,6 +88,7 @@ export function AssistantPanel({ portal, greeting }: { portal: Portal; greeting?
           <span className="small muted as-panel__keys">Ctrl+/ opens and closes</span>
           <button type="button" className="btn btn--quiet btn--sm" onClick={() => dlg.current?.close()} data-testid="assistant-close">Close</button>
         </header>
+        <p className="small as-guide-first" data-testid="assistant-guide-first">Ask the guide first: <Link prefetch={false} className="link" href={ask.href}>{ask.label}</Link> answers most questions about this page.</p>
         <div className="as-panel__log" role="log" aria-live="polite" aria-label="Conversation" tabIndex={0} aria-busy={busy} data-testid="assistant-log">
           {!items.length && (
             <div className="as-empty small">

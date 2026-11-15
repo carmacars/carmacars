@@ -13,7 +13,7 @@ export const metadata = pageMeta({ title: 'Academy', path: '/admin/academy', noi
 type Staff = { id: string; name: string; email: string; paths: string[]; sections: number; passed: number; last: string | null; done: boolean };
 type Review = { id: string; slug: string; title: string; guides: string[]; due_at: string; note: string | null };
 type Content = { paths: Array<{ code: string; title: string; sections: Array<{ id: string; slug: string; title: string; sort: number; lessons: number; scenes: number; questions: number }> }> };
-const PATH: Record<string, string> = { cs: 'Customer service', fleet: 'Fleet', finance: 'Finance', sales_in_person: 'Sales in person', sales_remote: 'Sales remote', field: 'Field work', admin: 'Admin' };
+const PATH: Record<string, string> = { cs: 'Customer service', fleet: 'Fleet', finance: 'Finance', sales_in_person: 'Sales in person', sales_remote: 'Sales remote', field: 'Field work', admin: 'Admin', renter_side: 'The renter\'s side' };
 
 // Admin > Academy (Release 21b, item 9): everyone's progress, the paths and their sections to edit, and the Admin's own path.
 export default async function AdminAcademy() {

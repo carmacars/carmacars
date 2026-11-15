@@ -2,7 +2,7 @@
 // (src/features/social/video.ts): each scene drawn on a 16:9 canvas with the player's motion (the items arriving one by one),
 // its words as captions at the bottom, and recorded with MediaRecorder (MP4 where the browser records it, WebM otherwise).
 // The browser's voice cannot be recorded, so the video carries the words as captions. Timeline and layout maths are pure (tested).
-import { sceneMs, words, type Scene } from './model.ts';
+import { sceneMs, shotSrc, words, type Scene } from './model.ts';
 import { pickMime, wrap } from '../social/video.ts';
 
 export { pickMime };
@@ -39,8 +39,20 @@ export const itemAlpha = (n: number, into: number) => Math.min(1, Math.max(0, (i
 const C = { bg: '#0F1B2D', panel: '#17263D', ink: '#F5F7FA', muted: '#A9B4C4', ok: '#2E9E6A', warn: '#D9822B', you: '#2D6CDF', them: '#2A3A55', bar: '#2D6CDF' };
 const FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
 
-/** Draws the lesson at a time: the title card first (1.5 s), then the scenes, the captions and the progress bar. */
-export function drawLesson(ctx: CanvasRenderingContext2D, title: string, scenes: readonly Scene[], tl: ReturnType<typeof timeline>, time: number): void {
+/** 2990: the guide screenshots a lesson shows (their addresses), to load before it is recorded. */
+export const lessonImages = (scenes: readonly Scene[]): string[] => [...new Set(scenes.flatMap((s) => (s.visual.kind === 'shot' && s.visual.img ? [shotSrc(s.visual.img)] : [])))];
+
+/** 2990: a picture fitted inside a box, keeping its shape, at the box's top left. */
+export function fitBox(w: number, h: number, boxW: number, boxH: number): { w: number; h: number } {
+  if (!(w > 0 && h > 0)) return { w: 0, h: 0 };
+  const k = Math.min(boxW / w, boxH / h);
+  return { w: Math.round(w * k), h: Math.round(h * k) };
+}
+
+type Img = CanvasImageSource & { width: number; height: number };
+/** Draws the lesson at a time: the title card first (1.5 s), then the scenes, the captions and the progress bar. A shot scene
+ *  draws its screenshot from `images` (by address) when it was loaded, else its heading and line only. */
+export function drawLesson(ctx: CanvasRenderingContext2D, title: string, scenes: readonly Scene[], tl: ReturnType<typeof timeline>, time: number, images?: ReadonlyMap<string, Img>): void {
   const W = LESSON_W, H = LESSON_H;
   ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, H);
   ctx.textBaseline = 'top';
@@ -86,6 +98,16 @@ export function drawLesson(ctx: CanvasRenderingContext2D, title: string, scenes:
       ctx.globalAlpha = a * 0.3; ctx.fillRect(96, y + 44, W - 192, 2); ctx.globalAlpha = 1;
       y += 56;
     });
+  } else if (v.kind === 'shot') {
+    y = text(v.heading, 64, y, 40, C.ink, 700, W - 128, 1, fadeIn) + 12;
+    const img = v.img ? images?.get(shotSrc(v.img)) : undefined;
+    const boxH = H - 128 - 56 - y;
+    if (img) {
+      const f = fitBox(img.width, img.height, W - 128, boxH);
+      ctx.globalAlpha = fadeIn; ctx.fillStyle = '#FFFFFF'; ctx.fillRect(64, y, f.w, f.h); ctx.drawImage(img, 64, y, f.w, f.h); ctx.globalAlpha = 1;
+      y += f.h + 10;
+    }
+    text(v.text || 'In the guide', 64, Math.min(y, H - 128 - 40), 24, C.muted, 400, W - 128, 1, fadeIn);
   } else if (v.kind === 'chat') {
     v.lines.slice(0, 5).forEach((l, n) => {
       const a = itemAlpha(n, into);
