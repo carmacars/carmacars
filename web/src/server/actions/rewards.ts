@@ -35,3 +35,13 @@ export async function claimGoogleReview(number: string, name: string): Promise<R
     return { ok: true, data };
   } catch (e) { return fail(e); }
 }
+
+/** r48 (3001): the renter's birthday for the Rewards birthday reward (month and day; the year optional; empty removes it). */
+export async function saveBirthday(month: number | null, day: number | null, year: number | null): Promise<R<{ saved: boolean }>> {
+  try {
+    const data = (await rpc('rewards_mine_birthday', { p_month: month as number, p_day: day as number, ...(year ? { p_year: year } : {}) }, await as())) as unknown as { saved: boolean };
+    revalidatePath('/account/rewards');
+    revalidatePath('/account/profile');
+    return { ok: true, data };
+  } catch (e) { return fail(e); }
+}

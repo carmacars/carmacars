@@ -1,5 +1,6 @@
 'use client';
 import { dayClockTo } from '@/lib/clock'; // the same words on the server and in every browser (Intl's "p.m." differs by ICU: React #418)
+import { noTags, prefLabel } from './pref-label';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { markRead, setMarketing, setPreference } from '@/server/actions/portal';
@@ -18,8 +19,8 @@ export function NoticeList({ items }: { items: Notice[] }) {
         {items.map((n) => (
           <li key={n.id} className={n.read_at ? '' : 'is-unread'}>
             <div className="stack" style={{ gap: 'var(--s-1)' }}>
-              <p className="pt-notes__title">{n.title}{!n.read_at && <span className="vh"> (unread)</span>}</p>
-              {n.body && <p className="small muted">{n.body}</p>}
+              <p className="pt-notes__title">{noTags(n.title)}{!n.read_at && <span className="vh"> (unread)</span>}</p>
+              {n.body && <p className="small muted">{noTags(n.body)}</p>}
               <p className="xs muted">{dayClockTo(n.created_at)}</p>
               <div className="row">
                 {n.url && /^\/(?!\/)/.test(n.url) && <a className="link" href={n.url}>Open</a>}
@@ -51,7 +52,7 @@ export function Preferences({ prefs, marketing, marketingText }: { prefs: Notice
         <div className="pt-prefs" role="group" aria-label="Optional messages">
           {mutable.map((p) => (
             <div key={p.code}>
-              <span>{p.subject}</span>
+              <span>{prefLabel(p.code, p.subject)}</span>
               <label className="check"><input type="checkbox" checked={p.email_enabled} onChange={(e) => a.run(() => setPreference(p.code, e.target.checked, p.in_app_enabled), () => router.refresh())} /><span>Email</span></label>
               <label className="check"><input type="checkbox" checked={p.in_app_enabled} onChange={(e) => a.run(() => setPreference(p.code, p.email_enabled, e.target.checked), () => router.refresh())} /><span>Here</span></label>
             </div>

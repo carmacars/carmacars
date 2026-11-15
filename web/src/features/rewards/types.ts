@@ -15,6 +15,17 @@ export interface RewardsState {
   ledger: Array<{ at: string; points: number; kind: string; reason: string; reversed: boolean }>;
   /** r40 (2421): the tiers by points earned in the last 12 months, with their perks; null on an older database */
   ladder?: Ladder | null;
+  /** r48 (3001): the birthday (the licence's first, else the one the renter gave) */
+  birthday?: RewardBirthday;
+  /** r48 (3001): the birthday and holiday rewards of the renter's tier and of each tier, and the next holiday weekends */
+  occasions?: RewardOccasions;
+}
+
+export interface RewardBirthday { month: number | null; day: number | null; year: number | null; from_licence: boolean; label: string | null }
+export interface RewardOccasions {
+  birthday_pct: string | null; holiday_pct: string | null; window_days: number;
+  tiers: Array<{ name: string; birthday_pct: string | null; holiday_pct: string | null }>;
+  holidays: Array<{ name: string; from: string; to: string }>;
 }
 
 /** r40 (2421): a tier's perk (Admin > Rewards edits the words and which tier has it; higher tiers keep the lower ones'). */

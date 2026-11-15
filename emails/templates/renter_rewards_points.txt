@@ -1,0 +1,48 @@
+CarmaCars  |  Rewards
+
+========================================
+
+[Rewards]
+You earned {{points_earned}} points
+
+Thanks, {{first_name}}. Here is what earned them.
+
+{{#each earned}}
+  For: {{reason}} | Points: +{{points}}
+{{/each}}
+
+Your points: {{points_balance}}
+Worth: {{points_value}}
+Your tier: {{tier_name}}
+
+{{#if has_next_tier}}
+{{points_to_next}} more points earned in 12 months make you {{next_tier}}.
+
+{{#if has_next_perk}}
+{{next_tier}} brings {{next_perk}}.
+{{/if}}
+{{/if}}
+
+{{#if can_redeem}}
+You can use your points
+You have {{min_redeem_points}} points or more: turn them into a code on your Rewards page.
+{{/if}}
+
+See my rewards:
+{{rewards_url}}
+
+Points come off the rental charge only, never fees, add-ons, coverage, tax or the deposit.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

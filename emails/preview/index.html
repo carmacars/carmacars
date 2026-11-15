@@ -21,10 +21,10 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>221 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>88</span></a><a href="#owner">Owner <span>49</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>20</span></a><a href="#staff_va_finance">Staff: finance <span>9</span></a><a href="#staff_va_fleet">Staff: fleet <span>10</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>5</span></a><a href="#staff_field">Staff: field <span>8</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>14</span></a><a href="#partner">Partner (body shop, tow truck, storage) <span>1</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>232 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>99</span></a><a href="#owner">Owner <span>49</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>20</span></a><a href="#staff_va_finance">Staff: finance <span>9</span></a><a href="#staff_va_fleet">Staff: fleet <span>10</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>5</span></a><a href="#staff_field">Staff: field <span>8</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>14</span></a><a href="#partner">Partner (body shop, tow truck, storage) <span>1</span></a></nav>
 <main>
-<h2 id="renter">Renter (88)</h2>
+<h2 id="renter">Renter (99)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/account_password_reset.html"><img loading="lazy" src="../shots/account_password_reset.desktop.png" alt="Screenshot of account_password_reset"></a><div class="b">
 <div class="code">account_password_reset</div><div class="sub">Reset your CarmaCars password</div>
@@ -518,11 +518,77 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tr">2 days after booking status becomes closed. Only if the renter has not unsubscribed and no review exists for it. A booking that had a problem (an incident, a dispute, an unpaid balance or a damage charge) is not sent automatically: it waits for a staff member to approve it (review_request_decision task, app.decide_review_request). Only an approval sends it, at once; a refusal means it is never sent. Relies on the existing business relationship for consent, so it carries the unsubscribe link and mailing address.</div>
 <div class="ln"><a href="../dist/renter_review_request.html">HTML</a><a href="../dist/renter_review_request.txt">Text</a><a href="../shots/renter_review_request.desktop.png">Desktop</a><a href="../shots/renter_review_request.phone.png">Phone</a></div>
 </div></div>
+<div class="c"><a class="th" href="../dist/renter_rewards_birthday.html"><img loading="lazy" src="../shots/renter_rewards_birthday.desktop.png" alt="Screenshot of renter_rewards_birthday"></a><div class="b">
+<div class="code">renter_rewards_birthday</div><div class="sub">Your birthday reward is waiting: 10% off</div>
+<div class="tags"><span class="m">Marketing</span></div>
+<div class="tr">CarmaCars Rewards notices (migration 3000, hourly job): 14 days before the renter's birthday (rewards_settings.birthday_notice_days), for a renter whose tier has a birthday reward switched on (Gold 10%, Platinum 15%, Black 20% by default). Once a year. Marketing: only while the renter has not unsubscribed. Switch: Admin &gt; Settings &gt; Rewards, Emails and notices (on by default).</div>
+<div class="ln"><a href="../dist/renter_rewards_birthday.html">HTML</a><a href="../dist/renter_rewards_birthday.txt">Text</a><a href="../shots/renter_rewards_birthday.desktop.png">Desktop</a><a href="../shots/renter_rewards_birthday.phone.png">Phone</a></div>
+</div></div>
 <div class="c"><a class="th" href="../dist/renter_rewards_expiring.html"><img loading="lazy" src="../shots/renter_rewards_expiring.desktop.png" alt="Screenshot of renter_rewards_expiring"></a><div class="b">
 <div class="code">renter_rewards_expiring</div><div class="sub">Your 1,240 CarmaCars points end on Mon, Dec 7, 2026</div>
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">CarmaCars Rewards job (hourly, migration 0214): a renter has points and no rental or redemption for the expiry period less the reminder days (Admin &gt; Settings &gt; Rewards: 12 months and 30 days by default). One email per period of activity. Low priority (class 4): it waits behind customer, owner and staff emails under the daily email cap.</div>
 <div class="ln"><a href="../dist/renter_rewards_expiring.html">HTML</a><a href="../dist/renter_rewards_expiring.txt">Text</a><a href="../shots/renter_rewards_expiring.desktop.png">Desktop</a><a href="../shots/renter_rewards_expiring.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_rewards_expiring_7d.html"><img loading="lazy" src="../shots/renter_rewards_expiring_7d.desktop.png" alt="Screenshot of renter_rewards_expiring_7d"></a><div class="b">
+<div class="code">renter_rewards_expiring_7d</div><div class="sub">Last week to keep your 1,240 CarmaCars points</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">CarmaCars Rewards notices (migration 3000, hourly job): 7 days before the renter's points end (12 months after the last rental or redemption by default), after the 30-day reminder (renter_rewards_expiring). Once per period of activity. Not sent when the reminder days are 7 or fewer. Switch: Admin &gt; Settings &gt; Rewards, Emails and notices (on by default).</div>
+<div class="ln"><a href="../dist/renter_rewards_expiring_7d.html">HTML</a><a href="../dist/renter_rewards_expiring_7d.txt">Text</a><a href="../shots/renter_rewards_expiring_7d.desktop.png">Desktop</a><a href="../shots/renter_rewards_expiring_7d.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_rewards_free_day.html"><img loading="lazy" src="../shots/renter_rewards_free_day.desktop.png" alt="Screenshot of renter_rewards_free_day"></a><div class="b">
+<div class="code">renter_rewards_free_day</div><div class="sub">Your free rental day is ready</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">CarmaCars Rewards notices (migration 3000): the Black tier's free rental day code was made for the renter (2421, one a year). Once per code. Switch: Admin &gt; Settings &gt; Rewards, Emails and notices (on by default).</div>
+<div class="ln"><a href="../dist/renter_rewards_free_day.html">HTML</a><a href="../dist/renter_rewards_free_day.txt">Text</a><a href="../shots/renter_rewards_free_day.desktop.png">Desktop</a><a href="../shots/renter_rewards_free_day.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_rewards_free_day_ending.html"><img loading="lazy" src="../shots/renter_rewards_free_day_ending.desktop.png" alt="Screenshot of renter_rewards_free_day_ending"></a><div class="b">
+<div class="code">renter_rewards_free_day_ending</div><div class="sub">Your free rental day ends in 7 days</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">CarmaCars Rewards notices (migration 3000, hourly job): the renter's free rental day code is unused and ends in 30 days, and again in 7 days. Once each. Switch: Admin &gt; Settings &gt; Rewards, Emails and notices (on by default).</div>
+<div class="ln"><a href="../dist/renter_rewards_free_day_ending.html">HTML</a><a href="../dist/renter_rewards_free_day_ending.txt">Text</a><a href="../shots/renter_rewards_free_day_ending.desktop.png">Desktop</a><a href="../shots/renter_rewards_free_day_ending.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_rewards_holiday.html"><img loading="lazy" src="../shots/renter_rewards_holiday.desktop.png" alt="Screenshot of renter_rewards_holiday"></a><div class="b">
+<div class="code">renter_rewards_holiday</div><div class="sub">Christmas: 10% off for you</div>
+<div class="tags"><span class="m">Marketing</span></div>
+<div class="tr">CarmaCars Rewards notices (migration 3000, hourly job): 10 days before a holiday weekend (rewards_settings.holiday_notice_days; the Ontario holidays in Admin &gt; Settings &gt; Rewards), for a renter whose tier has a holiday reward switched on (Gold 10%, Platinum 15%, Black 20% by default). Once per holiday. Marketing: only while the renter has not unsubscribed. Switch: Admin &gt; Settings &gt; Rewards, Emails and notices (on by default).</div>
+<div class="ln"><a href="../dist/renter_rewards_holiday.html">HTML</a><a href="../dist/renter_rewards_holiday.txt">Text</a><a href="../shots/renter_rewards_holiday.desktop.png">Desktop</a><a href="../shots/renter_rewards_holiday.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_rewards_near_tier.html"><img loading="lazy" src="../shots/renter_rewards_near_tier.desktop.png" alt="Screenshot of renter_rewards_near_tier"></a><div class="b">
+<div class="code">renter_rewards_near_tier</div><div class="sub">You are 180 points from Gold</div>
+<div class="tags"><span class="m">Marketing</span></div>
+<div class="tr">CarmaCars Rewards notices (migration 3000): two days after a completed rental, when the points the renter earned in the last 12 months are within 20% of the next tier (rewards_settings.notice_near_tier_pct) and the rental did not already move them up. Once per renter, tier and rental. Marketing: only while the renter has not unsubscribed. Switch: Admin &gt; Settings &gt; Rewards, Emails and notices (on by default).</div>
+<div class="ln"><a href="../dist/renter_rewards_near_tier.html">HTML</a><a href="../dist/renter_rewards_near_tier.txt">Text</a><a href="../shots/renter_rewards_near_tier.desktop.png">Desktop</a><a href="../shots/renter_rewards_near_tier.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_rewards_points.html"><img loading="lazy" src="../shots/renter_rewards_points.desktop.png" alt="Screenshot of renter_rewards_points"></a><div class="b">
+<div class="code">renter_rewards_points</div><div class="sub">+650 CarmaCars points</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">CarmaCars Rewards notices (migration 3000): points were earned (a completed rental, a damage-free rental, the first rental, booking again, a review, a review photo, a Google review, a referral, the birthday). One email per renter for everything earned at once (the dedupe key is the renter and the transaction), never for a follow on social media or an Admin's adjustment, never for a booking marked Do not email. Switch: Admin &gt; Settings &gt; Rewards, Emails and notices (on by default).</div>
+<div class="ln"><a href="../dist/renter_rewards_points.html">HTML</a><a href="../dist/renter_rewards_points.txt">Text</a><a href="../shots/renter_rewards_points.desktop.png">Desktop</a><a href="../shots/renter_rewards_points.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_rewards_statement.html"><img loading="lazy" src="../shots/renter_rewards_statement.desktop.png" alt="Screenshot of renter_rewards_statement"></a><div class="b">
+<div class="code">renter_rewards_statement</div><div class="sub">Your CarmaCars points for October 2026</div>
+<div class="tags"><span class="m">Marketing</span></div>
+<div class="tr">CarmaCars Rewards notices (migration 3000, hourly job): on the 1st of each month from 9:00 Toronto time, the last month's points for each renter with a balance above 0 or points earned or used that month. Once per renter and month. Marketing: only while the renter has not unsubscribed. Switch: Admin &gt; Settings &gt; Rewards, Emails and notices (on by default).</div>
+<div class="ln"><a href="../dist/renter_rewards_statement.html">HTML</a><a href="../dist/renter_rewards_statement.txt">Text</a><a href="../shots/renter_rewards_statement.desktop.png">Desktop</a><a href="../shots/renter_rewards_statement.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_rewards_tier_up.html"><img loading="lazy" src="../shots/renter_rewards_tier_up.desktop.png" alt="Screenshot of renter_rewards_tier_up"></a><div class="b">
+<div class="code">renter_rewards_tier_up</div><div class="sub">You are Gold now</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">CarmaCars Rewards notices (migration 3000): the renter reached a higher tier (Gold, Platinum, Black by points earned in the last 12 months). Once per tier in 12 months (the dedupe key is the renter, the tier and the day). Switch: Admin &gt; Settings &gt; Rewards, Emails and notices (on by default).</div>
+<div class="ln"><a href="../dist/renter_rewards_tier_up.html">HTML</a><a href="../dist/renter_rewards_tier_up.txt">Text</a><a href="../shots/renter_rewards_tier_up.desktop.png">Desktop</a><a href="../shots/renter_rewards_tier_up.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_rewards_waiting.html"><img loading="lazy" src="../shots/renter_rewards_waiting.desktop.png" alt="Screenshot of renter_rewards_waiting"></a><div class="b">
+<div class="code">renter_rewards_waiting</div><div class="sub">Your 1,240 CarmaCars points are waiting</div>
+<div class="tags"><span class="m">Marketing</span></div>
+<div class="tr">CarmaCars Rewards notices (migration 3000, hourly job): 30 days after the renter's last completed rental (rewards_settings.notice_waiting_days) with points or an unused free day, and no booking coming up. At most once in 60 days (notice_waiting_every_days). Marketing: only while the renter has not unsubscribed. Switch: Admin &gt; Settings &gt; Rewards, Emails and notices (on by default).</div>
+<div class="ln"><a href="../dist/renter_rewards_waiting.html">HTML</a><a href="../dist/renter_rewards_waiting.txt">Text</a><a href="../shots/renter_rewards_waiting.desktop.png">Desktop</a><a href="../shots/renter_rewards_waiting.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_rewards_welcome.html"><img loading="lazy" src="../shots/renter_rewards_welcome.desktop.png" alt="Screenshot of renter_rewards_welcome"></a><div class="b">
+<div class="code">renter_rewards_welcome</div><div class="sub">Welcome to CarmaCars Rewards</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">CarmaCars Rewards notices (migration 3000): once per renter, when the renter's account is made or their first booking is confirmed, whichever comes first (the dedupe key is the renter). Switch: Admin &gt; Settings &gt; Rewards, Emails and notices (on by default). Not sent while Rewards is off.</div>
+<div class="ln"><a href="../dist/renter_rewards_welcome.html">HTML</a><a href="../dist/renter_rewards_welcome.txt">Text</a><a href="../shots/renter_rewards_welcome.desktop.png">Desktop</a><a href="../shots/renter_rewards_welcome.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_signing_code.html"><img loading="lazy" src="../shots/renter_signing_code.desktop.png" alt="Screenshot of renter_signing_code"></a><div class="b">
 <div class="code">renter_signing_code</div><div class="sub">Your CarmaCars signing code: 482913</div>

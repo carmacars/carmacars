@@ -1,0 +1,44 @@
+CarmaCars  |  {{month_label}}
+
+========================================
+
+[Rewards]
+Your points in {{month_label}}
+
+Hi {{first_name}}, here is your CarmaCars Rewards month.
+
+Earned: {{month_earned}}
+Used: {{month_used}}
+Your points now: {{points_balance}}
+Worth: {{points_value}}
+Your tier: {{tier_name}}
+
+{{#if has_entries}}
+{{#each entries}}
+  Date: {{date}} | For: {{reason}} | Points: {{points}}
+{{/each}}
+{{/if}}
+
+{{#if has_next_tier}}
+{{points_to_next}} more points earned in 12 months make you {{next_tier}}.
+{{/if}}
+
+See my rewards:
+{{rewards_url}}
+
+Points come off the rental charge only, never fees, add-ons, coverage, tax or the deposit.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you gave us your email address on carmacars.ca.
+Unsubscribe at any time (it takes effect at once): {{unsubscribe_url}}
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

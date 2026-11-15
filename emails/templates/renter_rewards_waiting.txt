@@ -1,0 +1,36 @@
+CarmaCars  |  Rewards
+
+========================================
+
+[Rewards]
+Your points are waiting, {{first_name}}
+
+You have {{points_balance}} points, worth {{points_value}} off the rental charge of your next booking.
+
+Your points: {{points_balance}}
+Worth: {{points_value}}
+Your tier: {{tier_name}}
+
+{{#if has_free_day}}
+Your free rental day is waiting too: code {{free_day_code}}, good until {{free_day_until}}.
+{{/if}}
+
+Choose a car:
+https://carmacars.ca/cars
+
+Points come off the rental charge only, never fees, add-ons, coverage, tax or the deposit.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you gave us your email address on carmacars.ca.
+Unsubscribe at any time (it takes effect at once): {{unsubscribe_url}}
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

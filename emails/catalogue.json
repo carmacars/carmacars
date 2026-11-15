@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 221,
+  "count": 232,
   "emails": [
     {
       "code": "account_password_reset",
@@ -8956,6 +8956,97 @@
       "template_text": "templates/renter_review_request.txt"
     },
     {
+      "code": "renter_rewards_birthday",
+      "audience": "renter",
+      "category": "marketing",
+      "trigger": "CarmaCars Rewards notices (migration 3000, hourly job): 14 days before the renter's birthday (rewards_settings.birthday_notice_days), for a renter whose tier has a birthday reward switched on (Gold 10%, Platinum 15%, Black 20% by default). Once a year. Marketing: only while the renter has not unsubscribed. Switch: Admin > Settings > Rewards, Emails and notices (on by default).",
+      "timing": "14 days before the birthday",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Your birthday reward is waiting: {{reward_pct}} off",
+      "preheader": "Pick up a car between {{window_from}} and {{window_to}}.",
+      "sample_subject": "Your birthday reward is waiting: 10% off",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "reward_pct",
+          "type": "string",
+          "sample": "10%"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tier_name",
+          "type": "string",
+          "sample": "Gold"
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "unsubscribe_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/unsubscribe?token=sample",
+          "note": "One-click unsubscribe link, tokenised per recipient. Also send it in the List-Unsubscribe header."
+        },
+        {
+          "name": "window_from",
+          "type": "string",
+          "sample": "Tue, Dec 1, 2026"
+        },
+        {
+          "name": "window_to",
+          "type": "string",
+          "sample": "Tue, Dec 15, 2026"
+        }
+      ],
+      "template_html": "templates/renter_rewards_birthday.html",
+      "template_text": "templates/renter_rewards_birthday.txt"
+    },
+    {
       "code": "renter_rewards_expiring",
       "audience": "renter",
       "category": "transactional",
@@ -9039,6 +9130,1045 @@
       ],
       "template_html": "templates/renter_rewards_expiring.html",
       "template_text": "templates/renter_rewards_expiring.txt"
+    },
+    {
+      "code": "renter_rewards_expiring_7d",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "CarmaCars Rewards notices (migration 3000, hourly job): 7 days before the renter's points end (12 months after the last rental or redemption by default), after the 30-day reminder (renter_rewards_expiring). Once per period of activity. Not sent when the reminder days are 7 or fewer. Switch: Admin > Settings > Rewards, Emails and notices (on by default).",
+      "timing": "7 days before the points end",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Last week to keep your {{points_balance}} CarmaCars points",
+      "preheader": "They end on {{expiry_date}}.",
+      "sample_subject": "Last week to keep your 1,240 CarmaCars points",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "expiry_date",
+          "type": "string",
+          "sample": "Mon, Dec 7, 2026"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "points_balance",
+          "type": "string",
+          "sample": "1,240"
+        },
+        {
+          "name": "points_value",
+          "type": "string",
+          "sample": "$12.40"
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "rewards_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/account/rewards"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/renter_rewards_expiring_7d.html",
+      "template_text": "templates/renter_rewards_expiring_7d.txt"
+    },
+    {
+      "code": "renter_rewards_free_day",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "CarmaCars Rewards notices (migration 3000): the Black tier's free rental day code was made for the renter (2421, one a year). Once per code. Switch: Admin > Settings > Rewards, Emails and notices (on by default).",
+      "timing": "When the free day code is made",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Your free rental day is ready",
+      "preheader": "Code {{free_day_code}} is good until {{free_day_until}}.",
+      "sample_subject": "Your free rental day is ready",
+      "variables": [
+        {
+          "name": "book_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/book?promo=FREE7KQ4XM"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "free_day_code",
+          "type": "string",
+          "sample": "FREE7KQ4XM"
+        },
+        {
+          "name": "free_day_until",
+          "type": "string",
+          "sample": "Sun, Nov 14, 2027"
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tier_name",
+          "type": "string",
+          "sample": "Black"
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/renter_rewards_free_day.html",
+      "template_text": "templates/renter_rewards_free_day.txt"
+    },
+    {
+      "code": "renter_rewards_free_day_ending",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "CarmaCars Rewards notices (migration 3000, hourly job): the renter's free rental day code is unused and ends in 30 days, and again in 7 days. Once each. Switch: Admin > Settings > Rewards, Emails and notices (on by default).",
+      "timing": "30 and 7 days before the free day code ends",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Your free rental day ends in {{days_left}}",
+      "preheader": "Code {{free_day_code}} is good until {{free_day_until}}.",
+      "sample_subject": "Your free rental day ends in 7 days",
+      "variables": [
+        {
+          "name": "book_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/book?promo=FREE7KQ4XM"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "days_left",
+          "type": "string",
+          "sample": "7 days"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "free_day_code",
+          "type": "string",
+          "sample": "FREE7KQ4XM"
+        },
+        {
+          "name": "free_day_until",
+          "type": "string",
+          "sample": "Sun, Nov 21, 2026"
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/renter_rewards_free_day_ending.html",
+      "template_text": "templates/renter_rewards_free_day_ending.txt"
+    },
+    {
+      "code": "renter_rewards_holiday",
+      "audience": "renter",
+      "category": "marketing",
+      "trigger": "CarmaCars Rewards notices (migration 3000, hourly job): 10 days before a holiday weekend (rewards_settings.holiday_notice_days; the Ontario holidays in Admin > Settings > Rewards), for a renter whose tier has a holiday reward switched on (Gold 10%, Platinum 15%, Black 20% by default). Once per holiday. Marketing: only while the renter has not unsubscribed. Switch: Admin > Settings > Rewards, Emails and notices (on by default).",
+      "timing": "10 days before each holiday weekend",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "{{holiday_name}}: {{reward_pct}} off for you",
+      "preheader": "Pick up a car between {{window_from}} and {{window_to}}.",
+      "sample_subject": "Christmas: 10% off for you",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "holiday_name",
+          "type": "string",
+          "sample": "Christmas"
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "reward_pct",
+          "type": "string",
+          "sample": "10%"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tier_name",
+          "type": "string",
+          "sample": "Gold"
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "unsubscribe_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/unsubscribe?token=sample",
+          "note": "One-click unsubscribe link, tokenised per recipient. Also send it in the List-Unsubscribe header."
+        },
+        {
+          "name": "window_from",
+          "type": "string",
+          "sample": "Thu, Dec 24, 2026"
+        },
+        {
+          "name": "window_to",
+          "type": "string",
+          "sample": "Sat, Dec 26, 2026"
+        }
+      ],
+      "template_html": "templates/renter_rewards_holiday.html",
+      "template_text": "templates/renter_rewards_holiday.txt"
+    },
+    {
+      "code": "renter_rewards_near_tier",
+      "audience": "renter",
+      "category": "marketing",
+      "trigger": "CarmaCars Rewards notices (migration 3000): two days after a completed rental, when the points the renter earned in the last 12 months are within 20% of the next tier (rewards_settings.notice_near_tier_pct) and the rental did not already move them up. Once per renter, tier and rental. Marketing: only while the renter has not unsubscribed. Switch: Admin > Settings > Rewards, Emails and notices (on by default).",
+      "timing": "Two days after a rental, when close to the next tier",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "You are {{points_to_next}} points from {{next_tier}}",
+      "preheader": "One more rental could get you there.",
+      "sample_subject": "You are 180 points from Gold",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "next_perk",
+          "type": "string",
+          "sample": "Instant Book"
+        },
+        {
+          "name": "next_tier",
+          "type": "string",
+          "sample": "Gold"
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "points_12m",
+          "type": "string",
+          "sample": "820"
+        },
+        {
+          "name": "points_to_next",
+          "type": "string",
+          "sample": "180"
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "unsubscribe_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/unsubscribe?token=sample",
+          "note": "One-click unsubscribe link, tokenised per recipient. Also send it in the List-Unsubscribe header."
+        }
+      ],
+      "template_html": "templates/renter_rewards_near_tier.html",
+      "template_text": "templates/renter_rewards_near_tier.txt"
+    },
+    {
+      "code": "renter_rewards_points",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "CarmaCars Rewards notices (migration 3000): points were earned (a completed rental, a damage-free rental, the first rental, booking again, a review, a review photo, a Google review, a referral, the birthday). One email per renter for everything earned at once (the dedupe key is the renter and the transaction), never for a follow on social media or an Admin's adjustment, never for a booking marked Do not email. Switch: Admin > Settings > Rewards, Emails and notices (on by default).",
+      "timing": "When points are earned",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "+{{points_earned}} CarmaCars points",
+      "preheader": "Your balance is {{points_balance}} points, worth {{points_value}}.",
+      "sample_subject": "+650 CarmaCars points",
+      "variables": [
+        {
+          "name": "can_redeem",
+          "type": "boolean",
+          "sample": true
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "earned",
+          "type": "list",
+          "sample": [
+            {
+              "reason": "Rental CC-10482 ($450.00 after discounts)",
+              "points": "450"
+            },
+            {
+              "reason": "Damage-free rental CC-10482",
+              "points": "200"
+            }
+          ],
+          "fields": [
+            "reason",
+            "points"
+          ]
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "has_next_perk",
+          "type": "boolean",
+          "sample": true
+        },
+        {
+          "name": "has_next_tier",
+          "type": "boolean",
+          "sample": true
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "min_redeem_points",
+          "type": "string",
+          "sample": "500"
+        },
+        {
+          "name": "next_perk",
+          "type": "string",
+          "sample": "Any car, any time"
+        },
+        {
+          "name": "next_tier",
+          "type": "string",
+          "sample": "Platinum"
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "points_balance",
+          "type": "string",
+          "sample": "1,240"
+        },
+        {
+          "name": "points_earned",
+          "type": "string",
+          "sample": "650"
+        },
+        {
+          "name": "points_to_next",
+          "type": "string",
+          "sample": "13,760"
+        },
+        {
+          "name": "points_value",
+          "type": "string",
+          "sample": "$12.40"
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "rewards_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/account/rewards"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tier_name",
+          "type": "string",
+          "sample": "Gold"
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/renter_rewards_points.html",
+      "template_text": "templates/renter_rewards_points.txt"
+    },
+    {
+      "code": "renter_rewards_statement",
+      "audience": "renter",
+      "category": "marketing",
+      "trigger": "CarmaCars Rewards notices (migration 3000, hourly job): on the 1st of each month from 9:00 Toronto time, the last month's points for each renter with a balance above 0 or points earned or used that month. Once per renter and month. Marketing: only while the renter has not unsubscribed. Switch: Admin > Settings > Rewards, Emails and notices (on by default).",
+      "timing": "Monthly, on the 1st",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Your CarmaCars points for {{month_label}}",
+      "preheader": "{{points_balance}} points, worth {{points_value}}.",
+      "sample_subject": "Your CarmaCars points for October 2026",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "entries",
+          "type": "list",
+          "sample": [
+            {
+              "date": "Mon, Oct 26, 2026",
+              "reason": "Rental CC-10482",
+              "points": "+450"
+            },
+            {
+              "date": "Mon, Oct 26, 2026",
+              "reason": "Damage-free rental CC-10482",
+              "points": "+200"
+            }
+          ],
+          "fields": [
+            "date",
+            "reason",
+            "points"
+          ]
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "has_entries",
+          "type": "boolean",
+          "sample": true
+        },
+        {
+          "name": "has_next_tier",
+          "type": "boolean",
+          "sample": true
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "month_earned",
+          "type": "string",
+          "sample": "650"
+        },
+        {
+          "name": "month_label",
+          "type": "string",
+          "sample": "October 2026"
+        },
+        {
+          "name": "month_used",
+          "type": "string",
+          "sample": "0"
+        },
+        {
+          "name": "next_tier",
+          "type": "string",
+          "sample": "Platinum"
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "points_balance",
+          "type": "string",
+          "sample": "1,240"
+        },
+        {
+          "name": "points_to_next",
+          "type": "string",
+          "sample": "13,760"
+        },
+        {
+          "name": "points_value",
+          "type": "string",
+          "sample": "$12.40"
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "rewards_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/account/rewards"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tier_name",
+          "type": "string",
+          "sample": "Gold"
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "unsubscribe_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/unsubscribe?token=sample",
+          "note": "One-click unsubscribe link, tokenised per recipient. Also send it in the List-Unsubscribe header."
+        }
+      ],
+      "template_html": "templates/renter_rewards_statement.html",
+      "template_text": "templates/renter_rewards_statement.txt"
+    },
+    {
+      "code": "renter_rewards_tier_up",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "CarmaCars Rewards notices (migration 3000): the renter reached a higher tier (Gold, Platinum, Black by points earned in the last 12 months). Once per tier in 12 months (the dedupe key is the renter, the tier and the day). Switch: Admin > Settings > Rewards, Emails and notices (on by default).",
+      "timing": "When the renter reaches a new tier",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "You are {{tier_name}} now",
+      "preheader": "Thank you for renting with CarmaCars. Here is what {{tier_name}} brings.",
+      "sample_subject": "You are Gold now",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "perks",
+          "type": "list",
+          "sample": [
+            {
+              "label": "Instant Book",
+              "detail": "Book without sending a request: the car is yours at once, then you sign and pay."
+            }
+          ],
+          "fields": [
+            "label",
+            "detail"
+          ]
+        },
+        {
+          "name": "points_12m",
+          "type": "string",
+          "sample": "1,240"
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "rewards_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/account/rewards"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tier_name",
+          "type": "string",
+          "sample": "Gold"
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/renter_rewards_tier_up.html",
+      "template_text": "templates/renter_rewards_tier_up.txt"
+    },
+    {
+      "code": "renter_rewards_waiting",
+      "audience": "renter",
+      "category": "marketing",
+      "trigger": "CarmaCars Rewards notices (migration 3000, hourly job): 30 days after the renter's last completed rental (rewards_settings.notice_waiting_days) with points or an unused free day, and no booking coming up. At most once in 60 days (notice_waiting_every_days). Marketing: only while the renter has not unsubscribed. Switch: Admin > Settings > Rewards, Emails and notices (on by default).",
+      "timing": "30 days after the last rental, at most every 60 days",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Your {{points_balance}} CarmaCars points are waiting",
+      "preheader": "Worth {{points_value}} off your next rental.",
+      "sample_subject": "Your 1,240 CarmaCars points are waiting",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "free_day_code",
+          "type": "string",
+          "sample": ""
+        },
+        {
+          "name": "free_day_until",
+          "type": "string",
+          "sample": ""
+        },
+        {
+          "name": "has_free_day",
+          "type": "boolean",
+          "sample": false
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "points_balance",
+          "type": "string",
+          "sample": "1,240"
+        },
+        {
+          "name": "points_value",
+          "type": "string",
+          "sample": "$12.40"
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tier_name",
+          "type": "string",
+          "sample": "Gold"
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "unsubscribe_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/unsubscribe?token=sample",
+          "note": "One-click unsubscribe link, tokenised per recipient. Also send it in the List-Unsubscribe header."
+        }
+      ],
+      "template_html": "templates/renter_rewards_waiting.html",
+      "template_text": "templates/renter_rewards_waiting.txt"
+    },
+    {
+      "code": "renter_rewards_welcome",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "CarmaCars Rewards notices (migration 3000): once per renter, when the renter's account is made or their first booking is confirmed, whichever comes first (the dedupe key is the renter). Switch: Admin > Settings > Rewards, Emails and notices (on by default). Not sent while Rewards is off.",
+      "timing": "Once, when the account is made or the first booking is confirmed",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Welcome to CarmaCars Rewards",
+      "preheader": "You earn points on every rental. You have {{points_balance}} points now.",
+      "sample_subject": "Welcome to CarmaCars Rewards",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "min_redeem_points",
+          "type": "string",
+          "sample": "500"
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "points_balance",
+          "type": "string",
+          "sample": "0"
+        },
+        {
+          "name": "points_value",
+          "type": "string",
+          "sample": "$0.00"
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "rewards_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/account/rewards"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tier_name",
+          "type": "string",
+          "sample": "Member"
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "ways",
+          "type": "list",
+          "sample": [
+            {
+              "label": "Rent a car",
+              "points": "1 a dollar"
+            },
+            {
+              "label": "Refer a friend",
+              "points": "500"
+            },
+            {
+              "label": "Review your rental on carmacars.ca",
+              "points": "100"
+            }
+          ],
+          "fields": [
+            "label",
+            "points"
+          ]
+        }
+      ],
+      "template_html": "templates/renter_rewards_welcome.html",
+      "template_text": "templates/renter_rewards_welcome.txt"
     },
     {
       "code": "renter_signing_code",

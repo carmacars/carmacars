@@ -3663,6 +3663,9 @@ export type Database = {
           opcf27_ack_at: string | null;
           agreement_after_trip_at: string | null;
           agreement_after_trip_by: string | null;
+          occasion_kind: string | null;
+          occasion_bps: number | null;
+          occasion_locked_at: string | null;
         };
         Insert: {
           id?: string;
@@ -3876,6 +3879,9 @@ export type Database = {
           opcf27_ack_at?: string | null;
           agreement_after_trip_at?: string | null;
           agreement_after_trip_by?: string | null;
+          occasion_kind?: string | null;
+          occasion_bps?: number | null;
+          occasion_locked_at?: string | null;
         };
         Update: {
           id?: string;
@@ -4089,6 +4095,9 @@ export type Database = {
           opcf27_ack_at?: string | null;
           agreement_after_trip_at?: string | null;
           agreement_after_trip_by?: string | null;
+          occasion_kind?: string | null;
+          occasion_bps?: number | null;
+          occasion_locked_at?: string | null;
         };
         Relationships: [];
       };
@@ -22629,6 +22638,9 @@ export type Database = {
           instant_book_revoked_by: string | null;
           instant_book_revoked_reason: string | null;
           address_updated_at: string | null;
+          birthday_month: number | null;
+          birthday_day: number | null;
+          birthday_year: number | null;
         };
         Insert: {
           id?: string;
@@ -22659,6 +22671,9 @@ export type Database = {
           instant_book_revoked_by?: string | null;
           instant_book_revoked_reason?: string | null;
           address_updated_at?: string | null;
+          birthday_month?: number | null;
+          birthday_day?: number | null;
+          birthday_year?: number | null;
         };
         Update: {
           id?: string;
@@ -22689,6 +22704,9 @@ export type Database = {
           instant_book_revoked_by?: string | null;
           instant_book_revoked_reason?: string | null;
           address_updated_at?: string | null;
+          birthday_month?: number | null;
+          birthday_day?: number | null;
+          birthday_year?: number | null;
         };
         Relationships: [];
       };
@@ -23067,6 +23085,8 @@ export type Database = {
           reminded_for: string | null;
           created_at: string;
           free_day_promo_id: string | null;
+          reminded_7d_for: string | null;
+          waiting_sent_at: string | null;
         };
         Insert: {
           renter_id: string;
@@ -23076,6 +23096,8 @@ export type Database = {
           reminded_for?: string | null;
           created_at?: string;
           free_day_promo_id?: string | null;
+          reminded_7d_for?: string | null;
+          waiting_sent_at?: string | null;
         };
         Update: {
           renter_id?: string;
@@ -23085,6 +23107,8 @@ export type Database = {
           reminded_for?: string | null;
           created_at?: string;
           free_day_promo_id?: string | null;
+          reminded_7d_for?: string | null;
+          waiting_sent_at?: string | null;
         };
         Relationships: [];
       };
@@ -23117,6 +23141,51 @@ export type Database = {
           enabled?: boolean;
           limit_text?: string;
           sort?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      reward_holidays: {
+        Row: {
+          code: string;
+          name: string;
+          kind: string;
+          month: number | null;
+          day: number | null;
+          isodow: number | null;
+          nth: number | null;
+          offset_days: number;
+          enabled: boolean;
+          sort: number;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          code: string;
+          name: string;
+          kind: string;
+          month?: number | null;
+          day?: number | null;
+          isodow?: number | null;
+          nth?: number | null;
+          offset_days?: number;
+          enabled?: boolean;
+          sort?: number;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          code?: string;
+          name?: string;
+          kind?: string;
+          month?: number | null;
+          day?: number | null;
+          isodow?: number | null;
+          nth?: number | null;
+          offset_days?: number;
+          enabled?: boolean;
+          sort?: number;
+          updated_by?: string | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -23215,6 +23284,9 @@ export type Database = {
           sort: number;
           min_points: number;
           active: boolean;
+          birthday_bps: number;
+          holiday_bps: number;
+          occasion_enabled: boolean;
         };
         Insert: {
           code: string;
@@ -23225,6 +23297,9 @@ export type Database = {
           sort?: number;
           min_points?: number;
           active?: boolean;
+          birthday_bps?: number;
+          holiday_bps?: number;
+          occasion_enabled?: boolean;
         };
         Update: {
           code?: string;
@@ -23235,6 +23310,9 @@ export type Database = {
           sort?: number;
           min_points?: number;
           active?: boolean;
+          birthday_bps?: number;
+          holiday_bps?: number;
+          occasion_enabled?: boolean;
         };
         Relationships: [];
       };
@@ -23252,6 +23330,16 @@ export type Database = {
           updated_by: string | null;
           updated_at: string;
           any_car_response_hours: number;
+          notices_enabled: boolean;
+          notice_near_tier_pct: number;
+          notice_near_tier_hours: number;
+          notice_waiting_days: number;
+          notice_waiting_every_days: number;
+          birthday_reward_enabled: boolean;
+          holiday_reward_enabled: boolean;
+          birthday_window_days: number;
+          birthday_notice_days: number;
+          holiday_notice_days: number;
         };
         Insert: {
           singleton?: boolean;
@@ -23266,6 +23354,16 @@ export type Database = {
           updated_by?: string | null;
           updated_at?: string;
           any_car_response_hours?: number;
+          notices_enabled?: boolean;
+          notice_near_tier_pct?: number;
+          notice_near_tier_hours?: number;
+          notice_waiting_days?: number;
+          notice_waiting_every_days?: number;
+          birthday_reward_enabled?: boolean;
+          holiday_reward_enabled?: boolean;
+          birthday_window_days?: number;
+          birthday_notice_days?: number;
+          holiday_notice_days?: number;
         };
         Update: {
           singleton?: boolean;
@@ -23280,6 +23378,16 @@ export type Database = {
           updated_by?: string | null;
           updated_at?: string;
           any_car_response_hours?: number;
+          notices_enabled?: boolean;
+          notice_near_tier_pct?: number;
+          notice_near_tier_hours?: number;
+          notice_waiting_days?: number;
+          notice_waiting_every_days?: number;
+          birthday_reward_enabled?: boolean;
+          holiday_reward_enabled?: boolean;
+          birthday_window_days?: number;
+          birthday_notice_days?: number;
+          holiday_notice_days?: number;
         };
         Relationships: [];
       };
@@ -33047,6 +33155,7 @@ export type Database = {
       renter_withdraw_request: { Args: { p_booking: string; p_by: string; p_note?: string }; Returns: undefined };
       resolve_path: { Args: { p_path: string }; Returns: Json };
       review_summary: { Args: { p_vehicle?: string }; Returns: Json };
+      rewards_mine_birthday: { Args: { p_month: number; p_day: number; p_year?: number }; Returns: Json };
       rewards_mine_code_cancel: { Args: { p_code: string }; Returns: Json };
       rewards_mine_google_claim: { Args: { p_number: string; p_name: string }; Returns: Json };
       rewards_mine_redeem: { Args: { p_points: number }; Returns: Json };
