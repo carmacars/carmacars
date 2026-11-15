@@ -6831,6 +6831,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      deposit_pendings: {
+        Row: {
+          booking_id: string;
+          amount_cents: number;
+          reason: string;
+          started_by: string | null;
+          started_at: string;
+          last_try_on: string | null;
+          last_try_result: string | null;
+          last_link_on: string | null;
+          alerted_at: string | null;
+          cleared_at: string | null;
+          cleared_why: string | null;
+        };
+        Insert: {
+          booking_id: string;
+          amount_cents: number;
+          reason: string;
+          started_by?: string | null;
+          started_at?: string;
+          last_try_on?: string | null;
+          last_try_result?: string | null;
+          last_link_on?: string | null;
+          alerted_at?: string | null;
+          cleared_at?: string | null;
+          cleared_why?: string | null;
+        };
+        Update: {
+          booking_id?: string;
+          amount_cents?: number;
+          reason?: string;
+          started_by?: string | null;
+          started_at?: string;
+          last_try_on?: string | null;
+          last_try_result?: string | null;
+          last_link_on?: string | null;
+          alerted_at?: string | null;
+          cleared_at?: string | null;
+          cleared_why?: string | null;
+        };
+        Relationships: [];
+      };
       deposit_review_items: {
         Row: {
           id: string;
@@ -13152,6 +13194,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      message_channel_policy: {
+        Row: {
+          code: string;
+          channel: string;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          code: string;
+          channel: string;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          code?: string;
+          channel?: string;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       message_templates: {
         Row: {
           code: string;
@@ -19124,6 +19187,8 @@ export type Database = {
           field_slots_auto_from: string;
           fleet_low_occupancy_first: boolean;
           listing_photo_r48_auto: boolean;
+          deposit_pending_retry: boolean;
+          email_production_ready: boolean;
         };
         Insert: {
           id?: string;
@@ -19996,6 +20061,8 @@ export type Database = {
           field_slots_auto_from?: string;
           fleet_low_occupancy_first?: boolean;
           listing_photo_r48_auto?: boolean;
+          deposit_pending_retry?: boolean;
+          email_production_ready?: boolean;
         };
         Update: {
           id?: string;
@@ -20868,6 +20935,8 @@ export type Database = {
           field_slots_auto_from?: string;
           fleet_low_occupancy_first?: boolean;
           listing_photo_r48_auto?: boolean;
+          deposit_pending_retry?: boolean;
+          email_production_ready?: boolean;
         };
         Relationships: [];
       };
@@ -33153,7 +33222,14 @@ export type Database = {
       server_deposit_hold_lapsed: { Args: { p_intent: string }; Returns: Json };
       server_deposit_link_payreq: { Args: { p_booking: string; p_token_sha256: string }; Returns: Json };
       server_deposit_link_send: { Args: { p_id: string; p_link: string }; Returns: Json };
+      server_deposit_link_send_pre2970: { Args: { p_id: string; p_link: string }; Returns: Json };
       server_deposit_links_due: { Args: never; Returns: Json };
+      server_deposit_pending_begin: { Args: { p_booking: string; p_token_sha256: string }; Returns: Json };
+      server_deposit_pending_due: { Args: never; Returns: Json };
+      server_deposit_pending_failed: { Args: { p_id: string; p_error: string }; Returns: Json };
+      server_deposit_pending_link: { Args: { p_booking: string; p_token_sha256: string }; Returns: Json };
+      server_deposit_pending_links_due: { Args: never; Returns: Json };
+      server_deposit_pending_state: { Args: { p_booking: string }; Returns: Json };
       server_deposit_reauth_begin: { Args: { p_deposit: string }; Returns: Json };
       server_deposit_reauth_due: { Args: { p_limit?: number }; Returns: Json };
       server_deposit_reauth_finish: { Args: { p: Json }; Returns: Json };
@@ -33260,6 +33336,7 @@ export type Database = {
       server_money_action_finish: { Args: { p_payment: string; p: Json }; Returns: Json };
       server_my_account_links: { Args: { p_user: string }; Returns: Json };
       server_my_booking_addons: { Args: { p_booking: string; p_by: string }; Returns: Json };
+      server_my_deposit_pending: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_my_discounts: { Args: { p_user: string }; Returns: Json };
       server_my_notify_channel: { Args: { p_user: string }; Returns: Json };
       server_my_promo_codes: { Args: { p_user: string }; Returns: Json };

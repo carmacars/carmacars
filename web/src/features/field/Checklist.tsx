@@ -136,7 +136,7 @@ export function Checklist({ j, back = '/staff/field', backLabel = 'Back to my jo
   const lateProblem = late ? choiceProblem(lateChoice, late) : null;
 
   // the ready check: a rental added by hand also needs the renter's signature (0051), as a booking made online already has
-  const depositOk = Boolean(ready && ['taken', 'waived', 'none'].includes(ready.deposit));
+  const depositOk = Boolean(ready && ['taken', 'waived', 'none', 'pending'].includes(ready.deposit));
   const readyOk = Boolean(ready && ready.signed !== false && ready.identity && ready.coverage && ready.drivers_accepted && ready.calendar && depositOk);
   const odoLow = pickup && (j.vehicle.odometer_km ?? 0) > (r.odometer_km ?? 0) && (r.odometer_km ?? 0) > 0;
   const odoOk = (r.odometer_km ?? 0) > 0 && !(odoLow && !r.odometer_confirmed);
@@ -186,7 +186,7 @@ export function Checklist({ j, back = '/staff/field', backLabel = 'Back to my jo
           {ready && !ready.drivers_accepted && <Link prefetch={false} className="btn btn--ghost fd-wide" href={at.signNow} data-testid="fix-driver-sign">Sign now on this device (additional driver)</Link>}</Row>
         <Row ok={ready?.calendar} text="The booking holds the calendar">
           {ready && !ready.calendar && <p className="fd-office small">The office turns the calendar on for this booking. Call CarmaCars.</p>}</Row>
-        <Row ok={depositOk} text={`Deposit: ${ready?.deposit === 'taken' ? 'taken' : ready?.deposit === 'waived' ? 'waived by an Admin' : ready?.deposit === 'declined' ? 'declined' : ready?.deposit === 'none' ? 'none on this booking' : 'not taken yet'}`}>
+        <Row ok={depositOk} text={`Deposit: ${ready?.deposit === 'taken' ? 'taken' : ready?.deposit === 'waived' ? 'waived by an Admin' : ready?.deposit === 'declined' ? 'declined' : ready?.deposit === 'none' ? 'none on this booking' : ready?.deposit === 'pending' ? `still owed${res ? ` (${money(res.deposit_cents)})` : ''}: the car may go, the renter is asked for it each morning` : 'not taken yet'}`}>
           {ready && !depositOk && <strong className="small" data-testid="ready-deposit-missing">{' '}No deposit yet: take it now.</strong>}
           {ready && ready.deposit_auto && depositAutoText(ready.deposit_auto, linkWhen, (c) => money(c)) && <span className="small muted" data-testid="ready-deposit-auto">{' '}{depositAutoText(ready.deposit_auto, linkWhen, (c) => money(c))}</span>}
           {ready && !depositOk && ready.deposit_link && <span className="small muted" data-testid="ready-deposit-link">{' '}{ready.deposit_link.texted_at

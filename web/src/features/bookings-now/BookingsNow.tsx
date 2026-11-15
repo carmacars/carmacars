@@ -209,6 +209,7 @@ const markFields = (at: string): Field[] => [
   { name: 'odometer_km', label: 'Odometer (km), if known', type: 'number' },
   { name: 'fuel_pct', label: 'Fuel or charge (%), if known', type: 'number' },
   { name: 'reason', label: 'Why it was not recorded', type: 'text', required: true, wide: true, value: 'Picked up; not recorded at the time' },
+  { name: 'deposit_pending_reason', label: 'Deposit not taken yet: the car went owing it, because', type: 'text', wide: true, hint: 'Leave empty when the deposit is taken. The renter is asked for it each morning.' },
   { name: 'deposit_waiver_reason', label: 'Admin: deposit not taken, waive it because', type: 'text', wide: true, hint: 'Only when the deposit is not taken. An Admin only.' },
   { name: 'signature_override_reason', label: 'Admin: no renter signature on the check-in report, because', type: 'text', wide: true, hint: 'An Admin only. Recorded on the booking.' }];
 

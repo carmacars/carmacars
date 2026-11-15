@@ -3,7 +3,7 @@
 
 export type Portal = 'admin' | 'va';
 export interface CallerNote { id: string; body: string; at: string; author: string; role: 'admin' | 'cs' | 'sales' | 'fleet' | 'finance'; booking_number: string | null; from_call: boolean }
-export interface CallerDeposit { required_cents: number; held_cents: number; how: string | null; state: 'held' | 'waived' | 'released' | 'failed' | 'none' | 'not_taken' }
+export interface CallerDeposit { required_cents: number; held_cents: number; how: string | null; state: 'held' | 'waived' | 'released' | 'failed' | 'none' | 'not_taken' | 'pending' }
 export interface CallerBalance { owed_cents: number; rental_cents: number; charges_cents: number; overdue: boolean }
 export interface CallerRequest { kind: 'booking' | 'change' | 'question' | 'task'; label: string; booking_number: string | null; at: string }
 export interface CallerRenter {
@@ -65,6 +65,7 @@ export function depositWords(d: CallerDeposit | null): string {
     case 'released': return 'Released';
     case 'failed': return `Not taken: the card was declined (${money(d.required_cents)} due)`;
     case 'none': return 'None needed';
+    case 'pending': return `Pending: the car is out and ${money(d.required_cents)} is still owed`;
     default: return `Not taken yet (${money(d.required_cents)})`;
   }
 }

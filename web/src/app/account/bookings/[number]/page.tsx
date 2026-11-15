@@ -101,6 +101,9 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
   const balance = ['confirmed', 'on_rent', 'returned'].includes(b.status)
     ? ((await rpc('renter_balance', { p_booking: b.id, p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as { balance_cents: number } | null) : null;
   const balanceDue = balance && balance.balance_cents > 0 ? balance.balance_cents : 0;
+  // r48 (2970): the car went out with the deposit still owed: say what is owed and how it is asked for
+  const depOwed = b.status === 'on_rent' && b.booking_type !== 'owner'
+    ? ((await rpc('server_my_deposit_pending', { p_booking: b.id, p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as { pending: boolean; amount_cents?: number } | null) : null;
   // the licence first (0130): from the request until it is on file
   const licMissing = ['requested', 'offered', 'pending_payment'].includes(b.status) ? renterMissing(await licenceState(b.id, user.id)) : null;
   // the agreement's blanks the renter fills in (0195): a blocking step at the top, before signing and paying
@@ -173,6 +176,10 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
           {b.status === 'confirmed' && <> Bring your original licence{card ? ` and the card ending ${card.card_last4}` : ' and the card you paid with'}.</>}</p>
       </TripHero>
 
+      {depOwed?.pending && (
+        <section className="pu-panel pu-panel--next" aria-labelledby="pt-dep" data-testid="renter-deposit-owed"><h2 className="pu-title" id="pt-dep">Deposit still owed: {money(Number(depOwed.amount_cents ?? b.deposit_cents ?? 0), { cents: true })}</h2>
+          <p>You have the car, but the deposit hold is not placed yet. It is a hold on your credit card, not a charge, and it is released after the rental. We try your saved card each morning; if that does not work, we send you a secure link by text or email. Tap the link to place the hold, or call us{phone ? ` at ${phone}` : ''}.</p></section>
+      )}
       {balanceDue > 0 && (
         <section className="pu-panel pu-panel--next" aria-labelledby="pt-bal" data-testid="renter-balance"><h2 className="pu-title" id="pt-bal">Balance due: {money(balanceDue, { cents: true })}</h2>
           <p>Your booking changed, or a charge was added: this is what is still owing. Pay it by card now (the price lines are below), or pay our team by e-Transfer or cash.</p>

@@ -28,6 +28,7 @@ export function HandoverOneScreen({ booking, number, kind, who, refresh = [], is
   const [photos, setPhotos] = useState<PickedPhoto[]>([]);
   const [busy, setBusy] = useState(0);
   const [dep, setDep] = useState('');
+  const [owed, setOwed] = useState('');
   const [sig, setSig] = useState('');
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
@@ -45,7 +46,7 @@ export function HandoverOneScreen({ booking, number, kind, who, refresh = [], is
       if (r.ok) router.refresh();
       return;
     }
-    const r = await oneScreenHandover({ booking, kind, at, odometer_km: km, fuel_pct: fuel, note, photos: ph, reading: rd, deposit_waiver_reason: dep, signature_override_reason: sig, refresh });
+    const r = await oneScreenHandover({ booking, kind, at, odometer_km: km, fuel_pct: fuel, note, photos: ph, reading: rd, deposit_waiver_reason: dep, deposit_pending_reason: owed, signature_override_reason: sig, refresh });
     setMsg(r.ok ? { ok: true, text: pickup ? 'Checked in: the rental has started.' : 'Checked out: the trip is completed; any extra km and fuel are charged from the rate sheet and shown on the return receipt.' } : { ok: false, text: r.message });
     if (r.ok) { setPhotos([]); setReading(emptyReading()); router.refresh(); }
   });
@@ -60,6 +61,10 @@ export function HandoverOneScreen({ booking, number, kind, who, refresh = [], is
       <DashReading scope={who === 'renter' ? 'self-pickup' : 'one-screen'} id={booking} read={{ booking }} value={reading} onChange={setReading} onBusy={setReadingBusy} testId={`os-${kind}-reading`} />
       <div className="field"><label className="label" htmlFor={`os-${kind}-note`}>Note (optional)</label>
         <textarea className="textarea" id={`os-${kind}-note`} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} /></div>
+      {/* r48 (2970): the deposit still owed, for anyone who checks a car out: it is asked for each morning */}
+      {who === 'staff' && pickup && <details><summary className="small link" data-testid="os-owed-toggle">Deposit not taken yet: let the car go owing it</summary>
+        <div className="field"><label className="label" htmlFor="os-owed">Why the car goes before the deposit is taken</label><input className="input" id="os-owed" value={owed} onChange={(e) => setOwed(e.target.value)} data-testid="os-owed" />
+          <p className="small muted">The renter is asked for it each morning. After 48 hours an Admin gets a To do.</p></div></details>}
       {who === 'staff' && pickup && isAdmin && <details><summary className="small link">Admin: without the deposit or the renter&apos;s signature</summary>
         <div className="field"><label className="label" htmlFor="os-dep">Deposit not taken: the reason it is waived</label><input className="input" id="os-dep" value={dep} onChange={(e) => setDep(e.target.value)} /></div>
         <div className="field"><label className="label" htmlFor="os-sig">Without the renter&apos;s signature on the report: the reason</label><input className="input" id="os-sig" value={sig} onChange={(e) => setSig(e.target.value)} /></div></details>}

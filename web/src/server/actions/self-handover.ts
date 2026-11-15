@@ -39,7 +39,7 @@ export async function selfPickup(p: { number: string; at?: string; odometer_km?:
 }
 
 export async function oneScreenHandover(p: { booking: string; kind: 'pickup' | 'return'; at?: string; odometer_km?: string; fuel_pct?: string; note?: string;
-  photos: Array<{ bucket: string; path: string; angle: string | null }>; reading?: Record<string, unknown>; deposit_waiver_reason?: string; signature_override_reason?: string; refresh?: string[] }): Promise<R<{ report_id?: string; booking_status?: string }>> {
+  photos: Array<{ bucket: string; path: string; angle: string | null }>; reading?: Record<string, unknown>; deposit_waiver_reason?: string; deposit_pending_reason?: string; signature_override_reason?: string; refresh?: string[] }): Promise<R<{ report_id?: string; booking_status?: string }>> {
   try {
     const problem = serverReadingProblem(p);
     if (problem) return { ok: false, message: problem };
@@ -47,7 +47,7 @@ export async function oneScreenHandover(p: { booking: string; kind: 'pickup' | '
     const km = (p.odometer_km ?? '').replace(/[\s,]/g, '');
     const r = await door<{ report_id?: string; booking_status?: string }>(user.id, 'ops_do', 'handover_one_screen', {
       booking: p.booking, kind: p.kind, at: p.at ? new Date(p.at).toISOString() : null, odometer_km: km || null, fuel_pct: p.fuel_pct || null, note: p.note ?? '',
-      photos: p.photos, reading: p.reading ?? null, deposit_waiver_reason: p.deposit_waiver_reason || null, signature_override_reason: p.signature_override_reason || null, ...(va ? { _va: va } : {})
+      photos: p.photos, reading: p.reading ?? null, deposit_waiver_reason: p.deposit_waiver_reason || null, deposit_pending_reason: p.deposit_pending_reason || null, signature_override_reason: p.signature_override_reason || null, ...(va ? { _va: va } : {})
     }, aal);
     for (const x of p.refresh ?? []) revalidatePath(x);
     return { ok: true, data: r };
