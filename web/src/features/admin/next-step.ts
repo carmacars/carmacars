@@ -92,7 +92,7 @@ function nextStepOnly(x: NextStepInput): NextStep {
   switch (x.status) {
     case 'requested':
       return { step: 'send_offer', who: 'Sales or customer service', text: 'The renter asked for this car. Check the request and send the offer: it is booked once the renter approves.',
-        ...btn('offer', 'Send the offer', `${x.base}?tab=review`, 'next-step-offer') };
+        ...btn('offer', 'Send the offer', `${x.base}?tab=review#rv-send`, 'next-step-offer') };
     case 'offered':
       return { step: 'wait_offer', who: 'The renter', text: `Waiting for the renter to approve the offer${x.offerExpiresAt ? ` (open until ${when(x.offerExpiresAt)})` : ''}. Nothing to do unless they call: then use Renter approved by phone in More actions.` };
     case 'pending_payment': {

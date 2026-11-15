@@ -124,11 +124,16 @@ test('admin: an offer without a request, edited in place, paid by part, confirme
   await expect(page.getByTestId('review-edit-in-place')).toBeVisible();
   await page.locator('#rv-deposit_cents').fill('400');
   await expect(page.getByTestId('review-price')).toContainText('Re-priced', { timeout: 15_000 });
-  await page.getByTestId('review-revise-message').fill('The deposit is $400 for this car.');
+  await page.getByTestId('review-message').fill('The deposit is $400 for this car.');
   await check(page, 'edit the offer');
   await shots(page, 'B-edit-offer-in-place');
-  await page.getByTestId('review-revise-send').click();
+  // r48: one main action, Send the update (no withdraw first)
+  await expect(page.getByTestId('review-send')).toHaveText('Send the update');
+  await page.getByTestId('review-send').click();
   await expect(page.getByTestId('review-revised')).toContainText('Deposit: $300.00 to $400.00', { timeout: 20_000 });
+  // the saved deposit stays after a reload
+  await page.reload({ waitUntil: 'networkidle' });
+  await expect(page.locator('#rv-deposit_cents')).toHaveValue('400.00');
   const [b2] = await sql`select status, current_offer_version, deposit_cents from bookings where id = ${b!.id}`;
   expect(`${b2!.status}/${b2!.current_offer_version}/${b2!.deposit_cents}`).toBe('offered/2/40000');
 

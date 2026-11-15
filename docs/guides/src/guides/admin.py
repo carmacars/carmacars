@@ -179,11 +179,11 @@ def build():
         'The Review and offer tab shows the request as the renter sent it.',
         'Adjust the car, the dates, the rate type, the places, the rates and fees, the deposit and extras.',
         'Price on the right updates as you change things.',
-        f'Add a message, choose how long the offer stays open, then press {B("Send the offer")}.',
+        f'Add a message, then press {B("Send the offer")}, the one main button at the bottom (Send the offer under Next step takes you there). How long it stays open, Email or Text and Book it now are under More options.',
     ], shot=S('admin/03-booking-review-desktop', 240, 527, 1440, 2077,
               pins=[(1, 300, 627), (2, 330, 1237), (3, 1130, 1187), (4, 1160, 2047)]))
     g.steps([
-        f'Changed fields but not ready to send? Press {B("Save changes")}. The panel "The offer as the renter sees it" shows the result.',
+        f'Changed fields but not ready to send? Press {B("Save without sending")}. The panel "The offer as the renter sees it" shows the result.',
         f'Can\'t do it? Press {B("Decline")} and fill in Reason and any alternative.',
         f'Need an answer first? Press {B("Ask the renter")} to send a question.',
     ], shot=S('admin/03-booking-review-desktop', 940, 97, 1440, 177, pins=[(6, 1146, 139), (7, 1030, 139)]), fig_w=5.0)
@@ -203,8 +203,8 @@ def build():
     g.task('Change an offer that is out', f'The renter has the offer (Offered), or approved it and has not paid (Signing and payment). Open {B("More actions")} on the booking and press {B("Edit the offer")}.')
     g.steps([
         'Change anything: the car, the dates, the places, the price, fees, the deposit, add-ons, how it is paid. Each changed field is highlighted and the before and after are listed. Amounts I type (Before tax or After tax) and the Total the renter pays (after tax) work as on Send an offer.',
-        'Write what changed in Message to the renter and choose how long the offer is open.',
-        f'Press {B("Save and send the update")}: the renter gets the new version by email or text (ticked), and the old version no longer counts. Or press {B("Save without telling the renter")} and tell them yourself.',
+        'Write what changed in Message to the renter. How long the offer is open and Email or Text are under More options.',
+        f'Press {B("Send the update")}: the renter gets the new version by email or text (ticked), and the old version no longer counts. Or press {B("Save without sending")} and tell them yourself. After you save, the screen shows the offer as saved.',
         f'A confirmed booking is changed with {B("Change the booking")} (Propose a change, below).',
     ])
     g.tip(f'No need to withdraw first. {B("Withdraw the offer")} is only for taking it back for good; {B("Send again, later expiry")} gives the renter more time, '

@@ -44,9 +44,11 @@ export function BookingFees({ x, withBalance = true }: { x: Fees; /** r29: false
     setMsg(null);
     if (!changed.length) { setMsg({ ok: false, text: 'Type the new amount of at least one fee.' }); return; }
     const lines = Object.fromEntries(changed.map(([k, v]) => [k, cents(v)]));
-    const r = await offersDo<{ changes: unknown[]; total_cents: number; total_before_cents: number; open_cents: number }>('booking_fees_change', { booking: x.booking_number, lines, reason: reason.trim() || undefined });
+    const r = await offersDo<{ changes: unknown[]; total_cents: number; total_before_cents: number; open_cents: number; offer_version?: number }>('booking_fees_change', { booking: x.booking_number, lines, reason: reason.trim() || undefined });
     if (!r.ok) { setMsg({ ok: false, text: r.message }); return; }
-    setMsg({ ok: true, text: `Saved. Total ${fmt(r.data.total_before_cents)} to ${fmt(r.data.total_cents)}; ${r.data.open_cents > 0 ? `${fmt(r.data.open_cents)} to collect.` : 'nothing more to collect.'}` });
+    // r48 (2940): an offer that is out is changed in place and sent again (no withdraw first)
+    setMsg({ ok: true, text: r.data.offer_version ? `Saved. Total ${fmt(r.data.total_before_cents)} to ${fmt(r.data.total_cents)}; the renter has the updated offer (version ${r.data.offer_version}).`
+      : `Saved. Total ${fmt(r.data.total_before_cents)} to ${fmt(r.data.total_cents)}; ${r.data.open_cents > 0 ? `${fmt(r.data.open_cents)} to collect.` : 'nothing more to collect.'}` });
     setWhy(changed.map(([k, v]) => `${rows.find((l) => l.key === k)?.label ?? k} ${fmt(cents(v))}`).join(', '));
     setTyped({}); setReason(''); setEdit(false); setAdd(''); router.refresh();
   });
@@ -83,7 +85,7 @@ export function BookingFees({ x, withBalance = true }: { x: Fees; /** r29: false
           <p><button className="btn btn--ghost btn--sm" type="button" disabled={pending || !own.label.trim() || !cents(own.amount)} onClick={addOwn} data-testid="bf-own-add">Add the charge</button></p>
         </fieldset>
         <div className="field"><label className="label" htmlFor="bf-reason">Reason (optional)</label><input className="input" id="bf-reason" value={reason} onChange={(e) => setReason(e.target.value)} data-testid="bf-reason" /></div>
-        <p className="small muted">Amounts before HST. {['confirmed', 'on_rent', 'returned'].includes(x.status) ? 'The booking is confirmed: a higher fee is more to collect on the Money tab; a lower one leaves a credit to refund.' : 'The offer and the price follow.'}</p>
+        <p className="small muted">Amounts before HST. {['confirmed', 'on_rent', 'returned'].includes(x.status) ? 'The booking is confirmed: a higher fee is more to collect on the Money tab; a lower one leaves a credit to refund.' : ['offered', 'pending_payment'].includes(x.status) ? 'The offer is changed in place and the renter gets the updated offer: no need to withdraw it.' : 'The offer and the price follow.'}</p>
         <div className="row"><button className="btn btn--primary btn--sm" type="button" disabled={pending} onClick={save} data-testid="bf-save">{pending ? 'Saving' : 'Save the fees'}</button>
           <button className="btn btn--quiet btn--sm" type="button" onClick={() => { setEdit(false); setTyped({}); setAdd(''); }}>Cancel</button></div></div>}
       {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'} data-testid="bf-msg"><span>{msg.text}</span></p>}

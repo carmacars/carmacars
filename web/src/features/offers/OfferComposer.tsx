@@ -381,7 +381,6 @@ export function OfferComposer({ base, initialCar = null, initialFrom = null, ini
         <p className="small muted" role="status" aria-live="polite" data-testid="oc-draft-status">{savedAt ? `Saved as a draft at ${new Date(savedAt).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' })}: finish it later from Unfinished rentals.` : 'Saved as a draft as you type.'}
           {draftId && <> <button className="btn btn--quiet btn--sm" type="button" onClick={() => run(async () => { await draftClose(draftId, 'discarded'); router.push(`${base}/offers/new`, scrollOption(`${base}/offers/new`)); })} data-testid="oc-discard-draft">Discard the draft</button></>}</p>
 
-        <nav className="oc-phases small" aria-label="Steps" data-testid="oc-phases"><a href="#oc-phase-1">1. Car and dates</a> · <a href="#oc-phase-2">2. Price</a> · <a href="#oc-phase-3">3. Review and send</a></nav>
         {phase(1, 'Car and dates')}
         {step(n, 'Who is renting and when', 'Find the renter (or add them), then set when they pick up and return the car.', <>
           {chosen ? (<>
