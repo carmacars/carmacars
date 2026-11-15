@@ -30,6 +30,8 @@ const nodeTarget = (process.env.HOSTING_TARGET ?? '').trim().toLowerCase() === '
 
 const config: NextConfig = {
   ...(nodeTarget ? { output: 'standalone' as const } : {}),
+  // The server image is built from web/ alone: unit tests that import ../supabase are type-checked by CI, not here.
+  ...(nodeTarget ? { typescript: { tsconfigPath: 'tsconfig.node-build.json' } } : {}),
   reactStrictMode: true,
   poweredByHeader: false,
   typedRoutes: false,
