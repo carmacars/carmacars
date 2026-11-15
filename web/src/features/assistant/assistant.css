@@ -13,10 +13,10 @@
 .as-panel__log { flex: 1; overflow-y: auto; padding: var(--s-4); display: grid; gap: var(--s-3); align-content: start; }
 .as-panel__ask { display: flex; gap: var(--s-2); align-items: flex-end; padding: var(--s-3) var(--s-4); border-top: 1px solid var(--line); }
 .as-input { flex: 1; min-width: 0; resize: vertical; min-height: 2.75rem; }
-.as-me { justify-self: end; max-width: 85%; margin: 0; padding: var(--s-2) var(--s-3); background: var(--grey-100); overflow-wrap: anywhere; }
-.as-said { margin: 0; max-width: 95%; overflow-wrap: anywhere; }
+.as-me { justify-self: end; max-width: 85%; margin: 0; padding: var(--s-2) var(--s-3); background: var(--grey-100); overflow-wrap: break-word; }
+.as-said { margin: 0; max-width: 95%; overflow-wrap: break-word; }
 .as-said p { margin: 0 0 var(--s-2); }
-.as-card { border: 1px solid var(--line-strong); padding: var(--s-3); overflow-wrap: anywhere; }
+.as-card { border: 1px solid var(--line-strong); padding: var(--s-3); overflow-wrap: break-word; }
 .as-card--change { border: var(--bw) solid var(--black); }
 .as-card__t { font-size: var(--fs-sm); margin: 0 0 var(--s-2); }
 .as-card p { margin: 0 0 var(--s-2); }
@@ -34,4 +34,4 @@
 .as-kv { margin: 0; display: grid; gap: 0.15rem; }
 .as-kv > div { display: flex; justify-content: space-between; gap: var(--s-3); border-bottom: 1px solid var(--line); padding: 0.1rem 0; }
 .as-kv dt { color: var(--text-muted, var(--grey-600)); }
-.as-kv dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+.as-kv dd { margin: 0; text-align: right; overflow-wrap: break-word; }

@@ -4,7 +4,7 @@
 .pt__top { padding-block: var(--s-5) 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
 .pt__hello { display: flex; justify-content: space-between; align-items: end; gap: var(--s-3); flex-wrap: wrap; }
 .pt__hello > * { min-width: 0; }
-.pt__hello p { overflow-wrap: anywhere; }
+.pt__hello p { overflow-wrap: break-word; }
 .pt__nav { display: flex; gap: var(--s-5); overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--grey-200); margin-inline: calc(var(--gutter) * -1); padding-inline: var(--gutter); }
 .pt__nav::-webkit-scrollbar { display: none; }
 .pt__nav a { position: relative; flex: none; padding: var(--s-3) 0; min-height: 44px; display: inline-flex; align-items: center; gap: 0.4em; font-weight: 600; font-size: var(--fs-sm); color: var(--text-2); text-decoration: none; }
@@ -41,7 +41,7 @@
 .pt-trip__img { aspect-ratio: 3 / 2; background: var(--grey-100); overflow: hidden; }
 .pt-trip__img img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .pt-trip__body { display: grid; gap: 0.3rem; min-width: 0; }
-.pt-trip__name { font-family: var(--font-display); font-weight: 700; font-size: var(--fs-d4); line-height: var(--lh-tight); overflow-wrap: anywhere; }
+.pt-trip__name { font-family: var(--font-display); font-weight: 700; font-size: var(--fs-d4); line-height: var(--lh-tight); overflow-wrap: break-word; }
 .pt-trip__meta { font-size: var(--fs-sm); color: var(--text-2); }
 .pt-section-title { font-family: var(--font-display); font-weight: 700; font-size: var(--fs-d4); margin: 0; }
 
@@ -89,7 +89,7 @@
 .agreement:focus-visible { outline: 3px solid var(--red-600); outline-offset: 2px; }
 .agreement .agreement__part { margin-top: var(--s-6); padding-top: var(--s-3); border-top: var(--bw) solid var(--black); }
 .agreement .agreement__sec { font-weight: 700; margin: var(--s-4) 0 var(--s-2); }
-.agreement .data th, .agreement .data td { font-size: var(--fs-xs); vertical-align: top; white-space: normal; overflow-wrap: anywhere; }
+.agreement .data th, .agreement .data td { font-size: var(--fs-xs); vertical-align: top; white-space: normal; overflow-wrap: break-word; }
 .data--kv th[scope="row"] { width: 32%; font-weight: 600; }
 
 /* consents and signature */
@@ -114,7 +114,7 @@
 @media (min-width: 48rem) { .es-term { grid-template-columns: 1fr 11rem; align-items: center; } }
 .es-code { max-width: 10rem; letter-spacing: 0.3em; font-variant-numeric: tabular-nums; }
 .es-flow .check { grid-template-columns: auto minmax(0, 1fr); max-width: 100%; min-width: 0; }
-.es-flow .check > span { min-width: 0; overflow-wrap: anywhere; }
+.es-flow .check > span { min-width: 0; overflow-wrap: break-word; }
 .es-flow fieldset { min-width: 0; border: 0; padding: 0; margin: 0; }
 .sigpad__line { position: absolute; left: 1rem; right: 1rem; bottom: 2.6rem; border-bottom: 1px solid var(--grey-300); pointer-events: none; }
 .sigpad__hint { position: absolute; left: 1rem; bottom: 0.6rem; font-size: var(--fs-xs); color: var(--text-2); pointer-events: none; }
@@ -168,7 +168,7 @@
   .agreement .data--kv thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   .agreement .data--kv tr { display: grid; padding-block: var(--s-2); border-bottom: 1px solid var(--grey-200); }
   .agreement .data--kv th, .agreement .data--kv td { display: block; width: auto; border: 0; padding: 0.1rem 0; }
-  .agreement .data--kv td { text-align: left; overflow-wrap: anywhere; word-break: break-word; }
+  .agreement .data--kv td { text-align: left; overflow-wrap: break-word; word-break: break-word; }
 }
 @media (max-width: 63.99rem) { .pt-first { order: -1; } }
 
@@ -206,8 +206,8 @@
 .ls__step.is-now .ls__n { border-color: var(--red-600); background: var(--red-600); color: var(--white); }
 .ls__step.is-done .ls__n { border-color: var(--black); background: var(--black); color: var(--white); }
 .ls__body { display: grid; gap: var(--s-1); min-width: 0; }
-.ls__title { overflow-wrap: anywhere; }
-.ls__need { overflow-wrap: anywhere; }
+.ls__title { overflow-wrap: break-word; }
+.ls__need { overflow-wrap: break-word; }
 .ls__go { justify-self: start; margin-top: var(--s-1); }
 .ls__working { margin: var(--s-3) 0 0; }
 /* 0521: each photo of a shot, with Remove for one filed under the wrong shot */
@@ -222,7 +222,7 @@
 .pt-thread { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
 .pt-thread .pt-msg p { margin: 0; }
 .pt-msg--me { background: var(--white); border: 1px solid var(--grey-200); }
-.pt-msg__body { white-space: pre-wrap; overflow-wrap: anywhere; }
+.pt-msg__body { white-space: pre-wrap; overflow-wrap: break-word; }
 
 /* review stars (the renter's review, /account/bookings/[number]/review) */
 .pt-stars { display: flex; gap: var(--s-1); }
@@ -247,17 +247,18 @@
 .ck-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
 .ck-items { grid-template-columns: minmax(0, 1fr); }
 .ck-items li { display: flex; gap: var(--s-2); align-items: baseline; flex-wrap: wrap; min-width: 0; }
-.ck-items li > span:not(.ck-dot) { min-width: 0; overflow-wrap: anywhere; }
+.ck-items li > span:not(.ck-dot) { min-width: 0; overflow-wrap: break-word; }
 .ck-dot { display: inline-block; width: 0.6rem; height: 0.6rem; border-radius: 50%; flex: none; background: var(--grey-300, #c8c8c8); }
 .ck-dot.is-done { background: var(--black); }
 .ck-dot.is-open { background: var(--red, #d0111b); }
 /* a long email address or reference in a sentence wraps instead of widening a phone screen */
-.pt-card p, .ow-status p, .pt-note, .alert span { overflow-wrap: anywhere; }
+.pt-card p, .ow-status p, .pt-note { overflow-wrap: break-word; }
+.alert span { overflow-wrap: anywhere; }
 
 /* Simple signing (0049): the adopted signature, one tap for all statements, the progress and the filled values */
 .sig-adopt { display: grid; gap: var(--s-1); padding: var(--s-4); border: var(--bw) solid var(--black); border-radius: var(--r-2); background: var(--white); }
 .sig-adopt.is-invalid { border-color: var(--red-600); border-width: 2px; }
-.sig-adopt__name { font-family: "Snell Roundhand", "Segoe Script", "Brush Script MT", cursive; font-size: 1.9rem; line-height: 1.2; color: var(--black); overflow-wrap: anywhere; border-bottom: 1px solid var(--grey-300); padding-bottom: var(--s-1); }
+.sig-adopt__name { font-family: "Snell Roundhand", "Segoe Script", "Brush Script MT", cursive; font-size: 1.9rem; line-height: 1.2; color: var(--black); overflow-wrap: break-word; border-bottom: 1px solid var(--grey-300); padding-bottom: var(--s-1); }
 .pk-all { font-size: var(--fs-base); padding-bottom: var(--s-2); border-bottom: 1px solid var(--grey-200); }
 .pk-statements { display: grid; gap: var(--s-2); padding-left: var(--s-2); }
 .sg-progress__bar { height: 6px; border-radius: 3px; background: var(--grey-200); overflow: hidden; }
@@ -275,7 +276,7 @@
 /* ---------- Portal cleanup (October 23, 2026): a calmer frame, one page header, one attention list ---------- */
 .pt__top { gap: var(--s-3); padding-top: var(--s-4); }
 .pt__hello { align-items: center; }
-.pt__hello > p { flex: 1 1 auto; min-width: 9rem; overflow-wrap: anywhere; }
+.pt__hello > p { flex: 1 1 auto; min-width: 9rem; overflow-wrap: break-word; }
 .pt__hello .gd-frame-links { flex: none; flex-wrap: nowrap; }
 .pt__nav { gap: var(--s-4); }
 /* a tab's own pages (Money: invoices, statements, payouts) as a row of chips under the tabs */
@@ -288,12 +289,12 @@
 /* the page header: title, one line on what the page is for, one primary action */
 .ph { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: var(--s-2) var(--s-4); }
 .ph__text { display: grid; gap: var(--s-1); min-width: 0; flex: 1 1 18rem; }
-.ph__purpose { color: var(--text-2); max-width: 62ch; overflow-wrap: anywhere; }
-.ph__action { flex: none; display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.ph__purpose { color: var(--text-2); max-width: 62ch; overflow-wrap: break-word; }
+.ph__action { flex: 0 1 auto; min-width: 0; max-width: 100%; display: flex; flex-wrap: wrap; gap: var(--s-2); }
 /* needs your attention: one line, one button each */
 .attn { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
 .attn li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-2) var(--s-4); padding: var(--s-3) var(--s-4); background: var(--white); border: 1px solid var(--grey-200); border-left: 3px solid var(--red-600); }
-.attn__text { display: grid; gap: 2px; min-width: 0; flex: 1 1 16rem; overflow-wrap: anywhere; }
+.attn__text { display: grid; gap: 2px; min-width: 0; flex: 1 1 16rem; overflow-wrap: break-word; }
 /* details most visits skip */
 .pt-more { border-top: 1px solid var(--grey-200); }
 .pt-more > summary { cursor: pointer; font-weight: 600; font-size: var(--fs-sm); min-height: 44px; display: flex; align-items: center; gap: 0.5em; list-style: none; }

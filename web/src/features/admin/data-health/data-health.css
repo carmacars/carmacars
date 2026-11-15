@@ -17,7 +17,7 @@
 .dh__check details[open] .dh__more { transform: rotate(-135deg) translateY(-1px); }
 .dh__items { list-style: none; margin: 0 0 var(--s-3) calc(2.75rem + var(--s-3)); padding: 0; display: grid; gap: var(--s-2); }
 .dh__item { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); font-size: var(--fs-sm); min-height: 2rem; }
-.dh__item > :first-child { min-width: 0; overflow-wrap: anywhere; }
+.dh__item > :first-child { min-width: 0; overflow-wrap: break-word; }
 .dh__item .btn { flex: none; }
 .dh__clear { display: flex; align-items: center; gap: var(--s-2); margin: 0; }
 .dh__tick { display: inline-grid; place-items: center; width: 1.5rem; height: 1.5rem; border-radius: 999px; background: #EEF6F0; color: var(--ad-ok, #1F7A3A); }

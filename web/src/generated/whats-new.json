@@ -196,6 +196,16 @@
      "Showroom background plates in Program settings: upload a real showroom photo to replace the background of every outside view"
     ]
    }
+  },
+  "r48": {
+   "date": "2026-11-14",
+   "seq": 0,
+   "summary": "Text is no longer squeezed on phones and in the guides.",
+   "sections": {
+    "admins": [
+     "The guides lay out by the room they have: no more notes or steps squeezed into a thin column in the field portal or beside a menu"
+    ]
+   }
   }
  }
 }

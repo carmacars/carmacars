@@ -20,14 +20,19 @@
 
 /* float labels (Field with float): the label sits in the input until it has a value or focus */
 .field--float { position: relative; }
-.field--float > .label { position: absolute; z-index: 1; left: calc(0.85rem + var(--bw)); top: 0; height: 56px; display: flex; align-items: center; color: var(--grey-600); font-weight: 500; font-size: 1rem; pointer-events: none; transform-origin: left center; max-width: calc(100% - 1.7rem); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.field--float > .label { position: absolute; z-index: 1; left: calc(0.85rem + var(--bw)); top: 0; height: 56px; display: flex; align-items: center; line-height: 1.15; color: var(--grey-600); font-weight: 500; font-size: 1rem; pointer-events: none; transform-origin: left center; max-width: calc(100% - 1.7rem); white-space: normal; overflow: hidden; }
 .field--float > .input, .field--float > .textarea { min-height: 56px; padding-top: 1.45rem; padding-bottom: 0.45rem; }
 .field--float > .textarea { padding-top: 1.75rem; }
 .field--float:focus-within > .label,
 .field--float:has(> .input:not(:placeholder-shown)) > .label,
 .field--float:has(> .textarea:not(:placeholder-shown)) > .label,
 .field--float:has(> .input:autofill) > .label { transform: translateY(-0.72rem) scale(0.78); color: var(--black); font-weight: 600; }
-.field--float:has(> .textarea) > .label { height: 2.4rem; }
+.field--float:has(> .textarea) > .label { height: 2.4rem; line-height: 2.4rem; }
+/* r48: at rest the label may use two lines (a long one such as "Where you are (city or neighbourhood)" no longer runs under the edge
+   at 320px); once it has shrunk to the top of the box it is one block on one line, with an ellipsis for the rest, and may use the width the shrink freed */
+.field--float:focus-within > .label, .field--float:has(> .input:not(:placeholder-shown)) > .label, .field--float:has(> .textarea:not(:placeholder-shown)) > .label,
+.field--float:has(> .input:autofill) > .label { display: block; line-height: 56px; white-space: nowrap; text-overflow: ellipsis; max-width: calc((100% - 1.7rem) / 0.78); }
+.field--float:has(> .textarea) > .label { display: block; white-space: nowrap; text-overflow: ellipsis; }
 .field--float:has(> .textarea):focus-within > .label, .field--float:has(> .textarea:not(:placeholder-shown)) > .label { transform: translateY(-0.3rem) scale(0.78); }
 .field--float.has-error > .label { color: var(--red-600); }
 .field--float > .input::placeholder, .field--float > .textarea::placeholder { color: transparent; }

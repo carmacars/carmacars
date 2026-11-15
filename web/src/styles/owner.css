@@ -5,7 +5,7 @@
 .ow-tiles { display: grid; gap: var(--s-3); grid-template-columns: repeat(2, minmax(0, 1fr)); }
 @media (min-width: 64rem) { .ow-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .ow-tile { background: var(--white); border: 1px solid var(--grey-200); padding: var(--s-4); display: grid; gap: 0.3rem; align-content: start; min-width: 0; }
-.ow-tile b { font-family: var(--font-display); font-size: var(--fs-d4); line-height: var(--lh-tight); overflow-wrap: anywhere; }
+.ow-tile b { font-family: var(--font-display); font-size: var(--fs-d4); line-height: var(--lh-tight); overflow-wrap: break-word; }
 .ow-tile span { font-size: var(--fs-xs); color: var(--text-2); }
 
 /* vehicle cards */
@@ -13,7 +13,7 @@
 @media (min-width: 64rem) { .ow-cars { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .ow-car { background: var(--white); border: 1px solid var(--grey-200); padding: var(--s-4); display: grid; gap: var(--s-3); align-content: start; min-width: 0; }
 .ow-car__head { display: flex; justify-content: space-between; align-items: start; gap: var(--s-3); flex-wrap: wrap; }
-.ow-car__name { font-family: var(--font-display); font-weight: 700; font-size: var(--fs-d4); line-height: var(--lh-tight); margin: 0; overflow-wrap: anywhere; }
+.ow-car__name { font-family: var(--font-display); font-weight: 700; font-size: var(--fs-d4); line-height: var(--lh-tight); margin: 0; overflow-wrap: break-word; }
 .ow-car__next { padding: var(--s-3); background: var(--grey-100); border-left: 3px solid var(--red-600); font-size: var(--fs-sm); display: grid; gap: 0.2rem; }
 .ow-car__next.is-ours { border-left-color: var(--black); }
 .pt-steps li.is-na { color: var(--text-2); text-decoration: line-through; }
@@ -37,7 +37,7 @@
 .ow-payee { display: grid; gap: var(--s-1); margin: 0; border-top: 1px solid var(--grey-300); padding-top: var(--s-2); }
 .ow-payee div { display: grid; grid-template-columns: 6rem minmax(0, 1fr); gap: var(--s-2); }
 .ow-payee dt { font-weight: 600; }
-.ow-payee dd { margin: 0; overflow-wrap: anywhere; }
+.ow-payee dd { margin: 0; overflow-wrap: break-word; }
 .ow-status { display: grid; gap: var(--s-2); padding: var(--s-5); background: var(--white); border: 1px solid var(--grey-200); border-top: 4px solid var(--black); }
 .ow-status--paid { border-top-color: var(--black); }
 .ow-status--pending { border-top-color: var(--grey-500); }
@@ -115,7 +115,7 @@
 .ob-totals div { display: flex; gap: var(--s-4); justify-content: space-between; min-width: 14rem; }
 .ob-totals dt { color: var(--text-2); }
 .ob-totals dd { margin: 0; font-variant-numeric: tabular-nums; }
-.ob-text { white-space: pre-wrap; overflow-wrap: anywhere; font-family: inherit; font-size: var(--fs-sm); background: var(--grey-50); border: 1px solid var(--grey-200); padding: var(--s-3); margin: 0; }
+.ob-text { white-space: pre-wrap; overflow-wrap: break-word; font-family: inherit; font-size: var(--fs-sm); background: var(--grey-50); border: 1px solid var(--grey-200); padding: var(--s-3); margin: 0; }
 .ob-choice { border: 1px solid var(--grey-200); padding: var(--s-3); margin: 0; }
 .ob-choice__total { align-self: end; margin: 0 0 0.6rem; }
 .ob-fee .input { flex: 1 1 10rem; }
@@ -134,7 +134,7 @@
 .ow-hero-car__link .ow-photo-none { z-index: -2; }
 .ow-hero-car__shade { position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgb(0 0 0 / 0.05) 30%, rgb(0 0 0 / 0.82)); }
 .ow-hero-car__link .pu-pill { position: absolute; left: var(--s-3); top: var(--s-3); }
-.ow-hero-car__name { position: absolute; left: var(--s-3); right: var(--s-3); bottom: var(--s-3); font-family: var(--font-display); font-weight: 700; line-height: 1.15; display: grid; gap: 0.1rem; overflow-wrap: anywhere; }
+.ow-hero-car__name { position: absolute; left: var(--s-3); right: var(--s-3); bottom: var(--s-3); font-family: var(--font-display); font-weight: 700; line-height: 1.15; display: grid; gap: 0.1rem; overflow-wrap: break-word; }
 .ow-hero-cars[data-count="2"] .ow-hero-car__name, .ow-hero-cars[data-count="3"] > li:not(:first-child) .ow-hero-car__name { font-size: var(--fs-sm); }
 .ow-hero-cars[data-count="2"] .ow-hero-car__link, .ow-hero-cars[data-count="3"] > li:not(:first-child) .ow-hero-car__link { min-height: 10.5rem; }
 .ow-hero-car__name small { font-family: var(--font-text); font-weight: 500; font-size: var(--fs-2xs); color: var(--grey-300); letter-spacing: 0.04em; }
@@ -161,6 +161,6 @@
 .ow-car-hero__media img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .ow-car-hero__media .pu-pill { position: absolute; left: var(--s-3); top: var(--s-3); }
 .ow-car-hero__text { display: grid; gap: var(--s-2); min-width: 0; }
-.ow-car-hero__text h1 { margin: 0; overflow-wrap: anywhere; }
+.ow-car-hero__text h1 { margin: 0; overflow-wrap: break-word; }
 @media (min-width: 64rem) { .ow-car-hero { grid-template-columns: minmax(0, 28rem) minmax(0, 1fr); gap: var(--s-6); } }
 .pu-next { border-radius: var(--pu-radius); }

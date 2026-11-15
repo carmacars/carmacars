@@ -88,7 +88,7 @@
 .fd-next__rel { font-weight: 700; font-size: 1.0625rem; padding: 0.3em 0.7em; border-radius: 999px; background: var(--fd-slab-ink); color: var(--fd-slab); }
 .fd-next__rel.is-late { background: var(--red-600); color: var(--white); }
 .fd-next__kind { display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap; font-weight: 600; font-size: 1.0625rem; }
-.fd-next__car { font-family: var(--font-display); font-size: 1.625rem; line-height: 1.1; letter-spacing: -0.02em; font-weight: 700; margin: 0; overflow-wrap: anywhere; }
+.fd-next__car { font-family: var(--font-display); font-size: 1.625rem; line-height: 1.1; letter-spacing: -0.02em; font-weight: 700; margin: 0; overflow-wrap: break-word; }
 .fd-next__id { display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; }
 .fd-next__place { display: flex; gap: var(--s-2); align-items: flex-start; font-size: 1.0625rem; font-weight: 500; }
 .fd-next__place .fd-ico { margin-top: 0.1em; color: var(--red-400); }
@@ -136,7 +136,7 @@
 .fd-tl__item.is-scheduled .fd-chip { color: var(--fd-bad); }
 .fd-tl__card p { margin: 0; }
 .fd-tl__kind { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); flex-wrap: wrap; font-weight: 600; }
-.fd-tl__car { font-family: var(--font-display); font-size: 1.1875rem; font-weight: 700; line-height: 1.2; margin: 0; overflow-wrap: anywhere; }
+.fd-tl__car { font-family: var(--font-display); font-size: 1.1875rem; font-weight: 700; line-height: 1.2; margin: 0; overflow-wrap: break-word; }
 .fd-tl__place { display: flex; gap: var(--s-2); align-items: baseline; flex-wrap: wrap; font-size: var(--fs-sm); }
 .fd-tl__place .fd-ico { width: 1.1em; height: 1.1em; align-self: center; }
 .fd-tl__do { display: grid; gap: var(--s-2); margin-top: var(--s-1); }
@@ -161,7 +161,7 @@
 .fd-facts > div { display: grid; grid-template-columns: 7rem minmax(0, 1fr); gap: var(--s-3); padding: var(--s-2) 0; border-top: 1px solid var(--fd-slab-rule); }
 .fd-facts dt { color: var(--fd-slab-ink-2); font-size: var(--fs-sm); }
 .fd-facts dt::first-letter { text-transform: uppercase; }
-.fd-facts dd { margin: 0; overflow-wrap: anywhere; }
+.fd-facts dd { margin: 0; overflow-wrap: break-word; }
 .fd-nextstep { display: grid; gap: var(--s-2); }
 .fd-nextstep p { margin: 0; }
 
@@ -170,7 +170,7 @@
 .fd-card h2 { margin: 0; }
 .fd-card.is-next { border-width: 4px; }
 .fd-big { font-size: 1.75rem; font-weight: 700; }
-.fd-who { font-family: var(--font-display); font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; margin: 0; overflow-wrap: anywhere; }
+.fd-who { font-family: var(--font-display); font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; margin: 0; overflow-wrap: break-word; }
 .fd-num { font-family: var(--font-display); font-size: 2.5rem; font-weight: 800; min-height: 5rem; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; border-width: 2.5px; }
 .fd-num--sm { font-size: 1.5rem; min-height: 3.5rem; }
 .fd-screen { display: grid; gap: var(--s-4); }

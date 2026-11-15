@@ -7,7 +7,7 @@
 .landing__cols { display: grid; gap: var(--s-5); grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 48rem) { .landing__cols { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .linklist { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
-.linklist li { min-width: 0; overflow-wrap: anywhere; }
+.linklist li { min-width: 0; overflow-wrap: break-word; }
 .alert--info { border: 1px solid var(--line); background: var(--grey-100); }
 .hub-grid { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-4); grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 40rem) { .hub-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
