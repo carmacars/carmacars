@@ -64,6 +64,8 @@ export function buildData(dir = NOTES_DIR) {
 export const build = (dir) => JSON.stringify(buildData(dir), null, 1) + '\n';
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  // The server image is built from web/ alone (no docs/ folder): it keeps the committed whats-new.json.
+  if (!existsSync(NOTES_DIR) && existsSync(OUT)) { console.log('whats-new: no docs/releases here, the committed whats-new.json is used'); process.exit(0); }
   const data = build();
   if (process.argv.includes('--check')) {
     if (!existsSync(OUT) || readFileSync(OUT, 'utf8') !== data) { console.error('whats-new.json is out of date: run node scripts/whats-new.mjs'); process.exit(1); }
