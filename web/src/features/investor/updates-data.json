@@ -80,6 +80,22 @@
   ]
  },
  {
+  "release": "r48",
+  "title": "Release 48",
+  "date": "2026-11-14",
+  "seq": 0,
+  "summary": "A cleaner fleet calendar for the Admin and staff.",
+  "areas": [
+   {
+    "area": "Staff tools",
+    "items": [
+     "The fleet calendar is easier to read on a computer and a phone: full car names, the renter and booking number on each bar, clear colours by status and today marked",
+     "Every car on the fleet calendar says whether it is free now, taken days are tinted so white is free, and **Only cars free for these dates** shows the cars you can offer"
+    ]
+   }
+  ]
+ },
+ {
   "release": "r44",
   "title": "Release 44",
   "date": "2026-11-13",

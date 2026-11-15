@@ -1,0 +1,189 @@
+/* The fleet calendar (MasterCalendar): one stylesheet for the Admin, every staff portal and the car page's calendar tab
+   (r48, docs/changes/2026-11-14-r48-fleet-calendar.md). Cars are rows with a car column that keeps its width, days are
+   columns; only the calendar scrolls sideways, its date header and car column stay put. Bar colours are set once here
+   (--cal-*) from the site's tokens, each a fill and a text colour that pass AA together. */
+.mcal {
+  --namew: 15rem;
+  --cal-line: var(--grey-200);
+  --cal-line-soft: var(--grey-100);
+  --cal-weekend: var(--grey-50);
+  /* r48: taken stretches tinted across the row, so white is free; the badge pairs pass AA */
+  --cal-busy-out: #F9D9DB; --cal-busy-booked: #E4E4E4; --cal-busy-maint: #D9E7F6; --cal-busy-block: #ECE6D8; --cal-busy-turo: #D5ECE8;
+  --cal-free-bg: #E3F5E8; --cal-free-fg: #0B5D27;
+  --cal-out-bg: var(--red-600); --cal-out-fg: var(--white);
+  --cal-booked-bg: var(--grey-950); --cal-booked-fg: var(--white);
+  --cal-done-bg: var(--grey-600); --cal-done-fg: var(--white);
+  --cal-closed-bg: var(--grey-100); --cal-closed-fg: var(--grey-700); --cal-closed-bd: var(--grey-300);
+  --cal-req-bg: var(--grey-100); --cal-req-fg: var(--grey-950); --cal-req-bd: var(--grey-600);
+  --cal-offer-bg: #FFF1C7; --cal-offer-fg: #4A3300; --cal-offer-bd: #A86B00;
+  --cal-maint-bg: #E3EEFA; --cal-maint-fg: #1D3F66; --cal-maint-bd: #2F5F93;
+  --cal-block-bg: var(--grey-100); --cal-block-fg: var(--grey-800); --cal-block-bd: var(--grey-500);
+  --cal-turo: #0F7B6C;
+  display: grid; gap: var(--s-3); min-width: 0; max-width: 100%;
+}
+@media (max-width: 40rem) { .mcal { --namew: 8.75rem; } }
+
+/* the toolbar: dates on the left, finding and filters on the right; one tidy block on a phone */
+.mcal .mcal__bar { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-3); align-items: center; justify-content: space-between;
+  padding: var(--s-3); border: 1px solid var(--cal-line); border-radius: 14px; background: var(--grey-50); }
+.mcal .mcal__bar .row { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; min-width: 0; }
+.mcal.mcal .mcal__bar .input, .mcal.mcal .mcal__bar .select { border-radius: 10px; background: var(--white); min-height: 40px !important; font-size: var(--fs-sm); padding-block: 0; }
+.mcal.mcal .mcal__bar .btn { min-height: 40px; }
+.mcal.mcal .mcal__bar .check { display: inline-flex; align-items: center; gap: 0.4rem; font-size: var(--fs-sm); white-space: nowrap; }
+.mcal.mcal .mcal__bar .check input { width: 20px; height: 20px; }
+@media (max-width: 40rem) {
+  .mcal .mcal__bar { padding: var(--s-2); }
+  .mcal .mcal__bar .row { width: 100%; }
+  .mcal.mcal .mcal__bar .row > .input[type="search"] { flex: 1 1 100%; width: auto !important; }
+}
+
+/* the legend: small chips in the bars' own colours */
+.mcal .mcal__legend { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-3); padding: 0 var(--s-1); font-size: var(--fs-2xs); color: var(--text-2); }
+.mcal .mcal__legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
+.mcal .mcal__legend i.mcal__item { position: relative; display: inline-block; width: 1.6rem; height: 0.85rem; padding: 0; border-radius: 4px; cursor: default; }
+.mcal .mcal__legend i.mcal__item.is-turo { inset: auto; height: 0.85rem; background: var(--cal-turo); border-color: var(--cal-turo); }
+.mcal .mcal__legend i.mcal__swatch { display: inline-block; width: 1.6rem; height: 0.85rem; border-radius: 4px; border: 1px solid var(--grey-300); }
+.mcal .mcal__legend i.mcal__swatch.is-free { background: var(--white); }
+.mcal .mcal__legend i.mcal__swatch.is-taken { background: linear-gradient(90deg, var(--cal-busy-out) 0 33%, var(--cal-busy-booked) 33% 66%, var(--cal-busy-maint) 66%); }
+.mcal .mcal__legend i.mcal__swatch.is-off { background: var(--grey-100) repeating-linear-gradient(135deg, transparent 0 4px, rgb(0 0 0 / 0.08) 4px 6px); }
+.mcal .mcal__legend i.has-clash::after { width: 7px; font-size: 0.5rem; }
+
+/* the timeline: the only part that scrolls sideways */
+.mcal .mcal__grid { position: relative; max-width: 100%; max-height: min(75vh, 56rem); overflow: auto; overscroll-behavior-x: contain;
+  background: var(--white); border: 1px solid var(--cal-line); border-radius: 14px; }
+.mcal .mcal__grid:focus-visible { outline: 3px solid var(--red-600); outline-offset: 2px; }
+.mcal .mcal__inner { position: relative; min-width: 100%; }
+.mcal .mcal__head, .mcal .mcal__row { display: grid; }
+.mcal .mcal__head { position: sticky; top: 0; z-index: 4; background: var(--white); border-bottom: 1px solid var(--cal-line);
+  justify-content: start; align-items: stretch; gap: 0; margin: 0; box-shadow: 0 6px 12px -10px rgb(0 0 0 / 0.25); }
+.mcal .mcal__corner, .mcal .mcal__name { position: sticky; left: 0; background: var(--white); border-right: 1px solid var(--cal-line); }
+.mcal .mcal__corner { z-index: 5; display: grid; align-content: center; gap: 1px; padding: 0 var(--s-3); font-size: var(--fs-2xs); font-weight: 650; color: var(--text-2); }
+
+/* the date header: weekday over the date; the month on the first day shown and on the 1st; today in red */
+.mcal .mcal__days { position: relative; height: 3.25rem; }
+.mcal .mcal__day { position: absolute; top: 0; bottom: 0; box-sizing: border-box; display: grid; place-content: center; justify-items: center; gap: 1px;
+  border-left: 1px solid var(--cal-line-soft); color: var(--text-2); font-size: 0.6875rem; line-height: 1.15; text-align: center; white-space: nowrap; overflow: hidden; }
+.mcal .mcal__day.is-weekend { background: var(--cal-weekend); }
+.mcal .mcal__day b { display: grid; place-items: center; min-width: 1.6rem; height: 1.6rem; padding: 0 0.3rem; border-radius: var(--r-pill);
+  font-family: var(--font-display); font-size: var(--fs-sm); font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+.mcal .mcal__day .mcal__wd { text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.625rem; font-weight: 600; }
+.mcal .mcal__day .mcal__mo { color: var(--text); font-weight: 800; }
+.mcal .mcal__day:has(.mcal__mo) { border-left: 2px solid var(--grey-400); }
+.mcal .mcal__corner b { font-size: var(--fs-xs); color: var(--text); font-weight: 700; }
+.mcal .mcal__day.is-today { color: var(--red-700); }
+.mcal .mcal__day.is-today b { background: var(--red-600); color: var(--white); }
+
+/* a car: photo, name on up to two lines (never squeezed), code and plate */
+.mcal .mcal__row { position: relative; }
+.mcal .mcal__name { z-index: 3; display: flex; align-items: center; gap: var(--s-2); min-width: 0; padding: 0.35rem var(--s-3); border-bottom: 1px solid var(--cal-line-soft); }
+.mcal .mcal__ntext { display: grid; gap: 1px; min-width: 0; line-height: 1.25; }
+.mcal .mcal__ntext a, .mcal .mcal__ntext b { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden;
+  font-size: var(--fs-xs); font-weight: 700; color: var(--text); text-decoration: none; overflow-wrap: anywhere; }
+.mcal .mcal__ntext a:hover { color: var(--red-700); text-decoration: underline; }
+.mcal .mcal__ntext > span { font-size: 0.6875rem; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.mcal .mcal__ntext .mcal__status { color: var(--red-700); font-weight: 600; }
+.mcal .mcal__avail { justify-self: start; max-width: 100%; margin-top: 2px; padding: 1px 7px 1px 6px; border-radius: 8px; display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.6875rem; font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; }
+.mcal .mcal__avail::before { content: ""; flex: none; align-self: flex-start; margin-top: 0.3em; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.mcal .mcal__avail.is-free { background: var(--cal-free-bg); color: var(--cal-free-fg); }
+.mcal .mcal__avail.is-out { background: var(--red-50); color: var(--red-700); }
+.mcal .mcal__avail.is-busy, .mcal .mcal__avail.is-off { background: var(--grey-100); color: var(--grey-700); }
+.mcal .mcal__ntext .mcal__win { font-size: 0.6875rem; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mcal__thumb { width: 40px; height: 28px; flex: none; border-radius: 6px; object-fit: cover; background: var(--grey-100); }
+.mcal__thumb--none { display: inline-grid; place-items: center; font-family: var(--font-display); font-weight: 700; font-size: 0.75rem; color: var(--grey-700); background: var(--grey-100); border: 1px solid var(--cal-line); }
+@media (max-width: 40rem) {
+  .mcal .mcal__name .mcal__thumb { display: none; }
+  .mcal .mcal__name { padding-inline: var(--s-2); }
+}
+.mcal .mcal__row:hover .mcal__name, .mcal .mcal__row:focus-within .mcal__name { background: var(--grey-50); }
+
+/* a car's lane: day lines, the bars, and the now line under them */
+.mcal .mcal__lane { position: relative; min-height: 62px; border-bottom: 1px solid var(--cal-line-soft);
+  background-image: repeating-linear-gradient(90deg, transparent 0 calc(var(--dw) - 1px), var(--cal-line-soft) calc(var(--dw) - 1px) var(--dw)); }
+.mcal .mcal__lane.is-drop { background-color: var(--red-50); }
+.mcal .mcal__busy { position: absolute; top: 0; bottom: 0; z-index: 0; pointer-events: none; }
+.mcal .mcal__busy.is-out { background: var(--cal-busy-out); }
+.mcal .mcal__busy.is-booked { background: var(--cal-busy-booked); }
+.mcal .mcal__busy.is-maint { background: var(--cal-busy-maint); }
+.mcal .mcal__busy.is-block { background: var(--cal-busy-block); }
+.mcal .mcal__busy.is-turo { background: var(--cal-busy-turo); }
+/* a car that cannot be booked at all: the whole row greyed out */
+.mcal .mcal__row.is-off .mcal__lane { background-color: var(--grey-100);
+  background-image: repeating-linear-gradient(135deg, transparent 0 8px, rgb(0 0 0 / 0.05) 8px 10px); }
+.mcal .mcal__row.is-off .mcal__name { background: var(--grey-50); }
+.mcal .mcal__row.is-off .mcal__ntext a, .mcal .mcal__row.is-off .mcal__ntext b { color: var(--grey-600); }
+.mcal .mcal__row.is-off .mcal__thumb { filter: grayscale(1); opacity: 0.6; }
+.mcal .mcal__now { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--red-600); pointer-events: none; z-index: 1; }
+
+/* a bar: rounded, its words start at the visible edge (sticky) and end in an ellipsis, never over another bar */
+.mcal .mcal__item { position: absolute; z-index: 2; box-sizing: border-box; height: 22px; display: flex; align-items: center; gap: 0.3rem; min-width: 6px; padding: 0 6px;
+  border: 1px solid var(--grey-950); border-radius: 6px; background: var(--white); color: var(--text); font-size: var(--fs-2xs); line-height: 1; white-space: nowrap;
+  overflow: clip; cursor: pointer; user-select: none; touch-action: none; }
+.mcal .mcal__item:hover { filter: brightness(0.96); z-index: 3; }
+.mcal .mcal__item:focus-visible { outline: 3px solid var(--red-600); outline-offset: 1px; z-index: 4; }
+.mcal .mcal__item--top { top: 4px; }
+.mcal .mcal__item--low { top: 30px; }
+.mcal .mcal__lbl { position: sticky; left: calc(var(--namew) + 4px); display: flex; align-items: baseline; gap: 0.35rem; min-width: 0; max-width: 100%; overflow: hidden; pointer-events: none; }
+.mcal .mcal__lbl b { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 700; }
+.mcal .mcal__lbl small { flex: 0 1000 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 0.6875rem; font-weight: 500; opacity: 0.85; font-variant-numeric: tabular-nums; }
+.mcal .mcal__lbl b:empty, .mcal .mcal__lbl small:empty { display: none; }
+
+.mcal .mcal__item.is-on_rent { background: var(--cal-out-bg); border-color: var(--cal-out-bg); color: var(--cal-out-fg); }
+.mcal .mcal__item.is-confirmed { background: var(--cal-booked-bg); border-color: var(--cal-booked-bg); color: var(--cal-booked-fg); }
+.mcal .mcal__item.is-returned { background: var(--cal-done-bg); border-color: var(--cal-done-bg); color: var(--cal-done-fg); }
+.mcal .mcal__item.is-closed { background: var(--cal-closed-bg); border-color: var(--cal-closed-bd); color: var(--cal-closed-fg); }
+.mcal .mcal__item.is-requested { background: var(--cal-req-bg); border: 1px dashed var(--cal-req-bd); color: var(--cal-req-fg); }
+.mcal .mcal__item.is-offered, .mcal .mcal__item.is-tentative, .mcal .mcal__item.is-pending_payment { background: var(--cal-offer-bg); border-color: var(--cal-offer-bd); color: var(--cal-offer-fg); }
+.mcal .mcal__item.is-pending_payment { border-left-width: 4px; }
+.mcal .mcal__item.is-outline { background: var(--white); border-width: 2px; color: var(--text); }
+.mcal .mcal__item.is-outline.is-on_rent { border-color: var(--red-600); color: var(--red-700); }
+.mcal .mcal__item.is-outline.is-confirmed { border-color: var(--grey-950); color: var(--grey-950); }
+.mcal .mcal__item.is-block { background: repeating-linear-gradient(135deg, var(--cal-block-bg) 0 6px, var(--white) 6px 9px); border-color: var(--cal-block-bd); color: var(--cal-block-fg); }
+.mcal .mcal__item.is-block.is-maint { background: var(--cal-maint-bg); border-color: var(--cal-maint-bd); color: var(--cal-maint-fg); }
+.mcal .mcal__item.is-placeholder { background: var(--white); border: 1px dashed var(--grey-500); color: var(--grey-700); font-style: italic; }
+.mcal .mcal__item.is-owner { box-shadow: inset 0 0 0 2px var(--white); }
+.mcal .mcal__item.has-clash { box-shadow: 0 0 0 2px var(--red-600); padding-right: 16px; }
+.mcal .mcal__item.has-clash::after { content: "!"; position: absolute; right: 0; top: 0; bottom: 0; width: 13px; display: grid; place-items: center;
+  background: var(--red-600); color: var(--white); font-weight: 700; font-style: normal; border-radius: 0 5px 5px 0; }
+.mcal .mcal__item.is-late { animation: cal-pulse 1.4s ease-in-out infinite; }
+@keyframes cal-pulse { 50% { box-shadow: 4px 0 0 0 var(--red-600); } }
+@media (prefers-reduced-motion: reduce) { .mcal .mcal__item.is-late { animation: none; border-right: 4px solid var(--red-700); } }
+.mcal .mcal__item.is-dragging { opacity: 0.9; z-index: 6; box-shadow: 0 6px 16px rgb(0 0 0 / 0.25); }
+.mcal .mcal__grip { position: absolute; right: 0; top: 0; bottom: 0; width: 8px; cursor: ew-resize; }
+
+/* markers with no words: Turo trips and car moves as thin strips at the foot of the lane, field jobs as pins */
+.mcal .mcal__item.is-turo, .mcal .mcal__item.is-move { top: auto; bottom: 3px; height: 5px; padding: 0; border-radius: 3px; font-size: 0; }
+.mcal .mcal__item.is-turo { background: var(--cal-turo); border-color: var(--cal-turo); }
+.mcal .mcal__item.is-move { background: var(--grey-600); border-color: var(--grey-600); }
+.mcal .mcal__item.is-job { top: auto; bottom: 4px; width: 14px !important; height: 14px; padding: 0; border-radius: 999px; background: var(--white); border-color: var(--grey-950); font-size: 0; }
+
+/* the side panel: a drawer on the right on a desktop, a sheet from the bottom on a phone */
+.mcal .mcal__panel { position: fixed; inset: auto 0 0 0; max-height: 70vh; overflow-y: auto; z-index: 50; display: grid; align-content: start; gap: var(--s-3);
+  padding: var(--s-4); background: var(--white); border-radius: 18px 18px 0 0; box-shadow: 0 -12px 40px rgb(0 0 0 / 0.22); }
+.mcal .mcal__panel h2 { margin: 0; }
+@media (min-width: 64rem) {
+  .mcal .mcal__panel { inset: 0 0 0 auto; width: min(26rem, 100vw); max-height: none; border-radius: 0; border-left: 1px solid var(--cal-line); box-shadow: -16px 0 40px rgb(0 0 0 / 0.18); padding: var(--s-5); }
+}
+
+/* the agenda: by day, one card per booking or block */
+.mcal__agenda { display: grid; gap: var(--s-4); }
+.mcal__none { margin: 0; padding: var(--s-4); border-radius: 12px; background: var(--grey-50); color: var(--text-2); font-size: var(--fs-sm); }
+.mcal__aday h3 { margin: 0 0 var(--s-2); font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-2); }
+.mcal__aday ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
+.mcal__acard { width: 100%; display: grid; grid-template-columns: 5rem 40px minmax(0, 1fr); grid-template-areas: "time thumb body" "time kind kind"; gap: 4px var(--s-3); align-items: center;
+  padding: var(--s-3); border: 1px solid var(--cal-line); border-radius: 12px; background: var(--white); text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.mcal__acard:hover { border-color: var(--black); }
+.mcal__acard:focus-visible { outline: 3px solid var(--red-600); outline-offset: 2px; }
+.mcal__acard[data-kind="on_rent"] { background: linear-gradient(90deg, var(--red-600) 0 4px, var(--white) 4px); }
+.mcal__acard[data-kind="confirmed"] { background: linear-gradient(90deg, var(--black) 0 4px, var(--white) 4px); }
+.mcal__acard[data-clash] { border-color: var(--red-600); }
+.mcal__atime { grid-area: time; align-self: start; display: grid; gap: 2px; font-size: 0.6875rem; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.mcal__atime b { font-family: var(--font-display); font-size: var(--fs-sm); color: var(--text); }
+.mcal__acard .mcal__thumb { grid-area: thumb; }
+.mcal__abody { grid-area: body; display: grid; gap: 2px; min-width: 0; font-size: var(--fs-xs); }
+.mcal__abody > b { font-size: var(--fs-sm); }
+.mcal__abody > span { color: var(--text-2); overflow-wrap: anywhere; }
+.mcal.mcal .mcal__akind { grid-area: kind; position: relative; inset: auto; animation: none; justify-self: start; width: auto !important; height: auto; padding: 2px 8px;
+  border-radius: 999px; font-size: 0.6875rem; line-height: 1.4; box-shadow: none; }
+.mcal.mcal .mcal__akind.is-turo, .mcal.mcal .mcal__akind.is-move, .mcal.mcal .mcal__akind.is-job { bottom: auto; font-size: 0.6875rem; padding: 2px 8px; height: auto;
+  background: var(--grey-100); border: 1px solid var(--grey-300); color: var(--text); }
