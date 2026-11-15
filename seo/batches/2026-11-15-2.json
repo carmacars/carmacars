@@ -1,0 +1,141 @@
+{
+  "batch": "2026-11-15-2",
+  "items": [
+    {
+      "kind": "car",
+      "id": "0a436b1e-06b8-4598-9f47-98e944bd46ee",
+      "copy": {
+        "seo_title": "Cadillac Escalade Rental in Toronto, 7 Seats | CarmaCars",
+        "meta_description": "Book the black Cadillac Escalade in Toronto from $540 a day. Seven seats, four-wheel drive, pickup or delivery, and no payment until we confirm.",
+        "h1": "Cadillac Escalade, 7-seat SUV for rent in Toronto",
+        "intro": "Seven seats in a black Cadillac Escalade with four-wheel drive, made for groups that travel with their bags.",
+        "highlights": [
+          "Four-wheel drive",
+          "Third-row seating",
+          "Backup camera",
+          "Bluetooth",
+          "Air conditioning",
+          "Cruise control"
+        ],
+        "good_for": [
+          "Group airport transfers",
+          "Family trips with luggage",
+          "Wedding party transport"
+        ],
+        "faq": [
+          {
+            "question": "How many people can ride in the Escalade?",
+            "answer": "It has 7 seats and 4 doors, so a larger group fits in one vehicle."
+          },
+          {
+            "question": "Does the Escalade have four-wheel drive?",
+            "answer": "Yes. The car is listed with four-wheel drive and an automatic transmission."
+          },
+          {
+            "question": "Can I collect the Escalade or have it delivered?",
+            "answer": "Both work. Collect it at our location at no charge, or have it delivered to your address for the delivery fee plus distance."
+          },
+          {
+            "question": "Is there a daily kilometre limit?",
+            "answer": "200 km a day are included. Extra kilometres are $0.75 each."
+          }
+        ],
+        "alt_texts": {
+          "exterior_more": "Black Cadillac Escalade SUV, exterior more view",
+          "front": "Black Cadillac Escalade SUV, front view",
+          "front_left": "Black Cadillac Escalade SUV, front left view",
+          "front_right": "Black Cadillac Escalade SUV, front right view"
+        }
+      }
+    },
+    {
+      "kind": "car",
+      "id": "3003c462-580a-4bd0-862b-ee77dba73f8f",
+      "copy": {
+        "seo_title": "BMW 330i M Sport Rental in Toronto, AWD Sedan | CarmaCars",
+        "meta_description": "Rent the white BMW 330i M Sport in Toronto from $180 a day. All-wheel drive, five seats, delivery or pickup, and no payment up front.",
+        "h1": "BMW 330i M Sport, white AWD sedan for rent in Toronto",
+        "intro": "A white BMW 330i M Sport sedan with all-wheel drive and an automatic gearbox, sized for city streets and longer highway runs.",
+        "highlights": [
+          "All-wheel drive",
+          "Backup camera",
+          "Bluetooth",
+          "Air conditioning",
+          "Cruise control",
+          "Automatic transmission"
+        ],
+        "good_for": [
+          "Daily commutes",
+          "Weekend getaways",
+          "Airport runs"
+        ],
+        "faq": [
+          {
+            "question": "What drivetrain does the BMW 330i M Sport have?",
+            "answer": "It has all-wheel drive and an automatic transmission."
+          },
+          {
+            "question": "How many people does it seat?",
+            "answer": "Five people, with 4 doors for easy access."
+          },
+          {
+            "question": "How much does a weekend day cost?",
+            "answer": "A weekend day is $207, and HST of 13% is added. The weekly rate is $756."
+          },
+          {
+            "question": "What do I need to rent it?",
+            "answer": "An Ontario G or G2 licence and a credit card in your name. Your licence and identity are checked before pickup."
+          }
+        ],
+        "alt_texts": {
+          "front_left": "White BMW 3 Series 330i M Sport sedan, front left view",
+          "rear": "White BMW 3 Series 330i M Sport sedan, rear view"
+        }
+      }
+    },
+    {
+      "kind": "car",
+      "id": "94570239-4cd1-4882-942a-dc710c2732f7",
+      "copy": {
+        "seo_title": "Mercedes-Benz C43 AMG Rental in Toronto, White | CarmaCars",
+        "meta_description": "Rent the white Mercedes-Benz C43 AMG in Toronto from $225 a day. All-wheel drive, five seats, delivery or pickup, no payment up front.",
+        "h1": "White Mercedes-Benz C43 AMG sedan for rent in Toronto",
+        "intro": "White Mercedes-Benz C43 AMG sedan, all-wheel drive with five seats. Dressed for a client meeting, ready for a long drive.",
+        "highlights": [
+          "All-wheel drive",
+          "Backup camera",
+          "Bluetooth",
+          "Air conditioning",
+          "Cruise control",
+          "Automatic transmission"
+        ],
+        "good_for": [
+          "Client meetings",
+          "Special dinners",
+          "Winter commutes"
+        ],
+        "faq": [
+          {
+            "question": "Is the C43 AMG all-wheel drive?",
+            "answer": "Yes, it is listed with all-wheel drive and an automatic transmission."
+          },
+          {
+            "question": "How many seats are there?",
+            "answer": "Five seats and 4 doors."
+          },
+          {
+            "question": "What does it cost by the day?",
+            "answer": "$225 a day, $259 on a weekend day, plus 13% HST. The weekly rate is $1,260."
+          },
+          {
+            "question": "Can the C43 AMG be delivered to me?",
+            "answer": "Yes. Delivery to any address costs the delivery fee plus distance, or you can collect it from us at no charge."
+          }
+        ],
+        "alt_texts": {
+          "other": "White Mercedes-Benz C-Class C43 AMG sedan"
+        }
+      }
+    }
+  ]
+}
