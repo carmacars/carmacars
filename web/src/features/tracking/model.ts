@@ -24,6 +24,8 @@ export interface Settings { history_seconds: number; history_days: number; trip_
   key_set: boolean; key_hint: string | null; key_set_at: string | null }
 export interface Fleet { at: string; admin: boolean; demo: boolean; settings: Settings; hq: { lat: number; lng: number } | null; cars: TrackedCar[]; unpaired: Unpaired[];
   alerts: TrackerAlert[]; open_alerts: number; bookings: BookingTrips[];
+  /** r48 (3041): every staff role reads the map; marking alerts as seen stays Admin's and Fleet's */
+  read_only?: boolean;
   counts: { cars: number; tracked: number; moving: number; parked: number; offline: number; on_rent: number } }
 
 /** A report this old (or older) means the tracker is not reporting now. */

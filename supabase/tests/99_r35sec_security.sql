@@ -71,7 +71,9 @@ insert into r35sec_anon_ok values
   ('rent_vs_own_page'), ('review_summary'), ('seo_event'), ('seo_events_list'), ('seo_i18n_bundle'), ('seo_languages_state'), ('vehicle_language_ok'),
   ('sitemap_families'), ('sitemap_languages'), ('tracker_product'),
   -- r41 live updates (2522): the versions of keyed, unguessable topic names an open screen was given; no data, read-only
-  ('live_poll');
+  ('live_poll'),
+  -- r48 (3040): the studio covers of published real cars (public photos only, read-only), shown where a sample photo was
+  ('site_studio_covers');
 create temporary table r35sec_signed_in_ok (name text primary key);
 insert into r35sec_signed_in_ok values
   ('mark_notifications_read'), ('my_booking'), ('my_booking_change_preview'), ('my_booking_messages'), ('my_booking_readiness'),

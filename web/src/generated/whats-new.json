@@ -240,9 +240,14 @@
      "A renter paying week by week: turn on Long-term, paid weekly on the booking and record each week's payment; the return moves by itself",
      "Your academy has worked examples from your guide and the new path The renter's side: what renters see at each step, with the renter guide at Renter guide; staff already working have 7 days, shown on the academy page",
      "Ask the guide first: the Assistant names the guide chapter of the page you are on",
-     "A call you place from the site, or one that rings your browser, opens the caller pop-up with the Call helper; on the renter, choose Calls to play a call or read its transcript"
+     "A call you place from the site, or one that rings your browser, opens the caller pop-up with the Call helper; on the renter, choose Calls to play a call or read its transcript",
+     "Every staff member sees where the cars are: Car map on Find a car (read only), and Where the car is on each car and booking page, or No tracker yet"
+    ],
+    "owners": [
+     "Each car's page shows Where your car is and its trips of the last 30 days, or No tracker yet; you see the location only, never the renter or the booking"
     ],
     "renters": [
+     "The privacy policy and the rental agreement say that CarmaCars staff and the car's owner can see where the car is",
      "Your booking page says when the deposit is still owed and how to place it",
      "Your booking's checklist says exactly which insurance page is still missing, and its button opens that upload",
      "Example pictures of a pink slip and an OPCF 27 endorsement page, with the parts that must show circled, and how to take the photo",
