@@ -285,3 +285,11 @@ export const STRIPE_TOOLS: Tool[] = [
     { booking: str('The booking number'), payment_intent: str('The PaymentIntent id (pi_...)') })
 ];
 TOOLS.push(...STRIPE_TOOLS);
+
+// Release 48 (2923): one open pay link cancelled by its PaymentIntent id, and that intent cancelled at Stripe (never
+// captured: no money moves). An Admin only; a paid link is refused (giving money back is a refund).
+export const PAY_LINK_TOOLS: Tool[] = [
+  write('cancel_pay_link', 'Cancel a pay link', 'Cancel one open pay link (a link texted or emailed to a renter, for the rental, the fees, the balance, a later charge or a deposit hold) by its PaymentIntent id (pi_..., as stripe_booking lists it), and cancel that PaymentIntent at Stripe. No money moves: an open link was never paid. A paid link is refused (that is a refund), and so is one already cancelled or expired. An Admin only.',
+    ['payment_intent'], { payment_intent: str('The PaymentIntent id (pi_...) of the pay link') }, true)
+];
+TOOLS.push(...PAY_LINK_TOOLS);

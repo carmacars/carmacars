@@ -16,6 +16,8 @@ export interface CardProductCheck {
 }
 export interface CardPick { card_id: string | null; card_other: string | null; label: string | null; check: CardProductCheck; at_confirm?: CardProductCheck | null }
 export type ProofPageKind = 'pink_slip' | 'endorsement' | 'card_benefit';
+/** r48 (2920, app.coverage_state): one thing the renter still has to send or do for the coverage, with the page to upload */
+export interface CoverageNeed { code: string; label: string; page_kind: 'pink_slip' | 'endorsement' | null }
 export interface ProofPage { id: string; status: 'submitted' | 'approved' | 'rejected'; uploaded_at: string; mime_type: string | null; reject_reason?: string | null; bucket?: string; path?: string }
 export interface RenterCoverage {
   option: 1 | 2 | 3 | 4 | null; option_label: string; confirmed: boolean; confirmed_at: string | null; booking_status: string;
@@ -26,6 +28,8 @@ export interface RenterCoverage {
   card_pick?: CardPick | null;
   /** 1401: the OPCF 27 pages still to send ("pink slip", "OPCF 27 endorsement"), and whether payment waits for them */
   opcf27_missing?: string[]; opcf27_before_payment?: boolean; page_kinds?: Record<string, ProofPageKind>;
+  /** r48 (2920): what is still to send, from the one rule the staff count and the checklist read */
+  needs?: CoverageNeed[];
   last_switch?: null | { at: string; direction: 'to_plan' | 'to_card'; from_label: string; to_label: string; total_before_cents: number; total_after_cents: number; note: string | null };
   proof: null | {
     id: string; option: number; status: 'submitted' | 'confirmed' | 'rejected'; rejection_reason: string | null;
@@ -37,6 +41,8 @@ export interface ReviewCoverage {
   option: 1 | 2 | 3 | 4 | null; option_label: string; confirmed: boolean; return_date: string; vehicle_class: string | null; rental_days: number;
   booking_status: string; card: CardCheck; protection_plan_line: boolean;
   card_pick?: CardPick | null; opcf27_missing?: string[]; page_kinds?: Record<string, ProofPageKind>;
+  /** r48 (2920): the proof (or the Protection Plan) can be approved now; what the renter still has to send */
+  proof_waiting?: boolean; plan_waiting?: boolean; needs?: CoverageNeed[];
   proof: null | {
     id: string; coverage_option: number; status: 'submitted' | 'confirmed' | 'rejected'; rejection_reason: string | null;
     insurer_name: string | null; policy_number: string | null; policy_expiry: string | null; policy_valid: boolean;

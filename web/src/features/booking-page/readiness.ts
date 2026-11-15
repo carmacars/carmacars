@@ -17,6 +17,15 @@ export interface ReadyLine { key: string; label: string; done: boolean; hint: st
 const ACTIVE = ['offered', 'pending_payment', 'tentative', 'confirmed'];
 export const showReadiness = (status: string) => ACTIVE.includes(status);
 
+/** r48 (2920): the coverage line says exactly what is missing (app.coverage_state, the rule Approve all and the renter's
+ *  checklist read): what the renter still has to send, or that it waits for our review. */
+export function coverageHint(r: Record<string, unknown>): string {
+  const needs = Array.isArray(r.coverage_needs) ? (r.coverage_needs as unknown[]).filter((x): x is string => typeof x === 'string') : [];
+  if (needs.length) return `Waiting for the renter to send ${needs.map((n) => n.replace(/^your /, 'their ')).join(' and ')}. Nothing to approve yet: their checklist asks for it.`;
+  if (r.coverage_waiting === true) return 'Ready for review: Approve all on Documents.';
+  return 'Review the proof of coverage, or switch the booking to the Protection Plan.';
+}
+
 export function readinessLines(f: ReadyFacts): ReadyLine[] {
   const r = f.readiness ?? {};
   const flag = (k: string) => r[k] === true;
@@ -24,7 +33,7 @@ export function readinessLines(f: ReadyFacts): ReadyLine[] {
     { key: 'offer', label: 'Offer accepted', done: !['requested', 'offered'].includes(f.status), hint: 'Edit the offer or send it again with a later expiry.' },
     { key: 'paid', label: f.insurerBilled ? 'Renter\'s part paid' : 'Rental paid', done: f.dueCents <= 0 || f.paidCents >= f.dueCents, hint: 'Send a pay link on Money (text or email), or take the card on this device.' },
     { key: 'identity', label: 'Licence and selfie verified', done: flag('all_drivers_verified'), hint: 'Review documents: approve, or reject with the reason the renter sees.' },
-    { key: 'coverage', label: 'Coverage confirmed', done: flag('coverage_confirmed'), hint: 'Review the proof of coverage, or switch the booking to the Protection Plan.' },
+    { key: 'coverage', label: 'Coverage confirmed', done: flag('coverage_confirmed'), hint: coverageHint(r) },
     { key: 'deposit', label: 'Deposit held', done: flag('deposit_ok') || flag('deposit_taken') || flag('deposit_waived'), hint: 'Send the deposit link on Money.' },
     { key: 'drivers', label: 'Additional drivers accepted', done: r.additional_drivers_accepted !== false, hint: 'Send each driver their signing link (Documents).' },
     { key: 'agreement', label: 'Agreement signed', done: flag('agreement_completed'), hint: 'Send the agreement again from the Agreement panel.' }

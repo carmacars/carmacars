@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { ADMIN_TOOLS, CLAIM_TOOLS, CONNECTOR_URL, OPS_TOOLS, PHOTO_TOOLS, SCOPES, STRIPE_TOOLS, TOOLS, WRITABLE, bearer, newSecret, parseScopes, pkceChallenge, secretPrefix, sha256Hex, toolsFor, claimFileKind } from './tools.ts';
+import { ADMIN_TOOLS, CLAIM_TOOLS, CONNECTOR_URL, OPS_TOOLS, PHOTO_TOOLS, SCOPES, STRIPE_TOOLS, PAY_LINK_TOOLS, TOOLS, WRITABLE, bearer, newSecret, parseScopes, pkceChallenge, secretPrefix, sha256Hex, toolsFor, claimFileKind } from './tools.ts';
 
 test('every tool names a known scope, and only the update tools write', () => {
   for (const t of TOOLS) assert.ok(t.scope === 'any' || (SCOPES as readonly string[]).includes(t.scope), t.name);
@@ -179,4 +179,17 @@ test('r48 (2970): record_handover takes deposit_pending with its reason, preview
   assert.equal(props.deposit_pending_reason?.type, 'string');
   assert.ok(props.preview_id || props.confirm, 'a write: preview first, then confirm');
   assert.match(t!.description, /deposit_pending true and deposit_pending_reason/);
+});
+
+const SQL2923 = readFileSync(new URL('../../../../supabase/migrations/2923_r48_pay_link_sweep.sql', import.meta.url), 'utf8');
+test('2923: cancel_pay_link: two-step on admin:write, an Admin only, a paid link refused', () => {
+  const t = PAY_LINK_TOOLS.find((x) => x.name === 'cancel_pay_link')!;
+  assert.ok(t && !t.readOnly && t.scope === 'admin:write' && t.destructive);
+  assert.ok(TOOLS.includes(t));
+  const props = (t.inputSchema as { properties: Record<string, unknown>; required: string[] }).properties;
+  assert.ok(props.payment_intent && props.confirm && props.preview_id);
+  assert.match(SQL2923, /if p_tool <> 'cancel_pay_link' then return app\.api_call_pre2923/);
+  assert.match(SQL2923, /user_is_admin\(k\.user_id\)/);
+  assert.match(SQL2923, /q\.status = 'paid' then\s+raise exception/);
+  assert.match(SQL2923, /pv\.args is distinct from v_args/);
 });

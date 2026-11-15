@@ -21,7 +21,7 @@ const MISSING: Record<string, string> = { primary_driver_ontario_licence: 'A mai
 
 // Identity and coverage (02 section 7.3, 08-forms.md section 7): three photos per driver and the proof
 // for the chosen coverage option, each reviewed by our team. Status from booking_readiness.
-export default async function VerifyPage({ params, searchParams }: { params: Promise<{ number: string }>; searchParams: Promise<{ own?: string; change?: string }> }) {
+export default async function VerifyPage({ params, searchParams }: { params: Promise<{ number: string }>; searchParams: Promise<{ own?: string; change?: string; need?: string }> }) {
   const { b, user } = await myBooking((await params).number, 'verify');
   const q = await searchParams;
   // licence photos, the selfie and the coverage proof: before pickup, or while a rental added already underway is out (0074)
@@ -86,7 +86,7 @@ export default async function VerifyPage({ params, searchParams }: { params: Pro
       ))}
       {!early && <section className="stack" aria-labelledby="pt-cov">
         <h2 className="pt-section-title" id="pt-cov">Coverage for damage to the car</h2>
-        <div className="pt-card">{cov ? <CoverageSection number={b.booking_number} c={cov} cards={cards} /> : <p>Tell us how you will cover damage to the car: call or message us.</p>}</div>
+        <div className="pt-card">{cov ? <CoverageSection number={b.booking_number} c={cov} cards={cards} need={q.need ?? null} /> : <p>Tell us how you will cover damage to the car: call or message us.</p>}</div>
       </section>}
     </>
   );

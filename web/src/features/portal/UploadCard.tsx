@@ -15,9 +15,11 @@ export async function reencode(file: File): Promise<Blob> { return toStandardIma
 
 const STATE: Record<string, string> = { submitted: 'In review', approved: 'Verified', rejected: 'Needs a new photo' };
 
-export function UploadCard({ number, kind, driverId, title, hint, status, reason, details }: {
+export function UploadCard({ number, kind, driverId, title, hint, status, reason, details, anchor, focus, children }: {
   number: string; kind: UploadKind; driverId: string | null; title: string; hint: string; status?: string | null; reason?: string | null;
   details?: Record<string, string> | null;
+  /** r48: the id the checklist's button jumps to (default up-<kind>-<driver>), and the upload it was sent to (highlighted) */
+  anchor?: string; focus?: boolean; children?: React.ReactNode;
 }) {
   const id = useId();
   const router = useRouter();
@@ -54,10 +56,11 @@ export function UploadCard({ number, kind, driverId, title, hint, status, reason
   };
   const shown = done && status !== 'approved' ? 'submitted' : status;
   return (
-    <div className="pt-up" data-testid={`upload-${kind}${driverId ? `-${driverId.slice(0, 8)}` : ''}`}>
+    <div className={`pt-up${focus ? ' is-focus' : ''}`} id={anchor ?? `up-${kind}${driverId ? `-${driverId}` : ''}`} data-testid={`upload-${kind}${driverId ? `-${driverId.slice(0, 8)}` : ''}`} data-focus={focus ? 'true' : undefined}>
       <div className="pt-card__head"><h3 className="d4">{title}</h3>{shown && <span className={`badge ${shown === 'approved' ? '' : shown === 'rejected' ? 'badge--red' : 'badge--outline'}`}>{STATE[shown] ?? shown}</span>}</div>
       <p className="small muted" id={`${id}-hint`}>{hint}</p>
       {shown === 'rejected' && reason && <p className="small" role="note"><b>What to fix:</b> {reason}</p>}
+      {children}
       {/* r32: two choices on a phone: the camera, or a photo or scan already on it (HEIC, WEBP, PDF too); a forced camera
           hides the photo library on an iPhone. A selfie is the camera only. */}
       <label className={`btn ${shown ? 'btn--ghost' : 'btn--primary'} btn--sm`} htmlFor={`${id}-file`}>{busy ? 'Uploading' : kind === 'selfie' ? (shown ? 'Retake selfie' : 'Take selfie') : shown ? 'Replace: take a photo' : 'Take a photo'}</label>

@@ -48,7 +48,17 @@ export async function settlePayreq(id: string, intentId: string, kind: PayLinkFa
       await rpc('server_payreq_attach', { p_id: id, p_intent: fresh.id }, SR);
       return { ok: false, reason: 'card_not_credit', message: CARD_NOT_CREDIT };
     }
-    if (step === 'capture') i = await p.captureIntent(i.id, `capture:${i.id}`);
+    if (step === 'capture') {
+      // r48 (2921): asked again just before the money is taken: a link cancelled since (a payment landed) or for more
+      // than is now owed is voided, never charged
+      const owed = (await rpc('server_payreq_still_owed', { p_id: id }, SR).catch(() => null)) as unknown as { ok: boolean; message?: string } | null;
+      if (owed && !owed.ok) {
+        await p.cancelIntent(i.id, `void:${i.id}`).catch(() => undefined);
+        await rpc('server_payreq_void_overpaying', { p_id: id }, SR).catch(() => undefined);
+        return { ok: false, reason: 'not_owed', message: owed.message ?? 'Nothing was charged: this link is no longer needed.' };
+      }
+      i = await p.captureIntent(i.id, `capture:${i.id}`);
+    }
   }
   // 0262: a deposit hold is higher on a debit or prepaid card; a hold placed for the other kind of card's amount is voided
   // and the same link asks again for the right amount (never two holds)

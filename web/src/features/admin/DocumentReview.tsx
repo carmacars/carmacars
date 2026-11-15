@@ -16,6 +16,7 @@ const KIND: Record<string, string> = { licence_front: 'Licence, front', licence_
 // the reader checks the rest line by line (release 31): what staff still look at themselves
 const CHECKS = ['Each flagged line below: fix it or reject with the reason', 'No sign of alteration; the photo is of the driver',
   'The selfie’s face matches the licence photo'];
+const PAGE_KIND: Record<string, string> = { pink_slip: 'pink slip', endorsement: 'OPCF 27 endorsement page', card_benefit: 'card benefit document' };
 const COVERAGE_CHECK = 'The coverage is active to the return date and covers this car and every driver';
 const day = (iso: string | null | undefined) => (iso ? new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(iso.length === 10 ? `${iso}T12:00:00Z` : iso)) : '');
 
@@ -77,9 +78,12 @@ export function DocumentReview({ booking, label = 'Review documents', variant = 
   });
   const cov = d?.coverage ?? null;
   const cp = cov?.proof ?? null;
-  const covWaiting = Boolean(cp && cp.status === 'submitted' && (cov?.option === 1 || cov?.option === 2));
-  const planWaiting = Boolean(cov && cov.option === 3 && !cov.confirmed && cov.protection_plan_line);
-  const waiting = (d?.uploads.filter((u) => u.status === 'submitted').length ?? 0) + (covWaiting ? 1 : 0) + (planWaiting ? 1 : 0);
+  // r48 (2920): the proof and the plan count only when Approve all can approve them (app.coverage_state); a proof missing a
+  // page waits for the renter, said in words below, and the count is the database's (the same rule as Approve all)
+  const covWaiting = Boolean(cov?.proof_waiting);
+  const planWaiting = Boolean(cov?.plan_waiting);
+  const needs = cov?.needs ?? [];
+  const waiting = typeof d?.waiting === 'number' ? d.waiting : (d?.uploads.filter((u) => u.status === 'submitted').length ?? 0) + (covWaiting ? 1 : 0) + (planWaiting ? 1 : 0);
   const done = d && waiting <= 0;
   const licenceOnly = Boolean(d?.licence_only);
   return (
@@ -130,7 +134,8 @@ export function DocumentReview({ booking, label = 'Review documents', variant = 
                 {cov.option === 1 && cp && <p className="small">{cp.insurer_name}, policy {cp.policy_number}, valid to {cp.policy_expiry}{cp.policy_valid ? ' (after the return: fine)' : ' (NOT after the return date)'}</p>}
                 {cov.option === 2 && <p className="small">{cov.card.brand ? `${cov.card.brand.toUpperCase()} ending ${cov.card.last4 ?? ''}, ${cov.card.funding ?? 'unknown'}` : 'Not paid yet'}; cardholder {cov.card.cardholder_name ?? ''}{cov.card.name_matches ? ' (matches the renter)' : ' (does NOT match the renter)'}.
                   {cov.card.eligible ? ' A credit card in the renter’s name.' : ` ${cov.card.message ?? ''}`} {cp?.renter_confirmed_at ? `The renter confirmed the card covers this rental: ${cp.confirmation_text ?? ''}` : 'The renter has not confirmed the card covers it yet.'}</p>}
-                {cp && cp.pages.length > 0 && <ul className="small">{cp.pages.map((pg, i) => <li key={pg.id}>Page {i + 1}: {pg.url ? <a className="link" href={pg.url} target="_blank" rel="noreferrer">{pg.mime_type === 'application/pdf' ? 'open the PDF' : 'open the photo'}</a> : 'no file'} ({pg.status})</li>)}</ul>}
+                {cp && cp.pages.length > 0 && <ul className="small">{cp.pages.map((pg, i) => <li key={pg.id}>Page {i + 1}{(() => { const k = cov.page_kinds?.[pg.id]; return k ? `, ${PAGE_KIND[k] ?? k}` : ''; })()}: {pg.url ? <a className="link" href={pg.url} target="_blank" rel="noreferrer">{pg.mime_type === 'application/pdf' ? 'open the PDF' : 'open the photo'}</a> : 'no file'} ({pg.status})</li>)}</ul>}
+                {needs.length > 0 && <p className="alert alert--warn" role="note" data-testid="coverage-needs"><span>Waiting for the renter: {needs.map((n) => n.label.replace(/^your /, 'their ')).join('; ')}. Nothing to approve until it comes; the renter&apos;s checklist asks for exactly this.</span></p>}
                 {covWaiting && cp && <Reject testId="coverage" pending={pending} onReject={(reason) => act('doc_review_coverage', { proof: cp.id, approve: false, reason }, 'Proof of coverage rejected. The renter is told why.')} />}
                 {cp && cp.status === 'rejected' && <p className="small muted">Rejected: {cp.rejection_reason}. The renter sends a new one.</p>}
                 {!cp && cov.option !== 3 && <p className="small muted">No proof sent yet.</p>}
