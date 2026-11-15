@@ -35,7 +35,12 @@ async function signIn(page: Page, email: string) {
 async function check(page: Page, url: string) {
   await page.goto(url, { waitUntil: 'load' });
   await page.waitForTimeout(800); // the portals poll, so the network never goes idle
-  const hits = await page.evaluate(squishScan);
+  // a portal may reload itself once after load (a live update, a fresh build): scan the page it settles on
+  const hits = await page.evaluate(squishScan).catch(async (e: unknown) => {
+    if (!/context was destroyed|navigat/i.test(String(e))) throw e;
+    await page.waitForLoadState('load'); await page.waitForTimeout(800);
+    return page.evaluate(squishScan);
+  });
   expect(hits.map((h) => `${url} ${h.kind}: ${h.sel} "${h.text}" ${h.extra}`), `squished text on ${url}`).toEqual([]);
 }
 

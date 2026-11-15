@@ -69,3 +69,5 @@
 .sp-standing li.is-claimed { background: var(--fd-ink); color: var(--fd-bg); border-color: var(--fd-ink); }
 .sp-standing li.is-skipped { text-decoration: line-through; color: var(--fd-ink-2); }
 @media (prefers-reduced-motion: reduce) { .sp-cell { transition: none; } .sp-week { scroll-behavior: auto; } }
+/* r48: on a small phone the three part-of-day headings ("Afternoon") keep inside their buttons */
+@media (max-width: 25rem) { .sp-grid { border-spacing: 2px; } .sp-grid__head { font-size: 0.75rem; } }

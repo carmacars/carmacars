@@ -50,11 +50,12 @@ test('OPCF 27, one page sent: the checklist names the pink slip and goes straigh
 
   await signIn(page, email, '/account');
   await page.goto(`/account/bookings/${b.booking_number}`, { waitUntil: 'networkidle' });
-  const item = page.getByTestId('still-needed-item-coverage').first();
-  await expect(item).toHaveAttribute('data-status', 'missing');
+  // the booking's To do under its steps (StepTracker): the coverage item, still needed, with its button
+  const item = page.getByTestId('todo-coverage').first();
+  await expect(item).toHaveAttribute('data-tone', 'todo');
   await expect(item).toContainText('pink slip');
   await expect(item).toContainText('We have your OPCF 27 endorsement page');
-  const go = item.getByTestId('still-needed-action');
+  const go = item.getByTestId('todo-action');
   await expect(go).toHaveText('Upload the pink slip');
   await expect(go).toHaveAttribute('href', `/account/bookings/${b.booking_number}/verify?need=pink_slip#cov-pink_slip`);
   await noOverflow(page);

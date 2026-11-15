@@ -7,6 +7,9 @@ select test.mk_renter('q21sc_r');
 select test.mk_booking('QSC-1', 'SCA', 'q21sc_r', '2026-12-05 10:00', '2026-12-08 10:00', 'confirmed', 30000);
 select test.mk_booking('QSC-2', 'SCA', 'q21sc_r', '2026-12-15 10:00', '2026-12-18 10:00', 'confirmed', 30000);
 update bookings set coverage_option = 2 where id in (test.id('booking:QSC-1'), test.id('booking:QSC-2'));
+-- r48 (2921): a pay link asks only for what is owed: QSC-2 is left unpaid, so its rental can be asked for
+update booking_line_items set payment_id = null where booking_id = test.id('booking:QSC-2');
+delete from payments where booking_id = test.id('booking:QSC-2');
 insert into payment_method_secrets (payment_method_id, processor, processor_customer_id, processor_method_id, fingerprint)
 values (test.id('card:q21sc_r'), 'stripe', 'cus_sc', 'pm_sc', 'fp_same');
 create function test.r21sc(p jsonb) returns jsonb language sql as $$ select app.door(test.id('q21sc_admin'), 'aal2', 'ops_do', 'record_card_payment', p) $$;

@@ -191,7 +191,8 @@ test('admin: master calendar, blocks, and a drag with the confirm', async ({ bro
     const box = (await bar.boundingBox())!;
     await ap.mouse.move(box.x + 10, box.y + box.height / 2);
     await ap.mouse.down();
-    for (let i = 1; i <= 12; i++) await ap.mouse.move(box.x + 10 + i * 6, box.y + box.height / 2);
+    // one day of the 2 weeks view (calendar-label.ts VIEWS.two.dw: 80px a day since r48)
+    for (let i = 1; i <= 16; i++) await ap.mouse.move(box.x + 10 + i * 5, box.y + box.height / 2);
     await ap.mouse.up();
     const confirm = ap.getByTestId('cal-confirm');
     await expect(confirm.getByTestId('cal-price')).toBeVisible({ timeout: 10_000 });

@@ -203,3 +203,6 @@
 .fd__frame .gd-box, .fd__frame .gd-stepblock--side { grid-template-columns: minmax(0, 1fr); gap: var(--s-1); }
 .fd__frame .gd-flow { grid-auto-flow: row; grid-template-columns: minmax(0, 1fr); }
 .fd__frame .gd-flow li { border-right: 0; border-bottom: 1px solid var(--grey-200); }
+
+/* r48: a table's first column (the button or the term) keeps room for its words at phone width; a wide table scrolls */
+.gd-table td:first-child { min-width: 9rem; }

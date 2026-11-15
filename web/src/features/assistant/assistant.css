@@ -34,5 +34,5 @@
 .as-kv { margin: 0; display: grid; gap: 0.15rem; }
 .as-kv > div { display: flex; justify-content: space-between; gap: var(--s-3); border-bottom: 1px solid var(--line); padding: 0.1rem 0; }
 .as-kv dt { color: var(--text-muted, var(--grey-600)); }
-.as-kv dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+.as-kv dd { margin: 0; text-align: right; overflow-wrap: break-word; }
 .as-guide-first { margin: 0; padding: .4rem .9rem; border-block-end: 1px solid var(--line); }
