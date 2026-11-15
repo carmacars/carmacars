@@ -114,8 +114,8 @@ test('admin: dashboard, review a request, adjust, re-price, send the offer, the 
   const before = (await ap.getByTestId('review-total').innerText()).trim();
   const [rc] = await sql`select daily_rate_cents::int d from bookings where id = ${req.booking_id}`;
   const newDaily = ((rc!.d as number) - 1000) / 100;
-  // the rate card is folded on the review screen (0250): open it as staff do
-  await ap.getByTestId('review-rate-card').locator('summary').click();
+  // the rate card is folded under More options on the review screen (0250, r48): open it as staff do
+  await ap.getByTestId('review-more-options').locator(':scope > summary').click();
   await ap.getByLabel('Daily ($)').fill(newDaily.toFixed(2));
   await expect(ap.getByTestId('review-price')).toContainText('Re-priced, not saved');
   await expect.poll(async () => (await ap.getByTestId('review-total').innerText()).trim(), { timeout: 10_000 }).not.toBe(before);

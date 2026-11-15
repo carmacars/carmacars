@@ -80,6 +80,21 @@
   ]
  },
  {
+  "release": "r48",
+  "title": "Release 48",
+  "date": "2026-11-14",
+  "seq": 0,
+  "summary": "An offer that is out is edited in place, keeps what you saved, and the offer screen has one main button.",
+  "areas": [
+   {
+    "area": "Staff tools",
+    "items": [
+     "The offer screen is one clear form with one main button, and an offer that is out is changed in place: what staff save stays saved"
+    ]
+   }
+  ]
+ },
+ {
   "release": "r44",
   "title": "Release 44",
   "date": "2026-11-13",

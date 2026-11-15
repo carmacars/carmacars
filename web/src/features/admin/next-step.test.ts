@@ -11,7 +11,7 @@ test('requested: send the offer, a button to the review tab; it says it is booke
   const s = nextStep(x({}));
   assert.equal(s.step, 'send_offer');
   assert.match(s.text, /booked once the renter approves/);
-  assert.deepEqual(s.action, { label: 'Send the offer', href: `${base}?tab=review`, testId: 'next-step-offer' });
+  assert.deepEqual(s.action, { label: 'Send the offer', href: `${base}?tab=review#rv-send`, testId: 'next-step-offer' });
   assert.equal(nextStep(x({ can: { offer: false } })).action, undefined);
 });
 

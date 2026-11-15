@@ -702,12 +702,11 @@ ul.sd-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
 .lr-extras__grip { cursor: grab; touch-action: none; user-select: none; padding: var(--s-2) var(--s-3); font-size: 1.25rem; line-height: 1; color: var(--grey-600); }
 
 /* r35a: the offer in three steps (1. car and dates, 2. price, 3. review and send), on the composer and the review */
-.oc-phases { display: flex; flex-wrap: wrap; gap: var(--s-2); margin: 0 0 var(--s-2); }
-.oc-phases a { color: inherit; }
 .oc-phase { display: flex; align-items: center; gap: var(--s-2); margin: var(--s-5) 0 0; padding-top: var(--s-4); border-top: 2px solid var(--black); }
 .oc-phase .oc-step__n { width: 1.75rem; height: 1.75rem; }
-.rv-stepbar { display: flex; flex-wrap: wrap; gap: var(--s-2); margin: 0 0 var(--s-3); }
-.rv-stepbar button[aria-current="step"] { background: var(--black); color: var(--white); }
+/* r48: the offer editor's parts (one form) and its one main action */
+.rv-sec { margin-top: var(--s-4); padding-top: var(--s-3); border-top-width: 1px; }
+.rv-send { margin-top: var(--s-4); padding-top: var(--s-4); border-top: 2px solid var(--black); scroll-margin-top: var(--s-6); }
 
 /* r43: the sort control above a list */
 .ad-sortbar { display: flex; justify-content: flex-end; margin-block: var(--s-2, 8px); }
