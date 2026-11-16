@@ -203,6 +203,7 @@
    "summary": "A car can go out with the deposit still owed, signing and card names never wrongly block a renter, pay links ask only for what is owed, offers are edited in place and hold the car on time, messages go out at once, long rentals can be paid weekly, calls through the site open the caller pop-up, Rewards emails renters, every car is photographed the same way in one scene, and a payment plan's first payment confirms the booking.",
    "sections": {
     "admins": [
+     "An owner's Overview shows the same Forecast the owner sees; the GTA seasonal curve (a factor a month) and an average month's occupancy are in Program settings",
      "A car can go out with the deposit still owed, with the reason: the booking shows Deposit pending $X for every role, the saved card is tried each morning, the renter gets the deposit link, and after 48 hours you get a To do that opens the Money tab",
      "Program settings shows each message type that can go by text with its texts in the last 30 days; once Email ready for production is on, only urgent messages keep their texts and the rest go by email",
      "Claude's connector records a pickup with the deposit owed (deposit_pending: true with the reason), previewed first",
@@ -246,6 +247,8 @@
      "Propose a change: one more day costs exactly what a day of the booking costs (rental, fees and coverage), or type the new total; the preview shows the price a day"
     ],
     "owners": [
+     "Home has a Forecast: the next 12 months of each car, projected occupancy and owner revenue, from the GTA's rental season and, after 3 months, your car's own record",
+     "Each statement says whether next month is projected higher or lower, by how much, and why",
      "Each car's page shows Where your car is and its trips of the last 30 days, or No tracker yet; you see the location only, never the renter or the booking"
     ],
     "renters": [

@@ -4,7 +4,7 @@ import { env } from '@/lib/env';
 import { rpc } from '@/lib/db/repo';
 import type { Json } from '@/lib/db/types';
 import { storage, type Bucket } from '@/integrations/storage';
-import { CUTOUT_MAX_WIDTH, cutoutKey, type CutoutDue } from '@/features/home/cutout';
+import { CUTOUT_MAX_WIDTH, cutoutKey, largestBlobBox, type CutoutDue } from '@/features/home/cutout';
 
 // Release 48 O (3080): the cutouts of the decorative sections and the home hero, made once and kept in Storage.
 // app.site_cutouts_due gives the cars whose cutout is missing or was made from another photo than the chain now gives (the
@@ -28,6 +28,8 @@ async function loadSharp(): Promise<Sharp | null> {
 async function removeBackground(url: string, bytes: Uint8Array): Promise<Uint8Array> {
   const form = new FormData();
   form.append('file', new Blob([bytes as BlobPart]), 'photo');
+  // isnet-general-use: a 180 MB model that keeps a whole car (rembg's default model is 1 GB)
+  form.append('model', 'isnet-general-use');
   const r = await fetch(`${url.replace(/\/$/, '')}/api/remove`, { method: 'POST', body: form, signal: AbortSignal.timeout(90_000) });
   if (!r.ok) throw new Error(`the background remover answered ${r.status}`);
   return new Uint8Array(await r.arrayBuffer());
@@ -47,8 +49,17 @@ export async function runSiteCutoutsNow({ max = 2, deadlineMs = 20_000 }: { max?
     try {
       const src = await s.get(d.source.bucket as Bucket, d.source.path);
       if (!src) throw new Error('the source photo is not in storage');
-      const cut = await removeBackground(url, src);
-      const img = sharp(Buffer.from(cut)).trim({ threshold: 8 });
+      const cut = Buffer.from(await removeBackground(url, src));
+      // the car is the largest shape: a sign or lettering on the wall behind it, kept apart from it, is cropped off
+      const meta = await sharp(cut).metadata();
+      const W = meta.width ?? 0, H = meta.height ?? 0, k = Math.min(1, 400 / Math.max(W, 1));
+      const mask = await sharp(cut).ensureAlpha().extractChannel(3).resize({ width: Math.max(1, Math.round(W * k)) }).raw().toBuffer({ resolveWithObject: true });
+      const blob = largestBlobBox(new Uint8Array(mask.data), mask.info.width, mask.info.height);
+      if (!blob) throw new Error('no car found');
+      const pad = 2 / k;
+      const box = { left: Math.max(0, Math.floor(blob.left / k - pad)), top: Math.max(0, Math.floor(blob.top / k - pad)) };
+      const area = { ...box, width: Math.min(W - box.left, Math.ceil(blob.width / k + 2 * pad)), height: Math.min(H - box.top, Math.ceil(blob.height / k + 2 * pad)) };
+      const img = sharp(await sharp(cut).extract(area).png().toBuffer()).trim({ threshold: 8 });
       const { data, info } = await img.resize({ width: CUTOUT_MAX_WIDTH, withoutEnlargement: true })
         .webp({ quality: 82, alphaQuality: 90, effort: 5 }).toBuffer({ resolveWithObject: true });
       // a cutout with almost nothing left (the remover found no car) is a failure, never shown

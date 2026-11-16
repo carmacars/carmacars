@@ -20,7 +20,6 @@ export function SlotCars({ scene, photo, eager = false, sizes = '100vw' }: { sce
       <span className="slot-cars__frame" style={frame}>
         <picture>
           <source media="(min-width: 48rem)" srcSet={wide.plate} width={wide.width} height={wide.height} />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="slot-cars__plate" src={tall.plate} width={tall.width} height={tall.height} alt={photo?.alt ?? ''} sizes={sizes}
             loading={eager ? 'eager' : 'lazy'} fetchPriority={eager ? 'high' : undefined} decoding="async" />
         </picture>
