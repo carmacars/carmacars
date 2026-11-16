@@ -5,7 +5,7 @@ import { door } from '@/server/door';
 import { env } from '@/lib/env';
 import { torontoInstant } from '@/lib/dates';
 import { ask, type AssistantModel, type Deps, type Details, type Out, type Turn } from '@/features/assistant/agent';
-import { claudeModel, fakeModel, workersAiModel } from '@/features/assistant/models';
+import { chainModels, claudeModel, fakeModel, localModel, workersAiModel } from '@/features/assistant/models';
 import type { Portal, VaFn, Who } from '@/features/assistant/tools';
 import type { FieldList } from '@/features/field/types';
 import type { Todo } from '@/features/admin/todo/types';
@@ -17,17 +17,36 @@ import { groupPrompts } from '@/features/admin/todo/group';
 // for the screens. The model's own use is recorded for the usage guard (the only call made as the service role).
 const SR = { role: 'service_role' as const };
 
-/** The models it may use (0133): Workers AI first (the free allowance, with the assistant's reserved share), Claude only
- *  when Workers AI has no room and ANTHROPIC_API_KEY is set and Claude's own budget in Settings > Usage allows it (US$0
- *  included by default: no new spend unless an Admin allows it), else the stub for local work and the tests. */
+/** The models it may use (0133): Workers AI first (the free allowance, with the assistant's reserved share), then (r48 part
+ *  AI, 3095) the server's local model, free and private; Claude only when an Admin allows it (Claude's own budget in Settings
+ *  > Usage, US$0 included by default: no new spend), else the stub for local work and the tests. */
 export async function workersModel(): Promise<AssistantModel> {
   if (env().LLM_PROVIDER !== 'fake' && process.env.ASSISTANT_PROVIDER !== 'fake') {
     try {
       const ai = await (await import('@/lib/platform/runtime')).aiBinding();
-      if (ai) return workersAiModel(ai);
+      if (ai) {
+        const w = workersAiModel(ai);
+        // the assistant's share of the day is checked before each step (the database's gate also lets the assistant run
+        // when only the local model has room, so Workers AI is never asked past its share)
+        const [{ aiRoom }, { estimateNeurons }] = await Promise.all([import('@/integrations/ai/paused'), import('@/integrations/ai/guard')]);
+        return { ...w, async step(system, turns, tools) {
+          const estimate = estimateNeurons(system.length + turns.reduce((n, t) => n + t.text.length, 0), 400);
+          if (await aiRoom.paused({ purpose: 'staff_assistant', estimate })) return { ok: false, reason: 'quota', message: 'The assistant\'s share of today\'s Workers AI allowance is used', model: 'workers-ai' };
+          const r = await w.step(system, turns, tools);
+          if (r.ok && r.usage.units) aiRoom.spent('staff_assistant', r.usage.units);
+          return r;
+        } };
+      }
     } catch { /* not running in the Worker */ }
   }
   return fakeModel();
+}
+/** r48 part AI: the server's local model for the assistant, when it is ready (the pinned digest). */
+export async function localAssistant(): Promise<AssistantModel | null> {
+  if (env().LLM_PROVIDER === 'fake' || process.env.ASSISTANT_PROVIDER === 'fake') return null;
+  const { localConf, localNow } = await import('@/integrations/ai/links');
+  const c = localConf();
+  return c.llmUrl && (await localNow()).text ? localModel(c.llmUrl, c.textModel) : null;
 }
 export function claudeFallback(settings: { claude_model?: string; claude_in_usd_per_m?: number; claude_out_usd_per_m?: number }): AssistantModel | null {
   const key = process.env.ANTHROPIC_API_KEY;
@@ -82,20 +101,23 @@ export async function runAssistant(i: AskInput): Promise<Out[]> {
   const gate = (service: 'workers_ai' | 'claude') => door<Gate>(i.userId, 'ops_read', 'usage_gate', { portal: i.portal, service, ...extra }, i.aal);
   const pre = await gate('workers_ai');
   if (pre.assistant_enabled === false) return [{ type: 'text', text: 'The assistant is turned off in Program settings.' }];
-  let model = await workersModel();
-  let chosen: Gate = { ...pre, service: 'workers_ai' };
-  if (pre.ok === false) {
-    // Workers AI has no room for the assistant today: Claude, only within its own budget (never new spend)
-    const claude = claudeFallback(pre);
-    if (claude) {
-      const c = await gate('claude').catch(() => null);
-      if (c?.ok) { model = claude; chosen = { ...c, service: 'claude' }; }
-    }
-  }
+  // r48 part AI (3095): Workers AI, then the server's local model, then Claude (only within its own budget): one chain
+  const models: AssistantModel[] = [];
+  const w = await workersModel();
+  if (w.name !== 'fake') models.push(w);
+  const local = await localAssistant().catch(() => null);
+  if (local) models.push(local);
+  const claude = claudeFallback(pre);
+  const c = claude && (pre.ok === false || !models.length) ? await gate('claude').catch(() => null) : null;
+  if (claude && c?.ok) models.push(claude);
+  const { chainDeps } = await import('@/integrations/ai/links');
+  const served = chainDeps().served;
+  const model = models.length ? chainModels(models, (x) => served({ purpose: 'staff_assistant', provider: x.provider as 'workers_ai', ok: x.ok, reason: x.reason, ms: x.ms, model: x.model })) : fakeModel();
+  const chosen: Gate = pre.ok === false && claude && c?.ok ? { ...c, service: 'claude' } : { ...pre, service: model.service };
   const deps: Deps = {
     who, today: todayToronto(), name: i.name, model,
     gate: async () => chosen as { ok: boolean } & Record<string, unknown>,
-    record: async (u) => { await rpc('server_usage_call', { p: { provider: model.name === 'claude' ? `anthropic:${'model' in u ? u.model ?? '' : ''}` : u.model ?? model.name, purpose: 'staff_assistant', ok: u.ok, error: u.error ?? null, duration_ms: u.ms, units: u.units, unit: u.unit } as unknown as Json }, SR); },
+    record: async (u) => { await rpc('server_usage_call', { p: { provider: u.unit === 'microusd' ? `anthropic:${'model' in u ? u.model ?? '' : ''}` : u.model ?? model.name, purpose: 'staff_assistant', ok: u.ok, error: u.error ?? null, duration_ms: u.ms, units: u.units, unit: u.unit } as unknown as Json }, SR); },
     todo: () => todo(i.userId, i.aal, who, extra),
     find: async (kind, q) => (await door<{ rows: Array<Record<string, unknown>> }>(i.userId, 'ops_read', 'assistant_find', { portal: i.portal, kind, q, ...extra }, i.aal)).rows,
     available: async (from, to) => (await rpc('search_available', { p_pickup: torontoInstant(from, '10:00'), p_return: torontoInstant(to, '10:00'), p_filters: {} as Json }, { role: 'anon' })) as unknown as Array<Record<string, unknown>>,

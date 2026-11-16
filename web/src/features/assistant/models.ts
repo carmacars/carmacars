@@ -5,6 +5,7 @@
 import { DRAFT_MODEL, neuronsFor, type AiBinding } from '../../integrations/llm/workers-ai.ts';
 import { jsonSchemas, type ToolName } from './tools.ts';
 import { STEP_SCHEMA, type AssistantModel, type ModelResult, type Step, type Turn } from './agent.ts';
+import { ollamaChat } from '../../integrations/ai/ollama.ts';
 
 const asText = (turns: Turn[]) => turns.map((t) => ({ role: t.role, content: t.text }));
 const steps = (data: unknown): Step | null => {
@@ -38,6 +39,47 @@ export function workersAiModel(ai: AiBinding, model = DRAFT_MODEL, timeoutMs = 2
       if (typeof data === 'string') { try { data = JSON.parse(data.trim().replace(/^```(?:json)?\s*/i, '').replace(/```$/, '')); } catch { data = null; } }
       const s = steps(data);
       return s ? { ok: true, step: s, usage, model } : { ok: false, reason: 'invalid_output', message: 'The model did not return a step', usage, model };
+    }
+  };
+}
+
+/** r48 part AI (3095): the staff assistant on the server's local model (Ollama, carmacars-llm): free, private, slower (CPU
+ *  only, so at least 90 seconds). The same step schema as Workers AI, through Ollama's structured outputs. No neurons. */
+export function localModel(base: string, model: string, o: { timeoutMs?: number; fetch?: typeof fetch } = {}): AssistantModel {
+  return {
+    name: 'local', service: 'local',
+    async step(system, turns): Promise<ModelResult> {
+      const r = await ollamaChat(base, model, { system, user: '', turns: asText(turns), format: STEP_SCHEMA as unknown as Record<string, unknown>, maxTokens: 400, temperature: 0.1 },
+        Math.max(o.timeoutMs ?? 0, 90_000), o.fetch ?? fetch);
+      if (!r.ok) return { ok: false, reason: r.reason, message: r.message, model: `local:${model}` };
+      const usage = { units: 0, unit: 'neurons' as const };
+      let data: unknown = null;
+      try { data = JSON.parse(r.content.trim().replace(/^```(?:json)?\s*/i, '').replace(/```$/, '')); } catch { data = null; }
+      const s = steps(data);
+      return s ? { ok: true, step: s, usage, model: r.model } : { ok: false, reason: 'invalid_output', message: 'The local model did not return a step', usage, model: r.model };
+    }
+  };
+}
+
+/** r48 part AI: the assistant's models in order (Workers AI while its share has room, the local model, Claude when an
+ *  Admin allows it): a step that answers quota, unavailable, timeout or invalid output is asked of the next one. Each step
+ *  says which model answered (the usage record), and served() records the provider for Settings > Usage. */
+export function chainModels(models: AssistantModel[], served?: (s: { provider: string; ok: boolean; reason: string | null; ms: number; model: string | null }) => void, now: () => number = Date.now): AssistantModel {
+  const first = models[0];
+  if (!first || models.length === 1) return first ?? fakeModel();
+  return {
+    name: first.name, service: first.service,
+    async step(system, turns, tools): Promise<ModelResult> {
+      let last: ModelResult | null = null, quota: ModelResult | null = null;
+      for (const m of models) {
+        const t0 = now();
+        const r = await m.step(system, turns, tools);
+        try { served?.({ provider: m.service, ok: r.ok, reason: r.ok ? null : r.reason, ms: Math.max(0, now() - t0), model: r.model ?? null }); } catch { /* never stops a step */ }
+        if (r.ok) return r;
+        last = r;
+        if (r.reason === 'quota' && !quota) quota = r;
+      }
+      return quota ?? last!;
     }
   };
 }

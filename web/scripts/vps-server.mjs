@@ -170,7 +170,7 @@ async function tick() {
     if (due.vpage_min_year !== undefined) flags.vpageMinYear = due.vpage_min_year;
   }
   const pushDue = await pushWaiting(env).catch(() => false);
-  for (const j of jobsForTick(plan, due, pushDue)) void runJob(j.path, j.body);
+  for (const j of jobsForTick(plan, due, pushDue, !!(env.LOCAL_LLM_URL || env.LOCAL_STT_URL))) void runJob(j.path, j.body);
 }
 // r48: the listen (src/lib/platform/db-listen.ts). The phone job runs only its texts here (the contacts and the AI
 // readings keep their turn on the tick). Started with the cron: the jobs must never run from two places.

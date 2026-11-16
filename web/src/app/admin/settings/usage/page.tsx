@@ -7,13 +7,14 @@ import { UsageAllow } from '@/features/usage/UsageAllow';
 import { paidCost, share, shortLabel, usd, type ServiceState } from '@/features/usage/model';
 import { UsageChart } from '@/features/usage/UsageChart';
 import { AiByFeature, type AiUsage } from '@/features/usage/AiByFeature';
+import { AiProviders, type AiProvidersData } from '@/features/usage/AiProviders';
 import { EmailSetup } from '@/features/usage/UsageCards';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Usage', path: '/admin/settings/usage', noindex: true, description: 'Included allowances of every metered service, what is used, and paid usage.' });
 
 type Row = ServiceState & { history: Array<{ day: string; used: number }>; decisions: Array<{ decision: string; until: string; starts_on: string; ends_on: string; cap_usd: number | null; at: string; by: string | null }> };
-interface Data { ai?: AiUsage; services: Row[]; alerts: Array<{ service: string; level: number; period_start: string; at: string; emailed_at: string | null; email_note: string | null }>; alert_email: string; cloudflare_at: string | null;
+interface Data { ai?: AiUsage; ai_providers?: AiProvidersData; services: Row[]; alerts: Array<{ service: string; level: number; period_start: string; at: string; emailed_at: string | null; email_note: string | null }>; alert_email: string; cloudflare_at: string | null;
   cached_only?: { on: boolean; since: string | null; line_pct: number; service: string | null; label: string | null; share_bps: number; used_text: string | null; included_text: string | null; resets_at: string } }
 
 const STATE: Record<string, string> = { ok: 'Within the allowance', warn: 'Near the allowance', paused: 'Used up: paused', paid: 'Used up: paid usage allowed', held: 'Used up: held', over: 'Used up: never paused, small cost', free: 'Free', used_up: 'Used up' };
@@ -42,6 +43,8 @@ export default async function UsagePage() {
           </dl>
         </Card>)}
       {u.ai && <AiByFeature ai={u.ai} />}
+      {/* r48 part AI (3095): which provider serves each feature (Workers AI, the server's models, Gemini) and its order */}
+      {u.ai_providers && <AiProviders ai={u.ai_providers} />}
       {/* r35 part C (owner, 2026-11-11): the emails' day is the capacity line above (Cloudflare + Resend), never Resend's part as a cap */}
       {u.services.filter((s) => s.service !== 'resend_day').map((s) => {
         const cost = paidCost(s);

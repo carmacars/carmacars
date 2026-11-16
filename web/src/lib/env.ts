@@ -44,6 +44,15 @@ const schema = z.object({
   GEMINI_RELAY_URL: z.string().optional(),
   /** r48 (3070): the text and speech model when Gemini stands in for Workers AI on the company's server (default gemini-2.5-flash). */
   GEMINI_TEXT_MODEL: z.string().optional(),
+  /** r48 part AI (3095): the server's own models (infra/vps/ai): Ollama (carmacars-llm) with a text and a vision model, and
+   *  whisper.cpp (carmacars-stt). Unset: no local link in the chain (src/integrations/ai/chain.ts). The digests are the
+   *  pinned first characters Ollama shows for each model; a model whose digest differs is not used. */
+  LOCAL_LLM_URL: z.string().optional(),
+  LOCAL_LLM_MODEL: z.string().optional(),
+  LOCAL_LLM_DIGEST: z.string().optional(),
+  LOCAL_VISION_MODEL: z.string().optional(),
+  LOCAL_VISION_DIGEST: z.string().optional(),
+  LOCAL_STT_URL: z.string().optional(),
   /** r36 (2110): the Meta app's secret (checks the webhook's signature: Messenger, Instagram, WhatsApp) and the WhatsApp
    *  Cloud API token; unset: the Meta webhook answers nothing */
   META_APP_SECRET: z.string().optional(),

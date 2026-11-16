@@ -136,6 +136,7 @@
     "area": "Reliability & security",
     "items": [
      "The website now runs on CarmaCars' own server in Canada, behind the same protection and speed layer as before",
+     "Every AI feature (chat replies, the staff assistant, listing copy, photo and plate checks, call and interview transcripts) keeps working at no cost: when the daily free AI allowance is used, models on CarmaCars' own server answer, and identity documents and recordings never leave it",
      "The photo queue no longer stalls on steps waiting with no end"
     ]
    }

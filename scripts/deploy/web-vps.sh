@@ -25,7 +25,7 @@ die() { if [ -n "${GITHUB_ACTIONS:-}" ]; then echo "::error title=deploy-vps::$*
 NAMES="APP_ENV DATA_BACKEND NEXT_PUBLIC_APP_URL NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY NEXT_PUBLIC_SUPABASE_AUTH_COOKIE
 NEXT_PUBLIC_VEHICLE_PHOTOS_URL NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY TURNSTILE_PROVIDER NEXT_PUBLIC_TURNSTILE_SITE_KEY PAYMENTS_PROVIDER
 STORAGE_PROVIDER MAPS_PROVIDER VIN_DECODER LLM_PROVIDER PHOTO_PROVIDER QUO_PROVIDER RENTALCOVER_API_BASE APP_APPLE_TEAM_ID APP_ANDROID_CERT_SHA256
-AUTH_OAUTH_PROVIDERS CLOUDFLARE_ACCOUNT_ID WORKERS_AI_API_TOKEN R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY R2_BUCKET_PREFIX
+AUTH_OAUTH_PROVIDERS CLOUDFLARE_ACCOUNT_ID WORKERS_AI_API_TOKEN LOCAL_LLM_URL LOCAL_LLM_MODEL LOCAL_LLM_DIGEST LOCAL_VISION_MODEL LOCAL_VISION_DIGEST LOCAL_STT_URL R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY R2_BUCKET_PREFIX
 SUPABASE_SERVICE_ROLE_KEY SUPABASE_JWT_SECRET STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET LINK_SIGNING_KEY PAYOUT_ENCRYPTION_KEY TURNSTILE_SECRET_KEY
 GOOGLE_MAPS_API_KEY GOOGLE_REVIEWS_CLIENT_ID GOOGLE_REVIEWS_CLIENT_SECRET QUO_API_KEY QUO_WEBHOOK_SECRET GEMINI_API_KEY META_APP_SECRET WHATSAPP_TOKEN
 RENTALCOVER_API_KEY TWILIO_ACCOUNT_SID TWILIO_API_KEY TWILIO_API_SECRET TWILIO_CALLER_ID TWILIO_AUTH_TOKEN TWILIO_TWIML_APP_SID AUTH_SMS_HOOK_SECRET VAPID_PUBLIC_KEY
@@ -84,6 +84,10 @@ ship() {
   cp "$ROOT/infra/vps/supabase/docker-compose.yml" "$stage/supabase-compose.yml"
   cp "$ROOT/infra/vps/supabase/caddy/Caddyfile" "$stage/Caddyfile"
   cp "$envf" "$stage/web.env"; cp "$image" "$stage/image.tgz"
+  # r48 part AI: the server's own AI models (infra/vps/ai), flat for the copy
+  cp "$ROOT/infra/vps/ai/docker-compose.yml" "$stage/ai-compose.yml"; cp "$ROOT/infra/vps/ai/models.env" "$stage/ai-models.env"
+  cp "$ROOT/infra/vps/ai/warm.sh" "$stage/ai-warm.sh"; cp "$ROOT/infra/vps/ai/stt/Dockerfile" "$stage/ai-stt.Dockerfile"
+  cp "$ROOT/infra/vps/ai/stt/entrypoint.sh" "$stage/ai-stt-entrypoint.sh"
   sed -e "s/@TAG@/$tag/" -e "s/@CRON@/$cron/" "$HERE/web-vps-remote.sh" > "$stage/remote.sh"
   vps_ssh "rm -rf $t && install -d -m 700 $t"
   vps_scp "$stage"/* "$t/"
@@ -97,6 +101,20 @@ ship() {
   done
   [ "$code" = 200 ] || die "https://$first/api/health answered ${code:-nothing} after 4 minutes: check the hostname's A record points at the server, SSL is Full (strict) and the Origin CA certificate is in place (the lines above)"
   if [ -n "${GITHUB_ACTIONS:-}" ]; then echo "::notice title=deploy-vps::$tag is running on the server and https://$first/api/health answers 200 (cron: $cron). DNS for the public site is unchanged."; fi
+  ai_state
+}
+
+# r48 part AI: the server's own models as the warm-up last wrote them; "warming up" until each is downloaded and checked
+# (never a failed deploy: the site's chain uses Workers AI and Gemini meanwhile)
+ai_state() {
+  local st k v line=""
+  st="$(vps_ssh "cat /opt/carmacars/ai/state 2>/dev/null || true" 2>/dev/null || true)"
+  for k in text vision speech; do
+    v="$(grep "^$k=" <<<"$st" | tail -1 | cut -d= -f2- || true)"
+    [ -n "$v" ] && [ "$v" != warming ] || v="warming up"
+    line="$line $k $v;"
+  done
+  if [ -n "${GITHUB_ACTIONS:-}" ]; then echo "::notice title=AI models on the server::${line% ;} (the warm-up runs in the background; Admin > Settings > Usage shows the state)"; else say "AI models:${line% ;}"; fi
 }
 
 # origin_tls <stage> <hosts>: stage/origin-cert.pem and origin-key.pem when a new certificate is made; the origin-tls block

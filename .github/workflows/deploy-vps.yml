@@ -74,6 +74,30 @@ jobs:
           build: node
       - name: The Cloudflare cutover script against a stand-in of the API (steps A and B, rollback, Origin CA, permissions)
         run: ../.github/ci-run.sh "Cloudflare cutover" node --test ../scripts/deploy/cf-site.test.mjs
+      - name: Workers AI credentials against a stand-in of the API (the secret, a narrow token, the CI token, the permission named)
+        run: ../.github/ci-run.sh "Workers AI credentials" node --test ../scripts/deploy/workers-ai-cred.test.mjs
+      # r48 part AI: the server's local model in its container (the same image and pinned model as production), then the chat
+      # and the staff assistant answer with it. Its absence (a download that fails on the runner) is a warning, never a failure.
+      - name: Local model container (Ollama, the pinned text model)
+        id: llm
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          set -a; . ../infra/vps/ai/models.env; set +a
+          docker run -d --name carmacars-llm -p 11434:11434 -e OLLAMA_NUM_PARALLEL=1 -e OLLAMA_CONTEXT_LENGTH=8192 "$OLLAMA_IMAGE" > /dev/null
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:11434/api/tags > /dev/null && break; sleep 2; done
+          docker exec carmacars-llm ollama pull "$LOCAL_LLM_MODEL" > /dev/null
+          id=$(docker exec carmacars-llm ollama list | awk -v m="$LOCAL_LLM_MODEL" '$1 == m {print $2}')
+          [ "${id:0:12}" = "$LOCAL_LLM_DIGEST" ] || { echo "::error title=node smoke::$LOCAL_LLM_MODEL has digest $id, not the pinned $LOCAL_LLM_DIGEST"; exit 1; }
+          echo "::notice title=node smoke::local model $LOCAL_LLM_MODEL ($id) ready"
+      - name: Chat and the staff assistant answer with the local model
+        if: steps.llm.outcome == 'success'
+        run: |
+          set -a; . ../infra/vps/ai/models.env; set +a
+          LOCAL_LLM_URL=http://127.0.0.1:11434 ../.github/ci-run.sh "Local model smoke" node --experimental-strip-types --no-warnings scripts/ai-local-smoke.mjs
+      - name: The local model was not available on the runner
+        if: steps.llm.outcome != 'success'
+        run: echo "::warning title=node smoke::the local model container did not start or download on the runner; the chat and assistant check with it was skipped (the chain's unit tests still ran)"
       - name: Node entry smoke (pages, headers, inbound email)
         run: ../.github/ci-run.sh "Node smoke" node --no-warnings scripts/node-smoke.mjs
       - name: End to end against the Node entry (sign-in, the Admin portal)
@@ -181,11 +205,24 @@ jobs:
             export STORAGE_PROVIDER=r2 R2_ACCOUNT_ID="$CLOUDFLARE_ACCOUNT_ID" R2_BUCKET_PREFIX=carmacars-prod-
           fi
           export NEXT_PUBLIC_VEHICLE_PHOTOS_URL="${PHOTOS_URL:-$NEXT_PUBLIC_SUPABASE_URL/storage/v1/object/public/vehicle-public}"
-          # AI: Workers AI over REST when its token is there; r48 (3070): else Gemini with the key the site already has (no new
-          # secret); else the fake (never a failed deploy)
-          if [ -n "${WORKERS_AI_API_TOKEN:-}" ] && [ -n "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then export LLM_PROVIDER=workers-ai
-          elif [ -n "${GEMINI_API_KEY:-}" ]; then export LLM_PROVIDER=gemini; echo "::notice title=deploy-vps::AI on the server: Gemini (no WORKERS_AI_API_TOKEN secret)"
-          else export LLM_PROVIDER=fake; echo "::warning title=deploy-vps::Neither WORKERS_AI_API_TOKEN nor GEMINI_API_KEY is set: AI drafts and replies use the fake on the server"; fi
+          # AI (r48 part AI, docs/hosting/off-cloudflare.md 2.2): every call goes down the chain Workers AI -> the server's own
+          # models -> Gemini (not for private features), with no new secret. Workers AI's token: the WORKERS_AI_API_TOKEN secret,
+          # else a Workers-AI-only token made by the CI token, else the CI token itself; one cheap probe says whether it may run
+          # Workers AI and names the permission to add when not ("Workers AI Read"). Never a failed deploy.
+          node scripts/deploy/workers-ai-cred.mjs "$RUNNER_TEMP/workers-ai.json" || echo '{"token":""}' > "$RUNNER_TEMP/workers-ai.json"
+          WORKERS_AI_API_TOKEN="$(jq -r '.token // ""' "$RUNNER_TEMP/workers-ai.json")"; export WORKERS_AI_API_TOKEN
+          rm -f "$RUNNER_TEMP/workers-ai.json"
+          {
+            echo "### AI on the server"
+            if [ -n "$WORKERS_AI_API_TOKEN" ]; then echo "- Workers AI: on (the free 10,000 neurons a day, behind the usage guard)"; else echo "- Workers AI: off. Add **Account > Workers AI Read** to the CLOUDFLARE_API_TOKEN token (or a WORKERS_AI_API_TOKEN secret with it)"; fi
+            echo "- The server's own models (infra/vps/ai/models.env): warming up in the background after the deploy, then on"
+            if [ -n "${GEMINI_API_KEY:-}" ]; then echo "- Gemini: last, for what is not private"; else echo "- Gemini: not set"; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          # the server's own models (infra/vps/ai): the containers on the Supabase stack's network, the pinned names and digests
+          set -a; . infra/vps/ai/models.env; set +a
+          export LOCAL_LLM_URL=http://carmacars-llm:11434 LOCAL_STT_URL=http://carmacars-stt:8080
+          # never the fake on the server: the chain always has the local models (and Workers AI or Gemini when set)
+          export LLM_PROVIDER=workers-ai
           export PHOTO_PROVIDER=cloudflare
           scripts/deploy/web-vps.sh envfile "$RUNNER_TEMP/web.env"
           # the build reads the same public settings as the Worker build (web/.env.production); no secret is written there

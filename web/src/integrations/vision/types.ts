@@ -18,7 +18,7 @@ export type VisionResult =
   | { ok: false; reason: 'quota' | 'unavailable' | 'timeout' | 'invalid_output'; message: string; model?: string; usage?: VisionUsage; tried: string[] };
 
 export interface VisionModel {
-  readonly name: 'workers-ai' | 'fake' | 'gemini';
+  readonly name: 'workers-ai' | 'fake' | 'gemini' | 'local';
   /** Tries each model in order until one answers (a model that is not on the account, or refuses the input, is skipped). */
   read(req: VisionRequest, models: string[]): Promise<VisionResult>;
 }

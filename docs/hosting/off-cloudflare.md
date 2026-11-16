@@ -17,7 +17,7 @@ button presses for the switch itself. Only Cloudflare's **paid** plan goes; its 
 | Page cache | R2 or KV, D1 tags, a Durable Object queue | Next.js's own cache on the server's disk |
 | Files | Supabase Storage on the VPS, or R2 through Worker bindings | Supabase Storage on the VPS |
 | Scheduled jobs | Worker cron trigger, every minute | The same plan from the Node entry (`CRON_ENABLED=1`) |
-| AI | Workers AI binding, Gemini | Workers AI over its REST API when `WORKERS_AI_API_TOKEN` exists; else Gemini with the key the site already has (release 48, section 2.2) |
+| AI | Workers AI binding, Gemini | One chain for every call (release 48 part AI, section 2.2): Workers AI over its REST API (no new secret), then the server's own models (Ollama, whisper.cpp), then Gemini for what is not private |
 | Bot check on forms | Turnstile | Turnstile (free, works on any host) |
 | Email out | Amazon SES, Resend (release 41) | unchanged |
 | Email in | Cloudflare Email Routing to the Worker | Email Routing (free) to a small forwarder Worker on the free plan, which posts each message to the server (section 5.1) |
@@ -75,6 +75,16 @@ of `web/wrangler.jsonc`, `caches.`, `request.cf`, `cf-` headers, `api.cloudflare
   and call transcripts answer "not connected", never the fake's words; a person listens). The staff assistant uses its
   Claude fallback when an Admin allows it, else it is off. Adding the `WORKERS_AI_API_TOKEN` secret later (Account >
   Workers AI > Read) switches all of it back to Workers AI on the next deploy, with nothing else to change.
+- **Release 48, part AI (3095; superseded the paragraph above): every AI feature at no cost, with no new secret.**
+  `deploy-vps` gives the server Workers AI's REST credentials from what CI already has (`scripts/deploy/workers-ai-cred.mjs`:
+  the `WORKERS_AI_API_TOKEN` secret, else a Workers-AI-only token made by the CI token, else `CLOUDFLARE_API_TOKEN` itself
+  with `CLOUDFLARE_ACCOUNT_ID`), probes one cheap call and names the missing permission (Account > Workers AI Read) in the
+  summary. Every call then goes down one chain (`web/src/integrations/ai/chain.ts`): Workers AI within the usage guard's
+  share, then the server's own models (`infra/vps/ai`: Ollama with Qwen2.5 3B Instruct and Qwen2.5-VL 3B, whisper.cpp with
+  small.en; pinned by digest and SHA-1, capped at 6 GB and 4 CPUs and 1.5 GB and 2 CPUs at low CPU weight), then Gemini's
+  free tier for what is not private (identity documents, recordings and the text made from them never go there). The
+  models download in the background after a deploy ("warming up"); Admin > Settings > Usage shows each feature's order,
+  which provider served its calls and a 7-day count. Transcripts work again. docs/changes/2026-11-16-r48-ai-chain.md.
 
 ### 2.3 CI, scripts and reports
 

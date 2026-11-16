@@ -103,6 +103,32 @@ caddy_site() {
   say "Caddy serves: $(sed -n 's/ {$//p' "$S/caddy/sites/web.caddy" | grep -v '^[[:space:]#]' | head -1)"
 }
 
+# r48 part AI: the server's own AI models (infra/vps/ai). Installed with each deploy and warmed up in the background (a
+# systemd unit at low priority: the downloads and the whisper build never hold the deploy). Never fails the deploy: until
+# the models are ready the site's chain uses Workers AI and Gemini, and Settings > Usage says "warming up".
+ai_local() {
+  local A=/opt/carmacars/ai k v line=""
+  [ -s "$T/ai-compose.yml" ] || { say "AI models: not part of this deploy"; return 0; }
+  install -d -m 755 "$A" "$A/stt"
+  install -m 644 "$T/ai-compose.yml" "$A/docker-compose.yml"
+  install -m 644 "$T/ai-models.env" "$A/models.env"
+  install -m 755 "$T/ai-warm.sh" "$A/warm.sh"
+  install -m 644 "$T/ai-stt.Dockerfile" "$A/stt/Dockerfile"
+  install -m 755 "$T/ai-stt-entrypoint.sh" "$A/stt/entrypoint.sh"
+  if systemctl is-active --quiet carmacars-ai-warm 2>/dev/null; then say "AI models: a warm-up is already running"
+  elif command -v systemd-run > /dev/null 2>&1 && systemd-run --unit carmacars-ai-warm --collect --nice 19 -p IOSchedulingClass=idle bash "$A/warm.sh" > /dev/null 2>&1; then
+    say "AI models: warm-up started in the background (journalctl -u carmacars-ai-warm)"
+  else
+    setsid nohup nice -n 19 bash "$A/warm.sh" > "$A/warm.log" 2>&1 < /dev/null &
+    say "AI models: warm-up started in the background ($A/warm.log)"
+  fi
+  for k in text vision speech; do
+    v=$(grep -s "^$k=" "$A/state" | tail -1 | cut -d= -f2-)
+    line="$line $k: ${v:-warming up};"
+  done
+  say "AI models:${line% ;}"
+}
+
 case "${1:-}" in
   deploy)
     install -d -m 750 "$W"
@@ -114,6 +140,7 @@ case "${1:-}" in
     if [ -n "$prev" ] && [ "$prev" != "$TAG" ]; then echo "$prev" > "$W/previous-tag"; fi
     start "$TAG"
     caddy_site
+    ai_local || say "AI models: the warm-up could not be started (the site uses Workers AI and Gemini meanwhile)"
     # the last four images are kept (a rollback needs the one before)
     docker images carmacars-web --format '{{.CreatedAt}}\t{{.Tag}}' | sort -r | awk -F'\t' 'NR>4 {print $2}' | xargs -r -I{} docker rmi "carmacars-web:{}" > /dev/null 2>&1 || true
     ;;
