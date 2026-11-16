@@ -3,6 +3,9 @@
 -- both, an Admin's split; never a line of the booking. Fixtures start with "x52"; addresses are example.test.
 select test.suite('99 r48 tips');
 select test.mk_user('x52_admin', 'admin');
+-- the tips other suites left this month (the report reads every booking)
+create temp table x52_base as select app.tips_report(test.id('x52_admin'), '{}') r;
+grant all on x52_base to public;
 select test.mk_user('x52_sales', 'va', 'sales');
 select test.mk_user('x52_field', 'field');
 select test.mk_owner('x52_o');
@@ -74,8 +77,8 @@ select test.eq('reset: back to the rule', test.x52_shares((select t1 from x52_t)
 -- each person's share on their pay view; CarmaCars' share in the Admin report
 select test.eq('the salesperson''s tips: 501 + 1500 + 500', (app.my_tips(test.id('x52_sales'), '{}') ->> 'total_cents'), '2501');
 select test.eq('the handover''s tips: 500 + 1000', (app.my_tips(test.id('x52_field'), '{}') ->> 'total_cents'), '1500');
-select test.eq('Admin > Money: CarmaCars'' share', (app.tips_report(test.id('x52_admin'), '{}') ->> 'company_cents'), '2300');
-select test.eq('Admin > Money: every tip', (app.tips_report(test.id('x52_admin'), '{}') ->> 'total_cents'), '6301');
+select test.eq('Admin > Money: CarmaCars'' share', (app.tips_report(test.id('x52_admin'), '{}') ->> 'company_cents')::bigint - (select (r ->> 'company_cents')::bigint from x52_base), 2300::bigint);
+select test.eq('Admin > Money: every tip', (app.tips_report(test.id('x52_admin'), '{}') ->> 'total_cents')::bigint - (select (r ->> 'total_cents')::bigint from x52_base), 6301::bigint);
 select test.throws('the report is for Admins', $$select app.tips_report(test.id('x52_sales'), '{}')$$);
 select test.eq('the Money tab lists the booking''s tips with the split', (select jsonb_array_length(app.booking_money(test.id('x52_admin'), jsonb_build_object('booking', 'CC-X521')) -> 'tips')), 1);
 

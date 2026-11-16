@@ -11,7 +11,8 @@
 --      c. the bookings already stuck that way are repaired: their lines tied, and confirmed when waiting for payment.
 -- 2. Changing a booking's deposit (Edit booking, the connector's change_booking: $300 to $600) left the deposit not taken
 --    yet, the deposit owed at pickup and the open deposit links at $300, so the Money tab said "Collect $300 deposit".
---    A trigger on bookings.deposit_cents moves every record that is not taken yet.
+--    A trigger on bookings.deposit_cents moves every record that is not taken yet (an open deposit link of the old
+--    amount is already replaced by a new one, 0213).
 -- 3. Voiding a deposit recorded by hand left the deposit "collected" in the database: the Money tab said Not collected,
 --    the header still said "Deposit collected $300", record_payment refused ("already been taken") and Record the
 --    deposit did nothing. A void now gives back the deposit record its state (not taken, or what is left of it), and a
@@ -157,11 +158,7 @@ begin
    where booking_id = new.id and status in ('pending', 'failed') and amount_cents is distinct from greatest(new.deposit_cents, 0);
   update deposit_pendings set amount_cents = greatest(new.deposit_cents, 0)
    where booking_id = new.id and cleared_at is null and amount_cents is distinct from greatest(new.deposit_cents, 0);
-  -- an open deposit link asks for the new amount (the pay page checks the card's own amount again: 0262)
-  update payment_requests set amount_cents = greatest(app.deposit_hold_amount(new, 'credit'), 0)
-   where booking_id = new.id and kind = 'hold' and status = 'open' and new.deposit_cents > 0;
-  update payment_requests set status = 'cancelled', last_error = coalesce(last_error, 'The deposit was removed')
-   where booking_id = new.id and kind = 'hold' and status = 'open' and coalesce(new.deposit_cents, 0) <= 0;
+  -- an open deposit link of the old amount is replaced by a new one for the new amount (0213, app.deposit_link_needed)
   return new;
 end $$;
 revoke all on function app.booking_deposit_follow() from public, anon, authenticated;
