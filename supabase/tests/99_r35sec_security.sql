@@ -73,7 +73,9 @@ insert into r35sec_anon_ok values
   -- r41 live updates (2522): the versions of keyed, unguessable topic names an open screen was given; no data, read-only
   ('live_poll'),
   -- r48 (3040): the studio covers of published real cars (public photos only, read-only), shown where a sample photo was
-  ('site_studio_covers');
+  ('site_studio_covers'),
+  -- r48 O (3080): the cutouts of published real cars for the decorative sections (public paths only, read-only)
+  ('site_cutouts');
 create temporary table r35sec_signed_in_ok (name text primary key);
 insert into r35sec_signed_in_ok values
   ('mark_notifications_read'), ('my_booking'), ('my_booking_change_preview'), ('my_booking_messages'), ('my_booking_readiness'),
