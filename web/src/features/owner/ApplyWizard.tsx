@@ -14,6 +14,7 @@ import { CaptureNote, SavedAsYouType, useCapture } from '@/features/capture/useC
 import { blankVehicle, cleanVin, isFleet, ownerErrors, planErrors, REGISTERED_TO, startErrors, STEPS, TIERS, vehicleErrors, type ApplyOwner, type ApplyState, type ApplyVehicle, type FleetTransfer } from './apply-schema';
 import { DateInput } from '@/components/DateInput';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // The owner application (04-owner.md section 3, steps 1 to 3): about you once, then each vehicle,
 // then how each one will work (management mode, onboarding method, the registry estimate the owner
 // pays directly), then review and submit. Every change autosaves (form_drafts); a link by email
@@ -474,7 +475,7 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile, fleetOnFile
           <div className="ow-actions">
             <button className="btn btn--ghost" type="button" onClick={() => go(0)}>Back</button>
             <button className="btn btn--ghost" type="button" onClick={addVehicle}>Add another vehicle</button>
-            <button className="btn btn--primary btn--lg" type="button" onClick={nextFromVehicles} disabled={!s.vehicles.length}>Continue</button>
+            <><button className="btn btn--primary btn--lg" type="button" onClick={nextFromVehicles} disabled={!s.vehicles.length} aria-describedby="why-applywizard-477">Continue</button><WhyDisabled id="why-applywizard-477" why={((!s.vehicles.length)) ? 'Add the vehicles first' : null} /></>
           </div>
           {!ownerOnFile && (
             <p className="small" data-testid="apply-later-row">No car to add right now? <button type="button" className="btn btn--quiet btn--sm" onClick={addLater} data-testid="apply-later">I&apos;ll add my car later</button>

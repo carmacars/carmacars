@@ -46,9 +46,9 @@ export function OwnerMonths({ months, only, testId = 'owner-months' }: { months:
       <BarChart bars={bars} title={payouts ? 'Payouts by month' : 'Rental charges by month'} selected={sel} onSelect={setSel} testId="months-chart" />
       <div className="ow-months__head">
         <div className="pu-stepper">
-          <button type="button" onClick={() => setSel(months[idx - 1]!.key)} disabled={idx <= 0} aria-label="Earlier month"><PuIcon name="left" /></button>
+          <button type="button" onClick={() => setSel(months[idx - 1]!.key)} disabled={idx <= 0} aria-label="Earlier month" title={((idx <= 0)) ? 'This is the first month' : undefined}><PuIcon name="left" /></button>
           <output aria-live="polite" data-testid="months-current">{m.label}</output>
-          <button type="button" onClick={() => setSel(months[idx + 1]!.key)} disabled={idx >= months.length - 1} aria-label="Later month"><PuIcon name="right" /></button>
+          <button type="button" onClick={() => setSel(months[idx + 1]!.key)} disabled={idx >= months.length - 1} aria-label="Later month" title={((idx >= months.length - 1)) ? 'This is the latest month' : undefined}><PuIcon name="right" /></button>
         </div>
         {m.current && <span className="pu-pill pu-pill--accent">So far this month</span>}
       </div>

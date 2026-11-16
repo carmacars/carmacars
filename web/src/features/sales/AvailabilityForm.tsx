@@ -5,6 +5,7 @@ import { vaAct } from '@/server/actions/va';
 import type { WeekBlocks } from './RemoteDuties';
 import { DateInput } from '@/components/DateInput';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // A remote Sales rep's availability blocks for this week or next (migration 0174, va_do sales_availability_save), Toronto
 // time. Days already past keep their blocks; the database checks the week, the times and overlaps.
 type Row = { day: string; from: string; to: string };
@@ -49,8 +50,8 @@ export function AvailabilityForm({ week, next, today }: { week: WeekBlocks; next
           </li>))}
       </ul>
       <div className="ad-actions">
-        <button type="button" className="btn btn--ghost btn--sm" disabled={days.length === 0} data-testid="availability-add"
-          onClick={() => setRows((x) => [...x, { day: days.find((d) => [4, 5, 6, 0].includes(new Date(`${d}T12:00:00Z`).getUTCDay())) ?? days[0]!, from: '12:00', to: '18:00' }])}>Add a block</button>
+        <><button type="button" className="btn btn--ghost btn--sm" disabled={days.length === 0} data-testid="availability-add"
+          onClick={() => setRows((x) => [...x, { day: days.find((d) => [4, 5, 6, 0].includes(new Date(`${d}T12:00:00Z`).getUTCDay())) ?? days[0]!, from: '12:00', to: '18:00' }])} aria-describedby="why-availabilityform-52">Add a block</button><WhyDisabled id="why-availabilityform-52" why={((days.length === 0)) ? 'Choose at least one first' : null} /></>
         <button type="button" className="btn btn--primary btn--sm" disabled={pending} onClick={save} data-testid="availability-save">{pending ? 'Saving' : 'Save the week'}</button>
       </div>
       {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--warn'}`} role="status">{msg.text}</p>}

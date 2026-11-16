@@ -3,6 +3,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { vaAct } from '@/server/actions/va';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // The photo review side by side (05-va.md section 3.3): the pickup and the return set in the fixed order,
 // one row per shot, a tap enlarges; a missing shot is listed at the top with "Ask for a re-shoot", which
 // gives a field job for the chosen shots to whoever took the set (or someone else).
@@ -62,7 +63,7 @@ export function PhotoReview({ booking, shots, pickup, ret, staff }: { booking: s
           <div className="field"><label className="label" htmlFor="rs-to">Field staff</label>
             <select className="select" id="rs-to" value={to} onChange={(e) => setTo(e.target.value)}><option value="">Whoever took the set</option>{staff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
           {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'}><span>{msg.text}</span></p>}
-          <button className="btn btn--primary btn--sm" type="submit" disabled={pending || !chosen.length} data-testid="reshoot-send">{pending ? 'Sending' : 'Ask for a re-shoot'}</button>
+          <><button className="btn btn--primary btn--sm" type="submit" disabled={pending || !chosen.length} data-testid="reshoot-send" aria-describedby="why-photoreview-65">{pending ? 'Sending' : 'Ask for a re-shoot'}</button><WhyDisabled id="why-photoreview-65" why={((!chosen.length)) ? 'Choose at least one first' : null} /></>
           {side?.reshoots.length ? <ul className="small">{side.reshoots.map((j) => <li key={j.id}>{j.shots.map(nice).join(', ')}: {j.status.replace(/_/g, ' ')}{j.assignee ? `, ${j.assignee}` : ''}</li>)}</ul> : null}
         </form>
       )}

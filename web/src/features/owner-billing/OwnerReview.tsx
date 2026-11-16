@@ -10,6 +10,7 @@ import { EsignFlow } from '@/features/signing/EsignFlow';
 import { DOC_TERMS } from '@/features/signing/terms';
 import type { EsignReady } from '@/features/signing/types';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // The owner checks what CarmaCars entered for them and corrects it before signing (migration 0067), and signs an
 // updated Vehicle Schedule.
 export interface ReviewData {
@@ -67,7 +68,7 @@ export function OwnerReview({ data, trackers }: { data: ReviewData; trackers: bo
       {a.res && !a.res.ok && <p className="alert alert--error" role="alert"><span>{a.res.message}</span></p>}
       {a.res?.ok && <p className="alert alert--ok" role="status" data-testid="review-saved"><span>Saved. Your documents are filled in again with these details. We were told.</span></p>}
       <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}>
-        <button className="btn btn--ghost" type="submit" disabled={a.pending || (!data.editable && !data.cars.some((c) => c.editable))} data-testid="review-save">{a.pending ? 'Saving' : 'Save corrections'}</button>
+        <><button className="btn btn--ghost" type="submit" disabled={a.pending || (!data.editable && !data.cars.some((c) => c.editable))} data-testid="review-save" aria-describedby="why-ownerreview-70">{a.pending ? 'Saving' : 'Save corrections'}</button><WhyDisabled id="why-ownerreview-70" why={(((!data.editable && !data.cars.some((c) => c.editable)))) ? 'Nothing here can be changed now' : null} /></>
         <Link prefetch={false} className="btn btn--primary" href="/owner/sign" data-testid="review-sign">Everything is right: sign</Link>
       </div>
       <p className="small muted">Something about the terms is not what we agreed? Message us before you sign.</p>
@@ -88,7 +89,7 @@ export function ScheduleSign({ changeId, sha256, owner, title, signed }: { chang
       <EsignFlow ctx={{ kind: 'documents', role: 'owner', docs: [{ kind: 'schedule_change', ref: changeId, sha: sha256, title }] }} terms={DOC_TERMS} docsLabel="this updated Vehicle Schedule" onReady={setReady} />
       {a.err('signature') && <p className="error" role="alert">{a.err('signature')}</p>}
       {a.res && !a.res.ok && !a.res.fieldErrors && <p className="alert alert--error" role="alert"><span>{a.res.message}</span></p>}
-      <div className="row"><button className="btn btn--primary" type="submit" disabled={a.pending || !ready} data-testid="schedule-sign-submit">{a.pending ? 'Signing' : 'Sign'}</button></div>
+      <div className="row"><><button className="btn btn--primary" type="submit" disabled={a.pending || !ready} data-testid="schedule-sign-submit" aria-describedby="why-ownerreview-91">{a.pending ? 'Signing' : 'Sign'}</button><WhyDisabled id="why-ownerreview-91" why={((!ready)) ? 'Finish the steps above first' : null} /></></div>
     </form>
   );
 }

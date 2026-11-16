@@ -5,6 +5,7 @@ import Link from '@/components/Link';
 import { governmentFormEdit } from '@/server/actions/onboarding';
 import type { GovEdit, GovField, GovVersion } from '@/server/government-forms';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // r35 (0870): one government form corrected before it is signed, as a rental agreement is. An Admin or fleet changes the
 // value of one box of the official form (or one row of the data sheet), always with a reason: the form is made again as a
 // new version, the earlier versions stay below with their downloads, and every change is in the audit log. Only the
@@ -59,8 +60,8 @@ export function GovFormEditor({ fill, canEdit, fields, edits, refresh, base }: {
               <div className="field"><label className="label" htmlFor="gf-r">Reason (kept in the audit log)</label>
                 <input className="input" id="gf-r" value={reason} onChange={(e) => setReason(e.target.value)} required data-testid="gov-form-reason" /></div>
               <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}>
-                <button type="submit" className="btn btn--primary btn--sm" disabled={pending || reason.trim().length < 3} data-testid="gov-form-save">{pending ? 'Saving' : 'Save as a new version'}</button>
-                {picked.edited && <button type="button" className="btn btn--ghost btn--sm" disabled={pending || reason.trim().length < 3} onClick={() => save(true)} data-testid="gov-form-restore">Back to the records</button>}
+                <><button type="submit" className="btn btn--primary btn--sm" disabled={pending || reason.trim().length < 3} data-testid="gov-form-save" aria-describedby="why-govformeditor-62">{pending ? 'Saving' : 'Save as a new version'}</button><WhyDisabled id="why-govformeditor-62" why={((reason.trim().length < 3)) ? 'Write the reason first (3 characters or more)' : null} /></>
+                {picked.edited && <><button type="button" className="btn btn--ghost btn--sm" disabled={pending || reason.trim().length < 3} onClick={() => save(true)} data-testid="gov-form-restore" aria-describedby="why-govformeditor-63">Back to the records</button><WhyDisabled id="why-govformeditor-63" why={((reason.trim().length < 3)) ? 'Write the reason first (3 characters or more)' : null} /></>}
                 <button type="button" className="btn btn--ghost btn--sm" onClick={() => { setName(''); setOpen(false); }}>Close</button>
               </div>
             </form>)}

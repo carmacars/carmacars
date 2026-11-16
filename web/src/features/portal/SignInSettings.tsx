@@ -7,6 +7,7 @@ import { PhoneCodeInput, PhoneNumberInput } from '@/features/forms/PhoneSignIn';
 import { describedBy, Field } from '@/features/forms/Field';
 import { ChangeEmail } from './ChangeEmail';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // The profile pages' sign-in card (renter, owner, assistants, field staff; migration 0091): add and verify a phone
 // with a texted code, add an email to an account made by phone, and choose phone or email sign-in.
 export interface SignInState { email: string | null; email_verified: boolean; phone: string | null; phone_verified: boolean; phone_on_file: string | null; preferred: 'email' | 'phone'; us_allowed: boolean; enabled: boolean }
@@ -104,7 +105,7 @@ export function SignInSettings({ state, className = 'pt-card' }: { state: SignIn
             <div className="stack small" data-testid="phone-no-code">
               <p className="muted">No text yet? Texts can take a minute. Check the number above is your mobile.</p>
               <p className="row" style={{ flexWrap: 'wrap' }}>
-                <button className="btn btn--ghost btn--sm" type="button" disabled={pending || wait > 0} onClick={() => ask(true)} data-testid="phone-resend">{wait > 0 ? `Resend the code (${wait}s)` : 'Resend the code'}</button>
+                <><button className="btn btn--ghost btn--sm" type="button" disabled={pending || wait > 0} onClick={() => ask(true)} data-testid="phone-resend" aria-describedby="why-signinsettings-107">{wait > 0 ? `Resend the code (${wait}s)` : 'Resend the code'}</button><WhyDisabled id="why-signinsettings-107" why={((wait > 0)) ? 'Wait for the countdown to end' : null} /></>
                 {!state.phone_verified && <button className="btn btn--quiet btn--sm" type="button" disabled={pending} onClick={keepWithoutCode} data-testid="phone-keep-unverified">Save it without a code</button>}
               </p>
               {!state.phone_verified && <p className="muted">Saved without a code, the number is your contact number: calls from the site ring it, but you cannot sign in with it until it is verified.</p>}

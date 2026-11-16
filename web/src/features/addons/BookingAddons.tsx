@@ -5,6 +5,7 @@ import { money } from '@/lib/format';
 import { staffAddonConfirm, staffAddonRemove } from '@/server/actions/addons';
 import type { BookingAddon } from './model';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // A booking's add-ons for staff (migration 0066): confirm or decline one that waits (a chauffeur asked for after
 // booking is charged on the Card on File when confirmed), remove one (unpaid: its line goes; paid: a refund for it
 // awaits approval). On a request, staff change add-ons on the review screen instead.
@@ -39,7 +40,7 @@ export function BookingAddons({ items, status, refresh, canRemove = true }: { it
               return r.ok ? { ok: true } : r; }, a.paid ? 'Removed. A refund for it awaits approval.' : 'Removed.'); }}>
               <label className="sr-only" htmlFor={`rm-${a.id}`}>Reason</label>
               <input className="input" id={`rm-${a.id}`} placeholder="Reason" value={reason} onChange={(e) => setReason(e.target.value)} required />
-              <button className="btn btn--danger btn--sm" type="submit" disabled={pending || !reason.trim()}>Remove{a.paid ? ' and refund' : ''}</button>
+              <><button className="btn btn--danger btn--sm" type="submit" disabled={pending || !reason.trim()} aria-describedby="why-bookingaddons-42">Remove{a.paid ? ' and refund' : ''}</button><WhyDisabled id="why-bookingaddons-42" why={((!reason.trim())) ? 'Write the reason first' : null} /></>
               <button className="btn btn--quiet btn--sm" type="button" onClick={() => setRemoving(null)}>Cancel</button>
             </form>)}
         </li>))}</ul>

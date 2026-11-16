@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { calendarAct, calendarSyncNow } from '@/server/actions/calendar-sync';
 import { TuroCar, TuroPanel, type TuroCarData, type TuroData } from './TuroSync';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Cars > Calendar sync (migrations 0062, 0063), for Admins and Fleet: per car, the calendar links of other platforms
 // that block it (import) and its own CarmaCars link to paste into them (export), with the clashes on top. Turo has no
 // calendar link: its trips come by email (TuroSync.tsx), and our bookings are blocked on Turo by hand ("Done on Turo").
@@ -108,7 +109,7 @@ function AddFeed({ car, onDone }: { car: CarRow; onDone: (msg: string) => void }
         <div className="field"><label className="label" htmlFor={`lb-${id}`}>Name (optional)</label>
           <input className="input" id={`lb-${id}`} maxLength={60} value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Getaround" /></div>
       </div>
-      <button type="submit" className="btn btn--primary btn--sm" disabled={pending || !url.trim()} data-testid="feed-add-submit">{pending ? 'Adding' : 'Add the link'}</button>
+      <><button type="submit" className="btn btn--primary btn--sm" disabled={pending || !url.trim()} data-testid="feed-add-submit" aria-describedby="why-calendarsync-111">{pending ? 'Adding' : 'Add the link'}</button><WhyDisabled id="why-calendarsync-111" why={((!url.trim())) ? 'Paste the link first' : null} /></>
       {err && <p className="small ad-late" role="alert">{err}</p>}
     </form>
   );

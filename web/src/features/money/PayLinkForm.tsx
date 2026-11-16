@@ -4,6 +4,7 @@ import { money } from '@/lib/format';
 import { reloadIfStale } from '@/lib/client-error/recover';
 import { payLinkFakeConfirm, payLinkFinish, payLinkStandardHold, payLinkStart, type PayLinkStart } from '@/server/actions/paylink';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // The card form of a pay link (0129): Stripe's Payment Element in Stripe's own frame (locally, the fake adapter's test
 // card form). The result is read again from Stripe on the server and recorded there.
 // the portal's PayForm declares window.Stripe; Stripe.js has the setup confirmation too, typed here on its own
@@ -107,7 +108,7 @@ export function PayLinkForm({ token, kind, amountCents, legalName, backTo = null
       ) : <div className="pt-cardwrap"><div className="pt-cardbox" ref={mount} role="group" aria-label="Card details" />{!p && <div className="skeleton sk-line" aria-hidden="true" />}</div>}
       {debitOk && kind !== 'setup' && <p className="small muted" data-testid="paylink-debit-note">With a debit or prepaid card, {kind === 'hold' ? 'this hold lowers' : 'a deposit hold lowers'} the money available on the card or account until it is released, and the release can take several business days.{debitDepositCents ? ` The deposit is ${money(debitDepositCents, { cents: true })} with a debit or prepaid card.` : ''}</p>}
       {msg && <p className="alert alert--error" role="alert" data-testid="paylink-message"><span>{msg}</span></p>}
-      <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={!p || busy} data-testid="paylink-submit">{busy ? 'Working' : kind === 'hold' ? `Place the hold of ${money(amountCents, { cents: true })}` : kind === 'setup' ? 'Save the card' : `Pay ${money(amountCents, { cents: true })}`}</button>
+      <><button className="btn btn--primary btn--lg btn--block" type="submit" disabled={!p || busy} data-testid="paylink-submit" aria-describedby="why-paylinkform-110">{busy ? 'Working' : kind === 'hold' ? `Place the hold of ${money(amountCents, { cents: true })}` : kind === 'setup' ? 'Save the card' : `Pay ${money(amountCents, { cents: true })}`}</button><WhyDisabled id="why-paylinkform-110" why={((!p)) ? 'Choose one first' : null} /></>
     </form>
   );
 }

@@ -8,6 +8,7 @@ import type { LicenceReviewData } from './types';
 import { otherUploads } from '@/features/admin/doc-split';
 import { LicenceChecks, PrimarySwapPanel } from '@/features/licence/LicenceChecks';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // The renter's licence reviewed by field staff (0162): the licence front, back and the selfie of a booking on a job of their
 // own, then "Approve all" or a reason to reject one image (the renter sees the reason and sends a new one). The same
 // decision, audit trail and statuses as customer service's review; the history records the reviewer's role. The images come
@@ -26,7 +27,7 @@ function Reject({ kind, pending, onReject }: { kind: string; pending: boolean; o
       <div className="stack">
         <label className="label" htmlFor={`lr-${id}`}>The reason the renter sees</label>
         <input className="input" id={`lr-${id}`} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Photo unreadable, expired, name does not match" data-testid={`licence-${kind}-reason`} />
-        <button className="btn btn--ghost fd-wide" type="button" disabled={pending || reason.trim().length < 5} onClick={() => onReject(reason.trim())} data-testid={`licence-${kind}-reject`}>Reject</button>
+        <><button className="btn btn--ghost fd-wide" type="button" disabled={pending || reason.trim().length < 5} onClick={() => onReject(reason.trim())} data-testid={`licence-${kind}-reject`} aria-describedby="why-licencereview-29">Reject</button><WhyDisabled id="why-licencereview-29" why={((reason.trim().length < 5)) ? 'Write the reason first (5 characters or more)' : null} /></>
       </div>
     </details>
   );

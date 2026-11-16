@@ -25,6 +25,7 @@ import { DEPOSIT_PAY, PART_METHODS, RENTAL_LINE, RENTAL_PAID_BY, droppedByPrice,
 import { TypedInput } from '@/components/DateInput';
 import { CONTACT_OPTIONAL_NOTE, DOB_OPTIONAL_HINT, contactOptional, dobOptional, emailOptional, EMAIL_OPTIONAL_NOTE, renterProblem } from '@/features/supply/renter-contact';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Add a rental by hand (migration 0046): Admin > Bookings > Add a rental, the same screen for every assistant function
 // and for field staff (0058). The database decides what each may do (staff: the rate sheet or a price typed with its
 // reason, the promo codes and ways of payment the settings allow, never over a clash, never a past rental; field staff:
@@ -562,11 +563,11 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
             <div className="stack">
               <div className="row"><label className="sr-only" htmlFor={id('q')}>Find a renter</label>
                 <input className="input" id={id('q')} placeholder="Name, email or phone" value={q} onChange={(e) => setQ(e.target.value)} data-testid="mr-renter-q" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); search(); } }} />
-                <button className="btn btn--ghost btn--sm" type="button" onClick={search} disabled={pending || q.trim().length < 3} data-testid="mr-renter-search">Find</button></div>
+                <><button className="btn btn--ghost btn--sm" type="button" onClick={search} disabled={pending || q.trim().length < 3} data-testid="mr-renter-search" aria-describedby="why-manualrentalform-565">Find</button><WhyDisabled id="why-manualrentalform-565" why={((q.trim().length < 3)) ? 'Type what to look for first (3 characters or more)' : null} /></></div>
               {found.length === 0 && q.trim().length >= 3 && <p className="small">No renter found. <button className="btn btn--quiet btn--sm" type="button" data-testid="mr-new-from-search" onClick={() => { const t = q.trim();
                 setFlags((x) => ({ ...x, new_renter: true })); setF((x) => ({ ...x, email: t.includes('@') ? t : x.email ?? '', mobile: /^[\d\s()+-]{7,}$/.test(t) ? t : x.mobile ?? '', full_name: !t.includes('@') && !/\d/.test(t) ? t : x.full_name ?? '' })); }}>Add them as a new renter</button></p>}
               {found.length > 0 && <ul className="stack" data-testid="mr-renter-results">{found.map((r) => (
-                <li key={r.id}><button className="btn btn--quiet btn--sm" type="button" disabled={r.is_blocked} onClick={() => { setRenter(r); setQuote(null); }}>{r.legal_name}</button> <span className="small">{r.email} {r.mobile} · {r.bookings} booking(s){r.is_blocked ? ' · blocked' : ''}</span></li>))}</ul>}
+                <li key={r.id}><><button className="btn btn--quiet btn--sm" type="button" disabled={r.is_blocked} onClick={() => { setRenter(r); setQuote(null); }} aria-describedby="why-manualrentalform-569">{r.legal_name}</button><WhyDisabled id="why-manualrentalform-569" why={((r.is_blocked)) ? 'This renter is blocked: see the note on them' : null} /></> <span className="small">{r.email} {r.mobile} · {r.bookings} booking(s){r.is_blocked ? ' · blocked' : ''}</span></li>))}</ul>}
             </div>
           ) : (
             <div className="ad-fields">
@@ -788,7 +789,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
             <div><dt>Agreement</dt><dd>Sent to sign online</dd></div>
           </dl></section>; })()}
       {err && <p className="alert alert--error" role="alert" data-testid="mr-error"><span>{err}</span></p>}
-      <div className="row"><button className="btn btn--primary" type="submit" disabled={pending || !quote} data-testid="mr-submit">{pending ? 'Working' : past ? 'Record the past rental' : phase === 'in_progress' ? 'Add the rental already underway' : 'Add the rental'}</button>
+      <div className="row"><><button className="btn btn--primary" type="submit" disabled={pending || !quote} data-testid="mr-submit" aria-describedby="why-manualrentalform-791">{pending ? 'Working' : past ? 'Record the past rental' : phase === 'in_progress' ? 'Add the rental already underway' : 'Add the rental'}</button><WhyDisabled id="why-manualrentalform-791" why={((!quote)) ? 'Pick a quote first' : null} /></>
         {!quote && <span className="small muted">{pending ? 'Checking the calendar and the price…' : 'The calendar and the price are checked once the car and the dates are in.'}</span>}</div>
     </form>
   );

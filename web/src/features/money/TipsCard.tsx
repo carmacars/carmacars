@@ -1,5 +1,6 @@
 import { money } from '@/lib/format';
 import Link from '@/components/Link';
+import { DateInput } from '@/components/DateInput';
 import { tipShareWords, type TipShare } from './tips';
 
 // r48 part 2 (3053): tips for staff (their share, on My sales and My pay) and for an Admin (every tip, Admin > Money >
@@ -33,8 +34,8 @@ export function TipsReport({ r, bookingBase }: { r: TipsReportData; bookingBase:
       <h1 className="d2">Tips</h1>
       <p className="small muted">From {day(r.from)}: {fmt(r.total_cents)} in tips. CarmaCars&apos; share, kept as company revenue (direct bookings, self pickups): <b data-testid="tips-company">{fmt(r.company_cents)}</b>. Tips are never part of the owners&apos; revenue share. Change one tip&apos;s split on its booking&apos;s Money tab.</p>
       <form className="row" method="get"><input type="hidden" name="tab" value="tips" />
-        <label className="label" htmlFor="tips-from">From</label><input className="input" type="date" id="tips-from" name="from" defaultValue={r.from.slice(0, 10)} />
-        <label className="label" htmlFor="tips-to">To</label><input className="input" type="date" id="tips-to" name="to" />
+        <label className="label" htmlFor="tips-from">From</label><DateInput className="input" type="date" id="tips-from" name="from" defaultValue={r.from.slice(0, 10)} />
+        <label className="label" htmlFor="tips-to">To</label><DateInput className="input" type="date" id="tips-to" name="to" />
         <button className="btn btn--ghost btn--sm" type="submit">Show</button></form>
       {r.by_staff.length > 0 && <ul className="small" data-testid="tips-by-staff">{r.by_staff.map((s) => <li key={s.staff_id}>{s.name}: <b>{fmt(s.cents)}</b> from {s.tips} tip{s.tips === 1 ? '' : 's'}</li>)}</ul>}
       {r.rows.length ? <ul className="small" data-testid="tips-rows">{r.rows.map((x) => <li key={x.tip_id}>{day(x.paid_at)}, <Link prefetch={false} className="link" href={`${bookingBase}/${encodeURIComponent(x.booking_number)}?tab=money`}>{x.booking_number}</Link>: <b>{fmt(x.amount_cents)}</b> by {x.method.replace('_', '-')} {SOURCE[x.source] ?? ''}. {tipShareWords(x.shares ?? [], fmt)}{x.split_by_admin ? ` (Admin: ${x.split_reason ?? ''})` : ''}</li>)}</ul>

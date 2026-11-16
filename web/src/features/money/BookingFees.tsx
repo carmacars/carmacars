@@ -10,6 +10,7 @@ import { cents } from '@/features/offers/model';
 import { BalanceActions } from './BalanceActions';
 import { isInsurerFee } from '@/features/insurers/fees';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // The fees of a booking, each changeable on its own (migration 0132): young driver, Protection Plan, delivery and pickup,
 // winter tires, baby seats, each add-on. Before or after confirmation; the change is recorded with who, when, before and
 // after, and the booking's money follows (more to collect, or less). An Admin, and customer service and sales while
@@ -82,7 +83,7 @@ export function BookingFees({ x, withBalance = true }: { x: Fees; /** r29: false
             <div className="field ad-field"><label className="label" htmlFor="bf-own-amount">Amount before HST ($)</label><input className="input" id="bf-own-amount" inputMode="decimal" value={own.amount} onChange={(e) => setOwn((o) => ({ ...o, amount: e.target.value }))} data-testid="bf-own-amount" /></div>
           </div>
           <label className="check" htmlFor="bf-own-hst"><input id="bf-own-hst" type="checkbox" checked={own.hst} onChange={(e) => setOwn((o) => ({ ...o, hst: e.target.checked }))} /> <span>Plus HST</span></label>
-          <p><button className="btn btn--ghost btn--sm" type="button" disabled={pending || !own.label.trim() || !cents(own.amount)} onClick={addOwn} data-testid="bf-own-add">Add the charge</button></p>
+          <p><><button className="btn btn--ghost btn--sm" type="button" disabled={pending || !own.label.trim() || !cents(own.amount)} onClick={addOwn} data-testid="bf-own-add" aria-describedby="why-bookingfees-85">Add the charge</button><WhyDisabled id="why-bookingfees-85" why={((!own.label.trim()) || (!cents(own.amount))) ? 'Enter the fee name and the amount first' : null} /></></p>
         </fieldset>
         <div className="field"><label className="label" htmlFor="bf-reason">Reason (optional)</label><input className="input" id="bf-reason" value={reason} onChange={(e) => setReason(e.target.value)} data-testid="bf-reason" /></div>
         <p className="small muted">Amounts before HST. {['confirmed', 'on_rent', 'returned'].includes(x.status) ? 'The booking is confirmed: a higher fee is more to collect on the Money tab; a lower one leaves a credit to refund.' : ['offered', 'pending_payment'].includes(x.status) ? 'The offer is changed in place and the renter gets the updated offer: no need to withdraw it.' : 'The offer and the price follow.'}</p>

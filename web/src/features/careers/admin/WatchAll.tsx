@@ -18,8 +18,8 @@ export function WatchAll({ items }: { items: Array<{ id: string; url: string; la
       <video key={cur.id} ref={ref} controls autoPlay playsInline src={cur.url} className="ai-video" aria-label={`${cur.label}: video`} data-testid="cand-ai-watch-video"
         onEnded={() => { if (i + 1 < items.length) go(i + 1); }} />
       <p className="row">
-        <button type="button" className="btn btn--ghost btn--sm" disabled={i === 0} onClick={() => go(i - 1)}>Previous</button>
-        <button type="button" className="btn btn--ghost btn--sm" disabled={i + 1 >= items.length} onClick={() => go(i + 1)} data-testid="cand-ai-watch-next">Next</button>
+        <button type="button" className="btn btn--ghost btn--sm" disabled={i === 0} onClick={() => go(i - 1)} title={((i === 0)) ? 'This is the first one' : undefined}>Previous</button>
+        <button type="button" className="btn btn--ghost btn--sm" disabled={i + 1 >= items.length} onClick={() => go(i + 1)} data-testid="cand-ai-watch-next" title={((i + 1 >= items.length)) ? 'This is the last one' : undefined}>Next</button>
         <button type="button" className="btn btn--ghost btn--sm" onClick={() => setOpen(false)}>Close</button>
       </p>
     </div>);

@@ -6,6 +6,7 @@ import { fakeConfirmAddonCard, finalizeAddonPayment, startAddonPayment, type Sta
 import { money } from '@/lib/format';
 import { reloadIfStale } from '@/lib/client-error/recover';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // The add-on pay page's card form (migration 0079): Stripe's Payment Element in Stripe's own frame; locally the fake
 // adapter stands in with Stripe's test card numbers. The card is charged at once for the add-ons due.
 interface StripeJs {
@@ -122,7 +123,7 @@ export function AddonPayForm({ number, amountCents }: { number: string; amountCe
         </div>
       ) : <div className="pt-cardwrap"><div className="pt-cardbox" ref={mount} role="group" aria-label="Card details" />{!p && <div className="skeleton sk-line" aria-hidden="true" />}</div>}
       {msg && <p className={`alert ${msg.kind === 'wait' ? 'alert--warn' : 'alert--error'}`} role={msg.kind === 'wait' ? 'status' : 'alert'} data-testid="addon-pay-message"><span>{msg.text}</span></p>}
-      <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={!p || busy} data-testid="addon-pay-submit">{busy ? 'Paying' : `Pay ${money(p?.amountCents ?? amountCents, { cents: true })}`}</button>
+      <><button className="btn btn--primary btn--lg btn--block" type="submit" disabled={!p || busy} data-testid="addon-pay-submit" aria-describedby="why-addonpayform-125">{busy ? 'Paying' : `Pay ${money(p?.amountCents ?? amountCents, { cents: true })}`}</button><WhyDisabled id="why-addonpayform-125" why={((!p)) ? 'Choose one first' : null} /></>
       <p className="pt-lock"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 7V5a4 4 0 0 1 8 0v2h1v8H3V7zm2 0h4V5a2 2 0 0 0-4 0z" fill="currentColor" /></svg>Charged now for the add-ons listed. This card is not kept for later charges.</p>
     </form>
   );

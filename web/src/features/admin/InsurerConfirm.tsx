@@ -5,6 +5,7 @@ import { Act } from '@/features/admin/Act';
 import { guidedAct } from '@/server/actions/guided';
 import { DateInput } from '@/components/DateInput';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Insurer confirmed (migration 0078): the car goes on the fleet insurance policy from the date of the insurer's written
 // confirmation. Its onboarding moves past the insurer step, the Enrollment Date is set and the owner gets the enrollment
 // notice; the paperwork stays on the checklist. One car (the car's page, a To do prompt) or several (one insurer email).
@@ -59,7 +60,7 @@ export function InsurerBulk({ cars, refresh = [] }: { cars: Array<{ vehicle_id: 
           </div>
           {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role="alert"><span>{msg.text}</span></p>}
           <div className="row">
-            <button className="btn btn--primary btn--sm" type="submit" disabled={pending || ticked.length === 0} data-testid="insurer-bulk-submit">{pending ? 'Working' : `Insurer confirmed ${ticked.length} car${ticked.length === 1 ? '' : 's'}`}</button>
+            <><button className="btn btn--primary btn--sm" type="submit" disabled={pending || ticked.length === 0} data-testid="insurer-bulk-submit" aria-describedby="why-insurerconfirm-62">{pending ? 'Working' : `Insurer confirmed ${ticked.length} car${ticked.length === 1 ? '' : 's'}`}</button><WhyDisabled id="why-insurerconfirm-62" why={((ticked.length === 0)) ? 'Choose at least one first' : null} /></>
             <button className="btn btn--ghost btn--sm" type="button" onClick={() => dlg.current?.close()}>Cancel</button>
           </div>
         </form>

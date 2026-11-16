@@ -24,7 +24,7 @@ export default function Drop({ prize, reduced, onReveal }: GameProps) {
         <span className="ccg-drop__capsule"><span className="ccg-drop__top" /><span className="ccg-drop__prize">{phase === 'open' ? prize.short : ''}</span><span className="ccg-drop__bottom" /></span>
       </div>
       <p className="ccg-live" aria-live="polite">{phase === 'open' ? <>Your capsule holds <b>{prize.label}</b></> : phase === 'idle' ? 'Turn the handle for a prize capsule.' : 'Here it comes...'}</p>
-      <button type="button" className="btn btn--primary ccg-play" onClick={turn} disabled={phase !== 'idle'} data-testid="game-action">Turn the handle</button>
+      <button type="button" className="btn btn--primary ccg-play" onClick={turn} disabled={phase !== 'idle'} data-testid="game-action" title={((phase !== 'idle')) ? 'Wait for this drop to finish' : undefined}>Turn the handle</button>
     </div>
   );
 }

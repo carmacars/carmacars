@@ -7,6 +7,7 @@ import { chargeSavedCard } from '@/server/actions/offers';
 import { depositMethod, depositStatus } from '@/features/money/deposit-words';
 import { DateInput } from '@/components/DateInput';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // The guided Deposit settlement (migration 0020's app.settle_deposit, guarded by 0155): what is owed is taken from the
 // deposit first; tolls and tickets can take days to come in, so a settlement inside that window holds the deposit back
 // unless the person chooses to release now; anything still open (an incident, a claim, damage not priced, a toll on the
@@ -160,7 +161,7 @@ export function DepositSettle({ bookingId, bookingNumber, refresh = [] }: { book
           {err && <p className="alert alert--error" role="alert" data-testid="deposit-error"><span>{err}</span></p>}
           {done && <p className="alert alert--ok" role="status" data-testid="deposit-done"><span>{done}</span></p>}
           <div className="row">
-            <button className="btn btn--primary btn--sm" type="submit" disabled={pending || !pv.has_statement || !!done} data-testid="deposit-submit">{pending ? 'Working' : 'Settle'}</button>
+            <><button className="btn btn--primary btn--sm" type="submit" disabled={pending || !pv.has_statement || !!done} data-testid="deposit-submit" aria-describedby="why-depositsettle-163">{pending ? 'Working' : 'Settle'}</button><WhyDisabled id="why-depositsettle-163" why={((!pv.has_statement) || (!!done)) ? (done ? 'Already settled' : 'The statement comes first: issue it, then settle') : null} /></>
             {g.is_admin && pv.has_statement && g.remaining_cents > 0 && <button className="btn btn--ghost btn--sm" type="button" aria-expanded={panel === 'keep'} onClick={() => setPanel(panel === 'keep' ? '' : 'keep')} data-testid="deposit-keep">Keep the whole deposit (damage)</button>}
             {g.is_admin && <button className="btn btn--ghost btn--sm" type="button" aria-expanded={panel === 'damage'} onClick={() => setPanel(panel === 'damage' ? '' : 'damage')} data-testid="deposit-damage">Bill damage</button>}
             <button className="btn btn--ghost btn--sm" type="button" onClick={() => dlg.current?.close()}>Close</button>

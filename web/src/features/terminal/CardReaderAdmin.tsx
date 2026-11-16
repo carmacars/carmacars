@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { pairReader, removeReader } from '@/server/actions/card-tools';
 import { Card, Table, t } from '@/features/admin/ui';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Settings > Card reader (0202): the Stripe Terminal S700. Pair reader takes the three-word pairing code the reader shows
 // (Settings > Generate pairing code on the S700) and registers it at Stripe, to a Terminal location made from the mailing
 // address. Card payments and deposit holds are then started from a booking.
@@ -29,7 +30,7 @@ export function CardReaderAdmin({ s }: { s: TerminalState }) {
           <div className="field ad-field"><label className="label" htmlFor="pr-code">Pairing code</label><input className="input" id="pr-code" value={code} onChange={(e) => setCode(e.target.value)} placeholder="word-word-word" autoComplete="off" data-testid="pr-code" /></div>
           <div className="field ad-field"><label className="label" htmlFor="pr-label">Name</label><input className="input" id="pr-label" value={label} onChange={(e) => setLabel(e.target.value)} maxLength={60} data-testid="pr-label" /></div>
         </div>
-        <button className="btn btn--primary btn--sm" type="submit" disabled={pending || !code.trim()} data-testid="pr-go">{pending ? 'Pairing' : 'Pair reader'}</button>
+        <><button className="btn btn--primary btn--sm" type="submit" disabled={pending || !code.trim()} data-testid="pr-go" aria-describedby="why-cardreaderadmin-32">{pending ? 'Pairing' : 'Pair reader'}</button><WhyDisabled id="why-cardreaderadmin-32" why={((!code.trim())) ? 'Enter the code first' : null} /></>
       </form>
       {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'} data-testid="pr-message"><span>{msg.text}</span></p>}
     </Card>

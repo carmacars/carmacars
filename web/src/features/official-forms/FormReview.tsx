@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { staffDo, staffRead } from '@/server/actions/staff-tools';
 import type { Spec } from './fill';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // "Review and check" for one official ServiceOntario form (migration 0079): a pop-up with the form filled for one
 // real car, page by page, the fields filled and the ones the PDF does not have, then one press of "Checked: use for
 // owners" with the mapping already saved. Opens by itself from a link to /admin/settings/forms#<form code> (the To do
@@ -94,7 +95,7 @@ export function FormReview({ code, templateId, fieldMap, vehicles }: Props) {
         )}
         {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'}><span>{msg.text}</span></p>}
         <div className="row">
-          {!msg?.ok && <button className="btn btn--primary btn--sm" type="button" disabled={pending || loading || !shown} onClick={verify} data-testid={`${tid}-verify`}>Checked: use for owners</button>}
+          {!msg?.ok && <><button className="btn btn--primary btn--sm" type="button" disabled={pending || loading || !shown} onClick={verify} data-testid={`${tid}-verify`} aria-describedby="why-formreview-97">Checked: use for owners</button><WhyDisabled id="why-formreview-97" why={((!shown)) ? 'Type it first' : null} /></>}
           <button className="btn btn--ghost btn--sm" type="button" onClick={() => dlg.current?.close()}>{msg?.ok ? 'Close' : 'Not yet'}</button>
         </div>
       </dialog>

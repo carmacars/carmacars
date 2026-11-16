@@ -8,6 +8,7 @@ import { otherUploads } from '@/features/admin/doc-split';
 import { approvableItems, approveLabel } from '@/features/admin/doc-approve';
 import { AcceptCard } from '@/features/card/AcceptCard';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Renter documents of one booking (migration 0078), on one screen (0151): every licence image, selfie, proof of coverage
 // and the Protection Plan side by side, what to check said once, then one "Approve all" (each item through the function
 // that decides it; one the database refuses is reported and the rest approved) or a reason to reject one item, which the
@@ -30,7 +31,7 @@ function Reject({ testId, pending, onReject }: { testId: string; pending: boolea
       <div className="stack">
         <label className="label" htmlFor={`rj-${id}`}>The reason the renter sees</label>
         <input className="input" id={`rj-${id}`} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Photo unreadable, expired, name does not match" data-testid={`${testId}-reason`} />
-        <button className="btn btn--ghost btn--sm" type="button" disabled={pending || reason.trim().length < 5} onClick={() => onReject(reason.trim())} data-testid={`${testId}-reject`}>Reject</button>
+        <><button className="btn btn--ghost btn--sm" type="button" disabled={pending || reason.trim().length < 5} onClick={() => onReject(reason.trim())} data-testid={`${testId}-reject`} aria-describedby="why-documentreview-33">Reject</button><WhyDisabled id="why-documentreview-33" why={((reason.trim().length < 5)) ? 'Write the reason first (5 characters or more)' : null} /></>
       </div>
     </details>
   );

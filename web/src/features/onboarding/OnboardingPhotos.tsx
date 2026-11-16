@@ -5,6 +5,7 @@ import './onboarding.css';
 import { onboardingPhotoAdd, onboardingPhotoRemove, onboardingPhotoReplace, onboardingPhotoReview } from '@/server/actions/onboarding';
 import type { Viewer } from './steps';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // The onboarding photos (r34, 0821): the ownership permit, the insurance slip and the lender's permission of each car.
 // The owner, staff and an Admin replace or remove any of them (audited); staff and an Admin approve or reject one. A
 // replaced photo waits for review again. Photos are re-encoded in the browser (which strips location data).
@@ -71,11 +72,11 @@ function Photo({ p, ownerId, viewer, refresh, view, say }: { p: PhotoRow; ownerI
           <label className="label" htmlFor={`${id}-t`}>{mode === 'remove' ? (staff ? 'Why it is removed (kept in the history)' : 'Why (optional)') : 'What is wrong (the owner reads it)'}</label>
           <input className="input" id={`${id}-t`} value={text} onChange={(e) => setText(e.target.value)} data-testid="onboarding-photo-reason" />
           <div className="row" style={{ gap: 'var(--s-2)', marginTop: 'var(--s-2)' }}>
-            <button type="button" className="btn btn--primary btn--sm" disabled={pending || (mode === 'reject' && !text.trim()) || (mode === 'remove' && staff && text.trim().length < 3)} data-testid="onboarding-photo-confirm"
+            <><button type="button" className="btn btn--primary btn--sm" disabled={pending || (mode === 'reject' && !text.trim()) || (mode === 'remove' && staff && text.trim().length < 3)} data-testid="onboarding-photo-confirm"
               onClick={() => start(async () => {
                 const r = mode === 'remove' ? await onboardingPhotoRemove(p.id, text, refresh) : await onboardingPhotoReview(p.id, 'rejected', text, refresh);
                 done(r.ok, r.ok ? (mode === 'remove' ? 'Removed.' : 'Marked not accepted. The owner is asked for a new one.') : r.message);
-              })}>{mode === 'remove' ? 'Remove the photo' : 'Not accepted'}</button>
+              })} aria-describedby="why-onboardingphotos-74">{mode === 'remove' ? 'Remove the photo' : 'Not accepted'}</button><WhyDisabled id="why-onboardingphotos-74" why={(((mode === 'reject' && !text.trim())) || ((mode === 'remove' && staff && text.trim().length < 3))) ? 'Write the reason first' : null} /></>
             <button type="button" className="btn btn--quiet btn--sm" onClick={() => setMode(null)}>Cancel</button>
           </div>
         </div>

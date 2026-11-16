@@ -8,6 +8,7 @@ import { METHODS } from './ApproveStep';
 import { dollars, pctOf, toCents } from './shared';
 import { DateInput } from '@/components/DateInput';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Negotiated terms (migration 0067): the owner's default for their cars, and each car's own exact amounts, each with
 // the date they apply from. A car whose Vehicle Schedule is signed gets an updated schedule for the owner to sign
 // (one click after the warning); its current terms apply until then.
@@ -63,7 +64,7 @@ function FirstLastChoice({ c, paths, today }: { c: CarTerms; paths: string[]; to
             <div className="field"><label className="label" htmlFor={`${uid}-r`}>{method === 'cheque' ? 'Cheque number' : 'Reference'}{['cash', 'other'].includes(method) ? ' (optional)' : ''}</label><input className="input" id={`${uid}-r`} value={ref} onChange={(e) => setRef(e.target.value)} data-testid="first-last-reference" /></div>
           </div>}
           {a.res && !a.res.ok && <p className="alert alert--error" role="alert"><span>{a.res.message}</span></p>}
-          <div className="row"><button className="btn btn--primary btn--sm" type="submit" disabled={a.pending || !action} data-testid="first-last-save">{a.pending ? 'Saving' : action === 'send' ? 'Send the invoice' : 'Save the choice'}</button></div>
+          <div className="row"><><button className="btn btn--primary btn--sm" type="submit" disabled={a.pending || !action} data-testid="first-last-save" aria-describedby="why-termspanel-66">{a.pending ? 'Saving' : action === 'send' ? 'Send the invoice' : 'Save the choice'}</button><WhyDisabled id="why-termspanel-66" why={((!action)) ? 'Choose what to do first' : null} /></></div>
         </form>)}
     </div>
   );

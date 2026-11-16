@@ -5,6 +5,7 @@ import { staffDo } from '@/server/actions/staff-tools';
 import { photoUrl } from '@/lib/photo';
 import { moveItem } from './extra-order';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Release 33 (0700): the extra photos ("More outside photos" and "Other detail") come after the standard shots on the
 // car's page, in the order set here: drag a photo by its handle (mouse, finger or pen), or use Earlier and Later, then
 // Save the order (app.listing_photos_order).
@@ -53,12 +54,12 @@ export function ExtraOrder({ vehicle, photos }: { vehicle: string; photos: P[] }
             {src ? <img src={src} alt={p.alt_text ?? p.shot_label ?? p.shot_type} width={96} height={64} loading="lazy" draggable={false} /> : <span className="muted small">no file</span>}
             <span className="small">{n + 1}. {p.shot_label ?? p.shot_type}</span>
             <span className="row">
-              <button type="button" className="btn btn--quiet btn--sm" disabled={n === 0} onClick={() => step(id, -1)}>Earlier<span className="vh"> (photo {n + 1})</span></button>
-              <button type="button" className="btn btn--quiet btn--sm" disabled={n === ids.length - 1} onClick={() => step(id, 1)}>Later<span className="vh"> (photo {n + 1})</span></button>
+              <button type="button" className="btn btn--quiet btn--sm" disabled={n === 0} onClick={() => step(id, -1)} title={((n === 0)) ? 'Already first' : undefined}>Earlier<span className="vh"> (photo {n + 1})</span></button>
+              <button type="button" className="btn btn--quiet btn--sm" disabled={n === ids.length - 1} onClick={() => step(id, 1)} title={((n === ids.length - 1)) ? 'Already last' : undefined}>Later<span className="vh"> (photo {n + 1})</span></button>
             </span>
           </li>); })}
       </ol>
-      <p className="row"><button type="button" className="btn btn--primary btn--sm" disabled={pending || !changed} onClick={save} data-testid="extra-order-save">{pending ? 'Saving' : 'Save the order'}</button></p>
+      <p className="row"><><button type="button" className="btn btn--primary btn--sm" disabled={pending || !changed} onClick={save} data-testid="extra-order-save" aria-describedby="why-extraorder-61">{pending ? 'Saving' : 'Save the order'}</button><WhyDisabled id="why-extraorder-61" why={((!changed)) ? 'Change something first' : null} /></></p>
       {res && <p className={`alert ${res.ok ? 'alert--ok' : 'alert--error'} small`} role={res.ok ? 'status' : 'alert'}><span>{res.text}</span></p>}
     </div>
   );

@@ -6,6 +6,7 @@ import { ContactButtons } from '@/features/phone/QuoButtons';
 import { LeadPhoneAccess } from './LeadPhone';
 import { claimWords, contactLinks, holdWords, OUTCOME_LABEL, OUTCOMES, type LeadRow, type Outcome, type Person } from './model';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 type Msg = { ok: boolean; text: string } | null;
 
 /** One lead's buttons: Claim or Unclaim, Call, Text and Email (each logged on the lead and extending the claim), a note,
@@ -48,10 +49,10 @@ export function LeadActions({ lead, admin, people, phonePeople, compact = false 
           : <span onClickCapture={logOn('text', 'lead-text')}><ContactButtons phone={lead.phone} name={lead.name} only="text" testId="lead" /></span>)}
         {links.email && (h.locked && !admin ? <button type="button" className="btn btn--quiet btn--sm" disabled title={h.text ?? undefined} data-testid="lead-email">Email</button>
           : <a className="btn btn--quiet btn--sm" href={links.email} onClick={blocked ? undefined : log('email')} data-testid="lead-email">Email</a>)}
-        {!compact && <button type="button" className="btn btn--ghost btn--sm" disabled={pending || blocked} onClick={() => setPanel(panel === 'note' ? null : 'note')} data-testid="lead-note">Note</button>}
-        {!closed && <button type="button" className="btn btn--ghost btn--sm" disabled={pending || blocked} onClick={() => run('lead_handled', {}, 'Marked handled.')} data-testid="lead-handled">Mark handled</button>}
+        {!compact && <><button type="button" className="btn btn--ghost btn--sm" disabled={pending || blocked} onClick={() => setPanel(panel === 'note' ? null : 'note')} data-testid="lead-note" aria-describedby="why-leadactions-51">Note</button><WhyDisabled id="why-leadactions-51" why={((blocked)) ? (h.text ?? 'Another person is working this lead: ask an Admin') : null} /></>}
+        {!closed && <><button type="button" className="btn btn--ghost btn--sm" disabled={pending || blocked} onClick={() => run('lead_handled', {}, 'Marked handled.')} data-testid="lead-handled" aria-describedby="why-leadactions-52">Mark handled</button><WhyDisabled id="why-leadactions-52" why={((blocked)) ? (h.text ?? 'Another person is working this lead: ask an Admin') : null} /></>}
         {lead.handled_at && lead.outcome !== 'won' && lead.outcome !== 'lost' && <button type="button" className="btn btn--ghost btn--sm" disabled={pending} onClick={() => run('lead_handled', { undo: true }, 'Open again.')}>Open again</button>}
-        <button type="button" className="btn btn--ghost btn--sm" disabled={pending || blocked} onClick={() => setPanel(panel === 'outcome' ? null : 'outcome')} data-testid="lead-outcome">Outcome</button>
+        <><button type="button" className="btn btn--ghost btn--sm" disabled={pending || blocked} onClick={() => setPanel(panel === 'outcome' ? null : 'outcome')} data-testid="lead-outcome" aria-describedby="why-leadactions-54">Outcome</button><WhyDisabled id="why-leadactions-54" why={((blocked)) ? (h.text ?? 'Another person is working this lead: ask an Admin') : null} /></>
         {admin && <button type="button" className="btn btn--ghost btn--sm" disabled={pending} onClick={() => setPanel(panel === 'reassign' ? null : 'reassign')} data-testid="lead-reassign">Reassign</button>}
         {/* 1151: back to the salesperson who brought or last had it (else the pool) */}
         {admin && (lead.claim || lead.assigned_to) && <button type="button" className="btn btn--ghost btn--sm" disabled={pending} onClick={() => run('lead_return', {}, 'Returned to the previous owner.')} data-testid="lead-return">Return lead to previous owner</button>}

@@ -7,6 +7,7 @@ import { esignCheckCode, esignSaved, esignSendCode, esignSetMobile, esignStart, 
 import { sameName } from './names';
 import type { EsignContext, EsignReady, EsignView } from './types';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // The signature that holds up (migration 0154), the same on every signing page (since 0193 every signature on the site): 1. confirm it is you with a code sent
 // to the phone or email on file (0186: only when Program settings require it; otherwise an optional link); 2. say you
 // read the documents; 3. initial each key term (saved when the signer presses Save initials; Clear takes it back); 4.
@@ -136,7 +137,7 @@ export function EsignFlow({ ctx, terms, onReady, docsLabel = 'the agreement abov
               {v.code_sent_to && <>
                 <label className="field" style={{ margin: 0 }}><span className="label">Code sent to {v.code_sent_to}</span>
                   <input className="input es-code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} data-testid="esign-code" /></label>
-                <button className="btn btn--primary" type="button" disabled={busy || code.length !== 6} onClick={() => run(() => esignCheckCode(ctx, v.id, code))} data-testid="esign-confirm">Confirm</button>
+                <><button className="btn btn--primary" type="button" disabled={busy || code.length !== 6} onClick={() => run(() => esignCheckCode(ctx, v.id, code))} data-testid="esign-confirm" aria-describedby="why-esignflow-139">Confirm</button><WhyDisabled id="why-esignflow-139" why={((code.length !== 6)) ? 'Enter the 6-digit code first' : null} /></>
               </>}
             </div>
             {devCode && <p className="xs muted" data-testid="esign-dev-code">Test code (local only): {devCode}</p>}
@@ -144,8 +145,8 @@ export function EsignFlow({ ctx, terms, onReady, docsLabel = 'the agreement abov
               : <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)', alignItems: 'end' }}>
                 <label className="field" style={{ margin: 0 }}><span className="label">The right mobile number</span>
                   <input className="input" type="tel" inputMode="tel" autoComplete="tel" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} data-testid="esign-new-phone" /></label>
-                <button className="btn btn--ghost" type="button" disabled={busy || newPhone.replace(/\D/g, '').length < 10}
-                  onClick={() => run(() => esignSetMobile(ctx, v.id, newPhone)).then((d) => { if (d) { setFixing(false); setNewPhone(''); setCode(''); setChannel('sms'); } })} data-testid="esign-save-phone">Save the number</button>
+                <><button className="btn btn--ghost" type="button" disabled={busy || newPhone.replace(/\D/g, '').length < 10}
+                  onClick={() => run(() => esignSetMobile(ctx, v.id, newPhone)).then((d) => { if (d) { setFixing(false); setNewPhone(''); setCode(''); setChannel('sms'); } })} data-testid="esign-save-phone" aria-describedby="why-esignflow-147">Save the number</button><WhyDisabled id="why-esignflow-147" why={((newPhone.replace(/\D/g, '').length < 10)) ? 'Enter a 10-digit mobile number first' : null} /></>
                 <button className="btn btn--ghost" type="button" onClick={() => setFixing(false)}>Cancel</button></div>)}
           </>}
         </>}
@@ -170,13 +171,13 @@ export function EsignFlow({ ctx, terms, onReady, docsLabel = 'the agreement abov
               <button className="btn btn--quiet btn--sm" type="button" disabled={busy} onClick={() => void clearInitials(t.code)} aria-label={`Clear your initials for ${t.title} and initial again`} data-testid={`esign-clear-initials-${t.code}`}>Clear</button></div>
             : typed ? <div className="row" style={{ gap: 'var(--s-2)' }}><input className="input" aria-label={`Your initials for ${t.title}`} maxLength={5} id={`es-ti-${t.code}`}
                 value={typedIni[t.code] ?? ''} onChange={(e) => setTypedIni((x) => ({ ...x, [t.code]: e.target.value }))} data-testid={`esign-typed-initials-${t.code}`} />
-              <button className="btn btn--ghost btn--sm" type="button" disabled={busy || !(typedIni[t.code] ?? '').trim()} onClick={() => void saveInitials(t.code, { typed: (typedIni[t.code] ?? '').trim() })} data-testid={`esign-save-initials-${t.code}`}>Save initials</button>
+              <><button className="btn btn--ghost btn--sm" type="button" disabled={busy || !(typedIni[t.code] ?? '').trim()} onClick={() => void saveInitials(t.code, { typed: (typedIni[t.code] ?? '').trim() })} data-testid={`esign-save-initials-${t.code}`} aria-describedby="why-esignflow-173">Save initials</button><WhyDisabled id="why-esignflow-173" why={((!(typedIni[t.code] ?? '').trim())) ? 'Type your initials first' : null} /></>
               {(typedIni[t.code] ?? '') && <button className="btn btn--quiet btn--sm" type="button" onClick={() => setTypedIni((x) => ({ ...x, [t.code]: '' }))}>Clear</button>}</div>
             : <div className="stack" style={{ gap: 'var(--s-1)' }}>
                 <SignaturePad id={`es-in-${t.code}`} small minPoints={4} testId={`initials-${t.code}`} label={`Initials box for ${t.title}: draw your initials`}
                   onChange={(png) => setDrafts((x) => ({ ...x, [t.code]: png }))} />
-                <div><button className="btn btn--ghost btn--sm" type="button" disabled={busy || !drafts[t.code]} onClick={() => { const png = drafts[t.code]; if (png) void saveInitials(t.code, { png }); }}
-                  data-testid={`esign-save-initials-${t.code}`}>Save initials</button></div></div>}
+                <div><><button className="btn btn--ghost btn--sm" type="button" disabled={busy || !drafts[t.code]} onClick={() => { const png = drafts[t.code]; if (png) void saveInitials(t.code, { png }); }}
+                  data-testid={`esign-save-initials-${t.code}`} aria-describedby="why-esignflow-178">Save initials</button><WhyDisabled id="why-esignflow-178" why={((!drafts[t.code])) ? 'Type your initials first' : null} /></></div></div>}
         </div>)}
       </section>}
 
@@ -193,8 +194,8 @@ export function EsignFlow({ ctx, terms, onReady, docsLabel = 'the agreement abov
             <input className="input sigpad__typed" value={typedName} onChange={(e) => setTypedName(e.target.value)} onBlur={() => { if (typedName.trim()) void run(() => esignStep(ctx, v.id, { kind: 'signature', typed: typedName.trim() })); }} /></label>
           : <>
             {saved?.saved_signature && <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)', alignItems: 'center', marginBottom: 'var(--s-2)' }}>
-              <button className={`btn btn--sm ${usedSaved ? 'btn--ghost' : 'btn--primary'}`} type="button" disabled={busy || usedSaved} onClick={useSavedSignature} data-testid="esign-saved-signature">
-                {usedSaved ? 'Your saved signature is in' : 'Sign with your saved signature'}</button>
+              <><button className={`btn btn--sm ${usedSaved ? 'btn--ghost' : 'btn--primary'}`} type="button" disabled={busy || usedSaved} onClick={useSavedSignature} data-testid="esign-saved-signature" aria-describedby="why-esignflow-196">
+                {usedSaved ? 'Your saved signature is in' : 'Sign with your saved signature'}</button><WhyDisabled id="why-esignflow-196" why={((usedSaved)) ? 'Your saved signature is already used' : null} /></>
               <span className="small muted">{usedSaved ? 'Press the button below to finish. To change it, draw a new one in the box.' : 'The one you used last time. Or draw a new one below.'}</span></div>}
             <SignaturePad id="es-sig" onChange={drew} />
             {sigBusy && <p className="xs muted" role="status" data-testid="esign-sig-saving">Saving your signature…</p>}

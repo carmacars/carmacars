@@ -10,6 +10,7 @@ import { showOnMap } from '@/features/live-map/focus';
 import { personPages, roleLabel } from '@/features/live-map/roles';
 import { poller } from '@/lib/poll/poll';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Admin > Today > Live visitors and the assistants' My work > Live visitors (migration 0060): who is on the site now,
 // what they look at, the buying signals, the most viewed cars; start a chat with a visitor. Refreshed every 15 seconds
 // while the page is visible, and at once when it is shown again (one small read; nothing stays open; 0103: was 5
@@ -227,7 +228,7 @@ function NameForm({ v, onDone, contact = true }: { v: Visitor; onDone: (msg: str
       <input id={`${idp}-x`} className="input" maxLength={500} autoComplete="off" value={note} placeholder="For example: asked about the van by phone" onChange={(e) => setNote(e.target.value)} />
       {err && <p className="small" role="alert">{err}</p>}
       <p className="lv-sug__acts">
-        <button type="submit" className="btn btn--primary btn--sm" disabled={busy || !name.trim()} data-testid="name-save">Save the name</button>
+        <><button type="submit" className="btn btn--primary btn--sm" disabled={busy || !name.trim()} data-testid="name-save" aria-describedby="why-livevisitors-230">Save the name</button><WhyDisabled id="why-livevisitors-230" why={((!name.trim())) ? 'Enter the name first' : null} /></>
         {l && <button type="button" className="btn btn--ghost btn--sm" disabled={busy} onClick={() => void send(true)} data-testid="name-remove">Remove the name</button>}
       </p>
     </form>

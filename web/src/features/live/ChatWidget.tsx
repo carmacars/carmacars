@@ -8,6 +8,7 @@ import { onBeaconReply, pageContext, sessionId, setChatOpen, visitorId, type Bea
 import { SavedAsYouType, useCapture } from '@/features/capture/useCapture';
 import { greetingAllowed, greetingWait } from './greeting';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Live chat (migration 0060), the visitor's side: a button in the corner, loaded after the page. The CarmaCars
 // assistant answers first; "Talk to a person" (or anything it should not answer) brings a staff member, who can also
 // start a chat from the Live visitors page. New messages are read straight from the database every few seconds
@@ -265,7 +266,7 @@ export function ChatWidget() {
               <label className="vh" htmlFor="ccw-input">Your message</label>
               <textarea id="ccw-input" ref={input} className="ccw-input" rows={2} maxLength={2000} value={text} placeholder="Write a message"
                 onChange={(e) => onType(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(); } }} />
-              <button type="submit" className="btn btn--primary btn--sm ccw-send" disabled={busy || !text.trim()}>Send</button>
+              <><button type="submit" className="btn btn--primary btn--sm ccw-send" disabled={busy || !text.trim()} aria-describedby="why-chatwidget-268">Send</button><WhyDisabled id="why-chatwidget-268" why={((!text.trim())) ? 'Type the message first' : null} /></>
             </form>
           )}
           {conv && conv.status !== 'closed' && (

@@ -5,7 +5,6 @@ import { torontoInstant } from '@/lib/dates';
 import { photoUrl } from '@/lib/photo';
 import { addonNotes, addonPrice, choiceOf, selectable, type AddonChoice, type AddonOption } from './model';
 
-import { WhyDisabled } from '@/components/WhyDisabled';
 /** The add-ons offered for a car (and what is left for the dates), read as the public reads them. */
 export function useAddonOptions(vehicleId: string | null, from?: string, to?: string, tf?: string, tt?: string) {
   const [got, setGot] = useState<{ key: string; options: AddonOption[]; failed: boolean } | null>(null);

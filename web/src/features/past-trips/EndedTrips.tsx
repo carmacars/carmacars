@@ -6,6 +6,7 @@ import { DateInput } from '@/components/DateInput';
 import { opsAct } from '@/server/actions/ops';
 import { DEPOSIT_WORDS, depositChoices, moneyLine, pastDue, type EndedRow } from './ended';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Close ended trips (1063): every trip past its return time that is not closed. Tick rows (or one), mark them returned on
 // time, late at a time, or a no-show, choose the deposit decision, and Close. Nothing is released by itself: the decision
 // waits below for an Admin to press Release. An expired card hold is marked settled at once (no money moves).
@@ -49,7 +50,7 @@ export function EndedTrips({ rows, base, admin, canNoShow }: { rows: EndedRow[];
           {mark !== 'no_show' && <label className="small">Deposit<select className="input" value={dep} onChange={(e) => setDep(e.target.value as typeof dep)} data-testid="ended-deposit">
             {depositChoices().map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>}
           {admin && mark !== 'no_show' && <label className="small">Admin: deposit not taken, waive it because<input className="input" value={waive} onChange={(e) => setWaive(e.target.value)} maxLength={300} data-testid="ended-waive" /></label>}
-          <button type="button" className="btn btn--primary" disabled={pending || !picked.length || (mark === 'late' && !at)} onClick={close} data-testid="ended-close">{pending ? 'Closing' : `Close ${picked.length || ''} ticked`}</button>
+          <><button type="button" className="btn btn--primary" disabled={pending || !picked.length || (mark === 'late' && !at)} onClick={close} data-testid="ended-close" aria-describedby="why-endedtrips-52">{pending ? 'Closing' : `Close ${picked.length || ''} ticked`}</button><WhyDisabled id="why-endedtrips-52" why={((!picked.length) || ((mark === 'late' && !at))) ? (!picked.length ? 'Pick at least one trip first' : 'Enter when it came back first') : null} /></>
         </div>}
         {msg && <p className="small" role="status" data-testid="ended-msg">{msg}</p>}
         {open.length === 0 ? <p className="small muted">Every ended trip is closed.</p> : (

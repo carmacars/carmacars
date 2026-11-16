@@ -76,9 +76,9 @@ export function DeckFrame({ titles, children }: { titles: string[]; children: Re
     <div className="dk-deck" ref={root} data-testid="deck" data-ready={ready ? 'true' : undefined}>
       <div className="dk-tools" role="toolbar" aria-label="Slides">
         <div className="dk-tools__nav">
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => go(here() - 1)} disabled={cur === 0} aria-label="Previous slide" data-testid="deck-prev">Previous</button>
+          <button type="button" className="btn btn--ghost btn--sm" onClick={() => go(here() - 1)} disabled={cur === 0} aria-label="Previous slide" data-testid="deck-prev" title={((cur === 0)) ? 'This is the first slide' : undefined}>Previous</button>
           <span className="dk-tools__count" aria-live="polite" data-testid="deck-count">{cur + 1} / {titles.length}</span>
-          <button type="button" className="btn btn--ghost btn--sm" onClick={() => go(here() + 1)} disabled={cur >= titles.length - 1} aria-label="Next slide" data-testid="deck-next">Next</button>
+          <button type="button" className="btn btn--ghost btn--sm" onClick={() => go(here() + 1)} disabled={cur >= titles.length - 1} aria-label="Next slide" data-testid="deck-next" title={((cur >= titles.length - 1)) ? 'This is the last slide' : undefined}>Next</button>
         </div>
         <label className="vh" htmlFor="dk-jump">Go to slide</label>
         <select id="dk-jump" className="select dk-tools__jump" value={cur} onChange={(e) => go(Number(e.target.value))}>

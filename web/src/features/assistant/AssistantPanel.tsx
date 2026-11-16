@@ -7,6 +7,7 @@ import { askGuideFirst } from '@/features/help/routes';
 import type { Out, Turn } from './agent';
 import type { Portal } from './tools';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // The staff assistant's panel (migration 0080): opened from the portal header's "Assistant" button or Ctrl+/ (Cmd+/ on
 // a Mac); Esc closes it. Answers come as cards: results with links, a question with choices, a draft to copy, and a
 // change as a card with Confirm and Cancel. Nothing changes until Confirm.
@@ -106,7 +107,7 @@ export function AssistantPanel({ portal, greeting }: { portal: Portal; greeting?
           <label className="vh" htmlFor={`${idp}-q`}>Ask the assistant</label>
           <textarea ref={input} id={`${idp}-q`} className="input as-input" rows={2} maxLength={1000} value={text} placeholder="Ask, or tell it what to do"
             onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(text); } }} data-testid="assistant-input" />
-          <button type="submit" className="btn btn--primary btn--sm" disabled={busy || !text.trim()} data-testid="assistant-send">Send</button>
+          <><button type="submit" className="btn btn--primary btn--sm" disabled={busy || !text.trim()} data-testid="assistant-send" aria-describedby="why-assistantpanel-109">Send</button><WhyDisabled id="why-assistantpanel-109" why={((!text.trim())) ? 'Type the message first' : null} /></>
         </form>
       </dialog>
     </>

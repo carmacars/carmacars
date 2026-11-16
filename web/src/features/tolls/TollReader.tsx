@@ -7,6 +7,7 @@ import { useDoor } from '@/features/admin/door';
 import { CSV_TARGETS, csvLines, parseCsv, pickProfile, readText, type Kind, type Profile, type ReadLine, type Rules } from './parse';
 import { normalizeTollVision } from './vision-schema';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Read a notice or a statement (migration 0042). The file is stored first (it is the proof a renter or owner is
 // sent), then read in this browser: a CSV with its column mapping, a PDF from its text with the issuer's reading
 // profile, a scan or a photo by the vision model, page by page. What was read is saved as lines to check beside
@@ -136,7 +137,7 @@ export function TollReader({ base }: { base: '/admin' | '/staff' }) {
             <select className="select" id="tr-prof" value={profileId} onChange={(e) => setProfileId(e.target.value)} disabled={busy}>
               <option value="auto">Find it from the text</option>{textProfiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
         </div>
-        <div className="row"><button className="btn btn--primary btn--sm" type="button" disabled={!file || !ctx || busy} onClick={read} data-testid="toll-read-run">{busy ? 'Reading' : 'Read it'}</button></div>
+        <div className="row"><><button className="btn btn--primary btn--sm" type="button" disabled={!file || !ctx || busy} onClick={read} data-testid="toll-read-run" aria-describedby="why-tollreader-139">{busy ? 'Reading' : 'Read it'}</button><WhyDisabled id="why-tollreader-139" why={((!file) || (!ctx)) ? (!file) ? 'Choose the file first' : 'Wait for the page to finish loading' : null} /></></div>
       </section>
       {csv && (
         <section className="pt-card ad-card ad-form" aria-labelledby="tr-2"><h2 className="d4" id="tr-2">Columns</h2>

@@ -2,6 +2,7 @@
 import { useState, useTransition } from 'react';
 import { investorRequest } from '@/server/actions/investor';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // The two notices an investor may send from the area (07-investor.md section 2): a change of election, a
 // change of bank account (we call to take the details; none are typed here) and a transfer request.
 export function Requests({ investments, effective }: { investments: Array<{ id: string; label: string }>; effective: string }) {
@@ -31,7 +32,7 @@ export function Requests({ investments, effective }: { investments: Array<{ id: 
         <div className="field"><label className="label" htmlFor="tr-i">Investment</label><select className="select" id="tr-i" value={inv} onChange={(e) => setInv(e.target.value)}>{investments.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}</select></div>
         <div className="field"><label className="label" htmlFor="tr-to">To (full name)</label><input className="input" id="tr-to" value={to} onChange={(e) => setTo(e.target.value)} /></div>
         <div className="field"><label className="label" htmlFor="tr-n">Note</label><textarea className="input" id="tr-n" value={note} onChange={(e) => setNote(e.target.value)} /></div>
-        <button className="btn btn--ghost btn--sm" type="button" disabled={pending || !to.trim()} onClick={() => send('transfer_request', { investment: inv, to_name: to, note })}>Send the request</button>
+        <><button className="btn btn--ghost btn--sm" type="button" disabled={pending || !to.trim()} onClick={() => send('transfer_request', { investment: inv, to_name: to, note })} aria-describedby="why-requests-34">Send the request</button><WhyDisabled id="why-requests-34" why={((!to.trim())) ? 'Enter who it goes to first' : null} /></>
       </section>}
       {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'}><span>{msg.text}</span></p>}
     </div>

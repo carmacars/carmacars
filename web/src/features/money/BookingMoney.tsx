@@ -15,6 +15,7 @@ import { CHARGE_REASONS, reasonText, type ChargeReasons } from './charge-reasons
 import { depositDue, depositStateLine, type DepositState } from './deposit-state';
 import { BookingTips, type TipRow } from './BookingTips';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // The money of a booking (migration 0129; r29 C0: two panels, Rental charges and Security deposit, side by side on a
 // wide screen and stacked on a phone, with a strip of Rental due, Deposit status and Total paid; collecting one never
 // touches the other): what is open for the rental, the fees and later charges; the deposit and how it was taken; the
@@ -309,7 +310,7 @@ export function BookingMoney({ m, lines = [], totalCents, waived = false, rental
                 <div className="field ad-field"><label className="label" htmlFor="bm-ch-amount">Amount ($)</label><input className="input" id="bm-ch-amount" inputMode="decimal" required value={ch.amount} onChange={(e) => setCh({ ...ch, amount: e.target.value })} data-testid="bm-ch-amount" /></div>
               </div>
               <p className="ad-tie" role="status" data-testid="bm-ch-source"><b>{sourceLine}</b></p>
-              <button className="btn btn--primary btn--sm" type="submit" disabled={pending || !source} data-testid="bm-ch-go">{pending ? 'Working' : chAmount > 0 ? `Charge ${fmt(chAmount)}` : 'Charge'}</button>
+              <><button className="btn btn--primary btn--sm" type="submit" disabled={pending || !source} data-testid="bm-ch-go" aria-describedby="why-bookingmoney-312">{pending ? 'Working' : chAmount > 0 ? `Charge ${fmt(chAmount)}` : 'Charge'}</button><WhyDisabled id="why-bookingmoney-312" why={((!source)) ? 'Choose the source first' : null} /></>
             </form>)}
           {open === 'later' && (
             <form className="ad-form ad-form--narrow" aria-label="A later charge" data-testid="bm-later" onSubmit={(e) => { e.preventDefault(); chargeLater(); }}>

@@ -44,8 +44,8 @@ export function Rail({ head, items, end, count, random }: { head: ReactNode; ite
       <div className="wrap section-head">
       {head}
       <div className="row rail-ctrl">
-        <button type="button" className="icon-btn" aria-label="Previous cars" disabled={edge.start} onClick={() => go(-1)}><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4l-6 6 6 6" fill="none" stroke="currentColor" strokeWidth="2" /></svg></button>
-        <button type="button" className="icon-btn" aria-label="More cars" disabled={edge.end} onClick={() => go(1)}><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" /></svg></button>
+        <button type="button" className="icon-btn" aria-label="Previous cars" disabled={edge.start} onClick={() => go(-1)} title={((edge.start)) ? 'This is the start of the list' : undefined}><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4l-6 6 6 6" fill="none" stroke="currentColor" strokeWidth="2" /></svg></button>
+        <button type="button" className="icon-btn" aria-label="More cars" disabled={edge.end} onClick={() => go(1)} title={((edge.end)) ? 'This is the end of the list' : undefined}><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" /></svg></button>
       </div>
       </div>
       <ul className="rail" tabIndex={0} aria-label="Featured cars, scroll sideways" ref={rail}>

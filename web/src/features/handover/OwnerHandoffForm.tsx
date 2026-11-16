@@ -7,6 +7,7 @@ import { FUEL_LEVELS } from '@/features/returns/claim';
 import { PhotoPicker } from './PhotoPicker';
 import type { PickedPhoto } from './angles';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 function localNow(): string {
   const d = new Date(Date.now() - new Date().getTimezoneOffset() * 60_000);
   return d.toISOString().slice(0, 16);
@@ -51,7 +52,7 @@ export function OwnerHandoffForm({ vehicleId, addTo, refresh = [] }: { vehicleId
         <div className="field"><label className="label" htmlFor={`ohf-notes-${addTo ?? vehicleId}`}>Notes</label>
           <textarea className="textarea" id={`ohf-notes-${addTo ?? vehicleId}`} maxLength={2000} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
         {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'}><span>{msg.text}</span></p>}
-        <button className="btn btn--primary btn--sm" type="button" disabled={pending || busy > 0 || (!!addTo && !photos.length)} onClick={save}>{pending ? 'Saving' : 'Save'}</button>
+        <><button className="btn btn--primary btn--sm" type="button" disabled={pending || busy > 0 || (!!addTo && !photos.length)} onClick={save} aria-describedby="why-ownerhandoffform-54">{pending ? 'Saving' : 'Save'}</button><WhyDisabled id="why-ownerhandoffform-54" why={(((!!addTo && !photos.length))) ? 'Add the photos first' : null} /></>
       </div>
     </details>
   );

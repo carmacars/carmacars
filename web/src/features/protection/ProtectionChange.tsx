@@ -6,6 +6,7 @@ import { when } from '@/features/agreement/model';
 import { offersDo } from '@/server/actions/offers';
 import { CARD_ACK, OPCF_ACK, TITLE, changeText, label, planText, resultText, whatHappens, type Opt, type ProtectionOptions, type ProtectionResult } from './model';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Change protection (2540, 2541), on the top card of the booking page in every portal that opens bookings (Admin, staff).
 // One button, a small dialog: the three options with the price difference, the deposit, what the renter provides, the rule
 // (card on the list, acknowledgements; an Admin may override with the reason), a required reason; it applies at once.
@@ -57,7 +58,7 @@ export function ProtectionChange({ x, cards, proofUrl, admin }: { x: ProtectionO
             <div className="field"><label className="label" htmlFor="pr-note">Note (needed to decline; the renter reads it)</label>
               <input className="input" id="pr-note" value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} data-testid="protection-review-note" /></div>
             <div className="row"><button className="btn btn--primary btn--sm" type="button" disabled={pending} onClick={() => review(true)} data-testid="protection-approve">Approve</button>
-              <button className="btn btn--quiet btn--sm" type="button" disabled={pending || !note.trim()} onClick={() => review(false)} data-testid="protection-decline">Decline</button></div></>}
+              <><button className="btn btn--quiet btn--sm" type="button" disabled={pending || !note.trim()} onClick={() => review(false)} data-testid="protection-decline" aria-describedby="why-protectionchange-60">Decline</button><WhyDisabled id="why-protectionchange-60" why={((!note.trim())) ? 'Write the note first' : null} /></></div></>}
         </div>)}
       {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'} data-testid="protection-msg"><span>{msg.text}</span></p>}
 
@@ -86,7 +87,7 @@ export function ProtectionChange({ x, cards, proofUrl, admin }: { x: ProtectionO
             <input className="input" id="pr-reason" value={reason} maxLength={500} required onChange={(e) => setReason(e.target.value)} data-testid="protection-reason" /></div>
           <label className="check"><input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} /> <span>Tell the renter (one email, or the revised offer)</span></label>
           {msg && !msg.ok && <p className="alert alert--error" role="alert"><span>{msg.text}</span></p>}
-          <div className="row"><button className="btn btn--primary btn--sm" type="button" disabled={pending || !to || reason.trim().length < 3} onClick={go} data-testid="protection-go">{pending ? 'Changing' : 'Change protection'}</button>
+          <div className="row"><><button className="btn btn--primary btn--sm" type="button" disabled={pending || !to || reason.trim().length < 3} onClick={go} data-testid="protection-go" aria-describedby="why-protectionchange-89">{pending ? 'Changing' : 'Change protection'}</button><WhyDisabled id="why-protectionchange-89" why={((!to) || (reason.trim().length < 3)) ? (!to) ? 'Enter who it goes to first' : 'Write the reason first (3 characters or more)' : null} /></>
             <button className="btn btn--quiet btn--sm" type="button" onClick={() => ref.current?.close()}>Cancel</button></div>
           {x.history.length > 0 && <details><summary className="link small">Earlier changes ({x.history.length})</summary>
             <ul className="stack small">{x.history.map((h) => <li key={h.id}>{when(h.at)}: {h.from_label} to {h.to_label}, {fmt(h.total_before_cents)} to {fmt(h.total_after_cents)}{h.by ? `, by ${h.by}` : h.side === 'renter' ? ', by the renter' : ''}{h.note ? ` (${h.note})` : ''}</li>)}</ul></details>}

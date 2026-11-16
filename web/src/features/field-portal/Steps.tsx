@@ -8,6 +8,7 @@ import { DateInput } from '@/components/DateInput';
 import { FdIcon } from '@/features/field/icons';
 import { CAR_UPDATES, type Addon, type Card } from './model';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // The steps opened on a card (r35 part X): the clean check (tick and photo), the add-ons ticked as in the car, an update on a car
 // needing service, the prep items with their uploads, and the listing photos in spare time. The database decides each again.
 
@@ -72,8 +73,8 @@ export function CleanCheck({ c, onDone }: { c: Card; onDone?: () => void }) {
       {!clean && <div className="field"><label className="label" htmlFor={`cn-${c.key}`}>What is not clean</label>
         <input id={`cn-${c.key}`} className="input" value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} /></div>}
       <PhotoPick file={file} set={setFile} label="Take a photo of the car" testId="clean-photo" />
-      <button type="button" className="btn btn--primary fd-wide" disabled={pending || !file} data-testid="clean-save"
-        onClick={() => run(() => sendWork('clean_check', job ? { job, clean, note } : { vehicle: c.vehicle.id, clean, note }, file), 'Clean check saved.', onDone)}>{pending ? 'Saving' : 'Save the clean check'}</button>
+      <><button type="button" className="btn btn--primary fd-wide" disabled={pending || !file} data-testid="clean-save"
+        onClick={() => run(() => sendWork('clean_check', job ? { job, clean, note } : { vehicle: c.vehicle.id, clean, note }, file), 'Clean check saved.', onDone)} aria-describedby="why-steps-75">{pending ? 'Saving' : 'Save the clean check'}</button><WhyDisabled id="why-steps-75" why={((!file)) ? 'Choose the file first' : null} /></>
       <Msg m={msg} />
     </div>
   );
@@ -145,8 +146,8 @@ export function PrepItems({ c }: { c: Card }) {
               <DateInput id={`exp-${c.key}`} type="date" className="input" value={exp} onChange={(e) => setExp(e.target.value)} /></div>}
             <div className="field"><label className="label" htmlFor={`pn-${c.key}-${i.code}`}>Note (optional)</label>
               <input id={`pn-${c.key}-${i.code}`} className="input" value={note} maxLength={300} onChange={(e) => setNote(e.target.value)} /></div>
-            <button type="button" className="btn btn--primary fd-wide" disabled={pending || (i.code === 'safety_certificate' && !file)}
-              onClick={() => run(() => sendWork('prep_item', { id: c.id, code: i.code, note, expires_on: exp || null }, file), `${i.label}: done.`, () => setOpen(null))}>{pending ? 'Saving' : 'Mark it done'}</button>
+            <><button type="button" className="btn btn--primary fd-wide" disabled={pending || (i.code === 'safety_certificate' && !file)}
+              onClick={() => run(() => sendWork('prep_item', { id: c.id, code: i.code, note, expires_on: exp || null }, file), `${i.label}: done.`, () => setOpen(null))} aria-describedby="why-steps-148">{pending ? 'Saving' : 'Mark it done'}</button><WhyDisabled id="why-steps-148" why={(((i.code === 'safety_certificate' && !file))) ? 'Choose the safety certificate file first' : null} /></>
             <p className="small">Spent money on it? Use Add: Money spent or Service record.</p>
           </div>}
         </div>))}

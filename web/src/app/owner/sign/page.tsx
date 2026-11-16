@@ -16,6 +16,7 @@ import { SignTrouble } from './SignTrouble';
 import { signOwnerPackage, type OwnerPackageSpec } from '@/server/actions/signing';
 import { viewAs } from '@/server/view-as';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Sign your documents', path: '/owner/sign', noindex: true, description: 'Everything you sign with CarmaCars, filled from your records, signed once.' });
 
@@ -196,7 +197,7 @@ function PreviewPage({ facts: f, docs, items }: { facts: OwnerAgreementFacts; do
         <aside className="pt-split__aside">
           <section className="pt-card stack" aria-labelledby="ow-sign"><h2 className="d4" id="ow-sign">Sign</h2>
             <p className="small">{PREVIEW_NOTICE} We email you when they are ready.</p>
-            <button type="button" className="btn btn--primary" disabled aria-disabled="true" data-testid="owner-preview-sign">Sign after approval</button>
+            <><button type="button" className="btn btn--primary" disabled aria-disabled="true" data-testid="owner-preview-sign" aria-describedby="why-page-199">Sign after approval</button><WhyDisabled id="why-page-199" why={((true)) ? 'Signing opens once CarmaCars has approved the documents: we email you' : null} /></>
             <Link prefetch={false} className="link small" href="/owner/documents">Documents</Link>
           </section>
         </aside>

@@ -11,6 +11,7 @@ import { FdIcon } from '@/features/field/icons';
 import type { BookingCan } from '@/features/shared-pages/viewer';
 import { toCents } from './model';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Renter help on the spot (r35 part X): a payment or the deposit hold by a pay link (text or email), a QR the renter scans with their
 // own phone, the renter typing on this phone, or the card reader when one is with you. Field staff never type a card number;
 // refunds and voids stay with Finance and Admin (bookingCan: field). The database checks each request (app.card_collect_allowed).
@@ -55,8 +56,8 @@ function Collect({ b, kind, readers }: { b: HelpBooking; kind: 'charge' | 'hold'
       {kind === 'charge' && <div className="field"><label className="label" htmlFor={`amt-${kind}`}>Amount ($)</label><input id={`amt-${kind}`} className="input fd-num" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>}
       <button type="button" className="btn btn--primary fd-wide" disabled={pending} onClick={() => ask('qr')} data-testid={`${kind}-qr`}>Show a QR for their phone</button>
       <div className="fp-row2">
-        <button type="button" className="btn btn--ghost" disabled={pending || !b.renter?.mobile} onClick={() => ask('text')} data-testid={`${kind}-text`}>Text the link</button>
-        <button type="button" className="btn btn--ghost" disabled={pending || !b.renter?.email} onClick={() => ask('email')} data-testid={`${kind}-email`}>Email the link</button>
+        <><button type="button" className="btn btn--ghost" disabled={pending || !b.renter?.mobile} onClick={() => ask('text')} data-testid={`${kind}-text`} aria-describedby="why-renterhelp-58">Text the link</button><WhyDisabled id="why-renterhelp-58" why={((!b.renter?.mobile)) ? 'Add the renter\'s mobile number first' : null} /></>
+        <><button type="button" className="btn btn--ghost" disabled={pending || !b.renter?.email} onClick={() => ask('email')} data-testid={`${kind}-email`} aria-describedby="why-renterhelp-59">Email the link</button><WhyDisabled id="why-renterhelp-59" why={((!b.renter?.email)) ? 'Enter the email address first' : null} /></>
       </div>
       <button type="button" className="btn btn--ghost fd-wide" disabled={pending} onClick={() => ask('device')}>They type it on my phone</button>
       {readers.length > 0 && <button type="button" className="btn btn--ghost fd-wide" disabled={pending} onClick={() => ask('reader')} data-testid={`${kind}-reader`}>Use the card reader</button>}
@@ -103,7 +104,7 @@ export function HelpSearch() {
     <form className="fp-form" onSubmit={(e) => { e.preventDefault(); start(async () => setRows(await helpFind(q))); }} role="search">
       <div className="field"><label className="label" htmlFor="help-q">Booking number, renter&apos;s name or phone</label>
         <input id="help-q" className="input" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" data-testid="help-q" /></div>
-      <button type="submit" className="btn btn--primary fd-wide" disabled={pending || q.trim().length < 3}><FdIcon name="search" />{pending ? 'Looking' : 'Find the booking'}</button>
+      <><button type="submit" className="btn btn--primary fd-wide" disabled={pending || q.trim().length < 3} aria-describedby="why-renterhelp-106"><FdIcon name="search" />{pending ? 'Looking' : 'Find the booking'}</button><WhyDisabled id="why-renterhelp-106" why={((q.trim().length < 3)) ? 'Type what to look for first (3 characters or more)' : null} /></>
       {rows && !rows.ok && <p className="error" role="alert">{rows.message}</p>}
       {rows?.ok && (rows.data.length ? <ul className="fp-results" data-testid="help-results">{rows.data.map((r) => <li key={r.id}><Link prefetch={false} href={`/staff/field/help/${r.number}`}>
         <b>{r.number}: {r.renter ?? 'Renter'}</b><span className="small">{r.vehicle}, {r.status.replace(/_/g, ' ')}{r.mine ? ', on your list' : ''}</span></Link></li>)}</ul>

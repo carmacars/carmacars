@@ -22,6 +22,7 @@ import { ShortVideo } from '@/features/social/ShortVideo';
 import { autoShown, autoText, type AutoPlate } from '@/features/listing/plate-auto-view';
 import { WideRow } from '@/features/listing/WideRow';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Review a listing (09-listing-pipeline.md section 6): the copy, written by itself (0061: nothing to type), every photo
 // (approve, reject, use the original, choose the cover), the problems the database still sees, then
 // approve and publish, or send it back with what to change.
@@ -174,7 +175,7 @@ export function ListingReview({ l, plates, copy, exterior = [] }: { l: L; plates
             <button className="btn btn--primary" type="button" disabled={pending} onClick={() => go(true, true)} data-testid="listing-approve">{pending ? 'Working' : 'Approve and publish'}</button>
             <button className="btn btn--ghost btn--sm" type="button" disabled={pending} onClick={() => go(true, false)}>Approve, publish later</button>
             <div className="field"><label className="label" htmlFor="lr-note">What needs to change</label><textarea className="input ad-textarea" id="lr-note" value={note} onChange={(e) => setNote(e.target.value)} /></div>
-            <button className="btn btn--ghost btn--sm" type="button" disabled={pending || !note.trim()} onClick={() => go(false)}>Send back</button>
+            <><button className="btn btn--ghost btn--sm" type="button" disabled={pending || !note.trim()} onClick={() => go(false)} aria-describedby="why-listingreview-177">Send back</button><WhyDisabled id="why-listingreview-177" why={((!note.trim())) ? 'Write the note first' : null} /></>
           </> : <p className="small muted">This listing is {l.state.replace(/_/g, ' ')}: nothing to review.</p>}
           {l.state === 'approved' && l.listing?.status !== 'published' && <button className="btn btn--primary btn--sm" type="button" disabled={pending} onClick={() => start(async () => { const r = await adminAct('listing_publish', { vehicle: l.vehicle_id }, [`/admin/listings/${l.id}`]); setRes(r.ok ? { ok: true, text: 'Published.' } : { ok: false, text: /no rates are set/.test(r.message) ? `${r.message}. Set them on the car's Rates tab: the rates, kilometres and deposit save together in one step.` : r.message }); if (r.ok) router.refresh(); })}>Publish now</button>}
           {res && <p className={`alert ${res.ok ? 'alert--ok' : 'alert--error'}`} role={res.ok ? 'status' : 'alert'}><span>{res.text}</span></p>}

@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { guidedAct } from '@/server/actions/guided';
 import type { LicenceCheck, LicenceRead, PrimarySwap } from '@/features/admin/todo/types';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // The licence reader's lines for staff (release 31, D2; migration 0602): what was read, then each check as pass or flag.
 // Shown on the document review and on the field and counter verify pages. Staff still approve (unless an Admin turned
 // on automatic approval when every check passes). Never logged; the number shows here only.
@@ -48,7 +49,7 @@ export function PrimarySwapPanel({ booking, swap, onDone, canDecide = true }: { 
             <input className="input" id={`ps-${booking}`} value={reason} onChange={(e) => setReason(e.target.value)} data-testid="primary-swap-reason" />
             <div className="row">
               <button className="btn btn--ghost btn--sm" type="button" disabled={pending} onClick={() => decide('undo')} data-testid="primary-swap-undo">Undo the swap</button>
-              <button className="btn btn--ghost btn--sm" type="button" disabled={pending || reason.trim().length < 5} onClick={() => decide('override')} data-testid="primary-swap-override">Let it go</button>
+              <><button className="btn btn--ghost btn--sm" type="button" disabled={pending || reason.trim().length < 5} onClick={() => decide('override')} data-testid="primary-swap-override" aria-describedby="why-licencechecks-51">Let it go</button><WhyDisabled id="why-licencechecks-51" why={((reason.trim().length < 5)) ? 'Write the reason first (5 characters or more)' : null} /></>
             </div>
           </div>
         </details>)}

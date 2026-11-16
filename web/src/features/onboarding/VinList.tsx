@@ -5,6 +5,7 @@ import './onboarding.css';
 import { vinListCreate, vinListPreview, type VinListResult, type VinRow } from '@/server/actions/onboarding';
 import { parseVinList, VIN_LIST_MAX } from './vin-list';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Add cars from a list of VINs (r34, 0824): paste them or upload a CSV or text file; Preview decodes each VIN (year, make
 // and model) and checks it; the table shows what will be made and what will not, and why; Add makes every good car in
 // one step. Each car then waits for the terms to be approved, like any new car. The owner portal (Cars > Add cars) and
@@ -45,7 +46,7 @@ export function VinList({ ownerId, viewer, refresh, done }: { ownerId: string; v
       <div className="field"><label className="label" htmlFor={`${id}-f`}>Or a file (CSV or text)</label>
         <input className="input" id={`${id}-f`} type="file" accept=".csv,.txt,text/csv,text/plain" data-testid="vin-list-file"
           onChange={async (e) => { const f = e.target.files?.[0]; e.target.value = ''; if (!f) return; if (f.size > 512_000) { setErr('The file must be under 500 KB.'); return; } setText(await f.text()); setRows(null); setMade(null); }} /></div>
-      <div className="row" style={{ gap: 'var(--s-2)' }}><button type="button" className="btn btn--ghost btn--sm" disabled={pending || !text.trim()} onClick={preview} data-testid="vin-list-preview">{pending && !rows ? 'Reading the VINs' : 'Preview'}</button></div>
+      <div className="row" style={{ gap: 'var(--s-2)' }}><><button type="button" className="btn btn--ghost btn--sm" disabled={pending || !text.trim()} onClick={preview} data-testid="vin-list-preview" aria-describedby="why-vinlist-48">{pending && !rows ? 'Reading the VINs' : 'Preview'}</button><WhyDisabled id="why-vinlist-48" why={((!text.trim())) ? 'Type the message first' : null} /></></div>
       {extra > 0 && <p className="small" role="status">Only the first {VIN_LIST_MAX} are read; {extra} more were left for the next list.</p>}
       {err && <p className="alert alert--error" role="alert"><span>{err}</span></p>}
       {rows && (
@@ -67,8 +68,8 @@ export function VinList({ ownerId, viewer, refresh, done }: { ownerId: string; v
           </table>
         </div>)}
       {rows && !made && <div className="row" style={{ gap: 'var(--s-2)', alignItems: 'center', flexWrap: 'wrap' }}>
-        <button type="button" className="btn btn--primary btn--sm" disabled={pending || good.length === 0 || lenderMissing} onClick={create} data-testid="vin-list-create">
-          {pending ? 'Adding' : `Add ${good.length} car${good.length === 1 ? '' : 's'}`}</button>
+        <><button type="button" className="btn btn--primary btn--sm" disabled={pending || good.length === 0 || lenderMissing} onClick={create} data-testid="vin-list-create" aria-describedby="why-vinlist-70">
+          {pending ? 'Adding' : `Add ${good.length} car${good.length === 1 ? '' : 's'}`}</button><WhyDisabled id="why-vinlist-70" why={((good.length === 0) || (lenderMissing)) ? (lenderMissing ? 'Enter the lender first' : 'Add at least one good VIN first') : null} /></>
         <span className="small muted">{rows.length - good.length > 0 ? `${rows.length - good.length} not added (see why above). ` : ''}{lenderMissing ? 'Name the lender or lease company of each financed or leased car.' : ''}</span></div>}
       {made && <p className="alert alert--ok" role="status" data-testid="vin-list-done"><span>{made.good} car{made.good === 1 ? '' : 's'} added{made.application_number ? ` (application ${made.application_number})` : ''}. {viewer === 'owner' ? 'We approve the terms of each next; you see every step on its page.' : 'Each waits for the Admin to approve its terms on the application.'}{done ? ` ${done}` : ''}</span></p>}
     </section>

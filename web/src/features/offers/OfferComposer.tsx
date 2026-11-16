@@ -23,6 +23,7 @@ import { COVERAGE, DEPOSIT_PAY, PLACES, RENTAL_LINE, RENTAL_PAY, daysBetween, dr
 import { OwnerChoice, ownerChoiceInitial, ownerChoicePayload, type OwnerDefaults } from '@/features/supply/OwnerChoice';
 import { TypedInput } from '@/components/DateInput';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Send an offer without a request (migration 0129): one screen for an Admin, customer service and sales. The customer
 // found by name, phone or email (or added; one person, one record), the car with whether it is free, the dates, the
 // places, the price (the rate sheet, a total or a rate per day), fees, the deposit, the Protection Plan, how the rental
@@ -392,7 +393,7 @@ export function OfferComposer({ base, initialCar = null, initialFrom = null, ini
               <input className={`input${tried && needOf('renter') ? ' is-invalid' : ''}`} id="oc-q" type="search" placeholder="Name, phone or email" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" data-testid="oc-q" aria-describedby="oc-q-h" />
               <p className="hint" id="oc-q-h">Type 3 or more letters or digits.</p>{needMsg('renter')}</div>
             {found.length > 0 && <ul className="stack" data-testid="oc-found">{found.map((r) => (
-              <li key={r.id}><button className="btn btn--quiet btn--sm" type="button" disabled={r.is_blocked} onClick={() => { setChosen(r); setF((x) => ({ ...x, renter_id: r.id, mobile: r.mobile ?? '' })); setFound([]); }}>{r.legal_name}</button>
+              <li key={r.id}><><button className="btn btn--quiet btn--sm" type="button" disabled={r.is_blocked} onClick={() => { setChosen(r); setF((x) => ({ ...x, renter_id: r.id, mobile: r.mobile ?? '' })); setFound([]); }} aria-describedby="why-offercomposer-395">{r.legal_name}</button><WhyDisabled id="why-offercomposer-395" why={((r.is_blocked)) ? 'This renter is blocked: see the note on them' : null} /></>
                 <span className="small"> {r.email} · {r.mobile} · {r.bookings} rental(s){r.is_blocked ? ' · blocked' : ''}</span></li>))}</ul>}
             <p><button className="btn btn--ghost btn--sm" type="button" data-testid="oc-add-customer" onClick={() => {
               setAdding(true); const t = q.trim();
@@ -563,7 +564,7 @@ export function OfferComposer({ base, initialCar = null, initialFrom = null, ini
           {err && <p className="alert alert--error" role="alert" data-testid="oc-error"><span>{err}</span></p>}
           {pickupPassed(f.pickup_at) && <p className="alert alert--error" role="alert" data-testid="oc-pickup-passed"><span>{PICKUP_PASSED}</span></p>}
           <div className="oc-actions">
-            <button className="btn btn--primary" type="submit" disabled={pending || pickupPassed(f.pickup_at)} data-testid="oc-send">{pending ? 'Sending' : f.by_email || f.by_text ? `Send the offer${who ? ` to ${who}` : ''}` : 'Make the offer (not sent)'}</button>
+            <><button className="btn btn--primary" type="submit" disabled={pending || pickupPassed(f.pickup_at)} data-testid="oc-send" aria-describedby="why-offercomposer-566">{pending ? 'Sending' : f.by_email || f.by_text ? `Send the offer${who ? ` to ${who}` : ''}` : 'Make the offer (not sent)'}</button><WhyDisabled id="why-offercomposer-566" why={((pickupPassed(f.pickup_at))) ? 'The pickup time has passed: choose a later pickup first' : null} /></>
             <button className="btn btn--quiet" type="button" disabled={pending} onClick={() => send(true)} data-testid="oc-draft">Save without sending</button>
           </div>
           <section className="oc-renter-below" data-testid="oc-renter-view-d"><p className="pt-kicker">The offer as the renter sees it</p>

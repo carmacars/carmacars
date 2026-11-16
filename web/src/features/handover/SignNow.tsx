@@ -12,6 +12,7 @@ import { PHOTO_ACCEPT } from '@/features/uploads/formats';
 import { prepareAgreementNow, signInPerson, staffLicenceUpload } from '@/server/actions/sign-now';
 import type { Signer, SigningState } from './types';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // "Sign now on this device" (migration 0130). The staff view lists who still signs, with their licence on file; the
 // staff member checks the name and the original licence (and can photograph it), then hands the device over. The
 // signer's view shows the agreements (CarmaCars' and Blind Spot's), the statements and the signature; then "hand the
@@ -56,8 +57,8 @@ export function SignNow({ s, base, agreement, consents, staffName, terms, pickup
                 <label className="check"><input type="checkbox" checked={!!checks[g.id]?.name} onChange={(e) => setChecks((c) => ({ ...c, [g.id]: { name: e.target.checked, licence: !!c[g.id]?.licence } }))} data-testid="sn-name" /> <span>The person in front of me is {g.name}: the name matches their licence.</span></label>
                 <label className="check"><input type="checkbox" checked={!!checks[g.id]?.licence} onChange={(e) => setChecks((c) => ({ ...c, [g.id]: { name: !!c[g.id]?.name, licence: e.target.checked } }))} data-testid="sn-licence" /> <span>I saw the original licence: the photo matches the person and it has not expired.</span></label>
               </fieldset>
-              <button className="btn btn--primary" type="button" disabled={!checks[g.id]?.name || !checks[g.id]?.licence} onClick={() => { setWho(g); setMode('signer'); window.scrollTo(0, 0); }} data-testid={`sn-hand-${g.role}`}>
-                Hand the device to {g.name.split(' ')[0]}</button>
+              <><button className="btn btn--primary" type="button" disabled={!checks[g.id]?.name || !checks[g.id]?.licence} onClick={() => { setWho(g); setMode('signer'); window.scrollTo(0, 0); }} data-testid={`sn-hand-${g.role}`} aria-describedby="why-signnow-59">
+                Hand the device to {g.name.split(' ')[0]}</button><WhyDisabled id="why-signnow-59" why={((!checks[g.id]?.name) || (!checks[g.id]?.licence)) ? 'Check the name and the licence first' : null} /></>
             </div>
           )}
         </section>

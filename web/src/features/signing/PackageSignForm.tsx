@@ -6,6 +6,7 @@ import { EsignFlow } from './EsignFlow';
 import { DOC_TERMS, type Term } from './terms';
 import type { EsignContext, EsignReady } from './types';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // One signature for a whole package of documents (migration 0049), given the way every signature on the site is given
 // since 0193 (EsignFlow, the steps of 0154): a code to the signer's phone or email, the documents read, the key terms the
 // documents ask to initial, the consents, the drawn signature. Then one button whose label says what signing means. The
@@ -78,7 +79,7 @@ export function PackageSignForm({ docs, signerName, statements = [], investment 
       {errs.form && <p className="alert alert--error" role="alert" data-testid="package-error"><span>{errs.form}</span></p>}
       <div className="stack">
         <p className="small muted" data-testid="package-consent">{consent}</p>
-        <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={busy || !ready} data-testid="package-sign">{busy ? 'Signing' : button}</button>
+        <><button className="btn btn--primary btn--lg btn--block" type="submit" disabled={busy || !ready} data-testid="package-sign" aria-describedby="why-packagesignform-81">{busy ? 'Signing' : button}</button><WhyDisabled id="why-packagesignform-81" why={((!ready)) ? 'Finish the steps above first' : null} /></>
       </div>
     </form>
   );

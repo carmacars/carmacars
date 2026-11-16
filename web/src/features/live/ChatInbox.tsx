@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { agoWords, aiPausedText, clock, closedWords, EVENT_WORDS, liveDo, liveRead, newWaitingMessages, seenFrom, STATUS_WORDS, type ChatMsg, type ChatRow, type Inbox, type Thread } from './staff';
 import { poller } from '@/lib/poll/poll';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Admin > Bookings > Live chat and the assistants' Live chat (migration 0060): every conversation, the assistant's or a
 // person's, with the visitor's visit beside it. Take over (the assistant stops), reply, hand back, close; typing and
 // unread counts; a waiting chat shows its minutes against the first reply target. The list refreshes every 5 seconds
@@ -162,7 +163,7 @@ function ChatThread({ id, portal, onChange }: { id: string; portal: 'admin' | 'v
             <textarea id="lc-reply" className="input" rows={2} maxLength={4000} value={text} placeholder={c.status === 'ai' ? 'Replying takes over from the assistant' : 'Write a reply'}
               onChange={(e) => { setText(e.target.value); if (Date.now() - typed.current > 3000) { typed.current = Date.now(); void liveDo('chat_typing', { id }).catch(() => undefined); } }}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); (e.currentTarget.form as HTMLFormElement).requestSubmit(); } }} />
-            <button type="submit" className="btn btn--primary btn--sm" disabled={busy || !text.trim()}>Send</button>
+            <><button type="submit" className="btn btn--primary btn--sm" disabled={busy || !text.trim()} aria-describedby="why-chatinbox-165">Send</button><WhyDisabled id="why-chatinbox-165" why={((!text.trim())) ? 'Type the message first' : null} /></>
           </form>)}
         {note && <p className="small" role="status">{note}</p>}
       </section>

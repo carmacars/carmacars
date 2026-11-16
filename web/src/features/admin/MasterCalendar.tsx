@@ -14,6 +14,7 @@ import { photoUrl } from '@/lib/photo';
 import { photoPath, when as nowWords, type Car } from '@/features/bookings-now/model';
 import { DateInput } from '@/components/DateInput';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // The master calendar (03-admin.md section 5): vehicles as rows, days as columns. Bookings are bars by
 // status (requests and offers hatched on the lower lane, non-blocking bookings outlined), blocks striped,
 // Turo trips teal, field jobs as pins. Drag or resize a booking, or move it with the keyboard (arrows 30
@@ -336,7 +337,7 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
                 <form className="ad-form" onSubmit={(e) => { e.preventDefault(); apply(); }}>
                   <div className="field"><label className="label" htmlFor="cal-reason">Reason</label><input className="input" id="cal-reason" value={reason} onChange={(e) => setReason(e.target.value)} required autoFocus /></div>
                   {(confirm.preview.renter_must_approve || confirm.preview.offer_must_be_resent) && <div className="field"><label className="label" htmlFor="cal-msg">Message to the renter</label><textarea className="input ad-textarea" id="cal-msg" value={msg} onChange={(e) => setMsg(e.target.value)} /></div>}
-                  <div className="row"><button className="btn btn--primary btn--sm" type="submit" disabled={pending || !reason.trim()} data-testid="cal-apply">{pending ? 'Working' : 'Confirm the move'}</button><button className="btn btn--ghost btn--sm" type="button" onClick={cancel}>Cancel</button></div>
+                  <div className="row"><><button className="btn btn--primary btn--sm" type="submit" disabled={pending || !reason.trim()} data-testid="cal-apply" aria-describedby="why-mastercalendar-339">{pending ? 'Working' : 'Confirm the move'}</button><WhyDisabled id="why-mastercalendar-339" why={((!reason.trim())) ? 'Write the reason first' : null} /></><button className="btn btn--ghost btn--sm" type="button" onClick={cancel}>Cancel</button></div>
                 </form>
               )}
             </>
@@ -388,7 +389,7 @@ function SidePanel({ sel, vehicles, onClose, onDone }: { sel: { entry?: Entry; v
           {e.reason === 'cleaning' && (e.note ?? '').startsWith('Cleaning after booking') && <p className="small muted" data-testid="cleaning-block">Added after the trip for cleaning. Remove it if the car is ready sooner.</p>}
           <form className="ad-form" onSubmit={(ev) => { ev.preventDefault(); run(e.reason === 'cleaning' && (e.note ?? '').startsWith('Cleaning after booking') ? 'turnaround_block_remove' : 'block_remove', { block: e.id, reason: f.remove }); }}>
             <div className="field"><label className="label" htmlFor="cal-rm">Reason for removing</label><input className="input" id="cal-rm" value={f.remove} onChange={(x) => setF({ ...f, remove: x.target.value })} required /></div>
-            <button className="btn btn--primary btn--sm ad-btn--danger" type="submit" disabled={pending || !f.remove.trim()} data-testid="block-remove">Remove the block</button>
+            <><button className="btn btn--primary btn--sm ad-btn--danger" type="submit" disabled={pending || !f.remove.trim()} data-testid="block-remove" aria-describedby="why-mastercalendar-391">Remove the block</button><WhyDisabled id="why-mastercalendar-391" why={((!f.remove.trim())) ? 'Say why it is removed first' : null} /></>
           </form>
         </div>
       )}
