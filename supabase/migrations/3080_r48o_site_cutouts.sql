@@ -40,6 +40,8 @@ comment on table site_cutouts is 'Release 48 O (3080): one background-removed cu
 comment on column site_cutouts.path is 'The cutout (WebP with transparency) in the public bucket; null until the first one is made. A remade cutout replaces it only once it is saved.';
 comment on column site_cutouts.facing is 'Where the car''s nose points in the cutout: a section whose sample car faces the other way shows it mirrored.';
 alter table site_cutouts enable row level security;
+create policy admin_all on site_cutouts for select to authenticated using (app.is_admin());
+create trigger audit_site_cutouts after insert or update or delete on site_cutouts for each row execute function app.audit_row();
 revoke all on table site_cutouts from public, anon, authenticated;
 grant select, insert, update, delete on table site_cutouts to service_role;
 

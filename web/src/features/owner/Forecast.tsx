@@ -1,4 +1,7 @@
-import { money } from '@/lib/format';
+import { money as m$ } from '@/lib/format';
+
+// an estimate: whole dollars
+const money = (cents: number) => m$(Math.round(cents / 100) * 100);
 import { basisLine, monthShort, pctOf, totals, type OwnerForecast } from './forecast';
 
 // Release 48 O (3081): the Forecast section of the owner portal's home and of the Admin's view of an owner. The next 12

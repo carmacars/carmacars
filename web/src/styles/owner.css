@@ -173,8 +173,9 @@
 .ow-forecast__car { border-top: 1px solid var(--line, rgb(0 0 0 / 0.1)); padding-top: var(--s-3); }
 .ow-forecast__car > summary { cursor: pointer; display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: baseline; min-height: 44px; align-content: center; }
 .ow-forecast__table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-.ow-forecast__table th, .ow-forecast__table td { padding: 0.35rem 0; text-align: left; font-weight: 400; border-bottom: 1px solid var(--line, rgb(0 0 0 / 0.08)); }
+.ow-forecast__table th, .ow-forecast__table td { white-space: nowrap; padding: 0.35rem 0; text-align: left; font-weight: 400; border-bottom: 1px solid var(--line, rgb(0 0 0 / 0.08)); }
 .ow-forecast__table thead th { font-size: 0.8125rem; color: var(--text-2, #555); }
 .ow-forecast__table .num { text-align: right; }
-.ow-forecast__bar { display: inline-block; vertical-align: middle; width: min(9rem, 30vw); height: 0.5rem; border-radius: 999px; background: rgb(0 0 0 / 0.08); overflow: hidden; margin-right: var(--s-2); }
+.ow-forecast__table th[scope="row"] { padding-right: var(--s-3); }
+.ow-forecast__bar { display: inline-block; vertical-align: middle; width: min(9rem, 18vw); height: 0.5rem; border-radius: 999px; background: rgb(0 0 0 / 0.08); overflow: hidden; margin-right: var(--s-2); }
 .ow-forecast__bar > span { display: block; height: 100%; background: var(--red-600, #d0111b); border-radius: inherit; }
