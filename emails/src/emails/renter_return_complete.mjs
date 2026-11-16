@@ -28,6 +28,10 @@ export default {
       ['Your deposit is released', 'The {{deposit_amount}} deposit comes back within {{deposit_release_days}} business days of check-out, less any charges. Tolls and tickets can arrive later and are billed with a copy of the notice.'],
     ),
     button('View the return report', '@booking_condition_report'),
+    // r48 part 2 (3053): a tip for the team, optional
+    h('Thank the team'),
+    p('Happy with the service? You can add a tip for the people who looked after your rental: 10, 15 or 20%, or any amount.'),
+    link('Add a tip', '@booking_tip'),
     // r35a: every way to earn reward points after a rental (the amounts are on the Rewards page, from Admin > Rewards)
     h('Earn reward points'),
     list('Review your rental on carmacars.ca, and add a photo of your trip for extra points', 'Review us on Google', 'Follow us on Instagram, TikTok and Facebook from your Rewards page', 'Refer a friend with your own link: you both earn when they complete their first rental', 'Book with us again: every rental after your first earns extra points'),

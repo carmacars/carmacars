@@ -25,6 +25,13 @@ What happens next
 View the return report:
 https://carmacars.ca/account/bookings/{{booking_number}}/condition-report
 
+Thank the team
+------------------------
+
+Happy with the service? You can add a tip for the people who looked after your rental: 10, 15 or 20%, or any amount.
+
+Add a tip: https://carmacars.ca/account/bookings/{{booking_number}}/tip
+
 Earn reward points
 ------------------------
 

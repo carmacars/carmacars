@@ -43,7 +43,7 @@ export async function offersRead<T = Record<string, unknown>>(what: OffersRead, 
   } catch (e) { return fail(e); }
 }
 
-export type OffersDo = 'offer_create' | 'offer_revise' | 'record_booking_payment' | 'confirm_offline_booking' | 'deposit_return_offline' | 'payreq_cancel' | 'booking_fees_change' | 'period_record_payment' | 'period_prepare' | 'booking_staff_edit' | 'booking_custom_fee' | 'insurer_fees_set' | 'coverage_switch' | 'protection_change' | 'protection_review' | 'booking_version_restore';
+export type OffersDo = 'offer_create' | 'tip_split_set' | 'offer_revise' | 'record_booking_payment' | 'confirm_offline_booking' | 'deposit_return_offline' | 'payreq_cancel' | 'booking_fees_change' | 'period_record_payment' | 'period_prepare' | 'booking_staff_edit' | 'booking_custom_fee' | 'insurer_fees_set' | 'coverage_switch' | 'protection_change' | 'protection_review' | 'booking_version_restore';
 export async function offersDo<T = Record<string, unknown>>(action: OffersDo, p: Record<string, unknown> = {}, refresh: string[] = []): Promise<R<T>> {
   try {
     const { user, aal, va } = await me();

@@ -53,3 +53,10 @@ test('r44: a failed card attempt is "settled" only by a recorded payment that na
   assert.equal(failedAttemptState({ id: 'p1', purpose: 'booking_total' }, [], [{ covers: 'rental', open_cents: 1083 }]), 'open');
   assert.equal(failedAttemptState({ id: 'p1', purpose: 'deposit' }, [], parts), 'open');
 });
+
+test('r48 part 2: a tip is not rental money', () => {
+  const t = paidTotals([{ purpose: 'booking_total', kind: 'charge', method: 'cash', amount_cents: 1000, status: 'succeeded', covers: 'rental' },
+    { purpose: 'tip', kind: 'charge', method: 'cash', amount_cents: 300, status: 'succeeded', covers: 'tip' }]);
+  assert.equal(t.rental_cents, 1000);
+  assert.equal(t.total_cents, 1000);
+});

@@ -26,6 +26,12 @@ export function coverageHint(r: Record<string, unknown>): string {
   return 'Review the proof of coverage, or switch the booking to the Protection Plan.';
 }
 
+/** How many drivers besides the renter (app.booking_readiness drivers); null when the readiness does not list them. */
+export function extraDrivers(r: Record<string, unknown>): number | null {
+  if (!Array.isArray(r.drivers)) return null;
+  return (r.drivers as Array<{ role?: unknown }>).filter((d) => d && d.role !== 'renter').length;
+}
+
 export function readinessLines(f: ReadyFacts): ReadyLine[] {
   const r = f.readiness ?? {};
   const flag = (k: string) => r[k] === true;
@@ -35,7 +41,10 @@ export function readinessLines(f: ReadyFacts): ReadyLine[] {
     { key: 'identity', label: 'Licence and selfie verified', done: flag('all_drivers_verified'), hint: 'Review documents: approve, or reject with the reason the renter sees.' },
     { key: 'coverage', label: 'Coverage confirmed', done: flag('coverage_confirmed'), hint: coverageHint(r) },
     { key: 'deposit', label: 'Deposit held', done: flag('deposit_ok') || flag('deposit_taken') || flag('deposit_waived'), hint: 'Send the deposit link on Money.' },
-    { key: 'drivers', label: 'Additional drivers accepted', done: r.additional_drivers_accepted !== false, hint: 'Send each driver their signing link (Documents).' },
+    // r48 part 2: one driver only is "No additional drivers", not a ticked "Additional drivers accepted"
+    extraDrivers(r) === 0
+      ? { key: 'drivers', label: 'No additional drivers', done: true, hint: '' }
+      : { key: 'drivers', label: 'Additional drivers accepted', done: r.additional_drivers_accepted !== false, hint: 'Send each driver their signing link (Documents).' },
     { key: 'agreement', label: 'Agreement signed', done: flag('agreement_completed'), hint: 'Send the agreement again from the Agreement panel.' }
   ];
   if (f.addons && f.addons.total > 0) lines.push({ key: 'prepare', label: `Add-ons in the car (${f.addons.ticked} of ${f.addons.total})`, done: f.addons.ticked >= f.addons.total, hint: 'Field staff tick each one on the pickup.' });

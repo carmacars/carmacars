@@ -580,7 +580,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
           <dl className="pt-dl small">
             <div><dt>Pickup</dt><dd>{when(shown.pickup_at)}, {shown.pickup_place ?? 'our location'}</dd></div>
             <div><dt>Return</dt><dd>{when(shown.return_at)}, {shown.return_place ?? 'our location'}</dd></div>
-            <div><dt>Deposit at pickup</dt><dd>{v.deposit_pay === 'none' ? 'No deposit' : money(shown.deposit_cents)}</dd></div>
+            <div><dt>Deposit at pickup</dt><dd>{v.deposit_pay === 'none' ? 'No deposit' : money(shown.deposit_cents)}{['cash', 'e_transfer'].includes(v.deposit_pay) && shown.deposit_cents > 0 && <span className="small muted" data-testid="offer-deposit-offline"> on a credit card; by e-Transfer or cash it is the multiple set in Program settings (2x by default), shown to the renter before they pay and on the Money tab</span>}</dd></div>
             {shown.km_allowance_total ? <div><dt>Kilometres</dt><dd>{shown.km_allowance_total} km included, then {money(shown.overage_cents_per_km, { cents: true })} per km</dd></div> : null}
           </dl>
           <dl className="pt-dl pt-dl--money small">

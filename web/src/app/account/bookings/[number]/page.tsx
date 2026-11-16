@@ -48,6 +48,8 @@ import { SecondaryContactForm, type ContactValue } from '@/features/portal/Secon
 import { MyProtection } from '@/features/protection/MyProtection';
 import type { ProtectionOptions } from '@/features/protection/model';
 import type { CardList } from '@/features/coverage/cards';
+import { TipPicker } from '@/features/portal/TipPicker';
+import type { TipOptions } from '@/features/money/tips';
 
 export const dynamic = 'force-dynamic';
 export async function generateMetadata({ params }: { params: Promise<{ number: string }> }) {
@@ -129,6 +131,9 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
   // r40: the booking's steps in six plain stages (done, now, later), from progress()
   const track = stages(progress(b), b.status);
   const reviewDue = b.status === 'closed' && b.booking_type !== 'owner' ? await reviewState(user, b.id).then((r) => !r.review && !!r.can_review).catch(() => false) : false;
+  // r48 part 2 (3053): after the return, the receipt offers a tip for the team
+  const tips = ['returned', 'closed'].includes(b.status) && b.booking_type !== 'owner'
+    ? ((await rpc('server_tip_options', { p_booking: b.id }, { role: 'service_role' }).catch(() => null)) as unknown as TipOptions | null) : null;
   const addr = ourAddress(s);
   const act = nextAction(b, step, { pickupPlace: placeText(b.pickup_place ?? addr, b.pickup_method, true), returnPlace: placeText(b.return_place ?? addr, b.return_method, false),
     balanceCents: balanceDue, needs: stillNeededOf(b), reviewDue });
@@ -231,6 +236,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
             {['requested', 'pending_payment'].includes(b.status) && <div><Withdraw number={b.booking_number} /></div>}
           </PortalCard>
 
+          {tips?.on && <TipPicker number={b.booking_number} options={tips} source="receipt" />}
           {protection && protection.option !== 4 && (
             <PortalCard id="pt-protection" title="Protection" testId="renter-protection">
               <MyProtection number={b.booking_number} x={protection} cards={protectionCards} />

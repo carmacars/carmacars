@@ -19,7 +19,7 @@ export const ADMIN_HUBS: Hub[] = [
   { key: 'payments', label: 'Payments', tabs: [
     { href: '/admin/money?tab=day', label: 'By day' }, { href: '/admin/money?tab=countdowns', label: 'Countdowns' }, { href: '/admin/money?tab=payments', label: 'All payments' }, { href: '/admin/money?tab=refunds', label: 'Refunds' },
     { href: '/admin/money?tab=deposits', label: 'Deposits' }, { href: '/admin/deposit-reviews', label: 'Deposit reviews' }, { href: '/admin/money?tab=disputes', label: 'Disputes' }, { href: '/admin/money?tab=reconciliation', label: 'Reconciliation' },
-    { href: '/admin/money?tab=stripe', label: 'Unlinked Stripe' }] },
+    { href: '/admin/money?tab=stripe', label: 'Unlinked Stripe' }, { href: '/admin/money?tab=tips', label: 'Tips' }] },
   { key: 'owner-money', label: 'Owner money', tabs: [
     { href: '/admin/owner-money?tab=invoices', label: 'Invoices' }, { href: '/admin/owner-money?tab=debits', label: 'Debits' },
     { href: '/admin/owner-money?tab=statements', label: 'Statements' }, { href: '/admin/owner-money?tab=payouts', label: 'Payouts' }] },

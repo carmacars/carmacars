@@ -25,6 +25,9 @@ import { rpc } from '@/lib/db/repo';
 import { PUSH_BACK } from '@/server/portal/payment';
 import { accountGate, GATE_MESSAGE } from '@/server/sign-in-settings';
 import { renterDetails } from '@/server/portal/renter-details';
+import { depositChoiceText, type DepositState } from '@/features/money/deposit-state';
+import { TipPicker } from '@/features/portal/TipPicker';
+import type { TipOptions } from '@/features/money/tips';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Sign and pay', path: '/account/bookings', noindex: true, description: 'Sign the rental agreement and pay for your booking, on one page.' });
@@ -59,7 +62,7 @@ export default async function SignAndPayPage({ params, searchParams }: { params:
   const paying = s.step === 'pay';
   // OPCF 27 (1401): the pink slip and the endorsement page come before payment (the payment refuses without them)
   const opcfMissing = b.coverage_option === 1 && s.pay_after ? (((await rpc('server_booking_payment_facts', { p_booking: b.id }, SR).catch(() => null)) as unknown as { coverage_missing?: string[] } | null)?.coverage_missing ?? []) : [];
-  const [bundle, photos, rd, gate, debitOk, debitDeposit, offline] = await Promise.all([
+  const [bundle, photos, rd, gate, debitOk, debitDeposit, offline, depState, tips] = await Promise.all([
     signing ? loadBundle(b.id, user.id) : Promise.resolve(null), myTripPhotos(user), renterDetails(b, user.id),
     paying ? accountGate(user.id, 'pay') : Promise.resolve(null),
     // 0093 and 0230: a car marked no credit card needed, a booking an Admin allowed, or every booking per Settings
@@ -67,7 +70,10 @@ export default async function SignAndPayPage({ params, searchParams }: { params:
     // 0262: the deposit with a debit or prepaid card, once the booking takes one
     rpc('server_booking_debit_deposit', { p_booking: b.id }, SR).catch(() => null) as Promise<number | null>,
     // 0129: paid another way (e-Transfer, cash, a platform, the insurer): the way to pay instead of the card form
-    rpc('renter_offline_pay_facts', { p_booking: b.id }, SR).catch(() => null) as unknown as Promise<{ rental_pay_method: string; deposit_pay_method: string; e_transfer_email: string | null; open_cents: number } | null>]);
+    rpc('renter_offline_pay_facts', { p_booking: b.id }, SR).catch(() => null) as unknown as Promise<{ rental_pay_method: string; deposit_pay_method: string; e_transfer_email: string | null; open_cents: number } | null>,
+    // r48 part 2 (3052): the deposit by e-Transfer, cash or debit (doubled), said before paying; (3053) the tip
+    rpc('server_booking_deposit_options', { p_booking: b.id }, SR).catch(() => null) as unknown as Promise<DepositState | null>,
+    paying && !va ? (rpc('server_tip_options', { p_booking: b.id }, SR).catch(() => null) as unknown as Promise<TipOptions | null>) : Promise.resolve(null)]);
   const detailsMissing = rd.missing;
   // 0750: a deposit charged (not held) on a debit or prepaid card carries the card processing fee, non-refundable
   const debitFee = debitDeposit ? Number((await rpc('server_debit_deposit_fee', { p_amount: debitDeposit }, SR).catch(() => 0)) ?? 0) : 0;
@@ -87,7 +93,8 @@ export default async function SignAndPayPage({ params, searchParams }: { params:
   const live = !!b.link_due;
   const payOffline = !!offline && offline.rental_pay_method !== 'card' && b.status === 'pending_payment' && !live;
   const due = money(s.due_cents || b.renter_due_at_booking_cents, { cents: true });
-  const depositLine = `The refundable deposit of ${money(b.deposit_cents)} is held on your card on the day of pickup${debitDeposit ? ` (${money(debitDeposit)} on a debit or prepaid card)` : ''}.`;
+  const depositLine = `The refundable deposit of ${money(b.deposit_cents)} is held on your card on the day of pickup${debitDeposit ? ` (${money(debitDeposit)} on a debit or prepaid card)` : ''}.`
+    + (depositChoiceText(depState, (c) => money(c, { cents: true })) ? ` ${depositChoiceText(depState, (c) => money(c, { cents: true }))}` : '');
   const details = (country: string) => ({ address_line1: r?.address_line1 ?? '', address_line2: r?.address_line2 ?? '', city: r?.city ?? '', province: r?.province ?? country, postal_code: r?.postal_code ?? '', country: r?.country ?? (country ? 'Canada' : ''), licence_number: me?.licence_number ?? '', licence_class: me?.licence_class ?? 'G', licence_issuer: me?.licence_issuer ?? 'ON', licence_expiry: me?.licence_expiry ?? '' });
 
   return (
@@ -177,7 +184,7 @@ export default async function SignAndPayPage({ params, searchParams }: { params:
                       : offline.rental_pay_method === 'insurer' ? <p>Your insurer is billed for this rental: nothing to pay now. We confirm your booking shortly.</p>
                       : offline.rental_pay_method === 'platform_payout' ? <p>This rental is paid on the platform you booked through: nothing to pay here. We confirm your booking shortly.</p>
                       : <p>Pay <b>{money(offline.open_cents, { cents: true })}</b> as agreed with our team ({offline.rental_pay_method.replace(/_/g, ' ')}). We confirm your booking when it is received.</p>}
-                    <p className="small">{offline.deposit_pay_method === 'card' ? depositLine : offline.deposit_pay_method === 'none' ? 'No deposit on this booking.' : `The refundable deposit of ${money(b.deposit_cents)} is paid ${offline.deposit_pay_method === 'cash' ? 'in cash' : 'by e-Transfer'} and given back the same way.`}</p>
+                    <p className="small">{offline.deposit_pay_method === 'card' ? depositLine : offline.deposit_pay_method === 'none' ? 'No deposit on this booking.' : `The refundable deposit of ${money(depState?.offline_cents ?? b.deposit_cents)} is paid ${offline.deposit_pay_method === 'cash' ? 'in cash' : 'by e-Transfer'} and given back the same way${depState && depState.offline_cents !== depState.card_cents ? ` (${depState.set_by_staff ? 'set for this booking' : `${Number(depState.multiplier)}x the ${money(depState.card_cents)} card deposit`})` : ''}.`}</p>
                   </section>
                 ) : (
                   <section className="pt-card" aria-labelledby="pt-pay"><h3 className="d4" id="pt-pay">Card</h3>
@@ -196,6 +203,7 @@ export default async function SignAndPayPage({ params, searchParams }: { params:
             )}
         </section>
       )}
+      {tips && <TipPicker number={b.booking_number} options={tips} source="checkout" />}
     </>
   );
 }

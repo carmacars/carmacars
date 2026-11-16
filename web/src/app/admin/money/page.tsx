@@ -12,6 +12,7 @@ import { Reconciliation } from './Reconciliation';
 import { CountdownTable } from '@/features/deposit-review/Countdowns';
 import type { Countdowns } from '@/features/deposit-review/model';
 import { UnlinkedStripe, type Unlinked } from '@/features/money/UnlinkedStripe';
+import { TipsReport, type TipsReportData } from '@/features/money/TipsCard';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Payments', path: '/admin/money', noindex: true, description: 'Payments by day, every payment, refunds, deposits, disputes and the processor payouts.' });
@@ -19,7 +20,7 @@ type R = Record<string, unknown>;
 const REFUND_REASON: Record<string, string> = { cancellation: 'Cancelled by the renter', carmacars_cancelled: 'Cancelled by CarmaCars', driver_not_verifiable: 'Driver could not be verified',
   pricing_error: 'Pricing error', breakdown_unused_days: 'Breakdown: days not used', goodwill: 'Goodwill', duplicate: 'Charged twice', other: 'Other' };
 
-const TABS = ['day', 'countdowns', 'payments', 'refunds', 'deposits', 'disputes', 'reconciliation', 'stripe'] as const;
+const TABS = ['day', 'countdowns', 'payments', 'refunds', 'deposits', 'disputes', 'reconciliation', 'stripe', 'tips'] as const;
 
 // Money > Payments (03-admin.md section 11; r27: Payments by day and Reconciliation are tabs here, the owner's "We need
 // less pages not more"): the day's money by method, every payment, refunds with approval limits, deposits, disputes, and
@@ -33,6 +34,11 @@ export default async function Money({ searchParams }: { searchParams: Promise<Re
     return <PaymentsView l={l} base="/admin/money?tab=day" bookingBase="/admin/bookings" />;
   }
   // r35 part RR (1010): the time left on each deposit hold, deposit return and plan payment
+  // r48 part 2 (3053): every tip, who got what, and CarmaCars' share (company revenue, never the owners')
+  if (tab === 'tips') {
+    const r = await door<TipsReportData>(user.id, 'admin_read', 'tips_report', { from: sp.from, to: sp.to });
+    return <TipsReport r={r} bookingBase="/admin/bookings" />;
+  }
   if (tab === 'countdowns') {
     const c = await door<Countdowns>(user.id, 'ops_read', 'finance_countdowns', { sort: sp.sort });
     return <><PageHead title="Countdowns" purpose="Deposit holds expiring, deposits owed back to renters and the next payment of weekly, biweekly and monthly plans. Red within 24 hours or late, amber within 48." />

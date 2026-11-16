@@ -366,7 +366,7 @@ begin
   values (b.id, b.renter_id, 'charge', 'tip', p_amount, 'a tip for the CarmaCars team (booking ' || b.booking_number || ')', p_token_sha256, 'link', now() + interval '1 day', p_by)
   returning id into v_id;
   insert into tips (booking_id, amount_cents, percent_bps, method, source, payment_request_id)
-  values (b.id, p_amount, p_percent_bps, 'card', p_source, v_id) returning id into v_tip;
+  values (b.id, p_amount, nullif(p_percent_bps, 0), 'card', p_source, v_id) returning id into v_tip;
   return jsonb_build_object('id', v_id, 'tip_id', v_tip, 'kind', 'charge', 'covers', 'tip', 'amount_cents', p_amount, 'booking_id', b.id, 'booking_number', b.booking_number,
     'renter', (select jsonb_build_object('id', r.id, 'legal_name', r.legal_name, 'email', coalesce(r.email, u.email), 'mobile', r.mobile,
                  'customer_id', (select sc.processor_customer_id from payment_methods pm join payment_method_secrets sc on sc.payment_method_id = pm.id
