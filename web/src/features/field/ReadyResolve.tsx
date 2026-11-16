@@ -12,6 +12,7 @@ import { ID_PHOTO } from '@/lib/image-shrink';
 import type { FieldJob, Resolve } from './types';
 import { DateInput } from '@/components/DateInput';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // The ready check resolved on the spot (0151): each line that is not ready says what field staff can do about it here,
 // instead of only "Stop". The database decides every step again (app.field_resolve) and records who did what.
 const money = (c: number) => new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(c / 100);
@@ -104,8 +105,8 @@ function DriverCheck({ j, r, d }: { j: FieldJob; r: Resolve; d: Resolve['drivers
         <label className="field"><span className="label">Licence number (from the card)</span><input className="input" autoCapitalize="characters" value={num} onChange={(e) => setNum(e.target.value)} data-testid={`fix-number-${d.role}`} /></label>
         <label className="field"><span className="label">Expiry date</span><DateInput className="input" type="date" value={exp} onChange={(e) => setExp(e.target.value)} data-testid={`fix-expiry-${d.role}`} /></label>
       </div>}
-      <button type="button" className="btn btn--primary fd-wide" disabled={pending || up || !allPhotos || !(c.name && c.photo && c.expiry && c.class) || (needExpiry && !exp)}
-        onClick={confirm} data-testid={`fix-identity-confirm-${d.role}`}>{pending ? 'Saving' : 'The licence checks out'}</button>
+      <><button type="button" className="btn btn--primary fd-wide" disabled={pending || up || !allPhotos || !(c.name && c.photo && c.expiry && c.class) || (needExpiry && !exp)}
+        onClick={confirm} data-testid={`fix-identity-confirm-${d.role}`} aria-describedby="why-readyresolve-107">{pending ? 'Saving' : 'The licence checks out'}</button><WhyDisabled id="why-readyresolve-107" why={((!allPhotos) || (!(c.name && c.photo && c.expiry && c.class)) || ((needExpiry && !exp))) ? 'Add every photo and fill in the name, licence class and expiry first' : null} /></>
       {!allPhotos && <p className="small muted">Take the {kinds.filter(([k]) => !have(k)).map(([, t]) => t.toLowerCase()).join(', ')} first.</p>}
       <Msg m={msg} />
     </section>
@@ -131,8 +132,8 @@ export function ResolveDeposit({ j, r, back }: { j: FieldJob; r: Resolve; back: 
   return (
     <div className="fd-fix stack" data-testid="fix-deposit">
       <p className="small">Deposit {money(r.deposit_cents)}{j.ready?.deposit === 'declined' ? ': the card was declined. Ask for another credit card in the renter’s name.' : '.'}</p>
-      <button type="button" className="btn btn--primary fd-wide" disabled={card} onClick={hold} data-testid="fix-deposit-card">
-        {card ? 'Opening' : long ? 'Save the card on this phone (long rental)' : 'Card hold: hand this phone to the renter'}</button>
+      <><button type="button" className="btn btn--primary fd-wide" disabled={card} onClick={hold} data-testid="fix-deposit-card" aria-describedby="why-readyresolve-134">
+        {card ? 'Opening' : long ? 'Save the card on this phone (long rental)' : 'Card hold: hand this phone to the renter'}</button><WhyDisabled id="why-readyresolve-134" why={card ? 'Opening the card form' : null} /></>
       {cardErr && <p className="alert alert--error small" role="alert"><span>{cardErr}</span></p>}
       {r.deposit_methods.includes('e_transfer') && (
         <details className="fd-fix__more" data-testid="fix-deposit-etransfer">
@@ -140,8 +141,8 @@ export function ResolveDeposit({ j, r, back }: { j: FieldJob; r: Resolve; back: 
           <div className="stack">
             <p className="small">The renter sends {money(r.deposit_cents)}{r.e_transfer_email ? <> to <b>{r.e_transfer_email}</b></> : null} and shows you the confirmation with its reference number.</p>
             <label className="field"><span className="label">e-Transfer reference number</span><input className="input" value={ref} onChange={(e) => setRef(e.target.value)} autoCapitalize="characters" data-testid="fix-etransfer-ref" /></label>
-            <button type="button" className="btn btn--primary fd-wide" disabled={pending || ref.trim().length < 3}
-              onClick={() => run(() => fieldAct('deposit_offline', { job: j.job.id, method: 'e_transfer', reference: ref.trim() }), 'Deposit recorded as e-Transfer.')} data-testid="fix-etransfer-save">{pending ? 'Saving' : 'Record the e-Transfer'}</button>
+            <><button type="button" className="btn btn--primary fd-wide" disabled={pending || ref.trim().length < 3}
+              onClick={() => run(() => fieldAct('deposit_offline', { job: j.job.id, method: 'e_transfer', reference: ref.trim() }), 'Deposit recorded as e-Transfer.')} data-testid="fix-etransfer-save" aria-describedby="why-readyresolve-143">{pending ? 'Saving' : 'Record the e-Transfer'}</button><WhyDisabled id="why-readyresolve-143" why={((ref.trim().length < 3)) ? 'Enter the reference first (3 characters or more)' : null} /></>
           </div>
         </details>)}
       {r.deposit_methods.includes('cash') && (
@@ -159,8 +160,8 @@ export function ResolveDeposit({ j, r, back }: { j: FieldJob; r: Resolve; back: 
         <div className="stack">
           <p className="small">Only when the renter cannot place it now. They are asked for it each morning; after 48 hours an Admin gets a To do.</p>
           <label className="field"><span className="label">Why the car goes before the deposit is taken</span><input className="input" value={owed} onChange={(e) => setOwed(e.target.value)} data-testid="fix-owed-reason" /></label>
-          <button type="button" className="btn btn--primary fd-wide" disabled={pending || owed.trim().length < 5}
-            onClick={() => run(() => fieldAct('deposit_pending_allow', { job: j.job.id, reason: owed.trim() }), 'Done. Go on with the check-in; the deposit stays owed.')} data-testid="fix-owed-save">{pending ? 'Saving' : 'Let it go with the deposit owed'}</button>
+          <><button type="button" className="btn btn--primary fd-wide" disabled={pending || owed.trim().length < 5}
+            onClick={() => run(() => fieldAct('deposit_pending_allow', { job: j.job.id, reason: owed.trim() }), 'Done. Go on with the check-in; the deposit stays owed.')} data-testid="fix-owed-save" aria-describedby="why-readyresolve-162">{pending ? 'Saving' : 'Let it go with the deposit owed'}</button><WhyDisabled id="why-readyresolve-162" why={((owed.trim().length < 5)) ? 'Say what is owed first (5 characters or more)' : null} /></>
         </div>
       </details>
       <Msg m={msg} />
@@ -180,8 +181,8 @@ export function TrackerOverride({ j, r }: { j: FieldJob; r: Resolve }) {
       <div className="stack">
         <p className="small">Say why. The car is released with the tracker recorded as not reporting, and an Admin gets an urgent task right away.</p>
         <label className="field"><span className="label">Reason</span><textarea className="input" value={reason} onChange={(e) => setReason(e.target.value)} data-testid="fix-tracker-reason" placeholder="Underground parking, no signal; the office confirmed by phone" /></label>
-        <button type="button" className="btn btn--primary fd-wide" disabled={pending || reason.trim().length < 10}
-          onClick={() => run(() => fieldAct('tracker_override', { job: j.job.id, reason: reason.trim() }), 'Recorded. An Admin was told. Go on.')} data-testid="fix-tracker-save">{pending ? 'Saving' : 'Release without the tracker'}</button>
+        <><button type="button" className="btn btn--primary fd-wide" disabled={pending || reason.trim().length < 10}
+          onClick={() => run(() => fieldAct('tracker_override', { job: j.job.id, reason: reason.trim() }), 'Recorded. An Admin was told. Go on.')} data-testid="fix-tracker-save" aria-describedby="why-readyresolve-183">{pending ? 'Saving' : 'Release without the tracker'}</button><WhyDisabled id="why-readyresolve-183" why={((reason.trim().length < 10)) ? 'Write the reason first (10 characters or more)' : null} /></>
         <Msg m={msg} />
       </div>
     </details>

@@ -6,6 +6,7 @@ import { opsAct } from '@/server/actions/ops';
 import { describedBy, Field } from '@/features/forms/Field';
 import { RenterIdentity } from './RenterIdentity';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Release 34, section A (migration 0812): the profile card every portal has. The display name is changed at once. The legal
 // name (the one on signed agreements and registry forms) is not edited freely: "Request a name change" asks an Admin, who
 // approves in one tap. Email (ChangeEmail), phone (SignInSettings) and password (the reset page) sit beside it.
@@ -59,7 +60,7 @@ export function SelfProfile({ data, className = 'pt-card stack', password = true
             <Field id="sp-reason" label="Why" hint="For example a marriage, a legal change or a typo.">
               <input className="input" id="sp-reason" value={reason} onChange={(e) => setReason(e.target.value)} data-testid="sp-reason" />
             </Field>
-            <p className="row"><button className="btn btn--primary btn--sm" type="submit" disabled={pending || !name.trim()} data-testid="sp-name-send">{pending ? 'Sending' : 'Send the request'}</button>
+            <p className="row"><><button className="btn btn--primary btn--sm" type="submit" disabled={pending || !name.trim()} data-testid="sp-name-send" aria-describedby="why-selfprofile-62">{pending ? 'Sending' : 'Send the request'}</button><WhyDisabled id="why-selfprofile-62" why={((!name.trim())) ? 'Enter the name first' : null} /></>
               <button className="btn btn--ghost btn--sm" type="button" onClick={() => { setAsking(false); setMsg(null); }}>Cancel</button></p>
           </form>}
       {msg?.ok && msg.where === 'name' && <p className="alert alert--ok" role="status" data-testid="sp-name-msg"><span>{msg.text}</span></p>}

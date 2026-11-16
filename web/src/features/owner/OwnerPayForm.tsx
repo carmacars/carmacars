@@ -8,6 +8,7 @@ import type { StartedInvoicePayment } from '@/server/owner/payment';
 import type { DebitTerms } from './types';
 import { mandateText, oneTimeText, payeeRows } from './mandate.ts';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 export { mandateText, payeeRows };
 
 // Paying an owner invoice: by card, or by Canadian pre-authorized debit. Card numbers and bank
@@ -192,7 +193,7 @@ export function OwnerPayForm({ number, amountCents, ownerType, hasDebit, terms }
         </>
       )}
       {msg && <p className={`alert ${msg.kind === 'wait' ? 'alert--warn' : 'alert--error'}`} role={msg.kind === 'wait' ? 'status' : 'alert'}><span>{msg.text}</span></p>}
-      {method && <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={!p || busy || loading}>{busy ? 'Sending' : method === 'card' ? `Pay ${money(p?.amountCents ?? amountCents, { cents: true })}` : `Authorize debit of ${money(p?.amountCents ?? amountCents, { cents: true })}`}</button>}
+      {method && <><button className="btn btn--primary btn--lg btn--block" type="submit" disabled={!p || busy || loading} aria-describedby="why-ownerpayform-195">{busy ? 'Sending' : method === 'card' ? `Pay ${money(p?.amountCents ?? amountCents, { cents: true })}` : `Authorize debit of ${money(p?.amountCents ?? amountCents, { cents: true })}`}</button><WhyDisabled id="why-ownerpayform-195" why={((!p)) ? 'Choose one first' : null} /></>}
       <p className="pt-lock"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 7V5a4 4 0 0 1 8 0v2h1v8H3V7zm2 0h4V5a2 2 0 0 0-4 0z" fill="currentColor" /></svg>Payments are processed by Stripe. We never see your full card or account number.</p>
     </form>
   );

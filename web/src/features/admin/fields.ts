@@ -5,6 +5,9 @@ import type { Field } from './Act';
 const nice = (k: string) => { const s = k.replace(/_(cents|bps)$/, '').replace(/_/g, ' '); return s.charAt(0).toUpperCase() + s.slice(1); };
 // settings whose meaning needs a sentence (0042: one turnaround between trips; the tolls, plates and vision settings)
 const LABELS: Record<string, string> = {
+  offline_deposit_double: 'Deposit by e-Transfer or cash: a multiple of the deposit', offline_deposit_multiplier: 'Deposit by e-Transfer or cash (times the deposit)',
+  tips_on: 'Tips: renters may add one, staff record cash and e-Transfer tips', tip_percents_bps: 'Tip suggestions (percent of the total, hundredths: 1000 is 10%)',
+  tip_sales_share_bps: 'Tip: the salesperson\'s share (hundredths of a percent; the rest to the handover)',
   // r35 UX (1108): invoices and add-ons not returned
   bs_billing_name: 'Insurer invoices are issued as', bs_billing_email: 'Contact email on insurer invoices (empty: none; never a CarmaCars address)', bs_billing_phone: 'Contact phone on insurer invoices',
   bs_pay_account_name: 'Direct deposit: account name', bs_pay_institution: 'Direct deposit: bank', bs_pay_institution_number: 'Direct deposit: institution number', bs_pay_transit_number: 'Direct deposit: transit number',
@@ -278,6 +281,10 @@ const LABELS: Record<string, string> = {
   card_name_check: 'Card in the renter\'s name: check the name on the card (a name that differs goes to staff, never blocks)'
 };
 const HINTS: Record<string, string> = {
+  offline_deposit_double: 'On: a deposit paid by e-Transfer or cash is the deposit times the multiplier below (a debit or prepaid card has its own). The renter sees both amounts before paying; staff see it when they record it.',
+  offline_deposit_multiplier: '2 makes a $300 deposit $600 by e-Transfer or cash. An amount set on one booking (Debit deposit) wins.',
+  tips_on: 'On: the pay page, the receipt after the return and the after-trip email offer a tip; staff record cash and e-Transfer tips on Money.',
+  tip_sales_share_bps: '5000 is 50/50 between the booking\'s salesperson and the staff member at the handover. No salesperson: CarmaCars keeps that half.',
   card_name_check: 'On by default. Names are compared the way people write them: middle names, initials, a shorter first name, accents, order and hyphens do not matter. A card that still differs never blocks the booking: staff get a To do and press Accept this card with a reason. Off: no check at all.',
   fuel_price_regular_cents: 'Local pump price (1.55 by default). Update the three prices weekly: Admin > Today reminds you after 7 days. The date updates itself.',
   fuel_price_multiplier: '1.25 by default. At each return: tank size x the fuel missing (pickup % minus return %) x the pump price of the car\'s grade x this, plus the refuelling fee. A suggested line on the deposit review: staff confirm it; no card is charged by it.',

@@ -8,6 +8,7 @@ import { cleanCode } from '@/features/auth/phone';
 import { describedBy, Field } from './Field';
 import { Turnstile, freshTurnstileToken } from './Turnstile';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Sign-in by phone (migration 0091): the number, then the 6-digit code from the text (autofilled on phones:
 // autocomplete one-time-code, numeric keypad), then, for a new account without a name on file, the name. Every answer
 // reads the same whether or not the number has an account.
@@ -111,7 +112,7 @@ export function PhoneSignInForm({ next, onUseEmail, signUp, minAge, idPrefix = '
           onChange={(v) => { setCode(v); if (cleanCode(v) && !pending) check(v); }} />
         <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={pending} data-testid="phone-verify">{pending ? 'Checking' : signUp ? 'Create my account' : 'Sign in'}</button>
         <p className="row small" style={{ flexWrap: 'wrap', gap: 'var(--s-3)' }}>
-          <button type="button" className="link" disabled={pending || left > 0} onClick={ask} data-testid="phone-resend">{left > 0 ? `Send a new code in ${left} s` : 'Send a new code'}</button>
+          <><button type="button" className="link" disabled={pending || left > 0} onClick={ask} data-testid="phone-resend" aria-describedby="why-phonesignin-114">{left > 0 ? `Send a new code in ${left} s` : 'Send a new code'}</button><WhyDisabled id="why-phonesignin-114" why={((left > 0)) ? 'Wait for the countdown to end' : null} /></>
           <button type="button" className="link" onClick={() => { setStep('phone'); setErr(null); }}>Use another number</button>
         </p>
       </>}

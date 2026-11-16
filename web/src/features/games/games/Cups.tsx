@@ -42,7 +42,7 @@ export default function Cups({ prize, reduced, onReveal }: GameProps) {
           const up = (phase === 'show' && cup === 1) || picked === cup;
           return (
             <button key={cup} type="button" className={`ccg-cup${up ? ' is-up' : ''}`} style={{ transform: `translateX(${X[place[cup]!]})`, left: 0 }}
-              disabled={phase !== 'pick'} onClick={() => pick(cup)} aria-label={`Cup ${place[cup]! + 1} of 3`} data-testid={`game-cup-${place[cup]! + 1}`}>
+              disabled={phase !== 'pick'} onClick={() => pick(cup)} aria-label={`Cup ${place[cup]! + 1} of 3`} data-testid={`game-cup-${place[cup]! + 1}`} title={((phase !== 'pick')) ? 'Wait for the cups to stop' : undefined}>
               {(cup === 1 && phase === 'show') || picked === cup ? <span className="ccg-ball" aria-hidden="true">●</span> : null}
               {picked === cup && <span className="ccg-cup__prize">{prize.short}</span>}
               <span className="ccg-cup__shape" />

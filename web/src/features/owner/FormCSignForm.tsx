@@ -7,6 +7,7 @@ import { initialsOf } from '@/features/signing/PackageSignForm';
 import type { EsignContext, EsignReady } from '@/features/signing/types';
 import type { ActionResult } from '@/features/forms/schemas';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Form C signed on screen (the legal review, migration 0053): the owner signs with the signing steps of every signature
 // (0193: a code to their phone or email, the reading, the three acknowledgments initialled, the consents, the drawn
 // signature); the witness, beside the owner on the same device, types their full name and ticks the statement that they
@@ -56,7 +57,7 @@ export function FormCSignForm({ ownerName, acknowledgments, statement, esign, ac
       </fieldset>
       {errs.form && <p className="alert alert--error" role="alert"><span>{errs.form}</span></p>}
       <p className="xs muted">By pressing Sign, the owner signs Form C electronically and the witness confirms they saw it, each with the same effect as signing on paper. We record the time, the IP address and the device.</p>
-      <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={busy || !ready} data-testid="form-c-submit">{busy ? 'Signing' : 'Sign Form C'}</button>
+      <><button className="btn btn--primary btn--lg btn--block" type="submit" disabled={busy || !ready} data-testid="form-c-submit" aria-describedby="why-formcsignform-59">{busy ? 'Signing' : 'Sign Form C'}</button><WhyDisabled id="why-formcsignform-59" why={((!ready)) ? 'Finish the steps above first' : null} /></>
     </form>
   );
 }

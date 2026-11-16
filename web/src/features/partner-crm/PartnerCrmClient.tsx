@@ -3,6 +3,7 @@ import { useId, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { connectPartnerCrm, syncPartnerCrmNow, testPartnerCrmAction } from '@/server/actions/partner-crm';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Admin > Settings > Partners > a partner (migration 0147): the connect form and the Test connection and Run sync now
 // buttons. The token field is a password field, cleared after sending; the page never shows the token again (only its
 // last four characters).
@@ -71,8 +72,8 @@ export function RunButtons({ partnerId, connected }: { partnerId: string; connec
   return (
     <div className="ad-inline">
       <div className="ad-actions">
-        <button className="btn btn--ghost btn--sm" type="button" disabled={pending || !connected} onClick={() => go('test')} data-testid="crm-test">{pending ? 'Working' : 'Test connection'}</button>
-        <button className="btn btn--primary btn--sm" type="button" disabled={pending || !connected} onClick={() => go('sync')} data-testid="crm-sync-now">{pending ? 'Working' : 'Run sync now'}</button>
+        <><button className="btn btn--ghost btn--sm" type="button" disabled={pending || !connected} onClick={() => go('test')} data-testid="crm-test" aria-describedby="why-partnercrmclient-74">{pending ? 'Working' : 'Test connection'}</button><WhyDisabled id="why-partnercrmclient-74" why={((!connected)) ? 'Connect it first' : null} /></>
+        <><button className="btn btn--primary btn--sm" type="button" disabled={pending || !connected} onClick={() => go('sync')} data-testid="crm-sync-now" aria-describedby="why-partnercrmclient-75">{pending ? 'Working' : 'Run sync now'}</button><WhyDisabled id="why-partnercrmclient-75" why={((!connected)) ? 'Connect it first' : null} /></>
       </div>
       {msg && <p className={`small ${msg.tone === 'error' ? 'ad-err' : ''}`} role={msg.tone === 'ok' ? 'status' : 'alert'} data-testid="crm-run-result">{msg.text}</p>}
     </div>

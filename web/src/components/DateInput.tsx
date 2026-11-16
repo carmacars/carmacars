@@ -133,7 +133,7 @@ export function DateInput({ type, value: valueProp, defaultValue, min: minProp, 
         onBlur={(e) => { const v = normalize(kind, text ?? ''); if (v || !(text ?? '').trim()) setText(null); onBlur?.(e); }} />
       {p.name && <input type="hidden" name={p.name} value={value} disabled={p.disabled} />}
       <button type="button" ref={opener} className="dp__btn" aria-label="Open calendar" aria-haspopup="dialog" aria-expanded={open} disabled={p.disabled}
-        onClick={() => { setToday(torontoToday()); setOpen((o) => !o); }}>{ICON}</button>
+        onClick={() => { setToday(torontoToday()); setOpen((o) => !o); }} title={p.disabled ? 'Not available now' : undefined}>{ICON}</button>
       {body}
     </div>
   );

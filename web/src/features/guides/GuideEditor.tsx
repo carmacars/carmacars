@@ -6,6 +6,7 @@ import { useAct } from '@/features/portal/useAct';
 import { render } from './markdown';
 import { deleteGuideSection, guideVersion, moveGuideSection, publishGuide, revertGuideAuto, saveGuideSection, uploadGuideImage, uploadGuidePdf } from '@/server/actions/guides';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Admin > Settings > Guides > a guide (migration 0044): the chapters in order, a Markdown editor with the preview the
 // readers will see (the same renderer as publishing), version history, screenshots, publishing and the stored PDF.
 export interface EditorSection { id: string; kind: 'start' | 'chapter' | 'reference'; slug: string; sort_order: number; title: string; blurb: string | null; body_md: string;
@@ -115,7 +116,7 @@ function SectionForm({ portal, section, after, onSaved, onDeleted }: { portal: s
         <Problem res={save.res} />
         {save.res?.ok && !dirty && <p className="alert alert--ok" role="status"><span>Saved. Publish to show it to readers.</span></p>}
         <div className="row" style={{ flexWrap: 'wrap' }}>
-          <button className="btn btn--primary btn--sm" type="submit" disabled={save.pending || !dirty} data-testid="guide-save">{save.pending ? 'Saving' : 'Save the draft'}</button>
+          <><button className="btn btn--primary btn--sm" type="submit" disabled={save.pending || !dirty} data-testid="guide-save" aria-describedby="why-guideeditor-118">{save.pending ? 'Saving' : 'Save the draft'}</button><WhyDisabled id="why-guideeditor-118" why={((!dirty)) ? 'Change something first' : null} /></>
           <button className="btn btn--ghost btn--sm" type="button" onClick={() => setPreview(!preview)} aria-pressed={preview}>{preview ? 'Hide the preview' : 'Show the preview'}</button>
           {section && !section.published_at && section.kind === 'chapter' && <button className="btn btn--quiet btn--sm" type="button" disabled={del.pending} onClick={() => { if (window.confirm('Delete this chapter? It was never published.')) del.run(() => deleteGuideSection(portal, section.id), (r) => { if (r.ok) onDeleted?.(); }); }}>Delete</button>}
         </div>

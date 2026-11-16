@@ -6,6 +6,7 @@ import { DateInput } from '@/components/DateInput';
 import { money } from '@/lib/format';
 import { PREP_ITEMS, clockText } from './model';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Fleet and Admin (r35 part X, 0930): each field person's list of the day with its completion and what they left open at clock out,
 // and the onboarding prep of cars joining the fleet: give it to a person for a day they hold a shift, and see each car's progress.
 export interface WorkLists { day: string; people: Array<{ id: string; name: string; shift: { starts_at: string; ends_at: string } | null; clocked_in: boolean; must: number; done: number;
@@ -62,7 +63,7 @@ export function PrepPanel({ p, vehicle, title = 'Onboarding prep' }: { p: PrepLi
           <div className="field"><label className="label" htmlFor={`prep-day-${vehicle?.id ?? 'all'}`}>Day (one they hold a shift)</label><DateInput id={`prep-day-${vehicle?.id ?? 'all'}`} type="date" className="input" value={day} onChange={(e) => setDay(e.target.value)} /></div>
           <fieldset><legend className="label">What to do</legend>{choices.map(([c, l]) => <label key={c} className="row small"><input type="checkbox" checked={items.includes(c)} onChange={(e) => setItems(e.target.checked ? [...items, c] : items.filter((x) => x !== c))} /> {l}</label>)}</fieldset>
           <div className="field"><label className="label" htmlFor={`prep-note-${vehicle?.id ?? 'all'}`}>Note (optional)</label><input id={`prep-note-${vehicle?.id ?? 'all'}`} className="input" value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} /></div>
-          <p><button type="button" className="btn btn--primary btn--sm" disabled={pending || !car || !staff || !items.length} onClick={give} data-testid="prep-give">{pending ? 'Giving' : 'Give the prep'}</button></p>
+          <p><><button type="button" className="btn btn--primary btn--sm" disabled={pending || !car || !staff || !items.length} onClick={give} data-testid="prep-give" aria-describedby="why-fleetpanels-65">{pending ? 'Giving' : 'Give the prep'}</button><WhyDisabled id="why-fleetpanels-65" why={((!car) || (!staff) || (!items.length)) ? (!car) ? 'Choose the car first' : (!staff) ? 'Choose the staff member first' : 'Add at least one item first' : null} /></></p>
         </div></details>
       {msg && <p className={msg.ok ? 'small' : 'error'} role={msg.ok ? 'status' : 'alert'}>{msg.text}</p>}
     </section>

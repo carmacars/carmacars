@@ -15,6 +15,7 @@ import './car-terms.css';
 // started. The same component serves the owner page (every car) and the car page (one car).
 import { fmtDay, m, payLine, pc, sinceLine, stateLine, STATUS_TEXT, type CarTermsData, type CarTermsRow } from './terms-shared';
 import { DateInput } from '@/components/DateInput';
+import { WhyDisabled } from '@/components/WhyDisabled';
 export type { CarTermsData, CarTermsRow } from './terms-shared';
 
 type Vals = { ins: string; trk: string; share: string; inst: string; mode: string; method: string };
@@ -118,7 +119,7 @@ function ModeChange({ c, data, paths, onClose }: { c: CarTermsRow; data: CarTerm
       {a.res && !a.res.ok && <p className="alert alert--error" role="alert" data-testid="car-mode-error"><span>{a.res.message}</span></p>}
       <div className="row ct-actions">
         {!plan ? <button type="button" className="btn btn--primary btn--sm" disabled={a.pending} onClick={() => review()} data-testid="car-mode-review">{a.pending ? 'Checking' : 'Review'}</button>
-          : <button type="button" className="btn btn--primary btn--sm" disabled={a.pending || !reason.trim()} onClick={confirm} data-testid="car-mode-confirm">{a.pending ? 'Saving' : plan.needs_signature ? 'Confirm and ask the owner to sign' : 'Confirm'}</button>}
+          : <><button type="button" className="btn btn--primary btn--sm" disabled={a.pending || !reason.trim()} onClick={confirm} data-testid="car-mode-confirm" aria-describedby="why-carterms-121">{a.pending ? 'Saving' : plan.needs_signature ? 'Confirm and ask the owner to sign' : 'Confirm'}</button><WhyDisabled id="why-carterms-121" why={((!reason.trim())) ? 'Write the reason first' : null} /></>}
         <button type="button" className="btn btn--quiet btn--sm" onClick={onClose}>Cancel</button>
       </div>
     </div>
@@ -168,7 +169,7 @@ function PayPanel({ c, data, paths, onClose }: { c: CarTermsRow; data: CarTermsD
       {a.res && !a.res.ok && <p className="alert alert--error" role="alert" data-testid="car-pay-error"><span>{a.res.message}</span></p>}
       <div className="row ct-actions">
         {!plan ? <button type="button" className="btn btn--primary btn--sm" disabled={a.pending} onClick={() => a.run(() => carPaySet(body(true), paths), (r) => { if (r.ok) setPlan(r.data); })} data-testid="car-pay-review">{a.pending ? 'Checking' : 'Review'}</button>
-          : <button type="button" className="btn btn--primary btn--sm" disabled={a.pending || !reason.trim()} onClick={() => a.run(() => carPaySet(body(false), paths), (r) => { if (r.ok) { setDone(r.data); setPlan(null); router.refresh(); } })} data-testid="car-pay-confirm">{a.pending ? 'Saving' : 'Confirm'}</button>}
+          : <><button type="button" className="btn btn--primary btn--sm" disabled={a.pending || !reason.trim()} onClick={() => a.run(() => carPaySet(body(false), paths), (r) => { if (r.ok) { setDone(r.data); setPlan(null); router.refresh(); } })} data-testid="car-pay-confirm" aria-describedby="why-carterms-171">{a.pending ? 'Saving' : 'Confirm'}</button><WhyDisabled id="why-carterms-171" why={((!reason.trim())) ? 'Write the reason first' : null} /></>}
         <button type="button" className="btn btn--quiet btn--sm" onClick={onClose}>Cancel</button>
       </div>
       {p.periods.length > 0 && <ul className="ct-periods" data-testid="car-pay-periods">{p.periods.map((x) => (
@@ -290,7 +291,7 @@ function Row({ c, data, paths }: { c: CarTermsRow; data: CarTermsData; paths: st
               {a.res && !a.res.ok && <p className="alert alert--error" role="alert" data-testid="car-terms-error"><span>{a.res.message}</span></p>}
               <div className="row ct-actions">
                 {!plan || plan.blocked ? <button type="button" className="btn btn--primary btn--sm" disabled={a.pending} onClick={() => review()} data-testid="car-terms-review">{a.pending ? 'Checking' : 'Review'}</button>
-                  : <button type="button" className="btn btn--primary btn--sm" disabled={a.pending || (higher && !reason.trim())} onClick={confirm} data-testid="car-terms-confirm">{a.pending ? 'Saving' : c.state === 'signed' ? 'Confirm and notify the owner' : 'Save'}</button>}
+                  : <><button type="button" className="btn btn--primary btn--sm" disabled={a.pending || (higher && !reason.trim())} onClick={confirm} data-testid="car-terms-confirm" aria-describedby="why-carterms-293">{a.pending ? 'Saving' : c.state === 'signed' ? 'Confirm and notify the owner' : 'Save'}</button><WhyDisabled id="why-carterms-293" why={(((higher && !reason.trim()))) ? 'Write the reason for the higher amount first' : null} /></>}
                 <button type="button" className="btn btn--quiet btn--sm" onClick={() => { setEdit(false); setPlan(null); a.setRes(null); }}>Cancel</button>
               </div>
             </div>)}

@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { GameProps } from '../GamePopup';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Scratch to reveal: a silver layer over the prize; scratch it with a finger or the mouse (half of it shows the
 // prize), or press "Reveal it for me" (keyboard and screen readers).
 export default function Scratch({ prize, reduced, onReveal }: GameProps) {
@@ -55,7 +56,7 @@ export default function Scratch({ prize, reduced, onReveal }: GameProps) {
           onPointerMove={scratch} onPointerUp={() => { down.current = false; }} onPointerCancel={() => { down.current = false; }} />
       </div>
       <p className="ccg-live" aria-live="polite">{gone ? <>You uncovered <b>{prize.label}</b></> : 'Scratch the silver layer to see your prize.'}</p>
-      <button type="button" className="btn btn--ghost ccg-play" onClick={reveal} disabled={gone} data-testid="game-action">Reveal it for me</button>
+      <><button type="button" className="btn btn--ghost ccg-play" onClick={reveal} disabled={gone} data-testid="game-action" aria-describedby="why-scratch-58">Reveal it for me</button><WhyDisabled id="why-scratch-58" why={((gone)) ? 'Already revealed' : null} /></>
     </div>
   );
 }

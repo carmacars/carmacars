@@ -38,7 +38,8 @@ const counted = (p: PayRow) => !p.voided && ['succeeded', 'partially_refunded', 
 export function paidTotals(rows: PayRow[]): { rental_cents: number; deposit_cents: number; total_cents: number } {
   let rental = 0, deposit = 0;
   for (const p of rows) {
-    if (!counted(p)) continue;
+    // r48 part 2: a tip is money for the team, never the rental (shown apart, BookingTips)
+    if (!counted(p) || p.purpose === 'tip') continue;
     const sign = p.kind === 'refund' || p.kind === 'release' ? -1 : p.kind === 'charge' || p.kind === 'capture' ? 1 : 0;
     if (!sign) continue;
     if (isDeposit(p)) deposit += sign * p.amount_cents; else rental += sign * p.amount_cents;

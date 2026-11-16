@@ -10,6 +10,7 @@ import { pctBps } from '@/features/sales/Commissions';
 import { SalesOwners, type SalesOwnersData } from '@/features/sales/SalesOwners';
 import { signToken } from '@/server/links';
 import { env } from '@/lib/env';
+import { MyTips, type MyTipsData } from '@/features/money/TipsCard';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'My sales', path: '/staff/my-sales', noindex: true, description: 'Your commissions, quotes, offers, bookings and booked revenue.' });
@@ -22,9 +23,11 @@ export const metadata = pageMeta({ title: 'My sales', path: '/staff/my-sales', n
 export default async function MySales({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const [{ read, fn, user }, sp] = await Promise.all([vaPage('/staff/my-sales'), searchParams]);
   const period = sp.period === 'month' ? 'month' : 'week';
-  const [s, fu, owners] = await Promise.all([read<StaffSales>('my_sales', { period }),
+  const [s, fu, owners, tips] = await Promise.all([read<StaffSales>('my_sales', { period }),
     read<{ done: number; open: number; booked: number; chats_handled: number }>('my_followups', { period }).catch(() => null),
-    fn === 'sales' ? read<SalesOwnersData>('sales_owners').catch(() => null) : Promise.resolve(null)]);
+    fn === 'sales' ? read<SalesOwnersData>('sales_owners').catch(() => null) : Promise.resolve(null),
+    // r48 part 2 (3053): this person's share of the tips
+    read<MyTipsData>('my_tips').catch(() => null)]);
   // the salesperson's own owner link (a year; a new one each visit, every one of them valid until it runs out)
   const ownerLink = owners ? `${env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '')}/list-your-car/apply?invite=${await signToken('owner-invite', { s: user.id }, 365 * 86400)}` : '';
   const m = s.commissions.month;
@@ -58,6 +61,7 @@ export default async function MySales({ searchParams }: { searchParams: Promise<
             </ol>
           </div>) : undefined} />
       {owners && <SalesOwners data={owners} link={ownerLink} />}
+      <MyTips t={tips} />
       {fu && (
         <section className="pt-card ad-card" aria-labelledby="ms-fu" data-testid="my-followups">
           <div className="pt-card__head"><h2 className="d4" id="ms-fu">Follow-ups and live chat this {period}</h2></div>

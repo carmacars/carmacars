@@ -5,6 +5,7 @@ import { money } from '@/lib/format';
 import { allowOtherCard, cancelOnReader, linkStripePayment, lookupStripePayment, pollReader, recordCardPayment, startOnReader, type ReaderState } from '@/server/actions/card-tools';
 import { DateInput } from '@/components/DateInput';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // The card tools of a booking's money (Release 21): Record card payment (a card taken in the Stripe Dashboard or on a
 // reader, 0201), Charge on reader and Hold deposit on reader (the Stripe Terminal S700, 0202), and the same-card rule of
 // a card-coverage rental with an Admin's override (0203), and (r35, 1081) an Admin's Link a payment taken outside the
@@ -87,17 +88,17 @@ export function CardTools(x: CardToolsProps) {
           <div className="ad-fields">
             <div className="field ad-field ad-field--wide"><label className="label" htmlFor={`ct-link-id-${linkAs}`}>Stripe payment id (pi_ or ch_)</label>
               <span className="row"><input className="input" id={`ct-link-id-${linkAs}`} value={link.id} onChange={(e) => { setLink({ ...link, id: e.target.value.trim() }); setLinkSeen(null); }} placeholder="pi_..." autoComplete="off" data-testid="ct-link-id" />
-                <button className="btn btn--quiet btn--sm" type="button" disabled={pending || !link.id} data-testid="ct-link-lookup" onClick={() => run(async () => {
+                <><button className="btn btn--quiet btn--sm" type="button" disabled={pending || !link.id} data-testid="ct-link-lookup" onClick={() => run(async () => {
                   const r = await lookupStripePayment({ booking: x.booking, id: link.id });
                   if (!r.ok) { setLinkSeen(null); setMsg({ ok: false, text: r.message }); return; }
                   const v = r.data;
                   setLinkSeen(`Stripe: ${v.status === 'requires_capture' ? `a hold of ${fmt(v.capturable_cents)}` : `${fmt(v.amount_cents)} ${v.status === 'succeeded' ? 'paid' : v.status.replace(/_/g, ' ')}`}${v.last4 ? ` on ${v.brand ?? 'card'} ending ${v.last4}` : ''}.`);
-                })}>Look up</button></span>
+                })} aria-describedby="why-cardtools-90">Look up</button><WhyDisabled id="why-cardtools-90" why={((!link.id)) ? 'Paste the Stripe payment ID first' : null} /></></span>
               {linkSeen && <span className="small" data-testid="ct-link-found">{linkSeen}</span>}</div>
             <div className="field ad-field ad-field--wide"><label className="label" htmlFor={`ct-link-note-${linkAs}`}>Note (optional)</label><input className="input" id={`ct-link-note-${linkAs}`} value={link.note} onChange={(e) => setLink({ ...link, note: e.target.value })} /></div>
           </div>
           {linkAs === 'rental' && ruleApplies('both') && <label className="check" htmlFor="ct-link-same"><input type="checkbox" id="ct-link-same" checked={link.same_card} onChange={(e) => setLink({ ...link, same_card: e.target.checked })} /> <span>This is the same card as the coverage card ({cardWords(rule)})</span></label>}
-          <button className="btn btn--primary btn--sm" type="submit" disabled={pending || !link.id} data-testid="ct-link-save">{pending ? 'Linking' : linkAs === 'deposit' ? 'Link as the deposit' : 'Link as a rental payment'}</button>
+          <><button className="btn btn--primary btn--sm" type="submit" disabled={pending || !link.id} data-testid="ct-link-save" aria-describedby="why-cardtools-100">{pending ? 'Linking' : linkAs === 'deposit' ? 'Link as the deposit' : 'Link as a rental payment'}</button><WhyDisabled id="why-cardtools-100" why={((!link.id)) ? 'Paste the Stripe payment ID first' : null} /></>
         </form>)}
 
       {open === 'card' && (
@@ -119,13 +120,13 @@ export function CardTools(x: CardToolsProps) {
             <div className="field ad-field"><label className="label" htmlFor="ct-amount">Amount ($)</label><input className="input" id="ct-amount" inputMode="decimal" value={rec.amount} onChange={(e) => setRec({ ...rec, amount: e.target.value })} placeholder={rec.covers === 'deposit' ? (x.deposit_cents / 100).toFixed(2) : ''} data-testid="ct-amount" /></div>
             <div className="field ad-field ad-field--wide"><label className="label" htmlFor="ct-sid">Stripe payment id (optional for a payment, pi_ or ch_)</label>
               <span className="row"><input className="input" id="ct-sid" value={rec.stripe_id} onChange={(e) => { setRec({ ...rec, stripe_id: e.target.value.trim() }); setFound(null); }} placeholder="pi_..." data-testid="ct-sid" />
-                <button className="btn btn--quiet btn--sm" type="button" disabled={pending || !rec.stripe_id} data-testid="ct-lookup" onClick={() => run(async () => {
+                <><button className="btn btn--quiet btn--sm" type="button" disabled={pending || !rec.stripe_id} data-testid="ct-lookup" onClick={() => run(async () => {
                   const r = await lookupStripePayment({ booking: x.booking, id: rec.stripe_id });
                   if (!r.ok) { setFound(null); setMsg({ ok: false, text: r.message }); return; }
                   const v = r.data;
                   setFound(`Stripe: ${v.status === 'requires_capture' ? `a hold of ${fmt(v.capturable_cents)}` : `${fmt(v.amount_cents)} ${v.status === 'succeeded' ? 'paid' : v.status.replace(/_/g, ' ')}`}${v.last4 ? ` on ${v.brand ?? 'card'} ending ${v.last4}` : ''}.`);
                   setRec((s) => ({ ...s, last4: s.last4 || (v.last4 ?? ''), brand: v.brand ?? s.brand, amount: s.amount || ((v.status === 'requires_capture' ? v.capturable_cents : v.amount_cents) / 100).toFixed(2) }));
-                })}>Look up</button></span>
+                })} aria-describedby="why-cardtools-122">Look up</button><WhyDisabled id="why-cardtools-122" why={((!rec.stripe_id)) ? 'Add the stripe id first' : null} /></></span>
               {found && <span className="small" data-testid="ct-found">{found}</span>}</div>
             {rec.covers !== 'deposit' && <div className="field ad-field"><label className="label" htmlFor="ct-on">Paid on</label><DateInput className="input" id="ct-on" type="date" value={rec.received_on} max={today()} onChange={(e) => setRec({ ...rec, received_on: e.target.value })} /></div>}
             <div className="field ad-field ad-field--wide"><label className="label" htmlFor="ct-note">Note (optional)</label><input className="input" id="ct-note" value={rec.note} onChange={(e) => setRec({ ...rec, note: e.target.value })} /></div>

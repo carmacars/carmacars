@@ -16,6 +16,7 @@ import { mergeAnswers, prefill, sourceHint, stillNeeded, type Part } from './one
 import { LateReturnChoice } from '@/features/handover/LateReturnChoice';
 import { NO_CHOICE, afterReturnText, choicePayload, choiceProblem, decisionText, type LateChoice } from '@/features/handover/late-return';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // The handover and return checklists (06-field.md sections 4 and 5) on one screen (release 42, migration 2710): every
 // part of the handover is on the page in the order it is done, with a tick once it is complete; what can be known is
 // filled in already (the odometer and fuel from the Tracker or the last report, the keys, the cleanliness); what is
@@ -310,7 +311,7 @@ export function Checklist({ j, back = '/staff/field', backLabel = 'Back to my jo
       <div className="fd-bar fd-bar--one">
         {!can && <button className="btn btn--ghost fd-bar__need" type="button" onClick={() => go(needed[0]?.id ?? 'photos')} data-testid="still-needed">
           {needed.length ? <>Next: {needed[0]!.label}{needed.length > 1 ? <span className="fd-bar__more"> and {needed.length - 1} more</span> : null}</> : <>Photos still uploading</>}</button>}
-        <button className="btn btn--primary" type="button" disabled={pending || !can} onClick={complete} data-testid="complete">{pending ? 'Working' : primary}</button>
+        <><button className="btn btn--primary" type="button" disabled={pending || !can} onClick={complete} data-testid="complete" aria-describedby="why-checklist-313">{pending ? 'Working' : primary}</button><WhyDisabled id="why-checklist-313" why={((!can)) ? 'You cannot do this here: ask an Admin' : null} /></>
       </div>
     </div>
   );
@@ -514,7 +515,7 @@ function Sign({ who, label, done, sign }: { who: 'renter' | 'staff'; label: stri
     <div className="field" data-testid={`sign-${who}`}>
       <span className="label" id={`sg-${who}-l`}>{label}</span>
       <SignaturePad id={`sg-${who}`} onChange={setPng} describedBy={`sg-${who}-l`} />
-      <button className="btn btn--ghost" type="button" disabled={!png || busy} data-testid={`use-${who}`} onClick={async () => { if (!png) return; setBusy(true); setErr(null); try { await sign(who, png); } catch (e) { setErr(e instanceof Error ? e.message : 'Not saved.'); } finally { setBusy(false); } }}>{busy ? 'Saving' : 'Use this signature'}</button>
+      <><button className="btn btn--ghost" type="button" disabled={!png || busy} data-testid={`use-${who}`} onClick={async () => { if (!png) return; setBusy(true); setErr(null); try { await sign(who, png); } catch (e) { setErr(e instanceof Error ? e.message : 'Not saved.'); } finally { setBusy(false); } }} aria-describedby="why-checklist-517">{busy ? 'Saving' : 'Use this signature'}</button><WhyDisabled id="why-checklist-517" why={((!png)) ? 'Draw or choose the picture first' : null} /></>
       {err && <p className="error" role="alert">{err}</p>}
     </div>
   );

@@ -111,12 +111,12 @@ export function Calendar({ months = 1, min, today, blocks = [], from = '', to = 
     <div className={`cal${months === 2 ? ' cal--two' : ''}`} ref={root} onKeyDown={onKey}>
       <div className="cal__head">
         <button type="button" className="icon-btn" aria-label="Previous month" disabled={shownView <= min.slice(0, 7)}
-          onClick={() => { const v = ym(shownView, -1); setView(v); setFocus(`${v}-01` < min ? min : `${v}-01`); }}>
+          onClick={() => { const v = ym(shownView, -1); setView(v); setFocus(`${v}-01` < min ? min : `${v}-01`); }} title={((shownView <= min.slice(0, 7))) ? 'This is the first month you can choose' : undefined}>
           <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4l-6 6 6 6" fill="none" stroke="currentColor" strokeWidth="2" /></svg>
         </button>
         <div className="cal__title" id={uid} aria-live="polite">{title}</div>
         <button type="button" className="icon-btn" aria-label="Next month" disabled={!!max && last >= max.slice(0, 7)}
-          onClick={() => { const v = ym(shownView, 1); setView(v); setFocus(`${v}-01`); }}>
+          onClick={() => { const v = ym(shownView, 1); setView(v); setFocus(`${v}-01`); }} title={((!!max && last >= max.slice(0, 7))) ? 'This is the last month you can choose' : undefined}>
           <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" /></svg>
         </button>
       </div>

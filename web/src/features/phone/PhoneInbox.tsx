@@ -10,6 +10,7 @@ import { poller } from '@/lib/poll/poll';
 import { ContactButtons } from '@/features/phone/QuoButtons';
 import { RenterNotesLoader } from '@/features/caller/RenterNotes';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Live chat > Texts and calls (migration 0085): every number that called or texted the CarmaCars Quo line, newest first;
 // Unknown callers with Create lead and Link to a renter; the thread with calls and texts, the reply box (sent through
 // Quo from the CarmaCars number), Suggest a reply (an AI draft that only fills the box), and who the number is: their
@@ -143,7 +144,7 @@ function PhoneThread({ id, portal, fn, onChange }: { id: string; portal: 'admin'
             <textarea id="ph-reply" className="input" rows={2} maxLength={1600} value={text} placeholder={`Text from the CarmaCars number`} onChange={(e) => setText(e.target.value)} />
             <div className="ph-formacts">
               {t.ai.drafts && <button type="button" className="btn btn--quiet btn--sm" disabled={busy || !canDraft} onClick={() => void draft()} title={canDraft ? undefined : 'The AI allowance for today is used'} data-testid="phone-suggest">Suggest a reply</button>}
-              <button type="submit" className="btn btn--primary btn--sm" disabled={busy || !text.trim()}>Send text</button>
+              <><button type="submit" className="btn btn--primary btn--sm" disabled={busy || !text.trim()} aria-describedby="why-phoneinbox-146">Send text</button><WhyDisabled id="why-phoneinbox-146" why={((!text.trim())) ? 'Type the message first' : null} /></>
             </div>
           </form>)}
         {note && <p className="small ph-pad" role="status">{note}</p>}

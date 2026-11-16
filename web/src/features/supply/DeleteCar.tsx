@@ -3,6 +3,7 @@ import { useId, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { deleteSampleCars, deleteVehicle } from '@/server/actions/supply';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Deleting a car (migration 0046): only a car with nothing tied to money; the Admin types the plate (or the car's
 // name) to confirm. Its photo files go from storage too. Anything else is retired instead.
 export type Removed = { booking_number: string; status: string; text: string };
@@ -39,7 +40,7 @@ export function DeleteCar({ vehicleId, name, plate, blockers, removes = [] }: { 
             <input className="input" id={`${id}-c`} value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" data-testid="vehicle-delete-confirm" /></div>
           {err && <p className="alert alert--error" role="alert"><span>{err}</span></p>}
           <div className="row">
-            <button className="btn btn--sm btn--primary ad-btn--danger" type="submit" disabled={pending || !typed.trim()} data-testid="vehicle-delete-submit">{pending ? 'Deleting' : 'Delete for good'}</button>
+            <><button className="btn btn--sm btn--primary ad-btn--danger" type="submit" disabled={pending || !typed.trim()} data-testid="vehicle-delete-submit" aria-describedby="why-deletecar-42">{pending ? 'Deleting' : 'Delete for good'}</button><WhyDisabled id="why-deletecar-42" why={((!typed.trim())) ? 'Type it first' : null} /></>
             <button className="btn btn--ghost btn--sm" type="button" onClick={() => dlg.current?.close()}>Cancel</button>
           </div>
         </form>
@@ -69,7 +70,7 @@ export function DeleteSampleCars({ count }: { count: number }) {
         <input className="input" id="ds-confirm" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" data-testid="delete-samples-confirm" /></div>
       {res && <p className={`alert ${res.ok ? 'alert--ok' : 'alert--error'}`} role={res.ok ? 'status' : 'alert'}><span>{res.text}</span></p>}
       {res?.kept?.length ? <ul className="small" data-testid="delete-samples-kept">{res.kept.map((k) => <li key={k.name}>{k.name}: kept ({k.why})</li>)}</ul> : null}
-      <div className="row"><button className="btn btn--sm btn--primary ad-btn--danger" type="submit" disabled={pending || !typed.trim()} data-testid="delete-samples-submit">{pending ? 'Deleting' : 'Delete all sample cars'}</button></div>
+      <div className="row"><><button className="btn btn--sm btn--primary ad-btn--danger" type="submit" disabled={pending || !typed.trim()} data-testid="delete-samples-submit" aria-describedby="why-deletecar-72">{pending ? 'Deleting' : 'Delete all sample cars'}</button><WhyDisabled id="why-deletecar-72" why={((!typed.trim())) ? 'Type it first' : null} /></></div>
     </form>
   );
 }

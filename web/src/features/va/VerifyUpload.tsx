@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { vaAct } from '@/server/actions/va';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // One identity or coverage document (05-va.md section 4.2): every check is ticked before it can be
 // approved; a rejection needs a reason the renter can act on.
 const CHECKS: Record<string, string[]> = {
@@ -37,10 +38,10 @@ export function VerifyUpload({ id, kind, src, pdf }: { id: string; kind: string;
         {list.map((c, i) => <label key={c} className="check"><input type="checkbox" checked={ticks[i]} onChange={(e) => setTicks((s) => s.map((x, j) => (j === i ? e.target.checked : x)))} /> <span>{c}</span></label>)}
       </fieldset>
       <div className="row">
-        <button className="btn btn--primary btn--sm" type="button" disabled={pending || !ticks.every(Boolean)} onClick={() => decide(true)} data-testid={`approve-${kind}`}>Approve</button>
+        <><button className="btn btn--primary btn--sm" type="button" disabled={pending || !ticks.every(Boolean)} onClick={() => decide(true)} data-testid={`approve-${kind}`} aria-describedby="why-verifyupload-40">Approve</button><WhyDisabled id="why-verifyupload-40" why={((!ticks.every(Boolean))) ? 'Tick every check first' : null} /></>
       </div>
       <div className="field"><label className="label" htmlFor={`rj-${id}`}>Reason shown to the renter</label><input className="input" id={`rj-${id}`} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Photo unreadable, expired, name does not match" /></div>
-      <button className="btn btn--ghost btn--sm" type="button" disabled={pending || reason.trim().length < 5} onClick={() => decide(false)}>Reject</button>
+      <><button className="btn btn--ghost btn--sm" type="button" disabled={pending || reason.trim().length < 5} onClick={() => decide(false)} aria-describedby="why-verifyupload-43">Reject</button><WhyDisabled id="why-verifyupload-43" why={((reason.trim().length < 5)) ? 'Write the reason first (5 characters or more)' : null} /></>
       {msg && <p className="alert alert--error" role="alert"><span>{msg}</span></p>}
     </div>
   );

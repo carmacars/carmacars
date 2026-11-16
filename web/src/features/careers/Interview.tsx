@@ -1,6 +1,7 @@
 'use client';
 import Link from '@/components/Link';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { WhyDisabled } from '@/components/WhyDisabled';
 import {
   AUDIO_BITS, AUDIO_TYPES_PREFERRED, cannotRecordWhy, clock, DEFAULT_ANSWER_SECONDS, LOW_SECONDS, MAX_VIDEO_BYTES, VIDEO_BITS, VIDEO_CONSTRAINTS, VIDEO_TYPES,
   type InterviewView, type NextQuestion
@@ -164,7 +165,7 @@ export function Interview({ token, initial }: { token: string; initial: Intervie
         <label className="check"><input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} data-testid="iv-agree" /> <span>I agree to the video recording</span></label>
       </div>
       {alert}
-      <p><button type="button" className="btn btn--primary btn--lg" disabled={!agree || starting} onClick={start} data-testid="iv-start">{starting ? 'Starting' : 'Start the interview'}</button></p>
+      <p><><button type="button" className="btn btn--primary btn--lg" disabled={!agree || starting} onClick={start} data-testid="iv-start" aria-describedby="why-interview-167">{starting ? 'Starting' : 'Start the interview'}</button><WhyDisabled id="why-interview-167" why={((!agree)) ? 'Tick the box to agree first' : null} /></></p>
     </div>);
   if (!q) return null;
 
@@ -185,7 +186,7 @@ export function Interview({ token, initial }: { token: string; initial: Intervie
               <span style={{ width: `${Math.round(level * 100)}%` }} /></div>
             <p className="small muted">Say a few words: the bar moves when we hear you.</p>
             <p><button type="button" className="btn btn--primary btn--lg" onClick={() => setCheck({ state: 'go' })} data-testid="iv-check-go">It works: start the questions</button></p></>
-          : <p><button type="button" className="btn btn--primary btn--lg" onClick={askDevices} disabled={check.state === 'asking'} data-testid="iv-check-start">{check.state === 'asking' ? 'Asking for the camera' : 'Turn on my camera and microphone'}</button></p>}
+          : <p><button type="button" className="btn btn--primary btn--lg" onClick={askDevices} disabled={check.state === 'asking'} data-testid="iv-check-start" title={((check.state === 'asking')) ? 'Wait for the check to finish' : undefined}>{check.state === 'asking' ? 'Asking for the camera' : 'Turn on my camera and microphone'}</button></p>}
     </div>);
 
   return <Question key={q.seq} token={token} v={v} q={q} total={total} allowed={allowed} stream={stream} post={post} msg={msg} setMsg={setMsg} head={head} mins={mins} />;
@@ -304,7 +305,7 @@ function Question({ token, v, q, total, allowed, stream, post, msg, setMsg, head
         <p className="iv-step">{q.kind === 'followup' ? 'A short follow-up' : `Question ${n} of ${v.total}`}</p>
         <h1 className="d3 iv-q" tabIndex={-1} ref={heading} data-testid="iv-text">{q.text}</h1>
       </div>
-      <p><button type="button" className="btn btn--ghost btn--sm" onClick={() => speak(q.text)} disabled={phase === 'recording'} data-testid="iv-play">Play the question</button></p>
+      <p><button type="button" className="btn btn--ghost btn--sm" onClick={() => speak(q.text)} disabled={phase === 'recording'} data-testid="iv-play" title={((phase === 'recording')) ? 'Stop the recording first' : undefined}>Play the question</button></p>
       <p className={`iv-timer${low ? ' is-low' : ''}`} data-testid="iv-timer" data-low={low ? '1' : '0'}>
         {phase === 'reading' ? <>Reading the question. Your {mins} start after it.</> : <><span className="iv-timer__n" role="timer">{clock(left)}</span> left to answer</>}
       </p>

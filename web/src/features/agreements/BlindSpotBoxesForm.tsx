@@ -4,6 +4,7 @@ import { useTool } from '@/features/admin/MoreMenu';
 import { useRouter } from 'next/navigation';
 import { staffDo } from '@/server/actions/staff-tools';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 export function BlindSpotBoxesForm({ booking, boxes, refresh }: { booking: string; boxes: Array<{ box: string; label: string; value: string; typed: boolean }>; refresh: string[] }) {
   const router = useRouter();
   const [v, setV] = useState<Record<string, string>>(() => Object.fromEntries(boxes.map((b) => [b.box, b.value])));
@@ -31,7 +32,7 @@ export function BlindSpotBoxesForm({ booking, boxes, refresh }: { booking: strin
       </div>
       {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'}><span>{msg.text}</span></p>}
       <div className="row">
-        <button className="btn btn--primary btn--sm" type="button" disabled={pending || !changed.length} onClick={save} data-testid="bsb-save">{pending ? 'Saving' : 'Save the corrections'}</button>
+        <><button className="btn btn--primary btn--sm" type="button" disabled={pending || !changed.length} onClick={save} data-testid="bsb-save" aria-describedby="why-blindspotboxesform-34">{pending ? 'Saving' : 'Save the corrections'}</button><WhyDisabled id="why-blindspotboxesform-34" why={((!changed.length)) ? 'Change something first' : null} /></>
         <a className="btn btn--ghost btn--sm" href={`/api/staff/blindspot/${booking}`} target="_blank" rel="noreferrer" data-testid="bsb-preview">Preview the filled form</a>
         {tool && <button className="btn btn--quiet btn--sm" type="button" onClick={() => tool.hide()}>Close</button>}
       </div>

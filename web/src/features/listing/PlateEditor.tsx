@@ -6,6 +6,7 @@ import { normalizePlateBoxes } from '@/features/tolls/vision-schema';
 import { clampBox, editorPhotoSrc, exportCovered, forSave, fromCorners, greyOf, inside, isTaintError, nearCorner, paint, readSafely, refineBox, suggestedBoxes, TAINT_MESSAGE, type NBox, type PlateStyle } from './plate-cover';
 import { plateEnd } from './plate-photo';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Cover the licence plate on one listing photo (migration 0042): the vision model suggests the box when it can;
 // staff drag a box (or several) over each plate with a mouse or a finger, choose a CarmaCars plate, pixelation or
 // blur, and save. The covered photo replaces the public one; the photo as it was is kept privately. Keyboard: Tab
@@ -181,9 +182,9 @@ export function PlateEditor({ photo, onClose }: { photo: Photo; onClose: () => v
         <p className="small muted" data-testid="plate-style-blur">The plate is blurred so no character can be read.</p>
         {note && <p className="small" role="status" data-testid="plate-note">{note}</p>}
         <div className="row">
-          <button type="button" className="btn btn--primary btn--sm" disabled={busy || !boxes.length || !ready} onClick={save} data-testid="plate-save">{busy ? 'Saving' : 'Save the covered photo'}</button>
-          {ctx?.detect && <button type="button" className="btn btn--ghost btn--sm" disabled={busy || !ready} onClick={() => void suggest()} data-testid="plate-suggest">Suggest the plate</button>}
-          <button type="button" className="btn btn--ghost btn--sm" disabled={busy || !boxes.length} onClick={() => { setBoxes([]); setSel(-1); }}>Clear the boxes</button>
+          <><button type="button" className="btn btn--primary btn--sm" disabled={busy || !boxes.length || !ready} onClick={save} data-testid="plate-save" aria-describedby="why-plateeditor-184">{busy ? 'Saving' : 'Save the covered photo'}</button><WhyDisabled id="why-plateeditor-184" why={((!boxes.length) || (!ready)) ? (!boxes.length) ? 'Draw a box over the plate first' : 'Finish the steps above first' : null} /></>
+          {ctx?.detect && <><button type="button" className="btn btn--ghost btn--sm" disabled={busy || !ready} onClick={() => void suggest()} data-testid="plate-suggest" aria-describedby="why-plateeditor-185">Suggest the plate</button><WhyDisabled id="why-plateeditor-185" why={((!ready)) ? 'Finish the steps above first' : null} /></>}
+          <><button type="button" className="btn btn--ghost btn--sm" disabled={busy || !boxes.length} onClick={() => { setBoxes([]); setSel(-1); }} aria-describedby="why-plateeditor-186">Clear the boxes</button><WhyDisabled id="why-plateeditor-186" why={((!boxes.length)) ? 'Draw a box over the plate first' : null} /></>
           <button type="button" className="btn btn--ghost btn--sm" disabled={busy} onClick={noPlate} data-testid="plate-none">No plate visible on this photo</button>
         </div>
       </>}

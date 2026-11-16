@@ -6,6 +6,7 @@ import { GEARBOXES } from '@/features/vin/vin';
 import { Pop } from './Pop';
 import type { Prompt } from './types';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Admin > Today (migration 0094): a car whose VIN fits several trims, and a car whose gearbox or seats nobody confirmed.
 // One step each: press the trim, or the gearbox and the seats. The car's title, description and search text are made
 // again, and the line is gone.
@@ -52,8 +53,8 @@ export function SpecsConfirm({ p, testId }: { p: Prompt; testId: string }) {
       <fieldset className="field"><legend className="label">Seats{p.seats_default ? ' (the usual number for its body: check it)' : ''}</legend>
         <div className="row">{SEATS.map((n) => <button key={n} type="button" aria-pressed={seats === n} className={`btn btn--sm ${seats === n ? 'btn--primary' : 'btn--ghost'}`}
           onClick={() => setSeats(n)} data-testid={`${testId}-seats`}>{n}</button>)}</div></fieldset>
-      <p><button type="button" className="btn btn--primary" disabled={pending || !gear || !seats} onClick={() => save('vehicle_confirm_specs', { vehicle_id: p.vehicle_id, transmission: gear, seats })}
-        data-testid={`${testId}-save`}>{pending ? 'Saving' : 'Save'}</button></p>
+      <p><><button type="button" className="btn btn--primary" disabled={pending || !gear || !seats} onClick={() => save('vehicle_confirm_specs', { vehicle_id: p.vehicle_id, transmission: gear, seats })}
+        data-testid={`${testId}-save`} aria-describedby="why-carfacts-55">{pending ? 'Saving' : 'Save'}</button><WhyDisabled id="why-carfacts-55" why={((!gear) || (!seats)) ? (!gear) ? 'Choose the gear and seats first' : 'Choose the gear and seats first' : null} /></></p>
       {err && <p className="error" role="alert">{err}</p>}
     </Pop>
   );

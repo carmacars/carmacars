@@ -5,6 +5,7 @@ import { confirmCardCoverage, previewCardCoverage } from '@/server/actions/porta
 import { cardName, searchCards, type CardRow } from './cards';
 import type { CardPick, CardProductCheck } from './types';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Coverage option 2 (1400): the renter finds their card (issuer and card) in the list, sees at once whether it covers this
 // car (the database's app.card_product_check: the card's coverage, the car's value against the card's limit, the car's
 // type against the card's exclusions, the length of the rental), then ticks and confirms. A card that does not cover the
@@ -70,7 +71,7 @@ export function CardPicker({ number, cards, pick, vehicleClass, rentalDays }: {
         }); }}>
           <label className="check"><input type="checkbox" checked={tick} onChange={(e) => setTick(e.target.checked)} data-testid="coverage-card-tick" />{' '}
             <span>My {chosen.label || 'credit card'} includes rental car coverage for a {vehicleClass ?? 'car of this class'} for {rentalDays} {rentalDays === 1 ? 'day' : 'days'}, and I will claim on it if the car is damaged.</span></label>
-          <button className="btn btn--primary" type="submit" disabled={!tick || !ready} data-testid="coverage-card-confirm">{pending ? 'Saving' : 'Confirm my card’s coverage'}</button>
+          <><button className="btn btn--primary" type="submit" disabled={!tick || !ready} data-testid="coverage-card-confirm" aria-describedby="why-cardpicker-73">{pending ? 'Saving' : 'Confirm my card’s coverage'}</button><WhyDisabled id="why-cardpicker-73" why={((!tick) || (!ready)) ? (!tick) ? 'Tick the box first' : 'Finish the steps above first' : null} /></>
         </form>)}
       {msg && <p className="small" role="status" data-testid="card-picker-msg">{msg}</p>}
     </div>

@@ -7,6 +7,7 @@ import { torontoToUtc } from '@/features/turo/email';
 import { DateInput } from '@/components/DateInput';
 import { ContactButtons } from '@/features/phone/QuoButtons';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Turo by email on Calendar sync (migrations 0063, 0088). Turo has no calendar link, so:
 //   in:  Turo's trip emails block the car. No setup per car: each email is matched to a car by itself (the Turo car id,
 //        VIN, plate, year, make, model, trim, colour, the trip and what earlier emails taught each car); the rare email
@@ -85,7 +86,7 @@ export function TripForm({ cars, carId, email, initial, onDone }: { cars?: Array
         <div className="field"><label className="label" htmlFor={`tg-${id}`}>Guest first name (optional)</label>
           <input className="input" id={`tg-${id}`} maxLength={40} value={guest} onChange={(e) => setGuest(e.target.value)} /></div>
       </div>
-      <button type="submit" className="btn btn--primary btn--sm" disabled={pending || !vehicle || !from || !to}>{pending ? 'Adding' : email ? 'Add this trip' : 'Add the trip'}</button>
+      <><button type="submit" className="btn btn--primary btn--sm" disabled={pending || !vehicle || !from || !to} aria-describedby="why-turosync-88">{pending ? 'Adding' : email ? 'Add this trip' : 'Add the trip'}</button><WhyDisabled id="why-turosync-88" why={((!vehicle) || (!from) || (!to)) ? (!vehicle) ? 'Choose the car first' : (!from) ? 'Choose the start date first' : 'Enter who it goes to first' : null} /></>
       {err && <p className="small ad-late" role="alert">{err}</p>}
     </form>
   );
@@ -119,7 +120,7 @@ function WhichCar({ r, cars, onClose, onDone }: { r: TuroReview; cars: Array<{ i
           <select className="select" id={`wo-${r.id}`} value={other} onChange={(e) => setOther(e.target.value)} data-testid="turo-which-other">
             <option value="">Choose the car</option>{rest.map((c) => <option key={c.id} value={c.id}>{c.name}{c.colour ? `, ${c.colour.toLowerCase()}` : ''}{plate(c.plate_end)}</option>)}</select></div>
         <div className="row">
-          <button type="submit" className="btn btn--primary btn--sm" disabled={pending || !other}>This car</button>
+          <><button type="submit" className="btn btn--primary btn--sm" disabled={pending || !other} aria-describedby="why-turosync-122">This car</button><WhyDisabled id="why-turosync-122" why={((!other)) ? 'Choose the other one first' : null} /></>
           <button type="button" className="btn btn--quiet btn--sm" onClick={() => dlg.current?.close()}>Not now</button>
         </div>
       </form>
@@ -222,7 +223,7 @@ export function TuroCar({ car, enabled, bookingBase, onDone }: { car: TuroCarDat
               <input className="input" id={`lv-${id}`} inputMode="numeric" maxLength={12} value={num} onChange={(e) => setNum(e.target.value)} placeholder="The number at the end of its Turo page address" /></div>
           </div>
           <div className="row cs-actions">
-            <button type="submit" className="btn btn--primary btn--sm" disabled={pending || (!name.trim() && !num.trim())}>Save</button>
+            <><button type="submit" className="btn btn--primary btn--sm" disabled={pending || (!name.trim() && !num.trim())} aria-describedby="why-turosync-225">Save</button><WhyDisabled id="why-turosync-225" why={(((!name.trim() && !num.trim()))) ? 'Enter the name or the number first' : null} /></>
             <button type="button" className="btn btn--ghost btn--sm" onClick={() => setEdit(false)}>Cancel</button>
           </div>
         </form>

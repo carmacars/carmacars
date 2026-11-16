@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { fieldAct } from '@/server/actions/field';
 import { preparePhoto, uploads } from './queue';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // The field report (06-field.md section 9): a car of today's jobs, what happened, details, photos (up to 10;
 // required for damage), and for a collision whether anyone is hurt (yes: "Call 911 now" above everything).
 const WHAT: Array<[string, string]> = [['new_damage', 'New damage found'], ['warning_light', 'Warning light'], ['collision', 'Collision while I was driving'],
@@ -50,7 +51,7 @@ export function FieldReport({ vehicles }: { vehicles: Array<{ id: string; name: 
       <div className="stack"><p className="small">{photos.length} photo(s){what === 'new_damage' ? '; at least one for damage' : ''}.</p>
         <label className="btn btn--ghost fd-wide">{sending ? 'Sending' : 'Take a photo'}<input className="vh" type="file" accept="image/*" capture="environment" multiple onChange={(e) => { void add(e.target.files); e.target.value = ''; }} data-testid="report-photo" /></label></div>
       {msg && !msg.ok && <p className="alert alert--error" role="alert"><span>{msg.text}</span></p>}
-      <button className="btn btn--primary fd-wide" type="submit" disabled={pending || sending || !what || details.trim().length < 10} data-testid="report-send">{pending ? 'Sending' : 'Send the report'}</button>
+      <><button className="btn btn--primary fd-wide" type="submit" disabled={pending || sending || !what || details.trim().length < 10} data-testid="report-send" aria-describedby="why-fieldreport-53">{pending ? 'Sending' : 'Send the report'}</button><WhyDisabled id="why-fieldreport-53" why={((!what) || (details.trim().length < 10)) ? (!what) ? 'Choose what happened first' : 'Fill in the details first (10 characters or more)' : null} /></>
     </form>
   );
 }

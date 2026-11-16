@@ -5,6 +5,7 @@ import { Badge, Card, Kv, Table } from '@/features/admin/ui';
 import { PrepareProgress } from '@/features/field-portal/PrepareProgress';
 import { readinessLines, readinessSummary } from '@/features/booking-page/readiness';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Style guide', path: '/admin/style-guide', noindex: true, description: 'Every shared component of the portals, as the pages draw them.' });
 
@@ -25,7 +26,7 @@ export default async function StyleGuide({ searchParams }: { searchParams: Promi
         <div className="ad-actions">
           <button type="button" className="btn btn--primary">Primary</button><button type="button" className="btn">Black</button>
           <button type="button" className="btn btn--ghost">Ghost</button><button type="button" className="btn btn--quiet">Quiet</button>
-          <button type="button" className="btn btn--primary btn--sm">Small</button><button type="button" className="btn btn--sm" disabled>Disabled</button>
+          <button type="button" className="btn btn--primary btn--sm">Small</button><><button type="button" className="btn btn--sm" disabled aria-describedby="why-page-28">Disabled</button><WhyDisabled id="why-page-28" why={((true)) ? 'An example: a greyed-out button says what to do first' : null} /></>
         </div>
       </Card>
       <Card title="Tabs and filter chips">

@@ -48,7 +48,7 @@ export default function Plinko({ prize, prizes, reduced, onReveal }: GameProps) 
         </svg>
       </div>
       <p className="ccg-live" aria-live="polite">{done ? <>It landed on <b>{prize.label}</b></> : path ? 'Bouncing...' : ''}</p>
-      <button type="button" className="btn btn--primary ccg-play" onClick={drop} disabled={Boolean(path)} data-testid="game-action">Drop the disc</button>
+      <button type="button" className="btn btn--primary ccg-play" onClick={drop} disabled={Boolean(path)} data-testid="game-action" title={((Boolean(path))) ? 'Wait for this drop to finish' : undefined}>Drop the disc</button>
     </div>
   );
 }

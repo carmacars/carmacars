@@ -6,6 +6,7 @@ import { QUO_DESKTOP_KEY, QUO_WEB, callPlan, e164, isHandheld, prettyNumber, quo
 import { callView, checkMyNumber, type CallAnswer, type CallView } from './my-number';
 import { placeCall } from './voice';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // The Call and Text buttons of every staff page (r27 consolidation, migration 0500; the owner on November 2, 2026: "Call and
 // Text through Quo"). Text opens a composer here that sends from the CarmaCars number through Quo, and the text is kept in
 // the person's conversation (Texts and calls). Call opens Quo with the number: the Quo app on a phone, on a computer the Quo
@@ -283,7 +284,7 @@ function Composer({ n, who, booking, from, inbox, onClose, testId }: { n: string
           <p className="qb-acts">
             <span className="small muted" aria-live="polite">{left < 200 ? `${left} characters left` : ''}</span>
             {!isMasked(n) && isHandheld(typeof navigator === 'undefined' ? '' : navigator.userAgent) && <a className="btn btn--quiet btn--sm" href={quoMessage(n, from, body || undefined)}>Open in the Quo app</a>}
-            <button type="submit" className="btn btn--primary btn--sm" disabled={!body.trim() || state.busy} data-testid="quo-send">{state.busy ? 'Sending' : 'Send'}</button>
+            <><button type="submit" className="btn btn--primary btn--sm" disabled={!body.trim() || state.busy} data-testid="quo-send" aria-describedby="why-quobuttons-286">{state.busy ? 'Sending' : 'Send'}</button><WhyDisabled id="why-quobuttons-286" why={((!body.trim())) ? 'Type the message first' : null} /></>
           </p>
           {state.err && <p className="alert alert--error small" role="alert"><span>{state.err}</span></p>}
         </form>

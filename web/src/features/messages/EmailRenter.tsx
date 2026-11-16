@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { opsAct } from '@/server/actions/ops';
 import { emailProblem, pickSender, recipientChoices, SENDERS, senderChoices, type Conversation, type Recipient, type Sender } from './email-choices';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Email the renter (or the adjuster) from a booking (migration 0187): a subject and a message, optionally started from a
 // quick reply. It goes through the email outbox like every email, at the customer priority, and is kept on the booking's
 // messages and history with who sent it. On a booking an insurer pays, the adjuster can be written to and the sender can
@@ -44,7 +45,7 @@ export function EmailRenter({ c, refresh = [], initialTo = 'renter' }: { c: Conv
       <div className="field"><label className="label" htmlFor="em-body">Message</label>
         <textarea className="input ad-textarea" id="em-body" rows={6} maxLength={4000} value={body} onChange={(e) => setBody(e.target.value)} required /></div>
       {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'}><span>{msg.text}</span></p>}
-      <button className="btn btn--primary btn--sm" type="submit" disabled={pending || !!problem} data-testid="email-send">{pending ? 'Sending' : to === 'adjuster' ? 'Email the adjuster' : 'Email the renter'}</button>
+      <><button className="btn btn--primary btn--sm" type="submit" disabled={pending || !!problem} data-testid="email-send" aria-describedby="why-emailrenter-47">{pending ? 'Sending' : to === 'adjuster' ? 'Email the adjuster' : 'Email the renter'}</button><WhyDisabled id="why-emailrenter-47" why={problem || null} /></>
     </form>
   );
 }

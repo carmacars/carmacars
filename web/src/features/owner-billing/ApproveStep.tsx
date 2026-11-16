@@ -7,6 +7,7 @@ import { approveWithTerms, type ApproveCar } from '@/server/actions/owner-billin
 import { SOURCE_LABEL, dollars, hstOf, pctOf, toCents } from './shared';
 import { DateInput } from '@/components/DateInput';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Approve, step "Terms and first invoice" (migration 0067): for each car the terms pre-filled from the negotiated
 // defaults (or the grid), edited to the cent; then which invoices to make, each sent now, kept as a draft or recorded
 // as already paid (e-Transfer, cash, cheque, bank transfer or another way). Nothing is sent before Approve.
@@ -108,7 +109,7 @@ function FleetApprove({ plan, owner }: { plan: Plan; owner: string }) {
       <p className="small muted">A tier chosen by mistake: correct it on the owner&apos;s Terms tab (Fleet lease) before you approve.</p>
       {a.res && !a.res.ok && <p className="alert alert--error" role="alert"><span>{a.res.message}</span></p>}
       {a.res?.ok && <p className="alert alert--ok" role="status"><span>Approved: the cars are on the lease.{a.res.data.note ? ` ${a.res.data.note}` : ''}</span></p>}
-      <div className="row"><button className="btn btn--primary" type="submit" disabled={a.pending || cars.some((c) => !c.lease_tier)} data-testid="approve-fleet-submit">{a.pending ? 'Approving' : 'Approve'}</button></div>
+      <div className="row"><><button className="btn btn--primary" type="submit" disabled={a.pending || cars.some((c) => !c.lease_tier)} data-testid="approve-fleet-submit" aria-describedby="why-approvestep-111">{a.pending ? 'Approving' : 'Approve'}</button><WhyDisabled id="why-approvestep-111" why={((cars.some((c) => !c.lease_tier))) ? 'Choose the lease tier of every car first' : null} /></></div>
     </form>
   );
 }

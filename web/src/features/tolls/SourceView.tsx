@@ -55,8 +55,8 @@ export function SourceView({ src, mime, name, mark }: { src: string; mime: strin
       <div className="pt-card__head"><h2 className="d4" id="tr-src">The notice</h2>
         <span className="row">
           {isPdf && pages > 1 && <span className="small" aria-live="polite">Page {page} of {pages}</span>}
-          {isPdf && pages > 1 && <><button type="button" className="btn btn--ghost btn--sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous page</button>
-            <button type="button" className="btn btn--ghost btn--sm" disabled={page >= pages} onClick={() => setPage(page + 1)}>Next page</button></>}
+          {isPdf && pages > 1 && <><button type="button" className="btn btn--ghost btn--sm" disabled={page <= 1} onClick={() => setPage(page - 1)} title={((page <= 1)) ? 'This is the first page' : undefined}>Previous page</button>
+            <button type="button" className="btn btn--ghost btn--sm" disabled={page >= pages} onClick={() => setPage(page + 1)} title={((page >= pages)) ? 'This is the last page' : undefined}>Next page</button></>}
           {!isCsv && <button type="button" className="btn btn--ghost btn--sm" aria-pressed={zoom} onClick={() => setZoom(!zoom)}>{zoom ? 'Fit' : 'Zoom'}</button>}
           <a className="link small" href={src} target="_blank" rel="noreferrer">Open the file</a>
         </span></div>

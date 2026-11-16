@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { packCards, tearProgress, TORN } from '../rules';
 import type { GameProps } from '../GamePopup';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // The card pack (0081): a sealed CarmaCars foil pack. The visitor tears the strip along the top (drag across it, tap it
 // a few times, or press the button); five cards fan out and turn one by one, and the last one is the prize the
 // database drew. A rare prize turns as a holographic card. CarmaCars' own picture cards only, never a real trading
@@ -80,7 +81,7 @@ export default function Pack({ prize, reduced, onReveal }: GameProps) {
         )}
       </div>
       <p className="ccg-live" aria-live="polite">{last ? <>The last card: <b>{prize.label}</b></> : now?.kind === 'art' ? `Card ${shown} of ${cards.length}: ${now.title}` : open ? 'Opening the pack...' : torn > 0 ? 'Keep tearing along the top' : 'Tear the strip along the top, or press the button'}</p>
-      <button type="button" className="btn btn--primary ccg-play" onClick={tearOpen} disabled={open} data-testid="game-action">Tear it open</button>
+      <><button type="button" className="btn btn--primary ccg-play" onClick={tearOpen} disabled={open} data-testid="game-action" aria-describedby="why-pack-83">Tear it open</button><WhyDisabled id="why-pack-83" why={((open)) ? 'Already opened' : null} /></>
     </div>
   );
 }

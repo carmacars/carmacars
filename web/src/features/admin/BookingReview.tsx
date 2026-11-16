@@ -24,6 +24,7 @@ import { INSURER_FEES, insurerFeesPayload, insurerFeesRemoval, isInsurerFee, typ
 import { TypedInput } from '@/components/DateInput';
 import type { Revert } from '@/features/request-history/model';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Review and adjust a booking request (03-admin.md section 4.2). Staff change the booking itself; every
 // edit is priced by the database (adjust_booking and the pricing functions inside a rolled-back
 // transaction) and shown as the renter will see the offer. r48: one form (car and dates, price, extras and fees, how
@@ -551,8 +552,8 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
           {sendable && passed && <p className="alert alert--error" role="alert" data-testid="review-pickup-passed"><span>{PICKUP_PASSED}</span></p>}
           {problem && <p className="alert alert--error" role="alert" data-testid="review-problem"><span>{problem}</span></p>}
           <div className="oc-actions">
-            {sendable && <button className="btn btn--primary" type="button" disabled={pending || !fresh || passed} onClick={primary} data-testid="review-send">{primaryLabel}</button>}
-            <button className={sendable ? 'btn btn--quiet' : 'btn btn--primary'} type="submit" disabled={pending || !fresh} data-testid="review-save">{pending && !sendable ? 'Saving' : 'Save without sending'}</button>
+            {sendable && <><button className="btn btn--primary" type="button" disabled={pending || !fresh || passed} onClick={primary} data-testid="review-send" aria-describedby="why-bookingreview-554">{primaryLabel}</button><WhyDisabled id="why-bookingreview-554" why={((!fresh) || (passed)) ? (passed ? 'The pickup time has passed: choose a later pickup first' : 'Refresh the price first') : null} /></>}
+            <><button className={sendable ? 'btn btn--quiet' : 'btn btn--primary'} type="submit" disabled={pending || !fresh} data-testid="review-save" aria-describedby="why-bookingreview-555">{pending && !sendable ? 'Saving' : 'Save without sending'}</button><WhyDisabled id="why-bookingreview-555" why={((!fresh)) ? 'Refresh the reading first' : null} /></>
           </div>
           {done && <p className="alert alert--ok" role="status" data-testid="review-done"><span>{done}</span></p>}
           {revised && revised.length > 0 && <ul className="small" data-testid="review-revised">{revised.map((x) => <li key={x}>{x}</li>)}</ul>}
@@ -580,7 +581,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
           <dl className="pt-dl small">
             <div><dt>Pickup</dt><dd>{when(shown.pickup_at)}, {shown.pickup_place ?? 'our location'}</dd></div>
             <div><dt>Return</dt><dd>{when(shown.return_at)}, {shown.return_place ?? 'our location'}</dd></div>
-            <div><dt>Deposit at pickup</dt><dd>{v.deposit_pay === 'none' ? 'No deposit' : money(shown.deposit_cents)}</dd></div>
+            <div><dt>Deposit at pickup</dt><dd>{v.deposit_pay === 'none' ? 'No deposit' : money(shown.deposit_cents)}{['cash', 'e_transfer'].includes(String(v.deposit_pay)) && shown.deposit_cents > 0 && <span className="small muted" data-testid="offer-deposit-offline"> on a credit card; by e-Transfer or cash it is the multiple set in Program settings (2x by default), shown to the renter before they pay and on the Money tab</span>}</dd></div>
             {shown.km_allowance_total ? <div><dt>Kilometres</dt><dd>{shown.km_allowance_total} km included, then {money(shown.overage_cents_per_km, { cents: true })} per km</dd></div> : null}
           </dl>
           <dl className="pt-dl pt-dl--money small">

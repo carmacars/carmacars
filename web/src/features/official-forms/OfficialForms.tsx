@@ -5,6 +5,7 @@ import { staffDo, staffRead, uploadFormTemplate } from '@/server/actions/staff-t
 import type { PdfField, Spec } from './fill';
 import { FormReview } from './FormReview';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Admin > Settings > Forms (migration 0042): the official ServiceOntario PDFs. Upload the fillable PDF of a form;
 // its fields are read here in the browser; choose what goes in each field; preview it filled for a car; then
 // "Use for owners": every owner's form not signed yet is filled again from it, and owners get the official PDF to
@@ -106,12 +107,12 @@ function Mapping({ code, t, d, history, path }: { code: string; t: Tpl; d: Forms
         <input className="input" id={`fn-${code}`} value={note} maxLength={300} onChange={(e) => setNote(e.target.value)} data-testid={`form-note-${code}`} /></div>
       <div className="row">
         <button className="btn btn--ghost btn--sm" type="button" disabled={pending} onClick={() => save(false)} data-testid={`form-save-${code}`}>Save the mapping</button>
-        <button className="btn btn--primary btn--sm" type="button" disabled={pending || !mapped} onClick={() => save(true)} data-testid={`form-verify-${code}`}>{t.verified ? 'Save and keep in use' : 'Checked: use for owners'}</button>
+        <><button className="btn btn--primary btn--sm" type="button" disabled={pending || !mapped} onClick={() => save(true)} data-testid={`form-verify-${code}`} aria-describedby="why-officialforms-109">{t.verified ? 'Save and keep in use' : 'Checked: use for owners'}</button><WhyDisabled id="why-officialforms-109" why={((!mapped)) ? 'Match the columns first' : null} /></>
       </div>
       {d.vehicles.length > 0 && <div className="row">
         <label className="label" htmlFor={`fp-${code}`}>Preview with</label>
         <select className="select" id={`fp-${code}`} value={vehicle} onChange={(e) => setVehicle(e.target.value)}>{d.vehicles.map((v) => <option key={v.id} value={v.id}>{v.name} ({v.owner})</option>)}</select>
-        <button className="btn btn--ghost btn--sm" type="button" disabled={pending || !vehicle} onClick={preview} data-testid={`form-preview-${code}`}>Download a filled preview</button>
+        <><button className="btn btn--ghost btn--sm" type="button" disabled={pending || !vehicle} onClick={preview} data-testid={`form-preview-${code}`} aria-describedby="why-officialforms-114">Download a filled preview</button><WhyDisabled id="why-officialforms-114" why={((!vehicle)) ? 'Choose the car first' : null} /></>
       </div>}
       {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'}><span>{msg.text}</span></p>}
       {history.length > 0 && <details data-testid={`form-history-${code}`}><summary className="link">Earlier mappings</summary><span className="small muted"> {history.length} saved</span>

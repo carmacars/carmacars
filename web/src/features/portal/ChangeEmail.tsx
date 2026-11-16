@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { changeAccountEmail } from '@/server/actions/phone-auth';
 import { describedBy, Field } from '@/features/forms/Field';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // r33: change the sign-in email from the profile, for everyone (renter, owner, investor, staff, field staff). The new address gets a confirmation link,
 // the old address is told, and the email on the account changes only once the link is opened (then every contact record follows it).
 export function ChangeEmail({ current, className = 'stack' }: { current: string | null; className?: string }) {
@@ -33,7 +34,7 @@ export function ChangeEmail({ current, className = 'stack' }: { current: string 
           <Field id="ce-email" label="New email" hint="We send a link to confirm it to this address and tell your current one. Nothing changes until the link is opened." error={msg && !msg.ok ? msg.text : undefined}>
             <input className="input" id="ce-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} aria-describedby={describedBy('ce-email', msg && !msg.ok ? msg.text : undefined, true)} data-testid="change-email-input" />
           </Field>
-          <p className="row"><button className="btn btn--primary btn--sm" type="submit" disabled={pending || !email.trim()} data-testid="change-email-send">{pending ? 'Sending' : 'Send the link'}</button>
+          <p className="row"><><button className="btn btn--primary btn--sm" type="submit" disabled={pending || !email.trim()} data-testid="change-email-send" aria-describedby="why-changeemail-36">{pending ? 'Sending' : 'Send the link'}</button><WhyDisabled id="why-changeemail-36" why={((!email.trim())) ? 'Enter the email address first' : null} /></>
             <button className="btn btn--ghost btn--sm" type="button" onClick={() => { setOpen(false); setMsg(null); }}>Cancel</button></p>
         </form>}
     </div>

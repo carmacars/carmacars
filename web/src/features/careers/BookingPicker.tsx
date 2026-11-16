@@ -5,6 +5,7 @@ import { bookSlot, cancelBooking } from '@/server/actions/careers';
 import { fmtDay, fmtSlot, MANILA, torontoDay } from './model';
 import type { BookingView } from '@/server/careers';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Pick an interview time (migration 0173): the open slots grouped by day, Toronto time (and Manila time for a remote role).
 // One tap chooses, Confirm books; a booked call can be moved (pick another, Confirm) or cancelled. The database locks the slot.
 export function BookingPicker({ token, v }: { token: string; v: BookingView }) {
@@ -78,9 +79,9 @@ export function BookingPicker({ token, v }: { token: string; v: BookingView }) {
               </fieldset>
             ))}
             <div className="cr-confirm">
-              <button type="button" className="btn btn--primary btn--lg" disabled={!pick || busy} onClick={confirm} data-testid="book-confirm">
+              <><button type="button" className="btn btn--primary btn--lg" disabled={!pick || busy} onClick={confirm} data-testid="book-confirm" aria-describedby="why-bookingpicker-81">
                 {busy ? 'Booking' : pick ? `${booked ? 'Move to' : 'Book'} ${fmtSlot(v.slots.find((s) => s.id === pick)!.starts_at)}` : 'Choose a time'}
-              </button>
+              </button><WhyDisabled id="why-bookingpicker-81" why={((!pick)) ? 'Pick one first' : null} /></>
             </div>
           </div>}
     </div>

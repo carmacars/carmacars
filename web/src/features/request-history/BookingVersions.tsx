@@ -7,6 +7,7 @@ import { Card } from '@/features/admin/ui';
 import { offersDo } from '@/server/actions/offers';
 import { balanceWords, versionLabel, type BookingVersion, type BookingVersions as Data, type RestorePreview } from './model';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // r45 (2861): a confirmed booking's versions (before its first change, then after each change), each with "Restore this
 // version": a preview of the difference first, then the booking back to that version's dates, car, rental charge and fee
 // lines as one change with the reason. The same checks as Edit (who may change bookings, the car free); never a payment.
@@ -49,7 +50,7 @@ function Row({ v, booking, may }: { v: BookingVersion; booking: string; may: boo
           <div className="field"><label className="label" htmlFor={`vr-why-${v.no}`}>Why (kept with the change)</label>
             <input className="input" id={`vr-why-${v.no}`} value={reason} onChange={(e) => setReason(e.target.value)} data-testid={`version-reason-${v.no}`} /></div>
           <label className="check"><input type="checkbox" checked={tell} onChange={(e) => setTell(e.target.checked)} /> <span>Tell the renter what changed</span></label>
-          <div className="row"><button type="button" className="btn btn--primary btn--sm" onClick={restore} disabled={pending || reason.trim().length < 3} data-testid={`version-confirm-${v.no}`}>{pending ? 'Restoring' : `Restore version ${v.no}`}</button>
+          <div className="row"><><button type="button" className="btn btn--primary btn--sm" onClick={restore} disabled={pending || reason.trim().length < 3} data-testid={`version-confirm-${v.no}`} aria-describedby="why-bookingversions-52">{pending ? 'Restoring' : `Restore version ${v.no}`}</button><WhyDisabled id="why-bookingversions-52" why={((reason.trim().length < 3)) ? 'Write the reason first (3 characters or more)' : null} /></>
             <button type="button" className="btn btn--quiet btn--sm" onClick={() => setPv(null)}>Cancel</button></div>
         </div>
       ) : <p className={pv.ok ? 'small muted' : 'error'} role="status">{pv.ok ? pv.message ?? 'The booking is already as in this version.' : pv.problem}{' '}<button type="button" className="link small" onClick={() => setPv(null)}>Close</button></p>)}

@@ -39,7 +39,7 @@ export default function Slots({ prize, prizes, reduced, onReveal }: GameProps) {
         <span className="ccg-slots__line" aria-hidden="true" />
       </div>
       <p className="ccg-live" aria-live="polite">{done ? <>Three in a row: <b>{prize.label}</b></> : stops ? 'Spinning...' : 'Pull the lever. Every spin wins.'}</p>
-      <button type="button" className="btn btn--primary ccg-play" onClick={pull} disabled={Boolean(stops)} data-testid="game-action">Pull the lever</button>
+      <button type="button" className="btn btn--primary ccg-play" onClick={pull} disabled={Boolean(stops)} data-testid="game-action" title={((Boolean(stops))) ? 'Wait for the reels to stop' : undefined}>Pull the lever</button>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { opsAct } from '@/server/actions/ops';
 import '@/styles/late-return.css';
 import { LATE_KEYS, LATE_LABEL, NO_CHOICE, choiceAmount, choiceNeedsAdmin, choicePayload, choiceProblem, decisionText, optionDetail, type LateChoice, type LateReturn } from './late-return';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // The late return choice (migration 2710): five big choices, each with what it costs now. On the return screen it is part
 // of the checklist (the choice travels with the return; "Decide later" leaves a To do); on the booking it has its own
 // button. Nothing is charged for a late return until someone chooses here.
@@ -62,9 +63,9 @@ export function LateReturnDecide({ late, refresh = [] }: { late: LateReturn; ref
       {open && (d && d.status !== 'pending'
         ? <details><summary className="small link" data-testid="late-change">{d.status === 'needs_admin' ? 'Choose another way instead' : 'Admin: change the late return charge'}</summary>
             <LateReturnChoice late={late} value={c} onChange={setC} name="late-booking" />
-            <button className="btn btn--primary" type="button" disabled={pending || !c.option} onClick={go} data-testid="late-save">{pending ? 'Working' : 'Save the late return charge'}</button></details>
+            <><button className="btn btn--primary" type="button" disabled={pending || !c.option} onClick={go} data-testid="late-save" aria-describedby="why-latereturnchoice-65">{pending ? 'Working' : 'Save the late return charge'}</button><WhyDisabled id="why-latereturnchoice-65" why={((!c.option)) ? 'Choose an option first' : null} /></></details>
         : <><LateReturnChoice late={late} value={c} onChange={setC} name="late-booking" />
-            <button className="btn btn--primary" type="button" disabled={pending || !c.option} onClick={go} data-testid="late-save">{pending ? 'Working' : 'Save the late return charge'}</button></>)}
+            <><button className="btn btn--primary" type="button" disabled={pending || !c.option} onClick={go} data-testid="late-save" aria-describedby="why-latereturnchoice-67">{pending ? 'Working' : 'Save the late return charge'}</button><WhyDisabled id="why-latereturnchoice-67" why={((!c.option)) ? 'Choose an option first' : null} /></></>)}
       {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'} data-testid="late-message"><span>{msg.text}</span></p>}
     </div>
   );

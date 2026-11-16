@@ -5,6 +5,7 @@ import { FieldReport } from '@/features/field/FieldReport';
 import { SPEND_KINDS, toCents } from './model';
 import { Msg, PhotoPick, sendWork, useRun } from './Steps';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // The one Add button of the field portal (r35 part X): money spent, a service record, photos of a car, a problem with a car.
 // Money spent goes to Finance to approve and pay back (a To do while the receipt is missing); a service record goes on the
 // car, makes its expense line and tells Fleet and Finance (0930).
@@ -127,9 +128,9 @@ function ServiceForm({ cars, preps, done }: { cars: Car[]; preps: Record<string,
         <button type="button" aria-pressed={paid === 'own'} onClick={() => setPaid('own')}>My own money</button>
       </div>
       <PhotoPick file={file} set={setFile} label="Photo of the invoice" pdf testId="service-invoice" />
-      <button type="button" className="btn btn--primary fd-wide" disabled={pending || !car} data-testid="service-save"
+      <><button type="button" className="btn btn--primary fd-wide" disabled={pending || !car} data-testid="service-save"
         onClick={() => run(() => sendWork('service_add', { vehicle: car, items, what: what || ITEMS.filter(([v]) => items.includes(v)).map(([, l]) => l).join(', '), shop, odometer_km: km ? Number(km) : null,
-          cost_cents: toCents(cost) ?? 0, hst_cents: toCents(hst) ?? 0, paid_with: paid, prep: preps[car] ?? null }, file), 'Recorded on the car. Fleet and Finance are told.', () => setTimeout(done, 900))}>{pending ? 'Saving' : 'Record the service'}</button>
+          cost_cents: toCents(cost) ?? 0, hst_cents: toCents(hst) ?? 0, paid_with: paid, prep: preps[car] ?? null }, file), 'Recorded on the car. Fleet and Finance are told.', () => setTimeout(done, 900))} aria-describedby="why-addbutton-130">{pending ? 'Saving' : 'Record the service'}</button><WhyDisabled id="why-addbutton-130" why={((!car)) ? 'Choose the car first' : null} /></>
       <Msg m={msg} />
     </div>
   );
@@ -145,7 +146,7 @@ function PhotoForm({ cars, done }: { cars: Car[]; done: () => void }) {
       <CarSelect id="p-car" cars={cars} value={car} set={setCar} />
       <PhotoPick file={file} set={setFile} />
       <div className="field"><label className="label" htmlFor="p-note">Note</label><input id="p-note" className="input" value={note} maxLength={200} onChange={(e) => setNote(e.target.value)} placeholder="What it shows" /></div>
-      <button type="button" className="btn btn--primary fd-wide" disabled={pending || !file || !car} onClick={() => run(() => sendWork('car_photo', { vehicle: car, note }, file), 'Saved on the car.', () => setTimeout(done, 900))}>{pending ? 'Saving' : 'Save the photo'}</button>
+      <><button type="button" className="btn btn--primary fd-wide" disabled={pending || !file || !car} onClick={() => run(() => sendWork('car_photo', { vehicle: car, note }, file), 'Saved on the car.', () => setTimeout(done, 900))} aria-describedby="why-addbutton-148">{pending ? 'Saving' : 'Save the photo'}</button><WhyDisabled id="why-addbutton-148" why={((!file) || (!car)) ? (!file) ? 'Choose the file first' : 'Choose the car first' : null} /></>
       <Msg m={msg} />
     </div>
   );

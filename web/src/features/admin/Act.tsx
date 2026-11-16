@@ -13,6 +13,7 @@ import { infoText } from '@/features/info/text';
 import { TypedInput } from '@/components/DateInput';
 import { instantOfTorontoInput, torontoInputOf } from '@/lib/dates';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // The admin portal's action controls. One button or one form per database action: fields are typed
 // (money in dollars becomes cents, a percentage becomes basis points, a local date and time becomes an
 // instant), the database decides, and its refusal is shown as written. Keyboard: Enter submits, Esc
@@ -137,9 +138,9 @@ const fill = (tpl: string, data: unknown) => tpl.replace(/\{(\w+)\}/g, (_, k: st
 export const signal = (ok: boolean) => { try { window.dispatchEvent(new Event(ok ? 'cc:progress' : 'cc:error')); } catch { /* not in a browser */ } };
 
 /** A button that runs one action, optionally after a dialog with fields or a confirmation. */
-export function Act({ action, payload = {}, fields = [], label, confirm, variant = 'ghost', title, go, done = 'Done.', refresh = [], nest, testId, disabled, inline, submitLabel, ops }: {
+export function Act({ action, payload = {}, fields = [], label, confirm, variant = 'ghost', title, go, done = 'Done.', refresh = [], nest, testId, disabled, disabledWhy, inline, submitLabel, ops }: {
   action: string; payload?: Record<string, unknown>; fields?: Field[]; label: string; confirm?: string; variant?: 'primary' | 'ghost' | 'quiet' | 'danger';
-  title?: string; go?: string; done?: string; refresh?: string[]; nest?: string; testId?: string; disabled?: boolean; inline?: boolean; submitLabel?: string;
+  title?: string; go?: string; done?: string; refresh?: string[]; nest?: string; testId?: string; disabled?: boolean; /** r48 part 2: what to do first while it is greyed out */ disabledWhy?: string; inline?: boolean; submitLabel?: string;
   /** The action is one of migration 0032's (the door's ops_do), the same for an Admin and an assistant. */
   ops?: boolean;
 }) {
@@ -179,7 +180,7 @@ export function Act({ action, payload = {}, fields = [], label, confirm, variant
         fill={(patch) => f.setVals((s) => ({ ...s, ...patch }))} />)}</div>}
       {res && !res.ok && <p className="alert alert--error" role="alert"><span>{res.message}</span></p>}
       <div className="row">
-        <button className={`btn btn--sm ${variant === 'danger' ? 'btn--primary ad-btn--danger' : 'btn--primary'}`} type="submit" disabled={pending || disabled} data-testid={testId ? `${testId}-submit` : undefined}>{pending ? 'Working' : submitLabel ?? label}</button>
+        <><button className={`btn btn--sm ${variant === 'danger' ? 'btn--primary ad-btn--danger' : 'btn--primary'}`} type="submit" disabled={pending || disabled} data-testid={testId ? `${testId}-submit` : undefined} aria-describedby="why-act-182">{pending ? 'Working' : submitLabel ?? label}</button><WhyDisabled id="why-act-182" why={((disabled)) ? (disabledWhy ?? 'Not available yet: finish the step before it first') : null} /></>
         {needsDialog && <button className="btn btn--ghost btn--sm" type="button" onClick={() => dlg.current?.close()}>Cancel</button>}
       </div>
     </form>
@@ -187,8 +188,8 @@ export function Act({ action, payload = {}, fields = [], label, confirm, variant
   if (inline) return <div className="ad-inline">{form}{res?.ok && done ? <p className="small" role="status">{done}</p> : null}</div>;
   return (
     <>
-      <button className={cls} type="button" disabled={pending || disabled} data-testid={testId} aria-haspopup={needsDialog ? 'dialog' : undefined}
-        onClick={() => { setRes(null); if (needsDialog) dlg.current?.showModal(); else run(); }}>{pending ? 'Working' : label}</button>
+      <><button className={cls} type="button" disabled={pending || disabled} data-testid={testId} aria-haspopup={needsDialog ? 'dialog' : undefined}
+        onClick={() => { setRes(null); if (needsDialog) dlg.current?.showModal(); else run(); }} aria-describedby="why-act-190">{pending ? 'Working' : label}</button><WhyDisabled id="why-act-190" why={((disabled)) ? (disabledWhy ?? 'Not available yet: finish the step before it first') : null} /></>
       {!needsDialog && res && !res.ok && <span className="ad-err" role="alert">{res.message}</span>}
       {needsDialog && (
         <dialog ref={dlg} className="ad-dialog" aria-labelledby={`${idp}-t`} onClose={() => setRes(null)}>

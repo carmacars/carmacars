@@ -77,6 +77,8 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Fuel and charging at the return', (k) => /^(fuel_price|fuel_prices_updated_on|refuel_fee_cents|ev_charge_kwh_cents|fuel_tank_default_litres|ev_battery_default_kwh)/.test(k)],
   ['Coverage checks', (k) => ['card_exotic_makes', 'opcf27_before_payment'].includes(k)],
   ['Owner debits and statement emails', (k) => /^(owner_debit_|billing_day|retry_day|owner_late_fee|owner_statement_email|company_statement_email)/.test(k)],
+  // r48 part 2: the deposit by e-Transfer or cash (3052) and tips (3053)
+  ['Deposits by e-Transfer or cash, and tips', (k) => /^(offline_deposit_|tips_on|tip_)/.test(k)],
   ['Deposits, refunds and money', (k) => /^(deposit_|refund_|statement_|holdback|insurer_|liability|deductible|kickback|shareholder|install_fee|owner_late|billing_day|retry_day|payout_day|fleet_report_day|investor_|buyout|take_deposit)/.test(k)],
   ['Delivery', (k) => k.startsWith('delivery_') || ['company_latitude', 'company_longitude'].includes(k)],
   ['Maintenance', (k) => k.startsWith('maint_')],

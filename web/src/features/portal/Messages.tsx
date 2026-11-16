@@ -5,6 +5,7 @@ import { sendBookingMessage } from '@/server/actions/portal';
 import { when } from '@/features/agreement/model';
 import { useAct } from './useAct';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // The booking's messages (migration 0033): what our team wrote (also emailed) and the renter's replies,
 // which reach customer service as a task.
 export interface Msg { id: string; direction: 'inbound' | 'outbound'; subject: string | null; body: string; at: string; from: string }
@@ -29,7 +30,7 @@ export function Messages({ number, thread, prefill }: { number: string; thread: 
           <p className="error" role="alert" id="pt-msg-err">{a.err('body') ?? (a.res && !a.res.ok ? a.res.message : '')}</p>
         </div>
         {a.res?.ok && <p role="status" className="small">Sent. Our team will reply here and by email.</p>}
-        <button className="btn btn--primary" type="submit" disabled={a.pending || !text.trim()} data-testid="booking-message-send">{a.pending ? 'Sending' : 'Send'}</button>
+        <><button className="btn btn--primary" type="submit" disabled={a.pending || !text.trim()} data-testid="booking-message-send" aria-describedby="why-messages-32">{a.pending ? 'Sending' : 'Send'}</button><WhyDisabled id="why-messages-32" why={((!text.trim())) ? 'Type the message first' : null} /></>
       </form>
     </section>
   );

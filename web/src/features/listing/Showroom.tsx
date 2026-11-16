@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { staffDo, staffRead } from '@/server/actions/staff-tools';
 import { PlateCarry } from './PlateCarry';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Release 35 (0990): the showroom scene of the outside photos (features/listing/showroom.ts). On a listing: "Apply showroom
 // to this car" puts every outside photo of the car in the dark showroom; under a photo in the showroom, how it was made (the
 // image model, or the free showroom and why), "Redo" and "Back to the original". On the listings page (Admin and fleet): every
@@ -21,7 +22,7 @@ export function ShowroomCar({ vehicle, studio }: { vehicle: string; studio: numb
   return (
     <div className="stack" data-testid="showroom-car">
       {!sure
-        ? <p className="row"><button className="btn btn--ghost btn--sm" type="button" disabled={pending || !studio} data-testid="showroom-apply" onClick={() => setSure(true)}>Apply showroom to this car</button>
+        ? <p className="row"><><button className="btn btn--ghost btn--sm" type="button" disabled={pending || !studio} data-testid="showroom-apply" onClick={() => setSure(true)} aria-describedby="why-showroom-24">Apply showroom to this car</button><WhyDisabled id="why-showroom-24" why={((!studio)) ? 'Choose the studio first' : null} /></>
           <span className="small muted">{studio} outside photo{studio === 1 ? ' is' : 's are'} on the black studio.</span></p>
         : <p className="row"><span className="small">Put this car&apos;s outside photos in the dark CarmaCars showroom (the model&apos;s name behind the car on the cover)? The versions before are kept: each photo has Back to the original.</span>
           <button className="btn btn--primary btn--sm" type="button" disabled={pending} data-testid="showroom-apply-yes" onClick={() => { setSure(false); start(async () => {

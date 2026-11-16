@@ -8,6 +8,7 @@ import { KINDS, type Box } from './parse';
 import { SourceView } from './SourceView';
 import { TypedInput } from '@/components/DateInput';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Check what was read from a notice (migration 0042): each line beside the file, corrected where it was misread,
 // marked checked or left out with a reason; then "Confirm and import": the lines go through the toll import of
 // 0021 (duplicates, validation, matching to the booking, the owner or staff), renters matched with high
@@ -114,14 +115,14 @@ export function TollReview({ read, base }: { read: Read; base: '/admin' | '/staf
             <label className="check"><input type="checkbox" checked={charge} onChange={(e) => setCharge(e.target.checked)} data-testid="read-charge" /> <span>Charge renters matched with high confidence now (the notice and the administration fee)</span></label>
             <p className="small muted">{goes.length} line(s) will be imported. {stays.length ? `${stays.length} line(s) with a problem not checked by a person stay here as exceptions.` : ''} Lines read at {read.min_confidence}% or more with nothing missing need no check.</p>
             <div className="row">
-              <button className="btn btn--primary btn--sm" type="button" disabled={pending || !read.lines.some((l) => l.status !== 'excluded') || Object.keys(drafts).length > 0} data-testid="read-confirm"
-                onClick={() => act(async () => staffDo('toll_read_confirm', { read: read.id, charge }, [...here, `${base}/tolls`]), 'Confirmed: the lines went to the toll work queue.')}>{pending ? 'Working' : 'Confirm and import'}</button>
+              <><button className="btn btn--primary btn--sm" type="button" disabled={pending || !read.lines.some((l) => l.status !== 'excluded') || Object.keys(drafts).length > 0} data-testid="read-confirm"
+                onClick={() => act(async () => staffDo('toll_read_confirm', { read: read.id, charge }, [...here, `${base}/tolls`]), 'Confirmed: the lines went to the toll work queue.')} aria-describedby="why-tollreview-117">{pending ? 'Working' : 'Confirm and import'}</button><WhyDisabled id="why-tollreview-117" why={((!read.lines.some((l) => l.status !== 'excluded')) || (Object.keys(drafts).length > 0)) ? 'Keep at least one line and save every draft first' : null} /></>
               {Object.keys(drafts).length > 0 && <span className="small ad-err">Save or undo your changes first.</span>}
               <button className="btn btn--ghost btn--sm" type="button" disabled={pending} data-testid="read-add" onClick={() => act(async () => staffDo('toll_read_line_add', { read: read.id }, here), 'A line was added.')}>Add a line</button>
             </div>
             <details><summary className="link small">Discard this read</summary>
               <div className="field"><label className="label" htmlFor="tr-disc">Why</label><input className="input" id="tr-disc" value={discard} onChange={(e) => setDiscard(e.target.value)} /></div>
-              <button className="btn btn--ghost btn--sm" type="button" disabled={pending || !discard.trim()} onClick={() => act(async () => staffDo('toll_read_discard', { read: read.id, reason: discard }, here), 'Discarded.')}>Discard</button>
+              <><button className="btn btn--ghost btn--sm" type="button" disabled={pending || !discard.trim()} onClick={() => act(async () => staffDo('toll_read_discard', { read: read.id, reason: discard }, here), 'Discarded.')} aria-describedby="why-tollreview-124">Discard</button><WhyDisabled id="why-tollreview-124" why={((!discard.trim())) ? 'Say why it is discarded first' : null} /></>
             </details>
           </div>}
           {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'}><span>{msg.text}</span></p>}
@@ -162,7 +163,7 @@ export function TollReview({ read, base }: { read: Read; base: '/admin' | '/staf
                   onClick={() => act(async () => staffDo('toll_read_line_import', { line: l.id }, here), `Line ${l.line_no} imported.`)}>Import this line</button>}
                 <span className="tr-excl"><label className="vh" htmlFor={`rl-${l.line_no}-why`}>Why line {l.line_no} is left out</label>
                   <input className="input input--sm" id={`rl-${l.line_no}-why`} placeholder="Why it is left out" value={exclude[l.id] ?? ''} onChange={(e) => setExclude({ ...exclude, [l.id]: e.target.value })} />
-                  <button className="btn btn--ghost btn--sm" type="button" disabled={pending || !(exclude[l.id] ?? '').trim()} onClick={() => saveLine(l, 'excluded')}>Leave out</button></span>
+                  <><button className="btn btn--ghost btn--sm" type="button" disabled={pending || !(exclude[l.id] ?? '').trim()} onClick={() => saveLine(l, 'excluded')} aria-describedby="why-tollreview-165">Leave out</button><WhyDisabled id="why-tollreview-165" why={((!(exclude[l.id] ?? '').trim())) ? 'Say why the line is left out first' : null} /></></span>
               </div>}
               {open && l.status === 'excluded' && <div className="row"><button className="btn btn--ghost btn--sm" type="button" disabled={pending} onClick={() => saveLine(l, 'pending')}>Put it back</button></div>}
             </li>);

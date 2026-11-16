@@ -34,6 +34,7 @@ import { gatePhone, usePhoneGate } from '@/features/phone-gate/usePhoneGate';
 import { addressWords, driverRow, driversToOffer, fillFromProfile, licenceWords, profileFlags, type RenterProfile } from './profile-fill';
 import { HEARD_ABOUT, ageOn, checkRequest, dobIso, emptyRequest, migrateExtras, nonRefAllowed, stepOfKey, type RequestData, type RequestRules } from './schema';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Request to book: five steps (0066: add-ons have their own), autosaved to form_drafts (and this device) and resumable, one schema
 // checked here and again on the server, Turnstile, and one call to submit_booking_request with an
 // idempotency key. No card and no payment at this step.
@@ -466,9 +467,9 @@ export function RequestWizard(p: WizardProps) {
               <span className="label" id="rq-add-l">Additional drivers</span>
               <p className="hint">{p.tokens.addDrvPct} of the car’s daily rate, a day, for each one. Each one needs a {p.tokens.licence} licence and signs the agreement.</p>
               <div className="qty">
-                <button type="button" aria-label="Fewer additional drivers" disabled={!d.drivers.length} onClick={() => set('drivers', d.drivers.slice(0, -1))}>−</button>
+                <><button type="button" aria-label="Fewer additional drivers" disabled={!d.drivers.length} onClick={() => set('drivers', d.drivers.slice(0, -1))} aria-describedby="why-requestwizard-469">−</button><WhyDisabled id="why-requestwizard-469" why={((!d.drivers.length)) ? 'Add the drivers first' : null} /></>
                 <output aria-labelledby="rq-add-l">{d.drivers.length}</output>
-                <button type="button" aria-label="More additional drivers" disabled={d.drivers.length >= p.rules.maxAdditional} onClick={() => set('drivers', [...d.drivers, { first: '', last: '', email: '', licClass: '', dobY: '', dobM: '', dobD: '' }])}>+</button>
+                <><button type="button" aria-label="More additional drivers" disabled={d.drivers.length >= p.rules.maxAdditional} onClick={() => set('drivers', [...d.drivers, { first: '', last: '', email: '', licClass: '', dobY: '', dobM: '', dobD: '' }])} aria-describedby="why-requestwizard-471">+</button><WhyDisabled id="why-requestwizard-471" why={((d.drivers.length >= p.rules.maxAdditional)) ? 'That is the most additional drivers for this booking' : null} /></>
               </div>
               <p className="error" role="alert">{err('drivers') ?? ''}</p>
             </div>

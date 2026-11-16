@@ -72,10 +72,11 @@ export function AddonPicker({ options, value, onChange, idPrefix = 'ao', staff =
             </div>
             {o.max_per_booking > 1 && (
               <div className="qty">
-                <button type="button" aria-label={`Fewer: ${o.name}`} disabled={!c} onClick={() => put(o.code, c ? { ...c, quantity: c.quantity - 1 } : null)}>−</button>
+                <button type="button" aria-label={`Fewer: ${o.name}`} disabled={!c} title={!c ? 'None chosen yet' : undefined} onClick={() => put(o.code, c ? { ...c, quantity: c.quantity - 1 } : null)}>−</button>
                 <output aria-labelledby={`${id}-l`} data-testid={`${id}-count`}>{c?.quantity ?? 0}</output>
                 <button type="button" aria-label={`More: ${o.name}`}
                   disabled={!can || (c?.quantity ?? 0) >= o.max_per_booking || (o.available !== null && o.available !== undefined && !staff && (c?.quantity ?? 0) >= o.available)}
+                  title={!can ? 'Not available for these dates' : (c?.quantity ?? 0) >= o.max_per_booking ? 'That is the most for one booking' : (o.available !== null && o.available !== undefined && !staff && (c?.quantity ?? 0) >= o.available) ? 'None left for these dates' : undefined}
                   onClick={() => put(o.code, { code: o.code, quantity: (c?.quantity ?? 0) + 1, hours: null })}>+</button>
               </div>
             )}

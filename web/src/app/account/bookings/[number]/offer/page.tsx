@@ -25,6 +25,9 @@ export default async function OfferPage({ params }: { params: Promise<{ number: 
   const o = b.offers.find((x) => x.version === b.current_offer_version);
   // 0262: the deposit with a debit or prepaid card, once the booking takes one
   const debitDeposit = (await rpc('server_booking_debit_deposit', { p_booking: b.id }, { role: 'service_role' }).catch(() => null)) as number | null;
+  // r48 part 2 (3052): by e-Transfer or cash the deposit is a multiple (2x by default), said before the renter accepts
+  const depState = (await rpc('server_booking_deposit_options', { p_booking: b.id }, { role: 'service_role' }).catch(() => null)) as unknown as { card_cents: number; offline_cents: number } | null;
+  const offlineDeposit = depState && depState.offline_cents !== depState.card_cents ? depState.offline_cents : null;
   const last = b.offers[b.offers.length - 1];
   const f = await getFacts();
   const c = (f as unknown as { cancellation?: { grace_bps: number; early_bps: number; mid_bps: number; late_bps: number; grace_hours: number; early_hours: number; late_hours: number } }).cancellation;
@@ -79,7 +82,7 @@ export default async function OfferPage({ params }: { params: Promise<{ number: 
               ['Return', `${when(o.return_at)}, ${placeText(b.return_place, b.return_method, false)}`],
               ['Length', `${o.billable_days} days`],
               ['Rate', b.booking_type === 'non_refundable' ? 'Non-refundable (10% off the rental charge)' : 'Standard: cancel under our policy'],
-              ['Deposit (on the day of pickup)', `${money(o.deposit_cents)}${debitDeposit ? `; ${money(debitDeposit)} with a debit or prepaid card` : ''}`],
+              ['Deposit (on the day of pickup)', `${money(o.deposit_cents)}${offlineDeposit ? `; ${money(offlineDeposit)} by e-Transfer, cash or debit` : debitDeposit ? `; ${money(debitDeposit)} with a debit or prepaid card` : ''}`],
               ['Kilometres', b.km_allowance_total ? `${b.km_allowance_total} km included, then ${money(b.overage_cents_per_km, { cents: true })} per km` : '']
             ]} />
           </section>

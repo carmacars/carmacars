@@ -19230,6 +19230,11 @@ export type Database = {
           email_production_ready: boolean;
           rolling_weekly_lead_hours: number;
           listing_photo_scene: string;
+          offline_deposit_double: boolean;
+          offline_deposit_multiplier: number;
+          tips_on: boolean;
+          tip_percents_bps: number[];
+          tip_sales_share_bps: number;
         };
         Insert: {
           id?: string;
@@ -20109,6 +20114,11 @@ export type Database = {
           email_production_ready?: boolean;
           rolling_weekly_lead_hours?: number;
           listing_photo_scene?: string;
+          offline_deposit_double?: boolean;
+          offline_deposit_multiplier?: number;
+          tips_on?: boolean;
+          tip_percents_bps?: number[];
+          tip_sales_share_bps?: number;
         };
         Update: {
           id?: string;
@@ -20988,6 +20998,11 @@ export type Database = {
           email_production_ready?: boolean;
           rolling_weekly_lead_hours?: number;
           listing_photo_scene?: string;
+          offline_deposit_double?: boolean;
+          offline_deposit_multiplier?: number;
+          tips_on?: boolean;
+          tip_percents_bps?: number[];
+          tip_sales_share_bps?: number;
         };
         Relationships: [];
       };
@@ -26502,6 +26517,102 @@ export type Database = {
           requires_acceptance?: boolean;
           published_at?: string;
           published_by?: string | null;
+        };
+        Relationships: [];
+      };
+      tip_shares: {
+        Row: {
+          id: string;
+          tip_id: string;
+          staff_id: string | null;
+          role: string;
+          amount_cents: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          tip_id: string;
+          staff_id?: string | null;
+          role: string;
+          amount_cents: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          tip_id?: string;
+          staff_id?: string | null;
+          role?: string;
+          amount_cents?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      tips: {
+        Row: {
+          id: string;
+          booking_id: string;
+          amount_cents: number;
+          percent_bps: number | null;
+          method: string;
+          source: string;
+          status: string;
+          payment_id: string | null;
+          payment_request_id: string | null;
+          reference: string | null;
+          received_on: string | null;
+          note: string | null;
+          recorded_by: string | null;
+          split_by: string | null;
+          split_reason: string | null;
+          split_at: string | null;
+          paid_at: string | null;
+          voided_at: string | null;
+          void_reason: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          amount_cents: number;
+          percent_bps?: number | null;
+          method: string;
+          source: string;
+          status?: string;
+          payment_id?: string | null;
+          payment_request_id?: string | null;
+          reference?: string | null;
+          received_on?: string | null;
+          note?: string | null;
+          recorded_by?: string | null;
+          split_by?: string | null;
+          split_reason?: string | null;
+          split_at?: string | null;
+          paid_at?: string | null;
+          voided_at?: string | null;
+          void_reason?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          amount_cents?: number;
+          percent_bps?: number | null;
+          method?: string;
+          source?: string;
+          status?: string;
+          payment_id?: string | null;
+          payment_request_id?: string | null;
+          reference?: string | null;
+          received_on?: string | null;
+          note?: string | null;
+          recorded_by?: string | null;
+          split_by?: string | null;
+          split_reason?: string | null;
+          split_at?: string | null;
+          paid_at?: string | null;
+          voided_at?: string | null;
+          void_reason?: string | null;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -33260,6 +33371,7 @@ export type Database = {
       renter_sign_amendment: { Args: { p_amendment: string; p_by: string; p_consent_text: string; p_document_sha256: string; p_typed_name?: string; p_drawn_signature?: string; p_ip?: string; p_user_agent?: string }; Returns: Json };
       renter_submit_card_coverage: { Args: { p_booking: string; p_by: string; p_confirm: boolean; p_text?: string; p_card?: string; p_card_other?: string }; Returns: Json };
       renter_submit_review: { Args: { p_booking: string; p_by: string; p_rating: number; p_title?: string; p_body?: string; p_publish_consent?: boolean }; Returns: string };
+      renter_tip_payreq: { Args: { p_booking: string; p_by: string; p_amount: number; p_percent_bps: number; p_source: string; p_token_sha256: string }; Returns: Json };
       renter_withdraw_booking_change: { Args: { p_request: string; p_by: string }; Returns: undefined };
       renter_withdraw_request: { Args: { p_booking: string; p_by: string; p_note?: string }; Returns: undefined };
       resolve_path: { Args: { p_path: string }; Returns: Json };
@@ -33381,6 +33493,7 @@ export type Database = {
       server_booking_calendar: { Args: { p_token: string }; Returns: Json };
       server_booking_charge_reasons: { Args: { p_booking: string }; Returns: Json };
       server_booking_debit_deposit: { Args: { p_booking: string }; Returns: number };
+      server_booking_deposit_options: { Args: { p_booking: string }; Returns: Json };
       server_booking_driver_links: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_booking_heard_about: { Args: { p_booking_number: string; p_value: string }; Returns: boolean };
       server_booking_licence_state: { Args: { p_numbers: string[] }; Returns: Json };
@@ -33633,6 +33746,7 @@ export type Database = {
       server_payreq_settle_pre0260: { Args: { p_id: string; p_intent: Json }; Returns: Json };
       server_payreq_settle_pre0261: { Args: { p_id: string; p_intent: Json }; Returns: Json };
       server_payreq_settle_pre0482: { Args: { p_id: string; p_intent: Json }; Returns: Json };
+      server_payreq_settle_pre3053: { Args: { p_id: string; p_intent: Json }; Returns: Json };
       server_payreq_still_owed: { Args: { p_id: string }; Returns: Json };
       server_payreq_void_overpaying: { Args: { p_id: string }; Returns: undefined };
       server_pdf_facts: { Args: { p_kind: string; p_key: string; p_user?: string }; Returns: Json };
@@ -33773,6 +33887,7 @@ export type Database = {
       server_submit_owner_application: { Args: { p: Json; p_by?: string }; Returns: Json };
       server_terms_accept: { Args: { p_by: string; p: Json }; Returns: Json };
       server_terms_pending: { Args: { p_by: string }; Returns: Json };
+      server_tip_options: { Args: { p_booking: string }; Returns: Json };
       server_tracker_ingest: { Args: { p: Json }; Returns: Json };
       server_tracker_ingest_key: { Args: never; Returns: string };
       server_twilio_browser_call_get: { Args: { p_id: string; p_user: string }; Returns: Json };

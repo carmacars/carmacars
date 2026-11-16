@@ -149,13 +149,14 @@ select test.eq('signed after paying: confirmed, with no card on file (the deposi
 select test.eq('the confirmation task is done', (select count(*) from tasks where booking_id = (test.ofb('o1')).id and task_type = 'confirm_offline_booking' and status = 'open'), 0::bigint);
 
 -- the deposit in cash
-select test.throws('a deposit in full only', $$select app.door(test.id('of_cs'), 'aal2', 'ops_do', 'record_booking_payment', jsonb_build_object('booking', (test.ofb('o1')).booking_number, 'covers', 'deposit', 'method', 'cash', 'amount_cents', 100))$$, 'in full');
+-- r48 part 2 (3052): a part of the deposit is recorded (the rest stays owed), and a deposit in cash is twice the deposit
+select test.lives('a part of the deposit is recorded', $$select app.door(test.id('of_cs'), 'aal2', 'ops_do', 'record_booking_payment', jsonb_build_object('booking', (test.ofb('o1')).booking_number, 'covers', 'deposit', 'method', 'cash', 'amount_cents', 100))$$);
 insert into test.of select 'd1', app.door(test.id('of_cs'), 'aal2', 'ops_do', 'record_booking_payment', jsonb_build_object('booking', (test.ofb('o1')).booking_number, 'covers', 'deposit', 'method', 'cash'));
 select test.eq('the cash deposit: a deposit row (offline, cash, captured) and a deposit payment in cash',
   (select method || '/' || paid_method || '/' || status || '/' || captured_cents from deposits where booking_id = (test.ofb('o1')).id) || '/' ||
-  (select method || ':' || kind from payments where id = (test.ofv('d1') ->> 'payment_id')::uuid), 'offline/cash/captured/30000/cash:charge');
+  (select method || ':' || kind from payments where id = (test.ofv('d1') ->> 'payment_id')::uuid), 'offline/cash/captured/60000/cash:charge');
 select test.throws('a second deposit is refused', $$select app.door(test.id('of_admin'), 'aal2', 'ops_do', 'record_booking_payment', jsonb_build_object('booking', (test.ofb('o1')).booking_number, 'covers', 'deposit', 'method', 'cash'))$$, 'already been taken');
-select test.eq('receipts: one per payment received another way (rental, deposit)', (select count(*) from app_events where code = 'renter_payment_receipt' and (payload ->> 'booking_id')::uuid = (test.ofb('o1')).id), 2::bigint);
+select test.eq('receipts: one per payment received another way (rental, the deposit in two parts)', (select count(*) from app_events where code = 'renter_payment_receipt' and (payload ->> 'booking_id')::uuid = (test.ofb('o1')).id), 3::bigint);
 
 -- settled after the return: what is released is given back in cash, never to a card
 set session_replication_role = replica;  -- the trip itself is not this test's: straight to returned

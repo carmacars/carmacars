@@ -27,8 +27,8 @@ export default function Coin({ prize, reduced, onReveal }: GameProps) {
       <p className="ccg-live" aria-live="polite">{side ? <>It landed on {side}. {side === call ? 'Good call!' : 'Not this time, but'} You win <b>{prize.label}</b></>
         : call ? `You called ${call}. Flipping...` : 'Call it: heads or tails?'}</p>
       <div className="ccg-row">
-        <button type="button" className="btn btn--primary" onClick={() => flip('heads')} disabled={call !== null} data-testid="game-action">Heads</button>
-        <button type="button" className="btn btn--ghost" onClick={() => flip('tails')} disabled={call !== null} data-testid="game-call-tails">Tails</button>
+        <button type="button" className="btn btn--primary" onClick={() => flip('heads')} disabled={call !== null} data-testid="game-action" title={((call !== null)) ? 'Wait for this flip to finish' : undefined}>Heads</button>
+        <button type="button" className="btn btn--ghost" onClick={() => flip('tails')} disabled={call !== null} data-testid="game-call-tails" title={((call !== null)) ? 'Wait for this flip to finish' : undefined}>Tails</button>
       </div>
     </div>
   );

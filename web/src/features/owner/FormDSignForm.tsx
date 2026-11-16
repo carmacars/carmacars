@@ -5,6 +5,7 @@ import { EsignFlow } from '@/features/signing/EsignFlow';
 import type { EsignContext, EsignReady } from '@/features/signing/types';
 import type { ActionResult } from '@/features/forms/schemas';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Form D signed on screen (0720, the owner's decision of November 7, 2026: no paper signature for anyone): the owner signs
 // with the signing steps of every signature (a code to their phone or email, the reading, the consents, the signature);
 // the two witnesses, beside the owner on the same device, each type their full name and tick the statement that they
@@ -68,7 +69,7 @@ export function FormDSignForm({ ownerName, statement, esign, action }: {
       {witness(2, w2, setW2, saw2, setSaw2)}
       {errs.form && <p className="alert alert--error" role="alert"><span>{errs.form}</span></p>}
       <p className="xs muted">By pressing Sign, the owner signs Form D electronically and each witness confirms they saw it. We record the time, the IP address and the device. CarmaCars signs Part 2 from its stored signatures at the same moment.</p>
-      <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={busy || !ready} data-testid="form-d-submit">{busy ? 'Signing' : 'Sign Form D'}</button>
+      <><button className="btn btn--primary btn--lg btn--block" type="submit" disabled={busy || !ready} data-testid="form-d-submit" aria-describedby="why-formdsignform-71">{busy ? 'Signing' : 'Sign Form D'}</button><WhyDisabled id="why-formdsignform-71" why={((!ready)) ? 'Finish the steps above first' : null} /></>
     </form>
   );
 }

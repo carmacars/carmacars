@@ -5,6 +5,7 @@ import { alphaOf, compose, masksDiffer, NO_ADJUST, sameAdjust, stroke, studioPla
 import { LETTERING, letterThis, letteringMask } from './lettering';
 import { SHOWROOM_FIT, adjustPlace, type Adjust } from './subject-frame';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // The cut-out editor of one outside listing photo (release 33, migration 0700). Two views: "Cut-out", the car over the
 // photo as taken (shown faint), where a brush erases what is left of the background or restores what the automatic
 // cut-out took off (a mirror, the roof, a wheel); "On the studio", the car on the studio background with the model's
@@ -258,7 +259,7 @@ export function CutoutEditor({ photo, onClose }: { photo: { id: string; shot_lab
         <button type="button" className="btn btn--ghost btn--sm" onClick={onClose}>Close</button></div>
       {ctx && !ctx.mask && !ctx.auto_mask && !ready && <div className="stack">
         <p className="small">This photo was made before the cut-out was kept. Make it again from the photo as taken (one image transformation), then edit it.</p>
-        <p><button type="button" className="btn btn--primary btn--sm" disabled={busy || ctx.mask_pending} onClick={() => void askMask()} data-testid="cutout-make-mask">{ctx.mask_pending ? 'Making the cut-out' : 'Make the cut-out'}</button></p>
+        <p><><button type="button" className="btn btn--primary btn--sm" disabled={busy || ctx.mask_pending} onClick={() => void askMask()} data-testid="cutout-make-mask" aria-describedby="why-cutouteditor-261">{ctx.mask_pending ? 'Making the cut-out' : 'Make the cut-out'}</button><WhyDisabled id="why-cutouteditor-261" why={((ctx.mask_pending)) ? 'Wait for the cut-out to finish' : null} /></></p>
       </div>}
       {ctx?.pending && !ctx.mask_pending && <p className="alert alert--warn small" role="status"><span>The photo is being made now. Edits saved after it is ready start from the newest version.</span></p>}
       {ready && <>
@@ -284,7 +285,7 @@ export function CutoutEditor({ photo, onClose }: { photo: { id: string; shot_lab
           <p className="small muted" id={`ce-shelp-${photo.id}`}>Drag the car to move it; the slider sizes it. Keyboard: the arrows move it, + and - size it.</p>
           <div className="row ce__sliders">
             <label className="small">Size <input type="range" min={40} max={160} value={Math.round(adjust.scale * 100)} onChange={(e) => setAdjust((a) => ({ ...a, scale: clampS(Number(e.target.value) / 100) }))} data-testid="cutout-scale" /> {Math.round(adjust.scale * 100)}%</label>
-            <button type="button" className="btn btn--ghost btn--sm" onClick={() => setAdjust(NO_ADJUST)} disabled={sameAdjust(adjust, NO_ADJUST)}>Centre and full size</button>
+            <><button type="button" className="btn btn--ghost btn--sm" onClick={() => setAdjust(NO_ADJUST)} disabled={sameAdjust(adjust, NO_ADJUST)} aria-describedby="why-cutouteditor-287">Centre and full size</button><WhyDisabled id="why-cutouteditor-287" why={((sameAdjust(adjust, NO_ADJUST))) ? 'Move a slider first: nothing is changed yet' : null} /></>
           </div>
           <div className="ce__frame ce__frame--studio">
             <canvas ref={studioCanvas} className="ce__canvas ce__canvas--move" tabIndex={0} role="img" aria-label="The car on the studio background" aria-describedby={`ce-shelp-${photo.id}`}
@@ -292,8 +293,8 @@ export function CutoutEditor({ photo, onClose }: { photo: { id: string; shot_lab
           </div>
         </>}
         <div className="row">
-          <button type="button" className="btn btn--primary btn--sm" disabled={busy || !changed} onClick={() => void save()} data-testid="cutout-save">{busy ? 'Saving' : 'Save as a new version'}</button>
-          <button type="button" className="btn btn--ghost btn--sm" disabled={busy || !canUndo} onClick={back} data-testid="cutout-undo">Undo</button>
+          <><button type="button" className="btn btn--primary btn--sm" disabled={busy || !changed} onClick={() => void save()} data-testid="cutout-save" aria-describedby="why-cutouteditor-295">{busy ? 'Saving' : 'Save as a new version'}</button><WhyDisabled id="why-cutouteditor-295" why={((!changed)) ? 'Change something first' : null} /></>
+          <><button type="button" className="btn btn--ghost btn--sm" disabled={busy || !canUndo} onClick={back} data-testid="cutout-undo" aria-describedby="why-cutouteditor-296">Undo</button><WhyDisabled id="why-cutouteditor-296" why={((!canUndo)) ? 'Nothing to undo yet' : null} /></>
           <button type="button" className="btn btn--ghost btn--sm" disabled={busy} onClick={() => void reset()} data-testid="cutout-reset">Reset to the automatic cut-out</button>
         </div>
         {ctx && ctx.versions > 0 && <p className="small muted">Versions kept: {ctx.versions} before this one, and the photo as taken.</p>}

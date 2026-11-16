@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { agreementWordingSave } from '@/server/actions/agreements';
 import { useTool } from '@/features/admin/MoreMenu';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // "Edit the wording" on the booking's Agreement card (migration 0198): an Admin rewords a clause of CarmaCars' rental
 // agreement for this booking, adds additional terms, or removes a clause that is not required, always with a reason.
 // Before signing the open agreement is made again; after signing the change is a new version the renter signs.
@@ -66,9 +67,9 @@ export function AgreementWording({ booking, clauses, now, history, refresh }: { 
           <label className="field" style={{ margin: 0 }}><span className="label">Why this booking needs it (kept with the change)</span>
             <input className="input" value={reason} minLength={5} onChange={(e) => setReason(e.target.value)} data-testid="wording-reason" /></label>
           <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}>
-            <button className="btn btn--primary btn--sm" type="submit" disabled={pending || reason.trim().length < 5 || !text.trim()} data-testid="wording-save">{pending ? 'Saving' : 'Save the wording'}</button>
-            {c.removable && cur?.action !== 'remove' && (isAdd ? !!cur : true) && <button className="btn btn--ghost btn--sm" type="button" disabled={pending || reason.trim().length < 5} onClick={() => save('remove')} data-testid="wording-remove">{isAdd ? 'Remove the additional terms' : 'Remove this clause'}</button>}
-            {cur && !isAdd && <button className="btn btn--ghost btn--sm" type="button" disabled={pending || reason.trim().length < 5} onClick={() => save('restore')} data-testid="wording-restore">Back to the standard wording</button>}
+            <><button className="btn btn--primary btn--sm" type="submit" disabled={pending || reason.trim().length < 5 || !text.trim()} data-testid="wording-save" aria-describedby="why-agreementwording-69">{pending ? 'Saving' : 'Save the wording'}</button><WhyDisabled id="why-agreementwording-69" why={((reason.trim().length < 5) || (!text.trim())) ? (reason.trim().length < 5) ? 'Write the reason first (5 characters or more)' : 'Type the message first' : null} /></>
+            {c.removable && cur?.action !== 'remove' && (isAdd ? !!cur : true) && <><button className="btn btn--ghost btn--sm" type="button" disabled={pending || reason.trim().length < 5} onClick={() => save('remove')} data-testid="wording-remove" aria-describedby="why-agreementwording-70">{isAdd ? 'Remove the additional terms' : 'Remove this clause'}</button><WhyDisabled id="why-agreementwording-70" why={((reason.trim().length < 5)) ? 'Write the reason first (5 characters or more)' : null} /></>}
+            {cur && !isAdd && <><button className="btn btn--ghost btn--sm" type="button" disabled={pending || reason.trim().length < 5} onClick={() => save('restore')} data-testid="wording-restore" aria-describedby="why-agreementwording-71">Back to the standard wording</button><WhyDisabled id="why-agreementwording-71" why={((reason.trim().length < 5)) ? 'Write the reason first (5 characters or more)' : null} /></>}
             <button className="btn btn--quiet btn--sm" type="button" onClick={() => setCode(null)}>Cancel</button>
           </div>
         </form>)}

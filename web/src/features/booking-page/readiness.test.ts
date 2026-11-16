@@ -41,3 +41,11 @@ test('r48: the coverage line names what the renter still has to send, or that it
   assert.match(line({ coverage_needs: [], coverage_waiting: true }).hint, /Approve all on Documents/);
   assert.match(line({}).hint, /Review the proof of coverage/);
 });
+
+test('r48 part 2: one driver reads "No additional drivers"; two list the acceptance', () => {
+  const one = readinessLines({ status: 'confirmed', dueCents: 0, paidCents: 0, readiness: { drivers: [{ role: 'renter' }], additional_drivers_accepted: true }, insurerBilled: false });
+  assert.equal(one.find((l) => l.key === 'drivers')?.label, 'No additional drivers');
+  const two = readinessLines({ status: 'confirmed', dueCents: 0, paidCents: 0, readiness: { drivers: [{ role: 'renter' }, { role: 'additional' }], additional_drivers_accepted: false }, insurerBilled: false });
+  const d = two.find((l) => l.key === 'drivers');
+  assert.equal(`${d?.label}:${d?.done}`, 'Additional drivers accepted:false');
+});

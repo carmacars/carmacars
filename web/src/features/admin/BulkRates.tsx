@@ -3,6 +3,7 @@ import { useState, useTransition } from 'react';
 import { money } from '@/lib/format';
 import { adminAct, adminPreview } from '@/server/actions/admin-portal';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 type Row = { vehicle_id: string; fleet_number: string | null; vehicle_label: string; old_daily_cents: number | null; new_daily_cents: number | null; old_weekly_cents: number | null; new_weekly_cents: number | null; old_monthly_cents: number | null; new_monthly_cents: number | null; will_change: boolean; note: string | null };
 
 export function BulkRates({ classes, owners }: { classes: Array<{ code: string; label: string }>; owners: Array<{ id: string; legal_name: string }> }) {
@@ -30,7 +31,7 @@ export function BulkRates({ classes, owners }: { classes: Array<{ code: string; 
           <div className="field ad-field"><label className="label" htmlFor="br-r">Round to ($)</label><input className="input" id="br-r" inputMode="decimal" value={f.round} onChange={(e) => setF({ ...f, round: e.target.value })} /></div>
         </div>
         <fieldset className="row"><legend className="label">Rates to change</legend>{['daily', 'weekend', 'weekly', 'monthly'].map((x) => <label key={x} className="check small"><input type="checkbox" checked={f.fields.includes(x)} onChange={(e) => setF({ ...f, fields: e.target.checked ? [...f.fields, x] : f.fields.filter((y) => y !== x) })} /> <span>{x}</span></label>)}</fieldset>
-        <div className="row"><button className="btn btn--ghost btn--sm" type="submit" disabled={pending}>Preview</button>{rows && <button className="btn btn--primary btn--sm" type="button" disabled={pending || !rows.some((r) => r.will_change)} onClick={() => run(true)}>Apply to {rows.filter((r) => r.will_change).length} cars</button>}</div>
+        <div className="row"><button className="btn btn--ghost btn--sm" type="submit" disabled={pending}>Preview</button>{rows && <><button className="btn btn--primary btn--sm" type="button" disabled={pending || !rows.some((r) => r.will_change)} onClick={() => run(true)} aria-describedby="why-bulkrates-33">Apply to {rows.filter((r) => r.will_change).length} cars</button><WhyDisabled id="why-bulkrates-33" why={((!rows.some((r) => r.will_change))) ? 'Change a rate first: nothing would change yet' : null} /></>}</div>
         {msg && <p className="alert" role="status"><span>{msg}</span></p>}
       </form>
       {rows && (

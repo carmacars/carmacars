@@ -6,6 +6,7 @@ import { parseDriveLink } from './drive-folder';
 import { summaryLines } from './summary';
 import type { CarOption, FolderRow, ImportView, RunRow } from './types';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Import photos from a Google Drive link (release 33, migration 0760). One component for the two places it lives:
 //   * on a car's listing page (`vehicle` given): paste the link, the folder's photos go to that car;
 //   * on Cars > Import photos from Drive (no `vehicle`): paste the top folder's link, each folder with photos is matched to a
@@ -96,7 +97,7 @@ export function DriveImport({ vehicle, runs: initialRuns = [], refresh = [] }: {
           <label className="check small"><input type="checkbox" checked={submit} onChange={(e) => setSubmit(e.target.checked)} data-testid="drive-import-submit" /> Submit the listing for processing when its photos are in</label>
           {link.trim() && !parsed && <p className="small" role="alert">That is not a Google Drive link.</p>}
           {parsed?.kind === 'file' && <p className="small" role="alert">That is the link of one file. Paste the link of the folder.</p>}
-          <div className="row"><button className="btn btn--primary btn--sm" type="submit" disabled={pending || parsed?.kind !== 'folder'} data-testid="drive-import-start">{vehicle ? 'Import the photos' : 'Read the folder'}</button></div>
+          <div className="row"><><button className="btn btn--primary btn--sm" type="submit" disabled={pending || parsed?.kind !== 'folder'} data-testid="drive-import-start" aria-describedby="why-driveimport-99">{vehicle ? 'Import the photos' : 'Read the folder'}</button><WhyDisabled id="why-driveimport-99" why={((parsed?.kind !== 'folder')) ? 'Paste the link of a Google Drive folder first' : null} /></></div>
         </form>
       )}
       {msg && <p className={`alert${msg.ok ? '' : ' alert--error'}`} role={msg.ok ? 'status' : 'alert'}><span>{msg.text}</span></p>}
@@ -107,7 +108,7 @@ export function DriveImport({ vehicle, runs: initialRuns = [], refresh = [] }: {
           <RunBody view={view} choice={choice} setChoice={setChoice} cars={cars} />
           {view.import.status === 'review' && (
             <div className="row">
-              <button className="btn btn--primary btn--sm" type="button" disabled={pending || chosen === 0} onClick={confirm} data-testid="drive-import-confirm">Import {photos} photos from {chosen} folders</button>
+              <><button className="btn btn--primary btn--sm" type="button" disabled={pending || chosen === 0} onClick={confirm} data-testid="drive-import-confirm" aria-describedby="why-driveimport-110">Import {photos} photos from {chosen} folders</button><WhyDisabled id="why-driveimport-110" why={((chosen === 0)) ? 'Choose at least one first' : null} /></>
               <button className="btn btn--ghost btn--sm" type="button" disabled={pending} onClick={cancel}>Cancel</button>
             </div>
           )}

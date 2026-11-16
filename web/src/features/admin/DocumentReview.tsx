@@ -5,8 +5,10 @@ import { docReviewLoad, guidedAct } from '@/server/actions/guided';
 import type { DocReview, DocUpload } from '@/features/admin/todo/types';
 import { LicenceChecks, PrimarySwapPanel } from '@/features/licence/LicenceChecks';
 import { otherUploads } from '@/features/admin/doc-split';
+import { approvableItems, approveLabel } from '@/features/admin/doc-approve';
 import { AcceptCard } from '@/features/card/AcceptCard';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // Renter documents of one booking (migration 0078), on one screen (0151): every licence image, selfie, proof of coverage
 // and the Protection Plan side by side, what to check said once, then one "Approve all" (each item through the function
 // that decides it; one the database refuses is reported and the rest approved) or a reason to reject one item, which the
@@ -29,7 +31,7 @@ function Reject({ testId, pending, onReject }: { testId: string; pending: boolea
       <div className="stack">
         <label className="label" htmlFor={`rj-${id}`}>The reason the renter sees</label>
         <input className="input" id={`rj-${id}`} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Photo unreadable, expired, name does not match" data-testid={`${testId}-reason`} />
-        <button className="btn btn--ghost btn--sm" type="button" disabled={pending || reason.trim().length < 5} onClick={() => onReject(reason.trim())} data-testid={`${testId}-reject`}>Reject</button>
+        <><button className="btn btn--ghost btn--sm" type="button" disabled={pending || reason.trim().length < 5} onClick={() => onReject(reason.trim())} data-testid={`${testId}-reject`} aria-describedby="why-documentreview-33">Reject</button><WhyDisabled id="why-documentreview-33" why={((reason.trim().length < 5)) ? 'Write the reason first (5 characters or more)' : null} /></>
       </div>
     </details>
   );
@@ -84,7 +86,9 @@ export function DocumentReview({ booking, label = 'Review documents', variant = 
   const planWaiting = Boolean(cov?.plan_waiting);
   const needs = cov?.needs ?? [];
   const waiting = typeof d?.waiting === 'number' ? d.waiting : (d?.uploads.filter((u) => u.status === 'submitted').length ?? 0) + (covWaiting ? 1 : 0) + (planWaiting ? 1 : 0);
-  const done = d && waiting <= 0;
+  // r48 part 2: the button names what it approves (a waiting proof of coverage or Protection Plan is named, never a bare count)
+  const items = approvableItems(d, covWaiting, planWaiting);
+  const done = d && (waiting <= 0 || items.length === 0);
   const licenceOnly = Boolean(d?.licence_only);
   return (
     <>
@@ -100,12 +104,12 @@ export function DocumentReview({ booking, label = 'Review documents', variant = 
           <div className="stack">
             <p className="small">{d.renter_name}, {d.vehicle_name}. Pickup {day(d.pickup_at)}, return {day(d.return_at)}.
               Identity {d.readiness.all_drivers_verified ? 'verified' : 'not verified yet'}{licenceOnly ? '.' : `; coverage ${d.readiness.coverage_confirmed ? 'confirmed' : 'not confirmed yet'}.`}</p>
-            {done && <p className="alert alert--ok" role="status" data-testid="doc-review-done"><span>Nothing waiting for review.</span></p>}
+            {done && <p className="alert alert--ok" role="status" data-testid="doc-review-done"><span>{needs.length ? 'Nothing to approve: it waits for the renter (below).' : 'Nothing waiting for review.'}</span></p>}
             {!done && (
               <div className="ad-approve-all stack" data-testid="doc-review-checks">
                 <p className="pt-kicker">Look at each item below, then approve them together</p>
                 <ul className="small">{(licenceOnly ? CHECKS : [...CHECKS, COVERAGE_CHECK]).map((c) => <li key={c}>{c}</li>)}</ul>
-                <div className="row"><button className="btn btn--primary" type="button" disabled={pending} onClick={approveAll} data-testid="doc-review-approve-all">{pending ? 'Working' : `Approve all (${waiting})`}</button>
+                <div className="row"><button className="btn btn--primary" type="button" disabled={pending} onClick={approveAll} data-testid="doc-review-approve-all">{pending ? 'Working' : approveLabel(items)}</button>
                   <span className="small muted">One wrong? Reject that one first, with the reason.</span></div>
               </div>)}
             {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'} data-testid="doc-review-msg"><span>{msg.text}</span></p>}

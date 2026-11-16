@@ -8,6 +8,7 @@ import { PHOTO_ACCEPT } from '@/features/uploads/formats';
 import { TypedInput } from '@/components/DateInput';
 import { CARD_ACK, OPCF_ACK, TITLE, changeText, label, planText, resultText, whatHappens, coverageChoiceProblem, type Opt, type ProtectionOptions, type ProtectionResult } from './model';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // "Change my protection" on the renter's booking page (2540, 2541), in the r40 portal's card language. The three ways
 // damage to the car is covered, with their prices; the coverage order (a card on our list that covers the car and paying
 // with it, else OPCF 27 and uploading the policy, else the Protection Plan); the database decides and refuses with the reason.
@@ -100,8 +101,8 @@ export function MyProtection({ number, x, cards }: { number: string; x: Protecti
           <div className="field"><label className="label" htmlFor="mp-reason">Anything we should know (optional)</label>
             <input className="input" id="mp-reason" maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} /></div>
           {to && local && <p className="small muted" role="note">{local}</p>}
-          <div className="row"><button className="btn btn--primary btn--sm" type="button" disabled={pending || busy || !ready} onClick={send} data-testid="my-protection-go">
-            {pending ? 'Sending' : review ? 'Send for review' : pick && (pick.change_cents ?? 0) > 0 ? `Add it for ${fmt(pick.change_cents)}` : 'Change it'}</button>
+          <div className="row"><><button className="btn btn--primary btn--sm" type="button" disabled={pending || busy || !ready} onClick={send} data-testid="my-protection-go" aria-describedby="why-myprotection-103">
+            {pending ? 'Sending' : review ? 'Send for review' : pick && (pick.change_cents ?? 0) > 0 ? `Add it for ${fmt(pick.change_cents)}` : 'Change it'}</button><WhyDisabled id="why-myprotection-103" why={((!ready)) ? 'Finish the steps above first' : null} /></>
             <button className="btn btn--quiet btn--sm" type="button" onClick={() => setOpen(false)}>Cancel</button></div>
         </div>)}
       {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'} data-testid="my-protection-msg"><span>{msg.text}</span></p>}

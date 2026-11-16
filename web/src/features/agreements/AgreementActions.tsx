@@ -6,6 +6,7 @@ import { agreementFill, agreementOverride, agreementRegenerate, agreementResend,
 import { TypedInput } from '@/components/DateInput';
 import { MoreMenu, ToolItem, useTool } from '@/features/admin/MoreMenu';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 export interface Missing { key: string; label: string; where: string; required: boolean; driver_id?: string }
 
 // What the agreements print blank, filled in place (migration 0154). Each missing value is one input; Save writes them
@@ -60,7 +61,7 @@ export function MissingFields({ booking, missing, refresh, isAdmin, overrides }:
       {isAdmin && required.length > 0 && <form className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)', alignItems: 'end' }} onSubmit={(e) => { e.preventDefault(); start(async () => { const r = await agreementOverride(booking, reason, refresh); setMsg(r.ok ? { ok: true, text: 'Check-in may go ahead without these fields. The reason is on the booking\'s history.' } : { ok: false, text: r.message }); if (r.ok) router.refresh(); }); }}>
         <label className="field" style={{ margin: 0, flex: '1 1 16rem' }}><span className="label">Admin: let the check-in go ahead without them, because</span>
           <input className="input" value={reason} minLength={5} onChange={(e) => setReason(e.target.value)} data-testid="agreement-override-reason" /></label>
-        <button className="btn btn--ghost btn--sm" type="submit" disabled={pending || reason.trim().length < 5} data-testid="agreement-override">Override</button>
+        <><button className="btn btn--ghost btn--sm" type="submit" disabled={pending || reason.trim().length < 5} data-testid="agreement-override" aria-describedby="why-agreementactions-63">Override</button><WhyDisabled id="why-agreementactions-63" why={((reason.trim().length < 5)) ? 'Write the reason first (5 characters or more)' : null} /></>
       </form>}
       {overrides.length > 0 && <p className="xs muted">Overridden: {overrides.map((o) => `${o.by ?? 'an Admin'}, "${o.reason}"`).join('; ')}.</p>}
     </div>

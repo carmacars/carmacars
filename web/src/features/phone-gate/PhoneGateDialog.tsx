@@ -5,6 +5,7 @@ import { cleanCode } from '@/features/auth/phone';
 import { phoneGateSave, phoneGateSendCode } from '@/server/actions/phone-gate';
 import { formatAsTyped, GATE_WHY, gateNumber, type GateKind, type GateRules } from './rules';
 
+import { WhyDisabled } from '@/components/WhyDisabled';
 // The phone number box (migration 0280; 2026-11-06 the owner's simpler box): one small dialog (a sheet on phones) with
 // "What's your number?", one line on what it opens, one big number field formatted as it is typed and sent by itself at
 // ten digits, and the close button. With the code setting on, a 6-digit code by text first, also sent by itself.
@@ -106,7 +107,7 @@ export function PhoneGateDialog({ kind, rules, onDone, onClose }: { kind: GateKi
         <p className="pgate__err" id={`${id}-${step === 'code' ? 'c' : 'p'}-err`} aria-live="polite" data-testid="phone-gate-error">{fe(step)}</p>
         <p className="vh" role="status" aria-live="polite">{busy ? 'Checking the number' : state === 'ok' ? 'Thanks, done' : ''}</p>
         {step === 'code' && sent && <p className="pgate__links">
-          <button type="button" className="link" disabled={pending || left > 0} onClick={() => sendCode(sent.phone)} data-testid="phone-gate-resend">{left > 0 ? `New code in ${left} s` : 'Send a new code'}</button>
+          <><button type="button" className="link" disabled={pending || left > 0} onClick={() => sendCode(sent.phone)} data-testid="phone-gate-resend" aria-describedby="why-phonegatedialog-109">{left > 0 ? `New code in ${left} s` : 'Send a new code'}</button><WhyDisabled id="why-phonegatedialog-109" why={((left > 0)) ? 'Wait for the countdown to end' : null} /></>
           <button type="button" className="link" onClick={() => { setStep('phone'); setErr(null); tried.current = ''; setState('idle'); }}>Another number</button>
           {rules.allow_unverified && <button type="button" className="link" onClick={() => save({ phone: sent.phone, unverified: true })} data-testid="phone-gate-skip">Skip the code</button>}
         </p>}

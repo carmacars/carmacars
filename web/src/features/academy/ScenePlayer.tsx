@@ -112,7 +112,7 @@ export function ScenePlayer({ lesson, onDone, testId = 'player', admin = false }
       </div>
       <div className="ac-controls">
         <button type="button" className="btn btn--sm btn--primary" onClick={toggle} data-testid={`${testId}-play`} aria-label={playing ? 'Pause' : done ? 'Replay' : started ? 'Resume' : 'Play'}>{playing ? 'Pause' : done ? 'Replay' : started ? 'Resume' : 'Play'}</button>
-        <button type="button" className="btn btn--sm btn--quiet" onClick={() => go(idx - 1)} disabled={idx === 0} aria-label="Previous scene">Back</button>
+        <button type="button" className="btn btn--sm btn--quiet" onClick={() => go(idx - 1)} disabled={idx === 0} aria-label="Previous scene" title={((idx === 0)) ? 'This is the first step' : undefined}>Back</button>
         <button type="button" className="btn btn--sm btn--quiet" onClick={nextScene} aria-label="Next scene" data-testid={`${testId}-next`}>Next</button>
         <button type="button" className="btn btn--sm btn--quiet" onClick={() => play(0)} data-testid={`${testId}-replay`}>Replay</button>
         <label className="ac-speed small">Speed <select className="select select--sm" value={speed} onChange={(e) => { if (playing) restart.current = idx; setSpeed(Number(e.target.value)); }} data-testid={`${testId}-speed`}>
