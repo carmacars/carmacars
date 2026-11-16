@@ -79,7 +79,7 @@ export function PackageSignForm({ docs, signerName, statements = [], investment 
       {errs.form && <p className="alert alert--error" role="alert" data-testid="package-error"><span>{errs.form}</span></p>}
       <div className="stack">
         <p className="small muted" data-testid="package-consent">{consent}</p>
-        <><button className="btn btn--primary btn--lg btn--block" type="submit" disabled={busy || !ready} data-testid="package-sign" aria-describedby="why-packagesignform-81">{busy ? 'Signing' : button}</button><WhyDisabled id="why-packagesignform-81" why={((!ready)) ? 'Finish the steps above first' : null} /></>
+        <><button className="btn btn--primary btn--lg btn--block" type="submit" disabled={busy || !ready} data-testid="package-sign" aria-describedby="why-packagesignform-81">{busy ? 'Signing' : button}</button><WhyDisabled id="why-packagesignform-81" why={((!ready)) ? 'Finish the signing steps above first: the code, the reading, the initials, the consents and your signature' : null} /></>
       </div>
     </form>
   );

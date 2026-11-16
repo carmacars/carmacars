@@ -293,7 +293,7 @@ export function CutoutEditor({ photo, onClose }: { photo: { id: string; shot_lab
           </div>
         </>}
         <div className="row">
-          <><button type="button" className="btn btn--primary btn--sm" disabled={busy || !changed} onClick={() => void save()} data-testid="cutout-save" aria-describedby="why-cutouteditor-295">{busy ? 'Saving' : 'Save as a new version'}</button><WhyDisabled id="why-cutouteditor-295" why={((!changed)) ? 'Change something first' : null} /></>
+          <><button type="button" className="btn btn--primary btn--sm" disabled={busy || !changed} onClick={() => void save()} data-testid="cutout-save" aria-describedby="why-cutouteditor-295">{busy ? 'Saving' : 'Save as a new version'}</button><WhyDisabled id="why-cutouteditor-295" why={((!changed)) ? 'Adjust the cut-out first' : null} /></>
           <><button type="button" className="btn btn--ghost btn--sm" disabled={busy || !canUndo} onClick={back} data-testid="cutout-undo" aria-describedby="why-cutouteditor-296">Undo</button><WhyDisabled id="why-cutouteditor-296" why={((!canUndo)) ? 'Nothing to undo yet' : null} /></>
           <button type="button" className="btn btn--ghost btn--sm" disabled={busy} onClick={() => void reset()} data-testid="cutout-reset">Reset to the automatic cut-out</button>
         </div>

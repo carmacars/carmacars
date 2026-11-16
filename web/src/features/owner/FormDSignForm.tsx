@@ -69,7 +69,7 @@ export function FormDSignForm({ ownerName, statement, esign, action }: {
       {witness(2, w2, setW2, saw2, setSaw2)}
       {errs.form && <p className="alert alert--error" role="alert"><span>{errs.form}</span></p>}
       <p className="xs muted">By pressing Sign, the owner signs Form D electronically and each witness confirms they saw it. We record the time, the IP address and the device. CarmaCars signs Part 2 from its stored signatures at the same moment.</p>
-      <><button className="btn btn--primary btn--lg btn--block" type="submit" disabled={busy || !ready} data-testid="form-d-submit" aria-describedby="why-formdsignform-71">{busy ? 'Signing' : 'Sign Form D'}</button><WhyDisabled id="why-formdsignform-71" why={((!ready)) ? 'Finish the steps above first' : null} /></>
+      <><button className="btn btn--primary btn--lg btn--block" type="submit" disabled={busy || !ready} data-testid="form-d-submit" aria-describedby="why-formdsignform-71">{busy ? 'Signing' : 'Sign Form D'}</button><WhyDisabled id="why-formdsignform-71" why={((!ready)) ? 'Finish the owner\'s signing steps above first: the code, the reading, the consents and the signature' : null} /></>
     </form>
   );
 }

@@ -90,7 +90,7 @@ export function IssueInvoices({ ownerId, count }: { ownerId: string; count: numb
   return (
     <div className="stack">
       <p className="small muted">The first and last month invoice follows your choice for each car, on the Terms tab: Send invoice now, Draft only, Already paid or No invoice. Nothing is invoiced without it.</p>
-      <><button className="btn btn--ghost" type="button" disabled={a.pending || count === 0} data-testid="issue-upfront" onClick={() => a.run(() => issueUpfrontInvoices(ownerId, null), (r) => { if (r.ok) router.refresh(); })} aria-describedby="why-adminforms-92">{a.pending ? 'Applying' : count === 0 ? 'Nothing waiting' : 'Apply the choices made'}</button><WhyDisabled id="why-adminforms-92" why={((count === 0)) ? 'Choose at least one first' : null} /></>
+      <><button className="btn btn--ghost" type="button" disabled={a.pending || count === 0} data-testid="issue-upfront" onClick={() => a.run(() => issueUpfrontInvoices(ownerId, null), (r) => { if (r.ok) router.refresh(); })} aria-describedby="why-adminforms-92">{a.pending ? 'Applying' : count === 0 ? 'Nothing waiting' : 'Apply the choices made'}</button><WhyDisabled id="why-adminforms-92" why={((count === 0)) ? 'Nothing is waiting: a car needs an invoice choice on its Terms tab first' : null} /></>
       <Problem a={a} />
       {a.res?.ok && <p className="alert alert--ok" role="status"><span>{a.res.data.count ? `${a.res.data.count} invoice${a.res.data.count === 1 ? '' : 's'} made as chosen.` : 'Nothing to make: a car without a choice is on Admin > Today.'}</span></p>}
     </div>

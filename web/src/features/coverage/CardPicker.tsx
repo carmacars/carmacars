@@ -71,7 +71,7 @@ export function CardPicker({ number, cards, pick, vehicleClass, rentalDays }: {
         }); }}>
           <label className="check"><input type="checkbox" checked={tick} onChange={(e) => setTick(e.target.checked)} data-testid="coverage-card-tick" />{' '}
             <span>My {chosen.label || 'credit card'} includes rental car coverage for a {vehicleClass ?? 'car of this class'} for {rentalDays} {rentalDays === 1 ? 'day' : 'days'}, and I will claim on it if the car is damaged.</span></label>
-          <><button className="btn btn--primary" type="submit" disabled={!tick || !ready} data-testid="coverage-card-confirm" aria-describedby="why-cardpicker-73">{pending ? 'Saving' : 'Confirm my card’s coverage'}</button><WhyDisabled id="why-cardpicker-73" why={((!tick) || (!ready)) ? (!tick) ? 'Tick the box first' : 'Finish the steps above first' : null} /></>
+          <><button className="btn btn--primary" type="submit" disabled={!tick || !ready} data-testid="coverage-card-confirm" aria-describedby="why-cardpicker-73">{pending ? 'Saving' : 'Confirm my card’s coverage'}</button><WhyDisabled id="why-cardpicker-73" why={((!tick) || (!ready)) ? (!tick) ? 'Tick the box first' : !chosen ? 'Choose your credit card first' : refused ? 'This card does not include the coverage: choose another card' : pending ? 'Wait for the card check to finish' : 'Type the name of your card first' : null} /></>
         </form>)}
       {msg && <p className="small" role="status" data-testid="card-picker-msg">{msg}</p>}
     </div>

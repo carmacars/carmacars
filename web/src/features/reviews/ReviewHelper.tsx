@@ -129,7 +129,7 @@ export function ReviewHelper(p: HelperProps) {
           <p className="rh-note">Change anything you like: it is your review.{' '}
             <button type="button" className="btn btn--quiet btn--sm" onClick={() => { setEdited(false); setSeed((s) => s + 1); setCopied(''); }} data-testid="review-other-words">Other words</button></p>
           <div className="rh-actions">
-            <><button type="button" className="btn btn--ghost" onClick={() => void copy()} disabled={!shown.trim()} data-testid="review-copy" aria-describedby="why-reviewhelper-131">{copied === 'copied' ? 'Copied' : 'Copy'}</button><WhyDisabled id="why-reviewhelper-131" why={((!shown.trim())) ? 'Type it first' : null} /></>
+            <><button type="button" className="btn btn--ghost" onClick={() => void copy()} disabled={!shown.trim()} data-testid="review-copy" aria-describedby="why-reviewhelper-131">{copied === 'copied' ? 'Copied' : 'Copy'}</button><WhyDisabled id="why-reviewhelper-131" why={((!shown.trim())) ? 'Write or choose the review text first' : null} /></>
             {p.googleUrl && (
               <a className="btn btn--primary" href={p.googleUrl} target="_blank" rel="noopener" data-testid="review-google"
                 onClick={() => { void copy(); void reviewHelperAct(p.token, 'google'); }}>Post on Google</a>

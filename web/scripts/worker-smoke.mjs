@@ -64,6 +64,15 @@ try {
   }
   if (!up) throw new Error('wrangler dev did not answer within 90 s');
   // one dynamic route: a car page from the local seed when there is one, else a car code that does not exist (a 404)
+  // r48 integration: /cars is the heaviest first render (the fleet, the classes, the studio photo slots and both make lists
+  // read in parallel); on a cold workerd it can pass the 60 s of a check, and an aborted request takes its database sockets
+  // with it (deploy run 43743996484: 104 s, then 503 "no longer running"). One warm-up request, which is not aborted at 60 s,
+  // pays for the compile and the first reads; the checks below then answer from a warm route, and a retry opens fresh connections.
+  {
+    const t0 = Date.now();
+    try { const w = await fetch(`${BASE}/cars`, { redirect: 'manual', signal: AbortSignal.timeout(240_000) }); await w.text(); console.log(`warm-up /cars ${w.status} in ${Math.round((Date.now() - t0) / 1000)} s`); }
+    catch (e) { console.log(`warm-up /cars failed after ${Math.round((Date.now() - t0) / 1000)} s: ${String(e).slice(0, 120)}`); }
+  }
   const paths = ['/api/health', '/', '/sign-in', '/cars', '/cars/no-such-car-smoke'];
   for (const p of paths) {
     let status = 0, body = '';

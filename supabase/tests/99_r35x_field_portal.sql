@@ -34,11 +34,13 @@ select test.r35x_fd('r35x_a', 'shift_take', jsonb_build_object('slot', (select i
 select test.r35x_fd('r35x_b', 'shift_take', jsonb_build_object('slot', (select id from field_shift_slots where starts_at = (select s from r35x_t))));
 
 -- ================================================================ 1. the work list
-select test.mk_booking('R35X-1', 'R35XA', 'r35x_r', to_char((now() + interval '20 minutes') at time zone 'America/Toronto', 'YYYY-MM-DD HH24:MI'),
+-- the pickup is 20 minutes ahead but never past Toronto midnight (after 23:40 it would be on tomorrow's list, not Today's)
+create temp table r35x_pk as select least(now() + interval '20 minutes', app.local_midnight(app.today() + 1) - interval '1 minute') as at;
+select test.mk_booking('R35X-1', 'R35XA', 'r35x_r', to_char((select at from r35x_pk) at time zone 'America/Toronto', 'YYYY-MM-DD HH24:MI'),
   to_char((now() + interval '3 days') at time zone 'America/Toronto', 'YYYY-MM-DD HH24:MI'), 'confirmed', 30000);
 insert into booking_addons (booking_id, addon_id, quantity, name, fee_type_code, pricing_unit, unit_price_cents, hst_applies, status, added_via, confirmed_at)
 select test.id('booking:R35X-1'), a.id, 1, a.name, a.fee_type_code, a.pricing_unit, coalesce(a.price_cents, 0), a.hst_applies, 'confirmed', 'staff', now() from addons a where a.code = 'baby_seat';
-create temp table r35x_job as select app.create_field_job('handover', test.id('vehicle:R35XA'), now() + interval '20 minutes', test.id('r35x_fleet'), test.id('booking:R35X-1'), test.id('r35x_a')) as id;
+create temp table r35x_job as select app.create_field_job('handover', test.id('vehicle:R35XA'), (select at from r35x_pk), test.id('r35x_fleet'), test.id('booking:R35X-1'), test.id('r35x_a')) as id;
 grant select on r35x_job to public;
 update vehicles set status = 'out_of_service' where id = test.id('vehicle:R35XB');
 create temp table r35x_today as select test.r35x_fr('r35x_a', 'today') as t;

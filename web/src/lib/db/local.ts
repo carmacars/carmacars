@@ -3,6 +3,7 @@ import postgres from 'postgres';
 import { jwtVerify } from 'jose';
 import { required } from '@/lib/env';
 import { DbError, type Backend } from './repo';
+import { isClosedConnection } from './closed';
 
 // Local backend: one transaction per call, with the role and the JWT claims set first, the way
 // PostgREST does it, so row-level security, grants and auth.uid() behave as on Supabase.
@@ -11,15 +12,29 @@ const g = globalThis as unknown as { __ccSql?: postgres.Sql; __ccMeta?: Map<stri
 
 // In workerd (wrangler dev of the Worker build) a socket cannot outlive the request that opened
 // it, so each call gets its own connection there; under Node one pool is shared.
-const inWorker = typeof navigator !== 'undefined' && navigator.userAgent === 'Cloudflare-Workers';
+// r48 integration: workerd is told apart by any of its markers, not by navigator.userAgent alone (the Worker smoke's
+// /cars 503: a request the smoke aborted took its sockets with it, the retry found the closed ones in the pool).
+const inWorker = (typeof navigator !== 'undefined' && navigator.userAgent === 'Cloudflare-Workers')
+  || typeof (globalThis as { WebSocketPair?: unknown }).WebSocketPair !== 'undefined';
 function client(): postgres.Sql {
   if (inWorker) return postgres(required('DATABASE_URL'), { max: 1, onnotice: () => {} });
   if (!g.__ccSql) g.__ccSql = postgres(required('DATABASE_URL'), { max: 8, idle_timeout: 20, onnotice: () => {} });
   return g.__ccSql;
 }
-async function withClient<T>(fn: (sql: postgres.Sql) => Promise<T>): Promise<T> {
+/** Drops the shared pool (Node) so the next call opens fresh connections; the closed ones are never reused. */
+function dropPool(sql: postgres.Sql): void {
+  if (g.__ccSql === sql) g.__ccSql = undefined;
+  void sql.end({ timeout: 1 }).catch(() => {});
+}
+async function withClient<T>(fn: (sql: postgres.Sql) => Promise<T>, retryClosed = false): Promise<T> {
   const sql = client();
-  try { return await fn(sql); } finally { if (inWorker) await sql.end({ timeout: 1 }); }
+  try { return await fn(sql); } catch (e) {
+    if (!isClosedConnection(e)) throw e;
+    dropPool(sql);
+    // a read may run again on fresh connections; a write is never run twice (its first try may have committed)
+    if (retryClosed) return withClient(fn, false);
+    throw e;
+  } finally { if (inWorker) await sql.end({ timeout: 1 }).catch(() => {}); }
 }
 
 async function meta(fn: string): Promise<Meta> {
@@ -30,7 +45,7 @@ async function meta(fn: string): Promise<Meta> {
     select coalesce(p.proargnames, '{}') as names, coalesce(p.proargmodes, '{}') as modes,
            array(select format_type(t, null) from unnest(coalesce(p.proallargtypes, string_to_array(nullif(p.proargtypes::text, ''), ' ')::oid[], '{}')) t) as types,
            p.proretset or coalesce('t' = any(p.proargmodes), false) as set
-      from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = ${fn}`);
+      from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = ${fn}`, true);
   const r = rows[0];
   if (!r || rows.length > 1) throw new DbError(`Unknown or overloaded function public.${fn}`, '42883');
   const args = new Map<string, string>();

@@ -57,7 +57,7 @@ export function FormCSignForm({ ownerName, acknowledgments, statement, esign, ac
       </fieldset>
       {errs.form && <p className="alert alert--error" role="alert"><span>{errs.form}</span></p>}
       <p className="xs muted">By pressing Sign, the owner signs Form C electronically and the witness confirms they saw it, each with the same effect as signing on paper. We record the time, the IP address and the device.</p>
-      <><button className="btn btn--primary btn--lg btn--block" type="submit" disabled={busy || !ready} data-testid="form-c-submit" aria-describedby="why-formcsignform-59">{busy ? 'Signing' : 'Sign Form C'}</button><WhyDisabled id="why-formcsignform-59" why={((!ready)) ? 'Finish the steps above first' : null} /></>
+      <><button className="btn btn--primary btn--lg btn--block" type="submit" disabled={busy || !ready} data-testid="form-c-submit" aria-describedby="why-formcsignform-59">{busy ? 'Signing' : 'Sign Form C'}</button><WhyDisabled id="why-formcsignform-59" why={((!ready)) ? 'Finish the owner\'s signing steps above first: the code, the reading, the initials, the consents and the signature' : null} /></>
     </form>
   );
 }

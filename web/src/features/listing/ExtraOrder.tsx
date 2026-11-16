@@ -59,7 +59,7 @@ export function ExtraOrder({ vehicle, photos }: { vehicle: string; photos: P[] }
             </span>
           </li>); })}
       </ol>
-      <p className="row"><><button type="button" className="btn btn--primary btn--sm" disabled={pending || !changed} onClick={save} data-testid="extra-order-save" aria-describedby="why-extraorder-61">{pending ? 'Saving' : 'Save the order'}</button><WhyDisabled id="why-extraorder-61" why={((!changed)) ? 'Change something first' : null} /></></p>
+      <p className="row"><><button type="button" className="btn btn--primary btn--sm" disabled={pending || !changed} onClick={save} data-testid="extra-order-save" aria-describedby="why-extraorder-61">{pending ? 'Saving' : 'Save the order'}</button><WhyDisabled id="why-extraorder-61" why={((!changed)) ? 'Move a photo to a new place first' : null} /></></p>
       {res && <p className={`alert ${res.ok ? 'alert--ok' : 'alert--error'} small`} role={res.ok ? 'status' : 'alert'}><span>{res.text}</span></p>}
     </div>
   );

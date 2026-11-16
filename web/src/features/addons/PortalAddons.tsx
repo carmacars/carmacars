@@ -41,7 +41,7 @@ export function PortalAddons({ number, data }: { number: string; data: MyAddons 
           <p className="small muted">Until {when(data.add_until)} (some need more notice). Charged now on your card{data.card?.last4 ? ` ending ${data.card.last4}` : ''}.</p>
           <AddonPicker idPrefix="pa" options={data.options} value={pick} onChange={(v) => setPick(v.filter((c) => c.code === v[v.length - 1]?.code))} />
           {chosen && opt && <p className="small" data-testid="portal-addon-price">{opt.name}: {addonPrice(opt)}{opt.hst_applies ? ', plus HST' : ''}.{opt.needs_confirmation ? ' We confirm it first and charge your card then.' : ''}</p>}
-          <p><><button className="btn btn--primary btn--sm" type="button" disabled={!chosen || pending} onClick={add} data-testid="portal-addon-add" aria-describedby="why-portaladdons-43">{pending ? 'Adding' : opt?.needs_confirmation ? 'Ask for it' : 'Add and pay'}</button><WhyDisabled id="why-portaladdons-43" why={((!chosen)) ? 'Choose at least one first' : null} /></></p>
+          <p><><button className="btn btn--primary btn--sm" type="button" disabled={!chosen || pending} onClick={add} data-testid="portal-addon-add" aria-describedby="why-portaladdons-43">{pending ? 'Adding' : opt?.needs_confirmation ? 'Ask for it' : 'Add and pay'}</button><WhyDisabled id="why-portaladdons-43" why={((!chosen)) ? 'Choose an add-on first' : null} /></></p>
         </details>)}
       {data.items.some((a) => a.after_booking && !a.paid && a.status === 'confirmed') && (
         <p><a className="btn btn--primary btn--sm" href={`/account/bookings/${encodeURIComponent(number)}/addons/pay`} data-testid="portal-addons-pay">Pay for your add-ons</a></p>)}

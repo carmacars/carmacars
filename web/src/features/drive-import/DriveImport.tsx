@@ -108,7 +108,7 @@ export function DriveImport({ vehicle, runs: initialRuns = [], refresh = [] }: {
           <RunBody view={view} choice={choice} setChoice={setChoice} cars={cars} />
           {view.import.status === 'review' && (
             <div className="row">
-              <><button className="btn btn--primary btn--sm" type="button" disabled={pending || chosen === 0} onClick={confirm} data-testid="drive-import-confirm" aria-describedby="why-driveimport-110">Import {photos} photos from {chosen} folders</button><WhyDisabled id="why-driveimport-110" why={((chosen === 0)) ? 'Choose at least one first' : null} /></>
+              <><button className="btn btn--primary btn--sm" type="button" disabled={pending || chosen === 0} onClick={confirm} data-testid="drive-import-confirm" aria-describedby="why-driveimport-110">Import {photos} photos from {chosen} folders</button><WhyDisabled id="why-driveimport-110" why={((chosen === 0)) ? 'Tick at least one folder to import first' : null} /></>
               <button className="btn btn--ghost btn--sm" type="button" disabled={pending} onClick={cancel}>Cancel</button>
             </div>
           )}

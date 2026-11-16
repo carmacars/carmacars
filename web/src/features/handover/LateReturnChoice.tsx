@@ -63,9 +63,9 @@ export function LateReturnDecide({ late, refresh = [] }: { late: LateReturn; ref
       {open && (d && d.status !== 'pending'
         ? <details><summary className="small link" data-testid="late-change">{d.status === 'needs_admin' ? 'Choose another way instead' : 'Admin: change the late return charge'}</summary>
             <LateReturnChoice late={late} value={c} onChange={setC} name="late-booking" />
-            <><button className="btn btn--primary" type="button" disabled={pending || !c.option} onClick={go} data-testid="late-save" aria-describedby="why-latereturnchoice-65">{pending ? 'Working' : 'Save the late return charge'}</button><WhyDisabled id="why-latereturnchoice-65" why={((!c.option)) ? 'Choose an option first' : null} /></></details>
+            <><button className="btn btn--primary" type="button" disabled={pending || !c.option} onClick={go} data-testid="late-save" aria-describedby="why-latereturnchoice-65">{pending ? 'Working' : 'Save the late return charge'}</button><WhyDisabled id="why-latereturnchoice-65" why={((!c.option)) ? 'Choose how the late return is charged first' : null} /></></details>
         : <><LateReturnChoice late={late} value={c} onChange={setC} name="late-booking" />
-            <><button className="btn btn--primary" type="button" disabled={pending || !c.option} onClick={go} data-testid="late-save" aria-describedby="why-latereturnchoice-67">{pending ? 'Working' : 'Save the late return charge'}</button><WhyDisabled id="why-latereturnchoice-67" why={((!c.option)) ? 'Choose an option first' : null} /></></>)}
+            <><button className="btn btn--primary" type="button" disabled={pending || !c.option} onClick={go} data-testid="late-save" aria-describedby="why-latereturnchoice-67">{pending ? 'Working' : 'Save the late return charge'}</button><WhyDisabled id="why-latereturnchoice-67" why={((!c.option)) ? 'Choose how the late return is charged first' : null} /></></>)}
       {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'} data-testid="late-message"><span>{msg.text}</span></p>}
     </div>
   );

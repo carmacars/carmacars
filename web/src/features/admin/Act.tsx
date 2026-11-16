@@ -180,7 +180,7 @@ export function Act({ action, payload = {}, fields = [], label, confirm, variant
         fill={(patch) => f.setVals((s) => ({ ...s, ...patch }))} />)}</div>}
       {res && !res.ok && <p className="alert alert--error" role="alert"><span>{res.message}</span></p>}
       <div className="row">
-        <><button className={`btn btn--sm ${variant === 'danger' ? 'btn--primary ad-btn--danger' : 'btn--primary'}`} type="submit" disabled={pending || disabled} data-testid={testId ? `${testId}-submit` : undefined} aria-describedby="why-act-182">{pending ? 'Working' : submitLabel ?? label}</button><WhyDisabled id="why-act-182" why={((disabled)) ? (disabledWhy ?? 'Not available yet: finish the step before it first') : null} /></>
+        <><button className={`btn btn--sm ${variant === 'danger' ? 'btn--primary ad-btn--danger' : 'btn--primary'}`} type="submit" disabled={pending || disabled} data-testid={testId ? `${testId}-submit` : undefined} aria-describedby="why-act-182">{pending ? 'Working' : submitLabel ?? label}</button><WhyDisabled id="why-act-182" why={((disabled)) ? (disabledWhy ?? 'Fill in what is marked as needed on this screen first') : null} /></>
         {needsDialog && <button className="btn btn--ghost btn--sm" type="button" onClick={() => dlg.current?.close()}>Cancel</button>}
       </div>
     </form>
@@ -189,7 +189,7 @@ export function Act({ action, payload = {}, fields = [], label, confirm, variant
   return (
     <>
       <><button className={cls} type="button" disabled={pending || disabled} data-testid={testId} aria-haspopup={needsDialog ? 'dialog' : undefined}
-        onClick={() => { setRes(null); if (needsDialog) dlg.current?.showModal(); else run(); }} aria-describedby="why-act-190">{pending ? 'Working' : label}</button><WhyDisabled id="why-act-190" why={((disabled)) ? (disabledWhy ?? 'Not available yet: finish the step before it first') : null} /></>
+        onClick={() => { setRes(null); if (needsDialog) dlg.current?.showModal(); else run(); }} aria-describedby="why-act-190">{pending ? 'Working' : label}</button><WhyDisabled id="why-act-190" why={((disabled)) ? (disabledWhy ?? 'Fill in what is marked as needed on this screen first') : null} /></>
       {!needsDialog && res && !res.ok && <span className="ad-err" role="alert">{res.message}</span>}
       {needsDialog && (
         <dialog ref={dlg} className="ad-dialog" aria-labelledby={`${idp}-t`} onClose={() => setRes(null)}>

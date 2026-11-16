@@ -60,7 +60,7 @@ export function InsurerBulk({ cars, refresh = [] }: { cars: Array<{ vehicle_id: 
           </div>
           {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role="alert"><span>{msg.text}</span></p>}
           <div className="row">
-            <><button className="btn btn--primary btn--sm" type="submit" disabled={pending || ticked.length === 0} data-testid="insurer-bulk-submit" aria-describedby="why-insurerconfirm-62">{pending ? 'Working' : `Insurer confirmed ${ticked.length} car${ticked.length === 1 ? '' : 's'}`}</button><WhyDisabled id="why-insurerconfirm-62" why={((ticked.length === 0)) ? 'Choose at least one first' : null} /></>
+            <><button className="btn btn--primary btn--sm" type="submit" disabled={pending || ticked.length === 0} data-testid="insurer-bulk-submit" aria-describedby="why-insurerconfirm-62">{pending ? 'Working' : `Insurer confirmed ${ticked.length} car${ticked.length === 1 ? '' : 's'}`}</button><WhyDisabled id="why-insurerconfirm-62" why={((ticked.length === 0)) ? 'Tick at least one car the insurer confirmed first' : null} /></>
             <button className="btn btn--ghost btn--sm" type="button" onClick={() => dlg.current?.close()}>Cancel</button>
           </div>
         </form>

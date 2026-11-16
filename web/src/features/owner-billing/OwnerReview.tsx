@@ -89,7 +89,7 @@ export function ScheduleSign({ changeId, sha256, owner, title, signed }: { chang
       <EsignFlow ctx={{ kind: 'documents', role: 'owner', docs: [{ kind: 'schedule_change', ref: changeId, sha: sha256, title }] }} terms={DOC_TERMS} docsLabel="this updated Vehicle Schedule" onReady={setReady} />
       {a.err('signature') && <p className="error" role="alert">{a.err('signature')}</p>}
       {a.res && !a.res.ok && !a.res.fieldErrors && <p className="alert alert--error" role="alert"><span>{a.res.message}</span></p>}
-      <div className="row"><><button className="btn btn--primary" type="submit" disabled={a.pending || !ready} data-testid="schedule-sign-submit" aria-describedby="why-ownerreview-91">{a.pending ? 'Signing' : 'Sign'}</button><WhyDisabled id="why-ownerreview-91" why={((!ready)) ? 'Finish the steps above first' : null} /></></div>
+      <div className="row"><><button className="btn btn--primary" type="submit" disabled={a.pending || !ready} data-testid="schedule-sign-submit" aria-describedby="why-ownerreview-91">{a.pending ? 'Signing' : 'Sign'}</button><WhyDisabled id="why-ownerreview-91" why={((!ready)) ? 'Finish the signing steps above first: the code, the reading, the consents and the signature' : null} /></></div>
     </form>
   );
 }

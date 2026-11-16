@@ -158,7 +158,7 @@ export function PayForm({ number, amountCents, depositCents, coverageOption = nu
       {debitOk && coverageOption !== 2 && <p className="small muted" data-testid="pay-debit-note">With a debit or prepaid card, the deposit hold lowers the money available on your card or account until it is released, and the release can take several business days.</p>}
       {msg && <p className={`alert ${msg.kind === 'wait' ? 'alert--warn' : 'alert--error'}`} role={msg.kind === 'wait' ? 'status' : 'alert'} data-testid="pay-message"><span>{msg.text}
         {msg.coverage && <> <a className="link" href={`/account/bookings/${encodeURIComponent(number)}/verify#pt-cov`}>Change how the car is covered</a></>}</span></p>}
-      <><button className="btn btn--primary btn--lg btn--block" type="submit" disabled={!p || busy} aria-describedby="why-payform-160">{busy ? 'Confirming' : `Pay ${money(p?.amountCents ?? amountCents, { cents: true })}`}</button><WhyDisabled id="why-payform-160" why={((!p)) ? 'Choose one first' : null} /></>
+      <><button className="btn btn--primary btn--lg btn--block" type="submit" disabled={!p || busy} aria-describedby="why-payform-160">{busy ? 'Confirming' : `Pay ${money(p?.amountCents ?? amountCents, { cents: true })}`}</button><WhyDisabled id="why-payform-160" why={((!p)) ? 'Wait for the card form to finish loading' : null} /></>
       <p className="pt-lock"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 7V5a4 4 0 0 1 8 0v2h1v8H3V7zm2 0h4V5a2 2 0 0 0-4 0z" fill="currentColor" /></svg>Your card is authorized now and charged only once your booking is confirmed.</p>
     </form>
   );

@@ -95,7 +95,7 @@ export function FormReview({ code, templateId, fieldMap, vehicles }: Props) {
         )}
         {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'}><span>{msg.text}</span></p>}
         <div className="row">
-          {!msg?.ok && <><button className="btn btn--primary btn--sm" type="button" disabled={pending || loading || !shown} onClick={verify} data-testid={`${tid}-verify`} aria-describedby="why-formreview-97">Checked: use for owners</button><WhyDisabled id="why-formreview-97" why={((!shown)) ? 'Type it first' : null} /></>}
+          {!msg?.ok && <><button className="btn btn--primary btn--sm" type="button" disabled={pending || loading || !shown} onClick={verify} data-testid={`${tid}-verify`} aria-describedby="why-formreview-97">Checked: use for owners</button><WhyDisabled id="why-formreview-97" why={((!shown)) ? 'Wait for the filled form to show, then check it first' : null} /></>}
           <button className="btn btn--ghost btn--sm" type="button" onClick={() => dlg.current?.close()}>{msg?.ok ? 'Close' : 'Not yet'}</button>
         </div>
       </dialog>

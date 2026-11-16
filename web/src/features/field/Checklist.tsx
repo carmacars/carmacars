@@ -313,7 +313,7 @@ export function Checklist({ j, back = '/staff/field', backLabel = 'Back to my jo
       <div className="fd-bar fd-bar--one">
         {!can && <button className="btn btn--ghost fd-bar__need" type="button" onClick={() => go(needed[0]?.id ?? 'photos')} data-testid="still-needed">
           {needed.length ? <>Next: {needed[0]!.label}{needed.length > 1 ? <span className="fd-bar__more"> and {needed.length - 1} more</span> : null}</> : <>Photos still uploading</>}</button>}
-        <><button className="btn btn--primary" type="button" disabled={pending || !can} onClick={complete} data-testid="complete" aria-describedby="why-checklist-313">{pending ? 'Working' : primary}</button><WhyDisabled id="why-checklist-313" why={((!can)) ? 'You cannot do this here: ask an Admin' : null} /></>
+        <><button className="btn btn--primary" type="button" disabled={pending || !can} onClick={complete} data-testid="complete" aria-describedby="why-checklist-313">{pending ? 'Working' : primary}</button><WhyDisabled id="why-checklist-313" why={((!can)) ? uploadsLeft ? 'Wait for the photos to finish uploading' : `Still to do: ${needed.map((n) => n.label).join(', ')}` : null} /></>
       </div>
     </div>
   );

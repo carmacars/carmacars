@@ -33,10 +33,12 @@ export function LatePanel({ l, fleet, refresh, returning = false }: { l: Late; f
         {returning && <Act action="late_returning_now" payload={P} label="Returning now" variant="primary" testId="late-returning-now" refresh={refresh}
           confirm="Mark the car returning now? The renter gets no more overdue reminders for this return time." done="Marked returning now." />}
         <Act action="late_call" payload={P} label="Log a call" testId="late-call" fields={[{ name: 'note', label: 'What happened', type: 'textarea', required: true }]} refresh={refresh} done="Call logged." />
-        <Act action="late_t13" payload={P} label={l.t13_at ? 'T13 sent' : 'Send T13'} testId="late-t13" disabled={Boolean(l.t13_at)} refresh={refresh} done="T13 sent." />
+        <Act action="late_t13" payload={P} label={l.t13_at ? 'T13 sent' : 'Send T13'} testId="late-t13" disabled={Boolean(l.t13_at)} disabledWhy="T13 is already sent to this renter" refresh={refresh} done="T13 sent." />
         <Act action="late_t14" payload={P} label={l.t14_at ? 'T14 sent' : 'Send T14 (final notice)'} testId="late-t14" disabled={Boolean(l.t14_at) || !t14Ready}
+          disabledWhy={l.t14_at ? 'T14 is already sent to this renter' : 'T14 goes out 2 hours after the return time: wait until then'}
           confirm="Send the final notice (T14)? The disable can be requested once the notice time has passed." refresh={refresh} done="T14 sent." />
         {fleet && <Act action="late_disable" payload={P} label="Request disable" variant="danger" testId="late-disable" disabled={!disableReady || Boolean(l.disable)}
+          disabledWhy={l.disable ? 'The disable is already requested: it waits for an Admin' : !l.t14_at ? 'Send T14 (the final notice) first' : 'Wait until the notice time after T14 has passed'}
           fields={[{ name: 'reason', label: 'Reason for the Admin', type: 'text', required: true, value: 'Not returned after the final notice' }]} refresh={refresh} done="Sent to an Admin for approval." />}
         {fleet && !l.incident && <Act action="late_incident" payload={P} label="Open an incident" testId="late-incident" fields={[{ name: 'note', label: 'What is known', type: 'textarea' }]} refresh={refresh} done="Incident opened." />}
       </div>

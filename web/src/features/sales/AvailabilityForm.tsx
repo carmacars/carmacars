@@ -51,7 +51,7 @@ export function AvailabilityForm({ week, next, today }: { week: WeekBlocks; next
       </ul>
       <div className="ad-actions">
         <><button type="button" className="btn btn--ghost btn--sm" disabled={days.length === 0} data-testid="availability-add"
-          onClick={() => setRows((x) => [...x, { day: days.find((d) => [4, 5, 6, 0].includes(new Date(`${d}T12:00:00Z`).getUTCDay())) ?? days[0]!, from: '12:00', to: '18:00' }])} aria-describedby="why-availabilityform-52">Add a block</button><WhyDisabled id="why-availabilityform-52" why={((days.length === 0)) ? 'Choose at least one first' : null} /></>
+          onClick={() => setRows((x) => [...x, { day: days.find((d) => [4, 5, 6, 0].includes(new Date(`${d}T12:00:00Z`).getUTCDay())) ?? days[0]!, from: '12:00', to: '18:00' }])} aria-describedby="why-availabilityform-52">Add a block</button><WhyDisabled id="why-availabilityform-52" why={((days.length === 0)) ? 'No day is left in this week: use the next week' : null} /></>
         <button type="button" className="btn btn--primary btn--sm" disabled={pending} onClick={save} data-testid="availability-save">{pending ? 'Saving' : 'Save the week'}</button>
       </div>
       {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--warn'}`} role="status">{msg.text}</p>}

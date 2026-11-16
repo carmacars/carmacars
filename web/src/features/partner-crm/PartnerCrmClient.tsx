@@ -72,8 +72,8 @@ export function RunButtons({ partnerId, connected }: { partnerId: string; connec
   return (
     <div className="ad-inline">
       <div className="ad-actions">
-        <><button className="btn btn--ghost btn--sm" type="button" disabled={pending || !connected} onClick={() => go('test')} data-testid="crm-test" aria-describedby="why-partnercrmclient-74">{pending ? 'Working' : 'Test connection'}</button><WhyDisabled id="why-partnercrmclient-74" why={((!connected)) ? 'Connect it first' : null} /></>
-        <><button className="btn btn--primary btn--sm" type="button" disabled={pending || !connected} onClick={() => go('sync')} data-testid="crm-sync-now" aria-describedby="why-partnercrmclient-75">{pending ? 'Working' : 'Run sync now'}</button><WhyDisabled id="why-partnercrmclient-75" why={((!connected)) ? 'Connect it first' : null} /></>
+        <><button className="btn btn--ghost btn--sm" type="button" disabled={pending || !connected} onClick={() => go('test')} data-testid="crm-test" aria-describedby="why-partnercrmclient-74">{pending ? 'Working' : 'Test connection'}</button><WhyDisabled id="why-partnercrmclient-74" why={((!connected)) ? 'Connect the partner first: paste their token above' : null} /></>
+        <><button className="btn btn--primary btn--sm" type="button" disabled={pending || !connected} onClick={() => go('sync')} data-testid="crm-sync-now" aria-describedby="why-partnercrmclient-75">{pending ? 'Working' : 'Run sync now'}</button><WhyDisabled id="why-partnercrmclient-75" why={((!connected)) ? 'Connect the partner first: paste their token above' : null} /></>
       </div>
       {msg && <p className={`small ${msg.tone === 'error' ? 'ad-err' : ''}`} role={msg.tone === 'ok' ? 'status' : 'alert'} data-testid="crm-run-result">{msg.text}</p>}
     </div>

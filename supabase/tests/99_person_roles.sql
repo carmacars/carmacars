@@ -4,7 +4,7 @@
 -- and owner_id. Fixtures start with "pr"; every address is example.test.
 select test.suite('99 person roles');
 
-select test.mk_user('pr_admin', 'admin');
+select test.mk_user('prl_admin', 'admin');
 select test.mk_owner('pr_olga');
 select test.mk_owner('pr_ora');
 select test.mk_vehicle('pr_car', 'pr_ora');
@@ -66,15 +66,15 @@ values (test.prsid('olga'), test.prvid('olga'), test.id('pr_olga'), test.id('ren
        (test.prsid('ora'), test.prvid('ora'), test.id('pr_ora'), test.id('renter:pr_ora'), 'Pr Ora', 'analytics', 'Toronto', now(), now() - interval '5 minutes', 3);
 select test.eq('Live visitors: the owner''s visit says owner, with the owner id',
   (select format('%s %s', array_to_string(array(select jsonb_array_elements_text(x -> 'roles')), ' '), (x ->> 'owner_id')::uuid = test.id('owner:pr_olga'))
-     from jsonb_array_elements(app.live_visitors(test.id('pr_admin')) -> 'now') x where x ->> 'id' = test.prsid('olga')::text),
+     from jsonb_array_elements(app.live_visitors(test.id('prl_admin')) -> 'now') x where x ->> 'id' = test.prsid('olga')::text),
   'owner t');
 select test.eq('Live visitors: the renter''s visit says renter',
-  (select array_to_string(array(select jsonb_array_elements_text(x -> 'roles')), ' ') from jsonb_array_elements(app.live_visitors(test.id('pr_admin')) -> 'now') x where x ->> 'id' = test.prsid('rita')::text),
+  (select array_to_string(array(select jsonb_array_elements_text(x -> 'roles')), ' ') from jsonb_array_elements(app.live_visitors(test.id('prl_admin')) -> 'now') x where x ->> 'id' = test.prsid('rita')::text),
   'renter');
 select test.eq('Live visitors: an owner who rents says both',
-  (select array_to_string(array(select jsonb_array_elements_text(x -> 'roles')), ' ') from jsonb_array_elements(app.live_visitors(test.id('pr_admin')) -> 'now') x where x ->> 'id' = test.prsid('ora')::text),
+  (select array_to_string(array(select jsonb_array_elements_text(x -> 'roles')), ' ') from jsonb_array_elements(app.live_visitors(test.id('prl_admin')) -> 'now') x where x ->> 'id' = test.prsid('ora')::text),
   'owner renter');
-create temp table s99pr as select app.door(test.id('pr_admin'), 'aal2', 'admin_read', 'live_map', jsonb_build_object('who', jsonb_build_array(
+create temp table s99pr as select app.door(test.id('prl_admin'), 'aal2', 'admin_read', 'live_map', jsonb_build_object('who', jsonb_build_array(
   test.id('renter:pr_olga'), test.id('renter:pr_rita'), test.id('renter:pr_ora')))) as v;
 create or replace function test.prpin(p_renter text) returns text language sql stable as $$
   select array_to_string(array(select jsonb_array_elements_text(x -> 'roles')), ' ') from jsonb_array_elements((select v from pg_temp.s99pr) -> 'pins') x
@@ -87,7 +87,7 @@ select test.eq('Live map: the renter is still on rent (the roles change no pin t
 insert into contact_captures (visitor_id, form, ref, name, email, lead_id, done_at, done_reason)
 values (test.prvid('lead'), 'owner_lead', 'pr-lead', 'Pr Leadowner', 'pr.leadowner@example.test', test.id('lead:pr_owner'), now(), 'sent');
 select test.eq('Renter leads page: a captured owner form says owner',
-  (select array_to_string(array(select jsonb_array_elements_text(x -> 'roles')), ' ') from jsonb_array_elements(app.captured_contacts(test.id('pr_admin'), '{"q": "Leadowner"}') -> 'rows') x limit 1), 'owner');
+  (select array_to_string(array(select jsonb_array_elements_text(x -> 'roles')), ' ') from jsonb_array_elements(app.captured_contacts(test.id('prl_admin'), '{"q": "Leadowner"}') -> 'rows') x limit 1), 'owner');
 
 -- ================================================================ 3. Visitor history rows carry the role, score, cars, trail and chat
 update visitor_sessions set score = 55, cars_viewed = array[test.id('vehicle:pr_car')] where id = test.prsid('ora');
@@ -98,4 +98,4 @@ select test.eq('Visitor history: the owner who rents says both, with score, one 
      from (select app.visit_history_extra(s) as x from visitor_sessions s where s.id = test.prsid('ora')) y),
   'owner renter 55 1 1 2 false');
 select test.ok('Visitor history: every row of the read carries roles and a trail',
-  (select bool_and(x ? 'roles' and x ? 'trail') and count(*) > 0 from jsonb_array_elements(app.visitor_history(test.id('pr_admin'), '{"bots": "1", "summary": "0", "limit": 5}') -> 'rows') x));
+  (select bool_and(x ? 'roles' and x ? 'trail') and count(*) > 0 from jsonb_array_elements(app.visitor_history(test.id('prl_admin'), '{"bots": "1", "summary": "0", "limit": 5}') -> 'rows') x));

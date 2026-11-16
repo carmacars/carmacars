@@ -102,7 +102,7 @@ export function MyProtection({ number, x, cards }: { number: string; x: Protecti
             <input className="input" id="mp-reason" maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} /></div>
           {to && local && <p className="small muted" role="note">{local}</p>}
           <div className="row"><><button className="btn btn--primary btn--sm" type="button" disabled={pending || busy || !ready} onClick={send} data-testid="my-protection-go" aria-describedby="why-myprotection-103">
-            {pending ? 'Sending' : review ? 'Send for review' : pick && (pick.change_cents ?? 0) > 0 ? `Add it for ${fmt(pick.change_cents)}` : 'Change it'}</button><WhyDisabled id="why-myprotection-103" why={((!ready)) ? 'Finish the steps above first' : null} /></>
+            {pending ? 'Sending' : review ? 'Send for review' : pick && (pick.change_cents ?? 0) > 0 ? `Add it for ${fmt(pick.change_cents)}` : 'Change it'}</button><WhyDisabled id="why-myprotection-103" why={((!ready)) ? (!to ? 'Choose the protection you want first' : local ? local : !ticket ? 'Upload the proof of coverage first' : 'Fill in the insurer, policy number and expiry first') : null} /></>
             <button className="btn btn--quiet btn--sm" type="button" onClick={() => setOpen(false)}>Cancel</button></div>
         </div>)}
       {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'} data-testid="my-protection-msg"><span>{msg.text}</span></p>}
