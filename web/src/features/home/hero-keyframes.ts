@@ -1,4 +1,4 @@
-// The hero's cross-fade (release 28, B5; HeroSlides.tsx): 6 seconds a car, a 1-second fade. Pure, for the unit test.
+// The hero's cross-fade (release 28, B5; r48 O: components/SlotCars.tsx): 6 seconds a car, a 1-second fade. Pure, for the unit test.
 export const STEP = 6, FADE = 1;
 
 export function heroKeyframes(n: number): string {

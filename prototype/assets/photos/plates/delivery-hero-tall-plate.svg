@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200" width="1200" height="1200">
+<defs>
+<radialGradient id="spot" cx="0.7" cy="0.08" r="0.95" gradientUnits="objectBoundingBox"><stop offset="0" stop-color="#6b6b6b"/><stop offset=".35" stop-color="#2a2a2a"/><stop offset=".75" stop-color="#0b0b0b"/><stop offset="1" stop-color="#000"/></radialGradient>
+<radialGradient id="pool" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".6" stop-color="#fff" stop-opacity=".05"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<linearGradient id="fl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#161616"/><stop offset="1" stop-color="#000"/></linearGradient>
+</defs>
+<rect width="1200" height="1200" fill="#000"/>
+<rect width="1200" height="1008" fill="url(#spot)"/>
+<rect y="1008" width="1200" height="192" fill="url(#fl)"/>
+<ellipse cx="840" cy="1050.24" rx="624" ry="96" fill="url(#pool)"/>
+<rect y="1007" width="1200" height="2" fill="#fff" opacity=".1"/>
+<path d="M 360,1008 V 766.08 L 756,591.84 L 1152,766.08 V 1008 Z" fill="#141414"/><rect x="455.03999999999996" y="882.2016" width="158.4" height="125.7984" fill="#f4f4f4"/><rect x="455.03999999999996" y="882.2016" width="158.4" height="125.7984" fill="url(#pool)"/><rect x="756" y="858.0096" width="269.28000000000003" height="72.576" fill="#8f8f8f"/><path d="M 890.64,858.0096 v 72.576" stroke="#141414" stroke-width="4"/><path d="M 423.36,1008 L 645.12,1008 L 835.2,1200 L 201.6,1200 Z" fill="#fff" opacity=".07"/>
+<g font-family="'Inter Display','Inter','Helvetica Neue',Helvetica,Arial,sans-serif" font-weight="800" font-size="16" fill="#fff" fill-opacity=".55"><text x="1170" y="1164" text-anchor="end" letter-spacing="1">STAND-IN  DELIVERY  CAR IN A DRIVEWAY, STAFF HANDING OVER KEYS</text><rect x="1176" y="1153" width="8.4" height="11" fill="#D0111B" fill-opacity="1"/></g>
+</svg>

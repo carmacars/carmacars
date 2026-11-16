@@ -1,6 +1,7 @@
 import 'server-only';
 import { hasAddress } from './car-address';
 import { withStudio, type StudioCover } from './studio-covers';
+import type { SiteCutout } from './slot-cars';
 import { deliveryArea, deliveryFrom } from './delivery';
 export { deliveryArea, deliveryFrom } from './delivery';
 import { cache } from 'react';
@@ -20,6 +21,9 @@ export const getBlocks = cache(async () => (await rpc('site_content', {})) as un
 // whole even if one slips through): the home page, Cars, Delivery, Requirements and the class pages all link /cars/<slug>
 /** r48 (3040): the studio covers of real cars that passed the check (lib/studio-covers.ts), read once when a page is built;
  *  none when the read fails (the sample photos then stay). */
+/** r48 O (3080): the cutouts of real cars (side profiles) for the decorative sections and the home hero; a failed read
+ *  keeps the section photos. */
+export const getCutouts = cache(async () => ((await rpc('site_cutouts', { p_shot: 'left', p_limit: 12 }).catch(() => [])) ?? []) as unknown as SiteCutout[]);
 export const getStudioCovers = cache(async () => ((await rpc('site_studio_covers', { p_limit: 24 }).catch(() => [])) ?? []) as unknown as StudioCover[]);
 /** The fleet; a card whose photo is a sample photo carries real cars' studio covers to show in turn (`studio`). */
 export const getFleet = cache(async () => {

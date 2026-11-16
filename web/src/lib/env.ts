@@ -44,6 +44,9 @@ const schema = z.object({
   GEMINI_RELAY_URL: z.string().optional(),
   /** r48 (3070): the text and speech model when Gemini stands in for Workers AI on the company's server (default gemini-2.5-flash). */
   GEMINI_TEXT_MODEL: z.string().optional(),
+  // r48 O (3080): the local background remover (rembg's server, `rembg s`, in a container on the company server) for the
+  // cutouts of the decorative sections; unset: no cutout is made and the sections keep their photos
+  REMBG_URL: z.string().url().optional(),
   /** r36 (2110): the Meta app's secret (checks the webhook's signature: Messenger, Instagram, WhatsApp) and the WhatsApp
    *  Cloud API token; unset: the Meta webhook answers nothing */
   META_APP_SECRET: z.string().optional(),

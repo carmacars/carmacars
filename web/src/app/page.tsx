@@ -6,9 +6,7 @@ import { CarCard } from '@/components/CarCard';
 import { Faq } from '@/components/Faq';
 import { Html } from '@/components/Html';
 import { JsonLd } from '@/components/JsonLd';
-import { SlotPicture } from '@/components/Picture';
-import { HeroSlides, type HeroCar } from '@/features/home/HeroSlides';
-import { rpc } from '@/lib/db/repo';
+import { SlotCars } from '@/components/SlotCars';
 import { Reviews } from '@/components/Reviews';
 import { SearchForm } from '@/features/home/SearchForm';
 import { Rail } from '@/features/home/Rail';
@@ -19,8 +17,8 @@ import { getBusinessFacts } from '@/features/seo/business-data';
 import { getEntityFacts } from '@/features/seo/facts';
 import { keyFacts, summary } from '@/features/seo/llms';
 import { faqLd, seoMeta } from '@/features/seo/meta';
-import { faqItems, fill, getClasses, getFacts, getFleet, getSettings, getStudioCovers, getTokens, listItems, slotPhoto, siteUrl } from '@/lib/site';
-import { heroFromStudio } from '@/lib/studio-covers';
+import { faqItems, fill, getClasses, getCutouts, getFacts, getFleet, getSettings, getTokens, listItems, slotPhoto, siteUrl } from '@/lib/site';
+import { slotScene } from '@/lib/slot-cars';
 
 export const revalidate = 3600;
 
@@ -44,13 +42,12 @@ export default async function Home() {
     listItems<Row>('home.requirements'), listItems<Opt>('home.coverage_options'), slotPhoto('home.hero'), slotPhoto('home.delivery'), slotPhoto('home.owner'),
     getBusinessFacts(), getEntityFacts()
   ]);
-  // release 28 (0563): real fleet cars on the studio background in the hero, read when the page is rebuilt (hourly)
-  // r48 (3040): the studio covers (the same angle as the sample photo, checked) first; the older studio photos only when no car
-  // has one yet; the sample photo of Site content only when neither
-  const r48: HeroCar[] = heroFromStudio(await getStudioCovers(), fleet);
-  const studio = r48.length ? [] : ((await rpc('site_hero_photos', { p_limit: 6 }).catch(() => [])) ?? []) as unknown as Array<{ vehicle_id: string; path: string; width: number; height: number; alt: string | null }>;
-  const heroCars: HeroCar[] = r48.length ? r48 : studio.flatMap((p) => { const c = fleet.find((x) => x.vehicle_id === p.vehicle_id);
-    return c ? [{ ...p, name: [c.year, c.make, c.model].filter(Boolean).join(' '), href: c.path }] : []; });
+  // r48 O (3080): real fleet cars, cut out, where the sample car of the hero and of the decorative sections stood, over the
+  // section's own background (no dealership background); the hero shows them in turn. No cutout yet, or a section photo
+  // replaced in Site content: the section photo as before.
+  const cutouts = await getCutouts();
+  const heroScene = slotScene('home.hero', hero, cutouts, { rotate: true });
+  const delivScene = slotScene('home.delivery', deliv, cutouts), ownerScene = slotScene('home.owner', owner, cutouts);
   // 2350: links from home to the indexable landing pages (the GTA areas and the ways to rent)
   const areas = homeAreaLinks(await getSeoPages().catch(() => []));
   const F = (x: string) => fill(x, t);
@@ -62,7 +59,7 @@ export default async function Home() {
     <div className="p-home">
       <JsonLd graph={[businessLd(s, siteUrl(), { areas: bf.areas, price: bf.price, rating: bf.rating }), faqLd(faq.map((q) => ({ ...q, answer: F(q.answer) })))]} />
       <section className="hero on-dark">
-        <div className="hero__media"><HeroSlides sample={hero} cars={heroCars} /></div>
+        <div className="hero__media"><SlotCars scene={heroScene} photo={hero} eager /></div>
         <div className="wrap hero__inner">
           <div className="hero__copy">
             <h1 className="eyebrow">Car rental in {s.city}</h1>
@@ -114,7 +111,7 @@ export default async function Home() {
       </section>
 
       <section className="band on-dark" aria-labelledby="h-deliv">
-        <div className="band__media photo fx-drift"><SlotPicture p={deliv} /></div>
+        <div className="band__media photo fx-drift"><SlotCars scene={delivScene} photo={deliv} /></div>
         <div className="wrap band__inner"><div className="band__copy stack">
           <h2 className="d1" id="h-deliv">Delivered to your door.</h2>
           <p className="lead">Home, office, hotel or the airport, anywhere. Tell us the address in your request, at any hour, and we price the trip in your offer.</p>
@@ -147,7 +144,7 @@ export default async function Home() {
             <p className="lead">{F('List yours with {{brand}} and it earns its keep while you are not driving it. We handle the renters, the handovers and the paperwork, it goes on our fleet insurance policy, and you are paid on the {{payoutDay}} of each month.')}</p>
             <p><Link className="btn btn--light btn--lg" href="/list-your-car">List your car</Link></p>
           </div>
-          <div className="owner-band__media photo fx-wipe"><SlotPicture p={owner} sizes="(min-width: 48rem) 50vw, 100vw" /></div>
+          <div className="owner-band__media photo fx-wipe"><SlotCars scene={ownerScene} photo={owner} sizes="(min-width: 48rem) 50vw, 100vw" /></div>
         </div>
       </section>
 

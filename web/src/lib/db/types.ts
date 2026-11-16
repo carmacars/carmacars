@@ -19235,6 +19235,8 @@ export type Database = {
           tips_on: boolean;
           tip_percents_bps: number[];
           tip_sales_share_bps: number;
+          occupancy_season: Json;
+          occupancy_base_pct: number;
         };
         Insert: {
           id?: string;
@@ -20119,6 +20121,8 @@ export type Database = {
           tips_on?: boolean;
           tip_percents_bps?: number[];
           tip_sales_share_bps?: number;
+          occupancy_season?: Json;
+          occupancy_base_pct?: number;
         };
         Update: {
           id?: string;
@@ -21003,6 +21007,8 @@ export type Database = {
           tips_on?: boolean;
           tip_percents_bps?: number[];
           tip_sales_share_bps?: number;
+          occupancy_season?: Json;
+          occupancy_base_pct?: number;
         };
         Relationships: [];
       };
@@ -24695,6 +24701,57 @@ export type Database = {
           is_published?: boolean;
           updated_by?: string | null;
           created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      site_cutouts: {
+        Row: {
+          vehicle_id: string;
+          shot: string;
+          source_kind: string;
+          source_bucket: string;
+          source_path: string;
+          path: string | null;
+          width: number | null;
+          height: number | null;
+          facing: string;
+          tries: number;
+          error: string | null;
+          next_try_at: string | null;
+          made_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          vehicle_id: string;
+          shot: string;
+          source_kind: string;
+          source_bucket: string;
+          source_path: string;
+          path?: string | null;
+          width?: number | null;
+          height?: number | null;
+          facing?: string;
+          tries?: number;
+          error?: string | null;
+          next_try_at?: string | null;
+          made_at?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          vehicle_id?: string;
+          shot?: string;
+          source_kind?: string;
+          source_bucket?: string;
+          source_path?: string;
+          path?: string | null;
+          width?: number | null;
+          height?: number | null;
+          facing?: string;
+          tries?: number;
+          error?: string | null;
+          next_try_at?: string | null;
+          made_at?: string | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -33934,6 +33991,9 @@ export type Database = {
       sign_request_sign: { Args: { p_by: string; p_id: string; p: Json }; Returns: Json };
       signin_phone_rules: { Args: never; Returns: Json };
       site_content: { Args: { p_page?: string }; Returns: Json };
+      site_cutout_save: { Args: { p_vehicle: string; p_shot: string; p: Json }; Returns: Json };
+      site_cutouts: { Args: { p_shot?: string; p_limit?: number }; Returns: Json };
+      site_cutouts_due: { Args: { p_limit?: number; p_shot?: string }; Returns: Json };
       site_facts: { Args: never; Returns: Json };
       site_file: { Args: { p_name: string }; Returns: string };
       site_hero_photos: { Args: { p_limit?: number }; Returns: Json };

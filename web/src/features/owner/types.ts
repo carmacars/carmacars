@@ -121,6 +121,8 @@ export interface OwnerStatement {
   not_collected?: NotCollected;
   /** r44 (2783): the period shorter than a full one, and the period itself */
   partial_month?: boolean; period_starts_on?: string | null; period_ends_on?: string | null;
+  /** r48 O (3081): next month projected against the statement's month (features/owner/forecast.ts) */
+  forecast?: import('./forecast').StatementForecast | null;
 }
 export interface NotCollected {
   total_cents: number; line: string | null; by_vehicle: Record<string, number>;

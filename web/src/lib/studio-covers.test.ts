@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { CarRow } from './types.ts';
-import { cardKeyframes, heroFromStudio, studioPool, withStudio, STUDIO_MAX, type StudioCover } from './studio-covers.ts';
+import { cardKeyframes, studioPool, withStudio, STUDIO_MAX, type StudioCover } from './studio-covers.ts';
 
 const car = (id: string, o: Partial<CarRow> = {}): CarRow => ({
   vehicle_id: id, slug: `car-${id}`, path: `/cars/car-${id}`, canonical_path: `/cars/car-${id}`, headline: null, year: 2022, make: 'Toyota', model: 'Corolla',
@@ -40,15 +40,12 @@ test('a real car with no photo yet: only covers of the same make and model; a ca
   assert.deepEqual(withStudio([bare], [], fleet), [bare]);
 });
 
-test('at most a few covers a card, each card starting at another car; the hero takes every cover of a car on the site', () => {
+test('at most a few covers a card, each card starting at another car', () => {
   const fleet = Array.from({ length: 8 }, (_, i) => car(`r${i}`));
   const covers = fleet.map((c) => cov(c.vehicle_id));
   const a = withStudio([car('s1', { is_sample: true, cover: SAMPLE }), car('s2x', { is_sample: true, cover: SAMPLE })], covers, fleet);
   assert.equal(a[0]!.studio!.length, STUDIO_MAX);
   assert.notEqual(a[0]!.studio![0]!.path, a[1]!.studio![0]!.path);
-  const hero = heroFromStudio([cov('r1'), cov('gone'), cov('r2')], fleet);
-  assert.deepEqual(hero.map((h) => h.href), ['/cars/car-r1', '/cars/car-r2']);
-  assert.equal(hero[0]!.name, '2022 Toyota Corolla');
   assert.equal(cardKeyframes(1), '');
   assert.match(cardKeyframes(3), /@keyframes card-studio-3\{0%\{opacity:0\}6\.667%\{opacity:1\}33\.333%\{opacity:1\}40\.000%\{opacity:0\}100%\{opacity:0\}\}/);
 });

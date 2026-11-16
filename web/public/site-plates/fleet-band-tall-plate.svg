@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900">
+<defs>
+<radialGradient id="spot" cx="0.4" cy="0.08" r="0.95" gradientUnits="objectBoundingBox"><stop offset="0" stop-color="#6b6b6b"/><stop offset=".35" stop-color="#2a2a2a"/><stop offset=".75" stop-color="#0b0b0b"/><stop offset="1" stop-color="#000"/></radialGradient>
+<radialGradient id="pool" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".6" stop-color="#fff" stop-opacity=".05"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<linearGradient id="fl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#161616"/><stop offset="1" stop-color="#000"/></linearGradient>
+</defs>
+<rect width="1200" height="900" fill="#000"/>
+<rect width="1200" height="630" fill="url(#spot)"/>
+<rect y="630" width="1200" height="270" fill="url(#fl)"/>
+<ellipse cx="480" cy="689.4" rx="624" ry="135" fill="url(#pool)"/>
+<rect y="629" width="1200" height="2" fill="#fff" opacity=".1"/>
+<path d="M 0,630 L 240,522 L 540,594 L 840,486 L 1200,585 V 630 Z" fill="#0e0e0e"/><path d="M 0,738 H 1200" stroke="#fff" stroke-opacity=".4" stroke-width="7.2" stroke-dasharray="96 72"/><path d="M 0,810 H 1200" stroke="#fff" stroke-opacity=".4" stroke-width="7.2" stroke-dasharray="96 72"/><rect x="780" y="576" width="600" height="3" fill="#D0111B" opacity=".9"/>
+<g font-family="'Inter Display','Inter','Helvetica Neue',Helvetica,Arial,sans-serif" font-weight="800" font-size="16" fill="#fff" fill-opacity=".55"><text x="1170" y="873" text-anchor="end" letter-spacing="1">STAND-IN  ON THE ROAD  CAR MOVING, ONTARIO HIGHWAY</text><rect x="1176" y="862" width="8.4" height="11" fill="#D0111B" fill-opacity="1"/></g>
+</svg>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200" width="1200" height="1200">
+<defs>
+<radialGradient id="spot" cx="0.5" cy="0.08" r="0.95" gradientUnits="objectBoundingBox"><stop offset="0" stop-color="#6b6b6b"/><stop offset=".35" stop-color="#2a2a2a"/><stop offset=".75" stop-color="#0b0b0b"/><stop offset="1" stop-color="#000"/></radialGradient>
+<radialGradient id="pool" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".6" stop-color="#fff" stop-opacity=".05"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<linearGradient id="fl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#161616"/><stop offset="1" stop-color="#000"/></linearGradient>
+</defs>
+<rect width="1200" height="1200" fill="#000"/>
+<rect width="1200" height="1032" fill="url(#spot)"/>
+<rect y="1032" width="1200" height="168" fill="url(#fl)"/>
+<ellipse cx="600" cy="1068.96" rx="624" ry="84" fill="url(#pool)"/>
+<rect y="1031" width="1200" height="2" fill="#fff" opacity=".1"/>
+<g opacity="0.86"></g><g opacity="0.93"></g><g opacity="1"></g>
+<g font-family="'Inter Display','Inter','Helvetica Neue',Helvetica,Arial,sans-serif" font-weight="800" font-size="16" fill="#fff" fill-opacity=".55"><text x="1170" y="1164" text-anchor="end" letter-spacing="1">STAND-IN  OWNER PROGRAM  LINE-UP OF FLEET CARS</text><rect x="1176" y="1153" width="8.4" height="11" fill="#D0111B" fill-opacity="1"/></g>
+</svg>

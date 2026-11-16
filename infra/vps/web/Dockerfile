@@ -30,6 +30,12 @@ COPY --from=build --chown=node:node /src/src/lib ./src/lib
 COPY --from=build --chown=node:node /src/src/features/auto-reply/faq.ts ./src/features/auto-reply/faq.ts
 # r48: the server's LISTEN (src/lib/platform/db-listen.ts) speaks to Postgres with this module (no dependencies of its own)
 COPY --from=build --chown=node:node /src/node_modules/postgres ./node_modules/postgres
+# r48 O (3080): sharp crops and writes the cutouts of the decorative sections (src/server/site-cutouts.ts; loaded by name, so
+# the build's file tracing does not see it), with its native image library
+COPY --from=build --chown=node:node /src/node_modules/sharp ./node_modules/sharp
+COPY --from=build --chown=node:node /src/node_modules/@img ./node_modules/@img
+COPY --from=build --chown=node:node /src/node_modules/detect-libc ./node_modules/detect-libc
+COPY --from=build --chown=node:node /src/node_modules/semver ./node_modules/semver
 # the last good copies of the public pages (a volume in docker-compose.yml: they outlive a deploy)
 RUN mkdir -p /data/copies && chown node:node /data/copies
 ENV COPIES_DIR=/data/copies
