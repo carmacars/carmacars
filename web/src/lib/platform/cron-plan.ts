@@ -8,7 +8,7 @@ export interface JobCall { path: string; body?: string }
 
 /** The jobs of a five-minute tick (plan.full), in the Worker's order; none on the minutes between (those only ask the
  *  database which notices are due, src/lib/edge/notify-kick.ts kickNow). */
-export function jobsForTick(plan: { full: boolean; minute: number }, due: JobsDue, pushDue: boolean): JobCall[] {
+export function jobsForTick(plan: { full: boolean; minute: number }, due: JobsDue, pushDue: boolean, localAi = false): JobCall[] {
   if (!plan.full) return [];
   const jobs: JobCall[] = [];
   const add = (on: unknown, path: string, body?: string) => { if (on) jobs.push(body ? { path, body } : { path }); };
@@ -34,6 +34,8 @@ export function jobsForTick(plan: { full: boolean; minute: number }, due: JobsDu
   // the retention purge once an hour on the second tick, the usage guard on the third
   add(plan.minute >= 5 && plan.minute < 10, '/api/jobs/purge');
   add(plan.minute >= 10 && plan.minute < 15, '/api/jobs/usage');
+  // r48 part AI (3095): the server's own models (text, vision, speech) ready or warming up, every tick; only on the server
+  add(localAi, '/api/jobs/ai-local');
   return jobs;
 }
 

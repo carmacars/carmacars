@@ -47,6 +47,15 @@ const schema = z.object({
   // r48 O (3080): the local background remover (rembg's server, `rembg s`, in a container on the company server) for the
   // cutouts of the decorative sections; unset: no cutout is made and the sections keep their photos
   REMBG_URL: z.string().url().optional(),
+  /** r48 part AI (3095): the server's own models (infra/vps/ai): Ollama (carmacars-llm) with a text and a vision model, and
+   *  whisper.cpp (carmacars-stt). Unset: no local link in the chain (src/integrations/ai/chain.ts). The digests are the
+   *  pinned first characters Ollama shows for each model; a model whose digest differs is not used. */
+  LOCAL_LLM_URL: z.string().optional(),
+  LOCAL_LLM_MODEL: z.string().optional(),
+  LOCAL_LLM_DIGEST: z.string().optional(),
+  LOCAL_VISION_MODEL: z.string().optional(),
+  LOCAL_VISION_DIGEST: z.string().optional(),
+  LOCAL_STT_URL: z.string().optional(),
   /** r36 (2110): the Meta app's secret (checks the webhook's signature: Messenger, Instagram, WhatsApp) and the WhatsApp
    *  Cloud API token; unset: the Meta webhook answers nothing */
   META_APP_SECRET: z.string().optional(),

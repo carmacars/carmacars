@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { chainDeps } from '@/integrations/ai/links';
 import { currentUser } from '@/server/portal/data';
 import { rpc } from '@/lib/db/repo';
 import { geminiRelay } from '@/server/gemini-relay';
@@ -38,7 +39,13 @@ export async function POST(req: Request) {
     const t0 = Date.now();
     let r = gate?.allowed && gate.model ? await (await visionModel()).read(ask, [gate.model, gate.fallback_model ?? ''].filter(Boolean)) : null;
     const key = env().GEMINI_API_KEY;
-    if ((!r || !r.ok) && key) r = await geminiVision(key, env().GEMINI_VISION_MODEL || GEMINI_DEFAULT_MODEL, 30_000, fetch, geminiRelay()).read(ask, []);
+    // the gate refused or the chain (Workers AI, the server's model, Gemini) did not read it: Gemini once more directly (a
+    // dashboard photo: not private), recorded with the chain's calls (r48 part AI)
+    if ((!r || !r.ok) && key) {
+      const g0 = Date.now();
+      r = await geminiVision(key, env().GEMINI_VISION_MODEL || GEMINI_DEFAULT_MODEL, 30_000, fetch, geminiRelay()).read(ask, []);
+      chainDeps().served({ purpose: 'dash_read', provider: 'gemini', ok: r.ok, reason: r.ok ? null : r.reason, ms: Date.now() - g0, model: r.model ?? null });
+    }
     if (!r) return NextResponse.json(NOT_READ);
     const read = r.ok ? dashFromModel(r.data) : { odometer_km: null, fuel_eighths: null };
     await rpc('server_dash_read_record' as never, { p: { model: r.ok ? r.model : r.model ?? r.tried[r.tried.length - 1] ?? gate?.model, ok: r.ok && read.odometer_km !== null,

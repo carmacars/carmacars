@@ -37,8 +37,8 @@ export const STEP_SCHEMA = {
 export interface ModelUsage { units: number; unit: 'neurons' | 'microusd' }
 export type ModelResult = { ok: true; step: Step; usage: ModelUsage; model: string } | { ok: false; reason: 'quota' | 'unavailable' | 'timeout' | 'invalid_output'; message: string; usage?: ModelUsage; model?: string };
 export interface AssistantModel {
-  readonly name: 'workers-ai' | 'claude' | 'fake';
-  readonly service: 'workers_ai' | 'claude';
+  readonly name: 'workers-ai' | 'claude' | 'local' | 'fake';
+  readonly service: 'workers_ai' | 'claude' | 'local';
   step(system: string, turns: Turn[], tools: ToolName[]): Promise<ModelResult>;
 }
 

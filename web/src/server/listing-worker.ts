@@ -13,6 +13,7 @@ import { MARK_PROMPT, MARK_SYSTEM, parseMarks, type MarkBox } from '@/features/l
 import { PLATE_AUTO_PROMPT_GEMINI, PLATE_AUTO_SCHEMA, PLATE_AUTO_SYSTEM, plateAutoPrompt } from '@/features/listing/plate-auto';
 import { SORT_PROMPT, SORT_SYSTEM, parseSort } from '@/features/listing/photo-sort';
 import { GEMINI_DEFAULT_MODEL as GEMINI_VISION_DEFAULT, geminiVision } from '@/integrations/vision/gemini';
+import { chainDeps } from '@/integrations/ai/links';
 import { letteringName } from '@/features/car/studio';
 import { showroomPrompt, type ShowroomOut, type ShowroomProvider } from '@/features/listing/showroom';
 import { geminiCheckImages, geminiEditImage } from '@/integrations/photos/gemini';
@@ -56,10 +57,17 @@ async function findPlates(img: { bytes: Uint8Array; contentType: string; width: 
   // r44: Gemini first when its key is set (its own box format places the plate on the plate); the site's vision model otherwise
   let r = gemini() ? await gemini()!.read({ purpose: 'plate_detect', imageDataUrl: url, system: PLATE_AUTO_SYSTEM, prompt: PLATE_AUTO_PROMPT_GEMINI,
     schema: PLATE_AUTO_SCHEMA as unknown as Record<string, unknown>, maxOutputTokens: 400 }, []).catch(() => null) : null;
+  if (gemini()) servedGemini('plate_detect', r, t0);
   if (!r?.ok) r = await (await visionModel()).read({ purpose: 'plate_detect', imageDataUrl: url, system: PLATE_AUTO_SYSTEM,
     prompt: plateAutoPrompt(img), schema: PLATE_AUTO_SCHEMA as unknown as Record<string, unknown>, maxOutputTokens: 300 }, [gate.model, gate.fallback_model ?? ''].filter(Boolean)).catch(() => null);
   await rpc('server_photo_mark_record', { p: { model: r?.model ?? null, ok: !!r?.ok, neurons: r?.usage?.neurons ?? 0, duration_ms: Date.now() - t0, photo_id: img.photoId, marks: null } }, SR).catch(() => undefined);
   return r?.ok ? { data: r.data, model: r.model } : null;
+}
+
+/** r48 part AI (3095): the listing photos' own Gemini reads (Gemini first for plates and the second sort: its box format; car
+ *  photos only, never a person's document) are recorded with the chain's calls, so Settings > Usage shows who served each. */
+function servedGemini(purpose: string, r: { ok: boolean; model?: string; reason?: string } | null, t0: number) {
+  chainDeps().served({ purpose, provider: 'gemini', ok: !!r?.ok, reason: r?.ok ? null : (r?.reason ?? 'unavailable'), ms: Date.now() - t0, model: r?.model ?? null });
 }
 
 /** r44: Gemini as the vision model of the listing photos (plates, the second sort), when GEMINI_API_KEY is set. */
@@ -76,6 +84,7 @@ async function sortPhoto(img: { bytes: Uint8Array; contentType: string; photoId:
   const t0 = Date.now();
   const ask = { purpose: 'photo_sort' as const, imageDataUrl: `data:${img.contentType};base64,${b64(img.bytes)}`, system: SORT_SYSTEM, prompt: SORT_PROMPT, schema: { type: 'object' }, maxOutputTokens: 80 };
   let r = gemini() ? await gemini()!.read(ask, []).catch(() => null) : null;
+  if (gemini()) servedGemini('photo_sort', r, t0);
   if (!r?.ok) r = await (await visionModel()).read(ask, [gate.model, gate.fallback_model ?? ''].filter(Boolean)).catch(() => null);
   await rpc('server_photo_mark_record', { p: { model: r?.model ?? null, ok: !!r?.ok, neurons: r?.usage?.neurons ?? 0, duration_ms: Date.now() - t0, photo_id: img.photoId, marks: null } }, SR).catch(() => undefined);
   if (!r?.ok) return null;
@@ -123,6 +132,7 @@ async function checkPhoto(i: { images: Array<{ bytes: Uint8Array; contentType: s
   if (!key) return null;
   const t0 = Date.now();
   const r = await geminiCheckImages({ apiKey: key, model: env().GEMINI_CHECK_MODEL || null, relay: geminiRelay() }, i.images, i.system, i.prompt).catch(() => null);
+  servedGemini('photo_check', r ? { ok: true, model: r.model } : null, t0);
   await rpc('server_photo_mark_record', { p: { model: r?.model ?? null, ok: !!r, neurons: 0, duration_ms: Date.now() - t0, photo_id: i.photoId, marks: null } }, SR).catch(() => undefined);
   return r;
 }

@@ -14,6 +14,6 @@ export type TranscribeResult =
   | { ok: true; text: string; model: string; neurons: number }
   | { ok: false; reason: 'timeout' | 'quota' | 'unavailable' | 'invalid_output'; message: string; model?: string; neurons?: number };
 export interface Transcriber {
-  readonly name: 'workers-ai' | 'fake';
+  readonly name: 'workers-ai' | 'local' | 'fake';
   transcribe(req: TranscribeRequest): Promise<TranscribeResult>;
 }

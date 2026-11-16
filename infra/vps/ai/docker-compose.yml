@@ -1,0 +1,92 @@
+# r48 part AI: the server's own AI models, next to the website (infra/vps/web) and the Supabase stack, on its network
+# (no published port: only the website reaches them). Installed to /opt/carmacars/ai by deploy-vps; warm.sh downloads
+# and checks the models in the background, so a deploy never waits for them ("warming up" until they are ready).
+#
+# Memory and CPU budget of the VPS-4 (8 vCPU, 24 GB). The database and the site are never starved:
+#   Supabase stack (Postgres 6 GB shared buffers, API, auth, storage, Caddy)   no cap, about 13.5 GB always left to it
+#   carmacars-web    3 GB (infra/vps/web)
+#   carmacars-llm    6 GB, at most 4 CPUs, CPU weight 256 (a quarter of the default 1024): one model loaded at a time
+#                    (the text model about 2.5 GB, the vision model about 4.5 GB with its buffers), two calls at once
+#   carmacars-stt    1.5 GB, at most 2 CPUs, CPU weight 128 (small.en about 1 GB)
+#   Both AI containers are the first the kernel stops if memory ever runs out (oom_score_adj 800), never the database.
+name: carmacars-ai
+
+services:
+  llm:
+    container_name: carmacars-llm
+    image: ${OLLAMA_IMAGE:-ollama/ollama:0.12.6}
+    restart: unless-stopped
+    init: true
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+      OLLAMA_NUM_PARALLEL: "2"
+      OLLAMA_MAX_LOADED_MODELS: "1"
+      OLLAMA_KEEP_ALIVE: 30m
+      OLLAMA_CONTEXT_LENGTH: "8192"
+      OLLAMA_MAX_QUEUE: "32"
+    volumes:
+      - llm-models:/root/.ollama
+    networks:
+      - supabase
+    mem_limit: 6g
+    memswap_limit: 6g
+    cpus: 4
+    cpu_shares: 256
+    oom_score_adj: 800
+    pids_limit: 256
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: json-file
+      options: { max-size: 10m, max-file: "3" }
+
+  stt:
+    container_name: carmacars-stt
+    image: carmacars-stt:${WHISPER_VERSION:-v1.7.6}
+    build:
+      context: ./stt
+      args:
+        WHISPER_VERSION: ${WHISPER_VERSION:-v1.7.6}
+    restart: unless-stopped
+    init: true
+    environment:
+      WHISPER_MODEL: ${WHISPER_MODEL:-small.en}
+      WHISPER_MODEL_SHA1: ${WHISPER_MODEL_SHA1:-db8a495a91d927739e50b3fc1cc4c6b8f6c2d022}
+      WHISPER_THREADS: "2"
+    volumes:
+      - stt-models:/models
+    networks:
+      - supabase
+    mem_limit: 1536m
+    memswap_limit: 1536m
+    cpus: 2
+    cpu_shares: 128
+    oom_score_adj: 800
+    pids_limit: 128
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "curl", "-s", "-o", "/dev/null", "http://127.0.0.1:8080/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15m
+    logging:
+      driver: json-file
+      options: { max-size: 10m, max-file: "3" }
+
+volumes:
+  llm-models:
+  stt-models:
+
+networks:
+  supabase:
+    external: true
+    name: supabase_default
