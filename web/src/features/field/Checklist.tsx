@@ -138,6 +138,8 @@ export function Checklist({ j, back = '/staff/field', backLabel = 'Back to my jo
 
   // the ready check: a rental added by hand also needs the renter's signature (0051), as a booking made online already has
   const depositOk = Boolean(ready && ['taken', 'waived', 'none', 'pending'].includes(ready.deposit));
+  // r48 int: one driver only reads "No additional drivers", the same as Admin (readiness.ts)
+  const noExtraDrivers = Array.isArray(j.booking?.drivers) && j.booking.drivers.filter((d) => d.role !== 'renter').length === 0;
   const readyOk = Boolean(ready && ready.signed !== false && ready.identity && ready.coverage && ready.drivers_accepted && ready.calendar && depositOk);
   const odoLow = pickup && (j.vehicle.odometer_km ?? 0) > (r.odometer_km ?? 0) && (r.odometer_km ?? 0) > 0;
   const odoOk = (r.odometer_km ?? 0) > 0 && !(odoLow && !r.odometer_confirmed);
@@ -183,7 +185,7 @@ export function Checklist({ j, back = '/staff/field', backLabel = 'Back to my jo
           {ready && !ready.identity && res && <ResolveIdentity j={j} r={res} />}</Row>
         <Row ok={ready?.coverage} text="Coverage confirmed">
           {ready && !ready.coverage && <p className="fd-office small">Coverage is confirmed by the office. Call CarmaCars; it shows here as soon as it is done.</p>}</Row>
-        <Row ok={ready?.drivers_accepted} text="Additional drivers accepted">
+        <Row ok={ready?.drivers_accepted} text={noExtraDrivers ? 'No additional drivers' : 'Additional drivers accepted'}>
           {ready && !ready.drivers_accepted && <Link prefetch={false} className="btn btn--ghost fd-wide" href={at.signNow} data-testid="fix-driver-sign">Sign now on this device (additional driver)</Link>}</Row>
         <Row ok={ready?.calendar} text="The booking holds the calendar">
           {ready && !ready.calendar && <p className="fd-office small">The office turns the calendar on for this booking. Call CarmaCars.</p>}</Row>
