@@ -148,7 +148,9 @@ function copyPhotos() {
   fs.mkdirSync(path.join(dest, 'vehicles'), { recursive: true });
   for (const f of fs.readdirSync(path.join(PROTO, 'assets/photos'))) {
     const isCar = Object.keys(photos.cars).some((slug) => f.startsWith(slug + '-'));
-    fs.copyFileSync(path.join(PROTO, 'assets/photos', f), path.join(dest, isCar ? 'vehicles' : 'site', f));
+    const from = path.join(PROTO, 'assets/photos', f), to = path.join(dest, isCar ? 'vehicles' : 'site', f);
+    // r48 integration: assets/photos/plates (the sections' stand-in cars, r48 O) is a folder, not a photo
+    if (fs.statSync(from).isDirectory()) fs.cpSync(from, to, { recursive: true }); else fs.copyFileSync(from, to);
   }
 }
 
