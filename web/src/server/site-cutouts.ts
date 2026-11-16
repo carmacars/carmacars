@@ -17,7 +17,7 @@ const SR = { role: 'service_role' as const };
 
 export interface CutoutRun { made: number; failed: number; skipped?: string; errors: string[] }
 
-type Sharp = typeof import('sharp');
+type Sharp = typeof import('sharp').default;
 let sharpMod: Sharp | null | undefined;
 async function loadSharp(): Promise<Sharp | null> {
   if (sharpMod !== undefined) return sharpMod;
