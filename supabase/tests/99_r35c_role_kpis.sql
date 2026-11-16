@@ -13,7 +13,8 @@ update staff_profiles set functions = array[va_function::text] where user_id in 
 update staff_profiles set functions = array['field'] where user_id = test.id('kpx_field');
 select test.mk_owner('kpx_own');
 select test.mk_vehicle('kpx_car', 'kpx_own');
-create function test.kpx_wk() returns date language sql stable as $$ select (date_trunc('week', app.today()::timestamp))::date $$;
+-- last week: a whole week in the past, so the test never depends on the hour of the week it runs (the first hours of a Monday, a late evening)
+create function test.kpx_wk() returns date language sql stable as $$ select (date_trunc('week', app.today()::timestamp) - interval '7 days')::date $$;
 create function test.kpx_item(p_user text, p_key text) returns jsonb language sql stable as $$
   select x from jsonb_array_elements(app.role_kpis(test.id(p_user), test.kpx_wk())) x where x ->> 'key' = p_key $$;
 
@@ -21,7 +22,6 @@ create function test.kpx_item(p_user text, p_key text) returns jsonb language sq
 do $$
 declare t1 uuid := gen_random_uuid(); t2 uuid := gen_random_uuid(); a timestamptz := app.local_midnight(test.kpx_wk()) + interval '9 hours';
 begin
-  if a > now() - interval '1 hour' then a := now() - interval '1 hour'; end if;
   insert into phone_threads (id, number) values (t1, '+16475550901'), (t2, '+16475550902');
   insert into phone_activity (thread_id, kind, direction, started_at, staff_user_id) values
     (t1, 'text', 'in', a, null), (t1, 'text', 'out', a + interval '3 minutes', test.id('kpx_cs')),
@@ -37,9 +37,9 @@ select test.eq('the targets are settings: 15 minutes makes both on time; 2 conve
 select test.eq('Fleet: one call', test.kpx_item('kpx_fleet', 'fleet_calls') ->> 'value', '1');
 
 -- field: two jobs done this week by the field person dispatched by Fleet, one late
-insert into field_jobs (kind, vehicle_id, assigned_to, dispatched_by, scheduled_at, status, completed_at)
-values ('handover', test.id('vehicle:kpx_car'), test.id('kpx_field'), test.id('kpx_fleet'), greatest(app.local_midnight(test.kpx_wk()), now() - interval '3 hours'), 'done', greatest(app.local_midnight(test.kpx_wk()), now() - interval '3 hours') + interval '5 minutes'),
-       ('detail', test.id('vehicle:kpx_car'), test.id('kpx_field'), test.id('kpx_fleet'), greatest(app.local_midnight(test.kpx_wk()), now() - interval '3 hours'), 'done', greatest(app.local_midnight(test.kpx_wk()), now() - interval '3 hours') + interval '2 hours');
+insert into field_jobs (kind, vehicle_id, assigned_to, dispatched_by, scheduled_at, status, completed_at, created_at)
+values ('handover', test.id('vehicle:kpx_car'), test.id('kpx_field'), test.id('kpx_fleet'), (app.local_midnight(test.kpx_wk()) + interval '9 hours'), 'done', (app.local_midnight(test.kpx_wk()) + interval '9 hours') + interval '5 minutes', app.local_midnight(test.kpx_wk()) + interval '8 hours'),
+       ('detail', test.id('vehicle:kpx_car'), test.id('kpx_field'), test.id('kpx_fleet'), (app.local_midnight(test.kpx_wk()) + interval '9 hours'), 'done', (app.local_midnight(test.kpx_wk()) + interval '9 hours') + interval '2 hours', app.local_midnight(test.kpx_wk()) + interval '8 hours');
 select test.eq('field: 2 jobs done, 1 of 2 on time',
   format('%s|%s', test.kpx_item('kpx_field', 'field_jobs') ->> 'value', test.kpx_item('kpx_field', 'field_on_time') ->> 'value'), '2|50');
 select test.eq('field: the handover had no condition report: photos 0 of 1', test.kpx_item('kpx_field', 'field_photos') ->> 'detail', '0 of 1');

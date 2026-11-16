@@ -87,7 +87,7 @@ update owner_invoice_lines set amount_cents = amount_cents - 1000 where owner_in
 reset session_replication_role;
 
 -- ================================================================ the debit preview
-create temp table oda_prev as select app.door(test.id('oda_fin'), 'aal2', 'ops_read', 'owner_debit_preview', jsonb_build_object('on', '2026-11-15')) p;
+create temp table oda_prev as select app.door(test.id('oda_fin'), 'aal2', 'ops_read', 'owner_debit_preview', jsonb_build_object('on', to_char(greatest(date '2026-11-15', app.today()), 'YYYY-MM-DD'))) p;  -- the invoices of the run are billed from the day it runs (today, once past the 15th)
 select test.eq('each owner: the invoices, why each is charged, whether a bank debit is set up',
   (select jsonb_array_length(o -> 'invoices') || ':' || (o ->> 'debit_set_up') || ':' || ((o -> 'invoices' -> 0) ? 'how')::text
      from oda_prev, jsonb_array_elements(p -> 'owners') o where (o ->> 'id')::uuid = test.id('owner:oda_olga')), '3:false:true');
