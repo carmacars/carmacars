@@ -27,7 +27,7 @@ end $$;
 select test.eq('kinds: text, vision, speech', app.ai_kind('chat') || ' ' || app.ai_kind('plate_detect') || ' ' || app.ai_kind('call_transcribe'), 'text vision speech');
 select test.eq('private: identity documents, recordings and what is made from them; not chat or a car photo',
   format('%s %s %s %s %s %s', app.ai_private('licence_read'), app.ai_private('permit_read'), app.ai_private('call_transcribe'), app.ai_private('phone_summary'),
-         app.ai_private('chat'), app.ai_private('plate_detect')), 'true true true true false false');
+         app.ai_private('chat'), app.ai_private('plate_detect')), 't t t t f f');
 
 -- ================================================================ 2. the gate
 select test.eq('Workers AI used, nothing else ready: refused as before', test.acok('seo_car'), 'false:-');
