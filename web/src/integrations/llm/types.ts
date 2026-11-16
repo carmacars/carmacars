@@ -21,7 +21,7 @@ export type GenerateResult<T> =
   | { ok: false; reason: 'timeout' | 'invalid_output' | 'quota' | 'unavailable'; message: string; usage?: Usage };
 
 export interface TextGenerator {
-  readonly name: 'workers-ai' | 'fake';
+  readonly name: 'workers-ai' | 'gemini' | 'fake';
   readonly model: string;
   generate<T>(req: GenerateRequest): Promise<GenerateResult<T>>;
 }

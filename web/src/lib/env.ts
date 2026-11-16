@@ -42,13 +42,15 @@ const schema = z.object({
   GEMINI_CHECK_MODEL: z.string().optional(),
   /** r48 (3030): where a Gemini call refused for its location is sent instead (default: the database API's /gemini route). */
   GEMINI_RELAY_URL: z.string().optional(),
+  /** r48 (3070): the text and speech model when Gemini stands in for Workers AI on the company's server (default gemini-2.5-flash). */
+  GEMINI_TEXT_MODEL: z.string().optional(),
   /** r36 (2110): the Meta app's secret (checks the webhook's signature: Messenger, Instagram, WhatsApp) and the WhatsApp
    *  Cloud API token; unset: the Meta webhook answers nothing */
   META_APP_SECRET: z.string().optional(),
   WHATSAPP_TOKEN: z.string().optional(),
   VIN_DECODER: z.enum(['vpic', 'fake']).default('fake'),
   /** The listing pipeline: copy drafts (workers-ai: the Worker's AI binding) and photos (cloudflare: Images transformations). */
-  LLM_PROVIDER: z.enum(['workers-ai', 'fake']).default('fake'),
+  LLM_PROVIDER: z.enum(['workers-ai', 'gemini', 'fake']).default('fake'),
   PHOTO_PROVIDER: z.enum(['cloudflare', 'fake']).default('fake'),
   PHOTO_FAKE_MODE: z.enum(['ok', 'not_enabled']).default('ok'),
   PAYOUT_ENCRYPTION_KEY: z.string().min(32).optional(),

@@ -75,6 +75,22 @@ caddy_site() {
     sleep 5
     say "Caddy recreated with the site folder"
   fi
+  # r48 (3070): the Cloudflare Origin CA certificate. A new one (sent by this deploy) is installed only when its key matches;
+  # the site file's origin-tls block is dropped (Let's Encrypt over HTTP-01) when the server has no matching pair
+  local O="$S/caddy/sites/origin"
+  pair() { [ -s "$1" ] && [ -s "$2" ] && [ "$(openssl x509 -in "$1" -noout -pubkey 2>/dev/null)" = "$(openssl pkey -in "$2" -pubout 2>/dev/null)" ]; }
+  if [ -s "$T/origin-cert.pem" ]; then
+    if pair "$T/origin-cert.pem" "$T/origin-key.pem"; then
+      install -d -m 700 "$O"
+      [ -s "$O/cert.pem" ] && cp -p "$O/cert.pem" "$O/cert.pem.prev" && cp -p "$O/key.pem" "$O/key.pem.prev"
+      install -m 644 "$T/origin-cert.pem" "$O/cert.pem"; install -m 600 "$T/origin-key.pem" "$O/key.pem"
+      say "Origin CA certificate installed (until $(openssl x509 -in "$O/cert.pem" -noout -enddate | cut -d= -f2))"
+    else say "the Origin CA certificate sent does not match its key: not installed"; fi
+  fi
+  if grep -q 'origin-tls-begin' "$T/web.caddy" && ! pair "$O/cert.pem" "$O/key.pem"; then
+    sed -i '/# origin-tls-begin/,/# origin-tls-end/d' "$T/web.caddy"
+    say "no Origin CA certificate on the server: Let's Encrypt over HTTP-01"
+  fi
   local old=""
   [ -f "$S/caddy/sites/web.caddy" ] && old="$(mktemp)" && cp "$S/caddy/sites/web.caddy" "$old"
   install -m 644 "$T/web.caddy" "$S/caddy/sites/web.caddy"

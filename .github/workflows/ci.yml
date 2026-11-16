@@ -61,6 +61,11 @@ on:
         type: choice
         options: [production, staging]
         default: production
+      web_live_on:
+        description: Where carmacars.ca is served (auto reads it from Cloudflare; vps keeps the Worker a standby without domains or cron)
+        type: choice
+        options: [auto, worker, vps]
+        default: auto
 
 # A newer push to the same branch cancels the run it supersedes. A deploy run never cancels (or is cancelled by)
 # a push run, and a second deploy waits for the first.
@@ -416,7 +421,10 @@ jobs:
       DEPLOY_ENV: ${{ inputs.environment }}
       # r42: set to vps after the switch to the company's server (docs/hosting/off-cloudflare.md): the Worker is then
       # deployed as a standby (no custom domains, no cron) and this job leaves the site's DNS and inbound mail alone
-      WEB_LIVE_ON: ${{ vars.WEB_LIVE_ON }}
+      # r48 (3070): no repository variable is needed: the step "Where the site is live" sets WEB_LIVE_ON from the input
+      # web_live_on, the variable WEB_LIVE_ON, or the zone itself (carmacars.ca's A record on the server)
+      WEB_LIVE_ON_VAR: ${{ vars.WEB_LIVE_ON }}
+      WEB_LIVE_ON_INPUT: ${{ inputs.web_live_on || 'auto' }}
       PAGE_CACHE: ${{ inputs.page_cache || 'auto' }}
       APP_URL: https://carmacars.ca
       DOMAIN: carmacars.ca
@@ -445,6 +453,14 @@ jobs:
         working-directory: web
       - name: Secrets from the Supabase project (keys, vault)
         run: $RUN "Secrets" scripts/deploy/supabase.sh secrets
+      # r48 (3070): after deploy-vps switch the Worker must never get carmacars.ca, www or its cron back from here (the jobs
+      # would run twice). Unreadable: the deploy stops (pass web_live_on) rather than guess
+      - name: Where the site is live (the Worker, or the company's server)
+        run: |
+          if [ "$DEPLOY_ENV" != production ]; then echo "WEB_LIVE_ON=worker" >> "$GITHUB_ENV"; exit 0; fi
+          live=$(scripts/deploy/cf-site.sh live-on) || { echo "::error title=deploy::Where carmacars.ca is served could not be read from Cloudflare: run again with web_live_on worker or vps"; exit 1; }
+          echo "WEB_LIVE_ON=$live" >> "$GITHUB_ENV"
+          echo "::notice title=deploy::carmacars.ca is served by the $([ "$live" = vps ] && echo "company's server: the Worker is deployed as a standby (no domains, no cron)" || echo "Worker")"
       - name: Cloudflare token, page cache and file storage (R2, KV, D1), Turnstile, DNS for the custom domains
         env:
           # 0321: the photos' address when set as a repository variable (a CDN or another host); else the storage's own

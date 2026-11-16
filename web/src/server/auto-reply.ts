@@ -54,7 +54,7 @@ export async function autoReply(channel: Channel, sender: string, question: stri
     // nothing in the FAQ is close: no model call at all, straight to staff
     if (!entries.length) return await record({ ...base, answer: '', confident: false, reason: 'no FAQ entry is close to it' });
     const gen = await textGenerator(gate.model, 12_000);
-    if (gen.name !== 'workers-ai') return await record({ ...base, status: 'skipped', reason: 'Workers AI is not connected here' });
+    if (gen.name === 'fake') return await record({ ...base, status: 'skipped', reason: 'No AI model is connected here (Workers AI or Gemini)' });
     const t0 = Date.now();
     const r = await gen.generate<unknown>({ task: 'faq_reply', system: systemPrompt(gate.brand ?? 'CarmaCars'), prompt: userPrompt(text, entries, channel), schema: ANSWER_SCHEMA,
       maxOutputTokens: channel === 'sms' ? 140 : 320, temperature: 0.1 });

@@ -41,7 +41,7 @@ export async function POST(req: Request) {
   if (aiOk && (p.missing.some((x) => x !== 'car') || p.kind === 'other') && (tripKind || p.kind === 'other')) {
     const { textGenerator } = await import('@/integrations/llm');
     const gen = await textGenerator(undefined, 20_000);
-    if (gen.name === 'workers-ai') {
+    if (gen.name !== 'fake') {
       const a = await gen.generate<AiAnswer>({ task: 'turo_email', system: AI_SYSTEM, prompt: aiPrompt(m), schema: AI_SCHEMA, maxOutputTokens: 200, temperature: 0 });
       if (a.ok) {
         neurons += a.usage.neurons ?? 0;
