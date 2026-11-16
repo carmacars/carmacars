@@ -6,12 +6,15 @@ import type { DocReview, DocUpload } from '@/features/admin/todo/types';
 import { LicenceChecks, PrimarySwapPanel } from '@/features/licence/LicenceChecks';
 import { otherUploads } from '@/features/admin/doc-split';
 import { AcceptCard } from '@/features/card/AcceptCard';
+import { DocView } from '@/features/docs-view/DocView';
 
 // Renter documents of one booking (migration 0078), on one screen (0151): every licence image, selfie, proof of coverage
 // and the Protection Plan side by side, what to check said once, then one "Approve all" (each item through the function
 // that decides it; one the database refuses is reported and the rest approved) or a reason to reject one item, which the
 // renter sees. An Admin or customer service, with no review task. The images come through one-minute private links,
 // loaded when the pop-up opens (each opening is logged). Sales (0169) see the licence front, back and selfie only: no coverage.
+// r48 (3071): an approved or rejected document, and every page of the proof of coverage, has a View button (a one-minute
+// link, the view in the audit log); after the 90-day purge it reads "Removed on <date>".
 const KIND: Record<string, string> = { licence_front: 'Licence, front', licence_back: 'Licence, back', selfie: 'Selfie' };
 // the reader checks the rest line by line (release 31): what staff still look at themselves
 const CHECKS = ['Each flagged line below: fix it or reject with the reason', 'No sign of alteration; the photo is of the driver',
@@ -43,8 +46,9 @@ function Upload({ u, pending, reject }: { u: DocUpload; pending: boolean; reject
         ? <p><a className="link" href={u.url} target="_blank" rel="noreferrer">Open the PDF (link valid one minute)</a></p>
         // eslint-disable-next-line @next/next/no-img-element -- a one-minute signed private image, never cached
         : <img className="ad-idimg" src={u.url} alt={KIND[u.kind] ?? u.kind} referrerPolicy="no-referrer" />) : null}
+      {(u.status !== 'submitted' || u.purged_at) && <DocView upload={u.id} label={KIND[u.kind] ?? u.kind.replace(/_/g, ' ')} purgedAt={u.purged_at} testId={`doc-${u.kind}-view`} />}
       {u.status === 'rejected' && u.reject_reason && <p className="small muted">Rejected: {u.reject_reason}</p>}
-      {u.status === 'submitted' && <Reject testId={`doc-${u.kind}`} pending={pending} onReject={reject} />}
+      {u.status === 'submitted' && !u.purged_at && <Reject testId={`doc-${u.kind}`} pending={pending} onReject={reject} />}
     </div>
   );
 }
@@ -134,7 +138,8 @@ export function DocumentReview({ booking, label = 'Review documents', variant = 
                 {cov.option === 1 && cp && <p className="small">{cp.insurer_name}, policy {cp.policy_number}, valid to {cp.policy_expiry}{cp.policy_valid ? ' (after the return: fine)' : ' (NOT after the return date)'}</p>}
                 {cov.option === 2 && <p className="small">{cov.card.brand ? `${cov.card.brand.toUpperCase()} ending ${cov.card.last4 ?? ''}, ${cov.card.funding ?? 'unknown'}` : 'Not paid yet'}; cardholder {cov.card.cardholder_name ?? ''}{cov.card.name_matches ? ' (matches the renter)' : ' (does NOT match the renter)'}.
                   {cov.card.eligible ? ' A credit card in the renter’s name.' : ` ${cov.card.message ?? ''}`} {cp?.renter_confirmed_at ? `The renter confirmed the card covers this rental: ${cp.confirmation_text ?? ''}` : 'The renter has not confirmed the card covers it yet.'}</p>}
-                {cp && cp.pages.length > 0 && <ul className="small">{cp.pages.map((pg, i) => <li key={pg.id}>Page {i + 1}{(() => { const k = cov.page_kinds?.[pg.id]; return k ? `, ${PAGE_KIND[k] ?? k}` : ''; })()}: {pg.url ? <a className="link" href={pg.url} target="_blank" rel="noreferrer">{pg.mime_type === 'application/pdf' ? 'open the PDF' : 'open the photo'}</a> : 'no file'} ({pg.status})</li>)}</ul>}
+                {cp && cp.pages.length > 0 && <ul className="small">{cp.pages.map((pg, i) => { const k = cov.page_kinds?.[pg.id]; const name = `Page ${i + 1}${k ? `, ${PAGE_KIND[k] ?? k}` : ''}`;
+                  return <li key={pg.id}>{name} ({pg.status}) <DocView upload={pg.id} label={name} testId={`doc-page-${i + 1}-view`} /></li>; })}</ul>}
                 {needs.length > 0 && <p className="alert alert--warn" role="note" data-testid="coverage-needs"><span>Waiting for the renter: {needs.map((n) => n.label.replace(/^your /, 'their ')).join('; ')}. Nothing to approve until it comes; the renter&apos;s checklist asks for exactly this.</span></p>}
                 {covWaiting && cp && <Reject testId="coverage" pending={pending} onReject={(reason) => act('doc_review_coverage', { proof: cp.id, approve: false, reason }, 'Proof of coverage rejected. The renter is told why.')} />}
                 {cp && cp.status === 'rejected' && <p className="small muted">Rejected: {cp.rejection_reason}. The renter sends a new one.</p>}
