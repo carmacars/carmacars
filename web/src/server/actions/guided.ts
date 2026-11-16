@@ -37,7 +37,7 @@ export async function guidedAct<T = Record<string, unknown>>(action: GuidedActio
   } catch (e) { return fail(e); }
 }
 
-/** The renter documents of one booking, for review: the facts, and a one-minute private link for each page waiting. */
+/** The renter documents of one booking, for review: the facts, and a one-minute private link for each image waiting (r48, 3071: the rest open with View). */
 export async function docReviewLoad(booking: string): Promise<R<DocReview>> {
   try {
     const { user, aal } = await me();
@@ -47,7 +47,8 @@ export async function docReviewLoad(booking: string): Promise<R<DocReview>> {
     const sign = async (bucket?: string | null, path?: string | null) => (bucket && path ? s.signedDownloadUrl(bucket as Bucket, path, 60).catch(() => null) : null);
     const uploads = await Promise.all(d.uploads.map(async (u) => ({ ...u, url: u.status === 'submitted' ? await sign(u.bucket, u.path) : null, bucket: undefined, path: undefined })));
     const proof = d.coverage?.proof ?? null;
-    const pages = proof ? await Promise.all(proof.pages.map(async (pg) => ({ ...pg, url: await sign(pg.bucket, pg.path), bucket: undefined, path: undefined }))) : [];
+    // r48 (3071): the pages open with their View button (a link made and logged per view), never all at once here
+    const pages = proof ? proof.pages.map((pg) => ({ ...pg, url: null, bucket: undefined, path: undefined })) : [];
     return { ok: true, data: { ...d, uploads, coverage: d.coverage ? { ...d.coverage, proof: proof ? { ...proof, pages } : null } : null } };
   } catch (e) { return fail(e); }
 }

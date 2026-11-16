@@ -11,12 +11,13 @@ import { Act } from '@/features/admin/Act';
 import { AcceptCard } from '@/features/card/AcceptCard';
 import type { ReviewCoverage } from '@/features/coverage/types';
 import { storage, type Bucket } from '@/integrations/storage';
+import { DocView } from '@/features/docs-view/DocView';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Identity review', path: '/staff', noindex: true, description: 'Identity and coverage documents of one booking.' });
 const PAGE_KIND: Record<string, string> = { pink_slip: 'pink slip', endorsement: 'OPCF 27 endorsement page', card_benefit: 'card benefit document' };
 
-type U = { id: string; kind: string; driver_id: string | null; status: string; uploaded_at: string; bucket: string; path: string; mime_type: string | null };
+type U = { id: string; kind: string; driver_id: string | null; status: string; uploaded_at: string; bucket: string; path: string; mime_type: string | null; purged_at?: string | null };
 type V = { coverage?: ReviewCoverage | null; booking_id: string; booking_number: string; return_at: string; coverage_option: number | null; readiness: { all_drivers_verified: boolean; coverage_confirmed?: boolean };
   drivers: Array<{ driver_id: string; full_name: string; role: string; date_of_birth: string | null; licence_number: string | null; licence_class: string | null; licence_expiry: string | null; verified_on: string | null;
     licence_read?: LicenceRead | null; licence_checks?: LicenceCheck[] }>; uploads: U[]; primary_swap?: PrimarySwap | null };
@@ -24,7 +25,8 @@ type V = { coverage?: ReviewCoverage | null; booking_id: string; booking_number:
 // Identity document review (05-va.md section 4.2). The database opens it only while customer service has
 // the review task for this booking, and logs every opening; images come through one-minute signed links and
 // are never cached. Sales (0169) review the licence front, back and selfie here too: the screen has no coverage
-// for them, and the database refuses the proof of coverage and the Protection Plan.
+// for them, and the database refuses the proof of coverage and the Protection Plan. r48 (3071): a decided document and each
+// page of the proof open with View (a one-minute link made per view and logged); a purged one reads "Removed on <date>".
 export default async function Verify({ params }: { params: Promise<{ number: string }> }) {
   const { number } = await params;
   const n = decodeURIComponent(number);
@@ -36,11 +38,10 @@ export default async function Verify({ params }: { params: Promise<{ number: str
   const bookingOpen = !sales || !!(await read<{ number: string } | null>('booking', { number: n }).catch(() => null));
   const s = await storage();
   const link = (u: U) => s.signedDownloadUrl(u.bucket as Bucket, u.path, 60);
-  const links = new Map(await Promise.all(v.uploads.filter((u) => u.status === 'submitted').map(async (u) => [u.id, await link(u)] as const)));
+  const links = new Map(await Promise.all(v.uploads.filter((u) => u.status === 'submitted' && !u.purged_at && u.bucket && u.path).map(async (u) => [u.id, await link(u)] as const)));
   const forDriver = (id: string | null) => v.uploads.filter((u) => u.driver_id === id);
   const cov = v.coverage ?? null;
   const cp = cov?.proof ?? null;
-  const pageLinks = new Map(await Promise.all((cp?.pages ?? []).filter((pg) => pg.bucket && pg.path).map(async (pg) => [pg.id, await s.signedDownloadUrl(pg.bucket as Bucket, pg.path!, 60)] as const)));
   return (
     <>
       <PageHead kicker={<><Link prefetch={false} className="link" href="/staff">Queue</Link> · {bookingOpen ? <Link prefetch={false} className="link" href={`/staff/bookings/${encodeURIComponent(n)}`}>{n}</Link> : n}</>} title={sales ? 'Licence review' : 'Identity and coverage'} />
@@ -58,7 +59,8 @@ export default async function Verify({ params }: { params: Promise<{ number: str
           <LicenceChecks read={dr.licence_read} checks={dr.licence_checks} />
           <div className="ad-cols ad-cols--3">{forDriver(dr.driver_id).map((u) => (
             <div key={u.id}><p className="pt-kicker">{label(u.kind)} <Badge s={u.status === 'submitted' ? 'needs_review' : u.status} /></p>
-              {u.status === 'submitted' && links.get(u.id) ? <VerifyUpload id={u.id} kind={u.kind} src={links.get(u.id)!} pdf={u.mime_type === 'application/pdf'} /> : <p className="small muted">Decided.</p>}</div>))}
+              {u.status === 'submitted' && links.get(u.id) ? <VerifyUpload id={u.id} kind={u.kind} src={links.get(u.id)!} pdf={u.mime_type === 'application/pdf'} />
+                : <DocView upload={u.id} call="va_read" label={label(u.kind)} purgedAt={u.purged_at} testId={`va-${u.kind}-view`} />}</div>))}
           </div>
           {!forDriver(dr.driver_id).length && <p className="small muted">Nothing uploaded for this driver yet.</p>}
         </Card>
@@ -68,7 +70,8 @@ export default async function Verify({ params }: { params: Promise<{ number: str
           <p className="small muted">Not tied to a driver on this booking. Approve all counts them.</p>
           <div className="ad-cols ad-cols--3">{otherUploads(v.uploads, v.drivers).map((u) => (
             <div key={u.id}><p className="pt-kicker">{label(u.kind)} <Badge s={u.status === 'submitted' ? 'needs_review' : u.status} /></p>
-              {u.status === 'submitted' && links.get(u.id) ? <VerifyUpload id={u.id} kind={u.kind} src={links.get(u.id)!} pdf={u.mime_type === 'application/pdf'} /> : <p className="small muted">Decided.</p>}</div>))}
+              {u.status === 'submitted' && links.get(u.id) ? <VerifyUpload id={u.id} kind={u.kind} src={links.get(u.id)!} pdf={u.mime_type === 'application/pdf'} />
+                : <DocView upload={u.id} call="va_read" label={label(u.kind)} purgedAt={u.purged_at} testId={`va-${u.kind}-view`} />}</div>))}
           </div>
         </Card>)}
       {!sales && <Card title={`Coverage${v.coverage_option ? `, option ${v.coverage_option}` : ''}`} testId="va-coverage">
@@ -90,7 +93,7 @@ export default async function Verify({ params }: { params: Promise<{ number: str
         {cov?.card.cardholder_name && !cov.card.name_matches && <AcceptCard booking={v.booking_id} cardholder={cov.card.cardholder_name} renter={cov.card.renter_name ?? ''} />}
         {cp && cp.pages.length > 0 && <div className="ad-cols ad-cols--3">{cp.pages.map((pg, i) => (
           <div key={pg.id}><p className="pt-kicker">Page {i + 1}{cov?.page_kinds?.[pg.id] ? `: ${PAGE_KIND[cov.page_kinds[pg.id]!]}` : ''} <Badge s={pg.status === 'submitted' ? 'needs_review' : pg.status} /></p>
-            {pageLinks.get(pg.id) ? <a className="link" href={pageLinks.get(pg.id)!} target="_blank" rel="noreferrer">{pg.mime_type === 'application/pdf' ? 'Open the PDF' : 'Open the photo'} (link valid one minute)</a> : null}</div>))}</div>}
+            <DocView upload={pg.id} call="va_read" label={`Page ${i + 1}`} testId={`va-page-${i + 1}-view`} /></div>))}</div>}
         {cov && (cov.needs?.length ?? 0) > 0 && <p className="alert alert--warn" role="note" data-testid="va-coverage-needs"><span>Waiting for the renter: {cov.needs!.map((x) => x.label.replace(/^your /, 'their ')).join('; ')}. Nothing to approve until it comes; the renter&apos;s checklist asks for exactly this.</span></p>}
         {cov && cp && cp.status === 'submitted' && (cov.option === 1 || cov.option === 2) && cov.proof_waiting !== false && (
           <div className="ad-actions">

@@ -7,6 +7,7 @@ import type { DocUpload } from '@/features/admin/todo/types';
 import type { LicenceReviewData } from './types';
 import { otherUploads } from '@/features/admin/doc-split';
 import { LicenceChecks, PrimarySwapPanel } from '@/features/licence/LicenceChecks';
+import { DocView } from '@/features/docs-view/DocView';
 
 import { WhyDisabled } from '@/components/WhyDisabled';
 // The renter's licence reviewed by field staff (0162): the licence front, back and the selfie of a booking on a job of their
@@ -41,8 +42,10 @@ function Shot({ u, pending, reject }: { u: DocUpload; pending: boolean; reject: 
         ? <p><a className="link" href={u.url} target="_blank" rel="noreferrer">Open the PDF (link valid one minute)</a></p>
         // eslint-disable-next-line @next/next/no-img-element -- a one-minute signed private image, never cached
         : <img className="fd-lic__img" src={u.url} alt={KIND[u.kind] ?? u.kind} referrerPolicy="no-referrer" />) : null}
+      {/* r48 (3071): a decided image opens again with View (logged); after the 90-day purge, the day it was removed */}
+      {(u.status !== 'submitted' || u.purged_at) && <DocView upload={u.id} call="field_read" label={KIND[u.kind] ?? u.kind.replace(/_/g, ' ')} purgedAt={u.purged_at} testId={`licence-${u.kind}-view`} />}
       {u.status === 'rejected' && u.reject_reason && <p className="small muted">Rejected: {u.reject_reason}</p>}
-      {u.status === 'submitted' && <Reject kind={u.kind} pending={pending} onReject={reject} />}
+      {u.status === 'submitted' && !u.purged_at && <Reject kind={u.kind} pending={pending} onReject={reject} />}
     </div>
   );
 }

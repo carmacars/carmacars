@@ -13,11 +13,11 @@ button presses for the switch itself. Only Cloudflare's **paid** plan goes; its 
 
 | | Today | After |
 |---|---|---|
-| Website | Next.js 16 on a Cloudflare Worker (OpenNext), Workers Paid | The same Next.js app as a Node server in Docker on the VPS, behind Caddy (TLS by Let's Encrypt) |
+| Website | Next.js 16 on a Cloudflare Worker (OpenNext), Workers Paid | The same Next.js app as a Node server in Docker on the VPS, behind Caddy (TLS by a Cloudflare Origin CA certificate, release 48) |
 | Page cache | R2 or KV, D1 tags, a Durable Object queue | Next.js's own cache on the server's disk |
 | Files | Supabase Storage on the VPS, or R2 through Worker bindings | Supabase Storage on the VPS |
 | Scheduled jobs | Worker cron trigger, every minute | The same plan from the Node entry (`CRON_ENABLED=1`) |
-| AI | Workers AI binding, Gemini | Workers AI over its REST API (same free daily allowance), Gemini |
+| AI | Workers AI binding, Gemini | Workers AI over its REST API when `WORKERS_AI_API_TOKEN` exists; else Gemini with the key the site already has (release 48, section 2.2) |
 | Bot check on forms | Turnstile | Turnstile (free, works on any host) |
 | Email out | Amazon SES, Resend (release 41) | unchanged |
 | Email in | Cloudflare Email Routing to the Worker | Email Routing (free) to a small forwarder Worker on the free plan, which posts each message to the server (section 5.1) |
@@ -39,7 +39,7 @@ of `web/wrangler.jsonc`, `caches.`, `request.cf`, `cf-` headers, `api.cloudflare
 |---|---|---|---|---|
 | Worker runtime, OpenNext build (`cf:build`, `wrangler deploy`) | `web/wrangler.jsonc`, `web/open-next.config.ts`, `scripts/deploy/open-next/`, `scripts/deploy/wrangler-config.mjs`, `web/scripts/worker-size.mjs`, `ci.yml` deploy | `next build` with `output: 'standalone'` (`HOSTING_TARGET=node`, `npm run build:node`), run under Node 22 in Docker (`infra/vps/web/Dockerfile`) | 0 | done (build flag, image, compose) |
 | Worker entry: security headers, script nonce and content security policy (HTMLRewriter), view-as and cross-site guards, session refresh, scanner 404s, crawler shield | `web/custom-worker.ts` | `web/scripts/vps-server.mjs`, a Node front for the app that imports the same modules (`src/lib/security`, `src/lib/auth/edge-refresh.ts`, `src/lib/edge`) | 0 | done, not yet run through the e2e suite |
-| Custom domains, certificate, http to https, compression | `routes` in `wrangler.jsonc`, Cloudflare's edge | Caddy (already on the VPS for the API): Let's Encrypt certificates, redirect, zstd and gzip (`infra/vps/web/site.caddy`) | 0 | done |
+| Custom domains, certificate, http to https, compression | `routes` in `wrangler.jsonc`, Cloudflare's edge | Caddy (already on the VPS for the API): a Cloudflare Origin CA certificate (release 48, section 5.8; Let's Encrypt as the fallback), redirect, zstd and gzip (`infra/vps/web/site.caddy`) | 0 | done |
 | Cron trigger `* * * * *` | `wrangler.jsonc` `triggers`, `custom-worker.ts` `scheduled` | The minute tick inside the Node entry (`src/lib/platform/cron-plan.ts`), on only with `CRON_ENABLED=1` | 0 | done; off until the DNS switch |
 | Service binding to itself (`WORKER_SELF_REFERENCE`) | `src/server/pdf-jobs.ts`, `src/server/drive-import.ts`, warm-up in `custom-worker.ts` | A plain request to the app's own port (`selfFetcher`, `INTERNAL_ORIGIN`) | 0 | done |
 | Version metadata (`CF_VERSION_METADATA`) | `src/app/api/bug-report/route.ts`, `src/lib/edge/page-cache.ts` | `DEPLOY_VERSION` (the commit the image was built from) | 0 | done |
@@ -65,8 +65,16 @@ of `web/wrangler.jsonc`, `caches.`, `request.cf`, `cf-` headers, `api.cloudflare
   models, with per-minute and per-day limits; requests on the free tier may be used by Google to improve its models,
   so it is not the place for customer documents. The paid tier is billed per token.
 - Decision in r42: keep Workers AI (REST) as the first choice because it is a like-for-like swap with no prompt
-  changes, keep Gemini where it is used today. If the daily allowance becomes the limit, moving text generation to
-  Gemini Flash is one new adapter next to `src/integrations/llm/workers-ai.ts`.
+  changes, keep Gemini where it is used today.
+- **Release 48 (no new secret):** without a `WORKERS_AI_API_TOKEN` secret, `deploy-vps` sets `LLM_PROVIDER=gemini` when
+  `GEMINI_API_KEY` is set (it already is, for the photos), and the server uses Gemini (`gemini-2.5-flash`, or
+  `GEMINI_TEXT_MODEL`) through `src/integrations/llm/gemini.ts` for listing copy, live chat and auto-replies, Turo emails
+  and the other text tasks, and `geminiVision` for the vision reads, both behind the same usage guard and through the
+  Canadian relay when Google refuses a location. Two things are never sent to Gemini's free tier, because Google may use
+  free-tier requests: identity documents (`licence_read`, `permit_read`: a person types them) and recordings (interview
+  and call transcripts answer "not connected", never the fake's words; a person listens). The staff assistant uses its
+  Claude fallback when an Admin allows it, else it is off. Adding the `WORKERS_AI_API_TOKEN` secret later (Account >
+  Workers AI > Read) switches all of it back to Workers AI on the next deploy, with nothing else to change.
 
 ### 2.3 CI, scripts and reports
 
@@ -157,8 +165,7 @@ runs longer than its 100 seconds (the jobs call the app inside the server).
   DNS-only site without location data.
 - `web/src/lib/platform/node-edge.ts`: the region cookie (`cc_geo`) set by the Node entry; `/api/t` sends the live map
   the city, the rounded position and the salted address key, as the Worker did.
-- Certificates stay Let's Encrypt by Caddy over port 80: keep the zone's "Always Use HTTPS" off (Caddy redirects) and
-  SSL mode Full (strict).
+- Certificates: see 5.8 (release 48: a Cloudflare Origin CA certificate; Let's Encrypt over port 80 only as the fallback).
 
 ### 5.3 Crawler load
 
@@ -194,38 +201,82 @@ GitHub's runner, starts the Node entry with the local stack, runs `web/scripts/n
 the fleet, a car page, the nonce policy, inbound email signed and unsigned) and the sign-in and Admin end-to-end tests
 against it. The Cloudflare build and deploy in `ci.yml` are unchanged and remain the default.
 
-## 6. Cutover: the owner's button presses
+### 5.8 Certificates that do not depend on the proxy (release 48)
 
-**A. Any day before (nobody is affected), about 10 minutes of clicking:**
+Deploy run 43702475958 failed: `https://new.carmacars.ca/api/health` answered 525. Caddy asked Let's Encrypt for
+`new`, `carmacars.ca` and `www` over HTTP-01, but `new` is proxied and the apex and www still pointed at the Worker, so
+no challenge could reach the server and there was no certificate for Cloudflare to talk to.
 
-1. Cloudflare > My Profile > API Tokens > Create Token > "Workers AI (Read)". Copy it. GitHub > the repository >
-   Settings > Secrets and variables > Actions > New repository secret: `WORKERS_AI_API_TOKEN`.
-2. Cloudflare > carmacars.ca > DNS > Add record: type A, name `new`, the server's address, Proxied.
-3. Cloudflare > carmacars.ca > Rules > Settings > Managed Transforms: turn on "Add visitor location headers".
-   SSL/TLS > Overview: Full (strict). SSL/TLS > Edge Certificates: "Always Use HTTPS" off.
-4. GitHub > Settings > Secrets and variables > Actions > Variables: `WEB_VPS_HOSTNAMES` =
-   `new.carmacars.ca,carmacars.ca,www.carmacars.ca` and `WEB_ON_VPS` = `1`.
-5. GitHub > Actions > deploy-vps > Run workflow (action `deploy`, the rest as it is). When it is green, open
-   https://new.carmacars.ca and look around (sign-in works there once the address is in the Auth redirect list).
+Two ways out were weighed:
 
-**B. The switch, at a quiet hour (about 5 minutes; visitors may see an error page for up to 2 of them):**
+| | DNS-01 through Cloudflare (Caddy built with caddy-dns/cloudflare) | Cloudflare Origin CA certificate, made by the deploy through the API |
+|---|---|---|
+| Works while proxied, whatever Always Use HTTPS says | yes | yes |
+| What lives on the server | a Cloudflare token that may edit the zone's DNS, for every renewal | the certificate and its key only |
+| Renewal | every 60 to 90 days, by Caddy, through Cloudflare's API and Let's Encrypt | none for 15 years; the deploy replaces it 30 days before the end |
+| What can break | the token expiring or losing a permission, the custom Caddy build (pinned xcaddy, rebuilt for every Caddy update), Let's Encrypt rate limits | nothing on a schedule |
+| Trusted by browsers directly | yes | no: only behind Cloudflare's proxy (Full (strict) trusts it) |
 
-1. GitHub > Variables: add `WEB_LIVE_ON` = `vps`.
-2. Cloudflare > Workers & Pages > carmacars-prod > Settings: under Trigger Events delete the cron trigger; under
-   Domains & Routes remove `carmacars.ca` and `www.carmacars.ca`.
-3. Cloudflare > carmacars.ca > DNS > Add record, twice: type A, names `@` and `www`, the server's address, Proxied.
-4. GitHub > Actions > deploy-vps > Run workflow: action `switch`, cron `on`, email `forwarder`. Green means: the
-   certificates are issued, each address answers, the jobs run on the server, inbound mail goes to the server.
+**Decision: the Origin CA certificate.** It is the more durable one: nothing renews, no DNS-editing token sits on the
+internet-facing server, and the stack keeps the stock Caddy image. Its one limit (browsers trust it only through the
+proxy) matches the design: the site's records are proxied (5.2) for the location headers anyway.
 
-**C. After a clean day:** Cloudflare > Workers & Pages > Plans > change to Free. That ends the bill.
+How it works: `deploy-vps` (action `deploy`) reads the certificate on the server (`/opt/carmacars/supabase/caddy/sites/
+origin/cert.pem`). When it still covers `carmacars.ca` and `*.carmacars.ca` for 30 days or more it is kept; otherwise
+`scripts/deploy/cf-site.sh origin-cert` makes a new P-256 key on the runner, sends only the signing request to
+Cloudflare (`POST /certificates`, 15 years, `origin-ecc`) and ships the pair to the server, where it is installed only if
+the key matches. `site.caddy` loads it (`tls ... cert.pem key.pem`). If the token may not make one, or a hostname is
+outside the domain, or `WEB_PROXY=off`, the `tls` line is left out, Caddy uses Let's Encrypt over HTTP-01 as before,
+and the deploy turns Always Use HTTPS off (HTTP-01 needs port 80 answered as it is).
 
-From then on a release is: `ci` with deploy (migrations; the Worker is kept as a standby without domains or cron
-because of `WEB_LIVE_ON`), then `deploy-vps` with action `deploy`.
+## 6. Cutover, with no dashboard click (release 48)
+
+Everything below is done by the CI token through the API (`scripts/deploy/cf-site.sh`), idempotently: running a step
+twice changes nothing the second time. A permission the token lacks is named in the job's warnings and summary, the
+step it blocks is skipped, and the rest goes on. No secret and no repository variable has to be added: `deploy-vps`
+takes `web_on_vps` (on) and `hostnames` (`new.carmacars.ca,carmacars.ca,www.carmacars.ca`) as inputs, the server's
+address comes from the `DEPLOY_HOST` secret (or `infra/vps/host`), and `ci.yml` finds out by itself where the site is
+live (input `web_live_on`, default `auto`: the apex's A record on the server means `vps`; unreadable stops the deploy).
+
+**A, on every `deploy-vps` deploy:** the `new` A record, proxied, to the server; the managed transform "Add visitor
+location headers" on; SSL Full (strict) (Full, with a warning naming them, if another proxied host of the zone has no
+publicly valid certificate at its origin); the Origin CA certificate (5.8). Always Use HTTPS is left alone (turned off
+only on the HTTP-01 fallback).
+
+**B, action `switch`:** the Worker `carmacars-prod`'s cron trigger deleted; its `carmacars.ca` and `www` custom domains
+and routes removed; A records for both, proxied, to the server (any other A, AAAA or CNAME of those two names removed;
+MX, TXT and other names untouched). Then the server's cron goes on, but only when the Worker's cron is confirmed gone
+(else it stays off and the job says so: the jobs never run twice), Caddy is reloaded, each hostname's `/api/health` is
+checked, and inbound mail goes to the forwarder. `switch` defaults to cron `on` and email `forwarder`.
+
+**Token permissions** (the CI token `CLOUDFLARE_API_TOKEN`): Zone > Zone > Read; Zone > DNS > Edit; Zone > Zone
+Settings > Edit (SSL mode, Always Use HTTPS); Zone > Transform Rules > Edit (the managed transform); Zone > SSL and
+Certificates > Edit (the Origin CA certificate); Zone > Workers Routes > Edit; Zone > Email Routing Rules > Edit;
+Account > Workers Scripts > Edit (cron trigger, custom domains, the forwarder). The job lists any that is missing.
+
+### Release day, in order
+
+```
+gh workflow run ci.yml -f deploy=true                       # checks, migrations, the Worker (still live; web_live_on auto -> worker)
+gh workflow run deploy-vps.yml -f action=deploy             # node smoke, A, image, Origin CA certificate; https://new.carmacars.ca/api/health 200
+gh workflow run deploy-vps.yml -f action=switch             # B: Worker cron and domains off, carmacars.ca and www to the server, cron on, email forwarder
+```
+
+Then check on `carmacars.ca`: `curl -sI https://carmacars.ca/ | grep -i x-carmacars-schema` (the server's schema
+marker), `curl -s https://carmacars.ca/healthz` (`"target":"node"`, `"cron":true`), `curl -s https://carmacars.ca/api/health` and
+`https://www.carmacars.ca/api/health` (200, the database answers),
+sign in to Admin, open a car page, send a test email to `trips@in.carmacars.ca` and see it arrive, and see a job tick
+in the server's log (`docker logs carmacars-web --since 5m`). The job's summary must list no missing permission.
+
+**One day of standby:** the Worker stays deployed without domains or cron (every `ci` deploy keeps it that way, because
+`web_live_on` reads `vps` from the zone). After a clean day, the only click left (billing): Cloudflare > Workers &
+Pages > Plans > change to Free. From then on a release is `ci` with deploy (migrations; the Worker stays a standby),
+then `deploy-vps` with action `deploy`.
 
 ## 7. Rollback
 
-- Before B there is nothing to roll back: the Worker serves every visitor. `WEB_ON_VPS` = `0` switches the job off.
-- A bad image on the server: `deploy-vps`, action `rollback`.
-- After B: delete the two A records, add `carmacars.ca` and `www.carmacars.ca` back under the Worker's Domains &
-  Routes and its cron trigger `* * * * *`, remove the variable `WEB_LIVE_ON`, then run `deploy-vps` with action
-  `switch`, cron `off`, email `worker`.
+- Before B there is nothing to roll back: the Worker serves every visitor.
+- A bad image on the server: `deploy-vps`, action `rollback-image`.
+- After B: `gh workflow run deploy-vps.yml -f action=rollback`: the server's cron off first, then the A records to the
+  server removed, the Worker's `carmacars.ca` and `www` custom domains and its cron `* * * * *` back, inbound mail back
+  to the Worker. The next `ci` deploy reads `worker` from the zone and keeps the domains and the cron.

@@ -21,7 +21,7 @@ const SR = { role: 'service_role' as const };
  *  when Workers AI has no room and ANTHROPIC_API_KEY is set and Claude's own budget in Settings > Usage allows it (US$0
  *  included by default: no new spend unless an Admin allows it), else the stub for local work and the tests. */
 export async function workersModel(): Promise<AssistantModel> {
-  if (env().LLM_PROVIDER === 'workers-ai' && process.env.ASSISTANT_PROVIDER !== 'fake') {
+  if (env().LLM_PROVIDER !== 'fake' && process.env.ASSISTANT_PROVIDER !== 'fake') {
     try {
       const ai = await (await import('@/lib/platform/runtime')).aiBinding();
       if (ai) return workersAiModel(ai);

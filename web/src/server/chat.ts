@@ -33,7 +33,7 @@ export async function answer(token: string, st: VisitorMessageState, text: strin
   const t0 = Date.now();
   const gen = await textGenerator(st.model, 12_000);
   // production without the Worker's AI binding (or LLM_PROVIDER not workers-ai) would answer with the stand-in: say so
-  if (gen.name === 'fake' && env().APP_ENV === 'production') throw new Error('Workers AI is not connected: the Worker has no AI binding or LLM_PROVIDER is not workers-ai');
+  if (gen.name === 'fake' && env().APP_ENV === 'production') throw new Error('No AI model is connected: no Workers AI binding or token and no GEMINI_API_KEY, or LLM_PROVIDER is not workers-ai');
   const result = await runAgent({
     facts,
     model: async (system, prompt) => {

@@ -141,6 +141,7 @@
    {
     "area": "Reliability & security",
     "items": [
+     "The website now runs on CarmaCars' own server in Canada, behind the same protection and speed layer as before",
      "The photo queue no longer stalls on steps waiting with no end"
     ]
    }

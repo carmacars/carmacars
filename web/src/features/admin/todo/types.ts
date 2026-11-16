@@ -46,7 +46,9 @@ export interface Todo {
 }
 
 export interface DocUpload { id: string; kind: string; driver_id: string | null; status: string; uploaded_at: string; reject_reason: string | null; mime_type: string | null;
-  bucket?: string | null; path?: string | null; url?: string | null }
+  bucket?: string | null; path?: string | null; url?: string | null;
+  /** r48 (3071): set when the 90-day purge removed the file (listed with no file: "Removed on <date>") */
+  purged_at?: string | null }
 type ReviewProof = NonNullable<ReviewCoverage['proof']>;
 export interface LicenceCheck { key: string; label: string; ok: boolean | null; detail: string | null }
 export interface LicenceRead { full_name?: string; date_of_birth?: string; licence_number?: string; licence_class?: string; issued_on?: string; expires_on?: string; issuer?: string; country?: string; address?: string; source?: string }

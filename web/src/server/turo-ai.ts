@@ -10,7 +10,7 @@ export async function aiPickCar(sig: Pick<Signals, 'carNames' | 'colours' | 'tur
   if (pool.length < 2) return { id: null, neurons: 0 };
   const { textGenerator } = await import('@/integrations/llm');
   const gen = await textGenerator(undefined, 15_000);
-  if (gen.name !== 'workers-ai') return { id: null, neurons: 0 };
+  if (gen.name === 'fake') return { id: null, neurons: 0 };
   const a = await gen.generate<{ vehicle_id: string }>({ task: 'turo_email', system: AI_CAR_SYSTEM, prompt: aiCarPrompt(sig, subject, pool),
     schema: aiCarSchema(pool.map((c) => c.vehicle_id)), maxOutputTokens: 60, temperature: 0 });
   if (!a.ok) return { id: null, neurons: 0 };

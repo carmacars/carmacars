@@ -5,7 +5,7 @@
 #                                             this job's environment (the same names the Worker gets as secrets)
 #   scripts/deploy/web-vps.sh ship <image.tgz> <web.env>   image, compose file and settings to the server, the
 #                                             container started and healthy, Caddy's site file installed and loaded
-#   scripts/deploy/web-vps.sh rollback        the image that ran before the last deploy, started again
+#   scripts/deploy/web-vps.sh rollback        the image that ran before the last deploy, started again (action rollback-image)
 #   scripts/deploy/web-vps.sh switch          no build: the running image restarted with WEB_CRON, Caddy reloaded (the
 #                                             certificates of hostnames whose DNS just moved), each hostname checked
 #   scripts/deploy/web-vps.sh forwarder       the inbound email forwarder (infra/cloudflare/email-forwarder, a Worker on
@@ -77,6 +77,9 @@ ship() {
     sed -i '/# proxy-begin/,/# proxy-end/d' "$stage/web.caddy"
     say "Caddy: DNS-only site (WEB_PROXY=off): no location headers"
   fi
+  # r48 (3070): the Cloudflare Origin CA certificate (docs/hosting/off-cloudflare.md, section 4): the server's own while it
+  # covers the domain, else a new one through the API; without one, Let's Encrypt over HTTP-01 as before
+  origin_tls "$stage" "$hosts"
   cp "$ROOT/infra/vps/web/docker-compose.yml" "$stage/docker-compose.yml"
   cp "$ROOT/infra/vps/supabase/docker-compose.yml" "$stage/supabase-compose.yml"
   cp "$ROOT/infra/vps/supabase/caddy/Caddyfile" "$stage/Caddyfile"
@@ -92,9 +95,31 @@ ship() {
     [ "$code" = 200 ] && break
     sleep 6
   done
-  [ "$code" = 200 ] || die "https://$first/api/health answered ${code:-nothing} after 4 minutes: check the hostname's DNS-only A record points at the server (Caddy needs it for the certificate)"
+  [ "$code" = 200 ] || die "https://$first/api/health answered ${code:-nothing} after 4 minutes: check the hostname's A record points at the server, SSL is Full (strict) and the Origin CA certificate is in place (the lines above)"
   if [ -n "${GITHUB_ACTIONS:-}" ]; then echo "::notice title=deploy-vps::$tag is running on the server and https://$first/api/health answers 200 (cron: $cron). DNS for the public site is unchanged."; fi
 }
+
+# origin_tls <stage> <hosts>: stage/origin-cert.pem and origin-key.pem when a new certificate is made; the origin-tls block
+# of stage/web.caddy kept when the server has (or gets) one, else removed and "Always Use HTTPS" turned off (HTTP-01)
+origin_tls() {
+  local stage="$1" hosts="$2" h st=none dom="${DOMAIN:-carmacars.ca}" ok=1
+  for h in ${hosts//,/ }; do [ "$h" = "$dom" ] || [[ "$h" =~ ^[a-z0-9-]+\.${dom//./\\.}$ ]] || ok=0; done
+  if [ "${WEB_PROXY:-cloudflare}" != cloudflare ]; then say "TLS: Let's Encrypt (WEB_PROXY=off: a browser would not trust an Origin CA certificate)"
+  elif [ "$ok" != 1 ]; then warn_ "TLS: a hostname outside $dom and *.$dom ($hosts): Let's Encrypt over HTTP-01"
+  else
+    vps_ssh "sudo cat /opt/carmacars/supabase/caddy/sites/origin/cert.pem 2>/dev/null || true" > "$stage/current.pem" || : > "$stage/current.pem"
+    st=$(DOMAIN="$dom" "$HERE/cf-site.sh" origin-cert "$stage/origin" "$stage/current.pem") || st=none
+    if [ "$st" = new ]; then
+      install -m 600 "$stage/origin/cert.pem" "$stage/origin-cert.pem"; install -m 600 "$stage/origin/key.pem" "$stage/origin-key.pem"
+    fi
+    rm -rf "$stage/origin" "$stage/current.pem"
+  fi
+  if [ "$st" = new ] || [ "$st" = reuse ]; then say "TLS: Cloudflare Origin CA certificate ($st)"; return 0; fi
+  sed -i '/# origin-tls-begin/,/# origin-tls-end/d' "$stage/web.caddy"
+  # HTTP-01 behind the proxy needs port 80 answered as it is, not redirected by Cloudflare
+  if [ "${WEB_PROXY:-cloudflare}" = cloudflare ]; then DOMAIN="$dom" "$HERE/cf-site.sh" https-off || true; fi
+}
+warn_() { if [ -n "${GITHUB_ACTIONS:-}" ]; then echo "::warning title=deploy-vps::$*"; else echo "WARNING: $*"; fi; }
 
 rollback() {
   load_vps

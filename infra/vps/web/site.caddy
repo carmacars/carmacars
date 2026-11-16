@@ -1,14 +1,19 @@
 # Release 42: the website behind the Supabase stack's Caddy (docs/hosting/off-cloudflare.md). The deploy-vps job puts
 # the hostnames in place of __WEB_HOSTNAMES__ (the repository variable WEB_VPS_HOSTNAMES, comma separated) and installs
 # this file as /opt/carmacars/supabase/caddy/sites/web.caddy; the Caddyfile imports sites/*.caddy.
-# Certificates: Let's Encrypt, by Caddy, over port 80 (HTTP-01). That works for a DNS-only record and for a record
-# proxied through Cloudflare's free plan, as long as the zone's "Always Use HTTPS" is off (Caddy itself redirects
-# http to https) and its SSL mode is Full (strict).
+# Certificates (r48, 3070): a Cloudflare Origin CA certificate for the domain and *.domain (15 years), made by the deploy
+# through the API (scripts/deploy/cf-site.sh origin-cert) and kept on the server in caddy/sites/origin/. Cloudflare's
+# proxy trusts it under SSL Full (strict); it does not depend on port 80, ACME or "Always Use HTTPS". When the token may not
+# make one (or WEB_PROXY=off: a browser would not trust it), the deploy leaves out the block between the origin-tls
+# markers and Caddy falls back to Let's Encrypt over HTTP-01 (then "Always Use HTTPS" must be off).
 # Behind Cloudflare's free proxy (repository variable WEB_PROXY=cloudflare, the default): the deploy fills
 # __CF_RANGES__ with Cloudflare's published address ranges, read at deploy time; requests from them keep Cloudflare's
 # headers (the visitor's address, country, region, city). With WEB_PROXY=off the block between the two proxy markers
 # is left out. Any other request gets the address Caddy saw and none of those headers, so a visitor can never set them.
 __WEB_HOSTNAMES__ {
+	# origin-tls-begin
+	tls /etc/caddy/sites/origin/cert.pem /etc/caddy/sites/origin/key.pem
+	# origin-tls-end
 	encode zstd gzip
 	# server actions take 15 MB, an interview recording 60 MB
 	request_body {
