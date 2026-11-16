@@ -34,13 +34,16 @@ services:
         max-file: "5"
 
   # r48 O (3080): the local background remover for the cutouts of the decorative sections (src/server/site-cutouts.ts,
-  # REMBG_URL=http://carmacars-rembg:7000 in web.env). Only the site reaches it, on the Docker network; its model is kept in
-  # a volume so it is downloaded once.
+  # REMBG_URL=http://carmacars-rembg:7000 in web.env, added by the deploy). Only the site reaches it, on the Docker network.
+  # Our own small image (./rembg: python slim, rembg pinned on PyPI, the model downloaded while it is built), built on the server by
+  # the deploy (scripts/deploy/web-vps-remote.sh) and tagged by its content; the site works without it (the sections keep their
+  # photos), so a build that fails or a container that is down never stops a deploy.
   rembg:
     container_name: carmacars-rembg
-    image: danielgatis/rembg:2.0.87
+    image: carmacars-rembg:${REMBG_IMAGE_TAG:-none}
+    build:
+      context: ./rembg
     restart: unless-stopped
-    command: ["s", "--host", "0.0.0.0", "--port", "7000"]
     expose:
       - "7000"
     volumes:

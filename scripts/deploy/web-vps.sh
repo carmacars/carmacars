@@ -84,6 +84,8 @@ ship() {
   cp "$ROOT/infra/vps/supabase/docker-compose.yml" "$stage/supabase-compose.yml"
   cp "$ROOT/infra/vps/supabase/caddy/Caddyfile" "$stage/Caddyfile"
   cp "$envf" "$stage/web.env"; cp "$image" "$stage/image.tgz"
+  # r48 O: the background remover's image is built on the server from these files (web-vps-remote.sh)
+  tar -C "$ROOT/infra/vps/web/rembg" -czf "$stage/rembg.tgz" .
   sed -e "s/@TAG@/$tag/" -e "s/@CRON@/$cron/" "$HERE/web-vps-remote.sh" > "$stage/remote.sh"
   vps_ssh "rm -rf $t && install -d -m 700 $t"
   vps_scp "$stage"/* "$t/"

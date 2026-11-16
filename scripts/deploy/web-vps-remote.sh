@@ -27,14 +27,40 @@ healthy() {
   return 1
 }
 
+# r48 O (3080): the background remover for the cutouts of the decorative sections. Its image is built here from the files the
+# deploy sent (infra/vps/web/rembg), once for each content (the tag); the site does not need it (the sections keep their photos
+# and the cutout job skips), so nothing here ever fails the deploy: a build or a start that fails is a warning.
+rembg_up() {
+  local tag
+  if [ -f "$W/rembg/Dockerfile" ]; then
+    tag=$(cat "$W/rembg/Dockerfile" "$W/rembg/server.py" | sha256sum | cut -c1-12)
+    if ! docker image inspect "carmacars-rembg:$tag" > /dev/null 2>&1; then
+      say "building carmacars-rembg:$tag (a few minutes the first time: the model is downloaded into the image)"
+      docker build -q -t "carmacars-rembg:$tag" "$W/rembg" > /dev/null || { say "WARNING: the background remover's image did not build; the sections keep their photos"; return 0; }
+    fi
+    echo "$tag" > "$W/rembg.tag"; sed -i '/^REMBG_IMAGE_TAG=/d' "$W/.env"; printf 'REMBG_IMAGE_TAG=%s\n' "$tag" >> "$W/.env"
+    docker images carmacars-rembg --format '{{.CreatedAt}}\t{{.Tag}}' | sort -r | awk -F'\t' 'NR>2 {print $2}' | xargs -r -I{} docker rmi "carmacars-rembg:{}" > /dev/null 2>&1 || true
+  fi
+  dcw up -d rembg > /dev/null 2>&1 && say "the background remover is running" || say "WARNING: the background remover did not start; the sections keep their photos"
+  return 0
+}
+
 start() { # tag
   local cron
   cron=$(grep -s '^CRON_ENABLED=' "$W/.env" | cut -d= -f2 || true)
   case "$CRON" in on) cron=1 ;; off) cron=0 ;; esac
   printf 'WEB_IMAGE_TAG=%s\nCRON_ENABLED=%s\n' "$1" "${cron:-0}" > "$W/.env"
-  dcw up -d --remove-orphans
+  if [ -s "$W/rembg.tag" ]; then printf 'REMBG_IMAGE_TAG=%s\n' "$(cat "$W/rembg.tag")" >> "$W/.env"; fi
+  dcw up -d --remove-orphans web
   healthy
+  rembg_up
   say "running carmacars-web:$1 (cron $( [ "${cron:-0}" = 1 ] && echo on || echo off ))"
+}
+
+# r48 O: the site finds the background remover by its container name on the Docker network (not a secret: always written)
+rembg_env() {
+  grep -q '^REMBG_URL=' "$W/web.env" || echo "REMBG_URL='http://carmacars-rembg:7000'" >> "$W/web.env"
+  if [ -f "$T/rembg.tgz" ]; then rm -rf "$W/rembg"; install -d -m 755 "$W/rembg"; tar -C "$W/rembg" -xzf "$T/rembg.tgz"; fi
 }
 
 # r48 (migration 2980): the site's LISTEN for queued texts and emails (web/src/lib/platform/db-listen.ts) logs in as
@@ -109,6 +135,7 @@ case "${1:-}" in
     gunzip -c "$T/image.tgz" | docker load
     install -m 644 "$T/docker-compose.yml" "$W/docker-compose.yml"
     install -m 600 "$T/web.env" "$W/web.env"
+    rembg_env
     listen_env
     prev=$(docker inspect -f '{{.Config.Image}}' carmacars-web 2>/dev/null | sed 's/^carmacars-web://' || true)
     if [ -n "$prev" ] && [ "$prev" != "$TAG" ]; then echo "$prev" > "$W/previous-tag"; fi
