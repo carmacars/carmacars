@@ -69,6 +69,7 @@ select test.eq('Sales'' read lists the purged licence too', (select count(*) fro
     where u ->> 'purged_at' is not null), 1::bigint);
 
 -- ================================================================ 4. the server's call only
+grant select on test.dvup to authenticated;  -- the fixture's ids only, so the call itself is what is refused
 reset role;
 set role authenticated;
 select test.throws('authenticated: doc_view is the server''s call only', format($$select app.doc_view(%L, jsonb_build_object('upload', %L))$$, test.id('dv_admin'), test.dvup('selfie')), null);
