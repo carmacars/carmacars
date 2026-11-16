@@ -256,7 +256,9 @@
      "A pay link asks only for what you owe; one you no longer need is cancelled by itself and never charged",
      "We email you about your Rewards points, your tier and your free day, and a reminder before points end",
      "From Platinum up, a rental near your birthday or on a holiday weekend costs less; add your birthday on the Rewards page",
-     "On a payment plan, your booking is confirmed as soon as your first payment is in"
+     "On a payment plan, your booking is confirmed as soon as your first payment is in",
+     "Paying the deposit by e-Transfer, cash or debit? Your offer and pay page show that amount (twice the card deposit) before you pay",
+     "Add a tip for the team when you pay, on your booking after the trip or from the link in the Returned email: 10, 15 or 20%, or any amount"
     ]
    }
   }

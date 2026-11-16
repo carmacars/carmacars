@@ -43,6 +43,7 @@ begin
   return new;
 end $$;
 revoke all on function app.verification_upload_verify_sync() from public, anon, authenticated;
+grant execute on function app.verification_upload_verify_sync() to service_role;
 drop trigger if exists verification_uploads_verify_sync on verification_uploads;
 create trigger verification_uploads_verify_sync after update of status on verification_uploads for each row execute function app.verification_upload_verify_sync();
 

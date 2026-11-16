@@ -165,6 +165,7 @@ begin
   return new;
 end $$;
 revoke all on function app.booking_deposit_follow() from public, anon, authenticated;
+grant execute on function app.booking_deposit_follow() to service_role;
 drop trigger if exists bookings_deposit_follow on bookings;
 create trigger bookings_deposit_follow after update of deposit_cents on bookings for each row execute function app.booking_deposit_follow();
 

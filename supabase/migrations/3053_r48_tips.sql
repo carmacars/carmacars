@@ -82,6 +82,8 @@ create index if not exists tip_shares_tip_idx on tip_shares (tip_id);
 create index if not exists tip_shares_staff_idx on tip_shares (staff_id);
 comment on table tip_shares is 'Who a tip goes to (3053): the salesperson, the handover, both, CarmaCars (staff_id null), or an Admin''s split.';
 
+create trigger audit_tips after insert or update or delete on tips for each row execute function app.audit_row();
+create trigger audit_tip_shares after insert or update or delete on tip_shares for each row execute function app.audit_row();
 alter table tips enable row level security;
 alter table tip_shares enable row level security;
 create policy admin_all on tips for select to authenticated using (app.is_admin());
@@ -243,6 +245,7 @@ begin
   return new;
 end $$;
 revoke all on function app.tip_follow_void() from public, anon, authenticated;
+grant execute on function app.tip_follow_void() to service_role;
 drop trigger if exists manual_payments_tip_void on manual_payments;
 create trigger manual_payments_tip_void after update of voided_at on manual_payments for each row execute function app.tip_follow_void();
 

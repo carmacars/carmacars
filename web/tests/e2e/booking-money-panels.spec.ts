@@ -14,6 +14,8 @@ const hash = (pw: string) => { const salt = randomBytes(16); return `scrypt$${sa
 const tag = () => randomBytes(3).toString('hex');
 const money = (c: number) => `$${(c / 100).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const SHOTS = process.env.SHOTS_DIR ?? 'test-results/booking-money';
+// r48 part 2 (3052): a $500 deposit taken in cash is twice that (Program settings, 2x by default)
+const CASH_DEPOSIT = 100000;
 
 async function check(page: Page, where: string) {
   await noOverflow(page);
@@ -87,7 +89,7 @@ test('the Money tab: the deposit alone, then the rental alone, each balance unto
   await expect(page.getByTestId('bm-strip-deposit')).toHaveText('Not collected');
   await expect(page.getByTestId('bm-strip-paid')).toHaveText(money(0));
   await expect(page.getByTestId('bm-rental-collect')).toHaveText(`Collect ${money(due)} rental`);
-  await expect(page.getByTestId('bm-deposit-collect')).toHaveText(`Collect ${money(50000)} deposit`);
+  await expect(page.getByTestId('bm-deposit-collect')).toHaveText(`Collect ${money(CASH_DEPOSIT)} deposit`);
   await check(page, 'money before');
   await page.screenshot({ path: `${SHOTS}/${info.project.name}-1-before.png`, fullPage: true });
 
@@ -100,8 +102,8 @@ test('the Money tab: the deposit alone, then the rental alone, each balance unto
   await expect(page.getByTestId('bm-strip-deposit')).toHaveText('Charged');
   await expect(page.getByTestId('bm-strip-rental')).toHaveText(money(due));
   await expect(page.getByTestId('bm-rental-due')).toHaveText(money(due));
-  await expect(page.getByTestId('bm-strip-paid')).toHaveText(money(50000));
-  await expect(page.getByTestId('bm-deposit-history')).toContainText(money(50000));
+  await expect(page.getByTestId('bm-strip-paid')).toHaveText(money(CASH_DEPOSIT));
+  await expect(page.getByTestId('bm-deposit-history')).toContainText(money(CASH_DEPOSIT));
   await expect(page.getByTestId('bm-rental-history-empty')).toHaveText('No rental payment yet.');
   expect(await open()).toBe(due);
 
@@ -116,13 +118,13 @@ test('the Money tab: the deposit alone, then the rental alone, each balance unto
   await expect(page.getByTestId('bm-strip-rental')).toHaveText(money(0));
   await expect(page.getByTestId('bm-rental-paid')).toHaveText(money(due));
   await expect(page.getByTestId('bm-strip-deposit')).toHaveText('Charged');
-  await expect(page.getByTestId('bm-deposit')).toHaveText(money(50000));
-  await expect(page.getByTestId('bm-strip-paid')).toHaveText(money(due + 50000));
+  await expect(page.getByTestId('bm-deposit')).toHaveText(money(CASH_DEPOSIT));
+  await expect(page.getByTestId('bm-strip-paid')).toHaveText(money(due + CASH_DEPOSIT));
   await expect(page.getByTestId('bm-rental-collect')).toHaveCount(0);
   await expect(page.getByTestId('bm-deposit-collect')).toHaveCount(0);
   expect(await open()).toBe(0);
   const [dep] = await sql`select status, amount_cents from deposits where booking_id = ${b.id}`;
-  expect(`${dep!.status}/${dep!.amount_cents}`).toBe('captured/50000');
+  expect(`${dep!.status}/${dep!.amount_cents}`).toBe(`captured/${CASH_DEPOSIT}`);
   await check(page, 'money after');
   await page.screenshot({ path: `${SHOTS}/${info.project.name}-2-after.png`, fullPage: true });
   expect(errors.filter((e) => !/favicon|Download the React DevTools/.test(e))).toEqual([]);
