@@ -3,10 +3,11 @@ import { Crumbs } from '@/components/Crumbs';
 import { AnswerBlock } from '@/components/AnswerBlock';
 import { CtaBand } from '@/components/Blocks';
 import { JsonLd } from '@/components/JsonLd';
-import { SlotPicture } from '@/components/Picture';
+import { SlotCars } from '@/components/SlotCars';
+import { slotScene } from '@/lib/slot-cars';
 import { breadcrumbLd, type Trail, seoMeta } from '@/features/seo/meta';
 import { money } from '@/lib/format';
-import { deliveryFrom, fill, getFacts, getFleet, getSettings, getTokens, slotPhoto } from '@/lib/site';
+import { deliveryFrom, fill, getCutouts, getFacts, getFleet, getSettings, getTokens, slotPhoto } from '@/lib/site';
 
 export const revalidate = 3600;
 const trail: Trail = [['Home', '/'], ['Delivery']];
@@ -33,7 +34,7 @@ export default async function Delivery() {
     <div className="p-delivery">
       <JsonLd graph={[breadcrumbLd(trail, '/delivery')]} />
       <section className="band band--hero on-dark">
-        <div className="band__media photo fx-drift"><SlotPicture p={hero} eager /></div>
+        <div className="band__media photo fx-drift"><SlotCars scene={slotScene('delivery.hero', hero, await getCutouts())} photo={hero} eager /></div>
         <div className="wrap band__inner"><div className="band__copy stack">
           <Crumbs trail={trail} />
           <h1 className="d1">The car comes to you.</h1>

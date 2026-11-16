@@ -33,8 +33,30 @@ services:
         max-size: 20m
         max-file: "5"
 
+  # r48 O (3080): the local background remover for the cutouts of the decorative sections (src/server/site-cutouts.ts,
+  # REMBG_URL=http://carmacars-rembg:7000 in web.env). Only the site reaches it, on the Docker network; its model is kept in
+  # a volume so it is downloaded once.
+  rembg:
+    container_name: carmacars-rembg
+    image: danielgatis/rembg:2.0.87
+    restart: unless-stopped
+    command: ["s", "--host", "0.0.0.0", "--port", "7000"]
+    expose:
+      - "7000"
+    volumes:
+      - rembg-models:/root/.u2net
+    networks:
+      - supabase
+    mem_limit: 2g
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
 volumes:
   web-copies:
+  rembg-models:
 
 networks:
   # the Supabase stack's network (compose project `supabase`), so Caddy finds this container by name

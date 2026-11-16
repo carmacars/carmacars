@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { runListingWorkerNow, workerToken } from '@/server/listing-worker';
 import { runCarDetailsNow } from '@/server/car-details';
 import { kickDriveImportIfDue } from '@/server/drive-import';
+import { runSiteCutoutsNow } from '@/server/site-cutouts';
 
 // The listing worker's door (docs/blueprint/09-listing-pipeline.md section 5.1). Called by the Worker's
 // Cloudflare cron trigger (custom-worker.ts, every five minutes) with the bearer token derived from
@@ -21,8 +22,10 @@ export async function POST(req: Request) {
     const c = await runCarDetailsNow({ vins: 3, colours: 2 }).catch((e) => ({ decoded: 0, filled: 0, colours: 0, errors: [String(e).slice(0, 200)] }));
     // and a Google Drive photo import with work to do (0760) is started in its own request
     await kickDriveImportIfDue().catch(() => false);
-    return NextResponse.json({ ok: true, claimed: s.claimed, succeeded: s.succeeded, failed: s.failed, held: s.held, due: s.due, errors: [...s.errors, ...c.errors].slice(0, 5),
-      details: { decoded: c.decoded, filled: c.filled, colours: c.colours } });
+    // r48 O (3080): the cutouts of real cars for the decorative sections and the home hero (a couple a run, made once)
+    const k = await runSiteCutoutsNow({ max: 2, deadlineMs: 15_000 }).catch((e) => ({ made: 0, failed: 0, skipped: undefined, errors: [String(e).slice(0, 200)] }));
+    return NextResponse.json({ ok: true, claimed: s.claimed, succeeded: s.succeeded, failed: s.failed, held: s.held, due: s.due, errors: [...s.errors, ...c.errors, ...k.errors].slice(0, 5),
+      details: { decoded: c.decoded, filled: c.filled, colours: c.colours }, cutouts: { made: k.made, failed: k.failed, skipped: k.skipped ?? null } });
   } catch (e) {
     return NextResponse.json({ ok: false, error: e instanceof Error ? e.message.slice(0, 300) : 'failed' }, { status: 500 });
   }

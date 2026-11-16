@@ -655,17 +655,43 @@ code { font: 500 var(--fs-xs)/1.4 var(--font-text); color: var(--grey-600); font
 @media (prefers-reduced-motion: reduce) { .iv-dot.is-on { animation: none; } }
 @keyframes iv-pulse { 50% { opacity: 0.35; } }
 
-/* release 28 (features/home/HeroSlides.tsx): the fleet's studio photos over the sample car, cross-fading */
-.hero__slides { position: absolute; inset: 0; }
-.hero__media .hero__slide { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 62%; opacity: 0; }
-@media (prefers-reduced-motion: reduce) {
-  .hero__media .hero__slide { animation: none !important; }
-  .hero__media .hero__slide:first-child, .hero__media style + .hero__slide { opacity: 1; }
-}
-
 /* r32: a small CarmaCars watermark in the bottom right corner of a public car photo, drawn when the photo is shown (the
    stored file is untouched; Admin review views do not use it). Not on a representative (sample) photo. */
 [data-wm] { position: relative; }
 [data-wm]::before { content: ""; position: absolute; z-index: 1; right: 3%; bottom: 4%; width: clamp(52px, 14%, 112px); aspect-ratio: 857 / 152; pointer-events: none;
   background: url('/brand/carma-logo-white.svg') center / contain no-repeat; opacity: 0.7; filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.5)); }
 @media print { [data-wm]::before { display: none; } }
+
+/* r48 O (3080, components/SlotCars.tsx): real fleet cars cut out where the section photo's sample car stood. The frame is
+   cropped like the photo it replaces (object-fit: cover at --px, --py); the plate fills it; each car stands in percent of
+   the frame. The section's own ::after gradient stays on top, behind the text. */
+.slot-cars { position: absolute; inset: 0; overflow: hidden; container-type: size; --px: 0.5; --py: 0.5; }
+.slot-cars__frame { position: absolute; display: block; --fw: var(--tw); --fh: var(--th);
+  width: max(100cqw, 100cqh * var(--fw) / var(--fh)); height: max(100cqh, 100cqw * var(--fh) / var(--fw));
+  left: calc((100cqw - max(100cqw, 100cqh * var(--fw) / var(--fh))) * var(--px));
+  top: calc((100cqh - max(100cqh, 100cqw * var(--fh) / var(--fw))) * var(--py)); }
+.slot-cars .slot-cars__plate { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; animation: none; }
+.slot-cars__pos { position: absolute; display: block; height: 0; left: calc(var(--tl) * 1%); width: calc(var(--tcw) * 1%); bottom: calc(var(--tb) * 1%); }
+/* the soft shadow under the tyres */
+.slot-cars__pos::before { content: ""; position: absolute; left: 4%; right: 4%; bottom: -0.6cqh; height: 2.4cqh;
+  background: radial-gradient(closest-side, rgb(0 0 0 / 0.85), rgb(0 0 0 / 0)); }
+.slot-cars__turn { position: absolute; left: 0; right: 0; bottom: 0; display: block; opacity: 0; }
+.slot-cars .slot-cars__car { display: block; width: 100%; height: auto; object-fit: contain; animation: none; }
+.slot-cars .slot-cars__car--mirror { transform: scaleX(-1); }
+@media (min-width: 48rem) {
+  .slot-cars__frame { --fw: var(--ww); --fh: var(--wh); }
+  .slot-cars__pos { left: calc(var(--wl) * 1%); width: calc(var(--wcw) * 1%); bottom: calc(var(--wb) * 1%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .slot-cars__turn { animation: none !important; }
+  .slot-cars__turn:first-of-type { opacity: 1; }
+}
+/* the hero's focus is the photo's (60% 60% on a phone, the centre from 64rem); the scroll effects move the whole frame */
+.hero__media .slot-cars { --px: 0.6; --py: 0.6; }
+@media (min-width: 64rem) { .hero__media .slot-cars { --px: 0.5; --py: 0.5; } }
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: scroll()) {
+    .hero__media .slot-cars__frame { animation: hero-out linear both; animation-timeline: scroll(root); animation-range: 0 90vh; }
+    .fx-drift .slot-cars__frame { animation: fx-drift linear both; animation-timeline: view(); animation-range: cover 0% cover 100%; }
+  }
+}

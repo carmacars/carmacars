@@ -32,6 +32,8 @@ export default async function Statement({ params }: { params: Promise<{ id: stri
       {status === 'approved' && <Act action="statement_reissue" payload={{ id }} label="Reissue" variant="danger" fields={[{ name: 'reason', label: 'Reason', required: true }]} go="/admin/statements/{id}" />}
     </PageHead>
     {partial && <p className="alert" role="note" data-testid="statement-partial"><span>{partial}</span></p>}
+    {/* r48 O (3081): the owner's forecast line, as on the owner's statement and the PDF */}
+    {(s as { forecast?: { text?: string } | null }).forecast?.text && <p className="small" data-testid="statement-forecast">{(s as { forecast?: { text?: string } | null }).forecast!.text}</p>}
     <Kv rows={[['Owner Revenue', $(r.owner_revenue_cents)], ['Management fee (Revenue Share)', $(r.revenue_share_cents)], ['Deductions', $(r.deductions_cents)], ['Credits', $(r.credits_cents)], ['Balance brought forward', $(r.balance_brought_forward_cents)], ['Payout', <b key="p" data-testid="statement-payout">{$(r.payout_cents)}</b>], ['Payout date', d(r.payout_date)], ['Approved', r.approved_at ? `${d(r.approved_at)}` : ''], ['Issued', d(r.sent_at)]]} />
     {/* 1702: revenue counts when earned; the part not paid yet, with the bookings behind it */}
     {s.not_collected?.line && <Card title={s.not_collected.line} testId="statement-not-collected">

@@ -37,6 +37,8 @@ import { OnboardingPhotos } from '@/features/onboarding/OnboardingPhotos';
 import { GovernmentForms } from '@/features/onboarding/GovernmentForms';
 import { VinList } from '@/features/onboarding/VinList';
 import { onboardingData } from '@/server/onboarding';
+import { ForecastPanel } from '@/features/owner/Forecast';
+import type { OwnerForecast } from '@/features/owner/forecast';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Owner', path: '/admin/owners', noindex: true, description: 'An owner application.' });
@@ -109,6 +111,7 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
   // what is paid and signed, the paper signatures and the payments recorded by hand (migration 0044)
   const cosigners = await door<CosignerRow[]>(user.id, 'ops_read', 'owner_cosigners', { owner_id: id }).catch(() => [] as CosignerRow[]);
   const calls = await door<PhoneTimelineData>(user.id, 'admin_read', 'phone_timeline', { owner_id: id }).catch(() => null);
+  const forecast = await door<OwnerForecast>(user.id, 'ops_read', 'owner_forecast', { owner_id: id }).catch(() => null);
   const reach = await door<Reach>(user.id, 'admin_read', 'notify_reach', { owner_id: id }).catch(() => null);
   const [checklist, paper, manual] = await Promise.all([
     door<OwnerChecklistRow[]>(user.id, 'ops_read', 'owner_checklists', { owner: id }).then((r) => r[0] ?? null).catch(() => null),
@@ -198,6 +201,8 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
           </section>
           <Card title="Owners in the Title Schedule" testId="owner-cosigners-card">
             <Cosigners ownerId={id} ownerName={o.legal_name} rows={cosigners} locked={d.signing.enrollment === 'signed'} /></Card>
+          {/* r48 O (3081): the same Forecast the owner sees, the next 12 months of each car */}
+          <ForecastPanel f={forecast} admin testId="admin-owner-forecast" />
           <Card title="Statements and payouts"><Table rows={rec.statements} empty="No statements." cols={[{ key: 'statement_month', label: 'Month', render: (r) => <Link prefetch={false} className="link" href={`/admin/statements/${String(r.id)}`}>{monthOf(String(r.statement_month))}</Link> }, { key: 'status', label: 'Status' }, { key: 'payout_cents', label: 'Payout', num: true, render: (r) => $(r.payout_cents) }]} />
             <Table rows={rec.payouts} empty="No payouts." cols={[{ key: 'kind', label: 'Payout' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status' }]} /></Card>
           <Card title="Calls and texts" testId="owner-calls"><PhoneTimeline t={calls} inbox="/admin/visitors?view=chat" /></Card>

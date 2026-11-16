@@ -12,6 +12,8 @@ import { TRACKER_LATER } from '@/features/owner/types';
 import { ApplicationTask, type AppTask } from '@/features/owner/ApplicationTask';
 import { amountText, carThisMonth, nextPayout, upcoming, viewOf } from '@/features/owner/insights';
 import { OwnerMonths } from '@/features/owner/OwnerMonths';
+import { ForecastPanel } from '@/features/owner/Forecast';
+import type { OwnerForecast } from '@/features/owner/forecast';
 import { PageHeader } from '@/features/portal/Chrome';
 import { OnboardingChecklist } from '@/features/onboarding/OnboardingChecklist';
 import { onboardingData } from '@/server/onboarding';
@@ -77,6 +79,8 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
   const shownCars = home.vehicles.slice(0, 4).filter((v) => !['declined', 'exited', 'total_loss'].includes(v.status));
   const service: Record<string, OwnerHistory | null> = Object.fromEntries(await Promise.all(shownCars.map(async (v) =>
     [v.vehicle_id, await door<OwnerHistory>(user.id, 'ops_read', 'maint_owner', { vehicle_id: v.vehicle_id }).catch(() => null)] as const)));
+  // r48 O (3081): the next 12 months of each car (the owner's own cars, ops_read owner_forecast)
+  const forecast = await door<OwnerForecast>(user.id, 'ops_read', 'owner_forecast', { owner_id: home.owner.id }).catch(() => null);
   const banners = (
     <>
       {sp.signed && <p className="alert alert--ok" role="status" data-testid="owner-signed-banner"><span className="alert__title">Signed</span><span>Thank you: your signature is recorded and CarmaCars countersigned. Your signed copies appear in Documents within a few minutes, and we email them to you.</span></p>}
@@ -161,6 +165,7 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
         </section>
         <OwnerMonths months={months} />
       </div>
+      {forecast && <ForecastPanel f={forecast} />}
       {pending.length > 0 && <section className="stack" aria-labelledby="ow-open"><div className="row" style={{ justifyContent: 'space-between' }}><h2 className="pt-section-title" id="ow-open">Invoices being paid</h2><Link prefetch={false} className="link small" href="/owner/money?tab=invoices">All invoices</Link></div><InvoiceRows items={pending.slice(0, 3)} /></section>}
       {onboarding && onboarding.cars.length > 0 && <OnboardingChecklist data={onboarding} />}
       <section className="stack" aria-labelledby="ow-cars">

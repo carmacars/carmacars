@@ -6,7 +6,7 @@ import type { CarRow, Photo } from './types.ts';
 // left, as the sample covers; only covers that passed the check) are matched to each slot that showed a sample photo:
 //   * an example car's card (a sample car): real cars of the same body style, else of the same class;
 //   * a real car's card that has no photo of its own yet: only real cars of the same make and model;
-//   * the home hero: every studio cover.
+//   (the home hero: r48 O, 3080, shows real cars cut out instead, lib/slot-cars.ts)
 // No match: the sample photo stays. Pure (unit tested); the page reads the covers once when it is built.
 export interface StudioCover { vehicle_id: string; path: string; variants?: Photo['variants']; width?: number; height?: number; alt?: string | null }
 /** The most covers a card shows in turn. */
@@ -42,14 +42,6 @@ export function withStudio<T extends CarRow>(rows: readonly T[], covers: readonl
   if (!covers.length) return [...rows];
   const byId = new Map(fleet.filter((x) => !x.is_sample).map((x) => [x.vehicle_id, x] as const));
   return rows.map((c) => { const studio = studioPool(c, covers, byId); return studio.length ? { ...c, studio } : c; });
-}
-
-/** The covers as the hero's slides (the cars still on the site), most viewed first. */
-export function heroFromStudio(covers: readonly StudioCover[], fleet: readonly CarRow[], max = 6) {
-  return covers.flatMap((p) => {
-    const c = fleet.find((x) => x.vehicle_id === p.vehicle_id && !x.is_sample);
-    return c ? [{ path: p.path, width: p.width ?? 1800, height: p.height ?? 1200, alt: p.alt ?? null, name: [c.year, c.make, c.model].filter(Boolean).join(' '), href: c.path }] : [];
-  }).slice(0, max);
 }
 
 /** The cross-fade of a card's covers: 5 seconds a photo, a 1-second fade, in CSS (no script). */

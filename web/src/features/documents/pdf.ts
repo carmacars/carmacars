@@ -59,6 +59,9 @@ function ownerStatement(f: F): Block[] {
   const partial = partialMonthNotice({ statement_month: f.statement_month ? s(f.statement_month) : null, period_starts_on: f.period_starts_on ? s(f.period_starts_on) : null,
     period_ends_on: f.period_ends_on ? s(f.period_ends_on) : null, partial_month: typeof f.partial_month === 'boolean' ? f.partial_month : null });
   if (partial) blocks.push({ t: 'p', text: `**${partial}**` });
+  // r48 O (3081): next month projected against this month, by how much and why (the season)
+  const fc = f.forecast as Row | null | undefined;
+  if (fc && typeof fc.text === 'string' && fc.text) blocks.push({ t: 'p', text: fc.text });
   for (const v of (f.vehicles ?? []) as Row[]) {
     blocks.push({ t: 'h2', text: `${s(v.vehicle)}${v.plate ? `, ${s(v.plate)}` : ''}` });
     const lines = (v.lines ?? []) as Row[];

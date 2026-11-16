@@ -43,6 +43,8 @@ export default async function OwnerStatementPage({ params }: { params: Promise<{
       <Back href="/owner/money">Statements</Back>
       <header className="stack"><p className="pt-kicker">Statement {st.statement_number}{st.is_final ? ' · Final statement' : ''}</p><h1 className="d2">{periodOf(st)}</h1><p className="muted">Payout date {day(st.payout_date)}, for the revenue earned in this period. Fees are billed separately on the {home.auto_debit.terms.debit_day_text}.</p>
         {partial && <p className="alert" role="note" data-testid="statement-partial"><span>{partial}</span></p>}
+        {/* r48 O (3081): next month projected against this month, by how much and why (the season) */}
+        {s.forecast?.text && <p className="small" data-testid="statement-forecast">{s.forecast.text}</p>}
         <p><a className="btn btn--ghost btn--sm" href={`/files/owner_statement/${id}`} data-testid="statement-pdf">Download PDF</a></p></header>
       <div className="pt-split">
         <div className="stack-lg">

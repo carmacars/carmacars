@@ -30,6 +30,11 @@ const SHAPES = {
 };
 
 let uid = 0;
+// r48 O (3080): 'plate' draws a section photo without its sample car (and its reflection), 'car' the sample car alone on
+// a transparent frame (its box is measured by web/scripts/slot-plates.mjs); 'full' is the stand-in as always.
+let MODE = 'full';
+let ONLY = -1; // with 'car': the one car of a line-up to draw
+const bg = (s) => (MODE === 'car' ? '' : s);
 // Side profile, nose to the left. Local box 1000 x 320, ground line at y=308.
 function carSide(shape, paint, { flip = false } = {}) {
   const s0 = SHAPES[shape]; const s = { ...s0 }; const [c1, c2, c3] = PAINT[paint]; const id = 'c' + (uid++);
@@ -129,6 +134,7 @@ const FONT = `font-family="'Inter Display','Inter','Helvetica Neue',Helvetica,Ar
 // Studio frame: black backdrop, overhead spot, floor line, ghosted name, slate.
 function studio(w, h, { content, name = '', slate = '', floor = 0.74, ghost = true, spotX = 0.5, slateTop = false }) {
   const fy = h * floor; const sy = slateTop ? Math.max(30, h * 0.04) : h - Math.max(18, h * 0.03); const sf = Math.max(16, w * (slateTop ? 0.0085 : 0.0125));
+  if (MODE === 'car') return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">${content(w, h, fy)}</svg>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
   <defs>
     <radialGradient id="spot" cx="${spotX}" cy="0.08" r="0.95" gradientUnits="objectBoundingBox"><stop offset="0" stop-color="#6b6b6b"/><stop offset=".35" stop-color="#2a2a2a"/><stop offset=".75" stop-color="#0b0b0b"/><stop offset="1" stop-color="#000"/></radialGradient>
@@ -148,10 +154,12 @@ function studio(w, h, { content, name = '', slate = '', floor = 0.74, ghost = tr
 
 // place a local-box drawing so its ground line sits on the floor
 const place = (inner, { w, lw, lh = 320, scale, cx, fy, ground = 308 }) => {
+  if (MODE === 'plate') return '';
   const k = (w * scale) / lw; const x = cx - (lw * k) / 2; const y = fy - ground * k + (lh * 0.0);
   return `<g transform="translate(${x.toFixed(1)} ${(y + 6 * k).toFixed(1)}) scale(${k.toFixed(4)})">${inner}</g>`;
 };
 const reflect = (inner, o) => { // faint floor reflection
+  if (MODE !== 'full') return '';
   const k = (o.w * o.scale) / o.lw; const x = o.cx - (o.lw * k) / 2; const gy = o.fy + 6 * k;
   return `<g opacity=".16" transform="translate(${x.toFixed(1)} ${(gy + 308 * k * 0.55).toFixed(1)}) scale(${k.toFixed(4)} ${(-k * 0.55).toFixed(4)})">${inner}</g>`;
 };
@@ -204,7 +212,7 @@ const SCENES = {
       const o = { w: W, lw: 1000, scale: tall ? 0.94 : 0.56, cx: W * (tall ? 0.56 : 0.72), fy };
       const inner = carSide(c.shape, c.paint);
       const streaks = [0.2, 0.31, 0.39, 0.5].map((p, i) => `<rect x="${tall ? -W * 0.1 : W * (0.74 - i * 0.03)}" y="${fy * (tall ? p + 0.3 : p + 0.28)}" width="${W * (0.5 + i * 0.12)}" height="${i === 1 ? 5 : 2}" fill="${i === 1 && !tall ? '#D0111B' : '#fff'}" opacity="${i === 1 && !tall ? 0.9 : 0.14}"/>`).join('');
-      return skyline(W, fy, 11, 0.95).replace(/#0d0d0d/g, '#111') + streaks + reflect(inner, o) + place(inner, o);
+      return bg(skyline(W, fy, 11, 0.95).replace(/#0d0d0d/g, '#111') + streaks) + reflect(inner, o) + place(inner, o);
     } });
   },
   delivery(w, h, tall) {
@@ -214,13 +222,13 @@ const SCENES = {
       const house = `<path d="M ${hx},${fy} V ${fy - hh} L ${hx + hw / 2},${fy - hh - hw * 0.22} L ${hx + hw},${fy - hh} V ${fy} Z" fill="#141414"/><rect x="${hx + hw * 0.12}" y="${fy - hh * 0.52}" width="${hw * 0.2}" height="${hh * 0.52}" fill="#f4f4f4"/><rect x="${hx + hw * 0.12}" y="${fy - hh * 0.52}" width="${hw * 0.2}" height="${hh * 0.52}" fill="url(#pool)"/><rect x="${hx + hw * 0.5}" y="${fy - hh * 0.62}" width="${hw * 0.34}" height="${hh * 0.3}" fill="#8f8f8f"/><path d="M ${hx + hw * 0.67},${fy - hh * 0.62} v ${hh * 0.3}" stroke="#141414" stroke-width="4"/><path d="M ${hx + hw * 0.08},${fy} L ${hx + hw * 0.36},${fy} L ${hx + hw * 0.6},${H} L ${hx - hw * 0.2},${H} Z" fill="#fff" opacity=".07"/>`;
       const o = { w: W, lw: 1000, scale: tall ? 1.0 : 0.46, cx: W * (tall ? 0.46 : 0.66), fy: fy + (tall ? H * 0.07 : H * 0.05) };
       const inner = carSide(c.shape, c.paint, { flip: true });
-      return house + reflect(inner, o) + place(inner, o);
+      return bg(house) + reflect(inner, o) + place(inner, o);
     } });
   },
   owner(w, h, tall) {
     return studio(w, h, { floor: tall ? 0.86 : 0.72, slate: 'STAND-IN  OWNER PROGRAM  LINE-UP OF FLEET CARS', ghost: false, content: (W, H, fy) => {
       const set = [['suvlg', 'white', 0.3, 0.2, 0.86], ['sedan', 'silver', 0.36, 0.5, 0.93], ['fastback', 'black', 0.44, 0.82, 1]];
-      return set.map(([s, p, sc, cx, op]) => { const o = { w: W, lw: 1000, scale: sc * (tall ? 1.9 : 1), cx: W * (tall ? cx * 1.5 - 0.2 : cx), fy }; const inner = carSide(s, p); return `<g opacity="${op}">${reflect(inner, o)}${place(inner, o)}</g>`; }).join('');
+      return set.map(([s, p, sc, cx, op], i) => { if (MODE === 'car' && ONLY >= 0 && i !== ONLY) return ''; const o = { w: W, lw: 1000, scale: sc * (tall ? 1.9 : 1), cx: W * (tall ? cx * 1.5 - 0.2 : cx), fy }; const inner = carSide(s, p); return `<g opacity="${op}">${reflect(inner, o)}${place(inner, o)}</g>`; }).join('');
     } });
   },
   handover(w, h, tall) {
@@ -238,7 +246,7 @@ const SCENES = {
       const o = { w: W, lw: 1000, scale: w > h ? 0.5 : 1.1, cx: W * 0.45, fy };
       const inner = carSide(c.shape, c.paint);
       const lines = [0.82, 0.9].map((p) => `<path d="M 0,${H * p} H ${W}" stroke="#fff" stroke-opacity=".4" stroke-width="${H * 0.008}" stroke-dasharray="${W * 0.08} ${W * 0.06}"/>`).join('');
-      return `<path d="M 0,${fy} L ${W * 0.2},${fy - H * 0.12} L ${W * 0.45},${fy - H * 0.04} L ${W * 0.7},${fy - H * 0.16} L ${W},${fy - H * 0.05} V ${fy} Z" fill="#0e0e0e"/>` + lines + `<rect x="${o.cx + W * 0.2}" y="${fy - H * 0.06}" width="${W * 0.5}" height="3" fill="#D0111B" opacity=".9"/>` + reflect(inner, o) + place(inner, o);
+      return bg(`<path d="M 0,${fy} L ${W * 0.2},${fy - H * 0.12} L ${W * 0.45},${fy - H * 0.04} L ${W * 0.7},${fy - H * 0.16} L ${W},${fy - H * 0.05} V ${fy} Z" fill="#0e0e0e"/>` + lines + `<rect x="${o.cx + W * 0.2}" y="${fy - H * 0.06}" width="${W * 0.5}" height="3" fill="#D0111B" opacity=".9"/>`) + reflect(inner, o) + place(inner, o);
     } });
   }
 };
@@ -282,4 +290,18 @@ for (const c of CARS) {
   manifest.cars[c.slug] = { gallery };
 }
 fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
+// r48 O (3080): each section photo with a sample car, without it (the plate the real car's cutout stands on) and the car
+// alone (to measure where it stands); written after the stand-ins so their gradient ids do not change
+const PLATES = path.join(OUT, 'plates'); fs.mkdirSync(PLATES, { recursive: true });
+for (const [slot, d] of Object.entries(SLOT_DEFS)) {
+  if (!['hero', 'delivery', 'owner', 'highway'].includes(d.scene)) continue;
+  const base = slot.replace('.', '-');
+  for (const [form, [w, h], tall] of [['wide', d.wide, false], ['tall', d.tall, true]]) {
+    MODE = 'plate'; fs.writeFileSync(path.join(PLATES, `${base}-${form}-plate.svg`), SCENES[d.scene](w, h, tall).replace(/\n\s+/g, '\n')); n++;
+    MODE = 'car';
+    for (const i of d.scene === 'owner' ? [0, 1, 2] : [0]) { ONLY = d.scene === 'owner' ? i : -1; fs.writeFileSync(path.join(PLATES, `${base}-${form}-car${i}.svg`), SCENES[d.scene](w, h, tall).replace(/\n\s+/g, '\n')); n++; }
+    ONLY = -1;
+  }
+}
+MODE = 'full';
 console.log(`stand-ins written: ${n} SVG files; manifest: assets/photos.json`);

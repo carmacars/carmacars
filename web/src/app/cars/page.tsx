@@ -2,11 +2,12 @@ import { Suspense } from 'react';
 import Link from '@/components/Link';
 import { Crumbs } from '@/components/Crumbs';
 import { JsonLd } from '@/components/JsonLd';
-import { SlotPicture } from '@/components/Picture';
+import { SlotCars } from '@/components/SlotCars';
+import { slotScene } from '@/lib/slot-cars';
 import { FleetBrowser } from '@/features/fleet/FleetBrowser';
 import { breadcrumbLd, type Trail, seoMeta } from '@/features/seo/meta';
 import { rpc } from '@/lib/db/repo';
-import { fill, getClasses, getFacts, getFleet, getSettings, getTokens, siteUrl, slotPhoto } from '@/lib/site';
+import { fill, getClasses, getCutouts, getFacts, getFleet, getSettings, getTokens, siteUrl, slotPhoto } from '@/lib/site';
 
 export const revalidate = 3600;
 const trail: Trail = [['Home', '/'], ['Fleet']];
@@ -49,7 +50,7 @@ export default async function Fleet() {
         </section>
       )}
       <section className="band band--short on-dark" aria-label="Ask us">
-        <div className="band__media photo fx-drift"><SlotPicture p={band} /></div>
+        <div className="band__media photo fx-drift"><SlotCars scene={slotScene('fleet.band', band, await getCutouts())} photo={band} /></div>
         <div className="wrap band__inner"><div className="band__copy stack">
           <p className="eyebrow">{t.carma}</p><h2 className="d2">Tell us the trip. We’ll suggest the car.</h2>
           <p className="lead">How many people, how far, how long. We suggest a car and send a price.</p>

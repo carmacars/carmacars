@@ -167,3 +167,14 @@
 .ow-car-hero__text h1 { margin: 0; overflow-wrap: break-word; }
 @media (min-width: 64rem) { .ow-car-hero { grid-template-columns: minmax(0, 28rem) minmax(0, 1fr); gap: var(--s-6); } }
 .pu-next { border-radius: var(--pu-radius); }
+
+/* r48 O (3081, features/owner/Forecast.tsx): the next 12 months a car, projected occupancy and owner revenue */
+.ow-forecast { display: grid; gap: var(--s-3); }
+.ow-forecast__car { border-top: 1px solid var(--line, rgb(0 0 0 / 0.1)); padding-top: var(--s-3); }
+.ow-forecast__car > summary { cursor: pointer; display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: baseline; min-height: 44px; align-content: center; }
+.ow-forecast__table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.ow-forecast__table th, .ow-forecast__table td { padding: 0.35rem 0; text-align: left; font-weight: 400; border-bottom: 1px solid var(--line, rgb(0 0 0 / 0.08)); }
+.ow-forecast__table thead th { font-size: 0.8125rem; color: var(--text-2, #555); }
+.ow-forecast__table .num { text-align: right; }
+.ow-forecast__bar { display: inline-block; vertical-align: middle; width: min(9rem, 30vw); height: 0.5rem; border-radius: 999px; background: rgb(0 0 0 / 0.08); overflow: hidden; margin-right: var(--s-2); }
+.ow-forecast__bar > span { display: block; height: 100%; background: var(--red-600, #d0111b); border-radius: inherit; }

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2400 1030" width="2400" height="1030">
+<defs>
+<radialGradient id="spot" cx="0.7" cy="0.08" r="0.95" gradientUnits="objectBoundingBox"><stop offset="0" stop-color="#6b6b6b"/><stop offset=".35" stop-color="#2a2a2a"/><stop offset=".75" stop-color="#0b0b0b"/><stop offset="1" stop-color="#000"/></radialGradient>
+<radialGradient id="pool" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".6" stop-color="#fff" stop-opacity=".05"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<linearGradient id="fl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#161616"/><stop offset="1" stop-color="#000"/></linearGradient>
+</defs>
+<rect width="2400" height="1030" fill="#000"/>
+<rect width="2400" height="782.8" fill="url(#spot)"/>
+<rect y="782.8" width="2400" height="247.20000000000005" fill="url(#fl)"/>
+<ellipse cx="1680" cy="837.184" rx="1248" ry="123.60000000000002" fill="url(#pool)"/>
+<rect y="781.8" width="2400" height="2" fill="#fff" opacity=".1"/>
+<path d="M 1440,782.8 V 344.43199999999996 L 1800,186.03199999999995 L 2160,344.43199999999996 V 782.8 Z" fill="#141414"/><rect x="1526.4" y="554.8486399999999" width="144" height="227.95136" fill="#f4f4f4"/><rect x="1526.4" y="554.8486399999999" width="144" height="227.95136" fill="url(#pool)"/><rect x="1800" y="511.01183999999995" width="244.8" height="131.5104" fill="#8f8f8f"/><path d="M 1922.4,511.01183999999995 v 131.5104" stroke="#141414" stroke-width="4"/><path d="M 1497.6,782.8 L 1699.2,782.8 L 1872,1030 L 1296,1030 Z" fill="#fff" opacity=".07"/>
+<g font-family="'Inter Display','Inter','Helvetica Neue',Helvetica,Arial,sans-serif" font-weight="800" font-size="30" fill="#fff" fill-opacity=".55"><text x="2340" y="999.1" text-anchor="end" letter-spacing="1">STAND-IN  DELIVERY  CAR IN A DRIVEWAY, STAFF HANDING OVER KEYS</text><rect x="2346" y="977.5" width="16.8" height="21.599999999999998" fill="#D0111B" fill-opacity="1"/></g>
+</svg>
