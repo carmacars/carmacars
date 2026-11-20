@@ -22,7 +22,7 @@ export function TrackerEventsPanel({ d, staff = false }: { d: Data | null; staff
   const bookingLink = (n: string | null) => (n ? <Link prefetch={false} className="link" href={`${base}/bookings/${encodeURIComponent(n)}`}>{n}</Link> : <span className="muted">No rental</span>);
   const lotFields = (l?: PoundLot): Field[] => [
     { name: 'name', label: 'Name', type: 'text', required: true, value: l?.name ?? '' },
-    { name: 'address', label: 'Address', type: 'text', required: true, value: l?.address ?? '', hint: 'The pin is found from the address when the latitude and longitude are left empty.' },
+    { name: 'address', label: 'Address', type: 'address', required: true, value: l?.address ?? '', hint: 'The pin is found from the address when the latitude and longitude are left empty.' },
     { name: 'city', label: 'City', type: 'text', value: l?.city ?? '' },
     { name: 'phone', label: 'Phone', type: 'tel', value: l?.phone ?? '' },
     { name: 'hours', label: 'Hours', type: 'text', value: l?.hours ?? '', placeholder: 'Open 24 hours' },
