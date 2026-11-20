@@ -146,9 +146,11 @@ select test.eq('Unlock: restored email, the request closed as restored, the link
   (select decision from staff_restore_requests where user_id = test.id('zcm_sam')) || '|' ||
   (select coalesce(restore_token::text, 'none') from staff_profiles where user_id = test.id('zcm_sam')), '1|restored|none');
 select test.eq('restored: staff emails go again', test.zcm_mail('zcm_sam', 'staff_inactivity_warning', 's3'), 'queued|');
-select test.eq('the inactivity job counts from the release: nobody is suspended today',
-  (select count(*) from staff_profiles where inactive_locked_at > now() - interval '1 minute' and user_id <> test.id('zcm_sam')
-     and (select app.job_staff_inactivity(now())) is not null), 0::bigint);
+create temp table zcm_locked0 as select user_id from staff_profiles where inactive_locked_at is not null;
+create temp table zcm_job as select app.job_staff_inactivity(now()) as r;
+select test.eq('the inactivity job counts from the release: nobody is suspended by it today',
+  (select count(*) from staff_profiles sp where sp.inactive_locked_at is not null and sp.user_id not in (select user_id from zcm_locked0)
+      and sp.lock_reason = 'inactivity'), 0::bigint);
 
 -- ================================================================ 6. staff notifications turned off
 update users set staff_notices_off = true where id = test.id('zcm_quiet');
