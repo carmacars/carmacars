@@ -15,9 +15,9 @@ create function test.opv(p text) returns uuid language sql stable as $$ select v
 create function test.op_vin(p text) returns text language sql immutable as $$ select upper(substr(md5('op-vin-' || p), 1, 17)) $$;
 
 -- ---------------------------------------------------------------- 1. the wizard's reads
-select test.eq('facts: the grid has three tiers, the Install Fee is $100, trackers are not available yet',
+select test.eq('facts: the grid has three tiers, the Install Fee is $150 (3198), trackers are not available yet',
   (select (jsonb_array_length(public.server_owner_program_facts() -> 'grid') > 0) || '/' || (public.server_owner_program_facts() ->> 'install_fee_cents')
-     || '/' || (public.server_owner_program_facts() ->> 'trackers_available')), 'true/10000/false');
+     || '/' || (public.server_owner_program_facts() ->> 'trackers_available')), 'true/15000/false');
 select test.eq('options: an individual who owns outright may choose among three methods',
   jsonb_array_length(public.server_onboarding_options('individual', 'owned_outright', 'managed')), 3);
 select test.eq('vin: a bad VIN is not valid', (public.server_vin_lookup('123') ->> 'valid')::boolean, false);
@@ -218,8 +218,8 @@ select test.eq('trackers: the three vehicles wait for a tracker (Turo-Only and s
 select test.eq('trackers: no Tracker Install invoice was issued with the upfront invoices',
   (select count(*) from owner_invoices where owner_id = test.opv('app') and kind = 'tracker_install'), 0::bigint);
 select test.throws('trackers: only an Admin issues them', $$select public.admin_issue_tracker_install_invoices(test.id('o16_cs'), test.opv('app'))$$, 'Only an Admin');
-select test.eq('trackers: one vehicle''s Tracker Install invoice: $100 + HST',
-  (select string_agg(x ->> 'total_cents', ',') from jsonb_array_elements(public.admin_issue_tracker_install_invoices(test.id('o16_admin'), null, array[test.opv('v1')])) x), '11300');
+select test.eq('trackers: one vehicle''s Tracker Install invoice: $150 + HST (3198)',
+  (select string_agg(x ->> 'total_cents', ',') from jsonb_array_elements(public.admin_issue_tracker_install_invoices(test.id('o16_admin'), null, array[test.opv('v1')])) x), '16950');
 select test.eq('trackers: in bulk, the other two; a second run issues nothing',
   jsonb_array_length(public.admin_issue_tracker_install_invoices(test.id('o16_admin'), test.opv('app'))) || '/'
   || jsonb_array_length(public.admin_issue_tracker_install_invoices(test.id('o16_admin'), test.opv('app'))), '2/0');
