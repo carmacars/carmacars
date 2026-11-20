@@ -1,12 +1,13 @@
 -- 99: Release 43 (2695): a stricter AI interview. A score at the bar is not enough when the per-answer scores average
 -- under 7 or one answer is under 5, or spoken English is basic. Fixtures start with "rq43s"; addresses are example.test.
+-- 3191: Sales is judged by the score at the bar, so this suite uses a Customer Service role.
 select test.suite('99 r43 stricter AI interview');
 
 create function test.rq43s_pass(p_k text, p_result jsonb) returns boolean language plpgsql as $$
 declare v uuid := test.id('rq43s_' || p_k); i ai_interviews; a job_applications; r hiring_roles;
 begin
   insert into job_applications (id, role_id, full_name, email, phone, status)
-  select v, r2.id, 'Rq43s ' || initcap(p_k), 'rq43s_' || p_k || '@example.test', '+15555550144', 'interviewed' from hiring_roles r2 where r2.slug = 'sales-remote';
+  select v, r2.id, 'Rq43s ' || initcap(p_k), 'rq43s_' || p_k || '@example.test', '+15555550144', 'interviewed' from hiring_roles r2 where r2.slug = 'va-customer-service';
   insert into ai_interviews (application_id, role_id, questions, state, expires_at, interview_score, recommendation, scored_at, result)
   select v, a2.role_id, '[]'::jsonb, 'scored', now() + interval '7 days', 95, 'hire', now(), p_result from job_applications a2 where a2.id = v;
   select * into a from job_applications where id = v;

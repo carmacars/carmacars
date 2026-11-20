@@ -231,10 +231,11 @@ select test.eq('with the tag ticked the groups are confirmed',
 select test.ok('and the tag is kept as set', (select whatsapp_tag_set_at is not null from staff_profiles where user_id = test.id('fe_sales')));
 select test.eq('field staff who did not pass the Sales path see the Team group only',
   (select string_agg(g ->> 'key', ',') from jsonb_array_elements(app.staff_group_list(test.id('fe_fleet'))) g), 'team');
+create temp table fe_links as select id, whatsapp_team_group_url t, whatsapp_sales_group_url s from program_settings;
+update program_settings set whatsapp_team_group_url = '', whatsapp_sales_group_url = '';  -- other suites may have set them
 select test.ok('the empty links are named', app.whatsapp_links_missing() @> array['whatsapp_team_group_url', 'whatsapp_sales_group_url']);
 select app.whatsapp_links_check();
 select test.ok('an Admin To do stays open while a link is empty', exists (select 1 from tasks where dedupe_key = 'whatsapp_links_missing' and status = 'open' and queue = 'admin'));
-create temp table fe_links as select id, whatsapp_team_group_url t, whatsapp_sales_group_url s from program_settings;
 update program_settings set whatsapp_team_group_url = 'https://chat.whatsapp.com/FeTeamLink12345', whatsapp_sales_group_url = 'https://chat.whatsapp.com/FeSalesLink1234';
 select app.whatsapp_links_check();
 select test.ok('both links set: the To do is done', exists (select 1 from tasks where dedupe_key = 'whatsapp_links_missing' and status = 'done'));
@@ -404,6 +405,7 @@ select app.terms_accept(test.id('fe_neo'), jsonb_build_object('version_id', (sel
 select test.ok('accepted with the version, IP and device; no longer waiting',
   exists (select 1 from terms_acceptances a join terms_versions v on v.id = a.version_id where v.version = 'staff-r48fe' and a.user_id = test.id('fe_neo') and host(a.ip_address) = '203.0.113.7' and a.user_agent = 'test')
   and not exists (select 1 from jsonb_array_elements(app.terms_pending(test.id('fe_neo'))) x where x ->> 'doc_key' = 'staff_agreement'));
-select test.eq('the install fee is $150 for new terms', (select install_fee_cents || '/' || tracker_product_install_cents from app.settings() x), '15000/15000');
+select test.eq('the install fee is $150 for new terms (the tracker product on the row 3198 updated; other suites add dated rows)',
+  (select install_fee_cents from app.settings()) || '/' || (select tracker_product_install_cents from program_settings where tracker_product_install_cents is not null order by effective_from desc limit 1), '15000/15000');
 select test.ok('a decline alerts the Admins (3199)', exists (select 1 from app_events e where e.code like 'staff_alert_%' and e.payload ->> 'rule' = 'terms_declined'));
 select test.ok('a fee waiting for evidence alerts the role (3199)', exists (select 1 from app_events e where e.code like 'staff_alert_%' and e.payload ->> 'rule' = 'fee_evidence_needed'));

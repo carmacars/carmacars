@@ -120,8 +120,12 @@ The owner's wording: `almash/work/hotfix-notes/owner-backlog-2026-11-20.md`, 10:
 
 ## Tests
 
-- `supabase/tests/99_r48fe_fees_evidence_hiring.sql` (115 assertions): every item above.
+- `supabase/tests/99_r48fe_fees_evidence_hiring.sql` (118 assertions): every item above.
 - Unit: `features/fee-evidence/model.test.ts`, `features/disputes/letters.test.ts` (each reason code), `features/disputes/compress.test.ts`,
   `features/data-checks/model.test.ts`, `features/academy/gate.test.ts` (new order).
 - Base tests updated for the new behaviour: `03_flows` (tire_cost pass-through), `09_operations` (dirty returns carry guided photos),
-  `97_deposit_guard` and `99_r33h_finishing` (charge_after_rental wrapped; the toll carries its notice).
+  `97_deposit_guard` and `99_r33h_finishing` (charge_after_rental wrapped; the toll carries its notice), `11`, `16`, `09` and
+  `12` (Install Fee $150), `07_notifications` (the three data check emails), `99_r35g_*`, `99_r35k_staff_onboarding`,
+  `99_r38_release_fixes` (agreement first; "I joined" ticks the member tag), `99_r43_stricter_ai` (now a Customer Service role:
+  Sales is judged by the score at the bar).
+- Fixed in review: 3190's statement gate kept 0195's rule that a return recorded "details to follow" can be billed before review.

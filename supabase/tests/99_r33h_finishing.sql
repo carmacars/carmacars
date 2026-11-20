@@ -13,8 +13,8 @@ create function test.h3_t(p interval) returns text language sql stable as $$
   select to_char((now() + p) at time zone 'America/Toronto', 'YYYY-MM-DD HH24:MI') $$;
 
 -- ---------------------------------------------------------------- 1. the wording
-select test.ok('wording: the settlement waits for the Check-out statement (the return)',
-  position('the Check-out statement' in pg_get_functiondef('app.charge_after_rental(uuid, uuid, timestamp with time zone)'::regprocedure)) > 0);
+select test.ok('wording: the settlement waits for the Check-out statement (the return; 3190 wraps it)',
+  position('the Check-out statement' in pg_get_functiondef('app.charge_after_rental_pre3190(uuid, uuid, timestamp with time zone)'::regprocedure)) > 0);
 select test.ok('wording: the pickup is the check-in in the history of a pickup recorded later',
   position('case p_kind when ''pickup'' then ''Check-in'' else ''Check-out'' end' in pg_get_functiondef('app.handover_details_complete(uuid, text, uuid, jsonb, uuid, timestamp with time zone)'::regprocedure)) > 0);
 select test.ok('wording: a licence checked face to face keeps its words',

@@ -506,7 +506,7 @@ begin
    where li.booking_id = p_booking and li.voided_at is null and r.fee_code is not null), '[]'::jsonb);
 end $$;
 
--- the statement leaves out a fee that needs evidence (one definition before this: 0020)
+-- the statement leaves out a fee that needs evidence (definitions before this: 0020, 0195)
 create or replace function app.issue_booking_statement(p_booking uuid, p_by uuid default null, p_now timestamptz default now())
 returns uuid language plpgsql security definer set search_path = public, app as $$
 declare
@@ -530,7 +530,7 @@ begin
   v_kind := case when exists (select 1 from booking_statements s where s.booking_id = p_booking and s.kind = 'check_in')
                  then 'later_charge' else 'check_in' end;
   if v_kind = 'check_in' and not exists (
-       select 1 from condition_reports c where c.booking_id = p_booking and c.kind = 'return' and c.reviewed_at is not null) then
+       select 1 from condition_reports c where c.booking_id = p_booking and c.kind = 'return' and (c.reviewed_at is not null or c.details_pending)) then
     raise exception 'The return of booking % has not been reviewed yet: Fleet confirms the findings first', b.booking_number using errcode = '23514';
   end if;
   -- 3190: the evidence as it stands now (Tracker readings and notices arrive after a line is made)

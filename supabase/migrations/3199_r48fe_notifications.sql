@@ -25,6 +25,8 @@ on conflict (code) do update set
   in_catalogue = true, updated_at = now();
 select app.notification_catalogue_refresh();
 -- CATALOGUE 3199 END
+update notification_catalogue set emitted_by = 'app.data_check_remind (3197, 3199): an Admin''s Send reminder on Settings > Staff, Owners or Renters'
+ where code in ('renter_data_check', 'owner_data_check', 'staff_data_check');
 
 insert into staff_alert_rules (rule, label, grp, who, tier, topic, enabled, wired, fixed, hint, sort)
 values ('terms_declined', 'Someone declined an updated agreement', 'Team', '{admin}', 'normal', 'documents', true, true, false,
