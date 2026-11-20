@@ -164,7 +164,7 @@ end $$;
 
 -- The server's call after a form is stored: a lead by its id, a request to book by its number, or a chauffeur request by
 -- its reference (its lead).
-create or replace function public.server_contact_source_set(p_lead uuid, p_booking_number text, p_chauffeur_ref text, p jsonb) returns uuid
+create or replace function public.server_contact_source_set(p_lead uuid default null, p_booking_number text default null, p_chauffeur_ref text default null, p jsonb default null) returns uuid
 language sql security definer set search_path = public, app as $$
   select app.contact_source_set(
     coalesce(p_lead, (select c.lead_id from chauffeur_requests c where p_chauffeur_ref is not null and c.reference = p_chauffeur_ref)),

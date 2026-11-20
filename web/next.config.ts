@@ -105,6 +105,8 @@ const config: NextConfig = {
       { source: '/owners.html', destination: '/list-your-car', permanent: true },
       { source: '/signin.html', destination: '/sign-in', permanent: true },
       { source: '/sign-up', destination: '/create-account', permanent: true },
+      // r48 (3231): the GPS tracker page of release 36 moved to /trackers, one address for the product
+      { source: '/gps-tracker', destination: '/trackers', permanent: true },
       // the unsubscribe link's first path (0018); marketing links now go to /unsubscribe (0034)
       { source: '/email/unsubscribe', destination: '/unsubscribe', permanent: true },
       // Paths the emails link to (emails/src/links.mjs) that are sections of a page here, or the blueprint's

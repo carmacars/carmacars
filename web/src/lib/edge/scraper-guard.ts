@@ -23,8 +23,17 @@ export function verifiedBot(cf: CfLike | undefined): boolean {
 /** A public page that multiplies (place and term pages, the vehicle tree, for sale, the term trees). */
 export function longTail(pathname: string): boolean {
   const p = pathname.length > 1 ? pathname.replace(/\/$/, '') : pathname;
+  // r48: the tracker's pages are a handful of product pages people land on from ads and answers, never a tree that multiplies
+  if (/^\/trackers(\/|$)/.test(p)) return false;
   return PLACE_PAGE.test(p) || PROGRAMMATIC.test(p);
 }
+
+/** r48 (the traffic drop, docs/changes/2026-11-20-r48-seo.md): a visit that follows a result of a search engine or an AI
+ *  answer engine (its Referer) is a person we want on the page at once. Until now a first visit to a place or vehicle page
+ *  got the "One moment" check page (200, noindex, a reload): a slower first paint for exactly the visitors search sends,
+ *  and an empty page for the fetchers of answer engines that do not name themselves and keep no cookies. */
+export const FROM_ENGINE = /^https?:\/\/(?:[a-z0-9-]+\.)*(?:google\.[a-z]{2,3}(?:\.[a-z]{2})?|bing\.com|duckduckgo\.com|yahoo\.(?:com|ca|co\.[a-z]{2})|search\.brave\.com|ecosia\.org|startpage\.com|qwant\.com|kagi\.com|chatgpt\.com|chat\.openai\.com|perplexity\.ai|copilot\.microsoft\.com|claude\.ai|you\.com|meta\.ai)(?:[/:?#]|$)/i;
+export const fromEngine = (referer: string | null | undefined): boolean => !!referer && referer.length < 2000 && FROM_ENGINE.test(referer);
 
 /** The cookie a browser gets from the check page (and the site's own cookies, which only a browser that keeps cookies sends). */
 export const CHECK_COOKIE = 'cc_h';
@@ -41,12 +50,12 @@ export type Guard = 'pass' | 'copy-only' | 'check';
  *  page that sets a cookie and reloads (a person sees it for a moment, once), never a render. Scrapers that pose as
  *  browsers and keep no cookies (the residential proxy pool of November 6) stop there. Crawlers that name themselves,
  *  verified bots, scripts and the site's own checks are never asked. */
-export function scraperGuard(method: string, pathname: string, cf: CfLike | undefined, ua?: string | null, cookie?: string | null, rsc = false): Guard {
+export function scraperGuard(method: string, pathname: string, cf: CfLike | undefined, ua?: string | null, cookie?: string | null, rsc = false, referer?: string | null): Guard {
   if (method !== 'GET' && method !== 'HEAD') return 'pass';
   if (!longTail(pathname) || verifiedBot(cf)) return 'pass';
   const org = typeof cf?.asOrganization === 'string' ? cf.asOrganization : '';
   if (org && HOSTING_NETWORK.test(org)) return 'copy-only';
-  if (!ua || SELF_AGENT.test(ua) || !/Mozilla\//.test(ua) || rsc || knownBrowser(cookie)) return 'pass';
+  if (!ua || SELF_AGENT.test(ua) || !/Mozilla\//.test(ua) || rsc || knownBrowser(cookie) || fromEngine(referer)) return 'pass';
   return 'check';
 }
 

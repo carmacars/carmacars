@@ -1,4 +1,5 @@
 import Link from '@/components/Link';
+import { ServicePromo } from '@/features/services/ServicePromo';
 import { AnswerBlock } from '@/components/AnswerBlock';
 import { Crumbs } from '@/components/Crumbs';
 import { JsonLd } from '@/components/JsonLd';
@@ -100,6 +101,8 @@ export async function ServicePage({ v }: { v: 'detailing' | 'bodyshop' }) {
           </div>
         </section>
       </div>
+      {/* r48: the other services */}
+      <ServicePromo exclude={v} pageKey={`/${v}`} />
     </div>
   );
 }

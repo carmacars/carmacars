@@ -28,6 +28,7 @@ import { RouteProgress } from '@/components/loader/RouteProgress';
 import { FormGuard } from '@/components/FormGuard';
 import { openRoles } from '@/server/careers';
 import { metaOr } from '@/features/seo/meta-fallback';
+import { trackerOn } from '@/features/services/data';
 
 // r47: metadata streams to browsers after the page; a failed settings read here gave React #441 on every page's
 // navigation (features/seo/meta-fallback.ts), so it falls back to the site's plain metadata
@@ -60,7 +61,7 @@ export const viewport: Viewport = { themeColor: '#0A0A0A', width: 'device-width'
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // settings and the cookie wording only: the frame runs on every page (docs/audit/2026-10-13-launch-audit.md section 9)
-  const [s, w, links, hubs, roles, apps] = await Promise.all([getSettings(), cookieWording(), getSeoLinks().catch(() => []), getHubLinks(), openRoles(), appLinks()]);
+  const [s, w, links, hubs, roles, apps, tracker] = await Promise.all([getSettings(), cookieWording(), getSeoLinks().catch(() => []), getHubLinks(), openRoles(), appLinks(), trackerOn()]);
   return (
     <html lang="en-CA" className={`${interDisplay.variable} ${inter.variable}`} suppressHydrationWarning>
       {/* the stale page guard: a script or stylesheet of an older build that fails to load reloads the page once (src/lib/chunk-guard.ts) */}
@@ -81,7 +82,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <CookieBanner w={w} />
         <Header s={s} />
         <main id="main" tabIndex={-1}>{children}</main>
-        <Footer s={s} reply={replyText(s)} links={links} hubs={hubs} careers={roles.length > 0} apps={apps} />
+        <Footer s={s} reply={replyText(s)} links={links} hubs={hubs} careers={roles.length > 0} apps={apps} tracker={tracker} />
         {/* the business on every page (settings only), so every #business reference resolves (2026-10-23-ai-search) */}
         <JsonLd graph={[websiteLd(s, siteUrl()), businessLd(s, siteUrl(), { lite: true })]} />
         <Effects />

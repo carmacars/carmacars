@@ -1,4 +1,6 @@
 import Link from '@/components/Link';
+import { ServicePromo } from '@/features/services/ServicePromo';
+import { KitSticky } from '@/features/seo/kit/Kit';
 import { AnswerBlock } from '@/components/AnswerBlock';
 import { PageHead } from '@/components/Blocks';
 import { JsonLd } from '@/components/JsonLd';
@@ -78,6 +80,9 @@ export default async function Chauffeur() {
           <p><Link className="btn btn--primary btn--lg" href="/chauffeur/request">Request a chauffeur</Link></p></div>
         </div>
       </section>
+      {/* r48: the other services, and the phone's sticky action */}
+      <ServicePromo exclude="chauffeur" pageKey="/chauffeur" />
+      <KitSticky title="Chauffeur by the hour" sub="A person confirms every request" cta="Request a chauffeur" href="/chauffeur/request" />
     </div>
   );
 }

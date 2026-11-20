@@ -22,6 +22,8 @@ import { getArticles } from '@/features/seo/data';
 import { getFleet } from '@/lib/site';
 import { ReadyCars } from '@/features/seo/ReadyCars';
 import { SiteReviews } from '@/features/seo/SiteReviews';
+import { KitFold, KitSticky, KitTrust } from '@/features/seo/kit/Kit';
+import { ServicePromo } from '@/features/services/ServicePromo';
 import '@/styles/seo.css';
 import '@/styles/vehicles.css';
 
@@ -149,7 +151,10 @@ export async function HubPage({ h }: { h: Hub }) {
         </div>
       </section>
 
-      <div className="wrap landing__body">
+      <div className="wrap landing__body sk">
+        <div style={{ paddingTop: 'var(--s-5)' }}><KitTrust band items={v === 'rental'
+          ? [['shield', 'No payment to request'], ['clock', 'A person confirms the car and the price'], ['truck', 'Delivered or picked up'], ['star', 'Every fee shown before you pay']]
+          : [['users', 'A person reads every request'], ['clock', 'We reply by email or phone'], ['car', 'A rental car while yours is in'], ['shield', 'Nothing is charged to ask']]} /></div>
         {showForm && leadKind && (
           <section className="car-sec" id="request" aria-label="Send a request">
             <PlaceLeadForm kind={leadKind} place={where} term={h.term.slug} reply={replyText(s)} services={h.service ? [h.service.name] : auto ? [h.term.title] : []} />
@@ -178,12 +183,15 @@ export async function HubPage({ h }: { h: Hub }) {
             <nav aria-label="Related searches"><ul className="linklist">
               {[...rentLinks, ...related].slice(0, 12).map((x) => <li key={x.path}><Link prefetch={false} className="link" href={x.path}>{x.title} in {h.place.name}</Link></li>)}
               {h.term.landing_path && <li><Link prefetch={false} className="link" href={h.term.landing_path}>{h.term.title} in Toronto</Link></li>}
+              {/* r48: the tracker's install page of this place, where the place pages are on and we reach it */}
+              {h.place.region === 'CA-ON' && h.delivery.in_reach && !wide && <li><Link prefetch={false} className="link" href={`/trackers/install/${h.place.slug}`}>GPS tracker and kill switch install in {h.place.name}</Link></li>}
             </ul></nav>
           </div>
         </section>
         {/* 0115: every search term's page for this place, so each is one click from the place's page (four from home) */}
+        {/* r48: a fold, so the page ends with a short list of headings; the links are in the page either way */}
         <section className="car-sec landing__links" aria-labelledby="h-all">
-          <h2 className="d2" id="h-all">Everything for {h.place.name}</h2>
+          <KitFold id="h-all" h={`Everything for ${h.place.name}`}>
           <div className="landing__cols" data-testid="hub-all-terms">
             {(['rental', 'detailing', 'bodyshop', 'auto', 'sale'] as const).map((g) => { const vv: Vertical = g === 'auto' ? 'bodyshop' : g; const label = g === 'auto' ? AUTO_LABEL : ROOT_LABEL[g];
               const list = allTerms.filter((x) => x.vertical === vv && (g === 'auto') === isAutoService(x) && !(vv === v && x.slug === h.term.slug)); return list.length ? (
@@ -191,11 +199,17 @@ export async function HubPage({ h }: { h: Hub }) {
                 {list.map((x) => <li key={x.slug}><Link prefetch={false} className="link" href={hubPath(vv, x.slug, h.place.slug)}>{x.title}</Link></li>)}
               </ul></nav>) : null; })}
           </div>
+          </KitFold>
         </section>
         <p className="xs muted" data-testid="place-attribution">
           Place data: {src.osm ? <>GeoNames (CC BY 4.0) and © OpenStreetMap contributors (ODbL)</> : <>GeoNames (CC BY 4.0)</>}{src.census ? ', US Census Bureau' : ''}. <Link prefetch={false} className="link" href="/place-data">Sources and licences</Link>.
         </p>
       </div>
+      {/* r48: the other services on every search page, and the phone's sticky action */}
+      <ServicePromo exclude={v === 'detailing' ? 'detailing' : v === 'bodyshop' ? 'bodyshop' : null} pageKey={h.path} />
+      {v === 'rental' && h.term.served === 'yes'
+        ? <KitSticky title={h.counts.min_daily_cents !== null ? `From ${money(h.counts.min_daily_cents)} a day` : 'Pick a car, send a request'} sub="No payment until we confirm" cta="See the cars" href="#cars" />
+        : <KitSticky title={c.h1.length > 44 ? h.term.title : c.h1} sub={showForm ? 'A person replies to every request' : 'No payment until we confirm'} cta={showForm ? 'Send a request' : 'See the cars'} href={showForm ? '#request' : '#cars'} />}
     </div>
   );
 }

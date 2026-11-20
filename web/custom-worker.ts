@@ -403,7 +403,7 @@ const worker = {
     // posing as a browser that keeps none of our cookies, gets its kept copy (up to a week old) or, without one, 429 (hosting
     // networks) or a tiny page that sets a cookie and reloads (people pass at once); never a render. Verified search and
     // AI crawlers and every agent that names itself always pass (src/lib/edge/scraper-guard.ts).
-    const g = scraperGuard(request.method, path, (request as unknown as { cf?: Record<string, unknown> }).cf, ua0, request.headers.get('cookie'), request.headers.get('rsc') === '1');
+    const g = scraperGuard(request.method, path, (request as unknown as { cf?: Record<string, unknown> }).cf, ua0, request.headers.get('cookie'), request.headers.get('rsc') === '1', request.headers.get('referer'));
     let guardCopy: Response | null = null;
     // cached-only mode (the database busy, tripped by the Worker itself below): long-tail pages from their kept copies only
     const tail = (request.method === 'GET' || request.method === 'HEAD') && longTail(path) && !hasSession(request.headers.get('cookie'));

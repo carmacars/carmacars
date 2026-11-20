@@ -12,7 +12,7 @@ const SOCIAL: Record<string, string> = { instagram: 'Instagram', tiktok: 'TikTok
 export const waLink = (e164: string) => `https://wa.me/${e164.replace(/\D/g, '')}`;
 
 type Link_ = { slug: string; kind: string; name: string; path: string };
-export function Footer({ s, reply, links = [], hubs, careers = false, apps }: { s: SiteSettings; reply: string; links?: Link_[]; hubs?: HubLinks; careers?: boolean; apps?: AppLinks }) {
+export function Footer({ s, reply, links = [], hubs, careers = false, apps, tracker = false }: { s: SiteSettings; reply: string; links?: Link_[]; hubs?: HubLinks; careers?: boolean; apps?: AppLinks; /** r48: the tracker product is on (its page exists) */ tracker?: boolean }) {
   const places = links.filter((l) => l.kind === 'location');
   const uses = links.filter((l) => l.kind === 'use');
   const socials = Object.entries(s.social_links ?? {}).filter(([k, v]) => SOCIAL[k] && /^https:\/\//.test(v));
@@ -60,7 +60,10 @@ export function Footer({ s, reply, links = [], hubs, careers = false, apps }: { 
             {napAddress(s).street && <li><span data-testid="footer-address">{napAddress(s).line}</span></li>}
           </ul></div>
           <nav aria-label="Company"><h2>{s.brand_name}</h2><ul>
-            <li><Link prefetch={false} href="/list-your-car">List your car</Link></li><li><Link prefetch={false} href="/faq">FAQ</Link></li>
+            <li><Link prefetch={false} href="/list-your-car">List your car</Link></li>
+            {/* r48: the services hub and the tracker, linked from every page */}
+            <li><Link prefetch={false} href="/services" data-testid="footer-services">Services</Link></li>{tracker && <li><Link prefetch={false} href="/trackers" data-testid="footer-trackers">GPS tracker and kill switch</Link></li>}
+            <li><Link prefetch={false} href="/faq">FAQ</Link></li>
             <li><Link prefetch={false} href="/about">About</Link></li>{careers && <li><Link prefetch={false} href="/careers" data-testid="footer-careers">Careers</Link></li>}<li><Link prefetch={false} href="/contact">Contact</Link></li><li><Link prefetch={false} href="/sign-in">Sign in</Link></li>
             {socials.map(([k, v]) => <li key={k}><a href={v} rel="noopener">{SOCIAL[k]}</a></li>)}
           </ul></nav>

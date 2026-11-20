@@ -114,7 +114,9 @@ async function makeTokens(fleet: CarRow[]): Promise<Tokens> {
     // r35 UX (1108): add-ons not returned (the FAQ, Payment and deposit)
     unretCharger: money(f.unreturned?.ev_charger_cents ?? 15000), unretMount: money(f.unreturned?.phone_mount_cents ?? 7500), unretSeat: money(f.unreturned?.child_seat_cents ?? 45000),
     unretBooster: money(f.unreturned?.booster_seat_cents ?? 20000), unretTimes: String(Number(f.unreturned?.other_times ?? 3)), unretMin: money(f.unreturned?.other_min_cents ?? 10000),
-    ownerReply: extra.owner_reply ?? '', listDays: s.listing_time_promise ?? '', minDaily: dailies.length ? money(Math.min(...dailies)) : ''
+    ownerReply: extra.owner_reply ?? '', listDays: s.listing_time_promise ?? '', minDaily: dailies.length ? money(Math.min(...dailies)) : '',
+    // r48 (3232): how many child, baby or booster seats one booking takes (the landing page of the child seats)
+    maxSeats: String(f.max_baby_seats ?? 3)
   };
 }
 

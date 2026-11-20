@@ -1,4 +1,6 @@
 import Link from '@/components/Link';
+import { ServicePromo } from '@/features/services/ServicePromo';
+import { KitSticky } from '@/features/seo/kit/Kit';
 import { Crumbs } from '@/components/Crumbs';
 import { AnswerBlock } from '@/components/AnswerBlock';
 import { CtaBand } from '@/components/Blocks';
@@ -80,6 +82,9 @@ export default async function Delivery() {
         </div>
       </section>
       <CtaBand h="Delivery is one tick in the request." p="Pick the car first. The delivery fee is on its page." />
+      {/* r48: the other services, and the phone's sticky action */}
+      <ServicePromo exclude="delivery" pageKey="/delivery" />
+      <KitSticky title="Delivered to your door" sub="Pick the car first" cta="Find a car" href="/cars" />
     </div>
   );
 }

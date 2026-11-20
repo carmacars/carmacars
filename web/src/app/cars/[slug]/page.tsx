@@ -9,6 +9,8 @@ import { Faq } from '@/components/Faq';
 import { Icon } from '@/components/Icon';
 import { JsonLd } from '@/components/JsonLd';
 import { BookBar, CarBooking } from '@/features/car/CarBooking';
+import { KitTrust } from '@/features/seo/kit/Kit';
+import { ServicePromo } from '@/features/services/ServicePromo';
 import { Gallery } from '@/features/car/Gallery';
 import { carFaq, perDayFees } from '@/features/car/faq';
 import { absUrl, breadcrumbLd, faqLd, type Trail, seoMeta } from '@/features/seo/meta';
@@ -195,7 +197,16 @@ export default async function CarPage({ params }: Params) {
               <p className="car-top__price"><span className="small muted">From</span> <b className="num" data-testid="car-from-price">{money(fromDay(c))}</b> <span className="small muted">a day</span></p>
               {c.guideline_rates && <p className="small muted" data-testid="guideline-note">Guideline rates; final price confirmed after review.</p>}
               {c.car_code && <p className="small muted" data-testid="car-code">Car code <b className="num">{c.car_code}</b>: quote it when you call or chat with us.</p>}
-              {c.taking_requests ? <a className="btn btn--primary btn--lg" href="#dates">Check dates and price</a> : <p className="alert alert--info"><span>Booked up for now. <a className="link" href="#h-sim">Similar cars are ready to book</a>.</span></p>}
+              {/* r48 conversion: the whole price at a glance (no arithmetic changes: these are the car's own rates and deposit),
+                  one tap straight to the request for someone who has decided, and what protects them, beside the button */}
+              {!c.guideline_rates && <ul className="car-top__clear small" data-testid="car-price-clarity">
+                {c.weekly_rate_cents > 0 && <li><b className="num">{money(c.weekly_rate_cents)}</b> a week</li>}
+                {c.monthly_rate_cents > 0 && <li><b className="num">{money(c.monthly_rate_cents)}</b> for {t.monthDays} days</li>}
+                {c.deposit_cents > 0 && <li><b className="num">{money(c.deposit_cents)}</b> deposit before pickup, never when you book</li>}
+                <li>Before {t.hst} HST. Your offer shows the full total before you pay.</li>
+              </ul>}
+              {c.taking_requests ? <p className="car-top__go"><a className="btn btn--primary btn--lg" href="#dates">Check dates and price</a>{!c.is_sample && <Link prefetch={false} className="btn btn--ghost btn--lg" href={`/book/${c.slug}`} rel="nofollow" data-testid="car-request-direct">Request this car</Link>}</p> : <p className="alert alert--info"><span>Booked up for now. <a className="link" href="#h-sim">Similar cars are ready to book</a>.</span></p>}
+              {c.taking_requests && <KitTrust items={[['shield', 'No payment to request'], ['clock', 'A person confirms the car and the price'], ['card', 'Pay only after you approve the offer'], ['star', 'Every fee shown before you pay']]} />}
               {c.popular && !c.is_sample && <p className="small car-top__popular" data-testid="car-popular"><b>Popular:</b> this car is in high demand. <a className="link" href="#h-sim">See similar cars</a> ready for your dates.</p>}
               {c.is_sample
                 ? <p className="small car-top__example-note" data-testid="example-car-note">This is an example of the cars we rent. Send your dates and we suggest a similar real car with its price. Nothing is booked or charged.</p>
@@ -350,6 +361,8 @@ export default async function CarPage({ params }: Params) {
           <ul className="fleet-grid fleet-grid--3">{similar.map((x) => <li key={x.slug}><CarCard c={x} labels={labels} photosMax={cardPhotoCap(f.phone_gate)} /></li>)}</ul>
         </div>
       </section>
+      {/* r48: the other services on the car page too */}
+      {!c.is_sample && <ServicePromo pageKey={c.canonical_path} n={4} title="More from CarmaCars" />}
       {c.taking_requests && <BookBar name={name(c)} daily={c.daily_rate_cents} slug={c.slug} />}
     </div>
   );
