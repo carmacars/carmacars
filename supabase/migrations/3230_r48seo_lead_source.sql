@@ -109,6 +109,7 @@ create table contact_sources (
 comment on table contact_sources is 'Where a lead or a request to book came from (3230): the first visit''s channel, referring page, landing page, campaign tags, ad click id and search terms, as the browser kept them. One row per lead or booking; the first write stays.';
 create index contact_sources_visitor_idx on contact_sources (visitor_id) where visitor_id is not null;
 create index contact_sources_channel_idx on contact_sources (channel, created_at);
+create trigger audit_contact_sources after insert or update or delete on contact_sources for each row execute function app.audit_row();
 alter table contact_sources enable row level security;
 create policy admin_all on contact_sources for select to authenticated using (app.is_admin());
 
@@ -219,12 +220,17 @@ language sql immutable as $$ select l.id is not null and l.merged_into is null a
 -- browser. Oldest first.
 create or replace function app.lead_duplicates(l leads) returns setof leads
 language sql stable security definer set search_path = public, app as $$
+  -- three indexed lookups (the email, the phone key, the browser), then the rules
   select o.* from leads o
-   where app.lead_mergeable(l) and o.id <> l.id and app.lead_mergeable(o) and app.sl_type(o) = app.sl_type(l)
+   where o.id in (
+           select x.id from leads x where l.email is not null and lower(x.email) = lower(l.email)
+           union
+           select x.id from leads x where length(coalesce(app.phone_key(l.phone), '')) = 10 and app.phone_key(x.phone) = app.phone_key(l.phone)
+           union
+           select b.lead_id from contact_sources a join contact_sources b on b.visitor_id = a.visitor_id
+            where a.lead_id = l.id and a.visitor_id is not null and b.lead_id is not null)
+     and app.lead_mergeable(l) and o.id <> l.id and app.lead_mergeable(o) and app.sl_type(o) = app.sl_type(l)
      and not (o.id = any (l.not_duplicate_of)) and not (l.id = any (o.not_duplicate_of))
-     and ((l.email is not null and lower(o.email) = lower(l.email))
-       or (app.phone_key(l.phone) is not null and length(app.phone_key(l.phone)) = 10 and app.phone_key(o.phone) = app.phone_key(l.phone))
-       or exists (select 1 from contact_sources a join contact_sources b on b.visitor_id = a.visitor_id where a.lead_id = l.id and b.lead_id = o.id and a.visitor_id is not null))
    order by o.created_at, o.id
 $$;
 
