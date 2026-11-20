@@ -11,6 +11,7 @@ You joined as: {{tier_label}}
 Cars: {{cars_count}}
 The tracker: {{tracker_price}}
 Install: {{install_price}}
+Monthly service for that many cars: {{monthly_price}}
 
 {{tier_note}}
 

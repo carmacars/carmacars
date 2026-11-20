@@ -4,7 +4,7 @@ import { metaOr, titleFromPath } from '@/features/seo/meta-fallback';
 import { getHub } from '@/features/places/data';
 import { KitFacts, KitSection } from '@/features/seo/kit/Kit';
 import { TrackerTemplate, loadTracker, trackerFacts } from '@/features/trackers/TrackerPage';
-import { installSentence, offer, PriceSentence } from '@/features/trackers/pages';
+import { everyone, monthlySentence, offer, PriceSentence } from '@/features/trackers/pages';
 import { money } from '@/lib/format';
 import { siteUrl } from '@/lib/site';
 
@@ -48,7 +48,7 @@ export default async function Page({ params }: Params) {
     <TrackerTemplate path={path} testId="tracker-install-place" city={p.name} facts={f} kicker={`Install in ${p.name}`} icon="wrench"
       trail={[['Home', '/'], [f.name, '/trackers'], ['Install near you', '/trackers/install'], [p.name]]}
       h1={`GPS tracker and kill switch install in ${p.name}`}
-      answer={`${f.brand} installs the ${f.name} for car owners in ${p.name}, ${region}${km !== null ? `, about ${km} km from us` : ''}. Live GPS, a remote kill switch, door locking and an alarm. ${PriceSentence(f)}. Everyone pays ${installSentence(f)}.`}
+      answer={`${f.brand} installs the ${f.name} for car owners in ${p.name}, ${region}${km !== null ? `, about ${km} km from us` : ''}. Live GPS, a remote kill switch, door locking and an alarm. ${PriceSentence(f)}. ${everyone(f)}.`}
       own={{ h: `How an install in ${p.name} goes`, p: h.delivery.in_reach ? `${p.name} is inside the area we serve.` : `${p.name} is outside the area we drive to today: you bring the car to us, or we tell you when we come your way.`,
         steps: [['Tell us where the car is', `Join the waitlist with ${p.name} as your city.`], ['We agree the day and place', h.delivery.in_reach ? `In ${p.name} or at our location, whichever suits you.` : 'At our location.'],
           ['The tracker goes in', 'Out of sight, wired to the starter, and tested with you.'], ['Your car is on the map', 'From that minute, on your phone.']] }}
@@ -63,7 +63,7 @@ export default async function Page({ params }: Params) {
         areaServed: { '@type': p.kind === 'city' ? 'City' : 'Place', name: p.name, ...(p.lat !== null && p.lng !== null ? { geo: { '@type': 'GeoCoordinates', latitude: p.lat, longitude: p.lng } } : {}) } }]}
       placeNote={<KitSection id="place" kicker={region} h={`${p.name} at a glance`}>
         <KitFacts rows={[['Place', `${p.name}, ${region}`], ['Distance from us', km !== null ? `About ${km} km in a straight line` : null], ['Inside the area we serve', h.delivery.in_reach ? 'Yes' : 'You bring the car to us'],
-          ['Nearest airport', h.airport ? `${h.airport.name}, about ${Math.round(h.airport.km)} km` : null], ['The tracker', PriceSentence(f)], ['Install', f.installCents ? `${money(f.installCents)} once per car` : null]]} />
+          ['Nearest airport', h.airport ? `${h.airport.name}, about ${Math.round(h.airport.km)} km` : null], ['The tracker', PriceSentence(f)], ['Monthly service', monthlySentence(f)], ['Install', f.installCents ? `${money(f.installCents)} once per car` : null]]} />
       </KitSection>} />
   );
 }

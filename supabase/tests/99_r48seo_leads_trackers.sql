@@ -121,6 +121,8 @@ select test.throws('a renter cannot merge leads', format($q$ select app.lead_mer
 update program_settings set lead_auto_merge = true;
 
 -- ---------------------------------------------------------------- the tracker: its prices, the waitlist, the email
+select test.eq('the monthly service by number of cars: $25, $20, $15', app.tracker_monthly_cents(1) || '|' || app.tracker_monthly_cents(2) || '|' || app.tracker_monthly_cents(3) || '|' || app.tracker_monthly_cents(9) || '|' || app.tracker_monthly_cents(10), '2500|2500|2000|2000|1500');
+select test.eq('the pages read the monthly tiers', (select string_agg((t ->> 'from_cars') || ':' || (t ->> 'monthly_cents'), ' ' order by (t ->> 'from_cars')::integer) from jsonb_array_elements(public.tracker_product() -> 'tiers') t), '1:2500 3:2000 10:1500');
 select test.eq('the install is $150 once', (public.tracker_product() ->> 'install_cents')::integer, 15000);
 select test.eq('the prices are Program settings: owners free, 250 free pre-orders said as 100, $90 on pre-order, $175 after launch',
   (select tracker_owner_device_cents || '|' || tracker_free_preorder_cap || '|' || tracker_free_preorder_public || '|' || tracker_preorder_price_cents || '|' || tracker_regular_price_cents from app.settings()),
@@ -135,21 +137,21 @@ select test.ok('what it does names the kill switch and the tolls', public.tracke
 select test.throws('tiers without a price for one car are refused', $q$ update program_settings set tracker_product_tiers = '[{"from_cars": 3, "monthly_cents": 2000}]' $q$);
 insert into x60 select 'w', (public.submit_tracker_waitlist('{"name":"Tara Host","email":"x60_tara@example.test","cars":"4","vehicle":"2021 Honda Civic","city":"Mississauga","want":"preorder"}'::jsonb, null) ->> 'lead_id')::uuid;
 select test.eq('a lead for Sales, named for what it is', app.sl_source((select l from leads l where l.id = (select id from x60 where k = 'w'))), 'GPS tracker pre-order (free tracker)');
-select test.eq('with the tier the person got, that they are not an owner, and the prices quoted', (select (payload ->> 'cars') || '|' || (payload ->> 'tier') || '|' || (payload ->> 'owner') || '|' || (payload ->> 'quoted_device_cents') || '|' || (payload ->> 'quoted_install_cents') || '|' || (payload ->> 'trackers_available')
-  from leads where id = (select id from x60 where k = 'w')), '4|free_preorder|false|0|15000|false');
+select test.eq('with the tier the person got, that they are not an owner, and the prices quoted', (select (payload ->> 'cars') || '|' || (payload ->> 'tier') || '|' || (payload ->> 'owner') || '|' || (payload ->> 'quoted_device_cents') || '|' || (payload ->> 'quoted_monthly_cents') || '|' || (payload ->> 'quoted_install_cents') || '|' || (payload ->> 'trackers_available')
+  from leads where id = (select id from x60 where k = 'w')), '4|free_preorder|false|0|2000|15000|false');
 select test.ok('Sales reads the price in the message', (select message ~ 'Free with your pre-order' and message ~ 'Install: \$150 once per car' from leads where id = (select id from x60 where k = 'w')));
 select test.ok('it has its To do like every website lead', exists (select 1 from tasks where related_table = 'leads' and related_id = (select id from x60 where k = 'w')));
 select test.throws('an email is needed to write back', $q$ select public.submit_tracker_waitlist('{"name":"No Email","cars":"1"}'::jsonb, null) $q$, 'email');
 select app.process_events();
-select test.eq('the confirmation email is queued to the address given, with the tier and its price', (select to_address || '|' || status || '|' || (payload ->> 'tier_label') || '|' || (payload ->> 'tracker_price') || '|' || (payload ->> 'install_price') || '|' || (payload ->> 'cars_count')
-  from notification_outbox where code = 'tracker_waitlist_joined' and entity_id = (select id from x60 where k = 'w')), 'x60_tara@example.test|queued|Pre-order|Free with your pre-order|$150 once per car|4');
+select test.eq('the confirmation email is queued to the address given, with the tier and its price', (select to_address || '|' || status || '|' || (payload ->> 'tier_label') || '|' || (payload ->> 'tracker_price') || '|' || (payload ->> 'install_price') || '|' || (payload ->> 'monthly_price') || '|' || (payload ->> 'cars_count')
+  from notification_outbox where code = 'tracker_waitlist_joined' and entity_id = (select id from x60 where k = 'w')), 'x60_tara@example.test|queued|Pre-order|Free with your pre-order|$150 once per car|$20 a month per car|4');
 select test.eq('the event keeps the tier and whether the person is an owner', (select (payload ->> 'tier') || '|' || (payload ->> 'owner') from app_events where code = 'tracker_waitlist_joined' and entity_id = (select id from x60 where k = 'w')), 'free_preorder|false');
 select test.ok('nothing is missing from the email', (select missing_variables = '{}' from notification_outbox where code = 'tracker_waitlist_joined' and entity_id = (select id from x60 where k = 'w')));
 -- a vehicle owner: the tracker is free, whether the email is an owner's or the person says so (Sales then checks)
 select test.mk_owner('x60_fleet_owner');
 insert into x60 select 'wo', (public.submit_tracker_waitlist(jsonb_build_object('email', (select email from owners where id = test.id('owner:x60_fleet_owner')), 'cars', '2', 'want', 'waitlist'), null) ->> 'lead_id')::uuid;
-select test.eq('an active owner''s email is the owner tier', (select (payload ->> 'tier') || '|' || (payload ->> 'owner') || '|' || (payload ->> 'owner_claimed') || '|' || (payload ->> 'owner_matched') || '|' || (payload ->> 'quoted_device_cents')
-  from leads where id = (select id from x60 where k = 'wo')), 'owner|true|false|true|0');
+select test.eq('an active owner''s email is the owner tier', (select (payload ->> 'tier') || '|' || (payload ->> 'owner') || '|' || (payload ->> 'owner_claimed') || '|' || (payload ->> 'owner_matched') || '|' || (payload ->> 'quoted_device_cents') || '|' || (payload ->> 'quoted_monthly_cents')
+  from leads where id = (select id from x60 where k = 'wo')), 'owner|true|false|true|0|2500');
 select test.eq('and the lead list says so', app.sl_source((select l from leads l where l.id = (select id from x60 where k = 'wo'))), 'GPS tracker waitlist (vehicle owner)');
 insert into x60 select 'wc', (public.submit_tracker_waitlist('{"email":"x60_claims@example.test","cars":"1","want":"preorder","owner":"yes"}'::jsonb, null) ->> 'lead_id')::uuid;
 select test.eq('a person who says they are an owner: the owner tier, marked to be checked', (select (payload ->> 'tier') || '|' || (payload ->> 'owner_claimed') || '|' || (payload ->> 'owner_matched') from leads where id = (select id from x60 where k = 'wc'))

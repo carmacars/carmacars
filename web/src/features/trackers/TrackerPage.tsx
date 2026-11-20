@@ -12,7 +12,7 @@ import { trackerFacts } from './data';
 import { siteUrl } from '@/lib/site';
 import { money } from '@/lib/format';
 import { WaitlistForm } from './WaitlistForm';
-import { availability, ctaLabel, deviceNow, featureIcon, priceShort, PriceSentence, stage, trackerIntents, type Faq as Q, type TrackerFacts, type TrackerIntent } from './pages';
+import { availability, ctaLabel, deviceNow, featureIcon, lowestMonthly, monthlySentence, monthlyShort, priceShort, PriceSentence, stage, trackerIntents, type Faq as Q, type TrackerFacts, type TrackerIntent } from './pages';
 
 // The tracker pages' one template (release 48): the product page, each intent page and each install page are the same
 // blocks in the same order, so a reader always finds the price, what it does and the waitlist in the same place:
@@ -30,19 +30,24 @@ export function productLd(f: TrackerFacts, path: string) {
     brand: { '@type': 'Brand', name: f.brand },
     offers: { '@type': 'Offer', priceCurrency: 'CAD', price: (deviceNow(f) / 100).toFixed(2),
       availability: f.available ? 'https://schema.org/InStock' : 'https://schema.org/PreOrder', url: `${siteUrl()}/trackers#waitlist`, seller: { '@id': `${siteUrl()}/#business` },
+      ...(lowestMonthly(f) !== null ? { priceSpecification: [
+        { '@type': 'UnitPriceSpecification', name: 'The tracker', price: (deviceNow(f) / 100).toFixed(2), priceCurrency: 'CAD' },
+        { '@type': 'UnitPriceSpecification', name: 'Monthly service, per car', description: monthlySentence(f), priceCurrency: 'CAD', unitCode: 'MON', billingDuration: 1, billingIncrement: 1,
+          minPrice: (lowestMonthly(f)! / 100).toFixed(2), maxPrice: (Math.max(...f.tiers.map((t) => t.monthly_cents)) / 100).toFixed(2), price: (lowestMonthly(f)! / 100).toFixed(2) }] } : {}),
       ...(f.installCents ? { description: `Installed by ${f.brand}: ${money(f.installCents)} once per car, charged with the install.` } : {}) }
   };
 }
 
 export function priceCards(f: TrackerFacts): PriceCard[] {
   const x = f.prices, ins = f.installCents ? `${money(f.installCents)} install, once per car` : 'Install quoted for your car';
+  const mo = `Monthly service ${monthlyShort(f)}`;
   const amt = (c: number) => (c === 0 ? 'Free' : money(c));
   const st = stage(f);
-  const owner: PriceCard = { forWhom: `${f.brand} vehicle owners`, amount: amt(x.ownerCents), per: 'the tracker', points: ['For cars listed with us', ins, 'Live GPS, kill switch, door locking and alarm'] };
+  const owner: PriceCard = { forWhom: `${f.brand} vehicle owners`, amount: amt(x.ownerCents), per: 'the tracker', points: ['For cars listed with us', ins, mo] };
   const pre: PriceCard | null = st === 'regular' ? null : st === 'free'
-    ? { forWhom: `The first ${x.freeFirst} pre-orders`, amount: 'Free', per: 'the tracker', best: true, tag: 'Pre-order now', points: [`${money(x.preorderCents)} on pre-order after that`, `Installed by ${f.brand}`, ins] }
-    : { forWhom: 'Pre-order', amount: amt(x.preorderCents), per: 'the tracker', best: true, tag: 'Pre-order now', points: [`${money(Math.max(0, x.regularCents - x.preorderCents))} less than after launch`, `Installed by ${f.brand}`, ins] };
-  const reg: PriceCard = { forWhom: f.available ? 'Everyone else' : 'After launch', amount: amt(x.regularCents), per: 'the tracker', best: st === 'regular', points: ['The regular price', ins, 'Live GPS, kill switch, door locking and alarm'] };
+    ? { forWhom: `The first ${x.freeFirst} pre-orders`, amount: 'Free', per: 'the tracker', best: true, tag: 'Pre-order now', points: [`${money(x.preorderCents)} on pre-order after that`, ins, mo] }
+    : { forWhom: 'Pre-order', amount: amt(x.preorderCents), per: 'the tracker', best: true, tag: 'Pre-order now', points: [`${money(Math.max(0, x.regularCents - x.preorderCents))} less than after launch`, ins, mo] };
+  const reg: PriceCard = { forWhom: f.available ? 'Everyone else' : 'After launch', amount: amt(x.regularCents), per: 'the tracker', best: st === 'regular', points: ['The regular price', ins, mo] };
   return [owner, ...(pre ? [pre] : []), reg];
 }
 
@@ -69,7 +74,7 @@ export async function TrackerTemplate(x: Props) {
       <div className="wrap landing__body">
         {x.placeNote}
         <KitSection id="price" kicker="Price" h={stage(f) === 'free' ? `Free for the first ${f.prices.freeFirst} pre-orders` : 'One price for the tracker, one for the install'} p={`${availability(f)}. Nothing is charged until we confirm your install.`}>
-          <KitPrices cards={priceCards(f)} fine={`Prices are per tracker, one per car, before ${f.hst} HST.${f.installCents ? ` Everyone pays the ${money(f.installCents)} install, once per car.` : ''}${f.available ? '' : ` A pre-ordered tracker is installed by ${f.brand}.`}`} />
+          <KitPrices cards={priceCards(f)} fine={`Prices are per tracker, one per car, before ${f.hst} HST.${f.installCents ? ` Everyone pays the ${money(f.installCents)} install, once per car.` : ''} The monthly service is ${monthlySentence(f)}, for vehicle owners and everyone else.${f.available ? '' : ` A pre-ordered tracker is installed by ${f.brand}.`}`} />
         </KitSection>
         <KitSection id="features" kicker="What it does" h="See it, lock it, stop it, prove it" p="Everything is worked from your phone or computer.">
           <KitTiles items={features.map((ft) => ({ icon: featureIcon(ft.title), title: ft.title, text: ft.text }))} />
@@ -85,12 +90,12 @@ export async function TrackerTemplate(x: Props) {
           <div className="sk-two">
             <div className="stack" style={{ gap: 'var(--s-5)' }}>
               <KitFacts rows={[['Product', f.name], ['What it is', 'GPS tracker with a remote kill switch (starter interrupt), door locking and alarm'],
-                ['The tracker', PriceSentence(f)], ['Install', f.installCents ? `${money(f.installCents)} once per car` : 'Quoted for your car'],
+                ['The tracker', PriceSentence(f)], ['Monthly service', `${monthlySentence(f).replace(/^./, (c) => c.toUpperCase())}. Everyone pays it`], ['Install', f.installCents ? `${money(f.installCents)} once per car` : 'Quoted for your car'],
                 ['When', f.available ? 'Installs are open' : `${f.launchNote}. Waitlist and pre-orders are open`], ['Installed by', `${f.brand}, ${f.city}, Ontario`], ['Price today', priceShort(f)]]} />
               <KitTrust items={[['shield', 'Nothing charged to join'], ['wrench', `Installed by ${f.brand}`], ['users', 'A person answers every sign-up'], ['dollar', 'Price confirmed in writing first']]} />
             </div>
             <div id="waitlist" style={{ scrollMarginTop: 'calc(var(--header-h) + 1rem)' }}>
-              <WaitlistForm prices={f.prices} brand={f.brand} installCents={f.installCents} available={f.available} city={x.city} note={f.available ? 'Tell us how many cars. We reply with your install day and confirm the price before anything is billed.'
+              <WaitlistForm tiers={f.tiers} prices={f.prices} brand={f.brand} installCents={f.installCents} available={f.available} city={x.city} note={f.available ? 'Tell us how many cars. We reply with your install day and confirm the price before anything is billed.'
                 : `${f.launchNote}. Leave your email and the number of cars: you hear first, and nothing is charged today.${stage(f) === 'free' ? ` The tracker is free for the first ${f.prices.freeFirst} pre-orders.` : ''}`} />
             </div>
           </div>

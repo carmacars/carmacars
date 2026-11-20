@@ -220,7 +220,7 @@ const LABELS: Record<string, string> = {
   tracker_product_monthly_cents: 'GPS tracker product: one monthly price, used only when no price by number of cars is set', tracker_product_install_cents: 'GPS tracker product: the install price (empty: "quoted")',
   tracker_product_features: 'GPS tracker product: the features, [{title, text}]', tracker_product_details: 'GPS tracker product: more details for its page',
   // r48 (3230, 3231): the tracker's prices and its waitlist wording; duplicate leads
-  tracker_product_tiers: 'GPS tracker product: a monthly price per car by number of cars, [{from_cars, monthly_cents}]. Kept here; no public page shows it',
+  tracker_product_tiers: 'GPS tracker product: the monthly service price per car by number of cars, [{from_cars, monthly_cents}], before HST. Everyone pays it',
   tracker_owner_device_cents: 'GPS tracker product: what a vehicle owner pays for the tracker (0: free)', tracker_free_preorder_cap: 'GPS tracker product: how many pre-orders really get the tracker free. Never shown on the site',
   tracker_free_preorder_public: 'GPS tracker product: the number the site says ("free for the first 100 pre-orders")', tracker_preorder_price_cents: 'GPS tracker product: the pre-order price once the free pre-orders are taken',
   tracker_regular_price_cents: 'GPS tracker product: the regular price after launch', tracker_product_launch_note: 'GPS tracker product: the words beside Join the waitlist while trackers cannot be installed yet',

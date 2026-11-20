@@ -3,7 +3,7 @@ import { cache } from 'react';
 import { rpc } from '@/lib/db/repo';
 
 // The GPS tracker product (release 36, migration 2003; release 48, migration 3231), from Program settings: null when it
-// is switched off. `prices` is the tracker's own price (vehicle owners, pre-order, after launch) and the one that applies now; `tiers` is a monthly price by number of cars that no page shows; `available` is false until trackers can be
+// is switched off. `prices` is the tracker's own price (vehicle owners, pre-order, after launch) and the one that applies now; `tiers` is the monthly service price per car by number of cars, paid by everyone; `available` is false until trackers can be
 // installed (the pages then show the waitlist and never say a tracker is in stock).
 export interface TrackerTier { from_cars: number; to_cars: number | null; monthly_cents: number }
 export interface TrackerProduct { name: string; monthly_cents: number | null; install_cents: number | null; features: Array<{ title: string; text: string }>; details: string | null;

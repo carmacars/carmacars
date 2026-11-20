@@ -10,8 +10,9 @@ import type { KitIcon } from '../seo/kit/icons.tsx';
 /** The tracker's own price (Program settings): free for our vehicle owners, free for the first pre-orders, then the
  *  pre-order price, and the regular price after launch. `freeFirst` is the number the site says; the count that closes
  *  the offer is kept on the server and never shown. */
+export interface Tier { from_cars: number; to_cars: number | null; monthly_cents: number }
 export interface Prices { ownerCents: number; preorderCents: number; regularCents: number; freeFirst: number; freeOpen: boolean }
-export interface TrackerFacts { name: string; brand: string; city: string; prices: Prices; installCents: number | null; available: boolean; launchNote: string; features: Array<{ title: string; text: string }>; hst: string }
+export interface TrackerFacts { name: string; brand: string; city: string; prices: Prices; tiers: Tier[]; installCents: number | null; available: boolean; launchNote: string; features: Array<{ title: string; text: string }>; hst: string }
 export interface Faq { question: string; answer: string }
 export interface TrackerIntent {
   slug: string; title: string; h1: string; kicker: string; icon: KitIcon;
@@ -25,6 +26,23 @@ export interface TrackerIntent {
   lead: string[];
 }
 
+export const tierLabel = (t: Tier) => (t.to_cars === null ? `${t.from_cars} cars or more` : t.from_cars === t.to_cars ? `${t.from_cars} car${t.from_cars === 1 ? '' : 's'}` : `${t.from_cars} to ${t.to_cars} cars`);
+/** The monthly service price per car for a number of cars (the same rule as app.tracker_monthly_cents). Everyone pays it, vehicle owners included. */
+export function tierFor(tiers: Tier[], cars: number): Tier | null {
+  return [...tiers].sort((a, b) => b.from_cars - a.from_cars).find((t) => t.from_cars <= Math.max(1, cars)) ?? null;
+}
+/** "$25 a month per car for 1 to 2 cars, $20 for 3 to 9 cars and $15 for 10 cars or more" */
+export function monthlySentence(f: Pick<TrackerFacts, 'tiers'>): string {
+  const t = [...f.tiers].sort((a, b) => a.from_cars - b.from_cars);
+  if (!t.length) return 'a monthly service price quoted for your cars';
+  const parts = t.map((x, i) => `${i === 0 ? `${money(x.monthly_cents)} a month per car` : money(x.monthly_cents)} for ${tierLabel(x)}`);
+  return parts.length === 1 ? parts[0]! : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`;
+}
+export const lowestMonthly = (f: Pick<TrackerFacts, 'tiers'>) => (f.tiers.length ? Math.min(...f.tiers.map((t) => t.monthly_cents)) : null);
+/** "from $15 a month per car" */
+export const monthlyShort = (f: Pick<TrackerFacts, 'tiers'>) => { const lo = lowestMonthly(f); return lo === null ? 'a monthly service price' : `${f.tiers.length > 1 ? 'from ' : ''}${money(lo)} a month per car`; };
+/** What everyone pays besides the tracker: the install once, and the service every month. */
+export const everyone = (f: TrackerFacts) => `Everyone, vehicle owners included, pays ${installSentence(f)} and the monthly service: ${monthlySentence(f)}`;
 type Staged = Pick<TrackerFacts, 'prices' | 'available'>;
 /** The prices as public.tracker_product answers them, with the owner's Nov 20 prices where an older answer has none. */
 export function toPrices(p?: { owner_cents?: number; preorder_cents?: number; regular_cents?: number; free_first?: number; free_open?: boolean } | null): Prices {
@@ -53,7 +71,7 @@ export function priceShort(f: Staged): string {
 }
 export const installSentence = (f: TrackerFacts) => (f.installCents ? `${money(f.installCents)} once per car to install` : 'the install is quoted for your car');
 /** The offer in one line: "Free for the first 100 pre-orders, plus $150 once per car to install". */
-export const offer = (f: TrackerFacts) => `${priceShort(f)}, plus ${installSentence(f)}`;
+export const offer = (f: TrackerFacts) => `${priceShort(f)}, plus ${installSentence(f)} and ${monthlyShort(f)}`;
 /** The rows of the price table: who, the tracker, the install. */
 export function priceRows(f: TrackerFacts): string[][] {
   const x = f.prices, ins = f.installCents ? money(f.installCents) : 'Quoted';
@@ -69,7 +87,7 @@ export const ctaLabel = (f: TrackerFacts) => (f.available ? 'Order a tracker' : 
 /** The product in one quotable sentence. */
 export function productAnswer(f: TrackerFacts): string {
   return `The ${f.name} is a GPS tracker with a remote kill switch for cars in Ontario: live location, a starter interrupt that keeps a parked car from being started, remote door locking and an alarm, from your phone. `
-    + `${PriceSentence(f)}. Everyone pays ${installSentence(f)}. Prices are before ${f.hst} HST. ${availability(f)}.`;
+    + `${PriceSentence(f)}. ${everyone(f)}. Prices are before ${f.hst} HST. ${availability(f)}.`;
 }
 
 const US = (f: TrackerFacts) => f.name;
@@ -89,12 +107,12 @@ export function trackerIntents(f: TrackerFacts): TrackerIntent[] {
       compare: { caption: 'A remote kill switch compared with a hidden toggle and a steering wheel lock', head: ['', US(f), 'Hidden toggle switch', 'Steering wheel lock'],
         rows: [['Works when you are away from the car', 'Yes, from your phone', 'No, you flip it by hand', 'No, you fit it by hand'], ['Shows where the car is', 'Yes, live GPS', 'No', 'No'],
           ['Someone with the key can drive away', 'Not once the starter is off', 'Yes, if they find the toggle', 'Yes, once the lock is removed'], ['Good for a rented or shared car', 'Yes: nothing for the driver to do', 'The driver must know the toggle', 'The driver must carry the key'],
-          ['Cost', `${price(f)} plus ${install} install`, 'Parts and an installer', 'One purchase']] },
+          ['Cost', `${price(f)} plus ${install} install, and ${monthlyShort(f)}`, 'Parts and an installer', 'One purchase']] },
       faq: [
         { question: 'What is a kill switch on a car?', answer: 'A switch that breaks a circuit the engine needs to start, usually the starter, the fuel pump or the ignition. With it off, turning the key or pressing Start does nothing. Ours interrupts the starter and is switched from your phone.' },
         { question: 'Is a kill switch the same as a starter interrupt?', answer: 'A starter interrupt is one kind of kill switch: it stops the starter from cranking the engine. It is the kind used on rental and financed cars because it acts on a parked car.' },
         { question: 'Can it stop a car that is being driven?', answer: 'It is a starter interrupt: it keeps a parked car from being started. It is used once the car has stopped, together with the live location.' },
-        { question: `How much does a kill switch cost in ${f.city}?`, answer: `${PriceSentence(f)}. Everyone pays ${installSentence(f)}. Prices are before ${f.hst} HST. The GPS tracking, the door locking and the alarm are part of the same tracker.` },
+        { question: `How much does a kill switch cost in ${f.city}?`, answer: `${PriceSentence(f)}. ${everyone(f)}. Prices are before ${f.hst} HST. The GPS tracking, the door locking and the alarm are part of the same tracker.` },
         { question: 'Who installs it?', answer: `${f.brand} installs the tracker out of sight and checks that it works before the car goes out.` }],
       lead: ['Kill switch', 'Live GPS', 'Alarm']
     },
@@ -112,7 +130,7 @@ export function trackerIntents(f: TrackerFacts): TrackerIntent[] {
         { question: 'What does a starter interrupt device do?', answer: 'It opens the starter circuit on command, so the engine will not crank. The car is unharmed and starts normally again as soon as the starter is switched back on.' },
         { question: 'Does it drain the battery or change how the car drives?', answer: `Ask us about your car when you join the waitlist: ${f.brand} installs each tracker and checks the car starts, locks and reports its location before it goes back out.` },
         { question: 'Can the driver switch it off?', answer: 'The tracker is installed out of sight and is switched only from the owner\'s account.' },
-        { question: 'What does it cost?', answer: `${PriceSentence(f)}. Everyone pays ${installSentence(f)}. Prices are before ${f.hst} HST.` }],
+        { question: 'What does it cost?', answer: `${PriceSentence(f)}. Add ${installSentence(f)} and the monthly service, ${monthlyShort(f)}. Prices are before ${f.hst} HST.` }],
       lead: ['Kill switch', 'Remote lock', 'Installed']
     },
     {
@@ -130,7 +148,7 @@ export function trackerIntents(f: TrackerFacts): TrackerIntent[] {
         { question: 'Do rental cars have GPS trackers?', answer: `Most rental companies track their cars. The ${f.brand} rental agreement tells every renter the car is tracked by GPS and can be disabled remotely, and what the tracker records: location, speed, distance, ignition and tampering, never sound or video.` },
         { question: 'Who pays the 407 ETR toll on a rental car?', answer: 'The renter who drove it. The 407 bills the plate, so the bill reaches the owner first; the trip history shows who had the car at that minute, and the toll is billed on to that renter.' },
         { question: 'Do I have to tell renters the car is tracked?', answer: 'Yes. Say so in your rental agreement and your listing, and have the renter agree to it. Our rental agreement asks every renter to consent to GPS tracking and remote disabling for the whole rental.' },
-        { question: 'How much is a GPS tracker for a rental car?', answer: `${PriceSentence(f)}. Everyone pays ${installSentence(f)}. Prices are before ${f.hst} HST.` }],
+        { question: 'How much is a GPS tracker for a rental car?', answer: `${PriceSentence(f)}. Add ${installSentence(f)} and the monthly service, ${monthlyShort(f)}. Prices are before ${f.hst} HST.` }],
       lead: ['Live GPS', 'Tolls', 'Trip history']
     },
     {
@@ -141,7 +159,7 @@ export function trackerIntents(f: TrackerFacts): TrackerIntent[] {
           ['Switch the starter off', 'Once the car is parked, the starter interrupt keeps it from being started again.'], ['Sound the alarm if it helps', 'The horn and lights draw attention to the car and help an officer find it in a lot.']] },
       compare: { caption: 'Anti-theft options for a car compared', head: ['', US(f), 'Bluetooth tag', 'Steering wheel lock', 'Factory alarm'],
         rows: [['Finds the car after it is taken', 'Yes, live GPS', 'Only near a phone on its network', 'No', 'No'], ['Keeps the car from being started', 'Yes', 'No', 'Slows a thief down', 'On some models'],
-          ['Works from your phone', 'Yes', 'Location only', 'No', 'On some models'], ['Installed out of sight', 'Yes', 'Hidden by you', 'In plain sight', 'Built in'], ['Price', price(f), 'One purchase', 'One purchase', 'Comes with the car']] },
+          ['Works from your phone', 'Yes', 'Location only', 'No', 'On some models'], ['Installed out of sight', 'Yes', 'Hidden by you', 'In plain sight', 'Built in'], ['Price', `${price(f)}; ${monthlyShort(f)}`, 'One purchase', 'One purchase', 'Comes with the car']] },
       faq: [
         { question: 'What is the best anti-theft device for a car?', answer: 'Layers. Something that slows a thief (a steering wheel lock), something that stops the car being started (a starter interrupt) and something that finds it (a GPS tracker). The tracker with a kill switch covers the last two in one install.' },
         { question: 'Will a GPS tracker stop my car being stolen?', answer: 'A tracker alone finds the car; it does not stop it leaving. That is why ours includes a starter interrupt and an alarm as well as the location.' },
@@ -151,13 +169,13 @@ export function trackerIntents(f: TrackerFacts): TrackerIntent[] {
     },
     {
       slug: 'fleet-tracking', title: `Fleet GPS tracking in Ontario for small fleets | ${f.brand}`, h1: 'Fleet tracking for small fleets', kicker: 'Fleet tracking', icon: 'fleet',
-      answer: `Fleet tracking from ${f.brand} shows every car live on one map with its trips, and each car has its own kill switch, door locking and alarm. ${PriceSentence(f)}. Everyone pays ${installSentence(f)}. ${availability(f)}.`,
+      answer: `Fleet tracking from ${f.brand} shows every car live on one map with its trips, and each car has its own kill switch, door locking and alarm. ${PriceSentence(f)}. Add ${installSentence(f)} and the monthly service, ${monthlyShort(f)}. ${availability(f)}.`,
       section: { h: 'Built for 3 to 50 cars', p: 'Big telematics suites are sold by the hundred seats. This is for the owner who knows every car by its plate.',
         points: [{ icon: 'pin', title: 'One map, every car', text: 'See the whole fleet at once, and open any car for its trips.' }, { icon: 'dollar', title: 'One price per tracker', text: `${offer(f)}. ${ownerSentence(f)}.` },
           { icon: 'receipt', title: 'Tolls and tickets to the driver', text: 'The trip history ties each one to whoever had the car at that minute.' }, { icon: 'power', title: 'Every car recoverable', text: 'A starter interrupt in each car, switched from your phone.' }] },
-      compare: { caption: 'What a tracker costs, per car', head: ['Who', 'The tracker', 'Install, once per car'], rows: priceRows(f) },
+      compare: { caption: 'What a tracker costs, per car', head: ['Who', 'The tracker', 'Install, once per car', 'Monthly service'], rows: priceRows(f).map((r) => [...r, cap(monthlyShort(f))]) },
       faq: [
-        { question: 'How much does fleet tracking cost per vehicle?', answer: `${PriceSentence(f)}. The install is ${f.installCents ? `${money(f.installCents)} once per car` : 'quoted per car'}. Prices are before ${f.hst} HST.` },
+        { question: 'How much does fleet tracking cost per vehicle?', answer: `${PriceSentence(f)}. The install is ${f.installCents ? `${money(f.installCents)} once per car` : 'quoted per car'}. The monthly service is ${monthlySentence(f)}, and every car is billed at the price for your number of cars. Prices are before ${f.hst} HST.` },
         { question: `Do I have to install with ${f.brand}?`, answer: `A pre-ordered tracker is installed by ${f.brand}: ${installSentence(f)}. We fit it out of sight and check that it works before the car goes back out.` },
         { question: 'Is there a contract?', answer: 'Ask us when you join the waitlist: we confirm the terms and your price in writing before anything is billed.' },
         { question: 'Can my cars also be rented out through CarmaCars?', answer: 'Yes. Owners list cars with us and we handle the renters, the bookings and the payments; the tracker is how we and you see the car. See List your car.' }],
@@ -177,7 +195,7 @@ export function trackerIntents(f: TrackerFacts): TrackerIntent[] {
       faq: [
         { question: 'Are hosts allowed to track their cars?', answer: 'Check your platform\'s current policy and tell guests in your listing that the car has a tracker. Most platforms allow a disclosed tracker; the rules are theirs to set.' },
         { question: 'Is this a Turo product?', answer: `No. ${f.brand} is an Ontario car rental company and is not affiliated with or endorsed by Turo. Turo is named here only because hosts search for a tracker by that name.` },
-        { question: 'What does it cost for 5 cars?', answer: `${PriceSentence(f)}. The install is ${f.installCents ? `${money(f.installCents)} once per car, ${money(f.installCents * 5)} for the five` : 'quoted per car'}. Prices are before ${f.hst} HST.` },
+        { question: 'What does it cost for 5 cars?', answer: `${PriceSentence(f)}. The install is ${f.installCents ? `${money(f.installCents)} once per car, ${money(f.installCents * 5)} for the five` : 'quoted per car'}.${(() => { const t = tierFor(f.tiers, 5); return t ? ` The monthly service for five cars is ${money(t.monthly_cents)} per car, ${money(t.monthly_cents * 5)} a month in all.` : ''; })()} Prices are before ${f.hst} HST.` },
         { question: 'Can CarmaCars rent my cars out as well?', answer: 'Yes. With the owner program we find the renters, check them, take the payments and send you a monthly statement. See List your car.' }],
       lead: ['Remote lock', 'Tolls', 'Kill switch']
     },
@@ -217,8 +235,8 @@ export function featureIcon(title: string): KitIcon {
 /** The questions of the product page. */
 export function productFaq(f: TrackerFacts): Faq[] {
   return [
-    { question: `How much is the ${f.name}?`, answer: `${PriceSentence(f)}. Everyone pays ${installSentence(f)}. Prices are before ${f.hst} HST.` },
-    { question: 'Who gets the tracker free?', answer: `${ownerSentence(f)}: owners whose cars are listed with us pay only the install.${stage(f) === 'free' ? ` For everyone else, the tracker is free for the first ${f.prices.freeFirst} pre-orders, and a pre-ordered tracker is installed by ${f.brand}.` : ''}` },
+    { question: `How much is the ${f.name}?`, answer: `${PriceSentence(f)}. ${everyone(f)}. Prices are before ${f.hst} HST.` },
+    { question: 'Who gets the tracker free?', answer: `${ownerSentence(f)}: owners whose cars are listed with us pay the install and the monthly service only.${stage(f) === 'free' ? ` For everyone else, the tracker is free for the first ${f.prices.freeFirst} pre-orders, and a pre-ordered tracker is installed by ${f.brand}.` : ''}` },
     { question: 'Can I get one today?', answer: f.available ? `Yes. Order online and we agree the install day with you.` : `${f.launchNote}. Join the waitlist or pre-order and you hear first, in the order people joined. Nothing is charged until we confirm your install.` },
     { question: 'What is the difference between a GPS tracker and a kill switch?', answer: 'A GPS tracker shows where the car is. A kill switch (a starter interrupt) keeps a parked car from being started. This product is both, with remote door locking and an alarm.' },
     { question: 'Who can see where my car is?', answer: `You, and ${f.brand}. The location is not shared with anyone else unless you ask us to help recover the car.` },
