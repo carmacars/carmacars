@@ -521,7 +521,10 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             -- handled twice; no money, pricing or status (the email itself is in app_events and the outbox)
                             'owner_weekly_summaries',
                             -- requests that did not go through (2670): a follow-up list with the reason; no money, pricing or status
-                            'booking_request_failures')
+                            'booking_request_failures',
+                            -- harsh driving marks (3320): telemetry written by the tracker ingest like the position history; no
+                            -- money, pricing or status (the alert they make and its evidence record are audited)
+                            'tracker_harsh')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',
   (select count(*) > 0 from audit_log where entity_table = 'rate_cards' and action = 'INSERT' and after ->> 'daily_rate_cents' = '10000'), true);

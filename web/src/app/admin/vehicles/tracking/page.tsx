@@ -7,6 +7,8 @@ import { Card, PageHead, Table, t } from '@/features/admin/ui';
 import { FleetTracking } from '@/features/tracking/FleetTracking';
 import { IngestKey } from '@/features/tracking/IngestKey';
 import type { Fleet, TrackedCar, Unpaired } from '@/features/tracking/model';
+import { TrackerEventsPanel } from '@/features/tracking/TrackerEvents';
+import type { TrackerEvents } from '@/features/tracking/events';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Fleet tracking', path: '/admin/vehicles/tracking', noindex: true, description: 'Every car on the map with its renter, trips, alerts and trackers.' });
@@ -17,7 +19,7 @@ const R = ['/admin/vehicles/tracking'];
 // of its own in the menu. The live panel, then the trackers (pair, replace, remove) and the settings.
 export default async function Tracking() {
   const { user } = await requireAdmin('/admin/vehicles/tracking');
-  const f = await door<Fleet>(user.id, 'ops_read', 'tracker_fleet').catch(() => null);
+  const [f, ev] = await Promise.all([door<Fleet>(user.id, 'ops_read', 'tracker_fleet').catch(() => null), door<TrackerEvents>(user.id, 'ops_read', 'tracker_events').catch(() => null)]);
   const at = new Date().getTime();
   const s = f?.settings;
   const carOptions = (f?.cars ?? []).map((c) => [c.vehicle_id, `${c.name}${c.code ? ` (${c.code})` : ''}${c.device ? ' · has a tracker' : ''}`] as [string, string]);
@@ -36,6 +38,8 @@ export default async function Tracking() {
       {f ? <FleetTracking initial={f} at={at} /> : <p className="alert alert--error" role="alert"><span>Fleet tracking could not be read. Reload the page.</span></p>}
 
       <div className="stack" style={{ marginTop: 24 }}>
+        {/* 3320: the events with their evidence, the pound flags and lots, the event settings */}
+        <TrackerEventsPanel d={ev} />
         <Card title={`Trackers (${paired.length} on cars)`} id="trackers" testId="trackers"
           aside={<Act ops action="tracker_pair" label="Pair a tracker" variant="primary" fields={pairFields()} refresh={R} done="Paired." testId="pair" />}>
           {f && f.unpaired.length > 0 && <>

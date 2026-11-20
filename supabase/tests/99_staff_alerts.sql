@@ -142,7 +142,7 @@ select test.eq('tracker: speeding reaches the Admin and fleet staff as before (u
 select test.eq('tracker: a rule that is on still sends', (select count(*) > 0 from notifications where code in ('staff_tracker_alert', 'staff_tracker_alert_fleet') and title like 'Left the zone: sta car%'), true);
 select test.eq('tracker: the rule turned off makes no notice for its kinds (the zone and Ontario)', (select count(*) from notifications where code in ('staff_tracker_alert', 'staff_tracker_alert_fleet') and title like 'Left Ontario: sta car%'), 0::bigint);
 update staff_alert_rules set enabled = true where rule = 'tracker_zone';
-select test.eq('tracker: every kind has a wired rule', (select count(*) from staff_alert_rules where rule like 'tracker\_%' and wired), 5::bigint);
+select test.eq('tracker: every kind has a wired rule (3320 adds the pound, tampering, harsh driving and driving at night)', (select count(*) from staff_alert_rules where rule like 'tracker\_%' and wired), 9::bigint);
 select test.eq('data health and usage are in the app only (0465): no push topic, digest tier',
   coalesce((select push_topic from notification_catalogue where code = 'staff_data_health'), 'none') || '/' || (select tier from staff_alert_rules where rule = 'usage_80'), 'none/digest');
 insert into job_applications (role_id, status, full_name, email) select id, 'interviewed', 'Sta Applicant', 'sta_applicant@example.test' from hiring_roles where slug = 'va-customer-service';

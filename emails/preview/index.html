@@ -21,10 +21,10 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>235 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>100</span></a><a href="#owner">Owner <span>50</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>20</span></a><a href="#staff_va_finance">Staff: finance <span>9</span></a><a href="#staff_va_fleet">Staff: fleet <span>10</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>5</span></a><a href="#staff_field">Staff: field <span>9</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>14</span></a><a href="#partner">Partner (body shop, tow truck, storage) <span>1</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>239 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>102</span></a><a href="#owner">Owner <span>51</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>20</span></a><a href="#staff_va_finance">Staff: finance <span>9</span></a><a href="#staff_va_fleet">Staff: fleet <span>11</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>5</span></a><a href="#staff_field">Staff: field <span>9</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>14</span></a><a href="#partner">Partner (body shop, tow truck, storage) <span>1</span></a></nav>
 <main>
-<h2 id="renter">Renter (100)</h2>
+<h2 id="renter">Renter (102)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/account_password_reset.html"><img loading="lazy" src="../shots/account_password_reset.desktop.png" alt="Screenshot of account_password_reset"></a><div class="b">
 <div class="code">account_password_reset</div><div class="sub">Reset your CarmaCars password</div>
@@ -241,6 +241,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">The signing link of an additional driver is sent: when the renter's agreement is opened, or when the renter or customer service sends a new link from the booking. Sent to the additional driver's own email address. The link is valid for booking_driver_link_hours (Program settings, 72 by default); a newer link replaces it.</div>
 <div class="ln"><a href="../dist/renter_driver_link.html">HTML</a><a href="../dist/renter_driver_link.txt">Text</a><a href="../shots/renter_driver_link.desktop.png">Desktop</a><a href="../shots/renter_driver_link.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_driving_notice.html"><img loading="lazy" src="../shots/renter_driving_notice.desktop.png" alt="Screenshot of renter_driving_notice"></a><div class="b">
+<div class="code">renter_driving_notice</div><div class="sub">Please slow down: your 2024 Honda Civic Sport</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Tracker events are on (migration 3320) and the Tracker of a car out on this renter's rental recorded driving worth a friendly word, with no charge: a speed over the speeding alert level of Tracking settings (140 km/h by default) but not over 180 km/h, or several hard braking or acceleration events in the window. Once per event (one per car, kind and window). The renter may mute it in their notification settings.</div>
+<div class="ln"><a href="../dist/renter_driving_notice.html">HTML</a><a href="../dist/renter_driving_notice.txt">Text</a><a href="../shots/renter_driving_notice.desktop.png">Desktop</a><a href="../shots/renter_driving_notice.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_extension_approved.html"><img loading="lazy" src="../shots/renter_extension_approved.desktop.png" alt="Screenshot of renter_extension_approved"></a><div class="b">
 <div class="code">renter_extension_approved</div><div class="sub">Extension available. Pay $226.00 by 10:00 am to confirm</div>
@@ -608,6 +614,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tr">A staff member (customer service, Sales, Fleet, Finance or an Admin) writes to the renter from the booking (Email the renter, or a reply in the booking's messages), sent as CarmaCars. The subject is the one they typed. The message is kept on the booking and shown in the renter's account; this email carries it with a link to reply there. One email per message.</div>
 <div class="ln"><a href="../dist/renter_staff_message.html">HTML</a><a href="../dist/renter_staff_message.txt">Text</a><a href="../shots/renter_staff_message.desktop.png">Desktop</a><a href="../shots/renter_staff_message.phone.png">Phone</a></div>
 </div></div>
+<div class="c"><a class="th" href="../dist/renter_tracker_notice.html"><img loading="lazy" src="../shots/renter_tracker_notice.desktop.png" alt="Screenshot of renter_tracker_notice"></a><div class="b">
+<div class="code">renter_tracker_notice</div><div class="sub">Speeding over 180 km/h: booking CC-10482</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Tracker events are on (Admin &gt; Cars &gt; Fleet tracking &gt; Tracking settings; migration 3320) and the Tracker of a car out on this renter's rental recorded an event that carries a charge or breaks the rental agreement: a speeding record over 180, 220 or 300 km/h, the car outside Ontario, still driving after the return time, the Tracker unplugged or tampered with, or the car parked at an impound lot. It says what happened, the charge and the clause. Once per event (one event per car, kind and window, 30 minutes by default). Always sent: the renter cannot mute it.</div>
+<div class="ln"><a href="../dist/renter_tracker_notice.html">HTML</a><a href="../dist/renter_tracker_notice.txt">Text</a><a href="../shots/renter_tracker_notice.desktop.png">Desktop</a><a href="../shots/renter_tracker_notice.phone.png">Phone</a></div>
+</div></div>
 <div class="c"><a class="th" href="../dist/renter_trip_checkin.html"><img loading="lazy" src="../shots/renter_trip_checkin.desktop.png" alt="Screenshot of renter_trip_checkin"></a><div class="b">
 <div class="code">renter_trip_checkin</div><div class="sub">How is the 2024 Honda Civic Sport going?</div>
 <div class="tags"><span>Transactional</span></div>
@@ -627,7 +639,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/renter_vehicle_disabled.html">HTML</a><a href="../dist/renter_vehicle_disabled.txt">Text</a><a href="../shots/renter_vehicle_disabled.desktop.png">Desktop</a><a href="../shots/renter_vehicle_disabled.phone.png">Phone</a></div>
 </div></div>
 </div>
-<h2 id="owner">Owner (50)</h2>
+<h2 id="owner">Owner (51)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/document_signing_code.html"><img loading="lazy" src="../shots/document_signing_code.desktop.png" alt="Screenshot of document_signing_code"></a><div class="b">
 <div class="code">document_signing_code</div><div class="sub">Your CarmaCars signing code: 482913</div>
@@ -899,6 +911,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tr">A toll or ticket is matched to the owner rather than a renter. is_forwarded true: the owner had the car outside the program, or the car is Turo-Only, and the notice is forwarded for the owner to pay. is_forwarded false: the owner had the car on an Owner Booking, CarmaCars paid it and an owner deduction is created at cost with no fee.</div>
 <div class="ln"><a href="../dist/owner_toll_ticket.html">HTML</a><a href="../dist/owner_toll_ticket.txt">Text</a><a href="../shots/owner_toll_ticket.desktop.png">Desktop</a><a href="../shots/owner_toll_ticket.phone.png">Phone</a></div>
 </div></div>
+<div class="c"><a class="th" href="../dist/owner_tracker_alert.html"><img loading="lazy" src="../shots/owner_tracker_alert.desktop.png" alt="Screenshot of owner_tracker_alert"></a><div class="b">
+<div class="code">owner_tracker_alert</div><div class="sub">Speeding over 180 km/h: your 2023 Toyota RAV4 XLE</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Tracker events are on (migration 3320) and the Tracker of one of this owner's cars recorded an event: speeding, harsh driving, the car outside Ontario or the zone, driving after the return time or at night, the Tracker unplugged or tampered with, or the car parked at an impound lot. The event, the time and the place only: never the renter or the booking. Once per event (one per car, kind and window). The owner may mute it in their notification settings.</div>
+<div class="ln"><a href="../dist/owner_tracker_alert.html">HTML</a><a href="../dist/owner_tracker_alert.txt">Text</a><a href="../shots/owner_tracker_alert.desktop.png">Desktop</a><a href="../shots/owner_tracker_alert.phone.png">Phone</a></div>
+</div></div>
 <div class="c"><a class="th" href="../dist/owner_trip_completed.html"><img loading="lazy" src="../shots/owner_trip_completed.desktop.png" alt="Screenshot of owner_trip_completed"></a><div class="b">
 <div class="code">owner_trip_completed</div><div class="sub">Trip complete: your 2023 Toyota RAV4 XLE is back</div>
 <div class="tags"><span>Transactional</span></div>
@@ -1131,7 +1149,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/staff_toll_ticket_unmatched.html">HTML</a><a href="../dist/staff_toll_ticket_unmatched.txt">Text</a><a href="../shots/staff_toll_ticket_unmatched.desktop.png">Desktop</a><a href="../shots/staff_toll_ticket_unmatched.phone.png">Phone</a></div>
 </div></div>
 </div>
-<h2 id="staff_va_fleet">Staff: fleet (10)</h2>
+<h2 id="staff_va_fleet">Staff: fleet (11)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/staff_breakdown_reported.html"><img loading="lazy" src="../shots/staff_breakdown_reported.desktop.png" alt="Screenshot of staff_breakdown_reported"></a><div class="b">
 <div class="code">staff_breakdown_reported</div><div class="sub">BREAKDOWN: 2024 Honda Civic Sport, booking CC-10482</div>
@@ -1192,6 +1210,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span><span class="d">Digest</span></div>
 <div class="tr">The listing similarity check finds a likely duplicate that stops publishing: a VIN one character from another car, the same plate, the same listing photo as a listed car, listing text very like a listed car (listing_similarity_copy_bps in Program settings), Queued for the next Fleet digest; a Fleet task is raised with it.</div>
 <div class="ln"><a href="../dist/staff_listing_similarity.html">HTML</a><a href="../dist/staff_listing_similarity.txt">Text</a><a href="../shots/staff_listing_similarity.desktop.png">Desktop</a><a href="../shots/staff_listing_similarity.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_pound_flag.html"><img loading="lazy" src="../shots/staff_pound_flag.desktop.png" alt="Screenshot of staff_pound_flag"></a><div class="b">
+<div class="code">staff_pound_flag</div><div class="sub">AT A POUND: 2024 Honda Civic Sport (CC-7F3A) at Example Towing and Storage</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Tracker events are on (migration 3320) and a car's Tracker shows it parked inside the radius of a known impound or pound lot (Admin &gt; Cars &gt; Fleet tracking &gt; Pound lots) for the minutes set in Tracking settings. The booking is flagged, Fleet gets an urgent To do and alert, and this email. Once per car, lot and stay.</div>
+<div class="ln"><a href="../dist/staff_pound_flag.html">HTML</a><a href="../dist/staff_pound_flag.txt">Text</a><a href="../shots/staff_pound_flag.desktop.png">Desktop</a><a href="../shots/staff_pound_flag.phone.png">Phone</a></div>
 </div></div>
 </div>
 <h2 id="staff_va_cs">Staff: customer service (13)</h2>

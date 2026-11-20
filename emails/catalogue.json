@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 235,
+  "count": 239,
   "emails": [
     {
       "code": "account_password_reset",
@@ -3727,6 +3727,118 @@
       ],
       "template_html": "templates/renter_driver_link.html",
       "template_text": "templates/renter_driver_link.txt"
+    },
+    {
+      "code": "renter_driving_notice",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "Tracker events are on (migration 3320) and the Tracker of a car out on this renter's rental recorded driving worth a friendly word, with no charge: a speed over the speeding alert level of Tracking settings (140 km/h by default) but not over 180 km/h, or several hard braking or acceleration events in the window. Once per event (one per car, kind and window). The renter may mute it in their notification settings.",
+      "timing": "Immediate, once per event",
+      "digest": false,
+      "from": "CarmaCars <bookings@carmacars.ca>",
+      "reply_to": "bookings@carmacars.ca",
+      "subject": "{{event_title}}: your {{vehicle_name}}",
+      "preheader": "{{event_short}}",
+      "sample_subject": "Please slow down: your 2024 Honda Civic Sport",
+      "variables": [
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "event_ask",
+          "type": "string",
+          "sample": "Please ease off and keep to the limit. Thank you."
+        },
+        {
+          "name": "event_clause",
+          "type": "string",
+          "sample": "Rental agreement: 10.5 Speeding charges."
+        },
+        {
+          "name": "event_fee",
+          "type": "string",
+          "sample": "No charge this time. Over 180 km/h there is a speeding charge of $500.00 plus HST, each time the Tracker records it."
+        },
+        {
+          "name": "event_short",
+          "type": "string",
+          "sample": "152 km/h recorded. No charge this time. Please slow down."
+        },
+        {
+          "name": "event_title",
+          "type": "string",
+          "sample": "Please slow down"
+        },
+        {
+          "name": "event_what",
+          "type": "string",
+          "sample": "The Tracker in your 2024 Honda Civic Sport recorded 152 km/h on Sat, Nov 21, 2026 at 2:14 pm."
+        },
+        {
+          "name": "event_when",
+          "type": "string",
+          "sample": "Sat, Nov 21, 2026 at 2:14 pm"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2024 Honda Civic Sport",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/renter_driving_notice.html",
+      "template_text": "templates/renter_driving_notice.txt"
     },
     {
       "code": "renter_extension_approved",
@@ -10413,6 +10525,112 @@
       "template_text": "templates/renter_staff_message.txt"
     },
     {
+      "code": "renter_tracker_notice",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "Tracker events are on (Admin > Cars > Fleet tracking > Tracking settings; migration 3320) and the Tracker of a car out on this renter's rental recorded an event that carries a charge or breaks the rental agreement: a speeding record over 180, 220 or 300 km/h, the car outside Ontario, still driving after the return time, the Tracker unplugged or tampered with, or the car parked at an impound lot. It says what happened, the charge and the clause. Once per event (one event per car, kind and window, 30 minutes by default). Always sent: the renter cannot mute it.",
+      "timing": "Immediate, once per event",
+      "digest": false,
+      "from": "CarmaCars <bookings@carmacars.ca>",
+      "reply_to": "bookings@carmacars.ca",
+      "subject": "{{event_title}}: booking {{booking_number}}",
+      "preheader": "{{event_short}}",
+      "sample_subject": "Speeding over 180 km/h: booking CC-10482",
+      "variables": [
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "event_ask",
+          "type": "string",
+          "sample": "Please slow down. Driving faster than 180 km/h is never allowed, and each new record is a new charge."
+        },
+        {
+          "name": "event_clause",
+          "type": "string",
+          "sample": "Rental agreement: 10.5 Speeding charges."
+        },
+        {
+          "name": "event_fee",
+          "type": "string",
+          "sample": "A speeding charge of $500.00 plus HST applies (over 180 km/h). It is taken from your Deposit first, and you get the Tracker's time, place and speed with it."
+        },
+        {
+          "name": "event_short",
+          "type": "string",
+          "sample": "187 km/h recorded. A $500.00 charge applies (agreement 10.5). Please slow down."
+        },
+        {
+          "name": "event_title",
+          "type": "string",
+          "sample": "Speeding over 180 km/h"
+        },
+        {
+          "name": "event_what",
+          "type": "string",
+          "sample": "The Tracker in your 2024 Honda Civic Sport recorded 187 km/h on Sat, Nov 21, 2026 at 2:14 pm."
+        },
+        {
+          "name": "event_when",
+          "type": "string",
+          "sample": "Sat, Nov 21, 2026 at 2:14 pm"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/renter_tracker_notice.html",
+      "template_text": "templates/renter_tracker_notice.txt"
+    },
+    {
       "code": "renter_trip_checkin",
       "audience": "renter",
       "category": "transactional",
@@ -15667,6 +15885,108 @@
       "template_text": "templates/owner_toll_ticket.txt"
     },
     {
+      "code": "owner_tracker_alert",
+      "audience": "owner",
+      "category": "transactional",
+      "trigger": "Tracker events are on (migration 3320) and the Tracker of one of this owner's cars recorded an event: speeding, harsh driving, the car outside Ontario or the zone, driving after the return time or at night, the Tracker unplugged or tampered with, or the car parked at an impound lot. The event, the time and the place only: never the renter or the booking. Once per event (one per car, kind and window). The owner may mute it in their notification settings.",
+      "timing": "Immediate, once per event",
+      "digest": false,
+      "from": "CarmaCars <owners@carmacars.ca>",
+      "reply_to": "owners@carmacars.ca",
+      "subject": "{{event_title}}: your {{vehicle_name}}",
+      "preheader": "{{event_short}}",
+      "sample_subject": "Speeding over 180 km/h: your 2023 Toyota RAV4 XLE",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "event_map_url",
+          "type": "url",
+          "sample": "https://www.google.com/maps?q=43.65320,-79.38320"
+        },
+        {
+          "name": "event_short",
+          "type": "string",
+          "sample": "Your 2023 Toyota RAV4 XLE was recorded at 187 km/h on Sat, Nov 21, 2026 at 2:14 pm."
+        },
+        {
+          "name": "event_title",
+          "type": "string",
+          "sample": "Speeding over 180 km/h"
+        },
+        {
+          "name": "event_what",
+          "type": "string",
+          "sample": "Your 2023 Toyota RAV4 XLE was recorded at 187 km/h on Sat, Nov 21, 2026 at 2:14 pm. CarmaCars has told the renter and the speeding charge applies."
+        },
+        {
+          "name": "event_when",
+          "type": "string",
+          "sample": "Sat, Nov 21, 2026 at 2:14 pm"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Daniel",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "vehicle_id",
+          "type": "string",
+          "sample": "v-3f81c2",
+          "note": "Vehicle id as used in portal URLs."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2023 Toyota RAV4 XLE",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/owner_tracker_alert.html",
+      "template_text": "templates/owner_tracker_alert.txt"
+    },
+    {
       "code": "owner_trip_completed",
       "audience": "owner",
       "category": "transactional",
@@ -19702,6 +20022,77 @@
       ],
       "template_html": "templates/staff_listing_similarity.html",
       "template_text": "templates/staff_listing_similarity.txt"
+    },
+    {
+      "code": "staff_pound_flag",
+      "audience": "staff_va_fleet",
+      "also_sent_to": [
+        "staff_admin"
+      ],
+      "category": "transactional",
+      "trigger": "Tracker events are on (migration 3320) and a car's Tracker shows it parked inside the radius of a known impound or pound lot (Admin > Cars > Fleet tracking > Pound lots) for the minutes set in Tracking settings. The booking is flagged, Fleet gets an urgent To do and alert, and this email. Once per car, lot and stay.",
+      "timing": "Immediate, once per stay at a lot",
+      "digest": false,
+      "from": "CarmaCars <bookings@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "AT A POUND: {{car_label}} at {{lot_name}}",
+      "preheader": "{{booking_line}}. Parked since {{pound_since}}.",
+      "sample_subject": "AT A POUND: 2024 Honda Civic Sport (CC-7F3A) at Example Towing and Storage",
+      "variables": [
+        {
+          "name": "booking_line",
+          "type": "string",
+          "sample": "Booking CC-10482"
+        },
+        {
+          "name": "car_label",
+          "type": "string",
+          "sample": "2024 Honda Civic Sport (CC-7F3A)"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "lot_address",
+          "type": "string",
+          "sample": "100 Example Road, Toronto, ON"
+        },
+        {
+          "name": "lot_hours",
+          "type": "string",
+          "sample": "Open 24 hours"
+        },
+        {
+          "name": "lot_name",
+          "type": "string",
+          "sample": "Example Towing and Storage"
+        },
+        {
+          "name": "lot_phone",
+          "type": "string",
+          "sample": "416-555-0100"
+        },
+        {
+          "name": "non_return_fee",
+          "type": "string",
+          "sample": "$1,000.00"
+        },
+        {
+          "name": "pound_since",
+          "type": "string",
+          "sample": "Sat, Nov 21, 2026 at 2:14 pm"
+        },
+        {
+          "name": "theft_recovery_fee",
+          "type": "string",
+          "sample": "$1,500.00"
+        }
+      ],
+      "template_html": "templates/staff_pound_flag.html",
+      "template_text": "templates/staff_pound_flag.txt"
     },
     {
       "code": "staff_booking_request_new",

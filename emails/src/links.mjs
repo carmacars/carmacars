@@ -92,6 +92,7 @@ export const PATHS = {
   va_fleet_listing: '/staff/listings/{{vehicle_id}}',
   va_fleet_expiries: '/staff/fleet#expiry',
   va_fleet_vehicle: '/staff/vehicles/{{vehicle_id}}',
+  va_fleet_tracking: '/staff/fleet/map',
   va_sales: '/staff',
   va_sales_application: '/staff/leads?application={{application_id}}',
   va_similar_cars: '/staff/similar-cars',

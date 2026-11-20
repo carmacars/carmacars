@@ -1,0 +1,38 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Tracker notice]
+{{event_title}}
+
+{{event_what}}
+
+Hi {{first_name}}, this is about your rental, booking {{booking_number}}.
+
+When: {{event_when}}
+The charge: {{event_fee}}
+The clause: {{event_clause}}
+
+IMPORTANT: What we ask
+{{event_ask}}
+
+Open my booking:
+https://carmacars.ca/account/bookings/{{booking_number}}
+
+Questions, or something we should know? Call {{support_phone}}, any time. We would rather sort it out with you than add charges.
+
+The Tracker records location, speed, distance, ignition and tampering, as section 12 of your rental agreement says. Its record is the evidence, and you can ask us for it.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

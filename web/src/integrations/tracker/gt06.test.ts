@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ALARM, LOCATION, LOCATION_2, LOGIN, STATUS, ack, crcItu, decode, frame, split } from './gt06.ts';
+import { ALARM, LOCATION, LOCATION_2, LOGIN, STATUS, ack, crcItu, decode, frame, split, alarmEvent } from './gt06.ts';
 
 const hex = (s: string) => Uint8Array.from(Buffer.from(s.replace(/\s+/g, ''), 'hex'));
 const toHex = (b: Uint8Array) => Buffer.from(b).toString('hex').toUpperCase();
@@ -64,4 +64,12 @@ test('a TCP stream: frames split, junk skipped, half a frame kept for the next r
   assert.equal(r.rest.length, 6);
   const bad = b.slice(); bad[15] = 0x00;
   assert.throws(() => decode(bad), /CRC/);
+});
+
+test('an alarm code becomes the generic JSON\'s event (3320)', () => {
+  assert.equal(alarmEvent(0x13), 'tamper');
+  assert.equal(alarmEvent(0x29), 'harsh_accel');
+  assert.equal(alarmEvent(0x30), 'harsh_brake');
+  assert.equal(alarmEvent(0x2a), 'harsh_turn');
+  assert.equal(alarmEvent(0x01), null);
 });

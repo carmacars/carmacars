@@ -29,12 +29,12 @@ begin
 end $$;
 
 -- ================================================================== A. catalogue
-select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign, 0370 a visitor message waiting in live chat, 0430 the start and end notices, 0400 the two tracker alerts, 0441 the data health notice, 0380 adds one email, 0460 the lead and visitor alerts, 0462 the staff alerts, 0532 the return report denied, 0535 the apology to remote applicants moved to the AI interview, 0547 the partner invoice, 0583 the staff email digest, 0955 the accounts merged note, 2520 the weekly and new-car marketing emails, 2620 the owner trip and weekly emails, 3000 the eleven Rewards emails, 3199 the three data check emails)',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '235/21');
+select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign, 0370 a visitor message waiting in live chat, 0430 the start and end notices, 0400 the two tracker alerts, 0441 the data health notice, 0380 adds one email, 0460 the lead and visitor alerts, 0462 the staff alerts, 0532 the return report denied, 0535 the apology to remote applicants moved to the AI interview, 0547 the partner invoice, 0583 the staff email digest, 0955 the accounts merged note, 2520 the weekly and new-car marketing emails, 2620 the owner trip and weekly emails, 3000 the eleven Rewards emails, 3199 the three data check emails, 3321 the four tracker event emails)',
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '239/21');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
-select test.eq('A every path of emails/src/links.mjs is loaded', (select count(*) from notification_link_paths), 80::bigint);
+select test.eq('A every path of emails/src/links.mjs is loaded', (select count(*) from notification_link_paths), 81::bigint);
 select test.eq('A every email code says what emits it; only the two sign-in service emails are emitted by nobody (the sign-in link is the owner invitation''s, 0029)',
   (select string_agg(code, ',' order by code) from notification_catalogue where has_email and (emitted_by is null or emitted_by like 'not emitted%')),
   'account_password_reset,account_security_notice');
@@ -905,6 +905,7 @@ select test.eq('G every wired email code has been built at least once in these t
       and c.code not in ('staff_agreement_reminder', 'staff_inactivity_warning', 'staff_team_group') -- the staff jobs of 1060, built in 99_r35k_staff_onboarding
       and c.code not in ('marketing_weekly', 'marketing_new_vehicle') -- the campaigns of 2520, built in 99_r41_marketing
       and c.code not in ('renter_data_check', 'owner_data_check', 'staff_data_check') -- an Admin's Send reminder (3199), queued in 99_r48fe_fees_evidence_hiring
+      and c.code not in ('renter_tracker_notice', 'renter_driving_notice', 'owner_tracker_alert', 'staff_pound_flag') -- tracker events (3320), off for these suites, built in 99_r48trk_tracker_events
       and not exists (select 1 from notification_outbox o where o.code = c.code)
       and not exists (select 1 from staff_digest_items d where d.code = c.code)),
   null::text);

@@ -20,6 +20,9 @@ const NAMES: Record<string, string> = {
   renter_rewards_statement: 'Rewards: your monthly points',
   renter_rewards_birthday: 'Rewards: your birthday reward',
   renter_rewards_holiday: 'Rewards: holiday rewards',
+  // 3321: tracker events (the notice about a charge is always sent and is not listed)
+  renter_driving_notice: 'A heads-up about your driving (no charge)',
+  owner_tracker_alert: 'Tracker alert on your car',
 };
 
 /** a text with every {{tag}} (and its {{#if}} sections' tags) taken out, the spaces and punctuation left tidy */
