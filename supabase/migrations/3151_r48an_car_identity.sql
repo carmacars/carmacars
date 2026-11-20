@@ -15,7 +15,9 @@
 --    then the trim cleaned (4M -> 4MATIC, GC -> Gran Coupe, trim codes in capitals, the family not repeated). A model it
 --    cannot read with certainty is left as typed (known false: Data health lists it).
 -- 3. app.car_body(text): Sedan, Coupe, Convertible, SUV, Hatchback, Wagon, Minivan, Pickup truck, Van (or the value as typed).
--- 4. Triggers: vehicles (make, model, trim) and the listing's body (0073's app.listing_norm_body, widened) on every save; then
+-- 4. Triggers: vehicles (make, model, trim; the family in vehicles.model_family, the model itself renamed only for
+--    Mercedes-Benz and BMW as 0520 does, so no page address or heading moves) and the listing's body (0073's
+--    app.listing_norm_body, widened) on every save; the listing row carries model_family; then
 --    every car on file normalised now (audit log, the listing copy and cache refreshed, the public address unchanged).
 -- 5. Data health: a year outside 1980 .. next year + 1 and a model family not recognised are listed.
 -- Same rule in the web: web/src/features/vin/car-identity.ts (portable, no imports outside its folder).
@@ -35,12 +37,12 @@ create table if not exists car_model_families (
   primary key (make, family)
 );
 comment on table car_model_families is 'Release 48 AN (3151): the model families of each make (the filters group by them); aliases are other spellings of the family. Mercedes-Benz and BMW are also read by their model codes (0520).';
+-- read through the rule's functions only (the anonymous role reads exactly one view: 04_rls); Admins read them
 alter table car_make_names enable row level security;
 alter table car_model_families enable row level security;
-create policy read_all on car_make_names for select to anon, authenticated using (true);
-create policy read_all on car_model_families for select to anon, authenticated using (true);
+create policy admin_all on car_make_names for select to authenticated using (app.is_admin());
+create policy admin_all on car_model_families for select to authenticated using (app.is_admin());
 revoke all on table car_make_names, car_model_families from public, anon, authenticated;
-grant select on table car_make_names, car_model_families to anon, authenticated;
 grant select, insert, update, delete on table car_make_names, car_model_families to service_role;
 create trigger audit_car_make_names after insert or update or delete on car_make_names for each row execute function app.audit_row();
 create trigger audit_car_model_families after insert or update or delete on car_model_families for each row execute function app.audit_row();
@@ -213,6 +215,13 @@ comment on function app.car_body(text) is 'Release 48 AN (3151): one body name: 
 
 -- ================================================================ 4. the triggers and every car on file
 -- vehicles: after 0087's name case (a0) and in place of 0520's family rule (a1, the same trigger, its body widened)
+-- the family is kept in vehicles.model_family for every car (the filters and facets group by it); vehicles.model itself is
+-- renamed only where 0520 already did (Mercedes-Benz and BMW codes, "CLA-Class CLA250"): another make keeps its model as
+-- typed (its page address, heading and model page never move), the family beside it
+alter table vehicles add column if not exists model_family text;
+comment on column vehicles.model_family is 'Release 48 AN (3151): the car''s model family (app.car_identity): the filters and facets group by it; the trim is a detail.';
+create index if not exists vehicles_model_family_idx on vehicles (make, model_family);
+
 create or replace function app.vehicle_model_family() returns trigger
 language plpgsql security definer set search_path = public, app as $$
 declare f jsonb;
@@ -221,8 +230,15 @@ begin
   if new.model is not null and btrim(new.model) <> '' then
     f := app.car_identity(new.make, new.model, new.trim);
     new.make := f ->> 'make';
-    new.model := f ->> 'model';
-    new.trim := f ->> 'trim';
+    if new.make in ('Mercedes-Benz', 'BMW') then
+      new.model := f ->> 'model';
+      new.trim := f ->> 'trim';
+    else
+      new.trim := app.car_trim_clean(new.make, null, new.trim);
+    end if;
+    new.model_family := f ->> 'model';
+  else
+    new.model_family := null;
   end if;
   return new;
 end $$;
@@ -238,14 +254,20 @@ create function app.car_identity_backfill() returns integer
 language plpgsql security definer set search_path = public, app as $$
 declare r record; f jsonb; n integer := 0; v_ids uuid[] := '{}';
 begin
-  for r in select v.id, v.make, v.model, v.trim, v.is_sample from vehicles v order by v.id loop
+  for r in select v.id, v.make, v.model, v.trim, v.model_family, v.is_sample from vehicles v order by v.id loop
     f := app.car_identity(r.make, r.model, r.trim);
-    continue when f ->> 'make' is not distinct from r.make and f ->> 'model' is not distinct from r.model and f ->> 'trim' is not distinct from r.trim;
-    update vehicles set make = make, model = model, trim = trim where id = r.id;   -- the trigger writes them
+    -- a car the rule leaves as it is is not touched
+    continue when nullif(btrim(r.model), '') is null and r.make is not distinct from app.car_make(r.make);
+    continue when r.make is not distinct from f ->> 'make' and r.model_family is not distinct from f ->> 'model'
+              and case when f ->> 'make' in ('Mercedes-Benz', 'BMW') then (r.model, r.trim) is not distinct from (f ->> 'model', f ->> 'trim')
+                       else r.trim is not distinct from app.car_trim_clean(f ->> 'make', null, r.trim) end;
+    update vehicles set make = make, model = model, trim = trim where id = r.id;   -- the trigger writes them and the family
+    continue when (select (v.make, v.model, v.trim) is not distinct from (r.make, r.model, r.trim) from vehicles v where v.id = r.id);
     insert into audit_log (actor_user_id, action, entity_table, entity_id, before, after)
-    values (null, 'car_identity', 'vehicles', r.id::text, jsonb_build_object('make', r.make, 'model', r.model, 'trim', r.trim),
-            jsonb_build_object('make', f ->> 'make', 'model', f ->> 'model', 'trim', f ->> 'trim',
-                               'note', 'One make, model family, trim and body per car (3151); the public address is unchanged'));
+    select null, 'car_identity', 'vehicles', r.id::text, jsonb_build_object('make', r.make, 'model', r.model, 'trim', r.trim),
+           jsonb_build_object('make', v.make, 'model', v.model, 'trim', v.trim, 'family', v.model_family,
+                              'note', 'One make, model family, trim and body per car (3151); the public address is unchanged')
+      from vehicles v where v.id = r.id;
     if not coalesce(r.is_sample, false) then
       begin
         perform app.listing_template_copy(r.id);
@@ -266,7 +288,23 @@ begin
   return n;
 end $$;
 revoke all on function app.car_identity_backfill() from public, anon, authenticated;
-select app.car_identity_backfill();
+grant execute on function app.car_identity_backfill() to service_role;
+
+-- the listing row (cache, search, cards, the filters): the family beside the model
+create or replace function app.photo_render_cover_with_family(p_vehicle uuid, r jsonb) returns jsonb
+language sql stable security definer set search_path = public, app as $$
+  select case when r is null then null else r || jsonb_build_object('model_family', coalesce((select v.model_family from vehicles v where v.id = p_vehicle), r ->> 'model')) end
+$$;
+create or replace function app.public_listing_row_live(p_vehicle uuid) returns jsonb
+language sql stable security definer set search_path = public, app as $$
+  select app.photo_render_cover_with_family(p_vehicle, app.photo_render_cover(p_vehicle, app.public_listing_row_live_pre3150(p_vehicle)))
+$$;
+create or replace function app.public_listing_row(p_vehicle uuid) returns jsonb
+language sql stable security definer set search_path = public, app as $$
+  select app.photo_render_cover_with_family(p_vehicle, app.photo_render_cover(p_vehicle, app.public_listing_row_pre3150(p_vehicle)))
+$$;
+revoke all on function app.photo_render_cover_with_family(uuid, jsonb) from public, anon, authenticated;
+grant execute on function app.photo_render_cover_with_family(uuid, jsonb) to service_role;
 
 -- ================================================================ 5. Data health: years and families
 create function app.car_identity_issues() returns table (vehicle_id uuid, issue text)
@@ -281,3 +319,6 @@ $$;
 comment on function app.car_identity_issues() is 'Release 48 AN (3151): the cars whose year is outside 1980 .. next year + 1 or whose model family is not in car_model_families (add the family, or fix the typo): a person fixes them, the filters never split.';
 revoke all on function app.car_identity_issues(), app.car_identity(text, text, text), app.car_make(text) from public, anon, authenticated;
 grant execute on function app.car_identity_issues(), app.car_identity(text, text, text), app.car_make(text) to service_role;
+
+-- every car on file now (after the listing row carries the family, so the cache refresh writes it)
+select app.car_identity_backfill();

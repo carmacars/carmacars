@@ -55,3 +55,13 @@ export function DriveFrame({ src, srcSet, sizes, width, height, alt = '', facing
     </span>
   );
 }
+
+/** Two icons in one place: the outgoing one blurs as it fades (design.css .k-icon-swap). `on` picks the second. */
+export function IconSwap({ on, first, second, className = '' }: { on: boolean; first: ReactNode; second: ReactNode; className?: string }) {
+  return (
+    <span className={`k-icon-swap ${className}`.trim()} aria-hidden="true">
+      <span data-on={String(!on)}>{first}</span>
+      <span data-on={String(on)}>{second}</span>
+    </span>
+  );
+}

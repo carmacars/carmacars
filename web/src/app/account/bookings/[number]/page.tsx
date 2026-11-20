@@ -159,7 +159,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
       {sp.paid && (b.status === 'confirmed' || b.status === 'on_rent') && <Moment kind="confirmed" />}
       {/* r36: confirmed without the pay page (staff confirmed it, paid another way): the moment once on this device */}
       {b.status === 'confirmed' && <ConfirmedOnce booking={b.booking_number} silent={!!sp.paid} />}
-      {sp.paid && b.status === 'confirmed' && <div className="pt-ok" role="status" data-testid="paid-panel"><h2 className="d3">Booking confirmed</h2><p>Your card was charged {money(card?.amount_cents ?? b.renter_due_at_booking_cents, { cents: true })} and the car is reserved for you. Your signed agreement and receipt are below.</p></div>}
+      {sp.paid && b.status === 'confirmed' && <div className="pt-ok" role="status" data-testid="paid-panel"><h2 className="d3" data-mo-burst="">Booking confirmed</h2><p>Your card was charged {money(card?.amount_cents ?? b.renter_due_at_booking_cents, { cents: true })} and the car is reserved for you. Your signed agreement and receipt are below.</p></div>}
 
       {/* r40 "Do this next": the one action and its button, then the steps and the one to-do list (what is still needed,
           the quick links and the agreement's details form); nothing above it competes */}

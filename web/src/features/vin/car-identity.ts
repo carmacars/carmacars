@@ -86,13 +86,15 @@ export function carBody(body: string | null | undefined): string | null {
 }
 
 /** The cars grouped by make and model family (the filters' options: families only, the trim is a detail). */
-export function familyGroups<T extends { make: string; model: string; trim?: string | null }>(cars: T[]): Array<{ make: string; families: Array<{ model: string; count: number }> }> {
+export function familyGroups<T extends { make: string; model: string; trim?: string | null; model_family?: string | null }>(cars: T[]): Array<{ make: string; families: Array<{ model: string; count: number }> }> {
   const makes = new Map<string, Map<string, number>>();
   for (const c of cars) {
     if (!c.make || !c.model) continue;
     const id = carIdentity(c.make, c.model, c.trim ?? null);
     const fams = makes.get(id.make) ?? new Map<string, number>();
-    fams.set(id.model, (fams.get(id.model) ?? 0) + 1);
+    // the database's family when the row carries it (3151), else the same rule here
+    const fam = c.model_family || id.model;
+    fams.set(fam, (fams.get(fam) ?? 0) + 1);
     makes.set(id.make, fams);
   }
   const by = (a: string, b: string) => a.localeCompare(b, 'en', { numeric: true });

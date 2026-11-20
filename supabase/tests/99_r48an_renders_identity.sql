@@ -98,10 +98,40 @@ select test.eq('the filters'' families: both cars are one CLA-Class (no trim of 
   (select count(distinct (app.car_identity(make, model, trim) ->> 'model')) from vehicles where id in (test.id('vehicle:an48_a'), test.id('vehicle:an48_b')))::integer, 1);
 
 -- the audit: no car on file splits a family any more, and a bad year or an unknown family is listed for a person
+update vehicles set make = 'Land Rover', model = 'Range Rover Sport V6', trim = null where id = test.id('vehicle:an48_b');
+select test.eq('another make keeps its model as typed (its address and heading never move), the family beside it',
+  (select array[model, model_family] from vehicles where id = test.id('vehicle:an48_b')), array['Range Rover Sport V6', 'Range Rover Sport']);
+select test.eq('the listing row carries the family', app.public_listing_row(test.id('vehicle:an48_b')) ->> 'model_family', 'Range Rover Sport');
 select test.eq('no car on file is left with a make or family the rule would change', (select count(*) from vehicles v
   where nullif(btrim(v.model), '') is not null and (v.make is distinct from app.car_identity(v.make, v.model, v.trim) ->> 'make'
-        or v.model is distinct from app.car_identity(v.make, v.model, v.trim) ->> 'model'))::integer, 0);
+        or v.model_family is distinct from app.car_identity(v.make, v.model, v.trim) ->> 'model'))::integer, 0);
 select test.throws('a year far off is refused on save', format($$update vehicles set year = 1971 where id = %L$$, test.id('vehicle:an48_a')), '');
 select test.ok('the issues list reads', (select count(*) from app.car_identity_issues()) >= 0);
-select test.ok('the rule is the server''s only; the families are readable by all',
-  not has_function_privilege('anon', 'app.car_identity(text, text, text)', 'execute') and has_table_privilege('anon', 'car_model_families', 'select'));
+select test.ok('the rule and its tables are the server''s only',
+  not has_function_privilege('anon', 'app.car_identity(text, text, text)', 'execute') and not has_table_privilege('anon', 'car_model_families', 'select')
+  and has_function_privilege('service_role', 'app.car_identity(text, text, text)', 'execute'));
+
+-- ================================================================ 3152: "studio photos live", to the owner and to Fleet
+select test.mk_vehicle('an48_c', 'an48_olive');
+insert into vehicle_listings (vehicle_id, status) values (test.id('vehicle:an48_c'), 'published');
+insert into vehicle_photos (vehicle_id, angle, shot_type, original_path, processed_path, status, is_public, r48, ai_generated, background_status, plate_status, sort_order, r45)
+select test.id('vehicle:an48_c'), a, a, 'vehicles/original/an48/c-' || a || '.jpg', 'vehicles/an48/c-' || a || '.jpg', 'approved', true, true, true, 'done', 'not_visible', -90,
+       jsonb_build_object('state', 'done', 'spec', app.photo_r48_spec())
+  from unnest(app.photo_r45_angles()) a;
+select test.eq('a car whose whole set is live is told once', app.photo_render_notices() >= 1 and app.photo_render_notices() = 0, true);
+select test.eq('one event each for the owner and for Fleet',
+  (select array_agg(code order by code) from app_events where entity_id = test.id('vehicle:an48_c') and code like '%car_photos_ready'),
+  array['owner_car_photos_ready', 'staff_car_photos_ready']);
+create function test.an48_process() returns integer language sql as $$
+  update app_events set processed_at = now(), process_note = 'skipped by 99_r48an' where processed_at is null and code not like '%car\_photos\_ready';
+  select app.process_events(1000);
+$$;
+select test.an48_process();
+select test.ok('the owner''s branded email is queued with every value filled, to the owner',
+  exists (select 1 from notification_outbox o where o.code = 'owner_car_photos_ready' and o.vehicle_id = test.id('vehicle:an48_c')
+            and cardinality(o.missing_variables) = 0 and o.payload ->> 'render_count' = '9' and o.owner_id = test.id('owner:an48_olive')));
+select test.ok('Fleet''s notice is in the staff bell and the next Fleet digest',
+  exists (select 1 from app_events e where e.code = 'staff_car_photos_ready' and e.entity_id = test.id('vehicle:an48_c') and e.processed_at is not null and e.process_note ~ 'digest [1-9]' and e.process_note ~ 'in-app [1-9]'));
+select test.ok('the owner can mute it; it alerts their phone and has a text',
+  (select user_can_mute and push_topic = 'bookings' and not no_text from notification_catalogue where code = 'owner_car_photos_ready')
+  and exists (select 1 from sms_templates where code = 'owner_car_photos_ready'));

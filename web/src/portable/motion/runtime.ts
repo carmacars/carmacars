@@ -18,6 +18,8 @@ export interface MotionHooks {
   lists?: string;
   /** extra save statuses */
   statuses?: string;
+  /** extra carousels that rubber-band at their ends */
+  carousels?: string;
 }
 
 const PAUSE_KEY = 'mo-motion';
@@ -77,7 +79,7 @@ function countUp(el: HTMLElement) {
   const target = Number(m[0].replace(/,/g, '')); if (!Number.isFinite(target) || target === 0) return;
   const dec = (m[0].split('.')[1] ?? '').length, comma = m[0].includes(',');
   const fmt = (v: number) => { const s = v.toFixed(dec); return comma ? Number(s).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec }) : s; };
-  const t0 = performance.now(), ms = 700;
+  const t0 = performance.now(), ms = 300;
   el.style.fontVariantNumeric = 'tabular-nums';
   const tick = (t: number) => {
     if (node.nodeValue !== text && !node.nodeValue?.startsWith(text.slice(0, m.index))) return; // the app changed it
@@ -97,7 +99,7 @@ function driveBack(root: HTMLElement) {
   if (!root.classList.contains('is-off')) return;
   root.classList.remove('is-off'); root.classList.add('is-back');
   const end = () => root.classList.remove('is-back');
-  root.addEventListener('animationend', end, { once: true }); window.setTimeout(end, 800);
+  root.addEventListener('animationend', end, { once: true }); window.setTimeout(end, 400);
 }
 
 /** Starts the runtime; returns a function that stops it. */
@@ -130,7 +132,7 @@ export function startMotion(hooks: MotionHooks = {}): () => void {
   const io = 'IntersectionObserver' in window ? new IntersectionObserver((es) => es.forEach((e) => {
     if (!e.isIntersecting) return; io!.unobserve(e.target);
     const el = e.target as HTMLElement;
-    if (el.classList.contains('mo-drive')) { if (!fine) { driveOff(el); window.setTimeout(() => driveBack(el), 950); } return; }
+    if (el.classList.contains('mo-drive')) { if (!fine) { driveOff(el); window.setTimeout(() => driveBack(el), 700); } return; }
     if (motionAllowed()) countUp(el);
   }), { threshold: 0.6 }) : null;
   off.push(() => io?.disconnect());
@@ -164,6 +166,60 @@ export function startMotion(hooks: MotionHooks = {}): () => void {
   };
   document.addEventListener('pointerdown', onDown, { passive: true }); off.push(() => document.removeEventListener('pointerdown', onDown));
 
+  // menus, popovers and dialogs grow from the element that opened them
+  let lastTrigger: DOMRect | null = null;
+  const onPress = (e: Event) => { const t = (e.target as Element | null)?.closest('button, summary, [aria-haspopup], [aria-expanded], a'); lastTrigger = t ? t.getBoundingClientRect() : null; };
+  document.addEventListener('pointerdown', onPress, { capture: true, passive: true }); off.push(() => document.removeEventListener('pointerdown', onPress, { capture: true }));
+  const popIn = (el: HTMLElement) => {
+    if (!motionAllowed() || !lastTrigger) return;
+    const r = el.getBoundingClientRect(); if (!r.width || !r.height) return;
+    const x = Math.min(Math.max(lastTrigger.left + lastTrigger.width / 2 - r.left, 0), r.width), y = Math.min(Math.max(lastTrigger.top + lastTrigger.height / 2 - r.top, 0), r.height);
+    el.style.setProperty('--mo-origin', `${Math.round(x)}px ${Math.round(y)}px`);
+    el.classList.remove('mo-pop-in'); void el.offsetWidth; el.classList.add('mo-pop-in');
+  };
+  const pops = new MutationObserver((ms) => ms.forEach((m) => {
+    const t = m.target as HTMLElement;
+    if (m.type === 'attributes' && m.attributeName === 'open' && t.hasAttribute('open')) {
+      if (t.tagName === 'DIALOG') popIn(t); else t.querySelectorAll<HTMLElement>(':scope > :not(summary)').forEach(popIn);
+    }
+  }));
+  pops.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['open'] }); off.push(() => pops.disconnect());
+
+  // a burst on the big moments (a booking confirmed, a request sent): data-mo-burst on the heading
+  const burst = (el: HTMLElement) => {
+    if (el.dataset.moBurstDone || !motionAllowed()) return; el.dataset.moBurstDone = '1';
+    el.classList.add('mo-burst');
+    for (let i = 0; i < 10; i++) {
+      const p = document.createElement('span'); p.className = 'mo-burst__p'; p.setAttribute('aria-hidden', 'true');
+      const a = (i / 10) * Math.PI * 2, d = 26 + (i % 3) * 8;
+      p.style.setProperty('--bx', '1.2em'); p.style.setProperty('--by', '50%');
+      p.style.setProperty('--dx', `${Math.round(Math.cos(a) * d)}px`); p.style.setProperty('--dy', `${Math.round(Math.sin(a) * d)}px`);
+      el.appendChild(p); window.setTimeout(() => p.remove(), 400);
+    }
+  };
+
+  // rubber band: a carousel pushed past its end gives a little, then springs back
+  const onWheel = (e: WheelEvent) => {
+    const t = (e.target as Element | null)?.closest<HTMLElement>(['.k-carousel', '[data-mo-rubber]', hooks.carousels].filter(Boolean).join(',')); if (!t || !motionAllowed() || Math.abs(e.deltaX) < Math.abs(e.deltaY)) return;
+    const atStart = t.scrollLeft <= 0 && e.deltaX < 0, atEnd = t.scrollLeft + t.clientWidth >= t.scrollWidth - 1 && e.deltaX > 0;
+    if (!atStart && !atEnd) return;
+    t.classList.add('mo-rubber'); t.style.translate = `${Math.max(-18, Math.min(18, -e.deltaX * 0.25))}px 0`;
+    window.clearTimeout(Number(t.dataset.moRubberT)); t.dataset.moRubberT = String(window.setTimeout(() => { t.style.translate = ''; }, 90));
+  };
+  document.addEventListener('wheel', onWheel, { passive: true }); off.push(() => document.removeEventListener('wheel', onWheel));
+
+  // the attributes phones need, where a form left them out (the app's own values always win)
+  const polish = (root: ParentNode) => root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input, textarea').forEach((el) => {
+    if (el.dataset.moPolished) return; el.dataset.moPolished = '1';
+    const t = (el.getAttribute('type') ?? 'text').toLowerCase(), name = `${el.name} ${el.id} ${el.getAttribute('autocomplete') ?? ''}`.toLowerCase();
+    if (t === 'email' && !el.hasAttribute('autocomplete')) el.setAttribute('autocomplete', 'email');
+    if (t === 'tel' && !el.hasAttribute('autocomplete')) el.setAttribute('autocomplete', 'tel');
+    const step = el.getAttribute('step');
+    if (t === 'number' && !el.hasAttribute('inputmode')) el.setAttribute('inputmode', step && step !== '1' ? 'decimal' : 'numeric');
+    if (/(otp|one-time-code|sign-?in[-_ ]?code|sms[-_ ]?code|verify[-_ ]?code)/.test(name) && t !== 'hidden' && !el.hasAttribute('inputmode')) { el.setAttribute('inputmode', 'numeric'); if (!el.hasAttribute('autocomplete')) el.setAttribute('autocomplete', 'one-time-code'); }
+    if (el.closest('[data-chat], .ccw-panel, .chat, [aria-label*="message" i]') && !el.hasAttribute('enterkeyhint')) el.setAttribute('enterkeyhint', 'send');
+  });
+
   // what the app adds later: statuses, list items, counters, tab bars, cars
   let queued = false;
   const pending = new Set<Element>();
@@ -175,7 +231,9 @@ export function startMotion(hooks: MotionHooks = {}): () => void {
       if (!n.isConnected) continue;
       const st = n.closest(statusSel); if (st) markSaved(st);
       if (listSel && n.parentElement?.matches(listSel) && motionAllowed() && n instanceof HTMLElement) { n.style.setProperty('--mo-i', String(Math.min(i++, 8))); n.classList.add('mo-stagger-in'); }
-      watchCounters(n); watchDrives(n);
+      watchCounters(n); watchDrives(n); polish(n);
+      if (n.matches('[role="menu"], [role="listbox"], .mo-pop')) popIn(n as HTMLElement);
+      (n.matches('[data-mo-burst]') ? [n] : [...n.querySelectorAll('[data-mo-burst]')]).forEach((b) => burst(b as HTMLElement));
       if (!tabs && (n.matches(tabSel) || !!n.closest(tabSel) || !!n.querySelector(tabSel))) tabs = true;
     }
     if (tabs) scanTabs();
@@ -191,7 +249,7 @@ export function startMotion(hooks: MotionHooks = {}): () => void {
   off.push(() => mo.disconnect());
 
   // the first scan, when the browser is idle (off the hydration's main-thread work)
-  const first = () => { scanTabs(); watchCounters(document); watchDrives(document); };
+  const first = () => { scanTabs(); watchCounters(document); watchDrives(document); polish(document); document.querySelectorAll<HTMLElement>('[data-mo-burst]').forEach(burst); };
   const ric = (window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
   if (ric) ric(first, { timeout: 1200 }); else window.setTimeout(first, 200);
   return () => off.forEach((f) => f());

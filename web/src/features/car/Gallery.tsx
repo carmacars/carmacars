@@ -22,7 +22,10 @@ export function Gallery({ name, photos, gate }: { name: string; photos: Photo[];
   const [cur, setCur] = useState(0);
   const passed = useGatePassed();
   const { ask, dialog } = usePhoneGate(gate);
-  const free = Math.max(1, gate?.free_photos ?? 4);
+  // r48 AN (3150): the studio renders never count against the free photos, so the car's own photos (after them) are as
+  // free to see as before: the phone number box opens only past the free photos of the car's own
+  const rendered = photos.filter((g) => g.generated).length;
+  const free = Math.max(1, gate?.free_photos ?? 4) + rendered;
   const scrollTo = (i: number) => {
     const t = track.current; if (!t) return; const n = Math.max(0, Math.min(photos.length - 1, i));
     const li = t.children[n] as HTMLElement | undefined;
@@ -32,7 +35,7 @@ export function Gallery({ name, photos, gate }: { name: string; photos: Photo[];
   const gated = useRef<{ locked: (i: number) => boolean; open: (i: number) => void }>({ locked: () => false, open: () => undefined });
   useEffect(() => {
     gated.current = {
-      locked: (i: number) => !passed && photoLocked(i, photos.length, gate),
+      locked: (i: number) => !passed && i >= rendered && photoLocked(i - rendered, photos.length - rendered, gate),
       open: (i: number) => { void ask('gallery', () => { gated.current.locked = () => false; scrollTo(i); }); }
     };
   });
@@ -70,7 +73,6 @@ export function Gallery({ name, photos, gate }: { name: string; photos: Photo[];
   if (!photos.length) return <div className="gallery"><div className="skeleton sk-img" /></div>;
   // r48 AN (3150): the studio renders come first, the car's own photos after them: said above the gallery, with a way
   // straight to the real photos (never hidden)
-  const rendered = photos.filter((g) => g.generated).length;
   const firstReal = photos.findIndex((g) => g.real);
   const reals = firstReal < 0 ? 0 : photos.length - firstReal;
   return (

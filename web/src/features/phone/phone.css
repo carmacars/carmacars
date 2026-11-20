@@ -26,7 +26,7 @@
 .qb-icon { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--grey-300); background: var(--white); color: var(--black); text-decoration: none; }
 .qb-icon:hover { border-color: var(--black); }
 .qb-icon:focus-visible, .qb-btn:focus-visible { outline: 3px solid var(--red-600); outline-offset: 2px; }
-.qb-sheet { border: 0; padding: 0; border-radius: 16px; width: min(30rem, calc(100vw - 32px)); max-height: calc(100vh - 32px); box-shadow: 0 24px 60px -20px rgb(0 0 0 / 0.5); color: var(--text); background: var(--white); }
+.qb-sheet { border: 0; padding: 0; border-radius: 16px; width: min(30rem, calc(100vw - 32px)); max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); box-shadow: 0 24px 60px -20px rgb(0 0 0 / 0.5); color: var(--text); background: var(--white); }
 .qb-sheet::backdrop { background: rgb(0 0 0 / 0.45); }
 .qb-sheet__in { display: grid; gap: 12px; padding: 18px 18px 16px; border-top: 4px solid var(--red-600); }
 .qb-sheet__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }

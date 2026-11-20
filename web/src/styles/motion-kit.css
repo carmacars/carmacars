@@ -1,14 +1,15 @@
 /* CarmaCars' settings of the portable motion kit (src/portable/motion, release 48 AN): the brand's focus and success
    colours, and the brand's card links that lift on hover (the kit's .mo-lift list). */
-:root { --mo-focus: var(--red-600); --mo-ok: var(--ui-ok); --mo-accent: var(--red-600); }
+:root { --k-hue: 27; --k-chroma: 0.21; --mo-focus: var(--red-600); --mo-ok: var(--ui-ok); --mo-accent: var(--red-600); }
 @media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
-  html:not([data-motion="reduced"]) :where(a.pt-card, a.ad-card, a.hub-card, a.pu-stat--link, a.pu-tile, .ow-card > a, .va-card > a) { transition: translate var(--mo-base) var(--mo-ease), border-color var(--mo-base) var(--mo-ease); }
-  html:not([data-motion="reduced"]) :where(a.pt-card, a.ad-card, a.hub-card, a.pu-stat--link):hover { translate: 0 var(--mo-lift); }
+  html:not([data-motion="reduced"]) :where(a.pt-card, a.hub-card, a.pu-stat--link, a.pu-tile) { transition: translate var(--mo-base) var(--mo-ease), border-color var(--mo-base) var(--mo-ease); }
+  /* the Admin's daily cards (.ad-card) do not lift: the more often used, the less motion */
+  html:not([data-motion="reduced"]) :where(a.pt-card, a.hub-card, a.pu-stat--link, a.pu-tile):hover { translate: 0 var(--mo-lift); }
 }
 /* the car cards' drive-off stage: the card's own studio floor stays, the cut-out car moves (CarCard.tsx) */
 .car-stage { position: absolute; inset: 0; display: block; background:
-  radial-gradient(90% 70% at 50% 42%, #3a3a3a 0%, #1c1c1c 55%, #0d0d0d 100%); }
-.car-stage::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 30%; background: linear-gradient(180deg, #161616, #0a0a0a); border-top: 1px solid rgb(255 255 255 / 0.06); }
+  radial-gradient(90% 70% at 50% 42%, var(--k-dark-3) 0%, var(--k-dark-1) 55%, var(--k-dark-0) 100%); }
+.car-stage::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 30%; background: linear-gradient(180deg, var(--k-dark-2), var(--k-dark-1)); border-top: 1px solid var(--k-border-on-dark); }
 .car-stage::after { content: ""; position: absolute; left: 12%; right: 12%; bottom: 13%; height: 7%; border-radius: 50%; background: radial-gradient(closest-side, rgb(0 0 0 / 0.75), transparent); }
 .car-stage .mo-drive__car { z-index: 1; }
 .car-stage .mo-drive__body > img, .car-stage .mo-drive__ghost > img { height: auto; object-fit: contain; }
@@ -23,3 +24,10 @@
 .gallery__note button.link { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; min-height: 24px; }
 /* the home hero's logo (app/page.tsx): drawn along its lines once a session (src/portable/motion/line-draw.tsx) */
 .hero__logo { width: clamp(168px, 20vw, 280px); height: auto; margin: 0 0 var(--s-4); }
+/* the owner's reels (design.css): the rails fade at their edges and keep their scroll; small controls get 44 px targets */
+.rail { -webkit-mask: linear-gradient(90deg, transparent, #000 var(--gutter) calc(100% - var(--gutter)), transparent); mask: linear-gradient(90deg, transparent, #000 var(--gutter) calc(100% - var(--gutter)), transparent); overscroll-behavior-x: contain; }
+.gallery__track { overscroll-behavior-x: contain; }
+@media (pointer: coarse) {
+  .toast button, .gallery__thumbs button, .car-card__dots { position: relative; }
+  .toast button::before, .gallery__thumbs button::before { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, var(--k-hit)); height: max(100%, var(--k-hit)); transform: translate(-50%, -50%); }
+}

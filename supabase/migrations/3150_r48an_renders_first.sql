@@ -91,8 +91,11 @@ language plpgsql stable security definer set search_path = public, app as $$
 declare g jsonb; n integer;
 begin
   if r is null then return null; end if;
-  g := app.public_listing_photos(p_vehicle);
-  n := (select count(*) from jsonb_array_elements(coalesce(g, '[]'::jsonb)) e where coalesce((e ->> 'generated')::boolean, false));
+  -- a car with no render keeps its row as it was (the gallery is read only when the car has a render)
+  n := (select count(distinct x.shot_type) from vehicle_photos x
+         where x.vehicle_id = p_vehicle and x.r48 and x.replaced_at is null and x.status = 'approved' and x.is_public
+           and nullif(x.processed_path, '') is not null and x.shot_type = any (app.photo_render_order()));
+  if n > 0 then g := app.public_listing_photos(p_vehicle); end if;
   if n > 0 and nullif(g -> 0 ->> 'path', '') is not null then
     r := r || jsonb_build_object('cover', jsonb_build_object('path', g -> 0 ->> 'path', 'variants', coalesce(g -> 0 -> 'variants', '[]'::jsonb),
                                    'alt', coalesce(g -> 0 ->> 'alt', app.vehicle_name(p_vehicle)), 'shot', g -> 0 ->> 'shot', 'generated', true,
@@ -129,7 +132,8 @@ create table if not exists photo_render_backfill (
 );
 comment on table photo_render_backfill is 'Release 48 AN (3150): the cars of the one-shot render backfill; the job does them before the others, and marks each done once its renders are made (or flagged) and its real photos are on the branded background.';
 alter table photo_render_backfill enable row level security;
-create policy admin_read on photo_render_backfill for select to authenticated using (app.is_admin());
+create policy admin_all on photo_render_backfill for select to authenticated using (app.is_admin());
+create trigger audit_photo_render_backfill after insert or update or delete on photo_render_backfill for each row execute function app.audit_row();
 revoke all on table photo_render_backfill from public, anon, authenticated;
 grant select, insert, update, delete on table photo_render_backfill to service_role;
 

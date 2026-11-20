@@ -61,7 +61,7 @@ function Browser({ cars, labels, classes, maxDays, gate, p, sync }: Props & { p:
     const mk = p.get('make') || cars.find((c) => carIdentity(c.make, m, null).model !== m)?.make || '';
     return carIdentity(mk, m, null).model;
   });
-  const famOf = (c: { make: string; model: string; trim?: string | null }) => carIdentity(c.make, c.model, c.trim ?? null);
+  const famOf = (c: { make: string; model: string; trim?: string | null; model_family?: string | null }) => ({ model: c.model_family || carIdentity(c.make, c.model, c.trim ?? null).model });
   const colourOf = (c: { colour: string | null }) => (c.colour ?? '').trim().replace(/^./, (x) => x.toUpperCase());
   const colours = useMemo(() => [...new Set(cars.map(colourOf).filter(Boolean))].sort((a, b) => a.localeCompare(b)), [cars]);
   const [col, setCol] = useState<string[]>(() => (p.get('colour') ?? '').split(',').filter((c) => colours.includes(c)));

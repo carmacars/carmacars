@@ -15,6 +15,8 @@ export interface CarRow {
   vehicle_id: string; slug: string; path: string; canonical_path: string; headline: string | null;
   /** null when the year is not confirmed yet (0093: a partner's car; the page says "Year confirmed when you book") */
   year: number | null; make: string; model: string; trim: string | null; colour: string | null; fuel: string;
+  /** r48 AN (3151): the model family the filters group by (app.car_identity); the model as typed beside it */
+  model_family?: string | null;
   class: string; classes: string[]; body_style: string | null; seats: number | null; transmission: string | null;
   doors: number | null; drivetrain: string | null; luggage: string | null; home_area: string | null;
   allows_18_to_20: boolean; is_featured: boolean; taking_requests: boolean; model_hub_path: string; is_sample?: boolean;

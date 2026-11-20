@@ -82,9 +82,10 @@ select test.ok('too few listing photos (one, inside only): its listing photo fir
 update program_settings set listing_photo_r45_batch = least(200, greatest(1, (select count(*) from app.photo_r48_cars() c where jsonb_array_length(app.photo_r48_refs(c.vehicle_id, 'front_left')) > 0)::integer))
  where id = (select id from app.settings());
 create temp table rq48_run1 as select app.job_photo_r48() as msg, (select listing_photo_r45_batch from app.settings()) as room;
-select test.ok('with room for one view a car, every car gets its front three-quarter first',
-  (select count(*) > 0 and bool_and(ph.shot_type = 'front_left') from listing_jobs j join vehicle_photos ph on ph.id = j.vehicle_photo_id where j.kind = 'photo_r45' and j.status = 'queued')
-  and (test.rq48_row('rq48_a', 'front_left')).id is not null and (test.rq48_row('rq48_h', 'front_left')).id is not null and (test.rq48_row('rq48_c', 'front_left')).id is not null,
+-- r48 AN (3150): the side profile is the cover now, so it comes first
+select test.ok('with room for one view a car, every car gets its side profile first',
+  (select count(*) > 0 and bool_and(ph.shot_type = 'left') from listing_jobs j join vehicle_photos ph on ph.id = j.vehicle_photo_id where j.kind = 'photo_r45' and j.status = 'queued')
+  and (test.rq48_row('rq48_a', 'left')).id is not null and (test.rq48_row('rq48_h', 'left')).id is not null and (test.rq48_row('rq48_c', 'left')).id is not null,
   (select msg || ', room ' || room from rq48_run1) || '; queued: ' || coalesce((select string_agg(ph.shot_type || '/' || coalesce(v.fleet_number, left(v.id::text, 4)), ',') from listing_jobs j join vehicle_photos ph on ph.id = j.vehicle_photo_id
      join vehicles v on v.id = ph.vehicle_id where j.kind = 'photo_r45' and j.status = 'queued'), 'none'));
 update program_settings set listing_photo_r45_batch = 200 where id = (select id from app.settings());
@@ -145,11 +146,13 @@ select test.rq48_answer((test.rq48_row('rq48_a', 'front_left')).id, test.rq48_ma
 select test.ok('passed: approved, public, done, marked ai_generated',
   (select status = 'approved' and is_public and ai_generated and r45 ->> 'state' = 'done' and processed_path = 'vehicles/rq48/a-fl-r48.jpg' from test.rq48_row('rq48_a', 'front_left')));
 select test.eq('the gallery leads with the r48 front three-quarter', app.public_listing_photos(test.id('vehicle:rq48_a')) -> 0 ->> 'path', 'vehicles/rq48/a-fl-r48.jpg');
-select test.ok('the real front three-quarter is not shown beside it (one photo an angle)',
-  not exists (select 1 from jsonb_array_elements(app.public_listing_photos(test.id('vehicle:rq48_a'))) e where e ->> 'shot' = 'front_left' and e ->> 'path' <> 'vehicles/rq48/a-fl-r48.jpg'));
--- 3030: once the generated front three-quarter is on the site, the gallery is the generated set only (never mixed)
-select test.ok('with the generated cover on the site, the gallery is the generated set only (no real rear or dashboard mixed in)',
-  (select count(*) = 0 from jsonb_array_elements(app.public_listing_photos(test.id('vehicle:rq48_a'))) e where e ->> 'shot' in ('rear', 'dashboard')));
+-- r48 AN (3150): the car's real photos follow the renders (never hidden), marked real
+select test.ok('the real front three-quarter follows the renders, marked real',
+  exists (select 1 from jsonb_array_elements(app.public_listing_photos(test.id('vehicle:rq48_a'))) with ordinality t(e, k)
+           where e ->> 'shot' = 'front_left' and e ->> 'path' <> 'vehicles/rq48/a-fl-r48.jpg' and (e ->> 'real')::boolean and k > 1));
+select test.ok('with renders on the site, the real rear and dashboard come after every render (never mixed in between)',
+  (select coalesce(min(k) filter (where (e ->> 'real')::boolean), 99) > coalesce(max(k) filter (where (e ->> 'generated')::boolean), 0)
+     from jsonb_array_elements(app.public_listing_photos(test.id('vehicle:rq48_a'))) with ordinality t(e, k)));
 select test.eq('the cover is the r48 front three-quarter', (app.cover_photo(test.id('vehicle:rq48_a'))).id::text, (test.rq48_row('rq48_a', 'front_left')).id::text);
 select test.ok('no real photo is hidden: every real photo of the car is still approved and public, in its record',
   (select count(*) = 3 and bool_and(is_public and status = 'approved' and replaced_at is null) from vehicle_photos where vehicle_id = test.id('vehicle:rq48_a') and not ai_generated));
@@ -167,9 +170,9 @@ select test.rq48_answer((select id from rq48_rr), test.rq48_refused('["wrong_fra
 select test.ok('refused three times: flagged, off the site, no job left',
   (select r45 ->> 'state' = 'flagged' and not is_public and quality_flags ? 'r45_flagged' from vehicle_photos where id = (select id from rq48_rr))
   and not exists (select 1 from listing_jobs where vehicle_photo_id = (select id from rq48_rr) and status = 'queued'));
-select test.ok('the real rear photo stays approved and public in its record (the gallery shows the generated set only, 3030)',
+select test.ok('the real rear photo stays approved and public, and on the site after the renders (3150)',
   (select is_public and status = 'approved' from vehicle_photos where id = (select rear from rq48_ap))
-  and not exists (select 1 from jsonb_array_elements(app.public_listing_photos(test.id('vehicle:rq48_a'))) e where e ->> 'shot' = 'rear'));
+  and exists (select 1 from jsonb_array_elements(app.public_listing_photos(test.id('vehicle:rq48_a'))) e where e ->> 'shot' = 'rear' and (e ->> 'real')::boolean));
 select app.job_photo_r48();
 select test.ok('a flagged view is not made again by itself', not exists (select 1 from listing_jobs where vehicle_photo_id = (select id from rq48_rr) and status = 'queued'));
 

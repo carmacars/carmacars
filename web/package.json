@@ -13,7 +13,7 @@
     "start": "node scripts/serve.mjs",
     "build:node": "node scripts/guide-assets.mjs && node scripts/whats-new.mjs && HOSTING_TARGET=node next build",
     "start:node": "node scripts/vps-server.mjs",
-    "lint": "eslint --max-warnings=0 .",
+    "lint": "eslint --max-warnings=0 . && node tests/lint/design-rules.mjs",
     "typecheck": "tsc --noEmit",
     "db:up": "bash scripts/local-db.sh up",
     "db:reset": "bash scripts/local-db.sh reset",
@@ -33,7 +33,8 @@
     "gen:owner-agreements": "node scripts/gen-owner-agreements.mjs",
     "check:crawl": "node tests/lint/crawl-roles.mjs",
     "check:seo": "node tests/lint/seo-audit.mjs",
-    "check:emails": "node tests/lint/emails-db.mjs"
+    "check:emails": "node tests/lint/emails-db.mjs",
+    "check:design": "node tests/lint/design-rules.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

@@ -6,6 +6,7 @@ import '@/styles/app.css';
 import '@/styles/motion.css';
 import '@/portable/motion/tokens.css';
 import '@/portable/motion/motion.css';
+import '@/portable/motion/design.css';
 import '@/styles/motion-kit.css';
 import { inter, interDisplay } from './fonts';
 import { Header } from '@/components/Header';
@@ -63,8 +64,10 @@ export const viewport: Viewport = { themeColor: '#0A0A0A', width: 'device-width'
 const MOTION_HOOKS = {
   tabs: '.ui-tabs, .ad-tabs, .bk-tabs, .vs-tabs, .ph-tabs, .sp-tabs',
   counters: '.pu-stat__value, .ow-amount, .pt-total, .fd-big',
-  lists: '.ad-table tbody, .todo, .fleet-grid, .pu-list, .ad-list',
-  statuses: '.pa__saved, .ok'
+  // public lists only: the Admin's daily rows get no entrance (frequency of use: the more often, the less motion)
+  lists: '.fleet-grid',
+  statuses: '.pa__saved, .ok',
+  carousels: '.rail, .gallery__track'
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

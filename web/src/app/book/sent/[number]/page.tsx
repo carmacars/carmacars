@@ -58,7 +58,7 @@ export default async function Sent({ params }: { params: Promise<{ number: strin
       <section className="page-head on-dark conf-head">
         <div className="wrap">
           <p className="row"><span className="plate plate--dark plate--lg" data-testid="request-number">{number}</span><span className="small muted">Your request number</span></p>
-          <h1 className="d1">Request sent<ConfName number={number} />.</h1>
+          <h1 className="d1" data-mo-burst="">Request sent<ConfName number={number} />.</h1>
           <p className="lead">Nothing has been charged, and the car is not booked yet. A person at {s.brand_name} is checking it now.</p>
         </div>
       </section>
