@@ -408,7 +408,7 @@ revoke all on function app.user_va_has_sales(uuid), app.extension_default_handle
   app.commission_sync_pre3101(uuid), app.extension_money(uuid), app.extension_collect_check(uuid, booking_extensions), app.extension_charge_begin(uuid, jsonb),
   app.extension_charge_finish(uuid, jsonb), app.extension_record_payment(uuid, jsonb), app.admin_booking_detail_pre3101(uuid), app.booking_allow_debit_staff(uuid, jsonb),
   app.door_pre3101(uuid, text, text, text, jsonb) from public, anon, authenticated;
-grant execute on function app.user_va_has_sales(uuid), app.extension_assign(uuid, jsonb), app.ext_other_base_cents(uuid, uuid), app.ext_handles(uuid, uuid),
+grant execute on function app.user_va_has_sales(uuid), app.extension_default_handler(), app.extension_assign(uuid, jsonb), app.ext_other_base_cents(uuid, uuid), app.ext_handles(uuid, uuid),
   app.commission_sync_pre3101(uuid), app.extension_money(uuid), app.extension_collect_check(uuid, booking_extensions), app.extension_charge_begin(uuid, jsonb),
   app.extension_charge_finish(uuid, jsonb), app.extension_record_payment(uuid, jsonb), app.admin_booking_detail_pre3101(uuid), app.booking_allow_debit_staff(uuid, jsonb),
   app.door_pre3101(uuid, text, text, text, jsonb) to service_role;
