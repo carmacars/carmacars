@@ -5,6 +5,10 @@ import type { Field } from './Act';
 const nice = (k: string) => { const s = k.replace(/_(cents|bps)$/, '').replace(/_/g, ' '); return s.charAt(0).toUpperCase() + s.slice(1); };
 // settings whose meaning needs a sentence (0042: one turnaround between trips; the tolls, plates and vision settings)
 const LABELS: Record<string, string> = {
+  // r48 MR (3101, 3102): deposits kept before release, speeding charges
+  deposit_toll_window_days: 'Days a deposit is kept after the return before it is released',
+  speeding_180_fee_cents: 'Speeding charge, over 180 km/h (before HST)', speeding_220_fee_cents: 'Speeding charge, over 220 km/h (before HST)',
+  speeding_300_fee_cents: 'Speeding charge, over 300 km/h (before HST)',
   offline_deposit_double: 'Deposit by e-Transfer or cash: a multiple of the deposit', offline_deposit_multiplier: 'Deposit by e-Transfer or cash (times the deposit)',
   tips_on: 'Tips: renters may add one, staff record cash and e-Transfer tips', tip_percents_bps: 'Tip suggestions (percent of the total, hundredths: 1000 is 10%)',
   tip_sales_share_bps: 'Tip: the salesperson\'s share (hundredths of a percent; the rest to the handover)',
@@ -283,6 +287,8 @@ const LABELS: Record<string, string> = {
   card_name_check: 'Card in the renter\'s name: check the name on the card (a name that differs goes to staff, never blocks)'
 };
 const HINTS: Record<string, string> = {
+  deposit_toll_window_days: '30 by default. Tolls, tickets and damage come in during this time; the release review (Fleet, then Finance) finishes it after. Releasing sooner is an Admin\'s decision with the reason.',
+  speeding_180_fee_cents: 'Rental agreement 10.5: one charge per tracker reading above the limit, billed from the deposit first, with the tracker\'s record. Each limit is its own charge.',
   offline_deposit_double: 'On: a deposit paid by e-Transfer or cash is the deposit times the multiplier below (a debit or prepaid card has its own). The renter sees both amounts before paying; staff see it when they record it.',
   offline_deposit_multiplier: '2 makes a $300 deposit $600 by e-Transfer or cash. An amount set on one booking (Debit deposit) wins.',
   tips_on: 'On: the pay page, the receipt after the return and the after-trip email offer a tip; staff record cash and e-Transfer tips on Money.',

@@ -57,7 +57,7 @@ export const TOOLS: Tool[] = [
     inputSchema: { type: 'object', additionalProperties: false, required: ['booking_number', 'changes'], properties: { booking_number: str('The request\'s booking number'), changes: changes(REQUEST_FIELDS, 'request') } } },
   { name: 'list_owners', scope: 'owners:read', readOnly: true, title: 'List owners', description: 'Owners in the program by name, email or phone, with how many cars each has.',
     inputSchema: listInput() },
-  { name: 'get_owner', scope: 'owners:read', readOnly: true, title: 'Get an owner', description: 'One owner by id: contact details, addresses, status and their cars.',
+  { name: 'get_owner', scope: 'owners:read', readOnly: true, title: 'Get an owner', description: 'One owner by id: contact details, addresses, status, their owner referral links, and their cars, each with its terms (management fee revenue_share_bps, insurance_fee_cents and tracker_fee_cents a month, since when, every period, a correction waiting for the owner\'s signature).',
     inputSchema: { type: 'object', additionalProperties: false, required: ['owner_id'], properties: { owner_id: { type: 'string', format: 'uuid' } } } },
   { name: 'update_owner', scope: 'owners:write', readOnly: false, title: 'Change owner details',
     description: `Change an owner's details: ${OWNER_FIELDS.join(', ')}. Logged with before and after. Money, payouts and agreements are changed in the portal.`,
@@ -94,7 +94,7 @@ export const ADMIN_TOOLS: Tool[] = [
     { section: str('One part, for example program, site, fee_defaults, deposit_tiers, staff') }),
   read('list_cars', 'List cars', 'Cars in the fleet with their status, owner, current rates and fee overrides. Filter by status or search by plate, name or VIN.',
     { query: str('A plate, a car name or a VIN'), status: str('A vehicle status'), ...PAGE }),
-  read('get_car', 'Get a car', 'One car by vehicle_id: status, owner, rates, fee overrides.', { vehicle_id: id('The car') }, ['vehicle_id']),
+  read('get_car', 'Get a car', 'One car by vehicle_id: status, owner, rates, fee overrides, and its owner terms (terms: revenue_share_bps, insurance_fee_cents, tracker_fee_cents, effective_from, periods with from and to, shareholder, fees_paid_from, awaiting_signature).', { vehicle_id: id('The car') }, ['vehicle_id']),
   read('list_applicants', 'List candidates', 'Job applications, newest first, with the role, status and score. Filter by status (new, screened, invited, booked, interviewed, hired, ...) or search by name or email.',
     { query: str('A name or email'), status: str('An application status'), ...PAGE }),
   read('get_hire_status', 'Onboarding of a hire', 'The onboarding steps of a candidate hired with one-step Hire: sign-in, agreement, pay details, academy, first-day To do\'s.',
@@ -115,8 +115,14 @@ export const ADMIN_TOOLS: Tool[] = [
   write('withdraw_offer', 'Withdraw an offer', 'Withdraw the open offer of a booking.', ['booking'], { ...booking, note: str('Why') }, true),
   write('change_booking', 'Change a booking', 'Change a booking as Admin > Edit booking does: changes (dates, places, car, kilometres, ...), price lines, the reason, and whether to tell the renter. changes.rolling_weekly true makes it a long-term rental paid weekly (the car stays out on the calendar until the renter gives notice; each weekly payment recorded moves the return 7 days), false turns that off; changes.rolling_end_on (a date, YYYY-MM-DD; empty for until notice) sets its last day. A booking waiting for payment that already has a payment (the first payment of a payment plan, say) changes here too: the car, the dates, the places; its payments stay recorded.',
     ['booking', 'reason'], { ...booking, changes: { type: 'object' }, lines: { type: 'array', items: { type: 'object' } }, reason: str('Why'), tell_renter: { type: 'boolean' } }),
-  write('change_booking_fees', 'Change booking fees', 'Change the fee lines of a booking (add, change or remove a fee) with the reason.', ['booking', 'lines', 'reason'],
-    { ...booking, lines: { type: 'array', items: { type: 'object' } }, reason: str('Why') }),
+  write('change_booking_fees', 'Change booking fees', 'Change the fee lines of a booking with the reason. Two shapes of lines. (1) Add a named fee, also to a booking on the road or returned: '
+    + 'lines is a list of {"op": "add", "fee": "<name>", "amount_cents": <cents before HST>, "note": "<what it is for, the renter sees it>"}, for example '
+    + '[{"op": "add", "fee": "smoking", "amount_cents": 30000, "note": "Returned smelling of smoke"}]. Names: smoking, cleaning, cleaning_heavy, pet_cleaning, late, km, fuel, ticket, toll, damage '
+    + '(damage also needs photos, a list of photo ids, or document). "action" may stand for "op", and "fee_code", "kind" or "code" for "fee"; amount_cents left out takes the standard amount. '
+    + 'HST is added. After the return the fee is billed from the deposit first (at once when the Check-out statement is out, else on it). '
+    + '(2) Change or remove fees already on the booking: lines is an object {"<line key>": cents, or null to remove}, as Admin > Edit booking does.', ['booking', 'lines', 'reason'],
+    { ...booking, lines: { type: ['array', 'object'], items: { type: 'object', properties: { op: { type: 'string', enum: ['add'] }, fee: str('smoking, cleaning, cleaning_heavy, pet_cleaning, late, km, fuel, ticket, toll or damage'),
+      amount_cents: cents('Amount before HST'), note: str('What it is for (the renter sees it)') } }, description: 'A list of named fees to add, or an object {line key: cents or null}' }, reason: str('Why') }),
   write('record_payment', 'Record a payment', 'Record money received outside the site for a part of a booking (covers: rental, deposit, fees, balance, tip). A payment of the rental or the fees pays the other part too once its own part is paid, and a booking waiting for payment is confirmed when nothing is open. A deposit by e-Transfer or cash is the deposit times the Program setting (2x by default): with no amount it takes what is still owed (a top-up); more than the deposit is held and returned with it. A tip (cash or e-Transfer) is split between the salesperson and the handover staff member. On a long-term rental paid weekly with nothing of the rental open, a payment of the rental is the next week: the amount is the week\'s price and the return moves 7 days.', ['booking', 'method', 'amount_cents'],
     { ...booking, covers: str('rental, deposit, fees, balance or tip'), method: str('cash, e_transfer, card_terminal, cheque, bank_transfer, other'), amount_cents: cents('The amount received (a deposit: empty takes what is still owed)'),
       reference: str('A reference'), received_on: { type: 'string', format: 'date' }, note: str('A note') }),
@@ -135,9 +141,14 @@ export const ADMIN_TOOLS: Tool[] = [
     { vehicle: id('The car'), fee: str('The fee type code'), amount_cents: cents('Amount'), percent_bps: { type: 'integer', minimum: 0, maximum: 10000 }, cap_cents: cents('Cap'), reason: str('Why'), effective_from: { type: 'string', format: 'date' } }),
   write('publish_car', 'Publish a car now', 'Put a car on the site now (Publish now); open warnings are listed in the answer.', ['vehicle_id'], { vehicle_id: id('The car') }),
   write('unlist_car', 'Take a car off the site', 'Unlist a car with the reason (its page redirects to another car or a list).', ['vehicle', 'reason'], { vehicle: id('The car'), reason: str('Why'), to_path: str('Where its page sends visitors') }, true),
-  write('change_owner_terms', 'Change an owner\'s terms', 'Change the terms of an owner\'s car (revenue share, fees) from a date, as the Terms tab does.', ['vehicle_id', 'owner_id'],
+  write('change_owner_terms', 'Change an owner\'s terms', 'Change the terms of an owner\'s car (revenue share, fees) from a date, as the Terms tab does. With correction: true it corrects terms recorded wrong, '
+    + 'from any date since the car\'s start (effective_from; empty: the start), even before a later term: the periods from that date take the corrected values, the values replaced are kept with the reason '
+    + '(note, 10 characters or more), bookings not yet on an approved statement are worked out again, and the owner signs an updated Vehicle Schedule only when the correction gives them less. '
+    + 'recompute_statements: true also recomputes the owner\'s approved statements not paid out.', ['vehicle_id', 'owner_id'],
     { owner_id: id('The owner'), vehicle_id: id('The car'), revenue_share_bps: { type: 'integer', minimum: 0, maximum: 10000 }, insurance_fee_cents: cents('Insurance fee'), tracker_fee_cents: cents('Tracker fee'),
-      install_fee_cents: cents('Install fee'), first_last_cents: cents('First and last'), effective_from: { type: 'string', format: 'date' }, note: str('Why'), confirm_resign: { type: 'boolean' } }),
+      install_fee_cents: cents('Install fee'), first_last_cents: cents('First and last'), effective_from: { type: 'string', format: 'date' }, note: str('Why'), confirm_resign: { type: 'boolean' },
+      correction: { type: 'boolean', description: 'Correct the terms from effective_from (a versioned correction), not a change from now on' },
+      recompute_statements: { type: 'boolean', description: 'With correction: recompute the owner\'s approved statements not paid out' } }),
   write('issue_owner_invoice', 'Issue an owner invoice', 'Issue a draft owner invoice.', ['id'], { id: id('The invoice') }),
   write('void_owner_invoice', 'Void an owner invoice', 'Void an owner invoice with the reason.', ['id', 'reason'], { id: id('The invoice'), reason: str('Why') }, true),
   write('resend_owner_invoice', 'Resend an owner invoice', 'Email an owner invoice and its pay link again.', ['id'], { id: id('The invoice') }),
