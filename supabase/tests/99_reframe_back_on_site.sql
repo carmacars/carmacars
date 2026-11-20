@@ -33,7 +33,7 @@ select test.ok('marked as made again, off the site meanwhile',
   (select reframed_at is not null and not is_public from vehicle_photos where id = (select old_one from rbsp)));
 
 -- the new photo lands (processed, not approved), then a person covers its plate
-create temp table rbsc as select j.id from app.claim_listing_jobs('rbs-w', 100, array['process_photo']) j where j.vehicle_photo_id = (select old_one from rbsp);
+create temp table rbsc as select j.id from app.claim_listing_jobs('rbs-w', 100000, array['process_photo']) j where j.vehicle_photo_id = (select old_one from rbsp);
 select app.worker_listing_result((select id from rbsc), jsonb_build_object('ok', true, 'provider', 'fake', 'output', jsonb_build_object(
   'processed_path', 'vehicles/rbs/rear.jpg', 'width', 1800, 'height', 1200, 'flags', '[]'::jsonb, 'preset_version', 'studio_v4')));
 select test.ok('still off the site before the plate check', (select not is_public from vehicle_photos where id = (select old_one from rbsp)));

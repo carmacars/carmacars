@@ -46,6 +46,8 @@ select test.ok('it is not urgent', not app.outbox_urgent(null, 3::smallint, now(
 create temp table is_kick as select public.server_notify_kick(null) k;
 select test.eq('the kick says an email is due', (select (k ->> 'email')::boolean from is_kick), true);
 select test.eq('the email sender is asked at once', (select count(*)::int from test.is_sender_calls), 1);
+-- (the 5 seconds start again here: a loaded machine can take longer than that between two statements)
+update app.notify_kick_state set at = now() where k = 'email';
 select public.server_notify_kick(null);
 select test.eq('never twice within 5 seconds', (select count(*)::int from test.is_sender_calls), 1);
 update app.notify_kick_state set at = now() - interval '6 seconds' where k = 'email';

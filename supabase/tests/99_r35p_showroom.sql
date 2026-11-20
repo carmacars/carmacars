@@ -47,7 +47,7 @@ select test.eq('the worker is told the scene',
   (select app.listing_job_context(j.id) -> 'photo' ->> 'scene' from listing_jobs j where j.vehicle_photo_id = (select cover from rspp) and j.kind = 'process_photo' limit 1), 'showroom');
 select test.eq('a photo made before 0990 is the studio to the worker',
   (select app.listing_job_context(j.id) -> 'photo' ->> 'scene' from listing_jobs j where j.vehicle_photo_id = (select a from rspo limit 1) and j.kind = 'process_photo' limit 1), 'studio');
-create temp table rspc as select j.id from app.claim_listing_jobs('rsp-w', 100, array['process_photo']) j where j.vehicle_photo_id = (select cover from rspp);
+create temp table rspc as select j.id from app.claim_listing_jobs('rsp-w', 100000, array['process_photo']) j where j.vehicle_photo_id = (select cover from rspp);
 select app.worker_listing_result((select id from rspc), jsonb_build_object('ok', true, 'provider', 'fake', 'output', jsonb_build_object(
   'processed_path', 'vehicles/rsp/cover.jpg', 'width', 1800, 'height', 1200, 'flags', '[]'::jsonb, 'preset_version', 'studio_showroom_v2', 'lettered', true,
   'mask_path', 'vehicles/rsp/work/cover-mask.png', 'place', jsonb_build_object('width', 1500, 'height', 600, 'left', 150, 'bottom', 250),
@@ -77,7 +77,7 @@ select test.ok('the job names the showroom and the new file', (select app.listin
   from listing_jobs j where j.vehicle_photo_id = (select id from rspf) and j.kind = 'process_photo' and j.status = 'queued'));
 select test.throws('one at a time', format('select app.photo_showroom(%L, jsonb_build_object(''action'', ''redo'', ''photo'', %L::uuid))', test.id('rsp_admin'), (select id from rspf)), 'being made now');
 -- made where the car was: the plate check carries over (0700), back on the site
-create temp table rspc2 as select j.id from app.claim_listing_jobs('rsp-w', 100, array['process_photo']) j where j.vehicle_photo_id = (select id from rspf);
+create temp table rspc2 as select j.id from app.claim_listing_jobs('rsp-w', 100000, array['process_photo']) j where j.vehicle_photo_id = (select id from rspf);
 select app.worker_listing_result((select id from rspc2), jsonb_build_object('ok', true, 'provider', 'fake', 'output', jsonb_build_object(
   'processed_path', 'vehicles/rsp/old-front_left-v1.jpg', 'width', 1800, 'height', 1200, 'flags', '[]'::jsonb, 'preset_version', 'studio_showroom_v2', 'edited', true,
   'place', jsonb_build_object('width', 1500, 'height', 600, 'left', 150, 'bottom', 250), 'showroom', jsonb_build_object('provider', 'local'))));

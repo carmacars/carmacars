@@ -36,7 +36,7 @@ select test.eq('no suggestion kept while the photo is being made',
 select test.ok('still none', (select plate_suggestion is null from vehicle_photos where id = (select outside from s60p)));
 
 -- the new photo lands: framed studio_v4; a suggestion stored by then (any way) is dropped
-create temp table s60c as select j.id from app.claim_listing_jobs('sfp-w', 100, array['process_photo']) j where j.vehicle_photo_id = (select outside from s60p);
+create temp table s60c as select j.id from app.claim_listing_jobs('sfp-w', 100000, array['process_photo']) j where j.vehicle_photo_id = (select outside from s60p);
 update vehicle_photos set plate_suggestion = '{"answer": {}}'::jsonb where id = (select outside from s60p);
 select app.worker_listing_result((select id from s60c), jsonb_build_object('ok', true, 'provider', 'fake', 'output', jsonb_build_object(
   'processed_path', 'vehicles/sfp/fl.jpg', 'width', 1800, 'height', 1200, 'flags', '[]'::jsonb, 'preset_version', 'studio_v4')));

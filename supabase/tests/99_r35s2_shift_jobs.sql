@@ -152,7 +152,7 @@ select test.eq('a marketing job carries the scene and the cut-out, never the web
   (select (j.input #>> '{marketing,scene}') || '/' || (j.input #>> '{marketing,mask}') || '/' || (j.vehicle_photo_id is null)::text from listing_jobs j where j.kind = 'marketing_photo' and j.input #>> '{marketing,id}' = (select id::text from s2mk)),
   'highway/vehicles/s2/work/front-left-mask.png/true');
 select test.throws('one set at a time', format($$select test.s2_ops('s2_fleet', 'marketing_set', jsonb_build_object('vehicle', %L))$$, test.id('vehicle:S2PIC')), 'being made now');
-create temp table s2mc as select j.id from app.claim_listing_jobs('s2-w', 100, array['marketing_photo']) j where j.input #>> '{marketing,id}' = (select id::text from s2mk);
+create temp table s2mc as select j.id from app.claim_listing_jobs('s2-w', 100000, array['marketing_photo']) j where j.input #>> '{marketing,id}' = (select id::text from s2mk);
 grant select on s2mc to public;
 select app.worker_listing_result((select id from s2mc), jsonb_build_object('ok', true, 'provider', 'ai', 'output', jsonb_build_object('marketing',
   jsonb_build_object('id', (select id from s2mk), 'status', 'made', 'path', 'vehicles/s2/marketing/x.jpg', 'provider', 'ai'))));
@@ -189,7 +189,7 @@ grant select on s2pr to public;
 select test.eq('from its uncovered file, the rear plate, its sizes', (select (input #>> '{plate,source}') || '/' || (input #>> '{plate,end}') || '/' || (input #> '{plate,widths}')::text from s2pr),
   'vehicles/original/s2/front-left-uncovered.jpg/rear/[800]');
 select test.eq('not twice', app.plate_redo_queue((select p from s2p)), 0);
-create temp table s2prc as select j.id from app.claim_listing_jobs('s2-w', 100, array['plate_redo']) j where j.id = (select id from s2pr);
+create temp table s2prc as select j.id from app.claim_listing_jobs('s2-w', 100000, array['plate_redo']) j where j.id = (select id from s2pr);
 grant select on s2prc to public;
 select app.worker_listing_result((select id from s2pr), jsonb_build_object('ok', true, 'provider', 'carmacars', 'output', jsonb_build_object('plate',
   jsonb_build_object('processed_path', 'vehicles/' || test.id('vehicle:S2PIC') || '/front-left-pabc123.jpg', 'variants', jsonb_build_array(jsonb_build_object('width', 800, 'format', 'jpg', 'path', 'x'))))));

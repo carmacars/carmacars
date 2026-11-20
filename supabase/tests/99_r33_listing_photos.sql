@@ -68,7 +68,7 @@ select test.ok('the job context names the cover and a new file name',
   (select (app.listing_job_context(j.id) -> 'photo' ->> 'is_cover')::boolean and (app.listing_job_context(j.id) -> 'photo' ->> 'file_base') like '%-v1'
      from listing_jobs j where j.vehicle_photo_id = (select std from rlpx) and j.kind = 'process_photo' and j.status = 'queued'));
 -- the car did not move: no plate visible carries over, the photo is back on the site at once
-create temp table rlpc as select j.id from app.claim_listing_jobs('rlp-w', 100, array['process_photo']) j where j.vehicle_photo_id = (select std from rlpx);
+create temp table rlpc as select j.id from app.claim_listing_jobs('rlp-w', 100000, array['process_photo']) j where j.vehicle_photo_id = (select std from rlpx);
 select app.worker_listing_result((select id from rlpc), jsonb_build_object('ok', true, 'provider', 'fake', 'output', jsonb_build_object(
   'processed_path', 'vehicles/rlp/rear-v1.jpg', 'width', 1800, 'height', 1200, 'flags', '[]'::jsonb, 'preset_version', 'studio_v5', 'edited', true,
   'place', jsonb_build_object('width', 1505, 'height', 602, 'left', 148, 'bottom', 250))));
@@ -78,7 +78,7 @@ select test.ok('not moved: no plate visible carried over, approved and on the si
 -- a covered plate, then an edit that moves the car: asked again, off the site until checked, then back on (0661)
 update vehicle_photos set plate_status = 'covered', plate_boxes = '[{"x":0.4,"y":0.6,"w":0.2,"h":0.08}]'::jsonb, plate_style = 'cover' where id = (select std from rlpx);
 select app.photo_cutout_edit(test.id('rlp_admin'), jsonb_build_object('photo', (select std from rlpx), 'cutout_path', (select path from rlpe), 'adjust', jsonb_build_object('dx', 0.2)));
-create temp table rlpc2 as select j.id from app.claim_listing_jobs('rlp-w', 100, array['process_photo']) j where j.vehicle_photo_id = (select std from rlpx);
+create temp table rlpc2 as select j.id from app.claim_listing_jobs('rlp-w', 100000, array['process_photo']) j where j.vehicle_photo_id = (select std from rlpx);
 select app.worker_listing_result((select id from rlpc2), jsonb_build_object('ok', true, 'provider', 'fake', 'output', jsonb_build_object(
   'processed_path', 'vehicles/rlp/rear-v2.jpg', 'width', 1800, 'height', 1200, 'flags', '[]'::jsonb, 'preset_version', 'studio_v5', 'edited', true,
   'place', jsonb_build_object('width', 1505, 'height', 602, 'left', 508, 'bottom', 250))));
@@ -88,7 +88,7 @@ update vehicle_photos set plate_status = 'covered', plate_boxes = '[{"x":0.5,"y"
 select test.ok('checked again: back on the site by itself (0661)', (select is_public and status = 'approved' from vehicle_photos where id = (select std from rlpx)));
 -- not moved with a covered plate: the cover is carried for the review to put back on
 select app.photo_cutout_edit(test.id('rlp_admin'), jsonb_build_object('photo', (select std from rlpx), 'cutout_path', (select path from rlpe)));
-create temp table rlpc3 as select j.id from app.claim_listing_jobs('rlp-w', 100, array['process_photo']) j where j.vehicle_photo_id = (select std from rlpx);
+create temp table rlpc3 as select j.id from app.claim_listing_jobs('rlp-w', 100000, array['process_photo']) j where j.vehicle_photo_id = (select std from rlpx);
 select app.worker_listing_result((select id from rlpc3), jsonb_build_object('ok', true, 'provider', 'fake', 'output', jsonb_build_object(
   'processed_path', 'vehicles/rlp/rear-v3.jpg', 'width', 1800, 'height', 1200, 'flags', '[]'::jsonb, 'preset_version', 'studio_v5', 'edited', true,
   'place', jsonb_build_object('width', 1505, 'height', 602, 'left', 508, 'bottom', 250))));
@@ -99,7 +99,7 @@ select test.eq('three versions kept', (select count(*)::text from vehicle_photo_
 update vehicle_photos set plate_status = 'not_visible' where id = (select std from rlpx);
 select app.photo_cutout_edit(test.id('rlp_admin'), jsonb_build_object('photo', (select std from rlpx), 'cutout_path', (select path from rlpe)));
 update listing_jobs set attempts = max_attempts - 1 where vehicle_photo_id = (select std from rlpx) and status = 'queued';
-create temp table rlpc4 as select j.id from app.claim_listing_jobs('rlp-w', 100, array['process_photo']) j where j.vehicle_photo_id = (select std from rlpx);
+create temp table rlpc4 as select j.id from app.claim_listing_jobs('rlp-w', 100000, array['process_photo']) j where j.vehicle_photo_id = (select std from rlpx);
 select app.worker_listing_result((select id from rlpc4), jsonb_build_object('ok', false, 'provider', 'fake', 'error', 'gone', 'retryable', false));
 select test.ok('a failed edit: the photo keeps its file and status',
   (select status = 'approved' and processed_path = 'vehicles/rlp/rear-v3.jpg' and background_status <> 'failed' from vehicle_photos where id = (select std from rlpx)));
@@ -108,7 +108,7 @@ select test.ok('a failed edit: the photo keeps its file and status',
 create temp table rlpm as select id from vehicle_photos where vehicle_id = test.id('vehicle:rlp_car') and shot_type = 'exterior_more' order by sort_order limit 1;
 update vehicle_photos set status = 'approved', processed_path = 'vehicles/rlp/x.jpg', background_status = 'done', cutout = null where id = (select id from rlpm);
 select test.eq('a mask is asked for', (select app.photo_cutout_mask(test.id('rlp_admin'), jsonb_build_object('photo', (select id from rlpm))) ->> 'queued'), 'true');
-create temp table rlpc5 as select j.id from app.claim_listing_jobs('rlp-w', 100, array['process_photo']) j where j.vehicle_photo_id = (select id from rlpm);
+create temp table rlpc5 as select j.id from app.claim_listing_jobs('rlp-w', 100000, array['process_photo']) j where j.vehicle_photo_id = (select id from rlpm);
 select app.worker_listing_result((select id from rlpc5), jsonb_build_object('ok', true, 'provider', 'fake', 'output', jsonb_build_object('mask_only', true, 'mask_path', 'vehicles/rlp/work/x-mask.png')));
 select test.ok('the mask is stored; the photo kept its file and status',
   (select cutout ->> 'auto_mask' = 'vehicles/rlp/work/x-mask.png' and processed_path = 'vehicles/rlp/x.jpg' and status = 'approved' from vehicle_photos where id = (select id from rlpm)));
