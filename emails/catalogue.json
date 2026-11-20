@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 240,
+  "count": 241,
   "emails": [
     {
       "code": "account_password_reset",
@@ -16377,6 +16377,91 @@
       ],
       "template_html": "templates/owner_weekly_summary.html",
       "template_text": "templates/owner_weekly_summary.txt"
+    },
+    {
+      "code": "tracker_waitlist_joined",
+      "audience": "owner",
+      "category": "transactional",
+      "trigger": "A person joins the GPS tracker waitlist or pre-orders on /trackers (public.submit_tracker_waitlist, migration 3231). Once per sign-up.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <owners@carmacars.ca>",
+      "reply_to": "owners@carmacars.ca",
+      "subject": "You are on the {{tracker_name}} waitlist",
+      "preheader": "We will write as soon as the trackers arrive. Nothing is charged today.",
+      "sample_subject": "You are on the CarmaCars GPS tracker waitlist",
+      "variables": [
+        {
+          "name": "cars_count",
+          "type": "string",
+          "sample": "3"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Daniel",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "install_price",
+          "type": "string",
+          "sample": "$150"
+        },
+        {
+          "name": "monthly_price",
+          "type": "string",
+          "sample": "$20 a month"
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "tracker_name",
+          "type": "string",
+          "sample": "CarmaCars GPS tracker"
+        }
+      ],
+      "template_html": "templates/tracker_waitlist_joined.html",
+      "template_text": "templates/tracker_waitlist_joined.txt"
     },
     {
       "code": "investor_notice_received",

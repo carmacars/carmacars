@@ -180,6 +180,8 @@ export async function submitBookingRequest(input: SubmitInput): Promise<SubmitRe
       // 0096: how we reach the renter, chosen in the form (empty: the default)
       if (v.notifyChannel) await rpc('server_request_notify_channel', { p_booking_number: String(res.booking_number), p_channel: v.notifyChannel, p_user: user?.id }, { role: 'service_role' }).catch(() => undefined);
       // 0410: "How did you hear about us?" (empty: not answered)
+      // r48 (3230): where the renter came from (the first visit's referring site, landing page, campaign and ad click)
+      await (await import('@/server/source')).storeSource({ bookingNumber: String(res.booking_number) });
       if (v.heardAbout) await rpc('server_booking_heard_about', { p_booking_number: String(res.booking_number), p_value: v.heardAbout }, { role: 'service_role' }).catch(() => undefined);
       // 0147: a partner's booking link sent this visitor (/p/<code>/<car>): the partner gets the lead when leads are on
       const partnerRef = (await cookies()).get(PARTNER_COOKIE)?.value ?? null;

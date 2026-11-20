@@ -44,6 +44,14 @@ test('a browser-looking agent without our cookies is checked on long-tail pages;
   assert.equal(scraperGuard('GET', place, { ...isp, verifiedBotCategory: 'AI Search' }, chrome, null), 'pass');
   for (const ua of ['Mozilla/5.0 (compatible; GPTBot/1.2; +https://openai.com/gptbot)', 'Mozilla/5.0 (compatible; Claude-User/1.0)', 'curl/8.5.0', 'CarmaCars warm-up (cron)',
     'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/130.0 Safari/537.36', '']) assert.equal(scraperGuard('GET', place, isp, ua, null), 'pass', ua);
+  // r48: a person who follows a search or an AI answer result is never shown the check page; any other referrer still is
+  for (const ref of ['https://www.google.com/', 'https://www.google.ca/search?q=car+rental', 'https://www.bing.com/search?q=x', 'https://duckduckgo.com/', 'https://chatgpt.com/', 'https://www.perplexity.ai/search/abc', 'https://gemini.google.com/app', 'https://copilot.microsoft.com/'])
+    assert.equal(scraperGuard('GET', place, isp, chrome, null, false, ref), 'pass', ref);
+  for (const ref of ['https://example.com/', 'https://google.com.evil.example/', 'https://notgoogle.com/', '', null])
+    assert.equal(scraperGuard('GET', place, isp, chrome, null, false, ref), 'check', String(ref));
+  assert.equal(scraperGuard('GET', place, { asOrganization: 'RapidSeedbox Ltd' }, chrome, null, false, 'https://www.google.com/'), 'copy-only', 'a hosting network is not let through by a referrer');
+  assert.equal(scraperGuard('GET', '/trackers', isp, chrome, null), 'pass', 'the tracker pages are product pages, never checked');
+  assert.equal(scraperGuard('GET', '/trackers/install/mississauga', isp, chrome, null), 'pass');
   assert.equal(scraperGuard('GET', '/', isp, chrome, null), 'pass', 'home is never checked');
   assert.equal(scraperGuard('GET', '/cars/bmw', isp, chrome, null), 'pass');
   assert.ok(knownBrowser('a=1; sb-abc123-auth-token=x') && !knownBrowser('cc_geox=1'));

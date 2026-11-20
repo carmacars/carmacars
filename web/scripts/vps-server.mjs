@@ -40,6 +40,7 @@ import { SCHEMA_HEADER, SCHEMA_MARKER } from '../src/lib/schema-marker.ts';
 import { ORIGIN_WAIT_MS, STALE_HEADER, hasSession, isProbe, staleKey, staleWorthy } from '../src/lib/edge/page-cache.ts';
 import { checkPage, marketOf, marketStored, offMarketPlace, oldModelYear, oldYearGone, outOfMarket, placeRegionBit, scraperGuard, tooMany, vehiclePageYear } from '../src/lib/edge/scraper-guard.ts';
 import { RATE_LIMITED_BOT, keptToScope, shield, shieldResponse } from '../src/lib/edge/bot-shield.ts';
+import { hostAction } from '../src/lib/edge/canonical-host.ts';
 import { jobsToRun, pushWaiting } from '../src/lib/edge/cron-gate.ts';
 import { kickNow, notifyKick, tickPlan } from '../src/lib/edge/notify-kick.ts';
 import { cronEnabled, jobsForTick } from '../src/lib/platform/cron-plan.ts';
@@ -252,6 +253,11 @@ async function handle(req, res) {
     res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=3600', ...secHeaders() }); res.end('Not found'); req.resume(); return;
   }
   if (pathname === INBOUND_PATH && method === 'POST') return inbound(req, res, head);
+  // r48: one host for search engines (src/lib/edge/canonical-host.ts): www answers a permanent redirect to the canonical
+  // host; the deploy's own hostname (new.) keeps answering, marked noindex
+  const hostWhat = hostAction(host, env.NEXT_PUBLIC_APP_URL, method, req.url || '/');
+  if (hostWhat.kind === 'redirect') { req.resume(); res.writeHead(301, { location: hostWhat.location, 'cache-control': 'public, max-age=86400', ...secHeaders() }); res.end(); return; }
+  const altHost = hostWhat.kind === 'noindex';
   const ua = head('user-agent');
   if (method === 'GET' || method === 'HEAD') {
     if (placeRegionBit(pathname) !== null && offMarketPlace(pathname, marketOf(flags.placeMarket))) return sendWeb(res, outOfMarket(secHeaders()));
@@ -266,10 +272,10 @@ async function handle(req, res) {
   const htmlOut = (status, h, raw) => sendHtml(res, { method, status, h, raw, pathname, proto, cookieHeader: head('cookie'), geo });
   // the page's last good copy: only a public page asked for without a session (src/lib/edge/page-cache.ts staleKey), as a document
   const sKey = copies && method === 'GET' && head('rsc') !== '1' ? staleKey({ method, url: url.toString(), headers: { get: head } }) : null;
-  const copyHeaders = (why) => { const h = { 'content-type': 'text/html; charset=utf-8', [STALE_HEADER]: why, ...secHeaders() }; if (embeddable(pathname)) delete h['x-frame-options']; h[SCHEMA_HEADER] = SCHEMA_MARKER; return h; };
+  const copyHeaders = (why) => { const h = { 'content-type': 'text/html; charset=utf-8', [STALE_HEADER]: why, ...secHeaders() }; if (embeddable(pathname)) delete h['x-frame-options']; h[SCHEMA_HEADER] = SCHEMA_MARKER; if (altHost) h['x-robots-tag'] = 'noindex'; return h; };
   // an agent posing as a browser, on a long-tail page, with none of our cookies: the kept copy, else a tiny page that sets
   // a cookie and reloads; never a render (src/lib/edge/scraper-guard.ts; without Cloudflare's network data, the check only)
-  if (guardOn && scraperGuard(method, pathname, undefined, ua, head('cookie'), head('rsc') === '1') === 'check') {
+  if (guardOn && scraperGuard(method, pathname, undefined, ua, head('cookie'), head('rsc') === '1', head('referer')) === 'check') {
     req.resume();
     const c = sKey ? await copies.get(sKey) : null;
     if (c) return htmlOut(200, copyHeaders('guard'), c.body);
@@ -319,6 +325,7 @@ async function handle(req, res) {
     Object.assign(h, secHeaders());
     if (embeddable(pathname)) delete h['x-frame-options'];
     h[SCHEMA_HEADER] = SCHEMA_MARKER;
+    if (altHost) h['x-robots-tag'] = 'noindex';
     const cookies = [...[].concat(r.headers['set-cookie'] ?? []), ...setCookies];
     if (method === 'GET' && pathname.startsWith('/account/bookings/')) { const m = emailLinkCookie(url.toString(), proto === 'https'); if (m) cookies.push(m); }
     if (cookies.length) h['set-cookie'] = cookies;

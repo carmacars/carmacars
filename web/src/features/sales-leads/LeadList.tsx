@@ -8,6 +8,7 @@ import { ClaimPace } from './ClaimPace';
 import { age, bulkFilter, holdWords, leadHref, stateOf, TYPE_LABEL, STATUS_CHIPS, type LeadList as Data, type LeadRow, type LeadType } from './model';
 import { BulkAssign, BULK_FORM } from './BulkAssign';
 import { RenterToggle } from './RenterToggle';
+import { SourceBadge } from './LeadSource';
 
 /** The lead cards (phone-friendly: one column at 375, two or three on wider screens). */
 export function LeadCards({ rows, base, admin, people, testId = 'lead-cards', pick = false, renterLink = true }: { renterLink?: boolean; rows: LeadRow[]; base: string; admin: boolean; people: Data['people']; testId?: string; /** 2411: a tick box for the bulk bar */ pick?: boolean }) {
@@ -29,6 +30,9 @@ export function LeadCards({ rows, base, admin, people, testId = 'lead-cards', pi
             </span>
           </div>
           <p className="small sl-card__src"><b data-testid="lead-source">{r.source}</b> · {age(r.created_at)}{r.vehicle ? ` · ${r.vehicle}` : ''}{r.value_cents ? ` · ${$(r.value_cents)}` : ''}</p>
+          {/* 3230: where they came from (ChatGPT, Google search and its terms ...) and a duplicate to merge */}
+          {(r.traffic || (r.dups ?? 0) > 0) && <p className="small sl-card__src row" style={{ gap: 'var(--s-2)', flexWrap: 'wrap' }}><SourceBadge t={r.traffic} />{r.traffic?.landing && <span className="muted" data-testid="lead-landing">First page {r.traffic.landing}</span>}
+            {(r.dups ?? 0) > 0 && <Link prefetch={false} className="sl-src sl-src--dup" href={`${base}/${r.id}`} data-testid="lead-dups">{r.dups} possible duplicate{r.dups === 1 ? '' : 's'}: merge</Link>}</p>}
           <p className="small sl-card__contact">{r.phone || r.email ? <>{r.phone && <PhoneValue phone={r.phone} />}{r.phone && r.email ? ' · ' : ''}{r.email}</> : <span className="muted">No phone or email</span>}</p>
           {r.excerpt && <p className="small muted sl-card__text">{r.excerpt}</p>}
           {holdWords(r.hold).text && <p className="small" data-testid="lead-hold">{holdWords(r.hold).text}</p>}

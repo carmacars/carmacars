@@ -22,6 +22,7 @@ export async function submitChauffeur(_: unknown, fd: FormData): Promise<ActionR
       if (r.error === 'rate_limited') return { ok: false, code: 'rate_limited', message: 'Too many requests from this connection. Please try again later or call us.' };
       return { ok: false, code: 'invalid', message: 'Check the highlighted fields.', fieldErrors: r.fields ?? {} };
     }
+    await (await import('@/server/source')).storeSource({ chauffeurRef: r.reference });
     return { ok: true, data: { reference: r.reference! } };
   } catch (e) {
     return { ok: false, code: 'db', message: e instanceof DbError ? e.message : 'We could not send that. Please try again.' };

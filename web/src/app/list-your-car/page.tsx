@@ -1,4 +1,6 @@
 import Link from '@/components/Link';
+import { ServicePromo } from '@/features/services/ServicePromo';
+import { KitSticky } from '@/features/seo/kit/Kit';
 import { Crumbs } from '@/components/Crumbs';
 import { EarningsCalculator } from '@/features/owner/EarningsCalculator';
 import type { CalcData } from '@/features/owner/earnings';
@@ -106,6 +108,9 @@ export default async function Owners() {
       <section className="section" aria-labelledby="oh-faq">
         <div className="wrap grid"><div className="c-4"><h2 className="d2" id="oh-faq">Owner questions</h2></div><div className="c-8"><Faq items={faq} /></div></div>
       </section>
+      {/* r48: the other services (the tracker first), and the phone's sticky action */}
+      <ServicePromo exclude="owner" pageKey="/list-your-car" />
+      <KitSticky title="List your car and earn" sub="We find and check the renters" cta="Apply" href="/list-your-car/apply" />
     </div>
   );
 }

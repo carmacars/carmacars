@@ -6222,6 +6222,72 @@ export type Database = {
         };
         Relationships: [];
       };
+      contact_sources: {
+        Row: {
+          id: string;
+          lead_id: string | null;
+          booking_id: string | null;
+          visitor_id: string | null;
+          channel: string;
+          first_at: string | null;
+          first_referrer: string | null;
+          first_landing: string | null;
+          last_referrer: string | null;
+          last_landing: string | null;
+          utm_source: string | null;
+          utm_medium: string | null;
+          utm_campaign: string | null;
+          utm_term: string | null;
+          utm_content: string | null;
+          click_kind: string | null;
+          click_id: string | null;
+          search_terms: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          lead_id?: string | null;
+          booking_id?: string | null;
+          visitor_id?: string | null;
+          channel: string;
+          first_at?: string | null;
+          first_referrer?: string | null;
+          first_landing?: string | null;
+          last_referrer?: string | null;
+          last_landing?: string | null;
+          utm_source?: string | null;
+          utm_medium?: string | null;
+          utm_campaign?: string | null;
+          utm_term?: string | null;
+          utm_content?: string | null;
+          click_kind?: string | null;
+          click_id?: string | null;
+          search_terms?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          lead_id?: string | null;
+          booking_id?: string | null;
+          visitor_id?: string | null;
+          channel?: string;
+          first_at?: string | null;
+          first_referrer?: string | null;
+          first_landing?: string | null;
+          last_referrer?: string | null;
+          last_landing?: string | null;
+          utm_source?: string | null;
+          utm_medium?: string | null;
+          utm_campaign?: string | null;
+          utm_term?: string | null;
+          utm_content?: string | null;
+          click_kind?: string | null;
+          click_id?: string | null;
+          search_terms?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       cookie_consents: {
         Row: {
           id: string;
@@ -12356,6 +12422,10 @@ export type Database = {
           won_booking_id: string | null;
           admin_assigned_by: string | null;
           admin_assigned_at: string | null;
+          merged_into: string | null;
+          merged_at: string | null;
+          merged_by: string | null;
+          not_duplicate_of: string[];
         };
         Insert: {
           id?: string;
@@ -12409,6 +12479,10 @@ export type Database = {
           won_booking_id?: string | null;
           admin_assigned_by?: string | null;
           admin_assigned_at?: string | null;
+          merged_into?: string | null;
+          merged_at?: string | null;
+          merged_by?: string | null;
+          not_duplicate_of?: string[];
         };
         Update: {
           id?: string;
@@ -12462,6 +12536,10 @@ export type Database = {
           won_booking_id?: string | null;
           admin_assigned_by?: string | null;
           admin_assigned_at?: string | null;
+          merged_into?: string | null;
+          merged_at?: string | null;
+          merged_by?: string | null;
+          not_duplicate_of?: string[];
         };
         Relationships: [];
       };
@@ -19692,6 +19770,10 @@ export type Database = {
           fee_evidence_gate: boolean;
           clean_evidence_min_photos: number;
           hiring_resend_per_run: number;
+          lead_auto_merge: boolean;
+          lead_auto_merge_days: number;
+          tracker_product_tiers: Json;
+          tracker_product_launch_note: string;
         };
         Insert: {
           id?: string;
@@ -20592,6 +20674,10 @@ export type Database = {
           fee_evidence_gate?: boolean;
           clean_evidence_min_photos?: number;
           hiring_resend_per_run?: number;
+          lead_auto_merge?: boolean;
+          lead_auto_merge_days?: number;
+          tracker_product_tiers?: Json;
+          tracker_product_launch_note?: string;
         };
         Update: {
           id?: string;
@@ -21492,6 +21578,10 @@ export type Database = {
           fee_evidence_gate?: boolean;
           clean_evidence_min_photos?: number;
           hiring_resend_per_run?: number;
+          lead_auto_merge?: boolean;
+          lead_auto_merge_days?: number;
+          tracker_product_tiers?: Json;
+          tracker_product_launch_note?: string;
         };
         Relationships: [];
       };
@@ -34233,6 +34323,7 @@ export type Database = {
       server_company_signers: { Args: never; Returns: Json };
       server_complete_signature_request: { Args: { p_request: string; p_signed_storage_path: string; p_signed_sha256: string }; Returns: string };
       server_confirm_extension_payment: { Args: { p_extension: string; p_processor: Json; p_amount_cents: number; p_by: string }; Returns: Json };
+      server_contact_source_set: { Args: { p_lead?: string; p_booking_number?: string; p_chauffeur_ref?: string; p?: Json }; Returns: string };
       server_coverage_card_network: { Args: { p_booking: string }; Returns: Json };
       server_coverage_choice_check: { Args: { p: Json }; Returns: Json };
       server_coverage_click: { Args: { p: Json; p_ip?: string }; Returns: Json };
@@ -34642,6 +34733,7 @@ export type Database = {
       server_webhook_event_finish: { Args: { p_provider: string; p_event_id: string; p_result?: Json; p_error?: string }; Returns: undefined };
       server_withdraw_account_deletion: { Args: { p_user: string }; Returns: Json };
       server_witnessed_form_facts: { Args: { p_by: string; p_code: string; p_vehicle?: string }; Returns: Json };
+      service_facts: { Args: never; Returns: Json };
       set_notification_preference: { Args: { p_code: string; p_email: boolean; p_in_app: boolean }; Returns: undefined };
       shop_services_public: { Args: { p_vertical: string }; Returns: Json };
       sign_request_facts: { Args: { p_by: string; p_id: string }; Returns: Json };
@@ -34669,8 +34761,10 @@ export type Database = {
       submit_form_draft: { Args: { p_draft: string; p_result?: Json }; Returns: Json };
       submit_lead: { Args: { p: Json; p_ip?: string }; Returns: Json };
       submit_place_lead: { Args: { p: Json; p_ip?: string }; Returns: Json };
+      submit_tracker_waitlist: { Args: { p: Json; p_ip?: string }; Returns: Json };
       track_beat: { Args: { p: Json }; Returns: Json };
       track_ingest: { Args: { p: Json; p_geo?: Json }; Returns: Json };
+      tracker_install_places: { Args: { p_limit?: number }; Returns: Json };
       tracker_product: { Args: never; Returns: Json };
       turo_email_receive: { Args: { p: Json }; Returns: Json };
       turo_match_keys: { Args: never; Returns: Json };

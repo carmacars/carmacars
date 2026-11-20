@@ -7,6 +7,8 @@ import { hubPath, placesKnown } from '@/features/places/data';
 import { napAddress } from './business';
 import { getArticles, getSeoPages } from './data';
 import type { EntityFacts, FactLink } from './llms';
+import { trackerFacts } from '@/features/trackers/data';
+import { availability, priceSentence, trackerIntents } from '@/features/trackers/pages';
 
 // The entity facts (docs/changes/2026-10-23-ai-search.md) for /llms.txt, /llms-full.txt, /about and the answer blocks,
 // read from the database only: site settings, program settings (site_facts), the real cars (sample cars never price
@@ -25,6 +27,7 @@ export const getEntityFacts = cache(async (): Promise<EntityFacts> => {
     faqItems('home.faq').catch(() => []), (rpc('chauffeur_services', {}) as unknown as Promise<ChauffeurServices>).catch(() => null),
     placesKnown(['toronto']).catch(() => [] as string[])
   ]);
+  const tracker = await trackerFacts().catch(() => null);
   const base = siteUrl();
   const real = fleet.filter((c) => !c.is_sample && c.daily_rate_cents > 0);
   const label = Object.fromEntries(classes.map((c) => [c.code, c.label]));
@@ -48,7 +51,11 @@ export const getEntityFacts = cache(async (): Promise<EntityFacts> => {
       path: hubPath('rental', slug, 'toronto'), note: 'Weekly and monthly rates; not affiliated with or endorsed by Uber or any other platform' })) : []),
     { name: 'Car detailing', path: '/detailing' },
     { name: 'Auto body shop and collision repair', path: '/body-shop' },
-    { name: 'List your car with us (owner program)', path: '/list-your-car' }
+    { name: 'List your car with us (owner program)', path: '/list-your-car', note: 'We find and check the renters, take the payments and send a monthly statement' },
+    // r48: the tracker's pages and the page of every service
+    ...(tracker ? [{ name: `${tracker.f.name}: GPS tracker and kill switch for cars`, path: '/trackers', note: `${priceSentence(tracker.f)}; ${availability(tracker.f)}` },
+      ...trackerIntents(tracker.f).map((i) => ({ name: i.h1, path: `/trackers/${i.slug}` })), { name: 'GPS tracker installation near you', path: '/trackers/install' }] : []),
+    { name: 'Every service on one page', path: '/services' }
   ];
   const pagesLinks: FactLink[] = [
     { name: 'About and facts', path: '/about' }, { name: 'How it works', path: '/how-it-works' }, { name: 'Requirements to rent', path: '/requirements' },
@@ -80,6 +87,7 @@ export const getEntityFacts = cache(async (): Promise<EntityFacts> => {
     guides: articles.map((a) => ({ name: F(a.title), path: a.path, note: F(a.description) })),
     pages: pagesLinks,
     faq: faq.map((q) => ({ question: F(q.question), answer: F(q.answer) })),
-    profiles: Object.values(s.social_links ?? {}).filter((v) => /^https:\/\//.test(v))
+    profiles: Object.values(s.social_links ?? {}).filter((v) => /^https:\/\//.test(v)),
+    tracker: tracker?.f ?? null
   };
 });

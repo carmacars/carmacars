@@ -94,3 +94,14 @@ export const partnerSignupSchema = z.object({
   postal_code: z.string().trim().max(12).optional().default(''),
   note: z.string().trim().max(1000, 'Keep it under 1,000 characters.').optional().default('')
 });
+
+// The GPS tracker waitlist and pre-order (release 48, migration 3231): an email and the number of cars are enough.
+export const trackerWaitlistSchema = z.object({
+  email,
+  cars: z.string().trim().regex(/^\d{1,3}$/, 'Enter how many cars, as a number.').refine((v) => Number(v) >= 1 && Number(v) <= 500, 'Enter a number from 1 to 500.'),
+  want: z.enum(['waitlist', 'preorder']).optional().default('waitlist'),
+  name: z.string().trim().max(100).optional().default(''),
+  phone: optPhone.optional().default(''),
+  vehicle: z.string().trim().max(120).optional().default(''),
+  city: z.string().trim().max(120).optional().default('')
+});

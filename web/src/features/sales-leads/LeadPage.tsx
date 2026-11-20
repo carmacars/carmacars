@@ -5,6 +5,8 @@ import { LeadActions, NextLead } from './LeadActions';
 import { CHANNEL_LABEL, HISTORY_LABEL, OUTCOME_LABEL, stateOf, TYPE_LABEL, type LeadContext, type LeadDetail } from './model';
 import { RenterContext } from './RenterContext';
 import { PhoneValue } from './LeadPhone';
+import { SourceCard } from './LeadSource';
+import { LeadDuplicates } from './LeadDuplicates';
 
 const FORM_LABEL: Record<string, string> = { topic: 'Topic', booking_number: 'Booking', vehicle: 'Car', car: 'Car', pickup: 'Pickup', return: 'Return', pickup_at: 'Pickup', return_at: 'Return',
   budget: 'Budget', timeline: 'When', ownership: 'Ownership', year: 'Year', make: 'Make', model: 'Model', km: 'Kilometres', note: 'Note' };
@@ -20,6 +22,7 @@ export function LeadPage({ d, base, chatHref, context, renterLink = true }: { d:
         <NextLead base={base} />
       </PageHead>
       <div className="stack" data-testid="lead-page" data-lead={d.id}>
+        {(d.duplicates?.length ?? 0) > 0 && <Card title={`Possible duplicate${d.duplicates!.length === 1 ? '' : 's'} (${d.duplicates!.length})`} testId="lead-duplicates-card"><LeadDuplicates lead={d.id} rows={d.duplicates!} base={base} /></Card>}
         <Card title="Contact">
           <Kv rows={[['Name', d.name ?? ''], ['Phone', <PhoneValue key="p" phone={d.phone} />], ['Email', d.email ?? <span className="muted">none</span>], ['Source', <b key="s" data-testid="lead-source">{d.source}</b>],
             ...(d.vehicle ? [['Car', d.vehicle] as [string, string]] : []), ...(d.value_cents ? [['Value', $(d.value_cents)] as [string, string]] : []),
@@ -34,6 +37,13 @@ export function LeadPage({ d, base, chatHref, context, renterLink = true }: { d:
           {form.length > 0 && <Kv rows={form.map(([k, v]) => [FORM_LABEL[k] ?? k, v])} />}
           {d.source_url && <p className="small muted" style={{ overflowWrap: 'anywhere' }}>From {d.source_url}</p>}
         </Card>}
+        {(d.merged?.length ?? 0) > 0 && <Card title={`Also wrote (${d.merged!.length} merged)`} testId="lead-merged">
+          <ul className="stack small" style={{ listStyle: 'none', padding: 0, margin: 0 }}>{d.merged!.map((m) => (
+            <li key={m.id}><b>{m.source}</b> <span className="muted">{t(m.received_at)}{m.auto ? ' · merged automatically' : ''}</span>
+              {m.message && <p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', margin: 'var(--s-1) 0 0' }}>{m.message}</p>}
+              {m.form && Object.keys(m.form).length > 0 && <Kv rows={Object.entries(m.form).filter(([k, v]) => v && typeof v !== 'object' && k !== 'form').map(([k, v]) => [FORM_LABEL[k] ?? k, String(v)])} />}</li>))}</ul>
+        </Card>}
+        <SourceCard t={d.traffic} />
         {d.transcript.length > 0 && <Card title="Live chat" testId="lead-transcript" aside={chatHref ? <Link prefetch={false} className="link small" href={chatHref}>Open the chat</Link> : undefined}>
           <ol className="sl-transcript">{d.transcript.map((m, i) => <li key={i} className="small"><b>{m.from === 'visitor' ? 'Visitor' : m.from === 'ai' ? 'Assistant' : 'Staff'}</b> <span className="muted">{t(m.at)}</span><br />{m.text}</li>)}</ol>
         </Card>}

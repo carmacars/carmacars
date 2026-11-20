@@ -1,4 +1,5 @@
 import Link from '@/components/Link';
+import { ServicePromo } from '@/features/services/ServicePromo';
 import { CtaBand, PageHead } from '@/components/Blocks';
 import { Faq } from '@/components/Faq';
 import { JsonLd } from '@/components/JsonLd';
@@ -84,6 +85,8 @@ export default async function CardCoverage() {
         </div>
       </section>
       <CtaBand h="Found your card?" p="Pick a car and send a request. Choose option 2, and we check your card before pickup." />
+      {/* r48: the other services */}
+      <ServicePromo exclude="coverage" pageKey="/credit-card-rental-coverage" />
     </div>
   );
 }

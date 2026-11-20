@@ -10,7 +10,9 @@ import { door, sessionAal } from '@/server/door';
 // written.
 const ACTIONS = new Set(['lead_claim', 'lead_unclaim', 'lead_contact', 'lead_outcome', 'lead_handled', 'lead_reassign', 'lead_return', 'lead_hold_release', 'lead_next', 'sales_lead_settings_save', 'renter_merge_undo', 'leads_bulk_assign',
   // 2870: an Admin shows a lead's phone to a salesperson and hides it again; Sales asks for it
-  'lead_phone_unlock', 'lead_phone_hide', 'lead_phone_ask']);
+  'lead_phone_unlock', 'lead_phone_hide', 'lead_phone_ask',
+  // 3230: duplicate leads: merge two, merge every duplicate into the oldest, or mark two as different people
+  'lead_merge', 'lead_merge_all', 'lead_not_duplicate']);
 
 export async function leadAct<T = Record<string, unknown>>(action: string, p: Record<string, unknown> = {}): Promise<ActionResult<T>> {
   if (!ACTIONS.has(action)) return { ok: false, code: 'invalid', message: 'Unknown action.' };

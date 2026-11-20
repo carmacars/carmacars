@@ -1,4 +1,5 @@
 import Link from '@/components/Link';
+import { ServicePromo } from '@/features/services/ServicePromo';
 import { alsoSearched } from '@/features/places/synonyms';
 import { CarCard } from '@/components/CarCard';
 import { Crumbs } from '@/components/Crumbs';
@@ -158,6 +159,8 @@ export function Questions({ items, title }: { items: Array<{ question: string; a
     <section className="vp-sec" aria-labelledby="h-q">
       <h2 className="d3" id="h-q">{title}</h2>
       <Faq items={items} />
+      {/* r48: every vehicle page carries the other services (four of them, turning with the page) */}
+      <ServicePromo bare n={4} pageKey={title} />
     </section>
   );
 }

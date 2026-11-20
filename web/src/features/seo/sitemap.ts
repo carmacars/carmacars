@@ -5,6 +5,7 @@ import { siteUrl } from '@/lib/site';
 import { env } from '@/lib/env';
 import { inCrawlScope } from '@/lib/edge/crawl-scope';
 import { withEpoch } from './lastmod';
+import { TRACKER_PATHS } from '@/features/trackers/pages';
 
 // The sitemaps read as the server (public paths only), not as a visitor: a file walks thousands of pages, which the
 // visitor's 2.5 s limit (0106) cut off (/sitemap.xml and /sitemap-vehicles/makes.xml answered 500, Oct 22).
@@ -13,7 +14,7 @@ const SR = { role: 'service_role' as const };
 // The sitemaps (docs/blueprint/14-seo.md section 9, migration 0061): an index, then the fixed pages with the model
 // pages, the cars with their photos, the landing pages and the guides. lastmod only where the date is the content's
 // own (Google uses it only when it is reliably accurate); no priority or changefreq (Google ignores them).
-export const FIXED = ['/', '/cars', '/car-rental', '/guides', '/how-it-works', '/requirements', '/credit-card-rental-coverage', '/delivery', '/chauffeur', '/faq', '/contact', '/about', '/list-your-car', '/detailing', '/body-shop', '/partners/body-shops', '/partners/tow-trucks', '/place-data', '/places', '/makes', '/terms', '/privacy', '/cancellation-policy'];
+export const FIXED = ['/', '/cars', '/car-rental', '/guides', '/how-it-works', '/requirements', '/credit-card-rental-coverage', '/delivery', '/chauffeur', '/faq', '/contact', '/about', '/list-your-car', '/services', '/detailing', '/body-shop', '/partners/body-shops', '/partners/tow-trucks', '/place-data', '/places', '/makes', '/terms', '/privacy', '/cancellation-policy'];
 type Row = { path: string; kind: string; lastmod: string | null; images: Array<{ loc: string; title: string | null }> | null };
 // 0102: 'hubs', the model pages of the cars on the site (/cars/<make>/<model>, sitemap_all's model_hub rows). They were left
 // to the vehicle sitemaps of 0097, which list nothing while the vehicle catalog is not loaded (live, Oct 22: none), so the
@@ -85,7 +86,14 @@ type Entry = { loc: string; lastmod: string | null; images?: string[]; alternate
 type Fam = Prio;
 type Langs = { languages: Array<{ code: string; hreflang: string }>; pages: Prio };
 async function familyRows(): Promise<Fam> {
-  try { return ((await memo('sitemap_families', () => rpc('sitemap_families', {}, SR))) ?? []) as unknown as Fam; } catch { return []; }
+  // r48 (3231): the tracker's intent pages and its install pages of the Ontario cities we reach join the families file
+  // (the product page itself is in the database's list while the product is on)
+  try {
+    const fam = ((await memo('sitemap_families', () => rpc('sitemap_families', {}, SR))) ?? []) as unknown as Fam;
+    if (!fam.some((r) => r.path === '/trackers')) return fam;
+    const places = ((await memo('tracker_install_places', () => rpc('tracker_install_places', { p_limit: 200 }, SR)).catch(() => [])) ?? []) as unknown as Array<{ slug: string }>;
+    return [...fam, ...TRACKER_PATHS.filter((p) => p !== '/trackers').map((path) => ({ path, lastmod: null })), ...places.map((x) => ({ path: `/trackers/install/${x.slug}`, lastmod: null }))];
+  } catch { return []; }
 }
 async function languageRows(): Promise<Langs> {
   try { return ((await memo('sitemap_languages', () => rpc('sitemap_languages', {}, SR))) ?? { languages: [], pages: [] }) as unknown as Langs; } catch { return { languages: [], pages: [] }; }

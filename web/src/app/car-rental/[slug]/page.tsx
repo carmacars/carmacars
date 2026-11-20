@@ -23,6 +23,10 @@ import { DepthSections } from '@/features/seo/Depth';
 import { metaOr, titleFromPath } from '@/features/seo/meta-fallback';
 import { ReadyCars } from '@/features/seo/ReadyCars';
 import { SiteReviews } from '@/features/seo/SiteReviews';
+import { KitFold, KitPrices, KitSection, KitSticky, KitTrust, type PriceCard } from '@/features/seo/kit/Kit';
+import { ServicePromo } from '@/features/services/ServicePromo';
+import { AddonCards } from '@/features/services/AddonCards';
+import type { ServiceKey } from '@/features/services/catalog';
 import '@/styles/seo.css';
 import '@/styles/vehicles.css';
 
@@ -34,6 +38,9 @@ import '@/styles/vehicles.css';
 // A slug that is no landing page is a place: the car rental page of that place (migration 0095).
 export const dynamic = 'force-dynamic';
 type Params = { params: Promise<{ slug: string }> };
+/** r48: the service a landing page is itself about, left out of its services module. */
+const SERVICE_OF: Record<string, ServiceKey> = { monthly: 'monthly', 'insurance-replacement': 'replacement', rideshare: 'rideshare', 'young-drivers': 'young', 'under-25': 'young', 'g2-licence': 'young',
+  'car-delivery': 'delivery', airport: 'delivery', 'insurance-included': 'coverage', 'with-a-charger': 'addons', 'with-flowers': 'addons', 'with-child-seat': 'addons' };
 
 /** 1100: a page whose copy is not written yet still renders (every active page is indexed), from its name. */
 function withCopy(p: SeoPage): SeoPage {
@@ -94,6 +101,12 @@ export default async function LandingPage({ params }: Params) {
   const own = p.copy.faq.map((q) => ({ question: F(q.question), answer: F(q.answer) }));
   const seen = new Set(own.map((q) => q.question.toLowerCase()));
   const faq = [...own, ...depth.faq.filter((q) => !seen.has(q.question.toLowerCase()))];
+  // r48: the price cards (the lowest live rate of the cars on the page, by length) and the add-ons this page is about
+  const prices: PriceCard[] = [
+    ...(p.min_daily_cents !== null ? [{ forWhom: 'By the day', amount: money(p.min_daily_cents), per: 'a day, from', points: [`${p.car_count} ${p.car_count === 1 ? 'car' : 'cars'} to choose from`, `Deposit ${t.depMin} to ${t.depMax}, held on your card`] }] : []),
+    ...(p.min_weekly_cents !== null ? [{ forWhom: `By the week (${t.weekFrom} days or more)`, amount: money(p.min_weekly_cents), per: 'a week, from', best: true, tag: 'Most booked', points: ['The weekly rate applies by itself', 'Extend from your account'] }] : []),
+    ...(p.min_monthly_cents !== null ? [{ forWhom: `${t.monthDays} days`, amount: money(p.min_monthly_cents), per: 'from', points: ['The monthly rate applies by itself', ...(p.min_delivery_cents !== null ? [`Delivery from ${money(p.min_delivery_cents)}`] : [])] }] : [])];
+  const addonCodes = Array.isArray(p.facts?.addons) ? (p.facts.addons as unknown[]).filter((x): x is string => typeof x === 'string') : [];
   const graph: object[] = [breadcrumbLd(trail, p.path), faqLd(faq),
     { '@type': 'ItemList', name: F(p.copy.h1), numberOfItems: p.cars.length,
       itemListElement: p.cars.slice(0, 12).map((c, i) => ({ '@type': 'ListItem', position: i + 1, url: siteUrl() + c.path, name: `${c.year ? `${c.year} ` : ''}${c.make} ${c.model}`, ...(c.cover ? { image: absUrl(c.cover.path) } : {}) })) }];
@@ -136,14 +149,19 @@ export default async function LandingPage({ params }: Params) {
         </div>
       </section>
 
-      <div className="wrap landing__body">
-        {p.copy.sections.map((sec, i) => (
-          <section key={i} className="car-sec landing__sec" aria-labelledby={`h-s${i}`}>
-            <h2 className="d2" id={`h-s${i}`}>{F(sec.heading)}</h2>
-            {paras(F(sec.body)).map((x, k) => <p key={k} className="measure">{x}</p>)}
-          </section>
-        ))}
-        <DepthSections d={depth} />
+      <div className="wrap landing__body sk">
+        {/* r48: the page reads as blocks: what it costs, the add-ons of this page, then the copy and the detail as folds */}
+        <div style={{ paddingTop: 'var(--s-5)' }}><KitTrust band items={[['shield', 'No payment to request'], ['clock', 'A person confirms the car and the price'], ['truck', 'Delivered or picked up'], ['star', 'Every fee shown before you pay']]} /></div>
+        {prices.length > 0 && <KitSection id="price" kicker="Price" h="What it costs" p={`Live prices from the cars on this page, before ${t.hst} HST. Your offer shows the full total before you pay.`}><KitPrices cards={prices} /></KitSection>}
+        {addonCodes.length > 0 && <AddonCards codes={addonCodes} />}
+        {p.copy.sections.length > 0 && (
+          <KitSection id="about" kicker="Good to know" h={p.kind === 'location' ? `Renting in ${town}` : 'How it works'}>
+            <div className="sk-folds" data-testid="landing-sections">
+              {p.copy.sections.map((sec, i) => <KitFold key={i} id={`h-s${i}`} h={F(sec.heading)} open={i === 0} level={3}>{paras(F(sec.body)).map((x, k) => <p key={k} className="measure">{x}</p>)}</KitFold>)}
+            </div>
+          </KitSection>
+        )}
+        <KitSection id="detail" kicker="The detail" h="Cars, prices, rules and local facts"><DepthSections d={depth} open={0} /></KitSection>
         <SiteReviews />
         {faq.length > 0 && (
           <section className="car-sec" aria-labelledby="h-faq">
@@ -168,7 +186,9 @@ export default async function LandingPage({ params }: Params) {
           </section>
         )}
       </div>
+      <ServicePromo exclude={SERVICE_OF[p.slug] ?? null} pageKey={p.path} />
       <CtaBand h="Pick a car, send a request." p="No payment until we confirm the car and the price." />
+      <KitSticky title={p.min_daily_cents !== null ? `From ${money(p.min_daily_cents)} a day` : 'Pick a car, send a request'} sub="No payment until we confirm" cta="See the cars" href="#cars" />
     </div>
   );
 }

@@ -1,4 +1,6 @@
 import Link from '@/components/Link';
+import { ServicePromo } from '@/features/services/ServicePromo';
+import { KitSticky } from '@/features/seo/kit/Kit';
 import { AnswerBlock } from '@/components/AnswerBlock';
 import { CtaBand, PageHead } from '@/components/Blocks';
 import { JsonLd } from '@/components/JsonLd';
@@ -57,6 +59,9 @@ export default async function CarRentalHub() {
         </div>
       </div></section>}
       <CtaBand h="Not sure where to start?" p="Every car shows its own dates, prices and delivery fee." />
+      {/* r48: the other services, and the phone's sticky action */}
+      <ServicePromo pageKey="/car-rental" />
+      <KitSticky title="Pick a car, send a request" sub="No payment until we confirm" cta="Find a car" href="/cars" />
     </div>
   );
 }

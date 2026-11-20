@@ -9,7 +9,7 @@ set -euo pipefail
 WEB="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ROOT="$(cd "$WEB/.." && pwd)"
 PORT="${CARMACARS_LOCAL_PORT:-54322}"
-DB=carmacars
+DB="${CARMACARS_LOCAL_DB:-carmacars}"
 
 find_bin() {
   local b

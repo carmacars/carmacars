@@ -24,7 +24,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MIGRATIONS="$ROOT/supabase/migrations"
 TESTS="$ROOT/supabase/tests"
-DB=carmacars_test
+DB="${CARMACARS_TEST_DB:-carmacars_test}"
 
 find_bin() {
   local b

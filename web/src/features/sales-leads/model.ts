@@ -15,7 +15,33 @@ export interface LeadRow {
   /** 2870: for an Admin, who an Admin showed the full phone to (Sales see numbers masked) */ phone_unlocks?: PhoneUnlock[];
   /** 2870: the viewer sees this lead's phone in full because an Admin showed it */ phone_unlocked?: boolean;
   /** 2870: a salesperson asked an Admin to show the number and it is still waiting */ phone_ask_open?: boolean;
+  /** 3230: where the person came from (the first visit), null when nothing was kept */ traffic?: LeadTraffic | null;
+  /** 3230: other open or closed leads of the same person the viewer can open */ dups?: number;
+  /** 3230: this lead was merged into another one */ merged_into?: string | null;
+  /** 3230: how many duplicates were merged into this lead */ merged_count?: number;
 }
+/** 3230: the source of a lead: the channel in plain words, the referring page, the first landing page, the campaign, the
+ *  search terms (from a campaign tag or the referring search page) and, for a search visit without them, the landing
+ *  page's top Search Console queries. */
+export interface LeadTraffic { channel: string; label: string; group: 'ai' | 'search' | 'ads' | 'direct' | 'other'; referrer: string | null; landing: string | null; last_landing: string | null;
+  first_at: string | null; campaign: string | null; click: string | null; terms: string | null; terms_from: 'campaign' | 'referrer' | null; queries: Array<{ query: string; clicks: number; impressions: number }> }
+/** 3230: another lead of the same person */
+export interface LeadDuplicate { id: string; name: string | null; email: string | null; phone: string | null; source: string; created_at: string; status: string; outcome: Outcome | null; handled: boolean; excerpt: string; why: string; older: boolean }
+/** 3230: a duplicate that was merged into this lead: what it said */
+export interface MergedLead { id: string; received_at: string; source: string; kind: string; name?: string; email?: string; phone?: string; message?: string; form?: Record<string, string>; source_url?: string; merged_at: string; auto?: boolean }
+const CLICK_LABEL: Record<string, string> = { gclid: 'Google Ads click', gbraid: 'Google Ads click (app)', wbraid: 'Google Ads click (web)', msclkid: 'Microsoft Ads click', fbclid: 'Facebook click', ttclid: 'TikTok click' };
+/** The source card's rows, in plain words; a row is left out when its fact is not known. */
+export function trafficRows(t: LeadTraffic): Array<[string, string]> {
+  const rows: Array<[string, string]> = [['Came from', t.label + (t.click && CLICK_LABEL[t.click] ? ` (${CLICK_LABEL[t.click]})` : '')]];
+  if (t.terms) rows.push(['Search terms', `${t.terms} (${t.terms_from === 'campaign' ? 'from the ad or campaign link' : 'from the search page they came from'})`]);
+  if (t.landing) rows.push(['First page they opened', t.landing]);
+  if (t.last_landing) rows.push(['Page of the latest visit', t.last_landing]);
+  if (t.referrer) rows.push(['Referring page', t.referrer]);
+  if (t.campaign) rows.push(['Campaign', t.campaign]);
+  return rows;
+}
+/** The short badge of the lead cards: "ChatGPT", "Google search · kill switch for car". */
+export const trafficBadge = (t: LeadTraffic) => t.label + (t.terms ? ` · ${t.terms}` : '');
 /** 2870: one salesperson an Admin showed a lead's phone to */
 export interface PhoneUnlock { to: string; name: string; at: string; by: string; reason: string | null }
 export interface Person { id: string; name: string }
@@ -30,6 +56,7 @@ export interface LeadDetail extends LeadRow {
   outcome_by: string | null; outcome_at: string | null; won_booking: string | null; admin: boolean; people: Person[];
   /** 2330: who helped (customer service, Fleet, Finance...), no money */ helped_by?: Array<{ id: string; name: string; what: string[] }>;
   /** 2870: for an Admin, the Sales people the phone can be shown to */ phone_people?: Person[];
+  /** 3230 */ duplicates?: LeadDuplicate[]; merged?: MergedLead[];
 }
 export interface Figures { claimed: number; won: number; close_rate: number; contacted_pct: number; first_contact_minutes: number | null; expired: number }
 /** 1152: a person's cap of open leads: the base, plus one for every per_wins won in 30 days, up to max */
