@@ -20,7 +20,8 @@ async function signedIn(kind: 'web' | 'fcm' | 'any' = 'any') {
 }
 const refused = (e: unknown) => ({ ok: false as const, code: 'refused', message: e instanceof DbError ? e.message : 'Not saved. Try again.' });
 
-export interface DeviceSubscription { endpoint: string; p256dh: string; auth: string; portal?: string; device?: string }
+export interface DeviceSubscription { endpoint: string; p256dh: string; auth: string; portal?: string; device?: string;
+  /** r48 CM (3110): the browser subscribing again by itself (its permission still granted); refused for a device its person turned off */ auto?: boolean }
 /** The store app's device (0390): its Firebase token instead of a browser's address and keys. */
 export interface AppSubscription { kind: 'fcm'; token: string; platform: 'ios' | 'android'; portal?: string; device?: string }
 
@@ -41,7 +42,7 @@ export async function subscribePush(sub: DeviceSubscription | AppSubscription): 
   const w = sub as DeviceSubscription;
   if (typeof w?.endpoint !== 'string' || typeof w.p256dh !== 'string' || typeof w.auth !== 'string') return { ok: false, code: 'invalid', message: 'This browser gave no push address.' };
   try {
-    const p = { endpoint: w.endpoint, p256dh: w.p256dh, auth: w.auth, portal, device };
+    const p = { endpoint: w.endpoint, p256dh: w.p256dh, auth: w.auth, portal, device, ...(w.auto === true ? { auto: true } : {}) };
     return { ok: true, data: (await rpc('server_push_subscribe', { p_user: s.user.id, p: p as unknown as Json }, SR)) as unknown as PushState };
   } catch (e) { return refused(e); }
 }

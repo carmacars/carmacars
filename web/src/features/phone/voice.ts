@@ -4,6 +4,8 @@
 // and keeps it; a Sales person never receives a number masked for them (the call goes by its id).
 // One phone a page: this module keeps it and its state; VoiceDock shows it, the Call buttons start calls through it.
 
+import { voiceErrorText } from './twilio';
+
 export const VOICE_SDK = '/vendor/twilio-voice-sdk-2.18.5/twilio.min.js';
 
 interface TwilioCall {
@@ -73,10 +75,8 @@ function watch(c: TwilioCall, who: string) {
 }
 
 function problemText(e: unknown): string {
-  const x = e as { code?: number; message?: string } | null;
-  if (x?.code === 31401 || x?.code === 31402 || /permission|NotAllowed/i.test(x?.message ?? '')) return 'The browser did not allow the microphone. Allow it for this site (the icon in the address bar) and call again.';
-  if (x?.code === 31005 || x?.code === 31009 || x?.code === 53000) return 'The call dropped: the connection to the phone service was lost. Check your internet and call again.';
-  return 'The call did not go through. Try again; if it happens again, tell an Admin.';
+  // r48 CM: the code is named (the Admin's Test call finds the step behind it)
+  return voiceErrorText(e as { code?: number; message?: string } | null);
 }
 
 /** The phone of this page: made once (and registered for incoming calls when this person rings). */
@@ -143,3 +143,30 @@ export function hangUp(): void { (current ?? incoming)?.disconnect(); }
 export function toggleMute(): void { if (current) current.mute(!current.isMuted()); }
 export function sendDigit(d: string): void { if (current && /^[0-9*#]$/.test(d)) current.sendDigits(d); }
 export function dismiss(): void { if (state.phase === 'problem') set({ phase: 'idle', ring: ringing }); }
+
+// ================================================================ r48 CM: the Admin's test call (Settings > Calls)
+export type TestStep = { step: string; ok: boolean; detail: string };
+
+/** A real call through every part (the SDK in this page, the token, Twilio's connection, the TwiML App, our client
+ *  webhook), which only plays a short message: each step's result in order, stopping at the first that fails. */
+export async function testCall(token: string, t: string, onStep: (s: TestStep) => void): Promise<boolean> {
+  let Ctor: DeviceCtor;
+  try { Ctor = await loadSdk(); onStep({ step: 'Phone loaded in this page', ok: true, detail: 'Twilio Voice SDK 2.18.5 (self-hosted).' }); }
+  catch (e) { onStep({ step: 'Phone loaded in this page', ok: false, detail: e instanceof Error ? e.message : 'The SDK did not load (blocked by the page\'s security policy or the network).' }); return false; }
+  const d = new Ctor(token, { codecPreferences: ['opus', 'pcmu'], appName: 'carmacars-test' });
+  try {
+    const c = await d.connect({ params: { test: '1', t } });
+    onStep({ step: 'Connected to Twilio', ok: true, detail: 'The token was accepted and the call started (microphone allowed).' });
+    return await new Promise<boolean>((resolve) => {
+      let accepted = false;
+      const stop = setTimeout(() => { c.disconnect(); onStep({ step: 'Our call handler answered', ok: false, detail: 'Nothing answered in 20 seconds: the TwiML App\'s Voice URL did not reach this site.' }); resolve(false); }, 20_000);
+      c.on('accept', () => { accepted = true; onStep({ step: 'Our call handler answered', ok: true, detail: 'You hear the test message; it hangs up by itself.' }); });
+      c.on('disconnect', () => { clearTimeout(stop); d.destroy(); if (accepted) onStep({ step: 'Call ended', ok: true, detail: 'The whole path works.' }); resolve(accepted); });
+      c.on('error', (e: unknown) => { clearTimeout(stop); d.destroy(); onStep({ step: 'Call', ok: false, detail: voiceErrorText(e as { code?: number; message?: string }) }); resolve(false); });
+    });
+  } catch (e) {
+    d.destroy();
+    onStep({ step: 'Connected to Twilio', ok: false, detail: voiceErrorText(e as { code?: number; message?: string }) });
+    return false;
+  }
+}

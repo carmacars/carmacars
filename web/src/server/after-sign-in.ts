@@ -12,7 +12,12 @@ export async function afterSignIn(userId: string, next: string | null): Promise<
   const a = await auth();
   // 1060: every sign-in is recorded (the staff list's last sign-in); a staff account locked for inactivity goes no further
   const s = (await rpc('server_signed_in', { p_user: userId }, { role: 'service_role' }).catch(() => null)) as unknown as { inactive_locked?: boolean } | null;
-  if (s?.inactive_locked) { await a.signOut().catch(() => undefined); return '/sign-in?locked=inactivity'; }
+  if (s?.inactive_locked) {
+    // r48 CM (3110): straight to the restore request (its link, as in the suspension email)
+    const t = (await rpc('server_staff_restore_token', { p_user: userId }, { role: 'service_role' }).catch(() => null)) as unknown as string | null;
+    await a.signOut().catch(() => undefined);
+    return t ? `/staff-restore?t=${encodeURIComponent(t)}` : '/sign-in?locked=inactivity';
+  }
   const roles = await rolesOf(userId);
   const home = next ?? landingFor(roles);
   const factors = (await a.mfaFactors().catch(() => [])).filter((f) => f.verified);

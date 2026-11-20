@@ -77,12 +77,15 @@ export function usePushDevice(publicKey: string | null, portal: PushRole, initia
   const readState = opts.readState !== false;
   const native = opts.native === true;
 
-  const send = useCallback(async (sub: PushSubscription) => {
+  const send = useCallback(async (sub: PushSubscription, auto = false) => {
     const j = sub.toJSON();
-    const r = await subscribePush({ endpoint: sub.endpoint, p256dh: j.keys?.p256dh ?? '', auth: j.keys?.auth ?? '', portal, device: deviceLabel(navigator.userAgent) });
+    const r = await subscribePush({ endpoint: sub.endpoint, p256dh: j.keys?.p256dh ?? '', auth: j.keys?.auth ?? '', portal, device: deviceLabel(navigator.userAgent), ...(auto ? { auto: true } : {}) });
     if (!r.ok) throw new Error(r.message);
+    setState(r.data);
+    // r48 CM: a device its person turned off stays off (the server refuses the browser's own re-subscribe)
+    if (r.data.auto_refused || !r.data.this_device) { setStatus('ready'); return; }
     store.set(sub.endpoint);
-    setState(r.data); setEndpoint(sub.endpoint); setStatus('on');
+    setEndpoint(sub.endpoint); setStatus('on');
   }, [portal]);
 
   const appSend = useCallback(async (token: string) => {
@@ -121,22 +124,40 @@ export function usePushDevice(publicKey: string | null, portal: PushRole, initia
     let live = true;
     (async () => {
       const support = browserSupport();
-      if (support !== 'ready') { if (live) setStatus(support); return; }
-      const sub = await currentSubscription().catch(() => null);
-      if (!sub || Notification.permission !== 'granted') { if (live) setStatus('ready'); return; }
-      if (!readState) { if (live) { setEndpoint(sub.endpoint); setStatus('on'); } return; }
+      if (support !== 'ready') {
+        if (support === 'blocked') { const r = await pushStateFor(null).catch(() => null); if (live && r?.ok) setState(r.data); }
+        if (live) setStatus(support);
+        return;
+      }
+      let sub = await currentSubscription().catch(() => null);
+      if (!sub || Notification.permission !== 'granted') {
+        // r48 CM: alerts stopped on this device without the person turning them off (the push service dropped it, or the
+        // permission was reset): the card and the prompt say so (state.lost) and ask for the permission again
+        const r = await pushStateFor(null).catch(() => null);
+        if (live && r?.ok) setState(r.data);
+        if (live) setStatus('ready');
+        return;
+      }
+      // r48 CM: alerts stay on unless the person turns them off. A subscription made with old keys is replaced with the
+      // current ones (the permission is already granted: no prompt), and a device the server dropped (expired, refused,
+      // another person signed in on it, more than 10 devices) is sent again by itself, on every portal page that has the
+      // card or the prompt; only the person's own Turn off keeps it off.
+      if (publicKey && !sameKey(sub.options.applicationServerKey, keyBytes(publicKey))) {
+        await sub.unsubscribe().catch(() => undefined);
+        const reg = await navigator.serviceWorker.getRegistration('/');
+        sub = (await reg?.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(publicKey) }).catch(() => null)) ?? null;
+        if (!sub) { if (live) setStatus('ready'); return; }
+        if (live) await send(sub, true).catch(() => setStatus('ready'));
+        return;
+      }
       const r = await pushStateFor(sub.endpoint);
       if (!live) return;
       if (r.ok && r.data.this_device) { setState(r.data); setEndpoint(sub.endpoint); setStatus('on'); return; }
-      // the browser replaced its push address since (push-sw.js pushsubscriptionchange): send the new one. A device
-      // removed from the list on another device stays off until the person turns it on here.
-      const last = store.get();
-      if (last && last !== sub.endpoint) { await send(sub).catch(() => setStatus('ready')); return; }
-      if (r.ok) setState(r.data);
-      setStatus('ready');
+      if (r.ok && r.data.turned_off_here) { setState(r.data); setStatus('ready'); return; }
+      await send(sub, true).catch(() => setStatus('ready'));
     })();
     return () => { live = false; };
-  }, [native, readState, send]);
+  }, [native, readState, send, publicKey]);
 
   const turnOn = useCallback(async () => {
     setBusy(true); setError(null);

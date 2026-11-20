@@ -2,8 +2,9 @@ import 'server-only';
 import { env } from '@/lib/env';
 import { rpc } from '@/lib/db/repo';
 import type { Json } from '@/lib/db/types';
-import { TWILIO_API, answeredBy, bridgeTwiml, callRecordingsUrl, callToken, hangupTwiml, identityUser, noAnswerTwiml, pickRecording, recordingKey, recordingReady, recordingUrls, ringBrowsersTwiml, signedUrlCandidates,
-  staffIdentity, startCallForm, toE164, twilioReady, verifyCallToken, verifyTwilioSignature, voiceAccessToken } from '@/features/phone/twilio';
+import { TWILIO_API, accountProblem, answeredBy, appUrlProblem, balanceProblem, bridgeTwiml, callRecordingsUrl, callToken, callerIdProblem, hangupTwiml, identityUser, noAnswerTwiml, pickRecording,
+  recordingKey, recordingReady, recordingUrls, ringBrowsersTwiml, signedUrlCandidates, staffIdentity, startCallForm, testCallToken, testCallTwiml, toE164, twilioReady, verifyCallToken,
+  verifyTestCallToken, verifyTwilioSignature, voiceAccessToken, type CheckStep } from '@/features/phone/twilio';
 
 // The site's outbound Call button (release 35, migration 0970): the server rings the signed-in staff member's own cell
 // (their profile phone) through Twilio, and when they answer bridges the customer with the CarmaCars number as caller ID.
@@ -228,31 +229,43 @@ export async function voiceSettings(): Promise<VoiceSettings> {
 const APP_NAME = 'CarmaCars browser calls';
 let appCache: { sid: string; at: number } | null = null;
 let numberChecked = 0;
+let appWhy: string | null = null;
 
 /** The TwiML App that browser calls go through: TWILIO_TWIML_APP_SID, or the app of that name in the account, made when
- *  missing and pointed at our client webhook when it points elsewhere (one look-up per server instance every 6 hours).
- *  The business number, when it is a Twilio number with no Voice URL of its own (or Twilio's demo), is pointed at our
- *  incoming webhook, so incoming calls ring the browser with no step in Twilio's console. */
-async function twimlApp(c: ReturnType<typeof cfg>): Promise<string | null> {
-  if (c.appSid) return c.appSid;
-  if (appCache && Date.now() - appCache.at < 6 * 3600_000) return appCache.sid;
+ *  missing. r48 CM: either way its Voice URL is checked (one look-up per server instance every 6 hours) and pointed at
+ *  this site's client webhook when it points elsewhere (an old host, the Worker or the server), so a call never goes to a
+ *  host that no longer answers. The business number, when it is a Twilio number with no Voice URL of its own (or Twilio's
+ *  demo), is pointed at our incoming webhook. appWhy keeps the reason of a failure for the token's answer and Test call. */
+async function twimlApp(c: ReturnType<typeof cfg>, force = false): Promise<string | null> {
+  if (!force && appCache && Date.now() - appCache.at < 6 * 3600_000) return appCache.sid;
   const auth = { authorization: basic(c) };
   const acct = `${TWILIO_API}/Accounts/${encodeURIComponent(c.accountSid!)}`;
   const voiceUrl = `${c.base}/api/webhooks/twilio/client`;
   try {
-    const list = (await (await fetch(`${acct}/Applications.json?FriendlyName=${encodeURIComponent(APP_NAME)}`, { headers: auth, signal: AbortSignal.timeout(8_000) })).json()) as { applications?: Array<{ sid: string; voice_url: string | null }> };
-    let app = list.applications?.[0] ?? null;
+    let app: { sid: string; voice_url: string | null } | null = null;
+    if (c.appSid) {
+      const res = await fetch(`${acct}/Applications/${encodeURIComponent(c.appSid)}.json`, { headers: auth, signal: AbortSignal.timeout(8_000) });
+      const j = (await res.json().catch(() => ({}))) as { sid?: string; voice_url?: string | null; code?: number; message?: string };
+      if (!res.ok || !j.sid) { appWhy = `Twilio answered ${res.status} for TWILIO_TWIML_APP_SID${j.message ? ` (${j.code ?? ''} ${j.message})` : ''}`; return appCache?.sid ?? c.appSid; }
+      app = { sid: j.sid, voice_url: j.voice_url ?? null };
+    } else {
+      const res = await fetch(`${acct}/Applications.json?FriendlyName=${encodeURIComponent(APP_NAME)}`, { headers: auth, signal: AbortSignal.timeout(8_000) });
+      const list = (await res.json().catch(() => ({}))) as { applications?: Array<{ sid: string; voice_url: string | null }>; code?: number; message?: string };
+      if (!res.ok) { appWhy = `Twilio answered ${res.status}${list.message ? ` (${list.code ?? ''} ${list.message})` : ''}`; return null; }
+      app = list.applications?.[0] ?? null;
+    }
     if (!app || app.voice_url !== voiceUrl) {
       const f = new URLSearchParams({ FriendlyName: APP_NAME, VoiceUrl: voiceUrl, VoiceMethod: 'POST' });
       const res = await fetch(app ? `${acct}/Applications/${encodeURIComponent(app.sid)}.json` : `${acct}/Applications.json`, { method: 'POST', body: f, headers: { ...auth, 'content-type': 'application/x-www-form-urlencoded' }, signal: AbortSignal.timeout(8_000) });
-      const j = (await res.json().catch(() => ({}))) as { sid?: string };
-      if (!res.ok || !j.sid) return null;
+      const j = (await res.json().catch(() => ({}))) as { sid?: string; code?: number; message?: string };
+      if (!res.ok || !j.sid) { appWhy = `Twilio would not ${app ? 'update' : 'create'} the TwiML App (${res.status}${j.message ? `: ${j.message}` : ''})`; return app?.sid ?? null; }
       app = { sid: j.sid, voice_url: voiceUrl };
     }
+    appWhy = null;
     appCache = { sid: app.sid, at: Date.now() };
-    if (Date.now() - numberChecked > 6 * 3600_000) { numberChecked = Date.now(); await pointNumber(c, auth, acct).catch(() => undefined); }
+    if (force || Date.now() - numberChecked > 6 * 3600_000) { numberChecked = Date.now(); await pointNumber(c, auth, acct).catch(() => undefined); }
     return app.sid;
-  } catch { return null; }
+  } catch (e) { appWhy = `Twilio did not answer (${e instanceof Error ? e.message.slice(0, 80) : 'network'})`; return appCache?.sid ?? c.appSid ?? null; }
 }
 async function pointNumber(c: ReturnType<typeof cfg>, auth: Record<string, string>, acct: string) {
   const num = c.callerId ?? toE164((await voiceCallerId()) ?? '');
@@ -280,7 +293,7 @@ export async function voiceToken(userId: string): Promise<TokenResult> {
   catch (e) { return { ok: false, message: e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '').slice(0, 200) : 'Not permitted' }; }
   if (!p?.calls) return { ok: false, message: p?.message ?? 'Calls in the browser are off (Program settings, Calls in the browser).' };
   const app = await twimlApp(c);
-  if (!app) return { ok: false, message: 'The phone service did not accept the API key (Twilio). Ask an Admin to check the Twilio account.' };
+  if (!app) return { ok: false, message: `The phone service is not ready (${appWhy ?? 'Twilio refused the API key'}). Ask an Admin to run Test call in Settings > Calls.` };
   const ttl = 3600;
   return { ok: true, ring: !!p.ring, ttl, token: await voiceAccessToken({ accountSid: c.accountSid!, apiKey: c.apiKey!, apiSecret: c.apiSecret!, appSid: app, identity: staffIdentity(userId), ring: !!p.ring, ttlSeconds: ttl }) };
 }
@@ -314,6 +327,10 @@ export async function clientWebhook(req: Request): Promise<Response> {
   const c = cfg();
   const id = params.call ?? null;
   const user = identityUser(params.From ?? params.Caller);
+  // r48 CM: the Admin's test call (Settings > Calls): our test token for this person, then a short message; nobody is dialled
+  if (params.test === '1') {
+    return xmlResponse(user && (await verifyTestCallToken(c.apiSecret, user, params.t ?? null)) ? testCallTwiml() : hangupTwiml('This test call is not valid.'));
+  }
   if (!user || !(await verifyCallToken(c.apiSecret, id, params.t ?? null))) return xmlResponse(hangupTwiml('This call can no longer be connected.'));
   const call = (await rpc('server_twilio_browser_call_get', { p_id: id!, p_user: user }, SR).catch(() => null)) as unknown as { to: string; caller_id: string | null; record?: boolean } | null;
   const callerId = ourCallerId(c, call?.caller_id);
@@ -430,4 +447,56 @@ export async function runCallBackfill(limit = 3): Promise<Record<string, unknown
     }
   }
   return { checked, found };
+}
+
+// ================================================================ r48 CM: Test call (Admin, Settings > Calls)
+// Every step of a browser call, in order, each with what it found and, when it fails, what to press. The browser then
+// places a real test call (Twilio's Voice SDK, our token, the TwiML App, our client webhook) that only plays a message.
+export type SelfCheck = { ok: boolean; steps: CheckStep[]; test?: { token: string; t: string } };
+
+export async function voiceSelfCheck(userId: string): Promise<SelfCheck> {
+  const c = cfg();
+  const steps: CheckStep[] = [];
+  const done = (ok = steps.every((x) => x.ok)): SelfCheck => ({ ok, steps });
+  const r = twilioReady(c);
+  steps.push(r.ready ? { step: 'Keys on this server', ok: true, detail: `Account ${c.accountSid!.slice(0, 6)}..., API key ${c.apiKey!.slice(0, 6)}..., Auth Token set, caller ID ${c.callerId ?? '(Site settings)'}, app ${c.appSid ? 'set' : 'found by name'}.` }
+    : { step: 'Keys on this server', ok: false, detail: r.why, fix: 'Add the missing Twilio values as repository secrets (TWILIO_ACCOUNT_SID, TWILIO_API_KEY, TWILIO_API_SECRET, TWILIO_AUTH_TOKEN, TWILIO_CALLER_ID); the next deploy puts them on the Worker and the server.' });
+  if (!r.ready) return done(false);
+  const auth = { authorization: basic(c) };
+  const acct = `${TWILIO_API}/Accounts/${encodeURIComponent(c.accountSid!)}`;
+  const get = async (url: string, headers: Record<string, string> = auth) => {
+    try { const res = await fetch(url, { headers, signal: AbortSignal.timeout(8_000) }); return { status: res.status, j: (await res.json().catch(() => null)) as Record<string, unknown> | null }; }
+    catch { return { status: 0, j: null }; }
+  };
+  const a = await get(`${acct}.json`);
+  const ap = accountProblem(a.status, a.j as never);
+  steps.push({ step: 'Twilio account', ...ap });
+  if (!ap.ok && (a.status === 401 || a.status === 403 || a.status === 404 || a.status === 0)) return done(false);
+  const b = await get(`${acct}/Balance.json`, { authorization: `Basic ${btoa(`${c.accountSid}:${c.authToken}`)}` });
+  steps.push({ step: 'Balance', ...balanceProblem(b.status, b.j as never) });
+  const app = await twimlApp(c, true);
+  const want = `${c.base}/api/webhooks/twilio/client`;
+  if (!app) steps.push({ step: 'TwiML App', ok: false, detail: appWhy ?? 'No TwiML App.', fix: 'Twilio Console > Voice > TwiML Apps: create one with Voice URL ' + want + ', and save its SID as TWILIO_TWIML_APP_SID.' });
+  else {
+    const x = await get(`${acct}/Applications/${encodeURIComponent(app)}.json`);
+    steps.push({ step: 'TwiML App', ...appUrlProblem((x.j?.voice_url as string | null | undefined) ?? null, want) });
+  }
+  const callerId = ourCallerId(c, await voiceCallerId());
+  const [owned, verified] = await Promise.all([get(`${acct}/IncomingPhoneNumbers.json?PageSize=50`), get(`${acct}/OutgoingCallerIds.json?PageSize=50`)]);
+  const ownedList = ((owned.j?.incoming_phone_numbers as Array<{ phone_number: string }> | undefined) ?? []).map((n) => n.phone_number);
+  const verifiedList = ((verified.j?.outgoing_caller_ids as Array<{ phone_number: string }> | undefined) ?? []).map((n) => n.phone_number);
+  steps.push({ step: 'Caller ID', ...callerIdProblem(callerId, ownedList, verifiedList) });
+  const v = await voiceSettings();
+  steps.push(v.calls ? { step: 'Calls in the browser', ok: true, detail: 'On in Program settings.' }
+    : { step: 'Calls in the browser', ok: false, detail: 'Off in Program settings.', fix: 'Settings > Program settings > Calls in the browser: on.' });
+  // this site answers Twilio here: an unsigned request is refused (403), so the address is right and the route runs
+  try {
+    const res = await fetch(want, { method: 'POST', body: '', signal: AbortSignal.timeout(8_000) });
+    steps.push(res.status === 403 ? { step: 'Webhook on this host', ok: true, detail: `${want} answers and checks Twilio's signature.` }
+      : { step: 'Webhook on this host', ok: false, detail: `${want} answered ${res.status} (expected 403 without a signature).`, fix: 'The site address (NEXT_PUBLIC_APP_URL) must be the live host; check the DNS of carmacars.ca.' });
+  } catch { steps.push({ step: 'Webhook on this host', ok: false, detail: `${want} did not answer from the server itself.`, fix: 'Check that carmacars.ca resolves and answers; a firewall may block the server calling itself (not a failure for Twilio by itself).' }); }
+  const tok = await voiceToken(userId);
+  if (!tok.ok) { steps.push({ step: 'Your call token', ok: false, detail: tok.message }); return done(false); }
+  steps.push({ step: 'Your call token', ok: true, detail: 'Made for you (an hour).' });
+  return { ok: steps.every((x) => x.ok), steps, test: { token: tok.token, t: await testCallToken(c.apiSecret!, userId) } };
 }

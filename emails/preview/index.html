@@ -21,10 +21,10 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>232 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>99</span></a><a href="#owner">Owner <span>49</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>20</span></a><a href="#staff_va_finance">Staff: finance <span>9</span></a><a href="#staff_va_fleet">Staff: fleet <span>10</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>5</span></a><a href="#staff_field">Staff: field <span>8</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>14</span></a><a href="#partner">Partner (body shop, tow truck, storage) <span>1</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>235 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>100</span></a><a href="#owner">Owner <span>49</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>20</span></a><a href="#staff_va_finance">Staff: finance <span>9</span></a><a href="#staff_va_fleet">Staff: fleet <span>10</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>5</span></a><a href="#staff_field">Staff: field <span>10</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>14</span></a><a href="#partner">Partner (body shop, tow truck, storage) <span>1</span></a></nav>
 <main>
-<h2 id="renter">Renter (99)</h2>
+<h2 id="renter">Renter (100)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/account_password_reset.html"><img loading="lazy" src="../shots/account_password_reset.desktop.png" alt="Screenshot of account_password_reset"></a><div class="b">
 <div class="code">account_password_reset</div><div class="sub">Reset your CarmaCars password</div>
@@ -619,6 +619,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">A tracker command of type engine disable for a booking is confirmed by the tracker (status confirmed), after admin approval. (Message template T15.)</div>
 <div class="ln"><a href="../dist/renter_vehicle_disabled.html">HTML</a><a href="../dist/renter_vehicle_disabled.txt">Text</a><a href="../shots/renter_vehicle_disabled.desktop.png">Desktop</a><a href="../shots/renter_vehicle_disabled.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/text_fell_back.html"><img loading="lazy" src="../shots/text_fell_back.desktop.png" alt="Screenshot of text_fell_back"></a><div class="b">
+<div class="code">text_fell_back</div><div class="sub">A message from CarmaCars</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A text CarmaCars meant to send could not go (the texting service refused it, for example when its prepaid credits ran out) and the person has an email address: the same words come by email instead, once, and the text is marked &quot;not sent: fell back to email&quot; (release 48, migration 3110). A text whose own email already went, or that is no longer relevant, is never sent this way.</div>
+<div class="ln"><a href="../dist/text_fell_back.html">HTML</a><a href="../dist/text_fell_back.txt">Text</a><a href="../shots/text_fell_back.desktop.png">Desktop</a><a href="../shots/text_fell_back.phone.png">Phone</a></div>
 </div></div>
 </div>
 <h2 id="owner">Owner (49)</h2>
@@ -1296,8 +1302,20 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/staff_owner_application_received.html">HTML</a><a href="../dist/staff_owner_application_received.txt">Text</a><a href="../shots/staff_owner_application_received.desktop.png">Desktop</a><a href="../shots/staff_owner_application_received.phone.png">Phone</a></div>
 </div></div>
 </div>
-<h2 id="staff_field">Staff: field (8)</h2>
+<h2 id="staff_field">Staff: field (10)</h2>
 <div class="grid">
+<div class="c"><a class="th" href="../dist/staff_access_restored.html"><img loading="lazy" src="../shots/staff_access_restored.desktop.png" alt="Screenshot of staff_access_restored"></a><div class="b">
+<div class="code">staff_access_restored</div><div class="sub">Your CarmaCars access is back</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An Admin restored a suspended staff account (Unlock on Staff, or approving the person's restore request; release 48, migration 3110). Sent once.</div>
+<div class="ln"><a href="../dist/staff_access_restored.html">HTML</a><a href="../dist/staff_access_restored.txt">Text</a><a href="../shots/staff_access_restored.desktop.png">Desktop</a><a href="../shots/staff_access_restored.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_access_suspended.html"><img loading="lazy" src="../shots/staff_access_suspended.desktop.png" alt="Screenshot of staff_access_suspended"></a><div class="b">
+<div class="code">staff_access_suspended</div><div class="sub">You no longer have access to CarmaCars</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A staff account (never an Admin) was suspended: no use of the staff portal for the days of Program settings (5 by default), or two weekly townhalls missed in a row (release 48, migration 3110). Sent once per suspension. While suspended this is the only kind of message the person gets (with the restored email), nothing else.</div>
+<div class="ln"><a href="../dist/staff_access_suspended.html">HTML</a><a href="../dist/staff_access_suspended.txt">Text</a><a href="../shots/staff_access_suspended.desktop.png">Desktop</a><a href="../shots/staff_access_suspended.phone.png">Phone</a></div>
+</div></div>
 <div class="c"><a class="th" href="../dist/staff_agreement_reminder.html"><img loading="lazy" src="../shots/staff_agreement_reminder.desktop.png" alt="Screenshot of staff_agreement_reminder"></a><div class="b">
 <div class="code">staff_agreement_reminder</div><div class="sub">Reminder: please sign your CarmaCars staff agreement</div>
 <div class="tags"><span>Transactional</span></div>
@@ -1329,9 +1347,9 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/staff_field_jobs_tomorrow.html">HTML</a><a href="../dist/staff_field_jobs_tomorrow.txt">Text</a><a href="../shots/staff_field_jobs_tomorrow.desktop.png">Desktop</a><a href="../shots/staff_field_jobs_tomorrow.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/staff_inactivity_warning.html"><img loading="lazy" src="../shots/staff_inactivity_warning.desktop.png" alt="Screenshot of staff_inactivity_warning"></a><div class="b">
-<div class="code">staff_inactivity_warning</div><div class="sub">Your CarmaCars staff account locks on Thursday, November 12</div>
+<div class="code">staff_inactivity_warning</div><div class="sub">Your CarmaCars staff access ends on Thursday, November 12</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">A staff account (never an Admin) has had no sign-in or use of the staff portal for the warning days of Program settings (7 by default; migration 1060). Sent once per idle stretch.</div>
+<div class="tr">A staff account (never an Admin) has had no sign-in or use of the staff portal for the warning days of Program settings (3 by default since release 48, migration 3110; 7 before). Sent once per idle stretch.</div>
 <div class="ln"><a href="../dist/staff_inactivity_warning.html">HTML</a><a href="../dist/staff_inactivity_warning.txt">Text</a><a href="../shots/staff_inactivity_warning.desktop.png">Desktop</a><a href="../shots/staff_inactivity_warning.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/staff_pay_statement.html"><img loading="lazy" src="../shots/staff_pay_statement.desktop.png" alt="Screenshot of staff_pay_statement"></a><div class="b">
