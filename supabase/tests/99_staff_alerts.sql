@@ -116,7 +116,7 @@ select test.eq('job: and only once', (app.job_staff_alerts()) ~ 'late jobs 0', t
 select app.process_events(1000);
 select test.eq('job: the late field job reaches the Admin and the assigned field person', test.sta_who('staff_alert_urgent', 'Job running late: detail%'), 'sta_admin,sta_field');
 -- the alerts earlier suites left unopened are not this suite's: with the minutes at 1 each would be escalated (hundreds, in the whole-suite run)
-update notifications set read_at = now() where read_at is null and code like 'staff_alert%';
+update notifications set read_at = now() where read_at is null and code in ('staff_alert_urgent', 'staff_lead_new', 'staff_owner_lead_new', 'staff_request_unfinished', 'staff_hot_visitor');
 update program_settings set alert_escalate_minutes = 1;
 insert into notifications (id, user_id, code, title, body, dedupe_key, created_at) values (test.id('sta_esc'), test.id('sta_cs'), 'staff_alert_urgent', 'Urgent for sta_cs', 'b', 'sa:esc', now() - interval '5 minutes');
 select app.job_staff_alerts();
