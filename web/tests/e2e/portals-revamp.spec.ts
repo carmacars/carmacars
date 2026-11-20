@@ -116,7 +116,7 @@ test('owner portal: five links, home with earned, cars out, next payout first, C
   await expect(page.getByTestId('owner-hero').locator('img')).not.toHaveCount(0);
   await check(page, 'owner home');
   for (const [path, tab, menuAt, id] of [
-    ['/owner/vehicles', 'Your cars', 'Cars', 'owner-vehicle'], ['/owner/vehicles?tab=bookings', 'Bookings', 'Cars', 'owner-coming-up'],
+    ['/owner/vehicles', 'Your cars', 'Cars', 'owner-vehicle'], ['/owner/vehicles?tab=bookings', 'Bookings', 'Cars', 'owner-bookings'],
     ['/owner/money', 'Statements', 'Money', 'owner-mtd'], ['/owner/money?tab=payouts', 'Payouts', 'Money', 'owner-payouts'], ['/owner/money?tab=invoices', 'Invoices', 'Money', 'invoice-rows'],
     ['/owner/account', 'Profile', 'Account', null], ['/owner/account?tab=banking', 'Banking', 'Account', 'owner-auto-debit'], ['/owner/account?tab=notifications', 'Notifications', 'Account', null]
   ] as const) {

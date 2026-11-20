@@ -1,4 +1,4 @@
-import { expect, test, type Browser, type Page } from '@playwright/test';
+import { expect, test, type Browser, type Locator, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { acceptCookies, db, noOverflow, watch } from './helpers';
 import { signQuo } from '../../src/features/phone/webhook';
@@ -21,13 +21,14 @@ const clean = (e: string[]) => e.filter((x) => !/favicon|Download the React DevT
 // Each changed screen at the five widths of the definition of done (320, 375, 768, 1280, 1440): nothing past the window at
 // any of them. With OPS_SHOTS=<folder> a screenshot of each is kept too. The desktop project does it (once is enough).
 const WIDTHS = [320, 375, 768, 1280, 1440];
-async function widths(page: Page, name: string) {
+async function widths(page: Page, name: string, show?: Locator) {
   if (isPhone()) return;
   const was = page.viewportSize()!;
   for (const w of WIDTHS) {
     await page.setViewportSize({ width: w, height: w < 600 ? 812 : 900 });
     await expect.poll(() => page.evaluate(() => window.innerWidth)).toBe(w);
     await noOverflow(page);
+    if (show) await show.scrollIntoViewIfNeeded();
     if (process.env.OPS_SHOTS) await page.screenshot({ path: `${process.env.OPS_SHOTS}/${name}-${w}.png`, animations: 'disabled' });
   }
   await page.setViewportSize(was);
@@ -221,8 +222,8 @@ test('Calendar: a long fleet is found by search, filters and groups that fold; a
   expect(total).toBeGreaterThanOrEqual(46);
   await noOverflow(page);
   await widths(page, 'calendar-long-fleet');
-  const tl = cal.getByRole('button', { name: 'Timeline' });
-  if (await tl.count()) await tl.click();
+  // a phone opens on the agenda once the page is live in the browser: wait for it, then ask for the timeline
+  if (isPhone()) { await expect(page.getByTestId('cal-agenda')).toBeVisible(); await cal.getByRole('button', { name: 'Timeline' }).click(); }
   const grid = cal.locator('.mcal__grid');
   // rows near the screen only: the list is long, far fewer rows are in the page, and scrolling brings the later ones
   await expect(grid).toHaveAttribute('data-virtual', 'yes');
@@ -231,7 +232,8 @@ test('Calendar: a long fleet is found by search, filters and groups that fold; a
   expect(drawn).toBeGreaterThan(3);
   const firstBefore = await grid.locator('.mcal__row').first().getAttribute('data-row');
   await grid.evaluate((g) => { g.scrollTop = g.scrollHeight; });
-  await expect.poll(async () => grid.locator('.mcal__row').first().getAttribute('data-row')).not.toBe(firstBefore);
+  const at = await grid.evaluate((g) => `scrolled to ${Math.round(g.scrollTop)} of ${g.scrollHeight}, ${g.clientHeight} high, overflow ${getComputedStyle(g).overflowY}`);
+  await expect.poll(async () => grid.locator('.mcal__row').first().getAttribute('data-row'), { message: `later rows are drawn after scrolling (${at})` }).not.toBe(firstBefore);
   await expect(grid.locator('.mcal__row').last()).toBeVisible();
   await grid.evaluate((g) => { g.scrollTop = 0; });
   // search: one car
@@ -317,7 +319,7 @@ test('Calendar: a long fleet is found by search, filters and groups that fold; a
   await expect(scal.getByTestId('cal-f-owner')).toHaveCount(0);
   await expect(scal.getByTestId('cal-group').locator('option')).toHaveText(['No groups', 'Class', 'Car status', 'Availability']);
   await scal.getByLabel('Find a plate, fleet number, booking or surname').fill(cars[0]!.plate);
-  if (await scal.getByRole('button', { name: 'Timeline' }).count()) await scal.getByRole('button', { name: 'Timeline' }).click();
+  if (isPhone()) await scal.getByRole('button', { name: 'Timeline' }).click();
   await expect(scal.getByTestId(`lane-${cars[0]!.plate}`).locator('[data-job="checkout"][data-done="yes"]')).toHaveText(`Check-out ${toronto(done.backAt!)}`);
   await noOverflow(sp);
   await widths(sp, 'calendar-sales');
@@ -521,6 +523,77 @@ test('One portal: Sales, Field work and Owner on one account switch from any fra
   await noOverflow(hp);
   await widths(hp, 'onboarding-welcome');
   await hp.context().close();
+  await sql.end();
+});
+
+// a small real JPEG (a grey square): a photo the server accepts and stores; nothing is printed on it to read
+const GREY_JPEG = Buffer.from('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/wAALCAAIAAgBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACP/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AVN//2Q==', 'base64');
+
+test('Pickup identity check: optional on the check-in; a card that does not match flags Fleet and Admin and marks the booking, and nothing is blocked', async ({ browser }) => {
+  test.setTimeout(300_000);
+  const sql = db();
+  const admin = await mkUser(sql, 'admin');
+  const o = await mkOwner(sql, `Ida Owner ${tag()}`);
+  const car = (await mkCar(sql, o, `Idcheck ${tag()}`)).id;
+  const name = `Rita Renter ${tag()}`;
+  const renter = await mkRenter(sql, name);
+  const trip = await mkTrip(sql, car, renter, 'confirmed', 1, 49);
+  const [d] = await sql`insert into drivers (renter_id, full_name) values (${renter}, ${name}) returning id`;
+  await sql`insert into booking_drivers (booking_id, driver_id, role, full_name, date_of_birth, licence_number, licence_class, licence_issuer, licence_expiry)
+            values (${trip.id}, ${d!.id}, 'renter', ${name}, '1990-05-05', 'R1234-56789-01234', 'G', 'ON', '2031-05-05')`;
+  const [pm] = await sql`insert into payment_methods (renter_id, card_brand, card_last4, cardholder_name) values (${renter}, 'visa', '4242', ${name}) returning id`;
+  await sql`update bookings set card_on_file_id = ${pm!.id} where id = ${trip.id}`;
+
+  const page = await ctx(browser);
+  await signIn(page, admin.email, `/admin/bookings/${trip.number}`);
+  // never checked: no mark on the booking
+  await expect(page.getByTestId('pickup-identity-mark')).toHaveCount(0);
+  await page.getByTestId('one-screen').locator('summary').first().click();
+  const step = page.getByTestId('pickup-identity');
+  await expect(step).toBeVisible();
+  // optional and folded: the check-in's own button is there whether or not the step is opened
+  await expect(step.getByTestId('pid-open')).toContainText('Optional');
+  await step.getByTestId('pid-open').click();
+  await expect(step.getByTestId('pid-card-on-file')).toHaveText(`Visa ending in 4242, in the name of ${name}`);
+  await expect(step.getByTestId('pid-check')).toBeDisabled();
+  await widths(page, 'pickup-identity-step', step);
+  // the licence they are holding, and the card they show does not end in the digits on file
+  await step.getByTestId('pid-front').setInputFiles({ name: 'licence.jpg', mimeType: 'image/jpeg', buffer: GREY_JPEG });
+  await expect(step.getByTestId('pid-front-state')).toContainText('Photo ready');
+  await step.getByTestId('pid-last4-no').check();
+  await step.getByTestId('pid-cname-yes').check();
+  await step.getByTestId('pid-check').click();
+  const res = step.getByTestId('pid-result');
+  await expect(res).toHaveAttribute('data-outcome', 'mismatch', { timeout: 60_000 });
+  await expect(res).toContainText('Possible wrong person at pickup');
+  await expect(res).toContainText('The card shown does not end in 4242');
+  await expect(step.getByTestId('pid-r-card_last4')).toHaveText('Does not match');
+  await expect(step.getByTestId('pid-r-card_name')).toHaveText('Matches');
+  await expect(step.getByTestId('pid-marked')).toBeVisible();
+  for (const text of await step.allInnerTexts()) expect(text).not.toMatch(/[—–]/);
+
+  // Fleet and Admin each have the urgent To do; the photo is kept as a pickup photo; the booking is as it was
+  const tasks = await sql`select queue, priority, title from tasks where booking_id = ${trip.id} and task_type = 'pickup_identity' order by queue`;
+  expect(tasks.map((t) => `${t.queue}:${t.priority}`)).toEqual(['admin:urgent', 'fleet:urgent']);
+  expect(tasks[0]!.title).toBe(`Possible wrong person at pickup: ${trip.number}`);
+  const [up] = await sql`select count(*)::int as n from verification_uploads where booking_id = ${trip.id} and kind = 'licence_front_pickup' and status = 'at_pickup'`;
+  expect(up!.n).toBe(1);
+  const [bk] = await sql`select status::text as status from bookings where id = ${trip.id}`;
+  expect(bk!.status).toBe('confirmed');
+  const [kept] = await sql`select card_last4, read_number from pickup_identity_checks where booking_id = ${trip.id}`;
+  expect(kept!.card_last4).toBeNull();
+
+  // the booking is marked for anyone who opens it, until the To do's are done
+  await page.goto(`/admin/bookings/${trip.number}`);
+  const mark = page.getByTestId('pickup-identity-mark');
+  await expect(mark).toHaveAttribute('data-marked', 'yes');
+  await expect(mark).toContainText('Possible wrong person at pickup');
+  await widths(page, 'pickup-identity-mark', mark);
+  await sql`update tasks set status = 'done', completed_at = now() where booking_id = ${trip.id} and task_type = 'pickup_identity'`;
+  await page.reload();
+  await expect(page.getByTestId('pickup-identity-mark')).toHaveAttribute('data-marked', 'no');
+  await page.context().close();
+  await sql`update vehicles set status = 'exited', retired_at = now() where owner_id = ${o.owner}`.catch(() => undefined);
   await sql.end();
 });
 

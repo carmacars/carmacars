@@ -170,10 +170,12 @@
 }
 
 /* the agenda: by day, one card per booking or block */
-.mcal__agenda { display: grid; gap: var(--s-4); }
+.mcal__agenda { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
+.mcal__aday { min-width: 0; }
+.mcal__abody, .mcal__abody > * { min-width: 0; overflow-wrap: anywhere; }
 .mcal__none { margin: 0; padding: var(--s-4); border-radius: 12px; background: var(--grey-50); color: var(--text-2); font-size: var(--fs-sm); }
 .mcal__aday h3 { margin: 0 0 var(--s-2); font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-2); }
-.mcal__aday ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
+.mcal__aday ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-2); }
 .mcal__acard { width: 100%; display: grid; grid-template-columns: 5rem 40px minmax(0, 1fr); grid-template-areas: "time thumb body" "time kind kind"; gap: 4px var(--s-3); align-items: center;
   padding: var(--s-3); border: 1px solid var(--cal-line); border-radius: 12px; background: var(--white); text-align: left; font: inherit; color: inherit; cursor: pointer; }
 .mcal__acard:hover { border-color: var(--black); }

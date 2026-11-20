@@ -129,26 +129,86 @@ alike (the same frame). The e2e test checks that neither More actions nor Declin
 The calendar, its filters and jobs: one component for Admin, every staff function and the car page. Unfinished rentals:
 Sales' Today and Bookings. The call panel fix: the staff frame too. The role switcher: every frame.
 
+## 10. The pickup identity check (3292, 3293)
+
+The owner (Nov 20): at the pickup, confirm that the person taking the car is the renter. Optional, always offered, and it
+never stops a check-in.
+
+- Where: the field checklist (**Renter, licence and card**, under the tick "I checked the original licence"), the
+  one-screen check-in on the booking page (Admin and every staff portal), and the renter's own check-in.
+- Staff photograph the licence the person is holding (the back is optional: its barcode is read exactly). The renter at a
+  self check-in photographs the licence and takes a selfie at that moment. The photos are kept as their own kind
+  (`licence_front_pickup`, `licence_back_pickup`, `selfie_pickup`, status `at_pickup`), with the ID images (private bucket,
+  deleted with them after 90 days). They never replace the licence on file and never reset the identity check.
+- Side by side: the step, and **Review the licence** on the booking, list the pickup photos with the licence and selfie on
+  file; each opens with View (logged, one minute).
+- The automatic check (`app.pickup_identity_record`, all comparing in SQL): the name against the driver on the booking,
+  the licence number and the expiry against the ones on file (an expired licence is a mismatch), and the face against the
+  selfie or licence on file. The reading uses the existing vision adapter under the purpose `licence_read`, which is never
+  sent to Gemini. The face answer is kept only when the model is sure ("different" at 80 or more); anything else is
+  "Could not tell" and flags nothing.
+- The payment card: the step shows the card on file (brand, last four, cardholder name) and the name on the booking.
+  **The card is not photographed.** A photo would have to pass through the server and a vision provider, and an image of a
+  card (full number, sometimes the security code) cannot be handled there within PCI rules; so the owner's fallback is
+  used: the staff member looks at the card and answers Yes or No for its last four digits and its name. Only the last four
+  digits of a confirmed card are kept (a constraint refuses anything longer). The cardholder name on file is also
+  compared with the name read from the ID automatically.
+- A mismatch: an urgent To do "Possible wrong person at pickup" for Fleet and one for Admin (one each per booking, not one
+  per check), the staff alert `pickup_wrong_person` (Admins and Fleet on duty, urgent), and the booking is marked: the
+  booking page shows the mark and each line of the check while a To do is open. On a card-coverage rental (option 2) a
+  card not in the renter's name is also raised as "Coverage problem at pickup". On a match in the field, the licence tick
+  is set for the staff member.
+- Evidence: every check (matched or not) is a row of `pickup_identity_checks` (RLS on; functions for the server only), in
+  the audit log, and in the dispute pack ("Identity check at the pickup", with the photos among the licence images).
+- Tests: `supabase/tests/99_r48ops_checkin_id.sql` (48 assertions), `features/pickup-identity/model.test.ts`.
+- To confirm with the owner: the wording renters agreed to covers licence and selfie photos for verifying identity; a line
+  naming the comparison at pickup would make that explicit. Automatic face comparison by a general vision model is a
+  help, not proof: the staff member's own look at the licence stays the check that counts.
+
+## Sweep results
+
+What was run, and what was not. The machine this was built on (2 CPUs shared, the app killed for memory at 4 GB) cannot
+hold a production build, and against the development server the sweep reads about one page a minute, so the full run of
+every route at five widths was not completed here. It is one command on a build (`node scripts/squish-audit.mjs`, in
+chunks with `--chunk=i/n`), and it should be run on the integration branch before the release.
+
+- Checked at 320, 375, 768, 1280 and 1440 with long names and large numbers (the e2e of this change fails on any
+  horizontal overflow, and takes the screenshots): the fleet calendar (Admin and Sales, timeline and agenda), the owner's
+  Bookings (three lists, car filter, timeline), Unfinished rentals on Today and Bookings, the role switcher in the staff
+  and owner frames, the Welcome steps, the earnings calculator, the Admin booking page with the pickup identity step
+  open and with the mark. The whole spec also passes on the 375 phone project.
+- The owner portal, first pass of the sweep tool: 11 findings, fixed in `portal-ui.css` and `owner.css` (money columns,
+  bar values at the edge, a car's stats under 26rem, the hero cars stacking, the forecast table scrolling inside its card,
+  the months table's car column). The second pass to confirm them did not finish (the pages did not load in time).
+- Found by the checks above and fixed: the calendar toolbar and the agenda cards pushed the page wider than a 320 phone
+  (grid columns sized by their content); "Possible duplicates" on a booking did not wrap a long name or email; the pickup
+  identity step's file fields.
+- Not swept here: the rest of Admin, the staff portals beyond the screens above, the field portal, the renter account and
+  the public site.
+
 ## Definition of done
 
-- Notifications: no new event. Nothing here sends, bills or changes a booking; the calendar jobs are a reading of the
-  return and the cleaning that already exist (the return job's and the cleaning's own alerts are unchanged).
+- Notifications: one new staff alert, `pickup_wrong_person` (urgent; Admins and Fleet on duty; on the Text alerts list like
+  the others), with its two urgent To do's (section 10). Nothing else here sends, bills or changes a booking; the calendar
+  jobs are a reading of the return and the cleaning that already exist (their own alerts are unchanged).
 - Design: the existing tokens and components; borders in alpha, fields at 16 px, hover only under `(hover: hover)`, motion
   120 to 220 ms with ease-in-out and off under reduced motion, 44 px targets, no `100vh`; plain-word empty states (no car
   matches, no booking in a list); the portal skeletons (r48-pf) cover the pages. No animation was added to the rows staff use
   all day.
 - Layout: checked at 320, 375, 768, 1280 and 1440 (Playwright screenshots of every changed screen at the five widths, in the release notes folder `hotfix-notes/r48-ops-shots/`; not in this public repository).
 - Tests: unit (`calendar-fleet`, `owner/bookings`, `access/roles`, `supply/unfinished`, `owner/earnings`), DB
-  (`99_r48ops_calendar.sql`), e2e (`tests/e2e/r48-ops.spec.ts`, and the changed `signin`, `owner-calculator` specs).
-- Evidence and audit: no money or fee is created here.
+  (`99_r48ops_calendar.sql`, `99_r48ops_checkin_id.sql`), e2e (`tests/e2e/r48-ops.spec.ts`, and the changed `signin`, `owner-calculator` specs).
+- Evidence and audit: no money or fee is created here. Each pickup identity check is kept, written to the audit log and
+  put in the dispute pack.
 
 ## Guides
 
 `admin/calendars` (find a car in a long fleet, check-out wording, the two jobs), `admin/getting-around-admin` (one portal,
 several roles; Unfinished rentals), `admin/owners-and-onboarding` (the calculator's three new settings), `va/shared-tools`
 (the calendar; one portal), `va/add-a-rental-by-hand` (your own unfinished ones), `owner/bookings-and-your-own-use` (the
-Bookings page), `owner/quick-reference`. Academy: the section "The calendar, check-outs and one portal" on every staff path
-(3 lessons, 6 questions; staff who had passed everything get 7 days). The guide screenshots of the Calendar and of the
+Bookings page), `owner/quick-reference`. The pickup identity check: `admin` (the bookings chapter), `va/shared-tools`, `field/a-handover`, `renter/before-pickup`.
+Academy: the section "The calendar, check-outs and one portal" on every staff path
+(4 lessons, 7 questions; staff who had passed everything get 7 days). The guide screenshots of the Calendar and of the
 owner's Bookings are retaken by the guides workflow after the deploy.
 
 ## For the merge
@@ -157,3 +217,7 @@ owner's Bookings are retaken by the guides workflow after the deploy.
   edits are needed (this one rewrites "See your bookings").
 - `web/src/app/owner/vehicles/BookingsTab.tsx`: r48-fe changes the `bookable` line; this branch leaves that line as it was.
 - `web/src/lib/schema-marker.ts` is 3299 here.
+- r48-fe is not merged into this branch (it is not in r48-int yet, and merging it here gave 13 conflicts that belong to the
+  integration). `web/src/features/field/Checklist.tsx` gets two added lines here (an import and the step under the licence
+  tick), away from r48-fe's hunks.
+- `docs/guides/content/field.json` (a-handover) and `renter.json` (before-pickup) each get one sentence block here.

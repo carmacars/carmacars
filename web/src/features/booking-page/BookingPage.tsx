@@ -56,6 +56,7 @@ import { showReturned } from '@/features/handover/returned';
 import type { PageCtx } from '@/features/shared-pages/context';
 import { bookingCan, portalBase } from '@/features/shared-pages/viewer';
 import { rpc } from '@/lib/db/repo';
+import { PickupIdentityMark } from '@/features/pickup-identity/PickupIdentityMark';
 import { signPayOf, signPayWords } from '@/features/portal/sign-pay';
 import type { ChargeReasons } from '@/features/money/charge-reasons';
 import { ActivityLog } from '@/features/activity/ActivityLog';
@@ -357,6 +358,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
       {can.admin && <BookingSummary status={b.status} pickupAt={b.pickup_at} returnAt={b.return_at} days={Number(b.billable_days)} totalCents={Number(b.total_due_at_booking_cents)} billTo={b.bill_to} />}
       {/* the six sections right under the summary */}
       <Tabs current={`${base}?tab=${section}`} items={tabs} />
+      {(section === 'overview' || section === 'car') && ['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <PickupIdentityMark booking={b.id} userId={user.id} />}
       {/* 0770: what stops the pickup or the return, the Admin override (staff ask), a past trip, the requests waiting */}
       {(section === 'overview' || section === 'car') && (can.handover || can.admin) && ['offered', 'pending_payment', 'confirmed', 'on_rent'].includes(b.status) && <HandoverOverride booking={b.id} userId={user.id} aal={aal} refresh={[base]} />}
       {(section === 'overview' || section === 'car') && ['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <HandoverPanel userId={user.id} aal={aal} base={base} canHandover={can.handover} canSign={can.sign}

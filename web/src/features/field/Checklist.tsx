@@ -17,6 +17,7 @@ import { LateReturnChoice } from '@/features/handover/LateReturnChoice';
 import { NO_CHOICE, afterReturnText, choicePayload, choiceProblem, decisionText, type LateChoice } from '@/features/handover/late-return';
 
 import { WhyDisabled } from '@/components/WhyDisabled';
+import { PickupIdentityStep } from '@/features/pickup-identity/PickupIdentityStep';
 // The handover and return checklists (06-field.md sections 4 and 5) on one screen (release 42, migration 2710): every
 // part of the handover is on the page in the order it is done, with a tick once it is complete; what can be known is
 // filled in already (the odometer and fuel from the Tracker or the last report, the keys, the cleanliness); what is
@@ -206,6 +207,7 @@ export function Checklist({ j, back = '/staff/field', backLabel = 'Back to my jo
         <Tick label="This is the renter named on the booking" on={r.renter_present === true} set={(v) => set({ renter_present: v })} testId="tick-renter" />
         <Tick label="I checked the original licence: the name and photo match, and it is not expired" on={r.licence_seen === true} set={(v) => set({ licence_seen: v })} testId="tick-licence" />
         {(j.booking?.drivers ?? []).map((d) => <p key={d.name} className="small"><b>{d.name}</b> · licence {d.licence_number ?? ''} · class {d.licence_class ?? ''} · expires {d.licence_expiry ?? ''}</p>)}
+        {j.job.booking_id && <PickupIdentityStep booking={j.job.booking_id} who="staff" call="field_read" onChecked={(c) => { if (c.outcome === 'match' && c.results.face !== 'not_checked' && c.results.name === 'match') set({ licence_seen: true }); }} />}
         {j.booking?.booking_type !== 'owner' && <Tick label={`I have seen the physical card ending in ${j.booking?.card?.last4 ?? '----'} in the renter's name`} on={r.card_seen === true} set={(v) => set({ card_seen: v })} testId="tick-card" />}
         <details className="fd-more"><summary data-testid="person-wrong">Something is wrong</summary><div className="stack">
           <p className="small">Each of these stops the handover and tells the office at once.</p>

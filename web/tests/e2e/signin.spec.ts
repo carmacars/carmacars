@@ -114,7 +114,7 @@ test('sign-in: several roles: one portal with a role switcher, no chooser; the r
   await expect(page.getByTestId('fn-switch').getByRole('button', { name: 'Fleet' })).toHaveAttribute('aria-pressed', 'true');
   // merged navigation: the owner pages are one tap away from the staff frame
   await sw.getByTestId('role-nav').locator('summary').click();
-  await expect(sw.getByTestId('role-nav').getByRole('link', { name: 'Money' })).toHaveAttribute('href', '/owner/money');
+  await expect(sw.getByTestId('role-nav').getByLabel('Owner pages').getByRole('link', { name: 'Money' })).toHaveAttribute('href', '/owner/money');
   await sw.getByRole('link', { name: 'Owner', exact: true }).click();
   await page.waitForURL((u) => u.pathname === '/owner');
   const sw2 = page.getByTestId('role-switch');
@@ -135,7 +135,7 @@ test('sign-in: several roles: one portal with a role switcher, no chooser; the r
   expect(path(page)).toBe('/owner');
   // the old chooser's address still answers (a bookmark), with every portal of the account
   await page.goto('/choose-portal');
-  await expect(page.getByTestId('choose-portal').locator('.cp-card__name')).toHaveText(['Owner portal', 'Staff portal']);
+  await expect(page.getByTestId('choose-portal').locator('.cp-card__name')).toHaveText([/^Owner portal/, /^Staff portal/]);
   expect(clean(errors)).toEqual([]);
   await page.context().close();
   await sql.end();
