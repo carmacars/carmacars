@@ -3772,7 +3772,7 @@
         {
           "name": "event_fee",
           "type": "string",
-          "sample": "No charge this time. Over 180 km/h there is a speeding charge of $500.00 plus HST, each time the Tracker records it."
+          "sample": "No charge this time. Over 180 km/h there is a speeding charge of $500.00 plus HST: one charge an event, at the highest limit reached."
         },
         {
           "name": "event_short",
@@ -10558,7 +10558,7 @@
         {
           "name": "event_ask",
           "type": "string",
-          "sample": "Please slow down. Driving faster than 180 km/h is never allowed, and each new record is a new charge."
+          "sample": "Please slow down. Driving faster than 180 km/h is never allowed, and a later event is a new charge."
         },
         {
           "name": "event_clause",
@@ -10568,7 +10568,7 @@
         {
           "name": "event_fee",
           "type": "string",
-          "sample": "A speeding charge of $500.00 plus HST applies (over 180 km/h). It is taken from your Deposit first, and you get the Tracker's time, place and speed with it."
+          "sample": "A speeding charge of $500.00 plus HST applies (over 180 km/h). One event is one charge, at the highest limit reached. It is taken from your Deposit first, and you get the Tracker's time, place and speed with it."
         },
         {
           "name": "event_short",

@@ -290,14 +290,14 @@ begin
     when a.kind = 'speeding' and a.tier is not null then
       v_title := format('Speeding over %s km/h', a.tier);
       v_what := format('The Tracker in your %s recorded %s km/h on %s.', v_car, v_speed, v_when);
-      v_fee_line := format('A speeding charge of %s plus HST applies (over %s km/h). It is taken from your Deposit first, and you get the Tracker''s time, place and speed with it.', v_fee, a.tier);
-      v_ask := 'Please slow down. Driving faster than 180 km/h is never allowed, and each new record is a new charge.';
+      v_fee_line := format('A speeding charge of %s plus HST applies (over %s km/h). One event is one charge, at the highest limit reached. It is taken from your Deposit first, and you get the Tracker''s time, place and speed with it.', v_fee, a.tier);
+      v_ask := 'Please slow down. Driving faster than 180 km/h is never allowed, and a later event is a new charge.';
       v_short := format('%s km/h recorded. A %s charge applies (agreement 10.5). Please slow down.', v_speed, v_fee);
       v_owner := format('Your %s was recorded at %s km/h on %s. CarmaCars has told the renter and the speeding charge applies.', v_car, v_speed, v_when);
     when a.kind = 'speeding' then
       v_title := 'Please slow down';
       v_what := format('The Tracker in your %s recorded %s km/h on %s.', v_car, v_speed, v_when);
-      v_fee_line := format('No charge this time. Over 180 km/h there is a speeding charge of %s plus HST, each time the Tracker records it.', app.fmt_money((app.settings()).speeding_180_fee_cents));
+      v_fee_line := format('No charge this time. Over 180 km/h there is a speeding charge of %s plus HST: one charge an event, at the highest limit reached.', app.fmt_money((app.settings()).speeding_180_fee_cents));
       v_ask := 'Please ease off and keep to the limit. Thank you.';
       v_short := format('%s km/h recorded. No charge this time. Please slow down.', v_speed);
       v_owner := format('Your %s was recorded at %s km/h on %s. CarmaCars has asked the renter to slow down.', v_car, v_speed, v_when);
@@ -877,6 +877,12 @@ begin
     raise exception 'This event carries no set charge under the rental agreement%', coalesce(' (' || a.clause || ')', '') using errcode = '23514';
   end if;
   if a.booking_id is null then raise exception 'No rental was under way at that time: there is nobody to charge' using errcode = '23514'; end if;
+  -- one event is one charge, at the highest limit reached (rental agreement 10.5): a record of the same event already charged
+  if exists (select 1 from tracker_alerts x join booking_line_items li on li.id = x.line_item_id and li.voided_at is null
+              where x.id <> a.id and x.vehicle_id = a.vehicle_id and x.kind = 'speeding' and x.tier is not null
+                and x.at between a.at - make_interval(mins => (app.tracker_settings()).event_window_minutes) and a.at + make_interval(mins => (app.tracker_settings()).event_window_minutes)) then
+    raise exception 'This speeding event is already charged at another limit: one event is one charge, at the highest limit reached. Void that charge first to bill this one' using errcode = '23514';
+  end if;
   select * into e from tracker_evidence where alert_id = a.id;
   if e.id is null then raise exception 'This event has no evidence record: it cannot be charged' using errcode = '23514'; end if;
   v := app.speeding_charge_add(p_by, jsonb_build_object('booking', a.booking_id, 'over', a.tier, 'alert_id', a.id, 'note', nullif(btrim(coalesce(p ->> 'note', '')), '')));

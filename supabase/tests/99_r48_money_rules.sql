@@ -214,6 +214,11 @@ select test.eq('the line: a separate speeding charge with its evidence',
   (select charge_type || '/' || (supporting_refs ->> 'speed_kmh') || '/' || hst_applies from booking_line_items where booking_id = test.id('booking:MR-7') and charge_type like 'speeding%'), 'speeding_180/197/true');
 select test.throws('the same reading is not charged twice',
   format($$select app.speeding_charge_add(%L, '{"booking": "MR-7", "over": 180, "at": "2034-06-02T14:00:30-04:00"}')$$, test.id('mr_fin')), 'already charged');
+-- one event is one charge (3325; rental agreement 10.5): a reading of the same event over a higher limit is not billed on top
+insert into tracker_points (vehicle_id, at, lat_e6, lng_e6, speed_kmh) values (test.id('vehicle:MRP'), timestamptz '2034-06-02 14:01:30 America/Toronto', 43715000, -79415000, 231);
+select test.throws('one event is one charge: no second charge at another limit for the same event',
+  format($$select app.speeding_charge_add(%L, '{"booking": "MR-7", "over": 220, "at": "2034-06-02T14:01:30-04:00"}')$$, test.id('mr_fin')), 'one event is one charge');
+select test.eq('...and only the one speeding line stands', (select count(*) from booking_line_items where booking_id = test.id('booking:MR-7') and charge_type like 'speeding%' and voided_at is null), 1::bigint);
 select test.eq('three speeding settings', (select count(*) from information_schema.columns where table_name = 'program_settings' and column_name like 'speeding_%_fee_cents'), 3::bigint);
 -- change_booking_fees with a list of named fees (the connector)
 select app.door(test.id('mr_admin'), 'aal2', 'ops_do', 'booking_fees_change', jsonb_build_object('booking', 'MR-7',

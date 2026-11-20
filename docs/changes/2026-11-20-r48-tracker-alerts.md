@@ -1,7 +1,7 @@
 # Release 48, part TRK: tracker alerts and the pound database
 
 Migrations `3320_r48trk_tracker_events.sql`, `3321_r48trk_notifications.sql` (catalogue block: `supabase/seed/3321_gen_catalogue.mjs`),
-`3322_r48trk_guides_academy.sql` (guides block: `supabase/seed/3322_gen_guides.mjs`). Schema marker 3322. Built on r48-fe (b9c07da1).
+`3322_r48trk_guides_academy.sql` (guides block: `supabase/seed/3322_gen_guides.mjs`), `3323_r48trk_speeding_one_charge.sql`. Schema marker 3323. Built on r48-fe (b9c07da1).
 
 The owner (Nov 20): tracker events (speeding, harsh driving, geofence exit, after-hours, tamper or unplug, a pound) create alerts,
 deduplicated; the renter is told plainly what happened, the fee and the clause, calm and firm; the car's owner is told through
@@ -114,11 +114,12 @@ charges of 3102, the return charges and the evidence registry of 3190 and the di
 
 ## Decisions
 
-- **Speeding tiers** are the agreement's (over 180, 220, 300 km/h) with the Program settings of 3102 ($500, $1,000, $2,500). They
-  were already settings; nothing new was added for them. One record at the highest limit passed in a window, and Charge bills that
-  limit once ("by tier": 226 km/h is $1,000, not $500 plus $1,000). The agreement's wording is "each limit is a separate charge":
-  Finance can still add a lower limit by hand (`speeding_charge_add`), but the screen does not stack them by itself. **The owner
-  decides which reading is meant** (see below).
+- **Speeding: one event is one charge, at the highest limit reached** (the owner confirmed it on Nov 20; 226 km/h is $1,000, not
+  $500 plus $1,000). Rental agreement 10.5 and its three Fee Schedule lines say exactly that now (`docs/source/v2_rental.md`,
+  text version `rental-v3-2948304058`; an event is the readings above 180 km/h within 30 minutes of each other). Migration
+  `3323_r48trk_speeding_one_charge.sql` publishes the wording to accept (`terms_versions` `rental-v3-r48trk`), so the "We've
+  updated our terms" pop-up opens once for every renter. The notice words, the guides, the academy and the Program settings hints
+  say the same, and Charge refuses a second record of an event already charged. The amounts stay Program settings (3102).
 - **"After-hours"** was read two ways and both are covered: driving after the return time (0400's alert, now with the renter's
   notice and the late return clause), and driving at night (new, off, staff and owner only because the agreement has no curfew).
 - **No charge is taken automatically.** An event tells the renter the charge that applies; a person presses Charge.
@@ -160,6 +161,10 @@ charges of 3102, the return charges and the evidence registry of 3190 and the di
 - Academy: the section "Tracker events and pound flags" (two lessons, five questions) on the fleet, finance, customer service and
   admin paths; staff who had passed everything get 7 days for it. The guide PDFs were not re-rendered.
 
+## Integration note (3325)
+
+One speeding event is one charge also when an Admin or the connector adds it by hand: `app.speeding_charge_add` refuses a speeding charge within the tracker's event window of one already on the booking, at any limit. Void the first to bill another.
+
 ## Not done
 
 - **Tracker events are off.** Turn them on once the trackers are installed and the points below are confirmed.
@@ -175,9 +180,7 @@ charges of 3102, the return charges and the evidence registry of 3190 and the di
 
 ## For the owner to confirm
 
-1. The speeding charges: $500 over 180 km/h, $1,000 over 220, $2,500 over 300 (Settings > Program), and that one event bills the
-   highest limit passed ($1,000 at 226 km/h) rather than every limit passed ($1,500), which is how the agreement's 10.5 can also
-   be read.
+1. Confirmed Nov 20: one speeding event bills only the highest limit passed. Still to confirm: the amounts ($500, $1,000, $2,500).
 2. The heads-up level: 140 km/h (Tracking settings), a message with no charge.
 3. The wording of the renter's notices ("Please slow down." and the others in `app.tracker_event_words`).
 4. Harsh driving as a heads-up only (no charge), 3 events in 30 minutes.

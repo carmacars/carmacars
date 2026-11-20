@@ -29,7 +29,7 @@ export default {
     event_title: 'Please slow down',
     event_what: 'The Tracker in your 2024 Honda Civic Sport recorded 152 km/h on Sat, Nov 21, 2026 at 2:14 pm.',
     event_when: 'Sat, Nov 21, 2026 at 2:14 pm',
-    event_fee: 'No charge this time. Over 180 km/h there is a speeding charge of $500.00 plus HST, each time the Tracker records it.',
+    event_fee: 'No charge this time. Over 180 km/h there is a speeding charge of $500.00 plus HST: one charge an event, at the highest limit reached.',
     event_clause: 'Rental agreement: 10.5 Speeding charges.',
     event_ask: 'Please ease off and keep to the limit. Thank you.',
     event_short: '152 km/h recorded. No charge this time. Please slow down.',

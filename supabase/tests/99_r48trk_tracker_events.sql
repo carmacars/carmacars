@@ -187,6 +187,12 @@ select test.eq('an Admin charges the later record over 180 km/h: $500',
 select test.tvin(test.tvp('TVDEV-1', 3900, 43.70, -79.48, 231, true));
 select test.eq('a charged record stays as it is: a higher limit in its window after the charge is a record of its own',
   (select string_agg(tier::text || ':' || (line_item_id is not null), ',' order by at) from tracker_alerts where vehicle_id = test.id('vehicle:tv_car1') and tier is not null), '220:true,180:true,220:false');
+select test.throws('one event is one charge: the higher record of an event already charged is not billed on top',
+  format($$select test.tvdo('tv_admin', 'tracker_alert_charge', '{"alert_id": "%s"}')$$, (select id from tracker_alerts where vehicle_id = test.id('vehicle:tv_car1') and tier = 220 and line_item_id is null)), 'one event is one charge');
+select test.eq('the one-charge wording of 10.5 is published to accept (the terms pop-up), and the notices say it',
+  (select count(*) || ' ' || bool_and(requires_acceptance and body like '%one event is one charge%') from terms_versions where doc_key = 'rental_agreement' and version = 'rental-v3-r48trk')
+  || ' ' || (select bool_and(e.payload ->> 'event_fee' like '%One event is one charge, at the highest limit reached.%') from app_events e where e.code = 'renter_tracker_notice' and e.payload ->> 'event_title' like 'Speeding over%'
+              and e.payload ->> 'vehicle_id' = test.id('vehicle:tv_car1')::text), '1 true true');
 select test.throws('a record is charged once', format($$select test.tvdo('tv_admin', 'tracker_alert_charge', '{"alert_id": "%s"}')$$, (select id from tv_a)), 'already charged');
 create temp table tv_pack as select app.dispute_pack_build_variant(test.id('tv_admin'), '{"booking": "TV-1", "variant": "small_claims"}'::jsonb) as v;
 select test.eq('the dispute kit (3192) carries every tracker event of the booking with its record, seal, readings and the notice sent',

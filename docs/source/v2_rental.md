@@ -163,7 +163,7 @@ You must pay all tolls (including Highway 407 ETR), parking charges, tickets, ca
 
 **10.4 Care.** You must keep the Vehicle locked and the keys with you. You must not alter it, copy a key, tamper with the odometer or the Tracker, or give anyone a right over it. If a key or fob is lost or not returned, you owe the lost key or fob fee.
 
-**10.5 Speeding charges.** Driving faster than 180 km/h is never allowed. If the Tracker records the Vehicle above 180 km/h, 220 km/h or 300 km/h during the Rental Period, you owe the speeding charge for that limit, each time the Tracker records it: each limit is a separate charge, in the Fee Schedule (Part 3). The Tracker's record is the evidence (section 12.2), and we give you its time, place and speed with the charge. We take the charge from the Deposit first, then from the Card on File (section 5). It does not replace a fine, a licence suspension or an impound under the law, and it does not limit our other rights under this Agreement (sections 9 and 12).
+**10.5 Speeding charges.** Driving faster than 180 km/h is never allowed. If the Tracker records the Vehicle above 180 km/h, 220 km/h or 300 km/h during the Rental Period, you owe one speeding charge for that event, at the highest limit reached, in the Fee Schedule (Part 3): one event is one charge. An event is the readings above 180 km/h within 30 minutes of each other; a later event is a new charge. The Tracker's record is the evidence (section 12.2), and we give you its time, place and speed with the charge. We take the charge from the Deposit first, then from the Card on File (section 5). It does not replace a fine, a licence suspension or an impound under the law, and it does not limit our other rights under this Agreement (sections 9 and 12).
 
 **10.6 Non-return.** If the Vehicle is not back by the deadline in our final late return notice, you owe the non-return charge in the Fee Schedule (Part 3) and the actual costs of recovering the Vehicle: towing, impound, storage, an investigator or a repossession agent. The rental charge at the booking's daily rate, the per-day fees and the late return fee keep adding up until the Vehicle is recovered (section 3.2). The Tracker's record, the notices we sent and the receipts are the evidence (section 12.2), and we give them to you with the charge.
 
@@ -251,9 +251,9 @@ Standard amounts. Section 1.3 applies.
 | Cleaning fee | More than standard cleaning needed | $75; $300 for an excessively dirty vehicle (heavy soiling or odour removal) |
 | Pet cleaning fee | Pet hair, odour or soiling at return | $150 |
 | Smoking fee | Evidence of smoking or vaping | $300 |
-| Speeding charge, over 180 km/h | Each time the Tracker records the Vehicle above 180 km/h (section 10.5), taken from the Deposit first | $500 |
-| Speeding charge, over 220 km/h | Each time the Tracker records the Vehicle above 220 km/h (section 10.5), taken from the Deposit first | $1,000 |
-| Speeding charge, over 300 km/h | Each time the Tracker records the Vehicle above 300 km/h (section 10.5), taken from the Deposit first | $2,500 |
+| Speeding charge, over 180 km/h | A speeding event whose highest limit reached is 180 km/h (section 10.5: one event is one charge), taken from the Deposit first | $500 |
+| Speeding charge, over 220 km/h | A speeding event whose highest limit reached is 220 km/h (section 10.5: one event is one charge), taken from the Deposit first | $1,000 |
+| Speeding charge, over 300 km/h | A speeding event whose highest limit reached is 300 km/h (section 10.5: one event is one charge), taken from the Deposit first | $2,500 |
 | Non-return charge | The Vehicle is not back by the deadline of the final late return notice (section 10.6) | $1,000, plus the actual recovery costs, the rental charge and per-day fees until recovery, and the late return fee |
 | Improper return charge | Returned at the wrong place, keys not returned, left unlocked or unsecured, or a drop-off not agreed (section 10.7) | $250, plus the actual costs |
 | Theft recovery charge | The Vehicle is stolen, or recovered by the police or a repossession (section 10.8) | $1,500, plus the actual costs; the deductible rules still apply |
