@@ -7697,6 +7697,7 @@ export type Database = {
           ses_ok_at: string | null;
           ses_failed_at: string | null;
           ses_error: string | null;
+          ses_sandbox_at: string | null;
         };
         Insert: {
           id?: boolean;
@@ -7708,6 +7709,7 @@ export type Database = {
           ses_ok_at?: string | null;
           ses_failed_at?: string | null;
           ses_error?: string | null;
+          ses_sandbox_at?: string | null;
         };
         Update: {
           id?: boolean;
@@ -7719,6 +7721,7 @@ export type Database = {
           ses_ok_at?: string | null;
           ses_failed_at?: string | null;
           ses_error?: string | null;
+          ses_sandbox_at?: string | null;
         };
         Relationships: [];
       };
@@ -18015,6 +18018,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      phone_provider_state: {
+        Row: {
+          id: boolean;
+          quo_failed_at: string | null;
+          quo_error: string | null;
+          quo_ok_at: string | null;
+          quo_probe_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: boolean;
+          quo_failed_at?: string | null;
+          quo_error?: string | null;
+          quo_ok_at?: string | null;
+          quo_probe_at?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          id?: boolean;
+          quo_failed_at?: string | null;
+          quo_error?: string | null;
+          quo_ok_at?: string | null;
+          quo_probe_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       phone_threads: {
         Row: {
           id: string;
@@ -19369,6 +19399,9 @@ export type Database = {
           speeding_180_fee_cents: number;
           speeding_220_fee_cents: number;
           speeding_300_fee_cents: number;
+          text_stale_minutes: number;
+          text_retry_paused_minutes: number;
+          staff_inactive_grace_from: string | null;
         };
         Insert: {
           id?: string;
@@ -20258,6 +20291,9 @@ export type Database = {
           speeding_180_fee_cents?: number;
           speeding_220_fee_cents?: number;
           speeding_300_fee_cents?: number;
+          text_stale_minutes?: number;
+          text_retry_paused_minutes?: number;
+          staff_inactive_grace_from?: string | null;
         };
         Update: {
           id?: string;
@@ -21147,6 +21183,9 @@ export type Database = {
           speeding_180_fee_cents?: number;
           speeding_220_fee_cents?: number;
           speeding_300_fee_cents?: number;
+          text_stale_minutes?: number;
+          text_retry_paused_minutes?: number;
+          staff_inactive_grace_from?: string | null;
         };
         Relationships: [];
       };
@@ -21393,6 +21432,36 @@ export type Database = {
           created_at?: string;
           units?: number | null;
           unit?: string | null;
+        };
+        Relationships: [];
+      };
+      push_lost: {
+        Row: {
+          id: number;
+          user_id: string;
+          endpoint: string;
+          device: string | null;
+          reason: string;
+          at: string;
+          resolved_at: string | null;
+        };
+        Insert: {
+          id?: number;
+          user_id: string;
+          endpoint: string;
+          device?: string | null;
+          reason: string;
+          at?: string;
+          resolved_at?: string | null;
+        };
+        Update: {
+          id?: number;
+          user_id?: string;
+          endpoint?: string;
+          device?: string | null;
+          reason?: string;
+          at?: string;
+          resolved_at?: string | null;
         };
         Relationships: [];
       };
@@ -26127,6 +26196,7 @@ export type Database = {
           quo_user_id: string | null;
           licence_number: string | null;
           licence_number_set_at: string | null;
+          restore_token: string | null;
         };
         Insert: {
           user_id: string;
@@ -26184,6 +26254,7 @@ export type Database = {
           quo_user_id?: string | null;
           licence_number?: string | null;
           licence_number_set_at?: string | null;
+          restore_token?: string | null;
         };
         Update: {
           user_id?: string;
@@ -26241,6 +26312,34 @@ export type Database = {
           quo_user_id?: string | null;
           licence_number?: string | null;
           licence_number_set_at?: string | null;
+          restore_token?: string | null;
+        };
+        Relationships: [];
+      };
+      staff_restore_requests: {
+        Row: {
+          id: string;
+          user_id: string;
+          requested_at: string;
+          decided_at: string | null;
+          decided_by: string | null;
+          decision: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          requested_at?: string;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          decision?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          requested_at?: string;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          decision?: string | null;
         };
         Relationships: [];
       };
@@ -28750,6 +28849,7 @@ export type Database = {
           staff_email_digest: string;
           display_name: string | null;
           merged_into: string | null;
+          staff_notices_off: boolean;
         };
         Insert: {
           id?: string;
@@ -28775,6 +28875,7 @@ export type Database = {
           staff_email_digest?: string;
           display_name?: string | null;
           merged_into?: string | null;
+          staff_notices_off?: boolean;
         };
         Update: {
           id?: string;
@@ -28800,6 +28901,7 @@ export type Database = {
           staff_email_digest?: string;
           display_name?: string | null;
           merged_into?: string | null;
+          staff_notices_off?: boolean;
         };
         Relationships: [];
       };
@@ -33692,6 +33794,9 @@ export type Database = {
       server_ai_interviews_due_pre0585: { Args: { p_limit?: number }; Returns: Json };
       server_ai_interviews_due_pre1060: { Args: { p_limit?: number }; Returns: Json };
       server_ai_interviews_due_pre2680: { Args: { p_limit?: number }; Returns: Json };
+      server_ai_local_status: { Args: { p: Json }; Returns: Json };
+      server_ai_routes: { Args: never; Returns: Json };
+      server_ai_served: { Args: { p: Json }; Returns: undefined };
       server_ai_video_purged: { Args: { p_ids: string[] }; Returns: number };
       server_ai_video_purged_pre2680: { Args: { p_ids: string[] }; Returns: number };
       server_alert_feed: { Args: { p_user: string; p_limit?: number; p_filter?: string }; Returns: Json };
@@ -34115,8 +34220,6 @@ export type Database = {
       server_sign_request_document: { Args: { p_id: string }; Returns: Json };
       server_signature_lines: { Args: { p_request: string }; Returns: Json };
       server_signed_in: { Args: { p_user: string }; Returns: Json };
-      server_staff_restore_request: { Args: { p_token: string }; Returns: Json };
-      server_staff_restore_token: { Args: { p_user: string }; Returns: string };
       server_signin_phone_request: { Args: { p: Json }; Returns: Json };
       server_signing_package_record: { Args: { p_by: string; p: Json }; Returns: Json };
       server_signing_record: { Args: { p_booking: string }; Returns: Json };
@@ -34127,6 +34230,8 @@ export type Database = {
       server_social_queue_result: { Args: { p: Json }; Returns: Json };
       server_staff_agreement_auto_done: { Args: { p_user: string; p: Json }; Returns: Json };
       server_staff_agreements_due: { Args: { p_limit?: number }; Returns: Json };
+      server_staff_restore_request: { Args: { p_token: string }; Returns: Json };
+      server_staff_restore_token: { Args: { p_user: string }; Returns: string };
       server_staff_set_call_phone: { Args: { p_user: string; p_phone: string }; Returns: Json };
       server_statement_mail_due: { Args: never; Returns: Json };
       server_statement_mail_release: { Args: { p_kind: string; p_key: string }; Returns: Json };
