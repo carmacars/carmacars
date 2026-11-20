@@ -1,0 +1,207 @@
+name: apps-native
+
+# The App Store and Google Play builds of the native CarmaCars app (apps/carmacars-native: Expo and React Native, release
+# 48; docs/apps/native-publish.md). Run workflow only: nothing here runs on a push or a pull request, so it costs nothing
+# until the owner starts a build. No paid build service: each run installs the app's packages, checks it (settings,
+# types, unit tests), makes the native projects fresh with `expo prebuild`, and builds with fastlane:
+#   android  a signed App Bundle (.aab), kept as the run's artifact; with PLAY_SERVICE_ACCOUNT_JSON set, also uploaded to
+#            the Play Console's Internal testing track (Google requires the very first upload by hand in the console)
+#   ios      an archive signed by Xcode's cloud signing with the App Store Connect API key, uploaded to TestFlight
+# Secrets (repository secrets; never in the code or the logs) are the same ones the first app's workflow used, listed in
+# docs/apps/native-publish.md, step 6. A platform whose secrets are missing is skipped with a notice. Logs are public:
+# no step prints a secret, and every key file lives in the runner's temporary folder with owner-only access.
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Which app to build
+        type: choice
+        options: [both, android, ios]
+        default: both
+      version:
+        description: Version people see in the stores (major.minor.patch)
+        type: string
+        default: '1.0.0'
+      upload:
+        description: Upload the build (TestFlight; Play Internal testing when its key is set)
+        type: boolean
+        default: true
+      listing:
+        description: Also send the store listing texts (after the app exists in each store)
+        type: boolean
+        default: false
+
+# The workflow's token only reads the repository.
+permissions:
+  contents: read
+
+concurrency:
+  group: apps-native-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  APP_VERSION_NAME: ${{ inputs.version }}
+  # above every build number the first app's workflow could have used
+  APP_VERSION_CODE: ${{ github.run_number }}00
+  APP_APPLE_TEAM_ID: ${{ vars.APP_APPLE_TEAM_ID }}
+  EXPO_NO_TELEMETRY: '1'
+  FASTLANE_SKIP_UPDATE_CHECK: '1'
+  FASTLANE_HIDE_CHANGELOG: '1'
+  CI: '1'
+
+jobs:
+  android:
+    if: inputs.platform != 'ios'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    defaults:
+      run:
+        working-directory: apps/carmacars-native
+    steps:
+      - uses: actions/checkout@v4
+      - name: Version and secrets
+        id: has
+        env:
+          KS: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_B64 }}
+          FB: ${{ secrets.FIREBASE_ANDROID_JSON_B64 }}
+          PLAY: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          [[ "$APP_VERSION_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::The version must be major.minor.patch, for example 1.0.0"; exit 1; }
+          echo "keystore=$([ -n "$KS" ] && echo 1 || echo 0)" >> "$GITHUB_OUTPUT"
+          echo "play=$([ -n "$PLAY" ] && echo 1 || echo 0)" >> "$GITHUB_OUTPUT"
+          [ -n "$KS" ] || echo "::warning title=android::ANDROID_UPLOAD_KEYSTORE_B64 is not set: the build is skipped (docs/apps/native-publish.md, step 5)"
+          [ -n "$FB" ] || echo "::warning title=android::FIREBASE_ANDROID_JSON_B64 is not set: the app builds without alerts"
+      - uses: actions/setup-node@v4
+        if: steps.has.outputs.keystore == '1'
+        with: { node-version: 24, cache: npm, cache-dependency-path: apps/carmacars-native/package-lock.json }
+      - uses: actions/setup-java@v4
+        if: steps.has.outputs.keystore == '1'
+        with: { distribution: temurin, java-version: '21' }
+      - name: Install and check
+        if: steps.has.outputs.keystore == '1'
+        run: |
+          npm ci --no-audit --no-fund
+          npm run -s check
+          npm run -s typecheck
+          npm test
+      - name: Native project
+        if: steps.has.outputs.keystore == '1'
+        env:
+          KS: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_B64 }}
+          FB: ${{ secrets.FIREBASE_ANDROID_JSON_B64 }}
+        run: |
+          umask 077
+          printf '%s' "$KS" | base64 -d > "$RUNNER_TEMP/upload.jks"
+          if [ -n "$FB" ]; then printf '%s' "$FB" | base64 -d > google-services.json; fi
+          npx expo prebuild --platform android --clean --no-install
+          bundle config set --local path "$RUNNER_TEMP/gems"
+          bundle install --jobs 4 --quiet
+      - name: Signed App Bundle
+        if: steps.has.outputs.keystore == '1'
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/upload.jks" bundle exec fastlane android build
+          rm -f "$RUNNER_TEMP/upload.jks" google-services.json
+      - uses: actions/upload-artifact@v4
+        if: steps.has.outputs.keystore == '1'
+        with:
+          name: carmacars-native-android-${{ inputs.version }}-${{ github.run_number }}
+          path: apps/carmacars-native/android/app/build/outputs/bundle/release/app-release.aab
+          retention-days: 30
+          if-no-files-found: error
+      - name: Upload to Play (Internal testing)
+        if: steps.has.outputs.keystore == '1' && steps.has.outputs.play == '1' && inputs.upload
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: bundle exec fastlane android upload
+      - name: Play listing
+        if: steps.has.outputs.keystore == '1' && steps.has.outputs.play == '1' && inputs.listing
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: bundle exec fastlane android listing
+
+  ios:
+    if: inputs.platform != 'android'
+    runs-on: macos-15
+    timeout-minutes: 75
+    defaults:
+      run:
+        working-directory: apps/carmacars-native
+    steps:
+      - uses: actions/checkout@v4
+      - name: Version and secrets
+        id: has
+        env:
+          KEY: ${{ secrets.ASC_KEY_P8 }}
+          FB: ${{ secrets.FIREBASE_IOS_PLIST_B64 }}
+        run: |
+          [[ "$APP_VERSION_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::The version must be major.minor.patch, for example 1.0.0"; exit 1; }
+          ok=1
+          [ -n "$APP_APPLE_TEAM_ID" ] || { ok=0; echo "::warning title=ios::the repository variable APP_APPLE_TEAM_ID is not set: the build is skipped (docs/apps/native-publish.md, step 6)"; }
+          [ -n "$KEY" ] || { ok=0; echo "::warning title=ios::ASC_KEY_P8, ASC_KEY_ID and ASC_ISSUER_ID are not set: the build is skipped (docs/apps/native-publish.md, step 6)"; }
+          [ -n "$FB" ] || echo "::warning title=ios::FIREBASE_IOS_PLIST_B64 is not set: the app builds without alerts"
+          echo "ok=$ok" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@v4
+        if: steps.has.outputs.ok == '1'
+        with: { node-version: 24, cache: npm, cache-dependency-path: apps/carmacars-native/package-lock.json }
+      - name: Newest Xcode on the runner
+        if: steps.has.outputs.ok == '1'
+        run: |
+          x=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          sudo xcode-select -s "$x"
+          xcodebuild -version
+      - name: Install and check
+        if: steps.has.outputs.ok == '1'
+        run: |
+          npm ci --no-audit --no-fund
+          npm run -s check
+          npm run -s typecheck
+          npm test
+      - name: Native project
+        if: steps.has.outputs.ok == '1'
+        env:
+          FB: ${{ secrets.FIREBASE_IOS_PLIST_B64 }}
+        run: |
+          umask 077
+          if [ -n "$FB" ]; then printf '%s' "$FB" | base64 -d > GoogleService-Info.plist; fi
+          npx expo prebuild --platform ios --clean
+          bundle config set --local path "$RUNNER_TEMP/gems"
+          bundle install --jobs 4 --quiet
+      - name: Archive
+        if: steps.has.outputs.ok == '1'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          umask 077
+          export ASC_KEY_PATH="$RUNNER_TEMP/AuthKey_$ASC_KEY_ID.p8"
+          printf '%s' "$ASC_KEY_P8" > "$ASC_KEY_PATH"
+          bundle exec fastlane ios build
+          rm -f "$ASC_KEY_PATH" GoogleService-Info.plist
+      - name: Upload to TestFlight
+        if: steps.has.outputs.ok == '1' && inputs.upload
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          bundle exec fastlane ios upload
+          echo "::notice title=ios::uploaded to App Store Connect: it appears in TestFlight after Apple's processing (about 15 minutes)"
+      - uses: actions/upload-artifact@v4
+        if: steps.has.outputs.ok == '1' && !inputs.upload
+        with:
+          name: carmacars-native-ios-${{ inputs.version }}-${{ github.run_number }}
+          path: apps/carmacars-native/build/CarmaCars.ipa
+          retention-days: 14
+          if-no-files-found: error
+      - name: App Store listing
+        if: steps.has.outputs.ok == '1' && inputs.listing
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: bundle exec fastlane ios listing

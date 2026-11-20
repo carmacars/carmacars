@@ -1,0 +1,17 @@
+node_modules/
+.expo/
+dist/
+# the native projects are made fresh by each release build (expo prebuild); never committed
+/ios/
+/android/
+# keys and Firebase files: GitHub secrets only (docs/apps/native-publish.md)
+google-services.json
+GoogleService-Info.plist
+*.jks
+*.keystore
+*.p8
+*.p12
+*.mobileprovision
+fastlane/report.xml
+fastlane/README.md
+expo-env.d.ts

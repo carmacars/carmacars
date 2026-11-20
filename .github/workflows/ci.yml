@@ -114,6 +114,9 @@ jobs:
       - name: Store app config and listing text (no install, about a second)
         working-directory: apps/carmacars
         run: node scripts/check-app.mjs
+      - name: Native app logic and API client tests (no install, about a second; the store builds are apps-native.yml, on demand)
+        working-directory: apps/carmacars-native
+        run: node --test --experimental-strip-types --no-warnings 'src/**/*.test.ts'
       - run: npm ci --no-audit --no-fund
       - run: npm run lint
       - run: npm run typecheck
