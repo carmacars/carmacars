@@ -6,6 +6,7 @@ import { readSession } from './session-cookie';
 import { verifyAccessToken } from './jwt-verify';
 import type { AuthAdapter, AuthResult, PhoneCodeResult, SessionUser } from './types';
 import { OAUTH_PROVIDERS } from './oauth';
+import { mobileToken } from '@/server/mobile/context';
 
 // Who is signed in, per server render, from the session cookie: the access token is verified with the project's
 // public signing key (jwt-verify.ts), so a portal page neither builds a Supabase client nor waits for Supabase Auth.
@@ -18,14 +19,19 @@ const supabaseServer = cache(async () => (await import('@/lib/supabase/server'))
 
 interface Who { user: SessionUser; token: string | null; aal: 'aal1' | 'aal2' | null }
 const who = cache(async (): Promise<Who | null> => {
-  let token: string | null = null;
-  try {
-    const jar = await cookies();
-    token = readSession(new Map(jar.getAll().map((c) => [c.name, c.value])))?.session.access_token ?? null;
-  } catch { token = null; }
+  // the native app (release 48): its call carries the token itself (src/server/mobile/context.ts); no cookie is read
+  const bearer = mobileToken();
+  let token: string | null = bearer;
+  if (bearer === null) {
+    try {
+      const jar = await cookies();
+      token = readSession(new Map(jar.getAll().map((c) => [c.name, c.value])))?.session.access_token ?? null;
+    } catch { token = null; }
+  }
   if (!token) return null;
   const claims = await verifyAccessToken(token, required('NEXT_PUBLIC_SUPABASE_URL'));
   if (claims) return { user: { id: claims.sub, email: claims.email ?? '' }, token, aal: claims.aal === 'aal2' ? 'aal2' : 'aal1' };
+  if (bearer) return bearerWho(bearer);
   const s = await supabaseServer();
   const { data } = await s.auth.getUser();
   if (!data.user) return null;
@@ -34,6 +40,18 @@ const who = cache(async (): Promise<Who | null> => {
   return { user: { id: data.user.id, email: data.user.email ?? '' }, token: sd.session?.access_token ?? null,
     aal: a?.currentLevel === 'aal2' ? 'aal2' : a?.currentLevel === 'aal1' ? 'aal1' : null };
 });
+
+/** A bearer token the public keys could not check (an older HS256 project): Supabase Auth says whose it is. */
+async function bearerWho(token: string): Promise<Who | null> {
+  try {
+    const r = await fetch(`${required('NEXT_PUBLIC_SUPABASE_URL').replace(/\/$/, '')}/auth/v1/user`, { headers: { apikey: required('NEXT_PUBLIC_SUPABASE_ANON_KEY'), authorization: `Bearer ${token}` } });
+    if (!r.ok) return null;
+    const u = (await r.json()) as { id?: string; email?: string };
+    if (!u.id) return null;
+    const { jwtClaims } = await import('./session-cookie');
+    return { user: { id: u.id, email: u.email ?? '' }, token, aal: jwtClaims(token)?.aal === 'aal2' ? 'aal2' : 'aal1' };
+  } catch { return null; }
+}
 
 // Supabase Auth's answers in plain words. An unknown address and a wrong password read the same.
 function failure(e: { message?: string; code?: string; status?: number } | null | undefined, fallback: string): AuthResult & { ok: false } {

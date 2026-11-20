@@ -23,7 +23,7 @@ const ANSWER_ALL = [
 export const PRIVATE_PATHS = [
   '/book', '/account', '/incident', '/owner', '/investor', '/admin', '/staff', '/staff/field', '/go/', '/r/', '/unsubscribe', '/review/', '/email/', '/files/', '/d/', '/sign/', '/partners/portal/', '/careers/book/',
   '/sign-document/', '/guide-pdf/', '/sitemap-files/', '/sign-in', '/create-account', '/reset-password', '/update-password', '/two-step', '/choose-portal', '/read-only',
-  '/link-expired', '/api/', '/auth/', '/cars?', '/cars/*?', '/car-rental/*?', '/guides/*?', '/rent/*?', '/buy/*?', '/detailing/*?', '/body-shop/*?'
+  '/link-expired', '/app-check', '/api/', '/auth/', '/cars?', '/cars/*?', '/car-rental/*?', '/guides/*?', '/rent/*?', '/buy/*?', '/detailing/*?', '/body-shop/*?'
 ] as const;
 
 // 2026-10-30 (Worker requests and CPU): the training crawlers (no visitor comes from them) still read every public page,

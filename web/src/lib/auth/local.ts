@@ -10,6 +10,7 @@ import type { OAuthProvider } from './oauth';
 import { checkCode, newSecret, otpauthUri } from './totp';
 import { deliverSignInCode } from '@/server/auth-sms';
 import { smsCodeText } from '@/features/auth/sms-hook';
+import { mobileToken } from '@/server/mobile/context';
 
 // LOCAL ONLY. A stand-in for Supabase Auth on the local stack (local/local_auth.sql):
 // scrypt password hashes, an HS256 session cookie with the same claims Supabase issues
@@ -35,9 +36,34 @@ async function checkPassword(pw: string, stored: string) {
   const want = Buffer.from(hash, 'base64');
   return got.length === want.length && timingSafeEqual(got, want);
 }
+/** The session token of the local stand-in: the same claims Supabase issues. */
+export async function localAccessToken(u: SessionUser, aal: 'aal1' | 'aal2' = 'aal1', lifetime = '7d'): Promise<string> {
+  return new SignJWT({ email: u.email, ...(u.phone ? { phone: u.phone } : {}), role: 'authenticated', aal }).setProtectedHeader({ alg: 'HS256' })
+    .setSubject(u.id).setIssuedAt().setExpirationTime(lifetime).sign(key());
+}
+/** The native app's refresh token on the local stack (release 48): a long-lived token only /api/m/v1/auth/refresh accepts. */
+export async function localRefreshToken(u: SessionUser, aal: 'aal1' | 'aal2' = 'aal1'): Promise<string> {
+  return new SignJWT({ email: u.email, ...(u.phone ? { phone: u.phone } : {}), aal }).setProtectedHeader({ alg: 'HS256' }).setAudience('local-refresh')
+    .setSubject(u.id).setIssuedAt().setExpirationTime('60d').sign(key());
+}
+export async function localReadRefresh(token: string): Promise<{ user: SessionUser; aal: 'aal1' | 'aal2' } | null> {
+  try {
+    const { payload } = await jwtVerify(token, key(), { audience: 'local-refresh' });
+    if (!payload.sub) return null;
+    const rows = await localSql()`select id, email, phone from local_auth.users where id = ${payload.sub}`;
+    if (!rows[0]) return null;
+    return { user: { id: rows[0].id as string, email: (rows[0].email as string | null) ?? '', phone: (rows[0].phone as string | null) ?? null }, aal: payload.aal === 'aal2' ? 'aal2' : 'aal1' };
+  } catch { return null; }
+}
+/** The session cookie, or the native app's token while one of its calls runs (src/server/mobile/context.ts). */
+async function sessionToken(): Promise<string | null> {
+  const m = mobileToken();
+  return m !== null ? m || null : (await cookies()).get(COOKIE)?.value ?? null;
+}
 async function setSession(u: SessionUser, aal: 'aal1' | 'aal2' = 'aal1') {
-  const jwt = await new SignJWT({ email: u.email, ...(u.phone ? { phone: u.phone } : {}), role: 'authenticated', aal }).setProtectedHeader({ alg: 'HS256' })
-    .setSubject(u.id).setIssuedAt().setExpirationTime('7d').sign(key());
+  // the native app keeps its own token: nothing is written to a cookie for its calls
+  if (mobileToken() !== null) return;
+  const jwt = await localAccessToken(u, aal);
   (await cookies()).set(COOKIE, jwt, { httpOnly: true, sameSite: 'lax', path: '/', secure: false, maxAge: 7 * 86400 });
   // readable by the page (no secret in it): the site's own scripts tell a signed-in visitor apart, as they can with
   // Supabase's session cookie (the discount game never shows to someone signed in)
@@ -88,7 +114,7 @@ export function localAuth(): AuthAdapter {
   }
   return {
     async currentUser() {
-      const t = (await cookies()).get(COOKIE)?.value;
+      const t = await sessionToken();
       if (!t) return null;
       try {
         const { payload } = await jwtVerify(t, key());
@@ -98,10 +124,10 @@ export function localAuth(): AuthAdapter {
       }
     },
     async accessToken() {
-      return (await cookies()).get(COOKIE)?.value ?? null;
+      return sessionToken();
     },
     async assurance() {
-      const t = (await cookies()).get(COOKIE)?.value;
+      const t = await sessionToken();
       if (!t) return null;
       try { const { payload } = await jwtVerify(t, key()); return payload.aal === 'aal2' ? 'aal2' : 'aal1'; } catch { return null; }
     },
