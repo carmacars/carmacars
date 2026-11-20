@@ -1,0 +1,43 @@
+CarmaCars  |  Tracker waitlist
+
+========================================
+
+[Waitlist]
+You are on the list, {{first_name}}.
+
+The {{tracker_name}} is not in stock yet. We will write to you as soon as it is, before anyone else.
+
+Cars: {{cars_count}}
+Monthly price for that many cars: {{monthly_price}} per car
+One-time install: {{install_price}} per car
+
+Nothing is charged today. The prices above are the ones on our website now, before HST; we confirm yours before anything is billed.
+
+What happens next
+------------------------
+
+1. We tell you when trackers arrive
+   People on the waitlist hear first, in the order they joined.
+2. We book your install
+   We agree a day and a place with you, install the tracker and check it works.
+3. You see your car live
+   Live location, remote door locking, the alarm and engine shut-off from your phone.
+
+See what the tracker does:
+https://carmacars.ca/trackers
+
+Not you, or changed your mind? Reply to this email and we take you off the list.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

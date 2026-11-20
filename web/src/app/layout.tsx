@@ -11,6 +11,7 @@ import { CookieBanner } from '@/components/CookieBanner';
 import { Effects } from '@/components/Effects';
 import { CHUNK_GUARD_SCRIPT } from '@/lib/chunk-guard';
 import { DOM_GUARD_SCRIPT } from '@/lib/client-error/dom-guard';
+import { SOURCE_SCRIPT } from '@/lib/track/source';
 import { ViewAsBanner } from '@/features/access/ViewAsBanner';
 import { SiteAssist } from '@/features/live/SiteAssist';
 import { JsonLd } from '@/components/JsonLd';
@@ -66,6 +67,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head><script id="chunk-guard" dangerouslySetInnerHTML={{ __html: CHUNK_GUARD_SCRIPT }} />
         {/* r47: a page the browser translated never crashes on React's next change (src/lib/client-error/dom-guard.ts) */}
         <script id="dom-guard" dangerouslySetInnerHTML={{ __html: DOM_GUARD_SCRIPT }} />
+        {/* r48 (3230): the first visit's referring site, landing page and campaign, kept in a first-party cookie for the lead and request forms (src/lib/track/source.ts) */}
+        <script id="visit-source" dangerouslySetInnerHTML={{ __html: SOURCE_SCRIPT }} />
         {/* r27b: the phone and email the error page shows (src/lib/client-error/ErrorPanel.tsx), from Site settings */}
         <meta name="cc-contact" content={JSON.stringify({ phone: s.phone_display || s.phone, email: s.public_email })} /></head>
       <body>
