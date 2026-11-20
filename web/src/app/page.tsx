@@ -19,6 +19,8 @@ import { keyFacts, summary } from '@/features/seo/llms';
 import { faqLd, seoMeta } from '@/features/seo/meta';
 import { faqItems, fill, getClasses, getCutouts, getFacts, getFleet, getSettings, getTokens, listItems, slotPhoto, siteUrl } from '@/lib/site';
 import { slotScene } from '@/lib/slot-cars';
+import { LineDraw } from '@/portable/motion/line-draw';
+import { LOGO_PATHS, LOGO_VIEWBOX } from '@/features/home/logo-paths';
 
 export const revalidate = 3600;
 
@@ -62,6 +64,8 @@ export default async function Home() {
         <div className="hero__media"><SlotCars scene={heroScene} photo={hero} eager /></div>
         <div className="wrap hero__inner">
           <div className="hero__copy">
+            {/* r48 AN: the logo's strokes draw along their lines, then fill (once a session; at once with reduced motion) */}
+            <LineDraw className="hero__logo" d={LOGO_PATHS} viewBox={LOGO_VIEWBOX} width={857} height={152} title={s.brand_name} sessionKey="cc-hero-logo" strokeWidth={2.5} ms={1500} />
             <h1 className="eyebrow">Car rental in {s.city}</h1>
             <p className="d-hero">{t1}{t2 && <> <br className="br-xl" />{t2}</>}</p>
             <p className="lead">{s.brand_name} is car rental in {s.city} that comes to you: good cars picked up from us or delivered to your door, airports too. Choose one, send a request, and pay only once the price is confirmed.</p>

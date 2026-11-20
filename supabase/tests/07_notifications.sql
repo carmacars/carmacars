@@ -29,8 +29,8 @@ begin
 end $$;
 
 -- ================================================================== A. catalogue
-select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign, 0370 a visitor message waiting in live chat, 0430 the start and end notices, 0400 the two tracker alerts, 0441 the data health notice, 0380 adds one email, 0460 the lead and visitor alerts, 0462 the staff alerts, 0532 the return report denied, 0535 the apology to remote applicants moved to the AI interview, 0547 the partner invoice, 0583 the staff email digest, 0955 the accounts merged note, 2520 the weekly and new-car marketing emails, 2620 the owner trip and weekly emails, 3000 the eleven Rewards emails, 3113 the text fallback and the two suspension emails)',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '235/21');
+select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign, 0370 a visitor message waiting in live chat, 0430 the start and end notices, 0400 the two tracker alerts, 0441 the data health notice, 0380 adds one email, 0460 the lead and visitor alerts, 0462 the staff alerts, 0532 the return report denied, 0535 the apology to remote applicants moved to the AI interview, 0547 the partner invoice, 0583 the staff email digest, 0955 the accounts merged note, 2520 the weekly and new-car marketing emails, 2620 the owner trip and weekly emails, 3000 the eleven Rewards emails, 3113 the text fallback and the two suspension emails, 3152 the two studio photos notices)',
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '237/21');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
@@ -900,6 +900,7 @@ select test.eq('G every wired email code has been built at least once in these t
       and c.code <> 'renter_review_preask' -- the review ask before the trip ends (1870), built in 99_gaps4_review_quiet
       and c.code not in ('owner_trip_completed', 'owner_weekly_summary') -- the owner's trip email and the Monday email (2620), built in 99_r41_owner_trip_email
       and not (c.code = any (app.rewards_notice_codes())) -- the Rewards emails (3000, 3001), off for these suites, built in 99_r48_rewards_notices
+      and c.code not in ('owner_car_photos_ready', 'staff_car_photos_ready') -- the studio photos notices (3152), built in 99_r48an_renders_identity
       and c.is_enabled -- the booking-time owner emails are off since 2620 (their events are processed with the note "code disabled")
       and c.code <> 'renter_accounts_merged' -- a merge of two renter records (0955), built in 99_r35y_leads_merge
       and c.code not in ('staff_agreement_reminder', 'staff_inactivity_warning', 'staff_team_group') -- the staff jobs of 1060, built in 99_r35k_staff_onboarding

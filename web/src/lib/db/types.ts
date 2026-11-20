@@ -4611,6 +4611,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      car_make_names: {
+        Row: {
+          key: string;
+          make: string;
+        };
+        Insert: {
+          key: string;
+          make: string;
+        };
+        Update: {
+          key?: string;
+          make?: string;
+        };
+        Relationships: [];
+      };
+      car_model_families: {
+        Row: {
+          make: string;
+          family: string;
+          aliases: string[];
+        };
+        Insert: {
+          make: string;
+          family: string;
+          aliases?: string[];
+        };
+        Update: {
+          make?: string;
+          family?: string;
+          aliases?: string[];
+        };
+        Relationships: [];
+      };
       card_rental_coverage: {
         Row: {
           id: string;
@@ -18549,6 +18582,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      photo_render_backfill: {
+        Row: {
+          vehicle_id: string;
+          asked_by: string | null;
+          asked_at: string;
+          done_at: string | null;
+        };
+        Insert: {
+          vehicle_id: string;
+          asked_by?: string | null;
+          asked_at?: string;
+          done_at?: string | null;
+        };
+        Update: {
+          vehicle_id?: string;
+          asked_by?: string | null;
+          asked_at?: string;
+          done_at?: string | null;
+        };
+        Relationships: [];
+      };
+      photo_render_notified: {
+        Row: {
+          vehicle_id: string;
+          spec: string;
+          told_at: string;
+        };
+        Insert: {
+          vehicle_id: string;
+          spec: string;
+          told_at?: string;
+        };
+        Update: {
+          vehicle_id?: string;
+          spec?: string;
+          told_at?: string;
+        };
+        Relationships: [];
+      };
       place_imports: {
         Row: {
           id: number;
@@ -19729,6 +19801,7 @@ export type Database = {
           text_stale_minutes: number;
           text_retry_paused_minutes: number;
           staff_inactive_grace_from: string | null;
+          listing_photo_real_bg_auto: boolean;
           notify_pref_digest_hour: number;
           notify_pref_weekly_dow: number;
           notify_pref_quiet_from_minute: number;
@@ -20664,6 +20737,7 @@ export type Database = {
           text_stale_minutes?: number;
           text_retry_paused_minutes?: number;
           staff_inactive_grace_from?: string | null;
+          listing_photo_real_bg_auto?: boolean;
           notify_pref_digest_hour?: number;
           notify_pref_weekly_dow?: number;
           notify_pref_quiet_from_minute?: number;
@@ -21599,6 +21673,7 @@ export type Database = {
           text_stale_minutes?: number;
           text_retry_paused_minutes?: number;
           staff_inactive_grace_from?: string | null;
+          listing_photo_real_bg_auto?: boolean;
           notify_pref_digest_hour?: number;
           notify_pref_weekly_dow?: number;
           notify_pref_quiet_from_minute?: number;
@@ -32431,6 +32506,7 @@ export type Database = {
           battery_kwh: number | null;
           fuel_grade: string | null;
           photo_scene: string | null;
+          model_family: string | null;
         };
         Insert: {
           id?: string;
@@ -32519,6 +32595,7 @@ export type Database = {
           battery_kwh?: number | null;
           fuel_grade?: string | null;
           photo_scene?: string | null;
+          model_family?: string | null;
         };
         Update: {
           id?: string;
@@ -32607,6 +32684,7 @@ export type Database = {
           battery_kwh?: number | null;
           fuel_grade?: string | null;
           photo_scene?: string | null;
+          model_family?: string | null;
         };
         Relationships: [];
       };
@@ -34409,6 +34487,7 @@ export type Database = {
       partner_agreement_open: { Args: { p_by: string; p_sha256: string; p_path: string; p_template_version: string }; Returns: Json };
       partner_agreement_state: { Args: { p_by: string }; Returns: Json };
       partner_referral_code_ok: { Args: { p_code: string }; Returns: boolean };
+      photo_render_backfill: { Args: never; Returns: Json };
       place_directory_index: { Args: never; Returns: Json };
       place_directory_page: { Args: { p_page: number }; Returns: Json };
       place_hub: { Args: { p_vertical: string; p_term: string; p_place: string }; Returns: Json };

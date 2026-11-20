@@ -1,0 +1,74 @@
+/* The design kit's rules from the owner's reels (release 48 AN, docs: design-rules-reels.md). Portable: no brand names;
+   a brand build sets the --k-accent-* hue and chroma. Checked by web/tests/lint/design-rules.mjs. */
+
+/* ---------------------------------------------------------------- colour: OKLCH ramps, alpha borders */
+:root {
+  --k-hue: 25; --k-chroma: 0.21;                     /* the accent (a brand sets these) */
+  --k-accent-700: oklch(48% var(--k-chroma) var(--k-hue));
+  --k-accent-600: oklch(55% var(--k-chroma) var(--k-hue));
+  --k-accent-400: oklch(67% calc(var(--k-chroma) * 0.9) var(--k-hue));
+  --k-accent-100: oklch(92% calc(var(--k-chroma) * 0.25) var(--k-hue));
+  /* neutrals at equal steps of lightness (equal steps look equal in OKLCH) */
+  --k-n-0: oklch(100% 0 0); --k-n-50: oklch(97.5% 0 0); --k-n-100: oklch(95% 0 0); --k-n-200: oklch(90% 0 0);
+  --k-n-400: oklch(72% 0 0); --k-n-600: oklch(52% 0 0); --k-n-800: oklch(30% 0 0); --k-n-900: oklch(22% 0 0);
+  --k-n-950: oklch(17% 0 0); --k-n-1000: oklch(0% 0 0);
+  /* borders: alpha, so they sit on any surface */
+  --k-border: oklch(0% 0 0 / 0.12); --k-border-strong: oklch(0% 0 0 / 0.28);
+  --k-border-on-dark: oklch(100% 0 0 / 0.14); --k-border-on-dark-strong: oklch(100% 0 0 / 0.3);
+  /* dark surfaces: depth from lighter steps, not shadows */
+  --k-dark-0: oklch(14% 0 0); --k-dark-1: oklch(19% 0 0); --k-dark-2: oklch(23% 0 0); --k-dark-3: oklch(27% 0 0);
+  /* shape */
+  --k-r-outer: 16px; --k-pad: 8px;
+  --k-fade: 8%;                                       /* carousel edge fade */
+  --k-hit: 44px;                                      /* the smallest touch target */
+}
+.k-gradient-accent { background: linear-gradient(90deg, var(--k-accent-600), var(--k-accent-400)); background: linear-gradient(90deg in oklch, var(--k-accent-600), var(--k-accent-400)); }
+.k-border { border: 1px solid var(--k-border); }
+.on-dark .k-border, .k-on-dark .k-border { border-color: var(--k-border-on-dark); }
+
+/* ---------------------------------------------------------------- dark surfaces: each layer one step lighter */
+.k-dark-0 { background: var(--k-dark-0); } .k-dark-1 { background: var(--k-dark-1); } .k-dark-2 { background: var(--k-dark-2); } .k-dark-3 { background: var(--k-dark-3); }
+.k-dark-1, .k-dark-2, .k-dark-3 { box-shadow: none; }
+
+/* ---------------------------------------------------------------- nested radius: inner = outer - padding */
+.k-nest { --k-r-inner: max(0px, calc(var(--k-r-outer) - var(--k-pad))); border-radius: var(--k-r-outer); padding: var(--k-pad); }
+.k-nest > * { border-radius: var(--k-r-inner); }
+
+/* ---------------------------------------------------------------- full height and product shots */
+.k-full-height { min-height: 100vh; min-height: 100dvh; } /* design-allow: the 100vh line is the fallback before 100dvh */
+.k-product-on-white { mix-blend-mode: multiply; }
+
+/* ---------------------------------------------------------------- carousels: snap and faded edges */
+.k-carousel { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none;
+  -webkit-mask: linear-gradient(90deg, transparent, #000 var(--k-fade) calc(100% - var(--k-fade)), transparent);
+  mask: linear-gradient(90deg, transparent, #000 var(--k-fade) calc(100% - var(--k-fade)), transparent); }
+.k-carousel > * { scroll-snap-align: start; flex: none; }
+.k-carousel::-webkit-scrollbar { display: none; }
+
+/* ---------------------------------------------------------------- sheets and menus keep their scroll */
+:where(dialog, [role="dialog"], [role="menu"], [role="listbox"], .k-sheet) { overscroll-behavior: contain; }
+
+/* ---------------------------------------------------------------- touch: big enough targets, no zoom on focus */
+@media (pointer: coarse) {
+  /* iOS zooms into a field under 16px */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]), select, textarea { font-size: max(16px, 1em) !important; }
+  /* a hit area of at least 44px around small controls, without moving them */
+  :where(.k-hit) { position: relative; }
+  :where(.k-hit)::before { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, var(--k-hit)); height: max(100%, var(--k-hit)); transform: translate(-50%, -50%); }
+}
+
+/* ---------------------------------------------------------------- icon swap: the outgoing icon blurs as it fades */
+.k-icon-swap { display: inline-grid; place-items: center; }
+.k-icon-swap > * { grid-area: 1 / 1; transition: opacity var(--mo-base, 180ms) var(--mo-ease, ease), filter var(--mo-base, 180ms) var(--mo-ease, ease), scale var(--mo-base, 180ms) var(--mo-ease, ease); }
+.k-icon-swap > [data-on="false"] { opacity: 0; filter: blur(4px); scale: 0.8; }
+
+/* ---------------------------------------------------------------- menus grow from where they were opened (runtime) */
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-motion="reduced"]) .mo-pop-in { animation: k-pop var(--mo-base, 180ms) var(--mo-ease-out, ease-out) backwards; transform-origin: var(--mo-origin, 50% 0); }
+  html:not([data-motion="reduced"]) .mo-burst { position: relative; }
+  html:not([data-motion="reduced"]) .mo-burst > .mo-burst__p { position: absolute; left: var(--bx, 50%); top: var(--by, 50%); width: 6px; height: 6px; margin: -3px; border-radius: 50%;
+    background: var(--mo-accent, currentColor); pointer-events: none; animation: k-burst 280ms var(--mo-ease-out, ease-out) forwards; }
+  html:not([data-motion="reduced"]) .mo-rubber { transition: translate 250ms var(--mo-spring, ease-out); }
+}
+@keyframes k-pop { from { opacity: 0; scale: 0.96; } }
+@keyframes k-burst { from { opacity: 1; translate: 0 0; scale: 1; } to { opacity: 0; translate: var(--dx) var(--dy); scale: 0.4; } }

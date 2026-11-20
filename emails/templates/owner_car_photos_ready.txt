@@ -1,0 +1,39 @@
+CarmaCars  |  Studio photos
+
+========================================
+
+[Studio photos]
+Your car has new studio photos
+
+Hi {{first_name}}, your {{vehicle_name}} now has {{render_count}} studio photos on its page, made from its own photos so every car on CarmaCars is framed the same way.
+
+{{vehicle_name}}
+
+Studio photos: {{render_count}}, the side profile first
+Your own photos: Shown after them, on the same background
+
+See your car's page:
+https://carmacars.ca/owner/vehicles/{{vehicle_id}}
+
+Good to know
+------------------------
+
+- The page says the first photos are studio renders, so renters are never misled.
+- Your own photos stay on the page, right after the studio photos.
+- Something looks wrong, such as the colour or the wheels? Reply to this email and we make it again.
+
+You can turn these emails off in your owner portal under Account, Notifications.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

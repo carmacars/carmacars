@@ -32,7 +32,7 @@
 @media (min-width: 72rem) {
   .gd { grid-template-columns: 15.5rem minmax(0, 1fr); align-items: start; }
   .gd-head { grid-column: 1 / -1; }
-  .gd-toc { position: sticky; top: var(--s-4); max-height: calc(100vh - 2rem); overflow-y: auto; border: 0; border-right: 1px solid var(--grey-200); background: transparent; }
+  .gd-toc { position: sticky; top: var(--s-4); max-height: calc(100vh - 2rem); max-height: calc(100dvh - 2rem); overflow-y: auto; border: 0; border-right: 1px solid var(--grey-200); background: transparent; }
   .gd-toc > summary { pointer-events: none; padding-inline: 0; }
   .gd-toc::details-content { content-visibility: visible; }
   .gd-toc > summary::after, .gd-toc[open] > summary::after { content: none; }

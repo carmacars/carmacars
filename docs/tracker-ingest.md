@@ -33,6 +33,11 @@ Body (at most 5,000 points, 512 KB):
   battery, %), `power` (false: the tracker lost the car's power), `fuel` %. A field left out keeps its last value, so a
   heartbeat can carry only the battery and power with the last fix's position.
 - Aliases accepted: `latitude`, `lon`/`longitude`, `time`, `course`, `acc`.
+- Release 48 (3264), optional: `event`, one of `impact`, `tamper`, `health`, `harsh_brake`, `harsh_accel`, with an optional
+  `detail` (200 characters, for example the fault code). An impact, tampering and a health warning raise an alert for staff
+  and, by the owner's notification preferences, the car's owner; hard braking and acceleration are counted in the owner's
+  weekly driving summary. A tracker's own words are accepted (`crash`, `collision`, `removed`, `dtc`, `hard_braking` and the
+  like; `alarm` is an alias of `event`). An unknown event is ignored and the point is kept.
 
 Answers: `200` with `{received, accepted, old, skipped, devices, new_devices, kept}`; `401` bad or missing signature; `400`
 not JSON; `413` too large; `503` no ingest key yet; `500` retry later. A batch sent twice changes nothing (points not newer

@@ -239,7 +239,12 @@
      "Studio photos with a blurred box where a plate is or would have been are made again by themselves; the photo check now refuses a blur or box where no plate is, or one larger than the plate",
      "The marketing set is made from the studio photos, with up to three lifestyle shots marked AI; tick the photos you want in the ZIP for a post",
      "Gemini calls refused for where they came from are sent through the company server, and a failed call waits and tries again instead of blocking the queue",
-     "The native phone app for iPhone and Android is built and waits for the company's developer accounts; nothing changes for renters, owners or staff until the store builds are approved"
+     "The native phone app for iPhone and Android is built and waits for the company's developer accounts; nothing changes for renters, owners or staff until the store builds are approved",
+     "Staff rewards (People > Team): who gets rental perks, tiers, free days and what was used; each perk used is posted as a staff benefit expense",
+     "Owner rewards (People > Owners): merch kits to ship (also on To do), upgrade requests to approve, credits; every credit is a statement line and an expense",
+     "Content calendar (Marketing > Ads): the month of social posts in a calendar view; nothing is published until a person approves it",
+     "Settings > Notification preferences: what each kind of notification starts as, the kinds that are always sent, each person's choices, and the places watched for owner tracker alerts",
+     "Every value of staff rewards, owner rewards, the content calendar and tracker alerts is in Program settings"
     ],
     "staff": [
      "Extensions are yours by default when you sold the booking; an Admin can give one to another salesperson or to Admin, and the commission goes to whoever handled it",
@@ -256,13 +261,21 @@
      "Every staff member sees where the cars are: Car map on Find a car (read only), and Where the car is on each car and booking page, or No tracker yet",
      "Dates and times you type on the offer screen, Change car or dates and the calendar are Toronto time, wherever your computer is",
      "Propose a change: one more day costs exactly what a day of the booking costs (rental, fees and coverage), or type the new total; the preview shows the price a day",
-     "A renter's licence, selfie or insurance page already approved or rejected opens again with View (for one minute, and logged); after the 90-day removal it says Removed on and the date"
+     "A renter's licence, selfie or insurance page already approved or rejected opens again with View (for one minute, and logged); after the 90-day removal it says Removed on and the date",
+     "My rewards on your first page: 15% off your own rentals once your academy and agreement are done, free rental days (Sales: 1 per 100 rental days booked; Field: 1 per 100 handovers), Silver and Gold tiers and the top seller's free weekend. Rental perks are for in-person staff in Canada",
+     "Content calendar (Marketing): approve, edit, reject or regenerate each post of the month; Facebook and Instagram post by themselves once Meta is connected, TikTok is a download and a checklist",
+     "Notification preferences on your profile: push, email and text for each kind, quiet hours, and a daily or weekly summary. Assigned jobs, shifts, security codes and onboarding or suspension notices are always sent",
+     "A new academy section covers rewards, the content calendar and notifications"
     ],
     "owners": [
      "Home has a Forecast: the next 12 months of each car, projected occupancy and owner revenue, from the GTA's rental season and, after 3 months, your car's own record",
      "Each statement says whether next month is projected higher or lower, by how much, and why",
      "Your statement pays your agreed split; an owner who referred you is paid from CarmaCars' share, never from yours",
-     "Each car's page shows Where your car is and its trips of the last 30 days, or No tracker yet; you see the location only, never the renter or the booking"
+     "Each car's page shows Where your car is and its trips of the last 30 days, or No tracker yet; you see the location only, never the renter or the booking",
+     "A Rewards tab: 20% off another CarmaCars car while yours is out, a free upgrade to ask for when a repair is on us, a friends and family code, link and QR code (10% off their first rental, 20% of it to you), $100 for referring an owner, a $25 birthday rental credit, priority support and early access",
+     "Merch kits at 6 and 12 months: press Redeem, confirm your address, and follow it to Shipped",
+     "Notification preferences under Account: push, email and text for each kind, quiet hours, and a daily or weekly summary; new-booking notices are yours to turn on",
+     "Tracker alerts, ready for when trackers are installed: possible theft, tracker disconnected, crash, impound lot, auto shop or port, health warnings, over 180 km/h and a weekly driving summary, each with its own switch"
     ],
     "renters": [
      "The rental agreement has speeding charges over 180, 220 and 300 km/h (section 10.5); agreements already signed stay as they are",
@@ -275,7 +288,9 @@
      "From Platinum up, a rental near your birthday or on a holiday weekend costs less; add your birthday on the Rewards page",
      "On a payment plan, your booking is confirmed as soon as your first payment is in",
      "Paying the deposit by e-Transfer, cash or debit? Your offer and pay page show that amount (twice the card deposit) before you pay",
-     "Add a tip for the team when you pay, on your booking after the trip or from the link in the Returned email: 10, 15 or 20%, or any amount"
+     "Add a tip for the team when you pay, on your booking after the trip or from the link in the Returned email: 10, 15 or 20%, or any amount",
+     "Notification preferences under Account: push, email and text for each kind, quiet hours, and a daily or weekly summary. Booking confirmations and changes, return reminders, receipts, charges, legal notices and security codes are always sent",
+     "Investors and partners have the same notification preferences on their portals; the app uses the same choices"
     ]
    }
   }
