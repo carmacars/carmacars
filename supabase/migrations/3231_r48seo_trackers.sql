@@ -74,11 +74,12 @@ language sql stable security definer set search_path = public, app as $$
    where (t ->> 'from_cars')::integer <= greatest(coalesce(p_cars, 1), 1) order by (t ->> 'from_cars')::integer desc limit 1
 $$;
 
--- The product as the public pages read it (replaces 2003's): the tiers in order with the range each covers, the lowest
+-- The product as the public pages read it (replaces 2003's; the settings row is read once: "(app.settings()).*" calls the
+-- function again for every column): the tiers in order with the range each covers, the lowest
 -- monthly price, the install price, and whether trackers can be installed now (off: the pages show the waitlist).
 create or replace function public.tracker_product() returns jsonb
 language sql stable security definer set search_path = public, app as $$
-  with s as (select (app.settings()).*),
+  with s as (select * from app.settings()),
   t as (select (x ->> 'from_cars')::integer from_cars, (x ->> 'monthly_cents')::integer monthly_cents from s, jsonb_array_elements(s.tracker_product_tiers) x),
   r as (select from_cars, monthly_cents, lead(from_cars) over (order by from_cars) - 1 to_cars from t)
   select case when s.tracker_product_enabled then jsonb_build_object('name', s.tracker_product_name,
@@ -180,7 +181,7 @@ select pg_temp.copy_grants('app.notification_recipients(app_events, notification
 create or replace function public.tracker_install_places(p_limit integer default 60) returns jsonb
 language sql stable security definer set search_path = public, app as $$
   select coalesce(jsonb_agg(jsonb_build_object('slug', c.slug, 'name', c.name, 'km', round(c.km)) order by c.km), '[]'::jsonb)
-    from (select p.slug, p.name, app.place_km(p) km from places p, (select (app.settings()).*) s
+    from (select p.slug, p.name, app.place_km(p) km from places p, app.settings() s
            where s.tracker_product_enabled and p.kind = 5 and app.place_enabled(p) and app.place_km(p) <= s.place_delivery_reach_km
            order by app.place_km(p) limit greatest(1, least(coalesce(p_limit, 60), 300))) c
 $$;
@@ -189,7 +190,7 @@ $$;
 -- pages and the install pages) are added by the site from its page list (web/src/features/trackers/pages.ts).
 create or replace function public.sitemap_families() returns jsonb
 language sql stable security definer set search_path = public, app as $$
-  with s as (select (app.settings()).*),
+  with s as (select * from app.settings()),
   ev as (select '/events/' || slug path, updated_at lastmod from seo_events where is_active),
   ap as (select '/airport-car-rental/' || lower(code) path, updated_at lastmod from airports where is_active),
   pop as (select y.make_slug, y.model_slug, y.year::integer y from vehicle_catalog_popular p join vehicle_catalog_years y on y.make_slug = p.make_slug and y.model_slug = p.model_slug
