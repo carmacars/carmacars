@@ -8,6 +8,10 @@ export const opensWhileHeld = (path: string) => ACADEMY_OPEN.test(path);
 /** Held by the agreement (1060: the academy first, then the agreement, then access): the academy's pages and the documents to sign. */
 export const AGREEMENT_OPEN = /^\/staff\/(academy|guide|profile|bug-reports|field\/profile|field\/training|field\/guide|field\/pay|field\/sign|sign|documents|no-access|welcome)(\/|\?|$)/;
 export const opensWhileUnsigned = (path: string) => AGREEMENT_OPEN.test(path);
+/** r48 FE (3198): the agreement comes first (agreement, academy, WhatsApp, approval): before it is signed, the documents to sign,
+ *  Welcome, the profile and the guide only (not the academy yet). */
+export const SIGN_FIRST_OPEN = /^\/staff\/(guide|profile|bug-reports|field\/profile|field\/guide|field\/pay|field\/sign|sign|documents|no-access|welcome)(\/|\?|$)/;
+export const opensBeforeSigning = (path: string) => SIGN_FIRST_OPEN.test(path);
 /** Not fully onboarded (1151: the academy, the agreement, then the WhatsApp groups confirmed): the same onboarding pages only. */
 export const ONBOARDING_OPEN = AGREEMENT_OPEN;
 export const opensWhileOnboarding = (path: string) => ONBOARDING_OPEN.test(path);
@@ -15,7 +19,7 @@ export const opensWhileOnboarding = (path: string) => ONBOARDING_OPEN.test(path)
 export type StepKey = 'welcome' | 'profile' | 'availability' | 'academy' | 'agreement' | 'team' | 'approval' | 'tasks';
 export interface WelcomeTask { id: string; title: string; detail: string | null; done: boolean }
 export interface WelcomeStep { key: StepKey; done: boolean; phone?: boolean; phone_verified?: boolean; address?: boolean; passed?: number; sections?: number; waived?: boolean; tasks?: WelcomeTask[];
-  /** 1060 */ preferred_name?: string | null; /** 1067 */ location?: string | null; state?: 'signed' | 'waived' | 'sent' | 'none'; request_id?: string | null; waiting_for_academy?: boolean; missing?: string[]; open?: boolean; groups?: Array<{ key: string; name: string; url: string; /** 1151 */ joined?: boolean }>; /** 1151: one checkbox a group */ confirm?: boolean;
+  /** 1060 */ preferred_name?: string | null; /** 1067 */ location?: string | null; state?: 'signed' | 'waived' | 'sent' | 'none'; request_id?: string | null; waiting_for_academy?: boolean; /** 3198: the academy opens once the agreement is signed */ waiting_for_agreement?: boolean; missing?: string[]; open?: boolean; groups?: Array<{ key: string; name: string; url: string; /** 1151 */ joined?: boolean; /** 3191 */ required?: boolean; member_tag?: string; tag_set?: boolean }>; /** 1151: one checkbox a group */ confirm?: boolean;
   /** 1154: step 4, approved by an Admin or a Fleet VA */ asked_at?: string | null; rejected_at?: string | null; reject_reason?: string | null; approved_by?: string | null;
   /** 1770: field staff, when they can usually work (open from the start; required for the portal) */ slots?: string[]; note?: string | null; required?: boolean;
   /** 2373: the Field Staff Agreement waits for the driver's licence number the person gives here */ needs_licence?: boolean }
@@ -65,7 +69,7 @@ export function signHref(portal: 'va' | 'field'): string {
 /** The words under a step. */
 export function stepWords(s: WelcomeStep): string {
   switch (s.key) {
-    case 'welcome': return 'Your portal opens step by step: the academy first, then your agreement, then the WhatsApp groups, then an approval, then everything else. This page keeps your place.';
+    case 'welcome': return 'Your portal opens step by step: your agreement first, then the academy, then the WhatsApp groups, then an approval, then everything else. This page keeps your place.';
     case 'profile': return s.done ? 'Your home address, phone, preferred name and where you live are in.' : `Add ${[!s.preferred_name && 'the name you go by', s.location === null && 'where you live (city and country)', !s.address && 'your home address', !s.phone && 'your mobile number'].filter(Boolean).join(', ') || 'your details'}.`;
     case 'availability': return s.done ? 'Given. Change it any time on your profile.' : `Tick the mornings, afternoons and evenings you can usually work. Fleet plans the shifts from it${s.required === false ? '' : ', and your portal opens once it is in'}.`;
     case 'agreement': return s.state === 'signed' ? 'Signed.' : s.state === 'waived' ? 'An Admin waived the agreement for you.'
@@ -73,9 +77,9 @@ export function stepWords(s: WelcomeStep): string {
       : agreementWaiting(s) ? 'Your agreement is made as soon as everything it needs is in. What is missing is listed below.'
       : s.needs_licence ? 'Add your driver\'s licence number below. Your agreement is made from it within minutes and appears here to sign.'
       : 'It is being prepared from your record. An Admin has been told if anything is missing.';
-    case 'team': return !s.open ? 'Opens once the academy is passed and the agreement is signed.' : !s.groups?.length ? 'No group to join.' : s.done ? 'Joined.'
+    case 'team': return !s.open ? 'Opens once the agreement is signed and the academy is passed.' : !s.groups?.length ? 'No group to join.' : s.done ? 'Joined.'
       : `Join ${s.groups.map((g) => g.name).join(' and ')} on WhatsApp, then tick each group you joined. Your portal opens once every group is ticked.`;
-    case 'academy': return s.waived ? 'An Admin waived the academy for you.' : s.done ? 'Passed. The rest of your portal is open.' : `${s.passed ?? 0} of ${s.sections ?? 0} sections passed. Each quiz passes at 90%; after a failed try, wait 30 minutes (3 tries a day).`;
+    case 'academy': return s.waived ? 'An Admin waived the academy for you.' : s.waiting_for_agreement && !s.done ? 'Opens once your staff agreement is signed.' : s.done ? 'Passed. The rest of your portal is open.' : `${s.passed ?? 0} of ${s.sections ?? 0} sections passed. Each quiz passes at 90%; after a failed try, wait 30 minutes (3 tries a day).`;
     case 'approval': return s.done ? `Approved${s.approved_by ? ` by ${s.approved_by}` : ''}.` : !s.open ? 'Opens once you confirm the WhatsApp groups.'
       : s.reject_reason ? `Not approved yet: ${s.reject_reason}. Fix it, then ask again.` : 'Waiting for approval: an Admin or a Fleet VA checks your onboarding and opens your portal.';
     case 'tasks': return !s.tasks?.length ? 'No first-day tasks for you.' : s.done ? 'All done.' : `${s.tasks.filter((t) => !t.done).length} left.`;

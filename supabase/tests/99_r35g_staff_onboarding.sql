@@ -31,8 +31,8 @@ select test.throws('new hire: the door refuses the leads', $$select pg_temp.dr('
 select test.throws('new hire: the door refuses a booking read', $$select pg_temp.dr('go_harman', 'ops_read', 'accident_card', '{"booking": "X-1"}')$$, 'Finish your onboarding first');
 select test.lives('new hire: Welcome opens', $$select pg_temp.dr('go_harman', 'ops_read', 'staff_welcome')$$);
 select test.eq('new hire: Welcome is locked', (pg_temp.dr('go_harman', 'ops_read', 'staff_welcome') ->> 'locked')::boolean, true);
-select test.eq('new hire: my_roles keeps the portal (Sales) and says locked at the academy',
-  (select (r ->> 'va') || ':' || (r ->> 'onboarding_locked') || ':' || (r ->> 'onboarding_step') from (select app.my_roles(test.id('go_harman')) r) x), 'sales:true:academy');
+select test.eq('new hire: my_roles keeps the portal (Sales) and says locked at the agreement (3198: agreement first)',
+  (select (r ->> 'va') || ':' || (r ->> 'onboarding_locked') || ':' || (r ->> 'onboarding_step') from (select app.my_roles(test.id('go_harman')) r) x), 'sales:true:agreement');
 select test.ok('new hire: my_roles leaves no pass behind', coalesce(current_setting('app.onboarding_pass', true), '') = '');
 -- the policies (as the signed-in person)
 select test.login(test.id('go_harman'));
@@ -44,8 +44,8 @@ select test.logout();
 
 -- ---------------------------------------------------------------- 2. in order: the WhatsApp step opens last
 -- 2360: the WhatsApp confirmation is its own fact, at any step; the gate's order stays (it counts when the person gets there)
-select test.lives('order: the Team group confirmed before the academy', $$select pg_temp.dr('go_harman', 'ops_do', 'staff_whatsapp_confirm', '{"team": true}')$$);
-select test.eq('order: still at the academy', pg_temp.st('go_harman'), 'academy');
+select test.lives('order: the Team group confirmed before the academy', $$select pg_temp.dr('go_harman', 'ops_do', 'staff_whatsapp_confirm', '{"team": true, "tag_set": true}')$$);
+select test.eq('order: still at the first step (3198: the agreement)', pg_temp.st('go_harman'), 'agreement');
 select pg_temp.dr('go_admin', 'ops_do', 'staff_whatsapp_mark', jsonb_build_object('user', test.id('go_harman'), 'joined', false));
 select pg_temp.academy_ok('go_harman');
 select test.eq('order: the agreement next', pg_temp.st('go_harman'), 'agreement');
@@ -54,10 +54,10 @@ select test.eq('order: then the WhatsApp groups', pg_temp.st('go_harman'), 'what
 select test.eq('Sales: the Sales group and the Team group', (select string_agg(g ->> 'key', ',' order by g ->> 'key') from jsonb_array_elements(app.staff_group_list(test.id('go_harman'))) g), 'sales,team');
 select test.eq('Welcome: the WhatsApp step is open with both groups',
   (select jsonb_array_length(s -> 'groups') from jsonb_array_elements(pg_temp.dr('go_harman', 'ops_read', 'staff_welcome') -> 'steps') s where s ->> 'key' = 'team'), 2);
-select pg_temp.dr('go_harman', 'ops_do', 'staff_whatsapp_confirm', '{"team": true}');
+select pg_temp.dr('go_harman', 'ops_do', 'staff_whatsapp_confirm', '{"team": true, "tag_set": true}');
 select test.eq('one group of two: still held', app.staff_fully_onboarded(test.id('go_harman')), false);
 select test.eq('one group of two: Team confirmed', (select whatsapp_joined from staff_profiles where user_id = test.id('go_harman')), array['team']);
-select pg_temp.dr('go_harman', 'ops_do', 'staff_whatsapp_confirm', '{"sales": true}');
+select pg_temp.dr('go_harman', 'ops_do', 'staff_whatsapp_confirm', '{"sales": true, "tag_set": true}');
 -- 1154: step 4, an Admin or a Fleet VA approves
 select test.eq('both groups: waiting for approval', pg_temp.st('go_harman'), 'approval');
 select test.eq('both groups: not yet onboarded', app.staff_fully_onboarded(test.id('go_harman')), false);
@@ -100,7 +100,7 @@ select test.eq('sweep: logged as a release from Harman', (select count(*) from l
 
 -- Admin: Return lead to previous owner (Syed had it; Admin gave it to another Sales person; customer service cannot hold a Sales claim, 2330)
 select pg_temp.academy_ok('go_cs'); select pg_temp.agreement_ok('go_cs');
-select pg_temp.dr('go_cs', 'ops_do', 'staff_whatsapp_confirm', '{"team": true}');
+select pg_temp.dr('go_cs', 'ops_do', 'staff_whatsapp_confirm', '{"team": true, "tag_set": true}');
 select pg_temp.dr('go_admin', 'ops_do', 'staff_onboarding_approve', jsonb_build_object('user', test.id('go_cs')));
 select test.eq('cs: onboarded with the Team group', app.staff_fully_onboarded(test.id('go_cs')), true);
 select pg_temp.dr('go_admin', 'ops_do', 'lead_reassign', jsonb_build_object('lead', test.id('lead:go1'), 'to', test.id('go_ret')));

@@ -55,8 +55,9 @@ async function openAfterTrip(bookingId: string, staffId: string): Promise<void> 
   const { openAgreement } = await import('@/server/portal/agreement');
   await openAgreement(bookingId, staffId, { asStaff: true });
 }
-export async function disputePackBuild(booking: string, refresh?: string[]): Promise<R<{ id: string }>> {
-  try { const { user, aal } = await staff(); const r = await door<{ id: string }>(user.id, 'ops_do', 'dispute_pack_build', { booking }, aal); again(refresh); return { ok: true, data: r }; } catch (e) { return fail(e); }
+/** 3192: variant card (a Stripe dispute), etransfer_cash, insurer or small_claims (built without Stripe). */
+export async function disputePackBuild(booking: string, refresh?: string[], variant: 'card' | 'etransfer_cash' | 'insurer' | 'small_claims' = 'card'): Promise<R<{ id: string }>> {
+  try { const { user, aal } = await staff(); const r = await door<{ id: string }>(user.id, 'ops_do', 'dispute_pack_build', { booking, ...(variant !== 'card' ? { variant } : {}) }, aal); again(refresh); return { ok: true, data: r }; } catch (e) { return fail(e); }
 }
 export async function disputePackSubmit(booking: string, pack: string, refresh?: string[]): Promise<R> {
   try {

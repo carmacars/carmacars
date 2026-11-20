@@ -13,6 +13,16 @@ import { foreignOrigin } from '@/lib/security/same-origin';
 export const dynamic = 'force-dynamic';
 const MAX = 8 * 1024 * 1024;
 const SHOT = /^[a-z_]{2,40}$/;
+const VIDEO_MAX = 40 * 1024 * 1024;
+/** MP4 and MOV (an ftyp box at byte 4) or WebM (the EBML header). */
+function videoSniff(b: Uint8Array): { ext: string; mime: string } | null {
+  if (b.length > 12 && b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70) {
+    const brand = String.fromCharCode(b[8]!, b[9]!, b[10]!, b[11]!);
+    return brand === 'qt  ' ? { ext: 'mov', mime: 'video/quicktime' } : { ext: 'mp4', mime: 'video/mp4' };
+  }
+  if (b.length > 4 && b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3) return { ext: 'webm', mime: 'video/webm' };
+  return null;
+}
 
 type Job = { job: { id: string; booking_id: string | null; vehicle_id: string }; report_kind: string | null };
 
@@ -32,12 +42,22 @@ export async function POST(req: Request) {
   const shot = String(form?.get('shot') ?? '');
   const seq = Number(form?.get('seq') ?? 0);
   const mode = form?.get('mode') === 'raw' ? 'raw' : 'photo';
-  if (!(file instanceof Blob) || file.size === 0 || file.size > MAX) return NextResponse.json({ ok: false, message: 'The photo must be under 8 MB.' }, { status: 400 });
+  // r48 FE (3190): the optional video of a return that is not clean (kept in storage; never in the dispute PDF's size budget)
+  const video = mode === 'raw' && shot === 'clean_video';
+  if (!(file instanceof Blob) || file.size === 0 || file.size > (video ? VIDEO_MAX : MAX)) return NextResponse.json({ ok: false, message: video ? 'The video must be under 40 MB.' : 'The photo must be under 8 MB.' }, { status: 400 });
   if (!/^[0-9a-f-]{36}$/.test(jobId) || !SHOT.test(shot) || !(Number.isInteger(seq) && seq >= 0 && seq < 1000)) return NextResponse.json({ ok: false, message: 'Unknown photo.' }, { status: 400 });
   const j = await door<Job | null>(user.id, 'field_read', 'job', { id: jobId }, aal).catch(() => null);
   if (!j) return NextResponse.json({ ok: false, message: 'That job is not one of yours.' }, { status: 404 });
   const bytes = new Uint8Array(await file.arrayBuffer());
   const { jpg, png } = imageSniff(bytes);
+  if (video) {
+    const kind = videoSniff(bytes);
+    if (!kind) return NextResponse.json({ ok: false, message: 'That file is not a video (MP4, MOV or WebM).' }, { status: 400 });
+    const owner0 = j.job.booking_id ? `bookings/${j.job.booking_id}` : `vehicles/${j.job.vehicle_id}`;
+    const vkey = `${owner0}/${j.report_kind ?? 'other'}/clean_video-${crypto.randomUUID().slice(0, 8)}.${kind.ext}`;
+    await (await storage()).put('condition-photos', vkey, bytes, kind.mime);
+    return NextResponse.json({ ok: true, key: vkey });
+  }
   if (!jpg && !png) return NextResponse.json({ ok: false, message: 'That file is not a photo.' }, { status: 400 });
   const leg = j.report_kind ?? 'other';
   const owner = j.job.booking_id ? `bookings/${j.job.booking_id}` : `vehicles/${j.job.vehicle_id}`;

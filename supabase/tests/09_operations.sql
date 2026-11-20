@@ -17,6 +17,11 @@ create or replace function test.at(p_local text) returns timestamptz
 language sql immutable as $$ select p_local::timestamp at time zone 'America/Toronto' $$;
 
 -- the 19 required photos in the fixed order, optionally without one shot
+create function test.op_clean_photos() returns jsonb language sql as $$
+  select '[{"seq": 40, "shot": "clean_seats", "storage_path": "bookings/op/return/40-clean_seats.jpg", "width": 2400, "height": 1600},
+           {"seq": 41, "shot": "clean_floor", "storage_path": "bookings/op/return/41-clean_floor.jpg", "width": 2400, "height": 1600},
+           {"seq": 42, "shot": "clean_cupholders", "storage_path": "bookings/op/return/42-clean_cupholders.jpg", "width": 2400, "height": 1600}]'::jsonb
+$$;
 create function test.op_photos(p_kind text, p_skip text default null) returns jsonb language sql as $$
   select jsonb_agg(jsonb_build_object('seq', r.seq, 'shot', r.shot, 'storage_path', 'bookings/op/' || p_kind || '/' || r.seq || '-' || r.shot || '.jpg',
                                       'width', 2400, 'height', 1600) order by r.seq)
@@ -60,10 +65,13 @@ create function test.op_handover(p_key text, p_by text, p_at text, p_odometer in
                        'photos', test.op_photos('pickup'), 'deposit_payment_id', test.op_deposit_payment(p_key)),
     null, test.at(p_at))
 $$;
+-- r48 FE (3190): a return that is not clean carries its 3 guided evidence photos and the description
 create function test.op_return(p_key text, p_by text, p_at text, p_odometer integer, p_extra jsonb default '{}') returns jsonb language sql as $$
   select app.complete_return(test.b(p_key), test.id(p_by),
     jsonb_build_object('odometer_km', p_odometer, 'fuel_pct', 100, 'keys_count', 2, 'cleanliness', 'clean',
-                       'renter_signature_ref', 'sig/renter-in', 'staff_signature_ref', 'sig/staff-in', 'photos', test.op_photos('return')) || p_extra,
+                       'renter_signature_ref', 'sig/renter-in', 'staff_signature_ref', 'sig/staff-in', 'photos', test.op_photos('return')) || p_extra
+    || case when coalesce(p_extra ->> 'cleanliness', 'clean') = 'clean' then '{}'::jsonb
+            else jsonb_build_object('clean_description', 'Crumbs and mud on the rear seats and floor', 'photos', test.op_photos('return') || test.op_clean_photos()) end,
     null, test.at(p_at))
 $$;
 create function test.op_line(p_key text, p_assessment text) returns text language sql stable as $$

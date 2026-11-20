@@ -6,6 +6,7 @@ import { SceneReferences } from '@/features/listing/Marketing';
 import { ShowroomPlates } from '@/features/listing/ShowroomPlates';
 import type { ApprovalRow } from '@/features/staff-onboarding/model';
 import { OnboardingApprovals } from '@/features/staff-onboarding/Approvals';
+import { DataIssuesCard } from '@/features/data-checks/DataIssuesCard';
 import Link from '@/components/Link';
 import { notFound } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
@@ -82,6 +83,8 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Deposits by e-Transfer or cash, and tips', (k) => /^(offline_deposit_|tips_on|tip_)/.test(k)],
   // r48 MR (3102): the speeding charges of the rental agreement (10.5)
   ['Speeding charges (rental agreement 10.5)', (k) => /^speeding_/.test(k)],
+  // r48 FE (3190): the return charges (10.6 to 10.8, 11.6) and the evidence every fee needs
+  ['Return charges and fee evidence (rental agreement 10.6 to 11.6)', (k) => /^(non_return_|improper_return_|theft_recovery_|roadside_admin_|fee_evidence_|clean_evidence_)/.test(k)],
   ['Deposits, refunds and money', (k) => /^(deposit_|refund_|statement_|holdback|insurer_|liability|deductible|kickback|shareholder|install_fee|owner_late|billing_day|retry_day|payout_day|fleet_report_day|investor_|buyout|take_deposit)/.test(k)],
   ['Delivery', (k) => k.startsWith('delivery_') || ['company_latitude', 'company_longitude'].includes(k)],
   ['Maintenance', (k) => k.startsWith('maint_')],
@@ -530,6 +533,8 @@ export default async function Section({ params, searchParams }: { params: Promis
     const waitingFor = new Map(approvals.map((a) => [a.user_id, a]));
     return (<>{head}
       {approvals.length > 0 && <Card title="Waiting for your approval" id="onboarding-approvals-card" testId="staff-top-approvals" tone="next"><OnboardingApprovals admin refresh={['/admin/settings/staff']} rows={approvals} /></Card>}
+      {/* r48 FE (3197): what looks wrong on each staff member's record */}
+      <DataIssuesCard userId={user.id} audience="staff" refresh="/admin/settings/staff" />
       <p className="small" data-testid="onboarding-pipeline-link">Hiring and onboarding in one place, stage by stage: <Link prefetch={false} className="link" href="/admin/hiring?tab=stages">People &gt; Hiring &gt; Pipeline</Link>.</p>
       <Card title="Invite"><p className="small muted">An invitation email with a link to choose a password (24 hours), then their portal. Owners and investors on file are invited from <Link prefetch={false} className="link" href="/admin/portals#invite">Admin &gt; Portals</Link>. Admin access is only through the addresses under Admin access below.</p><InviteForm roles={['staff']} testId="staff-invite" /></Card>
       {await (async () => {

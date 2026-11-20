@@ -31,14 +31,14 @@ select test.eq('the agreement of each role: the field agreement for field work o
 -- ================================================================ 2. academy first, then the agreement, then access (every role)
 select test.eq('step 1, every role: held by the academy, not yet by the agreement, no team group',
   (select string_agg(p.label || '=' || app.academy_locked(test.id(p.label)) || '/' || app.agreement_locked(test.id(p.label)) || '/' || jsonb_array_length(app.staff_team_groups(test.id(p.label))), ',' order by p.label) from r35k_people p),
-  'r35k_cs=true/false/0,r35k_field=true/false/0,r35k_fin=true/false/0,r35k_fleet=true/false/0,r35k_spi=true/false/0,r35k_spr=true/false/0');
-select test.eq('my_roles carries both locks', (app.my_roles(test.id('r35k_cs')) ->> 'academy_locked')::boolean and not (app.my_roles(test.id('r35k_cs')) ->> 'agreement_locked')::boolean, true);
+  'r35k_cs=true/true/0,r35k_field=true/true/0,r35k_fin=true/true/0,r35k_fleet=true/true/0,r35k_spi=true/true/0,r35k_spr=true/true/0');
+select test.eq('my_roles carries both locks', (app.my_roles(test.id('r35k_cs')) ->> 'academy_locked')::boolean and (app.my_roles(test.id('r35k_cs')) ->> 'agreement_locked')::boolean, true);
 select app.academy_waive(test.id('r35k_admin'), jsonb_build_object('user_id', test.id(label), 'reason', 'Passed in the test')) from r35k_people;
 select test.eq('step 2, every role: the academy done, the agreement holds the portal, still no team group',
   (select string_agg(p.label || '=' || app.academy_locked(test.id(p.label)) || '/' || app.agreement_locked(test.id(p.label)) || '/' || jsonb_array_length(app.staff_team_groups(test.id(p.label))), ',' order by p.label) from r35k_people p),
   'r35k_cs=false/true/0,r35k_field=false/true/0,r35k_fin=false/true/0,r35k_fleet=false/true/0,r35k_spi=false/true/0,r35k_spr=false/true/0');
-select test.eq('Welcome lists the steps in order: academy, then agreement, then the team group (1154: then the approval)',
-  (select string_agg(s ->> 'key', ',' order by o) from jsonb_array_elements(app.staff_welcome(test.id('r35k_cs')) -> 'steps') with ordinality x(s, o)), 'welcome,profile,academy,agreement,team,approval,tasks');
+select test.eq('Welcome lists the steps in order (3198): agreement, then academy, then the team group (1154: then the approval)',
+  (select string_agg(s ->> 'key', ',' order by o) from jsonb_array_elements(app.staff_welcome(test.id('r35k_cs')) -> 'steps') with ordinality x(s, o)), 'welcome,profile,agreement,academy,team,approval,tasks');
 select test.eq('the team group stays closed on Welcome until the agreement is done', (select (s ->> 'open')::boolean from jsonb_array_elements(app.staff_welcome(test.id('r35k_cs')) -> 'steps') s where s ->> 'key' = 'team'), false);
 select test.eq('the profile step asks for the preferred name', (select (s ->> 'done')::boolean from jsonb_array_elements(app.staff_welcome(test.id('r35k_cs')) -> 'steps') s where s ->> 'key' = 'profile'), false);
 select test.r35k('r35k_cs', 'ops_do', 'staff_preferred_name_save', '{"preferred_name": "Kay"}');
@@ -59,7 +59,7 @@ select app.job_staff_agreements();
 select test.eq('the team group email goes once to each', (select count(*) from app_events where code = 'staff_team_group' and (payload ->> 'recipient_user_id')::uuid in (select test.id(label) from r35k_people)), 6::bigint);
 select app.job_staff_agreements();
 select test.eq('and never twice', (select count(*) from app_events where code = 'staff_team_group' and (payload ->> 'recipient_user_id')::uuid in (select test.id(label) from r35k_people)), 6::bigint);
-select test.r35k('r35k_fleet', 'ops_do', 'staff_team_joined');
+select test.r35k('r35k_fleet', 'ops_do', 'staff_team_joined', '{"tag_set": true}');
 select test.eq('I joined hides it from the home page', jsonb_array_length(app.staff_team_groups(test.id('r35k_fleet'))), 0);
 update program_settings set whatsapp_team_group_url = '';
 select test.eq('no link set: no group shown', jsonb_array_length(app.staff_team_groups(test.id('r35k_cs'))), 0);

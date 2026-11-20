@@ -7,6 +7,8 @@ import { rpc } from '@/lib/db/repo';
 import { rolesOf } from '@/server/door';
 import { PortalNav } from '@/features/portal/PortalNav';
 import { currentUser } from '@/server/portal/data';
+import { DataCheckModal } from '@/features/data-checks/DataCheckModal';
+import { dataChecks } from '@/server/data-checks';
 import { viewAs } from '@/server/view-as';
 import { PortalSwitch, SignOutOrExit } from '@/features/access/Access';
 import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
@@ -44,7 +46,7 @@ export default async function AccountLayout({ children }: { children: React.Reac
         <PushInvite portal="renter" home="/account" />
         <LivePortal tokens={live} />
       </div>
-      <div className="wrap pt__body"><TermsGate userId={user.id} portal="renter">{children}</TermsGate></div>
+      <div className="wrap pt__body">{/* r48 FE (3197) */}{!(await viewAs().catch(() => null)) && <DataCheckModal issues={await dataChecks(user.id, 'renter')} />}<TermsGate userId={user.id} portal="renter">{children}</TermsGate></div>
     </div>
   );
 }

@@ -204,6 +204,13 @@
    "sections": {
     "admins": [
      "An owner's Overview shows the same Forecast the owner sees; the GTA seasonal curve (a factor a month) and an average month's occupancy are in Program settings",
+     "Every fee is charged only with its evidence: the Money tab shows what each fee needs, what was found by itself (return time, Tracker, notices, photos, receipts) and what is missing; a fee missing evidence stays off the statement and a To do asks Field, Fleet or Finance for exactly that, or an Admin charges it anyway with the reason",
+     "Return charges on the Money tab: non-return ($1,000 + recovery costs), improper return ($250 + costs), theft recovery ($1,500 + costs), flat tires, blowouts and roadside call-outs (cost + $50), each a Program setting, plus HST, company revenue",
+     "The dispute pack proves every extra charge (the clause signed, the notice sent before billing, receipts, photos with time and GPS, the Tracker), writes the cover letter for the dispute's reason, shows the ID and selfie check and earlier trips, shrinks photos to fit, alerts you before the evidence date, and builds packs for e-Transfer or cash, insurer billing and small claims",
+     "Hiring: a Sales referral is one click (Yes, put me in Sales) that starts the AI interview at once; the referred and unfinished applicants got it once more; Sales applicants at or over the bar are no longer declined by the AI's recommendation; the Pipeline shows the Sales academy counts and warns while a WhatsApp group link is empty",
+     "Settings > Staff, Owners and Renters list what looks wrong on each person's record, with Send reminder",
+     "Admin > Settings > Terms counts who accepted, declined or still waits for each updated agreement",
+     "The tracker Install Fee is $150 for new owner terms",
      "Owner payouts follow each owner's agreed split: every rental day at the terms in force that day; correct a car's terms from its start with the reason (the owner signs again only if they get less), and approved statements not paid out are recomputed with an audit line",
      "Shareholder cars keep 90% of everything charged on a booking (rental, every fee and amounts kept from the deposit), before tax",
      "An owner who referred another owner gets their share of the referred owner's management fee on each statement and sees those cars",
@@ -242,6 +249,11 @@
      "The native phone app for iPhone and Android is built and waits for the company's developer accounts; nothing changes for renters, owners or staff until the store builds are approved"
     ],
     "staff": [
+     "New staff sign their staff agreement first, then take the academy, then join the WhatsApp groups (with the member tag \"Name - Position\" written for you, and a tick that you set it), then approval",
+     "A box on any page says exactly what looks wrong on your record (your agreement waiting for your licence number or address, an address outside Ontario for in-person work, a licence about to expire, pay details, your phone, your WhatsApp tag) and lets you fix it there; saving what your agreement waits for makes it at once",
+     "The return checklist asks for 3 guided photos and a description when the car is not clean; the smoking or cleaning fee then waits for Fleet and Finance",
+     "Passed the Sales academy? The Sales WhatsApp group shows for you too",
+     "Reminders on day 1, 2 and 4 when the academy has no progress",
      "Extensions are yours by default when you sold the booking; an Admin can give one to another salesperson or to Admin, and the commission goes to whoever handled it",
      "The Money tab shows each extension's amount, whether it was paid and how, with Charge the card on file, Record a payment and Give to",
      "Sales can turn on Allow debit and prepaid cards for this booking",
@@ -261,10 +273,14 @@
     "owners": [
      "Home has a Forecast: the next 12 months of each car, projected occupancy and owner revenue, from the GTA's rental season and, after 3 months, your car's own record",
      "Each statement says whether next month is projected higher or lower, by how much, and why",
+     "Book your car for yourself or for a family member or friend, also while it is still onboarding; you stay responsible for the deductible and any damage, tickets, tolls and fees",
+     "Updated agreements open in one box to accept; nothing to sign again",
      "Your statement pays your agreed split; an owner who referred you is paid from CarmaCars' share, never from yours",
      "Each car's page shows Where your car is and its trips of the last 30 days, or No tracker yet; you see the location only, never the renter or the booking"
     ],
     "renters": [
+     "The rental agreement adds non-return, improper return, theft recovery and tire and roadside charges, each billed with its evidence; roadside assistance stays included",
+     "Something to fix on your profile (your phone, a licence about to expire, a name that differs) shows in one box with the fix",
      "The rental agreement has speeding charges over 180, 220 and 300 km/h (section 10.5); agreements already signed stay as they are",
      "The privacy policy and the rental agreement say that CarmaCars staff and the car's owner can see where the car is",
      "Your booking page says when the deposit is still owed and how to place it",

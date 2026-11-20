@@ -98,16 +98,36 @@ export function OwnerProfileForm({ initial }: { initial: OwnerProfileInput }) {
 export function OwnBookingForm({ vehicles, initial }: { vehicles: Array<{ id: string; name: string }>; initial?: string }) {
   const a = useAct<{ bookingNumber: string }>();
   const [v, setV] = useState({ vehicle: initial && vehicles.some((x) => x.id === initial) ? initial : vehicles[0]?.id ?? '', pickup: '', ret: '', note: '' });
-  if (!vehicles.length) return <p className="small muted">You can book your own car once it is enrolled and listed.</p>;
+  // r48 FE (3195): Who's driving? Me, or someone else (a family member or friend), and the owner's responsibility
+  const [who, setWho] = useState<'self' | 'other'>('self');
+  const [drv, setDrv] = useState({ full_name: '', email: '', mobile: '', date_of_birth: '' });
+  const [ack, setAck] = useState(false);
+  if (!vehicles.length) return <p className="small muted">You can book your own car once it is enrolled.</p>;
   return (
-    <form className="stack" noValidate onSubmit={(e) => { e.preventDefault(); a.run(() => bookOwnCar(v.vehicle, iso(v.pickup), iso(v.ret), v.note)); }} aria-label="Book my own car">
+    <form className="stack" noValidate onSubmit={(e) => { e.preventDefault(); a.run(() => bookOwnCar(v.vehicle, iso(v.pickup), iso(v.ret), v.note, who, who === 'other' ? drv : undefined, ack)); }} aria-label="Book my own car">
       <div className="field"><label className="label" htmlFor="ow-ob-v">Vehicle</label><select className="select" id="ow-ob-v" value={v.vehicle} onChange={(e) => setV({ ...v, vehicle: e.target.value })}>{vehicles.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></div>
       <div className="field-row">
         <Input id="ow-ob-from" label="Pickup" type="datetime-local" value={v.pickup} set={(x) => setV({ ...v, pickup: x })} err={a.err('pickup')} />
         <Input id="ow-ob-to" label="Return" type="datetime-local" value={v.ret} set={(x) => setV({ ...v, ret: x })} err={a.err('ret')} />
       </div>
+      <fieldset className="fd-choices" data-testid="own-who"><legend className="label">Who&apos;s driving?</legend>
+        <label className="check"><input type="radio" name="ow-ob-who" checked={who === 'self'} onChange={() => setWho('self')} /> <span>Me</span></label>
+        <label className="check"><input type="radio" name="ow-ob-who" checked={who === 'other'} onChange={() => setWho('other')} data-testid="own-who-other" /> <span>Someone else (a family member or friend)</span></label>
+      </fieldset>
+      {who === 'other' && <div className="stack" data-testid="own-driver">
+        <Input id="ow-ob-dn" label="Their full name (as on their licence)" value={drv.full_name} set={(x) => setDrv({ ...drv, full_name: x })} err={a.err('driver')} />
+        <div className="field-row">
+          <Input id="ow-ob-de" label="Their email" type="email" value={drv.email} set={(x) => setDrv({ ...drv, email: x })} />
+          <Input id="ow-ob-dp" label="Their phone" type="tel" value={drv.mobile} set={(x) => setDrv({ ...drv, mobile: x })} />
+        </div>
+        <Input id="ow-ob-dd" label="Their date of birth" type="date" value={drv.date_of_birth} set={(x) => setDrv({ ...drv, date_of_birth: x })} />
+        <p className="small muted">They are the main driver: they get their own link to add their licence and a selfie and to sign the rental agreement. The main driver needs an Ontario licence.</p>
+      </div>}
       <Input id="ow-ob-note" label="Note (optional)" value={v.note} set={(x) => setV({ ...v, note: x })} />
-      <p className="small muted">No price and no deposit. A renter&apos;s confirmed booking comes first. 30 days at most. You sign the rental agreement before pickup.</p>
+      <label className="check"><input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} data-testid="own-ack" />
+        <span>I am responsible for this booking: the deductible ($2,500) and any damage, tickets, tolls and fees during it are billed to me{who === 'other' ? ', even though someone else drives' : ''}.</span></label>
+      {a.err('ack') && <p className="error" role="alert">{a.err('ack')}</p>}
+      <p className="small muted">No price and no deposit. A renter&apos;s confirmed booking comes first. 30 days at most. {who === 'other' ? 'You and the driver each sign the rental agreement before pickup.' : 'You sign the rental agreement before pickup.'}</p>
       <Problem a={a} />
       {a.res?.ok && <p className="alert alert--ok" role="status"><span className="alert__title">Requested</span><span>{a.res.data.bookingNumber ? <>Booking {a.res.data.bookingNumber}. Follow it in <Link href="/account">your trips</Link>.</> : 'We confirm it shortly.'}</span></p>}
       <button className="btn btn--primary" type="submit" disabled={a.pending}>{a.pending ? 'Sending' : 'Book my car'}</button>

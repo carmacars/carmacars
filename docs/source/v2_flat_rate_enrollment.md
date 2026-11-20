@@ -73,6 +73,8 @@ Status: approved by the lawyer (Release 21). Program settings, "Flat-rate agreem
 
 7.2 If the Owner damages the Vehicle during an Owner Booking and a claim is made, the Owner pays the Deductible. A Renter's confirmed booking has priority.
 
+7.3 An Owner Booking may be for the Owner or for a family member or friend the Owner names, who is then the main driver and signs the Rental Agreement. The Owner stays responsible whoever drives: the Deductible and any damage, tickets, tolls and fees during an Owner Booking are billed to the Owner, each with its evidence.
+
 ## 8. Insurance, claims and repairs
 
 8.1 From its Enrollment Date to its Exit Date each Vehicle is on the Fleet Policy, on the policy's terms. The Company is not an insurer.

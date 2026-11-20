@@ -550,7 +550,8 @@ select test.eq('CAT owner revenue is exactly: rental charge, its lead-time adjus
   'late_return_extra_days,lead_time,mileage_overage,non_refundable_discount,occasion_discount,price_limit,promo_discount,rental_charge,staff_discount');
 select test.eq('CAT pass-through amounts',
   (select string_agg(code, ',' order by code) from fee_types where revenue_class = 'pass_through'),
-  'collection_cost,damage_at_cost,lost_key_cost,recovery_cost,roadside_callout,ticket_amount,toll_amount');
+  -- r48 FE (3190): tire repair or replacement at cost (rental agreement 11.6)
+  'collection_cost,damage_at_cost,lost_key_cost,recovery_cost,roadside_callout,ticket_amount,tire_cost,toll_amount');
 select test.eq('CAT no HST on: deposit, toll and ticket amounts, deductible, loss of use, interest (damage as invoiced)',
   (select string_agg(code, ',' order by code) from fee_types where not hst_applies and not hst_as_invoiced and family <> 'expense'),
   'deductible,deposit,interest,loss_of_use,ticket_amount,toll_amount');

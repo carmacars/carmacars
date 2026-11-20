@@ -12,23 +12,38 @@ import { agreementValues } from '@/features/careers/hire';
 const SR = { role: 'service_role' as const };
 type Due = { actor: string | null; users: Array<{ user_id: string; pay: { pay_basis: string | null; pay_cents: number | null; pay_currency: string | null } | null }> };
 
+/** r48 FE (3196): one person's agreement at once, right after they gave what it waited for (no waiting for the cron).
+ *  'sent', 'waiting' (still missing something), 'not_due' (signed, waived or already sent) or 'failed'. */
+export async function sendStaffAgreementNow(userId: string): Promise<'sent' | 'waiting' | 'not_due' | 'failed'> {
+  const due = (await rpc('server_staff_agreements_due', { p_limit: 500 }, SR)) as unknown as Due;
+  const u = due?.users?.find((x) => x.user_id === userId);
+  if (!due?.actor || !u) return 'not_due';
+  const r = await runOne(due.actor, u);
+  return r;
+}
+
+async function runOne(actor: string, u: Due['users'][number]): Promise<'sent' | 'waiting' | 'failed'> {
+  try {
+    const prep = await prepareGenerated(actor, 'aal2', 'staff_agreement', u.user_id);
+    const values = agreementValues(prep.fields, u.pay?.pay_basis ? { pay_basis: u.pay.pay_basis as 'monthly', pay_cents: u.pay.pay_cents ?? 0, pay_currency: u.pay.pay_currency ?? '' } : null);
+    const missing = missingRequired(prep.fields, values);
+    if (missing.length) { await rpc('server_staff_agreement_auto_done', { p_user: u.user_id, p: { missing } as unknown as Json }, SR); return 'waiting'; }
+    const r = await sendGenerated(actor, 'aal2', 'staff_agreement', u.user_id, values, { category: '', paragraph: '' });
+    await rpc('server_staff_agreement_auto_done', { p_user: u.user_id, p: { request_id: r.id } as unknown as Json }, SR);
+    return 'sent';
+  } catch (e) {
+    await rpc('server_staff_agreement_auto_done', { p_user: u.user_id, p: { error: e instanceof Error ? e.message.slice(0, 300) : 'failed' } as unknown as Json }, SR).catch(() => undefined);
+    return 'failed';
+  }
+}
+
 export async function runStaffAgreements(max = 2): Promise<{ sent: number; waiting: number; failed: number }> {
   const due = (await rpc('server_staff_agreements_due', { p_limit: max }, SR)) as unknown as Due;
   let sent = 0; let waiting = 0; let failed = 0;
   if (!due?.actor) return { sent, waiting, failed };
   for (const u of due.users ?? []) {
-    try {
-      const prep = await prepareGenerated(due.actor, 'aal2', 'staff_agreement', u.user_id);
-      const values = agreementValues(prep.fields, u.pay?.pay_basis ? { pay_basis: u.pay.pay_basis as 'monthly', pay_cents: u.pay.pay_cents ?? 0, pay_currency: u.pay.pay_currency ?? '' } : null);
-      const missing = missingRequired(prep.fields, values);
-      if (missing.length) { await rpc('server_staff_agreement_auto_done', { p_user: u.user_id, p: { missing } as unknown as Json }, SR); waiting++; continue; }
-      const r = await sendGenerated(due.actor, 'aal2', 'staff_agreement', u.user_id, values, { category: '', paragraph: '' });
-      await rpc('server_staff_agreement_auto_done', { p_user: u.user_id, p: { request_id: r.id } as unknown as Json }, SR);
-      sent++;
-    } catch (e) {
-      await rpc('server_staff_agreement_auto_done', { p_user: u.user_id, p: { error: e instanceof Error ? e.message.slice(0, 300) : 'failed' } as unknown as Json }, SR).catch(() => undefined);
-      failed++;
-    }
+    const r = await runOne(due.actor, u);
+    if (r === 'sent') sent++; else if (r === 'waiting') waiting++; else failed++;
   }
   return { sent, waiting, failed };
 }

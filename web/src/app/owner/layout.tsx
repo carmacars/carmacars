@@ -6,6 +6,9 @@ import '@/styles/ui-kit.css';
 import { rpc } from '@/lib/db/repo';
 import { OwnerNav } from '@/features/owner/OwnerNav';
 import { currentUser } from '@/server/portal/data';
+import { DataCheckModal } from '@/features/data-checks/DataCheckModal';
+import { dataChecks } from '@/server/data-checks';
+import { viewAs } from '@/server/view-as';
 import { PortalSwitch, SignOutOrExit } from '@/features/access/Access';
 import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
 import { WhatsNew } from '@/features/whats-new/WhatsNew';
@@ -39,7 +42,7 @@ export default async function OwnerLayout({ children }: { children: React.ReactN
         <PushInvite portal="owner" home="/owner" userId={user.id} />
         <LivePortal tokens={live} />
       </div>
-      <div className="wrap pt__body"><TermsGate userId={user.id} portal="owner">{children}</TermsGate></div>
+      <div className="wrap pt__body">{/* r48 FE (3197) */}{!(await viewAs().catch(() => null)) && <DataCheckModal issues={await dataChecks(user.id, 'owner')} />}<TermsGate userId={user.id} portal="owner">{children}</TermsGate></div>
     </div>
   );
 }

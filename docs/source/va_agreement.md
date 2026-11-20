@@ -44,7 +44,7 @@ This agreement is between 18122211 Canada Inc., operating as CarmaCars ("CarmaCa
 
 ## 4. Confidentiality and data
 
-4.1 "Confidential Information" means everything not public that you learn through the Services. It includes personal information about customers and owners ("Personal Data"), pricing, Procedures, financial records, supplier and insurance terms, and material belonging to CarmaCars' franchisor.
+4.1 "Confidential Information" means everything not public that you learn through the Services. It includes personal information about customers and owners ("Personal Data"), customer and owner lists and their terms, pricing, Procedures, financial records, supplier and insurance terms, CarmaCars' systems, software, data and accounts, its business methods, and material belonging to CarmaCars' franchisor.
 
 4.2 You will use Confidential Information only to perform the Services and disclose it to no one outside CarmaCars. This duty continues after this agreement ends. If a law forces disclosure, you will tell CarmaCars first where the law allows.
 
@@ -85,6 +85,8 @@ This agreement is between 18122211 Canada Inc., operating as CarmaCars ("CarmaCa
 - solicit or divert any customer or owner you dealt with or learned of through the Services to rent or list a vehicle elsewhere; or
 - solicit any CarmaCars staff member or contractor to stop working with CarmaCars.
 
+6.4 **Non-competition.** While this agreement runs and for 12 months after it ends, you will not, in the Greater Toronto Area, work for, own or help a business that rents vehicles to the public or runs a program that manages or rents other people's vehicles (an owner program) in competition with CarmaCars. This section applies only because you are an independent contractor; it does not apply if a law treats you as CarmaCars' employee. Holding up to 5% of a public company's shares is allowed.
+
 ## 7. Ending this agreement
 
 7.1 Either party may end this agreement on 7 days' written notice. During the Trial Period, either party may end it at once.
@@ -95,7 +97,7 @@ This agreement is between 18122211 Canada Inc., operating as CarmaCars ("CarmaCa
 
 7.4 When this agreement ends, you stop using the Systems, hand over every password and account, return or delete all Confidential Information and confirm in writing that you have done so. CarmaCars pays for approved time, and the commissions earned under section 3.4, up to the end date and owes nothing more.
 
-7.5 Sections 4, 6 and 8 continue after this agreement ends.
+7.5 Sections 4, 6 and 8 continue after this agreement ends. Within 7 days of the end you return or permanently delete every copy of Confidential Information and Personal Data on any device or account you control, and confirm it in writing.
 
 ## 8. General
 
