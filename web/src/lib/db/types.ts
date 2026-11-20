@@ -16755,6 +16755,75 @@ export type Database = {
         };
         Relationships: [];
       };
+      passkey_challenges: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          kind: string;
+          challenge: string;
+          ip: string | null;
+          created_at: string;
+          expires_at: string;
+          used_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          kind: string;
+          challenge: string;
+          ip?: string | null;
+          created_at?: string;
+          expires_at?: string;
+          used_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          kind?: string;
+          challenge?: string;
+          ip?: string | null;
+          created_at?: string;
+          expires_at?: string;
+          used_at?: string | null;
+        };
+        Relationships: [];
+      };
+      passkeys: {
+        Row: {
+          id: string;
+          user_id: string;
+          credential_id: string;
+          public_key: Json;
+          alg: number;
+          sign_count: number;
+          device: string | null;
+          created_at: string;
+          last_used_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          credential_id: string;
+          public_key: Json;
+          alg: number;
+          sign_count?: number;
+          device?: string | null;
+          created_at?: string;
+          last_used_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          credential_id?: string;
+          public_key?: Json;
+          alg?: number;
+          sign_count?: number;
+          device?: string | null;
+          created_at?: string;
+          last_used_at?: string | null;
+        };
+        Relationships: [];
+      };
       pay_adjustments: {
         Row: {
           id: string;
@@ -33615,6 +33684,13 @@ export type Database = {
       server_partner_invoice_by_token: { Args: { p_token: string }; Returns: Json };
       server_partner_invoices_of: { Args: { p_partner: string }; Returns: Json };
       server_partner_referral: { Args: { p: Json }; Returns: Json };
+      server_passkey_challenge: { Args: { p_user: string; p_kind: string; p_ip?: string }; Returns: Json };
+      server_passkey_challenge_read: { Args: { p_id: string; p_kind: string }; Returns: Json };
+      server_passkey_lookup: { Args: { p_credential: string }; Returns: Json };
+      server_passkey_register: { Args: { p_user: string; p_challenge: string; p: Json }; Returns: Json };
+      server_passkey_remove: { Args: { p_user: string; p_id: string }; Returns: Json };
+      server_passkey_used: { Args: { p_challenge: string; p_credential: string; p_sign_count: number }; Returns: string };
+      server_passkeys: { Args: { p_user: string }; Returns: Json };
       server_payment_intent_opened: { Args: { p: Json }; Returns: undefined };
       server_payreq_attach: { Args: { p_id: string; p_intent: string }; Returns: undefined };
       server_payreq_card_check: { Args: { p_id: string; p_card: Json }; Returns: Json };
