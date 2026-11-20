@@ -14,7 +14,7 @@ export type TrackedCar = {
   demo?: boolean;
 };
 export type AlertKind = 'speeding' | 'left_ontario' | 'left_zone' | 'overdue_driving' | 'battery_low' | 'unplugged' | 'offline'
-  /** 3320: Tracker events */ | 'harsh_driving' | 'after_hours' | 'tamper' | 'pound';
+  /** 3320: Tracker events */ | 'harsh_driving' | 'after_hours' | 'tamper' | 'pound' /** 3324 */ | 'left_canada';
 export interface TrackerAlert { id: string; kind: AlertKind; title: string; detail: string | null; at: string; vehicle_id: string | null; booking_number: string | null;
   lat: number | null; lng: number | null; ack_at: string | null; ack_by: string | null; ack_note: string | null; demo?: boolean }
 export interface BookingTrips { booking_id: string; number: string; status: string; renter: string | null; vehicle_id: string; vehicle: string; trips: number; km: number;
@@ -69,7 +69,7 @@ export const ALERT: Record<AlertKind, { label: string; tone: 'red' | 'amber' | '
   speeding: { label: 'Speeding', tone: 'red' }, left_ontario: { label: 'Left Ontario', tone: 'red' }, left_zone: { label: 'Left the zone', tone: 'amber' },
   overdue_driving: { label: 'Driving after return time', tone: 'red' }, battery_low: { label: 'Low tracker battery', tone: 'amber' },
   unplugged: { label: 'Unplugged', tone: 'red' }, offline: { label: 'Not reporting', tone: 'grey' },
-  harsh_driving: { label: 'Harsh driving', tone: 'amber' }, after_hours: { label: 'Driving at night', tone: 'amber' }, tamper: { label: 'Tampering', tone: 'red' }, pound: { label: 'At a pound', tone: 'red' }
+  harsh_driving: { label: 'Harsh driving', tone: 'amber' }, after_hours: { label: 'Driving at night', tone: 'amber' }, tamper: { label: 'Tampering', tone: 'red' }, pound: { label: 'At a pound', tone: 'red' }, left_canada: { label: 'Left Canada', tone: 'red' }
 };
 
 /** A circle as a ring of points (for the geofence on the map). */

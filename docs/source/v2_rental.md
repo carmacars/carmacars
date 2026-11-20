@@ -149,7 +149,7 @@ You must pay all tolls (including Highway 407 ETR), parking charges, tickets, ca
 
 ### 10. Use of the Vehicle
 
-**10.1 Area.** You must keep the Vehicle in Ontario unless we consent in writing.
+**10.1 Area.** You must keep the Vehicle in Ontario unless we consent in writing. Taking the Vehicle out of Canada always requires our written approval before you leave. If the Tracker shows the Vehicle outside Ontario or outside Canada without it, we tell you at once, and we may end the rental and recover the Vehicle at your cost (section 12).
 
 **10.2 Prohibited uses.** You must not use the Vehicle, or let anyone use it:
 

@@ -1,7 +1,7 @@
 # Release 48, part TRK: tracker alerts and the pound database
 
 Migrations `3320_r48trk_tracker_events.sql`, `3321_r48trk_notifications.sql` (catalogue block: `supabase/seed/3321_gen_catalogue.mjs`),
-`3322_r48trk_guides_academy.sql` (guides block: `supabase/seed/3322_gen_guides.mjs`), `3323_r48trk_speeding_one_charge.sql`. Schema marker 3323. Built on r48-fe (b9c07da1).
+`3322_r48trk_guides_academy.sql` (guides block: `supabase/seed/3322_gen_guides.mjs`), `3323_r48trk_speeding_one_charge.sql`, `3324_r48trk_border_alerts.sql` (catalogue block: `supabase/seed/3324_gen_catalogue.mjs`). Schema marker 3324. Built on r48-fe (b9c07da1).
 
 The owner (Nov 20): tracker events (speeding, harsh driving, geofence exit, after-hours, tamper or unplug, a pound) create alerts,
 deduplicated; the renter is told plainly what happened, the fee and the clause, calm and firm; the car's owner is told through
@@ -35,6 +35,18 @@ charges of 3102, the return charges and the evidence registry of 3190 and the di
   (left Ontario, the zone, once per trip or booking) keep their own once-only rules.
 - New `tracker_alerts` columns: `tier`, `source` (reading, device_event, derived, job), `fee_code`, `clause`, `facts`,
   `renter_notice_at`, `owner_notice_at`, `line_item_id`. New kinds: `harsh_driving`, `after_hours`, `tamper`, `pound`.
+
+### Leaving the province and leaving the country (3324)
+
+- **Province**: 0400's Ontario alert (once per crossing into any other province or a state) now reaches Admins and on-duty Fleet
+  at once by a locked staff alert (`tracker_province`: in-app and push), the urgent email `staff_border_alert` and a text; the
+  owner (`owner_tracker_alert`, on by default, theirs to mute) and the renter (`renter_tracker_notice`, clause 10.1) as before.
+- **Country**: the new kind `left_canada`, once per crossing (`tracker_status.outside_canada`), with its evidence record, the
+  same staff alert (`tracker_canada`, locked), email and text, an urgent Fleet To do (`left_canada`), the owner's alert and the
+  renter's notice. `app.tracker_in_canada` is rough (Ontario's outline, the 49th parallel west, the 45th east): a prompt to call.
+- **Clause**: 10.1 now says that taking the car out of Canada always needs written approval (text version
+  `rental-v3-25c8821e64`), published to accept as `rental-v3-r48trk2` with the speeding wording in the same summary.
+- The staff texts go to the Admins and on-duty Fleet who have a valid mobile number on file; staff had no texts before this.
 
 ### The evidence record
 

@@ -1,0 +1,33 @@
+CarmaCars  |  {{car_label}}
+
+========================================
+
+[Border alert]
+{{border_title}}
+
+{{car_label}} crossed on {{border_when}}. {{booking_line}}.
+
+Car: {{car_label}}
+When: {{border_when}}
+Rental: {{booking_line}}
+Clause: {{border_clause}}
+
+IMPORTANT: Do now
+{{border_action}}
+
+Open Fleet tracking:
+https://carmacars.ca/staff/fleet/map
+
+See the place on a map: {{border_map_url}}
+
+The renter and the car's owner are told by themselves. The Tracker evidence record is kept with the event.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
