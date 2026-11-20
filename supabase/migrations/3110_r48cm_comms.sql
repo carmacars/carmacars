@@ -162,7 +162,7 @@ end $$;
 create function app.texts_alert(p_error text) returns void
 language plpgsql security definer set search_path = public, app as $$
 begin
-  perform app.staff_alert('texts_not_sending', 'phone_provider_state', null, to_char(app.local_date(now()), 'YYYYMMDD'),
+  perform app.staff_alert('texts_not_sending', 'site_alert', null, to_char(app.local_date(now()), 'YYYYMMDD'),
     'Texts are not going out: they go by email instead',
     left(case when app.quo_account_error(p_error) then 'Quo refused for its account (' || coalesce(p_error, '') || '). Top up Quo: Settings > Billing > Add credits. Texts waiting fall back to email; none is sent late.'
               else 'Quo refused: ' || coalesce(p_error, '') || '. Texts that cannot go are emailed instead.' end, 240),
@@ -286,7 +286,7 @@ begin
   if coalesce((p ->> 'sandbox')::boolean, false) then
     insert into email_provider_state default values on conflict do nothing;
     update email_provider_state set ses_sandbox_at = now(), ses_error = left(p ->> 'error', 300), updated_at = now() where id;
-    perform app.staff_alert('ses_sandbox', 'email_provider_state', null, to_char(app.local_date(now()), 'YYYYMMDD'),
+    perform app.staff_alert('ses_sandbox', 'site_alert', null, to_char(app.local_date(now()), 'YYYYMMDD'),
       'Amazon SES is in its sandbox: emails go through Resend''s 100 a day',
       'SES refuses every address it has not verified. AWS console, region Canada (Central): Amazon SES > Account dashboard > Request production access (transactional).',
       jsonb_build_object('path_admin', '/admin/settings/usage'));
