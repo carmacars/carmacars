@@ -203,6 +203,13 @@
    "summary": "A car can go out with the deposit still owed, signing and card names never wrongly block a renter, pay links ask only for what is owed, offers are edited in place and hold the car on time, messages go out at once, long rentals can be paid weekly, calls through the site open the caller pop-up, Rewards emails renters, every car is photographed the same way in one scene, and a payment plan's first payment confirms the booking.",
    "sections": {
     "admins": [
+     "Owner payouts follow each owner's agreed split: every rental day at the terms in force that day; correct a car's terms from its start with the reason (the owner signs again only if they get less), and approved statements not paid out are recomputed with an audit line",
+     "Shareholder cars keep 90% of everything charged on a booking (rental, every fee and amounts kept from the deposit), before tax",
+     "An owner who referred another owner gets their share of the referred owner's management fee on each statement and sees those cars",
+     "Speeding charges over 180, 220 and 300 km/h (each its own Program setting), billed from the deposit with the tracker's record",
+     "Claude's connector adds a named fee to a returned booking (smoking, cleaning, late, km, fuel, ticket, toll, damage), corrects a car's terms, and shows each car's terms",
+     "A second tap on Hold the deposit on the card on file says the hold is already being placed instead of an error",
+     "Deposits are kept 30 days after the return before release (Program setting)",
      "A car can go out with the deposit still owed, with the reason: the booking shows Deposit pending $X for every role, the saved card is tried each morning, the renter gets the deposit link, and after 48 hours you get a To do that opens the Money tab",
      "Program settings shows each message type that can go by text with its texts in the last 30 days; once Email ready for production is on, only urgent messages keep their texts and the rest go by email",
      "Claude's connector records a pickup with the deposit owed (deposit_pending: true with the reason), previewed first",
@@ -233,6 +240,9 @@
      "Gemini calls refused for where they came from are sent through the company server, and a failed call waits and tries again instead of blocking the queue"
     ],
     "staff": [
+     "Extensions are yours by default when you sold the booking; an Admin can give one to another salesperson or to Admin, and the commission goes to whoever handled it",
+     "The Money tab shows each extension's amount, whether it was paid and how, with Charge the card on file, Record a payment and Give to",
+     "Sales can turn on Allow debit and prepaid cards for this booking",
      "Let a car go with the deposit owed from the check-in, Record the pickup now or the field job, with the reason; you do nothing more once it is taken",
      "Customer service and Sales get the same offer screen: change an offer that is out and press Send the update, no need to withdraw it first",
      "The Calendar is easier to read: full car names, the renter and booking number on each bar, today marked, and the cars and dates stay in place while you scroll",
@@ -246,9 +256,11 @@
      "Propose a change: one more day costs exactly what a day of the booking costs (rental, fees and coverage), or type the new total; the preview shows the price a day"
     ],
     "owners": [
+     "Your statement pays your agreed split; an owner who referred you is paid from CarmaCars' share, never from yours",
      "Each car's page shows Where your car is and its trips of the last 30 days, or No tracker yet; you see the location only, never the renter or the booking"
     ],
     "renters": [
+     "The rental agreement has speeding charges over 180, 220 and 300 km/h (section 10.5); agreements already signed stay as they are",
      "The privacy policy and the rental agreement say that CarmaCars staff and the car's owner can see where the car is",
      "Your booking page says when the deposit is still owed and how to place it",
      "Your booking's checklist says exactly which insurance page is still missing, and its button opens that upload",

@@ -163,6 +163,8 @@ You must pay all tolls (including Highway 407 ETR), parking charges, tickets, ca
 
 **10.4 Care.** You must keep the Vehicle locked and the keys with you. You must not alter it, copy a key, tamper with the odometer or the Tracker, or give anyone a right over it. If a key or fob is lost or not returned, you owe the lost key or fob fee.
 
+**10.5 Speeding charges.** Driving faster than 180 km/h is never allowed. If the Tracker records the Vehicle above 180 km/h, 220 km/h or 300 km/h during the Rental Period, you owe the speeding charge for that limit, each time the Tracker records it: each limit is a separate charge, in the Fee Schedule (Part 3). The Tracker's record is the evidence (section 12.2), and we give you its time, place and speed with the charge. We take the charge from the Deposit first, then from the Card on File (section 5). It does not replace a fine, a licence suspension or an impound under the law, and it does not limit our other rights under this Agreement (sections 9 and 12).
+
 ### 11. Accidents, theft and breakdown
 
 **11.1 Accidents and theft.** After an accident, theft or vandalism you must:
@@ -241,6 +243,9 @@ Standard amounts. Section 1.3 applies.
 | Cleaning fee | More than standard cleaning needed | $75; $300 for an excessively dirty vehicle (heavy soiling or odour removal) |
 | Pet cleaning fee | Pet hair, odour or soiling at return | $150 |
 | Smoking fee | Evidence of smoking or vaping | $300 |
+| Speeding charge, over 180 km/h | Each time the Tracker records the Vehicle above 180 km/h (section 10.5), taken from the Deposit first | $500 |
+| Speeding charge, over 220 km/h | Each time the Tracker records the Vehicle above 220 km/h (section 10.5), taken from the Deposit first | $1,000 |
+| Speeding charge, over 300 km/h | Each time the Tracker records the Vehicle above 300 km/h (section 10.5), taken from the Deposit first | $2,500 |
 | Lost key or fob fee | Each key or fob lost or not returned | Actual replacement cost plus $50 |
 | Administration fee | We handle a Damage claim or another chargeable matter | $75 per claim; $50 per other matter, including Damage billed at cost |
 | Toll and ticket administration fee | Each item, on top of its amount | $15 per toll invoice; $40 per ticket, fine, tow or impound |

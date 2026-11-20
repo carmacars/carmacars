@@ -200,6 +200,28 @@ export async function holdSavedCard(p: { booking: string }): Promise<R<{ ok: boo
   } catch (e) { return fail(e); }
 }
 
+/** r48 MR (3101): an approved extension charged to the card on file by staff (an Admin, Finance, or the salesperson handling
+ *  it): the database checks the person and the extension, Stripe charges off-session, and the payment confirms the
+ *  extension (the return moves) or the refusal is recorded in the booking's history in plain words. */
+export async function chargeExtensionCard(p: { booking: string; extension: string }): Promise<R<{ ok: boolean; message?: string }>> {
+  try {
+    const { user, aal, va } = await me();
+    const b = await door<{ extension_id: string; booking_id: string; booking_number: string; amount_cents: number; customer_id: string; method_id: string; card: { brand?: string; last4?: string } }>(
+      user.id, 'ops_do', 'extension_charge_begin', withFn({ extension: p.extension }, va), aal);
+    let fin: Record<string, unknown> = { extension: b.extension_id, ok: false };
+    try {
+      const i = await (await payments()).chargeOffSession({ customerId: b.customer_id, paymentMethodId: b.method_id, amountCents: b.amount_cents, description: `Extension of ${b.booking_number}`,
+        metadata: { booking_id: b.booking_id, extension_id: b.extension_id, purpose: 'extension' }, idempotencyKey: `extension:${b.extension_id}` });
+      fin = i.status === 'succeeded'
+        ? { ...fin, ok: true, intent_id: i.id, charge_id: i.chargeId, amount_cents: i.amountCents, card_brand: b.card.brand ?? null, card_last4: b.card.last4 ?? null }
+        : { ...fin, error: plainProcessorError(i.lastError ?? 'The card was declined.') };
+    } catch (e) { fin = { ...fin, error: plainProcessorError(e instanceof Error ? e.message : null) }; }
+    const r = await door<{ ok: boolean; message?: string }>(user.id, 'ops_do', 'extension_charge_finish', withFn(fin, va), aal);
+    refreshAll([`/admin/bookings/${b.booking_number}`, `/staff/bookings/${b.booking_number}`]);
+    return { ok: true, data: { ok: Boolean(r?.ok), message: r?.ok ? undefined : r?.message ?? 'Not charged.' } };
+  } catch (e) { return fail(e); }
+}
+
 export interface RenterEditResult { changed: boolean; email_changed?: boolean; email?: string; warnings: Array<{ renter_id: string; name: string }>; signin?: string; link_sent?: boolean }
 /** Correct a renter's details (0132). The database checks and records it; a new email also goes to the sign-in at once
  *  (staff correct a typo: no confirmation email), and on request the renter gets a link to set a password there. */

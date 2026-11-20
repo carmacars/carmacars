@@ -2288,6 +2288,11 @@ export type Database = {
           regular_total_cents: number | null;
           auto_approved: boolean;
           rolling: boolean;
+          handled_by: string | null;
+          handled_queue: string;
+          handled_set_by: string | null;
+          handled_set_at: string | null;
+          handled_reason: string | null;
         };
         Insert: {
           id?: string;
@@ -2323,6 +2328,11 @@ export type Database = {
           regular_total_cents?: number | null;
           auto_approved?: boolean;
           rolling?: boolean;
+          handled_by?: string | null;
+          handled_queue?: string;
+          handled_set_by?: string | null;
+          handled_set_at?: string | null;
+          handled_reason?: string | null;
         };
         Update: {
           id?: string;
@@ -2358,6 +2368,11 @@ export type Database = {
           regular_total_cents?: number | null;
           auto_approved?: boolean;
           rolling?: boolean;
+          handled_by?: string | null;
+          handled_queue?: string;
+          handled_set_by?: string | null;
+          handled_set_at?: string | null;
+          handled_reason?: string | null;
         };
         Relationships: [];
       };
@@ -3187,6 +3202,7 @@ export type Database = {
           booking_share_override: boolean;
           flat_arrangement_id: string | null;
           partner_kickback_cents: number;
+          shareholder_extra_cents: number;
         };
         Insert: {
           booking_id: string;
@@ -3230,6 +3246,7 @@ export type Database = {
           booking_share_override?: boolean;
           flat_arrangement_id?: string | null;
           partner_kickback_cents?: number;
+          shareholder_extra_cents?: number;
         };
         Update: {
           booking_id?: string;
@@ -3273,6 +3290,7 @@ export type Database = {
           booking_share_override?: boolean;
           flat_arrangement_id?: string | null;
           partner_kickback_cents?: number;
+          shareholder_extra_cents?: number;
         };
         Relationships: [];
       };
@@ -15726,6 +15744,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      owner_terms_agreed: {
+        Row: {
+          id: string;
+          owner_id: string;
+          vehicle_id: string | null;
+          revenue_share_bps: number | null;
+          insurance_fee_cents: number | null;
+          costs_from_earnings: boolean | null;
+          shareholder: boolean;
+          referrer_owner_id: string | null;
+          referral_share_bps: number | null;
+          note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          vehicle_id?: string | null;
+          revenue_share_bps?: number | null;
+          insurance_fee_cents?: number | null;
+          costs_from_earnings?: boolean | null;
+          shareholder?: boolean;
+          referrer_owner_id?: string | null;
+          referral_share_bps?: number | null;
+          note?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          owner_id?: string;
+          vehicle_id?: string | null;
+          revenue_share_bps?: number | null;
+          insurance_fee_cents?: number | null;
+          costs_from_earnings?: boolean | null;
+          shareholder?: boolean;
+          referrer_owner_id?: string | null;
+          referral_share_bps?: number | null;
+          note?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       owner_upkeep_split: {
         Row: {
           owner_id: string;
@@ -19235,6 +19295,9 @@ export type Database = {
           tips_on: boolean;
           tip_percents_bps: number[];
           tip_sales_share_bps: number;
+          speeding_180_fee_cents: number;
+          speeding_220_fee_cents: number;
+          speeding_300_fee_cents: number;
         };
         Insert: {
           id?: string;
@@ -20119,6 +20182,9 @@ export type Database = {
           tips_on?: boolean;
           tip_percents_bps?: number[];
           tip_sales_share_bps?: number;
+          speeding_180_fee_cents?: number;
+          speeding_220_fee_cents?: number;
+          speeding_300_fee_cents?: number;
         };
         Update: {
           id?: string;
@@ -21003,6 +21069,9 @@ export type Database = {
           tips_on?: boolean;
           tip_percents_bps?: number[];
           tip_sales_share_bps?: number;
+          speeding_180_fee_cents?: number;
+          speeding_220_fee_cents?: number;
+          speeding_300_fee_cents?: number;
         };
         Relationships: [];
       };
@@ -31113,6 +31182,54 @@ export type Database = {
           new_management_mode?: Database["public"]["Enums"]["management_mode"] | null;
           new_onboarding_method?: Database["public"]["Enums"]["onboarding_method"] | null;
           esign_session_id?: string | null;
+        };
+        Relationships: [];
+      };
+      vehicle_terms_corrections: {
+        Row: {
+          id: string;
+          vehicle_id: string;
+          owner_id: string | null;
+          effective_from: string;
+          reason: string;
+          values_set: Json;
+          periods_before: Json;
+          periods_after: Json;
+          owner_gets_less: boolean;
+          resign_change_id: string | null;
+          statements: Json;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          vehicle_id: string;
+          owner_id?: string | null;
+          effective_from: string;
+          reason: string;
+          values_set: Json;
+          periods_before: Json;
+          periods_after: Json;
+          owner_gets_less: boolean;
+          resign_change_id?: string | null;
+          statements?: Json;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          vehicle_id?: string;
+          owner_id?: string | null;
+          effective_from?: string;
+          reason?: string;
+          values_set?: Json;
+          periods_before?: Json;
+          periods_after?: Json;
+          owner_gets_less?: boolean;
+          resign_change_id?: string | null;
+          statements?: Json;
+          created_by?: string | null;
+          created_at?: string;
         };
         Relationships: [];
       };
