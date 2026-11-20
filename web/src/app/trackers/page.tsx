@@ -1,7 +1,7 @@
 import { seoMeta } from '@/features/seo/meta';
 import { metaOr } from '@/features/seo/meta-fallback';
 import { TrackerTemplate, installLinks, loadTracker, trackerFacts } from '@/features/trackers/TrackerPage';
-import { lowest, monthly, productAnswer, productFaq } from '@/features/trackers/pages';
+import { offer, productAnswer, productFaq } from '@/features/trackers/pages';
 
 // The GPS tracker and kill switch product page (release 48, migration 3231; it replaces /gps-tracker, which answers 308
 // here). Everything from Program settings; switched off: 404. Rendered on demand and kept in the edge copy a day
@@ -12,9 +12,8 @@ export async function generateMetadata() {
   return metaOr(async () => {
     const x = await trackerFacts();
     if (!x) return {};
-    const lo = lowest(x.f);
-    return seoMeta({ title: `GPS Tracker and Kill Switch for Cars${lo !== null ? `, from ${monthly(lo)}` : ` in ${x.f.city}`} | ${x.f.brand}`,
-      description: `${x.f.name}: live GPS, a remote kill switch (starter interrupt), door locking and an alarm from your phone. ${lo !== null ? `From ${monthly(lo)} per car. ` : ''}${x.f.available ? 'Installs are open.' : 'Join the waitlist or pre-order.'}`.slice(0, 160), path: '/trackers' });
+    return seoMeta({ title: `GPS Tracker and Kill Switch for Cars in ${x.f.city} | ${x.f.brand}`,
+      description: `${x.f.name}: live GPS, a remote kill switch (starter interrupt), door locking and an alarm from your phone. ${offer(x.f)}.`.slice(0, 170), path: '/trackers' });
   }, { title: 'GPS tracker and kill switch' }, (m) => console.warn('trackers', m));
 }
 

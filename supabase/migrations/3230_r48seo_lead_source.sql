@@ -463,3 +463,14 @@ begin
     execute format('grant execute on function %s to service_role', f.sig);
   end loop;
 end $$;
+
+-- ================================================================ the privacy policy: the lead-source cookie
+-- Section 10 (Cookies and analytics) names the first-party cookie that keeps where a visitor came from (cc_src,
+-- web/src/lib/track/source.ts). The same paragraph is in docs/source/website_terms_policies.md.
+update site_content_blocks
+   set body = replace(body, 'but parts of the Site may then not work.', 'but parts of the Site may then not work.' || E'\n\n' ||
+     'One first-party cookie, cc_src, remembers how you found us: the site or search that sent you, the first page you opened, and any campaign tag or ad click ID in the link. It stays in your browser for up to 90 days and is not read by any other company. We read it only when you send us a form or a booking request, and keep it with that enquiry so we know which search engine, AI assistant or ad led to it.')
+ where block_key = 'legal.privacy' and body like '%but parts of the Site may then not work.%' and body not like '%cc_src%';
+update site_content_blocks set data = data || jsonb_build_object('last_updated', 'November 20, 2026')
+ where block_key = 'legal.meta' and coalesce(data ->> 'last_updated', '') <> 'November 20, 2026'
+   and exists (select 1 from site_content_blocks b where b.block_key = 'legal.privacy' and b.body like '%cc_src%');

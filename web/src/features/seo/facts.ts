@@ -8,7 +8,7 @@ import { napAddress } from './business';
 import { getArticles, getSeoPages } from './data';
 import type { EntityFacts, FactLink } from './llms';
 import { trackerFacts } from '@/features/trackers/data';
-import { availability, priceSentence, trackerIntents } from '@/features/trackers/pages';
+import { availability, offer, trackerIntents } from '@/features/trackers/pages';
 
 // The entity facts (docs/changes/2026-10-23-ai-search.md) for /llms.txt, /llms-full.txt, /about and the answer blocks,
 // read from the database only: site settings, program settings (site_facts), the real cars (sample cars never price
@@ -53,7 +53,7 @@ export const getEntityFacts = cache(async (): Promise<EntityFacts> => {
     { name: 'Auto body shop and collision repair', path: '/body-shop' },
     { name: 'List your car with us (owner program)', path: '/list-your-car', note: 'We find and check the renters, take the payments and send a monthly statement' },
     // r48: the tracker's pages and the page of every service
-    ...(tracker ? [{ name: `${tracker.f.name}: GPS tracker and kill switch for cars`, path: '/trackers', note: `${priceSentence(tracker.f)}; ${availability(tracker.f)}` },
+    ...(tracker ? [{ name: `${tracker.f.name}: GPS tracker and kill switch for cars`, path: '/trackers', note: `${offer(tracker.f)}; ${availability(tracker.f)}` },
       ...trackerIntents(tracker.f).map((i) => ({ name: i.h1, path: `/trackers/${i.slug}` })), { name: 'GPS tracker installation near you', path: '/trackers/install' }] : []),
     { name: 'Every service on one page', path: '/services' }
   ];

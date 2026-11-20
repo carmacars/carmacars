@@ -12,7 +12,7 @@ import { trackerFacts } from './data';
 import { siteUrl } from '@/lib/site';
 import { money } from '@/lib/format';
 import { WaitlistForm } from './WaitlistForm';
-import { availability, ctaLabel, featureIcon, highest, lowest, monthly, priceSentence, tierLabel, trackerIntents, type Faq as Q, type TrackerFacts, type TrackerIntent } from './pages';
+import { availability, ctaLabel, deviceNow, featureIcon, priceShort, PriceSentence, stage, trackerIntents, type Faq as Q, type TrackerFacts, type TrackerIntent } from './pages';
 
 // The tracker pages' one template (release 48): the product page, each intent page and each install page are the same
 // blocks in the same order, so a reader always finds the price, what it does and the waitlist in the same place:
@@ -21,26 +21,29 @@ import { availability, ctaLabel, featureIcon, highest, lowest, monthly, priceSen
 
 export { trackerFacts } from './data';
 
-/** The Product node: a price range in CAD, and PreOrder (never InStock) while trackers cannot be installed. */
+/** The Product node: one Offer in CAD at the price that applies now (0 while the free pre-orders last, the pre-order
+ *  price after that, the regular price after launch), and PreOrder (never InStock) while trackers cannot be installed. */
 export function productLd(f: TrackerFacts, path: string) {
-  const lo = lowest(f), hi = highest(f);
   return {
     '@type': 'Product', '@id': `${siteUrl()}/trackers#product`, name: f.name, category: 'GPS tracker with remote kill switch (starter interrupt)', url: siteUrl() + path,
     description: `GPS tracker for cars with a remote kill switch (starter interrupt), remote door locking, an alarm and trip history. Installed by ${f.brand} in ${f.city}, Ontario.`,
     brand: { '@type': 'Brand', name: f.brand },
-    ...(lo !== null && hi !== null ? { offers: { '@type': 'AggregateOffer', priceCurrency: 'CAD', lowPrice: (lo / 100).toFixed(2), highPrice: (hi / 100).toFixed(2), offerCount: f.tiers.length,
-      availability: f.available ? 'https://schema.org/InStock' : 'https://schema.org/PreOrder', url: `${siteUrl()}/trackers#waitlist`, seller: { '@id': `${siteUrl()}/#business` } } } : {})
+    offers: { '@type': 'Offer', priceCurrency: 'CAD', price: (deviceNow(f) / 100).toFixed(2),
+      availability: f.available ? 'https://schema.org/InStock' : 'https://schema.org/PreOrder', url: `${siteUrl()}/trackers#waitlist`, seller: { '@id': `${siteUrl()}/#business` },
+      ...(f.installCents ? { description: `Installed by ${f.brand}: ${money(f.installCents)} once per car, charged with the install.` } : {}) }
   };
 }
 
 export function priceCards(f: TrackerFacts): PriceCard[] {
-  const tiers = [...f.tiers].sort((a, b) => a.from_cars - b.from_cars);
-  const hi = highest(f);
-  return tiers.map((t, i) => ({
-    forWhom: tierLabel(t), amount: money(t.monthly_cents), per: 'a month per car', best: tiers.length > 1 && i === 1, tag: tiers.length > 1 && i === 1 ? 'Most hosts' : undefined,
-    points: [...(hi !== null && t.monthly_cents < hi ? [`${money(hi - t.monthly_cents)} less per car than the first price`] : ['Live GPS, kill switch, door locking and alarm']),
-      f.installCents ? `${money(f.installCents)} install, once per car` : 'Install quoted for your car', 'Every car billed at this price']
-  }));
+  const x = f.prices, ins = f.installCents ? `${money(f.installCents)} install, once per car` : 'Install quoted for your car';
+  const amt = (c: number) => (c === 0 ? 'Free' : money(c));
+  const st = stage(f);
+  const owner: PriceCard = { forWhom: `${f.brand} vehicle owners`, amount: amt(x.ownerCents), per: 'the tracker', points: ['For cars listed with us', ins, 'Live GPS, kill switch, door locking and alarm'] };
+  const pre: PriceCard | null = st === 'regular' ? null : st === 'free'
+    ? { forWhom: `The first ${x.freeFirst} pre-orders`, amount: 'Free', per: 'the tracker', best: true, tag: 'Pre-order now', points: [`${money(x.preorderCents)} on pre-order after that`, `Installed by ${f.brand}`, ins] }
+    : { forWhom: 'Pre-order', amount: amt(x.preorderCents), per: 'the tracker', best: true, tag: 'Pre-order now', points: [`${money(Math.max(0, x.regularCents - x.preorderCents))} less than after launch`, `Installed by ${f.brand}`, ins] };
+  const reg: PriceCard = { forWhom: f.available ? 'Everyone else' : 'After launch', amount: amt(x.regularCents), per: 'the tracker', best: st === 'regular', points: ['The regular price', ins, 'Live GPS, kill switch, door locking and alarm'] };
+  return [owner, ...(pre ? [pre] : []), reg];
 }
 
 interface Props {
@@ -53,7 +56,6 @@ export async function TrackerTemplate(x: Props) {
   const features = [...f.features].sort((a, b) => { const r = (t: string) => { const i = (x.lead ?? []).findIndex((l) => t.toLowerCase().startsWith(l.toLowerCase())); return i < 0 ? 99 : i; }; return r(a.title) - r(b.title); });
   const intents = trackerIntents(f).filter((i) => `/trackers/${i.slug}` !== x.path);
   const cta = ctaLabel(f);
-  const lo = lowest(f);
   const toc: Array<[string, string]> = [['Price', 'price'], ['What it does', 'features'], ...(x.own ? [[x.own.h.length > 26 ? 'How it works' : x.own.h, 'own'] as [string, string]] : []),
     ...(x.compare ? [['Compare', 'compare'] as [string, string]] : []), [cta, 'waitlist'], ['Questions', 'faq']];
   return (
@@ -66,8 +68,8 @@ export async function TrackerTemplate(x: Props) {
       <KitToc items={toc} />
       <div className="wrap landing__body">
         {x.placeNote}
-        <KitSection id="price" kicker="Price" h="One price per car, lower as you add cars" p={`${availability(f)}. Nothing is charged until we confirm your install.`}>
-          <KitPrices cards={priceCards(f)} fine={`Monthly prices are per car, before ${f.hst} HST. The price per car is set by how many cars you have with us.${f.installCents ? ` The ${money(f.installCents)} install is charged once per car.` : ''}`} />
+        <KitSection id="price" kicker="Price" h={stage(f) === 'free' ? `Free for the first ${f.prices.freeFirst} pre-orders` : 'One price for the tracker, one for the install'} p={`${availability(f)}. Nothing is charged until we confirm your install.`}>
+          <KitPrices cards={priceCards(f)} fine={`Prices are per tracker, one per car, before ${f.hst} HST.${f.installCents ? ` Everyone pays the ${money(f.installCents)} install, once per car.` : ''}${f.available ? '' : ` A pre-ordered tracker is installed by ${f.brand}.`}`} />
         </KitSection>
         <KitSection id="features" kicker="What it does" h="See it, lock it, stop it, prove it" p="Everything is worked from your phone or computer.">
           <KitTiles items={features.map((ft) => ({ icon: featureIcon(ft.title), title: ft.title, text: ft.text }))} />
@@ -83,13 +85,13 @@ export async function TrackerTemplate(x: Props) {
           <div className="sk-two">
             <div className="stack" style={{ gap: 'var(--s-5)' }}>
               <KitFacts rows={[['Product', f.name], ['What it is', 'GPS tracker with a remote kill switch (starter interrupt), door locking and alarm'],
-                ['Monthly price', priceSentence(f)], ['Install', f.installCents ? `${money(f.installCents)} once per car` : 'Quoted for your car'],
-                ['When', f.available ? 'Installs are open' : `${f.launchNote}. Waitlist and pre-orders are open`], ['Installed by', `${f.brand}, ${f.city}, Ontario`], ['From', lo !== null ? `${monthly(lo)} per car` : null]]} />
+                ['The tracker', PriceSentence(f)], ['Install', f.installCents ? `${money(f.installCents)} once per car` : 'Quoted for your car'],
+                ['When', f.available ? 'Installs are open' : `${f.launchNote}. Waitlist and pre-orders are open`], ['Installed by', `${f.brand}, ${f.city}, Ontario`], ['Price today', priceShort(f)]]} />
               <KitTrust items={[['shield', 'Nothing charged to join'], ['wrench', `Installed by ${f.brand}`], ['users', 'A person answers every sign-up'], ['dollar', 'Price confirmed in writing first']]} />
             </div>
             <div id="waitlist" style={{ scrollMarginTop: 'calc(var(--header-h) + 1rem)' }}>
-              <WaitlistForm tiers={f.tiers} installCents={f.installCents} available={f.available} city={x.city} note={f.available ? 'Tell us how many cars. We reply with your install day and confirm the price before anything is billed.'
-                : `${f.launchNote}. Leave your email and the number of cars: you hear first, and nothing is charged today.`} />
+              <WaitlistForm prices={f.prices} brand={f.brand} installCents={f.installCents} available={f.available} city={x.city} note={f.available ? 'Tell us how many cars. We reply with your install day and confirm the price before anything is billed.'
+                : `${f.launchNote}. Leave your email and the number of cars: you hear first, and nothing is charged today.${stage(f) === 'free' ? ` The tracker is free for the first ${f.prices.freeFirst} pre-orders.` : ''}`} />
             </div>
           </div>
         </KitSection>
@@ -107,7 +109,7 @@ export async function TrackerTemplate(x: Props) {
         </KitSection>
       </div>
       <ServicePromo exclude="trackers" />
-      <KitSticky title={lo !== null ? `From ${monthly(lo)} per car` : f.name} sub={f.available ? 'Installs are open' : f.launchNote} cta={cta} href="#waitlist" />
+      <KitSticky title={stage(f) === 'free' ? `Free for the first ${f.prices.freeFirst} pre-orders` : `${money(deviceNow(f))} ${f.available ? 'per tracker' : 'on pre-order'}`} sub={f.available ? 'Installs are open' : f.launchNote} cta={cta} href="#waitlist" />
     </div>
   );
 }

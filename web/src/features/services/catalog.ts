@@ -7,7 +7,7 @@ import type { KitIcon } from '../seo/kit/icons.tsx';
 
 export interface ServiceFacts {
   brand: string; city: string;
-  trackerFromCents: number | null; trackerAvailable: boolean; trackerNote: string; trackerOn: boolean;
+  trackerPrice: string | null; trackerAvailable: boolean; trackerNote: string; trackerOn: boolean;
   deliveryFromCents: number | null; chauffeurFromCents: number | null; minAge: number | null; licence: string | null;
   airports: Array<{ code: string; name: string }>; coverageOptions: number;
   addons: Array<{ code: string; name: string; price_cents: number | null; pricing_unit: string }>;
@@ -28,7 +28,7 @@ export function serviceCards(f: ServiceFacts): ServiceCard[] {
   const seat = addon('child_seat') ?? addon('baby_seat');
   const cards: Array<ServiceCard | null> = [
     f.trackerOn ? { key: 'trackers', icon: 'pin', feature: true, title: 'GPS tracker and kill switch', line: 'See your car live, lock it and keep it from being started, from your phone.',
-      fact: f.trackerFromCents ? `From ${money(f.trackerFromCents)} a month per car${f.trackerAvailable ? '' : ` · ${f.trackerNote}`}` : f.trackerAvailable ? null : f.trackerNote, href: '/trackers', go: f.trackerAvailable ? 'See the tracker' : 'Join the waitlist',
+      fact: f.trackerPrice ? `${f.trackerPrice}${f.trackerAvailable ? '' : ` · ${f.trackerNote}`}` : f.trackerAvailable ? null : f.trackerNote, href: '/trackers', go: f.trackerAvailable ? 'See the tracker' : 'Pre-order or join the waitlist',
       more: [{ href: '/trackers/kill-switch-for-car', label: 'Kill switch for a car' }, { href: '/trackers/gps-tracker-for-rental-car', label: 'GPS tracker for rental cars' }, { href: '/trackers/anti-theft-tracker-toronto', label: `Anti-theft tracker in ${f.city}` },
         { href: '/trackers/fleet-tracking', label: 'Fleet tracking' }, { href: '/trackers/turo-host-gps-tracker', label: 'Tracker for Turo hosts' }, { href: '/trackers/install', label: 'Tracker install near you' }] } : null,
     { key: 'owner', icon: 'key', title: 'List your car and earn', line: 'We find the renters, check them, take the payments and send you a monthly statement.', fact: null, href: '/list-your-car', go: 'See the owner program',

@@ -9,17 +9,19 @@ export default {
   digest: false,
   trigger: 'A person joins the GPS tracker waitlist or pre-orders on /trackers (public.submit_tracker_waitlist, migration 3231). Once per sign-up.',
   timing: 'Immediate',
-  subject: 'You are on the {{tracker_name}} waitlist',
+  subject: 'You are on the {{tracker_name}} list',
   preheader: 'We will write as soon as the trackers arrive. Nothing is charged today.',
   ref: 'Tracker waitlist',
   body: [
-    hero('Waitlist', 'You are on the list, {{first_name}}.', 'The {{tracker_name}} is not in stock yet. We will write to you as soon as it is, before anyone else.'),
+    hero('{{tier_label}}', 'You are on the list, {{first_name}}.', 'We have your details for the {{tracker_name}}. We write to you first, as soon as your install can be booked.'),
     facts(
+      ['You joined as', '{{tier_label}}'],
       ['Cars', '{{cars_count}}'],
-      ['Monthly price for that many cars', '{{monthly_price}} per car'],
-      ['One-time install', '{{install_price}} per car'],
+      ['The tracker', '{{tracker_price}}'],
+      ['Install', '{{install_price}}'],
     ),
-    p('Nothing is charged today. The prices above are the ones on our website now, before HST; we confirm yours before anything is billed.'),
+    p('{{tier_note}}'),
+    p('Nothing is charged today. Prices are before HST; we confirm yours in writing before anything is billed.'),
     h('What happens next'),
     steps(
       ['We tell you when trackers arrive', 'People on the waitlist hear first, in the order they joined.'],
@@ -30,6 +32,7 @@ export default {
     small('Not you, or changed your mind? Reply to this email and we take you off the list.'),
   ],
   sample: {
-    tracker_name: 'CarmaCars GPS tracker', cars_count: '3', monthly_price: '$20 a month', install_price: '$150',
+    tracker_name: 'CarmaCars GPS tracker', cars_count: '3', tier_label: 'Pre-order', tracker_price: 'Free with your pre-order',
+    tier_note: 'A pre-ordered tracker is installed by us. You pay the install only.', install_price: '$150 once per car',
   },
 };
