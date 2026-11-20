@@ -1,0 +1,21 @@
+/* Motion tokens (release 48 AN). Portable: no brand names, no imports; a brand build sets --mo-accent and --mo-focus.
+   Durations follow Material 3 and Apple HIG for small UI changes (short: 100-250 ms); easings: standard for moves on screen,
+   decelerate for entrances, accelerate for exits, spring (a small overshoot) for presses and pops. */
+:root {
+  --mo-fast: 120ms;      /* presses, focus, checkbox pop */
+  --mo-base: 180ms;      /* hovers, toggles, tabs */
+  --mo-slow: 250ms;      /* toasts, ticks, list entries */
+  --mo-stagger: 40ms;    /* the gap between list items entering */
+  --mo-ease: cubic-bezier(0.2, 0, 0, 1);            /* standard */
+  --mo-ease-in: cubic-bezier(0.3, 0, 1, 0.6);       /* accelerate: leaving the screen */
+  --mo-ease-out: cubic-bezier(0, 0, 0, 1);          /* decelerate: entering */
+  --mo-spring: cubic-bezier(0.34, 1.56, 0.64, 1);   /* release of a press, a pop */
+  --mo-ease-in-out-car: cubic-bezier(0.55, 0, 0.75, 0.25); /* the drive-off: slow in, accelerating out */
+  --mo-drive-out: 290ms;  /* every move under 300 ms (the owner's rule) */
+  --mo-drive-in: 280ms;
+  --mo-press-scale: 0.97;
+  --mo-lift: -2px;
+  --mo-accent: currentColor;
+  --mo-focus: #2563eb;
+  --mo-ok: #1f7a3a;
+}

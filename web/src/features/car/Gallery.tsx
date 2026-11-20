@@ -22,7 +22,10 @@ export function Gallery({ name, photos, gate }: { name: string; photos: Photo[];
   const [cur, setCur] = useState(0);
   const passed = useGatePassed();
   const { ask, dialog } = usePhoneGate(gate);
-  const free = Math.max(1, gate?.free_photos ?? 4);
+  // r48 AN (3150): the studio renders never count against the free photos, so the car's own photos (after them) are as
+  // free to see as before: the phone number box opens only past the free photos of the car's own
+  const rendered = photos.filter((g) => g.generated).length;
+  const free = Math.max(1, gate?.free_photos ?? 4) + rendered;
   const scrollTo = (i: number) => {
     const t = track.current; if (!t) return; const n = Math.max(0, Math.min(photos.length - 1, i));
     const li = t.children[n] as HTMLElement | undefined;
@@ -32,7 +35,7 @@ export function Gallery({ name, photos, gate }: { name: string; photos: Photo[];
   const gated = useRef<{ locked: (i: number) => boolean; open: (i: number) => void }>({ locked: () => false, open: () => undefined });
   useEffect(() => {
     gated.current = {
-      locked: (i: number) => !passed && photoLocked(i, photos.length, gate),
+      locked: (i: number) => !passed && i >= rendered && photoLocked(i - rendered, photos.length - rendered, gate),
       open: (i: number) => { void ask('gallery', () => { gated.current.locked = () => false; scrollTo(i); }); }
     };
   });
@@ -68,8 +71,18 @@ export function Gallery({ name, photos, gate }: { name: string; photos: Photo[];
   };
   const go = (i: number) => { if (gated.current.locked(i)) gated.current.open(i); else scrollTo(i); };
   if (!photos.length) return <div className="gallery"><div className="skeleton sk-img" /></div>;
+  // r48 AN (3150): the studio renders come first, the car's own photos after them: said above the gallery, with a way
+  // straight to the real photos (never hidden)
+  const firstReal = photos.findIndex((g) => g.real);
+  const reals = firstReal < 0 ? 0 : photos.length - firstReal;
   return (
     <div className="gallery" aria-roledescription="carousel" aria-label={`${name} photos`}>
+    {rendered > 0 && (
+      <p className="gallery__note small muted" data-testid="rendered-note">
+        <b>Rendered photos.</b> The first {rendered === 1 ? 'photo is a studio render' : `${rendered} photos are studio renders`} made from this car&apos;s own photos.
+        {reals > 0 && <> <button type="button" className="link" onClick={() => go(firstReal)} data-testid="see-real-photos">See its real photos ({reals})</button></>}
+      </p>
+    )}
       <ul className="gallery__track" tabIndex={0} aria-label="Photos. Use the arrow keys to move between them." ref={track}
         onPointerMove={zoomAt}
         onKeyDown={(e) => { if (e.key === 'ArrowRight') { e.preventDefault(); go(cur + 1); } if (e.key === 'ArrowLeft') { e.preventDefault(); go(cur - 1); } }}>
@@ -83,7 +96,7 @@ export function Gallery({ name, photos, gate }: { name: string; photos: Photo[];
         ))}
       </ul>
       <div className="gallery__ui">
-        <span className="gallery__count"><b className="num">{cur + 1} / {photos.length}</b> <span>{photos[cur]?.label}</span></span>
+        <span className="gallery__count"><b className="num">{cur + 1} / {photos.length}</b> <span>{photos[cur]?.label}{photos[cur]?.generated ? ' (rendered)' : photos[cur]?.real && rendered > 0 ? ' (real photo)' : ''}</span></span>
         <span className="row">
           <button type="button" className="icon-btn" aria-label="Previous photo" disabled={cur === 0} onClick={() => go(cur - 1)} title={((cur === 0)) ? 'This is the first photo' : undefined}><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4l-6 6 6 6" fill="none" stroke="currentColor" strokeWidth="2" /></svg></button>
           <button type="button" className="icon-btn" aria-label="Next photo" disabled={cur === photos.length - 1} onClick={() => go(cur + 1)} title={((cur === photos.length - 1)) ? 'This is the last photo' : undefined}><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" /></svg></button>

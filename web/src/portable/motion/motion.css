@@ -1,0 +1,103 @@
+/* Micro-interactions (release 48 AN): shared, subtle (120-250 ms), transform and opacity only, never at first paint.
+   Portable: class and data-attribute hooks only (mo-*, data-mo-*), plus the common roles; a brand build adds its own
+   selectors to the lists marked "hooks". Reduced motion (the system setting, or html[data-motion="reduced"] from the
+   pause control, WCAG 2.2.2): nothing moves; nothing flashes (WCAG 2.3.1: no element changes more than once a second). */
+
+/* ---------------------------------------------------------------- touch: no grey flash, no double-tap zoom delay on buttons */
+:where(button, [role="button"], .mo-press) { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+
+/* ---------------------------------------------------------------- focus rings (every element, keyboard focus only) */
+:where(a, button, input, select, textarea, summary, [tabindex], [role="button"], [role="tab"], [role="switch"]):focus-visible {
+  outline: 2px solid var(--mo-focus); outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* button press: down quick, back with a spring */
+  html:not([data-motion="reduced"]) :where(button, [role="button"], .mo-press, input[type="submit"], input[type="button"]):not(:disabled) { transition: scale var(--mo-slow) var(--mo-spring); }
+  html:not([data-motion="reduced"]) :where(button, [role="button"], .mo-press, input[type="submit"], input[type="button"]):not(:disabled):active {
+    scale: calc(var(--mo-press-scale) + 0.015) calc(var(--mo-press-scale) - 0.01); transition-duration: var(--mo-fast); transition-timing-function: var(--mo-ease); }
+  /* the press highlight: a soft flash of the button's own colour from the pointer (runtime sets --mo-x, --mo-y) */
+  html:not([data-motion="reduced"]) .mo-ripple { position: relative; overflow: hidden; isolation: isolate; }
+  html:not([data-motion="reduced"]) .mo-ripple::before { content: ""; position: absolute; z-index: -1; left: var(--mo-x, 50%); top: var(--mo-y, 50%); width: 10px; height: 10px; margin: -5px 0 0 -5px;
+    border-radius: 50%; background: currentColor; opacity: 0; transform: scale(0); pointer-events: none; }
+  html:not([data-motion="reduced"]) .mo-ripple.is-mo-pressed::before { animation: mo-ripple var(--mo-slow) var(--mo-ease-out); }
+  /* toggles and checkboxes */
+  html:not([data-motion="reduced"]) input[type="checkbox"]:checked, html:not([data-motion="reduced"]) input[type="radio"]:checked { animation: mo-pop var(--mo-slow) var(--mo-spring); }
+  html:not([data-motion="reduced"]) :where([role="switch"], .mo-switch) * , html:not([data-motion="reduced"]) :where([role="switch"], .mo-switch)::before, html:not([data-motion="reduced"]) :where([role="switch"], .mo-switch)::after { transition: transform var(--mo-base) var(--mo-ease), background-color var(--mo-base) var(--mo-ease); }
+  /* success tick after a save (runtime marks it) */
+  html:not([data-motion="reduced"]) [data-mo-saved]::before { animation: mo-tick var(--mo-slow) var(--mo-spring) both; }
+  /* tabs: the sliding pill (runtime) */
+  html:not([data-motion="reduced"]) .mo-tab-ind { transition: transform var(--mo-base) var(--mo-ease); }
+  /* toasts slide in */
+  html:not([data-motion="reduced"]) :where(.mo-toast, .toast) { animation: mo-toast-in var(--mo-slow) var(--mo-ease-out) backwards; }
+  /* lists stagger in (runtime sets --mo-i) */
+  html:not([data-motion="reduced"]) .mo-stagger-in { animation: mo-rise var(--mo-slow) var(--mo-ease-out) backwards; animation-delay: calc(var(--mo-i, 0) * var(--mo-stagger)); }
+  /* skeleton to content */
+  html:not([data-motion="reduced"]) .mo-fade-in { animation: mo-fade var(--mo-slow) var(--mo-ease-out) backwards; }
+}
+/* hover lift on cards (a brand build adds its card links to this list) */
+@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
+  html:not([data-motion="reduced"]) :where(.mo-lift, [data-lift]) { transition: translate var(--mo-base) var(--mo-ease); }
+  html:not([data-motion="reduced"]) :where(.mo-lift, [data-lift]):hover { translate: 0 var(--mo-lift); }
+}
+
+/* the success tick itself (shown with or without motion) */
+[data-mo-saved] { display: inline-flex; align-items: center; gap: 0.4em; }
+[data-mo-saved]::before {
+  content: ""; flex: none; width: 1.05em; height: 1.05em; border-radius: 50%; background: var(--mo-ok);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cdefs%3E%3Cmask id='m'%3E%3Ccircle cx='10' cy='10' r='10' fill='%23fff'/%3E%3Cpath d='M5.5 10.5l3 3 6-7' stroke='%23000' stroke-width='2.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/mask%3E%3C/defs%3E%3Crect width='20' height='20' mask='url(%23m)'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cdefs%3E%3Cmask id='m'%3E%3Ccircle cx='10' cy='10' r='10' fill='%23fff'/%3E%3Cpath d='M5.5 10.5l3 3 6-7' stroke='%23000' stroke-width='2.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/mask%3E%3C/defs%3E%3Crect width='20' height='20' mask='url(%23m)'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.mo-tick { display: inline-block; width: 1.1em; height: 1.1em; color: var(--mo-ok); vertical-align: -0.15em; }
+.mo-tick path { stroke-dasharray: 1; stroke-dashoffset: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-motion="reduced"]) .mo-tick circle { animation: mo-pop var(--mo-slow) var(--mo-spring) backwards; }
+  html:not([data-motion="reduced"]) .mo-tick path { animation: mo-draw var(--mo-slow) var(--mo-ease-out) 80ms backwards; }
+}
+
+/* the tabs' pill (runtime): behind the tabs, the current tab's own fill handed to it */
+[data-mo-tabs] { position: relative; isolation: isolate; }
+[data-mo-tabs="on"] > :not(.mo-tab-ind) { background-color: transparent !important; }
+.mo-tab-ind { position: absolute; z-index: -1; left: 0; top: 0; border-radius: 999px; background: var(--mo-tab-fill, currentColor); transform-origin: 0 50%; pointer-events: none; }
+
+/* ---------------------------------------------------------------- the pause control (WCAG 2.2.2): everything still */
+html[data-motion="reduced"] *, html[data-motion="reduced"] *::before, html[data-motion="reduced"] *::after {
+  animation-duration: 0.01ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important; transition-delay: 0ms !important; scroll-behavior: auto !important;
+}
+
+/* ---------------------------------------------------------------- line drawing (a logo's strokes, then its fill) */
+.mo-draw { display: block; overflow: visible; }
+.mo-draw__stroke { fill: none; stroke-width: var(--mo-draw-width, 1.4); stroke-linejoin: round; stroke-linecap: round; opacity: 0; }
+/* design-allow: the logo's line drawing is a once-a-session brand moment (1.5 s), not a control */
+html[data-mo-draw="play"] .mo-draw__stroke { opacity: 1; stroke-dasharray: 1; stroke-dashoffset: 1; animation: mo-draw var(--mo-draw-ms, 1400ms) var(--mo-ease) forwards, mo-out 300ms var(--mo-ease) calc(var(--mo-draw-ms, 1400ms) + 250ms) forwards; }
+html[data-mo-draw="play"] .mo-draw__fill { opacity: 0; animation: mo-fade var(--mo-slow) var(--mo-ease-out) calc(var(--mo-draw-ms, 1400ms) - 100ms) forwards; } /* design-allow: starts after the drawing */
+@keyframes mo-out { to { opacity: 0; } }
+
+/* ---------------------------------------------------------------- drive-off (a cut-out car leaves its frame) */
+.mo-drive { position: relative; overflow: hidden; }
+.mo-drive__car { position: absolute; inset: 0; will-change: auto; }
+.mo-drive__body, .mo-drive__ghost { position: absolute; left: var(--mo-car-left, 7%); right: var(--mo-car-right, 7%); bottom: var(--mo-car-bottom, 15%); width: auto; max-width: none; height: auto; }
+.mo-drive__body { width: calc(100% - var(--mo-car-left, 7%) - var(--mo-car-right, 7%)); transform-origin: 50% 100%; }
+.mo-drive__body > img, .mo-drive__ghost > img { display: block; width: 100%; height: auto; }
+.mo-drive__ghost { width: calc(100% - var(--mo-car-left, 7%) - var(--mo-car-right, 7%)); opacity: 0; pointer-events: none; }
+.mo-drive--mirror .mo-drive__body > img, .mo-drive--mirror .mo-drive__ghost > img { transform: scaleX(-1); }
+@media (prefers-reduced-motion: no-preference) {
+  /* anticipation: a small pull back, then off along a slight arc; the return drives in from the other side and settles */
+  html:not([data-motion="reduced"]) .mo-drive.is-off .mo-drive__car { will-change: transform; animation: mo-drive-out var(--mo-drive-out, 290ms) var(--mo-ease-in-out-car) forwards; }
+  html:not([data-motion="reduced"]) .mo-drive.is-off .mo-drive__body { animation: mo-squat var(--mo-drive-out, 290ms) var(--mo-ease-in) forwards; }
+  html:not([data-motion="reduced"]) .mo-drive.is-off .mo-drive__ghost { opacity: 0.28; transform: translateX(5%); transition: opacity var(--mo-fast) var(--mo-ease), transform var(--mo-drive-out, 290ms) var(--mo-ease-in); }
+  html:not([data-motion="reduced"]) .mo-drive.is-back .mo-drive__car { will-change: transform; animation: mo-drive-in var(--mo-drive-in, 280ms) var(--mo-ease-out); }
+}
+/* no cutout, or reduced motion: the gentle lift (the card's own) */
+
+@keyframes mo-ripple { 0% { opacity: 0.18; transform: scale(0); } 100% { opacity: 0; transform: scale(30); } }
+@keyframes mo-pop { 0% { scale: 0.82; } 100% { scale: 1; } }
+@keyframes mo-tick { from { scale: 0.4; opacity: 0; } }
+@keyframes mo-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes mo-toast-in { from { opacity: 0; transform: translateY(12px); } }
+@keyframes mo-rise { from { opacity: 0; transform: translateY(8px); } }
+@keyframes mo-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes mo-drive-out { 0% { transform: none; } 18% { transform: translateX(3%); } 100% { transform: translate(-125%, -1.5%); } }
+@keyframes mo-drive-in { 0% { transform: translate(120%, -1.5%); } 85% { transform: translateX(-1.2%); } 100% { transform: none; } }
+@keyframes mo-squat { 0% { transform: none; } 25% { transform: skewX(-3deg) translateY(1%); } 100% { transform: skewX(-6deg); } }

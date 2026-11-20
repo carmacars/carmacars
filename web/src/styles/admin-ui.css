@@ -246,7 +246,7 @@
 .ad-settings span.small { color: var(--text-2); }
 
 /* ---------------------------------------------------------------- jump to a page (Ctrl+K) */
-.ad-cmd { width: min(38rem, calc(100vw - 2rem)); max-height: min(34rem, calc(100vh - 6rem)); margin: 12vh auto auto; padding: 0; border: 1px solid var(--grey-300); border-radius: 16px; background: var(--white); box-shadow: var(--shadow-float); overflow: hidden; }
+.ad-cmd { width: min(38rem, calc(100vw - 2rem)); max-height: min(34rem, calc(100vh - 6rem)); max-height: min(34rem, calc(100dvh - 6rem)); margin: 12vh auto auto; padding: 0; border: 1px solid var(--grey-300); border-radius: 16px; background: var(--white); box-shadow: var(--shadow-float); overflow: hidden; }
 .ad-cmd[open] { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
 .ad-cmd::backdrop { background: rgb(0 0 0 / 0.45); }
 .ad-cmd__field { display: flex; align-items: center; gap: var(--s-2); padding: var(--s-3) var(--s-4); border-bottom: 1px solid var(--grey-200); }

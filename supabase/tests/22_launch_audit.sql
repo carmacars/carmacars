@@ -9,8 +9,9 @@ select test.mk_vehicle('LA1', 'la_o');
 select test.mk_vehicle('LA2', 'la_o');
 select test.mk_vehicle('LA3', 'la_o');
 -- LA1 and LA2 share a model; LA3 is alone on its model page
-update vehicles set model = 'Corolla LA', make = 'Toyota' where id in (test.id('vehicle:LA1'), test.id('vehicle:LA2'));
-update vehicles set model = 'Civic LA', make = 'Honda' where id = test.id('vehicle:LA3');
+-- r48 AN (3151): model names no family rule reads ("Corolla LA" is now the Corolla with the trim LA, "Civic LA" the Civic)
+update vehicles set model = 'Corolla-LA', make = 'Toyota' where id in (test.id('vehicle:LA1'), test.id('vehicle:LA2'));
+update vehicles set model = 'Civic-LA', make = 'Honda' where id = test.id('vehicle:LA3');
 insert into vehicle_listings (vehicle_id, slug, headline, status, published_at)
 values (test.id('vehicle:LA1'), 'toyota-corolla-la1', 'Toyota Corolla', 'published', now()),
        (test.id('vehicle:LA2'), 'toyota-corolla-la2', 'Toyota Corolla', 'published', now()),

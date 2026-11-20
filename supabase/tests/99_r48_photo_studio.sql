@@ -69,10 +69,12 @@ select i, v, 'photo_r45', 'queued', now() + interval '1 day', '{}'::jsonb, 4
   from (values ((select a from rs30_i), test.id('vehicle:rs30_a')), ((select b from rs30_i), test.id('vehicle:rs30_b'))) x(i, v);
 select test.eq('steps waiting until tomorrow are not due', app.photo_r48_due(), 0);
 create temp table rs30_run as select app.job_photo_r48() as msg;
+-- r48 AN (3150): the cover is the side profile now
 select test.ok('the job still queues the covers when the batch is full of steps waiting far ahead',
-  (test.rs30_row('rs30_a', 'front_left')).id is not null and (test.rs30_row('rs30_b', 'front_left')).id is not null, (select msg from rs30_run));
+  (test.rs30_row('rs30_a', 'left')).id is not null and (test.rs30_row('rs30_b', 'left')).id is not null, (select msg from rs30_run));
 delete from listing_jobs where kind = 'photo_r45' and next_attempt_at > now() + interval '12 hours' and vehicle_photo_id is null;
 update program_settings set listing_photo_r45_batch = 200 where id = (select id from app.settings());
+select app.job_photo_r48();  -- the other views (the front three-quarter second)
 
 -- ---------------------------------------------------------------- 2. the job context: scene, tries, the plate of the scene
 insert into listing_r48_plates (scene, family, path, source) values ('showroom_dark', 'front', 'site/r48/plates/front-dark1.jpg', 'admin'),
@@ -112,15 +114,16 @@ select test.rs30_answer((test.rs30_row('rs30_a', 'front_left')).id, test.rs30_ma
 select app.job_photo_r48();
 select test.rs30_answer((test.rs30_row('rs30_a', 'rear')).id, test.rs30_made('vehicles/rs30/a-rear-r48.jpg'));
 create temp table rs30_g as select app.public_listing_photos(test.id('vehicle:rs30_a')) as g;
-select test.ok('the gallery: the generated set only, in the standard order, the front three-quarter the cover',
-  (select g -> 0 ->> 'path' = 'vehicles/rs30/a-fl-r48.jpg' and (g -> 0 ->> 'is_cover')::boolean and jsonb_array_length(g) = 2 and g -> 1 ->> 'path' = 'vehicles/rs30/a-rear-r48.jpg'
-          and not (g -> 1 ->> 'is_cover')::boolean and (g -> 1 ->> 'generated')::boolean from rs30_g));
+-- r48 AN (3150): the renders in the standard order (the side profile first when made), then the car's real photos
+select test.ok('the gallery: the renders first in the standard order, the first the cover, then the real photos',
+  (select g -> 0 ->> 'path' = 'vehicles/rs30/a-fl-r48.jpg' and (g -> 0 ->> 'is_cover')::boolean and jsonb_array_length(g) > 2 and g -> 1 ->> 'path' = 'vehicles/rs30/a-rear-r48.jpg'
+          and not (g -> 1 ->> 'is_cover')::boolean and (g -> 1 ->> 'generated')::boolean and (g -> 2 ->> 'real')::boolean from rs30_g));
 select test.ok('the listing row''s cover is the gallery''s first photo (live row and the cached row)',
   (app.public_listing_row_live(test.id('vehicle:rs30_a')) #>> '{cover,path}') is not distinct from 'vehicles/rs30/a-fl-r48.jpg'
   and (app.public_listing_row(test.id('vehicle:rs30_a')) #>> '{cover,path}') is not distinct from 'vehicles/rs30/a-fl-r48.jpg',
   coalesce(app.public_listing_row_live(test.id('vehicle:rs30_a')) #>> '{cover,path}', 'no row'));
 select test.ok('the sitemap''s image tags are the gallery',
-  (select images -> 0 ->> 'loc' = 'vehicles/rs30/a-fl-r48.jpg' and jsonb_array_length(images) = 2 from app.public_sitemap_rows() where path = '/cars/rs30-a'),
+  (select images -> 0 ->> 'loc' = 'vehicles/rs30/a-fl-r48.jpg' and jsonb_array_length(images) > 2 from app.public_sitemap_rows() where path = '/cars/rs30-a'),
   (select images::text from app.public_sitemap_rows() where path = '/cars/rs30-a'));
 select test.ok('the real photos stay approved and public in their records',
   (select bool_and(is_public and status = 'approved') from vehicle_photos where id in ((select fl from rs30_ap), (select rear from rs30_ap))));
@@ -132,7 +135,7 @@ select test.ok('the set of a car: nine angles, the generated view beside the ori
           and jsonb_array_length(s -> 'angles' -> 0 -> 'originals') = 1 and (s ->> 'studio_cover')::boolean from rs30_set));
 select app.door(test.id('rs30_fleet'), 'aal2', 'ops_do', 'photo_r48_angle', jsonb_build_object('vehicle', test.id('vehicle:rs30_a'), 'shot', 'rear', 'action', 'hide'));
 select test.ok('hide: the generated rear is off the site and out of the gallery',
-  not (test.rs30_row('rs30_a', 'rear')).is_public and not exists (select 1 from jsonb_array_elements(app.public_listing_photos(test.id('vehicle:rs30_a'))) e where e ->> 'shot' = 'rear'));
+  not (test.rs30_row('rs30_a', 'rear')).is_public and not exists (select 1 from jsonb_array_elements(app.public_listing_photos(test.id('vehicle:rs30_a'))) e where e ->> 'shot' = 'rear' and (e ->> 'generated')::boolean));
 select app.door(test.id('rs30_fleet'), 'aal2', 'ops_do', 'photo_r48_angle', jsonb_build_object('vehicle', test.id('vehicle:rs30_a'), 'shot', 'rear', 'action', 'show'));
 select test.ok('show: it is back', (test.rs30_row('rs30_a', 'rear')).is_public);
 select app.door(test.id('rs30_fleet'), 'aal2', 'ops_do', 'photo_r48_angle', jsonb_build_object('vehicle', test.id('vehicle:rs30_a'), 'shot', 'rear', 'action', 'redo'));

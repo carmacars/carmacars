@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 235,
+  "count": 237,
   "emails": [
     {
       "code": "account_password_reset",
@@ -11791,6 +11791,94 @@
       "template_text": "templates/owner_booking_confirmed.txt"
     },
     {
+      "code": "owner_car_photos_ready",
+      "audience": "owner",
+      "category": "transactional",
+      "trigger": "Release 48 AN (3150): every view of the photo standard is made for the owner's car (studio renders from the car's own photos, the side profile first) and they are on the car's page. Once per set of renders (the dedupe key is the car and the standard). Switch: the notice in Admin > Settings > Notifications (on by default); the owner can mute it.",
+      "timing": "Immediate, when the set is live",
+      "digest": false,
+      "from": "CarmaCars <owners@carmacars.ca>",
+      "reply_to": "owners@carmacars.ca",
+      "subject": "Your {{vehicle_name}} has new studio photos",
+      "preheader": "{{render_count}} studio views are on its page now, the side profile first. Its own photos follow them.",
+      "sample_subject": "Your 2023 Toyota RAV4 XLE has new studio photos",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Daniel",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "render_count",
+          "type": "string",
+          "sample": "9"
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "vehicle_id",
+          "type": "string",
+          "sample": "v-3f81c2",
+          "note": "Vehicle id as used in portal URLs."
+        },
+        {
+          "name": "vehicle_image_url",
+          "type": "url",
+          "sample": "",
+          "note": "Public listing photo, 1200px wide or more. Leave empty when there is none; the dark name block shows instead."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2023 Toyota RAV4 XLE",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/owner_car_photos_ready.html",
+      "template_text": "templates/owner_car_photos_ready.txt"
+    },
+    {
       "code": "owner_car_set_up",
       "audience": "owner",
       "category": "transactional",
@@ -19065,6 +19153,61 @@
       ],
       "template_html": "templates/staff_calendar_feed_failing.html",
       "template_text": "templates/staff_calendar_feed_failing.txt"
+    },
+    {
+      "code": "staff_car_photos_ready",
+      "audience": "staff_va_fleet",
+      "also_sent_to": [
+        "staff_admin"
+      ],
+      "category": "transactional",
+      "trigger": "Release 48 AN (3150): every view of the photo standard is made for a car (studio renders, the side profile the cover) and they went live at once, with no approval step. Queued for the next Fleet digest so a person can look them over. Once per set of renders.",
+      "timing": "Next digest",
+      "digest": true,
+      "digest_slot": "next",
+      "from": "CarmaCars <owners@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Studio photos live: {{vehicle_name}}",
+      "preheader": "{{render_count}} renders went live, the side profile first. Look them over and make any again.",
+      "sample_subject": "Studio photos live: 2023 Toyota RAV4 XLE",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "owner_name",
+          "type": "string",
+          "sample": "Daniel Okafor"
+        },
+        {
+          "name": "render_count",
+          "type": "string",
+          "sample": "9"
+        },
+        {
+          "name": "vehicle_id",
+          "type": "string",
+          "sample": "v-3f81c2",
+          "note": "Vehicle id as used in portal URLs."
+        },
+        {
+          "name": "vehicle_image_url",
+          "type": "url",
+          "sample": "",
+          "note": "Public listing photo, 1200px wide or more. Leave empty when there is none; the dark name block shows instead."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2023 Toyota RAV4 XLE",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/staff_car_photos_ready.html",
+      "template_text": "templates/staff_car_photos_ready.txt"
     },
     {
       "code": "staff_digest_eod_va_fleet",
