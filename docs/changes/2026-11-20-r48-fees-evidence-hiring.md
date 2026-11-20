@@ -116,7 +116,7 @@ The owner's wording: `almash/work/hotfix-notes/owner-backlog-2026-11-20.md`, 10:
 - Not done here, said plainly: the e2e spec `web/tests/e2e/r48fe-data-checks.spec.ts` (data check pop-up with the email queued, the
   Sales one click, owner use for someone else, screenshots at 320/375/768/1280/1440 with long names) is written but was not run: the
   shared machine had 1 GB of memory free and a load of 11, too little for a Next build and the local stack. It runs in the release CI.
-  No texts were added (none of these events is urgent enough for one). The guide PDFs were not re-rendered.
+  Texts: the renter's and the owner's data check reminder (`sms_templates`); the staff alerts stay push and in-app. The guide PDFs were not re-rendered.
 
 ## Tests
 
@@ -125,7 +125,7 @@ The owner's wording: `almash/work/hotfix-notes/owner-backlog-2026-11-20.md`, 10:
   `features/data-checks/model.test.ts`, `features/academy/gate.test.ts` (new order).
 - Base tests updated for the new behaviour: `03_flows` (tire_cost pass-through), `09_operations` (dirty returns carry guided photos),
   `97_deposit_guard` and `99_r33h_finishing` (charge_after_rental wrapped; the toll carries its notice), `11`, `16`, `09` and
-  `12` (Install Fee $150), `07_notifications` (the three data check emails), `99_r35g_*`, `99_r35k_staff_onboarding`,
+  `12` (Install Fee $150), `07_notifications` (the three data check emails), `71_text_alerts` (two texts), `99_r35g_*`, `99_r35k_staff_onboarding`,
   `99_r38_release_fixes` (agreement first; "I joined" ticks the member tag), `99_r43_stricter_ai` (now a Customer Service role:
   Sales is judged by the score at the bar).
 - Fixed in review: 3190's statement gate kept 0195's rule that a return recorded "details to follow" can be billed before review.

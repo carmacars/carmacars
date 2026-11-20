@@ -27,6 +27,11 @@ select app.notification_catalogue_refresh();
 -- CATALOGUE 3199 END
 update notification_catalogue set emitted_by = 'app.data_check_remind (3197, 3199): an Admin''s Send reminder on Settings > Staff, Owners or Renters'
  where code in ('renter_data_check', 'owner_data_check', 'staff_data_check');
+-- a text where it fits (the definition of done): the renter's and the owner's reminder, the same words as the email's first line
+insert into sms_templates (code, label, body, enabled, urgent, sort_order) values
+  ('renter_data_check', 'Please check your details', 'CarmaCars: something on your record needs a minute to fix. Check your details: {{link}}', true, false, coalesce((select max(sort_order) + 1 from sms_templates), 1)),
+  ('owner_data_check', 'Please check your details (owner)', 'CarmaCars: something on your owner record needs a minute to fix. Check your details: {{link}}', true, false, coalesce((select max(sort_order) + 2 from sms_templates), 2))
+on conflict (code) do nothing;
 
 insert into staff_alert_rules (rule, label, grp, who, tier, topic, enabled, wired, fixed, hint, sort)
 values ('terms_declined', 'Someone declined an updated agreement', 'Team', '{admin}', 'normal', 'documents', true, true, false,
