@@ -57,6 +57,8 @@ alter table program_settings alter column staff_inactive_lock_days set default 5
 update program_settings set staff_inactive_lock_days = 5 where staff_inactive_lock_days = 10;
 update program_settings set staff_inactive_warn_days = 3 where staff_inactive_warn_days = 7;
 update program_settings set staff_inactive_grace_from = now() where staff_inactive_grace_from is null;
+-- a Program settings row saved later keeps the same start (the column's default is this moment)
+do $$ begin execute format('alter table program_settings alter column staff_inactive_grace_from set default %L::timestamptz', now()); end $$;
 comment on column program_settings.staff_inactive_lock_days is 'A staff account (never an Admin) with no use of the portal for this many days in a row is suspended (3110: 5; 1060: 10). Suspended staff get only the suspension email with its restore link.';
 
 insert into staff_alert_rules (rule, label, grp, who, tier, topic, wired, fixed, hint, sort) values

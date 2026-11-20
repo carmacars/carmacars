@@ -14,6 +14,9 @@ update phone_threads set renter_id = test.id('renter:zcm_rita') where id = (sele
 -- every text of the earlier suites out of the way (a far future send time), the provider state clean
 create temp table zcm_others as select id, send_after from phone_outbox where status = 'queued';
 update phone_outbox o set send_after = timestamptz '2035-01-01' from zcm_others x where x.id = o.id;
+-- texts the earlier suites left sending are not claimed again here (claimed again only after 10 minutes)
+create temp table zcm_sending as select id, locked_at from phone_outbox where status = 'sending';
+update phone_outbox o set locked_at = now() - interval '6 seconds' from zcm_sending x where x.id = o.id;
 update phone_provider_state set quo_failed_at = null, quo_ok_at = null, quo_probe_at = null, quo_error = null;
 update program_settings set text_stale_minutes = 120, text_retry_paused_minutes = 30;
 
@@ -22,14 +25,15 @@ returns uuid language plpgsql as $$
 declare v uuid := test.id('zcm-text:' || p_label);
 begin
   insert into phone_outbox (id, thread_id, to_number, body, kind, renter_id, booking_id, sms_kind, dedupe_key)
-  values (v, (select thread_id from zcm_t), '+16475550177', 'CarmaCars: ' || p_label, p_kind, test.id('renter:zcm_rita'), p_booking, p_code, 'zcm:' || p_label);
+  values (v, (select thread_id from zcm_t), '+16475550177', 'ZCM text ' || p_label, p_kind, test.id('renter:zcm_rita'), p_booking, p_code, 'zcm:' || p_label);
   update phone_outbox set status = 'queued', send_after = now() - p_age, created_at = now() - p_age, locked_at = null where id = v;
   return v;
 end $$;
 create or replace function test.zcm_status(p_label text) returns text language sql as $$
   select status || '|' || coalesce(status_reason, '') from phone_outbox where id = test.id('zcm-text:' || p_label) $$;
 create or replace function test.zcm_claimed(p jsonb) returns text language sql as $$
-  select coalesce(string_agg(replace(x ->> 'body', 'CarmaCars: ', ''), ',' order by x ->> 'body'), '') from jsonb_array_elements(coalesce(p -> 'texts', '[]'::jsonb)) x $$;
+  select coalesce(string_agg(replace(x ->> 'body', 'ZCM text ', ''), ',' order by x ->> 'body'), '') from jsonb_array_elements(coalesce(p -> 'texts', '[]'::jsonb)) x
+   where x ->> 'body' like 'ZCM text %' $$;
 create or replace function test.zcm_alerts() returns bigint language sql as $$
   select count(*) from app_events where code like 'staff_alert_%' and payload ->> 'rule' = 'texts_not_sending' $$;
 
@@ -161,4 +165,5 @@ select test.eq('the fallback, suspension and restored emails are built for the o
 
 -- ================================================================ clean up: the earlier suites' texts back as they were
 update phone_outbox o set send_after = x.send_after from zcm_others x where x.id = o.id;
+update phone_outbox o set locked_at = x.locked_at from zcm_sending x where x.id = o.id;
 update phone_provider_state set quo_failed_at = null, quo_ok_at = null, quo_probe_at = null, quo_error = null;
