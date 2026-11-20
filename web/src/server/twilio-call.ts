@@ -472,7 +472,13 @@ export async function voiceSelfCheck(userId: string): Promise<SelfCheck> {
   const ap = accountProblem(a.status, a.j as never);
   steps.push({ step: 'Twilio account', ...ap });
   if (!ap.ok && (a.status === 401 || a.status === 403 || a.status === 404 || a.status === 0)) return done(false);
-  const b = await get(`${acct}/Balance.json`, { authorization: `Basic ${btoa(`${c.accountSid}:${c.authToken}`)}` });
+  // the Auth Token signs every webhook: a wrong or rotated one makes this site refuse every call Twilio hands it
+  const tokenAuth = { authorization: `Basic ${btoa(`${c.accountSid}:${c.authToken}`)}` };
+  const at = await get(`${acct}.json`, tokenAuth);
+  steps.push(at.status === 200 ? { step: 'Auth Token (webhook signatures)', ok: true, detail: 'The Auth Token is the account\'s current one.' }
+    : { step: 'Auth Token (webhook signatures)', ok: false, detail: `Twilio refused the Auth Token (${at.status}): every webhook is refused as unsigned, so calls end at once.`,
+        fix: 'Twilio Console > Account > API keys & tokens > Auth Tokens: copy the Primary token into the TWILIO_AUTH_TOKEN secret, then deploy.' });
+  const b = await get(`${acct}/Balance.json`, tokenAuth);
   steps.push({ step: 'Balance', ...balanceProblem(b.status, b.j as never) });
   const app = await twimlApp(c, true);
   const want = `${c.base}/api/webhooks/twilio/client`;
