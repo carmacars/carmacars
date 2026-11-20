@@ -94,3 +94,9 @@ on conflict (slug) do nothing;
 -- The search page templates changed (release 48: the kit, the services module, the folds): every programmatic page's
 -- lastmod moves once, so the sitemaps ask search engines to read them again.
 select app.seo_content_epoch_refresh('r48-1');
+
+-- IndexNow: the new pages are announced once (the five landing pages above queue themselves through their trigger).
+select app.indexnow_queue_path(p, 'r48 seo: new page')
+  from unnest(array['/trackers', '/trackers/install', '/services', '/trackers/kill-switch-for-car', '/trackers/starter-interrupt-device', '/trackers/gps-tracker-for-rental-car',
+                    '/trackers/anti-theft-tracker-toronto', '/trackers/fleet-tracking', '/trackers/turo-host-gps-tracker', '/trackers/toll-and-ticket-billing']) p;
+select app.indexnow_queue_path('/trackers/install/' || (x ->> 'slug'), 'r48 seo: new page') from jsonb_array_elements(public.tracker_install_places(60)) x;
