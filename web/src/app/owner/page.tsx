@@ -29,19 +29,29 @@ export const metadata = pageMeta({ title: 'Owner portal', path: '/owner', noinde
 // invoices and statements.
 export default async function OwnerHomePage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const [{ user, home }, sp] = await Promise.all([requireOwner('/owner'), searchParams]);
-  // what is left to sign on screen (0049): one package on /owner/sign
-  const checklist = (await rpc('server_my_signing_checklist', { p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as { items: Array<{ status: string; how: string; label: string; preview?: boolean }>; done: number; total: number } | null;
-  // what CarmaCars asked for on an application (0054), until the owner answers
-  const appTask = (await rpc('server_owner_application_task', { p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as AppTask | null;
+  // r48 speed: every read of the page at once (they were seven round trips one after another)
+  const shownCars = home.vehicles.slice(0, 4).filter((v) => !['declined', 'exited', 'total_loss'].includes(v.status));
+  const [checklistRaw, appTaskRaw, changesRaw, [view, mtd], onboarding, serviceRows, forecast] = await Promise.all([
+    // what is left to sign on screen (0049): one package on /owner/sign
+    rpc('server_my_signing_checklist', { p_by: user.id }, { role: 'service_role' }).catch(() => null),
+    // what CarmaCars asked for on an application (0054), until the owner answers
+    rpc('server_owner_application_task', { p_by: user.id }, { role: 'service_role' }).catch(() => null),
+    // 0067: an updated Vehicle Schedule to sign comes first; cars set up by staff can be reviewed and corrected before signing
+    rpc('server_owner_schedule_changes', { p_by: user.id }, { role: 'service_role' }).catch(() => []),
+    Promise.all([ownerView(user, home), ownerMonthToDate(user)]),
+    // r34: the one Onboarding checklist, while a car is onboarding
+    home.kind !== 'partner' && home.vehicles.some((v) => v.checklist && v.onboarding_status !== 'enrolled')
+      ? onboardingData(user.id, 'ops_read', { owner_id: home.owner.id }).then((o) => o.overview) : Promise.resolve(null),
+    // 2740: each shown car's kilometres and next service (read only, the owner's own cars through the existing owner read)
+    Promise.all(shownCars.map(async (v) => [v.vehicle_id, await door<OwnerHistory>(user.id, 'ops_read', 'maint_owner', { vehicle_id: v.vehicle_id }).catch(() => null)] as const)),
+    // r48 O (3081): the next 12 months of each car (the owner's own cars, ops_read owner_forecast)
+    door<OwnerForecast>(user.id, 'ops_read', 'owner_forecast', { owner_id: home.owner.id }).catch(() => null)]);
+  const checklist = checklistRaw as unknown as { items: Array<{ status: string; how: string; label: string; preview?: boolean }>; done: number; total: number } | null;
+  const appTask = appTaskRaw as unknown as AppTask | null;
   const onScreen = (checklist?.items ?? []).filter((i) => i.status === 'open' && (i.how === 'screen' || i.how === 'registry'));
   // before approval (0192): the agreements can be read, filled in, and signed once the terms are approved
   const previewOnly = !home.signing.needed && onScreen.length > 0 && onScreen.every((i) => i.preview);
-  // 0067: an updated Vehicle Schedule to sign comes first; cars set up by staff can be reviewed and corrected before signing
-  const changes = ((await rpc('server_owner_schedule_changes', { p_by: user.id }, { role: 'service_role' }).catch(() => [])) ?? []) as unknown as Array<{ change_id: string; vehicle_name: string; effective_from: string }>;
-  const [view, mtd] = await Promise.all([ownerView(user, home), ownerMonthToDate(user)]);
-  // r34: the one Onboarding checklist, while a car is onboarding
-  const onboarding = home.kind !== 'partner' && home.vehicles.some((v) => v.checklist && v.onboarding_status !== 'enrolled')
-    ? (await onboardingData(user.id, 'ops_read', { owner_id: home.owner.id })).overview : null;
+  const changes = (changesRaw ?? []) as unknown as Array<{ change_id: string; vehicle_name: string; effective_from: string }>;
   // r35 (1000): a government form waiting for the owner's signature (or changed after it was signed) is the next step
   const formsCar = onboarding?.cars.find((c) => (c.forms.to_sign ?? 0) > 0) ?? null;
   const due = home.invoices.filter((i) => i.payable);
@@ -75,12 +85,7 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
   const onRent = enrolled.filter((v) => live[v.vehicle_id]?.key === 'on_rent').length;
   const coming = upcoming(bookings, new Date(), 6);
   const nextOf = (id: string) => upcoming(bookings.filter((b) => b.vehicle_id === id), new Date(), 1)[0] ?? null;
-  // 2740: each shown car's kilometres and next service (read only, the owner's own cars through the existing owner read)
-  const shownCars = home.vehicles.slice(0, 4).filter((v) => !['declined', 'exited', 'total_loss'].includes(v.status));
-  const service: Record<string, OwnerHistory | null> = Object.fromEntries(await Promise.all(shownCars.map(async (v) =>
-    [v.vehicle_id, await door<OwnerHistory>(user.id, 'ops_read', 'maint_owner', { vehicle_id: v.vehicle_id }).catch(() => null)] as const)));
-  // r48 O (3081): the next 12 months of each car (the owner's own cars, ops_read owner_forecast)
-  const forecast = await door<OwnerForecast>(user.id, 'ops_read', 'owner_forecast', { owner_id: home.owner.id }).catch(() => null);
+  const service: Record<string, OwnerHistory | null> = Object.fromEntries(serviceRows);
   const banners = (
     <>
       {sp.signed && <p className="alert alert--ok" role="status" data-testid="owner-signed-banner"><span className="alert__title">Signed</span><span>Thank you: your signature is recorded and CarmaCars countersigned. Your signed copies appear in Documents within a few minutes, and we email them to you.</span></p>}

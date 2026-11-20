@@ -21,7 +21,7 @@ import { CallerPopup } from '@/features/caller/CallerPopup';
 // r44 (2790): calls in the browser: the phone bar on every page (incoming calls ring here, calls placed show here)
 import { VoiceDock } from '@/features/phone/VoiceDock';
 import { viewAs } from '@/server/view-as';
-import { AssistantPanel } from '@/features/assistant/AssistantPanel';
+import { AssistantLauncher as AssistantPanel } from '@/features/assistant/AssistantLauncher';
 import { switchFunction } from '@/server/actions/va';
 import { door, rolesOf } from '@/server/door';
 import { DoorProvider } from '@/features/admin/door';
@@ -43,9 +43,10 @@ import { BugReportButton } from '@/features/bug-report/BugReport';
 // (vaPage, requireStaff). 1154: the Academy link sits in the rail's header in every state, held or not.
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
   const user = await currentUser();
-  const roles = user ? await rolesOf(user.id).catch(() => null) : null;
+  // r48 speed: the roles and the view-as state together, then every read of the frame together (they were six round trips
+  // one after another before any staff page could show)
   // an Admin viewing the portal as someone (read only) gets the pop-up's empty region and no live read (the Admin's own, in Admin)
-  const viewing = user ? await viewAs().catch(() => null) : null;
+  const [roles, viewing] = user ? await Promise.all([rolesOf(user.id).catch(() => null), viewAs().catch(() => null)]) : [null, null];
   const held = heldFunctions(roles?.functions?.length ? roles.functions : [...(roles?.va_functions ?? (roles?.va ? [roles.va] : [])), ...(roles?.field ? ['field'] : [])]);
   const office = !!roles?.va;
   const staff = office || !!roles?.field;
@@ -54,21 +55,22 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   let canada: boolean | undefined;
   let chat = 0;
   let hot = 0;
+  // r41: live updates (server/live.ts): the areas this person's functions read (field staff: the field area)
+  const livePromise = user && staff ? liveTokens(user.id, office ? ['me', 'bookings', 'requests', 'leads', 'messages', 'field', 'tasks', 'calls'] : ['me', 'field', 'tasks']) : Promise.resolve({} as Awaited<ReturnType<typeof liveTokens>>);
   if (user && roles && staff) {
-    if (office) {
-      try { open = Number((await door<{ open: number }>(user.id, 'va_read', 'digest')).open) || 0; } catch { open = 0; }
+    const [digest, counts, h] = await Promise.all([
+      office ? door<{ open: number }>(user.id, 'va_read', 'digest').catch(() => null) : null,
       // chats waiting for a person (0060), for customer service and Sales, and hot visitors on the site now (0086)
-      if (held.includes('cs') || held.includes('sales')) {
-        try { const c = await door<{ waiting: number; hot?: number }>(user.id, 'va_read', 'chat_counts'); chat = Number(c.waiting) || 0; hot = Number(c.hot) || 0; } catch { chat = 0; }
-      }
-    }
-    // the first sign-in (0059): the home address, asked on every page until it is in
-    // 0325: view-as shows the frame exactly as the person sees it (the card too while their address is missing)
-    { const h = await homeAddressOf(user.id, office ? 'va' : 'field'); needsAddress = h.missing; canada = h.canada; }
+      office && (held.includes('cs') || held.includes('sales')) ? door<{ waiting: number; hot?: number }>(user.id, 'va_read', 'chat_counts').catch(() => null) : null,
+      // the first sign-in (0059): the home address, asked on every page until it is in
+      // 0325: view-as shows the frame exactly as the person sees it (the card too while their address is missing)
+      homeAddressOf(user.id, office ? 'va' : 'field')]);
+    open = Number(digest?.open) || 0;
+    if (counts) { chat = Number(counts.waiting) || 0; hot = Number(counts.hot) || 0; }
+    needsAddress = h.missing; canada = h.canada;
   }
   const portal = office ? 'va' : 'field';
-  // r41: live updates (server/live.ts): the areas this person's functions read (field staff: the field area)
-  const live = user && staff ? await liveTokens(user.id, office ? ['me', 'bookings', 'requests', 'leads', 'messages', 'field', 'tasks', 'calls'] : ['me', 'field', 'tasks']) : ({} as Awaited<ReturnType<typeof liveTokens>>);
+  const live = await livePromise;
   return (
     <div className="ad va">
       <div className="ad__frame">

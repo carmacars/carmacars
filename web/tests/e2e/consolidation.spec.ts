@@ -193,8 +193,11 @@ test('Sales: Visitors (the map, Live now, Chat, History), the Marketplace and a 
   const cs = await mkUser(sql, 'cs', 'Cn Cs');
   const p2 = await ctx(browser);
   await signIn(p2, cs.email, '/staff');
-  const res = await p2.goto('/staff/marketplace', { waitUntil: 'networkidle' });
-  expect(res?.status()).toBe(404);
+  await p2.goto('/staff/marketplace', { waitUntil: 'networkidle' });
+  // r48 speed: a portal page streams its loading skeleton first (loading.tsx), so a page this person may not open answers
+  // with the not-found page (the portals are noindex) instead of a 404 status
+  await expect(p2.getByRole('heading', { name: 'Wrong turn.' })).toBeVisible();
+  await expect(p2.getByTestId('mk-inbox')).toHaveCount(0);
   await p2.context().close();
   await page.context().close();
   await sql.end();

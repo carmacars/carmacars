@@ -56,7 +56,7 @@ export default async function Queue({ searchParams }: { searchParams: Promise<Re
   const [{ read, fn, user, aal }, sp] = await Promise.all([vaPage('/staff'), searchParams]);
   const talk = fn === 'cs' || fn === 'sales';
   const now = requestNow();
-  const [all, toSign, dg, target, reqs, chat, sales, board, jobs, cal, licences, duties, leadDash] = await Promise.all([
+  const [all, toSign, dg, target, reqs, chat, sales, board, jobs, cal, licences, duties, leadDash, mins] = await Promise.all([
     read<Task[]>('queue'), signCount(user.id),
     read<Digest>('digest').catch(() => null),
     door<{ minutes: number; words: string }>(user.id, 'ops_read', 'reply_target', {}, aal).catch(() => ({ minutes: 5, words: '5 minutes' })),
@@ -69,10 +69,10 @@ export default async function Queue({ searchParams }: { searchParams: Promise<Re
     fn === 'sales' ? read<LicenceWaiting[]>('licences_waiting').catch(() => [] as LicenceWaiting[]) : Promise.resolve([] as LicenceWaiting[]),
     // 0174: in person or remote; a remote rep's checklist, touches, cover and reply time
     fn === 'sales' ? read<SalesDuties>('sales_duties').catch(() => null) : Promise.resolve(null),
-    fn === 'sales' ? read<Dashboard>('sales_dashboard').catch(() => null) : Promise.resolve(null)
+    fn === 'sales' ? read<Dashboard>('sales_dashboard').catch(() => null) : Promise.resolve(null),
+    // r35 (0970): the rep's outbound minutes through the site's Call button (to decide a full move to Twilio later); r48: with the rest
+    fn === 'sales' ? read<{ today: number; week: number; month: number; calls_month: number }>('my_call_minutes').catch(() => null) : Promise.resolve(null)
   ]);
-  // r35 (0970): the rep's outbound minutes through the site's Call button (to decide a full move to Twilio later)
-  const mins = fn === 'sales' ? await read<{ today: number; week: number; month: number; calls_month: number }>('my_call_minutes').catch(() => null) : null;
   const tm = target.minutes;
   const waiting = reqs.filter((r) => r.status === 'requested');
   const sinceOf = (min: number) => new Date(now - min * 60_000).toISOString();

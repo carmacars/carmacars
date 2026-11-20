@@ -20,7 +20,7 @@ import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
 import { WhatsNew } from '@/features/whats-new/WhatsNew';
 import { StuckHelp } from '@/features/help/StuckHelp';
 import { PushInvite } from '@/features/push/PushAlerts';
-import { AssistantPanel } from '@/features/assistant/AssistantPanel';
+import { AssistantLauncher as AssistantPanel } from '@/features/assistant/AssistantLauncher';
 import { greetName } from '@/features/admin/today/greeting';
 import { BrandMark } from '@/components/BrandMark';
 import { AlertsBell } from '@/features/alerts/AlertsBell';
@@ -39,25 +39,29 @@ import { BugReportButton } from '@/features/bug-report/BugReport';
 // the frame shows the rail only to an Admin.
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await currentUser();
-  const gate = user ? await adminGate(user).catch(() => null) : null;
+  // r48 speed: the gate and the view-as cookie together, then the rail's counts, the chat counts and the live tokens
+  // together (they were one after another: five round trips before any admin page could show)
+  const [gate, viewing] = user ? await Promise.all([adminGate(user).catch(() => null), viewAsCookieSet().catch(() => false)]) : [null, false];
   // while viewing a portal as someone, the pop-up keeps its region and reads nothing (the phone reads answer the viewed person)
-  const viewing = user ? await viewAsCookieSet().catch(() => false) : false;
   // r41: live updates (server/live.ts): the frame's areas, read alongside the rail's counts
   const livePromise = user && gate?.admin ? liveTokens(user.id, ['me', 'bookings', 'requests', 'leads', 'messages', 'field', 'tasks', 'calls']) : Promise.resolve<Awaited<ReturnType<typeof liveTokens>>>({});
   let counts: Record<string, number> = {};
   if (user && gate?.admin) {
-    // five numbers for the rail (public.admin_rail_counts, 0036), not the whole dashboard on every admin page
-    try {
-      const c = (await rpc('admin_rail_counts', { p_admin: user.id }, { role: 'service_role' })) as unknown as Record<'requests' | 'listings' | 'statements' | 'tolls' | 'refunds' | 'applications', number>;
+    const [rail, chat] = await Promise.all([
+      // five numbers for the rail (public.admin_rail_counts, 0036), not the whole dashboard on every admin page
+      rpc('admin_rail_counts', { p_admin: user.id }, { role: 'service_role' }).then((c) => c as unknown as Record<'requests' | 'listings' | 'statements' | 'tolls' | 'refunds' | 'applications', number>, () => null),
+      // chats waiting for a person (0060) and hot visitors on the site now (0086), from the same read: one badge on Visitors
+      // (r27 consolidation: Live chat is its Chat tab), each tab shows its own
+      door<{ waiting: number; hot?: number }>(user.id, 'admin_read', 'chat_counts').catch(() => null)]);
+    if (rail) {
+      const c = rail;
       // r27: statements to approve on Owner money (its link and its Statements tab), refunds to decide on Payments (By day)
       // r27: a section's link carries its pages' counts (Cars: listings; People: applications; Money: refunds, statements, tolls);
       // the rows on top of the pages carry each page's own
       counts = { '/admin/requests': c.requests, '/admin/vehicles': c.listings, '/admin/applications': c.applications ?? 0, '/admin/money?tab=day': (c.refunds ?? 0) + (c.statements ?? 0) + (c.tolls ?? 0),
         rowListings: c.listings, rowStatements: c.statements, rowTolls: c.tolls, rowRefunds: c.refunds, rowApplications: c.applications ?? 0 };
-    } catch { counts = {}; }
-    // chats waiting for a person (0060) and hot visitors on the site now (0086), from the same read: one badge on Visitors
-    // (r27 consolidation: Live chat is its Chat tab), each tab shows its own
-    try { const c = await door<{ waiting: number; hot?: number }>(user.id, 'admin_read', 'chat_counts'); counts['/admin/visitors'] = (Number(c.waiting) || 0) + (Number(c.hot) || 0); } catch { /* no count */ }
+    }
+    if (chat) counts['/admin/visitors'] = (Number(chat.waiting) || 0) + (Number(chat.hot) || 0);
   }
   const live = await livePromise;
   return (

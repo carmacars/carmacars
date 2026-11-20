@@ -11,6 +11,7 @@ import { createHmac, randomBytes } from 'node:crypto';
 import zlib from 'node:zlib';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { StringDecoder } from 'node:string_decoder';
 
 const WEB = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = Number(process.env.PORT || 3000);
@@ -69,6 +70,9 @@ try { pageCache = await import('../src/lib/edge/page-cache.ts'); } catch { /* No
 // image optimizer answers 404
 let requestGuard = null;
 try { requestGuard = await import('../src/lib/security/request-guard.ts'); } catch { /* Node without type stripping: the app's own checks only */ }
+// r48 speed: the nonce added while the page streams (without type stripping: the whole page is read first, as before)
+let nonceStream = null;
+try { nonceStream = await import('../src/lib/security/nonce-stream.ts'); } catch { /* the buffered path below */ }
 const staleStore = new Map();
 const staleCache = async () => ({ match: async (k) => staleStore.get(k)?.clone(), put: async (k, r) => { staleStore.set(k, new Response(await r.arrayBuffer(), r)); } });
 const faults = new Map();
@@ -192,6 +196,24 @@ http.createServer(async (req, res) => {
     const squeeze = () => (enc === 'br' ? zlib.createBrotliCompress({ params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 5 } }) : zlib.createGzip());
     if (enc) { h['content-encoding'] = enc; h.vary = [h.vary, 'Accept-Encoding'].filter(Boolean).join(', '); delete h['content-length']; }
     if (!html) { res.writeHead(r.statusCode, h); if (enc) r.pipe(squeeze()).pipe(res); else r.pipe(res); return; }
+    // r48 speed: the page streams with its nonce added on the way (src/lib/security/nonce-stream.ts), as on the company's
+    // server, so the frame and the loading skeleton paint before the slowest read is done
+    if (nonceStream) {
+      const nonce = randomBytes(16).toString('base64');
+      const rw = nonceStream.nonceRewriter(nonce);
+      const dec = new StringDecoder('utf8');
+      delete h['content-length']; delete h['transfer-encoding'];
+      h['content-security-policy'] = csp(nonce, embeddable(pathname));
+      if (embeddable(pathname)) delete h['x-frame-options'];
+      res.writeHead(r.statusCode, h);
+      const z = enc ? squeeze() : null;
+      if (z) z.pipe(res);
+      const send = (s) => { if (!s) return; if (z) { z.write(s); z.flush(); } else res.write(s); };
+      r.on('data', (c) => send(rw.push(dec.write(c))));
+      r.on('end', () => { send(rw.push(dec.end())); send(rw.end()); if (z) z.end(); else res.end(); });
+      r.on('error', () => { if (z) z.end(); else res.end(); });
+      return;
+    }
     const chunks = [];
     r.on('data', (c) => chunks.push(c));
     r.on('end', () => {

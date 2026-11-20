@@ -20,6 +20,9 @@ import { businessLd, websiteLd } from '@/features/seo/business';
 import { getHubLinks, getSeoLinks } from '@/features/seo/data';
 import { cookieWording, getSettings, photoUrl, replyText, siteUrl, appLinks } from '@/lib/site';
 import { ClientErrorListener } from '@/lib/client-error/Listener';
+import { BrandLoaderStyles } from '@/components/loader/BrandLoader';
+import { SkeletonStyles } from '@/components/loader/skeletons';
+import { RouteProgress } from '@/components/loader/RouteProgress';
 
 import { FormGuard } from '@/components/FormGuard';
 import { openRoles } from '@/server/careers';
@@ -68,6 +71,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         {/* the store app (0390): <html data-shell="app"> before the first paint, so web-only parts never flash */}
         <script dangerouslySetInnerHTML={{ __html: SHELL_MARK_SCRIPT }} />
+        {/* r48 speed: the one loader's styles, and the bar and skeleton shown the moment a link is tapped (components/loader) */}
+        <BrandLoaderStyles /><SkeletonStyles />
+        <RouteProgress />
         <ViewAsBanner />
         <CookieBanner w={w} />
         <Header s={s} />
