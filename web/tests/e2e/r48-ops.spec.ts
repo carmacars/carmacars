@@ -181,13 +181,15 @@ async function mkTrip(sql: Sql, car: string, renter: string, status: 'confirmed'
   const n = `OPS-${rnd(7)}`;
   const at = (h: number) => new Date(Math.round((Date.now() + h * 3_600_000) / 60_000) * 60_000).toISOString();
   const out = ['on_rent', 'returned', 'closed'].includes(status);
+  // the billable days as the database counts them (a check on the table)
   const [b] = await sql`insert into bookings (booking_number, booking_type, status, vehicle_id, renter_id, booked_at, pickup_at, return_at, original_return_at, billable_days,
               handed_over_at, checked_in_at, daily_rate_cents, weekend_rate_cents, weekly_rate_cents, monthly_rate_cents, rate_applied, daily_days, weekend_days,
               rental_charge_cents, discount_cents, km_allowance_per_day, km_allowance_total, overage_cents_per_km, deposit_cents,
               subtotal_at_booking_cents, hst_at_booking_cents, total_due_at_booking_cents)
-            values (${n}, 'standard', ${status}, ${car}, ${renter}, now() - interval '30 days', ${at(a)}, ${at(z)}, ${at(z)}, ${Math.max(1, Math.round((z - a) / 24))},
-              ${out ? at(a) : null}, ${back !== undefined ? at(back) : null}, 10000, 12000, 56000, 180000, 'daily', ${Math.max(1, Math.round((z - a) / 24))}, 0,
-              ${cents}, 0, 200, 600, 35, 100000, ${cents}, ${Math.round(cents * 0.13)}, ${Math.round(cents * 1.13)}) returning id`;
+            select ${n}, 'standard', ${status}, ${car}, ${renter}, now() - interval '30 days', ${at(a)}::timestamptz, ${at(z)}::timestamptz, ${at(z)}::timestamptz, d.n,
+              ${out ? at(a) : null}::timestamptz, ${back !== undefined ? at(back) : null}::timestamptz, 10000, 12000, 56000, 180000, 'daily', d.n, 0,
+              ${cents}, 0, 200, 200 * d.n, 35, 100000, ${cents}, ${Math.round(cents * 0.13)}, ${Math.round(cents * 1.13)}
+              from (select public.calc_billable_days(${at(a)}::timestamptz, ${at(z)}::timestamptz) as n) d returning id`;
   return { id: b!.id as string, number: n, returnAt: at(z), backAt: back !== undefined ? at(back) : null };
 }
 const toronto = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', hour: 'numeric', minute: '2-digit' }).format(new Date(iso)).replace(/\./g, '').replace(/\s?a\s?m\b/i, ' am').replace(/\s?p\s?m\b/i, ' pm');
@@ -207,7 +209,9 @@ test('Calendar: a long fleet is found by search, filters and groups that fold; a
   const out = await mkTrip(sql, cars[0]!.id, renter, 'on_rent', -4, 30);
   const page = await ctx(browser);
   const errors = watch(page);
-  await signIn(page, admin.email, '/admin/calendar');
+  // the two weeks from four days ago, so the finished trip's return is among the days shown at any hour of the day
+  const start = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(Date.now() - 4 * 86_400_000));
+  await signIn(page, admin.email, `/admin/calendar?start=${start}`);
   const cal = page.getByTestId('master-calendar');
   await expect(cal).toBeVisible();
   // the toolbar: filters and the count of cars
@@ -277,13 +281,15 @@ test('Calendar: a long fleet is found by search, filters and groups that fold; a
   await cal.getByTestId('cal-f-owner').selectOption(o.name);
   await cal.getByTestId('cal-group').selectOption('class');
   const groups = cal.getByTestId('cal-group-row');
-  await expect(groups).toHaveCount(2);
   await expect(groups.first()).toContainText('Economy');
   await expect(groups.first()).toContainText('23 cars');
   await widths(page, 'calendar-grouped');
   await groups.first().getByRole('button').click();
   await expect(groups.first().getByRole('button')).toHaveAttribute('aria-expanded', 'false');
   await expect(cal.getByTestId(`lane-${cars[0]!.plate}`)).toHaveCount(0);
+  // with the first group folded the next heading is on the screen (only the rows near the screen are in the page)
+  await expect(groups).toHaveCount(2);
+  await expect(groups.nth(1)).toContainText('Premium');
   await cal.getByTestId('cal-fold-all').click();
   await expect(grid.locator('.mcal__row')).toHaveCount(0);
   await noOverflow(page);
@@ -305,7 +311,7 @@ test('Calendar: a long fleet is found by search, filters and groups that fold; a
 
   // Sales, the same calendar: no owners to filter or group by (the database does not give them), the jobs from the booking itself
   const sp = await ctx(browser);
-  await signIn(sp, sales.email, '/staff/calendar');
+  await signIn(sp, sales.email, `/staff/calendar?start=${start}`);
   const scal = sp.getByTestId('master-calendar');
   await expect(scal.getByTestId('cal-fleet-bar')).toBeVisible();
   await expect(scal.getByTestId('cal-f-owner')).toHaveCount(0);

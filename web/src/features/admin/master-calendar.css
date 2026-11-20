@@ -195,6 +195,9 @@
 /* ---------------------------------------------------------------- r48 ops: a long fleet (docs/changes/2026-11-20-r48-ops-screens.md)
    The second toolbar row: filters, grouping and the count; groups that fold; jobs as named chips; rows drawn near the
    screen only (MasterCalendar sets the space of the rest). */
+/* the calendar's one column is the room it has, never the widest thing in it (the toolbar then wraps inside it) */
+.mcal { grid-template-columns: minmax(0, 1fr); }
+.mcal .mcal__bar { min-width: 0; }
 .mcal .mcal__bar .mcal__find { flex: 1 1 22rem; }
 .mcal.mcal .mcal__bar .mcal__find > .input[type="search"] { flex: 1 1 12rem; min-width: 0; width: auto; }
 .mcal .mcal__fleet { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-4); align-items: center; justify-content: space-between; min-width: 0;
