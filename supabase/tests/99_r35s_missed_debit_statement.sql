@@ -34,10 +34,10 @@ select test.eq('the missed debits are in arrears; the one being debited is left 
   'Being debited=processing,Closed account=in_arrears,Insufficient funds=in_arrears');
 select test.eq('the waiting retry is cancelled, with the reason', (select string_agg(status || ':' || skip_reason, ',') from owner_debit_attempts where owner_invoice_id = test.id('inv:r35d:nsf') and attempt_no = 2),
   'canceled:recovered from the revenue statement');
-select test.eq('the statement takes both from the payout (with the Late Fee of the insufficient funds)',
+select test.eq('the statement takes both from the payout, the Late Fee of the insufficient funds as its own line (3271)',
   (select count(*) || '/' || (-sum(amount_cents) = (select sum(balance_cents) from owner_invoices where id in (test.id('inv:r35d:closed'), test.id('inv:r35d:nsf'))))
      from owner_statement_lines where owner_statement_id = (select id from test.r35d_st) and owner_invoice_id in (test.id('inv:r35d:closed'), test.id('inv:r35d:nsf'))),
-  '2/true');
+  '3/true');
 select test.eq('the one being debited is not on the statement',
   (select count(*) from owner_statement_lines where owner_statement_id = (select id from test.r35d_st) and owner_invoice_id = test.id('inv:r35d:busy')), 0::bigint);
 select test.eq('audited', (select count(*) from audit_log where action = 'owner_missed_debit_to_statement' and entity_id in (test.id('inv:r35d:closed')::text, test.id('inv:r35d:nsf')::text)), 2::bigint);

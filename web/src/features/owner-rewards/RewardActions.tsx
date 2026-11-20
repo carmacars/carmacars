@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useAct } from '@/features/portal/useAct';
 import { playMoment } from '@/features/motion/moment';
 import { ownerRewardDo } from '@/server/actions/owner-rewards';
+import { AddressLookup } from '@/features/forms/AddressFields';
 import { addressProblem, type KitKind, type OwnerAddress, type OwnerRewards } from './model';
 
 // The owner's Rewards buttons (release 48, migration 3262). A kit is never sent by itself: the owner presses Redeem,
@@ -34,6 +35,7 @@ export function RedeemKit({ kind, name, address }: { kind: KitKind; name: string
       <p className="small"><b>Where should we send it?</b> Check the address, then confirm.</p>
       <div className="rw-fields">
         <div className="field rw-fields__wide"><label className="label" htmlFor={`${id}-n`}>Name on the parcel</label><input className="input" id={`${id}-n`} value={f.name} onChange={set('name')} autoComplete="name" data-testid={`or-name-${kind}`} /></div>
+        <div className="rw-fields__wide"><AddressLookup idp={`${id}-al`} onParts={(p) => { setF((x) => ({ ...x, line1: p.street || x.line1, line2: p.unit || x.line2, city: p.city || x.city, province: p.province || x.province, postal_code: p.postal_code || x.postal_code })); setErr(null); }} /></div>
         <div className="field rw-fields__wide"><label className="label" htmlFor={`${id}-l1`}>Street address</label><input className="input" id={`${id}-l1`} value={f.line1} onChange={set('line1')} autoComplete="address-line1" data-testid={`or-line1-${kind}`} /></div>
         <div className="field rw-fields__wide"><label className="label" htmlFor={`${id}-l2`}>Unit or suite <span className="small muted">(optional)</span></label><input className="input" id={`${id}-l2`} value={f.line2} onChange={set('line2')} autoComplete="address-line2" /></div>
         <div className="field"><label className="label" htmlFor={`${id}-c`}>City</label><input className="input" id={`${id}-c`} value={f.city} onChange={set('city')} autoComplete="address-level2" data-testid={`or-city-${kind}`} /></div>

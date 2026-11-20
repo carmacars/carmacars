@@ -142,7 +142,7 @@ export function ContentCalendar({ d, base, status }: { d: CalData; base: string;
         <div className="pt-empty" data-testid="cal-empty">
           <p className="d4">No calendar for {d.label} yet.</p>
           <p className="muted">{d.enabled ? 'It is written by itself near the end of the month before. You can write it now.' : 'The content calendar is switched off in Program settings.'}</p>
-          {d.enabled && d.month >= d.today.slice(0, 7) && <p><WriteMonth month={d.month} label={`Write ${d.label.split(' ')[0]}'s calendar`} /></p>}
+          {d.enabled && d.month >= d.today.slice(0, 7) && <p><WriteMonth month={d.month} label="Write the calendar" /></p>}
         </div>
       ) : (<>
         <p className="small" data-testid="cal-mix">{d.posts.length} posts: {Object.entries(mix.formats).map(([f, n]) => `${n} ${(FORMAT_WORDS[f as Format] ?? f).toLowerCase()}${n === 1 ? '' : 's'}`).join(', ')}.

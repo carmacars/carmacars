@@ -533,6 +533,8 @@ revoke all on function app.notify_pref_notice() from public, anon, authenticated
 grant execute on function app.notify_pref_notice() to service_role;
 create trigger notifications_a_prefs before insert on notifications for each row execute function app.notify_pref_notice();
 
+create index if not exists owner_reward_ledger_created_by_fk on owner_reward_ledger (created_by);
+
 -- three tables of 3260 and 3264 hold status and are audited like every other (the base test of 03_flows asks for it)
 create trigger audit_notify_digest_items after insert or update or delete on notify_digest_items for each row execute function app.audit_row();
 create trigger audit_tracker_driving_events after insert or update or delete on tracker_driving_events for each row execute function app.audit_row();

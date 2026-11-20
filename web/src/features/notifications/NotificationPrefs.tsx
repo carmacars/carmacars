@@ -1,5 +1,6 @@
 'use client';
 import { useRef, useState, useTransition } from 'react';
+import { DateInput } from '@/components/DateInput';
 import type { ActionResult } from '@/features/forms/schemas';
 import { applyChange, CADENCES, CHANNELS, channelNote, clockWords, minutesToTime, summaryLine, switchKey, timeToMinutes, type Channel, type PrefChange, type PrefState, type PrefType } from './prefs';
 
@@ -100,9 +101,9 @@ export function NotificationPrefs({ initial, save, idp = 'np' }: { initial: Pref
               onChange={(e) => send({ quiet_on: e.target.checked }, 'quiet_on')} data-testid={`${idp}-quiet-on`} /><span><b>Quiet hours</b></span></label>
             <div className="rw-quiet__times" data-off={!s.profile.quiet_on || undefined}>
               <div className="field"><label className="label" htmlFor={`${idp}-qf`}>From</label>
-                <input className="input" id={`${idp}-qf`} type="time" value={from} disabled={!s.profile.quiet_on} onChange={(e) => setFrom(e.target.value)} onBlur={(e) => { if (timeToMinutes(e.target.value) !== s.profile.quiet_from) quietTime('quiet_from', e.target.value); }} data-testid={`${idp}-quiet-from`} /></div>
+                <DateInput id={`${idp}-qf`} type="time" value={from} disabled={!s.profile.quiet_on} onChange={(e) => { setFrom(e.target.value); if (timeToMinutes(e.target.value) !== s.profile.quiet_from) quietTime('quiet_from', e.target.value); }} data-testid={`${idp}-quiet-from`} /></div>
               <div className="field"><label className="label" htmlFor={`${idp}-qu`}>Until</label>
-                <input className="input" id={`${idp}-qu`} type="time" value={until} disabled={!s.profile.quiet_on} onChange={(e) => setUntil(e.target.value)} onBlur={(e) => { if (timeToMinutes(e.target.value) !== s.profile.quiet_until) quietTime('quiet_until', e.target.value); }} data-testid={`${idp}-quiet-until`} /></div>
+                <DateInput id={`${idp}-qu`} type="time" value={until} disabled={!s.profile.quiet_on} onChange={(e) => { setUntil(e.target.value); if (timeToMinutes(e.target.value) !== s.profile.quiet_until) quietTime('quiet_until', e.target.value); }} data-testid={`${idp}-quiet-until`} /></div>
             </div>
             <p className="small muted">{s.profile.quiet_on ? `Optional phone alerts and texts wait from ${clockWords(s.profile.quiet_from)} until ${clockWords(s.profile.quiet_until)}, Toronto time.` : 'Optional phone alerts and texts wait until morning while quiet hours are on.'}</p>
           </div>
