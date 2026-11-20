@@ -8,6 +8,7 @@ import type { Out, Turn } from './agent';
 import type { Portal } from './tools';
 
 import { WhyDisabled } from '@/components/WhyDisabled';
+import { AssistantButton } from './AssistantButton';
 // The staff assistant's panel (migration 0080): opened from the portal header's "Assistant" button or Ctrl+/ (Cmd+/ on
 // a Mac); Esc closes it. Answers come as cards: results with links, a question with choices, a draft to copy, and a
 // change as a card with Confirm and Cancel. Nothing changes until Confirm.
@@ -21,7 +22,9 @@ const HINTS: Record<Portal, string[]> = {
   field: ['What needs doing today?', 'Who has the Tesla?', 'Is the Corolla free from 2026-11-02 to 2026-11-04?']
 };
 
-export function AssistantPanel({ portal, greeting }: { portal: Portal; greeting?: string | null }) {
+// r48 speed: the frames load this through AssistantLauncher (the button alone) the first time it is opened, so the panel's
+// code is not part of every portal page; `openSignal` opens it, and `trigger` false leaves the button to the launcher.
+export function AssistantPanel({ portal, greeting, openSignal = 0, trigger = true }: { portal: Portal; greeting?: string | null; openSignal?: number; trigger?: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
   // 2990: ask the guide first: the chapter of the page they are on (the Stuck help map), else their portal's guide
@@ -43,6 +46,7 @@ export function AssistantPanel({ portal, greeting }: { portal: Portal; greeting?
     return () => window.removeEventListener('keydown', k);
   }, [open]);
   useEffect(() => { end.current?.scrollIntoView({ block: 'end' }); }, [items, busy]);
+  useEffect(() => { if (openSignal > 0) open(); }, [openSignal, open]);
 
   const history = (): Turn[] => items.slice(-6).map((i) => ({ role: i.from === 'me' ? 'user' : 'assistant', text: i.text ?? describe(i.out) }));
   const post = async (body: Record<string, unknown>) => {
@@ -79,10 +83,7 @@ export function AssistantPanel({ portal, greeting }: { portal: Portal; greeting?
 
   return (
     <>
-      <button type="button" className="btn btn--quiet btn--sm as-open hd-act" onClick={open} aria-haspopup="dialog" aria-keyshortcuts="Control+/ Meta+/" data-testid="assistant-open"
-        title="Assistant (Ctrl+/)">
-        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-4.5 4v-4h0A2.5 2.5 0 0 1 4 13.5z" /></svg>
-        <span className="hd-lbl">Assistant</span></button>
+      {trigger && <AssistantButton onOpen={open} />}
       <dialog ref={dlg} className="as-panel" aria-labelledby={`${idp}-t`} data-testid="assistant-panel">
         <header className="as-panel__head">
           <h2 className="d4" id={`${idp}-t`}>Assistant</h2>

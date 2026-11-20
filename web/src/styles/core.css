@@ -148,8 +148,7 @@ button.link { background: none; border: 0; padding: 0; font: inherit; color: inh
 .btn--lg { min-height: 56px; padding: 0.9rem 1.75rem; font-size: 1.0625rem; }
 .btn--block { display: flex; width: 100%; }
 .btn[disabled], .btn[aria-disabled="true"] { --btn-bg: var(--grey-200); --btn-fg: var(--grey-600); --btn-bd: var(--grey-200); cursor: not-allowed; }
-.btn[aria-busy="true"] { cursor: progress; pointer-events: none; }
-.btn[aria-busy="true"]::before { content: ""; flex: none; width: 1em; height: 1em; border-radius: 50%; border: 2px solid currentColor; border-top-color: transparent; animation: pgate-spin 700ms linear infinite; }
+/* a busy button (aria-busy): its look is the site loader's, src/components/loader/BrandLoader.tsx (r48) */
 .btn svg { width: 1.15em; height: 1.15em; flex: none; }
 .icon-btn { display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: var(--ui-r-pill); border: var(--bw) solid var(--line-strong); background: transparent; color: var(--text); transition: background var(--t-1), color var(--t-1); }
 .icon-btn:hover:not([disabled]) { background: var(--text); color: var(--bg); }

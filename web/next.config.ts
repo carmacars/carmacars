@@ -58,7 +58,15 @@ const config: NextConfig = {
       { source: '/book/:path*', headers: noindex },
       { source: '/api/:path*', headers: noindex },
       ...['/admin', '/owner', '/va', '/field', '/staff', '/investor', '/two-step', '/files', '/d', '/sign', '/unsubscribe'].flatMap((p) => [{ source: p, headers: noindex }, { source: `${p}/:path*`, headers: noindex }]),
-      ...(process.env.APP_ENV === 'staging' ? [{ source: '/:path*', headers: noindex }] : [])
+      ...(process.env.APP_ENV === 'staging' ? [{ source: '/:path*', headers: noindex }] : []),
+      // r48 speed: the files of public/ (logos, icons, sample and add-on photos, vendored libraries) were sent with max-age=0, so
+      // every page asked the server for each of them again and Cloudflare's proxy never kept them. They have no hash in their
+      // names, so a day in the browser and at the edge, then served stale while the next copy is fetched; the versioned
+      // libraries under /vendor (the folder names carry the version) a year. Not the service worker or the manifest.
+      ...['/brand/:path*', '/icons/:path*', '/addon-photos/:path*', '/site-plates/:path*', '/plates/:path*', '/og/:path*', '/guides/:path*', '/live-map/:path*',
+        '/favicon.ico', '/favicon.svg', '/favicon-:size(\\d+).png', '/vendor/pdfjs/:path*']
+        .map((source) => ({ source, headers: [{ key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=2592000' }] })),
+      { source: '/vendor/:lib(maplibre-gl-[\\d.]+|twilio-voice-sdk-[\\d.]+|zxing-wasm-[\\d.]+)/:path*', headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }] }
     ];
   },
   // the files search engines ask for at the root (0061): the IndexNow key file and the Google verification file

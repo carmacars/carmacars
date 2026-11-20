@@ -315,7 +315,15 @@ async function crawlRole(browser, role) {
     // a link of ours that sends the browser on to another site (a follow on the Rewards page): ours answered with the
     // redirect, which is what counts; the other site's answer (a 429, a page that is not ours) is not checked or rendered
     const away = typeof r.url === 'function' && new URL(r.url()).origin !== BASE;
-    const v = away ? { status: 200, type: 'external' } : { status: r.status(), type: r.headers()['content-type'] ?? '' };
+    let v = away ? { status: 200, type: 'external' } : { status: r.status(), type: r.headers()['content-type'] ?? '' };
+    // r48: a portal page streams its loading skeleton first (loading.tsx), so a missing page answers 200 with the not-found
+    // page, and a page that sends you on answers 200 with a redirect inside the page: both read here as the status they mean
+    if (!away && v.status === 200 && String(v.type).includes('text/html') && typeof r.text === 'function') {
+      const html = await r.text().catch(() => '');
+      const to = /id="__next-page-redirect" http-equiv="refresh" content="\d+;url=([^"]+)"/.exec(html)?.[1];
+      if (/data-page="not-found"/.test(html)) v = { ...v, status: 404 };
+      else if (to) { checked.set(href, v); v = await status(new URL(to.replace(/&amp;/g, '&'), BASE + href).pathname + new URL(to.replace(/&amp;/g, '&'), BASE + href).search); }
+    }
     checked.set(href, v); stats.links++;
     return v;
   };

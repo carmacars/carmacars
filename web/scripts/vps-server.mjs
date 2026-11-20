@@ -29,6 +29,8 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { createHmac, randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { StringDecoder } from 'node:string_decoder';
+import { addNonce, nonceRewriter } from '../src/lib/security/nonce-stream.ts';
 import { cspHeader, embeddable, newNonce, securityHeaders, voicePage } from '../src/lib/security/csp.ts';
 import { ADMIN_AREA_HEADER, isAdminArea, viewAsRefusal, viewAsWriteRefused } from '../src/lib/security/view-as-guard.ts';
 import { crossSiteRefusal, crossSiteWriteRefused, unusedFrameworkPath } from '../src/lib/security/request-guard.ts';
@@ -146,18 +148,42 @@ if (env.KEPT_COPIES !== '0') {
 /** An HTML page sent with a fresh nonce on every <script> and the matching policy; never reused by the browser without
  *  asking first. `h` holds the response headers so far (lower case). */
 function sendHtml(res, o) {
-  const { method, status, h, raw, pathname, proto, cookieHeader, geo } = o;
+  const { method, status, h, raw } = o;
   const nonce = newNonce();
-  const body = Buffer.from(raw.toString('utf8').replace(/<script(?=[\s>])/g, `<script nonce="${nonce}"`));
+  const body = Buffer.from(addNonce(raw.toString('utf8'), nonce));
+  htmlHeaders(h, o, nonce);
+  h['content-length'] = String(body.length);
+  res.writeHead(status, h); res.end(method === 'HEAD' ? undefined : body);
+}
+
+/** The headers of an HTML page for its nonce (cache, policy, the region cookie); `h` is changed in place. */
+function htmlHeaders(h, o, nonce) {
+  const { pathname, proto, cookieHeader, geo } = o;
   const framed = embeddable(pathname);
   // a signed-in page is the visitor's own: marked private, so no proxy between here and the browser keeps it
   h['cache-control'] = hasSession(cookieHeader) ? 'private, no-cache' : 'no-cache';
   h['content-security-policy'] = cspHeader(nonce, { turnstile: true, connectOrigins: supabaseOrigin(), frameAncestors: framed ? 'https:' : undefined, upgrade: proto === 'https', voice: voicePage(pathname) });
-  h['content-length'] = String(body.length);
   // where the visitor is browsing from (country-region, e.g. CA-ON), for the cookie notice; not stored
   const g = geoCookie(geo, cookieHeader, proto === 'https');
   if (g) h['set-cookie'] = [...[].concat(h['set-cookie'] ?? []), g];
-  res.writeHead(status, h); res.end(method === 'HEAD' ? undefined : body);
+}
+
+/** r48 speed: the app's HTML passed on as it streams, the nonce added on the way (src/lib/security/nonce-stream.ts). Before,
+ *  the whole page was read first, so a portal page showed nothing until its slowest read was done; now the frame and the
+ *  loading skeleton (loading.tsx) arrive first. `done` gets the whole page at the end (the kept copy), or null. */
+function streamHtml(res, o, upstream, done) {
+  const { method, status, h } = o;
+  const nonce = newNonce();
+  htmlHeaders(h, o, nonce);
+  delete h['content-length']; delete h['transfer-encoding'];
+  res.writeHead(status, h);
+  if (method === 'HEAD') { upstream.resume(); upstream.on('end', () => { res.end(); done(null); }); return; }
+  const rw = nonceRewriter(nonce);
+  const dec = new StringDecoder('utf8');
+  const chunks = [];
+  upstream.on('data', (c) => { chunks.push(c); const out = rw.push(dec.write(c)); if (out) res.write(out); });
+  upstream.on('end', () => { const out = rw.push(dec.end()) + rw.end(); res.end(out || undefined); done(Buffer.concat(chunks)); });
+  upstream.on('error', () => { res.end(); done(null); });
 }
 
 async function tick() {
@@ -307,13 +333,9 @@ async function handle(req, res) {
       return;
     }
     if (!html) { answered = true; res.writeHead(status, h); r.pipe(res); return; }
-    collect((raw) => {
-      if (raw && worthy()) copies.put(sKey, raw);
-      if (answered || res.headersSent) return;
-      answered = true;
-      if (!raw) { res.writeHead(502, secHeaders()); res.end(); return; }
-      htmlOut(status, h, raw);
-    });
+    if (answered || res.headersSent) { r.resume(); return; }
+    answered = true;
+    streamHtml(res, { method, status, h, pathname, proto, cookieHeader: head('cookie'), geo }, r, (raw) => { if (raw && worthy()) copies.put(sKey, raw); });
   });
   up.on('error', () => {
     if (slow) clearTimeout(slow);

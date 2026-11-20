@@ -2,9 +2,11 @@ import Link from '@/components/Link';
 
 export const metadata = { title: 'Page not found', robots: { index: false } };
 
+// data-page: a portal page answers its not-found inside the stream with status 200 (r48 loading.tsx);
+// tests/lint/crawl-roles.mjs reads it as a 404
 export default function NotFound() {
   return (
-    <section className="nf on-dark">
+    <section className="nf on-dark" data-page="not-found">
       <div className="wrap nf__in">
         <p className="nf__code" aria-hidden="true">404</p>
         <div className="stack">
