@@ -8,3 +8,7 @@ The owner (Nov 20) wants the logo shown cleanly on every device, for every busin
   2. A VMC if the logo is the registered mark, otherwise a CMC. The issuer gives a PEM; host it at /brand/carma-bimi.pem.
   3. A DNS TXT record `default._bimi.carmacars.ca` with `v=BIMI1; l=https://carmacars.ca/brand/carma-bimi.svg; a=https://carmacars.ca/brand/carma-bimi.pem`.
   4. Apple Business Connect: verify the organisation, add Branded Mail for carmacars.ca (DKIM on all mail), upload the logo, and wait for review (up to 7 business days).
+
+## Guides
+
+No guide change: a logo file for mail programs, nothing a person does.

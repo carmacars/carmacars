@@ -107,3 +107,7 @@ test('r38: in Full the AI crawlers keep every page like the search engines (2350
     assert.equal(await keptToScope(`Mozilla/5.0 (compatible; ${b}; +https://example.test/bot)`, place, off, off), false, b);
   }
 });
+
+test('the BIMI logo is readable by any mail provider (no user agent is refused on /brand/*.svg)', () => {
+  for (const ua of ['Mozilla/5.0 (Windows NT 5.1; rv:11.0) Gecko Firefox/11.0 (via ggpht.com GoogleImageProxy)', 'Yahoo Ad monitoring', 'curl/8.0', null]) assert.equal(shield('GET', 'https://carmacars.ca/brand/carma-bimi.svg', ua, true).kind, 'pass');
+});
