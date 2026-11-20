@@ -180,3 +180,47 @@ test('signed address: the site\'s own https address first, then the host it came
     ['https://carmacars.example.test/api/webhooks/twilio/client', 'https://www.carmacars.example.test/api/webhooks/twilio/client']);
   assert.equal(signedUrlCandidates('https://a.example.test', 'http://x/p', 'bad host/\\').length, 1);
 });
+
+// ================================================================ r48 CM: Test call
+test('r48 CM: the account check names the failing step and the button', async () => {
+  const { accountProblem, balanceProblem, callerIdProblem, appUrlProblem } = await import('./twilio.ts');
+  assert.equal(accountProblem(401, { code: 20003, message: 'Authenticate' }).ok, false);
+  assert.match(accountProblem(401, { code: 20003, message: 'Authenticate' }).fix ?? '', /API keys/);
+  assert.match(accountProblem(200, { status: 'suspended', type: 'Full' }).detail, /suspended/);
+  assert.match(accountProblem(200, { status: 'active', type: 'Trial' }).fix ?? '', /Upgrade/);
+  assert.equal(accountProblem(200, { status: 'active', type: 'Full' }).ok, true);
+  assert.equal(balanceProblem(200, { balance: '0.12', currency: 'USD' }).ok, false);
+  assert.match(balanceProblem(200, { balance: '0.12', currency: 'USD' }).fix ?? '', /Add funds/);
+  assert.equal(balanceProblem(401, null).ok, true, 'a balance the key cannot read is not a failure by itself');
+  assert.equal(callerIdProblem('+12893125991', [], ['+12893125991']).ok, true);
+  assert.equal(callerIdProblem('+12893125991', ['+12893125991'], []).ok, true);
+  const bad = callerIdProblem('+12893125991', ['+16475550000'], []);
+  assert.equal(bad.ok, false);
+  assert.match(bad.fix ?? '', /Verified Caller IDs.*\+12893125991/);
+  assert.equal(callerIdProblem(null, [], []).ok, false);
+  assert.equal(appUrlProblem('https://carmacars.ca/api/webhooks/twilio/client', 'https://carmacars.ca/api/webhooks/twilio/client').ok, true);
+  assert.match(appUrlProblem('https://new.carmacars.ca/api/webhooks/twilio/client', 'https://carmacars.ca/api/webhooks/twilio/client').detail, /new\.carmacars\.ca/);
+});
+
+test('r48 CM: the test call token is this person\'s, for 10 minutes; its TwiML dials nobody', async () => {
+  const { testCallToken, verifyTestCallToken, testCallTwiml } = await import('./twilio.ts');
+  const u = '11111111-2222-3333-4444-555555555555', now = Date.UTC(2026, 10, 20, 12, 0, 0);
+  const t = await testCallToken('secret', u, now);
+  assert.equal(await verifyTestCallToken('secret', u, t, now), true);
+  assert.equal(await verifyTestCallToken('secret', u, t, now + 9 * 60_000), true);
+  assert.equal(await verifyTestCallToken('secret', u, t, now + 25 * 60_000), false, 'expired');
+  assert.equal(await verifyTestCallToken('secret', '11111111-2222-3333-4444-555555555556', t, now), false, 'another person');
+  assert.equal(await verifyTestCallToken('other', u, t, now), false, 'another secret');
+  assert.equal(await verifyTestCallToken('secret', u, null, now), false);
+  assert.doesNotMatch(testCallTwiml(), /<Dial|<Number|record/);
+  assert.match(testCallTwiml(), /<Hangup\/>/);
+});
+
+test('r48 CM: a Voice SDK error is named with its code', async () => {
+  const { voiceErrorText } = await import('./twilio.ts');
+  assert.match(voiceErrorText({ code: 20101 }), /token \(20101\)/);
+  assert.match(voiceErrorText({ code: 31002 }), /call handler \(31002\)/);
+  assert.match(voiceErrorText({ code: 31401 }), /microphone/);
+  assert.match(voiceErrorText({ code: 12345 }), /\(12345\)/);
+  assert.match(voiceErrorText(null), /did not go through/);
+});

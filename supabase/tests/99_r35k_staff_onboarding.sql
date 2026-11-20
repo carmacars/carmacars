@@ -66,16 +66,20 @@ select test.eq('no link set: no group shown', jsonb_array_length(app.staff_team_
 select test.throws('a group link must be a WhatsApp invite', $$update program_settings set whatsapp_team_group_url = 'https://example.test/x'$$);
 
 -- ================================================================ 3. inactivity
+-- the 1060 rules (10 days, warned on day 7) with no start date: 3113 made it 5 and 3 from the release (its own suite)
+create temp table r35k_inact as select staff_inactive_lock_days l, staff_inactive_warn_days w, staff_inactive_grace_from g from program_settings order by effective_from desc limit 1;
+update program_settings set staff_inactive_lock_days = 10, staff_inactive_warn_days = 7, staff_inactive_grace_from = null;
 update staff_profiles set last_seen_at = now() - interval '8 days', created_at = now() - interval '30 days' where user_id = test.id('r35k_fin');
 update users set last_sign_in_at = null where id = test.id('r35k_fin');
 delete from staff_seen where user_id = test.id('r35k_fin');
-select test.eq('day 7 or more: warned by email, not locked', app.job_staff_inactivity() like '1 warned, 0 locked%', true);
+select test.eq('day 7 or more: warned by email, not locked', app.job_staff_inactivity() like '1 warned, 0 suspended%', true);
 select test.ok('the warning email is on its way', exists (select 1 from app_events where code = 'staff_inactivity_warning' and payload ->> 'recipient_user_id' = test.id('r35k_fin')::text));
 update staff_profiles set last_seen_at = now() - interval '11 days' where user_id = test.id('r35k_fin');
-select test.eq('day 10: locked', app.job_staff_inactivity() like '0 warned, 1 locked%', true);
+select test.eq('day 10: locked', app.job_staff_inactivity() like '0 warned, 1 suspended%', true);
 select test.eq('my_roles says locked', (app.my_roles(test.id('r35k_fin')) ->> 'inactive_locked')::boolean, true);
 select test.throws('a locked account opens nothing', $$select test.r35k('r35k_fin', 'ops_read', 'va_clock')$$, 'locked for inactivity');
 select test.eq('a sign-in says so', (public.server_signed_in(test.id('r35k_fin')) ->> 'inactive_locked')::boolean, true);
+update program_settings set staff_inactive_lock_days = (select l from r35k_inact), staff_inactive_warn_days = (select w from r35k_inact), staff_inactive_grace_from = (select g from r35k_inact);
 select test.ok('the Admins are alerted', exists (select 1 from app_events where code like 'staff_alert_%' and payload ->> 'rule' = 'staff_inactive_locked'));
 select test.ok('an Admin is never locked', not exists (select 1 from staff_profiles where user_id = test.id('r35k_admin') and inactive_locked_at is not null));
 select test.r35k('r35k_admin', 'admin_do', 'staff_unlock', jsonb_build_object('user_id', test.id('r35k_fin')));

@@ -238,3 +238,72 @@ export function recordingKey(callId: string): string {
   if (!/^[0-9a-f-]{36}$/i.test(callId)) throw new Error('Not a call id');
   return `calls/twilio/${callId.toLowerCase()}.mp3`;
 }
+
+// ================================================================ r48 CM: the Admin's test call (Settings > Calls)
+
+export type CheckStep = { step: string; ok: boolean; detail: string; fix?: string };
+
+/** What Twilio's account answer says about calling (GET /Accounts/{sid}.json, its HTTP status and body). */
+export function accountProblem(status: number, j: { status?: string; type?: string; code?: number; message?: string } | null): { ok: boolean; detail: string; fix?: string } {
+  if (status === 401 || status === 403 || j?.code === 20003) return { ok: false, detail: `Twilio refused the API key (${j?.code ?? status}: ${j?.message ?? 'authenticate'}).`,
+    fix: 'Twilio Console > Account > API keys & tokens: create a Standard API key, then save its SID and secret as TWILIO_API_KEY and TWILIO_API_SECRET.' };
+  if (status === 404) return { ok: false, detail: 'Twilio does not know this account SID (404).', fix: 'Copy the Account SID (AC...) from the Twilio Console home page into TWILIO_ACCOUNT_SID.' };
+  if (status !== 200 || !j) return { ok: false, detail: `Twilio answered ${status}${j?.message ? `: ${j.message}` : ''}.`, fix: 'Try again in a minute; if it stays, check status.twilio.com.' };
+  if (j.status && j.status !== 'active') return { ok: false, detail: `The Twilio account is ${j.status}.`, fix: 'Twilio Console > Admin > Account billing: settle the balance or reactivate the account.' };
+  if (j.type === 'Trial') return { ok: false, detail: 'The Twilio account is a trial: it calls verified numbers only and plays a trial message.', fix: 'Twilio Console > Admin > Account billing > Upgrade account.' };
+  return { ok: true, detail: `Account active (${j.type ?? 'Full'}).` };
+}
+
+/** The balance (GET /Accounts/{sid}/Balance.json): a call needs money on the account. */
+export function balanceProblem(status: number, j: { balance?: string; currency?: string; message?: string } | null): { ok: boolean; detail: string; fix?: string } {
+  if (status !== 200 || !j?.balance) return { ok: true, detail: 'The balance could not be read with this key (only the Auth Token may read it); not a failure by itself.' };
+  const b = Number(j.balance);
+  if (!Number.isFinite(b)) return { ok: true, detail: `Balance: ${j.balance} ${j.currency ?? ''}`.trim() };
+  if (b <= 0.5) return { ok: false, detail: `Balance ${b.toFixed(2)} ${j.currency ?? 'USD'}: calls stop at zero.`, fix: 'Twilio Console > Admin > Account billing > Add funds (and turn on Auto-recharge).' };
+  return { ok: true, detail: `Balance ${b.toFixed(2)} ${j.currency ?? 'USD'}.` };
+}
+
+/** May Twilio show this caller ID: a number of the account, or a verified caller ID (the Quo number is one). */
+export function callerIdProblem(callerId: string | null, owned: string[], verified: string[]): { ok: boolean; detail: string; fix?: string } {
+  if (!callerId) return { ok: false, detail: 'No caller ID: TWILIO_CALLER_ID is empty and Site settings has no phone.', fix: 'Set TWILIO_CALLER_ID to +12893125991 (the Quo number).' };
+  if (owned.includes(callerId)) return { ok: true, detail: `${callerId} is a number of this Twilio account.` };
+  if (verified.includes(callerId)) return { ok: true, detail: `${callerId} is a verified caller ID.` };
+  return { ok: false, detail: `${callerId} is not verified in Twilio, so Twilio refuses it as the caller ID (error 21210 or 13214).`,
+    fix: `Twilio Console > Phone Numbers > Manage > Verified Caller IDs > Add a new Caller ID: ${callerId}, then answer the call on the Quo line and enter the code.` };
+}
+
+/** The TwiML App's Voice URL must be this site's client webhook. */
+export function appUrlProblem(voiceUrl: string | null | undefined, want: string): { ok: boolean; detail: string; fix?: string } {
+  if (voiceUrl === want) return { ok: true, detail: `The TwiML App sends calls to ${want}.` };
+  return { ok: false, detail: `The TwiML App sends calls to ${voiceUrl || 'nowhere'}, not ${want}.`, fix: 'Press Test call again: the site points the app at itself; or set the Voice URL in Twilio Console > Voice > TwiML Apps.' };
+}
+
+/** Our own token for a test call: only this server, for this person, for 10 minutes. */
+export async function testCallToken(secret: string, userId: string, now = Date.now()): Promise<string> {
+  const slot = Math.floor(now / 600_000);
+  return `${slot}.${hex(await hmac('SHA-256', secret, `twilio-test:${userId}:${slot}`)).slice(0, 32)}`;
+}
+export async function verifyTestCallToken(secret: string | null | undefined, userId: string | null, token: string | null | undefined, now = Date.now()): Promise<boolean> {
+  if (!secret || !userId || !token) return false;
+  const slot = Number(token.split('.')[0]);
+  const cur = Math.floor(now / 600_000);
+  if (!Number.isInteger(slot) || (slot !== cur && slot !== cur - 1)) return false;
+  return sameText(await testCallToken(secret, userId, slot * 600_000), token);
+}
+
+/** The test call's answer: a short message, then the end. Nobody is dialled and nothing is recorded. */
+export function testCallTwiml(): string {
+  return hangupTwiml('CarmaCars test call. Your browser phone works: the token, the connection, the TwiML App and the webhook are all right. Goodbye.');
+}
+
+/** A Voice SDK error in words, with its code (the Admin's test call and the staff phone). */
+export function voiceErrorText(e: { code?: number; message?: string } | null | undefined): string {
+  const c = e?.code;
+  const m = (e?.message ?? '').slice(0, 120);
+  if (c === 31401 || c === 31402 || /permission|NotAllowed/i.test(m)) return 'The browser did not allow the microphone. Allow it for this site (the icon in the address bar) and call again.';
+  if (c === 20101 || c === 20104 || c === 31204 || c === 31205) return `The phone service refused the sign-in token (${c}): the API key or secret is wrong, or the key was deleted. Ask an Admin to run Test call.`;
+  if (c === 31005 || c === 31009 || c === 53000 || c === 53405) return `The call dropped: the connection to the phone service was lost (${c}). Check your internet and call again.`;
+  if (c === 31002 || c === 31003) return `The phone service could not reach our call handler (${c}). Ask an Admin to run Test call.`;
+  if (c === 31000 || c === 31008) return `The call did not go through (${c}${m ? `: ${m}` : ''}). Ask an Admin to run Test call.`;
+  return `The call did not go through${c ? ` (${c})` : ''}. Try again; if it happens again, ask an Admin to run Test call.`;
+}

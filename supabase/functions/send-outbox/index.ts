@@ -155,6 +155,7 @@ async function loadBudgets() {
 }
 let sesOn = false;
 let sesReported = false;
+let sesSandboxReported = false;
 // the provider of the last send (SES's sandbox allows one email a second)
 let lastVia: 'ses' | 'cf' | 'resend' | '' = '';
 
@@ -237,6 +238,12 @@ async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
       if (s.kind === 'throttle') { const h = new Held('held by Amazon SES\'s sending rate', 'minute'); await defer(r, h); return h; }
       // refused: Cloudflare or Resend sends this one; an account-level refusal also rests SES 15 minutes (the database records it)
       sesError = s.error;
+      // r48 CM (3113): a refusal for an address SES has not verified means the account is still in its sandbox: recorded
+      // once a run, and the Admins get one alert a day with the AWS console step
+      if (s.kind === 'email' && /not verified/i.test(s.error) && !sesSandboxReported) {
+        sesSandboxReported = true;
+        await sql`select public.server_ses_email_result(${JSON.stringify({ sandbox: true, error: s.error })}::jsonb)`.catch(() => {});
+      }
       if (s.kind === 'account') {
         sesOn = false;
         await sql`select public.server_ses_email_result(${JSON.stringify({ ok: false, error: s.error })}::jsonb)`.catch(() => {});
@@ -337,6 +344,7 @@ Deno.serve(async (req) => {
   }
   // 2570: the keys are set: the database may count SES's day (it tries SES only while this was seen within the hour)
   sesReported = false;
+  sesSandboxReported = false;
   if (SES) await sql`select public.server_ses_email_result(${JSON.stringify({ seen: true })}::jsonb)`.catch(() => {});
   await loadBudgets();
   sesOn = emailProviderOrder({ sesConfigured: !!SES, sesEnabled: budget.sesEnabled, sesLeft: budget.sesLeft, sesResting: budget.sesResting,

@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 232,
+  "count": 235,
   "emails": [
     {
       "code": "account_password_reset",
@@ -10609,6 +10609,76 @@
       "template_text": "templates/renter_vehicle_disabled.txt"
     },
     {
+      "code": "text_fell_back",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "A text CarmaCars meant to send could not go (the texting service refused it, for example when its prepaid credits ran out) and the person has an email address: the same words come by email instead, once, and the text is marked \"not sent: fell back to email\" (release 48, migration 3113). A text whose own email already went, or that is no longer relevant, is never sent this way.",
+      "timing": "Immediate, once per text",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "A message from CarmaCars",
+      "preheader": "{{message_body}}",
+      "sample_subject": "A message from CarmaCars",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "message_body",
+          "type": "string",
+          "sample": "Hi Maya, a reminder that your CarmaCars pickup for CC-10482 is tomorrow, Sat Nov 21 at 10:00 am. Details: carmacars.ca/trips"
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/text_fell_back.html",
+      "template_text": "templates/text_fell_back.txt"
+    },
+    {
       "code": "document_signing_code",
       "audience": "owner",
       "category": "transactional",
@@ -21017,6 +21087,75 @@
       "template_text": "templates/staff_owner_application_received.txt"
     },
     {
+      "code": "staff_access_restored",
+      "audience": "staff_field",
+      "category": "transactional",
+      "trigger": "An Admin restored a suspended staff account (Unlock on Staff, or approving the person's restore request; release 48, migration 3113). Sent once.",
+      "timing": "Immediate, once",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Your CarmaCars access is back",
+      "preheader": "You can sign in again.",
+      "sample_subject": "Your CarmaCars access is back",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Sam",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "sign_in_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/sign-in?next=/staff",
+          "note": "One-time link from the sign-in service."
+        }
+      ],
+      "template_html": "templates/staff_access_restored.html",
+      "template_text": "templates/staff_access_restored.txt"
+    },
+    {
+      "code": "staff_access_suspended",
+      "audience": "staff_field",
+      "category": "transactional",
+      "trigger": "A staff account (never an Admin) was suspended: no use of the staff portal for the days of Program settings (5 by default), or two weekly townhalls missed in a row (release 48, migration 3113). Sent once per suspension. While suspended this is the only kind of message the person gets (with the restored email), nothing else.",
+      "timing": "Immediate, once",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "You no longer have access to CarmaCars",
+      "preheader": "Click here to restore it.",
+      "sample_subject": "You no longer have access to CarmaCars",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Sam",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "restore_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/staff-restore?t=3f1c7a2e-5b0d-4c1e-9a77-2b6c1d0e8f41"
+        }
+      ],
+      "template_html": "templates/staff_access_suspended.html",
+      "template_text": "templates/staff_access_suspended.txt"
+    },
+    {
       "code": "staff_agreement_reminder",
       "audience": "staff_field",
       "category": "transactional",
@@ -21399,14 +21538,14 @@
       "code": "staff_inactivity_warning",
       "audience": "staff_field",
       "category": "transactional",
-      "trigger": "A staff account (never an Admin) has had no sign-in or use of the staff portal for the warning days of Program settings (7 by default; migration 1060). Sent once per idle stretch.",
+      "trigger": "A staff account (never an Admin) has had no sign-in or use of the staff portal for the warning days of Program settings (3 by default since release 48, migration 3113; 7 before). Sent once per idle stretch.",
       "timing": "On the warning day, once",
       "digest": false,
       "from": "CarmaCars <hello@carmacars.ca>",
       "reply_to": "contact@carmacars.ca",
-      "subject": "Your CarmaCars staff account locks on {{lock_on}}",
-      "preheader": "Sign in before then to keep it open.",
-      "sample_subject": "Your CarmaCars staff account locks on Thursday, November 12",
+      "subject": "Your CarmaCars staff access ends on {{lock_on}}",
+      "preheader": "Sign in before then to keep it.",
+      "sample_subject": "Your CarmaCars staff access ends on Thursday, November 12",
       "variables": [
         {
           "name": "company_address",
@@ -21417,7 +21556,7 @@
         {
           "name": "days_idle",
           "type": "string",
-          "sample": "7"
+          "sample": "3"
         },
         {
           "name": "first_name",
@@ -21428,7 +21567,7 @@
         {
           "name": "lock_days",
           "type": "string",
-          "sample": "10"
+          "sample": "5"
         },
         {
           "name": "lock_on",

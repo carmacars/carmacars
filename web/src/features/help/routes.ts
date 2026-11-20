@@ -81,7 +81,7 @@ const INVESTOR: Record<string, Spec> = {
 // the search pages of release 36: language versions (/<lang>/...), airports, events, the GPS tracker and rent-vs-own
 const PUBLIC = ['', '[lang]', 'about', 'airport-car-rental', 'body-shop', 'book', 'buy', 'cancellation-policy', 'car-rental', 'careers', 'cars', 'chauffeur', 'choose-portal', 'contact', 'create-account',
   'credit-card-rental-coverage', 'delivery', 'detailing', 'events', 'faq', 'gps-tracker', 'guides', 'how-it-works', 'investors', 'link-expired', 'list-your-car', 'makes', 'my-request', 'partners',
-  'place-data', 'places', 'privacy', 'read-only', 'rent', 'requirements', 'rent-vs-own', 'reset-password', 'returned', 'review', 'sign-in', 't', 'terms', 'two-step', 'unsubscribe', 'update-password', 'verify'];
+  'place-data', 'places', 'privacy', 'read-only', 'rent', 'requirements', 'rent-vs-own', 'reset-password', 'returned', 'review', 'sign-in', 'staff-restore', 't', 'terms', 'two-step', 'unsubscribe', 'update-password', 'verify'];
 
 type Row = { key: string[]; row: HelpRow & { tabs?: Record<string, HelpEntry> } };
 const seg = (k: string) => (k ? k.split('/') : []);

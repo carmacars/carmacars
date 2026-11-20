@@ -1,4 +1,5 @@
 import { AutoReplies } from '@/features/auto-reply/AutoReplies';
+import { VoiceSelfCheck } from '@/features/phone/VoiceSelfCheck';
 import { ChannelPolicyCard } from '@/features/channel-policy/ChannelPolicy';
 import type { PolicyList } from '@/features/channel-policy/model';
 import { SceneReferences } from '@/features/listing/Marketing';
@@ -168,6 +169,8 @@ export default async function Section({ params, searchParams }: { params: Promis
   // r37 (2304): the channel partners, their keys and calls (Admin only)
   case 'channel-partners': return (<>{head}<ChannelPartners s={await read<ChannelState>('channel_state')} /></>);
   // r35 (0950): Settings > Sales, the lead claim rules
+  // r48 CM: Test call, the self-check of calls in the browser
+  case 'calls': return (<>{head}<VoiceSelfCheck /></>);
   case 'sales': return (<>{head}<SalesSettings s={await door<LeadSettings>(user.id, 'admin_read', 'sales_lead_settings')} /></>);
   case 'site': {
     const samples = await door<{ public: number; cars: number; catalogue: number; open_enquiries: number }>(user.id, 'ops_read', 'sample_cars_state').catch(() => null);

@@ -109,3 +109,6 @@ select test.throws('an owner cannot use the buttons', $$select test.cn('cn_own',
 update program_settings set phone_quo_buttons = false;
 select test.ok('off in Program settings: the phone''s own apps', not (test.cn('cn_fleet', 'va_read', 'phone_buttons') ->> 'quo')::boolean);
 update program_settings set phone_quo_buttons = true;
+
+-- 3113: the Quo 402 above paused texts for everyone (phone_provider_state); the suites after this one start with texts going
+update phone_provider_state set quo_ok_at = now() where quo_failed_at is not null;

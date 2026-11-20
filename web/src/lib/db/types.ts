@@ -34039,6 +34039,8 @@ export type Database = {
       server_sign_request_document: { Args: { p_id: string }; Returns: Json };
       server_signature_lines: { Args: { p_request: string }; Returns: Json };
       server_signed_in: { Args: { p_user: string }; Returns: Json };
+      server_staff_restore_request: { Args: { p_token: string }; Returns: Json };
+      server_staff_restore_token: { Args: { p_user: string }; Returns: string };
       server_signin_phone_request: { Args: { p: Json }; Returns: Json };
       server_signing_package_record: { Args: { p_by: string; p: Json }; Returns: Json };
       server_signing_record: { Args: { p_booking: string }; Returns: Json };

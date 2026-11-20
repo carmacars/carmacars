@@ -3,11 +3,11 @@ CarmaCars  |  Staff account
 ========================================
 
 [Staff account]
-Sign in to keep your account open
+Sign in to keep your access
 
 Hi {{first_name}}. You have not signed in to your CarmaCars staff portal for {{days_idle}} days.
 
-Staff accounts lock after {{lock_days}} days without a sign-in. Yours locks on {{lock_on}} unless you sign in before then. Once it is locked, only an Admin can open it again.
+Staff access is suspended after {{lock_days}} days in a row without using the portal. Yours is suspended on {{lock_on}} unless you sign in before then.
 
 Sign in now:
 {{sign_in_url}}

@@ -7,8 +7,8 @@ export function LockedNotice() {
   if (sp.get('locked') !== 'inactivity') return null;
   return (
     <p className="alert alert--warn" role="alert" data-testid="signin-locked">
-      <span className="alert__title">Account locked</span>
-      <span>Your staff account is locked: it was not used for a while, or two weekly townhalls were missed in a row. Ask an Admin to restore it, then sign in again.</span>
+      <span className="alert__title">Access suspended</span>
+      <span>Your staff access is suspended: the portal was not used for 5 days in a row, or two weekly townhalls were missed in a row. Use the restore link in the email we sent you; an Admin approves it.</span>
     </p>
   );
 }

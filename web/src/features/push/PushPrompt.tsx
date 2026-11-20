@@ -54,6 +54,26 @@ export function PushPrompt({ publicKey, portal, home, native = false, moment, as
   const [closed, setHidden] = useState(false);
   const [done, setDone] = useState(false);
   const d = usePushDevice(publicKey, portal, null, { readState: false, native });
+  // r48 CM (3113): alerts stopped on this device without the person turning them off: said on every page, every time,
+  // until they are back (the permission was reset, or the browser's subscription expired and could not renew by itself)
+  const lost = !native && !closed && !done && !!d.state?.lost && (d.status === 'ready' || d.status === 'blocked');
+  if (lost) {
+    const blocked = d.status === 'blocked';
+    return (
+      <aside className="pa-prompt" aria-label="Phone alerts" data-testid="push-lost" role="status">
+        <span className="pa-prompt__icon" aria-hidden="true"><Bell /></span>
+        <div className="pa-prompt__text">
+          <p className="pa-prompt__title">Alerts stopped on this device</p>
+          <p className="small">{blocked ? 'This browser blocks CarmaCars alerts now. Allow notifications for carmacars.ca (the icon in the address bar, or the browser\'s site settings), then press Turn on.'
+            : 'Your device needs permission again. Press Turn on and allow notifications.'}</p>
+          {d.error && <p className="small pa-prompt__error" role="alert">{d.error}</p>}
+        </div>
+        <div className="pa-prompt__actions">
+          <button type="button" className="btn btn--primary btn--sm" disabled={d.busy} onClick={async () => { if (await d.turnOn()) setDone(true); }} data-testid="push-lost-on">{d.busy ? 'Turning on…' : 'Turn on'}</button>
+        </div>
+      </aside>
+    );
+  }
   if (!homes.includes(path) || quiet || closed || d.status === 'loading' || ask?.why === 'on') return null;
   const canPush = !!publicKey || native;
   const appOnly = !done && !(canPush && (d.status === 'ready' || d.status === 'ios_install')) && !!store;

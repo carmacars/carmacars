@@ -5,7 +5,7 @@ import { staffCompose, staffDoor, staffDraft, staffReply } from '@/server/phone'
 import { rpc } from '@/lib/db/repo';
 import type { Json } from '@/lib/db/types';
 import { viewAs } from '@/server/view-as';
-import { startBrowserCall, startStaffCall, twilioState, voicePresence, voiceSettings, voiceToken } from '@/server/twilio-call';
+import { startBrowserCall, startStaffCall, twilioState, voicePresence, voiceSelfCheck, voiceSettings, voiceToken } from '@/server/twilio-call';
 import { foreignOrigin } from '@/lib/security/same-origin';
 
 // Texts and calls for staff (migration 0085): the inbox and threads poll this; replies are sent through Quo from the
@@ -63,6 +63,11 @@ export async function GET(req: Request) {
     try {
       return NextResponse.json(await door(adminId, 'admin_do', 'phone_reveal', { masked: u.searchParams.get('masked') ?? '', booking: u.searchParams.get('booking'), name: u.searchParams.get('name') }), { headers: H });
     } catch (e) { return fail(e, 403); }
+  }
+  // r48 CM: Test call (Admin, Settings > Calls): every step of a browser call, and a test token for the real test call
+  if (what === 'voice_selfcheck') {
+    if (!w.admin || (await viewAs())) return NextResponse.json({ error: 'Only an Admin runs Test call, as themself' }, { status: 403, headers: H });
+    return NextResponse.json(await voiceSelfCheck(w.user.id), { headers: H });
   }
   if (!READS.has(what) || (!w.admin && !w.va && !BUTTONS.has(what))) return NextResponse.json({ error: 'Unknown read' }, { status: 400, headers: H });
   // r44 (2790): the browser's phone. Never while viewing as someone else: the token would be theirs
