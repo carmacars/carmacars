@@ -13,7 +13,7 @@ export async function generateMetadata() {
   return metaOr(async () => {
     const x = await trackerFacts();
     if (!x) return {};
-    return seoMeta({ title: `GPS Tracker and Kill Switch Installation Near You in Ontario | ${x.f.brand}`,
+    return seoMeta({ title: `GPS Tracker and Kill Switch Installation in Ontario | ${x.f.brand}`,
       description: `${x.f.brand} installs the ${x.f.name} out of sight and checks that it works. ${installSentence(x.f).replace(/^./, (c) => c.toUpperCase())}. Find your city.`.slice(0, 160), path: '/trackers/install' });
   }, { title: 'GPS tracker installation' }, (m) => console.warn('tracker install', m));
 }

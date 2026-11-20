@@ -45,6 +45,7 @@ test('every intent page is its own page: its own address, title, heading, answer
   for (const p of pages) {
     assert.match(p.slug, /^[a-z0-9-]+$/);
     assert.ok(p.faq.length >= 3, p.slug);
+    assert.ok(p.title.length <= 70, `${p.slug}: the title fits a search result (${p.title.length})`);
     assert.ok(p.answer.length > 120 && p.answer.length < 520, `${p.slug}: an answer a person reads in one breath`);
     for (const r of p.compare.rows) assert.equal(r.length, p.compare.head.length, `${p.slug}: a table row has a cell for every column`);
     assert.ok(TRACKER_PATHS.includes(`/trackers/${p.slug}`), `${p.slug} is in the sitemap list`);

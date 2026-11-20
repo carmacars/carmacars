@@ -13,7 +13,7 @@ export async function generateMetadata() {
     const x = await trackerFacts();
     if (!x) return {};
     const lo = lowest(x.f);
-    return seoMeta({ title: `GPS Tracker and Kill Switch for Cars in ${x.f.city}${lo !== null ? `, from ${monthly(lo)}` : ''} | ${x.f.brand}`,
+    return seoMeta({ title: `GPS Tracker and Kill Switch for Cars${lo !== null ? `, from ${monthly(lo)}` : ` in ${x.f.city}`} | ${x.f.brand}`,
       description: `${x.f.name}: live GPS, a remote kill switch (starter interrupt), door locking and an alarm from your phone. ${lo !== null ? `From ${monthly(lo)} per car. ` : ''}${x.f.available ? 'Installs are open.' : 'Join the waitlist or pre-order.'}`.slice(0, 160), path: '/trackers' });
   }, { title: 'GPS tracker and kill switch' }, (m) => console.warn('trackers', m));
 }

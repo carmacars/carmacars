@@ -20,8 +20,8 @@ const trail: Trail = [['Home', '/'], ['Services']];
 export async function generateMetadata() {
   return metaOr(async () => {
     const s = await getSettings();
-    return seoMeta({ title: `Services: car rental, GPS trackers, chauffeur, delivery, owner program | ${s.brand_name}`, path: '/services',
-      description: `Everything ${s.brand_name} does in ${s.city}: car rental with delivery, the GPS tracker and kill switch, the owner program, chauffeur service, coverage options, add-ons, detailing and body work.` });
+    return seoMeta({ title: `Services: car rental, GPS trackers, chauffeur, delivery | ${s.brand_name}`, path: '/services',
+      description: `Everything ${s.brand_name} does in ${s.city}: car rental with delivery, the GPS tracker and kill switch, the owner program, a chauffeur, coverage and add-ons.`.slice(0, 170) });
   }, { title: 'Services' }, (m) => console.warn('services', m));
 }
 

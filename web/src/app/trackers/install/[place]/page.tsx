@@ -28,7 +28,10 @@ export async function generateMetadata({ params }: Params) {
     const [x, h] = await Promise.all([trackerFacts(), load(place)]);
     if (!x) return {};
     const lo = lowest(x.f);
-    return seoMeta({ title: `GPS Tracker and Kill Switch Install in ${h.place.name}${h.place.region ? `, ${h.place.region.replace(/^CA-/, '')}` : ''} | ${x.f.brand}`,
+    // the title stays within 70 characters for a long place name
+    const where = `${h.place.name}${h.place.region ? `, ${h.place.region.replace(/^CA-/, '')}` : ''}`;
+    const title = [`GPS Tracker and Kill Switch Install in ${where} | ${x.f.brand}`, `GPS Tracker Install in ${where} | ${x.f.brand}`, `GPS Tracker Install in ${h.place.name}`].find((t) => t.length <= 70) ?? `GPS Tracker Install in ${h.place.name}`.slice(0, 70);
+    return seoMeta({ title,
       description: `${x.f.name} installed for car owners in ${h.place.name}: live GPS, a remote kill switch, door locking and an alarm. ${lo !== null ? `From ${monthly(lo)} per car, ` : ''}${installSentence(x.f)}.`.slice(0, 160),
       path: `/trackers/install/${h.place.slug}`, noindex: !(h.indexable && h.delivery.in_reach) });
   }, { title: titleFromPath(`/trackers/install/${place}`) }, (m) => console.warn('tracker place', m));

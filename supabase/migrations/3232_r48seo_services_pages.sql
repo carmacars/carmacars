@@ -26,7 +26,7 @@ grant execute on function public.service_facts() to service_role;
 
 insert into seo_pages (slug, kind, name, sort_order, facts, match, copy, source, status) values
   ('rideshare', 'use', 'Car rental for rideshare drivers', 240, '{"topic": "driving for a rideshare or delivery platform", "nearby": ["weekly", "monthly", "economy"], "agreement_section": "10.3"}', '{}',
-   jsonb_build_object('seo_title', 'Car Rental for Uber and Lyft Drivers in {{city}} | {{brand}}', 'meta_description', 'Rent a car in {{city}} to drive for Uber, Lyft or a delivery app. Rideshare is allowed in the rental agreement, with weekly and monthly rates and the documents the platforms ask for.',
+   jsonb_build_object('seo_title', 'Car Rental for Uber and Lyft Drivers in {{city}} | {{brand}}', 'meta_description', 'Rent a car in {{city}} to drive for Uber, Lyft or a delivery app. Rideshare is allowed in the rental agreement, with weekly and monthly rates.',
      'h1', 'Car rental for rideshare and delivery drivers in {{city}}',
      'intro', 'Yes: you can drive a {{brand}} rental for Uber, Lyft and delivery apps. The rental agreement allows it in writing, and once you are booked your booking page makes the documents the platforms ask for. Rent by the week or the month, from drivers {{minAge}} and older with an Ontario {{licence}} licence.',
      'sections', jsonb_build_array(
@@ -40,7 +40,7 @@ insert into seo_pages (slug, kind, name, sort_order, facts, match, copy, source,
        jsonb_build_object('question', 'How long can I rent for?', 'answer', 'By the week or the month, and you can extend from your account while the car is free.'),
        jsonb_build_object('question', 'How old do I have to be?', 'answer', 'Drivers {{minAge}} and older with an Ontario {{licence}} licence can rent. Drivers under {{fullAge}} pay a young driver fee for each day. The platforms set their own minimum age for drivers.'))), 'seed', 'published'),
   ('g2-licence', 'use', 'Car rental with a G2 licence', 236, '{"topic": "renting with a G2 licence", "licence_classes": ["G", "G2"], "nearby": ["young-drivers", "under-25", "economy"]}', '{}',
-   jsonb_build_object('seo_title', 'Rent a Car With a G2 Licence in {{city}} | {{brand}}', 'meta_description', 'Yes, you can rent a car in {{city}} with a G2. {{brand}} accepts an Ontario {{licence}} licence for every car, from age {{minAge}}. See the cars and the young driver fee.',
+   jsonb_build_object('seo_title', 'Rent a Car With a G2 Licence in {{city}} | {{brand}}', 'meta_description', 'Yes, you can rent a car in {{city}} with a G2. {{brand}} accepts an Ontario {{licence}} licence for every car, from age {{minAge}}. See the cars and the fees.',
      'h1', 'Rent a car with a G2 licence in {{city}}',
      'intro', 'Yes: {{brand}} rents to G2 drivers. We accept an Ontario {{licence}} licence for every car in the fleet, from age {{minAge}}. If you are under {{fullAge}} a young driver fee is added for each day, shown on each car''s page before you send a request.',
      'sections', jsonb_build_array(

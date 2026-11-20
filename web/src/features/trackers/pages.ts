@@ -56,7 +56,7 @@ export function trackerIntents(f: TrackerFacts): TrackerIntent[] {
   const install = f.installCents ? money(f.installCents) : 'a quoted price';
   return [
     {
-      slug: 'kill-switch-for-car', title: `Kill switch for a car: remote engine shut-off from your phone | ${f.brand}`, h1: 'Kill switch for a car, worked from your phone', kicker: 'Remote kill switch', icon: 'power',
+      slug: 'kill-switch-for-car', title: `Kill switch for a car: remote engine shut-off | ${f.brand}`, h1: 'Kill switch for a car, worked from your phone', kicker: 'Remote kill switch', icon: 'power',
       answer: `A kill switch keeps a car from being started. The ${f.name} adds one you work from your phone: a starter interrupt wired in by us, with live GPS so you also know where the car is. From ${from} per car plus ${install} to install. ${availability(f)}.`,
       section: { h: 'How a remote kill switch works', p: 'A classic kill switch is a hidden toggle: you have to be at the car to flip it. Ours is wired to the starter and answers to your phone.',
         steps: [['The car is parked', 'A late rental, a missed payment, a car that is not where it should be: you open the car on your phone.'],
@@ -93,7 +93,7 @@ export function trackerIntents(f: TrackerFacts): TrackerIntent[] {
       lead: ['Kill switch', 'Remote lock', 'Installed']
     },
     {
-      slug: 'gps-tracker-for-rental-car', title: `GPS tracker for rental cars: live location, kill switch, tolls to the renter | ${f.brand}`, h1: 'GPS tracker for rental cars', kicker: 'For rental car owners', icon: 'pin',
+      slug: 'gps-tracker-for-rental-car', title: `GPS tracker for rental cars: location, kill switch | ${f.brand}`, h1: 'GPS tracker for rental cars', kicker: 'For rental car owners', icon: 'pin',
       answer: `For a car you rent out, the ${f.name} shows the car live, keeps a trip history, shuts the starter off when a renter will not bring it back, and ties every 407 ETR toll and ticket to the renter who had the car. From ${from} per car plus ${install} to install. ${availability(f)}.`,
       section: { h: 'What it settles on a rental', p: 'The four arguments every rental car owner has, each one answered by a record.',
         points: [{ icon: 'clock', title: 'Late returns', text: 'You see the car is still across town at the return time, before the next renter arrives.' },
@@ -111,7 +111,7 @@ export function trackerIntents(f: TrackerFacts): TrackerIntent[] {
       lead: ['Live GPS', 'Tolls', 'Trip history']
     },
     {
-      slug: 'anti-theft-tracker-toronto', title: `Anti-theft GPS tracker in ${f.city} with a remote kill switch | ${f.brand}`, h1: `Anti-theft GPS tracker in ${f.city}`, kicker: 'Anti-theft', icon: 'shield',
+      slug: 'anti-theft-tracker-toronto', title: `Anti-theft GPS tracker in ${f.city} with a kill switch | ${f.brand}`, h1: `Anti-theft GPS tracker in ${f.city}`, kicker: 'Anti-theft', icon: 'shield',
       answer: `An anti-theft tracker has two jobs: make the car hard to take and easy to find. The ${f.name} does both: a starter interrupt and an alarm you set off from your phone, and a live GPS location for you and the police. Installed in ${f.city} by ${f.brand}, from ${from} per car. ${availability(f)}.`,
       section: { h: 'If the car goes missing', p: 'What you do, in order. Keep it calm and let the police do the recovering.',
         steps: [['Open the map', 'The live location shows where the car is, with a new reading every few minutes while it moves.'], ['Call the police', 'Give them the location and the plate. Do not go to the car yourself.'],
@@ -127,7 +127,7 @@ export function trackerIntents(f: TrackerFacts): TrackerIntent[] {
       lead: ['Kill switch', 'Alarm', 'Live GPS']
     },
     {
-      slug: 'fleet-tracking', title: `Fleet GPS tracking for small fleets in Ontario, from ${lowest(f) !== null ? money(lowest(f)!) : 'a quote'} a car | ${f.brand}`, h1: 'Fleet tracking for small fleets', kicker: 'Fleet tracking', icon: 'fleet',
+      slug: 'fleet-tracking', title: `Fleet GPS tracking in Ontario, from ${lowest(f) !== null ? money(lowest(f)!) : 'a quote'} a car | ${f.brand}`, h1: 'Fleet tracking for small fleets', kicker: 'Fleet tracking', icon: 'fleet',
       answer: `Fleet tracking from ${f.brand} is priced by the number of cars: ${priceSentence(f)}, plus ${installSentence(f)}. Every car shows live on one map with its trips, and each has its own kill switch, door locking and alarm. ${availability(f)}.`,
       section: { h: 'Built for 3 to 50 cars', p: 'Big telematics suites are sold by the hundred seats. This is for the owner who knows every car by its plate.',
         points: [{ icon: 'pin', title: 'One map, every car', text: 'See the whole fleet at once, and open any car for its trips.' }, { icon: 'dollar', title: 'The price falls as you grow', text: `The monthly price per car drops at ${f.tiers.filter((t) => t.from_cars > 1).map((t) => t.from_cars).join(' and ') || 'each tier'} cars.` },
@@ -142,7 +142,7 @@ export function trackerIntents(f: TrackerFacts): TrackerIntent[] {
       lead: ['Live GPS', 'Trip history', 'Tolls']
     },
     {
-      slug: 'turo-host-gps-tracker', title: `GPS tracker for Turo hosts in Ontario: kill switch, tolls, late returns | ${f.brand}`, h1: 'GPS tracker for Turo hosts', kicker: 'For peer-to-peer hosts', icon: 'users',
+      slug: 'turo-host-gps-tracker', title: `GPS tracker for Turo hosts in Ontario, with kill switch | ${f.brand}`, h1: 'GPS tracker for Turo hosts', kicker: 'For peer-to-peer hosts', icon: 'users',
       answer: `Hosts who rent their cars on Turo or any other platform use the ${f.name} to see each car live, lock and release the doors for a contactless handover, prove who had the car when a toll or ticket arrives, and switch the starter off when a guest will not return it. From ${from} per car. ${availability(f)}. ${f.brand} is not affiliated with Turo.`,
       section: { h: 'A host\'s week, with a tracker', p: 'The moments it earns its keep.',
         points: [{ icon: 'lock', title: 'Contactless handover', text: 'Release the doors when the guest arrives and lock them again when the trip ends, from wherever you are.' },
@@ -160,7 +160,7 @@ export function trackerIntents(f: TrackerFacts): TrackerIntent[] {
       lead: ['Remote lock', 'Tolls', 'Kill switch']
     },
     {
-      slug: 'toll-and-ticket-billing', title: `407 ETR tolls and tickets on a rented car: billed to the renter | ${f.brand}`, h1: 'Tolls and tickets, billed to the renter who had the car', kicker: 'Tolls and tickets', icon: 'receipt',
+      slug: 'toll-and-ticket-billing', title: `407 ETR tolls and tickets on a rented car: who pays | ${f.brand}`, h1: 'Tolls and tickets, billed to the renter who had the car', kicker: 'Tolls and tickets', icon: 'receipt',
       answer: `The 407 ETR and the ticket cameras bill the plate, so the bill reaches the car's owner weeks after the trip. The ${f.name} keeps each trip with its times and route: on cars rented through ${f.brand}, every toll and ticket is matched to the renter who had the car at that minute and billed to that renter, with the proof.`,
       section: { h: 'From the bill to the right person', p: 'What happens when a toll or a ticket arrives.',
         steps: [['The bill arrives', 'A 407 ETR invoice or a ticket, in the owner\'s name, for a day weeks ago.'], ['It is matched', 'The date and time are checked against the bookings and the car\'s trips: one renter had the car at that minute.'],
