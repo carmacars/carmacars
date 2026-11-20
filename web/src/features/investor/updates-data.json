@@ -97,7 +97,8 @@
      "A renter's checklist says exactly which page of their own policy is still missing, and its button opens that upload, with example pictures of a pink slip and an OPCF 27 page",
      "A pay link asks only for what is owed: after a change, the difference; a link no longer needed is cancelled by itself and never charged",
      "CarmaCars Rewards emails renters: welcome, points earned, a new tier, the free day, reminders before points end, a monthly statement, and nudges they can unsubscribe from",
-     "From Platinum up, a rental near the renter's birthday or on a holiday weekend is 10% (Platinum) or 20% (Black) off the rental charge, shown as its own line; Gold is off until an Admin gives it a percent"
+     "From Platinum up, a rental near the renter's birthday or on a holiday weekend is 10% (Platinum) or 20% (Black) off the rental charge, shown as its own line; Gold is off until an Admin gives it a percent",
+     "A native CarmaCars app for iPhone and Android is built and waits for the company's developer accounts: find a car, ask for it, sign the agreement, pay, take the licence photos and selfie with the camera, check in and check out at the car, extend, messages and phone alerts"
     ]
    },
    {
@@ -117,7 +118,8 @@
      "The academy teaches the guides: worked examples for every role, and the path The renter's side for every staff member",
      "Calls through the site open the caller pop-up and its Call helper within a second, for the calls you place and the ones that ring you; every call keeps its recording, transcript and summary on the renter",
      "A booking on a weekly, every 2 weeks or monthly plan is confirmed once its first payment is paid, and a plan never shows an empty last payment",
-     "A booking partly paid but not yet confirmed can move to another car, or other dates, with **Edit**; its price and its payments stay"
+     "A booking partly paid but not yet confirmed can move to another car, or other dates, with **Edit**; its price and its payments stay",
+     "In the new phone app, field staff run their day (jobs, shifts, the handover checklist with the phone's camera, clocking in and out with the phone's location), Sales work their leads with calls and texts through the platform and numbers still masked, and owners see their cars, bookings and statements"
     ]
    },
    {
@@ -136,7 +138,8 @@
     "area": "Reliability & security",
     "items": [
      "The website now runs on CarmaCars' own server in Canada, behind the same protection and speed layer as before",
-     "The photo queue no longer stalls on steps waiting with no end"
+     "The photo queue no longer stalls on steps waiting with no end",
+     "The app signs in with email, a texted code or a passkey, can lock itself behind the phone's face or fingerprint check, and does only what the same account may do on the website; an account can be deleted from inside the app"
     ]
    }
   ]
