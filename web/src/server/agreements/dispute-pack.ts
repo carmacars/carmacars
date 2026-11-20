@@ -56,6 +56,11 @@ type Ev = {
     attached: Array<{ kind: string; note: string | null; at: string; by: string | null }>;
     tracker: { kind: 'speed_series' | 'route'; points: Array<{ at: string; lat: number; lng: number; speed_kmh?: number | null; ignition?: boolean | null }> } | null }>;
   return_location?: { at: string; lat: number; lng: number } | null;
+  /** 3320: the evidence record of every tracker event of the booking (charged or not), with its seal and the notice the renter got */
+  tracker_events?: Array<{ evidence_id: string; kind: string; tier: number | null; title: string; detail: string | null; at: string; lat: number | null; lng: number | null; speed_kmh: number | null;
+    source: string; device: string | null; clause: string | null; fee_code: string | null; line_item_id: string | null; sha256: string | null; sealed_at: string | null;
+    readings: Array<{ at: string; lat: number; lng: number; speed_kmh?: number | null; ignition?: boolean | null }>;
+    notices: Array<{ code: string; channel: string; status: string; queued_at: string; sent_at: string | null; provider_id: string | null }> }>;
   staff_notes?: Array<{ at: string; by: string | null; body: string }>;
   renter_replies?: Array<{ at: string; channel: string; subject: string | null; body: string | null }>;
   identity?: Array<{ driver: string | null; method: string | null; status: string; provider: string | null; face_match_score: number | null; verified_at: string | null; verified_by: string | null }>;
@@ -292,6 +297,23 @@ export async function buildDisputePack(packId: string): Promise<void> {
     }
     if (ev.return_location) w.line(`The car's location at the return (Tracker): ${ev.return_location.lat.toFixed(5)}, ${ev.return_location.lng.toFixed(5)} at ${stamp(ev.return_location.at)}.`, 8.5);
     contents.charges = charges.length;
+  }
+  if ((ev.tracker_events ?? []).length) {
+    // 3320: every tracker event of the rental, charged or not: the map point, speed, time and source, the clause, the
+    // notice sent, the readings around it and the record's seal (the SHA-256 kept in the database)
+    w.newPage(); w.head('Tracker events');
+    w.line('Each event the Tracker recorded during the rental, from its evidence record. The renter consented to tracking and agreed that Tracker data is evidence (rental agreement sections 12.1 and 12.2).', 8.5);
+    for (const [i, t] of (ev.tracker_events ?? []).entries()) {
+      w.line(`${i + 1}. ${t.title}`, 10, true, 2);
+      w.line(`${stamp(t.at)}${t.speed_kmh != null ? `, ${t.speed_kmh} km/h` : ''}${t.lat != null && t.lng != null ? `, at ${Number(t.lat).toFixed(5)}, ${Number(t.lng).toFixed(5)}` : ''}. Source: ${t.source.replace(/_/g, ' ')}${t.device ? `, tracker ${t.device}` : ''}.`, 8.5);
+      if (t.detail) w.line(t.detail, 8.5);
+      if (t.clause) w.line(`Clause: ${t.clause}.${t.line_item_id ? ' Charged: see the charge above that names this record.' : ' Not charged.'}`, 8);
+      for (const x of t.notices) w.line(`Notice to the renter: ${x.code.replace(/_/g, ' ')} by ${x.channel}, ${x.status}${x.sent_at ? ` ${stamp(x.sent_at)}` : ` (queued ${stamp(x.queued_at)})`}${x.provider_id ? `, provider message ${x.provider_id}` : ''}.`, 8);
+      for (const p of t.readings.slice(0, 40)) w.line(`Tracker ${stamp(p.at)}: ${p.speed_kmh ?? '?'} km/h at ${Number(p.lat).toFixed(5)}, ${Number(p.lng).toFixed(5)}`, 7.5);
+      w.line(`Evidence record ${t.evidence_id}, SHA-256 ${t.sha256 ?? 'pending'}${t.sealed_at ? `, sealed ${stamp(t.sealed_at)}` : ''}.`, 7.5);
+      w.y -= 6;
+    }
+    contents.tracker_events = (ev.tracker_events ?? []).length;
   }
   if ((ev.staff_notes ?? []).length || (ev.renter_replies ?? []).length) {
     w.newPage(); w.head('Staff notes'); for (const x of ev.staff_notes ?? []) w.line(`${stamp(x.at)} ${x.by ?? ''}: ${x.body}`, 8);

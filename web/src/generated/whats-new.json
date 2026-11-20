@@ -248,6 +248,9 @@
      "Edit on a booking waiting for payment that already has a payment: another car, the dates, the places, with the price and payments kept; the connector's change_booking does the same",
      "Claude's connector lets a main driver keep a licence from outside Ontario on one booking (licence_let_go, your Let it go with the reason), previewed first",
      "The two pages of an OPCF 27 proof have one name on every screen: the pink slip and the OPCF 27 endorsement page",
+     "Cars > Fleet tracking has Tracker events (off until you turn it on under Tracker event settings): each speeding record over 180, 220 or 300 km/h, harsh driving, tampering and a car outside Ontario makes one alert per 30 minutes with its evidence record; Charge adds the speeding charge with the evidence attached, and the dispute pack carries it",
+     "Pound lots: the known Ontario impound lots with name, address, phone and hours, to edit; a car parked at one is flagged on its booking, with an urgent To do, alert and email for Fleet, and Record the path adds the non-return or theft recovery charge with the costs",
+     "The tracker ingest refuses the same signed request twice and more requests a minute than the setting allows",
      "On a car, Studio photos shows each made view beside the car's own photos: Make again, Take off the site, Put on the site, and the car's scene (highway, brick building and the other scenes)",
      "Photo standard shows the fleet's progress and about how many days are left at Gemini's daily limit",
      "Studio photos with a blurred box where a plate is or would have been are made again by themselves; the photo check now refuses a blur or box where no plate is, or one larger than the plate",
@@ -288,7 +291,8 @@
      "Each lead card shows where the person came from (ChatGPT, Google and its search terms, an ad, direct) and the first page they opened: start your call from what they were looking for",
      "The same person twice is one lead: a new form joins their open lead by itself, and Merge on a lead joins a duplicate with one press; press Different person for two people who share an email or a phone",
      "GPS tracker waitlist and pre-order sign-ups arrive as leads with the number of cars and the price quoted",
-     "The academy has a new section: Where a lead came from, and duplicate leads"
+     "The academy has a new section: Where a lead came from, and duplicate leads",
+     "The Fleet map lists the Tracker events with their evidence below the map, and Pound flags: when a car is parked at a pound, call the lot and the renter, then press Record the path"
     ],
     "owners": [
      "Cars > Bookings is reorganised: your cars over the next six weeks, then On a trip, Upcoming and Past, each booking with its dates, status and money, and a filter by car",
@@ -298,7 +302,8 @@
      "Updated agreements open in one box to accept; nothing to sign again",
      "Your statement pays your agreed split; an owner who referred you is paid from CarmaCars' share, never from yours",
      "Each car's page shows Where your car is and its trips of the last 30 days, or No tracker yet; you see the location only, never the renter or the booking",
-     "The GPS tracker and kill switch has its own page with its price by number of cars; join the waitlist there to hear first when trackers arrive"
+     "The GPS tracker and kill switch has its own page with its price by number of cars; join the waitlist there to hear first when trackers arrive",
+     "Each car's page shows Tracker alerts: speeding, harsh driving, tampering or a pound, with the time and the place; we also tell you by email, text or the app, and you can turn these alerts off in your notification settings"
     ],
     "renters": [
      "The rental agreement adds non-return, improper return, theft recovery and tire and roadside charges, each billed with its evidence; roadside assistance stays included",
@@ -306,6 +311,7 @@
      "Checking in yourself? Confirm it is you with a photo of your licence and a selfie. It is optional and never holds up your pickup",
      "The rental agreement has speeding charges over 180, 220 and 300 km/h (section 10.5); agreements already signed stay as they are",
      "The privacy policy and the rental agreement say that CarmaCars staff and the car's owner can see where the car is",
+     "If the car's Tracker records speeding over 180 km/h, the car outside Ontario or at an impound lot, we tell you at once what happened, any charge and the clause of your agreement; a friendly heads-up comes first when you are well over the limit, with no charge",
      "Your booking page says when the deposit is still owed and how to place it",
      "Your booking's checklist says exactly which insurance page is still missing, and its button opens that upload",
      "Example pictures of a pink slip and an OPCF 27 endorsement page, with the parts that must show circled, and how to take the photo",

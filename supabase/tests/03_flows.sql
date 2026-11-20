@@ -524,7 +524,10 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             'booking_request_failures',
                             -- the native app's one-time sign-in challenges (3170): five minutes, used once, removed as new ones are made;
                             -- no money, pricing or status (the passkeys themselves are audited)
-                            'passkey_challenges')
+                            'passkey_challenges',
+                            -- harsh driving marks (3320): telemetry written by the tracker ingest like the position history; no
+                            -- money, pricing or status (the alert they make and its evidence record are audited)
+                            'tracker_harsh')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',
   (select count(*) > 0 from audit_log where entity_table = 'rate_cards' and action = 'INSERT' and after ->> 'daily_rate_cents' = '10000'), true);

@@ -17,7 +17,7 @@
 // most MAX_CONNECTIONS sockets and MAX_PER_ADDRESS from one address, LOGIN_SECONDS to log in, and at most
 // MAX_FRAMES_PER_MINUTE frames a socket. The ingest still decides which devices exist (it ignores an unknown one).
 import net from 'node:net';
-import { decode, split } from '../../../web/src/integrations/tracker/gt06.ts';
+import { alarmEvent, decode, split } from '../../../web/src/integrations/tracker/gt06.ts';
 import { signedHeaders } from '../../../web/src/integrations/tracker/ingest.ts';
 
 const URL_ = process.env.TRACKER_INGEST_URL, KEY = process.env.TRACKER_INGEST_KEY;
@@ -82,7 +82,8 @@ const server = net.createServer((sock) => {
       if (m.kind === 'location' || m.kind === 'alarm') {
         if (!m.fix.positioned) continue;
         held.push({ device: imei, at: m.fix.at, lat: m.fix.lat, lng: m.fix.lng, speed: m.fix.speed, heading: m.fix.heading,
-          ignition: m.fix.ignition ?? status.ignition ?? null, odometer: m.fix.odometer ?? null, battery: status.battery ?? null, power: status.power ?? null });
+          ignition: m.fix.ignition ?? status.ignition ?? null, odometer: m.fix.odometer ?? null, battery: status.battery ?? null, power: status.power ?? null,
+          event: m.kind === 'alarm' ? alarmEvent(m.alarm) : null });
         if (held.length >= 500) void flush();
       }
     }

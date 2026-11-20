@@ -7,8 +7,11 @@
 //   x-tracker-timestamp: <Unix seconds>
 //   x-tracker-signature: v1=<hex HMAC-SHA256 of "<timestamp>.<raw body>" with the ingest key>
 //   {"points": [{"device": "<IMEI or serial>", "at": "<ISO 8601 with offset, or Unix seconds>", "lat": 43.65, "lng": -79.38,
-//                "speed": 54, "heading": 270, "ignition": true, "odometer": 12345.6, "battery": 87, "power": true, "fuel": 55}]}
-// Only device, at, lat and lng are required; a field left out keeps its last value. The key comes from Admin > Cars > Fleet
+//                "speed": 54, "heading": 270, "ignition": true, "odometer": 12345.6, "battery": 87, "power": true, "fuel": 55,
+//                "event": "harsh_brake"}]}
+// Only device, at, lat and lng are required; a field left out keeps its last value. "event" (3320) is the tracker's own
+// alarm with that reading: harsh_brake, harsh_accel, harsh_turn or tamper. A request is taken once: the same signed
+// request again is refused (409 replay), and more requests a minute than Tracking settings allow are refused (429). The key comes from Admin > Cars > Fleet
 // tracking > Settings (shown once); it is checked here, before the database is touched, and refused after 5 minutes.
 //
 // Adapters: the endpoint stays generic. A tracker that speaks GT06 or JT808 (binary TCP) reports to the small relay on the
@@ -22,7 +25,15 @@ export const MAX_POINTS = 5000;
 export interface Point {
   device: string; at: string | number; lat: number; lng: number;
   speed?: number | null; heading?: number | null; ignition?: boolean | null; odometer?: number | null; battery?: number | null; power?: boolean | null; fuel?: number | null;
+  /** the tracker's own alarm with this reading (3320) */
+  event?: TrackerEvent | null;
 }
+export const TRACKER_EVENTS = ['harsh_brake', 'harsh_accel', 'harsh_turn', 'tamper'] as const;
+export type TrackerEvent = (typeof TRACKER_EVENTS)[number];
+const eventOf = (v: unknown): TrackerEvent | null => {
+  const e = typeof v === 'string' ? v.trim().toLowerCase() : '';
+  return (TRACKER_EVENTS as readonly string[]).includes(e) ? (e as TrackerEvent) : e === 'removed' || e === 'case_open' ? 'tamper' : null;
+};
 export interface Batch { points: Point[] }
 
 const enc = new TextEncoder();
@@ -46,7 +57,9 @@ export async function signedHeaders(raw: string, key: string, ts = Math.floor(Da
 }
 
 export type HeaderGet = (name: string) => string | null | undefined;
-export interface Verified { ok: boolean; reason?: 'no key' | 'no signature' | 'timestamp' | 'signature' }
+export interface Verified { ok: boolean; reason?: 'no key' | 'no signature' | 'timestamp' | 'signature';
+  /** the signature that matched and its timestamp (3320): the replay guard keeps the signature 10 minutes */
+  sig?: string; ts?: number }
 
 /** Checks a delivery. Fails closed: no key, no headers, a timestamp more than 5 minutes off or a wrong signature. */
 export async function verify(raw: string, header: HeaderGet, key: string | null | undefined, nowSeconds = Math.floor(Date.now() / 1000)): Promise<Verified> {
@@ -56,7 +69,7 @@ export async function verify(raw: string, header: HeaderGet, key: string | null 
   if (!/^\d{9,11}$/.test(ts) || Math.abs(nowSeconds - Number(ts)) > TOLERANCE_SECONDS) return { ok: false, reason: 'timestamp' };
   const want = await sign(raw, key, Number(ts));
   const given = sig.split(',').map((s) => s.trim()).filter((s) => s.startsWith('v1=')).map((s) => s.slice(3).toLowerCase());
-  return given.some((g) => same(g, want)) ? { ok: true } : { ok: false, reason: 'signature' };
+  return given.some((g) => same(g, want)) ? { ok: true, sig: want, ts: Number(ts) } : { ok: false, reason: 'signature' };
 }
 
 const num = (v: unknown): number | null => {
@@ -74,7 +87,7 @@ export function toPoint(x: unknown): Point | null {
   const at = typeof o.at === 'string' || typeof o.at === 'number' ? o.at : typeof o.time === 'string' || typeof o.time === 'number' ? o.time : null;
   if (!/^[A-Za-z0-9._:-]{3,64}$/.test(device) || lat === null || lng === null || at === null || Math.abs(lat) > 90 || Math.abs(lng) > 180 || (lat === 0 && lng === 0)) return null;
   return { device, at, lat, lng, speed: num(o.speed), heading: num(o.heading ?? o.course), ignition: bool(o.ignition ?? o.acc), odometer: num(o.odometer),
-    battery: num(o.battery), power: bool(o.power), fuel: num(o.fuel) };
+    battery: num(o.battery), power: bool(o.power), fuel: num(o.fuel), event: eventOf(o.event ?? o.alarm) };
 }
 
 export interface Adapter { readonly name: string; parse(body: unknown): Point[] }
@@ -98,4 +111,20 @@ export function readBatch(raw: string, format = 'generic'): { ok: true; points: 
   const sent = Array.isArray(body) ? body.length : Array.isArray((body as Batch | null)?.points) ? (body as Batch).points.length : 0;
   if (sent > MAX_POINTS) return { ok: false, error: `at most ${MAX_POINTS} points a batch` };
   return { ok: true, points: a.parse(body), sent };
+}
+
+export const BAD_PER_MINUTE = 20;
+const bad = new Map<string, { minute: number; n: number }>();
+/** True when this sender already failed the signature BAD_PER_MINUTE times this minute (3320); `note` counts one more
+ *  failure. Kept in memory per Worker instance: a flood of unsigned requests is refused with no HMAC and no database call. */
+export function badSender(sender: string, note = false, now = Date.now()): boolean {
+  const minute = Math.floor(now / 60_000);
+  const e = bad.get(sender);
+  if (!e || e.minute !== minute) {
+    if (bad.size > 5000) bad.clear();
+    if (note) bad.set(sender, { minute, n: 1 });
+    return false;
+  }
+  if (note) e.n += 1;
+  return e.n >= BAD_PER_MINUTE;
 }

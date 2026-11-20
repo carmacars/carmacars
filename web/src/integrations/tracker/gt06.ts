@@ -94,6 +94,20 @@ export function decode(f: Uint8Array): Gt06Message {
   }
 }
 
+/** The event of an alarm frame's code, in the generic JSON's words (3320), or null. The codes are those of the Concox
+ *  GT06N and JM-VL families (0x13 tamper or removal, 0x29 rapid acceleration, 0x30 rapid deceleration, 0x2A and 0x2B sharp
+ *  turns); check them against CarmaCars' tracker's own protocol document before the relay is started. Power cut (0x02)
+ *  already reaches the ingest as power: false. */
+export function alarmEvent(alarm: number): 'tamper' | 'harsh_accel' | 'harsh_brake' | 'harsh_turn' | null {
+  switch (alarm) {
+    case 0x13: return 'tamper';
+    case 0x29: return 'harsh_accel';
+    case 0x30: return 'harsh_brake';
+    case 0x2a: case 0x2b: return 'harsh_turn';
+    default: return null;
+  }
+}
+
 /** Splits a TCP stream into frames: the frames found and what is left over for the next read. Junk before a start is dropped. */
 export function split(buf: Uint8Array): { frames: Uint8Array[]; rest: Uint8Array } {
   const frames: Uint8Array[] = [];

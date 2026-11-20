@@ -9,7 +9,7 @@ export const EVIDENCE_LABEL: Record<string, string> = {
   ticket_notice: 'the ticket notice PDF', speed_series: 'the Tracker speed readings', tracker_map: 'the Tracker readings and map', damage_closeups: 'the damage close-ups',
   pickup_photos: 'the pickup photos', receipt: 'the receipt or invoice', callout_invoice: 'the tire or roadside invoice', keys_reading: 'the keys returned',
   police_or_incident: 'the theft incident with the police report', improper_proof: 'photos or the Tracker location at the return', staff_note: 'a note of what was wrong',
-  booking_record: 'the booking record', signed_clause: 'the signed clause', photos: 'photos'
+  booking_record: 'the booking record', signed_clause: 'the signed clause', photos: 'photos', tracker_event: 'the Tracker\'s evidence record of the event'
 };
 export const evidenceLabel = (k: string): string => EVIDENCE_LABEL[k] ?? k.replace(/_/g, ' ');
 

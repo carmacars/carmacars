@@ -34,9 +34,20 @@ Body (at most 5,000 points, 512 KB):
   heartbeat can carry only the battery and power with the last fix's position.
 - Aliases accepted: `latitude`, `lon`/`longitude`, `time`, `course`, `acc`.
 
-Answers: `200` with `{received, accepted, old, skipped, devices, new_devices, kept}`; `401` bad or missing signature; `400`
-not JSON; `413` too large; `503` no ingest key yet; `500` retry later. A batch sent twice changes nothing (points not newer
-than a device's last report are skipped), so a sender retries freely.
+- Optional, release 48 (3320): `event`, the tracker's own alarm with that reading: `harsh_brake`, `harsh_accel`, `harsh_turn`
+  or `tamper` (`removed` and `case_open` are read as tamper; anything else is dropped). Read only while Tracker events are on.
+
+Answers: `200` with `{received, accepted, old, skipped, devices, new_devices, kept}` (and `events`, the alerts this batch made,
+while Tracker events are on); `401` bad or missing signature; `400` not JSON; `413` too large; `503` no ingest key yet; `500`
+retry later. A batch sent twice changes nothing (points not newer than a device's last report are skipped).
+
+Release 48 (3320), the guards on a signed request:
+
+- **Replay**: each accepted signature is kept 10 minutes (`app.tracker_ingest_seen`); the same signed request again is `409`.
+  A sender that retries signs again (a new timestamp makes a new signature): `signedHeaders()` and the relay already do.
+- **Rate**: at most `tracker_settings.ingest_per_minute` (240) accepted requests a minute; more is `429` and the relay retries.
+- **A sender that keeps failing the signature** (20 times in a minute, by Cloudflare's `cf-connecting-ip`) is answered `429`
+  for the rest of the minute, before any HMAC or database work.
 
 ## What the database keeps (cheap on writes and storage)
 
@@ -87,6 +98,13 @@ connection, the database gets one call per batch, and the endpoint stays the sam
    relay: GT06 has no device password, so the relay then refuses a login with any other IMEI. Add a new tracker's IMEI to
    the list before it is switched on. The relay also limits connections (500 in all, 20 from one address), closes a
    connection that does not log in within 30 seconds, and closes one that sends more than 240 frames a minute.
+
+## The fake provider (release 48)
+
+`web/src/integrations/tracker/fake.ts`: the readings a tracker would send for each event of Tracker events (the three speeding
+limits, the heads-up, harsh driving, tampering, unplugged, a pound, outside Ontario), in the generic JSON. The unit and
+end-to-end tests sign and post them (`fakeScenario(device, 'speeding_220')`); nothing of it runs in production. What the
+database does with them is in `docs/changes/2026-11-20-r48-tracker-alerts.md`.
 
 ## The simulator
 

@@ -14,3 +14,8 @@ test('a notice never shows a leftover tag', () => {
   assert.equal(noTags('Code {{discount_code}}, good until {{discount_expires}}.'), 'Code, good until.');
   assert.equal(noTags('Plain text'), 'Plain text');
 });
+
+test('the tracker event messages have plain names (3321)', () => {
+  assert.equal(prefLabel('owner_tracker_alert', '{{event_title}}: your {{vehicle_name}}'), 'Tracker alert on your car');
+  assert.equal(prefLabel('renter_driving_notice', '{{event_title}}: your {{vehicle_name}}'), 'A heads-up about your driving (no charge)');
+});

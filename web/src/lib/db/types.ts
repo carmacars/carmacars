@@ -18942,6 +18942,126 @@ export type Database = {
         };
         Relationships: [];
       };
+      pound_flags: {
+        Row: {
+          id: string;
+          alert_id: string | null;
+          evidence_id: string | null;
+          pound_lot_id: string | null;
+          lot_name: string;
+          lot_address: string | null;
+          vehicle_id: string;
+          booking_id: string | null;
+          since: string;
+          status: string;
+          path: string | null;
+          note: string | null;
+          lines: Json;
+          resolved_at: string | null;
+          resolved_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          alert_id?: string | null;
+          evidence_id?: string | null;
+          pound_lot_id?: string | null;
+          lot_name: string;
+          lot_address?: string | null;
+          vehicle_id: string;
+          booking_id?: string | null;
+          since: string;
+          status?: string;
+          path?: string | null;
+          note?: string | null;
+          lines?: Json;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          alert_id?: string | null;
+          evidence_id?: string | null;
+          pound_lot_id?: string | null;
+          lot_name?: string;
+          lot_address?: string | null;
+          vehicle_id?: string;
+          booking_id?: string | null;
+          since?: string;
+          status?: string;
+          path?: string | null;
+          note?: string | null;
+          lines?: Json;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      pound_lots: {
+        Row: {
+          id: string;
+          name: string;
+          address: string;
+          city: string | null;
+          phone: string | null;
+          hours: string | null;
+          serves: string | null;
+          latitude: number | null;
+          longitude: number | null;
+          radius_m: number | null;
+          source_url: string | null;
+          notes: string | null;
+          is_active: boolean;
+          checked_at: string | null;
+          checked_by: string | null;
+          created_at: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          address: string;
+          city?: string | null;
+          phone?: string | null;
+          hours?: string | null;
+          serves?: string | null;
+          latitude?: number | null;
+          longitude?: number | null;
+          radius_m?: number | null;
+          source_url?: string | null;
+          notes?: string | null;
+          is_active?: boolean;
+          checked_at?: string | null;
+          checked_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          address?: string;
+          city?: string | null;
+          phone?: string | null;
+          hours?: string | null;
+          serves?: string | null;
+          latitude?: number | null;
+          longitude?: number | null;
+          radius_m?: number | null;
+          source_url?: string | null;
+          notes?: string | null;
+          is_active?: boolean;
+          checked_at?: string | null;
+          checked_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
       program_settings: {
         Row: {
           id: string;
@@ -28176,6 +28296,14 @@ export type Database = {
           ack_by: string | null;
           ack_note: string | null;
           created_at: string;
+          tier: number | null;
+          source: string;
+          fee_code: string | null;
+          clause: string | null;
+          facts: Json;
+          renter_notice_at: string | null;
+          owner_notice_at: string | null;
+          line_item_id: string | null;
         };
         Insert: {
           id?: string;
@@ -28194,6 +28322,14 @@ export type Database = {
           ack_by?: string | null;
           ack_note?: string | null;
           created_at?: string;
+          tier?: number | null;
+          source?: string;
+          fee_code?: string | null;
+          clause?: string | null;
+          facts?: Json;
+          renter_notice_at?: string | null;
+          owner_notice_at?: string | null;
+          line_item_id?: string | null;
         };
         Update: {
           id?: string;
@@ -28212,6 +28348,14 @@ export type Database = {
           ack_by?: string | null;
           ack_note?: string | null;
           created_at?: string;
+          tier?: number | null;
+          source?: string;
+          fee_code?: string | null;
+          clause?: string | null;
+          facts?: Json;
+          renter_notice_at?: string | null;
+          owner_notice_at?: string | null;
+          line_item_id?: string | null;
         };
         Relationships: [];
       };
@@ -28344,6 +28488,117 @@ export type Database = {
         };
         Relationships: [];
       };
+      tracker_evidence: {
+        Row: {
+          id: string;
+          alert_id: string | null;
+          kind: string;
+          tier: number | null;
+          vehicle_id: string;
+          booking_id: string | null;
+          device: string | null;
+          at: string;
+          lat: number | null;
+          lng: number | null;
+          speed_kmh: number | null;
+          source: string;
+          title: string;
+          detail: string | null;
+          fee_code: string | null;
+          clause: string | null;
+          facts: Json;
+          readings: Json;
+          sealed_at: string | null;
+          sha256: string | null;
+          line_item_id: string | null;
+          pound_lot_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          alert_id?: string | null;
+          kind: string;
+          tier?: number | null;
+          vehicle_id: string;
+          booking_id?: string | null;
+          device?: string | null;
+          at: string;
+          lat?: number | null;
+          lng?: number | null;
+          speed_kmh?: number | null;
+          source: string;
+          title: string;
+          detail?: string | null;
+          fee_code?: string | null;
+          clause?: string | null;
+          facts?: Json;
+          readings?: Json;
+          sealed_at?: string | null;
+          sha256?: string | null;
+          line_item_id?: string | null;
+          pound_lot_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          alert_id?: string | null;
+          kind?: string;
+          tier?: number | null;
+          vehicle_id?: string;
+          booking_id?: string | null;
+          device?: string | null;
+          at?: string;
+          lat?: number | null;
+          lng?: number | null;
+          speed_kmh?: number | null;
+          source?: string;
+          title?: string;
+          detail?: string | null;
+          fee_code?: string | null;
+          clause?: string | null;
+          facts?: Json;
+          readings?: Json;
+          sealed_at?: string | null;
+          sha256?: string | null;
+          line_item_id?: string | null;
+          pound_lot_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      tracker_harsh: {
+        Row: {
+          vehicle_id: string;
+          at: string;
+          kind: string;
+          source: string;
+          delta_kmh: number | null;
+          speed_kmh: number | null;
+          lat: number | null;
+          lng: number | null;
+        };
+        Insert: {
+          vehicle_id: string;
+          at: string;
+          kind: string;
+          source: string;
+          delta_kmh?: number | null;
+          speed_kmh?: number | null;
+          lat?: number | null;
+          lng?: number | null;
+        };
+        Update: {
+          vehicle_id?: string;
+          at?: string;
+          kind?: string;
+          source?: string;
+          delta_kmh?: number | null;
+          speed_kmh?: number | null;
+          lat?: number | null;
+          lng?: number | null;
+        };
+        Relationships: [];
+      };
       tracker_points: {
         Row: {
           vehicle_id: string;
@@ -28404,6 +28659,19 @@ export type Database = {
           ingest_key_hint: string | null;
           updated_at: string;
           updated_by: string | null;
+          events_on: boolean;
+          renter_notices: boolean;
+          owner_notices: boolean;
+          event_window_minutes: number;
+          harsh_on: boolean;
+          harsh_kmh_per_s: number;
+          harsh_count: number;
+          night_on: boolean;
+          night_from: string;
+          night_to: string;
+          pound_radius_m: number;
+          pound_minutes: number;
+          ingest_per_minute: number;
         };
         Insert: {
           id?: boolean;
@@ -28425,6 +28693,19 @@ export type Database = {
           ingest_key_hint?: string | null;
           updated_at?: string;
           updated_by?: string | null;
+          events_on?: boolean;
+          renter_notices?: boolean;
+          owner_notices?: boolean;
+          event_window_minutes?: number;
+          harsh_on?: boolean;
+          harsh_kmh_per_s?: number;
+          harsh_count?: number;
+          night_on?: boolean;
+          night_from?: string;
+          night_to?: string;
+          pound_radius_m?: number;
+          pound_minutes?: number;
+          ingest_per_minute?: number;
         };
         Update: {
           id?: boolean;
@@ -28446,6 +28727,19 @@ export type Database = {
           ingest_key_hint?: string | null;
           updated_at?: string;
           updated_by?: string | null;
+          events_on?: boolean;
+          renter_notices?: boolean;
+          owner_notices?: boolean;
+          event_window_minutes?: number;
+          harsh_on?: boolean;
+          harsh_kmh_per_s?: number;
+          harsh_count?: number;
+          night_on?: boolean;
+          night_from?: string;
+          night_to?: string;
+          pound_radius_m?: number;
+          pound_minutes?: number;
+          ingest_per_minute?: number;
         };
         Relationships: [];
       };
@@ -28478,6 +28772,8 @@ export type Database = {
           outside_zone: boolean;
           battery_alerted: boolean;
           offline_alerted: boolean;
+          pound_lot_id: string | null;
+          pound_since: string | null;
         };
         Insert: {
           tracker_device_id: string;
@@ -28507,6 +28803,8 @@ export type Database = {
           outside_zone?: boolean;
           battery_alerted?: boolean;
           offline_alerted?: boolean;
+          pound_lot_id?: string | null;
+          pound_since?: string | null;
         };
         Update: {
           tracker_device_id?: string;
@@ -28536,6 +28834,8 @@ export type Database = {
           outside_zone?: boolean;
           battery_alerted?: boolean;
           offline_alerted?: boolean;
+          pound_lot_id?: string | null;
+          pound_since?: string | null;
         };
         Relationships: [];
       };
@@ -34444,6 +34744,7 @@ export type Database = {
       server_dispute_evidence_pre3192: { Args: { p_pack: string }; Returns: Json };
       server_dispute_evidence_pre3292: { Args: { p_pack: string }; Returns: Json };
       server_dispute_evidence_pre3293: { Args: { p_pack: string }; Returns: Json };
+      server_dispute_evidence_pre3320: { Args: { p_pack: string }; Returns: Json };
       server_dispute_pack: { Args: { p_pack: string }; Returns: Json };
       server_dispute_pack_built: { Args: { p_pack: string; p: Json }; Returns: undefined };
       server_dispute_pack_submitted: { Args: { p_pack: string; p_by: string; p_error?: string }; Returns: undefined };
@@ -34675,6 +34976,7 @@ export type Database = {
       server_places_import_region_done: { Args: { p_import: number; p_region: string; p_counts: Json }; Returns: Json };
       server_places_stage_clear: { Args: never; Returns: undefined };
       server_plate_auto_apply: { Args: { p: Json }; Returns: Json };
+      server_pound_lot_pins: { Args: { p: Json }; Returns: number };
       server_push_device_topics: { Args: { p_user: string; p_endpoint: string; p_topics: string[] }; Returns: Json };
       server_push_due: { Args: { p_limit?: number; p_kinds?: string[] }; Returns: Json };
       server_push_result: { Args: { p: Json }; Returns: Json };
@@ -34782,6 +35084,7 @@ export type Database = {
       server_tip_options: { Args: { p_booking: string }; Returns: Json };
       server_tracker_ingest: { Args: { p: Json }; Returns: Json };
       server_tracker_ingest_key: { Args: never; Returns: string };
+      server_tracker_ingest_signed: { Args: { p: Json; p_sig: string; p_ts: number }; Returns: Json };
       server_twilio_browser_call_get: { Args: { p_id: string; p_user: string }; Returns: Json };
       server_twilio_browser_call_start: { Args: { p: Json }; Returns: Json };
       server_twilio_call_event: { Args: { p: Json }; Returns: Json };

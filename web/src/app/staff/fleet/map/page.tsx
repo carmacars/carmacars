@@ -4,6 +4,8 @@ import { door } from '@/server/door';
 import { PageHead } from '@/features/admin/ui';
 import { FleetTracking } from '@/features/tracking/FleetTracking';
 import type { Fleet } from '@/features/tracking/model';
+import { TrackerEventsPanel } from '@/features/tracking/TrackerEvents';
+import type { TrackerEvents } from '@/features/tracking/events';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Fleet map', path: '/staff/fleet/map', noindex: true, description: 'Every car on the map with its renter, trips and alerts.' });
@@ -15,12 +17,15 @@ const TITLE: Record<string, string> = { fleet: 'Fleet map' };
 // every staff function opens it (Find a car and the car and booking pages link to it), read only outside Fleet.
 export default async function FleetMap() {
   const { user, aal, fn } = await vaPage('/staff/fleet/map');
-  const f = await door<Fleet>(user.id, 'ops_read', 'tracker_fleet', { _va: fn }, aal).catch(() => null);
+  const [f, ev] = await Promise.all([door<Fleet>(user.id, 'ops_read', 'tracker_fleet', { _va: fn }, aal).catch(() => null),
+    door<TrackerEvents>(user.id, 'ops_read', 'tracker_events', { _va: fn }, aal).catch(() => null)]);
   const at = new Date().getTime();
   return (
     <>
       <PageHead title={TITLE[fn] ?? 'Car map'} kicker={FN_LABEL[fn]} purpose={fn === 'fleet' ? 'Where every car is now, who has it, its trips and the alerts.' : 'Where every car with a tracker is now, its trips and the alerts. Read only.'} />
       {f ? <FleetTracking initial={f} at={at} staff /> : <p className="alert alert--error" role="alert"><span>Fleet tracking could not be read. Reload the page.</span></p>}
+      {/* 3320 (Admin's Fleet tracking mirrored): the events with their evidence, the pound flags (Fleet records the path) and the lots, read only */}
+      <div className="stack" style={{ marginTop: 24 }}><TrackerEventsPanel d={ev} staff /></div>
     </>
   );
 }

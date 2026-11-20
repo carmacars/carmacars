@@ -19,7 +19,8 @@ import { StartListing } from '@/features/listing/StartListing';
 import { ServiceHistory } from '@/features/maintenance/OwnerHistory';
 import type { OwnerHistory } from '@/features/maintenance/model';
 import { rpc } from '@/lib/db/repo';
-import { OwnerCarLocation } from '@/features/tracking/CarLocation';
+import { OwnerCarLocation, OwnerTrackerEvents } from '@/features/tracking/CarLocation';
+import type { OwnerEvent } from '@/features/tracking/events';
 import type { OwnerLoc } from '@/features/tracking/location';
 import { OwnerTermsHistory } from '@/features/owner-billing/OwnerTerms';
 import type { CarTermsData } from '@/features/owner-billing/terms-shared';
@@ -46,6 +47,8 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
   // r48 (3041): where the car is and its trips, the location only (the database checks the car is this owner's)
   const loc = enrolled0(v.status) ? await door<OwnerLoc>(user.id, 'ops_read', 'owner_car_location', { vehicle: id }).catch(() => null) : null;
   const locAt = new Date().getTime();
+  // 3320: the tracker's events on this car (the event and the place only), once the car has a tracker
+  const trackerEvents = loc?.tracker ? await door<{ days: number; events: OwnerEvent[] }>(user.id, 'ops_read', 'owner_tracker_events', { vehicle: id }).catch(() => null) : null;
   const enrolled = live.key !== 'onboarding';
   const exit = home.exits.find((x) => x.vehicle_id === id && x.status === 'notice');
   // the car's listing: photos and progress while one is open (an owner's listing is reviewed by staff)
@@ -105,6 +108,7 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
             </Timeline></section>}
           <OwnerHandoffs vehicleId={id} userId={user.id} owner />
           {loc && <section className="pt-card" aria-labelledby="ow-loc" data-testid="vehicle-location"><h2 className="d4" id="ow-loc">Where your car is</h2><OwnerCarLocation d={loc} at={locAt} /></section>}
+          {loc?.tracker && <section className="pt-card" aria-labelledby="ow-trk" data-testid="vehicle-tracker-alerts"><h2 className="d4" id="ow-trk">Tracker alerts</h2><OwnerTrackerEvents d={trackerEvents} /></section>}
           <section className="pt-card" aria-labelledby="ow-bk"><h2 className="d4" id="ow-bk">Bookings</h2>
             {bookings.length ? <ul className="ow-rows">{bookings.map((b) => <OwnerBookingRow key={b.booking_id} b={b} withCar={false} />)}</ul>
               : <p className="muted small">No bookings yet.</p>}

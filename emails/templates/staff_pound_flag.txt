@@ -1,0 +1,35 @@
+CarmaCars  |  {{car_label}}
+
+========================================
+
+[Pound flag]
+{{car_label}} is parked at a pound
+
+The Tracker shows it at {{lot_name}} since {{pound_since}}. {{booking_line}}.
+
+Lot: {{lot_name}}, {{lot_address}}
+Phone: {{lot_phone}}
+Hours: {{lot_hours}}
+Since: {{pound_since}}
+
+IMPORTANT: Do now
+Call the lot to confirm the car is there and what releases it, then call the renter. Keep every receipt: tow, impound, storage.
+
+Open Fleet tracking:
+https://carmacars.ca/staff/fleet/map
+
+- Not back after the final late notice: the non-return charge ({{non_return_fee}} plus HST) and the recovery costs at cost (rental agreement 10.6).
+- Stolen, or recovered by the police or a repossession: the theft recovery charge ({{theft_recovery_fee}} plus HST) and the costs (10.8).
+- Recovered with nothing owed, or not a pound: record that on the flag, with a note.
+
+Record the path on Fleet tracking > Pound flags. The Tracker evidence record is attached to the charge by itself.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

@@ -98,7 +98,8 @@
      "A pay link asks only for what is owed: after a change, the difference; a link no longer needed is cancelled by itself and never charged",
      "CarmaCars Rewards emails renters: welcome, points earned, a new tier, the free day, reminders before points end, a monthly statement, and nudges they can unsubscribe from",
      "From Platinum up, a rental near the renter's birthday or on a holiday weekend is 10% (Platinum) or 20% (Black) off the rental charge, shown as its own line; Gold is off until an Admin gives it a percent",
-     "A native CarmaCars app for iPhone and Android is built and waits for the company's developer accounts: find a car, ask for it, sign the agreement, pay, take the licence photos and selfie with the camera, check in and check out at the car, extend, messages and phone alerts"
+     "A native CarmaCars app for iPhone and Android is built and waits for the company's developer accounts: find a car, ask for it, sign the agreement, pay, take the licence photos and selfie with the camera, check in and check out at the car, extend, messages and phone alerts",
+     "When the car's Tracker records speeding, harsh driving, the car outside Ontario or at an impound lot, the renter is told at once, in calm words: what happened, the charge and the clause of the agreement"
     ]
    },
    {
@@ -133,7 +134,8 @@
      "**Settings > Calls > Run test call** checks every step of a call from the browser and names the failing one with what to press",
      "Amazon SES still in its sandbox, or the texting service out of credits, raises one Admin alert a day with the exact step",
      "A suspended staff member's request for access back arrives as one alert; **Unlock** on Staff restores them",
-     "In the new phone app, field staff run their day (jobs, shifts, the handover checklist with the phone's camera, clocking in and out with the phone's location), Sales work their leads with calls and texts through the platform and numbers still masked, and owners see their cars, bookings and statements"
+     "In the new phone app, field staff run their day (jobs, shifts, the handover checklist with the phone's camera, clocking in and out with the phone's location), Sales work their leads with calls and texts through the platform and numbers still masked, and owners see their cars, bookings and statements",
+     "Tracker events (off until the trackers are installed): one alert per car, kind and 30 minutes with an evidence record (map point, speed, time, source, a seal), **Charge** on a speeding record with the evidence attached, and pound flags when a car is parked at a known impound lot"
     ]
    },
    {
@@ -172,7 +174,8 @@
      "The photo queue no longer stalls on steps waiting with no end",
      "The app signs in with email, a texted code or a passkey, can lock itself behind the phone's face or fingerprint check, and does only what the same account may do on the website; an account can be deleted from inside the app",
      "Staff can start the render backfill (every published car) and read its progress; image spend stays under the daily limits",
-     "Owners get an email and an alert when their car's studio photos are live; Fleet gets them in the next digest to look over"
+     "Owners get an email and an alert when their car's studio photos are live; Fleet gets them in the next digest to look over",
+     "The tracker ingest takes each signed request once (a replay is refused), limits requests a minute, and stops answering a sender that keeps failing the signature"
     ]
    }
   ]
