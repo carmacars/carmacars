@@ -608,6 +608,23 @@ code { font: 500 var(--fs-xs)/1.4 var(--font-text); color: var(--grey-600); font
 .ecalc__lines dd { text-align: right; }
 .ecalc__ins-box { display: grid; gap: 0.4rem; padding: var(--s-3); border: 1px solid var(--grey-800); border-left: 3px solid var(--red-600); border-radius: var(--ui-r-tile); font-size: var(--fs-sm); color: var(--grey-200); }
 .ecalc__note { color: var(--grey-500); }
+/* r48 ops (3291): the season by month, the range, and the disclaimer */
+.ecalc__range { font-size: var(--fs-sm); color: var(--grey-300); overflow-wrap: anywhere; }
+.ecalc__range b { color: var(--white); }
+.ecalc__season { display: grid; gap: var(--s-2); }
+.ecalc__season-h { font-size: var(--fs-2xs); letter-spacing: 0.06em; text-transform: uppercase; color: var(--grey-400); }
+.ecalc__bars { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 3px; align-items: end; }
+.ecalc__bars li { display: grid; grid-template-rows: 3.5rem auto auto; justify-items: center; gap: 2px; min-width: 0; font-size: 0.625rem; color: var(--grey-400); }
+.ecalc__bar { align-self: end; width: 100%; height: max(3px, var(--h)); border-radius: 3px 3px 0 0; background: rgb(255 255 255 / 0.28); transition: height var(--t-2) var(--ease-in-out); }
+.ecalc__bars li.is-busy .ecalc__bar { background: var(--red-600); }
+.ecalc__bars li.is-slow .ecalc__bar { background: rgb(255 255 255 / 0.14); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.35); }
+.ecalc__bar-n { color: var(--grey-300); font-variant-numeric: tabular-nums; }
+.ecalc__bars abbr { text-decoration: none; }
+@media (prefers-reduced-motion: reduce) { .ecalc__bar { transition: none; } }
+.ecalc__warn { font-size: var(--fs-sm); color: #FFD9A0; }
+.ecalc__disclaimer { display: grid; gap: 4px; padding: var(--s-3); border: 1px solid rgb(255 255 255 / 0.22); border-left: 3px solid var(--white); border-radius: var(--ui-r-tile);
+  background: rgb(255 255 255 / 0.06); font-size: var(--fs-sm); line-height: 1.45; color: var(--grey-300); overflow-wrap: anywhere; }
+.ecalc__disclaimer b { color: var(--white); font-size: var(--fs-body, 1rem); }
 .ecalc--compact .ecalc__out { min-height: 0; }
 .ecalc--compact { padding: var(--s-4); border: 1px solid var(--grey-200); border-radius: var(--r-3); background: var(--white); }
 @media (min-width: 56rem) {

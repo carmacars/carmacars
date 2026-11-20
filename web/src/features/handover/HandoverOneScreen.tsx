@@ -8,6 +8,7 @@ import { DashReading } from './DashReading';
 import { emptyReading, readingPayload, readingPhotos, readingProblem, readingValues } from './reading';
 import type { PickedPhoto } from './angles';
 import { oneScreenHandover, selfPickup } from '@/server/actions/self-handover';
+import { PickupIdentityStep } from '@/features/pickup-identity/PickupIdentityStep';
 
 // One screen for a check-in or a check-out (migration 0545): the time (now unless changed), many photos at once with the
 // suggested angles, a note; 0910: the odometer and fuel from a required dashboard photo (read, then confirmed or typed) and
@@ -63,6 +64,7 @@ export function HandoverOneScreen({ booking, number, kind, who, refresh = [], is
     <form className="stack" data-testid={`one-screen-${kind}`} onSubmit={(e) => { e.preventDefault(); go(); }}>
       <PhotoPicker scope={who === 'renter' ? 'self-pickup' : 'one-screen'} id={booking} photos={photos} onChange={setPhotos} onBusy={setBusy}
         label={who === 'renter' ? 'Photos of the car as you get it (all sides, inside, any damage)' : 'Photos (add to the renter\'s, if they took some)'} testId={`os-${kind}-photos`} />
+      {pickup && <PickupIdentityStep booking={booking} who={who} call="ops_read" />}
       <div className="field-row">
         <div className="field"><label className="label" htmlFor={`os-${kind}-at`}>{pickup ? 'Picked up at' : 'Returned at'}</label>
           <DateInput className="input" id={`os-${kind}-at`} type="datetime-local" value={at} max={hydrated ? localNow() : undefined} onChange={(e) => setAt(e.target.value)} /></div>

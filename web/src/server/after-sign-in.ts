@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth';
 import { rpc } from '@/lib/db/repo';
 import { rolesOf, VA_FN_COOKIE } from '@/server/door';
 import { landingFor } from '@/server/portals';
+import { LAST_PORTAL_COOKIE } from '@/features/access/roles';
 import { VIEW_AS_COOKIE, VIEW_AS_UI_COOKIE } from '@/lib/security/view-as-guard';
 
 /** After the password or the texted code: the second step when the person enrolled one (or must, as staff with the
@@ -19,7 +20,7 @@ export async function afterSignIn(userId: string, next: string | null): Promise<
     return t ? `/staff-restore?t=${encodeURIComponent(t)}` : '/sign-in?locked=inactivity';
   }
   const roles = await rolesOf(userId);
-  const home = next ?? landingFor(roles);
+  const home = next ?? landingFor(roles, (await cookies()).get(LAST_PORTAL_COOKIE)?.value);
   const factors = (await a.mfaFactors().catch(() => [])).filter((f) => f.verified);
   if (factors.length) return `/two-step?next=${encodeURIComponent(home)}`;
   if (roles.staff && roles.two_step_required) return `/two-step/setup?next=${encodeURIComponent(home)}`;

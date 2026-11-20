@@ -1,4 +1,5 @@
 import type { Roles } from '@/server/door';
+import { landingRole, rolesFor } from '@/features/access/roles';
 
 // The portals a person has, and where sign-in takes them. One list for the sign-in redirect, the "Choose a portal"
 // page, the switcher in each portal's frame and the refusal pages.
@@ -27,14 +28,11 @@ export function portalsFor(r: Roles): PortalLink[] {
   return out;
 }
 
-/** Where a person goes after signing in when no page was asked for: the one portal they have, or the "Choose a
- *  portal" page when they have two or more (renting counts only when there is nothing else). */
-export function landingFor(r: Roles): string {
-  // the link's own address: field work only is the staff portal at /staff/field, not a second hop through /staff
-  const work = portalsFor(r).filter((p) => p.key !== 'account');
-  if (work.length >= 2) return '/choose-portal';
-  if (work.length === 1) return work[0]!.href;
-  return '/account';
+/** Where a person goes after signing in when no page was asked for: the one portal they have, or with several roles the
+ *  one used last on this device (r48 ops: one portal with a role switcher, no "Choose a portal" stop), else their first.
+ *  Renting counts only when there is nothing else. */
+export function landingFor(r: Roles, last?: string | null): string {
+  return landingRole(rolesFor(r), last);
 }
 
 /** A path on this site only (no scheme, no //host), for ?next=. */

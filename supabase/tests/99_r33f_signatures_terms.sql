@@ -81,7 +81,7 @@ select test.eq('the terms of use come first', (select app.terms_pending(test.id(
 select test.throws('the text shown must be the published one', format($$select public.server_terms_accept(test.id('q3f_renter'), %L)$$,
   jsonb_build_object('version_id', (select v ->> 'id' from q3f where k = 'tv'), 'body_sha256', test.q3f_sha('other'))), 'text changed');
 select test.throws('a version that does not bind the person: refused', format($$select public.server_terms_accept(test.id('q3f_cs'), %L)$$,
-  jsonb_build_object('version_id', (select id from terms_versions where doc_key = 'rental_agreement'), 'body_sha256', (select body_sha256 from terms_versions where doc_key = 'rental_agreement'))), 'does not apply');
+  jsonb_build_object('version_id', (select id from terms_versions where doc_key = 'rental_agreement' and version = 'r-2'), 'body_sha256', (select body_sha256 from terms_versions where doc_key = 'rental_agreement' and version = 'r-2'))), 'does not apply');
 select test.eq('accepted: one left', (public.server_terms_accept(test.id('q3f_renter'), jsonb_build_object('version_id', (select v ->> 'id' from q3f where k = 'tv'),
   'body_sha256', (select body_sha256 from terms_versions where id = (select (v ->> 'id')::uuid from q3f where k = 'tv')), 'ip', '203.0.113.7', 'user_agent', 'Test', 'portal', 'renter')) ->> 'pending'), '1');
 select test.eq('the acceptance records who, when, the IP address, the version and the portal',

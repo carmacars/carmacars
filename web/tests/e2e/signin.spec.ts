@@ -95,7 +95,7 @@ test('sign-in: each role lands on its own portal; refusal pages name the account
   await sql.end();
 });
 
-test('sign-in: several portals: choose one, and each frame links to the others', async ({ browser }, info) => {
+test('sign-in: several roles: one portal with a role switcher, no chooser; the role used last opens next time', async ({ browser }, info) => {
   const phone = info.project.name.startsWith('phone');
   const sql = db();
   await sql`delete from app.rate_limit_hits`;
@@ -104,27 +104,38 @@ test('sign-in: several portals: choose one, and each frame links to the others',
   const page = await newPage(browser, phone);
   const errors = watch(page);
   await signIn(page, p.email);
-  expect(path(page)).toBe('/choose-portal');
-  const list = page.getByTestId('choose-portal');
-  // one staff portal (0197) for every function held; the frame's switcher picks the one worked in. 0720: one card per
-  // portal (its name, what is there and the role), the brand mark at the top
-  await expect(list.locator('.cp-card__name')).toHaveText(['Staff portal', 'Owner portal']);
-  await expect(page.getByTestId('portal-card-va')).toContainText('Staff: Finance');
-  await expect(page.getByTestId('portal-card-owner')).toContainText('Car owner');
-  await page.getByTestId('portal-card-va').click();
-  await page.waitForURL((u) => u.pathname === '/staff');
-  // the portal used last comes first next time
-  await page.goto('/choose-portal');
-  await expect(page.getByTestId('choose-portal').locator('.cp-card__name').first()).toContainText('Staff portal');
-  await expect(page.getByTestId('portal-card-va')).toContainText('Last used');
-  await page.getByTestId('portal-card-va').click();
-  await page.waitForURL((u) => u.pathname === '/staff');
+  // r48 ops: no "Choose a portal" stop: the first role opens, and its frame carries every role of the account
+  expect(path(page)).toBe('/staff');
+  const sw = page.getByTestId('role-switch');
+  await expect(sw.locator('.rsw__role')).toHaveText(['Fleet', 'Finance', 'Owner']);
+  await expect(sw.getByRole('button', { name: 'Finance' })).toHaveAttribute('aria-pressed', 'true');
+  // the function worked in, from the same switcher
   await page.getByTestId('fn-switch').getByRole('button', { name: 'Fleet' }).click();
   await expect(page.getByTestId('fn-switch').getByRole('button', { name: 'Fleet' })).toHaveAttribute('aria-pressed', 'true');
-  await page.getByTestId('portal-switch').getByRole('link', { name: 'Owner portal' }).click();
+  // merged navigation: the owner pages are one tap away from the staff frame
+  await sw.getByTestId('role-nav').locator('summary').click();
+  await expect(sw.getByTestId('role-nav').getByLabel('Owner pages').getByRole('link', { name: 'Money' })).toHaveAttribute('href', '/owner/money');
+  await sw.getByRole('link', { name: 'Owner', exact: true }).click();
   await page.waitForURL((u) => u.pathname === '/owner');
-  await page.getByTestId('portal-switch').getByRole('link', { name: 'Staff portal' }).click();
+  const sw2 = page.getByTestId('role-switch');
+  await expect(sw2.getByRole('link', { name: 'Owner', exact: true })).toHaveAttribute('aria-current', 'true');
+  // and back into a staff function from the owner frame
+  await sw2.getByRole('button', { name: 'Finance' }).click();
   await page.waitForURL((u) => u.pathname.startsWith('/staff'));
+  await expect(page.getByTestId('role-switch').getByRole('button', { name: 'Finance' })).toHaveAttribute('aria-pressed', 'true');
+  // permissions are as they were: a page of a role the person does not have is still refused
+  await page.goto('/admin');
+  await expect(page.getByTestId('no-access')).toBeVisible();
+  // the role used last opens at the next sign-in (the owner role here)
+  await page.goto('/owner');
+  await page.getByTestId('role-switch').getByRole('link', { name: 'Owner', exact: true }).click();
+  await page.waitForURL((u) => u.pathname === '/owner');
+  await page.context().clearCookies({ name: /^(?!cc_last_portal).*/ });
+  await signIn(page, p.email);
+  expect(path(page)).toBe('/owner');
+  // the old chooser's address still answers (a bookmark), with every portal of the account
+  await page.goto('/choose-portal');
+  await expect(page.getByTestId('choose-portal').locator('.cp-card__name')).toHaveText([/^Owner portal/, /^Staff portal/]);
   expect(clean(errors)).toEqual([]);
   await page.context().close();
   await sql.end();
@@ -140,7 +151,7 @@ test('sign-in: an Admin account that also rents has no renter portal (0720), its
   const page = await newPage(browser, phone);
   await signIn(page, p.email);
   expect(path(page)).toBe('/admin');
-  await expect(page.getByTestId('portal-switch')).toHaveCount(0);
+  await expect(page.getByTestId('role-switch')).toHaveCount(0);
   await page.goto('/account');
   await page.waitForURL((u) => u.pathname === '/admin');
   await page.goto('/choose-portal');

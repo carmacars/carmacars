@@ -23,6 +23,8 @@ export function fakeVision(): VisionModel {
       if (req.purpose === 'vin_read') return { ok: true, model: FAKE_MODEL, usage, tried: [FAKE_MODEL], data: { vin: '3FAKEPRM5RTOOOO42', other: [] } };
       // a licence photo (release 31): the front, sharp and whole, nothing printed read (the back's barcode carries the
       // details in tests); FAKE_VISION_LICENCE=blurry for a photo to take again
+      // the pickup identity check (r48 ops, 3293): the two faces side by side. Unsure unless FAKE_VISION_FACE=same | different
+      if (req.purpose === 'licence_read' && req.prompt.includes('"same_person"')) return { ok: true, model: FAKE_MODEL, usage, tried: [FAKE_MODEL], data: { same_person: process.env.FAKE_VISION_FACE || 'unsure', confidence: 90 } };
       if (req.purpose === 'licence_read') return { ok: true, model: FAKE_MODEL, usage, tried: [FAKE_MODEL], data: { side: 'front', quality: process.env.FAKE_VISION_LICENCE || 'ok' } };
       // a listing photo sorted (release 28): another outside view, no watermark
       // 0567: where the marks are on a photo: none

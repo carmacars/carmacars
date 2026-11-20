@@ -18582,6 +18582,78 @@ export type Database = {
         };
         Relationships: [];
       };
+      pickup_identity_checks: {
+        Row: {
+          id: string;
+          booking_id: string;
+          driver_id: string;
+          checked_by: string | null;
+          by_renter: boolean;
+          id_upload: string | null;
+          selfie_upload: string | null;
+          read_name: string | null;
+          read_number: string | null;
+          read_expiry: string | null;
+          name_result: string;
+          number_result: string;
+          expiry_result: string;
+          face_result: string;
+          card_last4_result: string;
+          card_name_result: string;
+          card_last4: string | null;
+          outcome: string;
+          mismatches: string[];
+          coverage_problem: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          driver_id: string;
+          checked_by?: string | null;
+          by_renter?: boolean;
+          id_upload?: string | null;
+          selfie_upload?: string | null;
+          read_name?: string | null;
+          read_number?: string | null;
+          read_expiry?: string | null;
+          name_result?: string;
+          number_result?: string;
+          expiry_result?: string;
+          face_result?: string;
+          card_last4_result?: string;
+          card_name_result?: string;
+          card_last4?: string | null;
+          outcome: string;
+          mismatches?: string[];
+          coverage_problem?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          driver_id?: string;
+          checked_by?: string | null;
+          by_renter?: boolean;
+          id_upload?: string | null;
+          selfie_upload?: string | null;
+          read_name?: string | null;
+          read_number?: string | null;
+          read_expiry?: string | null;
+          name_result?: string;
+          number_result?: string;
+          expiry_result?: string;
+          face_result?: string;
+          card_last4_result?: string;
+          card_name_result?: string;
+          card_last4?: string | null;
+          outcome?: string;
+          mismatches?: string[];
+          coverage_problem?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       place_imports: {
         Row: {
           id: number;
@@ -19774,6 +19846,9 @@ export type Database = {
           lead_auto_merge_days: number;
           tracker_product_tiers: Json;
           tracker_product_launch_note: string;
+          owner_calc_base_days: number;
+          owner_calc_discount_pct: number;
+          owner_calc_season: Json;
         };
         Insert: {
           id?: string;
@@ -20678,6 +20753,9 @@ export type Database = {
           lead_auto_merge_days?: number;
           tracker_product_tiers?: Json;
           tracker_product_launch_note?: string;
+          owner_calc_base_days?: number;
+          owner_calc_discount_pct?: number;
+          owner_calc_season?: Json;
         };
         Update: {
           id?: string;
@@ -21582,6 +21660,9 @@ export type Database = {
           lead_auto_merge_days?: number;
           tracker_product_tiers?: Json;
           tracker_product_launch_note?: string;
+          owner_calc_base_days?: number;
+          owner_calc_discount_pct?: number;
+          owner_calc_season?: Json;
         };
         Relationships: [];
       };
@@ -34315,6 +34396,7 @@ export type Database = {
       server_chat_open: { Args: { p: Json; p_user?: string }; Returns: Json };
       server_chat_staff_note: { Args: { p_token: string; p_note: string }; Returns: Json };
       server_chat_visitor_message: { Args: { p_token: string; p_body: string }; Returns: Json };
+      server_checkin_id_photo: { Args: { p_by: string; p: Json }; Returns: string };
       server_client_error: { Args: { p: Json }; Returns: string };
       server_client_error_pre0532: { Args: { p: Json }; Returns: string };
       server_client_error_pre2340: { Args: { p: Json }; Returns: string };
@@ -34360,6 +34442,8 @@ export type Database = {
       server_deposit_reauth_finish: { Args: { p: Json }; Returns: Json };
       server_dispute_evidence: { Args: { p_pack: string }; Returns: Json };
       server_dispute_evidence_pre3192: { Args: { p_pack: string }; Returns: Json };
+      server_dispute_evidence_pre3292: { Args: { p_pack: string }; Returns: Json };
+      server_dispute_evidence_pre3293: { Args: { p_pack: string }; Returns: Json };
       server_dispute_pack: { Args: { p_pack: string }; Returns: Json };
       server_dispute_pack_built: { Args: { p_pack: string; p: Json }; Returns: undefined };
       server_dispute_pack_submitted: { Args: { p_pack: string; p_by: string; p_error?: string }; Returns: undefined };
@@ -34580,6 +34664,9 @@ export type Database = {
       server_photo_mark_record: { Args: { p: Json }; Returns: Json };
       server_photo_sort_gate: { Args: { p_by: string }; Returns: Json };
       server_photo_sort_record: { Args: { p_by: string; p: Json }; Returns: Json };
+      server_pickup_identity_record: { Args: { p_by: string; p: Json }; Returns: Json };
+      server_pickup_identity_source: { Args: { p_by: string; p_booking: string; p_driver: string }; Returns: Json };
+      server_pickup_identity_view: { Args: { p_by: string; p_booking: string }; Returns: Json };
       server_places_budget: { Args: never; Returns: Json };
       server_places_import_apply: { Args: { p_import: number; p_region: string }; Returns: Json };
       server_places_import_apply_chunk: { Args: { p_phase: string; p_after: number; p_limit?: number }; Returns: Json };

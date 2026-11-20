@@ -99,3 +99,35 @@
 .tg__text { background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-3); padding: var(--s-4); max-height: 50vh; overflow-y: auto; overflow-wrap: break-word; }
 .tg__text h2 { font-size: var(--fs-d4); margin-top: var(--s-4); }
 .tg__accept { position: sticky; bottom: 0; background: var(--surface); padding-block: var(--s-3); }
+
+/* ---------------------------------------------------------------- r48 ops: one portal, many roles (features/access/RoleSwitcher.tsx)
+   The role switcher of every portal frame and the pages of the other roles under it. Tokens only. */
+.rsw { display: grid; gap: var(--s-2); min-width: 0; font-size: var(--fs-xs); }
+.rsw__roles { display: grid; gap: 4px; min-width: 0; }
+.rsw__k, .rsw__gk { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-2); }
+.rsw__list { list-style: none; margin: 0; padding: 3px; display: flex; flex-wrap: wrap; gap: 3px; border-radius: 14px; background: rgb(0 0 0 / 0.06); width: fit-content; max-width: 100%; }
+.rsw__list li, .rsw__list form { display: flex; min-width: 0; margin: 0; }
+.rsw__role { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; max-width: 100%; padding: 0 var(--s-3); border: 0; border-radius: 11px; background: none; color: var(--text-2);
+  font: inherit; font-size: var(--fs-xs); font-weight: 600; text-decoration: none; white-space: nowrap; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  transition: background var(--t-1) var(--ease-in-out), color var(--t-1) var(--ease-in-out), transform var(--t-1) var(--ease-in-out); }
+.rsw__role[aria-pressed="true"], .rsw__role[aria-current="true"] { background: var(--black); color: var(--white); box-shadow: 0 1px 3px rgb(0 0 0 / 0.2); }
+.rsw__role:active { transform: scale(0.97); }
+.rsw__role:focus-visible { outline: 3px solid var(--focus, var(--red-600)); outline-offset: 2px; }
+@media (hover: hover) { .rsw__role:not([aria-pressed="true"]):not([aria-current="true"]):hover { background: rgb(0 0 0 / 0.08); color: var(--text); } }
+@media (prefers-reduced-motion: reduce) { .rsw__role { transition: none; } .rsw__role:active { transform: none; } }
+@media (max-width: 40rem) { .rsw__role { min-height: 44px; } }
+.rsw__more > summary { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; cursor: pointer; font-weight: 600; color: var(--text); list-style: none; border-radius: var(--r-1); }
+.rsw__more > summary::-webkit-details-marker { display: none; }
+.rsw__more > summary::before { content: ""; width: 6px; height: 6px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform var(--t-1) var(--ease-in-out); }
+.rsw__more[open] > summary::before { transform: rotate(45deg); }
+.rsw__more > summary:focus-visible { outline: 3px solid var(--focus, var(--red-600)); outline-offset: 2px; }
+.rsw__groups { display: flex; flex-wrap: wrap; gap: var(--s-3) var(--s-5); padding: var(--s-2) 0 var(--s-1); }
+.rsw__group { display: grid; gap: 2px; min-width: 0; }
+.rsw__group ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0 var(--s-3); }
+.rsw__group a { display: inline-flex; align-items: center; min-height: 36px; color: var(--text); text-underline-offset: 0.2em; }
+/* in a rail (Admin and staff): the roles and the other roles' pages one under the other */
+.ad__rail .rsw { padding: 0 var(--gutter) var(--s-3); }
+.ad__rail .rsw__groups { display: grid; gap: var(--s-2); }
+.ad__rail .rsw__group ul { display: grid; gap: 0; }
+@media (min-width: 64rem) { .ad__rail .rsw { padding-inline: var(--s-4); } .ad__rail .rsw__list { width: auto; } .ad__rail .rsw__list li { flex: 1 1 auto; } .ad__rail .rsw__role { width: 100%; } .ad__rail .rsw__list form { flex: 1 1 auto; } }
+@media print { .rsw { display: none; } }

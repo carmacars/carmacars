@@ -4,6 +4,8 @@ import { currentUser } from '@/server/portal/data';
 import { rolesOf } from '@/server/door';
 import { viewAs } from '@/server/view-as';
 import { PORTAL_HOME, portalsFor, type PortalKey } from '@/server/portals';
+import { rolesFor } from './roles';
+import { RoleSwitcher } from './RoleSwitcher';
 
 // Shared pieces of every portal's frame and refusal page: who is signed in, the portals that account has, and
 // Sign out (or Exit, while an Admin views as someone).
@@ -15,21 +17,16 @@ export async function SignOutOrExit({ className = 'btn btn--quiet btn--sm hd-act
   return <form action={signOut}><button className={className} type="submit" title="Sign out"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 4H6.5A2.5 2.5 0 0 0 4 6.5v11A2.5 2.5 0 0 0 6.5 20H9M15 8l4 4-4 4M19 12H9" /></svg><span className="hd-lbl">Sign out</span></button></form>;
 }
 
-/** Links to the account's other portals (nothing when it has only this one). */
+/** The role switcher of a portal frame (r48 ops; RoleSwitcher.tsx): every role of the account in one row, with the pages
+ *  of the other roles under it. Nothing when the account has only this one role. `current` is the frame it sits in. */
 export async function PortalSwitch({ current }: { current: PortalKey }) {
   const user = await currentUser();
   if (!user) return null;
   const roles = await rolesOf(user.id).catch(() => null);
   if (!roles) return null;
-  // the staff portal has its own function switcher, so its functions are not listed again there
-  const list = portalsFor(roles).filter((p) => p.key !== current);
-  if (!list.length) return null;
-  return (
-    <nav className="portal-switch" aria-label="Your other portals" data-testid="portal-switch">
-      <span className="muted">Also:</span>
-      {list.map((p) => <a key={p.href} className="link" href={p.href}>{p.label}</a>)}
-    </nav>
-  );
+  const list = rolesFor(roles);
+  if (list.length < 2) return null;
+  return <RoleSwitcher roles={list} activeFn={roles.va} portal={current === 'field' ? 'va' : current} />;
 }
 
 const WHAT: Record<Exclude<PortalKey, 'account'>, { title: string; text: string }> = {

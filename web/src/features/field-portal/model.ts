@@ -102,8 +102,8 @@ export function cardSteps(c: Card): Array<{ label: string; done: boolean }> {
     if ((c.addons?.length ?? 0) > 0) s.push({ label: `Prepare the add-ons (${(c.addons ?? []).filter((a) => a.ticked).length} of ${c.addons!.length})`, done: (c.addons_open ?? 0) === 0 });
     s.push({ label: 'Pickup photos and handover', done: c.status === 'done' });
   } else if (c.leg === 'return') {
-    s.push({ label: 'Return photos and check-in', done: c.status === 'done' });
-    if (c.clean) s.push({ label: 'Clean check after the return', done: c.clean.done });
+    s.push({ label: 'Return check-out: photos and readings', done: c.status === 'done' });
+    if (c.clean) s.push({ label: 'Post-trip cleaning: clean check', done: c.clean.done });
   } else s.push({ label: cardTitle(c), done: c.status === 'done' });
   return s;
 }

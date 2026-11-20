@@ -133,7 +133,9 @@ export function RouteProgress() {
     // a navigation that only changes the search part (a filter, a tab, a page of results) keeps the address's path: done
     // when the router writes the new address
     const realPush = history.pushState, realReplace = history.replaceState;
-    const wrote = () => { if (location.href !== at) { at = location.href; finish(); } };
+    // r48 ops: after the write, not during it: the router writes the address inside an insertion effect, where a state
+    // change is not allowed (React: "useInsertionEffect must not schedule updates"); features/live/beacon.ts waits the same way
+    const wrote = () => queueMicrotask(() => { if (location.href !== at) { at = location.href; finish(); } });
     history.pushState = function (...args: Parameters<History['pushState']>) { realPush.apply(this, args); wrote(); };
     history.replaceState = function (...args: Parameters<History['replaceState']>) { realReplace.apply(this, args); wrote(); };
     // Back and Forward come from the router's cache in place: nothing to show, only the address to follow

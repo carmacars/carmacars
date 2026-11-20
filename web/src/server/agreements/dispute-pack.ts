@@ -36,6 +36,8 @@ type Ev = {
   renter: { legal_name: string; email: string | null; mobile: string | null; address: string | null; postal_code: string | null; created_at: string };
   documents: Array<{ id: string; kind: string; title: string; bucket: string; path: string; sha256: string | null; created_at: string; mime: string | null }>;
   licence: Array<{ kind: string; status: string; driver: string; bucket: string; path: string; mime: string | null; uploaded_at: string }>;
+  /** r48 ops (3293): each pickup identity check, the licence and the card shown against what is on file */
+  pickup_identity?: Array<{ at: string; driver: string; by: string; outcome: string; mismatches: string[]; results: Record<string, string>; card_last4: string | null }>;
   reports: Array<{ kind: string; performed_at: string; completed_at: string; odometer_km: number | null; fuel_pct: number | null; keys: number | null; by: string | null; renter_signed_at: string | null; plate: string | null;
     damages: Array<{ label: string; location: string; description: string; is_new: boolean }>; photos: Array<{ shot: string; bucket: string; path: string; taken_at: string; latitude: number | null; longitude: number | null }> }>;
   payments: Array<{ purpose: string; kind: string; method: string; amount_cents: number; status: string; card_brand: string | null; card_last4: string | null; at: string; charge_id: string | null }>;
@@ -244,6 +246,18 @@ export async function buildDisputePack(packId: string): Promise<void> {
       if (img) { const sc = Math.min(240 / img.width, 160 / img.height); if (w.y - img.height * sc < w.M) w.newPage(); w.page.drawImage(img, { x, y: w.y - img.height * sc - 4, width: img.width * sc, height: img.height * sc }); w.y -= img.height * sc + 12; x = w.M; }
     }
     contents.licence = ev.licence.length;
+  }
+  // 4b. the identity check made at the pickup (3293): who took the car, compared with the renter on file
+  const checks = ev.pickup_identity ?? [];
+  if (checks.length) {
+    w.head('Identity check at the pickup');
+    w.line('At the pickup the licence the person was holding was photographed and compared with the licence and photo on file, and the card they showed with the card on file.', 8.5);
+    for (const c of checks) {
+      const said = Object.entries(c.results).filter(([, v]) => v !== 'not_checked').map(([k, v]) => `${k.replace(/_/g, ' ')}: ${v.replace(/_/g, ' ')}`).join('; ');
+      w.line(`${stamp(c.at)}  ${c.driver}, checked by ${c.by}: ${c.outcome}${said ? ` (${said})` : ''}${c.card_last4 ? `. Card shown ending ${c.card_last4}` : ''}`, 8.5);
+      for (const m of c.mismatches) w.line(`  ${m}`, 8);
+    }
+    contents.pickup_identity = checks.length;
   }
 
   // 4b. 3192: every extra charge with its proof

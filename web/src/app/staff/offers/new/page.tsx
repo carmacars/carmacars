@@ -3,7 +3,7 @@ import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
 import { PageHead } from '@/features/admin/ui';
 import { OfferComposer, type OcDraft } from '@/features/offers/OfferComposer';
-import { UnfinishedRentals } from '@/features/supply/UnfinishedRentals';
+import { MyDrafts } from '@/features/supply/UnfinishedRentals';
 import type { DraftRow } from '@/server/actions/supply';
 import { door } from '@/server/door';
 import type { OwnerDefaults } from '@/features/supply/OwnerChoice';
@@ -24,7 +24,7 @@ export default async function VaNewOffer({ searchParams }: { searchParams: Promi
   return (<>
     <PageHead title="Send an offer" />
     <p className="small muted" style={{ maxWidth: '52rem' }}>For a customer on the phone, by text or in person: no request needed. Already agreed and paid? Use <Link prefetch={false} className="link" href="/staff/bookings/new">Add a rental</Link>.</p>
-    <UnfinishedRentals rows={drafts} base="/staff" current={open?.id} title="Unfinished offers" />
+    <MyDrafts rows={drafts} base="/staff" current={open?.id} />
     <OfferComposer key={open?.id ?? 'new'} base="/staff" initialCar={sp.car ?? null} initialFrom={sp.from ?? null} initialTo={sp.to ?? null} draft={open} owner={owner} />
   </>);
 }

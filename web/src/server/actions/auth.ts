@@ -7,7 +7,9 @@ import { fieldErrors, newPasswordSchema, resetSchema, signInSchema, signUpSchema
 import { requestCountry, requestMeta } from '@/server/request';
 import { deviceLabel } from '@/features/push/topics';
 import { rolesOf } from '@/server/door';
+import { cookies } from 'next/headers';
 import { landingFor, safeNext } from '@/server/portals';
+import { LAST_PORTAL_COOKIE } from '@/features/access/roles';
 import { afterSignIn, clearSessionCookies, rememberSignIn } from '@/server/after-sign-in';
 import { passwordLinkTarget, rememberEmail, siteBase } from '@/server/auth-links';
 import { captureDone, claimPendingAccount, passwordLinkForCaptured } from '@/server/capture';
@@ -94,7 +96,7 @@ export async function verifyTwoStep(factorId: string | null, code: string, next:
   if (!id) return { ok: false, code: 'refused', message: 'Set up two-step sign-in first.' };
   const r = await a.mfaVerify(id, code);
   if (!r.ok) return { ok: false, code: 'refused', message: r.message };
-  redirect(safeNext(next) ?? landingFor(await rolesOf(user.id)));
+  redirect(safeNext(next) ?? landingFor(await rolesOf(user.id), (await cookies()).get(LAST_PORTAL_COOKIE)?.value));
 }
 
 /** A sign-up that went through closes this browser's capture of the sign-up form (0090): its lead and follow-up. */

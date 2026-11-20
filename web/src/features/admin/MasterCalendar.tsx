@@ -2,22 +2,27 @@
 import Link from '@/components/Link';
 import { OWNER_TRIP } from '@/features/request-history/model';
 import './master-calendar.css';
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { money } from '@/lib/format';
 import { when } from '@/features/agreement/model';
 import { useDoor } from './door';
-import { fromLocalInput, toLocalInput } from './Act';
 import { BAR, lane, rowHeight, stack, topOf } from './calendar-stack';
 import { availability, barLabel, busyKind, holdEnds, holding, holdWords, takes, VIEWS } from './calendar-label';
 import { photoUrl } from '@/lib/photo';
 import { photoPath, when as nowWords, type Car } from '@/features/bookings-now/model';
 import { DateInput } from '@/components/DateInput';
+import { CalendarFleetBar } from './CalendarFleetBar';
+import { SidePanel } from './CalendarSidePanel';
+import { GROUP_H, JOB_H, NO_FILTER, VIRTUAL_FROM, chipWords, filterCount, groupCars, isCleaningJob, jobLabel, jobRows, jobsOf, passes, rowsOf, topsOf, windowOf,
+  type AvailFilter, type FleetFilter, type GroupBy, type JobEntry } from './calendar-fleet';
 
 import { WhyDisabled } from '@/components/WhyDisabled';
 // The master calendar (03-admin.md section 5): vehicles as rows, days as columns. Bookings are bars by
 // status (requests and offers hatched on the lower lane, non-blocking bookings outlined), blocks striped,
-// Turo trips teal, field jobs as pins. Drag or resize a booking, or move it with the keyboard (arrows 30
+// Turo trips teal, jobs as small named chips under the bars (r48 ops: the Return check-out with its time and the Post-trip
+// cleaning are two jobs). A long fleet is found by search, filters and groups that fold, and only the rows near the
+// screen are drawn (calendar-fleet.ts). Drag or resize a booking, or move it with the keyboard (arrows 30
 // minutes, Shift resizes, Enter confirms, Esc cancels); the database previews the change
 // (calendar_preview_change) and applies it on confirm (calendar_apply_change).
 export interface Entry { type: string; id: string; booking_id: string | null; booking_number: string | null; booking_type: string | null; status: string | null; state: string | null;
@@ -26,7 +31,9 @@ export interface Entry { type: string; id: string; booking_id: string | null; bo
   /** 0283: a placeholder booking (insurance or a hold); 0284: the bars it collides with on this car */
   placeholder?: boolean; clash?: string[];
   /** r48 (2961): when an open offer expires, or an accepted unpaid booking's hold ends */
-  hold_until?: string | null }
+  hold_until?: string | null;
+  /** r48 ops (3290): a booking's actual return and clean check; the booking a job or cleaning block belongs to; when it was done */
+  returned_at?: string | null; cleaned_at?: string | null; for_booking?: string | null; done_at?: string | null; job?: string | null }
 export interface Veh { id: string; label: string; plate: string | null; fleet_number: string | null; status: string; class: string | null; owner: string | null; mode: string | null; supply_type?: string | null; entries: Entry[] }
 export interface CalData { from: string; to: string; now: string; vehicles: Veh[] }
 type Preview = { action: string; refusal: string | null; renter_must_approve: boolean; offer_must_be_resent: boolean; available: boolean; difference_cents: number | null;
@@ -36,7 +43,8 @@ type Move = { entry: Entry; vehicle: string; start: number; end: number };
 const DAY = 86_400_000;
 const SNAP = 30 * 60_000;
 const DRAGGABLE = ['requested', 'offered', 'pending_payment', 'confirmed', 'on_rent'];
-const REASONS: Array<[string, string]> = [['service', 'Service'], ['repair', 'Repair'], ['owner_unavailable', 'Owner unavailable'], ['cleaning', 'Cleaning'], ['exit', 'Exit'], ['turo_owner_use', 'Turo owner use'], ['admin', 'Admin']];
+const FLEET_KEY = 'cc-cal-fleet';
+const HEAD_H = 52;
 const torontoMidnight = (d: Date) => { const s = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d); return new Date(`${s}T00:00:00`); };
 const isoDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const snap = (ms: number) => Math.round(ms / SNAP) * SNAP;
@@ -68,7 +76,7 @@ const text = (e: Entry) => e.type === 'block' ? `${(e.reason ?? '').replace(/_/g
 const dayHead = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', weekday: 'long', month: 'long', day: 'numeric' }).format(new Date(iso));
 const hm = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', hour: 'numeric', minute: '2-digit' }).format(new Date(iso)).replace(/\s?a\.m\./, ' am').replace(/\s?p\.m\./, ' pm');
 const WORDS: Record<string, string> = { requested: 'Request', offered: 'Offer', pending_payment: 'Booked, payment due', confirmed: 'Booked', on_rent: 'Out', returned: 'Returned', closed: 'Closed' };
-const kindOf = (e: Entry) => e.type === 'booking' ? (e.placeholder ? 'Placeholder' : WORDS[e.status ?? ''] ?? (e.status ?? '').replace(/_/g, ' ')) : e.type === 'block' ? 'Block' : e.type === 'turo_trip' ? 'Turo' : e.type.replace(/_/g, ' ');
+const kindOf = (e: Entry) => isCleaningJob(e) ? 'Post-trip cleaning' : e.type === 'booking' ? (e.placeholder ? 'Placeholder' : WORDS[e.status ?? ''] ?? (e.status ?? '').replace(/_/g, ' ')) : e.type === 'block' ? 'Block' : e.type === 'turo_trip' ? 'Turo' : e.type.replace(/_/g, ' ');
 
 function Label({ e }: { e: Entry }) {
   const l = barLabel(e);
@@ -92,8 +100,14 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
   const [onlyInsurer, setOnlyInsurer] = useState(sp.get('ins') === '1');
   const [onlyFree, setOnlyFree] = useState(sp.get('free') === '1'); // r48: only cars free every day shown
   const [supply, setSupply] = useState(sp.get('supply') ?? ''); // 0046: who supplies the car
+  // r48 ops: the long fleet: filters, groups that fold (kept in this browser), and the rows near the screen
+  const [filter, setFilter] = useState<FleetFilter>(() => ({ status: sp.get('status') ?? '', cls: sp.get('class') ?? '', owner: sp.get('owner') ?? '', avail: (sp.get('avail') ?? '') as AvailFilter }));
+  const [groupBy, setGroupByState] = useState<GroupBy>((sp.get('group') as GroupBy | null) ?? 'none');
+  const [folded, setFolded] = useState<ReadonlySet<string>>(() => new Set());
+  const [scroll, setScroll] = useState({ top: 0, h: 800 });
+  const [heights, setHeights] = useState<ReadonlyMap<string, number>>(() => new Map());
   const [agenda, setAgenda] = useState(initialAgenda);
-  const [sel, setSel] = useState<{ entry?: Entry; vehicle?: Veh; at?: number } | null>(null);
+  const [sel, setSel] = useState<{ entry?: Entry; job?: JobEntry; vehicle?: Veh; at?: number } | null>(null);
   const [move, setMove] = useState<Move | null>(null);
   const [confirm, setConfirm] = useState<{ move: Move; preview: Preview | null; error?: string } | null>(null);
   const [reason, setReason] = useState('');
@@ -108,11 +122,27 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
   const pxPerMs = dw / DAY;
 
   useEffect(() => { const t = setTimeout(() => { if (window.matchMedia('(max-width: 40rem)').matches) setAgenda(true); }, 0); return () => clearTimeout(t); }, []);
+  // the grouping chosen last time, and the groups left folded (this browser only; the link's ?group= wins)
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try {
+        const k = JSON.parse(window.localStorage.getItem(FLEET_KEY) ?? 'null') as { by?: GroupBy; folded?: string[] } | null;
+        if (!k) return;
+        if (k.by && !sp.get('group')) setGroupByState(k.by);
+        if (Array.isArray(k.folded)) setFolded(new Set(k.folded));
+      } catch { /* private window: this page only */ }
+    }, 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- read once
+  }, []);
+  const keep = (by: GroupBy, f: ReadonlySet<string>) => { try { window.localStorage.setItem(FLEET_KEY, JSON.stringify({ by, folded: [...f] })); } catch { /* this page only */ } };
+  const setGroupBy = (by: GroupBy) => { const f = new Set<string>(); setGroupByState(by); setFolded(f); keep(by, f); };
+  const fold = (key: string) => setFolded((old) => { const f = new Set(old); if (f.has(key)) f.delete(key); else f.add(key); keep(groupBy, f); return f; });
 
   const load = useCallback((startAt: Date, v = view) => start(async () => {
     const f = torontoMidnight(startAt); const t = new Date(f.getTime() + (VIEWS[v] ?? VIEWS.two!).days * DAY);
     const r = await adminPreview<CalData>('calendar', { from: f.toISOString(), to: t.toISOString(), vehicle: vehicleId ?? '' });
-    if (r.ok) { setData(r.data); setProblem(null); } else setProblem(r.message);
+    if (r.ok) { setData(r.data); setProblem(null); setHeights(new Map()); } else setProblem(r.message);
     const p = new URLSearchParams(sp.toString()); p.set('start', isoDay(f)); p.set('view', v);
     router.replace(`?${p.toString()}`, { scroll: false });
   }), [view, vehicleId, router, sp, adminPreview]);
@@ -132,10 +162,42 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
     const nb = !onlyNonBlocking || v.entries.some((e) => e.type === 'booking' && e.blocks === false);
     const ins = !onlyInsurer || v.entries.some((e) => e.bill_to && e.bill_to !== 'renter');
     const sup = !supply || (v.supply_type ?? 'program_owner') === supply;
-    return hit && nb && ins && sup;
-  }), [data, q, onlyNonBlocking, onlyInsurer, supply]);
+    return hit && nb && ins && sup && passes(v, avail.get(v.id), filter);
+  }), [data, q, onlyNonBlocking, onlyInsurer, supply, filter, avail]);
   const vehicles = useMemo(() => onlyFree ? matching.filter((v) => avail.get(v.id)?.freeAll) : matching, [matching, onlyFree, avail]);
   const freeToday = matching.filter((v) => avail.get(v.id)?.freeToday).length;
+  const dirty = !!q.trim() || onlyFree || onlyNonBlocking || onlyInsurer || !!supply || filterCount(filter) > 0;
+  const clear = () => { setQ(''); setOnlyFree(false); setOnlyNonBlocking(false); setOnlyInsurer(false); setSupply(''); setFilter(NO_FILTER); };
+  // each car's row: its bars stacked, its jobs as chips under them, and the height that takes
+  const layout = useMemo(() => new Map(vehicles.map((v) => {
+    const end = from + days * DAY;
+    const st = stack(v.entries.filter((e) => !isCleaningJob(e)), end);
+    const jobs = jobsOf(v.entries).filter((j) => { const t = Date.parse(j.starts_at); return t >= from && t < end; });
+    const jr = jobRows(jobs, (iso) => (Date.parse(iso) - from) * pxPerMs, days * dw);
+    return [v.id, { st, jobs, jr, height: rowHeight(st) + (jr.rows ? jr.rows * JOB_H + 8 : 0) }] as const;
+  })), [vehicles, from, days, dw, pxPerMs]);
+  const groups = useMemo(() => groupCars(vehicles, vehicleId ? 'none' : groupBy, (id) => avail.get(id)), [vehicles, groupBy, avail, vehicleId]);
+  const rows = useMemo(() => rowsOf(groups, folded), [groups, folded]);
+  const named = groups.filter((g) => g.key);
+  const virtual = rows.length > VIRTUAL_FROM;
+  const tops = topsOf(rows.map((r) => r.kind === 'group' ? GROUP_H : heights.get(r.key) ?? (layout.get(r.key)?.height ?? 62) + 1));
+  const win = virtual ? windowOf(tops, Math.max(0, scroll.top - HEAD_H), scroll.h) : { start: 0, end: rows.length, before: 0, after: 0 };
+  const onScroll = (ev: React.UIEvent<HTMLDivElement>) => {
+    if (!virtual) return;
+    const g = ev.currentTarget; const top = g.scrollTop, h = g.clientHeight;
+    setScroll((o) => (Math.abs(o.top - top) > 160 || o.h !== h ? { top, h } : o));
+  };
+  // a drawn row's real height (a long name or badge can make it taller than its bars): kept, so the space of the rows
+  // not drawn is right and the list does not jump
+  useLayoutEffect(() => {
+    if (!virtual || !grid.current) return;
+    let next: Map<string, number> | null = null;
+    for (const el of grid.current.querySelectorAll<HTMLElement>('[data-row]')) {
+      const h = el.offsetHeight, k = el.dataset.row!;
+      if (h && Math.abs((heights.get(k) ?? 0) - h) > 0.5) { next ??= new Map(heights); next.set(k, h); }
+    }
+    if (next) setHeights(next);
+  }, [virtual, heights, win.start, win.end, rows, view]);
 
   const preview = (m: Move) => {
     setConfirm({ move: m, preview: null }); setReason(''); setMsg('');
@@ -219,17 +281,22 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
             {Object.entries(VIEWS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select>
           <button className="btn btn--ghost btn--sm" type="button" aria-pressed={agenda} onClick={() => setAgenda(!agenda)}>{agenda ? 'Timeline' : 'Agenda'}</button>
         </div>
-        <div className="row">
+        <div className="row mcal__find">
           <label className="vh" htmlFor="cal-q">Find a plate, fleet number, booking or surname</label>
-          <input className="input" style={{ minHeight: 36, width: '13rem' }} id="cal-q" type="search" placeholder="Plate, booking, surname" value={q} onChange={(e) => setQ(e.target.value)} data-shortcut="/" />
+          <input className="input" id="cal-q" type="search" placeholder="Car, plate, booking, surname" value={q} onChange={(e) => setQ(e.target.value)} data-shortcut="/" enterKeyHint="search" />
           <label className="check small"><input type="checkbox" checked={onlyFree} onChange={(e) => setOnlyFree(e.target.checked)} data-testid="cal-only-free" /> <span>Only cars free for these dates</span></label>
-          <label className="check small"><input type="checkbox" checked={onlyNonBlocking} onChange={(e) => setOnlyNonBlocking(e.target.checked)} /> <span>Not blocking</span></label>
-          <label className="check small"><input type="checkbox" checked={onlyInsurer} onChange={(e) => setOnlyInsurer(e.target.checked)} /> <span>Insurer</span></label>
-          <label className="vh" htmlFor="cal-supply">Who supplies the car</label>
-          <select className="select" style={{ width: 'auto', minHeight: 0 }} id="cal-supply" value={supply} onChange={(e) => setSupply(e.target.value)} data-testid="cal-supply">
-            <option value="">Every car</option><option value="program_owner">Program owners&apos; cars</option><option value="company">Company fleet</option><option value="partner">Partners&apos; cars</option></select>
           <button className="btn btn--primary btn--sm" type="button" onClick={() => setSel({ vehicle: vehicles[0], at: Math.max(now, from) })} data-testid="cal-new-block">New block</button>
         </div>
+        {!vehicleId && <CalendarFleetBar cars={data.vehicles} filter={filter} onFilter={setFilter} groupBy={groupBy} onGroupBy={setGroupBy} shown={vehicles.length} freeToday={freeToday} groups={named.length}
+          allFolded={named.length > 0 && named.every((g) => folded.has(g.key))} onFoldAll={(f) => { const n = new Set(f ? named.map((g) => g.key) : []); setFolded(n); keep(groupBy, n); }} onClear={clear} dirty={dirty} />}
+        {!vehicleId && <details className="ad-morefilters mcal__more"><summary>More filters</summary>
+          <div className="row">
+            <label className="check small"><input type="checkbox" checked={onlyNonBlocking} onChange={(e) => setOnlyNonBlocking(e.target.checked)} /> <span>Not blocking</span></label>
+            <label className="check small"><input type="checkbox" checked={onlyInsurer} onChange={(e) => setOnlyInsurer(e.target.checked)} /> <span>Insurer</span></label>
+            <label className="vh" htmlFor="cal-supply">Who supplies the car</label>
+            <select className="select" id="cal-supply" value={supply} onChange={(e) => setSupply(e.target.value)} data-testid="cal-supply">
+              <option value="">Every car</option><option value="program_owner">Program owners&apos; cars</option><option value="company">Company fleet</option><option value="partner">Partners&apos; cars</option></select>
+          </div></details>}
       </div>
       {problem && <p className="alert alert--error" role="alert"><span>{problem}</span></p>}
       <div className="mcal__legend" aria-hidden="true">
@@ -237,30 +304,45 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
         <span><i className="mcal__item is-on_rent" /> on rent</span><span><i className="mcal__item is-confirmed" /> confirmed</span><span><i className="mcal__item is-requested" /> request</span>
         <span><i className="mcal__item is-offered" /> offer or hold</span><span><i className="mcal__item is-block is-maint" /> maintenance</span><span><i className="mcal__item is-confirmed is-outline" /> not blocking</span><span><i className="mcal__item is-confirmed is-placeholder" /> placeholder</span><span><i className="mcal__item is-block" /> block</span>
         <span><i className="mcal__item is-requested has-clash" /> dates taken</span><span><i className="mcal__item is-turo" /> Turo</span>
+        <span><i className="mcal__job is-checkout" /> return check-out, with its time</span><span><i className="mcal__job is-cleaning" /> post-trip cleaning</span>
       </div>
       {agenda ? (
         <div className="mcal__agenda" data-testid="cal-agenda">
           {(() => {
-            const items = vehicles.flatMap((v) => v.entries.map((e) => ({ v, e }))).sort((a, b) => a.e.starts_at.localeCompare(b.e.starts_at));
-            if (!items.length) return <p className="mcal__none">Nothing on the calendar for these dates.</p>;
-            const groups: Array<[string, typeof items]> = [];
-            for (const it of items) { const k = dayHead(it.e.starts_at); const g = groups[groups.length - 1]; if (g && g[0] === k) g[1].push(it); else groups.push([k, [it]]); }
-            return groups.map(([k, rows]) => (
+            // r48 ops: the bars, and the jobs by name (the return check-out with its time, the post-trip cleaning)
+            const end = from + days * DAY;
+            const items: Array<{ v: Veh; e?: Entry; j?: JobEntry; at: string }> = vehicles.flatMap((v) => [
+              ...v.entries.filter((e) => e.type !== 'field_job' && !isCleaningJob(e)).map((e) => ({ v, e, at: e.starts_at })),
+              ...jobsOf(v.entries).filter((j) => { const t = Date.parse(j.starts_at); return t >= from && t < end; }).map((j) => ({ v, j, at: j.starts_at }))])
+              .sort((a, b) => a.at.localeCompare(b.at));
+            if (!items.length) return <p className="mcal__none">{dirty ? 'No car matches the search and filters.' : 'Nothing on the calendar for these dates.'}</p>;
+            const days_: Array<[string, typeof items]> = [];
+            for (const it of items) { const k = dayHead(it.at); const g = days_[days_.length - 1]; if (g && g[0] === k) g[1].push(it); else days_.push([k, [it]]); }
+            return days_.map(([k, list]) => (
               <section key={k} className="mcal__aday"><h3>{k}</h3>
-                <ul>{rows.map(({ v, e }) => (
+                <ul>{list.map(({ v, e, j }) => {
+                  if (j) { const l = jobLabel(j); const src = j.type === 'block' ? v.entries.find((x) => x.type === 'block' && x.id === j.id) : undefined; return (
+                    <li key={`job${j.type}${j.id}`}><button type="button" className="mcal__acard" data-kind={`job-${l.kind}`} onClick={() => setSel(src ? { entry: src } : { job: j })} data-testid={`agenda-job-${l.kind}`}>
+                      <span className="mcal__atime"><b>{hm(l.done && j.done_at ? j.done_at : j.starts_at)}</b><span>{l.done ? (l.kind === 'checkout' ? 'came back' : 'done') : 'due'}</span></span>
+                      <Thumb car={cars[v.id]} label={v.label} />
+                      <span className="mcal__abody"><b>{v.label}</b><span>{[cars[v.id]?.code, v.plate, j.for_booking, j.assignee].filter(Boolean).join(' · ')}</span>{j.type === 'block' && j.note ? <span>{j.note}</span> : null}</span>
+                      <span className={`mcal__akind mcal__job is-${l.kind}${l.done ? ' is-done' : ''}`}>{l.name}</span>
+                    </button></li>); }
+                  if (!e) return null;
+                  return (
                   <li key={`${e.type}${e.id}`}><button type="button" className="mcal__acard" data-kind={e.type === 'booking' ? (e.placeholder ? 'placeholder' : e.status ?? '') : e.type} data-clash={e.clash?.length ? 'yes' : undefined} onClick={() => setSel({ entry: e })}>
-                    <span className="mcal__atime"><b>{hm(e.starts_at)}</b>{e.ends_at ? <span>to {nowWords(e.ends_at, now)}</span> : null}</span>
+                    <span className="mcal__atime"><b>{hm(e.starts_at)}</b>{e.ends_at ? <span>to {nowWords(e.returned_at ?? e.ends_at, now)}</span> : null}</span>
                     <Thumb car={cars[v.id]} label={v.label} />
                     <span className="mcal__abody"><b>{v.label}</b><span>{[cars[v.id]?.code, v.plate].filter(Boolean).join(' · ')}{e.renter ? ` · ${e.renter}` : ''}{e.booking_number ? ` · ${e.booking_number}` : ''}</span>
                       {e.type !== 'booking' && <span>{text(e)}</span>}
                       {e.clash?.length ? <b className="ad-late" data-testid="cal-agenda-clash">Dates taken: clashes with {e.clash.join(', ')}</b> : null}</span>
                     <span className={`mcal__akind mcal__item ${cls(e, now).replace('has-clash', '').replace('is-late', '')}`}>{kindOf(e)}</span>
-                  </button></li>))}</ul>
+                  </button></li>); })}</ul>
               </section>));
           })()}
         </div>
       ) : (
-        <div className="mcal__grid" ref={grid} onPointerMove={onMoveP} onPointerUp={onUp} aria-label="Vehicles by day" role="region" tabIndex={0}>
+        <div className="mcal__grid" ref={grid} onPointerMove={onMoveP} onPointerUp={onUp} onScroll={onScroll} aria-label="Vehicles by day" role="region" tabIndex={0} data-virtual={virtual ? 'yes' : undefined} data-rows={rows.length}>
           <div className="mcal__inner" style={{ width, ['--dw' as string]: `${dw}px` }}>
             <div className="mcal__head" style={{ gridTemplateColumns: cols }}>
               <div className="mcal__corner"><b>{new Intl.DateTimeFormat('en-CA', { month: 'long', year: 'numeric' }).format(new Date(from))}</b><span data-testid="cal-free-count">{freeToday} of {matching.length} free today</span></div>
@@ -271,13 +353,21 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
                     <span className={i > 0 && d.getDate() === 1 ? 'mcal__wd mcal__mo' : 'mcal__wd'}>{new Intl.DateTimeFormat('en-CA', i > 0 && d.getDate() === 1 ? { month: 'short' } : { weekday: 'short' }).format(d).replace('.', '')}</span><b>{d.getDate()}</b></div>); })}
               </div>
             </div>
-            {vehicles.length === 0 && <p className="ad-empty">No vehicles match.</p>}
-            {vehicles.map((v) => { const st = stack(v.entries, from + days * DAY); const a = avail.get(v.id)!; return (
-              <div key={v.id} className={`mcal__row${a.kind === 'off' ? ' is-off' : ''}`} style={{ gridTemplateColumns: cols }} data-avail={a.kind} data-free-all={a.freeAll ? 'yes' : undefined}>
+            {vehicles.length === 0 && <div className="mcal__empty" data-testid="cal-empty"><p className="ad-empty">{dirty ? 'No car matches the search and filters.' : 'No vehicles match.'}</p>
+              {dirty && <button className="btn btn--ghost btn--sm" type="button" onClick={clear}>Clear the search and filters</button>}</div>}
+            {win.before > 0 && <div style={{ height: win.before }} aria-hidden="true" />}
+            {rows.slice(win.start, win.end).map((r) => { if (r.kind === 'group') return (
+              <div key={r.key} className="mcal__group" data-row={r.key} data-testid="cal-group-row">
+                <button type="button" className="mcal__gbtn" aria-expanded={r.open} onClick={() => fold(r.key.slice(2))} data-testid={`cal-group-${r.label}`}>
+                  <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M7.5 4l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                  <b>{r.label}</b><span>{r.count} {r.count === 1 ? 'car' : 'cars'} · {r.free} free today</span></button>
+              </div>);
+              const v = r.car; const L = layout.get(v.id)!; const st = L.st; const a = avail.get(v.id)!; return (
+              <div key={v.id} className={`mcal__row${a.kind === 'off' ? ' is-off' : ''}`} style={{ gridTemplateColumns: cols }} data-avail={a.kind} data-free-all={a.freeAll ? 'yes' : undefined} data-row={v.id}>
                 <div className="mcal__name" title={[v.label, v.plate, a.now, a.window].filter(Boolean).join(' · ')}><Thumb car={cars[v.id]} label={v.label} /><span className="mcal__ntext">{vehicleLinks ? <Link prefetch={false} href={`${doorBase}/vehicles/${v.id}`}>{v.label}</Link> : <b>{v.label}</b>}<span>{[cars[v.id]?.code ?? v.fleet_number, v.plate].filter(Boolean).join(' · ')}{v.status !== 'available' && a.kind !== 'off' ? <span className="mcal__status"> · {v.status.replace(/_/g, ' ')}</span> : null}</span>
                   <span className={`mcal__avail is-${a.kind}`} data-testid="cal-avail">{a.now}</span>{a.window ? <small className="mcal__win">{a.window}</small> : null}</span></div>
                 <div className={`mcal__lane${move && (move.vehicle || vehicleOf(move.entry)) === v.id ? ' is-drop' : ''}`} data-vehicle={v.id} data-testid={`lane-${v.plate ?? v.id}`} data-rows={st.top + st.low}
-                  style={{ minHeight: rowHeight(st) }}
+                  style={{ minHeight: L.height }}
                   onDoubleClick={(ev) => { const r = (ev.currentTarget as HTMLElement).getBoundingClientRect(); setSel({ vehicle: v, at: snap(from + (ev.clientX - r.left) / pxPerMs) }); }}>
                   {/* r48: what takes the car, tinted across the row, so white is free */}
                   {v.entries.filter(takes).map((e) => { const s0 = Date.parse(e.starts_at); const e0 = e.ends_at ? Date.parse(e.ends_at) : from + days * DAY;
@@ -289,10 +379,12 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
                     return <span key={`hold${e.id}`} className="mcal__busy is-hold" style={{ left: p.left, width: p.width }} aria-hidden="true" data-testid="cal-hold" />; })}
                   {now >= from && now <= from + days * DAY && <span className="mcal__now" style={{ left: (now - from) * pxPerMs }} aria-hidden="true" />}
                   {v.entries.map((e) => {
+                    // r48 ops: field jobs and the post-trip cleaning are named chips under the bars (below)
+                    if (e.type === 'field_job' || isCleaningJob(e)) return null;
                     const s = new Date(e.starts_at).getTime(); const en = e.ends_at ? new Date(e.ends_at).getTime() : from + days * DAY;
                     const m = move && move.entry.id === e.id && move.entry.type === e.type ? move : null;
                     if (m && m.vehicle && m.vehicle !== v.id) return null;
-                    const p = pos(m ? m.start : s, m ? m.end : (e.type === 'field_job' ? s + 3600_000 : en));
+                    const p = pos(m ? m.start : s, m ? m.end : en);
                     const canDrag = e.type === 'booking' && DRAGGABLE.includes(e.status ?? '');
                     const bar = e.type === 'booking' || e.type === 'block';
                     const clash = e.clash?.length ? `. Clashes with ${e.clash.join(', ')}` : '';
@@ -300,7 +392,7 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
                       <div key={`${e.type}${e.id}`} role="button" tabIndex={0} data-testid={e.booking_number ? `bar-${e.booking_number}` : `item-${e.type}`}
                         className={`mcal__item mcal__item--${lane(e)} ${cls(e, now)}${m ? ' is-dragging' : ''}`} style={{ left: p.left, width: p.width, ...(bar ? { top: topOf(e, st) } : {}) }}
                         data-clash={e.clash?.length ? e.clash.join(',') : undefined}
-                        title={`${text(e)} · ${when(e.starts_at)}${e.ends_at ? ` to ${when(e.ends_at)}` : ''}${holdWords(e, now) ? ` · ${holdWords(e, now)}` : ''}${clash}`}
+                        title={`${text(e)} · ${when(e.starts_at)}${e.ends_at ? ` to ${when(e.ends_at)}` : ''}${e.returned_at ? ` · came back ${when(e.returned_at)}` : ''}${holdWords(e, now) ? ` · ${holdWords(e, now)}` : ''}${clash}`}
                         aria-label={`${text(e)}, ${when(e.starts_at)}${e.ends_at ? ` to ${when(e.ends_at)}` : ''}${holdWords(e, now) ? `. ${holdWords(e, now)}` : ''}${clash}${canDrag ? '. Arrow keys move, Shift and arrows resize, Enter confirms' : ''}`}
                         data-hold={holdEnds(e) !== null ? (holding(e, now) ? 'on' : 'ended') : undefined}
                         onPointerDown={(ev) => onDown(ev, e, 'move')} onClick={() => { if (!canDrag) setSel({ entry: e }); }} onKeyDown={(ev) => onKey(ev, e)}>
@@ -309,9 +401,16 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
                       </div>);
                   })}
                   {move && move.vehicle === v.id && (() => { const e = move.entry; const p = pos(move.start, move.end); return <div className={`mcal__item mcal__item--${lane(e)} ${cls(e, now)} is-dragging`} style={{ left: p.left, width: p.width, ...(e.type === 'booking' ? { top: 4 + BAR * (lane(e) === 'top' ? 0 : 1) } : {}) }} aria-hidden="true"><Label e={e} /></div>; })()}
+                  {L.jobs.map((j) => { const at = L.jr.at.get(`${j.type}${j.id}`); if (!at) return null; const l = jobLabel(j);
+                    const src = j.type === 'block' ? v.entries.find((x) => x.type === 'block' && x.id === j.id) : undefined;
+                    return (
+                      <button key={`job${j.type}${j.id}`} type="button" className={`mcal__job is-${l.kind}${l.done ? ' is-done' : ''}`} style={{ left: at.left, width: at.width, bottom: 8 + at.row * JOB_H }}
+                        title={`${l.full}${j.for_booking ? ` · ${j.for_booking}` : ''}${j.assignee ? ` · ${j.assignee}` : ''}`} data-testid={j.type === 'field_job' ? 'item-field_job' : `job-${l.kind}`} data-job={l.kind} data-done={l.done ? 'yes' : undefined}
+                        onClick={(ev) => { ev.stopPropagation(); setSel(src ? { entry: src } : { job: j }); }} onDoubleClick={(ev) => ev.stopPropagation()}>{chipWords(l)}</button>); })}
                 </div>
               </div>
             ); })}
+            {win.after > 0 && <div style={{ height: win.after }} aria-hidden="true" />}
           </div>
         </div>
       )}
@@ -346,66 +445,6 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
         </div>
       )}
       {sel && !confirm && <SidePanel sel={sel} vehicles={data.vehicles} onClose={() => setSel(null)} onDone={() => { setSel(null); load(new Date(from)); }} />}
-    </div>
-  );
-}
-
-function SidePanel({ sel, vehicles, onClose, onDone }: { sel: { entry?: Entry; vehicle?: Veh; at?: number }; vehicles: Veh[]; onClose: () => void; onDone: () => void }) {
-  const { act: adminAct, base } = useDoor();
-  const [pending, start] = useTransition();
-  const [err, setErr] = useState<string | null>(null);
-  const [conflicts, setConflicts] = useState<Array<{ booking_number: string }> | null>(null);
-  const [f, setF] = useState(() => ({ vehicle: sel.vehicle?.id ?? vehicles[0]?.id ?? '', reason: 'service', starts_at: toLocalInput(new Date(sel.at ?? Date.now()).toISOString()), ends_at: toLocalInput(new Date((sel.at ?? Date.now()) + DAY).toISOString()), note: '', remove: '' }));
-  const e = sel.entry;
-  const run = (action: string, p: Record<string, unknown>) => start(async () => {
-    setErr(null);
-    const r = await adminAct<{ conflicts?: Array<{ booking_number: string }>; id?: string }>(action, p, ['/admin/calendar']);
-    if (!r.ok) { setErr(r.message); return; }
-    if (action === 'block_create' && !r.data.id && r.data.conflicts?.length) { setConflicts(r.data.conflicts); return; }
-    onDone();
-  });
-  const blockBody = (force = false) => ({ vehicle: f.vehicle, reason: f.reason, starts_at: fromLocalInput(f.starts_at), ends_at: fromLocalInput(f.ends_at), note: f.note, force });
-  return (
-    <div className="mcal__panel" role="dialog" aria-labelledby="cal-side-t" data-testid="cal-panel">
-      <div className="row" style={{ justifyContent: 'space-between' }}><h2 className="d4" id="cal-side-t">{e ? (e.type === 'booking' ? e.booking_number : e.type === 'block' ? 'Calendar block' : e.type.replace(/_/g, ' ')) : 'New block'}</h2><button className="btn btn--quiet btn--sm" type="button" onClick={onClose}>Close</button></div>
-      {e && (
-        <dl className="pt-dl small">
-          <div><dt>From</dt><dd>{when(e.starts_at)}</dd></div><div><dt>To</dt><dd>{e.ends_at ? when(e.ends_at) : 'until further notice'}</dd></div>
-          {e.status && <div><dt>Status</dt><dd>{e.status.replace(/_/g, ' ')}{e.placeholder ? ', placeholder (never blocks, never handed over, never matched to a toll)' : e.blocks === false ? ', not blocking' : ''}</dd></div>}
-          {!!e.clash?.length && <div><dt>Dates taken</dt><dd className="ad-late" data-testid="cal-clash">Clashes with {e.clash.join(', ')}{e.type === 'booking' && !['confirmed', 'on_rent'].includes(e.status ?? '') ? ': offer another car or other dates' : ''}</dd></div>}
-          {e.booking_type === 'owner' && <div><dt>Kind</dt><dd data-testid="cal-owner-trip">{OWNER_TRIP}: the owner books their own car, no charge</dd></div>}
-          {e.renter && <div><dt>Renter</dt><dd>{e.renter}</dd></div>}
-          {e.insurer && <div><dt>Insurer</dt><dd>{e.insurer}{e.provisional ? ', dates provisional' : ''}</dd></div>}
-          {e.reason && <div><dt>Reason</dt><dd>{e.reason.replace(/_/g, ' ')}</dd></div>}
-          {e.note && <div><dt>Note</dt><dd>{e.note}</dd></div>}
-          {e.assignee && <div><dt>Assigned</dt><dd>{e.assignee}</dd></div>}
-        </dl>
-      )}
-      {e?.type === 'booking' && <Link prefetch={false} className="btn btn--primary btn--sm" href={`${base}/bookings/${e.booking_number}`}>Open the booking</Link>}
-      {e?.type === 'block' && (
-        <div className="stack">
-          <button className="btn btn--ghost btn--sm" type="button" disabled={pending} onClick={() => run('block_end', { block: e.id })}>End now</button>
-          {/* the cleaning block after a trip (migration 0040) is removed by Fleet, customer service or an Admin; it is not put back */}
-          {e.reason === 'cleaning' && (e.note ?? '').startsWith('Cleaning after booking') && <p className="small muted" data-testid="cleaning-block">Added after the trip for cleaning. Remove it if the car is ready sooner.</p>}
-          <form className="ad-form" onSubmit={(ev) => { ev.preventDefault(); run(e.reason === 'cleaning' && (e.note ?? '').startsWith('Cleaning after booking') ? 'turnaround_block_remove' : 'block_remove', { block: e.id, reason: f.remove }); }}>
-            <div className="field"><label className="label" htmlFor="cal-rm">Reason for removing</label><input className="input" id="cal-rm" value={f.remove} onChange={(x) => setF({ ...f, remove: x.target.value })} required /></div>
-            <><button className="btn btn--primary btn--sm ad-btn--danger" type="submit" disabled={pending || !f.remove.trim()} data-testid="block-remove" aria-describedby="why-mastercalendar-391">Remove the block</button><WhyDisabled id="why-mastercalendar-391" why={((!f.remove.trim())) ? 'Say why it is removed first' : null} /></>
-          </form>
-        </div>
-      )}
-      {!e && (
-        <form className="ad-form" data-testid="block-form" onSubmit={(ev) => { ev.preventDefault(); run('block_create', blockBody()); }}>
-          <div className="field"><label className="label" htmlFor="bk-v">Vehicle</label><select className="select" id="bk-v" value={f.vehicle} onChange={(x) => setF({ ...f, vehicle: x.target.value })}>{vehicles.map((v) => <option key={v.id} value={v.id}>{v.label} {v.plate ?? ''}</option>)}</select></div>
-          <div className="field"><label className="label" htmlFor="bk-r">Reason</label><select className="select" id="bk-r" value={f.reason} onChange={(x) => setF({ ...f, reason: x.target.value })}>{REASONS.map(([a, b]) => <option key={a} value={a}>{b}</option>)}</select></div>
-          <div className="field"><label className="label" htmlFor="bk-s">From</label><DateInput className="input" id="bk-s" type="datetime-local" value={f.starts_at} onChange={(x) => setF({ ...f, starts_at: x.target.value })} required /></div>
-          <div className="field"><label className="label" htmlFor="bk-e">To (empty: until further notice)</label><DateInput className="input" id="bk-e" type="datetime-local" value={f.ends_at} onChange={(x) => setF({ ...f, ends_at: x.target.value })} /></div>
-          <div className="field"><label className="label" htmlFor="bk-n">Note{f.reason === 'admin' ? ' (required)' : ''}</label><input className="input" id="bk-n" value={f.note} onChange={(x) => setF({ ...f, note: x.target.value })} /></div>
-          {conflicts && <div className="ow-warn small"><b>Confirmed bookings in this range:</b> {conflicts.map((c) => c.booking_number).join(', ')}. Creating anyway raises an urgent fleet task for each.
-            <button className="btn btn--primary btn--sm" type="button" disabled={pending} onClick={() => run('block_create', blockBody(true))}>Create anyway</button></div>}
-          <button className="btn btn--primary btn--sm" type="submit" disabled={pending} data-testid="block-create">{pending ? 'Working' : 'Create the block'}</button>
-        </form>
-      )}
-      {err && <p className="alert alert--error" role="alert"><span>{err}</span></p>}
     </div>
   );
 }

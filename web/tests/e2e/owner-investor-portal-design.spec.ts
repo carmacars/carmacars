@@ -78,7 +78,7 @@ test('owner portal design: live cars, months, coming up, money rows', async ({ p
   await expect(page.getByTestId('vehicle-months')).toBeVisible();
   await expect(page.getByTestId('vehicle-coming-up').locator('li')).not.toHaveCount(0);
   await check(page, 'owner vehicle');
-  for (const [path, id] of [['/owner/vehicles', 'owner-vehicle'], ['/owner/vehicles?tab=bookings', 'owner-coming-up'], ['/owner/money', 'owner-statements'], ['/owner/money?tab=payouts', 'owner-payouts'], ['/owner/money?tab=invoices', 'invoice-rows'], ['/owner/documents', null]] as const) {
+  for (const [path, id] of [['/owner/vehicles', 'owner-vehicle'], ['/owner/vehicles?tab=bookings', 'owner-bookings'], ['/owner/money', 'owner-statements'], ['/owner/money?tab=payouts', 'owner-payouts'], ['/owner/money?tab=invoices', 'invoice-rows'], ['/owner/documents', null]] as const) {
     await page.goto(path, { waitUntil: 'networkidle' });
     if (id) await expect(page.getByTestId(id).first()).toBeVisible();
     await check(page, path);

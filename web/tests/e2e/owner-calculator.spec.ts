@@ -23,23 +23,28 @@ test('List your car: the month and the year from the car, the days and the share
   await expect(calc.getByTestId('ecalc-result')).toContainText('Pick your car');
   await pickCar(page);
   await expect(page.getByTestId('ecalc-monthly')).toBeVisible();
-  await expect(page.getByTestId('ecalc-days-out')).toHaveText('18 days');
+  // r48 ops (3291): conservative: 12 rented days in an average month from the start (Program settings), never 18
+  await expect(page.getByTestId('ecalc-days-out')).toHaveText('12 days');
   await expect(page.getByTestId('ecalc-share-out')).toHaveText('70%');
   const at18 = await value(page, 'ecalc-monthly');
   expect(at18).toBeGreaterThan(0);
-  expect(await value(page, 'ecalc-yearly')).toBe(at18 * 12);
+  // the year is its twelve months added up over the season; the month shown is their average (whole dollars)
+  expect(Math.abs((await value(page, 'ecalc-yearly')) - at18 * 12)).toBeLessThanOrEqual(6);
+  await expect(page.getByTestId('ecalc-range')).toContainText(/slow month \((March|April|October|November)\).*busy one \((July|August)\)/);
+  await expect(page.getByTestId('ecalc-season').locator('li')).toHaveCount(12);
   // 0344: Apply with this car hands the car and the estimate to the application
   const href = await page.getByTestId('ecalc-apply').getAttribute('href');
   expect(href).toMatch(/^\/list-your-car\/apply\?year=\d{4}&make=Toyota&model=Corolla&est=\d+$/);
   // no fees set in Program settings: none made up
   await expect(page.getByTestId('ecalc-fees')).toHaveText('quoted in your agreement');
-  await expect(page.getByTestId('ecalc-result')).toContainText('a month, before fees');
-  await expect(page.getByTestId('ecalc-result')).toContainText('An estimate, not a promise');
-  // 28 days: the month grows with the days (to the dollar, after rounding)
-  await page.getByTestId('ecalc-days').fill('28');
-  await expect(page.getByTestId('ecalc-days-out')).toHaveText('28 days');
+  await expect(page.getByTestId('ecalc-result')).toContainText('a month on average, before fees');
+  await expect(page.getByTestId('ecalc-disclaimer')).toContainText('A rough estimate, not a promise');
+  // 22 days (the most the slider gives): the month grows with the days
+  await page.getByTestId('ecalc-days').fill('22');
+  await expect(page.getByTestId('ecalc-days-out')).toHaveText('22 days');
   await expect.poll(() => value(page, 'ecalc-monthly')).toBeGreaterThan(at18);
-  expect(Math.abs((await value(page, 'ecalc-monthly')) - Math.round((at18 * 28) / 18))).toBeLessThanOrEqual(2);
+  // more days, more money, and never more than the days times the listed rate (the discount and the season hold it under)
+  expect(await value(page, 'ecalc-monthly')).toBeLessThan(Math.round((at18 * 22) / 12) + 60);
   // 90% share
   const before = await value(page, 'ecalc-monthly');
   await page.getByTestId('ecalc-share').fill('90');
