@@ -1,6 +1,8 @@
 -- 99_r48_offer_holds: offers expire in 12 hours and never past 1 hour before pickup; an accepted offer not paid holds the
 -- car 2 hours, then the hold ends (2961). Fixtures start with "oh48".
 select test.suite('99 r48 offer holds');
+-- the unpaid bookings earlier suites left are not this suite's: the counts below are of its own (the whole-suite run holds many)
+select app.expire_unpaid(now() + interval '1 year', true);
 
 select test.mk_user('oh48_cs', 'va', 'cs');
 select test.mk_user('oh48_admin', 'admin');
