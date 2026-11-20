@@ -135,6 +135,8 @@
 
 9.2 The Owner pays no Rental Charge, fee or deposit. The one exception: if the Owner damages the Vehicle and a claim has to be made, the Owner is billed the Deductible. A Renter's confirmed booking has priority. An Owner Booking earns no Owner Revenue and reduces no Fee.
 
+9.3 An Owner Booking may be for the Owner or for a family member or friend the Owner names, who is then the main driver: they sign the Rental Agreement and must meet its driver rules (an Ontario licence for the main driver). The Owner stays responsible for every Owner Booking, whoever drives: the Deductible ($2,500 unless the Fleet Policy sets another amount) and any Damage, tickets, tolls and fees during it are billed to the Owner, each with its evidence.
+
 ## 10. Insurance, claims and repairs
 
 10.1 From its Enrollment Date to its Exit Date each Vehicle is listed on the Fleet Policy, on the policy's terms. CarmaCars is not an insurer and does not promise that any claim will be paid.
@@ -257,7 +259,7 @@ Vehicle Schedule to the Enrollment Agreement dated [●] between CarmaCars and [
 | Retry Date | on or after the 18th, within 30 days of the return |
 | Payout Date | 10th of each month |
 | Late Fee | $50 per Vehicle per failed charge |
-| Install Fee | $100 per Vehicle |
+| Install Fee | $150 per Vehicle |
 | Deductible | $2,500 |
 | Kickback Rate | 20% |
 | Notice Period | 30 days |

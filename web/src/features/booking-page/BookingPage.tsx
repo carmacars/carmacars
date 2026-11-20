@@ -20,6 +20,7 @@ import { ManualPaymentForm, ManualPaymentList, PaperSignatureList, type ManualRo
 import { $, Badge, Card, Kv, PageHead, Table, Tabs, t, label } from '@/features/admin/ui';
 import { REFUND_OF } from '@/features/admin/refunds';
 import { ExtensionMoney, type ExtensionRow } from '@/features/money/ExtensionMoney';
+import { FeeEvidence } from '@/features/fee-evidence/FeeEvidence';
 import { BookingMoney, type Money, type PanelLine } from '@/features/money/BookingMoney';
 import { failedAttemptState } from '@/features/money/money-panels';
 import { BookingFees, type Fees } from '@/features/money/BookingFees';
@@ -516,6 +517,8 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
           {/* r48 MR (3101): each approved extension's money, and who handles it */}
           {notOwner && <ExtensionMoney rows={b.extensions as unknown as ExtensionRow[]} booking={b.booking_number} refresh={[base]}
             salespeople={(credit?.options ?? []).filter((o) => o.function === 'sales').map((o) => [o.id, o.name] as [string, string])} />}
+          {/* r48 FE (3190): the evidence of every fee, and the return charges */}
+          {notOwner && <FeeEvidence userId={user.id} aal={aal} booking={b.booking_number} bookingId={b.id} status={String(b.status)} admin={can.admin} refresh={[base]} />}
           {!moneyByPart && payments && <Card title="Payments"><Table rows={payments} empty="No payments." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'purpose', label: 'Purpose' }, { key: 'kind', label: 'Kind' }, ...(can.admin ? [{ key: 'method', label: 'Method' }] : []), { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }]} />
             {can.manualPayments && <><ManualPaymentList rows={manual} canVoid={can.voidRecords} {...(can.voidRecords ? { refresh: [base] } : { docBase: '/staff/documents' })} /><ManualPaymentForm booking={b.id} number={b.booking_number} balance={0} today={today} refresh={[base]} label="Record a payment received another way" /></>}</Card>}
           <OwnerDeductionsPanel userId={user.id} aal={aal} va={fn} booking={b.booking_number} refresh={refresh} />

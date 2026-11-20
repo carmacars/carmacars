@@ -17,3 +17,17 @@ export async function acceptTerms(versionId: string, sha: string, portal: string
     return { ok: true, pending: r.pending };
   } catch (e) { return { ok: false, message: e instanceof DbError || e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '') : 'Something went wrong. Try again.' }; }
 }
+
+/** r48 FE (3198): decline an updated version: recorded (who, when, the IP address, the device); the portal stays closed and
+ *  the person is shown how to reach us. */
+export async function declineTerms(versionId: string, reason: string): Promise<{ ok: boolean; message?: string; contact?: { email: string | null; phone: string | null } }> {
+  try {
+    const user = await currentUser();
+    if (!user) return { ok: false, message: 'Sign in first.' };
+    if (await viewAs()) return { ok: false, message: 'Read only while viewing as someone.' };
+    if (!/^[0-9a-f-]{36}$/.test(versionId)) return { ok: false, message: 'Reload the page and try again.' };
+    const meta = await requestMeta();
+    const r = (await rpc('server_terms_decline', { p_by: user.id, p: { version_id: versionId, reason: reason.slice(0, 1000), ip: meta.ip, user_agent: meta.userAgent } }, { role: 'service_role' })) as unknown as { contact: { email: string | null; phone: string | null } };
+    return { ok: true, contact: r.contact };
+  } catch (e) { return { ok: false, message: e instanceof DbError || e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '') : 'Something went wrong. Try again.' }; }
+}

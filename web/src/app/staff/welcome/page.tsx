@@ -30,9 +30,10 @@ export default async function StaffWelcome() {
   return (
     <section className="stack" data-testid="staff-welcome">
       <h1 className="d3">Welcome, {w.name}</h1>
-      {w.locked && <p className="alert alert--warn" role="status" data-testid="welcome-locked"><span className="alert__title">{w.onboarding_step === 'availability' ? 'When you can work, last' : w.onboarding_step === 'approval' ? 'Waiting for approval' : w.onboarding_step === 'whatsapp' ? 'The WhatsApp groups next' : w.steps.find((s) => s.key === 'academy')?.done ? 'Your agreement next' : 'Training first'}</span><span>The rest of your portal opens once you pass the academy, sign your staff agreement, confirm you joined the WhatsApp groups and an Admin or a Fleet VA approves, in that order. Field staff also tick when they can usually work.</span></p>}
+      {w.locked && <p className="alert alert--warn" role="status" data-testid="welcome-locked"><span className="alert__title">{w.onboarding_step === 'availability' ? 'When you can work, last' : w.onboarding_step === 'approval' ? 'Waiting for approval' : w.onboarding_step === 'whatsapp' ? 'The WhatsApp groups next' : w.steps.find((s) => s.key === 'agreement')?.done ? 'The academy next' : 'Your agreement first'}</span><span>The rest of your portal opens once you sign your staff agreement, pass the academy, confirm you joined the WhatsApp groups and an Admin or a Fleet VA approves, in that order. Field staff also tick when they can usually work.</span></p>}
       {/* 1154: the academy is always one press away */}
-      <p><Link prefetch={false} className="link" href="/staff/academy" data-testid="welcome-academy-link">Open the academy</Link></p>
+      {/* r48 FE (3198): once the agreement is signed */}
+      {!w.steps.find((s) => s.key === 'academy')?.waiting_for_agreement && <p><Link prefetch={false} className="link" href="/staff/academy" data-testid="welcome-academy-link">Open the academy</Link></p>}
       <ol className="stack" aria-label="Your first steps">
         {w.steps.map((s, i) => (
           <li key={s.key} className={`pt-card ad-card${s.key === now ? ' pt-card--next' : ''}`} data-testid={`welcome-step-${s.key}`} data-done={s.done ? 'true' : 'false'}>

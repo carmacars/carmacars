@@ -96,9 +96,12 @@ select test.eq('a release with no capture before it is sent to Stripe (not skipp
 select test.mk_booking('DG-3', 'DGC', 'dgx_r', test.dgl(-5), test.dgl(-2), 'returned', null, 'standard', null, null, test.dgl(-2));
 select test.dg_hold('DG-3', now() + interval '1 day');
 select test.dg_statement('DG-3');
-select test.eq('charge_after_rental settles in "apply only" (0155)', position('apply_only' in pg_get_functiondef('app.charge_after_rental(uuid,uuid,timestamptz)'::regprocedure)) > 0, true);
-insert into booking_line_items (booking_id, charge_type, description, quantity, unit_amount_cents, amount_cents, hst_applies, hst_cents, revenue_class, stage, supporting_refs)
-select test.dgb('DG-3'), 'toll_amount', '407 ETR trip', 1, 1250, 1250, false, 0, 'pass_through', 'after_return', '{"toll": "test"}';
+-- r48 FE (3190): charge_after_rental is wrapped (fees waiting for evidence); the body that settles is _pre3190
+select test.eq('charge_after_rental settles in "apply only" (0155)', position('apply_only' in pg_get_functiondef('app.charge_after_rental_pre3190(uuid,uuid,timestamptz)'::regprocedure)) > 0, true);
+-- the toll comes with its notice (3190: every fee is charged with its evidence)
+insert into documents (id, kind, title, storage_bucket, storage_path, booking_id) values (test.id('doc:DG-3-toll'), 'toll_ticket_notice', '407 ETR statement', 'documents', 'dg/407.pdf', test.dgb('DG-3'));
+insert into booking_line_items (booking_id, charge_type, description, quantity, unit_amount_cents, amount_cents, hst_applies, hst_cents, revenue_class, stage, supporting_refs, supporting_document_id)
+select test.dgb('DG-3'), 'toll_amount', '407 ETR trip', 1, 1250, 1250, false, 0, 'pass_through', 'after_return', '{"toll": "test"}', test.id('doc:DG-3-toll');
 insert into test.dg select 'c3', app.charge_after_rental(test.dgb('DG-3'), test.id('dgx_fin'));
 select test.eq('the toll comes from the deposit; the rest stays held (it was released before 0155); nothing released',
   (select applied_cents || '/' || held_back_cents || '/' || released_cents || '/' || held_back_reason from test.dgd('DG-3')),

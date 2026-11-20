@@ -8,6 +8,7 @@ import { CarDiagram, type Mark } from './CarDiagram';
 import { ResolveDeposit, ResolveIdentity, ResolveSignature, TrackerOverride } from './ReadyResolve';
 import { preparePhoto, uploads, useUploads } from './queue';
 import { FdIcon } from './icons';
+import { CLEAN_CHOICES, CLEAN_FEE, CLEAN_SEQ0, CLEAN_SHOTS, cleanMissing } from '@/features/fee-evidence/model';
 import { Plate } from './Plate';
 import type { FieldJob } from './types';
 import { depositAutoText } from '@/features/money/deposit-auto-text';
@@ -27,12 +28,15 @@ import { WhyDisabled } from '@/components/WhyDisabled';
 type Report = {
   odometer_km?: number; fuel_pct?: number; keys_count?: number; licence_seen?: boolean; card_seen?: boolean; renter_present?: boolean; unattended?: boolean;
   cleanliness?: string; odour?: boolean; belongings_found?: string; notes?: string; renter_signature_ref?: string; staff_signature_ref?: string;
+  /** r48 FE (3190): a return that is not clean: the written description and the optional video */ clean_description?: string; clean_video_ref?: string;
   renter_declined_to_sign?: boolean; renter_decline_reason?: string; car_diagram?: Record<string, unknown>; fuel_or_charge_ok?: boolean; odometer_confirmed?: boolean;
 };
 type Damage = { label: string; location: string; description: string; kind: string; size_cm: number | null; position: { x: number; y: number } | null; is_new: boolean };
 const LOCATIONS = ['front bumper', 'hood', 'windshield', 'roof', 'left front door', 'left rear door', 'left side', 'right front door', 'right rear door', 'right side', 'rear bumper', 'trunk', 'wheel or tire', 'mirror', 'interior', 'other'];
 const KINDS = ['scratch', 'dent', 'chip', 'crack', 'scuff', 'stain', 'tear', 'other'];
-const CLEAN: Array<[string, string]> = [['clean', 'Standard'], ['needs_cleaning', 'Needs cleaning'], ['heavy', 'Heavy soiling or odour'], ['pet_hair', 'Pet hair'], ['smoking', 'Smoking evidence']];
+// r48 FE (3190): the values the database keeps (the old needs_cleaning and pet_hair were refused by it)
+const CLEAN = CLEAN_CHOICES;
+const OLD_CLEAN: Record<string, string> = { needs_cleaning: 'cleaning', pet_hair: 'pet' };
 const shotName = (s: string) => s.replace(/_/g, ' ');
 // the content security policy blocks fetch() of a data URL: decode it by hand
 const dataUrlBlob = async (u: string) => {
@@ -66,7 +70,9 @@ export function Checklist({ j, back = '/staff/field', backLabel = 'Back to my jo
     const server: Report = j.report ? { odometer_km: j.report.odometer_km ?? undefined, fuel_pct: j.report.fuel_pct ?? undefined, keys_count: j.report.keys_count ?? undefined, cleanliness: j.report.cleanliness ?? undefined } : {};
     let local: Report = {};
     try { local = JSON.parse(localStorage.getItem(key) ?? '{}') as Report; } catch { local = {}; }
-    return { ...mergeAnswers<Report>(pre, server), ...local };
+    const merged = { ...mergeAnswers<Report>(pre, server), ...local };
+    if (merged.cleanliness && OLD_CLEAN[merged.cleanliness]) merged.cleanliness = OLD_CLEAN[merged.cleanliness];
+    return merged;
   });
   const [damages, setDamages] = useState<Damage[]>(() => (j.report?.damages ?? []).map((d) => ({ ...d, kind: d.kind ?? 'other', size_cm: d.size_cm ?? null, position: d.position ?? null, is_new: d.is_new ?? true })));
   const [stop, setStop] = useState<string | null>(null);
@@ -129,6 +135,15 @@ export function Checklist({ j, back = '/staff/field', backLabel = 'Back to my jo
   const required = j.shots;
   const shotsDone = required.filter((s) => has(s.seq)).length;
   const closeupsMissing = damages.filter((d) => d.is_new && !damageSeqs(damages).some(([l, s]) => l === d.label && has(s)));
+  // r48 FE (3190): a return that is not clean needs the guided photos and a description before it completes
+  const cleanPhotos = CLEAN_SHOTS.filter((_, i) => has(CLEAN_SEQ0 + i)).length;
+  const cleanNeed = pickup ? null : cleanMissing(r.cleanliness, cleanPhotos, r.clean_description);
+  const cleanVideo = async (file: File | undefined) => {
+    if (!file) return;
+    if (file.size > 40 * 1024 * 1024) { setTip('The video must be under 40 MB: keep it short (15 to 30 seconds).'); return; }
+    try { const k = await uploads.addAndWait({ job: jobId, seq: 950, shot: 'clean_video', mode: 'raw', blob: file, taken_at: new Date().toISOString() }); set({ clean_video_ref: k }); }
+    catch (e) { setTip(e instanceof Error ? e.message : 'The video was not sent.'); }
+  };
   const queueEmpty = q.pending.length === 0;
   const oldMarks: Mark[] = (pickup ? j.baseline_damages : j.pickup?.damages ?? []).map((d) => ({ label: d.label, position: d.position ?? null, old: true }));
   const marks: Mark[] = [...oldMarks, ...damages.map((d) => ({ label: d.label, position: d.position }))];
@@ -227,7 +242,7 @@ export function Checklist({ j, back = '/staff/field', backLabel = 'Back to my jo
         {sourceHint('keys', j.defaults, r.keys_count) && <p className="small muted">{sourceHint('keys', j.defaults, r.keys_count)}</p>}
         {!pickup && <fieldset className="fd-choices"><legend className="label">How is the car?</legend>
           {CLEAN.map(([v, l]) => <label key={v} className="fd-choice"><input type="radio" name="clean" value={v} checked={r.cleanliness === v} onChange={() => set({ cleanliness: v, odour: v === 'heavy' || v === 'smoking' })} /> <span>{l}</span></label>)}
-          {r.cleanliness && r.cleanliness !== 'clean' && <p className="small">Take photos of it in the photo set before any cleaning.</p>}
+          {r.cleanliness && r.cleanliness !== 'clean' && <p className="small" data-testid="clean-next">Before any cleaning: take the evidence photos and describe it under Cleanliness evidence. {CLEAN_FEE[r.cleanliness] ? `${CLEAN_FEE[r.cleanliness]![0]!.toUpperCase()}${CLEAN_FEE[r.cleanliness]!.slice(1)} is drafted for Fleet, then Finance, to review.` : ''}</p>}
         </fieldset>}
         {pickup && (j.booking?.addons?.length ? <p className="small" data-testid="checklist-addons">Add-ons to put in the car: {j.booking.addons.map((a) => `${a.quantity > 1 ? `${a.quantity} x ` : ''}${a.name}`).join(', ')}{j.booking.prepaid_fuel ? '. Prepaid fuel: no fuel charge at the return.' : ''}</p>
           : j.booking?.extras?.length ? <p className="small">Extras ordered: {j.booking.extras.join(', ')}</p> : null)}
@@ -244,6 +259,21 @@ export function Checklist({ j, back = '/staff/field', backLabel = 'Back to my jo
           <Damages j={j} marks={marks} damages={damages} setDamages={setDamages} save={save} has={has} photo={photo} oldLabel={pickup ? 'Recorded before' : 'At pickup'} />
         </div>
       </details>) },
+    { id: 'clean', title: 'Cleanliness evidence', ok: !cleanNeed, need: cleanNeed ?? 'Cleanliness evidence', skip: pickup || !r.cleanliness || r.cleanliness === 'clean', body: (
+      <div className="stack" data-testid="clean-evidence">
+        <p className="small">The car is not clean. Take at least 3 of these photos before any cleaning, then describe it. The fee is not charged without them (it goes to Fleet, then Finance).</p>
+        <ol className="fd-shots">{CLEAN_SHOTS.map((c, i) => (
+          <li key={c.shot} className={`fd-shot${has(CLEAN_SEQ0 + i) ? ' is-ok' : ''}`}>
+            <span className="fd-shot__name">{c.label}</span><span className="small muted">{c.tip}</span>
+            <label className="btn btn--ghost btn--sm fd-cam"><FdIcon name="camera" />{has(CLEAN_SEQ0 + i) ? 'Retake' : 'Take photo'}
+              <input className="vh" type="file" accept="image/*" capture="environment" data-testid={`clean-shot-${c.shot}`} onChange={(e) => { void photo(CLEAN_SEQ0 + i, c.shot, e.target.files?.[0]); e.target.value = ''; }} /></label>
+          </li>))}</ol>
+        <p className="small" data-testid="clean-count">{cleanPhotos} of at least 3 photos taken</p>
+        <label className="field"><span className="label">Describe it: the smell, where, how strong (the renter sees this)</span>
+          <textarea className="input" value={r.clean_description ?? ''} onChange={(e) => set({ clean_description: e.target.value })} data-testid="clean-description" placeholder="Strong cigarette smell in the whole cabin; ash in both cupholders; a burn on the rear seat" /></label>
+        <label className="btn btn--ghost btn--sm fd-cam">{r.clean_video_ref ? 'Video kept: replace it' : 'Add a short video (optional)'}
+          <input className="vh" type="file" accept="video/*" capture="environment" data-testid="clean-video" onChange={(e) => { void cleanVideo(e.target.files?.[0]); e.target.value = ''; }} /></label>
+      </div>) },
     { id: 'tracker', title: 'Tracker', ok: trackerOk, need: 'Tracker', skip: !pickup || later, body: (
       <div className="stack" data-testid="tracker">
         <ul className="fd-checks"><Line ok={j.tracker.reporting}>{j.tracker.reporting ? 'Tracker in place and reporting' : j.tracker.installed ? 'Tracker not reporting' : 'No tracker installed'}</Line></ul>

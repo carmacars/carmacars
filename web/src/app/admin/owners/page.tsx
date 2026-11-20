@@ -1,5 +1,6 @@
 import { parseSort, sortRows } from '@/lib/sort';
 import { SortSelect } from '@/features/admin/SortTable';
+import { DataIssuesCard } from '@/features/data-checks/DataIssuesCard';
 import Link from '@/components/Link';
 import { pageMeta } from '@/features/seo/meta';
 import { day } from '@/features/owner/Blocks';
@@ -43,6 +44,7 @@ export default async function AdminOwners({ searchParams }: { searchParams: Prom
       <PageHead title="Owners" purpose="Every owner with their cars, applications, terms and invoices.">
         <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/owners/add-car" data-testid="add-car-for-owner">Add a car for an owner</Link>
         <Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/owners?view=agreements" data-testid="owners-agreements">Agreements</Link></PageHead>
+      <DataIssuesCard userId={user.id} audience="owner" refresh="/admin/owners" />
       <ListFilters id="admin-owners" base="/admin/owners" sp={sp} search={{ placeholder: 'Name, email or car' }}
         chips={{ name: 'status', label: 'Needs', options: [['', `All (${every.length})`], ['terms', 'Terms to approve'], ['invoices', 'Invoices open'], ['no_account', 'Not invited yet']] }} />
       <div className="ad-sortbar"><SortSelect options={['newest', 'oldest', 'az']} def="newest" /></div>

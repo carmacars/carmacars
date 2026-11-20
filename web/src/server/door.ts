@@ -8,7 +8,7 @@ import { friendlyDbError } from '@/lib/db/friendly';
 import type { Json } from '@/lib/db/types';
 import { currentUser } from '@/server/portal/data';
 import { viewAs, ViewAsReadOnly } from '@/server/view-as';
-import { ACADEMY_OPEN, AGREEMENT_OPEN, ONBOARDING_OPEN } from '@/features/academy/gate';
+import { ACADEMY_OPEN, ONBOARDING_OPEN, SIGN_FIRST_OPEN } from '@/features/academy/gate';
 
 // The one door for staff and investors (migration 0031): every call carries the signed-in user and the
 // assurance level of their session (aal2 after the second factor). The database makes them the acting
@@ -88,9 +88,9 @@ export async function requireStaff(kind: 'va' | 'field', next: string): Promise<
   // the academy gate (0207; on since 0731): until their paths are passed (or an Admin waived it, 0802), the academy, the
   // guide, the profile and Welcome (their onboarding checklist) only; a held person lands on Welcome
   if (roles.inactive_locked) redirect('/sign-in?locked=inactivity');
-  if (roles.academy_locked && !ACADEMY_OPEN.test(next)) redirect('/staff/welcome');
-  // 1060: then the staff agreement (the order: academy, agreement, access)
-  if (roles.agreement_locked && !AGREEMENT_OPEN.test(next)) redirect('/staff/welcome');
+  // r48 FE (3198): the staff agreement first, then the academy (agreement, academy, WhatsApp, approval)
+  if (roles.agreement_locked) { if (!SIGN_FIRST_OPEN.test(next)) redirect('/staff/welcome'); }
+  else if (roles.academy_locked && !ACADEMY_OPEN.test(next)) redirect('/staff/welcome');
   // 1151: then the WhatsApp groups; nothing else opens until all three are done (the database holds the same line)
   if (roles.onboarding_locked && !ONBOARDING_OPEN.test(next)) redirect('/staff/welcome');
   return { user, roles };

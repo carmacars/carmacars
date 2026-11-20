@@ -50,7 +50,9 @@ export async function BookingsTab({ user, home, vehicle, history }: OwnerCtx & {
   const soon = upcoming(list, new Date(), 6);
   const now = new Date();
   const [y, m] = ymd(now).split('-').map(Number) as [number, number];
-  const bookable = home.vehicles.filter((v) => ['available', 'ready_to_list', 'cleaning', 'exit_notice'].includes(v.status)).map((v) => ({ id: v.vehicle_id, name: v.name }));
+  // r48 FE (3195): every car still in the program, onboarding too (Karan's Sonata); the database says why one cannot be booked
+  // on those dates (out of service, a renter's confirmed booking)
+  const bookable = home.vehicles.filter((v) => !['exited', 'total_loss', 'declined'].includes(v.status)).map((v) => ({ id: v.vehicle_id, name: v.name }));
   return (
     <>
       {bookable.length > 0 && <p className="ph__phone-only"><a className="btn btn--ghost btn--sm" href="#book-own">Book my own car</a></p>}

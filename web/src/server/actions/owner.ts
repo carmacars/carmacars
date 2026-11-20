@@ -1,4 +1,5 @@
 'use server';
+import type { Json } from '@/lib/db/types';
 import { revalidatePath } from 'next/cache';
 import { DbError, rpc } from '@/lib/db/repo';
 import { fakeOnly, payments } from '@/integrations/payments';
@@ -190,7 +191,10 @@ export async function withdrawExitNotice(exitId: string): Promise<R> {
   } catch (e) { return fail(dbMessage(e)); }
 }
 
-export async function bookOwnCar(vehicleId: string, pickup: string, ret: string, note: string): Promise<R<{ bookingNumber: string }>> {
+/** r48 FE (3195): Who's driving? Me, or someone else (a family member or friend: the booking's main driver, with their own
+ *  licence and signing link). The owner stays responsible (ack). */
+export interface OwnDriver { full_name: string; email: string; mobile: string; date_of_birth: string }
+export async function bookOwnCar(vehicleId: string, pickup: string, ret: string, note: string, who: 'self' | 'other' = 'self', driver?: OwnDriver, ack = false): Promise<R<{ bookingNumber: string }>> {
   const a = new Date(pickup), b = new Date(ret);
   if (isNaN(a.getTime()) || isNaN(b.getTime())) return invalid({ pickup: 'Choose the pickup and return.' });
   if (b <= a) return invalid({ ret: 'The return must be after the pickup.' });
@@ -198,7 +202,11 @@ export async function bookOwnCar(vehicleId: string, pickup: string, ret: string,
   try {
     const { user, home } = await owner();
     if (!home.vehicles.some((v) => v.vehicle_id === vehicleId)) return fail('Vehicle not found');
-    const id = (await rpc('owner_book_own_vehicle', { p_by: user.id, p_vehicle: vehicleId, p_pickup: a.toISOString(), p_return: b.toISOString(), p_note: note.trim().slice(0, 500) || undefined }, SR)) as unknown as string;
+    if (!ack) return invalid({ ack: 'Confirm you are responsible for this booking.' });
+    if (who === 'other' && (!driver?.full_name.trim() || !driver.email.trim() || !driver.mobile.trim() || !driver.date_of_birth)) return invalid({ driver: 'Add the driver\'s name, email, phone and date of birth.' });
+    const r = (await rpc('owner_book_for', { p_by: user.id, p: { vehicle: vehicleId, pickup: a.toISOString(), return: b.toISOString(), note: note.trim().slice(0, 500), for: who, ack: true,
+      ...(who === 'other' && driver ? { driver: { full_name: driver.full_name.trim(), email: driver.email.trim(), mobile: driver.mobile.trim(), date_of_birth: driver.date_of_birth } } : {}) } as unknown as Json }, SR)) as unknown as { booking_id: string };
+    const id = r.booking_id;
     // the Owner Booking is the owner's own booking as a renter: it is followed in /account like any other
     const rows = ((await rpc('my_bookings', {}, { role: 'authenticated', userId: user.id })) ?? []) as unknown as Array<{ id: string; booking_number: string }>;
     revalidatePath('/owner/vehicles');

@@ -1,6 +1,7 @@
 import Link from '@/components/Link';
 import { door } from '@/server/door';
 import { OnboardingPipeline } from '@/features/staff-onboarding/Pipeline';
+import { FunnelCard, type Funnel } from '@/features/staff-onboarding/FunnelCard';
 import type { ApprovalRow, OnboardingRow } from '@/features/staff-onboarding/model';
 import type { StaffAgreementRow } from '@/features/manual/StaffAgreements';
 import { ListFilters } from '@/features/list-filters/ListFilters';
@@ -61,7 +62,10 @@ export default async function Hiring({ searchParams }: { searchParams: Promise<R
       door<OnboardingRow[]>(user.id, 'ops_read', 'staff_onboarding_list', {}).catch(() => [] as OnboardingRow[]),
       door<ApprovalRow[]>(user.id, 'ops_read', 'staff_onboarding_approvals', {}).catch(() => [] as ApprovalRow[]),
       door<StaffAgreementRow[]>(user.id, 'ops_read', 'staff_agreements', {}).catch(() => [] as StaffAgreementRow[])]);
+    // r48 FE (3191): the WhatsApp links, the Sales academy counts, the re-send
+    const funnel = await door<Funnel>(user.id, 'admin_read', 'hiring_funnel', {}).catch(() => null);
     return (<>{head}{noDay}{tabs}
+      <FunnelCard f={funnel} />
       <OnboardingPipeline admin refresh={[base + '?tab=stages', '/admin/settings/staff']} apps={data.applications} staff={staff} approvals={approvals} agreements={agreements} />
       <p className="small muted">Staff agreements for everyone, the limits and the functions are on <Link prefetch={false} className="link" href="/admin/settings/staff">Staff and roles</Link>.</p></>);
   }
