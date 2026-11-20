@@ -60,7 +60,7 @@ const catalogue = [
 ].join('\n');
 
 // ---------------------------------------------------------------- the academy
-const SECTION = { slug: 'work-chats', title: 'Work chats', blurb: 'All work communication happens in the group work chats, never in private messages.',
+const SECTION = { slug: 'r48-work-chats', title: 'Work chats', blurb: 'All work communication happens in the group work chats, never in private messages.',
   guide_refs: ['va/start-here', 'field/start-here'] };
 const LESSONS = [{ title: 'Work talk goes in the group', scenes: [
   { caption: 'One place for work', say: 'Every work conversation happens in the group work chats: the CarmaCars Team and Sales WhatsApp groups, and the chats in the portal. Never in private messages.',

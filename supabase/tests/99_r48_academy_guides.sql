@@ -18,7 +18,7 @@ select test.eq('quiz integrity: every release 48 section has at least 5 question
   (select count(*) from academy_sections s where s.slug like 'r48-%' and (
      (select count(*) from academy_questions q where q.section_id = s.id) < 5
      or exists (select 1 from academy_questions q where q.section_id = s.id and (jsonb_array_length(q.options) <> 4 or q.answer not between 0 and jsonb_array_length(q.options) - 1 or btrim(q.explain) = '')))), 0::bigint);
-select test.eq('the counts: 15 sections, 85 questions', (select count(*) || '/' || (select count(*) from academy_questions q join academy_sections x on x.id = q.section_id where x.slug like 'r48-%') from academy_sections s where s.slug like 'r48-%'), '15/85');
+select test.eq('the counts: 16 sections, 90 questions (3110: Work chats)', (select count(*) || '/' || (select count(*) from academy_questions q join academy_sections x on x.id = q.section_id where x.slug like 'r48-%') from academy_sections s where s.slug like 'r48-%'), '16/90');
 select test.eq('each renter step shows a page of the renter guide that the section names', (select count(*) from academy_sections s
   where s.slug like 'r48-renter-%' and not exists (select 1 from academy_lessons l, jsonb_array_elements(l.scenes) sc where l.section_id = s.id and sc #>> '{visual,kind}' = 'shot'
     and sc #>> '{visual,guide}' like 'renter/%' and (sc #>> '{visual,guide}') = any (s.guide_refs))), 0::bigint);
