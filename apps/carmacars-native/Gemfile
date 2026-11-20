@@ -1,0 +1,4 @@
+source 'https://rubygems.org'
+
+# The store builds (fastlane/Fastfile, .github/workflows/apps-native.yml). CocoaPods comes with the macOS runner.
+gem 'fastlane', '~> 2.228'

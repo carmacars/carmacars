@@ -1,0 +1,4 @@
+# The CarmaCars app: one id for both stores. The developer is 18122211 Canada Inc. (docs/apps/native-publish.md).
+app_identifier 'ca.carmacars.app'
+package_name 'ca.carmacars.app'
+team_id ENV['APP_APPLE_TEAM_ID'] if ENV['APP_APPLE_TEAM_ID'].to_s != ''

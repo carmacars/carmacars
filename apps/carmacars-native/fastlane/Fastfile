@@ -1,0 +1,100 @@
+# The store builds of the CarmaCars app, run by .github/workflows/apps-native.yml (on demand only) after
+# `expo prebuild` has made the native projects. Nothing here holds a secret: each key arrives in the environment from
+# GitHub's secrets, lives in the runner's temporary folder for the build, and is never printed.
+#
+#   fastlane android build     a signed App Bundle (.aab) with the upload key
+#   fastlane android upload    the bundle to Play Console, Internal testing (needs PLAY_SERVICE_ACCOUNT_JSON)
+#   fastlane android listing   the Play listing's texts and graphics from apps/carmacars/store/android
+#   fastlane ios build         an archive signed with the App Store Connect API key (Xcode makes the certificate)
+#   fastlane ios upload        the archive to TestFlight
+#   fastlane ios listing       the App Store listing's texts from apps/carmacars/store/ios
+#
+# The listing texts and graphics are the ones written for the first app (apps/carmacars/store): one copy, both apps.
+require 'fileutils'
+require 'tmpdir'
+require 'shellwords'
+
+default_platform(:ios)
+skip_docs
+opt_out_usage
+
+ROOT = File.expand_path('..', __dir__)
+STORE = File.expand_path('../carmacars/store', ROOT)
+AAB = File.join(ROOT, 'android/app/build/outputs/bundle/release/app-release.aab')
+need = lambda do |*names|
+  missing = names.select { |n| ENV[n].to_s.empty? }
+  UI.user_error!("Missing: #{missing.join(', ')} (docs/apps/native-publish.md, step 6)") unless missing.empty?
+end
+
+platform :android do
+  desc 'A signed App Bundle for Google Play'
+  lane :build do
+    need.call('ANDROID_KEYSTORE_PATH', 'ANDROID_KEYSTORE_PASSWORD', 'ANDROID_KEY_ALIAS', 'ANDROID_KEY_PASSWORD')
+    gradle(
+      project_dir: File.join(ROOT, 'android'), task: 'bundle', build_type: 'Release', print_command: false,
+      properties: {
+        'android.injected.signing.store.file' => ENV['ANDROID_KEYSTORE_PATH'],
+        'android.injected.signing.store.password' => ENV['ANDROID_KEYSTORE_PASSWORD'],
+        'android.injected.signing.key.alias' => ENV['ANDROID_KEY_ALIAS'],
+        'android.injected.signing.key.password' => ENV['ANDROID_KEY_PASSWORD']
+      }
+    )
+    UI.user_error!("No bundle at #{AAB}") unless File.exist?(AAB)
+  end
+
+  desc 'The bundle to Internal testing (Google wants the very first upload by hand in Play Console)'
+  lane :upload do
+    need.call('PLAY_SERVICE_ACCOUNT_JSON')
+    upload_to_play_store(json_key_data: ENV['PLAY_SERVICE_ACCOUNT_JSON'], aab: AAB, track: 'internal', release_status: 'completed',
+                         skip_upload_metadata: true, skip_upload_images: true, skip_upload_screenshots: true, skip_upload_changelogs: true)
+  end
+
+  desc 'The Play listing: title, descriptions, the icon and the feature graphic'
+  lane :listing do
+    need.call('PLAY_SERVICE_ACCOUNT_JSON')
+    Dir.mktmpdir do |dir|
+      meta = File.join(dir, 'en-CA')
+      FileUtils.mkdir_p(File.join(meta, 'images'))
+      FileUtils.cp_r(Dir[File.join(STORE, 'android/en-CA/*')], meta)
+      FileUtils.cp(File.join(STORE, 'android/play-icon-512.png'), File.join(meta, 'images/icon.png'))
+      FileUtils.cp(File.join(STORE, 'android/feature-graphic.png'), File.join(meta, 'images/featureGraphic.png'))
+      upload_to_play_store(json_key_data: ENV['PLAY_SERVICE_ACCOUNT_JSON'], metadata_path: dir, skip_upload_aab: true, skip_upload_apk: true, skip_upload_screenshots: true, skip_upload_changelogs: true)
+    end
+  end
+end
+
+platform :ios do
+  key = lambda do
+    need.call('ASC_KEY_ID', 'ASC_ISSUER_ID', 'ASC_KEY_P8', 'APP_APPLE_TEAM_ID')
+    app_store_connect_api_key(key_id: ENV['ASC_KEY_ID'], issuer_id: ENV['ASC_ISSUER_ID'], key_content: ENV['ASC_KEY_P8'], in_house: false)
+  end
+
+  desc 'An archive for the App Store, signed by Xcode with the App Store Connect API key'
+  lane :build do
+    key.call
+    need.call('ASC_KEY_PATH')
+    auth = "-allowProvisioningUpdates -authenticationKeyPath #{ENV['ASC_KEY_PATH'].shellescape} -authenticationKeyID #{ENV['ASC_KEY_ID']} -authenticationKeyIssuerID #{ENV['ASC_ISSUER_ID']}"
+    workspace = Dir[File.join(ROOT, 'ios/*.xcworkspace')].first
+    UI.user_error!('Run `npx expo prebuild --platform ios` first') unless workspace
+    build_app(
+      workspace: workspace, scheme: File.basename(workspace, '.xcworkspace'), configuration: 'Release', export_method: 'app-store',
+      output_directory: File.join(ROOT, 'build'), output_name: 'CarmaCars.ipa', clean: true, silent: true, suppress_xcode_output: true,
+      xcargs: "#{auth} DEVELOPMENT_TEAM=#{ENV['APP_APPLE_TEAM_ID']} CODE_SIGN_STYLE=Automatic",
+      export_xcargs: auth,
+      export_options: { method: 'app-store-connect', teamID: ENV['APP_APPLE_TEAM_ID'], signingStyle: 'automatic', manageAppVersionAndBuildNumber: false, uploadSymbols: true }
+    )
+  end
+
+  desc 'The archive to TestFlight (it appears there after about 15 minutes of processing)'
+  lane :upload do
+    key.call
+    upload_to_testflight(ipa: File.join(ROOT, 'build/CarmaCars.ipa'), skip_waiting_for_build_processing: true)
+  end
+
+  desc 'The App Store listing: name, subtitle, description, keywords and addresses'
+  lane :listing do
+    key.call
+    upload_to_app_store(metadata_path: File.join(STORE, 'ios'), skip_binary_upload: true, skip_screenshots: true, force: true, submit_for_review: false,
+                        precheck_include_in_app_purchases: false, run_precheck_before_submit: false)
+  end
+end
