@@ -1,0 +1,22 @@
+[
+  ["Mercedes", "CLA 250", null, "Mercedes-Benz", "CLA-Class", "CLA250"],
+  ["Mercedes-Benz", "CLA-Class", "CLA250-4M", "Mercedes-Benz", "CLA-Class", "CLA250 4MATIC"],
+  ["mercedes benz", "CLA250 4MATIC", null, "Mercedes-Benz", "CLA-Class", "CLA250 4MATIC"],
+  ["Mercedes-Benz", "AMG GT", "AMG GT C", "Mercedes-Benz", "AMG GT", "GT C"],
+  ["Mercedes-Benz", "C-Class", "C300-4M", "Mercedes-Benz", "C-Class", "C300 4MATIC"],
+  ["Mercedes-Benz", "GLS", "Maybach GLS600", "Mercedes-Benz", "GLS", "Maybach GLS600"],
+  ["BMW", "330i", null, "BMW", "3 Series", "330i"],
+  ["BMW", "3 Series 330i", "xDrive", "BMW", "3 Series", "330i xDrive"],
+  ["BMW", "2 Series", "228i xDrive GC", "BMW", "2 Series", "228i xDrive Gran Coupe"],
+  ["GMC", "Yukon XL", "Sle", "GMC", "Yukon XL", "SLE"],
+  ["Land Rover", "Range Rover Sport V6", null, "Land Rover", "Range Rover Sport", "V6"],
+  ["Cadillac", "Escalade ESV", null, "Cadillac", "Escalade", "ESV"],
+  ["Porsche", "911 Turbo S", null, "Porsche", "911", "Turbo S"],
+  ["Chevy", "Corvette Stingray", null, "Chevrolet", "Corvette", "Stingray"],
+  ["VW", "Jetta", "Comfortline Sport", "Volkswagen", "Jetta", "Comfortline Sport"],
+  ["Hyundai", "Sonata N Line", null, "Hyundai", "Sonata", "N Line"],
+  ["Ferrari", "California T", null, "Ferrari", "California", "T"],
+  ["Audi", "A5 Cabriolet", null, "Audi", "A5", "Cabriolet"],
+  ["Rolls Royce", "Ghost", null, "Rolls-Royce", "Ghost", null],
+  ["Acme", "Thing", "x", "Acme", "Thing", "x"]
+]

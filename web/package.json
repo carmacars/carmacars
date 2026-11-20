@@ -29,6 +29,7 @@
     "check:lighthouse": "node tests/lint/lighthouse.mjs",
     "test:unit": "node --test --experimental-strip-types --no-warnings 'src/**/*.test.ts'",
     "gen:agreement": "node scripts/gen-agreement.mjs",
+    "photos:render-backfill": "node scripts/photo-render-backfill.mjs",
     "gen:owner-agreements": "node scripts/gen-owner-agreements.mjs",
     "check:crawl": "node tests/lint/crawl-roles.mjs",
     "check:seo": "node tests/lint/seo-audit.mjs",

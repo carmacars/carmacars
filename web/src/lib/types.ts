@@ -3,7 +3,13 @@
 
 export interface Photo { path: string; variants?: { width: number; path: string; format?: string }[] | null; alt: string; width?: number; height?: number; shot?: string; label?: string; is_cover?: boolean;
   /** A sample photo (migration 0054): the car has no real photo yet; the page says "Sample photo". */
-  sample?: boolean }
+  sample?: boolean;
+  /** r48 AN (3150): an AI render of the photo standard (renders come first in the gallery, the car's real photos after) */
+  generated?: boolean;
+  /** r48 AN (3150): one of the car's own photos (after the renders) */
+  real?: boolean;
+  /** r48 AN (3150): the cover's side cutout (rembg, 3080): the card's car drives off its frame on hover */
+  cutout?: { path: string; width: number | null; height: number | null; facing: 'left' | 'right' } | null }
 
 export interface CarRow {
   vehicle_id: string; slug: string; path: string; canonical_path: string; headline: string | null;

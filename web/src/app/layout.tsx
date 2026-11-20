@@ -4,11 +4,16 @@ import '@/styles/core.css';
 import '@/styles/pages.css';
 import '@/styles/app.css';
 import '@/styles/motion.css';
+import '@/portable/motion/tokens.css';
+import '@/portable/motion/motion.css';
+import '@/styles/motion-kit.css';
 import { inter, interDisplay } from './fonts';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { CookieBanner } from '@/components/CookieBanner';
 import { Effects } from '@/components/Effects';
+import { MotionRuntime } from '@/portable/motion/react';
+import { MOTION_PAUSE_SCRIPT } from '@/portable/motion/runtime';
 import { CHUNK_GUARD_SCRIPT } from '@/lib/chunk-guard';
 import { DOM_GUARD_SCRIPT } from '@/lib/client-error/dom-guard';
 import { ViewAsBanner } from '@/features/access/ViewAsBanner';
@@ -54,6 +59,14 @@ async function rootMetadata(): Promise<Metadata> {
 
 export const viewport: Viewport = { themeColor: '#0A0A0A', width: 'device-width', initialScale: 1 };
 
+// the brand's tab bars, dashboard figures, lists and save statuses for the motion kit
+const MOTION_HOOKS = {
+  tabs: '.ui-tabs, .ad-tabs, .bk-tabs, .vs-tabs, .ph-tabs, .sp-tabs',
+  counters: '.pu-stat__value, .ow-amount, .pt-total, .fd-big',
+  lists: '.ad-table tbody, .todo, .fleet-grid, .pu-list, .ad-list',
+  statuses: '.pa__saved, .ok'
+};
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // settings and the cookie wording only: the frame runs on every page (docs/audit/2026-10-13-launch-audit.md section 9)
   const [s, w, links, hubs, roles, apps] = await Promise.all([getSettings(), cookieWording(), getSeoLinks().catch(() => []), getHubLinks(), openRoles(), appLinks()]);
@@ -63,6 +76,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head><script id="chunk-guard" dangerouslySetInnerHTML={{ __html: CHUNK_GUARD_SCRIPT }} />
         {/* r47: a page the browser translated never crashes on React's next change (src/lib/client-error/dom-guard.ts) */}
         <script id="dom-guard" dangerouslySetInnerHTML={{ __html: DOM_GUARD_SCRIPT }} />
+        {/* r48 AN: the pause control's remembered choice (WCAG 2.2.2) before the first paint (src/portable/motion) */}
+        <script id="motion-pause" dangerouslySetInnerHTML={{ __html: MOTION_PAUSE_SCRIPT }} />
         {/* r27b: the phone and email the error page shows (src/lib/client-error/ErrorPanel.tsx), from Site settings */}
         <meta name="cc-contact" content={JSON.stringify({ phone: s.phone_display || s.phone, email: s.public_email })} /></head>
       <body>
@@ -76,6 +91,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {/* the business on every page (settings only), so every #business reference resolves (2026-10-23-ai-search) */}
         <JsonLd graph={[websiteLd(s, siteUrl()), businessLd(s, siteUrl(), { lite: true })]} />
         <Effects />
+        {/* r48 AN: the micro-interactions of every page and portal (src/portable/motion; CarmaCars' hooks below) */}
+        <MotionRuntime hooks={MOTION_HOOKS} />
         <SiteAssist />
         <AppShellMount />
         <ClientErrorListener />

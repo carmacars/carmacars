@@ -141,7 +141,9 @@ export interface WorkerDeps {
   showroomNoKey?: boolean;
   /** r36b (2200): a view of the car from an angle never photographed, made by the image model from the car's other photos,
    *  behind the same gate and free daily limit as the showroom; none: the view waits for the image model. */
-  angleAi?: ((i: { images: Array<{ bytes: Uint8Array; contentType: string }>; prompt: string; photoId: string }) => Promise<ShowroomOut>) | null;
+  angleAi?: ((i: { images: Array<{ bytes: Uint8Array; contentType: string; ref?: boolean; sensitive?: boolean }>; prompt: string; photoId: string;
+    /** r48 AN: the render chain's hints (integrations/renders/chain.ts): a restyle of a same-angle photo, the tries made */
+    sameAngle?: boolean; tries?: number }) => Promise<ShowroomOut>) | null;
   /** r45 (2840): the second Gemini pass on a made photo (r45.ts checkPrompt): the JSON answer and the model; null when it may
    *  not be asked or did not answer (the photo is then not published). With angleAi, every listing photo is made by r45. */
   checkPhoto?: ((i: { images: Array<{ bytes: Uint8Array; contentType: string }>; system: string; prompt: string; schema: Record<string, unknown>; photoId: string }) => Promise<{ data: unknown; model: string } | null>) | null;
@@ -1106,7 +1108,8 @@ export async function makeR48(d: WorkerDeps, j: JobContext): Promise<R45Made> {
       : r.bucket === 'vehicle-originals' ? await d.files.getPrivate(r.path).catch(() => null) : null;
     const m = await refForModel(raw);
     if (!m || total + m.bytes.length > R48_MAX_BYTES * 0.75) continue;
-    refs.push(m); total += m.bytes.length;
+    // r48 AN: marked for the render chain (a check-in or check-out photo never goes to an outside model)
+    refs.push(Object.assign(m, { ref: true, sensitive: r.from === 'handover' })); total += m.bytes.length;
     if (r.from === 'handover') handover++;
     if (!sameAngle && r.shot === shot) sameAngle = m;
   }
@@ -1129,7 +1132,8 @@ export async function makeR48(d: WorkerDeps, j: JobContext): Promise<R45Made> {
     if (made) { plate = made.img; total += made.img.bytes.length; plateMade = { family: inp.family, scene: scene?.code ?? null, path: made.path, model: made.model, check: made.check }; }
   }
   const prompt = r48Prompt({ car, shot, refs: stockOnly ? 0 : refs.length, guide: !!guide, stock: !!stock, plate: !!plate, feedback: inp.feedback ?? null, scene, name, stockOnly, plateEnd });
-  const made = await d.angleAi({ images: [...refs, ...(guide ? [guide] : []), ...(stock ? [stock] : []), ...(plate ? [plate] : [])], prompt, photoId: p.id })
+  const made = await d.angleAi({ images: [...refs, ...(guide ? [guide] : []), ...(stock ? [stock] : []), ...(plate ? [plate] : [])], prompt, photoId: p.id,
+    sameAngle: !stockOnly && !!sameAngle && refs[0] === sameAngle, tries: inp.tries ?? 0 })
     .catch((e: unknown): ShowroomOut => ({ ok: false, reason: 'error', message: e instanceof Error ? e.message : String(e) }));
   if (!made.ok) {
     const wait = ['limit', 'quota', 'off'].includes(made.reason) ? made.reason : RETRY_LATER.includes(made.reason) ? 'retry' : null;

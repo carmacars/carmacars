@@ -2,6 +2,7 @@ import Link from '@/components/Link';
 import type { SiteSettings } from '@/lib/types';
 import { Wordmark } from './Wordmark';
 import { CookiePrefsButton } from './CookieBanner';
+import { MotionPauseToggle } from '@/portable/motion/react';
 import { napAddress } from '@/features/seo/business';
 import { PortalSwitchFooter } from './HeaderClient';
 import type { HubLinks } from '@/features/seo/data';
@@ -28,6 +29,7 @@ export function Footer({ s, reply, links = [], hubs, careers = false, apps }: { 
         <Link prefetch={false} href="/terms">Terms of use</Link>
         <Link prefetch={false} href="/privacy">Privacy policy</Link>
         <CookiePrefsButton />
+        <MotionPauseToggle className="motion-pause" />
       </div>
     </footer>
   );
@@ -68,6 +70,7 @@ export function Footer({ s, reply, links = [], hubs, careers = false, apps }: { 
             <li><Link prefetch={false} href="/terms">Terms of use</Link></li><li><Link prefetch={false} href="/privacy">Privacy policy</Link></li>
             <li><Link prefetch={false} href="/cancellation-policy">Cancellation policy</Link></li>
             <li><CookiePrefsButton /></li>
+            <li><MotionPauseToggle className="motion-pause" /></li>
           </ul></nav>
         </div>
         {/* Browse (owner, October 22, 2026): the one quiet way into the place and service pages; they link on among themselves */}

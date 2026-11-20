@@ -148,6 +148,8 @@ function copyPhotos() {
   fs.mkdirSync(path.join(dest, 'vehicles'), { recursive: true });
   for (const f of fs.readdirSync(path.join(PROTO, 'assets/photos'))) {
     const isCar = Object.keys(photos.cars).some((slug) => f.startsWith(slug + '-'));
+    // a folder (the plates of 3080) is copied whole
+    if (fs.statSync(path.join(PROTO, 'assets/photos', f)).isDirectory()) { fs.cpSync(path.join(PROTO, 'assets/photos', f), path.join(dest, 'site', f), { recursive: true }); continue; }
     fs.copyFileSync(path.join(PROTO, 'assets/photos', f), path.join(dest, isCar ? 'vehicles' : 'site', f));
   }
 }
