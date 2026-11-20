@@ -54,7 +54,7 @@ const catalogue = [
   '  trigger_text = excluded.trigger_text, replaces_template = excluded.replaces_template, link_path = excluded.link_path,',
   '  variables = excluded.variables, template_html = excluded.template_html, template_text = excluded.template_text,',
   '  in_catalogue = true, updated_at = now();',
-  "update notification_catalogue set emitted_by = 'app.text_fall_back (3110)' where code = 'text_fell_back';",
+  "update notification_catalogue set emitted_by = 'app.text_fall_back (3110)', no_text = true where code = 'text_fell_back';",
   "update notification_catalogue set emitted_by = 'app.staff_suspension_mail (3110)' where code in ('staff_access_suspended', 'staff_access_restored');",
   'select app.notification_catalogue_refresh();'
 ].join('\n');
@@ -76,7 +76,13 @@ const QUESTIONS = [
   { prompt: 'Where does work communication happen?', options: ['In private messages to the person', 'In the group work chats', 'By personal email', 'Wherever is fastest'], answer: 1,
     explain: 'All work communication happens in the group work chats, never in private messages.' },
   { prompt: 'A colleague messages you privately about a handover. What do you do?', options: ['Answer privately', 'Ignore it', 'Answer in the group work chat', 'Call them on your own phone'], answer: 2,
-    explain: 'Answer in the group so the whole team sees it.' }
+    explain: 'Answer in the group so the whole team sees it.' },
+  { prompt: 'Why does work talk go in the group?', options: ['It is faster to type', 'The whole team sees it and nothing is lost when someone is away', 'Admins like long chats', 'Private messages cost money'], answer: 1,
+    explain: 'In the group everyone sees the question, the answer and the details, so nobody waits for one person.' },
+  { prompt: 'A renter\'s booking details need to reach a colleague. Where do you share them?', options: ['In a private message', 'In the group work chat or the booking in the portal', 'By text from your own phone', 'Nowhere'], answer: 1,
+    explain: 'Customer details go in the group work chats or the portal, never in private messages.' },
+  { prompt: 'Which chats count as work chats?', options: ['Any chat app', 'The CarmaCars Team and Sales WhatsApp groups and the chats in the portal', 'Private messages with your lead', 'Your personal email'], answer: 1,
+    explain: 'The group work chats: the Team and Sales WhatsApp groups, and the chats in the portal.' }
 ];
 const PATHS = ['cs', 'fleet', 'finance', 'sales_in_person', 'sales_remote', 'field', 'admin'];
 const sec = `(select id from academy_sections where slug = ${q(SECTION.slug)})`;

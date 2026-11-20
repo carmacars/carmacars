@@ -79,6 +79,8 @@ insert into phone_provider_state default values on conflict do nothing;
 alter table phone_provider_state enable row level security;
 revoke all on phone_provider_state from anon, authenticated;
 grant all on phone_provider_state to service_role;
+create policy admin_all on phone_provider_state for all to authenticated using (app.is_admin()) with check (app.is_admin());
+create trigger audit_phone_provider_state after insert or update or delete on phone_provider_state for each row execute function app.audit_row();
 comment on table phone_provider_state is 'Texts (3110): Quo refused for its account (credits): texts pause and fall back to email until one goes again.';
 
 -- an error that is the account's, not the text's (Quo 402, prepaid credits, a suspended or unpaid account)
@@ -121,7 +123,7 @@ declare
   v_reason text;
 begin
   select * into o from phone_outbox where id = p_id for update;
-  if o.id is null or o.status in ('sent', 'skipped') then return null; end if;
+  if o.id is null or o.status in ('sent', 'skipped') or coalesce(o.status_reason, '') like 'not sent:%' then return null; end if;
   if o.kind = 'opt_confirm' then
     update phone_outbox set status = 'skipped', locked_at = null, status_reason = left('not sent: ' || coalesce(p_why, 'refused'), 300) where id = o.id;
     return 'skipped';
@@ -147,7 +149,8 @@ begin
       v_reason := 'not sent: fell back to email';
     end if;
   end if;
-  update phone_outbox set status = 'skipped', locked_at = null,
+  -- a text Quo refused stays failed (with the reason); one that was waiting is skipped
+  update phone_outbox set status = case when o.status = 'failed' then 'failed' else 'skipped' end, locked_at = null,
          status_reason = left(v_reason || ' (' || coalesce(nullif(btrim(p_why), ''), 'refused') || ')', 300)
    where id = o.id;
   return v_reason;
@@ -306,6 +309,8 @@ create index if not exists push_lost_endpoint_idx on push_lost (endpoint, at des
 alter table push_lost enable row level security;
 revoke all on push_lost from anon, authenticated;
 grant all on push_lost to service_role;
+create policy admin_all on push_lost for all to authenticated using (app.is_admin()) with check (app.is_admin());
+create trigger audit_push_lost after insert or update or delete on push_lost for each row execute function app.audit_row('redact');
 comment on table push_lost is 'Phone alerts (3110): every device that stopped getting alerts and why (turned_off: the person; expired, refused, another_person, too_many: not them). The portal tells the person; the browser subscribes again by itself unless they turned it off.';
 
 create function app.push_lost_log() returns trigger
@@ -400,8 +405,8 @@ create unique index if not exists staff_restore_requests_open on staff_restore_r
 alter table staff_restore_requests enable row level security;
 revoke all on staff_restore_requests from anon, authenticated;
 grant all on staff_restore_requests to service_role;
-create policy admin_read on staff_restore_requests for select to authenticated using (app.is_admin());
-grant select on staff_restore_requests to authenticated;
+create policy admin_all on staff_restore_requests for all to authenticated using (app.is_admin()) with check (app.is_admin());
+create trigger audit_staff_restore_requests after insert or update or delete on staff_restore_requests for each row execute function app.audit_row();
 comment on table staff_restore_requests is 'A suspended staff member asking for access back (3110). Unlock on Staff restores them and closes the request.';
 
 -- why this staff notice must not reach this person (null: it may)
@@ -639,6 +644,9 @@ insert into academy_sections (slug, title, blurb, guide_refs) values ('r48-work-
 insert into academy_lessons (section_id, sort, title, scenes) values ((select id from academy_sections where slug = 'r48-work-chats'), 1, 'Work talk goes in the group', '[{"caption":"One place for work","say":"Every work conversation happens in the group work chats: the CarmaCars Team and Sales WhatsApp groups, and the chats in the portal. Never in private messages.","visual":{"kind":"title","heading":"Work chats only","text":"Groups, never private messages"}},{"caption":"Why","say":"In the group the whole team sees the question, the answer and the customer details. When someone is off, nothing is lost and nobody waits for one person.","visual":{"kind":"list","heading":"In the group","items":["Questions and answers","Handovers and problems","Customer details and bookings","Shift changes"]}},{"caption":"A private message about work","say":"If a colleague or an Admin writes to you privately about work, answer in the group so everyone sees it.","visual":{"kind":"chat","lines":[{"who":"colleague","text":"(private) Can you cover the 3 pm handover?"},{"who":"you","text":"Answering in the Team group so everyone sees it: yes, I can take the 3 pm handover."}]}},{"caption":"The rule","say":"Work communication in the group work chats, every time.","visual":{"kind":"rule","heading":"Group work chats only","text":"Never private messages for work.","tone":"warn"}}]'::jsonb) on conflict (section_id, sort) do update set title = excluded.title, scenes = excluded.scenes, updated_at = now();
 insert into academy_questions (section_id, sort, prompt, options, answer, explain) values ((select id from academy_sections where slug = 'r48-work-chats'), 1, 'Where does work communication happen?', '["In private messages to the person","In the group work chats","By personal email","Wherever is fastest"]'::jsonb, 1, 'All work communication happens in the group work chats, never in private messages.') on conflict (section_id, sort) do update set prompt = excluded.prompt, options = excluded.options, answer = excluded.answer, explain = excluded.explain, updated_at = now();
 insert into academy_questions (section_id, sort, prompt, options, answer, explain) values ((select id from academy_sections where slug = 'r48-work-chats'), 2, 'A colleague messages you privately about a handover. What do you do?', '["Answer privately","Ignore it","Answer in the group work chat","Call them on your own phone"]'::jsonb, 2, 'Answer in the group so the whole team sees it.') on conflict (section_id, sort) do update set prompt = excluded.prompt, options = excluded.options, answer = excluded.answer, explain = excluded.explain, updated_at = now();
+insert into academy_questions (section_id, sort, prompt, options, answer, explain) values ((select id from academy_sections where slug = 'r48-work-chats'), 3, 'Why does work talk go in the group?', '["It is faster to type","The whole team sees it and nothing is lost when someone is away","Admins like long chats","Private messages cost money"]'::jsonb, 1, 'In the group everyone sees the question, the answer and the details, so nobody waits for one person.') on conflict (section_id, sort) do update set prompt = excluded.prompt, options = excluded.options, answer = excluded.answer, explain = excluded.explain, updated_at = now();
+insert into academy_questions (section_id, sort, prompt, options, answer, explain) values ((select id from academy_sections where slug = 'r48-work-chats'), 4, 'A renter''s booking details need to reach a colleague. Where do you share them?', '["In a private message","In the group work chat or the booking in the portal","By text from your own phone","Nowhere"]'::jsonb, 1, 'Customer details go in the group work chats or the portal, never in private messages.') on conflict (section_id, sort) do update set prompt = excluded.prompt, options = excluded.options, answer = excluded.answer, explain = excluded.explain, updated_at = now();
+insert into academy_questions (section_id, sort, prompt, options, answer, explain) values ((select id from academy_sections where slug = 'r48-work-chats'), 5, 'Which chats count as work chats?', '["Any chat app","The CarmaCars Team and Sales WhatsApp groups and the chats in the portal","Private messages with your lead","Your personal email"]'::jsonb, 1, 'The group work chats: the Team and Sales WhatsApp groups, and the chats in the portal.') on conflict (section_id, sort) do update set prompt = excluded.prompt, options = excluded.options, answer = excluded.answer, explain = excluded.explain, updated_at = now();
 insert into academy_path_sections (path_code, section_id, sort) select 'cs', (select id from academy_sections where slug = 'r48-work-chats'), coalesce(max(sort), 0) + 1 from academy_path_sections where path_code = 'cs' on conflict (path_code, section_id) do nothing;
 insert into academy_path_sections (path_code, section_id, sort) select 'fleet', (select id from academy_sections where slug = 'r48-work-chats'), coalesce(max(sort), 0) + 1 from academy_path_sections where path_code = 'fleet' on conflict (path_code, section_id) do nothing;
 insert into academy_path_sections (path_code, section_id, sort) select 'finance', (select id from academy_sections where slug = 'r48-work-chats'), coalesce(max(sort), 0) + 1 from academy_path_sections where path_code = 'finance' on conflict (path_code, section_id) do nothing;
@@ -1228,7 +1236,7 @@ on conflict (code) do update set
   trigger_text = excluded.trigger_text, replaces_template = excluded.replaces_template, link_path = excluded.link_path,
   variables = excluded.variables, template_html = excluded.template_html, template_text = excluded.template_text,
   in_catalogue = true, updated_at = now();
-update notification_catalogue set emitted_by = 'app.text_fall_back (3110)' where code = 'text_fell_back';
+update notification_catalogue set emitted_by = 'app.text_fall_back (3110)', no_text = true where code = 'text_fell_back';
 update notification_catalogue set emitted_by = 'app.staff_suspension_mail (3110)' where code in ('staff_access_suspended', 'staff_access_restored');
 select app.notification_catalogue_refresh();
 -- CATALOGUE 3110 END

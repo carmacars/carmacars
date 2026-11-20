@@ -44,7 +44,7 @@ select test.ok('the inactivity days count from the release at the earliest (grac
 select test.zcm_text('a');
 select test.eq('a due text is claimed', test.zcm_claimed(app.server_phone_due(20)), 'a');
 select app.server_phone_sent(jsonb_build_object('id', test.id('zcm-text:a'), 'ok', false, 'error', 'Quo 402: insufficient prepaid credits', 'permanent', true));
-select test.ok('Quo 402: the text is not sent and says it fell back to email', test.zcm_status('a') like 'skipped|not sent: fell back to email%');
+select test.ok('Quo 402: the text is not sent and says it fell back to email', test.zcm_status('a') like 'failed|not sent: fell back to email%');
 select test.eq('its email is on its way (text_fell_back, to the renter''s address, once)',
   (select count(*) || '|' || max(payload ->> 'signer_email') from app_events where code = 'text_fell_back' and dedupe_key = 'text_fell_back:' || test.id('zcm-text:a')), '1|zcm_rita@example.test');
 select test.ok('texts are paused (Quo refused for its account)', app.quo_paused());
@@ -88,14 +88,14 @@ create temp table zcm_due3 as select app.server_phone_due(20) as r;
 select test.eq('refilled: only the fresh text is claimed', (select test.zcm_claimed(r) from zcm_due3), 'fresh');
 select app.server_phone_sent(jsonb_build_object('id', test.id('zcm-text:fresh'), 'ok', true, 'quo_id', 'zcm-quo-fresh'));
 select test.ok('a text that goes ends the pause', not app.quo_paused());
-select test.eq('refilling the credits sent nothing stale: every older text is skipped, none sent',
-  (select string_agg(status, ',' order by dedupe_key) from phone_outbox where dedupe_key in ('zcm:a', 'zcm:b', 'zcm:c', 'zcm:stale', 'zcm:waiting_long')), 'skipped,skipped,skipped,skipped,skipped');
+select test.eq('refilling the credits sent nothing stale: every older text is failed or skipped, none sent',
+  (select string_agg(status, ',' order by dedupe_key) from phone_outbox where dedupe_key in ('zcm:a', 'zcm:b', 'zcm:c', 'zcm:stale', 'zcm:waiting_long')), 'failed,skipped,skipped,skipped,skipped');
 select test.eq('after the pause, the queue claims as before (one more fresh text)',
   (select test.zcm_claimed(app.server_phone_due(20)) from (select test.zcm_text('after')) x), 'after');
 
 -- a refusal that is not the account's (a bad number): that text falls back, texts do not pause
 select app.server_phone_sent(jsonb_build_object('id', test.id('zcm-text:after'), 'ok', false, 'error', 'Quo 400: invalid number', 'permanent', true));
-select test.ok('any refusal that ends a text: fell back to email, no pause', test.zcm_status('after') like 'skipped|not sent: fell back to email%' and not app.quo_paused());
+select test.ok('any refusal that ends a text: fell back to email, no pause', test.zcm_status('after') like 'failed|not sent: fell back to email%' and not app.quo_paused());
 
 -- ================================================================ 4. phone alerts stay on
 create temp table zcm_ep as select 'https://fcm.googleapis.com/fcm/send/zcm-' || md5('zcm') as ep,
@@ -151,6 +151,13 @@ update users set staff_notices_off = true where id = test.id('zcm_quiet');
 select test.eq('notices off: staff email suppressed', test.zcm_mail('zcm_quiet', 'staff_inactivity_warning', 'q1'), 'suppressed|not sent: staff notifications turned off');
 select test.eq('notices off: not even the suspension email', test.zcm_mail('zcm_quiet', 'staff_access_suspended', 'q2'), 'suppressed|not sent: staff notifications turned off');
 select test.ok('an Admin is never blocked', app.staff_notice_block(test.id('zcm_admin'), 'staff_inactivity_warning') is null);
+
+-- ================================================================ 7. the emails are built
+select app.process_events(100000);
+select test.eq('the fallback, suspension and restored emails are built for the outbox',
+  (select string_agg(distinct code, ',' order by code) from notification_outbox where code in ('text_fell_back', 'staff_access_suspended', 'staff_access_restored')
+     and (to_address like 'zcm%' or recipient_user_id in (test.id('zcm_sam'), test.id('zcm_rita')))),
+  'staff_access_restored,staff_access_suspended,text_fell_back');
 
 -- ================================================================ clean up: the earlier suites' texts back as they were
 update phone_outbox o set send_after = x.send_after from zcm_others x where x.id = o.id;
