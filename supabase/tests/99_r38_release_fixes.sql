@@ -20,7 +20,7 @@ $$ select count(*) from tasks where task_type = 'approve_onboarding' and related
 select pg_temp.dr('r38_admin', 'ops_do', 'staff_whatsapp_mark', jsonb_build_object('user', test.id('r38_hire'), 'joined', true));
 select test.eq('A marked at step 1: the WhatsApp step is done', (pg_temp.st('r38_hire') ->> 'whatsapp')::boolean, true);
 select test.eq('A marked at step 1: the academy and the agreement are unchanged',
-  (pg_temp.st('r38_hire') ->> 'academy') || '/' || (pg_temp.st('r38_hire') ->> 'agreement') || '/' || (pg_temp.st('r38_hire') ->> 'step'), 'false/false/academy');
+  (pg_temp.st('r38_hire') ->> 'academy') || '/' || (pg_temp.st('r38_hire') ->> 'agreement') || '/' || (pg_temp.st('r38_hire') ->> 'step'), 'false/false/agreement');
 select test.eq('A marked at step 1: still held', app.staff_fully_onboarded(test.id('r38_hire')), false);
 select test.eq('A marked at step 1: no approval asked', pg_temp.asked('r38_hire'), 0::bigint);
 select test.ok('A waiting on: the academy and the agreement, not WhatsApp',

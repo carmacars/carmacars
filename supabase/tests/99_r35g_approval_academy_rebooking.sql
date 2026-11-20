@@ -22,7 +22,7 @@ $$ select string_agg(status, ',' order by created_at) from tasks where task_type
 insert into academy_waivers (user_id, waived_by, reason) values (test.id('gap_hire'), test.id('gap_admin'), 'Passed elsewhere');
 update staff_profiles set agreement_waived_at = now(), agreement_waived_by = test.id('gap_admin'), agreement_waived_reason = 'Signed on paper' where user_id = test.id('gap_hire');
 select test.eq('approval: not asked before the WhatsApp groups', pg_temp.task_status('gap_hire'), null);
-select pg_temp.dr('gap_hire', 'ops_do', 'staff_whatsapp_confirm', '{"sales": true, "team": true}');
+select pg_temp.dr('gap_hire', 'ops_do', 'staff_whatsapp_confirm', '{"sales": true, "team": true, "tag_set": true}');
 select test.eq('approval: WhatsApp confirmed: waiting for approval', pg_temp.st('gap_hire'), 'approval');
 select test.eq('approval: not fully onboarded yet', app.staff_fully_onboarded(test.id('gap_hire')), false);
 select test.eq('approval: one open Fleet To do', (select queue || ':' || status || ':' || title from tasks where task_type = 'approve_onboarding' and related_id = test.id('gap_hire')), 'fleet:open:Approve Gap Hire''s onboarding');

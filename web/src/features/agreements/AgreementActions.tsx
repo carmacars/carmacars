@@ -94,6 +94,9 @@ export function AgreementActions({ booking, refresh, waiting, finance, disputes,
           {blindspot && <ToolItem id="blindspot" testId="blindspot-open">Type into the Blind Spot agreement</ToolItem>}
           {regenInMenu && <button className="mm__item" role="menuitem" type="button" disabled={pending} onClick={regenerate} data-testid="agreement-regenerate">Make the agreements again</button>}
           {finance && <button className="mm__item" role="menuitem" type="button" disabled={pending} onClick={() => act(() => disputePackBuild(booking, refresh), 'The evidence pack is being built; it shows here in a minute.')} data-testid="dispute-pack-build">Build the dispute evidence pack</button>}
+          {/* r48 FE (3192): the packs for a dispute without a card */}
+          {finance && ([['etransfer_cash', 'Dispute pack: e-Transfer or cash renter'], ['insurer', 'Pack for insurer billing'], ['small_claims', 'Small claims court bundle']] as const).map(([v, l]) =>
+            <button key={v} className="mm__item" role="menuitem" type="button" disabled={pending} onClick={() => act(() => disputePackBuild(booking, refresh, v), 'The pack is being built; it shows here in a minute.')} data-testid={`dispute-pack-build-${v}`}>{l}</button>)}
         </MoreMenu>}
       </div>
       {disputes.map((d) => <p key={d.id} className="small" data-testid="dispute-pack">Dispute evidence pack: {d.status}{d.built_at ? `, built ${d.built_at.slice(0, 16).replace('T', ' ')}` : ''}{d.submitted_at ? `, submitted ${d.submitted_at.slice(0, 10)}` : ''}.

@@ -193,7 +193,7 @@ export const OPS_TOOLS: Tool[] = [
   list('list_deposit_reviews', 'Deposit reviews', 'Returned trips whose deposit review is not finished (all: true for every one).', { all: { type: 'boolean' } }),
 
   write('upload_booking_photo', 'Upload a booking photo', 'Add a photo to a booking\'s pickup or return condition report, or to a damage on it: image_base64 (JPEG or PNG, under 8 MB).', ['booking', 'stage', 'image_base64'],
-    { ...booking, stage: { type: 'string', enum: ['pickup', 'return', 'damage'] }, shot: str('front, rear, left, interior, ... (pickup or return)'), damage_id: id('The damage (stage damage)'), image_base64: str('The photo, base64') }),
+    { ...booking, stage: { type: 'string', enum: ['pickup', 'return', 'damage'] }, shot: str('front, rear, left, interior, ... (pickup or return); the guided cleanliness evidence of a return: clean_ash, clean_seats, clean_headliner, clean_cupholders, clean_floor, clean_other'), damage_id: id('The damage (stage damage)'), image_base64: str('The photo, base64') }),
   write('resend_agreement', 'Resend an agreement', 'Send the booking\'s agreement signing link again to whoever has not signed.', ['booking'], booking),
   write('update_claim', 'Update a claim', 'Set a claim\'s status, as the claim page does.', ['id', 'status'], { id: id('The claim'), status: str('The new status'), note: str('A note') }),
   write('add_expense', 'Add an expense', 'Add a company expense (Admin > Expenses).', ['category', 'amount_cents', 'description'],
@@ -312,3 +312,18 @@ export const LICENCE_TOOLS: Tool[] = [
     ['booking', 'reason'], { ...booking, reason: str('Why this driver may keep the licence (5 characters or more)') })
 ];
 TOOLS.push(...LICENCE_TOOLS);
+
+// Release 48 FE (3193): the return charges of the rental agreement (10.6 to 10.8, 11.6) and the evidence every fee needs (3190).
+const cost = { type: 'object', properties: { label: str('What it was: Tow, Impound, Storage, Lockout, Tire, ...'), amount_cents: cents('The actual cost, before HST'), document_id: id('The receipt or invoice (a document of the booking)') } };
+export const EVIDENCE_TOOLS: Tool[] = [
+  write('add_return_charge', 'Add a return charge', 'Add a charge of the rental agreement after a rental: non_return ($1,000 by default, not back by the final late notice deadline: 10.6), improper_return ($250: wrong_place, keys_not_returned, unlocked, unsecured or unagreed_drop as reason: 10.7), theft_recovery ($1,500: 10.8), tire or roadside (the actual cost plus the $50 administration fee: 11.6; refused for a mechanical fault that is not the renter\'s). Actual costs go in costs as lines at cost with their receipt. HST is added to the charge; it is company revenue. Every line\'s evidence is checked by itself: what is missing makes it "needs evidence" (a To do says what to capture) and it is not charged until attached or overridden by an Admin. An Admin, Finance or Fleet.',
+    ['booking', 'kind', 'note'], { ...booking, kind: { type: 'string', enum: ['non_return', 'improper_return', 'theft_recovery', 'tire', 'roadside'] }, reason: str('improper_return: wrong_place, keys_not_returned, unlocked, unsecured or unagreed_drop'),
+      note: str('What happened (the renter sees it)'), costs: { type: 'array', items: cost, description: 'The actual costs, each with its receipt' }, mechanical_fault: { type: 'boolean', description: 'tire or roadside: a mechanical fault that is not the renter\'s (then nothing is charged)' },
+      police_report: str('theft_recovery: the police report number') }),
+  read('fee_evidence', 'Fee evidence', 'Each fee line of a booking with its evidence: what the registry requires (blocks the charge) and gathers (for the dispute pack), what was found by itself (the return time, Tracker readings, notices, photos, receipts) and what is missing, with the line_item_id to attach evidence to.', booking, ['booking']),
+  write('attach_fee_evidence', 'Attach fee evidence', 'Attach evidence to a fee line (line: its line_item_id from fee_evidence): kind receipt, invoice, photo, notice, description, note, police_report or damage_closeup, with document_id (a document of the booking), photo_ids or a note. The evidence is checked again; a fee complete after the Check-out statement goes to Finance to bill.',
+    ['line', 'kind'], { line: id('The fee line'), kind: str('receipt, invoice, photo, notice, description, note, police_report or damage_closeup'), document_id: id('A document of the booking'), photo_ids: { type: 'array', items: { type: 'string' } }, note: str('A description or note') }),
+  write('override_fee_evidence', 'Charge without evidence', 'An Admin charges a fee that waits for evidence without it, with the reason (10 characters or more), kept on the line and in the booking history.',
+    ['line', 'reason'], { line: id('The fee line'), reason: str('Why it is charged without its evidence') })
+];
+TOOLS.push(...EVIDENCE_TOOLS);

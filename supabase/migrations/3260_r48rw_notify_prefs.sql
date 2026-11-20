@@ -388,6 +388,10 @@ begin
   end if;
   if new.status not in ('queued', 'delayed') then return new; end if;
   if not f.email then
+    -- a kind that starts off on every channel and that this person left off: no row at all, as before 3260
+    if not f.push and not f.sms and exists (select 1 from notify_types t where t.code = v_type and not t.push_default and not t.email_default and not t.text_default) then
+      return null;
+    end if;
     new.status := 'suppressed';
     new.status_reason := 'not sent: turned off in notification preferences';
   elsif f.cadence <> 'instant' then

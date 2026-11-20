@@ -69,11 +69,11 @@ This agreement is between 18122211 Canada Inc., operating as CarmaCars ("CarmaCa
 
 6.1 With customers you are polite and professional. You do not argue, harass or discriminate, and you contact a customer only about a Job. You refer questions about price, insurance or fault to CarmaCars. You take no cash or payment from a customer, except a cash deposit at a handover when CarmaCars' app offers it. If you take one, you record it in the app at that moment (the amount, and any photo or receipt the app asks for), keep it apart from your own money, and hand it to CarmaCars, as its finance team directs, within 1 business day. The cash belongs to CarmaCars. You never offer a private rental or side service.
 
-6.2 "Confidential Information" means everything not public that you learn through your work. It includes customer and owner names, addresses, identification and licence details, Vehicle locations, pricing, Procedures, and material belonging to CarmaCars' franchisor.
+6.2 "Confidential Information" means everything not public that you learn through your work. It includes customer and owner names, addresses, identification and licence details, Vehicle locations, pricing, Procedures, supplier and insurance terms, CarmaCars' systems, software, data and accounts, its business methods, and material belonging to CarmaCars' franchisor.
 
 6.3 You use Confidential Information only for a Job and disclose it to no one, during and after this agreement. You delete identification photos and customer details from your phone once they are uploaded and keep no copies. You post nothing online about customers or Vehicles. You report a lost phone or any leak to CarmaCars within 24 hours. You sign the franchisor's non-disclosure agreement if asked.
 
-6.4 For 12 months after this agreement ends, you do not solicit any customer or owner you dealt with to rent or list a vehicle elsewhere.
+6.4 While you work for CarmaCars and for 12 months after this agreement ends, you do not solicit any customer or owner you dealt with to rent or list a vehicle elsewhere, and you do not solicit any CarmaCars staff member or contractor to stop working with CarmaCars. This agreement has no non-competition clause: the ESA does not allow one for an employee.
 
 ## 7. Commission
 
@@ -107,7 +107,7 @@ This agreement is between 18122211 Canada Inc., operating as CarmaCars ("CarmaCa
 
 9.3 CarmaCars may stop assigning you driving Jobs at any time for safety or insurance reasons.
 
-9.4 When your employment ends, you return every key, fob and item of equipment at once and delete all Confidential Information. CarmaCars pays all wages you earned to the end date, including commissions earned and vacation pay, within the time the ESA requires. Sections 5, 6 and 10 continue.
+9.4 When your employment ends, you return every key, fob and item of equipment at once and, within 7 days, return or permanently delete every copy of Confidential Information on any device or account you control, and confirm it in writing. CarmaCars pays all wages you earned to the end date, including commissions earned and vacation pay, within the time the ESA requires. Sections 5, 6 and 10 continue.
 
 ## 10. General
 

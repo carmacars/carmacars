@@ -12,14 +12,14 @@ We would love to have you on our team in another way. Your answers suggest you c
 {{other_role_title}}
 {{other_role_summary}}
 
-Apply in one click:
+Yes, put me in Sales:
 {{apply_url}}
 
 {{#if alt_apply_url}}
 Would you rather work remotely? You can also apply for our {{alt_role_title}}: {{alt_apply_url}}
 {{/if}}
 
-Your name, email and phone are already filled in; it takes about five minutes. If it is not for you, there is nothing to do.
+One click is all: we use what you already sent us, with no new form, and your 10-minute video interview opens straight away. If it is not for you, there is nothing to do.
 
 ----------------------------------------
 

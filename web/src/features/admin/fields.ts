@@ -13,6 +13,8 @@ const LABELS: Record<string, string> = {
   staff_perk_top_seller_days: 'Top seller of the month: free days (2 is a weekend)', staff_perk_max_ahead_hours: 'A staff perk rental is picked up within this many hours of booking',
   staff_perk_expiry_months: 'A free day ends after (months)', staff_perk_expiry_notice_days: 'Reminder before a free day ends (days)', staff_perk_count_from: 'Rental days and handovers count from',
   owner_reward_enabled: 'Owner rewards on', owner_reward_fleet_bps: 'Fleet discount while the owner\'s own car is not available', owner_reward_ff_bps: 'Friends and family: off a first rental',
+  owner_use_bill: 'Owner-use bookings: bill their charges to the owner', owner_use_charge_due_days: 'Owner-use charges: days unpaid before the statement takes it', owner_use_reminder_days: 'Owner-use charges: days between reminders', owner_use_settle_minutes: 'Owner-use charges: minutes before a new charge is billed',
+  owner_insurance_late_fee_bps: 'Late Fee on unpaid insurance (basis points: 500 is 5%)', owner_insurance_late_fee_hst: 'Late Fee on unpaid insurance: charge HST on the fee', owner_insurance_late_reminder_days: 'Late Fee on unpaid insurance: reminder days before the due date',
   owner_reward_refer_cents: 'Refer an owner: the credit', owner_reward_refer_live_days: 'Refer an owner: days the new car must be live', owner_reward_merch_months: 'Merch kit: months in the program',
   owner_reward_merch_premium_months: 'Premium merch kit: months in the program', owner_reward_merch_cost_cents: 'Merch kit: what it costs us (posted when it ships)',
   owner_reward_merch_premium_cost_cents: 'Premium merch kit: what it costs us', owner_reward_birthday_cents: 'Birthday rental credit', owner_reward_birthday_valid_days: 'Birthday credit: days to use it',
@@ -28,6 +30,11 @@ const LABELS: Record<string, string> = {
   deposit_toll_window_days: 'Days a deposit is kept after the return before it is released',
   speeding_180_fee_cents: 'Speeding charge, over 180 km/h (before HST)', speeding_220_fee_cents: 'Speeding charge, over 220 km/h (before HST)',
   speeding_300_fee_cents: 'Speeding charge, over 300 km/h (before HST)',
+  // r48 FE (3190, 3191): return charges, evidence for every fee, hiring re-send
+  non_return_fee_cents: 'Non-return charge (before HST, plus recovery costs)', improper_return_fee_cents: 'Improper return charge (before HST, plus actual costs)',
+  theft_recovery_fee_cents: 'Theft recovery charge (before HST, plus actual costs)', roadside_admin_fee_cents: 'Tire and roadside administration fee (before HST, on top of the actual cost)',
+  fee_evidence_gate: 'Every fee needs its evidence before it is charged', clean_evidence_min_photos: 'Return not clean: guided evidence photos needed',
+  hiring_resend_per_run: 'Hiring re-send: referrals and interview links per run (every 15 minutes)',
   offline_deposit_double: 'Deposit by e-Transfer or cash: a multiple of the deposit', offline_deposit_multiplier: 'Deposit by e-Transfer or cash (times the deposit)',
   tips_on: 'Tips: renters may add one, staff record cash and e-Transfer tips', tip_percents_bps: 'Tip suggestions (percent of the total, hundredths: 1000 is 10%)',
   tip_sales_share_bps: 'Tip: the salesperson\'s share (hundredths of a percent; the rest to the handover)',
@@ -307,6 +314,9 @@ const LABELS: Record<string, string> = {
 };
 const HINTS: Record<string, string> = {
   deposit_toll_window_days: '30 by default. Tolls, tickets and damage come in during this time; the release review (Fleet, then Finance) finishes it after. Releasing sooner is an Admin\'s decision with the reason.',
+  non_return_fee_cents: 'Rental agreement 10.6: not back by the final late notice deadline. The daily rate, per-day fees and late fees keep running until recovery. Company revenue, not the owner\'s.',
+  fee_evidence_gate: 'On: a fee whose evidence is missing waits ("needs evidence"), a To do asks Field, Fleet or Finance for exactly what is missing, and the fee is not charged until it is attached or an Admin overrides with the reason.',
+  clean_evidence_min_photos: 'When the car is not clean, completing the return needs this many guided photos (ash, seats, headliner, cupholders, floor) and a written description.',
   speeding_180_fee_cents: 'Rental agreement 10.5: one charge per tracker reading above the limit, billed from the deposit first, with the tracker\'s record. Each limit is its own charge.',
   offline_deposit_double: 'On: a deposit paid by e-Transfer or cash is the deposit times the multiplier below (a debit or prepaid card has its own). The renter sees both amounts before paying; staff see it when they record it.',
   offline_deposit_multiplier: '2 makes a $300 deposit $600 by e-Transfer or cash. An amount set on one booking (Debit deposit) wins.',

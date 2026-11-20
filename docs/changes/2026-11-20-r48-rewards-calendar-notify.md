@@ -1,8 +1,9 @@
-# Staff rewards, owner rewards, the content calendar, notification preferences and owner tracker alerts (Release 48 RW: 3260 to 3265, 3269)
+# Staff rewards, owner rewards, the content calendar, notification preferences, owner tracker alerts, owner-use charges and the Late Fee on unpaid insurance (Release 48 RW: 3260 to 3265, 3269 to 3271)
 
 Migrations `3260_r48rw_notify_prefs.sql`, `3261_r48rw_staff_rewards.sql`, `3262_r48rw_owner_rewards.sql`,
-`3263_r48rw_content_calendar.sql`, `3264_r48rw_owner_tracker_alerts.sql`, `3265_r48rw_doors.sql` and
-`3269_r48rw_guides.sql` (generated blocks: `supabase/seed/3269_gen.mjs`).
+`3263_r48rw_content_calendar.sql`, `3264_r48rw_owner_tracker_alerts.sql`, `3265_r48rw_doors.sql`,
+`3269_r48rw_guides.sql` (generated blocks: `supabase/seed/3269_gen.mjs`), `3270_r48rw_owner_use_charges.sql` and
+`3271_r48rw_insurance_late_fee.sql`. The branch includes r48-int and r48-fe (merged; owner use is 3195, the evidence rules 3190).
 
 The owner (Nov 20): staff should get something for the work (12:04, 12:06); owners should get rewards, and merch only when
 they press a button (12:54, 12:57); a content calendar staff approve (11:35); owners alerted by the tracker (13:02); and
@@ -85,9 +86,52 @@ everyone chooses their own notifications (13:03).
   renter or the booking.
 - The ingest accepts `event` on a point (`docs/tracker-ingest.md`).
 
+### Owner-use charges billed to the owner (3270)
+
+- The owner (Nov 20): the charges of an owner-use booking (`owner_book_own_vehicle`, `owner_book_for`, 3195) are billed to
+  the owner by themselves, due at once. Before, nothing was assessed on an Owner Booking and every charge function refused it.
+- **Assessed as on any rental**: `app.assess_check_in`, `damage_charge_add`, `return_charge_add`, `speeding_charge_add` and
+  `booking_fees_change` accept an Owner Booking (Program setting `owner_use_bill`, on). The lines are booking lines, so
+  the evidence rules of 3190 apply unchanged: a line that needs evidence waits. Damage (at cost and the deductible) is
+  capped at the deductible for the booking.
+- **Never a renter statement**: `app.issue_booking_statement` and `app.charge_after_rental` hand an Owner Booking to
+  `app.owner_use_bill`, which puts the ready lines on one owner invoice (kind custom, `owner_use_booking_id`), issued and
+  due the same day. `app.job_owner_use_charges` (every 10 minutes) bills lines `owner_use_settle_minutes` (15) old.
+- **Collection order**: (1) the owner's card on file at once, otherwise the pre-authorized debit started the same day
+  (`owner_debit_attempts.immediate`, claimed whatever the hour; the runner `supabase/functions/owner-debit/run.ts` sends a
+  card charge without a mandate); (2) no method or a failed charge: the invoice is due now, with the pay link and a
+  reminder every `owner_use_reminder_days` (2); a failed owner-use charge has no retry and no Late Fee; (3) unpaid at
+  whichever comes first of `owner_use_charge_due_days` (7) after it was issued and the next statement cut-off
+  (`statement_cutoff_day`, the 7th): `collect_by` payout, and the statement deducts it. `app.build_owner_statement` is
+  wrapped so the cut-off run takes every invoice still unpaid that day.
+- **The owner is told** at each step by `owner_use_charges` (email, in-app notice, phone alert; a locked "charges" kind),
+  with each charge and the evidence it rests on. A failed charge alerts Admins (`staff_owner_debit_exception`).
+- FOR THE OWNER TO CONFIRM: a debit started the same day does not wait for the notice days of the monthly debit
+  (`owner_debit_notice_days`). The PAD agreement owners accepted should allow a sporadic debit without that notice; the
+  updated owner agreement (9.3) says so. The card charge is recorded through the debit attempt, so its payment row may
+  read "pre-authorized debit" in lists.
+
+### The Late Fee on unpaid insurance (3271)
+
+- 5% of the insurance not paid on time (`owner_insurance_late_fee_bps`, 500) replaces the flat `owner_late_fee_cents`
+  ($50) for an invoice with an insurance line. An invoice with no insurance keeps the flat fee.
+- **When**: the debit of the 15th fails (`app.owner_invoice_status_effects` calls `app.owner_late_fee_add`), or the invoice
+  is unpaid the day after its due date (`app.job_owner_insurance_late`, daily). Once per invoice, its own line.
+- **HST**: the Insurance Fee has none (`insurance_fee_hst` false). The Late Fee is a penalty, not insurance, so it carries
+  HST by default (`owner_insurance_late_fee_hst`, on); the check that a late_fee line never has HST is dropped. FOR THE
+  ACCOUNTANT: confirm that a late-payment charge on an exempt supply is taxable; if not, turn the setting off.
+- **Deducted by itself**: a past-due invoice is handed to the statements (`collect_by` payout); after a failed debit the
+  existing retry runs first and an invoice in arrears is deducted as before. On the statement the unpaid amount and the
+  fee are two lines ("Invoice INV-n, paid from statement" and "Late Fee, invoice INV-n").
+- **Notices**: `owner_insurance_late_fee`, a reminder `owner_insurance_late_reminder_days` (3) before the due date and
+  the notice when the fee is added.
+- **Agreement**: 4.4 and Schedule B (`docs/source/v2_enrollment.md`, generated text) and the terms version
+  `owner_agreement owner-v4-r48rw`, accepted in the "We've updated our terms" box, without signing again.
+
 ### Emails
 
-`notify_summary`, `staff_reward_update`, `owner_reward_update`, `owner_tracker_alert`, `owner_tracker_weekly`.
+`notify_summary`, `staff_reward_update`, `owner_reward_update`, `owner_tracker_alert`, `owner_tracker_weekly`,
+`owner_use_charges`, `owner_insurance_late_fee`.
 
 ## Owner steps
 
@@ -95,7 +139,9 @@ everyone chooses their own notifications (13:03).
 2. Admin > People > Team > **Staff rewards**: check who is marked in person in Canada.
 3. Admin > Settings > **Notification preferences** > **Places watched**: add the impound lots, auto shops and ports (used
    once trackers are live).
-4. Connect Meta (Marketing > Ads) for Facebook and Instagram to post by themselves; until then every approved post is a
+4. Ask the accountant whether the Late Fee on unpaid insurance carries HST (it does by default), and confirm the
+   same-day bank debit of owner-use charges with the PAD agreement.
+5. Connect Meta (Marketing > Ads) for Facebook and Instagram to post by themselves; until then every approved post is a
    download and a checklist.
 
 ## Guides
@@ -109,6 +155,8 @@ everyone chooses their own notifications (13:03).
 - `field/report-rentals-referrals-and-profile`
 - `admin/people-and-access`
 - `admin/owners-and-onboarding`
+- `admin/owner-money`
+- `owner/fees-payments-and-payouts`
 - `admin/advertising-and-owner-recruitment`
 - `admin/settings`
 

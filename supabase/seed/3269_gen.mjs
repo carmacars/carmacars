@@ -17,7 +17,7 @@ const q = (v) => (v === null || v === undefined ? 'null' : "'" + String(v).repla
 const arr = (a) => (a && a.length ? 'array[' + a.map(q).join(', ') + ']::text[]' : "'{}'::text[]");
 
 // ---------------------------------------------------------------- the catalogue
-const CODES = ['notify_summary', 'owner_reward_update', 'owner_tracker_alert', 'owner_tracker_weekly', 'staff_reward_update'];
+const CODES = ['notify_summary', 'owner_insurance_late_fee', 'owner_reward_update', 'owner_tracker_alert', 'owner_tracker_weekly', 'owner_use_charges', 'staff_reward_update'];
 const cat = JSON.parse(readFileSync(join(ROOT, 'emails', 'catalogue.json'), 'utf8'));
 const site = /export const SITE = '([^']+)'/.exec(readFileSync(join(ROOT, 'emails', 'src', 'links.mjs'), 'utf8'))[1];
 const globals = cat.global_variables.map((v) => v.name);

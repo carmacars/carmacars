@@ -7,6 +7,8 @@ import { signPortalPackage } from '@/server/actions/signing';
 import { viewAs } from '@/server/view-as';
 import { homeAddressOf } from '@/features/staff/HomeAddress';
 import { safeSummary } from '@/features/person-agreements/model';
+import { DataCheckModal } from '@/features/data-checks/DataCheckModal';
+import { dataChecks } from '@/server/data-checks';
 
 // The signing pages of the investor, VA and Field portals (migrations 0044 and 0049): every document waiting for the
 // person's signature in one package (a generated agreement shows the key values it was filled with, each with a Fix
@@ -32,11 +34,14 @@ export async function SignList({ userId, base, embedded = false }: { userId: str
   const facts = (await Promise.all(r.open.map((x) => rpc('sign_request_facts', { p_by: userId, p_id: x.id }, SR).catch(() => null)))) as unknown as Array<Facts | null>;
   const open = facts.filter((f): f is Facts => !!f && f.status === 'sent');
   const viewing = !!(await viewAs());
+  // r48 FE (3196): nothing to sign because the agreement waits for something the person gives: ask for it right here
+  const needs = !open.length && !viewing && portalOf(base) === 'staff' ? (await dataChecks(userId, 'staff')).filter((i) => i.key === 'staff_agreement') : [];
   const summary = safeSummary(open.flatMap((f) => (f.extra?.summary ?? []).map((row) => ({ ...row, label: open.length > 1 ? `${f.title}: ${row.label}` : row.label }))));
   return (
     <div className="stack-lg">
       <header className="stack">{embedded ? <h2 className="d3">Documents to sign</h2> : <h1 className="d2">Documents to sign</h1>}
-        <p className="muted">{open.length ? `Everything is filled in from your record. Check your details below, then sign ${open.length > 1 ? 'once for all of them' : 'it'} in the Sign box. You do not need to type anything in the details. It takes about a minute.` : 'Nothing is waiting for your signature.'}</p></header>
+        <p className="muted">{open.length ? `Everything is filled in from your record. Check your details below, then sign ${open.length > 1 ? 'once for all of them' : 'it'} in the Sign box. You do not need to type anything in the details. It takes about a minute.` : needs.length ? 'Your agreement is not ready yet: it needs what is below. Save it and the agreement is made and appears here to sign.' : 'Nothing is waiting for your signature.'}</p></header>
+      {needs.length > 0 && <DataCheckModal issues={needs} inline />}
       <SignProgress items={[...r.signed.map((x) => ({ key: x.id, label: x.title, done: true, note: x.method === 'paper' ? 'signed on paper' : null })),
         ...open.map((x) => ({ key: x.id, label: x.title, done: false, here: true }))]} />
       {open.length > 0 && (

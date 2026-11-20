@@ -4,7 +4,7 @@
 
 ## 1. Charges to owners
 
-Amounts come from each vehicle's signed Vehicle Schedule, never from a tier. Upfront, CarmaCars bills only the $100 Install Fee and first and last month's Insurance Fee. Onboarding costs are not billed by CarmaCars: the Owner pays ServiceOntario, the safety inspection, the appraisal and other third parties directly. The estimates (Lease, existing corporation $50; Lease, new Owner Corporation $570; Co-Registrant $250; Transfer $250, or $260 with lien) are for information and may vary.
+Amounts come from each vehicle's signed Vehicle Schedule, never from a tier. Upfront, CarmaCars bills only the $150 Install Fee and first and last month's Insurance Fee. Onboarding costs are not billed by CarmaCars: the Owner pays ServiceOntario, the safety inspection, the appraisal and other third parties directly. The estimates (Lease, existing corporation $50; Lease, new Owner Corporation $570; Co-Registrant $250; Transfer $250, or $260 with lien) are for information and may vary.
 
 | Charge | Amount source | Billed | HST added | Payment method |
 | --- | --- | --- | --- | --- |

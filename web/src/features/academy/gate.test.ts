@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { agreementWaiting, currentStep, gateWords, opensWhileHeld, opensWhileOnboarding, opensWhileUnsigned, profileHref, signHref, stepWords, type GateState, type WelcomeStep } from './gate.ts';
+import { agreementWaiting, opensBeforeSigning, currentStep, gateWords, opensWhileHeld, opensWhileOnboarding, opensWhileUnsigned, profileHref, signHref, stepWords, type GateState, type WelcomeStep } from './gate.ts';
 
 // The academy gate (0802): what a held person still opens, the Welcome steps of a new hire, the Admin's words for the gate,
 // and the content of releases 33 and 34 (supabase/seed/academy/r34.mjs): a quiz per section, on every role that uses it,
@@ -24,7 +24,7 @@ test('Welcome: the step to do now, in order', () => {
   assert.equal(profileHref('field'), '/staff/field/profile');
 });
 
-test('1060: the academy first, then the agreement, then access', () => {
+test('1060, 3198: the agreement first, then the academy, then access', () => {
   for (const p of ['/staff/sign', '/staff/sign/abc', '/staff/field/sign', '/staff/documents/x', '/staff/welcome', '/staff/academy', '/staff/profile']) assert.ok(opensWhileUnsigned(p), p);
   for (const p of ['/staff', '/staff/bookings/CC-1', '/staff/field', '/staff/signals']) assert.ok(!opensWhileUnsigned(p), p);
   // signing is not open while the academy holds the person
@@ -33,7 +33,11 @@ test('1060: the academy first, then the agreement, then access', () => {
   assert.match(stepWords({ key: 'agreement', done: false, state: 'sent', waiting_for_academy: true }), /once the academy is passed/);
   assert.match(stepWords({ key: 'agreement', done: false, state: 'sent' }), /^Ready to sign/);
   assert.match(stepWords({ key: 'team', done: false, open: true, groups: [{ key: 'team', name: 'CarmaCars Team', url: 'https://chat.whatsapp.com/x' }] }), /tick each group you joined/);
-  assert.match(readFileSync(new URL('../../server/door.ts', import.meta.url), 'utf8'), /agreement_locked && !AGREEMENT_OPEN\.test\(next\)\) redirect\('\/staff\/welcome'\)/);
+  // r48 FE (3198): the agreement first: an unsigned person opens the sign pages, Welcome and the profile, not the academy
+  assert.match(readFileSync(new URL('../../server/door.ts', import.meta.url), 'utf8'), /if \(roles\.agreement_locked\) \{ if \(!SIGN_FIRST_OPEN\.test\(next\)\) redirect\('\/staff\/welcome'\); \}/);
+  for (const p of ['/staff/sign', '/staff/field/sign', '/staff/welcome', '/staff/profile', '/staff/documents/x']) assert.ok(opensBeforeSigning(p), p);
+  assert.ok(!opensBeforeSigning('/staff/academy'));
+  assert.match(stepWords({ key: 'academy', done: false, waiting_for_agreement: true }), /once your staff agreement is signed/);
 });
 
 test('the Admin\'s words for the gate', () => {
@@ -62,7 +66,7 @@ test('1151: not fully onboarded (academy, agreement, WhatsApp): the onboarding p
   for (const p of ['/staff', '/staff/sales-leads', '/staff/bookings/CC-1', '/staff/renters', '/staff/tasks', '/staff/money', '/staff/field']) assert.ok(!opensWhileOnboarding(p), p);
   assert.match(readFileSync(new URL('../../server/door.ts', import.meta.url), 'utf8'), /onboarding_locked && !ONBOARDING_OPEN\.test\(next\)\) redirect\('\/staff\/welcome'\)/);
   assert.match(stepWords({ key: 'team', done: false, open: true, groups: [{ key: 'sales', name: 'CARMA Closers', url: '' }, { key: 'team', name: 'CarmaCars Team', url: '' }] }), /CARMA Closers and CarmaCars Team/);
-  assert.match(stepWords({ key: 'team', done: false, open: false }), /^Opens once the academy is passed and the agreement is signed/);
+  assert.match(stepWords({ key: 'team', done: false, open: false }), /^Opens once the agreement is signed and the academy is passed/);
   assert.match(stepWords({ key: 'welcome', done: true }), /then the WhatsApp groups/);
 });
 

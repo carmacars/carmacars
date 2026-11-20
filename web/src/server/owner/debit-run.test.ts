@@ -88,3 +88,19 @@ test('a returned debit records the charge reason when the PaymentIntent error is
   assert.equal(f.error_code, 'bank_cannot_process');
   assert.equal(intentFacts({ id: 'pi_3', status: 'requires_payment_method', last_payment_error: { code: 'insufficient_funds' }, latest_charge: { id: 'py_3', failure_code: 'insufficient_funds' } }).error_code, 'insufficient_funds');
 });
+
+test('r48 (3270): an owner-use charge on the card on file is a card PaymentIntent without a mandate', async () => {
+  const { sql } = db([[{ ...debit('c1'), idempotency_key: 'owner-use:c1', method_kind: 'card', mandate_id: null as unknown as string }]]);
+  const calls: Array<{ init: RequestInit }> = [];
+  const f = (async (_url: string | URL | Request, init?: RequestInit) => {
+    calls.push({ init: init ?? {} });
+    return new Response(JSON.stringify({ id: 'pi_c1', status: 'succeeded', latest_charge: { id: 'ch_1', payment_method_details: { card: { brand: 'visa', last4: '4242' } } } }), { status: 200 });
+  }) as typeof fetch;
+  const r = await runOwnerDebits(sql, 'sk_test_x', { fetch: f });
+  assert.equal(r.submitted, 1);
+  const body = decodeURIComponent(String(calls[0]!.init.body));
+  assert.match(body, /payment_method_types\[\]=card/);
+  assert.doesNotMatch(body, /acss_debit|mandate=/);
+  for (const re of [/off_session=true/, /confirm=true/, /payment_method=pm_1/]) assert.match(body, re);
+  assert.equal((calls[0]!.init.headers as Record<string, string>)['idempotency-key'], 'owner-use:c1');
+});

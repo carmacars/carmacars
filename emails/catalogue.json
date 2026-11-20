@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 242,
+  "count": 247,
   "emails": [
     {
       "code": "account_password_reset",
@@ -3450,6 +3450,81 @@
       ],
       "template_html": "templates/renter_damage_found.html",
       "template_text": "templates/renter_damage_found.txt"
+    },
+    {
+      "code": "renter_data_check",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "An Admin pressed Send reminder on a data issue of a renter (Admin > Settings, the data to check; migration 3197): something on their own record looks wrong. Sent once per reminder.",
+      "timing": "Immediate, once per reminder",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Please check your CarmaCars details",
+      "preheader": "Something on your record to fix, one minute each.",
+      "sample_subject": "Please check your CarmaCars details",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "issues",
+          "type": "string",
+          "sample": "Your mobile number 555 does not look right: write it with the area code (10 digits)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "portal_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/account"
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/renter_data_check.html",
+      "template_text": "templates/renter_data_check.txt"
     },
     {
       "code": "renter_deposit_declined",
@@ -12156,6 +12231,81 @@
       "template_text": "templates/owner_cosigner_sign.txt"
     },
     {
+      "code": "owner_data_check",
+      "audience": "owner",
+      "category": "transactional",
+      "trigger": "An Admin pressed Send reminder on a data issue of an owner (Admin > Settings, the data to check; migration 3197): something on their own record looks wrong. Sent once per reminder.",
+      "timing": "Immediate, once per reminder",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "owners@carmacars.ca",
+      "subject": "Please check your CarmaCars details",
+      "preheader": "Something on your record to fix, one minute each.",
+      "sample_subject": "Please check your CarmaCars details",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Daniel",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "issues",
+          "type": "string",
+          "sample": "Your mobile number 555 does not look right: write it with the area code (10 digits)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "portal_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/owner"
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/owner_data_check.html",
+      "template_text": "templates/owner_data_check.txt"
+    },
+    {
       "code": "owner_debit_notice",
       "audience": "owner",
       "category": "transactional",
@@ -13721,6 +13871,117 @@
       ],
       "template_html": "templates/owner_incident_update.html",
       "template_text": "templates/owner_incident_update.txt"
+    },
+    {
+      "code": "owner_insurance_late_fee",
+      "audience": "owner",
+      "category": "transactional",
+      "trigger": "Owner Late Fee on unpaid insurance (release 48, migration 3271), to an owner in the Vehicle Owner Program: a reminder a few days before an unpaid insurance invoice is due (3 days by default), and the notice when the Late Fee is added (5% of the unpaid insurance, a Program setting, plus HST) because the debit failed or the invoice is past its due date. The unpaid insurance and the Late Fee are then deducted from the next statement as two lines.",
+      "timing": "Once before the due date (reminder) and once when the Late Fee is added",
+      "digest": false,
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "billing@carmacars.ca",
+      "subject": "{{late_title}}",
+      "preheader": "{{late_how}}",
+      "sample_subject": "A Late Fee of $25.43 was added to invoice INV-1090",
+      "variables": [
+        {
+          "name": "applied",
+          "type": "boolean",
+          "sample": true
+        },
+        {
+          "name": "balance",
+          "type": "string",
+          "sample": "$500.43"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Karan",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "insurance_amount",
+          "type": "string",
+          "sample": "$450.00"
+        },
+        {
+          "name": "invoice_number",
+          "type": "string",
+          "sample": "INV-1090"
+        },
+        {
+          "name": "late_fee_amount",
+          "type": "string",
+          "sample": "$25.43"
+        },
+        {
+          "name": "late_how",
+          "type": "string",
+          "sample": "The unpaid insurance and the Late Fee are deducted from your next statement, as two separate lines. There is nothing to do. You can also pay the invoice now from its page."
+        },
+        {
+          "name": "late_text",
+          "type": "string",
+          "sample": "The insurance for your 2021 Hyundai Sonata was not paid on time. The Late Fee is 5% of the unpaid insurance of $450.00: $22.50 plus $2.93 HST."
+        },
+        {
+          "name": "late_title",
+          "type": "string",
+          "sample": "A Late Fee of $25.43 was added to invoice INV-1090"
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "payee_name",
+          "type": "string",
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the legal name, operating as the business name, as the legal review approved (0053). The agreements name the company by its legal name alone (0122); an email never shows the numbered company alone. Named in every owner billing email."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/owner_insurance_late_fee.html",
+      "template_text": "templates/owner_insurance_late_fee.txt"
     },
     {
       "code": "owner_invoice_issued",
@@ -16284,6 +16545,143 @@
       ],
       "template_html": "templates/owner_upfront_invoice.html",
       "template_text": "templates/owner_upfront_invoice.txt"
+    },
+    {
+      "code": "owner_use_charges",
+      "audience": "owner",
+      "category": "transactional",
+      "trigger": "Owner-use charges (release 48, migration 3270), to an owner whose own booking of their car (for themselves or for someone else) had charges: damage up to the deductible, tickets, tolls, fuel, kilometres, cleaning, smoking, a late return or any other fee. Sent when the charges are billed (charged to the card on file, a bank debit started the same day, or due now with the pay link when there is no method on file or the charge failed), as a reminder every few days while unpaid, and when the unpaid invoice moves to the next statement after the due window (7 days by default). Each charge is listed with the evidence it rests on.",
+      "timing": "Immediate, once per step",
+      "digest": false,
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "billing@carmacars.ca",
+      "subject": "{{charge_title}}",
+      "preheader": "{{charge_how}}",
+      "sample_subject": "$186.45 is due now: charges on your booking B-10482",
+      "variables": [
+        {
+          "name": "charge_evidence",
+          "type": "list",
+          "sample": [
+            {
+              "label": "Refuelling: 22 litres",
+              "note": "Evidence: the fuel or battery level at pickup and at return, the pickup and return photos"
+            },
+            {
+              "label": "Smoking in the vehicle",
+              "note": "Evidence: the guided evidence photos, a written description"
+            }
+          ],
+          "fields": [
+            "label",
+            "note"
+          ]
+        },
+        {
+          "name": "charge_how",
+          "type": "string",
+          "sample": "We could not take it from a payment method on file. Please pay invoice INV-1088 now from the link. If it is not paid by Nov 27, 2026, it is deducted from your next statement."
+        },
+        {
+          "name": "charge_lines",
+          "type": "list",
+          "sample": [
+            {
+              "label": "Refuelling: 22 litres",
+              "amount": "$73.45"
+            },
+            {
+              "label": "Smoking in the vehicle",
+              "amount": "$113.00"
+            }
+          ],
+          "fields": [
+            "label",
+            "amount"
+          ]
+        },
+        {
+          "name": "charge_text",
+          "type": "string",
+          "sample": "These charges are from your own booking B-10482 of your 2021 Hyundai Sonata (Nov 14, 2026 to Nov 16, 2026). You are responsible for the charges of a booking you make for yourself or for someone else."
+        },
+        {
+          "name": "charge_title",
+          "type": "string",
+          "sample": "$186.45 is due now: charges on your booking B-10482"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Karan",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "has_evidence",
+          "type": "boolean",
+          "sample": true
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "invoice_number",
+          "type": "string",
+          "sample": "INV-1088"
+        },
+        {
+          "name": "invoice_total",
+          "type": "string",
+          "sample": "$186.45"
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "payee_name",
+          "type": "string",
+          "sample": "18122211 Canada Inc., operating as CarmaCars",
+          "note": "The payee of the pre-authorized debit as the emails name it (app.owner_email_payee_name, 0128): the legal name, operating as the business name, as the legal review approved (0053). The agreements name the company by its legal name alone (0122); an email never shows the numbered company alone. Named in every owner billing email."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/owner_use_charges.html",
+      "template_text": "templates/owner_use_charges.txt"
     },
     {
       "code": "owner_vehicle_enrolled",
@@ -21718,6 +22116,45 @@
       "template_text": "templates/staff_agreement_reminder.txt"
     },
     {
+      "code": "staff_data_check",
+      "audience": "staff_field",
+      "category": "transactional",
+      "trigger": "An Admin pressed Send reminder on a data issue of a staff member (Admin > Settings, the data to check; migration 3197): something on their own record looks wrong. Sent once per reminder.",
+      "timing": "Immediate, once per reminder",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Please check your CarmaCars details",
+      "preheader": "Something on your record to fix, one minute each.",
+      "sample_subject": "Please check your CarmaCars details",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Sam",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "issues",
+          "type": "string",
+          "sample": "Your mobile number 555 does not look right: write it with the area code (10 digits)."
+        },
+        {
+          "name": "portal_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/staff"
+        }
+      ],
+      "template_html": "templates/staff_data_check.html",
+      "template_text": "templates/staff_data_check.txt"
+    },
+    {
       "code": "staff_field_job_assigned",
       "audience": "staff_field",
       "category": "transactional",
@@ -23354,7 +23791,7 @@
       "code": "applicant_referred",
       "audience": "applicant",
       "category": "transactional",
-      "trigger": "A candidate does not qualify for the role they applied for on carmacars.ca/careers (a knock-out or a score below the pass mark for Field staff; a score below the pass mark for a remote assistant role) and another open role suits them: Field staff to Sales and Customer Relations (In person, Toronto), with Remote Sales named as the other choice; Sales in person to Remote Sales; or the best matching other open role (migration 0173). Not sent when they already applied for that role. The link opens that role's application with their name, email and phone filled in. One email per application.",
+      "trigger": "A candidate does not qualify for the role they applied for on carmacars.ca/careers (a knock-out or a score below the pass mark for Field staff; a score below the pass mark for a remote assistant role) and another open role suits them: Field staff to Sales and Customer Relations (In person, Toronto), with Remote Sales named as the other choice; Sales in person to Remote Sales; or the best matching other open role (migration 0173). Not sent when they already applied for that role. The button opens /careers/sales-yes/<token>: one press makes the Sales application from the one they sent and sends the AI interview link at once (r48, migration 3191). One email per application; release 48 sent it once more to every referred applicant without a Sales application.",
       "timing": "Immediate",
       "digest": false,
       "from": "CarmaCars <hello@carmacars.ca>",
@@ -23376,7 +23813,7 @@
         {
           "name": "apply_url",
           "type": "url",
-          "sample": "https://carmacars.ca/careers/sales-in-person/apply?ref=3f9a1c&src=referral"
+          "sample": "https://carmacars.ca/careers/sales-yes/3f9a1c7d2e5b4a8c"
         },
         {
           "name": "company_address",

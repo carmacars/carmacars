@@ -12,6 +12,8 @@ const VERSION = '2025-09-30.clover';
 export interface DebitRequest {
   attempt_id: string; attempt_no: number; idempotency_key: string; amount_cents: number; currency: string;
   customer_id: string; payment_method_id: string; mandate_id: string; description: string; metadata: Record<string, string>;
+  /** r48 (3270): 'card' for an owner-use charge taken from the owner's card on file; a bank debit otherwise */
+  method_kind?: 'card' | 'pre_authorized_debit';
 }
 export interface RunSummary { claimed: number; submitted: number; refused: number; retry: number; polled: number; settled: number; errors: string[]; run: unknown }
 
@@ -94,7 +96,7 @@ export async function runOwnerDebits(sql: Sql, stripeKey: string, opts: { limit?
       try {
         const pi = await stripe('POST', '/payment_intents', {
           amount: d.amount_cents, currency: d.currency, customer: d.customer_id, payment_method: d.payment_method_id,
-          payment_method_types: ['acss_debit'], mandate: d.mandate_id, confirm: true, off_session: true,
+          ...(d.method_kind === 'card' ? { payment_method_types: ['card'] } : { payment_method_types: ['acss_debit'], mandate: d.mandate_id }), confirm: true, off_session: true,
           description: d.description, metadata: d.metadata, expand: ['latest_charge']
         }, d.idempotency_key);
         // (the facts go as text: postgres.js would encode a string sent as jsonb a second time)

@@ -254,11 +254,11 @@ update onboarding_situations set government_forms = null where situation = 'S6';
 -- ------------------------------------------------------------------ D. terms, schedules, upfront invoices
 select test.eq('D the standard grid for an owner with three vehicles (3 to 9): $400, $20, 30%, Install Fee from the settings',
   (select insurance_fee_cents || '/' || tracker_fee_cents || '/' || revenue_share_bps || '/' || install_fee_cents || '/' || vehicle_count
-     from app.standard_terms(((select r from ofl_app) ->> 'owner_id')::uuid, 'managed')), '40000/2000/3000/10000/3');
-select test.eq('D on-grid terms by a customer service assistant take effect: Vehicle Schedule entry 1, the two agreements, upfront $900',
+     from app.standard_terms(((select r from ofl_app) ->> 'owner_id')::uuid, 'managed')), '40000/2000/3000/15000/3'); -- r48 FE (3198): the Install Fee is $150
+select test.eq('D on-grid terms by a customer service assistant take effect: Vehicle Schedule entry 1, the two agreements, upfront $950 (the $150 Install Fee, 3198)',
   (select (t ->> 'status') || '/' || (t ->> 'vehicle_number') || '/' || (t ->> 'is_additional') || '/' || (t ->> 'upfront_cents') || '/'
           || ((t ->> 'enrollment_agreement_id') is not null and (t ->> 'title_agreement_id') is not null)::text
-     from app.set_vehicle_terms(test.ofl_v(1), test.id('ofl_cs')) t), 'terms_set/1/false/90000/true');
+     from app.set_vehicle_terms(test.ofl_v(1), test.id('ofl_cs')) t), 'terms_set/1/false/95000/true');
 -- the grid changes: a new row from today
 insert into owner_fee_grid (min_vehicles, max_vehicles, insurance_fee_cents, revenue_share_bps, tracker_fee_cents, effective_from)
 values (3, 9, 39000, 3000, 2000, app.today());

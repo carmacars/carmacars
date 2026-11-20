@@ -30,7 +30,7 @@ end $$;
 
 -- ================================================================== A. catalogue
 select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign, 0370 a visitor message waiting in live chat, 0430 the start and end notices, 0400 the two tracker alerts, 0441 the data health notice, 0380 adds one email, 0460 the lead and visitor alerts, 0462 the staff alerts, 0532 the return report denied, 0535 the apology to remote applicants moved to the AI interview, 0547 the partner invoice, 0583 the staff email digest, 0955 the accounts merged note, 2520 the weekly and new-car marketing emails, 2620 the owner trip and weekly emails, 3000 the eleven Rewards emails, 3113 the text fallback and the two suspension emails, 3152 the two studio photos notices)',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '237/21');
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '247/21');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
@@ -138,7 +138,7 @@ select test.eq('C confirmation: one email to the renter, none to the owner (2620
   'renter_booking_confirmed>nt_rita@example.test | va_cs,va_fleet');
 select test.eq('C the owner is not emailed about the booking (2620): the event is recorded and processed at once',
   (select count(*) from notification_outbox where code = 'owner_new_booking' and entity_id = test.id('booking:NT-2')) || '/'
-  || (select process_note from app_events where code = 'owner_new_booking' and entity_id = test.id('booking:NT-2')), '0/code disabled');
+  || (select process_note from app_events where code = 'owner_new_booking' and entity_id = test.id('booking:NT-2')), '0/outbox 0, digest 0, in-app 0');
 select test.eq('C money and dates are formatted the catalogue way (Toronto time)',
   (select payload ->> 'pickup_date' || ' ' || (payload ->> 'pickup_time') || ' ' || (payload ->> 'deposit_amount') || ' ' || (payload ->> 'km_allowance')
      from notification_outbox where code = 'renter_booking_confirmed' and entity_id = test.id('booking:NT-2')),
@@ -906,6 +906,10 @@ select test.eq('G every wired email code has been built at least once in these t
       and c.code not in ('staff_agreement_reminder', 'staff_inactivity_warning', 'staff_team_group') -- the staff jobs of 1060, built in 99_r35k_staff_onboarding
       and c.code not in ('marketing_weekly', 'marketing_new_vehicle') -- the campaigns of 2520, built in 99_r41_marketing
       and c.code not in ('text_fell_back', 'staff_access_suspended', 'staff_access_restored') -- the text fallback and the suspension emails (3113), built in 99_r48cm_comms
+      and c.code not in ('renter_data_check', 'owner_data_check', 'staff_data_check') -- an Admin's Send reminder (3199), queued in 99_r48fe_fees_evidence_hiring
+      and c.code not in ('notify_summary', 'owner_reward_update', 'owner_tracker_alert', 'owner_tracker_weekly', 'staff_reward_update') -- 3260 to 3264, built in 99_r48rw_rewards_calendar_notify
+      and c.code not in ('owner_use_charges', 'owner_insurance_late_fee') -- 3270 and 3271, queued in 99_r48rw_owner_money
+      and c.code not in ('owner_new_booking', 'owner_booking_confirmed', 'owner_booking_changed') -- 3260: only for an owner who turned New bookings on, built in 99_r48rw_rewards_calendar_notify
       and not exists (select 1 from notification_outbox o where o.code = c.code)
       and not exists (select 1 from staff_digest_items d where d.code = c.code)),
   null::text);

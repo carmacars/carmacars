@@ -67,7 +67,7 @@
 
 4.3 CarmaCars charges each Vehicle's Fees on each Billing Date, from its Enrollment Date to its Exit Date, whether or not the Vehicle is rented, in repair or off the road. The Fees for a Vehicle's first and last month are pro-rated by day.
 
-4.4 If an automatic pre-authorized debit of an invoice is returned for insufficient funds, CarmaCars adds the Late Fee to that invoice once and may re-present the debit once, for the original amount, within 30 days. The Late Fee is collected with the Owner's next debit or deducted from the Owner's next payout.
+4.4 If the Insurance Fee of an invoice is not paid on time (an automatic pre-authorized debit is returned, or the invoice is unpaid after its due date), CarmaCars adds the Late Fee to that invoice once: 5% of the unpaid Insurance Fee, plus HST on the Late Fee. CarmaCars may re-present a returned debit once, for the original amount, within 30 days. The unpaid Insurance Fee and the Late Fee are deducted from the Owner's next payout and shown as separate lines on the statement. An invoice with no Insurance Fee on it has the flat Late Fee of Schedule B.
 
 4.5 **Set-off.** CarmaCars may deduct any amount the Owner owes under this Agreement from any payout due to the Owner for any Vehicle.
 
@@ -134,6 +134,8 @@
 9.1 An Owner may drive the Owner's own Vehicle whenever it is not on an active booking, by booking it like any Renter and signing the Rental Agreement (an **Owner Booking**). The Owner need not buy coverage.
 
 9.2 The Owner pays no Rental Charge, fee or deposit. The one exception: if the Owner damages the Vehicle and a claim has to be made, the Owner is billed the Deductible. A Renter's confirmed booking has priority. An Owner Booking earns no Owner Revenue and reduces no Fee.
+
+9.3 An Owner Booking may be for the Owner or for a family member or friend the Owner names, who is then the main driver: they sign the Rental Agreement and must meet its driver rules (an Ontario licence for the main driver). The Owner stays responsible for every Owner Booking, whoever drives: the Deductible ($2,500 unless the Fleet Policy sets another amount) and any Damage, tickets, tolls and fees during it are billed to the Owner, each with its evidence.
 
 ## 10. Insurance, claims and repairs
 
@@ -256,8 +258,8 @@ Vehicle Schedule to the Enrollment Agreement dated [●] between CarmaCars and [
 | Billing Date | 15th of each month |
 | Retry Date | on or after the 18th, within 30 days of the return |
 | Payout Date | 10th of each month |
-| Late Fee | $50 per Vehicle per failed charge |
-| Install Fee | $100 per Vehicle |
+| Late Fee | 5% of the unpaid Insurance Fee per invoice, plus HST; $50 per Vehicle per failed charge for an invoice with no Insurance Fee |
+| Install Fee | $150 per Vehicle |
 | Deductible | $2,500 |
 | Kickback Rate | 20% |
 | Notice Period | 30 days |

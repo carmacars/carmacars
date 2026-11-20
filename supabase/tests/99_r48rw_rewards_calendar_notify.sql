@@ -53,7 +53,7 @@ select test.ok('every staff alert rule has a type; a job assigned is locked',
 select test.eq('the three owner booking emails are on in the catalogue, behind a type that is off by default',
   (select count(*) filter (where c.is_enabled and c.pref_type = 'owner_new_bookings') || '|' || (select push_default or email_default or text_default from notify_types where code = 'owner_new_bookings')
      from notification_catalogue c where c.code in ('owner_new_booking', 'owner_booking_confirmed', 'owner_booking_changed')), '3|false');
-select test.ok('an owner who chose nothing is not emailed about a new booking', test.zrw_mail('owner_new_booking', test.id('zrw_olga'), 'nb1', 'owner') like 'suppressed|not sent: turned off in notification preferences%');
+select test.ok('an owner who chose nothing is not emailed about a new booking: nothing is queued at all', test.zrw_mail('owner_new_booking', test.id('zrw_olga'), 'nb1', 'owner') is null);
 select test.ok('the trip completed email still goes', test.zrw_mail('owner_trip_completed', test.id('zrw_olga'), 'tc1', 'owner') like 'queued|%');
 select public.server_notify_prefs_save(test.id('zrw_olga'), jsonb_build_object('type', 'owner_new_bookings', 'channel', 'email', 'on', true, 'portal', 'owner'));
 select test.ok('once the owner turns it on, the new booking email goes', test.zrw_mail('owner_new_booking', test.id('zrw_olga'), 'nb2', 'owner') like 'queued|%');

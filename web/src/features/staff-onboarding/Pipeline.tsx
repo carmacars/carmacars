@@ -4,7 +4,7 @@ import { SendGenerated } from '@/features/manual/SignRequests';
 import type { StaffAgreementRow } from '@/features/manual/StaffAgreements';
 import { OnboardingApprovals } from './Approvals';
 import { groupPipeline, STAGES, type PipeApp, type Stage } from './pipeline';
-import { markable, waitingWords, type ApprovalRow, type OnboardingRow } from './model';
+import { academyWords, markable, waitingWords, type ApprovalRow, type OnboardingRow } from './model';
 
 const day = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'UTC', month: 'short', day: 'numeric' }).format(new Date(`${iso.slice(0, 10)}T12:00:00Z`));
 
@@ -43,6 +43,7 @@ export function OnboardingPipeline({ apps = [], staff, approvals, agreements, ad
         <span><b>{r.name}</b> ({r.functions.join(', ') || 'staff'})
           {stage === 'agreement' && <span className="small muted"><br />{ag?.open ? `Agreement sent ${day(ag.open.sent_at)}, waiting for their signature.` : 'No agreement sent yet.'}</span>}
           {stage !== 'agreement' && stage !== 'approval' && stage !== 'onboarded' && words && <span className="small muted"><br />{words}</span>}
+          {stage === 'academy' && academyWords(r) && <span className="small" data-testid={`pipeline-academy-${r.user_id}`}><br />{academyWords(r)}</span>}
         </span>
         <span className="ad-actions">
           {stage === 'agreement' && (admin && ag ? <SendGenerated docType="staff_agreement" who={r.user_id} refresh={refresh} /> : <span className="small muted">An Admin sends it.</span>)}

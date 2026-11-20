@@ -1,0 +1,29 @@
+CarmaCars  |  Your details
+
+========================================
+
+[Your details]
+Something to check, {{first_name}}
+
+Something on your CarmaCars record looks wrong or is missing: {{issues}}
+
+Open your portal: a box shows each one with the field to fix it right there. If it is correct as it is, you can say so and why.
+
+Check my details:
+{{portal_url}}
+
+We ask so your agreements, your trips and your payments go through without delay.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

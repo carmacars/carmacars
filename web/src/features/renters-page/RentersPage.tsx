@@ -3,6 +3,7 @@ import { SortSelect } from '@/features/admin/SortTable';
 import { IntentCard } from '@/features/intent/IntentCard';
 import type { Intent } from '@/features/intent/model';
 import Link from '@/components/Link';
+import { DataIssuesCard } from '@/features/data-checks/DataIssuesCard';
 import { Act } from '@/features/admin/Act';
 import { Badge, Card, Kv, PageHead, Search, Table, d, t } from '@/features/admin/ui';
 import { tabOf } from '@/features/admin/hubs';
@@ -40,6 +41,8 @@ async function AdminRenters({ ctx, sp }: { ctx: PageCtx; sp: Record<string, stri
         <Search action="/admin/renters" value={sp.q} placeholder="Name, email or phone" />
         <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/bookings/new">Add a rental</Link>
       </PageHead>
+      {/* r48 FE (3197): what looks wrong on the records of renters with a booking in the last 90 days */}
+      <DataIssuesCard userId={ctx.user.id} audience="renter" refresh="/admin/renters" />
       <div className="ad-sortbar"><SortSelect options={['newest', 'oldest', 'az']} def="newest" /></div>
       <Table<Row> testId="renters" caption="Renters" sort={false} rows={res.rows} empty={sp.q ? `No renter matches "${sp.q}". Search by part of the name, the email or the phone number.` : 'No renters yet. They appear here after their first booking request, or when you add a rental.'} cols={[
         { key: 'legal_name', label: 'Renter', render: (r) => <><Link prefetch={false} className="link" href={`/admin/renters/${r.id}`}>{r.legal_name}</Link> <Link prefetch={false} className="small link" href={`/admin/bookings?q=${encodeURIComponent(r.email ?? r.legal_name)}`}>bookings</Link></> },
