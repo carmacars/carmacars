@@ -18,8 +18,9 @@
 --    staff hold request was made with channel 'auto', which a unique index of 0261 keeps to one per booking for the
 --    pickup-day hold. After a first try was declined, the second tap inserted another 'auto' request and hit that index:
 --    "That is already recorded ... Refresh the page" and nothing else. Now the staff request is channel 'link' with
---    auto false (as 2970's morning try), the index covers the pickup-day job only (auto), and a second tap while the
---    first is still with the bank says so in plain words; a hold already placed is shown, not asked again.
+--    auto false (as 2970's morning try), so the index never sees it, and a second tap while the
+--    first is still with the bank says so in plain words; a hold already placed is shown, not asked again. The index
+--    stays as it is: it keeps the pickup-day job to one try per booking.
 -- 6. Deposits are kept 30 days after the return before the release review (Program setting deposit_toll_window_days,
 --    "Days a deposit is kept after the return before it is released", 30 by default; it was 7). Releasing sooner is an
 --    Admin's decision with the reason (0155's release_in_window, logged).
@@ -353,8 +354,6 @@ begin
 end $$;
 
 -- ================================================================ 5. the deposit hold on the card on file, tapped twice
-drop index if exists payment_requests_auto_hold_once;
-create unique index if not exists payment_requests_auto_hold_once on payment_requests (booking_id) where channel = 'auto' and auto;
 select pg_temp.patch_fn('app.deposit_hold_saved_begin(uuid, jsonb)'::regprocedure,
   $o$  if exists (select 1 from deposits d where d.booking_id = b.id and d.status in ('held', 'captured', 'settled')) then
     raise exception 'The deposit on % is already taken', b.booking_number using errcode = '23514';

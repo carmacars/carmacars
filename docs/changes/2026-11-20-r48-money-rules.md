@@ -66,8 +66,8 @@ without change). Schema marker 3112.
   salesperson handling it (or the booking's salesperson).
 - **Debit deposits**: a salesperson turns **Allow debit and prepaid cards for this booking** on (and off) on the Money tab; logged in
   the audit log and the booking's history.
-- **The deposit hold tapped twice**: a staff hold request is channel `link` with `auto` false (as 2970's morning try); the unique index
-  covers the pickup-day job only (`channel = 'auto' and auto`). A second tap within two minutes says "The deposit hold on the card on
+- **The deposit hold tapped twice**: a staff hold request is channel `link` with `auto` false (as 2970's morning try), so the
+  pickup-day job's one-per-booking index never sees it. A second tap within two minutes says "The deposit hold on the card on
   file is already being placed ... refresh the page to see the result"; a deposit already taken names its amount and how. After a
   decline a new tap tries again.
 - **Deposits are kept 30 days** after the return before release: Program setting `deposit_toll_window_days` ("Days a deposit is kept

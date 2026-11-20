@@ -182,15 +182,15 @@ select test.eq('a salesperson allows debit and prepaid cards for the booking, lo
 -- the deposit hold on the card on file, tapped twice
 insert into payment_method_secrets (payment_method_id, processor, processor_customer_id, processor_method_id)
 values (test.id('card:mr_r6'), 'stripe', 'cus_mr6', 'pm_mr6');
-select app.deposit_hold_saved_begin(test.id('mr_fin'), jsonb_build_object('booking', 'MR-6', 'token_sha256', repeat('a', 64)));
+select app.deposit_hold_saved_begin(test.id('mr_fin'), jsonb_build_object('booking', 'MR-6', 'token_sha256', md5('mr6-a') || md5('mr6-a2')));
 select test.throws('a second tap while the first is with the bank says so in plain words',
-  format($$select app.deposit_hold_saved_begin(%L, '{"booking": "MR-6", "token_sha256": "%s"}')$$, test.id('mr_fin'), repeat('b', 64)), 'already being placed');
+  format($$select app.deposit_hold_saved_begin(%L, '{"booking": "MR-6", "token_sha256": "%s"}')$$, test.id('mr_fin'), md5('mr6-b') || md5('mr6-b2')), 'already being placed');
 select app.deposit_hold_saved_failed(test.id('mr_fin'), jsonb_build_object('id', (select id from payment_requests where booking_id = test.id('booking:MR-6') order by created_at desc limit 1),
   'error', 'Your card has insufficient funds.'));
 select test.ok('declined, then tapped again: a new try, not "already recorded"',
-  (app.deposit_hold_saved_begin(test.id('mr_fin'), jsonb_build_object('booking', 'MR-6', 'token_sha256', repeat('c', 64))) ->> 'ok')::boolean);
-select test.eq('the pickup-day hold of the job is still once per booking',
-  (select indexdef like '%channel = ''auto''::text) AND auto)' from pg_indexes where indexname = 'payment_requests_auto_hold_once'), true);
+  (app.deposit_hold_saved_begin(test.id('mr_fin'), jsonb_build_object('booking', 'MR-6', 'token_sha256', md5('mr6-c') || md5('mr6-c2'))) ->> 'ok')::boolean);
+select test.eq('a staff hold request is not the pickup-day job''s (its one-per-booking index stays for the job)',
+  (select string_agg(distinct channel || ':' || auto, ',') from payment_requests where booking_id = test.id('booking:MR-6')), 'link:false');
 select test.eq('deposits are kept 30 days after the return before release', (app.settings()).deposit_toll_window_days, 30);
 
 -- ================================================================ speeding charges and named fees
