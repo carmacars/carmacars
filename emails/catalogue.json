@@ -16149,9 +16149,9 @@
       "digest": false,
       "from": "CarmaCars <owners@carmacars.ca>",
       "reply_to": "owners@carmacars.ca",
-      "subject": "You are on the {{tracker_name}} waitlist",
+      "subject": "You are on the {{tracker_name}} list",
       "preheader": "We will write as soon as the trackers arrive. Nothing is charged today.",
-      "sample_subject": "You are on the CarmaCars GPS tracker waitlist",
+      "sample_subject": "You are on the CarmaCars GPS tracker list",
       "variables": [
         {
           "name": "cars_count",
@@ -16185,12 +16185,7 @@
         {
           "name": "install_price",
           "type": "string",
-          "sample": "$150"
-        },
-        {
-          "name": "monthly_price",
-          "type": "string",
-          "sample": "$20 a month"
+          "sample": "$150 once per car"
         },
         {
           "name": "opening_hours",
@@ -16211,6 +16206,16 @@
           "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
         },
         {
+          "name": "tier_label",
+          "type": "string",
+          "sample": "Pre-order"
+        },
+        {
+          "name": "tier_note",
+          "type": "string",
+          "sample": "A pre-ordered tracker is installed by us. You pay the install only."
+        },
+        {
           "name": "tiktok_url",
           "type": "url",
           "sample": "https://tiktok.com/@carmacars.ca",
@@ -16220,6 +16225,11 @@
           "name": "tracker_name",
           "type": "string",
           "sample": "CarmaCars GPS tracker"
+        },
+        {
+          "name": "tracker_price",
+          "type": "string",
+          "sample": "Free with your pre-order"
         }
       ],
       "template_html": "templates/tracker_waitlist_joined.html",

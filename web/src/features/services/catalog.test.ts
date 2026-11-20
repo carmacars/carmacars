@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { promoCards, serviceCards, type ServiceFacts } from './catalog.ts';
 
-const F: ServiceFacts = { brand: 'CarmaCars', city: 'Toronto', trackerOn: true, trackerFromCents: 1500, trackerAvailable: false, trackerNote: 'Shipping soon', deliveryFromCents: 7500, chauffeurFromCents: 9900,
+const F: ServiceFacts = { brand: 'CarmaCars', city: 'Toronto', trackerOn: true, trackerPrice: 'Free for the first 100 pre-orders, then $90', trackerAvailable: false, trackerNote: 'Shipping soon', deliveryFromCents: 7500, chauffeurFromCents: 9900,
   minAge: 18, licence: 'G2 or G', airports: [{ code: 'YYZ', name: 'Toronto Pearson Airport' }], coverageOptions: 3,
   addons: [{ code: 'phone_charger', name: 'Phone charger', price_cents: 500, pricing_unit: 'per_trip' }, { code: 'child_seat', name: 'Child seat', price_cents: 1500, pricing_unit: 'per_day' }, { code: 'flowers', name: 'Flowers', price_cents: 15000, pricing_unit: 'per_trip' }],
   landing: new Set(['monthly', 'weekly', 'insurance-replacement', 'rideshare', 'young-drivers', 'g2-licence', 'with-a-charger', 'with-flowers', 'with-child-seat', 'car-delivery', 'airport', 'insurance-included']) };
@@ -11,8 +11,8 @@ test('every service the owner listed has a card, the tracker first', () => {
   const cards = serviceCards(F);
   assert.deepEqual(cards.map((c) => c.key), ['trackers', 'owner', 'chauffeur', 'delivery', 'coverage', 'monthly', 'replacement', 'rideshare', 'young', 'addons', 'detailing', 'bodyshop']);
   assert.equal(cards[0]!.feature, true);
-  assert.equal(cards[0]!.fact, 'From $15 a month per car · Shipping soon');
-  assert.equal(cards[0]!.go, 'Join the waitlist');
+  assert.equal(cards[0]!.fact, 'Free for the first 100 pre-orders, then $90 · Shipping soon');
+  assert.equal(cards[0]!.go, 'Pre-order or join the waitlist');
   assert.equal(cards.find((c) => c.key === 'chauffeur')!.fact, 'From $99 an hour');
   assert.equal(cards.find((c) => c.key === 'delivery')!.fact, 'Delivered from $75');
   assert.equal(cards.find((c) => c.key === 'addons')!.fact, 'Charger $5 · Seats $15 a day');
@@ -20,7 +20,7 @@ test('every service the owner listed has a card, the tracker first', () => {
 });
 
 test('a number the database does not have is left out, and a page that is not there is never linked', () => {
-  const bare: ServiceFacts = { ...F, trackerFromCents: null, deliveryFromCents: null, chauffeurFromCents: null, addons: [], landing: new Set() };
+  const bare: ServiceFacts = { ...F, trackerPrice: null, deliveryFromCents: null, chauffeurFromCents: null, addons: [], landing: new Set() };
   const cards = serviceCards(bare);
   assert.equal(cards.find((c) => c.key === 'chauffeur')!.fact, null);
   assert.equal(cards.find((c) => c.key === 'addons')!.fact, null);

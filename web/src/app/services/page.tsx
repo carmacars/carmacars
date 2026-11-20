@@ -49,7 +49,7 @@ export default async function Page() {
                 <KitPrices cards={priced.slice(0, 9).map((a) => ({ forWhom: a.name, amount: money(a.price_cents!), per: UNIT[a.pricing_unit] ?? '', points: [...(a.description ? [a.description] : []), ...(a.cap_cents ? [`At most ${money(a.cap_cents)} for the rental`] : [])] }))}
                   fine="Add-on prices are before HST and can depend on the car; your offer shows the exact line." />
               )}
-              {c.key === 'trackers' && <KitFacts rows={[['Monthly price', f.trackerFromCents ? `From ${money(f.trackerFromCents)} a month per car, by the number of cars` : null], ['When', f.trackerAvailable ? 'Installs are open' : `${f.trackerNote}. Waitlist and pre-orders are open`]]} />}
+              {c.key === 'trackers' && <KitFacts rows={[['Price', f.trackerPrice], ['When', f.trackerAvailable ? 'Installs are open' : `${f.trackerNote}. Waitlist and pre-orders are open`]]} />}
               {c.key === 'delivery' && <KitFacts rows={[['Delivery', f.deliveryFromCents ? `From ${money(f.deliveryFromCents)}` : null], ['Airports', f.airports.map((a) => a.name).join(', ') || null]]} />}
               {c.key === 'young' && <KitFacts rows={[['Minimum age', f.minAge ? String(f.minAge) : null], ['Licence', f.licence ? `Ontario ${f.licence}` : null]]} />}
               <ul className="sk-tiles" data-testid={`service-${c.key}`}>

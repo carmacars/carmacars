@@ -19484,6 +19484,11 @@ export type Database = {
           lead_auto_merge_days: number;
           tracker_product_tiers: Json;
           tracker_product_launch_note: string;
+          tracker_owner_device_cents: number;
+          tracker_free_preorder_cap: number;
+          tracker_free_preorder_public: number;
+          tracker_preorder_price_cents: number;
+          tracker_regular_price_cents: number;
         };
         Insert: {
           id?: string;
@@ -20380,6 +20385,11 @@ export type Database = {
           lead_auto_merge_days?: number;
           tracker_product_tiers?: Json;
           tracker_product_launch_note?: string;
+          tracker_owner_device_cents?: number;
+          tracker_free_preorder_cap?: number;
+          tracker_free_preorder_public?: number;
+          tracker_preorder_price_cents?: number;
+          tracker_regular_price_cents?: number;
         };
         Update: {
           id?: string;
@@ -21276,6 +21286,11 @@ export type Database = {
           lead_auto_merge_days?: number;
           tracker_product_tiers?: Json;
           tracker_product_launch_note?: string;
+          tracker_owner_device_cents?: number;
+          tracker_free_preorder_cap?: number;
+          tracker_free_preorder_public?: number;
+          tracker_preorder_price_cents?: number;
+          tracker_regular_price_cents?: number;
         };
         Relationships: [];
       };

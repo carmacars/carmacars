@@ -2,16 +2,19 @@ CarmaCars  |  Tracker waitlist
 
 ========================================
 
-[Waitlist]
+[{{tier_label}}]
 You are on the list, {{first_name}}.
 
-The {{tracker_name}} is not in stock yet. We will write to you as soon as it is, before anyone else.
+We have your details for the {{tracker_name}}. We write to you first, as soon as your install can be booked.
 
+You joined as: {{tier_label}}
 Cars: {{cars_count}}
-Monthly price for that many cars: {{monthly_price}} per car
-One-time install: {{install_price}} per car
+The tracker: {{tracker_price}}
+Install: {{install_price}}
 
-Nothing is charged today. The prices above are the ones on our website now, before HST; we confirm yours before anything is billed.
+{{tier_note}}
+
+Nothing is charged today. Prices are before HST; we confirm yours in writing before anything is billed.
 
 What happens next
 ------------------------

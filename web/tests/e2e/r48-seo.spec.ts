@@ -3,8 +3,8 @@ import { expect, test, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { acceptCookies, db, noOverflow } from './helpers';
 
-// Release 48, SEO (docs/changes/2026-11-20-r48-seo.md), at 375 and 1440: the tracker product page with its volume
-// prices and the waitlist (never "in stock"), its intent pages and install pages (gated like the place pages), the old
+// Release 48, SEO (docs/changes/2026-11-20-r48-seo.md), at 375 and 1440: the tracker product page with its prices
+// (free for vehicle owners and the first 100 pre-orders, then $90 and $175) and the waitlist (never "in stock"), its intent pages and install pages (gated like the place pages), the old
 // address redirected, every search page carrying the other services and the phone's sticky action, the new landing pages
 // with the add-on's own price, llms.txt, the sitemap; where a lead came from on the lead page; duplicate leads merged by
 // the rule and with one click; the confirmation email queued.
@@ -41,22 +41,24 @@ async function signIn(page: Page, email: string, expectPath: string) {
   await page.waitForURL((u) => u.pathname.startsWith(expectPath), { timeout: 60_000 });
 }
 
-test('the tracker product page: volume prices, the waitlist while trackers are not in hand, Product as PreOrder, never "in stock"', async ({ page, request }) => {
+test('the tracker product page: free for owners and the first 100 pre-orders then $90 and $175, the waitlist while trackers are not in hand, Product as PreOrder, never "in stock"', async ({ page, request }) => {
   await page.goto('/trackers');
   await expect(page.locator('h1')).toHaveText('GPS tracker and kill switch for your car');
   await expect(page.locator('[data-page="trackers"]')).toHaveAttribute('data-trackers-available', 'no');
   await expect(page.getByTestId('kit-pill')).toHaveText('Shipping soon');
-  await expect(page.getByTestId('kit-lead')).toContainText('$25 a month per car for 1 to 2 cars, $20 for 3 to 9 cars and $15 for 10 cars or more');
+  await expect(page.getByTestId('kit-lead')).toContainText('The tracker is free for the first 100 pre-orders, $90 on pre-order after that and $175 after launch; CarmaCars vehicle owners get the tracker free');
   await expect(page.getByTestId('kit-lead')).toContainText('$150 once per car to install');
   const prices = page.getByTestId('kit-prices').first();
-  for (const [who, amt] of [['1 to 2 cars', '$25'], ['3 to 9 cars', '$20'], ['10 cars or more', '$15']] as const) await expect(prices.locator('li.sk-price', { hasText: who })).toContainText(amt);
+  for (const [who, amt] of [['CarmaCars vehicle owners', 'Free'], ['The first 100 pre-orders', 'Free'], ['After launch', '$175']] as const) await expect(prices.locator('li.sk-price', { hasText: who })).toContainText(amt);
   await expect(page.getByTestId('kit-compare')).toBeVisible();
   await expect(page.getByTestId('kit-tiles').first()).toContainText('Kill switch');
   const main = await page.locator('main').innerText();
   expect(main).not.toMatch(/in stock|available now|buy now/i);
   const nodes = await ld(page);
-  const product = node(nodes, 'Product') as { offers: { '@type': string; lowPrice: string; highPrice: string; priceCurrency: string; availability: string } };
-  expect(product.offers).toMatchObject({ '@type': 'AggregateOffer', lowPrice: '15.00', highPrice: '25.00', priceCurrency: 'CAD', availability: 'https://schema.org/PreOrder' });
+  const product = node(nodes, 'Product') as { offers: { '@type': string; price: string; priceCurrency: string; availability: string } };
+  expect(product.offers).toMatchObject({ '@type': 'Offer', price: '0.00', priceCurrency: 'CAD', availability: 'https://schema.org/PreOrder' });
+  // the number that really closes the offer, a count and a monthly price are nowhere on the page
+  expect(await page.locator('main').innerText()).not.toMatch(/\b250\b|spots? left|remaining|a month per car/i);
   expect((node(nodes, 'FAQPage') as { mainEntity: unknown[] }).mainEntity.length).toBeGreaterThanOrEqual(5);
   expect(node(nodes, 'BreadcrumbList')).toBeTruthy();
   expect(await page.locator('link[rel="canonical"]').getAttribute('href')).toMatch(/\/trackers$/);
@@ -69,7 +71,7 @@ test('the tracker product page: volume prices, the waitlist while trackers are n
   expect(old.headers().location).toMatch(/\/trackers$/);
 });
 
-test('the waitlist: two fields, the price for that many cars as it is typed, a lead for Sales with its source, the confirmation email queued', async ({ page }) => {
+test('the waitlist: two fields, what the person pays as they choose, the tier and the owner flag on the lead, a lead for Sales with its source, the confirmation email queued', async ({ page }) => {
   const sql = db();
   const email = `host.${Date.now()}.${tag()}@example.test`;
   try {
@@ -83,21 +85,26 @@ test('the waitlist: two fields, the price for that many cars as it is typed, a l
     await form.scrollIntoViewIfNeeded();
     await form.getByLabel('Email').fill(email);
     await form.getByLabel('How many cars').fill('4');
-    await expect(page.getByTestId('tracker-waitlist-quote')).toContainText('$20 a month per car');
-    await expect(page.getByTestId('tracker-waitlist-quote')).toContainText('$80');
+    await expect(page.getByTestId('tracker-waitlist-quote')).toContainText('The tracker is free for the first 100 pre-orders');
     await expect(page.getByTestId('tracker-waitlist-quote')).toContainText('$150');
+    await expect(page.getByTestId('tracker-waitlist-quote')).toContainText('$600');
+    // a vehicle owner sees the owner price, and back
+    await page.getByTestId('tracker-waitlist-owner').check();
+    await expect(page.getByTestId('tracker-waitlist-quote')).toContainText('The tracker is free for CarmaCars vehicle owners');
+    await page.getByTestId('tracker-waitlist-owner').uncheck();
     await form.locator('input[name="want"][value="preorder"]').check();
     await page.getByTestId('tracker-waitlist-go').click();
     await expect(page.getByTestId('tracker-waitlist-sent')).toContainText('You are on the list');
+    await expect(page.getByTestId('tracker-waitlist-tier')).toContainText('Pre-order: your tracker is free.');
     const [lead] = await sql`select l.id, app.sl_source(l) source, l.payload, (select c.channel || '|' || c.first_landing from contact_sources c where c.lead_id = l.id) src from leads l where l.email = ${email}`;
-    expect(lead!.source).toBe('GPS tracker pre-order');
-    expect(lead!.payload).toMatchObject({ cars: 4, quoted_monthly_cents: 2000, quoted_install_cents: 15000, trackers_available: false });
+    expect(lead!.source).toBe('GPS tracker pre-order (free tracker)');
+    expect(lead!.payload).toMatchObject({ cars: 4, tier: 'free_preorder', owner: false, owner_claimed: false, owner_matched: false, quoted_device_cents: 0, quoted_install_cents: 15000, trackers_available: false });
     expect(lead!.src).toBe('chatgpt|/trackers/kill-switch-for-car');
     await expect.poll(async () => (await sql`select count(*)::int n from app_events where code = 'tracker_waitlist_joined' and entity_id = ${lead!.id}`)[0]!.n).toBe(1);
     await sql`select app.process_events()`;
     const [mail] = await sql`select to_address, payload from notification_outbox where code = 'tracker_waitlist_joined' and entity_id = ${lead!.id}`;
     expect(mail!.to_address).toBe(email);
-    expect(mail!.payload).toMatchObject({ monthly_price: '$20 a month', install_price: '$150', cars_count: '4' });
+    expect(mail!.payload).toMatchObject({ tier_label: 'Pre-order', tracker_price: 'Free with your pre-order', install_price: '$150 once per car', cars_count: '4' });
   } finally { await sql.end(); }
 });
 
@@ -140,12 +147,12 @@ test('every search page carries the other services, with the tracker first, and 
     await page.goto(path);
     if (path === '/services') {
       for (const key of ['trackers', 'owner', 'chauffeur', 'delivery', 'coverage', 'monthly', 'replacement', 'rideshare', 'young', 'addons']) await expect(page.locator(`section#${key}`), key).toBeVisible();
-      await expect(page.locator('section#trackers')).toContainText('From $15 a month per car');
+      await expect(page.locator('section#trackers')).toContainText('Free for the first 100 pre-orders, then $90');
     } else {
       const promo = page.getByTestId('service-promo');
       await expect(promo, path).toBeVisible();
       if (path !== '/list-your-car') await expect(promo.locator('a[data-service]').first(), path).toHaveAttribute('data-service', 'trackers');
-      await expect(promo.locator('a[data-service="trackers"]'), path).toContainText('Join the waitlist');
+      await expect(promo.locator('a[data-service="trackers"]'), path).toContainText('Pre-order or join the waitlist');
       // the page's own service is never promoted to itself
       const own = path === '/chauffeur' ? 'chauffeur' : path === '/delivery' ? 'delivery' : path === '/list-your-car' ? 'owner' : path === '/car-rental/monthly' ? 'monthly' : null;
       if (own) await expect(promo.locator(`a[data-service="${own}"]`), path).toHaveCount(0);
@@ -191,7 +198,8 @@ test('the new landing pages: the add-on\'s own price card, the copy as folds, FA
 test('llms.txt, the sitemap and the footer know the tracker and the services', async ({ page, request }) => {
   const t = await (await request.get('/llms.txt')).text();
   expect(t).toContain('## GPS tracker and kill switch');
-  expect(t).toMatch(/Monthly price per car: \$25 a month per car for 1 to 2 cars, \$20 for 3 to 9 cars and \$15 for 10 cars or more/);
+  for (const line of ['Price of the tracker, CarmaCars vehicle owners: Free', 'Price of the tracker, the first 100 pre-orders: Free', 'Price of the tracker, Pre-orders after that: $90', 'Price of the tracker, After launch: $175', 'Install: $150 once per car to install']) expect(t, line).toContain(line);
+  expect(t).not.toMatch(/a month per car|\b250\b/);
   expect(t).toMatch(/not sold from stock today/);
   expect(t).toMatch(/\/trackers\/kill-switch-for-car\)/);
   expect(t).not.toMatch(/\{\{|[–—]|\/gps-tracker\)/);
