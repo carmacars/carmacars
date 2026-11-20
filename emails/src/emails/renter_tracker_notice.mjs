@@ -29,9 +29,9 @@ export default {
     event_title: 'Speeding over 180 km/h',
     event_what: 'The Tracker in your 2024 Honda Civic Sport recorded 187 km/h on Sat, Nov 21, 2026 at 2:14 pm.',
     event_when: 'Sat, Nov 21, 2026 at 2:14 pm',
-    event_fee: 'A speeding charge of $500.00 plus HST applies (over 180 km/h). It is taken from your Deposit first, and you get the Tracker\'s time, place and speed with it.',
+    event_fee: 'A speeding charge of $500.00 plus HST applies (over 180 km/h). One event is one charge, at the highest limit reached. It is taken from your Deposit first, and you get the Tracker\'s time, place and speed with it.',
     event_clause: 'Rental agreement: 10.5 Speeding charges.',
-    event_ask: 'Please slow down. Driving faster than 180 km/h is never allowed, and each new record is a new charge.',
+    event_ask: 'Please slow down. Driving faster than 180 km/h is never allowed, and a later event is a new charge.',
     event_short: '187 km/h recorded. A $500.00 charge applies (agreement 10.5). Please slow down.',
   },
 };

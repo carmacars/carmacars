@@ -294,7 +294,7 @@ const HINTS: Record<string, string> = {
   non_return_fee_cents: 'Rental agreement 10.6: not back by the final late notice deadline. The daily rate, per-day fees and late fees keep running until recovery. Company revenue, not the owner\'s.',
   fee_evidence_gate: 'On: a fee whose evidence is missing waits ("needs evidence"), a To do asks Field, Fleet or Finance for exactly what is missing, and the fee is not charged until it is attached or an Admin overrides with the reason.',
   clean_evidence_min_photos: 'When the car is not clean, completing the return needs this many guided photos (ash, seats, headliner, cupholders, floor) and a written description.',
-  speeding_180_fee_cents: 'Rental agreement 10.5: one charge per tracker reading above the limit, billed from the deposit first, with the tracker\'s record. Each limit is its own charge.',
+  speeding_180_fee_cents: 'Rental agreement 10.5: one speeding event is one charge, at the highest limit reached, billed from the deposit first, with the tracker\'s record. The limits are not added together.',
   offline_deposit_double: 'On: a deposit paid by e-Transfer or cash is the deposit times the multiplier below (a debit or prepaid card has its own). The renter sees both amounts before paying; staff see it when they record it.',
   offline_deposit_multiplier: '2 makes a $300 deposit $600 by e-Transfer or cash. An amount set on one booking (Debit deposit) wins.',
   tips_on: 'On: the pay page, the receipt after the return and the after-trip email offer a tip; staff record cash and e-Transfer tips on Money.',

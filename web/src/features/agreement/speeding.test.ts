@@ -7,9 +7,13 @@ import { AGREEMENT_PARTS, AGREEMENT_TEMPLATE_VERSION } from './source.generated.
 test('the rental terms charge speeding over 180, 220 and 300 km/h, each as its own charge', () => {
   const terms = AGREEMENT_PARTS['2'].body;
   assert.match(terms, /\*\*10\.5 Speeding charges\.\*\*/);
-  assert.match(terms, /each limit is a separate charge/);
+  // r48 TRK (3323, the owner on Nov 20): one event is one charge, at the highest limit reached
+  assert.match(terms, /one speeding charge for that event, at the highest limit reached/);
+  assert.match(terms, /one event is one charge/);
+  assert.doesNotMatch(terms, /each limit is a separate charge/);
   assert.match(terms, /from the Deposit first/);
   const fees = AGREEMENT_PARTS['3'].body;
   for (const limit of ['180', '220', '300']) assert.match(fees, new RegExp(`\\| Speeding charge, over ${limit} km/h \\|`));
   assert.notEqual(AGREEMENT_TEMPLATE_VERSION, 'rental-v3-c194f2e4d1');
+  assert.notEqual(AGREEMENT_TEMPLATE_VERSION, 'rental-v3-6a79e5ecb2', 'a new version again for the one-charge wording');
 });
