@@ -53,9 +53,11 @@ create table test.dg (k text primary key, v jsonb);
 create function test.dgv(p text) returns jsonb language sql stable as $$ select v from test.dg where k = p $$;
 
 -- ================================================================ 1. settings
-select test.eq('settings: a 7-day toll window, the 30-day hold-back limit kept, holds captured 36 hours before they lapse, automatic capture off (0541: holds stay holds), collection on',
+select test.eq('settings: deposits kept 30 days after the return (r48 MR, 3101; was a 7-day toll window), the 30-day hold-back limit kept, holds captured 36 hours before they lapse, automatic capture off (0541: holds stay holds), collection on',
   (select deposit_toll_window_days || '/' || deposit_holdback_days || '/' || deposit_hold_capture_hours || '/' || deposit_auto_capture || '/' || balance_auto_collect from program_settings limit 1),
-  '7/30/36/false/true');
+  '30/30/36/false/true');
+-- the window's rules below are written for a 7-day window (put back to the default at the end of this file)
+update program_settings set deposit_toll_window_days = 7;
 select test.eq('the cron gate asks about deposits', (public.server_jobs_due() ? 'deposits'), true);
 
 -- ================================================================ 2. inside the toll window
@@ -324,3 +326,6 @@ select test.eq('the new tables have row-level security', (select count(*) from p
 
 -- back to the default (0541) for the files after this one
 update program_settings set deposit_auto_capture = false;
+
+-- the default window again for the files after this one (r48 MR: 30 days)
+update program_settings set deposit_toll_window_days = 30;
