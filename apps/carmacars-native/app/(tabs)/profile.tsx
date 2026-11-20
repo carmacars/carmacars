@@ -56,6 +56,12 @@ export default function Profile() {
         <Button label="Edit my details on carmacars.ca" variant="ghost" onPress={() => site('/account/profile')} />
       </Card>
 
+      <H2>Notifications</H2>
+      <Card>
+        <Small>Each kind of notification by push, email and text, quiet hours, and instant or a daily or weekly summary.</Small>
+        <Button label="Notification preferences" variant="outline" onPress={() => router.push('/settings/notifications' as never)} testID="notify-prefs-open" />
+      </Card>
+
       <H2>This phone</H2>
       <Card>
         {me?.push_available ? (<>

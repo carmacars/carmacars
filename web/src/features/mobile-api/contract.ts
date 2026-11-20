@@ -93,6 +93,15 @@ export const ROUTES = {
   'me.pushOff': send('POST', '/me/push/off', obj({ token: str({ min: 20, max: 4096, trim: false }) })),
   'me.pushTest': bare('POST', '/me/push/test'),
   'me.pushTopics': send('PUT', '/me/push/topics', obj({ topics: arr(oneOf(...TOPICS), { max: 20 }) })),
+  // r48 (3260): each kind of notification by channel, quiet hours, instant or a summary (?portal= one of the person's portals)
+  'me.notifyPrefs': get('/me/notification-preferences'),
+  'me.notifyPrefsSave': send('PUT', '/me/notification-preferences', obj({ portal: opt(oneOf('renter', 'owner', 'investor', 'staff', 'admin')),
+    type: opt(str({ re: /^[a-z][a-z0-9_]{2,40}$/, what: 'the kind of notification' })), channel: opt(oneOf('push', 'email', 'text')), on: opt(bool),
+    quiet_on: opt(bool), quiet_from: opt(num({ int: true, min: 0, max: 1439 })), quiet_until: opt(num({ int: true, min: 0, max: 1439 })),
+    cadence: opt(oneOf('instant', 'daily', 'weekly')), all_off: opt(bool) })),
+  // r48 (3261, 3262): the staff member's My rewards and the owner's Rewards, as the portals show them
+  'staff.rewards': get('/staff/rewards'),
+  'owner.rewards': get('/owner/rewards'),
   notices: get('/notices'),
   'notices.read': send('POST', '/notices/read', obj({ ids: opt(arr(uuid(), { max: 200 })) })),
   // ---- renter

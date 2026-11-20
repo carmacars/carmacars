@@ -13,6 +13,7 @@ import { SelfProfile } from '@/features/portal/SelfProfile';
 import { NotifyChannelCard } from '@/features/portal/NotifyChannel';
 import { StaffDigestChoice } from '@/features/notifications/StaffDigestChoice';
 import { PushAlerts } from '@/features/push/PushAlerts';
+import { NotifyPanel } from '@/features/notifications/NotifyPanel';
 import { AppProfile } from '@/features/app-shell/AppProfile';
 
 export const dynamic = 'force-dynamic';
@@ -37,6 +38,8 @@ export default async function VaProfile() {
         {nc && <NotifyChannelCard reach={nc} className="pt-card stack" />}
         <StaffDigestChoice userId={user.id} ops refresh={['/staff/profile']} className="pt-card stack" />
         <PushAlerts userId={user.id} portal="staff" className="pt-card stack" />
+        {/* r48 (3260): each kind of notification by channel, quiet hours, instant or a summary */}
+        <NotifyPanel userId={user.id} portal="staff" idp="np-staff" />
         <AppProfile userId={user.id} lock className="pt-card stack" />
         <section className="pt-card stack" aria-labelledby="sec-t"><h2 className="d4" id="sec-t">Sign-in</h2>
           <p className="row"><Link prefetch={false} className="btn btn--ghost btn--sm" href="/two-step/setup?next=/staff/profile">Set up two-step sign-in</Link>

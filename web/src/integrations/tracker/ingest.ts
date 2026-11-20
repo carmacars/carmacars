@@ -22,6 +22,23 @@ export const MAX_POINTS = 5000;
 export interface Point {
   device: string; at: string | number; lat: number; lng: number;
   speed?: number | null; heading?: number | null; ignition?: boolean | null; odometer?: number | null; battery?: number | null; power?: boolean | null; fuel?: number | null;
+  /** r48 (3264): something the tracker felt or read at this point: an impact, tampering, a vehicle health warning (each an
+   *  alert for staff and the car's owner), hard braking or hard acceleration (counted in the owner's weekly summary) */
+  event?: TrackerEvent; detail?: string;
+}
+export type TrackerEvent = 'impact' | 'tamper' | 'health' | 'harsh_brake' | 'harsh_accel';
+const EVENTS: TrackerEvent[] = ['impact', 'tamper', 'health', 'harsh_brake', 'harsh_accel'];
+/** A tracker's own words for an event, as the generic name (crash and collision are an impact, a fault code is health). */
+export function toEvent(v: unknown): TrackerEvent | null {
+  if (typeof v !== 'string') return null;
+  const e = v.trim().toLowerCase().replace(/[\s-]+/g, '_');
+  if ((EVENTS as string[]).includes(e)) return e as TrackerEvent;
+  if (/^(crash|collision|shock|accident)$/.test(e)) return 'impact';
+  if (/^(tampering|removed|removal|case_open)$/.test(e)) return 'tamper';
+  if (/^(dtc|mil|fault|engine_light|check_engine)$/.test(e)) return 'health';
+  if (/^(hard_brak(e|ing)|harsh_braking|sharp_brak(e|ing))$/.test(e)) return 'harsh_brake';
+  if (/^(hard_accel(eration)?|harsh_acceleration|rapid_accel(eration)?)$/.test(e)) return 'harsh_accel';
+  return null;
 }
 export interface Batch { points: Point[] }
 
@@ -73,8 +90,10 @@ export function toPoint(x: unknown): Point | null {
   const lat = num(o.lat ?? o.latitude), lng = num(o.lng ?? o.lon ?? o.longitude);
   const at = typeof o.at === 'string' || typeof o.at === 'number' ? o.at : typeof o.time === 'string' || typeof o.time === 'number' ? o.time : null;
   if (!/^[A-Za-z0-9._:-]{3,64}$/.test(device) || lat === null || lng === null || at === null || Math.abs(lat) > 90 || Math.abs(lng) > 180 || (lat === 0 && lng === 0)) return null;
+  const event = toEvent(o.event ?? o.alarm);
+  const detail = event && typeof o.detail === 'string' ? o.detail.replace(/[\u0000-\u001f]+/g, ' ').trim().slice(0, 200) : '';
   return { device, at, lat, lng, speed: num(o.speed), heading: num(o.heading ?? o.course), ignition: bool(o.ignition ?? o.acc), odometer: num(o.odometer),
-    battery: num(o.battery), power: bool(o.power), fuel: num(o.fuel) };
+    battery: num(o.battery), power: bool(o.power), fuel: num(o.fuel), ...(event ? { event, ...(detail ? { detail } : {}) } : {}) };
 }
 
 export interface Adapter { readonly name: string; parse(body: unknown): Point[] }

@@ -5,6 +5,25 @@ import type { Field } from './Act';
 const nice = (k: string) => { const s = k.replace(/_(cents|bps)$/, '').replace(/_/g, ' '); return s.charAt(0).toUpperCase() + s.slice(1); };
 // settings whose meaning needs a sentence (0042: one turnaround between trips; the tolls, plates and vision settings)
 const LABELS: Record<string, string> = {
+  // r48 RW (3260 to 3264)
+  staff_perk_enabled: 'Staff rewards on', staff_perk_base_bps: 'Discount on a staff member\'s own rentals (once the academy and the agreement are done)',
+  staff_perk_days_per_free_day: 'Sales: rental days booked for 1 free rental day', staff_perk_handovers_per_free_day: 'Field: handovers for 1 free rental day',
+  staff_perk_handover_kinds: 'Field job kinds that count as a handover', staff_perk_silver_days: 'Silver: rental days booked in a month', staff_perk_silver_bps: 'Silver: discount',
+  staff_perk_gold_days: 'Gold: rental days booked in a month', staff_perk_gold_bps: 'Gold: discount', staff_perk_gold_bonus_days: 'Gold: bonus free days that month',
+  staff_perk_top_seller_days: 'Top seller of the month: free days (2 is a weekend)', staff_perk_max_ahead_hours: 'A staff perk rental is picked up within this many hours of booking',
+  staff_perk_expiry_months: 'A free day ends after (months)', staff_perk_expiry_notice_days: 'Reminder before a free day ends (days)', staff_perk_count_from: 'Rental days and handovers count from',
+  owner_reward_enabled: 'Owner rewards on', owner_reward_fleet_bps: 'Fleet discount while the owner\'s own car is not available', owner_reward_ff_bps: 'Friends and family: off a first rental',
+  owner_reward_refer_cents: 'Refer an owner: the credit', owner_reward_refer_live_days: 'Refer an owner: days the new car must be live', owner_reward_merch_months: 'Merch kit: months in the program',
+  owner_reward_merch_premium_months: 'Premium merch kit: months in the program', owner_reward_merch_cost_cents: 'Merch kit: what it costs us (posted when it ships)',
+  owner_reward_merch_premium_cost_cents: 'Premium merch kit: what it costs us', owner_reward_birthday_cents: 'Birthday rental credit', owner_reward_birthday_valid_days: 'Birthday credit: days to use it',
+  owner_reward_upgrade_default_cents: 'Free upgrade: the amount offered when approving',
+  social_cal_enabled: 'Content calendar on (off: the weekly drafts as before)', social_cal_mix: 'Posts a week by format (reel, carousel, photo, story)', social_cal_pillars: 'Content pillars and their weight',
+  social_cal_times: 'Best times to post on each channel (Toronto time)', social_cal_hashtags: 'Hashtags on every post', social_cal_music: 'Music suggestion per pillar',
+  social_cal_generate_day: 'Day of the month the next month is written', social_cal_remind_days: 'Remind when a post is still unapproved this many days before its day',
+  notify_pref_digest_hour: 'Daily and weekly summaries go out at this hour (Toronto)', notify_pref_weekly_dow: 'Weekly summary: day of the week (1 Monday ... 7 Sunday)',
+  notify_pref_quiet_from_minute: 'Quiet hours a person starts with: from (minute of the day; 1260 is 9:00 pm)', notify_pref_quiet_until_minute: 'Quiet hours a person starts with: until (480 is 8:00 am)',
+  tracker_owner_alerts_enabled: 'Owner tracker alerts on (they also wait for Trackers available)', tracker_owner_speed_kmh: 'Speed an owner is told about (km/h)',
+  tracker_owner_night_from_hour: 'Weekly driving summary: late night from this hour', tracker_owner_night_until_hour: 'Weekly driving summary: late night until this hour',
   // r48 MR (3101, 3102): deposits kept before release, speeding charges
   deposit_toll_window_days: 'Days a deposit is kept after the return before it is released',
   speeding_180_fee_cents: 'Speeding charge, over 180 km/h (before HST)', speeding_220_fee_cents: 'Speeding charge, over 220 km/h (before HST)',

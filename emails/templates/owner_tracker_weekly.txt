@@ -1,0 +1,42 @@
+CarmaCars  |  {{week_label}}
+
+========================================
+
+[Driving summary]
+How your cars were driven
+
+Hi {{first_name}}, here is last week ({{week_label}}) from your trackers.
+
+{{#each cars}}
+{{car_name}}
+------------------------
+
+Kilometres driven: {{km}}
+Allowance for the rental days: {{allowance}}
+Against the allowance: {{over}}
+Speeding alerts: {{speeding}}
+Over {{speed_limit}} km/h: {{over_limit}}
+Hard braking: {{hard_braking}}
+Hard acceleration: {{hard_acceleration}}
+Late-night trips: {{late_night}}
+
+{{/each}}
+
+Open your cars:
+https://carmacars.ca/owner/vehicles
+
+Kilometres over the allowance and speeding are charged to the renter under the rental agreement. Switch this summary off under Account, Notifications.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

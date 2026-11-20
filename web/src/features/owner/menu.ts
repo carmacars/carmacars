@@ -1,13 +1,15 @@
 import type { MenuLink, PageTab } from '../portal-nav/tabs.ts';
 
-// The owner portal's menu (r27 portals): five links, the same for a partner rental company (its Money has no
-// invoices). Cars holds the cars and their bookings; Money the statements, payouts and invoices on one page; Account the
+// The owner portal's menu (r27 portals): five links, and Rewards since r48; a partner rental company has the same menu
+// without Rewards (its Money has no invoices). Cars holds the cars and their bookings; Money the statements, payouts and invoices on one page; Account the
 // profile, banking and notifications on one page. Pure: OwnerNav and the unit tests read it.
 export const OWNER_MENU: MenuLink[] = [
   { href: '/owner', label: 'Home', icon: 'home', exact: true },
   { href: '/owner/vehicles', label: 'Cars', icon: 'car', also: ['/owner/bookings'] },
   { href: '/owner/money', label: 'Money', icon: 'card', also: ['/owner/statements', '/owner/payouts', '/owner/invoices'] },
   { href: '/owner/documents', label: 'Documents', icon: 'doc', also: ['/owner/sign', '/owner/review', '/owner/partner-agreement'] },
+  // r48 (3262): the owner's rewards (not for a partner rental company: OwnerNav leaves it out)
+  { href: '/owner/rewards', label: 'Rewards', icon: 'star' },
   { href: '/owner/account', label: 'Account', icon: 'user', count: 'unread', also: ['/owner/profile', '/owner/banking', '/owner/notifications'] }
 ];
 

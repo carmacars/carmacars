@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readBatch, sign, signedHeaders, toPoint, verify } from './ingest.ts';
+import { readBatch, sign, signedHeaders, toEvent, toPoint, verify } from './ingest.ts';
 
 const KEY = 'trk_' + 'a'.repeat(64);
 const body = JSON.stringify({ points: [{ device: '860000000000001', at: '2026-11-01T15:00:00Z', lat: 43.65, lng: -79.38, speed: 50 }] });
@@ -30,4 +30,20 @@ test('the generic JSON: aliases accepted, junk left out', () => {
   assert.ok(r.ok && r.points.length === 1 && r.sent === 2);
   assert.deepEqual(readBatch('nope'), { ok: false, error: 'not JSON' });
   assert.deepEqual(readBatch('{}', 'jt808'), { ok: false, error: 'unknown format jt808' });
+});
+
+test('r48 (3264): a point may carry an event (an impact, tampering, a health warning, hard braking or acceleration); other words are left out', () => {
+  assert.equal(toEvent('Impact'), 'impact');
+  assert.equal(toEvent('crash'), 'impact');
+  assert.equal(toEvent('check engine'), 'health');
+  assert.equal(toEvent('hard braking'), 'harsh_brake');
+  assert.equal(toEvent('harsh_accel'), 'harsh_accel');
+  assert.equal(toEvent('tampering'), 'tamper');
+  assert.equal(toEvent('party'), null);
+  assert.equal(toEvent(7), null);
+  const p = toPoint({ device: 'SIM-0001', at: 1793545200, lat: 43.7, lng: -79.4, event: 'collision', detail: 'Front\nleft  ' + 'x'.repeat(300) })!;
+  assert.equal(p.event, 'impact');
+  assert.ok(p.detail!.startsWith('Front left') && p.detail!.length <= 200);
+  const plain = toPoint({ device: 'SIM-0001', at: 1793545200, lat: 43.7, lng: -79.4, event: 'party', detail: 'ignored' })!;
+  assert.ok(!('event' in plain) && !('detail' in plain));
 });

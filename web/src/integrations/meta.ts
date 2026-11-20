@@ -74,3 +74,37 @@ export async function publishInstagramReel(cfg: MetaConfig, p: { caption: string
   try { url = (await call(f, cfg, id, { fields: 'permalink' }, 'GET')).permalink as string ?? null; } catch { url = null; }
   return { postId: id, url };
 }
+
+/** r48 (3263, the content calendar): what people did with a post Meta published, read back to lean the next month's
+ *  calendar. Instagram: the media's insights (reach, likes, comments, shares, saved, views). The Facebook Page: the
+ *  post's reactions, comments and shares, and its reach where the token may read insights. A number Meta does not give
+ *  for a post is left out (never guessed); a post Meta no longer has throws. */
+export interface PostStats { views?: number; reach?: number; likes?: number; comments?: number; shares?: number; saves?: number }
+const count = (v: unknown): number | undefined => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.round(v) : undefined);
+export async function postInsights(cfg: MetaConfig, p: { channel: 'facebook_page' | 'instagram'; postId: string; video?: boolean }, f: typeof fetch = fetch): Promise<PostStats> {
+  const out: PostStats = {};
+  if (p.channel === 'instagram') {
+    const d = await call(f, cfg, `${p.postId}/insights`, { metric: 'reach,likes,comments,shares,saved,views' }, 'GET');
+    for (const row of (Array.isArray(d.data) ? d.data : []) as Array<{ name?: string; values?: Array<{ value?: unknown }>; total_value?: { value?: unknown } }>) {
+      const v = count(row.total_value?.value ?? row.values?.[0]?.value);
+      if (v === undefined) continue;
+      if (row.name === 'saved') out.saves = v; else if (row.name === 'reach' || row.name === 'likes' || row.name === 'comments' || row.name === 'shares' || row.name === 'views') out[row.name] = v;
+    }
+    return out;
+  }
+  const d = await call(f, cfg, p.postId, { fields: 'reactions.summary(true).limit(0),comments.summary(true).limit(0),shares' }, 'GET') as {
+    reactions?: { summary?: { total_count?: unknown } }; comments?: { summary?: { total_count?: unknown } }; shares?: { count?: unknown } };
+  out.likes = count(d.reactions?.summary?.total_count);
+  out.comments = count(d.comments?.summary?.total_count);
+  out.shares = count(d.shares?.count) ?? 0;
+  try {
+    const i = await call(f, cfg, `${p.postId}/insights`, { metric: p.video ? 'post_impressions_unique,post_video_views' : 'post_impressions_unique' }, 'GET');
+    for (const row of (Array.isArray(i.data) ? i.data : []) as Array<{ name?: string; values?: Array<{ value?: unknown }> }>) {
+      const v = count(row.values?.[0]?.value);
+      if (v === undefined) continue;
+      if (row.name === 'post_impressions_unique') out.reach = v; else if (row.name === 'post_video_views') out.views = v;
+    }
+  } catch { /* a token without read_insights still gives the reactions, comments and shares */ }
+  for (const k of Object.keys(out) as Array<keyof PostStats>) if (out[k] === undefined) delete out[k];
+  return out;
+}

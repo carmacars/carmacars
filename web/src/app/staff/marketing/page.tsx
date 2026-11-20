@@ -24,6 +24,8 @@ export default async function StaffMarketing({ searchParams }: { searchParams: P
     <p className="small"><Link prefetch={false} className="link" href="/staff/marketing/emails" data-testid="staff-marketing-emails-link">Email campaigns: the audience, the weekly email and the new car emails</Link></p>
     {/* release 36: the event pages, the same list as Admin > Marketing > Event pages */}
     <EventsAdmin rows={events} refresh={['/staff/marketing']} />
+    {/* r48 (3263): the month of social posts, approved here before anything is published */}
+    <p className="small"><Link prefetch={false} className="link" href="/staff/marketing/calendar" data-testid="staff-content-calendar-link">Content calendar: the month of posts to approve</Link></p>
     {/* r36b (2220): the social post scheduler, the same as Admin > Marketing > Social drafts */}
     <SocialQueue />
   </>;

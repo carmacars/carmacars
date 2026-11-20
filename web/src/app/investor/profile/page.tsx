@@ -8,6 +8,7 @@ import { auth } from '@/lib/auth';
 import { notifyReach } from '@/server/sign-in-settings';
 import { NotifyChannelCard } from '@/features/portal/NotifyChannel';
 import { PushAlerts } from '@/features/push/PushAlerts';
+import { NotifyPanel } from '@/features/notifications/NotifyPanel';
 import { AppProfile } from '@/features/app-shell/AppProfile';
 import { ChangeEmail } from '@/features/portal/ChangeEmail';
 import { SignInSettings } from '@/features/portal/SignInSettings';
@@ -41,6 +42,8 @@ export default async function Profile() {
       {si ? <SignInSettings state={si} /> : <section className="pt-card"><ChangeEmail current={h.investor.email} /></section>}
       {nc && <NotifyChannelCard reach={nc} />}
       <PushAlerts userId={user.id} portal="investor" />
+      {/* r48 (3260): each kind of notification by channel, quiet hours, instant or a summary */}
+      <NotifyPanel userId={user.id} portal="investor" idp="np-investor" />
       <AppProfile userId={user.id} lock />
       <Requests investments={h.investments.map((x) => ({ id: x.id, label: `${money(x.invested_amount_cents, { cents: true })} from ${x.investment_date}` }))} effective={eff} />
       <p className="small muted">Your agreement, schedules and statements are under <Link className="link" href="/investor/documents?tab=files">Documents</Link>.</p>
