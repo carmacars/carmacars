@@ -177,7 +177,7 @@ create or replace function app.landing_queries(p_path text, p_limit integer defa
 language sql stable security definer set search_path = public, app as $$
   select coalesce(jsonb_agg(jsonb_build_object('query', q.query, 'clicks', q.clicks, 'impressions', q.impressions) order by q.clicks desc, q.impressions desc), '[]'::jsonb)
     from (select g.query, g.clicks, g.impressions from app.gsc_page_queries g
-           where p_path is not null and regexp_replace(g.page, '^https?://[^/]+', '') = p_path
+           where p_path is not null and g.page = p_path
              and g.window_end = (select max(window_end) from app.gsc_page_queries)
            order by g.clicks desc, g.impressions desc limit greatest(1, least(coalesce(p_limit, 5), 20))) q
 $$;
@@ -204,6 +204,7 @@ alter table leads
 comment on column leads.merged_into is 'Duplicate leads (3230): the lead this one was merged into; a merged lead is closed and listed nowhere.';
 comment on column leads.not_duplicate_of is 'Duplicate leads (3230): leads a person marked as someone else (same phone or email, a different person or need): never offered for merging again.';
 create index if not exists leads_merged_into_fk on leads (merged_into);
+create index if not exists leads_merged_by_fk on leads (merged_by) where merged_by is not null;
 create index if not exists leads_phone_key_idx on leads (app.phone_key(phone)) where phone is not null;
 
 alter table program_settings

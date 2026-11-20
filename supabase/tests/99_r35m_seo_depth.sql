@@ -18,8 +18,8 @@ select test.ok('a synonym still names its term''s page (not a thin-page rule)', 
   select 1 from place_terms t, places p where t.canonical_slug is not null and app.place_hub_indexable(p, t, true, 1) limit 1));
 
 -- ---------------------------------------------------------------- the content epoch
--- 2004 (release 36) moved the template on again: depth-1 or a later one
-select test.ok('the epoch carries this release''s template (or a later one)', (select template in ('depth-1', 'r36-1') from app.seo_content_epoch));
+-- 2004 (release 36) and 3232 (release 48) moved the template on again: depth-1 or a later one
+select test.ok('the epoch carries this release''s template (or a later one)', (select template in ('depth-1', 'r36-1', 'r48-1') from app.seo_content_epoch));
 update app.seo_content_epoch set changed_at = now() - interval '3 days' where id;
 update program_settings set seo_ai_daily_neurons = seo_ai_daily_neurons where id = (app.settings()).id;
 select test.ok('a settings save that changes no page fact keeps the epoch', (select changed_at < now() - interval '2 days' from app.seo_content_epoch));

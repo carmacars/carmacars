@@ -45,6 +45,7 @@ comment on column program_settings.tracker_product_tiers is 'GPS tracker product
 comment on column program_settings.tracker_product_launch_note is 'GPS tracker product (3231): the words shown beside "Join the waitlist" while trackers cannot be installed yet (trackers_available off). Never a date we cannot keep.';
 
 -- the install price ($150 once per car, the owner, Nov 20) and what the tracker does, where the release 36 defaults still stand
+alter table program_settings alter column tracker_product_install_cents set default 15000;
 update program_settings set tracker_product_install_cents = 15000 where tracker_product_install_cents is null or tracker_product_install_cents = 10000;
 update program_settings set tracker_product_features = '[
     {"title": "Live GPS location", "text": "See where the car is on a map from your phone or computer, with a reading at least every {{trackerMinutes}} minutes while it moves. You see it, and so do we."},

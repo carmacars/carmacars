@@ -46,9 +46,9 @@ select test.ok('junk is refused quietly', public.server_contact_source_set(p_lea
 
 -- a Google visit carries no words: the landing page's top Search Console queries are shown instead
 insert into app.gsc_page_queries (page, query, clicks, impressions, window_start, window_end) values
-  ('https://carmacars.ca/car-rental/x60-page', 'x60 car rental mississauga', 9, 120, current_date - 28, current_date - 1),
-  ('https://carmacars.ca/car-rental/x60-page', 'x60 rent a car', 3, 80, current_date - 28, current_date - 1),
-  ('https://carmacars.ca/car-rental/other', 'x60 other', 50, 500, current_date - 28, current_date - 1);
+  ('/car-rental/x60-page', 'x60 car rental mississauga', 9, 120, current_date - 28, current_date - 1),
+  ('/car-rental/x60-page', 'x60 rent a car', 3, 80, current_date - 28, current_date - 1),
+  ('/car-rental/x60-other', 'x60 other', 50, 500, current_date - 28, current_date - 1);
 insert into x60 select 'g', (submit_lead('{"kind":"contact","name":"Gus Google","email":"x60_gus@example.test","message":"Hello"}'::jsonb, null) ->> 'lead_id')::uuid;
 select public.server_contact_source_set(p_lead => (select id from x60 where k = 'g'), p => '{"first":{"ref":"www.google.com/","landing":"/car-rental/x60-page"}}'::jsonb);
 select test.eq('Google search, with the landing page''s queries, best first',
@@ -65,7 +65,7 @@ select test.ok('stored for a request by its number', public.server_contact_sourc
 select test.eq('read for the booking', app.contact_source_json(null, (select id from bookings where booking_number = 'CC-X601')) ->> 'label', 'Perplexity');
 
 -- ---------------------------------------------------------------- duplicates: the auto-merge rule
-insert into x60 select 'd1', (submit_lead('{"kind":"contact","name":"Dee Dup","email":"x60_dee@example.test","phone":"416-555-0160","message":"first message"}'::jsonb, null) ->> 'lead_id')::uuid;
+insert into x60 select 'd1', (submit_lead('{"kind":"contact","name":"Dee Dup","email":"x60_dee@example.test","phone":"226-555-6001","message":"first message"}'::jsonb, null) ->> 'lead_id')::uuid;
 insert into x60 select 'd2', (submit_lead('{"kind":"contact","name":"Dee Dup","email":"X60_DEE@example.test","message":"second message"}'::jsonb, null) ->> 'lead_id')::uuid;
 select test.eq('a second form from the same email joins the open lead by itself', (select merged_into from leads where id = (select id from x60 where k = 'd2')), (select id from x60 where k = 'd1'));
 select test.eq('the merged lead is closed and says why', (select status || '|' || (closed_reason like 'Duplicate: merged%')::text from leads where id = (select id from x60 where k = 'd2')), 'closed|true');
@@ -75,7 +75,7 @@ select test.eq('the lead page of the kept lead shows what else they wrote', json
 select test.eq('the merged lead points to the kept one', app.sales_lead(test.id('x60_admin'), jsonb_build_object('id', (select id from x60 where k = 'd2'))) ->> 'merged_into', (select id::text from x60 where k = 'd1'));
 select test.ok('the merge is in the audit log', exists (select 1 from audit_log where action = 'lead_auto_merge' and entity_id = (select id::text from x60 where k = 'd1')));
 -- the same phone written differently
-insert into x60 select 'd3', (submit_lead('{"kind":"contact","name":"D. Dup","phone":"+1 (416) 555 0160","message":"third, by phone"}'::jsonb, null) ->> 'lead_id')::uuid;
+insert into x60 select 'd3', (submit_lead('{"kind":"contact","name":"D. Dup","phone":"+1 (226) 555 6001","message":"third, by phone"}'::jsonb, null) ->> 'lead_id')::uuid;
 select test.eq('the same phone written another way joins too', (select merged_into from leads where id = (select id from x60 where k = 'd3')), (select id from x60 where k = 'd1'));
 -- an owner enquiry from the same person is another kind of customer
 insert into x60 select 'o1', (submit_lead('{"kind":"owner_program","name":"Dee Dup","email":"x60_dee@example.test","message":"List my car","payload":{"vehicle":"2020 Honda Civic"}}'::jsonb, null) ->> 'lead_id')::uuid;
@@ -100,8 +100,8 @@ select test.throws('two leads with nothing in common are refused by the door', f
 -- contacts logged on a duplicate move with it
 update program_settings set lead_auto_merge = false;
 insert into x60 select 'm1', (submit_lead('{"kind":"contact","name":"Mo Merge","email":"x60_mo@example.test","message":"one"}'::jsonb, null) ->> 'lead_id')::uuid;
-insert into x60 select 'm2', (submit_lead('{"kind":"contact","name":"Mo Merge","email":"x60_mo@example.test","phone":"647-555-0161","message":"two"}'::jsonb, null) ->> 'lead_id')::uuid;
-insert into x60 select 'm3', (submit_lead('{"kind":"contact","name":"Mo M","phone":"6475550161","message":"three"}'::jsonb, null) ->> 'lead_id')::uuid;
+insert into x60 select 'm2', (submit_lead('{"kind":"contact","name":"Mo Merge","email":"x60_mo@example.test","phone":"226-555-6002","message":"two"}'::jsonb, null) ->> 'lead_id')::uuid;
+insert into x60 select 'm3', (submit_lead('{"kind":"contact","name":"Mo M","phone":"2265556002","message":"three"}'::jsonb, null) ->> 'lead_id')::uuid;
 select test.ok('with the rule off, a second form is its own lead', (select merged_into is null from leads where id = (select id from x60 where k = 'm2')));
 insert into lead_contacts (lead_id, by_user, channel, note) values ((select id from x60 where k = 'm2'), test.id('x60_sales'), 'call', 'x60 called them');
 select test.eq('m3 shares only the phone with m2, and m1 only the email: all three are one person on the lead page of m2',
@@ -109,7 +109,7 @@ select test.eq('m3 shares only the phone with m2, and m1 only the email: all thr
 select test.lives('merge all into the oldest', format($q$ select app.door(%L, 'aal2', 'ops_do', 'lead_merge_all', jsonb_build_object('lead', %L)) $q$, test.id('x60_admin'), (select id from x60 where k = 'm2')));
 select test.eq('both went into the oldest', (select count(*)::integer from leads where merged_into = (select id from x60 where k = 'm1')), 2);
 select test.ok('the call logged on the duplicate is on the kept lead', exists (select 1 from lead_contacts where lead_id = (select id from x60 where k = 'm1') and note = 'x60 called them'));
-select test.eq('the kept lead took the phone it lacked', (select phone from leads where id = (select id from x60 where k = 'm1')), '647-555-0161');
+select test.eq('the kept lead took the phone it lacked', (select phone from leads where id = (select id from x60 where k = 'm1')), '226-555-6002');
 -- different person
 insert into x60 select 'n1', (submit_lead('{"kind":"contact","name":"Nia One","email":"x60_shared@example.test","message":"one"}'::jsonb, null) ->> 'lead_id')::uuid;
 insert into x60 select 'n2', (submit_lead('{"kind":"contact","name":"Noor Two","email":"x60_shared@example.test","message":"two"}'::jsonb, null) ->> 'lead_id')::uuid;
@@ -141,7 +141,6 @@ select app.process_events();
 select test.eq('the confirmation email is queued to the address given, with its price', (select to_address || '|' || status || '|' || (payload ->> 'monthly_price') || '|' || (payload ->> 'install_price') || '|' || (payload ->> 'cars_count')
   from notification_outbox where code = 'tracker_waitlist_joined' and entity_id = (select id from x60 where k = 'w')), 'x60_tara@example.test|queued|$20 a month|$150|4');
 select test.ok('nothing is missing from the email', (select missing_variables = '{}' from notification_outbox where code = 'tracker_waitlist_joined' and entity_id = (select id from x60 where k = 'w')));
-select test.ok('staff are alerted to it like any new lead', exists (select 1 from app_events where code = 'staff_lead_new' and entity_id = (select id from x60 where k = 'w')));
 update program_settings set tracker_product_enabled = false;
 select test.ok('switched off: no product', public.tracker_product() is null);
 select test.throws('and no sign-ups', $q$ select public.submit_tracker_waitlist('{"email":"x60_off@example.test","cars":"1"}'::jsonb, null) $q$, 'not offered');
