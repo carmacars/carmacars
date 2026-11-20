@@ -12,12 +12,12 @@ export function order(issues: DataIssue[]): DataIssue[] {
 export const closable = (issues: DataIssue[]) => issues.every((i) => i.severity !== 'blocking');
 
 /** The inputs a fix asks for. */
-export function inputsOf(i: DataIssue): Array<{ name: string; label: string; type: 'text' | 'date' | 'tel' | 'check'; value?: string }> {
+export function inputsOf(i: DataIssue): Array<{ name: string; label: string; type: 'text' | 'address' | 'date' | 'tel' | 'check'; value?: string }> {
   const k = i.fix.kind;
   if (k === 'agreement') return [
     ...(i.fix.fields?.includes('licence') ? [{ name: 'licence_number', label: 'Driver\'s licence number', type: 'text' as const }, { name: 'licence_expiry', label: 'Licence expiry date', type: 'date' as const }] : []),
-    ...(i.fix.fields?.includes('address') ? [{ name: 'home_address', label: 'Home address (number, street, city, province)', type: 'text' as const }, { name: 'home_postal_code', label: 'Postal code', type: 'text' as const }] : [])];
-  if (k === 'address') return [{ name: 'home_address', label: 'Home address', type: 'text', value: i.fix.address ?? '' }, { name: 'home_postal_code', label: 'Postal code', type: 'text', value: i.fix.postal ?? '' }];
+    ...(i.fix.fields?.includes('address') ? [{ name: 'home_address', label: 'Home address (number, street, city, province)', type: 'address' as const }, { name: 'home_postal_code', label: 'Postal code', type: 'text' as const }] : [])];
+  if (k === 'address') return [{ name: 'home_address', label: 'Home address', type: 'address', value: i.fix.address ?? '' }, { name: 'home_postal_code', label: 'Postal code', type: 'text', value: i.fix.postal ?? '' }];
   if (k === 'licence') return [{ name: 'licence_number', label: 'Driver\'s licence number (if it changed)', type: 'text' }, { name: 'licence_expiry', label: 'Licence expiry date', type: 'date' }];
   if (k === 'phone') return [{ name: 'phone', label: 'Mobile number', type: 'tel', value: i.fix.value ?? '' }];
   if (k === 'whatsapp_tag') return [{ name: 'tag_set', label: `I set my member tag "${i.fix.tag ?? ''}" in each group`, type: 'check' }];

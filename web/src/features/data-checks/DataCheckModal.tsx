@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from '@/components/Link';
 import { answerDataCheck, saveDataFix } from '@/server/actions/data-checks';
+import { AddressInput } from '@/features/forms/AddressInput';
 import { closable, inputsOf, order, type DataIssue } from './model';
 
 // r48 FE (3197): on sign-in and every portal page, a pop-up that names exactly what looks wrong on the person's own record,
@@ -36,7 +37,7 @@ export function DataCheckModal({ issues: first, inline = false }: { issues: Data
   );
   if (inline) return <section className="pt-card">{body}</section>;
   return (
-    <dialog ref={ref} className="pt-card" aria-labelledby="dc-title" aria-modal="true" style={{ maxWidth: 560, width: 'calc(100% - 32px)' }}
+    <dialog ref={ref} className="pt-card" aria-labelledby="dc-title" aria-modal="true" style={{ maxWidth: 560, width: 'calc(100% - 32px)', overscrollBehavior: 'contain' }}
       onCancel={(e) => { if (!canClose) e.preventDefault(); else setHidden(true); }}>{body}</dialog>
   );
 }
@@ -68,8 +69,11 @@ function IssueForm({ i, done }: { i: DataIssue; done: (open: DataIssue[], refres
           ? <label className="field"><span className="label">Why it is correct</span><input className="input" value={why} onChange={(e) => setWhy(e.target.value)} data-testid={`data-check-why-${i.key}`} /></label>
           : inputs.map((x) => x.type === 'check'
             ? <label key={x.name} className="check"><input type="checkbox" checked={Boolean(v[x.name])} onChange={(e) => setV({ ...v, [x.name]: e.target.checked })} /> <span>{x.label}</span></label>
+            : x.type === 'address'
+              ? <div key={x.name} className="field"><label className="label" htmlFor={`dc-${i.key}-${x.name}`}>{x.label}</label>
+                  <AddressInput id={`dc-${i.key}-${x.name}`} name={x.name} anywhere value={{ label: String(v[x.name] ?? ''), placeId: '' }} onChange={(a) => setV({ ...v, [x.name]: a.label })} testId={`data-check-${i.key}-${x.name}`} /></div>
             : <label key={x.name} className="field"><span className="label">{x.label}</span>
-                <input className="input" type={x.type} value={String(v[x.name] ?? '')} onChange={(e) => setV({ ...v, [x.name]: e.target.value })} data-testid={`data-check-${i.key}-${x.name}`} /></label>)}
+                <input className="input" type={x.type} inputMode={x.type === 'tel' ? 'tel' : undefined} autoComplete={x.type === 'tel' ? 'tel' : undefined} value={String(v[x.name] ?? '')} onChange={(e) => setV({ ...v, [x.name]: e.target.value })} data-testid={`data-check-${i.key}-${x.name}`} /></label>)}
         <p><button type="button" className="btn btn--primary btn--sm" disabled={pending} onClick={save} data-testid={`data-check-save-${i.key}`}>{pending ? 'Saving' : 'Save'}</button></p>
       </>}
       {err && <p className="error" role="alert">{err}</p>}
