@@ -30,8 +30,6 @@ const nodeTarget = (process.env.HOSTING_TARGET ?? '').trim().toLowerCase() === '
 
 const config: NextConfig = {
   ...(nodeTarget ? { output: 'standalone' as const } : {}),
-  // The server image is built from web/ alone: unit tests that import ../supabase are type-checked by CI, not here.
-  ...(nodeTarget ? { typescript: { tsconfigPath: 'tsconfig.node-build.json' } } : {}),
   reactStrictMode: true,
   poweredByHeader: false,
   typedRoutes: false,
@@ -43,6 +41,10 @@ const config: NextConfig = {
   // Server actions take uploads up to 15 MB (the default is 1 MB): the Blind Spot blank agreement and the official
   // ServiceOntario forms are 2 to 3 MB PDFs, and an upload above the limit failed the whole page.
   experimental: { inlineCss: true, serverActions: { bodySizeLimit: '15mb' } },
+  // r48: `SKIP_BUILD_TYPECHECK=1 npm run build` leaves the type check to `npm run typecheck` (CI always runs both): on a
+  // small machine the check inside the build is what runs out of memory, after the compile has already succeeded
+  // The server image is built from web/ alone: unit tests that import ../supabase are type-checked by CI, not here.
+  typescript: { ...(nodeTarget ? { tsconfigPath: 'tsconfig.node-build.json' } : {}), ignoreBuildErrors: process.env.SKIP_BUILD_TYPECHECK === '1' },
   env: {
     NEXT_PUBLIC_DATA_BACKEND: process.env.DATA_BACKEND ?? 'local',
     NEXT_PUBLIC_TURNSTILE_PROVIDER: process.env.TURNSTILE_PROVIDER ?? 'fake'

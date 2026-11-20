@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { availability, ctaLabel, featureIcon, installSentence, priceSentence, productAnswer, productFaq, tierFor, tierLabel, TRACKER_PATHS, trackerIntents, type TrackerFacts } from './pages.ts';
 import { negativeHits } from '../seo/copy-lint.ts';
+import { similarity } from '../seo/copy.ts';
 
 const F: TrackerFacts = { name: 'CarmaCars GPS tracker', brand: 'CarmaCars', city: 'Toronto', installCents: 15000, available: false, launchNote: 'Shipping soon', hst: '13%',
   tiers: [{ from_cars: 1, to_cars: 2, monthly_cents: 2500 }, { from_cars: 3, to_cars: 9, monthly_cents: 2000 }, { from_cars: 10, to_cars: null, monthly_cents: 1500 }],
@@ -77,4 +78,10 @@ test('each feature gets its icon', () => {
   assert.equal(featureIcon('Remote lock and door release'), 'lock');
   assert.equal(featureIcon('Tolls and tickets go to the driver'), 'receipt');
   assert.equal(featureIcon('Live GPS location'), 'pin');
+});
+
+test('the intent pages are not copies of each other: the site\'s own similarity measure, well under the 50% the search copy allows', () => {
+  const own = (p: ReturnType<typeof trackerIntents>[number]) => [p.answer, p.section.p, ...(p.section.steps ?? []).flat(), ...(p.section.points ?? []).flatMap((x) => [x.title, x.text]), ...p.faq.flatMap((q) => [q.question, q.answer])].join(' ');
+  const pages = trackerIntents(F);
+  for (const a of pages) for (const b of pages) if (a !== b) assert.ok(similarity(own(a), own(b)) < 0.25, `${a.slug} repeats ${b.slug}: ${Math.round(similarity(own(a), own(b)) * 100)}%`);
 });

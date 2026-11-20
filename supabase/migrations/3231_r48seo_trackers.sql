@@ -26,6 +26,7 @@ begin
 end $$;
 
 -- ================================================================ 1. settings
+-- Called by the check constraint below for whoever saves Program settings, so it keeps the default execute (it reads nothing).
 create or replace function app.tracker_tiers_ok(p jsonb) returns boolean
 language sql immutable as $$
   select jsonb_typeof(p) = 'array' and jsonb_array_length(p) between 1 and 8
@@ -151,7 +152,8 @@ on conflict (code) do update set
 select app.notification_catalogue_refresh();
 -- CATALOGUE 3231 END
 
-update notification_catalogue set emitted_by = 'app.submit_tracker_waitlist (3231): the waitlist or pre-order form of /trackers', link_path = '/trackers', updated_at = now()
+-- email only: the form asks for an email (the phone is optional), and one confirmation is enough
+update notification_catalogue set emitted_by = 'app.submit_tracker_waitlist (3231): the waitlist or pre-order form of /trackers', link_path = '/trackers', no_text = true, updated_at = now()
  where code = 'tracker_waitlist_joined';
 select app.notification_catalogue_refresh();
 
@@ -206,7 +208,7 @@ declare f record;
 begin
   for f in
     select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-     where (n.nspname = 'app' and p.proname = any (array['tracker_tiers_ok', 'tracker_monthly_cents', 'submit_tracker_waitlist', 'sl_source_pre3231', 'notification_recipients_pre3231']))
+     where (n.nspname = 'app' and p.proname = any (array['tracker_monthly_cents', 'submit_tracker_waitlist', 'sl_source_pre3231', 'notification_recipients_pre3231']))
         or (n.nspname = 'public' and p.proname in ('submit_tracker_waitlist', 'tracker_install_places'))
   loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);

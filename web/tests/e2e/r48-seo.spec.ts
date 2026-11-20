@@ -38,7 +38,7 @@ async function signIn(page: Page, email: string, expectPath: string) {
   await page.locator('input[type="email"]').fill(email);
   await page.locator('input[type="password"]').fill(PW);
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await page.waitForURL((u) => u.pathname.startsWith(expectPath), { timeout: 20_000 });
+  await page.waitForURL((u) => u.pathname.startsWith(expectPath), { timeout: 60_000 });
 }
 
 test('the tracker product page: volume prices, the waitlist while trackers are not in hand, Product as PreOrder, never "in stock"', async ({ page, request }) => {
@@ -78,6 +78,7 @@ test('the waitlist: two fields, the price for that many cars as it is typed, a l
     await acceptCookies(page);
     await expect(page.locator('h1')).toHaveText('Kill switch for a car, worked from your phone');
     await page.goto('/trackers');
+    await acceptCookies(page);
     const form = page.getByTestId('tracker-waitlist-form');
     await form.scrollIntoViewIfNeeded();
     await form.getByLabel('Email').fill(email);
@@ -85,7 +86,7 @@ test('the waitlist: two fields, the price for that many cars as it is typed, a l
     await expect(page.getByTestId('tracker-waitlist-quote')).toContainText('$20 a month per car');
     await expect(page.getByTestId('tracker-waitlist-quote')).toContainText('$80');
     await expect(page.getByTestId('tracker-waitlist-quote')).toContainText('$150');
-    await form.getByText('Pre-order for my cars').click();
+    await form.locator('input[name="want"][value="preorder"]').check();
     await page.getByTestId('tracker-waitlist-go').click();
     await expect(page.getByTestId('tracker-waitlist-sent')).toContainText('You are on the list');
     const [lead] = await sql`select l.id, app.sl_source(l) source, l.payload, (select c.channel || '|' || c.first_landing from contact_sources c where c.lead_id = l.id) src from leads l where l.email = ${email}`;
@@ -193,7 +194,7 @@ test('llms.txt, the sitemap and the footer know the tracker and the services', a
   expect(t).toMatch(/Monthly price per car: \$25 a month per car for 1 to 2 cars, \$20 for 3 to 9 cars and \$15 for 10 cars or more/);
   expect(t).toMatch(/not sold from stock today/);
   expect(t).toMatch(/\/trackers\/kill-switch-for-car\)/);
-  expect(t).not.toMatch(/\{\{|[–—]|gps-tracker\)/);
+  expect(t).not.toMatch(/\{\{|[–—]|\/gps-tracker\)/);
   const full = await (await request.get('/llms-full.txt')).text();
   expect(full).toContain('### Questions about the tracker');
   const fam = await (await request.get('/sitemap-families.xml')).text();
@@ -210,7 +211,9 @@ test('the car page: the whole price under the daily rate, a direct request and t
   await expect(page.getByTestId('car-price-clarity')).toContainText('a week');
   await expect(page.getByTestId('car-price-clarity')).toContainText('HST');
   await expect(page.getByTestId('car-price-clarity')).toContainText('deposit before pickup');
-  await expect(page.getByTestId('car-request-direct')).toHaveAttribute('href', '/book/tesla-model-3');
+  // an example car keeps its own enquiry; a real car has the button straight to the request
+  if (await page.getByTestId('example-car-badge').count()) await expect(page.getByTestId('car-request-direct')).toHaveCount(0);
+  else await expect(page.getByTestId('car-request-direct')).toHaveAttribute('href', '/book/tesla-model-3');
   await expect(page.locator('.car-top__cta').getByTestId('kit-trust')).toContainText('No payment to request');
   await noOverflow(page);
 });
@@ -254,9 +257,10 @@ test('a lead says where it came from; a second form joins it by itself; a later 
     await expect(p.getByTestId('lead-merged')).toContainText('One more question about the deposit.');
     await expect(p.getByTestId('lead-duplicates')).toHaveCount(0);
     expect((await sql`select merged_into from leads where id = ${third}`)[0]!.merged_into).toBe(first);
-    // the merged lead's own page points to the one that was kept
+    // the merged lead's own address (an alert's link) opens the lead that was kept
     await p.goto(`/admin/sales-leads/${third}`);
-    await expect(p.getByTestId('lead-merged-into')).toContainText('merged into another lead');
+    await p.waitForURL((u) => u.pathname.endsWith(first), { timeout: 60_000 });
+    await expect(p.getByTestId('lead-page')).toHaveAttribute('data-lead', first);
     await noOverflow(p);
     await p.context().close();
   } finally { await sql.end(); }

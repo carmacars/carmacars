@@ -12,7 +12,7 @@ import { trackerFacts } from './data';
 import { siteUrl } from '@/lib/site';
 import { money } from '@/lib/format';
 import { WaitlistForm } from './WaitlistForm';
-import { availability, ctaLabel, featureIcon, highest, installSentence, lowest, monthly, priceSentence, tierLabel, trackerIntents, type Faq as Q, type TrackerFacts, type TrackerIntent } from './pages';
+import { availability, ctaLabel, featureIcon, highest, lowest, monthly, priceSentence, tierLabel, trackerIntents, type Faq as Q, type TrackerFacts, type TrackerIntent } from './pages';
 
 // The tracker pages' one template (release 48): the product page, each intent page and each install page are the same
 // blocks in the same order, so a reader always finds the price, what it does and the waitlist in the same place:
@@ -60,7 +60,7 @@ export async function TrackerTemplate(x: Props) {
     <div className="p-landing sk" data-page={x.testId} data-trackers-available={f.available ? 'yes' : 'no'}>
       <JsonLd graph={[breadcrumbLd(x.trail, x.path), faqLd(x.faq), productLd(f, x.path), ...(x.extraLd ?? [])]} />
       <KitHero kicker={x.kicker} icon={x.icon} h1={x.h1} lead={x.answer} pill={f.available ? undefined : f.launchNote} cta={<KitCta primary={[cta, '#waitlist']} secondary={['See the price', '#price']} />}
-        note={`${priceSentence(f).replace(/^./, (c) => c.toUpperCase())}. ${installSentence(f).replace(/^./, (c) => c.toUpperCase())}. Before ${f.hst} HST.`}>
+        note={`Prices before ${f.hst} HST. Nothing is charged to join.`}>
         <Crumbs trail={x.trail} />
       </KitHero>
       <KitToc items={toc} />

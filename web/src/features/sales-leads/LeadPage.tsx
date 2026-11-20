@@ -22,9 +22,7 @@ export function LeadPage({ d, base, chatHref, context, renterLink = true }: { d:
         <NextLead base={base} />
       </PageHead>
       <div className="stack" data-testid="lead-page" data-lead={d.id}>
-        {/* 3230: a lead that was merged into another one says so and links there */}
-        {d.merged_into && <p className="panel small" role="status" data-testid="lead-merged-into">This lead was merged into another lead of the same person. <Link prefetch={false} className="link" href={`${base}/${d.merged_into}`}>Open the lead that was kept</Link></p>}
-        {(d.duplicates?.length ?? 0) > 0 && !d.merged_into && <Card title={`Possible duplicate${d.duplicates!.length === 1 ? '' : 's'} (${d.duplicates!.length})`} testId="lead-duplicates-card"><LeadDuplicates lead={d.id} rows={d.duplicates!} base={base} /></Card>}
+        {(d.duplicates?.length ?? 0) > 0 && <Card title={`Possible duplicate${d.duplicates!.length === 1 ? '' : 's'} (${d.duplicates!.length})`} testId="lead-duplicates-card"><LeadDuplicates lead={d.id} rows={d.duplicates!} base={base} /></Card>}
         <Card title="Contact">
           <Kv rows={[['Name', d.name ?? ''], ['Phone', <PhoneValue key="p" phone={d.phone} />], ['Email', d.email ?? <span className="muted">none</span>], ['Source', <b key="s" data-testid="lead-source">{d.source}</b>],
             ...(d.vehicle ? [['Car', d.vehicle] as [string, string]] : []), ...(d.value_cents ? [['Value', $(d.value_cents)] as [string, string]] : []),

@@ -365,9 +365,23 @@ alter function app.sales_lead(uuid, jsonb) rename to sales_lead_pre3230;
 create function app.sales_lead(p_by uuid, p jsonb) returns jsonb
 language plpgsql stable security definer set search_path = public, app as $$
 declare
-  v jsonb := app.sales_lead_pre3230(p_by, p);
+  v jsonb;
   l leads;
+  v_to uuid;
+  n integer := 0;
 begin
+  -- a merged lead is listed nowhere: its page (an alert's link, a bookmark) opens the lead it was merged into
+  if p ->> 'id' ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then select * into l from leads where id = (p ->> 'id')::uuid; end if;
+  if l.merged_into is not null and app.sl_may(p_by) then
+    v_to := l.merged_into;
+    while n < 5 loop
+      exit when (select x.merged_into from leads x where x.id = v_to) is null;
+      select x.merged_into into v_to from leads x where x.id = v_to;
+      n := n + 1;
+    end loop;
+    return jsonb_build_object('id', l.id, 'merged_into', v_to, 'moved', true);
+  end if;
+  v := app.sales_lead_pre3230(p_by, p);
   if v is null or not (v ? 'id') then return v; end if;
   select * into l from leads where id = (v ->> 'id')::uuid;
   return v || jsonb_build_object(

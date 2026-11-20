@@ -1,6 +1,6 @@
 import { IntentCard } from '@/features/intent/IntentCard';
 import type { Intent } from '@/features/intent/model';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import type { PageCtx } from '@/features/shared-pages/context';
 import { PageHead } from '@/features/admin/ui';
 import { rpc } from '@/lib/db/repo';
@@ -61,8 +61,10 @@ export async function SalesLeadsPage({ ctx, sp, base, listBase, type, title, pur
 /** One lead's page (where every new-lead alert goes). */
 export async function SalesLeadPage({ ctx, id, base, chatBase }: { ctx: PageCtx; id: string; base: string; chatBase: string }) {
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
-  const d = await ctx.read<LeadDetail>('sales_lead', { id }).catch(() => null);
+  const d = await ctx.read<LeadDetail & { moved?: boolean }>('sales_lead', { id }).catch(() => null);
   if (!d) notFound();
+  // 3230: a lead that was merged opens the lead it was merged into (an alert's link, a bookmark)
+  if (d.moved && d.merged_into) redirect(`${base}/${d.merged_into}`);
   // r35 part C (1506): the lead's intent signals
   // r40 (2411): the whole person behind the lead, the same for an Admin and staff (the database decides how much)
   const [intent, context] = await Promise.all([ctx.ops<Intent | null>('intent', { lead: id }).catch(() => null), ctx.read<LeadContext>('lead_context', { lead: id }).catch(() => null)]);

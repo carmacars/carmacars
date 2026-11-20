@@ -78,7 +78,7 @@ export function KitCompare({ caption, head, rows, us = 1 }: { caption: string; h
   return (
     <div className="table-scroll" tabIndex={0} role="region" aria-label={caption} data-testid="kit-compare">
       <table className="sk-compare">
-        <caption className="sr-only">{caption}</caption>
+        <caption className="vh">{caption}</caption>
         <thead><tr>{head.map((h, i) => <th key={h} scope="col" className={i === us ? 'is-us' : undefined}>{h}</th>)}</tr></thead>
         <tbody>{rows.map((r) => <tr key={r[0]}>{r.map((c, i) => (i === 0 ? <th key={i} scope="row">{c}</th> : <td key={i} className={i === us ? 'is-us' : undefined}>{c}</td>))}</tr>)}</tbody>
       </table>
