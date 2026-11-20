@@ -27,7 +27,8 @@
 .mcal .mcal__bar { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-3); align-items: center; justify-content: space-between;
   padding: var(--s-3); border: 1px solid var(--cal-line); border-radius: 14px; background: var(--grey-50); }
 .mcal .mcal__bar .row { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; min-width: 0; }
-.mcal.mcal .mcal__bar .input, .mcal.mcal .mcal__bar .select { border-radius: 10px; background: var(--white); min-height: 40px !important; font-size: var(--fs-sm); padding-block: 0; }
+/* r48 ops: fields at 16px (a phone does not zoom in on focus) */
+.mcal.mcal .mcal__bar .input, .mcal.mcal .mcal__bar .select { border-radius: 10px; background: var(--white); min-height: 40px !important; font-size: 1rem; padding-block: 0; }
 .mcal.mcal .mcal__bar .btn { min-height: 40px; }
 .mcal.mcal .mcal__bar .check { display: inline-flex; align-items: center; gap: 0.4rem; font-size: var(--fs-sm); white-space: nowrap; }
 .mcal.mcal .mcal__bar .check input { width: 20px; height: 20px; }
@@ -155,11 +156,10 @@
 .mcal .mcal__item.is-dragging { opacity: 0.9; z-index: 6; box-shadow: 0 6px 16px rgb(0 0 0 / 0.25); }
 .mcal .mcal__grip { position: absolute; right: 0; top: 0; bottom: 0; width: 8px; cursor: ew-resize; }
 
-/* markers with no words: Turo trips and car moves as thin strips at the foot of the lane, field jobs as pins */
+/* markers with no words: Turo trips and car moves as thin strips at the foot of the lane */
 .mcal .mcal__item.is-turo, .mcal .mcal__item.is-move { top: auto; bottom: 3px; height: 5px; padding: 0; border-radius: 3px; font-size: 0; }
 .mcal .mcal__item.is-turo { background: var(--cal-turo); border-color: var(--cal-turo); }
 .mcal .mcal__item.is-move { background: var(--grey-600); border-color: var(--grey-600); }
-.mcal .mcal__item.is-job { top: auto; bottom: 4px; width: 14px !important; height: 14px; padding: 0; border-radius: 999px; background: var(--white); border-color: var(--grey-950); font-size: 0; }
 
 /* the side panel: a drawer on the right on a desktop, a sheet from the bottom on a phone */
 .mcal .mcal__panel { position: fixed; inset: auto 0 0 0; max-height: 70vh; overflow-y: auto; z-index: 50; display: grid; align-content: start; gap: var(--s-3);
@@ -189,5 +189,69 @@
 .mcal__abody > span { color: var(--text-2); overflow-wrap: anywhere; }
 .mcal.mcal .mcal__akind { grid-area: kind; position: relative; inset: auto; animation: none; justify-self: start; width: auto !important; height: auto; padding: 2px 8px;
   border-radius: 999px; font-size: 0.6875rem; line-height: 1.4; box-shadow: none; }
-.mcal.mcal .mcal__akind.is-turo, .mcal.mcal .mcal__akind.is-move, .mcal.mcal .mcal__akind.is-job { bottom: auto; font-size: 0.6875rem; padding: 2px 8px; height: auto;
+.mcal.mcal .mcal__akind.is-turo, .mcal.mcal .mcal__akind.is-move { bottom: auto; font-size: 0.6875rem; padding: 2px 8px; height: auto;
   background: var(--grey-100); border: 1px solid var(--grey-300); color: var(--text); }
+
+/* ---------------------------------------------------------------- r48 ops: a long fleet (docs/changes/2026-11-20-r48-ops-screens.md)
+   The second toolbar row: filters, grouping and the count; groups that fold; jobs as named chips; rows drawn near the
+   screen only (MasterCalendar sets the space of the rest). */
+.mcal .mcal__bar .mcal__find { flex: 1 1 22rem; }
+.mcal.mcal .mcal__bar .mcal__find > .input[type="search"] { flex: 1 1 12rem; min-width: 0; width: auto; }
+.mcal .mcal__fleet { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-4); align-items: center; justify-content: space-between; min-width: 0;
+  padding-top: var(--s-2); border-top: 1px solid rgb(0 0 0 / 0.08); }
+.mcal .mcal__filters, .mcal .mcal__grouping { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; min-width: 0; }
+.mcal.mcal .mcal__fleet .select { width: auto; max-width: 100%; min-width: 0; text-overflow: ellipsis; }
+.mcal.mcal .mcal__fleet .mcal__f-owner { max-width: 15rem; }
+/* a filter that is on stands out, so a short list is never a surprise */
+.mcal.mcal .mcal__fleet .select[data-on] { border-color: var(--black); box-shadow: inset 0 0 0 1px var(--black); font-weight: 600; }
+.mcal .mcal__grouping label { color: var(--text-2); white-space: nowrap; }
+.mcal .mcal__count { margin: 0; color: var(--text-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mcal .mcal__count b { color: var(--text); }
+.mcal .mcal__more { flex: 1 1 100%; }
+.mcal .mcal__more > .row { padding-top: var(--s-1); }
+@media (max-width: 40rem) {
+  .mcal .mcal__filters, .mcal .mcal__grouping { width: 100%; }
+  .mcal.mcal .mcal__fleet .select { flex: 1 1 9rem; }
+  .mcal.mcal .mcal__fleet .mcal__f-owner { max-width: none; }
+  .mcal .mcal__count { white-space: normal; flex: 1 1 100%; }
+}
+
+/* a group's heading: stays at the left edge while the days scroll, folds its cars */
+.mcal .mcal__group { position: sticky; left: 0; z-index: 3; width: 100cqw; height: 40px; box-sizing: border-box; background: var(--grey-50); border-bottom: 1px solid var(--cal-line); }
+.mcal .mcal__grid { container-type: inline-size; }
+.mcal .mcal__gbtn { position: sticky; left: 0; display: flex; align-items: center; gap: var(--s-2); width: 100%; max-width: 100cqw; height: 100%; padding: 0 var(--s-3); border: 0; background: none; font: inherit; font-size: var(--fs-xs);
+  color: var(--text-2); text-align: left; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.mcal .mcal__gbtn b { color: var(--text); font-size: var(--fs-sm); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mcal .mcal__gbtn span { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.mcal .mcal__gbtn svg { flex: none; transition: transform var(--t-1) var(--ease-in-out); }
+.mcal .mcal__gbtn[aria-expanded="true"] svg { transform: rotate(90deg); }
+.mcal .mcal__gbtn:focus-visible { outline: 3px solid var(--red-600); outline-offset: -3px; }
+.mcal .mcal__gbtn:active { background: var(--grey-100); }
+@media (hover: hover) { .mcal .mcal__gbtn:hover { background: var(--grey-100); } }
+@media (prefers-reduced-motion: reduce) { .mcal .mcal__gbtn svg { transition: none; } }
+.mcal .mcal__empty { position: sticky; left: 0; max-width: 100cqw; display: grid; justify-items: start; gap: var(--s-2); padding: var(--s-4); }
+.mcal .mcal__empty p { margin: 0; }
+
+/* a job: a small named chip under the bars, at its time. The return check-out and the post-trip cleaning are two jobs. */
+.mcal .mcal__job { --job-bg: var(--white); --job-fg: var(--grey-950); --job-bd: rgb(0 0 0 / 0.55);
+  position: absolute; z-index: 2; box-sizing: border-box; height: 18px; display: inline-flex; align-items: center; gap: 4px; padding: 0 7px 0 5px; border: 1px solid var(--job-bd); border-radius: 999px;
+  background: var(--job-bg); color: var(--job-fg); font: inherit; font-size: 0.6875rem; font-weight: 600; line-height: 1; white-space: nowrap; overflow: hidden; cursor: pointer;
+  font-variant-numeric: tabular-nums; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.mcal .mcal__job::before { content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.mcal .mcal__job.is-checkout { --job-bg: #FDECEE; --job-fg: #8A1420; --job-bd: rgb(138 20 32 / 0.55); }
+.mcal .mcal__job.is-cleaning { --job-bg: var(--cal-maint-bg); --job-fg: var(--cal-maint-fg); --job-bd: rgb(29 63 102 / 0.55); }
+.mcal .mcal__job.is-cleaning::before { border-radius: 2px; }
+.mcal .mcal__job.is-pickup { --job-bg: var(--cal-free-bg); --job-fg: var(--cal-free-fg); --job-bd: rgb(11 93 39 / 0.5); }
+/* done: quiet, with a tick in place of the dot */
+.mcal .mcal__job.is-done { --job-bg: var(--white); border-style: dashed; }
+.mcal .mcal__job.is-done::before { width: 8px; height: 5px; border-radius: 0; background: none; border-left: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg) translate(1px, -1px); }
+.mcal .mcal__job:focus-visible { outline: 3px solid var(--red-600); outline-offset: 1px; z-index: 4; }
+.mcal .mcal__job:active { filter: brightness(0.94); }
+@media (hover: hover) { .mcal .mcal__job:hover { filter: brightness(0.96); z-index: 3; } }
+.mcal .mcal__legend i.mcal__job { position: relative; inset: auto; width: 1.6rem; height: 0.85rem; padding: 0; cursor: default; }
+.mcal .mcal__legend i.mcal__job::before { margin-left: 3px; width: 5px; height: 5px; }
+.mcal.mcal .mcal__akind.mcal__job { grid-area: kind; position: relative; inset: auto; justify-self: start; width: auto; height: auto; padding: 2px 9px 2px 7px; font-size: 0.6875rem; line-height: 1.4; }
+.mcal__acard[data-kind="job-checkout"] { background: linear-gradient(90deg, #8A1420 0 4px, var(--white) 4px); }
+.mcal__acard[data-kind="job-cleaning"] { background: linear-gradient(90deg, var(--cal-maint-bd) 0 4px, var(--white) 4px); }
+/* the agenda of a long fleet: days off the screen are not laid out until scrolled to */
+.mcal__aday { content-visibility: auto; contain-intrinsic-size: auto 24rem; }

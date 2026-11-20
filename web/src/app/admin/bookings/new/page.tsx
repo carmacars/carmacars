@@ -4,7 +4,7 @@ import { page } from '@/server/admin/api';
 import { door } from '@/server/door';
 import { PageHead } from '@/features/admin/ui';
 import { ManualRentalForm, type MrDraft } from '@/features/supply/ManualRentalForm';
-import { UnfinishedRentals } from '@/features/supply/UnfinishedRentals';
+import { MyDrafts } from '@/features/supply/UnfinishedRentals';
 import type { DraftRow } from '@/server/actions/supply';
 import type { OwnerDefaults } from '@/features/supply/OwnerChoice';
 
@@ -27,7 +27,7 @@ export default async function AddRental({ searchParams }: { searchParams: Promis
       <PageHead kicker={<Link prefetch={false} className="link" href="/admin/bookings">Bookings</Link>} title="Add a rental" />
       <p className="ad-intro">For a rental taken by phone, at the counter, from Turo, a partner or an insurer. The dates decide the rest: an upcoming rental is confirmed at once (or waits for the renter&apos;s online payment when you send a payment link); one already underway is recorded as on trip, with a task for anything still missing; one that has ended is kept as completed for the history and the statements. Every case goes on the calendars, and the renter signs the agreement in their portal (the e-signature; never on paper).</p>
       {uuid && !open && <p className="alert alert--error" role="status"><span>That unfinished rental was already added or discarded.</span></p>}
-      <div className="stack ad-narrow" ><UnfinishedRentals rows={drafts} base="/admin" current={open?.id} />
+      <div className="stack ad-narrow" ><MyDrafts rows={drafts} base="/admin" current={open?.id} />
         <ManualRentalForm key={open?.id ?? 'new'} cars={cars} base="/admin" adjusters={await door<Array<{ id: string; insurer_id: string; name: string | null; email: string | null; phone: string | null }>>(user.id, 'admin_read', 'insurer_adjusters', {}).catch(() => [])} isAdmin owner={owner} draft={open} /></div>
     </>
   );

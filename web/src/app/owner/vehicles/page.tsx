@@ -48,9 +48,9 @@ export default async function OwnerCars({ searchParams }: { searchParams: Promis
   if (tab.key === 'bookings') {
     return (
       <>
-        <PageHeader title="Cars" purpose="Every rental your cars have been on, every booking on your vehicles, and your own bookings of them." />
+        <PageHeader title="Cars" purpose="What is out now, what is booked ahead and what is finished, with the money of each booking. Filter by car." />
         <PortalTabs label="Cars" tabs={tabs} current={tab.key} />
-        <BookingsTab {...ctx} vehicle={sp.vehicle} history={historyQuery(sp)} />
+        <BookingsTab {...ctx} vehicle={sp.vehicle} history={historyQuery(sp)} when={sp.when} />
       </>
     );
   }

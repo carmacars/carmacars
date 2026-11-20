@@ -618,3 +618,16 @@ a.pu-trip:hover { border-color: var(--pu-hair-strong); box-shadow: var(--pu-shad
 .sp-section { scroll-margin-top: var(--s-6); }
 .sp-locked { opacity: .75; }
 @media (max-width: 40rem) { .sp-left .btn { justify-self: stretch; } }
+
+/* r48 ops sweep (long names, large numbers; scripts/squish-audit.mjs) */
+/* a label beside a large amount keeps its room; the amount wraps instead of squeezing the label to a word a line */
+.pu-money > div { grid-template-columns: minmax(45%, 1fr) minmax(0, auto); }
+.pu-money dd { min-width: 0; overflow-wrap: anywhere; }
+/* the value over the first and last bar of a chart stays inside the chart (it ran past the window on a phone) */
+.pu-bar:first-child .pu-bar__val { left: 0; transform: none; }
+.pu-bar:last-child .pu-bar__val { left: auto; right: 0; transform: none; }
+/* a car's three figures: on a narrow phone the amount takes its own row */
+@media (max-width: 26rem) {
+  .pu-car__stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pu-car__stats > div:nth-child(3):last-child { grid-column: 1 / -1; }
+}

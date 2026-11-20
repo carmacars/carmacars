@@ -110,7 +110,7 @@ export function squishScan() {
   for (const b of document.querySelectorAll('button, a[class*="btn"], [role="button"], [class*="chip"], [class*="badge"], [class*="pill"]')) {
     if (!visible(b)) continue;
     const cs = getComputedStyle(b);
-    if (!b.matches('.info__btn, .fleet-bar__toggle') && cs.overflowX === 'visible' && b.scrollWidth > b.clientWidth + 2 && b.clientWidth > 0 && b.textContent.trim().length > 0 && cs.display !== 'inline') add('control-overflow', b, b.textContent, `${b.clientWidth} of ${b.scrollWidth}`);
+    if (!b.matches('.info__btn, .fleet-bar__toggle, .pu-bar') && cs.overflowX === 'visible' && b.scrollWidth > b.clientWidth + 2 && b.clientWidth > 0 && b.textContent.trim().length > 0 && cs.display !== 'inline') add('control-overflow', b, b.textContent, `${b.clientWidth} of ${b.scrollWidth}`);
   }
   return out;
 }

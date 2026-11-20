@@ -17,6 +17,8 @@ import { TownhallCard } from '@/features/townhall/TownhallCard';
 import { OnboardingApprovals } from '@/features/staff-onboarding/Approvals';
 import type { ApprovalRow } from '@/features/staff-onboarding/model';
 import { InterviewsToday } from '@/features/careers/admin/InterviewsToday';
+import { UnfinishedRentals } from '@/features/supply/UnfinishedRentals';
+import type { DraftRow } from '@/server/actions/supply';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'To do', path: '/admin', noindex: true, description: 'What needs an Admin now, in order.' });
@@ -38,7 +40,9 @@ interface Health {
 // are under Today > Overview).
 export default async function AdminToDo() {
   const { user, gate, read } = await page('/admin');
-  const [d, h, dash, approvals] = await Promise.all([
+  const [drafts, d, h, dash, approvals] = await Promise.all([
+    // r48 ops: the rentals started and not finished, on Today as on Bookings
+    door<DraftRow[]>(user.id, 'ops_read', 'drafts', { kind: 'rental' }).catch(() => [] as DraftRow[]),
     door<Todo>(user.id, 'ops_read', 'admin_todo'),
     door<Health>(user.id, 'admin_read', 'site_health').catch(() => null),
     // the counts on the board (the same read as Overview); the page works without them
@@ -83,6 +87,7 @@ export default async function AdminToDo() {
             {clear.length > 0 && <details className="todo__clear"><summary className="small muted">{clear.length} more with nothing waiting</summary>
               <ul className="small muted">{clear.map((i) => <li key={i.key}><Link prefetch={false} className="link" href={i.href}>{i.label}</Link>: none</li>)}</ul></details>}
           </section>
+          <UnfinishedRentals rows={drafts} base="/admin" />
           {d.teams && d.teams.length > 0 && <Teams teams={d.teams} />}
           <HandoversToday userId={user.id} base="/admin" />
           <UsageCards userId={user.id} />

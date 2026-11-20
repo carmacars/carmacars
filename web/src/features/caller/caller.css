@@ -80,6 +80,18 @@
 .chelp-a { font-size: 0.9375rem; line-height: 1.45; }
 .chelp-none { margin: 8px 0 0; color: var(--text-2); }
 
+/* r48 ops (the owner, Nov 20: with the call-helper panel open, More actions > Decline did nothing). The open panel sat on
+   top of the page's own buttons: with the helper showing it is as tall as the window, so a press on More actions or on
+   an item of its menu landed on the panel. The panel no longer covers the page:
+   - on a wide screen the portal's page moves over and the panel is docked beside it;
+   - between a phone and that, the panel takes at most a little over half the height, so the top of the page (its heading
+     and action buttons) stays free; the first press there minimizes the panel as before. */
+@media (min-width: 80rem) {
+  .ad__main:has(> .cpop > .cpop-panel) { padding-right: calc(26rem + 32px); }
+}
+@media (min-width: 37.5rem) and (max-width: 79.99rem) {
+  .cpop-panel { max-height: 56vh; max-height: 56dvh; }
+}
 @media (max-width: 37.49rem) {
   .cpop { right: 8px; left: 8px; bottom: 8px; width: auto; }
   /* at most half the screen, so the page's own menu and buttons stay reachable under a ringing call */

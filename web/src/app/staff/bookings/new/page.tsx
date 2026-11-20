@@ -3,7 +3,7 @@ import { vaPage } from '@/server/va';
 import { door } from '@/server/door';
 import { PageHead } from '@/features/admin/ui';
 import { ManualRentalForm, type MrDraft } from '@/features/supply/ManualRentalForm';
-import { UnfinishedRentals } from '@/features/supply/UnfinishedRentals';
+import { MyDrafts } from '@/features/supply/UnfinishedRentals';
 import type { DraftRow } from '@/server/actions/supply';
 import type { OwnerDefaults } from '@/features/supply/OwnerChoice';
 import { homeAddressOf } from '@/features/staff/HomeAddress';
@@ -31,7 +31,7 @@ export default async function VaAddRental({ searchParams }: { searchParams: Prom
       <p className="small muted" style={{ maxWidth: '52rem' }}>For a rental taken by phone, at the counter or from someone you know, including one already underway (enter the pickup as when the car left). The price comes from the rate sheet unless you type another with its reason. Say whether you sourced the client. When the car is not free, choose other dates or another car, or ask an Admin.</p>
       {home.missing ? <p className="alert alert--error" role="status" data-testid="rental-needs-address"><span>Add your home address at the top of the page before you add a rental.</span></p>
         : <div className="stack" style={{ maxWidth: '60rem' }}>{uuid && !open && <p className="alert alert--error" role="status"><span>That unfinished rental was already added or discarded.</span></p>}
-          <UnfinishedRentals rows={drafts} base="/staff" current={open?.id} />
+          <MyDrafts rows={drafts} base="/staff" current={open?.id} />
           <ManualRentalForm key={open?.id ?? 'new'} cars={cars} base="/staff" adjusters={await door<Array<{ id: string; insurer_id: string; name: string | null; email: string | null; phone: string | null }>>(user.id, 'va_read', 'insurer_adjusters', {}, aal).catch(() => [])} isAdmin={false} owner={owner} draft={open} /></div>}
     </>
   );

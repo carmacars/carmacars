@@ -19402,6 +19402,9 @@ export type Database = {
           text_stale_minutes: number;
           text_retry_paused_minutes: number;
           staff_inactive_grace_from: string | null;
+          owner_calc_base_days: number;
+          owner_calc_discount_pct: number;
+          owner_calc_season: Json;
         };
         Insert: {
           id?: string;
@@ -20294,6 +20297,9 @@ export type Database = {
           text_stale_minutes?: number;
           text_retry_paused_minutes?: number;
           staff_inactive_grace_from?: string | null;
+          owner_calc_base_days?: number;
+          owner_calc_discount_pct?: number;
+          owner_calc_season?: Json;
         };
         Update: {
           id?: string;
@@ -21186,6 +21192,9 @@ export type Database = {
           text_stale_minutes?: number;
           text_retry_paused_minutes?: number;
           staff_inactive_grace_from?: string | null;
+          owner_calc_base_days?: number;
+          owner_calc_discount_pct?: number;
+          owner_calc_season?: Json;
         };
         Relationships: [];
       };

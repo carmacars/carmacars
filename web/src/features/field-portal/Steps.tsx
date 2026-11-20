@@ -65,7 +65,7 @@ export function CleanCheck({ c, onDone }: { c: Card; onDone?: () => void }) {
   const job = c.type === 'job' ? c.id : undefined;
   return (
     <div className="fp-step" data-testid="clean-check">
-      <p className="fp-step__h">{c.clean?.moment === 'after_return' ? 'Clean check after the return' : c.type === 'clean' ? 'Is this car clean?' : 'Clean check before the pickup'}</p>
+      <p className="fp-step__h">{c.clean?.moment === 'after_return' ? 'Post-trip cleaning: clean check' : c.type === 'clean' ? 'Is this car clean?' : 'Clean check before the pickup'}</p>
       <div className="fp-seg" role="group" aria-label="Clean or not">
         <button type="button" aria-pressed={clean} onClick={() => setClean(true)}>Clean</button>
         <button type="button" aria-pressed={!clean} onClick={() => setClean(false)}>Needs cleaning</button>

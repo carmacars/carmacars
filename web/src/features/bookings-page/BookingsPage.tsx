@@ -10,6 +10,7 @@ import { money } from '@/features/bookings-now/model';
 import { lateLabel } from '@/features/handover/late';
 import { ListFilters } from '@/features/list-filters/ListFilters';
 import { UnfinishedRentals } from '@/features/supply/UnfinishedRentals';
+import { seesUnfinished } from '@/features/supply/unfinished';
 import { bookingCards, bookingsNow } from '@/server/bookings-now';
 import { redirect } from 'next/navigation';
 import type { PageCtx } from '@/features/shared-pages/context';
@@ -120,6 +121,8 @@ async function FindBooking({ ctx, sp }: { ctx: PageCtx; sp: Record<string, strin
   // Release 26 (0332): every office function sees the bookings they are credited with, sent the offer for or added (Sales:
   // "unable to see his bookings"), with the commission on each
   const mine = !q ? await ops<MyRow[]>('my_bookings', {}, true).catch(() => [] as MyRow[]) : [];
+  // r48 ops: Sales chase a sale to its end: the rentals started and not finished, on their Bookings
+  const drafts = !q && seesUnfinished({ role: 'staff', fn }) ? await ops<DraftRow[]>('drafts', { kind: 'rental' }).catch(() => [] as DraftRow[]) : [];
   const at = new Date().getTime();
   const ids = [...rows.map((r) => r.id), ...mine.map((r) => r.id)];
   const cards = ids.length ? await bookingCards(user.id, ids, { va: fn, aal }) : {};
@@ -127,6 +130,7 @@ async function FindBooking({ ctx, sp }: { ctx: PageCtx; sp: Record<string, strin
     <PageHead title={board ? 'Bookings now' : 'Bookings'} purpose={board ? 'What is out, coming back, going out and owed, live. Toronto time. Search finds any booking; every search is logged.' : 'Search by booking number, renter or driver name, email, phone, plate or car code. Every search is logged.'}>
       <Search action="/staff/bookings" value={q} placeholder="CC-1042, name, email, phone, plate or car code" />
       <Link prefetch={false} className="btn btn--primary btn--sm" href="/staff/bookings/new" data-testid="add-rental-link">Add a rental</Link></PageHead>
+    <UnfinishedRentals rows={drafts} base="/staff" />
     {board && <BookingsNow initial={board} at={at} src={`/api/staff/bookings-now?va=${fn}`} base={fn === 'sales' ? null : '/staff'} />}
     {!q && (mine.length > 0 || !board) && (
       <section className="bn-sec" aria-labelledby="my-bk-h" data-testid="my-bookings">

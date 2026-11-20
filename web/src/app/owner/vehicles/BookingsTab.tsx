@@ -1,13 +1,13 @@
 import { More } from '@/features/portal/Chrome';
-import { when } from '@/features/agreement/model';
 import { OwnBookingForm } from '@/features/owner/OwnerForms';
 import { ownerBookings } from '@/server/owner/data';
 import type { OwnerCtx } from '@/features/owner/ctx';
 import type { OwnerBooking } from '@/features/owner/types';
-import { amountText, upcoming, viewOf } from '@/features/owner/insights';
-import { bookingTitle, OwnerBookingRow } from '@/features/owner/Blocks';
-import { money } from '@/lib/format';
-import { Timeline, TimelineItem } from '@/components/portal-ui';
+import { bookingTitle } from '@/features/owner/Blocks';
+import { bucketParam, firstBucket, sortBookings, timeline, windowFor } from '@/features/owner/bookings';
+import { BookingList, OwnerTimeline } from '@/features/owner/BookingCards';
+import { instantOfTorontoInput } from '@/lib/dates';
+import { BookingBuckets } from '@/features/owner/BookingBuckets';
 import type { HistoryQuery } from '@/features/owner/history';
 import { RentalHistory } from './RentalHistory';
 
@@ -43,31 +43,36 @@ function Month({ year, month, bookings }: { year: number; month: number; booking
   );
 }
 
-// Cars > Bookings: what is coming up, the rental history (r44: every rental on your cars, paged), every booking on your
-// cars, the calendar, and booking your own car.
-export async function BookingsTab({ user, home, vehicle, history }: OwnerCtx & { vehicle?: string; history: HistoryQuery }) {
+// Cars > Bookings (redesigned in r48 ops; the owner, Nov 20: "confusing and badly organised"). In order: the cars over
+// the next six weeks (a timeline), a filter by car, then every booking in one of three lists (on a trip, upcoming, past),
+// each a card with its dates, status and money (only what the database lets an owner see: 0156), then the rental history
+// (r44: every rental, paged), the month calendar and booking your own car.
+export async function BookingsTab({ user, home, vehicle, history, when: whenParam }: OwnerCtx & { vehicle?: string; history: HistoryQuery; when?: string }) {
   const list = await ownerBookings(user);
-  const soon = upcoming(list, new Date(), 6);
   const now = new Date();
   const [y, m] = ymd(now).split('-').map(Number) as [number, number];
   const bookable = home.vehicles.filter((v) => ['available', 'ready_to_list', 'cleaning', 'exit_notice'].includes(v.status)).map((v) => ({ id: v.vehicle_id, name: v.name }));
+  // r48 ops: the three lists, one car or all; the timeline of the weeks around today
+  const cars = home.vehicles.filter((v) => v.status !== 'declined').map((v) => ({ vehicle_id: v.vehicle_id, name: v.name }));
+  const car = history.car && cars.some((c) => c.vehicle_id === history.car) ? history.car : null;
+  const t = now.getTime();
+  const sorted = sortBookings(list, t, car);
+  const chosen = bucketParam(whenParam);
+  const todayStart = Date.parse(instantOfTorontoInput(`${ymd(now)}T00:00`) ?? '') || t;
+  const shownCars = car ? cars.filter((c) => c.vehicle_id === car) : cars;
+  const ahead = windowFor('upcoming', todayStart), back = windowFor('past', todayStart);
   return (
     <>
       {bookable.length > 0 && <p className="ph__phone-only"><a className="btn btn--ghost btn--sm" href="#book-own">Book my own car</a></p>}
       <div className="pt-split">
         <div className="stack-lg">
-          {soon.length > 0 && <section className="pu-panel" aria-labelledby="ow-soon" data-testid="owner-coming-up"><h2 className="pu-title" id="ow-soon">Coming up</h2>
-            <Timeline label="Bookings coming up">{soon.map((b) => (
-              <TimelineItem key={b.booking_id} date={b.pickup_at} dateLabel={when(b.pickup_at, false)} state={b.status === 'on_rent' ? 'now' : 'future'} title={b.vehicle_name}
-                amount={amountText(b, (c) => money(c, { cents: true }))}
-                meta={<>{b.booking_number && <span>{b.booking_number}</span>}<span>{when(b.pickup_at)} to {when(b.return_at)}</span><span>{viewOf(b) === 'unavailable' ? 'Unavailable' : b.status === 'on_rent' ? 'On rent now' : b.status.replace(/_/g, ' ')}</span>{b.renter_name && <span>{b.renter_name}</span>}</>} />))}
-            </Timeline></section>}
+          <OwnerTimeline tl={timeline(list, shownCars, ahead.from, ahead.days, t)} title="Your cars, the next six weeks" />
+          <BookingBuckets cars={cars} car={car} initial={chosen ?? firstBucket(sorted)} counts={{ trip: sorted.trip.length, upcoming: sorted.upcoming.length, past: sorted.past.length }} panels={{
+            trip: <BookingList bucket="trip" list={sorted.trip} />,
+            upcoming: <BookingList bucket="upcoming" list={sorted.upcoming} />,
+            past: <><OwnerTimeline tl={timeline(list, shownCars, back.from, back.days, t)} title="The last six weeks" testId="owner-timeline-past" /><BookingList bucket="past" list={sorted.past} max={12} /></> }} />
+          <p className="small muted ob-explain">On a managed rental we show dates and status only; renter details stay with CarmaCars. A booking marked Booked shows its amount once CarmaCars approves the statement that covers it. Dates marked Unavailable are not part of your revenue. Amounts are rental charges before tax: your share and every deduction are on your statement.</p>
           <RentalHistory user={user} q={history} />
-          <section className="stack" aria-labelledby="ow-bl"><h2 className="pt-section-title" id="ow-bl">All bookings</h2>
-            {list.length ? <ul className="ow-rows">{list.map((b) => <OwnerBookingRow key={b.booking_id} b={b} />)}</ul>
-              : <p className="pt-empty muted">No bookings on your vehicles yet.</p>}
-            <p className="small muted">On a managed rental we show dates and status only; renter details stay with CarmaCars. A booking marked Booked shows its amounts once CarmaCars approves the statement that covers it, and your statement includes it. Dates marked Unavailable are not part of your revenue.</p>
-          </section>
           <More summary="Calendar: this month and next" testId="owner-calendar">
             <Month year={y} month={m - 1} bookings={list} />
             <Month year={m === 12 ? y + 1 : y} month={m % 12} bookings={list} />

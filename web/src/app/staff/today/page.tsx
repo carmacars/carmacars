@@ -4,6 +4,7 @@ import { vaPage, FN_LABEL } from '@/server/va';
 import { Card, PageHead, Tiles, t, label } from '@/features/admin/ui';
 import { HandoversToday } from '@/features/handover/HandoversToday';
 import { UnfinishedRentals } from '@/features/supply/UnfinishedRentals';
+import { seesUnfinished } from '@/features/supply/unfinished';
 import type { DraftRow } from '@/server/actions/supply';
 import { door } from '@/server/door';
 import { FieldToday } from '@/features/staff-schedule/FieldToday';
@@ -18,7 +19,8 @@ type Digest = { open: number; overdue: number; due_today: number; escalated: num
 // The digest of today (05-va.md section 1): what is open, late, due and done, and what comes next.
 export default async function Today() {
   const { read, fn, user, aal } = await vaPage('/staff/today');
-  const [d, drafts] = await Promise.all([read<Digest>('digest'), door<DraftRow[]>(user.id, 'ops_read', 'drafts', { kind: 'rental' }, aal).catch(() => [] as DraftRow[])]);
+  const [d, drafts] = await Promise.all([read<Digest>('digest'), // r48 ops: Unfinished rentals belongs to Sales (and the Admin's own Today), not to every function's day
+    seesUnfinished({ role: 'staff', fn }) ? door<DraftRow[]>(user.id, 'ops_read', 'drafts', { kind: 'rental' }, aal).catch(() => [] as DraftRow[]) : Promise.resolve([] as DraftRow[])]);
   return (
     <>
       <PageHead title="Today at a glance" kicker={FN_LABEL[fn]} purpose="Your open tasks in numbers, today's pickups and returns, and what comes next." />

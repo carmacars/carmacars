@@ -5,7 +5,8 @@ import type { PortalKey, PortalLink } from '@/server/portals';
 // "Choose a portal" (0720, the owner's redesign of November 7): the brand mark, then one large card per portal the
 // person has, the one they used last first: an icon, the portal's name, one line of what is there and their role in it.
 // The card is one link (a large tap target on a phone); choosing it remembers the portal for next time (PortalCardLink).
-export const LAST_PORTAL_COOKIE = 'cc_last_portal';
+export { LAST_PORTAL_COOKIE } from './roles';
+import { LAST_PORTAL_COOKIE } from './roles';
 
 export interface PortalCard extends PortalLink { what: string; role: string; icon: PortalKey }
 

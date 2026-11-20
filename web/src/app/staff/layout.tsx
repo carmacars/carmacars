@@ -22,7 +22,6 @@ import { CallerPopup } from '@/features/caller/CallerPopup';
 import { VoiceDock } from '@/features/phone/VoiceDock';
 import { viewAs } from '@/server/view-as';
 import { AssistantLauncher as AssistantPanel } from '@/features/assistant/AssistantLauncher';
-import { switchFunction } from '@/server/actions/va';
 import { door, rolesOf } from '@/server/door';
 import { DoorProvider } from '@/features/admin/door';
 import { StaffNav } from '@/features/staff/StaffNav';
@@ -39,7 +38,7 @@ import { BugReportButton } from '@/features/bug-report/BugReport';
 
 // The staff portal's frame (0197; docs/blueprint/05-va.md and 06-field.md): one portal for every kind of staff work. The
 // menu holds the groups of every function the person has (customer service, fleet, finance, sales, field work); the
-// switcher picks the office function the screens work in. Every page checks the function and the second factor itself
+// role switcher (r48 ops: one for every role of the account, features/access) picks the office function the screens work in. Every page checks the function and the second factor itself
 // (vaPage, requireStaff). 1154: the Academy link sits in the rail's header in every state, held or not.
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
   const user = await currentUser();
@@ -83,13 +82,6 @@ export default async function StaffLayout({ children }: { children: React.ReactN
             {user && !viewing ? <TownhallLink userId={user.id} /> : null}
             {/* 1800: the inactivity tracker (the fact of activity only) for the staff who clock in */}
             {user && !viewing && (held.includes('cs') || held.includes('fleet') || held.includes('finance')) ? <ActivityBeat /> : null}
-            {held.length > 1 && (
-              <nav className="ad-fn" aria-label="Function" data-testid="fn-switch"><p className="small muted">Working as</p>
-                <ul className="ad-fn__list">{held.map((f) => (
-                  <li key={f}>{f === 'field'
-                    ? <Link prefetch={false} className="btn btn--sm btn--quiet" href="/staff/field" data-testid="fn-field">{STAFF_FN_LABEL.field}</Link>
-                    : <form action={switchFunction.bind(null, f)}><button type="submit" className={`btn btn--sm ${f === roles.va ? 'btn--primary' : 'btn--quiet'}`} aria-pressed={f === roles.va}>{STAFF_FN_LABEL[f]}</button></form>}</li>
-                ))}</ul></nav>)}
             <StaffNav functions={held} open={open} chat={chat} hot={hot} />
           </aside>
         ) : <div />}
