@@ -73,8 +73,9 @@
 .bn-carline__name { font-weight: 700; font-size: var(--fs-sm); line-height: 1.25; overflow-wrap: break-word; }
 .bn-carline__id { font-size: var(--fs-2xs); color: var(--text-2); font-variant-numeric: tabular-nums; overflow-wrap: break-word; }
 .bn-carline.is-compact .bn-carline__name { font-weight: 650; font-size: var(--fs-sm); }
-.bn-who { display: flex; align-items: center; gap: var(--s-2); min-width: 0; }
-.bn-who__name { font-weight: 600; font-size: var(--fs-sm); overflow-wrap: break-word; min-width: 0; }
+/* r48: the contact icons go under the name when the column is narrow, never squeeze it to a word a line */
+.bn-who { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-2); min-width: 0; }
+.bn-who__name { flex: 1 1 9rem; font-weight: 600; font-size: var(--fs-sm); overflow-wrap: break-word; min-width: 0; }
 .bn-who__acts { display: inline-flex; gap: 4px; flex: none; }
 .bn-icon { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 999px; border: 1px solid var(--grey-200); color: var(--text); background: var(--white); transition: background var(--t-1), color var(--t-1), border-color var(--t-1); }
 .bn-icon svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; stroke-linecap: round; }

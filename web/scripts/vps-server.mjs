@@ -41,6 +41,7 @@ import { ORIGIN_WAIT_MS, STALE_HEADER, hasSession, isProbe, staleKey, staleWorth
 import { checkPage, marketOf, marketStored, offMarketPlace, oldModelYear, oldYearGone, outOfMarket, placeRegionBit, scraperGuard, tooMany, vehiclePageYear } from '../src/lib/edge/scraper-guard.ts';
 import { RATE_LIMITED_BOT, keptToScope, shield, shieldResponse } from '../src/lib/edge/bot-shield.ts';
 import { hostAction } from '../src/lib/edge/canonical-host.ts';
+import { portalSignIn } from '../src/lib/edge/portal-gate.ts';
 import { jobsToRun, pushWaiting } from '../src/lib/edge/cron-gate.ts';
 import { kickNow, notifyKick, tickPlan } from '../src/lib/edge/notify-kick.ts';
 import { cronEnabled, jobsForTick } from '../src/lib/platform/cron-plan.ts';
@@ -283,6 +284,10 @@ async function handle(req, res) {
   }
   if (crossSiteWriteRefused(method, url.toString(), head('origin'), head('sec-fetch-site'))) { req.resume(); return sendWeb(res, crossSiteRefusal(secHeaders())); }
   if (viewAsWriteRefused(method, pathname, head('cookie'))) { req.resume(); return sendWeb(res, viewAsRefusal(req.headers['next-action'] !== undefined, secHeaders())); }
+  // R48 integration: a staff portal page with no session is a real 307 to sign in, as in the Worker (custom-worker.ts), not a
+  // redirect streamed as 200 from inside a loading.tsx boundary (src/lib/edge/portal-gate.ts)
+  { const signIn = portalSignIn(method, url.toString(), { get: (n) => head(n) ?? null });
+    if (signIn) { req.resume(); res.writeHead(307, { ...secHeaders(), location: signIn, 'cache-control': 'no-store', 'x-robots-tag': 'noindex' }); res.end(); return; } }
 
   const headers = {};
   for (const [k, v] of Object.entries(req.headers)) if (!HOP.has(k) && v !== undefined) headers[k] = v;

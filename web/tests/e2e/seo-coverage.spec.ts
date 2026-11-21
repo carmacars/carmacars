@@ -96,7 +96,9 @@ test('click depth: footer Browse leads to every place (directory) and every make
   const href = await place.getAttribute('href');
   await page.goto(href!);
   // the place page links to every term's page for it: four clicks from home
+  // (r48 SEO: in the fold "Everything for <place>", a plain <details>: in the HTML for crawlers, shown when opened)
   const all = page.getByTestId('hub-all-terms');
+  await page.locator('details.sk-fold:has([data-testid="hub-all-terms"]) > summary').click();
   await expect(all.locator(`a[href^="/detailing/"][href$="${href!.split('/').pop()}"]`).first()).toBeVisible();
   await expect(all.locator(`a[href^="/buy/"]`).first()).toBeVisible();
   await page.goto('/makes');
@@ -134,6 +136,8 @@ test('mechanical work we arrange: a request, never our work, no questions; synon
   await expect(page.locator('#h-rent')).not.toContainText('insurance');
   expect(await ld()).not.toContain('FAQPage');
   expect(await ld()).not.toContain('"@type":"Service"');
+  // (in the fold "Everything for <place>", r48 SEO)
+  await page.locator('details.sk-fold:has(nav[aria-label^="Auto services we arrange"]) > summary').first().click();
   await expect(page.locator('nav[aria-label^="Auto services we arrange"]').first()).toBeVisible();
   await noOverflow(page);
   // the request goes to the team

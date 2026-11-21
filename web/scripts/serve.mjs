@@ -68,6 +68,8 @@ let pageCache = null;
 try { pageCache = await import('../src/lib/edge/page-cache.ts'); } catch { /* Node without type stripping: no copies */ }
 // r35: the Worker's request guard (src/lib/security/request-guard.ts): a write from another site is refused, the unused
 // image optimizer answers 404
+let portalGate = null;
+try { portalGate = await import('../src/lib/edge/portal-gate.ts'); } catch { /* Node without type stripping: the page's own redirect */ }
 let requestGuard = null;
 try { requestGuard = await import('../src/lib/security/request-guard.ts'); } catch { /* Node without type stripping: the app's own checks only */ }
 // r48 speed: the nonce added while the page streams (without type stripping: the whole page is read first, as before)
@@ -172,6 +174,9 @@ http.createServer(async (req, res) => {
   if (requestGuard?.crossSiteWriteRefused(req.method, `http://${req.headers.host ?? 'localhost'}${req.url ?? '/'}`, req.headers.origin ?? null, req.headers['sec-fetch-site'] ?? null)) {
     res.writeHead(403, { ...security, 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' }); res.end(requestGuard.CROSS_SITE_REFUSAL); req.resume(); return;
   }
+  // R48 integration: the staff portals' sign-in redirect as a real 307, as the Worker and the VPS front answer it (portal-gate.ts)
+  { const signIn = portalGate?.portalSignIn(req.method, `http://${req.headers.host ?? 'localhost'}${req.url ?? '/'}`, { get: (n) => { const v = req.headers[n.toLowerCase()]; return v === undefined ? null : Array.isArray(v) ? v.join(', ') : v; } });
+    if (signIn) { res.writeHead(307, { ...security, location: signIn, 'cache-control': 'no-store', 'x-robots-tag': 'noindex' }); res.end(); req.resume(); return; } }
   if (viewAsWriteRefused(req.method, pathname, req.headers.cookie)) {
     if (req.headers['next-action']) { res.writeHead(200, { ...security, 'content-type': 'text/plain', 'cache-control': 'no-store', 'x-action-redirect': '/read-only;push' }); res.end(); }
     else {
