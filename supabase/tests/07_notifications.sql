@@ -138,7 +138,7 @@ select test.eq('C confirmation: one email to the renter, none to the owner (2620
   'renter_booking_confirmed>nt_rita@example.test | va_cs,va_fleet');
 select test.eq('C the owner is not emailed about the booking (2620): the event is recorded and processed at once',
   (select count(*) from notification_outbox where code = 'owner_new_booking' and entity_id = test.id('booking:NT-2')) || '/'
-  || (select process_note from app_events where code = 'owner_new_booking' and entity_id = test.id('booking:NT-2')), '0/outbox 0, digest 0, in-app 0');
+  || (select process_note from app_events where code = 'owner_new_booking' and entity_id = test.id('booking:NT-2')), '0/code disabled');
 select test.eq('C money and dates are formatted the catalogue way (Toronto time)',
   (select payload ->> 'pickup_date' || ' ' || (payload ->> 'pickup_time') || ' ' || (payload ->> 'deposit_amount') || ' ' || (payload ->> 'km_allowance')
      from notification_outbox where code = 'renter_booking_confirmed' and entity_id = test.id('booking:NT-2')),
@@ -909,7 +909,6 @@ select test.eq('G every wired email code has been built at least once in these t
       and c.code not in ('renter_data_check', 'owner_data_check', 'staff_data_check') -- an Admin's Send reminder (3199), queued in 99_r48fe_fees_evidence_hiring
       and c.code not in ('notify_summary', 'owner_reward_update', 'owner_tracker_alert', 'owner_tracker_weekly', 'staff_reward_update') -- 3260 to 3264, built in 99_r48rw_rewards_calendar_notify
       and c.code not in ('owner_use_charges', 'owner_insurance_late_fee') -- 3270 and 3271, queued in 99_r48rw_owner_money
-      and c.code not in ('owner_new_booking', 'owner_booking_confirmed', 'owner_booking_changed') -- 3260: only for an owner who turned New bookings on, built in 99_r48rw_rewards_calendar_notify
       and not exists (select 1 from notification_outbox o where o.code = c.code)
       and not exists (select 1 from staff_digest_items d where d.code = c.code)),
   null::text);

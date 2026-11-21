@@ -206,10 +206,11 @@ select pg_temp.rw_monthly('zrm_m3', 'ZRMC', date '2035-08-01', 40000, 0);
 select app.record_owner_invoice_payment(test.id('oinv:zrm_m3'), jsonb_build_object('amount_cents', 30000, 'method', 'card', 'status', 'succeeded', 'processor', jsonb_build_object('name', 'stripe', 'payment_id', 'pi_zrm_m3')), test.id('zrm_admin'));
 select test.eq('F part paid: the fee is on the part not paid', app.owner_invoice_unpaid_insurance(test.id('oinv:zrm_m3')), 10000::bigint);
 -- HST switched off by the accountant
-update program_settings set owner_insurance_late_fee_hst = false where id = (app.settings()).id;
+-- every settings row: the one in force in 2035 is not the one in force today when earlier tests added dated rows
+update program_settings set owner_insurance_late_fee_hst = false;
 select app.owner_late_fee_add(test.id('oinv:zrm_m3'));
 select test.eq('F with HST off the fee has none', (select amount_cents || ' ' || hst_cents from owner_invoice_lines where owner_invoice_id = test.id('oinv:zrm_m3') and kind = 'late_fee'), '500 0');
-update program_settings set owner_insurance_late_fee_hst = true where id = (app.settings()).id;
+update program_settings set owner_insurance_late_fee_hst = true;
 -- an invoice with no insurance keeps the flat Late Fee; an owner-use invoice never gets one
 select pg_temp.rw_monthly('zrm_m4', 'ZRMC', date '2035-09-01', 0, 2500);
 select test.eq('F no insurance on the invoice: the flat Late Fee', app.owner_late_fee_add(test.id('oinv:zrm_m4')), 5000::bigint);

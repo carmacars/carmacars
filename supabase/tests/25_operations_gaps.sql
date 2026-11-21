@@ -153,7 +153,7 @@ select test.eq('email: the renter''s confirmation says what was charged and link
      from notification_outbox o where o.code = 'renter_change_applied' and o.entity_id = test.og('c1')), 'true/OG-1-A1/document');
 select test.eq('email: the owner is not emailed about a change to an upcoming booking (2620); the event is recorded and processed at once',
   (select count(*) from notification_outbox where code = 'owner_booking_changed' and entity_id = test.og('c1')) || '/'
-  || (select process_note from app_events where code = 'owner_booking_changed' and entity_id = test.og('c1')), '0/outbox 0, digest 0, in-app 0');
+  || (select process_note from app_events where code = 'owner_booking_changed' and entity_id = test.og('c1')), '0/code disabled');
 select test.eq('email: customer service hears it was accepted, in their next digest',
   (select count(*) from staff_digest_items where code = 'staff_change_proposal_answered' and entity_id = test.og('c1') and role = 'va_cs'), 1::bigint);
 select test.eq('email: the line says the renter accepted', app.notification_payload('staff_change_proposal_answered',
