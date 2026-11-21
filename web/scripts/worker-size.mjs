@@ -134,7 +134,7 @@ function duplicates() {
       if (!e.name.endsWith('.js')) continue;
       const src = fs.readFileSync(p, 'utf8');
       // named ids ("[project]/src/x.tsx [app-ssr] (ecmascript)") or, minified, numeric ids: [id,(a,b)=>{...},id,...]
-      const named = /"\[project\]\/([^"]+?) \[([a-z-]+)\] \([^"]*\)",\s*(?:\(\(|function|\(__turbopack)/g;
+      const named = /"\[project\]\/([^"]+?) \[([a-z-]+)\] \([^"]*\)",\s*(?:\(|\w+=>|function)/g;
       const numeric = /[,[](\d{1,7}),(?:\(\w*(?:,\w+)*\)|\w+)=>\{/g;
       const hits = [];
       // the chunk's index source map names each module's section: the exact source file of every copy
