@@ -19,10 +19,13 @@ const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebK
 async function fakePush(ctx: BrowserContext | Page) {
   await ctx.addInitScript(() => {
     const KEY = 'e2e-push';
-    const load = (): { perm: string; endpoint: string | null } => { try { return JSON.parse(localStorage.getItem(KEY) ?? '') as { perm: string; endpoint: string | null }; } catch { return { perm: 'default', endpoint: null }; } };
-    const save = (s: { perm: string; endpoint: string | null }) => localStorage.setItem(KEY, JSON.stringify(s));
+    // the key the subscription was made with is kept too, as a browser keeps options.applicationServerKey (R48 CM
+    // replaces a subscription whose key is not the current one)
+    type S = { perm: string; endpoint: string | null; key?: number[] | null };
+    const load = (): S => { try { return JSON.parse(localStorage.getItem(KEY) ?? '') as S; } catch { return { perm: 'default', endpoint: null }; } };
+    const save = (s: S) => localStorage.setItem(KEY, JSON.stringify(s));
     const subOf = (endpoint: string) => ({
-      endpoint, options: { applicationServerKey: null as ArrayBuffer | null },
+      endpoint, options: { applicationServerKey: (load().key ? new Uint8Array(load().key!).buffer : null) as ArrayBuffer | null },
       toJSON: () => ({ endpoint, keys: { p256dh: 'B' + 'A'.repeat(86), auth: 'Q'.repeat(22) } }),
       unsubscribe: async () => { save({ ...load(), endpoint: null }); return true; }
     });
@@ -30,8 +33,8 @@ async function fakePush(ctx: BrowserContext | Page) {
       getSubscription: async () => { const s = load(); return s.endpoint ? subOf(s.endpoint) : null; },
       subscribe: async (o: { applicationServerKey: Uint8Array }) => {
         const endpoint = `https://push.example.test/send/${Math.random().toString(36).slice(2)}`;
-        save({ ...load(), endpoint });
-        const s = subOf(endpoint); s.options.applicationServerKey = o.applicationServerKey.buffer as ArrayBuffer; return s;
+        save({ ...load(), endpoint, key: Array.from(o.applicationServerKey) });
+        return subOf(endpoint);
       }
     };
     const reg = { pushManager, scope: `${location.origin}/` };

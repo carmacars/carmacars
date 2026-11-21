@@ -129,7 +129,8 @@ export function SimilarModels({ items, title }: { items: SimilarModel[]; title: 
 }
 
 /** The request link of the existing enquiry flow (the contact form with the car named, a lead in Admin > Leads). */
-export const requestHref = (name: string) => `/contact?topic=car&car=${encodeURIComponent(name)}`;
+// an apostrophe as %27 (encodeURIComponent keeps it, and the page writes it as &#x27;, which a raw reader takes for a #fragment)
+export const requestHref = (name: string) => `/contact?topic=car&car=${encodeURIComponent(name).replace(/'/g, '%27')}`;
 
 function Cards({ cars, labels }: { cars: CarRow[]; labels: Record<string, string> }) {
   return <ul className="fleet-grid fleet-grid--3">{cars.map((c) => <li key={c.slug}><CarCard c={c} labels={labels} /><Availability id={c.vehicle_id} /></li>)}</ul>;

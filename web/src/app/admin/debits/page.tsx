@@ -1,7 +1,9 @@
 import { redirect } from 'next/navigation';
 import { movedTo } from '@/features/admin/hubs';
+import { ADMIN_MOVED } from '@/server/portal-access';
 
 // r27: Owner debits is the Debits tab of Money > Owner money.
 export default async function Moved({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  redirect(movedTo('/admin/owner-money', 'debits', await searchParams));
+  const [to, tab, tabs] = ADMIN_MOVED['/admin/debits']!;
+  redirect(movedTo(to, tab, await searchParams, tabs));
 }

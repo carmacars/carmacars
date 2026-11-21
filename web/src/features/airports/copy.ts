@@ -6,7 +6,7 @@ export function airportCopy(a: { code: string; name: string; km: number | null; 
   const fee = a.delivery_from_cents ? money(a.delivery_from_cents) : null;
   const short = a.name.replace(/ International Airport$| Toronto City Airport$/, '');
   return {
-    title: `${short} (${a.code}) Car Rental, Delivered to the Terminal | ${brand}`.slice(0, 70),
+    title: airportTitle(short, a.code, brand),
     description: `Rent a car at ${a.name} (${a.code}): ${brand} meets you at the terminal with the car${fee ? `, delivery from ${fee}` : ''}. No rental counter, no shuttle. Request with no payment.`.slice(0, 165),
     h1: `${short} (${a.code}) car rental, delivered to the terminal`,
     lead: [
@@ -18,4 +18,10 @@ export function airportCopy(a: { code: string; name: string; km: number | null; 
       { question: `How much is delivery to ${a.code}?`, answer: fee ? `From ${fee}, the standard delivery price for the distance. The exact fee for your car is in your offer before you pay.` : `Each car's page shows its delivery fee; the exact fee is in your offer before you pay.` }
     ]
   };
+}
+
+// the title within 70 characters without cutting the brand: the long form, else a shorter one, else the brand dropped
+export function airportTitle(short: string, code: string, brand: string): string {
+  const forms = [`${short} (${code}) Car Rental, Delivered to the Terminal | ${brand}`, `${short} (${code}) Car Rental at the Terminal | ${brand}`, `${short} (${code}) Car Rental | ${brand}`];
+  return forms.find((t) => t.length <= 70) ?? `${short} (${code}) Car Rental`.slice(0, 70);
 }

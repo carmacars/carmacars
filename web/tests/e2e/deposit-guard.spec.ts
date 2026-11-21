@@ -103,7 +103,7 @@ test('the deposit is held for the toll window, kept whole while a toll is open, 
   await page.getByTestId('deposit-settle').click();
   const form = page.getByTestId('deposit-form');
   await expect(form).toBeVisible();
-  await expect(page.getByTestId('deposit-window')).toContainText('Tolls and tickets can take up to 7 days');
+  await expect(page.getByTestId('deposit-window')).toContainText('Tolls and tickets can take up to 30 days');
   await expect(page.getByTestId('deposit-hold')).toHaveValue((rest / 100).toFixed(2));
   await expect(page.getByTestId('deposit-release')).toContainText('Back to the renter: $0.00');
   await check(page, 'settle, inside the toll window');

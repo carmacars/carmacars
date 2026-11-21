@@ -265,6 +265,9 @@ test('money: the guided Deposit settlement holds back an amount with its reason 
   try {
     const admin = await mkUser(sql, 'admin');
     const b = await mkPaidBooking(sql, 'returned');
+    // R48 MR (3101): the toll window is 30 days; this car came back 40 days ago, so nothing is held back for it
+    await sql`update bookings set booked_at = now() - interval '50 days', pickup_at = now() - interval '43 days', handed_over_at = now() - interval '43 days',
+              return_at = now() - interval '40 days', original_return_at = now() - interval '40 days', checked_in_at = now() - interval '40 days' where id = ${b.booking}`;
     const hold = randomUUID();
     await sql`insert into payments (id, booking_id, renter_id, purpose, kind, method, amount_cents, status, processed_at) values (${hold}, ${b.booking}, ${b.renterId}, 'deposit', 'charge', 'card', 100000, 'succeeded', now() - interval '10 days')`;
     await sql`insert into deposits (booking_id, amount_cents, method, status, hold_payment_id, taken_at, captured_cents) values (${b.booking}, 100000, 'charged', 'captured', ${hold}, now() - interval '10 days', 100000)`;

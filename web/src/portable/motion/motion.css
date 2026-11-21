@@ -57,6 +57,8 @@
 
 /* the tabs' pill (runtime): behind the tabs, the current tab's own fill handed to it */
 [data-mo-tabs] { position: relative; isolation: isolate; }
+/* the pill never reaches past its bar (a stale size after the fonts load ran 4px past a 375 screen); the tabs' focus ring still shows */
+[data-mo-tabs="on"] { overflow: clip; overflow-clip-margin: 6px; }
 [data-mo-tabs="on"] > :not(.mo-tab-ind) { background-color: transparent !important; }
 .mo-tab-ind { position: absolute; z-index: -1; left: 0; top: 0; border-radius: 999px; background: var(--mo-tab-fill, currentColor); transform-origin: 0 50%; pointer-events: none; }
 

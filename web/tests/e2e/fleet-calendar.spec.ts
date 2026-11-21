@@ -75,7 +75,9 @@ async function checkTimeline(page: Page, where: string, phone: boolean) {
   expect(await cal.locator('.mcal__row.is-off[data-free-all]').count(), `${where}: a car that cannot be booked is never free`).toBe(0);
   const freeAll = await cal.locator('.mcal__row[data-free-all="yes"]').count();
   await cal.getByTestId('cal-only-free').check();
-  await expect(rows, `${where}: only the free cars`).toHaveCount(freeAll);
+  // (r48 ops: the free cars of a folded group show too once the filter is on, so there can be more than were in view)
+  await expect(cal.locator('.mcal__row:not([data-free-all="yes"])'), `${where}: only the free cars`).toHaveCount(0);
+  expect(await rows.count(), `${where}: every free car shown before is still shown`).toBeGreaterThanOrEqual(freeAll);
   await cal.getByTestId('cal-only-free').uncheck();
   await expect(rows, where).toHaveCount(n);
   await noOverflow(page);

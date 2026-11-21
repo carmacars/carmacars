@@ -38,7 +38,8 @@ test('a renter fixes their phone in the data check pop-up; the reminder email is
   const id = randomUUID(); const email = `fe.renter.${Date.now()}.${tag()}@example.test`;
   await sql`insert into local_auth.users (id, email, password_hash) values (${id}, ${email}, ${hash(PW)})`;
   await sql`select public.register_account(${id}, ${email}, ${LONG}, null)`;
-  await sql`update renters set mobile = '555' where user_id = ${id}`;
+  // the renter record a booking request makes (an account alone has none), with a number that is not valid
+  await sql`insert into renters (user_id, legal_name, email, mobile) values (${id}, ${LONG}, ${email}, '555')`;
   await signIn(page, email, /^\/account/);
   const box = page.getByTestId('data-check');
   await expect(box).toBeVisible();

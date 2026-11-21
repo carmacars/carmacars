@@ -35,6 +35,8 @@ async function signIn(page: Page, email: string, next = '') {
   await page.locator('#si-pass').fill(PW);
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await page.waitForURL((u) => !u.pathname.startsWith('/sign-in'), { timeout: 20_000 });
+  // the portal settles first: a goto while its own redirect or refresh is in flight is aborted (net::ERR_ABORTED)
+  await page.waitForLoadState('networkidle');
 }
 const path = (page: Page) => new URL(page.url()).pathname;
 
@@ -130,8 +132,11 @@ test('sign-in: several roles: one portal with a role switcher, no chooser; the r
   await page.goto('/owner');
   await page.getByTestId('role-switch').getByRole('link', { name: 'Owner', exact: true }).click();
   await page.waitForURL((u) => u.pathname === '/owner');
+  // signed out under the open owner page: its live reads (alerts, location) are refused until the next sign-in
+  const signedOutAt = errors.length;
   await page.context().clearCookies({ name: /^(?!cc_last_portal).*/ });
   await signIn(page, p.email);
+  errors.splice(signedOutAt, errors.length - signedOutAt, ...errors.slice(signedOutAt).filter((x) => !/Failed to load resource.*401/.test(x)));
   expect(path(page)).toBe('/owner');
   // the old chooser's address still answers (a bookmark), with every portal of the account
   await page.goto('/choose-portal');

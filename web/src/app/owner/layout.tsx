@@ -1,5 +1,5 @@
 import '@/styles/portal.css';
-import { requestPath } from '@/server/portal-access';
+import { ownerMoved, requestUrl } from '@/server/portal-access';
 import { requireOwner } from '@/server/owner/data';
 import '@/styles/owner.css';
 import '@/components/portal-ui/portal-ui.css';
@@ -26,8 +26,9 @@ import { liveTokens } from '@/server/live';
 export default async function OwnerLayout({ children }: { children: React.ReactNode }) {
   // R48: the home's own gate here, above the loading boundary, so a refusal is a real 307 (server/portal-access.ts). The
   // other owner pages keep their own checks (some open from emailed links without a session).
-  const path = await requestPath();
-  if (path && /^\/owner\/?$/.test(path)) await requireOwner('/owner');
+  const at = await requestUrl();
+  if (at && /^\/owner\/?$/.test(at.path)) await requireOwner('/owner');
+  if (at) ownerMoved(at.path, at.sp);
   const user = await currentUser();
   if (!user) return <>{children}</>;
   const [unread, partner, live] = await Promise.all([

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { acceptCookies, db, noOverflow , chooseCardCoverage } from './helpers';
+import { acceptCookies, db, noOverflow , chooseCardCoverage, uniquePhone } from './helpers';
 
 // Migration 0102 end to end: the /book car list labels (year, make, model, trim, colour and the from price, a car code
 // only between two identical labels, by price), the form rendered on the server with its car and price summary, the
@@ -55,7 +55,7 @@ test('review step: the Edit links stay on one line at 375, 768, 1024 and 1440', 
   await page.locator('#rq-first').fill('Edie');
   await page.locator('#rq-last').fill('Linewidth');
   await page.locator('#rq-email').fill(`edit.${Date.now()}@example.test`);
-  await page.locator('#rq-phone').fill('647-555-0123');
+  await page.locator('#rq-phone').fill(uniquePhone());
   await page.locator('#rq-dobm').selectOption('3');
   await page.locator('#rq-dobd').fill('12');
   await page.locator('#rq-doby').fill('1988');
@@ -110,7 +110,7 @@ test('a sample car: a real car free for the dates is offered; one tap switches; 
     await page.locator('#rq-first').fill('Mara');
     await page.locator('#rq-last').fill('Matcher');
     await page.locator('#rq-email').fill(email);
-    await page.locator('#rq-phone').fill('647-555-0178');
+    await page.locator('#rq-phone').fill(uniquePhone());
     await page.locator('#rq-dobm').selectOption('4');
     await page.locator('#rq-dobd').fill('2');
     await page.locator('#rq-doby').fill('1987');

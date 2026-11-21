@@ -53,7 +53,7 @@ async function person(sql: Sql, name: string, role: string) {
 async function seller(sql: Sql, name: string, country: string, mode: string) {
   const u = await person(sql, name, 'va');
   await sql`insert into staff_profiles (user_id, staff_type, va_function, home_address, home_postal_code, onboarding_exempt, whatsapp_joined, whatsapp_joined_at, onboarding_approved_at)
-    values (${u.id}, 'va', 'sales', '1 Test Lane, Testville', 'X9X 9X9', true, true, now(), now())`;
+    values (${u.id}, 'va', 'sales', '1 Test Lane, Testville', 'X9X 9X9', true, '{team}', now(), now())`;
   await sql`update staff_profiles set location_country = ${country}, sales_work_mode = ${mode}, agreement_waived_at = now() where user_id = ${u.id}`;
   return u;
 }
@@ -90,9 +90,10 @@ test('owner rewards: the tab, a merch kit redeemed by button, shipped by the Adm
   await page.getByTestId('or-redeem-confirm-merch_kit').click();
   await expect(form).toBeHidden({ timeout: 30_000 });
   await expect(page.getByTestId('or-ms-state-merch_kit')).toContainText('Getting ready');
-  const [req] = await sql`select id, status, address from owner_reward_requests where owner_id = ${o.ownerId} and kind = 'merch_kit'`;
+  const [req] = await sql`select id, status, ship_line1, ship_city, ship_postal_code from owner_reward_requests where owner_id = ${o.ownerId} and kind = 'merch_kit'`;
   expect(req!.status).toBe('requested');
-  expect(JSON.stringify(req!.address)).toContain('1200 Bay Street');
+  expect([req!.ship_line1, req!.ship_city]).toEqual(['1200 Bay Street', 'Toronto']);
+  expect(String(req!.ship_postal_code).replace(/\s/g, '')).toBe('M5R2A5');
   // the Admins are told: the alert is in the queue
   const ev = await sql`select count(*)::int as n from app_events where payload ->> 'rule' = 'owner_merch_to_ship' and created_at > now() - interval '5 minutes'`;
   expect(ev[0]!.n).toBeGreaterThan(0);
@@ -251,10 +252,10 @@ test('owner-use charges: billed to the owner, the notice queued, on the Money ta
   const number = `OU-${Date.now().toString(36).toUpperCase()}`;
   const [renter] = await sql`select id from renters order by created_at limit 1`;
   const [b] = await sql`insert into bookings (booking_number, booking_type, status, vehicle_id, renter_id, owner_id, booked_at, pickup_at, return_at, original_return_at, billable_days,
-      daily_rate_cents, rate_applied, daily_days, weekend_days, rental_charge_cents, discount_cents, km_allowance_per_day, km_allowance_total, overage_cents_per_km, deposit_cents,
+      daily_rate_cents, weekend_rate_cents, weekly_rate_cents, monthly_rate_cents, rate_applied, daily_days, weekend_days, rental_charge_cents, discount_cents, km_allowance_per_day, km_allowance_total, overage_cents_per_km, deposit_cents,
       subtotal_at_booking_cents, hst_at_booking_cents, total_due_at_booking_cents)
     values (${number}, 'owner', 'returned', ${car.id}, ${renter!.id}, ${o.ownerId}, now() - interval '9 days', now() - interval '6 days', now() - interval '4 days', now() - interval '4 days', 2,
-      0, 'daily', 2, 0, 0, 0, 250, 500, 25, 0, 0, 0, 0) returning id`;
+      0, 0, 0, 0, 'daily', 2, 0, 0, 0, 250, 500, 25, 0, 0, 0, 0) returning id`;
   await sql`insert into booking_line_items (booking_id, charge_type, description, quantity, unit_amount_cents, amount_cents, hst_applies, hst_cents, revenue_class, charged_to_renter, stage)
     select ${b!.id}, f.code, f.label, 1, 6500, 6500, f.hst_applies, case when f.hst_applies then public.calc_hst(6500) else 0 end, f.revenue_class, true, 'after_return' from fee_types f where f.code = 'fuel'`;
   await sql`update program_settings set fee_evidence_gate = false where id = (app.settings()).id`;

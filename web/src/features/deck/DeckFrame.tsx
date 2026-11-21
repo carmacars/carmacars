@@ -19,9 +19,15 @@ export function DeckFrame({ titles, children }: { titles: string[]; children: Re
     all.forEach((el, i) => { if (el.getBoundingClientRect().top <= line) k = i; });
     return k;
   }, [slides]);
+  // while a jump scrolls (smoothly, past the slides between), the in-view count waits for it to settle on the slide asked for
+  const jumping = useRef(0);
   const go = useCallback((i: number) => {
     const all = slides();
     const k = Math.max(0, Math.min(all.length - 1, i));
+    const n = ++jumping.current;
+    const settle = () => { if (jumping.current === n) jumping.current = 0; };
+    window.addEventListener('scrollend', settle, { once: true });
+    window.setTimeout(settle, 1200);
     all[k]?.scrollIntoView({ block: 'start' });
     all[k]?.focus({ preventScroll: true });
     setCur(k);
@@ -36,6 +42,7 @@ export function DeckFrame({ titles, children }: { titles: string[]; children: Re
   useEffect(() => {
     const all = slides();
     const io = new IntersectionObserver((es) => {
+      if (jumping.current) return;
       for (const e of es) if (e.isIntersecting) { const k = all.indexOf(e.target as HTMLElement); if (k >= 0) setCur(k); }
     }, { rootMargin: '-35% 0px -60% 0px' });
     all.forEach((s) => io.observe(s));

@@ -116,7 +116,7 @@ test('Admin: each area at most five pages, actions are buttons, Ctrl+K finds eve
   // People > Owners: the four tabs; Add a car for an owner is a button on the page
   await page.goto('/admin/owners', { waitUntil: 'networkidle' });
   // r35 (0950): the owner leads are a tab of Owners
-  await expect(page.getByTestId('hub-bar').locator('a')).toHaveText([/^Applications/, /^Owners/, /^Owner forms/, /^Paid and signed/, /^Leads/]);
+  await expect(page.getByTestId('hub-bar').locator('a')).toHaveText([/^Applications/, /^Owners/, /^Owner forms/, /^Paid and signed/, /^Leads/, /^Owner rewards/]);
   await expect(page.getByTestId('add-car-for-owner')).toBeVisible();
   await page.getByTestId('add-car-for-owner').click();
   await page.waitForURL(/\/admin\/owners\/add-car/);

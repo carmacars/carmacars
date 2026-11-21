@@ -133,8 +133,9 @@ test('Tracker events: the fake provider, one record with its evidence, the notic
     expect(rn!.status).toBe('queued');
     expect(String((rn!.payload as Record<string, string>).event_fee)).toContain('A speeding charge of $1,000.00 plus HST applies (over 220 km/h)');
     expect(String((rn!.payload as Record<string, string>).event_ask)).toContain('Please slow down');
-    const [on] = await sql`select o.status, o.booking_id, e.payload from app_events e join notification_outbox o on o.event_id = e.id where e.dedupe_key = ${`owner_tracker_alert:${a!.id}`}`;
-    expect([on!.status, on!.booking_id]).toEqual(['queued', null]);
+    // 3353: the owner's speed alert is off by default on every channel; the notice stays in the portal, the email is recorded as off
+    const [on] = await sql`select o.status, o.status_reason, o.booking_id, e.payload from app_events e join notification_outbox o on o.event_id = e.id where e.dedupe_key = ${`owner_tracker_alert:${a!.id}`}`;
+    expect([on!.status, on!.status_reason, on!.booking_id]).toEqual(['suppressed', 'not sent: turned off in notification preferences', null]);
     expect(JSON.stringify(on!.payload)).not.toContain(number);
 
     // an Admin sees the record with its evidence and charges it

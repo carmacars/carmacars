@@ -21,6 +21,9 @@ const WAIT_MS = 220; // the longest a View Transition holds the old page while t
 
 type DocVT = Document & { startViewTransition?: (cb: () => Promise<void>) => { finished: Promise<void>; ready: Promise<void> } };
 
+// React marks every element it owns (hydrated or rendered) with a fiber key (as src/portable/motion/runtime.ts hydrated())
+const owned = (el: Element) => Object.keys(el).some((k) => k.startsWith('__reactFiber$'));
+
 export function Effects() {
   const path = usePathname();
 
@@ -115,23 +118,32 @@ export function Effects() {
       img.classList.add('img-in');
       requestAnimationFrame(() => { img.classList.remove('img-wait'); window.setTimeout(() => img.classList.remove('img-in'), 950); });
     };
+    let retries = 0;
     const scan = () => {
       const h = vh();
       // read every position first, then write the classes (no forced layout between reads)
       const w = window.innerWidth || h;
       const later: HTMLElement[] = [];
+      let waiting = false;
       document.querySelectorAll<HTMLElement>(REVEAL).forEach((el) => {
-        if (done.has(el)) return; done.add(el);
+        if (done.has(el)) return;
+        // R48: a part streamed in after the shell (a loading.tsx boundary) is in the page before React hydrates it; a class
+        // added to it then is a hydration mismatch (React #418 on portal pages). It is looked at again a moment later.
+        if (!owned(el)) { waiting = true; return; }
+        done.add(el);
         if (el.closest('dialog, .popover, .filters, .menu-panel, [hidden]')) return;
         const r = el.getBoundingClientRect();
         // below the fold only, and never a card off to the side (a horizontal rail: it would wait for good)
         if (r.top > h && r.height > 0 && r.left < w && r.right > 0) later.push(el);
       });
       document.querySelectorAll<HTMLElement>('[data-count]').forEach((el) => {
-        if (done.has(el)) return; done.add(el);
+        if (done.has(el)) return;
+        if (!owned(el)) { waiting = true; return; }
+        done.add(el);
         if (el.getBoundingClientRect().top > h) io.observe(el);
       });
       later.forEach((el) => { el.classList.add('rv'); io.observe(el); });
+      if (waiting && ++retries <= 25) window.setTimeout(scan, 400);  // for 10 seconds at most
       document.querySelectorAll<HTMLImageElement>('img[loading="lazy"]').forEach((img) => {
         if (done.has(img)) return; done.add(img);
         if (img.complete) return;

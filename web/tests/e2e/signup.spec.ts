@@ -180,7 +180,8 @@ test('booking request, then create account with the same address: no email at th
   const uid = randomUUID();
   await sql`insert into users (id, email, full_name) values (${uid}, ${email}, 'Gina Guest')`;
   await sql`insert into user_roles (user_id, role) values (${uid}, 'renter')`;
-  await sql`insert into renters (user_id, legal_name, email) values (${uid}, 'Gina Guest', ${email})`;
+  // a request always has the mobile number (without it the R48 FE data check pop-up asks for it on every page)
+  await sql`insert into renters (user_id, legal_name, email, mobile) values (${uid}, 'Gina Guest', ${email}, '647-555-0101')`;
   expect(await accountEmails(sql, email), 'the request sends no "finish your account" email').toEqual([]);
   await page.goto('/create-account');
   await acceptCookies(page);

@@ -5,7 +5,9 @@
 .sl-card { padding: var(--s-4); gap: var(--s-2); min-width: 0; grid-template-columns: minmax(0, 1fr); }  /* one track no wider than the card (375px overflowed by 13px) */
 .sl-card--hot { border-left: 4px solid var(--red-600); }
 .sl-card__head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--s-2); flex-wrap: wrap; }
-.sl-card__name { font-weight: 600; overflow-wrap: break-word; }
+.sl-card__name { font-weight: 600; overflow-wrap: anywhere; min-width: 0; }  /* a name that is an email or a long word breaks (375: 4 to 11px) */
+/* the first page of a lead's visit is a path with no spaces: it breaks anywhere (375 overflowed by 25px) */
+.sl-card__landing { overflow-wrap: anywhere; min-width: 0; }
 .sl-card__src, .sl-card__contact, .sl-card__text { margin: 0; overflow-wrap: break-word; }
 .sl-card__text { display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .sl-dash { display: grid; gap: var(--s-3); grid-template-columns: repeat(2, minmax(0, 1fr)); }

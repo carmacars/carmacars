@@ -13,9 +13,9 @@ export const GATED_PORTALS = ['/admin', '/staff'] as const;
  * client, so a portal layout (above the segment loading.tsx) can refuse with a real 307 or 404 (server/portal-access.ts). */
 export const PATH_HEADER = 'x-cc-path';
 const PORTAL_PATH = /^\/(admin|staff|owner)(\/|$)/;
-/** The value of PATH_HEADER for a path: the path on a portal page, else null (the header is then removed). */
-export function portalPathHeader(pathname: string): string | null {
-  return PORTAL_PATH.test(pathname) ? pathname : null;
+/** The value of PATH_HEADER: the path and query of a portal page, else null (the header is then removed). */
+export function portalPathHeader(pathname: string, search = ''): string | null {
+  return PORTAL_PATH.test(pathname) ? pathname + (search.startsWith('?') ? search : search ? `?${search}` : '') : null;
 }
 
 // the local stack's session (src/lib/auth/local.ts): CI and local runs sign in with it, not the Supabase cookie

@@ -120,7 +120,7 @@ function PhoneThread({ id, portal, fn, onChange }: { id: string; portal: 'admin'
               : <button type="button" className="btn btn--quiet btn--sm" disabled={busy} onClick={() => { if (confirm('Stop all texts to this number, booking texts included?')) void act('phone_opt_out', { on: true }, 'No more texts to this number.'); }}>Stop texts</button>}
           </div>
         </header>
-        <div className="lc-log" ref={log} role="log" aria-live="polite" aria-label="Calls and texts">
+        <div className="lc-log" ref={log} role="log" aria-live="polite" aria-label="Calls and texts" tabIndex={0}>
           {t.items.map((m) => m.kind === 'call' ? (
             <div key={m.id} className={`ph-call${m.missed ? ' ph-call--missed' : ''}`} data-testid="phone-call">
               <p className="small"><b>{m.missed ? 'Missed call' : m.direction === 'in' ? 'Call in' : 'Call out'}</b> <span className="muted">{dayClock(m.at)}</span></p>

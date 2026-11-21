@@ -148,7 +148,7 @@ function ChatThread({ id, portal, onChange }: { id: string; portal: 'admin' | 'v
             {c.email && <button type="button" className="btn btn--quiet btn--sm" disabled={busy} onClick={() => void act('chat_transcript').then(() => setNote(`A copy goes to ${c.email}.`))}>Email the transcript</button>}
           </div>
         </header>
-        <div className="lc-log" ref={log} role="log" aria-live="polite" aria-label="Messages">
+        <div className="lc-log" ref={log} role="log" aria-live="polite" aria-label="Messages" tabIndex={0}>
           {msgs.map((m) => m.sender === 'system' ? <p key={m.id} className={`ccw-sys lc-sys${m.meta?.staff_only ? ' lc-sys--staff' : ''}`} data-staff-note={m.meta?.staff_only ? 'true' : undefined}>{m.meta?.staff_only ? <b>Staff note: </b> : null}{m.body}</p> : (
             <div key={m.id} className={`lc-msg lc-msg--${m.sender}`} data-sender={m.sender}>
               <span className="lc-msg__who">{m.sender === 'visitor' ? c.who : m.sender === 'ai' ? 'Assistant' : m.staff_name ?? m.name}{' '}<span className="muted">{clock(m.at)}</span></span>

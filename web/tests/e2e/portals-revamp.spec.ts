@@ -103,14 +103,14 @@ test('renter portal: Trips opens on what to do now, Account has two tabs, old ad
   }
 });
 
-test('owner portal: five links, home with earned, cars out, next payout first, Cars, Money and Account tabs', async ({ page }) => {
+test('owner portal: six links, home with earned, cars out, next payout first, Cars, Money and Account tabs', async ({ page }) => {
   test.setTimeout(240_000);
   const sql = db();
   await sql`delete from app.rate_limit_hits`;
   const errors = watch(page);
   const o = await seedOwner(sql);
   await signIn(page, o.email, '/owner');
-  await menu(page, 'owner-nav', ['Home', 'Cars', 'Money', 'Documents', 'Account'], 'Home');
+  await menu(page, 'owner-nav', ['Home', 'Cars', 'Money', 'Documents', 'Rewards', 'Account'], 'Home');
   await expect(page.getByTestId('owner-now')).toHaveText(/^\d of 3 cars out right now\.$/);
   await expect(page.getByTestId('owner-next-payout')).toHaveText('$6,554.00');
   await expect(page.getByTestId('owner-hero').locator('img')).not.toHaveCount(0);

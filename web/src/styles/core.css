@@ -14,6 +14,9 @@ h1, h2, h3, h4, p, ul, ol, dl, dd, figure, blockquote, fieldset { margin: 0; pad
 fieldset { border: 0; min-width: 0; }
 ul[class], ol[class], nav ul, nav ol { list-style: none; }
 button, input, select, textarea { font: inherit; color: inherit; }
+/* a select with a long option never widens its row (375: the scene pickers of R48 overflowed by 11 to 34px) */
+select { max-width: 100%; }
+.row > label { min-width: 0; max-width: 100%; }
 button { cursor: pointer; }
 a { color: inherit; }
 table { border-collapse: collapse; width: 100%; }

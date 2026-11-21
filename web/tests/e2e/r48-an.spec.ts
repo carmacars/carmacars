@@ -1,5 +1,15 @@
 import { test, expect } from '@playwright/test';
+import { createHmac } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { db, noOverflow } from './helpers';
+
+// the listing worker's token (as vehicle-pages.spec.ts): the fleet page is kept for an hour (revalidate 3600), and a new
+// cutout does not change the fleet's signature, so the test asks for the public rebuild itself
+const jobToken = () => {
+  const env = readFileSync(path.join(process.cwd(), '.env.local'), 'utf8');
+  return createHmac('sha256', /^LINK_SIGNING_KEY=(.*)$/m.exec(env)![1]!.trim()).update('carmacars-listing-worker-v1').digest('hex');
+};
 
 // Release 48 AN (3150 to 3153): the main paths. A car's studio renders come first (the side profile the cover), its real
 // photos after them with the "Rendered photos" note and a way to them; the card's car stands on its studio floor with its
@@ -75,12 +85,13 @@ test('the Cars filter lists one model per family, never a trim of its own', asyn
   await noOverflow(page);
 });
 
-test('the card stands on its studio floor with the cutout once one is made', async ({ page }) => {
+test('the card stands on its studio floor with the cutout once one is made', async ({ page, request }) => {
   await sql`insert into site_cutouts (vehicle_id, shot, source_kind, source_bucket, source_path, path, width, height, facing, made_at)
             values (${vehicleId}, 'left', 'studio', 'vehicle-public', 'e2e', 'site/cutouts/e2e-left.svg', 1500, 500, 'left', now())
             on conflict (vehicle_id, shot) do update set path = excluded.path`;
   await sql`select app.listing_cache_refresh(array[${vehicleId}::uuid])`;
-  await page.goto('/cars');
+  expect((await request.post('/api/jobs/public-rebuild', { headers: { authorization: `Bearer ${jobToken()}`, 'content-type': 'application/json' }, data: {} })).status()).toBe(200);
+  await expect.poll(async () => { await page.goto('/cars'); return page.locator('.car-stage').count(); }, { timeout: 30_000, intervals: [2_000] }).toBeGreaterThan(0);
   await expect(page.locator('.car-stage').first()).toBeVisible();
   await noOverflow(page);
 });

@@ -394,3 +394,10 @@ export async function chooseCardCoverage(page: import('@playwright/test').Page) 
   expect(covered, 'a card on the list covers this car').toBe(true);
   await page.getByTestId('coverage-card-ack').check();
 }
+
+/** A phone number no other test uses: since R48 SEO a new lead with the phone of a recent open lead is merged into it
+ *  (lead_auto_merge), so a fixed number shared across specs moved this test's lead and its task onto another one. */
+export function uniquePhone(): string {
+  const n = String(Math.floor(Math.random() * 1e7)).padStart(7, '0');
+  return `289-${n.slice(0, 3).replace(/^[01]/, '5')}-${n.slice(3)}`;
+}

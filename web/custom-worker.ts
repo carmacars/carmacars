@@ -444,7 +444,7 @@ const worker = {
     // The Admin portal is always the Admin themselves, even while viewing as someone elsewhere (src/server/view-as.ts).
     // R48: a portal page's path for its layout, which refuses above the loading boundary (src/server/portal-access.ts);
     // never the client's own value
-    const portalPath = portalPathHeader(path);
+    const portalPath = portalPathHeader(path, new URL(request.url).search);
     if (req.headers.has(ADMIN_AREA_HEADER) || isAdminArea(path) || req.headers.has(PATH_HEADER) || portalPath) {
       const h = new Headers(req.headers);
       h.delete(ADMIN_AREA_HEADER);

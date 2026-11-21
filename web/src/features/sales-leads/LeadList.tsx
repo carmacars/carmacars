@@ -31,7 +31,7 @@ export function LeadCards({ rows, base, admin, people, testId = 'lead-cards', pi
           </div>
           <p className="small sl-card__src"><b data-testid="lead-source">{r.source}</b> · {age(r.created_at)}{r.vehicle ? ` · ${r.vehicle}` : ''}{r.value_cents ? ` · ${$(r.value_cents)}` : ''}</p>
           {/* 3230: where they came from (ChatGPT, Google search and its terms ...) and a duplicate to merge */}
-          {(r.traffic || (r.dups ?? 0) > 0) && <p className="small sl-card__src row" style={{ gap: 'var(--s-2)', flexWrap: 'wrap' }}><SourceBadge t={r.traffic} />{r.traffic?.landing && <span className="muted" data-testid="lead-landing">First page {r.traffic.landing}</span>}
+          {(r.traffic || (r.dups ?? 0) > 0) && <p className="small sl-card__src row" style={{ gap: 'var(--s-2)', flexWrap: 'wrap' }}><SourceBadge t={r.traffic} />{r.traffic?.landing && <span className="muted sl-card__landing" data-testid="lead-landing">First page {r.traffic.landing}</span>}
             {(r.dups ?? 0) > 0 && <Link prefetch={false} className="sl-src sl-src--dup" href={`${base}/${r.id}`} data-testid="lead-dups">{r.dups} possible duplicate{r.dups === 1 ? '' : 's'}: merge</Link>}</p>}
           <p className="small sl-card__contact">{r.phone || r.email ? <>{r.phone && <PhoneValue phone={r.phone} />}{r.phone && r.email ? ' · ' : ''}{r.email}</> : <span className="muted">No phone or email</span>}</p>
           {r.excerpt && <p className="small muted sl-card__text">{r.excerpt}</p>}

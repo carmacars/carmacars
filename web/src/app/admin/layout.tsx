@@ -13,7 +13,7 @@ import { RevampScope } from '@/features/admin/revamp/RevampScope';
 import { REVAMP_ADMIN } from '@/features/admin/revamp/scope';
 import { AdminCommand } from '@/features/admin/shell/AdminCommand';
 import { adminGate, requireAdmin } from '@/server/admin/data';
-import { requestPath } from '@/server/portal-access';
+import { adminMoved, requestUrl } from '@/server/portal-access';
 import { rpc } from '@/lib/db/repo';
 import { door } from '@/server/door';
 import { PortalSwitch } from '@/features/access/Access';
@@ -44,8 +44,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // together (they were one after another: five round trips before any admin page could show)
   const [gate, viewing] = user ? await Promise.all([adminGate(user).catch(() => null), viewAsCookieSet().catch(() => false)]) : [null, false];
   // R48: the page's own gate here, above the loading boundary, so a refusal is a real 307 (server/portal-access.ts)
-  const path = await requestPath();
-  if (path && !/^\/admin\/no-access\/?$/.test(path)) await requireAdmin(path);
+  const at = await requestUrl();
+  if (at && !/^\/admin\/no-access\/?$/.test(at.path)) { await requireAdmin(at.path); adminMoved(at.path, at.sp); }
   // while viewing a portal as someone, the pop-up keeps its region and reads nothing (the phone reads answer the viewed person)
   // r41: live updates (server/live.ts): the frame's areas, read alongside the rail's counts
   const livePromise = user && gate?.admin ? liveTokens(user.id, ['me', 'bookings', 'requests', 'leads', 'messages', 'field', 'tasks', 'calls']) : Promise.resolve<Awaited<ReturnType<typeof liveTokens>>>({});

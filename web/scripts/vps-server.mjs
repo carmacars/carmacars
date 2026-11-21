@@ -297,7 +297,7 @@ async function handle(req, res) {
   if (isAdminArea(pathname)) headers[ADMIN_AREA_HEADER] = '1';
   // R48: a portal page's path for its layout (src/server/portal-access.ts), never the client's own value
   delete headers[PATH_HEADER];
-  { const p = portalPathHeader(pathname); if (p) headers[PATH_HEADER] = p; }
+  { const p = portalPathHeader(pathname, url.search); if (p) headers[PATH_HEADER] = p; }
 
   // the session refreshed here, where the response can set the cookie, before a page reads it (src/lib/auth/edge-refresh.ts)
   let setCookies = [];

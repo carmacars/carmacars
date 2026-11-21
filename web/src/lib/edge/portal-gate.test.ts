@@ -27,6 +27,7 @@ test('the path header goes with portal pages only', () => {
   assert.equal(portalPathHeader('/admin/owners'), '/admin/owners');
   assert.equal(portalPathHeader('/staff'), '/staff');
   assert.equal(portalPathHeader('/owner'), '/owner');
+  assert.equal(portalPathHeader('/staff/payments', '?month=2026-10'), '/staff/payments?month=2026-10');
   assert.equal(portalPathHeader('/staff-restore'), null);
   assert.equal(portalPathHeader('/cars/x'), null);
 });

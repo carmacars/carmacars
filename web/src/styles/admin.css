@@ -416,7 +416,11 @@ ul.sd-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
   min-width: 15rem; max-width: min(22rem, calc(100vw - 32px)); padding: var(--s-2); background: var(--white); border: 1px solid var(--grey-200); border-radius: var(--radius, 8px);
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.12); }
 .ad-more__menu > .btn, .ad-more__menu .ad-claim-gate > .btn, .ad-more__menu button.btn { justify-content: flex-start; text-align: left; white-space: normal; width: 100%; }
-@media (max-width: 47.99rem) { .ad-more__menu { position: static; margin-top: 4px; box-shadow: none; } }
+@media (max-width: 47.99rem) {
+  .ad-more__menu { position: static; margin-top: 4px; box-shadow: none; min-width: 0; max-width: 100%; }
+  /* open on a phone, the menu takes its own line in the button row: it never runs past the edge (375: 5px) */
+  .ad-more[open] { flex: 1 1 100%; min-width: 0; max-width: 100%; }
+}
 
 /* the owner pipeline board (Release 22): one card per stage, wrapping (never a sideways scroll) */
 .op-board { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: var(--s-3); align-items: start; margin-block: var(--s-3); }
