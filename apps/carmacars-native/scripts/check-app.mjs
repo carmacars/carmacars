@@ -26,11 +26,16 @@ ok(pm && pm.NSPrivacyTracking === false && Array.isArray(pm.NSPrivacyTrackingDom
 ok((pm?.NSPrivacyAccessedAPITypes ?? []).every((t) => (t.NSPrivacyAccessedAPITypeReasons ?? []).length > 0), 'every accessed API in the privacy manifest has a reason');
 ok((pm?.NSPrivacyCollectedDataTypes ?? []).every((t) => t.NSPrivacyCollectedDataTypeTracking === false), 'no collected data is used for tracking');
 const plist = cfg.ios?.infoPlist ?? {};
-for (const k of ['NSCameraUsageDescription', 'NSPhotoLibraryUsageDescription', 'NSLocationWhenInUseUsageDescription', 'NSFaceIDUsageDescription']) ok(typeof plist[k] === 'string' && plist[k].length > 20, `${k} says why, in a sentence`);
+for (const k of ['NSCameraUsageDescription', 'NSPhotoLibraryUsageDescription', 'NSLocationWhenInUseUsageDescription', 'NSLocationAlwaysAndWhenInUseUsageDescription', 'NSFaceIDUsageDescription']) ok(typeof plist[k] === 'string' && plist[k].length > 20, `${k} says why, in a sentence`);
 ok(plist.ITSAppUsesNonExemptEncryption === false, 'the export compliance answer is set (no non-exempt encryption)');
 const blocked = cfg.android?.blockedPermissions ?? [];
-for (const p of ['android.permission.RECORD_AUDIO', 'android.permission.ACCESS_BACKGROUND_LOCATION']) ok(blocked.includes(p), `${p} is blocked`);
-ok(!(cfg.android?.permissions ?? []).some((p) => /BACKGROUND_LOCATION|READ_CONTACTS|RECORD_AUDIO|READ_SMS/.test(p)), 'no permission the app does not use');
+for (const p of ['android.permission.RECORD_AUDIO']) ok(blocked.includes(p), `${p} is blocked`);
+ok(!(cfg.android?.permissions ?? []).some((p) => /READ_CONTACTS|RECORD_AUDIO|READ_SMS/.test(p)), 'no permission the app does not use');
+// r48 (3350) the live map: background location (staff on shift or on a job) says why, runs as a location foreground service, never off duty
+ok((plist.UIBackgroundModes ?? []).includes('location'), 'iOS background mode: location (the live map)');
+ok(/never taken off duty/i.test(plist.NSLocationAlwaysAndWhenInUseUsageDescription ?? ''), 'the Always location text says it is never taken off duty');
+for (const p of ['ACCESS_BACKGROUND_LOCATION', 'FOREGROUND_SERVICE_LOCATION']) ok((cfg.android?.permissions ?? []).some((x) => x.endsWith(p)), `Android ${p} (the live map)`);
+ok(!blocked.some((p) => p.endsWith('ACCESS_BACKGROUND_LOCATION')), 'ACCESS_BACKGROUND_LOCATION is not blocked (the live map needs it)');
 ok((cfg.extra?.apiUrl ?? '').startsWith('https://'), 'the API address is https');
 
 // Apple guideline 5.1.1(v): an app with accounts deletes them from inside the app

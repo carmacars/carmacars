@@ -216,6 +216,16 @@ export const HANDLERS: Handlers = {
   },
   'me.passkeyAdd': async (c) => ok(await passkeyAdd(me(c).id, c.body.challenge_id, c.body.credential, c.body.device)),
   'me.passkeyRemove': async (c) => ok(await passkeyRemove(me(c).id, c.params.id!)),
+  // r48 (3350): the live map's own location, as /api/me/location answers the site (the database decides every time)
+  'me.location': async (c) => ok(await door(me(c).id, 'ops_read', 'my_location', {}, me(c).aal)),
+  'me.locationAct': async (c) => {
+    const u = me(c), b = c.body;
+    if (b.action === 'report' && (b.lat === undefined || b.lng === undefined)) return fail('invalid', 'Send the position.', 400);
+    const p: Record<string, unknown> = b.action === 'report' ? { lat: b.lat, lng: b.lng, accuracy_m: b.accuracy_m ?? 0, at: b.at ?? new Date().toISOString(), source: 'app' }
+      : b.action === 'prefs' ? { sharing_on: b.sharing_on !== false } : { version: b.version ?? '' };
+    const name = b.action === 'report' ? 'location_report' : b.action === 'prefs' ? 'location_prefs_save' : 'location_policy_accept';
+    return ok(await door(u.id, 'ops_do', name, p, u.aal));
+  },
   'me.deletionAsk': async ({ body }) => (await import('@/server/actions/account-deletion')).requestAccountDeletion(body.reason ?? ''),
   'me.deletionWithdraw': async () => (await import('@/server/actions/account-deletion')).withdrawAccountDeletion(),
   'me.pushOn': async ({ body }) => (await import('@/server/actions/push')).subscribePush({ kind: 'fcm', token: body.token, platform: body.platform, portal: body.portal, device: body.device }),
