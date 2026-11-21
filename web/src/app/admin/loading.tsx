@@ -1,7 +1,6 @@
-import { PathSkeleton } from '@/components/loader/PathSkeleton';
+import { PageSkeleton } from '@/components/loader/skeletons';
 
-// r48 speed: the shape of the page on its way, from its address (components/loader/PathSkeleton.tsx): one loading file for
-// the pages below, not one per page (each is an entry of its own in the Worker build)
+// r48 speed: this page's shape while it loads (components/loader/skeletons.tsx; the look is BrandLoader's)
 export default function Loading() {
-  return <PathSkeleton />;
+  return <PageSkeleton shape="dashboard" />;
 }
