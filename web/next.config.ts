@@ -30,10 +30,11 @@ const nodeTarget = (process.env.HOSTING_TARGET ?? '').trim().toLowerCase() === '
 
 const config: NextConfig = {
   ...(nodeTarget ? { output: 'standalone' as const } : {}),
-  // r48 SEO: metadata (title, description, canonical, Open Graph) always in the first <head>. Next 15.2+ streams it into
-  // the body for any agent not on its short list of HTML-limited bots, and the AI and answer crawlers, link previews and
-  // SEO tools outside that list then read a head without them (tests/lint/seo-audit.mjs checks the head)
-  htmlLimitedBots: /.*/,
+  // r48 SEO: for crawlers, link previews and SEO tools the metadata (title, description, canonical, Open Graph) is in the
+  // first <head>. Next 15.2+ streams it into the body for any agent not on its own short list, which leaves out the AI and
+  // answer crawlers and most SEO tools. People keep streaming metadata (with /.*/ for every agent, CI 44879129576
+  // saw React #418 hydration errors on most portal pages). tests/lint/seo-audit.mjs checks the head as a crawler.
+  htmlLimitedBots: /bot\b|bot\/|crawler|spider|slurp|Google-|-Google|GPTBot|ChatGPT-User|OAI-SearchBot|Claude-|ClaudeBot|anthropic-ai|Perplexity|CCBot|Amazonbot|Amzn-|meta-external|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|TelegramBot|SkypeUriPreview|redditbot|Pinterest|BingPreview|DuckAssistBot|Applebot|Bytespider|MistralAI|cohere-ai|YouBot|Yeti|ia_archiver|quora link preview|vkShare|bitlybot|tumblr|Embedly|Iframely|Screaming Frog|Chrome-Lighthouse|Google Page Speed/i,
   reactStrictMode: true,
   poweredByHeader: false,
   typedRoutes: false,

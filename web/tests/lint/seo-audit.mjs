@@ -18,6 +18,7 @@ const bad = (where, what) => problems.push(`${where}: ${what}`);
 
 // one page at a time, 60 seconds each, one more try: a page that never answers is a problem named with its address
 // (it used to stop the whole audit with an undici headers timeout and no address)
+const CRAWLER_UA = 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)';
 const get = async (p, opt = {}) => {
   for (let i = 0; ; i++) {
     try {
@@ -142,11 +143,14 @@ for (const p of [...new Set([...auditPaths, ...extra, ...cars, ...hubs, ...landi
   report.pages[p] = rec;
   if (r.status !== 200) { bad(p, `HTTP ${r.status}${r.headers.get('location') ? ' to ' + r.headers.get('location') : ''}`); continue; }
   const h = r.body;
-  // r48: the title, description and canonical are in the first <head>, not streamed into the body later (Next's streaming
-  // metadata; next.config.ts htmlLimitedBots): a crawler that reads the head alone must find them
-  const head = h.slice(0, Math.max(0, h.indexOf('</head>')));
-  for (const [k, re] of [['title', /<title>/], ['meta description', /<meta name="description"/], ['canonical', /<link rel="canonical"/]]) {
-    if (re.test(h) && !re.test(head)) bad(p, `${k} outside the first <head> (streamed metadata)`);
+  // r48: what a crawler reads: the title, description and canonical in the first <head>, not streamed into the body later
+  // (Next's streaming metadata; next.config.ts htmlLimitedBots names the crawlers and link previews that get it blocking)
+  if (r.body.includes('<head')) {
+    const c = await get(p, { headers: { 'user-agent': CRAWLER_UA } });
+    const head = c.body.slice(0, Math.max(0, c.body.indexOf('</head>')));
+    for (const [k, re] of [['title', /<title>/], ['meta description', /<meta name="description"/], ['canonical', /<link rel="canonical"/]]) {
+      if (re.test(h) && !re.test(head)) bad(p, `${k} outside the first <head> for a crawler (streamed metadata)`);
+    }
   }
   const title = decode(/<title>([^<]*)<\/title>/.exec(h)?.[1] ?? '');
   const desc = decode(meta(h, 'description'));

@@ -284,6 +284,10 @@ try {
       // rule's own way out), one person at a time, so the gate stays on and its own test holds its hire with
       // onboarding_exempt = false without turning a setting on for every other test of the shared database.
       await tx`alter table staff_profiles alter column onboarding_exempt set default true`;
+      // 3197, the same for the data check pop-up (on everywhere else): the tests' staff, owners and renters are made without
+      // a mobile number, address, licence or pay details, and the pop-up covered every portal page, so each click of the
+      // other suites landed on it. Only the renter's phone check stays on: tests/e2e/r48fe-data-checks.spec.ts is its test
+      await tx`update data_checks set enabled = false where enabled and key <> 'renter_phone'`;
       // 2864, the local stack only: shifts published by themselves (every second day, and around each handover and return)
       // would put the tests' job days on shifts their field staff do not hold; the tests publish the shifts they need
       await tx`update program_settings set field_slots_auto = false where field_slots_auto`;
