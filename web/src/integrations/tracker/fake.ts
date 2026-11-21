@@ -4,8 +4,8 @@
 // /api/tracker/ingest (scripts/tracker-sim.mjs and the e2e test do that); nothing here runs in production.
 import type { Point } from './ingest.ts';
 
-export type FakeScenario = 'speeding_180' | 'speeding_220' | 'speeding_300' | 'slow_down' | 'harsh_driving' | 'tamper' | 'unplugged' | 'pound' | 'left_ontario';
-export const FAKE_SCENARIOS: readonly FakeScenario[] = ['speeding_180', 'speeding_220', 'speeding_300', 'slow_down', 'harsh_driving', 'tamper', 'unplugged', 'pound', 'left_ontario'];
+export type FakeScenario = 'speeding_180' | 'speeding_220' | 'speeding_300' | 'slow_down' | 'harsh_driving' | 'tamper' | 'unplugged' | 'pound' | 'left_ontario' | 'left_canada';
+export const FAKE_SCENARIOS: readonly FakeScenario[] = ['speeding_180', 'speeding_220', 'speeding_300', 'slow_down', 'harsh_driving', 'tamper', 'unplugged', 'pound', 'left_ontario', 'left_canada'];
 
 export interface FakeOptions {
   /** when the last reading is taken (ms since 1970); the scenario runs up to it */
@@ -47,6 +47,9 @@ export function fakeScenario(device: string, scenario: FakeScenario, o: FakeOpti
       return [{ ...park(mins * 60 + 300), lat: r6(lot.lat - 0.02), speed: 35 }, park(mins * 60), park(Math.round(mins * 30)), park(0)];
     }
     case 'left_ontario':
+      // Montreal: out of Ontario, still in Canada
+      return [{ ...pt(60, 50), lat: 45.52, lng: -73.6 }, { ...pt(0, 45), lat: 45.5, lng: -73.57 }];
+    case 'left_canada':
       // Buffalo, across the Peace Bridge
       return [{ ...pt(60, 50), lat: 42.9, lng: -78.95 }, { ...pt(0, 45), lat: 42.886, lng: -78.878 }];
   }

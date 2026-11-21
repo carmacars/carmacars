@@ -28789,6 +28789,7 @@ export type Database = {
           offline_alerted: boolean;
           pound_lot_id: string | null;
           pound_since: string | null;
+          outside_canada: boolean;
         };
         Insert: {
           tracker_device_id: string;
@@ -28820,6 +28821,7 @@ export type Database = {
           offline_alerted?: boolean;
           pound_lot_id?: string | null;
           pound_since?: string | null;
+          outside_canada?: boolean;
         };
         Update: {
           tracker_device_id?: string;
@@ -28851,6 +28853,7 @@ export type Database = {
           offline_alerted?: boolean;
           pound_lot_id?: string | null;
           pound_since?: string | null;
+          outside_canada?: boolean;
         };
         Relationships: [];
       };

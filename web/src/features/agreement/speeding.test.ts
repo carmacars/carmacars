@@ -16,4 +16,6 @@ test('the rental terms charge speeding over 180, 220 and 300 km/h, each as its o
   for (const limit of ['180', '220', '300']) assert.match(fees, new RegExp(`\\| Speeding charge, over ${limit} km/h \\|`));
   assert.notEqual(AGREEMENT_TEMPLATE_VERSION, 'rental-v3-c194f2e4d1');
   assert.notEqual(AGREEMENT_TEMPLATE_VERSION, 'rental-v3-6a79e5ecb2', 'a new version again for the one-charge wording');
+  // r48 TRK (3326): leaving Canada needs written approval
+  assert.match(terms, /out of Canada always requires our written approval before you leave/);
 });

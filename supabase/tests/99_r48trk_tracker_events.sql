@@ -279,6 +279,49 @@ select test.eq('...the flag is recovered', (select status from pound_flags where
 select test.tvin(test.tvp('TVDEV-3', 300, 43.65, -79.4, 30, true));
 select test.eq('driving away clears the lot from the tracker''s state', (select ts.pound_lot_id is null from tracker_status ts join tracker_devices d on d.id = ts.tracker_device_id where d.serial_number = 'TVDEV-3'), true);
 
+-- ================================================================ 7b. leaving the province, leaving the country (3326)
+update users set phone = '+14165550191' where id = test.id('tv_admin');
+select test.eq('in Canada, roughly: Toronto, Montreal, Winnipeg, Vancouver and Halifax in; Buffalo, Detroit, Seattle, Plattsburgh and Duluth out',
+  format('%s %s %s %s %s | %s %s %s %s %s', app.tracker_in_canada(43.65, -79.38), app.tracker_in_canada(45.50, -73.57), app.tracker_in_canada(49.90, -97.14), app.tracker_in_canada(49.45, -123.1),
+         app.tracker_in_canada(44.65, -63.57), app.tracker_in_canada(42.886, -78.878), app.tracker_in_canada(42.35, -83.10), app.tracker_in_canada(47.61, -122.33), app.tracker_in_canada(44.70, -73.45),
+         app.tracker_in_canada(46.79, -92.10)), 't t t t t | f f f f f');
+select test.tvin(test.tvp('TVDEV-2', 280, 45.50, -73.57, 60, true));
+select test.eq('Montreal: left Ontario, still in Canada: the province alert only, with its evidence record',
+  test.tvn('tv_car2', 'left_ontario') || ' ' || test.tvn('tv_car2', 'left_canada') || ' ' || (select count(*) from tracker_evidence where vehicle_id = test.id('vehicle:tv_car2') and kind = 'left_ontario'), '1 0 1');
+select test.eq('...Admins and on-duty Fleet are told at once: the locked staff alert, the urgent email and a text; the owner and the renter (clause 10.1) too',
+  (select format('%s %s %s %s %s', (select count(*) from app_events e where e.code = 'staff_alert_urgent' and e.payload ->> 'rule' = 'tracker_province' and e.entity_id = a.vehicle_id),
+     (select count(*) from app_events e where e.dedupe_key = 'staff_border_alert:' || a.id and e.payload ->> 'border_title' = 'Left Ontario'),
+     (select count(*) from phone_outbox o where o.dedupe_key like 'sms:staff_border:' || a.id || ':%' and o.to_number = '+14165550191' and o.body like 'CarmaCars: Left Ontario:%'),
+     (select count(*) from app_events e where e.dedupe_key = 'owner_tracker_alert:' || a.id),
+     (select e.payload ->> 'event_clause' from app_events e where e.dedupe_key = 'renter_tracker_notice:' || a.id))
+     from tracker_alerts a where a.vehicle_id = test.id('vehicle:tv_car2') and a.kind = 'left_ontario'), '1 1 1 1 Rental agreement: 10.1 Area; 12.3 Grounds.');
+select test.tvin(test.tvp('TVDEV-2', 200, 42.886, -78.878, 50, true), test.tvp('TVDEV-2', 190, 42.88, -78.87, 50, true));
+select test.eq('Buffalo: left Canada, one alert for the crossing (not one per reading), with its evidence record and an urgent Fleet To do',
+  (select format('%s %s %s %s', count(*), max(a.source), (select count(*) from tracker_evidence e where e.alert_id = max(a.id::text)::uuid and e.lat = 42.88000),
+     (select t.queue || '/' || t.priority from tasks t where t.dedupe_key = 'left_canada:' || max(a.id::text)))
+     from tracker_alerts a where a.vehicle_id = test.id('vehicle:tv_car2') and a.kind = 'left_canada'), '1 reading 1 fleet/urgent');
+select test.eq('...the staff alert (locked), email and text; the owner''s alert; the renter''s notice says written approval is needed, with the clause',
+  (select format('%s %s %s %s|%s|%s', (select count(*) from app_events e where e.code = 'staff_alert_urgent' and e.payload ->> 'rule' = 'tracker_canada' and e.entity_id = a.vehicle_id),
+     (select count(*) from app_events e where e.dedupe_key = 'staff_border_alert:' || a.id and e.payload ->> 'border_title' = 'Left Canada'),
+     (select count(*) from phone_outbox o where o.dedupe_key like 'sms:staff_border:' || a.id || ':%' and o.to_number = '+14165550191'),
+     (select e.payload ->> 'event_what' like 'Your % left Canada on %' and not (e.payload ? 'booking_id') from app_events e where e.dedupe_key = 'owner_tracker_alert:' || a.id),
+     (select e.payload ->> 'event_fee' from app_events e where e.dedupe_key = 'renter_tracker_notice:' || a.id),
+     (select e.payload ->> 'event_clause' from app_events e where e.dedupe_key = 'renter_tracker_notice:' || a.id))
+     from tracker_alerts a where a.vehicle_id = test.id('vehicle:tv_car2') and a.kind = 'left_canada'),
+  '1 1 1 t|No set charge. Leaving Canada needs our written approval before you go: without it we may end the rental and recover the car, at your cost.|Rental agreement: 10.1 Area; 12.3 Grounds.');
+select test.tvin(test.tvp('TVDEV-2', 150, 43.65, -79.38, 40, true));
+select test.tvin(test.tvp('TVDEV-2', 100, 42.35, -83.10, 40, true));
+select test.eq('back in Ontario, then Detroit: a new crossing is a new alert of each kind', test.tvn('tv_car2', 'left_ontario') || ' ' || test.tvn('tv_car2', 'left_canada'), '2 2');
+select app.process_events(100000);
+select test.eq('the border email goes to Fleet and Admins at once (at most three urgent emails an hour each, then the digest); 0400''s notice is not sent twice for a crossing; the rules are locked on; the owner''s alert stays the owner''s to mute',
+  format('%s %s %s %s', (select count(*) filter (where o.status = 'queued' and o.status_reason = 'urgent') >= 2 and count(*) = 8 from notification_outbox o where o.code = 'staff_border_alert' and o.recipient_user_id in (test.id('tv_fleet'), test.id('tv_admin'))),
+    (select count(*) from notifications n where n.code like 'staff_tracker_alert%' and n.user_id = test.id('tv_fleet') and (n.title like 'Left Canada:%' or n.title like 'Left Ontario:%tv_car2%')),
+    (select bool_and(fixed and enabled and tier = 'urgent') from staff_alert_rules where rule in ('tracker_province', 'tracker_canada')),
+    (select user_can_mute from notification_catalogue where code = 'owner_tracker_alert')), 't 0 t t');
+select test.eq('10.1 says leaving Canada needs written approval, published to accept with the speeding wording',
+  (select requires_acceptance and body like '%out of Canada always requires our written approval%' and summary like '%one speeding event is one charge%' from terms_versions where version = 'rental-v3-r48trk2'), true);
+select test.tvin(test.tvp('TVDEV-2', 50, 43.65, -79.38, 40, true));
+
 -- ================================================================ 8. what the screens read
 select test.eq('Fleet tracking reads the events with their records, the flags, the lots, the fees and what this person may do',
   (select format('%s|%s|%s|%s|%s|%s', v ->> 'on', jsonb_array_length(v -> 'events') >= 8, jsonb_array_length(v -> 'flags'), jsonb_array_length(v -> 'lots'), v -> 'fees' ->> 'speeding_300', v -> 'can')
