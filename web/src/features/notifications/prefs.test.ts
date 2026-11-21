@@ -2,7 +2,7 @@
 //   npm run test:unit
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { applyChange, channelNote, clockWords, minutesToTime, summaryLine, timeToMinutes, type PrefState } from './prefs.ts';
+import { applyChange, BOOKING_NOTE, bookingNote, channelNote, clockWords, minutesToTime, summaryLine, timeToMinutes, type PrefState } from './prefs.ts';
 
 const state = (over: Partial<PrefState> = {}): PrefState => ({
   kind: 'user', portal: 'renter', portals: ['renter'], staff: false,
@@ -58,4 +58,12 @@ test('a switch moves at once; a locked type never moves; all off turns every opt
   assert.equal(d.profile.all_off, false);
   assert.equal(applyChange(state(), { cadence: 'daily' }).profile.cadence, 'daily');
   assert.equal(applyChange(state(), { quiet_on: true, quiet_from: 60 }).profile.quiet_from, 60);
+});
+
+test('the booking note shows only while a booking switch is on', () => {
+  const t = { code: 'owner_new_bookings', locked: false, push: false, email: false, text: false };
+  assert.equal(bookingNote(t), null);
+  assert.equal(bookingNote({ ...t, email: true }), BOOKING_NOTE);
+  assert.equal(bookingNote({ ...t, code: 'rewards', email: true }), null);
+  assert.equal(bookingNote({ ...t, locked: true, email: true }), null);
 });

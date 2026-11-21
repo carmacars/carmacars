@@ -103,7 +103,11 @@ test('owner rewards: the tab, a merch kit redeemed by button, shipped by the Adm
   await expect(prefs).toBeVisible();
   const sw = page.getByTestId('np-owner-owner_new_bookings-email');
   await expect(sw).not.toBeChecked();
+  const bookingNote = page.getByTestId('np-owner-booking-note-owner_new_bookings');
+  await expect(bookingNote).not.toBeVisible();
   await sw.check();
+  await expect(bookingNote).toBeVisible();
+  await expect(bookingNote).toContainText('count on a booking only once it');
   await expect(page.getByTestId('np-owner-status')).toHaveText('Saved.');
   const [pref] = await sql`select email from notify_prefs where subject_kind = 'user' and subject_id = ${o.userId} and type_code = 'owner_new_bookings'`;
   expect(pref!.email).toBe(true);

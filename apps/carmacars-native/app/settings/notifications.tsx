@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { LayoutAnimation, Text, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { useApp } from '@/app-state';
-import { applyChange, CADENCES, CHANNELS, channelNote, summaryLine, type PrefChange, type PrefState, type PrefType } from '@/shared';
+import { applyChange, bookingNote, CADENCES, CHANNELS, channelNote, summaryLine, type PrefChange, type PrefState, type PrefType } from '@/shared';
 import { Badge, Card, Check, Chip, Failed, Line, Notice, P, Screen, Wrap } from '@/ui/kit';
 import { color, space, type } from '@/theme';
 
@@ -28,6 +28,7 @@ export default function NotificationPreferences() {
   const send = async (change: PrefChange) => {
     if (!s) return;
     const before = s;
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setS(applyChange(s, change)); setMsg(null);
     const r = await api.call('me.notifyPrefsSave', { body: { portal, ...change } as never });
     if (r.ok) { setS(r.data as PrefState); setMsg({ ok: true, text: 'Saved.' }); } else { setS(before); setMsg({ ok: false, text: r.message }); }
@@ -37,6 +38,7 @@ export default function NotificationPreferences() {
     <View key={t.code} style={{ paddingVertical: space.sm }}>
       <Text style={[type.body, { fontWeight: '700' }]}>{t.label}</Text>
       {t.detail ? <Text style={[type.small, { color: color.muted }]}>{t.detail}</Text> : null}
+      {bookingNote(t) ? <View testID={`np-note-${t.code}`} style={{ marginTop: space.xs }}><Notice tone="info">{bookingNote(t)}</Notice></View> : null}
       {!t.live ? <Text style={[type.small, { color: color.muted }]}>Starts when your tracker is installed. Your choice is kept.</Text> : null}
       {t.locked ? <View style={{ marginTop: space.xs }}><Badge label="Always on" tone="muted" /></View>
         : <Wrap style={{ marginTop: space.xs }}>{CHANNELS.filter((c) => t.channels.includes(c.key)).map((c) => (

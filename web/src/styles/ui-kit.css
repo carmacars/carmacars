@@ -120,6 +120,11 @@
 .rw-pref__what { min-width: 0; }
 .rw-pref__label { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
 .rw-pref__detail { margin: 2px 0 0; font-size: var(--fs-sm); color: var(--text-2); overflow-wrap: anywhere; }
+.rw-pref__reveal { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows 0.28s ease, opacity 0.2s ease; }
+.rw-pref__reveal[data-open="true"] { grid-template-rows: 1fr; opacity: 1; }
+.rw-pref__reveal > * { min-height: 0; overflow: hidden; }
+.rw-pref__info { margin: var(--s-2) 0 0; padding: var(--s-2) var(--s-3); font-size: var(--fs-xs); line-height: 1.45; color: var(--text-2); background: var(--grey-50); border: 1px solid rgb(0 0 0 / 0.08); border-radius: var(--ui-r-tile); overflow-wrap: anywhere; }
+.rw-pref__reveal:not([data-open]) .rw-pref__info { margin-top: 0; padding-block: 0; border-width: 0; }
 .rw-pref__soon { margin: var(--s-2) 0 0; font-size: var(--fs-xs); font-weight: 600; color: var(--grey-700); }
 .rw-pref__switches { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-2); }
 .rw-switch { flex-direction: column; align-items: flex-start; gap: var(--s-1); min-height: 44px; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
@@ -148,7 +153,7 @@
   .rw-switch__name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .rw-pref__locked { min-width: 13.5rem; justify-content: flex-end; }
 }
-@media (prefers-reduced-motion: reduce) { .rw-switch input:active { transform: none; } .rw-quiet__times { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .rw-switch input:active { transform: none; } .rw-quiet__times { transition: none; } .rw-pref__reveal { transition: none; } }
 
 /* ---------------------------------------------------------------- r48: rewards (staff My rewards, the owner's Rewards tab)
    Cards from .pt-card; the bars are the checklist's (.ck-progress). A code sits in a tile whose corners are the card's

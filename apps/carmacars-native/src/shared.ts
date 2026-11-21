@@ -9,4 +9,4 @@ export { parse, ShapeError, type Shape } from '../../../web/src/features/mobile-
 export { familyTree, modelFamily } from '../../../web/src/features/vin/model-family.ts';
 export { ANGLES, angleLabel, anglesDone } from '../../../web/src/features/handover/angles.ts';
 export { FUEL_EIGHTHS, emptyReading, fuelWords, readingPayload, readingPhotos, readingProblem, readingValues, selfieLive, type ReadingState } from '../../../web/src/features/handover/reading.ts';
-export { applyChange, CADENCES, CHANNELS, channelNote, clockWords, summaryLine, type Cadence, type Channel, type PrefChange, type PrefState, type PrefType } from '../../../web/src/features/notifications/prefs.ts';
+export { applyChange, BOOKING_NOTE, bookingNote, CADENCES, CHANNELS, channelNote, clockWords, summaryLine, type Cadence, type Channel, type PrefChange, type PrefState, type PrefType } from '../../../web/src/features/notifications/prefs.ts';
