@@ -81,7 +81,7 @@
 .lm-car--sel { z-index: 2; }
 
 /* Tracker events (3320): the evidence, flag and lot tables below the panel. Stacked cells so nothing is squeezed. */
-.te-ev { display: grid; gap: 2px; min-width: 0; overflow-wrap: break-word; }
+.te-ev { display: grid; gap: var(--s-1); min-width: 0; overflow-wrap: break-word; }
 /* in a table (48rem and up; below, each row is a card): a stacked cell keeps a readable measure, so the table scrolls
    sideways instead of crushing the cell into a sliver (the kit's cells may shrink to nothing: core.css, .ad-table--cards td) */
 @media (min-width: 48rem) { td > .te-ev { min-width: 12rem; } td > .te-ev--short { min-width: 8rem; } }
@@ -91,5 +91,5 @@
 .te-h { margin-top: var(--s-5); }
 .te-pins { display: grid; gap: var(--s-2); justify-items: start; margin-block: var(--s-3); }
 .te-owner { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-3); }
-.te-owner > li { display: grid; gap: 2px; padding-bottom: var(--s-3); border-bottom: 1px solid var(--line); min-width: 0; overflow-wrap: anywhere; }
+.te-owner > li { display: grid; gap: var(--s-1); padding-bottom: var(--s-3); border-bottom: 1px solid var(--line); min-width: 0; overflow-wrap: anywhere; }
 .te-owner > li:last-child { border-bottom: 0; padding-bottom: 0; }

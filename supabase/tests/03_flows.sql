@@ -527,7 +527,10 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             'passkey_challenges',
                             -- harsh driving marks (3320): telemetry written by the tracker ingest like the position history; no
                             -- money, pricing or status (the alert they make and its evidence record are audited)
-                            'tracker_harsh')
+                            'tracker_harsh',
+                            -- the pickup identity checks (3293): evidence rows written only by app.pickup_identity_record, which logs
+                            -- each check in audit_log itself (pickup_identity_check); no money, pricing or status
+                            'pickup_identity_checks')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',
   (select count(*) > 0 from audit_log where entity_table = 'rate_cards' and action = 'INSERT' and after ->> 'daily_rate_cents' = '10000'), true);
