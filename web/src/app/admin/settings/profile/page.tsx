@@ -4,6 +4,7 @@ import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
 import { Card, Kv, PageHead } from '@/features/admin/ui';
 import { StaffDigestChoice } from '@/features/notifications/StaffDigestChoice';
+import { NotifyPanel } from '@/features/notifications/NotifyPanel';
 import { SignInSettings } from '@/features/portal/SignInSettings';
 import { signInState } from '@/server/sign-in-settings';
 import { selfProfile } from '@/server/self-profile';
@@ -31,6 +32,8 @@ export default async function MyProfile() {
       {sp && <SelfProfile data={sp} />}
       {si && <SignInSettings state={si} />}
       <StaffDigestChoice userId={user.id} refresh={['/admin/settings/profile']} />
+      {/* r48 (3260): each kind of notification by channel, quiet hours, instant or a summary */}
+      <NotifyPanel userId={user.id} portal="admin" idp="np-admin" />
     </>
   );
 }

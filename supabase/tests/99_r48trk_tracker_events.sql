@@ -112,15 +112,16 @@ select test.eq('every variable of the four templates is filled', (select count(*
 select test.eq('...and shows in the renter''s portal (in-app, push topic alerts)',
   (select count(*) from notifications n where n.code = 'renter_tracker_notice' and n.user_id = (select user_id from renters where id = test.id('renter:tv_rita')))
     || ' ' || (select push_topic from notification_catalogue where code = 'renter_tracker_notice'), '3 alerts');
-select test.eq('the owner''s alert is queued as a branded email to the car''s owner, with no booking on it',
-  (select format('%s|%s|%s', count(*), min(o.status), bool_and(o.booking_id is null and o.renter_id is null))
-     from notification_outbox o where o.code = 'owner_tracker_alert' and o.owner_id = test.id('owner:tv_owner')), '3|queued|t');
+select test.eq('the owner''s alert (over 180 km/h, the owner''s speed type, 3353) is a branded email to the car''s owner with no booking on it, kept unsent until the owner turns its email on (off by default); the notice stays in the portal',
+  (select format('%s|%s|%s|%s', count(*), min(o.status), bool_and(o.booking_id is null and o.renter_id is null), bool_and(o.payload ->> 'rule' = 'tracker_speed' or (select e.payload ->> 'rule' from app_events e where e.id = o.event_id) = 'tracker_speed'))
+     from notification_outbox o where o.code = 'owner_tracker_alert' and o.owner_id = test.id('owner:tv_owner')), '3|suppressed|t|t');
+select test.eq('...and each is a notice in the owner''s portal', (select count(*) from notifications n where n.code = 'owner_tracker_alert' and n.user_id = (select user_id from owners where id = test.id('owner:tv_owner'))), 3::bigint);
 select test.eq('Admins and fleet staff got each record as an in-app notice (0400), customer service none',
   (select count(*) filter (where user_id = test.id('tv_admin')) || '/' || count(*) filter (where user_id = test.id('tv_fleet')) || '/' || count(*) filter (where user_id = test.id('tv_cs'))
      from notifications where code like 'staff_tracker_alert%' and title like 'Speeding over%' and created_at > now() - interval '1 hour'), '3/3/0');
-select test.eq('each notice has its text, the same words; the charge notice is urgent',
+select test.eq('each notice has its text, the same words; the charge notice and the owner''s alert (theft, crash, tamper: 3353) are urgent',
   (select string_agg(code || ':' || urgent, ',' order by code) from sms_templates where code in ('renter_tracker_notice', 'renter_driving_notice', 'owner_tracker_alert')),
-  'owner_tracker_alert:false,renter_driving_notice:false,renter_tracker_notice:true');
+  'owner_tracker_alert:true,renter_driving_notice:false,renter_tracker_notice:true');
 select test.eq('the text of a notice: what happened and the charge, with the link',
   (select app.sms_text_for('renter_tracker_notice', e.payload, 'renter', test.id('booking:TV-1')) ->> 'body' like 'CarmaCars: Speeding over 220 km/h. 226 km/h recorded. A $1,000.00 charge applies (agreement 10.5). Please slow down. Details: http%'
      from app_events e join tracker_alerts a on e.dedupe_key = 'renter_tracker_notice:' || a.id || ':220' where a.vehicle_id = test.id('vehicle:tv_car1') and a.tier = 220), true);
@@ -147,10 +148,10 @@ select test.tvin(test.tvp('TVDEV-2', 5880, 43.71, -79.42, 80, true), test.tvp('T
 select test.eq('the third (75 km/h lost in 5 seconds, worked out from the readings) makes one alert; a fourth in the window none',
   (select count(*) || ' ' || max(source) || ' ' || max(facts ->> 'count') from tracker_alerts where vehicle_id = test.id('vehicle:tv_car2') and kind = 'harsh_driving')
     || ' ' || (select count(*) from tracker_harsh where vehicle_id = test.id('vehicle:tv_car2')), '1 derived 3 4');
-select test.eq('harsh driving: a heads-up to the renter with no charge, an alert to the owner',
+select test.eq('harsh driving: a heads-up to the renter with no charge; the owner gets it in the weekly driving summary, not as an alert (3353)',
   (select string_agg(e.code || ':' || (e.payload ->> 'event_title'), ',' order by e.code) from app_events e join tracker_alerts a on e.dedupe_key like '%:' || a.id
     where a.vehicle_id = test.id('vehicle:tv_car2') and a.kind = 'harsh_driving' and e.code in ('renter_driving_notice', 'owner_tracker_alert')),
-  'owner_tracker_alert:Easy on the car, please,renter_driving_notice:Easy on the car, please');
+  'renter_driving_notice:Easy on the car, please');
 select test.tvin(test.tvp('TVDEV-2', 5000, 43.71, -79.44, 0, false, '{"event": "tamper"}'), test.tvp('TVDEV-2', 4990, 43.71, -79.44, 0, false, '{"event": "tamper", "power": false}'));
 select test.eq('the tracker reports tampering twice and loses power: one tampering alert, one unplugged alert, each with its record and the renter''s notice (10.4, 12.3)',
   format('%s %s %s %s', test.tvn('tv_car2', 'tamper'), test.tvn('tv_car2', 'unplugged'),
@@ -160,10 +161,10 @@ select test.eq('the tracker reports tampering twice and loses power: one tamperi
 select test.eq('driving at night is off by default', test.tvn('tv_car2', 'after_hours'), 0::bigint);
 update tracker_settings set night_on = true, night_from = ((now() - interval '70 minutes') at time zone 'America/Toronto')::time, night_to = ((now() + interval '60 minutes') at time zone 'America/Toronto')::time;
 select test.tvin(test.tvp('TVDEV-2', 3600, 43.71, -79.45, 40, true), test.tvp('TVDEV-2', 3000, 43.71, -79.46, 45, true));
-select test.eq('on: one alert per car and night, to staff and the owner, not to the renter (the agreement sets no curfew)',
+select test.eq('on: one alert per car and night, to staff; not to the renter (the agreement sets no curfew), and the owner sees it in the weekly summary (3353)',
   format('%s %s %s', test.tvn('tv_car2', 'after_hours'),
     (select count(*) from app_events e join tracker_alerts a on e.dedupe_key = 'owner_tracker_alert:' || a.id where a.vehicle_id = test.id('vehicle:tv_car2') and a.kind = 'after_hours'),
-    (select count(*) from app_events e join tracker_alerts a on e.dedupe_key like 'renter_%:' || a.id where a.vehicle_id = test.id('vehicle:tv_car2') and a.kind = 'after_hours')), '1 1 0');
+    (select count(*) from app_events e join tracker_alerts a on e.dedupe_key like 'renter_%:' || a.id where a.vehicle_id = test.id('vehicle:tv_car2') and a.kind = 'after_hours')), '1 0 0');
 update tracker_settings set night_on = false;
 
 -- ================================================================ 6. a charge with its evidence attached

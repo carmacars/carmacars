@@ -216,6 +216,20 @@ export const HANDLERS: Handlers = {
   'me.pushOff': async ({ body }) => (await import('@/server/actions/push')).unsubscribePush({ endpoint: `fcm:${body.token}` }),
   'me.pushTest': async () => (await import('@/server/actions/push')).sendTestPush(),
   'me.pushTopics': async ({ body }) => (await import('@/server/actions/push')).savePushTopics(body.topics),
+  // r48 (3260): the same preferences as the portals' Notifications pages; the database refuses a locked kind
+  'me.notifyPrefs': async (c) => {
+    const { roles } = await rolesAndGate(me(c).id, me(c).aal);
+    const asked = c.query.get('portal');
+    const portal = (['renter', 'owner', 'investor', 'staff', 'admin'] as const).find((p) => p === asked) ?? (roles.admin ? 'admin' : roles.staff ? 'staff' : roles.owner ? 'owner' : roles.investor ? 'investor' : 'renter');
+    const s = await (await import('@/features/notifications/NotifyPanel')).myNotifyPrefs(me(c).id, portal);
+    return s ? ok(s) : fail('unavailable', 'Your notification preferences did not load. Try again.', 503);
+  },
+  'me.notifyPrefsSave': async ({ body }) => {
+    const { portal, ...change } = body;
+    return (await import('@/server/actions/notify-prefs')).saveMyNotifyPref(portal ?? 'renter', change as never);
+  },
+  'staff.rewards': async (c) => ok(await door(me(c).id, 'ops_read', 'my_rewards', {}, me(c).aal)),
+  'owner.rewards': async (c) => ok(await rpc('owner_portal_rewards' as never, { p_by: me(c).id } as never, SR)),
   notices: async (c) => ok((await rpc('my_notifications', { p_limit: 50, p_unread_only: false }, asUser(me(c).id))) ?? []),
   'notices.read': async ({ body }) => (await import('@/server/actions/portal')).markRead(body.ids ?? null),
 

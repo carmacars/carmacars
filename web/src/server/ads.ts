@@ -5,7 +5,8 @@ import { photoUrl } from '@/lib/photo';
 import { siteUrl } from '@/lib/site';
 import { withUtm } from '@/features/ads/channels';
 import { addDays, captionFor, draftCampaign, mondayOf, weekPlan, type Facts, type SocialChannel } from '@/features/ads/social';
-import { publishFacebook, publishFacebookVideo, publishInstagram, publishInstagramReel, type MetaConfig } from '@/integrations/meta';
+import { postInsights, publishFacebook, publishFacebookVideo, publishInstagram, publishInstagramReel, type MetaConfig } from '@/integrations/meta';
+import { monthPlan, type Learned, type Plan } from '@/features/social/calendar';
 
 // The ads job (migration 0167), from the Worker's cron tick when public.server_jobs_due says "ads" (every 6 hours, or an
 // approved post due while Meta publishing is on). The database checks every live ad against its car's rates first (a
@@ -18,6 +19,9 @@ interface JobData {
   ads_to_update: number; drafts_enabled: boolean; facts: Facts;
   meta: { usable: boolean; page_id: string | null; ig_user_id: string | null; graph_version: string; token: string | null };
   due: SocialRow[];
+  /** r48 (3263): the content calendar: the months to write, its plan, what the results taught, the posts whose results to read back */
+  calendar?: { enabled: boolean; months: string[]; plan: Plan; learned: Learned; recent: string[];
+    stats_due: Array<{ id: string; channel: 'facebook_page' | 'instagram'; post_id: string; media_kind: string }> };
 }
 
 /** A photo path as a public address (Meta fetches it). */
@@ -60,7 +64,15 @@ export async function publishQueued(cfg: MetaConfig, q: QueuedPost, f: typeof fe
 
 export async function runAdsJob(f: typeof fetch = fetch): Promise<Record<string, number>> {
   const r = (await rpc('server_ads_job', {}, SR)) as unknown as JobData;
-  let added = 0, published = 0, failed = 0;
+  let added = 0, published = 0, failed = 0, calendar = 0, stats = 0;
+  // r48 (3263): the month's content calendar (this month until it is written, the next from the generate day). Every
+  // post is stored as a draft: nothing is published until a person approves it on the calendar.
+  if (r.calendar?.enabled && r.facts) {
+    for (const month of r.calendar.months ?? []) {
+      const cal = monthPlan(r.facts, month, r.calendar.plan, r.calendar.learned, { recent: r.calendar.recent });
+      if (cal.posts.length) calendar += Number(await rpc('server_social_calendar_put' as never, { p: cal as unknown as Json } as never, SR).catch(() => 0)) || 0;
+    }
+  }
   if (r.drafts_enabled && r.facts) {
     const mon = mondayOf(r.facts.today);
     for (const w of [mon, addDays(mon, 7)]) {
@@ -83,6 +95,14 @@ export async function runAdsJob(f: typeof fetch = fetch): Promise<Record<string,
       if (x.ok) published++; else failed++;
       await rpc('server_social_queue_result', { p: { id: q.id, ...x } as unknown as Json }, SR);
     }
+    // r48 (3263): the results of the posts Meta published, read back (once a day each, for 35 days) for the next calendar
+    for (const p of r.calendar?.stats_due ?? []) {
+      try {
+        const x = await postInsights(cfg, { channel: p.channel, postId: p.post_id, video: p.media_kind === 'video' }, f);
+        await rpc('server_social_stats_put' as never, { p: { id: p.id, ...x } as unknown as Json } as never, SR);
+        stats++;
+      } catch { /* a post Meta no longer has, or a token without insights: tried again tomorrow */ }
+    }
   }
-  return { ads_to_update: r.ads_to_update ?? 0, drafts_added: added, published, failed };
+  return { ads_to_update: r.ads_to_update ?? 0, drafts_added: added, published, failed, calendar_added: calendar, stats_read: stats };
 }

@@ -32,6 +32,8 @@ export default async function SocialDrafts({ searchParams }: { searchParams: Pro
     <PageHead kicker="Marketing" title="Social drafts" purpose="Posts for the Facebook Page and Instagram, written from the fleet each week. Nothing is posted until a person approves it.">
       <form action={writeWeekDrafts}><input type="hidden" name="week" value={d.week} /><button className="btn btn--primary btn--sm" type="submit" data-testid="ads-write-week">Write drafts for this week</button></form>
     </PageHead>
+    {/* r48 (3263): the monthly content calendar takes the place of the week's drafts while it is on */}
+    <p className="small"><Link prefetch={false} className="link" href="/admin/marketing/calendar" data-testid="content-calendar-link">Content calendar: the month of posts to approve</Link></p>
     <nav className="row" aria-label="Weeks" style={{ gap: '0.75rem', alignItems: 'center', margin: '0 0 1rem' }}>
       <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/admin/marketing/social?week=${addDays(d.week, -7)}`}>Previous week</Link>
       <b>Week of {label(d.week)}</b>

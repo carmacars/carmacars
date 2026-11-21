@@ -262,7 +262,14 @@
      "Every lead says where the person came from: ChatGPT, Google search, Google Ads, Perplexity, Bing or direct, with the search terms when we have them and the first page they opened; for a Google visit the lead lists the top searches that bring people to that page",
      "A person who writes twice is one lead: a new website form joins their open lead by itself, and \"possible duplicate: merge\" on a lead card opens Merge, Merge all into the oldest and Different person",
      "The GPS tracker and kill switch has its own pages with its price (free for vehicle owners and for the first 100 pre-orders, then $90 on pre-order and $175 after launch; $150 install and a monthly service of $25, $20 or $15 a car by number of cars for everyone) and a waitlist while trackers are not in hand; sign-ups arrive as leads named GPS tracker waitlist or pre-order, marked vehicle owner or free tracker",
-     "Program settings has the tracker's prices (owner, pre-order, regular, the number of free pre-orders said on the site and the real one), the words beside \"Join the waitlist\", and the switch and the days for joining duplicate leads automatically"
+     "Program settings has the tracker's prices (owner, pre-order, regular, the number of free pre-orders said on the site and the real one), the words beside \"Join the waitlist\", and the switch and the days for joining duplicate leads automatically",
+     "Staff rewards (People > Team): who gets rental perks, tiers, free days and what was used; each perk used is posted as a staff benefit expense",
+     "Owner rewards (People > Owners): merch kits to ship (also on To do), upgrade requests to approve, credits; every credit is a statement line and an expense",
+     "Content calendar (Marketing > Ads): the month of social posts in a calendar view; nothing is published until a person approves it",
+     "Settings > Notification preferences: what each kind of notification starts as, the kinds that are always sent, each person's choices, and the auto shops and shipping ports watched for tracker alerts (impound lots are the Pound lots of Fleet tracking)",
+     "Every value of staff rewards, owner rewards and the content calendar is in Program settings; the tracker alerts follow Tracker event settings",
+     "Owner-use bookings: every charge (damage up to the deductible, tickets, tolls, fuel, kilometres, cleaning, smoking, late return, other fees) is billed to the owner by itself with its evidence: the card on file at once, otherwise a bank debit the same day, otherwise an invoice due now; unpaid after 7 days or at the statement cut-off, whichever is first, it comes off the next statement",
+     "The owner Late Fee on unpaid insurance is 5% of the unpaid insurance (was $50), with HST on the fee by default; the unpaid insurance and the fee come off the next statement as two lines; the updated owner agreement is published to accept"
     ],
     "staff": [
      "New staff sign their staff agreement first, then take the academy, then join the WhatsApp groups (with the member tag \"Name - Position\" written for you, and a tick that you set it), then approval",
@@ -296,7 +303,11 @@
      "The academy has a new section: Where a lead came from, and duplicate leads",
      "Profile has Location on the live map: accept the electronic monitoring policy once (your copy is emailed), and your location is shared only while you are on shift or on a job, never off duty; you can turn it off except during an active job",
      "Fleet sees staff, renters and owners on the Fleet map; customer service and Sales see renters at a pickup or return on the Visitors map",
-     "The Fleet map lists the Tracker events with their evidence below the map, and Pound flags: when a car is parked at a pound, call the lot and the renter, then press Record the path"
+     "The Fleet map lists the Tracker events with their evidence below the map, and Pound flags: when a car is parked at a pound, call the lot and the renter, then press Record the path",
+     "My rewards on your first page: 15% off your own rentals once your academy and agreement are done, free rental days (Sales: 1 per 100 rental days booked; Field: 1 per 100 handovers), Silver and Gold tiers and the top seller's free weekend. Rental perks are for in-person staff in Canada",
+     "Content calendar (Marketing): approve, edit, reject or regenerate each post of the month; Facebook and Instagram post by themselves once Meta is connected, TikTok is a download and a checklist",
+     "Notification preferences on your profile: push, email and text for each kind, quiet hours, and a daily or weekly summary. Assigned jobs, shifts, security codes and onboarding or suspension notices are always sent",
+     "A new academy section covers rewards, the content calendar and notifications"
     ],
     "owners": [
      "Cars > Bookings is reorganised: your cars over the next six weeks, then On a trip, Upcoming and Past, each booking with its dates, status and money, and a filter by car",
@@ -308,8 +319,13 @@
      "Each car's page shows Where your car is and its trips of the last 30 days, or No tracker yet; you see the location only, never the renter or the booking",
      "The GPS tracker and kill switch has its own page with its price by number of cars; join the waitlist there to hear first when trackers arrive",
      "With your phone's permission, your location shows to our team only two hours either side of a pickup or return of your car; turn it off in Account, Profile, Location on the live map",
-     "Each car's page shows Tracker alerts: speeding, harsh driving, tampering or a pound, with the time and the place; we also tell you by email, text or the app, and you can turn these alerts off in your notification settings",
-     "The GPS tracker and kill switch has its own page: the tracker is free for vehicle owners, and you pay the install and the monthly service; join the list there to hear first when trackers arrive"
+     "The GPS tracker and kill switch has its own page: the tracker is free for vehicle owners, and you pay the install and the monthly service; join the list there to hear first when trackers arrive",
+     "Each car's page shows Tracker alerts with the time and the place, never the renter or the booking. Told at once, each its own switch in your notification preferences: possible theft (also leaving Ontario or Canada), the tracker disconnected or tampered with, a crash, an impound lot, auto shop or shipping port (on to start with), a health warning and over 180 km/h (off to start with); harsh braking, late-night driving and kilometres against the allowance come in a weekly driving summary you can turn on",
+     "A Rewards tab: 20% off another CarmaCars car while yours is out, a free upgrade to ask for when a repair is on us, a friends and family code, link and QR code (10% off their first rental, 20% of it to you), $100 for referring an owner, a $25 birthday rental credit, priority support and early access",
+     "Merch kits at 6 and 12 months: press Redeem, confirm your address, and follow it to Shipped",
+     "Notification preferences under Account: push, email and text for each kind, quiet hours, and a daily or weekly summary; new-booking notices are yours to turn on",
+     "Charges during a booking of your own car are due at once and are taken from your payment method on file; otherwise you get an invoice with a pay link, and an unpaid one comes off your next statement. Each charge is listed with its evidence",
+     "The Late Fee on insurance not paid on time is 5% of the unpaid insurance (it was $50), plus HST; you are reminded 3 days before the due date"
     ],
     "renters": [
      "With your phone's permission, your location shows to our team only two hours either side of your pickup or return, so we can meet you; turn it off in Account, Profile, Location on the live map",
@@ -329,7 +345,9 @@
      "From Platinum up, a rental near your birthday or on a holiday weekend costs less; add your birthday on the Rewards page",
      "On a payment plan, your booking is confirmed as soon as your first payment is in",
      "Paying the deposit by e-Transfer, cash or debit? Your offer and pay page show that amount (twice the card deposit) before you pay",
-     "Add a tip for the team when you pay, on your booking after the trip or from the link in the Returned email: 10, 15 or 20%, or any amount"
+     "Add a tip for the team when you pay, on your booking after the trip or from the link in the Returned email: 10, 15 or 20%, or any amount",
+     "Notification preferences under Account: push, email and text for each kind, quiet hours, and a daily or weekly summary. Booking confirmations and changes, return reminders, receipts, charges, legal notices and security codes are always sent",
+     "Investors and partners have the same notification preferences on their portals; the app uses the same choices"
     ]
    }
   }

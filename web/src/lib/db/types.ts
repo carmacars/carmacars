@@ -2584,6 +2584,7 @@ export type Database = {
           evidence_checked_at: string | null;
           evidence_override_by: string | null;
           evidence_override_reason: string | null;
+          owner_invoice_id: string | null;
         };
         Insert: {
           id?: string;
@@ -2621,6 +2622,7 @@ export type Database = {
           evidence_checked_at?: string | null;
           evidence_override_by?: string | null;
           evidence_override_reason?: string | null;
+          owner_invoice_id?: string | null;
         };
         Update: {
           id?: string;
@@ -2658,6 +2660,7 @@ export type Database = {
           evidence_checked_at?: string | null;
           evidence_override_by?: string | null;
           evidence_override_reason?: string | null;
+          owner_invoice_id?: string | null;
         };
         Relationships: [];
       };
@@ -13197,6 +13200,66 @@ export type Database = {
         };
         Relationships: [];
       };
+      location_job_points: {
+        Row: {
+          id: number;
+          user_id: string;
+          field_job_id: string | null;
+          booking_id: string | null;
+          reason: string;
+          lat: number;
+          lng: number;
+          accuracy_m: number | null;
+          at: string;
+        };
+        Insert: {
+          id?: number;
+          user_id: string;
+          field_job_id?: string | null;
+          booking_id?: string | null;
+          reason: string;
+          lat: number;
+          lng: number;
+          accuracy_m?: number | null;
+          at: string;
+        };
+        Update: {
+          id?: number;
+          user_id?: string;
+          field_job_id?: string | null;
+          booking_id?: string | null;
+          reason?: string;
+          lat?: number;
+          lng?: number;
+          accuracy_m?: number | null;
+          at?: string;
+        };
+        Relationships: [];
+      };
+      location_prefs: {
+        Row: {
+          user_id: string;
+          sharing_on: boolean;
+          policy_version: string | null;
+          policy_accepted_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          sharing_on?: boolean;
+          policy_version?: string | null;
+          policy_accepted_at?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          sharing_on?: boolean;
+          policy_version?: string | null;
+          policy_accepted_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       maintenance_categories: {
         Row: {
           category_code: string;
@@ -13805,6 +13868,7 @@ export type Database = {
           always_send: boolean;
           hold_to_merge: boolean;
           merge_label: string | null;
+          pref_type: string | null;
         };
         Insert: {
           code: string;
@@ -13840,6 +13904,7 @@ export type Database = {
           always_send?: boolean;
           hold_to_merge?: boolean;
           merge_label?: string | null;
+          pref_type?: string | null;
         };
         Update: {
           code?: string;
@@ -13875,6 +13940,7 @@ export type Database = {
           always_send?: boolean;
           hold_to_merge?: boolean;
           merge_label?: string | null;
+          pref_type?: string | null;
         };
         Relationships: [];
       };
@@ -14103,6 +14169,162 @@ export type Database = {
           created_at?: string;
           read_at?: string | null;
           snoozed_until?: string | null;
+        };
+        Relationships: [];
+      };
+      notify_digest_items: {
+        Row: {
+          id: number;
+          user_id: string;
+          type: string | null;
+          code: string;
+          title: string;
+          url: string | null;
+          created_at: string;
+          sent_at: string | null;
+        };
+        Insert: {
+          id?: number;
+          user_id: string;
+          type?: string | null;
+          code: string;
+          title: string;
+          url?: string | null;
+          created_at?: string;
+          sent_at?: string | null;
+        };
+        Update: {
+          id?: number;
+          user_id?: string;
+          type?: string | null;
+          code?: string;
+          title?: string;
+          url?: string | null;
+          created_at?: string;
+          sent_at?: string | null;
+        };
+        Relationships: [];
+      };
+      notify_prefs: {
+        Row: {
+          subject_kind: string;
+          subject_id: string;
+          type: string;
+          push: boolean;
+          email: boolean;
+          sms: boolean;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          subject_kind: string;
+          subject_id: string;
+          type: string;
+          push: boolean;
+          email: boolean;
+          sms: boolean;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          subject_kind?: string;
+          subject_id?: string;
+          type?: string;
+          push?: boolean;
+          email?: boolean;
+          sms?: boolean;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
+      notify_profiles: {
+        Row: {
+          subject_kind: string;
+          subject_id: string;
+          quiet_on: boolean;
+          quiet_from: number;
+          quiet_until: number;
+          cadence: string;
+          all_off: boolean;
+          digest_sent_at: string | null;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          subject_kind: string;
+          subject_id: string;
+          quiet_on?: boolean;
+          quiet_from?: number;
+          quiet_until?: number;
+          cadence?: string;
+          all_off?: boolean;
+          digest_sent_at?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          subject_kind?: string;
+          subject_id?: string;
+          quiet_on?: boolean;
+          quiet_from?: number;
+          quiet_until?: number;
+          cadence?: string;
+          all_off?: boolean;
+          digest_sent_at?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
+      notify_types: {
+        Row: {
+          code: string;
+          label: string;
+          detail: string | null;
+          grp: string;
+          portals: string[];
+          locked: boolean;
+          channels: string[];
+          push_default: boolean;
+          email_default: boolean;
+          text_default: boolean;
+          push_topic: string | null;
+          live_setting: string | null;
+          sort: number;
+          updated_at: string;
+        };
+        Insert: {
+          code: string;
+          label: string;
+          detail?: string | null;
+          grp: string;
+          portals?: string[];
+          locked?: boolean;
+          channels?: string[];
+          push_default?: boolean;
+          email_default?: boolean;
+          text_default?: boolean;
+          push_topic?: string | null;
+          live_setting?: string | null;
+          sort?: number;
+          updated_at?: string;
+        };
+        Update: {
+          code?: string;
+          label?: string;
+          detail?: string | null;
+          grp?: string;
+          portals?: string[];
+          locked?: boolean;
+          channels?: string[];
+          push_default?: boolean;
+          email_default?: boolean;
+          text_default?: boolean;
+          push_topic?: string | null;
+          live_setting?: string | null;
+          sort?: number;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -14848,6 +15070,8 @@ export type Database = {
           updated_at: string;
           is_retry: boolean;
           original_debit_on: string | null;
+          immediate: boolean;
+          method_kind: string;
         };
         Insert: {
           id?: string;
@@ -14876,6 +15100,8 @@ export type Database = {
           updated_at?: string;
           is_retry?: boolean;
           original_debit_on?: string | null;
+          immediate?: boolean;
+          method_kind?: string;
         };
         Update: {
           id?: string;
@@ -14904,6 +15130,8 @@ export type Database = {
           updated_at?: string;
           is_retry?: boolean;
           original_debit_on?: string | null;
+          immediate?: boolean;
+          method_kind?: string;
         };
         Relationships: [];
       };
@@ -15026,6 +15254,7 @@ export type Database = {
           booking_owner_expense_id: string | null;
           upkeep_cost_type: string | null;
           upkeep_ref: string | null;
+          owner_invoice_id: string | null;
         };
         Insert: {
           id?: string;
@@ -15046,6 +15275,7 @@ export type Database = {
           booking_owner_expense_id?: string | null;
           upkeep_cost_type?: string | null;
           upkeep_ref?: string | null;
+          owner_invoice_id?: string | null;
         };
         Update: {
           id?: string;
@@ -15066,6 +15296,7 @@ export type Database = {
           booking_owner_expense_id?: string | null;
           upkeep_cost_type?: string | null;
           upkeep_ref?: string | null;
+          owner_invoice_id?: string | null;
         };
         Relationships: [];
       };
@@ -15253,6 +15484,12 @@ export type Database = {
           from_statement_fallback_at: string | null;
           collect_by: string;
           deduct_from_payout_on: string | null;
+          owner_use_booking_id: string | null;
+          owner_use_state: string | null;
+          owner_use_fallback_on: string | null;
+          owner_use_reminded_at: string | null;
+          owner_use_reminders: number;
+          late_fee_reminded_at: string | null;
         };
         Insert: {
           id?: string;
@@ -15305,6 +15542,12 @@ export type Database = {
           from_statement_fallback_at?: string | null;
           collect_by?: string;
           deduct_from_payout_on?: string | null;
+          owner_use_booking_id?: string | null;
+          owner_use_state?: string | null;
+          owner_use_fallback_on?: string | null;
+          owner_use_reminded_at?: string | null;
+          owner_use_reminders?: number;
+          late_fee_reminded_at?: string | null;
         };
         Update: {
           id?: string;
@@ -15357,6 +15600,12 @@ export type Database = {
           from_statement_fallback_at?: string | null;
           collect_by?: string;
           deduct_from_payout_on?: string | null;
+          owner_use_booking_id?: string | null;
+          owner_use_state?: string | null;
+          owner_use_fallback_on?: string | null;
+          owner_use_reminded_at?: string | null;
+          owner_use_reminders?: number;
+          late_fee_reminded_at?: string | null;
         };
         Relationships: [];
       };
@@ -15744,6 +15993,153 @@ export type Database = {
         };
         Relationships: [];
       };
+      owner_reward_codes: {
+        Row: {
+          promo_code_id: string;
+          owner_id: string;
+          kind: string;
+          period: string | null;
+          created_at: string;
+        };
+        Insert: {
+          promo_code_id: string;
+          owner_id: string;
+          kind: string;
+          period?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          promo_code_id?: string;
+          owner_id?: string;
+          kind?: string;
+          period?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      owner_reward_ledger: {
+        Row: {
+          id: string;
+          owner_id: string;
+          kind: string;
+          ref_key: string;
+          title: string;
+          detail: string | null;
+          amount_cents: number | null;
+          owner_credit_id: string | null;
+          promo_code_id: string | null;
+          expense_id: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          kind: string;
+          ref_key: string;
+          title: string;
+          detail?: string | null;
+          amount_cents?: number | null;
+          owner_credit_id?: string | null;
+          promo_code_id?: string | null;
+          expense_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          owner_id?: string;
+          kind?: string;
+          ref_key?: string;
+          title?: string;
+          detail?: string | null;
+          amount_cents?: number | null;
+          owner_credit_id?: string | null;
+          promo_code_id?: string | null;
+          expense_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      owner_reward_requests: {
+        Row: {
+          id: string;
+          owner_id: string;
+          kind: string;
+          status: string;
+          vehicle_id: string | null;
+          note: string | null;
+          ship_name: string | null;
+          ship_line1: string | null;
+          ship_line2: string | null;
+          ship_city: string | null;
+          ship_province: string | null;
+          ship_postal_code: string | null;
+          ship_phone: string | null;
+          size: string | null;
+          decided_by: string | null;
+          decided_at: string | null;
+          decision_note: string | null;
+          tracking: string | null;
+          shipped_at: string | null;
+          cost_cents: number | null;
+          promo_code_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          kind: string;
+          status?: string;
+          vehicle_id?: string | null;
+          note?: string | null;
+          ship_name?: string | null;
+          ship_line1?: string | null;
+          ship_line2?: string | null;
+          ship_city?: string | null;
+          ship_province?: string | null;
+          ship_postal_code?: string | null;
+          ship_phone?: string | null;
+          size?: string | null;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          decision_note?: string | null;
+          tracking?: string | null;
+          shipped_at?: string | null;
+          cost_cents?: number | null;
+          promo_code_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          owner_id?: string;
+          kind?: string;
+          status?: string;
+          vehicle_id?: string | null;
+          note?: string | null;
+          ship_name?: string | null;
+          ship_line1?: string | null;
+          ship_line2?: string | null;
+          ship_city?: string | null;
+          ship_province?: string | null;
+          ship_postal_code?: string | null;
+          ship_phone?: string | null;
+          size?: string | null;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          decision_note?: string | null;
+          tracking?: string | null;
+          shipped_at?: string | null;
+          cost_cents?: number | null;
+          promo_code_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       owner_statement_lines: {
         Row: {
           id: string;
@@ -16106,6 +16502,27 @@ export type Database = {
           referrer_owner_id?: string | null;
           referral_share_bps?: number | null;
           note?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      owner_tracker_weeklies: {
+        Row: {
+          owner_id: string;
+          week_of: string;
+          sent: boolean;
+          created_at: string;
+        };
+        Insert: {
+          owner_id: string;
+          week_of: string;
+          sent?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          owner_id?: string;
+          week_of?: string;
+          sent?: boolean;
           created_at?: string;
         };
         Relationships: [];
@@ -18015,6 +18432,48 @@ export type Database = {
           fields_read?: number;
           error?: string | null;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      person_locations: {
+        Row: {
+          user_id: string;
+          kind: string;
+          reason: string;
+          lat: number;
+          lng: number;
+          accuracy_m: number | null;
+          source: string;
+          booking_id: string | null;
+          field_job_id: string | null;
+          at: string;
+          received_at: string;
+        };
+        Insert: {
+          user_id: string;
+          kind: string;
+          reason: string;
+          lat: number;
+          lng: number;
+          accuracy_m?: number | null;
+          source: string;
+          booking_id?: string | null;
+          field_job_id?: string | null;
+          at: string;
+          received_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          kind?: string;
+          reason?: string;
+          lat?: number;
+          lng?: number;
+          accuracy_m?: number | null;
+          source?: string;
+          booking_id?: string | null;
+          field_job_id?: string | null;
+          at?: string;
+          received_at?: string;
         };
         Relationships: [];
       };
@@ -19971,6 +20430,53 @@ export type Database = {
           tracker_free_preorder_public: number;
           tracker_preorder_price_cents: number;
           tracker_regular_price_cents: number;
+          notify_pref_digest_hour: number;
+          notify_pref_weekly_dow: number;
+          notify_pref_quiet_from_minute: number;
+          notify_pref_quiet_until_minute: number;
+          staff_perk_enabled: boolean;
+          staff_perk_base_bps: number;
+          staff_perk_days_per_free_day: number;
+          staff_perk_handovers_per_free_day: number;
+          staff_perk_handover_kinds: string[];
+          staff_perk_silver_days: number;
+          staff_perk_silver_bps: number;
+          staff_perk_gold_days: number;
+          staff_perk_gold_bps: number;
+          staff_perk_gold_bonus_days: number;
+          staff_perk_top_seller_days: number;
+          staff_perk_max_ahead_hours: number;
+          staff_perk_expiry_months: number;
+          staff_perk_expiry_notice_days: number;
+          staff_perk_count_from: string;
+          owner_reward_enabled: boolean;
+          owner_reward_fleet_bps: number;
+          owner_reward_ff_bps: number;
+          owner_reward_refer_cents: number;
+          owner_reward_refer_live_days: number;
+          owner_reward_merch_months: number;
+          owner_reward_merch_premium_months: number;
+          owner_reward_merch_cost_cents: number;
+          owner_reward_merch_premium_cost_cents: number;
+          owner_reward_birthday_cents: number;
+          owner_reward_birthday_valid_days: number;
+          owner_reward_upgrade_default_cents: number;
+          social_cal_enabled: boolean;
+          social_cal_mix: Json;
+          social_cal_pillars: Json;
+          social_cal_times: Json;
+          social_cal_hashtags: string[];
+          social_cal_music: Json;
+          social_cal_generate_day: number;
+          social_cal_remind_days: number;
+          owner_use_bill: boolean;
+          owner_use_charge_due_days: number;
+          owner_use_reminder_days: number;
+          owner_use_settle_minutes: number;
+          owner_insurance_late_fee_bps: number;
+          owner_insurance_late_fee_from: string;
+          owner_insurance_late_fee_hst: boolean;
+          owner_insurance_late_reminder_days: number;
           owner_calc_base_days: number;
           owner_calc_discount_pct: number;
           owner_calc_season: Json;
@@ -20883,6 +21389,53 @@ export type Database = {
           tracker_free_preorder_public?: number;
           tracker_preorder_price_cents?: number;
           tracker_regular_price_cents?: number;
+          notify_pref_digest_hour?: number;
+          notify_pref_weekly_dow?: number;
+          notify_pref_quiet_from_minute?: number;
+          notify_pref_quiet_until_minute?: number;
+          staff_perk_enabled?: boolean;
+          staff_perk_base_bps?: number;
+          staff_perk_days_per_free_day?: number;
+          staff_perk_handovers_per_free_day?: number;
+          staff_perk_handover_kinds?: string[];
+          staff_perk_silver_days?: number;
+          staff_perk_silver_bps?: number;
+          staff_perk_gold_days?: number;
+          staff_perk_gold_bps?: number;
+          staff_perk_gold_bonus_days?: number;
+          staff_perk_top_seller_days?: number;
+          staff_perk_max_ahead_hours?: number;
+          staff_perk_expiry_months?: number;
+          staff_perk_expiry_notice_days?: number;
+          staff_perk_count_from?: string;
+          owner_reward_enabled?: boolean;
+          owner_reward_fleet_bps?: number;
+          owner_reward_ff_bps?: number;
+          owner_reward_refer_cents?: number;
+          owner_reward_refer_live_days?: number;
+          owner_reward_merch_months?: number;
+          owner_reward_merch_premium_months?: number;
+          owner_reward_merch_cost_cents?: number;
+          owner_reward_merch_premium_cost_cents?: number;
+          owner_reward_birthday_cents?: number;
+          owner_reward_birthday_valid_days?: number;
+          owner_reward_upgrade_default_cents?: number;
+          social_cal_enabled?: boolean;
+          social_cal_mix?: Json;
+          social_cal_pillars?: Json;
+          social_cal_times?: Json;
+          social_cal_hashtags?: string[];
+          social_cal_music?: Json;
+          social_cal_generate_day?: number;
+          social_cal_remind_days?: number;
+          owner_use_bill?: boolean;
+          owner_use_charge_due_days?: number;
+          owner_use_reminder_days?: number;
+          owner_use_settle_minutes?: number;
+          owner_insurance_late_fee_bps?: number;
+          owner_insurance_late_fee_from?: string;
+          owner_insurance_late_fee_hst?: boolean;
+          owner_insurance_late_reminder_days?: number;
           owner_calc_base_days?: number;
           owner_calc_discount_pct?: number;
           owner_calc_season?: Json;
@@ -21795,6 +22348,53 @@ export type Database = {
           tracker_free_preorder_public?: number;
           tracker_preorder_price_cents?: number;
           tracker_regular_price_cents?: number;
+          notify_pref_digest_hour?: number;
+          notify_pref_weekly_dow?: number;
+          notify_pref_quiet_from_minute?: number;
+          notify_pref_quiet_until_minute?: number;
+          staff_perk_enabled?: boolean;
+          staff_perk_base_bps?: number;
+          staff_perk_days_per_free_day?: number;
+          staff_perk_handovers_per_free_day?: number;
+          staff_perk_handover_kinds?: string[];
+          staff_perk_silver_days?: number;
+          staff_perk_silver_bps?: number;
+          staff_perk_gold_days?: number;
+          staff_perk_gold_bps?: number;
+          staff_perk_gold_bonus_days?: number;
+          staff_perk_top_seller_days?: number;
+          staff_perk_max_ahead_hours?: number;
+          staff_perk_expiry_months?: number;
+          staff_perk_expiry_notice_days?: number;
+          staff_perk_count_from?: string;
+          owner_reward_enabled?: boolean;
+          owner_reward_fleet_bps?: number;
+          owner_reward_ff_bps?: number;
+          owner_reward_refer_cents?: number;
+          owner_reward_refer_live_days?: number;
+          owner_reward_merch_months?: number;
+          owner_reward_merch_premium_months?: number;
+          owner_reward_merch_cost_cents?: number;
+          owner_reward_merch_premium_cost_cents?: number;
+          owner_reward_birthday_cents?: number;
+          owner_reward_birthday_valid_days?: number;
+          owner_reward_upgrade_default_cents?: number;
+          social_cal_enabled?: boolean;
+          social_cal_mix?: Json;
+          social_cal_pillars?: Json;
+          social_cal_times?: Json;
+          social_cal_hashtags?: string[];
+          social_cal_music?: Json;
+          social_cal_generate_day?: number;
+          social_cal_remind_days?: number;
+          owner_use_bill?: boolean;
+          owner_use_charge_due_days?: number;
+          owner_use_reminder_days?: number;
+          owner_use_settle_minutes?: number;
+          owner_insurance_late_fee_bps?: number;
+          owner_insurance_late_fee_from?: string;
+          owner_insurance_late_fee_hst?: boolean;
+          owner_insurance_late_reminder_days?: number;
           owner_calc_base_days?: number;
           owner_calc_discount_pct?: number;
           owner_calc_season?: Json;
@@ -24138,6 +24738,30 @@ export type Database = {
         };
         Relationships: [];
       };
+      reward_postings: {
+        Row: {
+          redemption_id: string;
+          kind: string;
+          expense_id: string;
+          amount_cents: number;
+          posted_at: string;
+        };
+        Insert: {
+          redemption_id: string;
+          kind: string;
+          expense_id: string;
+          amount_cents: number;
+          posted_at?: string;
+        };
+        Update: {
+          redemption_id?: string;
+          kind?: string;
+          expense_id?: string;
+          amount_cents?: number;
+          posted_at?: string;
+        };
+        Relationships: [];
+      };
       reward_tier_perks: {
         Row: {
           code: string;
@@ -25881,6 +26505,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      social_calendars: {
+        Row: {
+          month: string;
+          generated_at: string;
+          generated_by: string | null;
+          plan: Json;
+          learned: Json;
+          notified_at: string | null;
+        };
+        Insert: {
+          month: string;
+          generated_at?: string;
+          generated_by?: string | null;
+          plan?: Json;
+          learned?: Json;
+          notified_at?: string | null;
+        };
+        Update: {
+          month?: string;
+          generated_at?: string;
+          generated_by?: string | null;
+          plan?: Json;
+          learned?: Json;
+          notified_at?: string | null;
+        };
+        Relationships: [];
+      };
       social_drafts: {
         Row: {
           id: string;
@@ -25902,6 +26553,19 @@ export type Database = {
           created_by: string | null;
           created_at: string;
           updated_at: string;
+          month: string | null;
+          slot_no: number | null;
+          format: string | null;
+          pillar: string | null;
+          hook: string | null;
+          hashtags: string[];
+          music: string | null;
+          best_times: Json;
+          shot_list: string | null;
+          reject_reason: string | null;
+          rejected_by: string | null;
+          regenerated: number;
+          auto_reply: boolean;
         };
         Insert: {
           id?: string;
@@ -25923,6 +26587,19 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          month?: string | null;
+          slot_no?: number | null;
+          format?: string | null;
+          pillar?: string | null;
+          hook?: string | null;
+          hashtags?: string[];
+          music?: string | null;
+          best_times?: Json;
+          shot_list?: string | null;
+          reject_reason?: string | null;
+          rejected_by?: string | null;
+          regenerated?: number;
+          auto_reply?: boolean;
         };
         Update: {
           id?: string;
@@ -25944,6 +26621,19 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          month?: string | null;
+          slot_no?: number | null;
+          format?: string | null;
+          pillar?: string | null;
+          hook?: string | null;
+          hashtags?: string[];
+          music?: string | null;
+          best_times?: Json;
+          shot_list?: string | null;
+          reject_reason?: string | null;
+          rejected_by?: string | null;
+          regenerated?: number;
+          auto_reply?: boolean;
         };
         Relationships: [];
       };
@@ -25974,6 +26664,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      social_post_stats: {
+        Row: {
+          queue_id: string;
+          views: number | null;
+          reach: number | null;
+          likes: number | null;
+          comments: number | null;
+          shares: number | null;
+          saves: number | null;
+          source: string;
+          fetched_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          queue_id: string;
+          views?: number | null;
+          reach?: number | null;
+          likes?: number | null;
+          comments?: number | null;
+          shares?: number | null;
+          saves?: number | null;
+          source: string;
+          fetched_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          queue_id?: string;
+          views?: number | null;
+          reach?: number | null;
+          likes?: number | null;
+          comments?: number | null;
+          shares?: number | null;
+          saves?: number | null;
+          source?: string;
+          fetched_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
       social_queue: {
         Row: {
           id: string;
@@ -25997,6 +26726,9 @@ export type Database = {
           posted_at: string | null;
           created_at: string;
           updated_at: string;
+          format: string | null;
+          by_hand: boolean;
+          music: string | null;
         };
         Insert: {
           id?: string;
@@ -26020,6 +26752,9 @@ export type Database = {
           posted_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          format?: string | null;
+          by_hand?: boolean;
+          music?: string | null;
         };
         Update: {
           id?: string;
@@ -26043,6 +26778,9 @@ export type Database = {
           posted_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          format?: string | null;
+          by_hand?: boolean;
+          music?: string | null;
         };
         Relationships: [];
       };
@@ -26177,6 +26915,7 @@ export type Database = {
           hint: string | null;
           sort: number;
           updated_at: string;
+          pref_type: string | null;
         };
         Insert: {
           rule: string;
@@ -26191,6 +26930,7 @@ export type Database = {
           hint?: string | null;
           sort?: number;
           updated_at?: string;
+          pref_type?: string | null;
         };
         Update: {
           rule?: string;
@@ -26205,6 +26945,7 @@ export type Database = {
           hint?: string | null;
           sort?: number;
           updated_at?: string;
+          pref_type?: string | null;
         };
         Relationships: [];
       };
@@ -26544,6 +27285,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      staff_free_days: {
+        Row: {
+          id: string;
+          user_id: string;
+          source: string;
+          seq: string;
+          days: number;
+          used_days: number;
+          earned_at: string;
+          expires_at: string;
+          expiry_noticed_at: string | null;
+          note: string | null;
+          created_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          source: string;
+          seq: string;
+          days: number;
+          used_days?: number;
+          earned_at?: string;
+          expires_at: string;
+          expiry_noticed_at?: string | null;
+          note?: string | null;
+          created_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          source?: string;
+          seq?: string;
+          days?: number;
+          used_days?: number;
+          earned_at?: string;
+          expires_at?: string;
+          expiry_noticed_at?: string | null;
+          note?: string | null;
+          created_by?: string | null;
+        };
+        Relationships: [];
+      };
       staff_idle_periods: {
         Row: {
           id: string;
@@ -26751,6 +27534,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      staff_perk_codes: {
+        Row: {
+          promo_code_id: string;
+          user_id: string;
+          kind: string;
+          days: number | null;
+          lots: Json;
+          created_at: string;
+          cancelled_at: string | null;
+        };
+        Insert: {
+          promo_code_id: string;
+          user_id: string;
+          kind: string;
+          days?: number | null;
+          lots?: Json;
+          created_at?: string;
+          cancelled_at?: string | null;
+        };
+        Update: {
+          promo_code_id?: string;
+          user_id?: string;
+          kind?: string;
+          days?: number | null;
+          lots?: Json;
+          created_at?: string;
+          cancelled_at?: string | null;
+        };
+        Relationships: [];
+      };
       staff_profiles: {
         Row: {
           user_id: string;
@@ -26812,6 +27625,11 @@ export type Database = {
           whatsapp_tag_set_at: string | null;
           home_address_outside_ok_at: string | null;
           licence_expiry: string | null;
+          perks_eligible: boolean | null;
+          perks_note: string | null;
+          perks_unlocked_at: string | null;
+          perks_tier: string;
+          perks_tier_month: string | null;
         };
         Insert: {
           user_id: string;
@@ -26873,6 +27691,11 @@ export type Database = {
           whatsapp_tag_set_at?: string | null;
           home_address_outside_ok_at?: string | null;
           licence_expiry?: string | null;
+          perks_eligible?: boolean | null;
+          perks_note?: string | null;
+          perks_unlocked_at?: string | null;
+          perks_tier?: string;
+          perks_tier_month?: string | null;
         };
         Update: {
           user_id?: string;
@@ -26934,6 +27757,11 @@ export type Database = {
           whatsapp_tag_set_at?: string | null;
           home_address_outside_ok_at?: string | null;
           licence_expiry?: string | null;
+          perks_eligible?: boolean | null;
+          perks_note?: string | null;
+          perks_unlocked_at?: string | null;
+          perks_tier?: string;
+          perks_tier_month?: string | null;
         };
         Relationships: [];
       };
@@ -28611,6 +29439,48 @@ export type Database = {
           speed_kmh?: number | null;
           lat?: number | null;
           lng?: number | null;
+        };
+        Relationships: [];
+      };
+      tracker_places: {
+        Row: {
+          id: string;
+          kind: string;
+          name: string;
+          latitude: number;
+          longitude: number;
+          radius_m: number;
+          is_active: boolean;
+          note: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          kind: string;
+          name: string;
+          latitude: number;
+          longitude: number;
+          radius_m?: number;
+          is_active?: boolean;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          kind?: string;
+          name?: string;
+          latitude?: number;
+          longitude?: number;
+          radius_m?: number;
+          is_active?: boolean;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -34482,6 +35352,8 @@ export type Database = {
       owner_portal_invoice: { Args: { p_by: string; p_number: string }; Returns: Json };
       owner_portal_month_to_date: { Args: { p_by: string; p_month?: string }; Returns: Json };
       owner_portal_rental_history: { Args: { p_by: string; p_car?: string; p_newest?: boolean; p_offset?: number; p_limit?: number }; Returns: Json };
+      owner_portal_reward_do: { Args: { p_by: string; p_action: string; p: Json }; Returns: Json };
+      owner_portal_rewards: { Args: { p_by: string }; Returns: Json };
       owner_portal_statement: { Args: { p_by: string; p_statement: string }; Returns: Json };
       owner_register_document: { Args: { p_by: string; p_vehicle: string; p_kind: string; p_path: string; p_sha256: string; p_mime: string }; Returns: string };
       owner_save_profile: { Args: { p_by: string; p: Json }; Returns: Json };
@@ -34597,6 +35469,7 @@ export type Database = {
       server_address_prune: { Args: { p_province: string; p_from: number; p_to: number }; Returns: number };
       server_address_search: { Args: { p_q: string; p_limit?: number }; Returns: Json };
       server_ads_job: { Args: never; Returns: Json };
+      server_ads_job_pre3263: { Args: never; Returns: Json };
       server_agreement_auto_done: { Args: { p_booking: string; p_ok: boolean; p_error?: string; p_source?: string }; Returns: Json };
       server_agreement_companion: { Args: { p_booking: string }; Returns: Json };
       server_agreement_extra: { Args: { p_booking: string; p_by: string }; Returns: Json };
@@ -34879,6 +35752,8 @@ export type Database = {
       server_my_walkthrough: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_my_walkthrough_ack: { Args: { p_booking: string; p_by: string; p_step: string }; Returns: Json };
       server_notify_kick: { Args: { p_kinds?: string[] }; Returns: Json };
+      server_notify_prefs: { Args: { p_user: string; p_portal?: string }; Returns: Json };
+      server_notify_prefs_save: { Args: { p_user: string; p: Json }; Returns: Json };
       server_onboarding_options: { Args: { p_held_by: string; p_title_status: string; p_mode?: string }; Returns: Json };
       server_open_agreement_companion: { Args: { p_booking: string; p_by: string; p_template: string; p_storage_path: string; p_sha256: string }; Returns: string };
       server_open_amendment: { Args: { p_request: string; p_by: string; p_sha256: string; p_storage_path: string; p_template_version: string }; Returns: Json };
@@ -34925,6 +35800,8 @@ export type Database = {
       server_partner_feed: { Args: { p_partner: string }; Returns: Json };
       server_partner_invoice_by_token: { Args: { p_token: string }; Returns: Json };
       server_partner_invoices_of: { Args: { p_partner: string }; Returns: Json };
+      server_partner_notify_prefs: { Args: { p_partner: string }; Returns: Json };
+      server_partner_notify_prefs_save: { Args: { p_partner: string; p: Json }; Returns: Json };
       server_partner_referral: { Args: { p: Json }; Returns: Json };
       server_passkey_challenge: { Args: { p_user: string; p_kind: string; p_ip?: string }; Returns: Json };
       server_passkey_challenge_read: { Args: { p_id: string; p_kind: string }; Returns: Json };
@@ -35078,10 +35955,13 @@ export type Database = {
       server_signing_package_record: { Args: { p_by: string; p: Json }; Returns: Json };
       server_signing_record: { Args: { p_booking: string }; Returns: Json };
       server_site_selfqa: { Args: { p: Json }; Returns: Json };
+      server_social_calendar_put: { Args: { p: Json }; Returns: number };
       server_social_drafts_put: { Args: { p: Json }; Returns: number };
       server_social_published: { Args: { p: Json }; Returns: Json };
       server_social_queue_claim: { Args: never; Returns: Json };
+      server_social_queue_claim_pre3263: { Args: never; Returns: Json };
       server_social_queue_result: { Args: { p: Json }; Returns: Json };
+      server_social_stats_put: { Args: { p: Json }; Returns: Json };
       server_staff_agreement_auto_done: { Args: { p_user: string; p: Json }; Returns: Json };
       server_staff_agreements_due: { Args: { p_limit?: number }; Returns: Json };
       server_staff_restore_request: { Args: { p_token: string }; Returns: Json };

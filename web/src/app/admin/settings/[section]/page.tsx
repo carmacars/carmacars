@@ -73,6 +73,12 @@ const SITE_GROUPS: Array<[string, string[]]> = [
 ];
 const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Company', (k) => k.startsWith('company_') || ['incident_line_phone', 'privacy_officer_name', 'privacy_officer_email', 'signing_officer_name', 'signing_officer_title', 'signing_officer_authorized_on', 'timezone', 'hst_bps'].includes(k)],
+  // r48 RW (3260 to 3263): staff rewards, owner rewards, the content calendar and notification preferences
+  ['Staff rewards (discounts and free rental days for in-person staff in Canada)', (k) => k.startsWith('staff_perk_')],
+  ['Owner rewards (fleet discount, friends and family, referral credit, merch kits, birthday credit)', (k) => k.startsWith('owner_reward_')],
+  ['Content calendar (the month of social posts staff approve)', (k) => k.startsWith('social_cal_')],
+  ['Notification preferences', (k) => k.startsWith('notify_pref_')],
+  ['Owner-use charges and the Late Fee on unpaid insurance', (k) => k.startsWith('owner_use_') || k.startsWith('owner_insurance_late_')],
   ['Booking requests and offers', (k) => /^(booking_|offer_|request_|max_|min_|standard_min|accepted_licence|other_licence|info_request|tentative|turnaround|non_refundable|verification|early_return|chase_|addon_|extension_|late_fee_)/.test(k)],
   ['Driver\'s licence reader', (k) => k.startsWith('licence_')],
   // 1402: the fuel shortfall at each return (update the pump prices weekly); 1400 and 1401: card coverage and OPCF 27

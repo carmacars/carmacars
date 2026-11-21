@@ -168,7 +168,9 @@ charges of 3102, the return charges and the evidence registry of 3190 and the di
 
 - `admin/fleet-and-listings`: Tracker events, evidence and pound flags (release 48).
 - `va/fleet`: Tracker events and pound flags (release 48).
-- `owner/home-and-your-vehicles`: Tracker alerts.
+- `owner/home-and-your-vehicles`: Tracker alerts (3355: the switches are under Account > Notifications).
+- `owner/notices-profile-and-leaving`: Tracker alerts (release 48): the owner's set, on and off to start with (3355).
+- `admin/settings`: Owner tracker alerts follow Tracker events; the auto shops and shipping ports watched; impound lots are the pound lots (3355).
 - `renter/during-your-trip`: Notices from the car's Tracker (release 48).
 - Academy: the section "Tracker events and pound flags" (two lessons, five questions) on the fleet, finance, customer service and
   admin paths; staff who had passed everything get 7 days for it. The guide PDFs were not re-rendered.
@@ -200,3 +202,23 @@ One speeding event is one charge also when an Admin or the connector adds it by 
 6. The pound list: the seven lots seeded, their pins once found, the 150 m radius and 20 minutes; and which path is the default
    when a car is at a pound for a reason that is neither non-return nor theft.
 7. Whether the car's owner should be told about every event (on) or only the serious ones.
+
+## Owner alerts (3353), the integration of RW
+
+RW (3264) and TRK (3320 to 3326) both built tracker events and the owner's tracker alert. TRK's pipeline is the base (the
+signed, replay-protected, rate-limited ingest, the event table with its 30-minute window, the sealed evidence records, the
+pound lots, the province and country exits); 3264 is gone and 3353 layers RW's extras on it:
+
+- New kinds: `impact` (a crash) and `health` from the tracker's own events (with a `detail`, `web/src/integrations/tracker/ingest.ts`),
+  `place` (an auto shop or shipping port of `tracker_places`, Settings > Notification preferences) and `theft` (moving with no
+  booking, no Owner Booking and no staff job), each with its evidence record, once per car, kind and window.
+- The owner's own set, in real time: an impound lot, auto shop or shipping port; possible theft (also out of Ontario or Canada);
+  the tracker unplugged, offline or tampered with; a crash; a health warning; over 180 km/h. Each carries its notify type
+  (3260): theft, tamper, crash and place on by default; health and speed off (the speed notice stays in the portal). Harsh
+  driving and night driving are no longer an owner alert: they are in the weekly driving summary (off by default), with
+  kilometres against the allowance.
+- One `owner_tracker_alert` template: RW's copy with TRK's event variables. The owner's text is urgent.
+- Everything waits for Tracker events and Owner notices (Tracking settings); the Program settings of 3264 are not added.
+
+3354 delivers the owner's new-booking emails (still off in the catalogue) to an owner who turned "New bookings on your
+cars" on, and registers the alert targets of dispute packs and To dos. 3355 publishes the guide chapters in their merged text.

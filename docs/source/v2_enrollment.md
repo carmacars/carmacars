@@ -67,7 +67,7 @@
 
 4.3 CarmaCars charges each Vehicle's Fees on each Billing Date, from its Enrollment Date to its Exit Date, whether or not the Vehicle is rented, in repair or off the road. The Fees for a Vehicle's first and last month are pro-rated by day.
 
-4.4 If an automatic pre-authorized debit of an invoice is returned for insufficient funds, CarmaCars adds the Late Fee to that invoice once and may re-present the debit once, for the original amount, within 30 days. The Late Fee is collected with the Owner's next debit or deducted from the Owner's next payout.
+4.4 If the Insurance Fee of an invoice is not paid on time (an automatic pre-authorized debit is returned, or the invoice is unpaid after its due date), CarmaCars adds the Late Fee to that invoice once: 5% of the unpaid Insurance Fee, plus HST on the Late Fee. CarmaCars may re-present a returned debit once, for the original amount, within 30 days. The unpaid Insurance Fee and the Late Fee are deducted from the Owner's next payout and shown as separate lines on the statement. An invoice with no Insurance Fee on it has the flat Late Fee of Schedule B.
 
 4.5 **Set-off.** CarmaCars may deduct any amount the Owner owes under this Agreement from any payout due to the Owner for any Vehicle.
 
@@ -258,7 +258,7 @@ Vehicle Schedule to the Enrollment Agreement dated [●] between CarmaCars and [
 | Billing Date | 15th of each month |
 | Retry Date | on or after the 18th, within 30 days of the return |
 | Payout Date | 10th of each month |
-| Late Fee | $50 per Vehicle per failed charge |
+| Late Fee | 5% of the unpaid Insurance Fee per invoice, plus HST; $50 per Vehicle per failed charge for an invoice with no Insurance Fee |
 | Install Fee | $150 per Vehicle |
 | Deductible | $2,500 |
 | Kickback Rate | 20% |

@@ -5,6 +5,7 @@ import { pageMeta } from '@/features/seo/meta';
 import { door, requireStaff } from '@/server/door';
 import { TeamGroupCard } from '@/features/staff-clock/TeamGroupCard';
 import { TownhallCard } from '@/features/townhall/TownhallCard';
+import { MyRewardsCard } from '@/features/staff-rewards/MyRewards';
 import { FieldButton } from '@/features/field/FieldButton';
 import { Plate } from '@/features/field/Plate';
 import { FdIcon } from '@/features/field/icons';
@@ -61,6 +62,8 @@ export default async function FieldToday({ searchParams }: { searchParams: Promi
       {!tomorrow && <MissingHandovers userId={user.id} mode="field" base="/staff" />}
       {/* 2590: the weekly townhall, from the day before until it ends */}
       <TownhallCard userId={user.id} />
+      {/* r48 (3261): the staff member's discount and free rental days */}
+      {!tomorrow && <MyRewardsCard userId={user.id} href="/staff/field/rewards" />}
       <nav className="fd-days" aria-label="Day">
         <Link prefetch={false} href="/staff/field" aria-current={!tomorrow ? 'page' : undefined}>Today</Link>
         <Link prefetch={false} href="/staff/field?day=tomorrow" aria-current={tomorrow ? 'page' : undefined}>Tomorrow</Link>

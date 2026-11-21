@@ -62,6 +62,8 @@ export const PATHS = {
   owner_statement: '/owner/statements/{{statement_number}}',
   owner_claim: '/owner/claims/{{incident_number}}',
   owner_cosign: '/sign/owner/{{token}}',
+  owner_rewards: '/owner/rewards',
+  owner_vehicles: '/owner/vehicles',
 
   // Admin portal
   admin: '/admin',
@@ -102,6 +104,7 @@ export const PATHS = {
   // Field work, in the staff portal
   field: '/staff/field',
   field_job: '/staff/field/jobs/{{job_id}}',
+  staff_rewards: '/staff/rewards',
 };
 
 export function url(name) {

@@ -20,7 +20,7 @@ $$;
 -- ================================================================ 1. one Late Fee rule (Enrollment Agreement 4.4)
 select test.eq('rule (0053): the approved sentence, word for word',
   app.owner_debit_terms() ->> 'late_fee_rule',
-  'If your bank returns the automatic debit of an invoice for insufficient funds, we add the $50.00 Late Fee to that invoice once and try the original amount again within 30 days, as section 4.4 of your Enrollment Agreement sets out. The Late Fee is collected with your next debit.');
+  'If your insurance is not paid on time (your bank returns the automatic debit of an invoice for insufficient funds, or the invoice is unpaid after its due date), we add a Late Fee of 5% of the unpaid insurance, plus HST, to that invoice once and try a returned debit again for the original amount within 30 days, as section 4.4 of your Enrollment Agreement sets out. The unpaid insurance and the Late Fee are deducted from your next payout as two lines.');
 select test.ok('rule: no email says an unpaid invoice takes a Late Fee (the code never adds one for that)',
   not exists (select 1 from notification_catalogue where concat(subject, preheader) ~* 'unpaid after its due date'));
 
@@ -36,7 +36,7 @@ select test.eq('rule: the same sentence in every owner billing email (debit noti
      from unnest(array['owner_debit_notice', 'owner_debit_setup_needed', 'owner_fee_invoice', 'owner_payment_failed', 'owner_in_arrears']) c
      cross join (select * from owner_invoices where id = test.id('lt_inv1')) i), 1::bigint);
 update owner_invoices set status = 'failed' where id = test.id('lt_inv1');
-select test.eq('code: a returned debit adds the Late Fee to that invoice', (select late_fee_cents from owner_invoices where id = test.id('lt_inv1')), 5000::bigint);
+select test.eq('code: a returned debit adds the Late Fee to that invoice (3271: 5% of its unpaid insurance of $450.00)', (select late_fee_cents from owner_invoices where id = test.id('lt_inv1')), 2250::bigint);
 update owner_invoices set status = 'retry_processing' where id = test.id('lt_inv1');
 update owner_invoices set status = 'failed' where id = test.id('lt_inv1');
 select test.eq('code: once per invoice, not again when the retry is returned', (select count(*) from owner_invoice_lines where owner_invoice_id = test.id('lt_inv1') and kind = 'late_fee'), 1::bigint);

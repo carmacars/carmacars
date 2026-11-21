@@ -20,9 +20,9 @@ const TABS: Record<string, PageTab[]> = {
 };
 
 describe('menus', () => {
-  it('has at most six links in each portal, five for the owner, six for the investor, four for the renter', () => {
+  it('has at most six links in each portal, six for the owner (Rewards since r48), six for the investor, four for the renter', () => {
     assert.equal(RENTER_MENU.length, 4);
-    assert.equal(OWNER_MENU.length, 5);
+    assert.equal(OWNER_MENU.length, 6);
     assert.equal(INVESTOR_MENU.length, 6);
     for (const m of [RENTER_MENU, OWNER_MENU, INVESTOR_MENU]) assert.ok(m.length <= 6);
   });
@@ -38,6 +38,7 @@ describe('menus', () => {
     assert.equal(at(OWNER_MENU, '/owner/invoices/INV-1'), 'Money');
     assert.equal(at(OWNER_MENU, '/owner/sign'), 'Documents');
     assert.equal(at(OWNER_MENU, '/owner/account'), 'Account');
+    assert.equal(at(OWNER_MENU, '/owner/rewards'), 'Rewards');
     assert.equal(at(INVESTOR_MENU, '/investor'), 'Home');
     assert.equal(at(INVESTOR_MENU, '/investor/statements/abc'), 'Documents');
     assert.equal(at(INVESTOR_MENU, '/investor/sign/abc'), 'Documents');

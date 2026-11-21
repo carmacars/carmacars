@@ -5,21 +5,19 @@ CarmaCars  |  {{vehicle_name}}
 [Tracker alert]
 {{event_title}}
 
-{{event_what}}
-
-Hi {{first_name}}, this is about your car on CarmaCars.
+Hi {{first_name}}. {{event_what}}
 
 Car: {{vehicle_name}}
 When: {{event_when}}
 
-Open my car:
+See where your car is:
 https://carmacars.ca/owner/vehicles/{{vehicle_id}}
 
 See the place on a map: {{event_map_url}}
 
-Nothing for you to do: CarmaCars handles it with the renter, and any charge is collected with its evidence. We tell you because it is your car.
+CarmaCars has the same alert and is handling it. Any charge is collected from the driver with its evidence; we tell you because it is your car.
 
-You can turn these alerts off, or choose email, text or the app, in your notification settings.
+You choose which tracker alerts you get, and how (email, text or the app), under Account, Notifications in your owner portal.
 
 ----------------------------------------
 

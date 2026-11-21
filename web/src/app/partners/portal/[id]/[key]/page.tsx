@@ -7,6 +7,9 @@ import { dollars, kindLabel } from '@/features/referral/model';
 import { CopyLink } from '@/features/portal/CopyLink';
 import { NowPanel } from '@/features/portal-nav/NowPanel';
 import { rpc } from '@/lib/db/repo';
+import { NotificationPrefs } from '@/features/notifications/NotificationPrefs';
+import { savePartnerNotifyPref } from '@/server/actions/notify-prefs';
+import type { PrefState } from '@/features/notifications/prefs';
 
 // A referral partner's own page (migration 0164): the link only they hold. Their referrals by the customer's first name and the
 // month, what is waiting and what was paid. No sign-in, no customer details beyond that, never indexed. The r27 portals
@@ -23,6 +26,8 @@ export default async function PartnerPortal({ params }: { params: Promise<{ id: 
   const link = partnerLink(d.partner.referral_code);
   // 0547: invoices CarmaCars sent this partner, read only, with how to pay
   const invoices = ((await rpc('server_partner_invoices_of' as never, { p_partner: id } as never, { role: 'service_role', skipViewAs: true }).catch(() => null)) as unknown as Array<{ invoice_number: string; state: string; issued_on: string; due_on: string | null; claim_number: string | null; total_cents: number; balance_cents: number; view_token: string }> | null) ?? [];
+  // r48 (3260): what CarmaCars sends this partner and how (invoices and payment notices are always sent)
+  const np = (await rpc('server_partner_notify_prefs' as never, { p_partner: id } as never, { role: 'service_role', skipViewAs: true }).catch(() => null)) as unknown as PrefState | null;
   const t = d.totals;
   return (
     <div className="wrap rp" data-testid="partner-portal">
@@ -73,6 +78,10 @@ export default async function PartnerPortal({ params }: { params: Promise<{ id: 
         )}
         <p className="small muted">A referral shows the customer&apos;s first name and the month of the rental, nothing more. A rental that is cancelled, refunded or charged back earns nothing; a fee already paid for one comes off the next payment.</p>
       </section>
+      {np && <section className="stack" aria-labelledby="pp-np" data-testid="portal-notifications">
+        <h2 className="d3" id="pp-np">Notifications</h2>
+        <NotificationPrefs initial={np} idp="np-partner" save={savePartnerNotifyPref.bind(null, id, key)} />
+      </section>}
     </div>
   );
 }

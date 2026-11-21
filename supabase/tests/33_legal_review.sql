@@ -23,7 +23,7 @@ select test.eq('mandate description (1.3), word for word', app.owner_mandate_des
   (select company_legal_name from app.settings()) || ' o/a CarmaCars: fees on your CarmaCars invoices on the 15th of each month, with notice 10 days before. A debit returned for insufficient funds is retried once for the same amount.');
 -- New [Late Fee rule] text
 select test.eq('Late Fee rule, word for word', app.owner_late_fee_rule(),
-  'If your bank returns the automatic debit of an invoice for insufficient funds, we add the $50.00 Late Fee to that invoice once and try the original amount again within 30 days, as section 4.4 of your Enrollment Agreement sets out. The Late Fee is collected with your next debit.');
+  'If your insurance is not paid on time (your bank returns the automatic debit of an invoice for insufficient funds, or the invoice is unpaid after its due date), we add a Late Fee of 5% of the unpaid insurance, plus HST, to that invoice once and try a returned debit again for the original amount within 30 days, as section 4.4 of your Enrollment Agreement sets out. The unpaid insurance and the Late Fee are deducted from your next payout as two lines.');
 select test.eq('Late Fee rule: the second paragraph of the PAD agreement, both forms', (app.owner_debit_terms() #>> '{agreement,personal,1}') || '|' || (app.owner_debit_terms() #>> '{agreement,business,1}'),
   app.owner_late_fee_rule() || '|' || app.owner_late_fee_rule());
 select test.ok('Late Fee rule: no catalogue email keeps the old rule', not exists (select 1 from notification_catalogue where concat(subject, preheader, trigger_text) like '%try again from the%'));

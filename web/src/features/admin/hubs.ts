@@ -42,7 +42,9 @@ export const ADMIN_HUBS: Hub[] = [
   // the owner: "People -> Owners (tabs: Applications, Owners, Owner forms, Paid and signed; Add a car for an owner as a button)"
   { key: 'owners', label: 'Owners', tabs: [
     { href: '/admin/applications', label: 'Applications' }, { href: '/admin/owners', label: 'Owners' }, { href: '/admin/owner-forms', label: 'Owner forms' },
-    { href: '/admin/owners?view=checklist', label: 'Paid and signed' }, { href: '/admin/owners?view=leads', label: 'Leads' }],
+    { href: '/admin/owners?view=checklist', label: 'Paid and signed' }, { href: '/admin/owners?view=leads', label: 'Leads' },
+    // r48 (3262): merch kits to ship, upgrades to approve, credits
+    { href: '/admin/owners/rewards', label: 'Owner rewards' }],
     actions: [{ href: '/admin/owners/add-car', label: 'Add a car for an owner' }] },
   { key: 'partners', label: 'Partners', tabs: [{ href: '/admin/partners', label: 'Rental partners' }, { href: '/admin/referral-partners', label: 'Referral partners' }] },
   { key: 'team', label: 'Team', tabs: [
@@ -51,9 +53,13 @@ export const ADMIN_HUBS: Hub[] = [
     // r35 part K: the office staff's hours and the weekly townhall
     { href: '/admin/timesheet', label: 'Timesheet' }, { href: '/admin/townhall', label: 'Townhall' },
     // r35 part C (1502, 1504): the schedules and the role KPIs
-    { href: '/admin/schedules', label: 'Schedules' }, { href: '/admin/kpis', label: 'KPIs' }] },
+    { href: '/admin/schedules', label: 'Schedules' }, { href: '/admin/kpis', label: 'KPIs' },
+    // r48 (3261): who gets staff perks, what was used
+    { href: '/admin/staff/rewards', label: 'Staff rewards' }] },
   { key: 'ads', label: 'Ads', tabs: [
-    { href: '/admin/marketing/listings', label: 'Ad listings' }, { href: '/admin/marketing/ads', label: 'Posted ads' }, { href: '/admin/marketing/social', label: 'Social drafts' }] },
+    { href: '/admin/marketing/listings', label: 'Ad listings' }, { href: '/admin/marketing/ads', label: 'Posted ads' }, { href: '/admin/marketing/social', label: 'Social drafts' },
+    // r48 (3263): the month of social posts, approved before anything is published
+    { href: '/admin/marketing/calendar', label: 'Content calendar' }] },
   { key: 'channels', label: 'Channels', tabs: [{ href: '/admin/marketing/channels', label: 'Listing channels' }, { href: '/admin/marketing/report', label: 'Bookings by channel' },
     // release 36: the events with a "Rent a car for" page
     { href: '/admin/marketing/events', label: 'Event pages' },
@@ -89,6 +95,8 @@ export const STAFF_HUBS: Hub[] = [
   { key: 'field-jobs', label: 'Field jobs', tabs: [{ href: '/staff/fleet', label: 'Jobs', fns: 'fleet' }, { href: '/staff/field-hours', label: 'Field hours', fns: 'fleet' }, { href: '/staff/past-trips', label: 'Close ended trips', fns: 'fleet' }, { href: '/staff/fleet/calls', label: 'Calls and texts', fns: 'fleet' }] },
   { key: 'checks', label: 'Checks', tabs: [{ href: '/staff/checks', label: 'Daily checks', fns: 'fleet' }, { href: '/staff/reviews', label: 'Photo reviews', fns: 'fleet' }, { href: '/staff/deposit-reviews?view=fleet', label: 'Deposit reviews', fns: 'fleet' }] },
   { key: 'numbers', label: 'My numbers', tabs: [{ href: '/staff/scorecard', label: 'Scorecard', fns: 'cs fleet finance sales' }, { href: '/staff/my-sales', label: 'My sales', fns: 'cs fleet finance sales' },
+    // r48 (3261): the staff member's own rewards
+    { href: '/staff/rewards', label: 'My rewards', fns: 'cs fleet finance sales' },
     { href: '/staff/sales-start', label: 'Do sales too', fns: 'finance' }] },
   // 1061: the hours of the office staff
   { key: 'hours', label: 'Hours', tabs: [{ href: '/staff/hours', label: 'My hours', fns: 'cs fleet finance' }, { href: '/staff/schedule', label: 'Schedule', fns: 'cs fleet finance sales' },

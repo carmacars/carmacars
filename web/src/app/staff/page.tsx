@@ -26,6 +26,7 @@ import type { Dashboard } from '@/features/sales-leads/model';
 import { ClockCard } from '@/features/staff-clock/ClockCard';
 import { TeamGroupCard } from '@/features/staff-clock/TeamGroupCard';
 import { TownhallCard } from '@/features/townhall/TownhallCard';
+import { MyRewardsCard } from '@/features/staff-rewards/MyRewards';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'To do', path: '/staff', noindex: true, description: 'The assistant\'s work queue.' });
@@ -114,6 +115,8 @@ export default async function Queue({ searchParams }: { searchParams: Promise<Re
       <TeamGroupCard userId={user.id} aal={aal} refresh="/staff" />
       {/* 2590: the weekly townhall, from the day before until it ends */}
       <TownhallCard userId={user.id} />
+      {/* r48 (3261): the staff member's discount, tier and free rental days */}
+      <MyRewardsCard userId={user.id} aal={aal} href="/staff/rewards" />
       <PortalHero testId="va-hero" titleId="va-title" kicker={<>{FN_LABEL[fn]} <span aria-hidden="true">/</span> {dateWords}, Toronto time</>} title="To do"
         lead={needs ? `${needs} ${needs === 1 ? 'thing needs' : 'things need'} you${late ? `, ${late === 1 ? 'one lane is' : `${late} lanes are`} running late` : ''}. Start at Next up and work down.` : 'Your queue is clear. New work appears here by itself.'}
         stats={dg ? <>

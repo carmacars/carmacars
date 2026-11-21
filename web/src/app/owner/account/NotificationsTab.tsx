@@ -6,8 +6,8 @@ import type { OwnerCtx } from '@/features/owner/ctx';
 export function NotificationsTab({ user }: OwnerCtx) {
   return (
     <>
-      <p className="ph__purpose">Messages about your vehicles, invoices and payouts. Statement and billing emails are always sent; choose the optional ones here.</p>
-      <Notices user={user} />
+      <p className="ph__purpose">Messages about your vehicles, invoices and payouts. Statement and billing emails are always sent; choose the rest below, by push, email and text.</p>
+      <Notices user={user} portal="owner" />
     </>
   );
 }

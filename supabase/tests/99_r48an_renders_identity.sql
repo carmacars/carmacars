@@ -133,5 +133,5 @@ select test.ok('the owner''s branded email is queued with every value filled, to
 select test.ok('Fleet''s notice is in the staff bell and the next Fleet digest',
   exists (select 1 from app_events e where e.code = 'staff_car_photos_ready' and e.entity_id = test.id('vehicle:an48_c') and e.processed_at is not null and e.process_note ~ 'digest [1-9]' and e.process_note ~ 'in-app [1-9]'));
 select test.ok('the owner can mute it; it alerts their phone and has a text',
-  (select user_can_mute and push_topic = 'bookings' and not no_text from notification_catalogue where code = 'owner_car_photos_ready')
+  (select coalesce((select not t.locked from notify_types t where t.code = c.pref_type), c.user_can_mute) and c.push_topic = 'bookings' and not c.no_text from notification_catalogue c where c.code = 'owner_car_photos_ready')
   and exists (select 1 from sms_templates where code = 'owner_car_photos_ready'));

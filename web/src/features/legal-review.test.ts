@@ -34,7 +34,8 @@ test('partner agreement: no draft banner; sections 3 to 11 as approved (20% and 
 });
 
 test('Enrollment Agreement: 4.4, 4.5 Set-off, 4.6 Arrears and the Retry Date, as approved', () => {
-  assert.ok(ENROLLMENT_ARTICLES.includes("4.4 If an automatic pre-authorized debit of an invoice is returned for insufficient funds, CarmaCars adds the Late Fee to that invoice once and may re-present the debit once, for the original amount, within 30 days. The Late Fee is collected with the Owner's next debit or deducted from the Owner's next payout."));
+  // r48 (3271, the owner, Nov 20): the Late Fee is 5% of the unpaid Insurance Fee, plus HST on the fee
+  assert.ok(ENROLLMENT_ARTICLES.includes("4.4 If the Insurance Fee of an invoice is not paid on time (an automatic pre-authorized debit is returned, or the invoice is unpaid after its due date), CarmaCars adds the Late Fee to that invoice once: 5% of the unpaid Insurance Fee, plus HST on the Late Fee. CarmaCars may re-present a returned debit once, for the original amount, within 30 days. The unpaid Insurance Fee and the Late Fee are deducted from the Owner's next payout and shown as separate lines on the statement."));
   assert.ok(ENROLLMENT_ARTICLES.includes('CarmaCars may deduct any amount the Owner owes under this Agreement from any payout due to the Owner for any Vehicle.'));
   assert.match(ENROLLMENT_ARTICLES, /4\.5 \*\*Set-off\.\*\* CarmaCars may deduct/);
   assert.ok(ENROLLMENT_ARTICLES.includes("If an invoice remains unpaid 30 days after a failed re-presentment, CarmaCars may, on written notice, remove the Vehicle from the program and transfer its registration back to the Owner at the Owner's cost. Return of the Vehicle is not withheld for unpaid fees."));

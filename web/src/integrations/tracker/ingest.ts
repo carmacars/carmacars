@@ -10,7 +10,7 @@
 //                "speed": 54, "heading": 270, "ignition": true, "odometer": 12345.6, "battery": 87, "power": true, "fuel": 55,
 //                "event": "harsh_brake"}]}
 // Only device, at, lat and lng are required; a field left out keeps its last value. "event" (3320) is the tracker's own
-// alarm with that reading: harsh_brake, harsh_accel, harsh_turn or tamper. A request is taken once: the same signed
+// alarm with that reading: harsh_brake, harsh_accel, harsh_turn, tamper, impact or health, with an optional "detail" (3353). A request is taken once: the same signed
 // request again is refused (409 replay), and more requests a minute than Tracking settings allow are refused (429). The key comes from Admin > Cars > Fleet
 // tracking > Settings (shown once); it is checked here, before the database is touched, and refused after 5 minutes.
 //
@@ -25,14 +25,25 @@ export const MAX_POINTS = 5000;
 export interface Point {
   device: string; at: string | number; lat: number; lng: number;
   speed?: number | null; heading?: number | null; ignition?: boolean | null; odometer?: number | null; battery?: number | null; power?: boolean | null; fuel?: number | null;
-  /** the tracker's own alarm with this reading (3320) */
+  /** the tracker's own alarm with this reading (3320): harsh driving and tampering; an impact (a crash) and a vehicle
+   *  health warning too (3353), each an alert for staff and the car's owner */
   event?: TrackerEvent | null;
+  /** the tracker's words with an event (a fault code, the side of an impact), at most 200 characters (3353) */
+  detail?: string;
 }
-export const TRACKER_EVENTS = ['harsh_brake', 'harsh_accel', 'harsh_turn', 'tamper'] as const;
+export const TRACKER_EVENTS = ['harsh_brake', 'harsh_accel', 'harsh_turn', 'tamper', 'impact', 'health'] as const;
 export type TrackerEvent = (typeof TRACKER_EVENTS)[number];
-const eventOf = (v: unknown): TrackerEvent | null => {
-  const e = typeof v === 'string' ? v.trim().toLowerCase() : '';
-  return (TRACKER_EVENTS as readonly string[]).includes(e) ? (e as TrackerEvent) : e === 'removed' || e === 'case_open' ? 'tamper' : null;
+/** A tracker's own words for an event, as the generic name (a crash or collision is an impact, a fault code is health). */
+export const eventOf = (v: unknown): TrackerEvent | null => {
+  if (typeof v !== 'string') return null;
+  const e = v.trim().toLowerCase().replace(/[\s-]+/g, '_');
+  if ((TRACKER_EVENTS as readonly string[]).includes(e)) return e as TrackerEvent;
+  if (/^(crash|collision|shock|accident)$/.test(e)) return 'impact';
+  if (/^(tampering|removed|removal|case_open)$/.test(e)) return 'tamper';
+  if (/^(dtc|mil|fault|engine_light|check_engine)$/.test(e)) return 'health';
+  if (/^(hard_brak(e|ing)|harsh_braking|sharp_brak(e|ing))$/.test(e)) return 'harsh_brake';
+  if (/^(hard_accel(eration)?|harsh_acceleration|rapid_accel(eration)?)$/.test(e)) return 'harsh_accel';
+  return null;
 };
 export interface Batch { points: Point[] }
 
@@ -86,8 +97,10 @@ export function toPoint(x: unknown): Point | null {
   const lat = num(o.lat ?? o.latitude), lng = num(o.lng ?? o.lon ?? o.longitude);
   const at = typeof o.at === 'string' || typeof o.at === 'number' ? o.at : typeof o.time === 'string' || typeof o.time === 'number' ? o.time : null;
   if (!/^[A-Za-z0-9._:-]{3,64}$/.test(device) || lat === null || lng === null || at === null || Math.abs(lat) > 90 || Math.abs(lng) > 180 || (lat === 0 && lng === 0)) return null;
+  const event = eventOf(o.event ?? o.alarm);
+  const detail = event && typeof o.detail === 'string' ? o.detail.replace(/[\u0000-\u001f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200) : '';
   return { device, at, lat, lng, speed: num(o.speed), heading: num(o.heading ?? o.course), ignition: bool(o.ignition ?? o.acc), odometer: num(o.odometer),
-    battery: num(o.battery), power: bool(o.power), fuel: num(o.fuel), event: eventOf(o.event ?? o.alarm) };
+    battery: num(o.battery), power: bool(o.power), fuel: num(o.fuel), event, ...(detail ? { detail } : {}) };
 }
 
 export interface Adapter { readonly name: string; parse(body: unknown): Point[] }

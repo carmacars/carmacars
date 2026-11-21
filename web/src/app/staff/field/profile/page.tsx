@@ -11,6 +11,7 @@ import { selfProfile } from '@/server/self-profile';
 import { SelfProfile } from '@/features/portal/SelfProfile';
 import { NotifyChannelCard } from '@/features/portal/NotifyChannel';
 import { PushAlerts } from '@/features/push/PushAlerts';
+import { NotifyPanel } from '@/features/notifications/NotifyPanel';
 import { AppProfile } from '@/features/app-shell/AppProfile';
 import { LocationSettings } from '@/features/location/LocationSettings';
 import { Act } from '@/features/admin/Act';
@@ -63,6 +64,8 @@ export default async function Profile() {
       {si && <SignInSettings state={si} className="fd-card stack" />}
       {nc && <NotifyChannelCard reach={nc} className="fd-card stack" />}
       <PushAlerts userId={user.id} portal="field" className="fd-card stack" />
+      {/* r48 (3260): each kind of notification by channel, quiet hours, instant or a summary */}
+      <NotifyPanel userId={user.id} portal="staff" idp="np-field" />
       <LocationSettings userId={user.id} className="fd-card stack" />
       <AppProfile userId={user.id} lock className="fd-card stack" />
       <section className="fd-card" aria-labelledby="sec-t"><h2 className="d4" id="sec-t">Sign-in</h2>

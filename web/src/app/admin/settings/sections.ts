@@ -30,6 +30,7 @@ export const SECTIONS: Array<[string, string, string]> = [
   ['quo-contacts', 'Quo contacts', 'Everyone on the site with a phone number as a contact in Quo, under the same name: up to date, waiting, errors, the last run, Sync everyone again'],
   ['calls', 'Calls', 'Test call: every step of a call from the browser (keys, Twilio account and balance, the app, the caller ID, the webhook), the failing one named with what to press'],
   ['text-alerts', 'Text alerts', 'Email, text or both: the defaults, quiet hours, opt-outs, the text of each notification, and phone alerts on or off'],
+  ['notifications', 'Notification preferences', 'The kinds of notification people switch by push, email and text, what each starts as, each person\'s choices, and the owner tracker alerts with the places watched'],
   ['email', 'Email aliases and reply-to', 'Sending addresses and where replies go'],
   ['sales', 'Sales', 'Leads: how long a claim holds for each lead type, how far each call, text, email or note extends it, the leads one person may hold, and when a lead stops being hot'],
   ['profile', 'My profile', 'Your greeting name on To do and in the assistant (for a login you share: both names)'],

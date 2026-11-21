@@ -336,9 +336,9 @@ update owner_invoices set status = 'failed' where vehicle_id = test.id('vehicle:
 update owner_invoices set status = 'retry_processing' where vehicle_id = test.id('vehicle:R2');
 update owner_invoices set status = 'in_arrears', retry_failed_on = date '2027-03-18' where vehicle_id = test.id('vehicle:R2');
 select app.build_owner_statement(test.id('owner:ravi'), date '2027-03-01');
-select test.eq('O6 balance still left: R2 earned nothing, so its $586.75 is deducted from the Owner''s other vehicle ($650.00 - $586.75 = $63.25)',
-  (select arrears_moved_cents || '/' || payout_cents from owner_statements where owner_id = test.id('owner:ravi')), '58675/6325');
+select test.eq('O6 balance still left: R2 earned nothing, so its $562.18 ($536.75 and, from 3271, the Late Fee of 5% of the $450.00 insurance, $22.50 + HST $2.93) is deducted from the Owner''s other vehicle ($650.00 - $562.18 = $87.82)',
+  (select arrears_moved_cents || '/' || payout_cents from owner_statements where owner_id = test.id('owner:ravi')), '56218/8782');
 select test.eq('O5 the statement shows the move: from R2 to R1',
   (select (from_vehicle_id = test.id('vehicle:R2')) || '/' || (vehicle_id = test.id('vehicle:R1')) || '/' || amount_cents
      from owner_statement_lines where line_type = 'arrears_moved' and owner_statement_id = (select id from owner_statements where owner_id = test.id('owner:ravi'))),
-  'true/true/-58675');
+  'true/true/-56218');

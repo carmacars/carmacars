@@ -135,8 +135,9 @@ grant select on test.od_bal to service_role;
 select test.eq('returned: the invoice is failed with the retry on the retry day (the 18th)',
   (select r ->> 'invoice_status' || '/' || (r ->> 'retry_on') from (select app.owner_debit_result('pi_od_B1',
      '{"status":"requires_payment_method","error_code":"insufficient_funds","error_message":"The bank returned the debit: insufficient funds."}') r) x), 'failed/2027-01-18');
-select test.eq('returned: the Late Fee is added once (owner_late_fee_cents)',
-  (select late_fee_cents from owner_invoices where id = test.odv('iB')), (select owner_late_fee_cents::bigint from app.settings()));
+select test.eq('returned: the Late Fee is added once: 5% of the unpaid insurance (3271; it was the flat owner_late_fee_cents)',
+  (select late_fee_cents from owner_invoices where id = test.odv('iB')),
+  (select round(sum(l.amount_cents) * 0.05)::bigint from owner_invoice_lines l where l.owner_invoice_id = test.odv('iB') and l.kind = 'insurance_fee'));
 select test.eq('returned: the payment is failed with the bank''s reason',
   (select p.status || '/' || p.last_decline_code from owner_debit_attempts a join payments p on p.id = a.payment_id where a.processor_intent_id = 'pi_od_B1'),
   'failed/The bank returned the debit: insufficient funds.');
@@ -144,7 +145,7 @@ select test.eq('returned for insufficient funds: one retry on the 18th for the o
   (select a.attempt_no || '/' || a.status || '/' || a.debit_on || '/' || (a.amount_cents = (select b from test.od_bal)) || '/' || a.is_retry
      from owner_debit_attempts a where a.id = test.od_att('iB')), '2/scheduled/2027-01-18/true/true');
 select test.eq('returned for insufficient funds: the Late Fee is its own invoice line, "Late Fee"',
-  (select string_agg(description || ':' || amount_cents, ',') from owner_invoice_lines where owner_invoice_id = test.odv('iB') and kind = 'late_fee'), 'Late Fee:5000');
+  (select string_agg(description || ':' || amount_cents, ',') from owner_invoice_lines where owner_invoice_id = test.odv('iB') and kind = 'late_fee'), 'Late Fee: 5% of the unpaid insurance ($450.00):2250');
 select test.eq('returned: the owner and finance are told once',
   (select count(*) filter (where code = 'owner_payment_failed') || '/' || count(*) filter (where code = 'staff_owner_invoice_failed')
      from app_events where entity_id = test.odv('iB')), '1/1');
