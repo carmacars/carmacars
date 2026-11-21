@@ -72,9 +72,13 @@ export async function generateMetadata({ params }: Params) {
   // 0093: a partner fleet has several trims of one model (C300, C43 AMG, C63 S AMG): its cars are named with the trim,
   // and the colour when another car shares it
   // 0104: the mark is the colour, else the car code, else a short word (app.listing_seo_mark), for partner cars too
-  const nm = `${name(c)}${c.guideline_rates && c.trim ? ` ${c.trim}` : ''}${c.seo_mark ? ` (${c.seo_mark})` : ''}`;
+  // R48: an example car (noindex) is named so, so it never takes the title of a real car of the same model
+  const nm = `${name(c)}${c.guideline_rates && c.trim ? ` ${c.trim}` : ''}${c.seo_mark ? ` (${c.seo_mark})` : c.is_sample ? ' (example)' : ''}`;
+  // R48: never over 70 characters (a long colour mark made 73): shorter forms, then without the mark
+  const short = `${name(c)}${c.is_sample ? ' (example)' : ''}`;
   const title = locked.has('seo_title') && c.copy?.seo_title && c.copy.seo_title.length <= 70 ? c.copy.seo_title
-    : fit(65, `Rent a ${yr(c)}${nm} in {{city}} from ${money(fromDay(c))} a day | {{brand}}`, `${yr(c)}${nm} rental in {{city}}, ${money(fromDay(c))} a day | {{brand}}`, `${yr(c)}${nm} rental in {{city}} | {{brand}}`);
+    : fit(65, `Rent a ${yr(c)}${nm} in {{city}} from ${money(fromDay(c))} a day | {{brand}}`, `${yr(c)}${nm} rental in {{city}}, ${money(fromDay(c))} a day | {{brand}}`, `${yr(c)}${nm} rental in {{city}} | {{brand}}`,
+      `${yr(c)}${nm} in {{city}} | {{brand}}`, `${nm} rental in {{city}} | {{brand}}`, `${yr(c)}${nm} | {{brand}}`, `${yr(c)}${short} rental in {{city}} | {{brand}}`);
   // 0104: the gearbox as stored, in its capitals ("Automatic (CVT)", "Automatic (dual-clutch)")
   const spec = [c.seats ? `${c.seats} seats` : '', c.transmission ?? '', `${c.km_allowance_per_day} km a day included`].filter(Boolean).join(', ');
   const description = locked.has('meta_description') && c.copy?.meta_description && c.copy.meta_description.length >= 70 && c.copy.meta_description.length <= 170 ? c.copy.meta_description
