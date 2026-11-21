@@ -35,6 +35,19 @@
 .lm .maplibregl-ctrl-group button + button { border-top-color: var(--line); }
 .lm .maplibregl-ctrl-group button .maplibregl-ctrl-icon { filter: invert(1) opacity(.75); }
 
+/* 3350 (release 48 part MAP): people on the map, a round badge with their initials in a ring of their role's colour
+   (office staff violet, field staff yellow, renters teal, owners orange); a field job adds a small dot. Smaller than a car. */
+.lm-person { --s: 1.9em; width: var(--s); height: var(--s); }
+.lm-person--abs { pointer-events: auto; }
+.lm-person__body { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 50%; background: var(--bg2); border: 2px solid var(--c);
+  color: var(--c); font-size: .72em; font-weight: 700; letter-spacing: .02em; line-height: 1; white-space: nowrap; overflow: hidden;
+  box-shadow: 0 0 .7em color-mix(in srgb, var(--c) 45%, transparent); transition: transform 160ms var(--ease-out, ease-out); }
+.lm-person:hover .lm-person__body { transform: scale(1.12); }
+.lm-person--renter .lm-person__body, .lm-person--owner .lm-person__body { border-style: dashed; }
+.lm-person__job { position: absolute; right: -.15em; top: -.15em; width: .7em; height: .7em; border-radius: 50%; background: var(--c); border: 2px solid var(--bg); }
+@media (prefers-reduced-motion: reduce) { .lm-person__body { transition: none; } .lm-person:hover .lm-person__body { transform: none; } }
+.lm-layers .lm-layers__sub { padding-left: 10px; }
+.lm-layers .lm-dot { width: .55em; height: .55em; }
 /* the fleet layer: a car's photo in a ring of its status colour, an arrow for its heading */
 .lm-car { --s: 2.2em; width: var(--s); height: var(--s); }
 .lm-car__body { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; background: var(--bg2); border: 2px solid var(--c); box-shadow: 0 0 .8em color-mix(in srgb, var(--c) 50%, transparent); }

@@ -7,7 +7,7 @@
 // Same events as engine.ts (hover after a pointer rests, click to pin, a count zooms in), no WebGL and no MapLibre.
 import { CAR_SILHOUETTE, arc, clusterPins, mx, my, separate, spiderOffsets, splitZoom, type Box, type Cluster, type ClusterIn } from './model';
 import { BASEMAP, FRAME_MAX_ZOOM, HIGHWAYS, REGIONS, type Bounds } from './config';
-import { CLUSTER_UNTIL, NAME_ZOOM, type CarSpec, type EngineEvents, type Pad, type PinSpec, type Spot } from './engine';
+import { CLUSTER_UNTIL, NAME_ZOOM, personHtml, type CarSpec, type EngineEvents, type Pad, type PersonSpec, type PinSpec, type Spot } from './engine';
 
 type Pt = [number, number];
 type Geo = { type: string; coordinates: unknown };
@@ -36,6 +36,8 @@ export class CanvasMap {
   private hq: Pt | null = null;
   private photos = new Map<string, { el: HTMLDivElement; key: string; w: number; h: number }>();
   private carEls = new Map<string, HTMLDivElement>();
+  private people: PersonSpec[] = [];
+  private personEls = new Map<string, { el: HTMLDivElement; key: string }>();
   private hqEl: HTMLDivElement | null = null;
   private placed = new Map<string, { x: number; y: number }>();
   private hits: Array<{ id: string | null; x: number; y: number; r: number; n?: number; key?: string }> = [];
@@ -87,6 +89,8 @@ export class CanvasMap {
 
   setPins(p: PinSpec[]) { this.pins = p; this.box.dataset.pins = String(p.length); this.box.dataset.photos = String(p.filter((x) => x.photo).length); this.draw(); }
   setCars(c: CarSpec[]) { this.cars = c; this.draw(); }
+  /** 3350: the people layer (an empty list hides it). */
+  setPeople(p: PersonSpec[]) { this.people = p; this.draw(); }
   setHq(at: { lat: number; lng: number } | null) { this.hq = at ? [at.lng, at.lat] : null; this.draw(); }
 
   // ---------------------------------------------------------------- the camera (the same sums as MapLibre's fitBounds)
@@ -290,6 +294,7 @@ export class CanvasMap {
     this.syncPhotos(taken);
     this.syncHq(taken);
     this.syncCars(taken);
+    this.syncPeople(taken);
     for (const [id, at] of this.placed) {
       const p = this.lone.find((x) => x.id === id);
       if (!p) continue;
@@ -431,6 +436,31 @@ export class CanvasMap {
     this.hqEl.style.setProperty('--s', `${s}px`);
     this.hqEl.style.transform = `translate(${x - s / 2}px, ${y - s / 2}px)`;
     taken.push([x - s / 2, y - s / 2, x + s / 2, y + s / 2]);
+  }
+
+  private syncPeople(taken: Array<[number, number, number, number]>) {
+    const seen = new Set<string>(), s = 30 * this.o.scale;
+    for (const p of this.people) {
+      seen.add(p.id);
+      let v = this.personEls.get(p.id);
+      if (!v) {
+        const el = document.createElement('div');
+        el.className = `lm-person lm-person--abs lm-person--${p.kind}`;
+        el.setAttribute('role', 'img');
+        this.layer.appendChild(el);
+        v = { el, key: '' };
+        this.personEls.set(p.id, v);
+      }
+      const key = `${p.initials}|${p.job}`;
+      if (v.key !== key) { v.el.innerHTML = personHtml(p); v.key = key; }
+      v.el.style.setProperty('--c', p.colour);
+      v.el.setAttribute('aria-label', p.label); v.el.title = p.label;
+      const [x, y] = this.project([p.lng, p.lat]);
+      v.el.style.transform = `translate(${x - s / 2}px, ${y - s / 2}px)`;
+      taken.push([x - s / 2, y - s / 2, x + s / 2, y + s / 2]);
+    }
+    for (const [id, v] of this.personEls) if (!seen.has(id)) { v.el.remove(); this.personEls.delete(id); }
+    this.box.dataset.people = String(this.people.length);
   }
 
   private syncCars(taken: Array<[number, number, number, number]>) {

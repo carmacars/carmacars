@@ -16,6 +16,7 @@ import { WhatsNew } from '@/features/whats-new/WhatsNew';
 import { StuckHelp } from '@/features/help/StuckHelp';
 import { TermsGate } from '@/features/terms/TermsGate';
 import { PushInvite } from '@/features/push/PushAlerts';
+import { LocationSharer } from '@/features/location/LocationSharer';
 import { LivePortal } from '@/features/live/realtime/LiveRefresh';
 import { liveTokens } from '@/server/live';
 
@@ -44,6 +45,7 @@ export default async function AccountLayout({ children }: { children: React.Reac
         <PortalNav unread={unread || 0} />
         <GuideBanner portal="renter" userId={user.id} /><StuckHelp portal="renter" />
         <PushInvite portal="renter" home="/account" />
+        <LocationSharer />
         <LivePortal tokens={live} />
       </div>
       <div className="wrap pt__body">{/* r48 FE (3197) */}{!(await viewAs().catch(() => null)) && <DataCheckModal issues={await dataChecks(user.id, 'renter')} />}<TermsGate userId={user.id} portal="renter">{children}</TermsGate></div>

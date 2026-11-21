@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 246,
+  "count": 247,
   "emails": [
     {
       "code": "account_password_reset",
@@ -22467,6 +22467,55 @@
       ],
       "template_html": "templates/staff_inactivity_warning.html",
       "template_text": "templates/staff_inactivity_warning.txt"
+    },
+    {
+      "code": "staff_location_policy",
+      "audience": "staff_field",
+      "category": "transactional",
+      "trigger": "A staff member accepts the electronic monitoring policy before their location is shown on the live map (migration 3350; Ontario Employment Standards Act, Part XI.1). Once per policy version: their copy of the policy.",
+      "timing": "Immediate, once per policy version",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Your copy: the CarmaCars electronic monitoring policy",
+      "preheader": "Your location is shown only while you are on shift or on a job.",
+      "sample_subject": "Your copy: the CarmaCars electronic monitoring policy",
+      "variables": [
+        {
+          "name": "accepted_on",
+          "type": "string",
+          "sample": "Fri Nov 20, 7:15 pm"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Sam",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "policy_text",
+          "type": "string",
+          "sample": "Electronic monitoring policy: while you are on shift or on a job, CarmaCars records where you are from the CarmaCars app or the staff portal (with your permission), to dispatch jobs, keep you safe and prove a pickup or return. Never off duty. Only your latest position is kept, plus the points of each job for 30 days. Admins and Fleet see it on the live map."
+        },
+        {
+          "name": "policy_version",
+          "type": "string",
+          "sample": "esa-em-2026-11"
+        },
+        {
+          "name": "settings_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/staff/profile#location"
+        }
+      ],
+      "template_html": "templates/staff_location_policy.html",
+      "template_text": "templates/staff_location_policy.txt"
     },
     {
       "code": "staff_pay_statement",

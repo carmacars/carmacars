@@ -8,6 +8,9 @@
 
 .ft-hero { display: grid; grid-template-columns: minmax(0, 1fr) 360px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .ft-map { height: min(66vh, 640px); min-height: 360px; }
+/* 3350: the map and its layer chips (the people layer) */
+.ft-mapwrap { position: relative; min-width: 0; }
+.ft-mapwrap .lm-layers { right: 56px; }
 .ft-empty { position: absolute; z-index: 1; left: 16px; right: 16px; bottom: 16px; margin: 0; padding: 10px 14px; border-radius: 10px; background: rgba(15, 21, 34, .92); border: 1px solid var(--line); color: var(--quiet); font-size: .9rem; }
 .ft-list { border-left: 1px solid var(--line); padding: 16px 0 0; max-height: min(66vh, 640px); overflow: auto; overscroll-behavior: contain; }
 .ft-list .lm-h { padding: 0 16px 10px; }

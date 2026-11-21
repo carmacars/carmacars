@@ -14,3 +14,5 @@ Branch `r48-int` = `r48-m` (3051-3056: money fixes, tips, readiness, disabled-bu
 ## Guides
 
 No guide change: the wording of greyed-out hints, the field checklist line and the text of the return add no step to any chapter (the Admin chapter already names "No additional drivers" and the tip link).
+
+- TODO: Expo app (r48-app): location sharing to wire (expo-location + task manager)

@@ -18,6 +18,14 @@ export interface PinSpec { id: string; lng: number; lat: number; colour: string;
   /** A photo pin (on rent, booked or hot): the car's thumbnail, else the make's initial in the ring; `route` draws its delivery arc from home base. */
   photo?: { src: string | null; initial: string; route: boolean } }
 export interface CarSpec { id: string; lng: number; lat: number; colour: string; heading: number | null; label: string; photo: string | null }
+/** 3350 (release 48 part MAP): a person on the map (staff on shift or on a job, a renter or owner at a pickup or return). */
+export interface PersonSpec { id: string; lng: number; lat: number; colour: string; label: string; initials: string; kind: 'staff' | 'renter' | 'owner'; job: boolean }
+
+/** The person marker's inside: their initials in a ring of their role's colour; a field job adds a small badge. */
+export function personHtml(s: Pick<PersonSpec, 'initials' | 'job'>): string {
+  const t = s.initials.replace(/[^A-Za-z0-9?]/g, '').slice(0, 2) || '?';
+  return `<span class="lm-person__body" aria-hidden="true">${t}</span>${s.job ? '<span class="lm-person__job" aria-hidden="true"></span>' : ''}`;
+}
 export interface Spot { x: number; y: number; w: number; h: number; bw: number; bh: number }
 export interface EngineEvents { select(id: string | null, at: Spot | null): void; hover(id: string | null, at: Spot | null): void; moved(): void;
   /** Fleet tracking (0400): a car marker was pressed. */ car?(id: string): void }
@@ -82,6 +90,8 @@ export class MapEngine {
   private bubbles = new Map<string, Cluster>();
   private spider: { ids: string[]; at: [number, number]; zoom: number } | null = null;
   private lastCars: CarSpec[] = [];
+  private lastPeople: PersonSpec[] = [];
+  private people = new Map<string, { el: HTMLDivElement; marker: MlMarker; key: string }>();
   private selCar: string | null = null;
   private trail: Array<[number, number]> | null = null;
   private zone: Array<[number, number]> | null = null;
@@ -151,6 +161,8 @@ export class MapEngine {
   screenOf(lng: number, lat: number): { x: number; y: number } | null { if (!this.map) return null; const p = this.map.project([lng, lat]); return { x: p.x, y: p.y }; }
   setPins(p: PinSpec[]) { this.lastPins = p; if (this.map) this.syncPins(); }
   setCars(c: CarSpec[]) { this.lastCars = c; if (this.map) this.syncCars(); }
+  /** 3350: the people layer (an empty list hides it). */
+  setPeople(p: PersonSpec[]) { this.lastPeople = p; if (this.map) this.syncPeople(); }
   /** Home base (the delivery origin of Program settings): a branded marker with a soft pulse, and where the arcs start. */
   setHq(at: { lat: number; lng: number } | null) { this.hqAt = at ? [at.lng, at.lat] : null; if (this.map) { this.syncHq(); this.syncPins(true); } }
 
@@ -390,7 +402,30 @@ export class MapEngine {
     return { x: p.x - 6, y: p.y - 6, w: 12, h: 12, bw: this.box.clientWidth, bh: this.box.clientHeight };
   }
 
-  private render() { this.syncHq(); this.syncPins(); this.syncCars(); this.syncLines(); }
+  private render() { this.syncHq(); this.syncPins(); this.syncCars(); this.syncPeople(); this.syncLines(); }
+
+  private syncPeople() {
+    const seen = new Set<string>();
+    for (const s of this.lastPeople) {
+      seen.add(s.id);
+      const key = `${s.initials}|${s.job}|${s.colour}`;
+      let v = this.people.get(s.id);
+      if (!v) {
+        const el = document.createElement('div');
+        el.className = `lm-person lm-person--${s.kind}`;
+        el.setAttribute('role', 'img');
+        const marker = new this.ml.Marker({ element: el, anchor: 'center' }).setLngLat([s.lng, s.lat]).addTo(this.map);
+        v = { el, marker, key: '' };
+        this.people.set(s.id, v);
+      }
+      if (v.key !== key) { v.el.innerHTML = personHtml(s); v.key = key; }
+      v.el.style.setProperty('--c', s.colour);
+      v.el.setAttribute('aria-label', s.label); v.el.title = s.label;
+      v.marker.setLngLat([s.lng, s.lat]);
+    }
+    for (const [id, v] of this.people) if (!seen.has(id)) { v.marker.remove(); this.people.delete(id); }
+    this.box.dataset.people = String(this.lastPeople.length);
+  }
 
   private syncLines() {
     this.map.getSource('trail')?.setData(this.trail ? { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'LineString', coordinates: this.trail }, properties: {} }] } : EMPTY);

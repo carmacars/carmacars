@@ -15,6 +15,7 @@ import { WhatsNew } from '@/features/whats-new/WhatsNew';
 import { StuckHelp } from '@/features/help/StuckHelp';
 import { TermsGate } from '@/features/terms/TermsGate';
 import { PushInvite } from '@/features/push/PushAlerts';
+import { LocationSharer } from '@/features/location/LocationSharer';
 import { LivePortal } from '@/features/live/realtime/LiveRefresh';
 import { liveTokens } from '@/server/live';
 
@@ -40,6 +41,7 @@ export default async function OwnerLayout({ children }: { children: React.ReactN
         <OwnerNav unread={unread || 0} partner={partner} />
         <GuideBanner portal="owner" userId={user.id} /><StuckHelp portal="owner" />
         <PushInvite portal="owner" home="/owner" userId={user.id} />
+        <LocationSharer />
         <LivePortal tokens={live} />
       </div>
       <div className="wrap pt__body">{/* r48 FE (3197) */}{!(await viewAs().catch(() => null)) && <DataCheckModal issues={await dataChecks(user.id, 'owner')} />}<TermsGate userId={user.id} portal="owner">{children}</TermsGate></div>

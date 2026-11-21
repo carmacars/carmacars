@@ -8,6 +8,7 @@ import { SelfProfile } from '@/features/portal/SelfProfile';
 import { NotifyChannelCard } from '@/features/portal/NotifyChannel';
 import { PushAlerts } from '@/features/push/PushAlerts';
 import { AppProfile } from '@/features/app-shell/AppProfile';
+import { LocationSettings } from '@/features/location/LocationSettings';
 import type { SessionUser } from '@/lib/auth';
 import { rpc } from '@/lib/db/repo';
 import { SecondaryContactForm, type ContactValue } from '@/features/portal/SecondaryContactForm';
@@ -54,6 +55,7 @@ export async function ProfileTab({ user }: { user: SessionUser }) {
         </section>
         {nc && <NotifyChannelCard reach={nc} />}
         <PushAlerts userId={user.id} portal="renter" />
+        <LocationSettings userId={user.id} />
         <AppProfile userId={user.id} lock />
       </aside>
     </div>

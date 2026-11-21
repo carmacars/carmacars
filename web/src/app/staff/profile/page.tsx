@@ -14,6 +14,7 @@ import { NotifyChannelCard } from '@/features/portal/NotifyChannel';
 import { StaffDigestChoice } from '@/features/notifications/StaffDigestChoice';
 import { PushAlerts } from '@/features/push/PushAlerts';
 import { AppProfile } from '@/features/app-shell/AppProfile';
+import { LocationSettings } from '@/features/location/LocationSettings';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Profile', path: '/staff/profile', noindex: true, description: 'Your details, your home address and sign-in.' });
@@ -37,6 +38,7 @@ export default async function VaProfile() {
         {nc && <NotifyChannelCard reach={nc} className="pt-card stack" />}
         <StaffDigestChoice userId={user.id} ops refresh={['/staff/profile']} className="pt-card stack" />
         <PushAlerts userId={user.id} portal="staff" className="pt-card stack" />
+        <LocationSettings userId={user.id} className="pt-card stack" />
         <AppProfile userId={user.id} lock className="pt-card stack" />
         <section className="pt-card stack" aria-labelledby="sec-t"><h2 className="d4" id="sec-t">Sign-in</h2>
           <p className="row"><Link prefetch={false} className="btn btn--ghost btn--sm" href="/two-step/setup?next=/staff/profile">Set up two-step sign-in</Link>

@@ -250,6 +250,7 @@
      "The two pages of an OPCF 27 proof have one name on every screen: the pink slip and the OPCF 27 endorsement page",
      "Cars > Fleet tracking has Tracker events (off until you turn it on under Tracker event settings): each speeding record over 180, 220 or 300 km/h, harsh driving, tampering and a car outside Ontario makes one alert per 30 minutes with its evidence record; Charge adds the speeding charge with the evidence attached, and the dispute pack carries it",
      "A car that leaves Ontario, and separately one that leaves Canada, alerts Admins and on-duty Fleet at once by alert, email and text (always on), with an urgent Fleet To do for Canada; the owner and the renter are told too",
+     "The Live map and Fleet tracking have a People layer with role filters (office staff, field staff, renters, owners): staff only while on shift or on a job, renters and owners only two hours either side of a pickup or return; only the latest position is kept, plus a job's points for 30 days",
      "Pound lots: the known Ontario impound lots with name, address, phone and hours, to edit; a car parked at one is flagged on its booking, with an urgent To do, alert and email for Fleet, and Record the path adds the non-return or theft recovery charge with the costs",
      "The tracker ingest refuses the same signed request twice and more requests a minute than the setting allows",
      "On a car, Studio photos shows each made view beside the car's own photos: Make again, Take off the site, Put on the site, and the car's scene (highway, brick building and the other scenes)",
@@ -293,6 +294,8 @@
      "The same person twice is one lead: a new form joins their open lead by itself, and Merge on a lead joins a duplicate with one press; press Different person for two people who share an email or a phone",
      "GPS tracker waitlist and pre-order sign-ups arrive as leads with the number of cars, the price tier the person got and whether they are a vehicle owner; check an owner the lead marks \"check before the install\"",
      "The academy has a new section: Where a lead came from, and duplicate leads",
+     "Profile has Location on the live map: accept the electronic monitoring policy once (your copy is emailed), and your location is shared only while you are on shift or on a job, never off duty; you can turn it off except during an active job",
+     "Fleet sees staff, renters and owners on the Fleet map; customer service and Sales see renters at a pickup or return on the Visitors map",
      "The Fleet map lists the Tracker events with their evidence below the map, and Pound flags: when a car is parked at a pound, call the lot and the renter, then press Record the path"
     ],
     "owners": [
@@ -304,10 +307,12 @@
      "Your statement pays your agreed split; an owner who referred you is paid from CarmaCars' share, never from yours",
      "Each car's page shows Where your car is and its trips of the last 30 days, or No tracker yet; you see the location only, never the renter or the booking",
      "The GPS tracker and kill switch has its own page with its price by number of cars; join the waitlist there to hear first when trackers arrive",
+     "With your phone's permission, your location shows to our team only two hours either side of a pickup or return of your car; turn it off in Account, Profile, Location on the live map",
      "Each car's page shows Tracker alerts: speeding, harsh driving, tampering or a pound, with the time and the place; we also tell you by email, text or the app, and you can turn these alerts off in your notification settings",
      "The GPS tracker and kill switch has its own page: the tracker is free for vehicle owners, and you pay the install and the monthly service; join the list there to hear first when trackers arrive"
     ],
     "renters": [
+     "With your phone's permission, your location shows to our team only two hours either side of your pickup or return, so we can meet you; turn it off in Account, Profile, Location on the live map",
      "The rental agreement adds non-return, improper return, theft recovery and tire and roadside charges, each billed with its evidence; roadside assistance stays included",
      "Something to fix on your profile (your phone, a licence about to expire, a name that differs) shows in one box with the fix",
      "Checking in yourself? Confirm it is you with a photo of your licence and a selfie. It is optional and never holds up your pickup",
