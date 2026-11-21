@@ -130,13 +130,11 @@ test('owner rewards: the tab, a merch kit redeemed by button, shipped by the Adm
   await expect(ap.getByRole('heading', { name: 'Owner rewards', level: 1 })).toBeVisible();
   await expect(ap.locator('body')).toContainText('1200 Bay Street');
   await widths(ap, 'admin-owner-rewards', info.project.name);
-  await sql.begin(async (tx) => {
-    await tx`select app.rw_act_as(${admin.id})`;
-    await tx`select app.owner_rewards_admin_do('owner_reward_ship', ${sql.json({ id: req!.id, tracking: 'CP123456789CA', cost: 42 })})`;
-  });
-  const mail = await sql`select count(*)::int as n from app_events where event_type = 'owner_reward_update' and created_at > now() - interval '5 minutes' and payload::text like ${'%' + o.userId + '%'}`;
-  const out = await sql`select count(*)::int as n from notification_outbox where template = 'owner_reward_update' and created_at > now() - interval '5 minutes'`;
-  expect(mail[0]!.n + out[0]!.n).toBeGreaterThan(0);
+  // marked shipped as the Admin (app.owner_rewards_admin_do takes the Admin; the cost in cents)
+  await sql`select app.owner_rewards_admin_do(${admin.id}, 'owner_reward_ship', ${sql.json({ id: req!.id, tracking: 'CP123456789CA', cost_cents: 4200 })})`;
+  // the owner is told (the event is the owner's, owner_reward_notify)
+  const mail = await sql`select count(*)::int as n from app_events where code = 'owner_reward_update' and created_at > now() - interval '5 minutes' and payload ->> 'owner_id' = ${o.ownerId}`;
+  expect(mail[0]!.n).toBeGreaterThan(0);
   await ap.goto('/admin/settings/notifications', { waitUntil: 'networkidle' });
   await expect(ap.getByRole('heading', { name: 'Notification preferences', level: 1 })).toBeVisible();
   await widths(ap, 'admin-notification-preferences', info.project.name);

@@ -14,9 +14,9 @@ export async function TeamGroupCard({ userId, aal, refresh }: { userId: string; 
       <p className="small">{groups.some((g) => g.key === 'sales') && groups.length === 1 ? 'You passed the Sales academy: join the Sales group on WhatsApp.' : 'You are all set: join the team on WhatsApp.'}</p>
       <p className="ad-actions">{groups.map((g) => <a key={g.key} className="btn btn--sm btn--primary" href={g.url} target="_blank" rel="noopener noreferrer">Join {g.name}</a>)}</p>
       {tag && <MemberTag tag={tag} testId="home-team-tag" />}
-      <p className="ad-actions"><Act ops action="staff_whatsapp_confirm" label="I joined" refresh={[refresh]} done="Thanks." testId="home-team-joined" title="The groups you joined"
+      <div className="ad-actions"><Act ops action="staff_whatsapp_confirm" label="I joined" refresh={[refresh]} done="Thanks." testId="home-team-joined" title="The groups you joined"
         fields={[...groups.map((g) => ({ name: g.key, label: `I joined ${g.name}`, type: 'bool' as const, value: true })),
-          { name: 'tag_set', label: `I set my member tag${tag ? ` (${tag})` : ''} in each group`, type: 'bool' as const, value: false, required: true }]} /></p>
+          { name: 'tag_set', label: `I set my member tag${tag ? ` (${tag})` : ''} in each group`, type: 'bool' as const, value: false, required: true }]} /></div>
     </section>
   );
 }

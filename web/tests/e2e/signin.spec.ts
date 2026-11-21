@@ -273,10 +273,11 @@ test('view as: the cookie only counts for the Admin who set it, while they are a
   // another person who copies the cookie still sees only their own account
   const b = await newPage(browser, phone);
   await signIn(b, other.email);
+  // off the portal first: a server action the open page sends after the cookie is copied is refused at the front (the
+  // cookie alone marks a view-as) and sends the tab to Read only before the next page opens
+  await b.goto('about:blank');
   await b.context().addCookies([{ ...cookie }]);
-  // the refusal is a real 307 since R48 (owner layout): a navigation the page itself starts meanwhile may take over
-  // the goto (net::ERR_ABORTED); where it ends is what counts
-  await b.goto('/owner').catch((e: Error) => { if (!/ERR_ABORTED/.test(e.message)) throw e; });
+  await b.goto('/owner');
   await expect(b).toHaveURL(/not-an-owner/);
   await expect(b.getByTestId('no-access-email')).toHaveText(other.email);
   // the Admin loses the role: the view ends with it

@@ -32,21 +32,21 @@ export async function FeeEvidence({ userId, aal, booking, bookingId, status, adm
             <p className="small muted">Found by itself: {Object.keys(l.have).filter((k) => l.requires.includes(k) || l.gathers.includes(k)).map(evidenceLabel).join(', ') || 'nothing yet'}. Where it comes from: {l.sources}.</p>
             {l.attached.length > 0 && <ul className="small">{l.attached.map((a, i) => <li key={i}>{a.kind.replace(/_/g, ' ')}{a.photos ? `, ${a.photos} photo${a.photos > 1 ? 's' : ''}` : ''}{a.note ? `: ${a.note}` : ''}</li>)}</ul>}
             {l.override_reason && <p className="small">Charged without its evidence by an Admin: {l.override_reason}</p>}
-            {!l.on_statement && l.status !== 'overridden' && <p className="ad-actions">
+            {!l.on_statement && l.status !== 'overridden' && <div className="ad-actions">
               <EvidenceUpload bookingId={bookingId} lineId={l.line_item_id} testId={`attach-${l.charge_type}`} />
               {admin && l.status === 'needs_evidence' && <Act ops action="fee_evidence_override" payload={{ line: l.line_item_id }} label="Charge without evidence" variant="quiet"
                 title="Charge it without the missing evidence" refresh={refresh} done="Overridden: it is charged with the next statement."
                 fields={[{ name: 'reason', label: 'Why (kept on the line and in the history)', type: 'textarea', required: true }]} testId={`override-${l.charge_type}`} />}
-            </p>}
+            </div>}
           </div>))}
-        {handedOver && <p className="ad-actions"><Act ops action="return_charge_add" payload={{ booking }} label="Add a return charge" title="Add a return charge (rental agreement 10.6 to 11.6)" refresh={refresh}
+        {handedOver && <div className="ad-actions"><Act ops action="return_charge_add" payload={{ booking }} label="Add a return charge" title="Add a return charge (rental agreement 10.6 to 11.6)" refresh={refresh}
           done="Added. Its evidence is checked by itself; what is missing becomes a To do." testId="return-charge-add"
           fields={[{ name: 'kind', label: 'The charge', type: 'select', options: RETURN_CHARGES, value: 'improper_return', required: true },
             { name: 'reason', label: 'Improper return: what was wrong', type: 'select', options: IMPROPER_REASONS, value: '' },
             { name: 'note', label: 'What happened (the renter sees it)', type: 'textarea', required: true },
             { name: 'costs', label: 'Actual costs (tow, impound, storage, tire, lockout...): a list of {"label": "Tow", "amount_cents": 18000}', type: 'json', value: [] },
             { name: 'mechanical_fault', label: 'Tire or roadside: a mechanical fault that is not the renter\'s (nothing is charged)', type: 'bool', value: false },
-            { name: 'police_report', label: 'Theft: the police report number', type: 'text' }]} /></p>}
+            { name: 'police_report', label: 'Theft: the police report number', type: 'text' }]} /></div>}
       </div>
     </Card>
   );

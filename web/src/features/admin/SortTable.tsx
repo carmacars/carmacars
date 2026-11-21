@@ -18,13 +18,11 @@ function Rows({ items, def }: { items: SortItem[]; def: SortKey | null }) {
   return <>{sortItems(items, sort, (i) => i.v).map((i) => <Fragment key={i.k}>{i.node}</Fragment>)}</>;
 }
 
-/** The table body in the chosen order. The first paint (and a browser without the address) keeps the server's order. */
+/** The table body in the chosen order (the admin and staff pages are dynamic, so the server already reads ?sort=).
+ *  R48: no Suspense boundary inside the tbody: with the pages streamed (loading.tsx), a boundary there completed into
+ *  table rows that were gone ("Cannot read properties of null (reading 'parentNode')", the rows drawn twice). */
 export function SortedBody({ items, def }: { items: SortItem[]; def: SortKey | null }) {
-  return (
-    <tbody role="rowgroup">
-      <Suspense fallback={items.map((i) => <Fragment key={i.k}>{i.node}</Fragment>)}><Rows items={items} def={def} /></Suspense>
-    </tbody>
-  );
+  return <tbody role="rowgroup"><Rows items={items} def={def} /></tbody>;
 }
 
 function Select({ options, def, label }: { options: SortKey[]; def: SortKey | null; label: string }) {

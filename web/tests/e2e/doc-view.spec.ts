@@ -53,5 +53,8 @@ test('a reviewed licence opens again with View (logged); a purged one reads Remo
   expect(await dlg.getByTestId('doc-licence_front-view-img').getAttribute('src')).toBeTruthy();
   await noOverflow(page);
   await expect.poll(async () => Number((await sql`select count(*) n from audit_log where action = 'document_view' and actor_user_id = ${id}`)[0]!.n), { timeout: 10_000 }).toBe(1);
+  // the shared database is crawled after the tests: the licence back is put back (its file is still stored), so the
+  // booking's Documents tab links no removed file
+  await sql`update documents set purged_at = null where id = (select document_id from verification_uploads where id = ${back})`;
   await sql.end();
 });

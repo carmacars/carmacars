@@ -92,6 +92,7 @@ function PostCard({ p, d, queuePage, refresh }: { p: CalPost; d: CalData; queueP
             ? <p className="small" data-testid={`cal-needs-video-${p.slot_no}`}><b>A reel needs a short video.</b> Make one for {p.car ?? 'a car'} from its photos on <Link prefetch={false} className="link" href={queuePage}>the queue page (Make a short video)</Link>, then approve.</p>
             : <Act ops action="social_cal_decide" payload={{ id: p.id, action: 'approve' }} label="Approve" variant="primary" refresh={refresh} done="Approved. It is scheduled." testId={`cal-approve-${p.slot_no}`}
                 title={`Approve: ${FORMAT_WORDS[p.format]} for ${dayWords(p.slot_date)}`} submitLabel="Approve and schedule"
+                confirm={`It is scheduled for ${dayWords(p.slot_date)} and posts then. Take the approval back any time before.`}
                 fields={[...(p.format === 'reel' ? [{ name: 'video', label: 'The short video', type: 'select' as const, required: true, value: videos[0]?.id ?? '',
                   options: videos.map((v) => [v.id, `${v.car}, ${Math.round(v.seconds)} s${v.mime === 'video/mp4' ? '' : ' (not MP4: no Instagram)'}`] as [string, string]) }] : []),
                   ...(p.format !== 'photo' ? [{ name: 'music', label: 'Music (picked when posting)', type: 'text' as const, value: p.music ?? '', wide: true, hint: 'A suggestion to follow when posting. The apps add their own licensed sounds; we cannot attach them for you.' }] : [])]} />)}

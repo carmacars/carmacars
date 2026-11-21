@@ -31,6 +31,9 @@ export default async function OwnerLayout({ children }: { children: React.ReactN
   if (at) ownerMoved(at.path, at.sp);
   const user = await currentUser();
   if (!user) return <>{children}</>;
+  // the refusal page of someone who is not an owner: no owner frame (its menu, alerts, live reads and their server
+  // actions are not theirs; an action there with a stray view-as cookie was sent to Read only)
+  if (at && /^\/owner\/not-an-owner\/?$/.test(at.path)) return <div className="pt pt--lux"><div className="wrap pt__body">{children}</div></div>;
   const [unread, partner, live] = await Promise.all([
     rpc('my_unread_count', {}, { role: 'authenticated', userId: user.id }).then(Number).catch(() => 0),
     rpc('partner_agreement_state', { p_by: user.id }, { role: 'service_role' }).then((r) => !!r).catch(() => false),
