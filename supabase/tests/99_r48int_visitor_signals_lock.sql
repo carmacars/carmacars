@@ -34,6 +34,6 @@ end $$;
 create temp table vsl_res as select pg_temp.vsl() as r;
 select test.ok('while another run holds the lock the job returns busy',
   (select r = 'skipped' or split_part(r, ' | ', 1) = 'busy' from vsl_res));
-select test.ok('a session a beacon holds is left alone (not evaluated), and evaluated by the next run',
-  (select r = 'skipped' or (split_part(r, ' | ', 2) like 'evaluated % score_at none' and split_part(r, ' | ', 3) like 'evaluated % score_at true') from vsl_res));
+select test.eq('a session a beacon holds is left alone (not evaluated), and evaluated by the next run',
+  (select case when r = 'skipped' or (split_part(r, ' | ', 2) like 'evaluated % score_at none' and split_part(r, ' | ', 3) like 'evaluated % score_at true') then 'ok' else r end from vsl_res), 'ok');
 select test.ok('the lock is released with the transaction: the job runs again', app.job_visitor_signals(now() + interval '2 hours') like 'evaluated %');

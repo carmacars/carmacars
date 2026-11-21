@@ -396,6 +396,8 @@ update program_settings p set academy_gate = f.g, staff_agreement_gate = f.a fro
 select test.eq('three versions to accept: the rental, owner and staff agreements',
   (select string_agg(doc_key, ',' order by doc_key) from terms_versions where version like '%r48fe'), 'owner_agreement,rental_agreement,staff_agreement');
 update users set created_at = now() - interval '30 days' where id = test.id('fe_neo');
+-- 99_r33f_signatures_terms publishes a wording-fix staff version (s-2, nothing to accept) that would shadow this release's version as the latest
+update terms_versions set published_at = timestamptz '2000-01-01' where doc_key = 'staff_agreement' and version = 's-2';
 select test.ok('the staff agreement version waits for a staff member who joined before', exists (select 1 from jsonb_array_elements(app.terms_pending(test.id('fe_neo'))) x where x ->> 'doc_key' = 'staff_agreement'));
 select app.terms_decline(test.id('fe_neo'), jsonb_build_object('version_id', (select id from terms_versions where version = 'staff-r48fe'), 'ip', '203.0.113.7', 'user_agent', 'test'));
 select test.ok('a decline is kept and the version still waits', exists (select 1 from terms_declines where user_id = test.id('fe_neo'))

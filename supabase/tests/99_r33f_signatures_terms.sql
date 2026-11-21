@@ -74,9 +74,9 @@ select test.eq('the site''s terms text is replaced too', (select body from site_
 select test.throws('the same version twice: refused', $$select app.terms_publish(test.id('q3f_admin'), '{"doc_key": "terms", "version": "2026-11-07", "summary": "Again the same version.", "body": "Another text, long enough to read."}')$$, 'published already');
 select test.eq('a renter, a field worker, staff and an owner each have it to accept; the Admin does not',
   (select jsonb_array_length(app.terms_pending(test.id('q3f_renter'))) || '/' || jsonb_array_length(app.terms_pending(test.id('q3f_field'))) || '/' || jsonb_array_length(app.terms_pending(test.id('q3f_cs')))
-     || '/' || jsonb_array_length(app.terms_pending(test.id('q33_web'))) || '/' || jsonb_array_length(app.terms_pending(test.id('q3f_admin')))), '1/1/1/1/0');
+     || '/' || jsonb_array_length(app.terms_pending(test.id('q33_web'))) || '/' || jsonb_array_length(app.terms_pending(test.id('q3f_admin')))), '2/2/2/1/0'); -- 3321x: the r48 FE agreement versions (rental, owner, staff, 3194) wait for these accounts too
 select app.terms_publish(test.id('q3f_admin'), '{"doc_key": "rental_agreement", "version": "r-2", "summary": "The fuel policy wording is clearer.", "body": "The rental agreement, version two, with its clearer fuel policy."}');
-select test.eq('the rental agreement binds renters only', (select jsonb_array_length(app.terms_pending(test.id('q3f_renter'))) || '/' || jsonb_array_length(app.terms_pending(test.id('q3f_cs')))), '2/1');
+select test.eq('the rental agreement binds renters only', (select jsonb_array_length(app.terms_pending(test.id('q3f_renter'))) || '/' || jsonb_array_length(app.terms_pending(test.id('q3f_cs')))), '2/2'); -- the renter: terms and r-2; staff: terms and the r48 FE staff agreement
 select test.eq('the terms of use come first', (select app.terms_pending(test.id('q3f_renter')) -> 0 ->> 'doc_key'), 'terms');
 select test.throws('the text shown must be the published one', format($$select public.server_terms_accept(test.id('q3f_renter'), %L)$$,
   jsonb_build_object('version_id', (select v ->> 'id' from q3f where k = 'tv'), 'body_sha256', test.q3f_sha('other'))), 'text changed');
