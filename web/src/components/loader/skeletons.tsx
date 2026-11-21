@@ -25,6 +25,8 @@ export function shapeFor(pathname: string): Shape {
   if (/calendar|schedule/.test(last)) return 'calendar';
   if (last === 'new' || last === 'edit' || /^(apply|sign|profile|settings|account)$/.test(last)) return 'form';
   if (rest.some(isRecord)) return 'detail';
+  // a staff member's own rewards are cards, like the owner's (the per-page loading files had it so)
+  if (top === 'staff' && last === 'rewards') return 'cards';
   if (top === 'owner' || top === 'account' || top === 'investor') return rest.length ? 'cards' : 'hero';
   if (!rest.length || (top === 'staff' && rest.length === 1 && rest[0] === 'field')) return 'dashboard';
   return 'table';
