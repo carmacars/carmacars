@@ -37,6 +37,16 @@ export function motionPaused(): boolean { return document.documentElement.datase
 /** An inline script for <head>: the remembered choice before the first paint. */
 export const MOTION_PAUSE_SCRIPT = `try{if(localStorage.getItem('${PAUSE_KEY}')==='reduced')document.documentElement.dataset.motion='reduced'}catch(e){}`;
 
+// ---------------------------------------------------------------- hydration
+// r48: a part streamed in after the shell (a loading.tsx boundary) sits in the page before React hydrates it, and the
+// observer below sees it at once: a node added to it then (the tab pill, the burst) or a number counted up made React's
+// hydration fail (React #418 on most portal pages, CI 44884254738). React marks each element it owns with a fiber key, so
+// nothing is added or rewritten in an element without one; it is tried again a moment later.
+export function hydrated(el: Element): boolean {
+  return Object.keys(el).some((k) => k.startsWith('__reactFiber$'));
+}
+let later: (el: Element) => void = () => undefined;
+
 // ---------------------------------------------------------------- tabs
 const CURRENT = ':scope > :is([aria-current="page"],[aria-current="true"],[aria-selected="true"],[aria-pressed="true"],.is-on,.is-active)';
 function placeTabs(bar: HTMLElement, target?: HTMLElement | null) {
@@ -45,6 +55,7 @@ function placeTabs(bar: HTMLElement, target?: HTMLElement | null) {
   let ind = bar.querySelector<HTMLElement>(':scope > .mo-tab-ind');
   if (!cur) { ind?.remove(); return; }
   if (!ind) {
+    if (!hydrated(bar)) { later(bar); return; }
     ind = document.createElement('span'); ind.className = 'mo-tab-ind'; ind.setAttribute('aria-hidden', 'true');
     // the current tab's own fill, handed to the pill
     const fill = getComputedStyle(cur).backgroundColor;
@@ -71,7 +82,9 @@ function placeTabs(bar: HTMLElement, target?: HTMLElement | null) {
 
 // ---------------------------------------------------------------- count-up
 function countUp(el: HTMLElement) {
-  if (el.dataset.moCounted) return; el.dataset.moCounted = '1';
+  if (el.dataset.moCounted) return;
+  if (!hydrated(el)) { later(el.parentElement ?? el); return; } // the parent: a rescan finds the counter inside it
+  el.dataset.moCounted = '1';
   const node = [...el.childNodes].find((n) => n.nodeType === 3 && /\d/.test(n.nodeValue ?? '')) as Text | undefined;
   if (!node || el.children.length) return;
   const text = node.nodeValue ?? '';
@@ -187,7 +200,9 @@ export function startMotion(hooks: MotionHooks = {}): () => void {
 
   // a burst on the big moments (a booking confirmed, a request sent): data-mo-burst on the heading
   const burst = (el: HTMLElement) => {
-    if (el.dataset.moBurstDone || !motionAllowed()) return; el.dataset.moBurstDone = '1';
+    if (el.dataset.moBurstDone || !motionAllowed()) return;
+    if (!hydrated(el)) { later(el); return; }
+    el.dataset.moBurstDone = '1';
     el.classList.add('mo-burst');
     for (let i = 0; i < 10; i++) {
       const p = document.createElement('span'); p.className = 'mo-burst__p'; p.setAttribute('aria-hidden', 'true');
@@ -210,7 +225,9 @@ export function startMotion(hooks: MotionHooks = {}): () => void {
 
   // the attributes phones need, where a form left them out (the app's own values always win)
   const polish = (root: ParentNode) => root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input, textarea').forEach((el) => {
-    if (el.dataset.moPolished) return; el.dataset.moPolished = '1';
+    if (el.dataset.moPolished) return;
+    if (!hydrated(el)) { later(el.parentElement ?? el); return; }
+    el.dataset.moPolished = '1';
     const t = (el.getAttribute('type') ?? 'text').toLowerCase(), name = `${el.name} ${el.id} ${el.getAttribute('autocomplete') ?? ''}`.toLowerCase();
     if (t === 'email' && !el.hasAttribute('autocomplete')) el.setAttribute('autocomplete', 'email');
     if (t === 'tel' && !el.hasAttribute('autocomplete')) el.setAttribute('autocomplete', 'tel');
@@ -230,7 +247,7 @@ export function startMotion(hooks: MotionHooks = {}): () => void {
     for (const n of items) {
       if (!n.isConnected) continue;
       const st = n.closest(statusSel); if (st) markSaved(st);
-      if (listSel && n.parentElement?.matches(listSel) && motionAllowed() && n instanceof HTMLElement) { n.style.setProperty('--mo-i', String(Math.min(i++, 8))); n.classList.add('mo-stagger-in'); }
+      if (listSel && n.parentElement?.matches(listSel) && motionAllowed() && n instanceof HTMLElement && hydrated(n)) { n.style.setProperty('--mo-i', String(Math.min(i++, 8))); n.classList.add('mo-stagger-in'); }
       watchCounters(n); watchDrives(n); polish(n);
       if (n.matches('[role="menu"], [role="listbox"], .mo-pop')) popIn(n as HTMLElement);
       (n.matches('[data-mo-burst]') ? [n] : [...n.querySelectorAll('[data-mo-burst]')]).forEach((b) => burst(b as HTMLElement));
@@ -238,6 +255,16 @@ export function startMotion(hooks: MotionHooks = {}): () => void {
     }
     if (tabs) scanTabs();
   };
+  // not hydrated yet: the element again in a moment (at most for ten seconds after it was first seen)
+  const seen = new WeakMap<Element, number>();
+  let retryT = 0;
+  later = (el) => {
+    const first = seen.get(el) ?? Date.now(); seen.set(el, first);
+    if (Date.now() - first > 10_000) return;
+    pending.add(el);
+    if (!retryT) retryT = window.setTimeout(() => { retryT = 0; flush(); }, 250);
+  };
+  off.push(() => { window.clearTimeout(retryT); later = () => undefined; });
   const mo = new MutationObserver((ms) => {
     for (const m of ms) {
       if (m.type === 'characterData') { const p = m.target.parentElement; if (p) pending.add(p); continue; }
