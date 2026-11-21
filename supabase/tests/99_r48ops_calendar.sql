@@ -87,7 +87,9 @@ insert into oc values ('admin', pg_temp.cal('oc_admin')), ('sales', pg_temp.cal(
 create or replace function pg_temp.e(p_k text, p_number text) returns jsonb language sql stable as $$
   select e from oc, jsonb_array_elements(oc.j -> 'vehicles') v, jsonb_array_elements(v -> 'entries') e where oc.k = p_k and e ->> 'booking_number' = p_number and e ->> 'type' = 'booking' limit 1 $$;
 create or replace function pg_temp.ents(p_k text, p_type text) returns setof jsonb language sql stable as $$
-  select e from oc, jsonb_array_elements(oc.j -> 'vehicles') v, jsonb_array_elements(v -> 'entries') e where oc.k = p_k and e ->> 'type' = p_type $$;
+  -- this file's cars only (the base files leave jobs and moves of their own cars in the same weeks)
+  select e from oc, jsonb_array_elements(oc.j -> 'vehicles') v, jsonb_array_elements(v -> 'entries') e where oc.k = p_k and e ->> 'type' = p_type
+     and v ->> 'id' in (test.id('vehicle:oc_a')::text, test.id('vehicle:oc_b')::text) $$;
 select test.eq('calendar: nobody signed in reads no car', (select jsonb_array_length(j -> 'vehicles') from oc where k = 'nobody'), 0);
 select test.eq('calendar: an Admin has the full name and the note', (select (x ->> 'renter') || '/' || (x ->> 'note') from pg_temp.e('admin', 'OC-NEXT') x), 'Oc Rita Renter/Call before delivery');
 select test.eq('calendar: Sales has the first name only and no note', (select (x ->> 'renter') || '/' || coalesce(x ->> 'note', 'none') from pg_temp.e('sales', 'OC-NEXT') x), 'Oc/none');
