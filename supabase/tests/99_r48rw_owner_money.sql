@@ -1,7 +1,7 @@
 -- 99: release 48 RW (3270, 3271): the charges of an owner-use booking billed to the owner by themselves (card on file,
 -- bank debit the same day, invoice due now, then the statement at whichever comes first of 7 days and the cut-off), and
 -- the Late Fee of 5% of the unpaid insurance. Fixtures start with "zrm"; every address is example.test.
-select test.suite('99 r48 RW: owner-use charges billed to the owner, the Late Fee on unpaid insurance (3270, 3271)');
+select test.suite('99 r48 RW: owner-use charges billed to the owner, the Late Fee on unpaid insurance (3270, 3271, 3272)');
 
 select test.mk_user('zrm_admin', 'admin');
 select test.mk_renter('zrm_r');
@@ -231,3 +231,12 @@ select test.eq('G they are marked invoiced, so no statement deducts them a secon
   'invoiced:true,invoiced:true');
 select test.eq('G the invoice lines: the toll and the deductible in full (the deductible is the cap)',
   (select string_agg(amount_cents::text, ',' order by sort_order) from owner_invoice_lines where owner_invoice_id = (pg_temp.rw_inv('ZRM-N4')).id), '1840,250000');
+
+-- ================================================================ H. the booking's Money tab shows the charges billed to the owner (3272)
+select test.eq('H an Owner Booking''s Money tab carries its owner invoice, how it is collected and its lines',
+  (select (m #>> '{owner_use,owner_use}') || ' ' || jsonb_array_length(m #> '{owner_use,invoices}') || ' ' || (m #>> '{owner_use,invoices,0,state}')
+          || ' ' || (jsonb_array_length(m #> '{owner_use,invoices,0,lines}') > 0)::text
+     from (select app.booking_money(test.id('zrm_admin'), '{"booking": "ZRM-N"}') m) x),
+  'true 1 pay_now true');
+select test.ok('H it says when an unpaid invoice is deducted', (app.booking_money(test.id('zrm_admin'), '{"booking": "ZRM-N"}') #>> '{owner_use,invoices,0,deduct_after}') is not null);
+select test.ok('H a renter booking has no owner-use block', not (app.booking_money(test.id('zrm_admin'), jsonb_build_object('booking', (select booking_number from bookings where booking_type::text <> 'owner' order by created_at limit 1))) ? 'owner_use'));

@@ -14,6 +14,7 @@ import { depositNext, depositWord, isDeposit, paidTotals, rentalDue } from './mo
 import { CHARGE_REASONS, reasonText, type ChargeReasons } from './charge-reasons';
 import { depositDue, depositStateLine, type DepositState } from './deposit-state';
 import { BookingTips, type TipRow } from './BookingTips';
+import { OwnerUseCharges, type OwnerUse } from './OwnerUseCharges';
 
 import { WhyDisabled } from '@/components/WhyDisabled';
 // The money of a booking (migration 0129; r29 C0: two panels, Rental charges and Security deposit, side by side on a
@@ -50,6 +51,8 @@ export interface Money {
   deposit_state?: DepositState | null;
   /** r48 part 2 (3053): the booking's tips and who gets them */
   tips?: TipRow[]; tips_on?: boolean;
+  /** r48 RW (3272): an Owner Booking's charges, billed to the owner (3270) */
+  owner_use?: OwnerUse | null;
   /** Release 21 (0203): the same-card rule of a card-coverage rental, the paired card readers, an Admin. */
   card_rule?: CardRule | null; readers?: Array<{ id: string; label: string }>; is_admin?: boolean;
 }
@@ -434,6 +437,7 @@ export function BookingMoney({ m, lines = [], totalCents, waived = false, rental
           <p className="small muted">The deposit is never released by itself: Finance or an Admin settles it after the return.</p>
         </section>
       </div>
+      {m.owner_use?.owner_use && <OwnerUseCharges data={m.owner_use} isAdmin={!!m.is_admin} />}
       {(m.tips_on || (m.tips?.length ?? 0) > 0) && <BookingTips booking={m.booking_number} tips={m.tips ?? []} mayRecord={m.may.record} isAdmin={!!m.is_admin} status={m.status} />}
     </section>
   );

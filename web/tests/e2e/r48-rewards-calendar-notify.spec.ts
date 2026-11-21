@@ -234,3 +234,47 @@ test('the content calendar: written, nothing queued until approved, approve sche
   expect(errors.filter((e) => !/favicon|Download the React DevTools/.test(e))).toEqual([]);
   await sql.end();
 });
+
+// 3270, 3272: an Owner Booking's charge is billed to the owner (no card on file: due now with the pay link), the owner is
+// told, the Admin sees it on the booking's Money tab and the owner sees the invoice in the portal.
+test('owner-use charges: billed to the owner, the notice queued, on the Money tab and the owner\'s invoices', async ({ page, browser }, info) => {
+  test.setTimeout(240_000);
+  const sql = db();
+  await sql`delete from app.rate_limit_hits`;
+  const errors = watch(page);
+  const o = await seedOwner(sql);
+  const car = o.cars[1]!;
+  const number = `OU-${Date.now().toString(36).toUpperCase()}`;
+  const [renter] = await sql`select id from renters order by created_at limit 1`;
+  const [b] = await sql`insert into bookings (booking_number, booking_type, status, vehicle_id, renter_id, owner_id, booked_at, pickup_at, return_at, original_return_at, billable_days,
+      daily_rate_cents, rate_applied, daily_days, weekend_days, rental_charge_cents, discount_cents, km_allowance_per_day, km_allowance_total, overage_cents_per_km, deposit_cents,
+      subtotal_at_booking_cents, hst_at_booking_cents, total_due_at_booking_cents)
+    values (${number}, 'owner', 'returned', ${car.id}, ${renter!.id}, ${o.ownerId}, now() - interval '9 days', now() - interval '6 days', now() - interval '4 days', now() - interval '4 days', 2,
+      0, 'daily', 2, 0, 0, 0, 250, 500, 25, 0, 0, 0, 0) returning id`;
+  await sql`insert into booking_line_items (booking_id, charge_type, description, quantity, unit_amount_cents, amount_cents, hst_applies, hst_cents, revenue_class, charged_to_renter, stage)
+    select ${b!.id}, f.code, f.label, 1, 6500, 6500, f.hst_applies, case when f.hst_applies then public.calc_hst(6500) else 0 end, f.revenue_class, true, 'after_return' from fee_types f where f.code = 'fuel'`;
+  await sql`update program_settings set fee_evidence_gate = false where id = (app.settings()).id`;
+  const [bill] = await sql`select app.owner_use_bill(${b!.id}) as r`;
+  expect((bill!.r as { collect?: string }).collect).toBe('pay_now');
+  const [inv] = await sql`select id, invoice_number from owner_invoices where owner_use_booking_id = ${b!.id}`;
+  // the notice is queued: the event, and the owner's in-app notice of it
+  const [ev] = await sql`select count(*)::int as n from app_events where code = 'owner_use_charges' and entity_id = ${inv!.id}`;
+  expect(ev!.n).toBeGreaterThan(0);
+
+  const admin = await person(sql, 'Ada Owneruse', 'admin');
+  await signIn(page, admin.email, `/admin/bookings/${number}`);
+  await page.goto(`/admin/bookings/${number}?tab=money`, { waitUntil: 'networkidle' });
+  const card = page.getByTestId('bm-owner-use');
+  await expect(card).toBeVisible();
+  await expect(card.getByTestId('bm-ou-invoice')).toContainText(inv!.invoice_number as string);
+  await expect(card.getByTestId('bm-ou-state')).toHaveText('Waiting for the owner');
+  await expect(card.getByTestId('bm-ou-text')).toContainText('deducted from the next statement');
+  await widths(page, 'admin-owner-use-money', info.project.name);
+
+  const op = await (await browser.newContext({ viewport: page.viewportSize() ?? undefined })).newPage();
+  await signIn(op, o.email, '/owner/invoices');
+  await expect(op.locator('body')).toContainText(inv!.invoice_number as string);
+  await widths(op, 'owner-use-invoices', info.project.name);
+  expect(errors.filter((e) => !/favicon|Download the React DevTools/.test(e))).toEqual([]);
+  await sql.end();
+});

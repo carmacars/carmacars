@@ -1,9 +1,9 @@
-# Staff rewards, owner rewards, the content calendar, notification preferences, owner tracker alerts, owner-use charges and the Late Fee on unpaid insurance (Release 48 RW: 3260 to 3265, 3269 to 3271)
+# Staff rewards, owner rewards, the content calendar, notification preferences, owner tracker alerts, owner-use charges and the Late Fee on unpaid insurance (Release 48 RW: 3260 to 3265, 3269 to 3272)
 
 Migrations `3260_r48rw_notify_prefs.sql`, `3261_r48rw_staff_rewards.sql`, `3262_r48rw_owner_rewards.sql`,
 `3263_r48rw_content_calendar.sql`, `3264_r48rw_owner_tracker_alerts.sql`, `3265_r48rw_doors.sql`,
-`3269_r48rw_guides.sql` (generated blocks: `supabase/seed/3269_gen.mjs`), `3270_r48rw_owner_use_charges.sql` and
-`3271_r48rw_insurance_late_fee.sql`. The branch includes r48-int and r48-fe (merged; owner use is 3195, the evidence rules 3190).
+`3269_r48rw_guides.sql` (generated blocks: `supabase/seed/3269_gen.mjs`), `3270_r48rw_owner_use_charges.sql`,
+`3271_r48rw_insurance_late_fee.sql` and `3272_r48rw_owner_use_money_tab.sql`. The branch includes r48-int and r48-fe (merged; owner use is 3195, the evidence rules 3190).
 
 The owner (Nov 20): staff should get something for the work (12:04, 12:06); owners should get rewards, and merch only when
 they press a button (12:54, 12:57); a content calendar staff approve (11:35); owners alerted by the tracker (13:02); and
@@ -106,6 +106,10 @@ everyone chooses their own notifications (13:03).
   wrapped so the cut-off run takes every invoice still unpaid that day.
 - **The owner is told** at each step by `owner_use_charges` (email, in-app notice, phone alert; a locked "charges" kind),
   with each charge and the evidence it rests on. A failed charge alerts Admins (`staff_owner_debit_exception`).
+- **On the booking (3272)**: the Money tab of an Owner Booking (Admin, Finance, Sales, Operations: one shared read)
+  shows "Charges billed to the owner": the charges waiting for evidence, and each owner invoice with its lines, what is
+  open and how it is being collected (card, bank debit, waiting for the owner with the pay link, or from the statement)
+  with the day it would be deducted. `app.booking_money` is wrapped to add `owner_use`.
 - FOR THE OWNER TO CONFIRM: a debit started the same day does not wait for the notice days of the monthly debit
   (`owner_debit_notice_days`). The PAD agreement owners accepted should allow a sporadic debit without that notice; the
   updated owner agreement (9.3) says so. The card charge is recorded through the debit attempt, so its payment row may
