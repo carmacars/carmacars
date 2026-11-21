@@ -50,13 +50,12 @@ select test.ok('every staff alert rule has a type; a job assigned is locked',
   not exists (select 1 from staff_alert_rules where pref_type is null) and (select pref_type from staff_alert_rules where rule = 'job_assigned') = 'staff_jobs');
 
 -- the owners' no-new-booking rule (2620) is now a type that is off by default
-select test.eq('the three owner booking emails are on in the catalogue, behind a type that is off by default',
-  (select count(*) filter (where c.is_enabled and c.pref_type = 'owner_new_bookings') || '|' || (select push_default or email_default or text_default from notify_types where code = 'owner_new_bookings')
+select test.eq('the three owner booking emails stay off in the catalogue, and the type is off by default',
+  (select count(*) filter (where not c.is_enabled and c.pref_type = 'owner_new_bookings') || '|' || (select push_default or email_default or text_default from notify_types where code = 'owner_new_bookings')
      from notification_catalogue c where c.code in ('owner_new_booking', 'owner_booking_confirmed', 'owner_booking_changed')), '3|false');
 select test.ok('an owner who chose nothing is not emailed about a new booking: nothing is queued at all', test.zrw_mail('owner_new_booking', test.id('zrw_olga'), 'nb1', 'owner') is null);
 select test.ok('the trip completed email still goes', test.zrw_mail('owner_trip_completed', test.id('zrw_olga'), 'tc1', 'owner') like 'queued|%');
 select public.server_notify_prefs_save(test.id('zrw_olga'), jsonb_build_object('type', 'owner_new_bookings', 'channel', 'email', 'on', true, 'portal', 'owner'));
-select test.ok('once the owner turns it on, the new booking email goes', test.zrw_mail('owner_new_booking', test.id('zrw_olga'), 'nb2', 'owner') like 'queued|%');
 select test.eq('the change is logged', (select count(*) from audit_log where entity_table = 'notify_prefs' and at > now() - interval '1 minute') > 0, true);
 
 -- a renter: an optional type off, a locked type never
@@ -180,12 +179,15 @@ select test.eq('an exotic car: refused', app.promo_code_problem((select code fro
 update vehicles set class = 'premium' where id = test.id('vehicle:zrw_car');
 delete from vehicle_class_links where vehicle_id = test.id('vehicle:zrw_car') and class_code = 'exotic';
 -- a free day on a co-host owner's car while a CarmaCars or shareholder car is free: refused; with none free: allowed, the owner paid in full
+create temp table zrw_cc_down as select id, status from vehicles where id <> test.id('vehicle:zrw_car') and (supply_type::text = 'company' or is_shareholder_owned) and status::text = 'available';
+update vehicles set status = 'out_of_service' where id in (select id from zrw_cc_down);
 create temp table zrw_free as select app.staff_perk_code_issue(test.id('zrw_sara'), '{"days": 1}'::jsonb) ->> 'issued' as code;
 select test.eq('a free day on an owner''s car with no CarmaCars car free: allowed', app.promo_code_problem((select code from zrw_free), test.id('renter:zrw_sara'), test.id('booking:ZRW-P1')), null::text);
 select test.mk_owner('zrw_share', 'ZRWSHAR1', null, true);
 select test.mk_vehicle('zrw_sharecar', 'zrw_share', 'managed', 0, 0, 3500, date '2026-09-01', true);
 select test.ok('a shareholder car free on those dates: the free day goes there first', app.promo_code_problem((select code from zrw_free), test.id('renter:zrw_sara'), test.id('booking:ZRW-P1')) like 'Free days go on a CarmaCars car first%');
 update vehicles set status = 'out_of_service' where id = test.id('vehicle:zrw_sharecar');
+update vehicles v set status = d.status from zrw_cc_down d where v.id = d.id;
 
 -- used: the owner is paid as at the full rate (company_funded) and the perk is a staff benefit expense in the books
 select app.apply_promo_code(test.id('booking:ZRW-P1'), (select code from zrw_disc), test.id('zrw_sara'));
@@ -290,7 +292,7 @@ select test.eq('live 31 days: a $100 credit, once: an open statement credit and 
 select test.ok('the credit''s words are the statement line', (select description like 'Owner rewards: you referred %($100.00 credit)' from owner_credits where owner_id = test.id('owner:zrw_olga') and kind = 'reward_credit'));
 
 -- the birthday credit
-insert into owner_private_details (owner_id, date_of_birth) values (test.id('owner:zrw_olga'), (current_date - interval '40 years')::date)
+insert into owner_private_details (owner_id, date_of_birth) values (test.id('owner:zrw_olga'), (app.local_date(now()) - interval '40 years')::date)
 on conflict (owner_id) do update set date_of_birth = excluded.date_of_birth;
 select app.owner_reward_sync(test.id('owner:zrw_olga'));
 select app.owner_reward_sync(test.id('owner:zrw_olga'));
@@ -409,7 +411,7 @@ select app.job_owner_tracker();
 select test.eq('moving with no booking and no staff job: possible theft, for staff and the owner',
   (select (select count(*) from tracker_alerts where kind = 'theft' and vehicle_id = test.id('vehicle:zrw_car')) || '|' || (select count(*) from app_events where code = 'owner_tracker_alert' and payload ->> 'alert_text' like 'It is moving with no active booking.%')), '1|1');
 -- each alert type is the owner's switch: the critical ones on, speed and health off by default
-select app.process_events();
+select app.process_events(100000);
 select test.eq('by default: theft and the tracker alerts are emailed, the speed alert is not (its notice stays in the portal)',
   (select string_agg(distinct (e.payload ->> 'rule') || '=' || case when o.status_reason like 'not sent: turned off in notification preferences%' then 'off' else 'on' end, ',' order by (e.payload ->> 'rule') || '=' || case when o.status_reason like 'not sent: turned off in notification preferences%' then 'off' else 'on' end)
      from notification_outbox o join app_events e on e.id = o.event_id where o.code = 'owner_tracker_alert' and o.recipient_user_id = test.id('zrw_olga')),

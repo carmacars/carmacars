@@ -206,9 +206,8 @@ update staff_alert_rules r set pref_type = case
     else 'staff_system' end
  where pref_type is null;
 
--- the three owner emails of 2620 are on again, behind the type that is off by default (the same silence as today)
-update notification_catalogue set is_enabled = true
- where code in ('owner_new_booking', 'owner_booking_confirmed', 'owner_booking_changed') and not is_enabled;
+-- the three owner emails of 2620 stay off in the catalogue (the owner's rule: no new-booking emails by default); the
+-- type that carries them is off by default too, so the preference and the catalogue say the same thing
 
 -- ================================================================ 2. a person's choices
 create table notify_prefs (
@@ -389,7 +388,8 @@ begin
   if new.status not in ('queued', 'delayed') then return new; end if;
   if not f.email then
     -- a kind that starts off on every channel and that this person left off: no row at all, as before 3260
-    if not f.push and not f.sms and exists (select 1 from notify_types t where t.code = v_type and not t.push_default and not t.email_default and not t.text_default) then
+    -- (not an owner's tracker alert: its notice stays in the portal, and the email is recorded as turned off)
+    if not f.push and not f.sms and new.code <> 'owner_tracker_alert' and exists (select 1 from notify_types t where t.code = v_type and not t.push_default and not t.email_default and not t.text_default) then
       return null;
     end if;
     new.status := 'suppressed';

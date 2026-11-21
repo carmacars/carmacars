@@ -93,7 +93,8 @@ select test.eq('B the owner gets the pay link and Admins the exception',
      from app_events e where e.created_at >= now() - interval '5 minutes'
       and (e.entity_id = (pg_temp.rw_inv('ZRM-P')).id or e.entity_id in (select a.id from owner_debit_attempts a where a.owner_invoice_id = (pg_temp.rw_inv('ZRM-P')).id))),
   'pay_now 1 1');
-select test.eq('B a reminder after the reminder days', (app.job_owner_use_charges(now() + interval '2 days 1 hour') ->> 'reminded')::int, 1);
+select app.job_owner_use_charges(now() + interval '2 days 1 hour');
+select test.eq('B a reminder after the reminder days: one for this invoice (other invoices of earlier tests may be reminded by the same run)', (pg_temp.rw_inv('ZRM-P')).owner_use_reminders, 1);
 select test.eq('B the reminder is its own email',
   (select count(*) from app_events where code = 'owner_use_charges' and entity_id = (pg_temp.rw_inv('ZRM-P')).id and payload ->> 'state' = 'reminder'), 1::bigint);
 select test.eq('B not again the same hour', (app.job_owner_use_charges(now() + interval '2 days 2 hours') ->> 'reminded')::int, 0);
@@ -175,7 +176,7 @@ begin
   perform set_config('app.invoice_quiet', '', true);
   return v_id;
 end $$;
-select test.eq('F the setting: 5%, with HST on the fee', (select owner_insurance_late_fee_bps || ' ' || owner_insurance_late_fee_hst || ' ' || owner_insurance_late_reminder_days from program_settings), '500 true 3');
+select test.eq('F the setting: 5%, with HST on the fee', (select owner_insurance_late_fee_bps || ' ' || owner_insurance_late_fee_hst || ' ' || owner_insurance_late_reminder_days from app.settings()), '500 true 3');
 select pg_temp.rw_monthly('zrm_m1', 'ZRMN', date '2035-08-01', 45000, 2500);
 select test.eq('F nothing 4 days before the due date (the 15th)', (app.job_owner_insurance_late(timestamptz '2035-08-11 15:00+00') ->> 'reminded')::int, 0);
 select test.eq('F the reminder 3 days before', (app.job_owner_insurance_late(timestamptz '2035-08-12 15:00+00') ->> 'reminded')::int, 1);
@@ -230,13 +231,15 @@ select test.eq('G they are marked invoiced, so no statement deducts them a secon
   (select string_agg(d.status || ':' || (d.owner_invoice_id = (pg_temp.rw_inv('ZRM-N4')).id), ',' order by d.amount_cents) from owner_deductions d where d.booking_id = test.id('booking:ZRM-N4')),
   'invoiced:true,invoiced:true');
 select test.eq('G the invoice lines: the toll and the deductible in full (the deductible is the cap)',
-  (select string_agg(amount_cents::text, ',' order by sort_order) from owner_invoice_lines where owner_invoice_id = (pg_temp.rw_inv('ZRM-N4')).id), '1840,250000');
+  (select string_agg(amount_cents::text, ',' order by amount_cents) from owner_invoice_lines where owner_invoice_id = (pg_temp.rw_inv('ZRM-N4')).id), '1840,250000');
 
 -- ================================================================ H. the booking's Money tab shows the charges billed to the owner (3272)
 select test.eq('H an Owner Booking''s Money tab carries its owner invoice, how it is collected and its lines',
   (select (m #>> '{owner_use,owner_use}') || ' ' || jsonb_array_length(m #> '{owner_use,invoices}') || ' ' || (m #>> '{owner_use,invoices,0,state}')
           || ' ' || (jsonb_array_length(m #> '{owner_use,invoices,0,lines}') > 0)::text
-     from (select app.booking_money(test.id('zrm_admin'), '{"booking": "ZRM-N"}') m) x),
+     from (select app.booking_money(test.id('zrm_admin'), '{"booking": "ZRM-P"}') m) x),
   'true 1 pay_now true');
-select test.ok('H it says when an unpaid invoice is deducted', (app.booking_money(test.id('zrm_admin'), '{"booking": "ZRM-N"}') #>> '{owner_use,invoices,0,deduct_after}') is not null);
+select test.eq('H after 7 days the Money tab says the invoice is deducted from the next statement',
+  app.booking_money(test.id('zrm_admin'), '{"booking": "ZRM-N"}') #>> '{owner_use,invoices,0,state}', 'deducting');
+select test.ok('H it says when an unpaid invoice is deducted', (app.booking_money(test.id('zrm_admin'), '{"booking": "ZRM-P"}') #>> '{owner_use,invoices,0,deduct_after}') is not null);
 select test.ok('H a renter booking has no owner-use block', not (app.booking_money(test.id('zrm_admin'), jsonb_build_object('booking', (select booking_number from bookings where booking_type::text <> 'owner' order by created_at limit 1))) ? 'owner_use'));

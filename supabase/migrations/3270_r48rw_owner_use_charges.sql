@@ -521,6 +521,8 @@ declare
   t notify_types;
   f record;
 begin
+  -- an owner's tracker alert (speed, health) keeps its notice in the portal; only its email, phone alert and text are the owner's choice
+  if new.code = 'owner_tracker_alert' then return new; end if;
   v_type := app.notify_type_of(new.code, (select e.payload ->> 'rule' from app_events e where e.id = new.event_id));
   if v_type is null then return new; end if;
   select * into t from notify_types where code = v_type;
