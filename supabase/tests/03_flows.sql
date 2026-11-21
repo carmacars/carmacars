@@ -525,6 +525,9 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             -- the native app's one-time sign-in challenges (3170): five minutes, used once, removed as new ones are made;
                             -- no money, pricing or status (the passkeys themselves are audited)
                             'passkey_challenges',
+                            -- app tokens refused after sign-out (3400): a short-lived deny list, rows expire with the token;
+                            -- no money, pricing or status
+                            'revoked_bearers',
                             -- harsh driving marks (3320): telemetry written by the tracker ingest like the position history; no
                             -- money, pricing or status (the alert they make and its evidence record are audited)
                             'tracker_harsh',
