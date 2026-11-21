@@ -137,7 +137,21 @@ function duplicates() {
       const named = /"\[project\]\/([^"]+?) \[([a-z-]+)\] \([^"]*\)",\s*(?:\(\(|function|\(__turbopack)/g;
       const numeric = /[,[](\d{1,7}),(?:\(\w*(?:,\w+)*\)|\w+)=>\{/g;
       const hits = [];
-      for (let m; (m = named.exec(src));) hits.push([m.index, `${m[1]} [${m[2]}]`]);
+      // the chunk's index source map names each module's section: the exact source file of every copy
+      try {
+        const map = fs.existsSync(`${p}.map`) ? JSON.parse(fs.readFileSync(`${p}.map`, 'utf8')) : null;
+        if (map?.sections?.length) {
+          const lineAt = [0];
+          for (let i = src.indexOf('\n'); i >= 0; i = src.indexOf('\n', i + 1)) lineAt.push(i + 1);
+          for (const s of map.sections) {
+            const name = (s.map?.sources ?? [])[0];
+            if (!name) continue;
+            const at = (lineAt[s.offset.line] ?? src.length) + s.offset.column;
+            hits.push([at, `${String(name).replace(/^turbopack:\/\/\/?/, '').replace(/^\[project\]\//, '')} [${/\/ssr\//.test(p) ? 'ssr' : 'rsc'}]`]);
+          }
+        }
+      } catch { hits.length = 0; }
+      if (!hits.length) for (let m; (m = named.exec(src));) hits.push([m.index, `${m[1]} [${m[2]}]`]);
       if (!hits.length) for (let m; (m = numeric.exec(src));) hits.push([m.index, `#${m[1]} [${/\/ssr\//.test(p) ? 'ssr' : 'rsc'}]`]);
       hits.forEach(([at, id], i) => {
         const size = (i + 1 < hits.length ? hits[i + 1][0] : src.length) - at;
@@ -152,7 +166,7 @@ function duplicates() {
   const rows = [...mods].map(([id, v]) => [id.startsWith('#') ? `${id} ${v.peek}` : id, v.n, v.b, v.b - v.b / v.n]).filter((r) => r[1] > 1);
   console.log(`worker-size: ${mods.size} modules; copies beyond the first add ${mb(rows.reduce((a, r) => a + r[3], 0))}`);
   const dirs = new Map();
-  for (const [id, , , extra] of rows) { const k = id.split('/').slice(0, 3).join('/'); dirs.set(k, (dirs.get(k) ?? 0) + extra); }
+  for (const [id, , , extra] of rows) { const parts = id.split(' ')[0].split('/'); const k = parts.slice(0, Math.min(3, parts.length - 1)).join('/') || parts[0]; dirs.set(k, (dirs.get(k) ?? 0) + extra); }
   console.log('worker-size: extra copies by folder');
   for (const [k, b] of [...dirs].sort((a, z) => z[1] - a[1]).slice(0, 20)) console.log(`  ${mb(b).padStart(10)}  ${k}`);
   console.log('worker-size: the modules whose extra copies add the most');
