@@ -1,0 +1,85 @@
+{
+ "batch": "2026-11-21-2",
+ "items": [
+  {
+   "kind": "car",
+   "id": "be771855-f3a9-4b90-8f2a-8c768f6abdf5",
+   "copy": {
+    "intro": "Seven seats and four-wheel drive. The big family car for tournaments and ski weeks.",
+    "highlights": [
+     "Four-wheel drive",
+     "Third-row seating",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Large families",
+     "Ski trips",
+     "Group travel"
+    ],
+    "faq": [
+     {
+      "question": "How many people does the Suburban seat?",
+      "answer": "It has 7 seats and 4 doors."
+     },
+     {
+      "question": "Does it have four-wheel drive?",
+      "answer": "Yes, four-wheel drive is in its equipment list."
+     },
+     {
+      "question": "Is it an automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     },
+     {
+      "question": "Does it have a backup camera?",
+      "answer": "Yes, a backup camera is listed."
+     }
+    ],
+    "alt_texts": {
+     "other": "Chevrolet Suburban, detail view"
+    }
+   }
+  },
+  {
+   "kind": "car",
+   "id": "e6989c4d-206f-4a38-afe3-10b960e60c16",
+   "copy": {
+    "intro": "The extended Escalade: seven seats and room left over for the bags.",
+    "highlights": [
+     "Four-wheel drive",
+     "Third-row seating",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Group trips",
+     "Airport transfers with luggage",
+     "Family travel"
+    ],
+    "faq": [
+     {
+      "question": "How many passengers does the Escalade ESV seat?",
+      "answer": "It has 7 seats and 4 doors."
+     },
+     {
+      "question": "Does it have four-wheel drive?",
+      "answer": "Yes, four-wheel drive is in its equipment list."
+     },
+     {
+      "question": "Is it an automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     },
+     {
+      "question": "Does it have a backup camera?",
+      "answer": "Yes, a backup camera is listed."
+     }
+    ],
+    "alt_texts": {}
+   }
+  }
+ ]
+}
