@@ -121,12 +121,51 @@ function report() {
   for (const [f, b] of files.sort((a, z) => z[1] - a[1]).slice(0, 25)) console.log(`  ${mb(b).padStart(10)}  ${f.replace(/^.*?\.next\//, '.next/')}`);
 }
 
+// Turbopack writes each module into every chunk that needs it: the modules found in more than one chunk, by the bytes
+// their extra copies add (the module's id string starts each definition in a chunk)
+function duplicates() {
+  const dir = path.join(WEB, '.next/server/chunks');
+  if (!fs.existsSync(dir)) return;
+  const mods = new Map();
+  const walk = (d) => {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const p = path.join(d, e.name);
+      if (e.isDirectory()) { walk(p); continue; }
+      if (!e.name.endsWith('.js')) continue;
+      const src = fs.readFileSync(p, 'utf8');
+      // named ids ("[project]/src/x.tsx [app-ssr] (ecmascript)") or, minified, numeric ids: [id,(a,b)=>{...},id,...]
+      const named = /"\[project\]\/([^"]+?) \[([a-z-]+)\] \([^"]*\)",\s*(?:\(\(|function|\(__turbopack)/g;
+      const numeric = /[,[](\d{1,7}),(?:\(\w*(?:,\w+)*\)|\w+)=>\{/g;
+      const hits = [];
+      for (let m; (m = named.exec(src));) hits.push([m.index, `${m[1]} [${m[2]}]`]);
+      if (!hits.length) for (let m; (m = numeric.exec(src));) hits.push([m.index, `#${m[1]} [${/\/ssr\//.test(p) ? 'ssr' : 'rsc'}]`]);
+      hits.forEach(([at, id], i) => {
+        const size = (i + 1 < hits.length ? hits[i + 1][0] : src.length) - at;
+        const v = mods.get(id) ?? { n: 0, b: 0, peek: '' };
+        if (!v.peek) v.peek = src.slice(at, at + 160).replace(/\s+/g, ' ');
+        v.n += 1; v.b += size; mods.set(id, v);
+      });
+    }
+  };
+  walk(dir);
+  const mb = (b) => `${(b / 1024 / 1024).toFixed(2)} MiB`;
+  const rows = [...mods].map(([id, v]) => [id.startsWith('#') ? `${id} ${v.peek}` : id, v.n, v.b, v.b - v.b / v.n]).filter((r) => r[1] > 1);
+  console.log(`worker-size: ${mods.size} modules; copies beyond the first add ${mb(rows.reduce((a, r) => a + r[3], 0))}`);
+  const dirs = new Map();
+  for (const [id, , , extra] of rows) { const k = id.split('/').slice(0, 3).join('/'); dirs.set(k, (dirs.get(k) ?? 0) + extra); }
+  console.log('worker-size: extra copies by folder');
+  for (const [k, b] of [...dirs].sort((a, z) => z[1] - a[1]).slice(0, 20)) console.log(`  ${mb(b).padStart(10)}  ${k}`);
+  console.log('worker-size: the modules whose extra copies add the most');
+  for (const [id, n, , extra] of rows.sort((a, z) => z[3] - a[3]).slice(0, 30)) console.log(`  ${mb(extra).padStart(10)}  x${String(n).padEnd(4)} ${id}`);
+}
+
 function check() {
   if (!fs.existsSync(HANDLER)) { console.error('worker-size: no server bundle; run opennextjs-cloudflare build first'); process.exit(1); }
   const bytes = fs.statSync(HANDLER).size;
   const mib = bytes / 1024 / 1024;
   const line = `worker-size: server bundle ${mib.toFixed(1)} MiB (budget ${BUDGET_MIB} MiB; Cloudflare's limit 64 MiB for the whole Worker)`;
   try { report(); } catch (e) { console.log(`worker-size: no breakdown (${e.message})`); }
+  try { duplicates(); } catch (e) { console.log(`worker-size: no duplicate count (${e.message})`); }
   if (mib > BUDGET_MIB) {
     console.error(`${line}: over budget. web/README.md, Worker size, shows how to see what each input adds`);
     // in CI the cause gets its own annotation: without the build no server starts, and the later steps only say "connection refused"

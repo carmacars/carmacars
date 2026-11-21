@@ -53,6 +53,20 @@ update program_settings set field_slots_auto_from = app.today() + 4;
 select app.field_slots_auto_publish(now());
 select test.eq('the uncovered handover gets a covering slot; the return at 12:00 is in a shift already',
   (select string_agg(cover_leg, ',') from field_shift_slots where cover_booking_id = test.id('booking:CC-FSA1')), 'handover');
+-- r48: CI 44867497039 found no covering slot once (00:05 Toronto, after the other suites; not reproduced at that hour on a
+-- fresh database): if it happens again, say what covered the handover or why the booking was passed over
+do $$
+declare v text;
+begin
+  if not exists (select 1 from field_shift_slots where cover_booking_id = test.id('booking:CC-FSA1')) then
+    select format('booking %s/%s pickup %s handed %s; window %s..%s from %s; covering slots: %s', b.status, b.booking_type, b.pickup_at, b.handed_over_at, now(),
+                  now() + make_interval(days => (app.settings()).field_slots_auto_days), (app.settings()).field_slots_auto_from,
+                  coalesce((select string_agg(z.starts_at || '-' || z.ends_at || ' ' || coalesce(z.auto_source, 'hand'), '; ') from field_shift_slots z
+                             where z.cancelled_at is null and z.starts_at <= b.pickup_at and z.ends_at >= b.pickup_at), 'none'))
+      into v from bookings b where b.id = test.id('booking:CC-FSA1');
+    raise warning 'DIAG 99 r45 field slots: %', coalesce(v, 'booking CC-FSA1 missing');
+  end if;
+end $$;
 select test.ok('90 minutes either side of it', exists (select 1 from field_shift_slots s join bookings b on b.id = s.cover_booking_id
   where b.booking_number = 'CC-FSA1' and s.starts_at = b.pickup_at - interval '90 minutes' and s.ends_at = b.pickup_at + interval '90 minutes'));
 select test.ok('none before field_slots_auto_from', not exists (select 1 from field_shift_slots where cover_booking_id = test.id('booking:CC-FSA2')));
