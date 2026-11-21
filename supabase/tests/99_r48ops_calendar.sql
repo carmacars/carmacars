@@ -8,10 +8,10 @@ select test.mk_user('oc_fleet', 'va', 'fleet');
 select test.mk_user('oc_cs', 'va', 'cs');
 select test.mk_user('oc_sales', 'va', 'sales');
 select test.mk_user('oc_fin', 'va', 'finance');
-select test.mk_owner('oc_olga');
+select test.mk_owner('oc_owner_olga');
 select test.mk_owner('oc_omar');
-select test.mk_vehicle('oc_a', 'oc_olga');
-select test.mk_vehicle('oc_b', 'oc_olga');
+select test.mk_vehicle('oc_a', 'oc_owner_olga');
+select test.mk_vehicle('oc_b', 'oc_owner_olga');
 select test.mk_vehicle('oc_c', 'oc_omar');
 select test.mk_renter('oc_rita_renter');
 select test.mk_renter('oc_ravi_renter');
@@ -71,7 +71,7 @@ select test.eq('calendar: customer service reads what the old read gave', pg_tem
 select test.eq('calendar: Sales reads what the old read gave (first names, no notes, no jobs)', pg_temp.same(test.id('oc_sales'), now() - interval '8 days', now() + interval '12 days'), 'same');
 select test.eq('calendar: Finance reads what the old read gave', pg_temp.same(test.id('oc_fin'), now() - interval '8 days', now() + interval '12 days'), 'same');
 select test.eq('calendar: one car, one day', pg_temp.same(test.id('oc_admin'), now() + interval '5 days', now() + interval '6 days', test.id('vehicle:oc_a')), 'same');
-select test.eq('calendar: an owner reads only their own cars, as before', pg_temp.same(test.id('oc_olga'), now() - interval '8 days', now() + interval '12 days'), 'same');
+select test.eq('calendar: an owner reads only their own cars, as before', pg_temp.same(test.id('oc_owner_olga'), now() - interval '8 days', now() + interval '12 days'), 'same');
 
 -- what each role is and is not given, said outright (not only "as before")
 create temp table oc as select null::text as k, null::jsonb as j limit 0;
@@ -83,7 +83,7 @@ begin
   perform set_config('request.jwt.claim.sub', '', false);
   return v;
 end $$;
-insert into oc values ('admin', pg_temp.cal('oc_admin')), ('sales', pg_temp.cal('oc_sales')), ('owner', pg_temp.cal('oc_olga')), ('nobody', app.admin_calendar(now() - interval '8 days', now() + interval '12 days'));
+insert into oc values ('admin', pg_temp.cal('oc_admin')), ('sales', pg_temp.cal('oc_sales')), ('owner', pg_temp.cal('oc_owner_olga')), ('nobody', app.admin_calendar(now() - interval '8 days', now() + interval '12 days'));
 create or replace function pg_temp.e(p_k text, p_number text) returns jsonb language sql stable as $$
   select e from oc, jsonb_array_elements(oc.j -> 'vehicles') v, jsonb_array_elements(v -> 'entries') e where oc.k = p_k and e ->> 'booking_number' = p_number and e ->> 'type' = 'booking' limit 1 $$;
 create or replace function pg_temp.ents(p_k text, p_type text) returns setof jsonb language sql stable as $$

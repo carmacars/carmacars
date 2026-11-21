@@ -16,6 +16,7 @@ import { EDGE_CACHE_NAME, STALE_HEADER, STALE_TTL_S, busyPage, crawlerCopy, hasS
 import { BUSY_KEY, BUSY_MS, BusyMeter, PLACE_FOREIGN_KEY, PLACE_MARKET_KEY, USAGE_CACHED_KEY, VPAGE_MIN_YEAR_KEY, checkPage, httpsRedirect, longTail, marketOf, marketStored, offMarketPlace, oldModelYear, oldYearGone, outOfMarket, placeRegionBit, renderFailed, scraperGuard, tailServing, tooMany, vehiclePageYear, verifiedSearchEngine } from './src/lib/edge/scraper-guard';
 import { jobsToRun, pushWaiting } from './src/lib/edge/cron-gate';
 import { RATE_LIMITED_BOT, isCrawler, keptToScope, shield, shieldResponse } from './src/lib/edge/bot-shield';
+import { portalSignIn } from './src/lib/edge/portal-gate';
 import { CPU_GUARD_KEY, SEARCH_SCOPE_KEY, FLEET_SIG_CONFIRM_KEY, FLEET_SIG_KEY, fleetRows, signatureOf } from './src/lib/edge/fleet-sig';
 import { WARM_KEY, warmBatch, warmDone, warmPaths, warmValue } from './src/lib/edge/warm';
 import { readNumber, writeNumber } from './src/lib/edge/page-cache';
@@ -427,6 +428,10 @@ const worker = {
     // An Admin viewing as someone is read only: every write outside the Admin portal stops here
     // (src/lib/security/view-as-guard.ts). Server actions are POSTs, so this covers all of them.
     if (viewAsWriteRefused(request.method, path, request.headers.get('cookie'))) return viewAsRefusal(request.headers.has('next-action'), securityHeaders());
+    // R48 integration: a staff portal page with no session is a real 307 to sign in, here, not a redirect streamed as 200 from
+    // inside a loading.tsx boundary (src/lib/edge/portal-gate.ts)
+    const signIn = portalSignIn(request.method, request.url, request.headers);
+    if (signIn) return new Response(null, { status: 307, headers: { location: signIn, 'cache-control': 'no-store', 'x-robots-tag': 'noindex', ...securityHeaders() } });
     // The session is refreshed here, where the response can set the cookie, before a page reads it
     // (src/lib/auth/edge-refresh.ts: a page cannot store a refreshed session, and Supabase then ends it).
     let req = request;

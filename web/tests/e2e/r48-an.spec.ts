@@ -55,8 +55,8 @@ test('the side profile is the cover, renders first, real photos reachable, with 
 });
 
 test('a finished render set queues the owner\'s branded email and Fleet\'s notice', async () => {
-  const [{ n }] = await sql`select app.photo_render_notices() as n`;
-  expect(Number(n)).toBeGreaterThanOrEqual(1);
+  const [row] = await sql`select app.photo_render_notices() as n`;
+  expect(Number(row?.n)).toBeGreaterThanOrEqual(1);
   const ev = await sql`select code from app_events where entity_id = ${vehicleId} and code like '%car_photos_ready' order by code`;
   expect(ev.map((e) => e.code)).toEqual(['owner_car_photos_ready', 'staff_car_photos_ready']);
   await sql`select app.process_events(1000)`;
