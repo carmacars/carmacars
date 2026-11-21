@@ -143,14 +143,16 @@ export function Effects() {
         if (el.getBoundingClientRect().top > h) io.observe(el);
       });
       later.forEach((el) => { el.classList.add('rv'); io.observe(el); });
-      if (waiting && ++retries <= 25) window.setTimeout(scan, 400);  // for 10 seconds at most
       document.querySelectorAll<HTMLImageElement>('img[loading="lazy"]').forEach((img) => {
-        if (done.has(img)) return; done.add(img);
+        if (done.has(img)) return;
+        if (!owned(img)) { waiting = true; return; }
+        done.add(img);
         if (img.complete) return;
         img.classList.add('img-wait');
         const go = () => imgDone(img);
         img.addEventListener('load', go, { once: true }); img.addEventListener('error', go, { once: true });
       });
+      if (waiting && ++retries <= 25) window.setTimeout(scan, 400);  // for 10 seconds at most
     };
     let raf = 0;
     const later = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; scan(); }); };

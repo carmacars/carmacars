@@ -125,7 +125,8 @@ test('a sample car: a real car free for the dates is offered; one tap switches; 
     await expect(page.getByTestId('enquiry-match')).toContainText('We have a similar car for your dates; we’ll confirm it within 2 hours');
     const lead = await sql`select id, payload from leads where kind = 'sample_car' and email = ${email}`;
     expect(lead[0]?.payload?.suggested?.slug).toBe(m!.slug);
-    const task = await sql`select title from tasks where task_type = 'sample_car_enquiry' and related_id = ${lead[0]!.id}`;
+    // by its key (a merged lead moves its task to the lead kept, R48 SEO)
+    const task = await sql`select title from tasks where task_type = 'sample_car_enquiry' and dedupe_key = ${`sample-enquiry:${lead[0]!.id}`}`;
     expect(task[0]?.title).toContain('Free: ');
   } finally {
     await sql`update vehicles set sample_bookable = true where id = (select vehicle_id from vehicle_listings where slug = ${SAMPLE})`;

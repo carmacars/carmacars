@@ -31,9 +31,12 @@ export function LocationCard({ initial, className = 'pt-card' }: { initial: MyLo
 
   const run = async (what: 'policy' | 'switch', body: Record<string, unknown>, ok: string) => {
     setBusy(what); setMsg(null);
+    // the switch moves at once (a controlled box otherwise stays put until the database answers); put back on a refusal
+    const before = s;
+    if (what === 'switch') setS({ ...s, sharing_on: body.sharing_on !== false });
     const r = await act(what === 'policy' ? 'policy' : 'prefs', body);
     setBusy('');
-    if (!r.ok) { setMsg({ ok: false, text: r.message }); haptic('error'); return; }
+    if (!r.ok) { if (what === 'switch') setS(before); setMsg({ ok: false, text: r.message }); haptic('error'); return; }
     setS({ ...s, ...r.data }); setDone(what); setMsg({ ok: true, text: ok }); haptic('success');
   };
   const allow = () => {

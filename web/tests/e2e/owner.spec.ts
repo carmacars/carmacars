@@ -316,7 +316,8 @@ test('owner billing: apply with three vehicles, terms and upfront invoices, sign
   await page.goto('/owner/invoices', { waitUntil: 'networkidle' });
   const trk = page.locator('[data-testid="invoice-row"]', { hasText: 'Tracker install' });
   await expect(trk).toHaveCount(1);
-  await expect(trk).toContainText('$113.00');
+  // r48 FE (3198): the install fee is $150 plus HST
+  await expect(trk).toContainText('$169.50');
   await expect(trk.getByTestId('invoice-status')).toHaveText('Due');
   expect(errors.filter((e) => !/favicon|Failed to load resource.*404/.test(e))).toEqual([]);
   await sql.end();

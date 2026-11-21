@@ -299,6 +299,8 @@ async function crawlRole(browser, role) {
   else await page.goto(BASE + '/', { waitUntil: 'networkidle' });
 
   const queue = [HOME[role], ...PORTALS.filter((p) => p !== HOME[role])];
+  // where each queued address was first found, so a bad one names its page
+  const foundOn = new Map();
   const seen = new Set(); const shapes = new Map(); const checked = new Map(); const familyLinks = new Map(); const queryShapes = new Map();
   const status = async (href) => {
     if (checked.has(href)) return checked.get(href);
@@ -343,7 +345,7 @@ async function crawlRole(browser, role) {
       // a generated family's links: followed only while a rendered page would still request them (budget not spent here)
       const fam = family(shape(t));
       if (fam && !checked.has(p) && (familyLinks.get(fam) ?? 0) >= LINK_PER_FAMILY) continue;
-      if (!seen.has(p)) queue.push(p);
+      if (!seen.has(p)) { queue.push(p); if (!foundOn.has(p)) foundOn.set(p, new URL(at).pathname + new URL(at).search); }
     }
   };
 
@@ -375,7 +377,7 @@ async function crawlRole(browser, role) {
     }
     shapes.set(sh, n + 1);
     const s = await status(href);
-    if (s.status >= 400) { bad(role, href, `HTTP ${s.status}`); continue; }
+    if (s.status >= 400) { bad(role, href, `HTTP ${s.status}${foundOn.has(href) ? ` (linked from ${foundOn.get(href)})` : ''}`); continue; }
     if (SKIP_RENDER.test(u.pathname) || !s.type.includes('text/html')) continue;
     // public pages are rendered once, by the anonymous visitor; a signed-in role only checks they answer
     if (role !== 'anon' && !PRIVATE.test(u.pathname)) continue;

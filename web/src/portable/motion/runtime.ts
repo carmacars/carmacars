@@ -153,6 +153,7 @@ export function startMotion(hooks: MotionHooks = {}): () => void {
 
   // drive-off: hover on desktop, once in view on touch
   const watchDrives = (root: ParentNode) => root.querySelectorAll<HTMLElement>('.mo-drive:not([data-mo-drive])').forEach((el) => {
+    if (!hydrated(el)) { later(el.parentElement ?? el); return; }
     el.dataset.moDrive = '1';
     const host = el.closest<HTMLElement>('[data-mo-drive-host]') ?? el;
     if (fine) {
@@ -164,6 +165,7 @@ export function startMotion(hooks: MotionHooks = {}): () => void {
 
   // success ticks: a status that now says "Saved"
   const markSaved = (el: Element) => { if (el.children.length) return; // a plain-text status only (never a toast stack)
+    if (!hydrated(el)) { later(el); return; }
     if (/^\s*saved\b/i.test(el.textContent ?? '') && !el.querySelector('[data-mo-saved]')) (el as HTMLElement).setAttribute('data-mo-saved', ''); else if (!/^\s*saved\b/i.test(el.textContent ?? '')) el.removeAttribute('data-mo-saved'); };
 
   // a line drawing that has played: not again this session (a client navigation back mounts it again)
@@ -184,7 +186,7 @@ export function startMotion(hooks: MotionHooks = {}): () => void {
   const onPress = (e: Event) => { const t = (e.target as Element | null)?.closest('button, summary, [aria-haspopup], [aria-expanded], a'); lastTrigger = t ? t.getBoundingClientRect() : null; };
   document.addEventListener('pointerdown', onPress, { capture: true, passive: true }); off.push(() => document.removeEventListener('pointerdown', onPress, { capture: true }));
   const popIn = (el: HTMLElement) => {
-    if (!motionAllowed() || !lastTrigger) return;
+    if (!motionAllowed() || !lastTrigger || !hydrated(el)) return;
     const r = el.getBoundingClientRect(); if (!r.width || !r.height) return;
     const x = Math.min(Math.max(lastTrigger.left + lastTrigger.width / 2 - r.left, 0), r.width), y = Math.min(Math.max(lastTrigger.top + lastTrigger.height / 2 - r.top, 0), r.height);
     el.style.setProperty('--mo-origin', `${Math.round(x)}px ${Math.round(y)}px`);

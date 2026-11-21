@@ -69,7 +69,9 @@ test('a request on a sample car becomes an enquiry for a similar real car, never
   const lead = await sql`select id, payload from leads where kind = 'sample_car' and email = ${email}`;
   expect(lead.length).toBe(1);
   expect(lead[0]!.payload.reference).toBe(number);
-  const task = await sql`select title, queue from tasks where task_type = 'sample_car_enquiry' and related_id = ${lead[0]!.id}`;
+  // by its key: since R48 SEO the enquiry may be merged into the person's earlier lead (the unfinished form), and the task
+  // then belongs to that lead
+  const task = await sql`select title, queue from tasks where task_type = 'sample_car_enquiry' and dedupe_key = ${`sample-enquiry:${lead[0]!.id}`}`;
   expect(task[0]?.queue).toBe('cs');
   expect(task[0]?.title).toContain('Suggest a similar real car');
   const booked = await sql`select count(*)::int n from bookings b join renters r on r.id = b.renter_id where lower(r.email) = ${email}`;

@@ -31,7 +31,8 @@ export async function writeCalendarMonth(month: string): Promise<R<{ added: numb
     const j = await door<Job>(user.id, 'ops_read', 'social_calendar_facts', {}, aal);
     const cal = monthPlan(j.facts, month, j.job.plan, j.job.learned, { recent: j.job.recent });
     if (!cal.posts.length) return { ok: false, code: 'empty', message: 'There is nothing to write for that month: its days have passed, or no car is listed with photos yet.' };
-    const r = await door<{ added: number }>(user.id, 'ops_do', 'social_cal_put', cal as unknown as Record<string, unknown>, aal);
+    // the database reads the month as a date (app.social_cal_store): its first day, not "2026-11" (which it refused)
+    const r = await door<{ added: number }>(user.id, 'ops_do', 'social_cal_put', { ...cal, month: `${month}-01` } as unknown as Record<string, unknown>, aal);
     for (const p of PATHS) revalidatePath(p);
     return { ok: true, data: { added: Number(r.added) || 0 } };
   } catch (e) { return fail(e); }

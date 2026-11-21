@@ -36,7 +36,7 @@ export function EmailRenter({ c, refresh = [], initialTo = 'renter' }: { c: Conv
         {senders.length > 1
           ? <select className="select" id="em-from" value={from} onChange={(e) => setSender(e.target.value as Sender)} data-testid="email-from">{senders.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
           : <input className="input" id="em-from" value={SENDERS[from].label} readOnly data-testid="email-from" />}
-        <span className="small muted">{SENDERS[from].address}{address ? `, to ${address}` : ''}. Replies come back to {from === 'blindspot' ? 'blindspotcarrental@carmacars.ca' : 'bookings@carmacars.ca'}.</span></div>
+        <span className="small muted" style={{ overflowWrap: 'anywhere' }}>{SENDERS[from].address}{address ? `, to ${address}` : ''}. Replies come back to {from === 'blindspot' ? 'blindspotcarrental@carmacars.ca' : 'bookings@carmacars.ca'}.</span></div>
       {to === 'renter' && c.quick_replies.length > 0 && <div className="field"><label className="label" htmlFor="em-pick">Quick reply</label>
         <select className="select" id="em-pick" defaultValue="" onChange={(e) => { const q = c.quick_replies.find((x) => x.id === e.target.value); if (q) { setBody(q.body); if (!subject.trim()) setSubject(q.title); } }} data-testid="email-quick-reply">
           <option value="">Choose a reply</option>{c.quick_replies.map((q) => <option key={q.id} value={q.id}>{q.title}</option>)}</select></div>}
