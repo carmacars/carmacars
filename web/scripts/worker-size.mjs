@@ -75,11 +75,97 @@ function patch() {
   console.log('worker-size: OpenNext load-manifest plugin patched (inlined stylesheets written once)');
 }
 
+// r48: what each input adds, from esbuild's metafile, printed with every check so a CI log shows the cause of growth
+// without a local build: the inputs grouped (a package, a route's files, the manifests, the shared chunks), then the files
+function report() {
+  const META = `${HANDLER}.meta.json`;
+  if (!fs.existsSync(META)) { console.log('worker-size: no metafile next to the bundle; no breakdown'); return; }
+  let out;
+  try { out = Object.values(JSON.parse(fs.readFileSync(META, 'utf8')).outputs ?? {}).find((o) => o.inputs && Object.keys(o.inputs).length > 100) ?? null; } catch { out = null; }
+  if (!out) { console.log('worker-size: the metafile has no bundle output; no breakdown'); return; }
+  const group = (f) => {
+    const nm = f.lastIndexOf('node_modules/');
+    if (nm >= 0) { const rest = f.slice(nm + 13).split('/'); return `pkg ${rest[0].startsWith('@') ? `${rest[0]}/${rest[1]}` : rest[0]}`; }
+    if (/client-reference-manifest/.test(f)) return 'manifests: client reference';
+    if (/manifest/.test(f)) return 'manifests: other';
+    const app = f.match(/\.next\/server\/app\/(.*)$/);
+    if (app) return `app ${app[1].split('/').slice(0, 2).join('/')}`;
+    if (/\.next\/server\/chunks\//.test(f)) return 'chunks (shared server code)';
+    return f.split('/').slice(-3).join('/');
+  };
+  const groups = new Map();
+  const files = [];
+  for (const [f, v] of Object.entries(out.inputs)) {
+    const b = v.bytesInOutput ?? 0;
+    groups.set(group(f), (groups.get(group(f)) ?? 0) + b);
+    files.push([f, b]);
+  }
+  const mb = (b) => `${(b / 1024 / 1024).toFixed(2)} MiB`;
+  console.log('worker-size: the largest groups of inputs');
+  for (const [g, b] of [...groups].sort((a, z) => z[1] - a[1]).slice(0, 30)) console.log(`  ${mb(b).padStart(10)}  ${g}`);
+  // Turbopack's shared server chunks: by layer (ssr/ renders client components, the rest is the server layer) and by the
+  // source their names start with (the hash left out), so a module copied into many chunks shows as one line with a count
+  const chunks = files.filter(([f]) => /\.next\/server\/chunks\//.test(f));
+  const ssr = chunks.filter(([f]) => /\/chunks\/ssr\//.test(f));
+  const sum = (xs) => xs.reduce((a, [, b]) => a + b, 0);
+  console.log(`worker-size: ${chunks.length} chunks, ${mb(sum(chunks))}: ssr layer ${ssr.length} (${mb(sum(ssr))}), server layer ${chunks.length - ssr.length} (${mb(sum(chunks) - sum(ssr))})`);
+  const stems = new Map();
+  for (const [f, b] of chunks) {
+    const stem = f.replace(/^.*\/chunks\//, '').replace(/_[0-9a-z-]{6,9}\._\.js$/i, '').replace(/\.js$/, '');
+    const s = stems.get(stem) ?? { n: 0, b: 0 };
+    s.n += 1; s.b += b; stems.set(stem, s);
+  }
+  console.log('worker-size: the chunks by name');
+  for (const [s, v] of [...stems].sort((a, z) => z[1].b - a[1].b).slice(0, 40)) console.log(`  ${mb(v.b).padStart(10)}  x${String(v.n).padEnd(4)} ${s}`);
+  console.log('worker-size: the largest input files');
+  for (const [f, b] of files.sort((a, z) => z[1] - a[1]).slice(0, 25)) console.log(`  ${mb(b).padStart(10)}  ${f.replace(/^.*?\.next\//, '.next/')}`);
+}
+
+// Turbopack writes each module into every chunk that needs it: the modules found in more than one chunk, by the bytes
+// their extra copies add (the module's id string starts each definition in a chunk)
+function duplicates() {
+  const dir = path.join(WEB, '.next/server/chunks');
+  if (!fs.existsSync(dir)) return;
+  const mods = new Map();
+  const walk = (d) => {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const p = path.join(d, e.name);
+      if (e.isDirectory()) { walk(p); continue; }
+      if (!e.name.endsWith('.js')) continue;
+      const src = fs.readFileSync(p, 'utf8');
+      // named ids ("[project]/src/x.tsx [app-ssr] (ecmascript)") or, minified, numeric ids: [id,(a,b)=>{...},id,...]
+      const named = /"\[project\]\/([^"]+?) \[([a-z-]+)\] \([^"]*\)",\s*(?:\(\(|function|\(__turbopack)/g;
+      const numeric = /[,[](\d{1,7}),(?:\(\w*(?:,\w+)*\)|\w+)=>\{/g;
+      const hits = [];
+      for (let m; (m = named.exec(src));) hits.push([m.index, `${m[1]} [${m[2]}]`]);
+      if (!hits.length) for (let m; (m = numeric.exec(src));) hits.push([m.index, `#${m[1]} [${/\/ssr\//.test(p) ? 'ssr' : 'rsc'}]`]);
+      hits.forEach(([at, id], i) => {
+        const size = (i + 1 < hits.length ? hits[i + 1][0] : src.length) - at;
+        const v = mods.get(id) ?? { n: 0, b: 0, peek: '' };
+        if (!v.peek) v.peek = src.slice(at, at + 160).replace(/\s+/g, ' ');
+        v.n += 1; v.b += size; mods.set(id, v);
+      });
+    }
+  };
+  walk(dir);
+  const mb = (b) => `${(b / 1024 / 1024).toFixed(2)} MiB`;
+  const rows = [...mods].map(([id, v]) => [id.startsWith('#') ? `${id} ${v.peek}` : id, v.n, v.b, v.b - v.b / v.n]).filter((r) => r[1] > 1);
+  console.log(`worker-size: ${mods.size} modules; copies beyond the first add ${mb(rows.reduce((a, r) => a + r[3], 0))}`);
+  const dirs = new Map();
+  for (const [id, , , extra] of rows) { const k = id.split('/').slice(0, 3).join('/'); dirs.set(k, (dirs.get(k) ?? 0) + extra); }
+  console.log('worker-size: extra copies by folder');
+  for (const [k, b] of [...dirs].sort((a, z) => z[1] - a[1]).slice(0, 20)) console.log(`  ${mb(b).padStart(10)}  ${k}`);
+  console.log('worker-size: the modules whose extra copies add the most');
+  for (const [id, n, , extra] of rows.sort((a, z) => z[3] - a[3]).slice(0, 30)) console.log(`  ${mb(extra).padStart(10)}  x${String(n).padEnd(4)} ${id}`);
+}
+
 function check() {
   if (!fs.existsSync(HANDLER)) { console.error('worker-size: no server bundle; run opennextjs-cloudflare build first'); process.exit(1); }
   const bytes = fs.statSync(HANDLER).size;
   const mib = bytes / 1024 / 1024;
   const line = `worker-size: server bundle ${mib.toFixed(1)} MiB (budget ${BUDGET_MIB} MiB; Cloudflare's limit 64 MiB for the whole Worker)`;
+  try { report(); } catch (e) { console.log(`worker-size: no breakdown (${e.message})`); }
+  try { duplicates(); } catch (e) { console.log(`worker-size: no duplicate count (${e.message})`); }
   if (mib > BUDGET_MIB) {
     console.error(`${line}: over budget. web/README.md, Worker size, shows how to see what each input adds`);
     // in CI the cause gets its own annotation: without the build no server starts, and the later steps only say "connection refused"
