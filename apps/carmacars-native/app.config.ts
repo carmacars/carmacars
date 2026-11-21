@@ -20,6 +20,9 @@ const iosFirebase = existsSync(here('GoogleService-Info.plist')) ? './GoogleServ
 const androidFirebase = existsSync(here('google-services.json')) ? './google-services.json' : undefined;
 // the pages the app shows natively; any other page of the site opens in the in-app browser
 const APP_LINK_PATHS = ['/cars', '/account', '/owner', '/staff', '/admin', '/app', '/sign-in'];
+// the phone's location questions (store review reads these): what it is for, and never off duty
+const LOC_IN_USE = 'CarmaCars uses your location to clock staff in and out at the car, to record where an agreement was signed, and to show you on the team\'s live map only while you are on shift or on a job, or around your pickup or return.';
+const LOC_ALWAYS = 'CarmaCars staff keep sharing their location with the team\'s live map while on shift or on an active job, also with the app closed. It is never taken off duty, and you can turn it off in Profile, Location on the live map.';
 
 const config: ExpoConfig = {
   name: 'CarmaCars',
@@ -46,9 +49,11 @@ const config: ExpoConfig = {
       ITSAppUsesNonExemptEncryption: false,
       NSCameraUsageDescription: 'CarmaCars uses the camera for your driver\'s licence, your selfie, and photos of the car at pickup and return.',
       NSPhotoLibraryUsageDescription: 'CarmaCars lets you choose a photo of your licence or of the car from your library.',
-      NSLocationWhenInUseUsageDescription: 'CarmaCars staff clock in and out at the car\'s location, and a signature can record where it was signed.',
+      NSLocationWhenInUseUsageDescription: LOC_IN_USE,
+      // r48 (3350): staff on shift or on a job keep the live map current with the app closed (the phone shows its blue pill)
+      NSLocationAlwaysAndWhenInUseUsageDescription: LOC_ALWAYS,
       NSFaceIDUsageDescription: 'Unlock CarmaCars with Face ID.',
-      UIBackgroundModes: ['remote-notification'],
+      UIBackgroundModes: ['remote-notification', 'location'],
       LSApplicationQueriesSchemes: ['tel', 'sms', 'mailto']
     },
     // Apple's privacy manifest: no tracking; what the app collects and why; the system APIs it touches and the reasons
@@ -75,9 +80,10 @@ const config: ExpoConfig = {
     versionCode: build,
     googleServicesFile: androidFirebase,
     adaptiveIcon: { foregroundImage: './assets/icon-foreground.png', backgroundImage: './assets/icon-background.png', backgroundColor: '#000000' },
-    permissions: ['CAMERA', 'ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION', 'POST_NOTIFICATIONS', 'USE_BIOMETRIC', 'USE_FINGERPRINT', 'VIBRATE'],
-    blockedPermissions: ['android.permission.RECORD_AUDIO', 'android.permission.READ_EXTERNAL_STORAGE', 'android.permission.WRITE_EXTERNAL_STORAGE', 'android.permission.SYSTEM_ALERT_WINDOW',
-      'android.permission.ACCESS_BACKGROUND_LOCATION'],
+    // r48 (3350): the live map; background location only for staff on shift or on a job, with the foreground-service notice
+    permissions: ['CAMERA', 'ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION', 'ACCESS_BACKGROUND_LOCATION', 'FOREGROUND_SERVICE', 'FOREGROUND_SERVICE_LOCATION',
+      'POST_NOTIFICATIONS', 'USE_BIOMETRIC', 'USE_FINGERPRINT', 'VIBRATE'],
+    blockedPermissions: ['android.permission.RECORD_AUDIO', 'android.permission.READ_EXTERNAL_STORAGE', 'android.permission.WRITE_EXTERNAL_STORAGE', 'android.permission.SYSTEM_ALERT_WINDOW'],
     intentFilters: [{
       action: 'VIEW', autoVerify: true, category: ['BROWSABLE', 'DEFAULT'],
       data: [SITE, `www.${SITE}`].flatMap((host) => APP_LINK_PATHS.map((pathPrefix) => ({ scheme: 'https', host, pathPrefix })))
@@ -90,7 +96,9 @@ const config: ExpoConfig = {
     ['expo-local-authentication', { faceIDPermission: 'Unlock CarmaCars with Face ID.' }],
     ['expo-image-picker', { cameraPermission: 'CarmaCars uses the camera for your driver\'s licence, your selfie, and photos of the car at pickup and return.',
       photosPermission: 'CarmaCars lets you choose a photo of your licence or of the car from your library.', microphonePermission: false }],
-    ['expo-location', { locationWhenInUsePermission: 'CarmaCars staff clock in and out at the car\'s location, and a signature can record where it was signed.' }],
+    ['expo-location', { locationWhenInUsePermission: LOC_IN_USE,
+      locationAlwaysAndWhenInUsePermission: LOC_ALWAYS, locationAlwaysPermission: LOC_ALWAYS,
+      isIosBackgroundLocationEnabled: true, isAndroidBackgroundLocationEnabled: true, isAndroidForegroundServiceEnabled: true }],
     ['expo-notifications', { icon: './assets/notification/icon.png', color: '#d0111b', defaultChannel: 'alerts' }],
     // Firebase on iPhone needs static frameworks; both platforms build with the new architecture (React Native's default)
     ['expo-build-properties', { ios: { useFrameworks: 'static', deploymentTarget: '16.4' }, android: { minSdkVersion: 28 } }],

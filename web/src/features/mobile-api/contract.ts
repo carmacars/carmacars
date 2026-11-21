@@ -7,6 +7,7 @@
 // person (the same accounts as the website), so what a person may read or do is decided where it always was: in the
 // database. A new route is added here first; the route file will not compile until it has a handler.
 import { arr, bag, bool, num, obj, oneOf, opt, str, type Shape } from './shape.ts';
+import type { MyLocation } from '../live-map/people.ts';
 
 export const API_PREFIX = '/api/m/v1';
 /** Sent by the app with every call ("<app version> <ios|android>"), so the server can tell an app too old to work. */
@@ -102,6 +103,11 @@ export const ROUTES = {
   // r48 (3261, 3262): the staff member's My rewards and the owner's Rewards, as the portals show them
   'staff.rewards': get('/staff/rewards'),
   'owner.rewards': get('/owner/rewards'),
+  // r48 (3350): Location on the live map, the same door as the site's /api/me/location: whether this person's location is
+  // taken now and why; report a position (the app's own, source app), the switch, or the staff electronic monitoring policy
+  'me.location': get('/me/location'),
+  'me.locationAct': send('POST', '/me/location', obj({ action: oneOf('report', 'prefs', 'policy'), lat: opt(num({ min: -90, max: 90 })), lng: opt(num({ min: -180, max: 180 })),
+    accuracy_m: opt(num({ min: 0, max: 100_000 })), at: opt(str({ max: 40 })), sharing_on: opt(bool), version: opt(str({ max: 40 })) })),
   notices: get('/notices'),
   'notices.read': send('POST', '/notices/read', obj({ ids: opt(arr(uuid(), { max: 200 })) })),
   // ---- renter
@@ -243,6 +249,7 @@ export interface Responses {
   'auth.signIn': MobileSession; 'auth.refresh': MobileSession; 'auth.phoneStart': { phone: string; display: string }; 'auth.phoneVerify': MobileSession & { needs_name?: boolean };
   'auth.passkeyOptions': PasskeyOptions; 'auth.passkeyVerify': MobileSession; 'auth.twoStep': MobileSession;
   me: Me; 'me.passkeys': PasskeyRow[]; 'me.passkeyOptions': PasskeyOptions; 'me.passkeyAdd': PasskeyRow[]; 'me.passkeyRemove': PasskeyRow[];
+  'me.location': MyLocation; 'me.locationAct': MyLocation & { stored?: boolean };
   'me.deletionAsk': Deletion; 'me.deletionWithdraw': Deletion; 'me.pushOn': PushState; 'me.pushOff': PushState; 'me.pushTopics': PushState; 'me.pushTest': { queued: number };
   'trip.payStart': StartedPayment; 'trip.upload': UploadSlot; 'trip.agreement': AgreementView; 'trip.esign': EsignView;
   'trip.checkinPhoto': { bucket: string; path: string }; 'trip.returnPhoto': { bucket: string; path: string }; 'trip.checkin': { status: string; reason?: string }; 'trip.return': { status: string }; 'field.photo': { key: string; problems?: string[] };

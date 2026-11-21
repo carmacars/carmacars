@@ -8,6 +8,8 @@ import { AppProvider, useApp } from '@/app-state';
 import { homeTab } from '@/logic/roles';
 import { color } from '@/theme';
 import { LockScreen, OfflineBanner } from '@/ui/shell';
+// defines the live map's background location task before anything else runs (expo-task-manager needs it at the start)
+import '@/location';
 
 // The root of the app: the shared state, the black header of every screen, the offline bar and the app lock. Links from
 // outside (universal links and app links to carmacars.ca, carmacars://) are turned into screens by app/+native-intent.tsx;

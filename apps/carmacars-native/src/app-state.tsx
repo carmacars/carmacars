@@ -3,11 +3,12 @@ import { AppState as PhoneState } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { useRouter } from 'expo-router';
 import { createClient, type Client, type Result } from '@/api/client';
-import type { AppConfig, Me, MobileSession, Portal, RouteId } from '@/shared';
+import { STATE_MS, type AppConfig, type Me, type MobileSession, type Portal, type RouteId } from '@/shared';
 import { API_URL, APP_VERSION, canLock, getFlag, openSite, PLATFORM, sessionStore, setFlag, SITE_HOSTS, unlockWithDevice } from '@/native';
 import { onBackground, onForeground, onUnlocked, type LockState } from '@/logic/lock';
 import { targetFor } from '@/logic/links';
 import { forgetPushOnSignOut, watchPush } from '@/push';
+import { setLocationClient, stopAll as stopLocation, sync as syncLocation } from '@/location';
 
 // What every screen shares: the API client, who is signed in and what they hold, whether the server can be reached,
 // and the app lock. One provider at the root (app/_layout.tsx).
@@ -64,7 +65,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // another account, or nobody: nothing loaded for the last person stays in memory or on screen
     let who: string | null | undefined;
     const off = sessionStore.subscribe((s) => {
-      if (who !== undefined && who !== (s?.user.id ?? null)) forgetLoaded();
+      if (who !== undefined && who !== (s?.user.id ?? null)) { forgetLoaded(); void stopLocation(); }
       who = s?.user.id ?? null;
       setSession(s); setLock((l) => ({ ...l, signedIn: !!s })); if (!s) setMe(null);
     });
@@ -109,11 +110,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const openRef = useRef(open);
   openRef.current = open;
   useEffect(() => (session ? watchPush(api, () => portalRef.current, (u) => openRef.current(u)) : undefined), [api, !!session]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Location on the live map (src/location): asked again when the account loads, when the app comes back, and every 5 minutes
+  const meId = me?.user.id ?? null;
+  useEffect(() => {
+    if (!meId) return;
+    setLocationClient(api);
+    void syncLocation({ prompt: true });
+    const t = setInterval(() => { if (PhoneState.currentState === 'active') void syncLocation(); }, STATE_MS);
+    const sub = PhoneState.addEventListener('change', (st) => { if (st === 'active') void syncLocation({ prompt: true }); });
+    return () => { clearInterval(t); sub.remove(); };
+  }, [api, meId]);
 
   const value: Value = {
     api, ready, config, session, me, online: connected && reachable, locked: lock.locked, lockEnabled: lock.enabled, lockAvailable, portal, open, reloadMe,
     async signedIn(s) { await api.adopt(s); return reloadMe(); },
-    async signOut() { await forgetPushOnSignOut(api).catch(() => undefined); await api.signOut(); setMe(null); },
+    async signOut() { await stopLocation().catch(() => undefined); await forgetPushOnSignOut(api).catch(() => undefined); await api.signOut(); setMe(null); },
     async setLockEnabled(on) {
       // turning it on or off asks for the face, the finger or the passcode first
       if (!(await unlockWithDevice(on ? 'Turn on app lock' : 'Turn off app lock'))) return false;

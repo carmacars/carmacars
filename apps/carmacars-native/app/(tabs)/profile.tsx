@@ -78,6 +78,12 @@ export default function Profile() {
         <Button label="Passkeys" variant="outline" onPress={() => router.push('/settings/passkeys' as never)} testID="passkeys" />
       </Card>
 
+      <H2>Privacy</H2>
+      <Card>
+        <Small>Location on the live map: staff only on shift or on a job, renters and owners only around a pickup or return.</Small>
+        <Button label="Location on the live map" variant="outline" onPress={() => router.push('/settings/location' as never)} testID="location-open" />
+      </Card>
+
       {portalHome ? (<>
         <H2>{me?.roles.admin ? 'Admin' : 'More of your work'}</H2>
         <Card>
