@@ -41,7 +41,7 @@ import { ORIGIN_WAIT_MS, STALE_HEADER, hasSession, isProbe, staleKey, staleWorth
 import { checkPage, marketOf, marketStored, offMarketPlace, oldModelYear, oldYearGone, outOfMarket, placeRegionBit, scraperGuard, tooMany, vehiclePageYear } from '../src/lib/edge/scraper-guard.ts';
 import { RATE_LIMITED_BOT, keptToScope, shield, shieldResponse } from '../src/lib/edge/bot-shield.ts';
 import { hostAction } from '../src/lib/edge/canonical-host.ts';
-import { portalSignIn } from '../src/lib/edge/portal-gate.ts';
+import { PATH_HEADER, portalPathHeader, portalSignIn } from '../src/lib/edge/portal-gate.ts';
 import { jobsToRun, pushWaiting } from '../src/lib/edge/cron-gate.ts';
 import { kickNow, notifyKick, tickPlan } from '../src/lib/edge/notify-kick.ts';
 import { cronEnabled, jobsForTick } from '../src/lib/platform/cron-plan.ts';
@@ -295,6 +295,9 @@ async function handle(req, res) {
   headers['x-forwarded-host'] = host; headers['x-forwarded-proto'] = proto;
   delete headers[ADMIN_AREA_HEADER];
   if (isAdminArea(pathname)) headers[ADMIN_AREA_HEADER] = '1';
+  // R48: a portal page's path for its layout (src/server/portal-access.ts), never the client's own value
+  delete headers[PATH_HEADER];
+  { const p = portalPathHeader(pathname); if (p) headers[PATH_HEADER] = p; }
 
   // the session refreshed here, where the response can set the cookie, before a page reads it (src/lib/auth/edge-refresh.ts)
   let setCookies = [];

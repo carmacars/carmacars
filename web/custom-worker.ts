@@ -16,7 +16,7 @@ import { EDGE_CACHE_NAME, STALE_HEADER, STALE_TTL_S, busyPage, crawlerCopy, hasS
 import { BUSY_KEY, BUSY_MS, BusyMeter, PLACE_FOREIGN_KEY, PLACE_MARKET_KEY, USAGE_CACHED_KEY, VPAGE_MIN_YEAR_KEY, checkPage, httpsRedirect, longTail, marketOf, marketStored, offMarketPlace, oldModelYear, oldYearGone, outOfMarket, placeRegionBit, renderFailed, scraperGuard, tailServing, tooMany, vehiclePageYear, verifiedSearchEngine } from './src/lib/edge/scraper-guard';
 import { jobsToRun, pushWaiting } from './src/lib/edge/cron-gate';
 import { RATE_LIMITED_BOT, isCrawler, keptToScope, shield, shieldResponse } from './src/lib/edge/bot-shield';
-import { portalSignIn } from './src/lib/edge/portal-gate';
+import { PATH_HEADER, portalPathHeader, portalSignIn } from './src/lib/edge/portal-gate';
 import { CPU_GUARD_KEY, SEARCH_SCOPE_KEY, FLEET_SIG_CONFIRM_KEY, FLEET_SIG_KEY, fleetRows, signatureOf } from './src/lib/edge/fleet-sig';
 import { WARM_KEY, warmBatch, warmDone, warmPaths, warmValue } from './src/lib/edge/warm';
 import { readNumber, writeNumber } from './src/lib/edge/page-cache';
@@ -442,10 +442,15 @@ const worker = {
       if (r) { req = r.request; setCookies = r.setCookies; }
     }
     // The Admin portal is always the Admin themselves, even while viewing as someone elsewhere (src/server/view-as.ts).
-    if (req.headers.has(ADMIN_AREA_HEADER) || isAdminArea(path)) {
+    // R48: a portal page's path for its layout, which refuses above the loading boundary (src/server/portal-access.ts);
+    // never the client's own value
+    const portalPath = portalPathHeader(path);
+    if (req.headers.has(ADMIN_AREA_HEADER) || isAdminArea(path) || req.headers.has(PATH_HEADER) || portalPath) {
       const h = new Headers(req.headers);
       h.delete(ADMIN_AREA_HEADER);
       if (isAdminArea(path)) h.set(ADMIN_AREA_HEADER, '1');
+      h.delete(PATH_HEADER);
+      if (portalPath) h.set(PATH_HEADER, portalPath);
       req = new Request(req, { headers: h });
     }
     // The public pages the page cache answered before, from this data centre's copy, without loading the app

@@ -1,4 +1,6 @@
 import '@/styles/portal.css';
+import { requestPath } from '@/server/portal-access';
+import { requireOwner } from '@/server/owner/data';
 import '@/styles/owner.css';
 import '@/components/portal-ui/portal-ui.css';
 import '@/styles/portal-revamp.css';
@@ -22,6 +24,10 @@ import { liveTokens } from '@/server/live';
 // The owner portal shell (04-owner.md): the same phone-first frame as the renter portal. Each page
 // checks the session and the owner role itself (requireOwner).
 export default async function OwnerLayout({ children }: { children: React.ReactNode }) {
+  // R48: the home's own gate here, above the loading boundary, so a refusal is a real 307 (server/portal-access.ts). The
+  // other owner pages keep their own checks (some open from emailed links without a session).
+  const path = await requestPath();
+  if (path && /^\/owner\/?$/.test(path)) await requireOwner('/owner');
   const user = await currentUser();
   if (!user) return <>{children}</>;
   const [unread, partner, live] = await Promise.all([

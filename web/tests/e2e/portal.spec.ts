@@ -248,7 +248,7 @@ test('renter portal: offer, approve, sign, pay, confirmed, documents, uploads, s
   await page.goto('/account/notifications');
   await page.waitForURL(/\/account\/profile\?tab=notifications/);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Account');
-  await expect(page.locator('#pt-prefs')).toHaveText('Email preferences');
+  await expect(page.locator('#pt-prefs')).toHaveText('Offers and news');
   await axe(page, 'notifications');
   await page.goto('/account/profile');
   await expect(page.locator('#pt-p-address_line1')).toHaveValue('100 Queen Street West');

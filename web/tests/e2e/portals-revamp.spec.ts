@@ -91,7 +91,7 @@ test('renter portal: Trips opens on what to do now, Account has two tabs, old ad
     await check(page, 'renter account profile');
     await page.getByTestId('tab-notifications').click();
     await page.waitForURL(/tab=notifications/);
-    await expect(page.locator('#pt-prefs')).toHaveText('Email preferences');
+    await expect(page.locator('#pt-prefs')).toHaveText('Offers and news');
     await check(page, 'renter account notifications');
     await moved(page, '/account/notifications?x=1', /\/account\/profile\?tab=notifications&x=1$/);
     await moved(page, '/account/bookings?welcome=1', /\/account\?welcome=1$/);
@@ -128,7 +128,7 @@ test('owner portal: five links, home with earned, cars out, next payout first, C
   }
   // the email preferences are on the owner's own Notifications tab now
   await page.goto('/owner/account?tab=notifications', { waitUntil: 'networkidle' });
-  await expect(page.locator('#pt-prefs')).toHaveText('Email preferences');
+  await expect(page.locator('#pt-prefs')).toHaveText('Offers and news');
   for (const [from, to] of [
     ['/owner/statements', /\/owner\/money\?tab=statements$/], ['/owner/payouts', /\/owner\/money\?tab=payouts$/], ['/owner/invoices?paid=1', /\/owner\/money\?tab=invoices&paid=1$/],
     ['/owner/bookings?vehicle=abc', /\/owner\/vehicles\?tab=bookings&vehicle=abc$/], ['/owner/profile', /\/owner\/account\?tab=profile$/], ['/owner/banking', /\/owner\/account\?tab=banking$/],

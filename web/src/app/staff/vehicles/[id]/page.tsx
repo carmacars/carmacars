@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
 import { VehiclePage } from '@/features/vehicle-page/VehiclePage';
 import { staffCtx } from '@/features/shared-pages/context';
+import { STAFF_ONLY } from '@/server/portal-access';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Vehicle', path: '/staff', noindex: true, description: 'One vehicle for Fleet and customer service.' });
@@ -11,5 +12,5 @@ export const metadata = pageMeta({ title: 'Vehicle', path: '/staff', noindex: tr
 export default async function VaVehicle({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
-  return <VehiclePage ctx={await staffCtx(`/staff/vehicles/${id}`, ['fleet', 'cs', 'finance'])} id={id} sp={sp} />;
+  return <VehiclePage ctx={await staffCtx(`/staff/vehicles/${id}`, STAFF_ONLY.vehicle)} id={id} sp={sp} />;
 }

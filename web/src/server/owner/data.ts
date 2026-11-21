@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 import { notFound, redirect } from 'next/navigation';
 import type { SessionUser } from '@/lib/auth';
 import { DbError, rpc } from '@/lib/db/repo';
@@ -22,13 +23,17 @@ export async function requireOwnerUser(next = '/owner'): Promise<SessionUser> {
 
 /** The owner's home data, or null when the signed-in account is not an owner. */
 export async function ownerHome(u: SessionUser): Promise<OwnerHome | null> {
+  return homeOf(u.id);
+}
+// asked by the layout (R48: the home's gate above the loading boundary) and by the page in the same render: once per request
+const homeOf = cache(async (id: string): Promise<OwnerHome | null> => {
   try {
-    return (await rpc('owner_portal_home', { p_by: u.id }, SR)) as unknown as OwnerHome;
+    return (await rpc('owner_portal_home', { p_by: id }, SR)) as unknown as OwnerHome;
   } catch (e) {
     if (e instanceof DbError && /Not an owner account/.test(e.message)) return null;
     throw e;
   }
-}
+});
 
 export async function requireOwner(next = '/owner'): Promise<{ user: SessionUser; home: OwnerHome }> {
   const user = await requireOwnerUser(next);

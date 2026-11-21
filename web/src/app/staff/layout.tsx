@@ -1,4 +1,5 @@
 import '@/styles/portal.css';
+import { requestPath, staffGate } from '@/server/portal-access';
 import '@/styles/owner.css';
 import '@/styles/admin.css';
 import '@/components/portal-ui/portal-ui.css';
@@ -49,6 +50,10 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   // one after another before any staff page could show)
   // an Admin viewing the portal as someone (read only) gets the pop-up's empty region and no live read (the Admin's own, in Admin)
   const [roles, viewing] = user ? await Promise.all([rolesOf(user.id).catch(() => null), viewAs().catch(() => null)]) : [null, null];
+  // R48: the homes' and the shared pages' own gate here, above the loading boundary, so a refusal is a real 307 or 404
+  // (server/portal-access.ts)
+  const path = await requestPath();
+  if (path) await staffGate(path);
   const held = heldFunctions(roles?.functions?.length ? roles.functions : [...(roles?.va_functions ?? (roles?.va ? [roles.va] : [])), ...(roles?.field ? ['field'] : [])]);
   const office = !!roles?.va;
   const staff = office || !!roles?.field;

@@ -16,7 +16,7 @@ export function pageFunction(chosen: Fn, held: readonly Fn[], only?: readonly Fn
   return held.find((f) => only.includes(f)) ?? null;
 }
 
-export async function vaPage(next: string, only?: Fn[]) {
+export async function vaPage(next: string, only?: readonly Fn[]) {
   const { user, roles } = await requireStaff('va', next);
   const fn = pageFunction(roles.va as Fn, roles.va_functions?.length ? roles.va_functions : [roles.va as Fn], only);
   if (!fn) notFound();

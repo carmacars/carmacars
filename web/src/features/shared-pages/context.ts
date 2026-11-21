@@ -31,7 +31,7 @@ export async function adminCtx(next: string): Promise<PageCtx> {
   };
 }
 
-export async function staffCtx(next: string, only?: Fn[]): Promise<PageCtx> {
+export async function staffCtx(next: string, only?: readonly Fn[]): Promise<PageCtx> {
   const { user, read, list, fn, aal } = await vaPage(next, only);
   return {
     viewer: staffViewer(fn), user, aal, read, list,
