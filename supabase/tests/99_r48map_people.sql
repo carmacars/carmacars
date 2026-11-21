@@ -43,24 +43,29 @@ select test.mpdo('mp_fleet', 'location_policy_accept', jsonb_build_object('versi
 select test.mpdo('mp_fleet', 'location_policy_accept', jsonb_build_object('version', app.location_policy() ->> 'version'));
 select test.eq('accepted once: one copy queued (email), the audit log has it',
   format('%s %s', (select count(*) from app_events where code = 'staff_location_policy' and entity_id = test.id('mp_fleet')),
-         (select count(*) > 0 from audit_log where entity_table = 'location_prefs' and entity_id = test.id('mp_fleet')::text)), '1 true');
+         (select (count(*) > 0)::text from audit_log where entity_table = 'location_prefs' and entity_id = test.id('mp_fleet')::text)), '1 true');
 select test.eq('policy accepted, still off duty: not stored', test.mpdo('mp_fleet', 'location_report', test.mppos(43.65, -79.38)) ->> 'why', 'off_duty');
 insert into staff_clock_entries (user_id, started_at, created_by) values (test.id('mp_fleet'), now() - interval '1 hour', test.id('mp_fleet'));
-select test.eq('clocked in: stored, the latest only', format('%s %s %s', test.mpdo('mp_fleet', 'location_report', test.mppos(43.65, -79.38)) ->> 'stored',
+-- a function's writes are not seen by the other parts of the same statement: the call goes first, on its own (\gset)
+select test.mpdo('mp_fleet', 'location_report', test.mppos(43.65, -79.38)) ->> 'stored' as r \gset
+select test.eq('clocked in: stored, the latest only', format('%s %s %s', :'r',
   (select reason from person_locations where user_id = test.id('mp_fleet')), (select count(*) from location_job_points where user_id = test.id('mp_fleet'))), 'true shift 0');
 select test.eq('a second report within 20 seconds is not stored', test.mpdo('mp_fleet', 'location_report', test.mppos(43.70, -79.40)) ->> 'why', 'soon');
 select test.eq('a reading older than 2 minutes is not stored',
   test.mpdo('mp_fleet', 'location_report', test.mppos(43.70, -79.40) || jsonb_build_object('at', now() - interval '10 minutes')) ->> 'why', 'stale');
 select test.throws('a position out of range is refused', $$ select test.mpdo('mp_fleet', 'location_report', '{"lat": 200, "lng": 0}') $$, '%could not be read%');
+select test.mpdo('mp_fleet', 'location_prefs_save', '{"sharing_on": false}') ->> 'why' as r \gset
 select test.eq('on shift, staff may turn it off; the position goes at once',
-  format('%s %s', test.mpdo('mp_fleet', 'location_prefs_save', '{"sharing_on": false}') ->> 'why', (select count(*) from person_locations where user_id = test.id('mp_fleet'))), 'off 0');
+  format('%s %s', :'r', (select count(*) from person_locations where user_id = test.id('mp_fleet'))), 'off 0');
 select test.mpdo('mp_fleet', 'location_prefs_save', '{"sharing_on": true}');
+select test.eq('back on: the next report is stored', test.mpdo('mp_fleet', 'location_report', test.mppos(43.65, -79.38)) ->> 'stored', 'true');
 
 -- field staff on a job: locked on, job points kept
 select test.mpdo('mp_field', 'location_policy_accept', jsonb_build_object('version', app.location_policy() ->> 'version'));
 insert into field_jobs (id, kind, booking_id, vehicle_id, assigned_to, scheduled_at, place, status)
 values (test.id('job:mp1'), 'handover', test.id('booking:MP-1'), test.id('vehicle:mp_car'), test.id('mp_field'), now() + interval '30 minutes', '1 Example St', 'acknowledged');
-select test.eq('field staff on a job, not clocked in: stored for the job, with a job point', format('%s %s %s', test.mpdo('mp_field', 'location_report', test.mppos(43.60, -79.50, 'app')) ->> 'reason',
+select test.mpdo('mp_field', 'location_report', test.mppos(43.60, -79.50, 'app')) ->> 'reason' as r \gset
+select test.eq('field staff on a job, not clocked in: stored for the job, with a job point', format('%s %s %s', :'r',
   (select source || '/' || (field_job_id = test.id('job:mp1')) from person_locations where user_id = test.id('mp_field')),
   (select count(*) from location_job_points where field_job_id = test.id('job:mp1'))), 'job app/true 1');
 select test.throws('during an active job, sharing cannot be turned off', $$ select test.mpdo('mp_field', 'location_prefs_save', '{"sharing_on": false}') $$, '%stays on during an active job%');
@@ -69,9 +74,11 @@ select test.eq('the job done (not on shift): the position leaves the map at once
   format('%s %s', (select count(*) from person_locations where user_id = test.id('mp_field')), (select count(*) from location_job_points where field_job_id = test.id('job:mp1'))), '0 1');
 
 -- ================================================================ 3. renters and owners: only around a pickup or return
-select test.eq('Rita, pickup in an hour: stored for the pickup', format('%s %s', test.mpdo('mp_rita', 'location_report', test.mppos(43.66, -79.39)) ->> 'stored',
+select test.mpdo('mp_rita', 'location_report', test.mppos(43.66, -79.39)) ->> 'stored' as r \gset
+select test.eq('Rita, pickup in an hour: stored for the pickup', format('%s %s', :'r',
   (select reason || '/' || (booking_id = test.id('booking:MP-1')) from person_locations where user_id = test.id('mp_rita'))), 'true pickup/true');
-select test.eq('Sam, pickup in 10 days: hidden, nothing stored', format('%s %s', test.mpdo('mp_sam', 'location_report', test.mppos(43.70, -79.30)) ->> 'why',
+select test.mpdo('mp_sam', 'location_report', test.mppos(43.70, -79.30)) ->> 'why' as r \gset
+select test.eq('Sam, pickup in 10 days: hidden, nothing stored', format('%s %s', :'r',
   (select count(*) from person_locations where user_id = test.id('mp_sam'))), 'no_booking 0');
 select test.eq('the owner of the car, at the same pickup: stored', test.mpdo('mp_owner', 'location_report', test.mppos(43.67, -79.41)) ->> 'stored', 'true');
 
@@ -83,16 +90,19 @@ select test.eq('customer service sees only the renter at a pickup; Finance and f
 select test.throws('a renter cannot read the map', $$ select test.mpread('mp_rita', 'live_people') $$, '%Staff only%');
 select test.eq('a marker carries the role, the reason and the booking', (select format('%s %s %s', x ->> 'role', x ->> 'reason', x ->> 'booking_number')
   from jsonb_array_elements(test.mpread('mp_admin', 'live_people') -> 'people') x where x ->> 'name' = 'Mp Rita'), 'renter pickup MP-1');
-select test.eq('my_location tells the person their own state', (select format('%s %s %s', s ->> 'kind', s ->> 'share', s -> 'latest' is not null) from test.mpread('mp_rita', 'my_location') s), 'renter true true');
+select test.eq('my_location tells the person their own state', (select format('%s %s %s', s ->> 'kind', s ->> 'share', (s -> 'latest' is not null)::text) from test.mpread('mp_rita', 'my_location') s), 'renter true true');
 
 -- ================================================================ 5. off means off; the job purges what stops qualifying
+select test.mpdo('mp_rita', 'location_prefs_save', '{"sharing_on": false}') ->> 'share' as r \gset
 select test.eq('Rita turns it off: her position goes at once',
-  format('%s %s', test.mpdo('mp_rita', 'location_prefs_save', '{"sharing_on": false}') ->> 'share', (select count(*) from person_locations where user_id = test.id('mp_rita'))), 'false 0');
+  format('%s %s', :'r', (select count(*) from person_locations where user_id = test.id('mp_rita'))), 'false 0');
 update staff_clock_entries set ended_at = now() where user_id = test.id('mp_fleet') and ended_at is null;
+select ((app.location_purge() ->> 'locations_deleted')::int >= 1)::text as r \gset
 select test.eq('clocked out: the location job deletes the position (no history)',
-  format('%s %s', (app.location_purge() ->> 'locations_deleted')::int >= 1, (select count(*) from person_locations where user_id = test.id('mp_fleet'))), 'true 0');
+  format('%s %s', :'r', (select count(*) from person_locations where user_id = test.id('mp_fleet'))), 'true 0');
 update location_job_points set at = now() - interval '31 days' where field_job_id = test.id('job:mp1');
-select test.eq('a job''s points are deleted after 30 days', format('%s %s', (app.job_tracker() ? 'job_points_deleted'), (select count(*) from location_job_points where field_job_id = test.id('job:mp1'))), 'true 0');
+select (app.job_tracker() ? 'job_points_deleted')::text as r \gset
+select test.eq('a job''s points are deleted after 30 days', format('%s %s', :'r', (select count(*) from location_job_points where field_job_id = test.id('job:mp1'))), 'true 0');
 
 -- ================================================================ 6. the notification
 select app.process_events(100000);
