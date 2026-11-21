@@ -13,10 +13,10 @@ Each rule says how it is enforced. "Test" means it fails CI; "review" means noth
 | Rule | Enforced by |
 | --- | --- |
 | Every table in `public` and `app` has row-level security. A new table also gets the `admin_all` policy and nothing for `anon` or `PUBLIC`. | Test: `supabase/tests/99_r35sec_security.sql`, `04_rls.sql` |
-| No policy applies to `anon` or `PUBLIC`; no insert, update or delete policy is a plain `true`. | Test: `99_r35sec_security.sql` |
+| No policy applies to `anon` or `PUBLIC`; no insert, update or delete policy is a plain `true`. | Test: `99_r35sec_security.sql`, `99_r48sec_security.sql` |
 | The anonymous role reads one relation (`public_vehicle_listings`) and writes none; browser roles have nothing in `app` except reading their own rate limit hits. | Test: `99_r35sec_security.sql`, `04_rls.sql` |
 | Every view a browser session reads is `security_barrier` (or `security_invoker`). | Test: `99_r35sec_security.sql` |
-| Every `SECURITY DEFINER` function sets `search_path`. None is executable by `PUBLIC`: end each migration by revoking from `public, anon, authenticated` and granting `service_role` (and a browser role only on purpose). PostgreSQL grants execute to `PUBLIC` by default, and `alter default privileges in schema ...` cannot take that away. | Test: `99_r35sec_security.sql` |
+| Every `SECURITY DEFINER` function sets `search_path` with `pg_temp` last (`set search_path = public, app, pg_temp`; r48 audit). None is executable by `PUBLIC`: end each migration by revoking from `public, anon, authenticated` and granting `service_role` (and a browser role only on purpose). PostgreSQL grants execute to `PUBLIC` by default, and `alter default privileges in schema ...` cannot take that away. | Test: `99_r35sec_security.sql` |
 | The door allow-list: the functions the API serves to a visitor, and the ones it adds for a signed-in session, are listed in the test. Adding one is a decision, with its reason in the migration. Staff, owners and investors go through `public.door` from the server only. | Test: `99_r35sec_security.sql` (names any extra function) |
 | A visitor-callable function that writes checks `app.public_rate_check` (or is token-gated). | Test: `99_r35sec_security.sql` |
 | Business rules and role checks live in the database; the UI only mirrors them. Every rule has a DB test, role checks included. | Review; DB tests per release |

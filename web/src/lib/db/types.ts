@@ -24573,6 +24573,24 @@ export type Database = {
         };
         Relationships: [];
       };
+      revoked_bearers: {
+        Row: {
+          key: string;
+          revoked_at: string;
+          expires_at: string;
+        };
+        Insert: {
+          key: string;
+          revoked_at?: string;
+          expires_at: string;
+        };
+        Update: {
+          key?: string;
+          revoked_at?: string;
+          expires_at?: string;
+        };
+        Relationships: [];
+      };
       reward_accounts: {
         Row: {
           renter_id: string;
@@ -35546,6 +35564,8 @@ export type Database = {
       server_balance_next: { Args: { p_booking: string }; Returns: Json };
       server_balance_payreq: { Args: { p_booking: string; p_token_sha256: string; p_amount: number }; Returns: Json };
       server_balance_payreq_send: { Args: { p_id: string; p_link: string }; Returns: Json };
+      server_bearer_revoke: { Args: { p_keys: string[]; p_until: string }; Returns: undefined };
+      server_bearer_revoked: { Args: { p_keys: string[] }; Returns: boolean };
       server_blindspot_facts: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_booking_addon_buy: { Args: { p_booking: string; p_by: string; p: Json }; Returns: Json };
       server_booking_addon_failed: { Args: { p_row: string; p_by: string; p_reason: string }; Returns: undefined };
@@ -35946,6 +35966,7 @@ export type Database = {
       server_sign_in_alias: { Args: { p_email?: string; p_user?: string }; Returns: Json };
       server_sign_in_allowed: { Args: { p_email: string }; Returns: boolean };
       server_sign_in_event: { Args: { p: Json }; Returns: undefined };
+      server_sign_in_ip_allowed: { Args: { p_ip: string }; Returns: boolean };
       server_sign_now_prepare: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_sign_request_attach: { Args: { p_id: string; p_path: string; p_sha256: string }; Returns: string };
       server_sign_request_document: { Args: { p_id: string }; Returns: Json };

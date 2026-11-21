@@ -13,7 +13,8 @@ import { LAST_PORTAL_COOKIE } from '@/features/access/roles';
 import { afterSignIn, clearSessionCookies, rememberSignIn } from '@/server/after-sign-in';
 import { passwordLinkTarget, rememberEmail, siteBase } from '@/server/auth-links';
 import { captureDone, claimPendingAccount, passwordLinkForCaptured } from '@/server/capture';
-import { SIGN_IN_PAUSED, signInPaused } from '@/features/auth/sign-in-pause';
+import { SIGN_IN_IP_PAUSED, SIGN_IN_PAUSED, signInPaused } from '@/features/auth/sign-in-pause';
+import { signInIpPaused } from '@/server/sign-in-ip';
 
 // Sign-in is Supabase Auth (email and password, reset by email). A new account also gets its users
 // row and the renter role (public.register_account, 0027) with the same id as the sign-in account.
@@ -29,6 +30,8 @@ export async function signIn(_: unknown, fd: FormData): Promise<ActionResult> {
   // is sign-in security's own, 0466; the same answer whether or not the address has an account)
   const allowed = await rpc('server_sign_in_allowed' as never, { p_email: p.data.email } as never, { role: 'service_role' }).catch(() => null);
   if (signInPaused(allowed)) return { ok: false, code: 'rate_limited', message: SIGN_IN_PAUSED };
+  // r48 security audit (3400): and by address, so one connection cannot try a password on many accounts
+  if (await signInIpPaused((await requestMeta()).ip)) return { ok: false, code: 'rate_limited', message: SIGN_IN_IP_PAUSED };
   const a = await auth();
   // 0955: two accounts of one person were merged: either email signs in, to the kept account (the kept address with this
   // password first, else the other address with its own password, then on to the kept account by a one-time link)

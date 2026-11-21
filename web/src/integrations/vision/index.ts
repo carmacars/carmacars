@@ -2,13 +2,13 @@ import 'server-only';
 import { env } from '@/lib/env';
 import type { VisionModel } from './types';
 import type { Provider } from '../ai/chain';
-import { fakeVision } from './fake';
+import { fakeVision, fallbackVision } from './fake';
 
 // Every image read goes through the chain (r48 part AI, 3095; src/integrations/ai/chain.ts): Workers AI (the Worker's AI
 // binding or its REST API; behind the usage guard), then the server's local vision model (Ollama, carmacars-llm), then
 // Gemini (GEMINI_API_KEY) for car photos and other non-private images only: identity documents (licence_read,
 // permit_read) are never sent to Gemini's free tier (the chain leaves it out for them). Without any link (a local server)
-// or with LLM_PROVIDER=fake the fake answers.
+// or with LLM_PROVIDER=fake the fake answers; on the live site with no link, every read is unavailable (r48 security audit).
 export async function visionModel(): Promise<VisionModel> {
   if (env().LLM_PROVIDER === 'fake') return fakeVision();
   const links: Partial<Record<Provider, VisionModel>> = {};
@@ -38,7 +38,8 @@ export async function visionModel(): Promise<VisionModel> {
     // no neurons: not held by Workers AI's guard (it is the fallback when that allowance is used); 429 is its own quota
     links.gemini = geminiVision(key, env().GEMINI_VISION_MODEL || GEMINI_DEFAULT_MODEL, 30_000, fetch, geminiRelay());
   }
-  if (!links.workers_ai && !links.local && !links.gemini) return fakeVision();
+  // nothing connected: unavailable on the live site (a pickup check then says "not checked"), the fake locally
+  if (!links.workers_ai && !links.local && !links.gemini) return fallbackVision(env().APP_ENV !== 'local');
   const { chainVision } = await import('../ai/chain');
   return chainVision(links, chainDeps());
 }

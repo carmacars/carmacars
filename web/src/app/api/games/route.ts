@@ -5,6 +5,7 @@ import { currentUser } from '@/server/portal/data';
 import { ipKey } from '@/lib/track/shared';
 import { env } from '@/lib/env';
 import { foreignOrigin } from '@/lib/security/same-origin';
+import { clientIp } from '@/lib/security/client-ip';
 
 // Discount games (migrations 0069 and 0081): the claim, and the request-to-book form's play. The site's game itself
 // (settings, the play, the reveal) is read straight from the database by the browser; the claim comes here, once per
@@ -26,7 +27,7 @@ export async function POST(req: Request) {
   if (b && b.action === 'start') return start(b.p);
   if (!b || typeof b.token !== 'string' || !/^[0-9a-f]{64}$/.test(b.token)) return NextResponse.json({ ok: false, error: 'not_found', message: 'This game has ended. Reload the page.' }, { status: 400, headers: H });
   const user = await currentUser().catch(() => null);
-  const ip = req.headers.get('cf-connecting-ip') ?? req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? null;
+  const ip = clientIp((n) => req.headers.get(n), env().APP_ENV !== 'local');
   const p = {
     token: b.token, first_name: str(b.first_name, 80), email: str(b.email, 200), phone: str(b.phone, 40), marketing: b.marketing === true,
     sid: str(b.sid, 36), cars_viewed: int(b.cars_viewed, 500), pages_viewed: int(b.pages_viewed, 5000), seconds: int(b.seconds, 86400),

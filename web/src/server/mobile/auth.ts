@@ -3,6 +3,8 @@ import { env, required } from '@/lib/env';
 import { verifyAccessToken } from '@/lib/auth/jwt-verify';
 import { jwtClaims } from '@/lib/auth/session-cookie';
 import type { MobileSession } from '@/features/mobile-api/contract';
+import { LiveTokens, revocationKeys } from '@/features/mobile-api/revoke';
+import { rpc } from '@/lib/db/repo';
 
 // The native app's sessions (release 48). The same accounts as the website: on Supabase the tokens come from Supabase
 // Auth over plain HTTP (no cookie, no client); on the local stack from the stand-in (src/lib/auth/local.ts). The app
@@ -120,14 +122,46 @@ export async function sessionForUser(userId: string): Promise<Issued> {
   return v.ok ? session(v.data as GoTrueSession) : failure(v.status, v.data, 'We could not sign you in. Try again.');
 }
 
-/** Ends this phone's session only. */
+const SR = { role: 'service_role' as const };
+const live = new LiveTokens();
+
+/** Ends this phone's session only: the sign-in service ends its refresh token, and the access token (checked here with
+ *  the public keys, so it would stay good until it expires) is refused from now on (migration 3400). */
 export async function endSession(token: string): Promise<void> {
-  if (local() || !token) return;
+  if (!token) return;
+  const c = jwtClaims(token);
+  const keys = await revocationKeys(token, c);
+  live.drop(keys[0]!);
+  const exp = typeof c?.exp === 'number' ? c.exp * 1000 : Date.now() + 3600_000;
+  await rpc('server_bearer_revoke', { p_keys: keys, p_until: new Date(exp + 300_000).toISOString() }, SR)
+    .catch((e) => console.error('mobile sign-out: revoke', e instanceof Error ? e.name : 'error'));
+  if (local()) return;
   await gotrue('/logout?scope=local', {}, { bearer: token }).catch(() => undefined);
 }
 
-/** Whose token this is, checked: the project's public keys first, Supabase Auth for an older token; the stand-in locally. */
+/** False once the token was signed out (its hash or its sign-in session is stored). A database that does not answer
+ *  does not sign anyone out: every other call needs it too, and fails on its own. */
+async function stillLive(token: string, claims: Record<string, unknown> | null): Promise<boolean> {
+  const keys = await revocationKeys(token, claims);
+  if (live.has(keys[0]!)) return true;
+  try {
+    if (await rpc('server_bearer_revoked', { p_keys: keys }, SR)) return false;
+  } catch (e) {
+    console.error('mobile token: revocation check', e instanceof Error ? e.name : 'error');
+    return true;
+  }
+  live.add(keys[0]!);
+  return true;
+}
+
+/** Whose token this is, checked: the project's public keys first, Supabase Auth for an older token; the stand-in locally.
+ *  A token that was signed out (endSession) is nobody's. */
 export async function tokenUser(token: string): Promise<{ id: string; email: string; aal: 'aal1' | 'aal2' } | null> {
+  const who = await tokenOwner(token);
+  return who && (await stillLive(token, jwtClaims(token))) ? who : null;
+}
+
+async function tokenOwner(token: string): Promise<{ id: string; email: string; aal: 'aal1' | 'aal2' } | null> {
   if (!token || token.length > 6000) return null;
   if (local()) {
     const { asMobileCall } = await import('./context');

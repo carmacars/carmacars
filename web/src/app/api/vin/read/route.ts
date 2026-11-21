@@ -4,6 +4,8 @@ import { rpc } from '@/lib/db/repo';
 import { visionModel } from '@/integrations/vision';
 import { VIN_PROMPT, VIN_SYSTEM, vinsFromModel } from '@/features/vin/vin-read';
 import { foreignOrigin } from '@/lib/security/same-origin';
+import { clientIp } from '@/lib/security/client-ip';
+import { env } from '@/lib/env';
 
 // A photo of a VIN read by the vision model (release 28, migration 0560; features/vin/VinScan.tsx), when the photo has no
 // barcode the browser could read. Anyone may ask (the owner's application and the earnings calculator are public): the
@@ -16,7 +18,7 @@ const SR = { role: 'service_role' as const };
 
 async function clientKey(req: Request): Promise<string> {
   // a visitor is counted by a hash of the address and the day (never the address itself)
-  const ip = req.headers.get('cf-connecting-ip') ?? req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  const ip = clientIp((n) => req.headers.get(n), env().APP_ENV !== 'local') ?? 'unknown';
   const day = new Date().toISOString().slice(0, 10);
   const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`vin-read|${day}|${ip}`));
   return [...new Uint8Array(d)].slice(0, 16).map((b) => b.toString(16).padStart(2, '0')).join('');

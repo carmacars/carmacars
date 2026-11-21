@@ -8,8 +8,11 @@ import type { ApiResult, BodyOf, Me, ResponseOf, Roles, RouteId } from '@/featur
 import { door, rolesOf } from '@/server/door';
 import { requestCountry, requestMeta } from '@/server/request';
 import { deviceLabel } from '@/features/push/topics';
-import { SIGN_IN_PAUSED, signInPaused } from '@/features/auth/sign-in-pause';
+import { SIGN_IN_IP_PAUSED, SIGN_IN_PAUSED, signInPaused } from '@/features/auth/sign-in-pause';
+import { signInIpPaused } from '@/server/sign-in-ip';
 import { cleanCode, toE164 } from '@/features/auth/phone';
+import { normalEmail } from '@/features/forms/email';
+import { maskPersonal } from '@/lib/db/friendly';
 import { endSession, passwordSession, phoneSession, refreshSession, twoStepSession } from './auth';
 import { passkeyAdd, passkeyList, passkeyOptions, passkeyRemove, passkeySignIn, relyingParty } from './passkeys';
 
@@ -129,9 +132,12 @@ export const HANDLERS: Handlers = {
   },
 
   // ---------------------------------------------------------------- sign-in (the website's own rules, src/server/actions/auth.ts)
-  'auth.signIn': async ({ body }) => {
+  'auth.signIn': async (c) => {
+    // the website's form of the address (src/features/forms/schemas.ts): NFKC and lower case
+    const body = { ...c.body, email: normalEmail(c.body.email) };
     const allowed = await rpc('server_sign_in_allowed' as never, { p_email: body.email } as never, SR).catch(() => null);
     if (signInPaused(allowed)) return fail('rate_limited', SIGN_IN_PAUSED, 429);
+    if (await signInIpPaused((await requestMeta()).ip)) return fail('rate_limited', SIGN_IN_IP_PAUSED, 429);
     // two accounts of one person merged (0955): either email signs in, to the kept account
     const alias = (await rpc('server_sign_in_alias', { p_email: body.email }, SR).catch(() => null)) as unknown as { user_id: string; email: string | null } | null;
     let r = alias?.email ? await passwordSession(alias.email, body.password) : null;
@@ -266,7 +272,7 @@ export const HANDLERS: Handlers = {
     let b = await findBooking({ id: u.id, email: u.email }, c.params.number!);
     if (!b) return fail('not_found', 'Booking not found.', 404);
     // the Sign and pay page opens the agreement when the offer is approved and none is open yet; so does this
-    if (!b.agreement && b.offer_approved_version) { await openAgreement(b.id, u.id).catch((e) => console.error('mobile: open agreement', e instanceof Error ? e.message : e)); b = (await findBooking({ id: u.id, email: u.email }, c.params.number!)) ?? b; }
+    if (!b.agreement && b.offer_approved_version) { await openAgreement(b.id, u.id).catch((e) => console.error('mobile: open agreement', e instanceof Error ? maskPersonal(e.message).slice(0, 200) : 'error')); b = (await findBooking({ id: u.id, email: u.email }, c.params.number!)) ?? b; }
     if (!b.agreement) return fail('no_agreement', 'There is no agreement to sign yet.', 409);
     const [blocks, companion, profile, terms] = await Promise.all([screenBlocks(b.id, u.id), b.agreement.status === 'open' ? companionOf(b.id).catch(() => null) : null,
       rpc('my_profile', {}, asUser(u.id)).catch(() => null) as Promise<unknown>,

@@ -18,7 +18,7 @@ export async function GET() {
   } catch (e) {
     const m = e instanceof Error ? e.message : '';
     if (/only|two-step|second/i.test(m)) return NextResponse.json({ error: m.slice(0, 200) }, { status: 403, headers: H });
-    console.error('live people', e);
+    console.error('live people', e instanceof Error ? `${e.name}: ${m.slice(0, 200)}` : 'error');
     return NextResponse.json({ error: 'The people on the map could not be read' }, { status: 503, headers: H });
   }
 }
