@@ -6,6 +6,9 @@ import { currentUser } from '@/server/portal/data';
 import { door, sessionAal } from '@/server/door';
 import { sha256Hex } from '@/server/links';
 import { imageSniff } from '@/lib/file-sniff';
+// r48 size: a static import, not import(): each import() left a loader listing the target's chunks in every chunk
+// that holds this module (hundreds of copies in the Worker, scripts/worker-size.mjs)
+import { openAgreement } from '@/server/portal/agreement';
 
 // Payments received outside the processor, signatures on paper and documents sent to sign (migration 0044), for
 // Admins and staff, through the staff door; the database decides who may do what (Admins; Finance within its single
@@ -104,7 +107,6 @@ export async function recordPaperSignature(form: FormData): Promise<R<{ id: stri
     if (docType === 'rental_agreement') {
       const live = await rpc('server_signing_record', { p_booking: target }, { role: 'service_role' }).catch(() => null);
       if (!live) {
-        const { openAgreement } = await import('@/server/portal/agreement');
         await openAgreement(target, user.id).catch(() => undefined);
       }
     }

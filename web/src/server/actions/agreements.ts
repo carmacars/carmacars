@@ -8,6 +8,10 @@ import { door, rolesOf, sessionAal } from '@/server/door';
 import { requestMeta } from '@/server/request';
 import { kickPdfJobs } from '@/server/pdf-jobs';
 import { SIGN_STATEMENT } from '@/features/agreement/model';
+// r48 size: a static import, not import(): each import() left a loader listing the target's chunks in every chunk
+// that holds this module (hundreds of copies in the Worker, scripts/worker-size.mjs)
+import { openAgreement } from '@/server/portal/agreement';
+import { submitDisputePack } from '@/server/agreements/dispute-pack';
 
 // The Agreement card of a booking (migration 0154): fill what the agreements are missing, an Admin's override of the
 // check-in check, resend the links of a version waiting, make the agreements again, the dispute evidence pack; and the
@@ -52,7 +56,6 @@ export async function agreementRegenerate(booking: string, refresh?: string[]): 
 
 /** r44: the agreement of a rental that has ended, opened as staff (the renter may have no account). */
 async function openAfterTrip(bookingId: string, staffId: string): Promise<void> {
-  const { openAgreement } = await import('@/server/portal/agreement');
   await openAgreement(bookingId, staffId, { asStaff: true });
 }
 /** 3192: variant card (a Stripe dispute), etransfer_cash, insurer or small_claims (built without Stripe). */
@@ -63,7 +66,6 @@ export async function disputePackSubmit(booking: string, pack: string, refresh?:
   try {
     const { user, aal } = await staff();
     await door(user.id, 'ops_do', 'dispute_pack_get', { booking, pack }, aal); // an Admin or Finance, this booking's pack
-    const { submitDisputePack } = await import('@/server/agreements/dispute-pack');
     await submitDisputePack(pack, user.id);
     for (const p of refresh ?? []) revalidatePath(p);
     return { ok: true, data: null };

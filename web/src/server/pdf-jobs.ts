@@ -4,6 +4,9 @@ import { env } from '@/lib/env';
 import { rpc } from '@/lib/db/repo';
 import type { Json } from '@/lib/db/types';
 import { workerToken } from '@/server/listing-worker';
+// r48 size: a static import, not import(): each import() left a loader listing the target's chunks in every chunk
+// that holds this module (hundreds of copies in the Worker, scripts/worker-size.mjs)
+import { attachSignedCopy } from '@/server/portal/agreement';
 
 // Signed copies in the background (migration 0077). Signing records the signatures in the database first; each
 // signed copy (a PDF with the signatures and the signature record) is a job in pdf_jobs, rendered in its own Worker
@@ -56,7 +59,6 @@ async function handler(kind: PdfJobKind): Promise<Handler> {
     return (j) => attachSignedRecord(j.user_id!, j.payload.signed as Parameters<typeof attachSignedRecord>[1], (j.payload.drawn_path as string | null) ?? null);
   }
   if (kind === 'renter_signed_copy') {
-    const { attachSignedCopy } = await import('@/server/portal/agreement');
     return (j) => attachSignedCopy(j.ref, j.user_id!);
   }
   const { attachSignedAmendment } = await import('@/server/portal/change');

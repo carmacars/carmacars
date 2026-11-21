@@ -13,6 +13,9 @@ import { chargeAddedRental } from '@/server/portal/added-charge';
 import { sha256Hex } from '@/server/links';
 import type { SigningState } from '@/features/handover/types';
 import { imageSniff } from '@/lib/file-sniff';
+// r48 size: a static import, not import(): each import() left a loader listing the target's chunks in every chunk
+// that holds this module (hundreds of copies in the Worker, scripts/worker-size.mjs)
+import { openAgreement } from '@/server/portal/agreement';
 
 // Signing on the spot (migration 0130): a staff member hands their device to the renter or an additional driver, who
 // reads the agreements and signs; the database records the same signature as remote signing plus who collected it, the
@@ -144,7 +147,6 @@ export async function prepareAgreementNow(bookingId: string): Promise<R<{ ready:
     if (!r.ready && (r.after_trip || r.as_staff)) {
       // r44 (2812): a rental that has ended (an Admin's request) or a renter with no account: staff make the agreement
       if (r.after_trip) await door(user.id, 'ops_do', 'agreement_after_trip', { booking: bookingId }, aal);
-      const { openAgreement } = await import('@/server/portal/agreement');
       await openAgreement(bookingId, user.id, { asStaff: true });
     } else if (!r.ready && r.renter_user_id) {
       const { ensureAgreement } = await import('@/server/agreement-auto');

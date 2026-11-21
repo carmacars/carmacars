@@ -7,6 +7,9 @@ import { agreementBlocks, AGREEMENT_TEMPLATE_VERSION, when, type AgreementFacts,
 import { sha256Hex } from '@/server/links';
 import { loadBundle, privacyUrl, renderCarmaCars, verifyUrl, initialsOf, type Bundle } from '@/server/agreements/bundle';
 import type { Certificate, CertSigner } from '@/features/signing/certificate';
+// r48 size: a static import, not import(): each import() left a loader listing the target's chunks in every chunk
+// that holds this module (hundreds of copies in the Worker, scripts/worker-size.mjs)
+import { openCompanionQuietly, attachCompanionSigned } from '@/server/portal/blindspot';
 
 // Built-in signing (0019 section 4): the server renders the agreement for the approved offer, stores
 // the PDF in the private agreements bucket and opens it with its SHA-256; after confirmation it renders
@@ -60,7 +63,6 @@ export async function openAgreement(bookingId: string, by: string, o: { asStaff?
   const p = b.x.pickup;
   await rpc('server_agreement_rendered', { p_booking: bookingId, p_pickup: (p ? { report_id: p.report_id, odometer_km: p.odometer_km, fuel_pct: p.fuel_pct, completed: p.completed } : null) as unknown as Json }, SR).catch(() => undefined);
   // the second agreement (Blind Spot's, 0127) beside it, when its template is in use; never in the way of this one
-  const { openCompanionQuietly } = await import('@/server/portal/blindspot');
   await openCompanionQuietly(bookingId, by, b);
   // each additional driver with an email address gets their own signing link (migration 0040)
   const { sendFirstDriverLinks } = await import('@/server/portal/driver-links');
@@ -78,7 +80,6 @@ interface SigningRecord {
  *  copy of the second agreement (0127), when the booking has one. */
 export async function attachSignedCopy(bookingId: string, renterUserId: string): Promise<void> {
   await attachAgreementSignedCopy(bookingId, renterUserId);
-  const { attachCompanionSigned } = await import('@/server/portal/blindspot');
   await attachCompanionSigned(bookingId, renterUserId);
 }
 

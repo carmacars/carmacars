@@ -1,6 +1,9 @@
 import 'server-only';
 import { rpc } from '@/lib/db/repo';
 import { openAgreement } from '@/server/portal/agreement';
+// r48 size: a static import, not import(): each import() left a loader listing the target's chunks in every chunk
+// that holds this module (hundreds of copies in the Worker, scripts/worker-size.mjs)
+import { runAgreementQueue } from '@/server/agreements/versions';
 
 // Every confirmed or on-trip booking gets its rental agreement by itself (migration 0132): booking CC-10013, added by
 // hand, had none because the agreement was made only when the renter first opened the signing page. The site makes it
@@ -37,7 +40,6 @@ export async function runAgreementJobs(o: { max?: number; deadlineMs?: number; a
   const start = Date.now();
   const max = o.max ?? 3;
   const deadline = o.deadlineMs ?? 20_000;
-  const { runAgreementQueue } = await import('@/server/agreements/versions');
   const q = await runAgreementQueue({ max, deadlineMs: deadline, aheadSeconds: o.aheadSeconds });
   const left = max - q.done - q.failed;
   if (left <= 0 || Date.now() - start > deadline) return { ...q, more: true };

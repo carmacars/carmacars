@@ -6,6 +6,9 @@ import { when } from '@/features/agreement/model';
 import type { Signature } from '@/features/blindspot/fill';
 import { companySignature, initialsOf, loadBundle, renderBlindSpot, templateBytes, verifyUrl, type BlindSpotExtra, type Bundle } from '@/server/agreements/bundle';
 import type { Certificate, CertSigner } from '@/features/signing/certificate';
+// r48 size: a static import, not import(): each import() left a loader listing the target's chunks in every chunk
+// that holds this module (hundreds of copies in the Worker, scripts/worker-size.mjs)
+import { certificateSigners } from '@/server/portal/agreement';
 
 // The second rental agreement of a booking (migration 0127): Blind Spot Car Rental's own agreement, filled from the
 // booking and stored beside CarmaCars' rental agreement when that one opens; signed with the same one signature; its
@@ -59,7 +62,6 @@ export async function formSignatures(bookingId: string, b: Bundle, c?: Companion
   const r = comp && comp.status !== 'open' ? comp.renter_record : null;
   if (!r) return null;
   const s = await storage();
-  const { certificateSigners } = await import('@/server/portal/agreement');
   const signers = await certificateSigners(bookingId);
   const renterCert = signers.find((x) => x.signer_role === 'renter');
   const get = (path: string | null | undefined) => (path ? s.get('agreements', path).catch(() => null) : Promise.resolve(null));

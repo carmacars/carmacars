@@ -8,6 +8,11 @@ import type { Change, VersionHeader } from '@/features/agreement/extra';
 import { appendCertificate, appendSignaturePage, type CertSigner } from '@/features/signing/certificate';
 import { fillBlindSpot, type Signature } from '@/features/blindspot/fill';
 import { initialsOf, loadBundle, renderBlindSpot, renderCarmaCars, verifyUrl } from '@/server/agreements/bundle';
+// r48 size: a static import, not import(): each import() left a loader listing the target's chunks in every chunk
+// that holds this module (hundreds of copies in the Worker, scripts/worker-size.mjs)
+import { openAgreement } from '@/server/portal/agreement';
+import { formSignatures } from '@/server/portal/blindspot';
+import { buildDisputePack } from '@/server/agreements/dispute-pack';
 
 // The versions of a booking's two agreements (migration 0154). The database decides (app.agreement_plan): nothing
 // changed, the open agreement to render again (unsigned), or a new version: the "as picked up" copy, the closing copy,
@@ -35,7 +40,6 @@ export async function runVersionJob(bookingId: string): Promise<string> {
     // someone has signed it (a driver on their link), it is left as it is: rendering it again would undo their signature;
     // the change becomes a version once the agreement is countersigned (version 1 is what the signed document printed)
     if (plan.any_signed) return 'kept_signed';
-    const { openAgreement } = await import('@/server/portal/agreement');
     try { await openAgreement(bookingId, plan.renter_user_id); return 'refreshed'; } catch (e) { console.error('agreement refresh', bookingId, e instanceof Error ? e.message : e); return 'refresh_skipped'; }
   }
   if (plan.state !== 'version' || !by) return plan.state;
@@ -59,7 +63,6 @@ export async function runVersionJob(bookingId: string): Promise<string> {
   const cc = await renderCarmaCars(b, { version: header, signatures, title: `Rental agreement ${plan.agreement_number ?? ''}, version ${header.version_no} (${label})`, createdAt: new Date() });
   // a version not signed again carries the signatures of the signed original (the renter's in 16, 17 and 20 with the
   // day, the drivers', the initials); the note "Signed on the original" only when they cannot be read
-  const { formSignatures } = await import('@/server/portal/blindspot');
   const stamp = awaiting || !b.bs.template ? null : await formSignatures(bookingId, b).catch((e) => { console.error('blindspot signatures', bookingId, e instanceof Error ? e.message : e); return null; });
   const bs = await renderBlindSpot(b, { title: `Blind Spot rental agreement ${b.f.booking.booking_number}, version ${header.version_no} (${label})`,
     ...(stamp ? { renter: stamp.renter, drivers: stamp.drivers, initials: stamp.initials, signedOn: stamp.signedOn }
@@ -153,7 +156,7 @@ export async function runAgreementQueue(o: { max?: number; deadlineMs?: number; 
     try {
       if (j.kind === 'version') await runVersionJob(j.ref);
       else if (j.kind === 'version_signed') await runVersionSignedJob(j.ref);
-      else { const { buildDisputePack } = await import('@/server/agreements/dispute-pack'); await buildDisputePack(j.ref); }
+      else { await buildDisputePack(j.ref); }
       await rpc('server_agreement_job_done', { p_kind: j.kind, p_ref: j.ref, p_seq: j.seq }, SR);
       done++;
     } catch (e) {
