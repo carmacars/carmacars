@@ -209,6 +209,8 @@ test('alerts, passkeys and deleting the account from the app', async ({ request 
 
   // signing out ends the phone's session; the bot check page the app opens is there and says nothing to search engines
   expect((await call(request, 'POST', '/auth/sign-out', t)).status).toBe(200);
+  // r48 security audit (3400): the access token is refused at once, not when it expires
+  expect((await call(request, 'GET', '/me', t)).status).toBe(401);
   const page = await request.get('/app-check');
   expect(page.status()).toBe(200);
   expect(page.headers()['x-robots-tag']).toContain('noindex');

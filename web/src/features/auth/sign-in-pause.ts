@@ -7,3 +7,6 @@ export const SIGN_IN_PAUSED = 'Too many wrong passwords for this email. Wait 15 
 export function signInPaused(answer: unknown): boolean {
   return answer === false;
 }
+
+/** r48 security audit (3400, public.server_sign_in_ip_allowed): 30 password sign-ins in 15 minutes from one address. */
+export const SIGN_IN_IP_PAUSED = 'Too many sign-in tries from this connection. Wait 15 minutes and try again, or sign in with your phone number.';

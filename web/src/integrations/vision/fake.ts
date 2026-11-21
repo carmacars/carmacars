@@ -45,3 +45,12 @@ export function fakeVision(): VisionModel {
     }
   };
 }
+
+/** No vision model connected (r48 security audit): on the live site the answer is "unavailable", never the fake's
+ *  invented toll notice, VIN or licence; locally and in the tests the fake, as before. */
+export function fallbackVision(live: boolean): VisionModel {
+  if (!live) return fakeVision();
+  return { name: 'fake', async read(): Promise<VisionResult> {
+    return { ok: false, reason: 'unavailable', message: 'No vision model is connected on this server (no Workers AI, the local model is not ready, and no Gemini key)', tried: [] };
+  } };
+}

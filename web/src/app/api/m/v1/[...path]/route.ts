@@ -5,6 +5,7 @@ import { answerOf, answerOfError, type Answer } from '@/features/mobile-api/resp
 import { asMobileCall } from '@/server/mobile/context';
 import { tokenUser } from '@/server/mobile/auth';
 import { HANDLERS, type Ctx } from '@/server/mobile/routes';
+import { maskPersonal } from '@/lib/db/friendly';
 
 // The mobile API, version 1 (release 48): what the native app (apps/carmacars-native) calls. The table of routes is
 // src/features/mobile-api/contract.ts; the handlers are src/server/mobile/routes.ts. This file is the door:
@@ -55,7 +56,7 @@ async function handle(req: Request, { params }: Params): Promise<Response> {
   } catch (e) {
     const a = answerOfError(e);
     // ids and the route only: never a body, an address or a name (docs/engineering-rules.md)
-    if (a.unexpected) console.error(`mobile api ${API_PREFIX}${def.path}`, e instanceof Error ? `${e.name}: ${e.message.slice(0, 200)}` : 'error');
+    if (a.unexpected) console.error(`mobile api ${API_PREFIX}${def.path}`, e instanceof Error ? `${e.name}: ${maskPersonal(e.message).slice(0, 200)}` : 'error');
     return json(a);
   }
 }

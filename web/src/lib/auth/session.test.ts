@@ -85,6 +85,7 @@ test('an access token is checked against the published key: signature, expiry, a
   assert.equal(await verifyAccessToken(await sign({ ...good, exp: Math.floor(Date.now() / 1000) - 1 }), url, { fetch: f }), null, 'expired');
   assert.equal(await verifyAccessToken(await sign({ ...good, aud: 'other' }), url, { fetch: f }), null, 'audience');
   assert.equal(await verifyAccessToken(await sign({ ...good, iss: 'https://evil/auth/v1' }), url, { fetch: f }), null, 'issuer');
+  assert.equal(await verifyAccessToken(await sign({ ...good, iss: undefined }), url, { fetch: f }), null, 'no issuer');
   assert.equal(await verifyAccessToken(await sign(good, 'k2'), url, { fetch: f }), null, 'unknown key');
   const t = await sign(good);
   assert.equal(await verifyAccessToken(t.slice(0, -4) + 'AAAA', url, { fetch: f }), null, 'signature');

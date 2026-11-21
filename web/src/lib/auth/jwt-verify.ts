@@ -55,7 +55,8 @@ export async function verifyAccessToken(token: string, supabaseUrl: string, opts
     const aud = Array.isArray(c.aud) ? c.aud : [c.aud];
     if (typeof c.exp !== 'number' || c.exp * 1000 <= now) return null;
     if (!aud.includes('authenticated') || c.role !== 'authenticated') return null;
-    if (c.iss && c.iss !== `${supabaseUrl.replace(/\/$/, '')}/auth/v1`) return null;
+    // the issuer is required (r48 security audit): a token with no issuer is not one of this project's
+    if (c.iss !== `${supabaseUrl.replace(/\/$/, '')}/auth/v1`) return null;
     if (typeof c.sub !== 'string' || !/^[0-9a-f-]{36}$/i.test(c.sub)) return null;
     return c;
   } catch {

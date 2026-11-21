@@ -1,11 +1,15 @@
 import { z } from '@/lib/zod';
+import { normalEmail, plainEmail } from './email';
 
 // One schema per form, used in the browser (field errors as you go) and again in the server action
 // (docs/blueprint/08-forms.md section 2). Messages say how to fix the problem.
 export const email = z.string().trim().min(1, 'Enter your email so we can reply.').max(200).regex(/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/, 'Enter an email address like name@example.com.');
 export const phone = z.string().trim().refine((v) => v.replace(/\D/g, '').length >= 10, 'Enter a phone number with area code.').refine((v) => v.length <= 30, 'That number is too long.');
 const optPhone = z.string().trim().max(30).refine((v) => !v || v.replace(/\D/g, '').length >= 10, 'Enter a phone number with area code.');
-export const password = z.string().min(8, 'Use at least 8 characters.').max(200, 'Use at most 200 characters.');
+// a new password: the sign-in service hashes at most 72 bytes (bcrypt), so a longer one would be cut or refused there
+// (r48 security audit, checklist item 2); signing in with an existing password keeps its own limit
+export const password = z.string().min(8, 'Use at least 8 characters.').max(72, 'Use at most 72 characters.')
+  .refine((v) => new TextEncoder().encode(v).length <= 72, 'Use at most 72 characters (accented letters and emoji count as more than one).');
 
 // an email or a mobile number (0091): we reply by text to someone who gives only a phone
 const optEmail = z.string().trim().max(200).refine((v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v), 'Enter an email address like name@example.com.');
@@ -31,13 +35,19 @@ export const ownerSchema = z.object({
   mode: z.enum(['managed', 'self', 'turo'])
 });
 
-export const signInSchema = z.object({ email, password: z.string().min(1, 'Enter your password.') });
+// The email of an account (r48 security audit): one form everywhere, at sign-in, sign-up and reset (NFKC, then lower
+// case), so two ways of writing an address are one account. A new account takes plain ASCII only, so no address can be
+// made to look like another (a Cyrillic "a", a full-width letter).
+export { normalEmail } from './email';
+export const accountEmail = email.transform(normalEmail);
+const newAccountEmail = accountEmail.refine(plainEmail, 'Use the email address with plain letters, numbers and symbols only.');
+export const signInSchema = z.object({ email: accountEmail, password: z.string().min(1, 'Enter your password.') });
 export const signUpSchema = z.object({
   name: z.string().trim().min(2, 'Enter your name.').max(120),
-  email, password,
+  email: newAccountEmail, password,
   agree: z.literal(true, { message: 'Tick this box to create an account.' })
 });
-export const resetSchema = z.object({ email });
+export const resetSchema = z.object({ email: accountEmail });
 export const newPasswordSchema = z.object({ password, token: z.string().max(200).optional() });
 
 export type FieldErrors = Record<string, string>;
