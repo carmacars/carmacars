@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useState, type CSSProperties, type RefObject } from 'react';
 import { inBounds, MAX_BOUNDS } from './config';
 import type { PersonSpec } from './engine';
 import { colourOfPerson, countPeople, filtersFor, initials, personLabel, visiblePeople, type PeopleFilter, type PeopleView } from './people';
@@ -8,7 +8,7 @@ import { colourOfPerson, countPeople, filtersFor, initials, personLabel, visible
 // Visitors page of customer service and Sales) and Fleet tracking (Admin, and the Fleet staff's car map). Read with the
 // map's own refresh; the database decides who this reader sees (Admin and Fleet everyone, customer service and Sales the
 // renters at a pickup or return, anyone else no one: then no chips are drawn at all).
-export function usePeople(engine: { setPeople(p: PersonSpec[]): void } | null, ready: boolean, everyMs: number, enabled = true) {
+export function usePeople(engine: RefObject<{ setPeople(p: PersonSpec[]): void } | null>, ready: boolean, everyMs: number, enabled = true) {
   const [people, setPeople] = useState<PeopleView | null>(null);
   const [on, setOn] = useState(true);
   const [hidden, setHidden] = useState<Set<PeopleFilter>>(new Set());
@@ -21,14 +21,15 @@ export function usePeople(engine: { setPeople(p: PersonSpec[]): void } | null, r
   }, []);
   useEffect(() => {
     if (!enabled) return;
-    void refresh();
+    const first = setTimeout(() => void refresh(), 0);
     const t = setInterval(() => { if (document.visibilityState === 'visible') void refresh(); }, everyMs);
-    return () => clearInterval(t);
+    return () => { clearTimeout(first); clearInterval(t); };
   }, [refresh, everyMs, enabled]);
 
   useEffect(() => {
-    if (!engine || !ready) return;
-    engine.setPeople(on ? visiblePeople(people, hidden).filter((p) => inBounds(p.lng, p.lat, MAX_BOUNDS)).map((p): PersonSpec => ({
+    const e = engine.current;
+    if (!e || !ready) return;
+    e.setPeople(on ? visiblePeople(people, hidden).filter((p) => inBounds(p.lng, p.lat, MAX_BOUNDS)).map((p): PersonSpec => ({
       id: p.id, lng: p.lng, lat: p.lat, colour: colourOfPerson(p), label: personLabel(p), initials: initials(p.name), kind: p.kind, job: p.reason === 'job'
     })) : []);
   }, [engine, ready, people, hidden, on]);

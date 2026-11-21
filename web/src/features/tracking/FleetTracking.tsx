@@ -98,7 +98,7 @@ export function FleetTracking({ initial, at, staff = false }: { initial: Fleet |
   useEffect(() => { if (mode === 'map') engine.current?.setTrail(trail?.path ?? null); }, [trail, mode]);
   useEffect(() => { engine.current?.selectCar(sel); }, [sel, mode]);
   // 3350 (release 48 part MAP): the people layer (Admin and Fleet see everyone; field staff's map shows cars only)
-  const { chips: peopleChips } = usePeople(engine.current, mode === 'map', REFRESH_MS, staff !== 'field');
+  const { chips: peopleChips } = usePeople(engine, mode === 'map', REFRESH_MS, staff !== 'field');
 
   const pick = (c: TrackedCar) => {
     setSel(c.vehicle_id);

@@ -228,7 +228,7 @@ export function LiveMap({ initial, tv, at, embedded = false, portal = 'admin' }:
   }, [view, layers.fleet, mode]);
 
   // 3350 (release 48 part MAP): staff on shift or on a job, renters and owners at a pickup or return, with role filters
-  const { chips: peopleChips } = usePeople(engine.current, mode === 'map', REFRESH_MS);
+  const { chips: peopleChips } = usePeople(engine, mode === 'map', REFRESH_MS);
 
   // ---------------------------------------------------------------- the spotlight (TV): the hottest leads, one every 10 seconds
   const spots = useMemo(() => (view ? spotlight(view, 6) : []), [view]);
