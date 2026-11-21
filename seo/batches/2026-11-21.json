@@ -1,0 +1,1058 @@
+{
+ "batch": "2026-11-21",
+ "items": [
+  {
+   "kind": "car",
+   "id": "ace4d40c-35ee-40c9-862c-854eb3d93434",
+   "copy": {
+    "intro": "Two seats and a roof that folds away. A V8 sports car for one passenger and a free weekend morning.",
+    "highlights": [
+     "Backup camera",
+     "Push-button start",
+     "Turbocharged engine",
+     "Parking assist",
+     "Bluetooth",
+     "Cruise control"
+    ],
+    "good_for": [
+     "Scenic day trips",
+     "Anniversaries and birthdays",
+     "Weekend drives for two"
+    ],
+    "faq": [
+     {
+      "question": "Is the AMG GT C a convertible?",
+      "answer": "Yes. It is a convertible with 2 seats and 2 doors."
+     },
+     {
+      "question": "Which wheels does the AMG GT C drive?",
+      "answer": "It is rear-wheel drive."
+     },
+     {
+      "question": "What engine does the AMG GT C have?",
+      "answer": "A 4.0 L V8 with a turbocharger, running on gas."
+     },
+     {
+      "question": "Does the AMG GT C have parking help?",
+      "answer": "Parking assist and a backup camera are both in its equipment list."
+     }
+    ],
+    "alt_texts": {
+     "dashboard": "2019 Mercedes-Benz AMG GT AMG GT C, dashboard view",
+     "front": "2019 Mercedes-Benz AMG GT AMG GT C, front view",
+     "front_left": "2019 Mercedes-Benz AMG GT AMG GT C, front left view",
+     "front_seats": "2019 Mercedes-Benz AMG GT AMG GT C, front seats",
+     "left": "2019 Mercedes-Benz AMG GT AMG GT C, left side view",
+     "other": "2019 Mercedes-Benz AMG GT AMG GT C, detail view",
+     "rear": "2019 Mercedes-Benz AMG GT AMG GT C, rear view"
+    }
+   }
+  },
+  {
+   "kind": "car",
+   "id": "420699ba-86d9-4507-ac06-ea090d145fee",
+   "copy": {
+    "intro": "The small Mercedes sedan. Easy to park near the office, with cruise control that eases the highway home.",
+    "highlights": [
+     "Adaptive cruise control",
+     "Automatic emergency braking",
+     "Backup camera",
+     "Push-button start",
+     "Turbocharged engine",
+     "LED headlights"
+    ],
+    "good_for": [
+     "City commuting",
+     "Client visits",
+     "Airport runs"
+    ],
+    "faq": [
+     {
+      "question": "Does the A220-4M have driver assistance?",
+      "answer": "Adaptive cruise control and automatic emergency braking are in its equipment list."
+     },
+     {
+      "question": "What engine is in the A-Class A220-4M?",
+      "answer": "A turbocharged 2.0 L four-cylinder that runs on gas."
+     },
+     {
+      "question": "Does the A-Class A220-4M have a trunk?",
+      "answer": "Yes. It is a sedan with 4 doors and 5 seats, and a trunk photo is on its page."
+     },
+     {
+      "question": "Does it start with a key?",
+      "answer": "It has push-button start."
+     }
+    ],
+    "alt_texts": {
+     "dashboard": "2020 Mercedes-Benz A-Class A220-4M, dashboard view",
+     "front": "2020 Mercedes-Benz A-Class A220-4M, front view",
+     "front_left": "2020 Mercedes-Benz A-Class A220-4M, front left view",
+     "front_seats": "2020 Mercedes-Benz A-Class A220-4M, front seats",
+     "left": "2020 Mercedes-Benz A-Class A220-4M, left side view",
+     "other": "2020 Mercedes-Benz A-Class A220-4M, detail view",
+     "rear": "2020 Mercedes-Benz A-Class A220-4M, rear view",
+     "rear_left": "2020 Mercedes-Benz A-Class A220-4M, rear left view",
+     "rear_seats": "2020 Mercedes-Benz A-Class A220-4M, rear seats",
+     "trunk": "2020 Mercedes-Benz A-Class A220-4M, trunk"
+    }
+   }
+  },
+  {
+   "kind": "car",
+   "id": "ab64b0c3-8ecf-4f81-9919-bd03edf0f9f0",
+   "copy": {
+    "intro": "A low, sleek Mercedes sedan with room for five. Adaptive cruise control takes some of the work out of the daily drive.",
+    "highlights": [
+     "Adaptive cruise control",
+     "Automatic emergency braking",
+     "Backup camera",
+     "Push-button start",
+     "LED headlights",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Commuting",
+     "Dinners out",
+     "Short weekend trips"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the CLA250-4M?",
+      "answer": "It has 5 seats and 4 doors."
+     },
+     {
+      "question": "Is the CLA250-4M an automatic?",
+      "answer": "Yes, automatic transmission is in its equipment list."
+     },
+     {
+      "question": "Does the CLA250-4M have safety equipment?",
+      "answer": "Automatic emergency braking and a backup camera are both listed."
+     },
+     {
+      "question": "What fuel does it use?",
+      "answer": "It runs on gas, with a turbocharged 2.0 L four-cylinder engine."
+     }
+    ],
+    "alt_texts": {
+     "dashboard": "2020 Mercedes-Benz CLA-Class CLA250-4M, dashboard view",
+     "front": "2020 Mercedes-Benz CLA-Class CLA250-4M, front view",
+     "front_left": "2020 Mercedes-Benz CLA-Class CLA250-4M, front left view",
+     "front_right": "2020 Mercedes-Benz CLA-Class CLA250-4M, front right view",
+     "front_seats": "2020 Mercedes-Benz CLA-Class CLA250-4M, front seats",
+     "other": "2020 Mercedes-Benz CLA-Class CLA250-4M, detail view",
+     "rear_seats": "2020 Mercedes-Benz CLA-Class CLA250-4M, rear seats",
+     "wheel": "2020 Mercedes-Benz CLA-Class CLA250-4M, wheel close-up"
+    }
+   }
+  },
+  {
+   "kind": "car",
+   "id": "497bfd21-9941-4255-8a9b-427b01cfd55f",
+   "copy": {
+    "intro": "Quiet and tidy in the city. Blind spot assist and forward collision alert help in heavy highway traffic.",
+    "highlights": [
+     "Blind spot assist",
+     "Forward collision alert",
+     "Automatic emergency braking",
+     "Backup camera",
+     "Push-button start",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Business trips",
+     "Airport pickups",
+     "Weekend drives with family"
+    ],
+    "faq": [
+     {
+      "question": "Does the C300-4M have blind spot assist?",
+      "answer": "Yes, blind spot assist is in its equipment list, along with forward collision alert."
+     },
+     {
+      "question": "How many seats does the C-Class C300-4M have?",
+      "answer": "It has 5 seats and 4 doors."
+     },
+     {
+      "question": "What kind of engine is it?",
+      "answer": "A turbocharged 2.0 L four-cylinder on gas."
+     },
+     {
+      "question": "Is it an automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     }
+    ],
+    "alt_texts": {
+     "dashboard": "2021 Mercedes-Benz C-Class C300-4M, dashboard view",
+     "front": "2021 Mercedes-Benz C-Class C300-4M, front view",
+     "front_seats": "2021 Mercedes-Benz C-Class C300-4M, front seats",
+     "left": "2021 Mercedes-Benz C-Class C300-4M, left side view",
+     "rear_left": "2021 Mercedes-Benz C-Class C300-4M, rear left view",
+     "rear_seats": "2021 Mercedes-Benz C-Class C300-4M, rear seats",
+     "trunk": "2021 Mercedes-Benz C-Class C300-4M, trunk"
+    }
+   }
+  },
+  {
+   "kind": "car",
+   "id": "0bd944b5-b802-4732-9e59-89a5dc036247",
+   "copy": {
+    "intro": "Two seats, a roof that folds and all-wheel drive. A short list of passengers and a long list of back roads.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Scenic day trips",
+     "Special occasions",
+     "Weekend drives for two"
+    ],
+    "faq": [
+     {
+      "question": "Is the R8 Spyder a convertible?",
+      "answer": "Yes. It is a convertible with 2 seats and 2 doors."
+     },
+     {
+      "question": "Does the R8 Spyder have all-wheel drive?",
+      "answer": "Yes, all-wheel drive is in its equipment list."
+     },
+     {
+      "question": "Is it an automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     },
+     {
+      "question": "Does it have a backup camera?",
+      "answer": "Yes, a backup camera is listed."
+     }
+    ],
+    "alt_texts": {
+     "exterior_more": "Audi R8 Spyder, exterior view",
+     "front": "Audi R8 Spyder, front view",
+     "front_left": "Audi R8 Spyder, front left view",
+     "other": "Audi R8 Spyder, detail view",
+     "rear": "Audi R8 Spyder, rear view"
+    }
+   }
+  },
+  {
+   "kind": "car",
+   "id": "135bba8f-cd75-41a3-abf0-76b9f2cfa435",
+   "copy": {
+    "intro": "A two-door Mercedes with a back seat for two more. Suits a night out and the long way home.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Date nights",
+     "Long dinners out",
+     "Scenic drives"
+    ],
+    "faq": [
+     {
+      "question": "Can four adults ride in the E53 AMG Coupe?",
+      "answer": "It has 4 seats and 2 doors, so the rear seat is reached through the front doors."
+     },
+     {
+      "question": "Does the E53 AMG Coupe have all-wheel drive?",
+      "answer": "Yes, all-wheel drive is in its equipment list."
+     },
+     {
+      "question": "Is it an automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     },
+     {
+      "question": "Does it have a backup camera?",
+      "answer": "Yes, a backup camera is listed."
+     }
+    ],
+    "alt_texts": {
+     "front": "Mercedes-Benz E-Class E53 AMG Coupe, front view",
+     "front_left": "Mercedes-Benz E-Class E53 AMG Coupe, front left view"
+    }
+   }
+  },
+  {
+   "kind": "car",
+   "id": "144267bb-680e-43d5-b496-3d6ceac83145",
+   "copy": {
+    "intro": "Four seats, all-wheel drive and a Maybach badge. Made for arrivals that matter.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Galas and formal events",
+     "Client dinners",
+     "Airport transfers"
+    ],
+    "faq": [
+     {
+      "question": "How many passengers does the Maybach S580 seat?",
+      "answer": "It has 4 seats and 4 doors."
+     },
+     {
+      "question": "Does the Maybach S580 have all-wheel drive?",
+      "answer": "Yes, all-wheel drive is in its equipment list."
+     },
+     {
+      "question": "Does it have a backup camera?",
+      "answer": "Yes, a backup camera is listed."
+     },
+     {
+      "question": "Is it an automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     }
+    ],
+    "alt_texts": {
+     "exterior_more": "Mercedes-Benz S-Class Maybach S580, exterior view",
+     "front_left": "Mercedes-Benz S-Class Maybach S580, front left view",
+     "rear": "Mercedes-Benz S-Class Maybach S580, rear view",
+     "rear_left": "Mercedes-Benz S-Class Maybach S580, rear left view"
+    }
+   }
+  },
+  {
+   "kind": "car",
+   "id": "197dc5c0-398d-430b-b86a-f93f7483dd9f",
+   "copy": {
+    "intro": "A compact Mercedes SUV with a sporty badge. All-wheel drive handles the ski weekend and the school drop-off.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Winter trips",
+     "Daily errands",
+     "Family weekends"
+    ],
+    "faq": [
+     {
+      "question": "Does the GLC43 AMG have all-wheel drive?",
+      "answer": "Yes, all-wheel drive is in its equipment list."
+     },
+     {
+      "question": "How many people can ride in the GLC43 AMG?",
+      "answer": "It has 5 seats and 4 doors."
+     },
+     {
+      "question": "Is it an SUV?",
+      "answer": "Yes, it is a compact SUV from the AMG range."
+     },
+     {
+      "question": "Is it an automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     }
+    ],
+    "alt_texts": {
+     "exterior_more": "Mercedes-Benz GLC GLC43 AMG, exterior view",
+     "front_left": "Mercedes-Benz GLC GLC43 AMG, front left view",
+     "rear": "Mercedes-Benz GLC GLC43 AMG, rear view"
+    }
+   }
+  },
+  {
+   "kind": "car",
+   "id": "20768b2c-c7b8-4b7c-acc1-102404ba7dde",
+   "copy": {
+    "intro": "An SUV from the M range with seats for five. All-wheel drive keeps it steady when the weather turns.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Winter drives",
+     "Trips with luggage",
+     "Family outings"
+    ],
+    "faq": [
+     {
+      "question": "Is the X3 M Competition an SUV?",
+      "answer": "Yes, it is an SUV with 5 seats and 4 doors."
+     },
+     {
+      "question": "Does it have all-wheel drive?",
+      "answer": "Yes, all-wheel drive is in its equipment list."
+     },
+     {
+      "question": "Is it an automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     },
+     {
+      "question": "Does it have a backup camera?",
+      "answer": "Yes, a backup camera is listed."
+     }
+    ],
+    "alt_texts": {
+     "exterior_more": "BMW X3 M Competition, exterior view",
+     "front": "BMW X3 M Competition, front view",
+     "rear": "BMW X3 M Competition, rear view"
+    }
+   }
+  },
+  {
+   "kind": "car",
+   "id": "281af42f-5f24-44f3-9b41-1865d82bcaef",
+   "copy": {
+    "intro": "A mid-size BMW sedan that handles a business week and a cottage weekend without changing cars.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Business trips",
+     "Cottage weekends",
+     "Airport runs"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the 530i M Sport have?",
+      "answer": "It has 5 seats and 4 doors."
+     },
+     {
+      "question": "Does the 530i M Sport have all-wheel drive?",
+      "answer": "Yes, all-wheel drive is in its equipment list."
+     },
+     {
+      "question": "Is it an automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     },
+     {
+      "question": "Does it have Bluetooth?",
+      "answer": "Yes, Bluetooth is listed."
+     }
+    ],
+    "alt_texts": {
+     "exterior_more": "BMW 5 Series 530i M Sport, exterior view",
+     "front": "BMW 5 Series 530i M Sport, front view",
+     "front_left": "BMW 5 Series 530i M Sport, front left view",
+     "front_right": "BMW 5 Series 530i M Sport, front right view",
+     "rear": "BMW 5 Series 530i M Sport, rear view"
+    }
+   }
+  },
+  {
+   "kind": "car",
+   "id": "2860f117-e1df-4c6d-8f75-3309106effcc",
+   "copy": {
+    "intro": "A roomy Mercedes SUV that sits high and holds the luggage. All-wheel drive for icy mornings.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Family trips",
+     "Golf weekends",
+     "Winter driving"
+    ],
+    "faq": [
+     {
+      "question": "How many people does the GLE53 AMG seat?",
+      "answer": "It has 5 seats and 4 doors."
+     },
+     {
+      "question": "Does it have all-wheel drive?",
+      "answer": "Yes, all-wheel drive is in its equipment list."
+     },
+     {
+      "question": "Is it an SUV?",
+      "answer": "Yes, it is an SUV from the AMG range."
+     },
+     {
+      "question": "Is it an automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     }
+    ],
+    "alt_texts": {
+     "front": "Mercedes-Benz GLE GLE53 AMG, front view"
+    }
+   }
+  },
+  {
+   "kind": "car",
+   "id": "2b447b35-625b-4e0c-868a-b72cd4f15bf0",
+   "copy": {
+    "intro": "A soft-top Audi for four. Lower the roof by the water, raise it again when the sky changes.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Lakeside drives",
+     "Weekend getaways",
+     "Summer outings"
+    ],
+    "faq": [
+     {
+      "question": "Is the A5 Cabriolet a convertible?",
+      "answer": "Yes. It is a convertible with 4 seats and 2 doors."
+     },
+     {
+      "question": "Does it have all-wheel drive?",
+      "answer": "Yes, all-wheel drive is in its equipment list."
+     },
+     {
+      "question": "Is it an automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     },
+     {
+      "question": "Does it have a backup camera?",
+      "answer": "Yes, a backup camera is listed."
+     }
+    ],
+    "alt_texts": {
+     "exterior_more": "Audi A5 Cabriolet, exterior view",
+     "front": "Audi A5 Cabriolet, front view",
+     "front_left": "Audi A5 Cabriolet, front left view",
+     "rear": "Audi A5 Cabriolet, rear view"
+    }
+   }
+  },
+  {
+   "kind": "car",
+   "id": "389394e6-9cde-4b10-8b31-970e5b35d367",
+   "copy": {
+    "intro": "The coupe look with four doors. Five people can arrive together, and all-wheel drive helps in January.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Group dinners",
+     "Weekend trips",
+     "Winter commutes"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the M440i Gran Coupe have?",
+      "answer": "It has 5 seats and 4 doors."
+     },
+     {
+      "question": "Does it have all-wheel drive?",
+      "answer": "Yes, all-wheel drive is in its equipment list."
+     },
+     {
+      "question": "Is it an automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     },
+     {
+      "question": "Does it have a backup camera?",
+      "answer": "Yes, a backup camera is listed."
+     }
+    ],
+    "alt_texts": {
+     "front": "BMW 4 Series M440i Gran Coupe, front view",
+     "front_left": "BMW 4 Series M440i Gran Coupe, front left view",
+     "rear": "BMW 4 Series M440i Gran Coupe, rear view"
+    }
+   }
+  },
+  {
+   "kind": "car",
+   "id": "3f141d8c-e9ae-4bd9-b817-8f0f20f56085",
+   "copy": {
+    "intro": "Two doors, four seats and all-wheel drive. For drivers who plan the route before the destination.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Weekend drives",
+     "Special occasions",
+     "Winter outings"
+    ],
+    "faq": [
+     {
+      "question": "Does the M4 Competition have all-wheel drive?",
+      "answer": "Yes, all-wheel drive is in its equipment list."
+     },
+     {
+      "question": "How many people can ride in the M4 Competition?",
+      "answer": "It has 4 seats and 2 doors."
+     },
+     {
+      "question": "Is it an automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     },
+     {
+      "question": "Does it have a backup camera?",
+      "answer": "Yes, a backup camera is listed."
+     }
+    ],
+    "alt_texts": {
+     "exterior_more": "BMW M4 Competition, exterior view",
+     "front": "BMW M4 Competition, front view",
+     "front_left": "BMW M4 Competition, front left view",
+     "rear": "BMW M4 Competition, rear view"
+    }
+   }
+  },
+  {
+   "kind": "car",
+   "id": "4f5bda2f-c8e5-4cca-b23b-32047bfbdb63",
+   "copy": {
+    "intro": "A calm Land Rover SUV for five. Good for the drive to a hotel, a dinner or a weekend at the lake.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Weekend getaways",
+     "Hotel and dinner trips",
+     "Winter driving"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Range Rover Velar?",
+      "answer": "It has 5 seats and 4 doors."
+     },
+     {
+      "question": "Does it have all-wheel drive?",
+      "answer": "Yes, all-wheel drive is in its equipment list."
+     },
+     {
+      "question": "Is it an automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     },
+     {
+      "question": "Does it have a backup camera?",
+      "answer": "Yes, a backup camera is listed."
+     }
+    ],
+    "alt_texts": {
+     "other": "Land Rover Range Rover Velar, detail view"
+    }
+   }
+  },
+  {
+   "kind": "car",
+   "id": "586e1a8c-8249-4115-8ef7-43c488904aeb",
+   "copy": {
+    "intro": "A BMW coupe with room for four. Calm enough for Monday's commute, quick enough to enjoy on Saturday.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Commuting",
+     "Weekend drives",
+     "Couples and friends"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the M440i have?",
+      "answer": "It has 4 seats and 2 doors."
+     },
+     {
+      "question": "Does it have all-wheel drive?",
+      "answer": "Yes, all-wheel drive is in its equipment list."
+     },
+     {
+      "question": "Is it an automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     },
+     {
+      "question": "Does it have a backup camera?",
+      "answer": "Yes, a backup camera is listed."
+     }
+    ],
+    "alt_texts": {
+     "exterior_more": "BMW 4 Series M440i, exterior view",
+     "front": "BMW 4 Series M440i, front view",
+     "front_left": "BMW 4 Series M440i, front left view"
+    }
+   }
+  },
+  {
+   "kind": "car",
+   "id": "5d36c006-9781-4e0c-9003-4e89220096f8",
+   "copy": {
+    "intro": "A sporty two-door BMW for up to four. A sensible pick for city streets and a drive out of town.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "City driving",
+     "Weekend trips",
+     "Couples and friends"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the 430i M Sport?",
+      "answer": "It has 4 seats and 2 doors."
+     },
+     {
+      "question": "Does it have all-wheel drive?",
+      "answer": "Yes, all-wheel drive is in its equipment list."
+     },
+     {
+      "question": "Is it an automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     },
+     {
+      "question": "Does it have Bluetooth?",
+      "answer": "Yes, Bluetooth is listed."
+     }
+    ],
+    "alt_texts": {
+     "front_left": "BMW 4 Series 430i M Sport, front left view",
+     "other": "BMW 4 Series 430i M Sport, detail view"
+    }
+   }
+  },
+  {
+   "kind": "car",
+   "id": "64da30f8-c017-44a5-bf8b-2633f5e89618",
+   "copy": {
+    "intro": "An M coupe with all-wheel drive for the days the forecast is rough. Four seats for the people who come along.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Weekend drives",
+     "Winter outings",
+     "Special occasions"
+    ],
+    "faq": [
+     {
+      "question": "Does this M4 Competition have all-wheel drive?",
+      "answer": "Yes, all-wheel drive is in its equipment list."
+     },
+     {
+      "question": "How many seats does it have?",
+      "answer": "It has 4 seats and 2 doors."
+     },
+     {
+      "question": "Is it an automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     },
+     {
+      "question": "Does it have a backup camera?",
+      "answer": "Yes, a backup camera is listed."
+     }
+    ],
+    "alt_texts": {
+     "exterior_more": "BMW M4 Competition, exterior view",
+     "front": "BMW M4 Competition, front view",
+     "front_left": "BMW M4 Competition, front left view",
+     "rear": "BMW M4 Competition, rear view"
+    }
+   }
+  },
+  {
+   "kind": "car",
+   "id": "be771855-f3a9-4b90-8f2a-8c768f6abdf5",
+   "copy": {
+    "intro": "Seven seats, a third row and four-wheel drive. The big family hauler for tournaments and ski weeks.",
+    "highlights": [
+     "Four-wheel drive",
+     "Third-row seating",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Large families",
+     "Ski trips",
+     "Group travel"
+    ],
+    "faq": [
+     {
+      "question": "How many people does the Suburban seat?",
+      "answer": "It has 7 seats and 4 doors, with third-row seating."
+     },
+     {
+      "question": "Does it have four-wheel drive?",
+      "answer": "Yes, four-wheel drive is in its equipment list."
+     },
+     {
+      "question": "Is it an automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     },
+     {
+      "question": "Does it have a backup camera?",
+      "answer": "Yes, a backup camera is listed."
+     }
+    ],
+    "alt_texts": {
+     "other": "Chevrolet Suburban, detail view"
+    }
+   }
+  },
+  {
+   "kind": "car",
+   "id": "e1842ec2-7258-4a16-b7b9-8117bf0ecefc",
+   "copy": {
+    "intro": "An Audi sedan with five seats and all-wheel drive. Handles the commute and a Friday night out of town.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Commuting",
+     "Weekend drives",
+     "Airport runs"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the S5?",
+      "answer": "It has 5 seats and 4 doors."
+     },
+     {
+      "question": "Does the S5 have all-wheel drive?",
+      "answer": "Yes, all-wheel drive is in its equipment list."
+     },
+     {
+      "question": "Is it an automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     },
+     {
+      "question": "Does it have a backup camera?",
+      "answer": "Yes, a backup camera is listed."
+     }
+    ],
+    "alt_texts": {
+     "front_left": "Audi S5, front left view"
+    }
+   }
+  },
+  {
+   "kind": "car",
+   "id": "e6989c4d-206f-4a38-afe3-10b960e60c16",
+   "copy": {
+    "intro": "The extended Escalade: seven seats, a third row and room left over for the bags.",
+    "highlights": [
+     "Four-wheel drive",
+     "Third-row seating",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Group trips",
+     "Airport transfers with luggage",
+     "Family travel"
+    ],
+    "faq": [
+     {
+      "question": "How many passengers does the Escalade ESV seat?",
+      "answer": "It has 7 seats and 4 doors, with third-row seating."
+     },
+     {
+      "question": "Does it have four-wheel drive?",
+      "answer": "Yes, four-wheel drive is in its equipment list."
+     },
+     {
+      "question": "Is it an automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     },
+     {
+      "question": "Does it have a backup camera?",
+      "answer": "Yes, a backup camera is listed."
+     }
+    ],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "f43eccf0-4a99-4e6d-902f-716f4330433f",
+   "copy": {
+    "intro": "A Cadillac sedan with a turbo four and all-wheel drive. Settled on the highway, easy on a winter commute.",
+    "highlights": [
+     "All-wheel drive",
+     "Adaptive cruise control",
+     "Turbocharged engine",
+     "Bluetooth",
+     "Air conditioning",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Winter commutes",
+     "Business dinners",
+     "Highway trips"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the CTS Luxury?",
+      "answer": "It has 5 seats and 4 doors."
+     },
+     {
+      "question": "Does the CTS Luxury have all-wheel drive?",
+      "answer": "Yes, all-wheel drive is in its equipment list."
+     },
+     {
+      "question": "What engine does it have?",
+      "answer": "A turbocharged 2.0 L four-cylinder."
+     },
+     {
+      "question": "Does it have adaptive cruise control?",
+      "answer": "Yes, adaptive cruise control is in its equipment list."
+     }
+    ],
+    "alt_texts": {
+     "dashboard": "2015 Cadillac CTS Luxury, dashboard view",
+     "front": "2015 Cadillac CTS Luxury, front view",
+     "front_left": "2015 Cadillac CTS Luxury, front left view",
+     "front_seats": "2015 Cadillac CTS Luxury, front seats",
+     "left": "2015 Cadillac CTS Luxury, left side view",
+     "other": "2015 Cadillac CTS Luxury, detail view",
+     "rear": "2015 Cadillac CTS Luxury, rear view",
+     "rear_right": "2015 Cadillac CTS Luxury, rear right view",
+     "rear_seats": "2015 Cadillac CTS Luxury, rear seats"
+    }
+   }
+  },
+  {
+   "kind": "car",
+   "id": "fbeb9bad-5e3d-426b-ae7f-aa17d54760bb",
+   "copy": {
+    "intro": "A practical BMW sedan with a sporty edge. Five seats for the week, a long highway stretch for the weekend.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Everyday driving",
+     "Highway trips",
+     "Winter commutes"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the M340i?",
+      "answer": "It has 5 seats and 4 doors."
+     },
+     {
+      "question": "Does the M340i have all-wheel drive?",
+      "answer": "Yes, all-wheel drive is in its equipment list."
+     },
+     {
+      "question": "Is it an automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     },
+     {
+      "question": "Does it have a backup camera?",
+      "answer": "Yes, a backup camera is listed."
+     }
+    ],
+    "alt_texts": {
+     "exterior_more": "BMW 3 Series M340i, exterior view",
+     "front": "BMW 3 Series M340i, front view",
+     "front_left": "BMW 3 Series M340i, front left view",
+     "rear": "BMW 3 Series M340i, rear view",
+     "rear_left": "BMW 3 Series M340i, rear left view"
+    }
+   }
+  },
+  {
+   "kind": "car",
+   "id": "fdad6b61-8795-46ea-8880-4fb34c0cf867",
+   "copy": {
+    "intro": "A family-sized sedan that also likes to be driven. Five seats and all-wheel drive for every season.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Family trips with some fun",
+     "Winter driving",
+     "Weekend outings"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the M3 Competition have?",
+      "answer": "It has 5 seats and 4 doors."
+     },
+     {
+      "question": "Does it have all-wheel drive?",
+      "answer": "Yes, all-wheel drive is in its equipment list."
+     },
+     {
+      "question": "Is it an automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     },
+     {
+      "question": "Does it have a backup camera?",
+      "answer": "Yes, a backup camera is listed."
+     }
+    ],
+    "alt_texts": {
+     "exterior_more": "BMW M3 Competition, exterior view",
+     "rear": "BMW M3 Competition, rear view"
+    }
+   }
+  }
+ ]
+}
