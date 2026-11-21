@@ -67,7 +67,11 @@ async function checkTimeline(page: Page, where: string, phone: boolean) {
   const rows = cal.locator('.mcal__row');
   const n = await rows.count();
   await expect(cal.getByTestId('cal-avail'), where).toHaveCount(n);
-  await expect(cal.getByTestId('cal-free-count'), where).toHaveText(new RegExp(`^\\d+ of ${n} free today$`));
+  // (r48 ops: a long fleet's groups fold, so the corner counts every car the filters keep, shown or folded)
+  await expect(cal.getByTestId('cal-free-count'), where).toHaveText(/^\d+ of \d+ free today$/);
+  const [free, total] = ((await cal.getByTestId('cal-free-count').textContent()) ?? '').match(/\d+/g)!.map(Number);
+  expect(total, `${where}: the count covers the cars shown`).toBeGreaterThanOrEqual(n);
+  expect(free, `${where}: free today at most all`).toBeLessThanOrEqual(total!);
   expect(await cal.locator('.mcal__row.is-off[data-free-all]').count(), `${where}: a car that cannot be booked is never free`).toBe(0);
   const freeAll = await cal.locator('.mcal__row[data-free-all="yes"]').count();
   await cal.getByTestId('cal-only-free').check();
