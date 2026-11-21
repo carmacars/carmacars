@@ -27,7 +27,7 @@
   /* success tick after a save (runtime marks it) */
   html:not([data-motion="reduced"]) [data-mo-saved]::before { animation: mo-tick var(--mo-slow) var(--mo-spring) both; }
   /* tabs: the sliding pill (runtime) */
-  html:not([data-motion="reduced"]) .mo-tab-ind { transition: transform var(--mo-base) var(--mo-ease); }
+  html:not([data-motion="reduced"]) [data-mo-tabs="on"]:not([data-mo-tabs-still])::before { transition: transform var(--mo-base) var(--mo-ease), width var(--mo-base) var(--mo-ease), height var(--mo-base) var(--mo-ease); }
   /* toasts slide in */
   html:not([data-motion="reduced"]) :where(.mo-toast, .toast) { animation: mo-toast-in var(--mo-slow) var(--mo-ease-out) backwards; }
   /* lists stagger in (runtime sets --mo-i) */
@@ -59,8 +59,8 @@
 [data-mo-tabs] { position: relative; isolation: isolate; }
 /* the pill never reaches past its bar (a stale size after the fonts load ran 4px past a 375 screen); the tabs' focus ring still shows */
 [data-mo-tabs="on"] { overflow: clip; overflow-clip-margin: 6px; }
-[data-mo-tabs="on"] > :not(.mo-tab-ind) { background-color: transparent !important; }
-.mo-tab-ind { position: absolute; z-index: -1; left: 0; top: 0; border-radius: 999px; background: var(--mo-tab-fill, currentColor); transform-origin: 0 50%; pointer-events: none; }
+[data-mo-tabs="on"] > * { background-color: transparent !important; }
+[data-mo-tabs="on"]::before { content: ""; position: absolute; z-index: -1; left: 0; top: 0; width: var(--mo-tab-w, 0); height: var(--mo-tab-h, 0); border-radius: 999px; background: var(--mo-tab-fill, currentColor); transform: translate(var(--mo-tab-x, 0), var(--mo-tab-y, 0)); pointer-events: none; }
 
 /* ---------------------------------------------------------------- the pause control (WCAG 2.2.2): everything still */
 html[data-motion="reduced"] *, html[data-motion="reduced"] *::before, html[data-motion="reduced"] *::after {

@@ -93,6 +93,8 @@ jobs:
           jq -r 'if .signups then "sign-up paths: " + ([.signups[] | "\(.path) \(if .ok then "ok" else "FAILED \(.error // "")" end) -> \(.landed // "") then \(.signedInAgain // ""), welcome \(.outbox // [] | join(","))"] | join("; ")) + "; links last \(.signup_config.link_seconds // "?") s; confirmation link \(.signup_config.confirmation_link // "?")" else empty end' "$R" | sed 's/^/::notice title=sign-up::/'
           jq -r 'if (.worker_limits // 0) > 0 then "::warning title=verify::Cloudflare answered \(.worker_limits) request(s) with Error 1102, Worker exceeded resource limits (the plan CPU or memory limit); each was loaded again" else empty end' "$R"
           jq -r '"pages: " + ([.pages[] | "\(.path) \(.status)"] | join(", ")) + "; nonce \(.nonce | tostring); console errors \(.console | length)"' "$R" | sed 's/^/::notice title=verify::/'
+          # R48: Googlebot must never get Cloudflare's security verification (Search Console counts it as 5xx)
+          jq -r '"Googlebot: " + (if .googlebot_ok then "no challenge on \(.googlebot | length) requests" else "CHALLENGED or failed: " + ([.googlebot[] | select(.ok | not) | "\(.path) \(.ua) \(.status // .error) challenged=\(.challenged)"] | join("; ")) end)' "$R" | sed 's/^/::notice title=googlebot::/'
           jq -r '(.portals // [])[] | select(.role == "admin") | "tolls, plates, forms: Read a notice \(.tollReadPage // "MISSING"); Settings > Forms \(.formsPage // "MISSING"); vision read of a notice: \(.vision.toll | tostring); plate box: \(.vision.plate | tostring)"' "$R" | sed 's/^/::notice title=0042::/'
           jq -r '"owner debit: owner Banking \"\([(.portals // [])[] | select(.role == "owner") | .autoDebit // "MISSING"] | join(""))\"; Admin > Owner debits \([(.portals // [])[] | select(.role == "admin") | if .debitsPage then "ok" else "MISSING" end] | join("")); statement emails job \(.statement_job | tostring)"' "$R" | sed 's/^/::notice title=owner debit::/'
           {
@@ -110,7 +112,7 @@ jobs:
             jq -r '(.signups // [])[] | "- \(.path): \(tostring)"' "$R"
             jq -r '"- config: \(.signup_config | tostring)"' "$R"
           } >> "$GITHUB_STEP_SUMMARY"
-          if [ "$status" != 0 ]; then echo "::error title=verify::a sign-in check failed (see the portal, view as, invite, auth link and sign-up notices)"; exit "$status"; fi
+          if [ "$status" != 0 ]; then echo "::error title=verify::a live check failed (see the googlebot, portal, view as, invite, auth link and sign-up notices)"; exit "$status"; fi
       - name: Real cars not on the site yet, and the sample cars (0065)
         if: always()
         continue-on-error: true

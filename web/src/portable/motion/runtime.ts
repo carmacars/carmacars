@@ -52,32 +52,25 @@ const CURRENT = ':scope > :is([aria-current="page"],[aria-current="true"],[aria-
 function placeTabs(bar: HTMLElement, target?: HTMLElement | null) {
   const cur = target ?? bar.querySelector<HTMLElement>(CURRENT);
   if (bar.dataset.moTabs === 'none') return;
-  let ind = bar.querySelector<HTMLElement>(':scope > .mo-tab-ind');
-  if (!cur) { ind?.remove(); return; }
-  if (!ind) {
+  // R48: the pill is the bar's ::before (motion.css), moved by custom properties. It used to be a span put inside the
+  // bar, a node React did not render: when React hydrated (or hydrated again) the bar after that, it found the span where
+  // its first tab should be (React #418 on the owner's Bookings, then the part drawn again).
+  if (!cur) { if (bar.dataset.moTabs === 'on') delete bar.dataset.moTabs; return; }
+  if (bar.dataset.moTabs !== 'on') {
     if (!hydrated(bar)) { later(bar); return; }
-    ind = document.createElement('span'); ind.className = 'mo-tab-ind'; ind.setAttribute('aria-hidden', 'true');
     // the current tab's own fill, handed to the pill
     const fill = getComputedStyle(cur).backgroundColor;
-    bar.style.setProperty('--mo-tab-fill', fill && fill !== 'rgba(0, 0, 0, 0)' ? fill : 'currentColor');
-    if (fill === 'rgba(0, 0, 0, 0)') { bar.dataset.moTabs = 'none'; return; } // no filled current tab: left as it is
-    bar.prepend(ind); bar.dataset.moTabs = 'on';
+    if (!fill || fill === 'rgba(0, 0, 0, 0)') { bar.dataset.moTabs = 'none'; return; } // no filled current tab: left as it is
+    bar.style.setProperty('--mo-tab-fill', fill);
   }
   const b = bar.getBoundingClientRect(), r = cur.getBoundingClientRect();
-  const x = r.left - b.left + bar.scrollLeft, y = r.top - b.top, w = r.width;
-  const prevW = Number(ind.dataset.w || 0);
-  if (!prevW || !motionAllowed()) {
-    ind.style.transition = 'none';
-    Object.assign(ind.style, { width: `${w}px`, height: `${r.height}px`, transform: `translate(${x}px, ${y}px)` });
-    ind.dataset.w = String(w); void ind.offsetWidth; ind.style.transition = '';
-    return;
-  }
-  // slide: move and stretch with transform only; the width settles at the end without a transition
-  ind.style.height = `${r.height}px`;
-  ind.style.transform = `translate(${x}px, ${y}px) scaleX(${w / prevW})`;
-  const done = () => { ind!.style.transition = 'none'; ind!.style.width = `${w}px`; ind!.style.transform = `translate(${x}px, ${y}px)`; ind!.dataset.w = String(w); void ind!.offsetWidth; ind!.style.transition = ''; };
-  ind.addEventListener('transitionend', done, { once: true });
-  window.setTimeout(done, 400);
+  const x = r.left - b.left + bar.scrollLeft, y = r.top - b.top;
+  const first = bar.dataset.moTabs !== 'on' || !motionAllowed();
+  if (first) bar.dataset.moTabsStill = '1';
+  bar.style.setProperty('--mo-tab-x', `${x}px`); bar.style.setProperty('--mo-tab-y', `${y}px`);
+  bar.style.setProperty('--mo-tab-w', `${r.width}px`); bar.style.setProperty('--mo-tab-h', `${r.height}px`);
+  bar.dataset.moTabs = 'on';
+  if (first) { void bar.offsetWidth; delete bar.dataset.moTabsStill; }
 }
 
 // ---------------------------------------------------------------- count-up

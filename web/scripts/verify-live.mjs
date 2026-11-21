@@ -129,6 +129,28 @@ for (const p of PAGES) {
   report.pages.push({ path: p, status: r.status, ms: Date.now() - t, title: /<title>([^<]*)<\/title>/.exec(body)?.[1] ?? null, location: r.headers.get('location') });
 }
 
+// R48 live: Googlebot never gets Cloudflare's "security verification" challenge (Search Console counted those as 5xx:
+// its validation was restarted on Nov 21, 2026 for 20,377 pages). Asked as Googlebot (smartphone and desktop) on the
+// pages it crawls most; a challenge is the cf-mitigated header, a 403 or 503 with Cloudflare's challenge page, or its
+// "security verification" text. Any one fails the run.
+const GOOGLEBOT = [
+  'Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.6778.204 Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+  'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'
+];
+report.googlebot = [];
+for (const p of ['/', '/cars', ...(slug ? [`/cars/${slug}`] : []), '/robots.txt', '/sitemap.xml', '/car-rental/toronto', '/faq']) {
+  for (const ua of GOOGLEBOT) {
+    try {
+      const r = await fetch(BASE + p, { redirect: 'manual', headers: { 'user-agent': ua, accept: 'text/html,application/xhtml+xml,*/*' } });
+      const body = (await r.text()).slice(0, 20000);
+      const challenged = r.headers.get('cf-mitigated') === 'challenge' || /challenge-platform|cf-chl-|Just a moment\.\.\.|security verification|Verifying you are human/i.test(body);
+      report.googlebot.push({ path: p, ua: /Mobile/.test(ua) ? 'smartphone' : 'desktop', status: r.status, challenged, ok: !challenged && r.status < 500 });
+    } catch (e) { report.googlebot.push({ path: p, ua: /Mobile/.test(ua) ? 'smartphone' : 'desktop', error: String(e).slice(0, 200), ok: false }); }
+  }
+}
+report.googlebot_ok = report.googlebot.every((x) => x.ok);
+if (!report.googlebot_ok) process.exitCode = 1;
+
 // The statement emails job (the Worker's hourly cron, POST /api/jobs/statements with the listing worker's token):
 // called once so a run shows what it renders and sends (owner, investor and company statements with their PDFs).
 if (process.env.LINK_SIGNING_KEY) {

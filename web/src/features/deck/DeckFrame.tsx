@@ -25,13 +25,20 @@ export function DeckFrame({ titles, children }: { titles: string[]; children: Re
     const all = slides();
     const k = Math.max(0, Math.min(all.length - 1, i));
     const n = ++jumping.current;
-    const settle = () => { if (jumping.current === n) jumping.current = 0; };
-    window.addEventListener('scrollend', settle, { once: true });
-    window.setTimeout(settle, 1200);
+    // settled once the slide asked for is at the top (or the page cannot scroll further); then the count is the slide in
+    // view, which it already shows. A scrollend of an earlier scroll does not count.
+    const atTarget = () => { const t = (all[k]?.getBoundingClientRect().top ?? 0) - (parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0); const end = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2; return Math.abs(t) < 4 || (t > 0 && end) || (window.scrollY <= 0 && k === 0); };
+    const settle = (force = false) => {
+      if (jumping.current !== n) return;
+      if (!force && !atTarget()) { window.addEventListener('scrollend', () => settle(), { once: true }); return; }
+      jumping.current = 0; setCur(force ? here() : k);
+    };
+    window.addEventListener('scrollend', () => settle(), { once: true });
+    window.setTimeout(() => settle(true), 3000);
     all[k]?.scrollIntoView({ block: 'start' });
     all[k]?.focus({ preventScroll: true });
     setCur(k);
-  }, [slides]);
+  }, [slides, here]);
 
   useEffect(() => {
     document.documentElement.classList.add('dk-on');

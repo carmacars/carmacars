@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { acceptCookies, db, noOverflow } from './helpers';
+import { acceptCookies, db, noOverflow, storeFixtureJpeg } from './helpers';
 
 // Release 48 (migration 2920): a renter on OPCF 27 who sent one page (the endorsement) sees on the booking exactly what
 // is missing (the pink slip, not "Under review"), and its button opens the pink slip upload with that page chosen, the
@@ -45,6 +45,8 @@ test('OPCF 27, one page sent: the checklist names the pink slip and goes straigh
   });
   // the renter sent the OPCF 27 endorsement page only
   const details = { coverage_option: '1', page_kind: 'endorsement', insurer_name: 'Example Insurance Co.', policy_number: 'EX-000-123456', policy_expiry: day(start + 400) };
+  // its file is stored too: the booking's Documents tab (crawled after the tests) links every document
+  storeFixtureJpeg('documents', `renters/${id}/${b.booking_id}/cx-endorsement.jpg`);
   await sql`select app.register_verification_upload(${b.booking_id}::uuid, ${id}::uuid, 'coverage_proof', null, ${`renters/${id}/${b.booking_id}/cx-endorsement.jpg`},
             ${'c'.repeat(64)}, 'image/jpeg', ${sql.json(details)}, 'documents')`;
 

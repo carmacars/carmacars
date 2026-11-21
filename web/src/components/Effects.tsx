@@ -30,13 +30,25 @@ export function Effects() {
   // prototype scroll effects (unchanged)
   useEffect(() => {
     document.documentElement.classList.add('js');
-    const els = Array.from(document.querySelectorAll('.fx-wipe, .fx-line, .fx-grow-y'));
     const native = CSS.supports?.('animation-timeline: view()');
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (native || reduce || !('IntersectionObserver' in window)) { els.forEach((e) => e.classList.add('is-in')); return; }
-    const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -12% 0px', threshold: 0.08 });
-    els.forEach((e) => io.observe(e));
-    return () => io.disconnect();
+    const io = native || reduce || !('IntersectionObserver' in window) ? null
+      : new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('is-in'); io?.unobserve(e.target); } }), { rootMargin: '0px 0px -12% 0px', threshold: 0.08 });
+    // R48: only what React already owns (a part streamed in after the shell waits for its hydration: React #418)
+    const seen = new WeakSet<Element>();
+    let tries = 0, t = 0;
+    const take = () => {
+      let waiting = false;
+      document.querySelectorAll('.fx-wipe, .fx-line, .fx-grow-y').forEach((e) => {
+        if (seen.has(e)) return;
+        if (!owned(e)) { waiting = true; return; }
+        seen.add(e);
+        if (io) io.observe(e); else e.classList.add('is-in');
+      });
+      if (waiting && ++tries <= 25) t = window.setTimeout(take, 400);
+    };
+    take();
+    return () => { window.clearTimeout(t); io?.disconnect(); };
   }, [path]);
 
   // page transitions: link clicks, back and forward
