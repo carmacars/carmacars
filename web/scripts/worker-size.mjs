@@ -75,11 +75,44 @@ function patch() {
   console.log('worker-size: OpenNext load-manifest plugin patched (inlined stylesheets written once)');
 }
 
+// r48: what each input adds, from esbuild's metafile, printed with every check so a CI log shows the cause of growth
+// without a local build: the inputs grouped (a package, a route's files, the manifests, the shared chunks), then the files
+function report() {
+  const META = `${HANDLER}.meta.json`;
+  if (!fs.existsSync(META)) { console.log('worker-size: no metafile next to the bundle; no breakdown'); return; }
+  let out;
+  try { out = Object.values(JSON.parse(fs.readFileSync(META, 'utf8')).outputs ?? {}).find((o) => o.inputs && Object.keys(o.inputs).length > 100) ?? null; } catch { out = null; }
+  if (!out) { console.log('worker-size: the metafile has no bundle output; no breakdown'); return; }
+  const group = (f) => {
+    const nm = f.lastIndexOf('node_modules/');
+    if (nm >= 0) { const rest = f.slice(nm + 13).split('/'); return `pkg ${rest[0].startsWith('@') ? `${rest[0]}/${rest[1]}` : rest[0]}`; }
+    if (/client-reference-manifest/.test(f)) return 'manifests: client reference';
+    if (/manifest/.test(f)) return 'manifests: other';
+    const app = f.match(/\.next\/server\/app\/(.*)$/);
+    if (app) return `app ${app[1].split('/').slice(0, 2).join('/')}`;
+    if (/\.next\/server\/chunks\//.test(f)) return 'chunks (shared server code)';
+    return f.split('/').slice(-3).join('/');
+  };
+  const groups = new Map();
+  const files = [];
+  for (const [f, v] of Object.entries(out.inputs)) {
+    const b = v.bytesInOutput ?? 0;
+    groups.set(group(f), (groups.get(group(f)) ?? 0) + b);
+    files.push([f, b]);
+  }
+  const mb = (b) => `${(b / 1024 / 1024).toFixed(2)} MiB`;
+  console.log('worker-size: the largest groups of inputs');
+  for (const [g, b] of [...groups].sort((a, z) => z[1] - a[1]).slice(0, 30)) console.log(`  ${mb(b).padStart(10)}  ${g}`);
+  console.log('worker-size: the largest input files');
+  for (const [f, b] of files.sort((a, z) => z[1] - a[1]).slice(0, 25)) console.log(`  ${mb(b).padStart(10)}  ${f.replace(/^.*?\.next\//, '.next/')}`);
+}
+
 function check() {
   if (!fs.existsSync(HANDLER)) { console.error('worker-size: no server bundle; run opennextjs-cloudflare build first'); process.exit(1); }
   const bytes = fs.statSync(HANDLER).size;
   const mib = bytes / 1024 / 1024;
   const line = `worker-size: server bundle ${mib.toFixed(1)} MiB (budget ${BUDGET_MIB} MiB; Cloudflare's limit 64 MiB for the whole Worker)`;
+  try { report(); } catch (e) { console.log(`worker-size: no breakdown (${e.message})`); }
   if (mib > BUDGET_MIB) {
     console.error(`${line}: over budget. web/README.md, Worker size, shows how to see what each input adds`);
     // in CI the cause gets its own annotation: without the build no server starts, and the later steps only say "connection refused"

@@ -141,11 +141,11 @@ export function bookingCan(v: Viewer): BookingCan {
 /** Field staff on the spot: collect payment and the deposit (pay link, QR, card reader), the licence in person, the signature
  *  (on the phone, the link, a paper photo by the existing rules). Nothing else. */
 function fieldCan(): BookingCan {
-  const no = { admin: false, offer: false, editOfferPending: false, money: false, extras: false, cancelForRenter: false, scheduleJob: false, latePanel: false, photoReview: false,
-    handover: false, sign: false, agreementMoney: false, licenceReview: false, renterDocs: false, staffUpload: false, carLink: false, manualPayments: false, voidRecords: false,
-    paperSignatures: false, driverLinks: false, refund: false, refundApprove: false, settleDeposit: false, statement: false, inbox: false, verifyInPerson: false, changeCar: false, collectOnly: false, returningNow: false,
+  // each key once (r48: the spread of an all-false object with five overrides left esbuild a duplicate key warning)
+  return { admin: false, offer: false, editOfferPending: false, money: true, extras: false, cancelForRenter: false, scheduleJob: false, latePanel: false, photoReview: false,
+    handover: true, sign: true, agreementMoney: false, licenceReview: false, renterDocs: false, staffUpload: false, carLink: false, manualPayments: false, voidRecords: false,
+    paperSignatures: true, driverLinks: false, refund: false, refundApprove: false, settleDeposit: false, statement: false, inbox: false, verifyInPerson: true, changeCar: false, collectOnly: false, returningNow: false,
     resendOffer: false, readiness: false, addonRemove: false, requestHistory: false, insurerClaim: false };
-  return { ...no, money: true, handover: true, sign: true, paperSignatures: true, verifyInPerson: true };
 }
 
 /** The sections a viewer gets as tabs on the booking page. */

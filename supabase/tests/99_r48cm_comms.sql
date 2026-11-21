@@ -34,8 +34,11 @@ create or replace function test.zcm_status(p_label text) returns text language s
 create or replace function test.zcm_claimed(p jsonb) returns text language sql as $$
   select coalesce(string_agg(replace(x ->> 'body', 'ZCM text ', ''), ',' order by x ->> 'body'), '') from jsonb_array_elements(coalesce(p -> 'texts', '[]'::jsonb)) x
    where x ->> 'body' like 'ZCM text %' $$;
+-- the most alerts of one Toronto day (one alert a day is the rule): an earlier suite's alert of yesterday is its own day's
+-- (CI 44867497039 ran this file at 00:05 Toronto, after another suite's refusal at 23:5x, and counted both)
 create or replace function test.zcm_alerts() returns bigint language sql as $$
-  select count(*) from app_events where code like 'staff_alert_%' and payload ->> 'rule' = 'texts_not_sending' $$;
+  select coalesce(max(n), 0) from (select count(*) n from app_events where code like 'staff_alert_%' and payload ->> 'rule' = 'texts_not_sending'
+   group by payload ->> 'kind') x $$;
 
 -- ================================================================ settings
 select test.eq('settings: stale after 2 hours, a probe every 30 minutes, staff suspended after 5 days (warned on day 3)',

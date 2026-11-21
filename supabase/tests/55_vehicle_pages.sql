@@ -231,7 +231,10 @@ select test.ok('IndexNow: a batch of at most 10,000 addresses from the sitemaps,
 select app.server_indexnow_report('{"status": 200, "count": 10, "cursor": {"file_i": 3, "pos": 5}}');
 select test.eq('a 2xx moves the cursor and counts the addresses', (select file_i || '/' || pos || '/' || sent_today from indexnow_sweep), '3/5/10');
 select app.server_indexnow_report('{"status": 429, "count": 10, "cursor": {"file_i": 9, "pos": 9}}');
-select test.ok('a 429 backs off and keeps the cursor', (select backoff_until > now() + interval '14 minutes' and file_i = 3 from indexnow_sweep)
+-- no Retry-After: until 00:05 Toronto the day after the answer (0104), the quota's next day; not a fixed span (the run at
+-- 23:53 Toronto, CI 44867497039, had 12 minutes to wait)
+select test.ok('a 429 backs off and keeps the cursor', (select backoff_until > now() and backoff_until >= ((((last_at at time zone 'America/Toronto')::date + 1 + time '00:05') at time zone 'America/Toronto') - interval '1 second')
+  and file_i = 3 from indexnow_sweep)
   and app.server_indexnow_claim(10000) ->> 'why' = 'backing off');
 update indexnow_sweep set backoff_until = null, backoff_s = 0, file_i = 0, pos = -1, sent_today = 0;
 
