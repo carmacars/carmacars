@@ -142,6 +142,12 @@ for (const p of [...new Set([...auditPaths, ...extra, ...cars, ...hubs, ...landi
   report.pages[p] = rec;
   if (r.status !== 200) { bad(p, `HTTP ${r.status}${r.headers.get('location') ? ' to ' + r.headers.get('location') : ''}`); continue; }
   const h = r.body;
+  // r48: the title, description and canonical are in the first <head>, not streamed into the body later (Next's streaming
+  // metadata; next.config.ts htmlLimitedBots): a crawler that reads the head alone must find them
+  const head = h.slice(0, Math.max(0, h.indexOf('</head>')));
+  for (const [k, re] of [['title', /<title>/], ['meta description', /<meta name="description"/], ['canonical', /<link rel="canonical"/]]) {
+    if (re.test(h) && !re.test(head)) bad(p, `${k} outside the first <head> (streamed metadata)`);
+  }
   const title = decode(/<title>([^<]*)<\/title>/.exec(h)?.[1] ?? '');
   const desc = decode(meta(h, 'description'));
   const canon = /<link rel="canonical" href="([^"]+)"/.exec(h)?.[1];

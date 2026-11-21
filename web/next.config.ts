@@ -30,6 +30,10 @@ const nodeTarget = (process.env.HOSTING_TARGET ?? '').trim().toLowerCase() === '
 
 const config: NextConfig = {
   ...(nodeTarget ? { output: 'standalone' as const } : {}),
+  // r48 SEO: metadata (title, description, canonical, Open Graph) always in the first <head>. Next 15.2+ streams it into
+  // the body for any agent not on its short list of HTML-limited bots, and the AI and answer crawlers, link previews and
+  // SEO tools outside that list then read a head without them (tests/lint/seo-audit.mjs checks the head)
+  htmlLimitedBots: /.*/,
   reactStrictMode: true,
   poweredByHeader: false,
   typedRoutes: false,

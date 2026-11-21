@@ -180,6 +180,13 @@ function check() {
   const line = `worker-size: server bundle ${mib.toFixed(1)} MiB (budget ${BUDGET_MIB} MiB; Cloudflare's limit 64 MiB for the whole Worker)`;
   try { report(); } catch (e) { console.log(`worker-size: no breakdown (${e.message})`); }
   try { duplicates(); } catch (e) { console.log(`worker-size: no duplicate count (${e.message})`); }
+  // the browser's side of the same build, so a chunking change that saves server bytes is seen against what it costs pages
+  try {
+    const cdir = path.join(WEB, '.next/static/chunks');
+    let n = 0, b = 0;
+    const walkc = (d) => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const q = path.join(d, e.name); if (e.isDirectory()) walkc(q); else if (e.name.endsWith('.js')) { n += 1; b += fs.statSync(q).size; } } };
+    if (fs.existsSync(cdir)) { walkc(cdir); console.log(`worker-size: browser chunks ${n} files, ${(b / 1024 / 1024).toFixed(2)} MiB`); }
+  } catch { /* the breakdown is informative only */ }
   if (mib > BUDGET_MIB) {
     console.error(`${line}: over budget. web/README.md, Worker size, shows how to see what each input adds`);
     // in CI the cause gets its own annotation: without the build no server starts, and the later steps only say "connection refused"
