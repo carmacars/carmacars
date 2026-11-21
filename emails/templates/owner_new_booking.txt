@@ -31,6 +31,8 @@ https://carmacars.ca/owner/bookings/{{booking_number}}
 
 The rental counts toward your statement for the month it ends, once collected. Your statement shows the final figures.
 
+Not confirmed until payment and coverage are complete.
+
 ----------------------------------------
 
 Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.

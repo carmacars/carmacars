@@ -30,6 +30,7 @@ export default {
     ]),
     button('View this booking', '@owner_booking'),
     small('The rental counts toward your statement for the month it ends, once collected. Your statement shows the final figures.'),
+    small('Not confirmed until payment and coverage are complete.'),
   ],
   sample: {
     first_name: 'Daniel', vehicle_name: '2023 Toyota RAV4 XLE', rental_charge: '$340.00', is_self_managed: false, show_amounts: true,
