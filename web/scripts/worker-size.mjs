@@ -103,6 +103,20 @@ function report() {
   const mb = (b) => `${(b / 1024 / 1024).toFixed(2)} MiB`;
   console.log('worker-size: the largest groups of inputs');
   for (const [g, b] of [...groups].sort((a, z) => z[1] - a[1]).slice(0, 30)) console.log(`  ${mb(b).padStart(10)}  ${g}`);
+  // Turbopack's shared server chunks: by layer (ssr/ renders client components, the rest is the server layer) and by the
+  // source their names start with (the hash left out), so a module copied into many chunks shows as one line with a count
+  const chunks = files.filter(([f]) => /\.next\/server\/chunks\//.test(f));
+  const ssr = chunks.filter(([f]) => /\/chunks\/ssr\//.test(f));
+  const sum = (xs) => xs.reduce((a, [, b]) => a + b, 0);
+  console.log(`worker-size: ${chunks.length} chunks, ${mb(sum(chunks))}: ssr layer ${ssr.length} (${mb(sum(ssr))}), server layer ${chunks.length - ssr.length} (${mb(sum(chunks) - sum(ssr))})`);
+  const stems = new Map();
+  for (const [f, b] of chunks) {
+    const stem = f.replace(/^.*\/chunks\//, '').replace(/_[0-9a-z-]{6,9}\._\.js$/i, '').replace(/\.js$/, '');
+    const s = stems.get(stem) ?? { n: 0, b: 0 };
+    s.n += 1; s.b += b; stems.set(stem, s);
+  }
+  console.log('worker-size: the chunks by name');
+  for (const [s, v] of [...stems].sort((a, z) => z[1].b - a[1].b).slice(0, 40)) console.log(`  ${mb(v.b).padStart(10)}  x${String(v.n).padEnd(4)} ${s}`);
   console.log('worker-size: the largest input files');
   for (const [f, b] of files.sort((a, z) => z[1] - a[1]).slice(0, 25)) console.log(`  ${mb(b).padStart(10)}  ${f.replace(/^.*?\.next\//, '.next/')}`);
 }
