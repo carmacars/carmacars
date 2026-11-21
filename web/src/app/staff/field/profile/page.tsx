@@ -12,6 +12,7 @@ import { SelfProfile } from '@/features/portal/SelfProfile';
 import { NotifyChannelCard } from '@/features/portal/NotifyChannel';
 import { PushAlerts } from '@/features/push/PushAlerts';
 import { AppProfile } from '@/features/app-shell/AppProfile';
+import { LocationSettings } from '@/features/location/LocationSettings';
 import { Act } from '@/features/admin/Act';
 import { AvailabilityGrid } from '@/features/field-portal/AvailabilityGrid';
 import type { Availability } from '@/features/field-portal/shift-picker';
@@ -62,6 +63,7 @@ export default async function Profile() {
       {si && <SignInSettings state={si} className="fd-card stack" />}
       {nc && <NotifyChannelCard reach={nc} className="fd-card stack" />}
       <PushAlerts userId={user.id} portal="field" className="fd-card stack" />
+      <LocationSettings userId={user.id} className="fd-card stack" />
       <AppProfile userId={user.id} lock className="fd-card stack" />
       <section className="fd-card" aria-labelledby="sec-t"><h2 className="d4" id="sec-t">Sign-in</h2>
         <p className="small">Two-step sign-in: {twoStep ? 'on, with your authenticator app.' : 'not set up.'}</p>

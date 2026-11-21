@@ -14,6 +14,7 @@ import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
 import { WhatsNew } from '@/features/whats-new/WhatsNew';
 import { StuckHelp } from '@/features/help/StuckHelp';
 import { PushInvite } from '@/features/push/PushAlerts';
+import { LocationSharer } from '@/features/location/LocationSharer';
 import { BrandMark } from '@/components/BrandMark';
 import { AlertsBell } from '@/features/alerts/AlertsBell';
 import { AlertPulse } from '@/features/motion/AlertPulse';
@@ -93,7 +94,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
             <StaffNav functions={held} open={open} chat={chat} hot={hot} />
           </aside>
         ) : <div />}
-        <div className="ad__main">{/* r48 FE (3197): what looks wrong on the person's own record, in a pop-up */}{staff && user && !viewing ? <DataCheckModal issues={await dataChecks(user.id, 'staff')} /> : null}{needsAddress ? <HomeAddressCard portal={portal} canada={canada} /> : null}{staff && user ? <GuideBanner portal={portal} userId={user.id} /> : null}{staff && user ? <StuckHelp portal={portal} /> : null}{office && user ? <CallerPopup portal="va" quiet={Boolean(viewing)} topic={live.calls} /> : null}{staff && user ? <VoiceDock quiet={Boolean(viewing)} /> : null}{staff && user && !needsAddress ? <PushInvite portal={office ? 'staff' : 'field'} home={office ? '/staff' : ['/staff', '/staff/field']} userId={user.id} /> : null}{staff ? <HubBar hubs={staffHubs(held)} sections={staffSections(held)} /> : null}<DoorProvider kind="va"><RevampScope list={REVAMP_STAFF}>{staff && user ? <TermsGate userId={user.id} portal={office ? 'staff' : 'field'}>{children}</TermsGate> : children}</RevampScope></DoorProvider></div>
+        <div className="ad__main">{/* r48 FE (3197): what looks wrong on the person's own record, in a pop-up */}{staff && user && !viewing ? <DataCheckModal issues={await dataChecks(user.id, 'staff')} /> : null}{needsAddress ? <HomeAddressCard portal={portal} canada={canada} /> : null}{staff && user ? <GuideBanner portal={portal} userId={user.id} /> : null}{staff && user ? <StuckHelp portal={portal} /> : null}{office && user ? <CallerPopup portal="va" quiet={Boolean(viewing)} topic={live.calls} /> : null}{staff && user ? <VoiceDock quiet={Boolean(viewing)} /> : null}{staff && user && !needsAddress ? <PushInvite portal={office ? 'staff' : 'field'} home={office ? '/staff' : ['/staff', '/staff/field']} userId={user.id} /> : null}{staff && user && !viewing ? <LocationSharer /> : null}{staff ? <HubBar hubs={staffHubs(held)} sections={staffSections(held)} /> : null}<DoorProvider kind="va"><RevampScope list={REVAMP_STAFF}>{staff && user ? <TermsGate userId={user.id} portal={office ? 'staff' : 'field'}>{children}</TermsGate> : children}</RevampScope></DoorProvider></div>
       </div>
     </div>
   );

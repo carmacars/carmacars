@@ -47,8 +47,10 @@ function ios() {
     ['NSPhotoLibraryUsageDescription', str('Choose a photo of your licence, proof of coverage or the car from your library.')],
     ['NSPhotoLibraryAddUsageDescription', str('CarmaCars saves a photo to your library only when you ask it to.')],
     ['NSFaceIDUsageDescription', str('Unlock CarmaCars with Face ID instead of signing in again.')],
-    ['NSLocationWhenInUseUsageDescription', str('Your location is recorded with a signature and with pickup and return photos, as proof of where they happened.')],
-    ['UIBackgroundModes', `<array>\n\t\t${str('remote-notification')}\n\t</array>`],
+    ['NSLocationWhenInUseUsageDescription', str('Your location is recorded with a signature and with pickup and return photos, and shown to the CarmaCars team around your pickup or return (staff: only on shift or on a job). Turn it off in Settings.')],
+    // 3350 (release 48, part MAP): the live map. Background only while it qualifies: staff on shift or on a job, a renter or owner around a pickup or return
+    ['NSLocationAlwaysAndWhenInUseUsageDescription', str('CarmaCars shares your location with the team only while you are on shift or on a job (staff), or two hours either side of your pickup or return, even when the app is in the background. Never otherwise. Turn it off in Settings, Privacy.')],
+    ['UIBackgroundModes', `<array>\n\t\t${str('remote-notification')}\n\t\t${str('location')}\n\t</array>`],
     ['ITSAppUsesNonExemptEncryption', '<false/>'],
     ['UIStatusBarStyle', str('UIStatusBarStyleLightContent')],
     ['UIViewControllerBasedStatusBarAppearance', '<true/>'],
@@ -132,12 +134,14 @@ ${HOSTS.map((h) => `                <data android:host="${h}" />`).join('\n')}
         <meta-data android:name="com.google.firebase.messaging.default_notification_color" android:resource="@color/cc_red" />
         <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="alerts" />$1`);
   }
-  for (const perm of ['android.permission.CAMERA', 'android.permission.ACCESS_COARSE_LOCATION', 'android.permission.ACCESS_FINE_LOCATION', 'android.permission.USE_BIOMETRIC']) {
+  for (const perm of ['android.permission.CAMERA', 'android.permission.ACCESS_COARSE_LOCATION', 'android.permission.ACCESS_FINE_LOCATION', 'android.permission.USE_BIOMETRIC',
+    // 3350: the live map, in the background only while it qualifies (the plugin's foreground service shows a notice the whole time)
+    'android.permission.ACCESS_BACKGROUND_LOCATION', 'android.permission.FOREGROUND_SERVICE', 'android.permission.FOREGROUND_SERVICE_LOCATION', 'android.permission.POST_NOTIFICATIONS']) {
     if (!m.includes(`"${perm}"`)) m = m.replace(/(\n\s*<uses-permission android:name="android\.permission\.INTERNET" \/>)/, `$1\n    <uses-permission android:name="${perm}" />`);
   }
   if (!m.includes('android.hardware.camera')) m = m.replace(/(\n<\/manifest>)/, `\n    <uses-feature android:name="android.hardware.camera" android:required="false" />$1`);
   write(man, m);
-  log('AndroidManifest.xml: app links for carmacars.ca, camera, location, biometrics, alert icon, colour and channel');
+  log('AndroidManifest.xml: app links for carmacars.ca, camera, location (background for the live map), biometrics, alert icon, colour and channel');
 
   const colors = join(root, 'src', 'main', 'res', 'values', 'colors.xml');
   let c = existsSync(colors) ? read(colors) : '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n</resources>\n';

@@ -7,6 +7,7 @@ import { photoUrl } from '@/lib/photo';
 import { HOME_BOUNDS, MAX_BOUNDS, inBounds, type Bounds } from '@/features/live-map/config';
 import { MapEngine, type CarSpec } from '@/features/live-map/engine';
 import { CAR_SILHOUETTE } from '@/features/live-map/model';
+import { usePeople } from '@/features/live-map/usePeople';
 import { opsAct } from '@/server/actions/ops';
 import { ALERT, STATE, ago, circle, sorted, stateLine, stateOf, when, withDemo, type CarPhoto, type Fleet, type TrackedCar, type TrackerAlert } from './model';
 
@@ -96,6 +97,8 @@ export function FleetTracking({ initial, at, staff = false }: { initial: Fleet |
   }, [st?.zone_lat, st?.zone_lng, st?.zone_radius_km, mode]);
   useEffect(() => { if (mode === 'map') engine.current?.setTrail(trail?.path ?? null); }, [trail, mode]);
   useEffect(() => { engine.current?.selectCar(sel); }, [sel, mode]);
+  // 3350 (release 48 part MAP): the people layer (Admin and Fleet see everyone; field staff's map shows cars only)
+  const { chips: peopleChips } = usePeople(engine.current, mode === 'map', REFRESH_MS, staff !== 'field');
 
   const pick = (c: TrackedCar) => {
     setSel(c.vehicle_id);
@@ -140,9 +143,12 @@ export function FleetTracking({ initial, at, staff = false }: { initial: Fleet |
       </div>
 
       <div className="ft-hero">
+        <div className="ft-mapwrap">
         <div className="lm-map ft-map" ref={boxRef} data-testid="ft-map" data-mode={mode}>
           {mode === 'nogl' && <p className="lm-map__note">The map needs WebGL, which this browser does not have. The list beside it has every car.</p>}
           {mode === 'map' && !placed.length && <p className="ft-empty" data-testid="ft-no-tracker">No tracker yet. No car is reporting yet. Each car shows here once its tracker is paired and reports{view?.admin ? ', or turn on demo mode below to see simulated cars.' : '.'}</p>}
+        </div>
+        {peopleChips && <div className="lm-layers" role="group" aria-label="Layers">{peopleChips}</div>}
         </div>
         <section className="ft-list" aria-label="Cars" data-testid="ft-cars">
           <h2 className="lm-h">Cars <span>{cars.length}</span></h2>

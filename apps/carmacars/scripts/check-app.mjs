@@ -32,7 +32,7 @@ if (/https?:\/\/(?!carmacars\.ca)[a-z0-9.-]+\//i.test(offline.replace(/<!doctype
 const pkg = JSON.parse(readFileSync(join(APP, 'package.json'), 'utf8'));
 const PLUGINS = { App: '@capacitor/app', Camera: '@capacitor/camera', Haptics: '@capacitor/haptics', Network: '@capacitor/network', Preferences: '@capacitor/preferences',
   Share: '@capacitor/share', SplashScreen: '@capacitor/splash-screen', StatusBar: '@capacitor/status-bar', FirebaseMessaging: '@capacitor-firebase/messaging',
-  BiometricAuthNative: '@aparajita/capacitor-biometric-auth' };
+  BiometricAuthNative: '@aparajita/capacitor-biometric-auth', BackgroundGeolocation: '@capacitor-community/background-geolocation' };
 const webSrc = join(APP, '..', '..', 'web', 'src');
 const used = new Set();
 // the files that use the bridge: every call('Plugin', ...), listen('Plugin', ...) and has('Plugin'), and the plugin names

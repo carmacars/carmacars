@@ -8,6 +8,7 @@ import { SelfProfile } from '@/features/portal/SelfProfile';
 import { NotifyChannelCard } from '@/features/portal/NotifyChannel';
 import { PushAlerts } from '@/features/push/PushAlerts';
 import { AppProfile } from '@/features/app-shell/AppProfile';
+import { LocationSettings } from '@/features/location/LocationSettings';
 
 // Account > Profile: your contact details and the details your agreements and registry forms use.
 export async function ProfileTab({ home, user }: OwnerCtx) {
@@ -24,6 +25,7 @@ export async function ProfileTab({ home, user }: OwnerCtx) {
           {si && <SignInSettings state={si} />}
           {nc && <NotifyChannelCard reach={nc} />}
           <PushAlerts userId={user.id} portal="owner" />
+          <LocationSettings userId={user.id} />
           <AppProfile userId={user.id} lock />
           <section className="pt-card" aria-labelledby="ow-legal"><h2 className="d4" id="ow-legal">On your agreements</h2>
             <Dl rows={[['Legal name', o.legal_name], ['Enrolled as', o.owner_type === 'corporation' ? 'A corporation' : 'An individual'], ['Corporation', o.corporation_name ? `${o.corporation_name}${o.corporation_number ? `, no. ${o.corporation_number}` : ''}` : ''], ['Signing officer', o.signing_officer_name ? `${o.signing_officer_name}, ${o.signing_officer_title ?? ''}` : '']]} />

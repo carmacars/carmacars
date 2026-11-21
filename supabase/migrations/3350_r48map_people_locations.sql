@@ -239,7 +239,7 @@ begin
   if v_new then
     perform app.emit_event('staff_location_policy', 'user', p_user, jsonb_build_object('recipient_user_id', p_user, 'first_name', v_first,
       'policy_text', v_pol ->> 'text', 'policy_version', v_pol ->> 'version', 'accepted_on', app.fmt_at(now()),
-      'settings_url', rtrim((app.settings()).notify_base_url, '/') || '/staff/profile#location'), 'staff_location_policy:' || p_user || ':' || (v_pol ->> 'version'));
+      'settings_url', rtrim((app.settings()).notify_base_url, '/') || case when app.location_role(p_user) = 'field' then '/staff/field/profile#location' else '/staff/profile#location' end), 'staff_location_policy:' || p_user || ':' || (v_pol ->> 'version'));
   end if;
   return app.location_state(p_user);
 end $$;

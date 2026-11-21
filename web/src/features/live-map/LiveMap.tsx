@@ -11,10 +11,11 @@ import { poller } from '@/lib/poll/poll';
 import { photoUrl } from '@/lib/photo';
 import { HOME_BOUNDS, MAX_BOUNDS, NEW_MS, REFRESH_MS, SPOTLIGHT_MS, frameBounds, inBounds } from './config';
 import { MapEngine, type CarSpec, type EngineEvents, type Pad, type PinSpec, type Spot } from './engine';
+import { usePeople } from './usePeople';
 import { CanvasMap, hasWebGL } from './canvas';
 
 /** What LiveMap asks of a renderer: MapLibre (engine.ts) or Canvas 2D (canvas.ts). */
-type Engine = Pick<MapEngine, 'start' | 'destroy' | 'setPins' | 'setCars' | 'setHq' | 'frame' | 'reframe' | 'focus' | 'screenOf'>;
+type Engine = Pick<MapEngine, 'start' | 'destroy' | 'setPins' | 'setCars' | 'setPeople' | 'setHq' | 'frame' | 'reframe' | 'focus' | 'screenOf'>;
 import { roleLabel } from './roles';
 import { ContactButtons } from '@/features/phone/QuoButtons';
 import { CAR_HOW, CAR_SILHOUETTE, FLEET_STATUS, adminHref, staffHref, carLabel, timeLine, withoutContact, compactMoney, onTheRoad, photoPins, PRECISION_WORDS, STAGE, STAGES, TYPE, isNew, reasonOf, shortAgo, spotlight, isLead, spread, stageOf, tally, verbOf,
@@ -226,6 +227,9 @@ export function LiveMap({ initial, tv, at, embedded = false, portal = 'admin' }:
     })) : []);
   }, [view, layers.fleet, mode]);
 
+  // 3350 (release 48 part MAP): staff on shift or on a job, renters and owners at a pickup or return, with role filters
+  const { chips: peopleChips } = usePeople(engine.current, mode === 'map', REFRESH_MS);
+
   // ---------------------------------------------------------------- the spotlight (TV): the hottest leads, one every 10 seconds
   const spots = useMemo(() => (view ? spotlight(view, 6) : []), [view]);
   useEffect(() => {
@@ -347,6 +351,7 @@ export function LiveMap({ initial, tv, at, embedded = false, portal = 'admin' }:
         <div className="lm-layers" role="group" aria-label="Layers">
           <label><input type="checkbox" checked={layers.leads} onChange={(e) => setLayers((l) => ({ ...l, leads: e.target.checked }))} /> Leads</label>
           <label title={fleetCount ? undefined : 'Each car shows once its tracker reports'}><input type="checkbox" checked={layers.fleet && fleetCount > 0} disabled={!fleetCount} onChange={(e) => setLayers((l) => ({ ...l, fleet: e.target.checked }))} /> Fleet{fleetCount ? ` (${fleetCount}${view?.fleet_demo ? ', demo' : ''})` : ': waiting for trackers'}</label>
+          {peopleChips}
         </div>
       </div>
       {legend}

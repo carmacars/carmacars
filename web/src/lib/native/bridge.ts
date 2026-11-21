@@ -49,6 +49,13 @@ export function listen<T = unknown>(plugin: string, event: string, cb: (data: T)
   return () => { if (id) void b.nativePromise!(plugin, 'removeListener', { eventName: event, callbackId: id }).catch(() => undefined); };
 }
 
+/** A plugin method that calls back many times (a watcher); returns the callback id, or null when the app cannot. */
+export function watch<T = unknown>(plugin: string, method: string, options: Record<string, unknown>, cb: (data: T | null, err?: unknown) => void): string | null {
+  const b = bridge();
+  if (!b || !has(plugin) || typeof b.nativeCallback !== 'function') return null;
+  try { return b.nativeCallback(plugin, method, options, (data, err) => cb(err ? null : (data as T), err)); } catch { return null; }
+}
+
 /** A short tap of the phone's vibration motor: light for a touch, success or error for the end of something. */
 export function haptic(kind: 'light' | 'success' | 'warning' | 'error' = 'light'): void {
   if (!has('Haptics')) return;
