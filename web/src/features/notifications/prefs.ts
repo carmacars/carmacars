@@ -96,3 +96,10 @@ export function applyChange(s: PrefState, c: PrefChange): PrefState {
 
 /** The key of a switch being saved (one switch waits, the others stay usable). */
 export const switchKey = (type: string, channel: Channel) => `${type}:${channel}`;
+
+/** The short note under a booking switch once it is on: most new requests never complete payment or coverage. */
+export const BOOKING_NOTE_CODES: readonly string[] = ['owner_new_bookings', 'owner_new_booking', 'owner_booking_confirmed'];
+export const BOOKING_NOTE = "Heads up: most new requests don't end up going through. Usually the renter doesn't finish payment or coverage. We'll still let you know, but count on a booking only once it's paid and covered.";
+export function bookingNote(t: { code: string; locked: boolean; push: boolean; email: boolean; text: boolean }): string | null {
+  return BOOKING_NOTE_CODES.includes(t.code) && !t.locked && (t.push || t.email || t.text) ? BOOKING_NOTE : null;
+}

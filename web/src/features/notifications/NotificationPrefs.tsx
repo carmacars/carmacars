@@ -2,7 +2,7 @@
 import { useRef, useState, useTransition } from 'react';
 import { DateInput } from '@/components/DateInput';
 import type { ActionResult } from '@/features/forms/schemas';
-import { applyChange, CADENCES, CHANNELS, channelNote, clockWords, minutesToTime, summaryLine, switchKey, timeToMinutes, type Channel, type PrefChange, type PrefState, type PrefType } from './prefs';
+import { applyChange, CADENCES, CHANNELS, channelNote, BOOKING_NOTE, bookingNote, BOOKING_NOTE_CODES, clockWords, minutesToTime, summaryLine, switchKey, timeToMinutes, type Channel, type PrefChange, type PrefState, type PrefType } from './prefs';
 
 // The Notifications page of every portal (release 48, migration 3260; the owner, Nov 20: "EVERYONE can customise their
 // notifications"): each kind of notification with a switch per channel (push, email, text), quiet hours, and instant, a
@@ -22,6 +22,11 @@ function Row({ t, s, busy, onSwitch, idp }: { t: PrefType; s: PrefState; busy: S
       <div className="rw-pref__what">
         <p className="rw-pref__label">{t.label}</p>
         {t.detail && <p className="rw-pref__detail">{t.detail}</p>}
+        {BOOKING_NOTE_CODES.includes(t.code) && !t.locked && (
+          <div className="rw-pref__reveal" data-open={bookingNote(t) ? 'true' : undefined} data-testid={`${idp}-booking-note-${t.code}`} aria-hidden={bookingNote(t) ? undefined : true}>
+            <p className="rw-pref__info" role="note">{BOOKING_NOTE}</p>
+          </div>
+        )}
         {!t.live && <p className="rw-pref__soon" data-testid={`${idp}-soon-${t.code}`}>Starts when your tracker is installed. Your choice is kept.</p>}
       </div>
       {t.locked
