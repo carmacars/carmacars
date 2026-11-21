@@ -1,0 +1,31 @@
+CarmaCars  |  Electronic monitoring policy
+
+========================================
+
+[Your copy]
+Thanks, {{first_name}}
+
+You accepted the CarmaCars electronic monitoring policy. Here is your copy to keep.
+
+The policy
+{{policy_text}}
+
+Accepted: {{accepted_on}}
+Version: {{policy_version}}
+
+Off duty, nothing is taken. On shift you can turn sharing off in your profile; during an active job it stays on, and it stops on its own when the job is done.
+
+Open my location settings:
+{{settings_url}}
+
+Ontario employers with 25 or more employees must give each employee a copy of their electronic monitoring policy. Keep this email for your records.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

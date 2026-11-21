@@ -905,7 +905,7 @@ select test.eq('G every wired email code has been built at least once in these t
       and c.code not in ('staff_agreement_reminder', 'staff_inactivity_warning', 'staff_team_group') -- the staff jobs of 1060, built in 99_r35k_staff_onboarding
       and c.code not in ('marketing_weekly', 'marketing_new_vehicle') -- the campaigns of 2520, built in 99_r41_marketing
       and c.code not in ('renter_data_check', 'owner_data_check', 'staff_data_check') -- an Admin's Send reminder (3199), queued in 99_r48fe_fees_evidence_hiring
-      and c.code not in ('renter_tracker_notice', 'renter_driving_notice', 'owner_tracker_alert', 'staff_pound_flag', 'staff_border_alert') -- tracker events (3320), off for these suites, built in 99_r48trk_tracker_events
+      and c.code not in ('renter_tracker_notice', 'renter_driving_notice', 'owner_tracker_alert', 'staff_pound_flag', 'staff_border_alert', 'staff_location_policy') -- tracker events (3320), off for these suites, built in 99_r48trk_tracker_events; the policy copy (3350) in 99_r48map_people
       and not exists (select 1 from notification_outbox o where o.code = c.code)
       and not exists (select 1 from staff_digest_items d where d.code = c.code)),
   null::text);
