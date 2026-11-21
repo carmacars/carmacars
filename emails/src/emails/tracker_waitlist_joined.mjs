@@ -19,6 +19,7 @@ export default {
       ['Cars', '{{cars_count}}'],
       ['The tracker', '{{tracker_price}}'],
       ['Install', '{{install_price}}'],
+      ['Monthly service for that many cars', '{{monthly_price}}'],
     ),
     p('{{tier_note}}'),
     p('Nothing is charged today. Prices are before HST; we confirm yours in writing before anything is billed.'),
@@ -33,6 +34,6 @@ export default {
   ],
   sample: {
     tracker_name: 'CarmaCars GPS tracker', cars_count: '3', tier_label: 'Pre-order', tracker_price: 'Free with your pre-order',
-    tier_note: 'A pre-ordered tracker is installed by us. You pay the install only.', install_price: '$150 once per car',
+    tier_note: 'A pre-ordered tracker is installed by us. You pay the install only.', install_price: '$150 once per car', monthly_price: '$20 a month per car',
   },
 };

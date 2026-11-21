@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { availability, ctaLabel, deviceNow, featureIcon, installSentence, offer, priceRows, priceSentence, priceShort, productAnswer, productFaq, stage, toPrices, TRACKER_PATHS, trackerIntents, type TrackerFacts } from './pages.ts';
+import { availability, ctaLabel, deviceNow, everyone, monthlySentence, monthlyShort, tierFor, featureIcon, installSentence, offer, priceRows, priceSentence, priceShort, productAnswer, productFaq, stage, toPrices, TRACKER_PATHS, trackerIntents, type TrackerFacts } from './pages.ts';
 import { negativeHits } from '../seo/copy-lint.ts';
 import { similarity } from '../seo/copy.ts';
 
 const F: TrackerFacts = { name: 'CarmaCars GPS tracker', brand: 'CarmaCars', city: 'Toronto', installCents: 15000, available: false, launchNote: 'Shipping soon', hst: '13%',
   prices: { ownerCents: 0, preorderCents: 9000, regularCents: 17500, freeFirst: 100, freeOpen: true },
+  tiers: [{ from_cars: 1, to_cars: 2, monthly_cents: 2500 }, { from_cars: 3, to_cars: 9, monthly_cents: 2000 }, { from_cars: 10, to_cars: null, monthly_cents: 1500 }],
   features: [{ title: 'Live GPS location', text: 'x' }, { title: 'Kill switch (engine shut-off)', text: 'x' }] };
 
 test('the price: free for vehicle owners and the first 100 pre-orders, then $90 on pre-order and $175 after launch', () => {
@@ -14,7 +15,13 @@ test('the price: free for vehicle owners and the first 100 pre-orders, then $90 
   assert.equal(deviceNow(F), 0);
   assert.equal(priceSentence(F), 'the tracker is free for the first 100 pre-orders, $90 on pre-order after that and $175 after launch; CarmaCars vehicle owners get the tracker free');
   assert.equal(priceShort(F), 'Free for the first 100 pre-orders, then $90');
-  assert.equal(offer(F), 'Free for the first 100 pre-orders, then $90, plus $150 once per car to install');
+  assert.equal(offer(F), 'Free for the first 100 pre-orders, then $90, plus $150 once per car to install and from $15 a month per car');
+  // the monthly service by number of cars: everyone pays it, vehicle owners included
+  assert.deepEqual([1, 2, 3, 9, 10, 0].map((n) => tierFor(F.tiers, n)?.monthly_cents), [2500, 2500, 2000, 2000, 1500, 2500]);
+  assert.equal(monthlySentence(F), '$25 a month per car for 1 to 2 cars, $20 for 3 to 9 cars and $15 for 10 cars or more');
+  assert.equal(monthlyShort(F), 'from $15 a month per car');
+  assert.equal(everyone(F), 'Everyone, vehicle owners included, pays $150 once per car to install and the monthly service: $25 a month per car for 1 to 2 cars, $20 for 3 to 9 cars and $15 for 10 cars or more');
+  assert.match(productAnswer(F), /\$25 a month per car for 1 to 2 cars/);
   assert.equal(installSentence(F), '$150 once per car to install');
   assert.deepEqual(priceRows(F), [['CarmaCars vehicle owners', 'Free', '$150'], ['The first 100 pre-orders', 'Free', '$150'], ['Pre-orders after that', '$90', '$150'], ['After launch', '$175', '$150']]);
   // once the free pre-orders are taken: the pre-order price, and "first 100" is no longer offered
@@ -33,7 +40,7 @@ test('the price: free for vehicle owners and the first 100 pre-orders, then $90 
   // the number that really closes the offer never reaches a page: the pages know only the public number and a yes or no
   assert.deepEqual(Object.keys(toPrices({ owner_cents: 0, preorder_cents: 9000, regular_cents: 17500, free_first: 100, free_open: true })).sort(), ['freeFirst', 'freeOpen', 'ownerCents', 'preorderCents', 'regularCents']);
   const all = JSON.stringify([productAnswer(F), productFaq(F), trackerIntents(F), priceRows(F)]);
-  assert.doesNotMatch(all, /250|spots? left|remaining|a month per car/i);
+  assert.doesNotMatch(all, /\b250\b|spots? left|remaining/i);
 });
 
 test('while trackers are not in hand every page offers the waitlist and never says in stock', () => {
@@ -70,11 +77,12 @@ test('every intent page is its own page: its own address, title, heading, answer
 });
 
 test('prices on the pages come from the settings, never typed', () => {
-  const other: TrackerFacts = { ...F, installCents: 19900, prices: { ownerCents: 2500, preorderCents: 11000, regularCents: 21000, freeFirst: 40, freeOpen: true } };
+  const other: TrackerFacts = { ...F, installCents: 19900, prices: { ownerCents: 2500, preorderCents: 11000, regularCents: 21000, freeFirst: 40, freeOpen: true }, tiers: [{ from_cars: 1, to_cars: 4, monthly_cents: 3000 }, { from_cars: 5, to_cars: null, monthly_cents: 1700 }] };
   const text = JSON.stringify([productAnswer(other), productFaq(other), trackerIntents(other)]);
   assert.doesNotMatch(text, /\$90|\$175|\$150|first 100/);
   assert.match(text, /free for the first 40 pre-orders, \$110 on pre-order after that and \$210 after launch; CarmaCars vehicle owners get the tracker for \$25/);
   assert.match(text, /\$199/);
+  assert.match(text, /\$30 a month per car for 1 to 4 cars and \$17 for 5 cars or more/);
   // no install price: the page says quoted, never a made-up number
   const none: TrackerFacts = { ...F, installCents: null };
   assert.match(productAnswer(none), /the install is quoted for your car/);

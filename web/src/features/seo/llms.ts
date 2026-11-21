@@ -3,7 +3,7 @@
 // facts come from the database (facts.ts, site settings, program settings, the real cars, the content blocks), never
 // from copy typed here, so the answers change when the settings do. Sample cars never set a price.
 import { money } from '../../lib/format.ts';
-import { availability, installSentence, priceRows, PriceSentence, productAnswer, productFaq, type TrackerFacts } from '../trackers/pages.ts';
+import { availability, installSentence, monthlySentence, priceRows, PriceSentence, productAnswer, productFaq, type TrackerFacts } from '../trackers/pages.ts';
 
 export interface FactLink { name: string; path: string; note?: string }
 export interface EntityFacts {
@@ -35,6 +35,7 @@ export function trackerLines(f: EntityFacts): string[] {
     ...priceRows(t).map((r) => `- Price of the tracker, ${r[0]!.replace(/^The /, 'the ')}: ${r[1]}`),
     `- Prices are before HST (${f.policy.hst})`,
     `- Install: ${installSentence(t)}`,
+    `- Monthly service, paid by everyone, vehicle owners included: ${monthlySentence(t)}`,
     `- Availability: ${availability(t)}. ${t.available ? '' : 'It is not sold from stock today: people join a waitlist or pre-order, and nothing is charged until the install is confirmed.'}`.trim(),
     '- Tolls and tickets: on cars rented through CarmaCars, each 407 ETR toll and ticket is matched to the renter who had the car at that minute and billed to that renter',
     `- Page: ${abs(f, '/trackers')}`, ''];

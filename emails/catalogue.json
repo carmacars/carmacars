@@ -16746,6 +16746,11 @@
           "sample": "$150 once per car"
         },
         {
+          "name": "monthly_price",
+          "type": "string",
+          "sample": "$20 a month per car"
+        },
+        {
           "name": "opening_hours",
           "type": "string",
           "sample": "Open 24 hours, every day",

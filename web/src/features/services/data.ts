@@ -5,7 +5,7 @@ import { env } from '@/lib/env';
 import { getFacts, getSettings } from '@/lib/site';
 import type { TrackerProduct } from '@/features/tracker-product/data';
 import type { ServiceFacts } from './catalog';
-import { priceShort, toPrices } from '@/features/trackers/pages';
+import { monthlyShort, priceShort, toPrices } from '@/features/trackers/pages';
 
 // The numbers on the service cards (release 48, migration 3232), in one read (public.service_facts: the tracker product,
 // the lowest chauffeur rate, the add-ons with their prices, the landing pages that exist), kept for five minutes per
@@ -26,7 +26,7 @@ export const getServiceFacts = cache(async (): Promise<ServiceFacts> => {
   const t = r.tracker;
   return {
     brand: s.brand_name, city: s.city,
-    trackerOn: Boolean(t), trackerPrice: t ? priceShort({ prices: toPrices(t.prices), available: Boolean(t.available) }) : null, trackerAvailable: Boolean(t?.available), trackerNote: t?.launch_note ?? 'Shipping soon',
+    trackerOn: Boolean(t), trackerPrice: t ? `${priceShort({ prices: toPrices(t.prices), available: Boolean(t.available) })}; ${monthlyShort({ tiers: t.tiers ?? [] })}` : null, trackerAvailable: Boolean(t?.available), trackerNote: t?.launch_note ?? 'Shipping soon',
     deliveryFromCents: f?.delivery_min_cents ?? null, chauffeurFromCents: r.chauffeur_from_cents ?? null,
     minAge: f?.min_renter_age ?? null, licence: f?.accepted_licence_classes?.length ? [...f.accepted_licence_classes].sort((a, b) => b.length - a.length).join(' or ') : null,
     airports: (f?.airports ?? []).map((a) => ({ code: a.code, name: a.name })), coverageOptions: 3,

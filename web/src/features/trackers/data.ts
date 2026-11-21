@@ -8,5 +8,5 @@ import { toPrices, type TrackerFacts } from './pages';
 export async function trackerFacts(): Promise<{ f: TrackerFacts; t: TrackerProduct } | null> {
   const [t, s, tok] = await Promise.all([getTrackerProduct(), getSettings(), getTokens()]);
   if (!t) return null;
-  return { t, f: { name: t.name, brand: s.brand_name, city: s.city, prices: toPrices(t.prices), installCents: t.install_cents, available: Boolean(t.available), launchNote: t.launch_note ?? 'Shipping soon', features: t.features, hst: tok.hst ?? '13%' } };
+  return { t, f: { name: t.name, brand: s.brand_name, city: s.city, prices: toPrices(t.prices), tiers: t.tiers ?? [], installCents: t.install_cents, available: Boolean(t.available), launchNote: t.launch_note ?? 'Shipping soon', features: t.features, hst: tok.hst ?? '13%' } };
 }

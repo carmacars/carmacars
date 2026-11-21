@@ -12,8 +12,9 @@
 --   (250). No page shows a count or "spots left".
 -- - Pre-orders after that: $90 (tracker_preorder_price_cents). After launch (trackers_available on): $175
 --   (tracker_regular_price_cents).
--- Every number is a Program setting. The monthly price by number of cars (tracker_product_tiers) stays in settings and
--- in public.tracker_product() but no page shows it: whether a monthly service fee remains is the owner's to say.
+-- - Everyone, vehicle owners included, also pays the monthly service by number of cars (tracker_product_tiers; the owner
+--   confirmed it, Nov 20): $25 a month per car for 1 or 2 cars, $20 for 3 to 9, $15 for 10 or more.
+-- Every number is a Program setting.
 --
 -- - public.tracker_product() answers the prices, which one applies now, and whether trackers can be installed now.
 -- - public.submit_tracker_waitlist: the waitlist or pre-order form (a lead for Sales with its To do and the staff alert of
@@ -49,7 +50,7 @@ alter table program_settings
     default '[{"from_cars": 1, "monthly_cents": 2500}, {"from_cars": 3, "monthly_cents": 2000}, {"from_cars": 10, "monthly_cents": 1500}]'::jsonb
     check (app.tracker_tiers_ok(tracker_product_tiers)),
   add column if not exists tracker_product_launch_note text not null default 'Shipping soon' check (length(tracker_product_launch_note) between 2 and 80);
-comment on column program_settings.tracker_product_tiers is 'GPS tracker product (3231): a monthly price per car by the number of cars, [{from_cars, monthly_cents}], before HST. Kept in settings; no public page shows it since the tracker is sold at one price (see tracker_regular_price_cents).';
+comment on column program_settings.tracker_product_tiers is 'GPS tracker product (3231): the monthly service price per car by the number of cars, [{from_cars, monthly_cents}], before HST: $25 for 1 or 2 cars, $20 for 3 to 9, $15 for 10 or more. Everyone pays it, vehicle owners included, besides the tracker and the install.';
 
 -- the tracker's own price (the owner, Nov 20): free for our vehicle owners, free for the first pre-orders, then $90 on
 -- pre-order and $175 after launch. Everyone pays the install.
@@ -157,6 +158,7 @@ declare
   v_matched boolean;
   v_tier text;
   v_device integer;
+  v_monthly integer := app.tracker_monthly_cents(v_cars);
   v_price text;
   v_tier_label text;
   v_note text;
@@ -199,21 +201,21 @@ begin
   r := app.submit_lead(jsonb_build_object('kind', 'other', 'source', 'web', 'source_url', p ->> 'source_url', 'name', v_name, 'email', p ->> 'email', 'phone', p ->> 'phone',
     'message', concat_ws(' ', case when v_avail then 'Wants to order the GPS tracker' when v_want = 'preorder' then 'Wants to pre-order the GPS tracker' else 'Joined the GPS tracker waitlist' end
                               || ' for ' || v_cars || case when v_cars = 1 then ' car.' else ' cars.' end,
-                         'Price: ' || v_price || '. Install: ' || v_install || '.',
+                         'Price: ' || v_price || '. Install: ' || v_install || '. Monthly service: ' || app.tracker_money(v_monthly) || ' a month per car.',
                          case when v_tier = 'owner' and v_matched then 'A vehicle owner (the email is an active owner''s).' when v_tier = 'owner' then 'Says they are a vehicle owner: check before the install.' end,
                          'Car: ' || nullif(btrim(p ->> 'vehicle'), '') || '.', 'Where: ' || nullif(btrim(p ->> 'city'), '') || '.', nullif(btrim(p ->> 'note'), '')),
     'payload', jsonb_strip_nulls(jsonb_build_object('form', 'tracker_waitlist', 'want', v_want, 'cars', v_cars, 'vehicle', nullif(btrim(p ->> 'vehicle'), ''), 'place', nullif(btrim(p ->> 'city'), ''),
                'tier', v_tier, 'owner', v_tier = 'owner', 'owner_claimed', v_claimed, 'owner_matched', v_matched,
-               'quoted_device_cents', v_device, 'quoted_install_cents', s.tracker_product_install_cents, 'trackers_available', v_avail)),
+               'quoted_device_cents', v_device, 'quoted_monthly_cents', v_monthly, 'quoted_install_cents', s.tracker_product_install_cents, 'trackers_available', v_avail)),
     'utm', p -> 'utm', 'referrer', p ->> 'referrer'), p_ip);
   if not coalesce((r ->> 'ok')::boolean, false) then return r; end if;
   v_id := (r ->> 'lead_id')::uuid;
   perform app.emit_event('tracker_waitlist_joined', 'lead', v_id,
     jsonb_build_object('email', v_email, 'name', v_name, 'first_name', coalesce(nullif(split_part(coalesce(v_name, ''), ' ', 1), ''), 'there'),
                        'tracker_name', s.tracker_product_name, 'cars_count', v_cars::text, 'tier', v_tier, 'owner', v_tier = 'owner',
-                       'tier_label', v_tier_label, 'tracker_price', v_price, 'tier_note', v_note, 'install_price', v_install),
+                       'tier_label', v_tier_label, 'tracker_price', v_price, 'tier_note', v_note, 'install_price', v_install, 'monthly_price', app.tracker_money(v_monthly) || ' a month per car'),
     'tracker_waitlist_joined:' || v_id);
-  return r || jsonb_build_object('tier', v_tier, 'owner', v_tier = 'owner', 'device_cents', v_device, 'cars', v_cars);
+  return r || jsonb_build_object('tier', v_tier, 'owner', v_tier = 'owner', 'device_cents', v_device, 'monthly_cents', v_monthly, 'cars', v_cars);
 end $$;
 create or replace function public.submit_tracker_waitlist(p jsonb, p_ip text default null) returns jsonb
 language sql security definer set search_path = public, app as $$ select app.submit_tracker_waitlist(p, p_ip) $$;
@@ -232,7 +234,7 @@ select pg_temp.copy_grants('app.sl_source(leads)'::regprocedure, 'app.sl_source_
 -- CATALOGUE 3231 START (generated by supabase/seed/3231_gen_catalogue.mjs; do not edit by hand)
 insert into notification_catalogue (code, audience, also_sent_to, category, is_digest, digest_slot, from_address, reply_to,
     subject, preheader, timing, trigger_text, replaces_template, link_path, variables, template_html, template_text) values
-  ('tracker_waitlist_joined', 'owner', '{}'::text[], 'transactional', false, null, 'CarmaCars <owners@carmacars.ca>', 'owners@carmacars.ca', 'You are on the {{tracker_name}} list', 'We will write as soon as the trackers arrive. Nothing is charged today.', 'Immediate', 'A person joins the GPS tracker waitlist or pre-orders on /trackers (public.submit_tracker_waitlist, migration 3231). Once per sign-up.', null, '/trackers', '[{"name":"cars_count","type":"string"},{"name":"company_address","type":"string","global":true},{"name":"contact_email","type":"string","global":true},{"name":"first_name","type":"string"},{"name":"instagram_url","type":"url","global":true},{"name":"install_price","type":"string"},{"name":"opening_hours","type":"string","global":true},{"name":"reply_time","type":"string","global":true},{"name":"support_phone","type":"string","global":true},{"name":"tier_label","type":"string"},{"name":"tier_note","type":"string"},{"name":"tiktok_url","type":"url","global":true},{"name":"tracker_name","type":"string"},{"name":"tracker_price","type":"string"}]'::jsonb, 'templates/tracker_waitlist_joined.html', 'templates/tracker_waitlist_joined.txt')
+  ('tracker_waitlist_joined', 'owner', '{}'::text[], 'transactional', false, null, 'CarmaCars <owners@carmacars.ca>', 'owners@carmacars.ca', 'You are on the {{tracker_name}} list', 'We will write as soon as the trackers arrive. Nothing is charged today.', 'Immediate', 'A person joins the GPS tracker waitlist or pre-orders on /trackers (public.submit_tracker_waitlist, migration 3231). Once per sign-up.', null, '/trackers', '[{"name":"cars_count","type":"string"},{"name":"company_address","type":"string","global":true},{"name":"contact_email","type":"string","global":true},{"name":"first_name","type":"string"},{"name":"instagram_url","type":"url","global":true},{"name":"install_price","type":"string"},{"name":"monthly_price","type":"string"},{"name":"opening_hours","type":"string","global":true},{"name":"reply_time","type":"string","global":true},{"name":"support_phone","type":"string","global":true},{"name":"tier_label","type":"string"},{"name":"tier_note","type":"string"},{"name":"tiktok_url","type":"url","global":true},{"name":"tracker_name","type":"string"},{"name":"tracker_price","type":"string"}]'::jsonb, 'templates/tracker_waitlist_joined.html', 'templates/tracker_waitlist_joined.txt')
 on conflict (code) do update set
   audience = excluded.audience, also_sent_to = excluded.also_sent_to, category = excluded.category,
   is_digest = excluded.is_digest, digest_slot = excluded.digest_slot, from_address = excluded.from_address,
