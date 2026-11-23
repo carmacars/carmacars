@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { clampDay, isDay, joinLocal, normalize, pretty, splitLocal, timeOptions } from './date-input.ts';
+import { addYears, clampDay, expiryRange, isDay, joinLocal, maskDay, normalize, openDay, pretty, splitLocal, timeOptions } from './date-input.ts';
 
 describe('shared date fields', () => {
   it('knows a real day', () => {
@@ -29,5 +29,26 @@ describe('shared date fields', () => {
   });
   it('clamps a day into the range', () => {
     assert.equal(clampDay('2026-01-01', '2026-02-01', '2026-03-01'), '2026-02-01'); assert.equal(clampDay('2026-05-01', '2026-02-01', '2026-03-01'), '2026-03-01'); assert.equal(clampDay('2026-02-10'), '2026-02-10');
+  });
+  // hotfix-date (CC-10599): a renter could not type the policy expiry on a phone (the number pad has no dash), and the
+  // calendar opened on a far month instead of today's
+  it('takes a day typed with digits only, or with other separators', () => {
+    assert.equal(maskDay('2027'), '2027'); assert.equal(maskDay('20270'), '2027-0'); assert.equal(maskDay('202701'), '2027-01');
+    assert.equal(maskDay('2027011'), '2027-01-1'); assert.equal(maskDay('20270115'), '2027-01-15'); assert.equal(maskDay('2027-011'), '2027-01-1');
+    assert.equal(maskDay('2027-01-15'), '2027-01-15'); assert.equal(maskDay('2027/1/5'), '2027-01-5'); assert.equal(maskDay('2027.01.15'), '2027-01-15');
+    assert.equal(maskDay('2027-1-'), '2027-01'); assert.equal(maskDay('2027-'), '2027'); assert.equal(maskDay('15/01/2027'), '15/01/2027'); assert.equal(maskDay('Jan 15'), 'Jan 15');
+    assert.equal(normalize('date', '20270115'), '2027-01-15'); assert.equal(normalize('date', '2027/01/15'), '2027-01-15'); assert.equal(normalize('date', '2027013'), '');
+  });
+  it('opens the calendar on the value, else today kept in range', () => {
+    assert.equal(openDay('2027-03-04', '2026-11-23', '2026-11-23', '2029-11-23'), '2027-03-04');
+    assert.equal(openDay('', '2026-11-23', '2026-11-23', '2029-11-23'), '2026-11-23');
+    assert.equal(openDay('', '2026-11-23', '2027-01-01', '2029-11-23'), '2027-01-01');
+    assert.equal(openDay('2027-1', '2026-11-23', undefined, undefined), '2026-11-23');
+  });
+  it('an expiry runs from today (or a later first day) to some years on', () => {
+    assert.equal(addYears('2026-11-23', 3), '2029-11-23'); assert.equal(addYears('2028-02-29', 1), '2029-02-28');
+    assert.deepEqual(expiryRange('2026-11-23', 3), { min: '2026-11-23', max: '2029-11-23' });
+    assert.deepEqual(expiryRange('2026-11-23', 3, '2027-01-01'), { min: '2027-01-01', max: '2029-11-23' });
+    assert.deepEqual(expiryRange('2026-11-23', 3, '2030-06-01'), { min: '2030-06-01', max: '2031-06-01' });
   });
 });

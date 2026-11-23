@@ -6,6 +6,8 @@ import type { RenterCoverage } from '@/features/coverage/types';
 import type { CardRow } from '@/features/coverage/cards';
 import { CardPicker } from '@/features/coverage/CardPicker';
 import { TypedInput } from '@/components/DateInput';
+import { expiryRange } from '@/lib/date-input';
+import { torontoToday } from '@/lib/dates';
 import { money } from '@/lib/format';
 import { when } from '@/features/agreement/model';
 import { CoverageExample, CoverageExamples } from './CoverageExamples';
@@ -27,6 +29,8 @@ const fmtDay = (d: string) => when(`${d.slice(0, 10)}T12:00:00Z`, false);
 export function CoverageSection({ number, c, cards = [], need }: { number: string; c: RenterCoverage; cards?: CardRow[]; need?: string | null }) {
   const [d, setD] = useState<Record<string, string>>({ insurer_name: c.proof?.insurer_name ?? '', policy_number: c.proof?.policy_number ?? '', policy_expiry: c.proof?.policy_expiry ?? '' });
   const p = c.proof && c.proof.option === c.option ? c.proof : null;
+  // the policy expiry (hotfix-date): after the return, at most three years on
+  const exp = expiryRange(torontoToday(), 3, c.min_policy_expiry);
   const pages = p?.pages ?? [];
   const missing = c.opcf27_missing ?? [];
   const sent = (k: string) => pages.some((x) => x.status !== 'rejected' && c.page_kinds?.[x.id] === k);
@@ -51,7 +55,7 @@ export function CoverageSection({ number, c, cards = [], need }: { number: strin
           <p className="small">Send two pages of your own auto policy: the pink slip (your liability insurance card) and the OPCF 27 endorsement page, each a PDF or a photo. The policy must still be active after your return on {fmtDay(c.return_date)}. Our team checks them before pickup.</p>
           <div className="field"><label className="label" htmlFor="pt-cov-insurer_name">Insurer</label>
             <InsurerSelect id="pt-cov-insurer_name" value={d.insurer_name ?? ''} onChange={(v) => setD((x) => ({ ...x, insurer_name: v }))} required testId="coverage-insurer" /></div>
-          <div className="field-row">{field('policy_number', 'Policy number', { maxLength: 60 })}{field('policy_expiry', 'Policy expiry', { type: 'date', min: c.min_policy_expiry })}</div>
+          <div className="field-row">{field('policy_number', 'Policy number', { maxLength: 60 })}{field('policy_expiry', 'Policy expiry', { type: 'date', min: exp.min, max: exp.max })}</div>
           {d.policy_expiry && d.policy_expiry < c.min_policy_expiry && <p className="error" role="alert">The policy must still be active after your return date.</p>}
           {pages.length > 0 && <p className="small" data-testid="coverage-pages">{pages.length} {pages.length === 1 ? 'page' : 'pages'} sent{p?.status === 'submitted' ? ', in review' : ''}.</p>}
           {(needs.length > 0 || missing.length > 0) && <p className="alert alert--warn" role="note" data-testid="coverage-opcf-missing">

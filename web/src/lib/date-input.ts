@@ -21,11 +21,37 @@ export const joinLocal = (day: string, time: string) => (day ? `${day}T${time ||
 /** What a typed value is worth for this kind: the value to keep, or '' when it is not one (a partial typing). */
 export function normalize(kind: DateKind, text: string): string {
   const t = text.trim().replace(' ', 'T');
-  if (kind === 'date') return isDay(t) ? t : '';
+  if (kind === 'date') { const m = maskDay(t); return isDay(m) ? m : ''; }
   if (kind === 'time') return isTime(t) ? t : '';
   const { day, time } = splitLocal(t);
   return isDay(day) && isTime(time) ? t.slice(0, 16) : '';
 }
+/** A day as it is typed (hotfix-date): a phone's number pad has no dash, so the digits get them as they come ("20270115" and
+ *  "2027/01/15" read 2027-01-15). Anything else (letters, a day written 15/01/2027) is left as typed. */
+export function maskDay(text: string): string {
+  const t = text.trim();
+  if (!/^\d{4}[\d\-/. ]*$/.test(t)) return t;
+  const parts = t.split(/[-/. ]/);
+  if (parts.length > 3 || (parts.length > 1 && parts[0]!.length !== 4)) return t;
+  // a month or day the typing already ended with a separator ("2027-1-") is one digit: 01
+  const d = parts.map((x, i) => (i > 0 && i < parts.length - 1 && x.length === 1 ? `0${x}` : x)).join('');
+  if (d.length > 8) return t;
+  return d.slice(0, 4) + (d.length > 4 ? `-${d.slice(4, 6)}` : '') + (d.length > 6 ? `-${d.slice(6, 8)}` : '');
+}
+/** The same day n years on (Feb 29 becomes Feb 28). */
+export function addYears(day: string, n: number): string {
+  const [y = 0, m = 1, d = 1] = day.split('-').map(Number);
+  const last = new Date(Date.UTC(y + n, m, 0)).getUTCDate();
+  return `${y + n}-${String(m).padStart(2, '0')}-${String(Math.min(d, last)).padStart(2, '0')}`;
+}
+/** An expiry date's range (hotfix-date): from today (or a later first day, such as the day after a return) to `years` on. */
+export function expiryRange(today: string, years: number, from?: string): { min: string; max: string } {
+  const min = from && from > today ? from : today;
+  const far = addYears(today, years);
+  return { min, max: far > min ? far : addYears(min, 1) };
+}
+/** The month the popover's calendar opens on: the value's, else today's kept inside [min, max]. */
+export const openDay = (value: string, today: string, min?: string, max?: string) => (isDay(value) ? value : clampDay(today, min, max));
 /** "Nov 7, 2026" and "Nov 7, 2026, 2:30 p.m." for the field when it is not being typed in. */
 export function pretty(kind: DateKind, v: string): string {
   const { day, time } = splitLocal(v);

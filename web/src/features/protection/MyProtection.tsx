@@ -6,6 +6,8 @@ import { changeProtection, protectionProofUpload } from '@/server/actions/portal
 import { toStandardImage } from '@/features/uploads/standard-image';
 import { PHOTO_ACCEPT } from '@/features/uploads/formats';
 import { TypedInput } from '@/components/DateInput';
+import { expiryRange } from '@/lib/date-input';
+import { torontoToday } from '@/lib/dates';
 import { CARD_ACK, OPCF_ACK, TITLE, changeText, label, planText, resultText, whatHappens, coverageChoiceProblem, type Opt, type ProtectionOptions, type ProtectionResult } from './model';
 
 import { WhyDisabled } from '@/components/WhyDisabled';
@@ -95,7 +97,7 @@ export function MyProtection({ number, x, cards }: { number: string; x: Protecti
             {to === 1 && <div className="field-row">
               <div className="field"><label className="label" htmlFor="mp-ins">Insurer</label><input className="input" id="mp-ins" maxLength={120} value={d.insurer_name} onChange={(e) => setD({ ...d, insurer_name: e.target.value })} /></div>
               <div className="field"><label className="label" htmlFor="mp-pol">Policy number</label><input className="input" id="mp-pol" maxLength={60} value={d.policy_number} onChange={(e) => setD({ ...d, policy_number: e.target.value })} /></div>
-              <div className="field"><label className="label" htmlFor="mp-exp">Policy expiry</label><TypedInput className="input" id="mp-exp" type="date" value={d.policy_expiry} onChange={(e) => setD({ ...d, policy_expiry: e.target.value })} /></div></div>}
+              <div className="field"><label className="label" htmlFor="mp-exp">Policy expiry</label><TypedInput className="input" id="mp-exp" type="date" {...expiryRange(torontoToday(), 3)} value={d.policy_expiry} onChange={(e) => setD({ ...d, policy_expiry: e.target.value })} /></div></div>}
             <div className="field"><label className="btn btn--ghost btn--sm" htmlFor="mp-proof">{busy ? 'Uploading' : ticket ? 'Proof added: replace it' : to === 1 ? 'Add your policy (pink slip and OPCF 27 page)' : 'Add your card’s coverage letter'}</label>
               <input id="mp-proof" type="file" accept={`${PHOTO_ACCEPT},application/pdf`} onChange={upload} disabled={busy} className="vh" data-testid="my-protection-proof" /></div></div>}
           <div className="field"><label className="label" htmlFor="mp-reason">Anything we should know (optional)</label>

@@ -2,7 +2,7 @@
 import { useEffect, useId, useRef, useState, type ChangeEvent, type InputHTMLAttributes, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Calendar } from '@/features/calendar/Calendar';
-import { clampDay, joinLocal, normalize, pretty, splitLocal, timeOptions, type DateKind } from '@/lib/date-input';
+import { clampDay, joinLocal, maskDay, normalize, openDay, pretty, splitLocal, timeOptions, type DateKind } from '@/lib/date-input';
 import { clock, torontoToday } from '@/lib/dates';
 import './date-picker.css';
 
@@ -81,7 +81,9 @@ export function DateInput({ type, value: valueProp, defaultValue, min: minProp, 
 
   const extra = (className ?? '').split(/\s+/).filter((c) => c && !c.startsWith('input')).join(' ');
   const shown = text ?? pretty(kind, value);
-  const typed = (s: string) => {
+  const typed = (raw: string) => {
+    // hotfix-date: a phone's number pad has no dash, so a typed day gets its dashes as the digits come
+    const s = kind === 'date' ? maskDay(raw) : raw;
     setText(s);
     const v = normalize(kind, s);
     const off = v && clampDay(v.slice(0, 10), p.min, p.max) !== v.slice(0, 10);
@@ -98,7 +100,9 @@ export function DateInput({ type, value: valueProp, defaultValue, min: minProp, 
 
   const popover = (
     <div className="popover dp__pop" role="dialog" aria-label="Choose a date" ref={pop} hidden={!open}>
-      <Calendar single bare months={1} min={min} max={max} today={today} start={clampDay(today, min, max)} maxDays={36500} from={day} to={day} onChange={(v) => pickDay(v.from)} />
+      {/* made when it opens (hotfix-date): it opens on the value's month, else today's (kept inside min and max), never on a
+          month fixed when the page first rendered */}
+      {open && <Calendar single bare months={1} min={min} max={max} today={today} start={openDay(day, today || torontoToday(), min, max)} maxDays={36500} from={day} to={day} onChange={(v) => pickDay(v.from)} />}
       {kind === 'datetime-local' && (
         <div className="dp__time">
           <label className="label" htmlFor={`${id}-time`}>Time</label>

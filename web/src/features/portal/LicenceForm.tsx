@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation';
 import { saveLicence } from '@/server/actions/portal';
 import { useAct } from './useAct';
 import { DateInput } from '@/components/DateInput';
+import { expiryRange } from '@/lib/date-input';
+import { torontoToday } from '@/lib/dates';
 
 // The licence details (0130): number, who issued it, class and expiry. The expiry must be after the return.
 export function LicenceForm({ number, initial }: { number: string; initial: { licence_number: string; licence_class: string; licence_issuer: string; licence_expiry: string } }) {
@@ -25,7 +27,7 @@ export function LicenceForm({ number, initial }: { number: string; initial: { li
       <div className="field-row">
         <div className="field"><label className="label" htmlFor="lf-cls">Class</label><input className="input" id="lf-cls" value={v.licence_class} onChange={set('licence_class')} /></div>
         <div className={`field${a.err('licence_expiry') ? ' has-error' : ''}`}><label className="label" htmlFor="lf-exp">Expiry date</label>
-          <DateInput className="input" id="lf-exp" type="date" value={v.licence_expiry} onChange={set('licence_expiry')} aria-invalid={!!a.err('licence_expiry') || undefined} aria-describedby="lf-exp-err" data-testid="lf-expiry" />
+          <DateInput className="input" id="lf-exp" type="date" {...expiryRange(torontoToday(), 10)} value={v.licence_expiry} onChange={set('licence_expiry')} aria-invalid={!!a.err('licence_expiry') || undefined} aria-describedby="lf-exp-err" data-testid="lf-expiry" />
           <p className="error" role="alert" id="lf-exp-err">{a.err('licence_expiry') ?? ''}</p></div>
       </div>
       {a.res && !a.res.ok && !a.res.fieldErrors && <p className="alert alert--error" role="alert"><span>{a.res.message}</span></p>}
