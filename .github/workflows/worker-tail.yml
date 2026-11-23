@@ -27,6 +27,8 @@ jobs:
           q() { echo "=== $1"; vps_sql "$2" | jq -c '.[]' | sed -E "$MASK" || echo "(failed)"; }
           q "sms log 24h" "select date_trunc('hour', created_at) h, status, left(coalesce(reason,''),250) r, count(*) from app.auth_sms_log where created_at > now() - interval '48 hours' group by 1,2,3 order by 1"
           q "sms last sent" "select max(created_at) from app.auth_sms_log where status='sent'"
+          q "sent by hour and code 30h" "select date_trunc('hour', sent_at) h, code, category, count(*) from public.notification_outbox where sent_at > now() - interval '30 hours' group by 1,2,3 having count(*) > 1 order by 1, 4 desc limit 60"
+          q "settings email" "select to_jsonb(s) - array(select k from jsonb_object_keys(to_jsonb(s)) k where k !~ '(email|ses|resend|cf_|marketing|cap)') from app.settings() s"
           q "email capacity" "select app.email_capacity() c, app.email_pace() p"
           q "provider state" "select to_jsonb(e) - 'id' from public.email_provider_state e"
           q "quo texts 24h" "select status, left(coalesce(status_reason,''),200) r, count(*) from public.notification_outbox where created_at > now() - interval '24 hours' and to_address ~ '^[+][0-9]+$' group by 1,2 order by 3 desc limit 15"
