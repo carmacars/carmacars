@@ -1,6 +1,6 @@
 [
  {
-  "release": "r49",
+  "release": "r49-checks",
   "title": "Release 49",
   "date": "2026-11-23",
   "seq": 0,
@@ -9,6 +9,8 @@
    {
     "area": "Staff tools",
     "items": [
+     "Sales are told when a website request has had no reply for 30 minutes, and the Admins at 2 hours",
+     "Finance gets a daily list of overdue renter balances with booking links, a To do for the Admins per balance overdue 3 days, and a notice for every refund paid or failed",
      "A booking's documents list no longer shows documents that were removed or replaced, so none opens an error page"
     ]
    },

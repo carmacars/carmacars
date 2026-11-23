@@ -4,11 +4,11 @@ import { FROM } from '../brand.mjs';
 export default {
   code: 'staff_request_waiting',
   audience: 'staff_va_cs',
-  also: ['staff_admin'],
+  also: ['staff_admin', 'staff_va_sales'],
   category: 'transactional',
   from: FROM.bookings,
   digest: false,
-  trigger: 'Scheduled check every 5 minutes: a booking has had status requested for more than 2 hours since requested_at with no offer sent, no more-information message and no decline. Not raised for a booking that returned to requested from an expired or withdrawn offer. Sent once per request, to customer service and both admins. Immediate.',
+  trigger: 'Scheduled check every 5 minutes: a booking has had status requested for more than 2 hours since requested_at with no offer sent, no more-information message and no decline. Not raised for a booking that returned to requested from an expired or withdrawn offer. Sent once per request, to customer service, Sales and both admins (r49: the Admin escalation of the 30 minute Sales notice, staff_request_open_to_sales). Immediate.',
   timing: '2 hours after an unanswered request',
   subject: 'Waiting {{waiting_time}}: request {{booking_number}} has no offer',
   preheader: '{{renter_name}}, {{vehicle_name}}, pickup {{pickup_date}}. Answer it now.',

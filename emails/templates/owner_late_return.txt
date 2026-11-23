@@ -1,0 +1,34 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Late return]
+Your {{vehicle_name}} is not back yet
+
+Hi {{first_name}}, the renter has kept the car {{late_by}} past the return time. Our team is calling the renter and checking the tracker.
+
+Due back: {{return_date}}, {{return_time}}
+Late by: {{late_by}}
+Booking: {{booking_number}}
+
+Nothing for you to do
+We tell you again as soon as the car is back. Late days are charged to the renter under the agreement.
+
+View this trip:
+https://carmacars.ca/owner/bookings/{{booking_number}}
+
+You get this once, when a car is 2 hours late. Every trip that comes back also has its own email.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

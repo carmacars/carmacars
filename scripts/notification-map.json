@@ -4,7 +4,7 @@
   "booking.request_submitted": {"renter": "renter_request_received", "staff_va_cs": "staff_booking_request_new"},
   "booking.request_needs_info": {"renter": "renter_request_needs_info"},
   "booking.request_declined": {"renter": "renter_request_declined"},
-  "booking.request_unanswered": {"staff_va_sales": "gap: Sales get the request through staff_request_waiting (staff_va_cs) only; no Sales code", "staff_va_cs": "staff_request_waiting"},
+  "booking.request_unanswered": {"staff_va_sales": ["staff_request_open_to_sales", "staff_request_waiting"], "staff_va_cs": "staff_request_waiting", "staff_admin": "staff_request_waiting"},
   "offer.sent": {"renter": "renter_offer_ready"},
   "offer.reminder": {"renter": "renter_offer_reminder"},
   "offer.expired": {"renter": "renter_offer_expired"},
@@ -35,14 +35,14 @@
   "booking.reminder": {"renter": "renter_booking_reminder"},
   "booking.pickup_details": {"renter": "renter_pickup_details"},
   "booking.trip_started": {"renter": "renter_trip_started"},
-  "booking.late_return": {"renter": "renter_late_return_first", "staff_va_fleet": "staff_late_return_alert", "owner": "gap: the owner of a late car hears nothing until the return (owner_trip_completed)"},
+  "booking.late_return": {"renter": "renter_late_return_first", "staff_va_fleet": "staff_late_return_alert", "owner": "owner_late_return"},
   "booking.returned": {"renter": "renter_return_complete", "owner": "owner_trip_completed", "staff_va_finance": "staff_return_findings"},
   "booking.final_statement": {"renter": "renter_final_statement"},
   "booking.review_request": {"renter": "renter_review_request", "staff_va_cs": "staff_review_received"},
   "payment.received": {"renter": "renter_payment_receipt"},
   "payment.failed": {"renter": "renter_payment_failed", "staff_va_finance": "staff_payment_failed"},
-  "payment.balance_overdue": {"renter": "renter_balance_overdue", "staff_va_finance": "gap: finance learn of an overdue balance from the digest only"},
-  "payment.refund_issued": {"renter": "renter_refund_issued", "staff_va_finance": "gap: finance see refunds in the digest and To do only"},
+  "payment.balance_overdue": {"renter": "renter_balance_overdue", "staff_va_finance": "staff_balance_overdue_digest"},
+  "payment.refund_issued": {"renter": "renter_refund_issued", "staff_admin": "rule:refund_issued", "staff_va_finance": "staff_refund_issued"},
   "payment.extra_charge": {"renter": "renter_extra_charge", "owner": "owner_use_charges"},
   "deposit.released": {"renter": "renter_deposit_released"},
   "deposit.declined": {"renter": "renter_deposit_declined"},
@@ -113,6 +113,7 @@
   "account.security": {"renter": "account_security_notice"},
   "account.password_reset": {"renter": "account_password_reset"},
   "data_check.renter": {"renter": "renter_data_check"},
-  "data_check.owner": {"owner": "owner_data_check"}
+  "data_check.owner": {"owner": "owner_data_check"},
+  "payment.refund_failed": {"staff_va_finance": "staff_refund_failed", "staff_admin": "staff_refund_failed"}
  }
 }
