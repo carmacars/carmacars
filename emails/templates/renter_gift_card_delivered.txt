@@ -1,0 +1,47 @@
+CarmaCars  |  Gift card ending {{gift_code_last4}}
+
+========================================
+
+[Gift card]
+A gift for you, {{first_name}}
+
+{{from_name}} sent you {{gift_amount}} for a CarmaCars rental.
+
+{{#if has_message}}
+A message from {{from_name}}
+{{gift_message}}
+{{/if}}
+
+Your code: {{gift_code}}
+{{gift_amount}} to spend on CarmaCars rentals.
+
+{{#if is_rental}}
+It is a gifted rental: {{rental_text}}. Use it for that car, or for any other car you like.
+{{/if}}
+
+Expires: {{expiry_text}}
+
+Use my gift card:
+{{redeem_url}}
+
+- Sign in or create your account, then add the code under Gift cards. It is then yours alone.
+- When you sign and pay for a booking, the balance is used first. Anything left stays on the card for next time.
+- It pays the rental, its fees and the HST, never the refundable deposit.
+
+Print the gift card or save it as a PDF: {{card_url}}
+
+Keep the code safe: anyone who has it can add it to their account until you do.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

@@ -103,6 +103,11 @@ export function fakePayments(): FakePayments {
       ledger().auto.add(i.id);
       return i;
     },
+    async createGiftIntent(r) {
+      const i = once(r.idempotencyKey, () => blank(r.amountCents, { gift_card_id: r.giftCardId, purpose: 'gift_card' }, r.customerId));
+      ledger().auto.add(i.id);
+      return i;
+    },
     async createInvoiceIntent(r) {
       const i = once(r.idempotencyKey, () => {
         const x = blank(r.amountCents, { owner_invoice_id: r.invoiceId, invoice_number: r.invoiceNumber, owner_id: r.ownerId, purpose: 'owner_invoice',

@@ -19,11 +19,13 @@ export const PATHS = {
   cancellation_policy: '/terms#cancellation',
   list_your_car: '/list-your-car',
   trackers: '/trackers',
+  gift_cards: '/gift-cards',
   careers: '/careers',
 
   // Renter portal
   account: '/account',
   account_rewards: '/account/rewards',
+  account_gift_cards: '/account/gift-cards',
   booking: '/account/bookings/{{booking_number}}',
   booking_messages: '/account/bookings/{{booking_number}}#messages',
   booking_offer: '/account/bookings/{{booking_number}}/offer',
@@ -67,6 +69,7 @@ export const PATHS = {
 
   // Admin portal
   admin: '/admin',
+  admin_gift_cards: '/admin/money?tab=gift',
   admin_approvals: '/admin/approvals',
   admin_statements: '/admin/statements',
   admin_payouts: '/admin/payouts',
@@ -89,6 +92,7 @@ export const PATHS = {
   va_finance_booking: '/staff/bookings/{{booking_number}}',
   va_finance_toll: '/staff/tolls?ticket={{toll_ticket_id}}',
   va_finance_invoice: '/staff/money',
+  va_finance_gift_cards: '/staff/money?tab=gift',
   va_finance_insurer_invoice: '/staff/money',
   va_fleet: '/staff/fleet',
   va_fleet_booking: '/staff/bookings/{{booking_number}}',

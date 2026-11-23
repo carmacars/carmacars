@@ -1,0 +1,41 @@
+CarmaCars  |  Gift card ending {{gift_code_last4}}
+
+========================================
+
+[Gift card]
+Thank you, {{first_name}}
+
+Your gift for {{recipient_name}} is paid.
+
+Paid: {{gift_amount}}
+Gift card ending {{gift_code_last4}}.
+
+For: {{recipient_name}}, {{recipient_email}}
+Delivery: {{delivery_text}}
+Paid on: {{payment_date}}
+Card: {{card_text}}
+
+{{#if is_rental}}
+It is a gifted rental: {{rental_text}}. The amount waits in their account as a credit for that rental, or for any other CarmaCars rental they choose.
+{{/if}}
+
+The balance never expires. It pays the rental, its fees and the HST. It never pays the refundable deposit, which is held on the driver's own card.
+
+See my gift cards:
+https://carmacars.ca/account/gift-cards
+
+No HST is charged on a gift card itself: HST is charged on the rental it pays for. Gift cards are not refundable for cash, except where the law requires it.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

@@ -21,10 +21,10 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>253 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>104</span></a><a href="#owner">Owner <span>57</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>20</span></a><a href="#staff_va_finance">Staff: finance <span>9</span></a><a href="#staff_va_fleet">Staff: fleet <span>13</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>5</span></a><a href="#staff_field">Staff: field <span>13</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>14</span></a><a href="#partner">Partner (body shop, tow truck, storage) <span>1</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>260 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>109</span></a><a href="#owner">Owner <span>57</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>21</span></a><a href="#staff_va_finance">Staff: finance <span>10</span></a><a href="#staff_va_fleet">Staff: fleet <span>13</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>5</span></a><a href="#staff_field">Staff: field <span>13</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>14</span></a><a href="#partner">Partner (body shop, tow truck, storage) <span>1</span></a></nav>
 <main>
-<h2 id="renter">Renter (104)</h2>
+<h2 id="renter">Renter (109)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/account_password_reset.html"><img loading="lazy" src="../shots/account_password_reset.desktop.png" alt="Screenshot of account_password_reset"></a><div class="b">
 <div class="code">account_password_reset</div><div class="sub">Reset your CarmaCars password</div>
@@ -307,6 +307,36 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">Promo code expiry (migration 0161): a code won in a discount game on the site has not been used and its last day is promo_reminder_3d_days days away (3 by default). Sent once per code, to the address that claimed it. Transactional: a reminder of the code they asked for, like the day-before reminder (renter_game_code_reminder). Not sent once the code is on a booking request.</div>
 <div class="ln"><a href="../dist/renter_game_code_reminder_3d.html">HTML</a><a href="../dist/renter_game_code_reminder_3d.txt">Text</a><a href="../shots/renter_game_code_reminder_3d.desktop.png">Desktop</a><a href="../shots/renter_game_code_reminder_3d.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_gift_card_delivered.html"><img loading="lazy" src="../shots/renter_gift_card_delivered.desktop.png" alt="Screenshot of renter_gift_card_delivered"></a><div class="b">
+<div class="code">renter_gift_card_delivered</div><div class="sub">Sam Rivera sent you a CarmaCars gift card</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Gift cards (migration 3600): a paid gift card or gifted rental reaches its send date (at once when no date was chosen), or an Admin issues a voucher credit to someone by email, or an Admin resends it. Sent to the recipient's email, once per gift card and send.</div>
+<div class="ln"><a href="../dist/renter_gift_card_delivered.html">HTML</a><a href="../dist/renter_gift_card_delivered.txt">Text</a><a href="../shots/renter_gift_card_delivered.desktop.png">Desktop</a><a href="../shots/renter_gift_card_delivered.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_gift_card_receipt.html"><img loading="lazy" src="../shots/renter_gift_card_receipt.desktop.png" alt="Screenshot of renter_gift_card_receipt"></a><div class="b">
+<div class="code">renter_gift_card_receipt</div><div class="sub">Your CarmaCars gift card receipt, $150.00</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Gift cards (migration 3600): a gift card or a gifted rental is paid by card on carmacars.ca/gift-cards. Sent to the buyer once per gift card. No HST is charged on a gift card: it is charged when the card pays for a rental.</div>
+<div class="ln"><a href="../dist/renter_gift_card_receipt.html">HTML</a><a href="../dist/renter_gift_card_receipt.txt">Text</a><a href="../shots/renter_gift_card_receipt.desktop.png">Desktop</a><a href="../shots/renter_gift_card_receipt.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_gift_card_refunded.html"><img loading="lazy" src="../shots/renter_gift_card_refunded.desktop.png" alt="Screenshot of renter_gift_card_refunded"></a><div class="b">
+<div class="code">renter_gift_card_refunded</div><div class="sub">$75.00 is back on your gift card</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Gift cards (migration 3600): an approved refund of a booking paid with a gift card returned the amount to the card balance. Sent to the card holder once per refund.</div>
+<div class="ln"><a href="../dist/renter_gift_card_refunded.html">HTML</a><a href="../dist/renter_gift_card_refunded.txt">Text</a><a href="../shots/renter_gift_card_refunded.desktop.png">Desktop</a><a href="../shots/renter_gift_card_refunded.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_gift_card_sent.html"><img loading="lazy" src="../shots/renter_gift_card_sent.desktop.png" alt="Screenshot of renter_gift_card_sent"></a><div class="b">
+<div class="code">renter_gift_card_sent</div><div class="sub">Your gift card reached Jordan Lee</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Gift cards (migration 3600): a gift card the buyer scheduled for a later date was emailed to the recipient on that date. Sent to the buyer once. Not sent when the gift went at once (the receipt says so).</div>
+<div class="ln"><a href="../dist/renter_gift_card_sent.html">HTML</a><a href="../dist/renter_gift_card_sent.txt">Text</a><a href="../shots/renter_gift_card_sent.desktop.png">Desktop</a><a href="../shots/renter_gift_card_sent.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_gift_card_used.html"><img loading="lazy" src="../shots/renter_gift_card_used.desktop.png" alt="Screenshot of renter_gift_card_used"></a><div class="b">
+<div class="code">renter_gift_card_used</div><div class="sub">$150.00 of your gift card paid booking CC-10482</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Gift cards (migration 3600): a booking paid with a gift card balance is confirmed. Sent to the card holder once per booking and card.</div>
+<div class="ln"><a href="../dist/renter_gift_card_used.html">HTML</a><a href="../dist/renter_gift_card_used.txt">Text</a><a href="../shots/renter_gift_card_used.desktop.png">Desktop</a><a href="../shots/renter_gift_card_used.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_google_review_request.html"><img loading="lazy" src="../shots/renter_google_review_request.desktop.png" alt="Screenshot of renter_google_review_request"></a><div class="b">
 <div class="code">renter_google_review_request</div><div class="sub">Would you review CarmaCars on Google?</div>
@@ -1017,7 +1047,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/investor_statement_ready.html">HTML</a><a href="../dist/investor_statement_ready.txt">Text</a><a href="../shots/investor_statement_ready.desktop.png">Desktop</a><a href="../shots/investor_statement_ready.phone.png">Phone</a></div>
 </div></div>
 </div>
-<h2 id="staff_admin">Staff: admin (20)</h2>
+<h2 id="staff_admin">Staff: admin (21)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/staff_approval_needed.html"><img loading="lazy" src="../shots/staff_approval_needed.desktop.png" alt="Screenshot of staff_approval_needed"></a><div class="b">
 <div class="code">staff_approval_needed</div><div class="sub">Approval needed: Refund outside the table, $468.95</div>
@@ -1060,6 +1090,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">Fleet-recount job (Monday 08:00): vehicles on the fleet policy, less those under exit notice, number 11 or fewer. Also sent at once when an exit notice or removal would take the count to 11 or fewer. Turo-Only cars are not counted.</div>
 <div class="ln"><a href="../dist/staff_fleet_count_warning.html">HTML</a><a href="../dist/staff_fleet_count_warning.txt">Text</a><a href="../shots/staff_fleet_count_warning.desktop.png">Desktop</a><a href="../shots/staff_fleet_count_warning.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_gift_card_voided.html"><img loading="lazy" src="../shots/staff_gift_card_voided.desktop.png" alt="Screenshot of staff_gift_card_voided"></a><div class="b">
+<div class="code">staff_gift_card_voided</div><div class="sub">Gift card ending Q7XM voided</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Gift cards (migration 3600): an Admin voided a gift card or voucher, with the reason. Sent at once to Admins and Finance.</div>
+<div class="ln"><a href="../dist/staff_gift_card_voided.html">HTML</a><a href="../dist/staff_gift_card_voided.txt">Text</a><a href="../shots/staff_gift_card_voided.desktop.png">Desktop</a><a href="../shots/staff_gift_card_voided.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/staff_incident_reported.html"><img loading="lazy" src="../shots/staff_incident_reported.desktop.png" alt="Screenshot of staff_incident_reported"></a><div class="b">
 <div class="code">staff_incident_reported</div><div class="sub">INCIDENT INC-2041: Accident, 2024 Honda Civic Sport</div>
@@ -1140,7 +1176,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/staff_weekly_summary.html">HTML</a><a href="../dist/staff_weekly_summary.txt">Text</a><a href="../shots/staff_weekly_summary.desktop.png">Desktop</a><a href="../shots/staff_weekly_summary.phone.png">Phone</a></div>
 </div></div>
 </div>
-<h2 id="staff_va_finance">Staff: finance (9)</h2>
+<h2 id="staff_va_finance">Staff: finance (10)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/staff_cancellation_received.html"><img loading="lazy" src="../shots/staff_cancellation_received.desktop.png" alt="Screenshot of staff_cancellation_received"></a><div class="b">
 <div class="code">staff_cancellation_received</div><div class="sub">Cancelled: CC-10482, refund $351.71 to process</div>
@@ -1159,6 +1195,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">Scheduled digest for Finance. Sent every day at 07:30 Toronto time to each active staff member with this role, even when nothing is waiting, so a missing digest is itself a warning sign. It carries every notice queued for this role with digest true since the last digest, plus these lists computed at send time: returns waiting for a statement, deposits near 7 business days since check-out, hold-backs near 30 days, card retries due today, declined payments, tolls and tickets to match and charge, refunds to process, owner invoices failed. Each line links to the item. One email replaces the separate notices.</div>
 <div class="ln"><a href="../dist/staff_digest_morning_va_finance.html">HTML</a><a href="../dist/staff_digest_morning_va_finance.txt">Text</a><a href="../shots/staff_digest_morning_va_finance.desktop.png">Desktop</a><a href="../shots/staff_digest_morning_va_finance.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_gift_card_sold.html"><img loading="lazy" src="../shots/staff_gift_card_sold.desktop.png" alt="Screenshot of staff_gift_card_sold"></a><div class="b">
+<div class="code">staff_gift_card_sold</div><div class="sub">Gift card sold: $150.00</div>
+<div class="tags"><span>Transactional</span><span class="d">Digest</span></div>
+<div class="tr">Gift cards (migration 3600): a gift card or gifted rental was paid online, or an Admin issued a voucher credit. Queued for the next Finance and Admin digest.</div>
+<div class="ln"><a href="../dist/staff_gift_card_sold.html">HTML</a><a href="../dist/staff_gift_card_sold.txt">Text</a><a href="../shots/staff_gift_card_sold.desktop.png">Desktop</a><a href="../shots/staff_gift_card_sold.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/staff_insurer_invoice_due.html"><img loading="lazy" src="../shots/staff_insurer_invoice_due.desktop.png" alt="Screenshot of staff_insurer_invoice_due"></a><div class="b">
 <div class="code">staff_insurer_invoice_due</div><div class="sub">Insurer invoice INS-0017 unpaid for 30 days: $1,582.00</div>

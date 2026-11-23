@@ -1,0 +1,25 @@
+CarmaCars  |  Gift card ending {{gift_code_last4}}
+
+========================================
+
+[Gift cards]
+A gift card was voided
+
+{{actor_name}} voided the card ending {{gift_code_last4}}.
+
+Balance taken off: {{amount_voided}}
+Reason: {{void_reason}}
+Kind: {{gift_type}}
+
+Open gift cards:
+https://carmacars.ca/admin/money?tab=gift
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

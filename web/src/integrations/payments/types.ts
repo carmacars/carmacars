@@ -96,6 +96,14 @@ export interface AddonIntentRequest {
   description: string;
   idempotencyKey: string;
 }
+/** A gift card bought on /gift-cards (migration 3600): one card payment, captured at once, the card not saved. */
+export interface GiftIntentRequest {
+  giftCardId: string;
+  amountCents: number;
+  customerId: string;
+  description: string;
+  idempotencyKey: string;
+}
 export interface BookingIntentRequest {
   bookingId: string;
   bookingNumber: string;
@@ -177,6 +185,8 @@ export interface PaymentsAdapter {
   createBookingIntent(r: BookingIntentRequest): Promise<Intent>;
   /** A card PaymentIntent for the add-ons a renter owes (0079): captured at once, the card not saved. */
   createAddonIntent(r: AddonIntentRequest): Promise<Intent>;
+  /** A card PaymentIntent for a gift card (3600): captured at once, the card not saved, no HST (it is charged on redemption). */
+  createGiftIntent(r: GiftIntentRequest): Promise<Intent>;
   retrieveIntent(id: string): Promise<Intent>;
   /** Captures an authorization; amountCents captures part of it (the rest is released). */
   captureIntent(id: string, idempotencyKey: string, amountCents?: number): Promise<Intent>;

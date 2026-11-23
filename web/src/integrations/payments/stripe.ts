@@ -216,6 +216,13 @@ export function stripeAdapter(secretKey: string, f: typeof fetch = (...a) => fet
         expand
       }, r.idempotencyKey));
     },
+    async createGiftIntent(r) {
+      return toIntent(await call('POST', '/payment_intents', {
+        amount: r.amountCents, currency: 'cad', customer: r.customerId, payment_method_types: ['card'], description: r.description,
+        metadata: { gift_card_id: r.giftCardId, purpose: 'gift_card' },
+        expand
+      }, r.idempotencyKey));
+    },
     async retrieveIntent(id) {
       return toIntent(await call('GET', `/payment_intents/${encodeURIComponent(id)}`, { expand }));
     },
