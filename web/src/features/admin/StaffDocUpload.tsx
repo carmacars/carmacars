@@ -1,7 +1,7 @@
 'use client';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { staffDocumentUpload, staffLicenceUpload } from '@/server/actions/sign-now';
+import { staffDocumentUploadFinish, staffDocumentUploadStart, staffLicenceUpload } from '@/server/actions/sign-now';
 import { InsurerSelect } from '@/features/insurers/InsurerSelect';
 import { DateInput } from '@/components/DateInput';
 
@@ -34,8 +34,16 @@ export function StaffDocUpload({ bookingId, drivers }: { bookingId: string; driv
       form.set('driver', driver);
       r = await staffLicenceUpload(form);
     } else {
-      for (const [k, v] of Object.entries(f)) if (v.trim()) form.set(k, v.trim());
-      r = await staffDocumentUpload(form);
+      // hotfix (BR-3): the file goes straight to private storage by a signed link; the action registers what arrived
+      const type = file.type === 'application/pdf' || file.type === 'image/png' || file.type === 'image/jpeg' ? file.type
+        : /\.pdf$/i.test(file.name) ? 'application/pdf' : /\.png$/i.test(file.name) ? 'image/png' : 'image/jpeg';
+      const details: Record<string, string> = {};
+      for (const [k, v] of Object.entries(f)) if (v.trim()) details[k] = v.trim();
+      const t = await staffDocumentUploadStart(bookingId, kind, type, file.size);
+      if (!t.ok) { setMsg({ ok: false, text: t.message }); return; }
+      const put = await fetch(t.data.url, { method: 'PUT', body: file, headers: t.data.headers }).catch(() => null);
+      if (!put?.ok) { setMsg({ ok: false, text: 'The upload did not finish. Check the connection and try again.' }); return; }
+      r = await staffDocumentUploadFinish(t.data.ticket, details);
     }
     if (!r.ok) { setMsg({ ok: false, text: r.message }); return; }
     // the licence reader (release 31): a photo it could not use is taken again now

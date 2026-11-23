@@ -41,7 +41,9 @@ export async function deliverSignInCode(p: { phones: string[]; code: string; use
   }
   const res = await phoneLine().sendText({ from: chk.from, to: chk.phone, body: smsCodeText(p.code) });
   await rpc('server_auth_sms_result', { p: { log_id: chk.log_id, ok: res.ok, quo_id: res.id, error: res.error ?? null } as unknown as Json }, SR);
-  return res.ok ? { ok: true, phone: chk.phone } : { ok: false, reason: 'send_failed', message: `The text could not be sent: ${res.error ?? 'Quo refused it'}` };
+  // the provider's reason stays in the log (auth_sms_log, and the site check alerts after 3 failures, migration 3410); the
+  // person asking is told what to do instead
+  return res.ok ? { ok: true, phone: chk.phone } : { ok: false, reason: 'send_failed', message: 'We could not text a code right now. Sign in with your email and password instead, or try again later.' };
 }
 
 export interface HookResult { status: number; body: Record<string, unknown> }

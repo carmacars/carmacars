@@ -40,11 +40,18 @@ export default async function FieldJobPage({ params }: { params: Promise<{ id: s
   const checklist = !j.checklist && (j.report_kind === 'pickup' || j.report_kind === 'return');
   const done = j.job.status === 'done';
   // a photo shoot (procedure 17): the listing capture of the car, as owners and Fleet use it (migration 0032)
-  const cap = j.job.kind === 'photo_shoot' && j.checklist?.listing && j.job.status === 'in_progress'
-    ? await door<Capture>(user.id, 'ops_read', 'listing_capture', { intake: j.checklist.listing.intake_id }).catch(() => null) : null;
+  // hotfix 2026-11-23 (BR-1): a photo shoot of a car that is already listed found the car's published listing, so the page
+  // said "Submitted for listing." and showed no capture. Only a listing of this job counts: one still open, or submitted
+  // since the job started; otherwise the shoot starts a new listing (app.start_listing_intake opens one beside the published one).
+  const lst = j.checklist?.listing ?? null;
+  const since = j.job.started_at ?? j.job.scheduled_at;
+  const ours = !!lst && lst.state !== 'published' && (!lst.submitted_at || lst.submitted_at >= since);
+  const cap = j.job.kind === 'photo_shoot' && ours && lst && j.job.status === 'in_progress'
+    ? await door<Capture>(user.id, 'ops_read', 'listing_capture', { intake: lst.intake_id }).catch(() => null) : null;
   const steps = cap ? await door<Steps>(user.id, 'ops_read', 'listing_steps', { intake: cap.intake_id }).catch(() => null) : null;
   const listing = j.job.kind !== 'photo_shoot' ? null : cap ? <>{steps && <ListingSteps initial={steps} refresh={[`/staff/field/jobs/${id}`]} />}<ListingCapture initial={cap} refresh={[`/staff/field/jobs/${id}`]} /></>
-    : j.checklist?.listing?.submitted_at ? <p className="fd-line is-ok">Submitted for listing.</p> : <StartListing vehicleId={j.vehicle.id} label="Start the listing photos" />;
+    : ours && lst?.submitted_at ? <p className="fd-line is-ok">Submitted for listing.</p>
+    : <StartListing vehicleId={j.vehicle.id} label={lst?.state === 'published' ? 'Take new listing photos' : 'Start the listing photos'} />;
   const c = clock(j.job.scheduled_at);
   // r35 part X (0930): the card's own steps on the job screen: the clean check and the add-ons ticked as in the car
   const card = (j.report_kind === 'pickup' || j.report_kind === 'return') ? await door<Card | null>(user.id, 'field_read', 'job_card', { id }).catch(() => null) : null;

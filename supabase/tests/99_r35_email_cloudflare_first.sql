@@ -4,6 +4,8 @@
 -- budget (100), never past the month's included 3,000; then Resend's free 100; when both are used the emails wait by
 -- priority. No hourly hold, never a paid send. Fixtures start with "cff"; every address is example.test.
 select test.suite('99 r35 email cloudflare first');
+-- 3410: the daily reserve is off here (this file is about the providers and the pace, not the reserve; 99_hotfix_signin_reserve)
+update program_settings set email_low_class_stop_pct = 100, email_auth_reserve = 0;
 
 update program_settings set cf_email_enabled = true, email_cloudflare_enabled = true, cf_email_monthly_included = 3000, cf_email_daily_budget = 100,
                             notify_daily_cap = 300, notify_cf_daily_budget = 200, notify_resend_daily_budget = 100, notify_class_limits = '{97,95,90,80,60}';
@@ -149,3 +151,5 @@ delete from notification_outbox where dedupe_key like 'cff-%';
 update notification_outbox o set sent_at = c.sent_at, status = c.status, locked_at = c.locked_at from cff_sent0 c where c.id = o.id;
 update notification_outbox o set send_after = e.send_after, status = e.status, status_reason = e.status_reason from cff_others e where e.id = o.id;
 update program_settings set cf_email_enabled = false;
+
+update program_settings set email_low_class_stop_pct = 60, email_auth_reserve = 10;

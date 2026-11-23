@@ -357,6 +357,25 @@
 
 /* field work inside the staff portal (0197): the staff frame gives the page; the column keeps its phone-first look */
 .fd--in-staff { min-height: 0; border-radius: var(--r-2); }
+/* Hotfix 2026-11-23 (BR-2, BR-1): inside the staff frame (.ad .va, light only) the R48 design kit paints its cards, chips
+   and notes white with dark admin text (.va .pt-card, .ad .pt-card.ad-card, admin-ui.css), which out-ranks the field
+   frame's dark rules. On a phone in dark mode the field pages then showed white text on white boxes and grey text on
+   black around them: nothing could be read, and the photo shoot's capture steps looked empty. The field pages in the
+   staff frame stay light, like the rest of the staff portal, until the kit has a dark mode of its own. */
+@media (prefers-color-scheme: dark) {
+  .fd.fd--in-staff {
+    color-scheme: light;
+    --fd-bg: var(--white); --fd-ink: var(--black); --fd-ink-2: var(--grey-700); --fd-surface: var(--grey-100); --fd-rule: var(--black); --fd-hair: var(--grey-300);
+    --fd-ok: #0b5d1e; --fd-ok-bg: #e7f4ea; --fd-bad: #9b0c16; --fd-bad-bg: var(--red-50);
+    --fd-slab: var(--black); --fd-slab-ink: var(--white); --fd-slab-ink-2: var(--grey-300); --fd-slab-rule: var(--grey-700);
+    --bg: var(--white); --surface: var(--grey-100); --text: var(--black); --text-2: var(--grey-600); --line: var(--grey-200); --line-strong: var(--black);
+  }
+  .fd.fd--in-staff .pt-note { background: var(--grey-100); border-left-color: var(--black); }
+  .fd.fd--in-staff .btn:not(.btn--primary):not(.btn--ghost):not(.btn--light):not(.btn--quiet):not([disabled]):not(.fd-go):not(.fd-yes):not(.fd-no) { --btn-bg: var(--black); --btn-fg: var(--white); }
+  .fd.fd--in-staff .btn[disabled] { --btn-bg: var(--grey-200); --btn-fg: var(--grey-600); --btn-bd: var(--grey-200); }
+  .fd.fd--in-staff .pt-dl > div { border-bottom-color: var(--grey-200); }
+  .fd.fd--in-staff .fd-brand__cars { color: var(--fd-red); }
+}
 .fd--in-staff .fd__frame { padding-bottom: var(--s-6); }
 /* 0291: how much of the rental walkthrough the renter has read */
 .fd-walk { margin: 0; padding: var(--s-2) var(--s-3); border-radius: var(--r-2); background: rgb(255 255 255 / 0.08); }

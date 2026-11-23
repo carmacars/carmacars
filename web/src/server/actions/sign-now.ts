@@ -10,7 +10,7 @@ import { storage } from '@/integrations/storage';
 import { requestMeta } from '@/server/request';
 import { enqueuePdfJobs, kickPdfJobs } from '@/server/pdf-jobs';
 import { chargeAddedRental } from '@/server/portal/added-charge';
-import { sha256Hex } from '@/server/links';
+import { readToken, sha256Hex, signToken } from '@/server/links';
 import type { SigningState } from '@/features/handover/types';
 import { imageSniff } from '@/lib/file-sniff';
 // r48 size: a static import, not import(): each import() left a loader listing the target's chunks in every chunk
@@ -132,6 +132,52 @@ export async function staffDocumentUpload(form: FormData): Promise<R> {
         title: opt('title'), insurer_name: opt('insurer_name'), policy_number: opt('policy_number'), policy_expiry: opt('policy_expiry'),
         page_kind: ['pink_slip', 'endorsement', 'card_benefit'].includes(opt('page_kind') ?? '') ? opt('page_kind') : undefined }, aal);
     } catch (e) { await s.remove('documents', key).catch(() => undefined); throw e; }
+    revalidatePath('/admin/bookings'); revalidatePath('/staff/bookings');
+    return { ok: true, data: null };
+  } catch (e) { return fail(e); }
+}
+
+// Hotfix 2026-11-23 (BR-3): a policy PDF sent through the server action itself could fail on the Worker before the
+// action ran ("An unexpected response was received from the server"). The file now goes straight from the browser to
+// private storage by a five-minute signed link, and the action only checks and registers what arrived.
+const STAFF_DOC_TYPES: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'application/pdf': 'pdf' };
+const STAFF_DOC_MAX = 15 * 1024 * 1024;
+
+/** Step 1: a signed upload link for one staff document (coverage proof, insurer letter, other) and a ticket. */
+export async function staffDocumentUploadStart(booking: string, kind: string, contentType: string, size: number): Promise<R<{ url: string; headers: Record<string, string>; ticket: string }>> {
+  try {
+    const { user } = await staff();
+    if (!/^[0-9a-f-]{36}$/.test(booking) || !['coverage_proof', 'insurer_document', 'other'].includes(kind)) return fail('Unknown upload.');
+    const ext = STAFF_DOC_TYPES[contentType];
+    if (!ext) return fail('Upload a photo (JPG or PNG) or a PDF.');
+    if (!(size > 0 && size <= STAFF_DOC_MAX)) return fail('The file must be under 15 MB.');
+    const key = `staff/${booking}/${kind}-${crypto.randomUUID()}.${ext}`;
+    const up = await (await storage()).signedUploadUrl('documents', key, contentType, 300);
+    const ticket = await signToken('staff-doc', { b: booking, k: kind, key, ct: contentType, u: user.id }, 300);
+    return { ok: true, data: { ...up, ticket } };
+  } catch (e) { return fail(e); }
+}
+
+/** Step 2: the file that arrived is checked (its real type and size) and put on the booking. */
+export async function staffDocumentUploadFinish(ticket: string, details: Record<string, string>): Promise<R> {
+  const t = await readToken<{ b: string; k: string; key: string; ct: string; u: string }>('staff-doc', ticket);
+  if (!t) return fail('The upload link expired. Choose the file again.', 'expired');
+  try {
+    const { user, aal } = await staff();
+    if (user.id !== t.u) return fail('Not permitted');
+    const s = await storage();
+    const bytes = await s.get('documents', t.key);
+    if (!bytes) return fail('The file did not arrive. Try again.');
+    const { jpg, png } = imageSniff(bytes);
+    const pdf = bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46;
+    const real = pdf ? 'application/pdf' : jpg ? 'image/jpeg' : png ? 'image/png' : '';
+    if (bytes.byteLength > STAFF_DOC_MAX || !real || real !== t.ct) { await s.remove('documents', t.key).catch(() => undefined); return fail('Upload a photo (JPG or PNG) or a PDF.'); }
+    const opt = (k: string) => { const v = String(details?.[k] ?? '').trim().slice(0, 120); return v || undefined; };
+    try {
+      await door(user.id, 'ops_do', 'staff_document_register', { booking: t.b, kind: t.k, path: t.key, sha256: await sha256Hex(bytes), mime: real,
+        title: opt('title'), insurer_name: opt('insurer_name'), policy_number: opt('policy_number'), policy_expiry: opt('policy_expiry'),
+        page_kind: ['pink_slip', 'endorsement', 'card_benefit'].includes(opt('page_kind') ?? '') ? opt('page_kind') : undefined }, aal);
+    } catch (e) { await s.remove('documents', t.key).catch(() => undefined); throw e; }
     revalidatePath('/admin/bookings'); revalidatePath('/staff/bookings');
     return { ok: true, data: null };
   } catch (e) { return fail(e); }

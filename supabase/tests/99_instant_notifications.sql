@@ -2,6 +2,8 @@
 -- even when the hour's pace is used up, a paced one waits; the kick answers what is due; a push never waits for its
 -- email. Fixtures start with "in"; addresses are example.test.
 select test.suite('99 instant notifications');
+-- 3410: the daily reserve is off here (this file is about the providers and the pace, not the reserve; 99_hotfix_signin_reserve)
+update program_settings set email_low_class_stop_pct = 100, email_auth_reserve = 0;
 
 select test.ok('a staff alert marked urgent is urgent', app.outbox_urgent('urgent', 2::smallint, now() - interval '2 hours', now()));
 select test.ok('a fresh first-class customer email is urgent', app.outbox_urgent(null, 1::smallint, now() - interval '5 minutes', now()));
@@ -41,3 +43,5 @@ select test.ok('a push never waits for its email''s due time', position('_send_a
 
 select test.ok('only the service key may kick', not has_function_privilege('authenticated', 'public.server_notify_kick(text[])', 'execute')
   and not has_function_privilege('anon', 'public.server_notify_kick(text[])', 'execute') and has_function_privilege('service_role', 'public.server_notify_kick(text[])', 'execute'));
+
+update program_settings set email_low_class_stop_pct = 60, email_auth_reserve = 10;

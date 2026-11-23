@@ -418,7 +418,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
             ? <span>Requests, offers and payment are fine; the car cannot be handed over until the insurer confirms it. When it does, press Insurer confirmed on <Link prefetch={false} className="link" href={`/admin/vehicles/${b.vehicle_id}?tab=listing`}>the car</Link> (or on Admin &gt; Today).</span>
             : <span>Requests, offers and payment are fine; the car cannot be handed over until the insurer confirms it (the car&apos;s onboarding).</span>}</p>}
           {/* the renter's licence, uploaded with the request (0130) */}
-          {can.renterDocs && <RenterDocs b={b} refresh={[base]} />}
+          {can.renterDocs && <RenterDocs b={b} refresh={[base]} admin={can.admin} />}
           <ClaimGate testId="claim-gate-review" explain><BookingReview key={revertOk ? `revert-${revertOk.version}` : 'review'} revert={revertOk} ownerTrip={!notOwner} b={b} insurers={ins.rows} insurerRates={insurerCard?.rates ?? []} kmChoices={km.rows.map((k) => k.km_per_day)} offerHours={settings?.program.offer_expiry_hours ?? 12}
             editable={['requested', 'offered'].includes(b.status) || (b.status === 'pending_payment' && can.editOfferPending)} /></ClaimGate>
         </>
@@ -454,7 +454,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
               ['Ready for handover', b.readiness ? ((b.readiness.missing as string[] | undefined)?.length ? `missing: ${(b.readiness.missing as string[]).map(label).join(', ')}` : 'yes') : '']]} />
           </Card>
           {/* once: a staff member's overview of a request or offer also holds the review view, which has the card already */}
-          {can.renterDocs && !on('review') && ['pending_payment', 'confirmed', 'on_rent', 'requested', 'offered'].includes(b.status) && <RenterDocs b={b} refresh={[base]} />}
+          {can.renterDocs && !on('review') && ['pending_payment', 'confirmed', 'on_rent', 'requested', 'offered'].includes(b.status) && <RenterDocs b={b} refresh={[base]} admin={can.admin} />}
           {can.admin && <Card title="Price">
             <dl className="pt-dl pt-dl--money">{b.lines.map((l) => <div key={l.id}><dt>{l.description || label(l.charge_type)} <span className="muted small">{l.stage}</span></dt><dd>{$(l.amount_cents)}</dd></div>)}
               <div><dt><b>Total at booking</b></dt><dd><b>{$(b.total_due_at_booking_cents)}</b></dd></div></dl>
@@ -551,7 +551,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
       </div>}
       {section === 'documents' && (
         <div className="ad-cols ad-cols--2" id="bk-documents" data-testid="booking-documents-section">
-          {can.renterDocs && ['pending_payment', 'confirmed', 'on_rent', 'requested', 'offered'].includes(b.status) && <RenterDocs b={b} refresh={[base]} />}
+          {can.renterDocs && ['pending_payment', 'confirmed', 'on_rent', 'requested', 'offered'].includes(b.status) && <RenterDocs b={b} refresh={[base]} admin={can.admin} />}
           <Card title="Drivers"><Table rows={b.drivers} empty="No drivers." cols={[{ key: 'full_name', label: 'Name' }, { key: 'role', label: 'Role' }, ...(can.admin ? [{ key: 'age_band', label: 'Age band' }, { key: 'licence_last4', label: 'Licence' }, { key: 'accepted_at', label: 'Accepted', render: (r: R) => t(r.accepted_at) },
             { key: 'identity_verified_on', label: 'Identity', render: (r: R) => r.identity_verified_on ? `Verified${r.identity_method === 'in_person' ? ' in person' : ''}`
               : can.verifyInPerson && ['confirmed', 'pending_payment'].includes(String(b.status)) ? <Act ops action="verify_driver_in_person" payload={{ booking_driver_id: r.id }} label="Verified in person" testId={`verify-in-person-${String(r.role)}`} refresh={[base]}
@@ -601,13 +601,27 @@ function SalesCreditLine({ c, booking, refresh }: { c: SalesCredit; booking: str
 
 // The renter's licence, selfie and proof of coverage (0078): reviewed here by an Admin, no task needed. The images load
 // when the pop-up opens.
-function RenterDocs({ b, refresh }: { b: Detail; refresh: string[] }) {
+function RenterDocs({ b, refresh, admin = false }: { b: Detail; refresh: string[]; admin?: boolean }) {
   const r = b.readiness ?? {};
   const missing = [r.all_drivers_verified === false ? 'every driver’s identity' : '', r.coverage_confirmed === false ? 'the proof of coverage' : ''].filter(Boolean);
   return (
     <Card title="Renter documents" testId="booking-doc-review" tone={missing.length ? 'next' : undefined} aside={<DocumentReview booking={b.booking_number} refresh={refresh} label="Review documents" />}>
       <p className="small">{missing.length ? `Still needed before the handover: ${missing.join(' and ')}. Approve or reject what the renter sent; a rejection tells them why.` : 'Identity and coverage are confirmed.'}</p>
-      <StaffDocUpload bookingId={String(b.id)} drivers={(b.drivers ?? []).map((d) => ({ driver_id: String(d.driver_id), full_name: String(d.full_name ?? '') }))} />
+      <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-3)' }}>
+        <StaffDocUpload bookingId={String(b.id)} drivers={(b.drivers ?? []).map((d) => ({ driver_id: String(d.driver_id), full_name: String(d.full_name ?? '') }))} />
+        {/* hotfix 2026-11-23 (BR-3, migration 3410): an Admin who checked the renter's insurance another way (by email, on the
+            phone) approves it here, with the policy details and a reason kept in the history and the audit log */}
+        {admin && r.coverage_confirmed === false && <Act ops action="coverage_confirm_admin" payload={{ booking: b.id }} label="Approve coverage by hand" testId="coverage-confirm-admin"
+          title="Approve the renter's coverage without an upload" submitLabel="Approve coverage" refresh={refresh} done="Coverage approved. The history shows it was you, with your reason."
+          fields={[
+            { name: 'reason', label: 'Why (kept in the history)', type: 'textarea', required: true, hint: 'For example: the renter emailed the policy and I checked the OPCF 27 endorsement.' },
+            { name: 'insurer_name', label: 'Insurer (own policy)', hint: 'Option 1: the renter\'s own auto policy. Leave empty for card coverage.' },
+            { name: 'policy_number', label: 'Policy number (own policy)' },
+            { name: 'policy_expiry', label: 'Policy expiry (own policy)', type: 'date' },
+            { name: 'card_issuer', label: 'Card issuer (card coverage)', hint: 'Option 2 only.' },
+            { name: 'card_last4', label: 'Card, last 4 digits (card coverage)' }
+          ]} />}
+      </div>
     </Card>
   );
 }

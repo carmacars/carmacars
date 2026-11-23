@@ -13,17 +13,22 @@ import { PhoneSignInForm } from './PhoneSignIn';
 
 /** The sign-in this device used last (cc-signin, set at sign-in and from the profile page), or ?method=phone. */
 const noSubscribe = () => () => undefined;
-function useMethod(initial: string | null): ['email' | 'phone', (m: 'email' | 'phone') => void, boolean] {
+function useMethod(initial: string | null): ['email' | 'phone', (m: 'email' | 'phone') => void, 'capped' | 'no_codes' | null] {
   const cookiePhone = useSyncExternalStore(noSubscribe, () => /(?:^|;\s*)cc-signin=phone(?:;|$)/.test(document.cookie), () => false);
   const [chosen, setChosen] = useState<'email' | 'phone' | null>(initial === 'phone' || initial === 'email' ? initial : null);
-  // 0212: while email is at its limit (sign-in emails wait too), the phone option opens first
-  const [capped, setCapped] = useState(false);
+  // 0212: while email is at its limit (sign-in emails wait too), the phone option opens first; 3410: unless the texts of
+  // sign-in codes are failing too: then the password form stays first and says so (never a code that cannot arrive)
+  const [held, setHeld] = useState<'capped' | 'no_codes' | null>(null);
   useEffect(() => {
     let live = true;
-    fetch('/api/email-status').then((r) => (r.ok ? r.json() : null)).then((j: { capped?: boolean; phone_signin?: boolean } | null) => { if (live && j?.capped && j.phone_signin) setCapped(true); }).catch(() => undefined);
+    fetch('/api/email-status').then((r) => (r.ok ? r.json() : null)).then((j: { capped?: boolean; phone_signin?: boolean; sms_ok?: boolean } | null) => {
+      if (!live || !j) return;
+      if (j.sms_ok === false) setHeld('no_codes');
+      else if (j.capped && j.phone_signin) setHeld('capped');
+    }).catch(() => undefined);
     return () => { live = false; };
   }, []);
-  return [chosen ?? (cookiePhone || capped ? 'phone' : 'email'), setChosen, capped];
+  return [chosen ?? (held === 'no_codes' ? 'email' : cookiePhone || held === 'capped' ? 'phone' : 'email'), setChosen, held];
 }
 
 const Err = ({ s }: { s: { ok: boolean; code?: string; message?: string } | null }) =>
@@ -31,10 +36,12 @@ const Err = ({ s }: { s: { ok: boolean; code?: string; message?: string } | null
 
 export function SignInForm({ idPrefix = 'si', next }: { idPrefix?: string; next?: string }) {
   const sp = useSearchParams();
-  const [method, setMethod, capped] = useMethod(sp.get('method'));
-  if (method === 'phone') return (<>{capped && <p className="alert alert--info" role="status" data-testid="signin-email-held"><span>Our emails are delayed right now, so sign in with the code we text you.</span></p>}
+  const [method, setMethod, held] = useMethod(sp.get('method'));
+  if (method === 'phone') return (<>{held === 'capped' && <p className="alert alert--info" role="status" data-testid="signin-email-held"><span>Our emails are delayed right now, so sign in with the code we text you.</span></p>}
+    {held === 'no_codes' && <p className="alert alert--warn" role="status" data-testid="signin-codes-down"><span>Texted codes are not going out right now. <button type="button" className="link" onClick={() => setMethod('email')}>Sign in with your email and password</button> instead.</span></p>}
     <PhoneSignInForm next={next ?? sp.get('next') ?? ''} onUseEmail={() => setMethod('email')} idPrefix={`${idPrefix}-ph`} /></>);
-  return <EmailSignInForm idPrefix={idPrefix} next={next} onUsePhone={() => setMethod('phone')} />;
+  return (<>{held === 'no_codes' && <p className="alert alert--info" role="status" data-testid="signin-password-first"><span>Sign-in codes by text are paused right now. Sign in with your email and password below.</span></p>}
+    <EmailSignInForm idPrefix={idPrefix} next={next} onUsePhone={() => setMethod('phone')} /></>);
 }
 
 function EmailSignInForm({ idPrefix, next, onUsePhone }: { idPrefix: string; next?: string; onUsePhone: () => void }) {

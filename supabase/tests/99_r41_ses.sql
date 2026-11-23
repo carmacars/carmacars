@@ -5,6 +5,8 @@
 -- default): the marketing allowance (2600) is Resend's free capacity less what booking email used of it through the
 -- fallback. Fixtures start with "zses"; every address is example.test.
 select test.suite('99 r41 Amazon SES first (2570), email route (2600)');
+-- 3410: the daily reserve is off here (this file is about the providers and the pace, not the reserve; 99_hotfix_signin_reserve)
+update program_settings set email_low_class_stop_pct = 100, email_auth_reserve = 0;
 
 update program_settings set cf_email_enabled = false, email_cloudflare_enabled = false, notify_resend_daily_budget = 100, notify_daily_cap = 300;
 create temp table zses_code as select code from notification_catalogue where audience = 'renter' and has_email and is_enabled and category = 'transactional'
@@ -108,3 +110,5 @@ delete from notification_outbox where dedupe_key like 'zses-%';
 update notification_outbox o set sent_at = c.sent_at, status = c.status, locked_at = c.locked_at from zses_sent0 c where c.id = o.id;
 update notification_outbox o set send_after = e.send_after from zses_others e where e.id = o.id;
 update email_provider_state set ses_seen_at = null, ses_ok_at = null, ses_failed_at = null, ses_error = null;
+
+update program_settings set email_low_class_stop_pct = 60, email_auth_reserve = 10;

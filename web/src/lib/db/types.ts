@@ -20480,6 +20480,9 @@ export type Database = {
           owner_calc_base_days: number;
           owner_calc_discount_pct: number;
           owner_calc_season: Json;
+          email_low_class_stop_pct: number;
+          email_auth_reserve: number;
+          email_reserve_from_cap: number;
         };
         Insert: {
           id?: string;
@@ -21439,6 +21442,9 @@ export type Database = {
           owner_calc_base_days?: number;
           owner_calc_discount_pct?: number;
           owner_calc_season?: Json;
+          email_low_class_stop_pct?: number;
+          email_auth_reserve?: number;
+          email_reserve_from_cap?: number;
         };
         Update: {
           id?: string;
@@ -22398,6 +22404,9 @@ export type Database = {
           owner_calc_base_days?: number;
           owner_calc_discount_pct?: number;
           owner_calc_season?: Json;
+          email_low_class_stop_pct?: number;
+          email_auth_reserve?: number;
+          email_reserve_from_cap?: number;
         };
         Relationships: [];
       };
