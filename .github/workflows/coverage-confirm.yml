@@ -1,0 +1,56 @@
+name: coverage-confirm
+
+# The owner approved a renter's insurance outside the site (the upload failed): mark that booking's coverage as
+# confirmed so Sign and pay is not held back by the OPCF 27 gate (app.opcf27_missing reads coverage_confirmed_at).
+# One booking at a time, by hand, written to audit_log with the reason. Only people with write access can start it.
+
+on:
+  workflow_dispatch:
+    inputs:
+      booking:
+        description: Booking number, for example CC-10599
+        required: true
+      reason:
+        description: Why (kept in the audit log)
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: coverage-confirm
+  cancel-in-progress: false
+
+jobs:
+  confirm:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      BOOKING: ${{ inputs.booking }}
+      REASON: ${{ inputs.reason }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github
+            infra/vps
+            scripts/deploy
+      - name: Confirm the coverage
+        run: |
+          [[ "$BOOKING" =~ ^CC-[0-9]{4,7}$ ]] || { echo "::error::Not a booking number: $BOOKING"; exit 1; }
+          reason=$(printf '%s' "$REASON" | tr -cd "[:alnum:][:space:].,:;()/@+-" | cut -c1-300)
+          source scripts/deploy/vps.sh
+          out=$(vps_sql "with b as (update bookings set coverage_confirmed_at = now()
+                                    where booking_number = '$BOOKING' and coverage_confirmed_at is null
+                                    returning id, coverage_confirmed_at)
+                         insert into audit_log (action, entity_table, entity_id, before, after)
+                         select 'coverage_confirmed_outside_site', 'bookings', id::text,
+                                jsonb_build_object('coverage_confirmed_at', null),
+                                jsonb_build_object('coverage_confirmed_at', coverage_confirmed_at, 'reason', '$reason', 'by', 'coverage-confirm workflow')
+                         from b returning entity_id")
+          echo "$out"
+          now=$(vps_sql "select booking_number, status, coverage_option, coverage_confirmed_at from bookings where booking_number = '$BOOKING'")
+          echo "$now"
+          echo "$now" | jq -e '.[0].coverage_confirmed_at != null' > /dev/null || { echo "::error::Coverage is not confirmed on $BOOKING"; exit 1; }
+          echo "::notice title=coverage::$BOOKING coverage confirmed"
