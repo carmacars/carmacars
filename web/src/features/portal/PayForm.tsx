@@ -51,12 +51,12 @@ export function PayForm({ number, amountCents, depositCents, coverageOption = nu
       if (r.data.provider === 'stripe' && r.data.publishableKey && mount.current) {
         const js = await loadStripe(r.data.publishableKey);
         const elements = js.elements({ clientSecret: r.data.clientSecret, appearance: { theme: 'stripe', variables: { colorPrimary: '#D0111B', colorText: '#000000', borderRadius: '6px', fontFamily: 'Inter, Helvetica, Arial, sans-serif' } } });
-        elements.create('payment', { layout: 'tabs', wallets: { applePay: 'never', googlePay: 'never' }, fields: { billingDetails: { name: 'never' } }, defaultValues: { billingDetails: { address: { country: 'CA' } } } }).mount(mount.current);
+        elements.create('payment', { layout: 'tabs', wallets: coverageOption === 2 ? { applePay: 'never', googlePay: 'never' } : { applePay: 'auto', googlePay: 'auto' }, fields: { billingDetails: { name: 'never' } }, defaultValues: { billingDetails: { address: { country: 'CA' } } } }).mount(mount.current);
         stripe.current = { js, elements };
       }
     }).catch((e) => !reloadIfStale(e) && live && setFatal({ code: 'error', message: 'The payment form did not load. Reload the page.' }));
     return () => { live = false; };
-  }, [number]);
+  }, [number, coverageOption]);
 
   const finish = async (intentId: string) => {
     setMsg({ kind: 'wait', text: 'Card approved. We are finalizing your booking.' });

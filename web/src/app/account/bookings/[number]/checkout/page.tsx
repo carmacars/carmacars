@@ -16,7 +16,7 @@ import { ReceiptEmail } from '@/features/portal/ReceiptEmail';
 import { CompleteDetails } from '@/features/portal/CompleteDetails';
 import { StepHeader } from '@/features/portal/trip';
 import { signPayOf, signPaySteps, signPayWords } from '@/features/portal/sign-pay';
-import { myBooking, myTripPhotos } from '@/server/portal/data';
+import { myBooking, myCoverage, myTripPhotos } from '@/server/portal/data';
 import { blocksFor, openAgreement, unsignedBundle } from '@/server/portal/agreement';
 import { keyTerms, loadBundle } from '@/server/agreements/bundle';
 import { viewAs } from '@/server/view-as';
@@ -27,6 +27,8 @@ import { accountGate, GATE_MESSAGE } from '@/server/sign-in-settings';
 import { renterDetails } from '@/server/portal/renter-details';
 import { depositChoiceText, type DepositState } from '@/features/money/deposit-state';
 import { TipPicker } from '@/features/portal/TipPicker';
+import { licenceState, renterMissing } from '@/features/portal/LicenceNotice';
+import type { SessionUser } from '@/lib/auth';
 import type { TipOptions } from '@/features/money/tips';
 
 export const dynamic = 'force-dynamic';
@@ -60,8 +62,9 @@ export default async function SignAndPayPage({ params, searchParams }: { params:
   if (b.agreement?.status === 'open' && !companion && !va) { await openCompanionQuietly(b.id, user.id); companion = await companionOf(b.id); }
   const signing = s.step === 'sign' && b.agreement?.status === 'open';
   const paying = s.step === 'pay';
-  // OPCF 27 (1401): the pink slip and the endorsement page come before payment (the payment refuses without them)
-  const opcfMissing = b.coverage_option === 1 && s.pay_after ? (((await rpc('server_booking_payment_facts', { p_booking: b.id }, SR).catch(() => null)) as unknown as { coverage_missing?: string[] } | null)?.coverage_missing ?? []) : [];
+  // hotfix 3420 (the owner, Nov 23: "make paying and booking easier, never harder"): the licence and the insurance pages
+  // are checked before pickup, never before paying. What is still to send is a short list beside the card.
+  const beforePickup = paying && !va ? await docsBeforePickup(b.id, user) : [];
   const [bundle, photos, rd, gate, debitOk, debitDeposit, offline, depState, tips] = await Promise.all([
     signing ? loadBundle(b.id, user.id) : Promise.resolve(null), myTripPhotos(user), renterDetails(b, user.id),
     paying ? accountGate(user.id, 'pay') : Promise.resolve(null),
@@ -110,9 +113,9 @@ export default async function SignAndPayPage({ params, searchParams }: { params:
         </section>
       )}
       {sp0.signed && paying && <p className="alert alert--ok" role="status" data-testid="sign-pay-signed"><span>Signed. Now pay {due} below to confirm your booking.</span></p>}
-      {opcfMissing.length > 0 && (
-        <p className="alert alert--warn" role="note" data-testid="sign-pay-opcf-missing"><span className="alert__title">Your insurance comes first</span>
-          <span>You chose OPCF 27 on your own auto policy: upload the {opcfMissing.join(' and ')} before you pay. <Link prefetch={false} className="link" href={bookingPath(b.booking_number, 'verify')}>Upload them</Link></span></p>)}
+      {paying && beforePickup.length > 0 && (
+        <p className="alert alert--warn" role="note" data-testid="sign-pay-before-pickup"><span className="alert__title">Upload before pickup</span>
+          <span>{beforePickup.join(', ')}. You can pay now; we check them before handing over the car. <Link prefetch={false} className="link" href={bookingPath(b.booking_number, 'verify')} data-testid="sign-pay-upload-now">Upload now</Link></span></p>)}
 
       {/* ---------------------------------------------------------------- 1. sign */}
       <section className="stack sp-section" id="sign" aria-labelledby="sp-sign-h" data-testid="sign-pay-sign">
@@ -206,4 +209,17 @@ export default async function SignAndPayPage({ params, searchParams }: { params:
       {tips && <TipPicker number={b.booking_number} options={tips} source="checkout" />}
     </>
   );
+}
+
+/** What the renter still sends before pickup (3420): the licence photos and the coverage pages; empty when nothing. */
+async function docsBeforePickup(bookingId: string, user: SessionUser): Promise<string[]> {
+  const [lic, cov] = await Promise.all([licenceState(bookingId, user.id), myCoverage(user, bookingId).catch(() => null)]);
+  const out: string[] = [];
+  const l = renterMissing(lic);
+  if (l?.length) out.push(`Driver's licence (${l.join(', ')})`);
+  if (cov && !cov.confirmed && (cov.option === 1 || cov.option === 2)) {
+    const n = cov.needs?.length ? cov.needs.map((x) => x.label) : cov.opcf27_missing ?? [];
+    if (n.length) out.push(`Insurance (${n.join(', ')})`);
+  }
+  return out;
 }

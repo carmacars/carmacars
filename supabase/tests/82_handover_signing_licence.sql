@@ -9,7 +9,8 @@ select test.eq('settings: the licence switch, the selfie, the return charges and
   (select string_agg(column_default, '/' order by column_name) from information_schema.columns
     where table_name = 'program_settings' and column_name in ('booking_licence_selfie_required')), 'true');
 -- helpers.sql turned three of them off for the earlier suites; this suite turns them on
-update program_settings set booking_licence_required = true, booking_return_auto_charges = true, statement_fuel_cents_per_eighth = 1000;
+-- 3420 turned the licence before payment off by default; this suite checks the rule when it is on
+update program_settings set booking_licence_before_payment = true, booking_licence_required = true, booking_return_auto_charges = true, statement_fuel_cents_per_eighth = 1000;
 
 select test.mk_user('ho_admin', 'admin');
 select test.mk_user('ho_cs', 'va', 'cs');
