@@ -5,6 +5,11 @@ import type { Field } from './Act';
 const nice = (k: string) => { const s = k.replace(/_(cents|bps)$/, '').replace(/_/g, ' '); return s.charAt(0).toUpperCase() + s.slice(1); };
 // settings whose meaning needs a sentence (0042: one turnaround between trips; the tolls, plates and vision settings)
 const LABELS: Record<string, string> = {
+  // r49 (3480): the Finance dashboard's bank reconciliation
+  finance_bank_unmatched_days: 'Bank line with no match: days after it posted before it is a To do for Finance',
+  finance_bank_todo_window_days: 'Bank lines: only lines posted within this many days become To dos',
+  finance_match_window_days: 'Bank line matching: days before or after its date a payout, payment or expense may be',
+  bank_data_provider: 'Bank lines come from (file: CSV or OFX downloads from online banking)',
   // r48 RW (3260 to 3264)
   staff_perk_enabled: 'Staff rewards on', staff_perk_base_bps: 'Discount on a staff member\'s own rentals (once the academy and the agreement are done)',
   staff_perk_days_per_free_day: 'Sales: rental days booked for 1 free rental day', staff_perk_handovers_per_free_day: 'Field: handovers for 1 free rental day',

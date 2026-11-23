@@ -1,0 +1,30 @@
+CarmaCars  |  Bank reconciliation
+
+========================================
+
+[No match]
+A bank line has no match
+
+Money moved on the CarmaCars bank account that nothing on the platform accounts for yet.
+
+Amount: {{bank_direction}} {{bank_amount}}
+Posted: {{bank_posted_on}}
+Description: {{bank_description}}
+Account: {{bank_account}}
+
+{{bank_hint}}
+
+Open the bank lines:
+https://carmacars.ca/staff/finance?tab=bank
+
+Match it to its payout, payment or expense, record what it is, or set it aside with the reason (a bank fee, a transfer between CarmaCars accounts).
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

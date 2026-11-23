@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 258,
+  "count": 259,
   "emails": [
     {
       "code": "account_password_reset",
@@ -19427,6 +19427,63 @@
       ],
       "template_html": "templates/staff_balance_overdue_digest.html",
       "template_text": "templates/staff_balance_overdue_digest.txt"
+    },
+    {
+      "code": "staff_bank_line_unmatched",
+      "audience": "staff_va_finance",
+      "also_sent_to": [
+        "staff_admin"
+      ],
+      "category": "transactional",
+      "trigger": "Release 49 (3480): daily check and every bank import. A line on the bank statement still matches no payout, payment, invoice or expense two days (finance_bank_unmatched_days) after it posted. A To do for Finance is raised with it; matching the line or setting it aside closes it. Queued for the morning digest of Finance and the Admins, once per line.",
+      "timing": "Morning digest, once per line, two days after it posted",
+      "digest": true,
+      "digest_slot": "morning",
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Bank line with no match: {{bank_direction}} {{bank_amount}} on {{bank_posted_on}}",
+      "preheader": "{{bank_description}}. {{bank_hint}}",
+      "sample_subject": "Bank line with no match: in $1,520.40 on Tue, Nov 3, 2026",
+      "variables": [
+        {
+          "name": "bank_account",
+          "type": "string",
+          "sample": "RBC CAD ending 4567"
+        },
+        {
+          "name": "bank_amount",
+          "type": "string",
+          "sample": "$1,520.40"
+        },
+        {
+          "name": "bank_description",
+          "type": "string",
+          "sample": "STRIPE PAYOUT ST-X1"
+        },
+        {
+          "name": "bank_direction",
+          "type": "string",
+          "sample": "in"
+        },
+        {
+          "name": "bank_hint",
+          "type": "string",
+          "sample": "Nothing recorded fits: record what it is, or set it aside with the reason."
+        },
+        {
+          "name": "bank_posted_on",
+          "type": "string",
+          "sample": "Tue, Nov 3, 2026"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        }
+      ],
+      "template_html": "templates/staff_bank_line_unmatched.html",
+      "template_text": "templates/staff_bank_line_unmatched.txt"
     },
     {
       "code": "staff_cancellation_received",
