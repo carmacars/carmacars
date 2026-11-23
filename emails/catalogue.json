@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 259,
+  "count": 266,
   "emails": [
     {
       "code": "account_password_reset",
@@ -4965,6 +4965,493 @@
       ],
       "template_html": "templates/renter_game_code_reminder_3d.html",
       "template_text": "templates/renter_game_code_reminder_3d.txt"
+    },
+    {
+      "code": "renter_gift_card_delivered",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "Gift cards (migration 3600): a paid gift card or gifted rental reaches its send date (at once when no date was chosen), or an Admin issues a voucher credit to someone by email, or an Admin resends it. Sent to the recipient's email, once per gift card and send.",
+      "timing": "On the send date chosen by the buyer, else immediate",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "{{from_name}} sent you a CarmaCars gift card",
+      "preheader": "{{gift_amount}} toward your next rental.",
+      "sample_subject": "Sam Rivera sent you a CarmaCars gift card",
+      "variables": [
+        {
+          "name": "card_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/gift-cards/card/0f3c9a1b2c3d4e5f60718293a4b5c6d7"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "expiry_text",
+          "type": "string",
+          "sample": "Never"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "from_name",
+          "type": "string",
+          "sample": "Sam Rivera"
+        },
+        {
+          "name": "gift_amount",
+          "type": "string",
+          "sample": "$150.00"
+        },
+        {
+          "name": "gift_code",
+          "type": "string",
+          "sample": "CCGC-7KQ4-XM2P-Q7XM"
+        },
+        {
+          "name": "gift_code_last4",
+          "type": "string",
+          "sample": "Q7XM"
+        },
+        {
+          "name": "gift_message",
+          "type": "string",
+          "sample": "Happy birthday. Take a road trip on me."
+        },
+        {
+          "name": "has_message",
+          "type": "boolean",
+          "sample": true
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "is_rental",
+          "type": "boolean",
+          "sample": false
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "redeem_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/account/gift-cards?code=CCGC-7KQ4-XM2P-Q7XM"
+        },
+        {
+          "name": "rental_text",
+          "type": "string",
+          "sample": ""
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/renter_gift_card_delivered.html",
+      "template_text": "templates/renter_gift_card_delivered.txt"
+    },
+    {
+      "code": "renter_gift_card_receipt",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "Gift cards (migration 3600): a gift card or a gifted rental is paid by card on carmacars.ca/gift-cards. Sent to the buyer once per gift card. No HST is charged on a gift card: it is charged when the card pays for a rental.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "billing@carmacars.ca",
+      "subject": "Your CarmaCars gift card receipt, {{gift_amount}}",
+      "preheader": "For {{recipient_name}}. {{delivery_text}}",
+      "sample_subject": "Your CarmaCars gift card receipt, $150.00",
+      "variables": [
+        {
+          "name": "card_text",
+          "type": "string",
+          "sample": "Visa ending 4242"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "delivery_text",
+          "type": "string",
+          "sample": "Emailed on Fri, Dec 25, 2026"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "gift_amount",
+          "type": "string",
+          "sample": "$150.00"
+        },
+        {
+          "name": "gift_code_last4",
+          "type": "string",
+          "sample": "Q7XM"
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "is_rental",
+          "type": "boolean",
+          "sample": true
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "payment_date",
+          "type": "string",
+          "sample": "Mon, Nov 23, 2026"
+        },
+        {
+          "name": "recipient_email",
+          "type": "string",
+          "sample": "jordan@example.test"
+        },
+        {
+          "name": "recipient_name",
+          "type": "string",
+          "sample": "Jordan Lee"
+        },
+        {
+          "name": "rental_text",
+          "type": "string",
+          "sample": "3 days in the 2023 Toyota Corolla"
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/renter_gift_card_receipt.html",
+      "template_text": "templates/renter_gift_card_receipt.txt"
+    },
+    {
+      "code": "renter_gift_card_refunded",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "Gift cards (migration 3600): an approved refund of a booking paid with a gift card returned the amount to the card balance. Sent to the card holder once per refund.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "billing@carmacars.ca",
+      "subject": "{{amount_returned}} is back on your gift card",
+      "preheader": "From booking {{booking_number}}. Your balance is {{balance_left}}.",
+      "sample_subject": "$75.00 is back on your gift card",
+      "variables": [
+        {
+          "name": "amount_returned",
+          "type": "string",
+          "sample": "$75.00"
+        },
+        {
+          "name": "balance_left",
+          "type": "string",
+          "sample": "$75.00"
+        },
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "gift_code_last4",
+          "type": "string",
+          "sample": "Q7XM"
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/renter_gift_card_refunded.html",
+      "template_text": "templates/renter_gift_card_refunded.txt"
+    },
+    {
+      "code": "renter_gift_card_sent",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "Gift cards (migration 3600): a gift card the buyer scheduled for a later date was emailed to the recipient on that date. Sent to the buyer once. Not sent when the gift went at once (the receipt says so).",
+      "timing": "On the send date",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Your gift card reached {{recipient_name}}",
+      "preheader": "We emailed {{gift_amount}} to {{recipient_email}} today.",
+      "sample_subject": "Your gift card reached Jordan Lee",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "gift_amount",
+          "type": "string",
+          "sample": "$150.00"
+        },
+        {
+          "name": "gift_code_last4",
+          "type": "string",
+          "sample": "Q7XM"
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "recipient_email",
+          "type": "string",
+          "sample": "jordan@example.test"
+        },
+        {
+          "name": "recipient_name",
+          "type": "string",
+          "sample": "Jordan Lee"
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/renter_gift_card_sent.html",
+      "template_text": "templates/renter_gift_card_sent.txt"
+    },
+    {
+      "code": "renter_gift_card_used",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "Gift cards (migration 3600): a booking paid with a gift card balance is confirmed. Sent to the card holder once per booking and card.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "billing@carmacars.ca",
+      "subject": "{{amount_used}} of your gift card paid booking {{booking_number}}",
+      "preheader": "{{balance_left}} is left on the card.",
+      "sample_subject": "$150.00 of your gift card paid booking CC-10482",
+      "variables": [
+        {
+          "name": "amount_used",
+          "type": "string",
+          "sample": "$150.00"
+        },
+        {
+          "name": "balance_left",
+          "type": "string",
+          "sample": "$0.00"
+        },
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "gift_code_last4",
+          "type": "string",
+          "sample": "Q7XM"
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/renter_gift_card_used.html",
+      "template_text": "templates/renter_gift_card_used.txt"
     },
     {
       "code": "renter_google_review_request",
@@ -18269,6 +18756,54 @@
       "template_text": "templates/staff_fleet_count_warning.txt"
     },
     {
+      "code": "staff_gift_card_voided",
+      "audience": "staff_admin",
+      "category": "transactional",
+      "trigger": "Gift cards (migration 3600): an Admin voided a gift card or voucher, with the reason. Sent at once to Admins and Finance.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Gift card ending {{gift_code_last4}} voided",
+      "preheader": "{{amount_voided}} taken off by {{actor_name}}: {{void_reason}}",
+      "sample_subject": "Gift card ending Q7XM voided",
+      "variables": [
+        {
+          "name": "actor_name",
+          "type": "string",
+          "sample": "Abbas"
+        },
+        {
+          "name": "amount_voided",
+          "type": "string",
+          "sample": "$150.00"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "gift_code_last4",
+          "type": "string",
+          "sample": "Q7XM"
+        },
+        {
+          "name": "gift_type",
+          "type": "string",
+          "sample": "Gift card"
+        },
+        {
+          "name": "void_reason",
+          "type": "string",
+          "sample": "Paid with a stolen card (Stripe dispute)"
+        }
+      ],
+      "template_html": "templates/staff_gift_card_voided.html",
+      "template_text": "templates/staff_gift_card_voided.txt"
+    },
+    {
       "code": "staff_incident_reported",
       "audience": "staff_admin",
       "also_sent_to": [
@@ -19784,6 +20319,65 @@
       ],
       "template_html": "templates/staff_digest_morning_va_finance.html",
       "template_text": "templates/staff_digest_morning_va_finance.txt"
+    },
+    {
+      "code": "staff_gift_card_sold",
+      "audience": "staff_va_finance",
+      "category": "transactional",
+      "trigger": "Gift cards (migration 3600): a gift card or gifted rental was paid online, or an Admin issued a voucher credit. Queued for the next Finance and Admin digest.",
+      "timing": "Next digest",
+      "digest": true,
+      "digest_slot": "next",
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Gift card {{gift_kind}}: {{gift_amount}}",
+      "preheader": "{{buyer_name}} for {{recipient_name}}. Gift cards outstanding: {{outstanding_total}}.",
+      "sample_subject": "Gift card sold: $150.00",
+      "variables": [
+        {
+          "name": "buyer_name",
+          "type": "string",
+          "sample": "Sam Rivera"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "gift_amount",
+          "type": "string",
+          "sample": "$150.00"
+        },
+        {
+          "name": "gift_code_last4",
+          "type": "string",
+          "sample": "Q7XM"
+        },
+        {
+          "name": "gift_kind",
+          "type": "string",
+          "sample": "sold"
+        },
+        {
+          "name": "gift_type",
+          "type": "string",
+          "sample": "Gift card"
+        },
+        {
+          "name": "outstanding_total",
+          "type": "string",
+          "sample": "$2,430.00"
+        },
+        {
+          "name": "recipient_name",
+          "type": "string",
+          "sample": "Jordan Lee"
+        }
+      ],
+      "template_html": "templates/staff_gift_card_sold.html",
+      "template_text": "templates/staff_gift_card_sold.txt"
     },
     {
       "code": "staff_insurer_invoice_due",

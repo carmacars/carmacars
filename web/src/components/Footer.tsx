@@ -65,6 +65,7 @@ export function Footer({ s, reply, links = [], hubs, careers = false, apps, trac
             <li><Link prefetch={false} href="/list-your-car">List your car</Link></li>
             {/* r48: the services hub and the tracker, linked from every page */}
             <li><Link prefetch={false} href="/services" data-testid="footer-services">Services</Link></li>{tracker && <li><Link prefetch={false} href="/trackers" data-testid="footer-trackers">GPS tracker and kill switch</Link></li>}
+            <li><Link prefetch={false} href="/gift-cards" data-testid="footer-gift-cards">Gift cards</Link></li>
             <li><Link prefetch={false} href="/faq">FAQ</Link></li>
             <li><Link prefetch={false} href="/about">About</Link></li>{careers && <li><Link prefetch={false} href="/careers" data-testid="footer-careers">Careers</Link></li>}<li><Link prefetch={false} href="/contact">Contact</Link></li><li><Link prefetch={false} href="/sign-in">Sign in</Link></li>
             {socials.map(([k, v]) => <li key={k}><a href={v} rel="noopener">{SOCIAL[k]}</a></li>)}

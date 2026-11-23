@@ -1,14 +1,15 @@
 [
  {
-  "release": "r49-checks",
+  "release": "r49",
   "title": "Release 49",
   "date": "2026-11-23",
   "seq": 0,
-  "summary": "Automatic checks that every event has its message and the guides match the app, a booking's documents list no longer shows removed files, and an Android test build.",
+  "summary": "Gift cards and gifted rentals, a Finance dashboard with every bank line matched, automatic checks that every event has its message and the guides match the app, and overdue and late-return notices.",
   "areas": [
    {
     "area": "Staff tools",
     "items": [
+     "A Finance dashboard: the cash in the bank and with the card processor, money in and out, HST, what renters and insurers owe, and every bank line from the bank's download matched to its payout, payment or expense",
      "Sales are told when a website request has had no reply for 30 minutes, and the Admins at 2 hours",
      "Finance gets a daily list of overdue renter balances with booking links, a To do for the Admins per balance overdue 3 days, and a notice for every refund paid or failed",
      "A booking's documents list no longer shows documents that were removed or replaced, so none opens an error page"
@@ -20,21 +21,6 @@
      "An automatic check on every change makes sure each event reaches every portal it touches, with its email template in place",
      "The user guides and the academy are checked against the app on every change: a page, button or setting that no longer exists fails the build",
      "An installable Android test build can be made on demand, without any store"
-    ]
-   }
-  ]
- },
- {
-  "release": "r49",
-  "title": "Release 49",
-  "date": "2026-11-23",
-  "seq": 0,
-  "summary": "A Finance dashboard shows the cash in the bank and with the card processor, money in and out, HST, what renters and insurers owe, and every bank line matched to its record.",
-  "areas": [
-   {
-    "area": "Staff tools",
-    "items": [
-     "A Finance dashboard: the cash in the bank and with the card processor, money in and out, HST, what renters and insurers owe, and every bank line from the bank's download matched to its payout, payment or expense"
     ]
    }
   ]

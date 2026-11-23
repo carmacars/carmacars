@@ -5,7 +5,7 @@ import type { MenuLink, PageTab } from '../portal-nav/tabs.ts';
 export const RENTER_MENU: MenuLink[] = [
   { href: '/account', label: 'Trips', icon: 'car', exact: true, also: ['/account/bookings'] },
   { href: '/account/documents', label: 'Documents', icon: 'doc' },
-  { href: '/account/rewards', label: 'Rewards', icon: 'star' },
+  { href: '/account/rewards', label: 'Rewards', icon: 'star', also: ['/account/gift-cards'] },
   { href: '/account/profile', label: 'Account', icon: 'user', count: 'unread', also: ['/account/notifications'] }
 ];
 

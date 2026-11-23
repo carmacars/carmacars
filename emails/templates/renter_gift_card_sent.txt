@@ -1,0 +1,32 @@
+CarmaCars  |  Gift card ending {{gift_code_last4}}
+
+========================================
+
+[Gift card]
+Your gift is on its way
+
+We emailed your gift card to {{recipient_name}} today, {{first_name}}.
+
+Sent: {{gift_amount}}
+To {{recipient_email}}.
+
+If it does not arrive, ask them to check their junk folder, or reply to this email and we will send it again.
+
+See my gift cards:
+https://carmacars.ca/account/gift-cards
+
+Send another gift card: https://carmacars.ca/gift-cards
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

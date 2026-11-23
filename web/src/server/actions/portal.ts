@@ -277,6 +277,8 @@ export async function startPayment(number: string): Promise<R<StartedPayment>> {
     // OPCF 27 (1401): the pink slip and the endorsement page before payment (Program settings opcf27_before_payment)
     if (f.coverage_missing?.length) return fail(`Upload your insurance before you pay: ${f.coverage_missing.join(' and ')} still needed (Licence, selfie and coverage).`, 'coverage');
     if (f.renter_due_at_booking_cents <= 0) return fail('Nothing is due now. We will confirm the booking on your signature.', 'nothing_due');
+    // 3600: the gift cards applied pay everything: confirmed with the gift card button, no card form
+    if ((f.card_due_cents ?? f.renter_due_at_booking_cents) <= 0) return fail('Your gift cards pay all of it. Confirm with the gift card button.', 'gift_covered');
     // the car may already be confirmed for someone else: then nothing is authorized (section 6)
     if (!f.vehicle_free) return fail(reasonMessage('vehicle_taken'), 'pushed_back');
     const i = await bookingIntent(f);

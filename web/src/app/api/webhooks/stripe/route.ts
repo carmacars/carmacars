@@ -5,6 +5,7 @@ import { settleIntent } from '@/server/portal/payment';
 import { settleAddonIntent } from '@/server/portal/addon-payment';
 import { settleDebitIntent, settleInvoiceIntent, verifyDebitSetup } from '@/server/owner/payment';
 import { settlePayreq } from '@/server/paylink';
+import { settleGiftIntent } from '@/server/gift-cards';
 import { stripeEventCalls } from '@/server/stripe-events';
 import { isHoldLapse } from '@/server/money-steps';
 import { runMoneyAction } from '@/server/deposit-guard';
@@ -53,6 +54,9 @@ export async function POST(req: Request): Promise<Response> {
         if (lapsed?.next?.payment_id) await runMoneyAction(lapsed.next.payment_id);
         result = lapsed;
       }
+    } else if (obj.object === 'payment_intent' && obj.id && obj.metadata?.purpose === 'gift_card') {
+      // a gift card bought on /gift-cards (3600), when the browser did not finish
+      if (event.type === 'payment_intent.succeeded') result = await settleGiftIntent(obj.id);
     } else if (obj.object === 'payment_intent' && obj.id && obj.metadata?.purpose === 'addon_unpaid') {
       // add-ons paid on the booking's add-on pay page (0079), when the browser did not finish
       if (event.type === 'payment_intent.succeeded') result = await settleAddonIntent(obj.id, null);
