@@ -360,3 +360,29 @@ Launch is October 15, 2026. Today is October 7. That is six working days, so the
 6. An end-to-end test covers the main path on a phone viewport and a desktop viewport.
 7. The copy lint and the link checker pass.
 8. No new database object was assumed without being listed in `99-traceability.md` section 3.
+
+Since Release 49 (the owner's design reels 6 to 10, November 21; `docs/style-guide.md`, "Release 49"), a route or screen
+is also done only when it meets these ten rules, on the website, every portal and the app:
+
+9. **One primary action per screen** (red `.btn--primary` / the app's `primary` Button); everything else ghost, quiet or
+   outline. The label says what happens ("Send the offer", "Create account"), never "Submit" or "OK".
+10. **Every button state is designed**: hover (mouse only, `@media (hover: hover)`), pressed, focus-visible, busy
+   (`aria-busy`, which also blocks a second press) and disabled (with `WhyDisabled` saying why). Money buttons send an
+   idempotency key, so a double tap never charges or pays twice.
+11. **Thumb-sized targets**: 48px tall for a main button, never under 44px under a finger (`.btn--sm` grows to 44px on
+   touch); an icon's tap area is bigger than the icon.
+12. **Fewer choices, chunked**: about seven items per group or menu; related things grouped by space or a card; the key item
+   first and visibly different (Hick, Miller, proximity, Von Restorff, serial position).
+13. **Answer within 400ms**: an optimistic update or a skeleton in the page's shape (`PageSkeleton`, the app's `Busy`),
+   never a blank screen or a lone spinner for a page. Cached data shows first and refreshes in the background.
+14. **The four states, inside the portal**: loading (skeleton), empty (a sentence saying what will show there and the next
+   step), error (the portal's `error.tsx` keeps the shell; Try again), not allowed.
+15. **Type and numbers**: headlines balanced (`text-wrap: balance`), body `pretty`; prices, totals and counters in tabular
+   numbers; no squished or clipped text at 360px.
+16. **Motion from the kit only** (`--t-*`, `--ease*`, the app's `motion`): transform and opacity, interruptible
+   (transitions, not one-way keyframes, for anything a person can reverse), off under reduced motion.
+17. **Phones**: safe-area insets on anything fixed to an edge; one-time codes autofill (`autocomplete="one-time-code"`,
+   `textContentType="oneTimeCode"`); sheets can be dismissed by swipe or Back.
+18. **App launch and review**: no request before the app's first paint (the home screen renders from the on-device
+   snapshot, then refreshes); no placeholder text or empty first screen; every permission has its reason string; the
+   review account in `docs/apps/store-listing.md` still works; nothing in the iOS app asks for an outside payment.

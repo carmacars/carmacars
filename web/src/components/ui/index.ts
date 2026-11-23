@@ -3,3 +3,4 @@
 // the admin kit) cards, badges, tables, filters and empty states.
 export { PageHeader } from './PageHeader';
 export { SegTabs, type SegTab } from './SegTabs';
+export { PortalError } from './PortalError';

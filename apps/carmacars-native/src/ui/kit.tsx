@@ -51,17 +51,34 @@ export const P = ({ children, style }: { children: ReactNode; style?: StyleProp<
 export const Small = ({ children, style }: { children: ReactNode; style?: StyleProp<TextStyle> }) => <Text style={[type.small, style]}>{children}</Text>;
 
 type Variant = 'primary' | 'dark' | 'outline' | 'ghost' | 'danger';
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+/** r49 (reel 8, every state): a press sinks the control a little with a spring that a release interrupts at once; with
+ *  Reduce Motion only the colour changes. */
+function usePress(depth = 0.97) {
+  const reduce = useReducedMotion();
+  const scale = useRef(new Animated.Value(1)).current;
+  const [pressed, setPressed] = useState(false);
+  const to = (v: number) => { if (!reduce) Animated.spring(scale, { toValue: v, speed: 40, bounciness: 0, useNativeDriver: true }).start(); };
+  return { pressed, transform: [{ scale }], onPressIn: () => { setPressed(true); to(depth); }, onPressOut: () => { setPressed(false); to(1); } };
+}
 export function Button({ label, onPress, variant = 'primary', busy = false, disabled = false, hint, testID, style }: { label: string; onPress: () => void; variant?: Variant; busy?: boolean; disabled?: boolean; hint?: string; testID?: string; style?: StyleProp<ViewStyle> }) {
   const off = disabled || busy;
+  const press = usePress();
   const fill = variant === 'primary' ? color.red : variant === 'dark' ? color.black : 'transparent';
+  const pressedFill = variant === 'primary' ? color.redPressed : variant === 'dark' ? color.ink : color.field;
   const text = variant === 'primary' || variant === 'dark' ? color.white : variant === 'danger' ? color.red : color.ink;
   return (
-    <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={label} accessibilityHint={hint} accessibilityState={{ disabled: off, busy }} disabled={off}
+    <AnimatedPressable testID={testID} accessibilityRole="button" accessibilityLabel={label} accessibilityHint={hint} accessibilityState={{ disabled: off, busy }} disabled={off}
+      onPressIn={press.onPressIn} onPressOut={press.onPressOut} hitSlop={4}
       onPress={() => { if (Platform.OS !== 'web') void Haptics.selectionAsync().catch(() => undefined); onPress(); }}
-      style={({ pressed }) => [s.button, { backgroundColor: pressed && variant === 'primary' ? color.redPressed : fill, opacity: off ? 0.5 : pressed ? 0.9 : 1 },
-        (variant === 'outline' || variant === 'danger') && { borderWidth: 1.5, borderColor: variant === 'danger' ? color.red : color.ink }, style]}>
-      {busy ? <ActivityIndicator color={text} /> : <Text style={[type.button, { color: text }]} numberOfLines={1}>{label}</Text>}
-    </Pressable>
+      style={[s.button, { backgroundColor: press.pressed && !off ? pressedFill : fill, opacity: disabled && !busy ? 0.45 : 1 },
+        (variant === 'outline' || variant === 'danger') && { borderWidth: 1.5, borderColor: variant === 'danger' ? color.red : color.ink }, style, { transform: press.transform }]}>
+      {/* busy: the label stays (the button keeps its width and says what it is doing), a small spinner before it */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+        {busy ? <ActivityIndicator color={text} size="small" /> : null}
+        <Text style={[type.button, { color: text, opacity: busy ? 0.85 : 1 }]} numberOfLines={1}>{label}</Text>
+      </View>
+    </AnimatedPressable>
   );
 }
 
@@ -80,7 +97,12 @@ export function Field({ label, error, help, ...input }: { label: string; error?:
 
 export function Card({ children, onPress, style, label, testID }: { children: ReactNode; onPress?: () => void; style?: StyleProp<ViewStyle>; label?: string; testID?: string }) {
   if (!onPress) return <View style={[s.card, style]} testID={testID}>{children}</View>;
-  return <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={({ pressed }) => [s.card, pressed && { backgroundColor: color.field }, style]}>{children}</Pressable>;
+  return <CardPress testID={testID} label={label} onPress={onPress} style={style}>{children}</CardPress>;
+}
+function CardPress({ children, onPress, style, label, testID }: { children: ReactNode; onPress: () => void; style?: StyleProp<ViewStyle>; label?: string; testID?: string }) {
+  const press = usePress(0.985);
+  return <AnimatedPressable testID={testID} accessibilityRole="button" accessibilityLabel={label} onPress={onPress} onPressIn={press.onPressIn} onPressOut={press.onPressOut}
+    style={[s.card, press.pressed && { backgroundColor: color.field }, style, { transform: press.transform }]}>{children}</AnimatedPressable>;
 }
 
 export function Notice({ tone = 'info', children, title }: { tone?: 'info' | 'ok' | 'warn' | 'bad'; children?: ReactNode; title?: string }) {
@@ -119,7 +141,7 @@ export const Line = () => <View style={{ height: StyleSheet.hairlineWidth, backg
 export const Pair = ({ k, v, strong }: { k: string; v: string; strong?: boolean }) => (
   <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: space.md, paddingVertical: 5 }}>
     <Text style={[type.body, { color: color.muted, flexShrink: 1 }]}>{k}</Text>
-    <Text style={[type.body, { color: color.ink, fontWeight: strong ? '800' : '500', textAlign: 'right', flexShrink: 1 }]}>{v}</Text>
+    <Text style={[type.body, { color: color.ink, fontWeight: strong ? '800' : '500', textAlign: 'right', flexShrink: 1, fontVariant: ['tabular-nums'] }]}>{v}</Text>
   </View>
 );
 export const Badge = ({ label, tone = 'dark' }: { label: string; tone?: 'dark' | 'red' | 'ok' | 'muted' }) => (
@@ -127,7 +149,35 @@ export const Badge = ({ label, tone = 'dark' }: { label: string; tone?: 'dark' |
     <Text style={{ fontSize: 12, fontWeight: '700', color: tone === 'muted' ? color.ink : color.white }}>{label}</Text>
   </View>
 );
-export const Busy = ({ label = 'Loading' }: { label?: string }) => <View accessibilityLabel={label} style={{ padding: space.xxl, alignItems: 'center' }}><ActivityIndicator color={color.red} size="large" /></View>;
+/** r49 (reel 10): loading is a skeleton in the shape of what is coming (lines, or car cards with their photo), gently
+ *  pulsing; with Reduce Motion it holds still. The label is what VoiceOver and TalkBack say. */
+export function Busy({ label = 'Loading', rows = 3, shape = 'lines' }: { label?: string; rows?: number; shape?: 'lines' | 'cards' }) {
+  const reduce = useReducedMotion();
+  const v = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (reduce) { v.setValue(1); return; }
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(v, { toValue: 0.55, duration: 700, useNativeDriver: true }),
+      Animated.timing(v, { toValue: 1, duration: 700, useNativeDriver: true })
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [reduce, v]);
+  return (
+    <Animated.View accessible accessibilityRole="progressbar" accessibilityLabel={label} accessibilityState={{ busy: true }} style={{ padding: space.lg, gap: space.lg, opacity: v }} testID="busy">
+      {Array.from({ length: rows }, (_, i) => (
+        <View key={i} style={shape === 'cards' ? s.skCard : { gap: space.sm }}>
+          {shape === 'cards' ? <View style={s.skPhoto} /> : null}
+          <View style={shape === 'cards' ? { padding: space.lg, gap: space.sm } : { gap: space.sm }}>
+            <View style={[s.skLine, { width: '58%', height: 18 }]} />
+            <View style={[s.skLine, { width: '88%' }]} />
+            <View style={[s.skLine, { width: '70%' }]} />
+          </View>
+        </View>
+      ))}
+    </Animated.View>
+  );
+}
 export function Empty({ title, body, action }: { title: string; body?: string; action?: ReactNode }) {
   return <View style={{ alignItems: 'center', padding: space.xl, gap: space.sm }}><Text style={[type.h2, { textAlign: 'center' }]}>{title}</Text>{body ? <Text style={[type.body, { textAlign: 'center', color: color.muted }]}>{body}</Text> : null}{action}</View>;
 }
@@ -147,5 +197,8 @@ const s = StyleSheet.create({
   chip: { minHeight: 40, paddingHorizontal: space.md, borderRadius: radius.pill, borderWidth: 1.5, borderColor: color.line, alignItems: 'center', justifyContent: 'center', backgroundColor: color.white },
   check: { flexDirection: 'row', gap: space.md, alignItems: 'flex-start', minHeight: TOUCH, paddingVertical: space.sm },
   box: { width: 26, height: 26, borderRadius: 7, borderWidth: 2, borderColor: color.muted, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
-  badge: { alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 3, borderRadius: radius.pill }
+  badge: { alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 3, borderRadius: radius.pill },
+  skLine: { height: 14, borderRadius: radius.sm, backgroundColor: color.line },
+  skCard: { borderRadius: radius.lg, borderWidth: 1, borderColor: color.line, overflow: 'hidden' },
+  skPhoto: { width: '100%', aspectRatio: 16 / 10, backgroundColor: color.field }
 });
