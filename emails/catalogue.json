@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 253,
+  "count": 258,
   "emails": [
     {
       "code": "account_password_reset",
@@ -14484,6 +14484,98 @@
       "template_text": "templates/owner_invoice_voided.txt"
     },
     {
+      "code": "owner_late_return",
+      "audience": "owner",
+      "category": "transactional",
+      "trigger": "A rental of the owner's car is still out 2 hours (late_admin_minutes) after its return time with no paid extension (r49, app.job_r49_notices, every 5 minutes), once per return time. Sent only when the booking counts toward the owner's revenue (app.owner_mail_booking). Not for Owner Bookings, Turo trips or an insurer rental with no known end date. The return itself is told by owner_trip_completed.",
+      "timing": "2 hours after the return time",
+      "digest": false,
+      "from": "CarmaCars <owners@carmacars.ca>",
+      "reply_to": "owners@carmacars.ca",
+      "subject": "Your {{vehicle_name}} is late coming back",
+      "preheader": "Booking {{booking_number}} was due back {{return_date}}, {{return_time}}. We are on it.",
+      "sample_subject": "Your 2023 Toyota RAV4 XLE is late coming back",
+      "variables": [
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Daniel",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "late_by",
+          "type": "string",
+          "sample": "2 hours"
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "return_date",
+          "type": "string",
+          "sample": "Mon, Oct 26, 2026"
+        },
+        {
+          "name": "return_time",
+          "type": "string",
+          "sample": "5:00 pm"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2023 Toyota RAV4 XLE",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/owner_late_return.html",
+      "template_text": "templates/owner_late_return.txt"
+    },
+    {
       "code": "owner_mode_change_notice",
       "audience": "owner",
       "category": "transactional",
@@ -19269,6 +19361,74 @@
       "template_text": "templates/staff_weekly_summary.txt"
     },
     {
+      "code": "staff_balance_overdue_digest",
+      "audience": "staff_va_finance",
+      "also_sent_to": [
+        "staff_admin"
+      ],
+      "category": "transactional",
+      "trigger": "Every day at 9 am Toronto time (r49, app.job_r49_notices): the renter statements with a balance still unpaid after the overdue days (notify_balance_overdue_days), listed with the amount, the days overdue and the booking link. Sent only when at least one is overdue. A balance overdue 3 days or more also has an Admin To do (Renter balance overdue), once per statement.",
+      "timing": "Daily, 9 am",
+      "digest": false,
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "{{overdue_count}} renter balances overdue, {{overdue_total}}",
+      "preheader": "The renters who still owe a balance, with amounts and booking links.",
+      "sample_subject": "2 renter balances overdue, $680.40",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "items",
+          "type": "list",
+          "sample": [
+            {
+              "booking_number": "CC-10482",
+              "amount_due": "$480.40",
+              "renter_name": "Maya Okafor",
+              "days_overdue": "9",
+              "url": "https://carmacars.ca/staff/bookings/CC-10482"
+            },
+            {
+              "booking_number": "CC-10511",
+              "amount_due": "$200.00",
+              "renter_name": "Sam Lee",
+              "days_overdue": "4",
+              "url": "https://carmacars.ca/staff/bookings/CC-10511"
+            }
+          ],
+          "fields": [
+            "booking_number",
+            "amount_due",
+            "renter_name",
+            "days_overdue",
+            "url"
+          ]
+        },
+        {
+          "name": "overdue_count",
+          "type": "string",
+          "sample": "2"
+        },
+        {
+          "name": "overdue_date",
+          "type": "string",
+          "sample": "Mon, Nov 23, 2026"
+        },
+        {
+          "name": "overdue_total",
+          "type": "string",
+          "sample": "$680.40"
+        }
+      ],
+      "template_html": "templates/staff_balance_overdue_digest.html",
+      "template_text": "templates/staff_balance_overdue_digest.txt"
+    },
+    {
       "code": "staff_cancellation_received",
       "audience": "staff_va_finance",
       "also_sent_to": [
@@ -19820,6 +19980,100 @@
       ],
       "template_html": "templates/staff_payment_failed.html",
       "template_text": "templates/staff_payment_failed.txt"
+    },
+    {
+      "code": "staff_refund_failed",
+      "audience": "staff_va_finance",
+      "also_sent_to": [
+        "staff_admin"
+      ],
+      "category": "transactional",
+      "trigger": "A refund reaches status failed (r49, app.ntf_refunds_after): the processor did not return the money. Immediate, to Finance and the Admins, with the booking link to retry.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Refund failed: {{refund_amount}} on booking {{booking_number}}",
+      "preheader": "{{renter_name}}, {{refund_reason}}.",
+      "sample_subject": "Refund failed: $126.50 on booking CC-10482",
+      "variables": [
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "refund_amount",
+          "type": "string",
+          "sample": "$126.50"
+        },
+        {
+          "name": "refund_reason",
+          "type": "string",
+          "sample": "Cancellation"
+        },
+        {
+          "name": "renter_name",
+          "type": "string",
+          "sample": "Maya Okafor"
+        }
+      ],
+      "template_html": "templates/staff_refund_failed.html",
+      "template_text": "templates/staff_refund_failed.txt"
+    },
+    {
+      "code": "staff_refund_issued",
+      "audience": "staff_va_finance",
+      "also_sent_to": [
+        "staff_admin"
+      ],
+      "category": "transactional",
+      "trigger": "A refund reaches status paid (r49, app.ntf_refunds_after): the money went back to the renter. Immediate, to Finance and the Admins. The renter has their own email (renter_refund_issued).",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Refund issued: {{refund_amount}} on booking {{booking_number}}",
+      "preheader": "{{renter_name}}, {{refund_reason}}.",
+      "sample_subject": "Refund issued: $126.50 on booking CC-10482",
+      "variables": [
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "refund_amount",
+          "type": "string",
+          "sample": "$126.50"
+        },
+        {
+          "name": "refund_reason",
+          "type": "string",
+          "sample": "Cancellation"
+        },
+        {
+          "name": "renter_name",
+          "type": "string",
+          "sample": "Maya Okafor"
+        }
+      ],
+      "template_html": "templates/staff_refund_issued.html",
+      "template_text": "templates/staff_refund_issued.txt"
     },
     {
       "code": "staff_return_findings",
@@ -21860,10 +22114,11 @@
       "code": "staff_request_waiting",
       "audience": "staff_va_cs",
       "also_sent_to": [
-        "staff_admin"
+        "staff_admin",
+        "staff_va_sales"
       ],
       "category": "transactional",
-      "trigger": "Scheduled check every 5 minutes: a booking has had status requested for more than 2 hours since requested_at with no offer sent, no more-information message and no decline. Not raised for a booking that returned to requested from an expired or withdrawn offer. Sent once per request, to customer service and both admins. Immediate.",
+      "trigger": "Scheduled check every 5 minutes: a booking has had status requested for more than 2 hours since requested_at with no offer sent, no more-information message and no decline. Not raised for a booking that returned to requested from an expired or withdrawn offer. Sent once per request, to customer service, Sales and both admins (r49: the Admin escalation of the 30 minute Sales notice, staff_request_open_to_sales). Immediate.",
       "timing": "2 hours after an unanswered request",
       "digest": false,
       "from": "CarmaCars <bookings@carmacars.ca>",
@@ -22472,6 +22727,71 @@
       ],
       "template_html": "templates/staff_owner_application_received.html",
       "template_text": "templates/staff_owner_application_received.txt"
+    },
+    {
+      "code": "staff_request_open_to_sales",
+      "audience": "staff_va_sales",
+      "category": "transactional",
+      "trigger": "A booking request from the website has had no reply for 30 minutes (program setting request_sales_after_minutes, 30 by default; r49, app.job_requests_open_to_sales) and is now open to Sales: the To do \"A booking request is open to Sales\" is raised with it. Only in business hours (8 am to 9 pm Toronto time); a request that waited overnight is told at 8 am. Once per request. At 2 hours with no reply customer service, Sales and the Admins get staff_request_waiting.",
+      "timing": "30 minutes after a request, business hours",
+      "digest": false,
+      "from": "CarmaCars <bookings@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Open to Sales: request {{booking_number}}",
+      "preheader": "{{renter_name}}, {{vehicle_name}}, pickup {{pickup_date}}. Nobody has answered yet: take it.",
+      "sample_subject": "Open to Sales: request CC-10482",
+      "variables": [
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "pickup_date",
+          "type": "string",
+          "sample": "Fri, Oct 23, 2026"
+        },
+        {
+          "name": "pickup_time",
+          "type": "string",
+          "sample": "10:00 am"
+        },
+        {
+          "name": "renter_name",
+          "type": "string",
+          "sample": "Maya Okafor"
+        },
+        {
+          "name": "return_date",
+          "type": "string",
+          "sample": "Mon, Oct 26, 2026"
+        },
+        {
+          "name": "return_time",
+          "type": "string",
+          "sample": "10:00 am"
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2024 Honda Civic Sport",
+          "note": "Year, make, model and trim."
+        },
+        {
+          "name": "waiting_time",
+          "type": "string",
+          "sample": "30 minutes"
+        }
+      ],
+      "template_html": "templates/staff_request_open_to_sales.html",
+      "template_text": "templates/staff_request_open_to_sales.txt"
     },
     {
       "code": "staff_access_restored",

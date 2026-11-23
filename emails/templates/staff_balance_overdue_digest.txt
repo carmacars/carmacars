@@ -1,0 +1,29 @@
+CarmaCars  |  {{overdue_date}}
+
+========================================
+
+[Balances overdue]
+{{overdue_count}} balances overdue: {{overdue_total}}
+
+These renters were sent their statement and still owe a balance. Oldest first.
+
+{{#each items}}
+- {{booking_number}}  {{amount_due}}
+  {{renter_name}}. {{days_overdue}} days overdue.
+  {{url}}
+{{/each}}
+
+Open Money:
+https://carmacars.ca/staff/money
+
+Balances overdue 3 days or more are also on the Admin To do. The renter has had the pay link and the overdue email.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

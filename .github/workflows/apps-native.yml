@@ -14,9 +14,9 @@ on:
   workflow_dispatch:
     inputs:
       platform:
-        description: Which app to build
+        description: Which app to build (android-test = an installable APK for a phone, no store, no secrets)
         type: choice
-        options: [both, android, ios]
+        options: [both, android, ios, android-test]
         default: both
       version:
         description: Version people see in the stores (major.minor.patch)
@@ -51,7 +51,7 @@ env:
 
 jobs:
   android:
-    if: inputs.platform != 'ios'
+    if: inputs.platform == 'both' || inputs.platform == 'android'
     runs-on: ubuntu-24.04
     timeout-minutes: 50
     defaults:
@@ -123,8 +123,57 @@ jobs:
           PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
         run: bundle exec fastlane android listing
 
+  # r49: an APK to install on an Android phone for testing (docs/apps/native-publish.md, "Android test build"). No store, no
+  # keystore and no secret: Expo's generated release build is signed with the debug key, which Android accepts for a sideload.
+  # Firebase alerts are included only when FIREBASE_ANDROID_JSON_B64 is set. The APK is the run's artifact (14 days).
+  android-test:
+    if: inputs.platform == 'android-test'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: apps/carmacars-native
+    steps:
+      - uses: actions/checkout@v4
+      - name: Version
+        run: |
+          [[ "$APP_VERSION_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::The version must be major.minor.patch, for example 1.0.0"; exit 1; }
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm, cache-dependency-path: apps/carmacars-native/package-lock.json }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '21' }
+      - name: Install and check
+        run: |
+          npm ci --no-audit --no-fund
+          npm run -s check
+          npm run -s typecheck
+          npm test
+      - name: Native project
+        env:
+          FB: ${{ secrets.FIREBASE_ANDROID_JSON_B64 }}
+        run: |
+          umask 077
+          if [ -n "$FB" ]; then printf '%s' "$FB" | base64 -d > google-services.json; else echo "::notice title=android-test::no FIREBASE_ANDROID_JSON_B64: the test build has no alerts"; fi
+          npx expo prebuild --platform android --clean --no-install
+      - name: APK (debug-signed release build, the phone's own architecture only)
+        working-directory: apps/carmacars-native/android
+        run: ./gradlew --no-daemon assembleRelease -PreactNativeArchitectures=arm64-v8a,x86_64
+      - name: Name the file
+        run: |
+          mkdir -p "$RUNNER_TEMP/apk"
+          cp android/app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/apk/carmacars-test-${{ inputs.version }}-${{ github.run_number }}.apk"
+          rm -f google-services.json
+          echo "APK_PATH=$RUNNER_TEMP/apk/carmacars-test-${{ inputs.version }}-${{ github.run_number }}.apk" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: carmacars-test-apk-${{ inputs.version }}-${{ github.run_number }}
+          path: ${{ env.APK_PATH }}
+          retention-days: 14
+          if-no-files-found: error
+      - run: echo "::notice title=android-test::the APK is in this run's Artifacts (carmacars-test-apk). Unzip it, copy the .apk to the phone and open it (docs/apps/native-publish.md, Android test build)"
+
   ios:
-    if: inputs.platform != 'android'
+    if: inputs.platform == 'both' || inputs.platform == 'ios'
     runs-on: macos-15
     timeout-minutes: 75
     defaults:

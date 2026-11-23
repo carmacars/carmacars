@@ -242,7 +242,13 @@ export async function strongSign(page: Page, scope: Page | Locator = page, chann
     const id = await pad.getAttribute('data-testid');
     await drawOn(page, pad, 10);
     // 0186: drawn initials are saved only when the signer presses Save initials
-    await flow.getByTestId(`esign-save-initials-${id!.replace(/^initials-/, '')}`).click();
+    // r49: wait for the button to enable (the drawing reached the draft state), then for the real save response (the
+    // server action POST), never a fixed pause
+    const save = flow.getByTestId(`esign-save-initials-${id!.replace(/^initials-/, '')}`);
+    await expect(save).toBeEnabled({ timeout: 15_000 });
+    const saved = page.waitForResponse((r) => r.request().method() === 'POST' && r.request().headers()['next-action'] !== undefined, { timeout: 30_000 });
+    await save.click();
+    expect((await saved).ok()).toBe(true);
     await expect(flow.locator(`canvas[data-testid="${id}"]`)).toHaveCount(0, { timeout: 15_000 });
   }
   for (let n = 0; n < 4; n++) {

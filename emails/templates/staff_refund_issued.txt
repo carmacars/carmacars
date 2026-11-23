@@ -1,0 +1,27 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Refund issued]
+{{refund_amount}} on {{booking_number}}
+
+{{renter_name}} was refunded {{refund_amount}} on booking {{booking_number}}.
+
+Amount: {{refund_amount}}
+Reason: {{refund_reason}}
+Booking: {{booking_number}}
+
+Open the booking:
+https://carmacars.ca/staff/bookings/{{booking_number}}
+
+Refunds are on the booking page under Money.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

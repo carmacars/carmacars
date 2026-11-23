@@ -1,0 +1,26 @@
+CarmaCars  |  Request {{booking_number}}
+
+========================================
+
+[Request open to Sales]
+Nobody has answered this request
+
+{{renter_name}} asked about the {{vehicle_name}} and has waited {{waiting_time}}. Whoever opens it first answers it.
+
+Pickup: {{pickup_date}}, {{pickup_time}}
+Return: {{return_date}}, {{return_time}}
+
+Open the request:
+https://carmacars.ca/staff/bookings/{{booking_number}}
+
+It is also on your To do. If it still has no reply after 2 hours, customer service and the Admins are told.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
