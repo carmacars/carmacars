@@ -30,7 +30,7 @@ end $$;
 
 -- ================================================================== A. catalogue
 select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign, 0370 a visitor message waiting in live chat, 0430 the start and end notices, 0400 the two tracker alerts, 0441 the data health notice, 0380 adds one email, 0460 the lead and visitor alerts, 0462 the staff alerts, 0532 the return report denied, 0535 the apology to remote applicants moved to the AI interview, 0547 the partner invoice, 0583 the staff email digest, 0955 the accounts merged note, 2520 the weekly and new-car marketing emails, 2620 the owner trip and weekly emails, 3000 the eleven Rewards emails, 3113 the text fallback and the two suspension emails, 3152 the two studio photos notices, 3199 the three data check emails, 3231 the GPS tracker waitlist email, 3321 the four tracker event emails, 3326 the border alert email, 3350 the monitoring policy copy, 3260 to 3271 the summary, the two rewards updates, the weekly driving summary and the two owner money emails (the owner tracker alert is 3321''s)))',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '253/21');
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '258/21');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
@@ -309,7 +309,7 @@ select app.notify_reminders(test.at('2031-07-05 12:10'));
 select test.flush();
 select test.eq('D past 2 hours: customer service and the admins are told once',
   (select string_agg(audience, ',' order by audience) from notification_outbox where code = 'staff_request_waiting' and entity_id = test.id('booking:NT-8')),
-  'staff_admin,staff_va_cs');
+  'staff_admin,staff_va_cs,staff_va_sales');
 
 -- D4 follow-ups after closing: review request at 2 days, come-back offers at 7 and 30 days
 select test.mk_booking('NT-9', 'NT1', 'nt_cara', '2031-08-01 10:00', '2031-08-03 10:00', 'closed');
@@ -908,6 +908,7 @@ select test.eq('G every wired email code has been built at least once in these t
       and c.code not in ('text_fell_back', 'staff_access_suspended', 'staff_access_restored', 'renter_data_check', 'owner_data_check', 'staff_data_check') -- the text fallback and the suspension emails (3113, built in 99_r48cm_comms), an Admin's Send reminder (3199, queued in 99_r48fe_fees_evidence_hiring)
       and c.code <> 'tracker_waitlist_joined' -- the GPS tracker waitlist email (3231), built in 99_r48seo_leads_trackers
       and c.code not in ('renter_tracker_notice', 'renter_driving_notice', 'owner_tracker_alert', 'staff_pound_flag', 'staff_border_alert') -- tracker events (3320), off for these suites, built in 99_r48trk_tracker_events
+      and c.code not in ('owner_late_return', 'staff_request_open_to_sales', 'staff_balance_overdue_digest', 'staff_refund_issued', 'staff_refund_failed') -- the r49 notices (3462), built in 99_r49_notices
       and c.code <> 'staff_location_policy' -- the electronic monitoring policy copy (3350), built in 99_r48map_people
       and c.code not in ('notify_summary', 'owner_reward_update', 'owner_tracker_weekly', 'staff_reward_update') -- 3260 to 3262 and 3353, built in 99_r48rw_rewards_calendar_notify
       and c.code not in ('owner_use_charges', 'owner_insurance_late_fee') -- 3270 and 3271, queued in 99_r48rw_owner_money

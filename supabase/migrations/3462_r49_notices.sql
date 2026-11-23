@@ -46,7 +46,7 @@ update notification_catalogue set emitted_by = 'app.job_r49_notices (3462): a re
 update notification_catalogue set emitted_by = 'app.job_r49_notices (3462): every day from 9 am Toronto time' where code = 'staff_balance_overdue_digest';
 update notification_catalogue set emitted_by = 'refunds_r49_notify (3462): a refund is paid' where code = 'staff_refund_issued';
 update notification_catalogue set emitted_by = 'refunds_r49_notify (3462): a refund failed' where code = 'staff_refund_failed';
-update notification_catalogue set no_text = true where code in ('owner_late_return', 'staff_request_open_to_sales', 'staff_balance_overdue_digest', 'staff_refund_issued', 'staff_refund_failed');
+update notification_catalogue set no_text = true where code = 'owner_late_return'; -- the owner's late notice is an email and a portal notice, never a text
 
 -- ================================================================ 2. Sales after 30 minutes
 alter table program_settings alter column request_sales_after_minutes set default 30;
