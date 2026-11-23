@@ -4,6 +4,7 @@ import { sitePath, targetFor } from './links.ts';
 import { LOCK_AFTER_MS, onBackground, onForeground, onUnlocked, type LockState } from './lock.ts';
 import { cancelled, createRequest, getRequest, none } from './passkey.ts';
 import { addDays, ago, carName, daysBetween, money, torontoDay, when } from './format.ts';
+import { packSnapshot, readSnapshot, SNAPSHOT_MAX_CHARS, SNAPSHOT_MAX_MS } from './snapshot.ts';
 
 const J = '3f2c1a9e-77aa-4b0e-9c1d-000000000001';
 test('links: pages the app has open as screens', () => {
@@ -87,4 +88,20 @@ test('words: money, Toronto time whatever the phone\'s zone, and ages', () => {
   assert.equal(daysBetween('2026-11-20', '2026-11-24'), 4);
   assert.equal(carName({ vehicle_year: 2023, vehicle_make: 'Honda', vehicle_model: 'Civic' }), '2023 Honda Civic');
   assert.equal(ago('2026-11-20T15:00:00Z', Date.parse('2026-11-20T15:12:00Z')), '12 min ago');
+});
+
+test('launch snapshot: shown at once only when it is the same shape, recent, and the same person (r49, reel 7)', () => {
+  const now = Date.UTC(2026, 10, 23, 15);
+  const me = { user: { id: 'u1' }, roles: { renter: true } };
+  const raw = packSnapshot(me, 'u1', now)!;
+  assert.deepEqual(readSnapshot(raw, now + 1000, 'u1'), me);
+  assert.equal(readSnapshot(raw, now + 1000, 'u2'), null, 'another person never sees the last account');
+  assert.equal(readSnapshot(raw, now + 1000, null), null, 'signed out: no account');
+  assert.equal(readSnapshot(raw, now + SNAPSHOT_MAX_MS + 1, 'u1'), null, 'too old: wait for the server');
+  assert.equal(readSnapshot(raw.replace('"v":1', '"v":0'), now, 'u1'), null);
+  assert.equal(readSnapshot('not json', now), null);
+  assert.equal(readSnapshot(null, now), null);
+  const cfg = { brand: 'CarmaCars' };
+  assert.deepEqual(readSnapshot(packSnapshot(cfg, null, now), now), cfg, 'the settings are read whoever is signed in');
+  assert.equal(packSnapshot({ big: 'x'.repeat(SNAPSHOT_MAX_CHARS) }, null, now), null, 'too big to keep');
 });

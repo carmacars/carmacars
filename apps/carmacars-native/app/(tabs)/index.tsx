@@ -49,7 +49,7 @@ export default function Explore() {
     </View>
   );
 
-  if (fleet.loading) return <Busy label="Loading the cars" />;
+  if (fleet.loading) return <Busy label="Loading the cars" shape="cards" rows={2} />;
   if (!fleet.data) return <Failed message={fleet.error ?? 'The cars could not be loaded.'} onRetry={fleet.reload} />;
   return (
     <View style={{ flex: 1, backgroundColor: color.white }} testID="explore">
@@ -96,7 +96,7 @@ function CarRow({ hit, index, onPress }: { hit: Hit; index: number; onPress: () 
               <Small>{[c.trim && c.trim !== hit.family ? c.trim : null, c.seats ? `${c.seats} seats` : null, c.transmission].filter(Boolean).join(' · ')}</Small>
             </View>
             <View style={{ alignItems: 'flex-end' }}>
-              <Text style={[type.h3, { color: color.red }]}>{money(rate)}</Text>
+              <Text style={[type.h3, { color: color.red, fontVariant: ['tabular-nums'] }]}>{money(rate)}</Text>
               <Small>a day</Small>
             </View>
           </Row>

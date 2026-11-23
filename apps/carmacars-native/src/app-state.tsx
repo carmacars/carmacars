@@ -7,6 +7,7 @@ import { STATE_MS, type AppConfig, type Me, type MobileSession, type Portal, typ
 import { API_URL, APP_VERSION, canLock, getFlag, openSite, PLATFORM, sessionStore, setFlag, SITE_HOSTS, unlockWithDevice } from '@/native';
 import { onBackground, onForeground, onUnlocked, type LockState } from '@/logic/lock';
 import { targetFor } from '@/logic/links';
+import { packSnapshot, readSnapshot } from '@/logic/snapshot';
 import { forgetPushOnSignOut, watchPush } from '@/push';
 import { setLocationClient, stopAll as stopLocation, sync as syncLocation } from '@/location';
 
@@ -34,6 +35,8 @@ interface Value {
   portal: Portal;
 }
 const Ctx = createContext<Value | null>(null);
+const SNAP_CONFIG = 'snap.config.v1';
+const SNAP_ME = 'snap.me.v1';
 export const useApp = (): Value => { const v = useContext(Ctx); if (!v) throw new Error('AppProvider is missing'); return v; };
 
 export function AppProvider({ children }: { children: ReactNode }) {
@@ -69,19 +72,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
       who = s?.user.id ?? null;
       setSession(s); setLock((l) => ({ ...l, signedIn: !!s })); if (!s) setMe(null);
     });
+    // r49 (reel 7): the first screen is drawn from the snapshots kept last time (src/logic/snapshot.ts), with no request
+    // first; the settings and the account then refresh in the background. Only a signed-in person with no snapshot of
+    // their account waits for it (the first screen depends on their portals).
     void (async () => {
-      const [s, flag, can] = await Promise.all([sessionStore.get(), getFlag('lock'), canLock()]);
+      const [s, flag, can, cfgRaw, meRaw] = await Promise.all([sessionStore.get(), getFlag('lock'), canLock(), getFlag(SNAP_CONFIG), getFlag(SNAP_ME)]);
       if (!live) return;
       who = s?.user.id ?? null;
       setSession(s); setLockAvailable(can);
       setLock((l) => onForeground({ ...l, enabled: flag === '1' && can, signedIn: !!s }, Date.now(), true));
-      const [c] = await Promise.all([api.call('config'), s ? reloadMe() : null]);
-      if (!live) return;
-      if (c.ok) setConfig(c.data);
-      setReady(true);
+      const now = Date.now();
+      const cfgSnap = readSnapshot<AppConfig>(cfgRaw, now);
+      const meSnap = s ? readSnapshot<Me>(meRaw, now, s.user.id) : null;
+      if (cfgSnap) setConfig(cfgSnap);
+      if (meSnap) setMe(meSnap);
+      const cfgCall = api.call('config').then((c) => { if (live && c.ok) setConfig(c.data); });
+      const account = s ? reloadMe() : Promise.resolve(null);
+      if (!s || meSnap) { setReady(true); return; }
+      await Promise.all([cfgCall, account]);
+      if (live) setReady(true);
     })();
     return () => { live = false; off(); };
   }, [api, reloadMe]);
+
+  // the snapshots for the next launch: kept whenever the settings or the account change; the account's is dropped at sign-out
+  useEffect(() => { if (config) void setFlag(SNAP_CONFIG, packSnapshot(config, null, Date.now())); }, [config]);
+  useEffect(() => {
+    if (!ready) return;
+    void setFlag(SNAP_ME, me && session && me.user.id === session.user.id ? packSnapshot(me, me.user.id, Date.now()) : null);
+  }, [ready, me, session]);
 
   // the connection, and the lock when the app comes back
   useEffect(() => {
