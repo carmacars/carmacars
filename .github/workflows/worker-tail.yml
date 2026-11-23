@@ -27,9 +27,9 @@ jobs:
           q() { echo "=== $1"; vps_sql "$2" | jq -c '.[]' | sed -E "$MASK" || echo "(failed)"; }
           q "sms log 24h" "select date_trunc('hour', created_at) h, status, left(coalesce(reason,''),250) r, count(*) from public.auth_sms_log where created_at > now() - interval '24 hours' group by 1,2,3 order by 1"
           q "sms log last ok" "select max(created_at) from public.auth_sms_log where status='sent'"
-          q "outbox delayed reasons" "select status_reason, channel, count(*), min(created_at), max(created_at), min(send_after), max(send_after) from public.notification_outbox where status='delayed' group by 1,2 order by 3 desc limit 20"
-          q "outbox sent per hour 24h" "select date_trunc('hour', sent_at) h, channel, count(*) from public.notification_outbox where sent_at > now() - interval '24 hours' group by 1,2 order by 1"
-          q "outbox failed 24h" "select code, channel, left(coalesce(status_reason,''),200) r, count(*) from public.notification_outbox where status='failed' and created_at > now() - interval '24 hours' group by 1,2,3 order by 4 desc limit 20"
+          q "outbox delayed reasons" "select status_reason, left(code,30) c, count(*), min(created_at), max(created_at), min(send_after), max(send_after) from public.notification_outbox where status='delayed' group by 1,2 order by 3 desc limit 25"
+          q "outbox sent per hour 24h" "select date_trunc('hour', sent_at) h, count(*) from public.notification_outbox where sent_at > now() - interval '24 hours' group by 1 order by 1"
+          q "outbox failed 24h" "select code, left(coalesce(status_reason,''),200) r, count(*) from public.notification_outbox where status='failed' and created_at > now() - interval '24 hours' group by 1,2 order by 3 desc limit 20"
           q "email cap settings" "select * from app.email_cap_status() limit 5"
           echo "=== auth container log errors (6h)"
           vps_ssh sudo docker logs --since 1h supabase-auth 2>&1 | grep -iE '"level":"(error|warn)"|error' | jq -Rrc 'fromjson? // . | if type=="object" then {t: .time, l: .level, m: (.msg // ""), e: (.error // ""), p: (.path // ""), s: (.status // "")} else . end' | sed -E "$MASK" | tail -60 || true
