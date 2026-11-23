@@ -1,0 +1,105 @@
+{
+ "batch": "2026-11-23-3",
+ "items": [
+  {
+   "kind": "page",
+   "id": "g2-licence",
+   "copy": {
+    "seo_title": "Rent a Car With a G2 Licence in Toronto | CarmaCars",
+    "meta_description": "Yes, a G2 licence is enough to rent from CarmaCars in Toronto. See what you need, how age affects the fee and how to send a request.",
+    "h1": "Renting a car in Toronto with a G2 licence",
+    "intro": "Yes, CarmaCars rents to drivers who hold an Ontario G2 licence. The licence class is not what decides the price or the approval. We look at your age, your documents and the car you choose. Send a request with no payment up front, upload your licence photos and a selfie before pickup, and a person on our team checks them. Pick the car at our Toronto location or have it delivered to your address.",
+    "sections": [
+     {
+      "heading": "What you need to bring",
+      "body": "Your Ontario G2 licence, valid for the whole rental, and a credit card in your own name. Before pickup you upload photos of your licence and a selfie. We check your licence and identity before the keys are handed over, so it helps to upload them early rather than on the day."
+     },
+     {
+      "heading": "Age matters more than class",
+      "body": "A G2 driver and a G driver of the same age are treated the same way. If you are young enough for the young driver fee, a daily fee is added, and you see it on each car's page before you send your request. Young drivers can rent with us, and the fee for your age is shown before you send a request."
+     },
+     {
+      "heading": "Your G2 conditions still apply",
+      "body": "The rules on your licence follow you into a rental car, including the zero blood alcohol rule for novice drivers. Keep to them on every trip. If you are not sure which cars suit a newer driver, start with an economy car and compare it with the other options."
+     },
+     {
+      "heading": "Choosing a car",
+      "body": "Economy cars are easy to park and simple to drive around the city. Check the equipment list on each car's page, such as a backup camera or Bluetooth, and use the nearby pages for young drivers and the under-25 drivers for more on fees."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Can I rent a car with a G2 in Ontario?",
+      "answer": "Yes. CarmaCars accepts an Ontario G or G2 licence for the cars in the fleet. You also need a credit card in your own name and a licence and identity check before pickup."
+     },
+     {
+      "question": "Does a G2 driver pay more than a G driver?",
+      "answer": "No. The licence class does not change the price. A young driver fee depends on your age, and it is shown on the car's page before you send a request."
+     },
+     {
+      "question": "Can I rent with a learner licence?",
+      "answer": "No. A learner licence holder cannot drive alone, so we rent to G and G2 drivers. A learner is welcome to ride along as a passenger."
+     },
+     {
+      "question": "Can a G2 driver be an additional driver?",
+      "answer": "Yes. An additional driver is checked the same way as the main renter and uploads the same documents."
+     },
+     {
+      "question": "Do I pay when I send the request?",
+      "answer": "No. You request to book with no payment and pay after we confirm."
+     }
+    ]
+   }
+  },
+  {
+   "kind": "page",
+   "id": "rideshare",
+   "copy": {
+    "seo_title": "Car Rental for Rideshare Drivers in Toronto | CarmaCars",
+    "meta_description": "Rent a car in Toronto to drive for a rideshare or delivery platform. The rental agreement allows it in writing. Weekly and monthly options.",
+    "h1": "Car rental for rideshare and delivery drivers",
+    "intro": "If you drive for a rideshare or delivery platform in Toronto, you can do it in a CarmaCars rental. Our rental agreement allows this kind of driving in writing, so you do not need to hide what the car is for. Rent by the week or the month and extend from your account while the car is free. CarmaCars is not affiliated with or endorsed by any platform, which are named only to describe the work.",
+    "sections": [
+     {
+      "heading": "Allowed in the agreement",
+      "body": "Section 10.3 of the rental agreement covers rideshare and delivery driving. Tell us in your request which platform you drive for. Only you or an additional driver on the booking may drive the car for that work. Each platform sets its own rules for drivers and vehicles, and meeting them is up to you."
+     },
+     {
+      "heading": "Weekly and monthly rentals",
+      "body": "Longer rentals suit full-time work behind the wheel. The weekly and monthly rates are on each car's page and in your offer, so you can work out a week of driving before you book. If your plans change, you can extend from your account while the car is free."
+     },
+     {
+      "heading": "Platform approval",
+      "body": "The platforms decide which cars and drivers they accept. Check their vehicle rules for the car you choose before you book. Once your booking is confirmed, your booking page produces the documents a platform may ask a renter for, and you upload them to the platform yourself."
+     },
+     {
+      "heading": "Tolls, tickets and the tracker",
+      "body": "The car is tracked by GPS for the whole rental, as the agreement says. Tolls and tickets during your rental are yours, each matched to your booking with the invoice as proof, so you can see what was charged and why before it reaches you."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Can I use a rental car for Uber in Toronto?",
+      "answer": "The CarmaCars rental agreement allows rideshare and delivery driving. The platform decides whether it accepts the car and driver, so check its vehicle rules first."
+     },
+     {
+      "question": "Is CarmaCars affiliated with Uber or Lyft?",
+      "answer": "No. CarmaCars is not affiliated with or endorsed by any rideshare or delivery platform. They are named only to describe the work."
+     },
+     {
+      "question": "How long can I rent for?",
+      "answer": "By the week or the month, and you can extend from your account while the car is free."
+     },
+     {
+      "question": "Who can drive the car for work?",
+      "answer": "Only you or an additional driver listed on the booking. Each driver needs a valid Ontario driver's licence and passes the same checks."
+     },
+     {
+      "question": "Do I pay when I send the request?",
+      "answer": "No. You send a request to book with no payment and pay after we confirm."
+     }
+    ]
+   }
+  }
+ ]
+}
