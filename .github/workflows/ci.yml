@@ -111,6 +111,12 @@ jobs:
       - name: Applied migrations are never edited (names, numbers, history; docs/engineering-rules.md)
         working-directory: .
         run: node scripts/check-migrations.mjs
+      - name: Every event has its email or notice for every portal it touches, with its template (r49; scripts/notification-map.json)
+        working-directory: .
+        run: node scripts/check-notification-map.mjs
+      - name: Guides name only pages, buttons and settings the app has (r49; academy chapter links too)
+        working-directory: .
+        run: node scripts/check-guides-accuracy.mjs
       - name: Store app config and listing text (no install, about a second)
         working-directory: apps/carmacars
         run: node scripts/check-app.mjs

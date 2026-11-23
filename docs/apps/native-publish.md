@@ -167,3 +167,18 @@ person, not used for tracking", as the app's privacy manifest says.
 
 A new store build is needed whenever the app's own screens change. Run **apps-native** again with a higher version; the
 site's own releases do not reach the app's screens by themselves, only its data and its rules.
+
+### Android test build (an APK for a phone, no store)
+
+To try the app on an Android phone before any store build (or without the Play Console), run **apps-native**, **Run
+workflow**: platform `android-test`, version `1.0.0`. It needs no secret and uploads nothing: it checks the app, makes the
+Android project and builds one APK (about 20 minutes). The APK is signed with the debug key Expo's project uses, which
+Android accepts for installing by hand; it cannot go to Google Play. Alerts are in it only when
+`FIREBASE_ANDROID_JSON_B64` is set.
+
+1. When the run is green, open it and download **carmacars-test-apk-...** under Artifacts (a zip with one `.apk`; kept
+   14 days).
+2. Unzip it on the phone (or on a computer and send the `.apk` to the phone by cable, AirDrop-style share or email).
+3. Open the `.apk` on the phone. Android asks once to allow installing from that app (Files, Chrome): allow it, then
+   **Install**. If Play Protect warns that the app is unknown, choose **Install anyway**.
+4. Open CarmaCars. A newer test build installs over the older one (the version code rises with every run).
