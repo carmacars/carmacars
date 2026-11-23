@@ -25,14 +25,14 @@ jobs:
           source scripts/deploy/vps.sh
           MASK='s/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+/[email]/g; s/eyJ[A-Za-z0-9_-]{10,}(\.[A-Za-z0-9_-]+)*/[token]/g; s/\+?[0-9][0-9 ().-]{8,}[0-9]/[number]/g; s/([0-9]{1,3}\.){3}[0-9]{1,3}/[ip]/g'
           q() { echo "=== $1"; vps_sql "$2" | jq -c '.[]' | sed -E "$MASK" || echo "(failed)"; }
-          q "audit actions by hour (8h)" "select date_trunc('hour', created_at) h, payload->>'action' a, count(*) from auth.audit_log_entries where created_at > now() - interval '8 hours' group by 1,2 order by 1,2"
-          q "sign_in_events by hour (24h)" "select date_trunc('hour', at) h, ok, count(*) from public.sign_in_events where at > now() - interval '24 hours' group by 1,2 order by 1,2"
-          q "rate limit sign_in keys" "select regexp_replace(key, ':[^:]*$', ':*') k, (key like '%0.0.0.0%') noip, window_start, hits from app.rate_limit_hits where key ilike '%sign%' or key ilike '%otp%' or key ilike '%code%' or key ilike '%login%' order by last_hit_at desc limit 40"
-          q "outbox failures 8h" "select code, status, left(coalesce(last_error, ''), 200) e, count(*) from public.notification_outbox where created_at > now() - interval '8 hours' and status in ('failed','delayed','queued','sending') group by 1,2,3 order by 4 desc limit 30"
-          q "auth users last sign-in max" "select max(last_sign_in_at) from auth.users"
-          q "auth refresh tokens issued per hour" "select date_trunc('hour', created_at) h, count(*) from auth.refresh_tokens where created_at > now() - interval '24 hours' group by 1 order by 1"
+          q "sms log 24h" "select date_trunc('hour', created_at) h, status, left(coalesce(reason,''),250) r, count(*) from public.auth_sms_log where created_at > now() - interval '24 hours' group by 1,2,3 order by 1"
+          q "sms log last ok" "select max(created_at) from public.auth_sms_log where status='sent'"
+          q "outbox delayed reasons" "select status_reason, channel, count(*), min(created_at), max(created_at), min(send_after), max(send_after) from public.notification_outbox where status='delayed' group by 1,2 order by 3 desc limit 20"
+          q "outbox sent per hour 24h" "select date_trunc('hour', sent_at) h, channel, count(*) from public.notification_outbox where sent_at > now() - interval '24 hours' group by 1,2 order by 1"
+          q "outbox failed 24h" "select code, channel, left(coalesce(status_reason,''),200) r, count(*) from public.notification_outbox where status='failed' and created_at > now() - interval '24 hours' group by 1,2,3 order by 4 desc limit 20"
+          q "email cap settings" "select * from app.email_cap_status() limit 5"
           echo "=== auth container log errors (6h)"
-          vps_ssh sudo docker logs --since 6h supabase-auth 2>&1 | grep -iE '"level":"(error|warn)"|error' | jq -Rrc 'fromjson? // . | if type=="object" then {t: .time, l: .level, m: (.msg // ""), e: (.error // ""), p: (.path // ""), s: (.status // "")} else . end' | sed -E "$MASK" | tail -60 || true
+          vps_ssh sudo docker logs --since 1h supabase-auth 2>&1 | grep -iE '"level":"(error|warn)"|error' | jq -Rrc 'fromjson? // . | if type=="object" then {t: .time, l: .level, m: (.msg // ""), e: (.error // ""), p: (.path // ""), s: (.status // "")} else . end' | sed -E "$MASK" | tail -60 || true
           echo "=== auth status counts (6h)"
           vps_ssh sudo docker logs --since 6h supabase-auth 2>&1 | jq -Rrc 'fromjson? | select(.path != null) | "\(.method) \(.path) \(.status)"' | sort | uniq -c | sort -rn | head -40 || true
           echo "=== kong 4xx/5xx on auth (6h)"
