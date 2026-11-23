@@ -136,21 +136,33 @@ button.link { background: none; border: 0; padding: 0; font: inherit; color: inh
 /* ---------- buttons ---------- */
 .btn { --btn-bg: var(--black); --btn-fg: var(--white); --btn-bd: var(--btn-bg); display: inline-flex; align-items: center; justify-content: center; gap: 0.6em; min-height: 48px; padding: 0.7rem 1.35rem; background: var(--btn-bg); color: var(--btn-fg); border: var(--bw) solid var(--btn-bd); border-radius: var(--r-pill, 999px); font-weight: 600; font-size: var(--fs-body); line-height: 1.1; text-decoration: none; text-align: center; transition: background var(--t-1), border-color var(--t-1), color var(--t-1), transform var(--t-1); }
 .btn:active { transform: translateY(1px); }
-.btn:hover { --btn-bg: var(--grey-800); }
 .btn--primary { --btn-bg: var(--red-600); }
-.btn--primary:hover { --btn-bg: var(--red-700); }
 .btn--light { --btn-bg: var(--white); --btn-fg: var(--black); }
-.btn--light:hover { --btn-bg: var(--grey-200); }
 .btn--ghost { --btn-bg: transparent; --btn-fg: var(--text); --btn-bd: var(--line-strong); }
-.btn--ghost:hover { --btn-bg: var(--text); --btn-fg: var(--bg); }
-.on-dark .btn--ghost:hover, .on-red .btn--ghost:hover { --btn-fg: var(--black); }
 .btn--quiet { --btn-bg: transparent; --btn-fg: var(--text); --btn-bd: transparent; padding-inline: 0.75rem; }
-.btn--quiet:hover { --btn-bg: var(--surface); }
 .btn--sm { min-height: 40px; padding: 0.45rem 0.9rem; font-size: var(--fs-sm); white-space: nowrap; }
 @media (max-width: 480px) { .btn--sm { white-space: normal; max-width: 100%; text-align: center; } }
 .btn--lg { min-height: 56px; padding: 0.9rem 1.75rem; font-size: 1.0625rem; }
 .btn--block { display: flex; width: 100%; }
-.btn[disabled], .btn[aria-disabled="true"] { --btn-bg: var(--grey-200); --btn-fg: var(--grey-600); --btn-bd: var(--grey-200); cursor: not-allowed; }
+/* r49 (reel 8: every state): hover only where there is a mouse, so a tapped button on a phone does not stay dark; a press
+   shows on every device (the pressed colour, and the small sink in motion.css) */
+@media (hover: hover) {
+  .btn:hover { --btn-bg: var(--grey-800); }
+  .btn--primary:hover { --btn-bg: var(--red-700); }
+  .btn--light:hover { --btn-bg: var(--grey-200); }
+  .btn--ghost:hover { --btn-bg: var(--text); --btn-fg: var(--bg); }
+  .on-dark .btn--ghost:hover, .on-red .btn--ghost:hover { --btn-fg: var(--black); }
+  .btn--quiet:hover { --btn-bg: var(--surface); }
+}
+.btn:active { --btn-bg: var(--grey-800); }
+.btn--primary:active { --btn-bg: var(--red-700); }
+.btn--light:active { --btn-bg: var(--grey-200); }
+.btn--ghost:active, .btn--quiet:active { --btn-bg: var(--surface); --btn-fg: var(--text); }
+.on-dark .btn--ghost:active, .on-red .btn--ghost:active { --btn-bg: rgb(255 255 255 / 0.14); --btn-fg: var(--white); }
+.btn { touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+/* small buttons: 40px with a mouse, 44px under a finger (Apple's least; the default .btn is 48) */
+@media (pointer: coarse) { .btn--sm { min-height: 44px; } }
+.btn[disabled], .btn[aria-disabled="true"] { --btn-bg: var(--grey-200); --btn-fg: var(--grey-600); --btn-bd: var(--grey-200); cursor: not-allowed; box-shadow: none; background-image: none; }
 /* a busy button (aria-busy): its look is the site loader's, src/components/loader/BrandLoader.tsx (r48) */
 .btn svg { width: 1.15em; height: 1.15em; flex: none; }
 .icon-btn { display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: var(--ui-r-pill); border: var(--bw) solid var(--line-strong); background: transparent; color: var(--text); transition: background var(--t-1), color var(--t-1); }
@@ -733,3 +745,18 @@ html[data-shell="app"] body { overscroll-behavior-y: none; }
 .pu-stat, .pu-stat__value { min-width: 0; }
 /* places that hold a person's email, a long name or a code in a flex row or a list: anywhere keeps them inside the box (break-word would not lower their minimum width) */
 .alert span, .alert p, .mr-list li, .mr-list li *, .pt-dl dd, .ad-kv dd { overflow-wrap: anywhere; }
+
+/* ---------- r49 polish (the reels' rules; docs/blueprint/00-overview.md section 11, rules 9 to 18) ---------- */
+/* headlines break evenly (no lone word on the last line); body copy avoids orphans */
+h1, h2, h3, .lead { text-wrap: balance; }
+p, li, dd, figcaption, .muted { text-wrap: pretty; }
+/* prices, totals and counters keep their width as the digits change (no jiggle) */
+td, th, .badge, .ad-b, .pt__count, .ui-count, .bk-tabs__n, output,
+:where([class*="price"], [class*="money"], [class*="total"], [class*="__amt"], [class*="__count"]) { font-variant-numeric: tabular-nums; }
+/* the floating bars and toasts clear the phone's home bar */
+.toasts { bottom: calc(var(--s-5) + var(--bar-h, 0px) + env(safe-area-inset-bottom, 0px)); }
+.cookie { bottom: calc(var(--s-4) + env(safe-area-inset-bottom, 0px)); }
+/* smooth continuous corners on cards where the browser draws them */
+@supports (corner-shape: squircle) {
+  .pt-card, .ui-card, .card, .panel, .hub-card { corner-shape: superellipse(1.4); }
+}

@@ -85,8 +85,10 @@
 
   /* ---------- buttons, cards, chips, links ---------- */
   .btn { transition: background var(--t-1), border-color var(--t-1), color var(--t-1), transform 160ms var(--ease-out), box-shadow var(--t-2) var(--ease); }
-  .btn:hover:not([disabled]):not([aria-disabled="true"]) { transform: translateY(-1px); }
-  .btn--primary:hover:not([disabled]):not([aria-disabled="true"]) { box-shadow: 0 10px 24px -14px rgb(208 17 27 / 0.9); }
+  @media (hover: hover) {
+    .btn:hover:not([disabled]):not([aria-disabled="true"]) { transform: translateY(-1px); }
+    .btn--primary:hover:not([disabled]):not([aria-disabled="true"]) { box-shadow: 0 10px 24px -14px rgb(208 17 27 / 0.9); }
+  }
   .btn:active:not([disabled]):not([aria-disabled="true"]) { transform: translateY(0) scale(0.97); transition-duration: 60ms; }
   .btn.is-ripple::after { animation: ripple 560ms var(--ease-out); }
   .icon-btn { transition: background var(--t-1), color var(--t-1), transform 160ms var(--ease-out); }

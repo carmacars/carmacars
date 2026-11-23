@@ -267,3 +267,12 @@
   .rw-post { grid-template-columns: 16rem minmax(0, 1fr); }
   .rw-post__media { aspect-ratio: auto; min-height: 100%; }
 }
+
+/* ---------------------------------------------------------------- r49 polish (the reels' rules; 00-overview.md section 11)
+   A crashed page inside a portal (components/ui/PortalError.tsx): the site's error panel in a card, the title at the
+   portal's section size, not the public page's. The floating bars clear the phone's home bar. */
+.portal-error { padding: var(--s-6) var(--s-5); max-width: 44rem; }
+.portal-error .d1 { font-size: var(--fs-d2); }
+.portal-error .lead { font-size: var(--fs-body); }
+.ad-toasts { bottom: calc(var(--s-5) + env(safe-area-inset-bottom, 0px)); }
+@media (max-width: 640px) { .ready-next { padding-bottom: calc(var(--s-2) + env(safe-area-inset-bottom, 0px)); } }

@@ -1,5 +1,5 @@
 /* "Stuck?" help (migration 0510): the small prompt and the guide's side panel (a bottom sheet on a phone). */
-.stk { position: fixed; z-index: 60; right: var(--s-3); bottom: var(--s-3); left: var(--s-3); max-width: 26rem; margin-left: auto; padding: var(--s-3) var(--s-4);
+.stk { position: fixed; z-index: 60; right: var(--s-3); bottom: calc(var(--s-3) + env(safe-area-inset-bottom, 0px)); left: var(--s-3); max-width: 26rem; margin-left: auto; padding: var(--s-3) var(--s-4);
   background: var(--black); color: var(--white); border-left: 5px solid var(--red-600); border-radius: var(--r-2); box-shadow: var(--shadow-float); }
 .stk__q { margin: 0 0 var(--s-2); font-weight: 600; }
 .stk__acts { display: flex; flex-wrap: wrap; gap: var(--s-2); }

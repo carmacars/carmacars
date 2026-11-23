@@ -82,3 +82,21 @@ The public sheets (`core.css`, `pages.css`, `app.css`, `seo.css`, `vehicles.css`
 - Tiles (12px): choices and add-ons in the request form, the calendar and seat boxes, the address lookup, car photos in cards.
 - A button that is working: `aria-busy="true"` on a `.btn` shows the spinner and blocks a second press.
 
+
+## Release 49: the reels' polish pass
+
+The owner's design reels 6 to 10 (UX laws, app launch speed, button rules, App Store review, 20 polish details) are now
+rules 9 to 18 of the definition of done (`docs/blueprint/00-overview.md`, section 11). Applied in this release:
+
+- Buttons: hover only with a mouse (a tapped button on a phone no longer stays dark); a pressed colour on every device;
+  disabled drops the shine and shadow; small buttons are 44px under a finger; no double-tap zoom or text selection on a press.
+- Type: headlines balanced and body copy `pretty` everywhere; table cells, badges, counts, prices and totals in tabular numbers.
+- Cards draw smooth continuous corners where the browser supports `corner-shape`.
+- Errors: a crashed page in the admin, staff, renter, owner or investor portal shows inside the portal
+  (`components/ui/PortalError.tsx`), not the full-screen site error. The investor area has its loading skeleton.
+- Toasts, the cookie bar, the stuck-help bar and the phone's next-step bar clear the home bar (safe-area insets).
+- The app: opens on the saved snapshot of the account and the site's settings (no request before first paint), skeletons
+  in place of spinners, a pressed scale on buttons and cards, tabular numbers on money.
+
+Kept as they are, on purpose: the "are you sure" questions before actions that email someone or cannot be taken back
+(issuing an invoice, revoking a key, merging renters); an undo toast fits only actions the server can hold back.
