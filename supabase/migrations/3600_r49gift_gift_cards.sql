@@ -237,12 +237,12 @@ begin
   return v;
 end $$;
 
--- a code as typed (spaces, dashes, lower case, O for 0): the stored form, or null
+-- a code as typed (spaces, dashes, lower case; the letters I and O and the digits 0 and 1 are never used): the stored form, or null
 create function app.gift_code_norm(p text) returns text
 language sql immutable as $$
   select case when length(x) = 16 and left(x, 4) = 'CCGC' then 'CCGC-' || substr(x, 5, 4) || '-' || substr(x, 9, 4) || '-' || substr(x, 13, 4)
-              when length(x) = 12 then 'CCGC-' || substr(x, 1, 4) || '-' || substr(x, 5, 4) || '-' || substr(x, 9, 4) end
-    from (select translate(regexp_replace(upper(coalesce(p, '')), '[^A-Z0-9]', '', 'g'), '01', 'OI') x) s
+              when length(x) = 12 and left(x, 4) <> 'CCGC' then 'CCGC-' || substr(x, 1, 4) || '-' || substr(x, 5, 4) || '-' || substr(x, 9, 4) end
+    from (select regexp_replace(upper(coalesce(p, '')), '[^A-Z0-9]', '', 'g') x) s
 $$;
 
 create function app.gift_kind_label(p_kind text) returns text

@@ -79,7 +79,7 @@ select test.throws('no balance above the card''s amount', $$insert into gift_car
 select test.throws('the table refuses a negative balance too', $$update gift_cards set balance_cents = -1 where id = test.gxid('g2')$$);
 
 -- ================================================================ 3. adding a code
-select test.eq('a code as typed (lower case, no dashes, 0 for O)', app.gift_code_norm(lower(replace((test.gxg('g1')).code, '-', ' '))), (test.gxg('g1')).code);
+select test.eq('a code as typed (lower case, spaces for dashes)', app.gift_code_norm(lower(replace((test.gxg('g1')).code, '-', ' '))), (test.gxg('g1')).code);
 select test.throws('an unknown code', $$select app.gift_card_claim(test.id('gx_buyer'), 'CCGC-ZZZZ-ZZZZ-ZZZZ')$$, 'do not know this code');
 
 -- ================================================================ 4. Sign and pay

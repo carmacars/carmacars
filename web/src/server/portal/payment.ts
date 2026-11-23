@@ -20,7 +20,12 @@ export interface PaymentFacts {
   licence_missing?: string[];
   /** 1401: the OPCF 27 pages still to send before payment (pink slip, OPCF 27 endorsement page) */
   coverage_missing?: string[];
+  /** 3600: the gift card balance applied on Sign and pay, and what is left for the card */
+  gift_applied_cents?: number; card_due_cents?: number;
 }
+
+/** What the card pays: what is due at booking less the gift cards applied (3600). */
+export const cardDue = (f: PaymentFacts) => f.card_due_cents ?? f.renter_due_at_booking_cents;
 
 export async function paymentFacts(bookingId: string): Promise<PaymentFacts> {
   return (await rpc('server_booking_payment_facts', { p_booking: bookingId }, SR)) as unknown as PaymentFacts;
@@ -48,9 +53,11 @@ export async function bookingIntent(f: PaymentFacts): Promise<Intent> {
   // one intent per offer version; once one is cancelled (a refused card, a payment voided by our checks) the same key
   // would hand back that cancelled intent forever, so the next try takes a key chained to the cancelled one: still
   // idempotent (two presses get the same new intent), and the renter can pay again after a refusal or a staff change
-  const base = `booking:${f.booking_id}:total:${f.offer_approved_version}:std`;
+  // 3600: a gift card applied changes the card amount, so it is in the key (a new amount is a new intent)
+  const gift = f.gift_applied_cents ?? 0;
+  const base = `booking:${f.booking_id}:total:${f.offer_approved_version}:std${gift > 0 ? `:g${gift}` : ''}`;
   const make = (idempotencyKey: string) => p.createBookingIntent({
-    bookingId: f.booking_id, bookingNumber: f.booking_number, offerVersion: f.offer_approved_version ?? 0, amountCents: f.renter_due_at_booking_cents,
+    bookingId: f.booking_id, bookingNumber: f.booking_number, offerVersion: f.offer_approved_version ?? 0, amountCents: cardDue(f),
     customerId, description: `CarmaCars booking ${f.booking_number}`, idempotencyKey
   });
   let i = await make(base);
@@ -80,7 +87,7 @@ export async function settleIntent(intentId: string, by: string | null, eventId:
     return { ok: false, reason, message: reasonMessage(reason, message), bookingNumber: f.booking_number };
   };
   // the processor's facts, checked against the database before anything is recorded (13-security.md section 8)
-  if (i.currency !== 'cad' || i.amountCents !== f.renter_due_at_booking_cents) return void_('amount_mismatch');
+  if (i.currency !== 'cad' || i.amountCents !== cardDue(f)) return void_('amount_mismatch');
   // r48 (2912): the name on the card is never a reason to void the payment. Names are compared tolerantly by the
   // database when the card is put on file; one that still differs goes to staff review ("Check the name on the card")
   const offerVersion = Number(i.metadata.offer_version);

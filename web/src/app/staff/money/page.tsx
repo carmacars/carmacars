@@ -13,11 +13,13 @@ import { CountdownTable } from '@/features/deposit-review/Countdowns';
 import type { Countdowns } from '@/features/deposit-review/model';
 import { PageHead } from '@/features/admin/ui';
 import { UnlinkedStripe, type Unlinked } from '@/features/money/UnlinkedStripe';
+import { GiftCardsAdmin, type GiftAdminData } from '@/features/gift-cards/GiftCardsAdmin';
+import type { GiftCardRow } from '@/features/gift-cards/model';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Money', path: '/staff/money', noindex: true, description: 'Money to handle, payments by day, every payment, refunds, deposits and the processor payouts.' });
 
-const TABS = ['handle', 'countdowns', 'day', 'payments', 'refunds', 'deposits', 'reconciliation', 'kickbacks', 'partners', 'stripe'] as const;
+const TABS = ['handle', 'countdowns', 'day', 'payments', 'refunds', 'deposits', 'reconciliation', 'kickbacks', 'partners', 'stripe', 'gift'] as const;
 
 // Finance > Money (r27 consolidation: Admin's merged Payments for the finance role, the owner: "every Admin upgrade
 // reaches each staff role's portal"): To handle, By day (with the quick ranges), All payments, Refunds, Deposits and
@@ -30,6 +32,13 @@ export default async function Money({ searchParams }: { searchParams: Promise<Re
   if (tab === 'day') {
     const l = await door<Ledger>(ctx.user.id, 'ops_read', 'payments_ledger', { ...ledgerFilters(sp, torontoToday()), _va: ctx.fn }, ctx.aal);
     return <PaymentsView l={l} base="/staff/money?tab=day" bookingBase="/staff/bookings" />;
+  }
+  // r49 (3600): gift cards and the liability outstanding (Finance reads; an Admin issues and voids)
+  if (tab === 'gift') {
+    const card = one('card');
+    const [g, h] = await Promise.all([door<GiftAdminData>(ctx.user.id, 'ops_read', 'gift_cards', { q: one('q'), status: one('status'), _va: ctx.fn }, ctx.aal),
+      card && /^[0-9a-f-]{36}$/.test(card) ? door<GiftCardRow & { history: NonNullable<GiftCardRow['history']> }>(ctx.user.id, 'ops_read', 'gift_card_history', { id: card, _va: ctx.fn }, ctx.aal).catch(() => null) : Promise.resolve(null)]);
+    return <GiftCardsAdmin data={{ ...g, can_issue: false }} base="/staff/money?tab=gift" history={h} sp={{ q: one('q'), status: one('status') }} />;
   }
   // r35 part RR (1010): the time left on each deposit hold, deposit return and plan payment
   if (tab === 'countdowns') {

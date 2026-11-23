@@ -10,7 +10,8 @@ import { addedLive } from '@/features/portal/types';
 import { Back, PriceBreakdown } from '@/features/portal/Blocks';
 import { DetailsForm } from '@/features/portal/DetailsForm';
 import { SignForm } from '@/features/portal/SignForm';
-import { PayForm } from '@/features/portal/PayForm';
+import { GiftPay } from '@/features/gift-cards/GiftPay';
+import type { BookingGiftState } from '@/features/gift-cards/model';
 import { PrepareAgreement } from '@/features/portal/PrepareAgreement';
 import { ReceiptEmail } from '@/features/portal/ReceiptEmail';
 import { CompleteDetails } from '@/features/portal/CompleteDetails';
@@ -74,6 +75,8 @@ export default async function SignAndPayPage({ params, searchParams }: { params:
     // r48 part 2 (3052): the deposit by e-Transfer, cash or debit (doubled), said before paying; (3053) the tip
     rpc('server_booking_deposit_options', { p_booking: b.id }, SR).catch(() => null) as unknown as Promise<DepositState | null>,
     paying && !va ? (rpc('server_tip_options', { p_booking: b.id }, SR).catch(() => null) as unknown as Promise<TipOptions | null>) : Promise.resolve(null)]);
+  // 3600: the renter's gift cards and what they pay of this booking (the balance before the card)
+  const gift = paying ? ((await rpc('server_booking_gift_state', { p_booking: b.id, p_user: user.id }, SR).catch(() => null)) as unknown as BookingGiftState | null) : null;
   const detailsMissing = rd.missing;
   // 0750: a deposit charged (not held) on a debit or prepaid card carries the card processing fee, non-refundable
   const debitFee = debitDeposit ? Number((await rpc('server_debit_deposit_fee', { p_amount: debitDeposit }, SR).catch(() => 0)) ?? 0) : 0;
@@ -189,13 +192,18 @@ export default async function SignAndPayPage({ params, searchParams }: { params:
                 ) : (
                   <section className="pt-card" aria-labelledby="pt-pay"><h3 className="d4" id="pt-pay">Card</h3>
                     {detailsMissing.length > 0 ? <CompleteDetails number={b.booking_number} missing={detailsMissing} known={rd.known} then="pay" />
-                      : gate?.ok ? <PayForm number={b.booking_number} amountCents={b.renter_due_at_booking_cents} depositCents={b.deposit_cents} coverageOption={b.coverage_option} debitOk={debitOk} />
+                      : gate?.ok ? <GiftPay number={b.booking_number} state={gift} depositCents={b.deposit_cents} coverageOption={b.coverage_option} debitOk={debitOk} />
                       : gate?.reason === 'email_needed' ? <ReceiptEmail path={bookingPath(b.booking_number, 'checkout')} />
                       : <p className="alert alert--error" role="alert" data-testid="pay-unconfirmed"><span>{GATE_MESSAGE} <Link prefetch={false} className="link" href="/account/profile">Profile</Link></span></p>}
                   </section>)}
                 <aside className="pt-split__aside pt-first">
                   <section className="pt-card" aria-labelledby="pt-sum"><h3 className="d4" id="pt-sum">What you pay now</h3>
                     <PriceBreakdown lines={b.lines.filter((l) => l.stage === 'booking')} hst={b.hst_at_booking_cents} total={b.renter_due_at_booking_cents} insurer={b.insurer_pays_cents || undefined} deposit={b.deposit_cents} />
+                    {gift && gift.applied_cents > 0 && (
+                      <dl className="pt-dl pt-dl--money" data-testid="sum-gift">
+                        <div><dt>Gift cards</dt><dd>−{money(gift.applied_cents, { cents: true })}</dd></div>
+                        <div><dt><b>By card now</b></dt><dd className="pt-total">{money(gift.card_due_cents, { cents: true })}</dd></div>
+                      </dl>)}
                     {debitDeposit && debitOk && debitFee > 0 ? <p className="small" data-testid="debit-deposit-fee">On a debit or prepaid card the deposit may be charged instead of held: then a non-refundable card processing fee for a debit deposit of {money(debitFee, { cents: true })} is added to it. The deposit itself is refunded after the return.</p> : null}
                   </section>
                 </aside>

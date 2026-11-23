@@ -13,6 +13,8 @@ import { CountdownTable } from '@/features/deposit-review/Countdowns';
 import type { Countdowns } from '@/features/deposit-review/model';
 import { UnlinkedStripe, type Unlinked } from '@/features/money/UnlinkedStripe';
 import { TipsReport, type TipsReportData } from '@/features/money/TipsCard';
+import { GiftCardsAdmin, type GiftAdminData } from '@/features/gift-cards/GiftCardsAdmin';
+import type { GiftCardRow } from '@/features/gift-cards/model';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Payments', path: '/admin/money', noindex: true, description: 'Payments by day, every payment, refunds, deposits, disputes and the processor payouts.' });
@@ -20,7 +22,7 @@ type R = Record<string, unknown>;
 const REFUND_REASON: Record<string, string> = { cancellation: 'Cancelled by the renter', carmacars_cancelled: 'Cancelled by CarmaCars', driver_not_verifiable: 'Driver could not be verified',
   pricing_error: 'Pricing error', breakdown_unused_days: 'Breakdown: days not used', goodwill: 'Goodwill', duplicate: 'Charged twice', other: 'Other' };
 
-const TABS = ['day', 'countdowns', 'payments', 'refunds', 'deposits', 'disputes', 'reconciliation', 'stripe', 'tips'] as const;
+const TABS = ['day', 'countdowns', 'payments', 'refunds', 'deposits', 'disputes', 'reconciliation', 'stripe', 'tips', 'gift'] as const;
 
 // Money > Payments (03-admin.md section 11; r27: Payments by day and Reconciliation are tabs here, the owner's "We need
 // less pages not more"): the day's money by method, every payment, refunds with approval limits, deposits, disputes, and
@@ -38,6 +40,12 @@ export default async function Money({ searchParams }: { searchParams: Promise<Re
   if (tab === 'tips') {
     const r = await door<TipsReportData>(user.id, 'admin_read', 'tips_report', { from: sp.from, to: sp.to });
     return <TipsReport r={r} bookingBase="/admin/bookings" />;
+  }
+  // r49 (3600): gift cards, gifted rentals and vouchers, with the liability outstanding
+  if (tab === 'gift') {
+    const [g, h] = await Promise.all([door<GiftAdminData>(user.id, 'ops_read', 'gift_cards', { q: sp.q, status: sp.status }),
+      sp.card && /^[0-9a-f-]{36}$/.test(sp.card) ? door<GiftCardRow & { history: NonNullable<GiftCardRow['history']> }>(user.id, 'ops_read', 'gift_card_history', { id: sp.card }).catch(() => null) : Promise.resolve(null)]);
+    return <GiftCardsAdmin data={g} base="/admin/money?tab=gift" history={h} sp={sp} />;
   }
   if (tab === 'countdowns') {
     const c = await door<Countdowns>(user.id, 'ops_read', 'finance_countdowns', { sort: sp.sort });

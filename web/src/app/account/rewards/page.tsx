@@ -40,7 +40,8 @@ export default async function Rewards() {
   const lv = l ? ladderView(l) : null;
   return (
     <>
-      <PageHeader title="Rewards" purpose="Points on every rental, off your next rental charge. Earn more to reach Gold, Platinum and Black." testId="rewards-head" />
+      <PageHeader title="Rewards" purpose="Points on every rental, off your next rental charge. Earn more to reach Gold, Platinum and Black." testId="rewards-head"
+        action={<Link prefetch={false} className="btn btn--ghost btn--sm" href="/account/gift-cards" data-testid="rewards-gift-cards">Gift cards</Link>} />
       <div className="pt-split">
         <div className="stack">
           {lv && l && (
