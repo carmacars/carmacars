@@ -1,41 +1,42 @@
 name: worker-tail
-
-# Read only: listens to the production Worker's live log for a short while and prints each exception (route without
-# query string, the error message and the first lines of the stack). No headers, cookies or bodies are printed.
+# TEMPORARY diagnostic (sign-in outage 2026-11-23), never merged.
 on:
   workflow_dispatch:
     inputs:
       seconds:
-        description: How long to listen
         type: string
         default: '90'
-
-# The workflow's token only reads the repository (a job that needs more says so itself).
 permissions:
   contents: read
-
 jobs:
-  tail:
+  diag:
     runs-on: ubuntu-24.04
-    timeout-minutes: 8
+    timeout-minutes: 10
     env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
     steps:
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
         with:
-          node-version: 22
-      - name: Listen
-        env:
-          SECS: ${{ inputs.seconds }}
+          sparse-checkout: |
+            infra/vps
+            scripts/deploy
+      - name: Diagnose
         run: |
-          case "$SECS" in ''|*[!0-9]*) SECS=90;; esac
-          # the run's log is public: addresses, tokens and long numbers in a message or stack are never printed
-          MASK='s/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+/[email]/g; s/eyJ[A-Za-z0-9_-]{10,}(\.[A-Za-z0-9_-]+)*/[token]/g; s/\+?[0-9][0-9 ().-]{8,}[0-9]/[number]/g'
-          mkdir -p /tmp/t && cd /tmp/t
-          timeout "$SECS" npx --yes wrangler@4 tail carmacars-prod --format json --status error > tail.jsonl 2> tail.err || true
-          echo "events: $(wc -l < tail.jsonl)"
-          jq -c 'select(.outcome != "ok" or (.exceptions|length) > 0) | {o: .outcome, path: ((.event.request.url // "") | sub("\\?.*$"; "") | sub("^https?://[^/]+"; "")), ex: [.exceptions[]? | {name, message, stack: ((.stack // "") | .[0:600])}], logs: [.logs[]? | select(.level == "error") | (.message | tostring | .[0:400])]}' tail.jsonl \
-            | head -40 | sed -E "$MASK" | sed 's/^/::notice title=tail::/'
-          tail -5 tail.err | sed 's/^/::notice title=tail-stderr::/'
-          jq -r '[.exceptions[]?.message] | .[]' tail.jsonl | sed -E "$MASK" | sort | uniq -c | sort -rn | head -10 | sed 's/^/::warning title=exception counts::/'
+          source scripts/deploy/vps.sh
+          MASK='s/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+/[email]/g; s/eyJ[A-Za-z0-9_-]{10,}(\.[A-Za-z0-9_-]+)*/[token]/g; s/\+?[0-9][0-9 ().-]{8,}[0-9]/[number]/g; s/([0-9]{1,3}\.){3}[0-9]{1,3}/[ip]/g'
+          q() { echo "=== $1"; vps_sql "$2" | jq -c '.[]' | sed -E "$MASK" || echo "(failed)"; }
+          q "audit actions by hour (8h)" "select date_trunc('hour', created_at) h, payload->>'action' a, count(*) from auth.audit_log_entries where created_at > now() - interval '8 hours' group by 1,2 order by 1,2"
+          q "sign_in_events by hour (24h)" "select date_trunc('hour', at) h, ok, count(*) from public.sign_in_events where at > now() - interval '24 hours' group by 1,2 order by 1,2"
+          q "rate limit sign_in keys" "select regexp_replace(key, ':[^:]*$', ':*') k, (key like '%0.0.0.0%') noip, window_start, hits from app.rate_limit_hits where key ilike '%sign%' or key ilike '%otp%' or key ilike '%code%' or key ilike '%login%' order by last_hit_at desc limit 40"
+          q "outbox failures 8h" "select code, status, left(coalesce(last_error, ''), 200) e, count(*) from public.notification_outbox where created_at > now() - interval '8 hours' and status in ('failed','delayed','queued','sending') group by 1,2,3 order by 4 desc limit 30"
+          q "auth users last sign-in max" "select max(last_sign_in_at) from auth.users"
+          q "auth refresh tokens issued per hour" "select date_trunc('hour', created_at) h, count(*) from auth.refresh_tokens where created_at > now() - interval '24 hours' group by 1 order by 1"
+          echo "=== auth container log errors (6h)"
+          vps_ssh sudo docker logs --since 6h supabase-auth 2>&1 | grep -iE '"level":"(error|warn)"|error' | jq -Rrc 'fromjson? // . | if type=="object" then {t: .time, l: .level, m: (.msg // ""), e: (.error // ""), p: (.path // ""), s: (.status // "")} else . end' | sed -E "$MASK" | tail -60 || true
+          echo "=== auth status counts (6h)"
+          vps_ssh sudo docker logs --since 6h supabase-auth 2>&1 | jq -Rrc 'fromjson? | select(.path != null) | "\(.method) \(.path) \(.status)"' | sort | uniq -c | sort -rn | head -40 || true
+          echo "=== kong 4xx/5xx on auth (6h)"
+          vps_ssh sudo docker logs --since 6h supabase-kong 2>&1 | grep -E '/auth/v1' | grep -oE '"(GET|POST|PUT) [^ ?"]+[^"]*" [0-9]{3}' | sed -E 's/\?[^ ]*//' | sort | uniq -c | sort -rn | head -30 || true
+          echo "=== site probes"
+          for p in / /sign-in /staff /admin /api/health; do curl -sS -o /dev/null -w "$p %{http_code} %{time_total}\n" --max-time 20 "https://carmacars.ca$p" || true; done
+          curl -sS --max-time 15 "https://api.carmacars.ca/auth/v1/.well-known/openid-configuration" | jq -c '{issuer}' || true
