@@ -1,5 +1,20 @@
 [
  {
+  "release": "r49",
+  "title": "Release 49",
+  "date": "2026-11-23",
+  "seq": 0,
+  "summary": "A Finance dashboard shows the cash in the bank and with the card processor, money in and out, HST, what renters and insurers owe, and every bank line matched to its record.",
+  "areas": [
+   {
+    "area": "Staff tools",
+    "items": [
+     "A Finance dashboard: the cash in the bank and with the card processor, money in and out, HST, what renters and insurers owe, and every bank line from the bank's download matched to its payout, payment or expense"
+    ]
+   }
+  ]
+ },
+ {
   "release": "r45",
   "title": "Release 45",
   "date": "2026-11-14",

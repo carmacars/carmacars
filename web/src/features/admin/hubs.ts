@@ -25,7 +25,8 @@ export const ADMIN_HUBS: Hub[] = [
     { href: '/admin/owner-money?tab=statements', label: 'Statements' }, { href: '/admin/owner-money?tab=payouts', label: 'Payouts' }] },
   { key: 'insurers', label: 'Insurers', tabs: [{ href: '/admin/insurers?tab=rates', label: 'Rates' }, { href: '/admin/insurers?tab=invoices', label: 'Invoices' }] },
   // Company accounts and Staff pay were two pages of the Money row: one now
-  { key: 'company', label: 'Company', tabs: [{ href: '/admin/reports', label: 'Monthly statements' }, { href: '/admin/money/model', label: 'Company model' }, { href: '/admin/expenses', label: 'Expenses' },
+  // r49 (3480): the Finance dashboard (cash, money in and out, HST, receivables, the bank reconciliation) opens the group
+  { key: 'company', label: 'Company', tabs: [{ href: '/admin/finance', label: 'Finance' }, { href: '/admin/reports', label: 'Monthly statements' }, { href: '/admin/money/model', label: 'Company model' }, { href: '/admin/expenses', label: 'Expenses' },
     { href: '/admin/money/commissions', label: 'Commissions' }, { href: '/admin/money/field-pay', label: 'Payroll' }, { href: '/admin/money/kickbacks', label: 'Kickbacks and repairs' }] },
   { key: 'problems', label: 'Damage and claims', tabs: [
     { href: '/admin/damages?tab=damage', label: 'Damage' }, { href: '/admin/damages?tab=incidents', label: 'Incidents' }, { href: '/admin/damages?tab=claims', label: 'Claims' }] },
@@ -75,7 +76,9 @@ export const ADMIN_HUBS: Hub[] = [
 // person sees only the tabs they can open; each page keeps its address and its own check.
 export const STAFF_HUBS: Hub[] = [
   // Finance's money (r27 consolidation, Admin's merged Payments): one page, a tab each
-  { key: 'money', label: 'Money', tabs: [{ href: '/staff/money', label: 'To handle', fns: 'finance' }, { href: '/staff/money?tab=countdowns', label: 'Countdowns', fns: 'finance' },
+  { key: 'money', label: 'Money', tabs: [{ href: '/staff/money', label: 'To handle', fns: 'finance' },
+    // r49 (3480): Admin's Finance dashboard, for the Finance role (the bank import and reconciliation are theirs)
+    { href: '/staff/finance', label: 'Finance', fns: 'finance' }, { href: '/staff/money?tab=countdowns', label: 'Countdowns', fns: 'finance' },
     { href: '/staff/deposit-reviews', label: 'Deposit reviews', fns: 'finance' }, { href: '/staff/money?tab=day', label: 'By day', fns: 'finance' },
     { href: '/staff/money?tab=payments', label: 'All payments', fns: 'finance' }, { href: '/staff/money?tab=refunds', label: 'Refunds', fns: 'finance' },
     { href: '/staff/money?tab=deposits', label: 'Deposits', fns: 'finance' }, { href: '/staff/money?tab=reconciliation', label: 'Reconciliation', fns: 'finance' },

@@ -90,6 +90,7 @@ export const PATHS = {
   va_finance_toll: '/staff/tolls?ticket={{toll_ticket_id}}',
   va_finance_invoice: '/staff/money',
   va_finance_insurer_invoice: '/staff/money',
+  va_finance_bank: '/staff/finance?tab=bank',
   va_fleet: '/staff/fleet',
   va_fleet_booking: '/staff/bookings/{{booking_number}}',
   va_fleet_listing: '/staff/listings/{{vehicle_id}}',
