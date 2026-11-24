@@ -20483,6 +20483,7 @@ export type Database = {
           email_low_class_stop_pct: number;
           email_auth_reserve: number;
           email_reserve_from_cap: number;
+          booking_licence_before_payment: boolean;
         };
         Insert: {
           id?: string;
@@ -21445,6 +21446,7 @@ export type Database = {
           email_low_class_stop_pct?: number;
           email_auth_reserve?: number;
           email_reserve_from_cap?: number;
+          booking_licence_before_payment?: boolean;
         };
         Update: {
           id?: string;
@@ -22407,6 +22409,7 @@ export type Database = {
           email_low_class_stop_pct?: number;
           email_auth_reserve?: number;
           email_reserve_from_cap?: number;
+          booking_licence_before_payment?: boolean;
         };
         Relationships: [];
       };
