@@ -19,6 +19,9 @@ The owner (Nov 23): "make paying and booking easier, never harder."
 - With the licence setting on, staff recording **Renter approved by phone** go ahead when the licence photos are there (any status but rejected), and the history lists what is still to check. An Admin goes ahead with a reason (the dialog's new optional field), also logged.
 - The unpaid hold lasts until the latest of: the approval + `offer_unpaid_hold_minutes`, the offer's own expiry, and, for a pickup within 24 hours, the pickup + 2 hours. A typed offer expiry is kept as typed. A default offer for a pickup within 24 hours stays open until 2 hours after the pickup. **Reopen offer** is open, by default, as long as the original offer was.
 - A push refusal keeps the device and records the error. Only 404/410 (the device is gone) remove it, and the browser subscribes again by itself (3113).
+- Staff and Admin offers (and Book it now) take a pickup from now: the 120-minute lead time stays for the online request only (a staff pickup more than 15 minutes in the past is still refused).
+- The date field's calendar opens above dialogs: it is drawn inside the open dialog (else the page body), fixed to the field, so a dialog's clipping never hides it (Reopen offer, extend, propose a change, offer form).
+- API tool `create_offer`: `price_tax` is `plus` (HST added on top, default) or `included`; the old `before_tax` / `after_tax` still work.
 
 ## Tests
 

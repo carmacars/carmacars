@@ -55,13 +55,24 @@ export function DateInput({ type, value: valueProp, defaultValue, min: minProp, 
     const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); close(); } };
     document.addEventListener('mousedown', outside); document.addEventListener('keydown', esc);
     if (phone) document.documentElement.style.overflow = 'hidden';
-    else if (pop.current && wrap.current) {
-      pop.current.style.left = '0px';
-      const r = wrap.current.getBoundingClientRect();
-      pop.current.style.left = Math.min(0, window.innerWidth - r.left - pop.current.offsetWidth - 16) + 'px';
+    let place: (() => void) | null = null;
+    if (!phone && pop.current && wrap.current) {
+      // hotfix-offer: the calendar is drawn in the page's top layer (inside the open dialog, else the body), fixed to the field,
+      // so a dialog's own clipping or stacking never hides it
+      const el = pop.current, field = wrap.current;
+      place = () => {
+        const r = field.getBoundingClientRect();
+        const w = el.offsetWidth, h = el.offsetHeight;
+        el.style.position = 'fixed'; el.style.right = 'auto'; el.style.bottom = 'auto';
+        el.style.left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8)) + 'px';
+        const below = r.bottom + 8, above = r.top - 8 - h;
+        el.style.top = Math.max(8, (below + h > window.innerHeight - 8 && above >= 8) ? above : below) + 'px';
+      };
+      place();
+      window.addEventListener('resize', place); window.addEventListener('scroll', place, true);
     }
     requestAnimationFrame(() => pop.current?.querySelector<HTMLButtonElement>('.cal__day[tabindex="0"]')?.focus());
-    return () => { document.removeEventListener('mousedown', outside); document.removeEventListener('keydown', esc); document.documentElement.style.overflow = ''; };
+    return () => { if (place) { window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true); } document.removeEventListener('mousedown', outside); document.removeEventListener('keydown', esc); document.documentElement.style.overflow = ''; };
   }, [open, phone]);
   function close() { setOpen(false); if (opener.current && document.contains(opener.current)) opener.current.focus(); }
 
@@ -117,7 +128,9 @@ export function DateInput({ type, value: valueProp, defaultValue, min: minProp, 
       </div>
     </div>
   );
-  const body: ReactNode = open && phone ? createPortal(<><div className="popover-scrim" onClick={close} /> {popover}</>, document.body) : popover;
+  const host = (): HTMLElement => (wrap.current?.closest('dialog[open]') as HTMLElement | null) ?? document.body;
+  const body: ReactNode = open && phone ? createPortal(<><div className="popover-scrim" onClick={close} /> {popover}</>, host())
+    : open ? createPortal(popover, host()) : popover;
 
   return (
     <div className={`dp${extra ? ` ${extra}` : ''}`} style={style} ref={wrap}>

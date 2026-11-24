@@ -1,6 +1,6 @@
 import { rpc } from '@/lib/db/repo';
 import { siteUrl } from '@/lib/site';
-import { MAX_CLAIM_FILE_BYTES, TOOLS, bearer, claimFileKind, sha256Hex } from '@/features/api-access/tools';
+import { MAX_CLAIM_FILE_BYTES, TOOLS, bearer, claimFileKind, normalizeToolArgs, sha256Hex } from '@/features/api-access/tools';
 import { oneStepHire } from '@/server/hire';
 import { bookNowAgreement } from '@/server/book-now';
 import { storage } from '@/integrations/storage';
@@ -34,7 +34,7 @@ function unauthorized(message: string): Response {
 }
 
 async function callTool(hash: string, name: string, args: unknown, client: string): Promise<{ ok: boolean; status?: number; result?: unknown; error?: string }> {
-  return (await rpc('server_api_call', { p_hash: hash, p_tool: name, p_args: (args ?? {}) as never, p_client: client }, SR)) as unknown as { ok: boolean; status?: number; result?: unknown; error?: string };
+  return (await rpc('server_api_call', { p_hash: hash, p_tool: name, p_args: (normalizeToolArgs(args) ?? {}) as never, p_client: client }, SR)) as unknown as { ok: boolean; status?: number; result?: unknown; error?: string };
 }
 
 export async function GET() {

@@ -54,11 +54,14 @@ select test.ok('A1: the car is no longer free for those dates (availability coun
   not app.vehicle_is_available(test.r8car('car1'), (test.r8b('a')).pickup_at + interval '1 day', (test.r8b('a')).pickup_at + interval '2 days'));
 select test.eq('A1: the other open offer went back to staff with a Re-offer To do',
   (test.r8b('b')).status::text || ':' || (select count(*) from tasks where booking_id = (test.r8b('b')).id and task_type = 'reoffer_booking' and status = 'open'), 'requested:1');
-select test.eq('A1: no To do for payment yet (the pickup is more than 48 hours away)', (select app.booked_unpaid_tasks()), 0);
+-- 3420: holds last as long as the offer, so an earlier suite's unpaid booking can still be waiting: count against that baseline
+insert into test.r8 select 'unpaid_base', to_jsonb(app.booked_unpaid_tasks());
+select test.eq('A1: no To do for payment yet (the pickup is more than 48 hours away)',
+  (select count(*) from tasks where booking_id = (test.r8b('a')).id and task_type = 'booked_unpaid' and status = 'open'), 0::bigint);
 insert into test.r8 select 'c', app.door(test.id('r8_cs'), 'aal2', 'ops_do', 'offer_create', test.r8req('car2', interval '20 hours', interval '3 days', 'cleo', '{"rental_pay_method": "e_transfer"}'));
 select test.r8_licence('c');
 select public.renter_approve_offer((test.r8b('c')).id, (test.r8b('c')).current_offer_version, test.r8u('c'));
-select test.eq('A1: within 48 hours of the pickup, unpaid: the To do is raised', app.booked_unpaid_tasks(), 1);
+select test.eq('A1: within 48 hours of the pickup, unpaid: the To do is raised', app.booked_unpaid_tasks() - (test.r8v('unpaid_base'))::text::integer, 1);
 select test.eq('A1: ... one "booked, payment due" To do', (select count(*) from tasks where booking_id = (test.r8b('c')).id and task_type = 'booked_unpaid' and status = 'open'), 1::bigint);
 select app.booked_unpaid_tasks();
 select test.eq('A1: run again: still one', (select count(*) from tasks where booking_id = (test.r8b('c')).id and task_type = 'booked_unpaid'), 1::bigint);
@@ -239,12 +242,13 @@ select test.throws('P0: reopen with the pickup past and no new dates is refused'
   jsonb_build_object('booking', (test.r8b('p2')).booking_number)), 'pickup time has passed');
 -- the events earlier suites left are processed first: the check below counts the email of the last minute
 select test.flush();
+insert into test.r8 select 'p2_hours', to_jsonb(extract(epoch from (o.expires_at - o.sent_at)) / 3600) from booking_offers o where o.booking_id = (test.r8b('p2')).id and o.version = (test.r8b('p2')).current_offer_version;
 select app.door(test.id('r8_sales'), 'aal2', 'va_do', 'reopen_expired', jsonb_build_object('booking', (test.r8b('p2')).booking_number,
   'pickup_at', date_trunc('hour', now()) + interval '50 days', 'return_at', date_trunc('hour', now()) + interval '52 days'));
 select test.flush();
-select test.eq('P0: reopened by Sales: offered again with the new dates, a new version, open about 24 hours, the renter emailed',
+select test.eq('P0: reopened by Sales: offered again with the new dates, a new version, open as long as the original offer (3420), the renter emailed',
   (test.r8b('p2')).status::text || ':' || ((test.r8b('p2')).pickup_at = date_trunc('hour', now()) + interval '50 days') || ':' || (test.r8b('p2')).current_offer_version
-  || ':' || ((test.r8b('p2')).offer_expires_at between now() + interval '23 hours' and now() + interval '25 hours')
+  || ':' || (abs(extract(epoch from (test.r8b('p2')).offer_expires_at - now()) / 3600 - (test.r8v('p2_hours'))::text::numeric) < 1)
   || ':' || (select count(*) from notification_outbox where code = 'renter_offer_ready' and entity_id = (test.r8b('p2')).id and created_at > now() - interval '1 minute') || ':'
   || (select count(*) from tasks where booking_id = (test.r8b('p2')).id and task_type = 'offer_expired' and status = 'open'),
   'offered:true:2:true:1:0');

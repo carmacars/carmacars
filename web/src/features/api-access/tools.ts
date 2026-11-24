@@ -107,7 +107,7 @@ export const ADMIN_TOOLS: Tool[] = [
     ['vehicle_id', 'pickup_at', 'return_at'], { renter_id: id('A renter on file'), renter: { type: 'object' }, vehicle_id: id('The car'), pickup_at: { type: 'string', format: 'date-time' },
       return_at: { type: 'string', format: 'date-time' }, source: str('phone, walk_in, email, ...'), rental_pay_method: str('card, cash, e_transfer, ...'), deposit_pay_method: str('card, cash, ...'),
       message: str('A message to the renter'), notify: { type: 'boolean' }, channels: { type: 'object' }, rental_charge_cents: cents('A rental charge agreed with the renter'),
-      price_reason: str('Why a typed price'), price_tax: str('before_tax or after_tax'), sales_choice: str('for_carmacars or sourced'), book_now: { type: 'boolean', description: 'Book it now: the offer is approved at once as if the renter had approved it; the booking waits for the renter to sign and pay (the Sign and pay link is emailed) and holds the car. Use when the renter already agreed.' }, book_now_reason: str('Why it is booked without the renter\'s approval (kept in the booking\'s history)') }),
+      price_reason: str('Why a typed price'), price_tax: str('plus (HST is added on top of the typed charge, the default) or included (the typed amount already holds HST)'), sales_choice: str('for_carmacars or sourced'), book_now: { type: 'boolean', description: 'Book it now: the offer is approved at once as if the renter had approved it; the booking waits for the renter to sign and pay (the Sign and pay link is emailed) and holds the car. Use when the renter already agreed.' }, book_now_reason: str('Why it is booked without the renter\'s approval (kept in the booking\'s history)') }),
   write('book_offer_now', 'Book an offer now', 'Book it now for an offer that is already out (Admin > the booking > Book it now): it becomes the approved version without the renter\'s approval, the booking waits for payment and holds the car, and the renter gets the Sign and pay link. As an Admin it is done at once.', ['booking'],
     { ...booking, reason: str('Why: the renter agreed by phone, ...') }),
   write('revise_offer', 'Revise an offer', 'Send a revised offer for a booking already offered.', ['booking'],
@@ -327,3 +327,12 @@ export const EVIDENCE_TOOLS: Tool[] = [
     ['line', 'reason'], { line: id('The fee line'), reason: str('Why it is charged without its evidence') })
 ];
 TOOLS.push(...EVIDENCE_TOOLS);
+
+/** price_tax: the server takes 'plus' | 'included'. The first wording of the tool said before_tax / after_tax, so those still work. */
+const PRICE_TAX_ALIAS: Record<string, string> = { before_tax: 'plus', after_tax: 'included' };
+export function normalizeToolArgs(args: unknown): unknown {
+  if (!args || typeof args !== 'object' || Array.isArray(args)) return args;
+  const a = args as Record<string, unknown>;
+  const t = typeof a.price_tax === 'string' ? PRICE_TAX_ALIAS[a.price_tax.trim().toLowerCase()] : undefined;
+  return t ? { ...a, price_tax: t } : args;
+}

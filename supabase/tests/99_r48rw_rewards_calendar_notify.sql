@@ -179,7 +179,7 @@ select test.eq('an exotic car: refused', app.promo_code_problem((select code fro
 update vehicles set class = 'premium' where id = test.id('vehicle:zrw_car');
 delete from vehicle_class_links where vehicle_id = test.id('vehicle:zrw_car') and class_code = 'exotic';
 -- a free day on a co-host owner's car while a CarmaCars or shareholder car is free: refused; with none free: allowed, the owner paid in full
-create temp table zrw_cc_down as select id, status from vehicles where id <> test.id('vehicle:zrw_car') and (supply_type::text = 'company' or is_shareholder_owned) and status::text = 'available';
+create temp table zrw_cc_down as select id, status from vehicles where id <> test.id('vehicle:zrw_car') and (supply_type::text = 'company' or is_shareholder_owned or coalesce((select o.is_shareholder from owners o where o.id = vehicles.owner_id), false)) and status::text = 'available';
 update vehicles set status = 'out_of_service' where id in (select id from zrw_cc_down);
 create temp table zrw_free as select app.staff_perk_code_issue(test.id('zrw_sara'), '{"days": 1}'::jsonb) ->> 'issued' as code;
 select test.eq('a free day on an owner''s car with no CarmaCars car free: allowed', app.promo_code_problem((select code from zrw_free), test.id('renter:zrw_sara'), test.id('booking:ZRW-P1')), null::text);

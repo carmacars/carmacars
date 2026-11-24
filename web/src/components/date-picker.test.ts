@@ -19,3 +19,12 @@ describe('shared date fields', () => {
     assert.deepEqual(bad, []);
   });
 });
+
+describe('the calendar inside a dialog (hotfix-offer)', () => {
+  it('is drawn in the open dialog (else the body), fixed to the field, so a dialog never hides it', () => {
+    const s = readFileSync('src/components/DateInput.tsx', 'utf8');
+    assert.match(s, /closest\('dialog\[open\]'\)/);
+    assert.match(s, /createPortal\(popover, host\(\)\)/);
+    assert.match(s, /style\.position = 'fixed'/);
+  });
+});

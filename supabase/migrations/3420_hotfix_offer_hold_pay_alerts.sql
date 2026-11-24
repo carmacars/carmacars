@@ -34,7 +34,7 @@ end $$;
 
 -- ================================================================ 1. the hold and the offer's expiry
 create or replace function app.unpaid_hold_until(b bookings) returns timestamptz
-language sql stable security definer set search_path = public, app as $$
+language sql stable security definer set search_path = public, app, pg_temp as $$
   select case
     when b.status = 'pending_payment' and b.booking_type::text <> 'owner' and not coalesce(b.is_placeholder, false)
      and coalesce(b.rental_pay_method, 'card') = 'card' and b.offer_approved_at is not null
@@ -69,6 +69,16 @@ select pg_temp.patch_fn('app.reopen_offer(uuid, uuid, jsonb)'::regprocedure,
       where o.booking_id = p_booking and o.expires_at > o.sent_at order by o.version desc limit 1),
     (app.settings()).offer_expiry_hours, 12);$n$);
 
+-- staff and Admin offers (and Book it now) take a pickup from now: the renter may be standing there. The lead time
+-- (booking_min_notice_minutes) stays for the online request; a pickup more than 15 minutes in the past is still refused.
+select pg_temp.patch_fn('app.staff_quote_request_pre0066(uuid, jsonb)'::regprocedure,
+  $o$  if v_pickup < now() + make_interval(mins => v_set.booking_min_notice_minutes) then
+    raise exception 'The pickup must be at least % minutes from now', v_set.booking_min_notice_minutes using errcode = '22023';
+  end if;$o$,
+  $n$  if v_pickup < now() - interval '15 minutes' then
+    raise exception 'The pickup time has passed: choose a pickup from now on' using errcode = '22023';
+  end if;$n$);
+
 -- ================================================================ 2. the licence and OPCF 27: before handover, not payment
 alter table program_settings add column if not exists booking_licence_before_payment boolean not null default false;
 comment on column program_settings.booking_licence_before_payment is
@@ -83,7 +93,7 @@ select pg_temp.patch_fn('app.licence_gate(uuid)'::regprocedure,
 
 -- the licence photos on file for the booking's renter (any status but rejected), front and back
 create or replace function app.licence_photos_on_file(p_booking uuid) returns boolean
-language sql stable security definer set search_path = public, app as $$
+language sql stable security definer set search_path = public, app, pg_temp as $$
   select exists (select 1 from booking_drivers bd where bd.booking_id = p_booking and bd.role = 'renter'
                    and bd.identity_verified_on is not null)
       or (select count(distinct u.kind) = 2 from booking_drivers bd
@@ -96,7 +106,7 @@ revoke all on function app.licence_photos_on_file(uuid) from public, anon, authe
 grant execute on function app.licence_photos_on_file(uuid) to service_role;
 
 create or replace function app.approve_offer(p_booking uuid, p_version integer, p_by uuid, p_now timestamptz default now())
-returns void language plpgsql security definer set search_path = public, app as $$
+returns void language plpgsql security definer set search_path = public, app, pg_temp as $$
 declare
   v_missing text[] := app.licence_gate(p_booking);
   v_reason text := nullif(btrim(coalesce(current_setting('app.licence_override_reason', true), '')), '');

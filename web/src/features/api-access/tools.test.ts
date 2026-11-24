@@ -206,3 +206,14 @@ test('3013: licence_let_go: two-step on admin:write, an Admin only, with the rea
   assert.match(SQL3013, /app\.primary_swap_decide\(k\.user_id, jsonb_build_object\('booking', b\.id, 'action', 'override'/);
   assert.match(SQL3013, /pv\.args is distinct from v_args/);
 });
+
+test('price_tax: the description names plus / included, and the old before_tax / after_tax still work', async () => {
+  const { normalizeToolArgs } = await import('./tools.ts');
+  const t = ADMIN_TOOLS.find((x) => x.name === 'create_offer')!;
+  const d = JSON.stringify(t.inputSchema);
+  assert.ok(d.includes('plus') && d.includes('included') && !d.includes('before_tax or after_tax'));
+  assert.deepEqual(normalizeToolArgs({ price_tax: 'before_tax', a: 1 }), { price_tax: 'plus', a: 1 });
+  assert.deepEqual(normalizeToolArgs({ price_tax: 'after_tax' }), { price_tax: 'included' });
+  assert.deepEqual(normalizeToolArgs({ price_tax: 'included' }), { price_tax: 'included' });
+  assert.equal(normalizeToolArgs(undefined), undefined);
+});

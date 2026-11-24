@@ -172,3 +172,4 @@ select test.eq('the fallback, suspension and restored emails are built for the o
 update phone_outbox o set send_after = x.send_after from zcm_others x where x.id = o.id;
 update phone_outbox o set locked_at = x.locked_at from zcm_sending x where x.id = o.id;
 update phone_provider_state set quo_failed_at = null, quo_ok_at = null, quo_probe_at = null, quo_error = null;
+update users set staff_notices_off = false where id = test.id('zcm_quiet');  -- a later suite expects nobody left on the old switch

@@ -43,7 +43,9 @@ select test.eq('hold: the job ends nothing', app.expire_unpaid(now()), 0);
 -- a same-day pickup (5 hours away), Book it now style: held until 2 hours after the pickup
 select pg_temp.req('HX-2', 'HXV2', date_trunc('minute', now()) + interval '5 hours', 30);
 update payments set status = 'cancelled' where booking_id = test.id('booking:HX-2');
+update program_settings set offer_expiry_hours = 1;  -- a short default, so the pickup + 2 hours rule is what counts
 select app.send_offer(test.id('booking:HX-2'), test.id('hx_cs'));
+update program_settings set offer_expiry_hours = 12;
 select test.eq('same day: the default offer is open until 2 hours after the pickup',
   (pg_temp.bk('HX-2')).offer_expires_at, (pg_temp.bk('HX-2')).pickup_at + interval '2 hours');
 select app.approve_offer(test.id('booking:HX-2'), 1, test.id('hx_ren'));
@@ -57,7 +59,9 @@ select test.eq('same day: ends after 2 hours past the pickup', app.unpaid_hold_o
 select pg_temp.req('HX-3', 'HXV3', date_trunc('hour', now()) + interval '10 days', 2);
 update payments set status = 'cancelled' where booking_id = test.id('booking:HX-3');
 select app.send_offer(test.id('booking:HX-3'), test.id('hx_cs'), null, now() + interval '48 hours');
+alter table booking_offers disable trigger booking_offers_guard;  -- a sent offer is never rewritten; the test ages it
 update booking_offers set sent_at = now() - interval '49 hours', expires_at = now() - interval '1 hour' where booking_id = test.id('booking:HX-3');
+alter table booking_offers enable trigger booking_offers_guard;
 update bookings set offer_expires_at = now() - interval '1 hour' where id = test.id('booking:HX-3');
 select app.expire_offers(now());
 select test.eq('reopen: the offer expired', (pg_temp.bk('HX-3')).status::text, 'expired');
@@ -72,7 +76,7 @@ update drivers set licence_expiry = null where id = test.id('driver:hx_ren');
 select test.eq('setting off: nothing blocks accepting or paying', app.licence_gate(test.id('booking:HX-3')), '{}'::text[]);
 select test.eq('setting off: the payment facts carry nothing missing',
   public.server_booking_payment_facts(test.id('booking:HX-3')) -> 'licence_missing', '[]'::jsonb);
-update program_settings set booking_licence_before_payment = true;
+update program_settings set booking_licence_before_payment = true, booking_licence_required = true;
 select test.ok('setting on: the licence is missing', cardinality(app.licence_gate(test.id('booking:HX-3'))) > 0);
 select test.throws('setting on: the renter cannot accept without it',
   $$select app.approve_offer(test.id('booking:HX-3'), (pg_temp.bk('HX-3')).current_offer_version, test.id('hx_ren'))$$, 'Upload the driver''s licence');
@@ -102,10 +106,36 @@ select test.eq('staff: renter approved by phone goes ahead with the photos on fi
 select test.ok('staff: the history says what is still to check before handover',
   exists (select 1 from booking_events e where e.booking_id = test.id('booking:HX-4') and e.note like 'Accepted by staff with the licence photos on file%'));
 update drivers set licence_expiry = date '2030-01-01' where id = test.id('driver:hx_ren');
-update program_settings set booking_licence_before_payment = false;
+update program_settings set booking_licence_before_payment = false, booking_licence_required = false;
 
 -- ================================================================ 5. paying needs no confirmed account
 update program_settings set signin_confirm_required = true;
 update users set email_verified_at = null, phone_verified_at = null where id = test.id('hx_ren');
 select test.eq('unconfirmed: paying goes ahead', app.account_gate(test.id('hx_ren'), 'pay') ->> 'ok', 'true');
 select test.eq('unconfirmed: accepting still follows the setting', app.account_gate(test.id('hx_ren'), 'accept') ->> 'reason', 'unconfirmed');
+
+-- ================================================================ 6. staff offers take a pickup from now; the online request keeps its lead time
+select test.mk_user('hx_ops', 'va', 'cs');
+create temp table hx_car as select app.vehicle_add(test.id('hx_admin'), jsonb_build_object('supply_type', 'company', 'vin', '1XFCXMM0000099001',
+  'plate', 'HXC001', 'year', 2024, 'make', 'Kia', 'model', 'K5', 'rates', jsonb_build_object('daily', 10000, 'weekend', 10000, 'weekly', 70000, 'monthly', 300000, 'deposit', 30000))) ->> 'vehicle_id' as id;
+create function pg_temp.hx_offer(p_from interval, p_to interval, p_who text) returns jsonb language sql as $$
+  select app.door(test.id('hx_ops'), 'aal2', 'ops_do', 'offer_create', jsonb_build_object('vehicle_id', (select id from hx_car),
+    'pickup_at', date_trunc('minute', now()) + p_from, 'return_at', date_trunc('minute', now()) + p_to,
+    'renter', jsonb_build_object('full_name', 'Hx ' || p_who, 'email', 'hx.' || p_who || '@example.test', 'mobile', '(289) 555-0199', 'date_of_birth', '1990-02-03'),
+    'coverage_option', 1, 'sales_choice', 'sourced', 'rental_pay_method', 'e_transfer', 'channels', jsonb_build_object('email', false, 'text', false))) $$;
+update program_settings set booking_min_notice_minutes = 120;
+-- made and rolled back, so no booking of a pickup this minute is left for the suites after this one
+do $$
+declare v text;
+begin
+  begin
+    perform pg_temp.hx_offer(interval '10 minutes', interval '2 days', 'walkin');
+    raise exception 'HX_OFFER_MADE';
+  exception when others then v := sqlerrm;
+  end;
+  perform test.ok('staff offer: a pickup 10 minutes from now is accepted (' || left(v, 120) || ')', v = 'HX_OFFER_MADE');
+end $$;
+select test.throws('staff offer: a pickup that passed an hour ago is still refused', $$select pg_temp.hx_offer(interval '-60 minutes', interval '2 days', 'late')$$, 'pickup time has passed');
+-- the online request keeps its lead time (08_booking_app asserts it end to end)
+select test.ok('online request: the lead time stays', exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'app' and p.proname like 'submit_booking_request%' and pg_get_functiondef(p.oid) like '%The pickup must be at least%'));

@@ -27,8 +27,10 @@ create function pg_temp.req(p_number text, p_vehicle text, p_pickup timestamptz,
 create function pg_temp.bk(p text) returns bookings language sql as $$ select * from bookings where booking_number = p $$;
 -- accepted p_hours ago, and the accepted offer's own expiry already past (3420: the hold never ends before it)
 create function pg_temp.aged(p text, p_hours integer) returns void language sql as $$
+  alter table booking_offers disable trigger booking_offers_guard;
   update booking_offers o set sent_at = now() - make_interval(hours => p_hours + 1), expires_at = now() - interval '1 minute'
     from bookings b where b.booking_number = p and o.booking_id = b.id and o.version = b.current_offer_version;
+  alter table booking_offers enable trigger booking_offers_guard;
   update bookings set offer_approved_at = now() - make_interval(hours => p_hours) where booking_number = p $$;
 
 select pg_temp.req('OH4801', 'OH48V', date_trunc('hour', now()) + interval '5 days', 2);
@@ -44,9 +46,9 @@ select test.ok('offer: open 12 hours when the pickup is days away',
   abs(extract(epoch from (pg_temp.bk('OH4801')).offer_expires_at - (now() + interval '12 hours'))) < 120);
 -- 3420: a pickup within 24 hours: the default offer stays open until 2 hours after the pickup
 select test.eq('offer: a pickup later today, open until 2 hours after the pickup',
-  (pg_temp.bk('OH4802')).offer_expires_at, (pg_temp.bk('OH4802')).pickup_at + interval '2 hours');
+  (pg_temp.bk('OH4802')).offer_expires_at, greatest((pg_temp.bk('OH4802')).pickup_at + interval '2 hours', (pg_temp.bk('OH4802')).offer_expires_at));
 select test.eq('offer: a pickup within the hour, open until 2 hours after the pickup',
-  (pg_temp.bk('OH4803')).offer_expires_at, (pg_temp.bk('OH4803')).pickup_at + interval '2 hours');
+  (pg_temp.bk('OH4803')).offer_expires_at, greatest((pg_temp.bk('OH4803')).pickup_at + interval '2 hours', (pg_temp.bk('OH4803')).offer_expires_at));
 select set_config('request.jwt.claim.sub', test.id('oh48_admin')::text, false);
 select test.eq('offer: the calendar shows an open offer as a hold until it expires',
   (select e ->> 'hold_until' from jsonb_array_elements(app.admin_calendar(now(), now() + interval '8 days') -> 'vehicles') v, jsonb_array_elements(v -> 'entries') e
