@@ -26,7 +26,7 @@ export async function invoiceFacts(invoiceId: string, by: string): Promise<Invoi
   return (await rpc('server_owner_invoice_payment_facts', { p_invoice: invoiceId, p_by: by }, SR)) as unknown as InvoiceFacts;
 }
 
-export interface StartedInvoicePayment { provider: 'stripe' | 'fake'; intentId: string; clientSecret: string; amountCents: number; method: 'card' | 'acss_debit'; publishableKey: string | null; ownerName: string; ownerEmail: string }
+export interface StartedInvoicePayment { provider: 'stripe' | 'fake' | 'helcim' | 'off'; intentId: string; clientSecret: string; amountCents: number; method: 'card' | 'acss_debit'; publishableKey: string | null; ownerName: string; ownerEmail: string }
 
 /** One PaymentIntent per invoice, method, amount and attempt (the idempotency key), so a reload reuses it. */
 /** recurring false (the invoice page's second box unticked, 0053): a one-time debit, no mandate kept for the monthly fees. */
@@ -64,7 +64,7 @@ export async function settleDebitIntent(intentId: string): Promise<unknown> {
   } as never }, SR);
 }
 
-export interface StartedDebitSetup { provider: 'stripe' | 'fake'; setupId: string; clientSecret: string; publishableKey: string | null; ownerName: string; ownerEmail: string }
+export interface StartedDebitSetup { provider: 'stripe' | 'fake' | 'helcim' | 'off'; setupId: string; clientSecret: string; publishableKey: string | null; ownerName: string; ownerEmail: string }
 interface SetupFacts { owner_id: string; owner_type: 'individual' | 'corporation'; name: string; email: string | null; customer_id: string | null; terms: DebitTerms }
 
 /** Banking > Set up pre-authorized debit: a SetupIntent for the owner's customer (made once). */

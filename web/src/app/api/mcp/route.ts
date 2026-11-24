@@ -6,7 +6,10 @@ import { bookNowAgreement } from '@/server/book-now';
 import { storage } from '@/integrations/storage';
 import { MAX_PHOTO_BYTES } from '@/features/returns/claim';
 import { findPayments, inspectAccount, inspectBooking, linkMetadata, stripeReader, tieOf, untiedWillDo, type Known, type PlanAnswer, type Recorded, type StripeGet } from '@/features/api-access/stripe-inspect';
-import { payments, terminal } from '@/integrations/payments';
+import { helcimOnly, payments, terminal } from '@/integrations/payments';
+import { accountView, findHelcimPayments, mountainDay, type HelcimKnown } from '@/features/api-access/helcim-inspect';
+import { settleIntentEvent } from '@/server/intent-events';
+import { setupEmail } from '@/server/owner-setup-email';
 import { settleIntent } from '@/server/portal/payment';
 import { env } from '@/lib/env';
 
@@ -79,6 +82,8 @@ export async function POST(req: Request) {
     case 'tools/call': {
       const name = String(msg.params?.name ?? '');
       if (!TOOLS.some((t) => t.name === name)) return json(fail(msg.id, -32602, `Unknown tool: ${name}`));
+      // r50 (3740): add_car reads the VIN's year, make, model and trim from the decode the site records; decoded here first (vPIC)
+      if (name === 'add_car') await decodeForConnector((msg.params?.arguments as { vin?: unknown } | undefined)?.vin);
       let r = name === 'whoami' ? who : await callTool(hash, name, msg.params?.arguments ?? {}, client);
       if (r.status === 401) return unauthorized(r.error ?? 'Not valid');
       // a confirmed hire (0732): the database checked the key, the scope, the preview and the arguments; the hire itself runs
@@ -98,6 +103,12 @@ export async function POST(req: Request) {
       }
       // r47 (2896): Stripe, read here with the server's key after the database checked the key, the scope and the preview
       if (r.ok && (run?.run === 'stripe_booking' || run?.run === 'stripe_account' || run?.run === 'stripe_record_preview' || run?.run === 'stripe_record_paid' || run?.run === 'stripe_find')) r = await stripeTool(r.result as Record<string, unknown>);
+      // r50 (3710): Helcim, read here with the server's token after the database checked the key, the scope and the preview
+      if (r.ok && (run?.run === 'helcim_account' || run?.run === 'helcim_find' || run?.run === 'helcim_record_preview' || run?.run === 'helcim_record_paid')) r = await helcimTool(r.result as Record<string, unknown>);
+      // r50 (3740): a car added through the connector: its title, description and features, and the owner's set-up email if approved
+      if (r.ok && (r.result as { run?: string } | undefined)?.run === 'car_added') r = await carAdded(r.result as Record<string, unknown>);
+      // r50 (3730): an owner's application approved through the connector: the owner's set-up email, as the application page sends it
+      if (r.ok && (r.result as { run?: string } | undefined)?.run === 'owner_setup') r = await ownerSetup(r.result as Record<string, unknown>);
       // r48 (2923): the pay link is cancelled in the database; its PaymentIntent is cancelled at Stripe here (never captured)
       if (r.ok && (r.result as { run?: string } | undefined)?.run === 'pay_link_cancel') r = await payLinkCancel(r.result as Record<string, unknown>);
       // a bug report's pictures (2340): private files, given as links that expire in ten minutes
@@ -242,6 +253,95 @@ async function stripeTool(res: Record<string, unknown>): Promise<{ ok: boolean; 
     return { ok: true, result: await inspectBooking(get, res.recorded as Recorded) };
   } catch (e) {
     return { ok: false, status: 502, error: `Stripe could not be read: ${e instanceof Error ? e.message.slice(0, 200) : 'unknown error'}` };
+  }
+}
+
+/** r50 (3740): the VIN decoded with the site's decoder (vPIC) and recorded in vin_decodes, as Add a car does in the browser;
+ *  a VIN already decoded, or that failed in the last hour, or with a wrong check digit, is not asked again. Never throws. */
+async function decodeForConnector(raw: unknown): Promise<void> {
+  const vin = typeof raw === 'string' ? raw.toUpperCase().replace(/[\s-]/g, '') : '';
+  if (!/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)) return;
+  try {
+    const f = (await rpc('server_vin_facts', { p_vin: vin }, SR)) as unknown as { decode: unknown; decode_failed_at?: string | null; check_ok?: boolean };
+    const recent = f.decode_failed_at && Date.now() - new Date(f.decode_failed_at).getTime() < 3_600_000;
+    if (f.decode || recent || f.check_ok === false) return;
+    const { decodeVin } = await import('@/integrations/vin');
+    const d = await decodeVin(vin).catch(() => null);
+    if (d) await rpc('server_record_vin_decode', { p_vin: vin, p_provider: d.provider, p_output: d.result as never }, SR).catch(() => undefined);
+  } catch { /* the database says what it could not read */ }
+}
+async function carAdded(res: Record<string, unknown>): Promise<{ ok: boolean; status?: number; result?: unknown; error?: string }> {
+  const { run: _r, actor, approve, ...rest } = res;
+  void _r;
+  const { afterCarAdded } = await import('@/server/car-added');
+  afterCarAdded();
+  const setup = (approve as { setup?: { needed: boolean; owner_id: string; has_account: boolean; email: string | null; name: string } | null } | null)?.setup;
+  if (!res.approved || !setup?.needed) return { ok: true, result: rest };
+  const note = await setupEmail(String(actor), 'aal2', String(res.application_id), setup).catch((e: unknown) => `The set-up email did not go (${e instanceof Error ? e.message.slice(0, 120) : 'error'}): send it from the application page.`);
+  return { ok: true, result: { ...rest, setup_email: note } };
+}
+
+/** r50 (3730): after approve_owner_car, the set-up email the application page would send (never twice: the database says). */
+async function ownerSetup(res: Record<string, unknown>): Promise<{ ok: boolean; status?: number; result?: unknown; error?: string }> {
+  const { run: _r, actor, ...rest } = res;
+  void _r;
+  const setup = res.setup as { needed?: boolean; owner_id: string; has_account: boolean; email: string | null; name: string } | null | undefined;
+  if (!setup?.needed) return { ok: true, result: rest };
+  const note = await setupEmail(String(actor), 'aal2', String(res.application_id), setup).catch((e: unknown) => `Approved. The set-up email did not go (${e instanceof Error ? e.message.slice(0, 120) : 'error'}): send it from the application page.`);
+  return { ok: true, result: { ...rest, setup_email: note } };
+}
+
+/** r50 (3710): the Helcim tools. Reads only GET (helcim-inspect.ts); helcim_record_paid records a transaction Helcim shows
+ *  approved through the webhook's own steps (intent-events.ts), or, taken outside the site, as Link a Stripe payment does. */
+async function helcimTool(res: Record<string, unknown>): Promise<{ ok: boolean; status?: number; result?: unknown; error?: string }> {
+  const h = await helcimOnly();
+  if (!h) return { ok: false, status: 400, error: 'Helcim is not the card processor on this server (PAYMENTS_PROVIDER is not helcim, or HELCIM_API_TOKEN is not set)' };
+  try {
+    if (res.run === 'helcim_account') {
+      const ok = await h.connectionTest().then(() => ({ ok: true, error: null as string | null })).catch((e: unknown) => ({ ok: false, error: e instanceof Error ? e.message.slice(0, 200) : 'error' }));
+      const now = new Date();
+      const last = ok.ok ? await h.transactions({ dateFrom: mountainDay(new Date(now.getTime() - 86_400_000)), dateTo: mountainDay(now) }).catch(() => []) : [];
+      return { ok: true, result: accountView(ok.ok, ok.error, last, !!env().HELCIM_WEBHOOK_VERIFIER_TOKEN, env().HELCIM_TERMINAL_ID ?? null) };
+    }
+    if (res.run === 'helcim_find') {
+      const known = async (ids: number[]) => (await rpc('server_helcim_known' as never, { p_tx: ids } as never, SR)) as unknown as HelcimKnown;
+      const found = await findHelcimPayments((f, t) => h.transactions({ dateFrom: f, dateTo: t }), { from: new Date(String(res.from)), to: new Date(String(res.to)),
+        amount_cents: typeof res.amount_cents === 'number' ? res.amount_cents : null }, known);
+      return { ok: true, result: { from: res.from, to: res.to, amount_cents: res.amount_cents ?? null, ...found } };
+    }
+    const p = (res.params ?? res) as { id?: string; booking_id?: string; booking_number: string; transaction_id: string };
+    const bookingId = String(p.id ?? p.booking_id ?? '');
+    const tx = await h.transaction(Number(p.transaction_id)).catch(() => null);
+    const { run: _run, ...rest } = res;
+    void _run;
+    if (!tx) return res.run === 'helcim_record_preview' ? { ok: true, result: { ...rest, helcim_status: null, can_confirm: false, warning: 'Helcim has no such transaction' } } : { ok: false, status: 400, error: 'Helcim has no such transaction' };
+    const approved = String(tx.status).toUpperCase() === 'APPROVED' && ['purchase', 'preauth', 'capture'].includes(tx.type);
+    const mine = approved ? await h.reconcile(tx.transactionId) : { intent: null };
+    const tiedTo = mine.intent?.metadata.booking_id ?? null;
+    const refuse = !approved ? `Helcim shows this ${tx.type} ${String(tx.status).toLowerCase()}, not approved: nothing is recorded`
+      : tiedTo && tiedTo !== bookingId ? `This Helcim payment belongs to booking ${mine.intent?.metadata.booking_number ?? tiedTo}, not ${p.booking_number}`
+      : !mine.intent && tx.type === 'preauth' ? 'A hold taken outside the site cannot be linked: capture it in Helcim first, then record the capture' : null;
+    if (res.run === 'helcim_record_preview') {
+      const base = { ...rest, helcim_status: tx.status, helcim_type: tx.type, amount_cents: Math.round(Number(tx.amount) * 100) };
+      if (refuse) return { ok: true, result: { ...base, can_confirm: false, warning: refuse } };
+      if (mine.intent) return { ok: true, result: { ...base, can_confirm: true, intent: mine.intent.id } };
+      const plan = (await rpc('server_stripe_untied_plan' as never, { p_booking: bookingId, p_amount: base.amount_cents, p_currency: 'cad', p_intent: 'hc_preview_untied', p_charge: null } as never, SR)) as unknown as PlanAnswer;
+      return { ok: true, result: { ...base, untied: true, plan, can_confirm: plan.ok, ...(plan.ok ? { will_do: untiedWillDo(`Helcim ${tx.transactionId}`, base.amount_cents, String(p.booking_number), plan) } : { warning: `Untied payment (no booking at Helcim): ${plan.reason}` }) } };
+    }
+    if (refuse) return { ok: false, status: 400, error: refuse };
+    if (mine.intent) {
+      const i = mine.intent;
+      const type = i.status === 'requires_capture' ? 'payment_intent.amount_capturable_updated' : 'payment_intent.succeeded';
+      const out = await settleIntentEvent(`connector:${i.id}`, type, { id: i.id, object: 'payment_intent', metadata: i.metadata });
+      return { ok: true, result: { done: true, booking_number: p.booking_number, recorded: i.id, transaction_id: tx.transactionId, settled: out, charged: false, captured: false } };
+    }
+    const i = await h.adoptTransaction(tx, { booking_id: bookingId, booking_number: String(p.booking_number), linked_by: String(res.actor ?? '') });
+    const verified = { intent_id: i.id, charge_id: i.chargeId, status: i.status, amount_cents: i.amountCents, capturable_cents: 0, currency: 'cad', last4: i.card?.last4 ?? null,
+      brand: i.card?.brand ?? null, fingerprint: i.card?.fingerprint ?? null, capture_before: null };
+    const out = (await rpc('server_stripe_link_untied' as never, { p_by: String(res.actor), p_booking: bookingId, p_verified: verified } as never, SR)) as unknown as Record<string, unknown>;
+    return { ok: true, result: { done: true, booking_number: p.booking_number, recorded: i.id, transaction_id: tx.transactionId, untied: true, as: out.as, rental_cents: out.rental_cents, deposit_cents: out.deposit_cents, charged: false, captured: false, refunded: false } };
+  } catch (e) {
+    return { ok: false, status: 502, error: `Helcim could not be read: ${e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '').slice(0, 200) : 'unknown error'}` };
   }
 }
 

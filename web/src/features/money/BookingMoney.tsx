@@ -29,7 +29,7 @@ import { WhyDisabled } from '@/components/WhyDisabled';
 export interface Money {
   booking_id: string; booking_number: string; status: string; rental_pay_method: string; deposit_pay_method: string; agreement_on_paper: boolean;
   parts: Array<{ covers: 'rental' | 'fees' | 'later'; open_cents: number }>; due_cents: number; deposit_cents: number;
-  deposit: { method: string; paid_method: string | null; status: string; amount_cents: number; captured_cents: number; released_cents: number; hold_expires_at: string | null; hold_days_left: number | null } | null;
+  deposit: { method: string; paid_method: string | null; status: string; amount_cents: number; captured_cents: number; released_cents: number; hold_expires_at: string | null; hold_days_left: number | null; /** r50 (3710) */ held_as_charge?: boolean } | null;
   card: { brand: string; last4: string; exp_month: number; exp_year: number } | null;
   payments: Array<{ id: string; created_at: string; processed_at: string | null; purpose: string; kind: string; method: string; amount_cents: number; status: string; card_last4: string | null; card_brand: string | null;
     covers: string | null; reference: string | null; note: string | null; manual_id: string | null; voided: boolean; by: string | null;
@@ -136,7 +136,7 @@ export function BookingMoney({ m, lines = [], totalCents, waived = false, rental
   const depositRows = m.payments.filter((p) => isDeposit(p));
   const depMethod = !dep || ['pending', 'failed'].includes(dep.status)
     ? (m.deposit_pay_method === 'card' ? (m.debit_deposit?.takes ? `Card hold (a debit or prepaid card: ${Number(m.debit_deposit.multiplier)}x, ${fmt(m.debit_deposit.cents)})` : 'Credit card hold') : (METHOD[m.deposit_pay_method] ?? m.deposit_pay_method))
-    : dep.method === 'card_hold' ? 'Held on the card' : dep.method === 'charged' ? 'Charged to the card' : dep.method === 'offline' ? (METHOD[dep.paid_method ?? ''] ?? 'Cash or e-Transfer') : dep.method.replace(/_/g, ' ');
+    : dep.method === 'card_hold' && dep.held_as_charge ? 'Charged to the card, refunded at release' : dep.method === 'card_hold' ? 'Held on the card' : dep.method === 'charged' ? 'Charged to the card' : dep.method === 'offline' ? (METHOD[dep.paid_method ?? ''] ?? 'Cash or e-Transfer') : dep.method.replace(/_/g, ' ');
 
   const print = (p: Money['payments'][number]) => {
     const w = window.open('', '_blank', 'width=480,height=640');
@@ -357,6 +357,7 @@ export function BookingMoney({ m, lines = [], totalCents, waived = false, rental
             {depositStateLine(m.deposit_state ?? null, fmt) && <div><dt>By the way it is paid</dt><dd data-testid="bm-deposit-state">{depositStateLine(m.deposit_state ?? null, fmt)}</dd></div>}
             {!!m.deposit_state?.over_cents && <div><dt>Over</dt><dd data-testid="bm-deposit-over">over, to return {fmt(m.deposit_state.over_cents)}</dd></div>}
             {!!m.deposit_state?.owed_cents && <div><dt>Under</dt><dd data-testid="bm-deposit-under">under, still owed {fmt(m.deposit_state.owed_cents)}</dd></div>}
+            {dep?.held_as_charge && <div data-testid="bm-held-as-charge"><dt>Why charged</dt><dd>The card processor&apos;s hold lasts 7 days, shorter than this rental, so the deposit was charged. Release refunds it; Capture keeps what is owed and refunds the rest.</dd></div>}
             {dep?.method === 'card_hold' && dep.status === 'held' && dep.hold_expires_at && word !== 'Hold expired' && <div><dt>Hold expires</dt><dd>{when(dep.hold_expires_at)}{dep.hold_days_left !== null ? ` (${dep.hold_days_left} day${dep.hold_days_left === 1 ? '' : 's'} left)` : ''}</dd></div>}
             {!!dep?.captured_cents && <div><dt>Kept</dt><dd>{fmt(dep.captured_cents)}</dd></div>}
             {!!dep?.released_cents && <div><dt>Released</dt><dd>{fmt(dep.released_cents)}</dd></div>}

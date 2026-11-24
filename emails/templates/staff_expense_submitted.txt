@@ -1,0 +1,32 @@
+CarmaCars  |  Expense {{expense_ref}}
+
+========================================
+
+[Field expense]
+{{expense_amount}} by {{staff_name}}
+
+{{staff_name}} added an expense: {{expense_description}}. Check the receipt, then approve or decline it with the reason.
+
+Amount: {{expense_amount}}
+Whose money: {{expense_paid_with}}
+What: {{expense_description}}
+Car: {{expense_vehicle}}
+Receipt: {{expense_receipt}}
+
+Open field spending:
+https://carmacars.ca/staff/field-spending
+
+Pay back
+{{expense_reimburse_note}}
+
+Approved own-money expenses show on the payroll as reimbursable until you mark them paid back.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

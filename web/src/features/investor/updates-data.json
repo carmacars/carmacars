@@ -4,7 +4,7 @@
   "title": "Release 50",
   "date": "2026-11-24",
   "seq": 0,
-  "summary": "Owners sign their agreement before any car comes over, with one guided path in the owner portal, and fixes to long-rental amounts, cars whose pickup was not recorded and the countersignature on signed forms.",
+  "summary": "Owners sign their agreement before any car comes over, card payments move to a new Canadian card processor with e-Transfer whenever cards are off, field expenses say whose money paid, and every car is shown in one studio look whose renders now actually finish.",
   "areas": [
    {
     "area": "Owners",
@@ -18,7 +18,19 @@
     "area": "Staff tools",
     "items": [
      "Staff see what each owner still has to sign and send a reminder in one tap",
-     "A rental whose pickup was not recorded keeps its car off new offers until it is recorded"
+     "A rental whose pickup was not recorded keeps its car off new offers until it is recorded",
+     "Field staff choose **Whose money?** on every expense: **My own money (pay me back)** or **Company card/cash**. My shifts shows what is **Owed to you**.",
+     "Finance is told of each expense, approves or declines it with the reason (the person is told), and pays back what is owed from **Reimbursements owed** on Payroll and Field spending.",
+     "Studio photos are made again across the fleet: a photo step that keeps failing is flagged with its reason after three tries instead of blocking every other car",
+     "Imported photos the sorter could not read are sorted again by themselves, so a car's outside photos become its cover",
+     "A studio grid shows every car's nine views side by side, so a photo that does not match the others is easy to spot"
+    ]
+   },
+   {
+    "area": "Website & search",
+    "items": [
+     "Every car is shown the same way: nine studio views in one room, the same size and angle for every car, on the car page, the cards, the home page and the feeds; a car still being photographed shows one \"Photos coming soon\" studio photo",
+     "Booking and paying keep working when card payments are off: renters pay by Interac e-Transfer instead"
     ]
    }
   ]

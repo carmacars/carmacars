@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { hasCardBox, loadCardJs } from '@/lib/card-js';
 import { scrollOption } from '@/lib/nav/same-page';
 import { useRouter } from 'next/navigation';
 import { fakeConfirmCard, finalizePayment, startPayment, type StartedPayment } from '@/server/actions/portal';
@@ -18,16 +19,6 @@ interface StripeJs {
   confirmPayment(o: { elements: unknown; redirect: 'if_required'; confirmParams: Record<string, unknown> }): Promise<{ error?: { message?: string }; paymentIntent?: { id: string; status: string } }>;
 }
 declare global { interface Window { Stripe?: (key: string) => StripeJs } }
-function loadStripe(key: string): Promise<StripeJs> {
-  return new Promise((resolve, reject) => {
-    if (window.Stripe) return resolve(window.Stripe(key));
-    const s = document.createElement('script');
-    s.src = 'https://js.stripe.com/v3/';
-    s.onload = () => (window.Stripe ? resolve(window.Stripe(key)) : reject(new Error('Stripe did not load')));
-    s.onerror = () => reject(new Error('Stripe did not load'));
-    document.head.appendChild(s);
-  });
-}
 
 export function PayForm({ number, amountCents, depositCents, coverageOption = null, debitOk = false }: { number: string; amountCents: number; depositCents: number; coverageOption?: number | null;
   /** 0093 and 0230: this booking takes a debit card (a car marked no credit card needed, an Admin's override or the site-wide setting) */ debitOk?: boolean }) {
@@ -48,8 +39,9 @@ export function PayForm({ number, amountCents, depositCents, coverageOption = nu
       if (!live) return;
       if (!r.ok) { setFatal({ code: r.code, message: r.message }); return; }
       setP(r.data);
-      if (r.data.provider === 'stripe' && r.data.publishableKey && mount.current) {
-        const js = await loadStripe(r.data.publishableKey);
+      if (hasCardBox(r.data.provider, r.data.publishableKey) && mount.current) {
+        // r50: Stripe's Payment Element, or HelcimPay.js (its card form opens in Helcim's modal on Pay)
+        const js = (await loadCardJs(r.data.provider, r.data.publishableKey)) as unknown as StripeJs;
         const elements = js.elements({ clientSecret: r.data.clientSecret, appearance: { theme: 'stripe', variables: { colorPrimary: '#D0111B', colorText: '#000000', borderRadius: '6px', fontFamily: 'Inter, Helvetica, Arial, sans-serif' } } });
         elements.create('payment', { layout: 'tabs', wallets: coverageOption === 2 ? { applePay: 'never', googlePay: 'never' } : { applePay: 'auto', googlePay: 'auto' }, fields: { billingDetails: { name: 'never' } }, defaultValues: { billingDetails: { address: { country: 'CA' } } } }).mount(mount.current);
         stripe.current = { js, elements };

@@ -59,6 +59,21 @@ function CarSelect({ id, cars, value, set, optional }: { id: string; cars: Car[]
       {optional && <option value="">No car</option>}{cars.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>;
 }
 
+/** r50 (3720): whose money paid for it, always chosen (nothing assumed): own money is paid back to the person. One tick
+ *  per line, full width, so neither label is squeezed on a phone. */
+function WhoseMoney({ id, value, set, error }: { id: string; value: 'own' | 'company' | null; set: (v: 'own' | 'company') => void; error?: boolean }) {
+  return (
+    <fieldset className={`stack field${error ? ' has-error' : ''}`} data-testid={`${id}-whose`}>
+      <legend className="label">Whose money?</legend>
+      {([['own', 'My own money (pay me back)'], ['company', 'Company card/cash']] as const).map(([v, l]) => (
+        <label key={v} className={`fp-tick${value === v ? ' is-on' : ''}`}>
+          <input type="radio" name={`${id}-whose`} value={v} checked={value === v} onChange={() => set(v)} aria-describedby={error ? `${id}-whose-err` : undefined} data-testid={`${id}-whose-${v}`} />{l}
+        </label>))}
+      {error && <p className="error" role="alert" id={`${id}-whose-err`}>Choose whose money it was.</p>}
+    </fieldset>
+  );
+}
+
 function MoneyForm({ cars, bookings, preps, done }: { cars: Car[]; bookings: Booking[]; preps: Record<string, string>; done: () => void }) {
   const [kind, setKind] = useState('gas');
   const [desc, setDesc] = useState('');
@@ -66,15 +81,17 @@ function MoneyForm({ cars, bookings, preps, done }: { cars: Car[]; bookings: Boo
   const [hst, setHst] = useState('');
   const [car, setCar] = useState(cars[0]?.id ?? '');
   const [booking, setBooking] = useState('');
-  const [paid, setPaid] = useState<'own' | 'company'>('own');
+  const [paid, setPaid] = useState<'own' | 'company' | null>(null);
+  const [paidErr, setPaidErr] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const { pending, msg, run, setMsg } = useRun();
   const carBookings = bookings.filter((b) => b.vehicle === car);
   const save = () => {
     const a = toCents(amount);
     if (!a) { setMsg({ ok: false, text: 'Enter the amount, for example 45.00.' }); return; }
+    if (!paid) { setPaidErr(true); setMsg({ ok: false, text: 'Choose whose money it was: your own (paid back to you) or the company card or cash.' }); return; }
     run(() => sendWork('spend_add', { kind, description: desc || SPEND_KINDS.find((k) => k[0] === kind)?.[1], amount_cents: a, hst_cents: toCents(hst) ?? 0, vehicle: car || null,
-      booking: booking || null, paid_with: paid, spent_on: today(), prep: preps[car] ?? null }, file), file ? 'Sent to Finance.' : 'Sent to Finance. Add the receipt photo soon: it is on your To do.', () => setTimeout(done, 900));
+      booking: booking || null, paid_with: paid, spent_on: today(), prep: preps[car] ?? null }, file), `Sent to Finance.${paid === 'own' ? ' Once approved, it is paid back with your pay.' : ''}${file ? '' : ' Add the receipt photo soon: it is on your To do.'}`, () => setTimeout(done, 900));
   };
   return (
     <div className="fp-form" data-testid="money-form">
@@ -89,10 +106,7 @@ function MoneyForm({ cars, bookings, preps, done }: { cars: Car[]; bookings: Boo
       <CarSelect id="m-car" cars={cars} value={car} set={(v) => { setCar(v); setBooking(''); }} optional />
       {carBookings.length > 0 && <div className="field"><label className="label" htmlFor="m-bk">Booking (if it was for a rental)</label>
         <select id="m-bk" className="select" value={booking} onChange={(e) => setBooking(e.target.value)}><option value="">No booking</option>{carBookings.map((b) => <option key={b.id} value={b.id}>{b.number}</option>)}</select></div>}
-      <div className="fp-seg" role="group" aria-label="Paid with">
-        <button type="button" aria-pressed={paid === 'own'} onClick={() => setPaid('own')}>My own money</button>
-        <button type="button" aria-pressed={paid === 'company'} onClick={() => setPaid('company')}>Company card</button>
-      </div>
+      <WhoseMoney id="money" value={paid} set={(v) => { setPaid(v); setPaidErr(false); }} error={paidErr} />
       <PhotoPick file={file} set={setFile} label="Photo of the receipt" pdf testId="money-receipt" />
       <button type="button" className="btn btn--primary fd-wide" disabled={pending} onClick={save} data-testid="money-save">{pending ? 'Sending' : 'Send to Finance'}</button>
       <Msg m={msg} />
@@ -108,9 +122,10 @@ function ServiceForm({ cars, preps, done }: { cars: Car[]; preps: Record<string,
   const [km, setKm] = useState('');
   const [cost, setCost] = useState('');
   const [hst, setHst] = useState('');
-  const [paid, setPaid] = useState<'own' | 'company'>('company');
+  const [paid, setPaid] = useState<'own' | 'company' | null>(null);
+  const [paidErr, setPaidErr] = useState(false);
   const [file, setFile] = useState<File | null>(null);
-  const { pending, msg, run } = useRun();
+  const { pending, msg, run, setMsg } = useRun();
   return (
     <div className="fp-form" data-testid="service-form">
       <CarSelect id="s-car" cars={cars} value={car} set={setCar} />
@@ -123,14 +138,11 @@ function ServiceForm({ cars, preps, done }: { cars: Car[]; preps: Record<string,
         <div className="field"><label className="label" htmlFor="s-cost">Cost before tax ($)</label><input id="s-cost" className="input fd-num" inputMode="decimal" value={cost} onChange={(e) => setCost(e.target.value)} /></div>
         <div className="field"><label className="label" htmlFor="s-hst">HST ($)</label><input id="s-hst" className="input fd-num" inputMode="decimal" value={hst} onChange={(e) => setHst(e.target.value)} /></div>
       </div>
-      <div className="fp-seg" role="group" aria-label="Paid with">
-        <button type="button" aria-pressed={paid === 'company'} onClick={() => setPaid('company')}>Company paid</button>
-        <button type="button" aria-pressed={paid === 'own'} onClick={() => setPaid('own')}>My own money</button>
-      </div>
+      {(toCents(cost) ?? 0) > 0 && <WhoseMoney id="service" value={paid} set={(v) => { setPaid(v); setPaidErr(false); }} error={paidErr} />}
       <PhotoPick file={file} set={setFile} label="Photo of the invoice" pdf testId="service-invoice" />
       <><button type="button" className="btn btn--primary fd-wide" disabled={pending || !car} data-testid="service-save"
-        onClick={() => run(() => sendWork('service_add', { vehicle: car, items, what: what || ITEMS.filter(([v]) => items.includes(v)).map(([, l]) => l).join(', '), shop, odometer_km: km ? Number(km) : null,
-          cost_cents: toCents(cost) ?? 0, hst_cents: toCents(hst) ?? 0, paid_with: paid, prep: preps[car] ?? null }, file), 'Recorded on the car. Fleet and Finance are told.', () => setTimeout(done, 900))} aria-describedby="why-addbutton-130">{pending ? 'Saving' : 'Record the service'}</button><WhyDisabled id="why-addbutton-130" why={((!car)) ? 'Choose the car first' : null} /></>
+        onClick={() => { if ((toCents(cost) ?? 0) > 0 && !paid) { setPaidErr(true); setMsg({ ok: false, text: 'Choose whose money paid for it.' }); return; } run(() => sendWork('service_add', { vehicle: car, items, what: what || ITEMS.filter(([v]) => items.includes(v)).map(([, l]) => l).join(', '), shop, odometer_km: km ? Number(km) : null,
+          cost_cents: toCents(cost) ?? 0, hst_cents: toCents(hst) ?? 0, paid_with: paid ?? 'company', prep: preps[car] ?? null }, file), 'Recorded on the car. Fleet and Finance are told.', () => setTimeout(done, 900)); }} aria-describedby="why-addbutton-130">{pending ? 'Saving' : 'Record the service'}</button><WhyDisabled id="why-addbutton-130" why={((!car)) ? 'Choose the car first' : null} /></>
       <Msg m={msg} />
     </div>
   );

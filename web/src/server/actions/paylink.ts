@@ -11,7 +11,7 @@ import { CARD_OFF_RENTER, cardPaymentsOn } from '@/server/card-provider';
 type R<T = unknown> = ActionResult<T>;
 const fail = (m: string): R<never> => ({ ok: false, code: 'refused', message: m });
 
-export interface PayLinkStart { provider: 'stripe' | 'fake'; clientSecret: string; publishableKey: string | null; kind: PayLinkFacts['kind']; amountCents: number; legalName: string }
+export interface PayLinkStart { provider: 'stripe' | 'fake' | 'helcim' | 'off'; clientSecret: string; publishableKey: string | null; kind: PayLinkFacts['kind']; amountCents: number; legalName: string }
 export async function payLinkStart(token: string): Promise<R<PayLinkStart>> {
   const f = await payLinkFacts(token);
   if (!f || f.status !== 'open' || !f.intent_id) return fail('This link is no longer open. Ask us for a new one.');

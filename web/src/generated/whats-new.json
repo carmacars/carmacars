@@ -357,24 +357,63 @@
    "summary": "Gift cards and gifted rentals, a Finance dashboard with every bank line matched, automatic checks that every event has its message and the guides match the app, and overdue and late-return notices.",
    "sections": {
     "renters": [
-     "Give a CarmaCars gift card or a gifted rental from the footer's Gift cards: any amount, emailed with your message on the day you choose, and it never expires. Got one? Add the code under Rewards, Gift cards; on Sign and pay the balance is used before your card.",
-     "While card payments are paused, Sign and pay shows how to pay by Interac e-Transfer (the email, your booking number as the message and the exact amounts) and you upload the screenshot; we confirm it and email you."
+     "Give a CarmaCars gift card or a gifted rental from the footer's Gift cards: any amount, emailed with your message on the day you choose, and it never expires. Got one? Add the code under Rewards, Gift cards; on Sign and pay the balance is used before your card."
     ],
     "admins": [
      "Finance (Company, first tab): cash in the bank and at Stripe with the payouts on the way, free cash after deposits, payouts, refunds and HST, money in and out of the month, HST for the quarter, renter balances overdue, insurer invoices by age and twelve months of money in and out",
      "Bank lines: drop the RBC download (CSV or OFX); each line is kept once, matched by itself to its card processor payout, payment, payout or expense when one record fits, and the rest becomes a To do for Finance",
      "Money > Gift cards: what is owed on gift cards, every card and its history; issue a voucher (an amount or a percentage), void with a reason, resend.",
-     "Check e-Transfer on Today: an e-Transfer Sales reported, with Confirm received and Not received (also on the connector)",
-     "Card payments in Program settings: one switch (and Stripe's own answer, checked by itself) turns every card form into e-Transfer instructions with a screenshot upload; you are alerted once when the card processor stops taking payments"
+     "Check e-Transfer on Today: an e-Transfer Sales reported, with Confirm received and Not received (also on the connector)"
     ],
     "staff": [
      "Finance has the same Finance page under Money, with the bank import and the matching of bank lines",
      "Finance: Money > Gift cards: the liability outstanding and every card's balance history.",
-     "Sales: Renter sent an e-Transfer on a booking waiting for payment sends the amount and the screenshot to Finance, who confirm it in one tap (it is then recorded and the booking confirmed) or send it back with the reason",
-     "While card payments are paused, Collect a card, card links and deposit holds are off; the Money tab says Ask the renter to e-Transfer with the message ready to copy"
+     "Sales: Renter sent an e-Transfer on a booking waiting for payment sends the amount and the screenshot to Finance, who confirm it in one tap (it is then recorded and the booking confirmed) or send it back with the reason"
     ],
     "owners": [
      "Owners are told once when their car is 2 hours late coming back"
+    ]
+   }
+  },
+  "r50": {
+   "date": "2026-11-24",
+   "seq": 0,
+   "summary": "Owners sign their agreement before any car comes over, card payments move to a new Canadian card processor with e-Transfer whenever cards are off, field expenses say whose money paid, and every car is shown in one studio look whose renders now actually finish.",
+   "sections": {
+    "renters": [
+     "Card payments now open the card processor's secure card window (Sign and pay, pay links, add-ons, gift cards). CarmaCars never sees the card number.",
+     "For a rental longer than 7 days the deposit is charged and refunded after the rental instead of held; the pay page says so.",
+     "While card payments are paused, Sign and pay shows how to pay by Interac e-Transfer (the email, your booking number as the message and the exact amounts) and you upload the screenshot; we confirm it and email you.",
+     "Every car's photos now look the same: the same studio, the same angles, the car the same size in every photo"
+    ],
+    "owners": [
+     "You sign your agreement first, filled in from your profile, before any car comes over. Your portal shows six steps (profile, agreement, cars, photos, approval, delivery) with one button for the next thing to do",
+     "Each car you add goes on Schedule A of your agreement; you confirm new cars with one signature. Fleet suppliers can add cars from a list of VINs with each car's tier and plate",
+     "A long rental shows the rental charge for all its days and what your statements carried so far",
+     "A rental whose pickup was not recorded shows as out, not available",
+     "Signed copies show the CarmaCars countersignature in its place; corrected copies are filed and you are told"
+    ],
+    "admins": [
+     "Cards run on the new processor: set its keys as in docs/ops/helcim-setup.md. Until then cards are off and renters pay by e-Transfer.",
+     "Card payments in Program settings: one switch (and the card processor's own answer, checked by itself) turns every card form into e-Transfer instructions with a screenshot upload; you are alerted once when the card processor stops taking payments",
+     "While card payments are paused, Collect a card, card links and deposit holds are off; the Money tab says Ask the renter to e-Transfer with the message ready to copy",
+     "The connector reads the new processor (its account, its payments, and records one a booking missed); add_expense and list_expenses know whose money paid.",
+     "Agreements before cars on an owner's page and application: exactly what is missing and who it waits on, with Send reminder",
+     "A car is approved, delivered or rented only once its owner signed; an approval made before goes through by itself when they sign",
+     "Change the method: correct a car's Onboarding Method before its Vehicle Schedule is signed",
+     "Document check (Owners): anything inconsistent on an owner's agreements, schedules or forms, by owner, with what fixes it",
+     "A car whose pickup was not recorded takes no new offer until the handover, the return or a no-show is recorded",
+     "The connector adds a car for an owner from its VIN, approves an owner's cars with their terms (a fleet supplier's car goes on the lease with its agreement and forms to sign), puts a car on the fleet lease, and reads and corrects owner agreements and documents",
+     "Studio renders are made again across the fleet: a photo step that timed out or was refused three times is flagged on Photo standard with the reason instead of being tried for ever, so the other cars' renders go ahead",
+     "Photos filed as \"Other detail\" (imports the sorter could not read) are sorted again by themselves, so a car's outside photos become its cover",
+     "Connector: photo_standard shows a rendered cover as studio, and per car the detail photos still to sort",
+     "Only studio views that passed the consistency check are on the site; Photo standard > Studio grid shows each car's nine views side by side with why any was refused"
+    ],
+    "staff": [
+     "Fleet: Photo standard > Studio grid shows every car's nine views side by side; the site shows only views marked Live",
+     "Fleet and customer service see Agreements before cars on the owner page and can send the reminder",
+     "Fleet gets a To do for every confirmed rental whose pickup was not recorded",
+     "Field staff choose whose money paid each expense; what is owed to you is on My shifts and paid back on the payroll"
     ]
    }
   }

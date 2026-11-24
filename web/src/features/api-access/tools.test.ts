@@ -273,3 +273,11 @@ test('r50: owner_agreements reads (admin:read); send_owner_agreement_reminder an
   assert.match(SQL3810, /if p_tool <> 'set_onboarding_method' then return app\.api_call_pre3810/);
   assert.match(SQL3800 + SQL3810, /pv\.args is distinct from v_args/);
 });
+test('r50: the Helcim tools mirror the Stripe ones; the owner car tools are two-step writes', async () => {
+  const { HELCIM_TOOLS, OWNER_CAR_TOOLS } = await import('./tools.ts');
+  const by = (n: string) => [...HELCIM_TOOLS, ...OWNER_CAR_TOOLS].find((x) => x.name === n)!;
+  for (const n of ['helcim_account', 'helcim_find_payments']) assert.equal(by(n).readOnly, true, n);
+  for (const n of ['helcim_record_paid', 'approve_owner_car', 'fleet_lease_car_set', 'add_car']) { assert.equal(by(n).readOnly, false, n); assert.equal(by(n).scope, 'admin:write', n); }
+  for (const n of ['helcim_account', 'approve_owner_car', 'fleet_lease_car_set']) assert.ok(TOOLS.some((t) => t.name === n), n);
+  assert.deepEqual(by('fleet_lease_car_set').inputSchema.required, ['vehicle', 'tier']);
+});

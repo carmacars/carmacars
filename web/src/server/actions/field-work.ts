@@ -118,11 +118,11 @@ export async function payIdentityReveal(p: { user: string; what: 'sin' | 'cheque
 }
 
 /** Finance and Admin: approve or refuse field spending, and mark it paid back. */
-export async function spendDo(action: 'field_spend_decide' | 'field_spend_paid_back', p: { id: string; approve?: boolean; note?: string }): Promise<R<{ status: string }>> {
+export async function spendDo(action: 'field_spend_decide' | 'field_spend_paid_back' | 'reimbursement_paid', p: { id: string; approve?: boolean; note?: string }): Promise<R<{ status: string }>> {
   try {
     const { user, aal } = await me('any');
     const data = await door<{ status: string }>(user.id, 'ops_do', action, p, aal);
-    for (const x of ['/admin/money/field-pay', '/staff/field-spending']) revalidatePath(x);
+    for (const x of ['/admin/money/field-pay', '/staff/field-spending', '/staff/payroll']) revalidatePath(x);
     return { ok: true, data };
   } catch (e) { return fail(e); }
 }

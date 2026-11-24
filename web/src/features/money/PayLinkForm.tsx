@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { hasCardBox, loadCardJs } from '@/lib/card-js';
 import { money } from '@/lib/format';
 import { reloadIfStale } from '@/lib/client-error/recover';
 import { payLinkFakeConfirm, payLinkFinish, payLinkStandardHold, payLinkStart, type PayLinkStart } from '@/server/actions/paylink';
@@ -12,17 +13,6 @@ interface StripeLink {
   elements(o: { clientSecret: string; appearance?: unknown }): { create(type: 'payment', o?: unknown): { mount(el: HTMLElement): void } };
   confirmPayment(o: { elements: unknown; redirect: 'if_required'; confirmParams: Record<string, unknown> }): Promise<{ error?: { message?: string } }>;
   confirmSetup(o: { elements: unknown; redirect: 'if_required'; confirmParams: Record<string, unknown> }): Promise<{ error?: { message?: string } }>;
-}
-function loadStripe(key: string): Promise<StripeLink> {
-  const w = window as unknown as { Stripe?: (k: string) => unknown };
-  return new Promise((resolve, reject) => {
-    if (w.Stripe) return resolve(w.Stripe(key) as StripeLink);
-    const s = document.createElement('script');
-    s.src = 'https://js.stripe.com/v3/';
-    s.onload = () => (w.Stripe ? resolve(w.Stripe(key) as StripeLink) : reject(new Error('Stripe did not load')));
-    s.onerror = () => reject(new Error('Stripe did not load'));
-    document.head.appendChild(s);
-  });
 }
 
 export function PayLinkForm({ token, kind, amountCents, legalName, backTo = null, debitOk = false, debitDepositCents = null }: { token: string; kind: 'charge' | 'hold' | 'setup'; amountCents: number; legalName: string; backTo?: string | null;
@@ -46,8 +36,8 @@ export function PayLinkForm({ token, kind, amountCents, legalName, backTo = null
       if (!live) return;
       if (!r.ok) { setFatal(r.message); return; }
       setP(r.data);
-      if (r.data.provider === 'stripe' && r.data.publishableKey && mount.current) {
-        const js = await loadStripe(r.data.publishableKey);
+      if (hasCardBox(r.data.provider, r.data.publishableKey) && mount.current) {
+        const js = (await loadCardJs(r.data.provider, r.data.publishableKey)) as unknown as StripeLink;
         const elements = js.elements({ clientSecret: r.data.clientSecret, appearance: { theme: 'stripe', variables: { colorPrimary: '#D0111B', borderRadius: '6px' } } });
         mount.current.replaceChildren();
         elements.create('payment', { layout: 'tabs', wallets: { applePay: 'auto', googlePay: 'auto' }, fields: { billingDetails: { name: 'never' } } }).mount(mount.current);

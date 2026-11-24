@@ -173,7 +173,8 @@ export interface Refund {
 }
 
 export interface PaymentsAdapter {
-  readonly name: 'stripe' | 'fake';
+  /** r50: helcim (HelcimPay.js and the Payment API), off (no card payments: the e-Transfer fallback) */
+  readonly name: 'stripe' | 'fake' | 'helcim' | 'off';
   /** The renter as a processor customer, so the card can be saved for later charges. */
   createCustomer(r: { email: string; name: string; renterId?: string; ownerId?: string; idempotencyKey: string }): Promise<{ id: string }>;
   /** An owner invoice: card or Canadian pre-authorized debit (with its mandate), saved for later debits. */

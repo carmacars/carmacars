@@ -5773,6 +5773,7 @@ export type Database = {
           void_reason: string | null;
           created_by: string | null;
           created_at: string;
+          paid_with: string;
         };
         Insert: {
           id?: string;
@@ -5789,6 +5790,7 @@ export type Database = {
           void_reason?: string | null;
           created_by?: string | null;
           created_at?: string;
+          paid_with?: string;
         };
         Update: {
           id?: string;
@@ -5805,6 +5807,7 @@ export type Database = {
           void_reason?: string | null;
           created_by?: string | null;
           created_at?: string;
+          paid_with?: string;
         };
         Relationships: [];
       };
@@ -7531,6 +7534,7 @@ export type Database = {
           hold_expiry_from_bank: boolean;
           hold_lapsed_at: string | null;
           reauth_tried_at: string | null;
+          held_as_charge: boolean;
         };
         Insert: {
           id?: string;
@@ -7559,6 +7563,7 @@ export type Database = {
           hold_expiry_from_bank?: boolean;
           hold_lapsed_at?: string | null;
           reauth_tried_at?: string | null;
+          held_as_charge?: boolean;
         };
         Update: {
           id?: string;
@@ -7587,6 +7592,7 @@ export type Database = {
           hold_expiry_from_bank?: boolean;
           hold_lapsed_at?: string | null;
           reauth_tried_at?: string | null;
+          held_as_charge?: boolean;
         };
         Relationships: [];
       };
@@ -9366,7 +9372,7 @@ export type Database = {
           vehicle_id?: string | null;
           booking_id?: string | null;
           prep_task_id?: string | null;
-          paid_with?: string;
+          paid_with: string;
           receipt_document_id?: string | null;
           service_record_id?: string | null;
           company_expense_id?: string | null;
@@ -10896,6 +10902,78 @@ export type Database = {
           task_id?: string | null;
           created_by?: string;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      helcim_calls: {
+        Row: {
+          idempotency_key: string;
+          result: Json;
+          created_at: string;
+        };
+        Insert: {
+          idempotency_key: string;
+          result: Json;
+          created_at?: string;
+        };
+        Update: {
+          idempotency_key?: string;
+          result?: Json;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      helcim_intents: {
+        Row: {
+          id: string;
+          idempotency_key: string;
+          kind: string;
+          status: string;
+          amount_cents: number;
+          customer_code: string | null;
+          checkout_token: string | null;
+          transaction_id: number | null;
+          capture_transaction_id: number | null;
+          held_as_charge: boolean;
+          booking_id: string | null;
+          purpose: string | null;
+          state: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          idempotency_key: string;
+          kind: string;
+          status: string;
+          amount_cents: number;
+          customer_code?: string | null;
+          checkout_token?: string | null;
+          transaction_id?: number | null;
+          capture_transaction_id?: number | null;
+          held_as_charge?: boolean;
+          booking_id?: string | null;
+          purpose?: string | null;
+          state: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          idempotency_key?: string;
+          kind?: string;
+          status?: string;
+          amount_cents?: number;
+          customer_code?: string | null;
+          checkout_token?: string | null;
+          transaction_id?: number | null;
+          capture_transaction_id?: number | null;
+          held_as_charge?: boolean;
+          booking_id?: string | null;
+          purpose?: string | null;
+          state?: Json;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -18445,6 +18523,7 @@ export type Database = {
           reason_code: string | null;
           reason_note: string | null;
           card_fee_cents: number;
+          provider: string | null;
         };
         Insert: {
           id?: string;
@@ -18479,6 +18558,7 @@ export type Database = {
           reason_code?: string | null;
           reason_note?: string | null;
           card_fee_cents?: number;
+          provider?: string | null;
         };
         Update: {
           id?: string;
@@ -18513,6 +18593,7 @@ export type Database = {
           reason_code?: string | null;
           reason_note?: string | null;
           card_fee_cents?: number;
+          provider?: string | null;
         };
         Relationships: [];
       };
@@ -28302,6 +28383,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      staff_reimbursements: {
+        Row: {
+          id: string;
+          staff_id: string;
+          field_spend_id: string | null;
+          company_expense_id: string | null;
+          amount_cents: number;
+          description: string;
+          status: string;
+          decided_by: string | null;
+          decided_at: string | null;
+          decline_reason: string | null;
+          paid_by: string | null;
+          paid_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          staff_id: string;
+          field_spend_id?: string | null;
+          company_expense_id?: string | null;
+          amount_cents: number;
+          description: string;
+          status?: string;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          decline_reason?: string | null;
+          paid_by?: string | null;
+          paid_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          staff_id?: string;
+          field_spend_id?: string | null;
+          company_expense_id?: string | null;
+          amount_cents?: number;
+          description?: string;
+          status?: string;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          decline_reason?: string | null;
+          paid_by?: string | null;
+          paid_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       staff_restore_requests: {
         Row: {
           id: string;
@@ -36247,6 +36379,14 @@ export type Database = {
       server_guide_upkeep_last_sha: { Args: never; Returns: string };
       server_guide_upkeep_run: { Args: { p: Json }; Returns: Json };
       server_guide_upkeep_sections: { Args: { p_run: string }; Returns: Json };
+      server_helcim_call_get: { Args: { p_key: string }; Returns: Json };
+      server_helcim_call_put: { Args: { p_key: string; p_result: Json }; Returns: undefined };
+      server_helcim_hold_plan: { Args: { p_booking: string; p_window_days: number }; Returns: string };
+      server_helcim_intent_find: { Args: { p: Json }; Returns: Json };
+      server_helcim_intent_get: { Args: { p_id: string }; Returns: Json };
+      server_helcim_intent_open: { Args: { p_customer: string; p_amount: number; p_since: string }; Returns: Json };
+      server_helcim_intent_put: { Args: { p: Json }; Returns: undefined };
+      server_helcim_known: { Args: { p_tx: number[] }; Returns: Json };
       server_hire_auto_done: { Args: { p_app: string; p: Json }; Returns: Json };
       server_hire_auto_due: { Args: { p_limit?: number }; Returns: Json };
       server_hiring_apply: { Args: { p: Json; p_ip?: string }; Returns: Json };

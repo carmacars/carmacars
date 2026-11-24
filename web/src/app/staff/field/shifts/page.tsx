@@ -27,7 +27,10 @@ interface Shifts {
     spends: Array<{ id: string; description: string; amount_cents: number; status: string; receipt: boolean }> }>;
 }
 type Spend = { id: string; kind: string; spent_on: string; description: string; amount_cents: number; status: string; receipt: boolean; vehicle: string | null; note: string | null };
-const SPEND_STATUS: Record<string, string> = { submitted: 'Waiting for Finance', approved: 'Approved', refused: 'Refused', reimbursed: 'Paid back' };
+const SPEND_STATUS: Record<string, string> = { submitted: 'Waiting for Finance', approved: 'Approved', refused: 'Declined', reimbursed: 'Paid back' };
+/** r50 (3720): what CarmaCars owes you back for money you spent with your own money */
+type Owed = { owed_cents: number; pending_cents: number; rows: Array<{ id: string; description: string; amount_cents: number; status: string; decline_reason: string | null; paid_at: string | null }> };
+const OWED_STATUS: Record<string, string> = { pending: 'Waiting for Finance', owed: 'Approved: paid back with your pay', declined: 'Declined', paid: 'Paid back' };
 const pastDay = (d: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(`${d}T12:00:00Z`));
 
 // My shifts (r35 part X; 0880, 0931): the shifts you hold with the work planned so far, the shifts free to claim (given up by
@@ -37,7 +40,8 @@ export default async function MyShifts({ searchParams }: { searchParams: Promise
   const list = q.view === 'list';
   const week = Math.min(2, Math.max(0, Number(q.week) || 0));
   const { user } = await requireStaff('field', '/staff/field/shifts');
-  const [s, spends] = await Promise.all([door<Shifts>(user.id, 'field_read', 'my_shifts'), door<Spend[]>(user.id, 'field_read', 'my_spends').catch(() => [] as Spend[])]);
+  const [s, spends, owed] = await Promise.all([door<Shifts>(user.id, 'field_read', 'my_shifts'), door<Spend[]>(user.id, 'field_read', 'my_spends').catch(() => [] as Spend[]),
+    door<Owed>(user.id, 'field_read', 'my_reimbursements').catch(() => null)]);
   const now = requestNow();
   // a slot with a given-up shift on it shows once, as the offer
   const openSlots = s.open.filter((o) => !o.mine && o.taken < o.capacity && !s.offers.some((x) => x.slot_id === o.id));
@@ -111,6 +115,13 @@ export default async function MyShifts({ searchParams }: { searchParams: Promise
         <p><b>{x.description}</b></p><p className="small">{pastDay(x.spent_on)}{x.vehicle ? `, ${x.vehicle}` : ''}. {SPEND_STATUS[x.status] ?? x.status}{x.note ? `: ${x.note}` : ''}.</p>
         {!x.receipt && x.status !== 'refused' && <SpendReceipt id={x.id} />}</section>)}</div> : <p className="small fp-stack">Nothing yet. Use Add on Today when you spend money for the company.</p>}
       {noReceipt.length > 0 && <p className="small">{noReceipt.length} without a receipt: add the photo above.</p>}
+      <h2 className="fp-group-h" id="owed">Owed to you</h2>
+      {owed && owed.rows.length ? <div className="fp-stack" data-testid="owed-to-you">
+        <section className="fp-shiftcard"><div className="fp-facts"><div><b>{money(owed.owed_cents, { cents: true })}</b><span>approved, to be paid back</span></div><div><b>{money(owed.pending_cents, { cents: true })}</b><span>waiting for Finance</span></div></div></section>
+        {owed.rows.slice(0, 15).map((x) => <section key={x.id} className="fp-shiftcard is-past" data-testid="owed-row">
+          <p><b>{x.description}</b> {money(x.amount_cents, { cents: true })}</p>
+          <p className="small" style={{ overflowWrap: 'anywhere' }}>{OWED_STATUS[x.status] ?? x.status}{x.decline_reason ? `: ${x.decline_reason}` : ''}.</p></section>)}
+      </div> : <p className="small fp-stack">Nothing. When you pay with your own money, choose &quot;My own money (pay me back)&quot; and it shows here until it is paid back.</p>}
       <h2 className="fp-group-h">Past shifts</h2>
       {s.past.length ? <div className="fp-stack">{s.past.map((d) => <section key={d.day} className="fp-shiftcard is-past" data-testid="past-shift">
         <p className="fp-shiftcard__when">{pastDay(d.day)}</p>

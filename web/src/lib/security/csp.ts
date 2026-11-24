@@ -17,6 +17,9 @@ export function newNonce(): string {
 const STRIPE_JS = 'https://js.stripe.com https://*.js.stripe.com', STRIPE_HOOKS = 'https://hooks.stripe.com', STRIPE_API = 'https://api.stripe.com';
 const STRIPE_LINK = 'https://link.com https://*.link.com';
 const R2_UPLOADS = 'https://*.r2.cloudflarestorage.com';
+// r50: Helcim (the Canadian card processor since Stripe closed the account). HelcimPay.js loads from secure.helcim.app and
+// opens its card modal in an iframe from the same host; the browser never calls api.helcim.com (our server does).
+const HELCIM = 'https://secure.helcim.app';
 
 export interface CspOptions {
   turnstile?: boolean;
@@ -51,18 +54,18 @@ export function embeddable(path: string): boolean {
 export function cspHeader(nonce: string, o: CspOptions = {}): string {
   const turnstile = o.turnstile ? ' https://challenges.cloudflare.com' : '';
   const img = ['\'self\'', 'data:', 'blob:', ...(o.imgOrigins ?? [])].join(' ');
-  const connect = ['\'self\'', ...(o.connectOrigins ?? []), 'https://*.supabase.co', 'wss://*.supabase.co', STRIPE_API, STRIPE_LINK, R2_UPLOADS, ...(o.voice ? TWILIO_VOICE_CONNECT : [])].join(' ');
+  const connect = ['\'self\'', ...(o.connectOrigins ?? []), 'https://*.supabase.co', 'wss://*.supabase.co', STRIPE_API, STRIPE_LINK, HELCIM, R2_UPLOADS, ...(o.voice ? TWILIO_VOICE_CONNECT : [])].join(' ');
   return [
     `default-src 'self'`,
     // 'wasm-unsafe-eval': WebAssembly only (release 28: the VIN barcode reader, self-hosted zxing-wasm), never eval of strings
-    `script-src 'self' 'nonce-${nonce}' 'wasm-unsafe-eval'${turnstile} ${STRIPE_JS}`,
+    `script-src 'self' 'nonce-${nonce}' 'wasm-unsafe-eval'${turnstile} ${STRIPE_JS} ${HELCIM}`,
     `style-src 'self' 'unsafe-inline'`,
     `img-src ${img} https:`,
     `font-src 'self'`,
     // the investor deck's narrated video, its poster and captions: short-lived signed links to Supabase Storage
     `media-src 'self' blob: ${['https://*.supabase.co', ...(o.connectOrigins ?? []), ...(o.voice ? [TWILIO_VOICE_MEDIA] : [])].join(' ')}`,
     `connect-src ${connect}${turnstile}`,
-    `frame-src${turnstile} ${STRIPE_JS} ${STRIPE_HOOKS} ${STRIPE_LINK}`,
+    `frame-src${turnstile} ${STRIPE_JS} ${STRIPE_HOOKS} ${STRIPE_LINK} ${HELCIM}`,
     `frame-ancestors ${o.frameAncestors ?? "'none'"}`,
     // phone alerts (migration 0300): the alerts service worker (/push-sw.js) and the web app manifest come from this
     // origin only. Both were already allowed (worker-src falls back to script-src, manifest-src to default-src); naming
@@ -82,7 +85,7 @@ export function securityHeaders(): Record<string, string> {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
-    'Permissions-Policy': 'camera=(self), microphone=(self), geolocation=(self), payment=(self "https://js.stripe.com" "https://*.js.stripe.com"), usb=(), interest-cohort=()',
+    'Permissions-Policy': 'camera=(self), microphone=(self), geolocation=(self), payment=(self "https://js.stripe.com" "https://*.js.stripe.com" "https://secure.helcim.app"), usb=(), interest-cohort=()',
     'Cross-Origin-Opener-Policy': 'same-origin'
   };
 }
