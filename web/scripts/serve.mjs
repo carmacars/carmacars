@@ -21,13 +21,13 @@ const INNER = PORT + 100;
 // the partner widget (0136, csp.ts embeddable) is the one page other sites may frame
 const embeddable = (p) => /^\/partner-widget\/[0-9a-f-]{36}$/.test(p);
 const csp = (nonce, framed = false) => [
-  "default-src 'self'", `script-src 'self' 'nonce-${nonce}' https://challenges.cloudflare.com https://js.stripe.com`, "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https:", "font-src 'self'", "media-src 'self' blob: https://*.supabase.co", "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.r2.cloudflarestorage.com https://challenges.cloudflare.com",
-  'frame-src https://challenges.cloudflare.com https://js.stripe.com https://hooks.stripe.com', framed ? 'frame-ancestors https:' : "frame-ancestors 'none'", "worker-src 'self'", "manifest-src 'self'", "form-action 'self'", "base-uri 'none'", "object-src 'none'"
+  "default-src 'self'", `script-src 'self' 'nonce-${nonce}' https://challenges.cloudflare.com https://js.stripe.com https://*.js.stripe.com`, "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https:", "font-src 'self'", "media-src 'self' blob: https://*.supabase.co", "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://link.com https://*.link.com https://*.r2.cloudflarestorage.com https://challenges.cloudflare.com",
+  'frame-src https://challenges.cloudflare.com https://js.stripe.com https://*.js.stripe.com https://hooks.stripe.com https://link.com https://*.link.com', framed ? 'frame-ancestors https:' : "frame-ancestors 'none'", "worker-src 'self'", "manifest-src 'self'", "form-action 'self'", "base-uri 'none'", "object-src 'none'"
 ].join('; ');
 const security = {
   'x-content-type-options': 'nosniff', 'x-frame-options': 'DENY', 'referrer-policy': 'strict-origin-when-cross-origin',
-  'permissions-policy': 'camera=(self), microphone=(self), geolocation=(self), payment=(self), usb=(), interest-cohort=()', 'cross-origin-opener-policy': 'same-origin'
+  'permissions-policy': 'camera=(self), microphone=(self), geolocation=(self), payment=(self \"https://js.stripe.com\" \"https://*.js.stripe.com\"), usb=(), interest-cohort=()', 'cross-origin-opener-policy': 'same-origin'
 };
 
 const next = spawn(process.execPath, [path.join(WEB, 'node_modules/next/dist/bin/next'), 'start', '-p', String(INNER), '-H', '127.0.0.1'], { cwd: WEB, stdio: 'inherit', env: process.env });

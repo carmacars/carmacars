@@ -115,6 +115,7 @@
    {
     "area": "Renters",
     "items": [
+     "The card box always shows on Sign and pay (phone wallets too); the licence and coverage documents are checked before pickup, not before paying",
      "The booking page says when the deposit is still owed and how to place it",
      "Signing no longer says \"your signature does not match\": the signature you drew is the one recorded, even if you press Sign quickly or sign on two devices",
      "Coming back? Initial all the key terms and sign with your saved signature, one tap each",
@@ -131,6 +132,8 @@
    {
     "area": "Staff tools",
     "items": [
+     "A card tapped on a phone outside the booking screens can be found from Claude and recorded on its booking, with nothing charged again",
+     "An accepted offer holds the car until the offer's own expiry (and 2 hours after a same-day pickup); Renter approved by phone works with the licence photos on file; phone alerts no longer switch themselves off",
      "A car can go out with the deposit still owed, with the reason: every booking page shows **Deposit pending**, the saved card is tried each morning and the renter is sent the deposit link; after 48 hours an Admin gets a To do",
      "Each message type that can go by text shows its texts of the last 30 days and its channel; once email is ready for production, only urgent messages keep their texts and the rest go by email",
      "**Approve all (n)** counts only what it can approve, and the get-ready line says which page the renter still has to send",

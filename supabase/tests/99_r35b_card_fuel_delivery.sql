@@ -107,6 +107,7 @@ update bookings set coverage_option = 1 where id = test.id('booking:RB-OPCF');
 create function test.rb_opcf(p_page text) returns uuid language sql as $$
   select app.register_verification_upload(test.id('booking:RB-OPCF'), test.id('rb_ron'), 'coverage_proof', null, 'renters/rb/opcf-' || gen_random_uuid() || '.pdf', repeat('a', 64), 'application/pdf',
     jsonb_build_object('coverage_option', '1', 'insurer_name', 'Example Mutual', 'policy_number', 'EX-0001', 'policy_expiry', '2027-06-30', 'page_kind', p_page), 'documents') $$;
+update program_settings set opcf27_before_payment = true; -- 3420: off by default; checked here with it on
 select test.eq('both pages are missing before payment', public.server_booking_payment_facts(test.id('booking:RB-OPCF')) -> 'coverage_missing', '["pink slip", "OPCF 27 endorsement page"]'::jsonb);
 select test.throws('the renter''s page must say what it is', $$select public.renter_register_upload(test.id('booking:RB-OPCF'), test.id('rb_ron'), 'coverage_proof', 'renters/rb/x.pdf', repeat('b', 64), 'application/pdf', 'documents', null,
   '{"coverage_option": "1", "insurer_name": "Example Mutual", "policy_number": "EX-0001", "policy_expiry": "2027-06-30"}')$$, 'pink slip or the OPCF 27 endorsement');

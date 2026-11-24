@@ -206,3 +206,31 @@ test('3013: licence_let_go: two-step on admin:write, an Admin only, with the rea
   assert.match(SQL3013, /app\.primary_swap_decide\(k\.user_id, jsonb_build_object\('booking', b\.id, 'action', 'override'/);
   assert.match(SQL3013, /pv\.args is distinct from v_args/);
 });
+
+test('price_tax: the description names plus / included, and the old before_tax / after_tax still work', async () => {
+  const { normalizeToolArgs } = await import('./tools.ts');
+  const t = ADMIN_TOOLS.find((x) => x.name === 'create_offer')!;
+  const d = JSON.stringify(t.inputSchema);
+  assert.ok(d.includes('plus') && d.includes('included') && !d.includes('before_tax or after_tax'));
+  assert.deepEqual(normalizeToolArgs({ price_tax: 'before_tax', a: 1 }), { price_tax: 'plus', a: 1 });
+  assert.deepEqual(normalizeToolArgs({ price_tax: 'after_tax' }), { price_tax: 'included' });
+  assert.deepEqual(normalizeToolArgs({ price_tax: 'included' }), { price_tax: 'included' });
+  assert.equal(normalizeToolArgs(undefined), undefined);
+});
+
+// hotfix 3430: Tap to Pay payments with no booking in Stripe
+const SQL3430 = readFileSync(new URL('../../../../supabase/migrations/3430_hotfix_stripe_find.sql', import.meta.url), 'utf8');
+test('3430: stripe_find_payments is a read-only admin:read tool; stripe_record_paid takes untied payments, still two-step', () => {
+  const f = STRIPE_TOOLS.find((x) => x.name === 'stripe_find_payments')!;
+  assert.ok(f && f.readOnly && f.scope === 'admin:read' && TOOLS.includes(f));
+  assert.deepEqual(Object.keys((f.inputSchema as { properties: Record<string, unknown> }).properties).sort(), ['amount_cents', 'from', 'hours', 'to']);
+  assert.ok(!toolsFor(['bookings:read']).some((x) => x.name === 'stripe_find_payments'));
+  const w = STRIPE_TOOLS.find((x) => x.name === 'stripe_record_paid')!;
+  assert.ok(!w.readOnly && /untied/i.test(w.description) && /never charge, capture or refund/.test(w.description));
+  assert.match(SQL3430, /if p_tool <> 'stripe_find_payments' then return app\.api_call_pre3430/);
+  assert.match(SQL3430, /api_key_check\(p_hash, 'admin:read', p_tool/);
+  assert.match(SQL3430, /interval '30 days'/);
+  assert.match(SQL3430, /perform app\.assert_admin\(p_by\)/);
+  assert.match(SQL3430, /app\.link_stripe_payment\(p_by/);
+  assert.ok(!/captureIntent|refund\(/.test(SQL3430));
+});

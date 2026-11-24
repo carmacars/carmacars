@@ -56,7 +56,7 @@ const LABELS: Record<string, string> = {
   delivery_base_cents: 'Delivery or pickup base fee, each way', delivery_included_km: 'Km included in the base fee', delivery_road_factor: 'Straight line to road distance factor',
   // 1701: the delivery origin and pickup location (our lot); company_address stays the mailing address
   delivery_origin_address: 'Delivery origin and pickup location (address)', company_latitude: 'Delivery origin: latitude', company_longitude: 'Delivery origin: longitude',
-  card_exotic_makes: 'Makes counted as exotic for card coverage', opcf27_before_payment: 'OPCF 27: pink slip and endorsement before payment',
+  card_exotic_makes: 'Makes counted as exotic for card coverage', opcf27_before_payment: 'OPCF 27: pink slip and endorsement before payment', booking_licence_before_payment: 'Driver\'s licence before accepting or paying',
   app_store_url: 'The CarmaCars app on the App Store (https://apps.apple.com/...)', play_store_url: 'The CarmaCars app on Google Play (https://play.google.com/...)',
   phone_gate_gallery: 'Phone number box: before more photos of a car', phone_gate_free_photos: 'Phone number box: photos shown before the number is asked',
   phone_gate_dates: 'Phone number box: before the full availability', phone_gate_request: 'Phone number box: before a booking request',
@@ -340,7 +340,8 @@ const HINTS: Record<string, string> = {
   ev_charge_kwh_cents: '0.40 by default. An electric car: battery kWh x the charge missing x this, plus the refuelling fee.',
   delivery_base_cents: '$75 by default, each way, with the km below included from the delivery origin (below); then the rate per km. A car with its own delivery fee on its rate card keeps it (the per-car override); every other car follows this.',
   delivery_road_factor: '1.3 by default. Without a road distance from the maps service, the straight line from the delivery origin times this.',
-  opcf27_before_payment: 'On by default. A booking on OPCF 27 is paid, and so confirmed, only once the renter uploaded the pink slip and the OPCF 27 endorsement page. Staff approve or reject them as before.',
+  opcf27_before_payment: 'Off by default (Nov 23). On: a booking on OPCF 27 is paid, and so confirmed, only once the renter uploaded the pink slip and the OPCF 27 endorsement page. Off: the renter pays at once and the pages are checked before handover (the car is not released without confirmed coverage).',
+  booking_licence_before_payment: 'Off by default (Nov 23). On: the licence photos and expiry are needed before an offer is accepted or paid (staff recording a phone approval still go ahead when the photos are there; an Admin with a reason). Off: checked before handover (every driver\'s identity is verified before the car is released).',
   app_store_url: 'Empty until the app is live. When set, iPhones browsing the site see "Download the CarmaCars app" in the footer and in the alerts invitation.',
   play_store_url: 'Empty until the app is live. When set, Android phones browsing the site see "Download the CarmaCars app" in the footer and in the alerts invitation.',
   phone_gate_gallery: 'Never on a car with that many photos or fewer. Every photo stays in the page for search engines.',

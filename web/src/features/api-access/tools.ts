@@ -107,7 +107,7 @@ export const ADMIN_TOOLS: Tool[] = [
     ['vehicle_id', 'pickup_at', 'return_at'], { renter_id: id('A renter on file'), renter: { type: 'object' }, vehicle_id: id('The car'), pickup_at: { type: 'string', format: 'date-time' },
       return_at: { type: 'string', format: 'date-time' }, source: str('phone, walk_in, email, ...'), rental_pay_method: str('card, cash, e_transfer, ...'), deposit_pay_method: str('card, cash, ...'),
       message: str('A message to the renter'), notify: { type: 'boolean' }, channels: { type: 'object' }, rental_charge_cents: cents('A rental charge agreed with the renter'),
-      price_reason: str('Why a typed price'), price_tax: str('before_tax or after_tax'), sales_choice: str('for_carmacars or sourced'), book_now: { type: 'boolean', description: 'Book it now: the offer is approved at once as if the renter had approved it; the booking waits for the renter to sign and pay (the Sign and pay link is emailed) and holds the car. Use when the renter already agreed.' }, book_now_reason: str('Why it is booked without the renter\'s approval (kept in the booking\'s history)') }),
+      price_reason: str('Why a typed price'), price_tax: str('plus (HST is added on top of the typed charge, the default) or included (the typed amount already holds HST)'), sales_choice: str('for_carmacars or sourced'), book_now: { type: 'boolean', description: 'Book it now: the offer is approved at once as if the renter had approved it; the booking waits for the renter to sign and pay (the Sign and pay link is emailed) and holds the car. Use when the renter already agreed.' }, book_now_reason: str('Why it is booked without the renter\'s approval (kept in the booking\'s history)') }),
   write('book_offer_now', 'Book an offer now', 'Book it now for an offer that is already out (Admin > the booking > Book it now): it becomes the approved version without the renter\'s approval, the booking waits for payment and holds the car, and the renter gets the Sign and pay link. As an Admin it is done at once.', ['booking'],
     { ...booking, reason: str('Why: the renter agreed by phone, ...') }),
   write('revise_offer', 'Revise an offer', 'Send a revised offer for a booking already offered.', ['booking'],
@@ -292,7 +292,10 @@ export const STRIPE_TOOLS: Tool[] = [
   read('stripe_booking', 'Stripe for a booking', 'Live from Stripe for one booking: every PaymentIntent, charge and SetupIntent the booking references or that Stripe finds by its metadata, each with its status, amount, amount received and capturable, capture method, when, the last error, refunds, disputes and the card brand and last 4 only; beside what the site recorded (payments, holds, pay links), and a one-line verdict ("paid and recorded", "paid at Stripe but not recorded (pi_...)", "hold authorized until ...", "not paid"). Read only.',
     { booking: str('The booking number, for example CC-10482') }, ['booking']),
   read('stripe_account', 'Stripe account', 'Live from Stripe: the balance (available and pending per currency), whether charges and payouts are enabled, the payout schedule, the next and the last payout, and the account\'s open requirements (currently_due, past_due, eventually_due, current_deadline, disabled_reason), so a verification Stripe asks for is visible. Read only.'),
-  write('stripe_record_paid', 'Record a Stripe payment', 'Record on its booking a PaymentIntent that Stripe shows succeeded but the site never recorded (stripe_booking says "paid at Stripe but not recorded"), exactly as Stripe\'s webhook would. Nothing is charged or captured: an intent that is not succeeded, or not this booking\'s total, is refused.', ['booking', 'payment_intent'],
+  read('stripe_find_payments', 'Find Stripe payments', 'Live from Stripe: the PaymentIntents created in a time window (the last 24 hours by default; hours up to 720, or from and to; 30 days at most) that succeeded or hold a card (requires_capture), newest first, optionally only one amount (amount_cents). Each with its id, amount, status, when, the card brand and last 4 only, the method (card, card_present for a tap or a reader) and wallet, the booking in its Stripe metadata if any, and whether the site recorded it (and on which booking). Payments with no booking in Stripe (a card taken in the Stripe Dashboard app, Tap to Pay) and not recorded are flagged: stripe_record_paid with the booking links them. Read only.',
+    { hours: { type: 'number', minimum: 1, maximum: 720, description: 'The window, in hours back from to (24 by default, 720 at most)' }, from: { type: 'string', format: 'date-time', description: 'The start of the window (instead of hours)' },
+      to: { type: 'string', format: 'date-time', description: 'The end of the window (now by default)' }, amount_cents: { type: 'integer', minimum: 1, description: 'Only payments of exactly this amount, in cents (CA$5,000.00 is 500000)' } }),
+  write('stripe_record_paid', 'Record a Stripe payment', 'Record on its booking a PaymentIntent that Stripe shows succeeded but the site never recorded, and never charge, capture or refund. Made for the booking (stripe_booking says "paid at Stripe but not recorded"): recorded exactly as Stripe\'s webhook would. Untied, with no booking in Stripe (a card taken in the Stripe Dashboard app, Tap to Pay; stripe_find_payments flags them): linked when its amount is exactly what is open on the booking (the rental and fees, the deposit, or both), the preview says how; on confirm the booking is written into its Stripe metadata and it is recorded as Link a Stripe payment does, audited. Refused when it is not succeeded, for another booking, already recorded anywhere, or of another amount.', ['booking', 'payment_intent'],
     { booking: str('The booking number'), payment_intent: str('The PaymentIntent id (pi_...)') })
 ];
 TOOLS.push(...STRIPE_TOOLS);
@@ -327,3 +330,12 @@ export const EVIDENCE_TOOLS: Tool[] = [
     ['line', 'reason'], { line: id('The fee line'), reason: str('Why it is charged without its evidence') })
 ];
 TOOLS.push(...EVIDENCE_TOOLS);
+
+/** price_tax: the server takes 'plus' | 'included'. The first wording of the tool said before_tax / after_tax, so those still work. */
+const PRICE_TAX_ALIAS: Record<string, string> = { before_tax: 'plus', after_tax: 'included' };
+export function normalizeToolArgs(args: unknown): unknown {
+  if (!args || typeof args !== 'object' || Array.isArray(args)) return args;
+  const a = args as Record<string, unknown>;
+  const t = typeof a.price_tax === 'string' ? PRICE_TAX_ALIAS[a.price_tax.trim().toLowerCase()] : undefined;
+  return t ? { ...a, price_tax: t } : args;
+}

@@ -137,7 +137,8 @@ test('Live chat: the assistant quotes from the pricing function, a person takes 
   await v.getByRole('button', { name: 'Talk to a person' }).click();
   await expect(v.getByTestId('chat-status')).toContainText('A person will reply shortly', { timeout: 15_000 });
   const item = staff.getByTestId('chat-item').filter({ hasText: 'Waiting for a person' }).filter({ hasText: from });
-  await expect(item).toBeVisible({ timeout: 15_000 });
+  // the list refreshes every 15 seconds: one full refresh plus margin, as the Live visitors row above
+  await expect(item).toBeVisible({ timeout: 30_000 });
   await item.click();
   const thread = staff.getByTestId('chat-thread');
   await expect(thread).toContainText('How much is the Toyota Corolla');

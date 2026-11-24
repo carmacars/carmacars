@@ -127,6 +127,79 @@ export function recordable(i: { status: string; metadata: Record<string, string>
   return null;
 }
 
+// ---------------------------------------------------------------- hotfix 3430: payments with no booking in Stripe
+/** A PaymentIntent for stripe_record_paid: made for this booking's total (the webhook's path), untied (no booking in its
+ *  metadata, as a card taken with Tap to Pay in the Stripe Dashboard app: linked to the booking by its amount), or refused. */
+export type Tie = { kind: 'tied' } | { kind: 'untied' } | { kind: 'refused'; why: string };
+export function tieOf(i: { status: string; metadata: Record<string, string> }, bookingId: string, bookingNumber: string): Tie {
+  const m = i.metadata ?? {};
+  const bid = m.booking_id || null;
+  const bno = (m.booking_number || '').trim().toUpperCase() || null;
+  if ((bid && bid !== bookingId) || (!bid && bno && bno !== bookingNumber.toUpperCase())) return { kind: 'refused', why: `This PaymentIntent is for another booking (${bno ?? bid}) in Stripe` };
+  if (i.status !== 'succeeded') return { kind: 'refused', why: `Stripe shows this payment ${i.status}, not succeeded: nothing is recorded (and nothing is captured here)` };
+  // no booking at all, or one this tool linked before (a retry after the database recorded it is refused there as recorded)
+  if ((!bid && !bno) || m.purpose === LINKED_PURPOSE) return { kind: 'untied' };
+  const no = recordable(i, bookingId);
+  return no ? { kind: 'refused', why: no } : { kind: 'tied' };
+}
+/** The metadata set at Stripe once an untied payment is recorded: the booking, never a purpose the webhook settles. */
+export const LINKED_PURPOSE = 'linked_outside';
+export function linkMetadata(current: Record<string, string>, bookingId: string, bookingNumber: string): Record<string, string> {
+  return { booking_id: bookingId, booking_number: bookingNumber, linked_by: 'connector', ...(current.purpose ? {} : { purpose: LINKED_PURPOSE }) };
+}
+
+export interface PlanAnswer { ok: boolean; as?: 'rental' | 'deposit' | 'rental_deposit'; rental_cents?: number; deposit_cents?: number; reason?: string; booking_number?: string }
+/** The preview's words for an untied payment. */
+export function untiedWillDo(pi: string, amountCents: number, bookingNumber: string, plan: PlanAnswer): string {
+  const what = plan.as === 'rental' ? 'the rental and fees' : plan.as === 'deposit' ? 'the deposit (kept as captured)'
+    : `the rental and fees (${money(plan.rental_cents ?? 0)}) and the deposit (${money(plan.deposit_cents ?? 0)}, kept as captured)`;
+  return `${pi} (${money(amountCents)}) is untied: Stripe has no booking on it (a card taken in the Stripe Dashboard, for example Tap to Pay). It will be linked to ${bookingNumber} as ${what}: `
+    + `its Stripe metadata set to ${bookingNumber} and recorded as a card payment taken in the Stripe Dashboard (Link a Stripe payment), audited. Nothing is charged, captured or refunded.`;
+}
+
+/** stripe_find_payments: one PaymentIntent, and whether the platform recorded it. */
+export interface FoundPayment {
+  id: string; amount_cents: number; amount_received_cents: number; currency: string | null; status: string; created: string | null;
+  card: string | null; method_type: string | null; wallet: string | null; description: string | null;
+  booking_metadata: string | null; recorded: boolean; recorded_on: string | null; recorded_as: string | null; no_booking: boolean; flag: string | null;
+}
+export type Known = Record<string, { booking_number: string | null; where: string }>;
+const FIND_STATUSES = new Set(['succeeded', 'requires_capture']);
+/** Stripe's PaymentIntents created in the window (100 a page, at most `pages` pages), succeeded or holding, newest first. */
+export async function findPayments(get: StripeGet, w: { since: number; until: number; amount_cents?: number | null }, known: (ids: string[]) => Promise<Known>, pages = 10) {
+  const all: O[] = [];
+  let after: string | null = null;
+  let truncated = false;
+  for (let p = 0; p < pages; p++) {
+    const r = await get('/v1/payment_intents', { 'created[gte]': String(w.since), 'created[lte]': String(w.until), limit: '100', 'expand[]': 'data.latest_charge', ...(after ? { starting_after: after } : {}) });
+    const data = arr(r.data);
+    all.push(...data);
+    if (r.has_more !== true || !data.length) break;
+    after = String(data[data.length - 1]!.id);
+    if (p === pages - 1) truncated = true;
+  }
+  const hits = all.filter((x) => FIND_STATUSES.has(String(x.status)) && (!w.amount_cents || n(x.amount) === w.amount_cents));
+  const k = hits.length ? await known(hits.map((x) => String(x.id))) : {};
+  const payments: FoundPayment[] = hits.map((x) => {
+    const ch = o(x.latest_charge);
+    const pmd = o(ch?.payment_method_details);
+    const c = o(pmd?.card) ?? o(pmd?.card_present) ?? o(pmd?.interac_present);
+    const md = o(x.metadata) ?? {};
+    const bookingMd = s(md.booking_number) ?? s(md.booking_id);
+    const kn = k[String(x.id)];
+    const last4 = s(c?.last4);
+    const noBooking = !bookingMd;
+    return {
+      id: String(x.id), amount_cents: n(x.amount), amount_received_cents: n(x.amount_received), currency: s(x.currency), status: String(x.status), created: iso(x.created),
+      card: last4 && /^\d{4}$/.test(last4) ? `${s(c?.brand) ?? 'card'} ${last4}` : null, method_type: s(pmd?.type) ?? (Array.isArray(x.payment_method_types) ? s(x.payment_method_types[0]) : null),
+      wallet: s(o(c?.wallet)?.type), description: s(x.description), booking_metadata: bookingMd,
+      recorded: !!kn, recorded_on: kn?.booking_number ?? null, recorded_as: kn?.where ?? null, no_booking: noBooking,
+      flag: kn ? null : noBooking ? (x.status === 'succeeded' ? 'no booking in Stripe and not recorded: stripe_record_paid with the booking links it' : 'a hold with no booking, not recorded') : 'not recorded on the site'
+    };
+  });
+  return { count: payments.length, untied_not_recorded: payments.filter((p) => p.no_booking && !p.recorded).length, truncated, payments };
+}
+
 /** The real reader: GET only, with the server's key. */
 export function stripeReader(secretKey: string, f: typeof fetch = (...a) => fetch(...a)): StripeGet {
   return async (path, params = {}) => {

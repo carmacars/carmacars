@@ -2,8 +2,8 @@ import { Act, type Field } from '@/features/admin/Act';
 import { pickupPassed } from './pickup-passed';
 
 // Reopen offer (0569): one click on an expired offer, for an Admin and every staff role that sends offers (Customer
-// service, Sales). The new offer is sent with the usual "offer ready" email and text, open 24 hours unless the hours say
-// otherwise; when the pickup has passed, the dialog asks for the new pickup and return first.
+// service, Sales). The new offer is sent with the usual "offer ready" email and text, open as long as the original offer was (3420) unless the hours
+// say otherwise; when the pickup has passed, the dialog asks for the new pickup and return first.
 export function ReopenOffer({ booking, pickupAt, returnAt, refresh, testId = 'reopen-offer' }: { booking: string; pickupAt: string; returnAt: string; refresh: string[]; testId?: string }) {
   const passed = pickupPassed(pickupAt);
   const fields: Field[] = [
@@ -11,7 +11,7 @@ export function ReopenOffer({ booking, pickupAt, returnAt, refresh, testId = 're
       { name: 'pickup_at', label: 'New pickup (the old one has passed)', type: 'datetime', required: true },
       { name: 'return_at', label: 'New return', type: 'datetime', required: true, value: returnAt },
     ] as Field[] : []),
-    { name: 'hours', label: 'Open for (hours)', type: 'number', placeholder: '24', hint: 'Empty: 24 hours.' },
+    { name: 'hours', label: 'Open for (hours)', type: 'number', hint: 'Empty: as long as the original offer was open.' },
     { name: 'note', label: 'Message to the renter', type: 'text' },
   ];
   return <Act action="reopen_expired" payload={{ booking }} label="Reopen offer" title="Reopen the offer" fields={fields} refresh={refresh}

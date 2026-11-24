@@ -25,6 +25,13 @@ create function pg_temp.req(p_number text, p_vehicle text, p_pickup timestamptz,
   select test.mk_booking(p_number, p_vehicle, 'oh48_ren', to_char(p_pickup at time zone 'America/Toronto', 'YYYY-MM-DD HH24:MI'),
                          to_char((p_pickup + make_interval(days => p_days)) at time zone 'America/Toronto', 'YYYY-MM-DD HH24:MI'), 'requested') $$;
 create function pg_temp.bk(p text) returns bookings language sql as $$ select * from bookings where booking_number = p $$;
+-- accepted p_hours ago, and the accepted offer's own expiry already past (3420: the hold never ends before it)
+create function pg_temp.aged(p text, p_hours integer) returns void language sql as $$
+  alter table booking_offers disable trigger booking_offers_guard;
+  update booking_offers o set sent_at = now() - make_interval(hours => p_hours + 1), expires_at = now() - interval '1 minute'
+    from bookings b where b.booking_number = p and o.booking_id = b.id and o.version = b.current_offer_version;
+  alter table booking_offers enable trigger booking_offers_guard;
+  update bookings set offer_approved_at = now() - make_interval(hours => p_hours) where booking_number = p $$;
 
 select pg_temp.req('OH4801', 'OH48V', date_trunc('hour', now()) + interval '5 days', 2);
 select pg_temp.req('OH4802', 'OH48V', date_trunc('minute', now()) + interval '5 hours', 1);
@@ -37,10 +44,11 @@ select app.send_offer(test.id('booking:OH4803'), test.id('oh48_cs'));
 
 select test.ok('offer: open 12 hours when the pickup is days away',
   abs(extract(epoch from (pg_temp.bk('OH4801')).offer_expires_at - (now() + interval '12 hours'))) < 120);
-select test.eq('offer: never past 1 hour before the pickup',
-  (pg_temp.bk('OH4802')).offer_expires_at, (pg_temp.bk('OH4802')).pickup_at - interval '1 hour');
-select test.eq('offer: a pickup within the hour, open until the pickup',
-  (pg_temp.bk('OH4803')).offer_expires_at, (pg_temp.bk('OH4803')).pickup_at);
+-- 3420: a pickup within 24 hours: the default offer stays open until 2 hours after the pickup
+select test.eq('offer: a pickup later today, open until 2 hours after the pickup',
+  (pg_temp.bk('OH4802')).offer_expires_at, greatest((pg_temp.bk('OH4802')).pickup_at + interval '2 hours', (pg_temp.bk('OH4802')).offer_expires_at));
+select test.eq('offer: a pickup within the hour, open until 2 hours after the pickup',
+  (pg_temp.bk('OH4803')).offer_expires_at, greatest((pg_temp.bk('OH4803')).pickup_at + interval '2 hours', (pg_temp.bk('OH4803')).offer_expires_at));
 select set_config('request.jwt.claim.sub', test.id('oh48_admin')::text, false);
 select test.eq('offer: the calendar shows an open offer as a hold until it expires',
   (select e ->> 'hold_until' from jsonb_array_elements(app.admin_calendar(now(), now() + interval '8 days') -> 'vehicles') v, jsonb_array_elements(v -> 'entries') e
@@ -52,8 +60,8 @@ select test.ok('offer: an open offer does not block the car (the first to pay ge
 -- accepted, not paid: the car is held, until the hold ends
 select app.approve_offer(test.id('booking:OH4801'), 1, test.id('oh48_ren'));
 select test.eq('accepted: waiting for payment', (pg_temp.bk('OH4801')).status::text, 'pending_payment');
-select test.ok('accepted: the hold ends 2 hours after accepting',
-  abs(extract(epoch from app.unpaid_hold_until(pg_temp.bk('OH4801')) - (now() + interval '2 hours'))) < 120);
+select test.eq('accepted (3420): the hold lasts until the offer''s own expiry (12 hours), not 2 hours',
+  app.unpaid_hold_until(pg_temp.bk('OH4801')), (select o.expires_at from booking_offers o where o.booking_id = test.id('booking:OH4801') and o.version = 1));
 select test.ok('accepted: the car is held for those dates',
   not app.vehicle_is_available(test.id('vehicle:OH48V'), (pg_temp.bk('OH4801')).pickup_at, (pg_temp.bk('OH4801')).return_at, null));
 select set_config('request.jwt.claim.sub', test.id('oh48_admin')::text, false);
@@ -64,7 +72,7 @@ select set_config('request.jwt.claim.sub', '', false);
 select test.eq('accepted: nothing ends while the hold runs', app.expire_unpaid(now()), 0);
 
 -- the hold ran out (accepted 3 hours ago): the car is free again
-update bookings set offer_approved_at = now() - interval '3 hours' where booking_number = 'OH4801';
+select pg_temp.aged('OH4801', 3);
 select test.ok('hold over: the car is no longer held',
   app.vehicle_is_available(test.id('vehicle:OH48V'), (pg_temp.bk('OH4801')).pickup_at, (pg_temp.bk('OH4801')).return_at, null));
 select test.ok('hold over: the public calendar shows the days free',
@@ -88,7 +96,7 @@ select test.ok('still free: the fresh offer never passes the cut-off before the 
 
 -- the pickup too close to offer again: the booking expires
 select app.approve_offer(test.id('booking:OH4803'), 1, test.id('oh48_ren'));
-update bookings set offer_approved_at = now() - interval '3 hours' where booking_number = 'OH4803';
+select pg_temp.aged('OH4803', 25);
 select test.eq('pickup too close: the hold ends and the booking expires', (select app.expire_unpaid(now())), 1);
 select test.eq('pickup too close: expired', (pg_temp.bk('OH4803')).status::text, 'expired');
 select test.ok('pickup too close: logged with the reason',
@@ -108,7 +116,7 @@ select pg_temp.req('OH4805', 'OH48W', date_trunc('hour', now()) + interval '14 d
 update payments set status = 'cancelled' where booking_id = test.id('booking:OH4805');
 select app.send_offer(test.id('booking:OH4805'), test.id('oh48_cs'));
 select app.approve_offer(test.id('booking:OH4805'), 1, test.id('oh48_ren'));
-update bookings set offer_approved_at = now() - interval '3 hours' where booking_number = 'OH4805';
+select pg_temp.aged('OH4805', 3);
 select test.eq('by card, accepted 3 hours ago: the hold is over', app.unpaid_hold_over(pg_temp.bk('OH4805')), true);
 update program_settings set offer_unpaid_hold_minutes = 0;
 select test.eq('setting 0: no limit', app.unpaid_hold_until(pg_temp.bk('OH4805')), null::timestamptz);

@@ -103,7 +103,9 @@ update push_subscriptions set refusals = 2 where endpoint like '%/admin1';
 update push_outbox set send_after = now() - interval '1 second' where code = 'push_test' and user_id = test.id('pu_admin');
 create temp table pu_due3 as select d.value as d from jsonb_array_elements(app.server_push_due(200)) d where d -> 'payload' ->> 'code' = 'push_test';
 select app.server_push_result(jsonb_build_object('results', jsonb_build_array(jsonb_build_object('id', (select d ->> 'id' from pu_due3 limit 1), 'outcome', 'refused', 'error', 'HTTP 403'))));
-select test.eq('the third refusal in a row (a key change) ends the subscription', (select count(*) from push_subscriptions where user_id = test.id('pu_admin')), 0::bigint);
+-- 3420: a refusal never switches the alerts off (it did on its own); the device stays with the error recorded
+select test.eq('the third refusal in a row keeps the subscription, with the error', (select count(*) || '/' || max(refusals) || '/' || max(last_error) from push_subscriptions where user_id = test.id('pu_admin')), '1/3/HTTP 403');
+delete from push_subscriptions where user_id = test.id('pu_admin');
 
 -- ================================================================== the switch and privileges
 create temp table pu_s as select id, push_enabled from program_settings;

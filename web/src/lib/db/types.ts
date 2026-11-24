@@ -20685,6 +20685,7 @@ export type Database = {
           gift_rental_max_days: number;
           gift_card_min_card_cents: number;
           gift_voucher_max_cents: number;
+          booking_licence_before_payment: boolean;
         };
         Insert: {
           id?: string;
@@ -21654,6 +21655,7 @@ export type Database = {
           gift_rental_max_days?: number;
           gift_card_min_card_cents?: number;
           gift_voucher_max_cents?: number;
+          booking_licence_before_payment?: boolean;
         };
         Update: {
           id?: string;
@@ -22623,6 +22625,7 @@ export type Database = {
           gift_rental_max_days?: number;
           gift_card_min_card_cents?: number;
           gift_voucher_max_cents?: number;
+          booking_licence_before_payment?: boolean;
         };
         Relationships: [];
       };
