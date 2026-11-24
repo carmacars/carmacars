@@ -53,14 +53,14 @@ alter table program_settings alter column request_sales_after_minutes set defaul
 update program_settings set request_sales_after_minutes = 30 where request_sales_after_minutes = 15;
 
 create function app.r49_business_hours(p_now timestamptz default now()) returns boolean
-language sql stable set search_path = public, app as $$
+language sql stable set search_path = public, app, pg_temp as $$
   select extract(hour from p_now at time zone 'America/Toronto') between 8 and 20
 $$;
 
 -- the To do waits for the morning outside business hours
 alter function app.job_requests_open_to_sales(timestamptz) rename to job_requests_open_to_sales_pre3462;
 create function app.job_requests_open_to_sales(p_now timestamptz default now()) returns integer
-language plpgsql security definer set search_path = public, app as $$
+language plpgsql security definer set search_path = public, app, pg_temp as $$
 begin
   if not app.r49_business_hours(p_now) then return 0; end if;
   return app.job_requests_open_to_sales_pre3462(p_now);
@@ -75,7 +75,7 @@ on conflict (task_type) do nothing;
 
 -- ================================================================ the job
 create function app.job_r49_notices(p_now timestamptz default now()) returns integer
-language plpgsql security definer set search_path = public, app as $$
+language plpgsql security definer set search_path = public, app, pg_temp as $$
 declare
   s program_settings := app.settings(app.local_date(p_now));
   v_today date := app.local_date(p_now);
@@ -153,7 +153,7 @@ grant execute on function app.job_r49_notices(timestamptz), app.r49_business_hou
 
 -- ================================================================ 4. refunds paid or failed
 create function app.ntf_r49_refunds() returns trigger
-language plpgsql security definer set search_path = public, app as $$
+language plpgsql security definer set search_path = public, app, pg_temp as $$
 begin
   if new.status in ('paid', 'failed') and (tg_op = 'INSERT' or old.status is distinct from new.status) then
     perform app.ntf_emit(case when new.status = 'paid' then 'staff_refund_issued' else 'staff_refund_failed' end, 'refund', new.id, new.status,
@@ -162,7 +162,17 @@ begin
   end if;
   return null;
 end $$;
+revoke all on function app.ntf_r49_refunds() from public, anon, authenticated;
+grant execute on function app.ntf_r49_refunds() to service_role;
 create trigger refunds_r49_notify after insert or update of status on refunds for each row execute function app.ntf_r49_refunds();
+
+-- the staff notice for 'balance_digest' is about a list (no page of its own): the alert's own page is used (kind 'list', as the other digests)
+alter function app.alert_entity_kind(text) rename to alert_entity_kind_pre3462;
+create function app.alert_entity_kind(p_entity text) returns text
+language sql immutable set search_path = public, app, pg_temp as $$
+  select case p_entity when 'balance_digest' then 'list' else app.alert_entity_kind_pre3462(p_entity) end
+$$;
+select pg_temp.copy_grants('app.alert_entity_kind(text)'::regprocedure, 'app.alert_entity_kind_pre3462(text)'::regprocedure);
 
 -- ================================================================ the schedule
 do $$

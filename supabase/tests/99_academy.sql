@@ -75,7 +75,7 @@ select test.eq('passed once counts on every path with that section (Admin path t
 -- ================================================================ 4. Admin: progress, early opening, editing
 select test.ok('progress lists the staff member with a section passed', exists (
   select 1 from jsonb_array_elements(public.door(test.id('acd_admin'), 'aal2', 'admin_read', 'academy_progress', '{}') -> 'staff') x
-   where x ->> 'id' = test.id('acd_cs')::text and (x ->> 'passed')::int = 1));
+   where x ->> 'id' = test.id('acd_cs')::text and (x ->> 'passed')::int = 1 + (select count(*) from academy_path_sections ps join academy_sections s on s.id = ps.section_id where s.optional and ps.path_code = any (app.academy_paths_of(test.id('acd_cs'))))));  -- an optional section (3601) counts as passed
 select test.throws('progress is for Admins',
   format($s$select public.door(%L, 'aal2', 'admin_read', 'academy_progress', '{}')$s$, test.id('acd_cs')), 'Admins only');
 select test.throws('opening early needs a reason',

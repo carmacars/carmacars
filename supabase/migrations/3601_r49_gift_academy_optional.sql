@@ -6,7 +6,7 @@ comment on column academy_sections.optional is 'Release 49 (3601): an optional s
 update academy_sections set optional = true where slug = 'r49-gift-cards';
 
 create or replace function app.academy_passed(p_user uuid, p_section uuid) returns boolean
-language sql stable security definer set search_path = public, app as $$
+language sql stable security definer set search_path = public, app, pg_temp as $$
   select exists (select 1 from academy_sections s where s.id = p_section and s.optional)
       or exists (select 1 from academy_attempts a where a.user_id = p_user and a.section_id = p_section and a.passed
                     and a.created_at > app.academy_since(p_user, p_section))

@@ -4,11 +4,11 @@
 -- card balance, a booking that ends unpaid, Admin's vouchers and voids, Finance's read. Fixtures start with "gx".
 select test.suite('99 r49 gift cards');
 
-select test.mk_user('gx_admin', 'admin');
-select test.mk_user('gx_fin', 'va', 'finance');
-select test.mk_user('gx_buyer', 'renter');
-select test.mk_user('gx_other', 'renter');
-update staff_profiles set single_limit_cents = 500000 where user_id = test.id('gx_fin');
+select test.mk_user('gcx_admin', 'admin');
+select test.mk_user('gcx_fin', 'va', 'finance');
+select test.mk_user('gcx_buyer', 'renter');
+select test.mk_user('gcx_other', 'renter');
+update staff_profiles set single_limit_cents = 500000 where user_id = test.id('gcx_fin');
 
 create table test.gx (k text primary key, v jsonb);
 grant all on test.gx to public;
@@ -23,14 +23,14 @@ create function test.gx_pay(p text) returns jsonb language sql as $$
 
 -- ================================================================ 1. buying
 select test.throws('a card sold for money never expires (Ontario)',
-  $$insert into gift_cards (code, kind, status, initial_cents, buyer_user_id, recipient_name, expires_at) values ('CCGC-AAAA-BBBB-CCCC', 'purchased', 'active', 1000, test.id('gx_buyer'), 'X', now() + interval '1 year')$$,
+  $$insert into gift_cards (code, kind, status, initial_cents, buyer_user_id, recipient_name, expires_at) values ('CCGC-AAAA-BBBB-CCCC', 'purchased', 'active', 1000, test.id('gcx_buyer'), 'X', now() + interval '1 year')$$,
   'gift_cards_no_expiry_when_sold');
-select test.throws('an amount under the minimum is refused', $$select app.gift_order_create(test.id('gx_buyer'), '{"amount_cents":1000,"recipient_name":"Jo","recipient_email":"jo.gx@example.test"}')$$, 'Choose an amount');
-select test.throws('an amount in cents is refused', $$select app.gift_order_create(test.id('gx_buyer'), '{"amount_cents":5050,"recipient_name":"Jo","recipient_email":"jo.gx@example.test"}')$$, 'whole dollars');
-select test.throws('the recipient email is needed', $$select app.gift_order_create(test.id('gx_buyer'), '{"amount_cents":5000,"recipient_name":"Jo","recipient_email":"jo"}')$$, 'recipient''s email');
+select test.throws('an amount under the minimum is refused', $$select app.gift_order_create(test.id('gcx_buyer'), '{"amount_cents":1000,"recipient_name":"Jo","recipient_email":"jo.gx@example.test"}')$$, 'Choose an amount');
+select test.throws('an amount in cents is refused', $$select app.gift_order_create(test.id('gcx_buyer'), '{"amount_cents":5050,"recipient_name":"Jo","recipient_email":"jo.gx@example.test"}')$$, 'whole dollars');
+select test.throws('the recipient email is needed', $$select app.gift_order_create(test.id('gcx_buyer'), '{"amount_cents":5000,"recipient_name":"Jo","recipient_email":"jo"}')$$, 'recipient''s email');
 
-insert into test.gx select 'g1', app.gift_order_create(test.id('gx_buyer'), '{"amount_cents":15000,"recipient_name":"Jo Gift","recipient_email":"Jo.GX@Example.test","message":"Happy birthday","buyer_name":"Sam Buyer"}');
-select test.eq('a second press is the same order', (app.gift_order_create(test.id('gx_buyer'), '{"amount_cents":15000,"recipient_name":"Jo Gift","recipient_email":"jo.gx@example.test","message":"Happy birthday","buyer_name":"Sam Buyer"}') ->> 'id')::uuid, test.gxid('g1'));
+insert into test.gx select 'g1', app.gift_order_create(test.id('gcx_buyer'), '{"amount_cents":15000,"recipient_name":"Jo Gift","recipient_email":"Jo.GX@Example.test","message":"Happy birthday","buyer_name":"Sam Buyer"}');
+select test.eq('a second press is the same order', (app.gift_order_create(test.id('gcx_buyer'), '{"amount_cents":15000,"recipient_name":"Jo Gift","recipient_email":"jo.gx@example.test","message":"Happy birthday","buyer_name":"Sam Buyer"}') ->> 'id')::uuid, test.gxid('g1'));
 select test.eq('an order waits for payment with no balance', (test.gxg('g1')).status || '/' || (test.gxg('g1')).balance_cents, 'pending_payment/0');
 select test.ok('the code is in the stored form', (test.gxg('g1')).code ~ '^CCGC-[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$');
 select app.gift_order_intent(test.gxid('g1'), 'pi_g1');
@@ -58,7 +58,7 @@ select test.eq('the printable card opens with its token only', (public.server_gi
   and public.server_gift_card_view(repeat('0', 64)) is null, true);
 
 -- a later send date: nothing to the recipient until that day, then the gift and the buyer's notice
-insert into test.gx select 'g2', app.gift_order_create(test.id('gx_buyer'), jsonb_build_object('amount_cents', 5000, 'recipient_name', 'Lee Later',
+insert into test.gx select 'g2', app.gift_order_create(test.id('gcx_buyer'), jsonb_build_object('amount_cents', 5000, 'recipient_name', 'Lee Later',
   'recipient_email', 'lee.gx@example.test', 'send_on', ((now() at time zone 'America/Toronto')::date + 3)::text));
 select app.gift_order_intent(test.gxid('g2'), 'pi_g2');
 select test.gx_pay('g2');
@@ -80,19 +80,19 @@ select test.throws('the table refuses a negative balance too', $$update gift_car
 
 -- ================================================================ 3. adding a code
 select test.eq('a code as typed (lower case, spaces for dashes)', app.gift_code_norm(lower(replace((test.gxg('g1')).code, '-', ' '))), (test.gxg('g1')).code);
-select test.throws('an unknown code', $$select app.gift_card_claim(test.id('gx_buyer'), 'CCGC-ZZZZ-ZZZZ-ZZZZ')$$, 'do not know this code');
+select test.throws('an unknown code', $$select app.gift_card_claim(test.id('gcx_buyer'), 'CCGC-ZZZZ-ZZZZ-ZZZZ')$$, 'do not know this code');
 
 -- ================================================================ 4. Sign and pay
 do $$
 begin
-  insert into test.gx select 'car', app.vehicle_add(test.id('gx_admin'), jsonb_build_object('supply_type', 'company', 'vin', '1XFCXMM0000009G01',
+  insert into test.gx select 'car', app.vehicle_add(test.id('gcx_admin'), jsonb_build_object('supply_type', 'company', 'vin', '1XFCXMM0000009G01',
     'plate', 'GX001', 'year', 2024, 'make', 'Kia', 'model', 'K5', 'rates', jsonb_build_object('daily', 10000, 'weekend', 10000, 'weekly', 70000, 'monthly', 300000, 'deposit', 30000)));
 end $$;
 create function test.gxb(p text) returns bookings language sql stable security definer as $$
   select * from public.bookings where id = coalesce((test.gxv(p) ->> 'booking_id')::uuid, (test.gxv(p) ->> 'id')::uuid) $$;
 create function test.gxu(p text) returns uuid language sql stable security definer as $$ select r.user_id from public.renters r where r.id = (test.gxb(p)).renter_id $$;
 create function test.gx_offer(p_email text, p_mobile text, p_from interval) returns jsonb language sql as $$
-  select app.door(test.id('gx_admin'), 'aal2', 'ops_do', 'offer_create', jsonb_build_object('vehicle_id', (test.gxv('car') ->> 'vehicle_id')::uuid,
+  select app.door(test.id('gcx_admin'), 'aal2', 'ops_do', 'offer_create', jsonb_build_object('vehicle_id', (test.gxv('car') ->> 'vehicle_id')::uuid,
     'pickup_at', date_trunc('hour', now()) + p_from, 'return_at', date_trunc('hour', now()) + p_from + interval '3 days',
     'renter', jsonb_build_object('full_name', 'Gia Renter', 'email', p_email, 'mobile', p_mobile, 'date_of_birth', '1990-05-06'),
     'coverage_option', 1, 'sales_choice', 'sourced', 'channels', jsonb_build_object('email', false, 'text', false), 'notify', false)) $$;
@@ -120,15 +120,15 @@ select test.gx_ready('b1');
 select test.eq('the booking waits for payment', (test.gxb('b1')).status::text, 'pending_payment');
 -- a purchased card (not tied to an address) belongs to whoever adds the code first: here Jo passed it to the renter
 select test.eq('the renter adds the code', app.gift_card_claim(test.gxu('b1'), (test.gxg('g1')).code) ->> 'ok', 'true');
-select test.throws('then it is theirs alone', $$select app.gift_card_claim(test.id('gx_other'), (test.gxg('g1')).code)$$, 'another account');
+select test.throws('then it is theirs alone', $$select app.gift_card_claim(test.id('gcx_other'), (test.gxg('g1')).code)$$, 'another account');
 select test.eq('my gift cards: one, with its balance', (app.my_gift_cards(test.gxu('b1')) ->> 'balance_cents')::bigint, 15000::bigint);
-select test.eq('the buyer sees the gifts they sent', jsonb_array_length(app.my_gift_cards(test.id('gx_buyer')) -> 'sent'), 2);
+select test.eq('the buyer sees the gifts they sent', jsonb_array_length(app.my_gift_cards(test.id('gcx_buyer')) -> 'sent'), 2);
 
 create temp table gx_due as select (test.gxb('b1')).renter_due_at_booking_cents due, (test.gxb('b1')).deposit_cents dep;
 grant all on gx_due to public;
 select test.ok('the booking owes more than the card (the test needs a part paid by card)', (select due from gx_due) > 15000);
 select test.eq('Sign and pay lists the card', (app.gift_booking_state((test.gxb('b1')).id, test.gxu('b1')) #>> '{cards,0,balance_cents}')::bigint, 15000::bigint);
-select test.throws('another person cannot apply it', $$select app.gift_booking_apply((test.gxb('b1')).id, test.id('gx_other'), test.gxid('g1'))$$, 'Booking not found');
+select test.throws('another person cannot apply it', $$select app.gift_booking_apply((test.gxb('b1')).id, test.id('gcx_other'), test.gxid('g1'))$$, 'Booking not found');
 select test.eq('applied: all of the balance, the rest by card',
   (select (s ->> 'applied_cents') || '/' || (s ->> 'card_due_cents') from (select app.gift_booking_apply((test.gxb('b1')).id, test.gxu('b1'), test.gxid('g1')) s) x),
   '15000/' || ((select due from gx_due) - 15000));
@@ -153,12 +153,12 @@ select test.ok('the holder is told what was used', test.gx_events('g1') like '%r
 
 -- ================================================================ 5. a refund goes back to the gift card first
 insert into refunds (booking_id, payment_id, reason, refund_bps, amount_cents, status, requested_by, note)
-select b.id, (select p.id from payments p where p.booking_id = b.id and p.method = 'card' and p.kind = 'charge'), 'goodwill', null, 20000, 'pending_approval', test.id('gx_admin'), 'gx goodwill'
+select b.id, (select p.id from payments p where p.booking_id = b.id and p.method = 'card' and p.kind = 'charge'), 'goodwill', null, 20000, 'pending_approval', test.id('gcx_admin'), 'gx goodwill'
   from bookings b where b.id = (test.gxb('b1')).id;
 select test.eq('split: the gift card part and the card part',
   (select string_agg(p.method || ':' || r.amount_cents || ':' || r.status, ',' order by p.method) from refunds r join payments p on p.id = r.payment_id where r.booking_id = (test.gxb('b1')).id),
   'card:5000:pending_approval,gift_card:15000:pending_approval');
-update refunds set status = 'approved', approved_by = test.id('gx_admin') where booking_id = (test.gxb('b1')).id and gift_split_of is null;
+update refunds set status = 'approved', approved_by = test.id('gcx_admin') where booking_id = (test.gxb('b1')).id and gift_split_of is null;
 select test.eq('approved: the gift card part is paid back to the balance at once, the card part waits for the processor',
   (select string_agg(p.method || ':' || r.status, ',' order by p.method) from refunds r join payments p on p.id = r.payment_id where r.booking_id = (test.gxb('b1')).id),
   'card:approved,gift_card:paid');
@@ -170,7 +170,7 @@ select test.eq('no card-refund email for the gift card part', (select count(*)::
   join payments p on p.id = r.payment_id where e.code = 'renter_refund_issued' and p.method = 'gift_card'), 0);
 select test.throws('a gift card refund is never more than the gift card paid',
   $$insert into refunds (booking_id, payment_id, reason, amount_cents, status, approved_by, gift_split_of)
-    select (test.gxb('b1')).id, p.id, 'goodwill', 1, 'approved', test.id('gx_admin'), null from payments p where p.booking_id = (test.gxb('b1')).id and p.method = 'gift_card' and p.kind = 'charge'$$,
+    select (test.gxb('b1')).id, p.id, 'goodwill', 1, 'approved', test.id('gcx_admin'), null from payments p where p.booking_id = (test.gxb('b1')).id and p.method = 'gift_card' and p.kind = 'charge'$$,
   'more than the gift cards paid');
 
 -- ================================================================ 6. a booking that ends unpaid gives the balance back
@@ -185,7 +185,7 @@ update bookings set status = 'cancelled' where id = (test.gxb('b2')).id;
 select test.eq('cancelled unpaid: the balance is back', (test.gxg('g1')).balance_cents, 15000::bigint);
 
 -- ================================================================ 7. fully paid by gift card (a saved card stays for the deposit)
-insert into test.gx select 'g3', app.gift_card_issue(test.id('gx_admin'), jsonb_build_object('type', 'amount', 'amount_cents', 100000, 'reason', 'Service recovery after a breakdown',
+insert into test.gx select 'g3', app.gift_card_issue(test.id('gcx_admin'), jsonb_build_object('type', 'amount', 'amount_cents', 100000, 'reason', 'Service recovery after a breakdown',
   'recipient_email', 'gia.gx@example.test', 'recipient_name', 'Gia Renter', 'expires_on', ((now() at time zone 'America/Toronto')::date + 90)::text));
 select test.eq('a voucher given free may end', (test.gxg('g3')).expires_at is not null and (test.gxg('g3')).kind = 'voucher', true);
 select test.eq('the voucher is emailed and Finance and Admins are told', test.gx_events('g3'), 'staff_gift_card_sold,renter_gift_card_delivered');
@@ -202,40 +202,40 @@ select test.eq('one gift card payment, no processor behind it',
 select test.eq('the deposit is still the deposit', (test.gxb('b3')).deposit_cents > 0 and (test.gxb('b3')).status = 'confirmed', true);
 
 -- ================================================================ 8. Admin and Finance
-select test.ok('Finance reads the gift cards and the liability', (app.door(test.id('gx_fin'), 'aal2', 'ops_read', 'gift_cards', '{}') #>> '{summary,liability_cents}')::bigint >= 20000);
+select test.ok('Finance reads the gift cards and the liability', (app.door(test.id('gcx_fin'), 'aal2', 'ops_read', 'gift_cards', '{}') #>> '{summary,liability_cents}')::bigint >= 20000);
 select test.eq('the liability counts cards sold for money, not vouchers',
   app.gift_liability_cents() - (select coalesce(sum(balance_cents), 0) from gift_cards where status = 'active' and kind in ('purchased', 'gifted_rental')), 0::bigint);
-select test.eq('search by the last four', (select count(*)::integer from jsonb_array_elements(app.door(test.id('gx_fin'), 'aal2', 'ops_read', 'gift_cards', jsonb_build_object('q', (test.gxg('g1')).code_last4)) -> 'rows') r
+select test.eq('search by the last four', (select count(*)::integer from jsonb_array_elements(app.door(test.id('gcx_fin'), 'aal2', 'ops_read', 'gift_cards', jsonb_build_object('q', (test.gxg('g1')).code_last4)) -> 'rows') r
   where (r ->> 'id')::uuid = test.gxid('g1')), 1);
-select test.ok('the balance history', jsonb_array_length(app.door(test.id('gx_fin'), 'aal2', 'ops_read', 'gift_card_history', jsonb_build_object('id', test.gxid('g1'))) -> 'history') >= 5);
-select test.throws('Finance does not issue vouchers', $$select app.door(test.id('gx_fin'), 'aal2', 'ops_do', 'gift_card_issue', '{"type":"amount","amount_cents":1000,"reason":"Nice"}')$$, 'Only an Admin');
-select test.throws('Finance does not void', $$select app.door(test.id('gx_fin'), 'aal2', 'ops_do', 'gift_card_void', jsonb_build_object('id', test.gxid('g2'), 'reason', 'Fraud'))$$, 'Only an Admin');
-select test.throws('a renter reads nothing', $$select app.gift_cards_admin(test.id('gx_buyer'), '{}')$$, 'Finance and Admins');
-select test.throws('a void needs a reason', $$select app.gift_card_void(test.id('gx_admin'), jsonb_build_object('id', test.gxid('g2')))$$, 'why');
-insert into test.gx select 'void', app.door(test.id('gx_admin'), 'aal2', 'admin_do', 'gift_card_void', jsonb_build_object('id', test.gxid('g2'), 'reason', 'Paid with a stolen card'));
+select test.ok('the balance history', jsonb_array_length(app.door(test.id('gcx_fin'), 'aal2', 'ops_read', 'gift_card_history', jsonb_build_object('id', test.gxid('g1'))) -> 'history') >= 5);
+select test.throws('Finance does not issue vouchers', $$select app.door(test.id('gcx_fin'), 'aal2', 'ops_do', 'gift_card_issue', '{"type":"amount","amount_cents":1000,"reason":"Nice"}')$$, 'Only an Admin');
+select test.throws('Finance does not void', $$select app.door(test.id('gcx_fin'), 'aal2', 'ops_do', 'gift_card_void', jsonb_build_object('id', test.gxid('g2'), 'reason', 'Fraud'))$$, 'Only an Admin');
+select test.throws('a renter reads nothing', $$select app.gift_cards_admin(test.id('gcx_buyer'), '{}')$$, 'Finance and Admins');
+select test.throws('a void needs a reason', $$select app.gift_card_void(test.id('gcx_admin'), jsonb_build_object('id', test.gxid('g2')))$$, 'why');
+insert into test.gx select 'void', app.door(test.id('gcx_admin'), 'aal2', 'admin_do', 'gift_card_void', jsonb_build_object('id', test.gxid('g2'), 'reason', 'Paid with a stolen card'));
 select test.eq('voided: the balance taken off, with who and why',
   (test.gxv('void') ->> 'voided_cents') || '/' || (test.gxg('g2')).status || '/' || (test.gxg('g2')).balance_cents || '/' || (test.gxg('g2')).void_reason,
   '5000/voided/0/Paid with a stolen card');
 select test.ok('Admins and Finance are told at once', test.gx_events('g2') like '%staff_gift_card_voided%');
-select test.ok('the void is audited', exists (select 1 from audit_log where entity_table = 'gift_cards' and entity_id = test.gxid('g2')::text and actor_user_id = test.id('gx_admin')));
-select test.throws('a voided card is not added', $$select app.gift_card_claim(test.id('gx_other'), (test.gxg('g2')).code)$$, 'cancelled');
-insert into test.gx select 'pct', app.gift_card_issue(test.id('gx_admin'), '{"type":"percent","percent_bps":1500,"max_uses":20,"code":"GXSPRING","reason":"Spring campaign"}');
+select test.ok('the void is audited', exists (select 1 from audit_log where entity_table = 'gift_cards' and entity_id = test.gxid('g2')::text and actor_user_id = test.id('gcx_admin')));
+select test.throws('a voided card is not added', $$select app.gift_card_claim(test.id('gcx_other'), (test.gxg('g2')).code)$$, 'cancelled');
+insert into test.gx select 'pct', app.gift_card_issue(test.id('gcx_admin'), '{"type":"percent","percent_bps":1500,"max_uses":20,"code":"GXSPRING","reason":"Spring campaign"}');
 select test.eq('a percentage voucher is a promo code with its limits',
   (select pc.percent_bps || '/' || pc.max_uses || '/' || pc.source from promo_codes pc where pc.code = test.gxv('pct') ->> 'code'), '1500/20/admin_voucher');
-select test.ok('the percentage voucher is audited', exists (select 1 from audit_log where action = 'voucher_issued' and entity_table = 'promo_codes' and actor_user_id = test.id('gx_admin')));
+select test.ok('the percentage voucher is audited', exists (select 1 from audit_log where action = 'voucher_issued' and entity_table = 'promo_codes' and actor_user_id = test.id('gcx_admin')));
 
 -- ================================================================ 9. the gifted rental is tied to its recipient
 insert into test.gx select 'pub', to_jsonb(l) from (select vehicle_id, year, make, model from public_vehicle_listings order by slug limit 1) l;
-insert into test.gx select 'g4', app.gift_order_create(test.id('gx_buyer'), jsonb_build_object('kind', 'gifted_rental', 'vehicle_id', (test.gxv('pub') ->> 'vehicle_id')::uuid,
+insert into test.gx select 'g4', app.gift_order_create(test.id('gcx_buyer'), jsonb_build_object('kind', 'gifted_rental', 'vehicle_id', (test.gxv('pub') ->> 'vehicle_id')::uuid,
   'days', 3, 'recipient_name', 'Ray Rental', 'recipient_email', 'ray.gx@example.test'));
 select test.ok('priced with the site''s own quote', (test.gxg('g4')).initial_cents = (app.gift_rental_price((test.gxv('pub') ->> 'vehicle_id')::uuid, 3) ->> 'amount_cents')::bigint
   and (test.gxg('g4')).rental_text = format('3 days in the %s %s %s', test.gxv('pub') ->> 'year', test.gxv('pub') ->> 'make', test.gxv('pub') ->> 'model'));
-select test.throws('a car not on the site is not gifted', $$select app.gift_order_create(test.id('gx_buyer'), jsonb_build_object('kind', 'gifted_rental', 'vehicle_id', (test.gxv('car') ->> 'vehicle_id')::uuid,
+select test.throws('a car not on the site is not gifted', $$select app.gift_order_create(test.id('gcx_buyer'), jsonb_build_object('kind', 'gifted_rental', 'vehicle_id', (test.gxv('car') ->> 'vehicle_id')::uuid,
   'days', 3, 'recipient_name', 'Ray', 'recipient_email', 'ray.gx@example.test'))$$, 'not available to gift');
 select app.gift_order_intent(test.gxid('g4'), 'pi_g4');
 select test.gx_pay('g4');
-select test.throws('another account cannot add a gifted rental', $$select app.gift_card_claim(test.id('gx_other'), (test.gxg('g4')).code)$$, 'another email address');
-select test.throws('more days than allowed', $$select app.gift_order_create(test.id('gx_buyer'), jsonb_build_object('kind', 'gifted_rental', 'vehicle_id', (test.gxv('pub') ->> 'vehicle_id')::uuid,
+select test.throws('another account cannot add a gifted rental', $$select app.gift_card_claim(test.id('gcx_other'), (test.gxg('g4')).code)$$, 'another email address');
+select test.throws('more days than allowed', $$select app.gift_order_create(test.id('gcx_buyer'), jsonb_build_object('kind', 'gifted_rental', 'vehicle_id', (test.gxv('pub') ->> 'vehicle_id')::uuid,
   'days', 99, 'recipient_name', 'Ray', 'recipient_email', 'ray.gx@example.test'))$$, 'Choose 1 to');
 
 -- ================================================================ 10. the emails go through the pipeline

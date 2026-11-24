@@ -468,6 +468,14 @@ begin
   end if;
 end $$;
 
+-- the staff notice for 'bank_line' opens the Finance bank lines list (kind 'list'), as the other staff notices about a list
+alter function app.alert_entity_kind(text) rename to alert_entity_kind_pre3480;
+create function app.alert_entity_kind(p_entity text) returns text
+language sql immutable set search_path = public, app, pg_temp as $$
+  select case p_entity when 'bank_line' then 'list' else app.alert_entity_kind_pre3480(p_entity) end
+$$;
+select pg_temp.copy_grants('app.alert_entity_kind(text)'::regprocedure, 'app.alert_entity_kind_pre3480(text)'::regprocedure);
+
 -- ================================================================ the notice's values
 insert into notification_catalogue (code, audience, also_sent_to, category, is_digest, digest_slot, from_address, reply_to, subject, preheader, timing, trigger_text,
     link_path, variables, template_html, template_text, emitted_by)

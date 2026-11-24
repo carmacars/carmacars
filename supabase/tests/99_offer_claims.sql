@@ -156,7 +156,7 @@ select test.ok('Today: the "Answer the request" line says who is answering it', 
 -- ================================================================ 6. Sales wait for customer service first
 select test.ok('Sales: a request just in waits for customer service', (test.ocl_state('ocl_sales', 'OCL-5') ->> 'sales_waits')::boolean
   and (test.ocl_state('ocl_sales', 'OCL-5') ->> 'sales_text') like 'Open to Sales at % if nobody answers');
-select test.ok('Sales: the list says when it opens to them', (select (x ->> 'sales_waits')::boolean and (x ->> 'sales_opens_at')::timestamptz between now() + interval '14 minutes' and now() + interval '16 minutes'
+select test.ok('Sales: the list says when it opens to them', (select (x ->> 'sales_waits')::boolean and (x ->> 'sales_opens_at')::timestamptz between now() + interval '29 minutes' and now() + interval '31 minutes'
   from jsonb_array_elements(test.ocl('ocl_sales', 'va_read', 'requests')) x where x ->> 'booking_number' = 'OCL-5'));
 select test.ok('Sales: opening it does not claim it', (test.ocl_claim('ocl_sales', 'OCL-5') -> 'claim') = 'null'::jsonb);
 select test.throws('Sales: cannot send the offer yet', $$select test.ocl_va('ocl_sales', 'send_offer', 'OCL-5')$$, '%it opens to Sales at % if nobody answers it.');
@@ -165,17 +165,21 @@ select test.throws('Sales: nor take it over', $$select test.ocl_claim('ocl_sales
 select test.ok('Sales: customer service sees the same note but may answer', (test.ocl_state('ocl_cs', 'OCL-5') ->> 'sales_waits') = 'false' and (test.ocl_state('ocl_cs', 'OCL-5') ->> 'sales_text') is not null);
 select test.ok('Sales: a request staff entered has no wait', (test.ocl_state('ocl_sales', 'OCL-7') ->> 'sales_waits') = 'false' and (test.ocl_state('ocl_sales', 'OCL-7') -> 'sales_opens_at') = 'null'::jsonb);
 select test.eq('Sales: no task before it opens', (select count(*) from tasks where booking_id = test.oclb('OCL-5') and task_type = 'request_open_to_sales'), 0::bigint);
+-- 3462: the Sales To do is raised in business hours only (8 am to 9 pm Toronto); outside them the job waits for the morning, so the job runs at now, or at the next noon
+create function test.ocl_business_now() returns timestamptz language sql stable as $$
+  select case when app.r49_business_hours(now()) then now()
+              else ((date_trunc('day', now() at time zone 'America/Toronto') + case when extract(hour from now() at time zone 'America/Toronto') < 8 then interval '12 hours' else interval '36 hours' end) at time zone 'America/Toronto') end $$;
 select app.job_requests_open_to_sales(now());
 select test.eq('Sales: still none before the wait is over', (select count(*) from tasks where booking_id = test.oclb('OCL-5') and task_type = 'request_open_to_sales'), 0::bigint);
 -- a claim that ran out does not restart the wait
 select test.ocl_claim('ocl_cs', 'OCL-5');
 update request_claims set expires_at = now() - interval '1 minute' where booking_id = test.oclb('OCL-5');
-update bookings set requested_at = now() - interval '16 minutes' where id = test.oclb('OCL-5');
+update bookings set requested_at = now() - interval '31 minutes' where id = test.oclb('OCL-5');
 select test.ok('Sales: once the wait is over it is open to them (the claim that ran out does not restart it)', (test.ocl_state('ocl_sales', 'OCL-5') ->> 'sales_waits') = 'false');
-select app.job_requests_open_to_sales(now());
+select app.job_requests_open_to_sales(test.ocl_business_now());
 select test.ok('Sales: a task in the Sales queue tells them it is open', exists (select 1 from tasks where booking_id = test.oclb('OCL-5') and task_type = 'request_open_to_sales'
   and queue = 'sales' and status = 'open' and title like 'Answer Ocl R''s request for %: open to Sales now'));
-select app.job_requests_open_to_sales(now());
+select app.job_requests_open_to_sales(test.ocl_business_now());
 select test.eq('Sales: one task, however often the job runs', (select count(*) from tasks where booking_id = test.oclb('OCL-5') and task_type = 'request_open_to_sales'), 1::bigint);
 select test.eq('Sales: they take it like anyone', (test.ocl_claim('ocl_sales', 'OCL-5') #>> '{claim,mine}'), 'true');
 select test.ok('Sales: the takeover of the expired claim is logged', exists (select 1 from booking_events where booking_id = test.oclb('OCL-5') and kind = 'claim_taken_over' and actor_user_id = test.id('ocl_sales')));
@@ -192,7 +196,7 @@ select test.throws('after the wait: nor take it over', $$select test.ocl_claim('
 select test.eq('after the wait: an Admin can take it over', (test.ocl_claim('ocl_admin', 'OCL-8', 'takeover') #>> '{claim,mine}'), 'true');
 update program_settings set request_sales_after_minutes = 0;
 select test.ok('setting: 0 opens a request to Sales at once', (test.ocl_state('ocl_sales', 'OCL-2') ->> 'sales_waits') = 'false');
-update program_settings set request_sales_after_minutes = 15;
+update program_settings set request_sales_after_minutes = 30;  -- 3462: the wait is 30 minutes
 
 -- ================================================================ 6b. an in-person Sales assistant with a $0 single limit (2026-10-28)
 -- The owner: an in-person Sales person opening a website request could not press anything, could not see the renter's phone
@@ -203,7 +207,7 @@ select test.mk_user('ocl_sales_ip', 'va', 'sales');
 update staff_profiles set single_limit_cents = 0 where user_id = test.id('ocl_sales_ip');
 select test.mk_vehicle('OCLI', 'ocl_o');
 select test.mk_booking('OCL-9', 'OCLI', 'ocl_r', test.ocl_day(14), test.ocl_day(16), 'requested');
-update bookings set requested_at = now() - interval '30 minutes' where id = test.oclb('OCL-9');
+update bookings set requested_at = now() - interval '31 minutes' where id = test.oclb('OCL-9');
 select test.eq('in person: the Sales assistant is in person with a $0 single limit',
   (select sales_work_mode || '/' || single_limit_cents from staff_profiles where user_id = test.id('ocl_sales_ip')), 'in_person/0');
 select test.ok('in person: the renter''s email and mobile reach the Sales page (the mobile masked for Sales, 0970)',

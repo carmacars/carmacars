@@ -11,7 +11,7 @@ $$ select public.door(test.id(p_user), 'aal2', p_call, p_name, p) $$;
 -- the first lesson of customer service's first section (open to them), and a lesson of a later section (not open yet)
 create temp table r37l as
   select (select l.id from academy_path_sections ps join academy_lessons l on l.section_id = ps.section_id where ps.path_code = 'cs' order by ps.sort, l.sort limit 1) first_l,
-         (select l.id from academy_path_sections ps join academy_lessons l on l.section_id = ps.section_id where ps.path_code = 'cs' order by ps.sort desc, l.sort limit 1) later_l;
+         (select l.id from academy_path_sections ps join academy_sections s on s.id = ps.section_id and not s.optional join academy_lessons l on l.section_id = ps.section_id where ps.path_code = 'cs' order by ps.sort desc, l.sort limit 1) later_l;  -- not an optional section (3601): it counts as passed, so it is always open
 create function pg_temp.p(p_lesson uuid, p_ext text default 'mp4') returns jsonb language sql as
 $$ select jsonb_build_object('lesson', p_lesson, 'path', 'academy/videos/' || p_lesson || '/' || gen_random_uuid() || '.' || p_ext,
      'mime', 'video/' || p_ext, 'seconds', 64.5, 'bytes', 3000000) $$;
