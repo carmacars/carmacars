@@ -1,0 +1,37 @@
+CarmaCars  |  Owner agreement {{agreement_number}}
+
+========================================
+
+[Step 2 of 6]
+Your {{agreement_title}} is ready
+
+Hi {{first_name}}, it is filled in from your profile and our standard terms. Sign it once now, before any car comes over.
+
+Agreement: {{agreement_title}} {{agreement_number}}
+Signing as: {{signer}}
+
+Read and sign:
+{{sign_url}}
+
+1. Sign the agreement
+   On screen, about two minutes. CarmaCars countersigns at the same moment.
+2. Add your cars
+   One at a time or as a list of VINs. Each car is added to Schedule A of your agreement, and you confirm each batch with one signature.
+3. Photos and inspection, then approval and delivery
+   We check each car, approve it and you hand it over. Your portal shows the next step every time.
+
+Something wrong in it? Fix it in your profile and the agreement updates before you sign, or reply to this email.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

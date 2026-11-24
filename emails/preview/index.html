@@ -21,8 +21,8 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>269 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>109</span></a><a href="#owner">Owner <span>58</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>21</span></a><a href="#staff_va_finance">Staff: finance <span>15</span></a><a href="#staff_va_fleet">Staff: fleet <span>13</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>8</span></a><a href="#staff_field">Staff: field <span>13</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>14</span></a><a href="#partner">Partner (body shop, tow truck, storage) <span>1</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>274 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>109</span></a><a href="#owner">Owner <span>62</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>21</span></a><a href="#staff_va_finance">Staff: finance <span>15</span></a><a href="#staff_va_fleet">Staff: fleet <span>14</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>8</span></a><a href="#staff_field">Staff: field <span>13</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>14</span></a><a href="#partner">Partner (body shop, tow truck, storage) <span>1</span></a></nav>
 <main>
 <h2 id="renter">Renter (109)</h2>
 <div class="grid">
@@ -681,7 +681,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/text_fell_back.html">HTML</a><a href="../dist/text_fell_back.txt">Text</a><a href="../shots/text_fell_back.desktop.png">Desktop</a><a href="../shots/text_fell_back.phone.png">Phone</a></div>
 </div></div>
 </div>
-<h2 id="owner">Owner (58)</h2>
+<h2 id="owner">Owner (62)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/document_signing_code.html"><img loading="lazy" src="../shots/document_signing_code.desktop.png" alt="Screenshot of document_signing_code"></a><div class="b">
 <div class="code">document_signing_code</div><div class="sub">Your CarmaCars signing code: 482913</div>
@@ -754,6 +754,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">A booking of type owner (an Owner Booking: the owner driving their own vehicle) changes to confirmed, after the owner signs the Owner Rental agreement and staff confirm the licence is valid.</div>
 <div class="ln"><a href="../dist/owner_booking_confirmed.html">HTML</a><a href="../dist/owner_booking_confirmed.txt">Text</a><a href="../shots/owner_booking_confirmed.desktop.png">Desktop</a><a href="../shots/owner_booking_confirmed.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_car_delivered.html"><img loading="lazy" src="../shots/owner_car_delivered.desktop.png" alt="Screenshot of owner_car_delivered"></a><div class="b">
+<div class="code">owner_car_delivered</div><div class="sub">Approved: your 2021 Toyota Camry is on the lease from Tue, Nov 24, 2026</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Sign first (r50, migration 3800): a fleet supplier's car is approved and goes on the lease (app.fleet_lease_car_set), by an Admin or by itself when the supplier signed after an Admin approved it. Once per car.</div>
+<div class="ln"><a href="../dist/owner_car_delivered.html">HTML</a><a href="../dist/owner_car_delivered.txt">Text</a><a href="../shots/owner_car_delivered.desktop.png">Desktop</a><a href="../shots/owner_car_delivered.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/owner_car_photos_ready.html"><img loading="lazy" src="../shots/owner_car_photos_ready.desktop.png" alt="Screenshot of owner_car_photos_ready"></a><div class="b">
 <div class="code">owner_car_photos_ready</div><div class="sub">Your 2023 Toyota RAV4 XLE has new studio photos</div>
@@ -887,6 +893,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tr">A rental of the owner's car is still out 2 hours (late_admin_minutes) after its return time with no paid extension (r49, app.job_r49_notices, every 5 minutes), once per return time. Sent only when the booking counts toward the owner's revenue (app.owner_mail_booking). Not for Owner Bookings, Turo trips or an insurer rental with no known end date. The return itself is told by owner_trip_completed.</div>
 <div class="ln"><a href="../dist/owner_late_return.html">HTML</a><a href="../dist/owner_late_return.txt">Text</a><a href="../shots/owner_late_return.desktop.png">Desktop</a><a href="../shots/owner_late_return.phone.png">Phone</a></div>
 </div></div>
+<div class="c"><a class="th" href="../dist/owner_master_agreement_ready.html"><img loading="lazy" src="../shots/owner_master_agreement_ready.desktop.png" alt="Screenshot of owner_master_agreement_ready"></a><div class="b">
+<div class="code">owner_master_agreement_ready</div><div class="sub">Sign your Fleet Supplier Lease Agreement: your first step with CarmaCars</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Sign first (r50, migration 3800, app.owner_master_ensure): the owner's profile is complete (the legal or corporation name, the address and, for a corporation, the signing officer) and their master agreement is made from it: the Fleet Supplier Lease Agreement with the Title-Holding and Lease Agreement for a fleet supplier, the Vehicle Enrollment Agreement (or the Flat-Rate one) for a program owner. No car is needed. Once per agreement; the backfill of 3800 sends it to every owner it made one for.</div>
+<div class="ln"><a href="../dist/owner_master_agreement_ready.html">HTML</a><a href="../dist/owner_master_agreement_ready.txt">Text</a><a href="../shots/owner_master_agreement_ready.desktop.png">Desktop</a><a href="../shots/owner_master_agreement_ready.phone.png">Phone</a></div>
+</div></div>
 <div class="c"><a class="th" href="../dist/owner_mode_change_notice.html"><img loading="lazy" src="../shots/owner_mode_change_notice.desktop.png" alt="Screenshot of owner_mode_change_notice"></a><div class="b">
 <div class="code">owner_mode_change_notice</div><div class="sub">Notice of a change to the Management Mode of your 2023 Toyota RAV4 XLE, from Fri, Jan 15, 2027</div>
 <div class="tags"><span>Transactional</span></div>
@@ -959,11 +971,23 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tr">Owner rewards (release 48, migration 3262), to an owner in the Vehicle Owner Program, once per event: a merch kit ready to redeem (6 months) or the premium kit (12 months); a kit redeemed (on our list to ship) and shipped; a free upgrade request received, approved (with its code) or declined (with the reason); the credit for referring an owner (once their car has been live 30 days); the birthday rental credit; a friend's rental confirmed with the owner's code; a credit added by an Admin. The type &quot;Owner rewards&quot; on the owner's Notifications tab switches it per channel.</div>
 <div class="ln"><a href="../dist/owner_reward_update.html">HTML</a><a href="../dist/owner_reward_update.txt">Text</a><a href="../shots/owner_reward_update.desktop.png">Desktop</a><a href="../shots/owner_reward_update.phone.png">Phone</a></div>
 </div></div>
+<div class="c"><a class="th" href="../dist/owner_schedule_ready.html"><img loading="lazy" src="../shots/owner_schedule_ready.desktop.png" alt="Screenshot of owner_schedule_ready"></a><div class="b">
+<div class="code">owner_schedule_ready</div><div class="sub">Confirm 2 cars added to your Schedule A</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Sign first (r50, migration 3800): cars an owner (or staff for them) added after the master agreement was signed are on Schedule A as new numbered entries, and the short schedule confirmation (the Additional Vehicle Schedule) waits for the owner's e-signature. Once per batch of cars added together; the government forms of each car are made at the same moment.</div>
+<div class="ln"><a href="../dist/owner_schedule_ready.html">HTML</a><a href="../dist/owner_schedule_ready.txt">Text</a><a href="../shots/owner_schedule_ready.desktop.png">Desktop</a><a href="../shots/owner_schedule_ready.phone.png">Phone</a></div>
+</div></div>
 <div class="c"><a class="th" href="../dist/owner_schedule_resign.html"><img loading="lazy" src="../shots/owner_schedule_resign.desktop.png" alt="Screenshot of owner_schedule_resign"></a><div class="b">
 <div class="code">owner_schedule_resign</div><div class="sub">Please sign the updated Vehicle Schedule for the 2023 Toyota RAV4 XLE</div>
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">An Admin changes the terms of a car whose Vehicle Schedule is signed and confirms that the owner must sign an updated one (Admin &gt; the owner &gt; Terms). The new terms apply from their date only once the owner signs; until then the signed terms stay in place.</div>
 <div class="ln"><a href="../dist/owner_schedule_resign.html">HTML</a><a href="../dist/owner_schedule_resign.txt">Text</a><a href="../shots/owner_schedule_resign.desktop.png">Desktop</a><a href="../shots/owner_schedule_resign.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_sign_reminder.html"><img loading="lazy" src="../shots/owner_sign_reminder.desktop.png" alt="Screenshot of owner_sign_reminder"></a><div class="b">
+<div class="code">owner_sign_reminder</div><div class="sub">Reminder: Your Fleet Supplier Lease Agreement waits for your signature</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Sign first (r50, migration 3800): an Admin or Fleet presses Send reminder where the owner's page lists what is missing (or the Admin connector's send_owner_agreement_reminder is confirmed). Lists what still waits for the owner: the master agreement, a Schedule A confirmation, or the profile values the agreement needs. At most once in 10 minutes per owner.</div>
+<div class="ln"><a href="../dist/owner_sign_reminder.html">HTML</a><a href="../dist/owner_sign_reminder.txt">Text</a><a href="../shots/owner_sign_reminder.desktop.png">Desktop</a><a href="../shots/owner_sign_reminder.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/owner_statement_ready.html"><img loading="lazy" src="../shots/owner_statement_ready.desktop.png" alt="Screenshot of owner_statement_ready"></a><div class="b">
 <div class="code">owner_statement_ready</div><div class="sub">Your November statement: $1,922.25</div>
@@ -1275,7 +1299,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/staff_toll_ticket_unmatched.html">HTML</a><a href="../dist/staff_toll_ticket_unmatched.txt">Text</a><a href="../shots/staff_toll_ticket_unmatched.desktop.png">Desktop</a><a href="../shots/staff_toll_ticket_unmatched.phone.png">Phone</a></div>
 </div></div>
 </div>
-<h2 id="staff_va_fleet">Staff: fleet (13)</h2>
+<h2 id="staff_va_fleet">Staff: fleet (14)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/staff_border_alert.html"><img loading="lazy" src="../shots/staff_border_alert.desktop.png" alt="Screenshot of staff_border_alert"></a><div class="b">
 <div class="code">staff_border_alert</div><div class="sub">Left Canada: 2024 Honda Civic Sport (CC-7F3A)</div>
@@ -1348,6 +1372,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span><span class="d">Digest</span></div>
 <div class="tr">The listing similarity check finds a likely duplicate that stops publishing: a VIN one character from another car, the same plate, the same listing photo as a listed car, listing text very like a listed car (listing_similarity_copy_bps in Program settings), Queued for the next Fleet digest; a Fleet task is raised with it.</div>
 <div class="ln"><a href="../dist/staff_listing_similarity.html">HTML</a><a href="../dist/staff_listing_similarity.txt">Text</a><a href="../shots/staff_listing_similarity.desktop.png">Desktop</a><a href="../shots/staff_listing_similarity.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_owner_signed.html"><img loading="lazy" src="../shots/staff_owner_signed.desktop.png" alt="Screenshot of staff_owner_signed"></a><div class="b">
+<div class="code">staff_owner_signed</div><div class="sub">Northshore Holdings Ltd. signed: Fleet Supplier Lease Agreement EA-1042</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Sign first (r50, migration 3800): an owner e-signed their master agreement or a Schedule A confirmation (CarmaCars countersigned at once). Tells Fleet and the Admins what comes next: approve the cars, or that an approval waiting for this signature went through by itself. Immediate.</div>
+<div class="ln"><a href="../dist/staff_owner_signed.html">HTML</a><a href="../dist/staff_owner_signed.txt">Text</a><a href="../shots/staff_owner_signed.desktop.png">Desktop</a><a href="../shots/staff_owner_signed.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/staff_pound_flag.html"><img loading="lazy" src="../shots/staff_pound_flag.desktop.png" alt="Screenshot of staff_pound_flag"></a><div class="b">
 <div class="code">staff_pound_flag</div><div class="sub">AT A POUND: 2024 Honda Civic Sport (CC-7F3A) at Example Towing and Storage</div>

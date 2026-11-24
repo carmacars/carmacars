@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 269,
+  "count": 274,
   "emails": [
     {
       "code": "account_password_reset",
@@ -12682,6 +12682,97 @@
       "template_text": "templates/owner_booking_confirmed.txt"
     },
     {
+      "code": "owner_car_delivered",
+      "audience": "owner",
+      "category": "transactional",
+      "trigger": "Sign first (r50, migration 3800): a fleet supplier's car is approved and goes on the lease (app.fleet_lease_car_set), by an Admin or by itself when the supplier signed after an Admin approved it. Once per car.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <owners@carmacars.ca>",
+      "reply_to": "owners@carmacars.ca",
+      "subject": "Approved: your {{vehicle_name}} is on the lease from {{delivered_on}}",
+      "preheader": "{{tier}} car, {{monthly_amount}} a month. First payment {{first_payment_on}}.",
+      "sample_subject": "Approved: your 2021 Toyota Camry is on the lease from Tue, Nov 24, 2026",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "delivered_on",
+          "type": "string",
+          "sample": "Tue, Nov 24, 2026"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Daniel",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "first_payment_on",
+          "type": "string",
+          "sample": "Thu, Jan 10, 2027"
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "monthly_amount",
+          "type": "string",
+          "sample": "$580.00"
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tier",
+          "type": "string",
+          "sample": "Regular"
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2021 Toyota Camry",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/owner_car_delivered.html",
+      "template_text": "templates/owner_car_delivered.txt"
+    },
+    {
       "code": "owner_car_photos_ready",
       "audience": "owner",
       "category": "transactional",
@@ -15063,6 +15154,91 @@
       "template_text": "templates/owner_late_return.txt"
     },
     {
+      "code": "owner_master_agreement_ready",
+      "audience": "owner",
+      "category": "transactional",
+      "trigger": "Sign first (r50, migration 3800, app.owner_master_ensure): the owner's profile is complete (the legal or corporation name, the address and, for a corporation, the signing officer) and their master agreement is made from it: the Fleet Supplier Lease Agreement with the Title-Holding and Lease Agreement for a fleet supplier, the Vehicle Enrollment Agreement (or the Flat-Rate one) for a program owner. No car is needed. Once per agreement; the backfill of 3800 sends it to every owner it made one for.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <owners@carmacars.ca>",
+      "reply_to": "owners@carmacars.ca",
+      "subject": "Sign your {{agreement_title}}: your first step with CarmaCars",
+      "preheader": "It is filled in from your profile. Sign it now; then add your cars.",
+      "sample_subject": "Sign your Fleet Supplier Lease Agreement: your first step with CarmaCars",
+      "variables": [
+        {
+          "name": "agreement_number",
+          "type": "string",
+          "sample": "EA-1042"
+        },
+        {
+          "name": "agreement_title",
+          "type": "string",
+          "sample": "Fleet Supplier Lease Agreement"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Daniel",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "sign_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/owner/sign"
+        },
+        {
+          "name": "signer",
+          "type": "string",
+          "sample": "Nora Example, Director, for Northshore Holdings Ltd."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/owner_master_agreement_ready.html",
+      "template_text": "templates/owner_master_agreement_ready.txt"
+    },
+    {
       "code": "owner_mode_change_notice",
       "audience": "owner",
       "category": "transactional",
@@ -16484,6 +16660,96 @@
       "template_text": "templates/owner_reward_update.txt"
     },
     {
+      "code": "owner_schedule_ready",
+      "audience": "owner",
+      "category": "transactional",
+      "trigger": "Sign first (r50, migration 3800): cars an owner (or staff for them) added after the master agreement was signed are on Schedule A as new numbered entries, and the short schedule confirmation (the Additional Vehicle Schedule) waits for the owner's e-signature. Once per batch of cars added together; the government forms of each car are made at the same moment.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <owners@carmacars.ca>",
+      "reply_to": "owners@carmacars.ca",
+      "subject": "Confirm {{car_count}} added to your Schedule A",
+      "preheader": "{{car_list}}. One signature confirms them.",
+      "sample_subject": "Confirm 2 cars added to your Schedule A",
+      "variables": [
+        {
+          "name": "agreement_number",
+          "type": "string",
+          "sample": "EA-1042"
+        },
+        {
+          "name": "agreement_title",
+          "type": "string",
+          "sample": "Fleet Supplier Lease Agreement"
+        },
+        {
+          "name": "car_count",
+          "type": "string",
+          "sample": "2 cars"
+        },
+        {
+          "name": "car_list",
+          "type": "string",
+          "sample": "2021 Toyota Camry (Q33A), 2020 Honda Civic (Q33B)"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Daniel",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "sign_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/owner/sign"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/owner_schedule_ready.html",
+      "template_text": "templates/owner_schedule_ready.txt"
+    },
+    {
       "code": "owner_schedule_resign",
       "audience": "owner",
       "category": "transactional",
@@ -16589,6 +16855,91 @@
       ],
       "template_html": "templates/owner_schedule_resign.html",
       "template_text": "templates/owner_schedule_resign.txt"
+    },
+    {
+      "code": "owner_sign_reminder",
+      "audience": "owner",
+      "category": "transactional",
+      "trigger": "Sign first (r50, migration 3800): an Admin or Fleet presses Send reminder where the owner's page lists what is missing (or the Admin connector's send_owner_agreement_reminder is confirmed). Lists what still waits for the owner: the master agreement, a Schedule A confirmation, or the profile values the agreement needs. At most once in 10 minutes per owner.",
+      "timing": "When staff press Send reminder",
+      "digest": false,
+      "from": "CarmaCars <owners@carmacars.ca>",
+      "reply_to": "owners@carmacars.ca",
+      "subject": "Reminder: {{what}} waits for your signature",
+      "preheader": "Your cars move once it is signed. About two minutes, on screen.",
+      "sample_subject": "Reminder: Your Fleet Supplier Lease Agreement waits for your signature",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "cta",
+          "type": "string",
+          "sample": "Read and sign"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Daniel",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "missing_text",
+          "type": "string",
+          "sample": "Sign the Fleet Supplier Lease Agreement (EA-1042)"
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "sign_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/owner/sign"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "what",
+          "type": "string",
+          "sample": "Your Fleet Supplier Lease Agreement"
+        }
+      ],
+      "template_html": "templates/owner_sign_reminder.html",
+      "template_text": "templates/owner_sign_reminder.txt"
     },
     {
       "code": "owner_statement_ready",
@@ -21905,6 +22256,52 @@
       ],
       "template_html": "templates/staff_listing_similarity.html",
       "template_text": "templates/staff_listing_similarity.txt"
+    },
+    {
+      "code": "staff_owner_signed",
+      "audience": "staff_va_fleet",
+      "also_sent_to": [
+        "staff_admin"
+      ],
+      "category": "transactional",
+      "trigger": "Sign first (r50, migration 3800): an owner e-signed their master agreement or a Schedule A confirmation (CarmaCars countersigned at once). Tells Fleet and the Admins what comes next: approve the cars, or that an approval waiting for this signature went through by itself. Immediate.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <owners@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "{{owner_name}} signed: {{what}}",
+      "preheader": "{{next_step}}",
+      "sample_subject": "Northshore Holdings Ltd. signed: Fleet Supplier Lease Agreement EA-1042",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "next_step",
+          "type": "string",
+          "sample": "Approve the 2 cars on the application."
+        },
+        {
+          "name": "owner_id",
+          "type": "string",
+          "sample": "o-1b2c3d"
+        },
+        {
+          "name": "owner_name",
+          "type": "string",
+          "sample": "Northshore Holdings Ltd."
+        },
+        {
+          "name": "what",
+          "type": "string",
+          "sample": "Fleet Supplier Lease Agreement EA-1042"
+        }
+      ],
+      "template_html": "templates/staff_owner_signed.html",
+      "template_text": "templates/staff_owner_signed.txt"
     },
     {
       "code": "staff_pound_flag",
