@@ -386,7 +386,7 @@
      "Every car page shows photos: a car whose own photos are all inside shots shows a representative photo of its model first, then its own photos"
     ],
     "admins": [
-     "The connector approves an owner's cars with their terms (a fleet supplier's car goes on the lease with its agreement and forms to sign), puts a car on the fleet lease, and reads an owner's agreements and forms",
+     "The connector approves an owner's cars with their terms (a fleet supplier's car goes on the lease with its agreement and forms to sign) and puts a car on the fleet lease",
      "Cards run on the new processor: set its keys as in docs/ops/helcim-setup.md. Until then cards are off and renters pay by e-Transfer.",
      "The connector reads the new processor (its account, its payments, and records one a booking missed); add_expense and list_expenses know whose money paid.",
      "Studio renders are made again across the fleet: a photo step that timed out or was refused three times is flagged on Photo standard with the reason instead of being tried for ever, so the other cars' renders go ahead",

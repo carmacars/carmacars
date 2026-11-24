@@ -7,8 +7,7 @@
 --      (app.application_approve_plan). The preview shows that plan and changes nothing.
 --   2. fleet_lease_car_set {vehicle, tier, delivered_on?, reason?} (admin:write): puts a fleet supplier's car on the lease
 --      (app.fleet_lease_car_set, its own preview mode for the preview), as Put on the lease on the owner's Fleet lease card.
---   3. owner_agreements {owner} (admin:read): the owner's agreements checklist, the government forms with their signing
---      status, and the fleet lease, each with its Admin link.
+--   (owner_agreements, the read, comes with r50-owners.)
 -- Every write is a preview, then a confirm with the same arguments and the preview_id (api_previews), logged in api_calls.
 -- Security definer functions run with search_path public, app, pg_temp; the server role alone executes them. SCHEMA_MARKER
 -- 3730. No applied migration is edited.
@@ -38,7 +37,7 @@ create function app.api_call(p_hash text, p_tool text, p_args jsonb, p_client te
 language plpgsql security definer set search_path = public, app, pg_temp as $$
 declare
   a jsonb := case when jsonb_typeof(p_args) = 'object' then p_args else '{}'::jsonb end;
-  v_write boolean := p_tool <> 'owner_agreements';
+  v_write boolean := true;
   chk jsonb;
   k api_keys;
   v_args jsonb;
@@ -46,13 +45,12 @@ declare
   pv api_previews;
   v_plan jsonb;
   v_cars jsonb;
-  v_owner uuid;
   v_vehicle uuid;
   v_will jsonb;
   v_result jsonb;
-  v_target text := left(coalesce(nullif(a ->> 'application', ''), nullif(a ->> 'vehicle', ''), nullif(a ->> 'owner', ''), p_tool), 200);
+  v_target text := left(coalesce(nullif(a ->> 'application', ''), nullif(a ->> 'vehicle', ''), p_tool), 200);
 begin
-  if p_tool not in ('approve_owner_car', 'fleet_lease_car_set', 'owner_agreements') then return app.api_call_pre3730(p_hash, p_tool, p_args, p_client); end if;
+  if p_tool not in ('approve_owner_car', 'fleet_lease_car_set') then return app.api_call_pre3730(p_hash, p_tool, p_args, p_client); end if;
   chk := app.api_key_check(p_hash, case when v_write then 'admin:write' else 'admin:read' end, p_tool, a, p_client);
   if not (chk ->> 'ok')::boolean then return chk; end if;
   k := jsonb_populate_record(null::api_keys, chk -> 'key');
@@ -61,14 +59,7 @@ begin
   v_args := a - 'confirm' - 'preview_id';
   begin
     perform app.assert_admin(k.user_id);
-    if p_tool = 'owner_agreements' then
-      select o.id into v_owner from owners o where o.id::text = coalesce(v_args ->> 'owner', '') or lower(o.email) = lower(btrim(coalesce(v_args ->> 'owner', '')));
-      if v_owner is null then raise exception 'owner: the owner''s id or email' using errcode = 'P0002'; end if;
-      v_result := jsonb_build_object('owner_id', v_owner, 'admin_path', '/admin/owners/' || v_owner,
-        'agreements', app.owner_agreements_checklist(k.user_id, jsonb_build_object('owner', v_owner)),
-        'government_forms', app.government_forms_list(k.user_id, jsonb_build_object('owner_id', v_owner)),
-        'fleet_lease', case when app.fleet_supplier(v_owner) then app.fleet_lease_read(k.user_id, jsonb_build_object('owner', v_owner)) end);
-    else
+    begin
       -- the target and what the confirm would do (the same checks run again on the confirm)
       if p_tool = 'approve_owner_car' then
         if nullif(v_args ->> 'application', '') is null then raise exception 'application: the owner''s application id (the page /admin/applications/<id>)' using errcode = '22023'; end if;
@@ -111,7 +102,7 @@ begin
           perform app.fleet_supplier_car_forms(v_vehicle);
         end if;
       end if;
-    end if;
+    end;
   exception when others then
     insert into api_calls (key_id, user_id, tool, target, args, ok, error, client) values (k.id, k.user_id, p_tool, v_target, v_args, false, left(sqlerrm, 500), left(p_client, 64));
     return jsonb_build_object('ok', false, 'status', case sqlstate when 'P0002' then 404 when '42501' then 403 else 400 end, 'error', regexp_replace(sqlerrm, '^.*?ERROR:\s*', ''));

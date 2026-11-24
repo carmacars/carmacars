@@ -1,7 +1,7 @@
 -- 99: the Admin connector approves an owner's cars and puts a fleet supplier's car on the lease (migration 3730, release 50).
 -- approve_owner_car previews the plan, then approves through the door as the application page does (a fleet supplier's cars
 -- go on the lease at their tier, the Fleet Supplier Lease Agreement and the forms made); fleet_lease_car_set previews and
--- sets; owner_agreements reads the agreements and forms. Admins only, admin:write for the writes. Fixtures "q50".
+-- sets. Admins only, admin:write for the writes. Fixtures "q50".
 select test.suite('99 r50 connector owner cars');
 select set_config('app.paper_fixture', 'on', false);
 select test.mk_user('q50_admin', 'admin');
@@ -39,10 +39,5 @@ select test.eq('a car already on the lease is refused with the reason',
   test.q50call('q50-w', 'fleet_lease_car_set', '{"vehicle": "Q50A", "tier": "regular"}') ->> 'error', 'This car is on the lease already and its tier is fixed. An Admin corrects a tier entered by mistake');
 select test.eq('an unknown car', test.q50call('q50-w', 'fleet_lease_car_set', '{"vehicle": "NOPE50", "tier": "regular"}') ->> 'status', '404');
 
--- ================================================================ 3. owner_agreements
-select test.eq('read: the agreements, the forms and the lease, with the Admin link',
-  (select (x #>> '{result,admin_path}' = '/admin/owners/' || test.q50owner())::text || '/' || (jsonb_typeof(x #> '{result,agreements}') = 'array')::text || '/' || (x #> '{result,fleet_lease}' is not null)::text
-     from test.q50call('q50-r', 'owner_agreements', jsonb_build_object('owner', 'q50-north@example.test')) x), 'true/true/true');
-select test.eq('an unknown owner', test.q50call('q50-r', 'owner_agreements', '{"owner": "nobody@example.test"}') ->> 'status', '404');
 select test.ok('every call is logged', (select count(*) from api_calls c where c.tool like 'approve_owner_car%' and c.user_id = test.id('q50_admin')) >= 3);
 select test.eq('the other tools still go through', test.q50call('q50-r', 'helcim_account', '{}') #>> '{result,run}', 'helcim_account');
