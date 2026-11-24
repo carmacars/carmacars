@@ -215,7 +215,7 @@ export function GiftBuy({ facts, signedIn, buyerName, today }: { facts: GiftFact
             {field('from', 'From', { autoComplete: 'name', maxLength: 120, 'data-testid': 'gift-from' } as React.InputHTMLAttributes<HTMLInputElement>, 'The name they see on the gift.')}
           </div>
           {msg && <p className={`alert ${msg.kind === 'wait' ? 'alert--warn' : 'alert--error'}`} role="alert" data-testid="gift-form-message"><span>{msg.text}</span></p>}
-          <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={busy || (d.kind === 'gifted_rental' && pricing)} aria-busy={busy} data-testid="gift-continue">
+          <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={busy || (d.kind === 'gifted_rental' && pricing)} aria-busy={busy} title="Fill in the details above first" data-testid="gift-continue">
             {busy ? 'Getting the card form' : signedIn ? `Continue to pay ${amount ? money(amount, { cents: true }) : ''}`.trim() : 'Sign in to continue'}</button>
           {!signedIn && <p className="small muted">You sign in or create your account first, then come back here: what you typed is kept.</p>}
         </form>

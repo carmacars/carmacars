@@ -2,6 +2,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { money } from '@/lib/format';
+import { DateInput } from '@/components/DateInput';
 import { useDoor } from '@/features/admin/door';
 import { adminToast } from '@/features/admin/shell/toast';
 import { importPayload, readBankFile, totals, type BankFile } from './bank-file';
@@ -90,7 +91,7 @@ export function BankImport({ accounts, refresh }: { accounts: Account[]; refresh
               <div className="field ad-field"><label className="label" htmlFor="bi-bal">Balance shown in online banking ($)</label>
                 <input className="input" id="bi-bal" inputMode="decimal" value={balance} onChange={(e) => setBalance(e.target.value)} placeholder="Optional" /></div>
               <div className="field ad-field"><label className="label" htmlFor="bi-bal-on">Balance as at</label>
-                <input className="input" id="bi-bal-on" type="date" value={balanceOn} onChange={(e) => setBalanceOn(e.target.value)} /></div>
+                <DateInput className="input" id="bi-bal-on" type="date" value={balanceOn} onChange={(e) => setBalanceOn(e.target.value)} /></div>
             </div>
           ) : null}
           {file.parsed.warnings.map((w) => <p key={w} className="small muted">{w}</p>)}

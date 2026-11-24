@@ -297,7 +297,7 @@ export const RENTER_SECTIONS = [
         S('The endorsement page', 'The OPCF 27 endorsement page is a page of their policy with the OPCF 27 line. The example circles that line too.', chat(['renter', 'I sent my pink slip, it still says something is needed.'], ['you', 'We have your pink slip. We still need the OPCF 27 endorsement page of your policy: the line on your booking opens that upload.'])),
         S('A good photo', 'Flat, all four corners, no glare. A PDF works too.', steps('The photo', ['Put it flat', 'All four corners in the photo', 'No glare']))),
       L('When the card does not cover it',
-        S('The page says why', 'No rental damage cover, the car is over the card\'s value limit, the kind of car is left out, or the rental is too long. They pick another card, or choose OPCF 27 or the Protection Plan in the coverage choices.', rule('Card does not cover', 'Pick another card, or choose OPCF 27 on my own auto policy or the Protection Plan.', 'warn')),
+        S('The page says why', 'No rental damage cover, the car is over the card\'s value limit, the kind of car is left out, or the rental is too long. They choose OPCF 27 or the Protection Plan just below.', rule('Card does not cover', 'Use OPCF 27 on my policy instead, or Ask for the Protection Plan.', 'warn')),
         S('Never say covered', 'Only the card issuer decides a claim. Send them to the card coverage page and their issuer.', chat(['you', 'Your card issuer decides that. Please call the number on the back of your card about this car and these dates. If it is not covered, OPCF 27 or our Protection Plan work.'])))
     ],
     quiz: [
@@ -306,7 +306,7 @@ export const RENTER_SECTIONS = [
       Q('What do the example pictures next to the upload show?', ['Nothing', 'The parts that must show, circled: name, policy number, dates, insurer, the OPCF 27 line', 'The car\'s damage', 'The price'], 1, 'The parts that must show are circled.'),
       Q('When can a renter on OPCF 27 pay?', ['At once', 'Once both pages are uploaded', 'After pickup', 'Never'], 1, 'The payment opens once both pages are in.'),
       Q('Which option needs nothing uploaded for coverage?', ['OPCF 27', 'Credit card coverage', 'The CarmaCars Protection Plan', 'All of them'], 2, 'The Protection Plan is confirmed by us; no proof to upload.'),
-      Q('The card coverage check says the car is over the card\'s limit. What can the renter choose?', ['Nothing', 'OPCF 27 on their policy, or the Protection Plan', 'A cheaper card', 'Skip coverage'], 1, 'Pick another card, or choose OPCF 27 on my own auto policy or the Protection Plan.')
+      Q('The card coverage check says the car is over the card\'s limit. What can the renter choose?', ['Nothing', 'OPCF 27 on their policy, or the Protection Plan', 'A cheaper card', 'Skip coverage'], 1, 'Use OPCF 27 on my policy instead, or Ask for the Protection Plan.')
     ]
   },
   {

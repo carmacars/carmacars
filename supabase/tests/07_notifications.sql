@@ -909,6 +909,7 @@ select test.eq('G every wired email code has been built at least once in these t
       and c.code <> 'tracker_waitlist_joined' -- the GPS tracker waitlist email (3231), built in 99_r48seo_leads_trackers
       and c.code not in ('renter_tracker_notice', 'renter_driving_notice', 'owner_tracker_alert', 'staff_pound_flag', 'staff_border_alert') -- tracker events (3320), off for these suites, built in 99_r48trk_tracker_events
       and c.code not in ('owner_late_return', 'staff_request_open_to_sales', 'staff_balance_overdue_digest', 'staff_refund_issued', 'staff_refund_failed') -- the r49 notices (3462), built in 99_r49_notices
+      and c.code <> 'staff_bank_line_unmatched' -- the unmatched bank line (3480), built in 99_r49fin_finance
       and c.code <> 'staff_location_policy' -- the electronic monitoring policy copy (3350), built in 99_r48map_people
       and c.code not in ('notify_summary', 'owner_reward_update', 'owner_tracker_weekly', 'staff_reward_update') -- 3260 to 3262 and 3353, built in 99_r48rw_rewards_calendar_notify
       and c.code not in ('owner_use_charges', 'owner_insurance_late_fee') -- 3270 and 3271, queued in 99_r48rw_owner_money

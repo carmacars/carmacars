@@ -187,7 +187,7 @@ select test.eq('3 an offer 2 hours after it is sent', app.send_offer(test.oa('t2
 select app.withdraw_offer(test.oa('t2'), test.id('oa_cs'), 'test done');
 select test.eq('3 confirmation, calendar moves and extensions check the car under the vehicle lock (0019''s payment lock in finalize_booking; 0025 in the booking trigger)',
   (select prosrc ~ 'vehicle_free_locked' from pg_proc where proname = 'booking_before_write')
-  || '/' || (select prosrc ~ 'for no key update' from pg_proc where proname = 'finalize_booking')
+  || '/' || (select bool_or(prosrc ~ 'for no key update') from pg_proc where proname in ('finalize_booking', 'finalize_booking_pre3600')) -- 3600 wraps finalize_booking; the lock is in the function it renames
   || '/' || (select prosrc ~ 'for no key update' from pg_proc where proname = 'vehicle_free_locked'), 'true/true/true');
 select test.eq('3 always open: 2 opening hours from Sunday 03:00 is Sunday 05:00 (2030, before the 2032 hours a 09 test sets)',
   app.add_opening_minutes(test.at('2030-06-02 03:00'), 120) = test.at('2030-06-02 05:00'), true);

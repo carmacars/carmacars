@@ -350,6 +350,28 @@
      "Investors and partners have the same notification preferences on their portals; the app uses the same choices"
     ]
    }
+  },
+  "r49": {
+   "date": "2026-11-23",
+   "seq": 0,
+   "summary": "Gift cards and gifted rentals, a Finance dashboard with every bank line matched, automatic checks that every event has its message and the guides match the app, and overdue and late-return notices.",
+   "sections": {
+    "renters": [
+     "Give a CarmaCars gift card or a gifted rental from the footer's Gift cards: any amount, emailed with your message on the day you choose, and it never expires. Got one? Add the code under Rewards, Gift cards; on Sign and pay the balance is used before your card."
+    ],
+    "admins": [
+     "Finance (Company, first tab): cash in the bank and at Stripe with the payouts on the way, free cash after deposits, payouts, refunds and HST, money in and out of the month, HST for the quarter, renter balances overdue, insurer invoices by age and twelve months of money in and out",
+     "Bank lines: drop the RBC download (CSV or OFX); each line is kept once, matched by itself to its card processor payout, payment, payout or expense when one record fits, and the rest becomes a To do for Finance",
+     "Money > Gift cards: what is owed on gift cards, every card and its history; issue a voucher (an amount or a percentage), void with a reason, resend."
+    ],
+    "staff": [
+     "Finance has the same Finance page under Money, with the bank import and the matching of bank lines",
+     "Finance: Money > Gift cards: the liability outstanding and every card's balance history."
+    ],
+    "owners": [
+     "Owners are told once when their car is 2 hours late coming back"
+    ]
+   }
   }
  }
 }

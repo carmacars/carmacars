@@ -25,7 +25,7 @@ export function ClaimGiftCard({ initial }: { initial: string }) {
     <form className="gc-claim" onSubmit={go} noValidate aria-label="Add a gift card">
       <div className="field"><label className="label" htmlFor="gc-claim-code">Add a gift card code</label>
         <input className="input gc-code-input" id="gc-claim-code" value={code} onChange={(e) => setCode(e.target.value)} placeholder="CCGC-XXXX-XXXX-XXXX" autoComplete="off" autoCapitalize="characters" spellCheck={false} enterKeyHint="done" data-testid="gift-claim-code" /></div>
-      <button className="btn btn--primary" type="submit" disabled={busy || !code.trim()} aria-busy={busy} data-testid="gift-claim">{busy ? 'Adding' : 'Add'}</button>
+      <button className="btn btn--primary" type="submit" disabled={busy || !code.trim()} aria-busy={busy} title="Type the code from your gift card email first" data-testid="gift-claim">{busy ? 'Adding' : 'Add'}</button>
       {msg && <p className={`alert gc-claim__msg ${msg.kind === 'ok' ? 'alert--ok' : 'alert--error'}`} role={msg.kind === 'ok' ? 'status' : 'alert'} data-testid="gift-claim-message"><span>{msg.text}</span></p>}
     </form>
   );

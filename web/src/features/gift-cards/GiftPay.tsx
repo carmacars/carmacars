@@ -76,7 +76,7 @@ export function GiftPay({ number, state, depositCents, coverageOption, debitOk }
                   return (
                     <li key={c.id} className="gc-pay__row">
                       <span className="gc-pay__card">{c.kind_label} ending <b>{c.code_last4}</b><small>{fmt(c.balance_cents)} balance{c.rental_text ? `, ${c.rental_text}` : ''}</small></span>
-                      <button type="button" className="btn btn--ghost btn--sm" onClick={() => apply(c.id)} disabled={!!busy || can <= 0} aria-busy={busy === c.id} data-testid="gift-apply">
+                      <button type="button" className="btn btn--ghost btn--sm" onClick={() => apply(c.id)} disabled={!!busy || can <= 0} aria-busy={busy === c.id} title="Nothing is left to pay with this card" data-testid="gift-apply">
                         {busy === c.id ? 'Applying' : can > 0 ? `Use ${fmt(can)}` : 'Nothing left to pay'}</button>
                     </li>);
                 })}
@@ -85,7 +85,7 @@ export function GiftPay({ number, state, depositCents, coverageOption, debitOk }
               <form className="gc-pay__add" onSubmit={add} noValidate>
                 <div className="field"><label className="label" htmlFor="gc-code">Gift card code</label>
                   <input className="input gc-code-input" id="gc-code" value={code} onChange={(e) => setCode(e.target.value)} placeholder="CCGC-XXXX-XXXX-XXXX" autoComplete="off" autoCapitalize="characters" spellCheck={false} enterKeyHint="go" data-testid="gift-code" /></div>
-                <button className="btn btn--primary btn--sm" type="submit" disabled={!code.trim() || !!busy} aria-busy={busy === 'add'} data-testid="gift-code-add">{busy === 'add' ? 'Adding' : 'Add and use'}</button>
+                <button className="btn btn--primary btn--sm" type="submit" disabled={!code.trim() || !!busy} aria-busy={busy === 'add'} title="Type your gift card code first" data-testid="gift-code-add">{busy === 'add' ? 'Adding' : 'Add and use'}</button>
               </form>
             ) : <button type="button" className="link gc-pay__more" onClick={() => setAdding(true)} data-testid="gift-code-open">Have a gift card code?</button>}
             <p className="small" data-testid="gift-line">{giftLine(s, fmt) || 'The balance of a gift card is used before your card. It never pays the deposit.'}</p>
