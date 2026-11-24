@@ -252,3 +252,24 @@ test('3610: etransfer_check: two-step on admin:write, received or not_received, 
   assert.match(SQL3610, /pv\.args is distinct from v_args/);
   assert.match(SQL3610, /v_result := app\.etransfer_decide\(k\.user_id/);
 });
+
+// r50 (3800, 3810): sign first from the connector
+const SQL3800 = readFileSync(new URL('../../../../supabase/migrations/3800_r50ow_sign_first.sql', import.meta.url), 'utf8');
+const SQL3810 = readFileSync(new URL('../../../../supabase/migrations/3810_r50ow_owner_fixes.sql', import.meta.url), 'utf8');
+test('r50: owner_agreements reads (admin:read); send_owner_agreement_reminder and set_onboarding_method are two-step (admin:write); the database runs them', async () => {
+  const { OWNER_SIGN_TOOLS } = await import('./tools.ts');
+  const byName = Object.fromEntries(OWNER_SIGN_TOOLS.map((t) => [t.name, t]));
+  assert.ok(byName.owner_agreements?.readOnly && byName.owner_agreements.scope === 'admin:read');
+  assert.ok(byName.owner_documents_check?.readOnly && byName.owner_documents_check.scope === 'admin:read');
+  for (const n of ['send_owner_agreement_reminder', 'set_onboarding_method']) {
+    const t = byName[n]!;
+    assert.ok(!t.readOnly && t.scope === 'admin:write', n);
+    const props = (t.inputSchema as { properties: Record<string, unknown> }).properties;
+    assert.ok(props.confirm && props.preview_id, n);
+    assert.ok(TOOLS.includes(t), n);
+  }
+  assert.ok(!toolsFor(['admin:read']).some((x) => x.name === 'send_owner_agreement_reminder'), 'a read-only key cannot remind');
+  assert.match(SQL3800, /if p_tool not in \('owner_agreements', 'send_owner_agreement_reminder'\) then return app\.api_call_pre3800/);
+  assert.match(SQL3810, /if p_tool <> 'set_onboarding_method' then return app\.api_call_pre3810/);
+  assert.match(SQL3800 + SQL3810, /pv\.args is distinct from v_args/);
+});

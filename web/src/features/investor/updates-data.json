@@ -1,5 +1,29 @@
 [
  {
+  "release": "r50",
+  "title": "Release 50",
+  "date": "2026-11-24",
+  "seq": 0,
+  "summary": "Owners sign their agreement before any car comes over, with one guided path in the owner portal, and fixes to long-rental amounts, cars whose pickup was not recorded and the countersignature on signed forms.",
+  "areas": [
+   {
+    "area": "Owners",
+    "items": [
+     "Owners sign their agreement with CarmaCars before any car is handed over, guided step by step in their portal",
+     "A car is approved, delivered or rented only once its owner has signed for it",
+     "Long rentals show what each owner statement carried, and signed forms show the CarmaCars countersignature in its place"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "Staff see what each owner still has to sign and send a reminder in one tap",
+     "A rental whose pickup was not recorded keeps its car off new offers until it is recorded"
+    ]
+   }
+  ]
+ },
+ {
   "release": "r49",
   "title": "Release 49",
   "date": "2026-11-23",

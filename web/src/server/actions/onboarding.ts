@@ -130,7 +130,9 @@ export async function governmentFormEdit(p: { fill: string; field: string; targe
 }
 
 // ---------------------------------------------------------------- cars from a VIN list
-export interface VinRow { vin: string; ok: boolean; why?: string; year?: number; make?: string; model?: string; trim?: string; title_status?: string; finance_party_name?: string }
+export interface VinRow { vin: string; ok: boolean; why?: string; year?: number; make?: string; model?: string; trim?: string; title_status?: string; finance_party_name?: string;
+  /** r50 (3800): a fleet supplier's row: its tier and plate */
+  lease_tier?: string; plate?: string }
 export interface VinListResult { preview: boolean; rows: VinRow[]; good: number; bad: number; application_number?: string; vehicles?: Array<{ vehicle_id: string; vin: string }> }
 
 /** The preview: each VIN decoded once with the app's decoder (recorded, so it is never decoded twice), then checked by the database. */
@@ -157,7 +159,7 @@ export async function vinListPreview(ownerId: string, vins: string[]): Promise<R
 }
 
 /** Every good car made in one step (one application); the rows say which were not made and why. */
-export async function vinListCreate(ownerId: string, rows: Array<{ vin: string; title_status?: string; finance_party_name?: string }>, paths: string[] = []): Promise<R<VinListResult>> {
+export async function vinListCreate(ownerId: string, rows: Array<{ vin: string; title_status?: string; finance_party_name?: string; lease_tier?: string; plate?: string }>, paths: string[] = []): Promise<R<VinListResult>> {
   try {
     const u = await me();
     const r = await door<VinListResult>(u.id, u.doCall, 'owner_add_vins', { owner_id: ownerId, cars: rows.slice(0, VIN_LIST_MAX), preview: false }, u.aal);

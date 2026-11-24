@@ -16,6 +16,7 @@ import { ListFilters } from '@/features/list-filters/ListFilters';
 import { ChecklistItems, OwnerChecklist, type OwnerChecklistRow } from '@/features/manual/OwnerChecklist';
 import { AddOwnerForm } from '@/features/owner-billing/AddOwnerForm';
 import { AgreementsChecklist, openCount, type AgreementOwner } from '@/features/owner-agreements/AgreementsChecklist';
+import { DocumentCheck, type DocCheck } from '@/features/owner-path/DocumentCheck';
 import { SalesLeadsPage } from '@/features/sales-leads/pages';
 import { adminCtx } from '@/features/shared-pages/context';
 
@@ -28,6 +29,7 @@ export default async function AdminOwners({ searchParams }: { searchParams: Prom
   const [{ user }, sp] = await Promise.all([requireAdmin('/admin/owners'), searchParams]);
   if (sp.view === 'checklist') return <Checklists userId={user.id} show={sp.show === 'all' ? 'all' : 'open'} />;
   if (sp.view === 'agreements') return <Agreements userId={user.id} show={sp.show === 'all' ? 'all' : 'open'} />;
+  if (sp.view === 'documents') return <Documents userId={user.id} />;
   // r35 (0950): Owners > Leads, the lead list with owner leads only
   if (sp.view === 'leads') return <SalesLeadsPage ctx={await adminCtx('/admin/owners?view=leads')} sp={sp as Record<string, string | undefined>} base="/admin/sales-leads" listBase="/admin/owners?view=leads" type="owner" title="Owner leads"
     purpose="Owner program enquiries, owner applications started and not finished, owner form contacts and earnings calculator contacts. Assign them to Sales, claim one, and record the outcome: contacted, call booked, applied, won or lost." />;
@@ -43,7 +45,8 @@ export default async function AdminOwners({ searchParams }: { searchParams: Prom
     <>
       <PageHead title="Owners" purpose="Every owner with their cars, applications, terms and invoices.">
         <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/owners/add-car" data-testid="add-car-for-owner">Add a car for an owner</Link>
-        <Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/owners?view=agreements" data-testid="owners-agreements">Agreements</Link></PageHead>
+        <Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/owners?view=agreements" data-testid="owners-agreements">Agreements</Link>
+        <Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/owners?view=documents" data-testid="owners-documents">Document check</Link></PageHead>
       <DataIssuesCard userId={user.id} audience="owner" refresh="/admin/owners" />
       <ListFilters id="admin-owners" base="/admin/owners" sp={sp} search={{ placeholder: 'Name, email or car' }}
         chips={{ name: 'status', label: 'Needs', options: [['', `All (${every.length})`], ['terms', 'Terms to approve'], ['invoices', 'Invoices open'], ['no_account', 'Not invited yet']] }} />
@@ -110,6 +113,18 @@ async function Agreements({ userId, show }: { userId: string; show: 'open' | 'al
         ? <Link prefetch={false} className="link" href="/admin/owners?view=agreements">Show only those</Link>
         : <Link prefetch={false} className="link" href="/admin/owners?view=agreements&show=all">Show every owner</Link>}</p>
       <AgreementsChecklist rows={rows} refresh={['/admin/owners']} />
+    </>
+  );
+}
+
+// r50 (3820): Document check: what is still inconsistent on the owners' documents, by owner, with what fixes it.
+async function Documents({ userId }: { userId: string }) {
+  const data = await door<DocCheck>(userId, 'ops_read', 'owner_documents_check', {});
+  return (
+    <>
+      <PageHead title="Document check" purpose="Anything on an owner's agreements, schedules or forms that is inconsistent or empty, and what fixes it.">
+        <Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/owners">Owners</Link></PageHead>
+      <DocumentCheck data={data} />
     </>
   );
 }

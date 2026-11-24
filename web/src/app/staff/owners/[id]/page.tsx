@@ -11,6 +11,8 @@ import { OnboardingPhotos } from '@/features/onboarding/OnboardingPhotos';
 import { GovernmentForms } from '@/features/onboarding/GovernmentForms';
 import { VinList } from '@/features/onboarding/VinList';
 import { onboardingData } from '@/server/onboarding';
+import { SignGate } from '@/features/owner-path/SignGate';
+import type { SignStatus } from '@/features/owner-path/path';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Owner', path: '/staff/owners', noindex: true, description: 'One owner: the onboarding checklist, the photos, the government forms and adding cars.' });
@@ -22,7 +24,8 @@ export default async function StaffOwner({ params }: { params: Promise<{ id: str
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const { user } = await vaPage(`/staff/owners/${id}`, ['cs', 'fleet']);
-  const ob = await onboardingData(user.id, 'va_read', { owner_id: id });
+  // r50 (3800): what still keeps the cars from moving (the agreements before cars), with Send reminder
+  const [ob, sign] = await Promise.all([onboardingData(user.id, 'va_read', { owner_id: id }), door<SignStatus>(user.id, 'va_read', 'owner_sign_status', { owner_id: id }).catch(() => null)]);
   if (!ob.overview) notFound();
   const o = ob.overview.owner;
   const here = [`/staff/owners/${id}`];
@@ -32,13 +35,14 @@ export default async function StaffOwner({ params }: { params: Promise<{ id: str
   return (<>
     <PageHead kicker={<Link prefetch={false} className="link" href="/staff/owners">Owners</Link>} title={o.name}>
       <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/staff/owners/add-car?owner=${id}`} data-testid="owner-add-car">Add another car</Link></PageHead>
+    <SignGate status={sign} refresh={here} />
     <OnboardingChecklist data={ob.overview} />
     {preps.map(([c, x]) => x && <PrepPanel key={c.vehicle_id} p={x} vehicle={{ id: c.vehicle_id, name: c.name }} title={`Onboarding prep: ${c.name}`} />)}
     <div className="pt-split">
       <div className="stack-lg">
         <OnboardingPhotos photos={ob.photos} ownerId={id} viewer="staff" refresh={here} cars={cars} />
         <GovernmentForms data={ob.forms} viewer="staff" refresh={here} />
-        {!o.fleet_supplier && <details className="pt-card" id="add-vins"><summary className="link">Add cars from a list of VINs</summary><VinList ownerId={id} viewer="staff" refresh={here} /></details>}
+        <details className="pt-card" id="add-vins"><summary className="link">Add cars from a list of VINs</summary><VinList ownerId={id} viewer="staff" refresh={here} fleet={o.fleet_supplier} /></details>
       </div>
       <aside className="pt-split__aside stack-lg">
         <section className="pt-card stack" id="send-link" aria-labelledby="so-c"><h2 className="d4" id="so-c">Contact the owner</h2>

@@ -40,7 +40,10 @@ export function liveStatus(v: OwnerVehicle, bookings: OwnerBooking[], now = new 
   const blockedNow = bookings.some((b) => b.vehicle_id === v.vehicle_id && viewOf(b) === 'unavailable' && !['cancelled', 'no_show', 'returned', 'closed'].includes(b.status)
     && new Date(b.pickup_at).getTime() <= t && new Date(b.return_at).getTime() > t);
   if (blockedNow) return { key: 'unavailable', label: 'Unavailable', tone: 'muted' };
-  const onNow = bookings.some((b) => b.vehicle_id === v.vehicle_id && viewOf(b) !== 'unavailable' && (b.status === 'on_rent' || (RENTED.has(b.status) && b.status !== 'closed' && b.status !== 'returned' && new Date(b.pickup_at).getTime() <= t && new Date(b.return_at).getTime() > t)));
+  const onNow = bookings.some((b) => b.vehicle_id === v.vehicle_id && viewOf(b) !== 'unavailable' && (b.status === 'on_rent' || b.presumed_out || (RENTED.has(b.status) && b.status !== 'closed' && b.status !== 'returned' && new Date(b.pickup_at).getTime() <= t && new Date(b.return_at).getTime() > t)));
+  // r50 (3810): a confirmed rental whose pickup was never recorded: the car is out, not available
+  const presumed = v.status !== 'on_rent' && bookings.some((b) => b.vehicle_id === v.vehicle_id && b.presumed_out);
+  if (presumed) return { key: 'on_rent', label: 'Out (pickup not recorded)', tone: 'live' };
   if (v.status === 'on_rent' || onNow) return { key: 'on_rent', label: 'On rent', tone: 'live' };
   if (v.status === 'available' || v.status === 'ready_to_list') return { key: 'available', label: 'Available', tone: 'ready' };
   if (v.status === 'cleaning' || v.status === 'out_of_service') return { key: 'service', label: 'In service', tone: 'service' };

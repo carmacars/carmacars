@@ -7,6 +7,12 @@ select test.mk_user('q33_cs', 'va', 'cs');
 select test.mk_user('q33_sales', 'va', 'sales');
 insert into users (id, email, full_name) values (test.id('q33_web'), 'q33-north@example.test', 'Nora Example');
 create function test.q33do(p_name text, p jsonb, p_user text default 'q33_admin') returns jsonb language sql as $$ select app.door(test.id(p_user), 'aal2', 'ops_do', p_name, p) $$;
+-- 3800 (sign first): the supplier signs before a car is approved; the e-signature itself is tested by 99_esign_everywhere
+create function test.q33sign(p_email text) returns void language plpgsql as $$
+begin
+  update owner_agreements a set status = 'signed', agreement_date = app.today() from owners o where o.id = a.owner_id and o.email = p_email and a.status in ('draft', 'sent');
+  update vehicle_schedules s set signed_at = now() from vehicles v join owners o on o.id = v.owner_id where v.id = s.vehicle_id and o.email = p_email and s.signed_at is null and s.superseded_by is null;
+end $$;
 create function test.q33owner() returns uuid language sql stable as $$ select id from owners where email = 'q33-north@example.test' $$;
 create function test.q33app(p_owner jsonb, p_cars jsonb) returns jsonb language sql as $$
   select app.submit_owner_application(jsonb_build_object('source', 'web', 'owner', p_owner, 'vehicles', p_cars), test.id('q33_web')) $$;
@@ -109,12 +115,15 @@ select test.eq('the approval page knows the route and each car''s tier and lease
 select test.throws('customer service cannot approve', format($$select app.application_approve(test.id('q33_cs'), '{"id": "%s"}')$$, (select r ->> 'application_id' from q33_app)), 'Admin');
 select test.lives('an Admin approves the application', format($$select app.application_approve(test.id('q33_admin'), '{"id": "%s", "delivered_on": "%s"}')$$,
   (select r ->> 'application_id' from q33_app), app.today()));
+select test.eq('3800 sign first: the approval waits for the supplier''s signature (nothing on the lease yet)', (select status || ':' || (sign_wait_at is not null) from owner_applications where id = (select (r ->> 'application_id')::uuid from q33_app))
+  || ':' || (select count(*) from vehicle_owner_arrangements where owner_id = test.q33owner()), 'new:true:0');
+select test.lives('the supplier signs: the approval goes through by itself', $$select test.q33sign('q33-north@example.test')$$);
 select test.eq('each car is on the lease at the tier he chose, from the delivery date',
   (select string_agg(a.lease_tier || '=' || a.monthly_cents || '@' || (a.starts_on = app.today()), ',' order by v.plate) from vehicle_owner_arrangements a join vehicles v on v.id = a.vehicle_id
     where a.owner_id = test.q33owner() and a.cancelled_at is null), 'regular=58000@true,troubled=20000@true');
 select test.eq('the pay model is the fleet lease; he signs the Fleet Supplier Lease Agreement with the Title-Holding Agreement it relies on',
   app.owner_pay_model(test.q33owner()) || ':' || (select string_agg(kind || '/' || variant || '/' || status, ',' order by kind) from owner_agreements where owner_id = test.q33owner() and status <> 'void'),
-  'fleet_lease:enrollment/fleet_lease/draft,title_holding/standard/draft');
+  'fleet_lease:enrollment/fleet_lease/signed,title_holding/standard/signed');
 select test.eq('after approval, Form B (the lease summary) is to sign on screen; the forms are filled again', coalesce((select string_agg(x ->> 'code', ',') from jsonb_array_elements(app.owner_screen_forms(test.q33owner())) x), '-')
   || ' ' || test.q33forms('Q33A'), 'B SR-LV-006,SR-LV-012|SR-LV-006:draft,SR-LV-012:draft');
 select test.eq('no fee invoice and no debit was made', (select count(*) from owner_invoices where owner_id = test.q33owner() and status <> 'void')
@@ -154,10 +163,11 @@ select test.lives('customer service adds a supplier and a car on the route', $$s
   'plan', jsonb_build_object('invoices', jsonb_build_array(jsonb_build_object('type', 'first_last', 'amount_cents', 100000, 'action', 'send')))))$$);
 select test.eq('the supplier has the lease structure; the car waits for an Admin (not on the lease yet), with its tier',
   (select o.onboarding_route || ':' || (select count(*) from owner_fleet_lease_terms t where t.owner_id = o.id) || ':' || ob.lease_tier || ':' || ob.status || ':' || app.fleet_car(v.id)
-     from owners o join vehicles v on v.owner_id = o.id join vehicle_onboardings ob on ob.vehicle_id = v.id where o.email = 'q33-lake@example.test'), 'fleet_supplier:1:regular:intake:false');
+     from owners o join vehicles v on v.owner_id = o.id join vehicle_onboardings ob on ob.vehicle_id = v.id where o.email = 'q33-lake@example.test'), 'fleet_supplier:1:regular:terms_set:false');
 select test.eq('no invoice was made from the proposal', (select count(*) from owner_invoices i join owners o on o.id = i.owner_id where o.email = 'q33-lake@example.test' and i.status <> 'void'), 0::bigint);
 select test.lives('an Admin approves it', format($$select app.application_approve(test.id('q33_admin'), '{"id": "%s"}')$$,
   (select a.id from owner_applications a join owners o on o.id = a.owner_id where o.email = 'q33-lake@example.test')));
+select test.lives('3800: the supplier signs; the approval waiting for it goes through', $$select test.q33sign('q33-lake@example.test')$$);
 select test.eq('the car is on the lease; staff left who it is registered to: his corporation, the lease forms filled; Form D only (0720)', (select app.fleet_car(v.id) || ':' || array_to_string(ob.government_forms, ',') || ':'
   || (select count(*) from government_form_fills g where g.vehicle_id = v.id and g.superseded_at is null) || ':' || jsonb_array_length(app.owner_witnessed_forms(o.id))
   from owners o join vehicles v on v.owner_id = o.id join vehicle_onboardings ob on ob.vehicle_id = v.id where o.email = 'q33-lake@example.test'), 'true:SR-LV-006,SR-LV-012:2:1');
@@ -179,11 +189,13 @@ select test.eq('the new internals are not callable by signed-in users', (select 
   where n.nspname = 'app' and p.proname in ('fleet_supplier_setup', 'fleet_onboarding_tier_correct', 'owner_fleet_lease_view', 'fleet_supplier_car_clear')
     and (has_function_privilege('authenticated', p.oid, 'execute') or has_function_privilege('anon', p.oid, 'execute'))), 0::bigint);
 
--- ---------------------------------------------------------------- 9. an Admin's own entry is approved at once, on the lease
+-- ---------------------------------------------------------------- 9. an Admin's own entry is approved, on the lease once the supplier signs (3800)
 select test.lives('an Admin adds a supplier and a car on the route', $$select app.staff_add_owner_car(test.id('q33_admin'), jsonb_build_object('signing', 'email',
   'owner', jsonb_build_object('route', 'fleet_supplier', 'owner_type', 'corporation', 'legal_name', 'Ari Example', 'corporation_name', 'Bayside Autos Ltd.', 'email', 'q33-bay@example.test', 'phone', '+16475550144'),
   'vehicle', jsonb_build_object('vin', '1HGCM82633A133006', 'plate', 'Q33F', 'year', 2022, 'make', 'Kia', 'model', 'Forte'), 'fleet', jsonb_build_object('tier', 'troubled', 'delivered_on', app.today()::text),
   'plan', jsonb_build_object('invoices', '[]'::jsonb)))$$);
+select test.eq('3800: the Admin''s approval waits for the supplier''s signature', (select count(*) from vehicle_owner_arrangements a join owners o on o.id = a.owner_id where o.email = 'q33-bay@example.test'), 0::bigint);
+select test.lives('the supplier signs: approved by itself, on the lease', $$select test.q33sign('q33-bay@example.test')$$);
 select test.eq('approved, on the lease at Troubled, no invoice, the lease forms', (select ob.status || ':' || a.lease_tier || '=' || a.monthly_cents || ':' || (select count(*) from owner_invoices i where i.owner_id = o.id and i.status <> 'void') || ':' || cardinality(ob.government_forms)
   from owners o join vehicles v on v.owner_id = o.id join vehicle_onboardings ob on ob.vehicle_id = v.id join vehicle_owner_arrangements a on a.vehicle_id = v.id and a.cancelled_at is null where o.email = 'q33-bay@example.test'), 'terms_set:troubled=20000:0:2');
 

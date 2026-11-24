@@ -1,0 +1,32 @@
+CarmaCars  |  Schedule A
+
+========================================
+
+[Step 3 of 6]
+Confirm your new cars
+
+Hi {{first_name}}, these cars are on Schedule A of your {{agreement_title}} now. One signature confirms them; CarmaCars countersigns at the same moment.
+
+Cars: {{car_list}}
+Agreement: {{agreement_title}} {{agreement_number}}
+
+Confirm the schedule:
+{{sign_url}}
+
+A car is approved, delivered and rented only once its schedule entry is signed.
+
+A car listed by mistake? Reply to this email before you sign and we take it off.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

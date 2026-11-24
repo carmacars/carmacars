@@ -343,6 +343,22 @@ export const ETRANSFER_TOOLS: Tool[] = [
 ];
 TOOLS.push(...ETRANSFER_TOOLS);
 
+// Release 50 (3800, 3810): sign first. owner_agreements reads each owner's master agreement, title agreement, cars on
+// Schedule A and what is missing, with the link to sign; send_owner_agreement_reminder emails (and notifies in-app and by
+// push) what waits on the owner; set_onboarding_method corrects a car's method before its Vehicle Schedule is signed.
+// The database (app.api_call) decides; the writes are previewed, then confirmed.
+export const OWNER_SIGN_TOOLS: Tool[] = [
+  read('owner_agreements', 'Owner agreements', 'Each owner\'s master agreement (the Fleet Supplier Lease Agreement or the Vehicle Enrollment Agreement) and Title-Holding and Lease Agreement, with their numbers and status (draft, sent, signed), each car on Schedule A (signed or not, approved, delivered, and why it cannot move yet), what is missing and who it waits on, when a reminder was last sent, and the links (the owner\'s signing page and the Admin owner page). By default the owners with something missing; owner_id for one, query to search by name or email, all for every owner. An Admin.',
+    { owner_id: id('One owner'), query: str('A name, corporation or email'), all: { type: 'boolean', description: 'Every owner, not only those with something missing' }, limit: { type: 'integer', minimum: 1, maximum: 200, default: 20 }, include_test: { type: 'boolean' } }),
+  write('send_owner_agreement_reminder', 'Remind an owner to sign', 'Send the owner a reminder (email, in-app notice and push) of what still waits for their signature before their cars can be approved, delivered or rented: the master agreement, the Title-Holding and Lease Agreement, a Schedule A confirmation, or the profile values the agreement needs. Refused when nothing waits on the owner, when they have no sign-in yet, or within 10 minutes of the last one. An Admin, customer service or Fleet.',
+    ['owner_id'], { owner_id: id('The owner (owner_agreements lists them)') }),
+  write('set_onboarding_method', 'Change a car\'s Onboarding Method', 'Correct a car\'s Onboarding Method (transfer, co_registrant, lease_existing_corporation or lease_new_owner_corporation) after its terms are set and before its Vehicle Schedule is signed, with the reason: the schedule entry, the onboarding plan and the government forms follow, and the agreements and Forms A and B are made again when the owner opens them. Refused once the schedule is signed (that needs a new signed schedule) or for a method the car cannot use. An Admin.',
+    ['vehicle_id', 'method', 'reason'], { vehicle_id: id('The car'), method: { type: 'string', enum: ['transfer', 'co_registrant', 'lease_existing_corporation', 'lease_new_owner_corporation'] }, reason: str('Why it changes (5 characters or more)') }),
+  read('owner_documents_check', 'Owner document check', 'Everything still inconsistent on the owners\' documents, read from the records they are made of, each with what fixes it: a signing officer title that is a name (title_is_name), a profile the agreement misses values of (profile_missing), no corporation number, an Onboarding Method that does not fit how the car is held (method_mismatch), a Co-Registrant schedule to confirm, a first and last month off the rule of two months of the Insurance Fee (first_last_rule), a value the Vehicle Schedule prints empty (schedule_empty), a signed copy being filed again with the CarmaCars countersignature, HST on an Insurance Fee invoice. With counts by issue and by owner; owner_id for one owner. An Admin.',
+    { owner_id: id('One owner') })
+];
+TOOLS.push(...OWNER_SIGN_TOOLS);
+
 /** price_tax: the server takes 'plus' | 'included'. The first wording of the tool said before_tax / after_tax, so those still work. */
 const PRICE_TAX_ALIAS: Record<string, string> = { before_tax: 'plus', after_tax: 'included' };
 export function normalizeToolArgs(args: unknown): unknown {

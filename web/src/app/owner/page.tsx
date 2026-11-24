@@ -18,6 +18,8 @@ import { PageHeader } from '@/features/portal/Chrome';
 import { OnboardingChecklist } from '@/features/onboarding/OnboardingChecklist';
 import { onboardingData } from '@/server/onboarding';
 import { FleetLeaseCard } from '@/features/owner/FleetLeaseCard';
+import { OwnerPathCard } from '@/features/owner-path/OwnerPath';
+import { ownerPath, type SignStatus } from '@/features/owner-path/path';
 import { ActionTiles, PortalHero, Sparkline, StatCard, Timeline, TimelineItem, type ActionTileItem } from '@/components/portal-ui';
 
 export const dynamic = 'force-dynamic';
@@ -31,7 +33,7 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
   const [{ user, home }, sp] = await Promise.all([requireOwner('/owner'), searchParams]);
   // r48 speed: every read of the page at once (they were seven round trips one after another)
   const shownCars = home.vehicles.slice(0, 4).filter((v) => !['declined', 'exited', 'total_loss'].includes(v.status));
-  const [checklistRaw, appTaskRaw, changesRaw, [view, mtd], onboarding, serviceRows, forecast] = await Promise.all([
+  const [checklistRaw, appTaskRaw, changesRaw, [view, mtd], onboarding, serviceRows, forecast, sign] = await Promise.all([
     // what is left to sign on screen (0049): one package on /owner/sign
     rpc('server_my_signing_checklist', { p_by: user.id }, { role: 'service_role' }).catch(() => null),
     // what CarmaCars asked for on an application (0054), until the owner answers
@@ -45,7 +47,11 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
     // 2740: each shown car's kilometres and next service (read only, the owner's own cars through the existing owner read)
     Promise.all(shownCars.map(async (v) => [v.vehicle_id, await door<OwnerHistory>(user.id, 'ops_read', 'maint_owner', { vehicle_id: v.vehicle_id }).catch(() => null)] as const)),
     // r48 O (3081): the next 12 months of each car (the owner's own cars, ops_read owner_forecast)
-    door<OwnerForecast>(user.id, 'ops_read', 'owner_forecast', { owner_id: home.owner.id }).catch(() => null)]);
+    door<OwnerForecast>(user.id, 'ops_read', 'owner_forecast', { owner_id: home.owner.id }).catch(() => null),
+    // r50 (3800): sign first, then cars: the owner's guided path
+    home.kind === 'partner' ? Promise.resolve(null) : door<SignStatus>(user.id, 'ops_read', 'owner_sign_status', { owner_id: home.owner.id }).catch(() => null)]);
+  const path = sign ? ownerPath(sign) : null;
+  const guided = !!path?.current;
   const checklist = checklistRaw as unknown as { items: Array<{ status: string; how: string; label: string; preview?: boolean }>; done: number; total: number } | null;
   const appTask = appTaskRaw as unknown as AppTask | null;
   const onScreen = (checklist?.items ?? []).filter((i) => i.status === 'open' && (i.how === 'screen' || i.how === 'registry'));
@@ -100,7 +106,7 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
         {banners}
         <PageHeader kicker={kicker} title={`Hello, ${home.owner.first_name}`} />
         {appTask && <ApplicationTask t={appTask} />}
-        {partner ? <div className="pt-empty" data-testid="partner-no-cars"><p className="d4">No cars yet</p><p className="muted">CarmaCars adds your cars once we agree which ones join. Questions? Reply to any of our emails.</p>{partner.agreement_status !== 'signed' && <Link prefetch={false} className="btn btn--primary" href="/owner/partner-agreement">Read and sign your partner agreement</Link>}</div>
+        {guided ? <OwnerPathCard status={sign} /> : partner ? <div className="pt-empty" data-testid="partner-no-cars"><p className="d4">No cars yet</p><p className="muted">CarmaCars adds your cars once we agree which ones join. Questions? Reply to any of our emails.</p>{partner.agreement_status !== 'signed' && <Link prefetch={false} className="btn btn--primary" href="/owner/partner-agreement">Read and sign your partner agreement</Link>}</div>
           : <section className="pt-card pt-card--next" aria-labelledby="ow-first-car" data-testid="owner-first-car"><p className="pt-kicker">Next step</p><h2 className="d3" id="ow-first-car">Add your first car</h2>
               <p>Start with the VIN: we look the car up and fill in the details. Then choose how it will work and we reply within 1 business day with its terms.</p>
               <p><Link prefetch={false} className="btn btn--primary" href="/list-your-car/apply" data-testid="owner-add-first-car">Add your first car</Link></p></section>}
@@ -114,7 +120,8 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
   return (
     <>
       {banners}
-      {next && (
+      <OwnerPathCard status={sign} />
+      {next && !(guided && next.href.startsWith('/owner/sign')) && (
         <section className="pt-card pt-card--next pu-next" aria-labelledby="ow-next" data-testid="owner-next-step">
           <p className="pt-kicker">Next step</p>
           <h2 className="d3" id="ow-next">{next.title}</h2>

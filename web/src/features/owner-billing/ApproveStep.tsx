@@ -35,7 +35,8 @@ function initial(c: PlanCar, today: string, proposed?: { terms?: Record<string, 
   const has = (type: string) => (proposed?.invoices ?? []).find((x) => x.type === type);
   const reg = c.terms.one_off_fees.find((f) => /registration/i.test(f.description));
   return {
-    mode: c.mode, method: c.method ?? c.options.find((o) => o.recommended)?.method ?? c.options[0]?.method ?? '',
+    // r50 (3820): with none chosen, the recommended method, else Transfer (no CarmaCars registration), never the first option
+    mode: c.mode, method: c.method ?? c.options.find((o) => o.recommended)?.method ?? c.options.find((o) => o.method === 'transfer')?.method ?? c.options[0]?.method ?? '',
     ins: dollars(t.insurance_fee_cents), trk: dollars(t.tracker_fee_cents), share: pctOf(t.revenue_share_bps), inst: dollars(t.install_fee_cents), fl: dollars(fl), special: '',
     first_last: inv(today, !c.invoices.some((x) => x.kind === 'upfront'), dollars(fl), ((has('first_last')?.action as Action) ?? 'draft')),
     registration: { ...inv(today, !!(has('registration') || reg), dollars(Number(has('registration')?.amount_cents ?? reg?.amount_cents ?? 0) || null), (has('registration')?.action as Action) ?? 'send'), title: 'Registration fee' },

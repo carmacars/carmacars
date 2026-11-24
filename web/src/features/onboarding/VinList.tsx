@@ -12,7 +12,10 @@ import { WhyDisabled } from '@/components/WhyDisabled';
 // the owner page of staff and Admin.
 const TITLE: Array<[string, string]> = [['owned_outright', 'Owned outright'], ['financed', 'Financed'], ['leased', 'Leased']];
 
-export function VinList({ ownerId, viewer, refresh, done }: { ownerId: string; viewer: 'owner' | 'staff' | 'admin'; refresh: string[]; done?: string }) {
+const TIER: Array<[string, string]> = [['', 'Tier'], ['regular', 'Regular'], ['troubled', 'Troubled']];
+
+/** fleet (r50, 3800): a fleet supplier's list: each car with its tier (set once) and plate, registered to the corporation. */
+export function VinList({ ownerId, viewer, refresh, done, fleet = false }: { ownerId: string; viewer: 'owner' | 'staff' | 'admin'; refresh: string[]; done?: string; fleet?: boolean }) {
   const id = useId().replace(/:/g, '');
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -22,7 +25,8 @@ export function VinList({ ownerId, viewer, refresh, done }: { ownerId: string; v
   const [made, setMade] = useState<VinListResult | null>(null);
   const [err, setErr] = useState('');
   const good = (rows ?? []).filter((r) => r.ok);
-  const lenderMissing = good.some((r) => r.title_status && r.title_status !== 'owned_outright' && !(r.finance_party_name ?? '').trim());
+  const lenderMissing = !fleet && good.some((r) => r.title_status && r.title_status !== 'owned_outright' && !(r.finance_party_name ?? '').trim());
+  const fleetMissing = fleet && good.some((r) => !r.lease_tier || !(r.plate ?? '').trim());
   const preview = () => {
     const { vins, extra: x } = parseVinList(text);
     setExtra(x); setMade(null); setErr('');
@@ -33,14 +37,14 @@ export function VinList({ ownerId, viewer, refresh, done }: { ownerId: string; v
     });
   };
   const create = () => start(async () => {
-    const r = await vinListCreate(ownerId, good.map((x) => ({ vin: x.vin, title_status: x.title_status, finance_party_name: x.finance_party_name })), refresh);
+    const r = await vinListCreate(ownerId, good.map((x) => (fleet ? { vin: x.vin, lease_tier: x.lease_tier, plate: x.plate } : { vin: x.vin, title_status: x.title_status, finance_party_name: x.finance_party_name })), refresh);
     if (r.ok) { setMade(r.data); setRows(r.data.rows); router.refresh(); } else setErr(r.message);
   });
-  const set = (vin: string, k: 'title_status' | 'finance_party_name', v: string) => setRows((rs) => (rs ?? []).map((x) => (x.vin === vin ? { ...x, [k]: v } : x)));
+  const set = (vin: string, k: 'title_status' | 'finance_party_name' | 'lease_tier' | 'plate', v: string) => setRows((rs) => (rs ?? []).map((x) => (x.vin === vin ? { ...x, [k]: v } : x)));
   return (
     <section className="pt-card stack" aria-labelledby={`${id}-h`} data-testid="vin-list">
       <h2 className="d4" id={`${id}-h`}>Add cars from a list of VINs</h2>
-      <p className="small muted">Paste the VINs (one a line, or separated by commas), or upload a CSV or text file. Up to {VIN_LIST_MAX} at a time. We read the year, make and model from each VIN; a typo, a car already with us or one listed twice is shown and not added.</p>
+      <p className="small muted">Paste the VINs (one a line, or separated by commas), or upload a CSV or text file. Up to {VIN_LIST_MAX} at a time. We read the year, make and model from each VIN; a typo, a car already with us or one listed twice is shown and not added.{fleet ? ' Give each car its tier (it is set once and does not change) and its plate. Each car goes on Schedule A of the lease; a car not yet registered to the corporation is added one at a time.' : ''}</p>
       <div className="field"><label className="label" htmlFor={`${id}-t`}>VINs</label>
         <textarea className="input ob-textarea" id={`${id}-t`} value={text} onChange={(e) => { setText(e.target.value); setRows(null); setMade(null); }} placeholder={'1HGCM82633A004352\n2T1BURHE0JC000000'} data-testid="vin-list-text" /></div>
       <div className="field"><label className="label" htmlFor={`${id}-f`}>Or a file (CSV or text)</label>
@@ -52,12 +56,18 @@ export function VinList({ ownerId, viewer, refresh, done }: { ownerId: string; v
       {rows && (
         <div className="table-scroll ad-scroll" tabIndex={0} role="region" aria-label="The VINs read">
           <table className="ad-table ad-table--dense ad-table--cards ob-vins" role="table" data-testid="vin-list-table">
-            <thead role="rowgroup"><tr role="row"><th role="columnheader" scope="col">VIN</th><th role="columnheader" scope="col">Car</th><th role="columnheader" scope="col">It is</th><th role="columnheader" scope="col">Result</th></tr></thead>
+            <thead role="rowgroup"><tr role="row"><th role="columnheader" scope="col">VIN</th><th role="columnheader" scope="col">Car</th><th role="columnheader" scope="col">{fleet ? 'Tier and plate' : 'It is'}</th><th role="columnheader" scope="col">Result</th></tr></thead>
             <tbody role="rowgroup">{rows.map((r, i) => (
               <tr key={`${r.vin}-${i}`} role="row" data-testid="vin-list-row" data-ok={r.ok ? 'yes' : 'no'}>
                 <th role="rowheader" scope="row"><code>{r.vin}</code></th>
                 <td role="cell" data-label="Car">{r.year ? `${r.year} ${r.make ?? ''} ${r.model ?? ''}${r.trim ? ` ${r.trim}` : ''}` : <span className="muted">Not read</span>}</td>
-                <td role="cell" data-label="It is">{r.ok && !made ? <span className="stack">
+                <td role="cell" data-label={fleet ? 'Tier and plate' : 'It is'}>{fleet ? (r.ok && !made ? <span className="stack">
+                  <label className="vh" htmlFor={`${id}-t-${i}`}>Tier: {r.vin}</label>
+                  <select className="select select--sm" id={`${id}-t-${i}`} value={r.lease_tier ?? ''} onChange={(e) => set(r.vin, 'lease_tier', e.target.value)} data-testid="vin-list-tier">{TIER.map(([k, l]) => <option key={k} value={k} disabled={!k}>{l}</option>)}</select>
+                  <label className="vh" htmlFor={`${id}-p-${i}`}>Plate: {r.vin}</label>
+                  <input className="input input--sm" id={`${id}-p-${i}`} placeholder="Plate" autoCapitalize="characters" value={r.plate ?? ''} onChange={(e) => set(r.vin, 'plate', e.target.value.toUpperCase())} data-testid="vin-list-plate" />
+                </span> : <span className="small">{[r.lease_tier ? TIER.find(([k]) => k === r.lease_tier)?.[1] : null, r.plate].filter(Boolean).join(', ')}</span>)
+                : r.ok && !made ? <span className="stack">
                   <label className="vh" htmlFor={`${id}-s-${i}`}>Owned, financed or leased: {r.vin}</label>
                   <select className="select select--sm" id={`${id}-s-${i}`} value={r.title_status ?? 'owned_outright'} onChange={(e) => set(r.vin, 'title_status', e.target.value)}>{TITLE.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
                   {r.title_status && r.title_status !== 'owned_outright' && <><label className="vh" htmlFor={`${id}-l-${i}`}>{r.title_status === 'leased' ? 'Lease company' : 'Lender'}: {r.vin}</label>
@@ -68,10 +78,10 @@ export function VinList({ ownerId, viewer, refresh, done }: { ownerId: string; v
           </table>
         </div>)}
       {rows && !made && <div className="row" style={{ gap: 'var(--s-2)', alignItems: 'center', flexWrap: 'wrap' }}>
-        <><button type="button" className="btn btn--primary btn--sm" disabled={pending || good.length === 0 || lenderMissing} onClick={create} data-testid="vin-list-create" aria-describedby="why-vinlist-70">
-          {pending ? 'Adding' : `Add ${good.length} car${good.length === 1 ? '' : 's'}`}</button><WhyDisabled id="why-vinlist-70" why={((good.length === 0) || (lenderMissing)) ? (lenderMissing ? 'Enter the lender first' : 'Add at least one good VIN first') : null} /></>
-        <span className="small muted">{rows.length - good.length > 0 ? `${rows.length - good.length} not added (see why above). ` : ''}{lenderMissing ? 'Name the lender or lease company of each financed or leased car.' : ''}</span></div>}
-      {made && <p className="alert alert--ok" role="status" data-testid="vin-list-done"><span>{made.good} car{made.good === 1 ? '' : 's'} added{made.application_number ? ` (application ${made.application_number})` : ''}. {viewer === 'owner' ? 'We approve the terms of each next; you see every step on its page.' : 'Each waits for the Admin to approve its terms on the application.'}{done ? ` ${done}` : ''}</span></p>}
+        <><button type="button" className="btn btn--primary btn--sm" disabled={pending || good.length === 0 || lenderMissing || fleetMissing} onClick={create} data-testid="vin-list-create" aria-describedby="why-vinlist-70">
+          {pending ? 'Adding' : `Add ${good.length} car${good.length === 1 ? '' : 's'}`}</button><WhyDisabled id="why-vinlist-70" why={((good.length === 0) || lenderMissing || fleetMissing) ? (lenderMissing ? 'Enter the lender first' : fleetMissing ? 'Give each car its tier and plate first' : 'Add at least one good VIN first') : null} /></>
+        <span className="small muted">{rows.length - good.length > 0 ? `${rows.length - good.length} not added (see why above). ` : ''}{lenderMissing ? 'Name the lender or lease company of each financed or leased car.' : ''}{fleetMissing ? 'Give each car its tier and plate.' : ''}</span></div>}
+      {made && <p className="alert alert--ok" role="status" data-testid="vin-list-done"><span>{made.good} car{made.good === 1 ? '' : 's'} added{made.application_number ? ` (application ${made.application_number})` : ''}. {fleet ? (viewer === 'owner' ? 'Each is on Schedule A of your lease: confirm them with one signature in Sign.' : 'Each is on Schedule A; the supplier confirms them with one signature.') : viewer === 'owner' ? 'We approve the terms of each next; you see every step on its page.' : 'Each waits for the Admin to approve its terms on the application.'}{done ? ` ${done}` : ''}</span></p>}
     </section>
   );
 }
