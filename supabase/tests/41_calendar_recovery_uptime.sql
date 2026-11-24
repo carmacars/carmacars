@@ -261,7 +261,7 @@ select app.uptime_record('home', true, 200, 100, 'Answered 200');
 -- the checks without requests
 select app.uptime_internal(now());
 select test.eq('internal checks: emails, jobs, backup and Stripe all pass on a quiet database',
-  (select string_agg(key || '=' || status, ' ' order by sort) from uptime_checks where kind = 'internal'), 'email=ok jobs=ok backup=ok stripe=ok');
+  (select string_agg(key || '=' || status, ' ' order by sort) from uptime_checks where kind = 'internal'), 'email=ok jobs=ok backup=ok stripe=ok sms_signin=ok email_cap=ok');
 insert into notification_outbox (code, category, priority, audience, to_address, dedupe_key, status, attempts, last_error)
 select 'renter_offer_ready', 'transactional', 1, 'renter', 'x' || g || '@example.test', 'c62-failed-' || g, 'failed', 3, 'provider error' from generate_series(1, 3) g;
 insert into job_runs (job_name, run_key, status, started_at, finished_at, error) values ('backup-nightly', 'c62', 'failed', now() - interval '10 minutes', now() - interval '5 minutes', 'pg_dump: connection refused');
@@ -269,7 +269,7 @@ insert into webhook_events (provider, event_id, event_type, error) values ('stri
 select app.uptime_internal(now());
 select test.eq('3 failed emails, a failed backup (also a failed job) and a failed Stripe event: four alerts',
   (select string_agg(key || '=' || status, ' ' order by sort) from uptime_checks where kind = 'internal') || ' ' || (select count(*) from site_alerts where resolved_at is null),
-  'email=failing jobs=failing backup=failing stripe=failing 4');
+  'email=failing jobs=failing backup=failing stripe=failing sms_signin=ok email_cap=ok 4');
 select test.eq('the backup alert says why', (select detail from site_alerts where check_key = 'backup' and resolved_at is null), 'The last nightly backup failed: pg_dump: connection refused');
 update job_runs set status = 'succeeded', error = null where job_name = 'backup-nightly' and run_key = 'c62';
 update webhook_events set error = null where event_id = 'evt_c62';
@@ -288,7 +288,7 @@ select test.eq('job: not due again within 5 minutes (0063 reports both counts)',
 select test.eq('page details in words', app.uptime_page_detail(503, '<html>error code: 1102</html>', false, null) || ' | ' || app.uptime_page_detail(null, null, true, null) || ' | ' || app.uptime_page_detail(502, '', false, null),
   'Answered 503 with Error 1102 (the web host stopped the page) | No answer within 15 seconds | Answered 502 (server error)');
 select test.eq('the car page check reads a public car''s page', app.uptime_url('car_page') ~ '^https://carmacars\.ca/cars', true);
-select test.eq('the status panel: every check, for Admins', (select jsonb_array_length(app.door(test.id('c62_admin'), '', 'admin_read', 'site_health') -> 'checks')), 8);
+select test.eq('the status panel: every check, for Admins', (select jsonb_array_length(app.door(test.id('c62_admin'), '', 'admin_read', 'site_health') -> 'checks')), 10);
 select test.throws('the status panel is not for assistants', $$ select app.site_health(test.id('c62_cs')) $$, null);
 select test.eq('the health answer', public.health_ping() ->> 'ok', 'true');
 
