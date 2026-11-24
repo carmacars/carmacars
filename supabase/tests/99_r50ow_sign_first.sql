@@ -59,6 +59,9 @@ select test.lives('the owner opens the master agreement for signature with no ca
   format($$select app.owner_open_agreements(%L, test.id('s50_web'), '[{"key": "enrollment", "template_version": "t", "sha256": "%s", "storage_path": "x/ea.pdf"}]')$$,
     test.s50o(), repeat('a', 64)));
 select test.eq('it is sent for signature', (select status from owner_agreements where owner_id = test.s50o() and kind = 'enrollment'), 'sent');
+select test.eq('the owner''s signing checklist says to sign it now, never "once CarmaCars approves your terms"',
+  (select count(*) from jsonb_array_elements(app.my_signing_checklist(test.id('s50_web')) -> 'items') i
+    where i ->> 'code' in ('enrollment', 'title_holding') and (coalesce((i ->> 'preview')::boolean, false) or i ->> 'detail' like '%approves your terms%')), 0::bigint);
 select test.eq('what is missing: the two agreements, for the owner',
   (select string_agg(x ->> 'code' || ':' || (x ->> 'who'), ',') from jsonb_array_elements(app.owner_sign_missing(test.s50o())) x), 'master:owner,title_holding:owner');
 

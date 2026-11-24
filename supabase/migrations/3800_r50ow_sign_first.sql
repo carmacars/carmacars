@@ -692,6 +692,20 @@ begin
 end $$;
 select pg_temp.copy_grants('app.owner_agreements_checklist(uuid, jsonb)'::regprocedure, 'app.owner_agreements_checklist_pre3800(uuid, jsonb)'::regprocedure);
 
+-- The owner's signing checklist (0192) no longer says "you sign once CarmaCars approves your terms" of the master
+-- agreement: it is signed first.
+alter function app.my_signing_checklist(uuid) rename to my_signing_checklist_pre3800;
+create function app.my_signing_checklist(p_by uuid) returns jsonb
+language sql stable security definer set search_path = public, app, pg_temp as $$
+  select case when not coalesce((app.settings()).owner_sign_first, true) then c
+    else c || jsonb_build_object('items', coalesce((select jsonb_agg(case
+             when i ->> 'code' in ('enrollment', 'title_holding') and coalesce((i ->> 'preview')::boolean, false)
+             then (i - 'preview') || jsonb_build_object('detail', 'Filled in from your profile: sign it now, before any car')
+             else i end order by n) from jsonb_array_elements(c -> 'items') with ordinality t(i, n)), '[]'::jsonb)) end
+    from app.my_signing_checklist_pre3800(p_by) c
+$$;
+select pg_temp.copy_grants('app.my_signing_checklist(uuid)'::regprocedure, 'app.my_signing_checklist_pre3800(uuid)'::regprocedure);
+
 -- ================================================================ 8. the door
 alter function app.door(uuid, text, text, text, jsonb) rename to door_pre3800;
 create function app.door(p_user uuid, p_aal text, p_call text, p_name text, p jsonb default '{}'::jsonb) returns jsonb
@@ -817,7 +831,7 @@ begin
               'fleet_schedule_cars', 'owner_sign_missing', 'owner_sign_gate', 'vehicles_sign_gate_trg', 'sign_first_release', 'sign_first_after',
               'sign_first_signed_trg', 'sign_first_schedule_trg', 'owner_sign_status', 'owner_sign_reminder',
               'owner_pay_model_pre3800', 'submit_owner_application_pre3800', 'owner_add_vins_pre3800', 'fleet_lease_car_set_pre3800', 'application_approve_pre3800',
-              'application_approve_plan_pre3800', 'owner_agreements_checklist_pre3800', 'door_pre3800', 'api_call_pre3800']) loop
+              'application_approve_plan_pre3800', 'owner_agreements_checklist_pre3800', 'my_signing_checklist_pre3800', 'door_pre3800', 'api_call_pre3800']) loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);
     execute format('grant execute on function %s to service_role', f.sig);
   end loop;
