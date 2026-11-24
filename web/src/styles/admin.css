@@ -662,3 +662,8 @@ ul.sd-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
   .gn:has(.gn__groups.is-open) { position: fixed; inset: var(--header-h) 0 0 0; z-index: 48; background: var(--white); overflow-y: auto; overscroll-behavior: contain; padding-top: var(--s-3); padding-bottom: calc(var(--s-6) + env(safe-area-inset-bottom, 0px)); }
   .gn:has(.gn__groups.is-open) .gn__menu { position: sticky; top: 0; z-index: 1; border-color: var(--black); }
 }
+/* r50 (3701): the studio grid: nine views a row, each the same small 3:2 frame, the caption never squished */
+.studio-grid__cell { min-width: 8.5rem; vertical-align: top; }
+.studio-grid__cell img, .studio-grid__empty { display: block; width: 8rem; aspect-ratio: 3 / 2; object-fit: cover; background: var(--grey-100); border: 1px solid var(--grey-200); }
+.studio-grid__cell[data-live] img { border-color: var(--black); }
+.studio-grid__cell .small { display: block; margin-top: var(--s-1); line-height: 1.3; overflow-wrap: anywhere; }

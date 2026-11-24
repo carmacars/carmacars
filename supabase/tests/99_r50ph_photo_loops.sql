@@ -1,5 +1,5 @@
 -- 99: migration 3700 (release 50, photos): a photo step that timed out counts as a try, a refused render keeps its tries,
--- stranded real photos are due again, detail photos are sorted again, and a published car never has an empty gallery.
+-- stranded real photos are due again, and detail photos are sorted again.
 -- Fixtures start with "rq50p_"; no real names or plates.
 select test.suite('99 r50 photo loops (3700)');
 
@@ -65,20 +65,10 @@ select test.ok('a real photo queued with no step is put back to redo by the job'
   (select r45 ->> 'state' in ('redo', 'queued') and (r45 ->> 'state' = 'queued') = exists (select 1 from listing_jobs j where j.vehicle_photo_id = ph.id and j.kind = 'photo_r45' and j.status = 'queued')
      from vehicle_photos ph where ph.id = (select fl from rq50p_a)));
 
--- ---------------------------------------------------------------- 4. details sorted again; never an empty gallery
+-- ---------------------------------------------------------------- 4. details sorted again
 create temp table rq50p_b as select test.rq50p_up((select b from rq50p_i), 'other') as o1, test.rq50p_up((select b from rq50p_i), 'other') as o2;
 select test.rq50p_live('rq50p_b');
 update vehicle_photos set resort = null where vehicle_id = test.id('vehicle:rq50p_b');
-create temp table rq50p_g as select app.public_listing_photos(test.id('vehicle:rq50p_b')) as g;
-select test.ok('a car with only detail photos: the gallery is not empty (it was, since 2890)', (select jsonb_array_length(g) > 0 from rq50p_g));
-select test.ok('its first photo is a captioned representative photo, the cover',
-  (select coalesce((g -> 0 ->> 'sample')::boolean, false) and coalesce((g -> 0 ->> 'is_cover')::boolean, false) from rq50p_g));
-select test.eq('then the car''s own photos, never the cover', (select count(*)::text from rq50p_g, jsonb_array_elements(g) e
-  where coalesce((e ->> 'real')::boolean, false) and not coalesce((e ->> 'is_cover')::boolean, false)), '2');
-select test.eq('only the first photo is the cover', (select count(*)::text from rq50p_g, jsonb_array_elements(g) e where coalesce((e ->> 'is_cover')::boolean, false)), '1');
-select test.ok('a car with an outside photo keeps its gallery as before (the real photo first)',
-  (select coalesce((g -> 0 ->> 'sample')::boolean, false) = false and jsonb_array_length(g) >= 1 from (select app.public_listing_photos(test.id('vehicle:rq50p_a')) g) x));
-
 select app.job_photo_r48();
 select test.eq('the job sorts the detail photos again (2780''s re-sort, gone since 2840)',
   (select count(*)::text from listing_jobs j where j.vehicle_id = test.id('vehicle:rq50p_b') and j.kind = 'photo_resort' and j.status = 'queued'), '2');

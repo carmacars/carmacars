@@ -9,6 +9,7 @@ import { plateEndOf, plateRule, PLATE_FAMILIES, R48_ANGLES, R48_SPEC, feedbackLi
   REAL_PHOTO_RULE } from './r48.ts';
 import { STANDARD_ANGLES } from './r45.ts';
 import { encodeJpeg } from './showroom.ts';
+import { FRAME_ASK, STUDIO_FRAME } from './studio-gate.ts';
 import { runJob, type JobContext, type JobResult, type WorkerDeps } from './worker.ts';
 import { fakePhotos } from '../../integrations/photos/fake.ts';
 import { fakeText } from '../../integrations/llm/fake.ts';
@@ -17,7 +18,7 @@ import type { Rgba } from './subject-frame.ts';
 const CAR = { year: 2022, make: 'Mercedes-Benz', model: 'CLA 250', trim: '4MATIC', colour: 'Polar White' };
 
 test('the nine angles: the r45 standard set in its order, the front three-quarter first, each with its framing', () => {
-  assert.equal(R48_SPEC, 'r48.2');
+  assert.equal(R48_SPEC, 'r48.3');
   assert.deepEqual(R48_ANGLES.map((a) => a.shot), STANDARD_ANGLES.map((a) => a.shot));
   assert.equal(R48_ANGLES[0]!.shot, 'front_left');
   for (const a of R48_ANGLES) {
@@ -31,7 +32,7 @@ test('the nine angles: the r45 standard set in its order, the front three-quarte
 });
 
 test('plate families: outside angles only; the guide of each angle per body type', () => {
-  assert.deepEqual(['front_left', 'front', 'left', 'rear_left', 'rear', 'dashboard', 'trunk'].map(plateFamily), ['front', 'front', 'side', 'rear', 'rear', null, null]);
+  assert.deepEqual(['front_left', 'front', 'left', 'rear_left', 'rear', 'dashboard', 'trunk'].map(plateFamily), ['side', 'side', 'side', 'side', 'side', null, null]);
   assert.deepEqual(PLATE_FAMILIES, ['front', 'side', 'rear']);
   assert.equal(guidePath('suv', 'front_left'), 'site/r48/guides/suv-lead.jpg');
   assert.equal(guidePath(null, 'rear_left'), 'site/r48/guides/sedan-rear34.jpg');
@@ -123,13 +124,31 @@ test('the plates: words for a real, empty showroom; used only when the check say
 // ---------------------------------------------------------------- the worker with a fake Gemini
 const room = (W: number, H: number): Rgba => ({ width: W, height: H, data: new Uint8ClampedArray(W * H * 4).map((_, i) => (i % 4 === 3 ? 255 : 120)) });
 const JPEG = encodeJpeg(room(64, 48), 80);
+// r50 (3701): the plate is a two-tone studio; Gemini's fake result is that studio with a car (and its contact shadow) placed
+// a little smaller than the front three-quarter's target, as the words ask; the check reports the car's box
+const T = STUDIO_FRAME.front_left!;
+const CAR_BOX = { x: T.cx - (T.width * FRAME_ASK) / 2, y: T.bottom - 0.32, w: T.width * FRAME_ASK, h: 0.32 };
+function studioRoom(car: boolean): Rgba {
+  const W = 300, H = 200, d = new Uint8ClampedArray(W * H * 4);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const fx = x / W, fy = y / H, i = (y * W + x) * 4;
+    let c = fy < 0.6 ? [40, 40, 44] : [22, 22, 24];
+    if (car && fx >= CAR_BOX.x && fx <= CAR_BOX.x + CAR_BOX.w && fy >= CAR_BOX.y && fy <= CAR_BOX.y + CAR_BOX.h) c = [200, 200, 205];
+    if (car && fx >= CAR_BOX.x + CAR_BOX.w * 0.1 && fx <= CAR_BOX.x + CAR_BOX.w * 0.9 && fy >= CAR_BOX.y + CAR_BOX.h - 0.015 && fy <= CAR_BOX.y + CAR_BOX.h + 0.015) c = [3, 3, 3];
+    d[i] = c[0]!; d[i + 1] = c[1]!; d[i + 2] = c[2]!; d[i + 3] = 255;
+  }
+  return { width: W, height: H, data: d };
+}
+const PLATE_JPEG = encodeJpeg(studioRoom(false), 95);
+const box1000 = [CAR_BOX.y, CAR_BOX.x, CAR_BOX.y + CAR_BOX.h, CAR_BOX.x + CAR_BOX.w].map((n) => Math.round(n * 1000));
+const WOK = { ...OK, nose: 'left', car_box: box1000 };
 type Out = { r45: { pass: boolean; spec: string; reasons: string[]; wait?: string; generated?: boolean; refs?: number; handover_refs?: number; plate_made?: { family: string; path: string } };
   preset_version: string; processed_path: string; showroom: { mode: string } };
 const out = (r: JobResult) => r.output as unknown as Out;
-function deps(over: Partial<WorkerDeps> = {}, answers: unknown[] = [OK]) {
+function deps(over: Partial<WorkerDeps> = {}, answers: unknown[] = [WOK]) {
   const priv = new Map<string, Uint8Array>([['vehicles/v1/original/fl.jpg', JPEG], ['vehicles/v1/original/rear.jpg', JPEG]]);
   const cond = new Map<string, Uint8Array>([['reports/r1/front_left.jpg', JPEG], ['reports/r1/rear.jpg', JPEG]]);
-  const pub = new Map<string, Uint8Array>([['site/r48/plates/front.jpg', JPEG], ['site/r48/guides/sedan-lead.jpg', JPEG], ['seo-photos/mercedes-benz/cla/2020-2024-1280.webp', JPEG]]);
+  const pub = new Map<string, Uint8Array>([['site/r48/plates/front.jpg', PLATE_JPEG], ['site/r48/guides/sedan-lead.jpg', JPEG], ['seo-photos/mercedes-benz/cla/2020-2024-1280.webp', JPEG]]);
   const asked: Array<{ images: number; prompt: string }> = [];
   const checks: Array<{ images: number; prompt: string }> = [];
   let k = 0;
@@ -139,7 +158,7 @@ function deps(over: Partial<WorkerDeps> = {}, answers: unknown[] = [OK]) {
     photos: fakePhotos(async () => null),
     files: { privateUrl: async (p) => p, publicUrl: (p) => p, getPrivate: async (p) => priv.get(p) ?? null, putPrivate: async (p, b) => { priv.set(p, b); },
       putPublic: async (p, b) => { pub.set(p, b); }, getPublic: async (p) => pub.get(p) ?? null, getCondition: async (p) => cond.get(p) ?? null },
-    angleAi: async (i) => { asked.push({ images: i.images.length, prompt: i.prompt }); return { ok: true, bytes: encodeJpeg(room(300, 200), 80), contentType: 'image/jpeg', provider: 'ai', model: 'gemini-2.5-flash-image' }; },
+    angleAi: async (i) => { asked.push({ images: i.images.length, prompt: i.prompt }); return { ok: true, bytes: encodeJpeg(studioRoom(true), 95), contentType: 'image/jpeg', provider: 'ai', model: 'gemini-2.5-flash-image' }; },
     checkPhoto: async (i) => { checks.push({ images: i.images.length, prompt: i.prompt }); const a = answers[Math.min(k++, answers.length - 1)]; return { data: a, model: 'gemini:gemini-2.5-flash' }; },
     ...over
   };
@@ -157,8 +176,8 @@ test('r48 pass: the real photos, the guide, the stock photo and the plate go to 
   const r = await runJob(d, job(), budget);
   assert.equal(r.ok, true);
   const o = out(r);
-  assert.equal(o.r45.pass, true);
-  assert.equal(o.r45.spec, 'r48.2');
+  assert.equal(o.r45.pass, true, JSON.stringify(o.r45));
+  assert.equal(o.r45.spec, 'r48.3');
   assert.equal(o.r45.generated, true);
   assert.equal(o.preset_version, 'gemini_r48');
   assert.equal(o.showroom.mode, 'r48');
@@ -202,7 +221,11 @@ test('r48 keep real: Gemini\'s limit waits, the check not answering is a refusal
 });
 
 test('r48 plate: none stored, Gemini makes it once, the realism check passes, it is stored and reported for filing', async () => {
-  const { d, pub, asked } = deps({}, [{ looks_real: true, has_text: false, has_logo: false, has_cars_or_people: false, free_floor: true, issues: [] }, OK]);
+  // the plate Gemini makes is the empty studio; the view is the studio with the car
+  const plateFirst: Partial<WorkerDeps> = { angleAi: async (i) => { made.push({ images: i.images.length, prompt: i.prompt }); return { ok: true, bytes: encodeJpeg(studioRoom(!/A real photograph of/.test(i.prompt)), 95), contentType: 'image/jpeg', provider: 'ai', model: 'm' }; } };
+  const made: Array<{ images: number; prompt: string }> = [];
+  const { d, pub } = deps(plateFirst, [{ looks_real: true, has_text: false, has_logo: false, has_cars_or_people: false, free_floor: true, issues: [] }, WOK]);
+  const asked = made;
   pub.delete('site/r48/plates/front.jpg');
   const r = out(await runJob(d, job({}, { plate: null }), budget));
   assert.equal(r.r45.pass, true);
@@ -211,10 +234,12 @@ test('r48 plate: none stored, Gemini makes it once, the realism check passes, it
   assert.match(asked[0]!.prompt, /A real photograph of a modern, minimal, dark car dealership showroom/);
   assert.equal(asked[1]!.images, 5, 'the new plate goes with the photos');
   // a plate the check says looks fake is not used (the room in words then)
-  const fake = deps({}, [{ looks_real: false, has_text: false, has_logo: false, has_cars_or_people: false, free_floor: true }, OK]);
+  const fake = deps({}, [{ looks_real: false, has_text: false, has_logo: false, has_cars_or_people: false, free_floor: true }, WOK]);
   fake.pub.delete('site/r48/plates/front.jpg');
   const r2 = out(await runJob(fake.d, job({}, { plate: null }), budget));
   assert.equal(r2.r45.plate_made, undefined);
+  assert.equal(r2.r45.pass, false, 'r50: no plate, no studio gate pass');
+  assert.ok(r2.r45.reasons.includes('gate_no_plate'));
   assert.equal(fake.asked[1]!.images, 4);
   assert.match(fake.asked[1]!.prompt, /THE PLACE: a modern, minimal, dark car dealership showroom/);
 });
@@ -301,11 +326,11 @@ test('r48.2 borderDiff: the same photo is 0, a new background is far, the car al
 });
 
 test('r48.2 worker: the old background still there is refused; a location refusal and the check failing wait to retry', async () => {
-  // the same-angle real photo is the result itself: its edges are the same place
+  // the same-angle real photo is the result itself: its place is still there, so its wall is not the plate's (r50: the gate)
   const same = deps({ angleAi: async () => ({ ok: true, bytes: JPEG, contentType: 'image/jpeg', provider: 'ai', model: 'm' }) });
   const r = out(await runJob(same.d, job({}, { refs: [{ bucket: 'vehicle-originals', path: 'vehicles/v1/original/fl.jpg', from: 'listing', shot: 'front_left' }] }), budget));
   assert.equal(r.r45.pass, false);
-  assert.ok(r.r45.reasons.includes('original_background'));
+  assert.ok(r.r45.reasons.includes('gate_wall_mismatch'));
   const loc = deps({ angleAi: async () => ({ ok: false, reason: 'location', message: 'User location is not supported for the API use.' }) });
   assert.equal(out(await runJob(loc.d, job(), budget)).r45.wait, 'retry');
   const blocked = deps({ angleAi: async () => ({ ok: false, reason: 'blocked', message: 'SAFETY' }) });
@@ -313,7 +338,7 @@ test('r48.2 worker: the old background still there is refused; a location refusa
 });
 
 test('r48.2 worker: a car with no photo is made from the stock photo; the scene and the tries reach the words and the check', async () => {
-  const { d, asked, checks } = deps({}, [{ ...OK, nose: 'left' }]);
+  const { d, asked, checks } = deps({}, [WOK]);
   const r = out(await runJob(d, job({}, { refs: [], tries: 2, scene: { code: 'highway', label: 'Highway', place: 'the paved shoulder of an open highway' } }), budget));
   assert.equal(r.r45.pass, true);
   assert.equal((r.r45 as { stock_only?: boolean }).stock_only, true);

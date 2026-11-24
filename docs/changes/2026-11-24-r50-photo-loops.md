@@ -15,8 +15,8 @@ no car had a studio render on the site (renders done 0, studio covers 0), most c
 - **Stranded real photos.** A real photo left "queued" with no step is due again (the job puts it back to redo).
 - **"Other detail" photos never sorted again** since Release 45 removed the r44 re-sort. The job sorts them again (cars with
   no outside cover first, 8 a run), so an imported outside photo becomes the car's cover.
-- **Never an empty gallery.** A published car whose own photos are all inside or detail photos shows its model's
-  representative photos first (captioned), then its own photos.
+- **Never an empty gallery.** Superseded by 3701 (2026-11-24-r50-studio-only.md): the site shows only gated studio renders,
+  else one "Photos coming soon" photo.
 - **Connector.** `photo_standard`: the cover is `studio` when the listing's cover is a render (the side profile since 3150);
   `details_unsorted` and `resorting` per car.
 

@@ -20,6 +20,7 @@ import { boxesForSave, decidePlate, greyOfRgba, refineAll } from './plate-auto.t
 import { enhanceValues, statsOf, type Enhance } from './enhance.ts';
 import { cropAway, type MarkBox } from './photo-sort.ts';
 import { BACKGROUND_SAME, DEALERSHIP_PLACE, borderDiff, isDealership, type R48Scene } from './r48.ts';
+import { STUDIO_FRAME, cropResize, frameWindow, gateExterior, gateInterior, readCarBox, type GateVerdict } from './studio-gate.ts';
 import { STUDIO_MOVE_CHECK_SCHEMA, STUDIO_MOVE_CHECK_SYSTEM, judgeStudioMove, studioMoveCheckPrompt, studioMovePrompt } from './marketing-studio.ts';
 import { R48_MAX_BYTES, R48_MAX_REFS, R48_PRESET, R48_REF_SIDE, R48_SPEC, PLATE_CHECK_PROMPT, PLATE_CHECK_SCHEMA, PLATE_CHECK_SYSTEM, R48_CHECK_SCHEMA, R48_CHECK_SYSTEM, judgePlate, judgeR48,
   platePath, platePrompt, r48CheckPrompt, r48Prompt, type PlateFamily } from './r48.ts';
@@ -211,6 +212,8 @@ export async function runListingWorker(d: WorkerDeps, o: { maxJobs?: number; bat
     const r45 = c.jobs.filter((j) => j.kind === 'photo_r45');
     const pool = async (list: JobContext[], n: number) => { let k = 0; await Promise.all(Array.from({ length: Math.min(n, list.length) }, async () => { while (k < list.length) await one(list[k++]!); })); };
     await Promise.all([...light.map(one), (async () => { for (const j of heavy) await one(j); })(), pool(r45, R45_PARALLEL)]);
+    // r50 (3701): one batch of renders a run at most: the run's CPU (wrangler limits.cpu_ms) is shared by every step in it
+    if (r45.length) break;
   }
   return sum;
 }
@@ -1039,6 +1042,17 @@ export interface R48Input { mode: 'r48'; car?: CarFacts | null; shot?: string; r
   plate_end?: 'yes' | 'no' | null }
 type Img = { bytes: Uint8Array; contentType: string };
 /** A reference as Gemini is sent it: a decodable photo made at most R48_REF_SIDE on its long side; another kind kept when small. */
+/** r50 (3701): the largest reference sent as it is. A render used to decode every reference in the Worker (jpeg-js: about
+ *  3.4 s of CPU for a 12 MP phone photo, up to six of them, then the same-angle photo again): the step ran past the Worker's
+ *  30 s CPU limit (wrangler.jsonc limits.cpu_ms), was killed before it answered, and the sweep failed it after the lock
+ *  time, again and again. Now references are sent undecoded (Gemini scales them itself); only when none fits is one decoded. */
+export const R48_REF_MAX_RAW = 3_500_000;
+export function refLight(bytes: Uint8Array | null): Img | null {
+  if (!bytes?.length || bytes.length > R48_REF_MAX_RAW) return null;
+  const type = mimeOf(bytes);
+  return type === 'image/jpeg' || type === 'image/png' || type === 'image/webp' ? { bytes, contentType: type } : null;
+}
+
 export async function refForModel(bytes: Uint8Array | null): Promise<Img | null> {
   const m = await forModel(bytes);
   if (!m) return null;
@@ -1103,16 +1117,20 @@ export async function makeR48(d: WorkerDeps, j: JobContext): Promise<R45Made> {
   const refs: Img[] = [];
   let total = 0, handover = 0;
   let sameAngle: Img | null = null;
+  let firstRaw: Uint8Array | null = null;
   for (const r of (inp.refs ?? []).slice(0, R48_MAX_REFS)) {
     const raw = r.bucket === 'condition-photos' ? (d.files.getCondition ? await d.files.getCondition(r.path).catch(() => null) : null)
       : r.bucket === 'vehicle-originals' ? await d.files.getPrivate(r.path).catch(() => null) : null;
-    const m = await refForModel(raw);
+    if (raw && !firstRaw && r.from !== 'handover') firstRaw = raw;
+    const m = refLight(raw);
     if (!m || total + m.bytes.length > R48_MAX_BYTES * 0.75) continue;
     // r48 AN: marked for the render chain (a check-in or check-out photo never goes to an outside model)
     refs.push(Object.assign(m, { ref: true, sensitive: r.from === 'handover' })); total += m.bytes.length;
     if (r.from === 'handover') handover++;
     if (!sameAngle && r.shot === shot) sameAngle = m;
   }
+  // every reference too large to send as it is: one (the first listing photo) is made smaller, the only decode of a reference
+  if (!refs.length && firstRaw) { const m = await refForModel(firstRaw); if (m) { refs.push(Object.assign(m, { ref: true, sensitive: false })); total += m.bytes.length; } }
   const pub = async (path: string | null | undefined): Promise<Img | null> => {
     if (!path || !d.files.getPublic) return null;
     const b = await d.files.getPublic(path).catch(() => null);
@@ -1142,20 +1160,34 @@ export async function makeR48(d: WorkerDeps, j: JobContext): Promise<R45Made> {
   const ai = await decodeImage(made.bytes).catch(() => null);
   if (!ai) return no('Gemini\'s photo could not be read');
   const size = ext ? EXTERIOR : INTERIOR;
-  const fitted = fitFrame(ai, size.width, size.height);
-  // measured: an outside view whose edges are still the same-angle real photo's place did not get its new background
-  const sameImg = ext && sameAngle ? await decodeImage(sameAngle.bytes).catch(() => null) : null;
-  const bgDiff = sameImg ? +borderDiff(fitted, sameImg).toFixed(3) : null;
+  let fitted = fitFrame(ai, size.width, size.height);
+  // r50: the same-angle real photo is no longer decoded for borderDiff (CPU); the studio gate compares with the plate instead
   const seen = encodeJpeg(scaleDown(fitted, 1280, 1280), 85);
   const asked = await d.checkPhoto({ images: [{ bytes: seen, contentType: 'image/jpeg' }, ...(stockOnly ? [stock!] : refs.slice(0, 4)), ...(plate ? [plate] : [])], system: R48_CHECK_SYSTEM,
     prompt: r48CheckPrompt({ car, shot, plate: !!plate, scene, name, plateEnd }), schema: R48_CHECK_SCHEMA as unknown as Record<string, unknown>, photoId: p.id }).catch(() => null);
   if (!asked) return no('the check could not be asked now', {}, 'retry');
   const v = judgeR48(asked.data, { shot, plate: !!plate, tries: inp.tries ?? 0, scene, name, plateEnd });
-  if (bgDiff !== null && bgDiff < BACKGROUND_SAME && !v.reasons.includes('original_background')) { v.reasons.push('original_background'); v.pass = false; }
   const base = { model: made.model ?? null, check_model: asked.model, view: v.view, nose: v.nose ?? null, reasons: v.reasons, soft: v.soft ?? [], refs: refs.length, handover_refs: handover,
-    stock_only: stockOnly, scene: scene?.code ?? null, background_diff: bgDiff };
+    stock_only: stockOnly, scene: scene?.code ?? null };
   if (!v.pass) return no(`the check refused it: ${v.reasons.join(', ')}`, base);
-  blurPlates(fitted, v.plates);
+  // r50 (3701): the studio gate. Outside: the car put on its view's target by a crop, then measured against the scene's one
+  // plate (wall, floor, contact shadow), its box, its view and direction. Inside: the view. Refused: made again with the reasons.
+  let gate: GateVerdict;
+  let platesAt = v.plates;
+  if (ext && STUDIO_FRAME[shot]) {
+    const box = readCarBox(asked.data);
+    const placed = box ? frameWindow(box, STUDIO_FRAME[shot]!) : { error: 'gate_no_car_box' as const };
+    if ('error' in placed) gate = { pass: false, reasons: [placed.error], measures: {} };
+    else {
+      fitted = cropResize(fitted, placed.win, size.width, size.height);
+      platesAt = v.plates.map((b) => ({ x: (b.x - placed.win.x) / placed.win.w, y: (b.y - placed.win.y) / placed.win.h, w: b.w / placed.win.w, h: b.h / placed.win.h }));
+      const plateImg = plate ? await decodeImage(plate.bytes).catch(() => null) : null;
+      gate = gateExterior({ shot, img: fitted, plate: plateImg ? fitFrame(plateImg, size.width, size.height) : null, car: placed.car, view: v.view, nose: v.nose ?? null, zoom: 1 / placed.win.w });
+    }
+  } else gate = gateInterior({ shot, view: v.view });
+  const gateOut = { pass: gate.pass, reasons: gate.reasons, measures: gate.measures, spec: R48_SPEC };
+  if (!gate.pass) return no(`the studio gate refused it: ${gate.reasons.join(', ')}`, { ...base, reasons: [...base.reasons, ...gate.reasons], gate: gateOut });
+  blurPlates(fitted, platesAt);
   const tag = j.id.replace(/-/g, '').slice(0, 6);
   const path = `vehicles/${j.vehicle_id}/${p.file_base}-r48${tag}.jpg`;
   await d.files.putPublic(path, encodeJpeg(fitted, 88), 'image/jpeg');
@@ -1166,10 +1198,10 @@ export async function makeR48(d: WorkerDeps, j: JobContext): Promise<R45Made> {
     await d.files.putPublic(vp, encodeJpeg(scaleDown(fitted, w), 84), 'image/jpeg');
     variants.push({ width: w, format: 'jpg', path: vp });
   }
-  const plates = v.plates.map((b) => ({ x: +b.x.toFixed(4), y: +b.y.toFixed(4), w: +b.w.toFixed(4), h: +b.h.toFixed(4) }));
+  const plates = platesAt.map((b) => ({ x: +b.x.toFixed(4), y: +b.y.toFixed(4), w: +b.w.toFixed(4), h: +b.h.toFixed(4) }));
   return { pass: true, why: '', output: {
     processed_path: path, width: size.width, height: size.height, variants, preset_version: R48_PRESET, flags: [],
     showroom: { provider: 'ai', ...(made.model ? { model: made.model } : {}), note: null, reason: null, mode: 'r48', spec: R48_SPEC, scene: scene?.code ?? 'showroom_dark',
       ...(plate && inp.plate ? { background: inp.plate } : plateMade ? { background: plateMade.path } : {}) },
-    r45: { pass: true, spec: R48_SPEC, generated: true, plates, ...base, ...(plateMade ? { plate_made: plateMade } : {}) } } };
+    r45: { pass: true, spec: R48_SPEC, generated: true, plates, ...base, gate: gateOut, ...(plateMade ? { plate_made: plateMade } : {}) } } };
 }

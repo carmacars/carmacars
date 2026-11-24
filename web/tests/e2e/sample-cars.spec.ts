@@ -148,8 +148,8 @@ test('Admin: hide the sample cars in one click, show them again, and see why eac
               values (${vid}, ${slug}, '2017 Volkswagen Jetta', 'published', now(), 5, 'Automatic', 'Sedan')
               on conflict (vehicle_id) do update set slug = excluded.slug, status = 'published', published_at = now(), seats = 5, transmission = 'Automatic', body_style = 'Sedan'`;
     await page.goto(`/cars/${slug}`);
-    await expect(page.getByTestId('sample-photo-caption').first()).toContainText('Representative photo');
-    await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /\/sample-photos\//);
+    await expect(page.getByTestId('photos-coming-soon').first()).toContainText('Photos coming soon');
+    await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /coming-soon|r48\/plates/);
     await sql`update vehicle_listings set status = 'unpublished' where vehicle_id = ${vid}`;
   }
   await sql.end();

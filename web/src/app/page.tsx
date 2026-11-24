@@ -17,8 +17,7 @@ import { getBusinessFacts } from '@/features/seo/business-data';
 import { getEntityFacts } from '@/features/seo/facts';
 import { keyFacts, summary } from '@/features/seo/llms';
 import { faqLd, seoMeta } from '@/features/seo/meta';
-import { faqItems, fill, getClasses, getCutouts, getFacts, getFleet, getSettings, getTokens, listItems, slotPhoto, siteUrl } from '@/lib/site';
-import { slotScene } from '@/lib/slot-cars';
+import { faqItems, fill, getClasses, getStudioCovers, getFacts, getFleet, getSettings, getTokens, listItems, slotPhoto, siteUrl } from '@/lib/site';
 import { LineDraw } from '@/portable/motion/line-draw';
 import { LOGO_PATHS, LOGO_VIEWBOX } from '@/features/home/logo-paths';
 
@@ -44,12 +43,9 @@ export default async function Home() {
     listItems<Row>('home.requirements'), listItems<Opt>('home.coverage_options'), slotPhoto('home.hero'), slotPhoto('home.delivery'), slotPhoto('home.owner'),
     getBusinessFacts(), getEntityFacts()
   ]);
-  // r48 O (3080): real fleet cars, cut out, where the sample car of the hero and of the decorative sections stood, over the
-  // section's own background (no dealership background); the hero shows them in turn. No cutout yet, or a section photo
-  // replaced in Site content: the section photo as before.
-  const cutouts = await getCutouts();
-  const heroScene = slotScene('home.hero', hero, cutouts, { rotate: true });
-  const delivScene = slotScene('home.delivery', deliv, cutouts), ownerScene = slotScene('home.owner', owner, cutouts);
+  // r50 (3701): the hero and the sections show the listings' own gated studio renders (the side profile), never a cutout of
+  // another photo on a drawn plate; none yet: the neutral studio photo
+  const studio = await getStudioCovers();
   // 2350: links from home to the indexable landing pages (the GTA areas and the ways to rent)
   const areas = homeAreaLinks(await getSeoPages().catch(() => []));
   const F = (x: string) => fill(x, t);
@@ -61,7 +57,7 @@ export default async function Home() {
     <div className="p-home">
       <JsonLd graph={[businessLd(s, siteUrl(), { areas: bf.areas, price: bf.price, rating: bf.rating }), faqLd(faq.map((q) => ({ ...q, answer: F(q.answer) })))]} />
       <section className="hero on-dark">
-        <div className="hero__media"><SlotCars scene={heroScene} photo={hero} eager /></div>
+        <div className="hero__media"><SlotCars slot="home.hero" photo={hero} studio={studio} eager /></div>
         <div className="wrap hero__inner">
           <div className="hero__copy">
             {/* r48 AN: the logo's strokes draw along their lines, then fill (once a session; at once with reduced motion) */}
@@ -115,7 +111,7 @@ export default async function Home() {
       </section>
 
       <section className="band on-dark" aria-labelledby="h-deliv">
-        <div className="band__media photo fx-drift"><SlotCars scene={delivScene} photo={deliv} /></div>
+        <div className="band__media photo fx-drift"><SlotCars slot="home.delivery" photo={deliv} studio={studio} /></div>
         <div className="wrap band__inner"><div className="band__copy stack">
           <h2 className="d1" id="h-deliv">Delivered to your door.</h2>
           <p className="lead">Home, office, hotel or the airport, anywhere. Tell us the address in your request, at any hour, and we price the trip in your offer.</p>
@@ -148,7 +144,7 @@ export default async function Home() {
             <p className="lead">{F('List yours with {{brand}} and it earns its keep while you are not driving it. We handle the renters, the handovers and the paperwork, it goes on our fleet insurance policy, and you are paid on the {{payoutDay}} of each month.')}</p>
             <p><Link className="btn btn--light btn--lg" href="/list-your-car">List your car</Link></p>
           </div>
-          <div className="owner-band__media photo fx-wipe"><SlotCars scene={ownerScene} photo={owner} sizes="(min-width: 48rem) 50vw, 100vw" /></div>
+          <div className="owner-band__media photo fx-wipe"><SlotCars slot="home.owner" photo={owner} studio={studio} sizes="(min-width: 48rem) 50vw, 100vw" /></div>
         </div>
       </section>
 

@@ -13,8 +13,8 @@
 --      back to 'redo' by the job.
 --   4. Photos filed as "Other detail" (the sorter could not read them, or an import) are never sorted again since 2840
 --      removed job_photo_spec (2780's re-sort). A car whose photos are all details has no outside photo, so 2890 showed no
---      gallery at all. Now the job sorts them again (cars with no outside cover first, a few each run), and a published car
---      whose gallery would be empty shows its model's representative photos first, then its own photos, never an empty box.
+--      gallery at all. Now the job sorts them again (cars with no outside cover first, a few each run); they are the
+--      references the studio renders are made from. (What the site shows: 3701, studio renders only.)
 -- Also: the connector's photo_standard reports the cover as 'studio' when the listing's cover is a render (3150 made the
 -- side profile the cover; the report still looked for the front three-quarter only).
 -- Tests: supabase/tests/99_r50ph_photo_loops.sql. SCHEMA_MARKER 3700. No applied migration is edited.
@@ -105,27 +105,6 @@ end $$;
 select pg_temp.copy_grants('app.job_photo_r48()'::regprocedure, 'app.job_photo_r48_pre3700()'::regprocedure);
 revoke all on function app.job_photo_r48_pre3700() from public, anon, authenticated;
 grant execute on function app.job_photo_r48_pre3700() to service_role;
-
--- ================================================================ 4. never an empty gallery on a published car
-alter function app.public_listing_photos(uuid) rename to public_listing_photos_pre3700;
-create function app.public_listing_photos(p_vehicle uuid) returns jsonb
-language plpgsql stable security definer set search_path = public, app as $$
-declare g jsonb := coalesce(app.public_listing_photos_pre3700(p_vehicle), '[]'::jsonb); s jsonb; own jsonb;
-begin
-  if jsonb_array_length(g) > 0 or coalesce((select v.is_sample from vehicles v where v.id = p_vehicle), true) then return g; end if;
-  -- 2890 empties the gallery when the car's first photo would be an inside or detail one: its model's representative
-  -- photos lead (an outside view first, captioned), then the car's own photos in the standard order
-  s := coalesce(app.vehicle_sample_photos(p_vehicle), '[]'::jsonb);
-  if jsonb_array_length(s) = 0 then return g; end if;
-  own := coalesce((select jsonb_agg(t.e || jsonb_build_object('is_cover', false, 'real', true) order by app.photo_rank(t.e ->> 'shot'), t.n)
-                     from jsonb_array_elements(coalesce(app.public_listing_photos_pre2841(p_vehicle), '[]'::jsonb)) with ordinality t(e, n)
-                    where not coalesce((t.e ->> 'sample')::boolean, false)), '[]'::jsonb);
-  return (select coalesce(jsonb_agg(t.e || jsonb_build_object('sample', true, 'is_cover', t.n = 1) order by t.n), '[]'::jsonb)
-            from jsonb_array_elements(s) with ordinality t(e, n)) || own;
-end $$;
-select pg_temp.copy_grants('app.public_listing_photos(uuid)'::regprocedure, 'app.public_listing_photos_pre3700(uuid)'::regprocedure);
-revoke all on function app.public_listing_photos_pre3700(uuid) from public, anon, authenticated;
-grant execute on function app.public_listing_photos_pre3700(uuid) to service_role;
 
 -- ================================================================ 5. the connector: a rendered cover is a studio cover
 alter function app.photo_standard_car(uuid) rename to photo_standard_car_pre3700;

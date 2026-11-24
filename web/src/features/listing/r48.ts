@@ -32,13 +32,14 @@
 import type { NBox } from './plate-cover.ts';
 import type { Rgba } from './subject-frame.ts';
 import { PLATES_KEY, angleOf, carName, isExterior, readPlates, type CarFacts, type CheckReason } from './r45.ts';
+import { GATE_FEEDBACK, placementLine, type GateReason } from './studio-gate.ts';
 
 /** The standard (app.photo_r48_spec() returns the same; keep the two equal). */
-export const R48_SPEC = 'r48.2';
+export const R48_SPEC = 'r48.3';
 /** The preset recorded on a photo made to this standard. */
 export const R48_PRESET = 'gemini_r48';
 /** The car's real photos sent as references at most (each made at most R48_REF_SIDE on its long side). */
-export const R48_MAX_REFS = 6;
+export const R48_MAX_REFS = 4;
 export const R48_REF_SIDE = 1280;
 /** The request's images together stay under this many bytes (Gemini takes about 20 MB inline, base64 included). */
 export const R48_MAX_BYTES = 12_000_000;
@@ -50,15 +51,15 @@ export interface AngleSpec { shot: string; label: string; exterior: boolean; fam
  *  cars' drawing of the view (features/car/studio.ts SHOTS key), null when there is none. */
 export const R48_ANGLES: readonly AngleSpec[] = [
   { shot: 'front_left', label: 'Front three-quarter', exterior: true, family: 'front', guide: 'lead',
-    framing: 'front three-quarter of the driver (left) side, exactly as the composition guide: the car\'s nose points to the LEFT edge of the frame, turned about 30 degrees from a pure side profile towards the camera, so the whole left side and the front corner show; camera height about 0.9 m (headlight level); a 50 mm full-frame lens look from about 7 m (no wide-angle stretch, no fisheye); the whole car in the frame, centred, about 85 percent of the frame width, the tyres on the floor at about 80 percent of the frame height, a little floor in front of the bumper and above the roof; the front wheels straight' },
+    framing: 'front three-quarter of the driver (left) side, exactly as the composition guide: the car\'s nose points to the LEFT edge of the frame, turned about 30 degrees from a pure side profile towards the camera, so the whole left side and the front corner show; camera height about 0.9 m (headlight level); a 50 mm full-frame lens look from about 7 m (no wide-angle stretch, no fisheye); the whole car in the frame, centred, about 74 percent of the frame width, the tyres on the floor at 84 percent of the frame height, floor in front of the bumper and room above the roof; the front wheels straight' },
   { shot: 'front', label: 'Front', exterior: true, family: 'front', guide: 'front',
-    framing: 'straight front view: the camera on the car\'s centre line, square to the front; camera height about 0.8 m (headlight level); a 70 mm full-frame lens look from about 8 m; the whole front in the frame, centred, about 65 percent of the frame width, both mirrors and both front tyres visible' },
+    framing: 'straight front view: the camera on the car\'s centre line, square to the front; camera height about 0.8 m (headlight level); a 70 mm full-frame lens look from about 8 m; the whole front in the frame, centred, about 55 percent of the frame width, both mirrors and both front tyres visible' },
   { shot: 'left', label: 'Side profile', exterior: true, family: 'side', guide: 'side',
-    framing: 'full side profile of the driver (left) side, the car\'s nose to the LEFT of the frame: the camera square to the side of the car (90 degrees), level with the door handles (about 0.9 m); a 50 mm full-frame lens look from about 8 m; the whole car from bumper to bumper, centred, about 85 percent of the frame width, both wheels fully visible and round' },
+    framing: 'full side profile of the driver (left) side, the car\'s nose to the LEFT of the frame: the camera square to the side of the car (90 degrees), level with the door handles (about 0.9 m); a 50 mm full-frame lens look from about 8 m; the whole car from bumper to bumper, centred, about 77 percent of the frame width, both wheels fully visible and round' },
   { shot: 'rear_left', label: 'Rear three-quarter', exterior: true, family: 'rear', guide: 'rear34',
-    framing: 'rear three-quarter from the driver (left) side, the car\'s nose to the RIGHT of the frame: the camera turned 45 degrees from the car\'s centre line so the whole back and the whole left side show; camera height about 0.9 m (tail-light level); a 50 mm full-frame lens look from about 7 m; the whole car in the frame, centred, about 80 percent of the frame width' },
+    framing: 'rear three-quarter from the driver (left) side, the car\'s nose to the RIGHT of the frame: the camera turned 45 degrees from the car\'s centre line so the whole back and the whole left side show; camera height about 0.9 m (tail-light level); a 50 mm full-frame lens look from about 7 m; the whole car in the frame, centred, about 72 percent of the frame width' },
   { shot: 'rear', label: 'Rear', exterior: true, family: 'rear', guide: 'rear',
-    framing: 'straight rear view: the camera on the car\'s centre line, square to the back; camera height about 0.8 m (tail-light level); a 70 mm full-frame lens look from about 8 m; the whole back in the frame, centred, about 65 percent of the frame width, both rear tyres visible' },
+    framing: 'straight rear view: the camera on the car\'s centre line, square to the back; camera height about 0.8 m (tail-light level); a 70 mm full-frame lens look from about 8 m; the whole back in the frame, centred, about 55 percent of the frame width, both rear tyres visible' },
   { shot: 'dashboard', label: 'Dashboard', exterior: false, family: null, guide: 'dash',
     framing: 'the dashboard from the middle of the rear seat, between the front seats, at shoulder height: the steering wheel, the instrument cluster, the centre screen and the centre console, level and centred; a 24 mm full-frame lens look without distortion of straight lines' },
   { shot: 'front_seats', label: 'Front seats', exterior: false, family: null, guide: 'seats',
@@ -69,8 +70,9 @@ export const R48_ANGLES: readonly AngleSpec[] = [
     framing: 'the open trunk (cargo area) seen from directly behind the car at chest height (about 1.3 m), the lid or tailgate fully open, the cargo floor empty and clean, the bumper at the bottom of the frame; a 35 mm full-frame lens look' }
 ] as const;
 export const r48Angle = (shot: string) => R48_ANGLES.find((a) => a.shot === shot) ?? null;
-/** The background plate of a shot: front (front three-quarter and front), side, rear (rear three-quarter and rear); none inside. */
-export const plateFamily = (shot: string): PlateFamily | null => r48Angle(shot)?.family ?? null;
+/** The background plate of a shot. r48.3 (release 50, 3701): ONE plate per scene for every outside view (the 'side' plate,
+ *  the camera square to the back wall), so every view of every car stands in exactly the same room and floor; none inside. */
+export const plateFamily = (shot: string): PlateFamily | null => (r48Angle(shot)?.exterior ? 'side' : null);
 export const PLATE_FAMILIES: readonly PlateFamily[] = ['front', 'side', 'rear'];
 /** The stored composition guide of an angle for a body type (scripts/r48-references.mjs writes them). */
 export const guidePath = (body: string | null | undefined, shot: string): string | null => {
@@ -150,7 +152,7 @@ export const FEEDBACK_TEXT: Partial<Record<CheckReason | R48Reason, string>> = {
   plate_added: 'a plate was added to an end of the car that has none', plate_left: 'a licence plate was still on the car (take it off cleanly)'
 };
 export const feedbackLine = (reasons: readonly string[] | null | undefined): string => {
-  const words = [...new Set((reasons ?? []).map((r) => FEEDBACK_TEXT[r as R48Reason] ?? '').filter(Boolean))].slice(0, 6);
+  const words = [...new Set((reasons ?? []).map((r) => FEEDBACK_TEXT[r as R48Reason] ?? GATE_FEEDBACK[r as GateReason] ?? '').filter(Boolean))].slice(0, 6);
   return words.length ? `AN EARLIER TRY WAS REFUSED because ${words.join('; ')}. Fix exactly that this time.` : '';
 };
 
@@ -167,6 +169,7 @@ export function r48Prompt(o: R48PromptInput): string {
     `Create one new photograph for a car rental listing: the ${a?.label.toLowerCase() ?? o.shot.replace(/_/g, ' ')} of a ${carName(o.car)}.`,
     `THE IMAGES: ${imageRoles(o).join(' ')}`,
     `TARGET FRAMING: ${view}. Landscape 3:2.${face ? ` The car's nose MUST point to the ${face.toUpperCase()} of the frame, whatever way it faces in the real photos.` : ''}`,
+    placementLine(o.shot),
     o.stockOnly && ext ? `THE CAR is a ${carName(o.car)}: the make, model, generation and body of the stock photo, in exactly the colour named here, its body lines and proportions true, nothing warped, clean and damage-free.` : IDENTITY(carName(o.car), o.stock && ext),
     ext
       ? (o.plate
@@ -220,8 +223,9 @@ export function r48CheckPrompt(o: { car: CarFacts; shot: string; plate: boolean;
     '"clutter": an interior shows loose objects that are not part of the car;',
     '"view": the view the generated photo shows, one of front_left, front_right, front, left, right, rear_left, rear_right, rear, dashboard, front_seats, rear_seats, trunk, other;',
     '"nose": where the car\'s front (nose) points in the frame: "left", "right", "camera" (straight at the camera), "away" (straight away), or "none" (an interior);',
-    `"plates": ${PLATES_KEY}`,
-    'Example: {"wrong_colour": false, "wrong_model": false, "wrong_wheels": false, "parts_changed": false, "warped": false, "looks_cgi": false, "wrong_framing": false, "original_background": false, "background_wrong": false, "logo_wrong": false, "name_wrong": false, "text_elsewhere": false, "plate_readable": false, "plate_present": false, "plate_cover": false, "real_plate": "no", "blurry": false, "clutter": false, "view": "front_left", "nose": "left", "plates": []}'
+    `"plates": ${PLATES_KEY};`,
+    ext ? '"car_box": the box tight around the whole car (bumper to bumper, roof to the bottom of the tyres), [ymin, xmin, ymax, xmax] on a 0 to 1000 grid (y first);' : '"car_box": [] for an inside view;',
+    'Example: {"wrong_colour": false, "wrong_model": false, "wrong_wheels": false, "parts_changed": false, "warped": false, "looks_cgi": false, "wrong_framing": false, "original_background": false, "background_wrong": false, "logo_wrong": false, "name_wrong": false, "text_elsewhere": false, "plate_readable": false, "plate_present": false, "plate_cover": false, "real_plate": "no", "blurry": false, "clutter": false, "view": "front_left", "nose": "left", "plates": [], "car_box": [180, 100, 840, 900]}'
   ].join(' ');
 }
 export const R48_CHECK_SCHEMA = {
@@ -232,7 +236,8 @@ export const R48_CHECK_SCHEMA = {
     logo_wrong: { type: 'boolean' }, name_wrong: { type: 'boolean' }, text_elsewhere: { type: 'boolean' },
     plate_readable: { type: 'boolean' }, plate_present: { type: 'boolean' }, plate_cover: { type: 'boolean' }, real_plate: { type: 'string' },
     blurry: { type: 'boolean' }, clutter: { type: 'boolean' }, view: { type: 'string' }, nose: { type: 'string' },
-    plates: { type: 'array', items: { type: 'object', properties: { box_2d: { type: 'array', items: { type: 'number' } } } } }
+    plates: { type: 'array', items: { type: 'object', properties: { box_2d: { type: 'array', items: { type: 'number' } } } } },
+    car_box: { type: 'array', items: { type: 'number' } }
   },
   required: ['wrong_colour', 'wrong_model', 'wrong_wheels', 'parts_changed', 'warped', 'looks_cgi', 'wrong_framing', 'text_elsewhere', 'plate_readable', 'plate_present', 'plate_cover', 'real_plate', 'blurry', 'view', 'nose', 'plates']
 } as const;
