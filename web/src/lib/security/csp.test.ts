@@ -15,5 +15,13 @@ test('the policy lets the Stripe Payment Element load its frames and scripts', (
 });
 
 test('wallets (Apple Pay, Google Pay) may run in Stripe\'s frame', () => {
-  assert.match(securityHeaders()['Permissions-Policy']!, /payment=\(self "https:\/\/js\.stripe\.com" "https:\/\/\*\.js\.stripe\.com"\)/);
+  assert.match(securityHeaders()['Permissions-Policy']!, /payment=\(self "https:\/\/js\.stripe\.com" "https:\/\/\*\.js\.stripe\.com" "https:\/\/secure\.helcim\.app"\)/);
+});
+
+// r50: Helcim replaces Stripe for cards. HelcimPay.js (script) and its card modal (iframe) come from secure.helcim.app;
+// the API (api.helcim.com) is called only by the server, never allowed to the browser.
+test('the policy lets HelcimPay.js load its script and card modal, never the Helcim API', () => {
+  const p = Object.fromEntries(cspHeader('n').split('; ').map((d) => { const [k, ...v] = d.split(' '); return [k!, v]; }));
+  for (const k of ['script-src', 'frame-src', 'connect-src']) assert.ok(p[k]!.includes('https://secure.helcim.app'), `${k} secure.helcim.app`);
+  assert.ok(!cspHeader('n').includes('api.helcim.com'));
 });

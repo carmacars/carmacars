@@ -20,7 +20,16 @@ const schema = z.object({
   TURNSTILE_PROVIDER: z.enum(['cloudflare', 'fake', 'off']).default('fake'),
   NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string().default('1x00000000000000000000AA'),
   TURNSTILE_SECRET_KEY: z.string().default('1x0000000000000000000000000000000AA'),
-  PAYMENTS_PROVIDER: z.enum(['stripe', 'fake']).default('fake'),
+  /** r50: the card processor (src/integrations/payments/provider.ts). helcim: HelcimPay.js and the Helcim Payment API (Stripe
+   *  closed the account); stripe: kept selectable in case it is restored; off: no card payments (e-Transfer only); fake: local
+   *  and tests. helcim without HELCIM_API_TOKEN counts as off. */
+  PAYMENTS_PROVIDER: z.enum(['stripe', 'helcim', 'off', 'fake']).default('fake'),
+  /** r50: Helcim > All Tools > Integrations > API Access Configuration: the API token (docs/ops/helcim-setup.md). Never in code. */
+  HELCIM_API_TOKEN: z.string().optional(),
+  /** r50: Helcim > Integrations > Webhooks: the verifier token (base64) that signs each webhook. Never in code. */
+  HELCIM_WEBHOOK_VERIFIER_TOKEN: z.string().optional(),
+  /** r50: optional, the Helcim terminal for card payments (default: the account's default terminal for CAD). */
+  HELCIM_TERMINAL_ID: z.string().regex(/^\d+$/).optional(),
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().optional(),
@@ -151,7 +160,7 @@ export function env(): ServerEnv {
   if (e.APP_ENV === 'production') {
     if (e.DATA_BACKEND !== 'supabase') throw new Error('Production runs on Supabase (DATA_BACKEND=supabase).');
     if (e.TURNSTILE_PROVIDER === 'fake') throw new Error('Production checks public forms with Cloudflare Turnstile (or has it off), never the fake.');
-    if (e.PAYMENTS_PROVIDER !== 'stripe') throw new Error('Production takes payments through Stripe (PAYMENTS_PROVIDER=stripe).');
+    if (e.PAYMENTS_PROVIDER === 'fake') throw new Error('Production takes card payments through Helcim or Stripe, or has cards off (PAYMENTS_PROVIDER=helcim|stripe|off), never the fake.');
     if (!e.LINK_SIGNING_KEY) throw new Error('Production needs LINK_SIGNING_KEY.');
   }
   cached = e;

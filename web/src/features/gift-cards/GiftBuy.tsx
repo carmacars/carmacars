@@ -1,9 +1,10 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { hasCardBox, loadCardJs } from '@/lib/card-js';
 import { useRouter } from 'next/navigation';
 import Link from '@/components/Link';
 import { money } from '@/lib/format';
-import { loadStripe, mountCard, type StripeJs } from '@/lib/stripe-js';
+import { mountCard, type StripeJs } from '@/lib/stripe-js';
 import { reloadIfStale } from '@/lib/client-error/recover';
 import { playMoment } from '@/features/motion/moment';
 import { fakeConfirmGift, finishGiftPurchase, giftRentalPrice, startGiftPurchase, type StartedGift } from '@/server/actions/gift-cards';
@@ -85,9 +86,9 @@ export function GiftBuy({ facts, signedIn, buyerName, today }: { facts: GiftFact
 
   // the card form, once the order exists
   useEffect(() => {
-    if (!pay || pay.provider !== 'stripe' || !pay.publishableKey || !mount.current) return;
+    if (!pay || !hasCardBox(pay.provider, pay.publishableKey) || !mount.current) return;
     let live = true;
-    loadStripe(pay.publishableKey).then((js) => { if (live && mount.current) stripe.current = { js, elements: mountCard(js, pay.clientSecret, mount.current) }; })
+    loadCardJs(pay.provider, pay.publishableKey).then((c) => { const js = c as unknown as StripeJs; if (live && mount.current) stripe.current = { js, elements: mountCard(js, pay.clientSecret, mount.current) }; })
       .catch(() => live && setMsg({ kind: 'error', text: 'The card form did not load. Reload the page.' }));
     return () => { live = false; };
   }, [pay]);

@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { hasCardBox, loadCardJs } from '@/lib/card-js';
 import { scrollOption } from '@/lib/nav/same-page';
 import { useRouter } from 'next/navigation';
 import { fakeConfirmAddonCard, finalizeAddonPayment, startAddonPayment, type StartedAddonPayment } from '@/server/actions/addon-pay';
@@ -12,17 +13,6 @@ import { WhyDisabled } from '@/components/WhyDisabled';
 interface StripeJs {
   elements(o: { clientSecret: string; appearance?: unknown }): { create(type: 'payment', o?: unknown): { mount(el: HTMLElement): void } };
   confirmPayment(o: { elements: unknown; redirect: 'if_required'; confirmParams: Record<string, unknown> }): Promise<{ error?: { message?: string }; paymentIntent?: { id: string; status: string } }>;
-}
-function loadStripe(key: string): Promise<StripeJs> {
-  const w = window as unknown as { Stripe?: (k: string) => StripeJs };
-  return new Promise((resolve, reject) => {
-    if (w.Stripe) return resolve(w.Stripe(key));
-    const s = document.createElement('script');
-    s.src = 'https://js.stripe.com/v3/';
-    s.onload = () => (w.Stripe ? resolve(w.Stripe(key)) : reject(new Error('Stripe did not load')));
-    s.onerror = () => reject(new Error('Stripe did not load'));
-    document.head.appendChild(s);
-  });
 }
 
 export function AddonPayForm({ number, amountCents }: { number: string; amountCents: number }) {
@@ -44,8 +34,8 @@ export function AddonPayForm({ number, amountCents }: { number: string; amountCe
       if (!live) return;
       if (!r.ok) { setFatal(r.message); return; }
       setP(r.data);
-      if (r.data.provider === 'stripe' && r.data.publishableKey && mount.current) {
-        const js = await loadStripe(r.data.publishableKey);
+      if (hasCardBox(r.data.provider, r.data.publishableKey) && mount.current) {
+        const js = (await loadCardJs(r.data.provider, r.data.publishableKey)) as unknown as StripeJs;
         const elements = js.elements({ clientSecret: r.data.clientSecret, appearance: { theme: 'stripe', variables: { colorPrimary: '#D0111B', colorText: '#000000', borderRadius: '6px', fontFamily: 'Inter, Helvetica, Arial, sans-serif' } } });
         elements.create('payment', { layout: 'tabs', wallets: { applePay: 'never', googlePay: 'never' }, fields: { billingDetails: { name: 'never' } }, defaultValues: { billingDetails: { address: { country: 'CA' } } } }).mount(mount.current);
         stripe.current = { js, elements };

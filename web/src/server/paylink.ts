@@ -1,6 +1,7 @@
 import 'server-only';
 import { rpc } from '@/lib/db/repo';
-import { payments, type Intent } from '@/integrations/payments';
+import { payments, provider, type Intent } from '@/integrations/payments';
+import { holdWindowDays } from '@/integrations/payments/provider';
 import { isPayToken, payTokenHash } from '@/server/pay-token';
 import { CARD_NOT_CREDIT, holdAmountMessage, holdAmountStep, payCardStep } from '@/server/pay-card';
 
@@ -24,7 +25,16 @@ export async function markPayLinkOpened(token: string): Promise<void> {
 
 /** r42: Program settings, Extended deposit holds: a deposit hold asks Stripe for up to about 30 days, if available. */
 export async function extendedHolds(): Promise<boolean> {
+  // r50: only Stripe has extended authorizations; a Helcim preauth lasts 7 days
+  if (provider() === 'helcim' || provider() === 'off') return false;
   return Boolean(await rpc('server_deposit_extended_holds' as never, {} as never, SR).catch(() => false));
+}
+
+/** r50: the deposit of this booking is charged and refunded at release, not held: the processor's hold (Helcim: 7 days)
+ *  is shorter than the rental (helcim.ts holdPlan, the same rule the adapter applies). */
+export async function depositChargedInstead(bookingId: string): Promise<boolean> {
+  if (provider() !== 'helcim') return false;
+  return (await rpc('server_helcim_hold_plan' as never, { p_booking: bookingId, p_window_days: holdWindowDays('helcim') } as never, SR).catch(() => 'hold')) === 'charge';
 }
 
 export async function settlePayreq(id: string, intentId: string, kind: PayLinkFacts['kind'], placed?: Intent | null): Promise<{ ok: boolean; reason?: string; message?: string }> {

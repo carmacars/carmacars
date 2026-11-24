@@ -1,0 +1,27 @@
+CarmaCars  |  Expense {{expense_ref}}
+
+========================================
+
+[Declined]
+Your expense was declined
+
+Hi {{first_name}}. {{decided_by_name}} declined your expense of {{expense_amount}}: {{expense_description}}.
+
+Reason: {{decline_reason}}
+Amount: {{expense_amount}}
+Whose money: {{expense_paid_with}}
+
+See it on My shifts:
+https://carmacars.ca/staff/field/shifts
+
+If you think this is wrong, reply to this email or ask Finance, with the receipt.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

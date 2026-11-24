@@ -211,7 +211,7 @@ export interface PushState { enabled: boolean; role: Portal; topics: string[]; d
 export interface Me { user: MobileUser; aal: 'aal1' | 'aal2'; roles: Roles; needs_two_step: boolean; deletion: Deletion | null; push: PushState | null; push_available: boolean }
 export interface AppConfig {
   site_url: string; brand: string; phone: string | null; email: string | null;
-  stripe_publishable_key: string | null; payments: 'stripe' | 'fake';
+  stripe_publishable_key: string | null; payments: 'stripe' | 'fake' | 'helcim' | 'off';
   phone_sign_in: { enabled: boolean; us_allowed: boolean; code_length: number };
   passkeys: { rp_id: string }; push: boolean; turnstile: 'cloudflare' | 'fake' | 'off';
   /** The oldest app build that still works with this server; an older app shows "Update the app". */
@@ -230,7 +230,7 @@ export interface CarPage { car: Record<string, unknown> & { vehicle_id: string; 
   unavailable: Array<{ unavailable_from: string; unavailable_to: string }>; addons: unknown }
 export interface PasskeyOptions { challenge_id: string; challenge: string; rp_id: string; rp_name: string; user?: { id: string; name: string; display_name: string }; exclude?: string[] }
 export interface PasskeyRow { id: string; device: string | null; created_at: string; last_used_at: string | null }
-export interface StartedPayment { provider: 'stripe' | 'fake'; intentId: string; clientSecret: string; amountCents: number; publishableKey: string | null; legalName: string; coverageNetwork: { brand: string; label: string } | null }
+export interface StartedPayment { provider: 'stripe' | 'fake' | 'helcim' | 'off'; intentId: string; clientSecret: string; amountCents: number; publishableKey: string | null; legalName: string; coverageNetwork: { brand: string; label: string } | null }
 export interface UploadSlot { url: string; headers: Record<string, string>; ticket: string }
 export interface EsignView {
   id: string; signer_name: string; channels: Array<{ channel: 'sms' | 'email'; to: string }>; code_sent_to: string | null; verified: boolean; viewed: boolean; code_required: boolean;

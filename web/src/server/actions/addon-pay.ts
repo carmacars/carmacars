@@ -20,7 +20,7 @@ async function mine(number: string) {
   return { userId: user.id, b };
 }
 
-export interface StartedAddonPayment { provider: 'stripe' | 'fake'; intentId: string; clientSecret: string; amountCents: number; publishableKey: string | null }
+export interface StartedAddonPayment { provider: 'stripe' | 'fake' | 'helcim' | 'off'; intentId: string; clientSecret: string; amountCents: number; publishableKey: string | null }
 
 export async function startAddonPayment(number: string): Promise<R<StartedAddonPayment>> {
   try {

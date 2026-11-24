@@ -23,7 +23,7 @@ export interface GiftInput {
   kind: 'purchased' | 'gifted_rental'; amount_cents?: number | null; vehicle_id?: string | null; days?: number | null;
   recipient_name: string; recipient_email: string; message?: string; send_on?: string; buyer_name?: string;
 }
-export interface StartedGift { id: string; provider: 'stripe' | 'fake'; intentId: string; clientSecret: string; amountCents: number; publishableKey: string | null; rentalText: string | null }
+export interface StartedGift { id: string; provider: 'stripe' | 'fake' | 'helcim' | 'off'; intentId: string; clientSecret: string; amountCents: number; publishableKey: string | null; rentalText: string | null }
 
 /** The gifted rental's price for a car and a number of days (the site's own quote). */
 export async function giftRentalPrice(vehicleId: string, days: number): Promise<R<{ amount_cents: number | null; car: string; days: number } | null>> {

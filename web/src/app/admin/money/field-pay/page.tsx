@@ -5,8 +5,8 @@ import { door } from '@/server/door';
 import { Act } from '@/features/admin/Act';
 import { $, PageHead, Table, Tabs } from '@/features/admin/ui';
 import { HoursBoard, type PayData } from '@/features/field-pay/HoursBoard';
-import { fieldFinance } from '@/server/field-finance';
-import { PayIdentityPanel, SpendingPanel } from '@/features/field-portal/FinancePanels';
+import { fieldFinance, reimbursementsOwed } from '@/server/field-finance';
+import { PayIdentityPanel, ReimbursementsPanel, SpendingPanel } from '@/features/field-portal/FinancePanels';
 import { overtimeWords } from '@/features/field-pay/model';
 import { Payroll } from '@/features/payroll/Payroll';
 
@@ -31,7 +31,7 @@ export default async function FieldPay({ searchParams }: { searchParams: Promise
   const s = data.settings;
   const R = [base];
   // r35 part X (0930, 0931): money field staff spent, and their pay details
-  if (tab === 'spending') { const f = await fieldFinance(user.id); return (<><PageHead title="Field spending and pay details" kicker={data.period.label} />{tabs}<SpendingPanel rows={f.spends} /><PayIdentityPanel rows={f.ids} /></>); }
+  if (tab === 'spending') { const [f, o] = await Promise.all([fieldFinance(user.id), reimbursementsOwed(user.id)]); return (<><PageHead title="Field spending and pay details" kicker={data.period.label} />{tabs}<SpendingPanel rows={f.spends} /><ReimbursementsPanel owedCents={o.owedCents} people={o.people} /><PayIdentityPanel rows={f.ids} /></>); }
   if (tab === 'hours') return (<><PageHead title="Field hours" kicker={data.period.label} />{tabs}<HoursBoard data={data} base={base} extra="tab=hours&" /></>);
   if (tab === 'rates') return (<><PageHead title="Hourly rates" kicker={`The default is ${$(s.default_rate_cents)} an hour`} />{tabs}
     <p className="small muted">Each field staff member is paid the default rate unless they have their own. The rate of a pay run is the rate when the run was started. The default, the overtime rule and vacation pay are in <Link prefetch={false} className="link" href="/admin/settings/program">Program settings</Link>. {overtimeWords(s.overtime_on, s.overtime_weekly_hours, s.overtime_bps)}</p>
@@ -45,5 +45,7 @@ export default async function FieldPay({ searchParams }: { searchParams: Promise
     <PageHead title="Payroll" kicker={`${data.period.label}${data.period.ended ? ' (ended)' : ' (in progress)'}`} />{tabs}
     <p className="small muted" data-testid="pay-note">Every two weeks: the office staff&apos;s monthly salary x 12 / 26, and the field staff&apos;s hours times their rate plus the commissions approved by the end of the period. {overtimeWords(s.overtime_on, s.overtime_weekly_hours, s.overtime_bps)}{s.vacation_pay_bps > 0 ? ` Vacation pay of ${s.vacation_pay_bps / 100}% is added to field pay.` : ''} Finance prepares it and sends it for approval; you approve it and record the payments. No income tax, CPP or EI is worked out here: that is for your accountant.</p>
     <Payroll userId={user.id} base={base} date={sp.date} />
+    {/* r50 (3720): own-money expenses owed back, paid with the payroll */}
+    <ReimbursementsPanel {...await reimbursementsOwed(user.id)} />
   </>);
 }

@@ -374,6 +374,21 @@
      "Owners are told once when their car is 2 hours late coming back"
     ]
    }
+  },
+  "r50": {
+   "date": "2026-11-24",
+   "seq": 0,
+   "summary": "Card payments move to a new Canadian card processor (the previous one stays selectable), and field expenses say whose money paid, with what is owed paid back on the payroll.",
+   "sections": {
+    "renters": [
+     "Card payments now open the card processor's secure card window (Sign and pay, pay links, add-ons, gift cards). CarmaCars never sees the card number.",
+     "For a rental longer than 7 days the deposit is charged and refunded after the rental instead of held; the pay page says so."
+    ],
+    "admins": [
+     "Cards run on the new processor: set its keys as in docs/ops/helcim-setup.md. Until then cards are off and renters pay by e-Transfer.",
+     "The connector reads the new processor (its account, its payments, and records one a booking missed); add_expense and list_expenses know whose money paid."
+    ]
+   }
   }
  }
 }

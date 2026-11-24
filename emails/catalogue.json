@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 269,
+  "count": 272,
   "emails": [
     {
       "code": "account_password_reset",
@@ -20383,6 +20383,72 @@
       "template_text": "templates/staff_etransfer_reported.txt"
     },
     {
+      "code": "staff_expense_submitted",
+      "audience": "staff_va_finance",
+      "also_sent_to": [
+        "staff_admin"
+      ],
+      "category": "transactional",
+      "trigger": "Release 50 (3720): a field staff member adds money they spent for the company (gas, a wash, parts, parking, a service) with the receipt, and says whose money it was: their own (pay me back) or the company card or cash. Immediate, once per expense, to Finance and the Admins.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Approve {{expense_amount}} spent by {{staff_name}}: {{expense_paid_with}}",
+      "preheader": "{{expense_description}}. {{expense_reimburse_note}}",
+      "sample_subject": "Approve $64.20 spent by Marco Reyes: Their own money (pay them back)",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "expense_amount",
+          "type": "string",
+          "sample": "$64.20"
+        },
+        {
+          "name": "expense_description",
+          "type": "string",
+          "sample": "Gas for the Tesla Model 3"
+        },
+        {
+          "name": "expense_paid_with",
+          "type": "string",
+          "sample": "Their own money (pay them back)"
+        },
+        {
+          "name": "expense_receipt",
+          "type": "string",
+          "sample": "Attached"
+        },
+        {
+          "name": "expense_ref",
+          "type": "string",
+          "sample": "FS-3F2A9C"
+        },
+        {
+          "name": "expense_reimburse_note",
+          "type": "string",
+          "sample": "Approving it adds it to what CarmaCars owes Marco Reyes."
+        },
+        {
+          "name": "expense_vehicle",
+          "type": "string",
+          "sample": "2023 Tesla Model 3"
+        },
+        {
+          "name": "staff_name",
+          "type": "string",
+          "sample": "Marco Reyes"
+        }
+      ],
+      "template_html": "templates/staff_expense_submitted.html",
+      "template_text": "templates/staff_expense_submitted.txt"
+    },
+    {
       "code": "staff_gift_card_sold",
       "audience": "staff_va_finance",
       "category": "transactional",
@@ -23767,6 +23833,124 @@
       ],
       "template_html": "templates/staff_data_check.html",
       "template_text": "templates/staff_data_check.txt"
+    },
+    {
+      "code": "staff_expense_approved",
+      "audience": "staff_field",
+      "category": "transactional",
+      "trigger": "Release 50 (3720): Finance or an Admin approved an expense a field staff member added. One email to that staff member, at their own address. Own money: it is now owed to them and shows on their pay as reimbursable until it is paid back.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Expense approved: {{expense_amount}}",
+      "preheader": "{{expense_description}}. {{expense_reimburse_note}}",
+      "sample_subject": "Expense approved: $64.20",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "decided_by_name",
+          "type": "string",
+          "sample": "Grace Lim"
+        },
+        {
+          "name": "expense_amount",
+          "type": "string",
+          "sample": "$64.20"
+        },
+        {
+          "name": "expense_description",
+          "type": "string",
+          "sample": "Gas for the Tesla Model 3"
+        },
+        {
+          "name": "expense_paid_with",
+          "type": "string",
+          "sample": "Your own money"
+        },
+        {
+          "name": "expense_ref",
+          "type": "string",
+          "sample": "FS-3F2A9C"
+        },
+        {
+          "name": "expense_reimburse_note",
+          "type": "string",
+          "sample": "It is added to what CarmaCars owes you, and paid back with your pay."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Sam",
+          "note": "First name of the person the email is addressed to."
+        }
+      ],
+      "template_html": "templates/staff_expense_approved.html",
+      "template_text": "templates/staff_expense_approved.txt"
+    },
+    {
+      "code": "staff_expense_declined",
+      "audience": "staff_field",
+      "category": "transactional",
+      "trigger": "Release 50 (3720): Finance or an Admin declined an expense a field staff member added, with the reason. One email to that staff member, at their own address. Nothing is owed for it.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Expense declined: {{expense_amount}}",
+      "preheader": "{{decided_by_name}}: {{decline_reason}}",
+      "sample_subject": "Expense declined: $64.20",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "decided_by_name",
+          "type": "string",
+          "sample": "Grace Lim"
+        },
+        {
+          "name": "decline_reason",
+          "type": "string",
+          "sample": "The receipt is for a personal car"
+        },
+        {
+          "name": "expense_amount",
+          "type": "string",
+          "sample": "$64.20"
+        },
+        {
+          "name": "expense_description",
+          "type": "string",
+          "sample": "Gas for the Tesla Model 3"
+        },
+        {
+          "name": "expense_paid_with",
+          "type": "string",
+          "sample": "Your own money"
+        },
+        {
+          "name": "expense_ref",
+          "type": "string",
+          "sample": "FS-3F2A9C"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Sam",
+          "note": "First name of the person the email is addressed to."
+        }
+      ],
+      "template_html": "templates/staff_expense_declined.html",
+      "template_text": "templates/staff_expense_declined.txt"
     },
     {
       "code": "staff_field_job_assigned",

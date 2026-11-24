@@ -1,0 +1,27 @@
+CarmaCars  |  Expense {{expense_ref}}
+
+========================================
+
+[Approved]
+{{expense_amount}} approved
+
+Hi {{first_name}}. {{decided_by_name}} approved your expense: {{expense_description}}.
+
+Amount: {{expense_amount}}
+Whose money: {{expense_paid_with}}
+Approved by: {{decided_by_name}}
+
+See it on My shifts:
+https://carmacars.ca/staff/field/shifts
+
+{{expense_reimburse_note}}
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

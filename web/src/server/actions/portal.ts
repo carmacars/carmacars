@@ -254,7 +254,7 @@ export async function signAsDriver(token: string, input: SignInput): Promise<R> 
 }
 
 // ---------------------------------------------------------------- payment
-export interface StartedPayment { provider: 'stripe' | 'fake'; intentId: string; clientSecret: string; amountCents: number; publishableKey: string | null; legalName: string;
+export interface StartedPayment { provider: 'stripe' | 'fake' | 'helcim' | 'off'; intentId: string; clientSecret: string; amountCents: number; publishableKey: string | null; legalName: string;
   /** release 42: the network of the card that covers this rental (credit card coverage), else null */ coverageNetwork: { brand: string; label: string } | null }
 
 export async function startPayment(number: string): Promise<R<StartedPayment>> {

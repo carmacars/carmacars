@@ -1,6 +1,6 @@
 import 'server-only';
 import { door } from '@/server/door';
-import type { PayIdRow, SpendRow } from '@/features/field-portal/FinancePanels';
+import type { OwedPerson, PayIdRow, SpendRow } from '@/features/field-portal/FinancePanels';
 
 /** Finance's field spending (with a 5-minute link to each receipt) and the field staff's pay details (r35 part X). */
 export async function fieldFinance(userId: string, aal?: 'aal1' | 'aal2' | null, va?: string): Promise<{ spends: SpendRow[]; ids: PayIdRow[] }> {
@@ -11,4 +11,10 @@ export async function fieldFinance(userId: string, aal?: 'aal1' | 'aal2' | null,
   const s = await storage();
   const spends = await Promise.all(rows.map(async ({ receipt_path, ...r }) => ({ ...r, receipt_url: receipt_path ? await s.signedDownloadUrl('documents', receipt_path, 300).catch(() => null) : null })));
   return { spends, ids };
+}
+
+/** r50 (3720): what is owed back to staff who paid with their own money, per person (Finance and the Admins). */
+export async function reimbursementsOwed(userId: string, aal?: 'aal1' | 'aal2' | null, va?: string): Promise<{ owedCents: number; people: OwedPerson[] }> {
+  const r = await door<{ owed_cents: number; people: OwedPerson[] }>(userId, 'ops_read', 'reimbursements', va ? { _va: va } : {}, aal).catch(() => null);
+  return { owedCents: r?.owed_cents ?? 0, people: r?.people ?? [] };
 }

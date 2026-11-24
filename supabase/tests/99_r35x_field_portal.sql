@@ -86,7 +86,7 @@ select test.throws('clean check: a person with no shift today and no job on the 
 
 -- ================================================================ 4. money spent
 select test.throws('spend: the amount is required', $$select test.r35x_fd('r35x_a', 'spend_add', jsonb_build_object('kind', 'gas', 'description', 'Gas'))$$, 'amount');
-create temp table r35x_sp as select (test.r35x_fd('r35x_a', 'spend_add', jsonb_build_object('kind', 'gas', 'description', 'Gas before the pickup', 'amount_cents', 4500, 'hst_cents', 585,
+create temp table r35x_sp as select (test.r35x_fd('r35x_a', 'spend_add', jsonb_build_object('kind', 'gas', 'description', 'Gas before the pickup', 'amount_cents', 4500, 'hst_cents', 585, 'paid_with', 'own',
   'vehicle', test.id('vehicle:R35XA'), 'booking', test.id('booking:R35X-1'))) ->> 'id')::uuid as id;
 grant select on r35x_sp to public;
 select test.eq('spend: waits for Finance', (select status from field_spends where id = (select id from r35x_sp)), 'submitted');
@@ -151,7 +151,7 @@ select test.throws('prep: the safety certificate needs its upload', format($$sel
 select test.ok('prep: the safety certificate with its expiry', test.r35x_fd('r35x_b', 'prep_item', jsonb_build_object('id', (select id from r35x_prep), 'code', 'safety_certificate', 'document', test.r35x_photo(),
   'expires_on', (app.today() + 365)::text)) is not null);
 select test.eq('prep: the certificate is on the car''s maintenance', (select expires_on from vehicle_service_items where vehicle_id = test.id('vehicle:R35XA') and item_code = 'safety_certificate'), app.today() + 365);
-select test.ok('prep: money spent on the prep is linked to it', test.r35x_fd('r35x_b', 'spend_add', jsonb_build_object('kind', 'parts', 'description', 'Wiper fluid', 'amount_cents', 1200,
+select test.ok('prep: money spent on the prep is linked to it', test.r35x_fd('r35x_b', 'spend_add', jsonb_build_object('kind', 'parts', 'description', 'Wiper fluid', 'amount_cents', 1200, 'paid_with', 'company',
   'vehicle', test.id('vehicle:R35XA'), 'prep', (select id from r35x_prep), 'receipt', test.r35x_photo())) is not null);
 select test.eq('prep: Fleet sees the progress and the money', (select (t ->> 'done_count') || '/' || (t ->> 'total') || '/' || (t ->> 'spent_cents')
   from jsonb_array_elements(test.r35x_or('r35x_fleet', 'field_prep', jsonb_build_object('vehicle', test.id('vehicle:R35XA'))) -> 'tasks') t), '2/3/1200');

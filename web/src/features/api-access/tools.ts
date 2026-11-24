@@ -174,7 +174,7 @@ export const OPS_TOOLS: Tool[] = [
   read('get_agreement', 'A booking\'s agreements', 'The rental agreements of a booking: each one\'s status, who must sign, who signed and when, and when the link was last sent.', booking, ['booking']),
   list('list_claims', 'List claims', 'Damage and insurance claims with their status, amounts and booking.', { status: str('A claim status'), query: str('A claim number or insurer reference') }),
   read('get_claim', 'Get a claim', 'One claim by number or id, with its damages.', { claim: str('The claim number or id') }, ['claim']),
-  list('list_expenses', 'List expenses', 'Company expenses (not voided).', { from: date('From'), to: date('To'), category: str('An expense category code') }),
+  list('list_expenses', 'List expenses', 'Company expenses (not voided), each with paid_with (company: the company card or cash; own: a staff member\'s own money, paid back) and, for own money, the staff member and the reimbursement (pending, owed, declined with the reason, or paid).', { from: date('From'), to: date('To'), category: str('An expense category code'), paid_with: { type: 'string', enum: ['company', 'own'], description: 'Only expenses paid this way' } }),
   list('list_owner_statements', 'Owner statements', 'Owner statements with their period (cut off on the 7th), payout date, status, payout and whether it was paid.', { owner_id: id('One owner'), status: str('draft, approved, ...') }),
   read('get_owner_statement', 'Get an owner statement', 'One owner statement with its lines (a rental across the cutoff shows the days of this period).', { id: id('The statement') }, ['id']),
   list('list_owner_invoices', 'Owner invoices', 'Owner invoices: how each is paid (bank debit or deducted from payouts), deduct_from_payout_on, paid and balance.', { owner_id: id('One owner'), status: str('An invoice status'), unpaid: { type: 'boolean' } }),
@@ -196,8 +196,10 @@ export const OPS_TOOLS: Tool[] = [
     { ...booking, stage: { type: 'string', enum: ['pickup', 'return', 'damage'] }, shot: str('front, rear, left, interior, ... (pickup or return); the guided cleanliness evidence of a return: clean_ash, clean_seats, clean_headliner, clean_cupholders, clean_floor, clean_other'), damage_id: id('The damage (stage damage)'), image_base64: str('The photo, base64') }),
   write('resend_agreement', 'Resend an agreement', 'Send the booking\'s agreement signing link again to whoever has not signed.', ['booking'], booking),
   write('update_claim', 'Update a claim', 'Set a claim\'s status, as the claim page does.', ['id', 'status'], { id: id('The claim'), status: str('The new status'), note: str('A note') }),
-  write('add_expense', 'Add an expense', 'Add a company expense (Admin > Expenses).', ['category', 'amount_cents', 'description'],
-    { expense_on: date('The day'), category: str('An expense category code'), amount_cents: cents('Amount before HST'), hst_cents: cents('HST'), description: str('What it was'), vehicle_id: id('The car, if any') }),
+  write('add_expense', 'Add an expense', 'Add a company expense (Admin > Expenses): paid with the company card or cash, or with a staff member\'s own money (paid_with own and staff: a reimbursement owed to them, shown on the payroll).', ['category', 'amount_cents', 'description'],
+    { expense_on: date('The day'), category: str('An expense category code'), amount_cents: cents('Amount before HST'), hst_cents: cents('HST'), description: str('What it was'), vehicle_id: id('The car, if any'),
+      paid_with: { type: 'string', enum: ['company', 'own'], description: 'Who paid: company (the company card or cash, the default) or own (a staff member\'s own money: it is owed back to them at once)' },
+      staff: str('With paid_with own: the staff member to pay back (their id or email)') }),
   write('set_invoice_collect_by', 'How an owner invoice is paid', 'Bank debit on the 15th, or deducted from the owner\'s payouts.', ['id', 'collect_by'], { id: id('The invoice'), collect_by: { type: 'string', enum: ['bank_debit', 'payout'] } }),
   write('set_invoice_deduct_from', 'Deduct from payouts starting', 'The first payout date an owner invoice is deducted from (empty: the next payout).', ['id'], { id: str('The invoice id or number'), date: date('The first payout date') }),
   write('match_toll', 'Match a toll or ticket', 'Match a toll or ticket to a booking (or to the owner, staff or CarmaCars), as the tolls page does.', ['id', 'to'], { id: id('The toll or ticket'), to: str('A booking number, or owner, staff, company'), note: str('Why') }),
@@ -299,6 +301,19 @@ export const STRIPE_TOOLS: Tool[] = [
     { booking: str('The booking number'), payment_intent: str('The PaymentIntent id (pi_...)') })
 ];
 TOOLS.push(...STRIPE_TOOLS);
+
+// r50 (3710): Helcim, the card processor since Stripe closed the account, read live beside what the site recorded
+// (helcim-inspect.ts), mirroring the stripe_* tools. Never moves money: the reads only GET; helcim_record_paid only records
+// a transaction Helcim already shows approved, as the Helcim webhook would.
+export const HELCIM_TOOLS: Tool[] = [
+  read('helcim_account', 'Helcim account', 'Live from Helcim: whether the API token works, whether the webhook verifier is set, the terminal in use, and the last 24 hours of card transactions (approved and declined, charged, held and refunded). Payouts and fees are in the Helcim dashboard. Read only.'),
+  read('helcim_find_payments', 'Find Helcim payments', 'Live from Helcim: the approved card purchases, preauths (deposit holds) and captures in a time window (the last 24 hours by default; hours up to 720, or from and to; 30 days at most), newest first, optionally only one amount (amount_cents). Each with its transaction id, amount, type, when, the card brand and last 4 only, and whether the site recorded it (and on which booking). Payments no booking knows (taken in the Helcim dashboard or on its terminal) are flagged untied: helcim_record_paid with the booking links them. Read only.',
+    { hours: { type: 'number', minimum: 1, maximum: 720, description: 'The window, in hours back from to (24 by default, 720 at most)' }, from: { type: 'string', format: 'date-time', description: 'The start of the window (instead of hours)' },
+      to: { type: 'string', format: 'date-time', description: 'The end of the window (now by default)' }, amount_cents: { type: 'integer', minimum: 1, description: 'Only payments of exactly this amount, in cents (CA$5,000.00 is 500000)' } }),
+  write('helcim_record_paid', 'Record a Helcim payment', 'Record on its booking a Helcim card transaction that Helcim shows approved but the site never recorded, and never charge, capture or refund. A payment the site started for the booking (its card window closed before it came back): recorded exactly as Helcim\'s webhook would. Untied, taken in the Helcim dashboard or on its terminal: linked when its amount is exactly what is open on the booking (the rental and fees, the deposit, or both), the preview says how. Refused when it is not approved, for another booking, already recorded, or of another amount.', ['booking', 'transaction_id'],
+    { booking: str('The booking number'), transaction_id: str('The Helcim transaction id (digits), as helcim_find_payments lists it') })
+];
+TOOLS.push(...HELCIM_TOOLS);
 
 // Release 48 (2923): one open pay link cancelled by its PaymentIntent id, and that intent cancelled at Stripe (never
 // captured: no money moves). An Admin only; a paid link is refused (giving money back is a refund).

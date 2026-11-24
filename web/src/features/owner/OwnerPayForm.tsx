@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { hasCardBox, loadCardJs } from '@/lib/card-js';
 import { scrollOption } from '@/lib/nav/same-page';
 import { useRouter } from 'next/navigation';
 import { money } from '@/lib/format';
@@ -21,17 +22,6 @@ interface StripeJs {
   elements(o: { clientSecret: string; appearance?: unknown }): Elements;
   confirmPayment(o: { elements: unknown; redirect: 'if_required'; confirmParams: Record<string, unknown> }): Promise<{ error?: { message?: string }; paymentIntent?: { id: string; status: string } }>;
   confirmAcssDebitPayment(secret: string, o: { payment_method: { billing_details: { name: string; email: string } } }): Promise<{ error?: { message?: string }; paymentIntent?: { id: string; status: string } }>;
-}
-function loadStripe(key: string): Promise<StripeJs> {
-  return new Promise((resolve, reject) => {
-    const w = window as unknown as { Stripe?: (k: string) => StripeJs };
-    if (w.Stripe) return resolve(w.Stripe(key));
-    const s = document.createElement('script');
-    s.src = 'https://js.stripe.com/v3/';
-    s.onload = () => (w.Stripe ? resolve(w.Stripe(key)) : reject(new Error('Stripe did not load')));
-    s.onerror = () => reject(new Error('Stripe did not load'));
-    document.head.appendChild(s);
-  });
 }
 
 export function MandateBlock({ kind, terms, id }: { kind: 'personal' | 'business'; terms: DebitTerms; withInvoice?: boolean; id: string }) {
@@ -74,8 +64,8 @@ export function OwnerPayForm({ number, amountCents, ownerType, hasDebit, terms }
       setLoading(false);
       if (!r.ok) { setMsg({ kind: 'error', text: r.message }); if (r.code === 'paid' || r.code === 'pending') router.refresh(); return; }
       setP(r.data);
-      if (r.data.provider === 'stripe' && r.data.publishableKey) {
-        const js = await loadStripe(r.data.publishableKey);
+      if (hasCardBox(r.data.provider, r.data.publishableKey)) {
+        const js = (await loadCardJs(r.data.provider, r.data.publishableKey)) as unknown as StripeJs;
         if (method === 'card' && mount.current) {
           const elements = js.elements({ clientSecret: r.data.clientSecret, appearance: { theme: 'stripe', variables: { colorPrimary: '#D0111B', colorText: '#000000', borderRadius: '6px', fontFamily: 'Inter, Helvetica, Arial, sans-serif' } } });
           elements.create('payment', { layout: 'tabs', wallets: { applePay: 'never', googlePay: 'never' }, defaultValues: { billingDetails: { address: { country: 'CA' } } } }).mount(mount.current);

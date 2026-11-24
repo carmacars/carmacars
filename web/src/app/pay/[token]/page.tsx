@@ -4,7 +4,7 @@ import { Moment } from '@/features/motion/Moment';
 import { pageMeta } from '@/features/seo/meta';
 import { when } from '@/features/agreement/model';
 import { money } from '@/lib/format';
-import { extendedHolds, markPayLinkOpened, payLinkFacts } from '@/server/paylink';
+import { depositChargedInstead, extendedHolds, markPayLinkOpened, payLinkFacts } from '@/server/paylink';
 import { PayLinkForm } from '@/features/money/PayLinkForm';
 import { rpc } from '@/lib/db/repo';
 
@@ -31,6 +31,8 @@ export default async function PayLink({ params, searchParams }: { params: Promis
   );
   // r42: a deposit hold asks for an extended authorization (Program settings, on)
   const longHold = f.kind === 'hold' && await extendedHolds();
+  // r50: a rental longer than the card processor's hold window: the deposit is charged now and refunded at release
+  const chargedInstead = f.kind === 'hold' && await depositChargedInstead(f.booking_id);
   return (
     <div className="pt"><div className="wrap pt__body stack" style={{ maxWidth: '36rem' }}>
       <header className="stack">
@@ -41,7 +43,8 @@ export default async function PayLink({ params, searchParams }: { params: Promis
       <section className="pt-card stack" aria-labelledby="pl-what">
         <h2 className="d4" id="pl-what">What this is</h2>
         <p data-testid="paylink-what">{f.kind === 'hold'
-          ? `A hold of ${money(f.amount_cents, { cents: true })} for ${WHAT.deposit}. Nothing is charged now: the hold is released after the rental, unless a charge in your agreement applies. A hold lasts about ${f.hold_days} days${longHold ? ', or up to about 30 days on most credit cards' : ''}.`
+          ? chargedInstead ? `A deposit of ${money(f.amount_cents, { cents: true })}, charged to your card now and refunded after the rental, less any charge in your agreement. A card hold lasts only ${f.hold_days} days with our card processor, shorter than this rental, so the deposit is charged instead of held.`
+          : `A hold of ${money(f.amount_cents, { cents: true })} for ${WHAT.deposit}. Nothing is charged now: the hold is released after the rental, unless a charge in your agreement applies. A hold lasts about ${f.hold_days} days${longHold ? ', or up to about 30 days on most credit cards' : ''}.`
           : f.kind === 'setup' ? 'Your card is saved for the deposit and the later charges you agreed to in your rental agreement. Nothing is charged now.'
           : `${money(f.amount_cents, { cents: true })} for ${f.reason ? f.reason.toLowerCase() : WHAT[f.covers] ?? 'your booking'}.`}</p>
         <PayLinkForm token={token} kind={f.kind} amountCents={f.amount_cents} legalName={f.renter_name} backTo={backTo}

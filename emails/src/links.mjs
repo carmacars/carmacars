@@ -111,6 +111,9 @@ export const PATHS = {
   // Field work, in the staff portal
   field: '/staff/field',
   field_job: '/staff/field/jobs/{{job_id}}',
+  // r50 (3720): field expenses, whose money: Finance's list, and the field staff member's own shifts and money owed
+  va_finance_field_spending: '/staff/field-spending',
+  field_shifts: '/staff/field/shifts',
   staff_rewards: '/staff/rewards',
 };
 
