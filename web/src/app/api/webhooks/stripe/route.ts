@@ -9,6 +9,7 @@ import { settleGiftIntent } from '@/server/gift-cards';
 import { stripeEventCalls } from '@/server/stripe-events';
 import { isHoldLapse } from '@/server/money-steps';
 import { runMoneyAction } from '@/server/deposit-guard';
+import { reportProcessor } from '@/server/card-provider';
 
 // Stripe webhook (docs/blueprint/13-security.md section 8). A route on the Worker rather than a
 // Supabase Edge Function: the settlement code, the payments module and the signed-copy renderer live
@@ -75,6 +76,9 @@ export async function POST(req: Request): Promise<Response> {
       if (['payment_intent.succeeded', 'payment_intent.processing', 'payment_intent.payment_failed', 'payment_intent.canceled'].includes(event.type)) {
         result = await settleInvoiceIntent(obj.id, null, { failedEvent: event.type === 'payment_intent.payment_failed' || event.type === 'payment_intent.canceled' });
       }
+    } else if (obj.object === 'account' && event.type === 'account.updated') {
+      // hotfix 3650: the account stopped (or started again) taking charges: card payments follow, the Admins are alerted once
+      result = await reportProcessor('stripe', cardFlag(obj, 'charges_enabled'), cardFlag(obj, 'payouts_enabled'), disabledReason(obj));
     }
     // 0132: refunds, disputes and a charge the bank wants confirmed (each recorded once by the database)
     const calls = stripeEventCalls(event.type, obj as Record<string, unknown>);
@@ -91,3 +95,10 @@ export async function POST(req: Request): Promise<Response> {
     return Response.json({ error: 'processing failed' }, { status: 500 });
   }
 }
+
+// account.updated (3650): Stripe's own flags, read from the event (no money moves on them; the next check reads the account again)
+const cardFlag = (o: unknown, k: 'charges_enabled' | 'payouts_enabled') => (o as Record<string, unknown>)[k] === true;
+const disabledReason = (o: unknown) => {
+  const r = (o as { requirements?: { disabled_reason?: unknown } }).requirements?.disabled_reason;
+  return typeof r === 'string' ? r : null;
+};

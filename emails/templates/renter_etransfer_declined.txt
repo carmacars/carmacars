@@ -1,0 +1,32 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[e-Transfer not found]
+We could not find it yet
+
+Hi {{first_name}}. We checked for your e-Transfer of {{etransfer_amount}} on booking {{booking_number}} and did not find it.
+
+Why: {{decline_reason}}
+Amount: {{etransfer_amount}}
+Send to: {{e_transfer_email}}
+Message: {{booking_number}}
+
+Upload it again:
+https://carmacars.ca/account/bookings/{{booking_number}}/pay
+
+If you already sent it, upload the confirmation screenshot again from your booking, or reply to this email.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

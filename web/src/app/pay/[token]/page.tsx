@@ -7,6 +7,10 @@ import { money } from '@/lib/format';
 import { extendedHolds, markPayLinkOpened, payLinkFacts } from '@/server/paylink';
 import { PayLinkForm } from '@/features/money/PayLinkForm';
 import { rpc } from '@/lib/db/repo';
+import { EtransferPay } from '@/features/money/EtransferPay';
+import { cardOn, type RenterEtransfer } from '@/features/money/card-pay';
+import { cardPayments } from '@/server/card-provider';
+import type { DepositState } from '@/features/money/deposit-state';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Pay securely', path: '/pay', noindex: true, description: 'Pay CarmaCars by card for your booking.' });
@@ -29,6 +33,28 @@ export default async function PayLink({ params, searchParams }: { params: Promis
       <p>{f?.status === 'paid' ? 'We have it. Your receipt is in your email.' : 'Pay links work for a few days and only once. Ask us for a new one, or call us.'}</p>
     </div></div>
   );
+  // hotfix 3650: card payments paused: the link shows what to send by e-Transfer instead (the screenshot is uploaded on
+  // the booking, where the renter is signed in); saving a card needs nothing now
+  const card = await cardPayments();
+  if (!cardOn(card)) {
+    const dep = f.kind === 'hold' ? ((await rpc('server_booking_deposit_options', { p_booking: f.booking_id }, { role: 'service_role' }).catch(() => null)) as unknown as DepositState | null) : null;
+    const et: RenterEtransfer = { card: card as NonNullable<typeof card>, booking_number: f.booking_number, status: '', e_transfer_email: card?.e_transfer_email ?? null,
+      rental_cents: f.kind === 'charge' ? f.amount_cents : 0, rental_cash: false, deposit_method: 'e_transfer',
+      deposit_cents: f.kind === 'hold' ? Math.max(0, (dep?.offline_cents ?? f.amount_cents) - (dep?.taken_cents ?? 0)) : 0,
+      deposit_card_cents: f.kind === 'hold' ? f.amount_cents : 0, may_report: true, open: null, declined: null };
+    return (
+      <div className="pt"><div className="wrap pt__body stack" style={{ maxWidth: '36rem' }} data-testid="paylink-card-off">
+        <header className="stack">
+          <p className="pt-kicker">Booking {f.booking_number}</p>
+          <h1 className="d2">{f.kind === 'setup' ? 'No card needed now' : 'Pay by e-Transfer'}</h1>
+          <p className="muted">{f.vehicle_name}, {when(f.pickup_at)} to {when(f.return_at)}</p>
+        </header>
+        {f.kind === 'setup'
+          ? <p className="pt-card" data-testid="paylink-setup-off">Card payments are paused for a short while, so there is no card to save. Anything owed is paid by Interac e-Transfer: we send you the details.</p>
+          : <EtransferPay s={et} upload={false} title={f.kind === 'hold' ? 'The refundable deposit' : `Pay ${money(f.amount_cents, { cents: true })}`} />}
+      </div></div>
+    );
+  }
   // r42: a deposit hold asks for an extended authorization (Program settings, on)
   const longHold = f.kind === 'hold' && await extendedHolds();
   return (

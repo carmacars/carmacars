@@ -112,9 +112,12 @@ export function PayForm({ number, amountCents, depositCents, coverageOption = nu
 
   if (fatal) return (
     <div className="pt-card pt-card--next" role="alert">
-      <h2 className="d4">{fatal.code === 'pushed_back' ? 'This car was just taken' : fatal.code === 'confirmed' ? 'Already confirmed' : 'Payment not available'}</h2>
+      <h2 className="d4">{fatal.code === 'pushed_back' ? 'This car was just taken' : fatal.code === 'confirmed' ? 'Already confirmed' : fatal.code === 'card_off' ? 'Pay by e-Transfer' : 'Payment not available'}</h2>
       <p>{fatal.message}</p>
-      <p><a className="btn btn--primary" href={`/account/bookings/${encodeURIComponent(number)}`}>Back to the booking</a></p>
+      {/* hotfix 3650: cards paused: the page shows the e-Transfer details once it reloads */}
+      <p>{fatal.code === 'card_off'
+        ? <button type="button" className="btn btn--primary" onClick={() => router.refresh()} data-testid="pay-card-off-refresh">Show the e-Transfer details</button>
+        : <a className="btn btn--primary" href={`/account/bookings/${encodeURIComponent(number)}`}>Back to the booking</a>}</p>
     </div>
   );
   if (msg?.kind === 'pushed') return (

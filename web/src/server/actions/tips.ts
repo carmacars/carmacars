@@ -1,4 +1,5 @@
 'use server';
+import { cardOffMessage } from '@/server/card-provider';
 import { revalidatePath } from 'next/cache';
 import { DbError, rpc } from '@/lib/db/repo';
 import { payments } from '@/integrations/payments';
@@ -25,6 +26,8 @@ export async function tipOptions(number: string): Promise<ActionResult<TipOption
 
 export async function addTip(number: string, amountCents: number, percentBps: number | null, source: 'checkout' | 'receipt' | 'link'): Promise<ActionResult<{ url: string }>> {
   if (!Number.isInteger(amountCents) || amountCents < 100) return fail('A tip is $1 or more.');
+  // hotfix 3650: card payments paused
+  const off = await cardOffMessage('the tip'); if (off) return fail(off);
   try {
     const user = await requireUser(bookingPath(number));
     const b = await findBooking(user, number);

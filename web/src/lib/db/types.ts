@@ -4887,6 +4887,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      card_processor_state: {
+        Row: {
+          provider: string;
+          id: string;
+          charges_enabled: boolean;
+          payouts_enabled: boolean;
+          disabled_reason: string | null;
+          checked_at: string | null;
+          paused_since: string | null;
+          alerted_at: string | null;
+          todo_task_id: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          provider: string;
+          id?: string;
+          charges_enabled?: boolean;
+          payouts_enabled?: boolean;
+          disabled_reason?: string | null;
+          checked_at?: string | null;
+          paused_since?: string | null;
+          alerted_at?: string | null;
+          todo_task_id?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          provider?: string;
+          id?: string;
+          charges_enabled?: boolean;
+          payouts_enabled?: boolean;
+          disabled_reason?: string | null;
+          checked_at?: string | null;
+          paused_since?: string | null;
+          alerted_at?: string | null;
+          todo_task_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       card_rental_coverage: {
         Row: {
           id: string;
@@ -20954,6 +20993,8 @@ export type Database = {
           gift_rental_max_days: number;
           gift_card_min_card_cents: number;
           gift_voucher_max_cents: number;
+          card_payments: boolean;
+          card_provider: string;
         };
         Insert: {
           id?: string;
@@ -21928,6 +21969,8 @@ export type Database = {
           gift_rental_max_days?: number;
           gift_card_min_card_cents?: number;
           gift_voucher_max_cents?: number;
+          card_payments?: boolean;
+          card_provider?: string;
         };
         Update: {
           id?: string;
@@ -22902,6 +22945,8 @@ export type Database = {
           gift_rental_max_days?: number;
           gift_card_min_card_cents?: number;
           gift_voucher_max_cents?: number;
+          card_payments?: boolean;
+          card_provider?: string;
         };
         Relationships: [];
       };
@@ -36106,6 +36151,10 @@ export type Database = {
       server_car_value_save: { Args: { p_vehicle: string; p_cents: number; p_source: string; p_basis?: string }; Returns: Json };
       server_car_values_due: { Args: { p_limit?: number; p_vehicle?: string }; Returns: Json };
       server_card_coverage_preview: { Args: { p_booking: string; p_by: string; p_card?: string }; Returns: Json };
+      server_card_off_prepare: { Args: { p_booking: string }; Returns: boolean };
+      server_card_payments_state: { Args: never; Returns: Json };
+      server_card_processor_due: { Args: { p_provider: string }; Returns: boolean };
+      server_card_processor_report: { Args: { p_provider: string; p_charges: boolean; p_payouts: boolean; p_reason?: string }; Returns: Json };
       server_cf_email_result: { Args: { p: Json }; Returns: Json };
       server_change_facts: { Args: { p_request: string; p_by: string }; Returns: Json };
       server_channel_feed: { Args: { p_token: string }; Returns: Json };
@@ -36440,6 +36489,8 @@ export type Database = {
       server_renter_accidents: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_renter_ask_reopen: { Args: { p_number: string; p_by?: string; p_pickup?: string }; Returns: Json };
       server_renter_coverage: { Args: { p_booking: string; p_by: string }; Returns: Json };
+      server_renter_etransfer_report: { Args: { p_user: string; p: Json }; Returns: Json };
+      server_renter_etransfer_state: { Args: { p_booking: string; p_user: string }; Returns: Json };
       server_renter_handover_report: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_renter_readings: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_request_account_deletion: { Args: { p_user: string; p_reason?: string }; Returns: Json };

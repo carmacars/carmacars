@@ -7,6 +7,9 @@ import { useRouter } from 'next/navigation';
 import { fieldAct } from '@/server/actions/field';
 import { staffLicenceUpload } from '@/server/actions/sign-now';
 import { startCardRequest } from '@/server/actions/offers';
+import { useCardPayments } from '@/features/money/useCardPayments';
+import { CardPausedNote } from '@/features/money/CardPausedNote';
+import { cardOn } from '@/features/money/card-pay';
 import { preparePhoto } from './queue';
 import { ID_PHOTO } from '@/lib/image-shrink';
 import type { FieldJob, Resolve } from './types';
@@ -121,6 +124,8 @@ export function ResolveDeposit({ j, r, back }: { j: FieldJob; r: Resolve; back: 
   const [ref, setRef] = useState('');
   const [owed, setOwed] = useState('');
   const [cardErr, setCardErr] = useState<string | null>(null);
+  // hotfix 3650: card payments paused: no card hold here, the renter pays the deposit by e-Transfer or cash
+  const cardState = useCardPayments();
   const b = j.booking!;
   const long = (new Date(b.return_at).getTime() - new Date(b.pickup_at).getTime()) / 86_400_000 > 7;
   const hold = () => startCard(async () => {
@@ -132,8 +137,8 @@ export function ResolveDeposit({ j, r, back }: { j: FieldJob; r: Resolve; back: 
   return (
     <div className="fd-fix stack" data-testid="fix-deposit">
       <p className="small">Deposit {money(r.deposit_cents)}{j.ready?.deposit === 'declined' ? ': the card was declined. Ask for another credit card in the renter’s name.' : '.'}</p>
-      <><button type="button" className="btn btn--primary fd-wide" disabled={card} onClick={hold} data-testid="fix-deposit-card" aria-describedby="why-readyresolve-134">
-        {card ? 'Opening' : long ? 'Save the card on this phone (long rental)' : 'Card hold: hand this phone to the renter'}</button><WhyDisabled id="why-readyresolve-134" why={card ? 'Opening the card form' : null} /></>
+      {!cardOn(cardState) ? <CardPausedNote compact card={cardState} bookingNumber={b.booking_number} depositCents={r.deposit_cents} /> : <><button type="button" className="btn btn--primary fd-wide" disabled={card} onClick={hold} data-testid="fix-deposit-card" aria-describedby="why-readyresolve-134">
+        {card ? 'Opening' : long ? 'Save the card on this phone (long rental)' : 'Card hold: hand this phone to the renter'}</button><WhyDisabled id="why-readyresolve-134" why={card ? 'Opening the card form' : null} /></>}
       {cardErr && <p className="alert alert--error small" role="alert"><span>{cardErr}</span></p>}
       {r.deposit_methods.includes('e_transfer') && (
         <details className="fd-fix__more" data-testid="fix-deposit-etransfer">

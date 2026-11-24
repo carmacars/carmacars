@@ -12,6 +12,7 @@ import { OfferActions } from '@/features/portal/OfferActions';
 import { AskReopen } from '@/features/portal/AskReopen';
 import { LicenceNotice, licenceState, renterMissing } from '@/features/portal/LicenceNotice';
 import { myBooking } from '@/server/portal/data';
+import { cardPaymentsOn } from '@/server/card-provider';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Review your offer', path: '/account/bookings', noindex: true, description: 'Review the offer for your booking request: price, changes and expiry.' });
@@ -28,6 +29,8 @@ export default async function OfferPage({ params }: { params: Promise<{ number: 
   // r48 part 2 (3052): by e-Transfer or cash the deposit is a multiple (2x by default), said before the renter accepts
   const depState = (await rpc('server_booking_deposit_options', { p_booking: b.id }, { role: 'service_role' }).catch(() => null)) as unknown as { card_cents: number; offline_cents: number } | null;
   const offlineDeposit = depState && depState.offline_cents !== depState.card_cents ? depState.offline_cents : null;
+  // hotfix 3650: card payments paused: the offer says it is paid by e-Transfer (the deposit by e-Transfer or cash)
+  const cardOff = !(await cardPaymentsOn());
   const last = b.offers[b.offers.length - 1];
   const f = await getFacts();
   const c = (f as unknown as { cancellation?: { grace_bps: number; early_bps: number; mid_bps: number; late_bps: number; grace_hours: number; early_hours: number; late_hours: number } }).cancellation;
@@ -82,7 +85,8 @@ export default async function OfferPage({ params }: { params: Promise<{ number: 
               ['Return', `${when(o.return_at)}, ${placeText(b.return_place, b.return_method, false)}`],
               ['Length', `${o.billable_days} days`],
               ['Rate', b.booking_type === 'non_refundable' ? 'Non-refundable (10% off the rental charge)' : 'Standard: cancel under our policy'],
-              ['Deposit (on the day of pickup)', `${money(o.deposit_cents)}${offlineDeposit ? `; ${money(offlineDeposit)} by e-Transfer, cash or debit` : debitDeposit ? `; ${money(debitDeposit)} with a debit or prepaid card` : ''}`],
+              cardOff ? ['Deposit (refundable)', `${money(depState?.offline_cents ?? o.deposit_cents)} by e-Transfer or cash, given back the same way`] : ['Deposit (on the day of pickup)', `${money(o.deposit_cents)}${offlineDeposit ? `; ${money(offlineDeposit)} by e-Transfer, cash or debit` : debitDeposit ? `; ${money(debitDeposit)} with a debit or prepaid card` : ''}`],
+              ...(cardOff ? [['How you pay', 'By Interac e-Transfer after you accept and sign: the email, the message and the exact amounts are on the next page'] as [string, string]] : []),
               ['Kilometres', b.km_allowance_total ? `${b.km_allowance_total} km included, then ${money(b.overage_cents_per_km, { cents: true })} per km` : '']
             ]} />
           </section>

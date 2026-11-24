@@ -1,0 +1,31 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[e-Transfer received]
+Thank you, it is in
+
+Hi {{first_name}}. Your e-Transfer of {{etransfer_amount}} for {{etransfer_covers}} arrived and is recorded on booking {{booking_number}}.
+
+Amount: {{etransfer_amount}}
+For: {{etransfer_covers}}
+Booking: {{booking_status}}
+
+Open your booking:
+https://carmacars.ca/account/bookings/{{booking_number}}
+
+A deposit sent by e-Transfer comes back the same way after the trip, less anything owed.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

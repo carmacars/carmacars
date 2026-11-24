@@ -117,6 +117,10 @@
   "payment.refund_failed": {"staff_va_finance": "staff_refund_failed", "staff_admin": "staff_refund_failed"},
   "payment.etransfer_reported": {"staff_va_finance": "staff_etransfer_reported", "staff_admin": "staff_etransfer_reported"},
   "payment.etransfer_confirmed": {"staff_va_sales": "staff_etransfer_confirmed", "renter": "renter_payment_receipt"},
-  "payment.etransfer_declined": {"staff_va_sales": "staff_etransfer_declined"}
+  "payment.etransfer_declined": {"staff_va_sales": "staff_etransfer_declined"},
+  "payment.etransfer_renter_reported": {"staff_va_finance": "staff_etransfer_reported", "staff_admin": "staff_etransfer_reported"},
+  "payment.etransfer_renter_confirmed": {"renter": "renter_etransfer_confirmed"},
+  "payment.etransfer_renter_declined": {"renter": "renter_etransfer_declined"},
+  "payment.card_payments_paused": {"staff_admin": "admin_card_payments_paused"}
  }
 }

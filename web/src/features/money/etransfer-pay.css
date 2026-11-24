@@ -1,0 +1,36 @@
+/* Hotfix 3650: the e-Transfer payment box (renter pages) and the staff "Card payments are paused" note. Phone first:
+   values wrap instead of squeezing at 375px, each Copy sits beside its value, buttons answer at once. */
+.etp__head { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; justify-content: space-between; }
+.etp__head h3 { min-width: 0; overflow-wrap: anywhere; }
+.etp__chip { font-size: var(--fs-xs); font-weight: 600; padding: 0.2rem 0.6rem; border-radius: var(--r-pill); background: var(--grey-100); color: var(--text-2); white-space: nowrap; }
+.etp__steps { margin: 0; padding-left: 1.25rem; display: grid; gap: var(--s-1); }
+.etp__steps li { overflow-wrap: anywhere; }
+.etp__dl > div { grid-template-columns: minmax(5.5rem, 30%) minmax(0, 1fr); align-items: center; }
+.etp__dl dd { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-2); min-width: 0; }
+.etp__val { min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
+.etp__total { border-top: 1px solid var(--line-strong); }
+.etp-copy { flex: 0 0 auto; min-height: 36px; transition: transform 120ms var(--ease); }
+.etp-copy:active { transform: scale(0.96); }
+.etp__sub { margin: 0; font-size: var(--fs-body); font-weight: 600; }
+.etp__form { border-top: 1px solid var(--grey-200); padding-top: var(--s-4); }
+.etp__choice { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: var(--s-1); }
+.etp__choice .radio > span { overflow-wrap: anywhere; }
+.etp__row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); gap: var(--s-3); }
+.etp__file { padding: 0.5rem; height: auto; min-width: 0; max-width: 100%; }
+.etp__go { transition: transform 120ms var(--ease), background 120ms var(--ease); }
+.etp__go:active:not(:disabled) { transform: scale(0.98); }
+.etp__go[aria-busy="true"] { cursor: progress; }
+
+/* the staff note (Money tab, field tools) */
+.cpn { display: grid; gap: var(--s-2); }
+.cpn__msg { margin: 0; padding: var(--s-3); border-radius: var(--r-2); background: var(--grey-50); border: 1px solid var(--grey-200); white-space: pre-wrap; overflow-wrap: anywhere; font-size: var(--fs-sm); }
+.cpn__actions { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.cpn__actions .btn { flex: 1 1 10rem; justify-content: center; }
+
+@media (max-width: 30rem) {
+  .etp__dl > div { grid-template-columns: minmax(0, 1fr); gap: 0.15rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .etp-copy, .etp__go { transition: none; }
+  .etp-copy:active, .etp__go:active:not(:disabled) { transform: none; }
+}

@@ -25,6 +25,9 @@ import { DriverLink } from '@/features/portal/DriverLink';
 import { PushInvite } from '@/features/push/PushAlerts';
 import { PortalAddons, type MyAddons } from '@/features/addons/PortalAddons';
 import { renterPayBalance } from '@/server/actions/balance';
+import { EtransferPay } from '@/features/money/EtransferPay';
+import { cardOn, type RenterEtransfer } from '@/features/money/card-pay';
+import { cardPayments } from '@/server/card-provider';
 import type { HandoverReportData } from '@/features/handover/types';
 import { AnimatedNumber, Disclosure, DocumentList, DocumentRow, MoneyCard, PortalCard, ProgressRing, QuickAction, QuickActions, type MoneyPart } from '@/components/portal-ui';
 import { TripHero, ourAddress, tripPhoto } from '@/features/portal/trip';
@@ -106,6 +109,11 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
   // r48 (2970): the car went out with the deposit still owed: say what is owed and how it is asked for
   const depOwed = b.status === 'on_rent' && b.booking_type !== 'owner'
     ? ((await rpc('server_my_deposit_pending', { p_booking: b.id, p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as { pending: boolean; amount_cents?: number } | null) : null;
+  // hotfix 3650: card payments paused: a deposit still owed is sent by e-Transfer from here (the payment box always shows)
+  const cardState = ['confirmed', 'on_rent', 'returned'].includes(b.status) && b.booking_type !== 'owner' ? await cardPayments() : null;
+  const cardOff = !!cardState && !cardOn(cardState);
+  const etDep = cardOff && ['confirmed', 'on_rent'].includes(b.status) && (b.deposit_cents ?? 0) > 0 ? ((await rpc('server_renter_etransfer_state', { p_booking: b.id, p_user: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as RenterEtransfer | null) : null;
+  const showEtDep = !!etDep && ((etDep.deposit_method === 'e_transfer' && etDep.deposit_cents > 0) || !!etDep.open);
   // the licence first (0130): from the request until it is on file
   const licMissing = ['requested', 'offered', 'pending_payment'].includes(b.status) ? renterMissing(await licenceState(b.id, user.id)) : null;
   // the agreement's blanks the renter fills in (0195): a blocking step at the top, before signing and paying
@@ -182,14 +190,16 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
           {b.status === 'confirmed' && <> Bring your original licence{card ? ` and the card ending ${card.card_last4}` : ' and the card you paid with'}.</>}</p>
       </TripHero>
 
-      {depOwed?.pending && (
+      {showEtDep && etDep && <EtransferPay s={etDep} title="Send the deposit by e-Transfer" />}
+      {depOwed?.pending && !showEtDep && (
         <section className="pu-panel pu-panel--next" aria-labelledby="pt-dep" data-testid="renter-deposit-owed"><h2 className="pu-title" id="pt-dep">Deposit still owed: {money(Number(depOwed.amount_cents ?? b.deposit_cents ?? 0), { cents: true })}</h2>
           <p>You have the car, but the deposit hold is not placed yet. It is a hold on your credit card, not a charge, and it is released after the rental. We try your saved card each morning; if that does not work, we send you a secure link by text or email. Tap the link to place the hold, or call us{phone ? ` at ${phone}` : ''}.</p></section>
       )}
       {balanceDue > 0 && (
         <section className="pu-panel pu-panel--next" aria-labelledby="pt-bal" data-testid="renter-balance"><h2 className="pu-title" id="pt-bal">Balance due: {money(balanceDue, { cents: true })}</h2>
+          {cardOff ? <p data-testid="renter-balance-etransfer">Your booking changed, or a charge was added: this is what is still owing. Card payments are paused for a short while: send it by Interac e-Transfer to <b>{cardState?.e_transfer_email ?? 'our e-Transfer email'}</b> with <b>{b.booking_number}</b> as the message, or pay our team in cash.</p> : <>
           <p>Your booking changed, or a charge was added: this is what is still owing. Pay it by card now (the price lines are below), or pay our team by e-Transfer or cash.</p>
-          <form action={renterPayBalance}><input type="hidden" name="booking" value={b.id} /><button className="btn btn--primary" type="submit" data-testid="renter-pay-balance">Pay {money(balanceDue, { cents: true })}</button></form></section>
+          <form action={renterPayBalance}><input type="hidden" name="booking" value={b.id} /><button className="btn btn--primary" type="submit" data-testid="renter-pay-balance">Pay {money(balanceDue, { cents: true })}</button></form></>}</section>
       )}
       {/* the licence is on the to-do list above while the steps show */}
       {['cancelled', 'declined', 'expired', 'closed'].includes(b.status) && <LicenceNotice number={b.booking_number} missing={licMissing} when={b.status === 'requested' ? 'request' : b.status === 'offered' ? 'offer' : 'pay'} />}

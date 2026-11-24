@@ -4,6 +4,7 @@ import { env } from '@/lib/env';
 import { fakeOnly, payments } from '@/integrations/payments';
 import { extendedRefusedText } from '@/server/pay-card';
 import { payLinkFacts, settlePayreq, type PayLinkFacts } from '@/server/paylink';
+import { CARD_OFF_RENTER, cardPaymentsOn } from '@/server/card-provider';
 
 // The pay page of a card request staff started (0129): no account needed, the link's token is the key. The renter types
 // the card in Stripe's frame; the result is read again from Stripe here, never taken from the browser, and recorded.
@@ -14,6 +15,8 @@ export interface PayLinkStart { provider: 'stripe' | 'fake'; clientSecret: strin
 export async function payLinkStart(token: string): Promise<R<PayLinkStart>> {
   const f = await payLinkFacts(token);
   if (!f || f.status !== 'open' || !f.intent_id) return fail('This link is no longer open. Ask us for a new one.');
+  // hotfix 3650: card payments paused: no card form (the page shows the e-Transfer details once it reloads)
+  if (!(await cardPaymentsOn())) return fail(CARD_OFF_RENTER);
   const p = await payments();
   const i = f.kind === 'setup' ? await p.retrieveCardSetup(f.intent_id) : await p.retrieveIntent(f.intent_id);
   return { ok: true, data: { provider: p.name, clientSecret: i.clientSecret ?? '', publishableKey: env().NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? null, kind: f.kind, amountCents: f.amount_cents, legalName: f.renter_name } };

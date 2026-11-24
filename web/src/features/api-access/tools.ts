@@ -90,7 +90,7 @@ const booking = { booking: str('The booking number, for example CC-10482') };
 const FNS = ['cs', 'fleet', 'finance', 'sales_in_person', 'sales_remote', 'field'];
 
 export const ADMIN_TOOLS: Tool[] = [
-  read('get_settings', 'Settings', 'Settings as Admin > Settings shows them. Without section: the Program settings (prices, policies, switches) and the site settings, with the names of the other parts; with section (fee_defaults, fee_types, deposit_tiers, classes, coverage, promo_codes, ...): that part. Read only.',
+  read('get_settings', 'Settings', 'Settings as Admin > Settings shows them. Without section: the Program settings (prices, policies, switches) and the site settings, with the names of the other parts, and card_payments (on, provider stripe | helcim | off, why off, the processor\'s charges and payouts, the e-Transfer email renters send to); with section (fee_defaults, fee_types, deposit_tiers, classes, coverage, promo_codes, ...): that part. Read only.',
     { section: str('One part, for example program, site, fee_defaults, deposit_tiers, staff') }),
   read('list_cars', 'List cars', 'Cars in the fleet with their status, owner, current rates and fee overrides. Filter by status or search by plate, name or VIN.',
     { query: str('A plate, a car name or a VIN'), status: str('A vehicle status'), ...PAGE }),
