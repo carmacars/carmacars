@@ -79,3 +79,19 @@ test('the timeline: a row a car, a bar a booking by percent of the six weeks, cu
   assert.equal(tl.weeks.length, 6);
   assert.equal(timeline([], [], w.from, w.days, NOW + 90 * DAY).today, null);
 });
+
+test('r50: a confirmed rental whose pickup was never recorded stays on a trip after its return time, "car presumed out"', () => {
+  const x = b('8', -7, -1, { presumed_out: true });
+  assert.equal(bucketOf(x, NOW), 'trip');
+  assert.equal(bucketOf(b('9', -7, -1), NOW), 'past', 'without the flag its dates are over');
+  assert.equal(statusOf(x).label, 'Pickup not recorded, car presumed out');
+});
+
+test('r50: a long rental: the charge for every day, and what the approved statements carried so far; the same words at every view', () => {
+  const x = b('10', -20, 28, { rental_charge_cents: 84000, rental_days: 48, on_statement_cents: 44800, on_statement_days: 16 });
+  const m = bookingMoney(x);
+  assert.equal(m.cents, 84000);
+  assert.equal(m.note, 'Before tax, for all 48 days. On your statements so far: $448.00 for 16 of 48 days; the rest on later statements');
+  assert.deepEqual(bookingMoney(x), m, 'stable');
+  assert.equal(bookingMoney(b('11', 1, 4, { rental_days: 3 })).note, 'Before tax, for all 3 days; your share is on your statement');
+});

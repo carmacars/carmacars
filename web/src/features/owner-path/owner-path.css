@@ -1,0 +1,8 @@
+/* Sign first (r50): the owner's guided path. The step list reuses the Onboarding checklist's rows (onboarding.css). */
+.op-note { max-width: 40rem; overflow-wrap: break-word; }
+.op-cta { width: 100%; max-width: 22rem; justify-content: center; }
+.op-steps { margin-top: var(--s-2); }
+.op-step[aria-current='step'] .ob-step__label { color: var(--black); }
+@media (max-width: 30rem) {
+  .op-cta { max-width: none; }
+}

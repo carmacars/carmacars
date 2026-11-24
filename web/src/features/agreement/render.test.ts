@@ -51,7 +51,8 @@ const noPlaceholders = (pages: Awaited<ReturnType<typeof read>>, what: string) =
 const signed = (party: string, name: string): SignatureRow => ({ party, name, signature: '', when: when(AT) });
 const images = (blocks: Block[]) => {
   const m = new Map<number, Uint8Array>();
-  for (const b of blocks) if (b.t === 'signatures') b.rows.forEach((r, i) => { if (r.signature === '') m.set(i, PNG); });
+  let n = 0;
+  for (const b of blocks) if (b.t === 'signatures') b.rows.forEach((r) => { if (r.signature === '') m.set(n, PNG); n += 1; });
   return m;
 };
 
@@ -124,4 +125,16 @@ test('formats: the company as a party, a phone, a sentence ending', () => {
   assert.equal(phone('+44 20 7946 0958'), '+44 20 7946 0958');
   assert.equal(endSentence('Northshore Auto Holdings Ltd.'), 'Northshore Auto Holdings Ltd.');
   assert.equal(endSentence('Olivia Tremblay'), 'Olivia Tremblay.');
+});
+
+test('r50: the signer\'s drawn signature is printed on their own row only, never on the first row of a later table (Form D, Part 2)', async () => {
+  const blocks: Block[] = [{ t: 'title', text: 'Form D' }, { t: 'h2', text: 'Part 1' },
+    { t: 'signatures', rows: [{ party: 'Owner', name: 'Nora Example', signature: '', when: when(AT) }, { party: 'Witness 1', name: 'Wes One', signature: 'Typed: Wes One', when: when(AT) }] },
+    { t: 'h2', text: 'Part 2' },
+    { t: 'signatures', rows: [{ party: 'CarmaCars', name: 'Abbas Al-Mashita, Director', signature: COUNTERSIGN, when: when(AT) }, { party: 'Witness (CarmaCars)', name: 'Second Officer', signature: 'Signed electronically.', when: when(AT) }] }];
+  // the signing flow passes the signer's image as row 0, as every caller does
+  const pages = await read(await agreementPdf(blocks, { title: 'Form D, signed', createdAt: new Date(AT), images: new Map([[0, PNG]]), footer: 'CarmaCars Form D.' }));
+  assert.equal(pages.reduce((n, p) => n + p.images.length, 0), 1, 'one drawn signature in the whole document');
+  const all = pages.map((p) => p.text).join(' ');
+  assert.ok(all.includes(COUNTERSIGN.slice(0, 30)), 'Part 2 prints the CarmaCars countersignature wording');
 });

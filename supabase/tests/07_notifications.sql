@@ -915,6 +915,7 @@ select test.eq('G every wired email code has been built at least once in these t
       and c.code not in ('owner_use_charges', 'owner_insurance_late_fee') -- 3270 and 3271, queued in 99_r48rw_owner_money
       and not (c.code = any (app.gift_notice_codes())) -- the gift card emails (3600), built in 99_r49_gift_cards
       and c.code not in ('staff_etransfer_reported', 'staff_etransfer_confirmed', 'staff_etransfer_declined') -- the e-Transfer reports (3610), built in 99_r49_etransfer_reports
+      and c.code not in ('owner_master_agreement_ready', 'owner_schedule_ready', 'owner_sign_reminder', 'owner_car_delivered', 'staff_owner_signed', 'owner_document_reissued') -- sign first and the owner fixes (3800, 3810), built in 99_r50ow_sign_first and 99_r50ow_owner_fixes
       and not exists (select 1 from notification_outbox o where o.code = c.code)
       and not exists (select 1 from staff_digest_items d where d.code = c.code)),
   null::text);

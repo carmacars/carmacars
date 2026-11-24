@@ -98,6 +98,11 @@ export interface OwnerBooking {
   owner_view?: OwnerView;
   /** the booking's documented owner deductions (0156), itemized once the owner sees the booking */
   owner_expenses?: OwnerExpense[]; booking_share_bps?: number | null;
+  /** r50 (3810): stored values, the same at every view: the rental's days, and what the owner's approved statements
+   *  carried for it so far (a long rental is paid over several statements) */
+  rental_days?: number; on_statement_cents?: number; on_statement_days?: number; on_statement_partial?: boolean;
+  /** r50 (3810): confirmed, its pickup time passed and no handover recorded: the car counts as out */
+  presumed_out?: boolean;
 }
 export interface StatementLine {
   id: string; line_type: string; description?: string; booking_number?: string; invoice_number?: string; from_vehicle_name?: string;

@@ -1,5 +1,5 @@
--- 3800: sign first, then cars (Release 50, owners). docs/changes/2026-11-24-r50-sign-first.md. SCHEMA_MARKER 3801 (with the
--- guides of 3801). No applied migration is edited: the functions it changes are wrapped (renamed with the suffix _pre3800).
+-- 3800: sign first, then cars (Release 50, owners). docs/changes/2026-11-24-r50-sign-first.md. SCHEMA_MARKER 3820 (with the
+-- guides of 3801 and the owner fixes of 3810 and 3820). No applied migration is edited: the functions it changes are wrapped (renamed with the suffix _pre3800).
 --
 -- Abbas, November 24, 2026: "The agreements should be signed before cars get transferred over ... make this process for
 -- owners much more straightforward." Until now the Fleet Supplier Lease Agreement (and every owner's Enrollment Agreement)

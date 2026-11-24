@@ -37,6 +37,9 @@ import { OnboardingPhotos } from '@/features/onboarding/OnboardingPhotos';
 import { GovernmentForms } from '@/features/onboarding/GovernmentForms';
 import { VinList } from '@/features/onboarding/VinList';
 import { onboardingData } from '@/server/onboarding';
+import { SignGate } from '@/features/owner-path/SignGate';
+import type { SignStatus } from '@/features/owner-path/path';
+import { OnboardingMethod } from '@/features/owner-path/OnboardingMethod';
 import { ForecastPanel } from '@/features/owner/Forecast';
 import type { OwnerForecast } from '@/features/owner/forecast';
 
@@ -88,9 +91,10 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
   // every car's own terms, editable in place (0135): on Overview and on the Terms tab
   const carTerms = tab === 'invoices' ? null : await door<CarTermsData>(user.id, 'ops_read', 'car_terms', { owner_id: id });
   if (tab === 'terms') {
-    const [terms, refLinks, fleet, agreements] = await Promise.all([door<TermsData>(user.id, 'ops_read', 'owner_terms', { owner_id: id }), door<ReferralLinksData>(user.id, 'ops_read', 'owner_referral_links', { owner: id }),
-      door<FleetLeaseData>(user.id, 'ops_read', 'fleet_lease', { owner: id }), door<AgreementOwner[]>(user.id, 'ops_read', 'owner_agreements_checklist', { owner: id }).catch(() => [] as AgreementOwner[])]);
-    return <>{head}{agreements.length > 0 && <section className="pt-card stack" data-testid="owner-agreements"><h2 className="d4">Agreements</h2><AgreementsChecklist rows={agreements} refresh={[`/admin/owners/${id}`]} /></section>}
+    const [terms, refLinks, fleet, agreements, sign] = await Promise.all([door<TermsData>(user.id, 'ops_read', 'owner_terms', { owner_id: id }), door<ReferralLinksData>(user.id, 'ops_read', 'owner_referral_links', { owner: id }),
+      door<FleetLeaseData>(user.id, 'ops_read', 'fleet_lease', { owner: id }), door<AgreementOwner[]>(user.id, 'ops_read', 'owner_agreements_checklist', { owner: id }).catch(() => [] as AgreementOwner[]),
+      door<SignStatus>(user.id, 'ops_read', 'owner_sign_status', { owner_id: id }).catch(() => null)]);
+    return <>{head}<SignGate status={sign} refresh={[`/admin/owners/${id}`]} />{sign && <OnboardingMethod cars={sign.cars} refresh={[`/admin/owners/${id}`]} />}{agreements.length > 0 && <section className="pt-card stack" data-testid="owner-agreements"><h2 className="d4">Agreements</h2><AgreementsChecklist rows={agreements} refresh={[`/admin/owners/${id}`]} /></section>}
       <CarTermsTable data={carTerms!} paths={[`/admin/owners/${id}`]} /><TermsPanel data={terms} ownerId={id} today={todayIso} /><FleetLease data={fleet} ownerId={id} /><ReferralLinks data={refLinks} ownerId={id} />
       {/* R23 (0238): the one-off fees agreed on the terms, charged to a car in one step: deducted from payouts or debited */}
       {(carTerms?.cars ?? []).length > 0 && <Card title="Charge the agreed one-off fees" testId="one-off-charge">
@@ -119,7 +123,7 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
     Promise.all(d.invoices.filter((i) => (i.manual ?? []).length > 0).map(async (i) => [i.id, await door<ManualRow[]>(user.id, 'ops_read', 'manual_payments', { invoice: i.id }).catch(() => [] as ManualRow[])] as const)).then((x) => new Map(x))]);
   const here = [`/admin/owners/${id}`];
   // r34: the one Onboarding checklist, the onboarding photos and the government forms (0821 to 0823)
-  const ob = await onboardingData(user.id, 'ops_read', { owner_id: id });
+  const [ob, sign] = await Promise.all([onboardingData(user.id, 'ops_read', { owner_id: id }), door<SignStatus>(user.id, 'ops_read', 'owner_sign_status', { owner_id: id }).catch(() => null)]);
   const o = d.owner;
   // r35 part X (0930): field staff prep each car joining the fleet; Fleet and Admin give it and see its progress
   const preps = await Promise.all((ob.overview?.cars ?? []).map(async (c) => [c, await door<PrepList>(user.id, 'ops_read', 'field_prep', { vehicle: c.vehicle_id }).catch(() => null)] as const));
@@ -128,6 +132,7 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
   return (
     <>
       {head}
+      <SignGate status={sign} refresh={here} />
       <OnboardingChecklist data={ob.overview} />
       {preps.map(([c, x]) => x && <PrepPanel key={c.vehicle_id} p={x} vehicle={{ id: c.vehicle_id, name: c.name }} title={`Onboarding prep: ${c.name}`} />)}
       {carTerms && <CarTermsTable data={carTerms} paths={here} />}
@@ -167,8 +172,8 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
           ))}
           <OnboardingPhotos photos={ob.photos} ownerId={id} viewer="admin" refresh={here} cars={d.vehicles.map((v) => ({ vehicle_id: v.vehicle_id, name: v.name }))} />
           <GovernmentForms data={ob.forms} viewer="admin" refresh={here} />
-          {!(o as { onboarding_route?: string | null }).onboarding_route?.startsWith('fleet') && <details className="pt-card" id="add-vins"><summary className="link">Add cars from a list of VINs</summary>
-            <VinList ownerId={id} viewer="admin" refresh={here} /></details>}
+          <details className="pt-card" id="add-vins"><summary className="link">Add cars from a list of VINs</summary>
+            <VinList ownerId={id} viewer="admin" refresh={here} fleet={!!(o as { onboarding_route?: string | null }).onboarding_route?.startsWith('fleet')} /></details>
           {checklist && (
             <section className="pt-card stack" id="checklist" aria-labelledby="ad-ck"><h2 className="d4" id="ad-ck">Paid and signed</h2>
               <p className="small">Everything this owner signs and pays to get their cars on the road, and how each was done. A payment received by e-Transfer, cheque, cash or bank transfer, or an official ServiceOntario form signed in ink, is recorded here and counts everywhere. Every agreement is signed in the owner portal (no paper signature).</p>

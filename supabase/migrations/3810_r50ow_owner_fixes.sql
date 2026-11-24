@@ -1,4 +1,4 @@
--- 3810: owner fixes of Release 50 (owners), reported by an owner on November 24, 2026. docs/changes/2026-11-24-r50-sign-first.md.
+-- 3810: owner fixes of Release 50 (owners), reported by an owner on November 24, 2026. docs/changes/2026-11-24-r50-sign-first.md. SCHEMA_MARKER 3820.
 -- No applied migration is edited: the functions it changes are wrapped (renamed with the suffix _pre3810).
 --   1. A booking's money in the owner portal, stable between views: the rental charge agreed (before tax), what the
 --      owner's approved statements carried for it so far (and for how many of its days), and its days. The card no longer

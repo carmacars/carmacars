@@ -181,9 +181,10 @@ export interface ApproveCar { vehicle_id: string; terms: J; invoices: J[]; first
 export async function approveWithTerms(applicationId: string, cars: ApproveCar[]) {
   try {
     const { user, aal } = await me();
-    const r = await door<{ status: string; invoices: J[]; setup: { needed: boolean; owner_id: string; has_account: boolean; email: string | null; name: string } | null }>(
+    const r = await door<{ status: string; invoices: J[]; setup: { needed: boolean; owner_id: string; has_account: boolean; email: string | null; name: string } | null;
+      /** r50 (3800): a fleet supplier's approval waits for the signature, then goes through by itself */ waiting_for_signature?: boolean; message?: string }>(
       user.id, 'ops_do', 'application_approve', { id: applicationId, cars }, aal);
-    let note: string | null = null;
+    let note: string | null = r.waiting_for_signature ? r.message ?? 'Approved: it goes through by itself once the supplier signs.' : null;
     if (r.setup?.needed) note = await setupEmail(user.id, aal, applicationId, r.setup).catch((e) => `Approved. The set-up email did not go: ${(fail(e) as { message: string }).message} Use "Send the set-up email" on the application.`);
     again(['/admin/applications', `/admin/applications/${applicationId}`, '/admin', '/admin/owner-money']);
     return { ok: true as const, data: { ...r, note } };

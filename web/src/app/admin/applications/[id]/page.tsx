@@ -4,6 +4,8 @@ import { pageMeta } from '@/features/seo/meta';
 import { money } from '@/lib/format';
 import { page } from '@/server/admin/api';
 import { door } from '@/server/door';
+import { SignGate } from '@/features/owner-path/SignGate';
+import type { SignStatus } from '@/features/owner-path/path';
 import { Badge, Card, Kv, PageHead, Tabs, d, t } from '@/features/admin/ui';
 import { ApproveStep, type Plan } from '@/features/owner-billing/ApproveStep';
 import { SetupEmail } from '@/features/owner-billing/SetupEmail';
@@ -56,6 +58,8 @@ export default async function Application({ params, searchParams }: { params: Pr
     const list = await door<InvoiceListData>(user.id, 'ops_read', 'owner_invoices_admin', { application_id: id });
     return <>{head}<InvoiceList data={list} owner={false} newHref={`/admin/invoices/new?application=${id}`} testId="app-invoice-list" /></>;
   }
+  // r50 (3800): sign first: what keeps the owner's cars from being approved, with Send reminder
+  const sign = a.status === 'approved' || a.status === 'declined' ? null : await door<SignStatus>(user.id, 'ops_read', 'owner_sign_status', { owner_id: o.id }).catch(() => null);
   const [plan, facts] = a.status === 'approved' || a.status === 'declined' ? [null, null]
     : await Promise.all([door<Plan>(user.id, 'ops_read', 'application_approve_plan', { id }), door<{ hst_bps: number; insurance_fee_hst?: boolean }>(user.id, 'ops_read', 'owner_add_car_facts', {})]);
   return (
@@ -86,6 +90,7 @@ export default async function Application({ params, searchParams }: { params: Pr
           {v.invoices.length > 0 && <Card title="Invoices" aside={<Link prefetch={false} className="link small" href={`/admin/applications/${id}?tab=invoices`}>All invoices</Link>}><ul className="ad-list">{v.invoices.map((i) => <li key={i.invoice_number}><span><Link prefetch={false} className="link" href={`/admin/invoices/${i.invoice_number}`}>{i.invoice_number}</Link> · {label(i.kind)}</span><span>{money(i.total_cents, { cents: true })} · {label(i.status)}</span></li>)}</ul></Card>}
         </div>
         <div className="stack">
+          {sign && <SignGate status={sign} refresh={[`/admin/applications/${id}`]} testId="app-sign-gate" />}
           <Card title="Decide" testId="app-decide"><ApplicationDecision id={a.id} status={a.status} items={v.items} owner={o.legal_name} isTest={o.is_test}
             approve={plan && facts ? <ApproveStep plan={plan} owner={o.legal_name} isTest={o.is_test} hstBps={facts.hst_bps} insuranceHst={!!facts.insurance_fee_hst} /> : undefined}
             setup={a.entered_by_name ? <SetupEmail applicationId={a.id} sentAt={a.setup_emailed_at} /> : undefined} /></Card>

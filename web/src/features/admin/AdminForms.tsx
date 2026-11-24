@@ -33,7 +33,7 @@ export function TermsForm({ ownerId, vehicleId, standard, mode, method, options,
   const a = useAct<{ status: string }>();
   const base = current ?? standard;
   const [t, setT] = useState<TermsInput>({
-    management_mode: mode, onboarding_method: method ?? options.find((o) => o.recommended)?.method ?? options[0]?.method ?? (mode === 'turo_only' ? 'none' : ''),
+    management_mode: mode, onboarding_method: method ?? options.find((o) => o.recommended)?.method ?? options.find((o) => o.method === 'transfer')?.method ?? options[0]?.method ?? (mode === 'turo_only' ? 'none' : ''),
     insurance: dollars(base?.insurance_fee_cents), tracker: dollars(base?.tracker_fee_cents), share: base ? String(base.revenue_share_bps / 100) : '', install: dollars(base?.install_fee_cents), special_terms: current?.special_terms ?? ''
   });
   const set = (k: keyof TermsInput) => (v: string) => setT({ ...t, [k]: v });

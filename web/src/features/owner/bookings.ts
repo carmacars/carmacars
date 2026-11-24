@@ -4,6 +4,7 @@
 // through viewOf; nothing here shows an amount the database left out. Pure, for the unit tests.
 import type { OwnerBooking } from './types.ts';
 import { viewOf } from './insights.ts';
+import { money } from '../../lib/format.ts';
 
 export type Bucket = 'trip' | 'upcoming' | 'past';
 export const BUCKETS: Array<[Bucket, string]> = [['trip', 'On a trip'], ['upcoming', 'Upcoming'], ['past', 'Past']];
@@ -11,10 +12,10 @@ const ENDED = new Set(['returned', 'closed', 'cancelled', 'no_show', 'declined',
 const DAY = 86_400_000;
 
 /** Where a booking belongs now: out with a renter, still to come, or over (returned, closed, cancelled, or its dates passed). */
-export function bucketOf(b: Pick<OwnerBooking, 'status' | 'pickup_at' | 'return_at'>, now: number): Bucket {
+export function bucketOf(b: Pick<OwnerBooking, 'status' | 'pickup_at' | 'return_at' | 'presumed_out'>, now: number): Bucket {
   if (ENDED.has(b.status)) return 'past';
   const s = Date.parse(b.pickup_at), e = Date.parse(b.return_at);
-  if (b.status === 'on_rent') return 'trip';
+  if (b.status === 'on_rent' || b.presumed_out) return 'trip';   // r50: pickup not recorded, the car presumed out
   if (e <= now) return 'past';
   if (b.status === 'confirmed' && s <= now) return 'trip';
   return 'upcoming';
@@ -45,12 +46,21 @@ export interface BookingMoney { kind: MoneyKind; cents: number | null; label: st
 /** What the page says about a booking's money, by what the owner may see (0156):
  *  full: the rental charge (before tax); booked: no amount yet, it comes with the approved statement; unavailable: nothing,
  *  the dates are not part of the owner's revenue; the owner's own booking: no charge. */
-export function bookingMoney(b: Pick<OwnerBooking, 'owner_view' | 'rental_charge_cents' | 'booking_type' | 'status'>): BookingMoney {
+export function bookingMoney(b: Pick<OwnerBooking, 'owner_view' | 'rental_charge_cents' | 'booking_type' | 'status' | 'on_statement_cents' | 'on_statement_days' | 'rental_days'>): BookingMoney {
   const v = viewOf(b);
   if (v === 'unavailable') return { kind: 'none', cents: null, label: 'Unavailable', note: 'Not part of your revenue' };
   if (b.booking_type === 'owner') return { kind: 'own', cents: null, label: 'Your booking', note: 'Your own use: no charge' };
   if (v === 'booked' || b.rental_charge_cents === null) return { kind: 'statement', cents: null, label: 'Booked', note: 'The amount comes with your approved statement' };
-  return { kind: 'amount', cents: b.rental_charge_cents, label: 'Rental charge', note: ['cancelled', 'no_show', 'declined', 'expired'].includes(b.status) ? 'Before tax; cancelled, so your statement says what you keep' : 'Before tax; your share is on your statement' };
+  if (['cancelled', 'no_show', 'declined', 'expired'].includes(b.status)) return { kind: 'amount', cents: b.rental_charge_cents, label: 'Rental charge', note: 'Before tax; cancelled, so your statement says what you keep' };
+  return { kind: 'amount', cents: b.rental_charge_cents, label: 'Rental charge', note: statementSplit(b) };
+}
+/** r50 (3810): the agreed charge is for the whole rental; a long rental reaches the statements a part at a time. Stored
+ *  values only, so the words are the same at every view. */
+export function statementSplit(b: Pick<OwnerBooking, 'on_statement_cents' | 'on_statement_days' | 'rental_days'>): string {
+  const on = b.on_statement_cents ?? 0, days = b.rental_days ?? 0, onDays = b.on_statement_days ?? 0;
+  if (!on) return days > 0 ? `Before tax, for all ${days} day${days === 1 ? '' : 's'}; your share is on your statement` : 'Before tax; your share is on your statement';
+  if (onDays && days && onDays < days) return `Before tax, for all ${days} days. On your statements so far: ${money(on, { cents: true })} for ${onDays} of ${days} days; the rest on later statements`;
+  return `Before tax, for all ${days} days. On your statements: ${money(on, { cents: true })}`;
 }
 /** The money of a list added up: only the amounts the owner may see, and how many are still to come with a statement. */
 export function bucketTotals(list: OwnerBooking[]): { bookings: number; days: number; cents: number; shown: number; onStatement: number } {
@@ -69,8 +79,9 @@ const STATUS: Record<string, string> = { on_rent: 'On rent now', confirmed: 'Con
   returned: 'Returned', closed: 'Completed', cancelled: 'Cancelled', no_show: 'No show', declined: 'Declined', expired: 'Expired' };
 export type Tone = 'live' | 'ready' | 'muted' | 'accent';
 /** The status in the owner's words and its pill. */
-export function statusOf(b: Pick<OwnerBooking, 'status' | 'owner_view' | 'rental_charge_cents'>): { label: string; tone: Tone } {
+export function statusOf(b: Pick<OwnerBooking, 'status' | 'owner_view' | 'rental_charge_cents' | 'presumed_out'>): { label: string; tone: Tone } {
   if (viewOf(b) === 'unavailable') return { label: 'Unavailable', tone: 'muted' };
+  if (b.presumed_out) return { label: 'Pickup not recorded, car presumed out', tone: 'live' };
   const label = STATUS[b.status] ?? b.status.replace(/_/g, ' ');
   return { label, tone: b.status === 'on_rent' ? 'live' : ['confirmed', 'returned', 'closed'].includes(b.status) ? 'ready' : ['cancelled', 'no_show', 'declined', 'expired'].includes(b.status) ? 'muted' : 'accent' };
 }

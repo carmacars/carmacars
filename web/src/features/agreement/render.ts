@@ -21,7 +21,7 @@ const segs = (s: string): Seg[] => pdfSafe(s).replace(/ {2,}/g, '; ').split(/(\*
 export interface PdfExtras {
   title: string;
   createdAt: Date;
-  /** Signature images (PNG bytes) by signature row index. */
+  /** Signature images (PNG bytes) by signature row index, counted across every signature table of the document (0: the first row of the first). */
   images?: Map<number, Uint8Array>;
   /** The last page of a signed copy: who signed, when, how, from where. */
   record?: { heading: string; lines: string[][] };
@@ -160,14 +160,20 @@ export async function agreementPdf(blocks: Block[], x: PdfExtras): Promise<Uint8
     y -= 6;
   };
 
+  // r50 (3810): a signature image belongs to one row of the whole document, counted across every signature table: the
+  // signer's own row. Counted per table, it was printed again on the first row of every later table (Form D's Part 2,
+  // which CarmaCars signs, showed the owner's drawn signature).
+  let sigBase = 0;
   const signatures = (rows: SignatureRow[]) => {
+    const base = sigBase;
+    sigBase += rows.length;
     const size = 8.5, full = W - 2 * M, widths = [full * 0.2, full * 0.27, full * 0.3, full * 0.23];
     // the heading and the first signature stay together
     need(18 + 50);
     table(['Party', 'Name', 'Electronic signature', 'Date and time'], [], false, widths);
     y += 6;
     rows.forEach((r, i) => {
-      const img = images.get(i);
+      const img = images.get(base + i);
       // every line of each cell (the countersignature's approved wording runs to several lines): the row grows to fit
       const cells = [r.party, r.name, img ? '' : r.signature, r.when].map((c, k) => wrap(c, size, widths[k]! - 8));
       const h = Math.max(img ? 46 : 26, 10 + Math.max(...cells.map((c) => c.length)) * 11);

@@ -15332,6 +15332,9 @@ export type Database = {
           signing_method: string | null;
           plan: Json | null;
           setup_emailed_at: string | null;
+          sign_wait_at: string | null;
+          sign_wait_by: string | null;
+          sign_wait_args: Json | null;
         };
         Insert: {
           id?: string;
@@ -15361,6 +15364,9 @@ export type Database = {
           signing_method?: string | null;
           plan?: Json | null;
           setup_emailed_at?: string | null;
+          sign_wait_at?: string | null;
+          sign_wait_by?: string | null;
+          sign_wait_args?: Json | null;
         };
         Update: {
           id?: string;
@@ -15390,6 +15396,9 @@ export type Database = {
           signing_method?: string | null;
           plan?: Json | null;
           setup_emailed_at?: string | null;
+          sign_wait_at?: string | null;
+          sign_wait_by?: string | null;
+          sign_wait_args?: Json | null;
         };
         Relationships: [];
       };
@@ -20954,6 +20963,7 @@ export type Database = {
           gift_rental_max_days: number;
           gift_card_min_card_cents: number;
           gift_voucher_max_cents: number;
+          owner_sign_first: boolean;
         };
         Insert: {
           id?: string;
@@ -21928,6 +21938,7 @@ export type Database = {
           gift_rental_max_days?: number;
           gift_card_min_card_cents?: number;
           gift_voucher_max_cents?: number;
+          owner_sign_first?: boolean;
         };
         Update: {
           id?: string;
@@ -22902,6 +22913,7 @@ export type Database = {
           gift_rental_max_days?: number;
           gift_card_min_card_cents?: number;
           gift_voucher_max_cents?: number;
+          owner_sign_first?: boolean;
         };
         Relationships: [];
       };

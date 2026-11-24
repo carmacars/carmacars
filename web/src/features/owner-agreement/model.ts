@@ -120,7 +120,12 @@ export function packetKeys(f: OwnerAgreementFacts): PacketKey[] {
   const ta = agreement(f, 'title_holding');
   const open = unsigned(f);
   // a new agreement of the other set (the pay model changed, 0205) is signed again even when every car is signed
-  if (!open.length) return ea && ea.status !== 'signed' && ea.replaces ? ['enrollment'] : keys;
+  // r50 (3800, sign first): the master agreement is made at signup and signed before any car (with the Title-Holding
+  // and Lease Agreement a fleet supplier's lease relies on, made with it)
+  if (!open.length) {
+    if (!ea || ea.status === 'signed' || f.preview) return keys;
+    return ta && ta.status !== 'signed' && isFleet(f) ? ['enrollment', 'title_holding'] : ['enrollment'];
+  }
   if (ea && ea.status !== 'signed') keys.push('enrollment');
   if (ta && ta.status !== 'signed' && open.some((s) => s.management_mode !== 'turo_only')) keys.push('title_holding');
   if (ea?.status === 'signed' && open.some((s) => s.is_additional)) keys.push('additional');
@@ -145,11 +150,15 @@ function onboardingRows(s: OwnerSchedule): string[][] {
   if (s.management_mode === 'turo_only' || s.insurance_fee_cents === null) return [];
   const fl = s.first_last_cents ?? s.insurance_fee_cents * 2;
   return [
-    ['First and last month', `${money(fl)}, plus HST`],
+    ['First and last month', `${money(fl)}, no HST (insurance)`],
     ['Onboarding costs CarmaCars paid (4.2)', feeList(s) || 'None'],
     ['How these are paid (4.2)', s.onboarding_by_payout ? 'Deducted from the Owner\'s payouts until paid; later Fees by pre-authorized debit' : 'Before the Enrollment Date, by invoice']
   ];
 }
+// r50: HST per fee. The Insurance Fee (and the first and last month, which is two of it) never carries HST; the Tracker
+// and Install Fees are taxable services and say "plus HST" only when there is an amount to tax.
+export const taxed = (cents: number) => (cents > 0 ? `${money(cents)}, plus HST` : money(cents));
+export const feesText = (insurance: number, tracker: number) => `${money(insurance)} (no HST) and ${taxed(tracker)}`;
 function scheduleA(s: OwnerSchedule): Block {
   const share = s.shareholder && s.shareholder_share_bps ? pct(s.shareholder_share_bps) : null;
   return { t: 'table', kv: true, head: ['Item', `Vehicle no. ${s.vehicle_number}`], rows: [
@@ -162,8 +171,8 @@ function scheduleA(s: OwnerSchedule): Block {
     ["Finance Party's written permission", l(s.finance_permission) || PENDING],
     ['Management Mode', l(s.management_mode)],
     ['Onboarding Method', l(s.onboarding_method) || PENDING],
-    ['Insurance Fee and Tracker Fee per month', s.shareholder ? 'None (4.9)' : s.insurance_fee_cents === null || s.tracker_fee_cents === null ? PENDING : `${money(s.insurance_fee_cents)} and ${money(s.tracker_fee_cents)}, plus HST`],
-    ['Install Fee', s.shareholder ? 'None (4.9)' : s.install_fee_cents === null ? PENDING : `${money(s.install_fee_cents)}, plus HST`],
+    ['Insurance Fee and Tracker Fee per month', s.shareholder ? 'None (4.9)' : s.insurance_fee_cents === null || s.tracker_fee_cents === null ? PENDING : feesText(s.insurance_fee_cents, s.tracker_fee_cents)],
+    ['Install Fee', s.shareholder ? 'None (4.9)' : s.install_fee_cents === null ? PENDING : taxed(s.install_fee_cents)],
     ['Revenue Share', share ?? (s.revenue_share_bps === null ? PENDING : pct(s.revenue_share_bps))],
     ...onboardingRows(s),
     ['Enrollment Date', dateOr(s.enrollment_date, 'The date CarmaCars confirms in writing')],
@@ -232,7 +241,8 @@ function fleetEnrollment(f: OwnerAgreementFacts, signed?: SignedBy): Block[] {
     { t: 'table', kv: true, head: ['The Supplier confirms', 'Initials'], rows: FLEET_CONFIRMATIONS.map((c) => [c.text, signed?.initials ?? '']) },
     { t: 'h2', text: 'Schedule A: Vehicle Schedule' },
     { t: 'p', text: `Vehicle Schedule to the Fleet Supplier Lease Agreement${sp(ea?.agreement_number)} between ${company} and ${ownerLine(f)} (the Supplier). It has one entry, as below, for each Vehicle.` },
-    ...f.schedules.filter((x) => !x.is_additional).map(scheduleAFleet)
+    ...(f.schedules.some((x) => !x.is_additional) ? f.schedules.filter((x) => !x.is_additional).map(scheduleAFleet)
+      : [{ t: 'p', text: 'No Vehicle yet. Each Vehicle is added to this Schedule A by an Additional Vehicle Schedule signed by both parties.' } as Block])
   ];
 }
 function scheduleAFlat(s: OwnerSchedule): Block {

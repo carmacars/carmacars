@@ -67,8 +67,13 @@ test('owner account without a car, then the first car from the owner portal', as
   } else {
     await page.goto('/owner', { waitUntil: 'networkidle' });
   }
-  await expect(page.getByTestId('owner-first-car')).toContainText('Add your first car');
-  await check(page, 'owner portal without a car');
+  // r50 (3800, sign first): the agreement is made from the profile at once, and signing it is the first step, before any car
+  await expect(page.getByTestId('owner-path')).toHaveAttribute('data-step', 'sign');
+  await expect(page.getByTestId('owner-path-cta')).toHaveText('Read and sign');
+  await expect(page.getByTestId('owner-path-step')).toHaveCount(6);
+  const eas = await sql`select variant, status from owner_agreements where owner_id = ${owner!.id} and kind = 'enrollment'`;
+  expect(eas.map((a) => `${a.variant}:${a.status}`)).toEqual(['standard:draft']);
+  await check(page, 'owner portal without a car: the guided path');
 
   // the Admin sees it in Applications
   const ctx = await browser.newContext({ viewport: page.viewportSize()!, baseURL: info.project.use.baseURL });
@@ -85,8 +90,7 @@ test('owner account without a car, then the first car from the owner portal', as
   await ctx.close();
 
   // ---------------------------------------------------------------- 2. the first car, from the owner portal
-  await page.getByTestId('owner-add-first-car').click();
-  await page.waitForURL(/\/list-your-car\/apply/);
+  await page.goto('/list-your-car/apply');
   const toVehicles = page.getByRole('button', { name: 'Continue to vehicles' });
   // step 1 (a draft without a car never reopens on the review), or the vehicles step
   await expect(toVehicles.or(page.locator('#ap-v0-vin')).first()).toBeVisible({ timeout: 20_000 });

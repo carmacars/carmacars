@@ -543,7 +543,7 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile, fleetOnFile
               </div>
             );
           })}
-          {tier && <p className="small muted">Standard terms for {count} vehicle{count === 1 ? '' : 's'}: {money(tier.insurance_fee_cents)} Insurance Fee{facts.trackers_available ? ` and ${money(tier.tracker_fee_cents)} Tracker Fee` : ''} a month per vehicle, plus HST; {pct(tier.revenue_share_bps)} Revenue Share on Managed vehicles. We confirm each vehicle&apos;s terms in its Vehicle Schedule.</p>}
+          {tier && <p className="small muted">Standard terms for {count} vehicle{count === 1 ? '' : 's'}: {money(tier.insurance_fee_cents)} Insurance Fee a month per vehicle (no HST on insurance){facts.trackers_available ? ` and ${money(tier.tracker_fee_cents)} Tracker Fee a month, plus HST` : ''}; {pct(tier.revenue_share_bps)} Revenue Share on Managed vehicles. We confirm each vehicle&apos;s terms in its Vehicle Schedule.</p>}
           <div className="ow-actions">
             <button className="btn btn--ghost" type="button" onClick={() => go(1)}>Back</button>
             <button className="btn btn--primary btn--lg" type="button" onClick={nextFromPlan}>Review</button>

@@ -68,7 +68,27 @@ select test.ok('kept in the audit log with the reason', exists (select 1 from au
 update vehicle_schedules set signed_at = now() where vehicle_id = test.id('vehicle:F50S') and superseded_by is null;
 select test.throws('once the schedule is signed, a new signed schedule is needed', format($$select app.set_onboarding_method(test.id('f50_admin'), '{"vehicle_id": "%s", "method": "co_registrant", "reason": "Back again"}')$$, test.id('vehicle:F50S')), 'signed');
 
+-- ---------------------------------------------------------------- 3b. the documents right for every owner (3820)
+select test.throws('a signing officer title that is a name is refused', $$insert into owners (owner_type, legal_name, first_name, last_name, corporation_name, signing_officer_name, signing_officer_title, email, status)
+  values ('corporation', 'Kay Example', 'Kay', 'Example', 'Kay Cars Ltd.', 'Kay Example', 'Kay Example', 'f50-kay@example.test', 'lead')$$, 'a role');
+select test.lives('a role is fine', $$insert into owners (owner_type, legal_name, first_name, last_name, corporation_name, signing_officer_name, signing_officer_title, email, status)
+  values ('corporation', 'Kay Example', 'Kay', 'Example', 'Kay Cars Ltd.', 'Kay Example', 'Director', 'f50-kay@example.test', 'lead')$$);
+update vehicle_schedules set signed_at = null where vehicle_id = test.id('vehicle:F50S') and superseded_by is null;
+update vehicle_schedules set first_last_cents = 70000, insurance_fee_cents = 35000 where vehicle_id = test.id('vehicle:F50S') and superseded_by is null;
+update vehicle_schedules set insurance_fee_cents = 28400 where vehicle_id = test.id('vehicle:F50S') and superseded_by is null;
+select test.eq('first and last month that was two of the old Insurance Fee follows the new one (the rule: two of $284)',
+  (select coalesce(first_last_cents::text, 'rule') from vehicle_schedules where vehicle_id = test.id('vehicle:F50S') and superseded_by is null), 'rule');
+update vehicle_schedules set first_last_cents = 70000 where vehicle_id = test.id('vehicle:F50S') and superseded_by is null;
+select test.eq('an amount agreed otherwise is kept, and the Document check lists it', (select string_agg(x ->> 'code', ',' order by x ->> 'code')
+  from jsonb_array_elements(app.owner_documents_check(test.id('f50_admin'), jsonb_build_object('owner_id', test.id('owner:f50'))) -> 'items') x where x ->> 'vehicle_id' = test.id('vehicle:F50S')::text),
+  'first_last_rule,schedule_empty');
+select test.throws('a method that does not fit how the car is held is refused', format($$update vehicle_schedules set onboarding_method = 'lease_existing_corporation' where vehicle_id = %L and superseded_by is null$$, test.id('vehicle:F50S')), 'not a method');
+select test.eq('the default method for a car held personally is Transfer, never Co-Registrant', app.default_onboarding_method('individual', 'owned_outright', 'managed')::text, 'transfer');
+select test.throws('only an Admin runs the Document check', $$select app.owner_documents_check(test.id('f50_cs'), '{}')$$, 'Admin');
+select test.eq('the Document check counts by issue and by owner', (select (r -> 'by_issue' ->> 'first_last_rule')::int >= 1 and jsonb_array_length(r -> 'by_owner') >= 1
+  from (select app.door(test.id('f50_admin'), 'aal2', 'ops_read', 'owner_documents_check', '{}') r) z), true);
+
 -- ---------------------------------------------------------------- 4. privileges
 select test.eq('the new internals are not callable by signed-in users', (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-  where n.nspname = 'app' and p.proname in ('owner_booking_money', 'vehicle_presumed_out', 'job_presumed_out', 'set_onboarding_method')
+  where n.nspname = 'app' and p.proname in ('owner_booking_money', 'vehicle_presumed_out', 'job_presumed_out', 'set_onboarding_method', 'owner_documents_check', 'title_is_name')
     and (has_function_privilege('authenticated', p.oid, 'execute') or has_function_privilege('anon', p.oid, 'execute'))), 0::bigint);
