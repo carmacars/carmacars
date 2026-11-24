@@ -6,7 +6,7 @@ export interface Task { id: string; task_type: string; title: string; detail?: s
 const BOOKING_REVIEW = ['booking_request', 'request_open_to_sales', 'offer_change_requested', 'offer_change', 'offer_expired', 'reoffer_booking', 'chase_offer', 'offer_approved_paid'];
 const VERIFY = ['verify_renter', 'chase_verification', 'protection_plan_request', 'coverage_review'];
 const CHANGES = ['review_extension', 'booking_change_approval'];
-const MONEY = ['refund_cancellation', 'take_deposit', 'release_deposit', 'settle_holdback', 'price_findings', 'charge_question'];
+const MONEY = ['etransfer_check', 'refund_cancellation', 'take_deposit', 'release_deposit', 'settle_holdback', 'price_findings', 'charge_question'];
 const FLEET = ['schedule_handover', 'schedule_detail', 'late_return', 'job_unacknowledged', 'vehicle_swap', 'incident', 'breakdown'];
 
 export function taskHref(t: Task): string {

@@ -30,6 +30,15 @@ export const TASK_PROMPTS: Record<string, (p: Prompt) => ReactNode> = {
       <Act ops action="lead_phone_unlock" payload={{ lead: p.related_id, from_ask: true }} label="Show the phone" variant="primary" fields={[{ name: 'reason', label: 'Reason (optional, kept in the audit log)', type: 'text' }]} refresh={['/admin']} testId={`todo-act-${p.key}-show`} done="Shown for this lead only." />
       <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/admin/sales-leads/${p.related_id}`} data-testid={`todo-act-${p.key}-open`}>Open the lead</Link>
     </span>) : null),
+  // r49 (3610): a Sales rep reported an e-Transfer the renter sent: one tap records it (as Record a payment does), or
+  // sends it back with the reason; the screenshot and what would be recorded are on the booking's Money tab
+  etransfer_check: (p) => (p.related_id ? (
+    <span className="ad-actions">
+      <Act ops action="etransfer_decide" payload={{ id: p.related_id, decision: 'confirm' }} label="Confirm received" variant="primary" refresh={['/admin']} testId={`todo-act-${p.key}-confirm`}
+        confirm="The payment is recorded as an e-Transfer and a booking waiting for payment is confirmed. Check the screenshot on the booking first if you have not." done="Recorded." />
+      <Act ops action="etransfer_decide" payload={{ id: p.related_id, decision: 'decline' }} label="Not received" fields={[{ name: 'reason', label: 'Why (the rep sees it)', type: 'text', required: true }]} refresh={['/admin']} testId={`todo-act-${p.key}-decline`} done="Sent back to the rep." />
+      {p.booking_number && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/admin/bookings/${encodeURIComponent(p.booking_number)}?tab=money`} data-testid={`todo-act-${p.key}-open`}>See the screenshot</Link>}
+    </span>) : null),
   override_approve: (p) => (p.related_id ? (
     <span className="ad-actions">
       <Act ops action="override_decide" payload={{ id: p.related_id, decision: 'approve' }} label="Approve" variant="primary" refresh={['/admin']} testId={`todo-act-${p.key}-approve`} done="Approved." />

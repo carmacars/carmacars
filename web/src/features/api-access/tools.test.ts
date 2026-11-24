@@ -234,3 +234,21 @@ test('3430: stripe_find_payments is a read-only admin:read tool; stripe_record_p
   assert.match(SQL3430, /app\.link_stripe_payment\(p_by/);
   assert.ok(!/captureIntent|refund\(/.test(SQL3430));
 });
+
+// r49 (3610): Check e-Transfer from the connector
+const SQL3610 = readFileSync(new URL('../../../../supabase/migrations/3610_r49et_etransfer_reports.sql', import.meta.url), 'utf8');
+test('3610: etransfer_check: two-step on admin:write, received or not_received, the database decides as the booking page does', async () => {
+  const { ETRANSFER_TOOLS } = await import('./tools.ts');
+  const t = ETRANSFER_TOOLS.find((x) => x.name === 'etransfer_check')!;
+  assert.ok(t && !t.readOnly && t.scope === 'admin:write');
+  assert.ok(TOOLS.includes(t));
+  const s = t.inputSchema as { properties: Record<string, { enum?: string[] }>; required: string[] };
+  assert.deepEqual(s.required, ['decision']);
+  assert.deepEqual(s.properties.decision?.enum, ['received', 'not_received']);
+  assert.ok(s.properties.confirm && s.properties.preview_id && s.properties.report && s.properties.booking);
+  assert.match(t.description, /Two steps/);
+  assert.ok(!toolsFor(['admin:read']).some((x) => x.name === 'etransfer_check'), 'a read-only key does not see it');
+  assert.match(SQL3610, /if p_tool <> 'etransfer_check' then return app\.api_call_pre3610/);
+  assert.match(SQL3610, /pv\.args is distinct from v_args/);
+  assert.match(SQL3610, /v_result := app\.etransfer_decide\(k\.user_id/);
+});

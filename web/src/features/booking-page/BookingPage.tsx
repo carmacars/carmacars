@@ -22,6 +22,8 @@ import { REFUND_OF } from '@/features/admin/refunds';
 import { ExtensionMoney, type ExtensionRow } from '@/features/money/ExtensionMoney';
 import { FeeEvidence } from '@/features/fee-evidence/FeeEvidence';
 import { BookingMoney, type Money, type PanelLine } from '@/features/money/BookingMoney';
+import { EtransferReports } from '@/features/money/EtransferReports';
+import { waitingLine, type EtransferView } from '@/features/money/etransfer';
 import { failedAttemptState } from '@/features/money/money-panels';
 import { BookingFees, type Fees } from '@/features/money/BookingFees';
 import { ProtectionChange } from '@/features/protection/ProtectionChange';
@@ -240,6 +242,10 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
     (can.admin || viewer.role === 'staff') && (on('overview') || on('money')) && notOwner && ['confirmed', 'on_rent', 'returned'].includes(b.status)
       ? ops<RollingState>('rolling_weekly_state', { booking: b.booking_number }).catch(none(null)) : null]);
 
+  // r49 (3610): an e-Transfer the renter sent, reported by Sales and checked by Finance (every office role sees that it waits)
+  const etransfer = notOwner && (on('money') || on('overview')) && !['requested', 'offered', 'tentative', 'cancelled', 'declined', 'expired'].includes(String(b.status))
+    ? await ops<EtransferView | null>('etransfer_reports', { booking: b.id }, true).catch(none(null)) : null;
+  const etOpen = etransfer?.reports.find((r) => r.status === 'open') ?? null;
   // r35 part RR (1010): the deposit review (Fleet, Finance and the Admin) and the Finance countdowns of this booking
   const moneyStaff = can.admin || fn === 'finance';
   const [review, countdown] = await Promise.all([
@@ -286,7 +292,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
   return (
     <RequestClaim booking={b.id} status={b.status} answering={b.status === 'requested' && on('review') && can.offer} va={fn}>
       <PageHead kicker={<>{can.admin ? <Link prefetch={false} className="link" href="/admin/bookings">Bookings</Link> : <Link prefetch={false} className="link" href="/staff">Queue</Link>} · {b.vehicle?.name} · {b.renter?.legal_name}</>}
-        title={<>{b.booking_number} <Badge s={b.status} />{depChip && <> <Badge s={depChip.tone}><span data-testid="deposit-chip">{depChip.text}</span></Badge></>} <BookingKindChips ownerTrip={!notOwner} instant={instantBooking} />{can.admin && b.readiness?.awaiting_signature === true && <> <Badge s="awaiting_signature" /></>} {can.admin && (b.placeholder?.on ? <span className="ad-flag ad-flag--ph" data-testid="placeholder-flag">placeholder</span> : !b.blocks_calendar && <span className="ad-flag">not blocking</span>)} {can.admin && b.test?.on && <span className="ad-flag" data-testid="test-flag">test</span>}</>}>
+        title={<>{b.booking_number} <Badge s={b.status} />{depChip && <> <Badge s={depChip.tone}><span data-testid="deposit-chip">{depChip.text}</span></Badge></>}{etOpen && <> <span className="ad-b ad-b--amber" data-testid="etransfer-chip">e-Transfer reported, waiting for Finance</span></>} <BookingKindChips ownerTrip={!notOwner} instant={instantBooking} />{can.admin && b.readiness?.awaiting_signature === true && <> <Badge s="awaiting_signature" /></>} {can.admin && (b.placeholder?.on ? <span className="ad-flag ad-flag--ph" data-testid="placeholder-flag">placeholder</span> : !b.blocks_calendar && <span className="ad-flag">not blocking</span>)} {can.admin && b.test?.on && <span className="ad-flag" data-testid="test-flag">test</span>}</>}>
         {/* r32: one tap when the car is back (overdue or due today), the late return alert's page included */}
         {can.handover && showReturned(b) && <ReturnedButton booking={b.id} number={b.booking_number} refresh={refresh} testId="returned-top" />}
         {b.renter && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=messages`} data-testid="email-renter-link">Email the renter</Link>}
@@ -463,8 +469,11 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
           <Card title="Open tasks"><Table rows={b.tasks} empty="No open tasks." cols={[{ key: 'title', label: 'Task', className: 'wrap' }, { key: 'queue', label: 'Queue' }, { key: 'due_at', label: 'Due', render: (r) => t(r.due_at) }]} /></Card>
         </div>
       )}
+      {/* r49 (3610): the e-Transfer the renter sent; the overview says it waits, the Money tab holds the card */}
+      {etOpen && on('overview') && !on('money') && <p className="alert alert--warn" role="status" data-testid="etransfer-overview"><span>{waitingLine(etOpen, (c) => money(c, { cents: true }))} <Link prefetch={false} className="link" href={`${base}?tab=money`}>Open Money</Link></span></p>}
       {on('money') && (
         <div className="stack" id="bk-money">
+          {etransfer && <EtransferReports v={etransfer} docBase={can.admin ? '/admin/documents' : '/staff/documents'} />}
           {/* r29 C0: Rental charges and Security deposit, two panels; every money tool sits in the panel it belongs to, and the
               database decides who may do each */}
           {moneyByPart && <BookingMoney m={moneyByPart} reasons={reasons} lines={(b.lines as PanelLine[] | undefined) ?? []} totalCents={(b.total_due_at_booking_cents as number | null | undefined) ?? null}

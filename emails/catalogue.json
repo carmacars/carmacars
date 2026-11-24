@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 266,
+  "count": 269,
   "emails": [
     {
       "code": "account_password_reset",
@@ -20321,6 +20321,68 @@
       "template_text": "templates/staff_digest_morning_va_finance.txt"
     },
     {
+      "code": "staff_etransfer_reported",
+      "audience": "staff_va_finance",
+      "also_sent_to": [
+        "staff_admin"
+      ],
+      "category": "transactional",
+      "trigger": "Release 49 (3610): a Sales rep reports on a booking waiting for payment that the renter sent an e-Transfer (Renter sent an e-Transfer, with the amount, what it covers, the sender and a screenshot). Nothing is recorded: a Check e-Transfer To do is raised for Finance and the Admins. Immediate, once per report, to Finance and the Admins.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Check e-Transfer: {{etransfer_amount}} on booking {{booking_number}}",
+      "preheader": "{{reporter_name}} says {{renter_name}} sent it for {{etransfer_covers}}. Confirm it once it is in the bank.",
+      "sample_subject": "Check e-Transfer: $1,240.50 on booking CC-10482",
+      "variables": [
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "etransfer_amount",
+          "type": "string",
+          "sample": "$1,240.50"
+        },
+        {
+          "name": "etransfer_covers",
+          "type": "string",
+          "sample": "the rental and the deposit"
+        },
+        {
+          "name": "etransfer_number",
+          "type": "string",
+          "sample": "ET-1001"
+        },
+        {
+          "name": "etransfer_sender",
+          "type": "string",
+          "sample": "Maya Okafor"
+        },
+        {
+          "name": "renter_name",
+          "type": "string",
+          "sample": "Maya Okafor"
+        },
+        {
+          "name": "reporter_name",
+          "type": "string",
+          "sample": "Marco Reyes"
+        }
+      ],
+      "template_html": "templates/staff_etransfer_reported.html",
+      "template_text": "templates/staff_etransfer_reported.txt"
+    },
+    {
       "code": "staff_gift_card_sold",
       "audience": "staff_va_finance",
       "category": "transactional",
@@ -23289,6 +23351,126 @@
       ],
       "template_html": "templates/staff_digest_morning_va_sales.html",
       "template_text": "templates/staff_digest_morning_va_sales.txt"
+    },
+    {
+      "code": "staff_etransfer_confirmed",
+      "audience": "staff_va_sales",
+      "category": "transactional",
+      "trigger": "Release 49 (3610): Finance or an Admin pressed Confirm received on an e-Transfer a Sales rep reported (Check e-Transfer): the payment was recorded as an e-Transfer and the booking confirmed as a payment recorded on screen does. One email to the rep who reported it, at their own address.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "e-Transfer confirmed: {{etransfer_amount}} on booking {{booking_number}}",
+      "preheader": "{{decided_by_name}} found it in the bank. The payment is recorded.",
+      "sample_subject": "e-Transfer confirmed: $1,240.50 on booking CC-10482",
+      "variables": [
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "booking_status",
+          "type": "string",
+          "sample": "Confirmed"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "decided_by_name",
+          "type": "string",
+          "sample": "Grace Lim"
+        },
+        {
+          "name": "etransfer_amount",
+          "type": "string",
+          "sample": "$1,240.50"
+        },
+        {
+          "name": "etransfer_covers",
+          "type": "string",
+          "sample": "the rental and the deposit"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Marco",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "renter_name",
+          "type": "string",
+          "sample": "Maya Okafor"
+        }
+      ],
+      "template_html": "templates/staff_etransfer_confirmed.html",
+      "template_text": "templates/staff_etransfer_confirmed.txt"
+    },
+    {
+      "code": "staff_etransfer_declined",
+      "audience": "staff_va_sales",
+      "category": "transactional",
+      "trigger": "Release 49 (3610): Finance or an Admin pressed Not received on an e-Transfer a Sales rep reported (Check e-Transfer), with the reason. One email to the rep who reported it, at their own address. Nothing was recorded; the booking still waits for payment and the rep may report it again.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "e-Transfer not received: booking {{booking_number}}",
+      "preheader": "{{decided_by_name}}: {{decline_reason}}",
+      "sample_subject": "e-Transfer not received: booking CC-10482",
+      "variables": [
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "decided_by_name",
+          "type": "string",
+          "sample": "Grace Lim"
+        },
+        {
+          "name": "decline_reason",
+          "type": "string",
+          "sample": "Nothing from this sender in the bank yet"
+        },
+        {
+          "name": "etransfer_amount",
+          "type": "string",
+          "sample": "$1,240.50"
+        },
+        {
+          "name": "etransfer_number",
+          "type": "string",
+          "sample": "ET-1001"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Marco",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "renter_name",
+          "type": "string",
+          "sample": "Maya Okafor"
+        }
+      ],
+      "template_html": "templates/staff_etransfer_declined.html",
+      "template_text": "templates/staff_etransfer_declined.txt"
     },
     {
       "code": "staff_owner_application_received",

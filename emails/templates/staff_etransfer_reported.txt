@@ -1,0 +1,32 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Check e-Transfer]
+{{etransfer_amount}} on {{booking_number}}
+
+{{reporter_name}} reported that {{renter_name}} sent an e-Transfer. Nothing is recorded until you confirm it is in the bank.
+
+Amount: {{etransfer_amount}}
+Covers: {{etransfer_covers}}
+Sender: {{etransfer_sender}}
+Reported by: {{reporter_name}}
+Report: {{etransfer_number}}
+
+Check the e-Transfer:
+https://carmacars.ca/staff/bookings/{{booking_number}}?tab=money
+
+One tap
+Confirm received records the payment and confirms the booking. Not received sends it back to the rep with your reason.
+
+The screenshot is on the booking, under Money.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

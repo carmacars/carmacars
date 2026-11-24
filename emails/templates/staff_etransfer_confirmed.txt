@@ -1,0 +1,28 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Confirmed]
+The e-Transfer is in
+
+Hi {{first_name}}. {{decided_by_name}} confirmed the e-Transfer of {{etransfer_amount}} you reported on booking {{booking_number}}. The payment is recorded.
+
+Amount: {{etransfer_amount}}
+Covers: {{etransfer_covers}}
+Renter: {{renter_name}}
+Booking now: {{booking_status}}
+
+Open the booking:
+https://carmacars.ca/staff/bookings/{{booking_number}}?tab=money
+
+The renter gets their receipt by email.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

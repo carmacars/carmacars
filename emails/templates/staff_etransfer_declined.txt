@@ -1,0 +1,28 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Not received]
+The e-Transfer is not in the bank
+
+Hi {{first_name}}. {{decided_by_name}} checked the e-Transfer of {{etransfer_amount}} you reported on booking {{booking_number}} and did not find it.
+
+Reason: {{decline_reason}}
+Amount: {{etransfer_amount}}
+Renter: {{renter_name}}
+Report: {{etransfer_number}}
+
+Open the booking:
+https://carmacars.ca/staff/bookings/{{booking_number}}?tab=money
+
+The booking still waits for payment. Check with the renter, then report it again with the right amount or a clearer screenshot.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

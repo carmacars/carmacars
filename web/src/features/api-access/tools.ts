@@ -331,6 +331,18 @@ export const EVIDENCE_TOOLS: Tool[] = [
 ];
 TOOLS.push(...EVIDENCE_TOOLS);
 
+// Release 49 (3610): Check e-Transfer. A Sales rep reported that a renter sent an e-Transfer (with a screenshot); Finance or
+// an Admin confirms it (recorded as record_payment does, method e_transfer) or sends it back with the reason. Previewed,
+// then confirmed; the database (app.api_call, app.etransfer_decide) checks the role and every rule of the payment.
+export const ETRANSFER_TOOLS: Tool[] = [
+  write('etransfer_check', 'Check an e-Transfer a rep reported', 'Decide a "Check e-Transfer" report (a Sales rep said the renter of a booking waiting for payment sent an e-Transfer, with a screenshot; list_todos queue finance lists them, task etransfer_check): by its number (report, ET-...) or the booking with the open report. decision received records the reported amount by e-Transfer as record_payment does (the rental and fees, the deposit, or both: the deposit part is what is still owed by e-Transfer unless deposit_cents says otherwise), confirms a booking waiting for payment with nothing open, keeps the screenshot as the payment\'s proof and tells the rep. decision not_received sends it back to the rep with the reason; nothing is recorded. reference: the bank\'s e-Transfer reference (empty: the report number). Finance or an Admin, never the rep who reported it. The preview says what would be recorded, or why it cannot be.',
+    ['decision'], { report: str('The report number (ET-...) or id'), ...booking, decision: { type: 'string', enum: ['received', 'not_received'] },
+      reason: str('not_received: why (5 characters or more; the rep sees it)'), reference: str('The bank\'s e-Transfer reference (optional)'),
+      received_on: { type: 'string', format: 'date', description: 'The day it reached the bank (default today)' },
+      deposit_cents: cents('A report covering both: the deposit part (default: the deposit still owed by e-Transfer)') })
+];
+TOOLS.push(...ETRANSFER_TOOLS);
+
 /** price_tax: the server takes 'plus' | 'included'. The first wording of the tool said before_tax / after_tax, so those still work. */
 const PRICE_TAX_ALIAS: Record<string, string> = { before_tax: 'plus', after_tax: 'included' };
 export function normalizeToolArgs(args: unknown): unknown {

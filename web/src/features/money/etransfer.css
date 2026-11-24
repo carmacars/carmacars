@@ -1,0 +1,23 @@
+/* Release 49 (3610): the e-Transfer card on a booking's Money tab. Phone first: nothing squeezes at 375px (labels
+   above values, buttons full width side by side or stacked), and the buttons answer at once (pressed state, busy). */
+.et-card .pt-card__head { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; justify-content: space-between; }
+.et-card .pt-card__head h2 { min-width: 0; overflow-wrap: anywhere; }
+.et-dl > div { grid-template-columns: minmax(5.5rem, 32%) minmax(0, 1fr); }
+.et-actions .btn { flex: 1 1 10rem; justify-content: center; transition: transform 120ms var(--ease), background 120ms var(--ease); }
+.et-actions .btn:active:not(:disabled) { transform: scale(0.98); }
+.et-card .btn[aria-busy="true"] { cursor: progress; }
+.et-ref { max-width: 24rem; }
+.et-covers { border: 0; margin: 0; padding: 0; min-width: 0; }
+.et-covers .radio > span { overflow-wrap: anywhere; }
+.et-problem { color: var(--red-700); }
+.et-list { margin: var(--s-2) 0 0; padding: 0; list-style: none; }
+.et-list li { overflow-wrap: anywhere; }
+.et-past summary { cursor: pointer; min-height: 40px; display: flex; align-items: center; }
+@media (max-width: 30rem) {
+  .et-dl > div { grid-template-columns: minmax(0, 1fr); gap: 0.15rem; }
+  .et-card .ad-actions .btn { flex: 1 1 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .et-actions .btn { transition: none; }
+  .et-actions .btn:active:not(:disabled) { transform: none; }
+}
