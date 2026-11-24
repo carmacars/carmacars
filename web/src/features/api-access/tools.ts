@@ -315,6 +315,18 @@ export const HELCIM_TOOLS: Tool[] = [
 ];
 TOOLS.push(...HELCIM_TOOLS);
 
+// r50 (3730): an owner's cars, as the Admin owner and application pages: approve with terms (a fleet supplier's car goes on
+// the lease at its requested tier, with the lease agreement and the ServiceOntario forms for e-signing), put a car on the
+// fleet lease, and read the owner's agreements and forms.
+export const OWNER_CAR_TOOLS: Tool[] = [
+  write('approve_owner_car', 'Approve an owner\'s car', 'Approve an owner\'s application (its cars) with each car\'s terms, exactly as Approve on /admin/applications/<id>. A fleet supplier\'s car goes on the fleet lease at the tier the supplier asked for, which makes the Fleet Supplier Lease Agreement and the ServiceOntario forms for e-signing. cars omitted: each car with the terms the page proposes (the preview shows them). The owner gets the set-up email to review and sign.', ['application'],
+    { application: id('The owner\'s application (the id in /admin/applications/<id>)'), cars: { type: 'array', description: 'Optional: per car {vehicle_id, terms, invoices, first_last, delivered_on}, as the application page sends them', items: { type: 'object' } } }),
+  write('fleet_lease_car_set', 'Put a car on the fleet lease', 'Put a fleet supplier\'s car on the fleet lease from its delivery date at a tier (Regular or Troubled), as Put on the lease on the owner\'s Fleet lease card; the ServiceOntario forms are made for it. The preview shows the monthly rate.', ['vehicle', 'tier'],
+    { vehicle: str('The car\'s id or plate'), tier: { type: 'string', enum: ['regular', 'troubled'], description: 'The lease tier' }, delivered_on: date('The delivery date the lease starts (today by default)'), reason: str('Why (kept in the log)') }),
+  read('owner_agreements', 'An owner\'s agreements', 'One owner\'s agreements (Enrollment, Fleet Supplier Lease, schedules) and government forms with their status (to send, sent, signed) and links, and the fleet lease of a fleet supplier. Read only.', { owner: str('The owner\'s id or email') }, ['owner'])
+];
+TOOLS.push(...OWNER_CAR_TOOLS);
+
 // Release 48 (2923): one open pay link cancelled by its PaymentIntent id, and that intent cancelled at Stripe (never
 // captured: no money moves). An Admin only; a paid link is refused (giving money back is a refund).
 export const PAY_LINK_TOOLS: Tool[] = [

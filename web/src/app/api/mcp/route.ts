@@ -9,6 +9,7 @@ import { findPayments, inspectAccount, inspectBooking, linkMetadata, stripeReade
 import { helcimOnly, payments, terminal } from '@/integrations/payments';
 import { accountView, findHelcimPayments, mountainDay, type HelcimKnown } from '@/features/api-access/helcim-inspect';
 import { settleIntentEvent } from '@/server/intent-events';
+import { setupEmail } from '@/server/owner-setup-email';
 import { settleIntent } from '@/server/portal/payment';
 import { env } from '@/lib/env';
 
@@ -102,6 +103,8 @@ export async function POST(req: Request) {
       if (r.ok && (run?.run === 'stripe_booking' || run?.run === 'stripe_account' || run?.run === 'stripe_record_preview' || run?.run === 'stripe_record_paid' || run?.run === 'stripe_find')) r = await stripeTool(r.result as Record<string, unknown>);
       // r50 (3710): Helcim, read here with the server's token after the database checked the key, the scope and the preview
       if (r.ok && (run?.run === 'helcim_account' || run?.run === 'helcim_find' || run?.run === 'helcim_record_preview' || run?.run === 'helcim_record_paid')) r = await helcimTool(r.result as Record<string, unknown>);
+      // r50 (3730): an owner's application approved through the connector: the owner's set-up email, as the application page sends it
+      if (r.ok && (r.result as { run?: string } | undefined)?.run === 'owner_setup') r = await ownerSetup(r.result as Record<string, unknown>);
       // r48 (2923): the pay link is cancelled in the database; its PaymentIntent is cancelled at Stripe here (never captured)
       if (r.ok && (r.result as { run?: string } | undefined)?.run === 'pay_link_cancel') r = await payLinkCancel(r.result as Record<string, unknown>);
       // a bug report's pictures (2340): private files, given as links that expire in ten minutes
@@ -247,6 +250,16 @@ async function stripeTool(res: Record<string, unknown>): Promise<{ ok: boolean; 
   } catch (e) {
     return { ok: false, status: 502, error: `Stripe could not be read: ${e instanceof Error ? e.message.slice(0, 200) : 'unknown error'}` };
   }
+}
+
+/** r50 (3730): after approve_owner_car, the set-up email the application page would send (never twice: the database says). */
+async function ownerSetup(res: Record<string, unknown>): Promise<{ ok: boolean; status?: number; result?: unknown; error?: string }> {
+  const { run: _r, actor, ...rest } = res;
+  void _r;
+  const setup = res.setup as { needed?: boolean; owner_id: string; has_account: boolean; email: string | null; name: string } | null | undefined;
+  if (!setup?.needed) return { ok: true, result: rest };
+  const note = await setupEmail(String(actor), 'aal2', String(res.application_id), setup).catch((e: unknown) => `Approved. The set-up email did not go (${e instanceof Error ? e.message.slice(0, 120) : 'error'}): send it from the application page.`);
+  return { ok: true, result: { ...rest, setup_email: note } };
 }
 
 /** r50 (3710): the Helcim tools. Reads only GET (helcim-inspect.ts); helcim_record_paid records a transaction Helcim shows

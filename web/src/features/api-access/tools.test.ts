@@ -252,3 +252,12 @@ test('3610: etransfer_check: two-step on admin:write, received or not_received, 
   assert.match(SQL3610, /pv\.args is distinct from v_args/);
   assert.match(SQL3610, /v_result := app\.etransfer_decide\(k\.user_id/);
 });
+
+test('r50: the Helcim tools mirror the Stripe ones; the owner car tools are two-step writes and a read', async () => {
+  const { HELCIM_TOOLS, OWNER_CAR_TOOLS } = await import('./tools.ts');
+  const by = (n: string) => [...HELCIM_TOOLS, ...OWNER_CAR_TOOLS].find((x) => x.name === n)!;
+  for (const n of ['helcim_account', 'helcim_find_payments', 'owner_agreements']) assert.equal(by(n).readOnly, true, n);
+  for (const n of ['helcim_record_paid', 'approve_owner_car', 'fleet_lease_car_set']) { assert.equal(by(n).readOnly, false, n); assert.equal(by(n).scope, 'admin:write', n); }
+  for (const n of ['helcim_account', 'approve_owner_car', 'owner_agreements']) assert.ok(TOOLS.some((t) => t.name === n), n);
+  assert.deepEqual(by('fleet_lease_car_set').inputSchema.required, ['vehicle', 'tier']);
+});

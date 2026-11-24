@@ -1,10 +1,10 @@
 'use server';
 import { revalidatePath } from 'next/cache';
 import { DbError, rpc } from '@/lib/db/repo';
-import { auth } from '@/lib/auth';
 import type { ActionResult } from '@/features/forms/schemas';
 import { currentUser } from '@/server/portal/data';
 import { door, rolesOf, sessionAal } from '@/server/door';
+import { setupEmail } from '@/server/owner-setup-email';
 import { sha256Hex } from '@/server/links';
 import { requestMeta } from '@/server/request';
 import { fileScheduleChangeCopy } from '@/server/signing/certified';
@@ -145,25 +145,6 @@ export async function creditNote(id: string, amountCents: number, reason: string
 export async function resendInvoice(id: string, paths: string[] = []) { return act('owner_invoice_resend', { id }, paths); }
 
 // ---------------------------------------------------------------- the set-up email of a car staff entered
-/** After approval: the owner's one email. An owner with no sign-in gets one made now and the link to choose a password
- *  in that same email (nothing is sent by the sign-in service). */
-async function setupEmail(adminId: string, aal: 'aal1' | 'aal2' | null, applicationId: string, setup: { owner_id: string; has_account: boolean; email: string | null; name: string }, resend = false): Promise<string> {
-  let passwordUrl: string | null = null;
-  if (!setup.has_account && setup.email) {
-    const a = await auth();
-    if (a.accountLink) {
-      const existing = (await rpc('server_user_by_email', { p_email: setup.email }, SR)) as unknown as string | null;
-      const made = await a.accountLink(setup.email, setup.name, '/owner/review', existing);
-      if (made.ok) {
-        await rpc('admin_invite_account', { p_admin: adminId, p: { user_id: made.user.id, email: setup.email, full_name: setup.name, role: 'owner', owner_id: setup.owner_id } }, SR);
-        passwordUrl = made.link;
-      }
-    }
-  }
-  const r = await door<{ sent: boolean }>(adminId, 'ops_do', 'owner_setup_email', { application_id: applicationId, password_url: passwordUrl, again: resend }, aal);
-  return r.sent ? (passwordUrl ? 'The owner was emailed to review and sign, with the link to choose a password.' : 'The owner was emailed to review and sign.') : 'The set-up email was sent before.';
-}
-
 export async function sendSetupEmail(applicationId: string) {
   try {
     const { user, aal } = await me();
