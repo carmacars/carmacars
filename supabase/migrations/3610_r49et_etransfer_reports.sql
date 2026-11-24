@@ -59,6 +59,7 @@ create table if not exists etransfer_reports (
 create unique index if not exists etransfer_reports_one_open on etransfer_reports (booking_id) where status = 'open';
 create index if not exists etransfer_reports_booking_idx on etransfer_reports (booking_id, reported_at desc);
 create index if not exists etransfer_reports_open_idx on etransfer_reports (reported_at) where status = 'open';
+create index if not exists etransfer_reports_proof_idx on etransfer_reports (proof_document_id);
 comment on table etransfer_reports is 'Check e-Transfer (3610): a Sales rep says a renter sent an e-Transfer on a booking waiting for payment, with a screenshot. No money is recorded until Finance or an Admin confirms it (then recorded as Record a payment does) or sends it back with the reason.';
 
 create trigger etransfer_reports_updated before update on etransfer_reports for each row execute function app.set_updated_at();
