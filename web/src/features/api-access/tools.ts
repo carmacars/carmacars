@@ -323,6 +323,13 @@ export const OWNER_CAR_TOOLS: Tool[] = [
     { application: id('The owner\'s application (the id in /admin/applications/<id>)'), cars: { type: 'array', description: 'Optional: per car {vehicle_id, terms, invoices, first_last, delivered_on}, as the application page sends them', items: { type: 'object' } } }),
   write('fleet_lease_car_set', 'Put a car on the fleet lease', 'Put a fleet supplier\'s car on the fleet lease from its delivery date at a tier (Regular or Troubled), as Put on the lease on the owner\'s Fleet lease card; the ServiceOntario forms are made for it. The preview shows the monthly rate.', ['vehicle', 'tier'],
     { vehicle: str('The car\'s id or plate'), tier: { type: 'string', enum: ['regular', 'troubled'], description: 'The lease tier' }, delivered_on: date('The delivery date the lease starts (today by default)'), reason: str('Why (kept in the log)') })
+  write('add_car', 'Add a car for an owner', 'Add a car for an owner (the company fleet too), exactly as Admin > Owners > Add a car for an owner: the VIN is decoded (vPIC) and its check digit checked, a car already with CarmaCars is refused; year, make, model and trim come from the decode unless given. The car goes into onboarding with its photo jobs and default rates. A fleet supplier\'s car needs its tier and is approved on the lease; with terms it is approved at once, else its terms wait for an Admin. The preview shows the car.', ['owner', 'vin'],
+    { owner: str('The owner\'s id or email (the company fleet: its owner id)'), vin: str('The 17-character VIN'), year: { type: 'integer', minimum: 1980, maximum: 2100, description: 'Override the decoded year' },
+      make: str('Override the decoded make'), model: str('Override the decoded model'), trim: str('Override the decoded trim'), plate: str('The plate'),
+      odometer_km: { type: 'integer', minimum: 0, description: 'The odometer, in km' }, colour: str('The colour'), class: str('The rate class (standard by default)'),
+      title_status: { type: 'string', enum: ['owned_outright', 'financed', 'leased'], description: 'owned_outright by default' }, finance_party_name: str('The lender or lease company (financed or leased)'),
+      tier: { type: 'string', enum: ['regular', 'troubled'], description: 'A fleet supplier\'s car: its lease tier' },
+      terms: { type: 'object', description: 'Optional: the car\'s terms as the page sends them (management_mode, insurance_fee_cents, tracker_fee_cents, revenue_share_bps, install_fee_cents, first_last_cents): approved at once' } })
 ];
 TOOLS.push(...OWNER_CAR_TOOLS);
 

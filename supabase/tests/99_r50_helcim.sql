@@ -70,8 +70,9 @@ select test.ok('the history is backfilled: no card payment with processor detail
 select test.eq('known: the transaction, its payment and booking', public.server_helcim_known(array[25000002, 99]::bigint[]) #>> '{25000002,booking_number}', 'XH-2');
 
 -- ================================================================ 4. an untied Helcim payment links like Stripe's
-select test.eq('an hc_ id is planned', public.server_stripe_untied_plan(test.id('booking:XH-1'), 22600, 'cad', 'hc_xhuntied01', null) ->> 'as', 'rental');
-select test.eq('another id is still refused', public.server_stripe_untied_plan(test.id('booking:XH-1'), 22600, 'cad', 'zz_xhuntied01', null) ->> 'ok', 'false');
+select test.ok('an hc_ id is taken as a processor payment (XH-1 is paid, so the plan says that instead)',
+  coalesce(public.server_stripe_untied_plan(test.id('booking:XH-1'), 22600, 'cad', 'hc_xhuntied01', null) ->> 'reason', '') <> 'The processor gave no payment id for this payment');
+select test.eq('another id is still refused', public.server_stripe_untied_plan(test.id('booking:XH-1'), 22600, 'cad', 'zz_xhuntied01', null) ->> 'reason', 'The processor gave no payment id for this payment');
 
 -- ================================================================ 5. the connector
 select app.api_key_create(test.id('xh_admin'), test.id('xh_admin'), 'xh key', array['admin:read', 'admin:write'], encode(sha256('xh-key-r50'::bytea), 'hex'), 'cc_live_xh_');

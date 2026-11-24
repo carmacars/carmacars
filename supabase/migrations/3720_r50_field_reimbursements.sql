@@ -314,7 +314,7 @@ begin
     return query select 'staff_field'::text, u.id, u.email, u.full_name, null::uuid, null::uuid, true
                    from users u
                   where u.id = nullif(p_event.payload ->> 'staff_id', '')::uuid and u.status = 'active' and u.email is not null
-                    and (app.user_is_staff(u.id) or app.user_is_admin(u.id));
+                    and exists (select 1 from user_roles r where r.user_id = u.id and r.role in ('va', 'field', 'admin'));
     return;
   end if;
   return query select * from app.notification_recipients_pre3720(p_event, p_c);

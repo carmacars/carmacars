@@ -82,6 +82,8 @@ export async function POST(req: Request) {
     case 'tools/call': {
       const name = String(msg.params?.name ?? '');
       if (!TOOLS.some((t) => t.name === name)) return json(fail(msg.id, -32602, `Unknown tool: ${name}`));
+      // r50 (3740): add_car reads the VIN's year, make, model and trim from the decode the site records; decoded here first (vPIC)
+      if (name === 'add_car') await decodeForConnector((msg.params?.arguments as { vin?: unknown } | undefined)?.vin);
       let r = name === 'whoami' ? who : await callTool(hash, name, msg.params?.arguments ?? {}, client);
       if (r.status === 401) return unauthorized(r.error ?? 'Not valid');
       // a confirmed hire (0732): the database checked the key, the scope, the preview and the arguments; the hire itself runs
@@ -103,6 +105,8 @@ export async function POST(req: Request) {
       if (r.ok && (run?.run === 'stripe_booking' || run?.run === 'stripe_account' || run?.run === 'stripe_record_preview' || run?.run === 'stripe_record_paid' || run?.run === 'stripe_find')) r = await stripeTool(r.result as Record<string, unknown>);
       // r50 (3710): Helcim, read here with the server's token after the database checked the key, the scope and the preview
       if (r.ok && (run?.run === 'helcim_account' || run?.run === 'helcim_find' || run?.run === 'helcim_record_preview' || run?.run === 'helcim_record_paid')) r = await helcimTool(r.result as Record<string, unknown>);
+      // r50 (3740): a car added through the connector: its title, description and features, and the owner's set-up email if approved
+      if (r.ok && (r.result as { run?: string } | undefined)?.run === 'car_added') r = await carAdded(r.result as Record<string, unknown>);
       // r50 (3730): an owner's application approved through the connector: the owner's set-up email, as the application page sends it
       if (r.ok && (r.result as { run?: string } | undefined)?.run === 'owner_setup') r = await ownerSetup(r.result as Record<string, unknown>);
       // r48 (2923): the pay link is cancelled in the database; its PaymentIntent is cancelled at Stripe here (never captured)
@@ -250,6 +254,31 @@ async function stripeTool(res: Record<string, unknown>): Promise<{ ok: boolean; 
   } catch (e) {
     return { ok: false, status: 502, error: `Stripe could not be read: ${e instanceof Error ? e.message.slice(0, 200) : 'unknown error'}` };
   }
+}
+
+/** r50 (3740): the VIN decoded with the site's decoder (vPIC) and recorded in vin_decodes, as Add a car does in the browser;
+ *  a VIN already decoded, or that failed in the last hour, or with a wrong check digit, is not asked again. Never throws. */
+async function decodeForConnector(raw: unknown): Promise<void> {
+  const vin = typeof raw === 'string' ? raw.toUpperCase().replace(/[\s-]/g, '') : '';
+  if (!/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)) return;
+  try {
+    const f = (await rpc('server_vin_facts', { p_vin: vin }, SR)) as unknown as { decode: unknown; decode_failed_at?: string | null; check_ok?: boolean };
+    const recent = f.decode_failed_at && Date.now() - new Date(f.decode_failed_at).getTime() < 3_600_000;
+    if (f.decode || recent || f.check_ok === false) return;
+    const { decodeVin } = await import('@/integrations/vin');
+    const d = await decodeVin(vin).catch(() => null);
+    if (d) await rpc('server_record_vin_decode', { p_vin: vin, p_provider: d.provider, p_output: d.result as never }, SR).catch(() => undefined);
+  } catch { /* the database says what it could not read */ }
+}
+async function carAdded(res: Record<string, unknown>): Promise<{ ok: boolean; status?: number; result?: unknown; error?: string }> {
+  const { run: _r, actor, approve, ...rest } = res;
+  void _r;
+  const { afterCarAdded } = await import('@/server/car-added');
+  afterCarAdded();
+  const setup = (approve as { setup?: { needed: boolean; owner_id: string; has_account: boolean; email: string | null; name: string } | null } | null)?.setup;
+  if (!res.approved || !setup?.needed) return { ok: true, result: rest };
+  const note = await setupEmail(String(actor), 'aal2', String(res.application_id), setup).catch((e: unknown) => `The set-up email did not go (${e instanceof Error ? e.message.slice(0, 120) : 'error'}): send it from the application page.`);
+  return { ok: true, result: { ...rest, setup_email: note } };
 }
 
 /** r50 (3730): after approve_owner_car, the set-up email the application page would send (never twice: the database says). */
