@@ -64,20 +64,22 @@ test('the owner forecast: Home, a statement, and the Admin view of the owner', a
   await sql.end();
 });
 
-test('the home hero and the photo sections stay in their box, with or without real cars cut out', async ({ page }) => {
+test('the home hero and the photo sections stay in their box: the studio renders in turn, or the studio placeholder', async ({ page }) => {
   test.setTimeout(120_000);
   const errors = watch(page);
   for (const path of ['/', '/delivery', '/list-your-car', '/cars']) {
     await page.goto(path, { waitUntil: 'networkidle' });
     await acceptCookies(page);
     await noOverflow(page);
-    const scenes = page.getByTestId('slot-cars');
+    // r50 (3701): the listings' own gated renders (or the neutral studio photo), never a cutout on a drawn plate
+    await expect(page.locator('img[src*="/site-plates/"]')).toHaveCount(0);
+    const scenes = page.getByTestId('studio-reel');
     for (let i = 0; i < await scenes.count(); i++) {
       const s = scenes.nth(i);
       const box = await s.boundingBox();
       const parent = await s.locator('xpath=..').boundingBox();
       expect(box && parent && Math.abs(box.width - parent.width) < 2 && Math.abs(box.height - parent.height) < 2, `${path}: the cars fill the section's photo box`).toBeTruthy();
-      await expect(s.getByTestId('slot-car').first()).toBeAttached();
+      await expect(s.locator('img').first()).toBeAttached();
     }
   }
   // the hero's text stays readable: its gradient is over the photo

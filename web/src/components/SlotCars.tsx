@@ -1,45 +1,43 @@
-import type { CSSProperties } from 'react';
 import { SlotPicture } from '@/components/Picture';
 import { photoUrl } from '@/lib/photo';
-import { carPlace, type SlotScene } from '@/lib/slot-cars';
+import { isStandIn } from '@/lib/slot-cars';
 import type { SlotPhoto } from '@/lib/types';
+import type { StudioCover } from '@/lib/studio-covers';
 import { FADE, STEP, heroKeyframes } from '@/features/home/hero-keyframes';
 
-// Release 48 O (3080): a section photo with real fleet cars cut out where its sample car stood (lib/slot-cars.ts). One
-// frame cropped like the photo it replaces (object-fit: cover at the section's own focus, --px and --py in the CSS), the
-// plate (the photo without its sample car) as a <picture> for the wide and the tall form, and the cars at the sample car's
-// place in percent of the frame, so they keep their place at every width. The hero shows its cars in turn (6 seconds a car,
-// a 1-second fade, pure CSS; reduced motion: the first car). The section's black gradient (its ::after) is drawn over the
-// cars, behind the text. No scene: the section photo as before.
-export function SlotCars({ scene, photo, eager = false, sizes = '100vw' }: { scene: SlotScene | null; photo: SlotPhoto | null; eager?: boolean; sizes?: string }) {
-  if (!scene) return <SlotPicture p={photo} eager={eager} sizes={sizes} />;
-  const { wide, tall } = scene;
-  const frame = { '--ww': wide.width, '--wh': wide.height, '--tw': tall.width, '--th': tall.height } as CSSProperties;
-  return (
-    <span className="slot-cars" data-testid="slot-cars" data-slot={scene.slot}>
-      <span className="slot-cars__frame" style={frame}>
-        <picture>
-          <source media="(min-width: 48rem)" srcSet={wide.plate} width={wide.width} height={wide.height} />
-          <img className="slot-cars__plate" src={tall.plate} width={tall.width} height={tall.height} alt={photo?.alt ?? ''} sizes={sizes}
-            loading={eager ? 'eager' : 'lazy'} fetchPriority={eager ? 'high' : undefined} decoding="async" />
-        </picture>
-        {scene.cars.map((cars, i) => {
-          const w = carPlace(wide.boxes[i]!), t = carPlace(tall.boxes[i] ?? wide.boxes[i]!);
-          const pos = { '--wl': w.left, '--wcw': w.width, '--wb': w.bottom, '--tl': t.left, '--tcw': t.width, '--tb': t.bottom } as CSSProperties;
-          const n = cars.length;
-          return (
-            <span key={i} className="slot-cars__pos" style={pos} aria-hidden="true" data-count={n}>
-              {n > 1 && <style>{`${heroKeyframes(n)}.slot-cars__pos[data-count="${n}"] .slot-cars__turn{animation:hero-slides-${n} ${n * STEP}s linear infinite}`}</style>}
-              {cars.map((c, k) => (
-                <span key={c.path} className="slot-cars__turn" style={n > 1 ? { animationDelay: `${k === 0 ? -FADE : k * STEP - FADE}s` } : { opacity: 1 }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img className={c.mirror ? 'slot-cars__car slot-cars__car--mirror' : 'slot-cars__car'} src={photoUrl(c.path)} width={c.width} height={c.height} alt=""
-                    loading={eager && k === 0 ? 'eager' : 'lazy'} fetchPriority={eager && k === 0 ? 'high' : 'low'} decoding="async" data-testid="slot-car" />
-                </span>))}
-            </span>
-          );
-        })}
+/** The neutral studio photo shown where no car has a passed studio render yet (release 50, 3701). */
+export const STUDIO_PLACEHOLDER = '/studio/coming-soon.jpg';
+/** The most cars the hero shows in turn. */
+export const REEL_MAX = 6;
+
+// Release 50 (3701). The owner (Nov 24): the hero and the home sections must show the same studio renders as the listings
+// (the same cropped car, the same angle, the same plate). Before, these sections cut real cars out of whatever photo the
+// cutout chain found (an owner's photo, a check-in photo, a stock photo) and stood them on a drawn plate, so the hero never
+// matched the listings. Now a section that still has its built-in sample photo (the stand-in) shows the studio renders that
+// passed the gate (app.site_studio_covers: the side profile, the cover of every listing), whole, in turn (6 seconds a car,
+// a 1-second fade, pure CSS; reduced motion: the first); with none yet, the neutral studio photo. A section photo an
+// Admin replaced in Site content is shown as it is.
+export function SlotCars({ slot, photo, studio, eager = false, sizes = '100vw' }: { slot: string; photo: SlotPhoto | null; studio: readonly StudioCover[]; eager?: boolean; sizes?: string }) {
+  if (photo && !isStandIn(slot, photo)) return <SlotPicture p={photo} eager={eager} sizes={sizes} />;
+  const cars = studio.filter((c) => c.path).slice(0, REEL_MAX);
+  if (!cars.length) {
+    return (
+      <span className="studio-reel" data-testid="studio-reel" data-slot={slot} data-count={0}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={STUDIO_PLACEHOLDER} width={1800} height={1200} alt="" sizes={sizes} loading={eager ? 'eager' : 'lazy'} fetchPriority={eager ? 'high' : undefined} decoding="async" style={{ opacity: 1 }} />
       </span>
+    );
+  }
+  const n = cars.length;
+  return (
+    <span className="studio-reel" data-testid="studio-reel" data-slot={slot} data-count={n} aria-hidden="true">
+      {n > 1 && <style>{`${heroKeyframes(n)}.studio-reel[data-count="${n}"] img{animation:hero-slides-${n} ${n * STEP}s linear infinite}`}</style>}
+      {cars.map((c, k) => (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img key={c.path} src={photoUrl(c.path)} srcSet={c.variants?.length ? c.variants.map((v) => `${photoUrl(v.path)} ${v.width}w`).join(', ') : undefined}
+          sizes={sizes} width={c.width ?? 1800} height={c.height ?? 1200} alt="" data-testid="slot-car"
+          loading={eager && k === 0 ? 'eager' : 'lazy'} fetchPriority={eager && k === 0 ? 'high' : 'low'} decoding="async"
+          style={n > 1 ? { animationDelay: `${k === 0 ? -FADE : k * STEP - FADE}s` } : { opacity: 1 }} />))}
     </span>
   );
 }

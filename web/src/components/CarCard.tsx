@@ -1,7 +1,7 @@
 import Link from '@/components/Link';
 import type { CarRow } from '@/lib/types';
 import { money, FUEL_LABEL } from '@/lib/format';
-import { CarImage, StudioTurn } from './Picture';
+import { CarImage } from './Picture';
 import { photoUrl } from '@/lib/photo';
 import { DriveFrame } from '@/portable/motion/react';
 
@@ -26,10 +26,10 @@ export function CarCard({ c, labels, tag: Tag = 'h3', href, price, unit, booked 
         {!cut && <CarImage p={c.cover} />}
         {cut && <DriveFrame className="car-stage" src={photoUrl(cut.path)} width={cut.width ?? undefined} height={cut.height ?? undefined}
           sizes="(min-width: 64rem) 33vw, 100vw" alt={c.cover!.alt} facing={cut.facing} />}
-        {c.cover?.sample && c.studio && c.studio.length > 0 && <StudioTurn photos={c.studio} />}
         {c.cover && !c.cover.sample && !cut && (photosMax ?? 5) > 1
           && <span className="car-card__deck" data-slug={c.slug} data-max={photosMax} aria-hidden="true" dangerouslySetInnerHTML={{ __html: '' }} />}
-        {c.cover?.sample && <span className="car-card__sample" data-testid="sample-photo-caption">Representative photo</span>}
+        {/* r50 (3701): only the car's own studio renders, or one neutral "Photos coming soon" photo; never another car's photo */}
+        {c.cover?.placeholder && <span className="car-card__sample" data-testid="photos-coming-soon">Photos coming soon</span>}
         {c.is_sample && <span className="car-card__example" data-testid="example-car-badge" title="An example of the cars we rent: ask and we suggest a similar real car">Example car</span>}
         {booked && <span className="badge badge--hatch car-card__flag">Booked for your dates</span>}
         {c.hot && !booked && <span className="car-card__hot" data-testid="car-card-hot">Hot</span>}

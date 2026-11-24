@@ -40,7 +40,9 @@ export type StaffRead = 'toll_read_context' | 'toll_read' | 'toll_read_queue' | 
   // r47 (2900): the showroom background plates of the generated listing views
   | 'photo_r48_plates'
   // r48 (3030): a car's studio set beside its originals
-  | 'photo_r48_set';
+  | 'photo_r48_set'
+  // r50 (3701): every published car's nine studio views side by side with the gate's verdict
+  | 'photo_r48_grid';
 export async function staffRead<T = Record<string, unknown>>(what: StaffRead, p: Record<string, unknown> = {}): Promise<R<T>> {
   try { const { user, aal } = await me(); return { ok: true, data: await door<T>(user.id, 'ops_read', what, p, aal) }; } catch (e) { return fail(e); }
 }
