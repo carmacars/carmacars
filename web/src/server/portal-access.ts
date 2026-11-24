@@ -5,7 +5,8 @@ import { movedTo } from '@/features/admin/hubs';
 import { movedTo as movedToTab } from '@/features/portal-nav/tabs';
 import { OWNER_MOVED } from '@/features/owner/menu';
 import { PATH_HEADER } from '@/lib/edge/portal-gate';
-import { requireStaff } from '@/server/door';
+import { door, requireInvestor, requireStaff, rolesOf } from '@/server/door';
+import { currentUser } from '@/server/portal/data';
 import { pageFunction, type Fn } from '@/server/va';
 
 // R48: the portal checks above the loading boundary. A segment loading.tsx (release 48 speed) wraps every page below it
@@ -64,6 +65,7 @@ export const STAFF_ONLY = {
   requests: ['cs', 'sales'],
   renters: ['cs', 'finance', 'fleet'],
   addCar: ['cs', 'fleet', 'sales'],
+  finance: ['finance'],
 } as const satisfies Record<string, readonly Fn[]>;
 
 // the staff pages whose check the layout runs first (the homes and the shared Admin and staff pages)
@@ -76,6 +78,8 @@ const STAFF_RULES: Array<[RegExp, StaffRule]> = [
   [/^\/staff\/requests\/?$/, { kind: 'va', only: STAFF_ONLY.requests }],
   [/^\/staff\/renters\/?$/, { kind: 'va', only: STAFF_ONLY.renters }],
   [/^\/staff\/owners\/add-car\/?$/, { kind: 'va', only: STAFF_ONLY.addCar }],
+  // r49 (3480): the Finance dashboard and bank lines, Finance only (app/staff/finance/page.tsx passes the same list)
+  [/^\/staff\/finance\/?$/, { kind: 'va', only: STAFF_ONLY.finance }],
 ];
 
 export function staffRule(path: string): StaffRule | null {
@@ -104,4 +108,29 @@ export function adminMoved(path: string, sp: Record<string, string | string[]>):
 export function ownerMoved(path: string, sp: Record<string, string | string[]>): void {
   const m = OWNER_MOVED[path];
   if (m) redirect(movedToTab(m[0], m[1], sp));
+}
+
+// R49: the investor portal has a segment loading.tsx (the investor skeleton), so its pages' requireInvestor() and the
+// statement's notFound() stream as 200 too. The investor layout runs the same checks first, as the owner and staff ones do.
+const INVESTOR_OPEN = /^\/investor\/no-access\/?$/;
+// the deck and the updates: investors and Admins (the Admin preview); every other investor page: investors only
+const INVESTOR_OR_ADMIN = /^\/investor\/(deck|updates)\/?$/;
+const INVESTOR_STATEMENT = /^\/investor\/statements\/([^/]+)\/?$/;
+
+/** The investor page's own gate (requireInvestor, the deck's and updates' investor-or-Admin check, a statement of
+ * their own or 404), run from the investor layout. */
+export async function investorGate(path: string): Promise<void> {
+  if (!/^\/investor(\/|$)/.test(path) || INVESTOR_OPEN.test(path)) return;
+  if (INVESTOR_OR_ADMIN.test(path)) {
+    const user = await currentUser();
+    if (!user) redirect(`/sign-in?next=${encodeURIComponent(path.replace(/\/$/, ''))}`);
+    const roles = await rolesOf(user.id);
+    if (!roles.investor && !roles.admin) redirect('/investor/no-access');
+    return;
+  }
+  const st = INVESTOR_STATEMENT.exec(path);
+  if (st && !/^[0-9a-f-]{36}$/.test(st[1]!)) notFound();
+  const { user } = await requireInvestor(path.replace(/\/$/, '') || '/investor');
+  // another investor's statement reads as not found (the page checks the same)
+  if (st && !(await door<unknown>(user.id, 'investor_read', 'statement', { id: st[1] }).catch(() => null))) notFound();
 }

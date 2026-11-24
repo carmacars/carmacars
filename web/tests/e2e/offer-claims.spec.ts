@@ -161,7 +161,7 @@ test('Sales wait for customer service first; a claim that ran out is taken over'
   await c.context().close();
 
   // the wait is over and customer service's claim ran out: Sales opening it take it
-  await sql`update bookings set requested_at = now() - interval '20 minutes' where id = ${r.booking_id}::uuid`;
+  await sql`update bookings set requested_at = now() - interval '31 minutes' where id = ${r.booking_id}::uuid`; // 3462: the Sales wait is 30 minutes
   await sql`update request_claims set expires_at = now() - interval '1 minute' where booking_id = ${r.booking_id}::uuid`;
   await s.reload({ waitUntil: 'networkidle' });
   await expect(banner(s)).toContainText('You are answering this request', { timeout: 30_000 });

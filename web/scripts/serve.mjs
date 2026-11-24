@@ -158,7 +158,7 @@ http.createServer(async (req, res) => {
     const headers = { ...req.headers, 'accept-encoding': 'identity', 'x-forwarded-host': req.headers.host, 'x-forwarded-proto': 'http' };
     delete headers['x-cc-admin-area'];
     delete headers['x-cc-path'];
-    if (/^\/(admin|staff|owner)(\/|$)/.test(pathname)) headers['x-cc-path'] = req.url || pathname;
+    if (/^\/(admin|staff|owner|investor)(\/|$)/.test(pathname)) headers['x-cc-path'] = req.url || pathname;
     try {
       const out = await pageCache.serveEdge(webReq, null, sKey, pathname, {
         cache: staleCache, env: {}, version: 'local', origin: () => originResponse(req, pathname, headers), waitUntil: (p) => { p.catch(() => undefined); },
@@ -193,7 +193,7 @@ http.createServer(async (req, res) => {
   if (isAdminArea(pathname)) headers['x-cc-admin-area'] = '1';
   // R48: a portal page's path for its layout (src/server/portal-access.ts; portal-gate.ts PATH_HEADER), never the client's
   delete headers['x-cc-path'];
-  if (/^\/(admin|staff|owner)(\/|$)/.test(pathname)) headers['x-cc-path'] = req.url || pathname;
+  if (/^\/(admin|staff|owner|investor)(\/|$)/.test(pathname)) headers['x-cc-path'] = req.url || pathname;
   const up = http.request({ host: '127.0.0.1', port: INNER, method: req.method, path: req.url, headers }, (r) => {
     const h = { ...r.headers, ...security };
     // the email link's outbox row, kept through a sign-in redirect for the beacon (src/lib/track/shared.ts emailLinkCookie)

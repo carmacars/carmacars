@@ -12,10 +12,15 @@ import { StuckHelp } from '@/features/help/StuckHelp';
 import { PushInvite } from '@/features/push/PushAlerts';
 import { TermsGate } from '@/features/terms/TermsGate';
 import { door, rolesOf } from '@/server/door';
+import { investorGate, requestPath } from '@/server/portal-access';
 
 // The investor area (07-investor.md): statements for existing investors only. Not linked from anywhere
 // public, not in the sitemap, disallowed in robots.txt and sent with noindex.
 export default async function InvestorLayout({ children }: { children: React.ReactNode }) {
+  // R49: the page's own gate here, above the loading boundary (the investor skeleton), so a refusal is a real 307 and
+  // another investor's statement a real 404 (server/portal-access.ts investorGate). Each page keeps its own check.
+  const path = await requestPath();
+  if (path) await investorGate(path);
   const user = await currentUser();
   const roles = user ? await rolesOf(user.id).catch(() => null) : null;
   const investor = roles?.investor ?? false;

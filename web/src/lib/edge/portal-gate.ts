@@ -12,7 +12,7 @@ export const GATED_PORTALS = ['/admin', '/staff'] as const;
 /** The request's path, set by the fronts (Worker, VPS, serve.mjs) on every portal request and never taken from the
  * client, so a portal layout (above the segment loading.tsx) can refuse with a real 307 or 404 (server/portal-access.ts). */
 export const PATH_HEADER = 'x-cc-path';
-const PORTAL_PATH = /^\/(admin|staff|owner)(\/|$)/;
+const PORTAL_PATH = /^\/(admin|staff|owner|investor)(\/|$)/;
 /** The value of PATH_HEADER: the path and query of a portal page, else null (the header is then removed). */
 export function portalPathHeader(pathname: string, search = ''): string | null {
   return PORTAL_PATH.test(pathname) ? pathname + (search.startsWith('?') ? search : search ? `?${search}` : '') : null;

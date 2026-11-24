@@ -126,6 +126,8 @@ test('a signed-in owner reads the permit in their own application', async ({ bro
     await p.locator('label:has-text("An individual")').click();
     await p.locator('#ap-addr').fill('union');
     await p.getByRole('option', { name: /Union Station/ }).click();
+    // the chosen place fills the lines once its details arrive (as owner.spec.ts waits): Continue before that finds the street empty
+    await expect(p.locator('#ap-line1')).toHaveValue('65 Front Street West');
     await p.locator('#ap-postal').fill('m5j 1e6');
     await p.locator('#ap-lic').fill('O1234-56789-01234');
     await p.locator('#ap-dob').fill('1985-05-05');

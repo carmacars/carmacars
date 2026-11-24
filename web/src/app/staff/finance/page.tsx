@@ -1,5 +1,6 @@
 import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
+import { STAFF_ONLY } from '@/server/portal-access';
 import { tabOf } from '@/features/admin/hubs';
 import { FinancePage } from '@/features/finance/FinancePage';
 import type { BankLinesView, Dashboard } from '@/features/finance/model';
@@ -12,7 +13,7 @@ const MONTH = /^\d{4}-\d{2}-01$/;
 
 // r49 (3480): Finance > Money > Finance, Admin's Finance page for the Finance role (Finance only; the database checks each read)
 export default async function StaffFinance({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  const [ctx, sp] = await Promise.all([vaPage('/staff/finance', ['finance']), searchParams]);
+  const [ctx, sp] = await Promise.all([vaPage('/staff/finance', STAFF_ONLY.finance), searchParams]);
   const one = (k: string) => (typeof sp[k] === 'string' ? (sp[k] as string) : undefined);
   const tab = tabOf(TABS, sp.tab);
   const [dash, stripe, lines] = await Promise.all([

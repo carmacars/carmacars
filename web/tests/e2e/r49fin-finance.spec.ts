@@ -42,9 +42,11 @@ async function shots(page: Page, name: string, sel: string, back: { width: numbe
   mkdirSync(SHOTS, { recursive: true });
   for (const w of WIDTHS) {
     await page.setViewportSize({ width: w, height: 900 });
-    await noOverflow(page);
+    // a page opened at 1440 and narrowed: the menus fold to their phone form a render after the resize, so the check waits for it
+    await expect(async () => noOverflow(page)).toPass({ timeout: 10_000 });
+    // a chart's visually hidden summary (.vh, 1px wide for screen readers) is not squished text
     const thin = await page.evaluate((s) => [...document.querySelectorAll(`${s} p, ${s} .ad-tile__k, ${s} .ad-tile__s, ${s} button`)]
-      .filter((e) => (e.textContent ?? '').trim().length > 12 && e.getBoundingClientRect().width > 0 && e.getBoundingClientRect().width < 110).map((e) => (e.textContent ?? '').trim().slice(0, 40)), sel);
+      .filter((e) => !e.closest('.vh') && (e.textContent ?? '').trim().length > 12 && e.getBoundingClientRect().width > 0 && e.getBoundingClientRect().width < 110).map((e) => (e.textContent ?? '').trim().slice(0, 40)), sel);
     expect(thin, `${name} at ${w}`).toEqual([]);
     await page.screenshot({ path: `${SHOTS}/${name}-${w}.png`, fullPage: true });
   }
@@ -97,7 +99,7 @@ test('Finance: import the RBC download, matched by itself, To do for the rest, s
     // set the bank fee aside with its reason: its To do closes
     const [fee] = await sql`select l.id from bank_lines l join bank_accounts a on a.id = l.bank_account_id where a.account_last4 = ${last4} and l.amount_cents = -600`;
     await ap.getByTestId(`bank-ignore-${fee!.id}`).click();
-    await ap.getByLabel(/What it is/).fill('RBC monthly fee');
+    await ap.getByTestId(`bank-ignore-${fee!.id}-form`).getByLabel(/What it is/).fill('RBC monthly fee'); // each line without a match has its own Set aside dialog
     await ap.getByTestId(`bank-ignore-${fee!.id}-submit`).click();
     await expect.poll(async () => (await sql`select l.status, t.status ts from bank_lines l join tasks t on t.id = l.todo_task_id where l.id = ${fee!.id}`)[0]).toMatchObject({ status: 'ignored', ts: 'done' });
 

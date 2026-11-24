@@ -108,9 +108,10 @@ test('the academy: a lesson with captions, a quiz failed then passed, the next s
     await ap.goto('/admin/academy', { waitUntil: 'networkidle' });
     // the customer service path grows as sections are added (0731, 0802): count it rather than fix a number; since 2990
     // (Release 48) every staff member also has The renter's side, and the row counts the sections of all their paths
-    const csSections = (await sql<Array<{ n: number }>>`select count(*)::int n from academy_path_sections s
-      where s.path_code = any (app.academy_paths_of(${cs.id}::uuid))`)[0]!.n;
-    await expect(ap.getByTestId('academy-staff').locator('tr', { hasText: cs.name })).toContainText(`1 of ${csSections}`);
+    // 3601 (Release 49): an optional section (the gift cards) counts as passed, so the row is the one passed plus those
+    const { n: csSections, opt } = (await sql<Array<{ n: number; opt: number }>>`select count(*)::int n, count(*) filter (where x.optional)::int opt
+      from academy_path_sections s join academy_sections x on x.id = s.section_id where s.path_code = any (app.academy_paths_of(${cs.id}::uuid))`)[0]!;
+    await expect(ap.getByTestId('academy-staff').locator('tr', { hasText: cs.name })).toContainText(`${1 + opt} of ${csSections}`);
     // the "i": a button with its name; a click or a tap opens it, Escape closes it and gives the focus back
     const tip = ap.getByRole('button', { name: 'About the academy gate' });
     await (phone ? tip.tap() : tip.click());
