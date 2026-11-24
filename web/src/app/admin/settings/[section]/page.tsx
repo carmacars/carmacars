@@ -52,6 +52,8 @@ import { LeadTimeSettings } from '@/features/rates/LeadTimeEditor';
 import { StuckReport, type StuckReportData } from '@/features/help/StuckReport';
 import type { Tier } from '@/features/rates/lead-time';
 import { profileFunctions as staffFns, STAFF_FN_LABEL } from '@/features/staff/nav';
+import { cardPayments } from '@/server/card-provider';
+import { cardPausedWhy } from '@/features/money/card-pay';
 const googleKeysSet = () => googleKeys() !== null;
 
 export const dynamic = 'force-dynamic';
@@ -72,6 +74,8 @@ const SITE_GROUPS: Array<[string, string[]]> = [
   ['Business name, address and phone', ['business_name', 'business_street', 'business_city', 'business_region', 'business_postal_code', 'business_latitude', 'business_longitude', 'business_categories', 'business_description']]
 ];
 const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
+  // hotfix 3650: the one switch for card payments (off, or the processor not taking charges: renters pay by e-Transfer)
+  ['Card payments (off: renters pay by e-Transfer and upload the screenshot)', (k) => ['card_payments', 'card_provider', 'e_transfer_email'].includes(k)],
   ['Company', (k) => k.startsWith('company_') || ['incident_line_phone', 'privacy_officer_name', 'privacy_officer_email', 'signing_officer_name', 'signing_officer_title', 'signing_officer_authorized_on', 'timezone', 'hst_bps'].includes(k)],
   // r48 RW (3260 to 3263): staff rewards, owner rewards, the content calendar and notification preferences
   ['Staff rewards (discounts and free rental days for in-person staff in Canada)', (k) => k.startsWith('staff_perk_')],
@@ -423,7 +427,15 @@ export default async function Section({ params, searchParams }: { params: Promis
       // 0085's booking texts, replaced by Text alerts (0096: Settings > Text alerts)
       && !k.startsWith('phone_sms_'));
     const used = new Set<string>();
+    const cp = await cardPayments();
     return (<>{head}
+      {/* hotfix 3650: where card payments stand: the switch below, and the processor's own answer */}
+      {cp && <Card title="Card payments" testId="card-payments-state">
+        <p className={cp.on ? 'small' : 'alert alert--warn'} role="status" data-testid="card-payments-line"><span>{cp.on
+          ? `On: renters pay by card (${cp.provider === 'helcim' ? 'Helcim' : 'Stripe'}).`
+          : `Paused: ${cardPausedWhy(cp)} Renters see e-Transfer instructions with the exact amounts and upload the screenshot; Finance confirms each one. Collect a card, card links and deposit holds are off.`}</span></p>
+        {cp.processor?.checked_at && <p className="small muted" data-testid="card-processor-line">{cp.configured_provider === 'helcim' ? 'Helcim' : 'Stripe'} last checked {d(cp.processor.checked_at)}: card payments {cp.processor.charges_enabled ? 'on' : 'off'}, payouts {cp.processor.payouts_enabled ? 'on' : 'off'}{cp.processor.disabled_reason ? ` (${cp.processor.disabled_reason})` : ''}.{cp.processor.paused_since ? ` Paused since ${d(cp.processor.paused_since)}; cards come back by themselves when the processor takes payments again.` : ''}</p>}
+      </Card>}
       <p className="small muted">Saving writes a new dated row from today; the rows before it stay as they were. In force since {d(s.program.effective_from)}; {s.program_rows.length} dated rows.</p>
       <Card title="Lead-time pricing" testId="lead-time-card"><LeadTimeSettings enabled={s.program.lead_time_enabled !== false} insurer={s.program.lead_time_insurer === true}
         tiers={(s.program.lead_time_tiers ?? []) as Tier[]} /></Card>
@@ -439,7 +451,7 @@ export default async function Section({ params, searchParams }: { params: Promis
         <SaveForm table="program_settings" rowKey="current" testId="program-drive-key" label="Save the key" fields={[{ name: 'google_drive_api_key', label: s.program.google_drive_api_key_set ? 'New key (replaces the one set; empty and Save removes it)' : 'Google API key (optional)', value: '', hint: 'A Google API key with the Drive API on. Set: the import lists and downloads through the Drive API and reads folders of any size.' }]} />
       </Card>
       {PROGRAM_GROUPS.map(([title, test]) => { const ks = keys.filter((k) => k !== 'google_drive_api_key' && !used.has(k) && test(k)); ks.forEach((k) => used.add(k)); if (!ks.length) return null; return (
-        <Card key={title} title={title}><details open={title === 'Booking requests and offers'}><summary className="link">{ks.length} settings</summary>
+        <Card key={title} title={title}><details open={title === 'Booking requests and offers' || title.startsWith('Card payments')}><summary className="link">{ks.length} settings</summary>
           <SaveForm table="program_settings" rowKey="current" testId={`program-${title.split(' ')[0]!.toLowerCase()}`} fields={fieldsFrom(s.program, ks)} /></details></Card>); })}
       {/* r36 (2110): what the AI auto-replies did (their settings are the group above) */}
       <Card title="AI auto-replies: the last answers" testId="auto-replies-card"><AutoReplies /></Card>

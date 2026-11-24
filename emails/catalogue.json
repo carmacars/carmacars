@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 272,
+  "count": 275,
   "emails": [
     {
       "code": "account_password_reset",
@@ -3950,6 +3950,178 @@
       ],
       "template_html": "templates/renter_driving_notice.html",
       "template_text": "templates/renter_driving_notice.txt"
+    },
+    {
+      "code": "renter_etransfer_confirmed",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "Hotfix 3650: Finance or an Admin pressed Confirm received on an e-Transfer the renter reported from Sign and pay or the booking page (with the screenshot). The payment is recorded as an e-Transfer; a booking waiting for payment with nothing left open is confirmed (that sends its own confirmation too). Once per report.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "billing@carmacars.ca",
+      "subject": "We received your e-Transfer of {{etransfer_amount}}",
+      "preheader": "Booking {{booking_number}}: {{etransfer_covers}} is recorded.",
+      "sample_subject": "We received your e-Transfer of $1,240.50",
+      "variables": [
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "booking_status",
+          "type": "string",
+          "sample": "Confirmed"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "etransfer_amount",
+          "type": "string",
+          "sample": "$1,240.50"
+        },
+        {
+          "name": "etransfer_covers",
+          "type": "string",
+          "sample": "the rental and fees"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/renter_etransfer_confirmed.html",
+      "template_text": "templates/renter_etransfer_confirmed.txt"
+    },
+    {
+      "code": "renter_etransfer_declined",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "Hotfix 3650: Finance or an Admin pressed Not received on an e-Transfer the renter reported, with the reason. Nothing was recorded; the renter can send it again or upload a clearer screenshot. Once per report.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "billing@carmacars.ca",
+      "subject": "We have not found your e-Transfer yet: booking {{booking_number}}",
+      "preheader": "{{decline_reason}}",
+      "sample_subject": "We have not found your e-Transfer yet: booking CC-10482",
+      "variables": [
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "decline_reason",
+          "type": "string",
+          "sample": "Nothing from this sender in the bank yet"
+        },
+        {
+          "name": "e_transfer_email",
+          "type": "string",
+          "sample": "pay@carmacars.ca"
+        },
+        {
+          "name": "etransfer_amount",
+          "type": "string",
+          "sample": "$1,240.50"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/renter_etransfer_declined.html",
+      "template_text": "templates/renter_etransfer_declined.txt"
     },
     {
       "code": "renter_extension_approved",
@@ -18188,6 +18360,54 @@
       ],
       "template_html": "templates/investor_statement_ready.html",
       "template_text": "templates/investor_statement_ready.txt"
+    },
+    {
+      "code": "admin_card_payments_paused",
+      "audience": "staff_admin",
+      "category": "transactional",
+      "trigger": "Hotfix 3650: the card processor reports that the account cannot take card payments (Stripe charges_enabled false), seen by the deposit guard or a Stripe account.updated event. Card payments are treated as off until it takes them again. Sent to the Admins once per pause (again only after it came back and paused again).",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Card payments are paused: renters pay by e-Transfer",
+      "preheader": "{{card_provider_name}} reports the account cannot take card payments. Booking and paying keep working by e-Transfer.",
+      "sample_subject": "Card payments are paused: renters pay by e-Transfer",
+      "variables": [
+        {
+          "name": "card_pause_reason",
+          "type": "string",
+          "sample": "rejected.other"
+        },
+        {
+          "name": "card_paused_at",
+          "type": "string",
+          "sample": "Tue, Nov 24, 2026 at 2:10 pm"
+        },
+        {
+          "name": "card_payments_text",
+          "type": "string",
+          "sample": "Off"
+        },
+        {
+          "name": "card_payouts_text",
+          "type": "string",
+          "sample": "Off"
+        },
+        {
+          "name": "card_provider_name",
+          "type": "string",
+          "sample": "Stripe"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        }
+      ],
+      "template_html": "templates/admin_card_payments_paused.html",
+      "template_text": "templates/admin_card_payments_paused.txt"
     },
     {
       "code": "staff_approval_needed",

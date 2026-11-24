@@ -77,6 +77,7 @@ export const PATHS = {
   admin_incident: '/admin/incidents/{{incident_number}}',
   admin_fleet: '/admin/fleet',
   admin_jobs: '/admin/jobs',
+  admin_settings_program: '/admin/settings/program',
   admin_weekly: '/admin/reports/weekly',
   admin_reports: '/admin/reports',
   admin_debits: '/admin/debits',

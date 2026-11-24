@@ -1,4 +1,5 @@
 'use server';
+import { cardOffMessage } from '@/server/card-provider';
 import { revalidatePath } from 'next/cache';
 import { DbError } from '@/lib/db/repo';
 import { env } from '@/lib/env';
@@ -27,6 +28,8 @@ export async function startAddonPayment(number: string): Promise<R<StartedAddonP
     const { userId, b } = await mine(number);
     const u = await unpaidAddons(b.id, userId);
     if (u.total_cents <= 0) return fail('Nothing is waiting for payment on this booking.', 'nothing_due');
+    // hotfix 3650: card payments paused
+    const off = await cardOffMessage('the add-ons'); if (off) return fail(off, 'card_off');
     const i = await addonIntent(u, userId);
     const p = await payments();
     return { ok: true, data: { provider: p.name, intentId: i.id, clientSecret: i.clientSecret ?? '', amountCents: i.amountCents, publishableKey: env().NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? null } };

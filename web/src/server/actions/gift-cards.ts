@@ -1,4 +1,5 @@
 'use server';
+import { cardOffMessage } from '@/server/card-provider';
 import { revalidatePath } from 'next/cache';
 import { DbError, rpc } from '@/lib/db/repo';
 import { env } from '@/lib/env';
@@ -37,6 +38,8 @@ export async function giftRentalPrice(vehicleId: string, days: number): Promise<
 export async function startGiftPurchase(input: GiftInput): Promise<R<StartedGift>> {
   const user = await currentUser();
   if (!user) return fail('Sign in to buy a gift card.', 'sign_in');
+  // hotfix 3650: card payments paused: gift cards are sold by card only
+  if (await cardOffMessage()) return fail('Gift cards are paid by card, and card payments are paused for a short while. Please try again later, or call us.', 'card_off');
   const fe: Record<string, string> = {};
   if (!input.recipient_name?.trim()) fe.recipient_name = 'Enter the recipient\'s name.';
   if (!emailOk(input.recipient_email)) fe.recipient_email = 'Enter the recipient\'s email.';

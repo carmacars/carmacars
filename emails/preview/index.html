@@ -21,10 +21,10 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>272 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>109</span></a><a href="#owner">Owner <span>58</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>21</span></a><a href="#staff_va_finance">Staff: finance <span>16</span></a><a href="#staff_va_fleet">Staff: fleet <span>13</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>8</span></a><a href="#staff_field">Staff: field <span>15</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>14</span></a><a href="#partner">Partner (body shop, tow truck, storage) <span>1</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>275 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>111</span></a><a href="#owner">Owner <span>58</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>22</span></a><a href="#staff_va_finance">Staff: finance <span>16</span></a><a href="#staff_va_fleet">Staff: fleet <span>13</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>8</span></a><a href="#staff_field">Staff: field <span>15</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>14</span></a><a href="#partner">Partner (body shop, tow truck, storage) <span>1</span></a></nav>
 <main>
-<h2 id="renter">Renter (109)</h2>
+<h2 id="renter">Renter (111)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/account_password_reset.html"><img loading="lazy" src="../shots/account_password_reset.desktop.png" alt="Screenshot of account_password_reset"></a><div class="b">
 <div class="code">account_password_reset</div><div class="sub">Reset your CarmaCars password</div>
@@ -253,6 +253,18 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">Tracker events are on (migration 3320) and the Tracker of a car out on this renter's rental recorded driving worth a friendly word, with no charge: a speed over the speeding alert level of Tracking settings (140 km/h by default) but not over 180 km/h, or several hard braking or acceleration events in the window. Once per event (one per car, kind and window). The renter may mute it in their notification settings.</div>
 <div class="ln"><a href="../dist/renter_driving_notice.html">HTML</a><a href="../dist/renter_driving_notice.txt">Text</a><a href="../shots/renter_driving_notice.desktop.png">Desktop</a><a href="../shots/renter_driving_notice.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_etransfer_confirmed.html"><img loading="lazy" src="../shots/renter_etransfer_confirmed.desktop.png" alt="Screenshot of renter_etransfer_confirmed"></a><div class="b">
+<div class="code">renter_etransfer_confirmed</div><div class="sub">We received your e-Transfer of $1,240.50</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Hotfix 3650: Finance or an Admin pressed Confirm received on an e-Transfer the renter reported from Sign and pay or the booking page (with the screenshot). The payment is recorded as an e-Transfer; a booking waiting for payment with nothing left open is confirmed (that sends its own confirmation too). Once per report.</div>
+<div class="ln"><a href="../dist/renter_etransfer_confirmed.html">HTML</a><a href="../dist/renter_etransfer_confirmed.txt">Text</a><a href="../shots/renter_etransfer_confirmed.desktop.png">Desktop</a><a href="../shots/renter_etransfer_confirmed.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_etransfer_declined.html"><img loading="lazy" src="../shots/renter_etransfer_declined.desktop.png" alt="Screenshot of renter_etransfer_declined"></a><div class="b">
+<div class="code">renter_etransfer_declined</div><div class="sub">We have not found your e-Transfer yet: booking CC-10482</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Hotfix 3650: Finance or an Admin pressed Not received on an e-Transfer the renter reported, with the reason. Nothing was recorded; the renter can send it again or upload a clearer screenshot. Once per report.</div>
+<div class="ln"><a href="../dist/renter_etransfer_declined.html">HTML</a><a href="../dist/renter_etransfer_declined.txt">Text</a><a href="../shots/renter_etransfer_declined.desktop.png">Desktop</a><a href="../shots/renter_etransfer_declined.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_extension_approved.html"><img loading="lazy" src="../shots/renter_extension_approved.desktop.png" alt="Screenshot of renter_extension_approved"></a><div class="b">
 <div class="code">renter_extension_approved</div><div class="sub">Extension available. Pay $226.00 by 10:00 am to confirm</div>
@@ -1053,8 +1065,14 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/investor_statement_ready.html">HTML</a><a href="../dist/investor_statement_ready.txt">Text</a><a href="../shots/investor_statement_ready.desktop.png">Desktop</a><a href="../shots/investor_statement_ready.phone.png">Phone</a></div>
 </div></div>
 </div>
-<h2 id="staff_admin">Staff: admin (21)</h2>
+<h2 id="staff_admin">Staff: admin (22)</h2>
 <div class="grid">
+<div class="c"><a class="th" href="../dist/admin_card_payments_paused.html"><img loading="lazy" src="../shots/admin_card_payments_paused.desktop.png" alt="Screenshot of admin_card_payments_paused"></a><div class="b">
+<div class="code">admin_card_payments_paused</div><div class="sub">Card payments are paused: renters pay by e-Transfer</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Hotfix 3650: the card processor reports that the account cannot take card payments (Stripe charges_enabled false), seen by the deposit guard or a Stripe account.updated event. Card payments are treated as off until it takes them again. Sent to the Admins once per pause (again only after it came back and paused again).</div>
+<div class="ln"><a href="../dist/admin_card_payments_paused.html">HTML</a><a href="../dist/admin_card_payments_paused.txt">Text</a><a href="../shots/admin_card_payments_paused.desktop.png">Desktop</a><a href="../shots/admin_card_payments_paused.phone.png">Phone</a></div>
+</div></div>
 <div class="c"><a class="th" href="../dist/staff_approval_needed.html"><img loading="lazy" src="../shots/staff_approval_needed.desktop.png" alt="Screenshot of staff_approval_needed"></a><div class="b">
 <div class="code">staff_approval_needed</div><div class="sub">Approval needed: Refund outside the table, $468.95</div>
 <div class="tags"><span>Transactional</span><span class="d">Digest</span></div>

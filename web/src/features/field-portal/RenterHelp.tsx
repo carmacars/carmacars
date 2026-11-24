@@ -10,6 +10,9 @@ import { helpFind } from '@/server/actions/field-work';
 import { FdIcon } from '@/features/field/icons';
 import type { BookingCan } from '@/features/shared-pages/viewer';
 import { toCents } from './model';
+import { useCardPayments } from '@/features/money/useCardPayments';
+import { CardPausedNote } from '@/features/money/CardPausedNote';
+import { cardOn } from '@/features/money/card-pay';
 
 import { WhyDisabled } from '@/components/WhyDisabled';
 // Renter help on the spot (r35 part X): a payment or the deposit hold by a pay link (text or email), a QR the renter scans with their
@@ -25,6 +28,7 @@ function Collect({ b, kind, readers }: { b: HelpBooking; kind: 'charge' | 'hold'
   const [qr, setQr] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
+  const cardState = useCardPayments();
   const cents = kind === 'hold' ? b.deposit_cents : toCents(amount);
   const ask = (how: 'text' | 'email' | 'device' | 'qr' | 'reader') => start(async () => {
     setMsg(null); setQr(null);
@@ -51,6 +55,8 @@ function Collect({ b, kind, readers }: { b: HelpBooking; kind: 'charge' | 'hold'
     }
     setMsg({ ok: !!r.data.sent?.ok, text: r.data.sent?.ok ? `Link sent${r.data.sent.to ? ` to ${r.data.sent.to}` : ''}. It works for 3 days.` : `Not sent: ${r.data.sent?.reason ?? 'no answer'}` });
   });
+  // hotfix 3650: card payments paused: no link, QR, phone or reader; ask the renter to e-Transfer
+  if (!cardOn(cardState)) return <CardPausedNote compact card={cardState} bookingNumber={b.number} rentalCents={kind === 'charge' ? b.open_cents : 0} depositCents={kind === 'hold' ? b.deposit_cents : 0} firstName={b.renter?.name.split(' ')[0] ?? null} />;
   return (
     <div className="fp-form">
       {kind === 'charge' && <div className="field"><label className="label" htmlFor={`amt-${kind}`}>Amount ($)</label><input id={`amt-${kind}`} className="input fd-num" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>}

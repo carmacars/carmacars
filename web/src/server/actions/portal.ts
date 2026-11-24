@@ -1,4 +1,5 @@
 'use server';
+import { CARD_OFF_RENTER, cardOffMessage, cardPaymentsOn, checkCardProcessor } from '@/server/card-provider';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { DbError, rpc } from '@/lib/db/repo';
@@ -263,6 +264,8 @@ export async function startPayment(number: string): Promise<R<StartedPayment>> {
     // a confirmed account, and an email for the receipts (an account made by phone gives it on the pay page; 0091)
     const gate = await accountGate(userId, 'pay');
     if (!gate.ok) return fail(gate.reason === 'email_needed' ? 'Add your email for the receipts first.' : GATE_MESSAGE, gate.reason ?? 'unconfirmed');
+    // hotfix 3650: card payments paused (the setting, or the processor stopped taking charges): the page shows e-Transfer
+    if (!(await cardPaymentsOn())) return fail(CARD_OFF_RENTER, 'card_off');
     // a rental added while already underway with a payment link (0074) is paid here too, on trip
     if (b.status !== 'pending_payment' && !b.link_due) return fail(b.status === 'confirmed' ? 'This booking is already confirmed.' : reasonMessage('not_awaiting_payment'), b.status === 'confirmed' ? 'confirmed' : 'pushed_back');
     const f = await paymentFacts(b.id);
@@ -287,7 +290,12 @@ export async function startPayment(number: string): Promise<R<StartedPayment>> {
     const need = (await rpc('server_coverage_card_network', { p_booking: b.id }, { role: 'service_role' as const }).catch(() => null)) as unknown as { required?: boolean; brand?: string; label?: string } | null;
     const coverageNetwork = need?.required && need.brand && need.label ? { brand: need.brand, label: need.label } : null;
     return { ok: true, data: { provider: p.name, intentId: i.id, clientSecret: i.clientSecret ?? '', amountCents: i.amountCents, publishableKey: env().NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? null, legalName: f.legal_name, coverageNetwork } };
-  } catch (e) { return fail(dbMessage(e)); }
+  } catch (e) {
+    // hotfix 3650: the processor refused to start a payment: read its account now (cards turn off at once if it is closed)
+    const c = await checkCardProcessor(true).catch(() => ({ on: true }));
+    if (!c.on) return fail(CARD_OFF_RENTER, 'card_off');
+    return fail(dbMessage(e));
+  }
 }
 
 const COVERAGE_CARD_REFUSED = 'This card is not a credit card. Debit and prepaid cards cannot pay for a rental, and the rental coverage you chose (option 2) counts only on the credit card that includes it. Nothing was charged. Pay with that credit card, or cover the car with OPCF 27 on your own auto policy or the Protection Plan.';
@@ -358,6 +366,8 @@ async function chargeExtension(number: string, bookingId: string, userId: string
   if (f.booking_id !== bookingId) return fail('Not found');
   if (f.status !== 'approved') return fail('This extension is not waiting for payment.');
   if (!f.card_on_file?.method_id || !f.card_on_file.customer_id) return fail('No Card on File. Call us to pay for the extension.');
+  // hotfix 3650: card payments paused
+  const off = await cardOffMessage('the extension'); if (off) return fail(off, 'card_off');
   const i = await (await payments()).chargeOffSession({ customerId: f.card_on_file.customer_id, paymentMethodId: f.card_on_file.method_id, amountCents: f.total_cents, description: `Extension of ${number}`, metadata: { booking_id: bookingId, extension_id: extensionId, purpose: 'extension' }, idempotencyKey: `extension:${extensionId}` });
   if (i.status !== 'succeeded') return fail(i.lastError ?? 'The card was declined. Nothing was charged.');
   const r = (await rpc('server_confirm_extension_payment', { p_extension: extensionId, p_processor: { processor: 'stripe', payment_id: i.id, charge_id: i.chargeId, customer_id: i.customerId, method_id: i.paymentMethodId }, p_amount_cents: i.amountCents, p_by: userId }, SR)) as unknown as { ok?: boolean; message?: string };
@@ -392,6 +402,7 @@ async function extensionLink(number: string, userId: string, extensionId: string
 export async function extensionPayLink(number: string, extensionId: string): Promise<R<{ url: string }>> {
   try {
     const { userId } = await mine(number);
+    const off = await cardOffMessage('the extension'); if (off) return fail(off, 'card_off');
     return { ok: true, data: { url: await extensionLink(number, userId, extensionId) } };
   } catch (e) { return fail(dbMessage(e)); }
 }

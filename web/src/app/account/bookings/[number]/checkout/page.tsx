@@ -28,6 +28,9 @@ import { accountGate, GATE_MESSAGE } from '@/server/sign-in-settings';
 import { renterDetails } from '@/server/portal/renter-details';
 import { depositChoiceText, type DepositState } from '@/features/money/deposit-state';
 import { TipPicker } from '@/features/portal/TipPicker';
+import { EtransferPay } from '@/features/money/EtransferPay';
+import { cardOn, type RenterEtransfer } from '@/features/money/card-pay';
+import { cardPayments } from '@/server/card-provider';
 import { licenceState, renterMissing } from '@/features/portal/LicenceNotice';
 import type { SessionUser } from '@/lib/auth';
 import type { TipOptions } from '@/features/money/tips';
@@ -66,6 +69,13 @@ export default async function SignAndPayPage({ params, searchParams }: { params:
   // hotfix 3420 (the owner, Nov 23: "make paying and booking easier, never harder"): the licence and the insurance pages
   // are checked before pickup, never before paying. What is still to send is a short list beside the card.
   const beforePickup = paying && !va ? await docsBeforePickup(b.id, user) : [];
+  // hotfix 3650: card payments paused (the setting, or the processor stopped taking charges): the payment box is the
+  // e-Transfer box (the email, the booking number as the message, the exact amounts, the screenshot upload); a deposit
+  // still to take by card becomes an e-Transfer deposit first
+  const card = await cardPayments();
+  const cardOff = !cardOn(card);
+  if (cardOff && paying && !va) await rpc('server_card_off_prepare', { p_booking: b.id }, SR).catch(() => false);
+  const et = cardOff && s.pay_after ? ((await rpc('server_renter_etransfer_state', { p_booking: b.id, p_user: user.id }, SR).catch(() => null)) as unknown as RenterEtransfer | null) : null;
   const [bundle, photos, rd, gate, debitOk, debitDeposit, offline, depState, tips] = await Promise.all([
     signing ? loadBundle(b.id, user.id) : Promise.resolve(null), myTripPhotos(user), renterDetails(b, user.id),
     paying ? accountGate(user.id, 'pay') : Promise.resolve(null),
@@ -99,7 +109,9 @@ export default async function SignAndPayPage({ params, searchParams }: { params:
   const live = !!b.link_due;
   const payOffline = !!offline && offline.rental_pay_method !== 'card' && b.status === 'pending_payment' && !live;
   const due = money(s.due_cents || b.renter_due_at_booking_cents, { cents: true });
-  const depositLine = `The refundable deposit of ${money(b.deposit_cents)} is held on your card on the day of pickup${debitDeposit ? ` (${money(debitDeposit)} on a debit or prepaid card)` : ''}.`
+  const depositLine = cardOff
+    ? `The refundable deposit of ${money(et?.deposit_cents || depState?.offline_cents || b.deposit_cents)} is paid by e-Transfer (or in cash at pickup) and given back the same way after the trip.`
+    : `The refundable deposit of ${money(b.deposit_cents)} is held on your card on the day of pickup${debitDeposit ? ` (${money(debitDeposit)} on a debit or prepaid card)` : ''}.`
     + (depositChoiceText(depState, (c) => money(c, { cents: true })) ? ` ${depositChoiceText(depState, (c) => money(c, { cents: true }))}` : '');
   const details = (country: string) => ({ address_line1: r?.address_line1 ?? '', address_line2: r?.address_line2 ?? '', city: r?.city ?? '', province: r?.province ?? country, postal_code: r?.postal_code ?? '', country: r?.country ?? (country ? 'Canada' : ''), licence_number: me?.licence_number ?? '', licence_class: me?.licence_class ?? 'G', licence_issuer: me?.licence_issuer ?? 'ON', licence_expiry: me?.licence_expiry ?? '' });
 
@@ -178,12 +190,17 @@ export default async function SignAndPayPage({ params, searchParams }: { params:
       {s.pay_after && (
         <section className={`stack sp-section${paying ? '' : ' sp-locked'}`} id="pay" aria-labelledby="sp-pay-h" data-testid="sign-pay-pay">
           <h2 className="d3" id="sp-pay-h">2. Pay {due}</h2>
-          {!paying ? <p className="pt-card" data-testid="sign-pay-pay-locked">The card form opens here as soon as {s.step === 'drivers' ? 'every driver has signed' : 'you sign'}. {depositLine}</p>
+          {!paying ? <p className="pt-card" data-testid="sign-pay-pay-locked">The {cardOff ? 'e-Transfer details open' : 'card form opens'} here as soon as {s.step === 'drivers' ? 'every driver has signed' : 'you sign'}. {depositLine}</p>
             : b.status !== 'pending_payment' && !live ? (
               <div className="pt-card pt-card--next" role="alert" data-testid="pay-pushed-back"><h3 className="d4">Nothing to pay</h3><p>{PUSH_BACK}</p></div>
             ) : (
               <div className="pt-split">
-                {payOffline && offline ? (
+                {cardOff && et ? (
+                  <div className="stack" data-testid="pay-card-off">
+                    <EtransferPay s={et} />
+                    <p className="small muted">{depositLine}</p>
+                  </div>
+                ) : payOffline && offline ? (
                   <section className="pt-card stack" aria-labelledby="pt-pay" data-testid="pay-offline"><h3 className="d4" id="pt-pay">How you pay</h3>
                     {offline.rental_pay_method === 'e_transfer' ? <p>Send an Interac e-Transfer of <b>{money(offline.open_cents, { cents: true })}</b> to <b>{offline.e_transfer_email}</b>, with <b>{b.booking_number}</b> as the message. We confirm your booking as soon as it arrives.</p>
                       : offline.rental_pay_method === 'cash' ? <p>Pay <b>{money(offline.open_cents, { cents: true })}</b> in cash, as agreed with our team. We confirm your booking when it is received.</p>
@@ -214,7 +231,7 @@ export default async function SignAndPayPage({ params, searchParams }: { params:
             )}
         </section>
       )}
-      {tips && <TipPicker number={b.booking_number} options={tips} source="checkout" />}
+      {tips && !cardOff && <TipPicker number={b.booking_number} options={tips} source="checkout" />}
     </>
   );
 }

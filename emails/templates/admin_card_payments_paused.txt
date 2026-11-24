@@ -1,0 +1,33 @@
+CarmaCars  |  System
+
+========================================
+
+[Card payments paused]
+The card processor stopped taking payments
+
+{{card_provider_name}} reports that the account cannot take card payments ({{card_pause_reason}}). The site switched to e-Transfer by itself.
+
+Booking and paying keep working
+Renters see e-Transfer instructions with the exact amounts and upload the screenshot; Finance confirms each in one tap. Card links, card holds and Collect a card are paused for staff.
+
+Since: {{card_paused_at}}
+Card payments: {{card_payments_text}}
+Payouts: {{card_payouts_text}}
+
+- Check the account at the card processor and answer what it asks for.
+- When it takes payments again, cards come back by themselves. To keep e-Transfer only, turn Card payments off in Program settings.
+
+Open Program settings:
+https://carmacars.ca/admin/settings/program
+
+One email per pause. The To do on Today stays until cards work again.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

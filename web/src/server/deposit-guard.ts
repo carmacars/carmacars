@@ -1,4 +1,5 @@
 import 'server-only';
+import { checkCardProcessor } from '@/server/card-provider';
 import { rpc } from '@/lib/db/repo';
 import { payments, terminal } from '@/integrations/payments';
 import { chargeRows, unlinkedSince } from '@/features/money/stripe-unlinked';
@@ -107,6 +108,10 @@ interface Sweep { captures: Array<{ deposit_id: string; booking_number: string }
 /** The deposit job (the Worker's cron tick when public.server_jobs_due says "deposits"): holds captured before they
  *  lapse, marked payments still waiting, balances followed up once a day. A bounded share per run. */
 export async function runDepositGuard(limit = 40) {
+  // hotfix 3650: read the card processor's account when due (alerts the Admins once when it stops taking charges); with
+  // card payments off nothing here starts a card payment: holds, links, captures and card balances wait, nothing fails
+  const card = await checkCardProcessor().catch(() => ({ checked: false, on: true }));
+  if (!card.on) return { card_payments: 'off', captured: 0, capture_failed: 0, payments: 0, balances: 0, errors: [] as string[] };
   const s = (await call('server_deposit_guard_sweep', {})) as Sweep;
   const out = { captured: 0, capture_failed: 0, payments: 0, balances: 0, errors: [] as string[] };
   for (const c of (s.captures ?? []).slice(0, limit)) {
