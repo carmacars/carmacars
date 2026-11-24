@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 274,
+  "count": 275,
   "emails": [
     {
       "code": "account_password_reset",
@@ -13602,6 +13602,86 @@
       ],
       "template_html": "templates/owner_document_due.html",
       "template_text": "templates/owner_document_due.txt"
+    },
+    {
+      "code": "owner_document_reissued",
+      "audience": "owner",
+      "category": "transactional",
+      "trigger": "Release 50 (migration 3810), once: a signed copy of the owner's Form D (or another countersigned document) was filed with the owner's drawn signature in the part CarmaCars signs. The copy is filed again with the correct CarmaCars countersignature; the owner's signature and the text are unchanged.",
+      "timing": "Once, when the corrected copy is filed",
+      "digest": false,
+      "from": "CarmaCars <owners@carmacars.ca>",
+      "reply_to": "owners@carmacars.ca",
+      "subject": "We corrected your signed {{document_title}}",
+      "preheader": "The CarmaCars countersignature is fixed. Nothing changes for you.",
+      "sample_subject": "We corrected your signed Form D: Limited Power of Attorney",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "document_title",
+          "type": "string",
+          "sample": "Form D: Limited Power of Attorney"
+        },
+        {
+          "name": "documents_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/owner/documents"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Daniel",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "what",
+          "type": "string",
+          "sample": "Part 2, which CarmaCars signs, showed your signature instead of the CarmaCars countersignature. Your own signature and everything you signed are unchanged."
+        }
+      ],
+      "template_html": "templates/owner_document_reissued.html",
+      "template_text": "templates/owner_document_reissued.txt"
     },
     {
       "code": "owner_exit_completed",

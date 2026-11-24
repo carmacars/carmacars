@@ -17,7 +17,7 @@ export default {
     h('Your terms for this vehicle'),
     facts(
       ['Management mode', '{{management_mode}}'],
-      ['Insurance fee', '{{insurance_fee}} a month plus HST'],
+      ['Insurance fee', '{{insurance_fee}} a month, no HST'],
       ['Tracker fee', '{{tracker_fee}} a month plus HST'],
       ['Revenue share kept by CarmaCars', '{{revenue_share}}'],
       ['Registration method', '{{onboarding_method}}'],
