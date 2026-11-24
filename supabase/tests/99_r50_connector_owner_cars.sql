@@ -13,7 +13,7 @@ create temp table q50_app as select app.submit_owner_application(jsonb_build_obj
     'legal_name', 'Nia Example', 'first_name', 'Nia', 'last_name', 'Example', 'corporation_name', 'Q50 Holdings Ltd.', 'corporation_number', '1000050', 'signing_officer_name', 'Nia Example',
     'signing_officer_title', 'Director', 'address_line1', '5 Example Way', 'city', 'Toronto', 'province', 'ON', 'postal_code', 'M5V 1A1', 'country', 'CA', 'email', 'q50-north@example.test', 'phone', '+16475550150'),
   'vehicles', jsonb_build_array(jsonb_build_object('vin', '1HGCM82633A150001', 'plate', 'Q50A', 'year', 2021, 'make', 'Toyota', 'model', 'Camry', 'colour', 'Grey', 'lease_tier', 'troubled',
-    'onboarding_method', 'transfer', 'title_status', 'owned', 'fleet_transfer', '{"registered_to": "corporation"}'::jsonb)))), test.id('q50_web')) as r;
+    'onboarding_method', 'transfer', 'title_status', 'owned', 'fleet_transfer', '{"registered_to": "corporation"}'::jsonb))), test.id('q50_web')) as r;
 grant select on q50_app to public;
 select app.api_key_create(test.id('q50_admin'), test.id('q50_admin'), 'q50 write', array['admin:read', 'admin:write'], encode(sha256('q50-w'::bytea), 'hex'), 'cc_live_q5w_');
 select app.api_key_create(test.id('q50_admin'), test.id('q50_admin'), 'q50 read', array['admin:read'], encode(sha256('q50-r'::bytea), 'hex'), 'cc_live_q5r_');

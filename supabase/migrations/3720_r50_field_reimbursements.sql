@@ -242,7 +242,7 @@ begin
   if v_paid = 'own' then
     select u.id into v_staff from users u
      where (u.id::text = coalesce(p ->> 'staff', '') or lower(u.email) = lower(btrim(coalesce(p ->> 'staff', ''))))
-       and (app.user_is_staff(u.id) or app.user_is_admin(u.id));
+       and exists (select 1 from user_roles r where r.user_id = u.id and r.role in ('va', 'field', 'admin'));
     if v_staff is null then raise exception 'staff: the staff member who paid with their own money (their id or email), to pay them back' using errcode = '22023'; end if;
   end if;
   insert into company_expenses (expense_on, category, description, amount_cents, hst_cents, vehicle_id, staff_user_id, paid_with, created_by)

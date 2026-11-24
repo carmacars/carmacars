@@ -49,18 +49,21 @@ select test.eq('a 14-day rental: charged and refunded at release', public.server
 select test.eq('an unknown booking: a hold', public.server_helcim_hold_plan(gen_random_uuid(), 7), 'hold');
 
 -- ================================================================ 3. the provider of each payment, and a deposit charged instead
-insert into payments (booking_id, renter_id, purpose, kind, method, amount_cents, status) values (test.id('booking:XH-2'), test.id('renter:xh_r'), 'deposit', 'hold', 'card', 30000, 'authorized');
+create temp table xh_dep (id uuid);
+with p as (insert into payments (booking_id, renter_id, purpose, kind, method, amount_cents, status)
+  values (test.id('booking:XH-2'), test.id('renter:xh_r'), 'deposit', 'hold', 'card', 30000, 'authorized') returning id) insert into xh_dep select id from p;
 select public.server_helcim_intent_put(test.xh_row('hc_xh00000002', 'payreq:xh2', 'requires_capture', 'XH-2', 25000002, true));
 insert into deposits (booking_id, amount_cents, method, status, hold_payment_id, hold_expires_at)
-select test.id('booking:XH-2'), 30000, 'card_hold', 'held', p.id, now() + interval '7 days' from payments p where p.booking_id = test.id('booking:XH-2') and p.purpose = 'deposit'
+select test.id('booking:XH-2'), 30000, 'card_hold', 'held', x.id, now() + interval '7 days' from xh_dep x
 on conflict (booking_id) do update set hold_payment_id = excluded.hold_payment_id, status = 'held', method = 'card_hold', hold_expires_at = excluded.hold_expires_at;
-insert into payment_processor_details (payment_id, processor, processor_payment_id) select p.id, 'stripe', 'hc_xh00000002' from payments p where p.booking_id = test.id('booking:XH-2') and p.purpose = 'deposit';
+insert into payment_processor_details (payment_id, processor, processor_payment_id) select id, 'stripe', 'hc_xh00000002' from xh_dep;
 select test.eq('details written "stripe" for an hc_ id say helcim, and the payment follows',
   (select d.processor || '/' || p.provider from payment_processor_details d join payments p on p.id = d.payment_id where d.processor_payment_id = 'hc_xh00000002'), 'helcim/helcim');
 select test.eq('the deposit is marked charged instead, with no hold expiry',
   (select d.held_as_charge::text || '/' || coalesce(d.hold_expires_at::text, 'none') from deposits d where d.booking_id = test.id('booking:XH-2')), 'true/none');
-insert into payments (booking_id, renter_id, purpose, kind, method, amount_cents, status) values (test.id('booking:XH-1'), test.id('renter:xh_r'), 'booking_total', 'charge', 'card', 22600, 'succeeded');
-insert into payment_processor_details (payment_id, processor_payment_id) select p.id, 'pi_xhstripe01' from payments p where p.booking_id = test.id('booking:XH-1') and p.purpose = 'booking_total';
+with p as (insert into payments (booking_id, renter_id, purpose, kind, method, amount_cents, status)
+           values (test.id('booking:XH-1'), test.id('renter:xh_r'), 'booking_total', 'charge', 'card', 22600, 'succeeded') returning id)
+insert into payment_processor_details (payment_id, processor_payment_id) select id, 'pi_xhstripe01' from p;
 select test.eq('a Stripe payment stays Stripe''s', (select p.provider from payments p join payment_processor_details d on d.payment_id = p.id where d.processor_payment_id = 'pi_xhstripe01'), 'stripe');
 select test.ok('the history is backfilled: no card payment with processor details lacks its provider',
   not exists (select 1 from payments p join payment_processor_details d on d.payment_id = p.id where d.processor in ('stripe', 'helcim') and p.provider is null));

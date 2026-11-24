@@ -67,9 +67,9 @@ function WhoseMoney({ id, value, set, error }: { id: string; value: 'own' | 'com
       <legend className="label">Whose money?</legend>
       {([['own', 'My own money (pay me back)'], ['company', 'Company card/cash']] as const).map(([v, l]) => (
         <label key={v} className={`fp-tick${value === v ? ' is-on' : ''}`}>
-          <input type="radio" name={`${id}-whose`} value={v} checked={value === v} onChange={() => set(v)} aria-invalid={error || undefined} data-testid={`${id}-whose-${v}`} />{l}
+          <input type="radio" name={`${id}-whose`} value={v} checked={value === v} onChange={() => set(v)} aria-describedby={error ? `${id}-whose-err` : undefined} data-testid={`${id}-whose-${v}`} />{l}
         </label>))}
-      {error && <p className="error" role="alert">Choose whose money it was.</p>}
+      {error && <p className="error" role="alert" id={`${id}-whose-err`}>Choose whose money it was.</p>}
     </fieldset>
   );
 }
