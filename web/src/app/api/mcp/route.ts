@@ -5,8 +5,8 @@ import { oneStepHire } from '@/server/hire';
 import { bookNowAgreement } from '@/server/book-now';
 import { storage } from '@/integrations/storage';
 import { MAX_PHOTO_BYTES } from '@/features/returns/claim';
-import { inspectAccount, inspectBooking, recordable, stripeReader, type Recorded, type StripeGet } from '@/features/api-access/stripe-inspect';
-import { payments } from '@/integrations/payments';
+import { findPayments, inspectAccount, inspectBooking, linkMetadata, stripeReader, tieOf, untiedWillDo, type Known, type PlanAnswer, type Recorded, type StripeGet } from '@/features/api-access/stripe-inspect';
+import { payments, terminal } from '@/integrations/payments';
 import { settleIntent } from '@/server/portal/payment';
 import { env } from '@/lib/env';
 
@@ -97,7 +97,7 @@ export async function POST(req: Request) {
         if (done?.done) await bookNowAgreement(done.result);
       }
       // r47 (2896): Stripe, read here with the server's key after the database checked the key, the scope and the preview
-      if (r.ok && (run?.run === 'stripe_booking' || run?.run === 'stripe_account' || run?.run === 'stripe_record_preview' || run?.run === 'stripe_record_paid')) r = await stripeTool(r.result as Record<string, unknown>);
+      if (r.ok && (run?.run === 'stripe_booking' || run?.run === 'stripe_account' || run?.run === 'stripe_record_preview' || run?.run === 'stripe_record_paid' || run?.run === 'stripe_find')) r = await stripeTool(r.result as Record<string, unknown>);
       // r48 (2923): the pay link is cancelled in the database; its PaymentIntent is cancelled at Stripe here (never captured)
       if (r.ok && (r.result as { run?: string } | undefined)?.run === 'pay_link_cancel') r = await payLinkCancel(r.result as Record<string, unknown>);
       // a bug report's pictures (2340): private files, given as links that expire in ten minutes
@@ -209,22 +209,61 @@ async function stripeTool(res: Record<string, unknown>): Promise<{ ok: boolean; 
     if (res.run === 'stripe_record_paid') {
       const p = res.params as { id: string; booking_number: string; payment_intent: string };
       const i = await (await payments()).retrieveIntent(p.payment_intent);
-      const no = recordable(i, p.id);
-      if (no) return { ok: false, status: 400, error: no };
+      const tie = tieOf(i, p.id, p.booking_number);
+      if (tie.kind === 'refused') return { ok: false, status: 400, error: tie.why };
+      if (tie.kind === 'untied') return await linkUntied(String(res.actor), p);
       const out = await settleIntent(i.id, String(res.actor), `connector:${i.id}`);
       return out.ok ? { ok: true, result: { done: true, booking_number: out.bookingNumber, recorded: i.id, charged: false } } : { ok: false, status: 400, error: out.message };
     }
     if (!get) return { ok: false, status: 400, error: 'Stripe is not connected on this server (the fake payments provider is in use)' };
     if (res.run === 'stripe_account') return { ok: true, result: await inspectAccount(get) };
+    if (res.run === 'stripe_find') {
+      const known = async (ids: string[]) => (await rpc('server_stripe_known_many' as never, { p_intents: ids } as never, SR)) as unknown as Known;
+      const found = await findPayments(get, { since: Number(res.since), until: Number(res.until), amount_cents: typeof res.amount_cents === 'number' ? res.amount_cents : null }, known);
+      return { ok: true, result: { from: res.from, to: res.to, amount_cents: res.amount_cents ?? null, ...found } };
+    }
     if (res.run === 'stripe_record_preview') {
-      const i = await get(`/v1/payment_intents/${String(res.payment_intent)}`).catch(() => null);
-      const why = i ? recordable({ status: String(i.status), metadata: (i.metadata ?? {}) as Record<string, string> }, String(res.booking_id)) : 'Stripe has no such PaymentIntent';
+      const i = await get(`/v1/payment_intents/${String(res.payment_intent)}`, { 'expand[]': 'latest_charge' }).catch(() => null);
       const { run: _run, ...rest } = res;
       void _run;
-      return { ok: true, result: { ...rest, stripe_status: i?.status ?? null, amount_received_cents: i?.amount_received ?? null, can_confirm: !why, ...(why ? { warning: why } : {}) } };
+      if (!i) return { ok: true, result: { ...rest, stripe_status: null, can_confirm: false, warning: 'Stripe has no such PaymentIntent' } };
+      const md = (i.metadata ?? {}) as Record<string, string>;
+      const tie = tieOf({ status: String(i.status), metadata: md }, String(res.booking_id), String(res.booking_number));
+      const base = { ...rest, stripe_status: i.status ?? null, amount_received_cents: i.amount_received ?? null };
+      if (tie.kind === 'refused') return { ok: true, result: { ...base, can_confirm: false, warning: tie.why } };
+      if (tie.kind === 'tied') return { ok: true, result: { ...base, can_confirm: true } };
+      const ch = (i.latest_charge && typeof i.latest_charge === 'object' ? i.latest_charge : {}) as Record<string, unknown>;
+      const plan = (await rpc('server_stripe_untied_plan' as never, { p_booking: String(res.booking_id), p_amount: Number(i.amount ?? 0), p_currency: String(i.currency ?? ''),
+        p_intent: String(i.id), p_charge: typeof ch.id === 'string' ? ch.id : null } as never, SR)) as unknown as PlanAnswer;
+      const amount = Number(i.amount ?? 0);
+      return { ok: true, result: { ...base, untied: true, plan, can_confirm: plan.ok,
+        ...(plan.ok ? { will_do: untiedWillDo(String(i.id), amount, String(res.booking_number), plan) } : { warning: `Untied payment (no booking in Stripe): ${plan.reason}` }) } };
     }
     return { ok: true, result: await inspectBooking(get, res.recorded as Recorded) };
   } catch (e) {
     return { ok: false, status: 502, error: `Stripe could not be read: ${e instanceof Error ? e.message.slice(0, 200) : 'unknown error'}` };
   }
+}
+
+/** hotfix 3430: stripe_record_paid, confirmed, for a payment with no booking in Stripe (Tap to Pay in the Dashboard app). Read
+ *  at Stripe again, recorded by the database as Link a Stripe payment does (it checks the amount against what is open, that
+ *  nothing knows the payment, and audits it), then the booking is written into the PaymentIntent's metadata. Nothing is
+ *  charged, captured or refunded: a payment that is not succeeded is refused before anything is recorded. */
+async function linkUntied(actor: string, p: { id: string; booking_number: string; payment_intent: string }): Promise<{ ok: boolean; status?: number; result?: unknown; error?: string }> {
+  const t = await terminal();
+  const i = await t.lookupPayment(p.payment_intent);
+  if (i.status !== 'succeeded') return { ok: false, status: 400, error: `Stripe shows this payment ${i.status}, not succeeded: nothing is recorded (and nothing is captured here)` };
+  const verified = { intent_id: i.id, charge_id: i.chargeId, status: i.status, amount_cents: i.amountCents, capturable_cents: i.amountCapturableCents, currency: i.currency,
+    last4: i.card?.last4 || null, brand: i.card?.brand ?? null, fingerprint: i.card?.fingerprint ?? null, capture_before: i.captureBefore ?? null };
+  let out: Record<string, unknown>;
+  try {
+    out = (await rpc('server_stripe_link_untied' as never, { p_by: actor, p_booking: p.id, p_verified: verified } as never, SR)) as unknown as Record<string, unknown>;
+  } catch (e) { return { ok: false, status: 400, error: e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '') : 'The payment was not recorded' }; }
+  let stripe_metadata = 'set';
+  try { await t.tagIntent(i.id, linkMetadata(i.metadata, p.id, p.booking_number)); } catch (e) {
+    stripe_metadata = `not set (${e instanceof Error ? e.message.slice(0, 120) : 'error'}): the payment is recorded; stripe_booking still finds it by its id`;
+  }
+  return { ok: true, result: { done: true, booking_number: p.booking_number, recorded: i.id, untied: true, as: out.as, rental_cents: out.rental_cents, deposit_cents: out.deposit_cents,
+    confirmed: (out as { confirmed?: boolean; rental?: { confirmed?: boolean } }).confirmed ?? (out as { rental?: { confirmed?: boolean } }).rental?.confirmed ?? null,
+    stripe_metadata, charged: false, captured: false, refunded: false } };
 }

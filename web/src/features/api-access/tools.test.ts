@@ -217,3 +217,20 @@ test('price_tax: the description names plus / included, and the old before_tax /
   assert.deepEqual(normalizeToolArgs({ price_tax: 'included' }), { price_tax: 'included' });
   assert.equal(normalizeToolArgs(undefined), undefined);
 });
+
+// hotfix 3430: Tap to Pay payments with no booking in Stripe
+const SQL3430 = readFileSync(new URL('../../../../supabase/migrations/3430_hotfix_stripe_find.sql', import.meta.url), 'utf8');
+test('3430: stripe_find_payments is a read-only admin:read tool; stripe_record_paid takes untied payments, still two-step', () => {
+  const f = STRIPE_TOOLS.find((x) => x.name === 'stripe_find_payments')!;
+  assert.ok(f && f.readOnly && f.scope === 'admin:read' && TOOLS.includes(f));
+  assert.deepEqual(Object.keys((f.inputSchema as { properties: Record<string, unknown> }).properties).sort(), ['amount_cents', 'from', 'hours', 'to']);
+  assert.ok(!toolsFor(['bookings:read']).some((x) => x.name === 'stripe_find_payments'));
+  const w = STRIPE_TOOLS.find((x) => x.name === 'stripe_record_paid')!;
+  assert.ok(!w.readOnly && /untied/i.test(w.description) && /never charge, capture or refund/.test(w.description));
+  assert.match(SQL3430, /if p_tool <> 'stripe_find_payments' then return app\.api_call_pre3430/);
+  assert.match(SQL3430, /api_key_check\(p_hash, 'admin:read', p_tool/);
+  assert.match(SQL3430, /interval '30 days'/);
+  assert.match(SQL3430, /perform app\.assert_admin\(p_by\)/);
+  assert.match(SQL3430, /app\.link_stripe_payment\(p_by/);
+  assert.ok(!/captureIntent|refund\(/.test(SQL3430));
+});

@@ -1,7 +1,7 @@
 // r47 (2896): the connector's Stripe reads, with a faked Stripe.   npm run test:unit
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { inspectAccount, inspectBooking, recordable, stripeReader, verdict, type Recorded, type StripeGet } from './stripe-inspect.ts';
+import { findPayments, inspectAccount, inspectBooking, linkMetadata, LINKED_PURPOSE, recordable, stripeReader, tieOf, untiedWillDo, verdict, type Recorded, type StripeGet } from './stripe-inspect.ts';
 
 const BID = '11111111-1111-4111-8111-111111111111';
 const rec = (o: Partial<Recorded> = {}): Recorded => ({ booking_id: BID, booking_number: 'CC-1', status: 'confirmed', payments: [], holds: [], pay_links: [], intents: [], ...o });
@@ -59,4 +59,54 @@ test('record: only a succeeded intent of this booking\'s total', () => {
   assert.equal(recordable({ status: 'succeeded', metadata: { booking_id: BID, purpose: 'booking_total' } }, BID), null);
   assert.match(recordable({ status: 'requires_capture', metadata: { booking_id: BID, purpose: 'booking_total' } }, BID)!, /not succeeded/);
   assert.match(recordable({ status: 'succeeded', metadata: { booking_id: 'other', purpose: 'booking_total' } }, BID)!, /not for this booking/);
+});
+
+// hotfix 3430: a card taken in the Stripe Dashboard app (Tap to Pay) has no booking in Stripe
+test('3430: tieOf: made for the booking, untied, another booking, not succeeded', () => {
+  assert.deepEqual(tieOf({ status: 'succeeded', metadata: { booking_id: BID, purpose: 'booking_total' } }, BID, 'CC-1'), { kind: 'tied' });
+  assert.deepEqual(tieOf({ status: 'succeeded', metadata: {} }, BID, 'CC-1'), { kind: 'untied' });
+  assert.deepEqual(tieOf({ status: 'succeeded', metadata: { booking_id: BID, purpose: LINKED_PURPOSE } }, BID, 'CC-1'), { kind: 'untied' });
+  const other = tieOf({ status: 'succeeded', metadata: { booking_id: '22222222-2222-4222-8222-222222222222' } }, BID, 'CC-1');
+  assert.equal(other.kind, 'refused');
+  assert.equal(tieOf({ status: 'succeeded', metadata: { booking_number: 'cc-9' } }, BID, 'CC-1').kind, 'refused');
+  const held = tieOf({ status: 'requires_capture', metadata: {} }, BID, 'CC-1');
+  assert.ok(held.kind === 'refused' && /not succeeded/.test(held.why) && /nothing is captured/.test(held.why));
+  // this booking's staff pay link: the webhook's own path, not linked a second way
+  assert.equal(tieOf({ status: 'succeeded', metadata: { booking_id: BID, purpose: 'staff_request' } }, BID, 'CC-1').kind, 'refused');
+});
+test('3430: the metadata set at Stripe names the booking and never a purpose the webhook settles', () => {
+  const m = linkMetadata({}, BID, 'CC-1');
+  assert.deepEqual(m, { booking_id: BID, booking_number: 'CC-1', linked_by: 'connector', purpose: LINKED_PURPOSE });
+  assert.notEqual(m.purpose, 'booking_total');
+  assert.equal(linkMetadata({ purpose: 'something' }, BID, 'CC-1').purpose, undefined);
+  assert.match(untiedWillDo('pi_x123456', 500000, 'CC-1', { ok: true, as: 'rental_deposit', rental_cents: 400000, deposit_cents: 100000 }),
+    /\$5000\.00.*untied.*CC-1.*\$4000\.00.*\$1000\.00.*Nothing is charged, captured or refunded/);
+});
+test('3430: findPayments lists succeeded and holding intents in the window, flags the untied ones, GET only', async () => {
+  const calls: Array<{ path: string; params: Record<string, string> }> = [];
+  const tap = { id: 'pi_tap123456', status: 'succeeded', amount: 500000, amount_received: 500000, currency: 'cad', created: 1795000000, metadata: {}, payment_method_types: ['card_present'],
+    latest_charge: { id: 'ch_tap', payment_method_details: { type: 'card_present', card_present: { brand: 'visa', last4: '1111', wallet: { type: 'apple_pay' } } } } };
+  const site = { ...tap, id: 'pi_site123456', amount: 20000, metadata: { booking_number: 'CC-1', booking_id: BID }, latest_charge: { payment_method_details: { type: 'card', card: { brand: 'mastercard', last4: '4444' } } } };
+  const failed = { ...tap, id: 'pi_fail123456', status: 'requires_payment_method' };
+  const get: StripeGet = async (path, params = {}) => {
+    calls.push({ path, params });
+    if (!params.starting_after) return { data: [tap, failed], has_more: true };
+    return { data: [site], has_more: false };
+  };
+  const r = await findPayments(get, { since: 1794900000, until: 1795100000 }, async (ids) => {
+    assert.deepEqual(ids, ['pi_tap123456', 'pi_site123456']);
+    return { pi_site123456: { booking_number: 'CC-1', where: 'payment' } };
+  });
+  assert.equal(calls.length, 2);
+  assert.ok(calls.every((c) => c.path === '/v1/payment_intents' && c.params['created[gte]'] === '1794900000' && c.params['created[lte]'] === '1795100000'));
+  assert.equal(calls[1]!.params.starting_after, 'pi_fail123456');
+  assert.equal(r.count, 2);
+  assert.equal(r.untied_not_recorded, 1);
+  const t = r.payments[0]!;
+  assert.deepEqual([t.card, t.method_type, t.wallet, t.no_booking, t.recorded], ['visa 1111', 'card_present', 'apple_pay', true, false]);
+  assert.match(t.flag!, /no booking in Stripe/);
+  assert.deepEqual([r.payments[1]!.recorded, r.payments[1]!.recorded_on, r.payments[1]!.booking_metadata, r.payments[1]!.flag], [true, 'CC-1', 'CC-1', null]);
+  const only = await findPayments(async () => ({ data: [tap, site] }), { since: 1, until: 2, amount_cents: 500000 }, async () => ({}));
+  assert.deepEqual(only.payments.map((p) => p.id), ['pi_tap123456']);
+  assert.ok(!JSON.stringify(r).includes('fingerprint'));
 });

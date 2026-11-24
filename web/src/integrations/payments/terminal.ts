@@ -33,6 +33,9 @@ export interface TerminalAdapter {
   lookupPayment(id: string): Promise<Intent>;
   /** r35: the succeeded charges since a time (seconds since 1970), newest first, at most `max` (the nightly unlinked check). */
   listCharges(sinceEpoch: number, max?: number): Promise<StripeCharge[]>;
+  /** hotfix 3430: adds metadata to a PaymentIntent (the booking of a payment taken in the Stripe Dashboard). Only the
+   *  metadata: never an amount, a capture or a refund. */
+  tagIntent(id: string, metadata: Record<string, string>): Promise<Intent>;
 }
 
 /** r35: a charge as the nightly "unlinked Stripe payments" check keeps it: no card number, only what finds its booking. */
@@ -104,6 +107,10 @@ export function stripeTerminal(secretKey: string, f: typeof fetch = (...a) => fe
         return toIntent(await call('GET', `/payment_intents/${encodeURIComponent(pi)}`, { expand }));
       }
       return toIntent(await call('GET', `/payment_intents/${encodeURIComponent(id)}`, { expand }));
+    },
+    async tagIntent(id, metadata) {
+      if (!/^pi_[A-Za-z0-9_]{6,}$/.test(id)) throw new StripeError('A PaymentIntent id starts with pi_', 400, 'invalid_id', null);
+      return toIntent(await call('POST', `/payment_intents/${encodeURIComponent(id)}`, { metadata, expand }));
     },
     async listCharges(since, max = 1000) {
       // 100 a page, newest first, followed by starting_after until the time or `max` is reached

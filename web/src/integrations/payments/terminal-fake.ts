@@ -61,6 +61,10 @@ export function fakeTerminal(): TerminalAdapter {
         card: { brand: 'visa', last4: m[2]!, expMonth: 12, expYear: 2030, funding: 'credit', name: null, fingerprint: `fp_00${m[2]!}`, country: 'CA' },
         lastError: null, methodType: 'card', bank: null, mandateId: null, captureBefore: null };
     },
+    async tagIntent(id, metadata) {
+      const i = await this.lookupPayment(id);
+      return pay.register({ ...i, metadata: { ...i.metadata, ...metadata } });
+    },
     async listCharges(since, max = 1000) {
       // r35: the charges this process made (succeeded), plus any a test set (globalThis.__ccFakeCharges), newest first
       const made = pay.intents().filter((i) => i.status === 'succeeded' && i.chargeId).map((i): StripeCharge => ({ id: i.chargeId!, intentId: i.id, amountCents: i.amountCents, refundedCents: 0,
