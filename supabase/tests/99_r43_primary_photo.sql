@@ -29,8 +29,10 @@ create or replace function test.rq43p_photo(p_car text, p_shot text, p_sort inte
   values (test.id('vehicle:' || p_car), case when p_shot in ('dashboard', 'front_seats') then p_shot else p_shot end, p_shot, 'vehicles/original/rq43p/' || p_car || '-' || p_shot || '.jpg',
           'vehicles/rq43p/' || p_car || '-' || p_shot || '.jpg', case when p_live then 'approved' else 'processed' end, p_live, 'not_visible', p_sort, p_cover, 1800, 1200, 'done')
   returning id $$;
+-- 3701: the public gallery is studio renders only (else the Photos coming soon photo); the rank of 2690 still orders the
+-- car's own photos (its cover and record), read here from the gallery before 3701 (app.public_listing_photos_pre3701)
 create or replace function test.rq43p_shots(p_car text) returns text language sql stable as $$
-  select string_agg(e ->> 'shot', ',' order by k) from jsonb_array_elements(app.public_listing_photos(test.id('vehicle:' || p_car))) with ordinality t(e, k) $$;
+  select coalesce(string_agg(e ->> 'shot', ',' order by k), 'none') from jsonb_array_elements(app.public_listing_photos_pre3701(test.id('vehicle:' || p_car))) with ordinality t(e, k) $$;
 create or replace function test.rq43p_covers(p_car text) returns text language sql stable as $$
   select coalesce(string_agg(shot_type, ',' order by shot_type), '') from vehicle_photos where vehicle_id = test.id('vehicle:' || p_car) and is_cover $$;
 insert into vehicle_listings (vehicle_id, status, slug) select test.id('vehicle:rq43p_' || c), 'published', 'rq43p-' || c || '-example' from unnest(array['a', 'b', 'c', 'd']) c
@@ -43,9 +45,10 @@ select test.rq43p_photo('rq43p_a', 'rear', 2);
 create temp table rq43p_afl as select test.rq43p_photo('rq43p_a', 'front_left', 3) as id;
 select test.eq('the site lists the standard angle first, the other outside shots, then the inside',
   test.rq43p_shots('rq43p_a'), 'front_left,rear,dashboard,front_seats');
+select test.eq('the public gallery: the Photos coming soon photo alone (3701)', app.public_listing_photos(test.id('vehicle:rq43p_a')) #>> '{0,shot}', 'placeholder');
 select test.eq('the cover mark moved to the standard angle (the only one)', test.rq43p_covers('rq43p_a'), 'front_left');
 select test.eq('the car''s cover photo is the standard angle', (select shot_type from app.cover_photo(test.id('vehicle:rq43p_a'))), 'front_left');
-select test.eq('the card and the car page row show the standard angle as the cover', (app.public_listing_row(test.id('vehicle:rq43p_a')) #>> '{cover,path}'), 'vehicles/rq43p/rq43p_a-front_left.jpg');
+select test.eq('the car''s cover photo file is the standard angle (the public row shows the placeholder until a studio render passes, 3701)', (app.cover_photo(test.id('vehicle:rq43p_a'))).processed_path, 'vehicles/rq43p/rq43p_a-front_left.jpg');
 select test.eq('the cards'' photo (the fleet list) is the standard angle', (app.row_car_photos(array[test.id('vehicle:rq43p_a')]) -> test.id('vehicle:rq43p_a')::text ->> 'path'), 'vehicles/rq43p/rq43p_a-front_left.jpg');
 select test.eq('state: exterior', app.vehicle_primary_state(test.id('vehicle:rq43p_a')), 'exterior');
 -- staff mark an inside photo cover by hand: the rule puts it back
@@ -89,7 +92,7 @@ select test.eq('the cover mark is on the standard angle already (its model name 
 update vehicle_photos set status = 'approved', is_public = true where id = (select id from rq43p_dfl);
 select test.eq('approved and on the site: it is first', test.rq43p_shots('rq43p_d'), 'front_left,dashboard');
 select test.eq('state: exterior', app.vehicle_primary_state(test.id('vehicle:rq43p_d')), 'exterior');
-select test.eq('the car page row shows it as the cover', app.public_listing_row(test.id('vehicle:rq43p_d')) #>> '{cover,path}', 'vehicles/rq43p/rq43p_d-front_left.jpg');
+select test.eq('it is the car''s cover photo', (app.cover_photo(test.id('vehicle:rq43p_d'))).processed_path, 'vehicles/rq43p/rq43p_d-front_left.jpg');
 
 -- ---------------------------------------------------------------- 6. nothing for the public to call
 select test.ok('the new functions are not executable by anon or authenticated',

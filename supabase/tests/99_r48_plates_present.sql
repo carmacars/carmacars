@@ -79,7 +79,8 @@ update listing_jobs set status = 'running', attempts = attempts + 1, locked_at =
 select app.worker_listing_result((select id from rp40_j), jsonb_build_object('ok', true, 'provider', 'ai', 'output', jsonb_build_object('processed_path', 'vehicles/rp40/r48-fl-new.jpg',
   'width', 1800, 'height', 1200, 'variants', '[]'::jsonb, 'preset_version', 'gemini_r48', 'flags', '[]'::jsonb,
   'showroom', jsonb_build_object('provider', 'ai', 'mode', 'r48', 'spec', 'r48.2', 'scene', 'showroom_dark'),
-  'r45', jsonb_build_object('pass', true, 'spec', 'r48.2', 'generated', true, 'plates', '[]'::jsonb, 'model', 'm', 'view', 'front_left', 'reasons', '[]'::jsonb))));
+  'r45', jsonb_build_object('pass', true, 'spec', 'r48.2', 'generated', true, 'plates', '[]'::jsonb, 'model', 'm', 'view', 'front_left', 'reasons', '[]'::jsonb,
+    'gate', jsonb_build_object('pass', true, 'spec', 'r48.3', 'reasons', '[]'::jsonb)))));  -- 3701: passed the studio gate
 select test.ok('the new view: done, no plate cover, marked as following 3040',
   (test.rp40_row('rp40_a', 'front_left')).r45 ->> 'state' = 'done' and (test.rp40_row('rp40_a', 'front_left')).r45 ->> 'plate_rule' = '3040'
   and (test.rp40_row('rp40_a', 'front_left')).plate_status = 'not_visible' and (test.rp40_row('rp40_a', 'front_left')).processed_path = 'vehicles/rp40/r48-fl-new.jpg');
@@ -89,7 +90,7 @@ select test.eq('a view that follows 3040 is not taken again', app.photo_r48_plat
 select test.eq('a car not published: its studio cover is not shown', (select count(*) from jsonb_array_elements(app.site_studio_covers(48)) e where (e ->> 'vehicle_id')::uuid = test.id('vehicle:rp40_a')), 0::bigint);
 insert into vehicle_listings (vehicle_id, slug, headline, status, published_at) values (test.id('vehicle:rp40_a'), 'rp40-a', 'Test car A', 'published', now()) on conflict do nothing;
 update vehicle_listings set status = 'published', published_at = coalesce(published_at, now()) where vehicle_id = test.id('vehicle:rp40_a');
-select test.ok('a published real car''s checked studio cover (the front three-quarter) is shown, with its size',
+select test.ok('a published real car''s checked studio cover (its live render: the front three-quarter here) is shown, with its size',
   exists (select 1 from jsonb_array_elements(public.site_studio_covers(48)) e where (e ->> 'vehicle_id')::uuid = test.id('vehicle:rp40_a')
             and e ->> 'path' = 'vehicles/rp40/r48-fl-new.jpg' and (e ->> 'width')::int = 1800 and jsonb_typeof(e -> 'variants') = 'array'));
 update vehicles set is_sample = true where id = test.id('vehicle:rp40_a');

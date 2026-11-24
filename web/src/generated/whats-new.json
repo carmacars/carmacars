@@ -407,6 +407,7 @@
      "Studio renders are made again across the fleet: a photo step that timed out or was refused three times is flagged on Photo standard with the reason instead of being tried for ever, so the other cars' renders go ahead",
      "Photos filed as \"Other detail\" (imports the sorter could not read) are sorted again by themselves, so a car's outside photos become its cover",
      "Connector: photo_standard shows a rendered cover as studio, and per car the detail photos still to sort",
+     "Studio renders made before the new standard stay on the site while each is checked in place; only those the check refuses are made again, the most viewed and bookable cars first",
      "Only studio views that passed the consistency check are on the site; Photo standard > Studio grid shows each car's nine views side by side with why any was refused"
     ],
     "staff": [

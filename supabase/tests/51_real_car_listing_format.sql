@@ -57,13 +57,13 @@ select test.eq('the copy passes the listing rules (a short description is fine n
 create temp table rf_page as select public.car_page('2022-chevrolet-malibu-ls') p;
 grant all on rf_page to public;
 select test.eq('a real car, not an example', (select (p ->> 'is_sample')::boolean from rf_page), false);
-select test.eq('eight studio stand-ins, as the sample cars have', (select jsonb_array_length(p -> 'photos') from rf_page), 8);
-select test.eq('the lead shot: a black sedan with MALIBU behind it', (select p -> 'photos' -> 0 ->> 'path' from rf_page), '/sample-photos/studio/sedan/black/lead/MALIBU.svg');
-select test.eq('the shots in the samples'' order and size', (select string_agg((e ->> 'shot') || ':' || (e ->> 'width') || 'x' || (e ->> 'height'), ',') from rf_page, jsonb_array_elements(p -> 'photos') e),
-  'front_left:1800x1200,left:1800x1200,rear_left:1800x1200,front:1800x1200,rear:1800x1200,dashboard:1800x1200,front_seats:1800x1200,wheel:1800x1200');
-select test.ok('marked as representative', (select bool_and((e ->> 'sample')::boolean) and bool_and(e ->> 'alt' like 'Representative studio image of a black sedan like the 2022 Chevrolet Malibu%')
+select test.eq('one Photos coming soon photo until its studio renders pass (3701)', (select jsonb_array_length(p -> 'photos') from rf_page), 1);
+select test.eq('the lead shot: the empty studio (no plate made here)', (select p -> 'photos' -> 0 ->> 'path' from rf_page), '/studio/coming-soon.jpg');
+select test.eq('the placeholder''s shot and size', (select string_agg((e ->> 'shot') || ':' || (e ->> 'width') || 'x' || (e ->> 'height'), ',') from rf_page, jsonb_array_elements(p -> 'photos') e),
+  'placeholder:1800x1200');
+select test.ok('marked as a sample and a placeholder', (select bool_and((e ->> 'sample')::boolean) and bool_and((e ->> 'placeholder')::boolean) and bool_and(e ->> 'alt' like '%: photos coming soon')
   from rf_page, jsonb_array_elements(p -> 'photos') e));
-select test.eq('the fleet card shows the lead shot', (app.public_listing_row(test.id('vehicle:RFM1')) -> 'cover' ->> 'path'), '/sample-photos/studio/sedan/black/lead/MALIBU.svg');
+select test.eq('the fleet card shows the placeholder', (app.public_listing_row(test.id('vehicle:RFM1')) -> 'cover' ->> 'path'), '/studio/coming-soon.jpg');
 select test.eq('no locked copy fields', (select p -> 'copy_locked' from rf_page), '[]'::jsonb);
 
 -- other bodies and colours

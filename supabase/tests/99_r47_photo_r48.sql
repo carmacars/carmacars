@@ -19,8 +19,8 @@ select test.mk_vehicle('rq48_a', 'rq48_olive');   -- listing photos: front three
 select test.mk_vehicle('rq48_h', 'rq48_olive');   -- no listing photo: check-in photos only
 select test.mk_vehicle('rq48_c', 'rq48_olive');   -- one inside listing photo and check-in photos
 
--- r48.2 since 3030 (99_r48_photo_studio.sql)
-select test.eq('the standard is the web''s R48_SPEC', app.photo_r48_spec(), 'r48.2');
+-- r48.3 since 3701 (99_r50ph_studio_only.sql)
+select test.eq('the standard is the web''s R48_SPEC', app.photo_r48_spec(), 'r48.3');
 select test.ok('the r48 run is on by default; the r45 fleet remake off',
   (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'listing_photo_r48_auto') = 'true'
   and (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'listing_photo_r45_auto') = 'false');
@@ -117,7 +117,7 @@ select test.ok('its check-in photos are never a listing photo nor on the site: o
 -- ---------------------------------------------------------------- 3. the worker's context
 create temp table rq48_ctx as select app.listing_job_context((test.rq48_job((test.rq48_row('rq48_h', 'front_left')).id)).id) as x;
 select test.ok('context: the references fresh (check-in photos for this car), the family, the guide, the body; no plate yet',
-  (select x #>> '{input,r45,family}' = 'front' and x #>> '{input,r45,guide}' like 'site/r48/guides/%-lead.jpg' and x #> '{input,r45,refs,0}' ->> 'bucket' = 'condition-photos'
+  (select x #>> '{input,r45,family}' = 'side' and x #>> '{input,r45,guide}' like 'site/r48/guides/%-lead.jpg' and x #> '{input,r45,refs,0}' ->> 'bucket' = 'condition-photos'
           and x #>> '{input,r45,plate}' is null and x #>> '{input,r45,body}' is not null from rq48_ctx));
 select test.ok('an inside angle: no family and no stock photo',
   (select x #>> '{input,r45,family}' is null and x #>> '{input,r45,stock}' is null
@@ -125,14 +125,15 @@ select test.ok('an inside angle: no family and no stock photo',
 
 -- ---------------------------------------------------------------- 4. the plates
 select test.rq48_answer((test.rq48_row('rq48_h', 'front_left')).id, test.rq48_made('vehicles/rq48/h-fl-r48.jpg',
-  jsonb_build_object('plate_made', jsonb_build_object('family', 'front', 'path', 'site/r48/plates/front-aa11.jpg', 'model', 'gemini-2.5-flash-image', 'check', jsonb_build_object('pass', true, 'issues', '[]'::jsonb)))));
+  jsonb_build_object('plate_made', jsonb_build_object('family', 'side', 'path', 'site/r48/plates/front-aa11.jpg', 'model', 'gemini-2.5-flash-image', 'check', jsonb_build_object('pass', true, 'issues', '[]'::jsonb)))));
+-- 3701: every outside view stands in the one 'side' plate of the scene
 select test.ok('a plate the worker made is kept for the family (Gemini, its check)',
-  (select source = 'gemini' and path = 'site/r48/plates/front-aa11.jpg' and "check" ->> 'pass' = 'true' from listing_r48_plates where family = 'front'));
+  (select source = 'gemini' and path = 'site/r48/plates/front-aa11.jpg' and "check" ->> 'pass' = 'true' from listing_r48_plates where family = 'side'));
 select test.eq('the next view of the family is sent it',
   app.listing_job_context((test.rq48_job((test.rq48_row('rq48_a', 'front_left')).id)).id) #>> '{input,r45,plate}', 'site/r48/plates/front-aa11.jpg');
 select test.rq48_answer((test.rq48_row('rq48_c', 'front_left')).id, test.rq48_made('vehicles/rq48/c-fl-r48.jpg',
-  jsonb_build_object('plate_made', jsonb_build_object('family', 'front', 'path', 'site/r48/plates/front-bb22.jpg'))));
-select test.eq('a second plate made at the same time does not replace the first', (select path from listing_r48_plates where family = 'front'), 'site/r48/plates/front-aa11.jpg');
+  jsonb_build_object('plate_made', jsonb_build_object('family', 'side', 'path', 'site/r48/plates/front-bb22.jpg'))));
+select test.eq('a second plate made at the same time does not replace the first', (select path from listing_r48_plates where family = 'side'), 'site/r48/plates/front-aa11.jpg');
 select test.throws('fleet staff do not set the plates', format('select app.photo_r48_plates(%L, %L)', test.id('rq48_fleet'), '{"family":"all","path":"site/r48/plates/admin-all-1a2b.jpg"}'), '%Admin%');
 select test.throws('a plate path outside site/r48/plates is refused', format('select app.photo_r48_plates(%L, %L)', test.id('rq48_admin'), '{"family":"side","path":"vehicles/x.jpg"}'), '%not valid%');
 select app.photo_r48_plates(test.id('rq48_admin'), '{"family":"all","path":"site/r48/plates/admin-all-1a2b.jpg"}');
@@ -142,14 +143,15 @@ select app.photo_r48_plates(test.id('rq48_admin'), '{"family":"side","clear":tru
 select test.eq('Make a new one: the side plate taken off (Gemini makes it with the next side view)', (select string_agg(family, ',' order by family) from listing_r48_plates), 'front,rear');
 
 -- ---------------------------------------------------------------- 5. passed: on the site in place of the real photo of the angle; the real one stays
-select test.rq48_answer((test.rq48_row('rq48_a', 'front_left')).id, test.rq48_made('vehicles/rq48/a-fl-r48.jpg'));
+select test.rq48_answer((test.rq48_row('rq48_a', 'front_left')).id, test.rq48_made('vehicles/rq48/a-fl-r48.jpg',
+  jsonb_build_object('gate', jsonb_build_object('pass', true, 'spec', 'r48.3', 'reasons', '[]'::jsonb))));  -- 3701: passed the studio gate
 select test.ok('passed: approved, public, done, marked ai_generated',
   (select status = 'approved' and is_public and ai_generated and r45 ->> 'state' = 'done' and processed_path = 'vehicles/rq48/a-fl-r48.jpg' from test.rq48_row('rq48_a', 'front_left')));
 select test.eq('the gallery leads with the r48 front three-quarter', app.public_listing_photos(test.id('vehicle:rq48_a')) -> 0 ->> 'path', 'vehicles/rq48/a-fl-r48.jpg');
--- r48 AN (3150): the car's real photos follow the renders (never hidden), marked real
-select test.ok('the real front three-quarter follows the renders, marked real',
-  exists (select 1 from jsonb_array_elements(app.public_listing_photos(test.id('vehicle:rq48_a'))) with ordinality t(e, k)
-           where e ->> 'shot' = 'front_left' and e ->> 'path' <> 'vehicles/rq48/a-fl-r48.jpg' and (e ->> 'real')::boolean and k > 1));
+-- 3701: the car's real photos are never in the public gallery (they stay on its record, approved)
+select test.ok('the real front three-quarter is not in the public gallery',
+  not exists (select 1 from jsonb_array_elements(app.public_listing_photos(test.id('vehicle:rq48_a'))) e
+               where e ->> 'path' <> 'vehicles/rq48/a-fl-r48.jpg' and coalesce((e ->> 'real')::boolean, false)));
 select test.ok('with renders on the site, the real rear and dashboard come after every render (never mixed in between)',
   (select coalesce(min(k) filter (where (e ->> 'real')::boolean), 99) > coalesce(max(k) filter (where (e ->> 'generated')::boolean), 0)
      from jsonb_array_elements(app.public_listing_photos(test.id('vehicle:rq48_a'))) with ordinality t(e, k)));
@@ -170,9 +172,9 @@ select test.rq48_answer((select id from rq48_rr), test.rq48_refused('["wrong_fra
 select test.ok('refused three times: flagged, off the site, no job left',
   (select r45 ->> 'state' = 'flagged' and not is_public and quality_flags ? 'r45_flagged' from vehicle_photos where id = (select id from rq48_rr))
   and not exists (select 1 from listing_jobs where vehicle_photo_id = (select id from rq48_rr) and status = 'queued'));
-select test.ok('the real rear photo stays approved and public, and on the site after the renders (3150)',
+select test.ok('the real rear photo stays approved and public on its record, never in the public gallery (3701)',
   (select is_public and status = 'approved' from vehicle_photos where id = (select rear from rq48_ap))
-  and exists (select 1 from jsonb_array_elements(app.public_listing_photos(test.id('vehicle:rq48_a'))) e where e ->> 'shot' = 'rear' and (e ->> 'real')::boolean));
+  and not exists (select 1 from jsonb_array_elements(app.public_listing_photos(test.id('vehicle:rq48_a'))) e where e ->> 'shot' = 'rear' and (e ->> 'real')::boolean));
 select app.job_photo_r48();
 select test.ok('a flagged view is not made again by itself', not exists (select 1 from listing_jobs where vehicle_photo_id = (select id from rq48_rr) and status = 'queued'));
 
@@ -181,7 +183,7 @@ create temp table rq48_view as select app.photo_r45_fleet_read(test.id('rq48_fle
 select test.ok('the card: per car its r48 set (done, flagged, of nine), a handover-only car listed too, the r48 run on',
   (select (c #>> '{r48,done}')::int = 1 and (c #>> '{r48,flagged}')::int = 1 and (c #>> '{r48,angles}')::int = 9 from rq48_view, jsonb_array_elements(v -> 'cars') c where c ->> 'id' = test.id('vehicle:rq48_a')::text)
   and (select (c #>> '{r48,handover_refs}')::boolean from rq48_view, jsonb_array_elements(v -> 'cars') c where c ->> 'id' = test.id('vehicle:rq48_h')::text)
-  and (select (v ->> 'r48_auto')::boolean and v ->> 'r48_spec' = 'r48.2' from rq48_view));
+  and (select (v ->> 'r48_auto')::boolean and v ->> 'r48_spec' = 'r48.3' from rq48_view));
 create temp table rq48_redo as select app.photo_r45_redo(test.id('rq48_fleet'), jsonb_build_object('vehicle', test.id('vehicle:rq48_a'))) as r;
 select test.ok('Redo this car now: the flagged and the done views queued again, the done one stays on the site meanwhile',
   (select (r ->> 'r48')::int >= 2 from rq48_redo)

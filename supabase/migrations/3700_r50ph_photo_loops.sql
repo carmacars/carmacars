@@ -42,7 +42,7 @@ end $$;
 alter function app.fail_listing_job(uuid, text, boolean, text, bigint, timestamptz) rename to fail_listing_job_pre3700;
 create function app.fail_listing_job(p_job uuid, p_error text, p_retryable boolean default true, p_provider text default null,
                                      p_cost_microusd bigint default 0, p_now timestamptz default now()) returns jsonb
-language plpgsql security definer set search_path = public, app as $$
+language plpgsql security definer set search_path = public, app, pg_temp as $$
 declare j listing_jobs; r jsonb; v_tries integer;
 begin
   select * into j from listing_jobs where id = p_job;
@@ -70,11 +70,12 @@ grant execute on function app.fail_listing_job_pre3700(uuid, text, boolean, text
 select pg_temp.patch_fn('app.photo_r48_queue(uuid, uuid, text, boolean)'::regprocedure,
   $q$when p_force or coalesce(ph.r45 ->> 'state', '') in ('redo', 'done', 'flagged')$q$,
   $q$when p_force or coalesce(ph.r45 ->> 'state', '') in ('done', 'flagged')$q$);
+alter function app.photo_r48_queue(uuid, uuid, text, boolean) set search_path = public, app, pg_temp;
 
 -- ================================================================ 3 and 4. the job: stranded photos due again, details sorted again
 alter function app.job_photo_r48() rename to job_photo_r48_pre3700;
 create function app.job_photo_r48() returns text
-language plpgsql security definer set search_path = public, app as $$
+language plpgsql security definer set search_path = public, app, pg_temp as $$
 declare ps program_settings := app.settings(); v_stranded integer := 0; v_sorting integer := 0; r record;
 begin
   -- a real photo queued with no step (lost, or failed before 3700) is made again later (photo_r45_due skips 'queued')
@@ -109,7 +110,7 @@ grant execute on function app.job_photo_r48_pre3700() to service_role;
 -- ================================================================ 5. the connector: a rendered cover is a studio cover
 alter function app.photo_standard_car(uuid) rename to photo_standard_car_pre3700;
 create function app.photo_standard_car(p_vehicle uuid) returns jsonb
-language plpgsql stable security definer set search_path = public, app as $$
+language plpgsql stable security definer set search_path = public, app, pg_temp as $$
 declare x jsonb := app.photo_standard_car_pre3700(p_vehicle); rw jsonb;
 begin
   if x is null then return null; end if;

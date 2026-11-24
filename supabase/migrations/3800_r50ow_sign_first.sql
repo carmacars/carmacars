@@ -815,6 +815,7 @@ update notification_catalogue set emitted_by = 'app.fleet_lease_car_set (3800): 
 update notification_catalogue set emitted_by = 'app.sign_first_after (3800): the owner signed the master agreement or a Schedule A confirmation' where code = 'staff_owner_signed';
 update notification_catalogue set push_topic = 'documents' where code in ('owner_master_agreement_ready', 'owner_schedule_ready', 'owner_sign_reminder', 'owner_car_delivered');
 update notification_catalogue set push_topic = 'requests' where code = 'staff_owner_signed';
+insert into notification_link_paths (key, path) values ('va_fleet_owner', '/staff/owners/{{owner_id}}') on conflict (key) do update set path = excluded.path;
 insert into sms_templates (code, label, body, urgent, sort_order) values
   ('owner_master_agreement_ready', 'Owner master agreement ready', 'CarmaCars: your {{agreement_title}} is ready to sign in your owner portal, before your cars come over: {{link}}', false, 101),
   ('owner_schedule_ready', 'Owner Schedule A to confirm', 'CarmaCars: confirm the {{car_count}} added to your Schedule A in your owner portal: {{link}}', false, 102),

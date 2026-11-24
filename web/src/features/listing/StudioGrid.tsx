@@ -61,9 +61,9 @@ export function StudioGrid() {
       </div>
       {pages > 1 && (
         <p className="row">
-          <button className="btn btn--ghost btn--sm" type="button" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>Previous</button>
+          <button className="btn btn--ghost btn--sm" type="button" disabled={page === 0} title={page === 0 ? 'This is the first page' : undefined} onClick={() => setPage((p) => p - 1)}>Previous</button>
           <span className="small">Page {page + 1} of {pages}</span>
-          <button className="btn btn--ghost btn--sm" type="button" disabled={page + 1 >= pages} onClick={() => setPage((p) => p + 1)}>Next</button>
+          <button className="btn btn--ghost btn--sm" type="button" disabled={page + 1 >= pages} title={page + 1 >= pages ? 'This is the last page' : undefined} onClick={() => setPage((p) => p + 1)}>Next</button>
         </p>)}
     </section>
   );

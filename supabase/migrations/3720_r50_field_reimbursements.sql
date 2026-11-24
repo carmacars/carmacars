@@ -82,6 +82,7 @@ comment on table staff_reimbursements is 'r50 (3720): money a staff member spent
 create trigger staff_reimbursements_updated before update on staff_reimbursements for each row execute function app.set_updated_at();
 create trigger audit_staff_reimbursements after insert or update or delete on staff_reimbursements for each row execute function app.audit_row();
 alter table staff_reimbursements enable row level security;
+create policy admin_all on staff_reimbursements for select to authenticated using (app.is_admin());
 create policy finance_read on staff_reimbursements for select to authenticated using (app.is_admin() or app.va_has('finance'));
 create policy own_read on staff_reimbursements for select to authenticated using (staff_id = app.uid());
 revoke all on staff_reimbursements from public, anon, authenticated;

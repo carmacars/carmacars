@@ -165,6 +165,9 @@ export const LOCAL_MAX_PIXELS = 12_000_000;
 export const WORK_SIDE = 2400;
 /** r45 (2840): the fleet's Gemini photos made side by side in one run. */
 export const R45_PARALLEL = 2;
+/** r50 (3701): batches of renders a run may take (each R45_PARALLEL renders): Gemini's wait is wall time, not CPU, so a few
+ *  small batches fit the Worker's CPU limit (wrangler limits.cpu_ms); no new batch once 60% of the run's time is used. */
+export const R45_BATCHES_PER_RUN = 3;
 const tooLarge = (w: number | null | undefined, h: number | null | undefined) => !!w && !!h && w * h > LOCAL_MAX_PIXELS;
 
 /** Runs due jobs until none are left, the limit is reached or the time is up. */
@@ -176,6 +179,7 @@ export async function runListingWorker(d: WorkerDeps, o: { maxJobs?: number; bat
   const sum: RunSummary = { claimed: 0, succeeded: 0, failed: 0, held: { photos: false, copy: false }, due: 0, errors: [] };
   // the neurons and transformations used in this run, on top of what the claim reported
   const used = { neurons: 0, transformations: 0 };
+  let r45Batches = 0;
   while (sum.claimed < max && now() - start < deadline) {
     const c = await d.claim(Math.min(o.batch ?? 4, max - sum.claimed));
     sum.held = c.held; sum.due = c.due;
@@ -212,8 +216,9 @@ export async function runListingWorker(d: WorkerDeps, o: { maxJobs?: number; bat
     const r45 = c.jobs.filter((j) => j.kind === 'photo_r45');
     const pool = async (list: JobContext[], n: number) => { let k = 0; await Promise.all(Array.from({ length: Math.min(n, list.length) }, async () => { while (k < list.length) await one(list[k++]!); })); };
     await Promise.all([...light.map(one), (async () => { for (const j of heavy) await one(j); })(), pool(r45, R45_PARALLEL)]);
-    // r50 (3701): one batch of renders a run at most: the run's CPU (wrangler limits.cpu_ms) is shared by every step in it
-    if (r45.length) break;
+    // r50 (3701): a few small batches of renders a run (R45_BATCHES_PER_RUN): the run's CPU (wrangler limits.cpu_ms) is shared
+    // by every step in it, so no new batch once 60% of the run's time is gone
+    if (r45.length && (++r45Batches >= R45_BATCHES_PER_RUN || now() - start > deadline * 0.6)) break;
   }
   return sum;
 }
@@ -1035,7 +1040,7 @@ async function r45Job(d: WorkerDeps, j: JobContext): Promise<JobResult> {
 // ================================================================ r48 (2900): every standard angle generated from references
 /** The job's r48 words (app.listing_job_context fills them fresh on every try). r48.2 (3030): the scene (its words, and a
  *  photo of the real place when it has one), the tries made before, and the stock photo alone when the car has no photo. */
-export interface R48Input { mode: 'r48'; car?: CarFacts | null; shot?: string; refs?: Array<{ bucket: string; path: string; shot?: string; from?: 'listing' | 'handover' }>;
+export interface R48Input { mode: 'r48'; /** r50 (3701): check the render already made against r48.3 in place (no new render) */ regate?: boolean; car?: CarFacts | null; shot?: string; refs?: Array<{ bucket: string; path: string; shot?: string; from?: 'listing' | 'handover' }>;
   family?: PlateFamily | null; plate?: string | null; guide?: string | null; stock?: string | null; body?: string | null; feedback?: string[] | null;
   scene?: (R48Scene & { reference_path?: string | null }) | null; tries?: number | null;
   /** r48 (3040): whether the car's own photos show a plate at the end this view shows (app.photo_r48_plate_end) */
@@ -1110,9 +1115,12 @@ export async function makeR48(d: WorkerDeps, j: JobContext): Promise<R45Made> {
   const name = ext && shot === 'front_left' && isDealership(scene) && (car.model ?? p.model) ? letteringName(String(car.model ?? p.model)) : null;
   const plateEnd = inp.plate_end === 'yes' || inp.plate_end === 'no' ? inp.plate_end : null;
   let plateMade: Record<string, unknown> | null = null;
+  // r50 (3701): a render made before r48.3 is put through the studio gate as it is: kept (cropped onto its target) when it
+  // passes, made again only when it fails. No image is generated for it, only the check.
+  const regate = !!inp.regate && !!p.processed_path && !!d.files.getPublic;
   const no = (why: string, extra: Record<string, unknown> = {}, wait: string | null = null): R45Made =>
-    ({ pass: false, why, wait, output: { r45: { pass: false, spec: R48_SPEC, why, generated: true, ...(wait ? { wait } : {}), ...(plateMade ? { plate_made: plateMade } : {}), ...extra } } });
-  if (!d.angleAi || !d.checkPhoto) return no('Gemini is not set up on the website (no GEMINI_API_KEY)', {}, 'no_key');
+    ({ pass: false, why, wait, output: { r45: { pass: false, spec: R48_SPEC, why, generated: true, ...(regate ? { regate: true } : {}), ...(wait ? { wait } : {}), ...(plateMade ? { plate_made: plateMade } : {}), ...extra } } });
+  if ((!regate && !d.angleAi) || !d.checkPhoto) return no('Gemini is not set up on the website (no GEMINI_API_KEY)', {}, 'no_key');
   // the car: its real photos (the same angle first), within the request's size
   const refs: Img[] = [];
   let total = 0, handover = 0;
@@ -1143,22 +1151,32 @@ export async function makeR48(d: WorkerDeps, j: JobContext): Promise<R45Made> {
   const stockOnly = !refs.length && !!stock;
   if (!refs.length && !stockOnly) return no('the car\'s photos could not be read');
   let plate = ext ? await pub(inp.plate) : null;
-  if (ext && !plate && inp.family) {
+  if (ext && !plate && inp.family && !regate) {
     const placeRaw = inp.scene?.reference_path ? await d.files.getPrivate(inp.scene.reference_path).catch(() => null) : null;
     const placeImg = placeRaw ? await refForModel(placeRaw) : null;
     const made = await makePlate(d, inp.family, p.id, j.id.replace(/-/g, '').slice(0, 8), scene, placeImg);
     if (made) { plate = made.img; total += made.img.bytes.length; plateMade = { family: inp.family, scene: scene?.code ?? null, path: made.path, model: made.model, check: made.check }; }
   }
+  let ai: Rgba | null;
+  let made: { model?: string | null };
+  if (regate) {
+    const raw = await d.files.getPublic!(p.processed_path!).catch(() => null);
+    ai = raw ? await decodeImage(raw).catch(() => null) : null;
+    if (!ai) return no('the render could not be read for the studio gate');
+    made = { model: p.model ?? null };
+  } else {
   const prompt = r48Prompt({ car, shot, refs: stockOnly ? 0 : refs.length, guide: !!guide, stock: !!stock, plate: !!plate, feedback: inp.feedback ?? null, scene, name, stockOnly, plateEnd });
-  const made = await d.angleAi({ images: [...refs, ...(guide ? [guide] : []), ...(stock ? [stock] : []), ...(plate ? [plate] : [])], prompt, photoId: p.id,
+  const gen = await d.angleAi!({ images: [...refs, ...(guide ? [guide] : []), ...(stock ? [stock] : []), ...(plate ? [plate] : [])], prompt, photoId: p.id,
     sameAngle: !stockOnly && !!sameAngle && refs[0] === sameAngle, tries: inp.tries ?? 0 })
     .catch((e: unknown): ShowroomOut => ({ ok: false, reason: 'error', message: e instanceof Error ? e.message : String(e) }));
-  if (!made.ok) {
-    const wait = ['limit', 'quota', 'off'].includes(made.reason) ? made.reason : RETRY_LATER.includes(made.reason) ? 'retry' : null;
-    return no(`Gemini did not make it (${made.reason}: ${made.message})`, {}, wait);
+  if (!gen.ok) {
+    const wait = ['limit', 'quota', 'off'].includes(gen.reason) ? gen.reason : RETRY_LATER.includes(gen.reason) ? 'retry' : null;
+    return no(`Gemini did not make it (${gen.reason}: ${gen.message})`, {}, wait);
   }
-  const ai = await decodeImage(made.bytes).catch(() => null);
+  ai = await decodeImage(gen.bytes).catch(() => null);
   if (!ai) return no('Gemini\'s photo could not be read');
+  made = gen;
+  }
   const size = ext ? EXTERIOR : INTERIOR;
   let fitted = fitFrame(ai, size.width, size.height);
   // r50: the same-angle real photo is no longer decoded for borderDiff (CPU); the studio gate compares with the plate instead
@@ -1203,5 +1221,5 @@ export async function makeR48(d: WorkerDeps, j: JobContext): Promise<R45Made> {
     processed_path: path, width: size.width, height: size.height, variants, preset_version: R48_PRESET, flags: [],
     showroom: { provider: 'ai', ...(made.model ? { model: made.model } : {}), note: null, reason: null, mode: 'r48', spec: R48_SPEC, scene: scene?.code ?? 'showroom_dark',
       ...(plate && inp.plate ? { background: inp.plate } : plateMade ? { background: plateMade.path } : {}) },
-    r45: { pass: true, spec: R48_SPEC, generated: true, plates, ...base, gate: gateOut, ...(plateMade ? { plate_made: plateMade } : {}) } } };
+    r45: { pass: true, spec: R48_SPEC, generated: true, plates, ...base, gate: gateOut, ...(regate ? { regate: true } : {}), ...(plateMade ? { plate_made: plateMade } : {}) } } };
 }

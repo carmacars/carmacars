@@ -17,7 +17,7 @@ select test.mk_vehicle('rs30_a', 'rs30_olive');
 select test.mk_vehicle('rs30_b', 'rs30_olive');
 insert into vehicle_listings (vehicle_id, slug, headline, status, published_at) values (test.id('vehicle:rs30_a'), 'rs30-a', 'Test car A', 'published', now());
 
-select test.eq('the standard is r48.2', app.photo_r48_spec(), 'r48.2');
+select test.eq('the standard is r48.3 (3701; r48.2 here at 3030)', app.photo_r48_spec(), 'r48.3');
 select test.ok('the fleet scene is the dark dealership by default; the run is on',
   (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'listing_photo_scene') like '''showroom_dark''%'
   and (select listing_photo_r48_auto from app.settings()));
@@ -45,7 +45,8 @@ end $$;
 create or replace function test.rs30_made(p_path text) returns jsonb language sql as $$
   select jsonb_build_object('ok', true, 'provider', 'ai', 'output', jsonb_build_object('processed_path', p_path, 'width', 1800, 'height', 1200,
     'variants', '[]'::jsonb, 'preset_version', 'gemini_r48', 'flags', '[]'::jsonb, 'showroom', jsonb_build_object('provider', 'ai', 'mode', 'r48', 'spec', 'r48.2', 'scene', 'showroom_dark'),
-    'r45', jsonb_build_object('pass', true, 'spec', 'r48.2', 'generated', true, 'plates', '[]'::jsonb, 'model', 'gemini-2.5-flash-image', 'view', 'front_left', 'reasons', '[]'::jsonb))) $$;
+    'r45', jsonb_build_object('pass', true, 'spec', 'r48.2', 'generated', true, 'plates', '[]'::jsonb, 'model', 'gemini-2.5-flash-image', 'view', 'front_left', 'reasons', '[]'::jsonb,
+      'gate', jsonb_build_object('pass', true, 'spec', 'r48.3', 'reasons', '[]'::jsonb)))) $$;  -- 3701: passed the studio gate
 
 create temp table rs30_i as select
   (app.start_listing_intake(test.id('rs30_admin'), jsonb_build_object('vehicle_id', test.id('vehicle:rs30_a'))) ->> 'intake_id')::uuid as a,
@@ -77,8 +78,9 @@ update program_settings set listing_photo_r45_batch = 200 where id = (select id 
 select app.job_photo_r48();  -- the other views (the front three-quarter second)
 
 -- ---------------------------------------------------------------- 2. the job context: scene, tries, the plate of the scene
-insert into listing_r48_plates (scene, family, path, source) values ('showroom_dark', 'front', 'site/r48/plates/front-dark1.jpg', 'admin'),
-  ('highway', 'front', 'site/r48/plates/highway-front-x1.jpg', 'admin')
+-- 3701: every outside view stands in the scene's one 'side' plate
+insert into listing_r48_plates (scene, family, path, source) values ('showroom_dark', 'side', 'site/r48/plates/front-dark1.jpg', 'admin'),
+  ('highway', 'side', 'site/r48/plates/highway-front-x1.jpg', 'admin')
   on conflict (scene, family) do update set path = excluded.path, source = excluded.source;
 create temp table rs30_ctx as select app.listing_job_context((test.rs30_job((test.rs30_row('rs30_a', 'front_left')).id)).id) as x;
 select test.ok('the context carries the scene, the tries and the plate of the car''s scene',
@@ -108,22 +110,22 @@ select test.ok('after eight waits in a row it counts as a try (never stuck)',
   ((test.rs30_row('rs30_b', 'front_left')).r45 ->> 'tries')::int = 1 and ((test.rs30_row('rs30_b', 'front_left')).r45 ->> 'waits')::int = 0);
 
 -- ---------------------------------------------------------------- 4. one source of truth for the public photos
-select test.ok('before the studio cover passes, the car''s own photos show',
-  exists (select 1 from jsonb_array_elements(app.public_listing_photos(test.id('vehicle:rs30_a'))) e where e ->> 'shot' = 'rear'));
+select test.ok('before the studio cover passes, the Photos coming soon photo shows (3701: never the car''s own photos)',
+  (app.public_listing_photos(test.id('vehicle:rs30_a')) #>> '{0,placeholder}')::boolean);
 select test.rs30_answer((test.rs30_row('rs30_a', 'front_left')).id, test.rs30_made('vehicles/rs30/a-fl-r48.jpg'));
 select app.job_photo_r48();
 select test.rs30_answer((test.rs30_row('rs30_a', 'rear')).id, test.rs30_made('vehicles/rs30/a-rear-r48.jpg'));
 create temp table rs30_g as select app.public_listing_photos(test.id('vehicle:rs30_a')) as g;
--- r48 AN (3150): the renders in the standard order (the side profile first when made), then the car's real photos
-select test.ok('the gallery: the renders first in the standard order, the first the cover, then the real photos',
-  (select g -> 0 ->> 'path' = 'vehicles/rs30/a-fl-r48.jpg' and (g -> 0 ->> 'is_cover')::boolean and jsonb_array_length(g) > 2 and g -> 1 ->> 'path' = 'vehicles/rs30/a-rear-r48.jpg'
-          and not (g -> 1 ->> 'is_cover')::boolean and (g -> 1 ->> 'generated')::boolean and (g -> 2 ->> 'real')::boolean from rs30_g));
+-- 3701: the renders in the standard order (the side profile first when made), and only the renders
+select test.ok('the gallery: the renders in the standard order, the first the cover, no real photo',
+  (select g -> 0 ->> 'path' = 'vehicles/rs30/a-fl-r48.jpg' and (g -> 0 ->> 'is_cover')::boolean and jsonb_array_length(g) = 2 and g -> 1 ->> 'path' = 'vehicles/rs30/a-rear-r48.jpg'
+          and not (g -> 1 ->> 'is_cover')::boolean and (g -> 1 ->> 'generated')::boolean from rs30_g));
 select test.ok('the listing row''s cover is the gallery''s first photo (live row and the cached row)',
   (app.public_listing_row_live(test.id('vehicle:rs30_a')) #>> '{cover,path}') is not distinct from 'vehicles/rs30/a-fl-r48.jpg'
   and (app.public_listing_row(test.id('vehicle:rs30_a')) #>> '{cover,path}') is not distinct from 'vehicles/rs30/a-fl-r48.jpg',
   coalesce(app.public_listing_row_live(test.id('vehicle:rs30_a')) #>> '{cover,path}', 'no row'));
 select test.ok('the sitemap''s image tags are the gallery',
-  (select images -> 0 ->> 'loc' = 'vehicles/rs30/a-fl-r48.jpg' and jsonb_array_length(images) > 2 from app.public_sitemap_rows() where path = '/cars/rs30-a'),
+  (select images -> 0 ->> 'loc' = 'vehicles/rs30/a-fl-r48.jpg' and jsonb_array_length(images) = 2 from app.public_sitemap_rows() where path = '/cars/rs30-a'),
   (select images::text from app.public_sitemap_rows() where path = '/cars/rs30-a'));
 select test.ok('the real photos stay approved and public in their records',
   (select bool_and(is_public and status = 'approved') from vehicle_photos where id in ((select fl from rs30_ap), (select rear from rs30_ap))));
@@ -155,16 +157,16 @@ select test.ok('the plates per scene: read with the scenes, set per scene',
   and exists (select 1 from listing_r48_plates where scene = 'highway' and family = 'side' and source = 'admin'));
 select app.photo_r48_plates(test.id('rs30_admin'), jsonb_build_object('scene', 'highway', 'family', 'side', 'clear', true));
 select test.ok('cleared per scene: the other scenes keep theirs', not exists (select 1 from listing_r48_plates where scene = 'highway' and family = 'side')
-  and exists (select 1 from listing_r48_plates where scene = 'highway' and family = 'front'));
+  and exists (select 1 from listing_r48_plates where scene = 'showroom_dark' and family = 'side'));
 create temp table rs30_fleetv as select app.photo_r45_fleet_read(test.id('rs30_fleet'), '{}'::jsonb) as v;
 select test.ok('the fleet''s progress: views, done, the days left at the daily limit, studio covers',
   (select (v #>> '{r48_fleet,views}')::int >= 18 and (v #>> '{r48_fleet,left}')::int >= 1 and (v #>> '{r48_fleet,days}')::int >= 1
-          and (v #>> '{r48_fleet,studio_covers}')::int >= 1 and v ->> 'r48_spec' = 'r48.2' from rs30_fleetv));
+          and (v #>> '{r48_fleet,studio_covers}')::int >= 1 and v ->> 'r48_spec' = 'r48.3' from rs30_fleetv));
 
 -- ---------------------------------------------------------------- 6. the connector's photo_standard
 create temp table rs30_ps as select app.photo_standard_read(test.id('rs30_admin'), jsonb_build_object('vehicle', test.id('vehicle:rs30_a'))) as x;
-select test.ok('photo_standard: spec r48.2, the r48 run, the cover "studio", the AI views counted, the angles still missing',
-  (select x ->> 'spec' = 'r48.2' and (x ->> 'auto')::boolean and x -> 'cars' -> 0 ->> 'cover' = 'studio' and (x -> 'cars' -> 0 ->> 'ai_angles')::int = 2
+select test.ok('photo_standard: spec r48.3, the r48 run, the cover "studio", the AI views counted, the angles still missing',
+  (select x ->> 'spec' = 'r48.3' and (x ->> 'auto')::boolean and x -> 'cars' -> 0 ->> 'cover' = 'studio' and (x -> 'cars' -> 0 ->> 'ai_angles')::int = 2
           and jsonb_array_length(x -> 'cars' -> 0 -> 'missing_angles') = 7 and (x #>> '{totals,cover_studio}')::int = 1 and x -> 'cars' -> 0 ->> 'scene' = 'showroom_dark' from rs30_ps),
   (select x::text from rs30_ps));
 

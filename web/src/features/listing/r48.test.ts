@@ -189,6 +189,28 @@ test('r48 pass: the real photos, the guide, the stock photo and the plate go to 
   assert.equal(o.r45.plate_made, undefined, 'the stored plate was used');
 });
 
+test('3701 check in place: a render made before r48.3 goes through the gate as it is, no image generated; refused, the database makes it again', async () => {
+  const { d, pub, asked, checks } = deps();
+  pub.set('vehicles/v1/old-r48.jpg', encodeJpeg(studioRoom(true), 95));
+  const old = job({ photo: { id: 'p1', shot_type: 'front_left', angle: 'front_left', original_path: 'vehicles/v1/original/fl.jpg', processed_path: 'vehicles/v1/old-r48.jpg', rebackground: true, is_public: true, file_base: 'cla-r48-front-left' } }, { regate: true });
+  const r = out(await runJob(d, old, budget));
+  assert.equal(asked.length, 0, 'no new render');
+  assert.equal(checks.length, 1, 'one check');
+  assert.equal(r.r45.pass, true, JSON.stringify(r.r45));
+  assert.equal((r.r45 as unknown as { regate?: boolean }).regate, true);
+  assert.ok(pub.has(r.processed_path) && r.processed_path !== 'vehicles/v1/old-r48.jpg', 'kept, on its target, as a new file');
+  const no = deps({}, [{ ...WOK, looks_cgi: true }]);
+  no.pub.set('vehicles/v1/old-r48.jpg', encodeJpeg(studioRoom(true), 95));
+  const r2 = out(await runJob(no.d, old, budget));
+  assert.equal(no.asked.length, 0);
+  assert.equal(r2.r45.pass, false);
+  assert.equal((r2.r45 as unknown as { regate?: boolean }).regate, true, 'the database knows it was a check in place');
+  const gone = deps();
+  const r3 = out(await runJob(gone.d, old, budget));
+  assert.equal(r3.r45.pass, false, 'an unreadable render is refused, never made here');
+  assert.equal(gone.asked.length, 0);
+});
+
 test('r48 refuse: nothing stored, the reasons returned (the database tries again with them as feedback)', async () => {
   const { d, pub } = deps({}, [{ ...OK, looks_cgi: true, wrong_wheels: true }]);
   const before = pub.size;

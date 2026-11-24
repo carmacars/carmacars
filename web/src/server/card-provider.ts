@@ -9,7 +9,7 @@ import { cardOn, type CardPayments } from '@/features/money/card-pay';
 // stripe | helcim | off). Every renter pay page and staff card tool asks here first; with cards off they show e-Transfer.
 // The processor's account is read again at most every 10 minutes (the deposit guard's tick) and on Stripe's
 // account.updated event; the first "cannot take charges" alerts the Admins once (the database does that).
-// Helcim slots in by adding its account read to processorAccount() and its adapter to integrations/payments.
+// r50: with Helcim as the processor, processorAccount() reads Helcim (integrations/payments helcimAccount).
 const SR = { role: 'service_role' as const };
 
 export const CARD_OFF_RENTER = 'Card payments are paused for a short while. Pay by Interac e-Transfer on your booking\'s Sign and pay page: the email, the message and the exact amounts are there.';
@@ -22,6 +22,10 @@ export async function cardPaymentsOn(): Promise<boolean> { return cardOn(await c
 
 /** What the processor says about the account (charges and payouts enabled); null when it cannot be read here. */
 async function processorAccount(provider: 'stripe' | 'helcim'): Promise<{ charges: boolean; payouts: boolean; reason: string | null } | null> {
+  if (provider === 'helcim') {
+    const { helcimAccount } = await import('@/integrations/payments');
+    return helcimAccount();
+  }
   const e = env();
   if (provider !== 'stripe' || e.PAYMENTS_PROVIDER !== 'stripe' || !e.STRIPE_SECRET_KEY) return null;
   const get = stripeReader(e.STRIPE_SECRET_KEY, (u, i) => fetch(u, { ...i, signal: AbortSignal.timeout(4000) }));

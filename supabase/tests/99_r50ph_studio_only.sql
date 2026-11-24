@@ -80,3 +80,22 @@ create temp table rq50s_grid as select app.photo_r48_grid(test.id('rq50s_admin')
 select test.ok('the studio grid: the nine views in the site''s order, each car''s count of live views',
   (select jsonb_array_length(g -> 'order') = 9 and g ->> 'spec' = 'r48.3' from rq50s_grid));
 select test.throws('only an Admin or fleet sees the studio grid', $$select app.photo_r48_grid(test.id('rq50s_cs'), '{}'::jsonb)$$, 'Admin or fleet');
+
+-- ---------------------------------------------------------------- 6. renders made before r48.3: checked in place, not made again
+create temp table rq50s_old as select test.rq50s_photo('rear_left', true, jsonb_build_object('state', 'done', 'spec', 'r48.2', 'tries', 1, 'regate', now())) as id;
+select test.ok('a render waiting for its check in place stays on the site (no "Photos coming soon" while the fleet is checked)',
+  (select app.photo_render_live(ph) from vehicle_photos ph where ph.id = (select id from rq50s_old)));
+create temp table rq50s_q as select app.photo_r48_regate_queue(50) n;
+select test.ok('the check in place is queued (bookable and trending cars first), one step with input r45.regate',
+  (select n from rq50s_q) >= 1
+  and exists (select 1 from listing_jobs j where j.vehicle_photo_id = (select id from rq50s_old) and j.kind = 'photo_r45' and j.status = 'queued' and (j.input #>> '{r45,regate}')::boolean));
+select test.ok('queued: still on the site', (select app.photo_render_live(ph) and ph.r45 ->> 'state' = 'queued' from vehicle_photos ph where ph.id = (select id from rq50s_old)));
+select test.eq('queued once only', app.photo_r48_regate_queue(50), 0);
+update listing_jobs set status = 'running', locked_at = now(), locked_by = 'test' where vehicle_photo_id = (select id from rq50s_old) and kind = 'photo_r45' and status = 'queued';
+select app.worker_listing_result((select id from listing_jobs where vehicle_photo_id = (select id from rq50s_old) and kind = 'photo_r45' order by created_at desc limit 1),
+  jsonb_build_object('ok', true, 'output', jsonb_build_object('r45', jsonb_build_object('pass', false, 'why', 'the studio gate refused it: wall', 'regate', true,
+    'gate', jsonb_build_object('pass', false, 'spec', 'r48.3', 'reasons', jsonb_build_array('wall'), 'measures', '{}'::jsonb)))));
+select test.eq('refused by the gate: off the site, made again from the start',
+  (select coalesce(app.photo_render_live(ph), false)::text || '/' || (ph.r45 ->> 'state') || '/' || (ph.r45 ->> 'tries') || '/' || (ph.r45 ? 'regate')::text || '/' || (ph.r45 #>> '{gate,pass}')
+     from vehicle_photos ph where ph.id = (select id from rq50s_old)), 'false/redo/0/false/false');
+select test.eq('the step that would check the same image again is dropped', (select count(*) from listing_jobs j where j.vehicle_photo_id = (select id from rq50s_old) and j.status = 'queued'), 0::bigint);

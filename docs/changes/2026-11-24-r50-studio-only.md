@@ -15,7 +15,9 @@ failed the step after the lock time, and (3700) the view was queued again for ev
 
 - References are sent to Gemini as they are (up to 3.5 MB each, four at most); one is made smaller only when none fits.
 - The same-angle photo is no longer decoded (the gate compares with the plate instead).
-- A run makes one batch of renders at most.
+- A run takes up to three small batches of renders (`R45_BATCHES_PER_RUN`, two renders each), and no new batch once 60% of
+  the run's time is used: Gemini's wait is wall time, not CPU. The queue holds 24 steps (was 12), always within Gemini's daily
+  limit less the reserve.
 - No key or paid plan is missing: the image model, its daily limit (2000) and the Canada relay are set up.
 
 ## The studio gate (standard r48.3)
@@ -27,6 +29,14 @@ failed the step after the lock time, and (3700) the view was queued again for ev
 - `gateExterior` then measures: the car's box against the target, the wall and the floor against the plate, the contact
   shadow under the car, the view and the direction of the nose. Inside views: the view. A refusal names its reasons; the next
   try is told them; three tries, then flagged for an Admin with them. The verdict is kept on the photo (`r45.gate`).
+
+## Renders made before r48.3: checked in place, not made again
+
+Sending every existing render back would have put "Photos coming soon" on the whole site. Instead each render made before
+r48.3 stays on the site (`r45.regate`) while the studio gate checks it as it is (job `photo_r45` with input `r45.regate`: one
+check call, no new image). Passed: kept, cropped onto its view's target. Refused: off the site and made again from the start.
+The checks and the renders go by demand (`app.photo_r48_cars`): the most viewed cars first, the bookable ones (published and
+available) first among cars viewed alike. Flagged renders (never on the site) are made again.
 
 ## Studio renders only, everywhere
 

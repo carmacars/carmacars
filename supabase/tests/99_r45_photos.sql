@@ -120,17 +120,19 @@ select test.rq45p_up((select a from rq45p_i), 'front');
 select test.ok('a real photo of the angle replaces the generated view', (select replaced_at is not null and not is_public from vehicle_photos where id = (select id from rq45p_gen)));
 
 -- ---------------------------------------------------------------- 3. the first photo is always an outside one
+-- (3701: the public gallery is studio renders only, else the Photos coming soon photo; the order of the car's own photos is
+-- read from the gallery before 3701, app.public_listing_photos_pre3701)
 create temp table rq45p_bp as select test.rq45p_up((select b from rq45p_i), 'dashboard') as dash;
 select test.rq45p_live('rq45p_b');
 select test.eq('flagged in Admin: the first photo would be an inside one', app.vehicle_primary_state(test.id('vehicle:rq45p_b')), 'not_exterior');
-select test.eq('the site shows no photo rather than an inside one first', jsonb_array_length(app.public_listing_photos(test.id('vehicle:rq45p_b')))::text, '0');
+select test.eq('the site shows no photo rather than an inside one first', jsonb_array_length(app.public_listing_photos_pre3701(test.id('vehicle:rq45p_b')))::text, '0');
 select test.ok('the cards and feeds get no inside cover', (app.cover_photo(test.id('vehicle:rq45p_b'))).id is null);
-select test.ok('the car with photos keeps them, the front three-quarter first', (select app.public_listing_photos(test.id('vehicle:rq45p_a')) -> 0 ->> 'shot') = 'front_left'
+select test.ok('the car with photos keeps them, the front three-quarter first', (select app.public_listing_photos_pre3701(test.id('vehicle:rq45p_a')) -> 0 ->> 'shot') = 'front_left'
   and (select (app.cover_photo(test.id('vehicle:rq45p_a'))).shot_type) = 'front_left');
 -- 2890: an inside photo placed first by hand does not hide the car's outside photos further down
 update vehicle_photos set sort_order = -50 where vehicle_id = test.id('vehicle:rq45p_a') and shot_type = 'dashboard' and replaced_at is null;
 select test.ok('an inside photo sorted first: the cover and the gallery still lead with the front three-quarter (2890)',
-  (app.cover_photo(test.id('vehicle:rq45p_a'))).shot_type = 'front_left' and app.public_listing_photos(test.id('vehicle:rq45p_a')) -> 0 ->> 'shot' = 'front_left'
+  (app.cover_photo(test.id('vehicle:rq45p_a'))).shot_type = 'front_left' and app.public_listing_photos_pre3701(test.id('vehicle:rq45p_a')) -> 0 ->> 'shot' = 'front_left'
   and app.vehicle_primary_state(test.id('vehicle:rq45p_a')) = 'exterior');
 update vehicle_photos set sort_order = 0 where vehicle_id = test.id('vehicle:rq45p_a') and shot_type = 'dashboard' and replaced_at is null and sort_order = -50;
 select test.throws('a listing is never published with an inside photo first',
@@ -142,7 +144,7 @@ select app.job_photo_r45();
 create temp table rq45p_bfl as select id from vehicle_photos where vehicle_id = test.id('vehicle:rq45p_b') and ai_generated and shot_type = 'front_left' and replaced_at is null;
 select test.eq('its front three-quarter is generated', (select count(*)::text from rq45p_bfl), '1');
 select test.rq45p_answer((select id from rq45p_bfl), test.rq45p_made('vehicles/rq45p/b-fl-gen.jpg'));
-select test.eq('then the generated front three-quarter is the first photo', app.public_listing_photos(test.id('vehicle:rq45p_b')) -> 0 ->> 'shot', 'front_left');
+select test.eq('then the generated front three-quarter is the first photo', app.public_listing_photos_pre3701(test.id('vehicle:rq45p_b')) -> 0 ->> 'shot', 'front_left');
 select test.eq('and the flag clears', app.vehicle_primary_state(test.id('vehicle:rq45p_b')), 'exterior');
 
 -- ---------------------------------------------------------------- 4. the daily limit

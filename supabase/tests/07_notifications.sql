@@ -30,11 +30,11 @@ end $$;
 
 -- ================================================================== A. catalogue
 select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign, 0370 a visitor message waiting in live chat, 0430 the start and end notices, 0400 the two tracker alerts, 0441 the data health notice, 0380 adds one email, 0460 the lead and visitor alerts, 0462 the staff alerts, 0532 the return report denied, 0535 the apology to remote applicants moved to the AI interview, 0547 the partner invoice, 0583 the staff email digest, 0955 the accounts merged note, 2520 the weekly and new-car marketing emails, 2620 the owner trip and weekly emails, 3000 the eleven Rewards emails, 3113 the text fallback and the two suspension emails, 3152 the two studio photos notices, 3199 the three data check emails, 3231 the GPS tracker waitlist email, 3321 the four tracker event emails, 3326 the border alert email, 3350 the monitoring policy copy, 3260 to 3271 the summary, the two rewards updates, the weekly driving summary and the two owner money emails (the owner tracker alert is 3321''s), 3480 the unmatched bank line, 3600 the seven gift card emails, 3610 the three e-Transfer report emails, 3650 card payments paused and the renter''s two e-Transfer answers))',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '272/21');
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '281/21');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
-select test.eq('A every path of emails/src/links.mjs is loaded (3610 adds the two booking Money links, 3650 Program settings)', (select count(*) from notification_link_paths), 85::bigint);
+select test.eq('A every path of emails/src/links.mjs is loaded (3610 adds the two booking Money links, 3650 Program settings, 3720 the two field spending links, 3800 the owner page for Fleet)', (select count(*) from notification_link_paths), 88::bigint);
 select test.eq('A every email code says what emits it; only the two sign-in service emails are emitted by nobody (the sign-in link is the owner invitation''s, 0029)',
   (select string_agg(code, ',' order by code) from notification_catalogue where has_email and (emitted_by is null or emitted_by like 'not emitted%')),
   'account_password_reset,account_security_notice');
@@ -917,6 +917,7 @@ select test.eq('G every wired email code has been built at least once in these t
       and c.code not in ('staff_etransfer_reported', 'staff_etransfer_confirmed', 'staff_etransfer_declined') -- the e-Transfer reports (3610), built in 99_r49_etransfer_reports
       and c.code not in ('admin_card_payments_paused', 'renter_etransfer_confirmed', 'renter_etransfer_declined') -- card payments paused (3650), built in 99_hotfix_card_off
       and c.code not in ('owner_master_agreement_ready', 'owner_schedule_ready', 'owner_sign_reminder', 'owner_car_delivered', 'staff_owner_signed', 'owner_document_reissued') -- sign first and the owner fixes (3800, 3810), built in 99_r50ow_sign_first and 99_r50ow_owner_fixes
+      and c.code not in ('staff_expense_submitted', 'staff_expense_approved', 'staff_expense_declined') -- whose money (3720), built in 99_r50_field_reimbursements
       and not exists (select 1 from notification_outbox o where o.code = c.code)
       and not exists (select 1 from staff_digest_items d where d.code = c.code)),
   null::text);

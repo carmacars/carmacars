@@ -7,6 +7,8 @@ select test.suite('49 listing without roadblocks');
 
 -- the earlier suites run with automatic publishing off (helpers.sql): on here, as in production
 update program_settings set listing_publish_new_cars_automatically = true;
+-- sign first (3800) is its own suite (99_r50ow_sign_first): here the owner's agreements are not the subject
+update program_settings set owner_sign_first = false;
 select test.mk_user('nr_admin', 'admin');
 select test.mk_user('nr_fleet', 'va', 'fleet');
 select test.mk_user('nr_fin', 'va', 'finance');
@@ -88,3 +90,4 @@ select test.ok('its unsent events are closed, so the outbox batch goes on',
   (select processed_at is not null from app_events where dedupe_key = 'nr-del-test'));
 
 update program_settings set listing_publish_new_cars_automatically = false;
+update program_settings set owner_sign_first = true;

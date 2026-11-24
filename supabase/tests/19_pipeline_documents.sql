@@ -178,8 +178,8 @@ create temp table pd_rv as select app.review_listing(test.id('pd_cs'), test.pd_k
 select test.eq('end to end: customer service approves; the car is published through app.publish_listing',
   (select r ->> 'status' from pd_rv) || '/' || (select status from vehicle_listings where vehicle_id = test.id('vehicle:pdW'))
   || '/' || (select state from listing_intakes where id = test.pd_k()), 'published/published/published');
-select test.eq('end to end: the public car page shows the drafted headline and the processed photos',
-  (select (c ->> 'headline') || '/' || (jsonb_array_length(c -> 'photos') >= 10)::text
+select test.eq('end to end: the public car page shows the drafted headline and, until its studio renders pass, the Photos coming soon photo (3701: the processed photos are never public)',
+  (select (c ->> 'headline') || '/' || (c #>> '{photos,0,placeholder}')
      from public.car_page((select slug from vehicle_listings where vehicle_id = test.id('vehicle:pdW'))) c),
   'A 2023 Mercedes-Benz EQE 4MATIC sedan with all-wheel drive/true');
 select test.eq('end to end: the public page carries no plate, VIN or original path',

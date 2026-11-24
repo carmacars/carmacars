@@ -30,6 +30,10 @@ select test.eq('a confirm with other arguments is refused',
   'The arguments differ from the preview: preview again with these');
 select test.eq('confirmed: approved, the set-up email is left to the web layer',
   test.q50call('q50-w', 'approve_owner_car', jsonb_build_object('application', (select r ->> 'application_id' from q50_app), 'confirm', true, 'preview_id', (select r ->> 'preview_id' from q50_pv))) #>> '{result,run}', 'owner_setup');
+-- sign first (3800): the approval waits for the owner's signatures, then goes through by itself
+select test.eq('sign first: nothing on the lease before the owner signs', (select count(*) from vehicle_owner_arrangements a where a.owner_id = test.q50owner() and a.cancelled_at is null), 0::bigint);
+update owner_agreements set status = 'signed', agreement_date = app.today() where owner_id = test.q50owner() and status in ('draft', 'sent');
+update vehicle_schedules s set signed_at = now() from vehicles v where v.id = s.vehicle_id and v.owner_id = test.q50owner() and s.signed_at is null and s.superseded_by is null;
 select test.eq('the car is on the lease at the supplier''s tier', (select string_agg(a.lease_tier, ',') from vehicle_owner_arrangements a where a.owner_id = test.q50owner() and a.cancelled_at is null), 'troubled');
 select test.ok('the Fleet Supplier Lease Agreement is made for signing', exists (select 1 from owner_agreements g where g.owner_id = test.q50owner() and g.variant = 'fleet_lease' and g.status <> 'void'));
 select test.eq('approved once only', test.q50call('q50-w', 'approve_owner_car', jsonb_build_object('application', (select r ->> 'application_id' from q50_app))) ->> 'error', 'This application is approved already');

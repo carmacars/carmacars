@@ -74,8 +74,8 @@ select test.eq('the intake is published: its processed photos are approved',
 select test.ok('its plate not checked: still off the site (0070)', (select not is_public from vehicle_photos where id = (select detail from rphp)));
 update vehicle_photos set plate_status = 'not_visible' where id = (select detail from rphp);
 select test.ok('marked "no plate visible": on the site', (select is_public from vehicle_photos where id = (select detail from rphp)));
-select test.ok('on the site, but never the first photo: with no outside photo the site lists none (2841)',
-  (select is_public from vehicle_photos where id = (select detail from rphp)) and jsonb_array_length(app.public_listing_photos(test.id('vehicle:rph_car'))) = 0);
+select test.ok('on the site, but never the first photo: with no outside photo the site shows only the Photos coming soon photo (2841, 3701)',
+  (select is_public from vehicle_photos where id = (select detail from rphp)) and app.public_listing_photos(test.id('vehicle:rph_car')) #>> '{0,placeholder}' = 'true');
 update vehicle_photos set quality_flags = '["watermark"]'::jsonb where id = (select detail from rphp);
 select test.ok('a photo flagged for a mark is still kept off the site (0566)', (select not is_public from vehicle_photos where id = (select detail from rphp)));
 update vehicle_photos set quality_flags = '[]'::jsonb, is_public = true where id = (select detail from rphp);
@@ -84,8 +84,8 @@ update vehicle_photos set quality_flags = '[]'::jsonb, is_public = true where id
 select test.ok('the front-left photo is not approved yet: the detail photo is never the cover (2841)',
   (select (r #>> '{cover,path}') is distinct from 'vehicles/rph/detail.jpg' from (select app.public_listing_row(test.id('vehicle:rph_car')) r) x));
 update vehicle_photos set status = 'approved', processed_path = 'vehicles/rph/fl.jpg', plate_status = 'covered', is_public = true where id = (select fl from rphp);
-select test.eq('the front-left photo approved and its plate covered: it is the cover',
-  (select r #>> '{cover,path}' from (select app.public_listing_row(test.id('vehicle:rph_car')) r) x), 'vehicles/rph/fl.jpg');
+select test.eq('the front-left photo approved and its plate covered: still not public (3701), the cover is the Photos coming soon photo',
+  (select r #>> '{cover,path}' from (select app.public_listing_row(test.id('vehicle:rph_car')) r) x), '/studio/coming-soon.jpg');
 select test.ok('the review no longer names each of the 14 shots, and has a cover',
   not exists (select 1 from unnest(app.listing_photo_problems(test.id('vehicle:rph_car'))) x where x like '% photo is not processed and approved' or x = 'No cover photo'));
 

@@ -65,6 +65,7 @@ comment on table helcim_intents is 'r50 (3710): one row per Helcim payment the s
 create trigger helcim_intents_updated before update on helcim_intents for each row execute function app.set_updated_at();
 create trigger audit_helcim_intents after insert or update or delete on helcim_intents for each row execute function app.audit_row('redact');
 alter table helcim_intents enable row level security;
+create policy admin_all on helcim_intents for select to authenticated using (app.is_admin());
 revoke all on helcim_intents from public, anon, authenticated;
 grant all on helcim_intents to service_role;
 
@@ -74,7 +75,9 @@ create table if not exists helcim_calls (
   created_at      timestamptz not null default now()
 );
 comment on table helcim_calls is 'r50 (3710): the result of each money call to Helcim (capture, refund, reverse, a saved-card charge, a customer) by our idempotency key, kept for good (Helcim keeps its keys 5 minutes).';
+create trigger audit_helcim_calls after insert or update or delete on helcim_calls for each row execute function app.audit_row('redact');
 alter table helcim_calls enable row level security;
+create policy admin_all on helcim_calls for select to authenticated using (app.is_admin());
 revoke all on helcim_calls from public, anon, authenticated;
 grant all on helcim_calls to service_role;
 

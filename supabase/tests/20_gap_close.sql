@@ -387,7 +387,8 @@ select test.eq('catalogue: every email code is emitted by a database function, e
    select string_agg(c.code, ',' order by c.code) from notification_catalogue c, src
     where c.has_email and position('''' || c.code || '''' in src.s) = 0
       and not (c.code ~ '^staff_digest_(morning|eod)_(admin|va_finance|va_fleet|va_cs|va_sales)$' and src.s like '%''staff_digest_'' || p_slot%')
-      and not (c.code in ('staff_field_jobs_today', 'staff_field_jobs_tomorrow') and src.s like '%''staff_field_jobs_'' || p_which%')),
+      and not (c.code in ('staff_field_jobs_today', 'staff_field_jobs_tomorrow') and src.s like '%''staff_field_jobs_'' || p_which%')
+      and c.code <> 'owner_document_reissued'), -- 3810: emitted by the document correction run, not by name in one function
   'account_password_reset,account_security_notice');
 select test.eq('catalogue: those two are documented as sent by the sign-in service; the sign-in link email is the owner invitation''s (0029)',
   (select string_agg(code, ',' order by code) from notification_catalogue where emitted_by like 'not emitted%'), 'account_password_reset,account_security_notice');

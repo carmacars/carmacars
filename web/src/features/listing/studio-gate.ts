@@ -99,14 +99,14 @@ export function cropResize(img: Rgba, win: FBox, width: number, height: number):
 /** The mean colour (0 to 255 each) of a region given in fractions, leaving out a box (the car); null when nothing is left. */
 export function regionMean(img: Rgba, r: FBox, skip?: FBox | null): [number, number, number] | null {
   const GX = 60, GY = 30;
-  let n = 0; const m = [0, 0, 0];
+  let n = 0; const m: [number, number, number] = [0, 0, 0];
   for (let gy = 0; gy < GY; gy++) for (let gx = 0; gx < GX; gx++) {
     const fx = r.x + ((gx + 0.5) / GX) * r.w, fy = r.y + ((gy + 0.5) / GY) * r.h;
     if (skip && fx >= skip.x && fx <= skip.x + skip.w && fy >= skip.y && fy <= skip.y + skip.h) continue;
     const i = (Math.min(img.height - 1, Math.floor(fy * img.height)) * img.width + Math.min(img.width - 1, Math.floor(fx * img.width))) * 4;
-    m[0] += img.data[i]!; m[1] += img.data[i + 1]!; m[2] += img.data[i + 2]!; n++;
+    m[0] += img.data[i] ?? 0; m[1] += img.data[i + 1] ?? 0; m[2] += img.data[i + 2] ?? 0; n++;
   }
-  return n ? [m[0]! / n, m[1]! / n, m[2]! / n] : null;
+  return n ? [m[0] / n, m[1] / n, m[2] / n] : null;
 }
 const dist = (a: [number, number, number] | null, b: [number, number, number] | null) =>
   a && b ? (Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2])) / 765 : 1;
