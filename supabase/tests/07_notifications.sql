@@ -34,7 +34,7 @@ select test.eq('A the catalogue holds every email of emails/catalogue.json plus 
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
-select test.eq('A every path of emails/src/links.mjs is loaded', (select count(*) from notification_link_paths), 82::bigint);
+select test.eq('A every path of emails/src/links.mjs is loaded (3610 adds the two booking Money links)', (select count(*) from notification_link_paths), 84::bigint);
 select test.eq('A every email code says what emits it; only the two sign-in service emails are emitted by nobody (the sign-in link is the owner invitation''s, 0029)',
   (select string_agg(code, ',' order by code) from notification_catalogue where has_email and (emitted_by is null or emitted_by like 'not emitted%')),
   'account_password_reset,account_security_notice');
@@ -914,6 +914,7 @@ select test.eq('G every wired email code has been built at least once in these t
       and c.code not in ('notify_summary', 'owner_reward_update', 'owner_tracker_weekly', 'staff_reward_update') -- 3260 to 3262 and 3353, built in 99_r48rw_rewards_calendar_notify
       and c.code not in ('owner_use_charges', 'owner_insurance_late_fee') -- 3270 and 3271, queued in 99_r48rw_owner_money
       and not (c.code = any (app.gift_notice_codes())) -- the gift card emails (3600), built in 99_r49_gift_cards
+      and c.code not in ('staff_etransfer_reported', 'staff_etransfer_confirmed', 'staff_etransfer_declined') -- the e-Transfer reports (3610), built in 99_r49_etransfer_reports
       and not exists (select 1 from notification_outbox o where o.code = c.code)
       and not exists (select 1 from staff_digest_items d where d.code = c.code)),
   null::text);

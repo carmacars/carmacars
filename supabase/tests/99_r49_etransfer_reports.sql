@@ -171,3 +171,13 @@ select test.eq('confirmed from the connector: the rental and fees, and the depos
   'confirmed/0/captured:offline:e_transfer:60000/confirmed');
 select test.ok('the connector calls are logged', (select count(*) from api_calls where tool like 'etransfer_check%') >= 3);
 update program_settings p set api_access_enabled = s.e, api_calls_per_minute = s.n from etr_ps s where s.id = p.id;
+
+-- ================================================================ 7. the notices go through the pipeline: email, in-app
+select app.process_events(100000);
+select test.eq('every e-Transfer email was built, with no variable missing',
+  (select string_agg(c, ',' order by c) from unnest(array['staff_etransfer_reported', 'staff_etransfer_confirmed', 'staff_etransfer_declined']) c
+    where not exists (select 1 from notification_outbox o where o.code = c and o.missing_variables = '{}')
+      and not exists (select 1 from staff_digest_items d where d.code = c)), null::text);
+select test.ok('Finance has the alert in the app', exists (select 1 from notifications n where n.user_id = test.id('etr_fin') and n.code = 'staff_etransfer_reported'));
+select test.ok('the rep has the answers in the app', (select count(distinct n.code) from notifications n where n.user_id = test.id('etr_sales') and n.code in ('staff_etransfer_confirmed', 'staff_etransfer_declined')) = 2);
+select test.ok('Sales does not get Finance''s alert', not exists (select 1 from notifications n where n.user_id = test.id('etr_sales') and n.code = 'staff_etransfer_reported'));
