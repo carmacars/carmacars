@@ -132,6 +132,7 @@ select test.lives('...and is brought back', format($s$select test.cdoc_do('cdoc_
 select test.eq('...not archived', (select archived_at is null from company_documents where id = (select (r ->> 'document')::uuid from cdoc_a)), true);
 
 -- ================================================================ 6. a document to sign
+create function test.cdoc_csha(p_version text) returns text language sql as $$ select app.company_document_content_sha(body_md, fields) from company_document_versions where id = p_version::uuid $$;
 create temp table cdoc_body as select E'### 1. Parties\n\nThis dummy agreement is between {{holdco_a}} and {{holdco_b}}.\n\n### 2. Money\n\nEach puts in {{amount}}.\n' as b;
 select test.throws('a signer must be an Admin', format($s$select test.cdoc_do('cdoc_admin', 'company_document_save', %L)$s$,
   jsonb_build_object('kind', 'shareholder_agreement', 'title', 'Dummy agreement', 'body_md', (select b from cdoc_body), 'signers', jsonb_build_array(jsonb_build_object('user_id', test.id('cdoc_fin'), 'role_label', 'Side A')))), '%active Admin%');
@@ -141,12 +142,16 @@ create temp table cdoc_s1 as select test.cdoc_do('cdoc_admin', 'company_document
                                jsonb_build_object('user_id', test.id('cdoc_admin2'), 'role_label', 'Principal of Side B, and for Holdco B')))) as r;
 select test.eq('a text to sign is a draft with the fill-ins still missing', (select (r ->> 'status') || '/' || (r -> 'missing')::text || '/' || (r ->> 'ready') from cdoc_s1), 'draft/["holdco_b", "amount"]/false');
 select test.throws('it is not sent while a fill-in is missing', format($s$select test.cdoc_do('cdoc_admin', 'company_document_send', %L)$s$,
-  jsonb_build_object('version', (select r ->> 'version_id' from cdoc_s1), 'path', test.cdoc_path((select r ->> 'document' from cdoc_s1), 'cdoc:p1'), 'sha256', repeat('c', 64))), '%Fill in first: holdco_b, amount%');
+  jsonb_build_object('version', (select r ->> 'version_id' from cdoc_s1), 'path', test.cdoc_path((select r ->> 'document' from cdoc_s1), 'cdoc:p1'), 'sha256', repeat('c', 64),
+  'content_sha256', test.cdoc_csha((select r ->> 'version_id' from cdoc_s1)))), '%Fill in first: holdco_b, amount%');
 create function test.cdoc_dpath(p_doc text, p_file text) returns text language sql as $$ select 'company-documents/' || p_doc || '/' || test.id(p_file) || '.pdf' $$;
 select test.eq('the fill-ins complete it', test.cdoc_do('cdoc_admin', 'company_document_fields', jsonb_build_object('document', (select r ->> 'document' from cdoc_s1),
   'fields', jsonb_build_object('holdco_b', 'Example Holdco B Inc.', 'amount', '$10')))->> 'ready', 'true');
+select test.throws('a PDF rendered before the text or fill-ins changed is refused', format($s$select test.cdoc_do('cdoc_admin', 'company_document_send', %L)$s$,
+  jsonb_build_object('version', (select r ->> 'version_id' from cdoc_s1), 'path', test.cdoc_dpath((select r ->> 'document' from cdoc_s1), 'cdoc:p1'), 'sha256', repeat('c', 64),
+    'content_sha256', repeat('0', 64))), '%changed while the PDF was made%');
 create temp table cdoc_send as select test.cdoc_do('cdoc_admin', 'company_document_send', jsonb_build_object('version', (select r ->> 'version_id' from cdoc_s1),
-  'path', test.cdoc_dpath((select r ->> 'document' from cdoc_s1), 'cdoc:p1'), 'sha256', repeat('c', 64))) as r;
+  'path', test.cdoc_dpath((select r ->> 'document' from cdoc_s1), 'cdoc:p1'), 'sha256', repeat('c', 64), 'content_sha256', test.cdoc_csha((select r ->> 'version_id' from cdoc_s1)))) as r;
 select test.eq('sent: one request per signer, to sign', (select (r ->> 'status') || '/' || (r ->> 'signers') from cdoc_send), 'to_sign/2');
 select test.eq('each signer is told once, in Admin and by email', (select count(distinct payload ->> 'recipient_user_id') || '/' || count(*) from app_events
   where code = 'admin_company_document_to_sign' and entity_id = (select (r ->> 'document')::uuid from cdoc_s1)), '2/2');
@@ -187,10 +192,11 @@ select test.eq('the facts of the signed copy: both signers with their records',
 select test.lives('the signed copy is filed as the version''s PDF', format($s$select test.cdoc_do('cdoc_admin2', 'company_document_attach_signed', %L)$s$,
   jsonb_build_object('version', (select r ->> 'version_id' from cdoc_s1), 'path', 'company-documents/' || (select r ->> 'document' from cdoc_s1) || '/' || (select r ->> 'version_id' from cdoc_s1) || '-signed.pdf',
                      'sha256', repeat('d', 64), 'size_bytes', 5000)));
-select test.eq('...both signers get it, once each, with the signed copy', (select count(distinct payload ->> 'recipient_user_id') || '/' || count(*) || '/' || bool_and(payload #>> '{signed_agreement_url,k}' = 'document')::text
+select test.eq('...both signers are told, once each, with the version to open', (select count(distinct payload ->> 'recipient_user_id') || '/' || count(*) || '/' || bool_and(payload ->> 'company_document_version_id' = (select r ->> 'version_id' from cdoc_s1))::text
   from app_events where code = 'admin_company_document_signed' and entity_id = (select (r ->> 'document')::uuid from cdoc_s1)), '2/2/true');
 select app.process_events();
-select test.eq('...their two emails are built, the signed copy linked', (select count(distinct recipient_user_id) || '/' || bool_and(payload ? 'signed_agreement_url')::text
+select test.eq('...their two emails are built, pointing at the signed copy in Admin, never a link that works without sign-in',
+  (select count(distinct recipient_user_id) || '/' || bool_and(payload ->> 'company_document_version_id' = (select r ->> 'version_id' from cdoc_s1) and not (payload ? 'signed_agreement_url'))::text
   from notification_outbox where code = 'admin_company_document_signed' and entity_id = (select (r ->> 'document')::uuid from cdoc_s1) and coalesce(channel, 'email') = 'email' and status = 'queued'), '2/true');
 select test.eq('...and an Admin opens it from the agreements bucket', (public.door(test.id('cdoc_admin3'), 'aal2', 'admin_read', 'company_document_file', jsonb_build_object('version', (select r ->> 'version_id' from cdoc_s1))) ->> 'bucket'), 'agreements');
 -- a new version restarts the signing
@@ -200,11 +206,22 @@ create temp table cdoc_s2 as select test.cdoc_do('cdoc_admin', 'company_document
 select test.eq('a change is version 2, a draft again, ready to send', (select (r ->> 'version') || '/' || (r ->> 'status') || '/' || (r ->> 'ready') from cdoc_s2), '2/draft/true');
 select test.eq('...version 1 stays signed', (select status from company_document_versions where id = (select (r ->> 'version_id')::uuid from cdoc_s1)), 'signed');
 select test.lives('version 2 is sent', format($s$select test.cdoc_do('cdoc_admin', 'company_document_send', %L)$s$,
-  jsonb_build_object('version', (select r ->> 'version_id' from cdoc_s2), 'path', test.cdoc_dpath((select r ->> 'document' from cdoc_s1), 'cdoc:p2'), 'sha256', repeat('e', 64))));
+  jsonb_build_object('version', (select r ->> 'version_id' from cdoc_s2), 'path', test.cdoc_dpath((select r ->> 'document' from cdoc_s1), 'cdoc:p2'), 'sha256', repeat('e', 64),
+  'content_sha256', test.cdoc_csha((select r ->> 'version_id' from cdoc_s2)))));
+create function test.cdoc_req2(p_user text) returns uuid language sql as $$
+  select s.sign_request_id from company_document_signers s where s.user_id = test.id(p_user) and s.version_id = (select (r ->> 'version_id')::uuid from cdoc_s2) $$;
+select test.lives('one signer signs version 2', format($s$select public.sign_request_sign(%L, %L, %L)$s$, test.id('cdoc_admin'), test.cdoc_req2('cdoc_admin'),
+  jsonb_build_object('typed_name', 'Cdoc Admin', 'consent_text', 'I sign this dummy agreement', 'document_sha256', repeat('e', 64), 'company_ack', true)));
 create temp table cdoc_s3 as select test.cdoc_do('cdoc_admin', 'company_document_save', jsonb_build_object('document', (select r ->> 'document' from cdoc_s1),
   'body_md', 'Dummy text, version 3.', 'signers', jsonb_build_array(jsonb_build_object('user_id', test.id('cdoc_admin'), 'role_label', 'Side A')))) as r;
-select test.eq('version 3 voids the open requests of version 2', (select string_agg(r.status, ',') from company_document_signers s right join sign_requests r on r.id = s.sign_request_id
-  where r.extra ->> 'company_document_version_id' = (select x.r ->> 'version_id' from cdoc_s2 x)), 'voided,voided');
+select test.eq('version 3 voids only the open request of version 2', (select string_agg(r.status, ',' order by r.status) from sign_requests r
+  where r.extra ->> 'company_document_version_id' = (select x.r ->> 'version_id' from cdoc_s2 x)), 'signed,voided');
+select test.eq('...the signature already in stays linked to its signer; the voided request is unlinked',
+  (select string_agg(u.full_name || ':' || coalesce(r.status, 'unlinked'), ', ' order by u.full_name) from company_document_signers s join users u on u.id = s.user_id
+     left join sign_requests r on r.id = s.sign_request_id where s.version_id = (select (x.r ->> 'version_id')::uuid from cdoc_s2 x)), 'Cdoc Admin:signed, Cdoc Admin2:unlinked');
+select test.throws('...and version 2''s text stays frozen', format($s$update company_document_versions set fields = '{}' where id = %L$s$, (select r ->> 'version_id' from cdoc_s2)), '%new version%');
+select test.throws('an earlier version''s fill-ins cannot be edited', format($s$select test.cdoc_do('cdoc_admin', 'company_document_fields', %L)$s$,
+  jsonb_build_object('version', (select r ->> 'version_id' from cdoc_s1), 'fields', jsonb_build_object('amount', '$99'))), '%Only the latest version%');
 select test.eq('...and version 2 is no longer waiting for signatures', (select status from company_document_versions where id = (select (r ->> 'version_id')::uuid from cdoc_s2)), 'draft');
 select test.eq('the list never carries the body', (test.cdoc_read('cdoc_admin')::text like '%dummy agreement is between%'), false);
 select test.eq('the page of one document does, for an Admin', (public.door(test.id('cdoc_admin3'), 'aal2', 'admin_read', 'company_document', jsonb_build_object('document', (select r ->> 'document' from cdoc_s1))) #>> '{current,body_md}'), 'Dummy text, version 3.');
@@ -263,6 +280,9 @@ select test.eq('a signer who is not an Admin is refused', test.cdoc_api('cc_live
 create temp table cdoc_tpv as select test.cdoc_api('cc_live_cdoc_full', 'company_document_upload', (select a from cdoc_targs)) as r;
 select test.eq('the preview of a text to sign names what is still to fill in', (select r #>> '{result,will_do}' from cdoc_tpv),
   'Add "Dummy connector agreement" (Shareholder agreement) to Admin > Company documents as a new document, version 1. It is a document to sign; still to fill in (company_document_fields): side_b.');
+select test.eq('...the fill-ins'' values never reach the previews or the log: their names and a hash only',
+  (select bool_and(not (x.args ? 'fields') and x.args::text not like '%Example A Inc.%' and coalesce(x.before::text, '') not like '%Example A Inc.%') from api_calls x where x.target = 'Dummy connector agreement')
+  and (select bool_and(not (p.args ? 'fields') and p.args ? 'fields_sha256' and p.args -> 'field_keys' = '["side_a"]'::jsonb) from api_previews p where p.tool = 'company_document_upload' and p.args ->> 'title' = 'Dummy connector agreement'), true);
 select test.eq('...the body never reaches the log, only its fingerprint', (select bool_and(not (args ? 'body_md')) and bool_or(args ? 'body_sha256') from api_calls where tool like 'company_document_upload%' and target = 'Dummy connector agreement'), true);
 create temp table cdoc_tcf as select test.cdoc_api('cc_live_cdoc_full', 'company_document_upload',
   (select a || jsonb_build_object('confirm', true, 'preview_id', (select r #>> '{result,preview_id}' from cdoc_tpv)) from cdoc_targs)) as r;
@@ -292,3 +312,8 @@ select test.ok('the new functions are the server''s alone, with pg_temp last on 
 select test.ok('the foreign keys have indexes', exists (select 1 from pg_indexes where tablename = 'company_document_versions' and indexdef like '%(document_id, version)%'));
 
 update program_settings s set api_access_enabled = p.e, api_calls_per_minute = p.n, esign_strict = p.x from cdoc_ps p where s.id = p.id;
+
+-- the audit log keeps the change, never the text or the fill-ins (redact)
+select test.eq('the audit log of the versions holds no text and no fill-ins', (select count(*) from audit_log where entity_table = 'company_document_versions'
+  and (coalesce(before::text, '') || coalesce(after::text, '')) ~ '(dummy|Example Holdco|Example A Inc)'), 0::bigint);
+select test.ok('...and it did log the changes', exists (select 1 from audit_log where entity_table = 'company_document_versions'));

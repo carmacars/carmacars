@@ -19345,13 +19345,13 @@
       "code": "admin_company_document_signed",
       "audience": "staff_admin",
       "category": "transactional",
-      "trigger": "Release 50 (5060): every signer has signed a company document in Admin > Company documents and its signed copy is filed. To each Admin who signed, once per version, with the signed copy.",
+      "trigger": "Release 50 (5060): every signer has signed a company document in Admin > Company documents and its signed copy is filed. To each Admin who signed, once per version, with a link to the signed copy in Admin (sign-in required).",
       "timing": "Immediate, when the last signer signs",
       "digest": false,
       "from": "CarmaCars <hello@carmacars.ca>",
       "reply_to": "contact@carmacars.ca",
       "subject": "Signed by everyone: {{document_title}}",
-      "preheader": "Version {{document_version}} is signed. Your signed copy is inside.",
+      "preheader": "Version {{document_version}} is signed. Open the signed copy in Admin.",
       "sample_subject": "Signed by everyone: Shareholder Agreement",
       "variables": [
         {
@@ -19364,6 +19364,11 @@
           "name": "company_document_id",
           "type": "string",
           "sample": "a1b2c3d4-0000-4000-8000-000000000001"
+        },
+        {
+          "name": "company_document_version_id",
+          "type": "string",
+          "sample": "a1b2c3d4-0000-4000-8000-000000000002"
         },
         {
           "name": "document_title",
@@ -19380,12 +19385,6 @@
           "type": "string",
           "sample": "Abbas",
           "note": "First name of the person the email is addressed to."
-        },
-        {
-          "name": "signed_agreement_url",
-          "type": "url",
-          "sample": "https://carmacars.ca/files/sample-signed-agreement",
-          "note": "Signed link to the signed agreement PDF."
         },
         {
           "name": "signed_at",

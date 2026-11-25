@@ -12,7 +12,8 @@ import { documentBlocks, signedCopyPath, toSignPath, type SignFacts } from '@/fe
 //                      (app.company_document_send opens one sign request per signer and tells each one)
 //   the signed copy    when everyone signed: the same document, then each signature block (the drawn image or the typed
 //                      name, the role, the date) and the record (time, method, IP address, device, the document's
-//                      SHA-256); app.company_document_attach_signed files it as the version's PDF and sends it to each signer
+//                      SHA-256); app.company_document_attach_signed files it as the version's PDF and tells each signer
+//                      (the email opens it in Admin, behind sign-in, never through a link that works without it)
 // Both run as the Admin who acted (the page) or whose key it is (the connector); the database checks the Admin again.
 type Aal = 'aal1' | 'aal2' | null;
 
@@ -26,7 +27,8 @@ export async function sendForSigning(userId: string, aal: Aal, versionId: string
   const s = await storage();
   await s.put('agreements', path, pdf, 'application/pdf');
   try {
-    return await door(userId, 'admin_do', 'company_document_send', { version: versionId, path, sha256: sha }, aal);
+    // content_sha256: the text and fill-ins this PDF was rendered from; the database refuses it if either changed since
+    return await door(userId, 'admin_do', 'company_document_send', { version: versionId, path, sha256: sha, content_sha256: f.content_sha256 }, aal);
   } catch (e) { await s.remove('agreements', path).catch(() => undefined); throw e; }
 }
 

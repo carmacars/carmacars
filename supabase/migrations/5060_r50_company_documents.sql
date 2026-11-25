@@ -113,7 +113,8 @@ comment on table company_document_signers is 'r50 (5060): who signs a company do
 
 create trigger company_documents_updated before update on company_documents for each row execute function app.set_updated_at();
 create trigger audit_company_documents after insert or update or delete on company_documents for each row execute function app.audit_row();
-create trigger audit_company_document_versions after insert or update or delete on company_document_versions for each row execute function app.audit_row();
+-- the body and the fill-ins never reach the audit log (redact: the change is logged, not the values, as 0380)
+create trigger audit_company_document_versions after insert or update or delete on company_document_versions for each row execute function app.audit_row('redact');
 create trigger audit_company_document_signers after insert or update or delete on company_document_signers for each row execute function app.audit_row();
 
 -- once the first signature is in, the body, the fill-ins and the signers of the version cannot change
@@ -186,7 +187,8 @@ language sql immutable set search_path = public, app, pg_temp as $$
 $$;
 select pg_temp.copy_grants('app.staff_email_own(text)'::regprocedure, 'app.staff_email_own_pre5060(text)'::regprocedure);
 
-insert into notification_link_paths (key, path) values ('admin_company_document', '/admin/company-documents/{{company_document_id}}') on conflict (key) do update set path = excluded.path;
+insert into notification_link_paths (key, path) values ('admin_company_document', '/admin/company-documents/{{company_document_id}}'),
+  ('admin_company_document_file', '/admin/company-documents/file/{{company_document_version_id}}') on conflict (key) do update set path = excluded.path;
 
 -- ================================================================ 2. reading (Admins)
 create function app.company_document_kinds() returns table (key text, label text, sort_order integer)
@@ -208,6 +210,12 @@ create function app.company_document_missing(p_body text, p_fields jsonb) return
 language sql immutable set search_path = public, app, pg_temp as $$
   select coalesce(array_agg(k order by i), '{}'::text[]) from unnest(app.company_document_placeholders(p_body)) with ordinality as x(k, i)
    where nullif(btrim(coalesce(p_fields ->> k, '')), '') is null
+$$;
+
+-- what a signer signs, as a hash: the body and the fill-ins (sendForSigning renders from these and sends this back)
+create function app.company_document_content_sha(p_body text, p_fields jsonb) returns text
+language sql immutable set search_path = public, app, pg_temp as $$
+  select encode(sha256(convert_to(coalesce(p_body, '') || chr(10) || coalesce(p_fields, '{}'::jsonb)::text, 'UTF8')), 'hex')
 $$;
 
 -- the signers of a version with their state (never the signature itself)
@@ -299,6 +307,7 @@ begin
   return jsonb_build_object('document_id', d.id, 'version_id', v.id, 'title', d.title, 'version', v.version, 'status', v.status,
     'kind_label', (select k.label from app.company_document_kinds() k where k.key = d.kind),
     'body_md', v.body_md, 'fields', v.fields, 'missing', to_jsonb(app.company_document_missing(v.body_md, v.fields)), 'to_sign_sha256', v.to_sign_sha256,
+    'content_sha256', app.company_document_content_sha(v.body_md, v.fields),
     'has_signed_copy', v.path is not null,
     'signers', (select coalesce(jsonb_agg(jsonb_build_object('user_id', s.user_id, 'name', coalesce(r.signer_name, u.full_name), 'role_label', s.role_label,
                   'request_id', r.id, 'status', r.status, 'signed_at', x.signed_at, 'method', x.method, 'typed_name', x.typed_name,
@@ -314,16 +323,19 @@ end $$;
 -- void the open sign requests of a version (a new version, or fill-ins changed before anyone signed)
 create function app.company_document_void_requests(p_user uuid, p_version uuid, p_reason text) returns integer
 language plpgsql security definer set search_path = public, app, pg_temp as $$
-declare n integer;
+declare
+  v_ids uuid[];
+  v_srs uuid[];
 begin
-  update sign_requests r set status = 'voided', voided_at = now(), voided_by = p_user, void_reason = p_reason
-   where r.status = 'sent' and r.id in (select s.sign_request_id from company_document_signers s where s.version_id = p_version and s.sign_request_id is not null);
-  get diagnostics n = row_count;
-  update signature_requests x set status = 'voided'
-   where x.status in ('sent', 'partially_signed') and x.id in (select r.signature_request_id from sign_requests r join company_document_signers s on s.sign_request_id = r.id
-                                                               where s.version_id = p_version and r.status = 'voided');
-  update company_document_signers set sign_request_id = null where version_id = p_version and sign_request_id is not null;
-  return n;
+  -- only the requests still open: a signature already in stays linked to its signer
+  with x as (
+    update sign_requests r set status = 'voided', voided_at = now(), voided_by = p_user, void_reason = p_reason
+     where r.status = 'sent' and r.id in (select s.sign_request_id from company_document_signers s where s.version_id = p_version and s.sign_request_id is not null)
+    returning r.id, r.signature_request_id)
+  select coalesce(array_agg(id), '{}'), coalesce(array_agg(signature_request_id), '{}') into v_ids, v_srs from x;
+  update signature_requests set status = 'voided' where id = any (v_srs) and status in ('sent', 'partially_signed');
+  update company_document_signers set sign_request_id = null where version_id = p_version and sign_request_id = any (v_ids);
+  return cardinality(v_ids);
 end $$;
 
 -- the signers given as [{user_id or email, role_label or role}]: each an active Admin, once
@@ -421,6 +433,8 @@ begin
   select * into prev from company_document_versions where document_id = d.id and version = d.current_version;
   if prev.id is not null and prev.status = 'to_sign' then
     perform app.company_document_void_requests(p_user, prev.id, format('Replaced by version %s', prev.version + 1));
+    -- it waits for nothing more: back to draft (never sent again: only the latest version is). A signature already in stays
+    -- linked to its signer and frozen with the version.
     update company_document_versions set status = 'draft' where id = prev.id and status = 'to_sign';
   end if;
   v_ver := (select coalesce(max(version), 0) + 1 from company_document_versions where document_id = d.id);
@@ -458,6 +472,9 @@ begin
   else select x.* into v from company_document_versions x join company_documents d on d.id = x.document_id and x.version = d.current_version
         where d.id = nullif(p ->> 'document', '')::uuid for update of x; end if;
   if v.id is null then raise exception 'No such document' using errcode = 'P0002'; end if;
+  if v.version <> (select d.current_version from company_documents d where d.id = v.document_id) then
+    raise exception 'Only the latest version''s fill-ins change: version % is kept as it was', v.version using errcode = '23514';
+  end if;
   if v.file_kind <> 'signable' then raise exception 'This version is a PDF: it has no fill-ins' using errcode = '22023'; end if;
   if v.status = 'signed' or app.company_document_frozen(v.id) then raise exception 'Signing has started on this version: make a new version to change it' using errcode = '23514'; end if;
   if v.status = 'to_sign' then
@@ -470,7 +487,8 @@ begin
     'missing', to_jsonb(app.company_document_missing(v.body_md, v.fields)), 'ready', cardinality(app.company_document_missing(v.body_md, v.fields)) = 0, 'voided', n);
 end $$;
 
--- p: version, path (the PDF the server rendered, in the agreements bucket), sha256. Every placeholder filled, every signer
+-- p: version, path (the PDF the server rendered, in the agreements bucket), sha256, content_sha256 (of the body and fill-ins it
+-- was rendered from). Every placeholder filled, every signer
 -- an active Admin: one sign request per signer, and each is told (in Admin and by email).
 create function app.company_document_send(p_user uuid, p jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app, pg_temp as $$
@@ -492,6 +510,10 @@ begin
   select * into d from company_documents where id = v.document_id;
   if v.version <> d.current_version then raise exception 'Only the latest version is signed' using errcode = '23514'; end if;
   if v.status <> 'draft' then raise exception 'This version is % already', replace(v.status, '_', ' ') using errcode = '23514'; end if;
+  -- the PDF was rendered from this text and these fill-ins: anything changed since (under this row's lock) is refused
+  if coalesce(p ->> 'content_sha256', '') <> app.company_document_content_sha(v.body_md, v.fields) then
+    raise exception 'The text or the fill-ins changed while the PDF was made: send it again' using errcode = '23514';
+  end if;
   if cardinality(app.company_document_missing(v.body_md, v.fields)) > 0 then
     raise exception 'Fill in first: %', array_to_string(app.company_document_missing(v.body_md, v.fields), ', ') using errcode = '23514';
   end if;
@@ -554,8 +576,8 @@ begin
   for s in select x.user_id from company_document_signers x where x.version_id = v.id loop
     perform app.ntf_emit('admin_company_document_signed', 'company_document', d.id, 'signed:' || v.id || ':' || s.user_id,
       jsonb_build_object('recipient_user_id', s.user_id, 'company_document_id', d.id, 'document_title', d.title, 'document_version', v.version::text,
-        'signed_at', app.fmt_datetime(v.signed_at), 'signers_text', v_names,
-        'signed_agreement_url', jsonb_build_object('k', 'document', 'key', v_doc::text), '_url', app.ntf_link('admin_company_document', jsonb_build_object('company_document_id', d.id))));
+        'signed_at', app.fmt_datetime(v.signed_at), 'signers_text', v_names, 'company_document_version_id', v.id,
+        '_url', app.ntf_link('admin_company_document', jsonb_build_object('company_document_id', d.id))));
   end loop;
   return jsonb_build_object('document', d.id, 'version_id', v.id, 'signed_document_id', v_doc);
 end $$;
@@ -643,6 +665,7 @@ declare
   chk jsonb;
   k api_keys;
   v_args jsonb;
+  v_fields jsonb := case when jsonb_typeof(p_args) = 'object' then p_args -> 'fields' end;
   v_confirm boolean;
   pv api_previews;
   v_before jsonb;
@@ -676,35 +699,39 @@ begin
   end if;
 
   -- the writes: the bytes and the body stay out of the log and the preview; their fingerprint and length go in
-  chk := app.api_key_check(p_hash, 'admin:write', p_tool, a - 'pdf_base64' - 'body_md', p_client);
+  chk := app.api_key_check(p_hash, 'admin:write', p_tool, a - 'pdf_base64' - 'body_md' - 'fields', p_client);
   if not (chk ->> 'ok')::boolean then return chk; end if;
   k := jsonb_populate_record(null::api_keys, chk -> 'key');
   perform app.door_begin(k.user_id, 'aal2');
   v_confirm := coalesce((a ->> 'confirm')::boolean, false);
-  v_args := a - 'confirm' - 'preview_id' - 'pdf_base64' - 'body_md'
+  -- the log and the preview keep the fill-ins' names and a hash, never their values
+  v_args := a - 'confirm' - 'preview_id' - 'pdf_base64' - 'body_md' - 'fields'
+            || case when a ? 'fields' then jsonb_build_object('field_keys', (select coalesce(jsonb_agg(fk order by fk), '[]'::jsonb) from jsonb_object_keys(case when jsonb_typeof(v_fields) = 'object' then v_fields else '{}'::jsonb end) fk),
+                                                             'fields_sha256', encode(sha256(convert_to(coalesce(v_fields, 'null'::jsonb)::text, 'UTF8')), 'hex')) else '{}'::jsonb end
             || case when a ? 'pdf_base64' then jsonb_build_object('pdf_sha256', encode(sha256(convert_to(coalesce(a ->> 'pdf_base64', ''), 'UTF8')), 'hex'),
                                                                  'pdf_chars', length(coalesce(a ->> 'pdf_base64', ''))) else '{}'::jsonb end
             || case when a ? 'body_md' then jsonb_build_object('body_sha256', encode(sha256(convert_to(coalesce(a ->> 'body_md', ''), 'UTF8')), 'hex'),
                                                               'body_chars', length(coalesce(a ->> 'body_md', ''))) else '{}'::jsonb end;
   begin
     if not app.user_is_admin(k.user_id) then raise exception 'Only an Admin changes company documents' using errcode = '42501'; end if;
-    if v_args ? 'fields' and jsonb_typeof(v_args -> 'fields') <> 'object' then raise exception 'fields: an object of placeholder and value' using errcode = '22023'; end if;
+    if a ? 'fields' and jsonb_typeof(v_fields) is distinct from 'object' then raise exception 'fields: an object of placeholder and value' using errcode = '22023'; end if;
     if p_tool = 'company_document_fields' then
       select * into d from company_documents where id = nullif(v_args ->> 'document', '')::uuid;
       if d.id is null then raise exception 'document: the id from list_company_documents' using errcode = 'P0002'; end if;
       select * into cv from company_document_versions where document_id = d.id and version = d.current_version;
       if cv.file_kind <> 'signable' then raise exception 'The latest version of "%" is a PDF: it has no fill-ins', d.title using errcode = '22023'; end if;
-      if not (v_args ? 'fields') then raise exception 'fields: an object of placeholder and value' using errcode = '22023'; end if;
+      if not (a ? 'fields') then raise exception 'fields: an object of placeholder and value' using errcode = '22023'; end if;
       if cv.status = 'signed' or app.company_document_frozen(cv.id) then raise exception 'Signing has started on version % of "%": upload a new version to change it', cv.version, d.title using errcode = '23514'; end if;
       v_target := left(d.title, 200);
-      cv.fields := app.company_document_fields_merge(cv.fields, v_args -> 'fields');
+      cv.fields := app.company_document_fields_merge(cv.fields, v_fields);
       v_missing := app.company_document_missing(cv.body_md, cv.fields);
       v_before := jsonb_build_object('document', d.id, 'title', d.title, 'version', cv.version, 'status', cv.status,
-                                     'placeholders', to_jsonb(app.company_document_placeholders(cv.body_md)), 'fields_before', (select x.fields from company_document_versions x where x.id = cv.id));
+                                     'placeholders', to_jsonb(app.company_document_placeholders(cv.body_md)),
+                                     'filled_before', (select coalesce(jsonb_agg(fk order by fk), '[]'::jsonb) from company_document_versions x, jsonb_object_keys(x.fields) fk where x.id = cv.id));
       if not v_confirm then
         insert into api_previews (key_id, user_id, tool, args, before, after) values (k.id, k.user_id, p_tool, v_args, v_before, null) returning * into pv;
         v_result := jsonb_build_object('preview', true, 'preview_id', pv.id, 'tool', p_tool, 'expires_at', pv.created_at + interval '10 minutes', 'before', v_before,
-          'after', jsonb_build_object('fields', cv.fields, 'missing', to_jsonb(v_missing)),
+          'after', jsonb_build_object('filled', (select coalesce(jsonb_agg(fk order by fk), '[]'::jsonb) from jsonb_object_keys(cv.fields) fk), 'missing', to_jsonb(v_missing)),
           'will_do', format('Set the fill-ins of "%s", version %s.%s', d.title, cv.version,
                             case when cardinality(v_missing) > 0 then ' Still to fill in: ' || array_to_string(v_missing, ', ') || '.'
                                  else ' Every fill-in is there: the document is rendered and each signer is asked to sign in Admin (an in-app notice and an email).' end)
@@ -717,7 +744,7 @@ begin
         if pv.created_at < now() - interval '10 minutes' then raise exception 'This preview is more than 10 minutes old: preview again' using errcode = '22023'; end if;
         if pv.args is distinct from v_args then raise exception 'The arguments differ from the preview: preview again with these' using errcode = '22023'; end if;
         update api_previews set used_at = now() where id = pv.id;
-        v_r := app.company_document_fields(k.user_id, jsonb_build_object('version', cv.id, 'fields', v_args -> 'fields'));
+        v_r := app.company_document_fields(k.user_id, jsonb_build_object('version', cv.id, 'fields', v_fields)) - 'fields';
         v_result := case when (v_r ->> 'ready')::boolean then jsonb_build_object('run', 'company_doc_send', 'actor', k.user_id, 'params', v_r)
                          else jsonb_build_object('done', true, 'tool', p_tool) || v_r || jsonb_build_object('admin_path', '/admin/company-documents/' || d.id) end;
       end if;
@@ -743,7 +770,7 @@ begin
             raise exception 'signers: % is not an active Admin', coalesce(case when jsonb_typeof(g) = 'string' then g #>> '{}' else g ->> 'email' end, '?') using errcode = '22023';
           end if;
         end loop;
-        v_missing := app.company_document_missing(a ->> 'body_md', app.company_document_fields_merge('{}'::jsonb, v_args -> 'fields'));
+        v_missing := app.company_document_missing(a ->> 'body_md', app.company_document_fields_merge('{}'::jsonb, v_fields));
       else
         -- a PDF under 15 MB is at most 20971520 characters of base64 (a data: prefix allowed)
         if (v_args ->> 'pdf_chars')::integer = 0 then raise exception 'pdf_base64: the PDF, base64' using errcode = '22023'; end if;
@@ -774,7 +801,7 @@ begin
           v_r := app.company_document_save(k.user_id,
             case when d.id is not null then jsonb_build_object('document', d.id, 'note', v_args ->> 'notes')
                  else jsonb_build_object('kind', v_kind, 'title', v_title, 'notes', v_args ->> 'notes') end
-            || jsonb_build_object('body_md', a ->> 'body_md', 'signers', v_args -> 'signers', 'fields', coalesce(v_args -> 'fields', '{}'::jsonb)));
+            || jsonb_build_object('body_md', a ->> 'body_md', 'signers', v_args -> 'signers', 'fields', coalesce(v_fields, '{}'::jsonb)));
           v_result := case when (v_r ->> 'ready')::boolean then jsonb_build_object('run', 'company_doc_send', 'actor', k.user_id, 'params', v_r)
                            else jsonb_build_object('done', true, 'tool', p_tool) || v_r || jsonb_build_object('admin_path', '/admin/company-documents/' || (v_r ->> 'document')) end;
         else

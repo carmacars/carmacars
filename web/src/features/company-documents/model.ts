@@ -21,7 +21,7 @@ export interface CompanyDocPage {
 }
 export interface SignFacts {
   document_id: string; version_id: string; title: string; version: number; status: string; kind_label: string; body_md: string; fields: Record<string, string>;
-  missing: string[]; to_sign_sha256: string | null; has_signed_copy: boolean;
+  missing: string[]; to_sign_sha256: string | null; content_sha256: string; has_signed_copy: boolean;
   signers: Array<{ user_id: string; name: string; role_label: string; request_id: string | null; status: string | null; signed_at: string | null; method: string | null;
     typed_name: string | null; drawn_path: string | null; ip_address: string | null; user_agent: string | null; document_sha256: string | null }>;
 }

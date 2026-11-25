@@ -347,6 +347,6 @@ test('r50: list_company_documents reads (admin:read); company_document_upload an
   assert.ok(!toolsFor(['admin:read']).includes(up), 'a read-only key cannot upload');
   assert.ok(!toolsFor(['bookings:read', 'owners:read', 'requests:read']).some((t) => COMPANY_DOC_TOOLS.includes(t)), 'only Admin keys see them');
   assert.match(SQL5060, /app\.api_call_pre5060\(p_hash, p_tool, p_args, p_client\); end if;/);
-  assert.match(SQL5060, /app\.api_key_check\(p_hash, 'admin:write', p_tool, a - 'pdf_base64' - 'body_md', p_client\)/);
+  assert.match(SQL5060, /app\.api_key_check\(p_hash, 'admin:write', p_tool, a - 'pdf_base64' - 'body_md' - 'fields', p_client\)/);
   assert.ok(!/search_path = public, app\s*as/.test(SQL5060), 'search_path ends with pg_temp');
 });

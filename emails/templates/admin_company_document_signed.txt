@@ -12,10 +12,10 @@ Version: {{document_version}}
 Signed: {{signed_at}}
 Signers: {{signers_text}}
 
-Download the signed copy:
-{{signed_agreement_url}}
+Open the signed copy:
+https://carmacars.ca/admin/company-documents/file/{{company_document_version_id}}
 
-The download link works for 7 days. The signed copy, with each signature, its date, IP address and the document's hash, stays in Admin > Company documents (https://carmacars.ca/admin/company-documents/{{company_document_id}}).
+Sign in to Admin to open it: only Admins can, and each link it gives works for 5 minutes. The signed copy has each signature, its date, IP address and the document's hash. It stays in Admin > Company documents (https://carmacars.ca/admin/company-documents/{{company_document_id}}).
 
 ----------------------------------------
 

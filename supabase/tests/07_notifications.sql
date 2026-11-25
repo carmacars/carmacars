@@ -34,7 +34,7 @@ select test.eq('A the catalogue holds every email of emails/catalogue.json plus 
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
-select test.eq('A every path of emails/src/links.mjs is loaded (3610 adds the two booking Money links, 3650 Program settings, 3720 the two field spending links, 3800 the owner page for Fleet, 4001 the check-in visit links, 4301 the investor documents link, 5060 the company document link)', (select count(*) from notification_link_paths), 92::bigint);
+select test.eq('A every path of emails/src/links.mjs is loaded (3610 adds the two booking Money links, 3650 Program settings, 3720 the two field spending links, 3800 the owner page for Fleet, 4001 the check-in visit links, 4301 the investor documents link, 5060 the two company document links)', (select count(*) from notification_link_paths), 93::bigint);
 select test.eq('A every email code says what emits it; only the two sign-in service emails are emitted by nobody (the sign-in link is the owner invitation''s, 0029)',
   (select string_agg(code, ',' order by code) from notification_catalogue where has_email and (emitted_by is null or emitted_by like 'not emitted%')),
   'account_password_reset,account_security_notice');
