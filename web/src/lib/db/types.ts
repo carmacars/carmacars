@@ -12645,6 +12645,111 @@ export type Database = {
         };
         Relationships: [];
       };
+      investor_library_items: {
+        Row: {
+          id: string;
+          kind: string;
+          title: string;
+          sort_order: number;
+          current_version: number;
+          archived_at: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          kind: string;
+          title: string;
+          sort_order?: number;
+          current_version?: number;
+          archived_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          kind?: string;
+          title?: string;
+          sort_order?: number;
+          current_version?: number;
+          archived_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      investor_library_kinds: {
+        Row: {
+          key: string;
+          label: string;
+          sort_order: number;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          key: string;
+          label: string;
+          sort_order?: number;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          key?: string;
+          label?: string;
+          sort_order?: number;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      investor_library_versions: {
+        Row: {
+          id: string;
+          item_id: string;
+          version: number;
+          file_kind: string;
+          bucket: string | null;
+          path: string | null;
+          link_url: string | null;
+          size_bytes: number | null;
+          sha256: string | null;
+          note: string | null;
+          uploaded_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          item_id: string;
+          version: number;
+          file_kind: string;
+          bucket?: string | null;
+          path?: string | null;
+          link_url?: string | null;
+          size_bytes?: number | null;
+          sha256?: string | null;
+          note?: string | null;
+          uploaded_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          item_id?: string;
+          version?: number;
+          file_kind?: string;
+          bucket?: string | null;
+          path?: string | null;
+          link_url?: string | null;
+          size_bytes?: number | null;
+          sha256?: string | null;
+          note?: string | null;
+          uploaded_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       investors: {
         Row: {
           id: string;

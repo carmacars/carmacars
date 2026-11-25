@@ -131,6 +131,7 @@
   "booking.checkin_due": {"renter": "renter_checkin_reminder"},
   "booking.checkin_not_booked": {"renter": "renter_checkin_followup"},
   "booking.checkin_booked": {"staff_va_fleet": "staff_checkin_booked", "staff_admin": "staff_checkin_booked"},
-  "booking.checkin_today": {"staff_va_fleet": "staff_checkin_today", "staff_admin": "staff_checkin_today"}
+  "booking.checkin_today": {"staff_va_fleet": "staff_checkin_today", "staff_admin": "staff_checkin_today"},
+  "investor_library.document_published": {"investor": "investor_document_updated"}
  }
 }

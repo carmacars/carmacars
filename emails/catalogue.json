@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 285,
+  "count": 286,
   "emails": [
     {
       "code": "account_password_reset",
@@ -18690,6 +18690,96 @@
       ],
       "template_html": "templates/tracker_waitlist_joined.html",
       "template_text": "templates/tracker_waitlist_joined.txt"
+    },
+    {
+      "code": "investor_document_updated",
+      "audience": "investor",
+      "category": "transactional",
+      "trigger": "Release 50 (4300): an Admin adds a document to the investor Documents library (business plan, financial forecast, pitch deck, feature decks or another kind), or replaces one with a new version. Once per version, to every active investor.",
+      "timing": "Immediate, when the document is added or replaced",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "investors@carmacars.ca",
+      "subject": "{{document_change}}: {{document_title}}",
+      "preheader": "{{document_kind}}, version {{document_version}}, updated {{document_date}}. Open it in your investor portal.",
+      "sample_subject": "New version: CarmaCars business plan",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "document_change",
+          "type": "string",
+          "sample": "New version"
+        },
+        {
+          "name": "document_date",
+          "type": "string",
+          "sample": "November 24, 2026"
+        },
+        {
+          "name": "document_kind",
+          "type": "string",
+          "sample": "Business plan"
+        },
+        {
+          "name": "document_title",
+          "type": "string",
+          "sample": "CarmaCars business plan"
+        },
+        {
+          "name": "document_version",
+          "type": "string",
+          "sample": "2"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Amira",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/investor_document_updated.html",
+      "template_text": "templates/investor_document_updated.txt"
     },
     {
       "code": "investor_notice_received",

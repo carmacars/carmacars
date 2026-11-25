@@ -7,6 +7,7 @@ import { when } from '@/features/agreement/model';
 import { signCount } from '@/features/manual/SignPages';
 import { More } from '@/features/portal/Chrome';
 import { RAISE } from '@/features/deck/pitch';
+import { WhatsNewFeed } from '@/features/investor/WhatsNewFeed';
 import { investorPlan, type InvestorHome, type ReturnRow } from '@/features/investor/plan';
 import { ActionTiles, DocumentList, DocumentRow, LineChart, PortalHero, ProgressRing, PuIcon, StatCard, Timeline, TimelineItem, type ActionTileItem } from '@/components/portal-ui';
 
@@ -124,6 +125,7 @@ export default async function InvestorHome() {
             <p className="small muted">The model, the demand, what one car earns, and the ask, in eight slides.</p>
             <p><Link href="/investor/deck" prefetch={false} className="btn btn--primary btn--sm iv-deck__cta"><PuIcon name="play" />Open the deck</Link></p>
           </section>}
+          <WhatsNewFeed limit={3} compact />
           {h.requests.length > 0 && <section className="pu-panel" aria-labelledby="rq-t"><h2 className="pu-title" id="rq-t">Your notices</h2><ul className="small">{h.requests.map((r, i) => <li key={i}>{when(r.created_at)}: {r.title} ({r.status === 'done' ? 'recorded' : 'received'})</li>)}</ul></section>}
         </div>
       </div>

@@ -1,0 +1,48 @@
+{
+  "id": "investor-library",
+  "title": "Business documents",
+  "summary": "Open the business plan, the forecast and the decks, at their latest version.",
+  "who": [
+    "investor"
+  ],
+  "start": "/investor/documents?tab=library",
+  "guide": {
+    "portal": "investor",
+    "slug": "start-here"
+  },
+  "steps": [
+    {
+      "id": "open",
+      "target": "tab-library",
+      "text": "Open Business documents under Documents.",
+      "href": "/investor/documents?tab=library",
+      "done": {
+        "route": "/investor/documents?tab=library"
+      },
+      "skipIfDone": true
+    },
+    {
+      "id": "sections",
+      "target": "investor-library",
+      "text": "Each section holds CarmaCars documents: the business plan, the financial forecast, the pitch deck and the feature decks.",
+      "on": "/investor/documents",
+      "page": "portal-tabs"
+    },
+    {
+      "id": "item",
+      "target": "library-item",
+      "text": "Each shows its version and the date it was updated. Press its title to open the latest version.",
+      "on": "/investor/documents",
+      "when": {
+        "exists": "library-item"
+      }
+    },
+    {
+      "id": "news",
+      "target": "investor-whats-new",
+      "text": "What's new at CarmaCars, on Home and Updates, shows what each release added.",
+      "href": "/investor/updates",
+      "on": "/investor/updates"
+    }
+  ]
+}

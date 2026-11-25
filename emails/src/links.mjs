@@ -101,6 +101,7 @@ export const PATHS = {
   va_finance_bank: '/staff/finance?tab=bank',
   va_fleet: '/staff/fleet',
   va_fleet_checkins: '/staff/check-ins',
+  investor_library: '/investor/documents?tab=library',
   va_fleet_booking: '/staff/bookings/{{booking_number}}',
   va_fleet_listing: '/staff/listings/{{vehicle_id}}',
   va_fleet_expiries: '/staff/fleet#expiry',

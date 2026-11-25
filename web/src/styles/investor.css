@@ -35,3 +35,9 @@
 .iv-release__area { margin-top: var(--s-3); }
 .iv-release__area ul { margin: var(--s-1) 0 0; padding-left: 1.2em; }
 .iv-release__area li + li { margin-top: 2px; }
+
+/* r50: What's new for investors (features/investor/WhatsNewFeed.tsx) */
+.iv-wn { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-3); }
+.iv-wn > li + li { border-top: var(--bw) solid var(--line); padding-top: var(--s-3); }
+.iv-wn ul { margin: var(--s-1) 0 0; padding-left: 1.1rem; }
+.iv-wn p { margin: 0; overflow-wrap: anywhere; }

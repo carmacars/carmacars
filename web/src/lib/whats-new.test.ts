@@ -93,3 +93,14 @@ test('dates read in words', () => {
   assert.equal(prettyDate('2026-01-05'), 'January 5, 2026');
   assert.equal(prettyDate('soon'), 'soon');
 });
+
+test('feed: every dated release newest first, a portal section or the summary alone, capped', async () => {
+  const { feedFor } = await import('./whats-new.ts');
+  const data: WnData = { releases: {
+    r1: { date: '2031-01-01', seq: 0, summary: 'First.', sections: { investors: ['Investor item'] } },
+    r2: { date: '2031-02-01', seq: 0, summary: 'Second, for staff only.', sections: { staff: ['Staff item'] } },
+    r3: { date: 'pending', seq: 0, summary: 'Not live.', sections: { investors: ['Soon'] } }
+  } };
+  assert.deepEqual(feedFor(data, 'investor').map((f) => `${f.release}:${f.items.join('|') || f.summary}`), ['r2:Second, for staff only.', 'r1:Investor item']);
+  assert.equal(feedFor(data, 'investor', 1).length, 1);
+});

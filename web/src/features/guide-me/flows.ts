@@ -1,14 +1,52 @@
 // Guide me (r51, migration 3950): the workflows, one declarative step file each (flows/*.json). A new workflow is a new
 // file listed here: the steps name data-guide="..." elements, an instruction and the condition that completes them.
+// r50: every file of flows/ is listed (the portal workflows of 4100 were missing); engine.test.ts checks none is left out.
 import type { Flow } from './engine';
 import createOffer from './flows/create-offer.json';
+import bookingRequest from './flows/booking-request.json';
 import recordPayment from './flows/record-payment.json';
 import pickupHandover from './flows/pickup-handover.json';
 import returnDeposit from './flows/return-deposit.json';
 import approveOwnerCar from './flows/approve-owner-car.json';
 import fieldExpense from './flows/field-expense.json';
-import bookingRequest from './flows/booking-request.json';
 import checkinVisit from './flows/checkin-visit.json';
+import academy from './flows/academy.json';
+import applyJob from './flows/apply-job.json';
+import fieldPay from './flows/field-pay.json';
+import fieldShifts from './flows/field-shifts.json';
+import fieldSpendingReview from './flows/field-spending-review.json';
+import investorDashboard from './flows/investor-dashboard.json';
+import investorDocuments from './flows/investor-documents.json';
+import investorLibrary from './flows/investor-library.json';
+import investorStatements from './flows/investor-statements.json';
+import leadsFollowUp from './flows/leads-follow-up.json';
+import maintenanceCheck from './flows/maintenance-check.json';
+import marketingDay from './flows/marketing-day.json';
+import ownerAddCar from './flows/owner-add-car.json';
+import ownerApply from './flows/owner-apply.json';
+import ownerDocuments from './flows/owner-documents.json';
+import ownerInvoices from './flows/owner-invoices.json';
+import ownerMoney from './flows/owner-money.json';
+import ownerProfile from './flows/owner-profile.json';
+import ownerSign from './flows/owner-sign.json';
+import paymentsDay from './flows/payments-day.json';
+import payrollRun from './flows/payroll-run.json';
+import renterBook from './flows/renter-book.json';
+import renterDeposit from './flows/renter-deposit.json';
+import renterEtransfer from './flows/renter-etransfer.json';
+import renterExtend from './flows/renter-extend.json';
+import renterLicence from './flows/renter-licence.json';
+import renterLookup from './flows/renter-lookup.json';
+import renterPickup from './flows/renter-pickup.json';
+import renterReturn from './flows/renter-return.json';
+import renterRewards from './flows/renter-rewards.json';
+import renterSignPay from './flows/renter-sign-pay.json';
+import renterSignup from './flows/renter-signup.json';
+import staffOnboarding from './flows/staff-onboarding.json';
+import staffPayDetails from './flows/staff-pay-details.json';
+import timesheet from './flows/timesheet.json';
+import tollsImport from './flows/tolls-import.json';
+import turoTrips from './flows/turo-trips.json';
 
-export const FLOWS: Flow[] = [createOffer, bookingRequest, recordPayment, pickupHandover, returnDeposit, approveOwnerCar, fieldExpense, checkinVisit] as Flow[];
+export const FLOWS: Flow[] = [createOffer, bookingRequest, recordPayment, pickupHandover, returnDeposit, approveOwnerCar, fieldExpense, checkinVisit, academy, applyJob, fieldPay, fieldShifts, fieldSpendingReview, investorDashboard, investorDocuments, investorLibrary, investorStatements, leadsFollowUp, maintenanceCheck, marketingDay, ownerAddCar, ownerApply, ownerDocuments, ownerInvoices, ownerMoney, ownerProfile, ownerSign, paymentsDay, payrollRun, renterBook, renterDeposit, renterEtransfer, renterExtend, renterLicence, renterLookup, renterPickup, renterReturn, renterRewards, renterSignPay, renterSignup, staffOnboarding, staffPayDetails, timesheet, tollsImport, turoTrips] as Flow[];
 export const flowById = (id: string): Flow | undefined => FLOWS.find((f) => f.id === id);

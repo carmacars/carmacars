@@ -202,3 +202,11 @@ test('owners, renters, investors and visitors see their own workflows; the help 
   assert.ok(!g.rest.some((f) => f.id === 'owner-money'));
   assert.equal(g.here.length + g.rest.length, flowsFor(FLOWS, { admin: false, functions: [], portal: 'owner' }).length);
 });
+
+test('every step file is a workflow people can start (flows.ts lists each one)', async () => {
+  const src = readFileSync(join(HERE, 'flows.ts'), 'utf8');
+  const imported = [...src.matchAll(/^import (\w+) from '\.\/flows\/([a-z0-9-]+)\.json';$/gm)];
+  const list = /export const FLOWS: Flow\[\] = \[([^\]]*)\]/.exec(src)?.[1]?.split(',').map((s) => s.trim()) ?? [];
+  assert.deepEqual(imported.map((m) => m[2]).sort(), readdirSync(join(HERE, 'flows')).filter((f) => f.endsWith('.json')).map((f) => f.slice(0, -5)).sort(), 'every file is imported');
+  assert.deepEqual([...list].sort(), imported.map((m) => m[1]).sort(), 'every import is in FLOWS');
+});

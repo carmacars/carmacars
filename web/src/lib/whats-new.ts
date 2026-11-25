@@ -54,3 +54,19 @@ export function prettyDate(iso: string): string {
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   return `${months[Number(m[2]) - 1] ?? ''} ${Number(m[3])}, ${m[1]}`;
 }
+
+/** One release in a portal's "What's new" feed: its own section's items, or, for a release that has none, its summary */
+export interface WnFeedItem { release: string; date: string; summary: string; items: string[] }
+
+/** The feed of a portal (r50, the investor dashboard and Updates): every dated release, newest first, at most `limit`.
+ *  A release with a "## For <portal>" section shows those items; one without shows its plain-language summary alone. */
+export function feedFor(data: WnData, portal: WnPortal, limit = Infinity): WnFeedItem[] {
+  const out: WnFeedItem[] = [];
+  for (const id of releaseOrder(data)) {
+    if (out.length >= limit) break;
+    const r = data.releases[id]!;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(r.date)) continue;
+    out.push({ release: id, date: r.date, summary: r.summary, items: showFor(data, id, portal)?.items ?? [] });
+  }
+  return out;
+}

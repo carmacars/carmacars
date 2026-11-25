@@ -51,3 +51,15 @@ test('search and area filter', () => {
   const total = data.reduce((n, u) => n + u.areas.reduce((m, a) => m + a.items.length, 0), 0);
   assert.equal(filterUpdates(data, '', '').reduce((n, u) => n + u.areas.reduce((m, a) => m + a.items.length, 0), 0), total);
 });
+
+test("What's new for investors: nothing on the deny list, from the committed whats-new.json", async () => {
+  const { investorFeed } = await import('./updates.ts');
+  const { feedFor } = await import('../../lib/whats-new.ts');
+  const { readFileSync } = await import('node:fs');
+  const data = JSON.parse(readFileSync(new URL('../../generated/whats-new.json', import.meta.url), 'utf8'));
+  const feed = investorFeed(feedFor(data, 'investor'));
+  assert.ok(feed.length > 0, 'the feed has releases');
+  for (const f of feed) for (const t of f.items.length ? f.items : [f.summary]) assert.deepEqual(denyHits(t), [], t);
+  const kept = investorFeed([{ items: ['A new screen', 'Paid $5 more to Almash'], summary: 'x' }, { items: [], summary: 'Turo trips import' }]);
+  assert.deepEqual(kept.map((f) => f.items), [['A new screen']]);
+});

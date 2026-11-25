@@ -1,0 +1,32 @@
+CarmaCars  |  Investor documents
+
+========================================
+
+[Investor documents]
+{{document_change}}: {{document_title}}
+
+Hello {{first_name}}. A document in your CarmaCars investor portal is new or has a new version.
+
+Document: {{document_title}}
+Kind: {{document_kind}}
+Version: {{document_version}}
+Updated: {{document_date}}
+
+Open your documents:
+https://carmacars.ca/investor/documents?tab=library
+
+Sign in to open it: the files are private to CarmaCars investors and each link works for a few minutes. It is not an offer or a solicitation; your signed Investment Agreement continues to govern.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}.
+
+This is a servicing notice for an existing investor. It is not an offer or a solicitation.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

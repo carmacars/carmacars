@@ -432,6 +432,8 @@
      "Check-in visits (Fleet: Checks; customer service: Renters; field work: Today): do the monthly visit of a long rental with the checklist; you are told when a renter picks a time and the morning of a visit. Guide me: Do a check-in visit walks you through it"
     ],
     "investors": [
+     "Business documents under Documents: the CarmaCars business plan, financial forecast, pitch deck and feature decks, each at its latest version with the date it was updated. We email you, and show a notice in your portal, when one is added or updated",
+     "What's new at CarmaCars on Home and on Updates: what each release of the platform added, in plain words",
      "Guide me at the top of the investor portal: your dashboard, statements and documents to sign, step by step"
     ]
    }

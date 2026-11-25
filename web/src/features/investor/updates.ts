@@ -107,3 +107,10 @@ export function denyHits(text: string): Array<[string, string]> {
   for (const [re, why] of DENY) { const m = re.exec(text); if (m) out.push([m[0], why]); }
   return out;
 }
+
+/** What's new for investors (r50): the feed of whats-new.json with anything on the deny list left out (an item, or a
+ *  summary standing in for a release without an investor section); a release with nothing left is dropped. */
+export function investorFeed<F extends { items: string[]; summary: string }>(feed: F[]): F[] {
+  return feed.map((f) => ({ ...f, items: f.items.filter((i) => !denyHits(i).length) }))
+    .filter((f) => f.items.length > 0 || !denyHits(f.summary).length);
+}

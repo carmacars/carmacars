@@ -3,6 +3,7 @@ import { pageMeta } from '@/features/seo/meta';
 import { currentUser } from '@/server/portal/data';
 import { rolesOf } from '@/server/door';
 import { UpdatesView } from '@/features/investor/UpdatesView';
+import { WhatsNewFeed } from '@/features/investor/WhatsNewFeed';
 import data from '@/features/investor/updates-data.json';
 import type { Update } from '@/features/investor/updates';
 
@@ -17,5 +18,6 @@ export default async function InvestorUpdates() {
   if (!user) redirect('/sign-in?next=/investor/updates');
   const roles = await rolesOf(user.id);
   if (!roles.investor && !roles.admin) redirect('/investor/no-access');
-  return <UpdatesView updates={data as Update[]} preview={!roles.investor} />;
+  // r50: What's new for investors first (the release notes' For investors sections), then every release by area
+  return <div className="stack-lg"><WhatsNewFeed /><UpdatesView updates={data as Update[]} preview={!roles.investor} /></div>;
 }
