@@ -46,12 +46,17 @@ async function codeFor(sql: Sql, phone: string): Promise<string> {
 /** A car on the site with at least `min` photos that takes requests (its page has the dates and price box, where the
  *  full availability is), read from its page as a visitor sees it. A car listed but not taking requests has no box. */
 async function carWithPhotos(page: Page, min: number): Promise<{ slug: string; photos: number }> {
-  const list = await (await page.request.get('/cars')).text();
-  const slugs = [...new Set([studioSlug, ...[...list.matchAll(/href="\/cars\/([a-z0-9-]+)"/g)].map((m) => m[1]!)].filter(Boolean))].slice(0, 25);
-  for (const slug of slugs) {
-    const html = await (await page.request.get(`/cars/${slug}`)).text();
-    const n = Number(/aria-label="1 of (\d+)"/.exec(html)?.[1] ?? 0);
-    if (n >= min && html.includes('id="dates"')) return { slug, photos: n };
+  // the desktop and phone projects of a shard share one database and one site: the other one's studio car is put back (and
+  // the public pages rebuilt) when its describe ends, so look again for a short while before giving up
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const list = await (await page.request.get('/cars')).text();
+    const slugs = [...new Set([studioSlug, ...[...list.matchAll(/href="\/cars\/([a-z0-9-]+)"/g)].map((m) => m[1]!)].filter(Boolean))].slice(0, 60);
+    for (const slug of slugs) {
+      const html = await (await page.request.get(`/cars/${slug}`)).text();
+      const n = Number(/aria-label="1 of (\d+)"/.exec(html)?.[1] ?? 0);
+      if (n >= min && html.includes('id="dates"')) return { slug, photos: n };
+    }
+    await new Promise((r) => setTimeout(r, 5000));
   }
   throw new Error(`no car taking requests with ${min} photos`);
 }

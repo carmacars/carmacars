@@ -116,6 +116,9 @@ test('owner pipeline: a Transfer car goes from its terms to Listed, one clear st
   await expect.poll(async () => (await sql`select (inspected_at is not null) ok from owner_pipeline where vehicle_id = ${car}`)[0]?.ok).toBe(true);
   for (const why of ['Photos done in the studio', 'Published']) {
     await admin.reload({ waitUntil: 'networkidle' });
+    // the first advance (Inspection) must be there; once it is done the car may already count as listed (no step left to advance)
+    if (why !== 'Photos done in the studio' && (await at.getByTestId('os-advance').count()) === 0) break;
+    await expect(at.getByTestId('os-advance'), 'the Admin can advance the current step').toBeVisible({ timeout: 15_000 });
     await at.getByTestId('os-advance').click();
     await admin.getByTestId('os-advance-form').getByLabel('Why (kept in the audit log)').fill(why);
     await admin.getByTestId('os-advance-submit').click();

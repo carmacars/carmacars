@@ -83,6 +83,9 @@ test('return with documents in review and no recorded pickup', async ({ page }) 
     if (d) expect(types).toContain('docs_review_after_return');
     expect(errors).toEqual([]);
   } finally {
+    // the fixture's documents have no files behind them: leave none for a later crawl (Review documents loads their links)
+    await sql`delete from verification_uploads where document_id in (select id from documents where storage_path like ${`rg/${t}/%`})`.catch(() => null);
+    await sql`delete from documents where storage_path like ${`rg/${t}/%`}`.catch(() => null);
     await sql.end();
   }
 });

@@ -101,10 +101,12 @@ test('Settings > Partners > 01 Motors: connect, test, sync, what they see (no pa
     const feed = await page.request.get(feedUrl.pathname + feedUrl.search);
     expect(feed.status()).toBe(200);
     const body = await feed.json() as { count: number; cars: Array<{ car_code: string; daily_rate: number | null; book_url: string }> };
-    expect(body.count).toBe(1);
-    expect(body.cars.map((c) => c.car_code)).toEqual([car.car_code]);
+    // a spec running beside this one (R50: owner pipeline, listings) may publish a real car between the page and the feed:
+    // ours must be there, a partner's never, and the count is the cars listed
+    expect(body.count).toBe(body.cars.length);
+    expect(body.cars.map((c) => c.car_code)).toContain(car.car_code);
     expect(body.cars.some((c) => partnerCodes.includes(c.car_code))).toBe(false);
-    expect(body.cars[0]!.book_url).toMatch(/\/p\/01-motors\//);
+    expect(body.cars.find((c) => c.car_code === car.car_code)!.book_url).toMatch(/\/p\/01-motors\//);
     expect((await page.request.get(feedUrl.pathname + '?key=wrong&format=json')).status()).toBe(404);
     const csv = await page.request.get(feedUrl.pathname + feedUrl.search.replace('format=json', 'format=csv'));
     expect(await csv.text()).toMatch(/^car_code,name,year,/);
@@ -123,7 +125,7 @@ test('Settings > Partners > 01 Motors: connect, test, sync, what they see (no pa
     expect(html).toContain('Book on CarmaCars');
     expect(/<script/i.test(html)).toBe(false);
     // the booking link keeps the partner's code and opens the car
-    const link = await page.request.get(new URL(body.cars[0]!.book_url).pathname, { maxRedirects: 0 });
+    const link = await page.request.get(new URL(body.cars.find((c) => c.car_code === car.car_code)!.book_url).pathname, { maxRedirects: 0 });
     expect(link.status()).toBe(302);
     expect(link.headers()['set-cookie'] ?? '').toContain('cc-partner=01-motors');
 

@@ -88,7 +88,12 @@ test('Admin: hide the sample cars in one click, show them again, and see why eac
   await sql`insert into users (id, email, full_name) values (${id}, ${email}, 'Sam Admin')`;
   await sql`insert into user_roles (user_id, role) values (${id}, 'admin')`;
   // a real car in onboarding without photos (the owner has not signed yet)
-  const [o] = await sql`select id from owners where kind = 'program' and email <> 'sample.owner@example.test' order by created_at limit 1`;
+  // R50 (3800-3820, sign first): a program owner's car goes live only once its owner has signed the master agreement and the
+  // car's Schedule A entry, so this owner's own fixture has both signed (the seed's owners are not touched)
+  const ot = randomBytes(3).toString('hex').toUpperCase();
+  const [o] = await sql`insert into owners (owner_type, legal_name, status, email, phone) values ('individual', 'Sam Samples', 'active', ${`owner.samples.${ot}@example.test`}, '416-555-0101') returning id`;
+  const agr = randomUUID();
+  await sql`insert into owner_agreements (id, owner_id, kind, agreement_number, agreement_date, status) values (${agr}, ${o!.id}, 'enrollment', ${`EA-${ot}`}, current_date - 30, 'signed')`;
   const vid = randomUUID();
   if (o) {
     await sql`insert into vehicles (id, owner_id, year, make, model, vin, plate, class, status, management_mode, onboarding_method, body_type)
@@ -139,6 +144,9 @@ test('Admin: hide the sample cars in one click, show them again, and see why eac
   // a real car without photos, once published, shows its sample photo on the site
   if (o) {
     // onboarding, then ready to list, then available (the allowed steps of 0011)
+    await sql`insert into vehicle_schedules (vehicle_id, owner_agreement_id, schedule_number, vehicle_number, held_by, title_status, management_mode, onboarding_method,
+                insurance_fee_cents, tracker_fee_cents, install_fee_cents, revenue_share_bps, enrollment_date, signed_at)
+              values (${vid}, ${agr}, ${`VS-${ot}`}, 1, 'individual', 'owned_outright', 'managed', 'transfer', 45000, 2500, 10000, 3500, current_date - 20, now())`;
     await sql`update vehicles set status = 'ready_to_list' where id = ${vid}`;
     await sql`update vehicles set status = 'available' where id = ${vid}`;
     await sql`insert into rate_cards (vehicle_id, daily_rate_cents, weekend_rate_cents, weekly_rate_cents, monthly_rate_cents, km_allowance_per_day, overage_cents_per_km, deposit_cents, delivery_fee_cents, pickup_fee_cents, effective_from)

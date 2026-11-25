@@ -57,6 +57,9 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
   const tracked = (stages?.cars.length ?? 0) > 0;
   const path = sign ? ownerPath(sign) : null;
   const guided = !!path?.current;
+  // r50: the tracker carries the sign step only when a car's current stage is Agreements; before that (3800: sign first,
+  // before approval) the owner still gets the sign-first card
+  const trackedSign = (stages?.cars ?? []).some((c) => c.stage === 'agreements');
   const checklist = checklistRaw as unknown as { items: Array<{ status: string; how: string; label: string; preview?: boolean }>; done: number; total: number } | null;
   const appTask = appTaskRaw as unknown as AppTask | null;
   const onScreen = (checklist?.items ?? []).filter((i) => i.status === 'open' && (i.how === 'screen' || i.how === 'registry'));
@@ -126,9 +129,10 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
     <>
       {banners}
       {/* r50 (4511): with a car on its way, the stage tracker is the guided path (its Agreements step opens /owner/sign) */}
+      {tracked && guided && !trackedSign && <OwnerPathCard status={sign} />}
       {tracked ? <StageTracker data={stages} base="/owner" refresh={['/owner']} title="Your next step" /> : <OwnerPathCard status={sign} />}
       {/* the guided path's button opens /owner/sign itself; an updated Vehicle Schedule or a government form to sign is its own next step */}
-      {next && !((guided || tracked) && next.href === '/owner/sign') && !(tracked && next.href.startsWith('/owner/sign/forms/')) && (
+      {next && !((guided || tracked) && next.href === '/owner/sign' && (!tracked || trackedSign || guided)) && !(tracked && next.href.startsWith('/owner/sign/forms/')) && (
         <section className="pt-card pt-card--next pu-next" aria-labelledby="ow-next" data-testid="owner-next-step" data-guide="owner-next-step">
           <p className="pt-kicker">Next step</p>
           <h2 className="d3" id="ow-next">{next.title}</h2>
