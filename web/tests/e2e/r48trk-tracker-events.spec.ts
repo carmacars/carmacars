@@ -92,7 +92,7 @@ test('Tracker events: the fake provider, one record with its evidence, the notic
     // the owner's own car (enrolled), on rent on a copy of a sample booking
     const T = t.toUpperCase();
     await sql`insert into owners (id, user_id, owner_type, legal_name, status, email, phone) values (${owner}, ${ownerUser.id}, 'individual', 'Olive Owner', 'active', ${ownerUser.email}, '416-555-0100')`;
-    await sql`insert into owner_agreements (id, owner_id, kind, agreement_number, agreement_date, status) values (${agr}, ${owner}, 'enrollment', ${`EA-${T}`}, current_date - 30, 'signed')`;
+    await sql`insert into owner_agreements (id, owner_id, kind, agreement_number, agreement_date, status) values (${agr}, ${owner}, 'enrollment', ${`EA-${T}`}, current_date - 30, 'signed') on conflict (owner_id, kind) where status in ('draft', 'sent', 'signed') do update set id = excluded.id, agreement_number = excluded.agreement_number, agreement_date = excluded.agreement_date, status = excluded.status`;
     await sql`insert into vehicles (id, owner_id, fleet_number, year, make, model, vin, plate, class, status, management_mode, onboarding_method, on_fleet_policy, fleet_policy_added_on, enrollment_date, colour)
               values (${car}, ${owner}, ${`T-${T}`}, 2023, 'Mercedes-Benz', 'GLE 450 4MATIC Coupe', ${`E2ETRK${T}`.padEnd(17, '0')}, ${`TR${T.slice(-5)}`}, 'standard', 'on_rent', 'managed', 'transfer', true, current_date - 20, current_date - 20, 'Black')`;
     const [src] = await sql`select b.id, extract(epoch from b.return_at - b.pickup_at)::int as secs from bookings b join vehicles v on v.id = b.vehicle_id

@@ -60,7 +60,7 @@ async function mkOwnerCar(sql: Sql) {
   await sql`insert into owners (id, user_id, owner_type, legal_name, status, email, phone, address_line1, city, province, postal_code)
             values (${owner}, ${u.id}, 'individual', 'Olive Owner', 'active', ${u.email}, '416-555-0100', '1 King St W', 'Toronto', 'ON', 'm5v1a1')`;
   await sql`insert into owner_private_details (owner_id, licence_number, date_of_birth) values (${owner}, 'O1234-56789-01234', date '1985-02-03')`;
-  await sql`insert into owner_agreements (id, owner_id, kind, agreement_number, agreement_date, status) values (${agr}, ${owner}, 'enrollment', ${`EA-${t}`}, current_date - 30, 'signed')`;
+  await sql`insert into owner_agreements (id, owner_id, kind, agreement_number, agreement_date, status) values (${agr}, ${owner}, 'enrollment', ${`EA-${t}`}, current_date - 30, 'signed') on conflict (owner_id, kind) where status in ('draft', 'sent', 'signed') do update set id = excluded.id, agreement_number = excluded.agreement_number, agreement_date = excluded.agreement_date, status = excluded.status`;
   await sql`insert into vehicles (id, owner_id, fleet_number, year, make, model, vin, plate, class, status, management_mode, onboarding_method, on_fleet_policy, fleet_policy_added_on, enrollment_date, colour, body_type, odometer_km)
             values (${car}, ${owner}, ${`F-${t}`}, 2022, 'Toyota', 'Corolla', ${vin('2T1')}, ${plate}, 'standard', 'ready_to_list', 'managed', 'transfer', true, current_date - 20, current_date - 20, 'Grey', 'sedan', 21000)`;
   await sql`insert into vehicle_schedules (vehicle_id, owner_agreement_id, schedule_number, vehicle_number, held_by, title_status, management_mode, onboarding_method,

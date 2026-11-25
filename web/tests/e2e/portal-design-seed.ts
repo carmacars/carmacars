@@ -28,7 +28,7 @@ export async function seedOwner(sql: Sql): Promise<OwnerFixture> {
   await sql`insert into user_roles (user_id, role) values (${admin.id}, 'admin')`;
   const owner = randomUUID(); const agr = randomUUID(); const t = tag();
   await sql`insert into owners (id, user_id, owner_type, legal_name, status, email, phone) values (${owner}, ${u.id}, 'individual', 'Olivia Premium', 'active', ${u.email}, '416-555-0101')`;
-  await sql`insert into owner_agreements (id, owner_id, kind, agreement_number, agreement_date, status) values (${agr}, ${owner}, 'enrollment', ${`EA-${t}`}, current_date - 200, 'signed')`;
+  await sql`insert into owner_agreements (id, owner_id, kind, agreement_number, agreement_date, status) values (${agr}, ${owner}, 'enrollment', ${`EA-${t}`}, current_date - 200, 'signed') on conflict (owner_id, kind) where status in ('draft', 'sent', 'signed') do update set id = excluded.id, agreement_number = excluded.agreement_number, agreement_date = excluded.agreement_date, status = excluded.status`;
   const [renter] = await sql`select id from renters order by created_at limit 1`;
   const photos = await sql`select processed_path, width, height from vehicle_photos where is_cover and status = 'approved' and processed_path is not null order by processed_path limit 3`;
   const specs = [

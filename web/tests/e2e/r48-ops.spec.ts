@@ -158,7 +158,7 @@ async function mkOwner(sql: Sql, name = 'Olive Owner') {
   const u = await mkUser(sql, 'owner', { name });
   const owner = randomUUID(); const agr = randomUUID();
   await sql`insert into owners (id, user_id, owner_type, legal_name, status, email, phone) values (${owner}, ${u.id}, 'individual', ${name}, 'active', ${u.email}, '416-555-0100')`;
-  await sql`insert into owner_agreements (id, owner_id, kind, agreement_number, agreement_date, status) values (${agr}, ${owner}, 'enrollment', ${`EA-OPS${rnd(6)}`}, current_date - 60, 'signed')`;
+  await sql`insert into owner_agreements (id, owner_id, kind, agreement_number, agreement_date, status) values (${agr}, ${owner}, 'enrollment', ${`EA-OPS${rnd(6)}`}, current_date - 60, 'signed') on conflict (owner_id, kind) where status in ('draft', 'sent', 'signed') do update set id = excluded.id, agreement_number = excluded.agreement_number, agreement_date = excluded.agreement_date, status = excluded.status`;
   return { ...u, owner, agr, n: 0 };
 }
 async function mkCar(sql: Sql, o: { owner: string; agr: string; n: number }, model: string, cls = 'standard') {

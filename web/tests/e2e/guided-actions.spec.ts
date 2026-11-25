@@ -174,7 +174,7 @@ test('owner money and paperwork: a payment received by e-Transfer and a paper si
   const o = await owner(sql, `Pat Paper ${tag()}`);
   const car = await onboardingCar(sql, o, 'documents_sent');
   await sql`update vehicle_onboardings set documents_sent_at = now() - interval '3 days' where vehicle_id = ${car.id}`;
-  await sql`insert into owner_agreements (owner_id, kind, agreement_number, agreement_date, status) values (${o}, 'enrollment', ${`EA-GA-${tag()}`}, current_date, 'sent')`;
+  await sql`insert into owner_agreements (owner_id, kind, agreement_number, agreement_date, status) values (${o}, 'enrollment', ${`EA-GA-${tag()}`}, current_date, 'sent') on conflict (owner_id, kind) where status in ('draft', 'sent', 'signed') do update set agreement_number = excluded.agreement_number, agreement_date = excluded.agreement_date, status = excluded.status`;
   const [inv] = await sql`insert into owner_invoices (owner_id, vehicle_id, kind, billing_date, status, fees_cents, issued_at) values (${o}, ${car.id}, 'upfront', current_date, 'issued', 60000, now()) returning id, invoice_number, balance_cents`;
   await signIn(page, a.email);
   await today(page);

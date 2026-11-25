@@ -64,7 +64,7 @@ async function coRegistrantOwner(sql: Sql) {
   await sql`insert into owners (id, user_id, owner_type, legal_name, first_name, middle_name, last_name, status, email, phone, address_line1, address_line2, city, province, postal_code)
             values (${owner}, ${u.id}, 'individual', 'Olivia Margaret Tremblay', 'Olivia', 'Margaret', 'Tremblay', 'active', ${u.email}, '+14165550142', '1204 Bay Street', 'Unit 1807', 'Toronto', 'ON', 'm5r2a5')`;
   await sql`insert into owner_private_details (owner_id, licence_number, licence_province, date_of_birth) values (${owner}, 'T6512-48390-85421', 'ON', date '1985-02-03')`;
-  await sql`insert into owner_agreements (id, owner_id, kind, agreement_number, agreement_date, status) values (${agr}, ${owner}, 'enrollment', ${`EA-${t}`}, current_date - 3, 'signed')`;
+  await sql`insert into owner_agreements (id, owner_id, kind, agreement_number, agreement_date, status) values (${agr}, ${owner}, 'enrollment', ${`EA-${t}`}, current_date - 3, 'signed') on conflict (owner_id, kind) where status in ('draft', 'sent', 'signed') do update set id = excluded.id, agreement_number = excluded.agreement_number, agreement_date = excluded.agreement_date, status = excluded.status`;
   const vin = `2T3RWRFV4NW${t.padEnd(6, '7').slice(0, 6)}`;
   await sql`insert into vehicles (id, owner_id, fleet_number, year, make, model, vin, plate, class, status, management_mode, onboarding_method, colour, body_type, odometer_km)
             values (${car}, ${owner}, ${`F-${t}`}, 2022, 'Toyota', 'RAV4', ${vin}, ${`CMK${t.slice(0, 4)}`}, 'standard', 'onboarding', 'managed', 'co_registrant', 'Blueprint', 'suv', 23115)`;
