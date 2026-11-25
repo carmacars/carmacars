@@ -195,7 +195,7 @@ jobs:
           RENTALCOVER_API_BASE: ${{ vars.RENTALCOVER_API_BASE }}
         run: |
           set -euo pipefail
-          export APP_ENV=production DATA_BACKEND=supabase NEXT_PUBLIC_APP_URL="$APP_URL" PAYMENTS_PROVIDER=stripe VIN_DECODER=vpic QUO_PROVIDER=quo AUTH_OAUTH_PROVIDERS=google
+          export APP_ENV=production DATA_BACKEND=supabase NEXT_PUBLIC_APP_URL="$APP_URL" PAYMENTS_PROVIDER=helcim VIN_DECODER=vpic QUO_PROVIDER=quo AUTH_OAUTH_PROVIDERS=google
           export MAPS_PROVIDER="${MAPS_PROVIDER:-fake}"
           # files: Supabase Storage on the server (the Worker's R2 bindings do not exist there); photos from its public bucket
           export STORAGE_PROVIDER=supabase

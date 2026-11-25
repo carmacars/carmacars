@@ -524,7 +524,7 @@ jobs:
             echo "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"
             echo "TURNSTILE_PROVIDER=$TURNSTILE_PROVIDER"
             echo "NEXT_PUBLIC_TURNSTILE_SITE_KEY=$NEXT_PUBLIC_TURNSTILE_SITE_KEY"
-            echo "PAYMENTS_PROVIDER=stripe"
+            echo "PAYMENTS_PROVIDER=helcim"
             echo "STORAGE_PROVIDER=$STORAGE_PROVIDER"
             echo "R2_BUCKET_PREFIX=carmacars-$([ "$DEPLOY_ENV" = staging ] && echo staging || echo prod)-"
             echo "MAPS_PROVIDER=${MAPS_PROVIDER:-fake}"
