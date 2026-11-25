@@ -127,7 +127,7 @@ export function DriveImport({ vehicle, runs: initialRuns = [], refresh = [] }: {
           <h2 className="d5" id="di-runs">Earlier imports</h2>
           <ul className="stack small">
             {runs.map((r) => (
-              <li key={r.id}><button type="button" className="link" onClick={() => open(r.id)}>{new Date(r.created_at).toLocaleString('en-CA', { dateStyle: 'medium', timeStyle: 'short' })}</button>
+              <li key={r.id}><button type="button" className="link" onClick={() => open(r.id)}>{new Date(r.created_at).toLocaleString('en-CA', { timeZone: 'America/Toronto', dateStyle: 'medium', timeStyle: 'short' })}</button>
                 {' '}{STATUS[r.status] ?? r.status}{r.vehicle ? `, ${r.vehicle}` : r.kind === 'bulk' ? ', many cars' : ''}{r.started_by ? `, by ${r.started_by}` : ''}
                 {' '}<span className="muted">{summaryLines(r.totals).join(', ')}</span></li>))}
           </ul>

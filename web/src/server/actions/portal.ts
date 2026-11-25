@@ -25,6 +25,7 @@ import { AMENDMENT_STATEMENT } from '@/features/agreement/amendment';
 import { driverLinkUrl } from '@/server/portal/driver-links';
 import { accountGate, GATE_MESSAGE } from '@/server/sign-in-settings';
 import { newPayToken, payTokenHash } from '@/server/pay-token';
+import { realDay } from '@/lib/dates';
 
 // Every renter action: a server action (POST with a same-origin check by Next.js), run for the
 // signed-in user, re-checking that the booking is theirs (public.my_booking under row-level security)
@@ -599,7 +600,9 @@ export async function confirmUpload(ticket: string, details: Record<string, stri
   try {
     const d = details ?? {};
     const clean: Record<string, string> = {};
-    for (const k of ['coverage_option', 'insurer_name', 'policy_number', 'policy_expiry', 'page_kind']) if (d[k]) clean[k] = String(d[k]).slice(0, 120);
+    for (const k of ['coverage_option', 'insurer_name', 'policy_number', 'policy_expiry', 'page_kind']) if (d[k]) clean[k] = String(d[k]).trim().slice(0, 120);
+    // r50 (BR-3): a policy expiry the database cannot read as a day failed the whole upload; it is said instead
+    if (clean.policy_expiry && !realDay(clean.policy_expiry)) { await s.remove(t.bucket, t.key); return fail('Enter the policy expiry as a date, for example 2027-03-31.'); }
     const r = (await rpc('renter_register_upload', { p_booking: t.b, p_by: user.id, p_kind: t.k, p_driver: t.d ?? undefined, p_storage_path: t.key, p_sha256: await sha256Hex(bytes), p_mime_type: t.ct, p_details: clean, p_storage_bucket: t.bucket }, SR)) as unknown as { ok: boolean; error?: string };
     if (!r.ok) { await s.remove(t.bucket, t.key); return fail('Too many uploads in the last hour. Try again later.', 'rate_limited'); }
     // the licence read straight away (release 31): a photo that cannot be used is taken again now

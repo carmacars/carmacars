@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { staffDocumentUploadFinish, staffDocumentUploadStart, staffLicenceUpload } from '@/server/actions/sign-now';
 import { InsurerSelect } from '@/features/insurers/InsurerSelect';
 import { DateInput } from '@/components/DateInput';
+import { realDay } from '@/lib/dates';
 
 // Staff upload a renter's documents from the booking (migration 0183): the licence (front or back, per driver), the
 // insurance policy or pink card, an insurer's authorization or claim letter, or any other document. Photos or PDFs.
@@ -39,6 +40,7 @@ export function StaffDocUpload({ bookingId, drivers }: { bookingId: string; driv
         : /\.pdf$/i.test(file.name) ? 'application/pdf' : /\.png$/i.test(file.name) ? 'image/png' : 'image/jpeg';
       const details: Record<string, string> = {};
       for (const [k, v] of Object.entries(f)) if (v.trim()) details[k] = v.trim();
+      if (details.policy_expiry && !realDay(details.policy_expiry)) { setMsg({ ok: false, text: 'Enter the policy expiry as a date, for example 2027-03-31.' }); return; }
       const t = await staffDocumentUploadStart(bookingId, kind, type, file.size);
       if (!t.ok) { setMsg({ ok: false, text: t.message }); return; }
       const put = await fetch(t.data.url, { method: 'PUT', body: file, headers: t.data.headers }).catch(() => null);

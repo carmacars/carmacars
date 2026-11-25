@@ -11,6 +11,7 @@ import { Info } from '@/features/forms/Info';
 import { lineHelp } from '@/features/offers/help';
 import { AddressInput } from '@/features/forms/AddressInput';
 import { TypedInput } from '@/components/DateInput';
+import { instantOfTorontoInput, torontoInputOf } from '@/lib/dates';
 import { ShortNoticeWaiver } from '@/features/sales/ShortNoticeWaiver';
 
 // Edit a booking that is confirmed, on trip, returned or (an Admin) closed, directly (migration 0132): the pickup and the
@@ -23,8 +24,9 @@ export interface EditForm {
   cars: Array<{ id: string; name: string; plate: string | null; car_code: string | null }>;
   edits: Array<{ at: string; by: string | null; status: string; reason: string | null; told_renter: boolean; changes: Array<{ label: string; field: string }>; total_before_cents: number; total_after_cents: number }>;
 }
-const pad = (n: number) => String(n).padStart(2, '0');
-const local = (iso: string) => { const d = new Date(iso); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+// r50: the boxes show and read Toronto time on the server and in any browser (no hydration mismatch, no shifted hours abroad)
+const local = (iso: string) => torontoInputOf(iso);
+const at = (v: string) => new Date(instantOfTorontoInput(v) ?? v);
 const fmt = (c: number | null | undefined) => money(Number(c ?? 0), { cents: true });
 
 export function BookingEdit({ x, fees }: { x: EditForm; fees: Fees | null }) {
@@ -40,17 +42,17 @@ export function BookingEdit({ x, fees }: { x: EditForm; fees: Fees | null }) {
   const [pending, run] = useTransition();
   if (x.refusal && !x.edits.length) return null;
   // 1066: a new length with no price typed keeps the booked period's rate (the database does it; this is the preview)
-  const newDays = Math.max(1, Math.ceil((new Date(f.return_at).getTime() - new Date(f.pickup_at).getTime()) / 86_400_000));
+  const newDays = Math.max(1, Math.ceil((at(f.return_at).getTime() - at(f.pickup_at).getTime()) / 86_400_000));
   const sameRate = Number.isFinite(newDays) && newDays !== x.now.billable_days && x.now.billable_days > 0 && cents(f.rental) === null
     ? { days: newDays, cents: Math.round(x.now.rental_charge_cents * newDays / x.now.billable_days) } : null;
   const shortNotice = fees?.lines.find((l) => l.key === 'lead_time' && l.amount_cents > 0) ?? null;
-  const extending = new Date(f.return_at).getTime() > new Date(x.now.return_at).getTime();
+  const extending = at(f.return_at).getTime() > new Date(x.now.return_at).getTime();
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF((s) => ({ ...s, [k]: e.target.value }));
   const save = () => run(async () => {
     setMsg(null);
     const changes: Record<string, unknown> = {};
-    if (f.pickup_at !== local(x.now.pickup_at)) changes.pickup_at = new Date(f.pickup_at).toISOString();
-    if (f.return_at !== local(x.now.return_at)) changes.return_at = new Date(f.return_at).toISOString();
+    if (f.pickup_at !== local(x.now.pickup_at)) changes.pickup_at = at(f.pickup_at).toISOString();
+    if (f.return_at !== local(x.now.return_at)) changes.return_at = at(f.return_at).toISOString();
     if (f.vehicle_id !== x.now.vehicle_id) changes.vehicle_id = f.vehicle_id;
     if (cents(f.rental) !== null) changes.rental_charge_cents = cents(f.rental);
     if (f.km !== String(x.now.km_allowance_per_day) && f.km.trim()) changes.km_allowance_per_day = Number(f.km);

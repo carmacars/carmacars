@@ -9,6 +9,8 @@ export const isoOf = (d: Date) => d.toISOString().slice(0, 10);
 export const addDays = (iso: string, n: number) => { const d = parse(iso); d.setUTCDate(d.getUTCDate() + n); return isoOf(d); };
 export const diffDays = (a: string, b: string) => Math.round((parse(b).getTime() - parse(a).getTime()) / 864e5);
 export const dow = (iso: string) => parse(iso).getUTCDay();
+/** r50 (BR-3): a real calendar day, YYYY-MM-DD (2026-02-31 is not one); what a date column accepts. */
+export const realDay = (s: unknown): s is string => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && isoOf(parse(s)) === s;
 export const validIso = (s: string | null | undefined): s is string => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(parse(s).getTime());
 export const shortDate = (iso: string) => { const d = parse(iso); return `${DAYS[d.getUTCDay()]!.slice(0, 3)}, ${MONTHS[d.getUTCMonth()]!.slice(0, 3)} ${d.getUTCDate()}`; };
 export const longDate = (iso: string) => { const d = parse(iso); return `${DAYS[d.getUTCDay()]}, ${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`; };

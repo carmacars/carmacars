@@ -13,6 +13,7 @@ import { chargeAddedRental } from '@/server/portal/added-charge';
 import { readToken, sha256Hex, signToken } from '@/server/links';
 import type { SigningState } from '@/features/handover/types';
 import { imageSniff } from '@/lib/file-sniff';
+import { realDay } from '@/lib/dates';
 // r48 size: a static import, not import(): each import() left a loader listing the target's chunks in every chunk
 // that holds this module (hundreds of copies in the Worker, scripts/worker-size.mjs)
 import { openAgreement } from '@/server/portal/agreement';
@@ -127,6 +128,7 @@ export async function staffDocumentUpload(form: FormData): Promise<R> {
     const s = await storage();
     await s.put('documents', key, bytes, mime);
     const opt = (k: string) => { const v = String(form.get(k) ?? '').trim(); return v || undefined; };
+    if (opt('policy_expiry') && !realDay(opt('policy_expiry'))) { await s.remove('documents', key).catch(() => undefined); return fail('Enter the policy expiry as a date, for example 2027-03-31.'); }
     try {
       await door(user.id, 'ops_do', 'staff_document_register', { booking, kind, path: key, sha256: await sha256Hex(bytes), mime,
         title: opt('title'), insurer_name: opt('insurer_name'), policy_number: opt('policy_number'), policy_expiry: opt('policy_expiry'),
@@ -173,6 +175,8 @@ export async function staffDocumentUploadFinish(ticket: string, details: Record<
     const real = pdf ? 'application/pdf' : jpg ? 'image/jpeg' : png ? 'image/png' : '';
     if (bytes.byteLength > STAFF_DOC_MAX || !real || real !== t.ct) { await s.remove('documents', t.key).catch(() => undefined); return fail('Upload a photo (JPG or PNG) or a PDF.'); }
     const opt = (k: string) => { const v = String(details?.[k] ?? '').trim().slice(0, 120); return v || undefined; };
+    // r50 (BR-3): a policy expiry the database cannot read as a day failed the whole upload; it is said before anything is kept
+    if (opt('policy_expiry') && !realDay(opt('policy_expiry'))) { await s.remove('documents', t.key).catch(() => undefined); return fail('Enter the policy expiry as a date, for example 2027-03-31.'); }
     try {
       await door(user.id, 'ops_do', 'staff_document_register', { booking: t.b, kind: t.k, path: t.key, sha256: await sha256Hex(bytes), mime: real,
         title: opt('title'), insurer_name: opt('insurer_name'), policy_number: opt('policy_number'), policy_expiry: opt('policy_expiry'),

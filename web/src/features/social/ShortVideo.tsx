@@ -87,7 +87,7 @@ export function ShortVideo({ vehicle }: { vehicle: string }) {
       {kit.videos.length > 0 && <ul className="stack" data-testid="short-video-list">{kit.videos.map((v) => (
         <li key={v.id} className="row" style={{ gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <video src={`/api/social/video?vehicle=${vehicle}&video=${v.id}`} width={108} height={192} controls preload="none" muted playsInline style={{ background: '#000', borderRadius: '4px' }} />
-          <span className="small">{new Date(v.at).toLocaleString('en-CA', { dateStyle: 'medium', timeStyle: 'short' })} · {v.seconds} s · {mb(v.bytes)} · {v.mime === 'video/mp4' ? 'MP4' : 'WebM'}</span>
+          <span className="small">{new Date(v.at).toLocaleString('en-CA', { timeZone: 'America/Toronto', dateStyle: 'medium', timeStyle: 'short' })} · {v.seconds} s · {mb(v.bytes)} · {v.mime === 'video/mp4' ? 'MP4' : 'WebM'}</span>
           <a className="btn btn--ghost btn--sm" href={`/api/social/video?vehicle=${vehicle}&video=${v.id}`} download data-testid="short-video-download">Download</a>
           <button className="btn btn--ghost btn--sm" type="button" onClick={() => remove(v.id)}>Remove</button>
         </li>))}</ul>}

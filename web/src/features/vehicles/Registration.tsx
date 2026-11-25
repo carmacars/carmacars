@@ -69,7 +69,7 @@ export function Registration({ d }: { d: RegistrationData }) {
       {msg && <p className={`small${msg.ok ? '' : ' form-error'}`} role="status" data-testid="reg-msg">{msg.text}</p>}
 
       <h3 className="d4">Documents</h3>
-      {d.documents.length ? <ul className="small" data-testid="reg-docs">{d.documents.map((x) => <li key={x.id}><a className="link" href={`/admin/documents/${x.id}`}>{x.title}</a> ({new Date(x.created_at).toLocaleDateString('en-CA')}{x.by ? `, ${x.by}` : ''})</li>)}</ul>
+      {d.documents.length ? <ul className="small" data-testid="reg-docs">{d.documents.map((x) => <li key={x.id}><a className="link" href={`/admin/documents/${x.id}`}>{x.title}</a> ({new Date(x.created_at).toLocaleDateString('en-CA', { timeZone: 'America/Toronto' })}{x.by ? `, ${x.by}` : ''})</li>)}</ul>
         : <p className="small muted">No document on the car yet.</p>}
       <div className="ad-fields">
         <div className="field ad-field"><label className="label" htmlFor="reg-doc-kind">Document</label>
