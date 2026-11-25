@@ -105,7 +105,7 @@ begin
   return v;
 end $$;
 
-create function app.site_health(p_by uuid, p jsonb default '{}') returns jsonb
+create function app.site_health_tool(p_by uuid, p jsonb default '{}') returns jsonb
 language plpgsql stable security definer set search_path = public, app, pg_temp as $$
 declare
   h jsonb;
@@ -166,7 +166,7 @@ begin
   perform app.door_begin(k.user_id, 'aal2');
   begin
     v_result := case p_tool when 'site_errors' then app.site_errors(k.user_id, a)
-                            when 'site_health' then app.site_health(k.user_id, a)
+                            when 'site_health' then app.site_health_tool(k.user_id, a)
                             else app.search_console_issues(k.user_id, a) end;
   exception when others then
     insert into api_calls (key_id, user_id, tool, target, args, ok, error, client) values (k.id, k.user_id, p_tool, p_tool, a, false, left(sqlerrm, 500), left(p_client, 64));
@@ -181,7 +181,7 @@ do $$
 declare f record;
 begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-            where n.nspname = 'app' and p.proname = any (array['redact_text', 'viewer_role', 'site_errors', 'site_health', 'search_console_issues', 'api_call_pre4701']) loop
+            where n.nspname = 'app' and p.proname = any (array['redact_text', 'viewer_role', 'site_errors', 'site_health_tool', 'search_console_issues', 'api_call_pre4701']) loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);
     execute format('grant execute on function %s to service_role', f.sig);
   end loop;
