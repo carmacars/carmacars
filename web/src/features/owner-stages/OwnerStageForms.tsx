@@ -1,4 +1,5 @@
 'use client';
+import { DateInput } from '@/components/DateInput';
 import { useId, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { ownerStageAct } from '@/server/actions/owner-stages';
@@ -31,7 +32,7 @@ export function AppointmentForm({ vehicleId, finderUrl }: { vehicleId: string; f
       </div>
       {open && <div id={`${id}-f`} className="os-fields">
         <div className="field"><label className="label" htmlFor={`${id}-at`}>Date and time</label>
-          <input id={`${id}-at`} className="input" type="datetime-local" value={at} onChange={(e) => setAt(e.target.value)} data-testid="os-at" /></div>
+          <DateInput id={`${id}-at`} className="input" type="datetime-local" value={at} onChange={(e) => setAt(e.target.value)} data-testid="os-at" /></div>
         <div className="field"><label className="label" htmlFor={`${id}-pl`}>ServiceOntario centre</label>
           <input id={`${id}-pl`} className="input" type="text" value={place} onChange={(e) => setPlace(e.target.value)} maxLength={200} placeholder="Its name or address" data-testid="os-place" /></div>
         <p><button type="button" className="btn btn--primary" onClick={save} disabled={pending} data-testid="os-save">{pending ? 'Saving' : 'Save my appointment'}</button></p>
