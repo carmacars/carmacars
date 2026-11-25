@@ -422,6 +422,20 @@ export const TOWNHALL_TOOLS: Tool[] = [
 ];
 TOOLS.push(...TOWNHALL_TOOLS);
 
+// Release 50 (4701): the site's errors, read only. site_errors groups the browser's and the server's errors (client_errors,
+// kind server since 4701) by page and message; site_health is the site checks and the data health problems;
+// search_console_issues is what the Search Console sync stored. The database (app.api_call) decides and logs each call.
+export const ERROR_TOOLS: Tool[] = [
+  read('site_errors', 'Site errors', 'The errors of the last hours (24 by default, up to 720), grouped by page (ids shown as :id) and message: the count, the people, first and last seen, the kinds (server: the server failed the request; crash: the page broke in the browser; network, transition, stale_build, translation, foreign: noise) and the viewers\' roles (admin, staff:sales, field, owner, renter, visitor). Emails, phone numbers, ids and tokens are masked. Read only.',
+    { hours: { type: 'integer', minimum: 1, maximum: 720, description: 'How many hours back (24 by default)' },
+      kind: { type: 'string', enum: ['real', 'all', 'server', 'crash', 'network', 'transition', 'stale_build', 'translation', 'foreign'], description: 'Which errors (real: server and crash, the default)' },
+      path: str('Only pages starting with this path, for example /staff'), limit: { type: 'integer', minimum: 1, maximum: 500, description: 'At most this many groups (100 by default)' } }),
+  read('site_health', 'Site health', 'The site checks that are not ok or failed in the last 24 hours (page, status, HTTP code, since when, the advice), how many are ok, and the data health problems of the last run (each with its count and where to fix it). Read only.'),
+  read('search_console_issues', 'Search Console issues', 'What the Search Console sync stored: the pages Google reports with an error (server error 5xx, not found 404, soft 404, redirect error, blocked, crawl anomaly) with their state, sitemap and last crawl; the other pages not indexed, counted by state; the sitemaps with errors, warnings, still pending or not read for 7 days; and the last coverage summary. Read only.',
+    { limit: { type: 'integer', minimum: 1, maximum: 1000, description: 'At most this many error pages (200 by default)' } })
+];
+TOOLS.push(...ERROR_TOOLS);
+
 export function normalizeToolArgs(args: unknown): unknown {
   if (!args || typeof args !== 'object' || Array.isArray(args)) return args;
   const a = args as Record<string, unknown>;

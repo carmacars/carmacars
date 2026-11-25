@@ -60,7 +60,7 @@ export function AlertsFeed({ initial, filter, base }: { initial: AlertItem[]; fi
                   <span className={`al__tier al__tier--${x.tier}`}>{TIER_LABEL[x.tier]}</span>
                   <span>{x.group}</span>
                   <time dateTime={x.created_at} suppressHydrationWarning>{ago(x.created_at, now)}</time>
-                  {x.snoozed_until && !x.read_at && new Date(x.snoozed_until).getTime() > now && <span suppressHydrationWarning>Snoozed until {hhmm(x.snoozed_until)}</span>}
+                  {x.snoozed_until && !x.read_at && <span suppressHydrationWarning>{new Date(x.snoozed_until).getTime() > now ? `Snoozed until ${hhmm(x.snoozed_until)}` : ''}</span>}
                 </p>
               </div>
               {!x.read_at && (

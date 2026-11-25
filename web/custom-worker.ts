@@ -22,6 +22,15 @@ import { WARM_KEY, warmBatch, warmDone, warmPaths, warmValue } from './src/lib/e
 import { readNumber, writeNumber } from './src/lib/edge/page-cache';
 import { globalKeep, globalKey, globalMatch, type R2Like } from './src/lib/edge/global-store';
 import { kickNow, notifyKick, tickPlan } from './src/lib/edge/notify-kick';
+import { isClosedConnection } from './src/lib/db/closed';
+
+// r50: a database socket closed under a call (a request cancelled or finished while a parallel read was still out, as on
+// a not-found car page: notFound() ends the render with the other reads in flight) rejected outside any request, and
+// workerd then failed the isolate: the next request got 503 "The service is no longer running" (the Worker smoke's
+// /cars/no-such-car-smoke, "This socket has been closed"). That rejection is the socket's own, not a page's error: kept
+// out of the isolate here. Every other unhandled rejection is left as it was.
+(globalThis as unknown as { addEventListener?: (t: string, f: (e: { reason?: unknown; preventDefault(): void }) => void) => void })
+  .addEventListener?.('unhandledrejection', (e) => { if (isClosedConnection(e.reason)) { e.preventDefault(); console.warn('db socket closed after its request (ignored)'); } });
 
 /** The deployment last rebuilt for (a number from the Worker's version id), in the tag store next to the fleet's signature. */
 const DEPLOY_SEEN_KEY = 'carmacars/deploy-seen';

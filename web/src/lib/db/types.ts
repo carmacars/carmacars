@@ -37097,6 +37097,7 @@ export type Database = {
       server_checkin_id_photo: { Args: { p_by: string; p: Json }; Returns: string };
       server_checkin_renter: { Args: { p_user: string; p_booking: string }; Returns: Json };
       server_client_error: { Args: { p: Json }; Returns: string };
+      server_error_log: { Args: { p: Json }; Returns: string };
       server_client_error_pre0532: { Args: { p: Json }; Returns: string };
       server_client_error_pre2340: { Args: { p: Json }; Returns: string };
       server_colour_read_due: { Args: { p_limit?: number }; Returns: Json };

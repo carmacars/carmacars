@@ -40,7 +40,7 @@ export function ShiftStrip({ t, open }: { t: Today; open: OpenMust[] }) {
       <div className="fp-shift__row">
         <div><p className="fp-shift__label" id="fp-shift-h">{t.shift ? 'Your shift today' : 'No shift today'}</p>
           {t.shift ? <p className="fp-shift__time">{clockText(t.shift.starts_at)} to {clockText(t.shift.ends_at)}</p> : <p className="small">Claim one on My shifts. Jobs go to people on a shift.</p>}</div>
-        {t.clock && <div style={{ textAlign: 'right' }}><p className="fp-shift__label">Clocked in</p><p className="fp-shift__clock" data-testid="clock-elapsed">{elapsedClock(t.clock.started_at, now)}</p></div>}
+        {t.clock && <div style={{ textAlign: 'right' }}><p className="fp-shift__label">Clocked in</p><p className="fp-shift__clock" data-testid="clock-elapsed" suppressHydrationWarning>{elapsedClock(t.clock.started_at, now)}</p></div>}
       </div>
       {t.counts.must > 0 && <div className="fp-meter" aria-label="Must-dos done">
         <p className="fp-meter__text"><span>{t.counts.done} of {t.counts.must} done</span><span>{pct}%</span></p>

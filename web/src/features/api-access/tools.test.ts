@@ -301,3 +301,13 @@ test('r50: townhall_status reads (admin:read); townhall_set_call_url and townhal
   assert.match(SQL4500, /app\.townhall_build\(v_week, p_by\)/);
   assert.ok(!/search_path = public, app\s*as/.test(SQL4500), 'search_path ends with pg_temp');
 });
+
+// r50 (4701): the site's errors, read only
+const SQL4701 = readFileSync(new URL('../../../../supabase/migrations/4701_r50_site_errors.sql', import.meta.url), 'utf8');
+test('r50: site_errors, site_health and search_console_issues are read only (admin:read) and run in the database', async () => {
+  const { ERROR_TOOLS } = await import('./tools.ts');
+  assert.deepEqual(ERROR_TOOLS.map((t) => t.name), ['site_errors', 'site_health', 'search_console_issues']);
+  for (const t of ERROR_TOOLS) { assert.ok(t.readOnly && t.scope === 'admin:read', t.name); assert.ok(TOOLS.includes(t), t.name); assert.ok(toolsFor(['admin:read']).includes(t), t.name); }
+  assert.match(SQL4701, /app\.api_call_pre4701\(p_hash, p_tool, p_args, p_client\); end if;/);
+  assert.match(SQL4701, /app\.redact_text/);
+});
