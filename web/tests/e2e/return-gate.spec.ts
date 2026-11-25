@@ -77,7 +77,7 @@ test('return with documents in review and no recorded pickup', async ({ page }) 
     expect(types).toContain('pickup_not_recorded');
     expect(types).toContain('return_claim_review');
     if (d) expect(types).toContain('docs_review_after_return');
-    expect(errors()).toEqual([]);
+    expect(errors).toEqual([]);
   } finally {
     await sql.end();
   }
