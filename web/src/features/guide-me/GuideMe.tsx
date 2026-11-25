@@ -243,7 +243,7 @@ export function GuideMe({ portal, admin = false, functions = NONE }: { portal: P
         <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8.5" /><path d="M15.5 8.5l-2 5-5 2 2-5z" /></svg>
         <span className="hd-lbl">Guide me</span>
       </button>
-      {menu && <div ref={menuRef} className="gm-menu" role="dialog" aria-label="Guide me" data-testid="guide-me-menu" data-guide-me-ui>
+      {menu && <div ref={menuRef} className="gm-menu mo-pop-in" role="dialog" aria-label="Guide me" data-testid="guide-me-menu" data-guide-me-ui>
         <label className="gm-switch" htmlFor="gm-keep">
           <input id="gm-keep" type="checkbox" role="switch" checked={on} onChange={(e) => keepOn(e.target.checked)} data-testid="guide-me-keep" />
           <span><b>Keep Guide me on</b><span className="small muted">On the first page of a workflow, it offers to walk you through it.</span></span>
@@ -271,7 +271,7 @@ export function GuideMe({ portal, admin = false, functions = NONE }: { portal: P
             <button type="button" className="btn btn--quiet btn--sm" onClick={() => act('skip')} data-testid="guide-me-skip">Skip</button>
             <button type="button" className="btn btn--primary btn--sm" onClick={() => act('next')} disabled={!nextOk} data-testid="guide-me-next"
               title={nextOk ? undefined : 'Do this step on the page: it moves on by itself'}>{view.run.index + 1 >= view.run.steps.length ? 'Finish' : 'Next'}</button>
-            <button type="button" className="gm-card__x" onClick={() => finish('exited')} aria-label="Exit the guide" data-testid="guide-me-exit">
+            <button type="button" className="gm-card__x k-hit" onClick={() => finish('exited')} aria-label="Exit the guide" data-testid="guide-me-exit">
               <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg></button>
           </div>
           {guide && <p className="gm-card__more small"><a className="link" href={guide} target="_blank" rel="noopener">Read the guide chapter</a></p>}

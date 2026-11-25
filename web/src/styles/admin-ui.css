@@ -285,14 +285,14 @@
   .ad-board__tile:hover { transform: translateY(-1px); }
   .ad a.ad-tile:hover, .ad-settings a:hover { transform: translateY(-2px); }
   .ad a.ad-tile, .ad-settings a { transition: border-color var(--t-1), box-shadow var(--t-2), transform var(--t-2) var(--ease); }
-  .ad-board > li { animation: ad-rise 520ms var(--ease) both; animation-delay: calc(var(--i, 0) * 40ms); }
+  .ad-board > li { animation: ad-rise 300ms var(--ease) both; animation-delay: calc(var(--i, 0) * 40ms); }
   .ad-board > li:nth-child(2) { --i: 1; } .ad-board > li:nth-child(3) { --i: 2; } .ad-board > li:nth-child(4) { --i: 3; }
   .ad-board > li:nth-child(5) { --i: 4; } .ad-board > li:nth-child(6) { --i: 5; } .ad-board > li:nth-child(7) { --i: 6; }
   .ad-dialog[open], .ad-cmd[open] { animation: ad-pop 200ms var(--ease) both; }
-  .ad-toast { animation: ad-rise 320ms var(--ease) both; }
+  .ad-toast { animation: ad-rise 300ms var(--ease) both; }
   .ad-toast.is-out { transition: opacity 200ms, transform 200ms; transform: translateY(6px); }
-  .ad-steps-line li { transform-origin: left; animation: ad-grow 600ms var(--ease) both; }
-  .ad-wait.is-over .ad-wait__dot { animation: ad-blink 1.6s ease-in-out infinite; }
+  .ad-steps-line li { transform-origin: left; animation: ad-grow 300ms var(--ease) both; }
+  .ad-wait.is-over .ad-wait__dot { animation: ad-blink 300ms var(--ease-in-out) 3; }
 }
 @keyframes ad-rise { from { opacity: 0; transform: translateY(8px); } }
 @keyframes ad-pop { from { opacity: 0; transform: translateY(6px) scale(0.985); } }

@@ -14,8 +14,8 @@ export default function Coin({ prize, reduced, onReveal }: GameProps) {
     if (call) return;
     const s = coinFlip(Math.random);
     setCall(c);
-    timers.current.push(setTimeout(() => setSide(s), reduced ? 50 : 1700));
-    timers.current.push(setTimeout(onReveal, reduced ? 700 : 3000));
+    timers.current.push(setTimeout(() => setSide(s), reduced ? 50 : 300));
+    timers.current.push(setTimeout(onReveal, reduced ? 700 : 1600));
   }
   const spinning = call !== null && side === null;
   return (

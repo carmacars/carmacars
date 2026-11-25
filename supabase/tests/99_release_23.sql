@@ -138,7 +138,8 @@ insert into job_applications (role_id, status, full_name, email, phone) select i
 insert into job_applications (role_id, status, full_name, email, phone) select id, 'invited', 'R23 Phone Person', 'phone@r23.example.test', '+14165550188' from hiring_roles where slug = 'field-staff';
 select test.eq('a remote role meets by video on a phone day', (app.hiring_book((select token from job_applications where email = 'video@r23.example.test'),
   (select s.id from interview_slots s join interview_days d on d.id = s.day_id where d.note = 'r23 day' order by s.starts_at limit 1))) ->> 'mode', 'video');
-select test.ok('with its video link', (select meet_url like 'https://meet.jit.si/%' from job_applications where email = 'video@r23.example.test'));
+-- (since 5010 the call is in the site by default; calls_mode link keeps the Jitsi link)
+select test.ok('with its video link', (select meet_url like 'https://carmacars.ca/call/i/%' or meet_url like 'https://meet.jit.si/%' from job_applications where email = 'video@r23.example.test'));
 update interview_days set mode = 'video' where note = 'r23 day';
 select test.eq('an in-person role is called by phone on a video day', (app.hiring_book((select token from job_applications where email = 'phone@r23.example.test'),
   (select s.id from interview_slots s join interview_days d on d.id = s.day_id where d.note = 'r23 day' order by s.starts_at offset 1 limit 1))) ->> 'mode', 'phone');

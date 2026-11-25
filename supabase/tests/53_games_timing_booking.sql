@@ -80,7 +80,7 @@ select test.eq('the reveal and the claim of a re-shown play work as before',
 select test.eq('after the claim: not again on this browser that day (0172)', test.g2start('a', array['wheel']) ->> 'reason', 'claimed');
 
 -- ================================================================ 3. the request-to-book form
-select test.eq('the site never shows a game to someone signed in', test.g2start('r1', '{}', 'site', test.id('g2_rita')) ->> 'reason', 'signed_in');
+select test.eq('the site shows a game to someone signed in too (5040)', test.g2start('r0', '{}', 'site', test.id('g2_rita')) ->> 'ok', 'true');
 insert into visitor_sessions (id, visitor_id, known_email, identified_by) values (md5('g2sid:known')::uuid, test.g2vid('known'), 'known.g2@example.test', 'email_link');
 select test.eq('the browser cannot ask for the booking form''s rules (public.game_start ignores the context)',
   public.game_start(jsonb_build_object('vid', test.g2vid('known'), 'context', 'booking')) ->> 'reason', 'known');
@@ -100,8 +100,6 @@ select test.eq('the booking form''s offer can be turned off', test.g2start('anon
 update program_settings set game_booking_offer = true;
 
 -- the claim (the prize is drawn: a fixed amount has no cap; a percentage or free days carry their own max_cents or the $75 setting, 0081)
-select test.eq('a signed-in renter cannot claim a play of the site', app.server_game_claim(jsonb_build_object('token', (select v ->> 'token' from g2 where n = 1), 'first_name', 'R',
-  'email', 'r@example.test'), test.id('g2_rita')) ->> 'error', 'signed_in');
 insert into g2 values (11, app.server_game_claim(jsonb_build_object('token', (select v ->> 'token' from g2 where n = 10), 'email', 'someone.else@example.test', 'first_name', ''), test.id('g2_rita')));
 select test.eq('a signed-in renter claims with their account''s email (not one typed), linked to the account',
   (select (v ->> 'ok') || ' ' || (v ->> 'email') from g2 where n = 11) || ' ' || (select (user_id = test.id('g2_rita'))::text || ' ' || (renter_id = test.id('renter:g2_rita'))::text || ' ' || first_name from game_claims where email = 'g2_rita@example.test'),

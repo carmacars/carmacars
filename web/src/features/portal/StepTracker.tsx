@@ -36,7 +36,7 @@ export function StepTracker({ number, stages, todos = [], testId = 'step-tracker
     if (fill && motionOK() && typeof fill.animate === 'function') {
       const from = Math.max(0, sum.done - list.length) / sum.total;
       fill.getAnimations().forEach((a) => a.cancel());
-      fill.animate([{ transform: `scaleX(${from})` }, { transform: `scaleX(${sum.done / sum.total})` }], { duration: 900, delay: 250, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'backwards' });
+      fill.animate([{ transform: `scaleX(${from})` }, { transform: `scaleX(${sum.done / sum.total})` }], { duration: 300, delay: 120, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'backwards' });
     }
     return () => clearTimeout(t);
     // once per page view: the stages come from the server

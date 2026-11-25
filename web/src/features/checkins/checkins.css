@@ -14,3 +14,5 @@
 .ci-tabs { display: flex; flex-wrap: wrap; gap: var(--s-2); }
 .ci-check { display: grid; gap: var(--s-4); max-width: 40rem; }
 @media (max-width: 380px) { .ci-slots .btn { min-width: calc(50% - var(--s-2)); } }
+/* r50 design zero: dates, counts and kilometres keep their width */
+.ci-tabs, .ci-list, .ci-row, .ci-day legend, .ci-slots { font-variant-numeric: tabular-nums; }

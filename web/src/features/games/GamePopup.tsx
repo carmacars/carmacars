@@ -5,7 +5,7 @@ import { lazy, Suspense, useEffect, useId, useRef, useState, type ComponentType 
 import { browserRpc } from '@/lib/browser-rpc';
 import { sessionId, visitorId } from '@/features/live/beacon';
 import { claimProblems, isReplay, keptWords, mayPlayAgain, waitingWords, wonWords, type GameKind, type PrizeWord, type Trigger, type Visit } from './rules';
-import { forgetSaved, memory, remember, rememberAgain, rememberClaim, rememberSeen, rememberWon } from './GameGate';
+import { forgetSaved, memory, remember, rememberAgain, rememberClaim, rememberSeen, rememberWon, signedIn } from './GameGate';
 import { SavedAsYouType, useCapture } from '@/features/capture/useCapture';
 
 // Discount games (migrations 0069 and 0081): the game itself. A slide-in card on a computer and a bottom sheet on a
@@ -85,9 +85,9 @@ function Confetti() {
 }
 const device = () => (matchMedia('(max-width: 599px)').matches ? 'phone' : matchMedia('(max-width: 1024px)').matches ? 'tablet' : 'desktop');
 
-async function startPlay(p: Record<string, unknown>, booking: boolean): Promise<Play> {
-  if (!booking) return browserRpc<Play>('game_start', { p });
-  // the request-to-book form's play goes through the site's server, which knows who is signed in
+async function startPlay(p: Record<string, unknown>, serverPlay: boolean): Promise<Play> {
+  if (!serverPlay) return browserRpc<Play>('game_start', { p });
+  // the request-to-book form's play, and a signed-in person's play on the site (r50, 5040), go through the site's server, which knows who is signed in
   const r = await fetch('/api/games', { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ action: 'start', p }) });
   if (!r.ok && r.status >= 500) throw new Error('unavailable');
   return (await r.json()) as Play;
@@ -95,6 +95,8 @@ async function startPlay(p: Record<string, unknown>, booking: boolean): Promise<
 
 export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = false, repop = false, start, context = 'site', prefill, onClaimed, applied, preview = null }: GamePopupProps) {
   const booking = context === 'booking';
+  // r50 (5040): a signed-in person's play on the site goes through the server too: it knows the account (name and email come with the play)
+  const [serverPlay] = useState(() => booking || signedIn());
   const [play, setPlay] = useState<Play | null>(() => (preview ? previewPlay(preview.game) : null));
   // 0176: the prize popping up again by itself starts small; the full card opens from Get my code or Play again
   const [slim, setSlim] = useState(slimAtFirst || repop);
@@ -120,9 +122,9 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
     let live = true;
     back.current = document.activeElement;
     if (preview) return;
-    const p = { vid: visitorId(), sid: sessionId(), device: device(), path, trigger: booking ? 'booking' : trigger, seen, ...(booking ? { context: 'booking' } : {}) };
+    const p = { vid: visitorId(), sid: sessionId(), device: device(), path, trigger: booking ? 'booking' : trigger, seen, context: booking ? 'booking' : 'site' };
     // one more try after a moment if the network dropped the first
-    startPlay(p, booking).catch(() => new Promise<Play>((ok, ko) => setTimeout(() => startPlay(p, booking).then(ok, ko), 3000)))
+    startPlay(p, serverPlay).catch(() => new Promise<Play>((ok, ko) => setTimeout(() => startPlay(p, serverPlay).then(ok, ko), 3000)))
       .then((r) => {
         if (!live) return;
         if (!r?.ok) {
@@ -181,9 +183,9 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
   async function again() {
     if (!play || busy) return;
     setBusy(true); setFailure('');
-    const p = { vid: visitorId(), sid: sessionId(), device: device(), path, trigger: booking ? 'booking' : trigger, seen: memory().seen ?? [], replay_of: play.token, ...(booking ? { context: 'booking' } : {}) };
+    const p = { vid: visitorId(), sid: sessionId(), device: device(), path, trigger: booking ? 'booking' : trigger, seen: memory().seen ?? [], replay_of: play.token, context: booking ? 'booking' : 'site' };
     try {
-      const r = await startPlay(p, booking);
+      const r = await startPlay(p, serverPlay);
       if (!r?.ok || !GAMES[r.game]) { setFailure('We could not start your next game. Please try again.'); return; }
       setPlay(r); setSaved(false); setStage('playing');
       rememberSeen(r.game);
@@ -197,7 +199,7 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
     setBusy(true); setFailure('');
     const p = { vid: visitorId(), sid: sessionId(), device: device(), path, trigger, seen: memory().seen ?? [], again_of: from.token };
     try {
-      const r = await startPlay(p, false);
+      const r = await startPlay(p, serverPlay);
       if (r?.ok && GAMES[r.game]) {
         rememberAgain();
         setPlay(r); setSaved(false); setSlim(false); setStage('playing');
@@ -234,6 +236,7 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
         if (j.error && ['first_name', 'email', 'phone'].includes(j.error)) setErrors({ [j.error === 'first_name' ? 'first' : j.error]: j.message ?? 'Check this field.' });
         else setFailure(j.message ?? 'We could not send the code. Please try again.');
         if (j.error === 'email_used' || j.error === 'device_used' || j.error === 'claimed') rememberClaim(j.again_after);
+        // r50: staff see the game as a preview; their claim is never a claim (nothing is remembered)
         return;
       }
       setClaimed(j); setStage('claimed');
@@ -252,14 +255,14 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
   if (!play) return null;
   const g = GAMES[play.game];
   const err = (k: string) => errors[k];
-  const account = booking && play.account;
+  const account = play.account;
   const replay = isReplay(play.prize);
   // 0176: the prize shown in the claim form: the one kept after Play again on a saved prize
   const kept = play.keep?.from === 'saved';
   const prize = kept ? play.keep!.prize : play.prize;
   let visitNow: Visit | null = null;
   try { visitNow = JSON.parse(sessionStorage.getItem('cc_game_visit') ?? 'null') as Visit | null; } catch { /* private mode */ }
-  const againOk = !booking && play.again?.ok !== false && mayPlayAgain(memory(), visitNow, Date.now());
+  const againOk = !booking && !account && play.again?.ok !== false && mayPlayAgain(memory(), visitNow, Date.now());
   if (slim && saved) return (
     <section className="ccg ccg--two" role="region" aria-label="CarmaCars giveaway" data-testid="game" data-game={play.game} data-slim="true" data-repop="true" data-saved="true">
       <p className="ccg-two__text">{replay ? 'You still have another go' : waitingWords(play.prize)}
@@ -310,7 +313,7 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
         {stage === 'won' && !replay && <form onSubmit={claim} noValidate className="ccg-form" data-testid="game-claim" onBlur={() => { if (!preview) cap.capture({ name: form.first, email: form.email, phone: form.phone }); }}>
           {play.prize.rare && !saved && !kept && <p className="ccg-rare" data-testid="game-rare">A rare prize</p>}
           {play.keep && <p className="ccg-pitch" data-testid="game-kept" data-kept={play.keep.from}>{kept ? `This game gave ${play.keep.other}, so you keep your ${prize.label}.` : `Better than your ${play.keep.other}: this prize replaces it.`}</p>}
-          <p className={`ccg-prize${prize.rare ? ' ccg-holo' : ''}`} id={`${id}-d`} role="status"><strong>{prize.label}</strong> {/free day/.test(prize.label) ? 'on ' : ''}{booking ? 'this booking' : 'your rental'}{prize.min_days ? ` of ${prize.min_days} days or more` : ''}. {booking ? (account ? `We put the code on this booking and send it to ${account.email}.` : 'Where should we send your code? It goes on this booking at once.') : 'Tell us where to send your code.'}</p>
+          <p className={`ccg-prize${prize.rare ? ' ccg-holo' : ''}`} id={`${id}-d`} role="status"><strong>{prize.label}</strong> {/free day/.test(prize.label) ? 'on ' : ''}{booking ? 'this booking' : 'your rental'}{prize.min_days ? ` of ${prize.min_days} days or more` : ''}. {booking ? (account ? `We put the code on this booking and send it to ${account.email}.` : 'Where should we send your code? It goes on this booking at once.') : (account ? `We send the code to ${account.email} and keep it in your account.` : 'Tell us where to send your code.')}</p>
           <label className="ccg-field" htmlFor={`${id}-first`}><span>First name</span>
             <input className="input" id={`${id}-first`} name="first" autoComplete="given-name" value={form.first} onChange={(e) => setForm({ ...form, first: e.target.value })}
               aria-invalid={err('first') ? true : undefined} aria-describedby={err('first') ? `${id}-first-e` : undefined} /></label>
@@ -342,6 +345,7 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
               <button type="button" className="btn btn--ghost" onClick={copy}>{copied ? 'Copied' : 'Copy the code'}</button>
               <Link className="btn btn--primary" href="/cars" onClick={() => onDone('claimed')}>Choose a car</Link>
             </div>
+            {play.account && <p className="ccg-fine" data-testid="game-in-account">It is also in your account: <Link className="link" href="/account/rewards" onClick={() => onDone('claimed')}>Rewards, Your discounts</Link>. It applies at checkout.</p>}
             <p className="ccg-fine" role="status">{copied ? 'The code is copied.' : 'Enter it in the promo code box when you send your booking request. We fill it in for you on this device.'}</p>
           </>}
         </div>}

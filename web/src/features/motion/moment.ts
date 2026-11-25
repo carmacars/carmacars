@@ -1,5 +1,5 @@
-// r35 S2: short moments of motion at the key steps of the flow (owner: "so the flow feels alive"). Each plays once, about
-// a second, over the page and never blocks it (pointer-events: none, aria-hidden), and nothing plays under
+// r35 S2: short moments of motion at the key steps of the flow (owner: "so the flow feels alive"). Each plays once, each move
+// 300 ms or less (the owner's design rules), over the page and never blocks it (pointer-events: none, aria-hidden), and nothing plays under
 // prefers-reduced-motion: reduce (the CSS in styles/motion.css draws nothing then, and playMoment returns early).
 //   sent       the renter sent a request: a paper plane whooshes away with its trail
 //   confirmed  the renter confirmed or paid: a check draws, confetti falls, the car keys drop in
@@ -10,7 +10,7 @@
 // Rewards tier): the ring and the check with the confetti.
 // Pure DOM (no library), so a server page plays one with <Moment kind="..."/> and an action handler calls playMoment().
 export type MomentKind = 'sent' | 'confirmed' | 'offer' | 'signed' | 'review' | 'tier';
-export const MOMENT_MS = 1150;
+export const MOMENT_MS = 600;
 
 /** The confetti: deterministic pieces (no randomness: the same every time), spread across the top of the screen. */
 export function confettiPieces(n = 22): Array<{ x: number; delay: number; rot: number; hue: 'red' | 'white' | 'grey'; drift: number }> {
