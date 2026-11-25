@@ -136,6 +136,11 @@ test('a booking request with Text: the email is skipped, the text is queued with
   const sql = db();
   try {
     await sql`delete from app.rate_limit_hits`;
+    // r50 (5042): email is production-ready, so a type goes by email only unless the Admin sets it to Both (2971). This test
+    // is about the text path, so renter_request_received is set to Both. An upsert, never deleted: the desktop and the
+    // phone project run this file at the same time, and no other spec reads this type's channel.
+    await sql`insert into message_channel_policy (code, channel) values ('renter_request_received', 'both')
+              on conflict (code) do update set channel = 'both', updated_at = now()`;
     const r = await mkRenter(sql);
     const slug = isPhone() ? 'honda-civic' : 'toyota-camry';
     const range = await freeWindow(sql, slug);
@@ -180,6 +185,16 @@ test('a booking request with Text: the email is skipped, the text is queued with
       // one pass works through every queued event of the run (r27: each staff alert goes to every Admin the tests made), so a
       // pass can take longer than the 15 seconds this used to allow
     }, { timeout: 90_000 }).toEqual({ status: 'skipped', status_reason: 'Sent by text (the person chose text)', channel: 'text' });
+    // the default under the policy: a type with no row (here a booking confirmation) is email only, even for a person who chose text
+    const [rr] = await sql<Array<{ id: string; bid: string }>>`select r.id, b.id as bid from bookings b join renters r on r.id = b.renter_id where b.booking_number = ${number}`;
+    expect((await sql`select app.channel_policy_for('renter_booking_confirmed') as c`)[0]!.c).toBe('email');
+    const [put] = await sql<Array<{ id: string }>>`
+      insert into notification_outbox (code, category, priority, audience, to_address, to_name, booking_id, renter_id, payload, dedupe_key, status)
+      values ('renter_booking_confirmed', 'transactional', 1, 'renter', ${r.email}, 'Tara Text', ${rr!.bid}, ${rr!.id}, jsonb_build_object('booking_id', ${rr!.bid}::text), ${'ta-email-only:' + number}, 'queued')
+      returning id`;
+    const [mail] = await sql<Array<{ channel: string; sms: boolean; texts: number }>>`
+      select n.channel, n.sms_planned as sms, (select count(*)::int from phone_outbox o where o.notification_id = n.id) as texts from notification_outbox n where n.id = ${put!.id}`;
+    expect(mail).toEqual({ channel: 'email', sms: false, texts: 0 });
     const [sms] = await sql<Array<{ id: string; status: string; to_number: string; body: string; waits: boolean; quiet: boolean }>>`
       select o.id, o.status, o.to_number, o.body,
              o.send_after > o.created_at + make_interval(mins => coalesce((app.settings()).notify_merge_window_minutes, 2)) + interval '1 second' as waits,

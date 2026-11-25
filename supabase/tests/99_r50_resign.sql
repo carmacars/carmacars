@@ -3,6 +3,9 @@
 -- the emails, the Admin's last day change and End access, the job that ends the access after the last day, the immediate
 -- end for someone in onboarding, the connector's list_staff. Fixtures "rs50".
 select test.suite('99 r50 resign: resign, withdraw, who may act, shifts back to the queue, one To do, the job, onboarding');
+-- process_events() takes the oldest notify_event_batch (500) events: the events earlier files left unprocessed (in a slice, a
+-- backlog of some thousands) would hold this file's emails back. They are not this file's: mark them done first.
+update app_events set processed_at = now(), process_note = 'test: left by an earlier file' where processed_at is null;
 select test.mk_user('rs50_admin', 'admin');
 select test.mk_user('rs50_fin', 'va', 'finance');
 select test.mk_user('rs50_field', 'field', null, 'driver');
