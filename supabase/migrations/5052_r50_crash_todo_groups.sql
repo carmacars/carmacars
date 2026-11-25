@@ -42,6 +42,7 @@ comment on table crash_groups is 'Website crash To do''s grouped by error (5052)
 alter table crash_groups enable row level security;
 revoke all on crash_groups from public, anon, authenticated;
 grant all on crash_groups to service_role;
+create trigger audit_crash_groups after insert or update or delete on crash_groups for each row execute function app.audit_row();
 drop policy if exists admin_all on crash_groups;
 create policy admin_all on crash_groups for all to authenticated using (app.is_admin()) with check (app.is_admin());
 

@@ -195,6 +195,8 @@ test('a booking request with Text: the email is skipped, the text is queued with
     const [mail] = await sql<Array<{ channel: string; sms: boolean; texts: number }>>`
       select n.channel, n.sms_planned as sms, (select count(*)::int from phone_outbox o where o.notification_id = n.id) as texts from notification_outbox n where n.id = ${put!.id}`;
     expect(mail).toEqual({ channel: 'email', sms: false, texts: 0 });
+    // a test row only (its payload is not a real confirmation): removed so the email render check never meets it
+    await sql`delete from notification_outbox where id = ${put!.id}`;
     const [sms] = await sql<Array<{ id: string; status: string; to_number: string; body: string; waits: boolean; quiet: boolean }>>`
       select o.id, o.status, o.to_number, o.body,
              o.send_after > o.created_at + make_interval(mins => coalesce((app.settings()).notify_merge_window_minutes, 2)) + interval '1 second' as waits,

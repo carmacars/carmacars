@@ -137,7 +137,7 @@ select test.eq('check-in: the report is settled, the notices stay stopped, the t
 select public.server_client_error(jsonb_build_object('message', 'or: TypeError x is undefined', 'path', '/cars/or-test'));
 select public.server_client_error(jsonb_build_object('message', 'or: TypeError x is undefined', 'path', '/cars/or-test'));
 select test.eq('crashes: one morning digest line for the Admins, however many reports',
-  (select count(*) || ':' || min(digest_slot) from staff_digest_items where role = 'admin' and line like 'Website crash on /cars/or-test%'), '1:morning');
+  (select count(*) || ':' || min(digest_slot) from staff_digest_items where role = 'admin' and line like 'Website crash: or: TypeError x is undefined%'), '1:morning');
 
 -- ---------------------------------------------------------------- 8. the email budgets (0531)
 select test.eq('budgets: Cloudflare first (what it sent today plus what is left of its day), Resend after, its Program setting (1750)',
