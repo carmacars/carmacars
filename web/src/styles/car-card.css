@@ -43,6 +43,7 @@
    (the render through the matte) with two trailing copies for motion blur. Every layer is the render's own 3:2 frame. */
 .car-drive { position: absolute; inset: 0; z-index: 2; pointer-events: none; visibility: hidden; overflow: hidden; }
 .car-card.is-driving .car-drive { visibility: visible; }
+.car-card.is-driving .car-card__dots { opacity: 0; }
 .car-drive img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .car-drive__floor, .car-drive__lift, .car-drive__car, .car-drive__body, .car-drive__ghost { position: absolute; inset: 0; }
 .car-drive__body, .car-drive__ghost { -webkit-mask: var(--m) 0 0 / 100% 100% no-repeat; mask: var(--m) 0 0 / 100% 100% no-repeat; }

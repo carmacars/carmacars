@@ -61,10 +61,20 @@ export function studioMatte(img: Rgba, plate: Rgba, car: FBox, w = MATTE_W, h = 
     for (let y = Y0; y <= Y1; y++) if (fg[y * w + x]) { if (t < 0) t = y; b = y; }
     if (t >= 0 && b - t >= 2) for (let y = t; y <= b; y++) cols[y * w + x] = 1;
   }
-  // feathered edge: a 3 x 3 average twice (about 2 matte pixels, under a CSS pixel at card size)
-  let m = new Float32Array(w * h);
+  // grown by 2 matte pixels, then a feathered edge (a 3 x 3 average twice): the car's own edge stays whole in the moving
+  // layer and leaves no outline on the floor layer (which shows the render outside the matte)
   let n = 0;
-  for (let i = 0; i < w * h; i++) if (rows[i] && cols[i]) { m[i] = 1; n++; }
+  const core = new Uint8Array(w * h);
+  for (let i = 0; i < w * h; i++) if (rows[i] && cols[i]) { core[i] = 1; n++; }
+  let m = new Float32Array(w * h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    let on = 0;
+    for (let dy = -2; dy <= 2 && !on; dy++) for (let dx = -2; dx <= 2; dx++) {
+      const yy = y + dy, xx = x + dx;
+      if (yy >= 0 && yy < h && xx >= 0 && xx < w && core[yy * w + xx]) { on = 1; break; }
+    }
+    m[y * w + x] = on;
+  }
   for (let pass = 0; pass < 2; pass++) {
     const o = new Float32Array(w * h);
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
