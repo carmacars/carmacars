@@ -1,0 +1,30 @@
+/* Admin > Self-healing (4800): the admin kit's cards and pills; nothing squeezes on a phone (the text wraps, buttons never do). */
+.sh2 { display: grid; gap: var(--s-4); }
+.sh2__note { margin: 0; max-width: 72ch; }
+.sh2__tiles { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: var(--s-3); }
+.sh2__tiles li { display: grid; gap: 2px; padding: var(--s-3) var(--s-4); border-radius: var(--r-md, 12px); background: var(--surface, #fff); border: 1px solid var(--grey-100); }
+.sh2__tiles b { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.sh2__tiles span { font-size: var(--fs-sm); color: var(--text-2); }
+.sh2__tiles .is-warn b { color: var(--red-600); }
+.sh2__tiles .is-ok b { color: var(--ad-ok, #1F7A3A); }
+.sh2__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-3); }
+.sh2__inc { padding: var(--s-3) 0; border-bottom: 1px solid var(--grey-100); display: grid; gap: var(--s-2); min-width: 0; }
+.sh2__inc:last-child { border-bottom: 0; }
+.sh2__inc p { margin: 0; overflow-wrap: anywhere; }
+.sh2__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-1) var(--s-2); }
+.sh2__head .ad-pill { flex: none; }
+.sh2__title { min-width: 0; overflow-wrap: anywhere; }
+.sh2__head .ad-sub { flex-basis: 100%; }
+.sh2__tried, .sh2__log { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-1); }
+.sh2__tried li, .sh2__log li { display: grid; grid-template-columns: 9.5rem minmax(0, 1fr) auto; gap: var(--s-2); align-items: baseline; }
+.sh2__tried li > span:last-child, .sh2__log li > span:nth-child(2) { overflow-wrap: anywhere; }
+.sh2__when { color: var(--text-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sh2__acts { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.sh2__acts .btn, .sh2__toggle .btn, .sh2__log .btn { white-space: nowrap; flex: none; }
+.sh2__table td { vertical-align: top; }
+.sh2__table td:first-child { min-width: 14rem; }
+.sh2__sig { font-family: var(--font-mono, ui-monospace, monospace); font-size: var(--fs-xs); overflow-wrap: anywhere; }
+@media (max-width: 40rem) {
+  .sh2__tried li, .sh2__log li { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .sh2__table td:first-child { min-width: 11rem; }
+}

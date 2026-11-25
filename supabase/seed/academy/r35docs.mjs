@@ -89,13 +89,13 @@ export const SECTIONS = [
         S('Unclaimed', 'A published shift nobody has claimed 48 hours before it starts alerts Fleet and the Admins with the people to ask.', rule('48 hours', 'Ask the people suggested for the slot.', 'warn')),
         S('Approvals', 'Fleet VAs can approve a new person at the fourth onboarding step, or reject with a reason they see.', steps('Approve', ['Open the person', 'Check the first three steps', 'Approve or reject with a reason']))),
       L('Delivery and fuel',
-        S('Delivery by distance', 'Delivery is priced by distance from 1570 Midland Ave: a base, the kilometres included and a rate per km, all in Program settings.', title('From the office', 'Base, km included, per km')),
+        S('Delivery by distance', 'Delivery is priced by distance from 1940 Eglinton Ave E: a base, the kilometres included and a rate per km, all in Program settings.', title('From the office', 'Base, km included, per km')),
         S('Fuel', 'The fuel line at the return is a suggestion from the car\'s tank, the weekly pump price and a multiplier, plus the refuelling fee. You check it on the deposit review; nothing is charged by itself.', rule('Check first', 'Fuel is never charged without a check.', 'ok')),
         S('Test cars', 'An Admin can delete a car that has only test bookings. A car with a real booking cannot be deleted.', rule('Real bookings stay', 'Only cars with test bookings only can go.', 'warn')))
     ],
     quiz: [
       Q('A shift has no one 48 hours before it starts. What happens?', ['Nothing', 'Fleet and the Admins are alerted with the people to ask', 'It is deleted', 'It is given to a random person'], 1, 'An unclaimed shift alerts Fleet and the Admins.'),
-      Q('Where is delivery measured from?', ['The renter\'s home', '1570 Midland Ave', 'The airport', 'The owner\'s address'], 1, 'Delivery is priced by distance from the company\'s address.'),
+      Q('Where is delivery measured from?', ['The renter\'s home', '1940 Eglinton Ave E', 'The airport', 'The owner\'s address'], 1, 'Delivery is priced by distance from the company\'s address.'),
       Q('Is the fuel line at the return charged by itself?', ['Yes, at once', 'No, it is a suggestion checked on the deposit review', 'Only on weekends', 'Only for electric cars'], 1, 'It is a suggestion to check.'),
       Q('Who can approve a new person at the last onboarding step?', ['Anyone', 'An Admin or a Fleet VA', 'The new person', 'Sales'], 1, 'An Admin or a Fleet VA approves.'),
       Q('Which car can be deleted?', ['Any car', 'A car with only test bookings', 'A car on rent', 'A car with a past real booking'], 1, 'Only a car whose bookings are all tests.')

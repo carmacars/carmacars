@@ -7,6 +7,7 @@ import { Act } from '@/features/admin/Act';
 import { TaskDone } from './TaskDone';
 import { WhatsAppConfirm } from '@/features/staff-onboarding/WhatsAppConfirm';
 import { AvailabilityGrid } from '@/features/field-portal/AvailabilityGrid';
+import { ResignSection } from '@/features/staff/Resign';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Welcome', path: '/staff/welcome', noindex: true, description: 'Your first steps: profile, the academy and your first tasks.' });
@@ -74,6 +75,8 @@ export default async function StaffWelcome() {
           </li>))}
       </ol>
       {!w.locked && <p><Link prefetch={false} className="btn btn--primary" href={w.portal === 'field' ? '/staff/field' : '/staff'} data-testid="welcome-start" data-guide="welcome-start">Go to your portal</Link></p>}
+      {/* r50 (5020): while still in onboarding, Resign is here too (the profile may not be open yet) */}
+      {w.locked && <ResignSection userId={user.id} portal={w.portal === 'field' ? 'field' : 'va'} className="pt-card stack" refresh={['/staff/welcome']} />}
     </section>
   );
 }

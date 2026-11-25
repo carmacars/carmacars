@@ -72,7 +72,7 @@ export const isGsm = (s: string) => /^[\n\r -_a-zA-Z0-9@£$¥èéùìòÇØøÅ�
 /** Sample values for previews and tests: a long car name and real-looking links. */
 export const SMS_SAMPLE: Record<string, string> = {
   first_name: 'Maya', booking_number: 'CC-10482', vehicle_name: '2024 Mercedes-Benz C 300 4MATIC Sedan', pickup_date: 'Fri, Oct 23, 2026', pickup_time: '10:00 am',
-  return_date: 'Mon, Oct 26, 2026', return_time: '10:00 am', pickup_place: '1570 Midland Ave, Toronto', return_place: '1570 Midland Ave, Toronto',
+  return_date: 'Mon, Oct 26, 2026', return_time: '10:00 am', pickup_place: '1940 Eglinton Ave E, Toronto', return_place: '1940 Eglinton Ave E, Toronto',
   total_amount: '$1,468.95', amount: '$468.95', amount_due: '$212.40', deposit_amount: '$1,000.00', release_amount: '$1,000.00', refund_amount: '$468.95',
   offer_expires_at: 'Thu, Oct 22 at 6:00 pm', extension_amount: '$212.40', new_return_date: 'Tue, Oct 27, 2026', new_return_time: '10:00 am',
   final_deadline: 'Tue, Oct 27 at 2:00 pm', verify_by: 'Thu, Oct 22 at 6:00 pm', hours_left: '6 hours', statement_month: 'October 2026',

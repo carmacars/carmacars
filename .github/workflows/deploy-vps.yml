@@ -15,6 +15,10 @@ name: deploy-vps
 #           rollback  B reversed: the server's cron off, the A records removed, the Worker's domains and cron back,
 #                     inbound email back to the Worker
 #           rollback-image  the image that ran before the last deploy (DNS unchanged)
+#   r50 (4800) self-healing: every deploy installs the heal agent (infra/vps/bin/heal-agent, carmacars-heal-agent.timer, every
+#                     minute) and keeps the build before it. A build that never gets healthy goes back to that one at once (the
+#                     deploy fails); within 30 minutes of a deploy the agent goes back to it too when the site stays unhealthy or
+#                     its server errors spike (the database's engine queues rollback_web), and the Admins are told once.
 #           test      only the Node smoke: the standalone build and the Node entry on the runner with the local stack,
 #                     the smoke script and an end-to-end subset (sign-in, the Admin portal). Needs no secret, no server
 #   email   keep      leave the Email Routing rules (switch: forwarder; rollback: worker)

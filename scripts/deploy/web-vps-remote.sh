@@ -51,8 +51,8 @@ start() { # tag
   case "$CRON" in on) cron=1 ;; off) cron=0 ;; esac
   printf 'WEB_IMAGE_TAG=%s\nCRON_ENABLED=%s\n' "$1" "${cron:-0}" > "$W/.env"
   if [ -s "$W/rembg.tag" ]; then printf 'REMBG_IMAGE_TAG=%s\n' "$(cat "$W/rembg.tag")" >> "$W/.env"; fi
-  dcw up -d --remove-orphans web
-  healthy
+  dcw up -d --remove-orphans web || return 1
+  healthy || return 1
   rembg_up
   say "running carmacars-web:$1 (cron $( [ "${cron:-0}" = 1 ] && echo on || echo off ))"
 }
@@ -208,6 +208,18 @@ livekit_up() {
   systemd-run --on-active=180 --unit "carmacars-livekit-tls-$(date +%s)" --collect "$L/up.sh" > /dev/null 2>&1 || true
 }
 
+# r50 (4800): the heal agent (a systemd timer, every minute): reports the server to the self-healing engine and runs its
+# whitelisted server actions (restart, certificates, disk, idle connections, the previous build). Never fails the deploy.
+heal_agent_up() {
+  [ -f "$T/heal-agent" ] || return 0
+  install -d -m 755 /opt/carmacars/bin /opt/carmacars/state/heal
+  install -m 755 "$T/heal-agent" /opt/carmacars/bin/heal-agent
+  install -m 644 "$T/carmacars-heal-agent.service" /etc/systemd/system/carmacars-heal-agent.service
+  install -m 644 "$T/carmacars-heal-agent.timer" /etc/systemd/system/carmacars-heal-agent.timer
+  if systemctl daemon-reload && systemctl enable --now carmacars-heal-agent.timer > /dev/null 2>&1; then say "heal agent: on (every minute)"
+  else say "WARNING: the heal agent's timer did not start"; fi
+}
+
 case "${1:-}" in
   deploy)
     install -d -m 750 "$W"
@@ -218,7 +230,21 @@ case "${1:-}" in
     listen_env
     prev=$(docker inspect -f '{{.Config.Image}}' carmacars-web 2>/dev/null | sed 's/^carmacars-web://' || true)
     if [ -n "$prev" ] && [ "$prev" != "$TAG" ]; then echo "$prev" > "$W/previous-tag"; fi
-    start "$TAG"
+    # r50 (4800): a build that never gets healthy goes straight back to the one before it (kept on the server), and the
+    # deploy fails; within 30 minutes of a deploy the heal agent does the same if the site turns unhealthy or its errors spike
+    if ! start "$TAG"; then
+      if [ -n "$prev" ] && [ "$prev" != "$TAG" ] && docker image inspect "carmacars-web:$prev" > /dev/null 2>&1; then
+        say "carmacars-web:$TAG is not healthy: going back to carmacars-web:$prev"
+        start "$prev" || say "WARNING: carmacars-web:$prev is not healthy either"
+        echo "$TAG" > "$W/rolled-back-from"
+      fi
+      heal_agent_up
+      exit 1
+    fi
+    install -d -m 755 /opt/carmacars/state
+    date -u +%Y-%m-%dT%H:%M:%SZ > /opt/carmacars/state/web-deployed-at
+    rm -f "$W/rolled-back-from"
+    heal_agent_up
     caddy_site
     ai_local || say "AI models: the warm-up could not be started (the site uses Workers AI and Gemini meanwhile)"
     livekit_up || say "media server: not started (the calls use the outside link meanwhile)"
@@ -231,6 +257,7 @@ case "${1:-}" in
     docker image inspect "carmacars-web:$prev" > /dev/null 2>&1 || { say "the image carmacars-web:$prev is no longer on the server"; exit 1; }
     CRON=keep
     start "$prev"
+    rm -f /opt/carmacars/state/web-deployed-at
     ;;
   switch)
     cur=$(grep -s '^WEB_IMAGE_TAG=' "$W/.env" | cut -d= -f2 || true)

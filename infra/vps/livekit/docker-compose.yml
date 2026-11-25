@@ -17,7 +17,7 @@ services:
   livekit:
     container_name: carmacars-livekit
     image: ${LIVEKIT_IMAGE:-livekit/livekit-server:v1.13.10}
-    restart: unless-stopped
+    restart: always
     network_mode: host
     command: ["--config", "/etc/livekit.yaml"]
     volumes:

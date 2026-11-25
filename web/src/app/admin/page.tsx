@@ -136,7 +136,8 @@ function SiteHealth({ h }: { h: Health }) {
   const r = h.rules;
   return (
     <Card id="site-health" title={failing ? `Site health: ${failing} problem${failing > 1 ? 's' : ''}` : 'Site health'} testId="site-health" tone={failing ? 'warn' : undefined}
-      aside={<span className="small muted">{h.enabled ? `Checked every ${h.interval} minutes. Alerts go to ${h.alert_email}` : 'The site check is off (Program settings)'}</span>}>
+      aside={<span className="small muted sh-aside">{h.enabled ? `Checked every ${h.interval} minutes. Alerts go to ${h.alert_email}` : 'The site check is off (Program settings)'}
+        {' '}<Link prefetch={false} className="link" href="/admin/self-healing" data-testid="site-health-self-healing">Self-healing</Link></span>}>
       {/* portal cleanup (October 23, 2026): every check in one line while nothing is wrong; the details one tap away */}
       {!failing && !h.open.length && <p className="small" data-testid="site-health-summary">{h.checks.every((c) => c.status === 'ok') ? `All ${h.checks.length} checks working.` : h.checks.some((c) => c.status === 'ok') ? `${h.checks.filter((c) => c.status === 'ok').length} of ${h.checks.length} checks working; the others are not checked yet.` : 'Not checked yet.'}</p>}
       {h.open.length > 0 && (
