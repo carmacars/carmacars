@@ -43,7 +43,7 @@ export default async function MyPay() {
         <p className="small muted">{h.period.pay_day_note}.</p>
       </section>
       <section className="fd-card" aria-labelledby="hrs-st"><h2 className="fd-section-h" id="hrs-st">Pay statements</h2>
-        {h.statements.length ? <ul className="fd-shots" data-testid="pay-statements">{h.statements.map((x) => (
+        {h.statements.length ? <ul className="fd-shots" data-testid="pay-statements" data-guide="pay-statements">{h.statements.map((x) => (
           <li key={x.id}><span>{x.period_label} · {x.hours}</span>
             <span>{dollarsText(x.gross_cents)}, {x.status === 'paid' ? `paid ${x.paid_on ? day(x.paid_on) : ''}${x.method ? ` by ${methodWords(x.method)}` : ''}` : 'to be paid'} · <a className="link" href={`/files/pay_statement/${x.id}`} data-testid={`statement-${x.id}`}>PDF</a></span></li>))}</ul>
           : <p className="small muted">Your first statement appears once an Admin approves the pay run for a finished period.</p>}

@@ -95,22 +95,22 @@ function EmailSignUpForm({ minAge, onUsePhone }: { minAge: string; onUsePhone: (
   if (state?.ok) {
     const email = (state as { data?: { email?: string } }).data?.email;
     const onRecord = (state as { data?: { onRecord?: boolean } }).data?.onRecord;
-    return <div className="alert alert--ok" role="status"><span className="alert__title">Check your email</span><span>{onRecord
+    return <div className="alert alert--ok" role="status" data-guide="su-done"><span className="alert__title">Check your email</span><span>{onRecord
       ? <>We already have a booking request from {email ?? 'this address'}. We sent a link there: open it to choose your password and see your bookings. The link works for 24 hours.</>
       : <>We sent a link to {email ?? 'your email address'} with the subject &quot;Confirm your CarmaCars account&quot;. Open it within 24 hours to confirm your email: it signs you in. It can take a minute to arrive; check spam if you do not see it.</>}</span></div>;
   }
   return (
     <form className="stack-lg" onSubmit={(ev) => { cap.cancel(); return run(ev); }} noValidate aria-label="Create an account" onBlur={(ev) => cap.onFormBlur(ev, { name: 'name', email: 'email' })}>
       <Err s={state as never} />
-      <Field float id="su-name" label="Full name" error={e.name}><input className="input" placeholder=" " id="su-name" name="name" autoComplete="name" aria-invalid={!!e.name || undefined} aria-describedby={describedBy('su-name', e.name)} onInput={() => clear('name')} /></Field>
-      <Field float id="su-email" label="Email" error={e.email}><input className="input" placeholder=" " id="su-email" name="email" type="email" autoComplete="email" aria-invalid={!!e.email || undefined} aria-describedby={describedBy('su-email', e.email)} onInput={() => clear('email')} /></Field>
-      <Field float id="su-pass" label="Password" error={e.password} hint="At least 8 characters."><PasswordInput className="input" placeholder=" " id="su-pass" name="password" autoComplete="new-password" aria-invalid={!!e.password || undefined} aria-describedby={describedBy('su-pass', e.password, true)} onInput={() => clear('password')} /></Field>
+      <Field float id="su-name" label="Full name" error={e.name}><input className="input" placeholder=" " data-guide="su-name" id="su-name" name="name" autoComplete="name" aria-invalid={!!e.name || undefined} aria-describedby={describedBy('su-name', e.name)} onInput={() => clear('name')} /></Field>
+      <Field float id="su-email" label="Email" error={e.email}><input className="input" placeholder=" " data-guide="su-email" id="su-email" name="email" type="email" autoComplete="email" aria-invalid={!!e.email || undefined} aria-describedby={describedBy('su-email', e.email)} onInput={() => clear('email')} /></Field>
+      <Field float id="su-pass" label="Password" error={e.password} hint="At least 8 characters."><PasswordInput className="input" placeholder=" " data-guide="su-pass" id="su-pass" name="password" autoComplete="new-password" aria-invalid={!!e.password || undefined} aria-describedby={describedBy('su-pass', e.password, true)} onInput={() => clear('password')} /></Field>
       <div className={`field${e.agree ? ' has-error' : ''}`}>
-        <label className="check"><input type="checkbox" name="agree" aria-invalid={!!e.agree || undefined} aria-describedby={e.agree ? 'su-agree-err' : undefined} onChange={() => clear('agree')} /><span className="small">I am {minAge} or older and agree to the <Link className="link" href="/terms">Terms of use</Link> and <Link className="link" href="/privacy">Privacy policy</Link>.</span></label>
+        <label className="check" data-guide="su-agree"><input type="checkbox" name="agree" aria-invalid={!!e.agree || undefined} aria-describedby={e.agree ? 'su-agree-err' : undefined} onChange={() => clear('agree')} /><span className="small">I am {minAge} or older and agree to the <Link className="link" href="/terms">Terms of use</Link> and <Link className="link" href="/privacy">Privacy policy</Link>.</span></label>
         <p className="error" role="alert" id="su-agree-err">{e.agree ?? ''}</p>
       </div>
       <Turnstile action="sign_up" />
-      <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={pending}>{pending ? 'Creating your account' : 'Create account'}</button>
+      <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={pending} data-guide="su-submit">{pending ? 'Creating your account' : 'Create account'}</button>
       <SavedAsYouType />
       <p className="small"><button type="button" className="link" onClick={onUsePhone} data-testid="use-phone">Sign up with my phone number instead</button></p>
     </form>

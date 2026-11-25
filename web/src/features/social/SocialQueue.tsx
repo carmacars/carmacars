@@ -65,13 +65,13 @@ export function SocialQueue({ admin = false }: { admin?: boolean }) {
       <details className="small"><summary>Log</summary><ul>{p.log.map((l, i) => <li key={i}>{when(l.at)}: {l.event}{l.detail ? ` (${l.detail})` : ''}</li>)}</ul></details>
     </li>);
   return (
-    <section className="stack" data-testid="social-queue" aria-labelledby="sq-h">
+    <section className="stack" data-testid="social-queue" data-guide="social-queue" aria-labelledby="sq-h">
       <h2 className="d4" id="sq-h">Scheduled posts</h2>
       {d.meta.connected
         ? <p className="small" data-testid="sq-meta-on">Meta is connected: Facebook{d.meta.instagram ? ' and Instagram' : ''} posts go out by themselves at their time. TikTok is always posted by hand (its posting API needs TikTok&apos;s app review).</p>
         : <p className="alert small" data-testid="sq-connect-meta"><span><b>Connect Meta</b> to post Facebook and Instagram by themselves: {admin ? <Link prefetch={false} className="link" href="/admin/settings/meta-publishing">Settings &gt; Meta publishing</Link> : 'ask an Admin (Settings > Meta publishing)'} (the Page id, the Instagram business account id and a Page token). Until then this is a queue: each post is due at its time to copy, download and post by hand. TikTok is always by hand.</span></p>}
       {d.meta.last_error && d.meta.connected && <p className="small muted">Meta&apos;s last refusal: {d.meta.last_error}</p>}
-      <fieldset className="stack" disabled={pending} data-testid="sq-form">
+      <fieldset className="stack" disabled={pending} data-testid="sq-form" data-guide="sq-form">
         <legend className="small"><b>Schedule a post</b></legend>
         <div className="row" style={{ gap: '0.75rem', flexWrap: 'wrap' }}>
           <label className="small">Where <select className="select" value={form.channel} onChange={(e) => setForm({ ...form, channel: e.target.value as Channel })} data-testid="sq-channel">
@@ -85,7 +85,7 @@ export function SocialQueue({ admin = false }: { admin?: boolean }) {
         {draft?.photo && !form.video && <label className="small"><input type="checkbox" checked={form.usePhoto} onChange={(e) => setForm({ ...form, usePhoto: e.target.checked })} /> Use the draft&apos;s photo</label>}
         <label className="small">Caption {draft ? '(empty: the draft\'s caption)' : ''}<textarea className="input" rows={3} maxLength={2200} value={form.caption} onChange={(e) => setForm({ ...form, caption: e.target.value })} placeholder={draft?.caption ?? ''} data-testid="sq-caption" /></label>
         <p className="small muted">Instagram needs a photo or an MP4 video; TikTok a video (make one with &ldquo;Make a short video&rdquo; on the listing or in the Marketplace kit).</p>
-        <p><button className="btn btn--primary btn--sm" type="button" onClick={add} data-testid="sq-add">Schedule</button></p>
+        <p><button className="btn btn--primary btn--sm" type="button" onClick={add} data-testid="sq-add" data-guide="sq-add">Schedule</button></p>
       </fieldset>
       {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'}><span>{msg.text}</span></p>}
       {open.length === 0 ? <p className="small muted">Nothing scheduled.</p> : <ul className="stack" data-testid="sq-open">{open.map(row)}</ul>}

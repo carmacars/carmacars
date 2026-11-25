@@ -39,7 +39,7 @@ export function StillNeeded({ number, needs, title, carLabel, testId, quiet }: {
       </ul>
       {/* r38 (owner, Nov 11): the next thing to do, kept in view at the bottom of a phone's screen */}
       {!quiet && (() => { const n = items.find((i) => (i.status === 'missing' || i.status === 'rejected') && i.action); return n?.action ? (
-        <div className="sn__next" data-testid="still-needed-next"><Link prefetch={false} className="btn btn--primary btn--sm" href={needHref(number, n.action.path)}>Next: {n.label}</Link></div>) : null; })()}
+        <div className="sn__next" data-testid="still-needed-next" data-guide="still-needed-next"><Link prefetch={false} className="btn btn--primary btn--sm" href={needHref(number, n.action.path)}>Next: {n.label}</Link></div>) : null; })()}
     </section>
   );
 }

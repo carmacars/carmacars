@@ -1,3 +1,4 @@
+import { GuideMe } from '@/features/guide-me/GuideMe';
 import '@/styles/portal.css';
 import { ownerMoved, requestUrl } from '@/server/portal-access';
 import { requireOwner } from '@/server/owner/data';
@@ -45,7 +46,7 @@ export default async function OwnerLayout({ children }: { children: React.ReactN
       <div className="wrap pt__top">
         <div className="pt__hello">
           <p className="small muted">{partner ? 'Partner portal' : 'Owner portal'} · <b data-testid="account-email">{user.email}</b></p>
-          <span className="gd-frame-links"><WhatsNew portal={partner ? 'partner' : 'owner'} userId={user.id} /><GuideLink portal="owner" /><SignOutOrExit /></span>
+          <span className="gd-frame-links"><WhatsNew portal={partner ? 'partner' : 'owner'} userId={user.id} /><GuideLink portal="owner" /><GuideMe portal="owner" /><SignOutOrExit /></span>
         </div>
         <PortalSwitch current="owner" />
         <OwnerNav unread={unread || 0} partner={partner} />

@@ -424,7 +424,7 @@ export function RequestWizard(p: WizardProps) {
       <div className="wrap req__layout">
         <form className="req__form" noValidate aria-label="Request to book" ref={form} onSubmit={send}>
           {failure && <p className="alert alert--error" role="alert" data-testid="rq-failure"><span className="alert__title">Not sent yet</span><span>{failure}</span></p>}
-          <section data-step="1" className="req__step stack-lg" aria-labelledby="rs1" hidden={step !== 1}>
+          <section data-step="1" data-guide="book-step-1" className="req__step stack-lg" aria-labelledby="rs1" hidden={step !== 1}>
             <h2 className="d3" id="rs1" tabIndex={-1}>Your dates</h2>
             <div className={fieldCls('car')}><label className="label" htmlFor="rq-car">Car</label>
               <select className="select" id="rq-car" data-testid="request-car" value={d.car} onChange={(e) => { const v = e.target.value; const c = cars[v]; setD((x) => (c && !c.ownerLocation ? noOwnerPlace({ ...x, car: v }) : { ...x, car: v })); setErrors((er) => { const n = { ...er }; delete n.car; return n; }); }} {...aria('car', 'rq-car', !!option && !option.yearConfirmed)}>
@@ -445,7 +445,7 @@ export function RequestWizard(p: WizardProps) {
             <div className="req__nav"><span></span><button type="button" className="btn btn--primary btn--lg" onClick={() => { if (validate(1)) void askGate('request', () => { fromGate(); show(2); }); }}>Continue to driver details</button></div>
           </section>
 
-          <section data-step="2" className="req__step stack-lg" aria-labelledby="rs2" hidden={step !== 2} onBlur={() => cap.capture({ name: `${d.first} ${d.last}`.trim(), email: d.email, phone: d.phone })}>
+          <section data-step="2" data-guide="book-step-2" className="req__step stack-lg" aria-labelledby="rs2" hidden={step !== 2} onBlur={() => cap.capture({ name: `${d.first} ${d.last}`.trim(), email: d.email, phone: d.phone })}>
             <h2 className="d3" id="rs2" tabIndex={-1}>The driver</h2>
             {profile && (fromProfile.length > 0 || profileNotes.length > 0) && <div className="alert alert--info" role="note" data-testid="rq-from-profile">
               <span className="alert__title">Filled in from your profile</span>
@@ -500,7 +500,7 @@ export function RequestWizard(p: WizardProps) {
             <div className="req__nav"><button type="button" className="btn btn--ghost" onClick={() => show(1)}>Back</button><button type="button" className="btn btn--primary btn--lg" onClick={() => { if (validate(2)) show(3); }}>Continue to licence</button></div>
           </section>
 
-          <section data-step="3" className="req__step stack-lg" aria-labelledby="rs3" hidden={step !== 3}>
+          <section data-step="3" data-guide="book-step-3" className="req__step stack-lg" aria-labelledby="rs3" hidden={step !== 3}>
             <h2 className="d3" id="rs3" tabIndex={-1}>Licence and coverage</h2>
             {profile && (profile.licence || profile.address) && <p className="small" data-testid="rq-licence-on-file">
               {profile.licence && <>Licence on your profile: {licenceWords(profile.licence)}.{profileNotes.some((n) => n.key === 'licence') ? <b> Update it before pickup.</b> : null} </>}
@@ -552,7 +552,7 @@ export function RequestWizard(p: WizardProps) {
             <div className="req__nav"><button type="button" className="btn btn--ghost" onClick={() => show(2)}>Back</button><button type="button" className="btn btn--primary btn--lg" onClick={() => { if (validate(3)) show(4); }}>Continue to add-ons</button></div>
           </section>
 
-          <section data-step="4" className="req__step stack-lg" aria-labelledby="rs4" hidden={step !== 4}>
+          <section data-step="4" data-guide="book-step-4" className="req__step stack-lg" aria-labelledby="rs4" hidden={step !== 4}>
             <h2 className="d3" id="rs4" tabIndex={-1}>Add-ons</h2>
             <p className="hint">Optional extras for your trip. The estimate shows the price as you choose. Anything that needs our confirmation is confirmed in your offer.</p>
             <div className={fieldCls('addons')}>{!car ? <p className="muted">Choose a car first.</p> : <AddonPicker idPrefix="rq" options={addonOptions} value={d.addons} onChange={(v) => set('addons', v)} />}
@@ -561,7 +561,7 @@ export function RequestWizard(p: WizardProps) {
             <div className="req__nav"><button type="button" className="btn btn--ghost" onClick={() => show(3)}>Back</button><button type="button" className="btn btn--primary btn--lg" onClick={() => { if (validate(4)) show(5); }}>Review request</button></div>
           </section>
 
-          <section data-step="5" className="req__step stack-lg" aria-labelledby="rs5" hidden={step !== 5}>
+          <section data-step="5" data-guide="book-step-5" className="req__step stack-lg" aria-labelledby="rs5" hidden={step !== 5}>
             <h2 className="d3" id="rs5" tabIndex={-1}>Check it and send</h2>
             <table className="spec req__review"><tbody>
               {reviewRows.map(([k, v, n]) => <tr key={k}><th scope="row">{k}</th><td>{v}</td><td><button type="button" className="link small" onClick={() => show(n)}>Edit<span className="vh"> {k}</span></button></td></tr>)}
@@ -596,7 +596,7 @@ export function RequestWizard(p: WizardProps) {
             </div>
             <Turnstile action="booking_request" />
             <BookChoice idPrefix="rq" value={instant ? 'instant' : 'request'} onChange={setHow} canBookNow={!!account?.canBookNow} cardsOn={account?.cardsOn !== false} carOk={!car?.isSample} />
-            <div className="req__nav"><button type="button" className="btn btn--ghost" onClick={() => show(4)}>Back</button><button type="submit" className="btn btn--primary btn--lg" disabled={sending} data-testid={instant ? 'rq-book-now' : 'rq-send'}>{sending ? 'Sending' : instant ? 'Book instantly' : 'Send request'}</button></div>
+            <div className="req__nav"><button type="button" className="btn btn--ghost" onClick={() => show(4)}>Back</button><button type="submit" data-guide="book-submit" className="btn btn--primary btn--lg" disabled={sending} data-testid={instant ? 'rq-book-now' : 'rq-send'}>{sending ? 'Sending' : instant ? 'Book instantly' : 'Send request'}</button></div>
             <p className="small muted">{instant ? `Next you sign and pay${account?.cardsOn === false ? ' by Interac e-Transfer' : ''}; the car is confirmed at the website price. If it cannot be booked at once, it goes to us as a request with no charge.` : 'No payment now. No card needed.'}</p>
           </section>
         </form>

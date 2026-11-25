@@ -1,3 +1,4 @@
+import { GuideMe } from '@/features/guide-me/GuideMe';
 import Link from '@/components/Link';
 import { notFound, redirect } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
@@ -32,7 +33,7 @@ export default async function Apply({ params, searchParams }: { params: Promise<
       <section className="section">
         <div className="wrap cr-narrow stack-lg">
           <p className="small"><Link prefetch={false} className="link" href={`/careers/${r.slug}`}>{r.title}</Link></p>
-          <h1 className="d2">Apply: {r.title}</h1>
+          <h1 className="d2">Apply: {r.title}</h1><div className="gm-public"><GuideMe portal="public" /></div>
           <p className="muted">About five minutes. {r.pay_text}. {r.location}.</p>
           <ApplyForm role={r} src={one('src')} utm={utmOf(sp)} prefill={prefill} refToken={prefill && prefill !== typed ? one('ref') : null} />
         </div>

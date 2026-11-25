@@ -45,7 +45,7 @@ export default async function Role({ params, searchParams }: { params: Promise<{
               <div><dt>Type</dt><dd>{employmentWords(r.employment_types)}</dd></div>
               <div><dt>Pay</dt><dd>{r.pay_text}</dd></div>
             </dl>
-            <p><Link prefetch={false} className="btn btn--primary btn--lg" href={apply} data-testid="role-apply">Apply now</Link></p>
+            <p><Link prefetch={false} className="btn btn--primary btn--lg" href={apply} data-testid="role-apply" data-guide="role-apply">Apply now</Link></p>
             <p className="small muted">About five minutes. If your answers fit, you book a 15-minute call right away.</p>
           </div>
           <div className="c-8 stack-lg">

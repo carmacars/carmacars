@@ -1,3 +1,4 @@
+import { GuideMe } from '@/features/guide-me/GuideMe';
 import { cookies } from 'next/headers';
 import { Crumbs } from '@/components/Crumbs';
 import { EarningsCalculator } from '@/features/owner/EarningsCalculator';
@@ -73,7 +74,7 @@ export default async function Apply({ searchParams }: { searchParams: Promise<Re
       <div className="wrap ow-apply__inner">
         <Crumbs trail={trail} />
         <header className="stack">
-          <h1 className="d2">Apply to list your car</h1>
+          <h1 className="d2">Apply to list your car</h1><div className="gm-public"><GuideMe portal="public" /></div>
           <p className="muted">About 10 minutes. Have your ownership permit and driver&apos;s licence at hand. Add every vehicle you want to enrol; we reply within 1 business day with the terms for each.</p>
           {draft && <p className="pt-note" data-testid="resumed">Welcome back. Your answers were saved{draft.data?.vehicles?.length ? `, with ${draft.data.vehicles.length} vehicle${draft.data.vehicles.length === 1 ? '' : 's'}` : ''}.</p>}
           {sp.expired && <p className="alert alert--error" role="alert"><span>That link has expired or was already used. Start here, or ask for a new link.</span></p>}

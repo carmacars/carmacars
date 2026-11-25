@@ -1,0 +1,35 @@
+{
+  "id": "renter-return",
+  "title": "Return the car",
+  "summary": "Bring it back on time with the fuel as you got it; see the return receipt for km and fuel.",
+  "who": [
+    "renter"
+  ],
+  "start": "/account",
+  "guide": {
+    "portal": "renter",
+    "slug": "start-here"
+  },
+  "steps": [
+    {
+      "id": "booking",
+      "target": "trip-row",
+      "text": "Open your booking: the return time and place are on it.",
+      "done": {
+        "route": "/account/bookings/*"
+      },
+      "skipIfDone": true,
+      "href": "/account"
+    },
+    {
+      "id": "receipt",
+      "target": "return-receipt-km",
+      "text": "After the return, the receipt shows the km, the fuel and any charges.",
+      "on": "/account/bookings/*",
+      "page": "page-head",
+      "when": {
+        "exists": "return-receipt-km"
+      }
+    }
+  ]
+}

@@ -45,7 +45,7 @@ export default async function Rewards() {
       <div className="pt-split">
         <div className="stack">
           {lv && l && (
-            <section className="pt-card stack" aria-labelledby="rw-tier" data-testid="rewards-tier" data-tier={l.tier_code ?? 'member'}>
+            <section className="pt-card stack" aria-labelledby="rw-tier" data-testid="rewards-tier" data-guide="rewards-tier" data-tier={l.tier_code ?? 'member'}>
               <TierUpOnce rank={tierRank(l)} name={lv.current?.name ?? 'Member'} />
               <PerkHint anyCar={lv.perks.some((k) => k.code === 'any_car')} hours={l.any_car_hours} />
               <p className="pu-eyebrow">Your tier</p>
@@ -64,7 +64,7 @@ export default async function Rewards() {
                 <span>{l.free_day.used ? 'Used, thank you. Your next one comes a year after this one.' : `One free day on your next rental${l.free_day.valid_until ? `, until ${fmtAt(l.free_day.valid_until)}` : ''}. Type the code in the promo code box when you send a request.`}</span></p>}
             </section>
           )}
-          <section className="pt-card" aria-labelledby="rw-bal" data-testid="rewards-balance">
+          <section className="pt-card" aria-labelledby="rw-bal" data-testid="rewards-balance" data-guide="rewards-balance">
             <h2 className="d4" id="rw-bal">{r.balance.toLocaleString('en-CA')} points</h2>
             <p>Worth <b>{money(r.value_cents, { cents: true })}</b> off the rental charge. {r.expires_on ? `They end on ${fmtDate(r.expires_on)} unless you rent or redeem before then.` : ''}</p>
             {r.tier.promo_code && <p className="small">Your earlier tier code {r.tier.promo_code} still works until it ends.</p>}
@@ -73,7 +73,7 @@ export default async function Rewards() {
           <section className="pt-card" aria-labelledby="rw-use">
             <h2 className="d4" id="rw-use">Use your points</h2>
             <Redeem balance={r.balance} min={r.min_redeem} centsPerPoint={r.point_value_cents} validDays={r.code_valid_days} />
-            {r.codes.length > 0 && <ul className="linklist" data-testid="rewards-codes">{r.codes.map((c) => (
+            {r.codes.length > 0 && <ul className="linklist" data-testid="rewards-codes" data-guide="rewards-codes">{r.codes.map((c) => (
               <li key={c.id} className="row" style={{ gap: 'var(--s-2)', flexWrap: 'wrap', alignItems: 'center' }}>
                 <span><b>{c.code}</b>: {money(c.amount_cents, { cents: true })} off, {c.used ? 'used' : c.in_use ? 'on a booking' : `until ${fmtDate(c.valid_until)}`}</span>
                 {!c.in_use && <CancelCode code={c.code} />}
@@ -85,7 +85,7 @@ export default async function Rewards() {
               <li key={a.code}><b>{a.label}</b>: {a.code === 'rental' ? `${a.points} point${a.points === 1 ? '' : 's'} a dollar` : `${a.points} points`} <span className="small muted">({a.limit})</span>{a.detail && <span className="small muted"> {a.detail}</span>}</li>))}</ul>
             <h3 className="d4">Refer a friend</h3>
             <p className="small">Share your link. When a friend books with it and completes their first rental, you both get points.</p>
-            <p className="row" style={{ gap: 'var(--s-2)', flexWrap: 'wrap', alignItems: 'center' }}><code data-testid="rewards-referral" style={{ overflowWrap: 'anywhere' }}>{r.referral_url}</code><CopyLink url={r.referral_url} /></p>
+            <p className="row" style={{ gap: 'var(--s-2)', flexWrap: 'wrap', alignItems: 'center' }}><code data-testid="rewards-referral" data-guide="rewards-referral" style={{ overflowWrap: 'anywhere' }}>{r.referral_url}</code><CopyLink url={r.referral_url} /></p>
             {r.socials.length > 0 && <>
               <h3 className="d4">Follow us</h3>
               <p className="small muted">The points come when you open our page from here. We cannot see who follows, so this is on your word.</p>

@@ -14,7 +14,7 @@ export function WhatsAppConfirm({ groups, primary, refresh }: { groups: NonNulla
   if (!left.length) return null;
   const tag = left.find((g) => g.member_tag)?.member_tag;
   return (
-    <div className="stack" data-testid="welcome-groups">
+    <div className="stack" data-testid="welcome-groups" data-guide="welcome-groups">
       {left.map((g) => (
         <div key={g.key} className="stack" data-testid={`welcome-group-${g.key}`}>
           <p className="ad-actions">{g.url

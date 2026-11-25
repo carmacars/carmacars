@@ -35,7 +35,7 @@ export default async function OwnerInvoicePage({ params, searchParams }: { param
         {i.status === 'void' && <p className="alert alert--warn" role="status" data-testid="invoice-void"><span className="alert__title">Cancelled: nothing to pay</span><span>{i.void_reason}{i.replaced_by ? ` It is replaced by invoice ${i.replaced_by}.` : ''}</span></p>}
         {i.replaces && <p className="small muted">This invoice replaces {i.replaces}.</p>}
         <p><a className="link small" href={`/files/owner_invoice/${i.id}`} target="_blank" rel="noreferrer" data-testid="invoice-pdf">Download PDF</a></p>
-        <p><span className={`badge ${s.badge}`} data-testid="invoice-status">{i.partly_paid ? 'Partly paid' : s.label}</span></p>
+        <p><span className={`badge ${s.badge}`} data-testid="invoice-status" data-guide="invoice-status">{i.partly_paid ? 'Partly paid' : s.label}</span></p>
         {debit && <p className="pt-note" data-testid="invoice-debit">{debit}.{i.debit?.attempt?.status === 'scheduled' ? ' You can still pay it now by card; we then do not debit it.' : ''}</p>}
         {i.debit?.paused && i.status !== 'paid' && <p className="pt-note" data-testid="invoice-debit-paused">The automatic debit of this invoice is paused. Pay it from this page, or call us.</p>}
       </header>

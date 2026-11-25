@@ -1,0 +1,32 @@
+{
+  "id": "field-spending-review",
+  "title": "Approve field expenses",
+  "summary": "Each expense with its receipt and whose money paid: approve or decline with the reason.",
+  "who": [
+    "finance"
+  ],
+  "start": "/staff/field-spending",
+  "guide": {
+    "portal": "va",
+    "slug": "finance"
+  },
+  "steps": [
+    {
+      "id": "list",
+      "target": "field-spending",
+      "text": "Field spending: each expense, its receipt and whose money paid.",
+      "on": "/staff/field-spending",
+      "href": "/staff/field-spending"
+    },
+    {
+      "id": "owed",
+      "target": "reimbursements",
+      "text": "Reimbursements owed: Mark paid back once you have paid the person.",
+      "on": "/staff/field-spending",
+      "page": "page-head",
+      "when": {
+        "exists": "reimbursements"
+      }
+    }
+  ]
+}

@@ -8,7 +8,7 @@ import type { ReactNode } from 'react';
 /** A page's header: the title, what the page is for in one line, and its one primary action. */
 export function PageHeader({ title, purpose, kicker, action, testId }: { title: ReactNode; purpose?: ReactNode; kicker?: ReactNode; action?: ReactNode; testId?: string }) {
   return (
-    <header className="ph" data-testid={testId}>
+    <header className="ph" data-testid={testId} data-guide="page-head">
       <div className="ph__text">{kicker && <p className="pt-kicker">{kicker}</p>}<h1 className="d2">{title}</h1>{purpose && <p className="ph__purpose">{purpose}</p>}</div>
       {action && <div className="ph__action">{action}</div>}
     </header>

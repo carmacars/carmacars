@@ -15,7 +15,7 @@ export function ShiftWeek({ items, now, week }: { items: CalItem[]; now: number;
   const days = buildWeek(items, now, week);
   const first = days[0]!.day, last = days[6]!.day;
   return (
-    <section aria-labelledby="sp-week-h" data-testid="shift-week">
+    <section aria-labelledby="sp-week-h" data-testid="shift-week" data-guide="shift-week">
       <h2 className="vh" id="sp-week-h">Week of {month(first)} {dayNum(first)} to {month(last)} {dayNum(last)}</h2>
       <nav className="sp-weeks" aria-label="Weeks">{[0, 1, 2].map((w) => <Link key={w} prefetch={false} href={`/staff/field/shifts?view=week&week=${w}`} aria-current={w === week ? 'page' : undefined} data-testid={`week-${w}`}>
         {w === 0 ? 'This week' : w === 1 ? 'Next week' : 'In 2 weeks'}</Link>)}</nav>

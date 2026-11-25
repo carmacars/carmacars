@@ -106,7 +106,7 @@ export function EarningsCalculator({ data: given = null, compact = false }: { da
                 <label className="label" htmlFor={`${uid}-vin`}>VIN</label>
                 <div className="row ecalc__vin">
                   <input className="input" id={`${uid}-vin`} value={vin} maxLength={20} autoComplete="off" spellCheck={false} onChange={(e) => setVin(e.target.value.toUpperCase())}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void lookUp(); } }} aria-describedby={`${uid}-vin-m`} data-testid="ecalc-vin" />
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void lookUp(); } }} aria-describedby={`${uid}-vin-m`} data-testid="ecalc-vin" data-guide="ecalc-vin" />
                   <button type="button" className="btn" onClick={() => void lookUp()}>Look up</button>
                 </div>
                 {/* release 28: the VIN from the door-jamb barcode or a photo, then looked up at once */}
@@ -127,7 +127,7 @@ export function EarningsCalculator({ data: given = null, compact = false }: { da
           <label className="switch ecalc__ins"><input type="checkbox" checked={insurance} onChange={(e) => setInsurance(e.target.checked)} data-testid="ecalc-insurance" /><span>Just cheaper insurance</span></label>
         </div>
 
-        <div className="ecalc__out on-dark" aria-live="polite" data-testid="ecalc-result">
+        <div className="ecalc__out on-dark" aria-live="polite" data-testid="ecalc-result" data-guide="ecalc-result">
           {!data && <p className="muted">Loading the rates</p>}
           {data && !chosen && <><p className="ecalc__kicker">Your estimate</p><p className="ecalc__big ecalc__big--wait">Pick your car</p><p className="small ecalc__note">Year, make and model, or the VIN.</p></>}
           {data && chosen && !e && <><p className="ecalc__kicker">Your estimate</p><p className="ecalc__wait">We have no rate for this car yet. Apply and we quote it with you.</p>

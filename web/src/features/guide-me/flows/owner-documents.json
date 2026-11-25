@@ -1,0 +1,42 @@
+{
+  "id": "owner-documents",
+  "title": "Your documents",
+  "summary": "Your agreements, schedules and forms, signed copies to download.",
+  "who": [
+    "owner"
+  ],
+  "start": "/owner/documents",
+  "guide": {
+    "portal": "owner",
+    "slug": "start-here"
+  },
+  "steps": [
+    {
+      "id": "tabs",
+      "target": "portal-tabs",
+      "text": "Documents: to sign, and your signed files.",
+      "on": "/owner/documents",
+      "href": "/owner/documents"
+    },
+    {
+      "id": "forms",
+      "target": "government-forms",
+      "text": "Government forms for each car: sign what is waiting and download the copies.",
+      "on": "/owner/documents",
+      "page": "page-head",
+      "when": {
+        "exists": "government-forms"
+      }
+    },
+    {
+      "id": "sign",
+      "target": "government-form-sign",
+      "text": "Sign a form waiting for you.",
+      "on": "/owner/documents",
+      "page": "page-head",
+      "when": {
+        "exists": "government-form-sign"
+      }
+    }
+  ]
+}

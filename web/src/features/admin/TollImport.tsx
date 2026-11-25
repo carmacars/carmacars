@@ -67,7 +67,7 @@ export function TollImport() {
     if (r.ok) { setRes(r.data); router.refresh(); } else setErr(r.message);
   });
   return (
-    <div className="stack" data-testid="toll-import">
+    <div className="stack" data-testid="toll-import" data-guide="toll-import">
       <p className="small muted">To check each row beside the file before it is imported, use <Link prefetch={false} className="link" href={`${base}/tolls/read`}>Read a notice</Link>: it takes a CSV, a PDF or a scan.</p>
       <section className="pt-card ad-card ad-form" aria-labelledby="ti-1"><h2 className="d4" id="ti-1">1. The statement</h2>
         <div className="ad-fields">
@@ -89,7 +89,7 @@ export function TollImport() {
               <select className="select" id={`ti-c${i}`} value={map[String(i)] ?? ''} onChange={(e) => setMap({ ...map, [String(i)]: e.target.value })}><option value="">Not used</option>{TARGETS.map(([a, b]) => <option key={a} value={a}>{b}</option>)}</select>
               <span className="small muted">{rows[1]?.[i]}</span></div>))}</div>
           <div className="row"><button className="btn btn--ghost btn--sm" type="button" disabled={pending} onClick={saveProfile}>Save this mapping for {operator}</button>
-            <button className="btn btn--primary btn--sm" type="button" disabled={pending} onClick={run} data-testid="toll-import-run">{pending ? 'Importing' : `Import ${rows.length - 1} rows`}</button></div>
+            <button className="btn btn--primary btn--sm" type="button" disabled={pending} onClick={run} data-testid="toll-import-run" data-guide="toll-import-run">{pending ? 'Importing' : `Import ${rows.length - 1} rows`}</button></div>
         </section>
       )}
       {err && <p className="alert alert--error" role="alert"><span>{err}</span></p>}

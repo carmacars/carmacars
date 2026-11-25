@@ -1,0 +1,35 @@
+{
+  "id": "staff-pay-details",
+  "title": "Your pay details",
+  "summary": "Choose how you are paid; an Admin confirms new details with you.",
+  "who": [
+    "cs",
+    "sales",
+    "fleet",
+    "finance"
+  ],
+  "start": "/staff/profile",
+  "guide": {
+    "portal": "va",
+    "slug": "start-here"
+  },
+  "steps": [
+    {
+      "id": "details",
+      "target": "pay-details",
+      "text": "Pay details: bank, GCash, PayPal, Wise, e-Transfer or OnlineJobs.ph.",
+      "on": "/staff/profile",
+      "href": "/staff/profile"
+    },
+    {
+      "id": "save",
+      "target": "pay-save",
+      "text": "Press Save my pay details.",
+      "on": "/staff/profile",
+      "page": "pay-details",
+      "when": {
+        "exists": "pay-save"
+      }
+    }
+  ]
+}

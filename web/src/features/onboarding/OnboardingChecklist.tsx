@@ -6,7 +6,7 @@ import { baseFor, carSteps, ownerStep, STATE_TEXT, type Overview, type Step } fr
 // portals: per car, each step with its state, who it waits on or why it is blocked, and its one next action.
 function Row({ s }: { s: Step }) {
   return (
-    <li className={`ob-step ob-step--${s.state}`} data-testid="onboarding-step" data-step={s.code} data-state={s.state}>
+    <li className={`ob-step ob-step--${s.state}`} data-testid="onboarding-step" data-guide="onboarding-step" data-step={s.code} data-state={s.state}>
       <span className="ob-step__mark" aria-hidden="true" />
       <span className="ob-step__text">
         <b className="ob-step__label">{s.label}<span className="vh">: {STATE_TEXT[s.state]}</span></b>

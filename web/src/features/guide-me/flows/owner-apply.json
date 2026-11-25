@@ -1,0 +1,73 @@
+{
+  "id": "owner-apply",
+  "title": "Apply to list your car",
+  "summary": "Your name and contact, then the car's VIN; we check it and reply.",
+  "who": [
+    "visitor",
+    "owner"
+  ],
+  "start": {
+    "public": "/list-your-car/apply",
+    "owner": "/list-your-car/apply"
+  },
+  "guide": {
+    "portal": "owner",
+    "slug": "start-here"
+  },
+  "steps": [
+    {
+      "id": "first",
+      "target": "apply-first",
+      "text": "Type your first name.",
+      "on": "/list-your-car/apply",
+      "done": {
+        "filled": "apply-first"
+      }
+    },
+    {
+      "id": "last",
+      "target": "apply-last",
+      "text": "Type your last name.",
+      "on": "/list-your-car/apply",
+      "done": {
+        "filled": "apply-last"
+      }
+    },
+    {
+      "id": "email",
+      "target": "apply-email",
+      "text": "Type your email.",
+      "on": "/list-your-car/apply",
+      "done": {
+        "filled": "apply-email"
+      }
+    },
+    {
+      "id": "phone",
+      "target": "apply-phone",
+      "text": "Type your mobile number.",
+      "on": "/list-your-car/apply",
+      "done": {
+        "filled": "apply-phone"
+      }
+    },
+    {
+      "id": "next",
+      "target": "apply-start-next",
+      "text": "Press Next to add the car.",
+      "on": "/list-your-car/apply",
+      "done": {
+        "gone": "apply-start-next"
+      }
+    },
+    {
+      "id": "car",
+      "target": "apply-vin",
+      "text": "Type the car's VIN (on the ownership permit) and follow the steps to send the application.",
+      "on": "/list-your-car/apply",
+      "done": {
+        "exists": "apply-done"
+      }
+    }
+  ]
+}

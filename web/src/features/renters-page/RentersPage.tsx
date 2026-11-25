@@ -88,7 +88,7 @@ async function FindRenter({ ctx, sp }: { ctx: PageCtx; sp: Record<string, string
     {view && <ActivityLog data={activity} base={`/staff/renters?id=${view.id}${q ? `&q=${encodeURIComponent(q)}` : ''}`} sp={sp} inbox={inbox} chatBase={inbox}
       emailHref={latest ? `${portal}/bookings/${encodeURIComponent(latest.booking_number)}?tab=activity#email` : null}
       phone={view.mobile} name={view.legal_name} booking={latest?.booking_number ?? null} canRemoveNotes={!!notes?.can_remove}>
-      {notes && <div data-testid="renter-notes-card"><RenterNotes renterId={view.id} initial={notes.notes} canRemove={notes.can_remove} formOnly /></div>}
+      {notes && <div data-testid="renter-notes-card" data-guide="renter-notes-card"><RenterNotes renterId={view.id} initial={notes.notes} canRemove={notes.can_remove} formOnly /></div>}
     </ActivityLog>}
   </>);
 }

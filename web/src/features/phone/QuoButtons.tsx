@@ -270,7 +270,7 @@ function Composer({ n, who, booking, from, inbox, onClose, testId }: { n: string
   return (
     <Sheet title={`Text ${who}`} onClose={onClose} testId={`${testId}-composer`}>
       {state.sent !== undefined ? (
-        <div className="qb-done" role="status" data-testid="quo-sent">
+        <div className="qb-done" role="status" data-testid="quo-sent" data-guide="quo-sent">
           <p><b>Sent</b> from the CarmaCars number{from ? ` (${prettyNumber(from)})` : ''}. It is in {who}&apos;s conversation.{state.note ? ` ${state.note}` : ''}</p>
           <p className="qb-acts">{inbox && state.sent && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${inbox}${inbox.includes('?') ? '&' : '?'}inbox=phone&id=${state.sent}`}>Open the conversation</Link>}
             <button type="button" className="btn btn--primary btn--sm" onClick={onClose}>Done</button></p>
@@ -280,11 +280,11 @@ function Composer({ n, who, booking, from, inbox, onClose, testId }: { n: string
           <p className="small muted qb-to">To {prettyNumber(n)}, from the CarmaCars number{from ? ` ${prettyNumber(from)}` : ''}{booking ? `, about ${booking}` : ''}.</p>
           <label className="vh" htmlFor={`${testId}-body`}>The text</label>
           <textarea id={`${testId}-body`} className="input qb-body" rows={4} maxLength={1600} value={body} onChange={(e) => setBody(e.target.value)} autoFocus
-            placeholder="Write the text. Sign it CarmaCars." data-testid="quo-body" />
+            placeholder="Write the text. Sign it CarmaCars." data-testid="quo-body" data-guide="quo-body" />
           <p className="qb-acts">
             <span className="small muted" aria-live="polite">{left < 200 ? `${left} characters left` : ''}</span>
             {!isMasked(n) && isHandheld(typeof navigator === 'undefined' ? '' : navigator.userAgent) && <a className="btn btn--quiet btn--sm" href={quoMessage(n, from, body || undefined)}>Open in the Quo app</a>}
-            <><button type="submit" className="btn btn--primary btn--sm" disabled={!body.trim() || state.busy} data-testid="quo-send" aria-describedby="why-quobuttons-286">{state.busy ? 'Sending' : 'Send'}</button><WhyDisabled id="why-quobuttons-286" why={((!body.trim())) ? 'Type the message first' : null} /></>
+            <><button type="submit" className="btn btn--primary btn--sm" disabled={!body.trim() || state.busy} data-testid="quo-send" data-guide="quo-send" aria-describedby="why-quobuttons-286">{state.busy ? 'Sending' : 'Send'}</button><WhyDisabled id="why-quobuttons-286" why={((!body.trim())) ? 'Type the message first' : null} /></>
           </p>
           {state.err && <p className="alert alert--error small" role="alert"><span>{state.err}</span></p>}
         </form>

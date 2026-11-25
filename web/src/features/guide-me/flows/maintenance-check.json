@@ -1,0 +1,43 @@
+{
+  "id": "maintenance-check",
+  "title": "Car maintenance",
+  "summary": "What is overdue, each car's service and the odometer.",
+  "who": [
+    "admin",
+    "fleet"
+  ],
+  "start": "{base}/maintenance",
+  "guide": {
+    "portal": "va",
+    "slug": "car-maintenance"
+  },
+  "steps": [
+    {
+      "id": "overview",
+      "target": "maint-overview",
+      "text": "What is due and overdue across the fleet.",
+      "on": "{base}/maintenance",
+      "href": "{base}/maintenance"
+    },
+    {
+      "id": "overdue",
+      "target": "tally-overdue",
+      "text": "Overdue first: book the service.",
+      "on": "{base}/maintenance",
+      "page": "page-head",
+      "when": {
+        "exists": "tally-overdue"
+      }
+    },
+    {
+      "id": "cars",
+      "target": "maint-cars",
+      "text": "Each car: its services, the next one due and the odometer.",
+      "on": "{base}/maintenance",
+      "page": "page-head",
+      "when": {
+        "exists": "maint-cars"
+      }
+    }
+  ]
+}

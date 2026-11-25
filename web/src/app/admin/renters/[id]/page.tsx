@@ -82,7 +82,7 @@ export default async function Renter({ params, searchParams }: { params: Promise
       {/* r35 (0850): everything in one log; the note box (r34, 0800) above it, Email, Call and Text on it */}
       <ActivityLog data={activity} base={`/admin/renters/${id}`} sp={sp} emailHref={chosen ? `/admin/renters/${id}${sp.booking ? `?booking=${encodeURIComponent(sp.booking)}` : ''}#email` : null}
         chatBase="/admin/visitors?view=chat" inbox="/admin/visitors?view=chat" phone={r.mobile} name={r.name} booking={chosen?.number ?? null} canRemoveNotes={!!notes?.can_remove}>
-        <div data-testid="renter-notes-card">{notes ? <RenterNotes renterId={id} initial={notes.notes} canRemove={notes.can_remove} formOnly /> : <p className="small muted">The notes could not be read. Reload the page.</p>}</div>
+        <div data-testid="renter-notes-card" data-guide="renter-notes-card">{notes ? <RenterNotes renterId={id} initial={notes.notes} canRemove={notes.can_remove} formOnly /> : <p className="small muted">The notes could not be read. Reload the page.</p>}</div>
       </ActivityLog>
       <section className="stack" id="email" data-testid="renter-email">
         <h2 className="d4">Email the renter</h2>

@@ -34,7 +34,7 @@ export async function Timesheet({ userId, aal, from, to, base }: { userId: strin
   const v = await door<{ from: string; to: string; people: Person[]; admin?: boolean; breaks_paid?: boolean; idle_alert_minutes?: number }>(userId, 'ops_read', 'va_timesheet', { from: from ?? null, to: to ?? null }, aal);
   const refresh = [base];
   return (<>
-    <form method="get" className="row" style={{ gap: 'var(--s-2)', flexWrap: 'wrap' }} data-testid="timesheet-range">
+    <form method="get" className="row" style={{ gap: 'var(--s-2)', flexWrap: 'wrap' }} data-testid="timesheet-range" data-guide="timesheet-range">
       <label className="small">From <DateInput className="input" type="date" name="from" defaultValue={v.from} /></label>
       <label className="small">To <DateInput className="input" type="date" name="to" defaultValue={v.to} /></label>
       <button type="submit" className="btn btn--sm btn--ghost">Show</button>

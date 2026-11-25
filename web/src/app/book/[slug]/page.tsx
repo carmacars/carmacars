@@ -1,3 +1,4 @@
+import { GuideMe } from '@/features/guide-me/GuideMe';
 import { notFound } from 'next/navigation';
 import { RequestWizard } from '@/features/booking/RequestWizard';
 import { bookingCar, wizardProps } from '@/features/booking/wizard-props';
@@ -28,6 +29,7 @@ export default async function BookCar({ params }: Params) {
       {car.isSample && <div className="wrap"><p className="alert" role="note" data-testid="example-car-request-note"><span className="alert__title">Example car</span><span>The {car.name} is an example of the cars we rent. Choose your dates: if a real one is free, we show it here. If not, send your dates and details as usual and we reply with a similar real car and its price. Nothing is booked or charged.</span></p></div>}
       {/* in the page's first HTML, never a streamed Suspense boundary: React reveals a streamed boundary up to ~300 ms after
           the page has loaded, and a field touched in that time was in a hidden container (the request never started) */}
+      <div className="wrap"><div className="gm-public"><GuideMe portal="public" /></div></div>
       <RequestWizard {...props} />
     </div>
   );

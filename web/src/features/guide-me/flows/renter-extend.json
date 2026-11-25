@@ -1,0 +1,42 @@
+{
+  "id": "renter-extend",
+  "title": "Extend a rental",
+  "summary": "Choose the new return time, see the price, and pay for the extra days.",
+  "who": [
+    "renter"
+  ],
+  "start": "/account",
+  "guide": {
+    "portal": "renter",
+    "slug": "start-here"
+  },
+  "steps": [
+    {
+      "id": "open",
+      "text": "Open your booking and choose Extend.",
+      "done": {
+        "route": "/account/bookings/*/extend"
+      },
+      "skipIfDone": true,
+      "href": "/account"
+    },
+    {
+      "id": "until",
+      "target": "extend-until",
+      "text": "Choose until when you need the car.",
+      "on": "/account/bookings/*/extend",
+      "done": {
+        "filled": "extend-until"
+      }
+    },
+    {
+      "id": "pay",
+      "target": "extend-pay",
+      "text": "Check the price for the extra days and press Pay.",
+      "on": "/account/bookings/*/extend",
+      "done": {
+        "exists": "extend-done"
+      }
+    }
+  ]
+}

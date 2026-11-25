@@ -33,7 +33,7 @@ export function SignForm({ number, token, sha, companionSha, consents, legalName
       <fieldset className="pt-consents" aria-describedby="pt-consents-err" aria-invalid={!!err('consents') || undefined} tabIndex={-1}>
         <legend>Before you sign</legend>
         {consents.length > 1 && (
-          <label className="check pk-all"><input type="checkbox" checked={all} onChange={(e) => { setTicked(e.target.checked ? new Set(consents.map((c) => c.code)) : new Set()); setLocal((l) => ({ ...l, consents: '' })); }} data-testid="consents-all" />
+          <label className="check pk-all"><input type="checkbox" checked={all} onChange={(e) => { setTicked(e.target.checked ? new Set(consents.map((c) => c.code)) : new Set()); setLocal((l) => ({ ...l, consents: '' })); }} data-testid="consents-all" data-guide="consents-all" />
             <span><b>All {consents.length === 4 ? 'four' : consents.length}</b>: I agree to each statement below</span></label>
         )}
         <div className="pk-statements">
@@ -55,7 +55,7 @@ export function SignForm({ number, token, sha, companionSha, consents, legalName
       </div>
       {a.res && !a.res.ok && !a.res.fieldErrors && <p className="alert alert--error" role="alert"><span>{a.res.message}</span></p>}
       {a.res?.ok && token ? <p className="alert alert--ok" role="status"><span className="alert__title">Accepted</span><span>Thank you. You have accepted the rental agreement.</span></p>
-        : <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={a.pending} data-testid="rental-sign">{a.pending ? 'Signing' : button}</button>}
+        : <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={a.pending} data-testid="rental-sign" data-guide="rental-sign">{a.pending ? 'Signing' : button}</button>}
     </form>
   );
 }

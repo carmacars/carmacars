@@ -1,0 +1,43 @@
+{
+  "id": "tolls-import",
+  "title": "Import toll and ticket notices",
+  "summary": "Import the toll operator's file, then match each notice to its booking.",
+  "who": [
+    "admin",
+    "finance"
+  ],
+  "start": "{base}/tolls",
+  "guide": {
+    "portal": "va",
+    "slug": "finance"
+  },
+  "steps": [
+    {
+      "id": "page",
+      "target": "page-head",
+      "text": "Tolls and tickets: notices waiting for a match are on top.",
+      "on": "{base}/tolls",
+      "href": "{base}/tolls"
+    },
+    {
+      "id": "import",
+      "target": "toll-import",
+      "text": "Choose the toll operator's file to import.",
+      "on": "{base}/tolls",
+      "page": "page-head",
+      "when": {
+        "exists": "toll-import"
+      }
+    },
+    {
+      "id": "run",
+      "target": "toll-import-run",
+      "text": "Press Import: each notice is matched to the booking that had the car then.",
+      "on": "{base}/tolls",
+      "page": "page-head",
+      "when": {
+        "exists": "toll-import-run"
+      }
+    }
+  ]
+}

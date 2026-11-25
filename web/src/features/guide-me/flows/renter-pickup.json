@@ -1,0 +1,45 @@
+{
+  "id": "renter-pickup",
+  "title": "Pickup day",
+  "summary": "Have your licence and card, check the car in with photos and the readings, and drive off.",
+  "who": [
+    "renter"
+  ],
+  "start": "/account",
+  "guide": {
+    "portal": "renter",
+    "slug": "start-here"
+  },
+  "steps": [
+    {
+      "id": "ready",
+      "target": "still-needed-next",
+      "text": "On your booking, finish anything still needed before pickup.",
+      "when": {
+        "exists": "still-needed-next"
+      },
+      "page": "page-head"
+    },
+    {
+      "id": "open",
+      "text": "At the car, open Check in (pickup) on your booking.",
+      "done": {
+        "route": "/account/bookings/*/pickup"
+      },
+      "skipIfDone": true,
+      "href": "/account"
+    },
+    {
+      "id": "photos",
+      "target": "self-pickup",
+      "text": "Take photos of every side, inside and any damage, then the dashboard photo for the km and fuel.",
+      "on": "/account/bookings/*/pickup"
+    },
+    {
+      "id": "go",
+      "target": "os-pickup-go",
+      "text": "Press Check in. Your photos and readings go on the check-in report.",
+      "on": "/account/bookings/*/pickup"
+    }
+  ]
+}

@@ -118,7 +118,7 @@ export function MarketingView({ data, car, academyHref, scenes }: { data: Market
     <Card title="Today" testId="mk-today" tone={plan.today.length ? 'next' : undefined}>
       {plan.today.length === 0 ? <p className="small muted">Nothing due today. {plan.full_cars ? `${plan.full_cars} cars already have all their listings up.` : ''}</p> : (
         <ol className="mp-list">{plan.today.map((it) => (
-          <li key={`${it.action}-${it.vehicle_id}`} className="mp-item" data-testid="mk-due">
+          <li key={`${it.action}-${it.vehicle_id}`} className="mp-item" data-testid="mk-due" data-guide="mk-due">
             <div className="mp-item__main">
               <Badge s={tone(it.action)}>{TEAM_LABEL[it.action]}</Badge>
               <Link prefetch={false} className="link mp-item__car" href={self(it.vehicle_id)}>{it.name}</Link>
@@ -150,7 +150,7 @@ export function MarketingView({ data, car, academyHref, scenes }: { data: Market
     </Card>
 
     <Card title="My listings and log" testId="mk-log">
-      {mine.length > 0 && <ul className="mp-log small" data-testid="mk-mine">{mine.map((t) => (
+      {mine.length > 0 && <ul className="mp-log small" data-testid="mk-mine" data-guide="mk-mine">{mine.map((t) => (
         <li key={t.id}><b>{t.car}</b> variant {t.variant}: {t.status === 'live' ? `live since ${d(t.posted_on!)}, ends ${d(t.expires_at)}` : 'claimed, not posted yet'}{t.url ? <> <a className="link" href={t.url} target="_blank" rel="noopener noreferrer">Open</a></> : null}</li>))}
       </ul>}
       {data.log.length === 0 ? <p className="small muted">Nothing logged yet.</p> : (

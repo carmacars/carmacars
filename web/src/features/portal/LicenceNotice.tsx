@@ -27,7 +27,7 @@ export function LicenceNotice({ number, missing, when }: { number: string; missi
         : when === 'offer' ? 'Before you accept the offer: the front and back of your licence and a selfie holding it.'
         : 'Before you pay: the front and back of your licence and a selfie holding it.'}</p>
       <p className="small">Still needed: {missing.join(', ')}.</p>
-      <p><Link prefetch={false} className="btn btn--primary" href={bookingPath(number, 'verify')} data-testid="licence-upload-link">Upload your licence</Link></p>
+      <p><Link prefetch={false} className="btn btn--primary" href={bookingPath(number, 'verify')} data-testid="licence-upload-link" data-guide="licence-upload-link">Upload your licence</Link></p>
     </section>
   );
 }

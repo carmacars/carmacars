@@ -13,7 +13,7 @@ export default async function SelfPickup({ params }: { params: Promise<{ number:
   const { b } = await myBooking((await params).number, 'pickup');
   const signed = b.agreement?.status === 'signed' || b.agreement?.status === 'completed';
   return (
-    <div className="stack" data-testid="self-pickup">
+    <div className="stack" data-testid="self-pickup" data-guide="self-pickup">
       <p><Link prefetch={false} className="link" href={bookingPath(b.booking_number)}>Booking {b.booking_number}</Link></p>
       <h1 className="d3">Check in your car</h1>
       <p>Take the photos yourself when you get the car: pick them all at once from your camera roll. We add ours if anything is missing.</p>
