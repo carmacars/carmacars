@@ -11,7 +11,10 @@ export interface Photo { path: string; variants?: { width: number; path: string;
   /** r48 AN (3150): one of the car's own photos (after the renders) */
   real?: boolean;
   /** r48 AN (3150): the cover's side cutout (rembg, 3080): the card's car drives off its frame on hover */
-  cutout?: { path: string; width: number | null; height: number | null; facing: 'left' | 'right' } | null }
+  cutout?: { path: string; width: number | null; height: number | null; facing: 'left' | 'right';
+    /** r50 (5030): 'matte' = a PNG in the render's frame whose alpha is the car, with the plate cropped like the render and the
+     *  car's box (fractions); the cards' drive-off uses only a matte */
+    kind?: 'cutout' | 'matte'; plate?: string | null; box?: { x: number; y: number; w: number; h: number } | null } | null }
 
 export interface CarRow {
   vehicle_id: string; slug: string; path: string; canonical_path: string; headline: string | null;
@@ -39,6 +42,8 @@ export interface CarRow {
   popular?: boolean;
   /** r48 (3040): the cover is a sample photo: real cars' studio covers shown in turn over it (lib/studio-covers.ts) */
   studio?: Photo[];
+  /** r50 (3701): how many studio renders the car's gallery has (0 with the placeholder): the card's photo count */
+  rendered?: number;
 }
 
 export interface CarPage extends CarRow {

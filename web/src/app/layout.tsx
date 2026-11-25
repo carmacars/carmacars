@@ -9,6 +9,7 @@ import '@/portable/motion/tokens.css';
 import '@/portable/motion/motion.css';
 import '@/portable/motion/design.css';
 import '@/styles/motion-kit.css';
+import '@/styles/car-card.css';
 import { inter, interDisplay } from './fonts';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';

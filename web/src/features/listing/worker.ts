@@ -1192,18 +1192,21 @@ export async function makeR48(d: WorkerDeps, j: JobContext): Promise<R45Made> {
   // plate (wall, floor, contact shadow), its box, its view and direction. Inside: the view. Refused: made again with the reasons.
   let gate: GateVerdict;
   let platesAt = v.plates;
+  // r50 (5030): the crop window is kept with the verdict: the drive-off matte crops the plate the same way (studio-matte.ts)
+  let win: { x: number; y: number; w: number; h: number } | null = null;
   if (ext && STUDIO_FRAME[shot]) {
     const box = readCarBox(asked.data);
     const placed = box ? frameWindow(box, STUDIO_FRAME[shot]!) : { error: 'gate_no_car_box' as const };
     if ('error' in placed) gate = { pass: false, reasons: [placed.error], measures: {} };
     else {
       fitted = cropResize(fitted, placed.win, size.width, size.height);
+      win = { x: +placed.win.x.toFixed(4), y: +placed.win.y.toFixed(4), w: +placed.win.w.toFixed(4), h: +placed.win.h.toFixed(4) };
       platesAt = v.plates.map((b) => ({ x: (b.x - placed.win.x) / placed.win.w, y: (b.y - placed.win.y) / placed.win.h, w: b.w / placed.win.w, h: b.h / placed.win.h }));
       const plateImg = plate ? await decodeImage(plate.bytes).catch(() => null) : null;
       gate = gateExterior({ shot, img: fitted, plate: plateImg ? fitFrame(plateImg, size.width, size.height) : null, car: placed.car, view: v.view, nose: v.nose ?? null, zoom: 1 / placed.win.w });
     }
   } else gate = gateInterior({ shot, view: v.view });
-  const gateOut = { pass: gate.pass, reasons: gate.reasons, measures: gate.measures, spec: R48_SPEC };
+  const gateOut = { pass: gate.pass, reasons: gate.reasons, measures: gate.measures, spec: R48_SPEC, ...(win ? { win } : {}) };
   if (!gate.pass) return no(`the studio gate refused it: ${gate.reasons.join(', ')}`, { ...base, reasons: [...base.reasons, ...gate.reasons], gate: gateOut });
   blurPlates(fitted, platesAt);
   const tag = j.id.replace(/-/g, '').slice(0, 6);
