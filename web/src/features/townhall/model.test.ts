@@ -8,6 +8,9 @@ test('1062: the platform updates of the week, and the weekly invite', () => {
   assert.deepEqual(releasesOfWeek(list, '2026-11-09').map((r) => r.release), ['r34']);
   const s: Slide[] = [{ key: 'dev', title: 'Platform updates', admin_only: false, points: [] }];
   assert.deepEqual(withReleases(s, [])[0]!.lines, ['No release shipped this week.']);
+  const d: Slide[] = [{ ...s[0]!, points: [{ label: 'Bugs fixed this week', value: '2' }, { label: 'Bugs still open', value: '3' }], bug_lines: ['A was wrong. Fixed: B. Thanks, Sam.'] }];
+  const l = withReleases(d, [{ release: 'r50', title: 'Release 50', date: '2026-11-24', summary: 'Sign first.' }])[0]!.lines!;
+  assert.deepEqual(l, ['Release 50: Sign first.', 'Bugs fixed this week: 2. Still open: 3.', 'A was wrong. Fixed: B. Thanks, Sam.']);
   const ics = townhallIcs({ nextAt: '2026-11-09T16:30:00Z', minutes: 45, url: 'https://meet.example.test/x', base: 'https://carmacars.ca' });
   assert.match(ics, /DTSTART:20261109T163000Z/);
   assert.match(ics, /DTEND:20261109T171500Z/);

@@ -423,6 +423,7 @@
      "Check-in visits (Cars): long rentals (28 days or more, long-term weekly, rideshare drivers) get a free monthly visit, on by default. Program settings: on or off, the length, the days between visits (30), the reminder lead (5 days), the office slots. Each booking has its own switch on its booking page; visits show on the booking timeline and the owner's car page."
     ],
     "staff": [
+     "The townhall's Platform updates slide shows the week's releases and the bugs fixed: how many, what was wrong, what was fixed and who reported it (thanks to everyone who uses Report a bug), with the bugs still open",
      "Birthday on your profile (optional, month and day only): the team celebrates it at the weekly townhall",
      "Guide me covers more of your work: tolls, Turo trips, payroll, field spending, payments by day, maintenance, your hours, marketing, leads, finding a renter, your first days, the academy, field shifts and pay. Its menu lists the workflows of the page you are on first",
      "A request marked Asked to book instantly is a Gold renter whose instant booking could not go through: answer it first, with a pay link or an offer.",

@@ -3,7 +3,7 @@ export interface Point { label: string; value: string }
 /** 1068: a staff member's tile on the people slide: their role's numbers and an Admin's shout-out. */
 export interface Person { user_id: string; name: string; role: string; points: Point[] | null; shoutout?: string | null }
 export interface Slide { key: string; title: string; admin_only: boolean; points: Point[]; /** 1505: the section's minutes in the 30-minute run */ minutes?: number; board?: Point[]; lines?: string[]; note?: string | null; people?: Person[];
-  /** 4600: the top incident's candidates (most serious first) and whether an Admin picked it */ candidates?: Array<{ ref: string; label: string }>; picked?: 'admin' | 'automatic'; pick_ref?: string | null }
+  /** 4600: the top incident's candidates (most serious first) and whether an Admin picked it */ /** 4620: the dev slide's fixed bugs, a line each, and who reported them */ bug_lines?: string[]; reporters?: Array<{ user_id: string; name: string; fixed: number }>; candidates?: Array<{ ref: string; label: string }>; picked?: 'admin' | 'automatic'; pick_ref?: string | null }
 export interface Townhall { admin: boolean; next_at: string | null; minutes: number; call_url: string | null; weekday: number; time: string; finance_to_staff: boolean; weeks: string[];
   deck: { id: string; week_of: string; built_at: string; slides: Slide[]; recording_url?: string | null } | null;
   /** 1068: attendance (join through the site or check in); for an Admin, the website's visitor sessions per weekday (8 weeks) */
@@ -48,7 +48,15 @@ export function releasesOfWeek(list: Release[], weekOf: string): Release[] {
 
 /** The deck's slides with the platform updates filled in. */
 export function withReleases(slides: Slide[], releases: Release[]): Slide[] {
-  return slides.map((s) => (s.key === 'dev' ? { ...s, lines: releases.length ? releases.map((r) => `${r.title}: ${r.summary}`) : ['No release shipped this week.'] } : s));
+  return slides.map((s) => {
+    if (s.key !== 'dev') return s;
+    const tech = releases.length ? releases.map((r) => `${r.title}: ${r.summary}`) : ['No release shipped this week.'];
+    const fixed = s.points.find((p) => p.label === 'Bugs fixed this week')?.value;
+    const open = s.points.find((p) => p.label === 'Bugs still open')?.value;
+    if (fixed === undefined) return { ...s, lines: tech };
+    const bugs = s.bug_lines?.length ? s.bug_lines : ['No staff bug reports were fixed this week.'];
+    return { ...s, lines: [...tech, `Bugs fixed this week: ${fixed}. Still open: ${open ?? 0}.`, ...bugs] };
+  });
 }
 
 /** A weekly calendar invite (iCalendar), repeating on the townhall's day and time, Toronto. */
