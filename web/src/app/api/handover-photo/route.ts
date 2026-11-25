@@ -20,6 +20,8 @@ async function allowed(userId: string, scope: string, id: string, view = false):
   try {
     if (scope === 'self-pickup') return Boolean(await rpc('server_return_link', { p_booking: id, p_user: userId }, SR));
     if (scope === 'one-screen') { await door(userId, 'ops_read', 'self_handovers', { booking: id }); return true; }
+    // r50 (4000): a monthly check-in visit's photo, by staff who do check-in visits (Admin, customer service, Fleet, field work)
+    if (scope === 'checkin') { await door(userId, 'ops_read', 'checkin_visit', { booking: id }); return true; }
     if (scope === 'owner-handoff') {
       if (view) { await rpc('server_owner_handoffs' as never, { p_by: userId, p_vehicle: id } as never, SR); return true; }
       await door(userId, 'ops_read', 'owner_handoffs', { vehicle: id }); return true;
@@ -36,7 +38,7 @@ export async function POST(req: Request) {
   const form = await req.formData().catch(() => null);
   const scope = String(form?.get('scope') ?? '') as PhotoScope;
   const id = String(form?.get('id') ?? '');
-  if (!['self-pickup', 'one-screen', 'owner-handoff'].includes(scope) || !UUID.test(id)) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 400, headers: H });
+  if (!['self-pickup', 'one-screen', 'owner-handoff', 'checkin'].includes(scope) || !UUID.test(id)) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 400, headers: H });
   if (!(await allowed(user.id, scope, id))) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403, headers: H });
   const file = form?.get('file');
   if (!(file instanceof Blob) || file.size === 0 || file.size > MAX_PHOTO_BYTES) return NextResponse.json({ ok: false, message: 'Each photo must be under 8 MB.' }, { status: 400, headers: H });

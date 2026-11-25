@@ -385,14 +385,16 @@
      "Card payments now open the card processor's secure card window (Sign and pay, pay links, add-ons, gift cards). CarmaCars never sees the card number.",
      "For a rental longer than 7 days the deposit is charged and refunded after the rental instead of held; the pay page says so.",
      "While card payments are paused, Sign and pay shows how to pay by Interac e-Transfer (the email, your booking number as the message and the exact amounts) and you upload the screenshot; we confirm it and email you.",
-     "Every car's photos now look the same: the same studio, the same angles, the car the same size in every photo"
+     "Every car's photos now look the same: the same studio, the same angles, the car the same size in every photo",
+     "On a rental of about a month or longer, your trips page shows Next check-in visit: around a date: a quick, free visit to keep the car in top shape and catch maintenance early. Nothing to pay. A few days before, we remind you; Pick a time at our office or By request."
     ],
     "owners": [
      "You sign your agreement first, filled in from your profile, before any car comes over. Your portal shows six steps (profile, agreement, cars, photos, approval, delivery) with one button for the next thing to do",
      "Each car you add goes on Schedule A of your agreement; you confirm new cars with one signature. Fleet suppliers can add cars from a list of VINs with each car's tier and plate",
      "A long rental shows the rental charge for all its days and what your statements carried so far",
      "A rental whose pickup was not recorded shows as out, not available",
-     "Signed copies show the CarmaCars countersignature in its place; corrected copies are filed and you are told"
+     "Signed copies show the CarmaCars countersignature in its place; corrected copies are filed and you are told",
+     "Your car page lists the monthly check-in visits of long rentals: the date, the kilometres, the tire tread and the car's condition as we found it"
     ],
     "admins": [
      "Renters choose Book instantly or Request to book; each booking records the choice. A Book instantly that could not go through lands in your requests with the chip Asked to book instantly and the reason: answer it first.",
@@ -412,7 +414,8 @@
      "Connector: photo_standard shows a rendered cover as studio, and per car the detail photos still to sort",
      "Studio renders made before the new standard stay on the site while each is checked in place; only those the check refuses are made again, the most viewed and bookable cars first",
      "Only studio views that passed the consistency check are on the site; Photo standard > Studio grid shows each car's nine views side by side with why any was refused",
-     "Academy: Guide me walkthroughs by staff member (started, completed, stopped) and the step people stop at most in each workflow"
+     "Academy: Guide me walkthroughs by staff member (started, completed, stopped) and the step people stop at most in each workflow",
+     "Check-in visits (Cars): long rentals (28 days or more, long-term weekly, rideshare drivers) get a free monthly visit, on by default. Program settings: on or off, the length, the days between visits (30), the reminder lead (5 days), the office slots. Each booking has its own switch on its booking page; visits show on the booking timeline and the owner's car page."
     ],
     "staff": [
      "A request marked Asked to book instantly is a Gold renter whose instant booking could not go through: answer it first, with a pay link or an offer.",
@@ -421,7 +424,8 @@
      "Fleet: Photo standard > Studio grid shows every car's nine views side by side; the site shows only views marked Live",
      "Fleet and customer service see Agreements before cars on the owner page and can send the reminder",
      "Fleet gets a To do for every confirmed rental whose pickup was not recorded",
-     "Field staff choose whose money paid each expense; what is owed to you is on My shifts and paid back on the payroll"
+     "Field staff choose whose money paid each expense; what is owed to you is on My shifts and paid back on the payroll",
+     "Check-in visits (Fleet: Checks; customer service: Renters; field work: Today): do the monthly visit of a long rental with the checklist; you are told when a renter picks a time and the morning of a visit. Guide me: Do a check-in visit walks you through it"
     ]
    }
   }

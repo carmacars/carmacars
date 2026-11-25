@@ -38,6 +38,8 @@ export const PATHS = {
   booking_return: '/account/bookings/{{booking_number}}/return',
   booking_extend: '/account/bookings/{{booking_number}}/extend',
   booking_change: '/account/bookings/{{booking_number}}/change',
+  // r50 (4000): pick a time for the monthly check-in visit
+  booking_checkin: '/account/bookings/{{booking_number}}/check-in',
   booking_statement: '/account/bookings/{{booking_number}}/statement',
   booking_pay: '/account/bookings/{{booking_number}}/pay',
   booking_incident: '/account/bookings/{{booking_number}}/incident',
@@ -98,6 +100,7 @@ export const PATHS = {
   va_finance_insurer_invoice: '/staff/money',
   va_finance_bank: '/staff/finance?tab=bank',
   va_fleet: '/staff/fleet',
+  va_fleet_checkins: '/staff/check-ins',
   va_fleet_booking: '/staff/bookings/{{booking_number}}',
   va_fleet_listing: '/staff/listings/{{vehicle_id}}',
   va_fleet_expiries: '/staff/fleet#expiry',

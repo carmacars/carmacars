@@ -97,7 +97,9 @@ export const STAFF_HUBS: Hub[] = [
     { href: '/staff/calendar-sync', label: 'Calendar sync', fns: 'fleet' }, { href: '/staff/addons', label: 'Add-ons', fns: 'fleet' }],
     actions: [{ href: '/staff/owners/add-car', label: 'Add a car', fns: 'fleet' }, { href: '/staff/listings/import-photos', label: 'Import photos from Drive', fns: 'cs fleet' }] },
   { key: 'field-jobs', label: 'Field jobs', tabs: [{ href: '/staff/fleet', label: 'Jobs', fns: 'fleet' }, { href: '/staff/field-hours', label: 'Field hours', fns: 'fleet' }, { href: '/staff/past-trips', label: 'Close ended trips', fns: 'fleet' }, { href: '/staff/fleet/calls', label: 'Calls and texts', fns: 'fleet' }] },
-  { key: 'checks', label: 'Checks', tabs: [{ href: '/staff/checks', label: 'Daily checks', fns: 'fleet' }, { href: '/staff/reviews', label: 'Photo reviews', fns: 'fleet' }, { href: '/staff/deposit-reviews?view=fleet', label: 'Deposit reviews', fns: 'fleet' }] },
+  { key: 'checks', label: 'Checks', tabs: [{ href: '/staff/checks', label: 'Daily checks', fns: 'fleet' }, { href: '/staff/reviews', label: 'Photo reviews', fns: 'fleet' }, { href: '/staff/deposit-reviews?view=fleet', label: 'Deposit reviews', fns: 'fleet' },
+    // r50 (4000): the monthly check-in visits of long rentals
+    { href: '/staff/check-ins', label: 'Check-in visits', fns: 'fleet' }] },
   { key: 'numbers', label: 'My numbers', tabs: [{ href: '/staff/scorecard', label: 'Scorecard', fns: 'cs fleet finance sales' }, { href: '/staff/my-sales', label: 'My sales', fns: 'cs fleet finance sales' },
     // r48 (3261): the staff member's own rewards
     { href: '/staff/rewards', label: 'My rewards', fns: 'cs fleet finance sales' },
@@ -165,7 +167,7 @@ export function movedTo(path: string, tab: string, sp: Record<string, string | s
 
 // ---------------------------------------------------------------- sections (r27, second cut)
 export const ADMIN_SECTIONS: Section[] = [
-  { key: 'cars', label: 'Cars', items: ['vehicles', 'listings', { href: '/admin/field-jobs', label: 'Field jobs' }, { href: '/admin/maintenance', label: 'Maintenance' }] },
+  { key: 'cars', label: 'Cars', items: ['vehicles', 'listings', { href: '/admin/field-jobs', label: 'Field jobs' }, { href: '/admin/maintenance', label: 'Maintenance' }, { href: '/admin/check-ins', label: 'Check-in visits' }] },
   { key: 'people', label: 'People', items: ['owners', 'partners', 'renters', 'team', { href: '/admin/investors', label: 'Investors' }] },
   { key: 'marketing', label: 'Marketing', items: [{ href: '/admin/marketing/marketplace', label: 'Marketplace' }, 'ads', 'channels', 'recruit'] },
   { key: 'money', label: 'Money', items: ['payments', 'owner-money', { href: '/admin/tolls', label: 'Tolls and tickets' }, 'company', 'insurers'] },

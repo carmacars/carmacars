@@ -47,6 +47,8 @@ export interface OwnerHistory {
   items: Array<{ label: string; status: Status; detail: string | null; last_done_on: string | null }>;
   tires: { season: string; tread_mm: number | null } | null;
   records: Array<{ done_on: string; odometer_km: number | null; shop: string | null; items: string | null; billed_to_you_cents: number | null; paid_by: string }>;
+  /** r50 (4000): the monthly check-in visits of the car (condition only) */
+  checkins?: Array<{ done_on: string; odometer_km: number | null; damage_found: boolean | null; tread_mm: number | null; fluids_ok: boolean | null; next_service: string | null; summary: string }>;
 }
 
 export const STATUS_LABEL: Record<Status, string> = { overdue: 'Overdue', due_soon: 'Due soon', unknown: 'Unknown', ok: 'OK', none: 'No schedule', off: 'Off' };

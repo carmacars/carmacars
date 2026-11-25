@@ -24,6 +24,8 @@ import { SignPayCard } from '@/features/portal/SignPayCard';
 import { stillNeededOf } from '@/features/portal/still-needed';
 import { PerkHint } from '@/features/rewards/RewardsClient';
 import { InstantHint } from '@/features/booking/BookChoice';
+import { CheckinCard } from '@/features/checkins/CheckinCard';
+import { renterCheckin } from '@/server/checkins';
 
 type Links = { verified: boolean; new: Array<{ kind: string; detail: string | null; booking_number: string | null }>; driver_trips: Array<{ booking_number: string; status: string; pickup_at: string; return_at: string; vehicle_name: string; accepted: boolean }> };
 
@@ -71,6 +73,8 @@ export default async function Account({ searchParams }: { searchParams: Promise<
   const track = full ? stages(progress(full), full.status) : null;
   const phone = settings?.phone_display ?? settings?.phone ?? null;
   const others = [...current, ...upcoming].filter((b) => b.id !== nearest?.id);
+  // r50 (4000): the monthly check-in visit of a long rental (a suggestion, nothing to pay)
+  const checkin = full && ['confirmed', 'on_rent'].includes(full.status) ? await renterCheckin(user.id, full.booking_number) : null;
   return (
     <>
       <InstantHint on={canInstant} />
@@ -94,6 +98,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
           {full && track && ['requested', 'offered', 'pending_payment', 'confirmed', 'on_rent'].includes(full.status) && (
             <PortalCard id="pt-track" title={stageSummary(track).text} testId="trip-steps"><StepTracker number={full.booking_number} stages={track} todos={todos(full.booking_number, stillNeededOf(full), quick)} /></PortalCard>
           )}
+          {full && checkin?.on && <CheckinCard s={checkin} number={full.booking_number} />}
           {/* r33: every other trip still to sign or pay, one card each (the nearest one's is the card above) */}
           {others.map((b) => <SignPayCard key={`sp-${b.id}`} quiet b={b} testId={`sign-pay-${b.booking_number}`} label={`${carTitle(b)}, ${b.booking_number}`} />)}
           {full && <TripHero b={full} photo={photo(full)} titleAs="h2" settings={settings} href={bookingPath(full.booking_number)} />}

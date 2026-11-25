@@ -49,6 +49,8 @@ import { MoreActions, NextStepPanel } from '@/features/admin/NextStep';
 import { nextStep } from '@/features/admin/next-step';
 import { DateConflicts, PlaceholderBanner, type Overlap } from '@/features/admin/DateConflicts';
 import { RollingCard } from '@/features/rolling-weekly/RollingCard';
+import { BookingCheckins } from '@/features/checkins/BookingCheckins';
+import type { VisitRead } from '@/features/checkins/model';
 import type { RollingState } from '@/features/rolling-weekly/model';
 import { PayPlanCard } from '@/features/bookings-now/PayPlanCard';
 import type { Pay } from '@/features/bookings-now/model';
@@ -241,6 +243,9 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
     // r48 (2981): a long-term rental paid weekly (Admin and staff; the card shows when it is on or may be turned on)
     (can.admin || viewer.role === 'staff') && (on('overview') || on('money')) && notOwner && ['confirmed', 'on_rent', 'returned'].includes(b.status)
       ? ops<RollingState>('rolling_weekly_state', { booking: b.booking_number }).catch(none(null)) : null]);
+  // r50 (4000): monthly check-in visits of a long rental (Admin, customer service, Fleet)
+  const checkins = (can.admin || viewer.role === 'staff') && on('overview') && notOwner && ['confirmed', 'on_rent'].includes(b.status)
+    ? await ops<VisitRead>('checkin_visit', { booking: b.booking_number }).catch(none(null)) : null;
 
   // r49 (3610): an e-Transfer the renter sent, reported by Sales and checked by Finance (every office role sees that it waits)
   const etransfer = notOwner && (on('money') || on('overview')) && !['requested', 'offered', 'tentative', 'cancelled', 'declined', 'expired'].includes(String(b.status))
@@ -441,6 +446,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
         authorized_daily_rate_cents: b.insurer_authorized_daily_rate_cents, adjuster_id: (b.insurer_adjuster_id as string | null) ?? null }} />}
       {pay && <PayPlanCard booking={b.id} pay={pay} refresh={[base]} admin={viewer.role === 'admin'} />}
       {rolling && (rolling.on || (rolling.may_turn_on && rolling.may_change)) && <RollingCard booking={b.booking_number} x={rolling} refresh={[base]} />}
+      {checkins && (checkins.on || checkins.may_switch) && <BookingCheckins d={checkins} base={base.startsWith('/admin') ? '/admin' : '/staff'} refresh={[base]} />}
       {periods && <BookingPeriods booking={b.booking_number} rows={periods} />}
       {(on('overview') || on('review')) && renterForm && <RenterEdit x={renterForm} />}
       {duplicates && renterForm && <RenterMerge renterId={renterForm.renter_id} name={renterForm.now.full_name ?? 'this renter'} rows={duplicates} />}

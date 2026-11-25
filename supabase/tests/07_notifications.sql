@@ -918,6 +918,7 @@ select test.eq('G every wired email code has been built at least once in these t
       and c.code not in ('admin_card_payments_paused', 'renter_etransfer_confirmed', 'renter_etransfer_declined') -- card payments paused (3650), built in 99_hotfix_card_off
       and c.code not in ('owner_master_agreement_ready', 'owner_schedule_ready', 'owner_sign_reminder', 'owner_car_delivered', 'staff_owner_signed', 'owner_document_reissued') -- sign first and the owner fixes (3800, 3810), built in 99_r50ow_sign_first and 99_r50ow_owner_fixes
       and c.code not in ('staff_expense_submitted', 'staff_expense_approved', 'staff_expense_declined') -- whose money (3720), built in 99_r50_field_reimbursements
+      and c.code not in ('renter_checkin_reminder', 'renter_checkin_followup', 'staff_checkin_booked', 'staff_checkin_today') -- check-in visits (4001), built in 99_r50_checkins
       and not exists (select 1 from notification_outbox o where o.code = c.code)
       and not exists (select 1 from staff_digest_items d where d.code = c.code)),
   null::text);

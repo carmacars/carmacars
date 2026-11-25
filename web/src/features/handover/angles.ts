@@ -21,7 +21,8 @@ export function anglesDone(photos: ReadonlyArray<Pick<PickedPhoto, 'angle'>>, ti
 }
 
 /** Where an uploaded photo is kept, by what it is for (the database accepts only these shapes). */
-export type PhotoScope = 'return-claim' | 'self-pickup' | 'one-screen' | 'owner-handoff';
+/** r50 (4000): 'checkin', a monthly check-in visit's photos, kept under the booking */
+export type PhotoScope = 'return-claim' | 'self-pickup' | 'one-screen' | 'owner-handoff' | 'checkin';
 export function photoKey(scope: PhotoScope, id: string, uuid: string, png: boolean): string {
   return `${scope === 'owner-handoff' ? 'vehicles' : 'bookings'}/${id}/${scope}/${uuid}.${png ? 'png' : 'jpg'}`;
 }
