@@ -1,3 +1,4 @@
+import { PullToRefresh } from '@/features/pull-refresh/PullToRefresh';
 import type { Metadata, Viewport } from 'next';
 import '@/styles/tokens.css';
 import '@/styles/core.css';
@@ -108,6 +109,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <MotionRuntime hooks={MOTION_HOOKS} />
         <SiteAssist />
         <AppShellMount />
+        {/* r50: drag down from the top to refresh, in the app and the home-screen site (browsers have their own) */}
+        <PullToRefresh />
         <ClientErrorListener />
         <FormGuard />
       </body>

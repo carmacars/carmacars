@@ -4,7 +4,9 @@
 // rate card of Program settings; the fees are Program settings, or "quoted in your agreement" when not set.
 
 export interface CalcClass { code: string; label: string; card_cents: number | null; avg_cents: number | null; n: number }
-export interface CalcModel { make: string; model: string; class: string; avg_cents: number; n: number }
+export interface CalcModel { make: string; model: string; class: string; avg_cents: number; n: number;
+  /** 5013: the model's cars by year (the year's average daily rate), and their average year */
+  years?: { year: number; avg_cents: number; n: number }[]; avg_year?: number | null }
 export interface CalcRule { make: string | null; model_re: string | null; trim_re: string | null; body_re: string | null; class: string; aged_years: number | null; aged_class: string | null }
 export interface CalcData { classes: CalcClass[]; models: CalcModel[]; rules: CalcRule[]; fees: { insurance_cents: number | null; tracker_cents: number | null }; year: number;
   /** 3291: the calculator's own season (the factor of each month, jan .. dec), the rented days of an average month it starts
@@ -40,6 +42,13 @@ export function classOf(rules: CalcRule[], car: CalcCar, year: number): string {
   return r.aged_years !== null && r.aged_class && age !== null && age >= r.aged_years ? r.aged_class : r.class;
 }
 
+/** 5013: how a car's year moves its model's average rate (1 when either year is unknown). */
+export function yearFactor(carYear: number | null | undefined, modelYear: number | null | undefined): number {
+  if (!carYear || !modelYear) return 1;
+  const d = carYear - modelYear;
+  return d < 0 ? Math.max(0.55, 1 + 0.05 * d) : Math.min(1.2, 1 + 0.03 * d);
+}
+
 export type RateSource = 'model' | 'class' | 'card' | 'none';
 /** The daily rate: the same make and model on the site, else the class average, else the class rate card. */
 export function rateFor(d: CalcData, car: CalcCar): { cents: number | null; source: RateSource; cls: string; label: string; n: number } {
@@ -49,7 +58,17 @@ export function rateFor(d: CalcData, car: CalcCar): { cents: number | null; sour
   const mk = makeKey(car.make), md = (car.model ?? '').trim().toLowerCase();
   if (mk && md) {
     const m = d.models.find((x) => x.make === mk && x.model === md) ?? d.models.find((x) => x.make === mk && (md.startsWith(x.model + ' ') || x.model.startsWith(md + ' ')));
-    if (m && m.avg_cents > 0) return { cents: Math.round(m.avg_cents), source: 'model', cls, label, n: m.n };
+    if (m && m.avg_cents > 0) {
+      const y = car.year && car.year > 1900 ? car.year : null;
+      // 5013: the year counts. Cars of the same model within two years of this one, when there are any; else the model's
+      // average moved by the years between (older: 5% a year less, down to 55%; newer: 3% a year more, up to 120%).
+      const near = y ? (m.years ?? []).filter((x) => Math.abs(x.year - y) <= 2) : [];
+      if (near.length) {
+        const n = near.reduce((a, x) => a + x.n, 0);
+        return { cents: Math.round(near.reduce((a, x) => a + x.avg_cents * x.n, 0) / n), source: 'model', cls, label, n };
+      }
+      return { cents: Math.round(m.avg_cents * yearFactor(y, m.avg_year ?? null)), source: 'model', cls, label, n: m.n };
+    }
   }
   if (c?.avg_cents && c.n > 0) return { cents: Math.round(c.avg_cents), source: 'class', cls, label, n: c.n };
   if (c?.card_cents) return { cents: c.card_cents, source: 'card', cls, label, n: 0 };

@@ -90,3 +90,14 @@ test('an Admin\'s own season and discount are used; a month never has more rente
   assert.equal(s.months[0]!.days, 22);
   assert.equal(seasonal({ rateCents: 10000, days: 12, sharePct: 70, fees: DATA.fees, season: { jan: 0 }, discountPct: 99 }).discountPct, 60);
 });
+
+test('5013: the year counts: cars of about the same year, else the model average moved by the years between', () => {
+  const d: CalcData = { ...DATA, models: [{ make: 'honda', model: 'civic', class: 'standard', avg_cents: 10000, n: 3, avg_year: 2022,
+    years: [{ year: 2016, avg_cents: 7000, n: 1 }, { year: 2024, avg_cents: 11500, n: 2 }] }] };
+  assert.equal(rateFor(d, { year: 2023, make: 'Honda', model: 'Civic' }).cents, 11500);
+  assert.equal(rateFor(d, { year: 2015, make: 'Honda', model: 'Civic' }).cents, 7000);
+  assert.equal(rateFor(d, { year: 2019, make: 'Honda', model: 'Civic' }).cents, 8500);
+  assert.equal(rateFor(d, { year: 2010, make: 'Honda', model: 'Civic' }).cents, 5500);
+  assert.equal(rateFor(d, { make: 'Honda', model: 'Civic' }).cents, 10000);
+  assert.ok(rateFor(d, { year: 2012, make: 'Honda', model: 'Civic' }).cents! < rateFor(d, { year: 2026, make: 'Honda', model: 'Civic' }).cents!);
+});
