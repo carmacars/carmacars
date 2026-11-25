@@ -1,9 +1,11 @@
 'use client';
 import './bug-report.css';
 import { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { usePathname } from 'next/navigation';
 import { installBugRing, bugRingEntries } from './install';
 import { capturePage, captureScreen } from './capture';
+import { describeOverlays, topOverlay, type Overlay } from './overlay';
 import { MAX_SHOTS, MAX_SHOT_BYTES, MIN_HAPPENED, SEVERITIES, type Severity } from './logs';
 
 // Release 37 (2340): "Report a bug" in the frame of the Admin portal and every staff portal (office and field). Pressing it
@@ -27,6 +29,24 @@ export function BugReportButton({ portal, mineHref }: { portal: 'admin' | 'staff
   const [sent, setSent] = useState<string | null>(null);
 
   const [canScreen, setCanScreen] = useState(false);
+  // r50 (3900): while a pop-up, drawer or sheet is open (a native modal dialog makes everything outside it inert, and others can
+  // cover the header), a copy of the button is shown inside that pop-up (or above it), so a bug can always be reported
+  const [over, setOver] = useState<Overlay | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const popup = useRef<string>('');
+  useEffect(() => {
+    let raf = 0;
+    const check = () => { raf = 0; const o = topOverlay(trigger.current, dlg.current); setOver((was) => (was?.el === o?.el && was?.mode === o?.mode ? was : o)); };
+    const later = () => { if (!raf) raf = requestAnimationFrame(check); };
+    const mo = new MutationObserver(later);
+    mo.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['open', 'aria-modal', 'hidden', 'class', 'inert'] });
+    window.addEventListener('resize', later);
+    later();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+    return () => { mo.disconnect(); window.removeEventListener('resize', later); if (raf) cancelAnimationFrame(raf); };
+  }, []);
   const live = useRef<Pic[]>([]);
   useEffect(() => { live.current = pics; }, [pics]);
   useEffect(() => { installBugRing(); return () => live.current.forEach((p) => URL.revokeObjectURL(p.url)); }, []);
@@ -42,6 +62,8 @@ export function BugReportButton({ portal, mineHref }: { portal: 'admin' | 'staff
 
   async function open() {
     setError(null); setSent(null);
+    // the pop-ups open now go with the report (their title and test id); the picture shows them as they are
+    popup.current = describeOverlays(dlg.current);
     setBusy('capture');
     const shot = await capturePage();
     setBusy(null);
@@ -72,7 +94,7 @@ export function BugReportButton({ portal, mineHref }: { portal: 'admin' | 'staff
         device: /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? 'phone or tablet' : 'computer', browser: navigator.userAgent,
         platform: (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform ?? navigator.platform, language: navigator.language,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, online: navigator.onLine, title: document.title, tab: new URLSearchParams(window.location.search).get('tab') ?? '',
-        capture: pics[0]?.auto ? 'page' : pics.length ? 'upload' : 'none' }
+        capture: pics[0]?.auto ? 'page' : pics.length ? 'upload' : 'none', popup: popup.current }
     }));
     pics.forEach((p, i) => fd.append('shot', p.blob, `shot-${i + 1}.${p.blob.type.split('/')[1]}`));
     try {
@@ -84,12 +106,19 @@ export function BugReportButton({ portal, mineHref }: { portal: 'admin' | 'staff
     } catch { setError('The report was not sent (no connection). Try again.'); } finally { setBusy(null); }
   }
 
+  const bug = <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M8 9a4 4 0 0 1 8 0v5a4 4 0 0 1-8 0z" /><path d="M12 9v9M4 13h4M16 13h4M5 7l3 2M19 7l-3 2M5 19l3-2M19 19l-3-2M10 5l-1-2M14 5l1-2" /></svg>;
   return (
     <>
-      <button type="button" className="btn btn--quiet btn--sm hd-act" title="Report a bug" onClick={open} disabled={busy === 'capture'} data-testid="bug-report-open" data-bug-report-ui>
-        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M8 9a4 4 0 0 1 8 0v5a4 4 0 0 1-8 0z" /><path d="M12 9v9M4 13h4M16 13h4M5 7l3 2M19 7l-3 2M5 19l3-2M19 19l-3-2M10 5l-1-2M14 5l1-2" /></svg>
+      {over && createPortal(
+        <button type="button" className="btn btn--sm br-float" onClick={open} disabled={busy === 'capture'} data-testid="bug-report-float" data-bug-report-ui>
+          {bug}<span>{busy === 'capture' ? 'Capturing…' : 'Report a bug'}</span>
+        </button>, over.mode === 'inside' ? over.el : document.body)}
+      <button ref={trigger} type="button" className="btn btn--quiet btn--sm hd-act" title="Report a bug" onClick={open} disabled={busy === 'capture'} data-testid="bug-report-open" data-bug-report-ui>
+        {bug}
         <span className="hd-lbl">{busy === 'capture' ? 'Capturing…' : 'Report a bug'}</span>
       </button>
+      {/* r50 (3900): the form lives at the end of the page, never inside a part another pop-up makes inert */}
+      {mounted ? createPortal(
       <dialog ref={dlg} className="ad-dialog ad-dialog--wide br-dialog" aria-labelledby={`${idp}-t`} data-testid="bug-report-dialog" data-bug-report-ui
         onPaste={(e) => { for (const it of Array.from(e.clipboardData.items)) if (it.kind === 'file') add(it.getAsFile()); }}>
         {sent ? (
@@ -134,7 +163,7 @@ export function BugReportButton({ portal, mineHref }: { portal: 'admin' | 'staff
             </p>
           </form>
         )}
-      </dialog>
+      </dialog>, document.body) : null}
     </>
   );
 }

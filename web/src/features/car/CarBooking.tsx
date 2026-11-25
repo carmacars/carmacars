@@ -14,6 +14,7 @@ import { addonsPayload, type AddonChoice } from '@/features/addons/model';
 import { SampleMatch } from '@/features/booking/SampleMatch';
 import { gateOn, type GateRules } from '@/features/phone-gate/rules';
 import { usePhoneGate, useGatePassed } from '@/features/phone-gate/usePhoneGate';
+import { BookChoice, useInstantOffer, type BookHow } from '@/features/booking/BookChoice';
 
 export interface CarBookingProps {
   vehicleId: string; slug: string; name: string; deliveryFee: number; pickupFee: number;
@@ -94,6 +95,9 @@ export function CarBooking(p: CarBookingProps) {
   const [addons, setAddons] = useState<AddonChoice[]>(() => (sp.get('addons') ?? '').split(',').map((x) => x.split(':'))
     .filter(([c]) => /^[a-z0-9_]{2,40}$/.test(c ?? '')).map(([c, n, h]) => ({ code: c!, quantity: Math.min(Math.max(Number(n) || 1, 1), 20), hours: h ? Number(h) || null : null })));
   const checked = useRef(false);
+  // r50 (3900): Book instantly or Request to book (the default); carried to the booking flow as ?how=instant
+  const [how, setHow] = useState<BookHow>(() => (sp.get('how') === 'instant' ? 'instant' : 'request'));
+  const instantOk = useInstantOffer();
   // 0280: picking dates and seeing whether this car is free for them is always open; the booked days on the calendar
   // (the full availability) show once a mobile number was given on this device
   const passed = useGatePassed();
@@ -124,6 +128,10 @@ export function CarBooking(p: CarBookingProps) {
 
   const query = new URLSearchParams();
   if (ready) { query.set('from', from); query.set('to', to); query.set('tf', tf); query.set('tt', tt); }
+  // instant only for a real car on dates it shows free (Any car, any time on taken dates is a request for Fleet)
+  const carInstantOk = !p.isSample && !(ready && (problem || clash(from, tf, to, tt, blocks)));
+  const instant = how === 'instant' && instantOk.canBookNow && carInstantOk;
+  if (instant) query.set('how', 'instant');
   if (deliver) query.set('deliver', '1'); if (collect) query.set('collect', '1'); if (age !== '26_plus') query.set('age', age);
   const chosen = addons.filter((c) => c.quantity > 0);
   if (chosen.length) query.set('addons', chosen.map((c) => [c.code, c.quantity, c.hours ?? ''].join(':').replace(/:$/, '')).join(','));
@@ -178,8 +186,11 @@ export function CarBooking(p: CarBookingProps) {
           {p.isSample && ready && <SampleMatch vehicleId={p.vehicleId} name={p.name} from={from} to={to} tf={tf} tt={tt}
             href={(slug) => `/book/${slug}?${new URLSearchParams({ from, to, tf, tt }).toString()}`} />}
           <Estimate q={q} error={error} loading={loading} from={ready ? from : ''} to={ready ? to : ''} tf={tf} tt={tt} rates={p.rates} hst={p.tokens.hst} maxDays={p.maxDays} labels={p.tokens} problem={problem} />
-          <Link className="btn btn--primary btn--lg btn--block" href={href} data-book><span>Request to book</span></Link>
-          <p className="small muted booking__assure"><b>No payment now.</b> We confirm the car and send the final price as an offer, open for {p.tokens.offerHours} hours. The car is booked only when you approve, sign and pay. If someone else pays for it first, we offer another car or other dates.</p>
+          <BookChoice idPrefix="car" value={instant ? 'instant' : 'request'} onChange={setHow} canBookNow={instantOk.canBookNow} cardsOn={instantOk.cardsOn} carOk={carInstantOk} />
+          <Link className="btn btn--primary btn--lg btn--block" href={href} data-book data-testid="car-book-go"><span>{instant ? 'Book instantly' : 'Request to book'}</span></Link>
+          {instant
+            ? <p className="small muted booking__assure" data-testid="car-instant-assure"><b>You pay now.</b> You fill in your details, then sign and pay{instantOk.cardsOn ? '' : ' by Interac e-Transfer'}; the car is confirmed at this price. If it was taken a moment ago, it goes to us as a request with no charge.</p>
+            : <p className="small muted booking__assure"><b>No payment now.</b> We confirm the car and send the final price as an offer, open for {p.tokens.offerHours} hours. The car is booked only when you approve, sign and pay. If someone else pays for it first, we offer another car or other dates.</p>}
         </div>
       </div>
       {dialog}
@@ -223,7 +234,7 @@ export function BookBar({ name, daily, slug }: { name: string; daily: number; sl
           <span className="xs muted">{ready ? `${state.days} ${state.days === 1 ? 'day' : 'days'}, ${shortDate(state.from).split(', ')[1]} to ${shortDate(state.to).split(', ')[1]}, with HST` : 'a day. Pick dates for a total'}</span>
         </div>
         <a className="btn btn--quiet btn--sm bookbar__dates" href="#dates">Change dates</a>
-        <Link className="btn btn--primary" href={state.href}>Request to book</Link>
+        <Link className="btn btn--primary" href={state.href}>{state.href.includes('how=instant') ? 'Book instantly' : 'Request to book'}</Link>
       </div>
     </div>
   );

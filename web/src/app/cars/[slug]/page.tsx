@@ -214,7 +214,7 @@ export default async function CarPage({ params }: Params) {
               {c.popular && !c.is_sample && <p className="small car-top__popular" data-testid="car-popular"><b>Popular:</b> this car is in high demand. <a className="link" href="#h-sim">See similar cars</a> ready for your dates.</p>}
               {c.is_sample
                 ? <p className="small car-top__example-note" data-testid="example-car-note">This is an example of the cars we rent. Send your dates and we suggest a similar real car with its price. Nothing is booked or charged.</p>
-                : <p className="small muted">Request to book. No payment until we confirm and you approve. A request does not hold the car.</p>}
+                : <p className="small muted">Request to book: no payment until we confirm and you approve. Gold Rewards members can book instantly and pay now.</p>}
             </div>
           </div>
         </div>

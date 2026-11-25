@@ -18,6 +18,7 @@ import { SampleMatch } from './SampleMatch';
 import { clock, longDate, MONTHS, torontoMinutesNow, torontoToday, validIso, validTime } from '@/lib/dates';
 import { money } from '@/lib/format';
 import { photoUrl } from '@/lib/photo';
+import { BookChoice, setInstantHint, type BookHow } from '@/features/booking/BookChoice';
 import { coverageCardCheck, coverageCards, loadRequestDraft, requestAccount, saveRequestDraft, submitBookingRequest, type CoverageCardCheck } from '@/server/actions/booking';
 import { CARD_ACK, OPCF_ACK } from '@/features/protection/model';
 import { checkoutCoverQuote } from '@/server/actions/cover-quote';
@@ -107,10 +108,12 @@ export function RequestWizard(p: WizardProps) {
   // signed in (0091): the account's verified phone and email fill the form; an account made by phone may leave the email
   // r45 (2860): and everything the profile holds (name, date of birth, licence class, channel); only empty fields are filled,
   // so a draft or what the person typed wins; the drivers on file are offered with one tap; what is out of date is flagged
-  const [account, setAccount] = useState<{ signedIn: boolean; email: string | null; phone: string | null; discounts?: Array<{ code: string; what: string; days_left: number | null }>; canBookNow?: boolean; profile?: RenterProfile | null } | null>(null);
+  const [account, setAccount] = useState<{ signedIn: boolean; email: string | null; phone: string | null; discounts?: Array<{ code: string; what: string; days_left: number | null }>; canBookNow?: boolean; cardsOn?: boolean; profile?: RenterProfile | null } | null>(null);
+  // r50 (3900): Book instantly or Request to book (the default); the car page's choice comes as ?how=instant
+  const [how, setHow] = useState<BookHow>(() => { try { return new URLSearchParams(window.location.search).get('how') === 'instant' ? 'instant' : 'request'; } catch { return 'request'; } });
   const [fromProfile, setFromProfile] = useState<string[]>([]);
   useEffect(() => {
-    requestAccount().then((r) => { if (r.ok) setAccount(r.data); }).catch(() => undefined);
+    requestAccount().then((r) => { if (r.ok) { setAccount(r.data); if (r.data.signedIn) setInstantHint(r.data.canBookNow); } }).catch(() => undefined);
   }, []);
   useEffect(() => {
     if (!account?.signedIn || !ready.current) return;
@@ -281,11 +284,12 @@ export function RequestWizard(p: WizardProps) {
       form.current?.closest('.req')?.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
     });
   }
-  // r40 (2430): Send request leaves a request for everyone; Book now (offered to a renter who may book at once) pays the website price
-  const bookNow = useRef(false);
+  // r40 (2430), r50 (3900): Request to book leaves a request for everyone; Book instantly (offered to a renter who may book
+  // at once) pays the website price
+  const instant = how === 'instant' && !!account?.canBookNow;
   async function send(e: React.FormEvent) {
     e.preventDefault(); setFailure('');
-    const now = bookNow.current; bookNow.current = false;
+    const now = instant;
     for (let n = 1; n <= LAST; n++) if (!validate(n)) { if (n !== step) show(n); setTimeout(() => validate(n), 0); return; }
     setSending(true);
     // a fresh security-check token just before sending (single use, 5 minutes: a long form or a second try outlives one)
@@ -321,7 +325,7 @@ export function RequestWizard(p: WizardProps) {
       localStorage.removeItem(KEY);
     } catch { /* ignore */ }
     // r35a (1304): booked at once (a verified repeat renter): straight to Sign and pay
-    const next = r.data.instant ? `/account/bookings/${encodeURIComponent(r.data.bookingNumber)}/checkout?instant=1` : `/book/sent/${encodeURIComponent(r.data.bookingNumber)}`;
+    const next = r.data.instant ? `/account/bookings/${encodeURIComponent(r.data.bookingNumber)}/checkout?instant=1` : `/book/sent/${encodeURIComponent(r.data.bookingNumber)}${now ? '?instant=no' : ''}`;
     router.push(next, scrollOption(next));
   }
 
@@ -585,15 +589,15 @@ export function RequestWizard(p: WizardProps) {
                 </fieldset>
               )}
             </div>
-            <div className="alert"><span className="alert__title">What sending this does</span><span>It asks us to check the car and price. It does not book or hold the car, and it takes no payment. We send the final price as an offer that stays open for {p.tokens.offerHours} hours. The car is booked only when you approve, sign and pay. If someone else pays for the same car and dates first, we tell you and offer another car or other dates.</span></div>
+            {instant ? <div className="alert" data-testid="rq-instant-what"><span className="alert__title">What Book instantly does</span><span>The car is yours at the website price as soon as you sign and pay{account?.cardsOn === false ? ' by Interac e-Transfer (card payments are paused; we confirm when we see it)' : ''}. If it cannot be booked at once (taken a moment ago, or your licence is not on file), it comes to us as a request with no charge, and we reply with a pay link or an offer.</span></div> : <div className="alert"><span className="alert__title">What sending this does</span><span>It asks us to check the car and price. It does not book or hold the car, and it takes no payment. We send the final price as an offer that stays open for {p.tokens.offerHours} hours. The car is booked only when you approve, sign and pay. If someone else pays for the same car and dates first, we tell you and offer another car or other dates.</span></div>}
             <div className={fieldCls('agree')}>
               <label className="check"><input type="checkbox" name="agree" checked={d.agree} onChange={(e) => set('agree', e.target.checked)} aria-invalid={err('agree') ? true : undefined} aria-describedby={err('agree') ? 'rq-agree-err' : undefined} /><span>{p.agreeLine.replace(/Terms of use and Privacy policy\.$/, '')}<Link className="link" href="/terms">Terms of use</Link> and <Link className="link" href="/privacy">Privacy policy</Link>.</span></label>
               <p className="error" role="alert" id="rq-agree-err">{err('agree') ?? ''}</p>
             </div>
             <Turnstile action="booking_request" />
-            <div className="req__nav"><button type="button" className="btn btn--ghost" onClick={() => show(4)}>Back</button><button type="submit" className={`btn btn--lg ${account?.canBookNow ? 'btn--ghost' : 'btn--primary'}`} disabled={sending} data-testid="rq-send">{sending ? 'Sending' : 'Send request'}</button>
-              {account?.canBookNow && <button type="submit" className="btn btn--primary btn--lg" disabled={sending} data-testid="rq-book-now" onClick={() => { bookNow.current = true; }}>Book now</button>}</div>
-            <p className="small muted">{account?.canBookNow ? 'Send request: no payment now, no card needed. Book now: the car is yours at the website price, then you sign and pay.' : 'No payment now. No card needed.'}</p>
+            <BookChoice idPrefix="rq" value={instant ? 'instant' : 'request'} onChange={setHow} canBookNow={!!account?.canBookNow} cardsOn={account?.cardsOn !== false} carOk={!car?.isSample} />
+            <div className="req__nav"><button type="button" className="btn btn--ghost" onClick={() => show(4)}>Back</button><button type="submit" className="btn btn--primary btn--lg" disabled={sending} data-testid={instant ? 'rq-book-now' : 'rq-send'}>{sending ? 'Sending' : instant ? 'Book instantly' : 'Send request'}</button></div>
+            <p className="small muted">{instant ? `Next you sign and pay${account?.cardsOn === false ? ' by Interac e-Transfer' : ''}; the car is confirmed at the website price. If it cannot be booked at once, it goes to us as a request with no charge.` : 'No payment now. No card needed.'}</p>
           </section>
         </form>
         {gateDialog}

@@ -18,6 +18,7 @@ export type ProofState = 'not_needed' | 'no_choice' | 'missing' | 'submitted' | 
 export interface CoverageCard { option: number | null; short: string | null; label: string; requested_option: number | null; confirmed_at: string | null; proof: ProofState;
   proof_words: string; detail: string | null; rejection_reason: string | null }
 export interface History { booking_id: string; booking_number: string; status: string; booking_type: string; owner_trip: boolean; instant_book: boolean;
+  /** r50 (3900): what the renter chose on the website, and why Book instantly became a request */ book_choice?: 'instant' | 'request' | null; book_choice_note?: string | null;
   current_offer_version: number | null; made_by_staff: boolean; original: Original | null; offers: OfferVersion[]; coverage: CoverageCard | null; may_revert: boolean }
 /** The changes ops_read offer_revert answers: loaded into the review screen as a new offer to send. */
 export interface Revert { version: number; sent_at: string; total_cents: number; changes: Record<string, unknown>; lines: Record<string, number>; promo_code: string; message: string }

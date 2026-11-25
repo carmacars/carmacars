@@ -381,6 +381,7 @@
    "summary": "Owners sign their agreement before any car comes over, card payments move to a new Canadian card processor with e-Transfer whenever cards are off, field expenses say whose money paid, and every car is shown in one studio look whose renders now actually finish.",
    "sections": {
     "renters": [
+     "On the car page and in the booking form you choose: Request to book (no charge; we check and send you a pay link or an offer) or Book instantly (Gold Rewards members: pay now and the car is confirmed). With card payments paused, Book instantly is paid by Interac e-Transfer.",
      "Card payments now open the card processor's secure card window (Sign and pay, pay links, add-ons, gift cards). CarmaCars never sees the card number.",
      "For a rental longer than 7 days the deposit is charged and refunded after the rental instead of held; the pay page says so.",
      "While card payments are paused, Sign and pay shows how to pay by Interac e-Transfer (the email, your booking number as the message and the exact amounts) and you upload the screenshot; we confirm it and email you.",
@@ -394,6 +395,8 @@
      "Signed copies show the CarmaCars countersignature in its place; corrected copies are filed and you are told"
     ],
     "admins": [
+     "Renters choose Book instantly or Request to book; each booking records the choice. A Book instantly that could not go through lands in your requests with the chip Asked to book instantly and the reason: answer it first.",
+     "Report a bug works while a pop-up, drawer or sheet is open: the button shows at the bottom left, and the report's picture and details show the pop-up.",
      "Cards run on the new processor: set its keys as in docs/ops/helcim-setup.md. Until then cards are off and renters pay by e-Transfer.",
      "Card payments in Program settings: one switch (and the card processor's own answer, checked by itself) turns every card form into e-Transfer instructions with a screenshot upload; you are alerted once when the card processor stops taking payments",
      "While card payments are paused, Collect a card, card links and deposit holds are off; the Money tab says Ask the renter to e-Transfer with the message ready to copy",
@@ -411,6 +414,8 @@
      "Only studio views that passed the consistency check are on the site; Photo standard > Studio grid shows each car's nine views side by side with why any was refused"
     ],
     "staff": [
+     "A request marked Asked to book instantly is a Gold renter whose instant booking could not go through: answer it first, with a pay link or an offer.",
+     "Report a bug works while a pop-up is open: use the button at the bottom left of the screen.",
      "Fleet: Photo standard > Studio grid shows every car's nine views side by side; the site shows only views marked Live",
      "Fleet and customer service see Agreements before cars on the owner page and can send the reminder",
      "Fleet gets a To do for every confirmed rental whose pickup was not recorded",

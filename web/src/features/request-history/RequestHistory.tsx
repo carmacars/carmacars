@@ -12,12 +12,14 @@ const $ = (c: number | null | undefined) => (c === null || c === undefined ? '' 
 const at = (iso: string | null | undefined) => (iso ? when(iso) : '');
 
 /** The owner's own trip or an instant booking, as a chip beside the booking's title and on the rows. */
-export function BookingKindChips({ ownerTrip, instant, testId = 'booking-kind' }: { ownerTrip: boolean; instant?: boolean; testId?: string }) {
-  if (!ownerTrip && !instant) return null;
+export function BookingKindChips({ ownerTrip, instant, askedInstant, testId = 'booking-kind' }: { ownerTrip: boolean; instant?: boolean; askedInstant?: string | null; testId?: string }) {
+  if (!ownerTrip && !instant && !askedInstant) return null;
   return (
     <span className="row" style={{ gap: 'var(--s-2)', display: 'inline-flex' }} data-testid={testId}>
       {ownerTrip && <Chip tone="amber" testId={`${testId}-owner`}>{OWNER_TRIP}</Chip>}
       {instant && <Chip tone="ok" testId={`${testId}-instant`}>{INSTANT_REPEAT}</Chip>}
+      {/* r50 (3900): the renter chose Book instantly and the database sent it as a request: answer it first, with a pay link */}
+      {!instant && askedInstant && <span title={askedInstant}><Chip tone="amber" testId={`${testId}-asked-instant`}>Asked to book instantly</Chip></span>}
     </span>
   );
 }

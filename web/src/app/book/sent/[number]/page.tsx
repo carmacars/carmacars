@@ -1,6 +1,6 @@
 import Link from '@/components/Link';
 import { notFound } from 'next/navigation';
-import { ConfCoverage, ConfEmail, ConfName, ConfRows } from '@/features/booking/Confirmation';
+import { ConfCoverage, ConfEmail, ConfInstantNo, ConfName, ConfRows } from '@/features/booking/Confirmation';
 import { pageMeta } from '@/features/seo/meta';
 import { Moment } from '@/features/motion/Moment';
 import { fill, getFacts, getSettings, getTokens } from '@/lib/site';
@@ -60,6 +60,7 @@ export default async function Sent({ params }: { params: Promise<{ number: strin
           <p className="row"><span className="plate plate--dark plate--lg" data-testid="request-number">{number}</span><span className="small muted">Your request number</span></p>
           <h1 className="d1" data-mo-burst="">Request sent<ConfName number={number} />.</h1>
           <p className="lead">Nothing has been charged, and the car is not booked yet. A person at {s.brand_name} is checking it now.</p>
+          <ConfInstantNo />
         </div>
       </section>
       <section className="section">
