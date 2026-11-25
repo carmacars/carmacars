@@ -51,7 +51,13 @@ export function renterNow(b: BookingSummary, step: NextStep, opts: { pickupPlace
   let headline = step.title;
   let detail: string | null = step.note;
   let kicker = `Next step · ${b.booking_number}`;
-  if (!step.urgent && b.status === 'on_rent') {
+  // 4730: confirmed, the pickup time passed and no pickup recorded: the renter has the car, so this is the trip
+  const outUnrecorded = b.status === 'confirmed' && !b.handed_over_at && new Date(b.pickup_at).getTime() <= now;
+  if (!step.urgent && outUnrecorded) {
+    headline = `Return the ${car(b)} ${whenWords(b.return_at, now)}`;
+    detail = step.note;
+    kicker = `On your trip · ${b.booking_number}`;
+  } else if (!step.urgent && b.status === 'on_rent') {
     headline = `Return the ${car(b)} ${whenWords(b.return_at, now)}`;
     detail = opts.returnPlace;
     kicker = `On your trip · ${b.booking_number}`;
@@ -65,7 +71,7 @@ export function renterNow(b: BookingSummary, step: NextStep, opts: { pickupPlace
   } else if (!['requested', 'offered', 'pending_payment'].includes(b.status)) {
     kicker = b.booking_number;
   }
-  if (stepAction && step.urgent) actions.push(stepAction);
+  if (stepAction && (step.urgent || outUnrecorded)) actions.push(stepAction);
   if (balance > 0) actions.push({ key: 'pay', label: `Pay ${dollars(balance)}`, href: `${path}#pt-bal`, primary: !actions.some((a) => a.primary), testId: 'now-pay' });
   if (['confirmed', 'on_rent'].includes(b.status)) actions.push({ key: 'extend', label: 'Extend', href: `${path}/extend`, testId: 'now-extend' });
   if (stepAction && !step.urgent && !actions.some((a) => a.href === stepAction.href)) actions.push({ ...stepAction, primary: !actions.some((a) => a.primary) });

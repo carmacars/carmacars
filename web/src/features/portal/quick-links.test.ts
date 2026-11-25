@@ -22,3 +22,9 @@ test('the links go to the verify page and the card checker', () => {
   const l = quickLinks({ booking_number: 'CC-10042', status: 'confirmed', missing: ['identity', 'coverage'] }, true);
   assert.deepEqual(l.map((x) => x.href), ['/account/bookings/CC-10042/verify', '/account/bookings/CC-10042/verify#pt-cov', '/credit-card-rental-coverage']);
 });
+
+test('4730: a licence sent and being checked, or approved on an earlier booking, is not asked for again', () => {
+  assert.equal(keys({ booking_number: 'CC-1', status: 'confirmed', missing: ['identity'], readiness: { identity_state: 'in_review' } }, false), '');
+  assert.equal(keys({ booking_number: 'CC-1', status: 'confirmed', missing: ['identity'], readiness: { identity_state: 'verified' } }, false), '');
+  assert.equal(keys({ booking_number: 'CC-1', status: 'confirmed', missing: ['identity'], readiness: { identity_state: 'missing' } }, false), 'licence');
+});

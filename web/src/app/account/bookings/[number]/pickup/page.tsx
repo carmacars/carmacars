@@ -3,6 +3,7 @@ import { myBooking } from '@/server/portal/data';
 import { bookingPath } from '@/features/portal/status';
 import { HandoverOneScreen } from '@/features/handover/HandoverOneScreen';
 import Link from '@/components/Link';
+import { pickupNotRecorded } from '@/features/returns/claim';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Check in', path: '/account/bookings', noindex: true, description: 'Check the car in yourself at pickup.' });
@@ -18,6 +19,7 @@ export default async function SelfPickup({ params }: { params: Promise<{ number:
       <h1 className="d3">Check in your car</h1>
       <p>Take the photos yourself when you get the car: pick them all at once from your camera roll. We add ours if anything is missing.</p>
       {!signed && b.status !== 'on_rent' && <p className="alert alert--warn" role="status"><span>Sign the rental agreement first: <Link prefetch={false} className="link" href={bookingPath(b.booking_number, 'checkout')}>sign now</Link>.</span></p>}
+      {pickupNotRecorded(b) && <p className="alert alert--info" role="note" data-testid="self-pickup-late"><span>Your pickup time has passed. You can still check in here: your photos, km and fuel are kept and we confirm the pickup. Returning the car? <Link prefetch={false} className="link" href={bookingPath(b.booking_number, 'returned')}>Return it here</Link>: documents still being checked never stop a return.</span></p>}
       {b.status === 'on_rent' && <p className="pt-ok" role="status">Your trip has started. You can still add your check-in photos, km and fuel here: they join the pickup report.</p>}
       <HandoverOneScreen booking={b.id} number={b.booking_number} kind="pickup" who="renter" />
     </div>
