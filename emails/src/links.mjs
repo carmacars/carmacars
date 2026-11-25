@@ -80,6 +80,7 @@ export const PATHS = {
   admin_fleet: '/admin/fleet',
   admin_jobs: '/admin/jobs',
   admin_settings_program: '/admin/settings/program',
+  admin_company_document: '/admin/company-documents/{{company_document_id}}',
   admin_weekly: '/admin/reports/weekly',
   admin_reports: '/admin/reports',
   admin_debits: '/admin/debits',

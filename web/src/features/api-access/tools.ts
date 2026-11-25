@@ -446,6 +446,29 @@ export const HEAL_TOOLS: Tool[] = [
 ];
 TOOLS.push(...HEAL_TOOLS);
 
+// Release 50 (5060): Admin > Company documents, Admins only. list_company_documents reads every kind with each document's
+// versions, its state and its signers (never a body or a storage path). company_document_upload adds a document or its next
+// version: a PDF (pdf_base64, under 15 MB; the web layer checks and stores the bytes) or a text to sign (body_md with
+// {{placeholders}}, signers, fields). company_document_fields sets the fill-ins until the first signature. When every
+// fill-in is there the text is rendered and each signer is asked to sign in Admin. The database (app.api_call) decides and
+// logs each call; the bytes and the body are never logged, only their fingerprint.
+export const COMPANY_DOC_KINDS = ['shareholder_agreement', 'articles', 'franchise_agreement', 'insurance_policy', 'lease', 'other'] as const;
+export const COMPANY_DOC_TOOLS: Tool[] = [
+  read('list_company_documents', 'List company documents', 'CarmaCars\'s own corporate documents in Admin > Company documents (Admins only), by kind (shareholder agreement, articles of incorporation, franchise agreement, insurance policy, lease, other): each document\'s id, title, notes, its latest version (a PDF, or a text to sign: draft, waiting for signatures or signed, with its signers, its placeholders and the fill-ins still missing) and every earlier version. Never the text or the file. Read only.'),
+  write('company_document_upload', 'Upload a company document', 'Add a document to Admin > Company documents, or its next version when a document of that kind and title is there already (every version is kept). Give either pdf_base64 (a finished or signed PDF, under 15 MB) or body_md (the text to sign, in Markdown, with fill-ins written as {{name}}) with signers and fields. A text to sign is sent to its signers (an in-app notice and an email) as soon as every fill-in has a value; until then set them with company_document_fields. Only Admins can see it, and only the signers named can sign it, in Admin.',
+    ['title', 'kind'],
+    { title: str('The document\'s name, 3 to 120 characters, for example "Shareholder Agreement"'), kind: { type: 'string', enum: [...COMPANY_DOC_KINDS], description: 'What it is' },
+      pdf_base64: str('The PDF, base64 (under 15 MB). Leave out when giving body_md'), body_md: str('The text to sign, in Markdown (headings, lists, tables, **bold**); fill-ins as {{name}}. Leave out when giving pdf_base64'),
+      signers: { type: 'array', minItems: 1, maxItems: 10, description: 'With body_md: who signs, each an active Admin, in order', items: { anyOf: [{ type: 'string', format: 'email' },
+        { type: 'object', additionalProperties: false, required: ['email'], properties: { email: { type: 'string', format: 'email' }, role: str('The role printed in the signature block, for example "Principal of Side A, and for Holdco A"') } }] } },
+      fields: { type: 'object', additionalProperties: { type: 'string' }, description: 'With body_md: the fill-ins, placeholder name to value, for example {"holdco_a": "Example Holdings Inc."}' },
+      notes: str('Notes kept with the document (for a new version: what changed)') }),
+  write('company_document_fields', 'Set a company document\'s fill-ins', 'Set the fill-ins (the {{placeholders}}) of the latest version of a text to sign in Admin > Company documents, until the first signature (after it, a change is a new version through company_document_upload). An empty value removes one. When every fill-in has a value the text is rendered and each signer is asked to sign; a version already sent is withdrawn and sent again.',
+    ['document', 'fields'],
+    { document: { type: 'string', format: 'uuid', description: 'The document\'s id, from list_company_documents' }, fields: { type: 'object', additionalProperties: { type: 'string' }, description: 'Placeholder name to value' } })
+];
+TOOLS.push(...COMPANY_DOC_TOOLS);
+
 export function normalizeToolArgs(args: unknown): unknown {
   if (!args || typeof args !== 'object' || Array.isArray(args)) return args;
   const a = args as Record<string, unknown>;

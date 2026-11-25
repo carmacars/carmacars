@@ -55,7 +55,7 @@ function pngBytes(dataUrl: string): Uint8Array | null {
 }
 
 export interface SignedRequest {
-  id: string; signature_request_id: string; doc_type: 'form_a' | 'form_b' | 'form_c' | 'form_d' | 'investment_agreement' | 'staff_agreement' | 'partner_agreement' | 'referral_agreement'; vehicle_id?: string | null; referral_link_id?: string | null; witness_record_id?: string | null; title: string; owner_id: string | null; investor_id: string | null; staff_user_id: string | null;
+  id: string; signature_request_id: string; doc_type: 'form_a' | 'form_b' | 'form_c' | 'form_d' | 'investment_agreement' | 'staff_agreement' | 'partner_agreement' | 'referral_agreement' | 'company_document'; vehicle_id?: string | null; referral_link_id?: string | null; witness_record_id?: string | null; title: string; owner_id: string | null; investor_id: string | null; staff_user_id: string | null;
   signer_name: string; signer_role: string; signed_at: string; method: string; document_sha256: string;
   record: { signer_role: string; signer_name: string; method: string; signed_at: string; ip_address: string | null; user_agent: string | null; provider_signature: string | null; typed_name: string | null; initials: Record<string, string> | null };
 }
@@ -110,7 +110,7 @@ export async function attachSignedRecord(userId: string, r: SignedRequest, drawn
   const rec = r.record;
   const company = await companySignature(r.signature_request_id);
   const companyName = company.officer ? `${company.officer}${company.title ? `, ${company.title}` : ''}` : null;
-  const row: SignatureRow = { party: rec.signer_role === 'investor' ? 'Investor' : rec.signer_role === 'partner' ? 'Partner' : rec.signer_role === 'staff' ? 'Staff member' : 'Owner', name: rec.signer_name,
+  const row: SignatureRow = { party: rec.signer_role === 'investor' ? 'Investor' : rec.signer_role === 'partner' ? 'Partner' : rec.signer_role === 'staff' ? 'Staff member' : rec.signer_role === 'company_signer' ? 'Signer' : 'Owner', name: rec.signer_name,
     signature: rec.method === 'typed' ? `Typed: ${rec.typed_name ?? rec.signer_name}` : 'Drawn signature', when: when(rec.signed_at) };
   let blocks: Block[];
   const extraLines: string[][] = []; // 0720: Form D's witnesses (company.lines names only the first typed witness)
@@ -164,7 +164,8 @@ export async function attachSignedRecord(userId: string, r: SignedRequest, drawn
   pdf = await withRequestCertificate(pdf, r.signature_request_id, r.title, company.officer && r.doc_type !== 'investment_agreement'
     ? { name: companyName ?? company.officer, at: rec.signed_at, text: company.text ?? 'Countersigned automatically when the document was signed.' } : null);
   const sha = await sha256Hex(pdf);
-  const base = r.doc_type === 'partner_agreement' ? `owners/${r.owner_id}/partner` : r.doc_type === 'form_c' || r.doc_type === 'form_d' ? `owners/${r.owner_id}/forms` : r.owner_id ? `owners/${r.owner_id}/forms` : r.investor_id ? `investors/${r.investor_id}/signed` : `staff/${r.staff_user_id}/signed`;
+  // r50 (5060): a company document's signer record sits beside the document's own files (Admins only)
+  const base = r.doc_type === 'company_document' ? 'company-documents/records' : r.doc_type === 'partner_agreement' ? `owners/${r.owner_id}/partner` : r.doc_type === 'form_c' || r.doc_type === 'form_d' ? `owners/${r.owner_id}/forms` : r.owner_id ? `owners/${r.owner_id}/forms` : r.investor_id ? `investors/${r.investor_id}/signed` : `staff/${r.staff_user_id}/signed`;
   const path = `${base}/${r.doc_type}-${r.id.slice(0, 8)}-signed.pdf`;
   await s.put('agreements', path, pdf, 'application/pdf');
   await rpc('server_sign_request_attach', { p_id: r.id, p_path: path, p_sha256: sha }, SR);

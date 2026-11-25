@@ -1,0 +1,28 @@
+CarmaCars  |  Company documents
+
+========================================
+
+[Company documents]
+Ready to sign: {{document_title}}
+
+Hello {{first_name}}. A CarmaCars company document is waiting for your signature in Admin.
+
+Document: {{document_title}}
+Version: {{document_version}}
+You sign as: {{signer_role_label}}
+Signers: {{signers_text}}
+
+Read and sign:
+https://carmacars.ca/admin/company-documents/{{company_document_id}}
+
+Sign in to Admin to read it to the end, then sign. Only the Admins named as signers can sign it, and only Admins can see it. Take legal advice first if you want it.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
