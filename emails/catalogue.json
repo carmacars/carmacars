@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 289,
+  "count": 291,
   "emails": [
     {
       "code": "account_password_reset",
@@ -25954,6 +25954,129 @@
       ],
       "template_html": "templates/staff_team_group.html",
       "template_text": "templates/staff_team_group.txt"
+    },
+    {
+      "code": "staff_townhall_cancelled",
+      "audience": "staff_field",
+      "category": "transactional",
+      "trigger": "Release 50 (5000): a calendar cancellation (an .ics file, METHOD:CANCEL). One townhall: an Admin cancels it ahead (Townhall > Meetings), to every staff member and Admin who has the weekly invite. The whole series: the person is no longer on the team. Sent by the townhall job (app.townhall_invites_sweep).",
+      "timing": "Immediate, when a townhall is cancelled or the person leaves the team",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "{{cancel_subject}}",
+      "preheader": "{{cancel_lead}}",
+      "sample_subject": "Townhall cancelled: Wednesday, December 2",
+      "variables": [
+        {
+          "name": "call_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/staff/townhall"
+        },
+        {
+          "name": "cancel_lead",
+          "type": "string",
+          "sample": "The townhall of Wednesday, December 2 at 1:00 pm is cancelled. The next one is on as usual."
+        },
+        {
+          "name": "cancel_subject",
+          "type": "string",
+          "sample": "Townhall cancelled: Wednesday, December 2"
+        },
+        {
+          "name": "cancel_title",
+          "type": "string",
+          "sample": "This week's townhall is cancelled"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Sam",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "is_series",
+          "type": "boolean",
+          "sample": false
+        },
+        {
+          "name": "meeting_when",
+          "type": "string",
+          "sample": "Wednesday, December 2 at 1:00 pm"
+        },
+        {
+          "name": "reason",
+          "type": "string",
+          "sample": "Public holiday"
+        }
+      ],
+      "template_html": "templates/staff_townhall_cancelled.html",
+      "template_text": "templates/staff_townhall_cancelled.txt"
+    },
+    {
+      "code": "staff_townhall_invite",
+      "audience": "staff_field",
+      "category": "transactional",
+      "trigger": "Release 50 (5000): the weekly townhall calendar invite (an .ics file, METHOD:REQUEST, repeating every week, Toronto time) to every staff member and Admin: once when they join the team, and again as an update whenever an Admin changes the day, the time or the length, or puts a cancelled townhall back on. Sent by the townhall job (app.townhall_invites_sweep).",
+      "timing": "Immediate: on joining the team, and on every change of the day or time",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "{{invite_subject}}",
+      "preheader": "{{townhall_when}}, {{townhall_minutes}} minutes. Open the invite to add it to your calendar.",
+      "sample_subject": "Weekly townhall: your calendar invite",
+      "variables": [
+        {
+          "name": "call_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/staff/townhall/live"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Sam",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "invite_subject",
+          "type": "string",
+          "sample": "Weekly townhall: your calendar invite"
+        },
+        {
+          "name": "invite_title",
+          "type": "string",
+          "sample": "Your townhall invite"
+        },
+        {
+          "name": "is_update",
+          "type": "boolean",
+          "sample": false
+        },
+        {
+          "name": "townhall_minutes",
+          "type": "string",
+          "sample": "45"
+        },
+        {
+          "name": "townhall_when",
+          "type": "string",
+          "sample": "Every Wednesday at 1:00 pm Toronto time"
+        }
+      ],
+      "template_html": "templates/staff_townhall_invite.html",
+      "template_text": "templates/staff_townhall_invite.txt"
     },
     {
       "code": "insurer_invoice",

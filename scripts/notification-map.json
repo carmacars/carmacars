@@ -107,6 +107,8 @@
   "staff.agreement_reminder": {"staff_field": "staff_agreement_reminder"},
   "staff.access_suspended": {"staff_field": "staff_access_suspended"},
   "staff.access_restored": {"staff_field": "staff_access_restored"},
+  "townhall.calendar_invite": {"staff_field": "staff_townhall_invite"},
+  "townhall.calendar_cancel": {"staff_field": "staff_townhall_cancelled"},
   "staff.pay_statement": {"staff_field": "staff_pay_statement"},
   "staff.data_check": {"staff_field": "staff_data_check"},
   "field.job_assigned": {"staff_field": "staff_field_job_assigned"},

@@ -59,16 +59,8 @@ export function withReleases(slides: Slide[], releases: Release[]): Slide[] {
   });
 }
 
-/** A weekly calendar invite (iCalendar), repeating on the townhall's day and time, Toronto. */
-export function townhallIcs(o: { nextAt: string; minutes: number; url: string | null; base: string }): string {
-  const fmt = (ms: number) => new Date(ms).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
-  const start = Date.parse(o.nextAt);
-  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//CarmaCars//Townhall//EN', 'BEGIN:VEVENT', 'UID:townhall@carmacars.ca', `DTSTAMP:${fmt(start)}`,
-    `DTSTART:${fmt(start)}`, `DTEND:${fmt(start + o.minutes * 60_000)}`, 'RRULE:FREQ=WEEKLY', 'SUMMARY:CarmaCars weekly townhall',
-    `DESCRIPTION:The week in review. Deck: ${o.base}/staff/townhall${o.url ? `\\nCall: ${o.url}` : ''}`, ...(o.url ? [`LOCATION:${o.url}`] : []),
-    'BEGIN:VALARM', 'TRIGGER:-PT60M', 'ACTION:DISPLAY', 'DESCRIPTION:Townhall in an hour', 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'];
-  return lines.join('\r\n') + '\r\n';
-}
+// The weekly calendar invite (.ics) is built by the database (migration 5000, app.ics_build): the emailed invites and
+// the Add to calendar download (/api/townhall-ics) are the same event.
 
 // ---------------------------------------------------------------- 2590: the townhall card of every portal home
 export interface TownhallLinkRead { has_link: boolean; next_at: string | null; minutes: number; live: boolean; card?: boolean; ends_at?: string | null;

@@ -90,10 +90,16 @@ async function senderValues(r: { id: string; code: string }): Promise<Record<str
 // when it is not yet). A file that cannot be fetched holds the email back for a retry; from the third attempt the
 // email goes without it (its 7-day link still opens the file).
 const b64 = (u: Uint8Array) => { let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(s); };
+// r50 (5000): files made by the database itself ride along as they are (a calendar invite, text/calendar).
+async function inlineFiles(id: string): Promise<Array<{ filename: string; content: string; content_type: string }>> {
+  const [{ list }] = (await sql`select app.outbox_inline_files(${id}::uuid) as list`) as unknown as [{ list: Array<{ filename: string; content_type: string; content: string }> }];
+  return (list ?? []).map((f) => ({ filename: f.filename, content_type: f.content_type, content: b64(enc.encode(f.content)) }));
+}
 async function attachments(r: { id: string; attempts: number }): Promise<Array<{ filename: string; content: string; content_type: string }>> {
-  if (!LINK_KEY) return [];
+  const inline = await inlineFiles(r.id);
+  if (!LINK_KEY) return inline;
   const [{ list }] = (await sql`select app.outbox_attachments(${r.id}::uuid) as list`) as unknown as [{ list: Array<{ k: string; key: string; filename: string }> }];
-  const out: Array<{ filename: string; content: string; content_type: string }> = [];
+  const out: Array<{ filename: string; content: string; content_type: string }> = [...inline];
   for (const a of list ?? []) {
     try {
       const res = await fetch(await signDoc(a.k, a.key), { headers: { 'user-agent': 'carmacars-send-outbox' } });

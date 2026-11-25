@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { visitorDays, releasesOfWeek, townhallIcs, withReleases, type Slide } from './model.ts';
+import { visitorDays, releasesOfWeek, withReleases, type Slide } from './model.ts';
 
-test('1062: the platform updates of the week, and the weekly invite', () => {
+test('1062: the platform updates of the week', () => {
   const list = [{ release: 'r33', title: 'Release 33', date: '2026-11-08', summary: 'A' }, { release: 'r34', title: 'Release 34', date: '2026-11-09', summary: 'B' }, { release: 'r35', title: 'Release 35', date: 'pending', summary: 'C' }];
   assert.deepEqual(releasesOfWeek(list, '2026-11-02').map((r) => r.release), ['r33']);
   assert.deepEqual(releasesOfWeek(list, '2026-11-09').map((r) => r.release), ['r34']);
@@ -11,10 +11,6 @@ test('1062: the platform updates of the week, and the weekly invite', () => {
   const d: Slide[] = [{ ...s[0]!, points: [{ label: 'Bugs fixed this week', value: '2' }, { label: 'Bugs still open', value: '3' }], bug_lines: ['A was wrong. Fixed: B. Thanks, Sam.'] }];
   const l = withReleases(d, [{ release: 'r50', title: 'Release 50', date: '2026-11-24', summary: 'Sign first.' }])[0]!.lines!;
   assert.deepEqual(l, ['Release 50: Sign first.', 'Bugs fixed this week: 2. Still open: 3.', 'A was wrong. Fixed: B. Thanks, Sam.']);
-  const ics = townhallIcs({ nextAt: '2026-11-09T16:30:00Z', minutes: 45, url: 'https://meet.example.test/x', base: 'https://carmacars.ca' });
-  assert.match(ics, /DTSTART:20261109T163000Z/);
-  assert.match(ics, /DTEND:20261109T171500Z/);
-  assert.match(ics, /RRULE:FREQ=WEEKLY/);
 });
 
 test('1068: the visitor sessions per weekday, Monday first, the quietest marked; none without data', () => {

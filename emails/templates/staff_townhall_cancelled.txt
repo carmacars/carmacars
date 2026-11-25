@@ -1,0 +1,34 @@
+CarmaCars  |  Townhall
+
+========================================
+
+[Weekly townhall]
+{{cancel_title}}
+
+Hi {{first_name}}. {{cancel_lead}}
+
+{{#if meeting_when}}
+Cancelled: {{meeting_when}}
+{{#if reason}}
+Why: {{reason}}
+{{/if}}
+{{/if}}
+
+The attached cancellation takes it off your calendar when you open it.
+
+{{#if is_series}}
+You no longer have the weekly townhall in your calendar.
+{{else}}
+Open the townhall:
+{{call_url}}
+{{/if}}
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
