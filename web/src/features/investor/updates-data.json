@@ -17,6 +17,7 @@
    {
     "area": "Staff tools",
     "items": [
+     "The weekly townhall's Platform updates slide lists the week's releases and the staff bug reports fixed that week, each with its reporter named as a shout-out, and the count of bugs still open",
      "Admins add and replace the business documents investors see under Investors > Documents (business plan, financial forecast, pitch deck, feature decks, or a new section); every version is kept and investors are told",
      "Staff see what each owner still has to sign and send a reminder in one tap",
      "A rental whose pickup was not recorded keeps its car off new offers until it is recorded",
