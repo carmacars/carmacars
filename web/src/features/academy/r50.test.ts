@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { PICTURE_KINDS, jokeOf, jokeQuip, visualAlt, wrapLabel, type Visual } from './model.ts';
+import { PICTURE_KINDS, jokeOf, jokeQuip, ownJokeQuip, visualAlt, wrapLabel, type Visual } from './model.ts';
 
 const root = fileURLToPath(new URL('../../../../', import.meta.url));
 type Scene = { caption: string; say: string; visual: Visual };
@@ -54,6 +54,38 @@ test('4200: a picked joke gets a playful line; a real option gets none', () => {
   assert.equal(jokeQuip('Within 5 minutes'), '');
   assert.equal(jokeQuip(undefined), '');
   for (const x of jokes) assert.equal(jokeQuip(x.text), x.quip);
+});
+
+test('4720: each joke is written for its own question: keyed by section and sort, tied to its prompt, short, light, different', () => {
+  const byQ = JSON.parse(readFileSync(`${root}web/src/features/academy/jokes-by-question.json`, 'utf8')) as Record<string, { prompt: string; joke: string }>;
+  const keys = Object.keys(byQ);
+  assert.ok(keys.length >= 100 && keys.length <= 200, `${keys.length} question jokes (about one question in three)`);
+  const slugs = new Set(sectionSlugs());
+  const texts = Object.values(byQ).map((v) => v.joke);
+  assert.equal(new Set(texts).size, texts.length, 'a joke twice');
+  for (const [k, v] of Object.entries(byQ)) {
+    assert.match(k, /^[a-z0-9-]+:\d+$/, k);
+    assert.ok(slugs.has(k.split(':')[0]!), `${k}: no such section`);
+    assert.ok(v.prompt.trim().length > 5, k);
+    assert.ok(v.joke.length > 3 && v.joke.length <= 90, `${k}: ${v.joke}`);
+    assert.doesNotMatch(v.joke, /[\u2013\u2014\u2018\u2019]/, k);
+    assert.ok(!jokes.some((j) => j.text === v.joke), `${k}: a bank joke, not its own`);
+    // serious questions carry none: safety, legal, money, ID, damage, insurance
+    assert.doesNotMatch(v.prompt, /\b(deductible|damage|OPCF|insur\w*|accident|hurt|911|licence|SIN|refund|deposit|agreement|signs?|signed|credit card|debit)\b/i, `${k}: a serious question`);
+  }
+  const all = texts.join(' ').toLowerCase();
+  assert.doesNotMatch(all, /\b(stupid|idiot|dumb|ugly|fat|gay|race|religio|women|men)\b/);
+  // the migration carries every line (the generator check above keeps it up to date)
+  const sql = readFileSync(`${migrations}4720_r50_question_jokes.sql`, 'utf8');
+  for (const [k, v] of Object.entries(byQ)) assert.ok(sql.includes(`('${k}', `) && sql.includes(`'${v.joke.replace(/'/g, "''")}')`), k);
+  assert.doesNotMatch(sql, /search_path = [^;\n]*pg_temp[^;\n]*,/, 'pg_temp must end the search path');
+  assert.doesNotMatch(sql, /academy_joke_bank\(\)\[/, 'no bank fallback');
+});
+
+test('4720: picking a question\'s own joke gets a playful line, the same one each time', () => {
+  assert.match(ownJokeQuip('Two coffees in seven minutes'), /^Nice try\./);
+  assert.equal(ownJokeQuip('Two coffees in seven minutes'), ownJokeQuip('Two coffees in seven minutes'));
+  assert.equal(ownJokeQuip(undefined), '');
 });
 
 test('4200: every section has a See it lesson with at least one picture with alt text', async () => {

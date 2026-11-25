@@ -36,7 +36,7 @@ export interface SectionView { id: string; slug: string; title: string; blurb: s
 /** 1154: may the quiz start now, and if not, why and until when. */
 export interface QuizWait { ok: boolean; reason?: 'reading' | 'daily' | 'cooldown'; until?: string; message?: string; read_seconds?: number; tries_left?: number }
 /** 1154: a started quiz: questions and options in a random order; keys[i] is the shown option i's index in the question. */
-export interface QuizStart { section: string; started_at: string; tries_left?: number; questions: Array<{ id: string; prompt: string; options: string[]; keys: number[] }> }
+export interface QuizStart { section: string; started_at: string; tries_left?: number; questions: Array<{ id: string; prompt: string; options: string[]; keys: number[]; joke?: number | null }> }
 export interface SectionRow { id: string; slug: string; title: string; blurb: string; sort: number; open: boolean; passed: boolean; unlocked_early: boolean; best_bps: number | null; attempts: number; lessons: number; viewed: number; questions: number; /** 1154 */ flagged?: number; reset_at?: string | null }
 export interface PathRow { code: string; title: string; blurb: string; passed: boolean; sections: SectionRow[] }
 export interface QuizResult { correct: number; total: number; score_bps: number; passed: boolean; pass_bps: number; results: Array<{ id: string; given: number | null; answer: number | null; right: boolean; explain: string }>;
@@ -48,6 +48,14 @@ export interface Joke { text: string; quip: string }
 export const jokeOf = (option: string): Joke | undefined => JOKES.find((j) => j.text === option);
 /** The playful line for a picked option when it is a joke ('' otherwise). */
 export const jokeQuip = (option: string | undefined): string => (option ? jokeOf(option)?.quip ?? '' : '');
+/** 4720: the playful line for a question's own joke (questions[].joke of the started quiz), steady for the same joke. */
+const OWN_QUIPS = ['Nice try. Funny, but not the answer.', 'Nice try. Good one, wrong one.', 'Nice try. We laughed; the quiz did not.', 'Nice try. Save that one for the townhall.'] as const;
+export const ownJokeQuip = (option: string | undefined): string => {
+  if (!option) return '';
+  let h = 0;
+  for (const c of option) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return OWN_QUIPS[h % OWN_QUIPS.length]!;
+};
 
 /** The words a scene says: its narration, else its caption. */
 export const words = (s: Scene): string => (s.say && s.say.trim()) || s.caption;
