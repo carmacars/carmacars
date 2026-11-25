@@ -58,6 +58,7 @@ Each rule says how it is enforced. "Test" means it fails CI; "review" means noth
 | --- | --- |
 | Tests assert behaviour a person or the database would notice (what is shown, refused, stored, charged), not how the code is written. | Review |
 | No focused test (`test.only`) is committed. | Lint (`no-restricted-properties`) and Playwright `forbidOnly` in CI |
+| An e2e spec that writes files the local server must serve puts them in `.local-storage` (what `serve.mjs` serves), never `public/_local`. Database test fixture labels belong to one test file each. | Review; `scripts/check-test-fixtures.mjs` |
 | A test is skipped only for a project it does not apply to (a mouse test on the phone width), never because it fails. | Review |
 | A flaky test is fixed at its root cause, not retried or slowed down. CI retries once, and a test that passed only on its retry is reported as flaky and treated as a failure to fix. Wait for a condition (`expect.poll`, an element's state, animations finished), never for a fixed time. | Review |
 | Test data uses `example.test` addresses and made-up names; no real person, key, policy or account number. The repository is public. | Review |
