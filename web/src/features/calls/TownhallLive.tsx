@@ -41,7 +41,7 @@ export async function TownhallLive({ userId, base }: { userId: string; base: '/a
     </Card>);
   }
   return (<div className="call-layout">
-    {v.admin && <p className="small muted row" data-testid="townhall-live-admin">You present: Next moves everyone&apos;s slide. People shows who is in and who has not joined. {toggle}</p>}
+    {v.admin && <div className="small muted row" data-testid="townhall-live-admin"><span>You present: Next moves everyone&apos;s slide. People shows who is in and who has not joined.</span> {toggle}</div>}
     <CallRoom join={{ as: { room: 'townhall' } }} title={joined.title} slides={slides} live={v.admin} fallbackUrl={v.call_url} leaveHref={back} />
   </div>);
 }

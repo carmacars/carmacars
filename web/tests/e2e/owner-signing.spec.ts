@@ -167,7 +167,9 @@ test('before approval, sign first (3800): the master agreement is ready to sign 
   await signIn(op, owner.email, '/owner');
   const errors = watch(op);
   await op.goto('/owner', { waitUntil: 'networkidle' });
-  await expect(op.getByTestId('owner-path')).toHaveAttribute('data-step', 'sign');
+  // r50 (4511): the sign-first card, or the stage tracker with Agreements as the step now once a car is in the pipeline
+  if (await op.getByTestId('owner-path').count()) await expect(op.getByTestId('owner-path')).toHaveAttribute('data-step', 'sign');
+  else await expect(op.getByTestId('os-now')).toHaveAttribute('data-step', 'agreements');
   await op.locator('[data-testid="owner-path-cta"], [data-testid="os-cta"]').first().click();
   await op.waitForURL(/\/owner\/sign$/, { timeout: 20_000 });
   await expect(op.getByTestId('owner-preview-pending')).toHaveCount(0);

@@ -19,18 +19,18 @@ export async function TownhallDeck({ userId, aal, base, week }: { userId: string
   return (<>
     <Card title={v.next_at ? `Next call: ${when(v.next_at)}, ${v.minutes} minutes${v.next_cancelled ? ' (cancelled)' : ''}` : 'Weekly townhall'} testId="townhall-next"
       aside={v.admin ? <Act action="townhall_build" payload={{ week_of: v.deck?.week_of ?? null }} label="Build again" refresh={refresh} done="Built from the live data." testId="townhall-build" /> : null}>
-      <p className="small">{v.in_site ? <Link prefetch={false} className="btn btn--sm btn--primary" href={`${base}/townhall/live`} data-testid="townhall-join" data-guide="townhall-join">Join the call</Link>
+      <div className="small">{v.in_site ? <Link prefetch={false} className="btn btn--sm btn--primary" href={`${base}/townhall/live`} data-testid="townhall-join" data-guide="townhall-join">Join the call</Link>
           : v.call_url ? <a className="btn btn--sm btn--primary" href="/api/townhall-join" target="_blank" rel="noopener noreferrer" data-testid="townhall-join" data-guide="townhall-join">Join the call</a> : 'The call link is set in Program settings (Townhall call link).'}{' '}
         {v.joined_unconfirmed && !v.checked_in ? <Act ops action="townhall_attend" payload={{ method: 'confirm' }} label="Confirm I am in the call" variant="primary" refresh={refresh} done="Confirmed: you count as there." testId="townhall-confirm" /> : null}{' '}
         {v.checked_in ? <span className="ad-b ad-b--light" data-testid="townhall-checked-in">You are checked in</span>
           : v.can_check_in ? <Act ops action="townhall_attend" payload={{ method: 'checkin' }} label="Check in" variant="primary" refresh={refresh} done="Checked in." testId="townhall-checkin" /> : null}{' '}
-        <a className="link small" href="/api/townhall-ics" download="carmacars-townhall.ics">Add to my calendar (every week)</a></p>
+        <a className="link small" href="/api/townhall-ics" download="carmacars-townhall.ics">Add to my calendar (every week)</a></div>
       <p className="small muted">{v.in_site ? 'Every staff member is expected, cameras on. The call is in the site: being in it counts you as there, by itself (from 15 minutes before). Two townhalls missed in a row lock your account until an Admin restores it.'
         : 'Every staff member is expected, cameras on. Join through this page and confirm you are in the call, or check in (from 15 minutes before): that counts you as there. Two townhalls missed in a row lock your account until an Admin restores it.'}</p>
-      {v.admin && <p className="small" data-testid="townhall-calls-mode">{v.in_site ? 'The call is in the site.' : 'The call is on the outside link (the fallback).'}{' '}
+      {v.admin && <div className="small" data-testid="townhall-calls-mode">{v.in_site ? 'The call is in the site.' : 'The call is on the outside link (the fallback).'}{' '}
         <Act action="calls_mode" payload={{ mode: v.in_site ? 'link' : 'in_site' }} label={v.in_site ? 'Switch to the outside link' : 'Back to the call in the site'} refresh={refresh}
           confirm={v.in_site ? 'Everyone joins through the outside call link (Program settings) until you switch back. Use it when the call in the site is down.' : undefined}
-          done={v.in_site ? 'Switched: Join opens the outside link.' : 'Back: the call is in the site.'} testId="calls-mode-deck" /></p>}
+          done={v.in_site ? 'Switched: Join opens the outside link.' : 'Back: the call is in the site.'} testId="calls-mode-deck" /></div>}
       <p className="small" data-testid="townhall-when">Every {WEEKDAY[v.weekday] ?? 'week'} at {v.time} Toronto time. Field applicants&apos; live calls take the hour before.</p>
       {v.admin && <Act action="townhall_schedule" label="Change the day or time" refresh={refresh} done="Saved: the reminders and the field calls follow." testId="townhall-schedule"
         fields={[{ name: 'weekday', label: 'Day', type: 'select', required: true, value: String(v.weekday), options: [1, 2, 3, 4, 5, 6, 7].map((d) => [String(d), WEEKDAY[d]!] as [string, string]) },
@@ -94,10 +94,10 @@ export async function TownhallDeck({ userId, aal, base, week }: { userId: string
               {v.admin && <Act action="townhall_note" payload={{ deck: v.deck!.id, key: `p_${p.user_id}` }} label={p.shoutout ? 'Change the shout-out' : 'Add a shout-out'} refresh={refresh} done="Saved."
                 fields={[{ name: 'note', label: `Shout-out for ${p.name}`, type: 'textarea', value: p.shoutout ?? '' }]} />}
             </li>))}</ul>}
-          {s.key === 'incident' && v.admin && <p className="small"><span className="muted">{s.picked === 'admin' ? 'Picked by an Admin.' : 'Picked automatically: the most serious of the week.'}</span>{' '}
+          {s.key === 'incident' && v.admin && <div className="small"><span className="muted">{s.picked === 'admin' ? 'Picked by an Admin.' : 'Picked automatically: the most serious of the week.'}</span>{' '}
             <Act action="townhall_incident_pick" payload={{ deck: v.deck!.id }} label="Choose another" refresh={refresh} done="Saved: the deck is rebuilt with it." testId="townhall-incident-pick"
               fields={[{ name: 'ref', label: 'Incident', type: 'select', value: s.pick_ref ?? '', options: [['', 'Automatic (the most serious)'], ...(s.candidates ?? []).map((c) => [c.ref, c.label] as [string, string])] },
-                { name: 'body', label: 'Or describe it yourself (no renter names)', type: 'textarea', hint: 'Leave both empty to go back to the automatic pick.' }]} /></p>}
+                { name: 'body', label: 'Or describe it yourself (no renter names)', type: 'textarea', hint: 'Leave both empty to go back to the automatic pick.' }]} /></div>}
           {s.note && <p className="small" data-testid={`townhall-note-${s.key}`}>{s.note}</p>}
           {v.admin && <Act action="townhall_note" payload={{ deck: v.deck!.id, key: s.key }} label={s.note ? 'Change the note' : 'Add a note'} refresh={refresh} done="Saved."
             fields={[{ name: 'note', label: 'What to say on this slide', type: 'textarea', value: s.note ?? '' }]} />}
