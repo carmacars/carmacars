@@ -1,0 +1,48 @@
+CarmaCars  |  Staff account
+
+========================================
+
+[Staff account]
+We received your resignation
+
+Hi {{first_name}}. Thank you for your work with CarmaCars. Here is what happens next.
+
+{{#if is_update}}
+An Admin changed your last day. This email replaces the one you had before.
+{{/if}}
+
+Last day: {{last_day}}
+Resigned on: {{resigned_on}}
+Your access ends: {{access_ends}}
+
+Your final pay
+------------------------
+
+{{final_pay_text}}
+
+Return what belongs to CarmaCars
+------------------------
+
+{{return_text}}
+
+Changed your mind?
+------------------------
+
+{{withdraw_text}}
+
+{{#if can_withdraw}}
+Open my profile:
+{{profile_url}}
+{{/if}}
+
+Questions about your last day or your final pay: reply to this email.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

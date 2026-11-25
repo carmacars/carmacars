@@ -17,6 +17,7 @@ import { NotifyPanel } from '@/features/notifications/NotifyPanel';
 import { AppProfile } from '@/features/app-shell/AppProfile';
 import { LocationSettings } from '@/features/location/LocationSettings';
 import { BirthdaySection } from '@/features/staff/Birthday';
+import { ResignSection } from '@/features/staff/Resign';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Profile', path: '/staff/profile', noindex: true, description: 'Your details, your home address and sign-in.' });
@@ -48,6 +49,8 @@ export default async function VaProfile() {
         <section className="pt-card stack" aria-labelledby="sec-t"><h2 className="d4" id="sec-t">Sign-in</h2>
           <p className="row"><Link prefetch={false} className="btn btn--ghost btn--sm" href="/two-step/setup?next=/staff/profile">Set up two-step sign-in</Link>
             <Link prefetch={false} className="btn btn--ghost btn--sm" href="/reset-password">Change my password</Link></p></section>
+        {/* r50 (5020): Resign, last, away from the daily buttons */}
+        <ResignSection userId={user.id} portal="va" className="pt-card stack" refresh={['/staff/profile']} />
       </div>
     </>
   );

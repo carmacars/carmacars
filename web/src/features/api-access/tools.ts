@@ -99,7 +99,7 @@ export const ADMIN_TOOLS: Tool[] = [
     { query: str('A name or email'), status: str('An application status'), ...PAGE }),
   read('get_hire_status', 'Onboarding of a hire', 'The onboarding steps of a candidate hired with one-step Hire: sign-in, agreement, pay details, academy, first-day To do\'s.',
     { application_id: id('The application') }, ['application_id']),
-  read('list_staff', 'List staff', 'Staff and Admins with their roles, functions, start date and pay details (masked).', { query: str('A name or email'), ...PAGE }),
+  read('list_staff', 'List staff', 'Staff and Admins with their roles, functions, start date, pay details (masked) and any resignation (resigning or resigned, the day given, the last day, the reason, the offboarding To do).', { query: str('A name or email'), ...PAGE }),
 
   write('send_offer', 'Send an offer', 'Send the offer of a request (Admin > the booking > Send the offer), with an optional message and expiry.', ['booking'],
     { ...booking, message: str('A message to the renter'), expires_at: { type: 'string', format: 'date-time' }, book_now: { type: 'boolean', description: 'Book it now: the offer is approved at once as if the renter had approved it; the booking waits for the renter to sign and pay (the Sign and pay link is emailed) and holds the car. Use when the renter already agreed.' }, book_now_reason: str('Why it is booked without the renter\'s approval (kept in the booking\'s history)') }),

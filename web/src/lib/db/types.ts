@@ -21796,6 +21796,7 @@ export type Database = {
           owner_stage_finder_url: string;
           owner_stage_uvip_url: string;
           calls_mode: string;
+          staff_notice_days: number;
         };
         Insert: {
           id?: string;
@@ -22787,6 +22788,7 @@ export type Database = {
           owner_stage_finder_url?: string;
           owner_stage_uvip_url?: string;
           calls_mode?: string;
+          staff_notice_days?: number;
         };
         Update: {
           id?: string;
@@ -23778,6 +23780,7 @@ export type Database = {
           owner_stage_finder_url?: string;
           owner_stage_uvip_url?: string;
           calls_mode?: string;
+          staff_notice_days?: number;
         };
         Relationships: [];
       };
@@ -29220,6 +29223,72 @@ export type Database = {
           paid_at?: string | null;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      staff_resignations: {
+        Row: {
+          id: string;
+          user_id: string;
+          status: string;
+          resigned_on: string;
+          last_day: string;
+          reason: string | null;
+          notice_days: number;
+          in_onboarding: boolean;
+          in_trial: boolean;
+          created_by: string;
+          created_at: string;
+          last_day_changed_at: string | null;
+          last_day_changed_by: string | null;
+          withdrawn_at: string | null;
+          withdrawn_by: string | null;
+          ended_at: string | null;
+          ended_by: string | null;
+          task_id: string | null;
+          released: Json;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          status?: string;
+          resigned_on: string;
+          last_day: string;
+          reason?: string | null;
+          notice_days: number;
+          in_onboarding?: boolean;
+          in_trial?: boolean;
+          created_by: string;
+          created_at?: string;
+          last_day_changed_at?: string | null;
+          last_day_changed_by?: string | null;
+          withdrawn_at?: string | null;
+          withdrawn_by?: string | null;
+          ended_at?: string | null;
+          ended_by?: string | null;
+          task_id?: string | null;
+          released?: Json;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          status?: string;
+          resigned_on?: string;
+          last_day?: string;
+          reason?: string | null;
+          notice_days?: number;
+          in_onboarding?: boolean;
+          in_trial?: boolean;
+          created_by?: string;
+          created_at?: string;
+          last_day_changed_at?: string | null;
+          last_day_changed_by?: string | null;
+          withdrawn_at?: string | null;
+          withdrawn_by?: string | null;
+          ended_at?: string | null;
+          ended_by?: string | null;
+          task_id?: string | null;
+          released?: Json;
         };
         Relationships: [];
       };
