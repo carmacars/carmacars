@@ -37097,7 +37097,6 @@ export type Database = {
       server_checkin_id_photo: { Args: { p_by: string; p: Json }; Returns: string };
       server_checkin_renter: { Args: { p_user: string; p_booking: string }; Returns: Json };
       server_client_error: { Args: { p: Json }; Returns: string };
-      server_error_log: { Args: { p: Json }; Returns: string };
       server_client_error_pre0532: { Args: { p: Json }; Returns: string };
       server_client_error_pre2340: { Args: { p: Json }; Returns: string };
       server_colour_read_due: { Args: { p_limit?: number }; Returns: Json };
@@ -37172,6 +37171,7 @@ export type Database = {
       server_driver_save_licence: { Args: { p_signer: string; p: Json }; Returns: Json };
       server_email_budgets: { Args: never; Returns: Json };
       server_email_capped: { Args: never; Returns: Json };
+      server_error_log: { Args: { p: Json }; Returns: string };
       server_esign_certificate: { Args: { p_context: string; p_refs: string[] }; Returns: Json };
       server_esign_certificate_for_booking: { Args: { p_booking: string }; Returns: Json };
       server_esign_certificate_for_request: { Args: { p_request: string }; Returns: Json };
