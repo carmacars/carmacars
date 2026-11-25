@@ -760,3 +760,9 @@ td, th, .badge, .ad-b, .pt__count, .ui-count, .bk-tabs__n, output,
 @supports (corner-shape: squircle) {
   .pt-card, .ui-card, .card, .panel, .hub-card { corner-shape: superellipse(1.4); }
 }
+/* r50: at the narrowest phones (an owner on the stage tracker, ~300px wide) the word "Menu" goes; the button keeps it as its name */
+@media (max-width: 22.49rem) {
+  .menu-btn > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .site-header .wrap { min-width: 0; }
+  .header-actions { min-width: 0; }
+}
