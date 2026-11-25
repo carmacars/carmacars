@@ -16,6 +16,7 @@ import { AppProfile } from '@/features/app-shell/AppProfile';
 import { LocationSettings } from '@/features/location/LocationSettings';
 import { Act } from '@/features/admin/Act';
 import { BirthdaySection } from '@/features/staff/Birthday';
+import { ResignSection } from '@/features/staff/Resign';
 import { AvailabilityGrid } from '@/features/field-portal/AvailabilityGrid';
 import type { Availability } from '@/features/field-portal/shift-picker';
 
@@ -76,6 +77,8 @@ export default async function Profile() {
         <Link prefetch={false} className="btn btn--ghost fd-wide" href="/reset-password">Change my password</Link>
         <form action={signOut}><button className="btn btn--ghost fd-wide" type="submit">Sign out</button></form>
       </section>
+      {/* r50 (5020): Resign, last, away from the daily buttons */}
+      <ResignSection userId={user.id} portal="field" className="fd-card stack" refresh={['/staff/field/profile']} />
     </div>
   );
 }

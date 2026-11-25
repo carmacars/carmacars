@@ -61,6 +61,8 @@ export function adminTaskHref(t: Pick<Task, 'task_type' | 'booking_number' | 've
   if (['live_rental_insurance', 'insurer_confirmation', 'list_vehicle', 'review_listing', 'book_registry', 'turo_expiry', 'safety_certificate_window', 'plate_renewal'].includes(t.task_type) && t.vehicle_id)
     return `/admin/vehicles/${t.vehicle_id}${['list_vehicle', 'review_listing', 'live_rental_insurance', 'insurer_confirmation'].includes(t.task_type) ? '?tab=listing' : ''}`;
   if (t.task_type === 'chauffeur_request') return '/admin/requests?tab=chauffeur';
+  // r50 (5020): a resignation's offboarding To do opens Staff and roles, where the Resigning badge and its actions are
+  if (t.task_type === 'staff_offboarding') return '/admin/settings/staff';
   if (t.task_type === 'listing_similarity') return '/admin/similar-cars';
   if (t.task_type === 'match_toll') return '/admin/tolls';
   if (['reconcile', 'unmatched_payment'].includes(t.task_type)) return '/admin/reconciliation';

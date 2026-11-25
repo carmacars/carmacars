@@ -29,6 +29,7 @@ test('the Admin: each task opens where its work is done', () => {
   const t = { task_type: '', booking_number: null, vehicle_id: null, related_table: null, related_id: null };
   assert.equal(adminTaskHref({ ...t, task_type: 'live_chat_waiting', related_table: 'chat_conversations', related_id: chat }), `/admin/visitors?view=chat&id=${chat}`);
   assert.equal(adminTaskHref({ ...t, task_type: 'verify_renter', booking_number: 'CC-1042' }), '/admin/bookings/CC-1042?tab=documents');
+  assert.equal(adminTaskHref({ ...t, task_type: 'staff_offboarding', related_table: 'staff_resignations', related_id: chat }), '/admin/settings/staff');
   assert.equal(adminTaskHref({ ...t, task_type: 'booking_request', booking_number: 'CC-1042' }), '/admin/bookings/CC-1042?tab=review');
   assert.equal(adminTaskHref({ ...t, task_type: 'collect_upfront', invoice_number: 'INV-1052' }), '/admin/invoices/INV-1052');
   assert.equal(adminTaskHref({ ...t, task_type: 'collect_upfront', owner_id: 'o1' }), '/admin/owners/o1?tab=invoices');

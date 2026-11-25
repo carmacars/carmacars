@@ -1,0 +1,25 @@
+CarmaCars  |  Staff {{staff_name}}
+
+========================================
+
+[Staff]
+Resignation withdrawn
+
+{{staff_name}} ({{role_label}}) is staying. The resignation had their last day on {{last_day}}.
+
+Withdrawn by: {{withdrawn_by}}. The offboarding To do is closed and no final pay is due.
+
+Field jobs and shifts after the old last day went back to the queue when they resigned and stay there: assign them again if needed.
+
+Open Staff and roles:
+{{admin_url}}
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

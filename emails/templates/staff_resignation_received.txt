@@ -1,0 +1,35 @@
+CarmaCars  |  Staff {{staff_name}}
+
+========================================
+
+[Staff]
+{{staff_name}} resigned
+
+{{staff_name}} ({{role_label}}) gave notice on {{resigned_on}}.
+
+Last day: {{last_day}}
+Notice: {{notice_text}}
+Reason: {{reason}}
+Recorded by: {{recorded_by}}
+
+{{handover_text}}
+
+- Finance: {{final_pay_text}}
+- Collect every key, fob, fuel or company card and item of equipment they have.
+- Reassign their open field jobs and shifts, and hand back their leads, chats and To dos.
+- Their access ends by itself after the last day. Change the last day or end access now on Staff and roles.
+
+Open Staff and roles:
+{{admin_url}}
+
+The offboarding To do lists all of this with the numbers, under To do and Staff tasks.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
