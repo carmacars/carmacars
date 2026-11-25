@@ -13,6 +13,8 @@
 --      scope gives null (the route answers 404). public.server_shift_feed is the server's call (service_role only).
 --   3. The door: ops_read / admin_read / field_read shift_feed (the person's feeds and the scopes they may have) and
 --      ops_do / admin_do / field_do shift_feed_set {scope, action: create | regenerate | revoke}.
+--   4. app.ics_fold (5000) folds at 75 octets (UTF-8 bytes) as RFC 5545 says, never inside a multi-byte character;
+--      before it cut at 74 characters, which is more than 75 octets for a name with accents. Every .ics uses it.
 set local check_function_bodies = off;
 
 create function pg_temp.copy_grants(p_new regprocedure, p_old regprocedure) returns void
@@ -36,6 +38,7 @@ create table if not exists shift_feeds (
   revoked_by  uuid references users (id) on delete set null
 );
 create index if not exists shift_feeds_user on shift_feeds (user_id, scope);
+create index if not exists shift_feeds_revoked_by on shift_feeds (revoked_by) where revoked_by is not null;
 create unique index if not exists shift_feeds_one_live on shift_feeds (user_id, scope) where revoked_at is null;
 comment on table shift_feeds is 'Private shift calendar feeds (5050): one live address per person and scope (all: every field shift, for an Admin and Fleet; mine: a field staff member''s own). The token is the secret in the address; a regenerated or turned-off feed keeps its row with revoked_at.';
 alter table shift_feeds enable row level security;
@@ -168,6 +171,31 @@ create function public.server_shift_feed(p_token text) returns text
 language sql stable security definer set search_path = public, app, pg_temp as $$ select app.shift_feed_ics(lower(p_token)) $$;
 revoke all on function public.server_shift_feed(text) from public, anon, authenticated;
 grant execute on function public.server_shift_feed(text) to service_role;
+
+-- ================================================================ 4. folding at 75 octets (RFC 5545 3.1)
+-- the first line holds 75 octets; each continuation line is a space and 74 octets; a character is never split
+create or replace function app.ics_fold(p text) returns text
+language plpgsql immutable set search_path = public, app, pg_temp as $$
+declare
+  v_out text := '';
+  v_line text := '';
+  v_room integer := 75;
+  v_used integer := 0;
+  v_n integer;
+  c text;
+begin
+  if p is null then return null; end if;
+  foreach c in array regexp_split_to_array(p, '') loop
+    v_n := octet_length(c);
+    if v_used + v_n > v_room then
+      v_out := v_out || v_line || E'\r\n ';
+      v_line := ''; v_used := 0; v_room := 74;
+    end if;
+    v_line := v_line || c;
+    v_used := v_used + v_n;
+  end loop;
+  return v_out || v_line;
+end $$;
 
 -- ================================================================ 3. the door
 alter function app.door(uuid, text, text, text, jsonb) rename to door_pre5050;

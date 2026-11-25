@@ -7,7 +7,9 @@
 --      a failed payment on a confirmed booking, card payments paused, a site or car security alert (site down, a car at a
 --      pound or leaving Canada), documents to review for a pickup within 2 hours, an approval that waits for an Admin, a
 --      request to book no salesperson holds after 2 hours, a booked live interview and any To do marked urgent. The last
---      three had no email: they go as a one-line alert email (app.admin_now_email, the staff digest's template).
+--      three had no email: they go as a one-line alert email (app.admin_now_email, the staff digest's template), not to an
+--      Admin whose alert emails are off or who switched that kind off. At most 3 at once an hour per Admin; more wait for
+--      the digest.
 --   2. Everything else stays in the bell and goes into ONE daily digest email at 7:00 Toronto (the 0583 digest, daily):
 --      a counted summary grouped by type, one line per kind with its link, skipped when empty. The Admins' digest
 --      setting moves from hourly (the old default) to daily, unless the audit log shows an Admin chose hourly; a new
@@ -119,7 +121,10 @@ begin
   select * into p from notify_prefs x where x.subject_kind = 'user' and x.subject_id = new.recipient_user_id and x.type = v_type;
   -- switched off by the person: the preferences trigger keeps it from going
   if p.email is false then return new; end if;
-  if app.admin_email_now(new.code, new.payload, new.booking_id) then
+  -- at most 3 at once an hour per Admin (as 0583's urgent ones); more go into the digest
+  if app.admin_email_now(new.code, new.payload, new.booking_id)
+     and (select count(*) from notification_outbox o where o.recipient_user_id = new.recipient_user_id and o.status_reason = 'urgent'
+           and o.created_at > now() - interval '1 hour' and o.status in ('queued', 'delayed', 'sending', 'sent')) < 3 then
     new.status_reason := 'urgent';
     new.priority := least(new.priority, 2);
     return new;
@@ -147,8 +152,9 @@ select pg_temp.patch_fn('app.staff_email_divert()'::regprocedure,
   $n$or app.staff_email_own(new.code) or coalesce(new.status_reason, '') in ('urgent', 'chosen') or exists$n$);
 
 -- ================================================================ 4. needs you now, with no email of its own
--- one alert email to every active Admin (the staff digest's template with the one line), once per key
-create function app.admin_now_email(p_key text, p_line text, p_url text) returns integer
+-- one alert email to every active Admin (the staff digest's template with the one line), once per key; not to an Admin
+-- whose alert emails are off (Profile: Off) or who switched this kind's email off (p_type, a notify_types code)
+create function app.admin_now_email(p_key text, p_line text, p_url text, p_type text) returns integer
 language plpgsql security definer set search_path = public, app, pg_temp as $$
 declare
   v_now timestamptz := now();
@@ -158,12 +164,14 @@ begin
   select gen_random_uuid(), 'staff_digest_hourly', 'transactional', 2, 'staff_admin', u.id, lower(btrim(u.email)), u.full_name,
          app.ntf_contact() || jsonb_build_object('first_name', split_part(coalesce(u.full_name, ''), ' ', 1), 'digest_count', '1',
            'digest_since', app.fmt_time(v_now), 'digest_date', to_char(v_now at time zone 'America/Toronto', 'Dy, Mon FMDD'),
-           'digest_next', 'tomorrow 7:00 am', 'digest_summary', left('Needs you now: ' || p_line, 300), 'has_items', true,
+           'digest_next', '', 'digest_summary', left('Needs you now: ' || p_line, 300), 'has_items', true,
            'items', jsonb_build_array(app.ntf_item(left(p_line, 300), app.fmt_time(v_now), p_url))),
          'admin_now|' || p_key || '|' || u.id, 'queued', 'urgent', v_now
     from users u
-   where u.status = 'active' and nullif(btrim(coalesce(u.email, '')), '') is not null
+   where u.status = 'active' and nullif(btrim(coalesce(u.email, '')), '') is not null and u.staff_email_digest <> 'off'
      and exists (select 1 from user_roles r where r.user_id = u.id and r.role = 'admin')
+     and not exists (select 1 from notify_prefs np where np.subject_kind = 'user' and np.subject_id = u.id and np.type = p_type and not np.email)
+     and not exists (select 1 from notify_profiles nf where nf.subject_kind = 'user' and nf.subject_id = u.id and nf.all_off)
   on conflict (dedupe_key) do nothing;
   get diagnostics v_n = row_count;
   return v_n;
@@ -180,7 +188,8 @@ begin
     begin
       perform app.admin_now_email(p_rule || ':' || coalesce(p_id::text, '') || ':' || coalesce(p_disc, 'x'),
         left(p_title, 140) || coalesce(': ' || nullif(left(btrim(coalesce(p_body, '')), 140), ''), ''),
-        rtrim((app.settings()).notify_base_url, '/') || coalesce(nullif(p_extra ->> 'path_admin', ''), '/admin/alerts'));
+        rtrim((app.settings()).notify_base_url, '/') || coalesce(nullif(p_extra ->> 'path_admin', ''), '/admin/alerts'),
+        app.notify_type_of('staff_alert_normal', p_rule));
     exception when others then raise warning 'admin alert email not queued for %: %', p_rule, sqlerrm;
     end;
   end if;
@@ -194,7 +203,7 @@ language plpgsql security definer set search_path = public, app, pg_temp as $$
 begin
   if new.priority = 'urgent' and new.status in ('open', 'in_progress', 'waiting') and (tg_op = 'INSERT' or old.priority is distinct from 'urgent') then
     begin
-      perform app.admin_now_email('task:' || new.id, 'Urgent To do: ' || left(new.title, 200), rtrim((app.settings()).notify_base_url, '/') || '/admin/tasks');
+      perform app.admin_now_email('task:' || new.id, 'Urgent To do: ' || left(new.title, 200), rtrim((app.settings()).notify_base_url, '/') || '/admin/tasks', 'staff_system');
     exception when others then raise warning 'urgent To do email not queued for %: %', new.id, sqlerrm;
     end;
   end if;

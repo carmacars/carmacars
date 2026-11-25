@@ -7,10 +7,12 @@
 --   2. crash_groups: one row per open crash To do (its signature, reports, the first 10 pages, first and last seen).
 --      public.server_client_error (2895) is replaced: a crash adds to the open To do of its signature (the count, the
 --      page list and the last-seen time are written again in its title and detail) instead of opening a new one.
---   3. app.crash_todos_sweep: a crash To do whose error has not come back for 24 hours closes by itself with the note
---      "No new reports for 24 hours" (pg_cron, every hour, as 2897's digests). A later report opens a new one.
+--      A crash To do stays at priority high (2895 raised it to urgent at 3 people): it never emails the Admins (5051).
+--   3. app.crash_todos_sweep: an open crash To do (not one someone is working on) whose error has not come back for 24
+--      hours closes by itself with the note "No new reports for 24 hours" (pg_cron, every hour, as 2897's digests). A
+--      later report opens a new one.
 --   4. Once: the open crash To do's are folded into one per signature: the newest is kept with the others' counts and
---      pages added, the rest close with the note "Merged into <title>".
+--      pages added, the rest close with the note "Merged into <title>". No priority changes, so the deploy sends no email.
 set local check_function_bodies = off;
 
 -- ================================================================ 1. the signature
@@ -63,8 +65,7 @@ begin
     detail = left(format('A page of the site failed in the browser. Error: %s. Reports: %s since %s, last at %s; %s %s. Pages (first 10): %s. Browsers: %s.',
                     g.message, g.reports, to_char(g.first_at at time zone 'America/Toronto', 'Mon FMDD HH12:MI AM'), to_char(g.last_at at time zone 'America/Toronto', 'Mon FMDD HH12:MI AM'),
                     coalesce(v_people, 0), case when v_people = 1 then 'person' else 'people' end, array_to_string(g.pages, ', '), coalesce(v_browsers, 'unknown'))
-                  || ' One To do for this error on every page. It closes by itself after 24 hours with no new report. Every report is kept 30 days in client_errors (with its stack).', 2000),
-    priority = case when coalesce(v_people, 0) >= 3 and status in ('open', 'in_progress', 'waiting') then 'urgent' else priority end
+                  || ' One To do for this error on every page. It closes by itself after 24 hours with no new report. Every report is kept 30 days in client_errors (with its stack).', 2000)
    where id = p_task;
 end $$;
 
@@ -120,7 +121,7 @@ declare v_n integer;
 begin
   update tasks t set status = 'done', completed_at = p_now, completion_note = 'No new reports for 24 hours'
     from crash_groups g
-   where g.task_id = t.id and t.status in ('open', 'in_progress', 'waiting') and g.last_at < p_now - interval '24 hours';
+   where g.task_id = t.id and t.status = 'open' and g.last_at < p_now - interval '24 hours';
   get diagnostics v_n = row_count;
   return v_n;
 end $$;
@@ -154,9 +155,11 @@ begin
     from k5052 k join c5052 c on c.sig = k.sig
    group by k.keep_id, k.sig
   on conflict (task_id) do nothing;
+  -- (a grouped To do already open for the signature keeps the key; the kept one then stays as it was keyed)
   update tasks t set dedupe_key = 'client_error_sig:' || md5(k.sig)
     from k5052 k
-   where t.id = k.keep_id and t.status in ('open', 'in_progress', 'waiting');
+   where t.id = k.keep_id and t.status in ('open', 'in_progress', 'waiting')
+     and not exists (select 1 from tasks x where x.dedupe_key = 'client_error_sig:' || md5(k.sig) and x.status in ('open', 'in_progress', 'waiting'));
   perform app.crash_todo_write(k.keep_id) from k5052 k;
   update tasks t set status = 'done', completed_at = now(), completion_note = left('Merged into ' || kt.title, 1000)
     from c5052 c join k5052 k on k.sig = c.sig join tasks kt on kt.id = k.keep_id

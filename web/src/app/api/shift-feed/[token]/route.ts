@@ -13,6 +13,6 @@ export async function GET(_req: Request, ctx: { params: Promise<{ token: string 
   const ics = (await rpc('server_shift_feed', { p_token: token }, { role: 'service_role' }).catch(() => null)) as unknown as string | null;
   if (!ics) return new Response('Not found', { status: 404, headers: { ...head, 'cache-control': 'no-store' } });
   return new Response(ics, {
-    headers: { ...head, 'content-type': 'text/calendar; charset=utf-8', 'content-disposition': 'inline; filename="carmacars-shifts.ics"', 'cache-control': 'private, max-age=300' }
+    headers: { ...head, 'content-type': 'text/calendar; charset=utf-8', 'content-disposition': 'inline; filename="carmacars-shifts.ics"', 'cache-control': 'no-store' }
   });
 }

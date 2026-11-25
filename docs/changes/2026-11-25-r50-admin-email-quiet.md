@@ -23,10 +23,12 @@ database has no send history, and `notification_outbox` in production is the pla
 - **Now** (`app.admin_email_now`): a card dispute, a failed payment on a confirmed booking (`confirmed`, `on_rent`), card
   payments paused, the site down, a car at a pound or leaving Canada, documents to review for a pickup within 2 hours,
   an approval or a car disable that waits for an Admin, a request waiting 2 hours that no salesperson holds
-  (`sales_staff_id` and `sales_claim_by` empty). These go at once (`status_reason` urgent), with no hourly cap.
+  (`sales_staff_id` and `sales_claim_by` empty). These go at once (`status_reason` urgent), at most 3 an hour per
+  Admin; more go into the digest.
 - **Needs you now with no email of its own**: a booked live interview (`live_call_booked`), a dispute's evidence due soon
   (`dispute_deadline`) and a To do created or raised to `urgent` email every active Admin once
-  (`app.admin_now_email`, the staff digest's template with the one line).
+  (`app.admin_now_email`, the staff digest's template with the one line), except an Admin whose alert emails are Off,
+  who turned every optional notification off, or who switched that kind's email off.
 - **Everything else**: the gate (`app.admin_email_gate`, a trigger that runs before the preferences and the staff
   digest) keeps it in the bell and puts a line in the person's digest. The Admins' digest moves from hourly to **daily at
   7:00 Toronto** (only Admins still on the old default; one the audit log shows choosing hourly keeps it; a new Admin
@@ -42,9 +44,10 @@ database has no send history, and `notification_outbox` in production is the pla
 - **Crash To do's (5052)**: `app.client_error_signature` takes addresses, page paths and numbers out of the message and
   keeps an error code (`#441` and `#418` stay two errors: they are different React errors). A crash adds to the open To do
   of its signature (`crash_groups`: reports, the first 10 pages, first and last seen; title "Website crash (N times on P
-  pages): ...") instead of one To do per page and day. `app.crash_todos_sweep` (pg_cron, hourly) closes one with no
+  pages): ...") instead of one To do per page and day. A crash To do stays at priority high, so it never
+  emails the Admins. `app.crash_todos_sweep` (pg_cron, hourly) closes an open one (not one in progress) with no
   report for 24 hours: "No new reports for 24 hours". Once, `app.crash_todos_fold` merged the open per-page To do's into
-  one per signature: the newest kept with the others' counts and pages, the rest closed "Merged into <title>".
+  one per signature: the newest kept with the others' counts and pages, the rest closed "Merged into <title>". The fold changes no priority and sends no email.
 - **Security**: every new function `security definer`, `search_path = public, app, pg_temp`, the server role only;
   `crash_groups` has RLS with `admin_all` and nothing for browser roles; every UPDATE has a WHERE.
 

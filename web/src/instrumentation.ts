@@ -4,6 +4,7 @@
 type Req = { path: string; method: string; headers: Record<string, string | string[] | undefined> };
 type Ctx = { routerKind?: string; routePath?: string; routeType?: string };
 
+const TOKEN_PATH = /^\/api\/(shift-feed|ical|booking-ics|feeds)\/[^/]+/;
 const CONTROL = /^NEXT_(NOT_FOUND|REDIRECT|HTTP_ERROR_FALLBACK)|^DYNAMIC_SERVER_USAGE|^BAILOUT_TO_CLIENT_SIDE_RENDERING/;
 
 export async function onRequestError(err: unknown, request: Req, context: Ctx): Promise<void> {
@@ -12,7 +13,8 @@ export async function onRequestError(err: unknown, request: Req, context: Ctx): 
     if (e?.digest && CONTROL.test(e.digest)) return;
     if (process.env.NEXT_PHASE === 'phase-production-build') return;
     const { rpc } = await import('@/lib/db/repo');
-    const path = String(request.path ?? '/').split('?')[0]!.slice(0, 300);
+    // the secret in a token address (a calendar feed, a channel feed, a booking's calendar file) is never kept
+    const path = String(request.path ?? '/').split('?')[0]!.replace(TOKEN_PATH, '/api/$1/[token]').slice(0, 300);
     const ua = request.headers['user-agent'];
     await rpc('server_error_log', { p: {
       path, digest: e?.digest?.slice(0, 100),

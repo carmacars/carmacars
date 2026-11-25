@@ -8,6 +8,8 @@ select test.mk_user('sfd_fleet', 'va', 'fleet');
 select test.mk_user('sfd_sales', 'va', 'sales');
 select test.mk_user('sfd_field', 'field');
 select test.mk_user('sfd_field2', 'field');
+select test.mk_owner('sfd_owner');
+select test.mk_vehicle('SFDV', 'sfd_owner');
 update staff_profiles set functions = array['fleet'] where user_id = test.id('sfd_fleet') and not ('fleet' = any (coalesce(functions, '{}')));
 update staff_profiles set functions = array['sales'] where user_id = test.id('sfd_sales') and not ('sales' = any (coalesce(functions, '{}')));
 
@@ -44,7 +46,7 @@ insert into field_shift_slots (id, starts_at, ends_at, capacity, cancelled_at, c
 insert into field_shift_plans (id, slot_id, staff_id, starts_at, ends_at)
 select test.id('sfd_plan1'), id, test.id('sfd_field'), starts_at, ends_at from field_shift_slots where id = test.id('sfd_slot1');
 insert into field_jobs (kind, vehicle_id, scheduled_at, shift_slot_id, assigned_to, shift_pinned)
-select 'detail', (select v.id from vehicles v order by v.created_at limit 1), (select a1 from sfd_s) + interval '1 hour', test.id('sfd_slot1'), test.id('sfd_field'), true;
+select 'detail', test.id('vehicle:SFDV'), (select a1 from sfd_s) + interval '1 hour', test.id('sfd_slot1'), test.id('sfd_field'), true;
 
 create temp table sfd_ics as select public.server_shift_feed((select tok from sfd_t)) as t;
 select test.ok('a calendar answers', (select t from sfd_ics) like E'BEGIN:VCALENDAR\r\n%' and (select t from sfd_ics) like E'%END:VCALENDAR\r\n');
@@ -61,7 +63,11 @@ select test.ok('a link to the shift in the admin portal', replace((select t from
 select test.ok('one UID per shift', (select t from sfd_ics) like '%UID:shift-' || test.id('sfd_slot1') || '@carmacars.ca%');
 select test.ok('a cancelled shift is left out', (select t from sfd_ics) not like '%' || test.id('sfd_slot4') || '%');
 select test.ok('a shift 70 days ahead is left out', (select t from sfd_ics) not like '%' || test.id('sfd_slot3') || '%');
-select test.ok('no line is longer than 75 characters', not exists (select 1 from regexp_split_to_table((select t from sfd_ics), E'\r\n') l where length(l) > 75));
+select test.ok('no line is longer than 75 octets', not exists (select 1 from regexp_split_to_table((select t from sfd_ics), E'\r\n') l where octet_length(l) > 75));
+create temp table sfd_fold as select 'SUMMARY:Field shift: ' || repeat('Zoë Éloïse Ngô ', 12) as raw, app.ics_fold('SUMMARY:Field shift: ' || repeat('Zoë Éloïse Ngô ', 12)) as f;
+select test.ok('folding: every line at most 75 octets with accents', not exists (select 1 from regexp_split_to_table((select f from sfd_fold), E'\r\n') l where octet_length(l) > 75));
+select test.ok('folding: a full first line uses its 75 octets', octet_length(split_part((select f from sfd_fold), E'\r\n', 1)) between 74 and 75);
+select test.eq('folding: unfolded, the text is whole (no character split)', replace((select f from sfd_fold), E'\r\n ', ''), (select raw from sfd_fold));
 
 -- Fleet's link opens the shift on Fleet's board
 select app.shift_feed_set(test.id('sfd_fleet'), '{"scope":"all","action":"create"}');

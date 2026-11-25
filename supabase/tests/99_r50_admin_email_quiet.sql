@@ -7,6 +7,10 @@ select test.suite('99 r50 admin email quiet: urgent now, the rest in one daily d
 select test.mk_user('aeq_admin', 'admin');
 select test.mk_user('aeq_cs', 'va', 'cs');
 select test.mk_user('aeq_sales', 'va', 'sales');
+select test.mk_user('aeq_admin_off', 'admin');
+select test.mk_user('aeq_admin_nosys', 'admin');
+update users set staff_email_digest = 'off' where id = test.id('aeq_admin_off');
+insert into notify_prefs (subject_kind, subject_id, type, push, email, sms) values ('user', test.id('aeq_admin_nosys'), 'staff_system', true, false, true);
 select test.mk_owner('aeq_owner');
 select test.mk_vehicle('AEQV', 'aeq_owner');
 select test.mk_renter('aeq_renter');
@@ -75,11 +79,18 @@ select test.eq('the next is tomorrow', (select payload ->> 'digest_next' from ae
 select test.eq('the lines are marked sent', (select count(*) from staff_email_digest_items where user_id = test.id('aeq_admin') and digested_at is null), 0::bigint);
 select test.eq('empty: skipped', app.admin_email_digests((select at7 from aeq_seven) + interval '1 day'), 0);
 
+-- at most 3 at once an hour per Admin (two went above); the rest wait for the digest
+select test.eq('a third urgent one in the hour goes at once', test.aeq_mail('aeq_admin', 'staff_dispute_opened', 'd2'), 'queued:urgent');
+select test.eq('a fourth waits for the digest', test.aeq_mail('aeq_admin', 'staff_dispute_opened', 'd3'), 'skipped:in the Admin daily digest');
+
 -- ================================================================ needs you now, with no email of its own
 select app.raise_task(p_type => 'aeq_check', p_title => 'Aeq urgent thing', p_queue => 'admin', p_priority => 'urgent', p_dedupe => 'aeq_urgent');
 select test.ok('an urgent To do emails the Admins at once', exists (select 1 from notification_outbox o where o.recipient_user_id = test.id('aeq_admin')
   and o.dedupe_key like 'admin_now|task:%' and o.status = 'queued' and o.status_reason = 'urgent' and o.payload ->> 'digest_summary' = 'Needs you now: Urgent To do: Aeq urgent thing'));
 select app.raise_task(p_type => 'aeq_check', p_title => 'Aeq normal thing', p_queue => 'admin', p_priority => 'normal', p_dedupe => 'aeq_normal');
+select test.eq('with no "next digest" time', (select o.payload ->> 'digest_next' from notification_outbox o where o.recipient_user_id = test.id('aeq_admin') and o.dedupe_key like 'admin_now|task:%' limit 1), '');
+select test.ok('not to an Admin whose alert emails are off', not exists (select 1 from notification_outbox o where o.recipient_user_id = test.id('aeq_admin_off') and o.dedupe_key like 'admin_now|%'));
+select test.ok('not to an Admin who switched that kind''s email off', not exists (select 1 from notification_outbox o where o.recipient_user_id = test.id('aeq_admin_nosys') and o.dedupe_key like 'admin_now|task:%'));
 select test.ok('a normal To do does not', not exists (select 1 from notification_outbox o where o.recipient_user_id = test.id('aeq_admin') and o.payload ->> 'digest_summary' like '%Aeq normal thing%'));
 update tasks set priority = 'urgent' where dedupe_key = 'aeq_normal' and status = 'open';
 select test.ok('raised to urgent: it emails', exists (select 1 from notification_outbox o where o.recipient_user_id = test.id('aeq_admin') and o.payload ->> 'digest_summary' like '%Aeq normal thing%'));
@@ -104,22 +115,28 @@ select test.eq('the pages, each once', (select pages from aeq_g where message = 
 select test.ok('the title says how many and where', (select title from aeq_g where message = (select m441 from aeq_msg)) like 'Website crash (3 times on 2 pages): Minified React error #441%');
 select test.eq('no per-page To do', (select count(*) from tasks where task_type = 'site_alert' and status = 'open' and title like 'Website crash on /cars/aeq%'), 0::bigint);
 select test.eq('not closed after 23 quiet hours', app.crash_todos_sweep(now() + interval '23 hours'), 0);
-select test.ok('closed after 24 quiet hours', app.crash_todos_sweep(now() + interval '25 hours') >= 2);
+update tasks set status = 'in_progress' where id = (select task_id from aeq_g where message = (select m418 from aeq_msg)) and status = 'open';
+select test.ok('closed after 24 quiet hours', app.crash_todos_sweep(now() + interval '25 hours') >= 1);
+select test.eq('one someone is working on stays', (select status from tasks where id = (select task_id from aeq_g where message = (select m418 from aeq_msg))), 'in_progress');
+select test.ok('a crash To do is never urgent', not exists (select 1 from tasks t join crash_groups g on g.task_id = t.id where t.priority = 'urgent' and t.created_at > now() - interval '1 minute'));
 select test.eq('with the note', (select completion_note from tasks where id = (select task_id from aeq_g where message = (select m441 from aeq_msg))), 'No new reports for 24 hours');
 select public.server_client_error(jsonb_build_object('message', (select m441 from aeq_msg), 'path', '/cars/aeq-three', 'visitor', 'aeqvisitor1'));
 select test.eq('a later report opens a new one', (select count(*) from tasks t join crash_groups g on g.task_id = t.id where t.status = 'open' and g.message = (select m441 from aeq_msg)), 1::bigint);
 
 -- the old To do's (one per page and day, 2895's words) fold into one per error
 update tasks set status = 'done', completed_at = now(), completion_note = 'aeq reset'
- where task_type = 'site_alert' and status = 'open' and id in (select task_id from crash_groups where message = (select m441 from aeq_msg));
+ where task_type = 'site_alert' and status in ('open', 'in_progress') and id in (select task_id from crash_groups where message in ((select m441 from aeq_msg), (select m418 from aeq_msg)));
 insert into tasks (queue, task_type, title, detail, priority, dedupe_key, created_at) values
   ('admin', 'site_alert', 'Website crash on /cars/aeq-a (3 times, 1 person): Minified React error #441; visit https://react.dev/errors/441?args[]=a for the full',
-   'A page of the site failed in the browser. Page: /cars/aeq-a. Error: Minified React error #441; visit https://react.dev/errors/441?args[]=a for the full message. Today: 3 times, 1 person (first at 09:00 AM). Browsers: Chrome 150.', 'high', 'client_error:aeqa', now() - interval '3 hours'),
+   'A page of the site failed in the browser. Page: /cars/aeq-a. Error: Minified React error #441; visit https://react.dev/errors/441?args[]=a for the full message. Today: 3 times, 1 person (first at 09:00 AM). Browsers: Chrome 150.', 'urgent', 'client_error:aeqa', now() - interval '3 hours'),
   ('admin', 'site_alert', 'Website crash on /buy/aeq-b: Minified React error #441; visit https://react.dev/errors/441?args[]=b for the full',
    'A page of the site failed in the browser. Page: /buy/aeq-b. Error: Minified React error #441; visit https://react.dev/errors/441?args[]=b for the full message. Today: 1 time, 1 person (first at 10:00 AM). Browsers: Chrome 150.', 'high', 'client_error:aeqb', now() - interval '1 hour'),
   ('admin', 'site_alert', 'Website crash on /cars/aeq-c (2 times, 1 person): Minified React error #418; visit https://react.dev/errors/418 for the full',
    'A page of the site failed in the browser. Page: /cars/aeq-c. Error: Minified React error #418; visit https://react.dev/errors/418 for the full message. Today: 2 times, 1 person (first at 11:00 AM). Browsers: Chrome 150.', 'high', 'client_error:aeqc', now() - interval '2 hours');
+create temp table aeq_before as select count(*) as n from notification_outbox;
 select app.crash_todos_fold();
+select test.eq('the fold sends no email', (select count(*) from notification_outbox), (select n from aeq_before));
+select test.eq('and changes no priority (the merged one was urgent, still is)', (select priority from tasks where dedupe_key = 'client_error:aeqa'), 'urgent');
 select test.eq('the newest #441 is kept', (select status from tasks where id = (select id from tasks where title like 'Website crash%' and detail like '%/buy/aeq-b%' order by created_at limit 1)), 'open');
 select test.eq('with both counts added', (select g.reports from crash_groups g join tasks t on t.id = g.task_id where t.detail like '%/buy/aeq-b%' and t.status = 'open'), 4);
 select test.ok('and both pages', (select g.pages from crash_groups g join tasks t on t.id = g.task_id where t.detail like '%/buy/aeq-b%' and t.status = 'open') @> array['/cars/aeq-a', '/buy/aeq-b']);

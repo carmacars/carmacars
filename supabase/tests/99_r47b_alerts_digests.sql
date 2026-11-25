@@ -41,9 +41,9 @@ select test.eq('a crash: one To do, the count and one person, priority high',
   '1|high|true|true');
 select public.server_client_error(jsonb_build_object('message', 'r47b TypeError: x is undefined', 'path', '/r47b/page', 'visitor', 'r47b-visitor-2'));
 select public.server_client_error(jsonb_build_object('message', 'r47b TypeError: x is undefined', 'path', '/r47b/page', 'visitor', 'r47b-visitor-3'));
-select test.eq('three people the same day: urgent, still one To do',
+select test.eq('three people the same day: still one To do, still high (5052: a crash To do never emails)',
   (select count(*) || '|' || min(t.priority) || '|' || (min(t.title) like '%(4 times on 1 page)%' and min(t.detail) like '%3 people%')::text from tasks t join crash_groups g on g.task_id = t.id where t.task_type = 'site_alert' and g.message = 'r47b TypeError: x is undefined'),
-  '1|urgent|true');
+  '1|high|true');
 update tasks t set status = 'done', completed_at = now() from crash_groups g where g.task_id = t.id and t.task_type = 'site_alert' and g.message = 'r47b TypeError: x is undefined';
 select public.server_client_error(jsonb_build_object('message', 'r47b TypeError: x is undefined', 'path', '/r47b/page', 'visitor', 'r47b-visitor-4'));
 select test.eq('a To do closed stays closed; a new report opens a new one (5052)',
