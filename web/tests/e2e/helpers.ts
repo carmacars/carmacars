@@ -48,7 +48,7 @@ export async function panelFits(page: Page, panel: Locator) {
 
 /** r46: each label of a portal's top row stays inside its own button (it wraps), so none runs over its neighbours. */
 export async function labelsInButtons(page: Page) {
-  const out = await page.evaluate(() => [...document.querySelectorAll('.hd-act')].filter((b) => (b as HTMLElement).offsetParent).map((b) => {
+  const out = await page.evaluate(() => [...document.querySelectorAll('.hd-act')].filter((b) => (b as HTMLElement).offsetParent && !b.closest('.hd-more:not(.is-open) .hd-more__panel')).map((b) => {
     const l = b.querySelector('.hd-lbl'); if (!l) return null;
     const br = b.getBoundingClientRect(); const lr = l.getBoundingClientRect();
     if (lr.width <= 1) return null; // a label shown to screen readers only
@@ -446,4 +446,12 @@ async function rebuild(baseURL?: string) {
   const token = (await import('node:crypto')).createHmac('sha256', /^LINK_SIGNING_KEY=(.*)$/m.exec(env)![1]!.trim()).update('carmacars-listing-worker-v1').digest('hex');
   await request.post('/api/jobs/public-rebuild', { headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, data: {} });
   await request.dispose();
+}
+
+/** R50 hotfix: a portal's top bar keeps the bell and the account menu; Profile, Academy, the assistant, What's new, the
+ *  guide, Guide me, Report a bug and Sign out are inside the menu. Opens it when the page has one (a renter's page has none). */
+export async function openAccountMenu(page: Page | Locator) {
+  const btn = page.getByTestId('account-menu-button').first();
+  if (!(await btn.isVisible().catch(() => false))) return;
+  if ((await btn.getAttribute('aria-expanded')) !== 'true') await btn.click();
 }

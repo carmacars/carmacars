@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { acceptCookies, db, noOverflow, panelFits } from './helpers';
+import { acceptCookies, db, noOverflow, panelFits, openAccountMenu } from './helpers';
 
 // Migration 2730 end to end, at 375 and 1440: an Admin signing in after a release sees the "What's new" pop-up once, with
 // the words written for admins; Esc closes it; it does not come back on the next page or the next visit; the "What's new"
@@ -52,7 +52,7 @@ test('the What\'s new pop-up opens once after a release, closes with Esc, and th
     await expect(page.getByTestId('whats-new')).toBeHidden();
 
     // the link opens it again, and the button closes it
-    await page.getByTestId('whats-new-link').click();
+    await openAccountMenu(page); await page.getByTestId('whats-new-link').click();
     await expect(page.getByTestId('whats-new')).toBeVisible();
     await page.getByTestId('whats-new-dismiss').click();
     await expect(page.getByTestId('whats-new')).toBeHidden();

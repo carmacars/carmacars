@@ -20,6 +20,9 @@ export const REEL_MAX = 6;
 export function SlotCars({ slot, photo, studio, eager = false, sizes = '100vw' }: { slot: string; photo: SlotPhoto | null; studio: readonly StudioCover[]; eager?: boolean; sizes?: string }) {
   if (photo && !isStandIn(slot, photo)) return <SlotPicture p={photo} eager={eager} sizes={sizes} />;
   const cars = studio.filter((c) => c.path).slice(0, REEL_MAX);
+  // R50 hotfix (5064): no live studio render yet: the section's own photo, the car with the logo and its name, exactly as
+  // before release 50; the empty studio plate only when the section has no photo at all
+  if (!cars.length && photo) return <SlotPicture p={photo} eager={eager} sizes={sizes} />;
   if (!cars.length) {
     return (
       <span className="studio-reel" data-testid="studio-reel" data-slot={slot} data-count={0}>

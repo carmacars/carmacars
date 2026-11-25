@@ -1,6 +1,6 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { acceptCookies, db, watch } from './helpers';
+import { acceptCookies, db, watch, openAccountMenu } from './helpers';
 
 // Sign-in for every portal (migration 0036, docs/changes/2026-10-14-sign-in.md): each role lands on its portal,
 // a person with several portals chooses, refusal pages say who is signed in and offer their portals, an Admin
@@ -77,7 +77,7 @@ test('sign-in: each role lands on its own portal; refusal pages name the account
       await expect(page).toHaveURL(/\/admin\/no-access/);
       await expect(page.getByTestId('no-access-email')).toHaveText(p.email);
       await expect(page.getByTestId('my-portals').getByRole('link', { name: 'My rentals' })).toBeVisible();
-      await page.getByRole('button', { name: 'Sign out' }).click();
+      await openAccountMenu(page); await page.getByRole('button', { name: 'Sign out' }).click();
       await page.waitForURL((u) => u.pathname === '/');
       await page.goto('/account');
       await expect(page).toHaveURL(/\/sign-in\?next=/);

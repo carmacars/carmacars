@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { acceptCookies, db, noOverflow } from './helpers';
+import { acceptCookies, db, noOverflow, openAccountMenu } from './helpers';
 
 // Guide me (migration 3950): the booking guide end to end in the live Send an offer screen. Started from the header's
 // menu; a step to do does not pass on Next, it moves on by itself once the form says it is done; the card says Step X of
@@ -39,7 +39,7 @@ test('Guide me walks an Admin through sending an offer, step by step in the live
   await expect(page.getByTestId('offer-composer')).toBeVisible();
   // off by default: no card until asked for
   await expect(page.getByTestId('guide-me-card')).toHaveCount(0);
-  await page.getByTestId('guide-me-open').click();
+  await openAccountMenu(page); await page.getByTestId('guide-me-open').click();
   await expect(page.getByTestId('guide-me-keep')).not.toBeChecked();
   await page.getByTestId('guide-me-start-create-offer').click();
 

@@ -1,7 +1,7 @@
 import Link from '@/components/Link';
 import type { CarRow } from '@/lib/types';
 import { money, FUEL_LABEL } from '@/lib/format';
-import { CarImage } from './Picture';
+import { CarImage, StudioTurn } from './Picture';
 import { photoUrl } from '@/lib/photo';
 
 export const carName = (c: Pick<CarRow, 'make' | 'model'>) => `${c.make} ${c.model}`;
@@ -34,7 +34,11 @@ export function CarCard({ c, labels, tag: Tag = 'h3', href, price, unit, booked 
           {Array.from({ length: n - 1 }, (_, i) => <div key={i} className="car-card__slide" data-i={i + 1} dangerouslySetInnerHTML={{ __html: '' }} />)}
         </div>
         {n > 1 && <span className="car-card__dots" aria-hidden="true">{Array.from({ length: n }, (_, i) => <i key={i} className={i === 0 ? 'is-on' : undefined} />)}</span>}
-        {/* r50 (3701): only the car's own studio renders, or one neutral "Photos coming soon" photo; never another car's photo */}
+        {/* R50 hotfix (5064): a sample cover (no live render, no own photo) shows as before release 50: real cars' studio
+            covers in turn over it, with its caption */}
+        {c.cover?.sample && !c.cover.placeholder && c.studio && c.studio.length > 0 && <StudioTurn photos={c.studio} />}
+        {c.cover?.sample && !c.cover.placeholder && <span className="car-card__sample" data-testid="sample-photo-caption">Representative photo</span>}
+        {/* r50 (3701): no photo at all: one neutral "Photos coming soon" photo; never another car's photo */}
         {c.cover?.placeholder && <span className="car-card__sample" data-testid="photos-coming-soon">Photos coming soon</span>}
         {c.is_sample && <span className="car-card__example" data-testid="example-car-badge" title="An example of the cars we rent: ask and we suggest a similar real car">Example car</span>}
         {booked && <span className="badge badge--hatch car-card__flag">Booked for your dates</span>}

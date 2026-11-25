@@ -78,10 +78,11 @@ test('a real car without photos looks like a sample car', async ({ page, request
     expect(feats.join('|')).not.toMatch(/seats|Gas fuel|drivetrain/i);
     await expect(page.locator('body')).not.toContainText('Pickering');
     const srcs = await page.locator('.gallery__track img').evaluateAll((els) => els.map((e) => (e as HTMLImageElement).getAttribute('src')));
-    // r50 (3701): no passed studio render: one neutral studio photo, never the drawn sample of the model
-    expect(srcs.length).toBe(1);
-    expect(srcs[0]).toMatch(/coming-soon|r48\/plates/);
-    await expect(page.getByTestId('photos-coming-soon').first()).toHaveText('Photos coming soon');
+    // R50 hotfix (5064): no passed studio render: the photos as before release 50 (here the sample photo of the model),
+    // never the empty studio plate
+    expect(srcs.length).toBeGreaterThanOrEqual(1);
+    expect(srcs[0]).not.toMatch(/coming-soon|r48\/plates/);
+    await expect(page.getByTestId('photos-coming-soon')).toHaveCount(0);
     const ld = await page.locator('script[type="application/ld+json"]').allInnerTexts();
     expect(ld.join('')).toContain('FrontWheelDriveConfiguration');
     // built from the car and its price, exactly as for the sample cars (the copy's own title is not used)

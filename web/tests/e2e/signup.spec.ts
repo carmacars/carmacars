@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { createHmac, randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { acceptCookies, applyStart, db, noOverflow, tapColour, watch } from './helpers';
+import { acceptCookies, applyStart, db, noOverflow, tapColour, watch, openAccountMenu } from './helpers';
 
 // One confirmation email per sign-up (migration 0045, docs/changes/2026-10-16-one-confirmation-email.md), for every
 // path that makes an account: the create-account form, the owner application (with and without an invitation link),
@@ -37,7 +37,7 @@ const local = (link: string) => { const u = new URL(link); return u.pathname + u
 const path = (page: Page) => new URL(page.url()).pathname;
 
 async function signOutAndIn(page: Page, email: string, home: string) {
-  await page.getByRole('button', { name: 'Sign out' }).first().click();
+  await openAccountMenu(page); await page.getByRole('button', { name: 'Sign out' }).first().click();
   await page.waitForURL((u) => u.pathname === '/');
   await page.goto('/sign-in');
   await page.locator('#si-email').fill(email);

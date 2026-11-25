@@ -375,6 +375,33 @@ dialog:not([open]) { display: none !important; }
    it starts again from the body's. */
 dialog { max-width: calc(100% - 6px - 2em - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)); }
 .gd-frame-links dialog, .ad__who dialog, .fd__top dialog, .pt__hello dialog { font-size: var(--fs-body); white-space: normal; text-align: start; letter-spacing: normal; text-transform: none; }
+/* R50 hotfix: the account menu of every portal's top bar (components/AccountMenu.tsx). The bar keeps the portal name, the
+   bell, this button and the main menu; the rest is a list in the panel. Hidden by visibility only, so a dialog an item
+   opened (the assistant, What's new, Report a bug) still shows once the menu is closed. */
+.hd-more { position: relative; display: inline-flex; min-width: 0; }
+.hd-more__panel { position: absolute; z-index: 60; top: calc(100% + 6px); right: 0; display: grid; gap: 2px; width: max-content; min-width: 13rem;
+  max-width: min(18rem, calc(100vw - 32px)); padding: 6px; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: var(--r-3);
+  box-shadow: var(--shadow-float); visibility: hidden; pointer-events: none; }
+.hd-more.is-open .hd-more__panel { visibility: visible; pointer-events: auto; }
+/* closed: no size either, so the hidden list never widens the page; its dialogs live in the top layer, never clipped */
+.hd-more:not(.is-open) .hd-more__panel { width: 0; height: 0; min-width: 0; max-width: 0; padding: 0; border-width: 0; overflow: hidden; }
+.hd-more__panel dialog, .hd-more__panel [role="dialog"] { visibility: visible; }
+/* a phone: the bar's items wrap from the left, so the list opens to the right of the button, inside the screen */
+@media (max-width: 47.99rem) { .hd-more__panel { right: auto; left: 0; } }
+.hd-more__panel > form { display: contents; }
+.hd-more .hd-more__panel .hd-act, .ad .ad__who .hd-more__panel .hd-act { display: flex; flex: none; flex-direction: row; align-items: center; justify-content: flex-start; gap: 10px;
+  width: 100%; min-width: 0; min-height: 44px; height: auto; margin: 0; padding: 8px 10px; border: 0; border-radius: 10px; background: transparent; color: var(--text);
+  font-size: var(--fs-sm); font-weight: 500; line-height: 1.25; text-align: start; white-space: normal; }
+.hd-more .hd-more__panel .hd-act:hover, .hd-more .hd-more__panel .hd-act:focus-visible { background: var(--surface); }
+.hd-more .hd-more__panel .hd-act svg { flex: none; width: 18px; height: 18px; }
+.hd-more .hd-more__panel .hd-act .hd-lbl, .ad .ad__who .hd-more__panel .hd-act .hd-lbl { position: static; display: block; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; }
+/* the Admin and staff menu rail scrolls (overflow), which would clip a floating panel: there the open menu takes its own
+   row under the bar and the list opens in the rail's flow */
+.ad .ad__who .gd-frame-links { flex-wrap: wrap; }
+.ad .ad__who .hd-more { flex: 1 1 0; flex-wrap: wrap; }
+.ad .ad__who .hd-more > .hd-more__btn { flex: 1 1 auto; }
+.ad .ad__who .hd-more.is-open { flex: 1 0 100%; }
+.ad .ad__who .hd-more.is-open .hd-more__panel { position: static; flex: 1 0 100%; width: 100%; max-width: none; min-width: 0; margin-top: 4px; box-shadow: none; }
 @media (max-width: 47.99rem) {
   dialog, .popover, .cpop, .toasts, .ad-toasts, .mo-toasts, .stk, .stk-panel, .vd, .ccg, .ccw-panel, .fp-sheet, .mcal__panel, .as-toast { overflow-wrap: break-word; }
   dialog :is(h1, h2, h3, p, li, label, legend, dd, dt) { min-width: 0; }

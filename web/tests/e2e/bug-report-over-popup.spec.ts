@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { acceptCookies, db } from './helpers';
+import { acceptCookies, db, openAccountMenu } from './helpers';
 
 // r50 (3900): "Report a bug" can be pressed while a pop-up is open. A native modal dialog (What's new opens with showModal)
 // makes the header's button inert; the button is then shown inside the pop-up, opens the form above it, and the report
@@ -27,7 +27,7 @@ test('Report a bug works from inside an open modal and captures it', async ({ pa
   await sql`insert into user_roles (user_id, role) values (${id}, 'admin')`;
   try {
     await signIn(page, email, '/admin');
-    await page.getByTestId('whats-new-link').first().click();
+    await openAccountMenu(page); await page.getByTestId('whats-new-link').first().click();
     const modal = page.getByTestId('whats-new');
     await expect(modal).toBeVisible();
     // the modal makes the page behind it inert: the copy of the button is inside the modal, and it can be pressed
@@ -50,7 +50,7 @@ test('Report a bug works from inside an open modal and captures it', async ({ pa
     await page.getByTestId('whats-new-dismiss').click();
     await expect(modal).toBeHidden();
     await expect(page.getByTestId('bug-report-float')).toHaveCount(0);
-    await expect(page.getByTestId('bug-report-open')).toBeVisible();
+    await expect(page.getByTestId('bug-report-open')).toBeAttached();
   } finally {
     await sql`delete from bug_reports where reporter_id = ${id}`.catch(() => undefined);
     await sql`delete from users where id = ${id}`.catch(() => undefined);

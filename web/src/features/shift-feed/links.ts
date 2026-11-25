@@ -18,6 +18,6 @@ export const webcalUrl = (url: string) => url.replace(/^https?:\/\//, 'webcal://
 export const googleAddUrl = (url: string) => `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcalUrl(url))}`;
 
 export const SCOPE_WORDS: Record<FeedScope, { title: string; lead: string }> = {
-  all: { title: 'Add shifts to Google Calendar', lead: 'Every field shift, 14 days back to 60 days ahead: who claimed it or Open, the tasks on it, and a link to it.' },
-  mine: { title: 'Add my shifts to Google Calendar', lead: 'The shifts you claimed, 14 days back to 60 days ahead, with the tasks given to you.' }
+  all: { title: 'Add shifts, townhalls and interviews to Google Calendar', lead: 'Every field shift, 14 days back to 60 days ahead: who claimed it or Open, the tasks on it, and a link to it. Also the weekly townhall and, for an Admin, every booked interview call with its link.' },
+  mine: { title: 'Add my shifts and townhalls to Google Calendar', lead: 'The shifts you claimed, 14 days back to 60 days ahead, with the tasks given to you, and the weekly townhall.' }
 };

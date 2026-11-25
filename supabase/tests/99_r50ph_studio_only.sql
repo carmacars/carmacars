@@ -1,6 +1,6 @@
 -- 99: migration 3701 (release 50, photos): one look, enforced. The public pages show only studio renders that passed the
--- studio gate at the current standard; a car with none shows one "Photos coming soon" placeholder, never its own photos, a
--- drawn sample or a mixed set; the hero's cutouts, the emails and the feeds follow. Fixtures start with "rq50s_".
+-- studio gate at the current standard; since 5064 (R50 hotfix) a car with none shows its photos as before release 50 (the
+-- placeholder only when it has no photo at all), never a mixed set; the hero's cutouts, the emails and the feeds follow. Fixtures start with "rq50s_".
 select test.suite('99 r50 studio only (3701)');
 
 select test.mk_user('rq50s_admin', 'admin');
@@ -23,22 +23,21 @@ select test.eq('one plate for every outside view, none inside',
   (select string_agg(coalesce(app.photo_r48_family(s), '-'), ',') from unnest(array['front_left', 'front', 'left', 'rear_left', 'rear', 'dashboard', 'trunk']) s),
   'side,side,side,side,side,-,-');
 
--- ---------------------------------------------------------------- 2. an owner's photo is never public
+-- ---------------------------------------------------------------- 2. no live render: the photos as before release 50 (5064)
 create temp table rq50s_real as select test.rq50s_photo('front_left', false) as id;
-select test.eq('a car with only its own (approved, public) photo shows one placeholder', jsonb_array_length(test.rq50s_g())::text, '1');
-select test.ok('the placeholder: "Photos coming soon", the cover, marked placeholder and sample (feeds and the sitemap leave it out)',
-  (select (g -> 0 ->> 'placeholder')::boolean and (g -> 0 ->> 'sample')::boolean and (g -> 0 ->> 'is_cover')::boolean and g -> 0 ->> 'label' = 'Photos coming soon'
-          and (g -> 0 ->> 'path' = '/studio/coming-soon.jpg' or g -> 0 ->> 'path' like 'site/r48/plates/%') from (select test.rq50s_g() g) x));
-select test.ok('the owner''s photo is not in the gallery', position((select processed_path from vehicle_photos where id = (select id from rq50s_real)) in test.rq50s_g()::text) = 0);
-select test.ok('no drawn sample photo either', position('/sample-photos/' in test.rq50s_g()::text) = 0);
+select test.ok('5064: a car with only its own photo shows it (as before release 50), never the empty plate',
+  position((select processed_path from vehicle_photos where id = (select id from rq50s_real)) in test.rq50s_g()::text) > 0
+  and not coalesce((test.rq50s_g() -> 0 ->> 'placeholder')::boolean, false));
+select test.eq('5064: and its gallery is the one before release 50', test.rq50s_g(), app.public_listing_photos_pre3701(test.id('vehicle:rq50s_a')));
+select test.eq('5064: no live render', app.photo_has_live_render(test.id('vehicle:rq50s_a')), false);
 
 -- ---------------------------------------------------------------- 3. only renders that passed the gate at this standard
 create temp table rq50s_r as select
   test.rq50s_photo('left', true, test.rq50s_gate(false)) as refused,
   test.rq50s_photo('front', true, test.rq50s_gate(true, 'r48.2')) as old_spec,
   test.rq50s_photo('dashboard', true, test.rq50s_gate(true)) as inside;
-select test.eq('a refused render, an older standard''s render or an inside view alone: still the placeholder, never a mixed set',
-  (select (g -> 0 ->> 'placeholder') || '/' || jsonb_array_length(g) from (select test.rq50s_g() g) x), 'true/1');
+select test.ok('5064: a refused render, an older standard''s render or an inside view alone: the photos as before release 50, never the empty plate',
+  test.rq50s_g() = app.public_listing_photos_pre3701(test.id('vehicle:rq50s_a')) and not coalesce((test.rq50s_g() -> 0 ->> 'placeholder')::boolean, false));
 select test.ok('photo_render_live: the gate''s pass at the current standard',
   not (select app.photo_render_live(ph) from vehicle_photos ph where ph.id = (select refused from rq50s_r))
   and not (select app.photo_render_live(ph) from vehicle_photos ph where ph.id = (select old_spec from rq50s_r))
@@ -69,7 +68,10 @@ update vehicle_photos set r45 = r45 || '{"gate": {"pass": false, "spec": "r48.3"
 select test.eq('no live render: the emails show no car picture (the name panel), never the owner''s photo',
   app.ntf_vehicle_pre0827(test.id('vehicle:rq50s_a')) ->> 'vehicle_image_url', '');
 select test.ok('no live render: no cutout source', app.site_cutout_source(test.id('vehicle:rq50s_a'), 'left') is null);
-select test.ok('no live render: the row''s cover is the placeholder', (app.photo_row_cover(test.id('vehicle:rq50s_a'), '{}'::jsonb) #>> '{cover,placeholder}')::boolean);
+select test.eq('5064: no live render: the row keeps its cover from before release 50',
+  app.photo_row_cover(test.id('vehicle:rq50s_a'), '{"cover": {"path": "vehicles/rq50s/before.jpg", "sample": false}}'::jsonb) #>> '{cover,path}', 'vehicles/rq50s/before.jpg');
+select test.ok('5064: no live render and no cover at all: the placeholder, never an empty card',
+  (app.photo_row_cover(test.id('vehicle:rq50s_a'), '{}'::jsonb) #>> '{cover,path}') is not null);
 select test.ok('the channel API leaves the placeholder out, as the feeds and the sitemap do',
   position('not coalesce((e ->> ''sample'')::boolean, false)' in pg_get_functiondef('app.channel_vehicle_json(uuid, text)'::regprocedure)) > 0);
 

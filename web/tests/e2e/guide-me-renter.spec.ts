@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { randomBytes } from 'node:crypto';
-import { acceptCookies, noOverflow } from './helpers';
+import { acceptCookies, noOverflow, openAccountMenu } from './helpers';
 
 // Guide me for renters (migration 4100): on the public sign-up page, a visitor opens Guide me, sees the page's own
 // workflow first, and is walked through creating an account. A step to do does not pass on Next; typing moves it on;
@@ -10,7 +10,7 @@ test('Guide me walks a new renter through creating an account', async ({ page })
   await page.goto('/create-account', { waitUntil: 'networkidle' });
   await acceptCookies(page);
   await expect(page.getByTestId('guide-me-card')).toHaveCount(0);
-  await page.getByTestId('guide-me-open').click();
+  await openAccountMenu(page); await page.getByTestId('guide-me-open').click();
   // this page's workflow is listed first
   await expect(page.getByTestId('guide-me-here').getByTestId('guide-me-start-renter-signup')).toBeVisible();
   await page.getByTestId('guide-me-start-renter-signup').click();

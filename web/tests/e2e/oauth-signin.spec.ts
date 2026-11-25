@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { createHmac, randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { acceptCookies, db, noOverflow, watch } from './helpers';
+import { acceptCookies, db, noOverflow, watch, openAccountMenu } from './helpers';
 
 // Sign in with Google, end to end, against the local stand-in for the provider (/auth/oauth/fake; the local stack runs
 // with AUTH_OAUTH_PROVIDERS=google from .env.example). A new account gets what the create-account form gives (the users
@@ -90,7 +90,7 @@ test('a new account by Google: users row, renter role, address confirmed, one we
   expect(ev.map((r) => r.k)).toEqual(['renter_account_created:confirmed']);
   expect((await sql`select subject from local_auth.mailbox where to_email = ${email}`).length).toBe(0);
   // signed out, then Google again: the same account, nothing new
-  await page.getByRole('button', { name: 'Sign out' }).first().click();
+  await openAccountMenu(page); await page.getByRole('button', { name: 'Sign out' }).first().click();
   await page.waitForURL((u) => u.pathname === '/');
   await google(page, '/sign-in', { email, name: 'Gail Google' });
   await page.waitForURL((u) => u.pathname === '/account', { timeout: 20_000 });

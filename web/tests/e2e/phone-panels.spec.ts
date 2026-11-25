@@ -1,6 +1,6 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { acceptCookies, db, labelsInButtons, noOverflow, panelFits } from './helpers';
+import { acceptCookies, db, labelsInButtons, noOverflow, openAccountMenu, panelFits } from './helpers';
 
 // Release 46 (the owner: "on mobile a bunch of things don't show up properly, like What's new and Report a bug; the text
 // goes off the sides"). At 375 and 320 px: the top row's labels stay inside their buttons, and the shared pop-ups (What's
@@ -40,6 +40,7 @@ async function sweep(page: Page, path: string, panels: { open: string; panel: st
     await noOverflow(page);
     await labelsInButtons(page);
     for (const p of panels) {
+      await openAccountMenu(page);
       const opener = page.getByTestId(p.open).first();
       if (!(await opener.isVisible().catch(() => false))) continue; // not on this portal (the assistant is off for some functions)
       await opener.click();
@@ -63,10 +64,47 @@ test('the shared pop-ups fit a phone in the Admin, staff and renter portals (375
     const shared = [{ open: 'whats-new-link', panel: 'whats-new' }, { open: 'bug-report-open', panel: 'bug-report-dialog' }, { open: 'assistant-open', panel: 'assistant-panel' }, { open: 'guide-me-open', panel: 'guide-me-menu' }];
     const a = await phonePage(browser); await signIn(a, admin!.email, '/admin'); await sweep(a, '/admin', shared);
     // What's new and Report a bug must be there in the Admin portal (the others may lack a release note for the portal)
-    await expect(a.getByTestId('whats-new-link')).toBeVisible();
-    await expect(a.getByTestId('bug-report-open')).toBeVisible();
+    await expect(a.getByTestId('whats-new-link')).toBeAttached();
+    await expect(a.getByTestId('bug-report-open')).toBeAttached();
     const s = await phonePage(browser); await signIn(s, staff!.email, '/staff'); await sweep(s, '/staff', shared);
     const r = await phonePage(browser); await signIn(r, renter!.email, '/account'); await sweep(r, '/account', shared);
+  } finally {
+    for (const p of people) {
+      await sql`delete from users where id = ${p.id}`.catch(() => undefined);
+      await sql`delete from local_auth.users where id = ${p.id}`.catch(() => undefined);
+    }
+    await sql.end().catch(() => undefined);
+  }
+});
+
+// R50 hotfix (the owner, Nov 25: "That bar at the top ... is just way too cluttered now"): the Admin's and a staff
+// member's top bar shows only the bell and the account menu; everything else is in the menu, which opens inside the screen.
+// At 320, 375, 768 and 1440: no overflow, at most 3 visible items on the bar, the menu's list fits the window.
+test('the portal top bar keeps the essentials; the rest is in the account menu (320 to 1440)', async ({ browser }) => {
+  test.skip(!isPhone(), 'one project is enough: the widths are set here');
+  test.setTimeout(150_000);
+  const sql = db();
+  const people = await Promise.all([mkUser(sql, 'admin'), mkUser(sql, 'va')]);
+  try {
+    for (const [who, home] of [[people[0]!, '/admin'], [people[1]!, '/staff']] as const) {
+      const page = await phonePage(browser); await signIn(page, who.email, home);
+      for (const width of [320, 375, 768, 1440]) {
+        await page.setViewportSize({ width, height: 800 });
+        await page.goto(home, { waitUntil: 'networkidle' });
+        await noOverflow(page);
+        const shown = await page.locator('.ad__who .gd-frame-links > *').evaluateAll((els) => els.filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; }).length);
+        expect(shown, `${home} at ${width}: items on the bar`).toBeLessThanOrEqual(3);
+        await openAccountMenu(page);
+        const panel = page.getByTestId('account-menu-panel');
+        await panelFits(page, panel);
+        await expect(panel.getByTestId('guide-link')).toBeVisible();
+        await labelsInButtons(page);
+        await noOverflow(page);
+        await page.keyboard.press('Escape');
+        await expect(page.getByTestId('account-menu-button')).toHaveAttribute('aria-expanded', 'false');
+      }
+      await page.context().close();
+    }
   } finally {
     for (const p of people) {
       await sql`delete from users where id = ${p.id}`.catch(() => undefined);

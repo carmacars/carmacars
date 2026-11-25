@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
-import { acceptCookies, db, noOverflow, strongSign, watch } from './helpers';
+import { acceptCookies, db, noOverflow, strongSign, watch, openAccountMenu } from './helpers';
 
 // Migration 0044 end to end: the guide of every portal (the Guide link, the first-visit banner, the page with its
 // contents, search and PDF); a payment received by e-Transfer and cheque recorded by an Admin, then voided; a signature
@@ -72,7 +72,7 @@ for (const portal of ['renter', 'owner', 'admin', 'va', 'field', 'investor'] as 
     const errors = watch(page);
     await signIn(page, u.email, '');
     await page.goto(HOME[portal], { waitUntil: 'networkidle' });
-    await expect(page.getByTestId('guide-link').first()).toBeVisible();
+    await expect(page.getByTestId('guide-link').first()).toBeAttached();
     await expect(page.getByTestId('guide-banner')).toContainText('New here? Read the');
     await check(page, `${portal} home with the banner`);
 
@@ -83,12 +83,12 @@ for (const portal of ['renter', 'owner', 'admin', 'va', 'field', 'investor'] as 
     const other = await ctx(browser, phone);
     await signIn(other, u.email, '');
     await other.goto(HOME[portal], { waitUntil: 'networkidle' });
-    await expect(other.getByTestId('guide-link').first()).toBeVisible();
+    await expect(other.getByTestId('guide-link').first()).toBeAttached();
     await expect(other.getByTestId('guide-banner')).toHaveCount(0);
     await other.context().close();
 
     // the guide page: chapters with numbered steps, contents (a sidebar on a desktop, collapsible on a phone), search, PDF
-    await page.getByTestId('guide-link').first().click();
+    await openAccountMenu(page); await page.getByTestId('guide-link').first().click();
     await page.waitForURL((x) => x.pathname.endsWith('/guide'), { timeout: 20_000 });
     await expect(page.getByTestId('guide')).toBeVisible();
     expect(await page.locator('[data-gd-section]').count()).toBeGreaterThan(2);

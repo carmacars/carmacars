@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { acceptCookies, db } from './helpers';
+import { acceptCookies, db, openAccountMenu } from './helpers';
 
 test('create an account, sign out, sign in, reset the password by email', async ({ page }, info) => {
   const email = `account.${info.project.name}.${Date.now()}@example.test`;
@@ -23,7 +23,7 @@ test('create an account, sign out, sign in, reset the password by email', async 
   const u = await sql`select u.id, r.role::text from users u join user_roles r on r.user_id = u.id where u.email = ${email}`;
   expect(u[0]?.role).toBe('renter');
   // sign out and back in
-  await page.getByRole('button', { name: 'Sign out' }).click();
+  await openAccountMenu(page); await page.getByRole('button', { name: 'Sign out' }).click();
   await page.waitForURL((url) => url.pathname === '/');
   await page.goto('/sign-in');
   await page.locator('#si-email').fill(email);
@@ -35,7 +35,7 @@ test('create an account, sign out, sign in, reset the password by email', async 
   await page.waitForURL(/\/account/);
   await expect(page.getByTestId('account-email')).toHaveText(email);
   // reset by email (the local stand-in for Supabase Auth keeps the email in local_auth.mailbox)
-  await page.getByRole('button', { name: 'Sign out' }).click();
+  await openAccountMenu(page); await page.getByRole('button', { name: 'Sign out' }).click();
   await page.goto('/reset-password');
   await page.locator('#rp-email').fill(email);
   await page.getByRole('button', { name: 'Send the link' }).click();

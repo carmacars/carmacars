@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { aiAllowanceLock, db, noOverflow } from './helpers';
+import { aiAllowanceLock, db, noOverflow, openAccountMenu } from './helpers';
 
 // Migration 0080 end to end, at 375 and 1440, with the deterministic stub model (LLM_PROVIDER=fake). The usage guard:
 // Workers AI used up shows the card on Admin > To do, stopped for today and never paid (0133); images used up show
@@ -55,7 +55,7 @@ async function neurons(sql: Sql, n: number) {
   await sql`select app.job_usage_refresh()`;
 }
 async function openAssistant(page: Page) {
-  await page.getByTestId('assistant-open').first().click();
+  await openAccountMenu(page); await page.getByTestId('assistant-open').first().click();
   await expect(page.getByTestId('assistant-panel')).toBeVisible();
 }
 async function askIt(page: Page, text: string) {

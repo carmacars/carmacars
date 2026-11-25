@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { aiAllowanceLock, db, noOverflow } from './helpers';
+import { aiAllowanceLock, db, noOverflow, openAccountMenu } from './helpers';
 
 // Migration 0133 end to end, at 375 and 1440, with the deterministic stub model (LLM_PROVIDER=fake; a JSON step typed
 // in the panel is the model's answer). The assistant makes an offer: the card shows the customer, the car, the dates,
@@ -78,7 +78,7 @@ test('Assistant: an offer comes as a card with the full summary, runs only on Co
   const email = `nora.${tag()}@example.test`;
   const page = await ctx(browser);
   await signIn(page, cs.email, '/staff');
-  await page.getByTestId('assistant-open').first().click();
+  await openAccountMenu(page); await page.getByTestId('assistant-open').first().click();
   await expect(page.getByTestId('assistant-panel')).toBeVisible();
 
   const step = (extra: Record<string, unknown> = {}) => JSON.stringify({ action: 'tool', tool: 'create_offer', args: { car: k5.plate, pickup_at: `${day(5)} 10:00`, return_at: `${day(7)} 10:00`,
@@ -132,7 +132,7 @@ test('Assistant: the day\'s free allowance used up says so and when it is back; 
   await neurons(sql, 'e2e_usage', 10_400);
   const page = await ctx(browser);
   await signIn(page, a.email, '/admin');
-  await page.getByTestId('assistant-open').first().click();
+  await openAccountMenu(page); await page.getByTestId('assistant-open').first().click();
   await askIt(page, 'What needs doing today?');
   await expect(page.getByTestId('assistant-paused')).toContainText(/^Today's free AI allowance is used up \(1\d,\d{3} of 10,000 neurons\)\. The assistant is back at midnight, Toronto time\./);
   await check(page, 'assistant used up');

@@ -35,7 +35,7 @@ test('shift feed: the card renders on the field jobs board and its link answers 
   await page.goto('/admin/field-jobs', { waitUntil: 'networkidle' });
   const card = page.getByTestId('shift-feed-all');
   await expect(card).toBeVisible();
-  await expect(card.getByRole('heading', { name: 'Add shifts to Google Calendar' })).toBeVisible();
+  await expect(card.getByRole('heading', { name: 'Add shifts, townhalls and interviews to Google Calendar' })).toBeVisible();
   await expect(card).toContainText('every few hours');
   await card.getByTestId('shift-feed-create-all').click();
   const input = card.getByTestId('shift-feed-url-all');

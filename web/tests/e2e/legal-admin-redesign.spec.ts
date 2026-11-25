@@ -237,11 +237,11 @@ test('sample photos: a listing without photos shows a captioned sample, staff se
     const pub = await ctx(browser);
     await pub.goto(`/cars/${slug}`, { waitUntil: 'networkidle' });
     await acceptCookies(pub);
-    // r50 (3701): no passed studio render yet: one "Photos coming soon" studio photo; never the car's own photos or a drawn sample
-    await expect(pub.getByTestId('photos-coming-soon').first()).toBeVisible();
-    await expect(pub.locator('.gallery__track img')).toHaveCount(1);
-    await expect(pub.locator('.gallery__track img').first()).toHaveAttribute('src', /coming-soon|r48\/plates/);
-    await expect(pub.locator('img[src*="/sample-photos/"]')).toHaveCount(0);
+    // R50 hotfix (5064): no passed studio render yet: the photos as before release 50 (a sample photo here), never the
+    // empty studio plate
+    await expect(pub.getByTestId('photos-coming-soon')).toHaveCount(0);
+    await expect(pub.locator('.gallery__track img').first()).toBeVisible();
+    await expect(pub.locator('.gallery__track img').first()).not.toHaveAttribute('src', /coming-soon|r48\/plates/);
     await check(pub, 'a car page with a sample photo');
     await shot(pub, 'car-sample');
     // staff see "Using sample photos"

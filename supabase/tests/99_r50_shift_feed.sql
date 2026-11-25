@@ -50,7 +50,7 @@ select 'detail', test.id('vehicle:SFDV'), (select a1 from sfd_s) + interval '1 h
 
 create temp table sfd_ics as select public.server_shift_feed((select tok from sfd_t)) as t;
 select test.ok('a calendar answers', (select t from sfd_ics) like E'BEGIN:VCALENDAR\r\n%' and (select t from sfd_ics) like E'%END:VCALENDAR\r\n');
-select test.ok('METHOD:PUBLISH with its name', (select t from sfd_ics) like '%METHOD:PUBLISH%X-WR-CALNAME:CarmaCars field shifts%');
+select test.ok('METHOD:PUBLISH with its name', (select t from sfd_ics) like '%METHOD:PUBLISH%X-WR-CALNAME:CarmaCars shifts%townhalls and interviews%');
 select test.ok('Toronto time with its zone', (select t from sfd_ics) like '%BEGIN:VTIMEZONE%TZID:America/Toronto%'
   and (select t from sfd_ics) like '%DTSTART;TZID=America/Toronto:' || app.ics_local((select a1 from sfd_s)) || '%');
 select test.ok('the local start is 10:00', app.ics_local((select a1 from sfd_s)) like '%T100000');
@@ -77,11 +77,11 @@ select test.ok('Fleet''s link is the staff board', replace(public.server_shift_f
 select app.shift_feed_set(test.id('sfd_field'), '{"scope":"mine","action":"create"}');
 create temp table sfd_mine as select public.server_shift_feed(app.shift_feed_state(test.id('sfd_field')) #>> '{feeds,0,token}') as t;
 select test.ok('their claimed shift is in it', (select t from sfd_mine) like '%UID:shift-' || test.id('sfd_plan1') || '@carmacars.ca%');
-select test.ok('the open shift is not', (select t from sfd_mine) not like '%Field shift: Open%' and (select count(*) from regexp_matches((select t from sfd_mine), 'BEGIN:VEVENT', 'g')) = 1);
+select test.ok('the open shift is not', (select t from sfd_mine) not like '%Field shift: Open%' and (select count(*) from regexp_matches((select t from sfd_mine), 'UID:shift-', 'g')) = 1); -- 5065: the townhalls are on it too
 select test.ok('the tasks given to them', (select t from sfd_mine) like '%Tasks given to you: 1%');
 select test.ok('the link is My shifts', replace((select t from sfd_mine), E'\r\n ', '') like '%URL:https://carmacars.ca/staff/field/shifts%');
 select app.shift_feed_set(test.id('sfd_field2'), '{"scope":"mine","action":"create"}');
-select test.ok('someone else''s feed has no event', public.server_shift_feed(app.shift_feed_state(test.id('sfd_field2')) #>> '{feeds,0,token}') not like '%BEGIN:VEVENT%');
+select test.ok('someone else''s feed has no event', public.server_shift_feed(app.shift_feed_state(test.id('sfd_field2')) #>> '{feeds,0,token}') not like '%UID:shift-%'); -- 5065: only the townhalls
 
 -- ================================================================ regenerate and revoke
 select app.shift_feed_set(test.id('sfd_admin'), '{"scope":"all","action":"regenerate"}');
