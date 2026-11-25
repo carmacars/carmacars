@@ -97,12 +97,13 @@ ship() {
   vps_ssh "sudo bash $t/remote.sh deploy; rc=\$?; sudo rm -rf $t; exit \$rc" || die "The server did not take the deploy (see the lines above); the Cloudflare Worker is untouched"
   acme_window "$hosts"
   local first="${hosts%%,*}" i code=""
-  for i in $(seq 1 40); do
+  for i in $(seq 1 60); do
     code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "https://$first/api/health" || true)
     [ "$code" = 200 ] && break
     sleep 6
   done
-  [ "$code" = 200 ] || die "https://$first/api/health answered ${code:-nothing} after 4 minutes: check the hostname's A record points at the server, SSL is Full (strict) and the Origin CA certificate is in place (the lines above)"
+  [ "$code" = 200 ] || tls_diag "$first"
+  [ "$code" = 200 ] || die "https://$first/api/health answered ${code:-nothing} after 6 minutes: check the hostname's A record points at the server, SSL is Full (strict) and the Origin CA certificate is in place (the lines above)"
   if [ -n "${GITHUB_ACTIONS:-}" ]; then echo "::notice title=deploy-vps::$tag is running on the server and https://$first/api/health answers 200 (cron: $cron). DNS for the public site is unchanged."; fi
   ai_state
 }
@@ -152,6 +153,14 @@ acme_restore() { local h; for h in $ACME_WIN; do "$HERE/cf-site.sh" proxy "$h" o
 has_cert() { # hostname: a certificate a browser trusts for it, 30 days or more left, served by Caddy on the server
   vps_ssh "echo | timeout 10 openssl s_client -connect 127.0.0.1:443 -servername '$1' -verify_hostname '$1' -verify_return_error 2>/dev/null | openssl x509 -noout -checkend 2592000" > /dev/null 2>&1
 }
+tls_diag() { # hostname: what Caddy loaded and logged about its certificate (no secret in any of it)
+  local h="${1%% *}"
+  vps_ssh "set +e; S=/opt/carmacars/supabase
+    echo \"[tls] Caddyfile imports the site folder: \$(sudo grep -c '^import sites/' \$S/caddy/Caddyfile)\"
+    echo \"[tls] hosts in Caddy's running config: \$(sudo docker exec supabase-caddy wget -qO- http://localhost:2019/config/apps/http/servers 2>/dev/null | jq -rc '[.. | .host? // empty | .[]] | unique | join(\" \")')\"
+    echo | timeout 10 openssl s_client -connect 127.0.0.1:443 -servername '$h' 2>&1 | grep -E '^(subject|issuer)=|Verify return code|alert' | sed 's/^/[tls] /'
+    sudo docker logs supabase-caddy --since 40m 2>&1 | grep -vF 'http.log.access' | grep -iE 'tls|acme|certificate|$h' | tail -30 | cut -c1-600" || true
+}
 acme_window() {
   local hosts="$1" h n i left
   [ "${WEB_PROXY:-cloudflare}" = cloudflare ] || return 0
@@ -175,7 +184,7 @@ acme_window() {
   acme_restore; trap - EXIT
   if [ -n "$left" ]; then
     warn_ "TLS: no Let's Encrypt certificate after 10 minutes for:$left (Caddy's lines below)"
-    vps_ssh "sudo docker logs supabase-caddy --since 30m 2>&1 | grep -iE 'acme|challenge|obtain|certificate|tls' | grep -iE 'error|fail|denied|limit|invalid' | tail -25" || true
+    tls_diag "${left# }"
   else
     say "TLS: Let's Encrypt certificate in place; records proxied again"
     sleep 15

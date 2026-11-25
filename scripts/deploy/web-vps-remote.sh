@@ -101,6 +101,16 @@ caddy_site() {
     sleep 5
     say "Caddy recreated with the site folder"
   fi
+  # r49.1: a server whose Caddyfile lost the import line (an older copy) never loads the site file, so Caddy never asks
+  # for its certificate (525). This commit's Caddyfile, checked with the same image first, is put back.
+  if ! grep -q '^import sites/\*\.caddy' "$S/caddy/Caddyfile"; then
+    if docker run --rm -e API_HOSTNAME=api.example.com -e ACME_EMAIL=admin@example.com -v "$T/Caddyfile:/etc/caddy/Caddyfile:ro" \
+         "$(docker inspect -f '{{.Config.Image}}' supabase-caddy)" caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile > /dev/null 2>&1; then
+      cp -p "$S/caddy/Caddyfile" "/opt/carmacars/state/Caddyfile.$(date -u +%Y%m%dT%H%M%SZ)" 2>/dev/null || true
+      install -m 644 "$T/Caddyfile" "$S/caddy/Caddyfile"
+      say "the server's Caddyfile had no import of the site folder: this commit's put back"
+    else say "the server's Caddyfile has no import of the site folder and this commit's does not validate"; return 1; fi
+  fi
   # r48 (3070): the Cloudflare Origin CA certificate. A new one (sent by this deploy) is installed only when its key matches;
   # the site file's origin-tls block is dropped (Let's Encrypt over HTTP-01) when the server has no matching pair
   local O="$S/caddy/sites/origin"
