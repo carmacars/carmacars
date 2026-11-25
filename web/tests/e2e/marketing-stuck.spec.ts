@@ -44,8 +44,11 @@ async function mkCar(sql: Sql, admin: string) {
   expect(paths).toHaveLength(3);
   for (const [i, shot] of ['front_left', 'rear', 'left'].entries()) {
     // plate checked (no plate in the shot): a photo with an unchecked plate is kept private (0070), so the kit would have none
-    await sql`insert into vehicle_photos (vehicle_id, angle, shot_type, original_path, processed_path, status, sort_order, is_cover, alt_text, variants, background_status, is_public, approved_at, plate_status)
-              values (${car}, ${shot}, ${shot}, ${`original/mk/${car}/${i}.jpg`}, ${paths[i]!}, 'approved', ${i}, ${i === 0}, ${`2023 Toyota ${model}, photo ${i + 1}`}, ${sql.json([])}, 'done', true, now(), 'not_visible')`;
+    // 3701: only studio renders that passed the gate are public, so the kit's photos are renders
+    await sql`insert into vehicle_photos (vehicle_id, angle, shot_type, original_path, processed_path, status, sort_order, is_cover, alt_text, variants, background_status, is_public, approved_at, plate_status,
+                                          r48, ai_generated, r45, width, height)
+              values (${car}, ${shot}, ${shot}, ${`original/mk/${car}/${i}.jpg`}, ${paths[i]!}, 'approved', ${i}, ${i === 0}, ${`2023 Toyota ${model}, photo ${i + 1}`}, ${sql.json([])}, 'done', true, now(), 'not_visible',
+                      true, true, jsonb_build_object('state', 'done', 'spec', app.photo_r48_spec(), 'gate', jsonb_build_object('pass', true, 'spec', app.photo_r48_spec())), 1800, 1200)`;
   }
   return { car, model, paths };
 }

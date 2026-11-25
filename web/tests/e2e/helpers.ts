@@ -407,3 +407,43 @@ export function uniquePhone(): string {
   const n = String(Math.floor(Math.random() * 1e7)).padStart(7, '0');
   return `289-${n.slice(0, 3).replace(/^[01]/, '5')}-${n.slice(3)}`;
 }
+
+/** 3701 (release 50): the public site shows only studio renders that passed the studio gate, and never an example car's
+ *  photos. A test that needs a car with photos on the site takes the `pick`-th published seed car (by slug; r48-an.spec
+ *  takes the first, so pick from 1), makes it a real car and gives it a live render of every standard view (the seed's
+ *  own drawings), then asks for the public rebuild. The returned function puts the car back as the seed had it. */
+export async function studioCar(sql: ReturnType<typeof db>, pick: number, baseURL?: string): Promise<{ id: string; slug: string; restore: () => Promise<void> }> {
+  const [car] = await sql`select v.id, l.slug from vehicles v join vehicle_listings l on l.vehicle_id = v.id and l.status = 'published'
+                           where v.is_sample and exists (select 1 from vehicle_photos p where p.vehicle_id = v.id and p.processed_path like 'vehicles/%-side.svg')
+                           order by l.slug offset ${pick} limit 1`;
+  if (!car) throw new Error('the seed has no published car with photos');
+  const id = car.id as string;
+  const gate = sql`jsonb_build_object('state', 'done', 'spec', app.photo_r48_spec(), 'gate', jsonb_build_object('pass', true, 'spec', app.photo_r48_spec(), 'reasons', '[]'::jsonb))`;
+  await sql`update vehicles set is_sample = false where id = ${id}`;
+  await sql`delete from vehicle_photos where vehicle_id = ${id} and r48`;
+  await sql`insert into vehicle_photos (vehicle_id, angle, shot_type, original_path, processed_path, status, is_public, r48, ai_generated, background_status, plate_status, sort_order, r45, width, height)
+            select ${id}, a, a, 'vehicles/original/e2e/' || a || '.jpg',
+                   coalesce((select processed_path from vehicle_photos where vehicle_id = ${id} and shot_type = a and not r48 limit 1),
+                            (select processed_path from vehicle_photos where vehicle_id = ${id} and shot_type = 'left' and not r48 limit 1)),
+                   'approved', true, true, true, 'done', 'not_visible', -100, ${gate}, 1800, 1200
+              from unnest(app.photo_r45_angles()) a`;
+  await sql`select app.listing_cache_refresh(array[${id}::uuid])`;
+  await rebuild(baseURL);
+  return { id, slug: car.slug as string, restore: async () => {
+    await sql`delete from vehicle_photos where vehicle_id = ${id} and r48`;
+    await sql`delete from site_cutouts where vehicle_id = ${id}`;
+    await sql`delete from photo_render_notified where vehicle_id = ${id}`;
+    await sql`update vehicles set is_sample = true where id = ${id}`;
+    await sql`select app.listing_cache_refresh(array[${id}::uuid])`;
+    await rebuild(baseURL);
+  } };
+}
+/** The public rebuild (the fleet page is kept an hour), with the listing worker's token. */
+async function rebuild(baseURL?: string) {
+  if (!baseURL) return;
+  const request = await (await import('@playwright/test')).request.newContext({ baseURL });
+  const env = (await import('node:fs')).readFileSync(path.join(process.cwd(), '.env.local'), 'utf8');
+  const token = (await import('node:crypto')).createHmac('sha256', /^LINK_SIGNING_KEY=(.*)$/m.exec(env)![1]!.trim()).update('carmacars-listing-worker-v1').digest('hex');
+  await request.post('/api/jobs/public-rebuild', { headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, data: {} });
+  await request.dispose();
+}

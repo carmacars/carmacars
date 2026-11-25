@@ -1,11 +1,17 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { acceptCookies, db, watch } from './helpers';
+import { acceptCookies, db, studioCar, watch } from './helpers';
 
 // The car card's photos (src/lib/card-photos.ts, docs/changes/2026-11-06-stale-chunks-car-card-photos.md): a mouse
 // resting on a card shows the car's other photos in turn and leaving puts the cover back; a swipe on a phone moves
 // through them and does not open the car, a tap still does; under reduced motion nothing cycles. Motion is on here
 // (every other test runs with reduced motion, playwright.config.ts).
 test.use({ contextOptions: { reducedMotion: 'no-preference' } });
+
+// 3701: example cars show one "Photos coming soon" photo, so a real car with its studio renders is put on the site here
+const carSql = db();
+let restore: (() => Promise<void>) | null = null;
+test.beforeAll(async ({}, ti) => { restore = (await studioCar(carSql, 1, ti.project.use.baseURL)).restore; });
+test.afterAll(async () => { if (restore) await restore(); await carSql.end(); });
 
 const firstCard = (page: Page) => page.locator('#fleet-grid .car-card:has(.car-card__deck)').first();
 // Root cause of the swipe test's flakes (r35): the card arrives with the page's reveal (Effects.tsx: .rv slides it up

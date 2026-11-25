@@ -155,7 +155,8 @@ for (const variant of ['plain', 'invitation'] as const) {
     // exactly: the sign-in service's confirmation, and the application receipt; no account email from the app
     expect((await mailbox(sql, email)).map((m) => m.subject)).toEqual(['Confirm your CarmaCars account']);
     expect(await accountEmails(sql, email)).toEqual([]);
-    expect((await outbox(sql, email)).map((o) => o.code)).toEqual(['owner_application_received']);
+    // sign first (3800): a complete profile gets its master agreement at once, and the owner is told it is ready to sign
+    expect((await outbox(sql, email)).map((o) => o.code).sort()).toEqual(['owner_application_received', 'owner_master_agreement_ready']);
     // the confirmation link lands in the owner portal, signed in
     const [mail] = await mailbox(sql, email);
     await page.goto(local(mail!.link));

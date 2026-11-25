@@ -57,7 +57,7 @@ test('a real car without photos looks like a sample car', async ({ page, request
     expect(real.menu).toEqual(sample.menu);
     expect(real.heading).toEqual(sample.heading);
     expect(real.keyspecs).toEqual(sample.keyspecs);
-    expect(real.gallery).toBe(8);
+    expect(real.gallery).toBe(1);   // 3701: one "Photos coming soon" photo until a studio render passes
     expect(real.specRows.filter((x) => !['Consumption', 'Luggage'].includes(x))).toEqual(sample.specRows.filter((x) => !['Consumption', 'Luggage'].includes(x)));
 
     // 0104: no mark on a car without a twin; only real published cars count as twins (never a sample Malibu), so a

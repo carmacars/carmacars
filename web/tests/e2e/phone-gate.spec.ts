@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { acceptCookies, db, noOverflow } from './helpers';
+import { acceptCookies, db, noOverflow, studioCar } from './helpers';
 
 // The phone number box (migration 0280) end to end, at 375 and 1440: what a crawler gets (every photo in the HTML and
 // the JSON-LD, no box), dates picked freely, the full availability behind the box with the code by text (the fake line;
@@ -47,7 +47,7 @@ async function codeFor(sql: Sql, phone: string): Promise<string> {
  *  full availability is), read from its page as a visitor sees it. A car listed but not taking requests has no box. */
 async function carWithPhotos(page: Page, min: number): Promise<{ slug: string; photos: number }> {
   const list = await (await page.request.get('/cars')).text();
-  const slugs = [...new Set([...list.matchAll(/href="\/cars\/([a-z0-9-]+)"/g)].map((m) => m[1]!))].slice(0, 25);
+  const slugs = [...new Set([studioSlug, ...[...list.matchAll(/href="\/cars\/([a-z0-9-]+)"/g)].map((m) => m[1]!)].filter(Boolean))].slice(0, 25);
   for (const slug of slugs) {
     const html = await (await page.request.get(`/cars/${slug}`)).text();
     const n = Number(/aria-label="1 of (\d+)"/.exec(html)?.[1] ?? 0);
@@ -84,6 +84,12 @@ async function setBoxes(browser: Browser, sql: Sql, admin: { email: string }, va
 }
 
 test.describe.configure({ mode: 'serial' });
+// 3701: example cars show one "Photos coming soon" photo, so a real car with its nine studio renders is put on the site
+const carSql = db();
+let restore: (() => Promise<void>) | null = null;
+let studioSlug = '';
+test.beforeAll(async ({}, ti) => { const c = await studioCar(carSql, 2, ti.project.use.baseURL); restore = c.restore; studioSlug = c.slug; });
+test.afterAll(async () => { if (restore) await restore(); await carSql.end(); });
 
 test('the phone number box: crawlers see every photo; dates stay open; full availability and more photos after the number (code by text); switches off', async ({ browser }, info) => {
   test.setTimeout(300_000);

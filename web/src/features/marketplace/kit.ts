@@ -138,8 +138,10 @@ export function buildKit(c: CarFacts, r: Rules, extra: KitExtra | undefined, s: 
   const warnings: string[] = [];
   if (!c.taking) blockers.push('Not taking requests on the site');
   if (!price) blockers.push('No daily rate');
-  if (!photos.length) blockers.push(c.photos.some((p) => p.sample) ? 'Only sample photos: take real photos first' : 'No photos');
-  else if (photos.length < 5) warnings.push(`Only ${photos.length} real photos: listings with 8 or more get more messages`);
+  // 3701: only studio renders that passed the gate are public; a car without one shows the "Photos coming soon" placeholder
+  if (!photos.length) blockers.push(c.photos.some((p) => (p as { placeholder?: boolean }).placeholder) ? 'No studio photos yet: its renders are still being made'
+    : c.photos.some((p) => p.sample) ? 'Only sample photos: take real photos first' : 'No photos');
+  else if (photos.length < 5) warnings.push(`Only ${photos.length} photos: listings with 8 or more get more messages`);
   if (km === null) warnings.push('No odometer reading on file: read it from the odometer photo or ask fleet');
   if (extra?.supply === 'partner') warnings.push('A partner\'s car: post our own and co-hosted cars first');
   const ext = colour(c.colour);

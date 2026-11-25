@@ -154,18 +154,21 @@ select test.eq('the preview: both cars from the application, no fee, no number, 
                                 || ':' || (s ->> 'onboarding_method') || ':' || (s ->> 'vehicle_number'), ',' order by s ->> 'vehicle_number') from jsonb_array_elements(f -> 'schedules') s)
      from pf_prev),
   'true/2/2/pending:pending:none:co_registrant:1,pending:pending:none:none:2');
-select test.eq('the preview: the two agreements, with no number, not open for signature',
-  (select string_agg((a ->> 'kind') || ':' || (a ->> 'status') || ':' || coalesce(a ->> 'agreement_number', 'no number'), ',' order by a ->> 'kind') from pf_prev, jsonb_array_elements(f -> 'agreements') a),
-  'enrollment:preview:no number,title_holding:preview:no number');
+-- sign first (3800): an owner with a complete profile gets the master agreement (numbered, a draft to sign) at signup;
+-- the title agreement is still a preview
+select test.ok('the preview: the master agreement made at signup with its number (sign first, 3800), the title agreement still a preview',
+  (select string_agg((a ->> 'kind') || ':' || (a ->> 'status') || ':' || coalesce(a ->> 'agreement_number', 'no number'), ',' order by a ->> 'kind') from pf_prev, jsonb_array_elements(f -> 'agreements') a)
+    ~ '^enrollment:draft:EA-[0-9]+,title_holding:preview:no number$',
+  (select string_agg((a ->> 'kind') || ':' || (a ->> 'status') || ':' || coalesce(a ->> 'agreement_number', 'no number'), ',' order by a ->> 'kind') from pf_prev, jsonb_array_elements(f -> 'agreements') a));
 select test.eq('the owner''s own name and address are in it', (select (f #>> '{owner,signer_name}') || '/' || (f #>> '{owner,address}') from pf_prev), 'Morgan Example/10 Example St, Toronto, ON M5V 1A1');
 select test.eq('the signing facts are unchanged: nothing to sign before approval',
   jsonb_array_length(public.server_owner_agreement_facts(test.id('owner:pf_new_owner'), test.id('pf_new_owner')) -> 'schedules'), 0);
-select test.throws('signing stays closed until an Admin sets the terms',
+select test.lives('sign first (3800): the master agreement opens for signature before any terms are set',
   format($$select app.owner_open_agreements(%L, %L, '[{"key": "enrollment", "template_version": "v", "sha256": "%s", "storage_path": "owners/x/a.pdf"}]'::jsonb)$$,
-         test.id('owner:pf_new_owner'), test.id('pf_new_owner'), repeat('a', 64)), 'no enrollment agreement yet');
+         test.id('owner:pf_new_owner'), test.id('pf_new_owner'), repeat('a', 64)));
 select test.throws('another person cannot read the preview', format('select app.owner_agreement_preview_facts(%L, %L)', test.id('owner:pf_new_owner'), test.id('pf_line')), 'Only the owner');
-select test.eq('the owner''s checklist points to the preview', (select i ->> 'detail' from jsonb_array_elements(app.my_signing_checklist(test.id('pf_new_owner')) -> 'items') i where i ->> 'code' = 'enrollment'),
-  'Filled in for you to read now. You sign once CarmaCars approves your terms.');
+select test.eq('the owner''s checklist asks for the signature now (sign first, 3800)', (select i ->> 'detail' from jsonb_array_elements(app.my_signing_checklist(test.id('pf_new_owner')) -> 'items') i where i ->> 'code' = 'enrollment'),
+  'Waiting for the owner''s signature');
 select test.eq('an owner with every car approved: no preview', public.server_owner_agreement_preview_facts(test.id('owner:pf_ind'), test.id('pf_ind')) ->> 'preview', 'false');
 select test.ok('privileges: the preview and the new functions are the service role''s',
   not has_function_privilege('authenticated', 'public.server_owner_agreement_preview_facts(uuid, uuid)', 'execute')

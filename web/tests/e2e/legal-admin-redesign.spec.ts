@@ -261,7 +261,8 @@ test('sample photos: a listing without photos shows a captioned sample, staff se
     // a real photo approved: the sample is gone, nothing else to do
     for (const ph of await sql`select id from vehicle_photos where vehicle_id = ${src!.id} and status = 'approved' and is_public`) await cloneRow(sql, 'vehicle_photos', ph.id as string, { id: randomUUID(), vehicle_id: id, plate_status: 'not_visible' });
     // (the public page is rebuilt when staff approve the photos in the listing review; the data and staff screens change at once)
-    expect((await sql`select app.public_listing_row(${id}::uuid) ->> 'sample_photos' s`)[0]!.s).toBe('false');
+    // 3701: the car no longer uses sample photos; its own photos stay off the public page until a studio render passes
+    expect((await sql`select app.vehicle_uses_sample_photos(${id}::uuid) s`)[0]!.s).toBe(false);
     await page.goto(`/admin/vehicles/${id}`, { waitUntil: 'networkidle' });
     await expect(page.locator('h1, .ad-head').first()).not.toContainText('Using sample photos');
     await page.context().close(); await pub.context().close();

@@ -1,6 +1,7 @@
 import Link from '@/components/Link';
 import { Act } from '@/features/admin/Act';
 import { whoWaits, type SignStatus } from './path';
+import './owner-path.css';
 
 // Sign first (r50, 3800): on the owner pages of Admin and staff (Fleet, customer service) and on an application: what
 // still keeps this owner's cars from being approved, delivered or rented, each item with who it waits on, and one
@@ -10,8 +11,8 @@ export function SignGate({ status, refresh, testId = 'sign-gate' }: { status: Si
   const m = status.missing;
   return (
     <section className="pt-card stack" aria-labelledby={`${testId}-h`} data-testid={testId} data-missing={m.length}>
-      <div className="pt-card__head"><h2 className="d4" id={`${testId}-h`}>Agreements before cars</h2>
-        {status.master && <span className={`badge ${status.master.status === 'signed' ? 'badge--outline' : 'badge--red'}`}>{status.master.title} {status.master.number}: {status.master.status === 'signed' ? 'signed' : 'not signed'}</span>}</div>
+      <div className="pt-card__head sg-head"><h2 className="d4" id={`${testId}-h`}>Agreements before cars</h2>
+        {status.master && <span className={`badge sg-badge ${status.master.status === 'signed' ? 'badge--outline' : 'badge--red'}`}>{status.master.title} {status.master.number}: {status.master.status === 'signed' ? 'signed' : 'not signed'}</span>}</div>
       {m.length === 0
         ? <p className="small" data-testid={`${testId}-clear`}>Everything is signed: the master agreement and every car&apos;s Schedule A entry. Approval, delivery and handover go ahead.</p>
         : <>

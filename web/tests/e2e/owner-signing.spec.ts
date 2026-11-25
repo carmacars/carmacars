@@ -74,7 +74,8 @@ const upfront = async (sql: Sql, ownerId: string) => (await sql`select count(*):
 async function signFromHome(op: Page, name: string, where: string) {
   const errors = watch(op);
   await op.goto('/owner', { waitUntil: 'networkidle' });
-  await op.getByRole('link', { name: 'Check and sign' }).first().click();
+  // sign first (3800): the guided path's one button (Read and sign, or Confirm my cars) opens /owner/sign
+  await op.getByTestId('owner-path-cta').click();
   const t0 = Date.now();
   await op.waitForURL(/\/owner\/sign$/, { timeout: 20_000 });
   // the documents are readable at once, from their text

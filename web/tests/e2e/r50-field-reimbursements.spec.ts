@@ -79,7 +79,7 @@ test('whose money: chosen on the phone, owed back, declined with the reason, pai
   await sql`select app.fx_spend_add(${ann.id}::uuid, ${sql.json({ kind: 'gas', description: `Gas r50 ${t}`, amount_cents: 4000, hst_cents: 520, paid_with: 'own' })})`;
   await sql`select app.fx_spend_add(${ann.id}::uuid, ${sql.json({ kind: 'parking', description: `Parking r50 ${t}`, amount_cents: 1500, paid_with: 'own' })})`;
   await fp.goto('/staff/field/shifts#owed', { waitUntil: 'networkidle' });
-  await expect(fp.getByTestId('owed-to-you')).toContainText('$55.20');
+  await expect(fp.getByTestId('owed-to-you')).toContainText('$60.20');
   await expect(fp.getByTestId('owed-to-you')).toContainText('Waiting for Finance');
   await check(fp, 'My shifts, Owed to you');
 

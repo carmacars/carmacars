@@ -211,6 +211,10 @@ test('the content calendar: written, nothing queued until approved, approve sche
   await widths(page, 'content-calendar', info.project.name);
 
   const photo = drafts.find((d) => d.format === 'photo') ?? drafts.find((d) => d.format !== 'reel')!;
+  // 3701: only studio renders are public, and the seed's cars are examples, so a calendar written here may have no car photo
+  // for its photo post (approving it is refused, rightly): the post gets a photo, as editing it to a car with photos would
+  await sql`update social_drafts set photos = jsonb_build_array((select processed_path from vehicle_photos where processed_path like 'vehicles/%' and status = 'approved' order by processed_path limit 1))
+            where id = ${photo.id} and jsonb_array_length(photos) = 0`;
   const post = page.getByTestId(`cal-post-${photo.slot_no}`);
   await post.scrollIntoViewIfNeeded();
   await page.getByTestId(`cal-approve-${photo.slot_no}`).click();
