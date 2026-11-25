@@ -42,8 +42,11 @@ async function returnedBooking(sql: Sql, r: { id: string; email: string }, name:
                         and tstzrange(b.pickup_at - interval '1 day', b.return_at + interval '1 day') && tstzrange(${day(start - 1)}::timestamptz, ${day(start + 4)}::timestamptz))
       and not exists (select 1 from vehicle_calendar_blocks k where k.vehicle_id = v.id and k.removed_at is null and k.starts_at < ${day(start + 4)}::timestamptz and (k.ends_at is null or k.ends_at > ${day(start - 1)}::timestamptz))
     order by random() limit 1`;
+  // 10:00 Toronto time on both days (a fixed -04:00 offset made a trip over the March clock change 3 days and 1 hour: 4 billable days)
+  const [at] = await sql`select to_char(((${day(start)}::date + time '10:00') at time zone 'America/Toronto') at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as pickup,
+                                 to_char(((${day(start + 3)}::date + time '10:00') at time zone 'America/Toronto') at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') as ret`;
   const req = {
-    request_key: randomUUID(), vehicle_id: v!.id, pickup_at: `${day(start)}T10:00:00-04:00`, return_at: `${day(start + 3)}T10:00:00-04:00`, booking_type: 'standard',
+    request_key: randomUUID(), vehicle_id: v!.id, pickup_at: at!.pickup as string, return_at: at!.ret as string, booking_type: 'standard',
     pickup_method: 'collected', return_method: 'returned', pickup_location: { kind: 'our_location' }, return_location: { kind: 'our_location' }, coverage_option: 2, extras: {},
     renter: { email: r.email, full_name: name, mobile: '+16475550188', date_of_birth: '1988-03-14', licence_class: 'G', licence_issuer: 'ON' }, additional_drivers: [],
     consents: { terms: { accepted: true, version: 'e2e', text: 'I agree.' }, privacy: { accepted: true, version: 'e2e', text: 'I agree.' }, marketing: { opted_in: true, version: 'e2e', text: 'Yes.' } }, details: { source: 'e2e' }

@@ -134,6 +134,8 @@ export function cardPhotos(): () => void {
   const onMove = (e: PointerEvent) => {
     if (e.pointerType === 'touch') return;
     last = { x: e.clientX, y: e.clientY };
+    // a pointer already over a card when React hydrated it had no pointerover to start from (cardOf said no): the first move picks it up
+    if (!hovered && (e.target as Element | null)?.closest?.('.car-card')) onOver(e);
     if (hovered) scrub(hovered, e.clientX, e.clientY);
   };
 

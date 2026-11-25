@@ -27,6 +27,8 @@ async function widths(page: Page, name: string, show?: Locator) {
   for (const w of WIDTHS) {
     await page.setViewportSize({ width: w, height: w < 600 ? 812 : 900 });
     await expect.poll(() => page.evaluate(() => window.innerWidth)).toBe(w);
+    // the fonts and two frames after the resize: the header's width settles before it is measured (one CI run measured it mid-change)
+    await page.evaluate(() => document.fonts.ready.then(() => new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))));
     await noOverflow(page);
     if (show) await show.scrollIntoViewIfNeeded();
     if (process.env.OPS_SHOTS) await page.screenshot({ path: `${process.env.OPS_SHOTS}/${name}-${w}.png`, animations: 'disabled' });

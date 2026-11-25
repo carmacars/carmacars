@@ -14,7 +14,8 @@ test.use({ contextOptions: { reducedMotion: 'no-preference' } });
 const sql = db();
 let car = { id: '', slug: '' };
 let wasSample = false;
-const PUB = path.join(process.cwd(), 'public/_local/vehicle-public');
+// serve.mjs serves the local public bucket from .local-storage/vehicle-public (a file added to public/ after the build is a 404)
+const PUB = path.join(process.env.LOCAL_STORAGE_DIR ?? path.join(process.cwd(), '.local-storage'), 'vehicle-public');
 const SHOTS = ['left', 'front_left', 'front', 'rear_left', 'rear', 'dashboard', 'front_seats', 'rear_seats', 'trunk'];
 const BOX = { x: 0.15, y: 0.5, w: 0.7, h: 0.3 };
 // a studio render: the plate (a dark room) with a car standing in BOX, the view's name on the wall
@@ -128,12 +129,14 @@ test.describe('a mouse', () => {
     const m = (await box(page));
     await page.mouse.move(m.x + m.width / 2, m.y + m.height / 2);
     await expect(c).toHaveAttribute('data-drive', 'ready', { timeout: 8000 });
+    // the animations that start are recorded in the page as they do (the drive-off lasts 620 ms and the car page starts 140 ms in:
+    // asking the page afterwards, a round trip later, finds them finished or the page gone)
+    const seen: string[] = [];
+    await page.exposeFunction('__driveSeen', (n: string) => { seen.push(n); });
+    await c.evaluate((e) => e.addEventListener('animationstart', (ev) => (window as unknown as { __driveSeen: (n: string) => void }).__driveSeen((ev as AnimationEvent).animationName), true));
     const t0 = Date.now();
     await page.mouse.click(m.x + m.width / 2, m.y + m.height / 2);
-    await expect(c).toHaveClass(/is-driving/);
-    // the car's layers: the plate, the floor fading, the car through the matte, moving with transforms only
-    await expect.poll(() => c.locator('.car-drive').evaluate((d) => d.getAnimations({ subtree: true }).map((a) => (a as CSSAnimation).animationName)).catch(() => []),
-      { intervals: [20], timeout: 2000 }).toEqual(expect.arrayContaining(['car-drive-x', 'car-drive-y', 'car-drive-squat', 'car-drive-floor']));
+    await expect.poll(() => seen, { intervals: [20], timeout: 5000 }).toEqual(expect.arrayContaining(['car-drive-x', 'car-drive-y', 'car-drive-squat', 'car-drive-floor']));
     await page.waitForURL(new RegExp(`/cars/${car.slug}`), { timeout: 15_000 });
     expect(Date.now() - t0).toBeLessThan(15_000);
   });

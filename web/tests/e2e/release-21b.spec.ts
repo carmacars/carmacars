@@ -25,7 +25,7 @@ async function check(page: Page, where: string) {
 async function mkUser(sql: Sql, role: 'admin' | 'va', va?: string) {
   const id = randomUUID(); const email = `r21b.${role}.${Date.now()}.${tag()}@example.test`; const name = role === 'admin' ? 'Ada Admin' : `Casey Trainee ${tag()}`;
   await sql`insert into local_auth.users (id, email, password_hash) values (${id}, ${email}, ${hash(PW)})`;
-  await sql`insert into users (id, email, full_name) values (${id}, ${email}, ${name})`;
+  await sql`insert into users (id, email, full_name, phone) values (${id}, ${email}, ${name}, '+1 416 555 0142')`;
   await sql`insert into user_roles (user_id, role) values (${id}, ${role})`;
   if (role === 'va') await sql`insert into staff_profiles (user_id, home_address, home_postal_code, staff_type, va_function, single_limit_cents) values (${id}, '1 Test Lane, Testville', 'X9X 9X9', 'va', ${va!}, 50000)`;
   return { id, email, name };
