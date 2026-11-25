@@ -78,13 +78,15 @@
   --ui-track: var(--grey-100);
   --ui-shadow: 0 1px 0 rgb(0 0 0 / 0.03), 0 10px 28px -22px rgb(0 0 0 / 0.35);
   --ui-ok: #1F7A3A;
+  --ui-ok-on-ink: #5BD08A;   /* success on black (10:1) */
+  --ui-warn-on-ink: #F5B94A; /* warning on black */
 
   /* elevation: used only for things that float */
   --shadow-float: 0 18px 50px -12px rgb(0 0 0 / 0.45);
   --shadow-bar: 0 -1px 0 var(--grey-200), 0 -12px 30px -18px rgb(0 0 0 / 0.35);
 
   /* motion */
-  --t-1: 120ms; --t-2: 220ms; --t-3: 420ms; --t-4: 800ms;
+  --t-1: 120ms; --t-2: 220ms; --t-3: 280ms; --t-4: 300ms; /* every UI move 300 ms or less (the owner's design rules) */
   --ease: cubic-bezier(0.2, 0.7, 0.1, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
 

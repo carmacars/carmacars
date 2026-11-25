@@ -136,7 +136,7 @@ export function CallRoom({ join, title, slides, side, sideTitle = 'Details', liv
       </div>
       {error && <p className="alert alert--error" role="alert" data-testid="call-error"><span>{error}</span></p>}
       <div className="row">
-        <button type="button" className="btn btn--primary" onClick={() => void start()} disabled={phase === 'joining'} title={phase === 'joining' ? 'Joining the call' : undefined} data-testid="call-join" data-guide="call-join">{phase === 'joining' ? 'Joining...' : 'Join the call'}</button>
+        <button type="button" className="btn btn--primary" onClick={() => void start()} disabled={phase === 'joining'} aria-busy={phase === 'joining'} title={phase === 'joining' ? 'Joining the call' : undefined} data-testid="call-join" data-guide="call-join">{phase === 'joining' ? 'Joining...' : 'Join the call'}</button>
         {fallbackUrl && <a className="btn btn--ghost btn--sm" href={fallbackUrl} target="_blank" rel="noopener noreferrer" data-testid="call-fallback">Use the outside call link</a>}
       </div>
     </div>);

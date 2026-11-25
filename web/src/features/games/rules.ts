@@ -102,7 +102,7 @@ export const SEARCH_LANDING_DELAY = 15_000;
 
 /** Pages where a game never shows: booking, checkout and paying, signing, sign-in, portals, documents, a request's own
  *  pages (0100: my-request, continue). The request-to-book form has its own game (bookingPath). */
-const NEVER = /^\/(book|account|owner|admin|va|field|staff|investor|sign|sign-in|sign-document|create-account|reset-password|update-password|two-step|choose-portal|read-only|link-expired|unsubscribe|guide-pdf|files|d|r|list-your-car\/apply|auth|my-request|continue|checkout|pay|payment)(\/|$)/;
+const NEVER = /^\/(book|account|owner|admin|va|field|staff|staff-restore|investor|sign|sign-in|sign-document|create-account|reset-password|update-password|two-step|choose-portal|read-only|link-expired|unsubscribe|guide-pdf|files|d|r|list-your-car\/apply|auth|my-request|continue|checkout|pay|payment)(\/|$)/;
 const PAYSIGN = /\/(pay|payment|sign|checkout)(\/|$)/;
 export const excludedPath = (path: string) => NEVER.test(path) || PAYSIGN.test(path);
 /** The request-to-book form (/book and /book/<car>), where the inline card is offered; never its sent page. */
@@ -119,7 +119,7 @@ export function isSearchReferrer(ref: string | null | undefined): boolean {
   try { return /(^|\.)(google|bing|duckduckgo|yahoo|ecosia|baidu|yandex|brave|startpage|qwant)\.[a-z.]+$/i.test(new URL(ref).hostname); } catch { return false; }
 }
 
-/** Why the site's game may not show to this visitor now (null: it may). Signed-in people never see it on the site.
+/** Why the site's game may not show to this visitor now (null: it may). Signed-in people see it too (r50, 5040), but never inside the portals (excludedPath).
  *  0100: never once a booking request is in progress. 0171: a prize won here and not claimed no longer stops it: the
  *  card pops up again with that prize ("Your 5% off is still waiting"; the server returns the saved play), 0176: once a
  *  visit, as the small slide-in with Get my code and Play again, with the small badge between. 0172: a claim stops it for the rest of the visit and until the
@@ -127,12 +127,12 @@ export function isSearchReferrer(ref: string | null | undefined): boolean {
 /** How long the server's "known" or "signed in" answer is kept in this browser before it is asked again. */
 export const NEVER_RECHECK_MS = 86_400_000;
 
-export function ineligible(a: { cfg: GameCfg | null; mem: GameMemory; signedIn: boolean; path: string; visit?: Visit | null; now?: number; busy?: boolean; saved?: boolean }): string | null {
-  if (a.signedIn) return 'signed_in';
+export function ineligible(a: { cfg: GameCfg | null; mem: GameMemory; path: string; visit?: Visit | null; now?: number; busy?: boolean; saved?: boolean }): string | null {
   if (a.visit?.claimed || claimWait(a.mem, a.now ?? Date.now()) !== null) return 'claimed';
   // 2026-11-06: the server's "known" or "signed in" holds for a day, then the server is asked again (it used to hold for
   // good: a browser that once played while signed in, or before a sign-out, never saw a game again)
-  if (a.mem.never && a.mem.never !== 'claimed' && (a.now ?? Date.now()) - (a.mem.neverAt ?? 0) < NEVER_RECHECK_MS) return a.mem.never;
+  // r50 (5040): signed-in people get the game too: an old "signed_in" kept by this browser is ignored
+  if (a.mem.never && a.mem.never !== 'claimed' && a.mem.never !== 'signed_in' && (a.now ?? Date.now()) - (a.mem.neverAt ?? 0) < NEVER_RECHECK_MS) return a.mem.never;
   if (excludedPath(a.path)) return 'page';
   if (a.busy) return 'in_progress';
   if (!a.cfg) return 'no_settings';

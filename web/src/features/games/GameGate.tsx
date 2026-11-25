@@ -19,8 +19,9 @@ import type { GamePopupProps } from './GamePopup';
 // pops up again by itself once a visit (the first-show rules, never in the visit it was won; 0353: closed, it comes back
 // on the next visit)
 // as the small slide-in "Your 5% off is still waiting" with Get my code and Play again (a new game; the better of the
-// two prizes is kept; once a visit and once a day, the server's game_saved_again_days). Never for a signed-in visitor (they get it in the request-to-book
-// form only), never on booking, pay, sign, sign-in or portal pages, never over the cookie banner. On the first page of
+// two prizes is kept; once a visit and once a day, the server's game_saved_again_days). r50 (5040): signed-in people get it too (their claim uses
+// their account: name and email filled in, one tap; staff see it as a preview and get no code; Play again is for visitors who are
+// not signed in), never on booking, checkout, pay, sign, sign-in or portal pages (/account, /admin, /staff, /va, /field, /owner, /investor), never over the cookie banner. On the first page of
 // a phone visit from a search engine it waits for the second page, or comes 15 seconds later as a small slide-in. The
 // game's code is fetched in idle time once the visitor can get one, so it opens at once.
 const MEM = 'cc_game', VISIT = 'cc_game_visit', CFG = 'cc_game_cfg', REQUEST = 'cc.request.v2';
@@ -116,15 +117,15 @@ export function GameGate() {
     void loadPopup().then((m) => { setPreviewPopup(() => m.GamePopup); setPreview({ game: g ?? undefined }); announce(true); }).catch(() => undefined);
   }, []);
   const hasSaved = () => savedPrize(memory(), Date.now()) !== null;
-  const may = useCallback(() => !/[?&]preview=game\b/.test(location.search) && !automated() && !ineligible({ cfg: cfg.current, mem: memory(), signedIn: signedIn(), path: pathRef.current, visit: visitNow(), now: Date.now(), busy: busy(), saved: hasSaved() }), []);
+  const may = useCallback(() => !/[?&]preview=game\b/.test(location.search) && !automated() && !ineligible({ cfg: cfg.current, mem: memory(), path: pathRef.current, visit: visitNow(), now: Date.now(), busy: busy(), saved: hasSaved() }), []);
   // 0100: a prize won here and not claimed: the small badge between cards (closed: not again this visit), with Get my
   // code and (0176) Play again; the prize itself pops up again once a visit (the first-show rules)
   const showBadge = useCallback(() => {
     const p = savedPrize(memory(), Date.now());
     let hidden = false;
     hidden = !!visitNow()?.badgeClosed;
-    setBadge(p && !automated() && !signedIn() && !hidden && !excludedPath(pathRef.current) && cfg.current?.on !== false
-      ? { label: p.label, again: mayPlayAgain(memory(), visitNow(), Date.now()) } : null);
+    setBadge(p && !automated() && !hidden && !excludedPath(pathRef.current) && cfg.current?.on !== false
+      ? { label: p.label, again: !signedIn() && mayPlayAgain(memory(), visitNow(), Date.now()) } : null);
   }, []);
 
   const fire = useCallback((f: Fire) => {
@@ -175,7 +176,7 @@ export function GameGate() {
     let live = true;
     const onLeave = (e: MouseEvent) => { if (!e.relatedTarget && e.clientY <= 0) check(true); };
     (async () => {
-      if (automated() || signedIn() || claimWait(memory(), Date.now()) !== null) return;
+      if (automated() || claimWait(memory(), Date.now()) !== null) return;
       cfg.current = await gameSettings();
       if (cfg.current?.visit_gap) gapMinutes = cfg.current.visit_gap;
       if (live) showBadge();

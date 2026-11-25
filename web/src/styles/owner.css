@@ -145,7 +145,7 @@
 .ow-hero-more a { display: grid; place-items: center; height: 100%; min-height: 44px; border: 1px dashed rgb(255 255 255 / 0.35); border-radius: var(--pu-radius-sm); color: var(--white); font-weight: 600; text-decoration: none; }
 .ow-hero-spark { display: block; color: var(--red-400); width: 7rem; height: 1.6rem; margin-top: 0.3rem; }
 @media (prefers-reduced-motion: no-preference) {
-  .ow-hero-car__link img { transition: transform 700ms var(--ease); }
+  .ow-hero-car__link img { transition: transform 300ms var(--ease); }
   .ow-hero-car__link:hover img { transform: scale(1.04); }
 }
 .ow-months__head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); flex-wrap: wrap; }

@@ -15,15 +15,17 @@
 .br-logs td, .br-logs th { text-align: left; padding: .25rem .5rem; border-bottom: 1px solid var(--line, #eee); vertical-align: top; word-break: break-word; }
 /* r50 (3900): Report a bug while a pop-up is open: a copy of the button inside the pop-up (a native modal dialog) or above it */
 .br-float { position: fixed; left: max(12px, env(safe-area-inset-left, 0px)); bottom: max(12px, env(safe-area-inset-bottom, 0px)); z-index: 2147483000;
-  display: inline-flex; align-items: center; gap: .4rem; min-height: 36px; padding: .35rem .75rem; margin: 0; white-space: nowrap;
-  background: var(--white, #fff); color: var(--black, #111); border: 1px solid var(--grey-300, #ccc); border-radius: 999px; box-shadow: var(--shadow-float, 0 4px 16px rgb(0 0 0 / .18)); }
+  display: inline-flex; align-items: center; gap: .4rem; min-height: 36px; padding: .35rem .75rem; margin: 0; white-space: nowrap; touch-action: manipulation;
+  background: var(--white); color: var(--black); border: 1px solid var(--k-border-strong); border-radius: var(--ui-r-pill); box-shadow: var(--shadow-float); transition: scale var(--t-1) var(--ease-out); }
+@media (pointer: coarse) { .br-float { min-height: 44px; } }
+.br-float:active { scale: 0.96; }
 .br-float svg { width: 18px; height: 18px; flex: none; }
-.br-float:hover { border-color: var(--black, #111); }
-.br-float:focus-visible { outline: 3px solid var(--red-600, #d0111b); outline-offset: 2px; }
-@media (max-width: 22rem) { .br-float { padding: .35rem .6rem; font-size: var(--fs-xs, .8rem); } }
+@media (hover: hover) { .br-float:hover { border-color: var(--black); } }
+.br-float:focus-visible { outline: 3px solid var(--red-600); outline-offset: 2px; }
+@media (max-width: 22rem) { .br-float { padding: .35rem .6rem; font-size: var(--fs-xs); } }
 /* on a phone the copy above a pop-up would sit on the pop-up's own buttons at the bottom (Save, Send): a slim tab on the
    left edge instead, its words kept for screen readers */
 @media (max-width: 48rem) {
-  .br-float { left: 0; bottom: auto; top: 38%; min-height: 40px; padding: .45rem .45rem .45rem .35rem; border-left: 0; border-radius: 0 999px 999px 0; }
+  .br-float { left: 0; bottom: auto; top: 38%; min-height: 44px; padding: .45rem .45rem .45rem .35rem; border-left: 0; border-radius: 0 999px 999px 0; }
   .br-float span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
 }

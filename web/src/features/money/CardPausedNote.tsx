@@ -1,6 +1,8 @@
 'use client';
 import { useState } from 'react';
 import { money } from '@/lib/format';
+import { Icon } from '@/components/Icon';
+import { IconSwap } from '@/portable/motion/react';
 import { CARD_PAUSED_TITLE, cardPausedWhy, etransferMessage, type CardPayments } from './card-pay';
 import './etransfer-pay.css';
 
@@ -20,7 +22,7 @@ export function CardPausedNote({ card, bookingNumber, rentalCents = 0, depositCe
       <span className="alert__title">{CARD_PAUSED_TITLE}</span>
       <span>{cardPausedWhy(card)} Collect a card, card links and deposit holds are off. Ask the renter to e-Transfer{compact ? '.' : ': copy the message below and send it by text, email or WhatsApp. When they upload the screenshot (or you report it), Finance confirms it in one tap.'}</span>
       {!compact && <pre className="cpn__msg" data-testid="card-paused-message">{text}</pre>}
-      <span className="cpn__actions"><button type="button" className="btn btn--primary btn--sm" onClick={copy} data-testid="card-paused-copy">{copied ? 'Copied' : 'Copy the e-Transfer message'}</button></span>
+      <span className="cpn__actions"><button type="button" className="btn btn--primary btn--sm" onClick={copy} data-testid="card-paused-copy"><IconSwap on={copied} first={<Icon name="copy" />} second={<Icon name="check" />} />{copied ? 'Copied' : 'Copy the e-Transfer message'}</button></span>
     </div>
   );
 }

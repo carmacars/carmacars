@@ -17,7 +17,7 @@ export async function LibraryTab({ userId }: { userId: string }) {
           <DocumentList label={k.label}>
             {k.items.map((i) => (
               <DocumentRow key={i.id} external href={itemHref(i)} badge={i.file_kind === 'link' ? 'DECK' : 'PDF'} title={<span data-guide="library-item">{i.title}</span>} testId={`library-item-${i.id}`} linkTestId="library-open"
-                meta={<><span>{k.label}</span><span data-testid="library-version">{versionLine(i)}</span></>} />
+                meta={<><span>{k.label}</span><span className="num" data-testid="library-version">{versionLine(i)}</span></>} />
             ))}
           </DocumentList>
         </section>

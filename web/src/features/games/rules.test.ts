@@ -16,9 +16,19 @@ const visit = (o: Partial<Visit> = {}): Visit => ({ start: NOW - 5000, pages: 1,
 const t = (v: Visit, o: { now?: number; exit?: boolean; phone?: boolean; cfg?: GameCfg } = {}) => trigger({ cfg: o.cfg ?? CFG, visit: v, now: o.now ?? NOW, exit: o.exit, phone: o.phone ?? false });
 
 describe('who may see a game on the site', () => {
-  const base = { cfg: CFG, mem: {}, signedIn: false, path: '/cars/tesla-model-3' };
+  const base = { cfg: CFG, mem: {}, path: '/cars/tesla-model-3' };
   it('a new visitor on a car page may', () => assert.equal(ineligible(base), null));
-  it('never a signed-in visitor on the site', () => assert.equal(ineligible({ ...base, signedIn: true }), 'signed_in'));
+  // r50 (5040): signed-in people see the game too: the rules take no "signed in" at all, and the limits below hold for them
+  it('a signed-in visitor on a car page may, like anyone else', () => {
+    assert.equal(ineligible(base), null);
+    assert.equal(ineligible({ ...base, visit: visit({ shows: 1 }) }), null);
+  });
+  it('a signed-in visitor keeps every other limit: the visit cap, a claim, the portals, checkout and payment', () => {
+    assert.equal(ineligible({ ...base, cfg: { ...CFG, per_visit: 1 }, visit: visit({ shows: 1 }) }), 'visit_cap');
+    assert.equal(ineligible({ ...base, mem: claimMemory('2026-10-22T15:00:00Z', NOW), now: NOW }), 'claimed');
+    for (const p of ['/account', '/account/rewards', '/admin', '/admin/settings/discount-games', '/staff', '/staff/live', '/staff-restore', '/va', '/field', '/owner', '/investor', '/checkout', '/pay/x', '/payment', '/account/bookings/CC-1/pay'])
+      assert.equal(ineligible({ ...base, path: p }), 'page', p);
+  });
   it('0172: after a claim, not for the rest of the visit nor until the wait ends; then again on a later visit', () => {
     const mem = claimMemory('2026-10-22T15:00:00Z', NOW);
     assert.equal(ineligible({ ...base, mem, now: NOW }), 'claimed');
@@ -39,7 +49,8 @@ describe('who may see a game on the site', () => {
   });
   it('never a visitor the database knows (by email) or refused, for a day; then the server is asked again', () => {
     assert.equal(ineligible({ ...base, mem: { never: 'known', neverAt: NOW - 1000 }, now: NOW }), 'known');
-    assert.equal(ineligible({ ...base, mem: { never: 'signed_in', neverAt: NOW - 1000 }, now: NOW }), 'signed_in');
+    // r50: an old "signed_in" kept by this browser no longer stops anything
+    assert.equal(ineligible({ ...base, mem: { never: 'signed_in', neverAt: NOW - 1000 }, now: NOW }), null);
     assert.equal(ineligible({ ...base, mem: { never: 'known', neverAt: NOW - NEVER_RECHECK_MS - 1 }, now: NOW }), null);
     // an answer kept before 2026-11-06 (no time) no longer stops the game for good
     assert.equal(ineligible({ ...base, mem: { never: 'signed_in' }, now: NOW }), null);
@@ -150,13 +161,13 @@ describe('again after a close (0100: the 3rd page view after the close or 2 minu
     for (let i = 0; i < 5; i++) v = addPage(v, '/faq');
     assert.equal(t(v, { now: NOW + 3_600_000 }), null);
     assert.equal(nextCheck({ cfg: CFG, visit: v, now: NOW, phone: false }), null);
-    assert.equal(ineligible({ cfg: CFG, mem: {}, signedIn: false, path: '/', visit: v }), 'visit_cap');
+    assert.equal(ineligible({ cfg: CFG, mem: {}, path: '/', visit: v }), 'visit_cap');
   });
   it('a later visit starts again (a new visit has no shows)', () => assert.deepEqual(t(visit({ pages: 2 })), { why: 'pages', slim: false }));
 });
 
 describe('a booking request in progress, and a prize already won (0100)', () => {
-  const base = { cfg: CFG, mem: {}, signedIn: false, path: '/cars' };
+  const base = { cfg: CFG, mem: {}, path: '/cars' };
   it('no game while a booking request is in progress in this browser', () => {
     assert.equal(ineligible({ ...base, busy: true }), 'in_progress');
     assert.equal(requestInProgress({ mem: {}, draft: null, now: NOW }), false);
@@ -179,7 +190,7 @@ describe('a booking request in progress, and a prize already won (0100)', () => 
     assert.equal(ineligible({ ...base, mem: { won } }), null);
     assert.equal(ineligible({ ...base, mem: { won }, busy: true }), 'in_progress');
     assert.equal(ineligible({ ...base, mem: { won, ...claimMemory('2026-10-22T15:00:00Z', NOW) }, now: NOW }), 'claimed');
-    assert.equal(ineligible({ ...base, mem: { won }, signedIn: true }), 'signed_in');
+    assert.equal(ineligible({ ...base, mem: { won } }), null);
     assert.equal(ineligible({ ...base, mem: { won }, path: '/checkout' }), 'page');
     assert.deepEqual(savedPrize({ won }, NOW), won);
     assert.equal(savedWords(won), 'Your 5% off is saved');
@@ -216,7 +227,7 @@ describe('0171: the card comes back, and the replay prize', () => {
     assert.equal(nextCheck({ cfg: CFG, visit: v, now: NOW, phone: false, saved: true }), null);
     assert.equal(visitCap(CFG, true), 1);
     assert.equal(visitCap(CFG, false), 4);
-    assert.equal(ineligible({ cfg: CFG, mem: { won }, signedIn: false, path: '/faq', visit: v, now: NOW, saved: true }), 'visit_cap');
+    assert.equal(ineligible({ cfg: CFG, mem: { won }, path: '/faq', visit: v, now: NOW, saved: true }), 'visit_cap');
     // without a saved prize the usual re-show rules (a new visitor keeps them)
     assert.deepEqual(t(v), { why: 'pages', slim: false });
   });
@@ -228,10 +239,10 @@ describe('0171: the card comes back, and the replay prize', () => {
     assert.deepEqual(ts(visit({ pages: 2 })), { why: 'pages', slim: true, repop: true });
     assert.equal(nextCheck({ cfg: CFG, visit: visit({ start: NOW - 5000 }), now: NOW, phone: false, saved: true }), 25_000);
   });
-  it('0176: still never for a signed-in visitor, on excluded pages, nor after a claim', () => {
-    assert.equal(ineligible({ cfg: CFG, mem: { won }, signedIn: true, path: '/faq', visit: visit(), now: NOW, saved: true }), 'signed_in');
-    assert.equal(ineligible({ cfg: CFG, mem: { won }, signedIn: false, path: '/checkout', visit: visit(), now: NOW, saved: true }), 'page');
-    assert.equal(ineligible({ cfg: CFG, mem: { won }, signedIn: false, path: '/faq', visit: visit({ claimed: true }), now: NOW, saved: true }), 'claimed');
+  it('0176: on a saved prize still never on excluded pages nor after a claim (r50: signed-in people included)', () => {
+    assert.equal(ineligible({ cfg: CFG, mem: { won }, path: '/faq', visit: visit(), now: NOW, saved: true }), null);
+    assert.equal(ineligible({ cfg: CFG, mem: { won }, path: '/checkout', visit: visit(), now: NOW, saved: true }), 'page');
+    assert.equal(ineligible({ cfg: CFG, mem: { won }, path: '/faq', visit: visit({ claimed: true }), now: NOW, saved: true }), 'claimed');
   });
   it('0176: Play again on the saved prize: once a visit and once a day in this browser (the server decides)', () => {
     assert.equal(mayPlayAgain({}, visit(), NOW), true);
@@ -242,7 +253,7 @@ describe('0171: the card comes back, and the replay prize', () => {
     assert.equal(keptWords({ label: '10% off' }), 'You keep your 10% off');
   });
   it('a game closed before its prize: the next visit may show one again (no wait of days)', () => {
-    assert.equal(ineligible({ cfg: CFG, mem: { seen: ['wheel'], last: 'wheel', dismissedAt: NOW - 60_000 }, signedIn: false, path: '/faq', visit: visit(), now: NOW }), null);
+    assert.equal(ineligible({ cfg: CFG, mem: { seen: ['wheel'], last: 'wheel', dismissedAt: NOW - 60_000 }, path: '/faq', visit: visit(), now: NOW }), null);
   });
   it('the words: never "You won" twice for one prize', () => {
     assert.equal(waitingWords(won), 'Your 5% off is still waiting');

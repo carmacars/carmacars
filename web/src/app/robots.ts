@@ -12,8 +12,22 @@ export const dynamic = 'force-dynamic';
 // AI answer engines and search crawlers are named in their own group (docs/changes/2026-10-23-ai-search.md): a crawler
 // that finds a group with its name ignores the "*" group, so the group repeats the same private paths, and naming them
 // says plainly that the owner wants them (several engines treat an unnamed AI crawler as unwelcome on some hosts).
+// r50 speed: building the list reads the whole sitemap (4 to 8 s); robots.txt is read by every crawler many times a day.
+// Kept in this server's memory for 15 minutes and served stale while the next copy is built in the background.
+const TTL_MS = 15 * 60 * 1000;
+let kept: { at: number; v: MetadataRoute.Robots } | null = null;
+let building: Promise<MetadataRoute.Robots> | null = null;
+function rebuild(): Promise<MetadataRoute.Robots> {
+  building ??= build().then((v) => { kept = { at: Date.now(), v }; return v; }).finally(() => { building = null; });
+  return building;
+}
 export default async function robots(): Promise<MetadataRoute.Robots> {
   if (env().APP_ENV === 'staging') return { rules: [{ userAgent: '*', disallow: '/' }] };
+  if (kept) { if (Date.now() - kept.at > TTL_MS) void rebuild().catch(() => undefined); return kept.v; }
+  return rebuild();
+}
+
+async function build(): Promise<MetadataRoute.Robots> {
   // R23, the search scope (Settings > Vehicle pages): Full, every public page as before; Core (src/lib/edge/crawl-scope.ts),
   // the multiplying trees are out of every crawler's reach and the landing pages under /car-rental/ are allowed by name (a
   // longer rule wins over the Disallow)

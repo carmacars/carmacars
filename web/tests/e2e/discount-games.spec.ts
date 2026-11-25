@@ -6,8 +6,8 @@ import { db, noOverflow , chooseCardCoverage } from './helpers';
 // Migrations 0069 and 0081 end to end, at 375 and 1440: each of the five games shows after one car page to a visitor
 // who is not signed in, plays (the wheel turns, the card is scratched, a hand is played, the cups shuffle, the disc
 // drops) and reveals the prize the database drew; the unlock form gives the code (and the email is queued); the code
-// fills in the request form, takes the discount and goes on the booking request; a signed-in visitor never sees a game
-// on the site; the Admin's Leads page and Settings > Discount games show the claim. 0081: the first game after 15
+// fills in the request form, takes the discount and goes on the booking request; a signed-in visitor sees the game on
+// the site too (r50); the Admin's Leads page and Settings > Discount games show the claim. 0081: the first game after 15
 // seconds without a car page; on a phone visit from a search engine the small slide-in 15 seconds later; closed, a
 // different game on the 2nd page view after the close (0094: any page, or 60 seconds; at most 6 a day in one browser); the request-to-book form's card applies the code to that booking and the
 // price changes; closing it leaves the booking as it was; a signed-in renter is offered it there. The card is checked
@@ -450,7 +450,7 @@ test('the code fills in the request form, takes $50 off a 4-day request and goes
   await sql.end();
 });
 
-test('a signed-in visitor never sees a game on the site, and is offered it in the request-to-book form', async ({ browser }) => {
+test('a signed-in visitor sees the game on the site too, and is offered it in the request-to-book form', async ({ browser }) => {
   test.setTimeout(90_000);
   const sql = db();
   const id = randomUUID(); const email = `game.signed.${Date.now()}.${tag()}@example.test`;
@@ -465,8 +465,10 @@ test('a signed-in visitor never sees a game on the site, and is offered it in th
   await page.locator('input[type="password"]').fill(PW);
   await page.getByRole('button', { name: 'Sign in' }).click();
   await page.waitForURL((u) => !u.pathname.startsWith('/sign-in'), { timeout: 20_000 });
+  // r50 (5040): signed in, the site shows the game too (the portals never do: r50-games.spec.ts)
   for (const s of ['toyota-corolla', 'tesla-model-3', 'kia-forte']) await page.goto(`/cars/${s}`, { waitUntil: 'load' });
-  await page.waitForTimeout(3000);
+  await expect(page.getByTestId('game')).toBeVisible({ timeout: 30_000 });
+  await page.getByTestId('game-close').click();
   await expect(page.getByTestId('game')).toHaveCount(0);
   // 0081: the request-to-book form is the one place a signed-in renter is offered the game, with their account's email
   await toAddons(page, 'mercedes-benz-c300', isPhone() ? 175 : 180, email);

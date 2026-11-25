@@ -81,11 +81,11 @@
 .gd-imgwrap { position: relative; line-height: 0; }
 .gd-imgwrap img { display: block; width: 100%; height: auto; }
 .gd-browser { border: 1px solid var(--grey-300); border-radius: 8px; overflow: hidden; background: var(--white); box-shadow: 0 6px 18px -10px rgba(0, 0, 0, 0.35); }
-.gd-bar { height: 1.6rem; background: #EDEDED; border-bottom: 1px solid #D6D6D6; display: flex; align-items: center; gap: 0.35rem; padding: 0 0.6rem; }
+.gd-bar { height: 1.6rem; background: #EDEDED; border-bottom: 1px solid var(--k-border); display: flex; align-items: center; gap: 0.35rem; padding: 0 0.6rem; }
 .gd-bar i { width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--grey-300); flex: none; }
 .gd-bar i:first-child { background: var(--red-600); }
 .gd-addr { margin-left: 0.6rem; flex: 1; min-width: 0; background: var(--white); border-radius: 0.6rem; height: 1rem; font: 500 0.625rem/1rem var(--font-text); color: var(--grey-600); padding: 0 0.6rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.gd-phone { border: 0.5rem solid #111; border-top-width: 1rem; border-bottom-width: 0.85rem; border-radius: 1.6rem; overflow: hidden; background: #111; box-shadow: 0 8px 20px -12px rgba(0, 0, 0, 0.6); }
+.gd-phone { border: 0.5rem solid var(--grey-950); border-top-width: 1rem; border-bottom-width: 0.85rem; border-radius: 1.6rem; overflow: hidden; background: #111; box-shadow: 0 8px 20px -12px rgba(0, 0, 0, 0.6); }
 .gd-phone .gd-imgwrap { border-radius: 4px; overflow: hidden; }
 .gd-fig figcaption { font-size: var(--fs-xs); color: var(--text-2); margin-top: var(--s-2); line-height: 1.4; }
 .gd-pin { position: absolute; width: 1.55rem; height: 1.55rem; margin: -0.775rem 0 0 -0.775rem; border-radius: 50%; background: var(--red-600); color: var(--white);
@@ -162,7 +162,7 @@
   .gd-head { display: none; }
   .gd-toc { display: block !important; position: static; max-height: none; overflow: visible; border: 0; break-after: page; }
   .gd-toc::details-content { content-visibility: visible; }
-  .gd-toc > summary { font: 800 30pt/1 var(--font-display); padding: 0 0 14pt; border-bottom: 1.5pt solid #000; }
+  .gd-toc > summary { font: 800 30pt/1 var(--font-display); padding: 0 0 14pt; border-bottom: 1.5pt solid var(--black); }
   .gd-toc > summary::after, .gd-toc[open] > summary::after { content: none; }
   .gd-toc ol ol { display: none; }
   .gd-toc li a { grid-template-columns: 0.75in 1fr; padding: 9pt 0; border-bottom: 1px solid var(--grey-200); }
