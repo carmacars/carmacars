@@ -99,7 +99,8 @@ test('Admin: each area at most five pages, actions are buttons, Ctrl+K finds eve
   const rows: Array<[string, string, string[]]> = [
     ['/admin/applications', 'People', ['Owners', 'Partners', 'Renters', 'Team', 'Investors']],
     // r35 part T: the field jobs board is Cars > Field jobs
-    ['/admin/vehicles', 'Cars', ['Vehicles', 'Listings', 'Field jobs', 'Maintenance']],
+    // r50 (4000): Check-in visits is the fifth page of Cars (five is the limit)
+    ['/admin/vehicles', 'Cars', ['Vehicles', 'Listings', 'Field jobs', 'Maintenance', 'Check-in visits']],
     ['/admin/marketing/marketplace', 'Marketing', ['Marketplace', 'Ads', 'Channels', 'Owner recruitment']],
     ['/admin/money', 'Money', ['Payments', 'Owner money', 'Tolls and tickets', 'Company', 'Insurers']]
   ];

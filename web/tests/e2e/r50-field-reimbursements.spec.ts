@@ -110,7 +110,8 @@ test('whose money: chosen on the phone, owed back, declined with the reason, pai
   await expect(ap.getByTestId(`reimb-${ann.id}`)).toHaveCount(0, { timeout: 20_000 });
 
   // 5. the person sees it paid, and the decline with its reason
-  await fp.goto('/staff/field/shifts#owed', { waitUntil: 'networkidle' });
+  // the same address with the same #owed is a same-document move, not a new page: reload to read what Finance did since
+  await fp.reload({ waitUntil: 'networkidle' });
   await expect(fp.getByTestId('owed-to-you')).toContainText('Paid back');
   await expect(fp.getByTestId('owed-to-you')).toContainText('Personal parking');
   const codes = await sql<Array<{ code: string }>>`select distinct code from app_events where code like 'staff_expense_%' and payload ->> 'staff_id' = ${ann.id}`;

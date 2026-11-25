@@ -29,7 +29,11 @@ test('return with documents in review and no recorded pickup', async ({ page }) 
     await sql`delete from app.rate_limit_hits`;
     await sql`insert into local_auth.users (id, email, password_hash) values (${user}, ${email}, ${hash(PW)})`;
     await sql`select public.register_account(${user}, ${email}, 'Rami Return', null)`;
+    // register_account makes the user and the sign-in; the renter and the account holder's driver are the booking's own
+    await sql`insert into renters (user_id, legal_name, email, mobile, date_of_birth) values (${user}, 'Rami Return', ${email}, '+14165550143', '1990-05-05')
+              on conflict (user_id) do update set date_of_birth = excluded.date_of_birth`;
     const [r] = await sql`select id from renters where user_id = ${user}`;
+    await sql`insert into drivers (renter_id, is_account_holder, user_id, full_name, date_of_birth, licence_class, licence_number) values (${r!.id as string}, true, ${user}, 'Rami Return', '1990-05-05', 'G', 'R1234-56789-01234') on conflict do nothing`;
     await sql`update renters set identity_status = 'pending' where id = ${r!.id}`;
     await sql`insert into users (id, email, full_name) values (${ou}, ${`rg.owner.${t}@example.test`}, 'Ola Owner')`;
     await sql`insert into owners (id, user_id, owner_type, legal_name, status, email, phone) values (${owner}, ${ou}, 'individual', 'Ola Owner', 'active', ${`rg.owner.${t}@example.test`}, '416-555-0100')`;

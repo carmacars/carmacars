@@ -187,6 +187,13 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
     const g = ev.currentTarget; const top = g.scrollTop, h = g.clientHeight;
     setScroll((o) => (Math.abs(o.top - top) > 160 || o.h !== h ? { top, h } : o));
   };
+  // the window follows where the list really is whenever the list becomes long again or its length changes: a scroll that
+  // happened while the list was short (a search, a filter) is not reported by onScroll, and a stale position would draw rows far from the top
+  useLayoutEffect(() => {
+    const g = grid.current;
+    if (!virtual || !g) return;
+    setScroll((o) => (Math.abs(o.top - g.scrollTop) > 160 || o.h !== g.clientHeight ? { top: g.scrollTop, h: g.clientHeight } : o));
+  }, [virtual, rows.length]);
   // a drawn row's real height (a long name or badge can make it taller than its bars): kept, so the space of the rows
   // not drawn is right and the list does not jump
   useLayoutEffect(() => {
