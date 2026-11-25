@@ -207,7 +207,7 @@ select test.eq('root file: the Google verification file, only for the name in se
   'google-site-verification: google0123abcd.html/none');
 select test.eq('settings: the verification values and the business address reach every page',
   (select (s ->> 'google_site_verification') || '/' || (s ->> 'bing_site_verification') || '/' || (s -> 'business' ->> 'postal_code') from (select public.site_settings_public() s) x),
-  'abcdefghijklmnop_123/ABCDEF0123456789ABCDEF0123456789/M1P 3C3');  -- 0095: the business address is the street address
+  'abcdefghijklmnop_123/ABCDEF0123456789ABCDEF0123456789/M1L 4R1');  -- 0095: the business address is the street address
 select app.car_copy_scan();
 select test.ok('car page: the written copy (without alt texts) and the car''s own reviews',
   (select (c -> 'copy' ->> 'h1') is not null and not (c -> 'copy' ? 'alt_texts') and (c -> 'reviews' ->> 'count')::integer = 0 and (c -> 'reviews' ->> 'min_for_rating')::integer = 3
