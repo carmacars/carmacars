@@ -57,10 +57,10 @@ select test.eq('its email is on its way (text_fell_back, to the renter''s addres
 select test.ok('texts are paused (Quo refused for its account)', app.quo_paused());
 select test.eq('the Admins got one alert', test.zcm_alerts(), 1::bigint);
 
--- while paused nothing is tried: every due text falls back at once (no probe within 30 minutes of the last)
+-- while paused nothing is tried: a due text that waited 30 minutes falls back (5090: a younger one waits for the probe)
 update phone_provider_state set quo_probe_at = now();
-select test.zcm_text('b');
-select test.zcm_text('c');
+select test.zcm_text('b', '31 minutes');
+select test.zcm_text('c', '31 minutes');
 create temp table zcm_due1 as select app.server_phone_due(20) as r;
 select test.eq('paused: nothing is claimed', (select test.zcm_claimed(r) || '|' || (r ->> 'paused') from zcm_due1), '|true');
 select test.ok('paused: both due texts fell back to email', test.zcm_status('b') like 'skipped|not sent: fell back to email%' and test.zcm_status('c') like 'skipped|not sent: fell back to email%');
