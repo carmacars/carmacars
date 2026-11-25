@@ -1,0 +1,10 @@
+[Unit]
+Description=CarmaCars heal agent: report the server's health, run the whitelisted self-healing actions (r50, 4800)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/carmacars/bin/heal-agent
+TimeoutStartSec=600
+Nice=5

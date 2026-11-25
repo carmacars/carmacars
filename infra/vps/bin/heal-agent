@@ -1,0 +1,139 @@
+#!/usr/bin/env bash
+# Release 50 (migration 4800): the server's heal agent, run every minute by carmacars-heal-agent.timer (installed by deploy-vps,
+# scripts/deploy/web-vps-remote.sh). It
+#   1. looks at the server: the website container's health, the build running and the one before it (kept for a rollback),
+#      the last deploy, disk, the TLS certificate, Caddy, the media server, the database connections;
+#   2. reports that to the database as the narrow role heal_agent (app.heal_agent_tick) and gets the server actions the
+#      self-healing engine queued (heal_requests);
+#   3. runs only the whitelisted commands below and writes each result back (app.heal_agent_done).
+# Without the database (Postgres down) it still keeps the site up on its own: a website unhealthy for 5 minutes is restarted
+# (at most once in 15 minutes), and one still unhealthy within 30 minutes of a deploy goes back to the previous build. What it
+# did alone is reported on the next tick that reaches the database.
+# It never touches the database's data, backups, uploaded files or money; it runs no command it was sent, only these names.
+set -uo pipefail
+D=/opt/carmacars
+W=$D/web
+ST=$D/state/heal
+L=/opt/carmacars/livekit
+mkdir -p "$ST"
+exec 9>"$ST/lock"
+flock -n 9 || exit 0
+now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+log() { echo "$(now) $*" >> "$ST/agent.log"; tail -n 2000 "$ST/agent.log" > "$ST/agent.log.tmp" 2>/dev/null && mv "$ST/agent.log.tmp" "$ST/agent.log"; }
+clean() { tr -cd 'A-Za-z0-9 .,:;_/()%+=@#-' <<<"$1" | cut -c1-400; }
+dbq() { docker exec -i supabase-db psql -U supabase_admin -d postgres -XAtq -v ON_ERROR_STOP=1 "$@" 2>/dev/null; }
+ROLLBACK_WINDOW_MIN=30
+
+web_health() { docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' carmacars-web 2>/dev/null || echo missing; }
+wait_healthy() { local _; for _ in $(seq 1 60); do [ "$(web_health)" = healthy ] && return 0; sleep 3; done; return 1; }
+minutes_since() { local t; t=$(date -d "$1" +%s 2>/dev/null) || { echo 99999; return; }; echo $(( ( $(date +%s) - t ) / 60 )); }
+
+# ---------------------------------------------------------------- the whitelisted actions
+do_action() { # name -> prints the result, returns 0 when it worked
+  case "$1" in
+    restart_web)
+      docker restart carmacars-web > /dev/null 2>&1 || { echo "docker restart failed"; return 1; }
+      wait_healthy && echo "restarted, healthy" || { echo "restarted, still $(web_health) after 3 minutes"; return 1; } ;;
+    restart_caddy)
+      if docker exec supabase-caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile > /dev/null 2>&1; then echo "reloaded"
+      else docker restart supabase-caddy > /dev/null 2>&1 && echo "reload refused; restarted" || { echo "restart failed"; return 1; }; fi ;;
+    restart_livekit)
+      docker inspect carmacars-livekit > /dev/null 2>&1 || { echo "no media server on this server"; return 1; }
+      docker restart carmacars-livekit > /dev/null 2>&1 && echo "restarted" || { echo "restart failed"; return 1; } ;;
+    renew_certs)
+      docker exec supabase-caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile --force > /dev/null 2>&1 || { echo "Caddy refused the reload"; return 1; }
+      [ -x "$L/up.sh" ] && "$L/up.sh" > /dev/null 2>&1 || true
+      echo "Caddy reloaded (it renews what is due); media server certificate refreshed" ;;
+    free_disk)
+      local before after
+      before=$(df --output=pcent / | tail -n 1 | tr -dc 0-9)
+      journalctl --vacuum-size=200M > /dev/null 2>&1 || true
+      docker image prune -f > /dev/null 2>&1 || true
+      docker builder prune -f --filter until=168h > /dev/null 2>&1 || true
+      find /var/log -type f \( -name '*.gz' -o -name '*.[0-9]' \) -mtime +7 -delete 2>/dev/null || true
+      after=$(df --output=pcent / | tail -n 1 | tr -dc 0-9)
+      echo "disk ${before}% -> ${after}%" ;;
+    reset_db_connections)
+      local n
+      n=$(dbq -c "select count(pg_terminate_backend(pid)) from pg_stat_activity where state in ('idle in transaction', 'idle in transaction (aborted)') and state_change < now() - interval '10 minutes' and pid <> pg_backend_pid()") \
+        || { echo "the database did not answer"; return 1; }
+      echo "ended $n idle connections" ;;
+    rollback_web)
+      local prev cur cron
+      prev=$(cat "$W/previous-tag" 2>/dev/null || true); cur=$(grep -s '^WEB_IMAGE_TAG=' "$W/.env" | cut -d= -f2 || true)
+      [ -n "$prev" ] && [ "$prev" != "$cur" ] || { echo "no earlier build is recorded"; return 1; }
+      docker image inspect "carmacars-web:$prev" > /dev/null 2>&1 || { echo "carmacars-web:$prev is no longer on the server"; return 1; }
+      cron=$(grep -s '^CRON_ENABLED=' "$W/.env" | cut -d= -f2 || echo 0)
+      { printf 'WEB_IMAGE_TAG=%s\nCRON_ENABLED=%s\n' "$prev" "${cron:-0}"; grep -s '^REMBG_IMAGE_TAG=' "$W/.env" || true; } > "$W/.env.new" && mv "$W/.env.new" "$W/.env"
+      docker compose --project-directory "$W" -f "$W/docker-compose.yml" up -d web > /dev/null 2>&1 || { echo "the previous build did not start"; return 1; }
+      echo "$cur" > "$W/rolled-back-from"; rm -f "$W/previous-tag" "$D/state/web-deployed-at"
+      wait_healthy && echo "back on $prev (from $cur), healthy" || { echo "back on $prev, still $(web_health)"; return 1; } ;;
+    *) echo "not a whitelisted action"; return 1 ;;
+  esac
+}
+
+# ---------------------------------------------------------------- 1. the server now
+health=$(web_health)
+tag=$(grep -s '^WEB_IMAGE_TAG=' "$W/.env" | cut -d= -f2 || true)
+prev=$(cat "$W/previous-tag" 2>/dev/null || true)
+deployed=$(cat "$D/state/web-deployed-at" 2>/dev/null || true)
+disk=$(df --output=pcent / | tail -n 1 | tr -dc 0-9)
+bad=$(cat "$ST/web-bad" 2>/dev/null || echo 0)
+if [ "$health" = healthy ] || [ "$health" = starting ]; then bad=0; else bad=$((bad + 1)); fi
+echo "$bad" > "$ST/web-bad"
+cert_days=""
+host=$(grep -sm1 '^API_HOSTNAME=' "$D/supabase/defaults.env" | cut -d= -f2)
+if [ -n "$host" ]; then
+  end=$(echo | timeout 10 openssl s_client -connect 127.0.0.1:443 -servername "$host" 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2)
+  [ -n "$end" ] && cert_days=$(( ( $(date -d "$end" +%s) - $(date +%s) ) / 86400 ))
+fi
+recent=false
+[ -n "$deployed" ] && [ "$(minutes_since "$deployed")" -le "$ROLLBACK_WINDOW_MIN" ] && recent=true
+problems=()
+[ "$bad" -ge 2 ] && problems+=("{\"key\":\"web_unhealthy\",\"title\":\"The website container is $health\",\"detail\":\"$health for $bad minutes\",\"state\":\"$health\",\"recent_deploy\": $recent}")
+[ "${disk:-0}" -ge 90 ] && problems+=("{\"key\":\"disk_full\",\"title\":\"The disk is ${disk}% full\",\"detail\":\"${disk}% of the disk used\",\"state\":\"full\"}")
+[ -n "$cert_days" ] && [ "$cert_days" -lt 14 ] && problems+=("{\"key\":\"cert_expiring\",\"title\":\"The certificate expires in $cert_days days\",\"detail\":\"$(clean "$host"), $cert_days days\",\"state\":\"expiring\"}")
+[ "$(docker inspect -f '{{.State.Running}}' supabase-caddy 2>/dev/null)" = true ] || problems+=("{\"key\":\"caddy_down\",\"title\":\"Caddy is not running\",\"detail\":\"supabase-caddy is not running\",\"state\":\"down\"}")
+if docker inspect carmacars-livekit > /dev/null 2>&1; then
+  curl -fsS --max-time 5 http://127.0.0.1:7880/ > /dev/null 2>&1 || problems+=("{\"key\":\"livekit_down\",\"title\":\"The media server does not answer\",\"detail\":\"127.0.0.1:7880 did not answer\",\"state\":\"down\"}")
+fi
+conns=$(dbq -c "select round(100.0 * count(*) / current_setting('max_connections')::integer) from pg_stat_activity" || true)
+[ -n "$conns" ] && [ "$conns" -ge 85 ] && problems+=("{\"key\":\"db_connections\",\"title\":\"Database connections at ${conns}% of the limit\",\"detail\":\"${conns}% of max_connections\",\"state\":\"high\"}")
+
+# ---------------------------------------------------------------- 2. on its own while the database is away (or the site is down long)
+local_json=""
+pending=$(cat "$ST/local-actions" 2>/dev/null || true)
+last_restart=$(cat "$ST/last-local-restart" 2>/dev/null || echo 1970-01-01T00:00:00Z)
+db_up=false; [ "$(dbq -c 'select 1' || true)" = 1 ] && db_up=true
+if [ "$bad" -ge 5 ]; then
+  if [ "$recent" = true ] && [ "$(minutes_since "$last_restart")" -lt 15 ] && [ -n "$prev" ]; then
+    r=$(do_action rollback_web); ok=$?
+    log "local rollback_web: $r"; echo "{\"at\":\"$(now)\",\"action\":\"rollback_web\",\"ok\":$([ $ok = 0 ] && echo true || echo false),\"result\":\"$(clean "$r")\"}" >> "$ST/local-actions"
+  elif [ "$(minutes_since "$last_restart")" -ge 15 ] && { [ "$db_up" = false ] || [ "$bad" -ge 10 ]; }; then
+    now > "$ST/last-local-restart"
+    r=$(do_action restart_web); ok=$?
+    log "local restart_web: $r"; echo "{\"at\":\"$(now)\",\"action\":\"restart_web\",\"ok\":$([ $ok = 0 ] && echo true || echo false),\"result\":\"$(clean "$r")\"}" >> "$ST/local-actions"
+  fi
+fi
+[ "$db_up" = true ] || { log "the database does not answer: reported later"; exit 0; }
+
+# ---------------------------------------------------------------- 3. report, claim, run, answer
+pending=$(cat "$ST/local-actions" 2>/dev/null || true)
+local_json="[$(paste -sd, <<<"$pending")]"; [ -n "$pending" ] || local_json="[]"
+state="{\"web_tag\":\"$(clean "$tag")\",\"previous_tag\":\"$(clean "$prev")\",\"deployed_at\":\"$(clean "$deployed")\",\"web_health\":\"$(clean "$health")\",\"disk_pct\":\"${disk:-}\",\"cert_days\":\"${cert_days:-}\",\"problems\":[$(IFS=,; echo "${problems[*]:-}")],\"local_actions\":$local_json}"
+actions=$(dbq <<SQL
+set role heal_agent;
+select a ->> 'id', a ->> 'action' from jsonb_array_elements(app.heal_agent_tick(\$heal\$$state\$heal\$::jsonb) -> 'actions') a;
+SQL
+) || { log "the report was refused"; exit 0; }
+rm -f "$ST/local-actions"
+while IFS='|' read -r id action; do
+  [[ "$id" =~ ^[0-9]+$ ]] || continue
+  r=$(do_action "$action"); ok=$?
+  log "request $id $action: $r"
+  dbq > /dev/null <<SQL || log "the answer to request $id was not written"
+set role heal_agent;
+select app.heal_agent_done(jsonb_build_object('id', $id, 'ok', $([ $ok = 0 ] && echo true || echo false), 'result', \$heal\$$(clean "$r")\$heal\$));
+SQL
+done <<<"$actions"
+exit 0

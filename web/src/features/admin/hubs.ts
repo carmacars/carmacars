@@ -171,7 +171,7 @@ export const ADMIN_SECTIONS: Section[] = [
   { key: 'people', label: 'People', items: ['owners', 'partners', 'renters', 'team', { href: '/admin/investors', label: 'Investors' }] },
   { key: 'marketing', label: 'Marketing', items: [{ href: '/admin/marketing/marketplace', label: 'Marketplace' }, 'ads', 'channels', 'recruit'] },
   { key: 'money', label: 'Money', items: ['payments', 'owner-money', { href: '/admin/tolls', label: 'Tolls and tickets' }, 'company', 'insurers'] },
-  { key: 'settings', label: 'Settings', items: [{ href: '/admin/settings', label: 'Settings' }, 'logs', { href: '/admin/bug-reports', label: 'Bug reports' }] }
+  { key: 'settings', label: 'Settings', items: [{ href: '/admin/settings', label: 'Settings' }, 'logs', { href: '/admin/bug-reports', label: 'Bug reports' }, { href: '/admin/self-healing', label: 'Self-healing' }] }
 ];
 
 // The staff portal's sections: what each role does less often ("More ..."), Bookings and Me. Single pages name their

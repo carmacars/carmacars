@@ -9,7 +9,9 @@ services:
   web:
     container_name: carmacars-web
     image: carmacars-web:${WEB_IMAGE_TAG:-latest}
-    restart: unless-stopped
+    # r50 (4800): always back after a crash, a Docker restart or a reboot (the image's HEALTHCHECK says when it is healthy;
+    # the heal agent restarts it when it stays unhealthy)
+    restart: always
     init: true
     env_file:
       - web.env

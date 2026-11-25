@@ -417,6 +417,9 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             'voice_presence',
                             -- signed copies made after signing (0077): the server's work list; the signatures themselves are in signature_records
                             'pdf_jobs',
+                            -- self-healing (4800): incidents, attempts and the heal agent's queue change every minute and are written to
+                            -- audit_log by the engine's functions at each step; the agent's last report is state only (the library is audited)
+                            'heal_incidents', 'heal_attempts', 'heal_requests', 'heal_server_state',
                             -- the vehicle catalog (0097): reference data the catalog workflow imports in bulk from public sources (the
                             -- lists an Admin edits, trim lines and the popular list, are audited)
                             'vehicle_catalog_makes', 'vehicle_catalog_models', 'vehicle_catalog_years', 'vehicle_catalog_trims', 'vehicle_catalog_imports',

@@ -311,3 +311,20 @@ test('r50: site_errors, site_health and search_console_issues are read only (adm
   assert.match(SQL4701, /app\.api_call_pre4701\(p_hash, p_tool, p_args, p_client\); end if;/);
   assert.match(SQL4701, /app\.redact_text/);
 });
+
+// r50 (4800): self-healing, read only
+const SQL4800 = readFileSync(new URL('../../../../supabase/migrations/4800_r50_self_heal.sql', import.meta.url), 'utf8');
+test('r50: heal_status is read only (admin:read) and runs in the database', async () => {
+  const { HEAL_TOOLS } = await import('./tools.ts');
+  assert.deepEqual(HEAL_TOOLS.map((t) => t.name), ['heal_status']);
+  const t = HEAL_TOOLS[0]!;
+  assert.ok(t.readOnly && t.scope === 'admin:read' && !t.destructive);
+  assert.ok(TOOLS.includes(t));
+  assert.ok(toolsFor(['admin:read']).includes(t));
+  assert.ok(!toolsFor(['bookings:read', 'owners:read', 'requests:read']).includes(t), 'only an admin:read key sees it');
+  assert.equal(TOOLS.filter((x) => x.name === 'heal_status').length, 1);
+  assert.match(SQL4800, /app\.api_call_pre4800\(p_hash, p_tool, p_args, p_client\); end if;/);
+  assert.match(SQL4800, /app\.api_key_check\(p_hash, 'admin:read', p_tool/);
+  assert.match(SQL4800, /if not app\.user_is_admin\(p_by\) then raise exception 'Only an Admin reads self-healing'/);
+  assert.ok(!/search_path = public, app\s*as/.test(SQL4800), 'search_path ends with pg_temp');
+});

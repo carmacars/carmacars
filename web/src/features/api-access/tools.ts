@@ -436,6 +436,16 @@ export const ERROR_TOOLS: Tool[] = [
 ];
 TOOLS.push(...ERROR_TOOLS);
 
+// Release 50 (4800): self-healing, read only. The incidents the site saw (open, healing, healed or escalated) with what it
+// tried and whether the check after each fix found the problem gone, the fix library with each fix's success and failure
+// counts, the whitelisted actions and what the heal agent on the server last reported. The database (app.api_call) decides
+// and logs each call.
+export const HEAL_TOOLS: Tool[] = [
+  read('heal_status', 'Self-healing status', 'What the site fixed by itself and what it escalated: the incidents (escalated first, then healing, open, and those healed in the last 7 days), each with its source (uptime, data_health, site_error, gsc, cron, queue, server), what was tried, the result and whether the check after it found the problem gone; the fix library (each playbook\'s signature, whitelisted action, enabled, successes and failures, why it was switched off); the whitelisted actions; and the server as the heal agent last reported it (the build, the last deploy, health, disk, certificates). Money is never fixed automatically. Read only.',
+    { limit: { type: 'integer', minimum: 1, maximum: 200, description: 'At most this many incidents (40 by default)' } })
+];
+TOOLS.push(...HEAL_TOOLS);
+
 export function normalizeToolArgs(args: unknown): unknown {
   if (!args || typeof args !== 'object' || Array.isArray(args)) return args;
   const a = args as Record<string, unknown>;
