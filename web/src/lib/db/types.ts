@@ -4665,6 +4665,189 @@ export type Database = {
         };
         Relationships: [];
       };
+      calendar_invites: {
+        Row: {
+          id: string;
+          kind: string;
+          user_id: string | null;
+          application_id: string | null;
+          uid: string;
+          seq: number;
+          method: string;
+          recurrence_id: string | null;
+          starts_at: string;
+          ends_at: string;
+          rrule: string | null;
+          exdates: string[];
+          summary: string;
+          description: string;
+          location: string;
+          attendee_email: string;
+          attendee_name: string | null;
+          sig: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          kind: string;
+          user_id?: string | null;
+          application_id?: string | null;
+          uid: string;
+          seq: number;
+          method: string;
+          recurrence_id?: string | null;
+          starts_at: string;
+          ends_at: string;
+          rrule?: string | null;
+          exdates?: string[];
+          summary: string;
+          description?: string;
+          location?: string;
+          attendee_email: string;
+          attendee_name?: string | null;
+          sig?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          kind?: string;
+          user_id?: string | null;
+          application_id?: string | null;
+          uid?: string;
+          seq?: number;
+          method?: string;
+          recurrence_id?: string | null;
+          starts_at?: string;
+          ends_at?: string;
+          rrule?: string | null;
+          exdates?: string[];
+          summary?: string;
+          description?: string;
+          location?: string;
+          attendee_email?: string;
+          attendee_name?: string | null;
+          sig?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      call_guest_links: {
+        Row: {
+          id: string;
+          application_id: string;
+          slot_id: string | null;
+          token_hash: string;
+          created_at: string;
+          used_at: string | null;
+          session_nonce: string | null;
+          revoked_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          application_id: string;
+          slot_id?: string | null;
+          token_hash: string;
+          created_at?: string;
+          used_at?: string | null;
+          session_nonce?: string | null;
+          revoked_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          application_id?: string;
+          slot_id?: string | null;
+          token_hash?: string;
+          created_at?: string;
+          used_at?: string | null;
+          session_nonce?: string | null;
+          revoked_at?: string | null;
+        };
+        Relationships: [];
+      };
+      call_participants: {
+        Row: {
+          room_id: string;
+          identity: string;
+          user_id: string | null;
+          application_id: string | null;
+          name: string;
+          role: string;
+          joined_at: string;
+          last_join_at: string;
+          left_at: string | null;
+          last_seen_at: string;
+          seconds: number;
+          joins: number;
+        };
+        Insert: {
+          room_id: string;
+          identity: string;
+          user_id?: string | null;
+          application_id?: string | null;
+          name: string;
+          role: string;
+          joined_at: string;
+          last_join_at: string;
+          left_at?: string | null;
+          last_seen_at: string;
+          seconds?: number;
+          joins?: number;
+        };
+        Update: {
+          room_id?: string;
+          identity?: string;
+          user_id?: string | null;
+          application_id?: string | null;
+          name?: string;
+          role?: string;
+          joined_at?: string;
+          last_join_at?: string;
+          left_at?: string | null;
+          last_seen_at?: string;
+          seconds?: number;
+          joins?: number;
+        };
+        Relationships: [];
+      };
+      call_rooms: {
+        Row: {
+          id: string;
+          kind: string;
+          name: string;
+          title: string;
+          meeting_at: string | null;
+          application_id: string | null;
+          slot_id: string | null;
+          created_at: string;
+          started_at: string | null;
+          ended_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          kind: string;
+          name: string;
+          title: string;
+          meeting_at?: string | null;
+          application_id?: string | null;
+          slot_id?: string | null;
+          created_at?: string;
+          started_at?: string | null;
+          ended_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          kind?: string;
+          name?: string;
+          title?: string;
+          meeting_at?: string | null;
+          application_id?: string | null;
+          slot_id?: string | null;
+          created_at?: string;
+          started_at?: string | null;
+          ended_at?: string | null;
+        };
+        Relationships: [];
+      };
       capture_accounts: {
         Row: {
           user_id: string;
@@ -21609,6 +21792,7 @@ export type Database = {
           owner_stage_stall_days: number;
           owner_stage_finder_url: string;
           owner_stage_uvip_url: string;
+          calls_mode: string;
         };
         Insert: {
           id?: string;
@@ -22599,6 +22783,7 @@ export type Database = {
           owner_stage_stall_days?: number;
           owner_stage_finder_url?: string;
           owner_stage_uvip_url?: string;
+          calls_mode?: string;
         };
         Update: {
           id?: string;
@@ -23589,6 +23774,7 @@ export type Database = {
           owner_stage_stall_days?: number;
           owner_stage_finder_url?: string;
           owner_stage_uvip_url?: string;
+          calls_mode?: string;
         };
         Relationships: [];
       };
@@ -28842,6 +29028,8 @@ export type Database = {
           perks_unlocked_at: string | null;
           perks_tier: string;
           perks_tier_month: string | null;
+          birthday_month: number | null;
+          birthday_day: number | null;
         };
         Insert: {
           user_id: string;
@@ -28908,6 +29096,8 @@ export type Database = {
           perks_unlocked_at?: string | null;
           perks_tier?: string;
           perks_tier_month?: string | null;
+          birthday_month?: number | null;
+          birthday_day?: number | null;
         };
         Update: {
           user_id?: string;
@@ -28974,6 +29164,8 @@ export type Database = {
           perks_unlocked_at?: string | null;
           perks_tier?: string;
           perks_tier_month?: string | null;
+          birthday_month?: number | null;
+          birthday_day?: number | null;
         };
         Relationships: [];
       };
@@ -30188,6 +30380,9 @@ export type Database = {
           method: string;
           confirmed_at: string | null;
           marked_by: string | null;
+          joined_at: string | null;
+          left_at: string | null;
+          seconds: number;
         };
         Insert: {
           meeting_at: string;
@@ -30196,6 +30391,9 @@ export type Database = {
           method: string;
           confirmed_at?: string | null;
           marked_by?: string | null;
+          joined_at?: string | null;
+          left_at?: string | null;
+          seconds?: number;
         };
         Update: {
           meeting_at?: string;
@@ -30204,6 +30402,9 @@ export type Database = {
           method?: string;
           confirmed_at?: string | null;
           marked_by?: string | null;
+          joined_at?: string | null;
+          left_at?: string | null;
+          seconds?: number;
         };
         Relationships: [];
       };
@@ -30258,6 +30459,30 @@ export type Database = {
           notes?: Json;
           reminded_at?: string | null;
           recording_url?: string | null;
+        };
+        Relationships: [];
+      };
+      townhall_incident_picks: {
+        Row: {
+          week_of: string;
+          ref: string | null;
+          body: string | null;
+          picked_by: string | null;
+          picked_at: string;
+        };
+        Insert: {
+          week_of: string;
+          ref?: string | null;
+          body?: string | null;
+          picked_by?: string | null;
+          picked_at?: string;
+        };
+        Update: {
+          week_of?: string;
+          ref?: string | null;
+          body?: string | null;
+          picked_by?: string | null;
+          picked_at?: string;
         };
         Relationships: [];
       };
