@@ -410,6 +410,18 @@ export const EVIDENCE_READ_TOOLS: Tool[] = [
 ];
 TOOLS.push(...EVIDENCE_READ_TOOLS);
 
+// Release 50 (4500): the weekly townhall. townhall_status reads it (the next meeting in Toronto time, the call link, this
+// week's deck, the active staff on the deck and those missing from it, the reminders, the field-call slots of the hour before);
+// the two writes are previewed, then confirmed. The database (app.api_call) decides and logs each call in api_calls.
+export const TOWNHALL_TOOLS: Tool[] = [
+  read('townhall_status', 'Townhall status', 'The weekly townhall: the next meeting (date and time, Toronto), whether it is cancelled, whether the call link is set and the link, whether this week\'s deck is built (when, its slide count and titles, the notes on it), which active staff are featured on the deck (the "team this week" slide) and which are MISSING from it (every staff member is featured), the reminders scheduled and sent for the next meeting, and the field-call interview slots of the hour before. Read only.'),
+  write('townhall_set_call_url', 'Set the townhall link', 'Set the weekly townhall\'s meeting link (https only), as Admin > Settings saves it: the Join button on every staff portal and the check-in reminders open it.',
+    ['url'], { url: str('The meeting link, starting with https://') }),
+  write('townhall_rebuild_deck', 'Rebuild the townhall deck', 'Rebuild this week\'s townhall deck now from live data, with the function the Sunday-night job uses (app.townhall_build); every slide is made again, adding any staff member missing from the team slide, and the notes already added are kept.',
+    [], {})
+];
+TOOLS.push(...TOWNHALL_TOOLS);
+
 export function normalizeToolArgs(args: unknown): unknown {
   if (!args || typeof args !== 'object' || Array.isArray(args)) return args;
   const a = args as Record<string, unknown>;

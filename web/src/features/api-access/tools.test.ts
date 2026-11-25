@@ -281,3 +281,23 @@ test('r50: the Helcim tools mirror the Stripe ones; the owner car tools are two-
   for (const n of ['helcim_account', 'approve_owner_car', 'fleet_lease_car_set']) assert.ok(TOOLS.some((t) => t.name === n), n);
   assert.deepEqual(by('fleet_lease_car_set').inputSchema.required, ['vehicle', 'tier']);
 });
+
+// r50 (4500): the townhall from the connector
+const SQL4500 = readFileSync(new URL('../../../../supabase/migrations/4500_r50_townhall_connector.sql', import.meta.url), 'utf8');
+test('r50: townhall_status reads (admin:read); townhall_set_call_url and townhall_rebuild_deck are two-step (admin:write); the database runs them', async () => {
+  const { TOWNHALL_TOOLS } = await import('./tools.ts');
+  const byName = Object.fromEntries(TOWNHALL_TOOLS.map((t) => [t.name, t]));
+  assert.ok(byName.townhall_status?.readOnly && byName.townhall_status.scope === 'admin:read');
+  for (const n of ['townhall_set_call_url', 'townhall_rebuild_deck']) {
+    const t = byName[n]!;
+    assert.ok(!t.readOnly && t.scope === 'admin:write', n);
+    const props = (t.inputSchema as { properties: Record<string, unknown> }).properties;
+    assert.ok(props.confirm && props.preview_id, n);
+    assert.ok(TOOLS.includes(t), n);
+  }
+  assert.ok(!toolsFor(['admin:read']).some((x) => x.name === 'townhall_rebuild_deck'), 'a read-only key cannot rebuild');
+  assert.match(SQL4500, /app\.api_call_pre4500\(p_hash, p_tool, p_args, p_client\); end if;/);
+  assert.match(SQL4500, /pv\.args is distinct from v_args/);
+  assert.match(SQL4500, /app\.townhall_build\(v_week, p_by\)/);
+  assert.ok(!/search_path = public, app\s*as/.test(SQL4500), 'search_path ends with pg_temp');
+});
