@@ -75,7 +75,7 @@ update game_plays set created_at = now() - interval '15 days' where visitor_id =
 select test.gstart('a');
 select test.eq('after the dismiss period a new game is drawn', (select count(*) from game_plays g where g.visitor_id = test.vid('a')), 2::bigint);
 select test.login(test.id('dg_rita'));
-select test.eq('a signed-in visitor never plays', test.gstart('signed') ->> 'reason', 'signed_in');
+select test.eq('a signed-in visitor plays too (5040), with their account named', (select (r ->> 'ok') || ' ' || (r -> 'account' ->> 'email') from (select test.gstart('signed') as r) x), 'true dg_rita@example.test');
 select test.logout();
 insert into visitor_sessions (id, visitor_id, known_email, identified_by) values (test.dsid('known'), test.vid('known'), 'known@example.test', 'email_link');
 select test.eq('a visitor known by email never plays', test.gstart('known') ->> 'reason', 'known');
@@ -120,7 +120,7 @@ select test.eq('a bad email, an empty name and a bad phone are refused with a me
   (select app.server_game_claim(jsonb_build_object('token', test.gstart('d') ->> 'token', 'first_name', 'D', 'email', 'not-an-email')) ->> 'error')
   || ' ' || (select app.server_game_claim(jsonb_build_object('token', test.gstart('d') ->> 'token', 'first_name', ' ', 'email', 'd@example.test')) ->> 'error')
   || ' ' || (select app.server_game_claim(jsonb_build_object('token', test.gstart('d') ->> 'token', 'first_name', 'D', 'email', 'd@example.test', 'phone', '12')) ->> 'error'), 'email first_name phone');
-select test.eq('a signed-in person cannot claim', app.server_game_claim(jsonb_build_object('token', test.gstart('e') ->> 'token', 'first_name', 'E', 'email', 'e@example.test'), test.id('dg_rita')) ->> 'error', 'signed_in');
+select test.eq('staff cannot claim (5040: signed-in renters can, with their account)', app.server_game_claim(jsonb_build_object('token', test.gstart('e') ->> 'token', 'first_name', 'E', 'email', 'e@example.test'), test.id('dg_admin')) ->> 'error', 'staff');
 select test.eq('an unknown play is refused', app.server_game_claim('{"token": "x", "first_name": "E", "email": "e@example.test"}') ->> 'error', 'not_found');
 -- 0172: one claim per device a day is the claim's rule (99_games_repeat_after_claim.sql); the database keeps one claim per code
 select test.throws('the database keeps one claim per code', $$insert into game_claims (play_id, visitor_id, first_name, email, promo_code_id, expires_at)

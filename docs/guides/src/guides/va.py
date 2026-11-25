@@ -626,7 +626,7 @@ def build():
 
     # ---------------------------------------------------------------- discount games (0066)
     g.chapter('Discount game leads',
-              'Visitors who are not signed in play a quick game on the site and win a promo code. To get it they give a first name, an email '
+              'Everyone who visits the site, signed in or not, plays a quick game and wins a promo code. Staff see it as a preview and never get a code. To get it they give a first name, an email '
               'and sometimes a mobile number. Customer service and Sales follow them up.',
               blurb='Game leads to call or email, the code they won, whether it is used, and the Sales task.')
     g.task('Game leads', f'{P("Live", "Game leads")}.')
