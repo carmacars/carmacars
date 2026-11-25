@@ -1,0 +1,86 @@
+{
+  "batch": "2026-11-25",
+  "prompt_version": "car-copy-v2",
+  "items": [
+    {
+      "kind": "car",
+      "id": "3a93cfb8-e4f9-45ad-8956-90ef376933d8",
+      "copy": {
+        "intro": "A four door Ford sedan with a 3.5 L V6 and automatic transmission, seating five for city errands and longer highway drives.",
+        "highlights": [
+          "Bluetooth",
+          "Air conditioning",
+          "Cruise control",
+          "Automatic transmission"
+        ],
+        "good_for": [
+          "Family outings for up to five",
+          "Highway drives with cruise control",
+          "Weekly and monthly rentals"
+        ],
+        "faq": [
+          {
+            "question": "How many people fit in the Taurus?",
+            "answer": "The 2014 Ford Taurus SEL has 5 seats and four doors."
+          },
+          {
+            "question": "Is the Taurus automatic?",
+            "answer": "Yes. It has an automatic transmission, a 3.5 L V6 engine and front-wheel drive."
+          },
+          {
+            "question": "How do I get the Taurus?",
+            "answer": "Collect it at our location at no charge, or have it delivered to your address. Delivery is $75."
+          },
+          {
+            "question": "How many kilometres are included each day?",
+            "answer": "200 km a day are included. Extra kilometres are $0.35 each."
+          }
+        ],
+        "alt_texts": {
+          "front_left": "2014 Ford Taurus SEL sedan, front left view"
+        }
+      }
+    },
+    {
+      "kind": "car",
+      "id": "f17d66f0-16bc-443b-b884-2b06abcfa519",
+      "copy": {
+        "intro": "A black 2023 Ford Maverick pickup with all-wheel drive and a 2.0 L engine, ready for hauling, errands and everyday driving.",
+        "highlights": [
+          "All-wheel drive",
+          "Automatic emergency braking",
+          "Backup camera",
+          "Forward collision alert",
+          "Automatic high beams",
+          "LED headlights"
+        ],
+        "good_for": [
+          "Moving day loads",
+          "Hardware store runs",
+          "Trips that need all-wheel drive"
+        ],
+        "faq": [
+          {
+            "question": "How many people fit in the Maverick?",
+            "answer": "The 2023 Ford Maverick has 5 seats."
+          },
+          {
+            "question": "Does the Maverick have all-wheel drive?",
+            "answer": "Yes. This Maverick is all-wheel drive and runs on gas with a 2.0 L engine."
+          },
+          {
+            "question": "Which safety features does it list?",
+            "answer": "Automatic emergency braking, forward collision alert, a backup camera and automatic high beams."
+          },
+          {
+            "question": "Can the Maverick be delivered?",
+            "answer": "Yes. Collect it at our location at no charge, or have it delivered to your address for $75."
+          }
+        ],
+        "alt_texts": {
+          "front_left": "Black 2023 Ford Maverick pickup truck, front left view"
+        }
+      }
+    }
+  ]
+}
