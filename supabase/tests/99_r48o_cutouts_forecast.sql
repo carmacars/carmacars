@@ -15,23 +15,27 @@ select test.mk_vehicle('fo48_c', 'fo48_other', p_enrolled => date '2026-01-10');
 -- ================================================================ 3080: the cutouts
 insert into vehicle_listings (vehicle_id, status) select test.id('vehicle:' || x), 'published' from unnest(array['fo48_a', 'fo48_b', 'fo48_c']) x;
 -- car a: a studio side view (3030) and a listing side view; car b: a listing view of the other side only; car c: nothing
-insert into vehicle_photos (vehicle_id, angle, shot_type, original_path, processed_path, status, is_public, r48, background_status, plate_status)
-values (test.id('vehicle:fo48_a'), 'left', 'left', 'vehicles/original/fo48/a-left-r48.jpg', 'vehicles/fo48/a-left-r48.jpg', 'approved', true, true, 'done', 'not_visible'),
-       (test.id('vehicle:fo48_a'), 'left', 'left', 'vehicles/original/fo48/a-left.jpg', 'vehicles/fo48/a-left.jpg', 'approved', true, false, 'done', 'not_visible'),
-       (test.id('vehicle:fo48_b'), 'right', 'right', 'vehicles/original/fo48/b-right.jpg', 'vehicles/fo48/b-right.jpg', 'approved', true, false, 'done', 'not_visible');
+-- 3701: a cutout is cut only from a live studio render (passed the gate); car b gets one too, car d has its own photo only
+select test.mk_owner('fo48_third');
+select test.mk_vehicle('fo48_d', 'fo48_third', p_enrolled => date '2026-01-10');
+insert into vehicle_listings (vehicle_id, status) values (test.id('vehicle:fo48_d'), 'published');
+insert into vehicle_photos (vehicle_id, angle, shot_type, original_path, processed_path, status, is_public, r48, background_status, plate_status, r45)
+values (test.id('vehicle:fo48_a'), 'left', 'left', 'vehicles/original/fo48/a-left-r48.jpg', 'vehicles/fo48/a-left-r48.jpg', 'approved', true, true, 'done', 'not_visible', '{"state": "done", "spec": "r48.3", "gate": {"pass": true, "spec": "r48.3"}}'),
+       (test.id('vehicle:fo48_a'), 'left', 'left', 'vehicles/original/fo48/a-left.jpg', 'vehicles/fo48/a-left.jpg', 'approved', true, false, 'done', 'not_visible', null),
+       (test.id('vehicle:fo48_b'), 'left', 'left', 'vehicles/original/fo48/b-left-r48.jpg', 'vehicles/fo48/b-left-r48.jpg', 'approved', true, true, 'done', 'not_visible', '{"state": "done", "spec": "r48.3", "gate": {"pass": true, "spec": "r48.3"}}'),
+       (test.id('vehicle:fo48_d'), 'right', 'right', 'vehicles/original/fo48/d-right.jpg', 'vehicles/fo48/d-right.jpg', 'approved', true, false, 'done', 'not_visible', null);
 
 select test.eq('the R48 studio side view comes first',
   app.site_cutout_source(test.id('vehicle:fo48_a')) ->> 'kind' || ' ' || (app.site_cutout_source(test.id('vehicle:fo48_a')) ->> 'path'), 'studio vehicles/fo48/a-left-r48.jpg');
-select test.eq('no studio view: the listing photo of the other side, facing right (shown mirrored)',
-  array[app.site_cutout_source(test.id('vehicle:fo48_b')) ->> 'kind', app.site_cutout_source(test.id('vehicle:fo48_b')) ->> 'facing'], array['listing', 'right']);
+select test.ok('no studio view: no source, never the car''s own photo (3701)', app.site_cutout_source(test.id('vehicle:fo48_d')) is null);
 select test.ok('no photo of the angle (and no stock photo free of a credit line): no source, the sample stays',
   app.site_cutout_source(test.id('vehicle:fo48_c')) is null);
 update vehicle_photos set is_public = false where vehicle_id = test.id('vehicle:fo48_a') and r48;
-select test.eq('a studio view taken off the site is not used: the listing photo is', app.site_cutout_source(test.id('vehicle:fo48_a')) ->> 'kind', 'listing');
+select test.ok('a studio view taken off the site is not used, nor the listing photo (3701)', app.site_cutout_source(test.id('vehicle:fo48_a')) is null);
 update vehicle_photos set is_public = true where vehicle_id = test.id('vehicle:fo48_a') and r48;
 
 create temp table fo48_due as select e from jsonb_array_elements(app.site_cutouts_due(20)) e
- where (e ->> 'vehicle_id')::uuid in (test.id('vehicle:fo48_a'), test.id('vehicle:fo48_b'), test.id('vehicle:fo48_c'));
+ where (e ->> 'vehicle_id')::uuid in (test.id('vehicle:fo48_a'), test.id('vehicle:fo48_b'), test.id('vehicle:fo48_c'), test.id('vehicle:fo48_d'));
 select test.eq('the worker gets the cars with a source and no cutout', (select count(*) from fo48_due)::integer, 2);
 
 select app.site_cutout_save(test.id('vehicle:fo48_a'), 'left', jsonb_build_object('source', app.site_cutout_source(test.id('vehicle:fo48_a')),

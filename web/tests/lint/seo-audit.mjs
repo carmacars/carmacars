@@ -74,14 +74,15 @@ if (/<sitemapindex/.test(sm)) {
     const part = await get(new URL(loc).pathname);
     if (part.status !== 200 || !/<urlset/.test(part.body)) { bad('sitemap', `${loc} answers ${part.status}`); continue; }
     // a car entry carries its photos (image sitemap) when the car has real photos; a car that shows sample photos has
-    // none to list (0070 lists cars before their photos), so only those whose page shows real photos are checked
+    // none to list (0070 lists cars before their photos), so only those whose page shows real photos are checked; 3701: a
+    // car with no passed studio render shows one "Photos coming soon" placeholder, left out of the sitemap
     if (/sitemap-cars/.test(loc)) {
       for (const [, blk] of [...part.body.matchAll(/<url>([\s\S]*?)<\/url>/g)].slice(0, 40)) {
         if (/<image:image>/.test(blk)) continue;
         const u = blk.match(/<loc>([^<]+)<\/loc>/)?.[1];
         if (!u) continue;
         const pg = await get(new URL(u).pathname);
-        if (pg.status === 200 && !/Representative photo|Sample photo/.test(pg.body)) bad('sitemap', `${new URL(u).pathname} has real photos but no image entry (image sitemap)`);
+        if (pg.status === 200 && !/Representative photo|Sample photo|Photos coming soon/.test(pg.body)) bad('sitemap', `${new URL(u).pathname} has real photos but no image entry (image sitemap)`);
       }
     }
     for (const m of part.body.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)) if (Number.isNaN(Date.parse(m[1]))) bad('sitemap', `unreadable lastmod ${m[1]} in ${loc}`);

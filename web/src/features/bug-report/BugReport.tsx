@@ -110,7 +110,7 @@ export function BugReportButton({ portal, mineHref }: { portal: 'admin' | 'staff
   return (
     <>
       {over && createPortal(
-        <button type="button" className="btn btn--sm br-float" onClick={open} disabled={busy === 'capture'} data-testid="bug-report-float" data-bug-report-ui>
+        <button type="button" className="btn btn--sm br-float" title="Report a bug" onClick={open} disabled={busy === 'capture'} data-testid="bug-report-float" data-bug-report-ui>
           {bug}<span>{busy === 'capture' ? 'Capturing…' : 'Report a bug'}</span>
         </button>, over.mode === 'inside' ? over.el : document.body)}
       <button ref={trigger} type="button" className="btn btn--quiet btn--sm hd-act" title="Report a bug" onClick={open} disabled={busy === 'capture'} data-testid="bug-report-open" data-bug-report-ui>

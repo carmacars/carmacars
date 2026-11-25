@@ -25,7 +25,10 @@ export function Gallery({ name, photos, gate }: { name: string; photos: Photo[];
   // r48 AN (3150): the studio renders never count against the free photos, so the car's own photos (after them) are as
   // free to see as before: the phone number box opens only past the free photos of the car's own
   const rendered = photos.filter((g) => g.generated).length;
-  const free = Math.max(1, gate?.free_photos ?? 4) + rendered;
+  // the phone number box counts from the car's real photos, after its renders (3150); since 3701 the public gallery is
+  // renders only, so with no real photo after them it counts from the first photo (else it would never open)
+  const ungated = rendered < photos.length ? rendered : 0;
+  const free = Math.max(1, gate?.free_photos ?? 4) + ungated;
   const scrollTo = (i: number) => {
     const t = track.current; if (!t) return; const n = Math.max(0, Math.min(photos.length - 1, i));
     const li = t.children[n] as HTMLElement | undefined;
@@ -35,7 +38,7 @@ export function Gallery({ name, photos, gate }: { name: string; photos: Photo[];
   const gated = useRef<{ locked: (i: number) => boolean; open: (i: number) => void }>({ locked: () => false, open: () => undefined });
   useEffect(() => {
     gated.current = {
-      locked: (i: number) => !passed && i >= rendered && photoLocked(i - rendered, photos.length - rendered, gate),
+      locked: (i: number) => !passed && i >= ungated && photoLocked(i - ungated, photos.length - ungated, gate),
       open: (i: number) => { void ask('gallery', () => { gated.current.locked = () => false; scrollTo(i); }); }
     };
   });

@@ -157,36 +157,25 @@ test('an individual owner: Check and sign, documents shown at once, prepared in 
   await sql.end();
 });
 
-test('before approval (0192): the owner reads both agreements filled in, the terms pending, and cannot sign yet', async ({ browser }) => {
+test('before approval, sign first (3800): the master agreement is ready to sign at once; nothing is approved', async ({ browser }) => {
   const sql = db();
   const owner = await mkUser(sql, 'plain', `Pia Preview${tag()}`);
   const app = await application(sql, owner);
+  // the profile is complete, so the master agreement is made at signup (0192's preview is for the title agreement only now)
+  expect((await sql`select status from owner_agreements where owner_id = ${app.ownerId} and kind = 'enrollment'`).map((r) => r.status)).toEqual(['draft']);
   const op = await ctx(browser);
   await signIn(op, owner.email, '/owner');
   const errors = watch(op);
   await op.goto('/owner', { waitUntil: 'networkidle' });
-  await op.getByRole('link', { name: 'Read your agreements' }).first().click();
+  await expect(op.getByTestId('owner-path')).toHaveAttribute('data-step', 'sign');
+  await op.getByTestId('owner-path-cta').click();
   await op.waitForURL(/\/owner\/sign$/, { timeout: 20_000 });
-  await expect(op.locator('h1')).toHaveText('Your agreements, filled in');
-  await expect(op.getByTestId('owner-preview-pending')).toContainText('Terms pending approval: you can sign once CarmaCars approves your terms.');
-  // both agreements, filled in from the application, the fees pending and never a number
-  const docs = op.getByTestId('owner-preview-docs');
-  await expect(docs.locator('summary')).toHaveText(['Vehicle Enrollment Agreement', 'Title-Holding and Lease Agreement']);
-  // checked closed, as the signing page is (the agreements themselves name the numbered company, 0122)
-  await check(op, 'preview sign page');
-  await docs.locator('summary').first().click();
-  await expect(docs.locator('details').first()).toContainText(owner.name);
-  await expect(docs.locator('details').first()).toContainText('PREVIEW, NOT FOR SIGNATURE');
-  await expect(docs.locator('details').first()).toContainText('Pending approval');
-  await expect(op.getByTestId('owner-preview-sign')).toBeDisabled();
-  await expect(op.getByTestId('package-sign')).toHaveCount(0);
+  await expect(op.getByTestId('owner-preview-pending')).toHaveCount(0);
+  await expect(op.getByTestId('package-sign')).toBeVisible({ timeout: 30_000 });
+  await check(op, 'sign first: sign page before approval');
   await shot(op, 'preview');
-  // nothing was opened for signature
-  expect((await sql`select count(*)::int n from owner_agreements where owner_id = ${app.ownerId}`)[0]!.n).toBe(0);
-  // Documents points to it
-  await op.goto('/owner/documents', { waitUntil: 'networkidle' });
-  await expect(op.getByTestId('owner-docs-preview').getByRole('link', { name: 'Read your agreements, filled in' })).toHaveAttribute('href', '/owner/sign#ow-preview');
-  await check(op, 'preview documents');
+  // signing first approves nothing: the application still waits for an Admin
+  expect((await sql`select status from owner_applications where id = ${app.appId}`)[0]!.status).not.toBe('approved');
   expect(errors.filter((e) => !/favicon|Failed to load resource.*(404|401)/.test(e))).toEqual([]);
   await op.context().close();
   await sql.end();
