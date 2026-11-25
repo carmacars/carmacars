@@ -345,7 +345,7 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
         <div className="mcal__grid" ref={grid} onPointerMove={onMoveP} onPointerUp={onUp} onScroll={onScroll} aria-label="Vehicles by day" role="region" tabIndex={0} data-virtual={virtual ? 'yes' : undefined} data-rows={rows.length}>
           <div className="mcal__inner" style={{ width, ['--dw' as string]: `${dw}px` }}>
             <div className="mcal__head" style={{ gridTemplateColumns: cols }}>
-              <div className="mcal__corner"><b>{new Intl.DateTimeFormat('en-CA', { month: 'long', year: 'numeric' }).format(new Date(from))}</b><span data-testid="cal-free-count">{freeToday} of {matching.length} free today</span></div>
+              <div className="mcal__corner"><b>{new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', month: 'long', year: 'numeric' }).format(new Date(from))}</b><span data-testid="cal-free-count">{freeToday} of {matching.length} free today</span></div>
               <div className="mcal__days" style={{ width: days * dw }}>
                 {dayList.map((d, i) => { const td = i === todayIdx; const we = d.getDay() === 0 || d.getDay() === 6; return (
                   <div key={d.toISOString()} className={`mcal__day${td ? ' is-today' : ''}${we ? ' is-weekend' : ''}`} style={{ left: i * dw, width: dw }} aria-current={td ? 'date' : undefined}>

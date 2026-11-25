@@ -19,7 +19,7 @@ type Data = { meta: { connected: boolean; instagram: boolean; last_error: string
   videos: Array<{ id: string; vehicle_id: string; car: string; mime: string; seconds: number; at: string }> };
 const CH: Record<Channel, string> = { facebook_page: 'Facebook Page', instagram: 'Instagram', tiktok: 'TikTok' };
 const ST: Record<Post['status'], string> = { queued: 'Scheduled', due: 'Due: post it now', posting: 'Being posted', posted: 'Posted', failed: 'Failed', cancelled: 'Cancelled' };
-const when = (s: string) => new Date(s).toLocaleString('en-CA', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+const when = (s: string) => new Date(s).toLocaleString('en-CA', { timeZone: 'America/Toronto', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 const localNow = () => { const d = new Date(Date.now() + 60 * 60 * 1000); d.setMinutes(0, 0, 0); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
 const TIKTOK_STEPS = ['Download the video below to your phone.', 'Open TikTok, tap +, choose the video from your camera roll.', 'Paste the caption (copy it below) and add 3 to 5 hashtags.',
   'Post it, open the post, tap Share > Copy link.', 'Press "Posted by hand" here and paste the link.'];

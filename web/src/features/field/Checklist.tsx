@@ -282,7 +282,7 @@ export function Checklist({ j, back = '/staff/field', backLabel = 'Back to my jo
       <div className="stack" data-testid="tracker">
         <ul className="fd-checks"><Line ok={j.tracker.reporting}>{j.tracker.reporting ? 'Tracker in place and reporting' : j.tracker.installed ? 'Tracker not reporting' : 'No tracker installed'}</Line></ul>
         {!j.tracker.reporting && <>
-          <p className="small">Last reading: {j.tracker.reported_at ? new Date(j.tracker.reported_at).toLocaleTimeString('en-CA') : 'none'}</p>
+          <p className="small">Last reading: {j.tracker.reported_at ? new Date(j.tracker.reported_at).toLocaleTimeString('en-CA', { timeZone: 'America/Toronto' }) : 'none'}</p>
           <button className="btn btn--ghost fd-wide" type="button" onClick={() => router.refresh()}><FdIcon name="retry" />Check again</button>
           {res && <TrackerOverride j={j} r={res} />}
           {!j.tracker.override && <button className="btn btn--primary fd-stop" type="button" onClick={() => block('The Tracker is not reporting')}>Stop: do not release the car</button>}

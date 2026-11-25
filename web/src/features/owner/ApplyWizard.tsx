@@ -249,7 +249,7 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile, fleetOnFile
     );
   }
 
-  const savedText = saved.state === 'saving' ? 'Saving' : saved.state === 'saved' && saved.at ? `Saved ${new Date(saved.at).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' })}` : saved.state === 'error' ? 'Not saved. Check your connection.' : 'Saved as you go';
+  const savedText = saved.state === 'saving' ? 'Saving' : saved.state === 'saved' && saved.at ? `Saved ${new Date(saved.at).toLocaleTimeString('en-CA', { timeZone: 'America/Toronto', hour: 'numeric', minute: '2-digit' })}` : saved.state === 'error' ? 'Not saved. Check your connection.' : 'Saved as you go';
 
   return (
     <div className="stack-lg">

@@ -379,7 +379,7 @@ export function OfferComposer({ base, initialCar = null, initialFrom = null, ini
   return (
     <div className="oc-flow" data-testid="offer-composer" data-guide="offer-composer">
       <form className="pt-card ad-card ad-form ad-form--narrow oc-form" aria-label="The offer" noValidate onSubmit={(e) => { e.preventDefault(); if (!pickupPassed(f.pickup_at)) send(); }}>
-        <p className="small muted" role="status" aria-live="polite" data-testid="oc-draft-status">{savedAt ? `Saved as a draft at ${new Date(savedAt).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' })}: finish it later from Unfinished rentals.` : 'Saved as a draft as you type.'}
+        <p className="small muted" role="status" aria-live="polite" data-testid="oc-draft-status">{savedAt ? `Saved as a draft at ${new Date(savedAt).toLocaleTimeString('en-CA', { timeZone: 'America/Toronto', hour: 'numeric', minute: '2-digit' })}: finish it later from Unfinished rentals.` : 'Saved as a draft as you type.'}
           {draftId && <> <button className="btn btn--quiet btn--sm" type="button" onClick={() => run(async () => { await draftClose(draftId, 'discarded'); router.push(`${base}/offers/new`, scrollOption(`${base}/offers/new`)); })} data-testid="oc-discard-draft">Discard the draft</button></>}</p>
 
         {phase(1, 'Car and dates')}
