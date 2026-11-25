@@ -213,7 +213,7 @@
   .va-lane { transition: transform var(--t-2) var(--ease), border-color var(--t-1), box-shadow var(--t-2); }
   .va-lane:hover { transform: translateY(-2px); }
   .va-lane:active { transform: translateY(0) scale(0.99); }
-  .va-skel__block, .va-skel__hero { animation: va-shimmer 1.4s ease-in-out infinite; }
+  .va-skel__block, .va-skel__hero { animation: va-shimmer 1.4s ease-in-out infinite; } /* design-allow: the shimmer skeleton */
 }
 @keyframes va-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @keyframes va-shimmer { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }

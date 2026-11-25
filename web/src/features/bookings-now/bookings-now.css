@@ -188,11 +188,11 @@
 .bn-bar__k { align-self: center; font-size: var(--fs-xs); font-weight: 650; color: var(--text-2); margin-right: 2px; }
 
 /* ended, never closed */
-.bn-stale { display: grid; gap: var(--s-2); padding: var(--s-4) var(--s-3); border-radius: 16px; background: #FFF8E6; border: 1px solid #F0D58C; }
+.bn-stale { display: grid; gap: var(--s-2); padding: var(--s-4) var(--s-3); border-radius: 16px; background: #FFF8E6; border: 1px solid var(--k-border); }
 @media (min-width: 40rem) { .bn-stale { padding: var(--s-4); } }
 .bn-stale h2 { margin: 0; display: inline-flex; align-items: center; gap: var(--s-2); font-family: var(--font-display); font-size: 1.125rem; font-weight: 700; }
 .bn-stale .bn-sec__note { color: #5C4300; }
-.bn-stale .bn-row { border-bottom-color: #F0D58C; }
+.bn-stale .bn-row { border-bottom-color: var(--k-border); }
 .bn-row--stale .btn { justify-self: start; grid-column: 2; }
 .bn-row--stale .bn-time { grid-row: span 4; }
 

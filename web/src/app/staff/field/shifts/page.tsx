@@ -111,7 +111,7 @@ export default async function MyShifts({ searchParams }: { searchParams: Promise
         <AvailabilityGrid value={s.availability ?? null} testId="shifts-availability-grid" /></details>
       <h2 className="fp-group-h" id="spending">Money you spent</h2>
       {spends.length ? <div className="fp-stack">{spends.slice(0, 15).map((x) => <section key={x.id} className="fp-shiftcard is-past" data-testid="spend">
-        <p className="fp-card__time" style={{ fontSize: '1.5rem' }}>{money(x.amount_cents, { cents: true })}</p>
+        <p className="fp-card__time fp-card__time--sm">{money(x.amount_cents, { cents: true })}</p>
         <p><b>{x.description}</b></p><p className="small">{pastDay(x.spent_on)}{x.vehicle ? `, ${x.vehicle}` : ''}. {SPEND_STATUS[x.status] ?? x.status}{x.note ? `: ${x.note}` : ''}.</p>
         {!x.receipt && x.status !== 'refused' && <SpendReceipt id={x.id} />}</section>)}</div> : <p className="small fp-stack">Nothing yet. Use Add on Today when you spend money for the company.</p>}
       {noReceipt.length > 0 && <p className="small">{noReceipt.length} without a receipt: add the photo above.</p>}

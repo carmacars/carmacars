@@ -44,7 +44,7 @@
 .ft-tabs button { background: none; border: 0; border-bottom: 2px solid transparent; color: var(--quiet); font: inherit; font-weight: 600; padding: 8px 12px; cursor: pointer; min-height: 40px; }
 .ft-tabs button.is-on { color: var(--text); border-bottom-color: var(--accent); }
 .ft-sec { padding: 8px 24px 16px; }
-.ft-btn { background: #1b2436; color: var(--text); border: 1px solid #2a3650; border-radius: 8px; padding: 6px 12px; font: inherit; font-size: .85rem; font-weight: 600; cursor: pointer; min-height: 36px; }
+.ft-btn { background: #1b2436; color: var(--text); border: 1px solid var(--k-border-on-dark); border-radius: 8px; padding: 6px 12px; font: inherit; font-size: .85rem; font-weight: 600; cursor: pointer; min-height: 36px; }
 .ft-btn:hover { background: #24304a; }
 .ft-btn--q { background: none; }
 .ft-btn:disabled { opacity: .6; cursor: default; }

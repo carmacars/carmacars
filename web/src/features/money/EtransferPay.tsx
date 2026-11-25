@@ -2,6 +2,8 @@
 import { useId, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { money } from '@/lib/format';
+import { Icon } from '@/components/Icon';
+import { IconSwap } from '@/portable/motion/react';
 import { when } from '@/features/agreement/model';
 import { renterReportEtransfer } from '@/server/actions/etransfer-renter';
 import { coversWords } from './etransfer';
@@ -19,7 +21,7 @@ function Copy({ text, label }: { text: string; label: string }) {
   return (
     <button type="button" className="btn btn--quiet btn--sm etp-copy" aria-label={`Copy ${label}`} data-testid={`etp-copy-${label.replace(/\W+/g, '-').toLowerCase()}`}
       onClick={() => { navigator.clipboard?.writeText(text).then(() => { setDone(true); setTimeout(() => setDone(false), 1600); }).catch(() => undefined); }}>
-      {done ? 'Copied' : 'Copy'}
+      <IconSwap on={done} first={<Icon name="copy" />} second={<Icon name="check" />} />{done ? 'Copied' : 'Copy'}
     </button>
   );
 }
