@@ -53,3 +53,54 @@
   .ac-scene > *, .ac-items li, .ac-money > div, .ac-bubble, .ac-stage.is-playing::before { animation: none; }
   .ac-bar > span { transition: none; }
 }
+
+/* 4200: the pictures of the academy: screens with pins, good and bad photos, flow diagrams, Do and Don't, icon lists. A scene of
+   pictures lets the stage grow with its content (no 16:9 box that would clip it on a 320 px phone). */
+.ac-stage--vis { aspect-ratio: auto; min-block-size: 14rem; }
+.ac-vis { margin: 0; display: grid; gap: .5rem; min-inline-size: 0; animation: ac-rise .5s ease-out both; }
+.ac-pic { position: relative; inline-size: 100%; max-inline-size: min(100%, calc(var(--maxh, 28rem) * var(--ar, 1.6))); border-radius: .4rem; overflow: hidden; background: #fff; line-height: 0; }
+.ac-pic__img { display: block; inline-size: 100%; block-size: auto; }
+.ac-pin { position: absolute; transform: translate(-50%, -50%); inline-size: 1.4rem; block-size: 1.4rem; border-radius: 999px; background: #c8102e; color: #fff; font: 700 .75rem/1.4rem var(--font-text, inherit); text-align: center; box-shadow: 0 0 0 2px #fff, 0 1px 4px rgb(0 0 0 / .45); }
+.ac-legend { list-style: none; margin: 0; padding: 0; display: grid; gap: .2rem; font-size: clamp(.8rem, 2.4vw, 1rem); }
+.ac-legend li { display: flex; gap: .5rem; align-items: baseline; }
+.ac-legend__n { flex: none; inline-size: 1.25rem; block-size: 1.25rem; border-radius: 999px; background: #c8102e; color: #fff; font: 700 .7rem/1.25rem var(--font-text, inherit); text-align: center; }
+.ac-legend__text { color: #d6d6d6; }
+.ac-cmp { display: grid; gap: .6rem; grid-template-columns: 1fr; }
+@media (min-width: 560px) { .ac-cmp { grid-template-columns: 1fr 1fr; } }
+.ac-cmp__side { display: grid; gap: .3rem; align-content: start; }
+.ac-cmp__side p { margin: 0; font-size: clamp(.78rem, 2.3vw, .95rem); line-height: 1.35; }
+.ac-cmp .ac-pic { max-inline-size: 100%; }
+.ac-cmp__side--good .ac-pic { box-shadow: 0 0 0 3px #4ade80; }
+.ac-cmp__side--bad .ac-pic { box-shadow: 0 0 0 3px #f87171; }
+.ac-cmp__note { margin: 0; font-size: .72rem; color: #a9b4c4; }
+.ac-badge-mark { position: absolute; inset-block-start: .4rem; inset-inline-start: .4rem; display: inline-flex; gap: .25rem; align-items: center; padding: .1rem .5rem .1rem .3rem; border-radius: 999px; font: 700 .75rem/1.2 var(--font-text, inherit); color: #fff; }
+.ac-badge-mark--ok { background: #15803d; }
+.ac-badge-mark--no { background: #b91c1c; }
+.ac-mark { flex: none; inline-size: 1.25rem; block-size: 1.25rem; }
+.ac-mark--ok { color: #4ade80; }
+.ac-mark--no { color: #f87171; }
+.ac-badge-mark .ac-mark { color: #fff; inline-size: 1rem; block-size: 1rem; }
+.ac-dd { display: grid; gap: .6rem; }
+.ac-dd__pair { display: grid; gap: .3rem; animation: ac-rise .45s ease-out both; animation-delay: calc(var(--i, 0) * 450ms + 300ms); }
+@media (min-width: 640px) { .ac-dd__pair { grid-template-columns: 1fr 1fr; gap: .6rem; } }
+.ac-dd p { margin: 0; display: flex; gap: .5rem; align-items: flex-start; padding: .45rem .7rem; border-radius: .5rem; font-size: clamp(.85rem, 2.6vw, 1.05rem); line-height: 1.35; }
+.ac-dd__do { background: rgb(74 222 128 / .14); border: 1px solid rgb(74 222 128 / .45); }
+.ac-dd__dont { background: rgb(248 113 113 / .14); border: 1px solid rgb(248 113 113 / .45); }
+.ac-ic { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+.ac-ic li { display: flex; gap: .7rem; align-items: center; font-size: clamp(.85rem, 2.6vw, 1.1rem); line-height: 1.35; animation: ac-rise .45s ease-out both; animation-delay: calc(var(--i, 0) * 450ms + 300ms); }
+.ac-ic svg { flex: none; color: #ff9aa9; }
+.ac-flow { display: none; inline-size: 100%; block-size: auto; max-block-size: 26rem; }
+.ac-flow--down { display: block; max-inline-size: 22rem; }
+@media (min-width: 700px) {
+  .ac-vis--flow[data-wide="true"] .ac-flow--across { display: block; }
+  .ac-vis--flow[data-wide="true"] .ac-flow--down { display: none; }
+}
+.ac-flow__node { fill: rgb(255 255 255 / .1); stroke: #ff9aa9; stroke-width: 2; }
+.ac-flow { color: #fff; }
+.ac-flow__line { fill: none; stroke: #ff9aa9; stroke-width: 2; }
+.ac-flow__head { fill: none; stroke: #ff9aa9; stroke-width: 1.6; }
+.ac-flow__label { fill: #fff; font: 600 14px/1.2 var(--font-text, system-ui, sans-serif); }
+.ac-flow__num { fill: #ff9aa9; font: 700 12px var(--font-text, system-ui, sans-serif); }
+@media (prefers-reduced-motion: reduce) { .ac-vis, .ac-dd__pair, .ac-ic li { animation: none; } }
+/* 4200: the funny wrong answer, named after it is picked */
+.ac-quiz .is-joke { color: var(--text); }

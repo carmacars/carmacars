@@ -24,6 +24,7 @@
      "Studio photos are made again across the fleet: a photo step that keeps failing is flagged with its reason after three tries instead of blocking every other car",
      "Imported photos the sorter could not read are sorted again by themselves, so a car's outside photos become its cover",
      "A studio grid shows every car's nine views side by side, so a photo that does not match the others is easy to spot",
+     "The Academy shows pictures in every section: real screens with numbered pins, good and bad example photos, flow diagrams and do and do not pairs; and every quiz question has one extra funny wrong answer to spot",
      "**Guide me** in every staff portal: an optional coach that walks you through a real job step by step while you do it, on the live screens (send an offer, answer a request, record a payment, a pickup, a return and deposit review, approve an owner's car, a field expense)"
     ]
    },

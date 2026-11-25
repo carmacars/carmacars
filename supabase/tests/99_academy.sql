@@ -17,7 +17,7 @@ select test.ok('every path has sections, every section lessons and at least 5 qu
                     or (select count(*) from academy_questions q where q.section_id = s.id) < 5));
 select test.ok('every scene has a caption, words and a known picture', not exists (
   select 1 from academy_lessons l, jsonb_array_elements(l.scenes) sc
-   where coalesce(sc ->> 'caption', '') = '' or coalesce(sc ->> 'say', '') = '' or sc #>> '{visual,kind}' not in ('title', 'chat', 'list', 'steps', 'money', 'rule', 'shot')));
+   where coalesce(sc ->> 'caption', '') = '' or coalesce(sc ->> 'say', '') = '' or sc #>> '{visual,kind}' not in ('title', 'chat', 'list', 'steps', 'money', 'rule', 'shot', 'pic', 'compare', 'flow', 'dodont', 'icons')));
 select test.eq('customer service takes the customer service path', app.academy_paths_of(test.id('acd_cs')), array['cs', 'renter_side']);
 select test.eq('Sales in person by default', app.academy_paths_of(test.id('acd_sales')), array['renter_side', 'sales_in_person']);
 update staff_profiles set sales_work_mode = 'remote' where user_id = test.id('acd_sales');

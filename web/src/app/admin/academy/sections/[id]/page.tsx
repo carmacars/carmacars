@@ -5,7 +5,7 @@ import { requireAdmin } from '@/server/admin/data';
 import { adminRead } from '@/server/admin/api';
 import { Card, PageHead } from '@/features/admin/ui';
 import { Act } from '@/features/admin/Act';
-import type { Scene } from '@/features/academy/model';
+import { jokeOf, type Scene } from '@/features/academy/model';
 import { LessonPreview } from '@/features/academy/LessonPreview';
 
 export const dynamic = 'force-dynamic';
@@ -45,21 +45,22 @@ export default async function AcademySectionEdit({ params }: { params: Promise<{
           fields={[{ name: 'title', label: 'Title', required: true }, { name: 'scenes', label: 'Scenes', type: 'json', required: true, value: [{ caption: 'The point', say: 'What the voice says.', visual: { kind: 'title', heading: 'The point' } }], hint: SCENES_HINT }]} />
       </Card>
       <Card title={`Quiz (${s.questions.length} questions)`}>
+        <p className="small muted">Every question also carries one funny wrong option. It is added by itself when a question is saved, always wrong, and never counts as the right answer.</p>
         <ol className="stack">{s.questions.map((q) => (
           <li key={q.id} data-testid={`qe-${q.sort}`}>
             <p><b>{q.prompt}</b></p>
-            <ol type="a" className="small">{q.options.map((o, i) => <li key={i}>{o}{i === q.answer ? ' (right answer)' : ''}</li>)}</ol>
+            <ol type="a" className="small">{q.options.map((o, i) => <li key={i}>{o}{i === q.answer ? ' (right answer)' : ''}{jokeOf(o) ? ' (a joke, always wrong)' : ''}</li>)}</ol>
             <p className="small muted">{q.explain}</p>
             <span className="row" style={{ gap: 'var(--s-2)', flexWrap: 'wrap' }}>
               <Act action="academy_question_save" payload={{ id: q.id }} label="Edit" testId={`qedit-${q.sort}`} refresh={[here]} done="Saved."
                 fields={[{ name: 'prompt', label: 'Question', type: 'textarea', required: true, value: q.prompt }, { name: 'options', label: 'Options (a list)', type: 'json', required: true, value: q.options },
-                  { name: 'answer', label: 'Right answer (0 is the first option)', type: 'number', required: true, value: q.answer, min: 0, max: 5 }, { name: 'explain', label: 'Why', type: 'textarea', value: q.explain }]} />
+                  { name: 'answer', label: 'Right answer (0 is the first option)', type: 'number', required: true, value: q.answer, min: 0, max: 6 }, { name: 'explain', label: 'Why', type: 'textarea', value: q.explain }]} />
               <Act action="academy_question_delete" payload={{ id: q.id }} label="Delete" variant="danger" confirm="Delete this question?" refresh={[here]} />
             </span>
           </li>))}</ol>
         <Act action="academy_question_save" payload={{ section_id: s.id }} label="Add a question" testId="q-add" refresh={[here]} done="Added."
           fields={[{ name: 'prompt', label: 'Question', type: 'textarea', required: true }, { name: 'options', label: 'Options (a list)', type: 'json', required: true, value: ['', ''] },
-            { name: 'answer', label: 'Right answer (0 is the first option)', type: 'number', required: true, value: 0, min: 0, max: 5 }, { name: 'explain', label: 'Why', type: 'textarea' }]} />
+            { name: 'answer', label: 'Right answer (0 is the first option)', type: 'number', required: true, value: 0, min: 0, max: 6 }, { name: 'explain', label: 'Why', type: 'textarea' }]} />
       </Card>
     </>
   );

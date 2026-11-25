@@ -40,7 +40,13 @@ const C = { bg: '#0F1B2D', panel: '#17263D', ink: '#F5F7FA', muted: '#A9B4C4', o
 const FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
 
 /** 2990: the guide screenshots a lesson shows (their addresses), to load before it is recorded. */
-export const lessonImages = (scenes: readonly Scene[]): string[] => [...new Set(scenes.flatMap((s) => (s.visual.kind === 'shot' && s.visual.img ? [shotSrc(s.visual.img)] : [])))];
+export const lessonImages = (scenes: readonly Scene[]): string[] => [...new Set(scenes.flatMap((s) => {
+  const v = s.visual;
+  if (v.kind === 'shot' && v.img) return [shotSrc(v.img)];
+  if (v.kind === 'pic') return [v.src];
+  if (v.kind === 'compare') return [v.good.src, v.bad.src]; // 4200: the pictures of the See it lesson
+  return [];
+}))];
 
 /** 2990: a picture fitted inside a box, keeping its shape, at the box's top left. */
 export function fitBox(w: number, h: number, boxW: number, boxH: number): { w: number; h: number } {
@@ -108,6 +114,55 @@ export function drawLesson(ctx: CanvasRenderingContext2D, title: string, scenes:
       y += f.h + 10;
     }
     text(v.text || 'In the guide', 64, Math.min(y, H - 128 - 40), 24, C.muted, 400, W - 128, 1, fadeIn);
+  } else if (v.kind === 'pic') {
+    // 4200: a screen or photo, with its legend under it
+    y = text(v.heading, 64, y, 40, C.ink, 700, W - 128, 1, fadeIn) + 12;
+    const img = images?.get(v.src);
+    const legend = [...(v.pins ?? []).map((p) => `${p.n}. ${p.label}`), ...(v.text ? [v.text] : [])].join('   ');
+    const boxH = H - 128 - 56 - y;
+    if (img) {
+      const f = fitBox(img.width, img.height, W - 128, boxH);
+      ctx.globalAlpha = fadeIn; ctx.fillStyle = '#FFFFFF'; ctx.fillRect(64, y, f.w, f.h); ctx.drawImage(img, 64, y, f.w, f.h);
+      ctx.fillStyle = '#C8102E';
+      for (const p of v.pins ?? []) { const px = 64 + (f.w * p.x) / 100, py = y + (f.h * p.y) / 100; ctx.beginPath(); ctx.arc(px, py, 13, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#FFFFFF'; ctx.font = `700 16px ${FONT}`; ctx.fillText(String(p.n), px - 5, py - 9); ctx.fillStyle = '#C8102E'; }
+      ctx.globalAlpha = 1;
+      y += f.h + 10;
+    }
+    text(legend || v.alt, 64, Math.min(y, H - 128 - 40), 24, C.muted, 400, W - 128, 1, fadeIn);
+  } else if (v.kind === 'compare') {
+    y = text(v.heading, 64, y, 40, C.ink, 700, W - 128, 1, fadeIn) + 12;
+    const boxW = (W - 128 - 32) / 2, boxH = H - 128 - 90 - y;
+    ([['Good', v.good, '#2E9E6A'], ['Not good', v.bad, '#D9534F']] as const).forEach(([label, p, color], n) => {
+      const x = 64 + n * (boxW + 32);
+      const img = images?.get(p.src);
+      const f = img ? fitBox(img.width, img.height, boxW, boxH) : { w: 0, h: 0 };
+      ctx.globalAlpha = fadeIn;
+      if (img) { ctx.drawImage(img, x, y, f.w, f.h); ctx.strokeStyle = color; ctx.lineWidth = 5; ctx.strokeRect(x, y, f.w, f.h); }
+      ctx.fillStyle = color; ctx.font = `700 22px ${FONT}`; ctx.fillText(label, x, y + f.h + 8);
+      ctx.globalAlpha = 1;
+      text(p.text, x, y + f.h + 36, 20, C.muted, 400, boxW, 2, fadeIn);
+    });
+  } else if (v.kind === 'flow') {
+    y = text(v.heading, 64, y, 40, C.ink, 700, W - 128, 1, fadeIn) + 20;
+    v.steps.slice(0, 7).forEach((st, n) => {
+      const a = itemAlpha(n, into);
+      text(`${n + 1}.`, 72, y, 30, C.bar, 700, 48, 1, a);
+      y = text(st.label, 124, y, 30, C.ink, 400, W - 200, 2, a) + 12;
+    });
+  } else if (v.kind === 'dodont') {
+    y = text(v.heading, 64, y, 40, C.ink, 700, W - 128, 1, fadeIn) + 16;
+    v.pairs.slice(0, 3).forEach((p, n) => {
+      const a = itemAlpha(n, into);
+      y = text(`Do: ${p.do}`, 72, y, 28, C.ok, 600, W - 144, 2, a) + 6;
+      y = text(`Do not: ${p.dont}`, 72, y, 28, C.warn, 600, W - 144, 2, a) + 18;
+    });
+  } else if (v.kind === 'icons') {
+    y = text(v.heading, 64, y, 40, C.ink, 700, W - 128, 1, fadeIn) + 20;
+    v.items.slice(0, 6).forEach((it, n) => {
+      const a = itemAlpha(n, into);
+      text('•', 72, y, 30, C.bar, 700, 48, 1, a);
+      y = text(it.text, 124, y, 30, C.ink, 400, W - 200, 2, a) + 14;
+    });
   } else if (v.kind === 'chat') {
     v.lines.slice(0, 5).forEach((l, n) => {
       const a = itemAlpha(n, into);

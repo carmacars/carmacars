@@ -1,5 +1,7 @@
 // The academy's lessons in the browser (Release 21b, item 9; migration 0207). Pure: the scene types, the voice chosen from the
 // browser's list, how long a scene lasts without a voice, and the quiz score. The player (ScenePlayer.tsx) and the pages use it.
+import jokes from './jokes.json' with { type: 'json' };
+const JOKES: readonly Joke[] = jokes;
 export type Visual =
   | { kind: 'title'; heading: string; text?: string }
   | { kind: 'chat'; lines: Array<{ who: string; text: string }> }
@@ -7,7 +9,25 @@ export type Visual =
   | { kind: 'money'; heading: string; rows: Array<[string, string]>; total?: [string, string] }
   | { kind: 'rule'; heading: string; text: string; tone?: 'ok' | 'warn' }
   /** 2990: a guide screenshot (img, a file of docs/guides/content/images.json) and the chapter it is from (portal/slug) */
-  | { kind: 'shot'; heading: string; guide: string; img?: string; text?: string };
+  | { kind: 'shot'; heading: string; guide: string; img?: string; text?: string }
+  /** 4200: a screen or photo (webp in /academy) with numbered pins and a legend; alt is required */
+  | { kind: 'pic'; heading: string; src: string; alt: string; w: number; h: number; pins?: Pin[]; text?: string }
+  /** 4200: a good and a bad example photo side by side */
+  | { kind: 'compare'; heading: string; alt: string; good: ComparePhoto; bad: ComparePhoto }
+  /** 4200: an inline SVG diagram of a flow; each step has an icon of the portal icon set */
+  | { kind: 'flow'; heading: string; alt: string; steps: Array<{ icon: string; label: string }> }
+  /** 4200: Do and Don't pairs */
+  | { kind: 'dodont'; heading: string; alt: string; pairs: Array<{ do: string; dont: string }> }
+  /** 4200: key steps or facts, each with a small icon */
+  | { kind: 'icons'; heading: string; alt: string; items: Array<{ icon: string; text: string }> };
+export interface Pin { n: number; x: number; y: number; label: string }
+export interface ComparePhoto { src: string; text: string; w: number; h: number }
+/** 4200: the scene kinds that are pictures (they carry alt text). */
+export const PICTURE_KINDS = ['pic', 'compare', 'flow', 'dodont', 'icons'] as const;
+/** 4200: the alt text of a picture scene ('' for a scene that is not one). */
+export function visualAlt(v: Visual): string {
+  return (PICTURE_KINDS as readonly string[]).includes(v.kind) ? ((v as { alt?: string }).alt ?? '') : '';
+}
 export interface Scene { caption: string; say?: string; visual: Visual }
 export interface Lesson { id: string; title: string; scenes: Scene[]; viewed?: boolean }
 export interface SectionView { id: string; slug: string; title: string; blurb: string; path: string; path_title: string; pass_bps: number; passed: boolean; best_bps: number | null; next: string | null;
@@ -21,6 +41,13 @@ export interface SectionRow { id: string; slug: string; title: string; blurb: st
 export interface PathRow { code: string; title: string; blurb: string; passed: boolean; sections: SectionRow[] }
 export interface QuizResult { correct: number; total: number; score_bps: number; passed: boolean; pass_bps: number; results: Array<{ id: string; given: number | null; answer: number | null; right: boolean; explain: string }>;
   /** 1154 */ quiz?: QuizWait; flagged?: boolean }
+
+/** 4200: the funny wrong answers every question carries (jokes.json): the option text and the playful line for picking it. */
+export interface Joke { text: string; quip: string }
+/** The joke an option is, if it is one. */
+export const jokeOf = (option: string): Joke | undefined => JOKES.find((j) => j.text === option);
+/** The playful line for a picked option when it is a joke ('' otherwise). */
+export const jokeQuip = (option: string | undefined): string => (option ? jokeOf(option)?.quip ?? '' : '');
 
 /** The words a scene says: its narration, else its caption. */
 export const words = (s: Scene): string => (s.say && s.say.trim()) || s.caption;
@@ -77,3 +104,15 @@ export function dueWords(lockFrom: string | null | undefined, allPassed: boolean
   const day = new Date(t).toLocaleDateString('en-CA', { timeZone: 'America/Toronto', weekday: 'short', month: 'short', day: 'numeric' });
   return `New sections to pass by ${day}. After that, the rest of your portal waits until they are passed.`;
 }
+
+/** Words broken into lines of at most `max` characters. */
+export function wrapLabel(text: string, max: number): string[] {
+  const out: string[] = [];
+  let line = '';
+  for (const w of text.split(/\s+/).filter(Boolean)) {
+    if (line && (line + ' ' + w).length > max) { out.push(line); line = w; } else line = line ? `${line} ${w}` : w;
+  }
+  if (line) out.push(line);
+  return out;
+}
+

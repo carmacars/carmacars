@@ -21,7 +21,7 @@ export function PuIcon({ name }: { name: IconName }) {
 
 // The larger set (portal-ui, renter portal first): one 24 px grid, 1.6 stroke, round joins, currentColor. Decorative by default
 // (aria-hidden); the text beside an icon always says what it is.
-const P24 = {
+export const P24 = {
   car: <><path d="M4 15.5V12l1.6-4.3A2 2 0 0 1 7.5 6.4h9a2 2 0 0 1 1.9 1.3L20 12v3.5" /><path d="M3 15.5h18v2.2a.8.8 0 0 1-.8.8h-1.7a.8.8 0 0 1-.8-.8V17H6.3v.7a.8.8 0 0 1-.8.8H3.8a.8.8 0 0 1-.8-.8z" /><path d="M4.5 12h15" /><circle cx="7.5" cy="14.2" r=".6" /><circle cx="16.5" cy="14.2" r=".6" /></>,
   calendar: <><rect x="3.5" y="5" width="17" height="15" rx="2.5" /><path d="M3.5 10h17M8 3v4M16 3v4" /></>,
   pin: <><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z" /><circle cx="12" cy="10" r="2.3" /></>,

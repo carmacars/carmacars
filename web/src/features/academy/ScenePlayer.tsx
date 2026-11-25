@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { guideHref, pickVoice, progress, sceneMs, shotSrc, words, type Lesson, type Scene, type Visual } from './model';
+import { PictureScene } from './Visuals';
+import { PICTURE_KINDS, guideHref, pickVoice, progress, sceneMs, shotSrc, words, type Lesson, type Scene, type Visual } from './model';
 
 // A lesson as a video made in the browser (Release 21b, item 9): each scene is HTML and CSS with motion (src/features/academy/
 // academy.css), its words on screen as captions, and narrated by the browser's own voice (Web Speech API, speechSynthesis) in
@@ -100,7 +101,7 @@ export function ScenePlayer({ lesson, onDone, testId = 'player', admin = false }
         else if (e.key === 'ArrowRight') { e.preventDefault(); nextScene(); }
         else if (e.key === 'ArrowLeft') { e.preventDefault(); go(idx - 1); }
       }}>
-      <div className={`ac-stage${playing ? ' is-playing' : ''}`} aria-hidden={!started}>
+      <div className={`ac-stage${playing ? ' is-playing' : ''}${started && (PICTURE_KINDS as readonly string[]).includes(scene.visual.kind) ? ' ac-stage--vis' : ''}`} aria-hidden={!started}>
         {!started ? (
           <div className="ac-cover"><p className="ac-cover__kicker">Lesson</p><p className="ac-cover__title">{lesson.title}</p>
             <p className="ac-cover__meta">{n} scenes · about {Math.max(1, Math.round(lesson.scenes.reduce((s, x) => s + sceneMs(x), 0) / 60000))} min</p></div>
@@ -142,6 +143,7 @@ function SceneView({ scene, admin }: { scene: Scene; admin: boolean }) {
         {/* eslint-disable-next-line @next/next/no-img-element -- a static guide screenshot, served as is from /guides/img */}
         {v.img && <img className="ac-shot__img" src={shotSrc(v.img)} alt={`${v.heading}: the screen in the guide`} loading="lazy" />}
         <figcaption className="ac-shot__cap">{v.text && <span>{v.text}</span>}<a className="ac-shot__link" href={guideHref(v.guide, admin)} target="_blank" rel="noopener" data-testid="scene-guide-link">Open this page of the guide</a></figcaption></figure>}
+      {(PICTURE_KINDS as readonly string[]).includes(v.kind) && <PictureScene v={v} />}
       {v.kind === 'chat' && <div className="ac-chat">{v.lines.map((l, i) => <p key={i} className={`ac-bubble ac-bubble--${l.who === 'you' ? 'you' : 'them'}`} style={d(i)}><span className="ac-bubble__who">{l.who === 'you' ? 'You' : l.who.charAt(0).toUpperCase() + l.who.slice(1)}</span>{l.text}</p>)}</div>}
     </div>
   );

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { opsAct } from '@/server/actions/ops';
 import { ScenePlayer } from './ScenePlayer';
 import { LessonVideo } from './LessonVideo';
-import { pct, waitLeft, type QuizResult, type QuizStart, type QuizWait, type SectionView } from './model';
+import { jokeQuip, pct, waitLeft, type QuizResult, type QuizStart, type QuizWait, type SectionView } from './model';
 
 // A section to study (Release 21b, item 9): its lessons, each a scene player, then its quiz. The quiz is graded in the database;
 // the pass mark opens the next section of the path. 1154: opening the section starts its reading clock; the quiz opens after the
@@ -91,7 +91,11 @@ function Quiz({ s, base, wait, setWait, onPassed }: { s: SectionView; base: stri
                   </label>
                 );
               })}
-              {r && <p className={`small ${r.right ? 'is-right' : 'is-wrong'}`}>{r.right ? 'Right.' : 'Not quite.'} {r.explain}</p>}
+              {r && (() => {
+                // 4200: each question carries one funny wrong option; picking it is simply wrong, with a playful line
+                const quip = r.given === null ? '' : jokeQuip(q.options[q.keys.indexOf(r.given)]);
+                return <p className={`small ${r.right ? 'is-right' : 'is-wrong'}`} data-testid={quip ? `q-${qi}-joke` : undefined}>{r.right ? 'Right.' : 'Not quite.'}{quip ? ` ${quip}` : ''} {r.explain}</p>;
+              })()}
             </fieldset>
           );
         })}

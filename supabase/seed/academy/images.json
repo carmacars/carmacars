@@ -1,0 +1,236 @@
+{
+ "admin-09-listings-desktop-970819b6.webp": {
+  "w": 1000,
+  "h": 389,
+  "bytes": 21532,
+  "from": "docs/guides/src/img/admin-09-listings-desktop-970819b6.jpg"
+ },
+ "admin-11-plate-editor-desktop-4219ad93.webp": {
+  "w": 1000,
+  "h": 1019,
+  "bytes": 22034,
+  "from": "docs/guides/src/img/admin-11-plate-editor-desktop-4219ad93.jpg"
+ },
+ "admin-26-staff-desktop-72287d0b.webp": {
+  "w": 1000,
+  "h": 542,
+  "bytes": 23218,
+  "from": "docs/guides/src/img/admin-26-staff-desktop-72287d0b.jpg"
+ },
+ "admin-27-portals-desktop-c10725cb.webp": {
+  "w": 1000,
+  "h": 293,
+  "bytes": 11900,
+  "from": "docs/guides/src/img/admin-27-portals-desktop-c10725cb.jpg"
+ },
+ "field-01-today-phone-b31e25fb.webp": {
+  "w": 640,
+  "h": 2511,
+  "bytes": 71618,
+  "from": "docs/guides/src/img/field-01-today-phone-b31e25fb.jpg"
+ },
+ "field-03-report-phone-3b903b20.webp": {
+  "w": 640,
+  "h": 1707,
+  "bytes": 39322,
+  "from": "docs/guides/src/img/field-03-report-phone-3b903b20.jpg"
+ },
+ "field-06-photo-shoot-capture-phone-c0dae5b8.webp": {
+  "w": 640,
+  "h": 1198,
+  "bytes": 36622,
+  "from": "docs/guides/src/img/field-06-photo-shoot-capture-phone-c0dae5b8.jpg"
+ },
+ "field-21-handover-01-ready-phone-ecb54c56.webp": {
+  "w": 640,
+  "h": 673,
+  "bytes": 20478,
+  "from": "docs/guides/src/img/field-21-handover-01-ready-phone-ecb54c56.jpg"
+ },
+ "field-26-handover-06-odometer-phone-34c4cbd7.webp": {
+  "w": 640,
+  "h": 574,
+  "bytes": 9910,
+  "from": "docs/guides/src/img/field-26-handover-06-odometer-phone-34c4cbd7.jpg"
+ },
+ "field-30-handover-10-damage-phone-a43b142f.webp": {
+  "w": 640,
+  "h": 574,
+  "bytes": 8046,
+  "from": "docs/guides/src/img/field-30-handover-10-damage-phone-a43b142f.jpg"
+ },
+ "photo-car-bad.webp": {
+  "w": 800,
+  "h": 533,
+  "bytes": 5924,
+  "from": "sample-photos"
+ },
+ "photo-car-good.webp": {
+  "w": 800,
+  "h": 533,
+  "bytes": 11144,
+  "from": "sample-photos"
+ },
+ "photo-damage-close.webp": {
+  "w": 800,
+  "h": 533,
+  "bytes": 8498,
+  "from": "sample-photos"
+ },
+ "photo-damage-far.webp": {
+  "w": 800,
+  "h": 533,
+  "bytes": 5974,
+  "from": "sample-photos"
+ },
+ "photo-dash-bad.webp": {
+  "w": 800,
+  "h": 533,
+  "bytes": 3774,
+  "from": "sample-photos"
+ },
+ "photo-dash-good.webp": {
+  "w": 800,
+  "h": 533,
+  "bytes": 5024,
+  "from": "sample-photos"
+ },
+ "public-02-cars-desktop-b6cd4fb8.webp": {
+  "w": 1000,
+  "h": 611,
+  "bytes": 20316,
+  "from": "docs/guides/src/img/public-02-cars-desktop-b6cd4fb8.jpg"
+ },
+ "public-06-book-3-licence-desktop-22bb144e.webp": {
+  "w": 1000,
+  "h": 1911,
+  "bytes": 75048,
+  "from": "docs/guides/src/img/public-06-book-3-licence-desktop-22bb144e.jpg"
+ },
+ "public-09-sign-in-phone-1f766061.webp": {
+  "w": 640,
+  "h": 1058,
+  "bytes": 17590,
+  "from": "docs/guides/src/img/public-09-sign-in-phone-1f766061.jpg"
+ },
+ "public-13-list-your-car-desktop-48bf4cb0.webp": {
+  "w": 1000,
+  "h": 556,
+  "bytes": 27674,
+  "from": "docs/guides/src/img/public-13-list-your-car-desktop-48bf4cb0.jpg"
+ },
+ "renter-03-offer-desktop-cae88b00.webp": {
+  "w": 1000,
+  "h": 626,
+  "bytes": 26850,
+  "from": "docs/guides/src/img/renter-03-offer-desktop-cae88b00.jpg"
+ },
+ "renter-04-sign-details-desktop-bd193670.webp": {
+  "w": 1000,
+  "h": 731,
+  "bytes": 18166,
+  "from": "docs/guides/src/img/renter-04-sign-details-desktop-bd193670.jpg"
+ },
+ "renter-06-sign-ready-desktop-1eee20a4.webp": {
+  "w": 1000,
+  "h": 842,
+  "bytes": 29964,
+  "from": "docs/guides/src/img/renter-06-sign-ready-desktop-1eee20a4.jpg"
+ },
+ "renter-07-pay-desktop-705896d6.webp": {
+  "w": 1000,
+  "h": 751,
+  "bytes": 21682,
+  "from": "docs/guides/src/img/renter-07-pay-desktop-705896d6.jpg"
+ },
+ "renter-08-booking-confirmed-desktop-b5603da5.webp": {
+  "w": 1000,
+  "h": 675,
+  "bytes": 22572,
+  "from": "docs/guides/src/img/renter-08-booking-confirmed-desktop-b5603da5.jpg"
+ },
+ "renter-09-verify-desktop-d20f668d.webp": {
+  "w": 1000,
+  "h": 856,
+  "bytes": 34788,
+  "from": "docs/guides/src/img/renter-09-verify-desktop-d20f668d.jpg"
+ },
+ "renter-11-extend-desktop-957274cc.webp": {
+  "w": 1000,
+  "h": 575,
+  "bytes": 14044,
+  "from": "docs/guides/src/img/renter-11-extend-desktop-957274cc.jpg"
+ },
+ "renter-13-cancel-desktop-d0bb2c67.webp": {
+  "w": 1000,
+  "h": 481,
+  "bytes": 15382,
+  "from": "docs/guides/src/img/renter-13-cancel-desktop-d0bb2c67.jpg"
+ },
+ "va-cs-03-requests-desktop-b3c66d25.webp": {
+  "w": 1000,
+  "h": 444,
+  "bytes": 30424,
+  "from": "docs/guides/src/img/va-cs-03-requests-desktop-b3c66d25.jpg"
+ },
+ "va-cs-04-booking-review-desktop-52c68a73.webp": {
+  "w": 1000,
+  "h": 694,
+  "bytes": 29936,
+  "from": "docs/guides/src/img/va-cs-04-booking-review-desktop-52c68a73.jpg"
+ },
+ "va-cs-05-new-quote-desktop-4e386b1c.webp": {
+  "w": 1000,
+  "h": 1033,
+  "bytes": 17446,
+  "from": "docs/guides/src/img/va-cs-05-new-quote-desktop-4e386b1c.jpg"
+ },
+ "va-cs-07-renters-desktop-99cfd0ef.webp": {
+  "w": 1000,
+  "h": 195,
+  "bytes": 9070,
+  "from": "docs/guides/src/img/va-cs-07-renters-desktop-99cfd0ef.jpg"
+ },
+ "va-cs-09-calendar-desktop-541a6da5.webp": {
+  "w": 1000,
+  "h": 651,
+  "bytes": 29982,
+  "from": "docs/guides/src/img/va-cs-09-calendar-desktop-541a6da5.jpg"
+ },
+ "va-finance-02-money-desktop-486a8fbc.webp": {
+  "w": 1000,
+  "h": 703,
+  "bytes": 29346,
+  "from": "docs/guides/src/img/va-finance-02-money-desktop-486a8fbc.jpg"
+ },
+ "va-finance-04-tolls-read-desktop-aa04a6b2.webp": {
+  "w": 1000,
+  "h": 471,
+  "bytes": 16914,
+  "from": "docs/guides/src/img/va-finance-04-tolls-read-desktop-aa04a6b2.jpg"
+ },
+ "va-fleet-02-field-jobs-desktop-8e721230.webp": {
+  "w": 1000,
+  "h": 459,
+  "bytes": 19446,
+  "from": "docs/guides/src/img/va-fleet-02-field-jobs-desktop-8e721230.jpg"
+ },
+ "va-fleet-03-daily-checks-desktop-be06d6c0.webp": {
+  "w": 1000,
+  "h": 667,
+  "bytes": 25776,
+  "from": "docs/guides/src/img/va-fleet-03-daily-checks-desktop-be06d6c0.jpg"
+ },
+ "va-sales-02-requests-desktop-2ab1d17d.webp": {
+  "w": 1000,
+  "h": 471,
+  "bytes": 27006,
+  "from": "docs/guides/src/img/va-sales-02-requests-desktop-2ab1d17d.jpg"
+ },
+ "va-sales-05-scorecard-desktop-78ec1b03.webp": {
+  "w": 1000,
+  "h": 250,
+  "bytes": 11858,
+  "from": "docs/guides/src/img/va-sales-05-scorecard-desktop-78ec1b03.jpg"
+ }
+}
