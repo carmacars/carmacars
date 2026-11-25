@@ -44,7 +44,7 @@ select app.site_cutout_save(test.id('vehicle:an48_a'), 'left', jsonb_build_objec
   'path', 'site/cutouts/an48-a/left-aaaa.webp', 'width', 1600, 'height', 600));
 select test.eq('the side cutout rides on the cover (path, size, facing)',
   app.public_listing_row(test.id('vehicle:an48_a')) #> '{cover,cutout}',
-  jsonb_build_object('path', 'site/cutouts/an48-a/left-aaaa.webp', 'width', 1600, 'height', 600, 'facing', 'left'));
+  jsonb_build_object('kind', 'cutout', 'path', 'site/cutouts/an48-a/left-aaaa.webp', 'width', 1600, 'height', 600, 'facing', 'left'));
 select test.eq('the live row agrees', app.public_listing_row_live(test.id('vehicle:an48_a')) #>> '{cover,path}', 'vehicles/an48/a-left-r.jpg');
 
 -- staff take a render off the site: the next render is the cover, nothing else changes

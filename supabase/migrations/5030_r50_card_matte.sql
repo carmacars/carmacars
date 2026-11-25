@@ -83,7 +83,7 @@ revoke all on function app.site_cutout_save_pre5030(uuid, text, jsonb) from publ
 grant execute on function app.site_cutout_save(uuid, text, jsonb) to service_role;
 
 create or replace function app.photo_side_cutout(p_vehicle uuid) returns jsonb
-language sql stable security definer set search_path = public, app as $$
+language sql stable security definer set search_path = public, app, pg_temp as $$
   select jsonb_build_object('path', k.path, 'width', k.width, 'height', k.height, 'facing', k.facing, 'kind', k.kind)
          || case when k.kind = 'matte' then jsonb_build_object('plate', k.plate_path, 'box', k.box) else '{}'::jsonb end
     from site_cutouts k where k.vehicle_id = p_vehicle and k.shot = 'left' and nullif(k.path, '') is not null
