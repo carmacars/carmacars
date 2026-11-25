@@ -2,7 +2,7 @@
 import { useRef, useState, useTransition } from 'react';
 import { DateInput } from '@/components/DateInput';
 import type { ActionResult } from '@/features/forms/schemas';
-import { applyChange, CADENCES, CHANNELS, channelNote, BOOKING_NOTE, bookingNote, BOOKING_NOTE_CODES, clockWords, minutesToTime, summaryLine, switchKey, timeToMinutes, type Channel, type PrefChange, type PrefState, type PrefType } from './prefs';
+import { ADMIN_EMAIL_NOTE, applyChange, CADENCES, CHANNELS, channelNote, BOOKING_NOTE, bookingNote, BOOKING_NOTE_CODES, clockWords, minutesToTime, summaryLine, switchKey, timeToMinutes, type Channel, type PrefChange, type PrefState, type PrefType } from './prefs';
 
 // The Notifications page of every portal (release 48, migration 3260; the owner, Nov 20: "EVERYONE can customise their
 // notifications"): each kind of notification with a switch per channel (push, email, text), quiet hours, and instant, a
@@ -84,6 +84,7 @@ export function NotificationPrefs({ initial, save, idp = 'np' }: { initial: Pref
   return (
     <div className="rw-prefs stack-lg" data-testid={`${idp}-prefs`} data-portal={s.portal}>
       <p className="rw-prefs__summary" data-testid={`${idp}-summary`}>{summaryLine(s)}</p>
+      {s.admin_email && <p className="small" role="note" data-testid={`${idp}-admin-email`}>{ADMIN_EMAIL_NOTE}</p>}
       {notes.length > 0 && (
         <ul className="rw-prefs__notes" aria-label="About your channels">
           {notes.map((c) => <li key={c.key} data-testid={`${idp}-note-${c.key}`}><b>{c.label}.</b> {c.note}</li>)}

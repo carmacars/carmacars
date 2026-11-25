@@ -1,6 +1,7 @@
 import { requestNow } from '@/features/va/lanes';
 import { pageMeta } from '@/features/seo/meta';
 import { door, requireStaff } from '@/server/door';
+import { ShiftFeedCard } from '@/features/shift-feed/ShiftFeedCard';
 import { FieldButton } from '@/features/field/FieldButton';
 import { money } from '@/lib/format';
 import { hoursText } from '@/features/field-pay/model';
@@ -122,6 +123,7 @@ export default async function MyShifts({ searchParams }: { searchParams: Promise
           <p><b>{x.description}</b> {money(x.amount_cents, { cents: true })}</p>
           <p className="small" style={{ overflowWrap: 'anywhere' }}>{OWED_STATUS[x.status] ?? x.status}{x.decline_reason ? `: ${x.decline_reason}` : ''}.</p></section>)}
       </div> : <p className="small fp-stack">Nothing. When you pay with your own money, choose &quot;My own money (pay me back)&quot; and it shows here until it is paid back.</p>}
+      <ShiftFeedCard userId={user.id} call="field_read" />
       <h2 className="fp-group-h">Past shifts</h2>
       {s.past.length ? <div className="fp-stack">{s.past.map((d) => <section key={d.day} className="fp-shiftcard is-past" data-testid="past-shift">
         <p className="fp-shiftcard__when">{pastDay(d.day)}</p>

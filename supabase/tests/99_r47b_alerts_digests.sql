@@ -34,19 +34,20 @@ select test.eq('noise: the call says so', public.server_client_error(jsonb_build
 
 select public.server_client_error(jsonb_build_object('message', 'r47b TypeError: x is undefined', 'path', '/r47b/page', 'visitor', 'r47b-visitor-1', 'ua', 'Mozilla/5.0 (Windows NT 10.0) Chrome/157.0.0.0 Safari/537.36'));
 select public.server_client_error(jsonb_build_object('message', 'r47b TypeError: x is undefined', 'path', '/r47b/page', 'visitor', 'r47b-visitor-1', 'ua', 'Mozilla/5.0 (Windows NT 10.0) Chrome/157.0.0.0 Safari/537.36'));
+-- r50 (5052): one To do per error across pages (crash_groups), its title "Website crash (N times on P pages): ..."
 select test.eq('a crash: one To do, the count and one person, priority high',
-  (select count(*) || '|' || min(priority) || '|' || (min(title) like 'Website crash on /r47b/page (2 times, 1 person): r47b TypeError%')::text
-     || '|' || (min(detail) like '%Browsers: Chrome 157 on Windows.%')::text from tasks where task_type = 'site_alert' and title like 'Website crash on /r47b/page%'),
+  (select count(*) || '|' || min(t.priority) || '|' || (min(t.title) like 'Website crash (2 times on 1 page): r47b TypeError%')::text
+     || '|' || (min(t.detail) like '%1 person%Browsers: Chrome 157 on Windows.%')::text from tasks t join crash_groups g on g.task_id = t.id where t.task_type = 'site_alert' and g.message = 'r47b TypeError: x is undefined'),
   '1|high|true|true');
 select public.server_client_error(jsonb_build_object('message', 'r47b TypeError: x is undefined', 'path', '/r47b/page', 'visitor', 'r47b-visitor-2'));
 select public.server_client_error(jsonb_build_object('message', 'r47b TypeError: x is undefined', 'path', '/r47b/page', 'visitor', 'r47b-visitor-3'));
 select test.eq('three people the same day: urgent, still one To do',
-  (select count(*) || '|' || min(priority) || '|' || (min(title) like '%(4 times, 3 people)%')::text from tasks where task_type = 'site_alert' and title like 'Website crash on /r47b/page%'),
+  (select count(*) || '|' || min(t.priority) || '|' || (min(t.title) like '%(4 times on 1 page)%' and min(t.detail) like '%3 people%')::text from tasks t join crash_groups g on g.task_id = t.id where t.task_type = 'site_alert' and g.message = 'r47b TypeError: x is undefined'),
   '1|urgent|true');
-update tasks set status = 'done', completed_at = now() where task_type = 'site_alert' and title like 'Website crash on /r47b/page%';
+update tasks t set status = 'done', completed_at = now() from crash_groups g where g.task_id = t.id and t.task_type = 'site_alert' and g.message = 'r47b TypeError: x is undefined';
 select public.server_client_error(jsonb_build_object('message', 'r47b TypeError: x is undefined', 'path', '/r47b/page', 'visitor', 'r47b-visitor-4'));
-select test.eq('a To do closed today stays closed (written again, not reopened)',
-  (select count(*) || '|' || min(status) from tasks where task_type = 'site_alert' and title like 'Website crash on /r47b/page%'), '1|done');
+select test.eq('a To do closed stays closed; a new report opens a new one (5052)',
+  (select count(*) filter (where t.status = 'done') || '|' || count(*) filter (where t.status = 'open') from tasks t join crash_groups g on g.task_id = t.id where t.task_type = 'site_alert' and g.message = 'r47b TypeError: x is undefined'), '1|1');
 
 -- ---------------------------------------------------------------- 2896: the photo standard
 select test.ok('photo standard: the fleet, Gemini today and the totals',

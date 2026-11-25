@@ -7197,6 +7197,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      crash_groups: {
+        Row: {
+          task_id: string;
+          signature: string;
+          message: string;
+          reports: number;
+          pages: string[];
+          first_at: string;
+          last_at: string;
+        };
+        Insert: {
+          task_id: string;
+          signature: string;
+          message: string;
+          reports?: number;
+          pages?: string[];
+          first_at?: string;
+          last_at?: string;
+        };
+        Update: {
+          task_id?: string;
+          signature?: string;
+          message?: string;
+          reports?: number;
+          pages?: string[];
+          first_at?: string;
+          last_at?: string;
+        };
+        Relationships: [];
+      };
       daily_checks: {
         Row: {
           id: string;
@@ -15721,6 +15751,7 @@ export type Database = {
           sms: boolean;
           updated_at: string;
           updated_by: string | null;
+          email_set_at: string | null;
         };
         Insert: {
           subject_kind: string;
@@ -15731,6 +15762,7 @@ export type Database = {
           sms: boolean;
           updated_at?: string;
           updated_by?: string | null;
+          email_set_at?: string | null;
         };
         Update: {
           subject_kind?: string;
@@ -15741,6 +15773,7 @@ export type Database = {
           sms?: boolean;
           updated_at?: string;
           updated_by?: string | null;
+          email_set_at?: string | null;
         };
         Relationships: [];
       };
@@ -27405,6 +27438,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      shift_feeds: {
+        Row: {
+          id: string;
+          user_id: string;
+          scope: string;
+          token: string;
+          created_at: string;
+          revoked_at: string | null;
+          revoked_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          scope: string;
+          token: string;
+          created_at?: string;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          scope?: string;
+          token?: string;
+          created_at?: string;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+        };
+        Relationships: [];
+      };
       shop_services: {
         Row: {
           code: string;
@@ -37915,6 +37978,7 @@ export type Database = {
       server_set_alert_prefs: { Args: { p_user: string; p: Json }; Returns: Json };
       server_set_alert_rule: { Args: { p_user: string; p_rule: string; p: Json }; Returns: Json };
       server_set_notify_channel: { Args: { p_user: string; p_channel: string }; Returns: Json };
+      server_shift_feed: { Args: { p_token: string }; Returns: string };
       server_showroom_ai_gate: { Args: { p?: Json }; Returns: Json };
       server_showroom_ai_record: { Args: { p: Json }; Returns: Json };
       server_sign_in_alias: { Args: { p_email?: string; p_user?: string }; Returns: Json };
