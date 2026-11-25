@@ -411,6 +411,7 @@
      "Document check (Owners): anything inconsistent on an owner's agreements, schedules or forms, by owner, with what fixes it",
      "A car whose pickup was not recorded takes no new offer until the handover, the return or a no-show is recorded",
      "The connector adds a car for an owner from its VIN, approves an owner's cars with their terms (a fleet supplier's car goes on the lease with its agreement and forms to sign), puts a car on the fleet lease, and reads and corrects owner agreements and documents",
+     "The connector runs the weekly townhall: townhall_status (next meeting, call link, this week's deck, which staff are on it and which are missing, reminders, field-call slots), townhall_set_call_url and townhall_rebuild_deck (rebuilds this week's deck from live data and keeps the notes), each change previewed, then confirmed.",
      "Studio renders are made again across the fleet: a photo step that timed out or was refused three times is flagged on Photo standard with the reason instead of being tried for ever, so the other cars' renders go ahead",
      "Photos filed as \"Other detail\" (imports the sorter could not read) are sorted again by themselves, so a car's outside photos become its cover",
      "Connector: photo_standard shows a rendered cover as studio, and per car the detail photos still to sort",
