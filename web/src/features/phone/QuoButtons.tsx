@@ -70,6 +70,8 @@ export interface ContactProps {
   /** only one of the two */ only?: 'call' | 'text';
   testId?: string; className?: string; children?: ReactNode;
   /** the buttons' own class (the field pages' big buttons) */ btnClass?: string;
+  /** r50 (BR-4): the record the buttons sit on, so the server finds a masked number by its record (Sales) */
+  lead?: string | null; renter?: string | null;
 }
 
 /** Call and Text for one person. Nothing shows for a number we cannot call. */
@@ -80,30 +82,32 @@ export function ContactButtons(props: ContactProps) {
 // r40 (2460): the call's answer as the pop-up shows it: ringing, the "your mobile number" box (nothing on file: saved, then
 // the call is placed), or a message saying what to do. Never a silent failure.
 type CallState = { busy?: boolean; view?: CallView };
-async function twilioCall(number: string, booking: string | null | undefined, name: string | null | undefined, masked: boolean): Promise<CallState> {
+type Ref = { lead?: string | null; renter?: string | null };
+const refOf = (r: Ref) => ({ ...(r.lead ? { lead: r.lead } : {}), ...(r.renter ? { renter: r.renter } : {}) });
+async function twilioCall(number: string, booking: string | null | undefined, name: string | null | undefined, masked: boolean, ref: Ref = {}): Promise<CallState> {
   try {
-    const r = await post('phone_call', { number, ...(booking ? { booking_number: booking } : {}), ...(name ? { name } : {}) });
+    const r = await post('phone_call', { number, ...(booking ? { booking_number: booking } : {}), ...(name ? { name } : {}), ...refOf(ref) });
     return { view: callView(r as CallAnswer, masked) };
   } catch (e) { return { view: { kind: 'problem', message: e instanceof Error ? e.message : 'The call did not start. Try again in a moment.' } }; }
 }
 /** Starts a call through the platform and keeps the pop-up's state; start() again places it once more (after the number is saved). */
-function usePlatformCall(number: string, booking: string | null | undefined, name: string | null | undefined, masked: boolean) {
+function usePlatformCall(number: string, booking: string | null | undefined, name: string | null | undefined, masked: boolean, ref: Ref = {}) {
   const [st, setSt] = useState<CallState>({});
-  const start = () => { setSt({ busy: true }); void twilioCall(number, booking, name, masked).then(setSt); };
+  const start = () => { setSt({ busy: true }); void twilioCall(number, booking, name, masked, ref).then(setSt); };
   return { st, start };
 }
 
 /** Sales (0970): the masked number, Call and Text through the platform (no tel: or sms: link, nothing to copy). */
-function MaskedButtons({ phone, name, booking, look = 'buttons', inbox, only, testId = 'contact', className, children, btnClass = 'btn btn--ghost btn--sm' }: ContactProps) {
+function MaskedButtons({ phone, name, booking, look = 'buttons', inbox, only, testId = 'contact', className, children, btnClass = 'btn btn--ghost btn--sm', lead, renter }: ContactProps) {
   const m = phone!;
   const cfg = useCfg();
   const [sheet, setSheet] = useState<null | 'text' | 'call'>(null);
-  const call = usePlatformCall(m, booking, name, true);
+  const call = usePlatformCall(m, booking, name, true, { lead, renter });
   const [shown, setShown] = useState<string | null>(null);
   const who = name?.trim() || m;
   // r40: always through the server, which knows whether calling is set up and whether the caller has a mobile on file
   const onCall = () => {
-    if (cfg?.browser) { void placeCall({ number: m, booking, name }); return; }  // r44: in the browser; the server finds the number
+    if (cfg?.browser) { void placeCall({ number: m, booking, name, lead, renter }); return; }  // r44: in the browser; the server finds the number
     setSheet('call'); call.start();
   };
   const reveal = async () => {
@@ -117,7 +121,7 @@ function MaskedButtons({ phone, name, booking, look = 'buttons', inbox, only, te
       {only !== 'text' && <button type="button" className={look === 'buttons' ? `${btnClass} qb-btn` : 'qb-icon'} onClick={onCall} aria-label={`Call ${who}`} data-testid={`${testId}-call`}><Phone />{look === 'buttons' ? (children ?? 'Call') : null}</button>}
       {only !== 'call' && <button type="button" className={look === 'buttons' ? 'btn btn--quiet btn--sm qb-btn qb-btn--text' : 'qb-icon'} onClick={() => setSheet('text')} aria-label={`Text ${who}`} data-testid={`${testId}-text`}><Bubble />{look === 'buttons' ? 'Text' : null}</button>}
       {cfg?.can_reveal && !shown && <button type="button" className="btn btn--quiet btn--sm" onClick={() => void reveal()} data-testid={`${testId}-reveal`}>Reveal</button>}
-      {sheet === 'text' && <Composer n={m} who={who} booking={booking} from={cfg?.from ?? null} inbox={inbox} onClose={() => setSheet(null)} testId={testId} />}
+      {sheet === 'text' && <Composer n={m} who={who} booking={booking} from={cfg?.from ?? null} inbox={inbox} onClose={() => setSheet(null)} testId={testId} ref_={{ lead, renter }} name={name} />}
       {sheet === 'call' && <TwilioSheet who={who} state={call.st} again={call.start} onClose={() => setSheet(null)} testId={testId} />}
     </span>
   );
@@ -251,7 +255,7 @@ function Sheet({ title, onClose, children, testId }: { title: string; onClose: (
   );
 }
 
-function Composer({ n, who, booking, from, inbox, onClose, testId }: { n: string; who: string; booking?: string | null; from: string | null; inbox?: string | null; onClose: () => void; testId: string }) {
+function Composer({ n, who, booking, from, inbox, onClose, testId, ref_ = {}, name }: { n: string; who: string; booking?: string | null; from: string | null; inbox?: string | null; onClose: () => void; testId: string; ref_?: Ref; name?: string | null }) {
   const [body, setBody] = useState('');
   const [state, setState] = useState<{ busy?: boolean; err?: string; sent?: string | null; note?: string }>({});
   // r27b: one key for this text, sent with every try: the database sends it once however often Send is pressed
@@ -261,7 +265,7 @@ function Composer({ n, who, booking, from, inbox, onClose, testId }: { n: string
     if (!body.trim() || state.busy) return;
     setState({ busy: true });
     try {
-      const r = await post('phone_compose', { number: n, body, key: key.current, ...(booking ? { booking_number: booking } : {}) });
+      const r = await post('phone_compose', { number: n, body, key: key.current, ...(booking ? { booking_number: booking } : {}), ...(name ? { name } : {}), ...refOf(ref_) });
       if (r.ok === false) throw new Error(r.error ?? 'Not sent');
       setState({ sent: typeof r.thread_id === 'string' ? r.thread_id : null, note: typeof r.note === 'string' ? r.note : undefined });
     } catch (x) { setState({ err: x instanceof Error ? x.message : 'Not sent' }); }

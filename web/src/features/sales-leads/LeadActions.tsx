@@ -44,9 +44,9 @@ export function LeadActions({ lead, admin, people, phonePeople, compact = false 
         {admin && lead.hold && h.text && <button type="button" className="btn btn--ghost btn--sm" disabled={pending} onClick={() => run('lead_hold_release', {}, 'Hold released.')} data-testid="lead-hold-release">Release hold</button>}
         {/* calls first, texts after (r37): Call leads; while the lead is held or claimed by someone else the links are off, with the reason */}
         {links.call && (h.locked && !admin ? <button type="button" className="btn btn--ghost btn--sm" disabled title={h.text ?? undefined} data-testid="lead-call">Call</button>
-          : <span onClickCapture={logOn('call', 'lead-call')}><ContactButtons phone={lead.phone} name={lead.name} only="call" testId="lead" /></span>)}
+          : <span onClickCapture={logOn('call', 'lead-call')}><ContactButtons phone={lead.phone} name={lead.name} lead={lead.id} only="call" testId="lead" /></span>)}
         {links.text && (h.locked && !admin ? <button type="button" className="btn btn--quiet btn--sm" disabled title={h.text ?? undefined} data-testid="lead-text">Text</button>
-          : <span onClickCapture={logOn('text', 'lead-text')}><ContactButtons phone={lead.phone} name={lead.name} only="text" testId="lead" /></span>)}
+          : <span onClickCapture={logOn('text', 'lead-text')}><ContactButtons phone={lead.phone} name={lead.name} lead={lead.id} only="text" testId="lead" /></span>)}
         {links.email && (h.locked && !admin ? <button type="button" className="btn btn--quiet btn--sm" disabled title={h.text ?? undefined} data-testid="lead-email">Email</button>
           : <a className="btn btn--quiet btn--sm" href={links.email} onClick={blocked ? undefined : log('email')} data-testid="lead-email">Email</a>)}
         {!compact && <><button type="button" className="btn btn--ghost btn--sm" disabled={pending || blocked} onClick={() => setPanel(panel === 'note' ? null : 'note')} data-testid="lead-note" aria-describedby="why-leadactions-51">Note</button><WhyDisabled id="why-leadactions-51" why={((blocked)) ? (h.text ?? 'Another person is working this lead: ask an Admin') : null} /></>}

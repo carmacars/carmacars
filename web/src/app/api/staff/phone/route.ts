@@ -28,7 +28,10 @@ const BUTTONS = new Set(['phone_buttons', 'phone_compose', 'phone_call_log', 'ph
 const MASKED = /\u2022/;
 async function realNumber(userId: string, n: string, p: Record<string, unknown>): Promise<string> {
   if (!MASKED.test(n)) return n;
-  return (await rpc('server_phone_unmask', { p_user: userId, p: { masked: n, booking: typeof p.booking_number === 'string' ? p.booking_number : null, name: typeof p.name === 'string' ? p.name : null } as unknown as Json },
+  // r50 (BR-4, 4700): the record the button sits on (a lead, a renter) finds the number when the masked digits are shared
+  const ref = (k: string) => (typeof p[k] === 'string' && /^[0-9a-f-]{36}$/i.test(p[k] as string) ? p[k] : null);
+  return (await rpc('server_phone_unmask', { p_user: userId, p: { masked: n, booking: typeof p.booking_number === 'string' ? p.booking_number : null, name: typeof p.name === 'string' ? p.name : null,
+    lead: ref('lead'), renter: ref('renter') } as unknown as Json },
     { role: 'service_role' })) as unknown as string;
 }
 const msg = (e: unknown) => (e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '').slice(0, 200) : 'Something went wrong');

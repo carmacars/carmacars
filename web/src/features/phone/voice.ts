@@ -118,11 +118,12 @@ export function startVoice(): void {
 }
 
 /** A call to a person, placed in the browser with the CarmaCars number as caller ID. */
-export async function placeCall(o: { number: string; booking?: string | null; name?: string | null }): Promise<void> {
+export async function placeCall(o: { number: string; booking?: string | null; name?: string | null; lead?: string | null; renter?: string | null }): Promise<void> {
   if (current || incoming) return;
   set({ phase: 'starting', who: o.name?.trim() || 'the customer', ring: ringing });
   let r: Record<string, unknown>;
-  try { r = await post('phone_call', { via: 'browser', number: o.number, ...(o.booking ? { booking_number: o.booking } : {}), ...(o.name ? { name: o.name } : {}) }); }
+  try { r = await post('phone_call', { via: 'browser', number: o.number, ...(o.booking ? { booking_number: o.booking } : {}), ...(o.name ? { name: o.name } : {}),
+    ...(o.lead ? { lead: o.lead } : {}), ...(o.renter ? { renter: o.renter } : {}) }); }
   catch { set({ phase: 'problem', message: 'The server did not answer. Try again in a moment.', ring: ringing }); return; }
   if (r.ok !== true || typeof r.id !== 'string' || typeof r.t !== 'string') {
     set({ phase: 'problem', message: String(r.message ?? r.error ?? 'The call did not start. Try again in a moment.'), ring: ringing }); return;
