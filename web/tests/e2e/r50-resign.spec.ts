@@ -90,7 +90,7 @@ test('resign: a field staff member resigns, the Admin sees it and moves the last
     const [rec] = await sql`select status, reason, last_day::text as last_day from staff_resignations where user_id = ${field.id}`;
     expect(rec).toMatchObject({ status: 'pending', reason: 'Moving to another city', last_day: plusDays(7) });
     const [todo] = await sql`select count(*)::int as n from tasks t join staff_resignations r on r.task_id = t.id where r.user_id = ${field.id} and t.status = 'open'`;
-    expect(todo.n).toBe(1);
+    expect(todo!.n).toBe(1);
 
     // the Admin: Resigning with the last day, the reason and the To do; Change last day
     const ap = await phone(browser, 375);
