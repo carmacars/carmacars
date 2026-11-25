@@ -27,7 +27,7 @@ create temp table xil_a as select test.xil_do('xil_admin', 'investor_library_sav
   'path', 'investor-library/' || test.id('xil:item') || '/' || test.id('xil:f1') || '.pdf', 'size_bytes', 1200, 'sha256', repeat('a', 64))) as r;
 select test.eq('a new document is version 1, and the active investors are told (other suites may leave active investors too)', (select (r ->> 'version') || '/' || (r ->> 'new') || '/' || ((r ->> 'told')::int >= 1)::text from xil_a), '1/true/true');
 select test.eq('one notice per active investor told', (select count(*) from app_events where code = 'investor_document_updated' and entity_id = (select (r ->> 'item')::uuid from xil_a)), (select (r ->> 'told')::bigint from xil_a));
-select test.eq('...its words: New document, the kind', (select payload ->> 'document_change' || '/' || (payload ->> 'document_kind') from app_events where code = 'investor_document_updated' and entity_id = (select (r ->> 'item')::uuid from xil_a)),
+select test.eq('...its words: New document, the kind', (select string_agg(distinct payload ->> 'document_change' || '/' || (payload ->> 'document_kind'), ',') from app_events where code = 'investor_document_updated' and entity_id = (select (r ->> 'item')::uuid from xil_a)),
   'New document/Business plan');
 create temp table xil_b as select test.xil_do('xil_admin', 'investor_library_save', jsonb_build_object('item', (select r ->> 'item' from xil_a), 'file_kind', 'pdf',
   'path', 'investor-library/' || test.id('xil:item') || '/' || test.id('xil:f2') || '.pdf', 'size_bytes', 2400, 'note', 'Updated forecast figures')) as r;

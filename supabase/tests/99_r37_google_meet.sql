@@ -6,7 +6,7 @@ select test.suite('99 r37 google meet (2303)');
 
 select test.mk_user('r37m_admin', 'admin');
 select test.mk_user('r37m_cs', 'va', 'cs');
-insert into interview_days (id, day, start_time, end_time) values (test.id('day:r37m'), current_date + 3, '10:00', '12:00');
+insert into interview_days (id, day, start_time, end_time, mode) values (test.id('day:r37m'), current_date + 3, '10:00', '12:00', 'video');
 insert into interview_slots (id, day_id, starts_at, ends_at) values
   (test.id('slot:r37m1'), test.id('day:r37m'), now() + interval '3 days', now() + interval '3 days 15 minutes'),
   (test.id('slot:r37m2'), test.id('day:r37m'), now() + interval '4 days', now() + interval '4 days 15 minutes');
@@ -30,8 +30,9 @@ select test.eq('in site, not connected: the call gets the in-site link and nothi
 create temp table r37m0 as select pg_temp.mail('r37m1') id;
 select test.ok('and its email is not held', (select send_after < now() + interval '1 minute' from notification_outbox where id = (select id from r37m0)));
 select test.eq('the job is not due', (app.server_jobs_due() ->> 'meet')::boolean, false);
+create temp table r37m1i as select app.interview_invite('applicant_booked', (select a from job_applications a where a.id = test.id('app:r37m1'))) id;
 select test.ok('the booking carries the calendar invite for the in-site link', (select ci.method = 'REQUEST' and ci.seq = 0 and ci.location = a.meet_url
-  from job_applications a join calendar_invites ci on ci.id = app.interview_invite('applicant_booked', a) where a.id = test.id('app:r37m1')));
+  from calendar_invites ci join job_applications a on a.id = ci.application_id where ci.id = (select id from r37m1i)));
 
 update calendar_google_link set status = 'connected', account_email = 'calendar@example.test';
 select pg_temp.book_in_site('r37m2', 'slot:r37m1');
@@ -44,12 +45,14 @@ select test.eq('the job is not due', (app.server_jobs_due() ->> 'meet')::boolean
 select test.eq('the job has no call to do', (select jsonb_array_length(public.server_hiring_meet_due() -> 'calls')), 0);
 select pg_temp.book_in_site('r37m2', 'slot:r37m2');
 select test.eq('a moved call still has no Meet event waiting', (select meet_sync is null from job_applications where id = test.id('app:r37m2')), true);
+-- (each invite is made in its own statement: a row a function inserts is not visible to the statement that called it)
+create temp table r37mv as select app.interview_invite('applicant_booked', (select a from job_applications a where a.id = test.id('app:r37m2'))) id;
 select test.ok('a moved call updates the invite: same UID, higher SEQUENCE, new time, new link', (select ci.uid = (select uid from calendar_invites where id = (select id from r37mi)) and ci.seq = 1 and ci.method = 'REQUEST'
   and ci.starts_at = s.starts_at and ci.location = a.meet_url
-  from (select app.interview_invite('applicant_booked', (select a from job_applications a where a.id = test.id('app:r37m2'))) id) n
-  join calendar_invites ci on ci.id = n.id join job_applications a on a.id = ci.application_id join interview_slots s on s.id = a.slot_id));
+  from calendar_invites ci join job_applications a on a.id = ci.application_id join interview_slots s on s.id = a.slot_id where ci.id = (select id from r37mv)));
 update job_applications set slot_id = null, meet_url = null where id = test.id('app:r37m2');
-select test.ok('a cancelled call sends the CANCEL for the same event', (select method = 'CANCEL' and seq = 2 from calendar_invites where id = (select app.interview_invite('applicant_cancelled', (select a from job_applications a where a.id = test.id('app:r37m2'))))));
+create temp table r37mc as select app.interview_invite('applicant_cancelled', (select a from job_applications a where a.id = test.id('app:r37m2'))) id;
+select test.ok('a cancelled call sends the CANCEL for the same event', (select method = 'CANCEL' and seq = 2 and uid = (select uid from calendar_invites where id = (select id from r37mi)) from calendar_invites where id = (select id from r37mc)));
 update job_applications set status = 'new' where id = test.id('app:r37m2');
 
 -- the link mode (calls_mode link, the fallback): the Jitsi link stays and Google Meet takes over when connected (2303)
