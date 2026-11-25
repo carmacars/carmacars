@@ -95,13 +95,15 @@ ship() {
   vps_scp "$stage"/* "$t/"
   rm -rf "$stage"
   vps_ssh "sudo bash $t/remote.sh deploy; rc=\$?; sudo rm -rf $t; exit \$rc" || die "The server did not take the deploy (see the lines above); the Cloudflare Worker is untouched"
+  acme_window "$hosts"
   local first="${hosts%%,*}" i code=""
-  for i in $(seq 1 40); do
+  for i in $(seq 1 60); do
     code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "https://$first/api/health" || true)
     [ "$code" = 200 ] && break
     sleep 6
   done
-  [ "$code" = 200 ] || die "https://$first/api/health answered ${code:-nothing} after 4 minutes: check the hostname's A record points at the server, SSL is Full (strict) and the Origin CA certificate is in place (the lines above)"
+  [ "$code" = 200 ] || tls_diag "$first"
+  [ "$code" = 200 ] || die "https://$first/api/health answered ${code:-nothing} after 6 minutes: check the hostname's A record points at the server, SSL is Full (strict) and the Origin CA certificate is in place (the lines above)"
   if [ -n "${GITHUB_ACTIONS:-}" ]; then echo "::notice title=deploy-vps::$tag is running on the server and https://$first/api/health answers 200 (cron: $cron). DNS for the public site is unchanged."; fi
   ai_state
 }
@@ -139,6 +141,55 @@ origin_tls() {
   # HTTP-01 behind the proxy needs port 80 answered as it is, not redirected by Cloudflare
   if [ "${WEB_PROXY:-cloudflare}" = cloudflare ]; then DOMAIN="$dom" "$HERE/cf-site.sh" https-off || true; fi
 }
+# acme_window <hosts>: without the Origin CA certificate (the token lacks Zone > SSL and Certificates > Edit), Let's Encrypt
+# cannot validate through Cloudflare's proxy (run 44931738642: 525). Each hostname whose A record points at the server and
+# that has no publicly trusted certificate with 30 days left is made DNS-only for the issuance (HTTP-01 or TLS-ALPN-01
+# straight to Caddy; the server's address is already public through api.), Caddy asks again, and the record is proxied
+# again as soon as the certificate is there, or after 10 minutes, and on any exit (trap). Cloudflare then talks to Caddy
+# under Full (strict) with that certificate. Renewal: every deploy repeats this when 30 days or fewer are left.
+# Nothing happens when the server uses the Origin CA certificate. Hostnames still on the Worker are skipped.
+ACME_WIN=""
+acme_restore() { local h; for h in $ACME_WIN; do "$HERE/cf-site.sh" proxy "$h" on > /dev/null || warn_ "$h could not be proxied again: run deploy-vps again (step A proxies it)"; done; ACME_WIN=""; }
+has_cert() { # hostname: a certificate a browser trusts for it, 30 days or more left, served by Caddy on the server
+  vps_ssh "echo | timeout 10 openssl s_client -connect 127.0.0.1:443 -servername '$1' -verify_hostname '$1' -verify_return_error 2>/dev/null | openssl x509 -noout -checkend 2592000" > /dev/null 2>&1
+}
+tls_diag() { # hostname: what Caddy loaded and logged about its certificate (no secret in any of it)
+  local h="${1%% *}"
+  vps_ssh "set +e; S=/opt/carmacars/supabase
+    echo \"[tls] Caddyfile imports the site folder (host, container): \$(sudo grep -c '^import sites/' \$S/caddy/Caddyfile), \$(sudo docker exec supabase-caddy grep -c '^import sites/' /etc/caddy/Caddyfile)\"
+    echo \"[tls] hosts in Caddy's running config: \$(sudo docker exec supabase-caddy wget -qO- http://localhost:2019/config/apps/http/servers 2>/dev/null | jq -rc '[.. | .host? // empty | .[]] | unique | join(\" \")')\"
+    echo | timeout 10 openssl s_client -connect 127.0.0.1:443 -servername '$h' 2>&1 | grep -E '^(subject|issuer)=|Verify return code|alert' | sed 's/^/[tls] /'
+    sudo docker logs supabase-caddy --since 40m 2>&1 | grep -vF 'http.log.access' | grep -iE 'tls|acme|certificate|$h' | tail -30 | cut -c1-600" || true
+}
+acme_window() {
+  local hosts="$1" h n i left
+  [ "${WEB_PROXY:-cloudflare}" = cloudflare ] || return 0
+  if vps_ssh "sudo grep -q 'sites/origin/cert.pem' /opt/carmacars/supabase/caddy/sites/web.caddy" 2>/dev/null; then return 0; fi
+  for h in ${hosts//,/ }; do
+    if has_cert "$h"; then say "TLS: $h has a trusted certificate (30 days or more)"; continue; fi
+    n=$("$HERE/cf-site.sh" proxy "$h" off) || n=0
+    if [ "${n:-0}" -ge 1 ] 2>/dev/null; then ACME_WIN="$ACME_WIN $h"; else say "TLS: $h does not point at the server yet: skipped"; fi
+  done
+  [ -n "$ACME_WIN" ] || return 0
+  trap acme_restore EXIT
+  say "TLS: Let's Encrypt window (DNS-only) for:$ACME_WIN"
+  sleep 20
+  vps_ssh "sudo docker exec supabase-caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile --force" > /dev/null 2>&1 || true
+  for i in $(seq 1 60); do
+    left=""
+    for h in $ACME_WIN; do has_cert "$h" || left="$left $h"; done
+    [ -z "$left" ] && break
+    sleep 10
+  done
+  acme_restore; trap - EXIT
+  if [ -n "$left" ]; then
+    warn_ "TLS: no Let's Encrypt certificate after 10 minutes for:$left (Caddy's lines below)"
+    tls_diag "${left# }"
+  else
+    say "TLS: Let's Encrypt certificate in place; records proxied again"
+    sleep 15
+  fi
+}
 warn_() { if [ -n "${GITHUB_ACTIONS:-}" ]; then echo "::warning title=deploy-vps::$*"; else echo "WARNING: $*"; fi; }
 
 rollback() {
@@ -156,6 +207,7 @@ switch() {
   sed -e "s/@TAG@/none/" -e "s/@CRON@/$cron/" "$HERE/web-vps-remote.sh" > "$f"
   vps_scp "$f" /tmp/carmacars-web-remote.sh; rm -f "$f"
   vps_ssh "sudo bash /tmp/carmacars-web-remote.sh switch; rc=\$?; sudo rm -f /tmp/carmacars-web-remote.sh; exit \$rc" || die "The switch did not complete on the server (see the lines above)"
+  acme_window "$hosts"
   for h in ${hosts//,/ }; do
     code=""
     for i in $(seq 1 30); do

@@ -195,6 +195,21 @@ test('B without Workers permission: the cron stays, CF_WORKER_CRON=on (the serve
   assert.deepEqual(W.crons, [{ cron: '* * * * *' }]);
 });
 
+test('proxy: the Let\'s Encrypt window makes only the server\'s A record DNS-only, then proxied again; other names untouched', async () => {
+  W = world();
+  assert.equal((await run(['prepare'])).code, 0);
+  const off = await run(['proxy', 'new.carmacars.ca', 'off']);
+  assert.equal(off.code, 0, off.err);
+  assert.equal(off.out, '1');
+  assert.deepEqual(site('new.carmacars.ca').map((x) => [x.content, x.proxied]), [[IP, false]]);
+  assert.equal((await run(['proxy', 'new.carmacars.ca', 'off'])).out, '1', 'again changes nothing');
+  assert.equal((await run(['proxy', 'carmacars.ca', 'off'])).out, '0', 'a name still on the Worker has no record to the server');
+  const on = await run(['proxy', 'new.carmacars.ca', 'on']);
+  assert.equal(on.code, 0, on.err);
+  assert.deepEqual(site('new.carmacars.ca').map((x) => [x.content, x.proxied]), [[IP, true]]);
+  assert.equal(W.records.filter((x) => x.type === 'MX').length, 1);
+});
+
 test('live-on: the input wins, then the variable; an unreadable zone fails', async () => {
   W = world();
   assert.equal((await run(['live-on'], { WEB_LIVE_ON_INPUT: 'vps' })).out, 'vps');
