@@ -42,13 +42,13 @@ export function PickTime({ number, s }: { number: string; s: RenterState }) {
                   <button key={x.at} type="button" className={`btn btn--sm ${pick === x.at ? 'btn--primary' : 'btn--ghost'}`} aria-pressed={pick === x.at} onClick={() => setPick(x.at)} data-testid="checkin-slot">{timeWords(x.at)}</button>))}
                 </div>
               </fieldset>))}
-            <p><button type="button" className="btn btn--primary" disabled={!pick || a.pending} onClick={() => pick && send({ slot_at: pick, place: 'office' })} data-testid="checkin-book">{a.pending ? 'Booking' : 'Book this time'}</button></p>
+            <p><button type="button" className="btn btn--primary" disabled={!pick || a.pending} title={!pick ? 'Pick a time first' : undefined} onClick={() => pick && send({ slot_at: pick, place: 'office' })} data-testid="checkin-book">{a.pending ? 'Booking' : 'Book this time'}</button></p>
           </div>)
       ) : (
         <form className="stack" onSubmit={(e) => { e.preventDefault(); if (!a.pending) send({ place: 'request', note }); }} data-testid="checkin-request">
           <div className="field"><label className="label" htmlFor="ci-note">When and where suits you</label>
             <textarea className="input" id="ci-note" rows={3} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} placeholder="For example: weekday evenings, near Yonge and Eglinton" data-testid="checkin-note" /></div>
-          <p><button type="submit" className="btn btn--primary" disabled={a.pending || note.trim().length < 3} data-testid="checkin-request-send">{a.pending ? 'Sending' : 'Send my request'}</button></p>
+          <p><button type="submit" className="btn btn--primary" disabled={a.pending || note.trim().length < 3} title={note.trim().length < 3 ? 'Write when suits you first' : undefined} data-testid="checkin-request-send">{a.pending ? 'Sending' : 'Send my request'}</button></p>
         </form>
       )}
       {a.res && !a.res.ok && <p className="alert alert--warn" role="alert"><span>{a.res.message}</span></p>}

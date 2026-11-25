@@ -102,7 +102,7 @@ export function CheckinChecklist({ visitId, bookingId, currentKm, next, refresh 
       </div>
       {found.length > 0 && <p className="alert alert--warn" role="status" data-testid="checkin-issues"><span>Saving raises a Fleet To do for: {found.join('; ')}.</span></p>}
       {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--warn'}`} role={msg.ok ? 'status' : 'alert'} data-testid="checkin-msg"><span>{msg.text}</span></p>}
-      <p><button type="submit" className="btn btn--primary" disabled={pending || !!uploading || missing.length > 0 || !km || damage === null || fluids === null} data-testid="checkin-save" data-guide="checkin-save">
+      <p><button type="submit" className="btn btn--primary" disabled={pending || !!uploading || missing.length > 0 || !km || damage === null || fluids === null} title={missing.length ? 'Add the missing photos first' : !km ? 'Enter the odometer first' : damage === null || fluids === null ? 'Answer the damage and warning-light questions first' : undefined} data-testid="checkin-save" data-guide="checkin-save">
         {pending ? 'Saving' : missing.length ? `Add ${missing.length} more photo${missing.length > 1 ? 's' : ''}` : 'Save the visit'}</button></p>
     </form>
   );
