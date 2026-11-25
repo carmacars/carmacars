@@ -72,7 +72,9 @@ for (const portal of ['renter', 'owner', 'admin', 'va', 'field', 'investor'] as 
     const errors = watch(page);
     await signIn(page, u.email, '');
     await page.goto(HOME[portal], { waitUntil: 'networkidle' });
-    await expect(page.getByTestId('guide-link').first()).toBeAttached();
+    await openAccountMenu(page);
+    await expect(page.getByTestId('guide-link').first()).toBeVisible();
+    await page.keyboard.press('Escape');
     await expect(page.getByTestId('guide-banner')).toContainText('New here? Read the');
     await check(page, `${portal} home with the banner`);
 
@@ -83,7 +85,9 @@ for (const portal of ['renter', 'owner', 'admin', 'va', 'field', 'investor'] as 
     const other = await ctx(browser, phone);
     await signIn(other, u.email, '');
     await other.goto(HOME[portal], { waitUntil: 'networkidle' });
-    await expect(other.getByTestId('guide-link').first()).toBeAttached();
+    await openAccountMenu(other);
+    await expect(other.getByTestId('guide-link').first()).toBeVisible();
+    await other.keyboard.press('Escape');
     await expect(other.getByTestId('guide-banner')).toHaveCount(0);
     await other.context().close();
 

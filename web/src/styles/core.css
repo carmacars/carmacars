@@ -385,7 +385,8 @@ dialog { max-width: calc(100% - 6px - 2em - env(safe-area-inset-left, 0px) - env
 .hd-more.is-open .hd-more__panel { visibility: visible; pointer-events: auto; }
 /* closed: no size either, so the hidden list never widens the page; its dialogs live in the top layer, never clipped */
 .hd-more:not(.is-open) .hd-more__panel { width: 0; height: 0; min-width: 0; max-width: 0; padding: 0; border-width: 0; overflow: hidden; }
-.hd-more__panel dialog, .hd-more__panel [role="dialog"] { visibility: visible; }
+/* a dialog an item opened is used after the menu closes: visible and clickable (the closed panel is hidden and inert to the pointer) */
+.hd-more__panel dialog, .hd-more__panel [role="dialog"] { visibility: visible; pointer-events: auto; }
 /* a phone: the bar's items wrap from the left, so the list opens to the right of the button, inside the screen */
 @media (max-width: 47.99rem) { .hd-more__panel { right: auto; left: 0; } }
 .hd-more__panel > form { display: contents; }

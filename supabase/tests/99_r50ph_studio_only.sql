@@ -28,7 +28,7 @@ create temp table rq50s_real as select test.rq50s_photo('front_left', false) as 
 select test.ok('5064: a car with only its own photo shows it (as before release 50), never the empty plate',
   position((select processed_path from vehicle_photos where id = (select id from rq50s_real)) in test.rq50s_g()::text) > 0
   and not coalesce((test.rq50s_g() -> 0 ->> 'placeholder')::boolean, false));
-select test.eq('5064: and its gallery is the one before release 50', test.rq50s_g(), app.public_listing_photos_pre3701(test.id('vehicle:rq50s_a')));
+select test.eq('5064: and its gallery is the one before release 50', test.rq50s_g(), app.photo_fallback_gallery(test.id('vehicle:rq50s_a')));
 select test.eq('5064: no live render', app.photo_has_live_render(test.id('vehicle:rq50s_a')), false);
 
 -- ---------------------------------------------------------------- 3. only renders that passed the gate at this standard
@@ -37,7 +37,16 @@ create temp table rq50s_r as select
   test.rq50s_photo('front', true, test.rq50s_gate(true, 'r48.2')) as old_spec,
   test.rq50s_photo('dashboard', true, test.rq50s_gate(true)) as inside;
 select test.ok('5064: a refused render, an older standard''s render or an inside view alone: the photos as before release 50, never the empty plate',
-  test.rq50s_g() = app.public_listing_photos_pre3701(test.id('vehicle:rq50s_a')) and not coalesce((test.rq50s_g() -> 0 ->> 'placeholder')::boolean, false));
+  test.rq50s_g() = app.photo_fallback_gallery(test.id('vehicle:rq50s_a')) and not coalesce((test.rq50s_g() -> 0 ->> 'placeholder')::boolean, false)
+  and position((select processed_path from vehicle_photos where id = (select id from rq50s_real)) in test.rq50s_g()::text) > 0);
+select test.ok('5064: a refused render is never in the fallback gallery',
+  position((select processed_path from vehicle_photos where id = (select refused from rq50s_r)) in test.rq50s_g()::text) = 0);
+select test.ok('5064: nor an older standard''s render', position((select processed_path from vehicle_photos where id = (select old_spec from rq50s_r)) in test.rq50s_g()::text) = 0);
+select test.ok('5064: nor the row''s cover, even when the row before release 50 had it as its cover',
+  app.photo_row_cover(test.id('vehicle:rq50s_a'), jsonb_build_object('cover', jsonb_build_object('path', (select processed_path from vehicle_photos where id = (select refused from rq50s_r)), 'sample', false))) #>> '{cover,path}'
+    is distinct from (select processed_path from vehicle_photos where id = (select refused from rq50s_r)));
+select test.ok('5064: the inside render that is live is never the only photo (no outside render: the fallback)',
+  not app.photo_has_live_render(test.id('vehicle:rq50s_a')));
 select test.ok('photo_render_live: the gate''s pass at the current standard',
   not (select app.photo_render_live(ph) from vehicle_photos ph where ph.id = (select refused from rq50s_r))
   and not (select app.photo_render_live(ph) from vehicle_photos ph where ph.id = (select old_spec from rq50s_r))

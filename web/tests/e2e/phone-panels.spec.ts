@@ -64,8 +64,9 @@ test('the shared pop-ups fit a phone in the Admin, staff and renter portals (375
     const shared = [{ open: 'whats-new-link', panel: 'whats-new' }, { open: 'bug-report-open', panel: 'bug-report-dialog' }, { open: 'assistant-open', panel: 'assistant-panel' }, { open: 'guide-me-open', panel: 'guide-me-menu' }];
     const a = await phonePage(browser); await signIn(a, admin!.email, '/admin'); await sweep(a, '/admin', shared);
     // What's new and Report a bug must be there in the Admin portal (the others may lack a release note for the portal)
-    await expect(a.getByTestId('whats-new-link')).toBeAttached();
-    await expect(a.getByTestId('bug-report-open')).toBeAttached();
+    await openAccountMenu(a);
+    await expect(a.getByTestId('whats-new-link')).toBeVisible();
+    await expect(a.getByTestId('bug-report-open')).toBeVisible();
     const s = await phonePage(browser); await signIn(s, staff!.email, '/staff'); await sweep(s, '/staff', shared);
     const r = await phonePage(browser); await signIn(r, renter!.email, '/account'); await sweep(r, '/account', shared);
   } finally {
@@ -102,6 +103,24 @@ test('the portal top bar keeps the essentials; the rest is in the account menu (
         await noOverflow(page);
         await page.keyboard.press('Escape');
         await expect(page.getByTestId('account-menu-button')).toHaveAttribute('aria-expanded', 'false');
+        // a dialog an item opens works after the menu closes: the assistant takes a click and typing
+        if (width === 375) {
+          await openAccountMenu(page);
+          const open = page.getByTestId('account-menu-panel').getByTestId('assistant-open').first();
+          if (await open.isVisible().catch(() => false)) {
+            await open.click();
+            await expect(page.getByTestId('account-menu-button')).toHaveAttribute('aria-expanded', 'false');
+            const dlg = page.getByTestId('assistant-panel');
+            await expect(dlg).toBeVisible();
+            const box = dlg.locator('textarea.as-input');
+            await box.click();
+            await box.fill('hello');
+            await expect(box).toBeFocused();
+            await expect(box).toHaveValue('hello');
+            await page.keyboard.press('Escape');
+            await expect(dlg).toBeHidden();
+          }
+        }
       }
       await page.context().close();
     }

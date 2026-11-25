@@ -3,8 +3,9 @@
 -- "Photos coming soon" placeholder: the scene's empty plate (the dealership background with no car, no logo, no name). In
 -- production no render had passed yet, so every card, every car page and every sample car showed the empty plate.
 -- Now: a car with at least one live outside render shows its renders, as 3701 does. A car with none shows its photos exactly
--- as before release 50 (app.public_listing_photos_pre3701 and the row of app.public_listing_row_pre3701: its real photos,
--- the renders of 3150, or the built-in sample photos of 0054 with their caption). The placeholder stays only for a car that
+-- as before release 50 (app.public_listing_photos_pre3701 and the row of app.public_listing_row_pre3701: its real photos
+-- or the built-in sample photos of 0054 with their caption), less every studio render that is not live (refused by the
+-- gate, an older standard, flagged): those never come back by the fallback (app.photo_render_hidden). The placeholder stays only for a car that
 -- would otherwise have no photo at all. The hero and the home sections fall back in the web (components/SlotCars.tsx).
 -- No applied migration is edited: the 3701 functions are replaced with create or replace (same signatures, grants kept).
 -- SCHEMA_MARKER 5064.
@@ -19,6 +20,27 @@ $$;
 comment on function app.photo_has_live_render(uuid) is 'R50 hotfix (5064): the car has a live outside studio render; without one its photos are as before release 50.';
 revoke all on function app.photo_has_live_render(uuid) from public, anon, authenticated;
 grant execute on function app.photo_has_live_render(uuid) to service_role;
+
+-- a studio render that may not be public (refused by the gate, an older standard, flagged, waiting): never shown by the
+-- fallback either, whichever way it is reached (the gallery, the cover, the feeds, the sitemap)
+create function app.photo_render_hidden(p_vehicle uuid, p_path text) returns boolean
+language sql stable security definer set search_path = public, app, pg_temp as $$
+  select exists (select 1 from vehicle_photos x where x.vehicle_id = p_vehicle and x.r48 and x.processed_path = p_path and not app.photo_render_live(x))
+$$;
+comment on function app.photo_render_hidden(uuid, text) is 'R50 hotfix (5064): this path is a studio render that is not live (refused, an older standard, flagged): the fallback leaves it out.';
+revoke all on function app.photo_render_hidden(uuid, text) from public, anon, authenticated;
+grant execute on function app.photo_render_hidden(uuid, text) to service_role;
+
+-- the photos as before release 50, less every render that is not live; the first one left is the cover
+create function app.photo_fallback_gallery(p_vehicle uuid) returns jsonb
+language sql stable security definer set search_path = public, app, pg_temp as $$
+  select coalesce(jsonb_agg(t.e || jsonb_build_object('is_cover', t.k = 1) order by t.k), '[]'::jsonb)
+    from (select e, row_number() over (order by n) k
+            from jsonb_array_elements(coalesce(app.public_listing_photos_pre3701(p_vehicle), '[]'::jsonb)) with ordinality a(e, n)
+           where not app.photo_render_hidden(p_vehicle, e ->> 'path')) t
+$$;
+revoke all on function app.photo_fallback_gallery(uuid) from public, anon, authenticated;
+grant execute on function app.photo_fallback_gallery(uuid) to service_role;
 
 create or replace function app.public_listing_photos(p_vehicle uuid) returns jsonb
 language sql stable security definer set search_path = public, app, pg_temp as $$
@@ -38,7 +60,7 @@ language sql stable security definer set search_path = public, app, pg_temp as $
   select case
     -- 5064: no live outside render yet: the photos as before release 50; the placeholder only when there is none at all
     when not app.photo_has_live_render(p_vehicle) then
-      coalesce(nullif(app.public_listing_photos_pre3701(p_vehicle), '[]'::jsonb), jsonb_build_array(app.photo_placeholder(p_vehicle)))
+      coalesce(nullif(app.photo_fallback_gallery(p_vehicle), '[]'::jsonb), jsonb_build_array(app.photo_placeholder(p_vehicle)))
     else (select jsonb_agg(g.j || jsonb_build_object('is_cover', g.k = (select min(k) from g)) order by g.k) from g) end
 $$;
 
@@ -48,7 +70,8 @@ declare g jsonb; c jsonb; v_place boolean;
 begin
   if r is null then return null; end if;
   -- 5064: no live outside render: the row as before release 50 (its cover, sample flag and cutout), unless it has no cover
-  if not app.photo_has_live_render(p_vehicle) and jsonb_typeof(r -> 'cover') = 'object' and nullif(r #>> '{cover,path}', '') is not null then
+  if not app.photo_has_live_render(p_vehicle) and jsonb_typeof(r -> 'cover') = 'object' and nullif(r #>> '{cover,path}', '') is not null
+     and not app.photo_render_hidden(p_vehicle, r #>> '{cover,path}') then
     return r;
   end if;
   g := app.public_listing_photos(p_vehicle);

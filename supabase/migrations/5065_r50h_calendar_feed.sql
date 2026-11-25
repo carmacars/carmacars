@@ -85,6 +85,8 @@ begin
       v_local := (v_th at time zone 'America/Toronto') + make_interval(days => 7 * k);
       continue when exists (select 1 from townhall_cancellations c where (c.meeting_at at time zone 'America/Toronto')::date = v_local::date);
       l := l || array['BEGIN:VEVENT', 'UID:townhall-' || to_char(v_local, 'YYYYMMDD') || '@carmacars.ca', 'DTSTAMP:' || app.ics_utc(p_now),
+        -- the series last changed when its last invite went out (5000 sends one on every change of the day, time or length)
+        'LAST-MODIFIED:' || app.ics_utc(coalesce((select max(x.created_at) from calendar_invites x where x.kind = 'townhall'), p_now)),
         'DTSTART;TZID=America/Toronto:' || to_char(v_local, 'YYYYMMDD"T"HH24MISS'),
         'DTEND;TZID=America/Toronto:' || to_char(v_local + make_interval(mins => coalesce((app.settings()).townhall_minutes, 30)), 'YYYYMMDD"T"HH24MISS')];
       l := l || app.ics_fold('SUMMARY:' || app.ics_esc('CarmaCars weekly townhall'));

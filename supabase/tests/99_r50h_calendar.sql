@@ -39,6 +39,7 @@ create temp table r5hc_feed as select
 select test.ok('the Admin''s feed has the next townhall, Toronto time, with a stable UID',
   (select admin_ics from r5hc_feed) like '%UID:townhall-' || to_char(app.townhall_next(now()) at time zone 'America/Toronto', 'YYYYMMDD') || '@carmacars.ca%'
   and (select admin_ics from r5hc_feed) like '%DTSTART;TZID=America/Toronto:' || app.ics_local(app.townhall_next(now())) || '%');
+select test.ok('each townhall has its LAST-MODIFIED', (select admin_ics from r5hc_feed) ~ 'UID:townhall-[0-9]{8}@carmacars\.ca\r\nDTSTAMP:[0-9TZ]+\r\nLAST-MODIFIED:[0-9]{8}T[0-9]{6}Z');
 select test.eq('eight townhalls', (select count(*) from regexp_matches((select admin_ics from r5hc_feed), 'UID:townhall-', 'g')), 8::bigint);
 select test.ok('the townhall''s call page', (select admin_ics from r5hc_feed) like '%LOCATION:https://carmacars.ca/staff/townhall/live%');
 select test.ok('the booked interview: its UID, the applicant''s first name and the role',

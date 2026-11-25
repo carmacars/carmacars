@@ -50,7 +50,8 @@ test('Report a bug works from inside an open modal and captures it', async ({ pa
     await page.getByTestId('whats-new-dismiss').click();
     await expect(modal).toBeHidden();
     await expect(page.getByTestId('bug-report-float')).toHaveCount(0);
-    await expect(page.getByTestId('bug-report-open')).toBeAttached();
+    await openAccountMenu(page);
+    await expect(page.getByTestId('bug-report-open')).toBeVisible();
   } finally {
     await sql`delete from bug_reports where reporter_id = ${id}`.catch(() => undefined);
     await sql`delete from users where id = ${id}`.catch(() => undefined);

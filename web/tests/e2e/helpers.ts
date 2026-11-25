@@ -449,9 +449,14 @@ async function rebuild(baseURL?: string) {
 }
 
 /** R50 hotfix: a portal's top bar keeps the bell and the account menu; Profile, Academy, the assistant, What's new, the
- *  guide, Guide me, Report a bug and Sign out are inside the menu. Opens it when the page has one (a renter's page has none). */
-export async function openAccountMenu(page: Page | Locator) {
+ *  guide, Guide me, Report a bug and Sign out are inside the menu. Opens it. On a portal page (Admin, staff, owner,
+ *  investor; not a no-access page) the menu must be there: the test fails if it is missing. A renter's page has none. */
+export async function openAccountMenu(page: Page) {
+  const path = new URL(page.url()).pathname;
+  const portal = /^\/(admin|staff|owner|investor)(\/|$)/.test(path) && !/no-access/.test(path);
   const btn = page.getByTestId('account-menu-button').first();
-  if (!(await btn.isVisible().catch(() => false))) return;
+  if (portal) await expect(btn, `the account menu on ${path}`).toBeVisible({ timeout: 10_000 });
+  else if (!(await btn.isVisible().catch(() => false))) return;
   if ((await btn.getAttribute('aria-expanded')) !== 'true') await btn.click();
+  await expect(btn).toHaveAttribute('aria-expanded', 'true');
 }
