@@ -32,19 +32,19 @@ test('home: "Car Rental Toronto" title, the h1 and first paragraph, one name, ad
   await expect(page.locator('.hero .lead')).toContainText('car rental in Toronto');
   await expect(page.locator('.hero .d-hero')).toContainText('What goes around');
   const biz = (await ld(page)).find((n) => types([n]).includes('AutoRental')) as { address: { streetAddress: string; postalCode?: string }; telephone: string; openingHoursSpecification: unknown[]; areaServed: unknown[]; priceRange: string; aggregateRating?: unknown };
-  expect(biz.address.streetAddress).toBe('1570 Midland Ave');
+  expect(biz.address.streetAddress).toBe('1940 Eglinton Ave E');
   expect(biz.telephone).toBe('+12893125991');
   expect(biz.openingHoursSpecification.length).toBeGreaterThan(0);
   expect(biz.areaServed.length).toBeGreaterThan(3);
   expect(biz.aggregateRating, 'no rating while there are fewer published reviews than the threshold').toBeUndefined();
-  await expect(page.getByTestId('footer-address')).toContainText('1570 Midland Ave');
+  await expect(page.getByTestId('footer-address')).toContainText('1940 Eglinton Ave E');
   // no link section on the home page (owner, October 22): the footer's quiet Browse links lead to the place pages
   await expect(page.locator('#h-ways')).toHaveCount(0);
   await expect(page.getByRole('navigation', { name: 'Browse' })).toBeVisible();
   await expect(page.locator('a[href="/car-rental/gta"]').first()).toBeVisible();
   await check(page, 'home');
   await page.goto('/contact', { waitUntil: 'networkidle' });
-  await expect(page.getByTestId('nap-address')).toContainText('1570 Midland Ave');
+  await expect(page.getByTestId('nap-address')).toContainText('1940 Eglinton Ave E');
   await expect(page.locator('a[href="tel:+12893125991"]').first()).toBeVisible();
 });
 
