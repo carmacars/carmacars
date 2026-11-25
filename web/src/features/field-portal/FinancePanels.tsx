@@ -38,7 +38,7 @@ function SpendActions({ r }: { r: SpendRow }) {
 
 export function SpendingPanel({ rows }: { rows: SpendRow[] }) {
   return (
-    <section className="ad-card stack" aria-labelledby="fs-h" data-testid="field-spending">
+    <section className="ad-card stack" aria-labelledby="fs-h" data-testid="field-spending" data-guide="field-spending">
       <h2 className="d4" id="fs-h">Field spending to approve or pay back</h2>
       {rows.length === 0 ? <p className="small muted">Nothing waiting.</p> : <div className="table-scroll ad-scroll" tabIndex={0} role="region" aria-label="Table"><table className="ad-table ad-table--dense"><thead><tr><th>Who</th><th>What</th><th>Amount</th><th>Receipt</th><th>Status</th><th /></tr></thead>
         <tbody>{rows.map((r) => <tr key={r.id}><td>{r.staff}<br /><span className="small muted">{r.spent_on}</span></td>
@@ -66,7 +66,7 @@ function PaidBack({ id, label }: { id: string; label: string }) {
 }
 export function ReimbursementsPanel({ owedCents, people }: { owedCents: number; people: OwedPerson[] }) {
   return (
-    <section className="ad-card stack" aria-labelledby="rb-h" data-testid="reimbursements">
+    <section className="ad-card stack" aria-labelledby="rb-h" data-testid="reimbursements" data-guide="reimbursements">
       <h2 className="d4" id="rb-h">Reimbursements owed: {money(owedCents, { cents: true })}</h2>
       <p className="small muted">Staff who paid with their own money. Approved items are owed and paid back with their pay; waiting items are still with Finance.</p>
       {people.length === 0 ? <p className="small muted">Nothing owed.</p> : <ul className="stack" role="list">{people.map((x) => (

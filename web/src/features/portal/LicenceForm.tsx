@@ -14,10 +14,10 @@ export function LicenceForm({ number, initial }: { number: string; initial: { li
   const a = useAct();
   const set = (k: keyof typeof v) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setV({ ...v, [k]: e.target.value });
   return (
-    <form className="stack" noValidate onSubmit={(e) => { e.preventDefault(); a.run(() => saveLicence(number, v), (r) => { if (r.ok) router.refresh(); }); }} data-testid="licence-form">
+    <form className="stack" noValidate onSubmit={(e) => { e.preventDefault(); a.run(() => saveLicence(number, v), (r) => { if (r.ok) router.refresh(); }); }} data-testid="licence-form" data-guide="licence-form">
       <div className="field-row">
         <div className={`field${a.err('licence_number') ? ' has-error' : ''}`}><label className="label" htmlFor="lf-num">Licence number</label>
-          <input className="input" id="lf-num" value={v.licence_number} onChange={set('licence_number')} autoComplete="off" aria-invalid={!!a.err('licence_number') || undefined} aria-describedby="lf-num-err" data-testid="lf-number" />
+          <input className="input" id="lf-num" data-guide="lf-number" value={v.licence_number} onChange={set('licence_number')} autoComplete="off" aria-invalid={!!a.err('licence_number') || undefined} aria-describedby="lf-num-err" data-testid="lf-number" />
           <p className="error" role="alert" id="lf-num-err">{a.err('licence_number') ?? ''}</p></div>
         <div className="field"><label className="label" htmlFor="lf-iss">Issued by</label>
           <select className="select" id="lf-iss" value={v.licence_issuer} onChange={set('licence_issuer')}>
@@ -32,7 +32,7 @@ export function LicenceForm({ number, initial }: { number: string; initial: { li
       </div>
       {a.res && !a.res.ok && !a.res.fieldErrors && <p className="alert alert--error" role="alert"><span>{a.res.message}</span></p>}
       {a.res?.ok && <p className="alert alert--ok" role="status"><span>Saved.</span></p>}
-      <button className="btn btn--primary" type="submit" disabled={a.pending} data-testid="lf-save">{a.pending ? 'Saving' : 'Save the licence details'}</button>
+      <button className="btn btn--primary" type="submit" disabled={a.pending} data-testid="lf-save" data-guide="lf-save">{a.pending ? 'Saving' : 'Save the licence details'}</button>
     </form>
   );
 }

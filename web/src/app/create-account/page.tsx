@@ -1,3 +1,4 @@
+import { GuideMe } from '@/features/guide-me/GuideMe';
 import Link from '@/components/Link';
 import { Suspense } from 'react';
 import { AuthShell, AuthTabs } from '@/features/forms/AuthShell';
@@ -16,6 +17,7 @@ export default async function CreateAccount() {
     <div className="p-auth">
       <AuthShell side="One sign-in for renters, owners and staff." sideText="Renters see bookings, agreements and statements. Owners see their cars, calendar and payouts.">
         <h1 className="d2">Create an account</h1>
+        <div className="gm-public"><GuideMe portal="public" /></div>
         <AuthTabs current="new" />
         <Suspense fallback={null}><ProviderButtons intent="signup" /></Suspense>
         <Suspense fallback={null}><SignUpForm minAge={t.minAge!} /></Suspense>

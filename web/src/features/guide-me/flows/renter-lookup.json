@@ -1,0 +1,35 @@
+{
+  "id": "renter-lookup",
+  "title": "Find a renter",
+  "summary": "Search a renter, see their rentals, notes and documents.",
+  "who": [
+    "admin",
+    "cs",
+    "finance",
+    "fleet"
+  ],
+  "start": "{base}/renters",
+  "guide": {
+    "portal": "va",
+    "slug": "customer-service"
+  },
+  "steps": [
+    {
+      "id": "page",
+      "target": "page-head",
+      "text": "Find a renter by name, phone or email.",
+      "on": "{base}/renters",
+      "href": "{base}/renters"
+    },
+    {
+      "id": "notes",
+      "target": "renter-notes-card",
+      "text": "Notes on the renter: read them before you reply.",
+      "on": "{base}/renters",
+      "page": "page-head",
+      "when": {
+        "exists": "renter-notes-card"
+      }
+    }
+  ]
+}

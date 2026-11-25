@@ -1,0 +1,63 @@
+{
+  "id": "renter-signup",
+  "title": "Create your account",
+  "summary": "Your name, email and a password; then confirm your email from the link we send.",
+  "who": [
+    "visitor"
+  ],
+  "start": {
+    "public": "/create-account",
+    "renter": "/create-account"
+  },
+  "guide": {
+    "portal": "renter",
+    "slug": "start-here"
+  },
+  "steps": [
+    {
+      "id": "name",
+      "target": "su-name",
+      "text": "Type your full name, as on your driver's licence.",
+      "on": "/create-account",
+      "done": {
+        "filled": "su-name"
+      }
+    },
+    {
+      "id": "email",
+      "target": "su-email",
+      "text": "Type your email: the confirmation link goes there.",
+      "on": "/create-account",
+      "done": {
+        "filled": "su-email"
+      }
+    },
+    {
+      "id": "password",
+      "target": "su-pass",
+      "text": "Choose a password of 8 characters or more.",
+      "on": "/create-account",
+      "done": {
+        "filled": "su-pass"
+      }
+    },
+    {
+      "id": "agree",
+      "target": "su-agree",
+      "text": "Tick the box to confirm your age and agree to the terms.",
+      "on": "/create-account",
+      "done": {
+        "checked": "su-agree"
+      }
+    },
+    {
+      "id": "create",
+      "target": "su-submit",
+      "text": "Press Create account, then open the link in the email we send you.",
+      "on": "/create-account",
+      "done": {
+        "exists": "su-done"
+      }
+    }
+  ]
+}

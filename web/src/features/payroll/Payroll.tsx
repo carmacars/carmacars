@@ -32,7 +32,7 @@ export async function Payroll({ userId, aal, base, date }: { userId: string; aal
   const draft = run?.status === 'draft';
   const totals = v.totals.length ? v.totals.map((x) => `${payMoney(x.gross_cents, x.currency)} (${x.people} ${x.people === 1 ? 'person' : 'people'})`).join(' and ') : 'nothing yet';
   return (<>
-    <p className="small" data-testid="period-nav"><b>{v.period.label}</b>{v.period.ended ? ' (ended)' : ' (in progress)'} · <Link prefetch={false} className="link" href={`${base}?date=${v.period.prev}`}>Earlier period</Link>
+    <p className="small" data-testid="period-nav" data-guide="period-nav"><b>{v.period.label}</b>{v.period.ended ? ' (ended)' : ' (in progress)'} · <Link prefetch={false} className="link" href={`${base}?date=${v.period.prev}`}>Earlier period</Link>
       {v.period.next ? <>{' · '}<Link prefetch={false} className="link" href={`${base}?date=${v.period.next}`}>Later period</Link></> : null}</p>
     <Card title={run ? `Payroll: ${run.status === 'draft' ? (run.prepared_at ? 'waiting for an Admin' : 'draft') : run.status}` : 'Payroll not started'} testId="pay-run" aside={<span className="ad-actions">
       {!run && <Act ops action="field_pay_run_start" payload={{ date: v.period.start }} label="Start the payroll" variant="primary" testId="run-start" refresh={R} done="Payroll started." />}
@@ -49,7 +49,7 @@ export async function Payroll({ userId, aal, base, date }: { userId: string; aal
           { name: 'reference', label: 'Reference (each stub number is added to it; not needed for cash)', type: 'text' }, { name: 'paid_on', label: 'Date paid', type: 'date', value: v.today }]} />}
       {v.admin && run && run.status !== 'void' && run.status !== 'paid' && <Act ops action="field_pay_run_void" payload={{ run_id: run.id }} label="Withdraw" variant="danger" testId="run-void" refresh={R} done="Withdrawn."
         fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} />}</span>}>
-      {run?.prepared_at && <p className="small muted" data-testid="run-prepared">Sent for approval {t(run.prepared_at)}{run.prepared_by ? ` by ${run.prepared_by}` : ''}.</p>}
+      {run?.prepared_at && <p className="small muted" data-testid="run-prepared" data-guide="run-prepared">Sent for approval {t(run.prepared_at)}{run.prepared_by ? ` by ${run.prepared_by}` : ''}.</p>}
       {run?.approved_at && <p className="small muted">Approved {t(run.approved_at)}{run.approved_by ? ` by ${run.approved_by}` : ''}.</p>}
       <Table<PayLine & Record<string, unknown>> testId="pay-lines" rows={v.lines as Array<PayLine & Record<string, unknown>>} rowKey={(r) => r.id} empty={run ? 'Nobody to pay in this period.' : 'Start the payroll to see each person\'s pay.'} cols={[
         { key: 'name', label: 'Staff member' }, { key: 'what', label: 'Pay', className: 'wrap', render: (r) => lineWhat(r) },
@@ -66,7 +66,7 @@ export async function Payroll({ userId, aal, base, date }: { userId: string; aal
             fields={[{ name: 'method', label: 'How it was paid', type: 'select', required: true, options: PAY_METHODS, value: 'e_transfer' }, { name: 'reference', label: 'Reference (e-Transfer or bank number; not needed for cash)', type: 'text' },
               { name: 'paid_on', label: 'Date paid', type: 'date', value: v.today }, { name: 'note', label: 'Note', type: 'text' }]} />}
           {v.admin && r.status === 'paid' && <Act ops action="field_pay_line_email" payload={{ line_id: r.id }} label={r.emailed_at ? 'Send again' : 'Email the stub'} testId={`email-${r.id}`} refresh={R} done="Emailed." />}</span> }]} />
-      <p className="small" data-testid="pay-total">Total: <b>{totals}</b>. Amounts are before any deduction for tax; nothing is paid until an Admin records the payment.</p>
+      <p className="small" data-testid="pay-total" data-guide="pay-total">Total: <b>{totals}</b>. Amounts are before any deduction for tax; nothing is paid until an Admin records the payment.</p>
       {v.adjustments.length > 0 && <Table<Record<string, unknown>> testId="pay-adjustments" rows={v.adjustments as unknown as Array<Record<string, unknown>>} rowKey={(r) => String(r.id)} cols={[
         { key: 'name', label: 'Bonus or deduction for' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => payMoney(r.amount_cents, v.lines.find((l) => l.staff_id === r.staff_id)?.currency) },
         { key: 'reason', label: 'Reason', className: 'wrap' }, { key: 'by', label: 'By', render: (r) => `${String(r.by)}, ${t(String(r.at))}` },

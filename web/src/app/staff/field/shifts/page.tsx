@@ -78,7 +78,7 @@ export default async function MyShifts({ searchParams }: { searchParams: Promise
             <p className="small">Given up by {o.from}. First to claim takes it.</p>
             {jobsText(o.jobs) && <p className="small" data-testid="shift-jobs"><b>On it:</b> {jobsText(o.jobs)}</p>}
             <FieldButton action="offer_claim" payload={{ id: o.id }} label="Claim this shift" primary testId={`claim-${o.id}`} /></section>)}
-          {openSlots.map((o) => <section key={o.id} className="fp-shiftcard" data-testid="open-shift">
+          {openSlots.map((o) => <section key={o.id} className="fp-shiftcard" data-testid="open-shift" data-guide="open-shift">
             <p className="fp-shiftcard__when">{shiftText(o.starts_at, o.ends_at)}</p>
             <p className="small">{o.capacity - o.taken} of {o.capacity} place{o.capacity === 1 ? '' : 's'} free{o.note ? `. ${o.note}` : ''}</p>
             {jobsText(o.jobs) && <p className="small" data-testid="shift-jobs"><b>On it:</b> {jobsText(o.jobs)}</p>}
@@ -90,7 +90,7 @@ export default async function MyShifts({ searchParams }: { searchParams: Promise
         const plan = s.planned[x.id]?.cards ?? [];
         const late = isLate(x.starts_at, now);
         const asked = s.swaps.find((w) => !w.incoming && w.theirs.starts_at === x.starts_at);
-        return <section key={x.id} id={`s-${x.id}`} className="fp-shiftcard" data-testid="my-shift">
+        return <section key={x.id} id={`s-${x.id}`} className="fp-shiftcard" data-testid="my-shift" data-guide="my-shift">
           <p className="fp-shiftcard__when">{shiftText(x.starts_at, x.ends_at)}</p>{x.standing && <p className="small"><b>Standing shift</b></p>}{x.note && <p className="small">{x.note}</p>}
           {jobsText(x.jobs) && <p className="small" data-testid="shift-jobs"><b>The shift&apos;s jobs:</b> {jobsText(x.jobs)}{(x.people ?? 1) > 1 ? ', shared with the others on it' : ''}</p>}
           {plan.length ? <><p className="small"><b>Planned so far</b></p><ul className="fp-plan">{plan.map((c, i) => <li key={i}>{c.at ? `${clockText(c.at)} ` : ''}{c.type === 'prep' ? 'Onboarding prep' : cardTitle({ type: 'job', kind: c.kind ?? undefined })}: {c.vehicle}{c.booking ? `, ${c.booking}` : ''}</li>)}</ul></>
@@ -107,7 +107,7 @@ export default async function MyShifts({ searchParams }: { searchParams: Promise
       {s.late_cancels > 0 && <p className="small">Late give-ups in the last 90 days: {s.late_cancels}.</p>}
       </>}
       <StandingShifts list={s.standing ?? []} locked={s.locked} />
-      <details className="fp-shiftcard fp-more" style={{ marginTop: 'var(--s-3)' }} data-testid="shifts-availability"><summary>When you can work: {availabilityWords(s.availability?.slots)}</summary>
+      <details className="fp-shiftcard fp-more" style={{ marginTop: 'var(--s-3)' }} data-testid="shifts-availability" data-guide="shifts-availability"><summary>When you can work: {availabilityWords(s.availability?.slots)}</summary>
         <AvailabilityGrid value={s.availability ?? null} testId="shifts-availability-grid" /></details>
       <h2 className="fp-group-h" id="spending">Money you spent</h2>
       {spends.length ? <div className="fp-stack">{spends.slice(0, 15).map((x) => <section key={x.id} className="fp-shiftcard is-past" data-testid="spend">
@@ -116,7 +116,7 @@ export default async function MyShifts({ searchParams }: { searchParams: Promise
         {!x.receipt && x.status !== 'refused' && <SpendReceipt id={x.id} />}</section>)}</div> : <p className="small fp-stack">Nothing yet. Use Add on Today when you spend money for the company.</p>}
       {noReceipt.length > 0 && <p className="small">{noReceipt.length} without a receipt: add the photo above.</p>}
       <h2 className="fp-group-h" id="owed">Owed to you</h2>
-      {owed && owed.rows.length ? <div className="fp-stack" data-testid="owed-to-you">
+      {owed && owed.rows.length ? <div className="fp-stack" data-testid="owed-to-you" data-guide="owed-to-you">
         <section className="fp-shiftcard"><div className="fp-facts"><div><b>{money(owed.owed_cents, { cents: true })}</b><span>approved, to be paid back</span></div><div><b>{money(owed.pending_cents, { cents: true })}</b><span>waiting for Finance</span></div></div></section>
         {owed.rows.slice(0, 15).map((x) => <section key={x.id} className="fp-shiftcard is-past" data-testid="owed-row">
           <p><b>{x.description}</b> {money(x.amount_cents, { cents: true })}</p>

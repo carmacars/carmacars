@@ -34,7 +34,7 @@ export function OwnerMonths({ months, only, testId = 'owner-months' }: { months:
         <div><p className="pu-eyebrow">{only ? 'This car by month' : 'Your earnings'}</p><h2 className="pu-title" id={`${testId}-h`}>{payouts ? 'Payouts by month' : `Rental charges by month${carName && !only ? `: ${carName}` : ''}`}</h2></div>
         {!only && <div className="pu-seg" role="group" aria-label="What the chart shows">
           <button type="button" aria-pressed={view === 'rental'} onClick={() => setView('rental')}>Rental charges</button>
-          <button type="button" aria-pressed={view === 'payout'} onClick={() => { setView('payout'); setCar('all'); }} data-testid="months-payouts">Payouts</button>
+          <button type="button" aria-pressed={view === 'payout'} onClick={() => { setView('payout'); setCar('all'); }} data-testid="months-payouts" data-guide="months-payouts">Payouts</button>
         </div>}
       </div>
       {!only && cars.length > 1 && view === 'rental' && (

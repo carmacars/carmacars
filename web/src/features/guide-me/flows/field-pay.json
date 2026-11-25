@@ -1,0 +1,42 @@
+{
+  "id": "field-pay",
+  "title": "My pay",
+  "summary": "Hours so far, your pay statements and how you are paid.",
+  "who": [
+    "field"
+  ],
+  "start": "/staff/field/pay",
+  "guide": {
+    "portal": "field",
+    "slug": "my-hours-and-pay"
+  },
+  "steps": [
+    {
+      "id": "statements",
+      "target": "pay-statements",
+      "text": "Your pay statements.",
+      "on": "/staff/field/pay",
+      "href": "/staff/field/pay"
+    },
+    {
+      "id": "details",
+      "target": "pay-details",
+      "text": "How you are paid: change it here.",
+      "on": "/staff/field/pay",
+      "page": "pay-statements",
+      "when": {
+        "exists": "pay-details"
+      }
+    },
+    {
+      "id": "save",
+      "target": "pay-save",
+      "text": "Save your pay details.",
+      "on": "/staff/field/pay",
+      "page": "pay-statements",
+      "when": {
+        "exists": "pay-save"
+      }
+    }
+  ]
+}

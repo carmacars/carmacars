@@ -1,0 +1,46 @@
+{
+  "id": "owner-add-car",
+  "title": "Add a car",
+  "summary": "Add another car: its VIN, then its photos and terms.",
+  "who": [
+    "owner"
+  ],
+  "start": "/owner/vehicles",
+  "guide": {
+    "portal": "owner",
+    "slug": "start-here"
+  },
+  "steps": [
+    {
+      "id": "cars",
+      "target": "page-head",
+      "text": "Your cars, each with its status.",
+      "on": "/owner/vehicles",
+      "href": "/owner/vehicles"
+    },
+    {
+      "id": "add",
+      "target": "owner-add-cars",
+      "text": "Press Add cars.",
+      "on": "/owner/vehicles",
+      "page": "page-head",
+      "when": {
+        "exists": "owner-add-cars"
+      },
+      "done": {
+        "not": {
+          "route": "/owner/vehicles"
+        }
+      }
+    },
+    {
+      "id": "terms",
+      "target": "owner-terms",
+      "text": "Each car's terms: the share and fees you agreed.",
+      "page": "page-head",
+      "when": {
+        "exists": "owner-terms"
+      }
+    }
+  ]
+}

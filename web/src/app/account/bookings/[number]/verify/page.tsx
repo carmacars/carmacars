@@ -64,7 +64,7 @@ export default async function VerifyPage({ params, searchParams }: { params: Pro
           <LicenceForm number={b.booking_number} initial={{ licence_number: rd?.drivers.find((x) => x.driver_id === me.driver_id)?.licence_number ?? '', licence_class: rd?.drivers.find((x) => x.driver_id === me.driver_id)?.licence_class ?? 'G', licence_issuer: rd?.drivers.find((x) => x.driver_id === me.driver_id)?.licence_issuer ?? 'ON', licence_expiry: me.licence.expiry ?? '' }} />
         </section>
       )}
-      {me && me.licence.complete && early && <p className="alert alert--ok" role="status" data-testid="licence-complete"><span className="alert__title">Licence received</span><span>Nothing more is needed before you accept the offer.</span></p>}
+      {me && me.licence.complete && early && <p className="alert alert--ok" role="status" data-testid="licence-complete" data-guide="licence-complete"><span className="alert__title">Licence received</span><span>Nothing more is needed before you accept the offer.</span></p>}
       {!early && b.readiness && (
         <section className="pt-card" aria-labelledby="pt-ready" data-testid="readiness"><h2 className="d4" id="pt-ready">Before pickup</h2>
           {/* r36: how far along the checklist is, the bar filling to it */}

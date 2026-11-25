@@ -89,7 +89,7 @@ export function TripCard({ b, photo }: { b: BookingSummary; photo: Photo | null 
   const clock = tripClock(b);
   return (
     <li>
-      <Link prefetch={false} className="pu-trip" href={bookingPath(b.booking_number)} data-testid="trip-row">
+      <Link prefetch={false} className="pu-trip" href={bookingPath(b.booking_number)} data-testid="trip-row" data-guide="trip-row">
         <span className="pu-trip__img"><CarPhoto photo={photo} alt="" sizes="104px" /></span>
         <span className="pu-trip__body">
           <span className="pu-trip__top"><StatusBadge s={b.status} awaiting={awaitingSignature(b)} /><span className="xs muted">{b.booking_number}</span></span>
@@ -108,7 +108,7 @@ export function PastTripCard({ b, photo }: { b: BookingSummary; photo: Photo | n
     <li className="pu-trip pu-trip--past" data-testid="past-trip">
       <span className="pu-trip__img"><CarPhoto photo={photo} alt="" sizes="72px" /></span>
       <span className="pu-trip__body">
-        <span className="pu-trip__top"><StatusBadge s={b.status} /><Link prefetch={false} className="xs link" href={bookingPath(b.booking_number)} data-testid="trip-row">{b.booking_number}<span className="vh">, {carTitle(b)}</span></Link></span>
+        <span className="pu-trip__top"><StatusBadge s={b.status} /><Link prefetch={false} className="xs link" href={bookingPath(b.booking_number)} data-testid="trip-row" data-guide="trip-row">{b.booking_number}<span className="vh">, {carTitle(b)}</span></Link></span>
         <span className="pu-trip__name">{carTitle(b)}</span>
         <span className="pu-trip__meta">{when(b.pickup_at, false)} to {when(b.return_at, false)}</span>
         <span className="pu-trip__foot">

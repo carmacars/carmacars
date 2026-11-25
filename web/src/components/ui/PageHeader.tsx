@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 // of lead under it, the page's actions on the right (a phone stacks them), then the page's tabs. Styles: styles/ui-kit.css.
 export function PageHeader({ title, lead, actions, tabs, testId }: { title: ReactNode; lead?: ReactNode; actions?: ReactNode; tabs?: ReactNode; testId?: string }) {
   return (
-    <header className="ui-head" data-testid={testId}>
+    <header className="ui-head" data-testid={testId} data-guide="page-head">
       <div className="ui-head__top">
         <div><h1 className="ui-head__title">{title}</h1>{lead && <p className="ui-head__lead">{lead}</p>}</div>
         {actions && <div className="ui-head__acts">{actions}</div>}

@@ -10,7 +10,7 @@ const STATUS: Record<string, string> = { applied: 'In place', noticed: 'Notice g
 export function OwnerTermsSummary({ data }: { data: CarTermsData }) {
   if (!data.cars.length) return null;
   return (
-    <section className="pt-card stack ct" aria-labelledby="ow-terms-h" data-testid="owner-terms">
+    <section className="pt-card stack ct" aria-labelledby="ow-terms-h" data-testid="owner-terms" data-guide="owner-terms">
       <h2 className="d4" id="ow-terms-h">Your terms, car by car</h2>
       <div className="table-scroll ad-scroll" tabIndex={0} role="region" aria-label="Your terms, car by car">
         <table className="ad-table ad-table--dense ad-table--cards ct-table">

@@ -1,0 +1,37 @@
+{
+  "id": "academy",
+  "title": "Your academy",
+  "summary": "Lessons and a quiz per section of your path; pass them to claim shifts.",
+  "who": [
+    "admin",
+    "cs",
+    "sales",
+    "fleet",
+    "finance",
+    "field"
+  ],
+  "start": "{base}/academy",
+  "guide": {
+    "portal": "va",
+    "slug": "academy"
+  },
+  "steps": [
+    {
+      "id": "page",
+      "target": "page-head",
+      "text": "Your path: each section with its lessons and quiz.",
+      "on": "{base}/academy",
+      "href": "{base}/academy"
+    },
+    {
+      "id": "due",
+      "target": "academy-due",
+      "text": "Sections to do or to review first.",
+      "on": "{base}/academy",
+      "page": "page-head",
+      "when": {
+        "exists": "academy-due"
+      }
+    }
+  ]
+}

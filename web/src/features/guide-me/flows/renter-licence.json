@@ -1,0 +1,49 @@
+{
+  "id": "renter-licence",
+  "title": "Add your driver's licence",
+  "summary": "Your licence number and expiry, then the photos, so the car can be released at pickup.",
+  "who": [
+    "renter"
+  ],
+  "start": "/account",
+  "guide": {
+    "portal": "renter",
+    "slug": "start-here"
+  },
+  "steps": [
+    {
+      "id": "open",
+      "target": "licence-upload-link",
+      "text": "Open your booking and press Upload your licence.",
+      "done": {
+        "route": "/account/bookings/*/verify"
+      },
+      "skipIfDone": true,
+      "href": "/account"
+    },
+    {
+      "id": "number",
+      "target": "lf-number",
+      "text": "Type your licence number exactly as printed.",
+      "on": "/account/bookings/*/verify",
+      "done": {
+        "filled": "lf-number"
+      }
+    },
+    {
+      "id": "expiry",
+      "target": "licence-form",
+      "text": "Choose the expiry date on the licence.",
+      "on": "/account/bookings/*/verify"
+    },
+    {
+      "id": "save",
+      "target": "lf-save",
+      "text": "Press Save the licence details.",
+      "on": "/account/bookings/*/verify",
+      "done": {
+        "exists": "licence-complete"
+      }
+    }
+  ]
+}

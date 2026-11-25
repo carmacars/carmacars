@@ -35,9 +35,9 @@ export function FleetMaintenance({ data, base, sp }: { data: Overview; base: '/a
   const carHref = (id: string) => base === '/admin' ? `/admin/vehicles/${id}?tab=maintenance` : `/staff/vehicles/${id}?tab=maintenance`;
   const auto = sp.record && /^[0-9a-f-]{36}$/.test(sp.record) ? sp.record : null;
   return (
-    <div className="stack" data-testid="maint-overview">
+    <div className="stack" data-testid="maint-overview" data-guide="maint-overview">
       <ul className="mt-tally" aria-label="Cars by service status">
-        <li><Link prefetch={false} href={href({ show: 'overdue' })} className="mt-tally__a" data-testid="tally-overdue"><b className="num">{counts.overdue}</b> overdue</Link></li>
+        <li><Link prefetch={false} href={href({ show: 'overdue' })} className="mt-tally__a" data-testid="tally-overdue" data-guide="tally-overdue"><b className="num">{counts.overdue}</b> overdue</Link></li>
         <li><Link prefetch={false} href={href({ show: 'due_soon' })} className="mt-tally__a"><b className="num">{counts.soon}</b> due soon</Link></li>
         <li><Link prefetch={false} href={href({ show: 'unknown' })} className="mt-tally__a"><b className="num">{counts.unknown}</b> with no record yet</Link></li>
         <li><Link prefetch={false} href={href({ show: 'ok' })} className="mt-tally__a"><b className="num">{counts.ok}</b> all OK</Link></li>
@@ -55,7 +55,7 @@ export function FleetMaintenance({ data, base, sp }: { data: Overview; base: '/a
       </form>
       {show === 'bill' ? <p className="small" data-testid="maint-bill-help">Services recorded and not billed yet are on each car&apos;s Maintenance tab, under Service history, with <b>Bill now</b>. The cars with one are listed here.</p> : null}
       {rows.length === 0 ? <p className="ad-empty" data-testid="maint-empty">{data.cars.length ? 'No car matches these filters.' : 'No cars to track yet. Real cars appear here as soon as they are added (sample cars are left out).'}</p> : (
-        <ul className="mt-cars" data-testid="maint-cars">{rows.map((c) => (
+        <ul className="mt-cars" data-testid="maint-cars" data-guide="maint-cars">{rows.map((c) => (
           <li key={c.vehicle_id} className={`mt-car is-${c.worst}`} data-testid={`maint-car-${c.vehicle_id}`} data-worst={c.worst}>
             <div className="mt-car__head">
               <div>

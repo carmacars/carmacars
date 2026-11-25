@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { createPortal } from 'react-dom';
 import { usePathname, useRouter } from 'next/navigation';
 import { FLOWS, flowById } from './flows';
-import { back as goBack, baseOf, canNext, currentStep, flowsFor, next as goNext, onPage, place, progress, routeMatches, selectorOf, skip as goSkip, startFor, startRun, sync, GUIDE_START_EVENT,
+import { back as goBack, baseOf, canNext, currentStep, flowsFor, next as goNext, onPage, place, progress, routeMatches, selectorOf, skip as goSkip, startFor, startRun, sync, pageFirst, GUIDE_START_EVENT,
   type Box, type Flow, type Place, type Portal, type Probe, type Run } from './engine';
 
 // Guide me (r51, migration 3950): the coach in every staff portal. Off by default; the header's Guide me button opens the
@@ -14,15 +14,18 @@ import { back as goBack, baseOf, canNext, currentStep, flowsFor, next as goNext,
 // clicks: a ring around the element (pointer-events none) and a small card beside it, clear of Report a bug.
 const LOCAL = 'cc-guide-me-run';
 const OFFERED = 'cc-guide-me-offered';
-const GUIDE_HREF: Record<string, string> = { admin: '/admin/guide', va: '/staff/guide', field: '/staff/field/guide' };
-const AVOID = '[data-testid="bug-report-open"], [data-bug-report-ui], .fp-tabs';
+const GUIDE_HREF: Record<string, string> = { admin: '/admin/guide', va: '/staff/guide', field: '/staff/field/guide', owner: '/owner/guide', renter: '/account/guide', investor: '/investor/guide' };
+// never over Report a bug, the field tabs, or a primary button other than the one it points at
+const AVOID = '[data-testid="bug-report-open"], [data-bug-report-ui], .fp-tabs, .btn--primary';
 const NONE: string[] = [];
 
 const store = {
   get<T>(k: string, s?: Storage): T | null { try { const v = (s ?? localStorage).getItem(k); return v ? (JSON.parse(v) as T) : null; } catch { return null; } },
   set(k: string, v: unknown, s?: Storage) { try { if (v === null) (s ?? localStorage).removeItem(k); else (s ?? localStorage).setItem(k, JSON.stringify(v)); } catch { /* storage blocked: the run lasts for this page */ } }
 };
-const post = (body: Record<string, unknown>) => fetch('/api/guide-me', { method: 'POST', keepalive: true, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+// the public site (not signed in) keeps nothing on the server
+let anonymous = false;
+const post = (body: Record<string, unknown>) => anonymous ? Promise.resolve(null) : fetch('/api/guide-me', { method: 'POST', keepalive: true, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
   .then((r) => (r.ok ? (r.json() as Promise<{ ok?: boolean; id?: string }>) : null)).catch(() => null);
 
 const visible = (el: Element) => el instanceof HTMLElement && el.getClientRects().length > 0 && !el.closest('[data-guide-me-ui]');
@@ -60,7 +63,7 @@ export function GuideMe({ portal, admin = false, functions = NONE }: { portal: P
   const router = useRouter();
   const fnKey = functions.join(' ');
   // eslint-disable-next-line react-hooks/exhaustive-deps -- the functions by value
-  const mine = useMemo(() => flowsFor(FLOWS, { admin, functions }), [admin, fnKey]);
+  const mine = useMemo(() => flowsFor(FLOWS, { admin, functions, portal }), [admin, fnKey, portal]);
   const [on, setOn] = useState(false);
   const [menu, setMenu] = useState(false);
   // the run kept on this device (it survives every page and a reload); shown once the page is in the browser
@@ -82,7 +85,7 @@ export function GuideMe({ portal, admin = false, functions = NONE }: { portal: P
   useEffect(() => {
     const local = localRun(portal);
     let live = true;
-    void fetch('/api/guide-me', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((j: { on?: boolean; run?: { id: string; flow: string; portal: Portal; index: number; skipped: string[]; started_at: string } | null } | null) => {
+    void fetch('/api/guide-me', { cache: 'no-store' }).then((r) => { if (r.status === 401) anonymous = true; return r.ok ? r.json() : null; }).then((j: { on?: boolean; run?: { id: string; flow: string; portal: Portal; index: number; skipped: string[]; started_at: string } | null } | null) => {
       if (!live || !j) return;
       setOn(!!j.on);
       const r = j.run;
@@ -156,7 +159,7 @@ export function GuideMe({ portal, admin = false, functions = NONE }: { portal: P
     const vw = document.documentElement.clientWidth; const vh = window.innerHeight;
     const rb = el?.getBoundingClientRect();
     const ring = rb ? { x: rb.left - 4, y: rb.top - 4, w: rb.width + 8, h: rb.height + 8 } : null;
-    const avoid = [...document.querySelectorAll(AVOID)].filter(visible).map((e) => { const r = e.getBoundingClientRect(); return { x: r.left - 6, y: r.top - 6, w: r.width + 12, h: r.height + 12 }; });
+    const avoid = [...document.querySelectorAll(AVOID)].filter((e) => visible(e) && !(el && (e === el || e.contains(el) || el.contains(e))) && e.getBoundingClientRect().bottom > 0 && e.getBoundingClientRect().top < vh).slice(0, 24).map((e) => { const r = e.getBoundingClientRect(); return { x: r.left - 6, y: r.top - 6, w: r.width + 12, h: r.height + 12 }; });
     const ch = card.current?.getBoundingClientRect().height || 170;
     const next: Ui = { key: `${v.flow.id}:${o.run.index}`, here, nextOk: canNext(s, pr, o.run.base), ring, card: card.current ? place(ring, { w: Math.min(352, vw - 32), h: ch }, { w: vw, h: vh }, avoid) : null };
     setUi((old) => (sameUi(old, next) ? old : next));
@@ -225,6 +228,8 @@ export function GuideMe({ portal, admin = false, functions = NONE }: { portal: P
   const dismissOffer = (f: Flow) => { const n = [...offered, f.id]; store.set(OFFERED, n, sessionStorage); setOffered(n); };
 
   if (!mine.length) return null;
+  const groups = menu ? pageFirst(mine, portal, pathname ?? '', typeof window === 'undefined' ? '' : window.location.search) : { here: [], rest: [] };
+  const item = (f: Flow) => <li key={f.id}><button type="button" onClick={() => start(f.id)} data-testid={`guide-me-start-${f.id}`}><b>{f.title}</b><span>{f.summary}</span></button></li>;
   const pg = view ? progress(view.run) : null;
   const nextOk = !!shown?.nextOk;
   const pos = shown && shown.card ? { ring: shown.ring, card: shown.card } : null;
@@ -242,9 +247,10 @@ export function GuideMe({ portal, admin = false, functions = NONE }: { portal: P
           <input id="gm-keep" type="checkbox" role="switch" checked={on} onChange={(e) => keepOn(e.target.checked)} data-testid="guide-me-keep" />
           <span><b>Keep Guide me on</b><span className="small muted">On the first page of a workflow, it offers to walk you through it.</span></span>
         </label>
-        <p className="gm-menu__h">Walk me through</p>
-        <ul className="gm-flows">{mine.map((f) => (
-          <li key={f.id}><button type="button" onClick={() => start(f.id)} data-testid={`guide-me-start-${f.id}`}><b>{f.title}</b><span>{f.summary}</span></button></li>))}</ul>
+        {groups.here.length > 0 && <><p className="gm-menu__h">On this page</p>
+          <ul className="gm-flows" data-testid="guide-me-here">{groups.here.map(item)}</ul></>}
+        {groups.rest.length > 0 && <><p className="gm-menu__h">{groups.here.length ? 'Everything else' : 'Walk me through'}</p>
+          <ul className="gm-flows" data-testid="guide-me-all">{groups.rest.map(item)}</ul></>}
         {mounted && view && <p className="gm-menu__foot"><button type="button" className="btn btn--quiet btn--sm" onClick={() => { setMenu(false); finish('exited'); }} data-testid="guide-me-stop">Stop the guide</button></p>}
       </div>}
     </span>

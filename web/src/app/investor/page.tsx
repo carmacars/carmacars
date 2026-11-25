@@ -65,10 +65,10 @@ export default async function InvestorHome() {
             const total = Math.max(1, (Date.parse(x.lockup_end_date) - Date.parse(x.investment_date)) / 86_400_000);
             const gone = Math.max(0, Math.min(total, (Date.parse(today) - Date.parse(x.investment_date)) / 86_400_000));
             return (
-              <section key={x.id} className="pu-panel iv-inv" data-testid="investment" aria-labelledby={`iv-${x.id}`}>
+              <section key={x.id} className="pu-panel iv-inv" data-testid="investment" data-guide="investment" aria-labelledby={`iv-${x.id}`}>
                 <div className="iv-inv__head">
                   <div><p className="pu-eyebrow">{x.is_initial === false ? 'Additional investment' : 'Investment'} since {day(x.investment_date)}</p>
-                    <h2 className="d4" id={`iv-${x.id}`}>Invested Amount <span className="iv-inv__amount" data-testid="invested-amount">{c(x.invested_amount_cents)}</span></h2></div>
+                    <h2 className="d4" id={`iv-${x.id}`}>Invested Amount <span className="iv-inv__amount" data-testid="invested-amount" data-guide="invested-amount">{c(x.invested_amount_cents)}</span></h2></div>
                   {locked ? <ProgressRing value={gone} max={total} title={`Lockup period: ${Math.round((gone / total) * 100)}% done, ends ${day(x.lockup_end_date)}`} label={`${Math.round((gone / total) * 100)}%`} sub="lockup" accent />
                     : <ProgressRing value={1} max={1} title="Earning a Return each month" label={<PuIcon name="check" />} sub="earning" />}
                 </div>
@@ -100,7 +100,7 @@ export default async function InvestorHome() {
         </div>
         <div className="stack-lg">
           {plan.schedule.length > 0 && (
-            <section className="pu-panel" aria-labelledby="iv-sched" data-testid="investor-schedule">
+            <section className="pu-panel" aria-labelledby="iv-sched" data-testid="investor-schedule" data-guide="investor-schedule">
               <div className="pu-panel__head"><h2 className="pu-title" id="iv-sched">{reinvesting ? 'Return schedule' : 'Payment schedule'}</h2></div>
               <Timeline label={reinvesting ? 'Return schedule' : 'Payment schedule'}>
                 {plan.schedule.map((s) => (

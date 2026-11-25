@@ -1,0 +1,64 @@
+{
+  "id": "owner-sign",
+  "title": "Sign your agreements",
+  "summary": "Your agreement first, then each car's Schedule A, with one signature.",
+  "who": [
+    "owner"
+  ],
+  "start": "/owner/documents",
+  "guide": {
+    "portal": "owner",
+    "slug": "start-here"
+  },
+  "steps": [
+    {
+      "id": "docs",
+      "target": "portal-tabs",
+      "text": "Open Documents: what is waiting for your signature is on top.",
+      "on": "/owner/documents",
+      "href": "/owner/documents"
+    },
+    {
+      "id": "preview",
+      "target": "owner-preview-docs",
+      "text": "Read the documents.",
+      "on": "/owner/sign",
+      "page": "page-head",
+      "when": {
+        "exists": "owner-preview-docs"
+      }
+    },
+    {
+      "id": "sign",
+      "target": "owner-preview-sign",
+      "text": "Press Sign and follow the steps.",
+      "on": "/owner/sign",
+      "page": "page-head",
+      "when": {
+        "exists": "owner-preview-sign"
+      },
+      "done": {
+        "exists": "sign-progress"
+      }
+    },
+    {
+      "id": "progress",
+      "target": "sign-progress",
+      "text": "Each document, signed or still to sign: finish each one.",
+      "page": "page-head",
+      "when": {
+        "exists": "sign-progress"
+      }
+    },
+    {
+      "id": "forms",
+      "target": "government-forms",
+      "text": "Government forms to sign are listed here.",
+      "on": "/owner/documents",
+      "page": "page-head",
+      "when": {
+        "exists": "government-forms"
+      }
+    }
+  ]
+}

@@ -80,7 +80,7 @@ export function HandoverOneScreen({ booking, number, kind, who, refresh = [], is
         <div className="field"><label className="label" htmlFor="os-dep">Deposit not taken: the reason it is waived</label><input className="input" id="os-dep" value={dep} onChange={(e) => setDep(e.target.value)} /></div>
         <div className="field"><label className="label" htmlFor="os-sig">Without the renter&apos;s signature on the report: the reason</label><input className="input" id="os-sig" value={sig} onChange={(e) => setSig(e.target.value)} /></div></details>}
       {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'}><span>{msg.text}</span></p>}
-      <button className="btn btn--primary" type="submit" disabled={pending || busy > 0 || readingBusy} data-testid={`os-${kind}-go`}>{pending ? 'Saving' : who === 'renter' ? 'Check in' : pickup ? 'Check in on one screen' : 'Check out on one screen'}</button>
+      <button className="btn btn--primary" type="submit" disabled={pending || busy > 0 || readingBusy} data-testid={`os-${kind}-go`} data-guide={`os-${kind}-go`}>{pending ? 'Saving' : who === 'renter' ? 'Check in' : pickup ? 'Check in on one screen' : 'Check out on one screen'}</button>
     </form>
   );
 }

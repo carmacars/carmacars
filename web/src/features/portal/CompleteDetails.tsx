@@ -40,7 +40,7 @@ export function CompleteDetails({ number, missing, known, then, bare }: { number
     a.run(() => completeAgreementDetails(number, detailPayload(fields, vals)), (r) => { if (r.ok) router.refresh(); });
   };
   return (
-    <section className={bare ? 'stack' : 'pu-panel pu-panel--next'} aria-labelledby="pt-complete" data-testid="complete-details">
+    <section className={bare ? 'stack' : 'pu-panel pu-panel--next'} aria-labelledby="pt-complete" data-testid="complete-details" data-guide="complete-details">
       <h2 className={bare ? 'vh' : 'pu-title'} id="pt-complete">Complete your details</h2>
       <p>Your rental agreement needs {fields.length === 1 ? 'this' : 'these'} before you {then === 'pay' ? 'pay' : then === 'sign' ? 'sign' : 'sign or pay'}. Add {fields.length === 1 ? 'it' : 'them'} once; the agreement then shows {fields.length === 1 ? 'it' : 'them'}.</p>
       {prefilled && <p className="small" data-testid="complete-prefilled">We filled in what you gave us last time. Check it is still right, then save.</p>}
@@ -65,7 +65,7 @@ export function CompleteDetails({ number, missing, known, then, bare }: { number
           );
         })}
         {a.res && !a.res.ok && !a.res.fieldErrors && <p className="alert alert--error" role="alert"><span>{a.res.message}</span></p>}
-        <button className="btn btn--primary" type="submit" disabled={a.pending} data-testid="complete-details-save">{a.pending ? 'Saving' : 'Save my details'}</button>
+        <button className="btn btn--primary" type="submit" disabled={a.pending} data-testid="complete-details-save" data-guide="complete-details-save">{a.pending ? 'Saving' : 'Save my details'}</button>
       </form>
     </section>
   );

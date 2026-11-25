@@ -1,0 +1,47 @@
+{
+  "id": "owner-profile",
+  "title": "Complete your profile",
+  "summary": "Your path to your first payout: the next step is always on top.",
+  "who": [
+    "owner"
+  ],
+  "start": "/owner",
+  "guide": {
+    "portal": "owner",
+    "slug": "start-here"
+  },
+  "steps": [
+    {
+      "id": "path",
+      "target": "owner-path",
+      "text": "Your steps: profile, agreement, cars, photos, approval, delivery.",
+      "on": "/owner",
+      "page": "page-head",
+      "when": {
+        "exists": "owner-path"
+      }
+    },
+    {
+      "id": "next",
+      "target": "owner-path-cta",
+      "text": "Press the button for the next thing to do.",
+      "on": "/owner",
+      "page": "page-head",
+      "when": {
+        "exists": "owner-path-cta"
+      },
+      "done": {
+        "not": {
+          "route": "/owner"
+        }
+      }
+    },
+    {
+      "id": "account",
+      "target": "tab-profile",
+      "text": "Your details and banking are under Account.",
+      "on": "/owner/account",
+      "href": "/owner/account"
+    }
+  ]
+}

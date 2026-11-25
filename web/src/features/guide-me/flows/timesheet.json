@@ -1,0 +1,34 @@
+{
+  "id": "timesheet",
+  "title": "Your hours",
+  "summary": "The hours you clocked, by day and period.",
+  "who": [
+    "cs",
+    "fleet",
+    "finance"
+  ],
+  "start": "/staff/hours",
+  "guide": {
+    "portal": "va",
+    "slug": "shared-tools"
+  },
+  "steps": [
+    {
+      "id": "range",
+      "target": "timesheet-range",
+      "text": "Choose the days to see.",
+      "on": "/staff/hours",
+      "href": "/staff/hours"
+    },
+    {
+      "id": "period",
+      "target": "period-nav",
+      "text": "Your pay period and what it comes to.",
+      "on": "/staff/hours",
+      "page": "page-head",
+      "when": {
+        "exists": "period-nav"
+      }
+    }
+  ]
+}

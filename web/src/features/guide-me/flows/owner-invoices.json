@@ -1,0 +1,35 @@
+{
+  "id": "owner-invoices",
+  "title": "Invoices",
+  "summary": "What you owe CarmaCars (insurance, fees), how it is paid and its status.",
+  "who": [
+    "owner"
+  ],
+  "start": "/owner/money?tab=invoices",
+  "guide": {
+    "portal": "owner",
+    "slug": "start-here"
+  },
+  "steps": [
+    {
+      "id": "open",
+      "target": "tab-invoices",
+      "text": "Open Money, then Invoices.",
+      "href": "/owner/money?tab=invoices",
+      "done": {
+        "route": "/owner/money?tab=invoices"
+      },
+      "skipIfDone": true
+    },
+    {
+      "id": "status",
+      "target": "invoice-status",
+      "text": "Each invoice with its status: paid, due, or taken from your payout.",
+      "on": "/owner/money",
+      "page": "page-head",
+      "when": {
+        "exists": "invoice-status"
+      }
+    }
+  ]
+}

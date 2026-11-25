@@ -42,7 +42,7 @@ export function PayIdentityForm({ v }: { v: PayIdentity }) {
           <input id="pid-sin" className="input fd-num" inputMode="numeric" autoComplete="off" value={f.sin} maxLength={11} onChange={(e) => set('sin', e.target.value.replace(/[^\d -]/g, ''))} data-testid="pid-sin" />
           <span className="small">Kept encrypted. Only Finance and Admin can see it, and every look is recorded.</span></div>
         <PhotoPick file={cheque} set={setCheque} pdf label={v.cheque ? 'Void cheque on file: tap to replace' : 'Photo of a void cheque'} testId="pid-cheque" />
-        <button type="button" className="btn btn--primary fd-wide" disabled={pending} onClick={save} data-testid="pid-save">{pending ? 'Saving' : 'Save my pay details'}</button>
+        <button type="button" className="btn btn--primary fd-wide" disabled={pending} onClick={save} data-testid="pid-save" data-guide="pid-save">{pending ? 'Saving' : 'Save my pay details'}</button>
         {err && <p className="error" role="alert">{err}</p>}
         {ok && <p className="fp-done" role="status"><FdIcon name="check" />Saved.</p>}
       </div>}
