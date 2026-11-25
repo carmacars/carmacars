@@ -1,0 +1,15 @@
+{
+  "id": "sales-move-owner",
+  "title": "Move an owner forward",
+  "summary": "The Owner pipeline: find the owner who waits longest, call with the script, nudge, open their steps.",
+  "who": ["admin", "sales", "cs", "fleet"],
+  "start": { "admin": "/admin/marketing/owner-pipeline", "va": "/staff/owner-pipeline" },
+  "guide": { "portal": "va", "slug": "sales" },
+  "steps": [
+    { "id": "board", "target": "os-board", "text": "Every owner's car by step: the cards with the most days in a step come first. Red means stalled.", "page": "page-head", "when": { "exists": "os-board" } },
+    { "id": "card", "target": "os-board-car", "text": "Read the card: the next action and whose turn it is.", "page": "os-board", "when": { "exists": "os-board-car" } },
+    { "id": "script", "target": "os-script", "text": "Open Call script and call the owner; it fits the step they are on.", "page": "os-board", "when": { "exists": "os-script" } },
+    { "id": "nudge", "target": "os-board-car", "text": "If they do not answer, press Nudge: a branded email and a text with their next step.", "page": "os-board", "when": { "exists": "os-board-car" } },
+    { "id": "owner", "target": "owner-stages", "text": "Open the owner to see each car's steps, the blockers and the one next action.", "on": "{base}/owners/*", "page": "page-head", "when": { "exists": "owner-stages" } }
+  ]
+}

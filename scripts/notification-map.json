@@ -132,6 +132,9 @@
   "booking.checkin_not_booked": {"renter": "renter_checkin_followup"},
   "booking.checkin_booked": {"staff_va_fleet": "staff_checkin_booked", "staff_admin": "staff_checkin_booked"},
   "booking.checkin_today": {"staff_va_fleet": "staff_checkin_today", "staff_admin": "staff_checkin_today"},
-  "investor_library.document_published": {"investor": "investor_document_updated"}
+  "investor_library.document_published": {"investor": "investor_document_updated"},
+  "owner.stage_your_turn": {"owner": "owner_stage_your_turn", "staff_admin": "gap: none: Admin and Fleet get a To do (owner_stage_turn) when a stage is theirs, not an email"},
+  "owner.stage_nudge": {"owner": "owner_stage_nudge"},
+  "owner.stage_stalled": {"staff_admin": "staff_owner_stage_stalled", "staff_va_sales": "gap: none: the salesperson gets a To do (owner_stage_stalled), not an email"}
  }
 }

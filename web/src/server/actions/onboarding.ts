@@ -68,7 +68,7 @@ export async function onboardingPhotoAdd(form: FormData): Promise<R> {
     const vehicleId = String(form.get('vehicle_id') ?? '');
     const ownerId = String(form.get('owner_id') ?? '');
     const kind = String(form.get('kind') ?? '');
-    if (!['ownership_permit', 'owner_insurance_proof', 'finance_party_permission'].includes(kind)) return fail(new Error('Choose what the photo is.'));
+    if (!['ownership_permit', 'owner_insurance_proof', 'finance_party_permission', 'owner_id', 'lien_payout_letter', 'corporate_documents', 'uvip', 'new_registration'].includes(kind)) return fail(new Error('Choose what the photo is.'));
     if (!/^[0-9a-f-]{36}$/.test(vehicleId) || !/^[0-9a-f-]{36}$/.test(ownerId)) return fail(new Error('Choose the car.'));
     const file = form.get('file');
     if (!(file instanceof File) || file.size === 0 || file.size > 10_000_000) return fail(new Error('Choose a photo or PDF under 10 MB.'));

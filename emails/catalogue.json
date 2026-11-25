@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 286,
+  "count": 289,
   "emails": [
     {
       "code": "account_password_reset",
@@ -17363,6 +17363,248 @@
       "template_text": "templates/owner_sign_reminder.txt"
     },
     {
+      "code": "owner_stage_nudge",
+      "audience": "owner",
+      "category": "transactional",
+      "trigger": "Owner pipeline (r50, migration 4511): a salesperson, customer service, Fleet or an Admin pressed Nudge on the Owner pipeline or the owner's page. Reminds the owner of the one next step of their car. At most once in 10 minutes per car.",
+      "timing": "When staff press Nudge",
+      "digest": false,
+      "from": "CarmaCars <owners@carmacars.ca>",
+      "reply_to": "owners@carmacars.ca",
+      "subject": "Reminder: {{stage_label}} for your {{vehicle_name}}",
+      "preheader": "{{action_text}}. About {{expected}}.",
+      "sample_subject": "Reminder: Documents uploaded for your 2021 Hyundai Sonata",
+      "variables": [
+        {
+          "name": "action_text",
+          "type": "string",
+          "sample": "Upload: Driver's licence, Insurance slip"
+        },
+        {
+          "name": "agent",
+          "type": "string",
+          "sample": "Darren"
+        },
+        {
+          "name": "blockers_text",
+          "type": "string",
+          "sample": ""
+        },
+        {
+          "name": "bring_text",
+          "type": "string",
+          "sample": "Photos from your phone."
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "expected",
+          "type": "string",
+          "sample": "About 5 minutes with your phone"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Pat",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "has_blockers",
+          "type": "boolean",
+          "sample": false
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "stage_label",
+          "type": "string",
+          "sample": "Documents uploaded"
+        },
+        {
+          "name": "stage_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/owner/vehicles/v-1#stages"
+        },
+        {
+          "name": "step_number",
+          "type": "string",
+          "sample": "5"
+        },
+        {
+          "name": "step_total",
+          "type": "string",
+          "sample": "9"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2021 Hyundai Sonata",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/owner_stage_nudge.html",
+      "template_text": "templates/owner_stage_nudge.txt"
+    },
+    {
+      "code": "owner_stage_your_turn",
+      "audience": "owner",
+      "category": "transactional",
+      "trigger": "Owner pipeline (r50, migration 4511): a car of the owner reached a stage of its onboarding that waits on the owner (finish the application, incorporate, sign, upload documents, the ServiceOntario transfer, the new ownership permit). Once per car and stage, from app.owner_stage_refresh (after any change, and the 15-minute sweep).",
+      "timing": "When it becomes the owner's turn",
+      "digest": false,
+      "from": "CarmaCars <owners@carmacars.ca>",
+      "reply_to": "owners@carmacars.ca",
+      "subject": "Your next step for the {{vehicle_name}}: {{stage_label}}",
+      "preheader": "{{action_text}}. Expected: {{expected}}.",
+      "sample_subject": "Your next step for the 2021 Hyundai Sonata: Ownership transfer",
+      "variables": [
+        {
+          "name": "action_text",
+          "type": "string",
+          "sample": "Book a ServiceOntario appointment"
+        },
+        {
+          "name": "blockers_text",
+          "type": "string",
+          "sample": "Get a Safety Standards Certificate at a licensed inspection station (about 1 hour)"
+        },
+        {
+          "name": "bring_text",
+          "type": "string",
+          "sample": "Your driver's licence, the original ownership permit, proof of insurance and the filled Form A."
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "expected",
+          "type": "string",
+          "sample": "30 to 60 minutes at the counter"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Pat",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "has_blockers",
+          "type": "boolean",
+          "sample": true
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "stage_label",
+          "type": "string",
+          "sample": "Ownership transfer"
+        },
+        {
+          "name": "stage_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/owner/vehicles/v-1#stages"
+        },
+        {
+          "name": "step_number",
+          "type": "string",
+          "sample": "6"
+        },
+        {
+          "name": "step_total",
+          "type": "string",
+          "sample": "9"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2021 Hyundai Sonata",
+          "note": "Year, make, model and trim."
+        },
+        {
+          "name": "where_text",
+          "type": "string",
+          "sample": "Any ServiceOntario centre that does vehicle registration."
+        }
+      ],
+      "template_html": "templates/owner_stage_your_turn.html",
+      "template_text": "templates/owner_stage_your_turn.txt"
+    },
+    {
       "code": "owner_statement_ready",
       "audience": "owner",
       "category": "transactional",
@@ -20196,6 +20438,70 @@
       ],
       "template_html": "templates/staff_owner_debit_run.html",
       "template_text": "templates/staff_owner_debit_run.txt"
+    },
+    {
+      "code": "staff_owner_stage_stalled",
+      "audience": "staff_admin",
+      "category": "transactional",
+      "trigger": "Owner pipeline (r50, migration 4511): an owner's car has waited in one onboarding stage for Program settings' owner_stage_stall_days (3 by default). Once per car and stage, from the 15-minute sweep; the owner's salesperson (else an Admin) also gets a To do.",
+      "timing": "After the stall days in one stage",
+      "digest": false,
+      "from": "CarmaCars <owners@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Stalled {{days}} days: {{owner_name}}, {{vehicle_name}}",
+      "preheader": "{{stage_label}}, waiting on {{waits_on}}. {{next_step}}",
+      "sample_subject": "Stalled 4 days: Pat Example, 2021 Hyundai Sonata",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "days",
+          "type": "string",
+          "sample": "4"
+        },
+        {
+          "name": "next_step",
+          "type": "string",
+          "sample": "Help the owner book the ServiceOntario visit"
+        },
+        {
+          "name": "owner_id",
+          "type": "string",
+          "sample": "o-1b2c3d"
+        },
+        {
+          "name": "owner_name",
+          "type": "string",
+          "sample": "Pat Example"
+        },
+        {
+          "name": "salesperson",
+          "type": "string",
+          "sample": "Darren"
+        },
+        {
+          "name": "stage_label",
+          "type": "string",
+          "sample": "Ownership transfer"
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2021 Hyundai Sonata",
+          "note": "Year, make, model and trim."
+        },
+        {
+          "name": "waits_on",
+          "type": "string",
+          "sample": "the owner"
+        }
+      ],
+      "template_html": "templates/staff_owner_stage_stalled.html",
+      "template_text": "templates/staff_owner_stage_stalled.txt"
     },
     {
       "code": "staff_payouts_due",

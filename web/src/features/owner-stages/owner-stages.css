@@ -1,0 +1,33 @@
+/* The owner pipeline (r50, 4511): the stage tracker and the Sales board. The step rows reuse onboarding.css. */
+.os-car { border-top: 1px solid var(--grey-200); padding-top: var(--s-3); min-width: 0; }
+.os-car:first-of-type { border-top: 0; padding-top: 0; }
+.os-car__head { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: baseline; justify-content: space-between; }
+.os-route { white-space: normal; max-width: 100%; overflow-wrap: anywhere; line-height: 1.3; }
+.os-now { border: 1px solid var(--grey-200); border-radius: var(--radius, 8px); padding: var(--s-3); display: flex; flex-direction: column; gap: var(--s-2); min-width: 0; }
+.os-now--mine { border-color: var(--red-600); }
+.os-now h4 { margin: 0; overflow-wrap: break-word; }
+.os-cta { width: 100%; max-width: 22rem; justify-content: center; text-align: center; white-space: normal; }
+.os-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; }
+.os-facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 0.25rem var(--s-3); margin: 0; font-size: 0.875rem; }
+.os-facts dt { font-weight: 600; }
+.os-facts dd { margin: 0; overflow-wrap: break-word; }
+.os-items, .os-blockers { margin: 0; padding-left: 0; list-style: none; font-size: 0.875rem; display: flex; flex-direction: column; gap: 0.2rem; }
+.os-blockers { padding-left: 1rem; list-style: disc; }
+.os-item--done { color: var(--grey-600, #555); }
+.os-fields { display: flex; flex-direction: column; gap: var(--s-2); max-width: 26rem; }
+.os-check { display: flex; gap: var(--s-2); align-items: flex-start; font-size: 0.875rem; }
+.os-check input { margin-top: 0.2rem; flex: none; }
+.os-script summary { cursor: pointer; }
+.os-script p { overflow-wrap: break-word; }
+/* the board: one column a stage; on a phone the columns stack */
+.osb { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(16rem, 1fr); gap: var(--s-3); overflow-x: auto; padding-bottom: var(--s-2); }
+.osb-col { min-width: 0; display: flex; flex-direction: column; gap: var(--s-2); }
+.osb-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-2); }
+.osb-card { border: 1px solid var(--grey-200); border-radius: var(--radius, 8px); padding: var(--s-2) var(--s-3); display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; overflow-wrap: anywhere; }
+.osb-card--stalled { border-color: var(--red-600); }
+.osb-card .ad-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+@media (max-width: 40rem) {
+  .osb { grid-auto-flow: row; grid-auto-columns: auto; overflow-x: visible; }
+  .os-cta { max-width: none; }
+  .os-facts { grid-template-columns: minmax(0, 1fr); }
+}

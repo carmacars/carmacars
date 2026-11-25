@@ -13,6 +13,7 @@ export const SECTIONS: Array<[string, string, string]> = [
   ['card-coverage', 'Card coverage', 'Which credit cards include rental car coverage: limits, exclusions, guides and the day each was checked'],
   ['meta-publishing', 'Meta publishing', 'Post approved Facebook Page and Instagram drafts through Meta (off until the Page id, Instagram account id and token are entered)'],
   ['coverage-affiliate', 'RentalCoverage affiliate', 'The affiliate link (off until you paste it), its clicks by place and what RentalCoverage paid us'],
+  ['incorporation-referral', 'Incorporation referral', 'The online incorporation provider owners are referred to (off until you paste your affiliate link), who was referred and the commission received'],
   ['addons', 'Add-ons', 'Things renters buy with a rental: prices, which cars, notice, stock, confirmation'],
   ['maintenance', 'Maintenance', 'Service items and intervals by class and car, reminders, the winter tire dates, blocks, expense categories'],
   ['partners', 'Partners', 'Partner companies\' CRMs (01 Motors\' GoHighLevel): what we share, partner prices, their cars coming in, leads, the feed and the widget'],

@@ -215,7 +215,8 @@ export async function bookOwnCar(vehicleId: string, pickup: string, ret: string,
 }
 
 // ---------------------------------------------------------------- vehicle documents (ownership permit, lender permission, insurance)
-const DOC_KINDS = ['ownership_permit', 'finance_party_permission', 'owner_insurance_proof'] as const;
+// r50 (4511): and the owner pipeline's documents (app.owner_register_document checks the kind again)
+const DOC_KINDS = ['ownership_permit', 'finance_party_permission', 'owner_insurance_proof', 'owner_id', 'lien_payout_letter', 'corporate_documents', 'uvip', 'safety_certificate', 'new_registration'] as const;
 type DocKind = typeof DOC_KINDS[number];
 const TYPES: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'application/pdf': 'pdf' };
 const MAX_BYTES = 10 * 1024 * 1024;

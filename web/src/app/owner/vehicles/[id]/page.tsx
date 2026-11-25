@@ -6,7 +6,7 @@ import { when } from '@/features/agreement/model';
 import { Back, Dl } from '@/features/portal/Blocks';
 import { CarPhoto, day, InvoiceRows, OwnerBookingRow } from '@/features/owner/Blocks';
 import { ExitNoticeForm } from '@/features/owner/OwnerForms';
-import { OwnerUpload } from '@/features/owner/OwnerUpload';
+import { OwnerUpload, type UploadKind } from '@/features/owner/OwnerUpload';
 import { MODE_LABEL, ONBOARDING_STATUS, TRACKER_LATER } from '@/features/owner/types';
 import { ownerView, requireOwner } from '@/server/owner/data';
 import { amountText, upcoming, viewOf } from '@/features/owner/insights';
@@ -28,6 +28,8 @@ import { OwnerHandoffs } from '@/features/handover/OwnerHandoffs';
 import { OnboardingChecklist } from '@/features/onboarding/OnboardingChecklist';
 import { OnboardingPhotos } from '@/features/onboarding/OnboardingPhotos';
 import { onboardingData } from '@/server/onboarding';
+import { StageTracker } from '@/features/owner-stages/StageTracker';
+import { UPLOAD_TEXT, uploadKinds, type Stages } from '@/features/owner-stages/model';
 import { PriceLimitsForm } from '@/features/rates/PriceLimits';
 import type { PriceLimitsData } from '@/features/rates/price-limits';
 
@@ -64,7 +66,12 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
   // 0710: a fleet supplier's car: its lease (tier, a month, next payment), the ownership copy only, no fees or invoices
   const fleetCar = home.fleet_supplier ? home.fleet_lease?.cars.find((c) => c.vehicle_id === id) ?? null : null;
   // r34: the one Onboarding checklist and the car's onboarding photos (replace or remove one)
-  const ob = v.checklist ? await onboardingData(user.id, 'ops_read', { owner_id: home.owner.id, vehicle_id: id }) : null;
+  const [ob, stages] = v.checklist ? await Promise.all([onboardingData(user.id, 'ops_read', { owner_id: home.owner.id, vehicle_id: id }),
+    // r50 (4511): this car's steps, the one thing to do now, and the documents its route asks for
+    home.fleet_supplier ? Promise.resolve(null) : door<Stages>(user.id, 'ops_read', 'owner_stages', { vehicle_id: id }).catch(() => null)]) : [null, null];
+  const track = stages?.cars.find((c) => c.vehicle_id === id) ?? null;
+  const kinds = track ? uploadKinds(track).filter((k) => UPLOAD_TEXT[k]) : [];
+  const docState = (k: string) => track?.stages.flatMap((x) => x.items).find((i) => i.kind === k)?.done ?? false;
   // 1205: the lowest and highest daily rate for this car (empty: the owner's limits for every car, or none)
   const limits = fleetCar ? null : ((await rpc('server_owner_price_limits', { p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as PriceLimitsData | null);
   const carLimits = limits?.cars.find((c) => c.vehicle_id === id) ?? null;
@@ -81,8 +88,15 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
       </header>
       <div className="pt-split">
         <div className="stack-lg">
+          {track && <StageTracker data={stages} only={id} base="/owner" refresh={[`/owner/vehicles/${id}`]} title="Your car's steps" />}
           {v.checklist && ob && <OnboardingChecklist data={ob.overview} only={id} title="Onboarding" />}
-          {v.checklist && v.status === 'onboarding' && (
+          {track && kinds.length > 0 && (
+            <section className="pt-card stack" id="documents" aria-labelledby="ow-docs" data-testid="owner-stage-uploads" data-guide="owner-stage-uploads"><h2 className="d4" id="ow-docs">Your documents</h2>
+              <p className="small muted">What your car&apos;s route asks for. Take photos with your phone or choose a PDF; we check each one.</p>
+              <div className="pt-uploads">{kinds.map((k) => <OwnerUpload key={k} vehicleId={id} kind={k as UploadKind} title={UPLOAD_TEXT[k]!.title} hint={UPLOAD_TEXT[k]!.hint} done={docState(k)} />)}</div>
+            </section>
+          )}
+          {v.checklist && v.status === 'onboarding' && !track && (
             <section className="pt-card stack" aria-labelledby="ow-up"><h2 className="d4" id="ow-up">Add photos</h2>
               <div className="pt-uploads">
                 <OwnerUpload vehicleId={id} kind="ownership_permit" title="Ownership permit" hint="Both sides, flat and readable. Photos or a PDF." done={v.checklist.some((c) => c.code === 'documents' && c.status === 'done')} />

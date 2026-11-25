@@ -1,0 +1,37 @@
+CarmaCars  |  Owner onboarding
+
+========================================
+
+[Reminder]
+One step and your car moves on
+
+Hi {{first_name}}, {{agent}} from CarmaCars here. Your {{vehicle_name}} is waiting on this step:
+
+Step: {{stage_label}} ({{step_number}} of {{step_total}})
+To do: {{action_text}}
+Bring: {{bring_text}}
+Expected time: {{expected}}
+
+{{#if has_blockers}}
+Before you start
+{{blockers_text}}
+{{/if}}
+
+Open my next step:
+{{stage_url}}
+
+Reply to this email if anything is in the way; we will help.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

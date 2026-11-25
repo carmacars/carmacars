@@ -38,6 +38,8 @@ import { GovernmentForms } from '@/features/onboarding/GovernmentForms';
 import { VinList } from '@/features/onboarding/VinList';
 import { onboardingData } from '@/server/onboarding';
 import { SignGate } from '@/features/owner-path/SignGate';
+import { StageTracker } from '@/features/owner-stages/StageTracker';
+import type { Stages } from '@/features/owner-stages/model';
 import type { SignStatus } from '@/features/owner-path/path';
 import { OnboardingMethod } from '@/features/owner-path/OnboardingMethod';
 import { ForecastPanel } from '@/features/owner/Forecast';
@@ -123,7 +125,9 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
     Promise.all(d.invoices.filter((i) => (i.manual ?? []).length > 0).map(async (i) => [i.id, await door<ManualRow[]>(user.id, 'ops_read', 'manual_payments', { invoice: i.id }).catch(() => [] as ManualRow[])] as const)).then((x) => new Map(x))]);
   const here = [`/admin/owners/${id}`];
   // r34: the one Onboarding checklist, the onboarding photos and the government forms (0821 to 0823)
-  const [ob, sign] = await Promise.all([onboardingData(user.id, 'ops_read', { owner_id: id }), door<SignStatus>(user.id, 'ops_read', 'owner_sign_status', { owner_id: id }).catch(() => null)]);
+  // r50 (4511): the owner pipeline, each car's stage with its one next action, override and advance
+  const [ob, sign, stages] = await Promise.all([onboardingData(user.id, 'ops_read', { owner_id: id }), door<SignStatus>(user.id, 'ops_read', 'owner_sign_status', { owner_id: id }).catch(() => null),
+    door<Stages>(user.id, 'admin_read', 'owner_stages', { owner_id: id }).catch(() => null)]);
   const o = d.owner;
   // r35 part X (0930): field staff prep each car joining the fleet; Fleet and Admin give it and see its progress
   const preps = await Promise.all((ob.overview?.cars ?? []).map(async (c) => [c, await door<PrepList>(user.id, 'ops_read', 'field_prep', { vehicle: c.vehicle_id }).catch(() => null)] as const));
@@ -132,6 +136,7 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
   return (
     <>
       {head}
+      <StageTracker data={stages} base="/admin" refresh={here} />
       <SignGate status={sign} refresh={here} />
       <OnboardingChecklist data={ob.overview} />
       {preps.map(([c, x]) => x && <PrepPanel key={c.vehicle_id} p={x} vehicle={{ id: c.vehicle_id, name: c.name }} title={`Onboarding prep: ${c.name}`} />)}

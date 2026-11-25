@@ -1,24 +1,28 @@
 import Link from '@/components/Link';
-import { redirect } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
-import { requireStaff } from '@/server/door';
 import { PageHead } from '@/features/admin/ui';
 import { PipelineBoard, type PipelineData } from '@/features/owner-pipeline/Board';
+import { StageBoard } from '@/features/owner-stages/StageBoard';
+import type { Board } from '@/features/owner-stages/model';
+import { GuideMeLink } from '@/features/guide-me/GuideMeLink';
 
 export const dynamic = 'force-dynamic';
-export const metadata = pageMeta({ title: 'Owner pipeline', path: '/staff/owner-pipeline', noindex: true, description: 'Prospective owners by stage, with automatic follow-ups.' });
+export const metadata = pageMeta({ title: 'Owner pipeline', path: '/staff/owner-pipeline', noindex: true, description: 'Owners onboarding a car by step, and prospective owners by stage.' });
 
-// The owner pipeline for customer service (migration 0217): the same board as the Admin's, without the referral credits.
-// Sales see only the owners they bring in, on My sales (0342): anyone who is not customer service goes there.
+// The owner pipeline. r50 (4511): first the owners onboarding a car, by step (Sales: the owners they brought in; customer
+// service and Fleet: every owner), with days in step, the next action and whose it is, the nudge and the call script. Then,
+// for customer service, the prospective owners of 0217 (Sales see theirs on My sales).
 export default async function StaffOwnerPipeline() {
-  const { roles } = await requireStaff('va', '/staff/owner-pipeline');
-  if (!(roles.va_functions ?? (roles.va ? [roles.va] : [])).includes('cs')) redirect('/staff/my-sales#owners');
-  const { read } = await vaPage('/staff/owner-pipeline', ['cs']);
-  const d = await read<PipelineData>('owner_pipeline');
+  const { read, fn } = await vaPage('/staff/owner-pipeline', ['sales', 'cs', 'fleet']);
+  const [board, d] = await Promise.all([read<Board>('owner_stage_board').catch(() => null), fn === 'cs' ? read<PipelineData>('owner_pipeline') : Promise.resolve(null)]);
+  const refresh = ['/staff/owner-pipeline'];
   return (<>
-    <PageHead title="Owner pipeline" purpose="Prospective owners by stage. Move a lead when you talk to them; follow-up emails stop by themselves when they reply or the stage changes.">
+    <PageHead title="Owner pipeline" purpose="Every owner's car by step, whose turn it is and the one next action. Nudge the owner in one tap; the call script of each step is on the card.">
       <Link prefetch={false} className="btn btn--ghost btn--sm" href="/staff/owners/add-car" data-testid="add-car-link">Add a car for an owner</Link></PageHead>
-    <PipelineBoard d={d} refresh={['/staff/owner-pipeline']} />
+    <p className="gm-links"><GuideMeLink flow="sales-move-owner" label="Guide me: move an owner forward" /></p>
+    {board && <StageBoard b={board} base="/staff" refresh={refresh} />}
+    {d && <><h2 className="d4">Prospective owners</h2><PipelineBoard d={d} refresh={refresh} /></>}
+    {fn === 'sales' && <p className="small muted">Prospective owners you bring in are on <Link prefetch={false} className="link" href="/staff/my-sales#owners">My sales</Link>.</p>}
   </>);
 }

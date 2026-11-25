@@ -14,7 +14,9 @@ async function reencode(file: File): Promise<Blob> {
   return new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('Could not read the image'))), 'image/jpeg', 0.9));
 }
 
-export function OwnerUpload({ vehicleId, kind, title, hint, done }: { vehicleId: string; kind: 'ownership_permit' | 'finance_party_permission' | 'owner_insurance_proof'; title: string; hint: string; done: boolean }) {
+/** r50 (4511): the owner pipeline's documents too (the licence, the lender's letter, corporate documents, UVIP, certificate, new permit) */
+export type UploadKind = 'ownership_permit' | 'finance_party_permission' | 'owner_insurance_proof' | 'owner_id' | 'lien_payout_letter' | 'corporate_documents' | 'uvip' | 'safety_certificate' | 'new_registration';
+export function OwnerUpload({ vehicleId, kind, title, hint, done }: { vehicleId: string; kind: UploadKind; title: string; hint: string; done: boolean }) {
   const id = useId();
   const router = useRouter();
   const [busy, setBusy] = useState(false);

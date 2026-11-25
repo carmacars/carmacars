@@ -11805,6 +11805,93 @@ export type Database = {
         };
         Relationships: [];
       };
+      incorporation_affiliate: {
+        Row: {
+          singleton: boolean;
+          provider_name: string;
+          link_template: string | null;
+          commission_note: string;
+          signup_url: string;
+          enabled: boolean;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          singleton?: boolean;
+          provider_name?: string;
+          link_template?: string | null;
+          commission_note?: string;
+          signup_url?: string;
+          enabled?: boolean;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          singleton?: boolean;
+          provider_name?: string;
+          link_template?: string | null;
+          commission_note?: string;
+          signup_url?: string;
+          enabled?: boolean;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      incorporation_referrals: {
+        Row: {
+          id: string;
+          owner_id: string;
+          vehicle_id: string | null;
+          provider_name: string;
+          ref_code: string;
+          clicks: number;
+          first_clicked_at: string;
+          last_clicked_at: string;
+          status: string;
+          incorporated_on: string | null;
+          commission_cents: number | null;
+          commission_on: string | null;
+          note: string | null;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          vehicle_id?: string | null;
+          provider_name: string;
+          ref_code: string;
+          clicks?: number;
+          first_clicked_at?: string;
+          last_clicked_at?: string;
+          status?: string;
+          incorporated_on?: string | null;
+          commission_cents?: number | null;
+          commission_on?: string | null;
+          note?: string | null;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          owner_id?: string;
+          vehicle_id?: string | null;
+          provider_name?: string;
+          ref_code?: string;
+          clicks?: number;
+          first_clicked_at?: string;
+          last_clicked_at?: string;
+          status?: string;
+          incorporated_on?: string | null;
+          commission_cents?: number | null;
+          commission_on?: string | null;
+          note?: string | null;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       indexnow_queue: {
         Row: {
           path: string;
@@ -16611,6 +16698,93 @@ export type Database = {
         };
         Relationships: [];
       };
+      owner_pipeline: {
+        Row: {
+          vehicle_id: string;
+          owner_id: string;
+          route: string;
+          stage: string;
+          actor: string | null;
+          stage_since: string;
+          turn_notified_stage: string | null;
+          turn_notified_at: string | null;
+          stalled_stage: string | null;
+          stalled_at: string | null;
+          last_nudge_at: string | null;
+          last_nudge_by: string | null;
+          nudges: number;
+          visited_at: string | null;
+          visited_by: string | null;
+          fees_paid_at: string | null;
+          fees_note: string | null;
+          uvip_needed: boolean | null;
+          ssc_needed: boolean | null;
+          inspected_at: string | null;
+          inspected_by: string | null;
+          inspection_note: string | null;
+          overrides: Json;
+          finished_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          vehicle_id: string;
+          owner_id: string;
+          route: string;
+          stage: string;
+          actor?: string | null;
+          stage_since?: string;
+          turn_notified_stage?: string | null;
+          turn_notified_at?: string | null;
+          stalled_stage?: string | null;
+          stalled_at?: string | null;
+          last_nudge_at?: string | null;
+          last_nudge_by?: string | null;
+          nudges?: number;
+          visited_at?: string | null;
+          visited_by?: string | null;
+          fees_paid_at?: string | null;
+          fees_note?: string | null;
+          uvip_needed?: boolean | null;
+          ssc_needed?: boolean | null;
+          inspected_at?: string | null;
+          inspected_by?: string | null;
+          inspection_note?: string | null;
+          overrides?: Json;
+          finished_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          vehicle_id?: string;
+          owner_id?: string;
+          route?: string;
+          stage?: string;
+          actor?: string | null;
+          stage_since?: string;
+          turn_notified_stage?: string | null;
+          turn_notified_at?: string | null;
+          stalled_stage?: string | null;
+          stalled_at?: string | null;
+          last_nudge_at?: string | null;
+          last_nudge_by?: string | null;
+          nudges?: number;
+          visited_at?: string | null;
+          visited_by?: string | null;
+          fees_paid_at?: string | null;
+          fees_note?: string | null;
+          uvip_needed?: boolean | null;
+          ssc_needed?: boolean | null;
+          inspected_at?: string | null;
+          inspected_by?: string | null;
+          inspection_note?: string | null;
+          overrides?: Json;
+          finished_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       owner_private_details: {
         Row: {
           owner_id: string;
@@ -17015,6 +17189,48 @@ export type Database = {
           cost_cents?: number | null;
           promo_code_id?: string | null;
           created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      owner_stage_defs: {
+        Row: {
+          code: string;
+          label: string;
+          sort_order: number;
+          actor: string;
+          owner_action: string;
+          staff_action: string;
+          bring: string | null;
+          where_text: string | null;
+          expected: string;
+          call_script: string;
+          updated_at: string;
+        };
+        Insert: {
+          code: string;
+          label: string;
+          sort_order: number;
+          actor: string;
+          owner_action: string;
+          staff_action: string;
+          bring?: string | null;
+          where_text?: string | null;
+          expected: string;
+          call_script: string;
+          updated_at?: string;
+        };
+        Update: {
+          code?: string;
+          label?: string;
+          sort_order?: number;
+          actor?: string;
+          owner_action?: string;
+          staff_action?: string;
+          bring?: string | null;
+          where_text?: string | null;
+          expected?: string;
+          call_script?: string;
           updated_at?: string;
         };
         Relationships: [];
@@ -21389,6 +21605,10 @@ export type Database = {
           checkin_day_end_hour: number;
           checkin_slot_capacity: number;
           checkin_place_text: string;
+          owner_stage_enabled: boolean;
+          owner_stage_stall_days: number;
+          owner_stage_finder_url: string;
+          owner_stage_uvip_url: string;
         };
         Insert: {
           id?: string;
@@ -22375,6 +22595,10 @@ export type Database = {
           checkin_day_end_hour?: number;
           checkin_slot_capacity?: number;
           checkin_place_text?: string;
+          owner_stage_enabled?: boolean;
+          owner_stage_stall_days?: number;
+          owner_stage_finder_url?: string;
+          owner_stage_uvip_url?: string;
         };
         Update: {
           id?: string;
@@ -23361,6 +23585,10 @@ export type Database = {
           checkin_day_end_hour?: number;
           checkin_slot_capacity?: number;
           checkin_place_text?: string;
+          owner_stage_enabled?: boolean;
+          owner_stage_stall_days?: number;
+          owner_stage_finder_url?: string;
+          owner_stage_uvip_url?: string;
         };
         Relationships: [];
       };
@@ -36783,6 +37011,7 @@ export type Database = {
       server_in_person_lines: { Args: { p_request: string }; Returns: Json };
       server_incident_digital: { Args: { p_by: string; p?: Json }; Returns: Json };
       server_incident_document: { Args: { p_by: string; p_document: string }; Returns: Json };
+      server_incorporation_click: { Args: { p_by: string; p: Json }; Returns: Json };
       server_indexnow_claim: { Args: { p_limit: number }; Returns: Json };
       server_indexnow_report: { Args: { p: Json }; Returns: Json };
       server_indexnow_sent: { Args: { p: Json }; Returns: number };
@@ -37164,7 +37393,7 @@ export type Database = {
       booking_status: "requested" | "offered" | "tentative" | "pending_payment" | "confirmed" | "on_rent" | "returned" | "closed" | "cancelled" | "no_show" | "expired" | "declined";
       booking_type: "standard" | "non_refundable" | "owner";
       charge_stage: "booking" | "pickup" | "extension" | "check_in" | "after_return" | "on_decline" | "monthly" | "split";
-      document_kind: "rental_agreement" | "condition_report" | "renter_statement" | "coverage_proof" | "coverage_terms" | "coverage_activation" | "id_front" | "id_back" | "face_photo" | "enrollment_agreement" | "title_agreement" | "vehicle_schedule" | "additional_vehicle_schedule" | "title_schedule" | "form_a_trust_declaration" | "form_b_lease_summary" | "form_c_finance_permission_ack" | "form_d_power_of_attorney" | "form_e_exit_checklist" | "finance_party_permission" | "ownership_permit" | "insurer_confirmation" | "owner_insurance_proof" | "safety_certificate" | "appraisal" | "registry_form" | "owner_invoice" | "owner_statement" | "receipt" | "repair_estimate" | "repair_invoice" | "police_report" | "incident_report" | "toll_ticket_notice" | "investment_agreement" | "investment_schedule_a" | "investment_schedule_c" | "investment_schedule_d" | "investor_statement" | "securities_form" | "fleet_report" | "staff_agreement" | "notice" | "dispute_evidence" | "other" | "insurer_invoice" | "company_statement" | "rental_amendment" | "partner_agreement" | "partner_insurance";
+      document_kind: "rental_agreement" | "condition_report" | "renter_statement" | "coverage_proof" | "coverage_terms" | "coverage_activation" | "id_front" | "id_back" | "face_photo" | "enrollment_agreement" | "title_agreement" | "vehicle_schedule" | "additional_vehicle_schedule" | "title_schedule" | "form_a_trust_declaration" | "form_b_lease_summary" | "form_c_finance_permission_ack" | "form_d_power_of_attorney" | "form_e_exit_checklist" | "finance_party_permission" | "ownership_permit" | "insurer_confirmation" | "owner_insurance_proof" | "safety_certificate" | "appraisal" | "registry_form" | "owner_invoice" | "owner_statement" | "receipt" | "repair_estimate" | "repair_invoice" | "police_report" | "incident_report" | "toll_ticket_notice" | "investment_agreement" | "investment_schedule_a" | "investment_schedule_c" | "investment_schedule_d" | "investor_statement" | "securities_form" | "fleet_report" | "staff_agreement" | "notice" | "dispute_evidence" | "other" | "insurer_invoice" | "company_statement" | "rental_amendment" | "partner_agreement" | "partner_insurance" | "lien_payout_letter" | "uvip" | "new_registration" | "corporate_documents" | "owner_id";
       field_function: "driver" | "detailer" | "driver_detailer";
       finance_permission: "not_applicable" | "attached" | "not_obtained";
       fuel_type: "gasoline" | "diesel" | "hybrid" | "plug_in_hybrid" | "electric";

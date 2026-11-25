@@ -13,7 +13,9 @@ export interface PhotoRow { id: string; vehicle_id: string; vehicle_name: string
   uploaded_by: 'owner' | 'carmacars' | null; review_status: 'waiting' | 'approved' | 'rejected'; reviewed_at: string | null; review_note: string | null; replaces: string | null }
 
 const STATUS: Record<PhotoRow['review_status'], string> = { waiting: 'Waiting for the check', approved: 'Approved', rejected: 'Not accepted' };
-const KINDS: Array<[string, string]> = [['ownership_permit', 'Ownership permit'], ['owner_insurance_proof', 'Insurance slip'], ['finance_party_permission', 'Lender or lessor permission']];
+const KINDS: Array<[string, string]> = [['ownership_permit', 'Ownership permit'], ['owner_insurance_proof', 'Insurance slip'], ['finance_party_permission', 'Lender or lessor permission'],
+  // r50 (4511): the owner pipeline's documents
+  ['owner_id', 'Driver\'s licence'], ['lien_payout_letter', 'Lender\'s payout letter'], ['corporate_documents', 'Corporate documents'], ['uvip', 'Used Vehicle Information Package'], ['new_registration', 'New ownership permit']];
 const day = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(iso));
 
 async function prepare(file: File): Promise<Blob> {
