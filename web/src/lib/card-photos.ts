@@ -113,7 +113,8 @@ export function cardPhotos(): () => void {
     hovered = c;
     window.clearTimeout(intent);
     if (!c) return;
-    intent = window.setTimeout(() => { if (hovered === c) { void load(c); prepareDrive(c); } }, INTENT_MS);
+    // the photo list read once the mouse rests; then the photo under the pointer at once (it may not move again)
+    intent = window.setTimeout(() => { if (hovered === c) { void load(c).then(() => { if (hovered !== c) return; for (let i = 1; i < c.slides.length; i++) fill(c, i, true); if (last) scrub(c, last.x, last.y); }); prepareDrive(c); } }, INTENT_MS);
   };
   const onOut = (e: PointerEvent) => {
     if (!hovered || e.pointerType === 'touch') return;
@@ -122,13 +123,18 @@ export function cardPhotos(): () => void {
     window.clearTimeout(intent);
     show(hovered, 0); hovered = null;
   };
+  let last: { x: number; y: number } | null = null;
+  const scrub = (c: Card, x: number, y: number) => {
+    if (c.n <= 1 || !c.list) return;
+    const r = c.media.getBoundingClientRect();
+    if (y < r.top || y > r.bottom || x < r.left || x > r.right) return;
+    const i = segmentAt(x - r.left, r.width, c.list.length + 1);
+    if (i !== c.want) show(c, i);
+  };
   const onMove = (e: PointerEvent) => {
-    if (e.pointerType === 'touch' || !hovered || hovered.n <= 1 || !hovered.list) return;
-    const r = hovered.media.getBoundingClientRect();
-    if (e.clientY < r.top || e.clientY > r.bottom || e.clientX < r.left || e.clientX > r.right) return;
-    const n = hovered.list.length + 1;
-    const i = segmentAt(e.clientX - r.left, r.width, n);
-    if (i !== hovered.want) show(hovered, i);
+    if (e.pointerType === 'touch') return;
+    last = { x: e.clientX, y: e.clientY };
+    if (hovered) scrub(hovered, e.clientX, e.clientY);
   };
 
   // ---- phone: the track's dots, and the photos filled as the card comes near

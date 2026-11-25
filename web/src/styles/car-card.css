@@ -75,6 +75,10 @@
   html:not([data-motion="reduced"]) .car-card.is-back .car-drive { visibility: visible; animation: car-drive-back 240ms var(--ease) both; }
   html:not([data-motion="reduced"]) .car-card.is-back .car-drive__car { opacity: 0; }
 
+  /* a card's photo arriving late fades in (opacity only: no blur or zoom on a card) */
+  .car-card img.img-wait { filter: none; transform: none; }
+  .car-card img.img-in { transition: opacity 200ms var(--ease-out); }
+
   /* the cards rise in once as a public list scrolls into view (Effects marks them), staggered by --rv-d */
   .rv.car-card { opacity: 0; transform: translate3d(0, 16px, 0); }
   .rv.car-card.is-in { opacity: 1; transform: none; transition: opacity 260ms var(--ease-out) var(--rv-d, 0ms), transform 300ms var(--ease-out) var(--rv-d, 0ms); }
