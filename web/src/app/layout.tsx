@@ -8,6 +8,7 @@ import '@/styles/motion.css';
 import '@/portable/motion/tokens.css';
 import '@/portable/motion/motion.css';
 import '@/portable/motion/design.css';
+import '@/portable/motion/feedback.css';
 import '@/styles/motion-kit.css';
 import '@/styles/car-card.css';
 import { inter, interDisplay } from './fonts';
@@ -74,7 +75,12 @@ const MOTION_HOOKS = {
   // public lists only: the Admin's daily rows get no entrance (frequency of use: the more often, the less motion)
   lists: '.fleet-grid',
   statuses: '.pa__saved, .ok',
-  carousels: '.rail, .gallery__track'
+  carousels: '.rail, .gallery__track',
+  // r50 (src/portable/motion/interact.ts): prices, totals and steppers roll when they change; empty states pop their icon
+  // in when they appear (not the Admin's: the more often used, the less motion); sheets close with a drag down on a phone
+  bumps: '.estimate__lines tfoot b, .bookbar__price, .pt-total, .ob-choice__total, .gc-total, .fd-stepper__n, .pu-stepper output',
+  empties: '.pt-empty, .pu-empty, .vs-empty, .fd-empty, .lc-empty, .sp-empty, .empty',
+  sheets: '.pt-sheet, .fp-sheet, .qb-sheet, .rw-sheet, .fd-sheet, .modal--sheet'
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

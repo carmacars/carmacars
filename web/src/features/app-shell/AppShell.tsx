@@ -43,6 +43,14 @@ export default function AppShell() {
   }, []);
 
   // ---- once: splash, status bar, unlock, links, alerts, connection
+  // r50: the motion kit's results (src/portable/motion/interact.ts: a success morph, an error nudge, a sheet dragged
+  // closed) as the phone's haptics
+  useEffect(() => {
+    const on = (e: Event) => { const k = (e as CustomEvent<{ kind?: string }>).detail?.kind; haptic(k === 'success' ? 'success' : k === 'error' ? 'error' : 'light'); };
+    window.addEventListener('mo:feedback', on);
+    return () => window.removeEventListener('mo:feedback', on);
+  }, []);
+
   useEffect(() => {
     const stops: Array<() => void> = [];
     void call('SplashScreen', 'hide', { fadeOutDuration: 200 }).catch(() => undefined);

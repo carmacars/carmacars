@@ -16,7 +16,7 @@ export function formatNumber(v: number, f: NumberFormat): string {
 }
 
 // A figure that counts up once when it first comes into view. The server renders the final value (no script, a test or
-// reduced motion: it never moves); the count runs only where motion is allowed, from 0 to the value in about a second.
+// reduced motion: it never moves); the count runs only where motion is allowed, from 0 to the value in 300 ms.
 export function AnimatedNumber({ value, format = 'int', testId, className }: { value: number; format?: NumberFormat; testId?: string; className?: string }) {
   const final = formatNumber(value, format);
   // the figure while it counts; null at rest, when the final value shows
@@ -30,7 +30,7 @@ export function AnimatedNumber({ value, format = 'int', testId, className }: { v
       if (!entries.some((e) => e.isIntersecting)) return;
       io.disconnect();
       const t0 = performance.now();
-      const dur = 1100;
+      const dur = 300; // r50: every UI move 300 ms or less (the owner's rule)
       const step = (t: number) => {
         const p = Math.min(1, (t - t0) / dur);
         const eased = 1 - Math.pow(1 - p, 4);

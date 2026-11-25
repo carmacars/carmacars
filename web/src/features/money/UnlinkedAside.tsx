@@ -2,6 +2,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { dismissUnlinkedStripe } from '@/server/actions/card-tools';
+import { adminToast } from '@/features/admin/shell/toast';
 
 // Put an unlinked Stripe payment aside with the reason (not a booking's payment), or back on the list (r35, 1081).
 export function UnlinkedAside({ id, aside }: { id: string; aside: string | null }) {
@@ -10,10 +11,12 @@ export function UnlinkedAside({ id, aside }: { id: string; aside: string | null 
   const [note, setNote] = useState('');
   const [err, setErr] = useState('');
   const [pending, run] = useTransition();
-  const go = (undo: boolean) => run(async () => {
+  const go = (undo: boolean): void => run(async () => {
     const r = await dismissUnlinkedStripe({ charge_id: id, note, undo });
     if (!r.ok) { setErr(r.message); return; }
     setOpen(false); setErr(''); router.refresh();
+    // r50: putting a payment aside can be taken back from the toast (the same server action, undo)
+    if (!undo) adminToast('Put aside.', 'ok', 7000, { run: () => go(true) });
   });
   if (aside) return <span className="small muted">Put aside: {aside} <button className="btn btn--quiet btn--sm" type="button" disabled={pending} onClick={() => go(true)}>Back on the list</button></span>;
   if (!open) return <button className="btn btn--quiet btn--sm" type="button" onClick={() => setOpen(true)} data-testid="unlinked-aside">Not a booking</button>;

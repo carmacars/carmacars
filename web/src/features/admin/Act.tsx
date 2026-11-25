@@ -14,6 +14,8 @@ import { TypedInput } from '@/components/DateInput';
 import { instantOfTorontoInput, torontoInputOf } from '@/lib/dates';
 
 import { WhyDisabled } from '@/components/WhyDisabled';
+import { moResult } from '@/portable/motion/runtime';
+import { doneWord } from '@/portable/motion/feedback';
 // The admin portal's action controls. One button or one form per database action: fields are typed
 // (money in dollars becomes cents, a percentage becomes basis points, a local date and time becomes an
 // instant), the database decides, and its refusal is shown as written. Keyboard: Enter submits, Esc
@@ -151,6 +153,9 @@ export function Act({ action, payload = {}, fields = [], label, confirm, variant
   const [pending, start] = useTransition();
   const [res, setRes] = useState<Result | null>(null);
   const dlg = useRef<HTMLDialogElement>(null);
+  // r50 motion: the button that answers (the dialog's or the inline form's submit, else the one-press button)
+  const trig = useRef<HTMLButtonElement>(null);
+  const sub = useRef<HTMLButtonElement>(null);
   const f = useForm(fields);
   const names = fields.map((x) => x.name);
   const needsDialog = !inline && (fields.length > 0 || !!confirm);
@@ -170,6 +175,8 @@ export function Act({ action, payload = {}, fields = [], label, confirm, variant
         // staying on the same page (a tab, a section) keeps the scroll position; only a new page starts at the top
         if (go) { const to = fill(go, r.data); router.push(to, { scroll: new URL(to, window.location.href).pathname !== window.location.pathname }); } else router.refresh();
       }
+      // the success morph on the button pressed (a closed dialog hands it to the button that opened it), or the nudge
+      moResult(inline || (needsDialog && !r.ok) ? sub.current : trig.current, r.ok, doneWord(submitLabel ?? label) ?? 'Done');
     });
   };
   const cls = `btn btn--sm ${variant === 'primary' ? 'btn--primary' : variant === 'danger' ? 'btn--primary ad-btn--danger' : variant === 'quiet' ? 'btn--quiet' : 'btn--ghost'}`;
@@ -180,7 +187,7 @@ export function Act({ action, payload = {}, fields = [], label, confirm, variant
         fill={(patch) => f.setVals((s) => ({ ...s, ...patch }))} />)}</div>}
       {res && !res.ok && <p className="alert alert--error" role="alert"><span>{res.message}</span></p>}
       <div className="row">
-        <><button className={`btn btn--sm ${variant === 'danger' ? 'btn--primary ad-btn--danger' : 'btn--primary'}`} type="submit" disabled={pending || disabled} data-testid={testId ? `${testId}-submit` : undefined} aria-describedby="why-act-182">{pending ? 'Working' : submitLabel ?? label}</button><WhyDisabled id="why-act-182" why={((disabled)) ? (disabledWhy ?? 'Fill in what is marked as needed on this screen first') : null} /></>
+        <><button ref={sub} className={`btn btn--sm ${variant === 'danger' ? 'btn--primary ad-btn--danger' : 'btn--primary'}`} type="submit" disabled={pending || disabled} aria-busy={pending || undefined} data-mo-explicit="" data-testid={testId ? `${testId}-submit` : undefined} aria-describedby="why-act-182">{pending ? 'Working' : submitLabel ?? label}</button><WhyDisabled id="why-act-182" why={((disabled)) ? (disabledWhy ?? 'Fill in what is marked as needed on this screen first') : null} /></>
         {needsDialog && <button className="btn btn--ghost btn--sm" type="button" onClick={() => dlg.current?.close()}>Cancel</button>}
       </div>
     </form>
@@ -188,7 +195,7 @@ export function Act({ action, payload = {}, fields = [], label, confirm, variant
   if (inline) return <div className="ad-inline">{form}{res?.ok && done ? <p className="small" role="status">{done}</p> : null}</div>;
   return (
     <>
-      <><button className={cls} type="button" disabled={pending || disabled} data-testid={testId} aria-haspopup={needsDialog ? 'dialog' : undefined}
+      <><button ref={trig} className={cls} type="button" disabled={pending || disabled} aria-busy={pending && !needsDialog ? true : undefined} data-mo-explicit="" data-testid={testId} aria-haspopup={needsDialog ? 'dialog' : undefined}
         onClick={() => { setRes(null); if (needsDialog) dlg.current?.showModal(); else run(); }} aria-describedby="why-act-190">{pending ? 'Working' : label}</button><WhyDisabled id="why-act-190" why={((disabled)) ? (disabledWhy ?? 'Fill in what is marked as needed on this screen first') : null} /></>
       {!needsDialog && res && !res.ok && <span className="ad-err" role="alert">{res.message}</span>}
       {needsDialog && (
@@ -211,6 +218,7 @@ export function SaveForm({ table, rowKey, fields, label = 'Save', extra, testId,
   const [res, setRes] = useState<Result | null>(null);
   const f = useForm(fields);
   const [dirty, setDirty] = useState(false);
+  const save = useRef<HTMLButtonElement>(null);
   useEffect(() => { if (res?.ok) { const t = setTimeout(() => setRes(null), 4000); return () => clearTimeout(t); } }, [res]);
   return (
     <form className={`ad-form${compact ? ' ad-form--compact' : ''}`} noValidate data-testid={testId} onSubmit={(e) => {
@@ -218,14 +226,14 @@ export function SaveForm({ table, rowKey, fields, label = 'Save', extra, testId,
       const vals = f.collect(); if (!vals) { signal(false); return; }
       // only what changed on an existing row; everything on a new one
       const send = rowKey ? Object.fromEntries(Object.entries(vals).filter(([k]) => { const x = fields.find((y) => y.name === k)!; return convert(x, initial(x)).v !== vals[k] && JSON.stringify(convert(x, initial(x)).v) !== JSON.stringify(vals[k]); })) : vals;
-      if (rowKey && !Object.keys(send).length) { setRes({ ok: false, message: 'Nothing changed.' }); return; }
-      start(async () => { const r = (await adminSaveRow(table, send, rowKey ?? null, extra)) as Result; setRes(r); signal(r.ok); if (r.ok) { setDirty(false); router.refresh(); } });
+      if (rowKey && !Object.keys(send).length) { setRes({ ok: false, message: 'Nothing changed.' }); moResult(save.current, false); return; }
+      start(async () => { const r = (await adminSaveRow(table, send, rowKey ?? null, extra)) as Result; setRes(r); signal(r.ok); moResult(save.current, r.ok, doneWord(label) ?? 'Saved'); if (r.ok) { setDirty(false); router.refresh(); } });
     }}>
       <div className="ad-fields">{fields.map((x) => <FieldInput key={x.name} f={{ ...x, siblings: fields.map((y) => y.name) }} idp={idp} value={f.vals[x.name] ?? ''} set={(v) => { setDirty(true); f.setVals((s) => ({ ...s, [x.name]: v })); }} err={f.errs[x.name]}
         fill={(patch) => { setDirty(true); f.setVals((s) => ({ ...s, ...patch })); }} />)}</div>
       {res && !res.ok && <p className="alert alert--error" role="alert"><span>{res.message}</span></p>}
       <div className="row">
-        <button className="btn btn--primary btn--sm" type="submit" disabled={pending} data-testid={testId ? `${testId}-save` : undefined}>{pending ? 'Saving' : label}</button>
+        <button ref={save} className="btn btn--primary btn--sm" type="submit" disabled={pending} aria-busy={pending || undefined} data-mo-explicit="" data-testid={testId ? `${testId}-save` : undefined}>{pending ? 'Saving' : label}</button>
         {res?.ok && <span className="small" role="status">{done}</span>}
         {dirty && !res && <span className="small muted">Unsaved changes</span>}
       </div>

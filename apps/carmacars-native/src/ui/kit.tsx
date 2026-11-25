@@ -82,16 +82,35 @@ export function Button({ label, onPress, variant = 'primary', busy = false, disa
   );
 }
 
+/** r50: the error nudge (as the website's, src/portable/motion): a short shake when an error appears, 4 oscillations in
+ *  280 ms, with the phone's error haptic; with Reduce Motion only the colour and the haptic. */
+function useNudge(error: string | null | undefined) {
+  const reduce = useReducedMotion();
+  const x = useRef(new Animated.Value(0)).current;
+  const was = useRef(error);
+  useEffect(() => {
+    const fresh = !!error && error !== was.current;
+    was.current = error;
+    if (!fresh) return;
+    if (Platform.OS !== 'web') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => undefined);
+    if (reduce) return;
+    const step = (v: number) => Animated.timing(x, { toValue: v, duration: 56, useNativeDriver: true });
+    Animated.sequence([step(-6), step(4.8), step(-3.3), step(1.8), step(0)]).start();
+  }, [error, reduce, x]);
+  return x;
+}
+
 export function Field({ label, error, help, ...input }: { label: string; error?: string | null; help?: string } & TextInputProps) {
   const [focus, setFocus] = useState(false);
+  const shake = useNudge(error);
   return (
-    <View style={{ marginBottom: space.md }}>
+    <Animated.View style={{ marginBottom: space.md, transform: [{ translateX: shake }] }}>
       <Text style={[type.label, { marginBottom: space.xs }]}>{label}</Text>
       <TextInput accessibilityLabel={label} accessibilityHint={error ?? help} placeholderTextColor={color.muted} {...input}
         onFocus={(e) => { setFocus(true); input.onFocus?.(e); }} onBlur={(e) => { setFocus(false); input.onBlur?.(e); }}
         style={[s.input, focus && { borderColor: color.ink }, !!error && { borderColor: color.red }, input.multiline && { minHeight: 96, textAlignVertical: 'top', paddingTop: space.md }, input.style]} />
       {error ? <Text accessibilityLiveRegion="polite" style={[type.small, { color: color.red, marginTop: space.xs }]}>{error}</Text> : help ? <Text style={[type.small, { marginTop: space.xs }]}>{help}</Text> : null}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -179,7 +198,8 @@ export function Busy({ label = 'Loading', rows = 3, shape = 'lines' }: { label?:
   );
 }
 export function Empty({ title, body, action }: { title: string; body?: string; action?: ReactNode }) {
-  return <View style={{ alignItems: 'center', padding: space.xl, gap: space.sm }}><Text style={[type.h2, { textAlign: 'center' }]}>{title}</Text>{body ? <Text style={[type.body, { textAlign: 'center', color: color.muted }]}>{body}</Text> : null}{action}</View>;
+  // r50: an empty state arrives once with the kit's fade and rise (Appear; still with Reduce Motion)
+  return <Appear style={{ alignItems: 'center', padding: space.xl, gap: space.sm }}><Text style={[type.h2, { textAlign: 'center' }]}>{title}</Text>{body ? <Text style={[type.body, { textAlign: 'center', color: color.muted }]}>{body}</Text> : null}{action}</Appear>;
 }
 /** A list that failed to load: the server's sentence and Try again (the offline banner says when there is no connection). */
 export function Failed({ message, onRetry }: { message: string; onRetry: () => void }) {

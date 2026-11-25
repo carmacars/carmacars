@@ -1,0 +1,61 @@
+/* The feedback half of the motion kit (release 50, interact.ts). Portable: class and data-attribute hooks only; a brand
+   build sets --mo-ok, --mo-err and its own lists (motion-kit.css). Every move 300 ms or less, eases or springs only,
+   transform and opacity; under reduced motion (the system setting or the footer's Pause animations) nothing moves:
+   an error is the colour and the focus, a success is the word and the tick, still. */
+:root { --mo-err: #b42318; --mo-shake: 6px; }
+
+/* ---------------------------------------------------------------- the success morph: a tick and the word, then back */
+[data-mo-result="ok"] { color: transparent !important; border-color: var(--mo-ok) !important; }
+[data-mo-result="ok"] > * { visibility: hidden; }
+/* every property the button's own ::after (a ripple) sets is set again here */
+:is(button, a, input, [role="button"])[data-mo-result="ok"]::after {
+  content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 20 20'%3E%3Ccircle cx='10' cy='10' r='10' fill='%23fff'/%3E%3Cpath d='M5.5 10.5l3 3 6-7' fill='none' stroke='%231f7a3a' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") "\00a0\00a0" attr(data-mo-done);
+  position: absolute; inset: 0; z-index: 2; width: auto; height: auto; margin: 0; opacity: 1; transform: none; animation: none; display: flex; align-items: center; justify-content: center; gap: 0.4em; padding: 0 0.5em;
+  border-radius: inherit; background: var(--mo-ok); color: #fff; font-weight: 600; white-space: nowrap; overflow: hidden; pointer-events: none;
+}
+/* a button that is a plain link or icon: the word in the success colour, no fill */
+:is(button, a, input, [role="button"]):is(.btn--quiet, .link, .btn--link)[data-mo-result="ok"]::after { background-color: transparent; color: var(--mo-ok); }
+[data-mo-result="error"] { box-shadow: 0 0 0 2px var(--mo-err); transition: box-shadow var(--mo-base) var(--mo-ease); }
+
+/* ---------------------------------------------------------------- the error nudge (interact.ts nudge) */
+:where(input, select, textarea)[aria-invalid="true"] { border-color: var(--mo-err); }
+
+/* ---------------------------------------------------------------- inline validation: the tick of a good field */
+:where(input, textarea)[data-mo-valid] {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Ccircle cx='10' cy='10' r='10' fill='%231f7a3a'/%3E%3Cpath d='M5.5 10.5l3 3 6-7' fill='none' stroke='%23fff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 0.7em center; background-size: 1em 1em; padding-right: 2.2em;
+}
+textarea[data-mo-valid] { background-position: right 0.7em top 0.7em; }
+
+/* ---------------------------------------------------------------- figures: tabular, and a roll when they change */
+:where([data-mo-bump], [data-count-up], output) { font-variant-numeric: tabular-nums; }
+
+/* ---------------------------------------------------------------- drag: the held item lifts */
+:where([aria-grabbed="true"], .is-dragging, .mo-held) { scale: 1.02; box-shadow: 0 10px 24px -12px rgb(0 0 0 / 0.35); position: relative; z-index: 2; }
+
+/* ---------------------------------------------------------------- bottom sheets on a phone: a handle to drag */
+.mo-dragging { transition: none !important; }
+
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-motion="reduced"]) body .mo-shake.mo-shake { animation: mo-shake 280ms var(--mo-ease) both; }
+  html:not([data-motion="reduced"]) :is(button, a, input, [role="button"])[data-mo-result="ok"]::after { animation: mo-morph var(--mo-slow) var(--mo-spring) both; }
+  html:not([data-motion="reduced"]) :where(input, textarea)[data-mo-valid] { animation: mo-valid var(--mo-slow) var(--mo-spring); }
+  html:not([data-motion="reduced"]) .mo-bump { animation: mo-roll var(--mo-slow) var(--mo-ease-out); }
+  html:not([data-motion="reduced"]) .mo-collapse { overflow: hidden; pointer-events: none; animation: mo-collapse var(--mo-slow) var(--mo-ease) forwards; }
+  html:not([data-motion="reduced"]) tr.mo-collapse { animation-name: mo-collapse-row; }
+  html:not([data-motion="reduced"]) .mo-appear :where(svg, img, .icon, [class*="icon"]):first-child,
+  html:not([data-motion="reduced"]) .mo-appear::before { animation: mo-appear var(--mo-slow) var(--mo-spring) backwards; }
+  html:not([data-motion="reduced"]) .mo-appear { animation: mo-fade var(--mo-slow) var(--mo-ease-out) backwards; }
+  html:not([data-motion="reduced"]) :where([aria-grabbed], .is-dragging, .mo-held, .lr-extras__item) { transition: scale var(--mo-fast) var(--mo-spring), box-shadow var(--mo-base) var(--mo-ease); }
+  html:not([data-motion="reduced"]) dialog:modal::backdrop { animation: mo-fade var(--mo-base) var(--mo-ease-out); }
+  html:not([data-motion="reduced"]) :is(dialog, [data-mo-sheet]):not(.mo-dragging) { transition: translate var(--mo-base) var(--mo-ease); }
+}
+
+@keyframes mo-shake { 0%, 100% { translate: 0 0; } 20% { translate: calc(var(--mo-shake) * -1) 0; } 40% { translate: calc(var(--mo-shake) * 0.8) 0; }
+  60% { translate: calc(var(--mo-shake) * -0.55) 0; } 80% { translate: calc(var(--mo-shake) * 0.3) 0; } }
+@keyframes mo-morph { from { opacity: 0; scale: 0.92; } }
+@keyframes mo-valid { from { background-size: 0 0; } }
+@keyframes mo-roll { from { opacity: 0.35; translate: 0 0.35em; } }
+@keyframes mo-collapse { from { height: var(--mo-h); opacity: 1; } to { height: 0; opacity: 0; padding-block: 0; margin-block: 0; border-width: 0; } }
+@keyframes mo-collapse-row { to { opacity: 0; translate: -12px 0; } }
+@keyframes mo-appear { from { opacity: 0; scale: 0.6; } }

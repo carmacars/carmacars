@@ -2,6 +2,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from 'react';
 import { pullDistance, PULL } from './model';
+import { haptic, inApp } from '@/lib/native/bridge';
 import './pull-refresh.css';
 
 // r50: drag down from the top to refresh, where the browser gives none: the CarmaCars app (<html data-shell="app">, whose
@@ -62,7 +63,8 @@ export function PullToRefresh() {
       from.current = null; pullRef.current = 0; setPull(0);
       if (p >= PULL.trigger) {
         setBusy(true);
-        try { navigator.vibrate?.(8); } catch { /* not every phone */ }
+        // r50: the app's own haptic tap (the native bridge); a browser's vibration elsewhere
+        if (inApp()) haptic('light'); else try { navigator.vibrate?.(8); } catch { /* not every phone */ }
         start(() => router.refresh());
       }
     };

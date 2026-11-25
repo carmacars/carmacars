@@ -125,7 +125,10 @@ export function RouteProgress() {
     const wrapped: typeof fetch = (input, init) => {
       if (!isAction(init)) return realFetch(input, init);
       actions.current += 1;
-      const done = () => { actions.current = Math.max(0, actions.current - 1); if (actions.current === 0) window.setTimeout(() => { if (actions.current === 0) release(); }, 60); };
+      // r50: the motion kit's feedback (src/portable/motion/interact.ts): the pressed button's busy state, then its answer
+      const say = (phase: 'start' | 'end') => { try { window.dispatchEvent(new CustomEvent('mo:action', { detail: { phase } })); } catch { /* old browser */ } };
+      say('start');
+      const done = () => { say('end'); actions.current = Math.max(0, actions.current - 1); if (actions.current === 0) window.setTimeout(() => { if (actions.current === 0) release(); }, 60); };
       return realFetch(input, init).then((r) => { done(); return r; }, (err) => { done(); throw err; });
     };
     window.fetch = wrapped;
