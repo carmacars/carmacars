@@ -15,7 +15,8 @@ const id = (v: unknown, n = 60) => (typeof v === 'string' && /^[a-z0-9-]+$/.test
 
 export async function GET() {
   const user = await currentUser();
-  if (!user) return json({ error: 'Sign in first' }, 401);
+  // A visitor who isn't signed in: no saved preference, no server run (a 200, so public pages log no 401).
+  if (!user) return json({ on: false, run: null, anonymous: true });
   const s = await rpc('guide_me_state', { p_by: user.id }, SR).catch(() => null);
   return json(s ?? { on: false, run: null });
 }

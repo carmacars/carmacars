@@ -85,8 +85,9 @@ export function GuideMe({ portal, admin = false, functions = NONE }: { portal: P
   useEffect(() => {
     const local = localRun(portal);
     let live = true;
-    void fetch('/api/guide-me', { cache: 'no-store' }).then((r) => { if (r.status === 401) anonymous = true; return r.ok ? r.json() : null; }).then((j: { on?: boolean; run?: { id: string; flow: string; portal: Portal; index: number; skipped: string[]; started_at: string } | null } | null) => {
+    void fetch('/api/guide-me', { cache: 'no-store' }).then((r) => { if (r.status === 401) anonymous = true; return r.ok ? r.json() : null; }).then((j: { anonymous?: boolean; on?: boolean; run?: { id: string; flow: string; portal: Portal; index: number; skipped: string[]; started_at: string } | null } | null) => {
       if (!live || !j) return;
+      if (j.anonymous) anonymous = true;
       setOn(!!j.on);
       const r = j.run;
       if (!local && r && r.portal === portal) {
