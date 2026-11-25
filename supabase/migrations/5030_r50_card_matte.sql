@@ -42,8 +42,8 @@ comment on column site_cutouts.box is 'Release 50 (5030): the car''s box in the 
 create or replace function app.site_cutout_source(p_vehicle uuid, p_shot text default 'left') returns jsonb
 language sql stable security definer set search_path = public, app, pg_temp as $$
   select jsonb_build_object('kind', 'studio', 'bucket', 'vehicle-public', 'path', ph.processed_path, 'facing', app.site_cutout_facing(ph.shot_type))
-         || case when nullif(ph.showroom ->> 'background', '') is not null and ph.r45 #> '{gate,win}' is not null and ph.r45 #> '{gate,measures,car}' is not null
-                 then jsonb_build_object('plate', ph.showroom ->> 'background', 'win', ph.r45 #> '{gate,win}', 'box', ph.r45 #> '{gate,measures,car}')
+         || case when nullif(ph.showroom ->> 'background', '') is not null and ph.r45 #> '{gate,measures,win}' is not null and ph.r45 #> '{gate,measures,car}' is not null
+                 then jsonb_build_object('plate', ph.showroom ->> 'background', 'win', ph.r45 #> '{gate,measures,win}', 'box', ph.r45 #> '{gate,measures,car}')
                  else '{}'::jsonb end
     from vehicle_photos ph
    where ph.vehicle_id = p_vehicle and ph.shot_type = p_shot and app.photo_render_live(ph)

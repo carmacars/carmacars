@@ -68,9 +68,9 @@ test('the matte image: black, the car in the alpha', () => {
 });
 
 test('the gate frame is read from r45, and refused when missing or broken', () => {
-  const g = { gate: { win: { x: 0.05, y: 0.02, w: 0.9, h: 0.9 }, measures: { car: { x: 0.08, y: 0.4, w: 0.84, h: 0.42 } } } };
-  assert.deepEqual(gateFrame(g), { win: g.gate.win, car: g.gate.measures.car });
+  const g = { gate: { measures: { win: { x: 0.05, y: 0.02, w: 0.9, h: 0.9 }, car: { x: 0.08, y: 0.4, w: 0.84, h: 0.42 } } } };
+  assert.deepEqual(gateFrame(g), { win: g.gate.measures.win, car: g.gate.measures.car });
   assert.equal(gateFrame({ gate: { measures: { car: g.gate.measures.car } } }), null);
-  assert.equal(gateFrame({ gate: { win: g.gate.win, measures: { car: { x: 0, y: 0, w: 0.05, h: 0.4 } } } }), null);
+  assert.equal(gateFrame({ gate: { measures: { win: g.gate.measures.win, car: { x: 0, y: 0, w: 0.05, h: 0.4 } } } }), null);
   assert.equal(gateFrame(null), null);
 });

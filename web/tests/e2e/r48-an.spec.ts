@@ -85,15 +85,16 @@ test('the Cars filter lists one model per family, never a trim of its own', asyn
   await noOverflow(page);
 });
 
-test('the card stands on its studio floor with the cutout once one is made', async ({ page, request }) => {
-  await sql`insert into site_cutouts (vehicle_id, shot, source_kind, source_bucket, source_path, path, width, height, facing, made_at)
+// r50 (5030): the drive-off uses the side render's matte (r50-cards.spec.ts plays it); a rembg cutout alone gives none
+test('the card carries its side render\'s matte for the drive-off once one is made', async ({ page, request }) => {
+  await sql`insert into site_cutouts (vehicle_id, shot, source_kind, source_bucket, source_path, path, width, height, facing, made_at, kind, plate_path, box)
             select ${vehicleId}, 'left', 'studio', 'vehicle-public', (select processed_path from vehicle_photos where vehicle_id = ${vehicleId} and r48 and shot_type = 'left' limit 1),
-                   'site/cutouts/e2e-left.svg', 1500, 500, 'left', now()
-            on conflict (vehicle_id, shot) do update set path = excluded.path, source_path = excluded.source_path`;  // 3701: a cutout shows only when cut from the live render
+                   'site/cutouts/e2e-left.matte.png', 480, 320, 'left', now(), 'matte', 'site/cutouts/e2e-left.plate.jpg', '{"x":0.1,"y":0.5,"w":0.8,"h":0.3}'::jsonb
+            on conflict (vehicle_id, shot) do update set path = excluded.path, source_path = excluded.source_path, kind = 'matte', plate_path = excluded.plate_path, box = excluded.box`;  // 3701: only when cut from the live render
   await sql`select app.listing_cache_refresh(array[${vehicleId}::uuid])`;
   expect((await request.post('/api/jobs/public-rebuild', { headers: { authorization: `Bearer ${jobToken()}`, 'content-type': 'application/json' }, data: {} })).status()).toBe(200);
-  await expect.poll(async () => { await page.goto('/cars'); return page.locator('.car-stage').count(); }, { timeout: 30_000, intervals: [2_000] }).toBeGreaterThan(0);
-  await expect(page.locator('.car-stage').first()).toBeVisible();
+  await expect.poll(async () => { await page.goto('/cars'); return page.locator('.car-card[data-matte]').count(); }, { timeout: 30_000, intervals: [2_000] }).toBeGreaterThan(0);
+  await expect(page.locator('.car-card[data-matte]').first()).toHaveAttribute('data-plate', /e2e-left\.plate\.jpg$/);
   await noOverflow(page);
 });
 

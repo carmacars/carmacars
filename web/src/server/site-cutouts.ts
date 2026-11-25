@@ -45,7 +45,7 @@ async function removeBackground(url: string, bytes: Uint8Array): Promise<Uint8Ar
 // server). Two files: the matte (a small PNG whose alpha is the car) and the plate cropped like the render (what is behind
 // the car once it has driven off), both in the render's own 3:2 frame.
 async function makeMatte(d: CutoutDue, s: Awaited<ReturnType<typeof storage>>): Promise<void> {
-  const fr = gateFrame({ gate: { win: d.source.win, measures: { car: d.source.box } } });
+  const fr = gateFrame({ gate: { measures: { win: d.source.win, car: d.source.box } } });
   if (!fr || !d.source.plate) throw new Error('the render has no studio frame (made before 5030)');
   const [rb, pb] = await Promise.all([s.get(d.source.bucket as Bucket, d.source.path), s.get('vehicle-public', d.source.plate)]);
   if (!rb || !pb) throw new Error('the render or its plate is not in storage');

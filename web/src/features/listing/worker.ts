@@ -1192,7 +1192,7 @@ export async function makeR48(d: WorkerDeps, j: JobContext): Promise<R45Made> {
   // plate (wall, floor, contact shadow), its box, its view and direction. Inside: the view. Refused: made again with the reasons.
   let gate: GateVerdict;
   let platesAt = v.plates;
-  // r50 (5030): the crop window is kept with the verdict: the drive-off matte crops the plate the same way (studio-matte.ts)
+  // r50 (5030): the crop window is kept with the verdict's measures (r45.gate.measures.win): the drive-off matte crops the plate the same way (studio-matte.ts)
   let win: { x: number; y: number; w: number; h: number } | null = null;
   if (ext && STUDIO_FRAME[shot]) {
     const box = readCarBox(asked.data);
@@ -1206,7 +1206,7 @@ export async function makeR48(d: WorkerDeps, j: JobContext): Promise<R45Made> {
       gate = gateExterior({ shot, img: fitted, plate: plateImg ? fitFrame(plateImg, size.width, size.height) : null, car: placed.car, view: v.view, nose: v.nose ?? null, zoom: 1 / placed.win.w });
     }
   } else gate = gateInterior({ shot, view: v.view });
-  const gateOut = { pass: gate.pass, reasons: gate.reasons, measures: gate.measures, spec: R48_SPEC, ...(win ? { win } : {}) };
+  const gateOut = { pass: gate.pass, reasons: gate.reasons, measures: { ...gate.measures, ...(win ? { win } : {}) }, spec: R48_SPEC };
   if (!gate.pass) return no(`the studio gate refused it: ${gate.reasons.join(', ')}`, { ...base, reasons: [...base.reasons, ...gate.reasons], gate: gateOut });
   blurPlates(fitted, platesAt);
   const tag = j.id.replace(/-/g, '').slice(0, 6);

@@ -1,6 +1,6 @@
 // Release 50 (5030, docs/changes/2026-11-25-r50-car-cards.md): the drive-off matte of a studio side render. The cards' car
 // drives off its studio floor; since R50 every cover is a studio render (3701), so the car is cut from the render itself:
-// the render is compared with the scene's background plate, cropped by the same window the studio gate used (r45.gate.win),
+// the render is compared with the scene's background plate, cropped by the same window the studio gate used (r45.gate.measures.win),
 // inside the car's box from the check (r45.gate.measures.car), and above the line where the tyres meet the floor (the
 // contact shadow and the floor's reflection stay on the floor). No background remover (rembg) and no sharp: it runs in the
 // Cloudflare Worker and on the company server alike (server/site-cutouts.ts). The result is a small alpha mask in the
@@ -100,11 +100,11 @@ export function matteRgba(mt: Matte): Rgba {
   return { width: mt.width, height: mt.height, data: d };
 }
 
-/** The gate's crop window and car box from a render's r45 (r45.gate.win, r45.gate.measures.car); null when missing. */
+/** The gate's crop window and car box from a render's r45 (r45.gate.measures.win and .car); null when missing. */
 export function gateFrame(r45: unknown): { win: FBox; car: FBox } | null {
-  const g = (r45 as { gate?: { win?: unknown; measures?: { car?: unknown } } } | null)?.gate;
+  const g = (r45 as { gate?: { measures?: { car?: unknown; win?: unknown } } } | null)?.gate;
   const ok = (b: unknown): b is FBox => !!b && typeof b === 'object' && ['x', 'y', 'w', 'h'].every((k) => typeof (b as Record<string, unknown>)[k] === 'number' && Number.isFinite((b as Record<string, number>)[k]));
-  const win = g?.win, car = g?.measures?.car;
+  const win = g?.measures?.win, car = g?.measures?.car;
   if (!ok(win) || !ok(car) || win.w <= 0 || win.h <= 0 || car.w <= 0.1 || car.h <= 0.05) return null;
   return { win, car };
 }

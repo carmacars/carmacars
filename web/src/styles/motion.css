@@ -239,7 +239,6 @@
 @media (prefers-reduced-motion: reduce) { .pgate__spin { animation-duration: 1.6s; } } /* design-allow: a spinner, slowed under reduced motion */
 @keyframes pgate-in { from { opacity: 0; transform: translateY(18px) scale(0.96); } }
 @keyframes pgate-title { from { opacity: 0; transform: translateY(6px); } }
-@keyframes seg-fill { from { transform: scaleX(0); } to { transform: none; } }
 @keyframes hero-settle { from { scale: 1.07; } }
 @keyframes range-in { from { background-color: transparent; } }
 @keyframes line-in { from { opacity: 0; transform: translateY(6px); } }

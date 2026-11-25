@@ -40,6 +40,7 @@
      "In the CarmaCars app and the site added to a home screen, drag down from the top of any page to refresh it",
      "The discount game now shows to signed-in people too: a renter taps once and the code goes to their account (staff see a preview and get no code)",
      "Every page follows the owner's design rules with no exceptions: every move 300 ms or less with the kit's eases, soft see-through borders, big enough buttons and fields on phones, and copy buttons whose icon turns into a check",
+     "Car cards: swipe a car's photos on a phone, move the mouse across a photo to see them all, and a click or tap drives the car off its studio floor as its page opens",
      "Every car is shown the same way: nine studio views in one room, the same size and angle for every car, on the car page, the cards, the home page and the feeds; a car still being photographed shows one \"Photos coming soon\" studio photo",
      "Booking and paying keep working when card payments are off: renters pay by Interac e-Transfer instead",
      "Renters choose **Book instantly** (pay now, confirmed) or **Request to book** (no charge until we approve) on the car page and in the booking form"
