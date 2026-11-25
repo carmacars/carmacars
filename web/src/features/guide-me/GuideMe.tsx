@@ -260,7 +260,7 @@ export function GuideMe({ portal, admin = false, functions = NONE }: { portal: P
           {!here && href && <p className="small"><a className="link" href={href} onClick={(e) => { e.preventDefault(); router.push(href); }} data-testid="guide-me-go">Go to the page</a></p>}
           {nextOk && step.done && !step.read && <p className="gm-card__ok small" role="status"><span aria-hidden="true">✓</span> Done</p>}
           <div className="gm-card__acts">
-            <button type="button" className="btn btn--quiet btn--sm" onClick={() => act('back')} disabled={view.run.index === 0} data-testid="guide-me-back">Back</button>
+            <button type="button" className="btn btn--quiet btn--sm" onClick={() => act('back')} disabled={view.run.index === 0} title={view.run.index === 0 ? 'This is the first step' : undefined} data-testid="guide-me-back">Back</button>
             <button type="button" className="btn btn--quiet btn--sm" onClick={() => act('skip')} data-testid="guide-me-skip">Skip</button>
             <button type="button" className="btn btn--primary btn--sm" onClick={() => act('next')} disabled={!nextOk} data-testid="guide-me-next"
               title={nextOk ? undefined : 'Do this step on the page: it moves on by itself'}>{view.run.index + 1 >= view.run.steps.length ? 'Finish' : 'Next'}</button>
