@@ -27,7 +27,7 @@ export function OnboardingChecklist({ data, only, title = 'Onboarding checklist'
   const me = ownerStep(data, b);
   const owner = data.viewer === 'owner';
   return (
-    <section className="pt-card stack ob" aria-labelledby={`${testId}-h`} data-testid={testId}>
+    <section className="pt-card stack ob" aria-labelledby={`${testId}-h`} data-testid={testId} data-guide="onboarding-checklist">
       <div className="pt-card__head"><h2 className="d4" id={`${testId}-h`}>{title}</h2></div>
       <p className="small muted">{owner ? 'What is done, what is next and who it waits on. The button on a step is the one thing to do for it.'
         : 'Each step of the owner\'s onboarding: done, waiting on someone, or blocked and why. The button is the next thing to do.'}</p>

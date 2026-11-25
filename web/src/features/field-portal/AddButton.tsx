@@ -29,16 +29,16 @@ export function AddButton({ cars, bookings, reportCars, preps = {}, startOpen = 
   const title = { menu: 'Add', money: 'Money spent', service: 'Service record', photos: 'Photos of a car', problem: 'A problem with a car' };
   return (
     <>
-      <button type="button" className="fp-fab" onClick={() => setWhat('menu')} aria-haspopup="dialog" data-testid="add-button"><FdIcon name="plus" />Add</button>
+      <button type="button" className="fp-fab" onClick={() => setWhat('menu')} aria-haspopup="dialog" data-testid="add-button" data-guide="field-add"><FdIcon name="plus" />Add</button>
       {what && <div className="fp-sheet" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) setWhat(null); }}>
-        <div className="fp-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="fp-add-h" ref={panel} data-testid="add-sheet">
+        <div className="fp-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="fp-add-h" ref={panel} data-testid="add-sheet" data-guide="field-add-sheet">
           <div className="fp-sheet__head">
             {what !== 'menu' ? <button type="button" className="fp-sheet__x" onClick={() => setWhat('menu')} aria-label="Back"><FdIcon name="back" /></button> : <span />}
             <h2 id="fp-add-h">{title[what]}</h2>
             <button type="button" className="fp-sheet__x" onClick={() => setWhat(null)} aria-label="Close"><FdIcon name="cross" /></button>
           </div>
           {what === 'menu' && <ul className="fp-choices">
-            <li><button type="button" onClick={() => setWhat('money')} data-testid="add-money"><FdIcon name="receipt" /><b>Money spent</b><span>Gas, a wash, parts, parking. With the receipt photo.</span></button></li>
+            <li><button type="button" onClick={() => setWhat('money')} data-testid="add-money" data-guide="add-money"><FdIcon name="receipt" /><b>Money spent</b><span>Gas, a wash, parts, parking. With the receipt photo.</span></button></li>
             <li><button type="button" onClick={() => setWhat('service')} data-testid="add-service"><FdIcon name="wrench" /><b>Service record</b><span>A service or repair done on a car, with the invoice.</span></button></li>
             <li><button type="button" onClick={() => setWhat('photos')} data-testid="add-photos"><FdIcon name="camera" /><b>Photos of a car</b><span>Anything Fleet should see, with a note.</span></button></li>
             <li><button type="button" onClick={() => setWhat('problem')} data-testid="add-problem"><FdIcon name="alert" /><b>A problem with a car</b><span>Damage, a warning light, a ticket, lost property.</span></button></li>
@@ -63,7 +63,7 @@ function CarSelect({ id, cars, value, set, optional }: { id: string; cars: Car[]
  *  per line, full width, so neither label is squeezed on a phone. */
 function WhoseMoney({ id, value, set, error }: { id: string; value: 'own' | 'company' | null; set: (v: 'own' | 'company') => void; error?: boolean }) {
   return (
-    <fieldset className={`stack field${error ? ' has-error' : ''}`} data-testid={`${id}-whose`}>
+    <fieldset className={`stack field${error ? ' has-error' : ''}`} data-testid={`${id}-whose`} data-guide={`${id}-whose`}>
       <legend className="label">Whose money?</legend>
       {([['own', 'My own money (pay me back)'], ['company', 'Company card/cash']] as const).map(([v, l]) => (
         <label key={v} className={`fp-tick${value === v ? ' is-on' : ''}`}>
@@ -94,13 +94,13 @@ function MoneyForm({ cars, bookings, preps, done }: { cars: Car[]; bookings: Boo
       booking: booking || null, paid_with: paid, spent_on: today(), prep: preps[car] ?? null }, file), `Sent to Finance.${paid === 'own' ? ' Once approved, it is paid back with your pay.' : ''}${file ? '' : ' Add the receipt photo soon: it is on your To do.'}`, () => setTimeout(done, 900));
   };
   return (
-    <div className="fp-form" data-testid="money-form">
+    <div className="fp-form" data-testid="money-form" data-guide="money-form" data-sent={msg?.ok ? 'yes' : 'no'}>
       <div className="field"><label className="label" htmlFor="m-kind">What for</label>
-        <select id="m-kind" className="select" value={kind} onChange={(e) => setKind(e.target.value)}>{SPEND_KINDS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+        <select id="m-kind" data-guide="money-kind" className="select" value={kind} onChange={(e) => setKind(e.target.value)}>{SPEND_KINDS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
       <div className="field"><label className="label" htmlFor="m-desc">What you bought</label>
         <input id="m-desc" className="input" value={desc} maxLength={300} onChange={(e) => setDesc(e.target.value)} placeholder="For example: a full tank" /></div>
       <div className="fp-row2">
-        <div className="field"><label className="label" htmlFor="m-amt">Amount before tax ($)</label><input id="m-amt" className="input fd-num" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
+        <div className="field"><label className="label" htmlFor="m-amt">Amount before tax ($)</label><input id="m-amt" data-guide="money-amount" className="input fd-num" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
         <div className="field"><label className="label" htmlFor="m-hst">HST ($, if any)</label><input id="m-hst" className="input fd-num" inputMode="decimal" value={hst} onChange={(e) => setHst(e.target.value)} /></div>
       </div>
       <CarSelect id="m-car" cars={cars} value={car} set={(v) => { setCar(v); setBooking(''); }} optional />
@@ -108,7 +108,7 @@ function MoneyForm({ cars, bookings, preps, done }: { cars: Car[]; bookings: Boo
         <select id="m-bk" className="select" value={booking} onChange={(e) => setBooking(e.target.value)}><option value="">No booking</option>{carBookings.map((b) => <option key={b.id} value={b.id}>{b.number}</option>)}</select></div>}
       <WhoseMoney id="money" value={paid} set={(v) => { setPaid(v); setPaidErr(false); }} error={paidErr} />
       <PhotoPick file={file} set={setFile} label="Photo of the receipt" pdf testId="money-receipt" />
-      <button type="button" className="btn btn--primary fd-wide" disabled={pending} onClick={save} data-testid="money-save">{pending ? 'Sending' : 'Send to Finance'}</button>
+      <button type="button" className="btn btn--primary fd-wide" disabled={pending} onClick={save} data-testid="money-save" data-guide="money-save">{pending ? 'Sending' : 'Send to Finance'}</button>
       <Msg m={msg} />
     </div>
   );

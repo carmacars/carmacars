@@ -411,11 +411,13 @@
      "Photos filed as \"Other detail\" (imports the sorter could not read) are sorted again by themselves, so a car's outside photos become its cover",
      "Connector: photo_standard shows a rendered cover as studio, and per car the detail photos still to sort",
      "Studio renders made before the new standard stay on the site while each is checked in place; only those the check refuses are made again, the most viewed and bookable cars first",
-     "Only studio views that passed the consistency check are on the site; Photo standard > Studio grid shows each car's nine views side by side with why any was refused"
+     "Only studio views that passed the consistency check are on the site; Photo standard > Studio grid shows each car's nine views side by side with why any was refused",
+     "Academy: Guide me walkthroughs by staff member (started, completed, stopped) and the step people stop at most in each workflow"
     ],
     "staff": [
      "A request marked Asked to book instantly is a Gold renter whose instant booking could not go through: answer it first, with a pay link or an offer.",
      "Report a bug works while a pop-up is open: use the button at the bottom left of the screen.",
+     "Guide me, at the top of every page: choose a job and a small card points at the next thing to fill or press, with Step X of Y. It moves on by itself once you have really done it; Back, Skip and Exit are always there, and it picks up where you were. Tick Keep Guide me on to have it offer on each job's first page, or press Guide me through this on the page",
      "Fleet: Photo standard > Studio grid shows every car's nine views side by side; the site shows only views marked Live",
      "Fleet and customer service see Agreements before cars on the owner page and can send the reminder",
      "Fleet gets a To do for every confirmed rental whose pickup was not recorded",

@@ -162,7 +162,7 @@ function StandardApprove({ plan, owner, isTest, hstBps, insuranceHst = false }: 
   };
   if (!cars.length) return <p className="small">No car is waiting for its terms.</p>;
   return (
-    <form className="stack" noValidate aria-label="Terms and first invoice" data-testid="approve-step" onSubmit={(e) => { e.preventDefault(); submit(); }}>
+    <form className="stack" noValidate aria-label="Terms and first invoice" data-testid="approve-step" data-guide="approve-step" onSubmit={(e) => { e.preventDefault(); submit(); }}>
       <p className="small muted">Check each car&apos;s terms and choose the invoices. Nothing is set or sent until you press Approve{isTest ? ' (a test owner: staff emails stay with the test accounts)' : ''}.</p>
       {cars.filter((c) => !c.shareholder).length > 1 && (
         // 0135: one negotiation for several cars: the first car's numbers to every car, then change any car
@@ -222,7 +222,7 @@ function StandardApprove({ plan, owner, isTest, hstBps, insuranceHst = false }: 
       {problem && <p className="alert alert--error" role="alert" data-testid="approve-problem"><span>{problem}</span></p>}
       {a.res && !a.res.ok && <p className="alert alert--error" role="alert"><span>{a.res.message}</span></p>}
       {a.res?.ok && a.res.data.note && <p className="alert alert--ok" role="status"><span>{a.res.data.note}</span></p>}
-      <div className="row"><button className="btn btn--primary" type="submit" disabled={a.pending} data-testid="approve-confirm">{a.pending ? 'Approving' : 'Approve'}</button></div>
+      <div className="row"><button className="btn btn--primary" type="submit" disabled={a.pending} data-testid="approve-confirm" data-guide="approve-confirm">{a.pending ? 'Approving' : 'Approve'}</button></div>
     </form>
   );
 }

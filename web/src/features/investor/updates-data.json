@@ -23,7 +23,8 @@
      "Finance is told of each expense, approves or declines it with the reason (the person is told), and pays back what is owed from **Reimbursements owed** on Payroll and Field spending.",
      "Studio photos are made again across the fleet: a photo step that keeps failing is flagged with its reason after three tries instead of blocking every other car",
      "Imported photos the sorter could not read are sorted again by themselves, so a car's outside photos become its cover",
-     "A studio grid shows every car's nine views side by side, so a photo that does not match the others is easy to spot"
+     "A studio grid shows every car's nine views side by side, so a photo that does not match the others is easy to spot",
+     "**Guide me** in every staff portal: an optional coach that walks you through a real job step by step while you do it, on the live screens (send an offer, answer a request, record a payment, a pickup, a return and deposit review, approve an owner's car, a field expense)"
     ]
    },
    {

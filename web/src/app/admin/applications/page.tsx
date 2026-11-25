@@ -27,7 +27,7 @@ export default async function Applications({ searchParams }: { searchParams: Pro
         <Link prefetch={false} className="btn btn--primary btn--sm" href="/list-your-car/apply">Start an application</Link>
       </PageHead>
       <ListFilters id="admin-applications-status" base="/admin/applications" sp={sp} chips={{ name: 'status', label: 'Status', value: status, options: chips }} />
-      <Table<Row> testId="applications" caption="Owner applications" rows={r.rows}
+      <div data-guide="app-list"><Table<Row> testId="applications" caption="Owner applications" rows={r.rows}
         empty={status === 'new' ? 'No new applications. When an owner applies from List your car, the application shows up here and on your To do list.' : `No ${APP_STATUS[status]?.toLowerCase() ?? ''} applications.`} cols={[
         { key: 'application_number', label: 'Application', render: (x) => <Link prefetch={false} className="link" href={`/admin/applications/${x.id}`}>{x.application_number}</Link> },
         { key: 'status', label: 'Status', render: (x) => <Badge s={x.status === 'new' ? 'requested' : x.status === 'waiting_on_owner' ? 'sent' : x.status}>{APP_STATUS[x.status]}</Badge> },
@@ -36,7 +36,7 @@ export default async function Applications({ searchParams }: { searchParams: Pro
         { key: 'checks_done', label: 'Checks', render: (x) => `${x.checks_done} of 4` },
         { key: 'created_at', label: 'Applied', render: (x) => d(x.created_at) },
         { key: 'owner_replied_at', label: 'Owner answered', render: (x) => (x.owner_replied_at ? d(x.owner_replied_at) : '') }
-      ]} />
+      ]} /></div>
     </>
   );
 }

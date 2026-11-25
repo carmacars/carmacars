@@ -30,7 +30,7 @@ export function WorkCard({ c, now }: { c: Card; now: number }) {
     return <button type="button" className={`btn ${open ? 'btn--ghost' : 'btn--primary'} fd-wide`} aria-expanded={open} onClick={() => setOpen(!open)} data-testid="card-go">{open ? 'Close' : step.label}</button>;
   };
   return (
-    <li className={`fp-card${c.done ? ' is-done' : ''}${spare ? ' is-spare' : ''}${soon ? ' is-now' : ''}`} data-testid={c.type === 'job' ? 'job-card' : 'work-card'} data-type={c.type}>
+    <li className={`fp-card${c.done ? ' is-done' : ''}${spare ? ' is-spare' : ''}${soon ? ' is-now' : ''}`} data-testid={c.type === 'job' ? 'job-card' : 'work-card'} data-guide={c.type !== 'job' ? undefined : c.leg === 'pickup' ? 'field-job-pickup' : c.leg === 'return' ? 'field-job-return' : undefined} data-type={c.type}>
       <div className="fp-card__top">
         {t && c.type !== 'prep' ? <p className="fp-card__time">{t[0]}<small>{t.slice(1).join(' ')}</small></p> : <span />}
         <span className={`fp-card__kind${kindClass}`}>{cardTitle(c)}</span>

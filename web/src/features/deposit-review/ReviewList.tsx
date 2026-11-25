@@ -1,3 +1,4 @@
+import { GuideMeLink } from '@/features/guide-me/GuideMeLink';
 import Link from '@/components/Link';
 import { Badge, Card, PageHead, Table, Tabs, d, t } from '@/features/admin/ui';
 import { stageWords, sweepDays, type ListRow, type ReviewList as Data } from './model';
@@ -13,6 +14,7 @@ export function ReviewList({ d: v, base, bookingBase }: { d: Data; base: string;
   return (
     <>
       <PageHead title="Deposit reviews" purpose={`Before a deposit is released: Fleet checks each return against its pickup, then Finance double-checks, checks the tolls and every ticket place. The sweep is ${sweepDays(v.sweep_days)}.`} />
+      <p className="gm-links"><GuideMeLink flow="return-deposit" label="Guide me through a deposit review" /></p>
       <Tabs items={views} current={`${base}?view=${v.view}`} label="Deposit reviews" />
       {v.view === 'sweep' ? (
         <div className="stack">
@@ -34,14 +36,14 @@ export function ReviewList({ d: v, base, bookingBase }: { d: Data; base: string;
           </Card>
         </div>
       ) : (
-        <Table<ListRow & Record<string, unknown>> testId="dr-list" rows={v.rows as Array<ListRow & Record<string, unknown>>} rowKey={(r) => r.booking_number} empty="Nothing waiting." cols={[
+        <div data-guide="dr-list"><Table<ListRow & Record<string, unknown>> testId="dr-list" rows={v.rows as Array<ListRow & Record<string, unknown>>} rowKey={(r) => r.booking_number} empty="Nothing waiting." cols={[
           { key: 'booking_number', label: 'Booking', render: (r) => <Link prefetch={false} className="link" href={href(r.booking_number)}>{r.booking_number}</Link> },
           { key: 'plate', label: 'Car', render: (r) => `${r.plate ?? ''} ${r.vehicle}`.trim() },
           { key: 'renter', label: 'Renter' },
           { key: 'returned_at', label: 'Back', render: (r) => t(r.returned_at) },
           { key: 'state', label: 'Review', className: 'wrap', render: (r) => <span className="small">{stageWords(r.state)}</span> },
           { key: 'in_window', label: 'Toll window', render: (r) => (r.in_window ? 'open' : 'closed') },
-          { key: 'deposit_status', label: 'Deposit', render: (r) => (r.deposit_status ? <Badge s={r.deposit_status} /> : '') }]} />
+          { key: 'deposit_status', label: 'Deposit', render: (r) => (r.deposit_status ? <Badge s={r.deposit_status} /> : '') }]} /></div>
       )}
     </>
   );

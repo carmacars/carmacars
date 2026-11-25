@@ -414,7 +414,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
 
   return (
     <Ctx.Provider value={{ v, set, changed, editable }}>
-    <div className="ad-review" data-testid="booking-review" id="booking-review">
+    <div className="ad-review" data-testid="booking-review" data-guide="review" id="booking-review">
       {/* r48: one form, one main action. Enter in a box saves without sending (never sends to the renter by itself) */}
       <form className="pt-card ad-card ad-form ad-form--narrow rv-form" aria-label={out ? 'Edit the offer' : 'Review and send the offer'} onSubmit={(e) => { e.preventDefault(); if (editable) quiet(); }}>
         <h2 className="d4">{out ? 'Edit the offer' : b.status === 'requested' ? 'Review and send the offer' : 'The booking'}</h2>
@@ -489,7 +489,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
         {sendable && <>
           <h3 className="oc-phase rv-sec" id="rv-phase-3"><span className="d4">Message</span></h3>
           <div className="field ad-field"><label className="label" htmlFor="rv-msg">Message to the renter (optional)</label>
-            <textarea className="input ad-textarea" id="rv-msg" maxLength={1000} value={String(v.message)} onChange={(e) => set('message')(e.target.value)} placeholder={out || diffs.length ? 'What changed and why' : ''} data-testid="review-message" /></div>
+            <textarea className="input ad-textarea" id="rv-msg" maxLength={1000} value={String(v.message)} onChange={(e) => set('message')(e.target.value)} placeholder={out || diffs.length ? 'What changed and why' : ''} data-testid="review-message" data-guide="review-message" /></div>
           {va && needChoice && !out && <SourcedChoice id="rv" value={choice} onChange={setChoice} optional={false} />}
         </>}
 
@@ -552,10 +552,10 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
           {sendable && passed && <p className="alert alert--error" role="alert" data-testid="review-pickup-passed"><span>{PICKUP_PASSED}</span></p>}
           {problem && <p className="alert alert--error" role="alert" data-testid="review-problem"><span>{problem}</span></p>}
           <div className="oc-actions">
-            {sendable && <><button className="btn btn--primary" type="button" disabled={pending || !fresh || passed} onClick={primary} data-testid="review-send" aria-describedby="why-bookingreview-554">{primaryLabel}</button><WhyDisabled id="why-bookingreview-554" why={((!fresh) || (passed)) ? (passed ? 'The pickup time has passed: choose a later pickup first' : 'Refresh the price first') : null} /></>}
+            {sendable && <><button className="btn btn--primary" type="button" disabled={pending || !fresh || passed} onClick={primary} data-testid="review-send" data-guide="review-send" aria-describedby="why-bookingreview-554">{primaryLabel}</button><WhyDisabled id="why-bookingreview-554" why={((!fresh) || (passed)) ? (passed ? 'The pickup time has passed: choose a later pickup first' : 'Refresh the price first') : null} /></>}
             <><button className={sendable ? 'btn btn--quiet' : 'btn btn--primary'} type="submit" disabled={pending || !fresh} data-testid="review-save" aria-describedby="why-bookingreview-555">{pending && !sendable ? 'Saving' : 'Save without sending'}</button><WhyDisabled id="why-bookingreview-555" why={((!fresh)) ? 'Refresh the reading first' : null} /></>
           </div>
-          {done && <p className="alert alert--ok" role="status" data-testid="review-done"><span>{done}</span></p>}
+          {done && <p className="alert alert--ok" role="status" data-testid="review-done" data-guide="review-done"><span>{done}</span></p>}
           {revised && revised.length > 0 && <ul className="small" data-testid="review-revised">{revised.map((x) => <li key={x}>{x}</li>)}</ul>}
         </div>}
       </form>

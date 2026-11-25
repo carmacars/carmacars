@@ -10,7 +10,7 @@ export function SignGate({ status, refresh, testId = 'sign-gate' }: { status: Si
   if (!status || !status.sign_first) return null;
   const m = status.missing;
   return (
-    <section className="pt-card stack" aria-labelledby={`${testId}-h`} data-testid={testId} data-missing={m.length}>
+    <section className="pt-card stack" aria-labelledby={`${testId}-h`} data-testid={testId} data-guide="sign-gate" data-missing={m.length}>
       <div className="pt-card__head sg-head"><h2 className="d4" id={`${testId}-h`}>Agreements before cars</h2>
         {status.master && <span className={`badge sg-badge ${status.master.status === 'signed' ? 'badge--outline' : 'badge--red'}`}>{status.master.title} {status.master.number}: {status.master.status === 'signed' ? 'signed' : 'not signed'}</span>}</div>
       {m.length === 0

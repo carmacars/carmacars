@@ -1,0 +1,161 @@
+{
+  "id": "approve-owner-car",
+  "title": "Approve an owner's car",
+  "summary": "Read the application, set the four checks, then Approve and confirm the car's terms and first invoices.",
+  "who": [
+    "admin",
+    "cs",
+    "fleet"
+  ],
+  "start": {
+    "admin": "/admin/applications",
+    "va": "/staff/owners"
+  },
+  "guide": {
+    "portal": "admin",
+    "slug": "owners-and-onboarding"
+  },
+  "steps": [
+    {
+      "id": "open",
+      "only": [
+        "admin"
+      ],
+      "target": "app-list",
+      "text": "Open Applications and the owner's application.",
+      "href": "/admin/applications",
+      "done": {
+        "route": "/admin/applications/*"
+      },
+      "skipIfDone": true
+    },
+    {
+      "id": "car",
+      "only": [
+        "admin"
+      ],
+      "target": "app-vehicle",
+      "on": "/admin/applications/*",
+      "text": "Read the car: the VIN decode, plate, how it will work and the onboarding method."
+    },
+    {
+      "id": "docs",
+      "only": [
+        "admin"
+      ],
+      "target": "app-documents",
+      "on": "/admin/applications/*",
+      "text": "Open each document: the ownership permit, the insurance slip and the lender's permission if it is financed."
+    },
+    {
+      "id": "checks",
+      "only": [
+        "admin"
+      ],
+      "target": "app-checks",
+      "on": "/admin/applications/*",
+      "page": "app-checks",
+      "text": "Set each of the four checks: Passed, or Problem with what is wrong.",
+      "done": {
+        "attr": "app-check-list",
+        "name": "data-pending",
+        "equals": "0"
+      }
+    },
+    {
+      "id": "sign",
+      "only": [
+        "admin"
+      ],
+      "target": "sign-gate",
+      "on": "/admin/applications/*",
+      "page": "app-checks",
+      "when": {
+        "exists": "sign-gate"
+      },
+      "text": "The owner signs their agreement before any car comes over. Send a reminder if it is still waiting."
+    },
+    {
+      "id": "approve",
+      "only": [
+        "admin"
+      ],
+      "target": "app-approve",
+      "on": "/admin/applications/*",
+      "text": "Press Approve.",
+      "done": {
+        "any": [
+          {
+            "exists": "approve-step"
+          },
+          {
+            "exists": "app-approved"
+          }
+        ]
+      }
+    },
+    {
+      "id": "confirm",
+      "only": [
+        "admin"
+      ],
+      "target": "approve-confirm",
+      "on": "/admin/applications/*",
+      "text": "Confirm the car's terms and choose its first invoices (send now, a draft, or already paid), then confirm.",
+      "done": {
+        "exists": "app-approved"
+      }
+    },
+    {
+      "id": "owner",
+      "only": [
+        "va"
+      ],
+      "target": "owner-list",
+      "text": "Open Owners and the owner whose car is coming on.",
+      "href": "/staff/owners",
+      "done": {
+        "route": "/staff/owners/*"
+      },
+      "skipIfDone": true
+    },
+    {
+      "id": "checklist",
+      "only": [
+        "va"
+      ],
+      "target": "onboarding-checklist",
+      "on": "/staff/owners/*",
+      "text": "The onboarding checklist: what is done and what each car still needs."
+    },
+    {
+      "id": "staff-sign",
+      "only": [
+        "va"
+      ],
+      "target": "sign-gate",
+      "on": "/staff/owners/*",
+      "page": "onboarding-checklist",
+      "when": {
+        "exists": "sign-gate"
+      },
+      "text": "The owner signs their agreement before any car comes over. Send a reminder if it is still waiting."
+    },
+    {
+      "id": "photos",
+      "only": [
+        "va"
+      ],
+      "target": "ob-photos",
+      "on": "/staff/owners/*",
+      "page": "onboarding-checklist",
+      "when": {
+        "exists": "ob-photo-approve"
+      },
+      "text": "Check each onboarding photo: Approve it, or Reject it with the reason so the owner can take it again.",
+      "done": {
+        "gone": "ob-photo-approve"
+      }
+    }
+  ]
+}
