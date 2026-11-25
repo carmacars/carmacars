@@ -1,0 +1,112 @@
+/* The car card's photos and motion (release 50, 5030; docs/changes/2026-11-25-r50-car-cards.md). With
+   src/components/CarCard.tsx and src/lib/card-photos.ts. Transform and opacity only; nothing moves under reduced motion
+   or the pause control (html[data-motion="reduced"]), and every hover effect sits inside (hover: hover).
+     phone   the photo is a native scroll-snap track: one photo a snap, momentum, a rubber band at the ends; a vertical
+             scroll stays the page's; a tap opens the car.
+     mouse   the photos are stacked: where the pointer is across the photo picks photo 1..N, a 180 ms crossfade.
+     both    dots show where you are; a click or tap on a car with its matte drives it off its studio floor. */
+
+/* ---------------------------------------------------------------- the photos */
+.car-card__track { position: absolute; inset: 0; display: block; }
+.car-card__slide { position: absolute; inset: 0; opacity: 0; }
+.car-card__slide.is-on { opacity: 1; }
+.car-card__slide > img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.car-card__slide:empty { background: var(--k-dark-1, #111); }
+.car-card__media > span:not(.car-drive) { z-index: 3; pointer-events: none; }
+
+/* the dots: where you are (fixed size, so nothing shifts) */
+.car-card__dots { position: absolute; z-index: 3; left: 0; right: 0; bottom: 10px; display: flex; justify-content: center; gap: 6px; pointer-events: none; }
+.car-card__dots > i { width: 6px; height: 6px; border-radius: 50%; background: var(--white); opacity: 0.5; box-shadow: 0 0 0 1px rgb(0 0 0 / 0.18); }
+.car-card__dots > i.is-on { opacity: 1; transform: scale(1.3); }
+
+/* phone (and any device without a hovering mouse): the swipe */
+@media (hover: none), (pointer: coarse) {
+  .car-card[data-n] .car-card__track {
+    z-index: 2; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; overscroll-behavior-x: contain;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .car-card[data-n] .car-card__track::-webkit-scrollbar { display: none; }
+  .car-card[data-n] .car-card__slide { position: relative; flex: 0 0 100%; opacity: 1; scroll-snap-align: start; scroll-snap-stop: always; }
+}
+/* mouse: the dots show while the card is in use */
+@media (hover: hover) and (pointer: fine) {
+  .car-card__dots { opacity: 0; }
+  .car-card:hover .car-card__dots, .car-card:focus-within .car-card__dots { opacity: 1; }
+}
+
+/* the name's red underline when the card is in use */
+.car-card__name a { background: linear-gradient(var(--red-600), var(--red-600)) left bottom / 0 2px no-repeat; padding-bottom: 2px; }
+.car-card:focus-within .car-card__name a { background-size: 100% 2px; }
+@media (hover: hover) and (pointer: fine) { .car-card:hover .car-card__name a { background-size: 100% 2px; } }
+
+/* ---------------------------------------------------------------- the drive-off (built on first intent by card-photos.ts)
+   the plate (the empty studio), the floor (the render without the car: its contact shadow and reflection, fading), the car
+   (the render through the matte) with two trailing copies for motion blur. Every layer is the render's own 3:2 frame. */
+.car-drive { position: absolute; inset: 0; z-index: 2; pointer-events: none; visibility: hidden; overflow: hidden; }
+.car-card.is-driving .car-drive { visibility: visible; }
+.car-card.is-driving .car-card__dots { opacity: 0; }
+.car-drive img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.car-drive__floor, .car-drive__lift, .car-drive__car, .car-drive__body, .car-drive__ghost { position: absolute; inset: 0; }
+.car-drive__body, .car-drive__ghost { -webkit-mask: var(--m) 0 0 / 100% 100% no-repeat; mask: var(--m) 0 0 / 100% 100% no-repeat; }
+.car-drive__floor { -webkit-mask: var(--m) 0 0 / 100% 100% no-repeat, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: var(--m) 0 0 / 100% 100% no-repeat, linear-gradient(#000 0 0); mask-composite: exclude; }
+.car-drive__body { transform-origin: var(--rear-x, 80%) var(--floor-y, 80%); }
+.car-drive__ghost { opacity: 0; }
+.car-drive--mirror { --dir: -1; }
+
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-motion="reduced"]) .car-card__slide { transition: opacity 180ms var(--ease-out); }
+  html:not([data-motion="reduced"]) .car-card.is-snap .car-card__slide { transition: none; }
+  .car-card__name a { transition: background-size 200ms var(--ease-out); }
+  html:not([data-motion="reduced"]) .car-card__dots, html:not([data-motion="reduced"]) .car-card__dots > i { transition: opacity 160ms var(--ease), transform 160ms var(--ease-out); }
+
+  /* design-allow: the drive-off is one sequence (a 3% wind-up back, then off along a slight arc, 620 ms), played on the click that opens the car page; the page starts loading at once */
+  html:not([data-motion="reduced"]) .car-card.is-driving .car-drive__car { animation: car-drive-x 620ms both; }
+  /* design-allow: the same sequence, the lift of the arc */
+  html:not([data-motion="reduced"]) .car-card.is-driving .car-drive__lift { animation: car-drive-y 620ms var(--ease-out) both; }
+  /* design-allow: the same sequence, the body's squat as it pulls away */
+  html:not([data-motion="reduced"]) .car-card.is-driving .car-drive__body { animation: car-drive-squat 620ms var(--ease-out) both; }
+  /* design-allow: the same sequence, the motion blur at speed */
+  html:not([data-motion="reduced"]) .car-card.is-driving .car-drive__ghost { animation: car-drive-blur 620ms var(--mo-ease-in) both; }
+  html:not([data-motion="reduced"]) .car-card.is-driving .car-drive__ghost + .car-drive__ghost { animation-name: car-drive-blur-2; } /* design-allow: the same sequence */
+  /* design-allow: the same sequence, the floor shadow fading as the car leaves it */
+  html:not([data-motion="reduced"]) .car-card.is-driving .car-drive__floor { animation: car-drive-floor 620ms var(--ease) both; }
+
+  /* still on the page after the drive-off (a refused or slow page): the car fades back in where it stood */
+  html:not([data-motion="reduced"]) .car-card.is-back .car-drive { visibility: visible; animation: car-drive-back 240ms var(--ease) both; }
+  html:not([data-motion="reduced"]) .car-card.is-back .car-drive__car { opacity: 0; }
+
+  /* a card's photo arriving late fades in (opacity only: no blur or zoom on a card) */
+  .car-card img.img-wait { filter: none; transform: none; }
+  .car-card img.img-in { transition: opacity 200ms var(--ease-out); }
+
+  /* the cards rise in once as a public list scrolls into view (Effects marks them), staggered by --rv-d */
+  .rv.car-card { opacity: 0; transform: translate3d(0, 16px, 0); }
+  .rv.car-card.is-in { opacity: 1; transform: none; transition: opacity 260ms var(--ease-out) var(--rv-d, 0ms), transform 300ms var(--ease-out) var(--rv-d, 0ms); }
+
+  @media (hover: hover) and (pointer: fine) {
+    .car-card { transition: transform 200ms var(--ease-out); }
+    .car-card:hover { transform: translateY(-3px); }
+    .car-card:active { transform: translateY(-1px) scale(0.99); }
+    .car-card__media::after { content: ""; position: absolute; z-index: 1; inset: 0; background: linear-gradient(180deg, transparent 60%, rgb(0 0 0 / 0.24)); opacity: 0; transition: opacity 200ms var(--ease); pointer-events: none; }
+    .car-card:hover .car-card__media::after { opacity: 1; }
+  }
+}
+/* x: the wind-up (3% back, easing out), then away nose first (accelerating), the direction of the nose (--dir) */
+@keyframes car-drive-x {
+  0% { transform: none; animation-timing-function: cubic-bezier(0.3, 0, 0.4, 1); }
+  18% { transform: translateX(calc(var(--dir, 1) * 3%)); animation-timing-function: cubic-bezier(0.6, 0, 0.9, 0.5); }
+  100% { transform: translateX(calc(var(--dir, 1) * -122%)); }
+}
+/* y: down a touch as it loads the rear, then up along a slight arc */
+@keyframes car-drive-y { 0% { transform: none; } 18% { transform: translateY(0.4%); } 100% { transform: translateY(-2.5%); } }
+/* the body: the rear squats and the nose lifts as it pulls away, then it settles a little */
+@keyframes car-drive-squat {
+  0% { transform: none; }
+  18% { transform: rotate(calc(var(--dir, 1) * -0.5deg)); }
+  40% { transform: rotate(calc(var(--dir, 1) * 1.4deg)) scaleY(0.985); }
+  100% { transform: rotate(calc(var(--dir, 1) * 0.6deg)); }
+}
+@keyframes car-drive-blur { 0%, 30% { opacity: 0; transform: none; } 60%, 100% { opacity: 0.32; transform: translateX(calc(var(--dir, 1) * 5%)); } }
+@keyframes car-drive-blur-2 { 0%, 34% { opacity: 0; transform: none; } 66%, 100% { opacity: 0.16; transform: translateX(calc(var(--dir, 1) * 11%)); } }
+@keyframes car-drive-back { from { opacity: 1; } to { opacity: 0; } }
+@keyframes car-drive-floor { 0%, 14% { opacity: 1; } 60%, 100% { opacity: 0; } }

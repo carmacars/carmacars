@@ -6,17 +6,6 @@
   /* the Admin's daily cards (.ad-card) do not lift: the more often used, the less motion */
   html:not([data-motion="reduced"]) :where(a.pt-card, a.hub-card, a.pu-stat--link, a.pu-tile):hover { translate: 0 var(--mo-lift); }
 }
-/* the car cards' drive-off stage: the card's own studio floor stays, the cut-out car moves (CarCard.tsx) */
-.car-stage { position: absolute; inset: 0; display: block; background:
-  radial-gradient(90% 70% at 50% 42%, var(--k-dark-3) 0%, var(--k-dark-1) 55%, var(--k-dark-0) 100%); }
-.car-stage::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 30%; background: linear-gradient(180deg, var(--k-dark-2), var(--k-dark-1)); border-top: 1px solid var(--k-border-on-dark); }
-.car-stage::after { content: ""; position: absolute; left: 12%; right: 12%; bottom: 13%; height: 7%; border-radius: 50%; background: radial-gradient(closest-side, rgb(0 0 0 / 0.75), transparent); }
-.car-stage .mo-drive__car { z-index: 1; }
-.car-stage .mo-drive__body > img, .car-stage .mo-drive__ghost > img { height: auto; object-fit: contain; }
-.car-stage .mo-drive__body > img { filter: drop-shadow(0 6px 6px rgb(0 0 0 / 0.45)); }
-.car-card:has(.car-stage) .car-card__media img { transition: none; }
-.car-card:has(.car-stage):hover .car-card__media img { transform: none; }
-.car-card:has(.car-stage) .car-card__media::after { display: none; }
 /* the pause control in the footer */
 .motion-pause { background: none; border: 0; padding: 0; color: inherit; font: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; min-height: 24px; }
 /* the car page: the note above a gallery whose first photos are renders (features/car/Gallery.tsx) */
@@ -28,6 +17,6 @@
 .rail { -webkit-mask: linear-gradient(90deg, transparent, #000 var(--gutter) calc(100% - var(--gutter)), transparent); mask: linear-gradient(90deg, transparent, #000 var(--gutter) calc(100% - var(--gutter)), transparent); overscroll-behavior-x: contain; }
 .gallery__track { overscroll-behavior-x: contain; }
 @media (pointer: coarse) {
-  .toast button, .gallery__thumbs button, .car-card__dots { position: relative; }
+  .toast button, .gallery__thumbs button { position: relative; }
   .toast button::before, .gallery__thumbs button::before { content: ""; position: absolute; left: 50%; top: 50%; width: max(100%, var(--k-hit)); height: max(100%, var(--k-hit)); transform: translate(-50%, -50%); }
 }

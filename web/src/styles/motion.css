@@ -74,9 +74,6 @@
   /* ---------- scroll reveals (Effects marks only what is below the viewport) ---------- */
   .rv { opacity: 0; transform: translate3d(0, var(--rv-y), 0); }
   .rv.is-in { opacity: 1; transform: none; transition: opacity 300ms var(--ease-out) var(--rv-d, 0ms), transform 300ms var(--ease-out) var(--rv-d, 0ms); }
-  .rv.car-card .car-card__media img { transform: scale(1.08); }
-  .rv.car-card.is-in .car-card__media img { transform: none; transition: transform 300ms var(--ease-out) var(--rv-d, 0ms); }
-  .rv.car-card.is-in:hover .car-card__media img { transform: scale(1.035); transition-duration: var(--t-4); transition-delay: 0ms; }
 
   /* ---------- images: fade in from a blur when they arrive (lazy images only) ---------- */
   img.img-wait { opacity: 0; filter: blur(14px); transform: scale(1.04); }
@@ -105,12 +102,6 @@
   .option:active, .addon:active { transform: scale(0.99); }
   .check input:checked::after, .radio input:checked::after, .option input:checked::after { transition: transform 240ms var(--ease-spring); }
   .switch input::after { transition: transform 260ms var(--ease-spring); }
-  .car-card { transition: transform 300ms var(--ease-out); }
-  .car-card__media::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 55%, rgb(0 0 0 / 0.28)); opacity: 0; transition: opacity var(--t-3) var(--ease); pointer-events: none; }
-  .car-card:hover .car-card__media::after { opacity: 1; }
-  .car-card__name a { background: linear-gradient(var(--red-600), var(--red-600)) left bottom / 0 2px no-repeat; transition: background-size var(--t-3) var(--ease-out); padding-bottom: 2px; }
-  .car-card:hover .car-card__name a, .car-card:focus-within .car-card__name a { background-size: 100% 2px; }
-  .car-card:active { transform: scale(0.99); }
   .footer-grid a, .footer-btn { background: linear-gradient(var(--red-600), var(--red-600)) left bottom / 0 2px no-repeat; transition: background-size var(--t-2) var(--ease-out); }
   .footer-grid a:hover, .footer-btn:hover { text-decoration: none; background-size: 100% 2px; }
   .rail__end a { transition: background var(--t-2); }
@@ -206,35 +197,11 @@
 /* ---------- 2026-11-06: the car card's photos, card and button shine, gallery zoom, hero settle, booking feedback
    (docs/changes/2026-11-06-stale-chunks-car-card-photos.md). Same rules as above: transform and opacity only, fixed
    geometry (the progress segments never change size, so nothing shifts), nothing moves under reduced motion. ---------- */
-/* the deck: the car's other photos over the cover, filled on first hover by src/lib/card-photos.ts */
-.car-card__deck { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
-.car-card__deck > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
-.car-card__deck > img.is-on { opacity: 1; }
-.car-card__dots { position: absolute; z-index: 2; left: 0; right: 0; bottom: 12px; display: flex; justify-content: center; gap: 4px; opacity: 0; }
-.car-card.is-cycling .car-card__dots, .car-card.is-swiped .car-card__dots { opacity: 1; }
-.car-card__dots > i { position: relative; width: 16px; height: 3px; border-radius: 2px; overflow: hidden; background: rgb(255 255 255 / 0.42); box-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.12); }
-.car-card__dots > i::after { content: ""; position: absolute; inset: 0; background: var(--white); transform: scaleX(0); transform-origin: left; }
-.car-card__dots > i.is-on::after, .car-card__dots > i.is-past::after { transform: none; }
-/* a card in a grid takes a sideways swipe for its photos; the page still scrolls and zooms */
-.fleet-grid .car-card { touch-action: pan-y pinch-zoom; }
 .gallery__track > li { overflow: hidden; }
 .nav-progress { box-shadow: 0 0 10px rgb(208 17 27 / 0.55); }
 
 @media (prefers-reduced-motion: no-preference) {
-  .car-card__deck > img { transition: opacity 300ms var(--ease-out); }
-  .car-card__dots { transition: opacity var(--t-2) var(--ease); }
-  .car-card.is-cycling .car-card__dots > i.is-on::after { animation: seg-fill 900ms linear both; } /* design-allow: the photo cycle's progress bar */
-
-  /* the shine: one soft band of light across the photo as the pointer arrives */
-  .car-card__deck::after { content: ""; position: absolute; z-index: 1; inset: 0; background: linear-gradient(105deg, transparent 38%, rgb(255 255 255 / 0.14) 50%, transparent 62%); transform: translateX(-110%); }
-
   @media (hover: hover) and (pointer: fine) {
-    .car-card:hover { transform: translateY(-3px); }
-    .car-card__media { transition: box-shadow var(--t-3) var(--ease); }
-    .car-card:hover .car-card__media { box-shadow: 0 22px 40px -28px rgb(0 0 0 / 0.6); }
-    .car-card:hover .car-card__deck::after { transform: translateX(110%); transition: transform 300ms var(--ease-out); }
-    .car-card:active { transform: translateY(-1px) scale(0.99); }
-
     /* the primary button: the same band of light on hover */
     .btn--primary { background-image: linear-gradient(105deg, transparent 40%, rgb(255 255 255 / 0.2) 50%, transparent 60%); background-size: 250% 100%; background-repeat: no-repeat; background-position: 130% 0;
       transition: background-color var(--t-1), border-color var(--t-1), color var(--t-1), transform 160ms var(--ease-out), box-shadow var(--t-2) var(--ease); }
@@ -272,7 +239,6 @@
 @media (prefers-reduced-motion: reduce) { .pgate__spin { animation-duration: 1.6s; } } /* design-allow: a spinner, slowed under reduced motion */
 @keyframes pgate-in { from { opacity: 0; transform: translateY(18px) scale(0.96); } }
 @keyframes pgate-title { from { opacity: 0; transform: translateY(6px); } }
-@keyframes seg-fill { from { transform: scaleX(0); } to { transform: none; } }
 @keyframes hero-settle { from { scale: 1.07; } }
 @keyframes range-in { from { background-color: transparent; } }
 @keyframes line-in { from { opacity: 0; transform: translateY(6px); } }

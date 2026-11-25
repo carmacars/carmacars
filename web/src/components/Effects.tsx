@@ -13,10 +13,11 @@ import { cardPhotos } from '@/lib/card-photos';
 // - scroll reveals: cards and sections that are still below the viewport rise in once, staggered;
 // - lazy images fade in from a blur when they arrive; numbers marked data-count count up when they come into view;
 // - a ripple from the pointer on buttons;
-// - the car cards' photos on hover and swipe (src/lib/card-photos.ts, 2026-11-06).
+// - the car cards' photos (hover, swipe, arrow keys) and their drive-off on a click (src/lib/card-photos.ts, r50 5030);
+//   the cards rise in only in the public lists (the fleet grids and the home rail), staggered.
 // Nothing on screen at first paint is hidden or changed (no LCP or CLS cost), and nothing runs under
 // prefers-reduced-motion (the end-to-end tests run that way).
-const REVEAL = '.car-card, .section-head, .seq > li, .review, .twofacts > div, .band__copy, .how-full__step, .faq details, .pt-card, .cover__opts > li, .hub-card, [data-reveal]';
+const REVEAL = '.fleet-grid .car-card, .rail .car-card, .section-head, .seq > li, .review, .twofacts > div, .band__copy, .how-full__step, .faq details, .pt-card, .cover__opts > li, .hub-card, [data-reveal]';
 const WAIT_MS = 220; // the longest a View Transition holds the old page while the next one loads
 
 type DocVT = Document & { startViewTransition?: (cb: () => Promise<void>) => { finished: Promise<void>; ready: Promise<void> } };
@@ -89,7 +90,8 @@ export function Effects() {
       timer = window.setTimeout(() => { bar.classList.remove('is-done'); void bar.offsetWidth; bar.classList.add('is-on'); }, 120);
       const covered = { v: false };
       const d = document as DocVT;
-      if (d.startViewTransition && document.visibilityState === 'visible') {
+      // r50 (5030): a car card driving off keeps moving while the car page loads (a View Transition would freeze it)
+      if (d.startViewTransition && document.visibilityState === 'visible' && !a.closest('.car-card.is-driving')) {
         try {
           const t = d.startViewTransition(() => new Promise<void>((res) => {
             const done = () => { if (resolve === done) resolve = null; res(); };

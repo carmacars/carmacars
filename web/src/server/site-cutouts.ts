@@ -5,6 +5,11 @@ import { rpc } from '@/lib/db/repo';
 import type { Json } from '@/lib/db/types';
 import { storage, type Bucket } from '@/integrations/storage';
 import { CUTOUT_MAX_WIDTH, cutoutKey, largestBlobBox, type CutoutDue } from '@/features/home/cutout';
+import { decodeImage, encodeJpeg, fitFrame } from '@/features/listing/showroom';
+import { scaleDown } from '@/integrations/photos/local';
+import { cropResize } from '@/features/listing/studio-gate';
+import { encodePng } from '@/features/listing/subject-frame';
+import { gateFrame, matteRgba, matteUsable, studioMatte } from '@/features/listing/studio-matte';
 
 // Release 48 O (3080): the cutouts of the decorative sections and the home hero, made once and kept in Storage.
 // app.site_cutouts_due gives the cars whose cutout is missing or was made from another photo than the chain now gives (the
@@ -35,7 +40,36 @@ async function removeBackground(url: string, bytes: Uint8Array): Promise<Uint8Ar
   return new Uint8Array(await r.arrayBuffer());
 }
 
+// r50 (5030): a studio side render's drive-off matte, cut against the scene's plate (features/listing/studio-matte.ts): no
+// background remover and no sharp, so it is made wherever the listing worker runs (the Cloudflare Worker or the company
+// server). Two files: the matte (a small PNG whose alpha is the car) and the plate cropped like the render (what is behind
+// the car once it has driven off), both in the render's own 3:2 frame.
+async function makeMatte(d: CutoutDue, s: Awaited<ReturnType<typeof storage>>): Promise<void> {
+  const fr = gateFrame({ gate: { measures: { win: d.source.win, car: d.source.box } } });
+  if (!fr || !d.source.plate) throw new Error('the render has no studio frame (made before 5030)');
+  const [rb, pb] = await Promise.all([s.get(d.source.bucket as Bucket, d.source.path), s.get('vehicle-public', d.source.plate)]);
+  if (!rb || !pb) throw new Error('the render or its plate is not in storage');
+  const [render, plate0] = await Promise.all([decodeImage(rb), decodeImage(pb)]);
+  if (!render || !plate0) throw new Error('the render or its plate could not be read');
+  // the plate exactly as the render was framed: fitted to the render's size, then the gate's crop
+  const plate = cropResize(fitFrame(plate0, render.width, render.height), fr.win, render.width, render.height);
+  const mt = studioMatte(render, plate, fr.car);
+  if (!matteUsable(mt, fr.car)) throw new Error(`no car found against the plate (${Math.round(mt.fill * 100)}%)`);
+  const png = await encodePng(matteRgba(mt));
+  const jpg = encodeJpeg(scaleDown(plate, 960, 640), 80);
+  const h = createHash('sha1').update(png).digest('hex');
+  const key = cutoutKey(d.vehicle_id, d.shot, h).replace(/\.webp$/, '.matte.png');
+  const plateKey = key.replace(/\.matte\.png$/, '.plate.jpg');
+  await s.put('vehicle-public', plateKey, jpg, 'image/jpeg');
+  await s.put('vehicle-public', key, png, 'image/png');
+  await rpc('site_cutout_save', { p_vehicle: d.vehicle_id, p_shot: d.shot, p: { source: d.source, path: key, width: mt.width, height: mt.height,
+    kind: 'matte', plate: plateKey, box: fr.car } as unknown as Json }, SR);
+}
+
 export async function runSiteCutoutsNow({ max = 2, deadlineMs = 20_000 }: { max?: number; deadlineMs?: number } = {}): Promise<CutoutRun> {
+  // r50 (5030): studio side renders first, cut against their plate (no background remover needed)
+  const mattes = await runMattes(max, deadlineMs);
+  if (mattes.made || mattes.failed) return mattes;
   const url = env().REMBG_URL;
   if (!url) return { made: 0, failed: 0, skipped: 'REMBG_URL is not set', errors: [] };
   const sharp = await loadSharp();
@@ -69,6 +103,25 @@ export async function runSiteCutoutsNow({ max = 2, deadlineMs = 20_000 }: { max?
       await rpc('site_cutout_save', { p_vehicle: d.vehicle_id, p_shot: d.shot, p: { source: d.source, path: key, width: info.width, height: info.height } as unknown as Json }, SR);
       out.made++;
     } catch (e) {
+      out.failed++;
+      const msg = e instanceof Error ? e.message.slice(0, 200) : 'failed';
+      out.errors.push(msg);
+      await rpc('site_cutout_save', { p_vehicle: d.vehicle_id, p_shot: d.shot, p: { source: d.source, error: msg } as unknown as Json }, SR).catch(() => undefined);
+    }
+  }
+  return out;
+}
+
+async function runMattes(max: number, deadlineMs: number): Promise<CutoutRun> {
+  const due = (((await rpc('site_cutouts_due', { p_limit: max, p_shot: 'left' }, SR)) ?? []) as unknown as CutoutDue[])
+    .filter((d) => d.source.kind === 'studio' && !!d.source.plate);
+  const out: CutoutRun = { made: 0, failed: 0, errors: [] };
+  if (!due.length) return out;
+  const s = await storage();
+  const end = Date.now() + deadlineMs;
+  for (const d of due) {
+    if (Date.now() > end) break;
+    try { await makeMatte(d, s); out.made++; } catch (e) {
       out.failed++;
       const msg = e instanceof Error ? e.message.slice(0, 200) : 'failed';
       out.errors.push(msg);

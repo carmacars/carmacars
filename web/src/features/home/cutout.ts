@@ -1,5 +1,7 @@
 // Release 48 O (3080): the cutouts' storage keys and limits (server/site-cutouts.ts). Pure, for the unit test.
-export interface CutoutDue { vehicle_id: string; shot: 'left' | 'front_left'; name?: string; source: { kind: 'studio' | 'listing' | 'handover' | 'stock'; bucket: string; path: string; facing: 'left' | 'right' } }
+export interface CutoutDue { vehicle_id: string; shot: 'left' | 'front_left'; name?: string; source: { kind: 'studio' | 'listing' | 'handover' | 'stock'; bucket: string; path: string; facing: 'left' | 'right';
+  /** r50 (5030): a studio render's plate (vehicle-public), the gate's crop window and the car's box (fractions of the frame) */
+  plate?: string | null; win?: { x: number; y: number; w: number; h: number } | null; box?: { x: number; y: number; w: number; h: number } | null } }
 /** The widest cutout kept (the hero's car is drawn at most about 1000 CSS pixels wide on a 2x screen at 1440). */
 export const CUTOUT_MAX_WIDTH = 1600;
 /** vehicle-public/site/cutouts/<car>/<shot>-<hash>.webp: a new cutout gets a new name (no stale copy at the edge). */
