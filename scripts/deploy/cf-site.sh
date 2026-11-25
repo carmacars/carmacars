@@ -197,6 +197,24 @@ origin_cert() {
   echo none; report
 }
 
+# proxy NAME on|off: the A records NAME -> the server proxied (orange) or DNS-only (grey). Only for the Let's Encrypt
+# window of web-vps.sh (no Origin CA certificate yet): Let's Encrypt reaches the server directly for the few minutes of
+# issuance, then the record is proxied again. Prints how many records point at the server (0: NAME is not served here).
+proxy_a() {
+  local name="$1" want ip z recs r id p n=0
+  case "${2:-}" in on) want=true ;; off) want=false ;; *) die "usage: cf-site.sh proxy NAME on|off" ;; esac
+  ip=$(server_ip); z=$(zone_id)
+  recs=$(cf GET "/zones/$z/dns_records?name=$name&type=A&per_page=100") || { need "Zone > DNS > Edit" "read the records of $name"; echo 0; return 0; }
+  for r in $(jq -r --arg ip "$ip" '.result[] | select(.content == $ip) | "\(.id)|\(.proxied)"' <<<"$recs"); do
+    IFS='|' read -r id p <<<"$r"
+    n=$((n + 1))
+    [ "$p" = "$want" ] && continue
+    cf PATCH "/zones/$z/dns_records/$id" "{\"proxied\":$want}" > /dev/null || { need "Zone > DNS > Edit" "set $name proxied=$want"; return 1; }
+    note "DNS: $name $( [ "$want" = true ] && echo 'proxied again' || echo 'DNS-only for the Let'"'"'s Encrypt window')"
+  done
+  echo "$n"
+}
+
 # ------------------------------------------------------------------ B: the switch, and its rollback
 worker_cron() { # off|on|unknown: whether the Worker still has a cron trigger
   local s
@@ -267,7 +285,7 @@ live_on() {
 
 cmd="${1:-}"; shift || true
 # the zone once, in this shell (a function run under `|| true` would not stop on a failure)
-case "$cmd" in prepare|https-off|switch|unswitch|live-on) ZONE=$(zone_id) ;; esac
+case "$cmd" in prepare|https-off|switch|unswitch|live-on|proxy) ZONE=$(zone_id) ;; esac
 case "$cmd" in
   prepare) prepare ;;
   origin-cert) origin_cert "$@" ;;
@@ -276,5 +294,6 @@ case "$cmd" in
   unswitch) unswitch ;;
   live-on) live_on ;;
   server-ip) server_ip ;;
-  *) die "usage: cf-site.sh prepare | origin-cert <dir> [current.pem] | https-off | switch | unswitch | live-on | server-ip" ;;
+  proxy) proxy_a "$@" ;;
+  *) die "usage: cf-site.sh prepare | origin-cert <dir> [current.pem] | https-off | switch | unswitch | live-on | server-ip | proxy NAME on|off" ;;
 esac

@@ -239,6 +239,15 @@ the key matches. `site.caddy` loads it (`tls ... cert.pem key.pem`). If the toke
 outside the domain, or `WEB_PROXY=off`, the `tls` line is left out, Caddy uses Let's Encrypt over HTTP-01 as before,
 and the deploy turns Always Use HTTPS off (HTTP-01 needs port 80 answered as it is).
 
+**r49.1, the Let's Encrypt window.** Run 44931738642 showed that the fallback alone does not work behind the proxy (525
+after 4 minutes: no certificate). Without the Origin CA permission, `web-vps.sh` (`acme_window`, on `deploy` and
+`switch`) now makes each hostname whose A record points at the server DNS-only (`cf-site.sh proxy NAME off`, DNS Edit
+only), forces Caddy to ask again (HTTP-01 or TLS-ALPN-01 straight to the server, whose address is already public through
+`api.`), and proxies the record again as soon as the certificate is there, or after 10 minutes, and on any exit. Nothing
+is weakened: SSL stays Full (strict), the CI token never reaches the server. Each deploy repeats it when 30 days or fewer
+are left. A failure prints Caddy's ACME errors. Once the token has Zone > SSL and Certificates > Edit, the Origin CA
+certificate takes over and the window is never opened.
+
 ## 6. Cutover, with no dashboard click (release 48)
 
 Everything below is done by the CI token through the API (`scripts/deploy/cf-site.sh`), idempotently: running a step

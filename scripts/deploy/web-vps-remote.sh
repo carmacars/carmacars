@@ -94,12 +94,30 @@ caddy_site() {
     fi
     cp -p "$S/docker-compose.yml" "/opt/carmacars/state/docker-compose.yml.$(date -u +%Y%m%dT%H%M%SZ)" 2>/dev/null || true
     install -m 644 "$T/supabase-compose.yml" "$S/docker-compose.yml"
-    install -m 644 "$T/Caddyfile" "$S/caddy/Caddyfile"
+    cat "$T/Caddyfile" > "$S/caddy/Caddyfile"
     # no site file yet: Caddy comes back with exactly what it served before
     rm -f "$S/caddy/sites/web.caddy"
     /opt/carmacars/bin/dc up -d --no-deps caddy
     sleep 5
     say "Caddy recreated with the site folder"
+  fi
+  # r49.1: Caddy must see the import line of the site folder, else it never loads the site file and never asks for its
+  # certificate (runs 44931738642, 45528578743: 525). The Caddyfile is a single-file bind mount: a file replaced on the
+  # host (install, mv) is a new inode the container never sees, so it is checked inside the container and written in
+  # place (same inode), after this commit's is validated with the same image.
+  if ! docker exec supabase-caddy grep -q '^import sites/\*\.caddy' /etc/caddy/Caddyfile; then
+    if docker run --rm -e API_HOSTNAME=api.example.com -e ACME_EMAIL=admin@example.com -v "$T/Caddyfile:/etc/caddy/Caddyfile:ro" \
+         "$(docker inspect -f '{{.Config.Image}}' supabase-caddy)" caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile > /dev/null 2>&1; then
+      cp -p "$S/caddy/Caddyfile" "/opt/carmacars/state/Caddyfile.$(date -u +%Y%m%dT%H%M%SZ)" 2>/dev/null || true
+      cat "$T/Caddyfile" > "$S/caddy/Caddyfile"
+      if ! docker exec supabase-caddy grep -q '^import sites/\*\.caddy' /etc/caddy/Caddyfile; then
+        # the mount still points at an older inode: recreate the container so it mounts the file as it is now
+        /opt/carmacars/bin/dc up -d --no-deps --force-recreate caddy; sleep 5
+        docker exec supabase-caddy grep -q '^import sites/\*\.caddy' /etc/caddy/Caddyfile \
+          || { say "Caddy still does not see the import of the site folder after it was recreated"; return 1; }
+      fi
+      say "Caddy's Caddyfile had no import of the site folder: this commit's put in place"
+    else say "Caddy's Caddyfile has no import of the site folder and this commit's does not validate"; return 1; fi
   fi
   # r48 (3070): the Cloudflare Origin CA certificate. A new one (sent by this deploy) is installed only when its key matches;
   # the site file's origin-tls block is dropped (Let's Encrypt over HTTP-01) when the server has no matching pair
