@@ -12,8 +12,9 @@ create function test.thx(p_user text, p_call text, p_name text, p jsonb default 
 -- ================================================================ 1. the run
 select test.eq('30 minutes in all, every section in order', (select sum((s ->> 'minutes')::int) from jsonb_array_elements(app.townhall_slides((date_trunc('week', app.today()::timestamp))::date)) s), 30::bigint);
 select test.eq('the sections the owner asked for, in order',
-  (select string_agg(s ->> 'key', ',' order by o) from jsonb_array_elements(app.townhall_slides((date_trunc('week', app.today()::timestamp))::date)) with ordinality t(s, o)),
-  'opener,hires,story,funnel,social,fleet,investors,investmoney,owners,topcars,toprevenue,insurer,leaderboard,dev,people');
+  (select string_agg(s ->> 'key', ',' order by o) from jsonb_array_elements(app.townhall_slides((date_trunc('week', app.today()::timestamp))::date)) with ordinality t(s, o) where s ->> 'key' <> 'birthdays'),
+  -- 4600: visitors, the top incident, disputes (amounts: Admin only), KPIs hit; birthdays after hires when there are any
+  'opener,hires,story,funnel,visitors,social,fleet,investors,investmoney,owners,topcars,toprevenue,insurer,incident,disputes,disputemoney,leaderboard,kpis,dev,people');
 select test.eq('the townhall runs 30 minutes', (app.settings()).townhall_minutes, 30);
 select test.eq('the funnel has its five steps', (select string_agg(p ->> 'label', ', ') from jsonb_array_elements(app.townhall_slides((date_trunc('week', app.today()::timestamp))::date)) s, jsonb_array_elements(s -> 'points') p where s ->> 'key' = 'funnel'),
   'Leads generated, Contacted, Offers submitted, Requested back, Closed');

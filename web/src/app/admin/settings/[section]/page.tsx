@@ -1,4 +1,5 @@
 import { AutoReplies } from '@/features/auto-reply/AutoReplies';
+import { MONTHS, birthdayOfKey } from '@/features/staff/birthday';
 import { VoiceSelfCheck } from '@/features/phone/VoiceSelfCheck';
 import { ChannelPolicyCard } from '@/features/channel-policy/ChannelPolicy';
 import type { PolicyList } from '@/features/channel-policy/model';
@@ -545,7 +546,7 @@ export default async function Section({ params, searchParams }: { params: Promis
     </>);
   case 'staff': {
     // 1060: the preferred name, the last use and the inactivity lock
-    const access = await door<Record<string, { last_active_at: string | null; locked_at: string | null; lock_reason?: string | null; preferred_name: string | null; location?: string | null; townhalls_missed?: number }>>(user.id, 'admin_read', 'staff_access_facts', {}).catch(() => ({} as Record<string, { last_active_at: string | null; locked_at: string | null; lock_reason?: string | null; preferred_name: string | null; location?: string | null; townhalls_missed?: number }>));
+    const access = await door<Record<string, { last_active_at: string | null; locked_at: string | null; lock_reason?: string | null; preferred_name: string | null; location?: string | null; townhalls_missed?: number; birthday?: string | null }>>(user.id, 'admin_read', 'staff_access_facts', {}).catch(() => ({} as Record<string, { last_active_at: string | null; locked_at: string | null; lock_reason?: string | null; preferred_name: string | null; location?: string | null; townhalls_missed?: number; birthday?: string | null }>));
     // r43: who waits for approval is the first thing on this page (the alert lands here), with Approve and Reject; the pipeline of hiring and onboarding is under People > Hiring
     const approvals = await door<ApprovalRow[]>(user.id, 'ops_read', 'staff_onboarding_approvals', {}).catch(() => [] as ApprovalRow[]);
     const waitingFor = new Map(approvals.map((a) => [a.user_id, a]));
@@ -583,6 +584,10 @@ export default async function Section({ params, searchParams }: { params: Promis
           {r.status === 'active' && (r.profile as R | null) && staffFns(r.profile as R).includes('field') && <ViewAsButton user={String(r.id)} portal="field" label={`View as (${STAFF_FN_LABEL.field})`} testId={`view-as-${String(r.email)}-field`} />}
           {(r.profile as R | null) && <StaffFunctions user={String(r.id)} functions={staffFns(r.profile as R)} salesMode={((r.profile as R).sales_work_mode as string | null) ?? null} fieldRole={((r.profile as R).field_function as string | null) ?? null} testId={`functions-${String(r.email)}`} />}
           {(r.profile as R | null) && <SaveFormLimits id={String(r.id)} p={r.profile as R} />}
+          {(r.profile as R | null) && <Act action="staff_birthday_save" payload={{ user_id: r.id }} label={birthdayOfKey(access[String(r.id)]?.birthday) ? `Birthday: ${birthdayOfKey(access[String(r.id)]?.birthday)}` : 'Add birthday'} title={`${String(r.full_name)}'s birthday`} submitLabel="Save"
+            testId={`birthday-${String(r.email)}`} refresh={['/admin/settings/staff']} done="Saved: on the townhall deck in their birthday week."
+            fields={[{ name: 'month', label: 'Month', type: 'select', value: access[String(r.id)]?.birthday ? String(Number(access[String(r.id)]!.birthday!.slice(0, 2))) : '', options: [['', 'None'], ...MONTHS.map((m, i) => [String(i + 1), m] as [string, string])] },
+              { name: 'day', label: 'Day', type: 'number', min: 1, max: 31, value: access[String(r.id)]?.birthday ? Number(access[String(r.id)]!.birthday!.slice(3)) : '' }]} />}
           {(r.profile as R | null)?.va_function ? <>
             <Link prefetch={false} className="link small" href={`/admin/staff/${String(r.id)}/scorecard`}>Scorecard</Link>
             <Link prefetch={false} className="link small" href={`/admin/staff/${String(r.id)}/sales`} data-testid={`sales-${String(r.email)}`}>Sales</Link>

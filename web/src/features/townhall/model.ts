@@ -2,7 +2,8 @@
 export interface Point { label: string; value: string }
 /** 1068: a staff member's tile on the people slide: their role's numbers and an Admin's shout-out. */
 export interface Person { user_id: string; name: string; role: string; points: Point[] | null; shoutout?: string | null }
-export interface Slide { key: string; title: string; admin_only: boolean; points: Point[]; /** 1505: the section's minutes in the 30-minute run */ minutes?: number; board?: Point[]; lines?: string[]; note?: string | null; people?: Person[] }
+export interface Slide { key: string; title: string; admin_only: boolean; points: Point[]; /** 1505: the section's minutes in the 30-minute run */ minutes?: number; board?: Point[]; lines?: string[]; note?: string | null; people?: Person[];
+  /** 4600: the top incident's candidates (most serious first) and whether an Admin picked it */ candidates?: Array<{ ref: string; label: string }>; picked?: 'admin' | 'automatic'; pick_ref?: string | null }
 export interface Townhall { admin: boolean; next_at: string | null; minutes: number; call_url: string | null; weekday: number; time: string; finance_to_staff: boolean; weeks: string[];
   deck: { id: string; week_of: string; built_at: string; slides: Slide[]; recording_url?: string | null } | null;
   /** 1068: attendance (join through the site or check in); for an Admin, the website's visitor sessions per weekday (8 weeks) */

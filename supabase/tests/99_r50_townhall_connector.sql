@@ -48,7 +48,7 @@ select test.ok('the preview built nothing', not exists (select 1 from townhall_d
 select test.eq('rebuilt', test.th5_do('cc_live_th5_full', 'townhall_rebuild_deck', '{}') ->> 'ok', 'true');
 select test.ok('the deck is built, with its slides', (test.th5('cc_live_th5_full', 'townhall_status', '{}') #>> '{result,deck_built}') = 'true'
   and (test.th5('cc_live_th5_full', 'townhall_status', '{}') #>> '{result,deck,slide_count}')::int > 5);
-select test.eq('the staff member is on the deck, nobody missing', (select (r #>> '{staff_missing_count}') || '/' || (r -> 'staff_featured')::text like '%Th5 Cs%' from (select test.th5('cc_live_th5_full', 'townhall_status', '{}') #> '{result}' r) z), '0/true');
+select test.eq('the staff member is on the deck, nobody missing', (select (r #>> '{staff_missing_count}') || '/' || ((r -> 'staff_featured')::text like '%Th5 Cs%')::text from (select test.th5('cc_live_th5_full', 'townhall_status', '{}') #> '{result}' r) z), '0/true');
 update townhall_decks set notes = '{"funnel": "Say well done"}' where week_of = (date_trunc('week', app.today()::timestamp))::date;
 select test.mk_user('th5_new', 'va', 'fleet');
 select test.eq('a staff member added after the build is missing from the deck', (select (r -> 'staff_missing')::text like '%Th5 New%' from (select test.th5('cc_live_th5_full', 'townhall_status', '{}') #> '{result}' r) z), 'true');
