@@ -55,7 +55,7 @@ const dialogOpener = new WeakMap<Element, HTMLElement>();
 export function moResult(el: Element | null | undefined, ok: boolean, word?: string | null) {
   if (!el) return;
   let b = el as HTMLElement;
-  if (!shown(b)) { const d = b.closest('dialog'); const o = d ? dialogOpener.get(d) : undefined; if (!shown(o)) return; b = o; }
+  if (!shown(b)) { const d = (el as Element).closest('dialog'); const o = d ? dialogOpener.get(d) : undefined; if (!shown(o)) return; b = o; }
   b.dataset.moResultAt = String(Date.now());
   window.clearTimeout(Number(b.dataset.moResultT ?? 0));
   if (ok) {
@@ -252,22 +252,23 @@ export function startFeedback(hooks: FeedbackHooks = {}): () => void {
     if (!d || (d.tagName === 'DIALOG' && !d.matches(':modal')) || d.closest('[data-mo-sheet="off"]')) return null;
     return d;
   };
-  on(document, 'pointerdown', (e) => {
-    const pe = e as PointerEvent;
-    if (pe.pointerType === 'mouse') return;
-    const t = pe.target as Element | null;
+  // touch events, not pointer events: the browser takes a vertical pan for itself (pointercancel), touches keep coming
+  on(document, 'touchstart', (e) => {
+    const te = e as TouchEvent;
+    if (te.touches.length !== 1) { drag = null; return; }
+    const t = te.target as Element | null;
     const s = sheetOf(t); if (!s) return;
-    // only from the sheet's top part, or anywhere while its content is scrolled to the top (and not from a field)
-    const r = s.getBoundingClientRect();
+    // from the sheet's top part, or anywhere while its content is scrolled to the top (never from a field)
+    const r = s.getBoundingClientRect(), y = te.touches[0]!.clientY;
     if (t?.closest('input, select, textarea, [contenteditable], .k-carousel, [data-mo-nodrag]')) return;
-    if (pe.clientY - r.top > 56 && s.scrollTop > 0) return;
-    drag = { el: s, y0: pe.clientY, t0: performance.now(), dy: 0 };
+    if (y - r.top > 56 && s.scrollTop > 0) return;
+    drag = { el: s, y0: y, t0: performance.now(), dy: 0 };
   }, { capture: true, passive: true });
-  on(document, 'pointermove', (e) => {
+  on(document, 'touchmove', (e) => {
     if (!drag) return;
-    const dy = Math.max(0, (e as PointerEvent).clientY - drag.y0);
+    const dy = Math.max(0, (e as TouchEvent).touches[0]!.clientY - drag.y0);
     if (dy > 4 && drag.el.scrollTop <= 0) { drag.dy = dy; drag.el.classList.add('mo-dragging'); drag.el.style.translate = `0 ${dy}px`; }
-  }, { passive: true });
+  }, { capture: true, passive: true });
   const release = () => {
     if (!drag) return;
     const { el, dy, t0 } = drag; drag = null;
@@ -278,12 +279,12 @@ export function startFeedback(hooks: FeedbackHooks = {}): () => void {
       window.setTimeout(() => {
         el.style.translate = '';
         if (el instanceof HTMLDialogElement) el.close();
-        else (el.querySelector<HTMLElement>('[data-close], [aria-label^="Close" i], .x, [class*="__x"]') ?? null)?.click();
+        else el.querySelector<HTMLElement>('[data-close], [aria-label^="Close" i], .x, [class*="__x"]')?.click();
       }, 200);
       feedback('light');
     } else el.style.translate = '';
   };
-  on(document, 'pointerup', release, true); on(document, 'pointercancel', release, true);
+  on(document, 'touchend', release, true); on(document, 'touchcancel', release, true);
 
   // ready after the first paint: from now on what is added or changed was caused by the person or the page's data
   const r = window.setTimeout(() => { ready = true; }, 600);
