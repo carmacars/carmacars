@@ -13,6 +13,10 @@ import { setupEmail } from '@/server/owner-setup-email';
 import { settleIntent } from '@/server/portal/payment';
 import { env } from '@/lib/env';
 import { signConnectorFiles } from '@/server/connector-files';
+import { sendForSigning } from '@/server/company-documents';
+import { COMPANY_DOC_CONNECTOR_MAX_BYTES } from '@/features/company-documents/model';
+import { isPdf } from '@/lib/file-sniff';
+import { sha256Hex as bytesSha } from '@/server/links';
 
 // The CarmaCars MCP server (release 28, B3; migration 0562): Claude's connector for Abbas and Mahad. Streamable HTTP
 // without a stream: each POST is one JSON-RPC message answered with one JSON response. The bearer is an API key from
@@ -68,7 +72,7 @@ export async function POST(req: Request) {
         protocolVersion: VERSIONS.includes(asked) ? asked : VERSIONS[1],
         capabilities: { tools: { listChanged: false } },
         serverInfo: { name: 'carmacars', title: 'CarmaCars', version: '1.0.0' },
-        instructions: 'CarmaCars car rental, as its Admin: bookings, offers, payments, refunds, returns, cars, rates, listings, owners, statements, invoices, payouts, claims, tolls, expenses, leads, chats, To do\'s, field jobs, staff, onboarding, hiring and staff bug reports (with their pictures and logs). Every write is two calls: first without confirm, which previews what will change and changes nothing; show the preview to the person, and only when they agree call again with the same arguments plus confirm: true and the preview_id. The database checks each action exactly as the Admin screens do. Lists page with next_cursor (up to 200 a page) and hide test records unless include_test. Money out (refunds, deposit releases, payouts, charges) is only prepared as an Admin To do: never done here. Every call is logged with the values before and after, as the person whose key it is.'
+        instructions: 'CarmaCars car rental, as its Admin: bookings, offers, payments, refunds, returns, cars, rates, listings, owners, statements, invoices, payouts, claims, tolls, expenses, leads, chats, To do\'s, field jobs, staff, onboarding, hiring, staff bug reports (with their pictures and logs) and company documents (Admins only; a text to sign is signed by its signers in Admin). Every write is two calls: first without confirm, which previews what will change and changes nothing; show the preview to the person, and only when they agree call again with the same arguments plus confirm: true and the preview_id. The database checks each action exactly as the Admin screens do. Lists page with next_cursor (up to 200 a page) and hide test records unless include_test. Money out (refunds, deposit releases, payouts, charges) is only prepared as an Admin To do: never done here. Every call is logged with the values before and after, as the person whose key it is.'
       }));
     }
     case 'notifications/initialized': case 'notifications/cancelled':
@@ -96,6 +100,9 @@ export async function POST(req: Request) {
       if (run?.run === 'photo') r = await photo(hash, msg.params?.arguments as Record<string, unknown>, run.params as Record<string, unknown>, client);
       // a confirmed claim photo or estimate file (1873): the same, for a claim's incident
       if (run?.run === 'claim_file') r = await claimFile(hash, name, msg.params?.arguments as Record<string, unknown>, run.params as Record<string, unknown>, client);
+      // r50 (5060): a company document's PDF (stored here, then recorded), or a text to sign rendered and sent to its signers
+      if (run?.run === 'company_doc') r = await companyDoc(hash, msg.params?.arguments as Record<string, unknown>, run.params as Record<string, unknown>, client);
+      if (run?.run === 'company_doc_send' && run.actor) r = await companyDocSend(run.actor, run.params as Record<string, unknown>);
       // Book it now (0770, 0810): a confirmed offer booked at once gets the renter's agreement made here, as the screens do
       // (staff-style requests wait for an Admin: bookNowAgreement does nothing until the booking is approved)
       if (r.ok && BOOK_NOW_TOOLS.includes(name)) {
@@ -156,6 +163,38 @@ async function claimFile(hash: string, tool: string, args: Record<string, unknow
     const out = await rpc('server_api_claim_file_record' as never, { p_hash: hash, p_preview: String(args?.preview_id ?? ''), p_path: path, p_mime: kind.mime, p_sha: await sha256Hex(b64), p_client: client } as never, SR);
     return { ok: true, result: out };
   } catch (e) { return { ok: false, status: 400, error: e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '') : 'The file was not stored' }; }
+}
+
+async function companyDoc(hash: string, args: Record<string, unknown> | undefined, p: Record<string, unknown>, client: string): Promise<{ ok: boolean; status?: number; result?: unknown; error?: string }> {
+  const b64 = typeof args?.pdf_base64 === 'string' ? args.pdf_base64 : '';
+  if (!b64 || (await sha256Hex(b64)) !== p.pdf_sha256) return { ok: false, status: 400, error: 'The PDF differs from the preview: preview again' };
+  let bytes: Uint8Array;
+  try { bytes = Uint8Array.from(atob(b64.replace(/^data:[a-z]+\/[a-z]+;base64,/, '')), (c) => c.charCodeAt(0)); } catch { return { ok: false, status: 400, error: 'pdf_base64 is not base64' }; }
+  if (!isPdf(bytes)) return { ok: false, status: 400, error: 'That file is not a PDF' };
+  if (bytes.length > COMPANY_DOC_CONNECTOR_MAX_BYTES) return { ok: false, status: 400, error: 'The PDF must be under 15 MB' };
+  const folder = typeof p.document_id === 'string' && /^[0-9a-f-]{36}$/.test(p.document_id) ? p.document_id : crypto.randomUUID();
+  const path = `company-documents/${folder}/${crypto.randomUUID()}.pdf`;
+  const st = await storage();
+  try {
+    await st.put('documents', path, bytes, 'application/pdf');
+    const out = await rpc('server_api_company_document_record' as never, { p_hash: hash, p_preview: String(args?.preview_id ?? ''), p_path: path, p_size: bytes.length, p_sha: await bytesSha(bytes), p_client: client } as never, SR);
+    return { ok: true, result: out };
+  } catch (e) {
+    await st.remove('documents', path).catch(() => undefined);
+    return { ok: false, status: 400, error: e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '') : 'The PDF was not stored' };
+  }
+}
+
+/** A text to sign with every fill-in: rendered and sent to its signers, as the Admin whose key it is (the database checks it). */
+async function companyDocSend(actor: string, p: Record<string, unknown>): Promise<{ ok: boolean; status?: number; result?: unknown; error?: string }> {
+  const version = typeof p.version_id === 'string' ? p.version_id : '';
+  try {
+    const sent = await sendForSigning(actor, 'aal2', version);
+    return { ok: true, result: { done: true, ...p, ...sent, admin_path: `/admin/company-documents/${String(p.document)}` } };
+  } catch (e) {
+    // saved, not sent: the page has Send for signing
+    return { ok: true, result: { done: true, ...p, sent: false, send_error: e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '') : 'Not sent', admin_path: `/admin/company-documents/${String(p.document)}` } };
+  }
 }
 
 async function hire(hash: string, actor: string, p: { id: string } & Record<string, unknown>, client: string): Promise<{ ok: boolean; status?: number; result?: unknown; error?: string }> {

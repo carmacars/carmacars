@@ -328,3 +328,25 @@ test('r50: heal_status is read only (admin:read) and runs in the database', asyn
   assert.match(SQL4800, /if not app\.user_is_admin\(p_by\) then raise exception 'Only an Admin reads self-healing'/);
   assert.ok(!/search_path = public, app\s*as/.test(SQL4800), 'search_path ends with pg_temp');
 });
+
+// r50 (5060): company documents, Admins only
+const SQL5060 = readFileSync(new URL('../../../../supabase/migrations/5060_r50_company_documents.sql', import.meta.url), 'utf8');
+test('r50: list_company_documents reads (admin:read); company_document_upload and company_document_fields are two-step (admin:write); the database runs them', async () => {
+  const { COMPANY_DOC_TOOLS } = await import('./tools.ts');
+  const byName = Object.fromEntries(COMPANY_DOC_TOOLS.map((t) => [t.name, t]));
+  assert.deepEqual(Object.keys(byName).sort(), ['company_document_fields', 'company_document_upload', 'list_company_documents']);
+  assert.ok(byName.list_company_documents!.readOnly && byName.list_company_documents!.scope === 'admin:read');
+  const up = byName.company_document_upload!;
+  assert.ok(!up.readOnly && up.scope === 'admin:write');
+  assert.deepEqual(Object.keys((up.inputSchema as { properties: Record<string, unknown> }).properties).sort(),
+    ['body_md', 'confirm', 'fields', 'kind', 'notes', 'pdf_base64', 'preview_id', 'signers', 'title']);
+  assert.deepEqual((up.inputSchema as { required: string[] }).required, ['title', 'kind']);
+  const f = byName.company_document_fields!;
+  assert.deepEqual(Object.keys((f.inputSchema as { properties: Record<string, unknown> }).properties).sort(), ['confirm', 'document', 'fields', 'preview_id']);
+  for (const t of COMPANY_DOC_TOOLS) assert.ok(TOOLS.includes(t), t.name);
+  assert.ok(!toolsFor(['admin:read']).includes(up), 'a read-only key cannot upload');
+  assert.ok(!toolsFor(['bookings:read', 'owners:read', 'requests:read']).some((t) => COMPANY_DOC_TOOLS.includes(t)), 'only Admin keys see them');
+  assert.match(SQL5060, /app\.api_call_pre5060\(p_hash, p_tool, p_args, p_client\); end if;/);
+  assert.match(SQL5060, /app\.api_key_check\(p_hash, 'admin:write', p_tool, a - 'pdf_base64' - 'body_md' - 'fields', p_client\)/);
+  assert.ok(!/search_path = public, app\s*as/.test(SQL5060), 'search_path ends with pg_temp');
+});

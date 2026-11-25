@@ -1,0 +1,28 @@
+CarmaCars  |  Company documents
+
+========================================
+
+[Company documents]
+Signed by everyone
+
+Hello {{first_name}}. Every signer has signed {{document_title}}. Keep this copy.
+
+Document: {{document_title}}
+Version: {{document_version}}
+Signed: {{signed_at}}
+Signers: {{signers_text}}
+
+Open the signed copy:
+https://carmacars.ca/admin/company-documents/file/{{company_document_version_id}}
+
+Sign in to Admin to open it: only Admins can, and each link it gives works for 5 minutes. The signed copy has each signature, its date, IP address and the document's hash. It stays in Admin > Company documents (https://carmacars.ca/admin/company-documents/{{company_document_id}}).
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

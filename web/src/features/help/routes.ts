@@ -18,7 +18,7 @@ const ADMIN: Record<string, Spec> = {
   academy: ['academy', 'admin/admin-team'], alerts: ['text-alerts-email-text-or-both'], applications: ['owners-and-onboarding', 'admin/owner-recruitment'],
   audit: ['people-and-access', 'admin/admin-decisions'], bookings: ['requests-offers-and-bookings', 'admin/prices-and-deposits'], 'bookings/[number]/sign-now': 'signing',
   calendar: ['calendars', 'admin/trip-rules'], 'calendar-sync': ['calendar-sync-with-turo-and-other-platforms'], chat: ['live-visitors-and-live-chat'],
-  chauffeur: ['chauffeur-service'], damages: ['tolls-and-tickets', 'admin/trip-rules'], 'deposit-reviews': ['tolls-and-tickets', 'finance/new-r35-finance-deposit-review'], debits: ['owner-money', 'admin/admin-decisions'], documents: ['requests-offers-and-bookings', 'cs/documents-and-signing'],
+  chauffeur: ['chauffeur-service'], 'company-documents': ['settings', 'admin/admin-decisions'], damages: ['tolls-and-tickets', 'admin/trip-rules'], 'deposit-reviews': ['tolls-and-tickets', 'finance/new-r35-finance-deposit-review'], debits: ['owner-money', 'admin/admin-decisions'], documents: ['requests-offers-and-bookings', 'cs/documents-and-signing'],
   expenses: ['owner-money'], guide: 'guide', hiring: ['hiring', 'admin/admin-team'], incidents: ['tolls-and-tickets', 'admin/trip-rules'],
   'insurer-invoices': ['insurance-replacements-rates-and-billing', 'admin/insurer-billed-rentals'], insurers: ['insurance-replacements-rates-and-billing', 'admin/insurer-billed-rentals'],
   investors: ['the-investor-deck'], invoices: ['owner-money'], leads: ['discount-games-and-leads', 'admin/owner-recruitment'], listings: ['fleet-and-listings', 'fleet/fleet-cars'],

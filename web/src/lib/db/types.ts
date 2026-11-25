@@ -6084,6 +6084,138 @@ export type Database = {
         };
         Relationships: [];
       };
+      company_document_signers: {
+        Row: {
+          id: string;
+          version_id: string;
+          user_id: string;
+          role_label: string;
+          sort_order: number;
+          sign_request_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          version_id: string;
+          user_id: string;
+          role_label: string;
+          sort_order?: number;
+          sign_request_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          version_id?: string;
+          user_id?: string;
+          role_label?: string;
+          sort_order?: number;
+          sign_request_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      company_document_versions: {
+        Row: {
+          id: string;
+          document_id: string;
+          version: number;
+          file_kind: string;
+          status: string;
+          bucket: string | null;
+          path: string | null;
+          size_bytes: number | null;
+          sha256: string | null;
+          body_md: string | null;
+          fields: Json;
+          to_sign_document_id: string | null;
+          to_sign_sha256: string | null;
+          sent_at: string | null;
+          signed_at: string | null;
+          signed_document_id: string | null;
+          note: string | null;
+          uploaded_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          document_id: string;
+          version: number;
+          file_kind?: string;
+          status?: string;
+          bucket?: string | null;
+          path?: string | null;
+          size_bytes?: number | null;
+          sha256?: string | null;
+          body_md?: string | null;
+          fields?: Json;
+          to_sign_document_id?: string | null;
+          to_sign_sha256?: string | null;
+          sent_at?: string | null;
+          signed_at?: string | null;
+          signed_document_id?: string | null;
+          note?: string | null;
+          uploaded_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          document_id?: string;
+          version?: number;
+          file_kind?: string;
+          status?: string;
+          bucket?: string | null;
+          path?: string | null;
+          size_bytes?: number | null;
+          sha256?: string | null;
+          body_md?: string | null;
+          fields?: Json;
+          to_sign_document_id?: string | null;
+          to_sign_sha256?: string | null;
+          sent_at?: string | null;
+          signed_at?: string | null;
+          signed_document_id?: string | null;
+          note?: string | null;
+          uploaded_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      company_documents: {
+        Row: {
+          id: string;
+          kind: string;
+          title: string;
+          notes: string | null;
+          current_version: number;
+          archived_at: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          kind: string;
+          title: string;
+          notes?: string | null;
+          current_version?: number;
+          archived_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          kind?: string;
+          title?: string;
+          notes?: string | null;
+          current_version?: number;
+          archived_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       company_expense_categories: {
         Row: {
           code: string;
@@ -37522,6 +37654,7 @@ export type Database = {
       server_api_access_view: { Args: { p_admin: string }; Returns: Json };
       server_api_call: { Args: { p_hash: string; p_tool: string; p_args: Json; p_client?: string }; Returns: Json };
       server_api_claim_file_record: { Args: { p_hash: string; p_preview: string; p_path: string; p_mime: string; p_sha: string; p_client?: string }; Returns: Json };
+      server_api_company_document_record: { Args: { p_hash: string; p_preview: string; p_path: string; p_size: number; p_sha: string; p_client?: string }; Returns: Json };
       server_api_hire_result: { Args: { p_hash: string; p_application: string; p_ok: boolean; p_error: string; p_client?: string }; Returns: Json };
       server_api_key_create: { Args: { p_admin: string; p_user: string; p_name: string; p_scopes: string[]; p_hash: string; p_prefix: string }; Returns: Json };
       server_api_key_revoke: { Args: { p_admin: string; p_id: string }; Returns: Json };
@@ -38132,7 +38265,7 @@ export type Database = {
       booking_status: "requested" | "offered" | "tentative" | "pending_payment" | "confirmed" | "on_rent" | "returned" | "closed" | "cancelled" | "no_show" | "expired" | "declined";
       booking_type: "standard" | "non_refundable" | "owner";
       charge_stage: "booking" | "pickup" | "extension" | "check_in" | "after_return" | "on_decline" | "monthly" | "split";
-      document_kind: "rental_agreement" | "condition_report" | "renter_statement" | "coverage_proof" | "coverage_terms" | "coverage_activation" | "id_front" | "id_back" | "face_photo" | "enrollment_agreement" | "title_agreement" | "vehicle_schedule" | "additional_vehicle_schedule" | "title_schedule" | "form_a_trust_declaration" | "form_b_lease_summary" | "form_c_finance_permission_ack" | "form_d_power_of_attorney" | "form_e_exit_checklist" | "finance_party_permission" | "ownership_permit" | "insurer_confirmation" | "owner_insurance_proof" | "safety_certificate" | "appraisal" | "registry_form" | "owner_invoice" | "owner_statement" | "receipt" | "repair_estimate" | "repair_invoice" | "police_report" | "incident_report" | "toll_ticket_notice" | "investment_agreement" | "investment_schedule_a" | "investment_schedule_c" | "investment_schedule_d" | "investor_statement" | "securities_form" | "fleet_report" | "staff_agreement" | "notice" | "dispute_evidence" | "other" | "insurer_invoice" | "company_statement" | "rental_amendment" | "partner_agreement" | "partner_insurance" | "lien_payout_letter" | "uvip" | "new_registration" | "corporate_documents" | "owner_id";
+      document_kind: "rental_agreement" | "condition_report" | "renter_statement" | "coverage_proof" | "coverage_terms" | "coverage_activation" | "id_front" | "id_back" | "face_photo" | "enrollment_agreement" | "title_agreement" | "vehicle_schedule" | "additional_vehicle_schedule" | "title_schedule" | "form_a_trust_declaration" | "form_b_lease_summary" | "form_c_finance_permission_ack" | "form_d_power_of_attorney" | "form_e_exit_checklist" | "finance_party_permission" | "ownership_permit" | "insurer_confirmation" | "owner_insurance_proof" | "safety_certificate" | "appraisal" | "registry_form" | "owner_invoice" | "owner_statement" | "receipt" | "repair_estimate" | "repair_invoice" | "police_report" | "incident_report" | "toll_ticket_notice" | "investment_agreement" | "investment_schedule_a" | "investment_schedule_c" | "investment_schedule_d" | "investor_statement" | "securities_form" | "fleet_report" | "staff_agreement" | "notice" | "dispute_evidence" | "other" | "insurer_invoice" | "company_statement" | "rental_amendment" | "partner_agreement" | "partner_insurance" | "lien_payout_letter" | "uvip" | "new_registration" | "corporate_documents" | "owner_id" | "company_document";
       field_function: "driver" | "detailer" | "driver_detailer";
       finance_permission: "not_applicable" | "attached" | "not_obtained";
       fuel_type: "gasoline" | "diesel" | "hybrid" | "plug_in_hybrid" | "electric";

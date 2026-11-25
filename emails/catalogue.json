@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 294,
+  "count": 296,
   "emails": [
     {
       "code": "account_password_reset",
@@ -19340,6 +19340,119 @@
       ],
       "template_html": "templates/admin_card_payments_paused.html",
       "template_text": "templates/admin_card_payments_paused.txt"
+    },
+    {
+      "code": "admin_company_document_signed",
+      "audience": "staff_admin",
+      "category": "transactional",
+      "trigger": "Release 50 (5060): every signer has signed a company document in Admin > Company documents and its signed copy is filed. To each Admin who signed, once per version, with a link to the signed copy in Admin (sign-in required).",
+      "timing": "Immediate, when the last signer signs",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Signed by everyone: {{document_title}}",
+      "preheader": "Version {{document_version}} is signed. Open the signed copy in Admin.",
+      "sample_subject": "Signed by everyone: Shareholder Agreement",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "company_document_id",
+          "type": "string",
+          "sample": "a1b2c3d4-0000-4000-8000-000000000001"
+        },
+        {
+          "name": "company_document_version_id",
+          "type": "string",
+          "sample": "a1b2c3d4-0000-4000-8000-000000000002"
+        },
+        {
+          "name": "document_title",
+          "type": "string",
+          "sample": "Shareholder Agreement"
+        },
+        {
+          "name": "document_version",
+          "type": "string",
+          "sample": "1"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Abbas",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "signed_at",
+          "type": "string",
+          "sample": "Wed, Nov 25, 2026 at 4:10 pm"
+        },
+        {
+          "name": "signers_text",
+          "type": "string",
+          "sample": "Sam Example (Principal of Side A), Jordan Example (Principal of Side B)"
+        }
+      ],
+      "template_html": "templates/admin_company_document_signed.html",
+      "template_text": "templates/admin_company_document_signed.txt"
+    },
+    {
+      "code": "admin_company_document_to_sign",
+      "audience": "staff_admin",
+      "category": "transactional",
+      "trigger": "Release 50 (5060): a company document in Admin > Company documents is ready to sign (every fill-in is there and it was sent for signing, or sent again after its fill-ins changed). To each Admin named as a signer, once per request.",
+      "timing": "Immediate, when the document is sent for signing",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Ready to sign: {{document_title}}",
+      "preheader": "You sign as {{signer_role_label}}. Version {{document_version}}, in Admin > Company documents.",
+      "sample_subject": "Ready to sign: Shareholder Agreement",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "company_document_id",
+          "type": "string",
+          "sample": "a1b2c3d4-0000-4000-8000-000000000001"
+        },
+        {
+          "name": "document_title",
+          "type": "string",
+          "sample": "Shareholder Agreement"
+        },
+        {
+          "name": "document_version",
+          "type": "string",
+          "sample": "1"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Abbas",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "signer_role_label",
+          "type": "string",
+          "sample": "Principal of Side A"
+        },
+        {
+          "name": "signers_text",
+          "type": "string",
+          "sample": "Sam Example (Principal of Side A), Jordan Example (Principal of Side B)"
+        }
+      ],
+      "template_html": "templates/admin_company_document_to_sign.html",
+      "template_text": "templates/admin_company_document_to_sign.txt"
     },
     {
       "code": "staff_approval_needed",
