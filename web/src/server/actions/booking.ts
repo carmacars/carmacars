@@ -44,9 +44,10 @@ async function distance(placeId: string, session?: string): Promise<Measured> {
 }
 
 export interface SubmitInput { data: RequestData; requestKey: string; token: string | null; draftId?: string | null;
-  /** r40 (2430): the renter pressed Book now (only offered to a renter who may book at once): pay the website price. Without it every request stays a request. */ bookNow?: boolean }
+  /** r40 (2430), r50 (3900): the renter chose Book instantly (only offered to a renter who may book at once): pay the website price. Without it the request stays a request. */ bookNow?: boolean }
 export type SubmitResult = ActionResult<{ bookingNumber: string; totalCents: number | null; depositCents: number | null; created: boolean;
-  /** r35a (1304): booked at once (a verified repeat renter): the renter goes to Sign and pay */ instant?: boolean }>;
+  /** r35a (1304): booked at once (a verified repeat renter): the renter goes to Sign and pay */ instant?: boolean;
+  /** r50 (3900): Book instantly was chosen but the database sent it as a request (why, in its words) */ instantRefused?: string | null }>;
 
 /** A request that was refused or failed (2670): the database gives the code, the field and the plain message, keeps who
  *  asked with the car, the dates and the reason (once per person, car and day) and raises one Sales To-do. */
@@ -172,7 +173,7 @@ export async function submitBookingRequest(input: SubmitInput): Promise<SubmitRe
       try { res = await once(); } catch (e2) { return await fail(undefined, e2 instanceof Error ? e2.message : String(e2)); }
     }
     if (!res.ok) return await fail(String(res.error ?? 'refused'), String(res.message ?? ''));
-    const data = { bookingNumber: String(res.booking_number), totalCents: (res.total_due_at_booking_cents as number) ?? null, depositCents: (res.deposit_cents as number) ?? null, created: res.created === true, instant: false };
+    const data = { bookingNumber: String(res.booking_number), totalCents: (res.total_due_at_booking_cents as number) ?? null, depositCents: (res.deposit_cents as number) ?? null, created: res.created === true, instant: false, instantRefused: null as string | null };
     // the request is in: nothing below may turn it into a failure
     try {
       // 1202: the Protection Plan priced from a RentalCover quote for this renter and these dates (none: its table price)
@@ -193,12 +194,15 @@ export async function submitBookingRequest(input: SubmitInput): Promise<SubmitRe
       await captureDone('booking_request');
       // 0280: the request counts for the phone number box report (from a visitor who saw the box, or not); no personal data
       if (res.created !== false) await rpc('server_phone_gate_request', { p: { visitor_id: await visitorCookie() } as unknown as Json }, { role: 'service_role' }).catch(() => undefined);
-      // r35a (1304), r40 (2430): a renter who may book at once (a verified repeat renter, or Gold) chooses: Send request leaves
-      // a request, as for a first booking; Book now (bookNow) asks the database to book at once (eligible, the car free, the licence
-      // on file), makes the agreement as for Book it now and goes straight to Sign and pay. If the database refuses, it stays a request.
-      if (user && input.bookNow === true && res.created !== false) {
-        const ib = (await rpc('server_instant_book', { p_number: String(res.booking_number), p_user: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as { instant?: boolean; status?: string; booking_id?: string; renter_user_id?: string } | null;
+      // r35a (1304), r40 (2430), r50 (3900): the renter chose Book instantly or Request to book; the choice is recorded on the
+      // booking. Book instantly (offered to a renter who may book at once) asks the database to book at once (eligible, the car
+      // free, the licence on file), makes the agreement as for Book it now and goes straight to Sign and pay. If the database
+      // refuses, it stays a request in the staff queue with the reason, and the renter is told.
+      if (res.created !== false) {
+        const choice = user && input.bookNow === true ? 'instant' : 'request';
+        const ib = (await rpc('server_book_choice', { p_number: String(res.booking_number), p_choice: choice, p_user: user?.id }, { role: 'service_role' }).catch(() => null)) as unknown as { instant?: boolean; reason?: string | null; status?: string; booking_id?: string; renter_user_id?: string } | null;
         if (ib?.instant) { data.instant = true; await bookNowAgreement(ib).catch(() => undefined); }
+        else if (choice === 'instant') data.instantRefused = ib?.reason ?? 'not allowed';
       }
     } catch { /* the request is in; the extras above are done again by staff or the next visit */ }
     return { ok: true, data };
@@ -237,20 +241,33 @@ export async function loadRequestDraft(token: string | null): Promise<ActionResu
 /** The signed-in person's contact details for the request form (0091): an account made by phone has a verified
  *  number and may have no email yet. r40 (2423): with the discount codes they can use now, for "Use a saved discount". */
 export type SavedCode = { code: string; what: string; days_left: number | null };
-export async function requestAccount(): Promise<ActionResult<{ signedIn: boolean; email: string | null; phone: string | null; discounts: SavedCode[]; canBookNow: boolean; profile: RenterProfile | null }>> {
+export async function requestAccount(): Promise<ActionResult<{ signedIn: boolean; email: string | null; phone: string | null; discounts: SavedCode[]; canBookNow: boolean; cardsOn: boolean; profile: RenterProfile | null }>> {
   const user = await (await auth()).currentUser();
   // nobody signed in: nothing private reaches the browser
-  if (!user) return { ok: true, data: { signedIn: false, email: null, phone: null, discounts: [], canBookNow: false, profile: null } };
-  const [si, profile, saved, bookNow] = await Promise.all([
+  if (!user) return { ok: true, data: { signedIn: false, email: null, phone: null, discounts: [], canBookNow: false, cardsOn: true, profile: null } };
+  const [si, profile, saved, bookNow, cards] = await Promise.all([
     rpc('server_my_sign_in', { p_user: user.id }, { role: 'service_role' }).catch(() => null) as Promise<unknown>,
     // r45 (2860): the renter's own profile fills the request (the licence number only as its last 4)
     rpc('server_request_profile', { p_user: user.id }, { role: 'service_role' }).catch(() => null) as Promise<unknown>,
     rpc('server_my_discounts' as never, { p_user: user.id } as never, { role: 'service_role' }).catch(() => []) as Promise<unknown>,
     // r40 (2430): may this renter book at once (a verified repeat renter, or Gold)? Then the form offers Book now beside Send request
-    rpc('server_instant_book_available' as never, { p_user: user.id } as never, { role: 'service_role' }).catch(() => false) as Promise<unknown>]);
+    rpc('server_instant_book_available' as never, { p_user: user.id } as never, { role: 'service_role' }).catch(() => false) as Promise<unknown>,
+    // r50 (3900): with cards off, Book instantly pays by e-Transfer on Sign and pay, and the choice says so
+    import('@/server/card-provider').then((m) => m.cardPayments()).catch(() => null)]);
   const c = si as { email: string | null; phone: string | null } | null;
   const { usableDiscounts } = await import('@/features/rewards/discounts');
-  return { ok: true, data: { signedIn: true, email: c?.email ?? (user.email || null), phone: c?.phone ?? user.phone ?? null, discounts: usableDiscounts(saved as never).slice(0, 6), canBookNow: bookNow === true, profile: (profile as RenterProfile | null) ?? null } };
+  return { ok: true, data: { signedIn: true, email: c?.email ?? (user.email || null), phone: c?.phone ?? user.phone ?? null, discounts: usableDiscounts(saved as never).slice(0, 6), canBookNow: bookNow === true, cardsOn: cards?.on !== false, profile: (profile as RenterProfile | null) ?? null } };
+}
+
+/** r50 (3900): the car page's Book instantly / Request to book choice: may this signed-in renter book at once, and are
+ *  cards on? Asked only on a device whose renter could book instantly (the cc-instant hint); nobody signed in: request only. */
+export async function instantOffer(): Promise<{ canBookNow: boolean; cardsOn: boolean }> {
+  const user = await (await auth()).currentUser().catch(() => null);
+  if (!user) return { canBookNow: false, cardsOn: true };
+  const [ok, cards] = await Promise.all([
+    rpc('server_instant_book_available' as never, { p_user: user.id } as never, { role: 'service_role' }).catch(() => false) as Promise<unknown>,
+    import('@/server/card-provider').then((m) => m.cardPayments()).catch(() => null)]);
+  return { canBookNow: ok === true, cardsOn: cards?.on !== false };
 }
 
 // ---------------------------------------------------------------- 2541: the card checker in the request form

@@ -3929,6 +3929,8 @@ export type Database = {
           occasion_locked_at: string | null;
           owner_use_for: string | null;
           owner_use_ack_at: string | null;
+          book_choice: string | null;
+          book_choice_note: string | null;
         };
         Insert: {
           id?: string;
@@ -4150,6 +4152,8 @@ export type Database = {
           occasion_locked_at?: string | null;
           owner_use_for?: string | null;
           owner_use_ack_at?: string | null;
+          book_choice?: string | null;
+          book_choice_note?: string | null;
         };
         Update: {
           id?: string;
@@ -4371,6 +4375,8 @@ export type Database = {
           occasion_locked_at?: string | null;
           owner_use_for?: string | null;
           owner_use_ack_at?: string | null;
+          book_choice?: string | null;
+          book_choice_note?: string | null;
         };
         Relationships: [];
       };
@@ -36263,6 +36269,7 @@ export type Database = {
       server_bearer_revoke: { Args: { p_keys: string[]; p_until: string }; Returns: undefined };
       server_bearer_revoked: { Args: { p_keys: string[] }; Returns: boolean };
       server_blindspot_facts: { Args: { p_booking: string; p_by: string }; Returns: Json };
+      server_book_choice: { Args: { p_number: string; p_choice: string; p_user?: string }; Returns: Json };
       server_booking_addon_buy: { Args: { p_booking: string; p_by: string; p: Json }; Returns: Json };
       server_booking_addon_failed: { Args: { p_row: string; p_by: string; p_reason: string }; Returns: undefined };
       server_booking_addon_paid: { Args: { p_row: string; p_by: string; p_processor: Json; p_amount_cents: number }; Returns: Json };

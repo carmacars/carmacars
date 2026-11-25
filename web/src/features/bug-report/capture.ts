@@ -33,6 +33,24 @@ function copyPage(): HTMLElement {
     else c.setAttribute('value', hidden ? (f.value ? MASK : '') : f.value);
     if (hidden && c instanceof HTMLInputElement) c.setAttribute('type', 'text');
   });
+  // r50 (3900): a pop-up open when the report starts is drawn where the person sees it. A modal dialog's place comes from the
+  // browser's top layer, which a copy does not have: it is pinned to its place on screen, above a dimmed page.
+  const da = src.querySelectorAll('dialog');
+  const db = clone.querySelectorAll('dialog');
+  da.forEach((el, i) => {
+    const c = db[i];
+    if (!c || !el.open || el.hasAttribute('data-bug-report-ui')) return;
+    let modal = false; try { modal = el.matches(':modal'); } catch { /* old browser */ }
+    if (!modal) return;
+    const r = el.getBoundingClientRect();
+    c.setAttribute('style', `${c.getAttribute('style') ?? ''};position:fixed;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;margin:0;max-width:none;max-height:none;z-index:2147483600;box-sizing:border-box;overflow:hidden`);
+    c.setAttribute('data-was-modal', '');
+    const veil = document.createElement('div');
+    veil.setAttribute('style', 'position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:2147483599');
+    c.before(veil);
+    // what was scrolled inside the pop-up stays scrolled in the picture
+    if (el.scrollTop) { const inner = document.createElement('div'); inner.setAttribute('style', `margin-top:${-el.scrollTop}px`); while (c.firstChild) inner.appendChild(c.firstChild); c.appendChild(inner); }
+  });
   // text marked sensitive
   clone.querySelectorAll('[data-sensitive]:not(input):not(textarea):not(select)').forEach((el) => { el.textContent = MASK; });
   // what cannot or must not be drawn

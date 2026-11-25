@@ -60,3 +60,9 @@ test('screenshots: only PNG, JPEG or WebP by their bytes; sensitive fields are m
   assert.ok(isSensitiveField({ name: 'card_cvc' }));
   assert.ok(!isSensitiveField({ type: 'text', name: 'notes' }));
 });
+
+test('r50 (3900): the pop-up open when the report started goes with it, cleaned like the other facts', () => {
+  const c = cleanContext({ popup: 'modal dialog: Refund for pat@example.test [refund-dialog]', evil: 'x' });
+  assert.equal(c.popup, 'modal dialog: Refund for [email] [refund-dialog]');
+  assert.equal('evil' in c, false);
+});

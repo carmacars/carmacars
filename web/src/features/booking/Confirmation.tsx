@@ -32,3 +32,10 @@ export function ConfRows({ number, depLead }: { number: string; depLead: string 
   ];
   return <div className="stack"><h2 className="d4">What you asked for</h2><table className="spec"><tbody>{rows.map(([k, v]) => <tr key={k}><th scope="row">{k}</th><td>{v}</td></tr>)}</tbody></table></div>;
 }
+
+/** r50 (3900): Book instantly was chosen but the car could not be booked at once: it came to us as a request (?instant=no). */
+export function ConfInstantNo() {
+  const no = useSyncExternalStore(() => () => {}, () => { try { return new URLSearchParams(window.location.search).get('instant') === 'no'; } catch { return false; } }, () => false);
+  if (!no) return null;
+  return <p className="alert alert--info" data-testid="sent-instant-no"><span className="alert__title">Sent as a request</span><span>This car could not be booked instantly just now, so your booking came to us as a request. Nothing is charged: we reply with a pay link or an offer, by email and text.</span></p>;
+}

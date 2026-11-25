@@ -23,6 +23,7 @@ import { quickLinks } from '@/features/portal/quick-links';
 import { SignPayCard } from '@/features/portal/SignPayCard';
 import { stillNeededOf } from '@/features/portal/still-needed';
 import { PerkHint } from '@/features/rewards/RewardsClient';
+import { InstantHint } from '@/features/booking/BookChoice';
 
 type Links = { verified: boolean; new: Array<{ kind: string; detail: string | null; booking_number: string | null }>; driver_trips: Array<{ booking_number: string; status: string; pickup_at: string; return_at: string; vehicle_name: string; accepted: boolean }> };
 
@@ -43,7 +44,10 @@ export default async function Account({ searchParams }: { searchParams: Promise<
     // r40 (2423): every discount code the renter holds (points, tier, free day, referral, our team's), with its status
     rpc('server_my_discounts' as never, { p_user: user.id } as never, { role: 'service_role' }).then((x) => x as unknown as SavedDiscount[]).catch(() => [] as SavedDiscount[])]);
   // r40 (2421): Platinum's Any car, any time, remembered on this device for the car page
-  const anyCar = (await rpc('my_any_car' as never, {} as never, { role: 'authenticated', userId: user.id }).catch(() => null)) as unknown as { any_car?: boolean; hours?: number } | null;
+  const [anyCar, canInstant] = await Promise.all([
+    rpc('my_any_car' as never, {} as never, { role: 'authenticated', userId: user.id }).catch(() => null) as Promise<unknown> as Promise<{ any_car?: boolean; hours?: number } | null>,
+    // r50 (3900): the hint that lets the car page offer Book instantly on this device
+    rpc('server_instant_book_available' as never, { p_user: user.id } as never, { role: 'service_role' }).then((x) => x === true).catch(() => false)]);
   const cover = (slug: string | null) => fleet.find((c) => c.slug === slug)?.cover ?? null;
   const photo = (b: (typeof list)[number]) => tripPhoto(photos, b, cover(b.slug));
   const { current, upcoming, past, nearest } = group(list);
@@ -69,6 +73,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
   const others = [...current, ...upcoming].filter((b) => b.id !== nearest?.id);
   return (
     <>
+      <InstantHint on={canInstant} />
       {anyCar && <PerkHint anyCar={!!anyCar.any_car} hours={anyCar.hours ?? 4} />}
       {sp.welcome && <p className="alert alert--ok" role="status"><span className="alert__title">Account created</span><span>You are signed in.</span></p>}
       {sp.password && <p className="alert alert--ok" role="status"><span className="alert__title">Password saved</span><span>You are signed in with your new password.</span></p>}

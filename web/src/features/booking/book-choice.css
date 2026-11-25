@@ -1,0 +1,9 @@
+/* r50 (3900): Book instantly or Request to book, one option per row at every width (no squeezed text at 320px) */
+.bkc { border: 0; padding: 0; margin: 0 0 var(--s-3); min-width: 0; }
+.bkc legend { padding: 0; margin-bottom: var(--s-2); }
+.bkc__opt { min-width: 0; }
+.bkc__opt .option__title, .bkc__opt .option__body { overflow-wrap: anywhere; min-width: 0; }
+.bkc__opt.is-off { cursor: not-allowed; background: var(--grey-50, #f6f6f6); }
+.bkc__opt.is-off:hover { border-color: var(--grey-300); }
+.bkc__opt.is-off .option__title { color: var(--grey-600); }
+.bkc__opt.is-off input { opacity: .5; }

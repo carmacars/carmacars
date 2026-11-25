@@ -84,7 +84,7 @@ export function cleanLogs(v: unknown, origin?: string): LogEntry[] {
 export function cleanContext(v: unknown): Record<string, string | number | boolean> {
   const out: Record<string, string | number | boolean> = {};
   if (!v || typeof v !== 'object') return out;
-  const keys = ['viewport', 'screen', 'dpr', 'device', 'browser', 'platform', 'language', 'timezone', 'online', 'build', 'schema', 'tab', 'title', 'capture'];
+  const keys = ['viewport', 'screen', 'dpr', 'device', 'browser', 'platform', 'language', 'timezone', 'online', 'build', 'schema', 'tab', 'title', 'capture', 'popup'];
   for (const k of keys) {
     const x = (v as Record<string, unknown>)[k];
     if (typeof x === 'string') out[k] = redact(x, 200);
