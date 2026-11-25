@@ -1,0 +1,43 @@
+{
+  "id": "payments-day",
+  "title": "Payments by day",
+  "summary": "Filter by dates and methods, check the totals and export them.",
+  "who": [
+    "admin",
+    "finance"
+  ],
+  "start": "{base}/money?tab=day",
+  "guide": {
+    "portal": "va",
+    "slug": "finance"
+  },
+  "steps": [
+    {
+      "id": "page",
+      "target": "page-head",
+      "text": "Money: choose the By day tab.",
+      "on": "{base}/money",
+      "href": "{base}/money"
+    },
+    {
+      "id": "filters",
+      "target": "payments-filters",
+      "text": "Choose From, To and the methods, then Show.",
+      "on": "{base}/money",
+      "page": "page-head",
+      "when": {
+        "exists": "payments-filters"
+      }
+    },
+    {
+      "id": "export",
+      "target": "payments-export",
+      "text": "Export CSV for the bank or the bookkeeper.",
+      "on": "{base}/money",
+      "page": "page-head",
+      "when": {
+        "exists": "payments-export"
+      }
+    }
+  ]
+}

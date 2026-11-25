@@ -52,3 +52,8 @@ body:has(.fp-tabs) .gm-card--offer { bottom: calc(5rem + env(safe-area-inset-bot
 }
 @media (prefers-reduced-motion: reduce) { .gm-ring, .gm-card, .gm-card__bar span { transition: none; } }
 .gm-links { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-4); margin: 0 0 var(--s-2); }
+/* the public site (sign up, book, apply): the button on its own line, at the end */
+.gm-public { display: flex; justify-content: flex-end; margin: 0 0 var(--s-2); }
+.gm-public .gm-btn { border: 1px solid rgb(0 0 0 / 0.12); border-radius: 999px; }
+.gm-public .gm-btn .hd-lbl { display: inline; }
+.gm-public .gm-btn svg { width: 1.1rem; height: 1.1rem; }

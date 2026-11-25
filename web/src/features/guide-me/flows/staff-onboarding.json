@@ -1,0 +1,56 @@
+{
+  "id": "staff-onboarding",
+  "title": "Your first days",
+  "summary": "Your agreement, the WhatsApp groups, the academy, then your first shift.",
+  "who": [
+    "cs",
+    "sales",
+    "fleet",
+    "finance",
+    "field"
+  ],
+  "start": "/staff/welcome",
+  "guide": {
+    "portal": "va",
+    "slug": "start-here"
+  },
+  "steps": [
+    {
+      "id": "welcome",
+      "target": "staff-welcome",
+      "text": "What to do before your first shift, in order.",
+      "on": "/staff/welcome",
+      "href": "/staff/welcome"
+    },
+    {
+      "id": "tasks",
+      "target": "welcome-tasks",
+      "text": "Each task: finish them from the top.",
+      "on": "/staff/welcome",
+      "page": "staff-welcome",
+      "when": {
+        "exists": "welcome-tasks"
+      }
+    },
+    {
+      "id": "groups",
+      "target": "welcome-groups",
+      "text": "Join the team's WhatsApp groups and confirm here.",
+      "on": "/staff/welcome",
+      "page": "staff-welcome",
+      "when": {
+        "exists": "welcome-groups"
+      }
+    },
+    {
+      "id": "start",
+      "target": "welcome-start",
+      "text": "Then start work.",
+      "on": "/staff/welcome",
+      "page": "staff-welcome",
+      "when": {
+        "exists": "welcome-start"
+      }
+    }
+  ]
+}

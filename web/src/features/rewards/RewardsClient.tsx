@@ -15,7 +15,7 @@ export function Redeem({ balance, min, centsPerPoint, validDays }: { balance: nu
   const router = useRouter();
   if (!steps.length) return <p className="small muted" data-testid="rewards-redeem-min">You can redeem from {min.toLocaleString('en-CA')} points.</p>;
   return (
-    <div className="stack" data-testid="rewards-redeem">
+    <div className="stack" data-testid="rewards-redeem" data-guide="rewards-redeem">
       <div className="field">
         <label htmlFor="rw-points">Points to use</label>
         <select id="rw-points" value={points} onChange={(e) => setPoints(Number(e.target.value))}>

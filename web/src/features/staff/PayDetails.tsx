@@ -27,7 +27,7 @@ export function PayDetails({ portal, view, canada = portal === 'field' }: { port
       {fe[k] && <span className="error">{fe[k]}</span>}</div>
   );
   return (
-    <section className="pt-card stack" aria-labelledby="pay-t" id="pay" data-testid="pay-details">
+    <section className="pt-card stack" aria-labelledby="pay-t" id="pay" data-testid="pay-details" data-guide="pay-details">
       <h2 className="d4" id="pay-t">Pay details</h2>
       {cur ? <p className="small" data-testid="pay-current">{cur.shown}, in the name of {cur.account_holder}. {cur.verified ? 'Verified.' : 'An Admin will confirm them with you.'}</p>
         : <p className="small">How you want to be paid. Only the last 4 digits of an account number are ever shown again.</p>}
@@ -46,7 +46,7 @@ export function PayDetails({ portal, view, canada = portal === 'field' }: { port
           </>}
           {f.method === 'gcash' && input('account_no', 'GCash mobile number', { inputMode: 'tel', autoComplete: 'off' })}
           {(f.method === 'e_transfer' || f.method === 'paypal' || f.method === 'wise') && input('email', 'Email address for the payment', { type: 'email', autoComplete: 'email' })}
-          <p className="row"><button type="submit" className="btn btn--primary btn--sm" disabled={busy} data-testid="pay-save">{busy ? 'Saving' : 'Save my pay details'}</button>
+          <p className="row"><button type="submit" className="btn btn--primary btn--sm" disabled={busy} data-testid="pay-save" data-guide="pay-save">{busy ? 'Saving' : 'Save my pay details'}</button>
             {cur && <button type="button" className="btn btn--ghost btn--sm" onClick={() => setOpen(false)}>Cancel</button>}</p>
           {err && <p className="error" role="alert">{err}</p>}
         </form>)}

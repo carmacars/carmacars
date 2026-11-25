@@ -44,7 +44,7 @@ export function PriceLimitsForm({ who, scope, vehicleId, ownerId, min, max, inhe
       </div>
       {from && <p className="small muted" data-testid="pl-inherited">Empty here: {who === 'owner' ? 'your' : 'the owner’s'} limits for every car apply ({from}).</p>}
       <p className="small muted">The rental after lead-time pricing, promo codes and discounts, divided by the days, stays between these. Fees, add-ons and tax are not counted. Empty is no limit.{who === 'admin' ? ' Allow a price outside them on one booking: the review screen, More options.' : ''}</p>
-      <div className="row"><button type="submit" className="btn btn--primary btn--sm" disabled={pending} data-testid="pl-save">{pending ? 'Saving' : 'Save price limits'}</button>
+      <div className="row"><button type="submit" className="btn btn--primary btn--sm" disabled={pending} data-testid="pl-save" data-guide="pl-save">{pending ? 'Saving' : 'Save price limits'}</button>
         {msg && <span className={msg.ok ? 'small' : 'small ad-err'} role="status">{msg.text}</span>}</div>
     </form>
   );

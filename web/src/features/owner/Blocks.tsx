@@ -44,7 +44,7 @@ export function VehicleCard({ v, compact = false, trackers = true, photo, live, 
   const status = v.onboarding_status && v.onboarding_status !== 'enrolled' ? ONBOARDING_STATUS[v.onboarding_status] ?? v.onboarding_status : v.status.replace(/_/g, ' ');
   const enrolled = live && live.key !== 'onboarding';
   return (
-    <li className="pu-car ow-car" data-testid="owner-vehicle" data-live={live?.key}>
+    <li className="pu-car ow-car" data-testid="owner-vehicle" data-guide="owner-vehicle" data-live={live?.key}>
       <div className="pu-car__media">
         <CarPhoto photo={photo} name={v.name} />
         <span className={`pu-pill pu-pill--${live?.tone ?? 'muted'} pu-car__pill`} data-testid="vehicle-live">{live?.label ?? status}</span>
@@ -90,7 +90,7 @@ export function InvoiceRows({ items, empty = 'No invoices yet.' }: { items: Owne
             title={`${i.invoice_number} · ${invoiceTitle(i, monthOf)}`}
             meta={<><span>{i.vehicle_name}</span><span>Issued {day(i.billing_date)}</span>{debit && <span data-testid="invoice-debit">{debit}</span>}</>}
             amount={money(i.total_cents, { cents: true })}
-            status={<span className={`badge ${s.badge}`} data-testid="invoice-status">{s.label}</span>}
+            status={<span className={`badge ${s.badge}`} data-testid="invoice-status" data-guide="invoice-status">{s.label}</span>}
             action={i.payable ? <Link className="btn btn--primary btn--sm" href={invoicePath(i.invoice_number)}>Pay now</Link> : undefined} />
         );
       })}

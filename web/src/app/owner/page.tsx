@@ -123,7 +123,7 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
       <OwnerPathCard status={sign} />
       {/* the guided path's button opens /owner/sign itself; an updated Vehicle Schedule or a government form to sign is its own next step */}
       {next && !(guided && next.href === '/owner/sign') && (
-        <section className="pt-card pt-card--next pu-next" aria-labelledby="ow-next" data-testid="owner-next-step">
+        <section className="pt-card pt-card--next pu-next" aria-labelledby="ow-next" data-testid="owner-next-step" data-guide="owner-next-step">
           <p className="pt-kicker">Next step</p>
           <h2 className="d3" id="ow-next">{next.title}</h2>
           <p>{next.note}</p>

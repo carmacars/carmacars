@@ -1,0 +1,37 @@
+{
+  "id": "owner-money",
+  "title": "Statements and payouts",
+  "summary": "Each month's statement, what was paid out and when.",
+  "who": [
+    "owner"
+  ],
+  "start": "/owner/money",
+  "guide": {
+    "portal": "owner",
+    "slug": "start-here"
+  },
+  "steps": [
+    {
+      "id": "tabs",
+      "target": "portal-tabs",
+      "text": "Money has three tabs: Statements, Payouts and Invoices.",
+      "on": "/owner/money",
+      "href": "/owner/money"
+    },
+    {
+      "id": "statements",
+      "target": "tab-statements",
+      "text": "Statements: each month, per car, what it earned and what was taken off.",
+      "on": "/owner/money"
+    },
+    {
+      "id": "payouts",
+      "target": "tab-payouts",
+      "text": "Open Payouts: each payout, its date and the statement it pays.",
+      "on": "/owner/money",
+      "done": {
+        "route": "/owner/money?tab=payouts"
+      }
+    }
+  ]
+}

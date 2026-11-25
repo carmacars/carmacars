@@ -56,12 +56,12 @@ export function EtransferPay({ s, title = 'Pay by e-Transfer', upload = true, si
 
   if (parts.total <= 0 && parts.cashRental <= 0 && parts.cashDeposit <= 0 && !s.open) return null;
   return (
-    <section className="pt-card stack etp" aria-labelledby={id('h')} data-testid="etransfer-pay">
+    <section className="pt-card stack etp" aria-labelledby={id('h')} data-testid="etransfer-pay" data-guide="etransfer-pay">
       <div className="etp__head"><h3 className="d4" id={id('h')}>{title}</h3><span className="etp__chip">Interac e-Transfer</span></div>
       {s.card && !s.card.on && <p className="small muted" data-testid="etp-paused">Card payments are paused for a short while. Paying by e-Transfer confirms your booking the same way.</p>}
 
       {s.open ? (
-        <p className="alert alert--ok" role="status" data-testid="etp-waiting"><span><b>We have your screenshot ({s.open.report_number}).</b> {fmt(s.open.amount_cents)} for {coversWords(s.open.covers)}, sent {when(s.open.reported_at)}. We confirm it as soon as it is in the bank and email you.</span></p>
+        <p className="alert alert--ok" role="status" data-testid="etp-waiting" data-guide="etp-waiting"><span><b>We have your screenshot ({s.open.report_number}).</b> {fmt(s.open.amount_cents)} for {coversWords(s.open.covers)}, sent {when(s.open.reported_at)}. We confirm it as soon as it is in the bank and email you.</span></p>
       ) : (
         <>
           {s.declined && <p className="alert alert--warn" role="alert" data-testid="etp-declined"><span><b>We could not find your e-Transfer of {fmt(s.declined.amount_cents)} yet.</b> {s.declined.reason}. Send it again, or upload a clearer screenshot below.</span></p>}
@@ -83,7 +83,7 @@ export function EtransferPay({ s, title = 'Pay by e-Transfer', upload = true, si
           {parts.cashDeposit > 0 && <p className="small" data-testid="etp-cash-deposit">The refundable deposit of {fmt(parts.cashDeposit)} is paid in cash at pickup and given back in cash.</p>}
 
           {parts.total > 0 && s.may_report && (upload ? (
-            <form className="stack etp__form" noValidate aria-labelledby={id('up')} onSubmit={(e) => { e.preventDefault(); if (!why) send(); }} data-testid="etp-form">
+            <form className="stack etp__form" noValidate aria-labelledby={id('up')} onSubmit={(e) => { e.preventDefault(); if (!why) send(); }} data-testid="etp-form" data-guide="etp-form">
               <h4 className="etp__sub" id={id('up')}>Sent it? Upload the screenshot</h4>
               {both && (
                 <fieldset className="etp__choice">
@@ -93,14 +93,14 @@ export function EtransferPay({ s, title = 'Pay by e-Transfer', upload = true, si
                 </fieldset>)}
               <div className="etp__row">
                 <div className="field"><label className="label" htmlFor={id('amt')}>Amount sent ($)</label>
-                  <input className="input num" id={id('amt')} inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} data-testid="etp-amount" /></div>
+                  <input className="input num" id={id('amt')} inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} data-testid="etp-amount" data-guide="etp-amount" /></div>
                 <div className="field"><label className="label" htmlFor={id('who')}>Sent from (optional)</label>
                   <input className="input" id={id('who')} value={sender} onChange={(e) => setSender(e.target.value)} autoComplete="name" placeholder="The name on your bank account" data-testid="etp-sender" /></div>
               </div>
               <div className="field"><label className="label" htmlFor={id('file')}>Screenshot of the e-Transfer</label>
-                <input ref={fileRef} className="input etp__file" id={id('file')} type="file" accept="image/jpeg,image/png,application/pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} data-testid="etp-file" />
+                <input ref={fileRef} className="input etp__file" id={id('file')} type="file" accept="image/jpeg,image/png,application/pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} data-testid="etp-file" data-guide="etp-file" />
                 <p className="hint">A photo or screenshot of the confirmation (JPG, PNG or PDF, up to 10 MB).</p></div>
-              <button className="btn btn--primary btn--lg btn--block etp__go" type="submit" disabled={pending || !!why} aria-busy={pending} title={why ?? undefined} data-testid="etp-send">{pending ? 'Sending' : 'Send the screenshot'}</button>
+              <button className="btn btn--primary btn--lg btn--block etp__go" type="submit" disabled={pending || !!why} aria-busy={pending} title={why ?? undefined} data-testid="etp-send" data-guide="etp-send">{pending ? 'Sending' : 'Send the screenshot'}</button>
               {why && !pending && <p className="small muted" aria-live="polite">{why}.</p>}
             </form>
           ) : (

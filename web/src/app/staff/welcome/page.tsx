@@ -28,7 +28,7 @@ export default async function StaffWelcome() {
   if (ag && ag.state === 'sent' && !ag.waiting_for_academy) href.agreement = signHref(w.portal);
   const label: Record<string, string> = { profile: 'Open your profile', academy: 'Open the academy', agreement: 'Read and sign' };
   return (
-    <section className="stack" data-testid="staff-welcome">
+    <section className="stack" data-testid="staff-welcome" data-guide="staff-welcome">
       <h1 className="d3">Welcome, {w.name}</h1>
       {w.locked && <p className="alert alert--warn" role="status" data-testid="welcome-locked"><span className="alert__title">{w.onboarding_step === 'availability' ? 'When you can work, last' : w.onboarding_step === 'approval' ? 'Waiting for approval' : w.onboarding_step === 'whatsapp' ? 'The WhatsApp groups next' : w.steps.find((s) => s.key === 'agreement')?.done ? 'The academy next' : 'Your agreement first'}</span><span>The rest of your portal opens once you sign your staff agreement, pass the academy, confirm you joined the WhatsApp groups and an Admin or a Fleet VA approves, in that order. Field staff also tick when they can usually work.</span></p>}
       {/* 1154: the academy is always one press away */}
@@ -69,11 +69,11 @@ export default async function StaffWelcome() {
               ? <div><Act ops action="staff_onboarding_ask_again" label="Ask again" variant="primary" refresh={['/staff/welcome']} done="Asked." testId="welcome-ask-again" /></div>
               : <p className="ad-b" data-testid="welcome-waiting-approval">Waiting for approval</p>)}
             {s.key === 'tasks' && !!tasks?.tasks?.length && (
-              <ul className="stack" data-testid="welcome-tasks">{tasks.tasks.map((t) => (
+              <ul className="stack" data-testid="welcome-tasks" data-guide="welcome-tasks">{tasks.tasks.map((t) => (
                 <li key={t.id}><b>{t.title}</b>{t.detail ? <span className="small muted"> {t.detail}</span> : null} {t.done ? <span className="ad-b ad-b--light">Done</span> : <TaskDone id={t.id} title={t.title} />}</li>))}</ul>)}
           </li>))}
       </ol>
-      {!w.locked && <p><Link prefetch={false} className="btn btn--primary" href={w.portal === 'field' ? '/staff/field' : '/staff'} data-testid="welcome-start">Go to your portal</Link></p>}
+      {!w.locked && <p><Link prefetch={false} className="btn btn--primary" href={w.portal === 'field' ? '/staff/field' : '/staff'} data-testid="welcome-start" data-guide="welcome-start">Go to your portal</Link></p>}
     </section>
   );
 }

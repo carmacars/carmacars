@@ -13,8 +13,10 @@
 /** The window event a "Guide me through this" link sends: { flow } */
 export const GUIDE_START_EVENT = 'cc:guide-me';
 
-export type Portal = 'admin' | 'va' | 'field';
-export type Who = 'admin' | 'cs' | 'sales' | 'fleet' | 'finance' | 'field';
+export type Portal = 'admin' | 'va' | 'field' | 'owner' | 'renter' | 'investor' | 'public';
+/** an Admin, a staff function, or a portal's people (owner, renter, investor), or anyone on the public site (visitor) */
+export type Who = 'admin' | 'cs' | 'sales' | 'fleet' | 'finance' | 'field' | 'owner' | 'renter' | 'investor' | 'visitor';
+const STAFF_WHO = ['cs', 'sales', 'fleet', 'finance', 'field'];
 
 /** An element: a data-guide name ("offer-send"), or [data-guide="x"] spelled out with more (a descendant). */
 export type Target = string;
@@ -63,7 +65,7 @@ export interface Flow {
   /** where it starts (a path, {base} allowed), or one per portal; the menu opens it there */
   start: string | Partial<Record<Portal, string>>;
   /** the guide chapter it follows (docs/guides/content/<portal>.json): "Read the guide" opens it */
-  guide?: { portal: 'admin' | 'va' | 'field'; slug: string };
+  guide?: { portal: 'admin' | 'va' | 'field' | 'owner' | 'renter' | 'investor'; slug: string };
   steps: Step[];
 }
 
@@ -148,9 +150,21 @@ export function evaluate(c: Cond, pr: Probe, base: string | null): boolean {
   return false;
 }
 
-/** The flows a person may run: an Admin every flow with "admin"; staff the ones of a function they hold. */
-export function flowsFor(flows: Flow[], o: { admin: boolean; functions: readonly string[] }): Flow[] {
-  return flows.filter((f) => (o.admin && f.who.includes('admin')) || f.who.some((w) => w !== 'admin' && o.functions.includes(w)));
+/** The flows a person may run in a portal: an Admin every flow with "admin"; staff the ones of a function they hold; an
+ *  owner, renter or investor the ones of their portal; anyone the visitor flows (the public site: sign up, book). */
+export function flowsFor(flows: Flow[], o: { admin: boolean; functions: readonly string[]; portal?: Portal }): Flow[] {
+  const p = o.portal;
+  return flows.filter((f) => (o.admin && f.who.includes('admin')) || f.who.some((w) => STAFF_WHO.includes(w) && o.functions.includes(w))
+    || (!!p && ['owner', 'renter', 'investor'].includes(p) && f.who.includes(p as Who)) || ((p === 'public' || p === 'renter') && f.who.includes('visitor')));
+}
+
+/** The help menu's order: the flows of this page first (it starts here, or a step of it is on this page), then the rest. */
+export function pageFirst(flows: Flow[], portal: Portal, path: string, search: string): { here: Flow[]; rest: Flow[] } {
+  const base = baseOf(path) ?? '/staff';
+  const on = (f: Flow) => routeMatches(startFor(f, portal, base).split('?')[0]!, path, '', base)
+    || stepsFor(f, portal).some((s) => !!s.on && routeMatches(s.on, path, search, base));
+  const here = flows.filter(on);
+  return { here, rest: flows.filter((f) => !here.includes(f)) };
 }
 
 /** The page a flow opens on for this portal and base (/admin or /staff). */

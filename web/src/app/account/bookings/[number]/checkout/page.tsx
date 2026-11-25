@@ -124,16 +124,16 @@ export default async function SignAndPayPage({ params, searchParams }: { params:
           <h2 className="sp-left__title" id="sp-left-h">{words.title}</h2>
           <p className="sp-left__text" data-testid="sign-pay-left-text">{words.left}</p>
           {steps.length > 1 && <ChecklistProgress done={steps.filter((x) => x.state === 'done').length} total={steps.length} label="Sign and pay" testId="sign-pay-progress" />}
-          {steps.length > 1 && <ol className="sp-steps" aria-label="Steps" data-testid="sign-pay-steps">{steps.map((x) => <li key={x.label} data-state={x.state} aria-current={x.state === 'now' ? 'step' : undefined}>{x.label}{x.state === 'done' ? <span className="vh"> (done)</span> : null}</li>)}</ol>}
+          {steps.length > 1 && <ol className="sp-steps" aria-label="Steps" data-testid="sign-pay-steps" data-guide="sign-pay-steps">{steps.map((x) => <li key={x.label} data-state={x.state} aria-current={x.state === 'now' ? 'step' : undefined}>{x.label}{x.state === 'done' ? <span className="vh"> (done)</span> : null}</li>)}</ol>}
         </section>
       )}
-      {sp0.signed && paying && <p className="alert alert--ok" role="status" data-testid="sign-pay-signed"><span>Signed. Now pay {due} below to confirm your booking.</span></p>}
+      {sp0.signed && paying && <p className="alert alert--ok" role="status" data-testid="sign-pay-signed" data-guide="sign-pay-signed"><span>Signed. Now pay {due} below to confirm your booking.</span></p>}
       {paying && beforePickup.length > 0 && (
         <p className="alert alert--warn" role="note" data-testid="sign-pay-before-pickup"><span className="alert__title">Upload before pickup</span>
           <span>{beforePickup.join(', ')}. You can pay now; we check them before handing over the car. <Link prefetch={false} className="link" href={bookingPath(b.booking_number, 'verify')} data-testid="sign-pay-upload-now">Upload now</Link></span></p>)}
 
       {/* ---------------------------------------------------------------- 1. sign */}
-      <section className="stack sp-section" id="sign" aria-labelledby="sp-sign-h" data-testid="sign-pay-sign">
+      <section className="stack sp-section" id="sign" aria-labelledby="sp-sign-h" data-testid="sign-pay-sign" data-guide="sign-pay-sign">
         <h2 className="d3" id="sp-sign-h">{steps.length > 1 ? '1. Sign' : 'Sign'}</h2>
         {s.step !== 'sign' ? (
           <div className="pt-card" data-testid="sign-pay-signed-card">
@@ -188,7 +188,7 @@ export default async function SignAndPayPage({ params, searchParams }: { params:
 
       {/* ---------------------------------------------------------------- 2. pay, directly below */}
       {s.pay_after && (
-        <section className={`stack sp-section${paying ? '' : ' sp-locked'}`} id="pay" aria-labelledby="sp-pay-h" data-testid="sign-pay-pay">
+        <section className={`stack sp-section${paying ? '' : ' sp-locked'}`} id="pay" aria-labelledby="sp-pay-h" data-testid="sign-pay-pay" data-guide="sign-pay-pay">
           <h2 className="d3" id="sp-pay-h">2. Pay {due}</h2>
           {!paying ? <p className="pt-card" data-testid="sign-pay-pay-locked">The {cardOff ? 'e-Transfer details open' : 'card form opens'} here as soon as {s.step === 'drivers' ? 'every driver has signed' : 'you sign'}. {depositLine}</p>
             : b.status !== 'pending_payment' && !live ? (

@@ -41,7 +41,7 @@ export function ExtendOffers({ data, children }: { data: ExtOffers; children?: R
   const done = go.res?.ok ? go.res.data : null;
 
   if (done && (done.state === 'paid' || done.state === 'requested')) return (
-    <div className="ext-done" role="status" data-testid="extend-done">
+    <div className="ext-done" role="status" data-testid="extend-done" data-guide="extend-done">
       <p className="ext-done__kicker">{done.state === 'paid' ? 'Extended' : 'Request sent'}</p>
       <p className="ext-done__when">{at(done.newReturnAt)}</p>
       <p className="small">{done.state === 'paid'
@@ -61,7 +61,7 @@ export function ExtendOffers({ data, children }: { data: ExtOffers; children?: R
       )}
       <fieldset className="ext__set">
         <legend className="vh">How much longer do you need?</legend>
-        {data.available_until_text && <p className="small muted ext__until" data-testid="extend-until">{data.available_until_text}</p>}
+        {data.available_until_text && <p className="small muted ext__until" data-testid="extend-until" data-guide="extend-until">{data.available_until_text}</p>}
         {data.per_day_cents ? <p className="small ext__perday" data-testid="extend-per-day">Each added day: <b>{$(data.per_day_cents)}</b>, your booking&apos;s price a day with its fees and HST included. A few hours cost the hourly rate, never more than a day.</p> : null}
         <div className="ext__grid">
           {shown.map((x) => {
@@ -103,7 +103,7 @@ export function ExtendOffers({ data, children }: { data: ExtOffers; children?: R
       )}
       {o?.available && !done && (
         <div className="ext__pay">
-          <button className="btn btn--primary btn--block" type="button" disabled={go.pending} data-testid="extend-pay"
+          <button className="btn btn--primary btn--block" type="button" disabled={go.pending} data-testid="extend-pay" data-guide="extend-pay"
             onClick={() => go.run(() => extendWithOption(data.booking_number, o.code), (r) => { if (!r.ok) return; if (r.data.state === 'link' && r.data.url) window.location.assign(r.data.url); else router.refresh(); })}>
             {go.pending ? 'Working' : data.card ? `Pay ${$(o.total_cents)} with ${brand(data.card.brand)} ending ${data.card.last4}` : `Pay ${$(o.total_cents)} by card`}
           </button>

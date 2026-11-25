@@ -1,0 +1,75 @@
+{
+  "id": "renter-book",
+  "title": "Book a car",
+  "summary": "Dates and place, your details, licence and coverage, then send: instant booking or a request we answer.",
+  "who": [
+    "visitor",
+    "renter"
+  ],
+  "start": {
+    "public": "/cars",
+    "renter": "/cars"
+  },
+  "guide": {
+    "portal": "renter",
+    "slug": "start-here"
+  },
+  "steps": [
+    {
+      "id": "car",
+      "text": "Choose a car on Cars and press Book or Request.",
+      "done": {
+        "route": "/book/*"
+      },
+      "skipIfDone": true,
+      "href": "/cars"
+    },
+    {
+      "id": "when",
+      "target": "book-step-1",
+      "text": "Choose your pickup and return dates and where you get the car, then press Next.",
+      "on": "/book/*",
+      "done": {
+        "exists": "book-step-2"
+      }
+    },
+    {
+      "id": "you",
+      "target": "book-step-2",
+      "text": "Your name, email and mobile (and any other drivers), then Next.",
+      "on": "/book/*",
+      "done": {
+        "exists": "book-step-3"
+      }
+    },
+    {
+      "id": "cover",
+      "target": "book-step-3",
+      "text": "Your licence class, how the car is covered and the booking type, then Next.",
+      "on": "/book/*",
+      "done": {
+        "exists": "book-step-4"
+      }
+    },
+    {
+      "id": "check",
+      "target": "book-step-4",
+      "text": "Check the details, then Next.",
+      "on": "/book/*",
+      "done": {
+        "exists": "book-step-5"
+      }
+    },
+    {
+      "id": "send",
+      "target": "book-submit",
+      "text": "Add a promo code if you have one, then send. An instant car is booked; otherwise we reply with an offer.",
+      "on": "/book/*",
+      "done": {
+        "not": {
+          "route": "/book/*"
+        }
+      }
+    }
+  ]
+}

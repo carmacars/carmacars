@@ -1,0 +1,48 @@
+{
+  "id": "renter-rewards",
+  "title": "Rewards",
+  "summary": "Your tier, your balance, your codes and how to earn more.",
+  "who": [
+    "renter"
+  ],
+  "start": "/account/rewards",
+  "guide": {
+    "portal": "renter",
+    "slug": "start-here"
+  },
+  "steps": [
+    {
+      "id": "tier",
+      "target": "rewards-tier",
+      "text": "Your tier and what it gives you.",
+      "on": "/account/rewards",
+      "href": "/account/rewards"
+    },
+    {
+      "id": "balance",
+      "target": "rewards-balance",
+      "text": "Your rewards balance.",
+      "on": "/account/rewards"
+    },
+    {
+      "id": "redeem",
+      "target": "rewards-redeem",
+      "text": "Redeem your balance for a code to use on your next booking.",
+      "on": "/account/rewards",
+      "page": "rewards-tier",
+      "when": {
+        "exists": "rewards-redeem"
+      }
+    },
+    {
+      "id": "refer",
+      "target": "rewards-referral",
+      "text": "Share your referral link: you both earn when a friend rents.",
+      "on": "/account/rewards",
+      "page": "rewards-tier",
+      "when": {
+        "exists": "rewards-referral"
+      }
+    }
+  ]
+}

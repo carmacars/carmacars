@@ -192,7 +192,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
 
       {showEtDep && etDep && <EtransferPay s={etDep} title="Send the deposit by e-Transfer" />}
       {depOwed?.pending && !showEtDep && (
-        <section className="pu-panel pu-panel--next" aria-labelledby="pt-dep" data-testid="renter-deposit-owed"><h2 className="pu-title" id="pt-dep">Deposit still owed: {money(Number(depOwed.amount_cents ?? b.deposit_cents ?? 0), { cents: true })}</h2>
+        <section className="pu-panel pu-panel--next" aria-labelledby="pt-dep" data-testid="renter-deposit-owed" data-guide="renter-deposit-owed"><h2 className="pu-title" id="pt-dep">Deposit still owed: {money(Number(depOwed.amount_cents ?? b.deposit_cents ?? 0), { cents: true })}</h2>
           <p>You have the car, but the deposit hold is not placed yet. It is a hold on your credit card, not a charge, and it is released after the rental. We try your saved card each morning; if that does not work, we send you a secure link by text or email. Tap the link to place the hold, or call us{phone ? ` at ${phone}` : ''}.</p></section>
       )}
       {balanceDue > 0 && (
@@ -219,7 +219,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
         <div className="pu-stack">
           {walk?.enabled && b.status !== 'closed' && (
             <PortalCard id="pt-walk" title="Your rental, step by step" testId="walk-card"
-              action={<Link prefetch={false} className="btn btn--primary btn--sm" href={bookingPath(b.booking_number, 'walkthrough')} data-testid="walk-open">{(walk.done ?? 0) > 0 ? 'Continue' : 'Start the walkthrough'}</Link>}>
+              action={<Link prefetch={false} className="btn btn--primary btn--sm" href={bookingPath(b.booking_number, 'walkthrough')} data-testid="walk-open" data-guide="walk-open">{(walk.done ?? 0) > 0 ? 'Continue' : 'Start the walkthrough'}</Link>}>
               <div className="pu-ringrow"><ProgressRing value={walk.done ?? 0} max={walk.total ?? 13} size={64} stroke={7} accent title={`${walk.done} of ${walk.total} steps done`} label={`${walk.done}/${walk.total}`} />
                 <span className="pu-ringrow__label"><b>{STAGES.find((x) => x.key === walk.stage)?.title ?? 'Before pickup'}</b>Pickup, the walk-around of the car, the road rules and the return, one step at a time.</span></div>
             </PortalCard>
@@ -263,10 +263,10 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
           )}
           {report && report.km_in !== null && (
             <PortalCard id="pt-return" title="Your return: km and fuel" testId="return-receipt">
-              <p className="small" data-testid="return-receipt-km">{report.km_driven !== null ? `${report.km_driven.toLocaleString('en-CA')} km driven, ${(report.km_allowance ?? 0).toLocaleString('en-CA')} km included${report.km_over > 0 ? `: ${report.km_over.toLocaleString('en-CA')} km over` : ''}.` : ''}
+              <p className="small" data-testid="return-receipt-km" data-guide="return-receipt-km">{report.km_driven !== null ? `${report.km_driven.toLocaleString('en-CA')} km driven, ${(report.km_allowance ?? 0).toLocaleString('en-CA')} km included${report.km_over > 0 ? `: ${report.km_over.toLocaleString('en-CA')} km over` : ''}.` : ''}
                 {report.fuel_out_pct !== null && report.fuel_in_pct !== null ? ` ${report.electric ? 'Charge' : 'Fuel'}: ${report.fuel_short_pct > 0 ? `${Math.max(1, Math.round(report.fuel_short_pct / 12.5))}/8 lower than at pickup` : 'as at pickup'}.` : ''}</p>
               {readingCharges.length > 0
-                ? <dl className="pt-dl pt-dl--money" data-testid="return-receipt-charges">{readingCharges.map((c) => <div key={c.key}><dt>{c.label}</dt><dd>{money(c.amount_cents + c.hst_cents, { cents: true })}</dd></div>)}</dl>
+                ? <dl className="pt-dl pt-dl--money" data-testid="return-receipt-charges" data-guide="return-receipt-charges">{readingCharges.map((c) => <div key={c.key}><dt>{c.label}</dt><dd>{money(c.amount_cents + c.hst_cents, { cents: true })}</dd></div>)}</dl>
                 : <p className="small muted">No extra km or fuel charge.</p>}
               <p><Link prefetch={false} className="link small" href={bookingPath(b.booking_number, 'condition-report')}>The photos, with both dashboard photos</Link></p>
             </PortalCard>

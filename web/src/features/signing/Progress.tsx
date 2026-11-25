@@ -8,7 +8,7 @@ export function SignProgress({ items, title = 'Your documents' }: { items: Progr
   if (!items.length) return null;
   const done = items.filter((i) => i.done).length;
   return (
-    <section className="pt-card stack sg-progress" aria-labelledby="sg-progress-h" data-testid="sign-progress">
+    <section className="pt-card stack sg-progress" aria-labelledby="sg-progress-h" data-testid="sign-progress" data-guide="sign-progress">
       <div className="pt-card__head">
         <h2 className="d4" id="sg-progress-h">{title}</h2>
         <span className={`badge ${done === items.length ? 'badge--outline' : 'badge--red'}`} data-testid="sign-progress-count">{done} of {items.length} signed</span>
@@ -41,7 +41,7 @@ export function SignSummary({ rows, title = 'Check your details', next }: { rows
           <div key={`${r.label}-${n}`}><dt>{r.label}</dt><dd><span>{r.value || 'Not given yet'}</span>{r.fix ? <> <a className="link small" href={r.fix} data-testid="sign-fix">Fix</a></> : null}</dd></div>
         ))}
       </dl>
-      {next ? <p className="small" data-testid="sign-summary-next">{next}</p> : null}
+      {next ? <p className="small" data-testid="sign-summary-next" data-guide="sign-summary-next">{next}</p> : null}
     </section>
   );
 }

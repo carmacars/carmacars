@@ -115,7 +115,7 @@ export function ApplyForm({ role, src, utm, prefill, refToken }: { role: RolePub
   if (done) {
     const w = (done.outcome === 'invited' && done.ai_interview ? OUTCOME_WORDS.interview : OUTCOME_WORDS[done.outcome]) ?? OUTCOME_WORDS.received!;
     return (
-      <section className="stack-lg cr-done" id="apply-done" tabIndex={-1} aria-labelledby="apply-done-h" data-testid="apply-done" data-outcome={done.outcome}>
+      <section className="stack-lg cr-done" id="apply-done" tabIndex={-1} aria-labelledby="apply-done-h" data-testid="apply-done" data-guide="apply-done" data-outcome={done.outcome}>
         <h2 className="d2" id="apply-done-h">{w.h}</h2>
         <p className="lead">{w.p}</p>
         {done.outcome === 'invited' && done.token && (done.ai_interview
@@ -135,7 +135,7 @@ export function ApplyForm({ role, src, utm, prefill, refToken }: { role: RolePub
     </Field>
   );
   return (
-    <form ref={formRef} className="stack-lg cr-form" noValidate onSubmit={submit} aria-labelledby="ap-h" data-testid="apply-form">
+    <form ref={formRef} className="stack-lg cr-form" noValidate onSubmit={submit} aria-labelledby="ap-h" data-testid="apply-form" data-guide="apply-form">
       <h2 className="d3" id="ap-h">Your application</h2>
       {prefill && <p className="alert" data-testid="apply-prefilled"><span>Your details are filled in from your {prefill.from_role} application. Check them, then answer the questions for this role.</span></p>}
       {message && <p className="alert alert--error" role="alert" data-testid="apply-error"><span>{message}</span></p>}
@@ -166,7 +166,7 @@ export function ApplyForm({ role, src, utm, prefill, refToken }: { role: RolePub
         onAccept={() => { payAcked.current = true; if (payNote === 'no' && payYes) answer('pay', payYes); else if (payMax) answer('pay', String(payMax / 100)); setPayNote(null); }}
         onKeep={() => { payAcked.current = true; setPayNote(null); }} />}
       <Turnstile action="job_apply" />
-      <button className="btn btn--primary btn--lg" type="submit" disabled={busy} data-testid="ap-submit">{busy ? 'Sending' : 'Send my application'}</button>
+      <button className="btn btn--primary btn--lg" type="submit" disabled={busy} data-testid="ap-submit" data-guide="ap-submit">{busy ? 'Sending' : 'Send my application'}</button>
       <p className="small muted" aria-live="polite">{saved ? 'Saved on this device as you type. ' : ''}We use your answers only to assess your application; see our <Link className="link" href="/privacy">Privacy policy</Link>.</p>
     </form>
   );

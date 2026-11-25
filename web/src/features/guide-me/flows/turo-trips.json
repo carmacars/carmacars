@@ -1,0 +1,32 @@
+{
+  "id": "turo-trips",
+  "title": "Import Turo trips",
+  "summary": "Import the Turo earnings file so each trip is on the car's money.",
+  "who": [
+    "finance"
+  ],
+  "start": "/staff/turo",
+  "guide": {
+    "portal": "va",
+    "slug": "finance"
+  },
+  "steps": [
+    {
+      "id": "page",
+      "target": "page-head",
+      "text": "Turo trips: the trips imported so far.",
+      "on": "/staff/turo",
+      "href": "/staff/turo"
+    },
+    {
+      "id": "import",
+      "target": "turo-import",
+      "text": "Choose the Turo file and import it.",
+      "on": "/staff/turo",
+      "page": "page-head",
+      "when": {
+        "exists": "turo-import"
+      }
+    }
+  ]
+}

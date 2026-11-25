@@ -109,7 +109,7 @@ export function Card({ title, children, aside, id, testId, tone, guide }: { titl
 /** The page header: kicker, title, what the page is for in one line (purpose), then the page's actions. */
 export function PageHead({ title, kicker, purpose, children }: { title: ReactNode; kicker?: ReactNode; purpose?: ReactNode; children?: ReactNode }) {
   return (
-    <header className="ad-head">
+    <header className="ad-head" data-guide="page-head">
       <div className="ad-head__text">{kicker && <p className="pt-kicker">{kicker}</p>}<h1 className="d3">{title}</h1>{purpose && <p className="small muted ad-head__purpose">{purpose}</p>}</div>
       {children && <div className="ad-head__actions">{children}</div>}
     </header>

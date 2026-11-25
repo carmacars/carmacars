@@ -25,7 +25,7 @@ export function HoursBoard({ data, base, extra = '' }: { data: PayData; base: st
   const nav = (date: string) => `${base}?${extra}date=${date}`;
   return (
     <>
-      <p className="small" data-testid="period-nav">
+      <p className="small" data-testid="period-nav" data-guide="period-nav">
         <Link prefetch={false} className="link" href={nav(data.period.prev)}>Earlier period</Link>{' · '}<b>{data.period.label}</b>{data.period.ended ? ' (ended)' : ' (current)'}
         {data.period.next ? <>{' · '}<Link prefetch={false} className="link" href={nav(data.period.next)}>Later period</Link></> : null}
       </p>

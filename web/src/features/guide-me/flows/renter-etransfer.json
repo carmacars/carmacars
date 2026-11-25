@@ -1,0 +1,65 @@
+{
+  "id": "renter-etransfer",
+  "title": "Pay by e-Transfer",
+  "summary": "Send the e-Transfer with your booking number as the message, then upload the screenshot.",
+  "who": [
+    "renter"
+  ],
+  "start": "/account",
+  "guide": {
+    "portal": "renter",
+    "slug": "start-here"
+  },
+  "steps": [
+    {
+      "id": "open",
+      "text": "Open your booking's Sign and pay page.",
+      "done": {
+        "exists": "etransfer-pay"
+      },
+      "skipIfDone": true,
+      "href": "/account"
+    },
+    {
+      "id": "facts",
+      "target": "etransfer-pay",
+      "text": "Send the exact amount to the email shown, with your booking number as the message."
+    },
+    {
+      "id": "amount",
+      "target": "etp-amount",
+      "text": "Type the amount you sent.",
+      "page": "etransfer-pay",
+      "when": {
+        "exists": "etp-amount"
+      },
+      "done": {
+        "filled": "etp-amount"
+      }
+    },
+    {
+      "id": "proof",
+      "target": "etp-file",
+      "text": "Add the screenshot of the e-Transfer.",
+      "page": "etransfer-pay",
+      "when": {
+        "exists": "etp-file"
+      },
+      "done": {
+        "filled": "etp-file"
+      }
+    },
+    {
+      "id": "send",
+      "target": "etp-send",
+      "text": "Press Send. We check it and email you once it is confirmed.",
+      "page": "etransfer-pay",
+      "when": {
+        "exists": "etp-send"
+      },
+      "done": {
+        "exists": "etp-waiting"
+      }
+    }
+  ]
+}

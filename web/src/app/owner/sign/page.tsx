@@ -188,7 +188,7 @@ function PreviewPage({ facts: f, docs, items }: { facts: OwnerAgreementFacts; do
       <div className="pt-split">
         <div className="stack-lg">
           <SignSummary rows={rows} title="What we filled in" />
-          <section className="stack sg-docs" id="ow-preview" aria-labelledby="sg-preview-h" data-testid="owner-preview-docs">
+          <section className="stack sg-docs" id="ow-preview" aria-labelledby="sg-preview-h" data-testid="owner-preview-docs" data-guide="owner-preview-docs">
             <h2 className="d4" id="sg-preview-h">The documents ({docs.length})</h2>
             <p className="small muted">The full text of each, word for word, as you will sign it. Values still to be set read {PENDING.toLowerCase()}.</p>
             {docs.map((d) => <details key={d.key}><summary>{d.title}</summary><AgreementView blocks={d.blocks} id={`ow-preview-${d.key}`} label={`${d.title}, preview`} /></details>)}
@@ -197,7 +197,7 @@ function PreviewPage({ facts: f, docs, items }: { facts: OwnerAgreementFacts; do
         <aside className="pt-split__aside">
           <section className="pt-card stack" aria-labelledby="ow-sign"><h2 className="d4" id="ow-sign">Sign</h2>
             <p className="small">{PREVIEW_NOTICE} We email you when they are ready.</p>
-            <><button type="button" className="btn btn--primary" disabled aria-disabled="true" data-testid="owner-preview-sign" aria-describedby="why-page-199">Sign after approval</button><WhyDisabled id="why-page-199" why={((true)) ? 'Signing opens once CarmaCars has approved the documents: we email you' : null} /></>
+            <><button type="button" className="btn btn--primary" disabled aria-disabled="true" data-testid="owner-preview-sign" data-guide="owner-preview-sign" aria-describedby="why-page-199">Sign after approval</button><WhyDisabled id="why-page-199" why={((true)) ? 'Signing opens once CarmaCars has approved the documents: we email you' : null} /></>
             <Link prefetch={false} className="link small" href="/owner/documents">Documents</Link>
           </section>
         </aside>

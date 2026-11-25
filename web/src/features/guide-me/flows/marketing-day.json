@@ -1,0 +1,57 @@
+{
+  "id": "marketing-day",
+  "title": "Marketing: your posts",
+  "summary": "The cars to post, what is due and the social queue.",
+  "who": [
+    "admin",
+    "sales"
+  ],
+  "start": "{base}/marketing",
+  "guide": {
+    "portal": "va",
+    "slug": "marketing-on-facebook-marketplace"
+  },
+  "steps": [
+    {
+      "id": "mine",
+      "target": "mk-mine",
+      "text": "Your cars to post today.",
+      "on": "{base}/marketing",
+      "href": "{base}/marketing",
+      "page": "page-head",
+      "when": {
+        "exists": "mk-mine"
+      }
+    },
+    {
+      "id": "due",
+      "target": "mk-due",
+      "text": "Posts due: renew them before they expire.",
+      "on": "{base}/marketing",
+      "page": "page-head",
+      "when": {
+        "exists": "mk-due"
+      }
+    },
+    {
+      "id": "queue",
+      "target": "social-queue",
+      "text": "The social queue: what goes out and when.",
+      "on": "{base}/marketing",
+      "page": "page-head",
+      "when": {
+        "exists": "social-queue"
+      }
+    },
+    {
+      "id": "add",
+      "target": "sq-add",
+      "text": "Add a post: the channel, when, the caption and the video, then Add.",
+      "on": "{base}/marketing",
+      "page": "page-head",
+      "when": {
+        "exists": "sq-add"
+      }
+    }
+  ]
+}

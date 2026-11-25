@@ -1,0 +1,56 @@
+{
+  "id": "field-shifts",
+  "title": "Claim and manage shifts",
+  "summary": "Your week, open shifts to claim, and your availability.",
+  "who": [
+    "field"
+  ],
+  "start": "/staff/field/shifts",
+  "guide": {
+    "portal": "field",
+    "slug": "my-hours-and-pay"
+  },
+  "steps": [
+    {
+      "id": "week",
+      "target": "shift-week",
+      "text": "Your week: the shifts you have.",
+      "on": "/staff/field/shifts",
+      "href": "/staff/field/shifts",
+      "page": "page-head",
+      "when": {
+        "exists": "shift-week"
+      }
+    },
+    {
+      "id": "open",
+      "target": "open-shift",
+      "text": "An open shift: claim it.",
+      "on": "/staff/field/shifts",
+      "page": "page-head",
+      "when": {
+        "exists": "open-shift"
+      }
+    },
+    {
+      "id": "availability",
+      "target": "shifts-availability",
+      "text": "When you can work: keep it up to date.",
+      "on": "/staff/field/shifts",
+      "page": "page-head",
+      "when": {
+        "exists": "shifts-availability"
+      }
+    },
+    {
+      "id": "owed",
+      "target": "owed-to-you",
+      "text": "Owed to you: expenses to be paid back.",
+      "on": "/staff/field/shifts",
+      "page": "page-head",
+      "when": {
+        "exists": "owed-to-you"
+      }
+    }
+  ]
+}

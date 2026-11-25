@@ -23,7 +23,7 @@ export function Back({ href, children }: { href: string; children: ReactNode }) 
 export function TripRow({ b, photo }: { b: BookingSummary; photo: Photo | null }) {
   return (
     <li>
-      <Link className="pt-trip" href={bookingPath(b.booking_number)} data-testid="trip-row">
+      <Link className="pt-trip" href={bookingPath(b.booking_number)} data-testid="trip-row" data-guide="trip-row">
         <div className="pt-trip__img"><CarImage p={photo} alt="" sizes="104px" width={300} height={200} /></div>
         <div className="pt-trip__body">
           <div className="row" style={{ gap: 'var(--s-2)' }}><StatusBadge s={b.status} /><span className="xs muted">{b.booking_number}</span></div>

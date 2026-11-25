@@ -1,0 +1,28 @@
+{
+  "id": "investor-statements",
+  "title": "Your statements",
+  "summary": "Each statement of your investment.",
+  "who": [
+    "investor"
+  ],
+  "start": "/investor/documents",
+  "guide": {
+    "portal": "investor",
+    "slug": "start-here"
+  },
+  "steps": [
+    {
+      "id": "tabs",
+      "target": "portal-tabs",
+      "text": "Documents opens on Statements.",
+      "on": "/investor/documents",
+      "href": "/investor/documents"
+    },
+    {
+      "id": "statements",
+      "target": "tab-statements",
+      "text": "Each statement: open it to read or download.",
+      "on": "/investor/documents"
+    }
+  ]
+}

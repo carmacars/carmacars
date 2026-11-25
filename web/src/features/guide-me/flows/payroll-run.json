@@ -1,0 +1,52 @@
+{
+  "id": "payroll-run",
+  "title": "Run payroll",
+  "summary": "Check the period's hours and pay, then prepare the run.",
+  "who": [
+    "finance"
+  ],
+  "start": "/staff/payroll",
+  "guide": {
+    "portal": "va",
+    "slug": "finance"
+  },
+  "steps": [
+    {
+      "id": "period",
+      "target": "period-nav",
+      "text": "Choose the pay period.",
+      "on": "/staff/payroll",
+      "href": "/staff/payroll"
+    },
+    {
+      "id": "total",
+      "target": "pay-total",
+      "text": "Check each person's hours and the total to pay.",
+      "on": "/staff/payroll",
+      "page": "page-head",
+      "when": {
+        "exists": "pay-total"
+      }
+    },
+    {
+      "id": "owed",
+      "target": "reimbursements",
+      "text": "Reimbursements owed: pay back what staff spent of their own money.",
+      "on": "/staff/payroll",
+      "page": "page-head",
+      "when": {
+        "exists": "reimbursements"
+      }
+    },
+    {
+      "id": "run",
+      "target": "run-prepared",
+      "text": "Once prepared, the run shows what was sent.",
+      "on": "/staff/payroll",
+      "page": "page-head",
+      "when": {
+        "exists": "run-prepared"
+      }
+    }
+  ]
+}

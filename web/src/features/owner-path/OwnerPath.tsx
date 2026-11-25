@@ -10,11 +10,11 @@ export function OwnerPathCard({ status }: { status: SignStatus | null }) {
   if (!p || !p.current) return null;
   const c = p.current;
   return (
-    <section className="pt-card pt-card--next stack op" aria-labelledby="op-h" data-testid="owner-path" data-step={c.code}>
+    <section className="pt-card pt-card--next stack op" aria-labelledby="op-h" data-testid="owner-path" data-guide="owner-path" data-step={c.code}>
       <p className="pt-kicker">Step {p.done + 1} of {p.steps.length}</p>
       <h2 className="d3" id="op-h">{c.label}</h2>
       <p className="op-note">{c.note}</p>
-      {c.action && <p><Link prefetch={false} className="btn btn--primary btn--lg op-cta" href={c.action.href} data-testid="owner-path-cta">{c.action.label}</Link></p>}
+      {c.action && <p><Link prefetch={false} className="btn btn--primary btn--lg op-cta" href={c.action.href} data-testid="owner-path-cta" data-guide="owner-path-cta">{c.action.label}</Link></p>}
       <ol className="ob-steps op-steps" aria-label="Your steps with CarmaCars">
         {p.steps.map((s, i) => (
           <li key={s.code} className={`ob-step op-step ob-step--${s.state === 'done' ? 'done' : s.state === 'current' ? 'waiting' : 'blocked'}`} data-testid="owner-path-step" data-step={s.code} data-state={s.state}

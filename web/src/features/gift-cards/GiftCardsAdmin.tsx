@@ -60,7 +60,7 @@ export function GiftCardsAdmin({ data, base, history, sp }: { data: GiftAdminDat
         </section>)}
       <Table<R> testId="gift-cards" rows={data.rows as R[]} empty="No gift cards yet. A card sold on /gift-cards, or a voucher you issue, shows here."
         cols={[{ key: 'created_at', label: 'Made', render: (r) => t(r.paid_at ?? r.created_at) },
-          { key: 'code_last4', label: 'Card', render: (r) => <Link prefetch={false} className="link" href={`${base}${base.includes('?') ? '&' : '?'}card=${r.id}`} data-testid="gift-open">{r.kind_label} {r.code_last4}</Link> },
+          { key: 'code_last4', label: 'Card', render: (r) => <Link prefetch={false} className="link" href={`${base}${base.includes('?') ? '&' : '?'}card=${r.id}`} data-testid="gift-open" data-guide="gift-open">{r.kind_label} {r.code_last4}</Link> },
           { key: 'recipient_name', label: 'For', className: 'wrap', render: (r) => <>{r.recipient_name}{r.recipient_email ? <><br /><span className="small muted">{r.recipient_email}</span></> : null}</> },
           { key: 'buyer_name', label: 'From', className: 'wrap' },
           { key: 'initial_cents', label: 'Amount', num: true, render: (r) => $(r.initial_cents) },

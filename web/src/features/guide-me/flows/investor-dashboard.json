@@ -1,0 +1,32 @@
+{
+  "id": "investor-dashboard",
+  "title": "Your dashboard",
+  "summary": "What you invested, the schedule and the live sheets.",
+  "who": [
+    "investor"
+  ],
+  "start": "/investor",
+  "guide": {
+    "portal": "investor",
+    "slug": "start-here"
+  },
+  "steps": [
+    {
+      "id": "invested",
+      "target": "investment",
+      "text": "Your investment and the amount invested.",
+      "on": "/investor",
+      "href": "/investor"
+    },
+    {
+      "id": "schedule",
+      "target": "investor-schedule",
+      "text": "The payment schedule.",
+      "on": "/investor",
+      "page": "page-head",
+      "when": {
+        "exists": "investor-schedule"
+      }
+    }
+  ]
+}

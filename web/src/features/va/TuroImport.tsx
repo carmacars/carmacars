@@ -23,7 +23,7 @@ export function TuroImport() {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
   return (
-    <form className="ad-form" data-testid="turo-import" onSubmit={(e) => { e.preventDefault(); start(async () => {
+    <form className="ad-form" data-testid="turo-import" data-guide="turo-import" onSubmit={(e) => { e.preventDefault(); start(async () => {
       const rows = parse(text).map((r) => ({ turo_trip_ref: r.trip_ref, plate: r.plate, starts_at: r.start ? new Date(r.start).toISOString() : null, ends_at: r.end ? new Date(r.end).toISOString() : null,
         gross_cents: cents(r.gross), turo_fees_cents: cents(r.turo_fees), company_extras_cents: cents(r.extras), damage_payment_cents: cents(r.damage) }));
       if (!rows.length) { setMsg({ ok: false, text: 'Paste the CSV first.' }); return; }

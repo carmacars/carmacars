@@ -1,0 +1,50 @@
+{
+  "id": "leads-follow-up",
+  "title": "Follow up a lead",
+  "summary": "Open a lead, text or call them, and note what happened.",
+  "who": [
+    "admin",
+    "sales",
+    "cs"
+  ],
+  "start": "{base}/leads",
+  "guide": {
+    "portal": "va",
+    "slug": "sales"
+  },
+  "steps": [
+    {
+      "id": "page",
+      "target": "page-head",
+      "text": "Leads: the newest and the hottest first.",
+      "on": "{base}/leads",
+      "href": "{base}/leads"
+    },
+    {
+      "id": "text",
+      "target": "quo-body",
+      "text": "Type the text to the lead.",
+      "on": "{base}/leads",
+      "page": "page-head",
+      "when": {
+        "exists": "quo-body"
+      },
+      "done": {
+        "filled": "quo-body"
+      }
+    },
+    {
+      "id": "send",
+      "target": "quo-send",
+      "text": "Press Send: it goes from the CarmaCars number.",
+      "on": "{base}/leads",
+      "page": "page-head",
+      "when": {
+        "exists": "quo-send"
+      },
+      "done": {
+        "exists": "quo-sent"
+      }
+    }
+  ]
+}

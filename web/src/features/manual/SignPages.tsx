@@ -49,7 +49,7 @@ export async function SignList({ userId, base, embedded = false }: { userId: str
           <div className="stack-lg">
             <SignSummary rows={summary} next="All correct? Sign in the Sign box below. Something wrong? Tap Fix, or call us before you sign." />
             <section className="pt-card stack" aria-labelledby="sg-open"><h2 className="d4" id="sg-open">The documents ({open.length})</h2>
-              <ul className="ow-rows" data-testid="sign-open">{open.map((x) => (
+              <ul className="ow-rows" data-testid="sign-open" data-guide="sign-open">{open.map((x) => (
                 <li key={x.id}><span><b>{x.title}</b>{x.agreement_number ? `, ${x.agreement_number}` : ''}</span>
                   <span className="ow-meta"><a className="link" href={`/sign-document/${x.document_id}`} target="_blank" rel="noreferrer" data-testid="sign-read">Read the PDF</a></span></li>))}</ul>
               <p className="small muted">Questions before you sign? Reply to the email it came with, or call us.</p></section>
@@ -68,7 +68,7 @@ export async function SignList({ userId, base, embedded = false }: { userId: str
         </div>
       )}
       <section className="stack" aria-labelledby="sg-done"><h2 className="pt-section-title" id="sg-done">Signed</h2>
-        {r.signed.length ? <ul className="ow-rows" data-testid="sign-done">{r.signed.map((x) => (
+        {r.signed.length ? <ul className="ow-rows" data-testid="sign-done" data-guide="sign-done">{r.signed.map((x) => (
           <li key={x.id}><span><b>{x.title}</b></span><span className="ow-meta"><span>Signed {x.method === 'paper' ? 'on paper' : 'here'} on {day(x.signed_on)}</span>{x.awaiting_countersignature && <span data-testid="awaiting-countersignature">Awaiting countersignature by CarmaCars</span>}
             {(x.signed_document_id ?? x.document_id) && <a className="link" href={`/sign-document/${x.signed_document_id ?? x.document_id}`}>{x.method === 'paper' ? 'Scan' : 'Signed copy'}</a>}</span></li>))}</ul>
           : <p className="pt-empty muted">Nothing signed yet.</p>}
@@ -90,7 +90,7 @@ export async function SignOne({ userId, base, id }: { userId: string; base: stri
     <div className="stack-lg">
       <p><Link prefetch={false} className="link" href={base}>Documents to sign</Link></p>
       <header className="stack"><h1 className="d2">{f.title}</h1>{f.agreement_number && <p className="muted">Agreement {f.agreement_number}</p>}
-        {f.status === 'sent' && <p data-testid="sign-one-next">Check your details below, then sign at the bottom of the page. You do not need to type anything in the details.</p>}</header>
+        {f.status === 'sent' && <p data-testid="sign-one-next" data-guide="sign-one-next">Check your details below, then sign at the bottom of the page. You do not need to type anything in the details.</p>}</header>
       {f.status === 'signed' ? (
         <section className="ow-status ow-status--paid" data-testid="sign-one-signed"><h2 className="d3">Signed</h2>
           <p>Signed {f.method === 'paper' ? 'on paper' : 'here'}{f.signed_at ? ` on ${day(f.signed_at)}` : ''}.</p>

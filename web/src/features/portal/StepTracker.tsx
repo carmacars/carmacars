@@ -66,7 +66,7 @@ export function StepTracker({ number, stages, todos = [], testId = 'step-tracker
               <span>
                 {t.label}
                 <small>{t.state}{t.reason ? `: ${t.reason}` : ''}</small>
-                {t.href && t.cta && <Link prefetch={false} className="btn btn--ghost btn--sm" style={{ marginTop: 'var(--s-1)' }} href={t.href} data-testid="todo-action">{t.cta}</Link>}
+                {t.href && t.cta && <Link prefetch={false} className="btn btn--ghost btn--sm" style={{ marginTop: 'var(--s-1)' }} href={t.href} data-testid="todo-action" data-guide="todo-action">{t.cta}</Link>}
               </span>
             </li>
           ))}

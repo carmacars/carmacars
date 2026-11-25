@@ -1,0 +1,67 @@
+{
+  "id": "renter-sign-pay",
+  "title": "Sign and pay",
+  "summary": "Read and sign the rental agreement, then pay by card or e-Transfer.",
+  "who": [
+    "renter"
+  ],
+  "start": "/account",
+  "guide": {
+    "portal": "renter",
+    "slug": "start-here"
+  },
+  "steps": [
+    {
+      "id": "open",
+      "target": "todo-action",
+      "text": "Open your booking and press Sign and pay.",
+      "done": {
+        "route": "/account/bookings/*/checkout"
+      },
+      "skipIfDone": true,
+      "href": "/account"
+    },
+    {
+      "id": "steps",
+      "target": "sign-pay-steps",
+      "text": "Sign and pay shows what is left: sign first, then pay.",
+      "on": "/account/bookings/*/checkout"
+    },
+    {
+      "id": "consent",
+      "target": "consents-all",
+      "text": "Read the agreement and tick each box.",
+      "on": "/account/bookings/*/checkout",
+      "page": "sign-pay-steps",
+      "when": {
+        "exists": "consents-all"
+      },
+      "done": {
+        "checked": "consents-all"
+      }
+    },
+    {
+      "id": "sign",
+      "target": "rental-sign",
+      "text": "Sign with your name and press Sign.",
+      "on": "/account/bookings/*/checkout",
+      "page": "sign-pay-steps",
+      "when": {
+        "exists": "rental-sign"
+      },
+      "done": {
+        "exists": "sign-pay-signed"
+      }
+    },
+    {
+      "id": "pay",
+      "target": "sign-pay-pay",
+      "text": "Pay the amount shown by card. Card payments paused? Pay by e-Transfer below.",
+      "on": "/account/bookings/*/checkout",
+      "page": "sign-pay-steps",
+      "when": {
+        "exists": "sign-pay-pay"
+      }
+    }
+  ]
+}

@@ -1,4 +1,4 @@
--- 99: Guide me (migration 3950): the preference (off by default), a run from start to completed or exited, one active run
+-- 99: Guide me (migrations 3950, 4100): the preference (off by default), a run from start to completed or exited, one active run
 -- a person, only staff and Admins, the Admin's report (completion per staff member, the drop-off step), row-level
 -- security and the audit trail. Fixtures "g50".
 select test.suite('99 r50 guide me: preference, runs, report, access');
@@ -39,11 +39,15 @@ select test.eq('another person''s run cannot be moved', public.guide_me_do(test.
 select test.eq('field staff run their own', (public.guide_me_do(test.id('g50_field'), '{"op":"start","flow":"field-expense","portal":"field","total":7,"step":"add"}') ->> 'ok'), 'true');
 
 -- ---------------------------------------------------------------- refused
-select test.throws('a renter is not staff', $$ select public.guide_me_do(test.id('g50_renter'), '{"op":"pref","on":true}') $$, 'Guide me is for staff');
-select test.eq('a renter has no state', public.guide_me_state(test.id('g50_renter')), null::jsonb);
+select test.throws('someone not signed up is refused', $$ select public.guide_me_do('00000000-0000-4000-8000-000000000000', '{"op":"pref","on":true}') $$, 'Guide me is for staff');
+select test.eq('nor has a state', public.guide_me_state('00000000-0000-4000-8000-000000000000'), null::jsonb);
+-- 4100: renters, owners and investors keep it on and record their runs too
+select test.eq('a renter keeps it on', public.guide_me_do(test.id('g50_renter'), '{"op":"pref","on":true}') ->> 'on', 'true');
+select test.eq('a renter''s run, in the renter portal', (public.guide_me_do(test.id('g50_renter'), '{"op":"start","flow":"renter-sign-pay","portal":"renter","total":5,"step":"open"}') ->> 'ok'), 'true');
+select test.eq('an investor portal run is allowed', (select count(*) from pg_constraint where conname = 'guide_me_runs_portal_check' and pg_get_constraintdef(oid) like '%investor%'), 1::bigint);
 select test.throws('an unknown operation', $$ select public.guide_me_do(test.id('g50_cs'), '{"op":"wipe"}') $$, 'Unknown Guide me operation');
 select test.throws('a workflow id that is not one', $$ select public.guide_me_do(test.id('g50_cs'), '{"op":"start","flow":"Bad Flow!","portal":"va","total":3}') $$, 'Not a Guide me event');
-select test.throws('a portal that is not one', $$ select public.guide_me_do(test.id('g50_cs'), '{"op":"start","flow":"create-offer","portal":"owner","total":3}') $$, 'Not a Guide me event');
+select test.throws('a portal that is not one', $$ select public.guide_me_do(test.id('g50_cs'), '{"op":"start","flow":"create-offer","portal":"nowhere","total":3}') $$, 'Not a Guide me event');
 select test.throws('an end that is not one', $$ select public.guide_me_do(test.id('g50_cs'), jsonb_build_object('op', 'end', 'run', (select v from g50 where k = 'c'), 'status', 'deleted')) $$);
 
 -- ---------------------------------------------------------------- the Admin's report

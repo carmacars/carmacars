@@ -1,0 +1,45 @@
+{
+  "id": "renter-deposit",
+  "title": "Your deposit back",
+  "summary": "When the deposit is released, how much and when.",
+  "who": [
+    "renter"
+  ],
+  "start": "/account",
+  "guide": {
+    "portal": "renter",
+    "slug": "start-here"
+  },
+  "steps": [
+    {
+      "id": "booking",
+      "target": "trip-row",
+      "text": "Open the booking you returned.",
+      "done": {
+        "route": "/account/bookings/*"
+      },
+      "skipIfDone": true,
+      "href": "/account"
+    },
+    {
+      "id": "owed",
+      "target": "renter-deposit-owed",
+      "text": "A deposit still owed is shown here: pay it from the booking.",
+      "on": "/account/bookings/*",
+      "page": "page-head",
+      "when": {
+        "exists": "renter-deposit-owed"
+      }
+    },
+    {
+      "id": "charges",
+      "target": "return-receipt-charges",
+      "text": "Any charges after the return are listed with their reason; the rest of the deposit comes back the way you paid it.",
+      "on": "/account/bookings/*",
+      "page": "page-head",
+      "when": {
+        "exists": "return-receipt-charges"
+      }
+    }
+  ]
+}

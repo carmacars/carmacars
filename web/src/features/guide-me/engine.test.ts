@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { back, canNext, currentStep, evaluate, flowsFor, next, place, progress, routeMatches, selectorOf, skip, startFor, startRun, stepsFor, sync, type Cond, type Flow, type Probe } from './engine.ts';
+import { pageFirst, back, canNext, currentStep, evaluate, flowsFor, next, place, progress, routeMatches, selectorOf, skip, startFor, startRun, stepsFor, sync, type Cond, type Flow, type Probe } from './engine.ts';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, '..', '..', '..', '..');
@@ -149,19 +149,19 @@ const known = (t: string) => literal.has(t) || prefixes.some((p) => t.startsWith
 const targetsOf = (c: Cond | undefined): string[] => !c ? [] : 'all' in c ? c.all.flatMap(targetsOf) : 'any' in c ? c.any.flatMap(targetsOf) : 'not' in c ? targetsOf(c.not) : 'route' in c ? [] : [Object.values(c)[0] as string];
 
 test('every step file is whole: unique ids, an instruction, known portals and functions', () => {
-  assert.ok(FLOWS.length >= 7);
+  assert.ok(FLOWS.length >= 40, 'every portal has its workflows');
   assert.equal(new Set(FLOWS.map((f) => f.id)).size, FLOWS.length);
   for (const f of FLOWS) {
     assert.match(f.id, /^[a-z0-9-]{2,60}$/);
     assert.ok(f.title && f.summary && f.steps.length >= 2 && f.steps.length <= 60, f.id);
-    assert.ok(f.who.every((w) => ['admin', 'cs', 'sales', 'fleet', 'finance', 'field'].includes(w)), f.id);
+    assert.ok(f.who.every((w) => ['admin', 'cs', 'sales', 'fleet', 'finance', 'field', 'owner', 'renter', 'investor', 'visitor'].includes(w)), f.id);
     assert.equal(new Set(f.steps.map((s) => s.id)).size, f.steps.length, `${f.id}: step ids`);
     for (const s of f.steps) {
       assert.match(s.id, /^[a-z0-9-]{1,60}$/);
       assert.ok(s.text.length >= 8 && s.text.length <= 220, `${f.id}/${s.id}: one short instruction`);
-      assert.ok(!s.only || s.only.every((p) => ['admin', 'va', 'field'].includes(p)), `${f.id}/${s.id}: only`);
+      assert.ok(!s.only || s.only.every((p) => ['admin', 'va', 'field', 'owner', 'renter', 'investor', 'public'].includes(p)), `${f.id}/${s.id}: only`);
     }
-    for (const p of ['admin', 'va', 'field'] as const) {
+    for (const p of ['admin', 'va', 'field', 'owner', 'renter', 'investor', 'public'] as const) {
       if (!stepsFor(f, p).length) continue;
       assert.ok(startFor(f, p, p === 'admin' ? '/admin' : '/staff').startsWith('/'), `${f.id}: starts somewhere for ${p}`);
     }
@@ -183,4 +183,22 @@ test('every workflow follows a published guide chapter (the wording is not dupli
     const g = JSON.parse(readFileSync(join(ROOT, 'docs', 'guides', 'content', `${f.guide!.portal}.json`), 'utf8')) as { sections: Array<{ slug: string }> };
     assert.ok(g.sections.some((s) => s.slug === f.guide!.slug), `${f.id}: ${f.guide!.portal}/${f.guide!.slug} exists`);
   }
+});
+
+test('owners, renters, investors and visitors see their own workflows; the help menu lists this page first', () => {
+  const ids = (o: Parameters<typeof flowsFor>[1]) => flowsFor(FLOWS, o).map((f) => f.id);
+  const renter = ids({ admin: false, functions: [], portal: 'renter' });
+  assert.ok(renter.includes('renter-sign-pay') && renter.includes('renter-signup') && !renter.includes('create-offer') && !renter.includes('owner-money'));
+  const owner = ids({ admin: false, functions: [], portal: 'owner' });
+  assert.ok(owner.includes('owner-money') && !owner.includes('renter-rewards') && !owner.includes('renter-signup'));
+  const pub = ids({ admin: false, functions: [], portal: 'public' });
+  assert.ok(pub.includes('renter-signup') && pub.includes('renter-book') && pub.includes('owner-apply') && !pub.includes('renter-rewards'));
+  assert.ok(ids({ admin: false, functions: [], portal: 'investor' }).every((f) => f.startsWith('investor-')));
+  assert.equal(flowsFor(FLOWS, { admin: false, functions: ['finance'], portal: 'va' }).some((f) => !f.who.includes('finance')), false, 'staff do not see the renter or owner walkthroughs');
+  // every staff function and every portal has workflows
+  for (const fn of ['cs', 'sales', 'fleet', 'finance', 'field']) assert.ok(ids({ admin: false, functions: [fn], portal: fn === 'field' ? 'field' : 'va' }).length >= 4, fn);
+  const g = pageFirst(flowsFor(FLOWS, { admin: false, functions: [], portal: 'owner' }), 'owner', '/owner/money', '');
+  assert.ok(g.here.some((f) => f.id === 'owner-money'), 'the page\'s own workflow first');
+  assert.ok(!g.rest.some((f) => f.id === 'owner-money'));
+  assert.equal(g.here.length + g.rest.length, flowsFor(FLOWS, { admin: false, functions: [], portal: 'owner' }).length);
 });

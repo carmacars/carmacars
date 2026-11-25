@@ -1,0 +1,44 @@
+{
+  "id": "investor-documents",
+  "title": "Documents to sign",
+  "summary": "Read and sign what is waiting, then find your files.",
+  "who": [
+    "investor"
+  ],
+  "start": "/investor/documents?tab=sign",
+  "guide": {
+    "portal": "investor",
+    "slug": "start-here"
+  },
+  "steps": [
+    {
+      "id": "open",
+      "target": "tab-sign",
+      "text": "Open Documents to sign.",
+      "href": "/investor/documents?tab=sign",
+      "done": {
+        "route": "/investor/documents?tab=sign"
+      },
+      "skipIfDone": true
+    },
+    {
+      "id": "sign",
+      "target": "sign-open",
+      "text": "Open a document, read it and sign.",
+      "on": "/investor/documents",
+      "page": "portal-tabs",
+      "when": {
+        "exists": "sign-open"
+      },
+      "done": {
+        "exists": "sign-done"
+      }
+    },
+    {
+      "id": "files",
+      "target": "tab-files",
+      "text": "Your signed files are under Your files.",
+      "on": "/investor/documents"
+    }
+  ]
+}

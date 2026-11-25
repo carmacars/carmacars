@@ -1,0 +1,42 @@
+{
+  "id": "apply-job",
+  "title": "Apply for a job",
+  "summary": "Answer the questions about the role and send the application.",
+  "who": [
+    "visitor"
+  ],
+  "start": {
+    "public": "/careers"
+  },
+  "guide": {
+    "portal": "va",
+    "slug": "shared-tools"
+  },
+  "steps": [
+    {
+      "id": "role",
+      "target": "role-apply",
+      "text": "Choose a role on Careers and press Apply now.",
+      "done": {
+        "route": "/careers/*/apply"
+      },
+      "skipIfDone": true,
+      "href": "/careers"
+    },
+    {
+      "id": "form",
+      "target": "apply-form",
+      "text": "Answer each question: about five minutes.",
+      "on": "/careers/*/apply"
+    },
+    {
+      "id": "send",
+      "target": "ap-submit",
+      "text": "Press the button to send your application.",
+      "on": "/careers/*/apply",
+      "done": {
+        "exists": "apply-done"
+      }
+    }
+  ]
+}

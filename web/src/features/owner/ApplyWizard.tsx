@@ -233,7 +233,7 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile, fleetOnFile
 
   if (done) {
     return (
-      <div className="pt-card pt-card--next" tabIndex={-1} ref={top} data-testid="apply-done">
+      <div className="pt-card pt-card--next" tabIndex={-1} ref={top} data-testid="apply-done" data-guide="apply-done">
         <p className="pt-kicker">{done.accountOnly ? 'Owner account' : 'Application'} {done.applicationNumber}</p>
         <h2 className="d2">{done.accountOnly ? 'Your owner account is open' : 'Application received'}</h2>
         {done.accountOnly ? <p data-testid="apply-account-only">Add your first car from your owner portal whenever you are ready. We will also be in touch to help.</p>
@@ -270,12 +270,12 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile, fleetOnFile
             <p className="muted" id="ap-start-h">So we can save your progress and send your quote. We keep your details private.</p>
             {s.calc?.estimate_cents ? <p className="pt-note" data-testid="apply-calc">Your estimate: about {money(s.calc.estimate_cents)} a month{s.calc.make ? ` for your ${[s.calc.year, s.calc.make, s.calc.model].filter(Boolean).join(' ')}` : ''}. We confirm it with your terms.</p> : null}
             <div className="field-row">
-              <Field id="ap-s-first" label="First name" err={errs.first_name}><input className="input" {...aria('ap-s-first', errs.first_name)} value={o.first_name} onChange={(e) => { setOwner({ first_name: e.target.value }); clearErr('first_name'); }} autoComplete="given-name" data-testid="apply-first" /></Field>
-              <Field id="ap-s-last" label="Last name" err={errs.last_name}><input className="input" {...aria('ap-s-last', errs.last_name)} value={o.last_name} onChange={(e) => { setOwner({ last_name: e.target.value }); clearErr('last_name'); }} autoComplete="family-name" data-testid="apply-last" /></Field>
+              <Field id="ap-s-first" label="First name" err={errs.first_name}><input className="input" {...aria('ap-s-first', errs.first_name)} value={o.first_name} onChange={(e) => { setOwner({ first_name: e.target.value }); clearErr('first_name'); }} autoComplete="given-name" data-testid="apply-first" data-guide="apply-first" /></Field>
+              <Field id="ap-s-last" label="Last name" err={errs.last_name}><input className="input" {...aria('ap-s-last', errs.last_name)} value={o.last_name} onChange={(e) => { setOwner({ last_name: e.target.value }); clearErr('last_name'); }} autoComplete="family-name" data-testid="apply-last" data-guide="apply-last" /></Field>
             </div>
             <div className="field-row">
-              <Field id="ap-s-phone" label="Mobile" err={errs.phone}><input className="input" type="tel" inputMode="tel" {...aria('ap-s-phone', errs.phone)} value={o.phone} onChange={(e) => { setOwner({ phone: e.target.value }); clearErr('phone'); }} autoComplete="tel" data-testid="apply-phone" /></Field>
-              <Field id="ap-s-email" label="Email" err={errs.email}><input className="input" type="email" inputMode="email" {...aria('ap-s-email', errs.email)} value={o.email} onChange={(e) => { setOwner({ email: e.target.value }); setResumeEmail(e.target.value); clearErr('email'); }} autoComplete="email" readOnly={signedIn && !!o.email} data-testid="apply-email" /></Field>
+              <Field id="ap-s-phone" label="Mobile" err={errs.phone}><input className="input" type="tel" inputMode="tel" {...aria('ap-s-phone', errs.phone)} value={o.phone} onChange={(e) => { setOwner({ phone: e.target.value }); clearErr('phone'); }} autoComplete="tel" data-testid="apply-phone" data-guide="apply-phone" /></Field>
+              <Field id="ap-s-email" label="Email" err={errs.email}><input className="input" type="email" inputMode="email" {...aria('ap-s-email', errs.email)} value={o.email} onChange={(e) => { setOwner({ email: e.target.value }); setResumeEmail(e.target.value); clearErr('email'); }} autoComplete="email" readOnly={signedIn && !!o.email} data-testid="apply-email" data-guide="apply-email" /></Field>
             </div>
             <fieldset className="stack" style={{ border: 0, padding: 0, margin: 0 }}>
               <legend className="label">Your car</legend>
@@ -294,7 +294,7 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile, fleetOnFile
               )}
             </fieldset>
             <CaptureNote reply={cap.reply} next="/list-your-car/apply" />
-            <div className="ow-actions"><span /><span className="row"><button className="btn btn--quiet" type="button" onClick={() => begin(true)} data-testid="apply-start-later">Add my car later</button><button className="btn btn--primary btn--lg" type="button" onClick={() => begin()} data-testid="apply-start-next">Continue</button></span></div>
+            <div className="ow-actions"><span /><span className="row"><button className="btn btn--quiet" type="button" onClick={() => begin(true)} data-testid="apply-start-later">Add my car later</button><button className="btn btn--primary btn--lg" type="button" onClick={() => begin()} data-testid="apply-start-next" data-guide="apply-start-next">Continue</button></span></div>
           </section>);
       })()}
 
@@ -389,7 +389,7 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile, fleetOnFile
                   setVinMsg((m) => ({ ...m, [v.key]: '' }));
                 }} note="Take a photo of the vehicle portion of your Ontario permit, flat and in good light: the VIN, plate and colour fill in for you to check. Bring the permit itself to the handover." />}
                 <Field id={id('vin')} label="VIN" err={e('vin')} hint={vinMsg[v.key] || vinMessage(vinState(v.vin)) || 'On the ownership permit and the driver\'s door frame. Your car\'s details come from it.'}>
-                  <div className="ow-vin"><input className="input vin-input" {...aria(id('vin'), e('vin'), 'hint')} value={v.vin} onChange={(ev) => { set({ vin: ev.target.value.toUpperCase(), ...(cleanVin(ev.target.value) !== cleanVin(v.vin) ? { decoded: false } : {}) }, 'vin'); setVinMsg((m) => ({ ...m, [v.key]: '' })); }} autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={24} data-testid="apply-vin" /></div>
+                  <div className="ow-vin"><input className="input vin-input" {...aria(id('vin'), e('vin'), 'hint')} value={v.vin} onChange={(ev) => { set({ vin: ev.target.value.toUpperCase(), ...(cleanVin(ev.target.value) !== cleanVin(v.vin) ? { decoded: false } : {}) }, 'vin'); setVinMsg((m) => ({ ...m, [v.key]: '' })); }} autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={24} data-testid="apply-vin" data-guide="apply-vin" /></div>
                   <VinScan prefix="apply" compact onVin={(vin) => set({ vin, decoded: false }, 'vin')} />
                 </Field>
                 {v.decoded && !v.editing ? (
