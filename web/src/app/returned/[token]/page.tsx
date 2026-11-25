@@ -33,6 +33,7 @@ export default async function Returned({ params }: { params: Promise<{ token: st
         </>) : (<>
           <h1 className="d2">I&apos;ve returned the car</h1>
           <p className="lead">Booking {c.number}, the {c.car ?? 'car'}, was due back {when(c.return_at)}{c.return_place ? ` at ${c.return_place}` : ''}. Tell us it is back: the late notices stop at once while we check.</p>
+          {c.status === 'confirmed' && <p className="alert alert--info" role="note" data-testid="returned-pickup-not-recorded"><span>We never recorded your pickup. That is fine: sending this records the pickup at your booked time and your return together. Documents we are still checking, the deposit or anything owed never stop a return: we sort them out with you afterwards.</span></p>}
           {c.claim?.status === 'denied' && <p className="alert alert--warn" role="status"><span>We could not confirm your last report{c.claim.decision_note ? `: ${c.claim.decision_note}` : ''}. Send it again once the car is back.</span></p>}
           <ReturnedForm token={token} />
           <p className="small muted">Not back yet? Return it now or extend in your booking. The late notices go on until the car is back.</p>

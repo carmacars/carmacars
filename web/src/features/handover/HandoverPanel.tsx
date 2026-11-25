@@ -5,6 +5,7 @@ import { door } from '@/server/door';
 import { lateLabel } from './late';
 import { handoverPanelView, SIGNING_STATUSES } from './panel';
 import { ReturnClaimCard } from './ReturnClaimCard';
+import { pickupNotRecorded } from '@/features/returns/claim';
 import { SendSigningLink } from './SendSigningLink';
 import type { SigningState } from './types';
 import { HandoverOneScreen } from './HandoverOneScreen';
@@ -37,7 +38,7 @@ function recordFields(kind: 'pickup' | 'return'): Field[] {
 }
 
 export async function HandoverPanel({ b, base, userId, aal, canHandover, canSign }: {
-  b: { id: string; booking_number: string; status: string; return_at: string; checked_in_at?: string | null; minutes_late?: number | null; handed_over_at?: string | null };
+  b: { id: string; booking_number: string; status: string; return_at: string; checked_in_at?: string | null; minutes_late?: number | null; handed_over_at?: string | null; pickup_at?: string | null };
   base: string; userId: string; aal?: 'aal1' | 'aal2' | null; canHandover: boolean; canSign: boolean;
 }) {
   const signing = canSign && (SIGNING_STATUSES as readonly string[]).includes(b.status)
@@ -66,6 +67,11 @@ export async function HandoverPanel({ b, base, userId, aal, canHandover, canSign
           {v.addDetails.map((k) => <Act key={k} ops action="handover_open" payload={{ booking: b.id, kind: k }} label={`Add the ${k === 'pickup' ? 'check-in' : 'check-out'} photos and readings`} variant="primary" go={`${base}/handover/{job}`} testId={`add-details-${k}`} />)}
           {v.recordPickup && <Act ops action="handover_record_now" payload={{ booking: b.id, kind: 'pickup' }} label="Record the pickup now (details later)" testId="record-pickup-now" refresh={[base]}
             done="Pickup recorded. Fleet has a task to add the photos and readings." fields={recordFields('pickup')} />}
+          {/* 4730: the renter has the car but the pickup was never recorded: one tap, at the booked time (audited; what is
+              still owed becomes a To do), so the return is never stuck */}
+          {v.recordPickup && b.pickup_at && pickupNotRecorded({ status: b.status, pickup_at: b.pickup_at, handed_over_at: b.handed_over_at }) && <Act ops action="pickup_record_booked_time" payload={{ booking: b.id }}
+            label="Record pickup at the booked time" testId="record-pickup-booked-time" refresh={[base]}
+            done="Pickup recorded at the booked time. Fleet has a To do with anything still owed or to review." />}
           {v.recordPickup && <Act ops action="deposit_pending_allow" payload={{ booking: b.id }} label="Deposit not taken: let the car go owing it" testId="deposit-pending-allow" refresh={[base]}
             done="Done. The check-in can go ahead with the deposit owed; the renter is asked for it each morning."
             fields={[{ name: 'reason', label: 'Why the car goes before the deposit is taken', type: 'text', required: true, wide: true }]} />}

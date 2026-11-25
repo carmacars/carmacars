@@ -37440,6 +37440,7 @@ export type Database = {
       server_return_claim_submit: { Args: { p_token: string; p: Json; p_user?: string }; Returns: Json };
       server_return_claim_submit_pre0545: { Args: { p_token: string; p: Json; p_user?: string }; Returns: Json };
       server_return_claim_submit_pre0910: { Args: { p_token: string; p: Json; p_user?: string }; Returns: Json };
+      server_return_claim_submit_pre4730: { Args: { p_token: string; p: Json; p_user?: string }; Returns: Json };
       server_return_link: { Args: { p_booking: string; p_user: string }; Returns: string };
       server_review_google_sync_begin: { Args: never; Returns: Json };
       server_review_google_sync_finish: { Args: { p: Json }; Returns: Json };

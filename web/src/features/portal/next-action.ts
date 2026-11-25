@@ -33,6 +33,7 @@ const kindOf = (b: BookingSummary, step: NextStep): ActionKind => {
   if (h.endsWith('/offer')) return 'offer';
   if (h.endsWith('/checkout')) return 'sign-pay';
   if (h.endsWith('/verify')) return 'verify';
+  if (h.endsWith('/returned')) return 'return';
   if (b.status === 'on_rent') return 'return';
   if (b.status === 'confirmed') return 'pickup';
   if (b.status === 'requested' || b.status === 'returned') return 'wait';
@@ -55,7 +56,9 @@ export function nextAction(b: BookingSummary, step: NextStep, opts: {
   let out: RenterNow = base;
 
   // the database's checklist: the first thing still to send, when nothing more urgent comes first
-  const need = !step.urgent && balance === 0 && opts.needs
+  // 4730: a car out with its pickup never recorded: the return comes first; nothing still needed blocks it
+  const outUnrecorded = b.status === 'confirmed' && !b.handed_over_at && new Date(b.pickup_at).getTime() <= now;
+  const need = !step.urgent && balance === 0 && !outUnrecorded && opts.needs
     ? orderNeeds(opts.needs.items).find((i) => (i.status === 'missing' || i.status === 'rejected') && i.action) : undefined;
   if (need?.action) {
     kind = 'verify';
@@ -86,6 +89,7 @@ export function nextAction(b: BookingSummary, step: NextStep, opts: {
 
   let dl: Deadline | null = null;
   if (b.status === 'offered') dl = deadline('Offer ends', b.offer_expires_at, now, 'The offer ended {t} ago');
+  else if (outUnrecorded) dl = deadline('Return', b.return_at, now, 'Return was due {t} ago');
   else if (['pending_payment', 'confirmed'].includes(b.status) && !b.handed_over_at) dl = deadline('Pickup', b.pickup_at, now);
   else if (b.status === 'on_rent') dl = deadline('Return', b.return_at, now, 'Return was due {t} ago');
   // a late return or an offer about to end is urgent even when the step itself is not

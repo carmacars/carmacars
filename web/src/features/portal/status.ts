@@ -46,8 +46,13 @@ export function nextStep(b: BookingSummary | MyBooking, now = Date.now()): NextS
         const sp = signPayStep(b, path);
         if (sp) return { ...sp, note: `Your rental is booked. ${sp.note} Do it before pickup.` };
       }
-      const missing = full?.readiness?.missing ?? [];
-      if (full && (missing.includes('identity') || missing.includes('coverage'))) return { title: 'Upload your licence', note: 'Licence photos, a selfie and proof of coverage are needed before pickup.', href: path('verify'), cta: 'Upload documents', urgent: true };
+      // 4730: the pickup time passed and no pickup was recorded: the renter has the car. The return is never blocked by
+      // documents (they gate the pickup, not the return), so the next step is the return, not an upload.
+      if (!b.handed_over_at && new Date(b.pickup_at).getTime() <= now) {
+        return { title: `Return by ${when(b.return_at)}`, note: 'Returning the car? Tell us here with your photos, km and fuel. Documents still being checked never stop a return.', href: path('returned'), cta: 'Return the car' };
+      }
+      const docs = full ? documentsStep(full.readiness) : null;
+      if (docs) return { ...docs, href: path('verify') };
       const soon = new Date(b.pickup_at).getTime() - now < 36 * 3600e3;
       return { title: soon ? `Pickup ${when(b.pickup_at)}` : 'You are all set', note: soon ? 'Bring your original licence and the card you paid with.' : `Pickup ${when(b.pickup_at)}.`, href: path(), cta: 'Pickup details' };
     }
@@ -63,6 +68,24 @@ export function nextStep(b: BookingSummary | MyBooking, now = Date.now()): NextS
     case 'expired': return { title: 'Offer expired', note: 'Call or message us and we will send it again.', href: path(), cta: 'View booking' };
     default: return { title: STATUS[b.status].label, note: STATUS[b.status].blurb, href: path(), cta: 'View booking' };
   }
+}
+
+/**
+ * 4730: what the renter still has to give before pickup, in plain words: only what is genuinely missing. A licence sent
+ * and being checked (or approved on an earlier booking) is never asked for again.
+ */
+export function documentsStep(r: MyBooking['readiness'] | null | undefined): Omit<NextStep, 'href'> | null {
+  const missing = r?.missing ?? [];
+  const idState = typeof r?.identity_state === 'string' ? r.identity_state : missing.includes('identity') ? 'missing' : 'verified';
+  const needLicence = missing.includes('identity') && idState === 'missing';
+  const coverageWaiting = r?.coverage_waiting === true;
+  const needCoverage = missing.includes('coverage') && !coverageWaiting;
+  if (needLicence && needCoverage) return { title: 'Upload your licence and proof of coverage', note: 'Licence photos, a selfie and proof of coverage are needed before pickup.', cta: 'Upload documents', urgent: true };
+  if (needLicence) return { title: 'Upload your licence', note: 'Licence photos and a selfie are needed before pickup.', cta: 'Upload documents', urgent: true };
+  if (needCoverage) return { title: 'Add your proof of coverage', note: idState === 'in_review' ? 'Your licence is being checked. Proof of coverage is still needed before pickup.' : 'Your licence is approved. Proof of coverage is still needed before pickup.', cta: 'Add coverage', urgent: true };
+  if (missing.includes('identity') && idState === 'in_review') return { title: 'Your licence is being checked', note: 'You sent everything we need. We check it before pickup; nothing more to do for now.', cta: 'See documents' };
+  if (missing.includes('coverage') && coverageWaiting) return { title: 'Your coverage is being checked', note: 'You sent your proof of coverage. We check it before pickup.', cta: 'See documents' };
+  return null;
 }
 
 /** The Sign and pay step from the one rule (0750): one card, one button, the page that does both. */

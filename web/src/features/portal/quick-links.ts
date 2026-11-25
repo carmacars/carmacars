@@ -2,13 +2,17 @@
 // the request on, the proof of coverage after approval (pending payment, confirmed, or a rental added already underway).
 export interface QuickLink { key: 'licence' | 'insurance' | 'card_coverage'; label: string; href: string }
 
-export function quickLinks(b: { booking_number: string; status: string; added_mode?: string | null; coverage_confirmed_at?: string | null; missing?: string[] | null },
+export function quickLinks(b: { booking_number: string; status: string; added_mode?: string | null; coverage_confirmed_at?: string | null; missing?: string[] | null;
+  readiness?: Record<string, unknown> | null },
   licenceMissing: boolean): QuickLink[] {
   const verify = `/account/bookings/${encodeURIComponent(b.booking_number)}/verify`;
   const licenceTime = ['requested', 'offered', 'pending_payment', 'confirmed'].includes(b.status) || (b.status === 'on_rent' && b.added_mode === 'in_progress');
   const coverageTime = ['pending_payment', 'confirmed'].includes(b.status) || (b.status === 'on_rent' && b.added_mode === 'in_progress');
   const out: QuickLink[] = [];
-  if (licenceTime && (licenceMissing || (b.missing ?? []).includes('identity'))) out.push({ key: 'licence', label: 'Upload your licence', href: verify });
+  // 4730: a licence sent and being checked, or approved on an earlier booking, is not asked for again
+  const idState = b.readiness?.identity_state;
+  const licenceAsked = licenceMissing || ((b.missing ?? []).includes('identity') && idState !== 'in_review' && idState !== 'verified');
+  if (licenceTime && licenceAsked) out.push({ key: 'licence', label: 'Upload your licence', href: verify });
   if (coverageTime && !b.coverage_confirmed_at && (b.missing ?? ['coverage']).includes('coverage')) {
     out.push({ key: 'insurance', label: 'Upload proof of insurance', href: `${verify}#pt-cov` });
     out.push({ key: 'card_coverage', label: 'Check if your credit card covers rentals', href: '/credit-card-rental-coverage' });

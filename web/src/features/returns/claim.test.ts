@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { claimPayload, claimPhotoKey, fuelLabel, MAX_PHOTOS, MAX_PICKED_PHOTOS, reportNote } from './claim.ts';
+import { claimPayload, claimPhotoKey, fuelLabel, MAX_PHOTOS, MAX_PICKED_PHOTOS, pickupNotRecorded, reportNote, returnReportable } from './claim.ts';
 
 const now = new Date('2026-11-06T15:00:00Z');
 
@@ -43,4 +43,15 @@ test('a report with a missing reading is still sent: the note says staff will co
   assert.match(reportNote(null), /completed at once/);
   assert.equal(MAX_PICKED_PHOTOS + 2, MAX_PHOTOS);
   assert.ok(claimPayload({ photos: Array.from({ length: MAX_PHOTOS }, (_, i) => ({ bucket: 'condition-photos', path: String(i) })) }, now).ok);
+});
+
+test('4730: the return is offered on a car out whose pickup was never recorded, never before the pickup time', () => {
+  const before = '2026-11-06T16:00:00Z', after = '2026-11-06T14:00:00Z', back = '2026-11-08T15:00:00Z';
+  assert.equal(returnReportable('on_rent', back, now), true);
+  assert.equal(returnReportable('confirmed', back, now, after, null), true);
+  assert.equal(returnReportable('confirmed', back, now, before, null), false);
+  assert.equal(returnReportable('confirmed', back, now, after, after), false);
+  assert.equal(returnReportable('pending_payment', back, now, after, null), false);
+  assert.equal(pickupNotRecorded({ status: 'confirmed', pickup_at: after, handed_over_at: null }, now), true);
+  assert.equal(pickupNotRecorded({ status: 'confirmed', pickup_at: before }, now), false);
 });

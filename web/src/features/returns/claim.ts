@@ -55,10 +55,17 @@ export function fuelLabel(pct: number | null | undefined): string {
 }
 
 /** The renter's booking page offers "I've returned the car" (the self checkout) while the car is out (0545). */
-export function returnReportable(status: string, returnAt: string, now: Date = new Date()): boolean {
-  // 0545: the renter's own checkout, any time while the car is out (it was the late window only)
-  void returnAt; void now;
-  return status === 'on_rent';
+// 4730: also a car the renter has whose pickup was never recorded (still confirmed after the pickup time): the return
+// records the pickup at the booked time. Documents, the deposit, the agreement and money owed never block the return.
+export function returnReportable(status: string, returnAt: string, now: Date = new Date(), pickupAt?: string | null, handedOverAt?: string | null): boolean {
+  void returnAt;
+  if (status === 'on_rent') return true;
+  return status === 'confirmed' && !handedOverAt && !!pickupAt && new Date(pickupAt).getTime() <= now.getTime();
+}
+
+/** 4730: confirmed, the pickup time passed and no pickup recorded: the renter most likely has the car. */
+export function pickupNotRecorded(b: { status: string; pickup_at: string; handed_over_at?: string | null }, now: Date = new Date()): boolean {
+  return b.status === 'confirmed' && !b.handed_over_at && new Date(b.pickup_at).getTime() <= now.getTime();
 }
 
 /** 0545: the renter's own check-in is offered from 24 hours before the pickup, once the offer is approved. */
