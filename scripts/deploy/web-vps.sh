@@ -156,7 +156,7 @@ has_cert() { # hostname: a certificate a browser trusts for it, 30 days or more 
 tls_diag() { # hostname: what Caddy loaded and logged about its certificate (no secret in any of it)
   local h="${1%% *}"
   vps_ssh "set +e; S=/opt/carmacars/supabase
-    echo \"[tls] Caddyfile imports the site folder: \$(sudo grep -c '^import sites/' \$S/caddy/Caddyfile)\"
+    echo \"[tls] Caddyfile imports the site folder (host, container): \$(sudo grep -c '^import sites/' \$S/caddy/Caddyfile), \$(sudo docker exec supabase-caddy grep -c '^import sites/' /etc/caddy/Caddyfile)\"
     echo \"[tls] hosts in Caddy's running config: \$(sudo docker exec supabase-caddy wget -qO- http://localhost:2019/config/apps/http/servers 2>/dev/null | jq -rc '[.. | .host? // empty | .[]] | unique | join(\" \")')\"
     echo | timeout 10 openssl s_client -connect 127.0.0.1:443 -servername '$h' 2>&1 | grep -E '^(subject|issuer)=|Verify return code|alert' | sed 's/^/[tls] /'
     sudo docker logs supabase-caddy --since 40m 2>&1 | grep -vF 'http.log.access' | grep -iE 'tls|acme|certificate|$h' | tail -30 | cut -c1-600" || true
