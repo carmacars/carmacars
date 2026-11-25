@@ -60,7 +60,7 @@ test('the shared pop-ups fit a phone in the Admin, staff and renter portals (375
   const people = await Promise.all([mkUser(sql, 'admin'), mkUser(sql, 'va'), mkUser(sql, 'renter')]);
   try {
     const [admin, staff, renter] = people;
-    const shared = [{ open: 'whats-new-link', panel: 'whats-new' }, { open: 'bug-report-open', panel: 'bug-report-dialog' }, { open: 'assistant-open', panel: 'assistant-panel' }];
+    const shared = [{ open: 'whats-new-link', panel: 'whats-new' }, { open: 'bug-report-open', panel: 'bug-report-dialog' }, { open: 'assistant-open', panel: 'assistant-panel' }, { open: 'guide-me-open', panel: 'guide-me-menu' }];
     const a = await phonePage(browser); await signIn(a, admin!.email, '/admin'); await sweep(a, '/admin', shared);
     // What's new and Report a bug must be there in the Admin portal (the others may lack a release note for the portal)
     await expect(a.getByTestId('whats-new-link')).toBeVisible();

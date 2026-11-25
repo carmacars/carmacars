@@ -1,4 +1,5 @@
 'use client';
+import { GuideMeLink } from '@/features/guide-me/GuideMeLink';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { money } from '@/lib/format';
@@ -158,10 +159,10 @@ export function BookingMoney({ m, lines = [], totalCents, waived = false, rental
       { key: 'status', label: 'Status', render: (r) => (r.voided ? 'Voided' : words(STATUS, r.status)) },
       { key: 'reference', label: 'Reference', render: (r) => String(r.reference ?? '') },
       { key: 'receipt', label: 'Receipt', render: (r) => (r.method !== 'card' && r.status === 'succeeded' ? <button className="btn btn--quiet btn--sm" type="button" onClick={() => print(r as unknown as Money['payments'][number])}>Print</button> : null) }]} />);
-  const note = (at: 'rental' | 'deposit') => msg && msg.at === at ? <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'} data-testid={`bm-message-${at}`}><span>{msg.text}</span></p> : null;
+  const note = (at: 'rental' | 'deposit') => msg && msg.at === at ? <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'} data-testid={`bm-message-${at}`} data-guide={msg.ok ? 'pay-done' : undefined}><span>{msg.text}</span></p> : null;
   const channelFields = (name: string, value: string, set: (v: string) => void, opts: Array<[string, string]>) => (
     <div className="field ad-field ad-field--wide"><span className="label">How</span>
-      {opts.map(([v, x]) => <label key={v} className="check" htmlFor={`${name}-${v}`}><input type="radio" id={`${name}-${v}`} name={name} checked={value === v} onChange={() => set(v)} data-testid={`${name}-${v}`} /> <span>{x}</span></label>)}</div>);
+      {opts.map(([v, x]) => <label key={v} className="check" htmlFor={`${name}-${v}`}><input type="radio" id={`${name}-${v}`} name={name} checked={value === v} onChange={() => set(v)} data-testid={`${name}-${v}`} data-guide={`${name}-${v}`} /> <span>{x}</span></label>)}</div>);
 
   // the rental: the card on file, a link, this device, or a payment received another way (never the deposit)
   const collectRental = () => run(async () => {
@@ -256,7 +257,8 @@ export function BookingMoney({ m, lines = [], totalCents, waived = false, rental
   });
 
   return (
-    <section className="stack" aria-label="Money" data-testid="booking-money">
+    <section className="stack" aria-label="Money" data-testid="booking-money" data-guide="booking-money">
+      {may.record && <p className="gm-links"><GuideMeLink flow="record-payment" label="Guide me: record a payment" /></p>}
       <div className="bm-strip" data-testid="bm-strip">
         <div><span className="bm-strip__k">Rental due</span><b className="bm-strip__v" data-testid="bm-strip-rental">{fmt(due)}</b>{later > 0 && <span className="small muted"> + {fmt(later)} later charges</span>}</div>
         <div><span className="bm-strip__k">Deposit</span><b className="bm-strip__v" data-testid="bm-strip-deposit">{word}</b>{word !== 'No deposit' && <span className="small muted"> {fmt(depAmount)}</span>}</div>
@@ -286,7 +288,7 @@ export function BookingMoney({ m, lines = [], totalCents, waived = false, rental
             {later > 0 && <div><dt>Later charges open</dt><dd>{fmt(later)}</dd></div>}
           </dl>
           <div className="ad-actions">
-            {due > 0 && (may.record || may.collect || may.charge) && <button className="btn btn--primary btn--sm" type="button" aria-expanded={open === 'rcollect'} onClick={() => toggle('rcollect')} data-testid="bm-rental-collect">Collect {fmt(due)} rental</button>}
+            {due > 0 && (may.record || may.collect || may.charge) && <button className="btn btn--primary btn--sm" type="button" aria-expanded={open === 'rcollect'} onClick={() => toggle('rcollect')} data-testid="bm-rental-collect" data-guide="pay-collect">Collect {fmt(due)} rental</button>}
             {afterReturn && (may.charge || may.record || may.collect || may.hold) && <button className="btn btn--primary btn--sm" type="button" aria-expanded={open === 'charge'} onClick={() => toggle('charge')} data-testid="bm-charge-open">Charge the renter</button>}
             {!afterReturn && (may.charge || may.record) && <button className="btn btn--ghost btn--sm" type="button" aria-expanded={open === 'later'} onClick={() => toggle('later')} data-testid="bm-later-open">A later charge</button>}
             {may.collect && <button className="btn btn--quiet btn--sm" type="button" disabled={pending} data-testid="bm-save-card" onClick={() => run(async () => {
@@ -294,7 +296,7 @@ export function BookingMoney({ m, lines = [], totalCents, waived = false, rental
           </div>
           <p className="small muted">Card on file: {m.card ? `${m.card.brand} ending ${m.card.last4}` : 'none'}.</p>
           {open === 'rcollect' && (
-            <form className="ad-form ad-form--narrow" aria-label="Collect the rental" data-testid="bm-rcollect" onSubmit={(e) => { e.preventDefault(); collectRental(); }}>
+            <form className="ad-form ad-form--narrow" aria-label="Collect the rental" data-testid="bm-rcollect" data-guide="pay-form" onSubmit={(e) => { e.preventDefault(); collectRental(); }}>
               <div className="ad-fields">
                 {channelFields('bm-rhow', rc.how, (v) => setRc({ ...rc, how: v as typeof rc.how }), [
                   ...(m.card && may.charge ? [['saved', `The card on file (${m.card.brand} ending ${m.card.last4})`] as [string, string]] : []),
@@ -306,15 +308,15 @@ export function BookingMoney({ m, lines = [], totalCents, waived = false, rental
                 <div className="field ad-field"><label className="label" htmlFor="bm-ramount">Amount ($)</label><input className="input" id="bm-ramount" inputMode="decimal" value={rc.amount} onChange={(e) => setRc({ ...rc, amount: e.target.value })} placeholder={(openPart(rc.covers) / 100).toFixed(2)} data-testid="bm-ramount" /></div>
                 {rc.how === 'record' && <>
                   <div className="field ad-field"><label className="label" htmlFor="bm-rmethod">Paid by</label>
-                    <select className="select" id="bm-rmethod" value={rc.method} onChange={(e) => setRc({ ...rc, method: e.target.value })} data-testid="bm-rmethod">
+                    <select className="select" id="bm-rmethod" value={rc.method} onChange={(e) => setRc({ ...rc, method: e.target.value })} data-testid="bm-rmethod" data-guide="pay-method">
                       {['e_transfer', 'cash', 'cheque', 'bank_transfer', 'platform_payout', 'insurer', 'other'].map((x) => <option key={x} value={x}>{METHOD[x]}</option>)}</select></div>
-                  <div className="field ad-field"><label className="label" htmlFor="bm-rref">Reference{['e_transfer', 'cheque', 'bank_transfer'].includes(rc.method) ? '' : ' (optional)'}</label><input className="input" id="bm-rref" value={rc.reference} onChange={(e) => setRc({ ...rc, reference: e.target.value })} data-testid="bm-rref" /></div>
+                  <div className="field ad-field"><label className="label" htmlFor="bm-rref">Reference{['e_transfer', 'cheque', 'bank_transfer'].includes(rc.method) ? '' : ' (optional)'}</label><input className="input" id="bm-rref" value={rc.reference} onChange={(e) => setRc({ ...rc, reference: e.target.value })} data-testid="bm-rref" data-guide="pay-reference" /></div>
                   <div className="field ad-field"><label className="label" htmlFor="bm-ron">Received on</label><DateInput className="input" id="bm-ron" type="date" value={rc.received_on} max={today()} onChange={(e) => setRc({ ...rc, received_on: e.target.value })} /></div>
                   <div className="field ad-field"><label className="label" htmlFor="bm-rnote">Note{rc.method === 'other' ? '' : ' (optional)'}</label><input className="input" id="bm-rnote" value={rc.note} onChange={(e) => setRc({ ...rc, note: e.target.value })} /></div></>}
               </div>
               {['text'].includes(rc.how) && m.renter_has_mobile === false && <p className="small ad-flag" role="note">No mobile number for this renter: send the link by email or open it on this device.</p>}
               <p className="hint">{m.moto ? 'Typing a card the renter reads out (phone order) is on: use On this device.' : 'Staff never type a card number: the renter types it in Stripe\'s form.'} The deposit is not touched.</p>
-              <button className="btn btn--primary btn--sm" type="submit" disabled={pending} data-testid="bm-rcollect-go">{pending ? 'Working' : rc.how === 'saved' ? 'Charge the rental' : rc.how === 'record' ? 'Record the rental payment' : rc.how === 'device' ? 'Open the card form' : 'Send the rental link'}</button>
+              <button className="btn btn--primary btn--sm" type="submit" disabled={pending} data-testid="bm-rcollect-go" data-guide="pay-go">{pending ? 'Working' : rc.how === 'saved' ? 'Charge the rental' : rc.how === 'record' ? 'Record the rental payment' : rc.how === 'device' ? 'Open the card form' : 'Send the rental link'}</button>
             </form>)}
           {open === 'charge' && (
             <form className="ad-form ad-form--narrow" aria-label="Charge the renter" data-testid="bm-charge" onSubmit={(e) => { e.preventDefault(); chargeRenter(); }}>

@@ -1,3 +1,4 @@
+import { GuideMeLink } from '@/features/guide-me/GuideMeLink';
 import Link from '@/components/Link';
 import { MissingHandovers } from '@/features/handover/MissingHandovers';
 import { requestNow } from '@/features/va/lanes';
@@ -56,6 +57,7 @@ export default async function FieldToday({ searchParams }: { searchParams: Promi
         <h1>{tomorrow ? 'Tomorrow' : `Today${first ? `, ${first}` : ''}`}</h1>
         <p>{dateText(t.day)}</p>
       </header>
+      <p className="gm-links" data-testid="field-guide-me"><GuideMeLink flow="pickup-handover" label="Guide me: a pickup" /><GuideMeLink flow="return-deposit" label="Guide me: a return" /><GuideMeLink flow="field-expense" label="Guide me: an expense" /></p>
       {t.failed && <p className="error" role="alert" data-testid="today-failed">Your work list did not load. Pull down or <Link prefetch={false} className="link" href="/staff/field">try again</Link> in a moment.</p>}
       <TeamGroupCard userId={user.id} refresh="/staff/field" />
       {/* r44 (2815): past check-ins and check-outs still missing their photos and readings */}

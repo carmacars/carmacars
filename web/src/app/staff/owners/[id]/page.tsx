@@ -1,3 +1,4 @@
+import { GuideMeLink } from '@/features/guide-me/GuideMeLink';
 import Link from '@/components/Link';
 import { ContactButtons } from '@/features/phone/QuoButtons';
 import { notFound } from 'next/navigation';
@@ -35,6 +36,7 @@ export default async function StaffOwner({ params }: { params: Promise<{ id: str
   return (<>
     <PageHead kicker={<Link prefetch={false} className="link" href="/staff/owners">Owners</Link>} title={o.name}>
       <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/staff/owners/add-car?owner=${id}`} data-testid="owner-add-car">Add another car</Link></PageHead>
+    <p className="gm-links"><GuideMeLink flow="approve-owner-car" /></p>
     <SignGate status={sign} refresh={here} />
     <OnboardingChecklist data={ob.overview} />
     {preps.map(([c, x]) => x && <PrepPanel key={c.vehicle_id} p={x} vehicle={{ id: c.vehicle_id, name: c.name }} title={`Onboarding prep: ${c.name}`} />)}

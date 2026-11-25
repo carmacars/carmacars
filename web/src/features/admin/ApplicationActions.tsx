@@ -15,13 +15,13 @@ export function ApplicationDecision({ id, status, items, owner, isTest, approve,
   const [message, setMessage] = useState('');
   const [reason, setReason] = useState('');
   const done = (r: { ok: boolean }) => { if (r.ok) { setMode(''); router.refresh(); } };
-  if (status === 'approved') return <div className="stack"><p className="small" data-testid="app-approved">Approved. The owner signs the documents and pays the invoices you sent in the owner portal; their progress is on the owner record.</p>{setup}</div>;
+  if (status === 'approved') return <div className="stack"><p className="small" data-testid="app-approved" data-guide="app-approved">Approved. The owner signs the documents and pays the invoices you sent in the owner portal; their progress is on the owner record.</p>{setup}</div>;
   if (status === 'declined') return <p className="small">Declined. Nothing else to do.</p>;
   return (
     <div className="stack">
       <p className="small muted">Approve when the checks are done: you confirm each car&apos;s terms and choose its first invoices (send now, save as a draft, or record as already paid). Then {owner}&apos;s account becomes active, the documents open for one signature in the owner portal, and the owner is emailed{isTest ? ' (a test owner: the staff emails stay with the test accounts)' : ''}.</p>
       <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}>
-        <button type="button" className="btn btn--primary" disabled={a.pending} data-testid="app-approve" aria-expanded={mode === 'approve'}
+        <button type="button" className="btn btn--primary" disabled={a.pending} data-testid="app-approve" data-guide="app-approve" aria-expanded={mode === 'approve'}
           onClick={() => { if (approve) setMode(mode === 'approve' ? '' : 'approve'); else if (window.confirm(`Approve ${owner}? No invoice is made.`)) a.run(() => applicationApprove(id), done); }}>{a.pending ? 'Working' : 'Approve'}</button>
         <button type="button" className="btn btn--ghost" aria-expanded={mode === 'ask'} onClick={() => setMode(mode === 'ask' ? '' : 'ask')} data-testid="app-ask-open">Ask for something</button>
         <button type="button" className="btn btn--quiet" aria-expanded={mode === 'decline'} onClick={() => setMode(mode === 'decline' ? '' : 'decline')} data-testid="app-decline-open">Decline</button>
@@ -53,7 +53,7 @@ export function ApplicationChecks({ id, checks, disabled }: { id: string; checks
   const router = useRouter();
   const a = useAct<Record<string, unknown>>();
   return (
-    <ul className="ad-list" data-testid="app-check-list">{CHECKS.map(([code, name]) => {
+    <ul className="ad-list" data-testid="app-check-list" data-guide="app-check-list" data-pending={CHECKS.filter(([code]) => (checks[code]?.status ?? 'not_checked') === 'not_checked').length}>{CHECKS.map(([code, name]) => {
       const c = checks[code];
       return (
         <li key={code}><span><b>{name}</b>{c?.note ? <span className="ad-sub">{c.note}</span> : null}</span>

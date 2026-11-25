@@ -275,7 +275,7 @@ export function OfferComposer({ base, initialCar = null, initialFrom = null, ini
   }); };
 
   if (sent) return (
-    <section className="pt-card stack" aria-labelledby="oc-sent" data-testid="offer-sent">
+    <section className="pt-card stack" aria-labelledby="oc-sent" data-testid="offer-sent" data-guide="offer-sent">
       <h2 className="d3" id="oc-sent">{sent.book_now?.status === 'approved' ? `Booking ${sent.booking_number} booked` : `Offer ${sent.booking_number} sent`}</h2>
       {sent.book_now?.status === 'approved' && <p className="alert alert--ok" role="status" data-testid="oc-booked-now"><span>Booked without the renter&apos;s approval: the car is held and the booking waits for payment. The renter gets one link to sign and pay; or open the booking to have them sign and pay on this device (Sign now on this device, Take the card).</span></p>}
       {sent.book_now?.status === 'requested' && <p className="alert alert--warn" role="status" data-testid="oc-book-now-asked"><span>Book it now is waiting for an Admin: once they approve, the booking waits for payment and the renter gets the Sign and pay link. Until then the offer is out as usual.</span></p>}
@@ -360,8 +360,8 @@ export function OfferComposer({ base, initialCar = null, initialFrom = null, ini
     {feeNote(leg === 'pickup' ? 'delivery' : 'pickup', leg === 'pickup' ? 'Delivery fee' : 'Collection fee')}
   </div>);
   // r35a: three steps for everyone (1. car and dates, 2. price, 3. review and send); each step's parts are fieldsets without a number
-  const step = (_n: number | null, title: string, lead: string, body: React.ReactNode, o: { testId?: string } = {}) => (
-    <fieldset className="oc-step" data-testid={o.testId}><legend className="oc-step__head"><span className="d4">{title}</span></legend>
+  const step = (_n: number | null, title: string, lead: string, body: React.ReactNode, o: { testId?: string; guide?: string } = {}) => (
+    <fieldset className="oc-step" data-testid={o.testId} data-guide={o.guide}><legend className="oc-step__head"><span className="d4">{title}</span></legend>
       <p className="small muted oc-step__lead">{lead}</p>{body}</fieldset>);
   // "More options" of a step: closed unless something in it is in use
   const more = (testId: string, label: string, inUse: boolean, body: React.ReactNode) => (
@@ -377,7 +377,7 @@ export function OfferComposer({ base, initialCar = null, initialFrom = null, ini
     <h2 className="oc-phase" id={`oc-phase-${k}`} data-testid={`oc-phase-${k}`}><span className="oc-step__n" aria-hidden="true">{k}</span> <span className="d4">{title}</span></h2>);
 
   return (
-    <div className="oc-flow" data-testid="offer-composer">
+    <div className="oc-flow" data-testid="offer-composer" data-guide="offer-composer">
       <form className="pt-card ad-card ad-form ad-form--narrow oc-form" aria-label="The offer" noValidate onSubmit={(e) => { e.preventDefault(); if (!pickupPassed(f.pickup_at)) send(); }}>
         <p className="small muted" role="status" aria-live="polite" data-testid="oc-draft-status">{savedAt ? `Saved as a draft at ${new Date(savedAt).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' })}: finish it later from Unfinished rentals.` : 'Saved as a draft as you type.'}
           {draftId && <> <button className="btn btn--quiet btn--sm" type="button" onClick={() => run(async () => { await draftClose(draftId, 'discarded'); router.push(`${base}/offers/new`, scrollOption(`${base}/offers/new`)); })} data-testid="oc-discard-draft">Discard the draft</button></>}</p>
@@ -408,11 +408,11 @@ export function OfferComposer({ base, initialCar = null, initialFrom = null, ini
               <button className="btn btn--quiet btn--sm" type="button" onClick={() => { setChosen(dupe); setF((x) => ({ ...x, renter_id: dupe.id, mobile: dupe.mobile ?? '' })); setAdding(false); }}>Use {dupe.legal_name}</button></span></p>}
             <p><button className="btn btn--quiet btn--sm" type="button" onClick={() => setAdding(false)}>Search instead</button></p>
           </>)}
-          <div className="ad-fields">
+          <div className="ad-fields" data-guide="offer-dates">
             {text('pickup_at', 'Pickup', { type: 'datetime-local', hint: form ? `At least ${Math.round(form.min_notice_minutes / 60)} hours from now` : undefined })}
             {text('return_at', 'Return', { type: 'datetime-local', need: 'return_at', hint: days ? `${days} day${days === 1 ? '' : 's'}` : undefined })}
           </div>
-        </>, { testId: 'oc-step-renter' })}
+        </>, { testId: 'oc-step-renter', guide: 'offer-renter' })}
 
         {step(n, 'Which car', 'Search by car code, plate or name. Each car says whether it is free for these dates.', <>
           <div className="ad-fields">
@@ -450,9 +450,9 @@ export function OfferComposer({ base, initialCar = null, initialFrom = null, ini
               </div>
             </div></details>
           {periods}
-        </>, { testId: 'oc-step-car' })}
+        </>, { testId: 'oc-step-car', guide: 'offer-car' })}
 
-        {step(n, 'Where they pick up and return', 'At our location unless you deliver or collect the car. A delivery fee is added for you.', <div className="oc-legs">{placeFields('pickup')}{placeFields('return')}</div>, { testId: 'oc-step-places' })}
+        {step(n, 'Where they pick up and return', 'At our location unless you deliver or collect the car. A delivery fee is added for you.', <div className="oc-legs">{placeFields('pickup')}{placeFields('return')}</div>, { testId: 'oc-step-places', guide: 'offer-places' })}
 
         {step(n, 'How damage is covered', 'Ask the renter: their own insurance, their credit card, or our Protection Plan.', <>
           <div className="field"><span className="label-line"><label className="label" htmlFor="oc-coverage_option">Coverage</label><Info text={lineHelp('coverage_sold')} label="About coverage" /></span>
@@ -463,7 +463,7 @@ export function OfferComposer({ base, initialCar = null, initialFrom = null, ini
           {f.coverage_option === '3' && feeNote('coverage_sold', 'Protection Plan')}
           {f.coverage_option === '3' && editFees && more('oc-coverage-more', 'More options: another Protection Plan price', !!f.plan_price.trim(),
             <div className="ad-fields">{text('plan_price', `Protection Plan price for the trip, ${tw} ($)`, { inputMode: 'decimal', hint: 'Empty: the price from the Protection Plan table' })}</div>)}
-        </>, { testId: 'oc-step-coverage' })}
+        </>, { testId: 'oc-step-coverage', guide: 'offer-coverage' })}
 
         {addonOptions.length > 0 && step(n, 'Extras', 'Optional: add-ons the renter asked for. Their price is added for you.', <details className="oc-disclose" open={addons.length > 0 || undefined} data-testid="oc-addons"><summary>{addons.length ? `${addons.length} chosen: change` : 'Choose add-ons'}</summary>
           <AddonPicker idPrefix="oc" staff compact options={addonOptions} value={addons} onChange={changeAddons} /></details>, { testId: 'oc-step-addons' })}
@@ -544,7 +544,7 @@ export function OfferComposer({ base, initialCar = null, initialFrom = null, ini
 
         {phase(3, 'Review and send')}
         {step(n, 'Send it', 'Add a short message if you like, choose how the link goes, then send.', <>
-          {!admin && <div>{needMsg('choice')}<SourcedChoice id="oc" value={f.choice} onChange={(v) => set('choice')(v)} optional={admin} /></div>}
+          {!admin && <div data-guide="offer-choice">{needMsg('choice')}<SourcedChoice id="oc" value={f.choice} onChange={(v) => set('choice')(v)} optional={admin} /></div>}
           <div className="field"><label className="label" htmlFor="oc-message">Message to the renter (optional)</label>
             <textarea className="input ad-textarea" id="oc-message" maxLength={1000} value={f.message} onChange={(e) => set('message')(e.target.value)} data-testid="oc-message" /></div>
           <div className="field"><span className="label">Send the link by</span>
@@ -560,11 +560,11 @@ export function OfferComposer({ base, initialCar = null, initialFrom = null, ini
               <textarea className="input ad-textarea" id="oc-note" value={f.note} onChange={(e) => set('note')(e.target.value)} /></div></>)}
           <div className="field" data-testid="oc-book-now-field"><label className="check" htmlFor="oc-book-now"><input id="oc-book-now" type="checkbox" checked={bookNow} onChange={(e) => setBookNow(e.target.checked)} data-testid="oc-book-now" /> <span>Book it now (no renter approval)</span></label>
             <p className="hint">{admin ? 'The offer becomes the booking at once: the car is held, and the renter gets one link to sign and pay (or signs and pays on this device).' : 'An Admin approves it in one tap; then the booking waits for payment and the renter gets the link to sign and pay.'}</p></div>
-          <p className={`oc-ready${missingList.length ? ' is-missing' : ' is-ready'}`} role="status" aria-live="polite" data-testid="oc-ready">{missingList.length ? <>Missing: {missingList.map((m) => m.short).join(', ')}</> : <>Ready to send</>}</p>
+          <p className={`oc-ready${missingList.length ? ' is-missing' : ' is-ready'}`} role="status" aria-live="polite" data-testid="oc-ready" data-guide="offer-ready" data-missing={missingList.map((m) => m.field).join(' ')}>{missingList.length ? <>Missing: {missingList.map((m) => m.short).join(', ')}</> : <>Ready to send</>}</p>
           {err && <p className="alert alert--error" role="alert" data-testid="oc-error"><span>{err}</span></p>}
           {pickupPassed(f.pickup_at) && <p className="alert alert--error" role="alert" data-testid="oc-pickup-passed"><span>{PICKUP_PASSED}</span></p>}
           <div className="oc-actions">
-            <><button className="btn btn--primary" type="submit" disabled={pending || pickupPassed(f.pickup_at)} data-testid="oc-send" aria-describedby="why-offercomposer-566">{pending ? 'Sending' : f.by_email || f.by_text ? `Send the offer${who ? ` to ${who}` : ''}` : 'Make the offer (not sent)'}</button><WhyDisabled id="why-offercomposer-566" why={((pickupPassed(f.pickup_at))) ? 'The pickup time has passed: choose a later pickup first' : null} /></>
+            <><button className="btn btn--primary" type="submit" disabled={pending || pickupPassed(f.pickup_at)} data-testid="oc-send" data-guide="offer-send" aria-describedby="why-offercomposer-566">{pending ? 'Sending' : f.by_email || f.by_text ? `Send the offer${who ? ` to ${who}` : ''}` : 'Make the offer (not sent)'}</button><WhyDisabled id="why-offercomposer-566" why={((pickupPassed(f.pickup_at))) ? 'The pickup time has passed: choose a later pickup first' : null} /></>
             <button className="btn btn--quiet" type="button" disabled={pending} onClick={() => send(true)} data-testid="oc-draft">Save without sending</button>
           </div>
           <section className="oc-renter-below" data-testid="oc-renter-view-d"><p className="pt-kicker">The offer as the renter sees it</p>

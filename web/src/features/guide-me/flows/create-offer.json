@@ -1,0 +1,107 @@
+{
+  "id": "create-offer",
+  "title": "Send an offer to a renter",
+  "summary": "Renter, dates, car, coverage, then send: the renter gets the link to approve, sign and pay.",
+  "who": [
+    "admin",
+    "cs",
+    "sales"
+  ],
+  "start": "{base}/offers/new",
+  "guide": {
+    "portal": "va",
+    "slug": "customer-service"
+  },
+  "steps": [
+    {
+      "id": "open",
+      "text": "Open Send an offer (Requests, Send an offer without a request).",
+      "on": "{base}/offers/new",
+      "href": "{base}/offers/new",
+      "done": {
+        "exists": "offer-composer"
+      },
+      "skipIfDone": true
+    },
+    {
+      "id": "renter",
+      "target": "offer-renter",
+      "on": "{base}/offers/new",
+      "text": "Find the renter by name, phone or email, or press Not on file? Add a new customer and type their name, mobile, email and date of birth.",
+      "done": {
+        "attr": "offer-ready",
+        "name": "data-missing",
+        "excludes": [
+          "renter",
+          "full_name",
+          "email",
+          "mobile",
+          "date_of_birth"
+        ]
+      }
+    },
+    {
+      "id": "dates",
+      "target": "offer-dates",
+      "on": "{base}/offers/new",
+      "text": "Set when they pick up and return the car.",
+      "done": {
+        "attr": "offer-ready",
+        "name": "data-missing",
+        "excludes": [
+          "return_at"
+        ]
+      }
+    },
+    {
+      "id": "car",
+      "target": "offer-car",
+      "on": "{base}/offers/new",
+      "text": "Choose the car. Each car says whether it is free for these dates.",
+      "done": {
+        "attr": "offer-ready",
+        "name": "data-missing",
+        "excludes": [
+          "vehicle_id"
+        ]
+      }
+    },
+    {
+      "id": "places",
+      "target": "offer-places",
+      "on": "{base}/offers/new",
+      "text": "Pickup and return are at our location unless you deliver or collect the car. A delivery fee is added for you."
+    },
+    {
+      "id": "coverage",
+      "target": "offer-coverage",
+      "on": "{base}/offers/new",
+      "text": "Ask the renter how damage is covered: their own insurance, their credit card, or our Protection Plan."
+    },
+    {
+      "id": "choice",
+      "target": "offer-choice",
+      "on": "{base}/offers/new",
+      "only": [
+        "va"
+      ],
+      "text": "Choose who found this client: I sourced this client, or Entered for CarmaCars.",
+      "done": {
+        "attr": "offer-ready",
+        "name": "data-missing",
+        "excludes": [
+          "choice"
+        ]
+      }
+    },
+    {
+      "id": "send",
+      "target": "offer-send",
+      "on": "{base}/offers/new",
+      "text": "Check Ready to send, then press Send the offer. The renter gets the link by email and text.",
+      "done": {
+        "exists": "offer-sent"
+      }
+    }
+  ]
+}

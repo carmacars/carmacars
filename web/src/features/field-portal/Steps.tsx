@@ -35,7 +35,7 @@ export function Msg({ m }: { m: { ok: boolean; text: string } | null }) {
 export function PhotoPick({ file, set, label = 'Take the photo', pdf = false, testId }: { file: File | null; set: (f: File | null) => void; label?: string; pdf?: boolean; testId?: string }) {
   const [busy, setBusy] = useState(false);
   return (
-    <label className={`fp-photo${file ? ' is-set' : ''}`} data-testid={testId}>
+    <label className={`fp-photo${file ? ' is-set' : ''}`} data-testid={testId} data-guide={testId}>
       <FdIcon name={file ? 'check' : 'camera'} />{busy ? 'Getting the photo ready' : file ? `${file.type === 'application/pdf' ? 'PDF' : 'Photo'} ready: tap to change` : label}
       <input type="file" accept={pdf ? 'image/*,application/pdf' : 'image/*'} capture={pdf ? undefined : 'environment'} onChange={async (e) => {
         const f = e.target.files?.[0] ?? null;

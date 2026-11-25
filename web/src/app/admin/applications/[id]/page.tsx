@@ -1,3 +1,4 @@
+import { GuideMeLink } from '@/features/guide-me/GuideMeLink';
 import Link from '@/components/Link';
 import { notFound } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
@@ -65,6 +66,7 @@ export default async function Application({ params, searchParams }: { params: Pr
   return (
     <>
       {head}
+      <p className="gm-links"><GuideMeLink flow="approve-owner-car" /></p>
       {a.status === 'waiting_on_owner' && <p className="alert alert--warn" role="status"><span>Asked on {t(a.requested_at)} for: {v.items.filter((i) => a.requested_items.includes(i.code)).map((i) => i.label).join('; ')}.{a.request_message ? ` "${a.request_message}"` : ''} Waiting on the owner.</span></p>}
       {a.owner_reply && a.status === 'new' && <p className="alert alert--ok" role="status"><span className="alert__title">The owner answered on {t(a.owner_replied_at)}</span><span>{a.owner_reply}</span></p>}
       {a.status === 'declined' && <p className="alert alert--error" role="status"><span>Declined on {d(a.decided_at)}: {a.decline_reason}</span></p>}
@@ -77,13 +79,13 @@ export default async function Application({ params, searchParams }: { params: Pr
             <p className="small"><Link prefetch={false} className="link" href={`/admin/owners/${o.id}`}>Open the owner record</Link></p>
           </Card>
           {v.vehicles.map((x) => (
-            <Card key={x.id} title={x.name} testId="app-vehicle" aside={<Badge s={x.onboarding_status} />}>
+            <Card key={x.id} title={x.name} testId="app-vehicle" guide="app-vehicle" aside={<Badge s={x.onboarding_status} />}>
               <Kv rows={[['VIN', <span key="v" className="pt-mono">{x.vin}</span>], ['VIN decode', x.decode ? (x.decode.ok ? [x.decode.year, x.decode.make, x.decode.model, x.decode.trim, x.decode.body_class, x.decode.fuel, x.decode.drivetrain].filter(Boolean).join(' · ') : `Could not decode (${x.decode.error_code ?? 'no answer'})`) : 'Not decoded yet'],
                 ['Plate', x.plate], ['Colour', x.colour], ['Odometer', x.odometer_km ? `${x.odometer_km.toLocaleString('en-CA')} km` : ''], ['Held as', label(x.title_status)], ['Lender', x.finance_party_name],
                 ['Insurer now', x.current_insurer], ['How it will work', label(x.management_mode)], ['Onboarding method', label(x.proposed_onboarding_method)], ['Registry estimate', x.estimate_cents ? money(x.estimate_cents, { cents: true }) : '']]} />
               <p className="small"><Link prefetch={false} className="link" href={`/admin/vehicles/${x.id}`}>Open the car</Link></p>
             </Card>))}
-          <Card title={`Documents uploaded (${v.documents.length})`} testId="app-documents">
+          <Card title={`Documents uploaded (${v.documents.length})`} testId="app-documents" guide="app-documents">
             {v.documents.length ? <ul className="ad-list">{v.documents.map((x) => <li key={x.id}><span><Link prefetch={false} className="link" href={`/admin/documents/${x.id}`}>{x.title || label(x.kind)}</Link>{x.vehicle ? <span className="muted"> · {x.vehicle}</span> : null}</span><span className="small">{d(x.created_at)}</span></li>)}</ul>
               : <p className="small muted">Nothing uploaded yet. Use Ask for something to request the ownership permit, the insurance slip or the lender&apos;s permission.</p>}
           </Card>
@@ -94,7 +96,7 @@ export default async function Application({ params, searchParams }: { params: Pr
           <Card title="Decide" testId="app-decide"><ApplicationDecision id={a.id} status={a.status} items={v.items} owner={o.legal_name} isTest={o.is_test}
             approve={plan && facts ? <ApproveStep plan={plan} owner={o.legal_name} isTest={o.is_test} hstBps={facts.hst_bps} insuranceHst={!!facts.insurance_fee_hst} /> : undefined}
             setup={a.entered_by_name ? <SetupEmail applicationId={a.id} sentAt={a.setup_emailed_at} /> : undefined} /></Card>
-          <Card title="Checks" testId="app-checks"><ApplicationChecks id={a.id} checks={a.checks} disabled={a.status === 'approved' || a.status === 'declined'} /></Card>
+          <Card title="Checks" testId="app-checks" guide="app-checks"><ApplicationChecks id={a.id} checks={a.checks} disabled={a.status === 'approved' || a.status === 'declined'} /></Card>
           <Card title="Notes" testId="app-notes"><ApplicationNotes id={a.id} notes={v.notes} /></Card>
         </div>
       </div>

@@ -1,0 +1,73 @@
+{
+  "id": "record-payment",
+  "title": "Record an e-Transfer or another payment",
+  "summary": "On the booking's Money tab: Collect the rental, choose Cash, e-Transfer or another way, and record it.",
+  "who": [
+    "admin",
+    "finance"
+  ],
+  "start": "{base}/bookings",
+  "guide": {
+    "portal": "va",
+    "slug": "finance"
+  },
+  "steps": [
+    {
+      "id": "booking",
+      "text": "Open the booking the money is for (Bookings, or search its number), then its Money tab.",
+      "on": "{base}/bookings/*",
+      "href": "{base}/bookings",
+      "done": {
+        "exists": "booking-money"
+      },
+      "skipIfDone": true
+    },
+    {
+      "id": "collect",
+      "target": "pay-collect",
+      "on": "{base}/bookings/*",
+      "text": "In Rental charges, press Collect (the amount) rental.",
+      "done": {
+        "exists": "pay-form"
+      },
+      "skipIfDone": true
+    },
+    {
+      "id": "how",
+      "target": "bm-rhow-record",
+      "on": "{base}/bookings/*",
+      "text": "Choose Cash, e-Transfer or another way (record it).",
+      "done": {
+        "checked": "bm-rhow-record"
+      }
+    },
+    {
+      "id": "method",
+      "target": "pay-method",
+      "on": "{base}/bookings/*",
+      "text": "Paid by: e-Transfer (or how it came). Leave Amount empty for the full balance; type less for a part.",
+      "read": true,
+      "done": {
+        "filled": "pay-method"
+      }
+    },
+    {
+      "id": "reference",
+      "target": "pay-reference",
+      "on": "{base}/bookings/*",
+      "text": "Type the reference: the e-Transfer's reference number from the bank.",
+      "done": {
+        "filled": "pay-reference"
+      }
+    },
+    {
+      "id": "record",
+      "target": "pay-go",
+      "on": "{base}/bookings/*",
+      "text": "Press Record the rental payment. Above your single limit it waits for an Admin.",
+      "done": {
+        "exists": "pay-done"
+      }
+    }
+  ]
+}

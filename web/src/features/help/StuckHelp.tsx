@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { helpFor, type HelpPortal } from './routes';
 import { StuckDetector, pageName, stuckOptions, type StuckTrigger } from './stuck';
+import { FLOWS } from '@/features/guide-me/flows';
+import { GUIDE_START_EVENT, baseOf, routeMatches, startFor } from '@/features/guide-me/engine';
 
 // "Stuck?" help in every portal (migration 0510): when someone works on a page without getting anywhere (stuck.ts), a small
 // prompt offers the guide chapter of that page and its Academy lesson (routes.ts). The guide opens in a side panel (a bottom
@@ -132,12 +134,17 @@ export function StuckHelp({ portal }: { portal: HelpPortal }) {
   }, [panel, close]);
 
   if (!help) return null;
+  // r51 (3950): the workflow that starts on this page, walked through step by step (Guide me, in the header)
+  const gp = portal === 'admin' ? 'admin' : portal === 'va' ? 'va' : portal === 'field' ? 'field' : null;
+  const b = pathname ? baseOf(pathname) : null;
+  const walk = gp && b && pathname ? FLOWS.find((f) => routeMatches(startFor(f, gp, b), pathname, '', b)) ?? null : null;
   return (<>
     {shown && !panel && (
       <section className="stk on-dark" role="region" aria-label="Help with this page" data-stuck-ui data-testid="stuck-prompt" data-portal={portal}>
         <p className="stk__q">Need a hand with {shown.name}?</p>
         <div className="stk__acts">
           <button type="button" className="btn btn--primary btn--sm" onClick={openGuide} data-testid="stuck-guide">Open the guide section</button>
+          {walk && <button type="button" className="btn btn--ghost btn--sm" onClick={() => { setShown(null); window.dispatchEvent(new CustomEvent(GUIDE_START_EVENT, { detail: { flow: walk.id } })); }} data-testid="stuck-guide-me">Guide me through it</button>}
           {help.lessonHref && <a className="btn btn--ghost btn--sm" href={help.lessonHref} target="_blank" rel="noopener" onClick={() => { log('lesson'); setShown(null); }} data-testid="stuck-lesson">Open the Academy lesson</a>}
           <button type="button" className="btn btn--quiet btn--sm" data-testid="stuck-snooze"
             onClick={() => { store.set(`cc-stuck-snooze:${help.pattern}`, String(Date.now() + SNOOZE_MS)); log('snooze'); setShown(null); }}>Not now</button>

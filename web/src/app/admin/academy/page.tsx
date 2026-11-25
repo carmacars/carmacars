@@ -6,6 +6,8 @@ import { Card, PageHead, Table } from '@/features/admin/ui';
 import { InfoTip } from '@/components/InfoTip';
 import { Act } from '@/features/admin/Act';
 import { RenderAllVideos } from '@/features/academy/LessonVideo';
+import { guideMeReport, type GuideMeReport } from '@/server/guide-me';
+import { FLOWS } from '@/features/guide-me/flows';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Academy', path: '/admin/academy', noindex: true, description: 'Training progress of every staff member, and the lessons and quizzes.' });
@@ -18,9 +20,13 @@ const PATH: Record<string, string> = { cs: 'Customer service', fleet: 'Fleet', f
 // Admin > Academy (Release 21b, item 9): everyone's progress, the paths and their sections to edit, and the Admin's own path.
 export default async function AdminAcademy() {
   const { user } = await requireAdmin('/admin/academy');
-  const [p, c, reviews] = await Promise.all([adminRead<{ staff: Staff[]; gate: boolean }>(user.id, 'academy_progress'), adminRead<Content>(user.id, 'academy_content'),
+  const [p, c, reviews, gm] = await Promise.all([adminRead<{ staff: Staff[]; gate: boolean }>(user.id, 'academy_progress'), adminRead<Content>(user.id, 'academy_content'),
     // 0802: sections whose guide chapter was published again
-    adminRead<Review[]>(user.id, 'academy_reviews').catch(() => [] as Review[])]);
+    adminRead<Review[]>(user.id, 'academy_reviews').catch(() => [] as Review[]),
+    // r51 (3950): Guide me, the walkthroughs done in the live screens
+    guideMeReport(user.id)]);
+  const flowName = (id: string) => FLOWS.find((f) => f.id === id)?.title ?? id;
+  const stepName = (flow: string, step: string) => { const f = FLOWS.find((x) => x.id === flow); const i = f?.steps.findIndex((x) => x.id === step) ?? -1; return i >= 0 ? `step ${i + 1}, ${f!.steps[i]!.text.split(/[.:]/)[0]}` : step; };
   const seen = new Set<string>();
   return (
     <>
@@ -41,6 +47,21 @@ export default async function AdminAcademy() {
           { key: 'passed', label: 'Sections passed', num: true, render: (r) => `${r.passed} of ${r.sections}` },
           { key: 'done', label: 'Status', render: (r) => (r.done ? 'Passed' : r.passed ? 'In progress' : 'Not started') },
           { key: 'last', label: 'Last quiz', render: (r) => (r.last ? new Date(r.last).toLocaleDateString('en-CA', { timeZone: 'America/Toronto' }) : '') }]} />
+      </Card>
+      <Card title="Guide me: walkthroughs in the live screens" testId="guide-me-report">
+        <p className="small muted">The last 30 days. A staff member turns Guide me on from the header; each workflow it walks them through is counted here: started, completed, and the step people stop at most.</p>
+        <Table<GuideMeReport['staff'][number] & Record<string, unknown>> rows={gm.staff as Array<GuideMeReport['staff'][number] & Record<string, unknown>>} testId="guide-me-staff" empty="Nobody has used Guide me in the last 30 days." cols={[
+          { key: 'name', label: 'Name', render: (r) => <Link prefetch={false} className="link" href={`/admin/academy/staff/${r.id}`}>{r.name}</Link> },
+          { key: 'started', label: 'Started', num: true },
+          { key: 'completed', label: 'Completed', num: true, render: (r) => `${r.completed} of ${r.started}${r.started ? ` (${Math.round((r.completed / r.started) * 100)}%)` : ''}` },
+          { key: 'exited', label: 'Stopped', num: true },
+          { key: 'flows', label: 'Completed workflows', className: 'wrap', render: (r) => r.flows.map(flowName).join(', ') },
+          { key: 'on', label: 'Kept on', render: (r) => (r.on ? 'Yes' : 'No') }]} />
+        {gm.flows.length > 0 && <Table<GuideMeReport['flows'][number] & Record<string, unknown>> rows={gm.flows as Array<GuideMeReport['flows'][number] & Record<string, unknown>>} rowKey={(r) => r.flow} testId="guide-me-flows" cols={[
+          { key: 'flow', label: 'Workflow', render: (r) => flowName(r.flow) },
+          { key: 'started', label: 'Started', num: true },
+          { key: 'completed', label: 'Completed', num: true },
+          { key: 'drop_off', label: 'Most stop at', className: 'wrap', render: (r) => (r.drop_off ? `${stepName(r.flow, r.drop_off.step)} (${r.drop_off.n})` : '') }]} />}
       </Card>
       <Card title="Paths and sections">
         <p className="small muted">A section can be on several paths: passed once, it counts on each. Open a section to edit its lessons, scenes and questions.</p>

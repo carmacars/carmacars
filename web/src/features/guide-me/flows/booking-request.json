@@ -1,0 +1,64 @@
+{
+  "id": "booking-request",
+  "title": "Answer a booking request",
+  "summary": "The request waiting longest first: review the renter, dates and car, then send the offer.",
+  "who": [
+    "admin",
+    "cs",
+    "sales"
+  ],
+  "start": "{base}/requests",
+  "guide": {
+    "portal": "va",
+    "slug": "customer-service"
+  },
+  "steps": [
+    {
+      "id": "inbox",
+      "target": "rq-queue",
+      "text": "Open Requests and offers: the most urgent request is first.",
+      "href": "{base}/requests",
+      "done": {
+        "any": [
+          {
+            "route": "{base}/requests"
+          },
+          {
+            "route": "{base}/bookings/*"
+          }
+        ]
+      },
+      "skipIfDone": true
+    },
+    {
+      "id": "open",
+      "target": "rq-go",
+      "text": "Press Send offer on the request waiting longest. Reply within the target time.",
+      "done": {
+        "route": "{base}/bookings/*"
+      },
+      "skipIfDone": true
+    },
+    {
+      "id": "review",
+      "target": "review",
+      "on": "{base}/bookings/*",
+      "text": "Check the renter, the dates and the car they asked for. Change the car if it is not free."
+    },
+    {
+      "id": "message",
+      "target": "review-message",
+      "on": "{base}/bookings/*",
+      "text": "Add a short message for the renter (optional)."
+    },
+    {
+      "id": "send",
+      "target": "review-send",
+      "on": "{base}/bookings/*",
+      "text": "Press Send the offer. The renter gets the link to approve, sign and pay.",
+      "done": {
+        "exists": "review-done"
+      }
+    }
+  ]
+}

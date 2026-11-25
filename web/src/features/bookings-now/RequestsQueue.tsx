@@ -59,7 +59,7 @@ export function RequestsQueue({ all: everyone, cards, state, sp, target, at, bas
   const later = listed.filter(notYet);
   const refresh = [`${base}/requests`];
   return (
-    <div className="bn rq-page" data-testid="requests-queue">
+    <div className="bn rq-page" data-testid="requests-queue" data-guide="rq-queue">
       <TileBand label="Requests and offers in numbers">
         <Tile k="rq-new" current={state === 'new'} href={`${base}/requests?state=new`} label="Waiting for an offer" n={waiting.length} note={`reply within ${target.words}`} />
         <Tile k="rq-late" current={state === 'late'} href={`${base}/requests?state=late`} label="Past the reply target" n={late} urgent={late > 0} note={late ? 'answer these first' : 'none late'} />
@@ -134,7 +134,7 @@ function RequestRow({ r, c, target, at, base, admin, refresh }: { r: Req; c: Car
         {(otherHolds || waits || (requested && r.claim?.mine)) && <span className="rq__claim" data-testid={`claim-${r.booking_number}`}>{waits ? opensToYou(r.sales_opens_at) : r.claim!.mine ? 'You are answering it' : r.claim!.text}</span>}
         {!requested && r.assigned ? <span className="rq__claim">{r.assigned}</span> : null}
         <span className="rq__btns">
-          <Link prefetch={false} className={`btn btn--sm btn--${primary.kind}`} href={primary.href} data-testid={`rq-go-${r.booking_number}`}>{primary.label}</Link>
+          <Link prefetch={false} className={`btn btn--sm btn--${primary.kind}`} href={primary.href} data-testid={`rq-go-${r.booking_number}`} data-guide="rq-go">{primary.label}</Link>
           {admin && free && <Act action="decline_request" payload={{ booking: r.id }} label="Decline" title={`Decline ${r.booking_number}`}
             fields={[{ name: 'note', label: 'Reason and any alternative', type: 'textarea', required: true }]} refresh={refresh} />}
           {r.status === 'expired' && <ReopenOffer booking={r.id} pickupAt={r.pickup_at} returnAt={r.return_at} refresh={refresh} testId={`rq-reopen-${r.booking_number}`} />}

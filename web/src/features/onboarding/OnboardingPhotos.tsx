@@ -63,7 +63,7 @@ function Photo({ p, ownerId, viewer, refresh, view, say }: { p: PhotoRow; ownerI
         <input id={`${id}-f`} type="file" accept="image/jpeg,image/png,application/pdf" disabled={pending} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; replace(f); }}
           aria-label={`Replace the ${p.label.toLowerCase()} of the ${p.vehicle_name}`} data-testid="onboarding-photo-replace" />
         <button type="button" className="btn btn--quiet btn--sm" disabled={pending} onClick={() => { setMode(mode === 'remove' ? null : 'remove'); setText(''); }} data-testid="onboarding-photo-remove-open">Remove</button>
-        {staff && p.review_status !== 'approved' && <button type="button" className="btn btn--primary btn--sm" disabled={pending} data-testid="onboarding-photo-approve"
+        {staff && p.review_status !== 'approved' && <button type="button" className="btn btn--primary btn--sm" disabled={pending} data-testid="onboarding-photo-approve" data-guide="ob-photo-approve"
           onClick={() => start(async () => { const r = await onboardingPhotoReview(p.id, 'approved', '', refresh); done(r.ok, r.ok ? 'Approved.' : r.message); })}>Approve</button>}
         {staff && p.review_status !== 'rejected' && <button type="button" className="btn btn--quiet btn--sm" disabled={pending} onClick={() => { setMode(mode === 'reject' ? null : 'reject'); setText(''); }} data-testid="onboarding-photo-reject-open">Not accepted</button>}
       </div>
@@ -124,7 +124,7 @@ export function OnboardingPhotos({ photos, ownerId, viewer, refresh, cars = [], 
   const [notice, setNotice] = useState<string | null>(null);
   const view = (p: PhotoRow) => viewer === 'owner' ? `/owner/documents/${p.id}` : viewer === 'admin' ? `/admin/documents/${p.id}` : `/staff/documents/${p.id}`;
   return (
-    <section className="pt-card stack" id="photos" aria-labelledby="ob-photos-h" data-testid="onboarding-photos">
+    <section className="pt-card stack" id="photos" aria-labelledby="ob-photos-h" data-testid="onboarding-photos" data-guide="ob-photos">
       <h2 className="d4" id="ob-photos-h">{title}</h2>
       <p className="small muted">{viewer === 'owner' ? 'The ownership permit, insurance and lender photos you or we added. A wrong one? Replace it or remove it: a new photo is checked again.'
         : 'The ownership permit, insurance and lender photos of the owner\'s cars. Replace or remove any of them (kept in the history); approve or mark one not accepted. A replaced photo is checked again.'}</p>

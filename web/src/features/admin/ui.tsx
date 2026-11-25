@@ -96,10 +96,10 @@ export function Tiles({ items }: { items: Array<{ k: string; v: ReactNode; sub?:
   );
 }
 
-export function Card({ title, children, aside, id, testId, tone }: { title: ReactNode; children: ReactNode; aside?: ReactNode; id?: string; testId?: string; tone?: 'next' | 'warn' }) {
+export function Card({ title, children, aside, id, testId, tone, guide }: { title: ReactNode; children: ReactNode; aside?: ReactNode; id?: string; testId?: string; tone?: 'next' | 'warn'; /** Guide me's data-guide name */ guide?: string }) {
   const hid = id ?? (typeof title === 'string' ? `c-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}` : undefined);
   return (
-    <section className={`pt-card ad-card${tone === 'next' ? ' pt-card--next' : tone === 'warn' ? ' ad-card--warn' : ''}`} aria-labelledby={hid} data-testid={testId}>
+    <section className={`pt-card ad-card${tone === 'next' ? ' pt-card--next' : tone === 'warn' ? ' ad-card--warn' : ''}`} aria-labelledby={hid} data-testid={testId} data-guide={guide}>
       <div className="pt-card__head"><h2 className="d4" id={hid}>{title}</h2>{aside}</div>
       {children}
     </section>

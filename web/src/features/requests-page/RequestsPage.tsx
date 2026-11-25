@@ -1,3 +1,4 @@
+import { GuideMeLink } from '@/features/guide-me/GuideMeLink';
 import Link from '@/components/Link';
 import { InfoTip } from '@/components/InfoTip';
 import { PageHeader, SegTabs } from '@/components/ui';
@@ -44,6 +45,7 @@ export async function RequestsPage({ ctx, sp }: { ctx: PageCtx; sp: Record<strin
           {!admin && <Link prefetch={false} className="btn btn--ghost btn--sm" href="/staff/quotes/new" data-testid="new-quote-link">New quote</Link>}
           <Link prefetch={false} className="btn btn--primary btn--sm" href={`${base}/offers/new`} data-testid="send-offer-link">Send an offer without a request</Link></>}
         tabs={admin ? <RequestTabs current="cars" /> : undefined} />
+      <p className="gm-links"><GuideMeLink flow="booking-request" /></p>
       <RequestsQueue all={all} cards={cards} state={state} sp={sp} target={target} at={at} base={base} admin={admin} {...(admin ? {} : { sales: fn === 'sales' })} />
     </>
   );

@@ -1,0 +1,221 @@
+{
+  "id": "return-deposit",
+  "title": "Return handover and deposit review",
+  "summary": "Check out the car (odometer, fuel, photos, damage compared with pickup), then Fleet and Finance review the deposit.",
+  "who": [
+    "admin",
+    "fleet",
+    "finance",
+    "field"
+  ],
+  "start": {
+    "field": "/staff/field",
+    "va": "{base}/deposit-reviews",
+    "admin": "{base}/deposit-reviews"
+  },
+  "guide": {
+    "portal": "field",
+    "slug": "a-return"
+  },
+  "steps": [
+    {
+      "id": "job",
+      "target": "field-job-return",
+      "only": [
+        "field"
+      ],
+      "text": "On Today, open the return job (Check out) for the car coming back.",
+      "href": "/staff/field",
+      "done": {
+        "attr": "ho-checklist",
+        "name": "data-kind",
+        "equals": "return"
+      },
+      "skipIfDone": true
+    },
+    {
+      "id": "readings",
+      "target": "ho-readings",
+      "page": "ho-checklist",
+      "text": "Type the odometer in km, tap the fuel level, count the keys and say how clean it is.",
+      "done": {
+        "attr": "ho-readings",
+        "name": "data-ok",
+        "equals": "yes"
+      },
+      "only": [
+        "field"
+      ]
+    },
+    {
+      "id": "photos",
+      "target": "ho-photos",
+      "page": "ho-checklist",
+      "text": "Take every return photo, the same angles as at pickup.",
+      "done": {
+        "attr": "ho-photos",
+        "name": "data-ok",
+        "equals": "yes"
+      },
+      "only": [
+        "field"
+      ]
+    },
+    {
+      "id": "damage",
+      "target": "ho-damage",
+      "page": "ho-checklist",
+      "text": "Compare with the pickup photos: mark anything new and take a close-up.",
+      "done": {
+        "attr": "ho-damage",
+        "name": "data-ok",
+        "equals": "yes"
+      },
+      "only": [
+        "field"
+      ]
+    },
+    {
+      "id": "clean",
+      "target": "ho-clean",
+      "page": "ho-checklist",
+      "when": {
+        "exists": "ho-clean"
+      },
+      "text": "Not clean: take the cleanliness photos and say what you found.",
+      "done": {
+        "attr": "ho-clean",
+        "name": "data-ok",
+        "equals": "yes"
+      },
+      "only": [
+        "field"
+      ]
+    },
+    {
+      "id": "late",
+      "target": "ho-late",
+      "page": "ho-checklist",
+      "when": {
+        "exists": "ho-late"
+      },
+      "text": "The car came back late: choose how the late return is handled.",
+      "done": {
+        "attr": "ho-late",
+        "name": "data-ok",
+        "equals": "yes"
+      },
+      "only": [
+        "field"
+      ]
+    },
+    {
+      "id": "sign",
+      "target": "ho-sign",
+      "page": "ho-checklist",
+      "text": "Review the summary and sign (the renter too, if they are there).",
+      "done": {
+        "attr": "ho-sign",
+        "name": "data-ok",
+        "equals": "yes"
+      },
+      "only": [
+        "field"
+      ]
+    },
+    {
+      "id": "complete",
+      "target": "ho-complete",
+      "page": "ho-checklist",
+      "text": "Press Complete the return. Extra km and fuel are charged from the rate sheet.",
+      "done": {
+        "exists": "ho-done"
+      },
+      "only": [
+        "field"
+      ]
+    },
+    {
+      "id": "review",
+      "only": [
+        "admin",
+        "va"
+      ],
+      "target": "dr-list",
+      "text": "Open Deposit reviews and the returned booking to check before its deposit is released.",
+      "href": "{base}/deposit-reviews",
+      "done": {
+        "route": "{base}/bookings/*/deposit-review"
+      },
+      "skipIfDone": true
+    },
+    {
+      "id": "state",
+      "only": [
+        "admin",
+        "va"
+      ],
+      "target": "dr-state",
+      "on": "{base}/bookings/*/deposit-review",
+      "text": "Where it stands: the deposit, when it is promised back and what still keeps it held."
+    },
+    {
+      "id": "items",
+      "only": [
+        "admin",
+        "va"
+      ],
+      "target": "dr-items",
+      "on": "{base}/bookings/*/deposit-review",
+      "page": "deposit-review",
+      "when": {
+        "exists": "dr-todo"
+      },
+      "text": "Sign each item of the checklist (Fleet first, then Finance double-checks). An issue needs a note and the amount to bill.",
+      "done": {
+        "gone": "dr-todo"
+      }
+    },
+    {
+      "id": "places",
+      "only": [
+        "admin",
+        "va"
+      ],
+      "target": "dr-places",
+      "on": "{base}/bookings/*/deposit-review",
+      "page": "deposit-review",
+      "when": {
+        "exists": "dr-place-todo"
+      },
+      "text": "Finance: search the plate at each place for the rental's dates and record None found or A ticket.",
+      "done": {
+        "gone": "dr-place-todo"
+      }
+    },
+    {
+      "id": "money",
+      "only": [
+        "admin",
+        "va"
+      ],
+      "target": "dr-money",
+      "on": "{base}/bookings/*/deposit-review",
+      "page": "deposit-review",
+      "when": {
+        "exists": "dr-money"
+      },
+      "text": "Once every item is checked, open Money to release the deposit or bill what is owed.",
+      "done": {
+        "any": [
+          {
+            "clicked": "dr-money"
+          },
+          {
+            "route": "{base}/bookings/*?tab=money"
+          }
+        ]
+      }
+    }
+  ]
+}

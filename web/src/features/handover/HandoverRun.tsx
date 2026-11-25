@@ -29,7 +29,7 @@ export async function HandoverRun({ userId, aal, job, number, base }: { userId: 
       {/* completing re-renders this page (the action revalidates): the finished job shows the same completion screen
           as the checklist's own, so the message is not lost (release 5) */}
       {j.job.status === 'done'
-        ? <div className="fd-screen stack" role="status" data-testid="field-done">
+        ? <div className="fd-screen stack" role="status" data-testid="field-done" data-guide="ho-done">
             <h2 className="d3">{pickup ? 'Checked in. The rental has started; the renter gets the photo report by email.'
               : 'Checked out. The kilometre and fuel charges are on the return statement; Fleet reviews the photos. A late return is charged only once someone chooses how, on the booking.'}</h2>
             <p className="fd-line is-ok" data-testid="job-done"><span aria-hidden="true">✓</span> Done {j.job.completed_at ? when(j.job.completed_at) : ''}</p>

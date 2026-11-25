@@ -62,8 +62,8 @@ export async function ReviewPage({ d: v, report, base, tollsHref, refresh }: { d
     { name: 'note', label: it.item === 'tolls' ? 'What the toll operator shows (required for an issue)' : 'Your note (required for an issue)', type: 'textarea', value: it.finance?.note ?? '' }];
   const done = st?.stage === 'done';
   return (
-    <div className="stack-lg" data-testid="deposit-review">
-      <Card title="Where it stands" testId="dr-state" aside={<span className={`ad-b ${done ? '' : 'ad-b--amber'}`}>{stageWords(st)}</span>}>
+    <div className="stack-lg" data-testid="deposit-review" data-guide="deposit-review">
+      <Card title="Where it stands" testId="dr-state" guide="dr-state" aside={<span className={`ad-b ${done ? '' : 'ad-b--amber'}`}>{stageWords(st)}</span>}>
         <Kv rows={[['Car', `${v.vehicle}${v.plate ? ` · ${v.plate}` : ''}`], ['Renter', v.renter ?? ''], ['Out', t(v.pickup_at)], ['Due back', t(v.return_at)], ['Back', v.checked_in_at ? t(v.checked_in_at) : 'not yet'],
           ['Deposit', v.deposit ? `${$(v.deposit.amount_cents)} ${v.deposit.status}${v.deposit.released_cents ? `, ${$(v.deposit.released_cents)} released` : ''}${v.deposit.held_back_cents ? `, ${$(v.deposit.held_back_cents)} held back` : ''}` : 'none'],
           ['Promised back by', v.deposit?.release_due_on ? d(v.deposit.release_due_on) : ''], ['Tolls and tickets window ends', v.toll_window_ends_on ? d(v.toll_window_ends_on) : '']]} />
@@ -71,31 +71,31 @@ export async function ReviewPage({ d: v, report, base, tollsHref, refresh }: { d
         {v.blockers.length > 0 && <div className="alert alert--warn" role="status" data-testid="dr-blockers"><span>The deposit stays held: {v.blockers.map((b) => b.label).join('; ')}.{v.may.admin ? ' As an Admin you can release it on Money with the reason.' : ''}</span></div>}
         <p className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}>
           <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}/report`}>Photo report</Link>
-          {v.may.finance && <Link prefetch={false} className="btn btn--primary btn--sm" href={`${base}?tab=money`} data-testid="dr-money">{done ? 'Bill or release on Money' : 'Money'}</Link>}
+          {v.may.finance && <Link prefetch={false} className="btn btn--primary btn--sm" href={`${base}?tab=money`} data-testid="dr-money" data-guide="dr-money">{done ? 'Bill or release on Money' : 'Money'}</Link>}
           {v.may.finance && <Link prefetch={false} className="btn btn--ghost btn--sm" href={tollsHref}>Tolls and tickets</Link>}
         </p>
       </Card>
 
-      {v.exists && <Card title="The checklist" testId="dr-items">
+      {v.exists && <Card title="The checklist" testId="dr-items" guide="dr-items">
         <p className="small muted">Fleet checks each item first, then Finance double-checks it. An issue needs a note; put the amount to bill when you know it.</p>
         <Table<ReviewItem & Record<string, unknown>> rows={v.items as Array<ReviewItem & Record<string, unknown>>} rowKey={(r) => r.item} cols={[
           { key: 'label', label: 'Item', render: (r) => <b>{r.label}</b> },
           { key: 'facts', label: 'What the site knows', className: 'wrap', render: (r) => <span className="small">{factLines(r).join('. ')}{r.facts.suggest === 'issue' ? <> <span className="ad-b ad-b--amber">check</span></> : null}</span> },
-          { key: 'fleet', label: 'Fleet', className: 'wrap', render: (r) => <span className="stack-xs"><span className="small" data-testid={`dr-fleet-${r.item}`}>{signWords(r.fleet)}</span>
+          { key: 'fleet', label: 'Fleet', className: 'wrap', render: (r) => <span className="stack-xs" data-guide={v.may.fleet && !r.finance && !r.fleet ? 'dr-todo' : undefined}><span className="small" data-testid={`dr-fleet-${r.item}`}>{signWords(r.fleet)}</span>
             {v.may.fleet && !r.finance && <Act ops action="deposit_review_sign" payload={{ ...P, side: 'fleet', item: r.item }} label={r.fleet ? 'Change' : 'Sign'} variant={r.fleet ? 'quiet' : 'primary'}
               testId={`dr-sign-fleet-${r.item}`} fields={fleetFields(r)} refresh={refresh} done="Signed." />}</span> },
-          { key: 'finance', label: 'Finance', className: 'wrap', render: (r) => <span className="stack-xs"><span className="small" data-testid={`dr-finance-${r.item}`}>{signWords(r.finance)}</span>
+          { key: 'finance', label: 'Finance', className: 'wrap', render: (r) => <span className="stack-xs" data-guide={v.may.finance && r.fleet && !r.finance && (v.may.admin || !r.fleet_by_me) ? 'dr-todo' : undefined}><span className="small" data-testid={`dr-finance-${r.item}`}>{signWords(r.finance)}</span>
             {v.may.finance && r.fleet && (v.may.admin || !r.fleet_by_me) && <Act ops action="deposit_review_sign" payload={{ ...P, side: 'finance', item: r.item }} label={r.finance ? 'Change' : 'Double-check'} variant={r.finance ? 'quiet' : 'primary'}
               testId={`dr-sign-finance-${r.item}`} fields={financeFields(r)} refresh={refresh} done="Checked." />}</span> }]} />
       </Card>}
 
-      {v.exists && v.may.finance && <Card title="Tolls and tickets: Finance checks each place" testId="dr-places">
+      {v.exists && v.may.finance && <Card title="Tolls and tickets: Finance checks each place" testId="dr-places" guide="dr-places">
         <p className="small">1. Highway tolls: <a className="link" href={v.toll_url} target="_blank" rel="noreferrer" data-testid="dr-toll-link">open the toll operator&apos;s site</a>, search plate <b>{v.plate ?? 'unknown'}</b> for {d(v.pickup_at)} to {d(v.checked_in_at ?? v.return_at)}, then double-check the Highway tolls item above.</p>
         <p className="small">2. Tickets: open each place, search the plate for the same dates, and record what you found. A ticket is logged in Tolls and tickets and matched to this booking there.</p>
         <Table<Place & Record<string, unknown>> rows={v.places as Array<Place & Record<string, unknown>>} rowKey={(r) => r.key} cols={[
           { key: 'name', label: 'Place', render: (r) => <a className="link" href={r.url} target="_blank" rel="noreferrer">{r.name}</a> },
           { key: 'check', label: 'Found', className: 'wrap', render: (r) => r.check ? <span className="small" data-testid={`dr-place-${r.key}`}>{r.check.result === 'ticket' ? 'A ticket (logged)' : 'None found'}{r.check.note ? `: ${r.check.note}` : ''} · {r.check.by ?? ''}, {t(r.check.at)}</span> : <span className="small muted">not checked</span> },
-          { key: 'act', label: '', render: (r) => r.check?.result === 'ticket' ? <Link prefetch={false} className="link small" href={tollsHref}>Open in Tolls and tickets</Link> : <span className="ad-actions">
+          { key: 'act', label: '', render: (r) => r.check?.result === 'ticket' ? <Link prefetch={false} className="link small" href={tollsHref}>Open in Tolls and tickets</Link> : <span className="ad-actions" data-guide={r.check ? undefined : 'dr-place-todo'}>
             <Act ops action="deposit_review_ticket" payload={{ ...P, place: r.key, result: 'none_found' }} label="None found" testId={`dr-none-${r.key}`} refresh={refresh} done="Recorded." />
             <Act ops action="deposit_review_ticket" payload={{ ...P, place: r.key, result: 'ticket' }} label="A ticket" testId={`dr-ticket-${r.key}`} refresh={refresh} done="Logged."
               fields={[{ name: 'kind', label: 'Kind', type: 'select', required: true, options: TICKET_KINDS, value: 'parking' }, { name: 'amount_cents', label: 'Amount', type: 'money', required: true },

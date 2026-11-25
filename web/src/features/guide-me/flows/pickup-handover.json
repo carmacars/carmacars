@@ -1,0 +1,127 @@
+{
+  "id": "pickup-handover",
+  "title": "Pickup handover",
+  "summary": "Check in: the ready check, the renter, odometer, fuel and keys, the photos, damage, then sign and hand over the keys.",
+  "who": [
+    "admin",
+    "fleet",
+    "field"
+  ],
+  "start": {
+    "field": "/staff/field",
+    "va": "{base}/bookings",
+    "admin": "{base}/bookings"
+  },
+  "guide": {
+    "portal": "field",
+    "slug": "a-handover"
+  },
+  "steps": [
+    {
+      "id": "job",
+      "target": "field-job-pickup",
+      "text": "Open the pickup: on Today, the Check in job; or on the booking, Check in.",
+      "done": {
+        "attr": "ho-checklist",
+        "name": "data-kind",
+        "equals": "pickup"
+      },
+      "skipIfDone": true
+    },
+    {
+      "id": "ready",
+      "target": "ho-ready",
+      "page": "ho-checklist",
+      "when": {
+        "exists": "ho-ready"
+      },
+      "text": "Run the ready check: the agreement is signed and the deposit is in. Fix what it lists before you go on.",
+      "done": {
+        "attr": "ho-ready",
+        "name": "data-ok",
+        "equals": "yes"
+      }
+    },
+    {
+      "id": "person",
+      "target": "ho-person",
+      "page": "ho-checklist",
+      "when": {
+        "exists": "ho-person"
+      },
+      "text": "Check the renter against their licence and the card they paid with.",
+      "done": {
+        "attr": "ho-person",
+        "name": "data-ok",
+        "equals": "yes"
+      }
+    },
+    {
+      "id": "readings",
+      "target": "ho-readings",
+      "page": "ho-checklist",
+      "text": "Type the odometer in km, tap the fuel level as the gauge shows it, and count the keys.",
+      "done": {
+        "attr": "ho-readings",
+        "name": "data-ok",
+        "equals": "yes"
+      }
+    },
+    {
+      "id": "photos",
+      "target": "ho-photos",
+      "page": "ho-checklist",
+      "text": "Take every photo in the list: landscape, the whole car in frame. The first one shows the plate.",
+      "done": {
+        "attr": "ho-photos",
+        "name": "data-ok",
+        "equals": "yes"
+      }
+    },
+    {
+      "id": "damage",
+      "target": "ho-damage",
+      "page": "ho-checklist",
+      "text": "Mark any damage on the car and take a close-up of each mark.",
+      "done": {
+        "attr": "ho-damage",
+        "name": "data-ok",
+        "equals": "yes"
+      }
+    },
+    {
+      "id": "tracker",
+      "target": "ho-tracker",
+      "page": "ho-checklist",
+      "when": {
+        "exists": "ho-tracker"
+      },
+      "text": "Confirm the tracker is reporting.",
+      "done": {
+        "attr": "ho-tracker",
+        "name": "data-ok",
+        "equals": "yes"
+      }
+    },
+    {
+      "id": "sign",
+      "target": "ho-sign",
+      "page": "ho-checklist",
+      "text": "Review the summary with the renter, then both of you sign.",
+      "done": {
+        "attr": "ho-sign",
+        "name": "data-ok",
+        "equals": "yes"
+      }
+    },
+    {
+      "id": "complete",
+      "target": "ho-complete",
+      "page": "ho-checklist",
+      "text": "Press Hand over the keys. The renter gets the photo report by email.",
+      "done": {
+        "exists": "ho-done"
+      }
+    }
+  ]
+}

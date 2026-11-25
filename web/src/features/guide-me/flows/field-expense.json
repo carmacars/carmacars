@@ -1,0 +1,88 @@
+{
+  "id": "field-expense",
+  "title": "Log a field expense",
+  "summary": "Add, Money spent: what for, the amount, whose money paid, the receipt photo, then Send to Finance.",
+  "who": [
+    "field"
+  ],
+  "start": "/staff/field",
+  "guide": {
+    "portal": "field",
+    "slug": "my-jobs"
+  },
+  "steps": [
+    {
+      "id": "add",
+      "target": "field-add",
+      "on": "/staff/field",
+      "href": "/staff/field",
+      "text": "Press Add at the bottom of Today.",
+      "done": {
+        "exists": "field-add-sheet"
+      },
+      "skipIfDone": true
+    },
+    {
+      "id": "money",
+      "target": "add-money",
+      "on": "/staff/field",
+      "text": "Choose Money spent.",
+      "done": {
+        "exists": "money-form"
+      },
+      "skipIfDone": true
+    },
+    {
+      "id": "kind",
+      "target": "money-kind",
+      "on": "/staff/field",
+      "text": "What for: gas, a wash, parts, parking and the rest."
+    },
+    {
+      "id": "amount",
+      "target": "money-amount",
+      "on": "/staff/field",
+      "text": "Type the amount before tax, and the HST if the receipt shows it.",
+      "done": {
+        "filled": "money-amount"
+      }
+    },
+    {
+      "id": "whose",
+      "target": "money-whose",
+      "on": "/staff/field",
+      "text": "Whose money? My own money (pay me back) or Company card/cash. Own money is paid back with your pay once Finance approves it.",
+      "done": {
+        "checked": "money-whose"
+      }
+    },
+    {
+      "id": "receipt",
+      "target": "money-receipt",
+      "on": "/staff/field",
+      "text": "Take the photo of the receipt. No receipt now? Add it soon: it goes on your To do.",
+      "read": true,
+      "done": {
+        "filled": "money-receipt"
+      }
+    },
+    {
+      "id": "send",
+      "target": "money-save",
+      "on": "/staff/field",
+      "text": "Press Send to Finance.",
+      "done": {
+        "any": [
+          {
+            "attr": "money-form",
+            "name": "data-sent",
+            "equals": "yes"
+          },
+          {
+            "gone": "money-form"
+          }
+        ]
+      }
+    }
+  ]
+}

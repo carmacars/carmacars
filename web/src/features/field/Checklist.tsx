@@ -320,12 +320,12 @@ export function Checklist({ j, back = '/staff/field', backLabel = 'Back to my jo
   const uploadsLeft = !queueEmpty;
   const can = needed.length === 0 && !uploadsLeft;
   const primary = pickup ? (later ? 'Save the details' : 'Hand over the keys') : later ? 'Save the details' : 'Complete the return';
-  if (done) return <div className="fd-screen fd-finish" role="status" data-testid="field-done"><span className="fd-finish__mark" aria-hidden="true"><FdIcon name="check" /></span><h2 className="d3">{done}</h2><Link className="btn btn--primary fd-wide" href={back} data-testid="checklist-back">{backLabel}</Link></div>;
+  if (done) return <div className="fd-screen fd-finish" role="status" data-testid="field-done" data-guide="ho-done"><span className="fd-finish__mark" aria-hidden="true"><FdIcon name="check" /></span><h2 className="d3">{done}</h2><Link className="btn btn--primary fd-wide" href={back} data-testid="checklist-back">{backLabel}</Link></div>;
   if (stop) return <div className="fd-screen fd-stopped" role="alert" data-testid="field-stop"><span className="fd-finish__mark" aria-hidden="true"><FdIcon name="cross" /></span><h2 className="d3">Do not release the car. Call CarmaCars.</h2><p>{stop}</p><Link className="btn btn--ghost fd-wide" href={back}>{backLabel}</Link></div>;
   const doneCount = shown.filter((x) => x.ok && !x.optional).length;
   const mustCount = shown.filter((x) => !x.optional).length;
   return (
-    <div className="fd-screen fd-flow fd-one" data-testid="checklist">
+    <div className="fd-screen fd-flow fd-one" data-testid="checklist" data-guide="ho-checklist" data-kind={pickup ? 'pickup' : 'return'}>
       <div className="fd-flow__head">
         <p className="fd-stepcount" data-testid="step-count">{doneCount} of {mustCount} done<span className="fd-stepcount__job">{pickup ? 'Check in' : 'Check out'}{j.vehicle.plate ? <>, <Plate plate={j.vehicle.plate} small /></> : null}</span></p>
         <div className="fd-progress" role="progressbar" aria-label="Checklist progress" aria-valuemin={0} aria-valuemax={mustCount} aria-valuenow={doneCount} aria-valuetext={`${doneCount} of ${mustCount} done`}>
@@ -334,7 +334,7 @@ export function Checklist({ j, back = '/staff/field', backLabel = 'Back to my jo
         <SaveState state={saved} pending={q.pending.length} resend={resend} />
       </div>
       {shown.map((x) => (
-        <section key={x.id} id={`hs-${x.id}`} className={`fd-sec${x.optional ? ' is-optional' : x.ok ? ' is-ok' : ' is-todo'}`} aria-labelledby={`hs-${x.id}-t`} data-testid={`part-${x.id}`} data-ok={x.ok ? 'yes' : 'no'}>
+        <section key={x.id} id={`hs-${x.id}`} className={`fd-sec${x.optional ? ' is-optional' : x.ok ? ' is-ok' : ' is-todo'}`} aria-labelledby={`hs-${x.id}-t`} data-testid={`part-${x.id}`} data-guide={`ho-${x.id}`} data-ok={x.ok ? 'yes' : 'no'}>
           {!x.optional && <h2 className="fd-sec__h" id={`hs-${x.id}-t`}><span className="fd-sec__mark" aria-hidden="true">{x.ok ? <FdIcon name="check" /> : null}</span><span>{x.title}</span><span className="vh">{x.ok ? ': done' : ': to do'}</span></h2>}
           {x.optional && <h2 className="vh" id={`hs-${x.id}-t`}>{x.title}</h2>}
           {x.body}
@@ -345,7 +345,7 @@ export function Checklist({ j, back = '/staff/field', backLabel = 'Back to my jo
       <div className="fd-bar fd-bar--one">
         {!can && <button className="btn btn--ghost fd-bar__need" type="button" onClick={() => go(needed[0]?.id ?? 'photos')} data-testid="still-needed">
           {needed.length ? <>Next: {needed[0]!.label}{needed.length > 1 ? <span className="fd-bar__more"> and {needed.length - 1} more</span> : null}</> : <>Photos still uploading</>}</button>}
-        <><button className="btn btn--primary" type="button" disabled={pending || !can} onClick={complete} data-testid="complete" aria-describedby="why-checklist-313">{pending ? 'Working' : primary}</button><WhyDisabled id="why-checklist-313" why={((!can)) ? uploadsLeft ? 'Wait for the photos to finish uploading' : `Still to do: ${needed.map((n) => n.label).join(', ')}` : null} /></>
+        <><button className="btn btn--primary" type="button" disabled={pending || !can} onClick={complete} data-testid="complete" data-guide="ho-complete" aria-describedby="why-checklist-313">{pending ? 'Working' : primary}</button><WhyDisabled id="why-checklist-313" why={((!can)) ? uploadsLeft ? 'Wait for the photos to finish uploading' : `Still to do: ${needed.map((n) => n.label).join(', ')}` : null} /></>
       </div>
     </div>
   );

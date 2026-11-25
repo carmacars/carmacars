@@ -1,3 +1,4 @@
+import { GuideMeLink } from '@/features/guide-me/GuideMeLink';
 import Link from '@/components/Link';
 import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
@@ -24,6 +25,7 @@ export default async function VaNewOffer({ searchParams }: { searchParams: Promi
   return (<>
     <PageHead title="Send an offer" />
     <p className="small muted" style={{ maxWidth: '52rem' }}>For a customer on the phone, by text or in person: no request needed. Already agreed and paid? Use <Link prefetch={false} className="link" href="/staff/bookings/new">Add a rental</Link>.</p>
+    <p className="gm-links"><GuideMeLink flow="create-offer" /></p>
     <MyDrafts rows={drafts} base="/staff" current={open?.id} />
     <OfferComposer key={open?.id ?? 'new'} base="/staff" initialCar={sp.car ?? null} initialFrom={sp.from ?? null} initialTo={sp.to ?? null} draft={open} owner={owner} />
   </>);
