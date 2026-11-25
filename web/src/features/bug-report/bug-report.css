@@ -21,3 +21,9 @@
 .br-float:hover { border-color: var(--black, #111); }
 .br-float:focus-visible { outline: 3px solid var(--red-600, #d0111b); outline-offset: 2px; }
 @media (max-width: 22rem) { .br-float { padding: .35rem .6rem; font-size: var(--fs-xs, .8rem); } }
+/* on a phone the copy above a pop-up would sit on the pop-up's own buttons at the bottom (Save, Send): a slim tab on the
+   left edge instead, its words kept for screen readers */
+@media (max-width: 48rem) {
+  .br-float { left: 0; bottom: auto; top: 38%; min-height: 40px; padding: .45rem .45rem .45rem .35rem; border-left: 0; border-radius: 0 999px 999px 0; }
+  .br-float span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+}

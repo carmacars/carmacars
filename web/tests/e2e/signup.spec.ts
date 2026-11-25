@@ -164,7 +164,7 @@ for (const variant of ['plain', 'invitation'] as const) {
     await expect(page.getByTestId('owner-vehicle')).toHaveCount(1);
     expect(await accountEmails(sql, email)).toEqual(['owner_account_created:confirmed']);
     const ob = await outbox(sql, email);
-    expect(ob.map((o) => o.code).sort()).toEqual(['owner_account_created', 'owner_application_received']);
+    expect(ob.map((o) => o.code).sort()).toEqual(['owner_account_created', 'owner_application_received', 'owner_master_agreement_ready']);  // sign first (3800)
     expect(ob.every((o) => o.mv === '{}')).toBe(true);
     expectWelcome('owner_account_created', '/owner');
     await signOutAndIn(page, email, '/owner');
