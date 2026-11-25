@@ -14,10 +14,10 @@ select test.eq('the renter''s side: its nine steps, in order', (select string_ag
   'r48-renter-request r48-renter-offer r48-renter-details-sign r48-renter-pay-deposit r48-renter-coverage r48-renter-pickup r48-renter-trip-extend r48-renter-return-deposit r48-renter-errors');
 select test.eq('every role path has its worked examples from the guide', (select string_agg(ps.path_code || ':' || s.slug, ' ' order by ps.path_code) from academy_path_sections ps join academy_sections s on s.id = ps.section_id where s.slug like 'r48-%-guide-cases'),
   'admin:r48-admin-guide-cases cs:r48-cs-guide-cases field:r48-field-guide-cases finance:r48-finance-guide-cases fleet:r48-fleet-guide-cases sales_in_person:r48-sales-guide-cases sales_remote:r48-sales-guide-cases');
-select test.eq('quiz integrity: every release 48 section has at least 5 questions, 4 options each and the funny one (4200: 5), the answer in range and a reason',
+select test.eq('quiz integrity: every release 48 section has at least 5 questions, 4 or 5 options (4720: a funny one on some questions only), the answer in range and a reason',
   (select count(*) from academy_sections s where s.slug like 'r48-%' and (
      (select count(*) from academy_questions q where q.section_id = s.id) < 5
-     or exists (select 1 from academy_questions q where q.section_id = s.id and (jsonb_array_length(q.options) <> 5 or q.answer not between 0 and jsonb_array_length(q.options) - 1 or btrim(q.explain) = '')))), 0::bigint);
+     or exists (select 1 from academy_questions q where q.section_id = s.id and (jsonb_array_length(q.options) not between 4 and 5 or q.answer not between 0 and jsonb_array_length(q.options) - 1 or btrim(q.explain) = '')))), 0::bigint);
 select test.eq('the counts: 23 sections, 129 questions (the worked examples and the renter''s side of 2990, then evidence, owner use, the WhatsApp tag, work chats, rewards and notifications (3269), the calendar and one portal (3299), tracker events (3322) and people on the map (3351))', (select count(*) || '/' || (select count(*) from academy_questions q join academy_sections x on x.id = q.section_id where x.slug like 'r48-%') from academy_sections s where s.slug like 'r48-%'), '23/129');
 select test.eq('each renter step shows a page of the renter guide that the section names', (select count(*) from academy_sections s
   where s.slug like 'r48-renter-%' and not exists (select 1 from academy_lessons l, jsonb_array_elements(l.scenes) sc where l.section_id = s.id and sc #>> '{visual,kind}' = 'shot'

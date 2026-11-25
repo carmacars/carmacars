@@ -117,7 +117,7 @@ test('owner pipeline: a Transfer car goes from its terms to Listed, one clear st
   for (const why of ['Photos done in the studio', 'Published']) {
     await admin.reload({ waitUntil: 'networkidle' });
     await at.getByTestId('os-advance').click();
-    await admin.getByLabel('Why (kept in the audit log)').fill(why);
+    await admin.getByTestId('os-advance-form').getByLabel('Why (kept in the audit log)').fill(why);
     await admin.getByTestId('os-advance-submit').click();
     await expect.poll(async () => (await sql`select count(*)::int n from audit_log where action = 'owner_stage_override' and entity_id = ${car} and after ->> 'note' = ${why}`)[0]!.n).toBe(1);
   }

@@ -52,11 +52,11 @@ test('sign first: a fleet supplier signs the lease before any car; the Admin see
   await expect(path).toHaveAttribute('data-step', 'sign');
   await expect(path).toContainText('Sign the Fleet Supplier Lease Agreement');
   await expect(page.getByTestId('owner-path-step')).toHaveCount(6);
-  await expect(page.getByTestId('owner-path-cta')).toBeVisible();
-  const box = await page.getByTestId('owner-path-cta').boundingBox();
+  await expect(page.locator('[data-testid="owner-path-cta"], [data-testid="os-cta"]').first()).toBeVisible();
+  const box = await page.locator('[data-testid="owner-path-cta"], [data-testid="os-cta"]').first().boundingBox();
   expect(box!.height).toBeGreaterThanOrEqual(44);
   await check(page, 'owner path');
-  await page.getByTestId('owner-path-cta').click();
+  await page.locator('[data-testid="owner-path-cta"], [data-testid="os-cta"]').first().click();
   await page.waitForURL(/\/owner\/sign/);
   await expect(page.locator('#sg-docs-h')).toContainText('The documents (2)');
   await expect(page.locator('main')).toContainText('Fleet Supplier Lease Agreement');

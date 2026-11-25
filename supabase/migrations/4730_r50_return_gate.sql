@@ -354,3 +354,7 @@ begin
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);
   end loop;
 end $$;
+
+-- The server (service_role) runs every app function (tests 06/08/09).
+grant execute on function app.driver_licence_approved_for(uuid, uuid), app.pickup_record_booked_time(uuid, uuid, text),
+  app.verification_upload_follow(), app.identity_verification_follow(), app.pickup_outstanding(uuid) to service_role;

@@ -69,7 +69,7 @@ test('owner account without a car, then the first car from the owner portal', as
   }
   // r50 (3800, sign first): the agreement is made from the profile at once, and signing it is the first step, before any car
   await expect(page.getByTestId('owner-path')).toHaveAttribute('data-step', 'sign');
-  await expect(page.getByTestId('owner-path-cta')).toHaveText('Read and sign');
+  await expect(page.locator('[data-testid="owner-path-cta"], [data-testid="os-cta"]').first()).toHaveText('Read and sign');
   await expect(page.getByTestId('owner-path-step')).toHaveCount(6);
   const eas = await sql`select variant, status from owner_agreements where owner_id = ${owner!.id} and kind = 'enrollment'`;
   expect(eas.map((a) => `${a.variant}:${a.status}`)).toEqual(['standard:draft']);

@@ -75,7 +75,7 @@ async function signFromHome(op: Page, name: string, where: string) {
   const errors = watch(op);
   await op.goto('/owner', { waitUntil: 'networkidle' });
   // sign first (3800): the guided path's one button (Read and sign, or Confirm my cars) opens /owner/sign
-  await op.getByTestId('owner-path-cta').click();
+  await op.locator('[data-testid="owner-path-cta"], [data-testid="os-cta"]').first().click();
   const t0 = Date.now();
   await op.waitForURL(/\/owner\/sign$/, { timeout: 20_000 });
   // the documents are readable at once, from their text
@@ -168,7 +168,7 @@ test('before approval, sign first (3800): the master agreement is ready to sign 
   const errors = watch(op);
   await op.goto('/owner', { waitUntil: 'networkidle' });
   await expect(op.getByTestId('owner-path')).toHaveAttribute('data-step', 'sign');
-  await op.getByTestId('owner-path-cta').click();
+  await op.locator('[data-testid="owner-path-cta"], [data-testid="os-cta"]').first().click();
   await op.waitForURL(/\/owner\/sign$/, { timeout: 20_000 });
   await expect(op.getByTestId('owner-preview-pending')).toHaveCount(0);
   await expect(op.getByTestId('package-sign')).toBeVisible({ timeout: 30_000 });

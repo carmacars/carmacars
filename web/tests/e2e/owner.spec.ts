@@ -164,10 +164,10 @@ test('owner billing: apply with three vehicles, terms and upfront invoices, sign
   // ---------------------------------------------------------------- 3. the owner signs: one package, one signature (0049)
   await page.goto('/owner', { waitUntil: 'networkidle' });
   // sign first (3800): the guided path's one button opens the documents to sign
-  await expect(page.getByTestId('owner-path-cta')).toHaveAttribute('href', '/owner/sign');
+  await expect(page.locator('[data-testid="owner-path-cta"], [data-testid="os-cta"]').first()).toHaveAttribute('href', '/owner/sign');
   await check(page, 'owner home');
   await page.screenshot({ path: `${SHOTS}/owner-home-${info.project.name}.png`, fullPage: true });
-  await page.getByTestId('owner-path-cta').click();
+  await page.locator('[data-testid="owner-path-cta"], [data-testid="os-cta"]').first().click();
   await page.waitForURL(/\/owner\/sign/);
   const opened = Date.now();
   await expect(page.locator('summary', { hasText: 'Vehicle Enrollment Agreement' })).toBeVisible();

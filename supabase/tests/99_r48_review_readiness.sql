@@ -1,13 +1,14 @@
 -- 99: "Licence and selfie verified" follows the review screen (migration 3055; docs/changes/2026-11-15-r48-review-readiness.md):
 -- a driver whose selfie was approved on an earlier booking and whose licence is approved here is verified, and the
 -- readiness ticks. Fixtures start with "x55"; addresses are example.test.
+-- (Bookings fall inside the fixture licence, valid to 2030-01-01: since 4730 an approval elsewhere counts only while the licence covers the return.)
 select test.suite('99 r48 review readiness');
 select test.mk_user('x55_admin', 'admin');
 select test.mk_owner('x55_o');
 select test.mk_vehicle('X55A', 'x55_o');
 select test.mk_renter('x55_r');
-select test.mk_booking('CC-X551', 'X55A', 'x55_r', '2031-07-01 10:00', '2031-07-02 10:00', 'closed');
-select test.mk_booking('CC-X552', 'X55A', 'x55_r', '2031-08-01 10:00', '2031-08-02 10:00', 'confirmed');
+select test.mk_booking('CC-X551', 'X55A', 'x55_r', '2029-07-01 10:00', '2029-07-02 10:00', 'closed');
+select test.mk_booking('CC-X552', 'X55A', 'x55_r', '2029-08-01 10:00', '2029-08-02 10:00', 'confirmed');
 insert into booking_drivers (booking_id, driver_id, role, full_name, date_of_birth, age_at_pickup, age_band)
 values (test.id('booking:CC-X551'), test.id('driver:x55_r'), 'renter', 'X55 R', date '1990-05-05', 41, '26_plus'),
        (test.id('booking:CC-X552'), test.id('driver:x55_r'), 'renter', 'X55 R', date '1990-05-05', 41, '26_plus');
