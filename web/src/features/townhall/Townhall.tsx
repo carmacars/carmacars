@@ -88,6 +88,10 @@ export async function TownhallDeck({ userId, aal, base, week }: { userId: string
               {v.admin && <Act action="townhall_note" payload={{ deck: v.deck!.id, key: `p_${p.user_id}` }} label={p.shoutout ? 'Change the shout-out' : 'Add a shout-out'} refresh={refresh} done="Saved."
                 fields={[{ name: 'note', label: `Shout-out for ${p.name}`, type: 'textarea', value: p.shoutout ?? '' }]} />}
             </li>))}</ul>}
+          {s.key === 'incident' && v.admin && <p className="small"><span className="muted">{s.picked === 'admin' ? 'Picked by an Admin.' : 'Picked automatically: the most serious of the week.'}</span>{' '}
+            <Act action="townhall_incident_pick" payload={{ deck: v.deck!.id }} label="Choose another" refresh={refresh} done="Saved: the deck is rebuilt with it." testId="townhall-incident-pick"
+              fields={[{ name: 'ref', label: 'Incident', type: 'select', value: s.pick_ref ?? '', options: [['', 'Automatic (the most serious)'], ...(s.candidates ?? []).map((c) => [c.ref, c.label] as [string, string])] },
+                { name: 'body', label: 'Or describe it yourself (no renter names)', type: 'textarea', hint: 'Leave both empty to go back to the automatic pick.' }]} /></p>}
           {s.note && <p className="small" data-testid={`townhall-note-${s.key}`}>{s.note}</p>}
           {v.admin && <Act action="townhall_note" payload={{ deck: v.deck!.id, key: s.key }} label={s.note ? 'Change the note' : 'Add a note'} refresh={refresh} done="Saved."
             fields={[{ name: 'note', label: 'What to say on this slide', type: 'textarea', value: s.note ?? '' }]} />}

@@ -15,6 +15,7 @@ import { NotifyPanel } from '@/features/notifications/NotifyPanel';
 import { AppProfile } from '@/features/app-shell/AppProfile';
 import { LocationSettings } from '@/features/location/LocationSettings';
 import { Act } from '@/features/admin/Act';
+import { BirthdaySection } from '@/features/staff/Birthday';
 import { AvailabilityGrid } from '@/features/field-portal/AvailabilityGrid';
 import type { Availability } from '@/features/field-portal/shift-picker';
 
@@ -61,6 +62,7 @@ export default async function Profile() {
         <p className="small"><Link prefetch={false} className="link" href="/staff/field/referrals">My referral link</Link> · <Link prefetch={false} className="link" href="/staff/field/rentals/new">Add a rental</Link></p>
       </section>
       {sp && <SelfProfile data={sp} className="fd-card stack" password={false} />}
+      <BirthdaySection userId={user.id} portal="field" className="fd-card stack" refresh={['/staff/field/profile']} />
       {si && <SignInSettings state={si} className="fd-card stack" />}
       {nc && <NotifyChannelCard reach={nc} className="fd-card stack" />}
       <PushAlerts userId={user.id} portal="field" className="fd-card stack" />

@@ -16,6 +16,7 @@ import { PushAlerts } from '@/features/push/PushAlerts';
 import { NotifyPanel } from '@/features/notifications/NotifyPanel';
 import { AppProfile } from '@/features/app-shell/AppProfile';
 import { LocationSettings } from '@/features/location/LocationSettings';
+import { BirthdaySection } from '@/features/staff/Birthday';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Profile', path: '/staff/profile', noindex: true, description: 'Your details, your home address and sign-in.' });
@@ -35,6 +36,7 @@ export default async function VaProfile() {
         {home.missing ? <p className="small" data-testid="home-address-above">Fill in your home address at the top of the page.</p> : <HomeAddressSection portal="va" state={home} />}
         <PayDetails portal="va" view={pay} canada={!!home.canada} />
         {sp && <SelfProfile data={sp} password={false} />}
+        <BirthdaySection userId={user.id} portal="va" className="pt-card stack" refresh={['/staff/profile']} />
         {si && <SignInSettings state={si} className="pt-card stack" />}
         {nc && <NotifyChannelCard reach={nc} className="pt-card stack" />}
         <StaffDigestChoice userId={user.id} ops refresh={['/staff/profile']} className="pt-card stack" />

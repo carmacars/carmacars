@@ -116,8 +116,10 @@ select test.eq('Mark answered takes it off', (select count(*) from app.unanswere
 -- ================================================================ 7. the townhall
 select test.ok('the deck builds', app.townhall_build(null, test.id('r35k_admin')) is not null);
 -- 1505: the 30-minute run (15 sections; the investor money and the revenue by car are the Admin's)
-select test.eq('the Admin sees every slide', jsonb_array_length(test.r35k('r35k_admin', 'ops_read', 'townhall') -> 'deck' -> 'slides'), 15);
-select test.eq('staff do not see the money slides', jsonb_array_length(test.r35k('r35k_cs', 'ops_read', 'townhall') -> 'deck' -> 'slides'), 13);
+select test.eq('the Admin sees every slide', jsonb_array_length(test.r35k('r35k_admin', 'ops_read', 'townhall') -> 'deck' -> 'slides'),
+  (select jsonb_array_length(slides) from townhall_decks order by week_of desc limit 1)); -- 4600: more sections
+select test.eq('staff do not see the money slides', jsonb_array_length(test.r35k('r35k_cs', 'ops_read', 'townhall') -> 'deck' -> 'slides'),
+  (select count(*)::int from townhall_decks d, jsonb_array_elements(d.slides) s where d.week_of = (select max(week_of) from townhall_decks) and not coalesce((s ->> 'admin_only')::boolean, false)));
 select test.throws('only an Admin writes notes', format($$select test.r35k('r35k_cs', 'admin_do', 'townhall_note', %L)$$, jsonb_build_object('deck', (select id from townhall_decks limit 1), 'key', 'week', 'note', 'x')));
 
 -- ================================================================ 8. careers: closed roles, Sales, AI interviews, auto-hire
