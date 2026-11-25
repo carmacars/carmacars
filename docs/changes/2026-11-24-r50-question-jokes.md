@@ -22,3 +22,7 @@ Each Almash build with an academy carrying the same question table (`academy_sec
 5. **Front end**: the `joke` field on the quiz start type, the playful line when the shown joke is picked (`ownJokeQuip`), and the editor marking `o === q.joke` and editing the real options only.
 6. **Tests**: copy `99_academy_jokes.sql` sections 1 and 2 (0 or 1 joke, the question's own line, no bank, right answers unchanged, no fallback for a new question) and the 4720 tests of `r50.test.ts`; point the quiz test at a section of that build that has jokes.
 7. Regenerate that build's `types.ts` (the new column) and set its schema marker to its highest migration.
+
+## Guides
+
+No guide change: the Academy quizzes changed content, not a screen or workflow a guide describes.
