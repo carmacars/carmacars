@@ -6,7 +6,7 @@
 # the script goes on with the rest; the list is printed at the end (and in the job summary).
 #   cf-site.sh prepare              A: the `new` record (proxied) to the server, visitor location headers on, SSL Full
 #                                   (strict) (Full when another proxied host of the zone has no publicly valid certificate)
-#   cf-site.sh origin-cert <dir> [current.pem]   the Cloudflare Origin CA certificate of DOMAIN and *.DOMAIN (15 years):
+#   cf-site.sh origin-cert <dir> [current.pem]   the Cloudflare Origin CA certificate of the web hostnames (ORIGIN_HOSTS), never *.DOMAIN (15 years):
 #                                   prints `reuse` when current.pem still covers them for 30 days or more, else creates one
 #                                   (dir/cert.pem, dir/key.pem; the key is made here and never leaves this job but to the
 #                                   server) and prints `new`; prints `none` when the token may not (Caddy then uses HTTP-01)
@@ -192,29 +192,35 @@ prepare() {
 }
 
 # ------------------------------------------------------------------ the Origin CA certificate
-covers() { # cert.pem: DOMAIN and *.DOMAIN, from Cloudflare's Origin CA, 30 days or more left
-  local f="$1" san
+# r50 infra: the exact web hostnames (ORIGIN_HOSTS, comma separated; default DOMAIN and www.DOMAIN), never *.DOMAIN. A
+# wildcard loaded in Caddy also matches the DNS-only hosts (api., meet.): Caddy then stops managing their Let's Encrypt
+# certificates and serves the Origin CA one, which browsers, the web container and vps-health refuse (run 45653284663).
+origin_hosts() { local h="${ORIGIN_HOSTS:-$DOMAIN,www.$DOMAIN}"; tr ',' '\n' <<<"${h// /}" | grep -v '^$' | sort -u; }
+covers() { # cert.pem: every origin_hosts name and no wildcard, from Cloudflare's Origin CA, 30 days or more left
+  local f="$1" san h
   [ -s "$f" ] || return 1
   openssl x509 -in "$f" -noout -checkend 2592000 > /dev/null 2>&1 || return 1
   openssl x509 -in "$f" -noout -issuer 2>/dev/null | grep -qi 'CloudFlare.*Origin' || return 1
-  san=$(openssl x509 -in "$f" -noout -ext subjectAltName 2>/dev/null)
-  grep -q "DNS:$DOMAIN\b" <<<"$san" && grep -qF "DNS:*.$DOMAIN" <<<"$san"
+  san=$(openssl x509 -in "$f" -noout -ext subjectAltName 2>/dev/null | tr ',' '\n' | sed -n 's/^[[:space:]]*DNS://p')
+  grep -qF '*' <<<"$san" && return 1
+  for h in $(origin_hosts); do grep -qxF "$h" <<<"$san" || return 1; done
+  return 0
 }
 
 origin_cert() {
   local dir="$1" cur="${2:-}" csr body out
-  if [ -n "$cur" ] && covers "$cur"; then say "Origin CA certificate: the server's still covers $DOMAIN and *.$DOMAIN ($(openssl x509 -in "$cur" -noout -enddate | cut -d= -f2))"; echo reuse; return 0; fi
+  if [ -n "$cur" ] && covers "$cur"; then say "Origin CA certificate: the server's still covers $(origin_hosts | paste -sd' ') ($(openssl x509 -in "$cur" -noout -enddate | cut -d= -f2))"; echo reuse; return 0; fi
   install -d -m 700 "$dir"
   ( umask 077; openssl ecparam -name prime256v1 -genkey -noout -out "$dir/key.pem" 2>/dev/null )
   csr=$(openssl req -new -key "$dir/key.pem" -subj "/O=CarmaCars/CN=$DOMAIN" 2>/dev/null)
-  body=$(jq -nc --arg csr "$csr" --arg d "$DOMAIN" '{hostnames: [$d, "*.\($d)"], requested_validity: 5475, request_type: "origin-ecc", csr: $csr}')
+  body=$(origin_hosts | jq -Rnc --arg csr "$csr" '{hostnames: [inputs], requested_validity: 5475, request_type: "origin-ecc", csr: $csr}')
   if out=$(cf POST "/certificates" "$body"); then
     jq -r '.result.certificate' <<<"$out" > "$dir/cert.pem"
     if covers "$dir/cert.pem"; then
-      note "Origin CA certificate created for $DOMAIN and *.$DOMAIN (15 years, $(openssl x509 -in "$dir/cert.pem" -noout -serial))"
+      note "Origin CA certificate created for $(origin_hosts | paste -sd' ') (15 years, $(openssl x509 -in "$dir/cert.pem" -noout -serial))"
       echo new; report; return 0
     fi
-    warn "Cloudflare answered a certificate that does not cover $DOMAIN and *.$DOMAIN"
+    warn "Cloudflare answered a certificate that does not cover exactly $(origin_hosts | paste -sd' ')"
   else
     need "Zone > SSL and Certificates > Edit" "create a Cloudflare Origin CA certificate (Caddy falls back to Let's Encrypt over HTTP-01)"
   fi

@@ -1,7 +1,8 @@
 # Release 42: the website behind the Supabase stack's Caddy (docs/hosting/off-cloudflare.md). The deploy-vps job puts
 # the hostnames in place of __WEB_HOSTNAMES__ (the repository variable WEB_VPS_HOSTNAMES, comma separated) and installs
 # this file as /opt/carmacars/supabase/caddy/sites/web.caddy; the Caddyfile imports sites/*.caddy.
-# Certificates (r48, 3070): a Cloudflare Origin CA certificate for the domain and *.domain (15 years), made by the deploy
+# Certificates (r48, 3070): a Cloudflare Origin CA certificate for these hostnames only (15 years; never *.domain, which
+# would also take the DNS-only api. and meet. hosts from Let's Encrypt: r50 infra), made by the deploy
 # through the API (scripts/deploy/cf-site.sh origin-cert) and kept on the server in caddy/sites/origin/. Cloudflare's
 # proxy trusts it under SSL Full (strict); it does not depend on port 80, ACME or "Always Use HTTPS". When the token may not
 # make one (or WEB_PROXY=off: a browser would not trust it), the deploy leaves out the block between the origin-tls
