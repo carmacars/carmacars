@@ -3,7 +3,7 @@
 -- the reason) and paid back; Finance and the person see it; the notices reach Finance and the person (email and in-app);
 -- the connector's add_expense and list_expenses carry paid_with. Fixtures start with "xf"; every address is example.test.
 select test.suite('99 r50 field reimbursements');
-select test.mk_user('xf_admin', 'admin');
+select test.mk_user('xfr_admin', 'admin');
 select test.mk_user('xf_fin', 'va', 'finance');
 select test.mk_user('xf_a', 'field');
 select test.mk_user('xf_b', 'field');
@@ -42,11 +42,11 @@ select test.throws('not paid twice', format($$select app.reimbursement_paid(test
 select test.throws('a field person cannot pay it', format($$select app.reimbursement_paid(test.id('xf_a'), jsonb_build_object('id', %L))$$, (select id from staff_reimbursements where field_spend_id = test.xf_spend('Gas xf own'))), 'Only Finance');
 
 -- ================================================================ 4. the connector
-select test.throws('add_expense own money needs the staff member', $$select app.api_expense_add(test.id('xf_admin'), '{"category": "other", "amount_cents": 3000, "description": "Tolls xf", "paid_with": "own"}')$$, 'staff:');
-create temp table xf_ex as select app.api_expense_add(test.id('xf_admin'), jsonb_build_object('category', 'other', 'amount_cents', 3000, 'description', 'Tolls xf admin', 'paid_with', 'own', 'staff', test.id('xf_b'))) as r;
+select test.throws('add_expense own money needs the staff member', $$select app.api_expense_add(test.id('xfr_admin'), '{"category": "other", "amount_cents": 3000, "description": "Tolls xf", "paid_with": "own"}')$$, 'staff:');
+create temp table xf_ex as select app.api_expense_add(test.id('xfr_admin'), jsonb_build_object('category', 'other', 'amount_cents', 3000, 'description', 'Tolls xf admin', 'paid_with', 'own', 'staff', test.id('xf_b'))) as r;
 select test.eq('owed at once to that person', (select x.status || '/' || x.amount_cents from staff_reimbursements x where x.company_expense_id = (select (r ->> 'id')::uuid from xf_ex)), 'owed/3000');
 select test.eq('list_expenses: paid_with, the staff member and the reimbursement', (select (j ->> 'paid_with') || '/' || (j #>> '{reimbursement,status}') from app.api_row('list_expenses', (select (r ->> 'id')::uuid from xf_ex)) j), 'own/owed');
-select test.eq('the default is the company', (select app.api_expense_add(test.id('xf_admin'), '{"category": "other", "amount_cents": 1000, "description": "Paper xf"}') ->> 'paid_with'), 'company');
+select test.eq('the default is the company', (select app.api_expense_add(test.id('xfr_admin'), '{"category": "other", "amount_cents": 1000, "description": "Paper xf"}') ->> 'paid_with'), 'company');
 select test.ok('list_expenses filters by paid_with', (select count(*) from app.api_src('list_expenses', '{"paid_with": "own"}') s join company_expenses e on e.id = s.id where e.paid_with <> 'own') = 0);
 
 -- ================================================================ 5. the notices: email and in-app, to the right people
