@@ -25,7 +25,7 @@ grant all on sg to public;
 -- ================================================================ 1. a signed-in renter plays on the site
 insert into sg values ('r1', test.sgstart('r1', test.id('gsi_rita')));
 select test.eq('a signed-in renter plays on the site, with their account named',
-  (select (v ->> 'ok') || ' ' || (v ->> 'context') || ' ' || (v -> 'account' ->> 'email') || ' ' || (v -> 'account' ->> 'first') from sg where n = 'r1'), 'true site gsi_rita@example.test Sg');
+  (select (v ->> 'ok') || ' ' || (v ->> 'context') || ' ' || (v -> 'account' ->> 'email') || ' ' || (v -> 'account' ->> 'first') from sg where n = 'r1'), 'true site gsi_rita@example.test Gsi');
 select test.eq('the play is the site''s, with the account', (select context || ' ' || trigger || ' ' || (user_id = test.id('gsi_rita')) from game_plays where token = (select v ->> 'token' from sg where n = 'r1')), 'site pages true');
 select test.eq('the same account on the same browser again: the same play', (test.sgstart('r1', test.id('gsi_rita')) ->> 'token') = (select v ->> 'token' from sg where n = 'r1'), true);
 select test.eq('Play again on a saved prize is for visitors who are not signed in', (test.sgstart('r1', test.id('gsi_rita'), jsonb_build_object('again_of', (select v ->> 'token' from sg where n = 'r1'))) ->> 'reason'), 'again_not_found');
@@ -44,7 +44,7 @@ select test.eq('a claim with only the token: a code, the account''s email, "Rita
   (select (v ->> 'ok') || ' ' || (v ->> 'email') || ' ' || (length(v ->> 'code') > 0)::text from sg where n = 'c1'), 'true gsi_rita@example.test true');
 select test.eq('the claim is tied to the user and the renter, with the account''s first name',
   (select (user_id = test.id('gsi_rita'))::text || ' ' || (renter_id = test.id('renter:gsi_rita'))::text || ' ' || first_name || ' ' || email from game_claims where email = 'gsi_rita@example.test'),
-  'true true Sg gsi_rita@example.test');
+  'true true Gsi gsi_rita@example.test');
 select test.eq('a second tap, with another email typed, makes no second code',
   (select (v ->> 'ok') || ' ' || (v ? 'code')::text from (select test.sgclaim((select v ->> 'token' from sg where n = 'r1'), test.id('gsi_rita'), '{"email": "other@example.test"}') v) x), 'false false');
 select test.eq('only one claim exists for the account', (select count(*) from game_claims where user_id = test.id('gsi_rita')), 1::bigint);
